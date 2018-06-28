@@ -1,0 +1,85 @@
+# Build artifacts and dependencies.
+/.children
+/.project
+/Makefile
+/base
+/benchmarks
+/buildtools
+/ipch
+/out
+/xcodebuild
+/.flaky.log
+/.debug.log
+*.Makefile
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.target.mk
+*.host.mk
+*.vcproj
+*.vcxproj
+*.vcxproj.filters
+/*.vcxproj.user
+*.stamp
+
+# Gyp generated files
+*.xcodeproj
+*.intermediate
+
+# Eclipse config files - also in all subdirectories.
+.children
+.project
+.settings
+
+# IntelliJ project files
+*.iml
+.idea
+CMakeLists.txt
+.clang_complete
+
+# VSCode project files
+.vscode
+.history
+
+# Built by chromebot and downloaded from Google Storage
+client/tests/drt
+
+# Compiled python binaries
+*.pyc
+
+# pydev project file.
+.pydevproject
+
+# From the Mac OS X Finder
+.DS_Store
+
+# Pub generated "packages" directories and files
+packages
+pubspec.lock
+
+# Local pub storage
+.pub
+
+# Vim temporary swap files.
+*.swp
+
+# Kate temporary files.
+*~
+*.kate-swp
+
+# Merge files.
+*.orig
+*.rej
+
+# Generated files.
+tools/dartium/out
+tools/out
+tools/xcodebuild
+editor/util/testing/mac/CodeLab.suite/Results
+editor/util/testing/mac/DartEditor.suite/Results
+editor/util/testing/mac/Samples.suite/Results
+.test-outcome.log
+/outline.dill
+/generated/
+/crash_logs/
