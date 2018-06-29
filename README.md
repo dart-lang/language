@@ -1,3 +1,6 @@
+# THIS REPOSITORY IS NOT YET OPEN FOR PARTICIPATION.
+**It's still in the process of being set up**
+
 # Dart Language
 
 [Dart][website] is an open-source, scalable programming language, with robust
