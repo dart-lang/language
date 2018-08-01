@@ -1,5 +1,23 @@
-# THIS REPOSITORY IS NOT YET OPEN FOR PARTICIPATION.
-**It's still in the process of being set up**
+# Work In Progress
+
+This repository is primarily a place for the Dart language team to work on
+language changes and features, and to solicit and accept feedback and requests.
+The repository is still in an experimental stage, so expect changes to the
+organization and processes documented here.
+
+Issues and feature requests relevant to the language and the specification may
+be filed [here](https://github.com/dart-lang/language/issues).
+
+# Organization
+
+We follow
+roughly
+[this process](https://github.com/dart-lang/language/doc/life_of_a_language_feature.md) for
+planning and rolling out language changes.
+
+# In flight changes
+
+Nothing currently active.
 
 # Dart Language
 

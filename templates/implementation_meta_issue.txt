@@ -1,0 +1,27 @@
+Title: Implementation tracking issue for <feature name>
+
+Assignee: <language team member managing the change>
+Labels: 
+Projects:
+
+Body:
+
+This issue is for tracking implementation of <link to accepted proposal>.
+
+The implementation plan for this issue is <link to implementation plan>.
+
+## TODO: 
+
+- [ ] Implementation team sign off (this issue):
+- [ ] Issue for implementation in dart2js:
+- [ ] Issue for implementation in DDC:
+- [ ] Issue for implementation in CFE:
+- [ ] Issue for implementation in Analyzer:
+- [ ] Issue for implementation in Intellij:
+- [ ] Issue for implementation in Dartfmt:
+- [ ] Issue for implementation in Dartdoc:
+- [ ] Issue for implementation in Angular compiler:
+- [ ] Issue for language tests:
+- [ ] Issue for documentation:
+- [ ] Issue for specification:
+- [ ] Issue for code cleanup:
