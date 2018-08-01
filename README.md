@@ -12,7 +12,7 @@ be filed [here](https://github.com/dart-lang/language/issues).
 
 We follow
 roughly
-[this process](https://github.com/dart-lang/language/doc/life_of_a_language_feature.md) for
+[this process](https://github.com/dart-lang/language/blob/master/doc/life_of_a_language_feature.md) for
 planning and rolling out language changes.
 
 # In flight changes
