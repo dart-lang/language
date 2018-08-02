@@ -15,6 +15,9 @@ roughly
 [this process](https://github.com/dart-lang/language/blob/master/doc/life_of_a_language_feature.md) for
 planning and rolling out language changes.
 
+Notes from language design meetings can be
+found [here](https://github.com/dart-lang/language/blob/master/minutes/).
+
 # In flight changes
 
 Nothing currently active.

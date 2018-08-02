@@ -4,7 +4,7 @@
 
 Features and changes arise from perceived user issues or feature requests.
 Feature requests should be filed in
-the [language repo](http://github.com/language/issues/).  We may close issues
+the [language repo](http://github.com/dart-lang/language/issues/).  We may close issues
 that we believe that we will not adress for whatever reason, or we may keep
 issues open indefinitely if we believe they are something that we may wish to
 address in the future.  Feature request/problem issues are primarily for
@@ -49,7 +49,7 @@ If consensus is reached on a specific proposal and we decide to accept it, a
 member of the language team will be chosen to shepherd the implementation.  An
 implementation plan document will be created in a named sub-directory of the
 `accepted` folder with details about the implementation plan and **a link to the
-single canonical writeup of the language feature* which is to serve as the
+single canonical writeup of the language feature** which is to serve as the
 implementation reference.  The implementation plan should generally include at
 least:
   - Affected implementation teams.
