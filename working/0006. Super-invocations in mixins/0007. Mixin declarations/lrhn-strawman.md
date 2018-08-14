@@ -137,6 +137,26 @@ as long as `M` has no `on` clause requiring a class different from `Object`.
 This allows easier migration from existing classes that are used as both
 superclass and mixin.
 
+#### Mixin type argument inference
+
+Applications of generic mixin declarations may in some circumstances elide actual
+type arguments which will be filled in by an inference process as described
+in
+[this accompanying document](https://github.com/dart-lang/language/blob/master/working/0006.%20Super-invocations%20in%20mixins/0007.%20Mixin%20declarations/mixin-inference.md)
+
+For example:
+
+ ```dart
+class I<X> {}
+
+class M0<T> extends I<T> {}
+
+mixin M1<T> on I<T> {}
+
+// M1 is inferred as M1<int>
+class A extends M0<int> with M1 {}
+```
+
 ### Potential future changes
 
 #### Deprecating derived mixins
