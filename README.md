@@ -20,7 +20,7 @@ found [here](https://github.com/dart-lang/language/blob/master/minutes/).
 
 # In flight changes
 
-Nothing currently active.
+ - Mixin declarations: https://github.com/dart-lang/language/blob/master/accepted/super-mixins.md
 
 # Dart Language
 
