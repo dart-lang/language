@@ -12,12 +12,15 @@ The implementation plan for this issue is <link to implementation plan>.
 
 ## TODO: 
 
+- [ ] Discussion and feedback
 - [ ] Implementation team sign off (this issue):
 - [ ] Issue for implementation in dart2js:
 - [ ] Issue for implementation in DDC:
 - [ ] Issue for implementation in CFE:
 - [ ] Issue for implementation in Analyzer:
 - [ ] Issue for implementation in Intellij:
+- [ ] Issue for implementation in Grok:
+- [ ] Issue for implementation in Cider:
 - [ ] Issue for implementation in Dartfmt:
 - [ ] Issue for implementation in Dartdoc:
 - [ ] Issue for implementation in Angular compiler:
