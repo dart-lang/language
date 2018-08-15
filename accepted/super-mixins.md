@@ -52,20 +52,20 @@ Errors per the specification are implemented in the analyzer or the CFE (both
 for declarations and for uses), and support for surfacing these errors is added
 to the analyzer.
 
+#### Analyzer/Linter
+
+Implement a lint that fires when an old-school super mixin is used.
+
 #### Intellij/Grok/Dartfmt
 
 Support for the new mixin declaration syntax is added to the relevant tooling.
 
 ### Phase 2 (Functional backend support)
 
-#### Analyzer
-
-Implement a hint that fires when an old-school super mixin is used.
-
 #### Language team
 
-Move flutter over to the new declaration syntax, and subsequently roll out the
-analyzer hint when available.
+Turn on old-school mixin lint in flutter, and move flutter over to the new
+declaration syntax.
 
 ### Dart2js, DDC
 
