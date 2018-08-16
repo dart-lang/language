@@ -101,11 +101,11 @@ Here we have _3_ targets:
 * `flags`, which contains some common code for setting/getting flags.
 * `flags_test`, which tests that `flags` is working-as-intended.
 
-This concept already is very different than a `pub` package, where all of the
-files in `lib/` are sort of a single "implicit" target. In fact, a common issue
-externally is that `pubspec.yaml` (sort of similar to `BUILD`) is not granular
-enough, leading to the creation of "micro packages" that have a single file or
-capability.
+This concept already is quite different than a `pub` package, where all of the
+files in `lib/` are accessible once y ou have a dependency on that package. In
+fact, a common issue externally is that `pubspec.yaml` (sort of similar to
+`BUILD`) is not granular enough, leading to the creation of "micro packages" 
+that have a single file or capability.
 
 ### Common Patterns
 
@@ -200,7 +200,7 @@ in test utilities and code into production applications.
 ### No cyclical _targets_
 
 Dart, as the language, allows cyclical dependencies between `.dart` files 
-libraries). Bazel does _not_ allow cyclical dependencies between packages
+(libraries). Bazel does _not_ allow cyclical dependencies between packages
 (i.e. _targets_). So, the following is illegal in Bazel where it is fine
 externally with `pub`:
 
