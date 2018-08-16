@@ -1,4 +1,4 @@
-The following is a reference for [`Bazel`](https://bazel.build/) (internal
+The following is a reference for [`Bazel`](https://bazel.build/) (internally
 called `Blaze`) structures modules of Dart code, especially when compared to
 external structures (i.e. via `pub`).
 
@@ -57,7 +57,8 @@ Once _inside_ a package, such as `//ninjacat/app`, you can expect the following:
     > BUILD
 ```
 
-(If the package happens to be a Dart web _entrypoint_, you might also see `web/`.)
+(If the package happens to be a Dart web _entrypoint_, you might also see `web/`
+and for VM binaries, you might also see `bin/`.)
 
 However, there is another important concept, [`targets`][4]:
 
@@ -94,7 +95,9 @@ dart_test(
 ```
 
 Here we have _3_ targets:
-* `app`, which potentially is the entrypoint to our package/application.
+* `app`, which potentially is code that wraps together application-specific
+  code before being used later in the `main()` function of something in either
+  `web/` or `bin/`.
 * `flags`, which contains some common code for setting/getting flags.
 * `flags_test`, which tests that `flags` is working-as-intended.
 
@@ -224,3 +227,8 @@ dart_library(
     ],
 )
 ```
+
+Unfortunately this is quite common when you take into account the concept of
+pub's `dev_dependencies: ...`. If you have a testing only package (
+`angular_test`, `build_test`, `flutter_test`), which depends on the main package
+but is also used within the main packages tests you have a cyclic dependency.
