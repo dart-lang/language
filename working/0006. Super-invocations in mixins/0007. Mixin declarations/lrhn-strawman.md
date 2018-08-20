@@ -2,7 +2,7 @@
 
 **Author**: [lrn@google.com](mailto:lrn@google.com)
 
-**Version**: 0.8 (2018-07-19)
+**Version**: 0.9 (2018-08-17)
 
 **Status**: Mostly designed, ready for external comments.
 
@@ -42,12 +42,14 @@ The `mixinMember` production allows the same instance or static members that a c
 The `mixin` word is a **built-in identifier** to avoid parsing ambiguities. It does not need to be a reserved word.
 The identifier `mixin` was made a built-in identifier in Dart 2.0.
 
+The `on` word is not reserved in any way, it is a context-specific keyword that has a specific meaning when occuring after the type name of a `mixin` declaration.
+
 
 #### Meaning
 
 A mixin declaration introduces a mixin and an *interface*, but *not a class*. The mixin introduced by a mixin declaration contains all the non-static members declared by the mixin, just as the mixin derived from a class declaration currently does.
 
-In a mixin declaration like `mixin A on B, C implements D, E { body }`
+In a mixin declaration like `mixin A<X extends S, Y extends T> on B, C implements D, E { body }`
 the `on` clause declares the interfaces `B` and `C` as *super-class constraints* of the mixin. Having a super-class constaint allows the mixin declaration instance members to perform super-invocations (like `super.foo()`) if they are allowed by
 a class implementing both `B` and `C`.
 The mixin introduced by `A` can then only be applied to classes that implement both `B` and `C`.
@@ -55,21 +57,24 @@ The mixin introduced by `A` can then only be applied to classes that implement b
 Further, the interfaces `B` and `C` must be *compatible*. The `on` clause introduces a synthetic interface combining `B` and `C`, call it `A$super`, which is equivalent
 to the interface of a class declaration of the form:
 ```dart
-abstract class A$super implements B, C {}
+abstract class A$super<X extends S, Y extends T> implements B, C {}
 ```
 It is a compile-time error for the mixin declaration if the class declaration above would not be valid. This ensures that if more than one super-constraint interface declares a member with the same name, at least one of those members is more specific than the rest, and this is the unique signature that super-invocations are allowed to invoke.
+This also means that only *class* types that can be subclassed, can be used as super-class constraints. Types like `void`, `dynamic`, `FutureOr<X>` or `void Function(X)` are not class types, and some platform types, including `int`, `bool` and `Null`, cannot be subclassed, so none of these types can be used as super-class constraints.
 
 A mixin declaration defines an interface. The interface for this mixin declaration is equivalent to the interface of the class declared as:
 ```dart
-abstract class A extends A$super implements D, E { body' }
+abstract class A<X extends S, Y extends S> extends A$super<X, Y> implements D, E { body' }
 ```
 where `body'` contains abstract declarations corresponding to the instance members of `body` of the mixin `A`.
 
 It is a compile time error for the mixin declaration if this class declarations would not be valid.
+This again means that the types of the implements clause must be subclassable class types,
+and member declarations are not allowed to have the same name as the mixin declaration.
 
 An omitted `on` clause is equivalent to `on Object`.
 
-It's a compile-time error if an instance method in a mixin body has a super-access (`super.foo`, `super.foo()`, `super + bar`, etc.) which would not be a valid invocation if `super` was replaced with an expression with static type `A$super`.
+It's a compile-time error if an instance method in a mixin body has a super-access (`super.foo`, `super.foo()`, `super + bar`, etc.) which would not be a valid invocation if `super` was replaced by an expression with static type `A$super`.
 
 A mixin cannot be marked as `abstract`.
 All mixins are effectively abstract because they don't need to implement the members of the required superclass types.
@@ -83,8 +88,8 @@ Mixin application syntax is unchanged.
 Mixin application semantics is mostly unchanged, except that it's a compile-time error to apply a mixin to a class that doesn't implement *all* the `on` type requirements of the mixin declaration, or apply a mixin containing super-invocations to a class that doesn't have a concrete implementation of the super-invoked members compatible with the super-constraint interface.
 
 That is, if a mixin member of $A$ above contains a super-invocation of a member *f*, 
-then it is a compile-time error to mix the mixin of $A$ onto a class that does not implement both *B* and *C*, 
-or which does not have a concrete implementation of $f$ that is a valid implementation of *super$A.f*.
+then it is a compile-time error to mix the mixin of $A<U, V>$ onto a class that does not implement both *B[U/X,V/Y]* and *C[U/X,V/Y]*, 
+or which does not have a concrete implementation of $f$ that is a valid implementation of *super$A<U,V>.f*.
 
 Forwarding constructors are introduced by mixin application in the same way as they currently are.
 
@@ -97,8 +102,8 @@ We don't actually check that the invocation is valid, but rather that the super-
 that is valid for all possible super-invocations of that member given the super-constraints of the mixin.
 
 That is, for the mixin declaration *A* we check that super-invocations in instance members 
-are valid invocations on the *super$A* interface, 
-and we check that the actual super-class of a mixin application of $A$ has valid implementations of *super$A.m*
+are valid invocations on the *super$A<X, Y>* interface, 
+and we check that the actual super-class of a mixin application of $A<U, V>$ has valid implementations of *super$A<U, V>.m*
 for each member that is invoked via a super invocation in $A$. 
 The actual super invocations are not checked against the actual member implementations (so, e.g., an implementation method that lacks an optional parameter and an invocation that doesn't pass that an argument for that optional parameter, will not be allowed anyway, because the implementation fails to satisfy the expected *interface* for that method).
 This design comes with a cost of maintainability and usability. If a mixin adds a new super-invocation, then it may break existing mixin applications. It's not possible to see the actual requirements of the mixin from its type signature alone, you have to also know which super-invocations its members contain.
@@ -225,3 +230,5 @@ v0.6 (2017-06-14) Say `mixin` must be built-in identifier.
 v0.7 (2018-06-21) Change `required` to `on` and remove Dart 1 specific things.
 
 v0.8 (2018-07-19) Remove Dart 1-isms and clean-up.
+
+v0.9 (2018-08-17) Make example have type parameters. Explicitly exclude some types from `on` and `implements` clause.
