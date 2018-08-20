@@ -88,7 +88,7 @@ Mixin application syntax is unchanged.
 Mixin application semantics is mostly unchanged, except that it's a compile-time error to apply a mixin to a class that doesn't implement *all* the `on` type requirements of the mixin declaration, or apply a mixin containing super-invocations to a class that doesn't have a concrete implementation of the super-invoked members compatible with the super-constraint interface.
 
 That is, if a mixin member of $A$ above contains a super-invocation of a member *f*, 
-then it is a compile-time error to mix the mixin of $A<U, V>$ onto a class that does not implement both *B[U/X,V/Y]* and *C[U/x,V/Y]*, 
+then it is a compile-time error to mix the mixin of $A<U, V>$ onto a class that does not implement both *B[U/X,V/Y]* and *C[U/X,V/Y]*, 
 or which does not have a concrete implementation of $f$ that is a valid implementation of *super$A<U,V>.f*.
 
 Forwarding constructors are introduced by mixin application in the same way as they currently are.
