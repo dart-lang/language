@@ -1,6 +1,6 @@
 The following is a reference for [`Bazel`](https://bazel.build/) (internally
-called `Blaze`) structures modules of Dart code, especially when compared to
-external structures (i.e. via `pub`).
+called `Blaze` at Google) structures modules of Dart code, especially when
+compared to external structures (i.e. via `pub`).
 
 This is *not* a proposal, nor a commitment to build out further Bazel support
 externally, but rather a reference to help guide discussions around visibility
@@ -36,18 +36,19 @@ Bazel [defines a _package_][2] as so:
 
 [2]: https://docs.bazel.build/versions/master/build-ref.html#packages_targets
 
-As one can see, already _package_ is very different than a [`pub` package][3].
+As one can see, already _package_ is very different from a [`pub` package][3].
 
 [3]: https://www.dartlang.org/guides/libraries/create-library-packages
 
 We map the concept of `pub` packages with the following rules:
 
 * A `package:<a>.<b>/uri.dart` resolves to `//a/b/lib/uri.dart`.
-* Any other `package:<name>/uri.dart` resolves to `//third_party/dart/<name>`.
+* Any other `package:<name>/uri.dart` resolves to `//third_party/dart/<name>`,
+  i.e. without a `.` in the name.
 
 ### Inside a Package
 
-Once _inside_ a package, such as `//ninjacat/app`, you can expect the following:
+Inside a package, such as `//ninjacat/app`, you can expect the following:
 
 ```
 > ninjacat/
@@ -102,7 +103,7 @@ Here we have _3_ targets:
 * `flags_test`, which tests that `flags` is working-as-intended.
 
 This concept already is quite different than a `pub` package, where all of the
-files in `lib/` are accessible once y ou have a dependency on that package. In
+files in `lib/` are accessible once you have a dependency on that package. In
 fact, a common issue externally is that `pubspec.yaml` (sort of similar to
 `BUILD`) is not granular enough, leading to the creation of "micro packages" 
 that have a single file or capability.
