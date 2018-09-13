@@ -15,7 +15,7 @@ instead of errors. Those are considered non-breaking. Users can (and most do)
 flip those warnings into errors once they have migrated to being warning-clean.
 The `-Werror` flag globally turns *all* warnings into errors and the standard
 practice is to enable that. This means that a new warning will, by default,
-break many users, but they have an easy to *un*-break themselves.
+break many users, but they have an easy way to *un*-break themselves.
 
 Users can also accommodate changes in language behavior using `#ifdef` to select
 appropriate code for different language versions. Compilers make defines
@@ -31,6 +31,8 @@ compilers.
 Python's transition from 2 to 3 has been famously difficult and long-running.
 One way they ease the migration is by letting you ["import" Python 3 features
 into Python 2 code][from future]:
+
+[from future]: https://docs.python.org/2/reference/simple_stmts.html#future
 
 ```python
 from __future__ import print_function
@@ -53,12 +55,10 @@ This enables users to write code that works in both Python 2 and Python 3 by
 explicitly opting in. In Python 3, the `from __future__` statements are still
 allowed, but are no-ops.
 
-[from future]: https://docs.python.org/2/reference/simple_stmts.html#future
-
 For deployed applications, large-scale users typically explicitly control the
-version of the Python runtime their app runs on. Tools like [pyenv][] control
-the Python runtime version (which also includes its core libraries) on a
-per-application basis. [virtualenv][] is another similar tool.
+version of the Python runtime their app runs on. Tools like [pyenv][] and
+[virtualenv][] control the Python runtime version (which also includes its core
+libraries) on a per-application basis.
 
 Python is in an interesting overlapping situation. Many Python apps run on
 servers that developers control, so it would be possible for Python to be more
@@ -81,7 +81,7 @@ change after moving into the core.
 
 ## Ruby
 
-Situationaly, Ruby is similar to Python. It's dynamically typed, so most
+Situationally, Ruby is similar to Python. It's dynamically typed, so most
 breaking changes don't cause a program to *statically* fail, but only fail at
 runtime if you happen to hit the changed API or behavior. This is both good
 (more existing programs continue to run correctly) and bad (if your program is
