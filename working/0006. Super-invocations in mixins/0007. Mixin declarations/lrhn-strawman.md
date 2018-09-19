@@ -2,13 +2,13 @@
 
 **Author**: [lrn@google.com](mailto:lrn@google.com)
 
-**Version**: 0.9 (2018-08-17)
+**Version**: 1.0 (2018-09-19)
 
-**Status**: Mostly designed, ready for external comments.
+**Status**: Specification complete
 
-## Proposal
-This proposal introduces a new syntax for declaring mixins, separate from deriving a mixin from a class declaration. It expects to deprecate and remove the ability to derive a mixin from a class declaration, but doesn't require it.
+## Specification
 
+This feature specification introduces a new syntax for declaring mixins, separate from deriving a mixin from a class declaration. It expects to deprecate and remove the ability to derive a mixin from a class declaration, but doesn't require it.
 
 ## Background
 
@@ -232,3 +232,5 @@ v0.7 (2018-06-21) Change `required` to `on` and remove Dart 1 specific things.
 v0.8 (2018-07-19) Remove Dart 1-isms and clean-up.
 
 v0.9 (2018-08-17) Make example have type parameters. Explicitly exclude some types from `on` and `implements` clause.
+
+v1.0 (2018-09-19) Mark document as final. No content changed since v0.9.
