@@ -36,7 +36,7 @@ Proposals may be iterated on in place.
 
 As mentioned, alternative proposals should have their own issue and writeup.
 
-All proposals should be linked from and link to the the 'language reqeust' for
+All proposals should be linked from and link to the the 'language request' for
 the user problem/feature request they are trying to address.
 
 ### External (outside of the language team) feedback
@@ -62,7 +62,7 @@ The implementation will be tracked via three artifacts:
   - A feature specification document
 
 The implementation plan must be located in a sub-directory with the name of the
-feature located inside the `accepted/future-releases/` folder. It's file name should be
+feature located inside the `accepted/future-releases/` folder. The filename should be
 `[feature-name]-implementation-plan.md`. The implementation plan should
 generally include at least:
 
@@ -76,13 +76,18 @@ The 'feature specification' is **a single canonical writeup of the language
 feature** which is to serve as the implementation reference. Feature
 specifications use Markdown format. The file name should be
 `[name-of-feature]-implementation-plan.md`, and the feature specification should
-we located in the same sub-directory as the implementation plan.
+be located in the same sub-directory as the implementation plan.
 
-A meta-issue (labelled `language-implementation`) will be filed in the language repository for tracking the
-implementation process. This top of this issue must contain links to:
-  - The related `langauge-reqeust` issue
+A meta-issue (labelled `language-implementation`) will be filed in the language
+repository for tracking the implementation process. This top of this issue must
+contain links to:
+
+  - The related `langauge-request` issue
+
   - The related `language-feature` issue
+
   - A link to the implementation plan
+
   - A link to the feature specification
 
 The next step of the implementation issue is to get sign-off from all of the
@@ -115,7 +120,7 @@ The language team will contribute to:
 
 ## After shipping
 
-After a feature has been shipped, the documents partaining to the feature should
+After a feature has been shipped, the documents pertaining to the feature should
 be moved into subfolders carrying the name of the release in which they were
 shipped (e.g. `Dart 2.1`).
 
