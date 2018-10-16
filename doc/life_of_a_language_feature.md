@@ -4,23 +4,22 @@
 
 Features and changes arise from perceived user issues or feature requests.
 Feature requests should be filed in the [language
-repo](https://github.com/dart-lang/language/issues/new?labels=language-request),
-and are labelled 'language-request'.  We may close issues that we believe that
-we will not address for whatever reason, or we may keep issues open indefinitely
-if we believe they are something that we may wish to address in the future.
-Feature request issues are primarily for documentation of the user issue to be
-solved.
+repo](https://github.com/dart-lang/language/issues/new?labels=request), and are
+labelled 'request'.  We may close issues that we believe that we will not
+address for whatever reason, or we may keep issues open indefinitely if we
+believe they are something that we may wish to address in the future. Feature
+request issues are primarily for documentation of the user issue to be solved.
 
 ## Design, feedback, and iteration
 
 When a member of the language team decides to take up an issue, we will create a
-specific 'language feature' issue (labelled 'language-feature') for tracking the
-solution to the user issue/problem or feature under consideration. 
+specific "language feature" issue (labelled 'feature') for tracking the solution
+to the user issue/problem or feature under consideration. 
 
-Language team members may propose several (competing) language features to a
+Interested parties may propose several (competing) language features to a
 single request/problem. Such a proposal consist of:
 
- - A issue labelled 'language-feature' for discussion of a proposed solution
+ - A issue labelled 'feature' for discussion of a proposed solution
 
  - A link to an initial writeup of the proposed solution. This writeup should be
  checked into the
@@ -29,20 +28,21 @@ single request/problem. Such a proposal consist of:
 
 Additional materials may be added along side the writeup.
 
-All written plans, specs, and materials must be written using Markdown format,
-and must use the `.md` extension.
+All written plans, specs, and materials must be written using [GitHub flavored
+Markdown format](https://guides.github.com/features/mastering-markdown/#GitHub-flavored-markdown)
+format, and must use the `.md` extension.
 
-Proposals may be iterated on in place.
+Proposals may be iterated on in-place.
 
 As mentioned, alternative proposals should have their own issue and writeup.
 
-All proposals should be linked from and link to the the 'language request' for
+All proposals should be linked from and link to the the 'request' for
 the user problem/feature request they are trying to address.
 
 ### External (outside of the language team) feedback
 
 We expect to use the github issue tracker as the primary place for accepting
-feedback on proposals, solicited or unsolicited.  If we solicit feedback, we
+feedback on proposals, solicited or unsolicited. If we solicit feedback, we
 anticipate opening an issue for discussion and feedback, but also encouraging
 filing and splitting off different issues for different threads of discussion.
 
@@ -57,14 +57,14 @@ The implementation will be tracked via three artifacts:
 
   - An implementation plan document
 
-  - A 'language-implementation' issue.
+  - A 'implementation' issue.
 
   - A feature specification document
 
 The implementation plan must be located in a sub-directory with the name of the
-feature located inside the `accepted/future-releases/` folder. The filename should be
-`[feature-name]-implementation-plan.md`. The implementation plan should
-generally include at least:
+feature (`/[feature-name]/`) located inside the `accepted/future-releases/`
+folder. The filename should be `implementation-plan.md`. The implementation
+plan should generally include at least:
 
   - Affected implementation teams.
 
@@ -78,13 +78,13 @@ specifications use Markdown format. The file name should be
 `[name-of-feature]-implementation-plan.md`, and the feature specification should
 be located in the same sub-directory as the implementation plan.
 
-A meta-issue (labelled `language-implementation`) will be filed in the language
+A meta-issue (labelled `implementation`) will be filed in the language
 repository for tracking the implementation process. This top of this issue must
 contain links to:
 
-  - The related `langauge-request` issue
+  - The related `request` issue
 
-  - The related `language-feature` issue
+  - The related `feature` issue
 
   - A link to the implementation plan
 
@@ -107,7 +107,7 @@ also coordinate the writing of additional tests.
 
 ## Shipping
 
-Implementated features will be released according to the implementation plan.
+Implemented features will be released according to the implementation plan.
 The language team will contribute to:
 
   - Helping internal and external teams through any required migration.
@@ -122,7 +122,7 @@ The language team will contribute to:
 
 After a feature has been shipped, the documents pertaining to the feature should
 be moved into subfolders carrying the name of the release in which they were
-shipped (e.g. `Dart 2.1`).
+shipped (e.g. `2.1`).
 
 ## Sample file layout
 
@@ -134,17 +134,21 @@ shipped (e.g. `Dart 2.1`).
     super-mixins-extra.md
     mikes-mixins.md
     spread-operator.md
+    mega-constructors/
+      proposal.md
+      alternate.md
+      illustration.png
 
   /accepted
-    Dart 2.0/
-    Dart 2.1/
+    2.0/
+    2.1/
       super-mixins/
-        super-mixins-implementation-plan.md
-        super-mixins-feature-specification.md
+        implementation-plan.md
+        feature-specification.md
     future-releases/
       spread-operator/
-        spread-operator-implementation-plan.md
-        spread-operator-feature-specification.md
+        implementation-plan.md
+        feature-specification.md
   /resources/
     [various supporting documents and resources]
 ```
