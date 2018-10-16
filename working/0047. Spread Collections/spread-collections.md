@@ -571,4 +571,4 @@ where it's easy to overlook a trailing `...`, like:
 ```
 
 Here, the `...` almost looks like it's part of the *next* element, the TableRow,
-than the preceding one. Given this, I think `...` is the better choice.
+than the preceding one. Given this, I think prefix `...` is the better choice.
