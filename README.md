@@ -1,26 +1,19 @@
-# Work In Progress
+# Dart language evolution
 
-This repository is primarily a place for the Dart language team to work on
+This repository is a place for the Dart language team to work on
 language changes and features, and to solicit and accept feedback and requests.
-The repository is still in an experimental stage, so expect changes to the
-organization and processes documented here.
 
 Issues and feature requests relevant to the language and the specification may
 be filed [here](https://github.com/dart-lang/language/issues).
 
 # Organization
 
-We follow
-roughly
-[this process](https://github.com/dart-lang/language/blob/master/doc/life_of_a_language_feature.md) for
-planning and rolling out language changes.
+We follow [this
+process](https://github.com/dart-lang/language/blob/master/doc/life_of_a_language_feature.md)
+for planning and rolling out language changes.
 
 Notes from language design meetings can be
 found [here](https://github.com/dart-lang/language/blob/master/minutes/).
-
-# In flight changes
-
- - Mixin declarations: https://github.com/dart-lang/language/blob/master/accepted/super-mixins.md
 
 # Dart Language
 
