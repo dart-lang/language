@@ -64,12 +64,12 @@ This also means that only *class* types that can be subclassed, can be used as s
 
 A mixin declaration defines an interface. The interface for this mixin declaration is equivalent to the interface of the class declared as:
 ```dart
-abstract class A<X extends S, Y extends S> extends A$super<X, Y> implements D, E { body' }
+abstract class A<X extends S, Y extends T> extends A$super<X, Y> implements D, E { body' }
 ```
 where `body'` contains abstract declarations corresponding to the instance members of `body` of the mixin `A`.
 
-It is a compile time error for the mixin declaration if this class declarations would not be valid.
-This again means that the types of the implements clause must be subclassable class types,
+It is a compile time error for the mixin declaration if the declarations of this class would not be valid.
+This again means that the types in the implements clause must be subclassable class types,
 and member declarations are not allowed to have the same name as the mixin declaration.
 
 An omitted `on` clause is equivalent to `on Object`.
