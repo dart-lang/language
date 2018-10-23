@@ -66,7 +66,7 @@ and it is valid in constant expression if its left and right operands are `int` 
 and the operation doesn't throw.
 The `>>>` operator has not been added to the `int` class yet, so unless the left-hand
 operand's static type is `dynamic`, the program will still be rejected. 
-When the opeator is added, it should also work in a constant expression.
+When the operator is added, it should then also work in a constant expression.
 
 The `&`, `|` and `^` binary operators are now also allowed when the operands are of 
 type `bool`.
