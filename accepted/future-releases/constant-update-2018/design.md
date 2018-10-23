@@ -49,6 +49,12 @@ A compile-time constant type means any type that doesn't contain free
 type variables, so the type expression always resolves to the exact
 same type.
 
+### Type Test Operator
+An expression of the form `e is T` or `e is! T` is accepted as a potentially
+and compile-time constant expression
+if `e` is potentially constant or compile-time constant, respectively, 
+and `T` is a compile-time constant type.
+
 ### Equality Operator
 The `==` operator in constant expressions was defined such that `e1 != null` was only allowed
 if `e1` had one of the "primitive" system types. Users had to rewrite their code to `!identical(e1, null)`.
