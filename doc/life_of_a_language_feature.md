@@ -77,7 +77,7 @@ plan should generally include at least:
 The 'feature specification' is **a single canonical writeup of the language
 feature** which is to serve as the implementation reference. Feature
 specifications use Markdown format. The file name should be
-`[name-of-feature]-implementation-plan.md`, and the feature specification should
+`feature-specification.md`, and the feature specification should
 be located in the same sub-directory as the implementation plan.
 
 A meta-issue (labelled `implementation`) will be filed in the language
