@@ -5,7 +5,8 @@
 Features and changes arise from perceived user issues or feature requests.
 Feature requests should be filed in the [language
 repo](https://github.com/dart-lang/language/issues/new?labels=request), and are
-labelled 'request'.  We may close issues that we believe that we will not
+labelled [`request`](https://github.com/dart-lang/language/labels/request).
+We may close issues that we believe that we will not
 address for whatever reason, or we may keep issues open indefinitely if we
 believe they are something that we may wish to address in the future. Feature
 request issues are primarily for documentation of the user issue to be solved.
@@ -13,18 +14,19 @@ request issues are primarily for documentation of the user issue to be solved.
 ## Design, feedback, and iteration
 
 When a member of the language team decides to take up an issue, we will create a
-specific "language feature" issue (labelled 'feature') for tracking the solution
-to the user issue/problem or feature under consideration. 
+specific "language feature" issue (labelled [`feature`](https://github.com/dart-lang/language/labels/feature))
+for tracking the solution to the user issue/problem or feature under consideration. 
 
 Interested parties may propose several (competing) language features to a
 single request/problem. Such a proposal consist of:
 
- - A issue labelled 'feature' for discussion of a proposed solution
+- A issue labelled 'feature' for discussion of a proposed solution
 
- - A link to an initial writeup of the proposed solution. This writeup should be
- checked into the
- [`working`](https://github.com/dart-lang/language/tree/master/working)
- sub-directory of the language repository.
+- A link to an initial writeup of the proposed solution. This writeup should be
+checked into a sub-directory with the name of the feature (`/[feature-name]/`),
+located inside the
+[`working`](https://github.com/dart-lang/language/tree/master/working)
+directory of the language repository. The filename should be `feature-specification.md`.
 
 Additional materials may be added along side the writeup.
 
