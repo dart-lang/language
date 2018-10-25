@@ -12,16 +12,44 @@ The stricter type system made some constant expressions hard to write,
 especially for users who disable implicit downcasts. 
 For that reason, we want to introduce explicit `as` casts in constant expressions.
 
-The asserts made it obvious that the existing constant expression specification
-was overly strict. 
+Example:
+```dart
+class MyClass {
+  final String value;
+  const MyClass(Object o) : value = (o is! String) ? "$o" : (o as String);
+}
+```
+
+The introduction of asserts made it obvious that the existing constant 
+expression specification was overly strict. 
 The `&&`, `||` and `?`/`:` operators were not specified to be short-circuiting,
 instead they always evaluated all the sub-expressions, 
 and introduced a compile-time error if any of them were wrong. 
-It made tests like `(string != null && string.length < 4)` unusable. 
+It made tests like `(string != null && string.length < 4)` unusable because
+the second operand was evaluated even when `string` is `null`.
 We want to fix that, to make boolean expressions more usable.
+
+Example:
+```dart
+class MyClass {
+  final String string;
+  const MyClass(this.string) : assert(string != null && string.length < 4);
+}
+```
 
 The new operators on basic system types should also work in constant
 contexts, so we want to handle those as well.
+
+Example:
+```dart
+class MyClass {
+  final String option;
+  const MyClass({String stringOption, int numOption})
+      : assert((stringOption != null) ^ (numOption != null)),
+        this.option = stringOption ?? "$numOption";
+}
+```
+        
 
 On top of that, the Dart 1 specification of potentially constant expressions
 had some inconsistencies where an expression was potentially constant only if
@@ -42,7 +70,7 @@ The following section summarizes the changes.
 
 ### Cast Operator
 An expression of the form `e as T` is accepted as a potentially 
-and compile-time constant experssion 
+and compile-time constant expression 
 if `e` is potentially constant or compile-time constant, respectively, 
 and `T` is a *compile-time constant type*. 
 A compile-time constant type means any type that doesn't contain free
