@@ -36,7 +36,7 @@ or potentially constant expressions.
 
 ## Design
 
-The precise defintion of the changes [has landed](https://dart-review.googlesource.com/36220)
+The precise defintion of the changes [has landed](dart-lang/sdk@0808d29)
 in the language specification. 
 The following section summarizes the changes.
 
@@ -93,12 +93,12 @@ The other branch must also be a potenatially constant expression.
 
 Potentially constant expressions were previously defined in terms of 
 "expressions that would be constant if constructor arguments are replaced with 
-constants of types matching the context", but something was a constant
+constants of types matching the context", but such an expression was only a constant
 expression if it evaluated to a value without throwing. 
 
-That was not a functional definition, 
+That was not a practically useful definition, 
 so it has been changed to an entirely syntactic definition which allows 
-some syntactic constructs where the sub-expressions are also potentially constant. 
+some syntactic constructs when thier sub-expressions are also potentially constant. 
 There is no need to evaluate anything to determine if an expression is potentially constant,
 and there is no *type* requirements on the expression.
 
@@ -128,31 +128,3 @@ The new specification clarifies that type variables cannot be used
 as compile-time constant types, 
 and the type arguments to const constructor invocations and constant literals
 must be compile-time constant types.
-
-## Implementation Requirements
-
-The implementation of these changes must happen behind an *experiments flag*.
-Tools need to be passed the flag `--enable-experiment=constant-update-2018`
-for the changes to be enabled.
-
-The `--enable-experiment` option takes a comma separated list of names of experiments
-to enable, and the option can be passed multiple times to a tool, 
-enabling any experiment mentioned in any of the option arguments.
-
-The list of avaialable flags at any time is defined by a 
-`.dart` file (location and exact content TBD).
-
-Individual tools may have incomplete implementations behind the flag.
-When all tools have completely implemented the feature,
-the flag will be removed and the feature enabled in the next stable release.
-
-## Summary
-The changes here should be entirely incremental, 
-existing valid programs should not change behavior.
-
-Some implementations may already have accepted some of the changes,
-in particular `const [] == null` is already allowed in some implementations.
-We do not *require* that to be put behind a flag again.
-
-
-
