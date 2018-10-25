@@ -220,9 +220,12 @@ var ints = <int>[...numbers];
 ```
 
 This works because the individual elements in `numbers` do happen to have the
-right type even though the list that contains them does not. However, the spread
-object does need to be "spreadable"&mdash;it must be some kind of Iterable for a
-list literal or a Map for a map literal.
+right type even though the list that contains them does not. As long as the
+spread object is "spreadable"&mdash;it implements Iterable&mdash; there is no
+static error. This is true even if the object being spread is a user-defined
+class that implements Iterable but isn't even a subtype of List. For spreading
+into map literals, we require the spread object to be a class that implements
+Map, but not necessarily a subtype of the map being spread into.
 
 It is a static error if:
 
@@ -260,7 +263,7 @@ class InfiniteSequence implements Iterable<int> {
   }
 }
 
-const forever = [InfiniteSequence()];
+const forever = [...InfiniteSequence()];
 ```
 
 ### Type inference
@@ -271,15 +274,16 @@ Inference propagates upwards and downwards like you would expect:
     then the downwards inference context type of a spread element in that list
     is `Iterable<T>`.
 
-*   If a spread element in a list literal has type `Iterable<T>` for some `T`,
-    then the upwards inference element type is `T`.
+*   If a spread element in a list literal has static type `Iterable<T>` for some
+    `T`, then the upwards inference element type is `T`.
 
 *   If a map literal has a downwards inference type of `Map<K, V>` for some `K`
     and `V`, then the downwards inference context type of a spread element in
     that map is `Map<K, V>`.
 
-*   If a spread element in a map literal has type `Map<K, V>` for some `K` and
-    `V`, then the upwards inference key type is `K` and the value type is `V`.
+*   If a spread element in a map literal has static type `Map<K, V>` for some
+    `K` and `V`, then the upwards inference key type is `K` and the value type
+    is `V`.
 
 ## Dynamic Semantics
 
@@ -323,8 +327,8 @@ A list literal `<E>[elem_1 ... elem_n]` is evaluated as follows:
 
 A map literal of the form `<K, V>{entry_1 ... entry_n}` is evaluated as follows:
 
-1.  Allocate a fresh instance `map` of a class that implements `LinkedHashMap<K,
-    V>`.
+1.  Allocate a fresh instance `map` of a class that implements
+    `LinkedHashMap<K, V>`.
 
 1.  For each `entry` in the map literal:
 
@@ -343,7 +347,7 @@ A map literal of the form `<K, V>{entry_1 ... entry_n}` is evaluated as follows:
 
             1.  Evaluate `iterator.current` to a value `newEntry`.
 
-            1.  Call `map[newEntry.key] = value`.
+            1.  Call `map[newEntry.key] = newEntry.value`.
 
     1.  Else, `entry` has form `e1: e2`:
 
