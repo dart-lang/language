@@ -1,7 +1,7 @@
 # Implementation Plan for the Q4 2018 Constant Update
 
 Relevant documents:
- - `Tracking issue` - TBD
+ - [Tracking issue](https://github.com/dart-lang/language/issues/60)
  - [Full proposal](https://github.com/dart-lang/language/blob/master/accepted/future-releases/constant-update-2018/feature-specification.md)
 
 ## Implementation and Release plan
@@ -76,7 +76,7 @@ The language team updates the experimental flag `const-update-2018` to
 always be enabled and no longer be available to users, and releases
 This update is released as part of the next stable Dart release.
 
-### Phase 4 (Clean-up)
+### Phase 3 (Clean-up)
 
 All tools may now remove the dependencies on the flag in
 the experiments flag definition file.
