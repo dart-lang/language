@@ -124,7 +124,7 @@ could treat that as a runtime error, or silently treat null like an empty
 collection.
 
 The latter has some convenience appeal, but clashes with the rest of the
-language where null is never silently ignored. A null if statemt condition
+language where null is never silently ignored. A null if statement condition
 expression causes an exception instead of being implicitly treated as false as
 in most other languages.
 
@@ -422,9 +422,9 @@ var after = [1, more..., 3];
 
 Putting it before has these advantages (some of which are marginal or dubious):
 
-*   It's what JavaScript does. If we assume most people coming to Dart and
-    familiar with a spread operator learned it from JS, that makes it the most
-    familiar syntax.
+*   It's what JavaScript does. If we assume most people coming to Dart learned
+    and presently know the spread operator through JS, that syntax is the most
+    familiar.
 
 *   When skimming a long multi-line collection literal, the `...` are on the
     left side of the page, so it's easy to see which elements are single and
@@ -469,7 +469,7 @@ Putting it before has these advantages (some of which are marginal or dubious):
     ```
 
 *   In an IDE, auto-complete is likely to trigger after typing each `.`, which
-    they you then have to cancel out.
+    you would then have to cancel out.
 
 *   It makes the precedence less visually confusing. The `...` syntax doesn't
     really have "operator precedence" because it isn't an operator expression.
@@ -575,4 +575,4 @@ where it's easy to overlook a trailing `...`, like:
 ```
 
 Here, the `...` almost looks like it's part of the *next* element, the TableRow,
-than the preceding one. Given this, I think prefix `...` is the better choice.
+instead of the preceding one. Given this, I think prefix `...` is the better choice.
