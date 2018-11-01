@@ -64,9 +64,9 @@ There is no change in the treatment of existing syntax, so we describe only
 the treatment of syntactic forms that can be new when this feature is added.
 
 The effect of a non-generic type alias declaration of the form that uses
-`=` with name `F` is to introduce a type named `F` into the library scope
-of the enclosing library, denoting the type on the right hand side of `=`
-in that declaration.
+`=` with name `F` is to bind the name `F` in the library scope of the
+enclosing library to the type denoted by the right hand side of `=` in that
+declaration.
 
 *This is not new, but it applies to a larger set of situations now that the
 right hand side can be any type. Let us call that type on the right hand
@@ -81,10 +81,10 @@ The effect of a generic type alias declaration of the form
 typedef F<X1 extends B1 .. Xk extends Bk> = T;
 ```
 
-where metadata is omitted but may be present, is to introduce a mapping
-from type argument lists to types into the library scope of the enclosing
-library, such that a parameterized type of the form `F<T1..Tk>` where `F`
-resolves to the above declaration denotes the type `[T1/X1 .. Tk/Xk]T`.
+where metadata is omitted but may be present, is to bind the name `F` in
+the library scope of the enclosing library to a mapping from type argument
+lists to types, such that a parameterized type of the form `F<T1..Tk>` is
+an application of that mapping that denotes the type `[T1/X1 .. Tk/Xk]T`.
 
 Let _F_ be a generic type alias of the form that uses `=` with type
 parameter declarations
