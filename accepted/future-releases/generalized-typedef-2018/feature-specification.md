@@ -91,7 +91,7 @@ parameter declarations
 _X<sub>1</sub> extends B<sub>1</sub> .. X<sub>k</sub> extends B<sub>k</sub>_.
 It is a compile-time error unless satisfaction of the declared bounds
 _B<sub>1</sub> .. B<sub>k</sub>_ implies that the right hand side is
-regular-bounded, all all types that occur as subterms of the right hand
+regular-bounded, and all types that occur as subterms of the right hand
 side are well-bounded.
 
 Let `F<T1..Tn>` be a parameterized type where `F` denotes a declaration of
