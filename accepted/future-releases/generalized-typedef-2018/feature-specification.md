@@ -126,9 +126,9 @@ For dynamic type checks, type tests, and expression evaluations, an
 identifier `F` resolving to a non-generic type alias and a parameterized
 type `F<T1..Tk>` where `F` resolves to a generic type alias are treated
 identically to the same type checks and type tests performed with the type
-denoted by that identifier or parameterized type, and the expression
-evaluations work as if we had evaluated a fresh type variable bound to the
-denoted type as an expression.
+denoted by that identifier or parameterized type, and the evaluation of `F`
+respectively `F<T1..Tk>` as an expression works the same as evaluation of a
+fresh type variable bound to the denoted type.
 
 
 ## Versions
