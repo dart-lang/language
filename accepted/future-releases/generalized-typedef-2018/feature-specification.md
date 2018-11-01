@@ -106,8 +106,7 @@ that the right hand side can be any type.*
 
 When a `typeName` (*that is, `identifier` or `identifier.identifier`*)
 that resolves to a generic type alias declaration is used as a type or
-evaluated as an expression, it is subject to instantiation to bound and
-type inference.
+evaluated as an expression, it is subject to instantiation to bound.
 
 *This treatment of generic type aliases is again the same as it was
 previously, but it involves a larger set of types.*
@@ -115,20 +114,22 @@ previously, but it involves a larger set of types.*
 ### Dynamic Semantics
 
 *The dynamic semantics relies on elaborations on the program performed
-during compilation. In particular, instantiation to bound and type
-inference has occurred, and hence some `typeName`s in the source code have
-been transformed into parameterized types, even when a type is used as an
-expression such that it would be a syntax error to actually add the type
-arguments explicitly in the source program. This means that every generic
-type alias receives actual type arguments at all locations where it is
-used. At run time it is also known that the program has no compile-time
-errors.*
+during compilation. In particular, instantiation to bound has occurred, and
+hence some `typeName`s in the source code have been transformed into
+parameterized types, even when a type is used as an expression such that it
+would be a syntax error to actually add the type arguments explicitly in
+the source program. This means that every generic type alias receives
+actual type arguments at all locations where it is used. At run time it is
+also known that the program has no compile-time errors.*
 
 For dynamic type checks, type tests, and expression evaluations, an
 identifier `F` resolving to a non-generic type alias and a parameterized
 type `F<T1..Tk>` where `F` resolves to a generic type alias are treated
-identically to the same type checks, type tests, and expression evaluations
-performed with the type denoted by that identifier or parameterized type.
+identically to the same type checks and type tests performed with the type
+denoted by that identifier or parameterized type, and the expression
+evaluations work as if we had evaluated a fresh type variable bound to the
+denoted type as an expression.
+
 
 ## Versions
 
