@@ -191,7 +191,7 @@ Into:
 var command = [
   engineDartPath,
   frontendServer,
-  for (var root in fileSystemRoots) '--filesystem-root=$root'
+  for (var root in fileSystemRoots) '--filesystem-root=$root',
   for (var entryPointsJson in entryPointsJsonFiles)
     if (fileExists("$entryPointsJson.json")) entryPointsJson,
   mainPath
@@ -235,6 +235,19 @@ return {
 You can think of it as a more direct way of expressing what you'd use
 `Map.fromIterable()` for today.
 
+If we're going to support `for`, we may as well also support its asynchronous
+sister `await for`:
+
+```dart
+main() async {
+  var stream = getAStream();
+  var elements = [await for (var element in stream) element];
+}
+```
+
+This gives you a concise way to transform each element of a stream and store
+the result in a list.
+
 ### Composing
 
 As some of the previous examples have shown, `if` and `for` can be freely
@@ -247,7 +260,7 @@ composed. That enables some interesting patterns and techniques:
 This produces the Cartesian product of all points in the rectangle.
 
 ```dart
-[for (var i in integers) if (i % 2 == 0) i * i]
+[for (var i in integers) if (i.isEven) i * i]
 ```
 
 This produces the squares of the even integers.
@@ -456,7 +469,7 @@ listElementList:
 listElement:
   expression |
   'if' '(' expression ')' listElement ( 'else' listElement )? |
-  'for' '(' forLoopParts ')' listElement
+  'await'? 'for' '(' forLoopParts ')' listElement
   ;
 ```
 
@@ -486,7 +499,7 @@ mapLiteralEntryList:
 mapLiteralEntry:
   expression ':' expression |
   'if' '(' expression ')' mapLiteralEntry ( 'else' mapLiteralEntry )? |
-  'for' '(' forLoopParts ')' mapLiteralEntry
+  'await'? 'for' '(' forLoopParts ')' mapLiteralEntry
   ;
 ```
 
@@ -564,20 +577,41 @@ If is a static error when:
     [if ("not bool") 1] // Error.
     ```
 
-*   The type of the iterator expression in a `for-in` element may not be
-    assigned to `Iterable<T>` for some type `T`. Otherwise, the *iterable type*
-    of the iterator is `T`.
+*   The type of the iterator expression in a synchronous `for-in` element may
+    not be assigned to `Iterable<T>` for some type `T`. Otherwise, the *iterable
+    type* of the iterator is `T`.
 
     ```dart
     [for (var i in "not iterable") i] // Error.
     ```
 
-*   The iterable type of the iterator in a `for-in` element may not be assigned
-    to the `for-in` variable's type.
+*   The iterable type of the iterator in a synchronous `for-in` element may not
+    be assigned to the `for-in` variable's type.
 
     ```dart
     [for (int i in ["not", "int"]) i] // Error.
     ```
+
+*   The type of the stream expression in an asynchronous `await for-in`
+    element may not be assigned to `Stream<T>` for some type `T`. Otherwise,
+    the *stream type* of the stream is `T`.
+
+    ```dart
+    [await for (var i in "not stream") i] // Error.
+    ```
+
+*   The stream type of the iterator in an asynchronous `await for-in` element
+    may not be assigned to the `for-in` variable's type.
+
+    ```dart
+    [await for (int i in Stream.fromIterable(["not", "int"])) i] // Error.
+    ```
+
+*   `await` is used when the collection literal is not inside an asynchronous
+    function.
+
+*   `await` is used before a C-style `for` element. `await` can only be used
+    with `for-in` loops.
 
 *   The type of the condition expression (the second clause) in a C-style `for`
     element may not be assigned to `bool`.
@@ -709,7 +743,7 @@ flow parts are the same so are unified here.
 
         1.  Evaluate the "else" element using this procedure.
 
-1.  Else, if `element` is a `for-in` element:
+1.  Else, if `element` is a synchronous `for-in` element:
 
     1.  Evaluate the iterator expression to a value `sequence`.
 
@@ -717,7 +751,8 @@ flow parts are the same so are unified here.
 
     1.  Loop:
 
-        1.  If `iterator.moveNext()` returns `false`, exit the loop.
+        1.  If the boolean conversion of `iterator.moveNext()` does not return
+            `true`, exit the loop.
 
         1.  If the `for-in` element declares a variable, create a fresh
             `variable` for it. Otherwise, use the existing `variable` it refers
@@ -730,6 +765,34 @@ flow parts are the same so are unified here.
 
     1.  If the `for-in` element declares a variable, discard it.
 
+1.  Else, if `element` is an asynchronous `await for-in` element:
+
+    1.  Evaluate the stream expression to a value `stream`. It is a dynamic
+        error if `stream` is not an instance of a class that implements
+        `Stream`.
+
+    1.  Create a new `Future`, `streamDone`.
+
+    1.  Evaluate `await streamDone`.
+
+    1.  Listen to `stream`. On each data event `event` the stream sends:
+
+        1.  If the `for-in` element declares a variable, create a fresh
+            `variable` for it. Otherwise, use the existing `variable` it refers
+            to.
+
+        1.  Bind `event` to `variable`.
+
+        1.  Evaluate the body element using this procedure in the scope of
+            `variable`. If this raises an exception, complete `streamDone` with
+            it as an error.
+
+    1.  If the `for-in` element declares a variable, discard it.
+
+    1.  If `stream` raises an exception, complete `streamDone` with it as an
+        error. Otherwise, when all events in the stream are processed, complete
+        `streamDone` with `null`.
+
 1.  Else, if `element` is a C-style `for` element:
 
     1.  Evaluate the initializer clause of the element, if there is one.
@@ -739,9 +802,8 @@ flow parts are the same so are unified here.
         1.  Evaluate the condition expression to a value `condition`. If there
             is no condition expression, use `true`.
 
-        1.  Subject `condition` to boolean conversion to a value `result`.
-
-        1.  If `result` is not `true`, exit the loop.
+        1.  If the boolean conversion of `condition` is not `true`, exit the
+            loop.
 
         1.  Evaluate the body element using this procedure in the scope of the
             variable declared by the initializer clause if there is one.
@@ -854,8 +916,9 @@ leads and stakeholders.
 
 This feature has some good things going for it:
 
-*   It is just syntax sugar. A front end should be able to compile this down to
-    existing Dart semantics. It shouldn't significantly impact the runtime or
+*   It is mostly syntax sugar. A front end should be able to compile this down
+    to existing Dart semantics (with perhaps some extra support needed for `if`
+    in const collections). It shouldn't significantly impact the runtime or
     backends, so the implementation cost should be relatively low.
 
 *   The semantics are narrow and fairly straightforward. It doesn't interact
