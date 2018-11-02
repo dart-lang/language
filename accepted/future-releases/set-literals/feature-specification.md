@@ -120,8 +120,8 @@ a constant type literal expression.
 
 Let *e<sub>1</sub>* … *e<sub>n</sub>* be the constant element expressions of *s* in source order, 
 and let *v*<sub>1<sub> … *v<sub>n<sub>* be their respective constant values.
-Evaluation of *s* creates an unmodifiable object implementing `Set<T>` with *v*<sub>1<sub> … *v<sub>n<sub>* as elements, 
-except that if any of *v*<sub>1<sub> … *v<sub>n<sub>* are *equal*, only the first value of such equal values is included. 
+Evaluation of *s* creates an unmodifiable object implementing `Set<T>` with *v*<sub>1</sub> … *v<sub>n</sub>* as elements, 
+except that if any of *v*<sub>1</sub> … *v<sub>n</sub>* are *equal*, only the first value of such equal values is included. 
 That is, it includes the values {*v<sub>i</sub>* | *i* ∈ 1 … *n* and ∀ *j* ∈ 0 … *i* - 1. *v<sub>i</sub>* != *v<sub>j</sub>*}.
 When iterated, the set provides the values in the source order of the original expressions.
 
