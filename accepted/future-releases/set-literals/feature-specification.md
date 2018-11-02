@@ -73,83 +73,88 @@ It is a compile-time error if a `setLiteral` has a `typeArguments` with more tha
 
 It is a compile-time error if an `emptySetOrMapLiteral` has a `typeArguments` with more than two type arguments.
 
-Let `s` be a `setOrMapLiteral`. Then `s` is either a *set literal* or a *map literal*. 
+Let *s* be a `setOrMapLiteral`. Then *s* is either a *set literal* or a *map literal*. 
 
-If `s` is a `mapLiteral` then it is a *map literal*.
+If *s* is a `mapLiteral` then it is a *map literal*.
 
-If `s` is a `setLiteral` then it is a *set literal*.
+If *s* is a `setLiteral` then it is a *set literal*.
 
-If `s` is an `emptySetOrMapLiteral`, then if `s` has a `typeArguments` with one type argument, `s` is a *set literal*, and 
-if `s` has a `typeArguments` with two type arguments, `s` is a *map literal*.
+If *s* is an `emptySetOrMapLiteral`, then if *s* has a `typeArguments` with one type argument, *s* is a *set literal*, and 
+if *s* has a `typeArguments` with two type arguments, *s* is a *map literal*.
 (*Three or more type arguments is a compile time error, so the remaining possible case is having no type arguments*).
 
-If `s` is an `emptySetOrMapLiteral` with no `typeArguments` and static context type `C`, then
-if `Set<Null>` is assignable to `C` and `Map<Null, Null>` is not assignable to `C`, then `s` is a *set literal*, 
-otherwise `s` is a *map literal*.
+If *s* is an `emptySetOrMapLiteral` with no `typeArguments` and static context type *C*, then
+if `Set<Null>` is assignable to *C* and `Map<Null, Null>` is not assignable to *C*, then *s* is a *set literal*, 
+otherwise *s* is a *map literal*.
 
-(*So if `C` is, for example, `Iterable<int>` or `Set<Object>` or `FutureOr<Iterabel<int>>` or a type variable with any of 
-those as bound, then `s` is a set literal. If `C` is `Object` or `dynamic` or `Null` or `String`, then `s` is a map literal, 
+(*So if *C* is, for example, `Iterable<int>` or `Set<Object>` or `FutureOr<Iterable<int>>` or a type variable with any of 
+those as bound, then *s* is a set literal. If *C* is `Object` or `dynamic` or `Null` or `String`, then *s* is a map literal, 
 *and* potentially a compile-time error due to static typing*).
 
 ### Map literals
 
-If `s` is a *map literal*, then its static and dynamic semantics are unchanged by this feature.
+If *s* is a *map literal*, then its static and dynamic semantics are unchanged by this feature.
 
 ### Set literals
 
-If `s` is a *set literal*, then it has the form `const? ('<' type '>')? '{' ... '}'` where `...` is zero or more
-comma-separated element expressions (potentially with a trailing comma which is oherwise ignored).
+If *s* is a *set literal*, then it has the form `const? ('<' type '>')? '{' ... '}'` where `...` is zero or more
+comma-separated element expressions (potentially with a trailing comma which is otherwise ignored).
 
-If `s` has no `typeArgument`, then one is inferred in exactly the same way as for list literals.
+If *s* has no `typeArgument`, then one is inferred in exactly the same way as for list literals.
 (*Either infer it from the context type, or if there is no context type, or the context type does not constrain
 the element type, then do upwards inference based on the static type of the element expressions, if any,
 or otherwise fall back on `dynamic`*).
 
-Let `T` be the explicit or inferred type argument to the type literal.
-It's a compile-time error if the static type of any element expression is not assignable to `T`.
+Let *T* be the explicit or inferred type argument to the type literal.
+It's a compile-time error if the static type of any element expression is not assignable to *T*.
+
+The static type of `s` is `Set<T>`.
 
 #### Constant Set Literals
 
-If `s` starts with `const`, then it is a compile-time error if any element expression is not a compile-time constant expression,
-or if `T` is not a compile-time constant type. It is a compile-time error if any of the *values* of the constant element expressions
+If *s* starts with `const`, then it is a compile-time error if any element expression is not a compile-time constant expression,
+or if *T* is not a compile-time constant type. It is a compile-time error if any of the *values* of the constant element expressions
 override `Object.operator==` unless they are instances of `int` or `String`, objects implementing `Symbol` originally created by
 a symbol literal or a constant invocation of the `Symbol` constructor, or objects implementing `Type` originally created by
 a constant type literal expression.
-Then the static type of `s` is exactly `Set<T>`.
 
-Let *e<sub>1</sub>*..*e<sub>n</sub>* be the constant element expressions of `s` in source order, 
-and let *v<sub>1<sub>*..*v<sub>n<sub>* be their respective constant values.
-Evaluation of `s` creates an unmodifiable object implementing `Set<T>` with *v<sub>1<sub>*..*v<sub>n<sub>* as elements, 
-except that if any of *v<sub>1<sub>*..*v<sub>n<sub>* are *equal*, only the first value of such equal values is included. 
-That is, it includes the values {*v<sub>i</sub>* | *i* in 1..*n* and forall 0 <= *j* < *i*. *v<sub>i</sub>*!=*v<sub>j</sub>*}.
+Let *e<sub>1</sub>* … *e<sub>n</sub>* be the constant element expressions of *s* in source order, 
+and let *v*<sub>1<sub> … *v<sub>n<sub>* be their respective constant values.
+Evaluation of *s* creates an unmodifiable object implementing `Set<T>` with *v*<sub>1<sub> … *v<sub>n<sub>* as elements, 
+except that if any of *v*<sub>1<sub> … *v<sub>n<sub>* are *equal*, only the first value of such equal values is included. 
+That is, it includes the values {*v<sub>i</sub>* | *i* ∈ 1 … *n* and ∀ 0 <= *j* < *i*. *v<sub>i</sub>* != *v<sub>j</sub>*}.
 When iterated, the set provides the values in the source order of the original expressions.
 
 If a constant set literals is created which has the same type argument and contains the same values in the same order,
-as the value of a previously evalauted constant set literal, 
-then the constant set literal expression instead evaluates to the previosuly created constant set. 
+as the value of a previously evaluated constant set literal, 
+then the constant set literal expression instead evaluates to the previously created constant set. 
 That is, constant set literals are canonicalized.
 
 #### Non-constant Set Literals
 
-If `s` does not start with `const`, then the static type of `s` is exactly `LinkedHashSet<T>`.
+If *s* does not start with `const`, then it evaluates to a mutable set object
+as follows:
 
-Let *e<sub>1</sub>*..*e<sub>n</sub>* be the constant element expressions of `s` in source order.
-Evaluation of `s` proceeds as follows:
-1. First evaluate *e*<sub>1</sub>..*e<sub>n</sub>*, in source order, to values *v<sub>1<sub>*..*v<sub>n<sub>*.
+Let *e<sub>1</sub>* … *e<sub>n</sub>* be the constant element expressions of *s* in source order.
+Evaluation of *s* proceeds as follows:
+1. First evaluate *e*<sub>1</sub> … *e<sub>n</sub>*, in source order, to values *v*<sub>1<sub> … *v<sub>n<sub>*.
 2. Create a new `LinkedHashSet<T>` instance, *o*.
-3. For each *i* in 1..*n* in numeric order, invoke the `add` method on *o* with *v<sub>i</sub>* as argument.
+3. For each *i* in 1 … *n* in numeric order, invoke the `add` method on *o* with *v<sub>i</sub>* as argument.
 Then *s* evaluates to an object implementing `LinkedHashSet` which has the same elements as *o*, and in the same 
 iteration order. (*Iteration order is insertion order, where adding an element equal to one already in the set does 
 not change the set in any way*).
 
 ### Exact Types of Literals
 
-Currently, the Dart 2 type inference inferes an "exact type" for map literals,
+Currently, the Dart 2 type inference infers an "exact type" for map literals,
 either `Map<K, V>` for const literals or `LinkedHashMap<K, V>` for non-constant literals.
 The inferred exact type makes it a compile-time error to require a down-cast,
 since that down-cast is known to fail at runtime.
-The set literals likewiseinfer exact types `Set<E>` for constant set literals
-and `LinkedHashSet<E>` for non-constant set literals.
+For set literals with element type *T*, the static type is always `Set<T>`,
+but static analysis will reject an assignment of a non-constant set 
+literal to a type that is not a super-type of `LinkedHashSet<T>` (an implicit down-cast below the type `LinkedHashSet<T>`),
+and of a constant set literal to a type that is not a super-type of `Set<T>`
+(that is, any implicit down-cast).
 
 ## Concerns
 ### Migration
@@ -201,7 +206,7 @@ since there is no *obvious* reason for the restriction to a normal user who just
 You can write `[b ? e1 : e2]`, but would not be allowed to write `{b ? e1 : e2}`. 
 Maybe the top-level `:` making this look like a map is enough reason for users to be able to remember that it's not allowed.
 
-If we add this restriction at a late rpoint, it will be a breaking change.
+If we add this restriction at a later point, it will be a breaking change.
 
 ### Future Feature Compatibility
 #### Collection Spreads
@@ -212,7 +217,7 @@ Similarly you can write `{1: 1, ...mapExpression, 3: 42}` to expand the entries 
 
 We should also accept spreads in set literals. In most cases that is unproblematic, 
 but it does introduce more ambiguous cases than the empty no-type-parameter literal `{}`.
-An expression of the form `{... someExpression}` is gramatically valid as both a set literal and a map literal.
+An expression of the form `{... someExpression}` is grammatically valid as both a set literal and a map literal.
 (The grammar will obviously need to be changed to allow this, and in that case, such literals will be
 an extension of the `emptySetOrMapLiteral` category).
 
@@ -221,7 +226,7 @@ no type parameters, no non-spread element/entry in the literal, and it's not emp
 One likely candidate is:
 
 * Find the static type of each spread expression. (Since the context type of the literal itself does not require 
-  either a set or a map, and excact types prevents it from requiring any sub-type that is both, the context type
+  either a set or a map, and exact types prevents it from requiring any sub-type that is both, the context type
   of the literal provides no context type for the spread expressions).
 * If all these static types are assignable to `Set<Object>` 
   and not all of them are assignable to `Map<Object, Object>`, then the literal is a set literal.
@@ -229,7 +234,7 @@ One likely candidate is:
   and not all of them are assignable to `Set<Object>`, then the literal is a map literal.
 * Otherwise it's a compile-time error.
 
-In this case, any unresolvable ambigity is detected early and the programmer is notified.
+In this case, any unresolvable ambiguity is detected early and the programmer is notified.
 For examples like `{...e1, ...e2}` where both `e1` and `e2` has type `dynamic`, 
 we could guess that it should be a map, but we could just as easily be wrong, 
 and the user would only find out when the code fails at run-time. 
