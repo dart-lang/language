@@ -8,7 +8,7 @@ Relevant documents:
 
 ### Release flags
 
-The implementation of these changes must happen behind an *experiments flag*.
+The implementation of these changes must happen behind an [*experiments flag*](https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md).
 Tools need to be passed the flag `--enable-experiment=constant-update-2018`
 for the changes to be enabled.
 
