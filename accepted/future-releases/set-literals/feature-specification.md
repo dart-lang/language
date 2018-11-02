@@ -119,7 +119,7 @@ a symbol literal or a constant invocation of the `Symbol` constructor, or object
 a constant type literal expression.
 
 Let *e<sub>1</sub>* … *e<sub>n</sub>* be the constant element expressions of *s* in source order, 
-and let *v*<sub>1<sub> … *v<sub>n<sub>* be their respective constant values.
+and let *v*<sub>1</sub> … *v<sub>n</sub>* be their respective constant values.
 Evaluation of *s* creates an unmodifiable object implementing `Set<T>` with *v*<sub>1</sub> … *v<sub>n</sub>* as elements, 
 except that if any of *v*<sub>1</sub> … *v<sub>n</sub>* are *equal*, only the first value of such equal values is included. 
 That is, it includes the values {*v<sub>i</sub>* | *i* ∈ 1 … *n* and ∀ *j* ∈ 0 … *i* - 1. *v<sub>i</sub>* != *v<sub>j</sub>*}.
@@ -137,7 +137,7 @@ as follows:
 
 Let *e<sub>1</sub>* … *e<sub>n</sub>* be the constant element expressions of *s* in source order.
 Evaluation of *s* proceeds as follows:
-1. First evaluate *e*<sub>1</sub> … *e<sub>n</sub>*, in source order, to values *v*<sub>1<sub> … *v<sub>n<sub>*.
+1. First evaluate *e*<sub>1</sub> … *e<sub>n</sub>*, in source order, to values *v*<sub>1</sub> … *v<sub>n</sub>*.
 2. Create a new `LinkedHashSet<T>` instance, *o*.
 3. For each *i* in 1 … *n* in numeric order, invoke the `add` method on *o* with *v<sub>i</sub>* as argument.
 Then *s* evaluates to an object implementing `LinkedHashSet` which has the same elements as *o*, and in the same 
