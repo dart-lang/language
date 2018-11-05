@@ -268,6 +268,23 @@ foo({1}, {});
 
 In any case, this needs to be finalized if/when we introduce literal spreads.
 
+## Summary
+Set literals use `{` and `}` as delimiters, allows a single type argument, and has comma-separated expressions for elements.
+
+This syntax is distinct from map literal syntax (two type arguments, colon-pairs as elements) except for the no-type-argument empty literal `{}`.
+In that case, we make it a set if the context type allows a set, and it does not allow a map, otherwise we make it a map.
+
+Type inference works just as for list literals, 
+and the literal has an "exact" type (`LinkedHashSet<E>` for non-const sets, 
+`Set<E>` for const sets, similar to map literals).
+
+The meaning of a set `<E>{e1, ..., en}` is a set with the same elements and iteration order as `new Set<E>()..add(e1) ... ..add(en)`.
+
+Const set literals are allowed. Elements need to satisfy the same requirements as constant map keys (not overriding `Object.==` unless it's an integer, string or `Symbol`).
+
+Adding set literals like this will not change any existing compilable program, 
+since the new syntax is either not allowed by the existing grammar, or it is rejected by the static type system.
+
 ## Examples
 ```dart
 var v1                 = {};                // Empty Map<dynamic, dynamic>
@@ -276,7 +293,7 @@ var v3                 = <int>{};           // Empty Set<int>
 var v4                 = {1: 1};            // Map<int, int>
 var v5                 = {1};               // Set<int>
 
-Iterable<int> v6       = {};                // Set<int>
+Iterable<int> v6       = {};  in               // Set<int>
 Map<int, int> v7       = {};                // Map<int, int>
 Object v8              = {};                // Map<dynamic, dynamic>
 Iterable<num> v9       = {1};               // Set<num>
@@ -289,7 +306,7 @@ const Set v14          = {}                 // const Set<dynamic>
 
 // Compile-time error, overrides `==`.
 // const v15           = {Duration(seconds: 1)};
-```
+
 var v16                = {1, 2, 3, 2, 1};   // Set<int>
 var l16                = x.toList();        // <int>[1, 2, 3]
 const v17              = {1, 2, 3, 2, 1};   // Set<int>
