@@ -48,7 +48,7 @@ Widget build(BuildContext context) {
   }
 
   return Row(
-    children: children,
+    children: buttons,
   );
 }
 ```
