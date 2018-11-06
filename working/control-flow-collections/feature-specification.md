@@ -974,3 +974,48 @@ to support `if` for named arguments.
 [rest parameters]: https://github.com/munificent/ui-as-code/blob/master/in-progress/parameter-freedom.md
 
 We can and should look at doing that as a separate proposal.
+
+## Questions and Alternatives
+
+### Why is while not supported?
+
+The proposal only allows one looping construct, but Dart has three: `for`,
+`while`, and `do-while`. What's special about `for`?
+
+The key reason is that `for` loops are implicitly terminated. A `for-in` loop
+ends when it reaches the end of the iterator. A C-style `for` loop ends when the
+condition expression returns false, which is in turn based on the increment
+expression.
+
+`while` and `do-while` loops both have a condition expression that signals
+termination, but that's not enough. For that to work, the body of those loops
+must have some explicit *side-effect* that eventually causes the expression to
+return false.
+
+But, in this proposal, the body of a loop is an *element* whose primary role is
+declarative&mdash;it emits a value that gets added to the resulting collection.
+There's no room there for an imperative, side-effecting operation.
+
+In order to make a while loop usable, you'd need some kind of block structure so
+you can contain side-effectful statements (including possibly `break`). But you
+also need a way to emit values, which is the primary purpose. It's hard to come
+up with a syntax that supports side effects that doesn't also make the main use
+case&mdash;emitting values&mdash;more verbose and less declarative.
+
+In other words, `for` loops are declarative enough to work well in an expression
+context, but `while` and `do-while` loops are not.
+
+Also, when examining a corpus for collection literals, I found a number of cases
+where `for` loops would be useful, but none where I felt the other kinds would
+be.
+
+There's also an argument that if what you're doing is so imperative that you
+want a `while` loop, then you *should* hoist that out into the statement level.
+The readability benefits of embedding control flow inside a collection literal
+is that it keeps more of your code declarative and expression-based. If your
+code *is* actually imperative, then the most familiar, readable way to express
+that is using actual statements.
+
+You can always move that imperative code into a separate function which returns
+an Iterable, and then use spread syntax to insert the results of that into your
+collection.
