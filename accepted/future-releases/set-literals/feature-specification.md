@@ -340,8 +340,8 @@ var s2                 = {...{1}};          // Set<int>
 var s3                 = {...{1: 1}};       // Map<int, int>
 var s4                 = {...{}};           // Map<dynamic, dynamic>
 dynamic d = null; // or any value.
-var s5                 = {...{1}, ...d}     // Set<dynamic>
-var s6                 = {...{1: 1}, ...d}  // Map<dynamic, dynamic>
-// var s7              = {...d};            // Compile-time error, ambiguous
+var s5                 = {...{1}, ...?d}     // Set<dynamic>
+var s6                 = {...{1: 1}, ...?d}  // Map<dynamic, dynamic>
+// var s7              = {...?d};            // Compile-time error, ambiguous
 // var s8              = {...{1}, ...{1: 1}};  // Compile-time error, incompatible
 ```
