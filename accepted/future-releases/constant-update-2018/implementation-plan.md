@@ -38,7 +38,7 @@ which can then accept them on the command line.
 
 ### Phase 1 (Implementation)
 
-#### Analyzer and CFR 
+#### Analyzer and CFE 
 The analyzer and CFE implements support for the new constant and potentially constant expressions
 behind the experimental flag.
 
