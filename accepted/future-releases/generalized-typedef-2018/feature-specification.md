@@ -93,6 +93,8 @@ It is a compile-time error unless satisfaction of the declared bounds
 _B<sub>1</sub> .. B<sub>k</sub>_ implies that the right hand side is
 regular-bounded, and all types that occur as subterms of the right hand
 side are well-bounded.
+Any self reference in a type alias, either directly or recursively via another
+type alias, is a compile-time error.
 
 Let `F<T1..Tn>` be a parameterized type where `F` denotes a declaration of
 the form
@@ -111,6 +113,16 @@ evaluated as an expression, it is subject to instantiation to bound.
 
 *This treatment of generic type aliases is again the same as it was
 previously, but it involves a larger set of types.*
+
+*Note that type aliases introduce types and not classes. Consequently, a
+type alias can **not** be used in a position where a class is expected: in the
+`extends`, `with`, `implements`, or `on` clause of a class or mixin
+declaration; for a static member access; or in an instance creation
+expression (`new F()`, `const F<int>()`). On the other hand, it **can** be
+used as a type annotation, as a type argument, as part of a function type
+or function signature, as a type literal, in an `on` clause of a `try`
+statement, in a type test (`e is F`), and in a type cast (`e as F`).*
+
 
 ### Dynamic Semantics
 
@@ -134,4 +146,4 @@ fresh type variable bound to the denoted type.
 
 ## Versions
 
-* Nov 1st, 2018, version 0.1: Initial version of this document.
+* Nov 6th, 2018, version 0.1: Initial version of this document.
