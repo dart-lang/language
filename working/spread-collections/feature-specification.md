@@ -119,19 +119,35 @@ var containingParts = [
 
 ### Null-aware spread
 
-In the above example, what happens if `uri.queryParameters` returns null? We
-could treat that as a runtime error, or silently treat null like an empty
-collection.
+Before any spreading occurs, the spread expression itself is evaluated. That
+expression may return null, as in:
+
+```dart
+var oops = null;
+var list = [...oops];
+```
+
+How should we handle this? We could treat that as a runtime error (trying to
+call `.iterator` on null), or silently treat null like an empty collection:
+
+```dart
+var list = [1, ...null, 2]; // [1, 2].
+```
 
 The latter has some convenience appeal, but clashes with the rest of the
-language where null is never silently ignored. A null if statemt condition
+language where null is never silently ignored. A null if statement condition
 expression causes an exception instead of being implicitly treated as false as
-in most other languages.
+in most other languages:
+
+```dart
+bool condition = null;
+if (condition) {} // Runtime exception!
+```
 
 Most of the time, if you have a null in a place you don't expect, the sooner you
 can find out, the better. Even JavaScript does not silently ignore null in
-spreads. So I don't think we either. But, when looking through a corpus for
-places where a spread argument would be useful, I found a number of examples
+spreads. So I don't think we should either. But, when looking through a corpus
+for places where a spread argument would be useful, I found a number of examples
 like:
 
 ```dart
@@ -162,6 +178,24 @@ var command = [
 
 More complex conditional expressions than simple null checks come up often too,
 but those are out of scope for this proposal.
+
+Note that neither the regular spread nor the null-aware spread have any affect
+on null values *inside the sequence* being spread. As far as the language is
+concerned, null is a perfectly valid value for a sequence to contain:
+
+```dart
+var things = [2, null, 3];
+var more = [1, ...things, 4]; // [1, 2, null, 3, 4].
+var also = [1, ...?things, 4]; // [1, 2, null, 3, 4].
+```
+
+If you want to skip over null elements in a sequence, you can do so explicitly:
+
+```dart
+var things = [2, null, 3];
+var more = [1, ...things.where((thing) => thing != null), 4];
+// [1, 2, 3, 4].
+```
 
 ## Syntax
 
