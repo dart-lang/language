@@ -700,9 +700,9 @@ separate procedure below:
 1.  Create a fresh instance of `list` of a class that implements `List<E>`.
 
     An implementation is, of course, free to optimize pre-allocate a list of the
-    correct capacity when its size is statically known. Note that when spread
-    arguments come into play, it's no longer always possible to statically tell
-    the final size of the resulting flattened list.
+    correct capacity when its size is statically known. Note that when `if` and
+    `for` come into play, it's no longer always possible to statically tell the
+    final size of the resulting flattened list.
 
 1.  For each `element` in the list literal:
 
