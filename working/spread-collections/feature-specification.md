@@ -281,9 +281,9 @@ become strict subtype checks instead.
 
 ### Const spreads
 
-Spread elements are not allowed in const lists or maps. Because the spread must
-be imperatively unpacked, this could require arbitrary code to be executed at
-compile time:
+We must be careful with spread elements in const collections. Because the spread
+is imperatively unpacked, even a "const" object could cause arbitrary
+computation at compile time:
 
 ```dart
 class InfiniteSequence implements Iterable<int> {
@@ -298,6 +298,43 @@ class InfiniteSequence implements Iterable<int> {
 }
 
 const forever = [...InfiniteSequence()];
+```
+
+However, if the spread expression is a valid const expression and the resulting
+value is exactly the built-in List or Map classes, then it's safe because we
+know exactly how constants of those classes behave. Thus, we state:
+
+*   In a constant list, a spread element expands at compile time to the series
+    of elements contained in the spread object list.
+
+*   In a constant map, a spread element expands to the series of entries
+    contained in the spread object map.
+
+*   It is a compile-time error to use a spread element in a constant list unless
+    the spread object was created by a constant list literal expression.
+
+*   It is a compile-time error to use a spread element in a constant map unless
+    the spread object was created by from a constant map literal expression.
+
+This enables in-place literals (which aren't very useful):
+
+```dart
+const list = [...["why"]];
+```
+
+It also enables const expressions that refer to constant lists and maps defined
+elsewhere, which is useful:
+
+```dart
+const list = [2, 3];
+const another = [1, ...list, 4]; // [1, 2, 3, 4].
+```
+
+The existing rules against self-reference prohibit a list or map from spreading
+into itself:
+
+```dart
+const list = [...list]; // Error.
 ```
 
 ### Type inference
