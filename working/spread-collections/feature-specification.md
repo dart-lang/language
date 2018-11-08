@@ -276,11 +276,11 @@ know exactly how constants of those classes behave. Thus, we state:
 *   In a constant map, a spread element expands to the series of entries
     contained in the spread object map.
 
-*   It is a compile-time error to use a spread element in a list unless the
-    spread object was created by a constant list literal expression.
+*   It is a compile-time error to use a spread element in a constant list unless
+    the spread object was created by a constant list literal expression.
 
-*   It is a compile-time error to use a spread element in a map unless the
-    spread object was created by from a constant map literal expression.
+*   It is a compile-time error to use a spread element in a constant map unless
+    the spread object was created by from a constant map literal expression.
 
 This enables in-place literals (which aren't very useful):
 
