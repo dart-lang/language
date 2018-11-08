@@ -26,7 +26,7 @@ The CFE implements parsing support for the new literal syntax.
 ### Task2 : Task1 (CFE implementation)
 
 The CFE implements support for set literals (errors and warnings, constant
-evaluation, and any required changed to support the backends).
+evaluation, and any required changes to support the backends).
 
 ### Task3 : Task1 (Analyzer implementation)
 
@@ -47,17 +47,17 @@ dart2js implements backend support.
 
 ### Task7 : Task0 (Intellij support)
 
-Intellij implements syntax highlighting.
+IntelliJ parser supports set literals
 
 ### Task8 : Task1 (Grok support)
 
 Grok implements any required support.
 
-### Task9 : Task1 (Dartfmt support)
+### Task9 : Task3 (Dartfmt support)
 
 Dartfmt implements formatting support.
 
-### Task9 : Task1 (Dartdoc support)
+### Task9 : Task3 (Dartdoc support)
 
 Dartdoc implements support.
 
