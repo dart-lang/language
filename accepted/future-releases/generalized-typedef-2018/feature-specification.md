@@ -2,7 +2,7 @@
 
 Author: eernst@google.com (@eernst).
 
-Version: 0.1.
+Version: 0.2.
 
 
 ## Motivation and Scope
@@ -114,14 +114,32 @@ evaluated as an expression, it is subject to instantiation to bound.
 *This treatment of generic type aliases is again the same as it was
 previously, but it involves a larger set of types.*
 
-*Note that type aliases introduce types and not classes. Consequently, a
-type alias can **not** be used in a position where a class is expected: in the
-`extends`, `with`, `implements`, or `on` clause of a class or mixin
-declaration; for a static member access; or in an instance creation
-expression (`new F()`, `const F<int>()`). On the other hand, it **can** be
-used as a type annotation, as a type argument, as part of a function type
-or function signature, as a type literal, in an `on` clause of a `try`
-statement, in a type test (`e is F`), and in a type cast (`e as F`).*
+A type alias application of the form _F_ or the form
+_F&lt;T<sub>1</sub>..T<sub>k</sub>&gt;_ can be used as a type annotation,
+as a type argument, as part of a function type or a function signature, as
+a type literal, in an `on` clause of a `try` statement, in a type test
+(`e is F`), and in a type cast (`e as F`).
+
+**The following is under discussion. Exactly one rule will be confirmed.
+The following two variants are considered, along with small variations or
+hybrids thereof:**
+
+*  A type alias can _not_ be used in a position where a class is
+   expected: in the `extends`, `with`, `implements`, or `on` clause of a
+   class or mixin declaration; for a static member access; or in an
+   instance creation expression (`new F()`, `const F<int>()`). OR
+
+*  A type alias can _not_ be used for static member accesses. When a type
+   alias _F_ resp. _F&lt;T<sub>1</sub>..T<sub>k</sub>&gt;_ occurs as the
+   entity that a class `extends` and when it occurs in a `with` clause or
+   `implements` clause of a class or an `on` clause of a mixin, or it is
+   used in an instance creation expression, it is a compile-time error
+   unless it denotes a class, otherwise it is treated as if that class had
+   been specified explicitly.
+   (*E.g., `class C extends myPrefix.F<int> {}` would be equivalent to
+   `class C extends D<List<int>, int> {}` if the library imported as
+   `myPrefix` contains `typedef F<X> = D<List<X>, X>;`, assuming that
+   `D` is accessible to the current library and has no prefix.*)
 
 
 ### Dynamic Semantics
@@ -145,5 +163,8 @@ fresh type variable bound to the denoted type.
 
 
 ## Versions
+
+* Nov 8th, 2018, version 0.2: Marking the design decision of where to allow
+  usages of type aliases denoting classes as under discussion.
 
 * Nov 6th, 2018, version 0.1: Initial version of this document.
