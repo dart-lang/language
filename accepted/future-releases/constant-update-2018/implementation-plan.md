@@ -36,6 +36,10 @@ Projects embedded in other tools, like the Common Front-end (CFE) embedded in th
 must be able to receive experimental flags programmatically from the embedder, 
 which can then accept them on the command line.
 
+#### Tests
+
+The language team adds tests for the new syntax.
+
 ### Phase 1 (Implementation)
 
 #### Analyzer and CFE 
@@ -56,10 +60,6 @@ Support for the new constant expressions is added to the relevant tooling.
 It is very likely that no changes are needed here, 
 as long as the analyzer supports the new expressions.
 All the affected expressions are already valid non-constant expressions.
-
-#### Tests
-
-The language team adds tests for the new syntax.
 
 #### Co19 tests
 
