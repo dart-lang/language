@@ -612,7 +612,7 @@ corpus where this syntax could be used by looking for calls to `.addAll()` on
 collection literals. I converted them to use the prefix and postfix syntax
 [here][spread examples].
 
-[spread examples]: https://github.com/dart-lang/language/tree/master/working/0047.%20Spread%20Collections/examples
+[spread examples]: https://github.com/dart-lang/language/tree/master/working/spread-collections/examples
 
 Only a few cases use `...?`. Some examples do have pretty complex expressions
 where it's easy to overlook a trailing `...`, like:
