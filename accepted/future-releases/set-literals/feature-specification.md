@@ -293,7 +293,7 @@ var v3                 = <int>{};           // Empty Set<int>
 var v4                 = {1: 1};            // Map<int, int>
 var v5                 = {1};               // Set<int>
 
-Iterable<int> v6       = {};  in               // Set<int>
+Iterable<int> v6       = {};                // Set<int>
 Map<int, int> v7       = {};                // Map<int, int>
 Object v8              = {};                // Map<dynamic, dynamic>
 Iterable<num> v9       = {1};               // Set<num>
