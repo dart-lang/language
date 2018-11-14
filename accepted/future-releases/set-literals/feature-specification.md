@@ -112,7 +112,8 @@ The static type of `s` is `Set<T>`.
 
 #### Constant Set Literals
 
-If *s* starts with `const`, then it is a compile-time error if any element expression is not a compile-time constant expression,
+If *s* starts with `const` or it occurs in a constant context, then it is a *constant set literal*. 
+It is then a compile-time error if any element expression is not a compile-time constant expression,
 or if *T* is not a compile-time constant type. It is a compile-time error if any of the *values* of the constant element expressions
 override `Object.operator==` unless they are instances of `int` or `String`, objects implementing `Symbol` originally created by
 a symbol literal or a constant invocation of the `Symbol` constructor, or objects implementing `Type` originally created by
@@ -132,8 +133,8 @@ That is, constant set literals are canonicalized.
 
 #### Non-constant Set Literals
 
-If *s* does not start with `const`, then it evaluates to a mutable set object
-as follows:
+If *s* does not start with `const` and it does not occur in a constant context, 
+then it evaluates to a mutable set object as follows:
 
 Let *e<sub>1</sub>* … *e<sub>n</sub>* be the constant element expressions of *s* in source order.
 Evaluation of *s* proceeds as follows:
@@ -287,32 +288,39 @@ since the new syntax is either not allowed by the existing grammar, or it is rej
 
 ## Examples
 ```dart
-var v1                 = {};                // Empty Map<dynamic, dynamic>
-var v2                 = <int, int>{};      // Empty Map<int, int>
-var v3                 = <int>{};           // Empty Set<int>
-var v4                 = {1: 1};            // Map<int, int>
-var v5                 = {1};               // Set<int>
+/*
+context                  expression            runtime type and const-ness
+*/
+var v1                 = {};                // LinkedHashMap<dynamic, dynamic>
+var v2                 = <int, int>{};      // LinkedMap<int, int>
+var v3                 = <int>{};           // LinkedHashSet<int>
+var v4                 = {1: 1};            // LinkedHashMap<int, int>
+var v5                 = {1};               // LinkedHashSet<int>
 
-Iterable<int> v6       = {};                // Set<int>
-Map<int, int> v7       = {};                // Map<int, int>
-Object v8              = {};                // Map<dynamic, dynamic>
-Iterable<num> v9       = {1};               // Set<num>
-Iterable<num> v10      = <int>{};           // Set<int>
-LinkedHashSet<int> v11 = {};                // Set<int>
+Iterable<int> v6       = {};                // LinkedHashSet<int>
+Map<int, int> v7       = {};                // LinkedHashMap<int, int>
+Object v8              = {};                // LinkedHashMap<dynamic, dynamic>
+Iterable<num> v9       = {1};               // LinkedHashSet<num>
+Iterable<num> v10      = <int>{};           // LinkedHashSet<int>
+LinkedHashSet<int> v11 = {};                // LinkedHashSet<int>
 
 const v12              = {};                // const Map<dynamic, dynamic>
 const v13              = {1};               // const Set<int>
 const Set v14          = {}                 // const Set<dynamic>
+Set v15                = const {4}          // const Set<dynamic>
 
 // Compile-time error, overrides `==`.
-// const v15           = {Duration(seconds: 1)};
+// const _             = {Duration(seconds: 1)};
+// const _             = {2.3};
 
 var v16                = {1, 2, 3, 2, 1};   // Set<int>
-var l16                = x.toList();        // <int>[1, 2, 3]
+var l16                = x.toList();        // -> <int>[1, 2, 3]
 const v17              = {1, 2, 3, 2, 1};   // Set<int>
-var l17                = x.toList();        // <int>[1, 2, 3]
+var l17                = x.toList();        // -> <int>[1, 2, 3]
 // v17.add(42);                             // throws, immutable
+var l18                = const {1, 2}       // const Set<int>
 
+// Class overriding `==`.
 class C {
   final int id;
   final String name;
@@ -323,14 +331,19 @@ class C {
 }
 
 // First equal object wins.
-var v18                = {C(1, "a"), C(2, "a"), C("1", b")};  // Set<C>
-print(v18);  // {C(1, "a"), C(2, "a")}
+var v19                = {C(1, "a"), C(2, "a"), C("1", b")};  // LinkedHashSet<C>
+print(v19);  // {C(1, "a"), C(2, "a")}
 
-const v19              = {1, 2, 3};
-const v20              = {3, 2, 1};
-const v21              = {1, 1, 2, 3, 2, 1};
-print(identical(v19, v20));                // false
-print(identical(v19, v21));                // true
+const v20              = {1, 2, 3};        // const Set<int>
+const v21              = {3, 2, 1};        // const Set<int>
+const v22              = {1, 1, 2, 3, 2, 1}; // const Set<int>
+print(identical(v20, v21));                // -> false
+print(identical(v20, v22));                // -> true
+
+// Type can be computed from element types.
+var v23                = {1, 2.5}          // LinkedHashSet<num>
+var v24                = {1, false}        // LinkedHashSet<Object>
+const v26              = {1, false}        // const Set<Object>
 ```
 
 ### With Spreads
