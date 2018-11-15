@@ -118,34 +118,16 @@ signals about what kind of principles or philosophy the shepherds of the
 language have so they can predict if the language will continue to be a good fit
 for them.
 
-A good example of this is [tail call optimization][tco]. Every time a new
-language appears on the scene, people show up asking if it does "proper tail
-calls". (In Dart, it was [issue #29][sdk#29].) TCO is a neat feature that can
-enable some nice implementation patterns. But, if your language has loops (which
-they almost all do), it doesn't let you do anything you can't already do. It's a
-minor control flow feature, like a switch statement.
-
-But people get *really* into this. Here's [a well-known, heated thread about
-supporting it in Rust][rust tco]. Buckets of ink have been spilled discussing it
-for JavaScript. Why do they get so emotionally invested in it? I believe it's
-because they are asking if the language is part of the "functional" camp. Will
-future versions of the language add new features that encourage functional
-styles (JS, probably yes) or not (Python, probably no)?
-
 This does actually matter, because if future versions of a language invest in
 features you don't want, you have to deal with the migration and the opportunity
 cost of features you *could* have had.
 
-[tco]: https://en.wikipedia.org/wiki/Tail_call
-[sdk#29]: https://github.com/dart-lang/sdk/issues/29
-[rust tco]: https://mail.mozilla.org/pipermail/rust-dev/2013-April/003557.html
-
-Other camps form around how explicitly the user must express their intent to the
-computer versus the computer filling in the blanks on their behalf. On one side
-are the dynamically-typed scripting languages where the implementation does its
-best to take the user's code and go off and run it. If the user wrote something
-wrong, it's not discovered until the last possible minute when an operation
-can't be performed.
+Some camps have formed around how explicitly the user must express their intent
+to the computer versus the computer filling in the blanks on their behalf. On
+one side are the dynamically-typed scripting languages where the implementation
+does its best to take the user's code and go off and run it. If the user wrote
+something wrong, it's not discovered until the last possible minute when an
+operation can't be performed.
 
 On the other end are very explicitly-typed languages like Java, Ada, and C++.
 Those require you to laboriously prove to the compiler that you know what your
@@ -472,29 +454,38 @@ In the corpus, there are:
 
 [style guide]: https://www.dartlang.org/guides/language/effective-dart/style#do-use-curly-braces-for-all-flow-control-structures
 
-It's rare that a user deliberately wants an empty statement as the body of a
-control flow statement, so we resolve this by disallowing that completely. If
-the user wants an empty body (typically a loop where the condition expression
-has a side effect), they can use an empty block, which is usually more readable
+It's *very* rare that a user deliberately wants an empty statement (`;`) as the
+body of a control flow statement. So, given some piece of Dart code with the
+semicolons removed like:
+
+```dart
+for (var i = 0; i < 10; i++)
+  print("hi")
+```
+
+It is almost certain that the original code did intend the second statement to
+be the body of the previous control flow statement. We make the language choose
+that interpretation even without semicolons by simply disallowing empty
+statements as control flow bodies. That means the code *cannot* be parsed as:
+
+```dart
+for (var i = 0; i < 10; i++); // <-- Not allowed.
+print("hi");
+```
+
+Then it must be:
+
+```dart
+for (var i = 0; i < 10; i++) print("hi");
+```
+
+Which is what the user almost always wants. In the rare cases where user does
+want an empty body (typically a loop where the condition expression has a side
+effect), they can use an empty block (`{}`), which is usually more readable
 anyway.
 
-Without empty statements, we know that a newline inside a control flow statement
-(after the if and while condition, after `else`, etc.) *cannot* be meaningful.
-Thus, we can safely ignore it, which means that this:
-
-```dart
-if (condition)
-  body();
-```
-
-Continues to be parsed like:
-
-```dart
-if (condition) body();
-```
-
-Just like it is today. That means the 6,102 existing cases like this are not
-broken, at the expense of having to fix the 17 uses of empty statements.
+That means the 6,102 existing cases of newlines before control flow bodies are
+not broken, at the expense of having to fix the 17 uses of empty statements.
 
 **TODO: The prototype doesn't currently implement this restriction, but there
 are only a handful of cases where it occurs.**
@@ -1167,7 +1158,7 @@ main() {
 ```
 
 Here, `bar` is a terminating token and behaves as if a semicolon appeared before
-it, after the `)` on `foo()`. The "should be significant" is vague. More
+it, after the `)` on `foo()`. The "should be ignored" is vague. More
 precisely:
 
 *   If a newline character appears after the preceding token's lexeme and
