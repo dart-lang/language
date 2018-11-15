@@ -313,9 +313,9 @@ Set v15                = const {4}          // const Set<dynamic>
 // const _             = {Duration(seconds: 1)};
 // const _             = {2.3};
 
-var v16                = {1, 2, 3, 2, 1};   // Set<int>
+var v16                = {1, 2, 3, 2, 1};   // LinkedHashSet<int>
 var l16                = x.toList();        // -> <int>[1, 2, 3]
-const v17              = {1, 2, 3, 2, 1};   // Set<int>
+const v17              = {1, 2, 3, 2, 1};   // const Set<int>
 var l17                = x.toList();        // -> <int>[1, 2, 3]
 // v17.add(42);                             // throws, immutable
 var l18                = const {1, 2}       // const Set<int>
