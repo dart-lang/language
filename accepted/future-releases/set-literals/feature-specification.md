@@ -118,6 +118,7 @@ or if *T* is not a compile-time constant type. It is a compile-time error if any
 override `Object.operator==` unless they are instances of `int` or `String`, objects implementing `Symbol` originally created by
 a symbol literal or a constant invocation of the `Symbol` constructor, or objects implementing `Type` originally created by
 a constant type literal expression.
+It is a compile-time error if any two of the values are equal according to `==`.
 
 Let *e<sub>1</sub>* … *e<sub>n</sub>* be the constant element expressions of *s* in source order, 
 and let *v*<sub>1</sub> … *v<sub>n</sub>* be their respective constant values.
@@ -315,9 +316,9 @@ Set v15                = const {4}          // const Set<dynamic>
 
 var v16                = {1, 2, 3, 2, 1};   // LinkedHashSet<int>
 var l16                = x.toList();        // -> <int>[1, 2, 3]
-const v17              = {1, 2, 3, 2, 1};   // const Set<int>
-var l17                = x.toList();        // -> <int>[1, 2, 3]
-// v17.add(42);                             // throws, immutable
+// Compile-time error, contains equal elements
+// const _             = {1, 2, 3, 2, 1};   
+
 var l18                = const {1, 2}       // const Set<int>
 
 // Class overriding `==`.
@@ -336,9 +337,7 @@ print(v19);  // {C(1, "a"), C(2, "a")}
 
 const v20              = {1, 2, 3};        // const Set<int>
 const v21              = {3, 2, 1};        // const Set<int>
-const v22              = {1, 1, 2, 3, 2, 1}; // const Set<int>
 print(identical(v20, v21));                // -> false
-print(identical(v20, v22));                // -> true
 
 // Type can be computed from element types.
 var v23                = {1, 2.5}          // LinkedHashSet<num>
