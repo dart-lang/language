@@ -293,7 +293,7 @@ since the new syntax is either not allowed by the existing grammar, or it is rej
 context                  expression            runtime type and const-ness
 */
 var v1                 = {};                // LinkedHashMap<dynamic, dynamic>
-var v2                 = <int, int>{};      // LinkedMap<int, int>
+var v2                 = <int, int>{};      // LinkedHashMap<int, int>
 var v3                 = <int>{};           // LinkedHashSet<int>
 var v4                 = {1: 1};            // LinkedHashMap<int, int>
 var v5                 = {1};               // LinkedHashSet<int>
@@ -307,19 +307,19 @@ LinkedHashSet<int> v11 = {};                // LinkedHashSet<int>
 
 const v12              = {};                // const Map<dynamic, dynamic>
 const v13              = {1};               // const Set<int>
-const Set v14          = {}                 // const Set<dynamic>
-Set v15                = const {4}          // const Set<dynamic>
+const Set v14          = {};                // const Set<dynamic>
+Set v15                = const {4};         // const Set<dynamic>
 
 // Compile-time error, overrides `==`.
 // const _             = {Duration(seconds: 1)};
 // const _             = {2.3};
 
 var v16                = {1, 2, 3, 2, 1};   // LinkedHashSet<int>
-var l16                = x.toList();        // -> <int>[1, 2, 3]
+var l16                = v16.toList();        // -> <int>[1, 2, 3]
 // Compile-time error, contains equal elements
 // const _             = {1, 2, 3, 2, 1};   
 
-var l18                = const {1, 2}       // const Set<int>
+var l18                = const {1, 2};      // const Set<int>
 
 // Class overriding `==`.
 class C {
@@ -332,7 +332,7 @@ class C {
 }
 
 // First equal object wins.
-var v19                = {C(1, "a"), C(2, "a"), C("1", b")};  // LinkedHashSet<C>
+var v19                = {C(1, "a"), C(2, "a"), C(1, b")};  // LinkedHashSet<C>
 print(v19);  // {C(1, "a"), C(2, "a")}
 
 const v20              = {1, 2, 3};        // const Set<int>
@@ -340,9 +340,9 @@ const v21              = {3, 2, 1};        // const Set<int>
 print(identical(v20, v21));                // -> false
 
 // Type can be computed from element types.
-var v23                = {1, 2.5}          // LinkedHashSet<num>
-var v24                = {1, false}        // LinkedHashSet<Object>
-const v26              = {1, false}        // const Set<Object>
+var v23                = {1, 2.5};         // LinkedHashSet<num>
+var v24                = {1, false};       // LinkedHashSet<Object>
+const v26              = {1, false};       // const Set<Object>
 ```
 
 ### With Spreads
@@ -352,8 +352,8 @@ var s2                 = {...{1}};          // Set<int>
 var s3                 = {...{1: 1}};       // Map<int, int>
 var s4                 = {...{}};           // Map<dynamic, dynamic>
 dynamic d = null; // or any value.
-var s5                 = {...{1}, ...?d}     // Set<dynamic>
-var s6                 = {...{1: 1}, ...?d}  // Map<dynamic, dynamic>
+var s5                 = {...{1}, ...?d};    // Set<dynamic>
+var s6                 = {...{1: 1}, ...?d}; // Map<dynamic, dynamic>
 // var s7              = {...?d};            // Compile-time error, ambiguous
 // var s8              = {...{1}, ...{1: 1}};  // Compile-time error, incompatible
 ```
