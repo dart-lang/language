@@ -3,7 +3,7 @@
 Author: kevmoo@google.com
 
 [Solution type conversion problem](https://github.com/dart-lang/language/issues/107).
-[Based on feature proposal 108](https://github.com/dart-lang/language/issues/108).
+Discussion about this proposal should go in [Issue #108](https://github.com/dart-lang/language/issues/108).
 
 ## Motivation
 
