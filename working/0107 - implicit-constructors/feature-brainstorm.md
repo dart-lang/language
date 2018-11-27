@@ -2,7 +2,7 @@
 
 Author: kevmoo@google.com
 
-[Solution type conversion problem](https://github.com/dart-lang/language/issues/107).
+Proposod solution to [type conversion problem](https://github.com/dart-lang/language/issues/107).
 Discussion about this proposal should go in [Issue #108](https://github.com/dart-lang/language/issues/108).
 
 ## Motivation
