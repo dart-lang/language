@@ -2,6 +2,9 @@
 
 Author: kevmoo@google.com
 
+[Solution type conversion problem](https://github.com/dart-lang/language/issues/107).
+[Based on feature proposal 108](https://github.com/dart-lang/language/issues/108).
+
 ## Motivation
 
 Every place in `pkg:http` with a `url` parameter types it as `dynamic`.
