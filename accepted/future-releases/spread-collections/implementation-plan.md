@@ -9,15 +9,6 @@ Relevant links:
 
 ## Phase 0 (Prerequisite)
 
-### Experiment support
-
-Tools add support for experimental flags, if not yet supported. Tools refuse to
-run if supplied with unknown experimental flags.
-
-Projects embedded in other tools, like the Common Front-end (CFE) embedded in
-the VM or dart2js, must be able to receive experimental flags programmatically
-from the embedder, which can then accept them on the command line.
-
 ### "spread-collections" Experimental flag
 
 The implementation of this feature should be hidden behind an [experiment
