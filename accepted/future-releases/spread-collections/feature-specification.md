@@ -2,12 +2,12 @@
 
 Author: rnystrom@google.com
 
-Allow the `...` in list and map literals to insert multiple elements into a
-collection.
+Allow the `...` in list, map, and set literals to insert multiple elements into
+a collection.
 
 ## Motivation
 
-List and map literals are excellent when you want to create a new collection out
+Collection literals are excellent when you want to create a new collection out
 of individual items. But, often some of those existing items are already stored
 in another collection.
 
@@ -93,6 +93,23 @@ var params = {
 
 In this case, the `...` takes an expression that yields a map and inserts all of
 that map's entries into the new map.
+
+This also extends to the forth-coming set literals:
+
+```dart
+var items = [2, 3, 4];
+var set = { 1, 2, ...items };
+```
+
+Allowing spread in sets and maps adds some complexity. Because both are
+delimited with curly braces, a set or map literal is syntactically ambiguous if
+it's empty, or if all of its elements are spreads:
+
+```
+var what = { ...a, ...b };
+```
+
+We resolve this ambiguity in the static semantics below.
 
 ### Type inference
 
@@ -204,29 +221,42 @@ elements:
 
 ```
 listLiteral:
-  const? typeArguments? '[' listElementList? ']'
+  const? typeArguments? '[' spreadableList? ']'
   ;
 
-listElementList:
-  listElement ( ',' listElement )* ','?
+spreadableList:
+  spreadableExpression ( ',' spreadableExpression )* ','?
   ;
 
-listElement:
+spreadableExpression:
   expression |
+  spread
+  ;
+
+spread:
   ( '...' | '...?' ) expression
   ;
 ```
 
-Instead of `expressionList`, this uses a new `listElementList` rule since
+Instead of `expressionList`, this uses a new `spreadableList` rule since
 `expressionList` is used elsewhere in the grammar where spreads aren't allowed.
 Each element in a list is either a normal expression or a *spread element*. If
 the spread element starts with `...?`, it's a *null-aware spread element*.
 
-The changes for map literals are similar:
+The grammar changes for map and set are a little more complex because of the
+potential ambiguity of collections containing only spreads. The changed and
+new rules are:
 
 ```
+setOrMapLiteral:
+    mapLiteral |
+    setLiteral |
+    mapOrSetLiteral
+    ;
+
 mapLiteral:
-  const? typeArguments? '{' mapLiteralEntryList? '}' ;
+  const? typeArguments? '{' mapLiteralEntryList? '}'
+  ;
 
 mapLiteralEntryList:
   mapLiteralEntry ( ',' mapLiteralEntry )* ','?
@@ -234,13 +264,24 @@ mapLiteralEntryList:
 
 mapLiteralEntry:
   expression ':' expression |
-  ( '...' | '...?' ) expression
+  spread
   ;
+
+setLiteral:
+    'const'? typeArguments? '{' spreadableList '}' ;
+
+mapOrSetLiteral:
+    'const'?  '{' spread (',' spread)* '}' ;
 ```
 
-Note that a *spread entry* for a map is an expression, not a key/value pair.
-Similar to lists, a spread entry that starts with `...?` is a *null-aware spread
-entry*.
+This grammar is ambiguous in cases like `{ ...a }` because `mapLiteral`,
+`setLiteral`, and `mapOrSetLiteral` all match. In cases of ambiguity like this,
+`mapOrSetLiteral` is always chosen. Then the disambiguation happens based on the
+static types, below. It is *not* ambiguous if the collection has any type
+arguments. If there is one, it's a set. If two, a map. Otherwise, it's an error.
+
+Note that a *spread entry* for a map is still an expression, not a key/value
+pair.
 
 ## Static Semantics
 
@@ -263,11 +304,11 @@ Map, but not necessarily a subtype of the map being spread into.
 
 It is a static error if:
 
-*   A spread element in a list literal has a static type that is not assignable
-    to `Iterable<Object>`.
+*   A spread element in a list or set literal has a static type that is not
+    assignable to `Iterable<Object>`.
 
-*   If a list spread element's static type implements `Iterable<T>` for some `T`
-    and `T` is not assignable to the element type of the list.
+*   If a list or set spread element's static type implements `Iterable<T>` for
+    some `T` and `T` is not assignable to the element type of the list.
 
 *   A spread element in a map literal has a static type that is not assignable
     to `Map<Object, Object>`.
@@ -278,6 +319,31 @@ It is a static error if:
 
 If implicit downcasts are disabled, then the "is assignable to" parts here
 become strict subtype checks instead.
+
+Note that you can spread any Iterable into a set literal, not just other sets.
+
+### Ambiguity between maps and sets
+
+An expression like:
+
+```dart
+{ ...a, ...b }
+```
+
+Is syntactically parsed as `mapOrSetLiteral`. To determine whether it actually
+is a map or set, the surrounding context is used. Given an `mapOrSetLiteral`
+with context type C:
+
+*   If `Set<Null>` is assignable to C, and `Map<Null, Null>` is not assignable
+    to C, then the collection is a set literal.
+
+*  Otherwise, it is a map literal.
+
+In other words, if it can only be a set, it is. Otherwise, it's a map. In cases
+where the context type is not specific enough to disambiguate, we could make it
+an error instead of defaulting to map. However, that would be inconsistent with
+how empty collections are handled. Those have to default to map for backwards
+compatibility.
 
 ### Const spreads
 
@@ -301,17 +367,27 @@ const forever = [...InfiniteSequence()];
 ```
 
 However, if the spread expression is a valid const expression and the resulting
-value is exactly the built-in List or Map classes, then it's safe because we
-know exactly how constants of those classes behave. Thus, we state:
+value is exactly the built-in List, Set, or Map classes, then it's safe because
+we know exactly how constants of those classes behave. Thus, we state:
 
-*   In a constant list, a spread element expands at compile time to the series
-    of elements contained in the spread object list.
+*   In a constant list or set, a spread element expands at compile time to the
+    series of elements contained in the spread object list.
 
 *   In a constant map, a spread element expands to the series of entries
     contained in the spread object map.
 
-*   It is a compile-time error to use a spread element in a constant list unless
-    the spread object was created by a constant list literal expression.
+*   It is a compile-time error to use a spread element in a constant list or set
+    unless the spread object was created by a constant list or set literal
+    expression.
+
+*   It is a compile-time error if any of the elements being spread in a const
+    set are equal to other elements in the set literal, in the spread, or in
+    other spreads in the same set, as in:
+
+    ```dart
+    const list = [1, 2];
+    const set = {1, ...list}; // Error because 1 is duplicated.
+    ```
 
 *   It is a compile-time error to use a spread element in a constant map unless
     the spread object was created by from a constant map literal expression.
@@ -322,7 +398,7 @@ This enables in-place literals (which aren't very useful):
 const list = [...["why"]];
 ```
 
-It also enables const expressions that refer to constant lists and maps defined
+It also enables const expressions that refer to constant collections defined
 elsewhere, which is useful:
 
 ```dart
@@ -330,7 +406,7 @@ const list = [2, 3];
 const another = [1, ...list, 4]; // [1, 2, 3, 4].
 ```
 
-The existing rules against self-reference prohibit a list or map from spreading
+The existing rules against self-reference prohibit a collection from spreading
 into itself:
 
 ```dart
@@ -341,12 +417,12 @@ const list = [...list]; // Error.
 
 Inference propagates upwards and downwards like you would expect:
 
-*   If a list literal has a downwards inference type of `List<T>` for some `T`,
-    then the downwards inference context type of a spread element in that list
-    is `Iterable<T>`.
+*   If a list or set literal has a downwards inference type of `Iterable<T>` for
+    some `T`, then the downwards inference context type of a spread element in
+    that list is `Iterable<T>`.
 
-*   If a spread element in a list literal has static type `Iterable<T>` for some
-    `T`, then the upwards inference element type is `T`.
+*   If a spread element in a list or set literal has static type `Iterable<T>`
+    for some `T`, then the upwards inference element type is `T`.
 
 *   If a map literal has a downwards inference type of `Map<K, V>` for some `K`
     and `V`, then the downwards inference context type of a spread element in
@@ -364,12 +440,12 @@ The new dynamic semantics are a superset of the original behavior:
 
 A list literal `<E>[elem_1 ... elem_n]` is evaluated as follows:
 
-1.  Create a fresh instance of `list` of a class that implements `List<E>`.
+1.  Create a fresh instance `list` of a class that implements `List<E>`.
 
-    An implementation is, of course, free to optimize pre-allocate a list of the
-    correct capacity when its size is statically known. Note that when spread
-    arguments come into play, it's no longer always possible to statically tell
-    the final size of the resulting flattened list.
+    An implementation is, of course, free to optimize and pre-allocate a list of
+    the correct capacity when its size is statically known. Note that when
+    spread arguments come into play, it's no longer always possible to
+    statically tell the final size of the resulting flattened list.
 
 1.  For each `element` in the list literal:
 
@@ -429,6 +505,41 @@ A map literal of the form `<K, V>{entry_1 ... entry_n}` is evaluated as follows:
         1.  Call `map[key] = value`.
 
 1.  The result of the map literal expression is `map`.
+
+### Sets
+
+A set literal `<E>{elem_1 ... elem_n}` is evaluated as follows:
+
+1.  Create a fresh instance of `set` of a class that implements
+    `LinkedHashSet<E>`.
+
+    An implementation is, of course, free to optimize and pre-allocate a set of
+    the correct capacity when its size is statically known. Note that when
+    spread arguments come into play, it's no longer always possible to
+    statically tell the final size of the resulting flattened set.
+
+1.  For each `element` in the set literal:
+
+    1.  Evaluate the element's expression to a value `value`.
+
+    1.  If `element` is a spread element:
+
+        1.  If `element` is null-aware and `value` is null, continue to the next
+            element in the literal.
+
+        1.  Evaluate `value.iterator` to a value `iterator`.
+
+        1.  Loop:
+
+            1.  If `iterator.moveNext()` returns `false`, exit the loop.
+
+            1.  Evaluate `set.add(iterator.current)`.
+
+    1.  Else:
+
+        1.  Evaluate `set.add(value)`.
+
+1.  The result of the literal expression is `set`.
 
 ## Migration
 
@@ -612,7 +723,7 @@ corpus where this syntax could be used by looking for calls to `.addAll()` on
 collection literals. I converted them to use the prefix and postfix syntax
 [here][spread examples].
 
-[spread examples]: https://github.com/dart-lang/language/tree/master/working/0047.%20Spread%20Collections/examples
+[spread examples]: https://github.com/dart-lang/language/tree/master/working/spread-collections/examples
 
 Only a few cases use `...?`. Some examples do have pretty complex expressions
 where it's easy to overlook a trailing `...`, like:

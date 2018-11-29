@@ -4,7 +4,6 @@ Author: eernst@google.com (@eernstg).
 
 Version: 0.3.
 
-
 ## Motivation and Scope
 
 Parameterized types in Dart can be verbose. An example is here:

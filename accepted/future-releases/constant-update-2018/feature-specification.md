@@ -64,7 +64,7 @@ or potentially constant expressions.
 
 ## Design
 
-The precise defintion of the changes [has landed](dart-lang/sdk@0808d29)
+The precise defintion of the changes [has landed](https://github.com/dart-lang/sdk/commit/0808d29)
 in the language specification. 
 The following section summarizes the changes.
 
