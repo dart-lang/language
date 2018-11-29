@@ -604,7 +604,7 @@ var after = [1, more..., 3];
 
 Putting it before has these advantages (some of which are marginal or dubious):
 
-*   It's what JavaScript does. If we assume most people coming to Dart and
+*   It's what JavaScript does. If we assume most people coming to Dart that are
     familiar with a spread operator learned it from JS, that makes it the most
     familiar syntax.
 
@@ -651,7 +651,7 @@ Putting it before has these advantages (some of which are marginal or dubious):
     ```
 
 *   In an IDE, auto-complete is likely to trigger after typing each `.`, which
-    they you then have to cancel out.
+    you would then have to cancel out.
 
 *   It makes the precedence less visually confusing. The `...` syntax doesn't
     really have "operator precedence" because it isn't an operator expression.
@@ -757,4 +757,5 @@ where it's easy to overlook a trailing `...`, like:
 ```
 
 Here, the `...` almost looks like it's part of the *next* element, the TableRow,
-than the preceding one. Given this, I think prefix `...` is the better choice.
+instead of the preceding one. Given this, I think prefix `...` is the better
+choice.
