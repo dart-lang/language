@@ -29,7 +29,7 @@ declarations and usages in the following situations:
   - the `on` clause of a mixin.
   - instance creation expressions, constant and non-constant.
   - an invocation of a static method, getter, setter, and in a tear-off of a
-    static method.
+    static method; note that type arguments (`F<int>.m()`) is an error here.
 
 The co19 team start creating tests early, such that those tests can be
 used during implementation as well.
