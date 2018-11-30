@@ -1,9 +1,8 @@
 # Design Document for Generalized Type Aliases 2018.
 
-Author: eernst@google.com (@eernst).
+Author: eernst@google.com (@eernstg).
 
-Version: 0.2.
-
+Version: 0.3.
 
 ## Motivation and Scope
 
@@ -56,6 +55,12 @@ typeAlias ::=
 *The modification is that a type alias declaration of the form that uses
 `=` can define the type alias to denote any type, not just a function
 type.*
+
+When we refer to the _body_ of a type alias of the form that includes `=`,
+it refers to the `type` to the right of `=`. When we refer to the body of a
+type alias of the form that does not include `=`, it refers to the function
+type which is expressed by substituting `Function` for the name of the type
+alias in the given `typeAliasBody`.
 
 
 ### Static Analysis 
@@ -114,32 +119,35 @@ evaluated as an expression, it is subject to instantiation to bound.
 *This treatment of generic type aliases is again the same as it was
 previously, but it involves a larger set of types.*
 
-A type alias application of the form _F_ or the form
+A type alias application _A_ of the form _F_ or the form
 _F&lt;T<sub>1</sub>..T<sub>k</sub>&gt;_ can be used as a type annotation,
 as a type argument, as part of a function type or a function signature, as
 a type literal, in an `on` clause of a `try` statement, in a type test
-(`e is F`), and in a type cast (`e as F`).
+(`e is A`), and in a type cast (`e as A`).
 
-**The following is under discussion. Exactly one rule will be confirmed.
-The following two variants are considered, along with small variations or
-hybrids thereof:**
+A type alias application of the form _F_ or the form
+_F&lt;T<sub>1</sub>..T<sub>k</sub>&gt;_ denoting a class can be used in a
+position where a class is expected: in the `extends`, `with`, `implements`,
+and `on` clause of a class or mixin declaration; and in an instance
+creation expression (*e.g., `new F()`, `const F<String>.named('Hello!')`*).
 
-*  A type alias can _not_ be used in a position where a class is
-   expected: in the `extends`, `with`, `implements`, or `on` clause of a
-   class or mixin declaration; for a static member access; or in an
-   instance creation expression (`new F()`, `const F<int>()`). OR
+A type alias application of the form _F_ (*that is, not
+_F&lt;T<sub>1</sub>..T<sub>k</sub>&gt;_*) denoting a class _C_ or a
+parameterized type _C&lt;S<sub>1</sub>..S<sub>m</sub>&gt;_
+can be used to access the member _m_,
+when _C_ is a class that declares a static member _m_.
 
-*  A type alias can _not_ be used for static member accesses. When a type
-   alias _F_ resp. _F&lt;T<sub>1</sub>..T<sub>k</sub>&gt;_ occurs as the
-   entity that a class `extends` and when it occurs in a `with` clause or
-   `implements` clause of a class or an `on` clause of a mixin, or it is
-   used in an instance creation expression, it is a compile-time error
-   unless it denotes a class, otherwise it is treated as if that class had
-   been specified explicitly.
-   (*E.g., `class C extends myPrefix.F<int> {}` would be equivalent to
-   `class C extends D<List<int>, int> {}` if the library imported as
-   `myPrefix` contains `typedef F<X> = D<List<X>, X>;`, assuming that
-   `D` is accessible to the current library and has no prefix.*)
+*For instance, an expression like `F.m(42)` can be used to invoke `m` when
+`F` denotes `C<String>` where `C` is some generic class that declares a
+static method named `m`, even though it would have been a compile-time
+error to invoke it with `C<String>.m(42)`. Other kinds of access are also
+possible, such as an invocation of a getter or a setter, or a tear-off of a
+method. Of course, the invocation must pass a suitable number of parameters
+with suitable types, the only "permitted error" is the indirect ability to
+pass type arguments to the class. However, `G<int>.m()` is a compile-time
+error when `G<int>` is a type alias application that denotes a class `C` or
+a parameterized type like `C<String, int>`, even in the case where `C`
+declares a static method named `m`.*
 
 
 ### Dynamic Semantics
@@ -163,6 +171,9 @@ fresh type variable bound to the denoted type.
 
 
 ## Versions
+
+* Nov 29th, 2018, version 0.3: Allowing type aliases to be used as classes,
+  including for invocation of static methods.
 
 * Nov 8th, 2018, version 0.2: Marking the design decision of where to allow
   usages of type aliases denoting classes as under discussion.
