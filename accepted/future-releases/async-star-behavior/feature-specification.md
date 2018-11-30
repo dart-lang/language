@@ -5,7 +5,7 @@
 **Version**: 1.0 (2018-11-30)
 
 ## Background
-See [Issue 121](#121).
+See Issue #121.
 
 The Dart language specification defines the behavior of `async*` functions,
 and `yield` and `yield*` statements in those, as well as the behavior of
