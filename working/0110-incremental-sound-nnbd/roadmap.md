@@ -10,50 +10,62 @@ but instead to argue for a specific set of high-level goals and design choices
 that define the key properties of the final system, and of the migration path to
 get there.  Specifically, we propose to aim for a system which allows for an
 incremental opt-in migration, and which is fully sound once all code in a
-compilation target has opted-in.
+program has opted-in.
 
 ## Motivation for non-nullability in Dart.
 
 This has been fairly well explored previously, so just in brief.  This is one of
 the most requested features in developer surveys, and one of the thing that
 developers most frequently mention missing from other languages.  Kotlin, Swift,
-C#, Typescript, and numerous other languages now have support for
-non-nullability.  Since Dart also has no primitive types or value types, it is
-possible that non-nullability could provide performance benefits as well.
+C#, Typescript, and numerous other languages now have, or are adding, support
+for non-nullability.  Since Dart also has no primitive types or value types, it
+is possible that non-nullability could provide performance benefits as well.
 
 ## Summary of proposed goals
 
 We propose to set the following goals for nullability tracking in Dart.
 
-- The type system should be incrementally sound.  That is, compilation should be
-possible with a mix of opted-in and non-opted-in code, but when all code in a
-compile has opted in, the compiler should be able to trust what the type system
-says about nullability.  When not all code has opted-in, it is possible that a
-non-nullably typed value will receive null.
-- During the migration, packages should be able to opt in without breaking
-  non-opted-in clients.
-- During the migration, packages should be able to opt in before packages that
-  they depend on have opted in.
-- During the migration, if a package opts in after all of its dependencies have
-already opted in (or if it correctly predicts and codes against the
-post-migration API of its dependencies) it only migrates once.
+- Code can be migrated incrementally. A program can run and
+have well-defined semantics when some parts have been migrated to non-nullable
+types and others have not. We don't guarantee full safety in programs which mix
+migrated and unmigrated code.  That is, when not all code has opted-in, it is
+possible that a non-nullably typed value will receive null.
+
+- When a program has been fully migrated to non-nullable types, it
+uses only the subset of the type system that is sound. No null errors (returning
+null from an expression whose type is not nullable, calling methods on null that
+the Null class does not support) will occur.
+
+- During the migration, if a package opts in after all of the packages it
+depends on have already opted in (or if it correctly predicts and codes against
+the post-migration API of the packages it depends on) it can migrate completely
+in one step.
+
+- Migration should be minimally breaking for unmigrated packages.  Migrating a
+  package should never cause compilation to fail for unmigrated downstream
+  dependencies, and as much as is possible should not introduce new runtime
+  failures.
+
+We may or may not wish to make it a goal that packages can be migrated in any
+order.
 
 ## Proposal roadmap
 
 ### Opting in
 
-Non-nullable types will be controlled by a language opt-in as deal with
-elsewhere.  In short, a library may opt-in via syntax in the code, or a package
-may opt-in in entirety.  Opting-in applies only to the library or package so
-marked.
+Non-nullable types will be controlled by a language opt-in as
+described [elsewhere](https://github.com/dart-lang/language/issues/93).  In
+short, a library may opt-in via syntax in the code, or a package may opt-in in
+entirety.  Opting-in applies only to the library or package so marked.
 
 Within an opted-in library, unmarked types are interpreted as non-nullable, and
-only types suffixed with `?` are considered nullable.  Additional syntax and
-semantics are enabled for null assertions, definite assignment analysis, type
-promotion.  Additional static errors and warnings are enabled.  If we choose to
-move forward according this roadmap the details of this will be worked out in
-detail by the language team over the next quarter, drawing heavily on previous
-proposals.
+only types suffixed with `?` are considered nullable (with the possible
+exceptions of the top types, and of course `Null` itself).  Additional syntax
+and semantics are enabled for null assertions, definite assignment analysis,
+type promotion.  Additional static errors and warnings are enabled.  If we
+choose to move forward as proposed in this roadmap, the details of this will be
+worked out by the language team over the next quarter, drawing heavily on
+previous proposals.
 
 ### Reification
 
@@ -62,15 +74,18 @@ So for example, casts and instance checks can distinguish between `List<int>`
 and `List<int?>`.  Without runtime reification, nullability is relegated to an
 odd and inconsistent state with respect to the rest of the Dart type system,
 which is uniformly reified.  Null-soundness is also almost certainly impossible
-to achieve in Dart without reification.
+to achieve in Dart without reification, and without null-soundness we can
+neither derive performance benefits in our compilers, nor deliver complete
+protection from null pointer errors to developers.
 
 ### Soundness
 
-When all libraries in a compile have opted-in to non-nullability, the type
+When all libraries in a program have opted-in to non-nullability, the type
 system is sound and both compilers and programmers can benefit from a robust
-guarantee that no non-nullably typed value may be observed to be null.  We
-believe that a sound type system provides the most value to Dart programmers and
-brings us to parity with competing languages.  Specifically, we make the
+guarantee that no non-nullably typed value may be observed to be null (and hence
+dynamic calls will be the only source of noSuchMethod errors on null receivers).
+We believe that a sound type system provides the most value to Dart programmers
+and brings us to parity with competing languages.  Specifically, we make the
 following arguments.
 
 First, Kotlin and Swift both provide the experience of a null-sound
@@ -90,9 +105,11 @@ Typescript) largely seem to have been forced to do so by legacy reasons that are
 less applicable to Dart.
 
 Third, we believe that null-soundness can be leveraged by our compilers to
-generate better code.  This is especially important for Dart, which has no
-notion of a primitive (and hence non-nullable by construction) type as Kotlin
-and C# do.
+generate better code.  This is especially important for Dart. Languages like
+Java and C# have primitive types which are implicitly soundly non-nullable. You
+never pay a price for null when you use `int` in C#. In Dart, even "primitive"
+types are nullable.
+
 
 Soundness is discussed in more detail below, including detailed comparisons to
 other languages.
@@ -104,22 +121,52 @@ that interacts with non-opted-in code may observe null values flowing from a
 non-nullably typed location.  We propose to specify some set of migration period
 dynamic checks so that opted-in code can safely remove null assertions before
 the migration is complete.  Depending on the measured performance impact of
-these checks, we may choose to make these dynamic checks debug mode only.  These
-dynamic checks are orthogonal to any dynamic checking specified as part of the
-core feature, and will not be required when all packages in a compile have opted
-in.  We do not expect that these checks will be sufficient to recover
-null-soundness during the migration period: that is, even with the debug mode
-null guards in place, it will still be possible to see a null pointer error in
-opted-in code because of interactions with non-opted-in code that cannot be
-caught by runtime checks.
+these checks, we may choose to make these dynamic checks something that are
+inserted in a debug mode only (either when assertions are turned on, or perhaps
+controlled by a separate flag).  These dynamic checks are orthogonal to any
+dynamic checking specified as part of the core feature, and will not be required
+when all packages in a program have opted in.  These checks may not be
+sufficient to recover full null-soundness during the migration period: that is,
+even with the debug mode null guards in place, it may still be possible to see a
+null pointer error in opted-in code because of interactions with non-opted-in
+code.  Consider this code.
+
+```dart
+library opted_in;
+
+void takesListNonNull(List<int> l) {
+
+print(l[0].isEven);
+}
+
+library opted_out;
+
+import "opted_in.dart" as oi;
+
+oi.takesListNonNull(<int>[null]);
+```
+
+This proposal does not allow the call to `takesListNonNulll` to be statically
+rejected (since the caller has not opted in), and we believe that it is better
+to allow the call to be dynamically accepted (since most working code will not
+be passing null to unexpected locations).  This implies that the read from `l`
+might return null (as it does in this case).  We could require a null-assertion
+on every single non-nullable expression: this would "catch" this error exactly
+at the point of the method call (which is where the null pointer error would
+happen anyway).  But it is likely that this would be prohibitively expensive to
+little benefit, and so we might choose to only insert debug mode null checks on
+variables, parameters, and return values (much as was done with checked mode in
+Dart 1).
 
 ### Migration path
 
-We propose to support both a waterfall migration (a library may not opt in until
-the transitive closure of its imports have opted-in) and an unconstrained
-migration (any library may opt in at any point).
+We don't necessarily need to require users to follow a "waterfall migration" in
+which a library cannot opt in until after the transitive closure of its imports
+have. Instead, we could support a model in which libraries can opt in whenever
+they want, independently of the state of libraries they import or that import
+them.
 
-In the waterfall model, our proposal has the property that it is essentially
+In the waterfall model, our proposal has the property that it is mostly
 non-breaking for a library to opt in.  By this we mean that opting-in will never
 cause static errors in any non-opted-in library, and that the behavior of a
 library should be the same whether it is used from an opted-in client or a
@@ -132,18 +179,18 @@ interaction between two opted-in libraries mediated by a non-opted-in library
 opted-in library which tries to cast it to a `List<int>`).
 
 In the package ecosystem, we likely will want to bump major version numbers of
-packages that opt in despite the "essentially non-breaking" property.
+packages that opt in despite the "mostly non-breaking" property.
 
 In the unconstrained model, packages may choose to opt in before their upstream
 dependencies.  However, when an upstream dependency opts in, they may have to
-re-migrate to accomdate the breaking change.  An advantage of the unconstrained
-model is that apps can migrate without having to wait for all of their
-transitive dependencies to migrate.  This makes it easier for pieces of the
-ecosystem to migrate, and hopefully increases the velocity of adoption.  While
-it may be desireable to follow a "mostly-waterfall" model, the ability to opt in
-arbitrary packages avoids the issue where a single unmaintained (or hard to
-migrate) package far upstream can block an arbitrary chunk of the ecosystem from
-migrating.
+re-migrate to accommodate the breaking change.  An advantage of the
+unconstrained model is that apps can migrate without having to wait for all of
+their transitive dependencies to migrate.  This makes it easier for pieces of
+the ecosystem to migrate, and hopefully increases the velocity of adoption.
+While it may be desireable to follow a "mostly-waterfall" model, the ability to
+opt in arbitrary packages avoids the issue where a single unmaintained (or hard
+to migrate) package far upstream can block an arbitrary chunk of the ecosystem
+from migrating.
 
 ### Language support for migration
 
@@ -160,13 +207,26 @@ runtime.
 Firstly, in the unconstrained case, this forces you to make all of the wrong
 assumptions about the APIs that you use.  You must treat them as entirely
 nullable, even though it is highly likely that eventually most of the types in
-them will become non-nullable.
+them will become non-nullable.  Moreover, treating them as nullable, while
+safer, makes the unmigrated APIs much more painful to use.
+
+```dart
+// not_opted_in.dart
+int getInt() => 3;
+
+// opted_in.dart
+import "no_opted_in.dart";
+
+main() {
+  getInt().abs(); // Error. Can't call abs() on `int?`.
+}
+```
 
 Secondly, in both the waterfall and the unconstrained case, you must decide how
 to deal with un-opted-in downstream dependencies.
 
 You could choose to treat them as having been opted-in (with implicitly nullable
-types) by virtue of being in the same compile as an opted-in package.  Either
+types) by virtue of being in the same program as an opted-in package.  Either
 this is massively breaking (since the package is almost certain to mis-use the
 opted-in APIs), or else you treat nullability violations in the un-opted-in
 packages as warnings and allow the compile to continue.  However, you still run
@@ -192,7 +252,7 @@ Before the migration of library `opted_in`, this code worked.  After migration,
 it fails the assertion.
 
 To avoid this, you could choose to turn off runtime reification of nullability
-if any package in the compile is not opted-in (or equivalently, have a separate
+if any package in the program is not opted-in (or equivalently, have a separate
 opt-in for the runtime component that requires all packages to have opted-in).
 The implication of this is that when runtime reification is turned on, you can
 see new runtime failures, despite all packages having migrated already.
@@ -222,11 +282,26 @@ without breaking downstream code (either because we follow this proposal and
 provide language support, or because we treat downstream static errors as
 warnings in un-opted-in code), and then on a per compile basis turn on the
 runtime checking.  It is unsatisfying that the same code compiled with and
-without the flag can in principle do arbitrarily different things, but in
-practice this is unlikely to be a large problem.  If, as part of the migration,
-we strongly encourage that any given library run its tests with the flag on, we
-can achieve some confidence that code will "just work" when the flag is turned
-on.
+without the flag can in principle do arbitrarily different things.
+
+```dart
+onlyLoveInts(List<Object> list) {
+  if (list is List<int>) {  // True before reification is turned on, false after
+    eraseHardDrive();
+  } else {
+    winLottery();
+  }
+}
+
+onlyLoveInts(<int?>[]);
+```
+
+This is more than just a purely theoretical concern since Flutter does rely
+heavily on testing runtime type information.  However, in practice this is
+probably unlikely to be a large problem, since no existing code distinguishes
+between nullable and non-nullable types.  If, as part of the migration, we
+strongly encourage that any given library run its tests with the flag on, we can
+achieve some confidence that code will "just work" when the flag is turned on.
 
 The largest concern about deferring the runtime checking is that it potentially
 turns the local migration into a global migration.  If libraries only do the
@@ -374,19 +449,19 @@ Swift, C# and Typescript deal with nullability.
 
 #### [Kotlin](https://kotlinlang.org/docs/reference/null-safety.html)
 
-Kotlin in general aims to have a sound type system.  Interop with Java can of
-course subvert this, but the core language experience is intended to be that
-types can be relied on.  There are two small exceptions to this which mean that
-Kotlin cannot actually provide full null soundness.
+Kotlin in general aims to have a sound type system.  Interop with Java can
+subvert this, but the core language experience is intended to be that types can
+be relied on.  There are two small exceptions to this which mean that Kotlin
+cannot actually provide full null soundness.
 
 First, Kotlin provides an unsafe cast operator that can be used to escape the type
 system. This primarily arises because Kotlin is implemented over the JVM and
 hence have no way to implement the reification necessary for safe casts at
 composite types.
 ```kotlin
-    var nnf : (String) -> Int = { s -> s.length};
-    var nf : (String ?) -> Int = nnf as (String?) -> Int; // Compiler warning.
-    nf(null);  // Will cause a NPE
+var nnf : (String) -> Int = { s -> s.length};
+var nf : (String ?) -> Int = nnf as (String?) -> Int; // Compiler warning.
+nf(null);  // Will cause a NPE
 ```
 The compiler will emit a warning on the unsafe cast.
 
@@ -457,8 +532,8 @@ languages in that Swift "nullable" values are actually instances of the built-in
 `T?`.
 
 ```swift
-  let maybeMaybeString : String?? = Optional.some(nil)
-  let maybeString : String? = maybeMaybeString // Error
+let maybeMaybeString : String?? = Optional.some(nil)
+let maybeString : String? = maybeMaybeString // Error
 ```
 The swift syntax for the most part hides this distinction by building in close
 syntactic support for nullable values.  The result is a system that largely
@@ -479,61 +554,61 @@ making it easy to reflect the results of runtime tests into the program.
 Definite assignment does not promote from nullable type to a non-nullable type
 in Swift.
 ```swift
-    var str : String?;
-    str = "Hello, playground"
-    str.sorted() // Error
+var str : String?;
+str = "Hello, playground"
+str.sorted() // Error
 ```
 
 Even guarding a use with a null check doesn't promote the type.
 ```swift
-    if str != nil {
-      str.sorted() // Error
-    }
+if str != nil {
+  str.sorted() // Error
+}
 ```
 
 Instead, Swift provides convenient ways to both check that a value is non-nil
 and bind the value to a new variable in one step.  The simplest version is the
 `if let` construct.
 ```swift
-    var str : String?;
-    // Execute the body if `str` is non-null, binding a new variable (also named
-    // str here) in the inner scope with a non-nullable type
-    if let str = str {
-      str.sorted() // Ok
-    }
-    str.sorted() // Still an error
+var str : String?;
+// Execute the body if `str` is non-null, binding a new variable (also named
+// str here) in the inner scope with a non-nullable type
+if let str = str {
+  str.sorted() // Ok
+}
+str.sorted() // Still an error
 ```
 
 This is not always convenient, since the new variable goes out of scope after
 the body of the `if`, so Swift also provides a guard construct.
 ```swift
-    var str : String?;
-    guard let nnstr = str else {
-      return;  // Must exit the enclosing scope in some way
-    }
-    nnstr.sorted() // No error
+var str : String?;
+guard let nnstr = str else {
+  return;  // Must exit the enclosing scope in some way
+}
+nnstr.sorted() // No error
 ```
 
 Swift does do some amount of definite assignment analysis in order to allow late
 initialization patterns.
 ```swift
-    var str : String? = "test"
-    var nnstr : String;
-    if (str != nil) {
-        nnstr = "hello"
-    } else {
-        nnstr = "world"
-    }
-    nnstr.sorted() // No error
+var str : String? = "test"
+var nnstr : String;
+if (str != nil) {
+    nnstr = "hello"
+} else {
+    nnstr = "world"
+}
+nnstr.sorted() // No error
 ```
 
 Finally, Swift provides an explicit way to mark a variable as "trusted"
 non-null, which means that an implicit null-check is done on each reference.
 ```swift
-    var nnstr : String!;
-    nnstr.sorted();
-    nnstr = nil;
-    nnstr.sorted();
+var nnstr : String!;
+nnstr.sorted();
+nnstr = nil;
+nnstr.sorted();
 ```
 
 Swift's approach then is to provide a sound type system based around optional
@@ -544,8 +619,8 @@ for falling back to runtime checking with low syntactic overhead where needed.
 
 #### [C#](https://blogs.msdn.microsoft.com/dotnet/2017/11/15/nullable-reference-types-in-csharp/)
 
-C# recently added prototype for non-nullability for default.  Unlike Swift and
-Kotlin, C# explicitly does not aim for soundess.
+C# recently added a prototype for non-nullability for default.  Unlike Swift and
+Kotlin, C# explicitly does not aim for soundness.
 
 > There is no guaranteed null safety, even if you react to and eliminate all the
 > warnings. There are many holes in the analysis by necessity, and also some by
@@ -613,9 +688,8 @@ substitute for runtime validation".
 
 #### [Typescript](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-0.html)
 
-Typescript is of course unsound by design.  In addition to the core unsoundness
-of the type system, it specifically allows unsound nullable promotion of dotted
-paths.
+Typescript is unsound by design.  In addition to the core unsoundness of the
+type system, it specifically allows unsound nullable promotion of dotted paths.
 
 ```typescript
 class Ref<T> {
@@ -650,9 +724,12 @@ class IntRef {
 
 As with Kotlin and Swift, Typescript does not seem to have skimped on the static
 analysis work, but instead has invested fairly heavily in providing robust
-checking.  As with C# however, Typescript does seem to have chosen to be unsound
-in a few places out of choice rather than necessity, to relieve the programmer
-of some of the burden of proving safety to the type checker.
+checking.  Since the Typescript type system is unsound there is essentially no
+way for them to provide null-soundness.  As with C# however, Typescript does
+seem to have chosen to be unsound in a few places out of choice in addition to
+necessity, to relieve the programmer of some of the burden of proving safety to
+the type checker.  Since Typescript is purely a static layer on top of
+Javascript, there is also no performance benefit to null-soundness for it.
 
 ### Alternatives to a sound system
 
