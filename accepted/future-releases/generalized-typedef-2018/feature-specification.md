@@ -131,22 +131,23 @@ position where a class is expected: in the `extends`, `with`, `implements`,
 and `on` clause of a class or mixin declaration; and in an instance
 creation expression (*e.g., `new F()`, `const F<String>.named('Hello!')`*).
 
-A type alias application _A_ of the form _F_ or the form
-_F&lt;T<sub>1</sub>..T<sub>k</sub>&gt;_ denoting a class _C_ or a
+A type alias application of the form _F_ (*that is, not
+_F&lt;T<sub>1</sub>..T<sub>k</sub>&gt;_*) denoting a class _C_ or a
 parameterized type _C&lt;S<sub>1</sub>..S<sub>m</sub>&gt;_
 can be used to access the member _m_,
-when _C_ is a generic class that declares a static member _m_.
+when _C_ is a class that declares a static member _m_.
 
 *For instance, an expression like `F.m(42)` can be used to invoke `m` when
 `F` denotes `C<String>` where `C` is some generic class that declares a
 static method named `m`, even though it would have been a compile-time
-error to invoke `C<String>.m(42)` directly.  Similarly, `G<int>.m()` can be
-used if `G<int>` denotes a class `C` or a parameterized type like
-`C<String, int>`, when `C` declares a static method named `m`. Of course,
-normal static checks still apply, and it is still an error if, e.g., said
-static method does not accept the given number or type of actual arguments.
-Other kinds of access are also possible, such as an invocation of a getter
-or a setter, or a tear-off of a method.*
+error to invoke it with `C<String>.m(42)`. Other kinds of access are also
+possible, such as an invocation of a getter or a setter, or a tear-off of a
+method. Of course, the invocation must pass a suitable number of parameters
+with suitable types, the only "permitted error" is the indirect ability to
+pass type arguments to the class. However, `G<int>.m()` is a compile-time
+error when `G<int>` is a type alias application that denotes a class `C` or
+a parameterized type like `C<String, int>`, even in the case where `C`
+declares a static method named `m`.*
 
 
 ### Dynamic Semantics
