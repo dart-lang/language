@@ -2,11 +2,25 @@
 
 Relevant documents:
  - [Tracking issue](https://github.com/dart-lang/language/issues/115)
- - [Full proposal](https://github.com/dart-lang/language/blob/master/accepted/future-releases/generalized-typedef-2018/feature-specification.md)
+ - [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/generalized-typedef-2018/feature-specification.md)
 
 ## Implementation and Release plan
 
+This feature is non-breaking, because it is concerned with the introduction of
+support for new syntactic forms.
+Still, we will introduce it using an
+[experiments flag](https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md)
+in order to enable a controlled deployment.
+
+
 ### Phase 0 (Preliminaries)
+
+#### Release Flag
+
+The flag
+`--enable-experiment=nonfunction-type-aliases`
+must be passed for the changes to be enabled.
+In this phase, support for that flag is added to all tools.
 
 #### Tests
 
@@ -28,8 +42,9 @@ declarations and usages in the following situations:
   - the `implements` clause of a class or mixin.
   - the `on` clause of a mixin.
   - instance creation expressions, constant and non-constant.
-  - an invocation of a static method, getter, setter, and in a tear-off of a
-    static method; note that type arguments (`F<int>.m()`) is an error here.
+  - an invocation of a static method, getter, setter, and a tear-off of a
+    static method; note that the provision of type arguments
+    (`F<int>.m()`) is an error here.
 
 The co19 team start creating tests early, such that those tests can be
 used during implementation as well.
