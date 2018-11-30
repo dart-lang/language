@@ -6,7 +6,7 @@
 
 ## Feature Specification
 
-See Issue #120.
+See [Issue #120](http://github.com/dart-lang/language/issues/120).
 
 The `>>>` operator is reintroduced as a user-implementable operator.
 It works exactly as all other user-implementable operators.
