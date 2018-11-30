@@ -116,7 +116,7 @@ Stream<int> computedStream(int n) async* {
   }
 }
 
-void consumeValues(Stream<int> values, List<int> log) async {
+Future<void> consumeValues(Stream<int> values, List<int> log) async {
   await for (var value in values) {
     if (value < 0) break;
     if (value > 100) {
@@ -127,6 +127,12 @@ void consumeValues(Stream<int> values, List<int> log) async {
       log.add(value);
     }
   }
+}
+
+void main() async {
+  var log = <int>[];
+  await consumeValues(computedStream(25), log);
+  print(log);
 }
 ```
 In this example, the `await for` in the `consumeValues` function should get a chance to abort or pause
