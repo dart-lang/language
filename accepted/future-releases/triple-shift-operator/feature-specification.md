@@ -6,6 +6,8 @@
 
 ## Feature Specification
 
+See [Issue 120](#120).
+
 The `>>>` operator is reintroduced as a user-implementable operator.
 It works exactly as all other user-implementable operators.
 It has the same precedence as the `>>` and `<<` operators.
