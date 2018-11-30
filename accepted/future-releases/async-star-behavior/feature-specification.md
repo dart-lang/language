@@ -11,10 +11,10 @@ and `yield` and `yield*` statements in those, as well as the behavior of
 `await for` loops.
 
 This specification has not always been precise, and the implemented behavior
-has been causing user problems ([https://github.com/dart-lang/sdk/issues/34775],
-[https://github.com/dart-lang/sdk/issues/22351],
-[https://github.com/dart-lang/sdk/issues/35063],
-[https://github.com/dart-lang/sdk/issues/25748]).
+has been causing user problems ([34775](https://github.com/dart-lang/sdk/issues/34775),
+[22351](https://github.com/dart-lang/sdk/issues/22351),
+[35063](https://github.com/dart-lang/sdk/issues/35063),
+[25748](https://github.com/dart-lang/sdk/issues/25748)).
 
 The specification was cleaned up prior to the Dart 2 released,
 but implementations have not been unified and do not match the documented
@@ -106,3 +106,31 @@ prior to the `yield`, and can easily be made to respect a cancel happening
 during the `yield` event delivery, but they only check for pause *before*
 delivering the event, and it requires a rewrite of the Kernel transformer
 to change this behavior.
+
+### Example
+```dart
+Stream<int> computedStream(int n) async* {
+  for (int i = 0; i < n; i++) {
+    var value = expensiveComputation(i);
+    yield value;
+  }
+}
+
+void consumeValues(Stream<int> values, List<int> log) async {
+  await for (var value in values) {
+    if (value < 0) break;
+    if (value > 100) {
+      var newValue = await complexReduction(value);
+      if (newValue < 0) break;
+      log.add(newValue);
+    } else {
+      log.add(value);
+    }
+  }
+}
+```
+In this example, the `await for` in the `consumeValues` function should get a chance to abort or pause
+(by doing something asynchronous) its stream subscription *before* the next `expensiveComputation` starts.
+
+The current implementation starts the next expensive operation before it checks whether it should 
+abort.
