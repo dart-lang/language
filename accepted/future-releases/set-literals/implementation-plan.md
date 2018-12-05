@@ -11,7 +11,7 @@ Relevant documents:
 The implementation of this change will happen behind
 an
 [*experiments flag*](https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md).
-Tools need to be passed the flag `--enable-experiment=set-literal` for the
+Tools need to be passed the flag `--enable-experiment=set-literals` for the
 changes to be enabled.
 
 ### Task0 (Prerequisite)
