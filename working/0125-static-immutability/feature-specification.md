@@ -35,12 +35,27 @@ foo<S, T, where T is immutable>(Value<T> v) {
 }
 ```
 
-### Alternative syntax
+### Alternative syntax 1
 
 Instead of adding constraints, a simpler approach is to add a marker interface
 `Immutable`.  The property expressed by the constraint `T is immutable` then
 becomes expressed by `implements Immutable` in the case of a class, or `T
 extends Immutable` in the case of a type variable `T`.
+
+### Alternative syntax 2
+
+Instead of adding general constraints, we could expose a dedicated syntax.  For
+example, this proposal from @yjbanov.
+
+```dart
+data Value<data T> extends Scalar<T> {
+}
+
+foo<S, data T>(Value<T> v) {
+}
+
+```
+
 
 ## Static checking
 A class marked with `immutable` is subject to the following additional static
@@ -55,6 +70,14 @@ checks.
 
 The types `int`, `double`, `bool`, `String`, `Type`, and `Symbol` are considered
 immutable.
+
+## Generated methods
+
+We may wish to consider automatically generating hashCode and equality methods
+for immutable classes (possibly with caching of hashCode).
+
+We may wish to consider automatically generating functional update methods (or
+providing some other form of functional update).
 
 ## Allocation of immutable objects
 
@@ -121,6 +144,16 @@ instance of one of these classes:
 Instances that are allocated to initialize fields or top level variables are
 always initialized in an umodifiable state.
 
+Question: Is this functionality needed?  With spread collections, many patterns
+will be expressible directly as a literal.
+
+Question: Is this sufficient?  The analysis as specified is brittle: you cannot
+factor out initialization code into a different scope from the allocation.  We
+could add type level support for tracking uninitialized instances, but this
+raises the footprint of this feature substantially.
+
+Qustion: Should this functionality be extended to user classes?
+
 ### Runtime immutability
 As with the result of the current `List.unmodifiable` constructor, mutation
 operations on an instance of an immutable collection shall throw (except in the
@@ -146,11 +179,38 @@ is not required?
  var l = ^[3];
 ```
 
+### Alternative collection approach
+
+Instead of making `ImmutableList` a subtype of `List`, we could make it either
+an unrelated type, or a supertype of `List`.
+
+#### `ImmutableList` is a supertype
+If `ImmutableList` is a supertype of `List`, then immutability is no longer type
+based.  If we wish to enforce deep immutability, then there would need to be
+runtime checks during initialization, which may be expensive (particularly in
+the case of collections).  Alternatively, we could simply not enforce deep
+immutability statically, and instead dynamically traverse an object grap before
+sharing it to check for immutability.  This is expensive, but perhaps marginally
+less so than copying.
+
+Another downside of this approach is that existing APIs that take `Lists` but
+only read them cannot be re-used with an `ImmutableList`.  A wrapper can help
+with this.
+
+A benefit of this is that changing APIs (especially Flutter APIs) to take
+`ImmutableList` as an argument would be non-breaking.
+
+#### `ImmutableList` is an unrelated type
+
+If `ImmutableList` is unrelated to `List`, then we have the same issue with
+re-using existing APIs.  However, we retain all of the benefits of type based
+immutability.
+
 ## Immutable functions
 
 There is no way to describe the type of an immutable function.  If important, we
 could add a type for immutable closures. A function is immutable if every free
-variable of the function is immutable. 
+variable of the function is immutable.
 
 ## Immutable top type
 
@@ -161,7 +221,10 @@ common super-interface.
 
 ## Javascript
 
-Currently, isolates are not supported in Javascript.  If we revisit that, we are
+There are no issues with supporting immutable objects on the web, but the
+ability to support communication between isolates is limited.  Currently,
+isolates are not supported at all in Javascript.  If we revisit that, we are
 unlikely to be able to support this in full on the web.  It is possible that we
 may be able to define a subset of immutable objects which can be implemented as
 a layer over shared typed data buffers.
+
