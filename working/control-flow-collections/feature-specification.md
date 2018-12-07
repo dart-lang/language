@@ -529,10 +529,10 @@ Both styles of `for` element may introduce a local variable, as in:
 ]
 ```
 
-If a `for` element declares a variable, then a new namespace is created where
-that variable is defined. The body of the `for` element is resolved and
-evaluated in that namespace. The variable goes out of scope at the end of the
-element's body.
+If a `for` element declares a variable, then a new namespace is created on each
+iteration where that variable is defined. The body of the `for` element is
+resolved and evaluated in that namespace. The variable goes out of scope at the
+end of the for element's body.
 
 Each iteration of the loop binds a new fresh variable:
 
@@ -684,10 +684,137 @@ shows that a variable has some type and promotion isn't otherwise aborted.
 
 ### Const collections
 
-An `if` element can be used in a const collection, provided its condition
-expression and body elements are all const.
+We have to be careful to ensure that arbitrary computation doesn't happen due
+to `if` or `for` appearing in a constant collection. To that end, we only allow an element in a const collection when:
 
-`for` elements cannot be used in const lists and maps.
+*   It is an expression element and the expression is constant.
+
+*   It is an `if` element and the condition expression is constant and both body
+    elements are allowed.
+
+*   It is a `for` element with an `in` clause. The iterator expression must be
+    a constant expression. In a constant list literal, the expression must
+    evaluate to an object created by a constant list or set literal, as in:
+
+    ```dart
+    const list = [1, 2];
+    const set = {3, 4};
+    const result = const [
+      for (var i in list) i,
+      for (var i in set) i
+    ];
+    ```
+
+    This restriction ensures that iterating over the iterable does not call
+    user code.
+
+
+A collection literal is now a series of *elements* (some of which may contain
+nested subelements) instead of just expressions (for lists and sets) or entries
+(for maps). A constant collection takes that tree of elements and *expands* it
+to a series of values (lists and sets) or entries (maps). The resulting
+collection contains that series of values/entries, in order.
+
+There are three kinds of elements to consider:
+
+*   An **expression element** (the base case in lists and sets):
+
+    *   It is a compile-time error if the expression is not a constant
+        expression.
+
+    The expansion is the value of the expression.
+
+*   An **entry element** (the base case in maps):
+
+    *   It is a compile-time error if the key and value expressions are not
+        constant expressions.
+
+    The expansion is the entry formed by the key and value expression values.
+
+*   An **if element**:
+
+    *   It is a compile-time error if the condition expression is not constant
+        or does not evaluate to `true` or `false`.
+
+    The expansion is:
+
+    *   The then element if the condition expression evaluates to `true`.
+
+    *   The else element if the condition is `false` and there is on.
+
+    *   Otherwise, the `if` element expands to nothing.
+
+*   A **for element**:
+
+    *   It is a compile-time error if the for element is a C-style loop. We
+        only allow const `for-in` loops.
+
+    *   It is a compile-time error if the iterator expression is not a constant
+        expression. In a constant list literal, the expression must evaluate to
+        an object created by a constant list or set literal, as in:
+
+        ```dart
+        const list = [1, 2];
+        const set = {3, 4};
+        const result = const [
+          for (var i in list) i,
+          for (var i in set) i
+        ];
+        ```
+
+        This restriction ensures that iterating over the iterable does not call
+        user code. In a constant map literal, the expression must evaluate to
+        an object created by a constant map literal.
+
+    *   It is a compile-time error if the loop reuses an existing variable
+        instead of declaring a new one.
+
+        ```dart
+        var i = "outside";
+        const list = [for (i in []) i]; // Error.
+        ```
+
+    *   In the body element, the loop variable is considered a constant
+        expression.
+
+    Assuming all of that gauntlet is passed, the expansion of a `for` element
+    is calculated like so:
+
+    1.  For each `object` in the iterated collection:
+
+        1.  Create a fresh constant and bind it to `object`.
+
+        2.  Calculate the expansion of the body element in that namespace.
+
+    2.  The result is the contatenation of all of these expansions.
+
+    While the restrictions prevent you from executing arbitrary user code at
+    compile time or producing infinite sequences, it is still possible to
+    generate quite large collections with a small amount of source text:
+
+    ```dart
+    var a = const [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    var b = const [
+      for (var i in a)
+        for (var i in a)
+          for (var i in a)
+            for (var i in a)
+              for (var i in a)
+                for (var i in a)
+                  for (var i in a)
+                    for (var i in a)
+                      "."
+    ];
+    print(b.length); // "10000000000".
+    ```
+
+The description here merges maps with lists and sets, but note that, of course,
+a const list or set may not contain entry elements and a map may not contain
+expression elements. (The grammar prohibits this anyway.)
+
+Dart allows the `const` keyword to be omitted in "constant contexts". All of the
+expressions inside elements in a constant collection are const contexts,
+transitively. This includes the `if` condition expression, `for` iterator, etc.
 
 ## Dynamic Semantics
 
@@ -697,18 +824,28 @@ separate procedure below:
 
 ### Lists
 
-1.  Create a fresh instance of `list` of a class that implements `List<E>`.
+1.  Create a fresh instance `collection` of a class that implements `List<E>`.
 
-    An implementation is, of course, free to optimize pre-allocate a list of the
-    correct capacity when its size is statically known. Note that when `if` and
-    `for` come into play, it's no longer always possible to statically tell the
-    final size of the resulting flattened list.
+    An implementation is, of course, free to optimize by pre-allocating a list
+    of the correct capacity when its size is statically known. Note that when
+    `if` and `for` come into play, it's no longer always possible to statically
+    tell the final size of the resulting flattened list.
 
 1.  For each `element` in the list literal:
 
     1.  Evaluate `element` using the procedure below.
 
-1.  The result of the literal expression is `list`.
+1.  The result of the literal expression is `collection`.
+
+### Sets
+
+1.  Create a fresh instance `collection` of a class that implements `Set<E>`.
+
+1.  For each `element` in the set literal:
+
+    1.  Evaluate `element` using the procedure below.
+
+1.  The result of the literal expression is `collection`.
 
 ### Maps
 
@@ -726,8 +863,8 @@ A map literal of the form `<K, V>{entry_1 ... entry_n}` is evaluated as follows:
 ### To evaluate a collection `element`:
 
 This procedure handles elements in both list and map literals because the only
-difference is how an atomic list element or map entry is handled. The control
-flow parts are the same so are unified here.
+difference is how a base expression element or entry element is handled. The
+control flow parts are the same so are unified here.
 
 1.  If `element` is an `if` element:
 
@@ -812,11 +949,11 @@ flow parts are the same so are unified here.
 
 1.  Else, if `element` is a spread element, see the relevant proposal.
 
-1.  Else, if `element` is a normal list element:
+1.  Else, if `element` is an expression element:
 
     1.  Evaluate the element's expression to a value `value`.
 
-    1.  Append `value` to `list`.
+    1.  Call `collection.add(value)`.
 
 1.  Else, `element` has form `keyExpression: valueExpression`:
 
@@ -949,9 +1086,9 @@ intuitive by piggy-backing on syntax users already understand. But I worry that:
     to accomplish that. The spread proposal gives them a mechanism, but it may
     not be a natural or obvious one.
 
-I don't think we can reasonably resolve these on paper, so before committing to
-this proposal, I think we should do user studies of some of these scenarios and
-then tune this proposal based on how those go.
+I don't think we can reasonably resolve these on paper, so before shipping this
+feature, I think we should do user studies of some of these scenarios and refine
+the behavior if needed based on the results.
 
 ### Conditional arguments
 
@@ -977,14 +1114,14 @@ We can and should look at doing that as a separate proposal.
 
 ## Questions and Alternatives
 
-### Why is while not supported?
+### Why is `while` not supported?
 
 The proposal only allows one looping construct, but Dart has three: `for`,
 `while`, and `do-while`. What's special about `for`?
 
 The key reason is that `for` loops are implicitly terminated. A `for-in` loop
 ends when it reaches the end of the iterator. A C-style `for` loop ends when the
-condition expression returns false, which is in turn based on the increment
+condition expression returns `false`, which is in turn based on the increment
 expression.
 
 `while` and `do-while` loops both have a condition expression that signals
