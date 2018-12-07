@@ -68,8 +68,8 @@ checks.
 - Every other class which implements the interface of an immutable class
   (including via extension or mixing in) must also be immutable.
 
-The types `int`, `double`, `bool`, `String`, `Type`, and `Symbol` are considered
-immutable.
+The types `int`, `double`, `bool`, `String`, `Type`, `Symbol`, and `Null` are
+considered immutable.
 
 ## Generated methods
 
@@ -111,7 +111,7 @@ This does not seem deeply problematic - a number of solutions seem plausible.
 
 The SendPort class is extended with a new method `void share<T, where T is
 immutable>(T message)` which given a reference to an immutable object graph,
-shares that reference with all receivers of the SentPort.  Note that the object
+shares that reference with the receiver of the SentPort.  Note that the object
 is not copied since it and all sub-components of it are in the shared heap.
 
 An object which is shared before it has been tenured will likely need to be
@@ -210,7 +210,8 @@ immutability.
 
 There is no way to describe the type of an immutable function.  If important, we
 could add a type for immutable closures. A function is immutable if every free
-variable of the function is immutable.
+variable of the function is immutable (where a variable is immutable if it is
+final and its value is immutable).
 
 ## Immutable top type
 
