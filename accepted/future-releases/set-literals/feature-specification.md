@@ -1,5 +1,6 @@
 # Set Literals Design Document
 Author: lrn@google.com
+Version: 1.1
 
 Solution for [Set Literals Problem](http://github.com/dart-lang/language/issues/36).
 Based on feature proposal [Issue 37](http://github.com/dart-lang/language/issues/37)
@@ -84,10 +85,11 @@ if *s* has a `typeArguments` with two type arguments, *s* is a *map literal*.
 (*Three or more type arguments is a compile time error, so the remaining possible case is having no type arguments*).
 
 If *s* is an `emptySetOrMapLiteral` with no `typeArguments` and static context type *C*, then
-if `Set<Null>` is assignable to *C* and `Map<Null, Null>` is not assignable to *C*, then *s* is a *set literal*, 
+if there exists a type `T` such that `LinkedHashSet<T>` is assignable to *C* and there are no types `K` and `V` such that
+`LinkedHashMap<K, V>` is assignable to *C*, then *s* is a *set literal*, 
 otherwise *s* is a *map literal*.
 
-(*So if *C* is, for example, `Iterable<int>` or `Set<Object>` or `FutureOr<Iterable<int>>` or a type variable with any of 
+(*So if *C* is, for example, `Iterable<int>`, `Set<Object>`, `LinkedHashSet<int>` or `FutureOr<Iterable<int>>` or a type variable with any of 
 those as bound, then *s* is a set literal. If *C* is `Object` or `dynamic` or `Null` or `String`, then *s* is a map literal, 
 *and* potentially a compile-time error due to static typing*).
 
@@ -357,3 +359,7 @@ var s6                 = {...{1: 1}, ...?d}; // Map<dynamic, dynamic>
 // var s7              = {...?d};            // Compile-time error, ambiguous
 // var s8              = {...{1}, ...{1: 1}};  // Compile-time error, incompatible
 ```
+
+##Revisions
+1.0: Initial version plus type fixes.
+1.1: Changed type rules for selecting set literals over map literals.
