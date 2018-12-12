@@ -511,7 +511,7 @@ places where it might be considered inconvenient, such as failing to promote on
 fields).
 
 Since Dart does not share the same limitations as Kotlin in terms of living over
-the JVM, we should not expect to need to be unsound in the places where is is
+the JVM, we should not expect to need to be unsound in the places where it is
 unsound because of JVM limitations.  The success of the Kotlin approach provides
 good evidence that a sound system can be attractive to programmers since almost
 the entire experience of programming in Kotlin is that of programming in a sound
