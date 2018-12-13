@@ -76,9 +76,9 @@ Widget build(BuildContext context) {
 ```
 
 It's arguably better than the above code, but it's not obvious or terse. Adding
-[spread syntax][] would let you do:
+[spread syntax][spread] would let you do:
 
-[spread syntax]: https://github.com/dart-lang/language/blob/master/working/spread-collections/feature-specification.md
+[spread]: https://github.com/dart-lang/language/blob/master/working/spread-collections/feature-specification.md
 
 ```dart
 Widget build(BuildContext context) {
@@ -159,12 +159,12 @@ At the statement level, you can loop if you want to execute something a certain
 number of times or for each of a series of items in an Iterable. In an
 expression context, it's useful if you want to produce more than one value.
 
-If we add spread syntax, then that covers some of these use cases. Spreading is
-fine, but when you want to do more than just insert a sequence in place, it
-forces you to chain a series of higher-order methods together to express what
-you want. That can get cumbersome, especially if you're mixing both repetition
-and conditional logic. You always *can* solve that using some combination of
-`map()`, `where()`, and `expand()`, but the result isn't always readable.
+Spread syntax covers some of these use cases, but when you want to do more than
+just insert a sequence in place, it forces you to chain a series of higher-order
+methods together to express what you want. That can get cumbersome, especially
+if you're mixing both repetition and conditional logic. You always *can* solve
+that using some combination of `map()`, `where()`, and `expand()`, but the
+result isn't always readable.
 
 So this proposal also lets you use `for` inside a collection literal. That
 turns, for example, this code:
@@ -265,8 +265,8 @@ This produces the Cartesian product of all points in the rectangle.
 
 This produces the squares of the even integers.
 
-If we also support a spread syntax, we can compose that to include multiple
-elements based on a single `if` condition:
+This proposal can be composed with spread syntax to include multiple elements
+based on a single `if` condition:
 
 ```dart
 Widget build(BuildContext context) {
@@ -684,38 +684,15 @@ shows that a variable has some type and promotion isn't otherwise aborted.
 
 ### Const collections
 
-We have to be careful to ensure that arbitrary computation doesn't happen due
-to `if` or `for` appearing in a constant collection. To that end, we only allow an element in a const collection when:
-
-*   It is an expression element and the expression is constant.
-
-*   It is an `if` element and the condition expression is constant and both body
-    elements are allowed.
-
-*   It is a `for` element with an `in` clause. The iterator expression must be
-    a constant expression. In a constant list literal, the expression must
-    evaluate to an object created by a constant list or set literal, as in:
-
-    ```dart
-    const list = [1, 2];
-    const set = {3, 4};
-    const result = const [
-      for (var i in list) i,
-      for (var i in set) i
-    ];
-    ```
-
-    This restriction ensures that iterating over the iterable does not call
-    user code.
-
-
 A collection literal is now a series of *elements* (some of which may contain
 nested subelements) instead of just expressions (for lists and sets) or entries
 (for maps). A constant collection takes that tree of elements and *expands* it
 to a series of values (lists and sets) or entries (maps). The resulting
 collection contains that series of values/entries, in order.
 
-There are three kinds of elements to consider:
+We have to be careful to ensure that arbitrary computation doesn't happen due to
+`if` or `for` appearing in a constant collection. There are five kinds of
+elements to consider:
 
 *   An **expression element** (the base case in lists and sets):
 
@@ -729,18 +706,41 @@ There are three kinds of elements to consider:
     *   It is a compile-time error if the key and value expressions are not
         constant expressions.
 
+    *   As is already the case in Dart, it is a compile-time error if the key is
+        an instance of a class that implements the operator `==` unless the key
+        is a string, an integer, a literal symbol or the result of invoking a
+        constant constructor of class Symbol. It is a compile-time error if the
+        type arguments of a constant map literal include a type parameter.
+
     The expansion is the entry formed by the key and value expression values.
+
+*   A **spread element**:
+
+    See the [relevant proposal][const spread] for how these are handled.
+
+    [const spread]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/spread-collections/feature-specification.md#const-spreads
 
 *   An **if element**:
 
     *   It is a compile-time error if the condition expression is not constant
         or does not evaluate to `true` or `false`.
 
+    *   It is a compile-time error if the then and else branches are not
+        potentially const expressions. The "potentially const" is to allow a
+        the unchosen branch to throw an exception. In other words, if elements
+        short-circuit.
+
+    *   It is a compile-time error if the condition evaluates to `true` and the
+        then expression is not a constant expression.
+
+    *   It is a compile-time error if the condition evaluates to `false` and the
+        else expression, if it exists, is not a constant expression.
+
     The expansion is:
 
     *   The then element if the condition expression evaluates to `true`.
 
-    *   The else element if the condition is `false` and there is on.
+    *   The else element if the condition is `false` and there is one.
 
     *   Otherwise, the `if` element expands to nothing.
 
@@ -749,9 +749,9 @@ There are three kinds of elements to consider:
     *   It is a compile-time error if the for element is a C-style loop. We
         only allow const `for-in` loops.
 
-    *   It is a compile-time error if the iterator expression is not a constant
-        expression. In a constant list literal, the expression must evaluate to
-        an object created by a constant list or set literal, as in:
+    *   It is a compile-time error if the iteratable expression is not a
+        constant expression. In a constant list literal, the expression must
+        evaluate to an object created by a constant list or set literal, as in:
 
         ```dart
         const list = [1, 2];
@@ -774,15 +774,29 @@ There are three kinds of elements to consider:
         const list = [for (i in []) i]; // Error.
         ```
 
-    *   In the body element, the loop variable is considered a constant
-        expression.
+    *   In the body element, the loop variable is considered a potentially
+        constant expression. This means it can be used in some constant
+        expressions, like:
+
+        ```dart
+        const list = [for (i in [1, 2, 3]) i * 2];
+        ```
+
+        But it cannot be used in places that require a constant expression,
+        like const constructor calls or other collection literals. These are
+        errors:
+
+        ```dart
+        const list1 = [for (var i in [1, 2, 3]) [i]];
+        const list2 = [for (var i in [1, 2, 3]) Point(i, 0)];
+        ```
 
     Assuming all of that gauntlet is passed, the expansion of a `for` element
     is calculated like so:
 
     1.  For each `object` in the iterated collection:
 
-        1.  Create a fresh constant and bind it to `object`.
+        1.  Create a fresh potentially constant value and bind it to `object`.
 
         2.  Calculate the expansion of the body element in that namespace.
 

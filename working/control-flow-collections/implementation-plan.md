@@ -32,7 +32,8 @@ The language team adds tests for the feature.
 
 The CFE implements parsing the new syntax, type checking it, and compiling it to
 Kernel. Since the CFE will be implementing constant evaluation, it also
-implements evaluating `if` and `for` in constant collections.
+implements evaluating `if` and `for` in constant collections. This is thus
+blocked on the CFE implementing constant evaluation in general.
 
 This feature can likely be implemented entirely in the front end, so back-end
 support may not be needed. If it does require Kernel changes, the back end will
@@ -67,9 +68,10 @@ operators.
 
 ### IntelliJ/Grok
 
-Update to use the latest analyzer with support for the feature. Likely no other
-changes explicitly needed. There a are a handful of usability features that
-would be nice.
+Update the IntelliJ parser to support the new syntax.
+
+Update to use the latest analyzer with support for the feature. There a are a
+handful of usability features that would be nice.
 
 Users may expect `while` loops to work in collections. Good error messaging will
 help them understand that restriction. Likewise, users may expect the body of an
@@ -118,6 +120,9 @@ It would be excellent to have quick-fixes for:
     ]
     ```
 
+    (This requires some care because the user may intend to filter out *other*
+    nulls as well.)
+
 *   **Using `Map.fromIterable()`:**
 
     ```dart
@@ -135,6 +140,14 @@ It would be excellent to have quick-fixes for:
         someExpression(e): anotherExpression(e)
     }
     ```
+
+### Atom plug-in
+
+The [Dart Atom plug-in][atom] has a grammar for syntax highlighting Dart code in
+Atom. This same grammar is also used for syntax highlighting on GitHub. Update
+this to handle the new syntax.
+
+[atom]: https://github.com/dart-atom/dart
 
 ### VM
 
