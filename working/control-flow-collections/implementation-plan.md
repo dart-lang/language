@@ -70,7 +70,7 @@ operators.
 
 Update the IntelliJ parser to support the new syntax.
 
-Update to use the latest analyzer with support for the feature. There a are a
+Update to use the latest analyzer with support for the feature. There are a
 handful of usability features that would be nice.
 
 Users may expect `while` loops to work in collections. Good error messaging will
