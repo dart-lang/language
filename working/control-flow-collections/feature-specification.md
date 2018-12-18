@@ -691,7 +691,7 @@ to a series of values (lists and sets) or entries (maps). The resulting
 collection contains that series of values/entries, in order.
 
 We have to be careful to ensure that arbitrary computation doesn't happen due to
-`if` or `for` appearing in a constant collection. There are five kinds of
+control flow appearing in a constant collection. There are five kinds of
 elements to consider:
 
 *   An **expression element** (the base case in lists and sets):
@@ -746,81 +746,9 @@ elements to consider:
 
 *   A **for element**:
 
-    *   It is a compile-time error if the for element is a C-style loop. We
-        only allow const `for-in` loops.
-
-    *   It is a compile-time error if the iteratable expression is not a
-        constant expression. In a constant list literal, the expression must
-        evaluate to an object created by a constant list or set literal, as in:
-
-        ```dart
-        const list = [1, 2];
-        const set = {3, 4};
-        const result = const [
-          for (var i in list) i,
-          for (var i in set) i
-        ];
-        ```
-
-        This restriction ensures that iterating over the iterable does not call
-        user code. In a constant map literal, the expression must evaluate to
-        an object created by a constant map literal.
-
-    *   It is a compile-time error if the loop reuses an existing variable
-        instead of declaring a new one.
-
-        ```dart
-        var i = "outside";
-        const list = [for (i in []) i]; // Error.
-        ```
-
-    *   In the body element, the loop variable is considered a potentially
-        constant expression. This means it can be used in some constant
-        expressions, like:
-
-        ```dart
-        const list = [for (i in [1, 2, 3]) i * 2];
-        ```
-
-        But it cannot be used in places that require a constant expression,
-        like const constructor calls or other collection literals. These are
-        errors:
-
-        ```dart
-        const list1 = [for (var i in [1, 2, 3]) [i]];
-        const list2 = [for (var i in [1, 2, 3]) Point(i, 0)];
-        ```
-
-    Assuming all of that gauntlet is passed, the expansion of a `for` element
-    is calculated like so:
-
-    1.  For each `object` in the iterated collection:
-
-        1.  Create a fresh potentially constant value and bind it to `object`.
-
-        2.  Calculate the expansion of the body element in that namespace.
-
-    2.  The result is the contatenation of all of these expansions.
-
-    While the restrictions prevent you from executing arbitrary user code at
-    compile time or producing infinite sequences, it is still possible to
-    generate quite large collections with a small amount of source text:
-
-    ```dart
-    var a = const [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    var b = const [
-      for (var i in a)
-        for (var i in a)
-          for (var i in a)
-            for (var i in a)
-              for (var i in a)
-                for (var i in a)
-                  for (var i in a)
-                    for (var i in a)
-                      "."
-    ];
-    print(b.length); // "10000000000".
-    ```
+    These are disallowed in constant collections. In order to fit within the
+    restrictions on constants, the set of things you could conceivably do with
+    `for` is so limited that we felt the best option was to omit it entirely.
 
 The description here merges maps with lists and sets, but note that, of course,
 a const list or set may not contain entry elements and a map may not contain
@@ -828,7 +756,8 @@ expression elements. (The grammar prohibits this anyway.)
 
 Dart allows the `const` keyword to be omitted in "constant contexts". All of the
 expressions inside elements in a constant collection are const contexts,
-transitively. This includes the `if` condition expression, `for` iterator, etc.
+transitively. This includes the `if` condition expression, spread expression,
+etc.
 
 ## Dynamic Semantics
 
