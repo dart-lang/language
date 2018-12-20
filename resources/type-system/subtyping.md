@@ -65,7 +65,7 @@ type variables only occur statically (never at runtime).
 
 The type `Null` represents the type of the `null` constant.
 
-The type `Never` type is the uninhabited bottom type.
+The type `Never` represents the uninhabited bottom type.
 
 The type `T?` represents the nullable version of the type `T`, interpreted
 semantically as the union type `T | Null`.
@@ -178,6 +178,12 @@ promoted type variables `X0 & S0` and `T1` is `X0 & S1`
   - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
   - or `T0` is `X0 & S0` and `S0 <: T1`
 
+- **Right Nullable**: `T1` is `S1?` and
+  - either `T0 <: S1`
+  - or `T0 <: Null`
+  - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
+  - or `T0` is `X0 & S0` and `S0 <: T1`
+
 - **Left Promoted Variable**: `T0` is a promoted type variable `X0 & S0`
   - and `S0 <: T1`
 
@@ -223,16 +229,16 @@ the `Xi` or the `Yi` for `Zi` so long as capture is avoided*
 ## Derivation of algorithmic rules
 
 This section sketches out the derivation of the algorithmic rules from the
-interpretation of `FutureOr<T>` and `T?` union types, and promoted type bounds
-as intersection types, based on standard rules for such types that do not
+interpretation of `FutureOr<T>` and `T?` as union types, and promoted type
+bounds as intersection types, based on standard rules for such types that do not
 satisfy the requirements for being algorithmic.
 
 ### Non-algorithmic rules
 
 The non-algorithmic rules that we derive from first principles of union and
-intersection types are as follows, where `S0 | S1` is either derived from
-`FutureOr<S>` (in which case `S0` is `Future<S>` and `S1` is S) or from `S?` (in
-which case `S0` is `S`, and `S1` is `Null`).
+intersection types are as follows, where `S0 | S1` is either `FutureOr<S>` (in
+which case `S0` is `Future<S>` and `S1` is S) or from `S?` (in which case `S0`
+is `S`, and `S1` is `Null`).
 
 Left union introduction:
  - `S0 | S1 <: T` if `S0 <: T` and `S1 <: T`
@@ -269,7 +275,7 @@ T`.
 If the last rule applied is:
   - Top type rules are trivial.
 
-  - Null, Function and interface rules can't apply.
+  - Null, Never, Function and interface rules can't apply.
 
   - Left union introduction rule is immediate.
 
@@ -387,8 +393,10 @@ derivable.
 Showing that `A <: B => FutureOr<A> <: FutureOr<B>` is easy, but it is not
 immediately clear how to tackle the opposite direction.
 
-**Lemma 3**: Transitivity of subtyping is admissible.  Given derivations of `A <: B`
-and `B <: C`, there is a derivation of `A <: C`.
+**Lemma 3**: Transitivity of subtyping without the legacy type rules is
+admissible.  Given derivations of `A <: B` and `B <: C` which does not use any
+of the legacy rules, then there is a derivation of `A <: C` which also does not
+use any of the legacy rules.
 
 Proof sketch: The proof should go through by induction on sizes of derivations,
 cases on pairs of rules used.  For any pair of rules used, we can construct a
