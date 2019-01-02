@@ -10,7 +10,7 @@ but instead to argue for a specific set of high-level goals and design choices
 that define the key properties of the final system, and of the migration path to
 get there.  Specifically, we propose to aim for a system which allows for an
 incremental opt-in migration, and which is fully sound once all code in a
-program has opted-in.
+program has opted in.
 
 ## Motivation for non-nullability in Dart.
 
@@ -28,7 +28,7 @@ We propose to set the following goals for nullability tracking in Dart.
 - Code can be migrated incrementally. A program can run and
 have well-defined semantics when some parts have been migrated to non-nullable
 types and others have not. We don't guarantee full safety in programs which mix
-migrated and unmigrated code.  That is, when not all code has opted-in, it is
+migrated and unmigrated code.  That is, when not all code has opted in, it is
 possible that a non-nullably typed value will receive null.
 
 - When a program has been fully migrated to non-nullable types, it
@@ -46,17 +46,137 @@ in one step.
   dependencies, and as much as is possible should not introduce new runtime
   failures.
 
-We may or may not wish to make it a goal that packages can be migrated in any
-order.
+- Packages can migrate before their upstream dependencies have migrated.  In so
+  far as a packages is able to correctly predict how its upstream dependencies
+  will eventually null-annotate their code, it should not have to re-migrate
+  after those packages opt in.
 
-## Proposal roadmap
+## Proposed roadmap
+
+### Summary
+
+Non-nullable types will be rolled out as an opt-in feature.  At some point in
+the indefinite future, this may become the default in a future major release of
+Dart.  Until then, packages can opt in whenever they want.  Opting in will not
+break other downstream packages or apps that have not yet migrated.
+
+In order to facilitate the migration, there will be two levels of null checking:
+weak null checking and strong null checking.  Until all of the code in a program
+has opted in to strong null checking, only a subset of null errors will be
+caught, and it will still be possible to get unexpected null exceptions at
+runtime.
+
+In addition to the technology for incremental migration, the Dart team will
+build a tool to help modify code to be null-safe.  This tool will be run from
+the command line or the IDE, and will suggest fixes to a package to make it work
+with non-null types.  We don't anticipate that the tool will be able to fix all
+issues for the programmer, but hope to be able to automate the bulk of the
+migration.
+
+#### Weak null checking
+
+Weak null checking will turn on static null checks, and also add some automatic
+runtime null assertions.  It will not guarantee that users won't get unexpected
+null errors, since other libraries in the program may not have opted in yet.
+Any null safety violations are only warnings with weak null checking.  That is,
+static errors that arise only because of nullability annotations will only
+appear as warnings at this level.  Similarly, runtime cast failures which only
+fail because of nullability annotations may only be surfaced as warnings at this
+level as well.
+
+Weak null checking will also cause the compiler to insert checked-mode style
+null checks on assignments to variables, parameters, and return values of
+non-nullable type.  These null checks will not be warnings: they will behave as
+if the programmer had written the corresponding "assert" statement in the code.
+This is intended to allow programmers to remove their null assertions when they
+migrate their code without losing assertion checking in the period until all
+code in the program has migrated.  Once all code in the program has migrated,
+these checks should be provably redundant and do not need to be inserted.
+
+Concretely, opting in to weak null checking will proceed as follows:
+- The programmer opts into the weak null checks by marking their package as
+  opted in.
+- This will cause warnings about null-safety violations within the package (only).
+  - If the opted-in code uses other packages that have opted in, then the
+    programmer will see null-safety warnings from any misuses of the opted in
+    APIs from the other packages.
+  - If the opted-in code uses other packages that have not opted in, the
+    programmer will not see any null-safety warnings from uses of those APIs.
+    They are free to treat those APIs as being null-accepting or
+    non-null-accepting as appropriate.
+- If the programmer runs the migration tool, it will suggest fixes to get rid of
+  null safety warnings as best it can.
+- Any remaining warnings should be dealt with by the programmer.  However, the
+  program can still be run with null-safety warnings.
+- The compiler will add null assertions to code in opted-in packages whenever a
+  value is assigned to a variable or parameter of non-nullable type, or is
+  returned from a function with non-nullable return type.
+- The compiler will warn at runtime if code casts between incompatible nullable
+  types that are otherwise compatible.
+
+#### Strong null checking
+
+Strong null checking is turned on globally for a program on a per-compile
+basis. Turning on strong null checking turns all null-safety violations into
+errors.  A programmer may turn on strong null checking before all code in their
+program has opted in and still run their program, provided that they have fixed
+all of the null-safety errors in the opted-in portion of their program.  They
+may however see new runtime errors from non-opted in code if it misuses opted-in
+APIs.  Turning on strong null-checking will provide stronger protection from
+null-safety violations, but still doesn't guarantee null-safety until all
+libraries in the program have been opted in.  Consequently, the compiler will
+still insert null assertions in opted-in code to catch null-safety violations.
+With strong null checking enabled, the programmer may also encounter runtime
+cast failures if their code casts between incompatible nullable types (such as
+casting a `List<int?>` to a `List<int>`).
+
+Once all of the code in a program has opted in to strong null checking, the
+compiler will stop adding null assertions, and has the option of generating
+better code using the static guarantees of the type system.
+
+#### Migration
+
+External migration will begin by releasing a stable release of Dart with
+non-nullability available ("the NNBD release").  This release will contain a
+migrated SDK along with full static and runtime support for non-nullable types.
+Once this is released, package migration will begin, both under the auspices of
+the Dart team, and independently by package authors.  Packages required for
+Flutter will be migrated, and a Flutter SDK incorporating a Dart NNBD enabled
+SDK and a migrated Flutter framework will be released (subject to agreement and
+buy-in from the Flutter team).
+
+The suggested process for migrating an external library published on Pub is to
+opt the package in to weak null checking, and then verify that all tests for the
+package run with strong null checking turned on.  This makes it more likely that
+downstream packages will be able to run with strong null checking on as well
+without encountering runtime cast failures in their upstream dependencies.  The
+package author may publish the opted-in package as a minor version release,
+since opting in will not break any downstream packages.  The published package
+must specify an SDK lower bound greater than or equal to the NNBD release of
+Dart.
+
+The process for migrating an app is similar: opt the app code in, fix all of the
+warnings, and get the app running with strong null checking on.
+
+For both apps and packages, opting in after all upstream dependencies have
+opted in minimizes the chances of having to make subsequent fixes.  When an
+upstream dependencies opts in, new warnings may appear in opted-in downstream
+code.  However, to avoid packages and apps being blocked on slow to upgrade
+upstream dependencies, we plan to fully support opting in and running before
+upstream dependencies have done so.
+
+Once all code in a program has opted in, the code will be fully null safe: the
+only null safety errors at runtime will be from dynamic invocations, and the
+compiler will be able to take advantage of non-nullability to produce smaller
+and faster code.
+
 
 ### Opting in
 
 Non-nullable types will be controlled by a language opt-in as
 described [elsewhere](https://github.com/dart-lang/language/issues/93).  In
-short, a library may opt-in via syntax in the code, or a package may opt-in in
-entirety.  Opting-in applies only to the library or package so marked.
+short, a library may opt in via syntax in the code, or a package may opt in in
+entirety.  Opting in applies only to the library or package so marked.
 
 Within an opted-in library, unmarked types are interpreted as non-nullable, and
 only types suffixed with `?` are considered nullable (with the possible
@@ -80,7 +200,7 @@ protection from null pointer errors to developers.
 
 ### Soundness
 
-When all libraries in a program have opted-in to non-nullability, the type
+When all libraries in a program have opted in to non-nullability, the type
 system is sound and both compilers and programmers can benefit from a robust
 guarantee that no non-nullably typed value may be observed to be null (and hence
 dynamic calls will be the only source of noSuchMethod errors on null receivers).
@@ -167,10 +287,10 @@ they want, independently of the state of libraries they import or that import
 them.
 
 In the waterfall model, our proposal has the property that it is mostly
-non-breaking for a library to opt in.  By this we mean that opting-in will never
+non-breaking for a library to opt in.  By this we mean that opting in will never
 cause static errors in any non-opted-in library, and that the behavior of a
 library should be the same whether it is used from an opted-in client or a
-non-opted-in client.  Any new runtime errors that are caused by opting-in will
+non-opted-in client.  Any new runtime errors that are caused by opting in will
 either reflect an actual violation of the nullability contract (that is, a
 failure of an automatically inserted dynamic null-check), or by a runtime
 interaction between two opted-in libraries mediated by a non-opted-in library
@@ -225,7 +345,7 @@ main() {
 Secondly, in both the waterfall and the unconstrained case, you must decide how
 to deal with un-opted-in downstream dependencies.
 
-You could choose to treat them as having been opted-in (with implicitly nullable
+You could choose to treat them as having been opted in (with implicitly nullable
 types) by virtue of being in the same program as an opted-in package.  Either
 this is massively breaking (since the package is almost certain to mis-use the
 opted-in APIs), or else you treat nullability violations in the un-opted-in
@@ -253,7 +373,7 @@ it fails the assertion.
 
 To avoid this, you could choose to turn off runtime reification of nullability
 if any package in the program is not opted-in (or equivalently, have a separate
-opt-in for the runtime component that requires all packages to have opted-in).
+opt-in for the runtime component that requires all packages to have opted in).
 The implication of this is that when runtime reification is turned on, you can
 see new runtime failures, despite all packages having migrated already.
 
@@ -929,23 +1049,4 @@ void test() {
 }
 ```
 
-## What needs to be worked out?
-
-### Migration features
-
-### Nullability features
-
-#### Syntax
-
-#### Generics
-
-#### Type promotion
-
-#### Definite Assignment
-
-#### Dynamically checked features
-
-#### Constructors
-
-#### Core library changes
 
