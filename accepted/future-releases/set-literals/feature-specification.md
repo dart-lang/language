@@ -85,14 +85,15 @@ if *s* has a `typeArguments` with two type arguments, *s* is a *map literal*.
 (*Three or more type arguments is a compile time error, so the remaining possible case is having no type arguments*).
 
 If *s* is an `emptySetOrMapLiteral` with no `typeArguments` and static context type *C*, then
-if `LinkedHashSet<Null>` is assignable to *C* and `LinkedHashMap<Null, Null>` is not assignable to *C*, 
+if `Iterable<Object>` is a supertype of *basetype(C)* and `Map<Object, Object>` is not a super-type of *basetype(C)*, 
 then *s* is a *set literal*, otherwise *s* is a *map literal*.
+The *basetype* function is defined as:
+* *basetype(FutureOr&lt;S&gt;)* = *basetype(S)*
+* *basetype(T)* = *T* if *T* is not *FutureOr&lt;X&gt;* for any *X*.
 
 (*So if *C* is, for example, `Iterable<int>`, `Set<Object>`, `LinkedHashSet<int>` or `FutureOr<Iterable<int>>`,
 then *s* is a set literal. If *C* is `Object` or `dynamic` or `Null` or `String`, then *s* is a map literal, 
-*and* potentially a compile-time error due to static typing*. If *C* is some subclass of `Set<X>` other than `LinkedHashSet`, then the literal is a map literal, but it is also a guaranteed type error even if the literal
-is a set. If *C* is a subtype of `LinkedHashSet<X>` *and* a subtype of `LinkedHashMap<Y, Z>`, then *s* is again
-a map literal, and a guaranteed run-time type error).
+*and* potentially a compile-time error due to static typing*. If *C* implements both `Set<X>` *and* `Map<Y, Z>`, then the literal is a map literal, but it is also a guaranteed tun-time type error whther the literal is a set or a map because the actual object will not implement that type.
 
 ### Map literals
 
