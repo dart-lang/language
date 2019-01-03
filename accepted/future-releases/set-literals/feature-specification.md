@@ -1,6 +1,6 @@
 # Set Literals Design Document
 Author: lrn@google.com
-Version: 1.1
+Version: 1.2
 
 Solution for [Set Literals Problem](http://github.com/dart-lang/language/issues/36).
 Based on feature proposal [Issue 37](http://github.com/dart-lang/language/issues/37)
@@ -323,6 +323,7 @@ var l16                = v16.toList();        // -> <int>[1, 2, 3]
 // Compile-time error, contains equal elements
 // const _             = {1, 2, 3, 2, 1};   
 
+FutureOr<Iterable<int>> v17 = {};           // LinkedHashSet<int>
 var l18                = const {1, 2};      // const Set<int>
 
 // Class overriding `==`.
@@ -365,3 +366,4 @@ var s6                 = {...{1: 1}, ...?d}; // Map<dynamic, dynamic>
 ##Revisions
 1.0: Initial version plus type fixes.
 1.1: Changed type rules for selecting set literals over map literals.
+1.2: Changed type rules again.
