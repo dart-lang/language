@@ -24,12 +24,15 @@ changes to be enabled.
 ### Phase 1 (Implementation)
 
 All tools add the implementation of the associated compile-time check, and
-start emitting the new error during static analysis.
+start emitting the new error during static analysis if the experimental flag
+is supplied.
 
 
-### Phase 1 (Release)
+### Phase 2 (Release)
 
-The update is released as part of the next stable Dart release.
+A single commit removes the experimental flag from all implementations,
+causing them all to start emitting the new error during static analysis under
+normal execution.  The update is released as part of the next stable Dart release.
 
 
 ## Timeline
