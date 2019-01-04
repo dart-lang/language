@@ -65,11 +65,14 @@ for this.
 DDC may need to support canonicalizing constant collections with spread
 operators.
 
-### IntelliJ/Grok
+### IntelliJ
 
-Update to use the latest analyzer with support for the feature. Likely no other
-changes explicitly needed. There a are a handful of usability features that
-would be nice:
+Update the IntelliJ parser to handle the new syntax (this has some lead time,
+so needs to be done early).
+
+### Analyzer / analysis server
+
+There a are a handful of usability features that would be nice:
 
 *   Add a "quick fix" to turn common idioms into uses of the spread operator
     like:
@@ -88,6 +91,10 @@ would be nice:
 
 *   Good error messages if a user tries to use `...` outside of a collection
     literal, explaining where the syntax is allowed.
+
+### dartfix
+
+Possibly, expose the quick fix from above.
 
 ### VM
 
