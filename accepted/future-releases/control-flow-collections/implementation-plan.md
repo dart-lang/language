@@ -157,8 +157,8 @@ this to handle the new syntax.
 
 ### VS Code
 
-Update the syntax highlighting grammer to support the control flow syntax (and,
-likely apply a very similar diff to the Atom grammer above).
+Update the syntax highlighting grammar to support the control flow syntax (and,
+likely apply a very similar diff to the Atom grammar above).
 
 ### VM
 
