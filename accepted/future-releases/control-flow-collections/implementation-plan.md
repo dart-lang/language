@@ -66,9 +66,15 @@ for this.
 DDC may need to support canonicalizing constant collections with spread
 operators.
 
-### IntelliJ/Grok
+### IntelliJ
 
 Update the IntelliJ parser to support the new syntax.
+
+### Grok
+
+Update Grok to handle the new AST.
+
+### Analysis server
 
 Update to use the latest analyzer with support for the feature. There are a
 handful of usability features that would be nice.
@@ -148,6 +154,11 @@ Atom. This same grammar is also used for syntax highlighting on GitHub. Update
 this to handle the new syntax.
 
 [atom]: https://github.com/dart-atom/dart
+
+### VS Code
+
+Update the syntax highlighting grammer to support the control flow syntax (and,
+likely apply a very similar diff to the Atom grammer above).
 
 ### VM
 
