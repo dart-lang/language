@@ -32,7 +32,7 @@ The language team adds tests for the feature.
 
 The CFE implements parsing the new syntax, type checking it, and compiling it to
 Kernel. Since the CFE will be implementing constant evaluation, it also
-implements evaluating `if` and `for` in constant collections. This is thus
+implements evaluating `if` in constant collections. This is thus
 blocked on the CFE implementing constant evaluation in general.
 
 This feature can likely be implemented entirely in the front end, so back-end
@@ -42,7 +42,7 @@ need to handle those changes.
 ### Analyzer
 
 The analyzer implements parsing the new syntax, type checking it, and
-evaluating `if` and `for` in constant collections.
+evaluating `if` in constant collections.
 
 ## Phase 2 (Tool Implementation)
 
