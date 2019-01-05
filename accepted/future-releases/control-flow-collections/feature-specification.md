@@ -78,7 +78,7 @@ Widget build(BuildContext context) {
 It's arguably better than the above code, but it's not obvious or terse. Adding
 [spread syntax][spread] would let you do:
 
-[spread]: https://github.com/dart-lang/language/blob/master/working/spread-collections/feature-specification.md
+[spread]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/spread-collections/feature-specification.md
 
 ```dart
 Widget build(BuildContext context) {
