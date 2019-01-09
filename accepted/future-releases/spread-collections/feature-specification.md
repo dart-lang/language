@@ -331,18 +331,28 @@ An expression like:
 ```
 
 Is syntactically parsed as `mapOrSetLiteral`. To determine whether it actually
-is a map or set, the surrounding context is used. Given an `mapOrSetLiteral`
-with context type C:
+is a map or set, the upwards and downwards type inference contexts are used.
 
-*   If `Set<Null>` is assignable to C, and `Map<Null, Null>` is not assignable
-    to C, then the collection is a set literal.
+Given a `mapOrSetLiteral`:
 
-*  Otherwise, it is a map literal.
+1.  If `Map<Null, Null>` is assignable to the literal's context type, then it
+    is a map literal.
+
+2.  Else, if `Set<Null>` is assignable to the literal's context type, then the
+    collection is a set literal.
+
+3.  Else, if it has spread elements and all of the spread element expression
+    types are subtypes of `Iterable`, then it is a set literal.
+
+    **TODO: Is dynamic a subtype of Iterable? If so, this needs to be tweaked.
+    If all the spreads are dynamic, then it should be a map literal.**
+
+4.  Otherwise, it is a map literal.
 
 In other words, if it can only be a set, it is. Otherwise, it's a map. In cases
-where the context type is not specific enough to disambiguate, we could make it
-an error instead of defaulting to map. However, that would be inconsistent with
-how empty collections are handled. Those have to default to map for backwards
+where the types are not specific enough to disambiguate, we could make it an
+error instead of defaulting to map. However, that would be inconsistent with how
+empty collections are handled. Those have to default to map for backwards
 compatibility.
 
 ### Const spreads
