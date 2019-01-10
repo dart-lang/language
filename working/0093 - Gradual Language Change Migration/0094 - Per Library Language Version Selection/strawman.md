@@ -23,6 +23,11 @@ This document describes another approach to reducing the migration cost of intro
 
 The end goal is still to migrate all code to the newest language version.
 
+The goal of this feature is not to make future or experimental features available. We use flags for that. 
+It is not intended to do conditional compilation based on SDK version.
+This feature is intended for shipping code running against released SDKs and language versions, 
+allowing unmigrated code targeting an older language version running alongside migrated code 
+for the newest language version supported by the available SDK. 
 
 ## Language Versioning
 
@@ -74,6 +79,7 @@ The un-packaged (non-`package:`, non-`dart:`) libraries _can_ have their version
 
 (If we allow un-packaged code to act as if it was in a package, e.g., for testing, it will inherit the package's language level, which is reasonable since that code is usually in the same pub package).
 
+It *is* an option to only support per-package versioning. It may increase the migration cost for a package, which encourages putting it off until the latest possible moment, but it may also encourage *completing* a migration sooner instead of leaving a few less-important files hanging.
 
 ### Tool Cost
 
@@ -104,7 +110,11 @@ If neither of those happen, all old files then need to be migrated, but they are
 
 Some language changes work well with this model.
 
-A completely non-breaking language change doesn't really need a new version, but it can help drive adoption of a new version that also contains a breaking change.
+A completely non-breaking language change doesn't really need a new version, 
+but it can help drive adoption of a new version that also contains a breaking change. 
+In either case, our tools should detect uses of features that are not guaranteed 
+by the SDK version requirement of a package. 
+Using such a feature should require increasing the SDK requirement to a version that actually supports the feature.
 
 Non-breaking changes could be something as simple as allowing underscores in number literals. 
 
@@ -120,14 +130,14 @@ Most likely, the result is a very permissive model that allows old and new code 
 
 Any change that affects the public API of a library is non-local. Any change that changes the behavior of a shared type is non-local (and maybe impossible), and opt-in to that feature will require complicated interoperability code.
 
-Some changes may simply not be viable via language versioning alone, and will require a feature that allows _API versioning_. For example, changing the way the `String` class works will require different libraries to see different APIs for the same `String` class. That is not supported by this version, but if we find a way to version API, we might be able to use language-level to select the visible API.
+Some changes may simply not be viable via language versioning alone, and will require a feature that allows _API versioning_. For example, changing the way the `String` class works will require different libraries to see different APIs for the same `String` class. That is not supported by mere language versioning, but if we find a way to version API, we might be able to use language-level/SDK-level to select the visible API.
 
 
 ## Examples
 
 ### Non-breaking changes
 
-*   Allowing int literals in double contexts.
+*   Allowing `int` literals in double contexts.
 *   Allowing underscores separators in number literals.
 
 These changes can be added at any time. They change the meaning of syntax that would otherwise be a compile-time error. No existing valid code needs migration since the new syntax would not occur anywhere.
