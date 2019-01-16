@@ -454,37 +454,40 @@ the constructor call for `Row()`.
 
 ## Syntax
 
-We extend the list grammar to allow *control flow elements* in addition to
-regular elements:
+We extend the list and set grammars to allow *control flow elements* in addition
+to regular elements:
 
 ```
 listLiteral:
-  const? typeArguments? '[' listElementList? ']'
+  const? typeArguments? '[' collectionElementList? ']'
   ;
 
-listElementList:
-  listElement ( ',' listElement )* ','?
+setLiteral:
+  const? typeArguments? '{' collectionElementList? '}' ;
+
+collectionElementList:
+  collectionElement ( ',' collectionElement )* ','?
   ;
 
-listElement:
+collectionElement:
   expression |
-  'if' '(' expression ')' listElement ( 'else' listElement )? |
-  'await'? 'for' '(' forLoopParts ')' listElement
+  'if' '(' expression ')' collectionElement ( 'else' collectionElement )? |
+  'await'? 'for' '(' forLoopParts ')' collectionElement
   ;
 ```
 
-Instead of `expressionList`, this uses a new `listElementList` rule since
+Instead of `expressionList`, this uses a new `collectionElementList` rule since
 `expressionList` is used elsewhere in the grammar like argument lists where
 control flow isn't allowed.
 
-Each element in a list can be one of a few things:
+Each element in a list or set can be one of a few things:
 
 * A normal expression.
 * An `if` element.
 * A `for` element.
 
-The body of `if` and `for` elements use `listElement`, not `expression`, which
-allows nesting.
+The body of `if` and `for` elements use `collectionElement`, not `expression`,
+which allows nesting.
 
 The changes for map literals are similar:
 
@@ -502,6 +505,11 @@ mapLiteralEntry:
   'await'? 'for' '(' forLoopParts ')' mapLiteralEntry
   ;
 ```
+
+**Note: The final grammar once spread is taken into account will be somewhat
+different to account for the ambiguity between sets and maps that contain only
+spreads, but the differences between this proposal and the final grammar should
+be fairly obvious.**
 
 ## Static Semantics
 
