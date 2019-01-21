@@ -2,6 +2,7 @@
 
 [lrn@google.com](@lrhn)
 
+Version: 1.1
 
 ## Motivation
 
@@ -67,15 +68,17 @@ which must occur before the first declaration of the library. I would prefer if 
 
 The syntax can be bike-shedded a lot more. The important point is that versioning uses _version_ only. You cannot opt-in to one feature of a new version, but not the rest. You either migrate or not.
 
-When we develop new language features under an experimental flag, that flag only enables the new features for libraries that are already using the most recent SDK language version.
+When we develop new language features under an experimental flag, that flag only enables the new features for libraries that are already using the most recent SDK language version (where it makes sense for a feature to be enabled per-library) or for programs that are entirely using the most recent language version (where the new feature is inherently global).
 
-Each package available to a program can have its own language version level associated (perhaps specified in the `.packages` file or some other way). All libraries in that package will use that associated language level unless it declares a different level in the library.
+Each package available to a program can have its own language version level associated (most likely specified in the `.packages` file). All libraries in that package will use that associated language level unless it declares a different level in the library.
 
 The `pub` tool configures this default language level for a package based on its SDK dependency. If a package requires an SDK of `^2.2.0`, it will default to the 2.2 language level.
 
 This means that a package cannot use features of a new SDK release without depending on that SDK release. Individual libraries can opt-in to a lower version than the package default, but not a higher one.
 
-The un-packaged (non-`package:`, non-`dart:`) libraries _can_ have their version specified on the command line for the compiler (`dart -v2.2`), otherwise it defaults to the newest language version.
+Unpackaged libraries (libraries with `file:` or `http:` URIs, or anything except `package:` and `dart:`) cannot use this approach to get a different default. Unpackaged libraries include *tests* in pub packages. Tools will get a `--default-package` flag that allows users to set a package that all unpackaged libraries are considered to belonging to. This should be used when running tests or other pub-package related files that are not in the Dart package. (If Dart ever gets a notion of package-privacy, this feature will allow tests to pierce the privacy of their own package, without providing a general way for code to do so).
+Alternatively, unpackaged libraries can have their version specified directly on the command line for the compiler (`dart --default-version=2.2`). With no flags, neither `--default-package` or `--default-version`, unpackaged libraries default to the newest language version.
+
 
 (If we allow un-packaged code to act as if it was in a package, e.g., for testing, it will inherit the package's language level, which is reasonable since that code is usually in the same pub package).
 
@@ -168,3 +171,7 @@ These changes may change how (or whether) someone else can use existing API.
 In some cases, you can keep having the old behavior, you just need to migrate carefully. In other cases (like removing a feature), that may not be possible.
 
 What happens depends on how interoperability between migrated and non-migrated code is handled for these features. If non-migrated code can still use migrated classes as mixins, then the migration gives new code no actual advantage, but it will also not count as a breaking change for the migrated code. If non-migrated code fails when trying to use a migrated class as a mixin, then the new feature can immediately be used for optimizations. Which approach to take depends on how invasive the feature is (mixins are rare, nullable types are everywhere).
+
+# Revisions
+1.0: Initial version.
+1.1: Add --default-package flag.
