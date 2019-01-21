@@ -33,9 +33,12 @@ The set of types under consideration are as follows:
 - `dynamic`
 - `void`
 - `Null`
+- `Never`
 - `Function`
 - `Future<T>`
 - `FutureOr<T>`
+- `T?`
+- `T*`
 - Interface types `C`, `C<T0, ..., Tk>`
 - Function types
   - `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`
@@ -59,6 +62,16 @@ variable.  In certain circumstances (defined elsewhere) a variable `x` of type
 replaced with the more specific type `X & T`, indicating that while it is known
 to have type `X`, it is also known to have the more specific type `T`.  Promoted
 type variables only occur statically (never at runtime).
+
+The type `Null` represents the type of the `null` constant.
+
+The type `Never` represents the uninhabited bottom type.
+
+The type `T?` represents the nullable version of the type `T`, interpreted
+semantically as the union type `T | Null`.
+
+The type `T*` represents a legacy type which may be interpreted as nullable or
+non-nullable as appropriate.
 
 Given the current promotion semantics the following properties are also true:
    - If `X` has bound `B` then for any type `X & T`, `T <: B` will be true.
@@ -121,11 +134,30 @@ We say that a type `T0` is a subtype of a type `T1` (written `T0 <: T1`) when:
 
 - **Right Top**: `T1` is a top type (i.e. `Object`, `dynamic`, or `void`).
 
-- **Left Bottom**: `T0` is `Null`
+- **Left Bottom**: `T0` is `Never`
+
+- **Right Legacy Top**: `T1` is a legacy top type (i.e. `Object*`, `dynamic*`,
+  or `void*`).
+
+- **Left Legacy Null** `T0` is `Null*`
+
+- **Left and Right Legacy** `T0` is `S0*` and `T1` is `S1*` and `S0 <: S1`.
+
+- **Left Legacy** `T0` is `S0*` and `T1` is `S1` (where `S1` is not of the form
+  `S2*` for any `S2`)
+  - and `S0 <: S1`.
+
+- **Right Legacy** `T1` is `S1*` (where `S0` is not of the form
+  `S2*` for any `S2`)
+  - and `S0 <: S1?`.
 
 - **Left FutureOr**: `T0` is `FutureOr<S0>`
   - and `Future<S0> <: T1`
   - and `S0 <: T1`
+
+- **Left Nullable**: `T0` is `S0?`
+  - and `S0 <: T1`
+  - and `Null <: T1`
 
 - **Type Variable Reflexivity 1**: `T0` is a type variable `X0` or a
 promoted type variables `X0 & S0` and `T1` is `X0`.
@@ -143,6 +175,12 @@ promoted type variables `X0 & S0` and `T1` is `X0 & S1`
 - **Right FutureOr**: `T1` is `FutureOr<S1>` and
   - either `T0 <: Future<S1>`
   - or `T0 <: S1`
+  - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
+  - or `T0` is `X0 & S0` and `S0 <: T1`
+
+- **Right Nullable**: `T1` is `S1?` and
+  - either `T0 <: S1`
+  - or `T0 <: Null`
   - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
   - or `T0` is `X0 & S0` and `S0 <: T1`
 
@@ -191,21 +229,22 @@ the `Xi` or the `Yi` for `Zi` so long as capture is avoided*
 ## Derivation of algorithmic rules
 
 This section sketches out the derivation of the algorithmic rules from the
-interpretation of `FutureOr` as a union type, and promoted type bounds as
-intersection types, based on standard rules for such types that do not satisfy
-the requirements for being algorithmic.
-
+interpretation of `FutureOr<T>` and `T?` as union types, and promoted type
+bounds as intersection types, based on standard rules for such types that do not
+satisfy the requirements for being algorithmic.
 
 ### Non-algorithmic rules
 
 The non-algorithmic rules that we derive from first principles of union and
-intersection types are as follows:
+intersection types are as follows, where `S0 | S1` is either `FutureOr<S>` (in
+which case `S0` is `Future<S>` and `S1` is S) or from `S?` (in which case `S0`
+is `S`, and `S1` is `Null`).
 
 Left union introduction:
- - `FutureOr<S> <: T` if `Future<S> <: T` and `S <: T`
+ - `S0 | S1 <: T` if `S0 <: T` and `S1 <: T`
 
 Right union introduction:
- - `S <: FutureOr<T>` if `S <: Future<T>` or `S <: T`
+ - `S <: T0 | T1` if `S <: T0` or `S <: T1`
 
 Left intersection introduction:
  - `X & S <: T` if `X <: T` or `S <: T`
@@ -226,51 +265,52 @@ which could simplify this presentation.
 
 ### Preliminaries
 
-**Lemma 1**: If there is any derivation of `FutureOr<S> <: T`, then there is a
-derivation ending in a use of left union introduction.
+**Lemma 1**: If there is any derivation of `S0 | S1 <: T` (that is, either
+`FutureOr<S> <: T` or `S? <: T`), then there is a derivation ending in a use of
+left union introduction.
 
-Proof.  By induction on derivations.  Consider a derivation of `FutureOr<S> <:
+Proof.  By induction on derivations.  Consider a derivation of `S0 | S1 <:
 T`.
 
 If the last rule applied is:
   - Top type rules are trivial.
 
-  - Null, Function and interface rules can't apply.
+  - Null, Never, Function and interface rules can't apply.
 
   - Left union introduction rule is immediate.
 
-  - Right union introduction. Then `T` is of the form `FutureOr<T0>`, and either
-    - we have a sub-derivation of `FutureOr<S> <: Future<T0>`
+  - Right union introduction. Then `T` is of the form `T0 | T1` and either
+    - we have a sub-derivation of `S0 | S1 <: T0`
       - by induction we therefore have a derivation ending in left union
        introduction, so by inversion we have:
-         - a derivation of `Future<S> <: Future<T0> `, and so by right union
-           introduction we have `Future<S> <: FutureOr<T0>`
-         - a derivation of `S <: Future<T0> `, and so by right union
-           introduction we have `S <: FutureOr<T0>`
-      - by left union introduction, we have `FutureOr<S> <: FutureOr<T0>`
+         - a derivation of `S0 <: T0 `, and so by right union
+           introduction we have `S0 <: T0 | T1`
+         - a derivation of `S1 <: T0 `, and so by right union
+           introduction we have `S1 <: T0 | T1`
+      - by left union introduction, we have `S0 | S1 <: T0 | T1`
       - QED
-    - we have a sub-derivation of `FutureOr<S> <: T0`
+    - we have a sub-derivation of `S0 | S1 <: T1`
       - by induction we therefore have a derivation ending in left union
        introduction, so by inversion we have:
-         - a derivation of `Future<S> <: T0 `, and so by right union
-           introduction we have `Future<S> <: FutureOr<T0>`
-         - a derivation of `S <: T0 `, and so by right union
-           introduction we have `S <: FutureOr<T0>`
-      - by left union introduction, we have `FutureOr<S> <: FutureOr<T0>`
+         - a derivation of `S0 <: T1 `, and so by right union
+           introduction we have `S0 <: T0 | T1`
+         - a derivation of `S1 <: T1 `, and so by right union
+           introduction we have `S1 <: T0 | T1`
+      - by left union introduction, we have `S0 | S1 <: T0 | T1`
       - QED
 
   - Right intersection introduction.  Then `T` is of the form `X & T0`, and
-     - we have sub-derivations `FutureOr<S> <: X` and `FutureOr<S> <: T0`
+     - we have sub-derivations `S0 | S1 <: X` and `S0 | S1 <: T0`
      - By induction, we can get derivations of the above ending in left union
        introduction, so by inversion we have derivations of:
-       - `Future<S> <: X`, `S <: X`, `Future<S> <: T0`, `S <: T0`
-         - so we have derivations of `S <: X`, `S <: T0`, so by right
+       - `S0 <: X`, `S1 <: X`, `S0 <: T0`, `S1 <: T0`
+         - so we have derivations of `S0 <: X`, `S0 <: T0`, so by right
            intersection introduction we have
-           - `S <: X & T0`
-         - so we have derivations of `Future<S> <: X`, `Future<S> <: T0`, so by right
+           - `S0 <: X & T0`
+         - so we have derivations of `S1 <: X`, `S1 <: T0`, so by right
            intersection introduction we have
-           - `Future<S> <: X & T0`
-     - so by left union introduction, we have a derivation of `FutureOr<S> <: X & T0`
+           - `S1 <: X & T0`
+     - so by left union introduction, we have a derivation of `S0 | S1 <: X & T0`
      - QED
 
 Note: The reverse is not true.  Counter-example:
@@ -333,18 +373,18 @@ If last rule applied in D is:
      - by right intersection introduction, we have `Y & S0 <: X & T`
      - QED
 
-  - Left union introduction.  Then `S` is of the form `FutureOr<S0>`, and
-     - we have sub-derivations `Future<S0> <: X & T` and `S0 <: X & T`
+  - Left union introduction.  Then `S` is of the form `S0 | S1`, and
+     - we have sub-derivations `S0 <: X & T` and `S1 <: X & T`
      - By induction, we can get derivations of the above ending in right intersection
        introduction, so by inversion we have derivations of:
-       - `Future<S0> <: X`, `S0 <: X`, `Future<S0> <: T`, `S0 <: T`
-         - so we have derivations of `S0 <: X`, `Future<S0> <: X`, so by left
+       - `S0 <: X`, `S1 <: X`, `S0 <: T`, `S1 <: T`
+         - so we have derivations of `S0 <: X`, `S1 <: X`, so by left
            union introduction we have
-           - `FutureOr<S0> <: X`
-         - so we have derivations of `S0 <: T`, `Future<S0> <: T`, so by left
+           - `S0 | S1 <: X`
+         - so we have derivations of `S0 <: T`, `S1 <: T`, so by left
            union introduction we have
-           - `FutureOr<S0> <: T`
-     - so by right intersection introduction, we have a derivation of `FutureOr<S0> <: X & T`
+           - `S0 | S1 <: T`
+     - so by right intersection introduction, we have a derivation of `S0 | S1 <: X & T`
      - QED
 
 **Conjecture 1**: `FutureOr<A> <: FutureOr<B>` is derivable iff `A <: B` is
@@ -353,8 +393,10 @@ derivable.
 Showing that `A <: B => FutureOr<A> <: FutureOr<B>` is easy, but it is not
 immediately clear how to tackle the opposite direction.
 
-**Lemma 3**: Transitivity of subtyping is admissible.  Given derivations of `A <: B`
-and `B <: C`, there is a derivation of `A <: C`.
+**Lemma 3**: Transitivity of subtyping without the legacy type rules is
+admissible.  Given derivations of `A <: B` and `B <: C` which does not use any
+of the legacy rules, then there is a derivation of `A <: C` which also does not
+use any of the legacy rules.
 
 Proof sketch: The proof should go through by induction on sizes of derivations,
 cases on pairs of rules used.  For any pair of rules used, we can construct a
@@ -378,6 +420,14 @@ introduction so we have the rule:
 - `T0` is `FutureOr<S0>`
   - and `Future<S0> <: T1`
   - and `S0 <: T1`
+
+By lemma 1, if `T0` is of the form `S0?` and there is any derivation of
+`T0 <: T1`, then there is a derivation ending with a use of left union
+introduction so we have the rule:
+
+- `T0` is `S0?`
+  - and `S0 <: T1`
+  - and `Null <: T1`
 
 
 #### Identical type variables
@@ -416,10 +466,10 @@ introduction, hence the rule:
 #### Union on the right
 
 Suppose `T1` is `FutureOr<S1>`. The rules above have eliminated the possibility
-that `T0` is of the form `FutureOr<S0`.  The only rules that could possibly
-apply then are right union introduction, left intersection introduction, or the
-variable bounds rules.  Combining these yields the following preliminary
-disjunctive rule:
+that `T0` is of the form `FutureOr<S0>` or `S0?`.  The only rules that could
+possibly apply then are right union introduction, left intersection
+introduction, or the variable bounds rules.  Combining these yields the
+following preliminary disjunctive rule:
 
 - `T1` is `FutureOr<S1>` and
   - either `T0 <: Future<S1>`
@@ -430,14 +480,14 @@ disjunctive rule:
 The last disjunctive clause can be further simplified to
   - or `T0` is `X0 & S0` and `S0 <: T1`
 
-since the premise `X0 <: FutureOr<S1>` can only derived either using the
+since the premise `X0 <: FutureOr<S1>` can only be derived either using the
 variable bounds rule or right union introduction.  For the variable bounds rule,
 the premise `B0 <: T1` is redundant with `S0 <: T1` by observation 1.  For right
 union introduction, `X0 <: S1` is redundant with `T0 <: S1`, since if `X0 <: S1`
-is derivable, then `T0 <: S1` is derivable by left union introduction; and `X0
-<: Future<S1>` is redundant with `T0 <: Future<S1>`, since if the former is
-derivable, then the latter is also derivable by left intersection introduction.
-So we have the final rule:
+is derivable, then `T0 <: S1` is derivable by left intersection introduction;
+and `X0 <: Future<S1>` is redundant with `T0 <: Future<S1>`, since if the former
+is derivable, then the latter is also derivable by left intersection
+introduction.  So we have the final rule:
 
 - `T1` is `FutureOr<S1>` and
   - either `T0 <: Future<S1>`
@@ -446,15 +496,48 @@ So we have the final rule:
   - or `T0` is `X0 & S0` and `S0 <: T1`
 
 
+
+Suppose `T1` is `S1?`. The rules above have eliminated the possibility
+that `T0` is of the form `FutureOr<S0>` or `S0?`.  The only rules that could
+possibly apply then are right union introduction, left intersection
+introduction, or the variable bounds rules.  Combining these yields the
+following preliminary disjunctive rule:
+
+- `T1` is `S1?` and
+  - either `T0 <: S1`
+  - or `T0 <: Null`
+  - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
+  - or `T0` is `X0 & S0` and `X0 <: T1` and `S0 <: T1`
+
+The last disjunctive clause can be further simplified to
+  - or `T0` is `X0 & S0` and `S0 <: T1`
+
+since the premise `X0 <: S1?` can only be derived either using the variable
+bounds rule or right union introduction.  For the variable bounds rule, the
+premise `B0 <: T1` is redundant with `S0 <: T1` by observation 1.  For right
+union introduction, `X0 <: S1` is redundant with `T0 <: S1`, since if `X0 <: S1`
+is derivable, then `T0 <: S1` is derivable by left intersection introduction;
+and `X0 <: Null` is redundant with `T0 <: Null`, since if the former
+is derivable, then the latter is also derivable by left intersection
+introduction.  So we have the final rule:
+
+- `T1` is `S1?` and
+  - either `T0 <: S1`
+  - or `T0 <: Null`
+  - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
+  - or `T0` is `X0 & S0` and `S0 <: T1`
+
+
 #### Intersection on the left
 
 Suppose `T0` is `X0 & S0`. We've eliminated the possibility that `T1` is
-`FutureOr<S1>`, the possibility that `T1` is `X1 & S1`, and the possibility that
-`T1` is any variant of `X0`.  The only remaining rule that applies is left
-intersection introduction, and so it suffices to check that `X0 <: T1` and `S0
-<: T1`.  But given the remaining possible forms for `T1`, the only rule that can
-apply to `X0 <: T1` is the variable bounds rule, which by observation 1 is
-redundant with the second premise, and so we have the rule:
+`FutureOr<S1>`, the possibility that `T1` is `S1?`, , the possibility that `T1`
+is `X1 & S1`, and the possibility that `T1` is any variant of `X0`.  The only
+remaining rule that applies is left intersection introduction, and so it
+suffices to check that `X0 <: T1` and `S0 <: T1`.  But given the remaining
+possible forms for `T1`, the only rule that can apply to `X0 <: T1` is the
+variable bounds rule, which by observation 1 is redundant with the second
+premise, and so we have the rule:
 
 `T0` is a promoted type variable `X0 & S0`
   - and `S0 <: T1`
@@ -463,12 +546,17 @@ redundant with the second premise, and so we have the rule:
 #### Type variable on the left
 
 Suppose `T0` is `X0`.  We've eliminated the possibility that `T1` is
-`FutureOr<S1>`, the possibility that `T1` is `X1 & S1`, and the possibility that
-`T1` is any variant of `X0`.  The only rule that applies is the variable bounds
-rule:
+`FutureOr<S1>`, the possibility that `T1` is `X1 & S1`, the possibility that
+`T1` is `X1 & S1`, and the possibility that `T1` is any variant of `X0`.  The
+only rule that applies is the variable bounds rule:
 
 `T0` is a type variable `X0` with bound `B0`
   - and `B0 <: T1`
 
 This eliminates all of the non-algorithmic rules: the remainder are strictly
 algorithmic.
+
+## Changelog
+
+* Dec 19th, 2018: Added subtyping for nullable types and transitional legacy
+  types.
