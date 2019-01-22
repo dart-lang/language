@@ -1,5 +1,6 @@
 # Design Document for Constant Specification Update 2018.
 Author: lrn@google.com (@lrhn)
+Status: Superceded by language specification.
 
 ## Motivation and Scope
 
