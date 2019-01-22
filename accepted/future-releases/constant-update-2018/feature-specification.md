@@ -102,7 +102,7 @@ type `bool`.
 ### Short-Circuit Operators
 The `&&` operator is now short-circuit in constant and potentially constant expressions.
 It only attempts to evaluate the second operand if the first operand evaluates to `true`.
-This makes `false && (null as String).length` a valid constant expression.
+This makes `false && (null as String).length < 4` a valid constant expression.
 The second operand expression still needs to be a *potentially* constant expression,
 which is a new use of potentially constant expressions outside of const constructor
 initializer lists.
