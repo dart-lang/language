@@ -317,6 +317,10 @@ It is a static error if:
     and `V` and `K` is not assignable to the key type of the map or `V` is not
     assignable to the value type of the map.
 
+*   A spread element has static type `Object`. *We don't allow implicit
+    downcasting from `Object` to some `Iterable` or `Map` type because we may
+    not know the element, key, or value types to cast it to.*
+
 If implicit downcasts are disabled, then the "is assignable to" parts here
 become strict subtype checks instead.
 
@@ -424,6 +428,9 @@ Inference propagates upwards and downwards like you would expect:
 *   If a spread element in a list or set literal has static type `Iterable<T>`
     for some `T`, then the upwards inference element type is `T`.
 
+*   If a spread element in a list or set literal has static type `dynamic`, then
+    the upwards inference element type is `dynamic`.
+
 *   If a map literal has a downwards inference type of `Map<K, V>` for some `K`
     and `V`, then the downwards inference context type of a spread element in
     that map is `Map<K, V>`.
@@ -431,6 +438,9 @@ Inference propagates upwards and downwards like you would expect:
 *   If a spread element in a map literal has static type `Map<K, V>` for some
     `K` and `V`, then the upwards inference key type is `K` and the value type
     is `V`.
+
+*   If a spread element in a map literal has static type `dynamic`, then the
+    upwards inference key and value types are `dynamic`.
 
 ## Dynamic Semantics
 
