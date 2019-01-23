@@ -711,7 +711,7 @@ elements to consider:
 
 *   An **entry element** (the base case in maps):
 
-    *   It is a compile-time error if the key and value expressions are not
+    *   It is a compile-time error if the key or value expressions are not
         constant expressions.
 
     *   As is already the case in Dart, it is a compile-time error if the key is
