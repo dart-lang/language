@@ -84,6 +84,24 @@ Alternatively, unpackaged libraries can have their version specified directly on
 
 It *is* an option to only support per-package versioning. It may increase the migration cost for a package, which encourages putting it off until the latest possible moment, but it may also encourage *completing* a migration sooner instead of leaving a few less-important files hanging.
 
+#### Recommendation
+
+Use `//@2.2` initially in the file to trigger language version downgrade from the default to 2.2. It's a compile-time error to ask for a version larger than the default version. It's a warning to ask for the same version as the default version.
+
+Add a `#@2.2` fragment to `.packages` paths to specify the default language version for that particular package.
+This is added by `pub` when generating the `.packages` file based on the minimum required SDK of the package.
+
+Add a `--default-package=foo` flag to all Dart program tools. A "program tool" is one that handles Dart source at the level of a single Dart program. That includes all compilers. This flag will make the program treat all un-packaged libraries (any library with a URI not starting with `package:` or `dart:`) as belonging to package `foo` for all practical purposes. This includes using the default language version for package `foo` for all unpackaged libraries.
+
+All Dart program tools must understand these markers and flags.
+
+All tools that handle Dart files at a *higher* level than a single program, and which recognizes Pub packages, 
+should infer the default language version directly from the `pubspec.yaml` file's SDK version, 
+and apply it to every file in the Pub package.
+
+Tools that support other module systems than Pub systems should also recognize which files belong with which packages, 
+and detect a language version in some way.
+
 ### Tool Cost
 
 The described approach carries a significant cost for all Dart tools. They need to support multiple versions of the language at the same time, and need to be able to switch between the different versions on a per-library basis.
