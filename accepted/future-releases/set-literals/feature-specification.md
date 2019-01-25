@@ -150,15 +150,15 @@ not change the set in any way*).
 
 ### Exact Types of Literals
 
-Currently, the Dart 2 type inference infers an "exact type" for map literals,
-either `Map<K, V>` for const literals or `LinkedHashMap<K, V>` for non-constant literals.
+Currently, the Dart 2 type inference infers an "exact type" for map literals 
+(as well as for other literals and for generative constructor invocations).
+If the map literal has the static type `Map<K, V>`, then that type is inferred as exact.
 The inferred exact type makes it a compile-time error to require a down-cast,
-since that down-cast is known to fail at runtime.
-For set literals with element type *T*, the static type is always `Set<T>`,
-but static analysis will reject an assignment of a non-constant set 
-literal to a type that is not a super-type of `LinkedHashSet<T>` (an implicit down-cast below the type `LinkedHashSet<T>`),
-and of a constant set literal to a type that is not a super-type of `Set<T>`
-(that is, any implicit down-cast).
+since that down-cast is known to fail at runtime. 
+Effectively, an exact type disables the implicit downcasts otherwise inserted by inference to allow 
+a supertype where a sub-type is expected.
+This behavior is retained for map literals, 
+and for set literals with element type *T*, the static type of `Set<T>` is also considered exact.
 
 ## Concerns
 ### Migration
