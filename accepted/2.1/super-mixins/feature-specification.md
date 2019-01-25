@@ -4,7 +4,7 @@
 
 **Version**: 1.0 (2018-09-19)
 
-**Status**: Specification complete
+**Status**: Superceeded by language specification.
 
 ## Specification
 
