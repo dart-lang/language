@@ -305,21 +305,17 @@ Map, but not necessarily a subtype of the map being spread into.
 It is a static error if:
 
 *   A spread element in a list or set literal has a static type that is not
-    assignable to `Iterable<Object>`.
+    `dynamic` or a subtype of `Iterable<Object>`.
 
 *   If a list or set spread element's static type implements `Iterable<T>` for
     some `T` and `T` is not assignable to the element type of the list.
 
-*   A spread element in a map literal has a static type that is not assignable
-    to `Map<Object, Object>`.
+*   A spread element in a map literal has a static type that is not `dynamic` or
+    a subtype of `Map<Object, Object>`.
 
 *   If a map spread element's static type implements `Map<K, V>` for some `K`
     and `V` and `K` is not assignable to the key type of the map or `V` is not
     assignable to the value type of the map.
-
-*   A spread element has static type `Object`. *We don't allow implicit
-    downcasting from `Object` to some `Iterable` or `Map` type because we may
-    not know the element, key, or value types to cast it to.*
 
 If implicit downcasts are disabled, then the "is assignable to" parts here
 become strict subtype checks instead.
