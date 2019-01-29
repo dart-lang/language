@@ -39,6 +39,7 @@ The set of types under consideration are as follows:
 - `FutureOr<T>`
 - `T?`
 - `T*`
+- `T!`
 - Interface types `C`, `C<T0, ..., Tk>`
 - Function types
   - `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`
@@ -51,10 +52,12 @@ interfaces, and mixins of the class of `T`.  Among other well-formedness
 constraints, the edges induced by this mapping must form a directed acyclic
 graph rooted at `Object`.
 
-The types `Object`, `dynamic` and `void` are all referred to as *top* types, and
+The types `dynamic` and `void` are both referred to as *top* types, and
 are considered equivalent as types (including when they appear as sub-components
 of other types).  They exist as distinct names only to support distinct errors
 and warnings (or absence thereof).
+
+The type `Object` is the super type of all concrete xstypes except `Null`.
 
 The type `X & T` represents the result of a type promotion operation on a
 variable.  In certain circumstances (defined elsewhere) a variable `x` of type
@@ -69,6 +72,9 @@ The type `Never` represents the uninhabited bottom type.
 
 The type `T?` represents the nullable version of the type `T`, interpreted
 semantically as the union type `T | Null`.
+
+The type `T!` represents the non-nullable version of the type `T`, interpreted
+semantically as the intersection type `T & Object`.
 
 The type `T*` represents a legacy type which may be interpreted as nullable or
 non-nullable as appropriate.
@@ -110,7 +116,9 @@ Syntactic criteria.
 
 and it is the case that if a subtyping query matches the syntactic criteria for
 a rule (but not the syntactic criteria for any rule preceeding it), then the
-subtyping query holds iff the listed additional conditions hold.
+subtyping query holds iff the listed additional conditions hold.  Specifically,
+once a rule has matched syntactically, the answer to the subtyping query is
+entirely given by that rule: it is never necessary to try subsequent rules.
 
 This makes the rules algorithmic, because they correspond in an obvious manner
 to an algorithm with an acceptable time complexity, and it makes them syntax
@@ -123,66 +131,92 @@ with promoted type variables.
 
 ### Rules
 
+**Note the convention described in the section above**
+
 We say that a type `T0` is a subtype of a type `T1` (written `T0 <: T1`) when:
 
-- **Reflexivity**: `T0` and `T1` are the same type.
+- **Reflexivity**: if `T0` and `T1` are the same type then `T0 <: T1`
   - *Note that this check is necessary as the base case for primitive types, and
     type variables but not for composite types.  In particular, algorithmically
     a structural equality check is admissible, but not required
     here. Pragmatically, non-constant time identity checks here are
     counter-productive*
 
-- **Right Top**: `T1` is a top type (i.e. `Object`, `dynamic`, or `void`).
+- **Right Top**: if `T1` is a top type (i.e. `dynamic`, or `void`, or `Object?`)
+  then `T0 <: T1`
 
-- **Left Bottom**: `T0` is `Never`
+- **Left Bottom**: if `T0` is `Never` or `Null!` then `T0 <: T1`
 
-- **Right Legacy Top**: `T1` is a legacy top type (i.e. `Object*`, `dynamic*`,
-  or `void*`).
+- **Right Object**: if `T1` is `Object` then:
+    - if `T0` is an unpromoted type variable with bound `B` then `T0 <: T1` iff
+      `B <: Object`
+    - if `T0` is a promoted type variable `X & S` then `T0 <: T1` iff `S <:
+      Object`
+    - if `T0` is `FutureOr<S>` for some `S`, then `T0 <: T1` iff `S <: Object`.
+    - if `T0` is `Null`, `dynamic`, `void`, or `S?` for any `S`, then the
+      subtyping does not hold (per above, the result of the subtyping query is
+      false).
+    - Otherwise `T0 <: T1` is true.
 
-- **Left Legacy Null** `T0` is `Null*`
+- **Left Null**: if `T0` is `Null` then:
+  - if `T1` is a type variable (promoted or not) the query is false
+  - If `T1` is `FutureOr<S>` for some `S`, then the query is true iff `Null <:
+    S`.
+  - If `T1` is `Null`, `S?` or `S*` for some `S`, then the query is true.
+  - Otherwise, the query is false
 
-- **Left and Right Legacy** `T0` is `S0*` and `T1` is `S1*` and `S0 <: S1`.
+- **Left Legacy** if `T0` is `S0*` then:
+  - `T0 <: T1` iff `S0! <: T1`.
 
-- **Left Legacy** `T0` is `S0*` and `T1` is `S1` (where `S1` is not of the form
-  `S2*` for any `S2`)
-  - and `S0 <: S1`.
+- **Right Legacy** `T1` is `S1*` then:
+  - `T0 <: T1` iff `T0 <: S1?`.
 
-- **Right Legacy** `T1` is `S1*` (where `S0` is not of the form
-  `S2*` for any `S2`)
-  - and `S0 <: S1?`.
+- **Left FutureOr**: if `T0` is `FutureOr<S0>` then:
+  - `T0 <: T1` iff  `Future<S0> <: T1` and `S0 <: T1`
 
-- **Left FutureOr**: `T0` is `FutureOr<S0>`
-  - and `Future<S0> <: T1`
-  - and `S0 <: T1`
+- **Left Nullable**: if `T0` is `S0?` then:
+  - `T0 <: T1` iff  `S0 <: T1` and `Null <: T1`
 
-- **Left Nullable**: `T0` is `S0?`
-  - and `S0 <: T1`
-  - and `Null <: T1`
-
-- **Type Variable Reflexivity 1**: `T0` is a type variable `X0` or a
-promoted type variables `X0 & S0` and `T1` is `X0`.
+- **Type Variable Reflexivity 1**: if `T0` is a type variable `X0` or a
+promoted type variables `X0 & S0` and `T1` is `X0` then:
+  - `T0 <: T1`
   - *Note that this rule is admissible, and can be safely elided if desired*
 
-- **Type Variable Reflexivity 2**: Promoted`T0` is a type variable `X0` or a
-promoted type variables `X0 & S0` and `T1` is `X0 & S1`
-  - and `T0 <: S1`.
+- **Type Variable Reflexivity 2**: if `T0` is a type variable `X0` or a
+promoted type variables `X0 & S0` and `T1` is `X0 & S1` then:
+  - `T0 <: T1` iff `T0 <: S1`.
   - *Note that this rule is admissible, and can be safely elided if desired*
 
-- **Right Promoted Variable**: `T1` is a promoted type variable `X1 & S1`
-  - and `T0 <: X1`
-  - and `T0 <: S1`
+- **Right Promoted Variable**: if `T1` is a promoted type variable `X1 & S1` then:
+  - `T0 <: T1` iff  `T0 <: X1` and `T0 <: S1`
 
-- **Right FutureOr**: `T1` is `FutureOr<S1>` and
-  - either `T0 <: Future<S1>`
-  - or `T0 <: S1`
-  - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
-  - or `T0` is `X0 & S0` and `S0 <: T1`
+- **Right Non-nullable**: if `T1` is `S1!` then:
+  - `T0 <: T1` iff  `T0 <: S1` and `T0 <: Object`
 
-- **Right Nullable**: `T1` is `S1?` and
-  - either `T0 <: S1`
-  - or `T0 <: Null`
-  - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
-  - or `T0` is `X0 & S0` and `S0 <: T1`
+- **Right FutureOr**: if `T1` is `FutureOr<S1>` then:
+  - `T0 <: T1` iff any of the following hold:
+    - either `T0 <: Future<S1>`
+    - or `T0 <: S1`
+    - or `T0` is `S0!` and `Object <: S1` or `S0 <: T1`
+    - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
+    - or `T0` is `X0 & S0` and `S0 <: T1`
+
+- **Right Nullable/Non-nullable**: if `T1` is `S1!?` then:
+  - `T0 <: T1` iff `T0 <: S1?`
+
+- **Right Nullable**: if `T1` is `S1?` then:
+  - `T0 <: T1` iff any of the following hold:
+    - either `T0 <: S1`
+    - or `T0 <: Null`
+    - or `T0` is `S0!` and `Object <: S1` or `S0 <: T1`
+    - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
+    - or `T0` is `X0 & S0` and `S0 <: T1`
+
+- **Left Non-nullable/Nullable**: if `T0` is `S0?!` then:
+  - `T0 <: T1` iff `S0! <: T1`
+
+- **Left Non-nullable**: if `T0` is `S0!` then:
+  - `T0 <: T1` iff  `S0 <: T1`
 
 - **Left Promoted Variable**: `T0` is a promoted type variable `X0 & S0`
   - and `S0 <: T1`
@@ -236,9 +270,11 @@ satisfy the requirements for being algorithmic.
 ### Non-algorithmic rules
 
 The non-algorithmic rules that we derive from first principles of union and
-intersection types are as follows, where `S0 | S1` is either `FutureOr<S>` (in
-which case `S0` is `Future<S>` and `S1` is S) or from `S?` (in which case `S0`
-is `S`, and `S1` is `Null`).
+intersection types are as follows, where: `S0 | S1` stands in for either
+`FutureOr<S>` (in which case `S0` is `Future<S>` and `S1` is S) or `S?` (in
+which case `S0` is `S`, and `S1` is `Null`); and `S0 & S1` stands in for either
+`X & S` (in which case `S0` is `X` and `S1` is `S`), or `S!` (in which case `S0`
+is `S` and `S1` is `Object`).
 
 Left union introduction:
  - `S0 | S1 <: T` if `S0 <: T` and `S1 <: T`
@@ -247,10 +283,71 @@ Right union introduction:
  - `S <: T0 | T1` if `S <: T0` or `S <: T1`
 
 Left intersection introduction:
- - `X & S <: T` if `X <: T` or `S <: T`
+ - `S0 & S1 <: T` if `S0 <: T` or `S1 <: T`
 
 Right intersection introduction:
- - `S <: X & T` if `S <: X` and `S <: T`
+ - `S <: T0 & T1` if `S <: T0` and `S <: T1`
+
+Axioms for `Null` and `Object`:
+
+Left non-nullable `Null`:
+ - `Null! <: T`
+
+Right nullable `Object`:
+ - `T <: Object?`
+
+General distributivity of intersection over union would also give the following:
+  - `(S0 | S1) & (S2 | S3) <: (S0 & S2) | (S0 & S1) | (S1 & S2) | (S1 & S3)`
+
+General distributivity of union over intersection would also give the following:
+  - `(S0 & S1) | (S2 & S3) <: (S0 | S2) & (S0 | S1) & (S1 | S2) & (S1 | S3)`
+
+However, we do not distribute over `FutureOr` since we cannot represent the
+result, and so we don't start from the general rules, but instead use them to
+justify specific distributivity properties of `!` and `?`.
+
+Left intersection distribution:
+  - `S0?! <: S1` if `S0! <: S1`
+
+This is derived from the general rules above as follows:
+  - Given `S0! <: S1`
+  - to show `S0?! <: S1`
+  - that is, to show `(S0 | Null) & Object <: S1`
+  - by transitivity and distributivity it suffices to show that:
+    - `(S0 & Object) | (Null & Object) <: S1`
+  - by left union introduction, it suffices to show that:
+    - `S0 & Object <: S1`, aka `S0! <: S1`
+    - and `Null & Object <: S1`
+  - `S0! <: S1` holds by assumption, so it suffices to show that `Null & Object
+    <: S1`
+  - this holds by the left non-nullable `Null` axiom + transitivity.
+
+
+Right union distribution:
+  - `S0 <: S1!?` if `S0 <: S1?`
+
+This is derived from the general rules above as follows:
+  - Given `S0 <: S1?`
+  - to show `S0 <: S1!?`
+  - that is, to show `S0 <: (S1 & Object) | Null`
+  - by transitivity and distributivity it suffices to show that:
+    - `S0 <: (S1 | Null) & (Object | Null)`
+  - by right intersection introduction, it suffices to show that
+    - `S0 <: (S1 | Null)`
+    - `S0 <: (Object | Null)`
+  - The first holds by assumption
+  - The second holds by the right nullable `Object` axiom
+
+
+The declarative legacy subtyping rules are derived from the possible completions
+of the legacy type to a non-legacy type.
+
+Right legacy introduction:
+  - `T* <: S` if `T! <: S` or `T <: S` or `T? <: S`
+
+Left legacy introduction:
+  - `T <: S*` if `T <: S!` or `T <: S` or `T <: S?`
+
 
 The only remaining non-algorithmic rule is the variable bounds rule:
 
@@ -258,10 +355,6 @@ Variable bounds:
   - `X <: T` if `X extends B` and `B <: T`
 
 All other rules are algorithmic.
-
-Note: We believe that bounds can be treated simply as uses of intersections,
-which could simplify this presentation.
-
 
 ### Preliminaries
 
@@ -273,9 +366,21 @@ Proof.  By induction on derivations.  Consider a derivation of `S0 | S1 <:
 T`.
 
 If the last rule applied is:
-  - Top type rules are trivial.
+  - Top type rules (including nullable object) are trivial.
 
-  - Null, Never, Function and interface rules can't apply.
+  - Object, Null, Never, Function and interface rules can't apply.
+
+  - Left intersection distribution cannot apply.
+
+  - Right union distribution.  Then `T` is of the form `T0!?`, and we have a
+    sub-derivation of `S0 | S1 <: T0?`.
+    - By induction, there is a derivation of this ending in left union
+      introduction, so we have sub-derivations of
+      - `S0 <: T0?` and `S1 <: T0?`
+    - By construction (right union distribution) we can then derive
+      - `S0 <: T0!?` and `S1 <: T0!?`
+    - By construction (left union introduction) we have 
+     - `S0 | S1 <: T0!?`
 
   - Left union introduction rule is immediate.
 
@@ -299,19 +404,46 @@ If the last rule applied is:
       - by left union introduction, we have `S0 | S1 <: T0 | T1`
       - QED
 
-  - Right intersection introduction.  Then `T` is of the form `X & T0`, and
-     - we have sub-derivations `S0 | S1 <: X` and `S0 | S1 <: T0`
+  - Right intersection introduction.  Then `T` is of the form `T0 & T1`, and
+     - we have sub-derivations `S0 | S1 <: T0` and `S0 | S1 <: T1`
      - By induction, we can get derivations of the above ending in left union
        introduction, so by inversion we have derivations of:
-       - `S0 <: X`, `S1 <: X`, `S0 <: T0`, `S1 <: T0`
-         - so we have derivations of `S0 <: X`, `S0 <: T0`, so by right
+       - `S0 <: T0`, `S1 <: T0`, `S0 <: T1`, `S1 <: T1`
+         - so we have derivations of `S0 <: T0`, `S0 <: T1`, so by right
            intersection introduction we have
-           - `S0 <: X & T0`
-         - so we have derivations of `S1 <: X`, `S1 <: T0`, so by right
+           - `S0 <: T0 & T1`
+         - so we have derivations of `S1 <: T0`, `S1 <: T1`, so by right
            intersection introduction we have
-           - `S1 <: X & T0`
-     - so by left union introduction, we have a derivation of `S0 | S1 <: X & T0`
-     - QED
+           - `S1 <: T0 & T1`
+     - so by left union introduction, we have a derivation of `S0 | S1 <: T0 & T1`
+
+  - Left legacy introduction cannot apply
+
+  - Right legacy introduction.  Then `T` is of the form `T0*`, and
+     - we have one of the following cases for the immediate sub-derivation:
+       - if we have `S0 | S1 <: T!`, then by induction, there is a derivation
+         ending in a use of left union introduction, so by inversion we have:
+         - a derivation of `S0 <: T!`, so by right legacy introduction we have
+           `S0 <: T*`
+         - a derivation of `S1 <: T!`, so by right legacy introduction we have
+           `S1 <: T*`
+         - so by left union introduction we have `S0 | S1 <: T*`. 
+       - if we have `S0 | S1 <: T`, then by induction, there is a derivation
+         ending in a use of left union introduction, so by inversion we have:
+         - a derivation of `S0 <: T`, so by right legacy introduction we have
+           `S0 <: T*`
+         - a derivation of `S1 <: T`, so by right legacy introduction we have
+           `S1 <: T*`
+         - so by left union introduction we have `S0 | S1 <: T*`
+       - if we have `S0 | S1 <: T?`, then by induction, there is a derivation
+         ending in a use of left union introduction, so by inversion we have:
+         - a derivation of `S0 <: T?`, so by right legacy introduction we have
+           `S0 <: T*`
+         - a derivation of `S1 <: T?`, so by right legacy introduction we have
+           `S1 <: T*`
+         - so by left union introduction we have `S0 | S1 <: T*`
+
+- QED
 
 Note: The reverse is not true.  Counter-example:
 
@@ -341,51 +473,443 @@ Given `X extends Object`, it is trivial to derive `X <: FutureOr<X>` via the
 right union introduction rule.  But applying the variable bounds rule doesn't
 work.
 
-**Lemma 2**: If there is any derivation of `S <: X & T`, then there is
+**Lemma 2**: If there is any derivation of `S <: T0 & T1`, then there is
 derivation ending in a use of right intersection introduction.
 
-Proof.  By induction on derivations.  Consider a derivation D of `S <: X & T`.
+Proof.  By induction on derivations.  Consider a derivation D of `S <: T0 & T1`.
 
 If last rule applied in D is:
-  - Bottom types are trivial.
+  - Never and non-nullable Null rules are trivial.
+
+  - Top types cannot apply.
 
   - Function and interface type rules can't apply.
 
+  - Left intersection distribution.  Then `S` is of the form `S0?!`, and we have
+    a sub-derivation of `S0! <: T0 & T1`.
+    - By induction, there is a derivation of this ending in right intersection
+      introduction, so we have sub-derivations of
+      - `S0! <: T0` and `S0! <: T1`
+    - By construction (left intersection distribution) we can then derive
+      - `S0?! <: T0` and `S1?! <: T1`
+    - By construction (right intersection introduction) we have
+     - `S0?! <: T0 & T1`
+
+  - Right union distribution cannot apply.
+
   - Right intersection introduction then we're done.
 
-  - Left intersection introduction. Then `S` is of the form `Y & S0`, and either
-    - we have a sub-derivation of `Y <: X & T`
+  - Left intersection introduction. Then `S` is of the form `S0 & S1`, and either
+    - we have a sub-derivation of `S0 <: T0 & T1`
       - by induction we therefore have a derivation ending in right intersection
        introduction, so by inversion we have:
-         - a derivation of `Y <: X `, and so by left intersection
-           introduction we have `Y & S0 <: X`
-         - a derivation of `Y <: T `, and so by left intersection
-           introduction we have `Y & S0 <: T`
-      - by right intersection introduction, we have `Y & S0 <: X & T`
+         - a derivation of `S0 <: T0 `, and so by left intersection
+           introduction we have `S0 & S1 <: T0`
+         - a derivation of `S0 <: T1 `, and so by left intersection
+           introduction we have `S0 & S1 <: T1`
+      - by right intersection introduction, we have `S0 & S1 <: T0 & T1`
       - QED
-    - we have a sub-derivation of `S0 <: X & T`
+    - we have a sub-derivation of `S1 <: T0 & T1`
       - by induction we therefore have a derivation ending in right intersection
        introduction, so by inversion we have:
-         - a derivation of `S0 <: X `, and so by left intersection
-           introduction we have `Y & S0 <: X`
-         - a derivation of `S0 <: T `, and so by left intersection
-           introduction we have `Y & S0 <: T`
-     - by right intersection introduction, we have `Y & S0 <: X & T`
+         - a derivation of `S1 <: T0`, and so by left intersection
+           introduction we have `S0 & S1 <: T0`
+         - a derivation of `S1 <: T1`, and so by left intersection
+           introduction we have `S0 & S1 <: T1`
+     - by right intersection introduction, we have `S0 & S1 <: T0 & T1`
      - QED
 
   - Left union introduction.  Then `S` is of the form `S0 | S1`, and
-     - we have sub-derivations `S0 <: X & T` and `S1 <: X & T`
+     - we have sub-derivations `S0 <: T0 & T1` and `S1 <: T0 & T1`
      - By induction, we can get derivations of the above ending in right intersection
        introduction, so by inversion we have derivations of:
-       - `S0 <: X`, `S1 <: X`, `S0 <: T`, `S1 <: T`
-         - so we have derivations of `S0 <: X`, `S1 <: X`, so by left
+       - `S0 <: T0`, `S1 <: T0`, `S0 <: T1`, `S1 <: T1`
+         - so we have derivations of `S0 <: T0`, `S1 <: T0`, so by left
            union introduction we have
-           - `S0 | S1 <: X`
-         - so we have derivations of `S0 <: T`, `S1 <: T`, so by left
+           - `S0 | S1 <: T0`
+         - so we have derivations of `S0 <: T1`, `S1 <: T1`, so by left
            union introduction we have
-           - `S0 | S1 <: T`
-     - so by right intersection introduction, we have a derivation of `S0 | S1 <: X & T`
-     - QED
+           - `S0 | S1 <: T1`
+     - so by right intersection introduction, we have a derivation of `S0 | S1 <: T0 & T1`
+
+  - Right union introduction can't apply.
+
+  - Left legacy introduction.  Then `S` is of the form `S0*`, and either
+    - we have a sub-derivation of `S0! <: T0 & T1`
+      - by induction we therefore have a derivation ending in right intersection
+       introduction, so by inversion we have:
+         - a derivation of `S0! <: T0 `, and so by left legacy
+           introduction we have `S0* <: T0`
+         - a derivation of `S0! <: T1 `, and so by left intersection
+           introduction we have `S0* <: T1`
+      - by right intersection introduction, we have `S0* <: T0 & T1`
+      - QED
+    - we have a sub-derivation of `S0 <: T0 & T1`
+      - by induction we therefore have a derivation ending in right intersection
+       introduction, so by inversion we have:
+         - a derivation of `S0 <: T0 `, and so by left intersection
+           introduction we have `S0* <: T0`
+         - a derivation of `S0 <: T1 `, and so by left intersection
+           introduction we have `S0* <: T1`
+      - by right intersection introduction, we have `S0* <: T0 & T1`
+      - QED
+    - we have a sub-derivation of `S0? <: T0 & T1`
+      - by induction we therefore have a derivation ending in right intersection
+       introduction, so by inversion we have:
+         - a derivation of `S0? <: T0 `, and so by left intersection
+           introduction we have `S0* <: T0`
+         - a derivation of `S0? <: T1 `, and so by left intersection
+           introduction we have `S0* <: T1`
+      - by right intersection introduction, we have `S0* <: T0 & T1`
+      - QED
+
+  - Right legacy introduction can't apply.
+
+  - Variable bounds rule.  Then `S` is of the form `X` where `X extends B` and
+    we have a derivation of `B <: T0 & T1`.
+    - By induction, we have derivation ending in right intersection
+      introduction, so by inversion we have:
+      - a derivation of `B <: T0`, and so by the variable bounds rule we have `X
+        <: T0`.
+      - a derivation of `B <: T1`, and so by the variable bounds rule we have `X
+        <: T1`.
+    - So by right intersection introduction, we have `X <: T0 & T1`.
+
+- QED
+
+
+**Observation 1**:
+  - If `T <: S` is derivable, then `T <: S?` is derivable by right union
+    introduction
+  - If `T <: S!` is derivable, then `T <: S?` is derivable since by lemma 2
+there is a derivation ending in right intersection introduction, and hence there
+is a sub-derivation of `T <: S` (and hence `T <: S?` by the previous bullet).
+  - If `T <: S` is derivable then `T! <: S` is derivable by left intersection
+introduction.  
+  - If `T? <: S` is derivable then `T! <: S` is derivable, since by lemma 1
+    there is a derivation ending in left union introduction, and hence there is
+    a sub-derivation of `T <: S`  (and hence `T <: S?` by the previous bullet).
+
+This observation justifies the following simpler derived rules for the legacy
+types:
+
+Right legacy introduction (derived):
+  - `T* <: S` if `T! <: S`
+
+Left legacy introduction (derived):
+  - `T <: S*` if `T <: S?`
+
+
+**Lemma 3**: If there is any derivation of `S* <: T`, then there is a derivation
+ending in a use of left legacy introduction.
+
+Proof.  By induction on derivations.  Consider a derivation of `S* <:
+T`.
+
+If the last rule applied is:
+  - Top type rules are trivial.
+
+  - Object is trivial
+
+  - Null, Never, Function and interface rules can't apply.
+
+  - Right union distribution.  Then `T` is of the form `T0!?`, and we have a
+    sub-derivation of `S* <: T0?`.
+    - By induction, there is a derivation of this ending in left legacy
+      introduction, so we have a sub-derivation of
+      - `S! <: T0?`
+    - By construction (right union distribution) we can then derive
+      - `S! <: T0!?`
+    - By construction (left legacy introduction) we have 
+     - `S* <: T0!?`
+
+  - Left union introduction rule doesn't apply.
+
+  - Right union introduction. Then `T` is of the form `T0 | T1` and either
+    - we have a sub-derivation of `S* <: T0`
+      - by induction we therefore have a derivation ending in left legacy
+       introduction
+        - so by inversion we have a derivation of `S! <: T0 `
+        - so by right union introduction we have `S! <: T0 | T1`
+      - so by left legacy introduction, we have `S* <: T0 | T1`
+      - QED
+    - we have a sub-derivation of `S* <: T1`
+      - by induction we therefore have a derivation ending in left legacy
+       introduction
+        - so by inversion we have a derivation of `S! <: T1 `
+        - so by right union introduction we have `S! <: T0 | T1`
+      - so by left legacy introduction, we have `S* <: T0 | T1`
+      - QED
+
+  - Left intersection introduction cannot apply.
+
+  - Right intersection introduction.  Then `T` is of the form `T0 & T1`, and
+     - we have sub-derivations `S* <: T0` and `S* <: T1`
+     - By induction, we can get derivations of the above ending in left legacy
+       introduction.
+     - so by inversion we have derivations of `S! <: T0` and  `S! <: T1`
+     - so by right intersection introduction we have a derivation of `S! <: T0 &
+       T1`
+     - so by left legacy introduction we have a derivation of `S* <: T0 & T1`
+
+  - Left legacy introduction is immediate.
+
+  - Right legacy introduction.  Then `T` is of the form `T0*`, and
+     - by inversion we have a derivation of `S* <: T0?`
+     - by induction we have a derivation of this ending in left legacy
+       introduction, and hence by inversion we have a derivation of `S! <: T0?`
+     - by right legacy introduction we have `S! <: T0*`
+     - by left legacy introduction we have `S* <: T0*`
+  - QED
+
+**Lemma 4**: If there is any derivation of `S <: T*`, then there is
+derivation ending in a use of right legacy introduction.
+
+Proof.  By induction on derivations.  Consider a derivation D of `S <: T*`.
+
+If last rule applied in D is:
+  - Never and non-nullable Null rules are trivial.
+
+  - Top, Function and interface type rules can't apply.
+
+  - Left intersection distribution.  Then `S` is of the form `S0?!`, and we have
+    a sub-derivation of `S0! <: T*`.
+    - By induction, there is a derivation of this ending in right legacy
+      introduction, so we have a sub-derivation of
+      - `S0! <: T?`
+    - By construction (left intersection distribution) we can then derive
+      - `S0?! <: T?`
+    - By construction (right legacy introduction) we have
+     - `S0?! <: T*`
+
+  - Right union distribution cannot apply.
+
+  - Left intersection introduction. Then `S` is of the form `S0 & S1`, and either
+    - we have a sub-derivation of `S0 <: T*`
+      - by induction we therefore have a derivation ending in right legacy
+        introduction, so by inversion we have a derivation of `S0 <: T?`
+      - so by left intersection introduction we have `S0 & S1 <: T?`
+      - so we have `S0 & S1 <: T*` by right legacy introduction.
+    - we have a sub-derivation of `S1 <: T*`
+      - by induction we therefore have a derivation ending in right legacy
+        introduction, so by inversion we have a derivation of `S1 <: T?`
+      - so by left intersection introduction we have `S0 & S1 <: T?`
+      - so we have `S0 & S1 <: T*` by right legacy introduction.
+
+  - Right intersection introduction doesn't apply
+
+  - Left union introduction.  Then `S` is of the form `S0 | S1`, and
+     - we have sub-derivations `S0 <: T*` and `S1 <: T*`
+     - By induction, we can get derivations of the above ending in right legacy
+       introduction, so by inversion we have derivations of `S0 <: T?`, `S1 <:
+       T?`
+     - so by left union introduction we have `S0 | S1 <: T?`
+     - so by right legacy introduction we have `S0 | S1 <: T*`
+
+  - Right union introduction can't apply.
+
+  - Left legacy introduction.  Then `S` is of the form `S0*`, and we have a
+    sub-derivation of `S0! <: T*`
+      - by induction we therefore have a derivation ending in right legacy
+       introduction
+      - so by inversion we have a derivation of `S0! <: T0?`
+      - so by left legacy introduction we have `S0* <: T0?`
+      - so by right legacy introduction, we have `S0* <: T0*`
+      - QED
+
+  - Right legacy introduction is immediate.
+
+  - Variable bounds rule.  Then `S` is of the form `X` where `X extends B` and
+    we have a derivation of `B <: T*`.
+    - By induction, we have a derivation ending in right legacy
+      introduction, so by inversion we have a derivation of `B <: T?`
+    - so by the variables bounds rule, we have `X <: T?`
+    - so by right legacy introduction we have `X <: T*`
+- QED
+
+
+**Lemma 5**: If there is any derivation of `S?! <: T` then there is one ending
+in a use of left intersection distribution.
+
+Proof.  By induction on derivations.  Consider a derivation of `S?! <: T`.
+
+If the last rule applied is:
+  - Top type rules are trivial.
+
+  - Object is trivial
+
+  - Null, Never, Function and interface rules can't apply.
+
+  - Left intersection distribution is immediate.
+
+  - Right union distribution.  Then `T` is of the form `T0!?`, and we have a
+    sub-derivation of `S?! <: T0?`.
+    - By induction, there is a derivation of this ending in left intersection
+      distribution, so we have a sub-derivation of
+      - `S! <: T0?`
+    - By construction (right union distribution) we can then derive
+      - `S! <: T0!?`
+    - By construction (left intersection distribution) we have
+     - `S?! <: T0!?`
+
+  - Left union introduction rule doesn't apply.
+
+  - Right union introduction. Then `T` is of the form `T0 | T1` and either
+    - we have a sub-derivation of `S?! <: T0`
+      - by induction we therefore have a derivation ending in left intersection
+        distribution
+        - so by inversion we have a derivation of `S! <: T0 `
+        - so by right union introduction we have `S! <: T0 | T1`
+      - so by left intersection distribution, we have `S?! <: T0 | T1`
+      - QED
+    - we have a sub-derivation of `S?! <: T1`
+      - by induction we therefore have a derivation ending in left intersection
+        distribution
+        - so by inversion we have a derivation of `S! <: T1 `
+        - so by right union introduction we have `S! <: T0 | T1`
+      - so by left intersection distribution, we have `S?! <: T0 | T1`
+      - QED
+
+  - Left intersection introduction.  Then we have sub-derivations of `S? <: T`
+    or `Object <: T`.
+    - If we have a derivation of `S? <: T`, then
+      - By lemma 1, there is a derivation ending in left union introduction, we
+        have sub-derivations of `S <: T` and `Null <: T`
+      - By construction (left intersection introduction) we have `S! <: T`
+      - By construction (left intersection distribution) we have `S?! <: T`
+    - If we have a derivation of `Object <: T`, then
+      - By construction (left intersection introduction) we have `S! <: T`
+      - By construction (left intersection distribution) we have `S?! <: T`
+
+  - Right intersection introduction.  Then `T` is of the form `T0 & T1`, and
+     - we have sub-derivations `S?! <: T0` and `S?! <: T1`
+     - By induction, we can get derivations of the above ending in left
+       intersection distribution.
+     - so by inversion we have derivations of `S! <: T0` and  `S! <: T1`
+     - so by right intersection introduction we have a derivation of `S! <: T0 &
+       T1`
+     - so by left intersectoin distribution we have a derivation of `S?! <: T0 &
+       T1`
+
+  - Left legacy introduction doesn't apply.
+
+  - Right legacy introduction.  Then `T` is of the form `T0*`, and
+     - by inversion we have a derivation of `S?! <: T0?`
+     - by induction we have a derivation of this ending in left intersection
+       distribution introduction, and hence by inversion we have a derivation of
+       `S! <: T0?`
+     - by right legacy introduction we have `S! <: T0*`
+     - by left intersection distribution we have `S?! <: T0*`
+  - QED
+
+**Lemma 6**: If there is any derivation of `S <: T!?`, then there is
+derivation ending in a use of right union distribution.
+
+Proof.  By induction on derivations.  Consider a derivation D of `S <: T!?`.
+
+If last rule applied in D is:
+  - Never and non-nullable Null rules are trivial.
+
+  - Top, Function and interface type rules can't apply.
+
+  - Left intersection distribution.  Then `S` is of the form `S0?!`, and we have
+    a sub-derivation of `S0! <: T!?`.
+    - By induction, there is a derivation of this ending in right union
+      distribution, so we have a sub-derivation of
+      - `S0! <: T?`
+    - By construction (left intersection distribution) we can then derive
+      - `S0?! <: T?`
+    - By construction (right union distribution) we have
+     - `S0?! <: T!?`
+
+  - Right union distribution is immediate.
+
+  - Left intersection introduction. Then `S` is of the form `S0 & S1`, and either
+    - we have a sub-derivation of `S0 <: T!?`
+      - by induction we therefore have a derivation ending in right union
+        distribution, so by inversion we have a derivation of `S0 <: T?`
+      - so by left intersection introduction we have `S0 & S1 <: T?`
+      - so we have `S0 & S1 <: T!?` by right union distribution.
+    - we have a sub-derivation of `S1 <: T!?`
+      - by induction we therefore have a derivation ending in right union
+        disribution, so by inversion we have a derivation of `S1 <: T?`
+      - so by left intersection introduction we have `S0 & S1 <: T?`
+      - so we have `S0 & S1 <: T!?` by right union distribution.
+
+  - Right intersection introduction doesn't apply
+
+  - Left union introduction.  Then `S` is of the form `S0 | S1`, and
+     - we have sub-derivations `S0 <: T!?` and `S1 <: T!?`
+     - By induction, we can get derivations of the above ending in right union
+       distribution, so by inversion we have derivations of `S0 <: T?`, `S1 <:
+       T?`
+     - so by left union introduction we have `S0 | S1 <: T?`
+     - so by right legacy introduction we have `S0 | S1 <: T!?`
+
+  - Right union introduction. Then we have sub-derivations of `S <: T!` or `S
+    <: Null`.
+    - If we have a derivation of `S <: T!` then:
+      - By lemma 2, there is a derivation ending in right intersection
+        introduction, so we have sub-derivations of `S <: T` and `S <: Object`
+      - By construction (right union introduction) we have `S <: T?`
+      - By construction (right union distribution) we have `S <: T!?`
+    - If we have a derivation of `S <: Null`, then
+      - By construction (right union introduction) we have `S <: T?`
+      - By construction (right union distribution) we have `S <: T!?`
+
+  - Left legacy introduction.  Then `S` is of the form `S0*`, and we have a
+    sub-derivation of `S0! <: T!?`
+      - by induction we therefore have a derivation ending in right union
+        distribution
+      - so by inversion we have a derivation of `S0! <: T0?`
+      - so by left legacy introduction we have `S0* <: T0?`
+      - so by right union distribution, we have `S0* <: T0!?`
+      - QED
+
+  - Right legacy introduction does not apply.
+
+  - Variable bounds rule.  Then `S` is of the form `X` where `X extends B` and
+    we have a derivation of `B <: T!?`.
+    - By induction, we have a derivation ending in right union distribution, so
+      by inversion we have a derivation of `B <: T?`
+    - so by the variables bounds rule, we have `X <: T?`
+    - so by right union distribution we have `X <: T!?`
+- QED
+
+**Lemma 7**: Right intersection distribution is admissable.  If `S0 <: S1!` then
+`S0 <: S1?!`.
+
+Pf: Suppose we have a derivation of `S0 <: S1!`.  To show: `S0 <: S1?!`.
+  - By lemma 2, there is derivation of `S0 <: S1!` ending in right intersection
+  introduction, so we have derivations of:
+  - `S0 <: S1` and `S0 <: Object`
+  - by construction (right union introduction) we have a derivation of `S0 <:
+    S1?`
+  - by construction (right intersection introduction) we have a derivation of `S0 <:
+    S1?!`
+  - QED
+
+**Lemma 8**: Left union distribution is admissible.  If `S0? <: S1` then `S0!?
+<: S1`.
+
+Pf: Suppose we have a derivation of `S0? <: S1`.  To show: `S0!? <: S1`.
+  - By lemma 1, there is derivation of `S0? <: S1` ending in left union
+  introduction, so we have derivations of:
+  - `S0 <: S1` and `Null <: S1`
+  - by construction (left intersection introduction) we have a derivation of
+    `S0! <: S1`
+  - by construction (left union introduction) we have a derivation of `S0!? <:
+    S1`
+  - QED
+
+
+**Lemma 9**: Equivalence of normal forms. 
+  - `S!? <: T` iff `S? <: T`
+  - `S?! <: T` iff `S! <: T`
+  - `S <: T!?` iff `S <: T?`
+  - `S <: T?!` iff `S >: T!`
+
+Pf: TODO
 
 **Conjecture 1**: `FutureOr<A> <: FutureOr<B>` is derivable iff `A <: B` is
 derivable.
@@ -393,7 +917,7 @@ derivable.
 Showing that `A <: B => FutureOr<A> <: FutureOr<B>` is easy, but it is not
 immediately clear how to tackle the opposite direction.
 
-**Lemma 3**: Transitivity of subtyping without the legacy type rules is
+**Lemma 10**: Transitivity of subtyping without the legacy type rules is
 admissible.  Given derivations of `A <: B` and `B <: C` which does not use any
 of the legacy rules, then there is a derivation of `A <: C` which also does not
 use any of the legacy rules.
@@ -402,14 +926,88 @@ Proof sketch: The proof should go through by induction on sizes of derivations,
 cases on pairs of rules used.  For any pair of rules used, we can construct a
 new derivation of the desired result using only smaller derivations.
 
-**Observation 1**: Given `X` with bound `S`, we have the property that for all
+
+**Observation 2**: Given `X` with bound `S`, we have the property that for all
 instances of `X & T`, `T <: S` will be true, and hence `S <: M => T <: M`.
+
+**Observation 3**: The following are not derivable for any `T`:
+  - `T?` <: `Object`, since by lemma 1 we must have `Null <: Object`
+  - `Null <: T!`, since by lemma 2 we must have `Null <: Object`
+  - `Null <: X` for any unpromoted type variable `X`
+    - there are no typing rules which apply
+  - `Null <: X & T` for any promoted type variable `X`
+    - the only rule that applies is left intersection introduction, which in
+      turn requires that `Null <: X`.
+
+**Observation 4**: The following are derivable for any `T`:
+  - `T!` <: `Object`, since it suffices to show that `Object <: Object`.
+  - `T*` <: `Object`, since it suffices to show that `T! <: Object`.
+  - `Null <: T?`, since it suffices to show that `Null <: Null`
+  - `Null <: T*`, since it suffices to show that `Null <: T?`
+
 
 
 ### Algorithmic rules
 
 Consider `T0 <: T1`.
 
+#### True top on the right
+
+If `T1` is `dynamic` or `void` or `Object?` the query is true.
+
+#### True bottom on the left
+
+If `T0` is `Never` or `Null!` the query is true.
+
+#### `Object` 
+
+If `T1` is `Object`: 
+  - if `T0` is an unpromoted type variable with bound `B`, the query is true iff
+    `B <: Object` is true.
+    - The only rule that can apply is the variable bounds rule.
+  - if `T0` is a promoted type variable `X & S` with bound `B` then the query is
+    true iff `S <: Object` is true
+    - The only rule that applies is left intersection introduction
+    - Hence we must show `X <: Object` or `S <: Object`. For the former, the
+      only rule which applies is the variable bounds rule, so it suffices to
+      show that `B <: Object` and `S <: Object`.  But by observation 2, we have
+      that `S <: B`, so it suffices to show that `S <: Object`.
+  - If `T0` is `FutureOr<S>` for some `S`, then the query is true iff `S <: Object`.
+    - By lemma 1, it suffices to show that `Future<S> <: Object` and `S <:
+      Object`, and the former holds immediately.
+  - If `T0` is `Null`, `dynamic`, `void`, or `S?` for any `S`, the query is
+    false.
+    - By Observation 3 above
+  - Otherwise the query is true.
+    - In this case, `T0` must be `Object`, a function type, interface type, or
+      of the form `S!` or `S*` for some `S` in which case Observation 4 applies.
+
+#### `Null` 
+
+If `T0` is `Null` 
+  - if `T1` is a type variable (promoted or not) the query is false
+    - By observation 3
+  - If `T1` is `FutureOr<S>` for some `S`, then the query is true iff `Null <: S`.
+    - The only rule that applies is right union introduction which requires
+      either `Null <: Future<S>` or `Null <: S`.  The former is never true so it
+      suffices to check the latter.
+  - If `T1` is `Null`, `S?` or `S*` for some `S`, then the query is true.
+    - By Observaton 4 above
+  - Otherwise, the query is false
+    - In this case, `T1` is `Object`, a function type, an interface type, or of
+    the form `S!` for some `S`, in which case Observation 3 applies.
+
+#### Legacy on the left
+
+If `T0` is `S*` for some `S`, the query is true iff `S! <: T1` is true
+  - By lemma 3 above, and the derived version of the legacy left introduction
+    rule
+
+#### Legacy on the right
+
+If `T1` is `S*` for some `S`, the query is true iff `T0 <: S?` is true
+  - By lemma 4 above, and the derived version of the legacy right introduction
+    rule.
 
 #### Union on the left
 
@@ -448,32 +1046,50 @@ by reflexivity on the type variable, so it is sufficient to check `T0 <: S1`.
 is `X0 & S1`
   - and `T0 <: S1`.
 
-*Note that neither of the previous rules are required to make the rules
+*Note that neither of these type variable rules are required to make the rules
 algorithmic: they are merely useful special cases of the next rule.*
 
 
 #### Intersection on the right
 
-By lemma 2, if `T1` is of the `X1 & S1` and there is any derivation of `T0 <:
-T1`, then there is a derivation ending with a use of right intersection
+By lemma 2, if `T1` is of the form `X1 & S1` and there is any derivation of `T0
+<: T1`, then there is a derivation ending with a use of right intersection
 introduction, hence the rule:
 
 - `T1` is a promoted type variable `X1 & S1`
   - and `T0 <: X1`
   - and `T0 <: S1`
 
+By lemma 2, if `T1` is of the form `S1!` and there is any derivation of `T0
+<: T1`, then there is a derivation ending with a use of right intersection
+introduction, hence the rule:
+
+- `T1` is a `S1!`
+  - and `T0 <: S1`
+  - and `T0 <: Object`
+
+
+#### Right union distribution
+
+By lemma 6, if `T1` is of the form `S1!?` then it suffices to check that `T0 <:
+S1?`.  Hence the rule:
+
+- `T1` is `S1!?`
+  - and `T0 <: S1?`
 
 #### Union on the right
 
 Suppose `T1` is `FutureOr<S1>`. The rules above have eliminated the possibility
-that `T0` is of the form `FutureOr<S0>` or `S0?`.  The only rules that could
-possibly apply then are right union introduction, left intersection
+that `T0` is of the form `FutureOr<S0>`, `S0*`, or `S0?`.  The only rules that
+could possibly apply then are right union introduction, left intersection
 introduction, or the variable bounds rules.  Combining these yields the
 following preliminary disjunctive rule:
 
 - `T1` is `FutureOr<S1>` and
   - either `T0 <: Future<S1>`
   - or `T0 <: S1`
+  - or `T0` is `S0!` and `Object <: T1` or `S0 <: T1`
+    - note that `Object <: T1` iff `Object <: S1`
   - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
   - or `T0` is `X0 & S0` and `X0 <: T1` and `S0 <: T1`
 
@@ -482,7 +1098,7 @@ The last disjunctive clause can be further simplified to
 
 since the premise `X0 <: FutureOr<S1>` can only be derived either using the
 variable bounds rule or right union introduction.  For the variable bounds rule,
-the premise `B0 <: T1` is redundant with `S0 <: T1` by observation 1.  For right
+the premise `B0 <: T1` is redundant with `S0 <: T1` by observation 2.  For right
 union introduction, `X0 <: S1` is redundant with `T0 <: S1`, since if `X0 <: S1`
 is derivable, then `T0 <: S1` is derivable by left intersection introduction;
 and `X0 <: Future<S1>` is redundant with `T0 <: Future<S1>`, since if the former
@@ -492,13 +1108,13 @@ introduction.  So we have the final rule:
 - `T1` is `FutureOr<S1>` and
   - either `T0 <: Future<S1>`
   - or `T0 <: S1`
+  - or `T0` is `S0!` and `Object <: S1` or `S0 <: T1`
   - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
   - or `T0` is `X0 & S0` and `S0 <: T1`
 
 
-
-Suppose `T1` is `S1?`. The rules above have eliminated the possibility
-that `T0` is of the form `FutureOr<S0>` or `S0?`.  The only rules that could
+Suppose `T1` is `S1?`. The rules above have eliminated the possibility that `T0`
+is of the form `FutureOr<S0>`, `S0*`, or `S0?`.  The only rules that could
 possibly apply then are right union introduction, left intersection
 introduction, or the variable bounds rules.  Combining these yields the
 following preliminary disjunctive rule:
@@ -506,6 +1122,8 @@ following preliminary disjunctive rule:
 - `T1` is `S1?` and
   - either `T0 <: S1`
   - or `T0 <: Null`
+  - or `T0` is `S0!` and `Object <: T1` or `S0 <: T1`
+    - note that `Object <: T1` iff `Object <: S1`
   - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
   - or `T0` is `X0 & S0` and `X0 <: T1` and `S0 <: T1`
 
@@ -514,7 +1132,7 @@ The last disjunctive clause can be further simplified to
 
 since the premise `X0 <: S1?` can only be derived either using the variable
 bounds rule or right union introduction.  For the variable bounds rule, the
-premise `B0 <: T1` is redundant with `S0 <: T1` by observation 1.  For right
+premise `B0 <: T1` is redundant with `S0 <: T1` by observation 2.  For right
 union introduction, `X0 <: S1` is redundant with `T0 <: S1`, since if `X0 <: S1`
 is derivable, then `T0 <: S1` is derivable by left intersection introduction;
 and `X0 <: Null` is redundant with `T0 <: Null`, since if the former
@@ -524,39 +1142,62 @@ introduction.  So we have the final rule:
 - `T1` is `S1?` and
   - either `T0 <: S1`
   - or `T0 <: Null`
+  - or `T0` is `S0!` and `Object <: S1` or `S0 <: T1`
   - or `T0` is `X0` and `X0` has bound `S0` and `S0 <: T1`
   - or `T0` is `X0 & S0` and `S0 <: T1`
 
 
+#### Left intersection distribution
+
+By lemma 5, if `T0` is of the form `S0?!` then it suffices to check that `S0! <:
+T1`.  Hence the rule:
+
+- `T0` is `S0?!`
+  - and `S0! <: T1`
+
 #### Intersection on the left
 
-Suppose `T0` is `X0 & S0`. We've eliminated the possibility that `T1` is
-`FutureOr<S1>`, the possibility that `T1` is `S1?`, , the possibility that `T1`
-is `X1 & S1`, and the possibility that `T1` is any variant of `X0`.  The only
-remaining rule that applies is left intersection introduction, and so it
-suffices to check that `X0 <: T1` and `S0 <: T1`.  But given the remaining
-possible forms for `T1`, the only rule that can apply to `X0 <: T1` is the
-variable bounds rule, which by observation 1 is redundant with the second
-premise, and so we have the rule:
+At this point, we've eliminated the possibility that `T1` is `FutureOr<S1>`, the
+possibility that `T1` is `S1?`, the possibility that `T1` is `S1*`, the
+possibility that `T1` is `X1 & S1`, the possibility that `T1` is `S1!`, the
+possibility that `T1` is any variant of `X0`, and the possibility that `T1` is
+any of the top types, or `Object`.  The only remaining possibilities for `T1`
+are function types or non-top interfaces types.
+
+Suppose `T0` is `S0!`. Given that we have eliminated all of the structural types
+as possibilities for `T1`, the only remaining rule that applies is left
+intersection introduction, and so it suffices to check that `Object <: T1` or
+`S0 <: T1`.  But given the remaining forms for `T1`, `Object <: T1` is not
+derivable, so it suffices to check that `S0 <: T1`.
+
+`T0` is `S0!`
+  - and `S0 <: T1`
+
+Suppose `T0` is `X0 & S0`. Given that we have eliminated all of the structural
+types as possibilities for `T1`, the only remaining rule that applies is left
+intersection introduction, and so it suffices to check that `X0 <: T1` and `S0
+<: T1`.  But given the remaining possible forms for `T1`, the only rule that can
+apply to `X0 <: T1` is the variable bounds rule, which by observation 2 is
+redundant with the second premise, and so we have the rule:
 
 `T0` is a promoted type variable `X0 & S0`
   - and `S0 <: T1`
 
-
 #### Type variable on the left
 
-Suppose `T0` is `X0`.  We've eliminated the possibility that `T1` is
-`FutureOr<S1>`, the possibility that `T1` is `X1 & S1`, the possibility that
-`T1` is `X1 & S1`, and the possibility that `T1` is any variant of `X0`.  The
-only rule that applies is the variable bounds rule:
+Suppose `T0` is `X0`.  Given that we have eliminated all of the structural types
+as possibilities for `T1`, the only rule that applies is the variable bounds
+rule:
 
 `T0` is a type variable `X0` with bound `B0`
   - and `B0 <: T1`
 
 This eliminates all of the non-algorithmic rules: the remainder are strictly
-algorithmic.
+syntax driven.
 
 ## Changelog
 
+* Jan 29th, 2019: Added distribution of unions and intersections.
+* Jan 19th, 2019: Added subtyping for ! types, and fixed legacy rules.
 * Dec 19th, 2018: Added subtyping for nullable types and transitional legacy
   types.
