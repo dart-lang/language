@@ -95,14 +95,14 @@ these checks should be provably redundant and do not need to be inserted.
 
 Concretely, opting in to weak null checking will proceed as follows:
 - The programmer opts into the weak null checks by marking their package as
-  opted in.
+  opted in. They can opt out of weak null checks on a per library basis.
 - This will cause warnings about null-safety violations within the package (only).
   - If the opted-in code uses other packages that have opted in, then the
     programmer will see null-safety warnings from any misuses of the opted in
     APIs from the other packages.
-  - If the opted-in code uses other packages that have not opted in, the
-    programmer will not see any null-safety warnings from uses of those APIs.
-    They are free to treat those APIs as being null-accepting or
+  - If the opted-in code uses code in libraries or packages that have not been
+    opted in, the programmer will not see any null-safety warnings from uses
+    of those APIs. They are free to treat those APIs as being null-accepting or
     non-null-accepting as appropriate.
 - If the programmer runs the migration tool, it will suggest fixes to get rid of
   null safety warnings as best it can.
@@ -175,8 +175,15 @@ and faster code.
 
 Non-nullable types will be controlled by a language opt-in as
 described [elsewhere](https://github.com/dart-lang/language/issues/93).  In
-short, a library may opt in via syntax in the code, or a package may opt in in
-entirety.  Opting in applies only to the library or package so marked.
+short, a package may be opted-in and specific libraries within that package
+may be opted-out.
+
+Within a package that has been opted-in, specific libraries may be opted-out
+by adding `@pragma('nnbd-legacy')` to that library's `library` directive.
+
+```dart
+@pragma('nnbd-legacy') library opted_out_123456;
+```
 
 Within an opted-in library, unmarked types are interpreted as non-nullable, and
 only types suffixed with `?` are considered nullable (with the possible
