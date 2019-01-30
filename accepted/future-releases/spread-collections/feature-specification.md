@@ -305,13 +305,13 @@ Map, but not necessarily a subtype of the map being spread into.
 It is a static error if:
 
 *   A spread element in a list or set literal has a static type that is not
-    assignable to `Iterable<Object>`.
+    `dynamic` or a subtype of `Iterable<Object>`.
 
 *   If a list or set spread element's static type implements `Iterable<T>` for
     some `T` and `T` is not assignable to the element type of the list.
 
-*   A spread element in a map literal has a static type that is not assignable
-    to `Map<Object, Object>`.
+*   A spread element in a map literal has a static type that is not `dynamic` or
+    a subtype of `Map<Object, Object>`.
 
 *   If a map spread element's static type implements `Map<K, V>` for some `K`
     and `V` and `K` is not assignable to the key type of the map or `V` is not
@@ -424,6 +424,9 @@ Inference propagates upwards and downwards like you would expect:
 *   If a spread element in a list or set literal has static type `Iterable<T>`
     for some `T`, then the upwards inference element type is `T`.
 
+*   If a spread element in a list or set literal has static type `dynamic`, then
+    the upwards inference element type is `dynamic`.
+
 *   If a map literal has a downwards inference type of `Map<K, V>` for some `K`
     and `V`, then the downwards inference context type of a spread element in
     that map is `Map<K, V>`.
@@ -431,6 +434,9 @@ Inference propagates upwards and downwards like you would expect:
 *   If a spread element in a map literal has static type `Map<K, V>` for some
     `K` and `V`, then the upwards inference key type is `K` and the value type
     is `V`.
+
+*   If a spread element in a map literal has static type `dynamic`, then the
+    upwards inference key and value types are `dynamic`.
 
 ## Dynamic Semantics
 
