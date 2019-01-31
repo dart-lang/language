@@ -3,8 +3,6 @@
 The Dart team is concurrently working on three proposals that affect collection
 literals:
 
-**TODO(bob): Use italics instead of code font for non-rule and non-type introduced definitions?**
-
 * [Set Literals][]
 * [Spread Collections][]
 * [Control Flow Collections][]
@@ -12,9 +10,6 @@ literals:
 [set literals]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/set-literals/feature-specification.md
 [spread collections]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/spread-collections/feature-specification.md
 [control flow collections]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/control-flow-collections/feature-specification.md
-
-**todo: finish rolling in spread and control flow static, const, and runtime
-semantics.**
 
 These features interact in several ways, some of which weren't obvious at first.
 To make things easier on implementers and anyone else trying to understand the
@@ -31,32 +26,25 @@ This is where you should be looking if you're an implementer.
 Remove `setLiteral` and `mapLiteral` entirely. Then change the grammar to:
 
 ```
-setOrMapLiteral : 'const'? typeArguments? '{' elements? '}' ;
-listLiteral     : const? typeArguments? '[' elements? ']' ;
+setOrMapLiteral   : 'const'? typeArguments? '{' elements? '}' ;
+listLiteral       : const? typeArguments? '[' elements? ']' ;
 
-elements        : element ( ',' element )* ','? ;
+elements          : element ( ',' element )* ','? ;
 
-element         : expression
-                | mapEntry
-                | spreadElement
-                | ifElement
-                | forElement
-                ;
+element           : expressionElement
+                  | mapEntry
+                  | spreadElement
+                  | ifElement
+                  | forElement
+                  ;
 
-mapEntry        : expression ':' expression ;
+expressionElement : expression ;
+mapEntry          : expression ':' expression ;
 
-spreadElement   : ( '...' | '...?' ) expression ;
-ifElement       : 'if' '(' expression ')' element ( 'else' element )? ;
-forElement      : 'await'? 'for' '(' forLoopParts ')' element ;
+spreadElement     : ( '...' | '...?' ) expression ;
+ifElement         : 'if' '(' expression ')' element ( 'else' element )? ;
+forElement        : 'await'? 'for' '(' forLoopParts ')' element ;
 ```
-
-**done: "Element" instead of "Part". "part" already means something in Dart.**
-**done: "`ifElement`" -> "ifElement".**
-**done: Use `forLoopParts` in body instead of just supporting for-in.**
-**done: Use `( '...' | '...?' )` instead of `'...' '?'?` because `...?` is a single token.**
-**done: incorporated list changes. setOrMapPart -> element.**
-**done: get rid of "setElement" and just do "expression".
-**done: get rid of keyExpression and valueExpression since not really used.**
 
 It is a compile-time error if a `listLiteral` contains any `mapEntry` elements,
 directly or within any of its `ifElement`s or `forElement`s, transitively. *(We
@@ -83,9 +71,11 @@ that, we rely on types and inference.
 
 #### Syntactic and context-driven disambiguation
 
-Let `e` be a `setOrMapLiteral`. Let `leafElements` be all of the `expression`
-and `mapEntry` elements in `e`, including elements inside `ifElement` or
-`forElement` elements, transitively.
+Let `e` be a `setOrMapLiteral`.
+
+Let `leafElements` be all of the `expressionElement` and `mapEntry` elements in
+`e`, including elements inside `ifElement` or `forElement` elements,
+transitively.
 
 1.  If `e` has `typeArguments` then:
 
@@ -111,26 +101,23 @@ and `mapEntry` elements in `e`, including elements inside `ifElement` or
 4.  If `leafElements` is not empty, then:
 
     *   It is a compile-time error if `e` is syntactically known to be a map
-        literal and `leafElements` contains any `expression` elements.
+        literal and `leafElements` contains any `expressionElement` elements.
 
     *   It is a compile-time error if `e` is syntactically known to be a set
         literal and `leafElements` contains any `mapEntry` elements.
 
-    *   If it has at least one `expression` and no `mapEntry` elements, it is
-        syntactically known to be a set literal, with unknown static type.
+    *   If it has at least one `expressionElement` and no `mapEntry` elements,
+        it is syntactically known to be a set literal, with unknown static type.
 
-    *   If it has at least one `mapEntry` and no `expression` elements, it is
-        syntactically known to be a map literal with unknown static type.
+    *   If it has at least one `mapEntry` and no `expressionElement` elements,
+        it is syntactically known to be a map literal with unknown static type.
 
-    *   If it has at least one `mapEntry` and at least one `expression`, it is
-        an error.
+    *   If it has at least one `mapEntry` and at least one `expressionElement`,
+        it is an error.
 
     *In other words, at least one key-value pair anywhere in the collection
     forces it to be a map, and a bare expression forces it to be a set. Having
     both is an error.*
-
-**done: Defined `leafElements` instead of repeating "including as
-sub-components...".**
 
 If `e` has no `typeArguments` and no context type, and no `elements`, then `e`
 is treated as a map literal with unknown static type. *In other words, an empty
@@ -199,17 +186,17 @@ Alternatively, error checking for invalid spreads can be done separately.
 
 **todo(bob): "p" -> "elem"? it's not a "part" any more.**
 
-In `setOrMapLiteral`, the inferred type of an `element` `p` is a set element
-type `T`, a pair of a key type `K` and a value type `V`, or both. It is computed
+In `setOrMapLiteral`, the inferred type of an `element` is a set element type
+`T`, a pair of a key type `K` and a value type `V`, or both. It is computed
 relative to a context type `P`:
 
-*   If `p` is an `expression` `e1`:
+*   If `element` is an `expressionElement` with expression `e1`:
 
-    *   If `P` is `?` then the inferred set element type of `p` is the inferred
-        type of the expression `e1` in context `?`.
+    *   If `P` is `?` then the inferred set element type of `element` is the
+        inferred type of the expression `e1` in context `?`.
 
-    *   If `P` is `Set<Ps>` then the inferred set element type of `p` is the
-        inferred type of the expression `e1` in context `Ps`.
+    *   If `P` is `Set<Ps>` then the inferred set element type of `element` is
+        the inferred type of the expression `e1` in context `Ps`.
 
         **todo: what if `P` is `Iterable<R>`? Is this allowed?:**
 
@@ -217,37 +204,37 @@ relative to a context type `P`:
         Iterable<int> = {123 as dynamic}; // Infers Set<int>?
         ```
 
-*   If `p` is a `mapEntry` `ek: ev`:
+*   If `element` is a `mapEntry` `ek: ev`:
 
-    *   If `P` is `?` then the inferred key type of `p` is the inferred type of
-        `ek` in context `?` and the inferred value type of `p` is the inferred
-        type of `ev` in context `?`.
+    *   If `P` is `?` then the inferred key type of `element` is the inferred
+        type of `ek` in context `?` and the inferred value type of `element` is
+        the inferred type of `ev` in context `?`.
 
-    *   If `P` is `Map<Pk, Pv>` then the inferred key type of `p` is the
-        inferred type of `ek` in context `Pk` and the inferred value type of `p`
+    *   If `P` is `Map<Pk, Pv>` then the inferred key type of `element` is the
+        inferred type of `ek` in context `Pk` and the inferred value type of `element`
         is the inferred type of `ev` in context `Pv`.
 
-*   If `p` is a `spreadElement` with expression `e1`:
+*   If `element` is a `spreadElement` with expression `e1`:
 
     *   If `P` is `?` then let `S` be the inferred type of `e1` in context `?`:
 
         *   If `S` is a subtype of `Iterable<Object>` and not a subtype of
-            `Map<Object, Object>`, then the inferred set element type of `p` is
-            `T` where `T` is the type such that `Iterable<T>` is a
+            `Map<Object, Object>`, then the inferred set element type of
+            `element` is `T` where `T` is the type such that `Iterable<T>` is a
             superinterface of `S` (the result of constraint matching for `X`
             using the constraint `S <: Iterable<X>`).
 
         *   If `S` is a subtype of `Map<Object, Object>` and not a subtype of
-            `Iterable<Object>`, then the inferred key type of `p` is `K` and the
-            inferred value type of `p` is `V`, where `K` and `V` are the types
-            such that `Map<K, V>` is a superinterface of `S` (the result of
-            constraint matching for `X` and `Y` using the constraint `S <:
-            Map<X, Y>`).
+            `Iterable<Object>`, then the inferred key type of `element` is `K`
+            and the inferred value type of `element` is `V`, where `K` and `V`
+            are the types such that `Map<K, V>` is a superinterface of `S` (the
+            result of constraint matching for `X` and `Y` using the constraint
+            `S <: Map<X, Y>`).
 
-        *   If `S` is `dynamic`, then the inferred set element type of `p` is
-            `dynamic`, the inferred key type of `p` is `dynamic`, and the
-            inferred value type of `p` is `dynamic`. *(We produce both a set
-            element type here, and a key/value pair here and rely on other
+        *   If `S` is `dynamic`, then the inferred set element type of `element`
+            is `dynamic`, the inferred key type of `element` is `dynamic`, and
+            the inferred value type of `element` is `dynamic`. *(We produce both
+            a set element type here, and a key/value pair here and rely on other
             elements to disambiguate.)*
 
         *   Otherwise it is an error (either because we cannot disambiguate,
@@ -258,13 +245,13 @@ relative to a context type `P`:
         `Iterable<Ps>`:
 
         *   If `S` is a non-`Null` subtype of `Iterable<Object>`, then the
-            inferred set element type of `p` is `T` where `T` is the type such
-            that `Iterable<T>` is a superinterface of `S` (the result of
+            inferred set element type of `element` is `T` where `T` is the type
+            such that `Iterable<T>` is a superinterface of `S` (the result of
             constraint matching for `X` using the constraint `Iterable<X> <:
             S`).
 
-        *   If `S` is `dynamic`, then the inferred set element type of `p` is
-            `dynamic`.
+        *   If `S` is `dynamic`, then the inferred set element type of `element`
+            is `dynamic`.
 
         *   Otherwise it is an error.
 
@@ -272,31 +259,31 @@ relative to a context type `P`:
         context `P`:
 
         *   If `S` is a non-`Null` subtype of `Map<Object, Object>`, then the
-            inferred key type of `p` is `K` and the inferred value type of `p`
-            is `V`, where `K` and `V` are the types such that `Map<K, V>` is a
-            superinterface of `S` (the result of constraint matching for `X` and
-            `Y` using the constraint `Map<X, Y> <: S`).
+            inferred key type of `element` is `K` and the inferred value type of
+            `element` is `V`, where `K` and `V` are the types such that `Map<K,
+            V>` is a superinterface of `S` (the result of constraint matching
+            for `X` and `Y` using the constraint `Map<X, Y> <: S`).
 
-        *   If `S` is `dynamic`, then the inferred key type of `p` is `dynamic`,
-            and the inferred value type of `p` is `dynamic`.
+        *   If `S` is `dynamic`, then the inferred key type of `element` is
+            `dynamic`, and the inferred value type of `element` is `dynamic`.
 
         *   Otherwise it is an error.
 
-*   If `p` is a `ifElement` with one `element`, `p1`, and no `else`:
+*   If `element` is a `ifElement` with one `element`, `p1`, and no `else`:
 
     The condition is inferred with a context type of `bool`.
 
     *   If the inferred set element type of `p1` is `S` then the inferred set
-        element type of `p` is `S`.
+        element type of `element` is `S`.
 
     *   If the inferred key type of `p1` is `K` and the inferred value type of
-        `p1` is `V` then the inferred key and value types of `p` are `K` and
-        `V`.
+        `p1` is `V` then the inferred key and value types of `element` are `K`
+        and `V`.
 
     *Note that both of the above cases can simultaneously apply because of
     `dynamic` spreads.*
 
-*   If `p` is an `ifElement` with two `element`s, `p1` and `p2`:
+*   If `element` is an `ifElement` with two `element`s, `p1` and `p2`:
 
     The condition is inferred with a context type of `bool`.
 
@@ -307,88 +294,89 @@ relative to a context type `P`:
     either branch does not run into this case.*
 
     *   If the inferred set element type of `p1` is `S1` and the inferred set
-        element type of `p2` is `S2` then the inferred set element type of `p`
-        is the upper bound of `S1` and `S2`.
+        element type of `p2` is `S2` then the inferred set element type of
+        `element` is the upper bound of `S1` and `S2`.
 
     *   If the inferred key type of `p1` is `K1` and the inferred key type of
         `p1` is `V1` and the inferred key type of `p2` is `K2` and the inferred
-        key type of `p2` is `V2` then the inferred key type of `p` is the upper
-        bound of `K1` and `K2` and the inferred value type is the upper bound of
-        `V1` and `V2`.
+        key type of `p2` is `V2` then the inferred key type of `element` is the
+        upper bound of `K1` and `K2` and the inferred value type is the upper
+        bound of `V1` and `V2`.
 
     *Note that both of the above cases can simultaneously apply because of
     `dynamic` spreads.*
 
-*   If `p` is a `forElement` with `element` `p1` then:
+*   If `element` is a `forElement` with `element` `p1` then:
 
     Inference for the iterated expression and the controlling variable is done
     as for the corresponding `for` or `await for` statement.
 
     *   If the inferred set element type of `p1` is `S` then the inferred set
-        element type of `p` is `S`.
+        element type of `element` is `S`.
 
     *   If the inferred key type of `p1` is `K` and the inferred key type of
-        `p1` is `V` then the inferred key and value types of `p` are `K` and
-        `V`.
+        `p1` is `V` then the inferred key and value types of `element` are `K`
+        and `V`.
 
     *In other words, inference flows upwards from the body element. Note that
     both of the above cases can validly apply because of `dynamic` spreads.*
 
-Finally, we define inference on a `setOrMapLiteral` `e` as follows:
+Finally, we define inference on a `setOrMapLiteral` `collection` as follows:
 
-*   If `e` is a set literal, then the downwards context for inference of the
-    elements of `e` is `Set<P>` where `P` may be `?` if downwards inference does
-    not constrain the type of `e`.
+*   If `collection` is a set literal, then the downwards context for inference
+    of the elements of `collection` is `Set<P>` where `P` may be `?` if
+    downwards inference does not constrain the type of `collection`.
 
-    *   If `P` is `?` then the static type of `e` is `Set<T>` where `T` is the
-        upper bound of the inferred set element types of the elements.
+    *   If `P` is `?` then the static type of `collection` is `Set<T>` where `T`
+        is the upper bound of the inferred set element types of the elements.
 
-    *   Otherwise, the static type of `e` is `Set<T>` where `T` is determined by
-        downwards inference.
+    *   Otherwise, the static type of `collection` is `Set<T>` where `T` is
+        determined by downwards inference.
 
-    *Note that the `element` inference will never produce a key/value type here
+    *Note that the element inference will never produce a key/value type here
     given that downwards context.*
 
-*   If `e` is a map literal and downwards inference has statically known type
-    `Map<K, V>` then the downwards context for the elements of `e` is `Map<K,
-    V>`.
+*   If `collection` is a map literal and downwards inference has statically
+    known type `Map<K, V>` then the downwards context for the elements of
+    `collection` is `Map<K, V>`.
 
-*   If `e` is a map literal then the downwards context for the elements of `e`
-    is `Map<Pk, Pv>` where `Pk` and `Pv` are determined by downwards inference,
-    and may be `?` if the downwards context does not constrain one or both.
+*   If `collection` is a map literal then the downwards context for the elements
+    of `collection` is `Map<Pk, Pv>` where `Pk` and `Pv` are determined by
+    downwards inference, and may be `?` if the downwards context does not
+    constrain one or both.
 
-    *   If `Pk` is `?` then the static key type of `e` is `K` where `K` is the
-        upper bound of the inferred key types of the elements.
+    *   If `Pk` is `?` then the static key type of `collection` is `K` where `K`
+        is the upper bound of the inferred key types of the elements.
 
-    *   Otherwise the static key type of `e` is `K` where `K` is determined by
-        downwards inference.
+    *   Otherwise the static key type of `collection` is `K` where `K` is
+        determined by downwards inference.
 
     And:
 
-    *   If `Pv` is `?` then the static value type of `e` is `V` where `V` is the
-        upper bound of the inferred value types of the elements.
+    *   If `Pv` is `?` then the static value type of `collection` is `V` where
+        `V` is the upper bound of the inferred value types of the elements.
 
-    *   Otherwise the static value type of `e` is `V` where `V` is determined by
-        downwards inference.
+    *   Otherwise the static value type of `collection` is `V` where `V` is
+        determined by downwards inference.
 
-    *Note that the `element` inference will never produce a set element type
-    here given this downwards context.*
+    *Note that the element inference will never produce a set element type here
+    given this downwards context.*
 
-*   If `e` is not syntactically known to be a set or map literal, then the
-    downwards context for the elements of `e` is `?`, and the disambiguation is
-    done as follows:
+*   If `collection` is not syntactically known to be a set or map literal, then
+    the downwards context for the elements of `collection` is `?`, and the disambiguation
+    is done as follows:
 
     *   If all elements `ei` have a set element type `Ti`, and at least one
-        element `ej` does not have a key/value type pair, then `e` is a set
-        literal with static type `Set<T>` where `T` is `UP(Ti)`. *In other
-        words, if every element can be a set and at least one must, it is a
-        set.*
+        element does not have a key/value type pair, then `collection` is a set
+        literal with static type `Set<T>` where `T` is the upper bound of `Ti`.
+        *In other words, if every element can be a set and at least one must, it
+        is a set.*
 
     *   If all elements `ei` have key element type `Ki`, and value element type
-        `Vi` , and at least one element `ej` does not have a set element type,
-        then `e` is a map literal with static type `Map<K, V>` where `K` is
-        `UP(Ki)` and `V` is `UP(Vi)`. *In other words, if every element can be a
-        map and at least one must, it is a map.*
+        `Vi` , and at least one element does not have a set element type, then
+        `e` is a map literal with static type `Map<K, V>` where `K` is the upper
+        bound of `Ki` and `V` is the upper bound of `Vi`. *In other words, if
+        every element can be a map and at least one must, it is a map.*
 
     *   If all elements have both a set element type and a key/value type pair,
         then the literal is ambiguous and it is a compile-time error. *This
@@ -405,28 +393,28 @@ Inference for list literals mostly follows that of set literals without the
 complexity around disambiguation with maps and using `List` or `Iterable` in a
 few places instead of `Set`.
 
-Inside a `listLiteral`, the inferred type of an `element` `p` is a list element
-type `T`. It is computed relative to a context type `P`:
+Inside a `listLiteral`, the inferred type of an `element` is a list element type
+`T`. It is computed relative to a context type `P`:
 
-*   If `p` is an `expression` `e1`:
+*   If `element` is an `expressionElement` with expression `e1`:
 
-    *   If `P` is `?` then the inferred list element type of `p` is the inferred
-        type of the expression `e1` in context `?`.
+    *   If `P` is `?` then the inferred list element type of `element` is the
+        inferred type of the expression `e1` in context `?`.
 
-    *   If `P` is `Iterable<Ps>` then the inferred list element type of `p` is
-        the inferred type of the expression `e1` in context `Ps`.
+    *   If `P` is `Iterable<Ps>` then the inferred list element type of
+        `element` is the inferred type of the expression `e1` in context `Ps`.
 
-*   If `p` is a `spreadElement` with expression `e1`:
+*   If `element` is a `spreadElement` with expression `e1`:
 
     *   If `P` is `?` then let `S` be the inferred type of `e1` in context `?`:
 
         *   If `S` is a subtype of `Iterable<Object>`, then the inferred list
-            element type of `p` is `T` where `T` is the type such that
+            element type of `element` is `T` where `T` is the type such that
             `Iterable<T>` is a superinterface of `S` (the result of constraint
             matching for `X` using the constraint `S <: Iterable<X>`).
 
-        *   If `S` is `dynamic`, then the inferred list element type of `p` is
-            `dynamic`.
+        *   If `S` is `dynamic`, then the inferred list element type of
+            `element` is `dynamic`.
 
         *   Otherwise it is an error (because it is a spread of a non-spreadable
             type like Object).
@@ -435,64 +423,86 @@ type `T`. It is computed relative to a context type `P`:
         context `Iterable<Ps>`:
 
         *   If `S` is a non-`Null` subtype of `Iterable<Object>`, then the
-            inferred list element type of `p` is `T` where `T` is the type such
-            that `Iterable<T>` is a superinterface of `S` (the result of
+            inferred list element type of `element` is `T` where `T` is the type
+            such that `Iterable<T>` is a superinterface of `S` (the result of
             constraint matching for `X` using the constraint `Iterable<X> <:
             S`).
 
-        *   If `S` is `dynamic`, then the inferred list element type of `p` is
-            `dynamic`.
+        *   If `S` is `dynamic`, then the inferred list element type of
+            `element` is `dynamic`.
 
         *   Otherwise it is an error.
 
-*   If `p` is an `ifElement` with one `element`, `p1`, and no `else`:
+*   If `element` is an `ifElement` with one `element`, `p1`, and no `else`:
 
     The condition is inferred with a context type of `bool`.
 
-    The inferred list element type of `p` is the inferred list element type of
-    `p1`.
+    The inferred list element type of `element` is the inferred list element
+    type of `p1`.
 
-*   If `p` is a `ifElement` with two `element`s, `p1` and `p2`:
+*   If `element` is a `ifElement` with two `element`s, `p1` and `p2`:
 
     The condition is inferred with a context type of `bool`.
 
-    The inferred list element type of `p` is `UP(S1, S2)` where `S1` is the
-    inferred list element type of `p1` and `S2` is the inferred list element
-    type of `p2`.
+    The inferred list element type of `element` is the upper bound of `S1` and
+    `S2` where `S1` is the inferred list element type of `p1` and `S2` is the
+    inferred list element type of `p2`.
 
-*   If `p` is a `forElement` with `element` `p1` then:
+*   If `element` is a `forElement` with `element` `p1` then:
 
     Inference for the iterated expression and the controlling variable is done
     as for the corresponding `for` or `await for` statement.
 
-    The inferred list element type of `p` is the inferred list element type of
-    `p1`.
+    The inferred list element type of `element` is the inferred list element
+    type of `p1`.
 
-*Note: `p` cannot be a `mapEntry` since the syntax prohibits that.*
+*Note: `element` cannot be a `mapEntry` since the syntax prohibits that.*
 
-Finally, we define inference on a `listLiteral` `e` as follows:
+Finally, we define inference on a `listLiteral` `collection` as follows:
 
-*   The downwards context for inference of the elements of `e` is `Iterable<P>`
-    where `P` may be `?` if downwards inference does not constrain the type of
-    `e`.
+*   The downwards context for inference of the elements of `collection` is
+    `Iterable<P>` where `P` may be `?` if downwards inference does not constrain
+    the type of `collection`.
 
-    *   If `P` is `?` then the static type of `e` is `List<T>` where `T` is the
-        upper bound of the inferred list element types of the elements.
+    *   If `P` is `?` then the static type of `collection` is `List<T>` where
+        `T` is the upper bound of the inferred list element types of the
+        elements.
 
-    *   Otherwise, the static type of `e` is `List<T>` where `T` is determined
-        by downwards inference.
+    *   Otherwise, the static type of `collection` is `List<T>` where `T` is
+        determined by downwards inference.
 
-<!--
+### Compile-time errors
 
-### Spread
+After type inference and disambiguation, the collection is checked for other
+compile-time errors. It is a compile-time error if:
 
-It is a static error if:
+*   The collection is a list and the type of any of the `leafElements` may not
+    be assigned to the list's element type.
+
+    ```dart
+    <int>[if (true) "not int"] // Error.
+    ```
+
+*   The collection is a map and the key type of any of the `leafElements` may
+    not be assigned to the map's key type.
+
+    ```dart
+    <int, int>{if (true) "not int": 1} // Error.
+    ```
+
+*   The collection is a map and the value type of any of the `leafElements` may
+    not be assigned to the map's value type.
+
+    ```dart
+    <int, int>{if (true) 1: "not int"} // Error.
+    ```
 
 *   A spread element in a list or set literal has a static type that is not
     `dynamic` or a subtype of `Iterable<Object>`.
 
-*   If a list or set spread element's static type implements `Iterable<T>` for
-    some `T` and `T` is not assignable to the element type of the list.
+*   A spread element in a list or set has a static type that implements
+    `Iterable<T>` for some `T` and `T` is not assignable to the element type of
+    the list.
 
 *   A spread element in a map literal has a static type that is not `dynamic` or
     a subtype of `Map<Object, Object>`.
@@ -501,44 +511,67 @@ It is a static error if:
     and `V` and `K` is not assignable to the key type of the map or `V` is not
     assignable to the value type of the map.
 
-If implicit downcasts are disabled, then the "is assignable to" parts here
-become strict subtype checks instead.
+*   The type of the condition expression in an `if` element may not be assigned
+    to `bool`.
 
-Note that you can spread any Iterable into a set literal, not just other sets.
+    ```dart
+    [if ("not bool") 1] // Error.
+    ```
 
-**todo: type errors on "if" and "for".**
+*   The type of the iterator expression in a synchronous `for-in` element may
+    not be assigned to `Iterable<T>` for some type `T`. Otherwise, the *iterable
+    type* of the iterator is `T`.
 
-#### Scope
+    ```dart
+    [for (var i in "not iterable") i] // Error.
+    ```
 
-Both styles of `for` element may introduce a local variable, as in:
+*   The iterable type of the iterator in a synchronous `for-in` element may not
+    be assigned to the `for-in` variable's type.
 
-```dart
-[
-  for (var i = 1; i < 4; i++) i,
-  for (var i in [1, 2, 3]) i
-]
-```
+    ```dart
+    [for (int i in ["not", "int"]) i] // Error.
+    ```
 
-If a `for` element declares a variable, then a new namespace is created on each
-iteration where that variable is defined. The body of the `for` element is
-resolved and evaluated in that namespace. The variable goes out of scope at the
-end of the for element's body.
+*   The type of the stream expression in an asynchronous `await for-in`
+    element may not be assigned to `Stream<T>` for some type `T`. Otherwise,
+    the *stream type* of the stream is `T`.
 
-Each iteration of the loop binds a new fresh variable:
+    ```dart
+    [await for (var i in "not stream") i] // Error.
+    ```
 
-```dart
-var closures = [for (var i = 1; i < 4; i++) () => i];
-for (var closure in closures) print(closure());
-// Prints "1", "2", "3".
-```
+*   The stream type of the iterator in an asynchronous `await for-in` element
+    may not be assigned to the `for-in` variable's type.
 
--->
+    ```dart
+    [await for (int i in Stream.fromIterable(["not", "int"])) i] // Error.
+    ```
 
-**todo: scope of for variable**
+*   `await for` is used when the function immediately enclosing the collection
+    literal is not asynchronous.
 
-**todo: static errors for spread, if, for**
+    ```dart
+    main() {
+      [await for (_ in stream)]; // Error.
+    }
+    ```
 
-**todo: other static semantics?**
+*   `await` is used before a C-style `for` element. `await` can only be used
+    with `for-in` loops.
+
+    ```dart
+    main() {
+      [await for (;;)]; // Error.
+    }
+    ```
+
+*   The type of the condition expression (the second clause) in a C-style `for`
+    element may not be assigned to `bool`.
+
+    ```dart
+    [for (; "not bool";) 1] // Error.
+    ```
 
 ## Constant Semantics
 
@@ -550,8 +583,9 @@ for (var closure in closures) print(closure());
     is directly prefixed by `const`. If so, then its `elements` must all be
     constant elements, or at least potentially constant elements.
 
-*   An `expression` is a constant element if it is a constant expression, and a
-    potentially constant element if it is a potentially constant expression.
+*   An `expressionElement` is a constant element if its expression is a constant
+    expression, and a potentially constant element if it's expression is a
+    potentially constant expression.
 
 *   A `mapEntry` is a constant element if both its key and value expression are
     constant expressions, and a potentially constant element if both are
@@ -593,105 +627,55 @@ All constant equality safe values are also valid constant values.
 
 ### Constant values
 
-<!--
-
-#### Remove duplicates
-
-After collecting the elements into `result`, check for duplicates.
-
-If the set being evaluated is constant, it is a compile-time error if any value
-in `result` is not constant equality safe, or two values at distinct positions
-in `result` are equal according to their `operator==`.
-
-If the set is not constant, remove duplicate values from `result` as follows:
-
-1.  Let `worklist` be an empty list.
-
-1.  For each value `m` in `result`:
-
-    1.  If `worklist` contains any value `n` such that `n` and `m` are equal
-        according to `n`'s `operator==`, then do nothing.
-
-    1.  Otherwise add `m` to `worklist`.
-
-1.  Let `result` be `worklist`.
-
-Then `e` evaluates to an object faithfully implementing `Set<T>` which has
-exactly the objects of `result` as elements, and which iterates the elements
-in the order they occur in the list.
-
-If the set being evaluated is constant, the resulting set is not mutable, and
-the set is canonicalized (if any other constant set literal evaluates to a set
-with the same type and the same elements in the same order, then the two values
-are identical).
-
-**todo: maps?**
-
-**todo: instead of above, use rules from spread and control flow proposals.
-ideally, would use single algorithm for both const and non-const, but may be
-hard.**
-
--->
-
 **todo: rules for const values**
 
 ## Dynamic Semantics
 
-The new dynamic semantics are a superset of the original behavior. To avoid
-redundancy and handle nested uses, the semantics are expressed in terms of a
-separate procedure below:
-
-### Lists
-
-1.  Create a fresh instance `collection` of a class that implements `List<E>`.
-
-    An implementation is, of course, free to optimize by pre-allocating a list
-    of the correct capacity when its size is statically known. Note that when
-    `if` and `for` come into play, it's no longer always possible to statically
-    tell the final size of the resulting flattened list.
-
-1.  For each `element` immediately inside the list literal, evaluate `element`
-    using the procedure below.
-
-1.  The result of the literal expression is `collection`.
-
-### Sets
-
-1.  Create a fresh instance `collection` of a class that implements `Set<E>`.
-
-1.  For each `element` immediately inside the set literal, evaluate `element`
-    using the procedure below.
-
-1.  The result of the literal expression is `collection`.
-
-### Maps
-
-A map literal of the form `<K, V>{entry_1 ... entry_n}` is evaluated as follows:
-
-1.  Allocate a fresh instance `map` of a class that implements `LinkedHashMap<K,
-    V>`.
-
-1.  For each `element` immediately inside the map literal, evaluate `element`
-    using the procedure below.
-
-1.  The result of the map literal expression is `map`.
+Spread, `if`, and `for` behave similarly across all collection types. To
+simplify the spec, there is a single procedure used for all kinds of
+collections. This recursive procedure builds up either a `result` sequence of
+either values or key-value pair map entries. Then a final step handles those
+appropropriately for the given collection type.
 
 ### To evaluate a collection `element`:
 
-This procedure handles elements in list, map, and set literals because the only
-difference is how a leaf expression element or entry element is treated. The
-control flow and spread behavior is the same so is unified here.
+1.  If `element` is an expression element:
 
-The procedure theoretically supports a mixture of expressions and map entries,
-but the static semantics prohibit an actual literal containing that.
+    1.  Evaluate the element's expression and append it to `result`.
 
-1.  If `element` is an `if` element:
+1.  Else, `element` is a `mapEntry` `keyExpression: valueExpression`:
+
+    1.  Evaluate `keyExpression` to a value `key`.
+
+    1.  Evaluate `valueExpression` to a value `value`.
+
+    1.  Append `key: value` to `result`.
+
+1.  Else, if `element` is a spread element:
+
+    1.  Evaluate the spread expression to a value `spread`.
+
+    1.  If `entry` is null-aware and `spread` is null, continue to the next
+        element in the literal.
+
+    1.  If the collection is a map, evaluate `spread.entries.iterator` to a
+        value `iterator`. Otherwise, evaluate `spread.iterator` to `iterator`.
+        *This will deliberately throw an exception if `spread` is `null` and
+        `element` is not null-aware.*
+
+    1.  Loop:
+
+        1.  If `iterator.moveNext()` returns `false`, exit the loop.
+
+        1.  Evaluate `iterator.current` and append it to `result`. *This will be
+            a MapEntry in a map literal, or any object for a list or set
+            literal.*
+
+1.  Else, if `element` is an `if` element:
 
     1.  Evaluate the condition expression to a value `condition`.
 
-    1.  Subject `condition` to boolean conversion to a value `result`.
-
-    1.  If `result` is `true`:
+    1.  If the boolean conversion of `condition` is `true`:
 
         1.  Evaluate the "then" element using this procedure.
 
@@ -751,11 +735,14 @@ but the static semantics prohibit an actual literal containing that.
         error. Otherwise, when all events in the stream are processed, complete
         `streamDone` with `null`.
 
-1.  Else, if `element` is a C-style `for` element:
+1.  Else, `element` is a C-style `for` element:
 
     1.  Evaluate the initializer clause of the element, if there is one.
 
     1.  Loop:
+
+        1.  If the initializer clause declares a variable, create a new
+            namespace and bind that variable in that namespace.
 
         1.  Evaluate the condition expression to a value `condition`. If there
             is no condition expression, use `true`.
@@ -763,59 +750,46 @@ but the static semantics prohibit an actual literal containing that.
         1.  If the boolean conversion of `condition` is not `true`, exit the
             loop.
 
-        1.  Evaluate the body element using this procedure in the scope of the
-            variable declared by the initializer clause if there is one.
+        1.  Evaluate the body element using this procedure in the namespace of
+            the variable declared by the initializer clause if there is one.
 
         1.  If there is an increment clause, execute it.
 
-1.  Else, if `element` is a spread element in a map literal:
+        1.  If the initializer clause declares a variable, discard the namespace
+            created for it.
 
-    1.  Evaluate the spread expression to a value `spread`.
+The procedure theoretically supports a mixture of expressions and map entries,
+but the static semantics prohibit an actual literal containing that. Once the
+`result` series of values or entries is produced from the tree of elements:
 
-    1.  If `entry` is null-aware and `spread` is null, continue to the next
-        element in the literal.
+### Lists
 
-    1.  Evaluate `spread.entries.iterator` to a value `iterator`. *This will
-        deliberately throw an exception if `spread` is `null` and `element` is
-        not null-aware.*
+1.  The result of the literal expression is a fresh instance of a class that
+    implements `List<E>` containing the values in `result`, in order.
 
-    1.  Loop:
+### Sets
 
-        1.  If `iterator.moveNext()` returns `false`, exit the loop.
+1.  Create a fresh instance `set` of a class that implements `Set<E>`.
 
-        1.  Evaluate `iterator.current` to a value `entry`.
+1.  For each `value` in `result`:
 
-        1.  Call `map[entry.key] = entry.value`.
+    1.  If `set` contains any value `existing` that is equal to `value`
+        according to `existing`'s `==` operator, do nothing.
 
-1.  Else, if `element` is a spread element in a list or set literal:
+    1.  Otherwise, add `value` to `set`.
 
-    1.  Evaluate the spread expression to a value `spread`.
+1.  The result of the literal expression is `set`.
 
-    1.  If `element` is null-aware and `spread` is `null`, continue to the next
-        element in the literal.
+### Maps
 
-    1.  Evaluate `spread.iterator` to a value `iterator`. *This will
-        deliberately throw an exception if `spread` is `null` and `element` is
-        not null-aware.*
+1.  Allocate a fresh instance `map` of a class that implements `LinkedHashMap<K,
+    V>`.
 
-    1.  Loop:
+1.  For each `entry` in `result`:
 
-        1.  If `iterator.moveNext()` returns `false`, exit the loop.
+    1.  If `map` contains any key `key` that is equal to the key of `entry`
+        according to `key`'s `==` operator, do nothing.
 
-        1.  Evaluate `iterator.current` to a value `value`.
+    1.  Otherwise, add `entry` to `map`.
 
-        1.  Call `collection.add(value)`.
-
-1.  Else, if `element` is an expression element:
-
-    1.  Evaluate the element's expression to a value `value`.
-
-    1.  Call `collection.add(value)`.
-
-1.  Else, `element` is a `mapEntry` `keyExpression: valueExpression`:
-
-    1.  Evaluate `keyExpression` to a value `key`.
-
-    1.  Evaluate `valueExpression` to a value `value`.
-
-    1.  Call `map[key] = value`.
+1.  The result of the map literal expression is `map`.
