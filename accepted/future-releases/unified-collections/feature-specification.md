@@ -184,8 +184,6 @@ result states for element inference:
 
 Alternatively, error checking for invalid spreads can be done separately.
 
-**todo(bob): "p" -> "elem"? it's not a "part" any more.**
-
 In `setOrMapLiteral`, the inferred type of an `element` is a set element type
 `T`, a pair of a key type `K` and a value type `V`, or both. It is computed
 relative to a context type `P`:
@@ -198,7 +196,7 @@ relative to a context type `P`:
     *   If `P` is `Set<Ps>` then the inferred set element type of `element` is
         the inferred type of the expression `e1` in context `Ps`.
 
-        **todo: what if `P` is `Iterable<R>`? Is this allowed?:**
+        **TODO: what if `P` is `Iterable<R>`? Is this allowed?:**
 
         ```dart
         Iterable<int> = {123 as dynamic}; // Infers Set<int>?
@@ -575,6 +573,9 @@ compile-time errors. It is a compile-time error if:
 
 ## Constant Semantics
 
+The runtime semantics below can also be used to determine the compile-time value
+of a collection literal marked `const`, with a few modifications:
+
 *   A `listLiteral` is constant if it occurs in a constant context or if it is
     directly prefixed by `const`. If so, then its `elements` must all be
     constant elements, or at least potentially constant elements.
@@ -608,6 +609,16 @@ compile-time errors. It is a compile-time error if:
 *   A `forElement` is never a constant element. `for` cannot be used in constant
     set or map literals.
 
+*   It is a compile-time error to have duplicate values in a set literal or
+    duplicate keys in a map literal, according to behavior specified in the
+    runtime semantics.
+
+*   When evaluating a const collection literal, if there is an existing const
+    list, map, or set literal that contains the same series of values or entries
+    in the same order, then that object is used instead of producing a new one.
+    *In other words, constants are canonicalized.* Note that maps are only
+    canonicalized if they contain the same keys *in the same order*.
+
 ### Constant equality safe
 
 A value is constant equality safe iff:
@@ -624,10 +635,6 @@ A value is constant equality safe iff:
     type alias declaration, that is evaluated as an expression).
 
 All constant equality safe values are also valid constant values.
-
-### Constant values
-
-**todo: rules for const values**
 
 ## Dynamic Semantics
 
@@ -790,6 +797,6 @@ but the static semantics prohibit an actual literal containing that. Once the
     1.  If `map` contains any key `key` that is equal to the key of `entry`
         according to `key`'s `==` operator, do nothing.
 
-    1.  Otherwise, add `entry` to `map`.
+    1.  Otherwise, insert `entry` into `map`.
 
 1.  The result of the map literal expression is `map`.
