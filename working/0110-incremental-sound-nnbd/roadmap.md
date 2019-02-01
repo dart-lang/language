@@ -95,7 +95,8 @@ these checks should be provably redundant and do not need to be inserted.
 
 Concretely, opting in to weak null checking will proceed as follows:
 - The programmer opts into the weak null checks by marking their package as
-  opted in. They can opt out of weak null checks on a per library basis.
+  opted in. They can opt out of both the syntax and the weak null checks
+  on a per library basis.
 - This will cause warnings about null-safety violations within the package (only).
   - If the opted-in code uses other packages that have opted in, then the
     programmer will see null-safety warnings from any misuses of the opted in
