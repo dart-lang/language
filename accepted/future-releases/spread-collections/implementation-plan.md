@@ -96,6 +96,11 @@ There a are a handful of usability features that would be nice:
 
 Possibly, expose the quick fix from above.
 
+### linter
+
+Add a lint rule (`prefer_spread_operators`?), corresponding to the analyzer
+code assist that flags opportunities to use spreads.
+
 ### VM
 
 If the feature is handled by the front end, there may be no VM work. Otherwise,
