@@ -12,6 +12,9 @@ We follow [this
 process](https://github.com/dart-lang/language/blob/master/doc/life_of_a_language_feature.md)
 for planning and rolling out language changes.
 
+Features currently being worked on are listed in the
+[language funnel](https://github.com/dart-lang/language/projects/1).
+
 Notes from language design meetings can be
 found [here](https://github.com/dart-lang/language/blob/master/minutes/).
 
