@@ -44,10 +44,12 @@ double runBench(
   var froms = [from, CustomList(from)];
 
   var rate = benchBest(froms, action);
-
+  var rate2 = benchWorse(froms, action);
+  var change = 100*(rate - rate2)/rate;
   if (baseline == null) {
     print("${length.toString().padLeft(4)} ${name.padRight(15)} "
         "${rate.toStringAsFixed(2).padLeft(10)} spreads/ms "
+        "${change.toStringAsFixed(2).padLeft(10)}% overhead"
         "                 ${'-' * 20}");
   } else {
     var comparison = rate / baseline;
@@ -55,6 +57,7 @@ double runBench(
     if (comparison > 4.0) bar = "!!!";
     print("${length.toString().padLeft(4)} ${name.padRight(15)} "
         "${rate.toStringAsFixed(2).padLeft(10)} spreads/ms "
+        "${change.toStringAsFixed(2).padLeft(10)}% overhead"
         "${comparison.toStringAsFixed(2).padLeft(6)}x baseline $bar");
   }
 
@@ -74,6 +77,18 @@ double benchBest(
   return best;
 }
 
+/// Runs [bench] a number of times and returns the best (highest) result.
+double benchWorse(
+    List<List<String>> froms, void Function(List<String>, List<String>) action) {
+  var best = 0.0;
+  for (var i = 0; i < 4; i++) {
+    var result = bench2(froms, action);
+    if (result > best) best = result;
+  }
+
+  return best;
+}
+
 /// Spreads each list in [froms] into the middle of a list using [action].
 ///
 /// Returns the number of times it was able to do this per millisecond, on
@@ -83,7 +98,9 @@ double bench(List<List<String>> froms,
   var elapsed = 0;
   var count = 0;
   var watch = Stopwatch()..start();
+  int start = 0;
   do {
+    start++;
     for (var i = 0; i < froms.length; i++) {
       var from = froms[i];
       var to = <String>["a", "b"];
@@ -97,6 +114,36 @@ double bench(List<List<String>> froms,
     elapsed = watch.elapsedMilliseconds;
   } while (elapsed < trialMs);
 
+  if (start < 0) print("Nope");
+  return count / elapsed;
+}
+
+/// Spreads each list in [froms] into the middle of a list using [action].
+///
+/// Returns the number of times it was able to do this per millisecond, on
+/// average. Higher is better.
+double bench2(List<List<String>> froms,
+    void Function(List<String>, List<String>) action) {
+  var elapsed = 0;
+  var count = 0;
+  var watch = Stopwatch()..start();
+  int start = 0;
+  do {
+    start = watch.elapsedMilliseconds;
+    for (var i = 0; i < froms.length; i++) {
+      var from = froms[i];
+      var to = <String>["a", "b"];
+
+      action(from, to);
+      to.add("b");
+      to.add("c");
+
+      count++;
+    }
+    elapsed = watch.elapsedMilliseconds;
+  } while (elapsed < trialMs);
+
+  if (start < 0) print("Nope");
   return count / elapsed;
 }
 
