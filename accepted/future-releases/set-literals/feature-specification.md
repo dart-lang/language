@@ -279,8 +279,7 @@ This syntax is distinct from map literal syntax (two type arguments, colon-pairs
 In that case, we make it a set if the context type allows a set, and it does not allow a map, otherwise we make it a map.
 
 Type inference works just as for list literals, 
-and the literal has an "exact" type (`LinkedHashSet<E>` for non-const sets, 
-`Set<E>` for const sets, similar to map literals).
+and the literal has an "exact" type of `Set<E>`.
 
 The meaning of a set `<E>{e1, ..., en}` is a set with the same elements and iteration order as `new Set<E>()..add(e1) ... ..add(en)`.
 
@@ -305,7 +304,7 @@ Map<int, int> v7       = {};                // LinkedHashMap<int, int>
 Object v8              = {};                // LinkedHashMap<dynamic, dynamic>
 Iterable<num> v9       = {1};               // LinkedHashSet<num>
 Iterable<num> v10      = <int>{};           // LinkedHashSet<int>
-LinkedHashSet<int> v11 = {};                // LinkedHashSet<int>
+Set<int> v11           = {};                // LinkedHashSet<int>
 
 const v12              = {};                // const Map<dynamic, dynamic>
 const v13              = {1};               // const Set<int>
