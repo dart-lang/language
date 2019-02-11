@@ -3,6 +3,12 @@
 Make Dart cleaner and less error-prone by eliminating pointless semicolon
 syntax, while avoiding the insanity of JavaScript's semicolon insertion rules.
 
+**Note: This proposal was a useful exercise to figure out the "least invasive"
+way to make semicolons optional in Dart without breaking existing code. The
+result works, but is quite subtle and complex. Based on that, we're unlikely
+to move forward with this proposal, though we may investigate other approaches
+to optional semicolons.**
+
 ## Motivation
 
 For such a tiny feature&mdash;literally just eliminating some `;` at the ends of
