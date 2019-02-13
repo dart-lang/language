@@ -13,22 +13,29 @@
 
 SDK := "../../../../../dart/sdk"
 
-all: jit dart2js aot
+# See https://japhr.blogspot.com/2014/07/command-line-arguments-with-nodejs-and.html.
+DART2JS_MAIN := 'function dartMainRunner(main, args) { main(process.argv.slice(2)); }'
+
+all: aot dart2js jit
 
 aot:
-	@ echo "AoT"
 	@ mkdir -p out
-	@ $(SDK)/pkg/vm/tool/precompiler2 bin/profile_list_spread.dart out/profile_list_spread.snapshot
-	@ $(SDK)/pkg/vm/tool/dart_precompiled_runtime2 out/profile_list_spread.snapshot
+	@ $(SDK)/pkg/vm/tool/precompiler2 bin/profile.dart out/profile.snapshot
+	@ $(SDK)/pkg/vm/tool/dart_precompiled_runtime2 out/profile.snapshot "VM AoT" 0 --csv
+	@ $(SDK)/pkg/vm/tool/dart_precompiled_runtime2 out/profile.snapshot "VM AoT" 5 --csv
+	@ $(SDK)/pkg/vm/tool/dart_precompiled_runtime2 out/profile.snapshot "VM AoT" 50 --csv
 
 dart2js:
-	@ echo "dart2js"
 	@ mkdir -p out
-	@ $(SDK)/sdk/bin/dart2js bin/profile_list_spread.dart -o out/profile_list_spread.js
-	@ node out/profile_list_spread.js
+	@ $(SDK)/sdk/bin/dart2js -O4 bin/profile.dart -o out/profile.js
+	@ echo $(DART2JS_MAIN) >> out/profile.js
+	@ node out/profile.js "dart2js -O4" 0 --csv
+	@ node out/profile.js "dart2js -O4" 5 --csv
+	@ node out/profile.js "dart2js -O4" 50 --csv
 
 jit:
-	@ echo "VM JIT"
-	@ $(SDK)/sdk/bin/dart bin/profile_list_spread.dart
+	@ $(SDK)/sdk/bin/dart bin/profile.dart "VM JIT" 0 --csv
+	@ $(SDK)/sdk/bin/dart bin/profile.dart "VM JIT" 5 --csv
+	@ $(SDK)/sdk/bin/dart bin/profile.dart "VM JIT" 50 --csv
 
 .PHONY: all aot dart2js jit
