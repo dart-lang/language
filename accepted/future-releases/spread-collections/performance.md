@@ -21,6 +21,17 @@ summzarize the trends.
 
 *   Desugar maps to `Map.keys` and `Map.[]`.
 
+**Decided: After discussing this with the language leads, we've agree to:**
+
+*   Keep desugaring iterables to `iterator`, but give implementations the
+    *option* of using `length` and `[]` if the iterable is a List, Queue, or
+    Set.
+
+*   Keep desugaring maps to `entries`. We think user-defined Map classes are
+    pretty rare, as is spreading maps. Implementations can always apply
+    whatever optimizations they want when they detect that a map is a built-in
+    map type.
+
 The benchmark is [here][code], and the full data is [here][sheet] (not visible
 outside of Google, sorry).
 
