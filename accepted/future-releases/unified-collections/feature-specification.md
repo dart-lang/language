@@ -463,6 +463,26 @@ Finally, we define inference on a `listLiteral` *collection* as follows:
     *   Otherwise, the static type of *collection* is `List<T>` where `T` is
         determined by downwards inference.
 
+### Type promotion
+
+An `ifElement` interacts with type promotion in the same way that `if`
+statements do. Given an `ifElement` with condition `condition`, then element
+`thenElement` and optional else element `elseElement`:
+
+*   If `condition` shows that a local variable *v* has type `T`, then the type
+    of *v* is known to be `T` in `thenElement`, unless any of the following are
+    true:
+
+    *   *v* is potentially mutated in `thenElement`,
+    *   *v* is potentially mutated within a function other than the one where
+        *v* is declared, or
+    *   *v* is accessed by a function defined in `thenElement` and
+    *   *v* is potentially mutated anywhere in the scope of *v*.
+
+*Note: The type promotion rules for `if` will likely get more sophisticated in a
+future version of Dart because of non-nullable types. When that happens, `if`
+elements should continue to match `if` statements.*
+
 ### Compile-time errors
 
 After type inference and disambiguation, the collection is checked for other
@@ -683,6 +703,26 @@ appropriately for the given collection type.
             1.  Evaluate `iterator.current` and append it to `result`. *This
                 will be a MapEntry in a map literal, or any object for a list or
                 set literal.*
+
+        The `iterator` API may not be the most efficient way to traverse the
+        items in a collection. In order to give implementations more room to
+        optimize, we loosen the semantics:
+
+        *   If `spread` is an object whose class implements List, Queue, or Set
+            (all from `dart:core`), an implementation *may* choose to call
+            `length` on the object. This may let it allocate space for the
+            resulting collection more efficiently. Classes that implement List
+            are expected to have an efficient, side-effect free implementation
+            of `length`.
+
+        *   If `spread` is an object whose class implements List from
+            `dart:core`, an implementation may choose to call `[]` to access
+            elements from the list. If it does so, it will only pass indexes `>=
+            0` and `<` the value returned by `length`.
+
+        A Dart implementation may detect whether these options apply at compile
+        time based on the static type of `spread` or at runtime based on the
+        actual value.
 
 1.  Else, if `element` is an `ifElement`:
 
