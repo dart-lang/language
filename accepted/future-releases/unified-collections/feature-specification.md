@@ -27,7 +27,7 @@ Remove `setLiteral` and `mapLiteral` entirely. Then change the grammar to:
 
 ```
 setOrMapLiteral   : 'const'? typeArguments? '{' elements? '}' ;
-listLiteral       : const? typeArguments? '[' elements? ']' ;
+listLiteral       : 'const'? typeArguments? '[' elements? ']' ;
 
 elements          : element ( ',' element )* ','? ;
 
@@ -68,10 +68,15 @@ var a = {};
 var b = {...other};
 ```
 
-When possible, we first use syntax and the surrounding context type to
-disambiguate between a map and set:
+Inference and set/map disambiguation are done concurrently. When possible, we
+use syntax and the surrounding context type to disambiguate between a map and
+set:
 
 Let *e* be a `setOrMapLiteral`.
+
+If *e* has a context `C`, and the base type of `C` is `Cbase` (that is, `Cbase`
+is `C` with all wrapping `FutureOr`s removed), and `Cbase` is not `?`, then let
+`S` be the greatest closure.
 
 1.  If *e* has `typeArguments` then:
 
@@ -83,15 +88,11 @@ Let *e* be a `setOrMapLiteral`.
 
     *   Otherwise (three or more type arguments), report a compile-time error.
 
-1.  Else, if *e* has a context `C`, and the base type of `C` is `Cbase` (that
-    is, `Cbase` is `C` with all wrapping `FutureOr`s removed), and `Cbase` is
-    not `?`, and `S` is the greatest closure of `Cbase` then:
+1.  Else, if `S` is defined and is a subtype of `Iterable<Object>` and `S` is
+    not a subtype of `Map<Object, Object>`, then *e* is a set literal.
 
-    *   If `S` is a subtype of `Iterable<Object>` and `S` is not a subtype of
-        `Map<Object, Object>`, then *e* is a set literal.
-
-    *   If `S` is a subtype of `Map<Object, Object>` and `S` is not a subtype of
-        `Iterable<Object>` then *e* is a map literal.
+1.  Else, if `S` is defined and is a subtype of `Map<Object, Object>` and `S` is
+    not a subtype of `Iterable<Object>` then *e* is a map literal.
 
 1.  Else, if *leaf elements* is not empty, then:
 
@@ -109,33 +110,28 @@ Let *e* be a `setOrMapLiteral`.
     forces it to be a map, and a bare expression forces it to be a set. Having
     both is an error.*
 
-If *e* has no `typeArguments` and no context type, and no `elements`, then *e*
-is treated as a map literal with unknown static type. *In other words, an empty
-`{}` is a map unless we have a context that indicates otherwise.*
+1.  Else, if *e* has no `typeArguments`, no useful context type, and no
+    `elements`, then *e* is treated as a map literal with unknown static type.
+    *In other words, an empty `{}` is a map unless we have a context that
+    indicates otherwise.*
 
-At this point, there are three states we could be in:
-
-*   *e* contains a compile-time error. In that case, we don't proceed.
-
-*   *e* is disambiguated to definitely be either a map or set literal.
-
-*   *e* is still ambiguous. This can only happen when *e* is non-empty but
-    contains only `spreadElement`s. In this case, the disambiguation will happen
-    during type inference, defined below.
+1.  Otherwise, *e* is still ambiguous. This can only happen when *e* is
+    non-empty but contains only `spreadElement`s. In this case, the
+    disambiguation will happen during type inference, defined below.
 
 ### Type inference
 
 #### Maps and sets
 
-Inference and set/map disambiguation are done concurrently. We perform inference
-on the literal, and collect up either a set element type (indicating that the
-literal may/must be a set), or a pair of a key type and a value type (indicating
-that the literal may/must be a map), or both. We allow both, because spreads of
-expressions of type `dynamic` do not disambiguate, and can be treated as either
-(it becomes a runtime error to spread a value into the wrong kind of literal).
+We perform inference on the literal, and collect up either a set element type
+(indicating that the literal may/must be a set), or a pair of a key type and a
+value type (indicating that the literal may/must be a map), or both. We allow
+both, because spreads of expressions of type `dynamic` do not disambiguate, and
+can be treated as either (it becomes a runtime error to spread a value into the
+wrong kind of literal).
 
 We require that at least one component unambiguously determine the literal form,
-otherwise it is an error. So, given:
+otherwise it is a compile-time error. So, given:
 
 ```dart
 bool b = true;
@@ -160,7 +156,7 @@ relative to a context type `P`.
 We say that an element *can be a set* if it has a set element type. Likewise, an
 element *can be a map* if it has a key and value type. We say that an element
 *must be a set* if it can be a set and has and no key type or value type. We say
-that an element *must be a map* if can be a map but has no set element type.
+that an element *must be a map* if can be a map and has no set element type.
 
 To infer the type of `element`:
 
@@ -169,7 +165,7 @@ To infer the type of `element`:
     *   If `P` is `?` then the inferred set element type of `element` is the
         inferred type of the expression `e1` in context `?`.
 
-    *   If `P` is `Iterable<Ps>` then the inferred set element type of `element`
+    *   If `P` is `Set<Ps>` then the inferred set element type of `element`
         is the inferred type of the expression `e1` in context `Ps`.
 
 *   If `element` is a `mapEntry` `ek: ev`:
@@ -216,7 +212,7 @@ To infer the type of `element`:
         *   If none of these cases match, it is an error.
 
     *   If `P` is `Set<Ps>` then let `S` be the inferred type of `e1` in context
-        `Set<Ps>`:
+        `Iterable<Ps>`:
 
         *   If `S` is a non-`Null` subtype of `Iterable<Object>`, then the
             inferred set element type of `element` is `T` where `T` is the type
@@ -243,6 +239,9 @@ To infer the type of `element`:
 
         *   If `S` is `dynamic`, then the inferred key type of `element` is
             `dynamic`, and the inferred value type of `element` is `dynamic`.
+
+        *   If `S` is `Null` and the spread operator is `...?`, then the key and
+            value element types are `Null`.
 
         *   Otherwise it is an error.
 
@@ -300,10 +299,9 @@ To infer the type of `element`:
 
 Finally, we define inference on a `setOrMapLiteral` *collection* as follows:
 
-*   If *collection* is syntactically known to be a set literal, then the
-    downwards context for inference of the elements of *collection* is `Set<P>`
-    where `P` may be `?` if downwards inference does not constrain the type of
-    *collection*.
+*   If *collection* is known to be a set literal, then the downwards context for
+    inference of the elements of *collection* is `Set<P>` where `P` may be `?`
+    if downwards inference does not constrain the type of *collection*.
 
     *   If `P` is `?` then the static type of *collection* is `Set<T>` where `T`
         is the upper bound of the inferred set element types of the elements.
@@ -314,14 +312,14 @@ Finally, we define inference on a `setOrMapLiteral` *collection* as follows:
     *Note that the element inference will never produce a key/value type here
     given that downwards context.*
 
-*   If *collection* is syntactically known to be a map literal and downwards
-    inference has statically known type `Map<K, V>` then the downwards context
-    for the elements of *collection* is `Map<K, V>`.
+*   If *collection* is known to be a map literal and downwards inference has
+    statically known type `Map<K, V>` then the downwards context for the
+    elements of *collection* is `Map<K, V>`.
 
-*   If *collection* is syntactically known to be a map literal then the
-    downwards context for the elements of *collection* is `Map<Pk, Pv>` where
-    `Pk` and `Pv` are determined by downwards inference, and may be `?` if the
-    downwards context does not constrain one or both.
+*   If *collection* is known to be a map literal then the downwards context for
+    the elements of *collection* is `Map<Pk, Pv>` where `Pk` and `Pv` are
+    determined by downwards inference, and may be `?` if the downwards context
+    does not constrain one or both.
 
     *   If `Pk` is `?` then the static key type of *collection* is `K` where `K`
         is the upper bound of the inferred key types of the elements.
@@ -340,9 +338,10 @@ Finally, we define inference on a `setOrMapLiteral` *collection* as follows:
     *Note that the element inference will never produce a set element type here
     given this downwards context.*
 
-*   Otherwise, *collection* is not syntactically known to be a set or map
-    literal, then the downwards context for the elements of *collection* is `?`,
-    and the disambiguation is done as follows:
+*   Otherwise, *collection* is not known to be a set or map literal, then the
+    downwards context for the elements of *collection* is `?`, and the
+    disambiguation is done using the immediate `elements` of *collection* as
+    follows:
 
     *   If all elements can be a set, and at least one element must be a set,
         then *collection* is a set literal with static type `Set<T>` where `T`
@@ -354,13 +353,12 @@ Finally, we define inference on a `setOrMapLiteral` *collection* as follows:
         of the value types.
 
     *   If all elements can be both maps and sets, then the literal is ambiguous
-        and it is a compile-time error. *This occurs when all the *leaf
-        elements* are dynamic spreads.*
+        and it is a compile-time error. *This occurs, for example, when all the
+        *leaf elements* are dynamic spreads.*
 
     *   Otherwise, it is a compile-time error. This can occur when at least one
-        element must be a set, and one element which must be a map. Or when no
-        element can be a set or map, because all elements are null-aware spreads
-        of `Null`.
+        element must be a set and one element which must be a map, or when no
+        element can be a set or map.
 
 #### Lists
 
@@ -511,22 +509,24 @@ compile-time errors. It is a compile-time error if:
     <int, int>{if (true) 1: "not int"} // Error.
     ```
 
-*   A spread element in a list or set literal has a static type that is `Null`,
-    or that is not `dynamic` and not a subtype of `Iterable<Object>`.
+*   A non-null-aware spread element has static type `Null`.
+
+*   A spread element in a list or set literal has a static type that is not
+    `dynamic` and not a subtype of `Iterable<Object>`.
 
 *   A spread element in a list or set has a static type that implements
     `Iterable<T>` for some `T` and `T` is not assignable to the element type of
     the list.
 
-*   A spread element in a map literal has a static type that is `Null`, or that
-    is not `dynamic` and not a subtype of `Map<Object, Object>`.
+*   A spread element in a map literal has a static type that is not `dynamic`
+    and not a subtype of `Map<Object, Object>`.
 
 *   If a map spread element's static type implements `Map<K, V>` for some `K`
     and `V` and `K` is not assignable to the key type of the map or `V` is not
     assignable to the value type of the map.
 
 *   The variable in a `for` element (either `for-in` or C-style) is declared
-    outside of the element to be `final`.
+    outside of the element to be `final` or to not have a setter.
 
     ```dart
     final i = 0;
@@ -590,16 +590,14 @@ compile-time errors. It is a compile-time error if:
 
 ## Constant Semantics
 
-The runtime semantics below are also used to determine the compile-time value of
-a collection literal marked `const`, with a few restrictions:
+The runtime semantics below are used to determine the compile-time value of a
+constant collection literal, which is defined as a `listLiteral` or
+`setOrMapLiteral` that occurs in a constant context or directly preceded by
+`const`.
 
-*   A `listLiteral` is constant if it occurs in a constant context or if it is
-    directly prefixed by `const`. If so, then its `elements` must all be
-    constant elements.
-
-*   A `setOrMapLiteral` is constant if it occurs in a constant context or if it
-    is directly prefixed by `const`. If so, then its `elements` must all be
-    constant elements.
+Elements in a collection may be constant, potentially constant, or neither. All
+`elements` directly inside in a constant collection must be constant elements.
+They are defined as:
 
 *   An `expressionElement` is a constant element if its expression is a constant
     expression, and a potentially constant element if it's expression is a
@@ -612,7 +610,7 @@ a collection literal marked `const`, with a few restrictions:
 *   A `spreadElement` starting with `...` is a constant element if its
     expression is constant and it evaluates to a constant `List`, `Set` or `Map`
     instance originally created by a list, set or map literal. It is a
-    potentially constant element if the expression is potentially constant
+    potentially constant element if the expression is a potentially constant
     expression.
 
 *   A `spreadElement` starting with `...?` is a constant element if its
@@ -621,34 +619,27 @@ a collection literal marked `const`, with a few restrictions:
     is a potentially constant element if the expression is potentially constant
     expression.
 
-*   An `ifElement` is constant if its condition is a constant expression
-    evaluating to a Boolean value and either:
+*   An `ifElement` is a constant element if its condition is a constant
+    expression evaluating to a Boolean value and either:
 
-    *   If the condition evaluates to `true`, the "then" element is a constant
-        expression, and any "else" element is a potentially constant element.
+    *   If the condition evaluates to `true`, then when the "then" element is a
+        constant expression and any "else" element is a potentially constant
+        element.
 
-    *   If the condition evaluates to `false`, then the "then" element is a
+    *   If the condition evaluates to `false`, then when the "then" element is a
         potentially constant element and any "else" element is a constant
         element.
 
 *   An `ifElement` is potentially constant if its condition, "then" element, and
     "else" element (if any) are potentially constant expressions.
 
-*   A `forElement` is never a constant element. A `for` element cannot be used
-    in constant collection literals.
+*   A `forElement` is never a constant or potentially constant element. A `for`
+    element cannot be used in constant collection literals.
+
+Also:
 
 *   It is a compile-time error if any element in a constant set or key in a
     constant map does not have a primitive operator `==`.
-
-*   It is a compile-time error if an element in a const set is equal to any
-    other element according to its operator `==`.
-
-*   It is a compile-time error if a key in a constant map is equal to any other
-    key according to its operator `==`.
-
-*   It is a compile-time error to have duplicate values in a set literal or
-    duplicate keys in a map literal, according to behavior specified in the
-    runtime semantics.
 
 *   When evaluating a const collection literal, if another const collection has
     previously been evaluated that:
@@ -667,7 +658,7 @@ a collection literal marked `const`, with a few restrictions:
 
 Spread, `if`, and `for` behave similarly across all collection types. To
 simplify the spec, there is a single procedure used for all kinds of
-collections. This recursive procedure builds up either a `result` sequence of
+collections. This recursive procedure builds up either a *result* sequence of
 values or key-value pair map entries. Then a final step handles those
 appropriately for the given collection type.
 
@@ -675,56 +666,69 @@ appropriately for the given collection type.
 
 1.  If `element` is an expression element:
 
-    1.  Evaluate the element's expression and append it to `result`.
+    1.  Evaluate the element's expression and append it to *result*.
 
 1.  Else, `element` is a `mapEntry` `keyExpression: valueExpression`:
 
-    1.  Evaluate `keyExpression` to a value `key`.
+    1.  Evaluate `keyExpression` to a value *key*.
 
-    1.  Evaluate `valueExpression` to a value `value`.
+    1.  Evaluate `valueExpression` to a value *value*.
 
-    1.  Append `key: value` to `result`.
+    1.  Append an entry *key*: *value* to *result*.
 
 1.  Else, if `element` is a spread element:
 
     1.  Evaluate the spread expression to a value `spread`.
 
-    1.  If `entry` is null-aware and `spread` is null, do nothing.
+    1.  If `element` is not null-aware and `spread` is `null`, throw a dynamic
+        exception.
 
-    1.  Otherwise:
+    1.  Else, if `element` is null-aware and `spread` is `null`, do nothing.
 
-        1.  If the collection is a map, evaluate `spread.entries.iterator` to a
-            value `iterator`. Otherwise, evaluate `spread.iterator` to
-            `iterator`. *This will deliberately throw an exception if `spread`
-            is `null` and `element` is not null-aware.*
+    1.  Else, if the collection is a map:
+
+        1.  Evaluate `spread.entries.iterator` to a value `iterator`.
 
         1.  Loop:
 
             1.  If `iterator.moveNext()` returns `false`, exit the loop.
 
-            1.  Evaluate `iterator.current` and append it to `result`. *This
-                will be a MapEntry in a map literal, or any object for a list or
-                set literal.*
+            1.  Evaluate `iterator.current` to a value `entry`.
 
-        The `iterator` API may not be the most efficient way to traverse the
-        items in a collection. In order to give implementations more room to
-        optimize, we loosen the semantics:
+            1.  Evaluate `entry.key` to a value *key*.
 
-        *   If `spread` is an object whose class implements List, Queue, or Set
-            (all from `dart:core`), an implementation *may* choose to call
-            `length` on the object. This may let it allocate space for the
-            resulting collection more efficiently. Classes that implement List
-            are expected to have an efficient, side-effect free implementation
-            of `length`.
+            1.  Evaluate `entry.value` to a value *value*.
 
-        *   If `spread` is an object whose class implements List from
-            `dart:core`, an implementation may choose to call `[]` to access
-            elements from the list. If it does so, it will only pass indexes `>=
-            0` and `<` the value returned by `length`.
+            1.  Append an entry *key*: *value* to *result*.
 
-        A Dart implementation may detect whether these options apply at compile
-        time based on the static type of `spread` or at runtime based on the
-        actual value.
+    1.  Else, the collection is a list or set:
+
+        1.  Evaluate `spread.iterator` to *iterator*.
+
+        1.  Loop:
+
+            1.  If `iterator.moveNext()` returns `false`, exit the loop.
+
+            1.  Evaluate `iterator.current` and append the result to *result*.
+
+    The `iterator` API may not be the most efficient way to traverse the items
+    in a collection. In order to give implementations more room to optimize, we
+    loosen the semantics:
+
+    *   If `spread` is an object whose class implements List, Queue, or Set (all
+        from `dart:core`), an implementation *may* choose to call `length` on
+        the object. This may let it allocate space for the resulting collection
+        more efficiently. Classes that implement these are expected to have an
+        efficient, side-effect free implementation of `length`.
+
+    *   If `spread` is an object whose class implements List from `dart:core`,
+        an implementation may choose to call `[]` to access elements from the
+        list. If it does so, it will only pass indexes `>= 0` and `<` the value
+        returned by `length`.
+
+    A Dart implementation may detect whether these options apply at compile time
+    based on the static type of `spread` or at runtime based on the actual
+    value.
 
 1.  Else, if `element` is an `ifElement`:
 
@@ -764,9 +768,14 @@ appropriately for the given collection type.
         error if `stream` is not an instance of a class that implements
         `Stream`.
 
-    1. Listen on `stream` and take the following actions on events:
+    1.  Pause the subscription of any surrounding `await for` loop in the
+        current method.
 
-       *    On a data event with value `value`:
+    1.  Let `streamDone` be a value implementing `Future<Null>`.
+
+    1.  Listen on `stream` and take the following actions on events:
+
+        *   On a data event with value `value`:
 
             1.  If the `for-in` element declares a variable, create a new
                 namespace and a fresh `variable` for it. Otherwise, use the
@@ -780,7 +789,7 @@ appropriately for the given collection type.
                 trace `stack`, then:
 
                 1.  Stop listening on the stream by calling the `cancel()`
-                    method of the c  orresponding stream subscription, which
+                    method of the corresponding stream subscription, which
                     returns a future `f`.
 
                 1.  Wait for `f` to complete. If `f` completes with an error
@@ -833,39 +842,46 @@ appropriately for the given collection type.
 
 The procedure theoretically supports a mixture of expressions and map entries,
 but the static semantics prohibit an actual literal containing that. Once the
-`result` series of values or entries is produced from the tree of elements:
+*result* series of values or entries is produced from the tree of elements:
 
 ### Lists
 
 1.  The result of the literal expression is a fresh instance of a class that
-    implements `List<E>` containing the values in `result`, in order. If the
-    literal is constant, the list is immutable, otherwise it is not.
+    implements `List<E>` containing the values in *result*, in order. If the
+    literal is constant, the list is canonicalized and immutable, otherwise it
+    is not.
 
 ### Sets
 
-1.  Create a fresh instance `set` of a class that implements `Set<E>`.
+1.  Create a fresh instance *set* of a class that implements `Set<E>`.
 
-1.  For each `value` in `result`:
+1.  For each *value* in *result*:
 
-    1.  If `set` contains any value `existing` that is equal to `value`
-        according to `existing`'s `==` operator, do nothing.
+    1.  If *set* does not contain any value *existing* that is equal to *value*
+        according to *existing*'s `==` operator, then add *value* to *set*.
 
-    1.  Otherwise, add `value` to `set`.
+    1.  Else, if the literal is constant, it is a compile-time error.
 
-1.  The result of the literal expression is `set`. If the literal is constant,
-    make the set immutable.
+    1.  Else, do nothing. *Duplicates are discarded and the first one wins.*
+
+1.  The result of the literal expression is *set*. If the literal is constant,
+    canonicalize it make the set immutable.
 
 ### Maps
 
-1.  Allocate a fresh instance `map` of a class that implements `LinkedHashMap<K,
+1.  Allocate a fresh instance *map* of a class that implements `LinkedHashMap<K,
     V>`.
 
-1.  For each `entry` in `result`:
+1.  For each entry *key*: *value* in *result*:
 
-    1.  If `map` contains any key `key` that is equal to the key of `entry`
-        according to `key`'s `==` operator, do nothing.
+    1.  If *map* does not contain any key *existing* that is equal to *key*
+        according to *existing*'s `==` operator, then insert *key*: *value* into
+        *map*.
 
-    1.  Otherwise, insert `entry` into `map`.
+    1.  Else, if the literal is constant, it is a compile-time error.
 
-1.  The result of the map literal expression is `map`. If the literal is
-    constant, make the map immutable.
+    1.  Else, do nothing. *Duplicate keys are discarded and the first entry
+        wins.*
+
+1.  The result of the map literal expression is *map*. If the literal is
+    constant, canonicalize it and make the map immutable.
