@@ -68,53 +68,42 @@ var a = {};
 var b = {...other};
 ```
 
-When possible, we use syntax to disambiguate between a map and set. Failing
-that, we rely on types and inference.
-
-#### Syntactic and context-driven disambiguation
+When possible, we first use syntax and the surrounding context type to
+disambiguate between a map and set:
 
 Let *e* be a `setOrMapLiteral`.
 
 1.  If *e* has `typeArguments` then:
 
-    *   If there is exactly one type argument `T`, then it is syntactically
-        known to be a set literal with static type `Set<T>`.
+    *   If there is exactly one type argument `T`, then *e* is a set literal
+        with static type `Set<T>`.
 
-    *   If there are exactly two type arguments `K` and `V`, then it is
-        syntactically known to be a map literal with static type `Map<K, V>`.
+    *   If there are exactly two type arguments `K` and `V`, then *e* is a map
+        literal with static type `Map<K, V>`.
 
-    *   Otherwise (three or more type arguments) it is a compile-time error.
+    *   Otherwise (three or more type arguments), report a compile-time error.
 
 1.  Else, if *e* has a context `C`, and the base type of `C` is `Cbase` (that
     is, `Cbase` is `C` with all wrapping `FutureOr`s removed), and `Cbase` is
     not `?`, and `S` is the greatest closure of `Cbase` then:
 
     *   If `S` is a subtype of `Iterable<Object>` and `S` is not a subtype of
-        `Map<Object, Object>`, then *e* is syntactically known to be a set
-        literal.
+        `Map<Object, Object>`, then *e* is a set literal.
 
     *   If `S` is a subtype of `Map<Object, Object>` and `S` is not a subtype of
-        `Iterable<Object>` then *e* is syntactically known to be a map literal.
+        `Iterable<Object>` then *e* is a map literal.
 
-1.  If *e* is not syntactically known to be a map or set literal yet and *leaf
-    elements* is not empty, then:
-
-    *   It is a compile-time error if *e* is syntactically known to be a map
-        literal and *leaf elements* contains any `expressionElement` elements.
-
-    *   It is a compile-time error if *e* is syntactically known to be a set
-        literal and *leaf elements* contains any `mapEntry` elements.
+1.  Else, if *leaf elements* is not empty, then:
 
     *   If *leaf elements* has at least one `expressionElement` and no
-        `mapEntry` elements, it is syntactically known to be a set literal, with
-        unknown static type.
+        `mapEntry` elements, then *e* is a set literal with unknown static type.
 
     *   If *leaf elements* has at least one `mapEntry` and no
-        `expressionElement` elements, it is syntactically known to be a map
-        literal with unknown static type.
+        `expressionElement` elements, then *e* is a map literal with unknown
+        static type.
 
     *   If *leaf elements* has at least one `mapEntry` and at least one
-        `expressionElement`, it is a compile-time error.
+        `expressionElement`, report a compile-time error.
 
     *In other words, at least one key-value pair anywhere in the collection
     forces it to be a map, and a bare expression forces it to be a set. Having
@@ -124,22 +113,17 @@ If *e* has no `typeArguments` and no context type, and no `elements`, then *e*
 is treated as a map literal with unknown static type. *In other words, an empty
 `{}` is a map unless we have a context that indicates otherwise.*
 
-If we don't have a compile-time error, then there are now three states we could
-be in:
+At this point, there are three states we could be in:
 
-*   *e* is syntactically known to be a set literal.
+*   *e* contains a compile-time error. In that case, we don't proceed.
 
-*   *e* is syntactically known to be a map literal.
+*   *e* is disambiguated to definitely be either a map or set literal.
 
-*   *e* is not syntactically known to be a set or map literal, has an empty
-    *leaf elements*, but has at least one `element`. This implies that the body
-    of the collection contains only `spreadElement`s, and contains at least one.
+*   *e* is still ambiguous. This can only happen when *e* is non-empty but
+    contains only `spreadElement`s. In this case, the disambiguation will happen
+    during type inference, defined below.
 
-    At this point all syntax- and context-driven resolution is done. The next
-    step is to perform type inference, as defined below. The last step of type
-    inference does the final resolution of the ambiguous third case above.
-
-### Type inference (and inference-based disambiguation)
+### Type inference
 
 #### Maps and sets
 
@@ -447,7 +431,7 @@ Inside a `listLiteral`, the inferred type of an `element` is a list element type
     The inferred list element type of `element` is the inferred list element
     type of `p1` with element context type `P`.
 
-*Note: `element` cannot be a `mapEntry` those are not allowed inside list
+*Note: `element` cannot be a `mapEntry` as those are not allowed inside list
 literals.*
 
 Finally, we define inference on a `listLiteral` *collection* as follows:
@@ -487,6 +471,24 @@ elements should continue to match `if` statements.*
 
 After type inference and disambiguation, the collection is checked for other
 compile-time errors. It is a compile-time error if:
+
+*   The collection is a map literal and *leaf elements* contains any
+    `expressionElement` elements.
+
+    ```dart
+    <String, int>{"not entry"} // Error.
+    ```
+
+*   The collection is a set literal and *leaf elements* contains any `mapEntry`
+    elements.
+
+    ```dart
+    ["not": "expression"] // Error.
+    <String>{"not": "expression"} // Error.
+    ```
+
+    *We prohibit map entries in list literals syntacitcally, earlier in the
+    proposal.*
 
 *   The collection is a list and the type of any of the *leaf elements* may not
     be assigned to the list's element type.
