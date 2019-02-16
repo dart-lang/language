@@ -691,7 +691,8 @@ appropriately for the given collection type.
 
         1.  Loop:
 
-            1.  If `iterator.moveNext()` returns `false`, exit the loop.
+            1.  If the Boolean conversion of `iterator.moveNext()` is not
+                `true`, exit the loop.
 
             1.  Evaluate `iterator.current` to a value `entry`.
 
@@ -707,7 +708,8 @@ appropriately for the given collection type.
 
         1.  Loop:
 
-            1.  If `iterator.moveNext()` returns `false`, exit the loop.
+            1.  If the Boolean conversion of `iterator.moveNext()` is not
+                `true`, exit the loop.
 
             1.  Evaluate `iterator.current` and append the result to *result*.
 
@@ -750,8 +752,8 @@ appropriately for the given collection type.
 
     1.  Loop:
 
-        1.  If the Boolean conversion of `iterator.moveNext()` does not return
-            `true`, exit the loop.
+        1.  If the Boolean conversion of `iterator.moveNext()` is not `true`,
+            exit the loop.
 
         1.  If the `for-in` element declares a variable, create a new namespace
             and a fresh `variable` for it. Otherwise, use the existing
@@ -857,12 +859,14 @@ but the static semantics prohibit an actual literal containing that. Once the
 
 1.  For each *value* in *result*:
 
-    1.  If *set* does not contain any value *existing* that is equal to *value*
-        according to *existing*'s `==` operator, then add *value* to *set*.
+    1.  If *set* contains a value *existing* that is equal to *value*
+        according to *existing*'s `==` operator:
 
-    1.  Else, if the literal is constant, it is a compile-time error.
+        1.  If the literal is constant, it is a compile-time error.
 
-    1.  Else, do nothing. *Duplicates are discarded and the first one wins.*
+        1.  Else, do nothing. *Duplicates are discarded and the first one wins.*
+
+    1.  Else, add *value* to *set*.
 
 1.  The result of the literal expression is *set*. If the literal is constant,
     canonicalize it make the set immutable.
@@ -874,14 +878,15 @@ but the static semantics prohibit an actual literal containing that. Once the
 
 1.  For each entry *key*: *value* in *result*:
 
-    1.  If *map* does not contain any key *existing* that is equal to *key*
-        according to *existing*'s `==` operator, then insert *key*: *value* into
-        *map*.
+    1.  If *map* contains an entry *existing* whose key *existingKey* is equal
+        to *key* according to *existingKeys*'s `==` operator:
 
-    1.  Else, if the literal is constant, it is a compile-time error.
+        1.  If the literal is constant, it is a compile-time error.
 
-    1.  Else, do nothing. *Duplicate keys are discarded and the first entry
-        wins.*
+        1.  Else, replace the value in *existing* with *value*, while keeping
+            its position in the sequence of entries and *existingKey* the same.
+
+    1.  Else add entry *key*: *value* to *map*.
 
 1.  The result of the map literal expression is *map*. If the literal is
     constant, canonicalize it and make the map immutable.
