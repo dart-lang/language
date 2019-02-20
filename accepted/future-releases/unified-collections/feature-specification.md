@@ -691,16 +691,21 @@ appropriately for the given collection type.
 
         1.  Loop:
 
-            1.  If the Boolean conversion of `iterator.moveNext()` is not
-                `true`, exit the loop.
+            1.  Evaluate `iterator.moveNext()` to a value `hasValue`.
 
-            1.  Evaluate `iterator.current` to a value `entry`.
+            1.  If `hasValue` is `true`:
 
-            1.  Evaluate `entry.key` to a value *key*.
+                1.  Evaluate `iterator.current` to a value `entry`.
 
-            1.  Evaluate `entry.value` to a value *value*.
+                1.  Evaluate `entry.key` to a value *key*.
 
-            1.  Append an entry *key*: *value* to *result*.
+                1.  Evaluate `entry.value` to a value *value*.
+
+                1.  Append an entry *key*: *value* to *result*.
+
+            1.  Else, if `hasValue` is `false`, exit the loop.
+
+            1.  Else, throw a dynamic error.
 
     1.  Else, the collection is a list or set:
 
@@ -708,10 +713,16 @@ appropriately for the given collection type.
 
         1.  Loop:
 
-            1.  If the Boolean conversion of `iterator.moveNext()` is not
-                `true`, exit the loop.
+            1.  Evaluate `iterator.moveNext()` to a value `hasValue`.
 
-            1.  Evaluate `iterator.current` and append the result to *result*.
+            1.  If `hasValue` is `true`:
+
+                1.  Evaluate `iterator.current` and append the result to
+                    *result*.
+
+            1.  Else, if `hasValue` is `false`, exit the loop.
+
+            1.  Else, throw a dynamic error.
 
     The `iterator` API may not be the most efficient way to traverse the items
     in a collection. In order to give implementations more room to optimize, we
@@ -736,13 +747,17 @@ appropriately for the given collection type.
 
     1.  Evaluate the condition expression to a value `condition`.
 
-    1.  If the Boolean conversion of `condition` is `true`:
+    1.  If `condition` is `true`:
 
         1.  Evaluate the "then" element using this procedure.
 
-    1.  Else, if there is an "else" element of the `if`:
+    1.  Else, if `condition` is `false`:
 
-        1.  Evaluate the "else" element using this procedure.
+        1.  If there is an "else" element of the `if`:
+
+            1.  Evaluate the "else" element using this procedure.
+
+    1.  Else, throw a dynamic error.
 
 1.  Else, if `element` is a synchronous `forElement` for a `for-in` loop:
 
@@ -752,17 +767,22 @@ appropriately for the given collection type.
 
     1.  Loop:
 
-        1.  If the Boolean conversion of `iterator.moveNext()` is not `true`,
-            exit the loop.
+        1.  Evaluate `iterator.moveNext()` to a value `hasValue`.
 
-        1.  If the `for-in` element declares a variable, create a new namespace
-            and a fresh `variable` for it. Otherwise, use the existing
-            `variable` it refers to.
+        1.  If `hasValue` is `true`:
 
-        1.  Bind `variable` to the result of evaluating `iterator.current`.
+            1.  If the `for-in` element declares a variable, create a new
+                namespace and a fresh `variable` for it. Otherwise, use the
+                existing `variable` it refers to.
 
-        1.  Evaluate the body element using this procedure in the scope of
-            `variable`.
+            1.  Bind `variable` to the result of evaluating `iterator.current`.
+
+            1.  Evaluate the body element using this procedure in the scope of
+                `variable`.
+
+        1.  Else, if `hasValue` is `false`, exit the loop.
+
+        1.  Else, throw a dynamic error.
 
 1.  Else, if `element` is an asynchronous `await for-in` element:
 
@@ -834,13 +854,17 @@ appropriately for the given collection type.
         1.  Evaluate the condition expression to a value `condition`. If there
             is no condition expression, use `true`.
 
-        1.  If the Boolean conversion of `condition` is not `true`, exit the
-            loop.
+        1.  If `condition` is `true`:
 
-        1.  Evaluate the body element using this procedure in the namespace of
-            the variable declared by the initializer clause if there is one.
+            1.  Evaluate the body element using this procedure in the namespace
+                of the variable declared by the initializer clause if there is
+                one.
 
-        1.  If there is an increment clause, execute it.
+            1.  If there is an increment clause, execute it.
+
+        1.  Else, if `condition` is `false`, exit the loop.
+
+        1.  Else, throw a dynamic error.
 
 The procedure theoretically supports a mixture of expressions and map entries,
 but the static semantics prohibit an actual literal containing that. Once the
