@@ -46,8 +46,22 @@ ifElement         : 'if' '(' expression ')' element ( 'else' element )? ;
 forElement        : 'await'? 'for' '(' forLoopParts ')' element ;
 ```
 
-Let *leaf elements* be all of the `expressionElement` and `mapEntry` elements in
-*e*, including elements of `ifElement` or `forElement` elements, transitively.
+Let the *leaf elements* of *e* be the concatenation of all of the *leaf
+elements* of each `element` directly in *e* where the *leaf elements* of an
+`element` are:
+
+*   If `element` is an `ifElement`, then the *leaf elements* are the
+    concatenation of the *leaf elements* of the "then" and "else" elements of
+    `element`.
+
+*   Else, if `element` is a `forElement`, then the *leaf elements* are the *leaf
+    elements* of the body element of `element`.
+
+*   Else, if `element` is an `expressionElement` or `mapEntry`, then the *leaf
+    element* is `element` itself.
+
+*   Else, the element has no *leaf elements*. *A spread contains no leaf
+    elements.*
 
 It is a compile-time error if any *leaf elements* of a `listLiteral` are
 `mapEntry` elements. *(We could avoid this prose by duplicating the above rules
@@ -98,10 +112,12 @@ is `C` with all wrapping `FutureOr`s removed), and `Cbase` is not `?`, then let
 
     *   If *leaf elements* has at least one `expressionElement` and no
         `mapEntry` elements, then *e* is a set literal with unknown static type.
+        The static type will be filled in by type inference, defined below.
 
     *   If *leaf elements* has at least one `mapEntry` and no
         `expressionElement` elements, then *e* is a map literal with unknown
-        static type.
+        static type. The static type will be filled in by type inference,
+        defined below.
 
     *   If *leaf elements* has at least one `mapEntry` and at least one
         `expressionElement`, report a compile-time error.
@@ -116,8 +132,12 @@ is `C` with all wrapping `FutureOr`s removed), and `Cbase` is not `?`, then let
     indicates otherwise.*
 
 1.  Otherwise, *e* is still ambiguous. This can only happen when *e* is
-    non-empty but contains only `spreadElement`s. In this case, the
+    non-empty but contains no *leaf elements*. In other words, it contains only
+    spreads or spreads wrapped in if and for elements. In this case, the
     disambiguation will happen during type inference, defined below.
+
+If this process successfully disambiguates the literal, then we say that *e* is
+"unambiguously a map" or "unambiguously a set", as appropriate.
 
 ### Type inference
 
@@ -134,7 +154,6 @@ We require that at least one component unambiguously determine the literal form,
 otherwise it is a compile-time error. So, given:
 
 ```dart
-bool b = true;
 dynamic x = <int, int>{};
 Iterable l = [];
 Map m = {};
@@ -149,9 +168,20 @@ Then:
 {...l, ...m} // Static error, because it must be both a set and a map.
 ```
 
-In `setOrMapLiteral`, the inferred type of an `element` is a set element type
-`T`, a pair of a key type `K` and a value type `V`, or both. It is computed
-relative to a context type `P`.
+In a `setOrMapLiteral` *collection*, the inferred type of an `element` is a set
+element type `T`, a pair of a key type `K` and a value type `V`, or both. It is
+computed relative to a context type `P`:
+
+*   If *collection* is unambiguously a set literal, then `P` is `Set<Pe>` where
+    `Pe` is determined by downwards inference, and may be `?` if downwards
+    inference does not constrain it.
+
+*   If *collection* is unambiguously a map literal then `P` is `Map<Pk, Pv>`
+    where `Pk` and `Pv` are determined by downwards inference, and may be `?` if
+    the downwards context does not constrain one or both.
+
+*   Otherwise, *collection* is ambiguous, and the downwards context for the
+    elements of *collection* is `?`.
 
 We say that an element *can be a set* if it has a set element type. Likewise, an
 element *can be a map* if it has a key and value type. We say that an element
@@ -217,8 +247,8 @@ To infer the type of `element`:
         *   If `S` is a non-`Null` subtype of `Iterable<Object>`, then the
             inferred set element type of `element` is `T` where `T` is the type
             such that `Iterable<T>` is a superinterface of `S` (the result of
-            constraint matching for `X` using the constraint `Iterable<X> <:
-            S`).
+            constraint matching for `X` using the constraint `S <:
+            Iterable<X>`).
 
         *   If `S` is `dynamic`, then the inferred set element type of `element`
             is `dynamic`.
@@ -235,7 +265,7 @@ To infer the type of `element`:
             inferred key type of `element` is `K` and the inferred value type of
             `element` is `V`, where `K` and `V` are the types such that `Map<K,
             V>` is a superinterface of `S` (the result of constraint matching
-            for `X` and `Y` using the constraint `Map<X, Y> <: S`).
+            for `X` and `Y` using the constraint `S <: Map<X, Y>`).
 
         *   If `S` is `dynamic`, then the inferred key type of `element` is
             `dynamic`, and the inferred value type of `element` is `dynamic`.
@@ -271,13 +301,13 @@ To infer the type of `element`:
 
     *   If the inferred set element type of `e1` is `S1` and the inferred set
         element type of `e2` is `S2` then the inferred set element type of
-        `element` is the upper bound of `S1` and `S2`.
+        `element` is the least upper bound of `S1` and `S2`.
 
     *   If the inferred key type of `e1` is `K1` and the inferred key type of
         `e1` is `V1` and the inferred key type of `e2` is `K2` and the inferred
         key type of `e2` is `V2` then the inferred key type of `element` is the
-        upper bound of `K1` and `K2` and the inferred value type is the upper
-        bound of `V1` and `V2`.
+        least upper bound of `K1` and `K2` and the inferred value type is the
+        least upper bound of `V1` and `V2`.
 
     *Note that both of the above cases can simultaneously apply because of
     `dynamic` spreads.*
@@ -299,30 +329,22 @@ To infer the type of `element`:
 
 Finally, we define inference on a `setOrMapLiteral` *collection* as follows:
 
-*   If *collection* is known to be a set literal, then the downwards context for
-    inference of the elements of *collection* is `Set<P>` where `P` may be `?`
-    if downwards inference does not constrain the type of *collection*.
+*   If *collection* is unambiguously a set literal:
 
     *   If `P` is `?` then the static type of *collection* is `Set<T>` where `T`
-        is the upper bound of the inferred set element types of the elements.
+        is the least upper bound of the inferred set element types of the
+        elements.
 
-    *   Otherwise, the static type of *collection* is `Set<T>` where `T` is
-        determined by downwards inference.
+    *   Otherwise, the static type of *collection* is `P`.
 
     *Note that the element inference will never produce a key/value type here
     given that downwards context.*
 
-*   If *collection* is known to be a map literal and downwards inference has
-    statically known type `Map<K, V>` then the downwards context for the
-    elements of *collection* is `Map<K, V>`.
-
-*   If *collection* is known to be a map literal then the downwards context for
-    the elements of *collection* is `Map<Pk, Pv>` where `Pk` and `Pv` are
-    determined by downwards inference, and may be `?` if the downwards context
-    does not constrain one or both.
+*   Else, f *collection* is unambiguously a map literal where `P` is `Map<Pk,
+    Pv>`:
 
     *   If `Pk` is `?` then the static key type of *collection* is `K` where `K`
-        is the upper bound of the inferred key types of the elements.
+        is the least upper bound of the inferred key types of the elements.
 
     *   Otherwise the static key type of *collection* is `K` where `K` is
         determined by downwards inference.
@@ -330,35 +352,46 @@ Finally, we define inference on a `setOrMapLiteral` *collection* as follows:
     And:
 
     *   If `Pv` is `?` then the static value type of *collection* is `V` where
-        `V` is the upper bound of the inferred value types of the elements.
+        `V` is the least upper bound of the inferred value types of the
+        elements.
 
     *   Otherwise the static value type of *collection* is `V` where `V` is
         determined by downwards inference.
 
+    The static type of *collection* is `Map<K, V>`.
+
     *Note that the element inference will never produce a set element type here
     given this downwards context.*
 
-*   Otherwise, *collection* is not known to be a set or map literal, then the
-    downwards context for the elements of *collection* is `?`, and the
-    disambiguation is done using the immediate `elements` of *collection* as
-    follows:
+*   Otherwise, *collection* is still ambiguous, the downwards context for the
+    elements of *collection* is `?`, and the disambiguation is done using the
+    immediate `elements` of *collection* as follows:
 
     *   If all elements can be a set, and at least one element must be a set,
         then *collection* is a set literal with static type `Set<T>` where `T`
-        is the upper bound of the set element types of the elements.
+        is the least upper bound of the set element types of the elements.
 
     *   If all elements can be a map, and at least one element must be a map,
         then *e* is a map literal with static type `Map<K, V>` where `K` is the
-        upper bound of the key types of the elements and `V` is the upper bound
-        of the value types.
+        least upper bound of the key types of the elements and `V` is the least
+        upper bound of the value types.
 
-    *   If all elements can be both maps and sets, then the literal is ambiguous
-        and it is a compile-time error. *This occurs, for example, when all the
-        *leaf elements* are dynamic spreads.*
+    *   Otherwise, the literal cannot be disambiguated and it is a compile-time
+        error. This can occur if the literal *must* be both a set and a map,
+        as in:
 
-    *   Otherwise, it is a compile-time error. This can occur when at least one
-        element must be a set and one element which must be a map, or when no
-        element can be a set or map.
+        ```dart
+        var iterable = [1, 2];
+        var map = {1: 2};
+        var ambiguous = {...iterable, ...map};
+        ```
+
+        Or, if there is nothing indicates that it is *either* a map or set:
+
+        ```dart
+        dynamic dyn;
+        var ambiguous = {...dyn};
+        ```
 
 #### Lists
 
@@ -367,7 +400,9 @@ complexity around disambiguation with maps and using `List` or `Iterable` in a
 few places instead of `Set`.
 
 Inside a `listLiteral`, the inferred type of an `element` is a list element type
-`T`. It is computed relative to an element context type `P`:
+`T`. It is computed relative to a downwards element context type `P`, where `P`
+is `T` if downwards inference constrains the type of `listLiteral` to
+`Iterable<T>` for some `T`. Otherwise, `P` is `?`.
 
 *   If `element` is an `expressionElement` with expression `e1`:
 
@@ -397,8 +432,8 @@ Inside a `listLiteral`, the inferred type of an `element` is a list element type
         *   If `S` is a non-`Null` subtype of `Iterable<Object>`, then the
             inferred list element type of `element` is `T` where `T` is the type
             such that `Iterable<T>` is a superinterface of `S` (the result of
-            constraint matching for `X` using the constraint `Iterable<X> <:
-            S`).
+            constraint matching for `X` using the constraint `S <:
+            Iterable<X>`).
 
         *   If `S` is `dynamic`, then the inferred list element type of
             `element` is `dynamic`.
@@ -417,9 +452,9 @@ Inside a `listLiteral`, the inferred type of an `element` is a list element type
 
     The condition is inferred with a context type of `bool`.
 
-    The inferred list element type of `element` is the upper bound of `S1` and
-    `S2` where `S1` is the inferred list element type of `p1` and `S2` is the
-    inferred list element type of `p2`, both with element context type `P`.
+    The inferred list element type of `element` is the least upper bound of `S1`
+    and `S2` where `S1` is the inferred list element type of `p1` and `S2` is
+    the inferred list element type of `p2`, both with element context type `P`.
 
 *   If `element` is a `forElement` with `element` `p1` then:
 
@@ -434,16 +469,12 @@ literals.*
 
 Finally, we define inference on a `listLiteral` *collection* as follows:
 
-*   The downwards element context for inference of the elements of *collection*
-    is `P` where `P` is `T` if downwards inference constraints the type of
-    collection to `Iterable<T>` for some `T`. Otherwise, `P` is `?`.
+*   If `P` is `?` then the static type of *collection* is `List<T>` where
+    `T` is the least upper bound of the inferred list element types of the
+    elements.
 
-    *   If `P` is `?` then the static type of *collection* is `List<T>` where
-        `T` is the upper bound of the inferred list element types of the
-        elements.
-
-    *   Otherwise, the static type of *collection* is `List<T>` where `T` is
-        determined by downwards inference.
+*   Otherwise, the static type of *collection* is `List<T>` where `T` is
+    determined by downwards inference.
 
 ### Type promotion
 
@@ -620,7 +651,7 @@ They are defined as:
     expression.
 
 *   An `ifElement` is a constant element if its condition is a constant
-    expression evaluating to a Boolean value and either:
+    expression evaluating to a value of type `bool` and either:
 
     *   If the condition evaluates to `true`, then when the "then" element is a
         constant expression and any "else" element is a potentially constant
@@ -867,19 +898,23 @@ appropriately for the given collection type.
         1.  Else, throw a dynamic error.
 
 The procedure theoretically supports a mixture of expressions and map entries,
-but the static semantics prohibit an actual literal containing that. Once the
-*result* series of values or entries is produced from the tree of elements:
+but the static semantics prohibit an actual literal containing that.
 
-### Lists
+Once the *result* series of values or entries is produced from the tree of
+elements, the final object is produced from that based on what kind of literal
+it is:
+
+### List
 
 1.  The result of the literal expression is a fresh instance of a class that
-    implements `List<E>` containing the values in *result*, in order. If the
-    literal is constant, the list is canonicalized and immutable, otherwise it
-    is not.
+    implements `List<E>` where `E` is the element type of the literal. It
+    contains the values in *result*, in order. If the literal is constant, the
+    list is canonicalized and immutable, otherwise it is not.
 
-### Sets
+### Set
 
-1.  Create a fresh instance *set* of a class that implements `Set<E>`.
+1.  Create a fresh instance *set* of a class that implements `Set<E>` where `E`
+    is the set element type of the literal.
 
 1.  For each *value* in *result*:
 
@@ -895,10 +930,10 @@ but the static semantics prohibit an actual literal containing that. Once the
 1.  The result of the literal expression is *set*. If the literal is constant,
     canonicalize it make the set immutable.
 
-### Maps
+### Map
 
 1.  Allocate a fresh instance *map* of a class that implements `LinkedHashMap<K,
-    V>`.
+    V>` where `K` is the key type of the literal and `V` is the value type.
 
 1.  For each entry *key*: *value* in *result*:
 
