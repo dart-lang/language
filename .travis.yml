@@ -8,21 +8,20 @@ before_install:
     else
       sudo apt-get update -qq
       sudo apt-get install texlive-full
+      sudo npm install -g firebase-tools
     fi
   - echo '* install completed'
 script:
   - cd specification
   - make
-  - mkdir build
-  - cp dartLangSpec.pdf build/DartLanguageSpecificationDraft.pdf
+  - mkdir public
+  - cp dartLangSpec.pdf public/DartLanguageSpecificationDraft.pdf
 deploy:
-  provider: gcs
-  access_key_id: encrypted_dbbec1ffce82_iv
-  secret_access_key: encrypted_dbbec1ffce82_key
-  bucket: dart-specification
-  acl: public-read
-  local-dir: build
-  skip_cleanup: true
-  on:
-    repo: dart-lang/language
-    branch: testmaster
+  - provider: script
+    skip_cleanup: true
+    script:
+      - firebase use dart-specification
+      - firebase deploy --token $FIREBASE_TOKEN
+    on:
+      repo: dart-lang/language
+      branch: testmaster
