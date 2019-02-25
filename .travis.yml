@@ -19,7 +19,7 @@ deploy:
   provider: gcs
   access_key_id: encrypted_dbbec1ffce82_iv
   secret_access_key: encrypted_dbbec1ffce82_key
-  bucket: "dart-specification"
+  bucket: dart-specification
   acl: public-read
   local-dir: build
   skip_cleanup: true
