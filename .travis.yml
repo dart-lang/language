@@ -7,8 +7,8 @@ before_install:
       exit 0
     else
       sudo apt-get update -qq
-      sudo apt-get install xcolor
       sudo apt-get install texlive-latex-base
+      sudo apt-get install latex-xcolor
     fi
   - echo '* install completed'
 script:
