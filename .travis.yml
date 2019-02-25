@@ -16,14 +16,14 @@ before_install:
 script:
   - cd specification
   - make
-  - mkdir public
-  - cp dartLangSpec.pdf public/DartLanguageSpecificationDraft.pdf
+  - mkdir firebase
+  - cp dartLangSpec.pdf firebase/DartLangSpecDraft.pdf
 deploy:
   - provider: script
     skip_cleanup: true
     script:
-      - firebase use dart-specification --token $FIREBASE_TOKEN
-      - firebase deploy --token $FIREBASE_TOKEN
+      - cd specification
+      - firebase deploy --project= dart-specification --token $FIREBASE_TOKEN
     on:
       repo: dart-lang/language
       branch: testmaster
