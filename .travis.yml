@@ -22,12 +22,12 @@ script:
   - cd specification
   - make
 deploy:
-  - provider: script
-    skip_cleanup: true
-    script:
-      - cd specification
-      - echo 'Deploying from ${PWD} to https://dart-specification.firebaseapp.com/DartLangSpecDraft.pdf'
-      - firebase deploy --project=dart-specification --token $FIREBASE_TOKEN
-    on:
-      repo: dart-lang/language
-      branch: mit-mit-deployspec
+  provider: script
+  skip_cleanup: true
+  script:
+    - cd specification
+    - echo 'Deploying from ${PWD} to https://dart-specification.firebaseapp.com/DartLangSpecDraft.pdf'
+    - firebase deploy --project=dart-specification --token $FIREBASE_TOKEN
+  on:
+    repo: dart-lang/language
+    branch: mit-mit-deployspec
