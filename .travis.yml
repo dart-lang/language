@@ -13,3 +13,16 @@ before_install:
 script:
   - cd specification
   - make
+  - mkdir build
+  - cp dartLangSpec.pdf build/DartLanguageSpecificationDraft.pdf
+deploy:
+  provider: gcs
+  access_key_id: encrypted_dbbec1ffce82_iv
+  secret_access_key: encrypted_dbbec1ffce82_key
+  bucket: "dart-specification"
+  acl: public-read
+  local-dir: build
+  skip_cleanup: true
+  on:
+    repo: dart-lang/language
+    branch: testmaster
