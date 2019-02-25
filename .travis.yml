@@ -1,17 +1,18 @@
 dist: xenial
 language: bash
 before_install:
-  - | 
-    if git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE 'dartLangSpec.tex'; then
+  - |
+    if git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE 'dartLangSpec.tex|.travis.yml'; then
       echo "dartLangSpex.tex wasn't changed; skipping spec PDF build"
       exit 0
     else
       sudo apt-get update -qq
-      sudo apt-get install texlive-latex-base
-      sudo apt-get install texlive-latex-extra
-      sudo apt-get install texlive-fonts-recommended
-      sudo apt-get install latex-xcolor
-      sudo apt-get install lmodern
+      sudo apt-get install \
+        texlive-latex-base \
+        texlive-latex-extra \
+        texlive-fonts-recommended \
+        latex-xcolor \
+        lmodern
     fi
   - echo '* install completed'
 script:
