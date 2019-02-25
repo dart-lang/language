@@ -22,7 +22,7 @@ deploy:
   - provider: script
     skip_cleanup: true
     script:
-      - firebase use dart-specification
+      - firebase use dart-specification --token $FIREBASE_TOKEN
       - firebase deploy --token $FIREBASE_TOKEN
     on:
       repo: dart-lang/language
