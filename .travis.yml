@@ -1,14 +1,14 @@
 dist: xenial
 language: ruby
 before_install:
-  - if ! git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE 'dartLangSpec.tex'
-  - then
-    - echo "dartLangSpex.tex wasn't changed; skipping spec PDF build"
-    - exit 0
-  - else
-    - sudo apt-get update -qq
-    - sudo apt-get install texlive-full
-  - fi
+  - if ! git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE 'dartLangSpec.tex' \
+    && then \
+    &&   echo "dartLangSpex.tex wasn't changed; skipping spec PDF build" \
+    &&   exit 0 \
+    && else \
+    &&   sudo apt-get update -qq \
+    &&   sudo apt-get install texlive-full \
+    && fi
 script:
   - cd specification
   - make
