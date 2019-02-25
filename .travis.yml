@@ -29,4 +29,4 @@ deploy:
   skip_cleanup: true
   on:
     repo: dart-lang/language
-    branch: mit-mit-deployspec
+    branch: master
