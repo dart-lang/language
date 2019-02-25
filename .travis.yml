@@ -30,3 +30,7 @@ deploy:
   on:
     repo: dart-lang/language
     branch: master
+
+branches:
+  only:
+    - master
