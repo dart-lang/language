@@ -47,6 +47,7 @@
 %   type, not just function types.
 % - Clarify that 'Constant Constructors' is concerned with non-redirecting
 %   generative constructors only.
+% - Disable type alias generalization, because that feature is not in 2.2.
 %
 % 2.1
 % - Remove 64-bit constraint on integer literals compiled to JavaScript numbers.
@@ -7427,7 +7428,7 @@ is evaluated as follows:
 \item
 For each $i \in 1 .. n$ in numeric order,
 the expression $e_i$ is evaluated producing object $v_i$.
-\item A fresh object (\ref{generativeConstructors}) $s$
+\item A fresh instance (\ref{generativeConstructors}) $s$
 implementing the built-in class \code{Set<$E$>}, is created.
 \item The set $s$ is made to have the objects $v_1, \ldots{} , v_n$ as elements,
 iterated in numerical order.
@@ -14336,6 +14337,439 @@ under the assumption that all deferred libraries have successfully been loaded.
 % Now, when passed to a generic, p.T also has to be treated as dynamic - otherwise we have to fail immediately. Where do we say that? And how does this fit with idea that as a type object it fails? Should we say that the accessor on p returns dynamic instead of failing? Do we distinguish its use in a constructor vs its use in an annotation? It's not that we evaluate type objects in constructor args - these cannot represent parameterized types.
 
 
+\subsubsection{Context Types}
+\LMLabel{contextTypes}
+
+\LMHash{}%
+A \Index{context type} $P$ is syntactically the same as a type,
+except that it may contain one or more occurrences of \lit{?}.
+
+\commentary{%
+Note that a context type is not a language construct,
+it is only used in this document for the purpose of specification.%
+}
+
+\LMHash{}%
+The grammar rules for context types are obtained by copying
+the rule for each non-terminal derivable from \synt{type}
+that may itself derive \synt{type},
+renaming the copy
+(\commentary{the copy of \synt{foo} is renamed to \synt{contextFoo}}),
+and replacing each occurrence of the renamed non-terminals in the new rules
+by the new name.
+Finally, an extra alternative is added to \synt{contextType} for \lit{?}.
+Here are the first few grammar rules;
+the remaining ones follow the same pattern:
+
+\begin{grammar}
+<contextType> ::= <contextFunctionTypeTails>
+  \alt <contextTypeNotFunction> <contextFunctionTypeTails>
+  \alt <contextTypeNotFunction>
+  \alt `?'
+
+<contextTypeNotFunction> ::= <contextTypeNotVoidNotFunction>
+  \alt \VOID{}
+
+<contextTypeNotVoidNotFunction> ::= <typeName> <contextTypeArguments>?
+  \alt \FUNCTION{}
+\end{grammar}
+\noindent
+\raisebox{2ex}{\ldots{}}
+
+\commentary{%
+Note that the rule for \synt{typeName} is not copied and renamed,
+because it cannot derive \synt{type},
+so we can use the original grammar rules for \synt{typeName}.%
+}
+
+\LMHash{}%
+In Dart, an expression can
+\IndexCustom{have a context type}{expression!has a context type} $T$,
+which is the case if it occurs in one of the following ways.
+When none of the specified cases is applicable, the context type is \lit{?}.
+
+\commentary{%
+This means that the context does not provide any information about
+the types that this expression can have.
+For instance, if \code{x} is a local variable declared as
+\code{\VAR{} x = $e$;}
+then $e$ has context type \lit{?}.
+
+% TODO(eernst): We definitely need to revisit this when we specify inference.
+% With some luck, most of the rules may work both during and after inference.
+Note that type inference is assumed to have taken place already
+(\ref{overview}).
+This can make a difference for many of the cases specified below,
+and we point out a few of them.
+}
+
+\LMHash{}%
+\Case{Literals}
+If an expression $e$ occurs in a list literal
+(\ref{lists})
+of the form
+\code{<$T$>[\ldots, $e$, \ldots]}
+then $e$ has context type $T$.
+%
+If an expression $e_1$ or $e_2$ occurs as a key respectively value in a map literal
+(\ref{maps})
+of the form
+\code{<$K$, $V$>[\ldots, $e_1$:$e_2$, \ldots]}
+then $e_1$ has context type $K$ and $e_2$ has context type $V$.
+%
+% TODO(eernst): Add a case for setLiteral and generalize the above to
+% handle collection abstractions (spreadElements, ifElements, forElements).
+%
+% For a string interpolation the context type has no information
+% and this is handled by saying that there is no context type,
+% which means that we just don't mention it here.
+\EndCase
+
+\LMHash{}%
+\Case{Variable initializers}
+% This covers
+% <topLevelVariableDeclaration>,
+% (FINAL | CONST) <type>? <staticFinalDeclarationList> ';'
+% <initializedVariableDeclaration>
+% <initializedIdentifier>
+%
+The context type of the initializing expression of
+a top-level, static, instance, or local variable \id{}
+is the declared type of \id.
+
+\commentary{%
+% TODO(eernst): Clarify whether member signature inference for an instance
+% variable uses the setter parameter type or the getter return type; current
+% behavior suggests that the inference does not take place when they disagree
+% (so `var x;` in the subtype means `dynamic x;`, possibly causing an override
+% error), in which case this description is correct.
+E.g., an instance variable could be declared using \VAR{},
+but its induced setter and/or getter could be an override of
+a member of a superinterface of the enclosing class.
+}
+
+% On the right hand side of `=` in a <fieldInitializer> we have
+% <conditionalExpression> <cascadeSection>*, but that is always
+% a term which can be derived from <expression>, so we'll refer
+% to it as an expression.
+\LMHash{}%
+The context type of the initializing expression $e$
+in a \synt{fieldInitializer} of the form
+\syntax{(\THIS{} `.')? \id{} = $e$}
+is the declared type of the instance variable \id.
+\EndCase
+
+\LMHash{}%
+\Case{Default values for formal parameters}
+The context type for the expression
+in a \synt{defaultFormalParameter} and
+in a \synt{defaultNamedParameter} declaration
+is the declared type of the formal parameter.
+\EndCase
+
+\LMHash{}%
+\Case{Actual arguments}
+% Here we need to cover <argumentList>, which contains <expression>s
+% and/or <namedArgument>s, and may be part of an <argumentPart>.
+% It occurs in the following constructs:
+%
+%   <primary> <selector>+, where a selector is an <argumentPart>.
+%   <redirection>, that is: `:' \THIS{} (`.' <identifier>)? <arguments>.
+%   SUPER <arguments>.
+%   SUPER `.' <identifier> <arguments>.
+%   <newExpression>, ditto.
+%   <constObjectExpression>, ditto.
+%   <constructorInvocation> (new syntax, implicit creation), ditto.
+%   <cascadeSection>, which may contain <argumentPart>s
+%   <assignableSelectorPart>, which may contain <argumentPart>s.
+%   (<metadata>, which ends in <arguments>: next paragraph)
+%
+When an actual argument $e$ is passed in an invocation of
+a library function, a local function, a static or instance method
+(including superinvocations),
+% We could, but do not want to, act differently in case of a
+% <constObjectExpression> where some subexpressions have a value whose
+% type is a proper subtype of the static type. Hence 'constant or not'.
+or in a constructor invocation (constant or not),
+the context type for $e$ is the static type of
+the corresponding formal parameter.
+
+\LMHash{}%
+When an expression $e$ occurs in a term of the form
+\code{@m(\ldots,\,$e$,\,\ldots)} or the form
+\code{@m(\ldots,\,$n$:\,$e$,\,\ldots)},
+in both cases derived from \synt{metadata},
+the context type for $e$ is
+the declared type of the corresponding formal parameter.
+\EndCase
+
+\LMHash{}%
+\Case{Binary operators}
+When an expression $e$ occurs as the right hand operand of
+one of the operators
+% ifNullExpression
+\lit{??},
+% logicalOrExpression
+\lit{||},
+% logicalAndExpression
+\lit{\&\&},
+% equalityExpression
+\lit{==}, \lit{!=}
+% relationalExpression
+\lit{>}, \lit{=}, \lit{>}, \lit{<=}, \lit{<},
+% bitwiseOrExpression
+\lit{|}
+% bitwiseXorExpression
+\lit{\^}
+% bitwiseAndExpression
+\lit{\&}
+% shiftExpression
+\lit{\ltlt}, \lit{\gtgt}, \lit{\gtgtgt}
+% additiveExpression
+\lit{+}, \lit{-}
+% multiplicativeExpression
+\lit{*}, \lit{/}, \lit{\%},\lit{\~{}/},
+the context type of $e$ is
+the type of the formal parameter which is specified in
+the corresponding operator declaration from
+the interface of the static type of the left hand operand.
+
+\commentary{%
+Note that operator \lit{[]} is covered below in
+the case about assignments and assignable selectors.%
+}
+\EndCase
+
+\LMHash{}%
+\Case{Assertions}
+% The second argument, if present, has no context type.
+In an \synt{assertion} of the form
+\code{\ASSERT{}($e_1$)} or the form
+\code{\ASSERT{}($e_1$, $e_2$)},
+the context type of $e_1$ is \code{bool}.
+\EndCase
+
+\LMHash{}%
+\Case{Await}
+Consider an expression $e$ of the form
+\code{\AWAIT\,\,$e_1$}.
+If the context type of $e$ is $T$
+then the context type of $e_1$ is \code{FutureOr<\futureOrBase{T}>}.
+\EndCase
+
+\LMHash{}%
+\Case{Returned expressions}
+In a \synt{functionBody} of the form
+`\code{=> $e$}',
+the context type for $e$
+is the declared return type of the immediately enclosing function.
+%
+In a \synt{functionBody} of the form
+`\code{\ASYNC{} => $e$}',
+the context type for $e$
+is \code{FutureOr<\flatten{T}>},
+where $T$ is the declared return type of the immediately enclosing function.
+
+\commentary{%
+For function literals and for local functions,
+the return type may have been obtained by inference.%
+}
+
+\LMHash{}%
+Consider a \synt{returnStatement} of the form
+\code{\RETURN{} $e$;}
+and let $f$ be the immediately enclosing function,
+with declared return type $T$.
+If $f$ is synchronous then the context type for $e$ is $T$.
+If $f$ is asynchronous then the context type for $e$
+is \code{FutureOr<\flatten{T}>}.
+
+\commentary{%
+Note that $f$ cannot be a generator function:
+a return statement would then be a compile-time error.%
+}
+\EndCase
+
+\LMHash{}%
+\Case{Yielded expressions}
+Consider a \synt{yieldStatement} of the form
+\code{\YIELD{} $e$;}
+and let $f$ be the immediately enclosing function,
+with declared return type $T$.
+Consider the case where the body of $f$ is marked \SYNC*.
+If \code{Iterable<$S$>} for some $S$ is
+% TODO(eernst): It can't actually be a non-trivial superinterface in user code,
+% cf. SDK issue #35921.
+$T$ or a direct or indirect superinterface thereof,
+then the context type for $e$ is $S$;
+otherwise the context type for $e$ is $T$.
+\commentary{%
+The latter can occur if $T$ is a top type
+(\ref{superBoundedTypes}).%
+}
+Consider the case where the body of $f$ is marked \ASYNC*.
+If \code{Stream<$S$>} for some $S$ is
+% TODO(eernst): Again, cf. #35921.
+$T$ or a direct or indirect superinterface thereof,
+then the context type for $e$ is $S$;
+otherwise the context type for $e$ is $T$.
+\commentary{%
+Again, the latter can occur if $T$ is a top type.%
+}
+
+\LMHash{}%
+Consider a \synt{yieldEachStatement} of the form
+\code{\YIELD*\,\,$e$;}
+and let $f$ be the immediately enclosing function,
+with declared return type $T$.
+The context type for $e$ is then $T$.
+\EndCase
+
+\LMHash{}%
+\Case{Assignments and assignable selectors}
+% Here we need to cover regular assignments (`=`) as well
+% as composite ones (`+=` et al.):
+%   assignableExpression assignmentOperator expression:
+%     context type of rhs is static type of assignable expression
+%   assignableExpression assignmentOperator expressionWithoutCascade:
+%     ditto
+%   cascadeSection cascadeSelector ... assignmentOperator expressionWithoutCascade:
+%     context static type of method/operator of last cascadeSelector
+%
+Consider an expression $e$ of the form
+\code{$e_1$\,=\,$e_2$}
+where $e_1$ is derived from \synt{assignableExpression} or from
+
+\syntax{<conditionalExpression> <cascadeSection>* `..'}
+
+\qquad\syntax{(<cascadeSelector> <argumentPart>*)}
+
+\qquad\syntax{(<assignableSelector> <argumentPart>*)*}
+
+\qquad\syntax{<assignableSelector>}
+
+% In a cascade, $e_2$ will be an expressionWithoutCasade,
+% but that's also derivable from <expression>.
+\noindent
+(\commentary{which means that $e$ is a cascade})
+and $e_2$ is an expression.
+If $e_1$ denotes a variable,
+the context type of $e_2$ is the static type of $e_1$.
+Otherwise $e$ denotes an invocation of a setter or operator \lit{[]=}, and
+the context type of $e_2$ is the type of the parameter
+of the statically known declaration of said setter/operator.
+
+\commentary{%
+The type \DYNAMIC{} may cause such an invocation to take place
+even though there is no statically known declaration;
+in this case $e_2$ does not have a context type.
+Also note that even when $e$ is a cascade,
+$e_1$ is still an expression.%
+}
+
+\LMHash{}%
+Consider a compound assignment (or compound assignment cascade) of the form
+\code{$e_1$\,\metavar{op}=\,$e_2$},
+where $e_1$ is derived in the same way as in the previous case,
+$e_2$ is an expression,
+and `\code{\metavar{op}=}' is derivable from
+\synt{compoundAssignmentOperator}.
+Let $T$ be the parameter type
+% `static type of e_1` = return type of getter, or type of local variable.
+of operator \metavar{op} in the static type of $e_1$.
+The context type of $e_2$ is then $T$.
+
+\LMHash{}%
+% The syntactic context here can be an assignment
+% `<assignableExpression> <assignmentOperator> e_1`, or a cascade
+% `<expression> '..' (..) (..)* <assignableSelector> <assignmentOperator> e_1`.
+%
+% For brevity, we rely on the fact that `[e_1] = e_2` can only occur in those
+% two situations (and similarly for `[e_1]` with no assignments), and refer to
+% the semantic notion of 'the receiver', which will be well-defined based on
+% other parts of the spec.
+Consider an expression $e_1$ that occurs in an \synt{assignableSelector}
+of the form \code{[$e_1$]}
+that is immediately followed by an operator \metavar{op}
+which can be derived from \synt{assignmentOperator}.
+Let $S$ be the static type of the receiver
+of the invocation of operator \lit{[]=}.
+Let $s$ be the member signature of
+the declaration of operator \lit{[]=} in $S$.
+The context type of $e_1$ is then the type of the first parameter in $s$.
+% e_2 is specified ambiguously, but a precise version would be quite verbose.
+Let $e_2$ be the expression that follows \metavar{op}.
+If \metavar{op} is \lit{=} then the context type for $e_2$
+is the type of the second parameter in $s$.
+If \metavar{op} is of the form \code{$\metavar{op}_1$=} then
+the context type of $e_2$ is the type of the parameter in
+the signature of operator $\metavar{op}_1$ in $S$.
+
+\LMHash{}%
+% The syntactic context here is <postfixExpression> or <cascadeSelector>.
+% Again, we use 'the receiver' to avoid a lot of syntactic detail.
+Consider an expression $e$ that occurs in an \synt{assignableSelector}
+of the form \code{[$e$]}
+that is \emph{not} immediately followed by an operator \metavar{op}
+which can be derived from \synt{assignmentOperator}.
+The context type of $e$ is the type of the formal parameter
+in the signature of operator \lit{[]}
+in the static type of the receiver
+of the invocation of operator \lit{[]}.
+\EndCase
+
+\LMHash{}%
+\Case{Control structures}
+In an \synt{ifStatement}, \synt{whileStatement}, and \synt{doStatement},
+the context type for the condition expression is \code{bool}.
+
+\LMHash{}%
+Let
+\code{\metavar{labels}\,\,\CASE\,$e$:\,\,\metavar{statements}}
+be a \synt{switchCase} in a switch statement of the form
+\code{\SWITCH\,($e_0$)\,\,\{\,\ldots\,\}}
+where the static type of $e_0$ is $T$.
+The context type for $e$ is then $T$.
+
+\LMHash{}%
+Consider a for-in statement (\ref{for-in}) of the form
+\code{\FOR\,\,($T$\,\id\,\IN\,$e$)\,\,$s$}
+where $T$ is a type annotation;
+the context type for $e$ is \code{Iterable<$T$>}.
+%
+Consider a for-in statement of the form
+\code{\FOR\,\,(\id\,\IN\,$e$)\,\,$s$}
+where $T$ is the declared type of the variable \id;
+the context type for $e$ is \code{Iterable<$T$>}.
+%
+Consider an asynchronous for-in statement
+(\ref{asynchronousFor-in})
+of the form
+\code{\AWAIT\,\,\FOR\,\,($T$\,\id\,\IN\,$e$)\,\,$s$}
+where $T$ is a type annotation;
+the context type for $e$ is \code{Stream<$T$>}.
+%
+Consider an asynchronous for-in statement
+of the form
+\code{\AWAIT\,\,\FOR\,\,(\id\,\IN\,$e$)\,\,$s$}
+where $T$ is the declared type of the variable \id;
+the context type for $e$ is \code{Stream<$T$>}.
+\EndCase
+
+\LMHash{}%
+\Case{Structural propagation}
+Consider an expression $e$ of the form
+\code{($e_1$)}.
+If $e$ has context type $T$ then $e_1$ also has context type $T$.
+%
+Consider a conditional expression $e$ of the form
+\code{$e_1$?\,$e_2$\,:\,$e_3$}.
+The context type of $e_1$ is \code{bool}.
+If $e$ has context type $T$ then
+both $e_2$ and $e_3$ also have context type $T$.
+\EndCase
+
+
 \subsubsection{Type Promotion}
 \LMLabel{typePromotion}
 
@@ -15671,7 +16105,7 @@ unless it is permitted according to one of the following rules.
   }
 \item
   \commentary{%
-  In an arrow function body \code{=> $e$},
+  In an arrow function body `\code{=> $e$}',
   the returned expression $e$ may have type \VOID{}
   in a number of situations
   (\ref{functions}).%
