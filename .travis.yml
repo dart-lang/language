@@ -4,7 +4,7 @@ node_js:
   - "node"
 before_install:
   - |
-    if git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE 'dartLangSpec.tex|.travis.yml'; then
+    if git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE 'dartLangSpec.tex|.travis.yml|dart.sty'; then
       echo "dartLangSpex.tex wasn't changed; skipping spec PDF build"
       exit 0
     else
