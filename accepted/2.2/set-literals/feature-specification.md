@@ -364,7 +364,9 @@ var s6                 = {...{1: 1}, ...?d}; // Map<dynamic, dynamic>
 // var s8              = {...{1}, ...{1: 1}};  // Compile-time error, incompatible
 ```
 
-##Revisions
+## Revisions
 1.0: Initial version plus type fixes.
+
 1.1: Changed type rules for selecting set literals over map literals.
+
 1.2: Changed type rules again.
