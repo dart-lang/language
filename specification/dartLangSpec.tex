@@ -4402,6 +4402,7 @@ or the mixin introduced by $T$ if $T$ denotes a mixin declaration.
 
 \LMHash{}%
 Let $D$ be a mixin application class declaration of the form
+
 \begin{normativeDartCode}
 \ABSTRACT? \CLASS{} $N$ = $S$ \WITH{} $M_1$, \ldots{}, $M_n$ \IMPLEMENTS{} $I_1$, \ldots, $I_k$;
 \end{normativeDartCode}
@@ -4455,11 +4456,13 @@ and zero or more \IndexCustom{implemented interfaces}{mixin!implemented interfac
 
 \LMHash{}%
 The mixin derived from a class declaration:
+
 \begin{normativeDartCode}
 \ABSTRACT? \CLASS{} $X$ \IMPLEMENTS{} $I_1$, \ldots{}, $I_k$ \{
   \metavar{members}
 \}
 \end{normativeDartCode}
+
 has \code{Object} as required superinterface
 and combined superinterface,
 $I_1$, \ldots, $I_k$ as implemented interfaces,
@@ -4485,11 +4488,14 @@ to one with the clause \code{\ON{} Object}.
 
 \LMHash{}
 Let $M$ be a \MIXIN{} declaration of the form
+
 \begin{normativeDartCode}
-\MIXIN{} $N$<\TypeParametersStd> \ON{} \List{T}{1}{n} \IMPLEMENTS{} \List{I}{1}{k} \{
+\MIXIN{} $N$<\TypeParametersStd> \ON{} \List{T}{1}{n}
+    \IMPLEMENTS{} \List{I}{1}{k} \{
   \metavar{members}
 \}
 \end{normativeDartCode}
+
 It is a compile-time error if any of the types $T_1$ through $T_n$
 or $I_1$ through $I_k$ is
 a type variable (\ref{generics}),
@@ -4503,9 +4509,11 @@ or type \code{FutureOr<$T$>} for any $T$ (\ref{typeFutureOr}).
 
 \LMHash{}%
 Let $M_S$ be the interface declared by the class declaration
+
 \begin{normativeDartCode}
-abstract \CLASS{} $M_{super}$<$P_1$, \ldots{}, $P_m$> implements $T_1$, $\dots{}$, $T_n$ \{\}
+\ABSTRACT{} \CLASS{} $M_{super}$<$P_1$, \ldots{}, $P_m$> \IMPLEMENTS{} $T_1$, $\dots{}$, $T_n$ \{\}
 \end{normativeDartCode}
+
 where $M_{super}$ is a fresh name.
 It is a compile-time error for the mixin declaration if the $M_S$
 class declaration would cause a compile-time error,
@@ -4522,11 +4530,14 @@ as the interface $T_1$.}
 
 \LMHash{}
 Let $M_I$ be the interface that would be defined by the class declaration
+
 \begin{normativeDartCode}
-\ABSTRACT{} \CLASS{} $N$<\TypeParametersStd> \IMPLEMENTS{} \List{T}{1}{n}, \List{I}{1}{k} \{
+\ABSTRACT{} \CLASS{} $N$<\TypeParametersStd>
+    \IMPLEMENTS{} \List{T}{1}{n}, \List{I}{1}{k} \{
   $\metavar{members}'$
 \}
 \end{normativeDartCode}
+
 where $\metavar{members}'$ are the member declarations of
 the mixin declaration $M$ except that all superinvocations are treated
 as if \SUPER{} was a valid expression with static type $M_S$.
@@ -4828,12 +4839,12 @@ or it is the type \code{FutureOr}.
 \LMHash{}%
 A \IndexCustom{generic function declaration}{function declaration!generic}
 introduces a generic function (\ref{formalParameters}) into the enclosing scope.
+
+\LMHash{}%
 Consider a function invocation expression of the form
 \code{f<$T_1, \ldots,\ T_l$>(\ldots)},
 where the static type of \code{f} is a generic function type with formal type parameters
 $X_1\ \EXTENDS\ B_1, \ldots,\ X_m\ \EXTENDS\ B_m$.
-
-\LMHash{}%
 It is a compile-time error if $m \not= l$.
 It is a compile-time error if there exists a $j$
 such that $T_j$ is not a subtype of $[T_1/X_1, \ldots, T_m/X_m]B_j$.
@@ -8022,7 +8033,10 @@ Evaluation of $e$ proceeds as follows:
 If $e$ is of the form
 \code{\CONST{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 let $i$ be the value of the expression $e'$:
+
+\noindent
 \code{\NEW{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+
 \commentary{
 Let $o$ be the result of an evaluation of $e'$,
 at some point in time of some execution of the program
@@ -13601,9 +13615,9 @@ where $hide(l, n)$ takes a list of identifiers $l$ and a namespace $n$, and prod
 \end{itemize}
 
 \LMHash{}%
-Next, if $I$ includes a prefix clause of the form \AS{} $p$,
-let $NS = \{p: prefixObject(NS_n)\}$ where $prefixObject(NS_n)$ is
-a \Index{prefix object} for the namespace $NS_n$,
+If $I$ includes a prefix clause of the form \AS{} $p$,
+let $NS = \{p: prefixObject(NS_n)\}$,
+where $prefixObject(NS_n)$ is a \Index{prefix object} for the namespace $NS_n$,
 which is an object that has the following members:
 
 \begin{itemize}
@@ -14056,7 +14070,7 @@ but it is the least upper bound of all function types.
 
 <typeList> ::= <type> (`,' <type>)*
 
-<typeNotVoidNotFunctionList> ::=
+<typeNotVoidNotFunctionList> ::= \gnewline{}
   <typeNotVoidNotFunction> (`,' <typeNotVoidNotFunction>)*
 
 <typeNotVoid> ::= <functionType>
@@ -14075,7 +14089,8 @@ but it is the least upper bound of all function types.
   \alt `(' <normalParameterTypes> `,'? `)'
   \alt `(' <optionalParameterTypes> `)'
 
-<normalParameterTypes> ::= <normalParameterType> (`,' <normalParameterType>)*
+<normalParameterTypes> ::= \gnewline{}
+  <normalParameterType> (`,' <normalParameterType>)*
 
 <normalParameterType> ::= <typedIdentifier>
   \alt <type>
@@ -15170,6 +15185,8 @@ This means that given a generic declaration
 \code{$G$<$P_1, \ldots,\ P_n$>$\ldots$},
 where $P_i$ is a formal type parameter declaration, $i \in 1 .. n$,
 the type $G$ is equivalent to
+
+\noindent
 \code{$G$<$\DYNAMIC{}, \ldots,\ \DYNAMIC{}$>}.
 }
 
@@ -15215,8 +15232,8 @@ whenever doing so is sound.
   }
 
 \item
-  Let $e$ be an expression of the form \code{$d$.\id(\metavar{arguments})} or
-  \code{$d$.\id<\metavar{typeArguments}>(\metavar{arguments})}
+  Let $e$ be an expression which is of the form \code{$d$.\id(\metavar{arguments})}
+  or the form \code{$d$.\id<\metavar{typeArguments}>(\metavar{arguments})},
   where the static type of $d$ is \DYNAMIC,
   \id{} is the name of a getter declared in \code{Object} with return type $F$,
   \metavar{arguments} are derived from \synt{arguments}, and
