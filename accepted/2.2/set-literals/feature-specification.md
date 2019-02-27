@@ -1,6 +1,7 @@
 # Set Literals Design Document
 Author: lrn@google.com
 Version: 1.2
+Status: Superceeded by language specification.
 
 Solution for [Set Literals Problem](http://github.com/dart-lang/language/issues/36).
 Based on feature proposal [Issue 37](http://github.com/dart-lang/language/issues/37)
@@ -334,7 +335,7 @@ class C {
 }
 
 // First equal object wins.
-var v19                = {C(1, "a"), C(2, "a"), C(1, b")};  // LinkedHashSet<C>
+var v19                = {C(1, "a"), C(2, "a"), C(1, "b")};  // LinkedHashSet<C>
 print(v19);  // {C(1, "a"), C(2, "a")}
 
 const v20              = {1, 2, 3};        // const Set<int>
