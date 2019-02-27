@@ -1216,7 +1216,7 @@ A function body is either:
   Because Dart supports dynamic function invocations,
   we cannot guarantee that a function that does not return an object
   will not be used in the context of an expression.
-  Therefore, every function must return an object.
+  Therefore, every function must either throw or return an object.
   A function body that ends without doing a throw or return
   will cause the function to return the null object (\ref{null}),
   as will a \RETURN{} without an expression.
@@ -6793,14 +6793,15 @@ The \lit{\$} sign may be followed by either:
 \LMHash{}%
 The form \code{\$\id} is equivalent to the form \code{\$\{\id\}}.
 An interpolated string, $s$, with content
-`\code{$s_0$\$\{$e_1$\}$s_1\ldots{}s_{n-1}$\$\{$e_n$\}$s_{n}$}' (where any of $s_0, \ldots, s_n$ can be empty)
-is evaluated by evaluating each expression $e_i$ ($1 \le i \le n$) in to a string $r_i$ in the order they occur in the source text, as follows:
+`\code{$s_0$\$\{$e_1$\}$s_1\ldots{}s_{n-1}$\$\{$e_n$\}$s_{n}$}'
+(where any of $s_0, \ldots, s_n$ can be empty)
+is evaluated by evaluating each expression $e_i$ ($1 \le i \le n$)
+into a string $r_i$ in the order they occur in the source text, as follows:
 \begin{itemize}
 \item Evaluate $e_i$ to an object $o_i$.
 \item Invoke the \code{toString} method on $o_i$ with no arguments,
   and let $r_i$ be the returned object.
-\item If $r_i$ is not an instance of the built-in type \code{String},
-  throw an \code{Error}.
+\item If $r_i$ is the null object, a dynamic error occurs.
 \end{itemize}
 Finally, the result of the evaluation of $s$ is
 the concatenation of the strings $s_0$, $r_1$, \ldots, $r_n$, and $s_n$.
@@ -8888,8 +8889,8 @@ A new instance $im$ of the predefined class \code{Invocation} is created, such t
 \begin{itemize}
 \item \code{$im$.isMethod} evaluates to \code{\TRUE{}}.
 \item \code{$im$.memberName} evaluates to the symbol \code{\#call}.
-\item \code{$im$.positionalArguments} evaluates to an unmodifiable list with the objects
-  resulting from evaluation of
+\item \code{$im$.positionalArguments} evaluates to an unmodifiable list
+  containing the objects resulting from evaluation of
   \code{<Object>[$a_1, \ldots,\ a_n$]}.
 \item \code{$im$.namedArguments} evaluates to an unmodifiable map
   with the keys and values resulting from evaluation of
@@ -11828,14 +11829,10 @@ Likewise, if evaluation of the expression of a \RETURN{} statement throws,
 so does execution of the \RETURN{} statement.
 }
 
-%% TODO(eernst): Use proposal from Lasse to define the concept of a statement
-%% for which it is 'statically known that it will not complete normally': Cf.
-%% https://github.com/dart-lang/language/issues/139.
-\Q{%
-Definition of
-`it is statically known that this statement will not complete normally'
-will be inserted here.%
-}
+%% TODO(eernst): Use proposal from Lasse to add a definition of the concept of
+%% a statement for which it is 'statically known that it will not complete
+%% normally': Cf. https://github.com/dart-lang/language/issues/139.
+%% That definition should probably be located here.
 
 
 \subsection{Blocks}
