@@ -1,7 +1,10 @@
 # Set Literals Design Document
-Author: lrn@google.com
-Version: 1.2
-Status: Superceeded by language specification.
+
+**Author**: lrn@google.com
+
+**Version**: 1.2
+
+**Status**: Superceeded by language specification.
 
 Solution for [Set Literals Problem](http://github.com/dart-lang/language/issues/36).
 Based on feature proposal [Issue 37](http://github.com/dart-lang/language/issues/37)
