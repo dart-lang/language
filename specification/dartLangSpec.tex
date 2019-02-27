@@ -49,7 +49,7 @@
 % - Define a notion of lookup that is needed for super invocations, adjust
 %   specification of super invocations accordingly.
 % - Specify that it is a dynamic error to initialize a non-static variable
-%   with a value that does not have the declared type (e.g., a failed cast).
+%   with an object that does not have the declared type (e.g., a failed cast).
 % - Specify for constructor initializers that target variable must exist and
 %   the initializing expression must have a type which is assignable to its
 %   type.
@@ -1088,7 +1088,7 @@ a subtype of the actual type of the variable $v$
 Let $d$ be the declaration of a static or instance variable $v$.
 If $d$ is an instance variable,
 then the invocation of the implicit getter of $v$ evaluates to
-the value stored in $v$.
+the object stored in $v$.
 If $d$ is a static variable
 (\commentary{which can be a library variable})
 then the implicit getter method of $v$ executes as follows:
@@ -1103,7 +1103,7 @@ If $d$ is of one of the forms
 \code{\STATIC{} $T$ $v$ = $e$; },
 \code{\STATIC{} \FINAL{} $v$ = $e$; } or
 \code{\STATIC{} \FINAL{} $T$ $v$ = $e$;}
-and no value has yet been stored into $v$
+and no object has yet been stored into $v$
 then the initializing expression $e$ is evaluated.
 If, during the evaluation of $e$, the getter for $v$ is invoked,
 a \code{CyclicInitializationError} is thrown.
@@ -1114,7 +1114,7 @@ Otherwise, the evaluation of $e$ succeeded yielding an object $o$;
 then $o$ is stored into $v$ and
 the execution of the getter completes by returning $o$.
 Otherwise,
-(\commentary{when a value $o$ has been stored in $v$})
+(\commentary{when an object $o$ has been stored in $v$})
 execution of the getter completes by returning $o$.
 \item {\bf Constant variable declaration}.
 If $d$ is of one of the forms
@@ -1128,7 +1128,7 @@ Note that a constant expression cannot depend on itself,
 so no cyclic references can occur.
 }
 \item {\bf Variable declaration without initializer}.
-The result of executing the getter method is the value stored in $v$.
+The result of executing the getter method is the object stored in $v$.
 \commentary{This may be the initial value, that is, the null object.}
 \end{itemize}
 
@@ -1214,9 +1214,9 @@ A function body is either:
 
   \commentary{%
   Because Dart supports dynamic function invocations,
-  we cannot guarantee that a function that does not return a value
+  we cannot guarantee that a function that does not return an object
   will not be used in the context of an expression.
-  Therefore, every function must return a value.
+  Therefore, every function must return an object.
   A function body that ends without doing a throw or return
   will cause the function to return the null object (\ref{null}),
   as will a \RETURN{} without an expression.
@@ -1232,8 +1232,8 @@ OR
   \commentary{%
   The other modifiers do not apply here,
   because they apply only to generators, discussed below.
-  Generators are not allowed to return a value,
-  values are added to the generated stream or iterable using
+  Generators are not allowed to explicitly return anything,
+  objects are added to the generated stream or iterable using
   \YIELD{} or \YIELD*.%
   }
   Let $T$ be the declared return type of the function that has this body.
@@ -1253,7 +1253,7 @@ OR
     In contrast, \code{\RETURN{} $e$;} in a block body is only allowed
     for an $e$ with one of a few specific static types,
     because it is less likely that the developer understands
-    that the returned value will not be used
+    that the returned object will not be used
     (\ref{return}).%
     }
   \item The function is asynchronous, \flatten{T} is not \VOID{},
@@ -2188,16 +2188,17 @@ its return type is \VOID{} (\ref{typeOfAFunction}).
 The return type is \VOID{} because
 a return statement in an implementation of operator
 \lit{[]=}
-does not return a value.
+does not return an object.
 Consider a non-throwing evaluation of an expression $e$ of the form
 \code{$e_1$[$e_2$] = $e_3$},
-and assume that the evaluation of $e_3$ yields an instance $o$.
+and assume that the evaluation of $e_3$ yields an object $o$.
 $e$ will then evaluate to $o$,
 and even if the executed body of operator
 \lit{[]=}
-completes with a value $o'$,
-that is, if $o'$ is returned, that value is simply ignored.
-The rationale for this behavior is that assignments should be guaranteed to evaluate to the assigned value.
+completes with an object $o'$,
+that is, if $o'$ is returned it is simply ignored.
+The rationale for this behavior is that
+assignments should be guaranteed to evaluate to the assigned object.
 }
 
 
@@ -2436,14 +2437,14 @@ such that:
 \item \code{$im$.isSetter} evaluates to \code{\TRUE{}} if{}f $m$ is a setter.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
 \item \code{$im$.positionalArguments} evaluates to an unmodifiable list
-  with the same values as the list resulting from evaluation of
+  containing the same objects as the list resulting from evaluation of
   \code{<Object>[$a_1, \ldots,\ a_k$]}.
 \item \code{$im$.namedArguments} evaluates to an unmodifiable map
   with the same keys and values as the map resulting from evaluation of
 
   \code{<Symbol, Object>\{$\#x_1$: $x_1, \ldots,\ \#x_m$: $x_m$\}}.
 \item \code{$im$.typeArguments} evaluates to an unmodifiable list
-  with the same values as the list resulting from evaluation of
+  containing the same objects as the list resulting from evaluation of
   \code{<Type>[$X_1, \ldots,\ X_r$]}.
 \end{itemize}
 
@@ -2848,7 +2849,7 @@ Executing an initializing formal \code{\THIS{}.\id}
 causes the instance variable \id{} of the immediately surrounding class
 to be assigned the value of the corresponding actual parameter,
 % This can occur due to a failing implicit cast.
-unless the assigned value has a dynamic type
+unless the assigned object has a dynamic type
 which is not a subtype of the declared type of the instance variable \id{},
 in which case a dynamic error occurs.
 
@@ -2986,7 +2987,7 @@ There are three kinds of initializers.
   Execution of the superinitializer causes
   the initializer list of the superconstructor to be executed.
 \item[$\bullet$] An \emph{instance variable initializer}
-  assigns a value to an individual instance variable.
+  assigns an object to an individual instance variable.
 \item[$\bullet$] An assertion.
 \end{itemize}
 }
@@ -5877,7 +5878,7 @@ may have an associated static context type
 %% TODO(eernst): This ref is undefined until CL 92782 is landed.
 %% (\ref{contextTypes}),
 which may affect the static type and evaluation of the expression.
-Every value has an associated dynamic type (\ref{dynamicTypeSystem}).
+Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
 
 \begin{grammar}
 <expression> ::= <assignableExpression> <assignmentOperator> <expression>
@@ -6488,17 +6489,18 @@ as specified by the IEEE 754 standard.
 
 \LMHash{}%
 An integer literal with static type \code{double} and numeric value $i$
-evaluates to an instance of the \code{double} class representing
-the value $i$. It is a compile-time error if the value $i$ cannot be
-represented \emph{precisely} by the an instance of \code{double}.
-\commentary{
+evaluates to an instance of the \code{double} class representing the value $i$.
+It is a compile-time error if the value $i$
+cannot be represented \emph{precisely} by an instance of \code{double}.
+
+\commentary{%
 A 64 bit double precision floating point number
 is usually taken to represent a range of real numbers
 around the precise value denoted by the number's
 sign, mantissa and exponent.
 For integer literals evaluating to \code{double}
 values we insist that the integer literal's numeric value
-is the precise value of the \code{double} instance.
+is the precise value of the \code{double} instance.%
 }
 
 \LMHash{}%
@@ -6764,7 +6766,7 @@ The static type of a string literal is \code{String}.
 \LMHash{}%
 It is possible to embed expressions within non-raw string literals,
 such that these expressions are evaluated,
-and the resulting values are converted into strings and
+and the resulting objects are converted into strings and
 concatenated with the enclosing string.
 This process is known as \Index{string interpolation}.
 
@@ -6794,12 +6796,14 @@ An interpolated string, $s$, with content
 `\code{$s_0$\$\{$e_1$\}$s_1\ldots{}s_{n-1}$\$\{$e_n$\}$s_{n}$}' (where any of $s_0, \ldots, s_n$ can be empty)
 is evaluated by evaluating each expression $e_i$ ($1 \le i \le n$) in to a string $r_i$ in the order they occur in the source text, as follows:
 \begin{itemize}
-\item{} Evaluate $e_i$ to an object $o_i$.
-\item{} Invoke the \code{toString} method on $o_i$ with no arguments, and let
- $r_i$ be the returned value.
-\item{} If $r_i$ is not an instance of the built-in type \code{String}, throw an \code{Error}.
+\item Evaluate $e_i$ to an object $o_i$.
+\item Invoke the \code{toString} method on $o_i$ with no arguments,
+  and let $r_i$ be the returned object.
+\item If $r_i$ is not an instance of the built-in type \code{String},
+  throw an \code{Error}.
 \end{itemize}
-Finally, the result of the evaluation of $s$ is the concatenation of the strings $s_0$, $r_1$, \ldots, $r_n$, and $s_n$.
+Finally, the result of the evaluation of $s$ is
+the concatenation of the strings $s_0$, $r_1$, \ldots, $r_n$, and $s_n$.
 
 
 \subsection{Symbols}
@@ -7295,10 +7299,10 @@ is defined as the value of the constant set literal
 \LMHash{}%
 Let $set_1$ be a constant set literal with type argument $E$
 and element expressions, in source order, $e_{11}, \ldots, e_{1n}$ evaluating
-to values $v_{11}, \ldots, v_{1n}$.
+to objects $v_{11}, \ldots, v_{1n}$.
 Let $set_2$ be a constant set literal with type argument $F$
 and element expressions, in source order, $e_{21}, \ldots, e_{2n}$ evaluating
-to values $v_{21}, \ldots, v_{2n}$.
+to objects $v_{21}, \ldots, v_{2n}$.
 If{}f \code{identical($v_{1i}$, $v_{2i}$)}
 for $i \in 1 .. n$, and $E$ and $F$ is the same type,
 then \code{identical($set_1$, $set_2$)}.
@@ -7320,7 +7324,7 @@ For each $i \in 1 .. n$ in numeric order,
 the expression $e_i$ is evaluated producing object $v_i$.
 \item A fresh object (\ref{generativeConstructors}) $s$
 implementing the built-in class \code{Set<$E$>}, is created.
-\item The set $s$ is made to have the values $v_1, \ldots{} , v_n$ as elements,
+\item The set $s$ is made to have the objects $v_1, \ldots{} , v_n$ as elements,
 iterated in numerical order.
 \item
 The result of the evaluation is $s$.
@@ -7913,9 +7917,10 @@ the body of $q$ is executed with respect to
 the bindings that resulted from the evaluation of the argument list,
 and with the type parameters, if any, of $q$ bound to
 the actual type arguments $u_1, \ldots, u_m$.
-If this execution returns a value (\ref{statementCompletion}),
-then $e$ evaluates to the returned value.
-Otherwise, if the execution completes normally or returns with no value,
+If this execution returns an object
+(\ref{statementCompletion})
+then $e$ evaluates to the returned object.
+Otherwise, if the execution completes normally or returns with no object,
 then $e$ evaluates to the null object (\ref{null}).
 Otherwise the execution throws an exception $x$ and stack trace $t$,
 and then evaluation of $e$ also throws $x$ and $t$
@@ -8164,8 +8169,11 @@ Execution a body of the form \code{\ASYNC{} => $e$} is equivalent to executing a
 
 \LMHash{}%
 If $f$ is synchronous and is not a generator (\ref{functions}) then execution of the body of $f$ begins immediately.
-If the execution of the body of $f$ returns a value, $v$, (\ref{statementCompletion}), the invocation evaluates to $v$.
-If the execution completes normally or it returns without a value, the invocation evaluates to the null object (\ref{null}).
+If the execution of the body of $f$ returns an object $v$
+(\ref{statementCompletion}),
+the invocation evaluates to $v$.
+If the execution completes normally or it returns without an object,
+the invocation evaluates to the null object (\ref{null}).
 If the execution throws an exception object and stack trace,
 the invocation throws the same exception object and stack trace
 (\ref{expressionEvaluation}).
@@ -8175,8 +8183,8 @@ A complete function body can never break or continue (\ref{statementCompletion})
 because a \BREAK{} or \CONTINUE{} statement must always occur inside
 the statement that is the target of the \BREAK{} or \CONTINUE{}.
 This means that a function body can only either complete normally, throw, or return.
-Completing normally or returning without a value is treated
-the same as returning the null object (\ref{null}),
+Completing normally or returning without an object is treated
+the same as returning with the null object (\ref{null}),
 so the result of executing a function body can always be used as
 the result of evaluating an expression,
 either by evaluating to an object, or by the evaluation throwing.%
@@ -8212,13 +8220,23 @@ It would not be acceptable to pre-compute the results of the generator and cache
 When iteration over the iterable is started, by getting an iterator $j$ from the iterable and calling \code{moveNext()}, execution of the body of $f$ will begin.
 When execution of the body of $f$ completes (\ref{statementCompletion}),
 \begin{itemize}
-\item If it returns without a value or it completes normally (\ref{statementCompletion}), $j$ is positioned after its last element, so that its current value is the null object (\ref{null}) and the current call to \code{moveNext()} on $j$ returns false, as must all further calls.
-\item If it throws an exception object $e$ and stack trace $t$ then the current value of $j$ is the null object (\ref{null}) and the current call to \code{moveNext()} throws $e$ and $t$ as well.
-Further calls to \code{moveNext()} must return false.
+\item If it returns without an object or it completes normally
+  (\ref{statementCompletion}),
+  $j$ is positioned after its last element,
+  so that its current value is the null object
+  (\ref{null})
+  and the current call to \code{moveNext()} on $j$ returns false,
+  as must all further calls.
+\item If it throws an exception object $e$ and stack trace $t$
+  then the current value of $j$ is the null object
+  (\ref{null})
+  and the current call to \code{moveNext()} throws $e$ and $t$ as well.
+  Further calls to \code{moveNext()} must return false.
 \end{itemize}
 
+\LMHash{}%
 Each iterator starts a separate computation.
-If the \code{\SYNC*} function is impure, the sequence of values yielded by each iterator may differ.
+If the \code{\SYNC*} function is impure, the sequence of objects yielded by each iterator may differ.
 
 \commentary{
 One can derive more than one iterator from a given iterable.
@@ -8248,8 +8266,8 @@ Then the body of $f$ is executed until it either suspends or completes, at which
 The body of $f$ may suspend during the evaluation of an \AWAIT{} expression or execution of an asynchronous \FOR{} loop.
 }
 The future $o$ is completed when execution of the body of $f$ completes (\ref{statementCompletion}).
-If execution of the body returns a value, $o$ is completed with that value,
-if it completes normally or returns without a value,
+If execution of the body returns an object, $o$ is completed with that object.
+If it completes normally or returns without an object,
 $o$ is completed with the null object (\ref{null}),
 and if it throws an exception $e$ and stack trace $t$,
 $o$ is completed with the error $e$ and stack trace $t$.
@@ -8271,7 +8289,10 @@ otherwise $U$ is \code{Object}.
 When $s$ is listened to, execution of the body of $f$ will begin.
 When execution of the body of $f$ completes:
 \begin{itemize}
-\item If it completes normally or returns with no value (\ref{statementCompletion}), then if $s$ has been canceled then its cancellation future is completed with the null object (\ref{null}).
+\item If it completes normally or returns without an object
+  (\ref{statementCompletion}),
+  then if $s$ has been canceled
+  then its cancellation future is completed with the null object (\ref{null}).
 \item If it throws an exception object $e$ and stack trace $t$:
   \begin{itemize}
   \item If $s$ has been canceled then its cancellation future is completed with error $e$ and stack trace $t$.
@@ -8280,13 +8301,18 @@ When execution of the body of $f$ completes:
 \item $s$ is closed.
 \end{itemize}
 \commentary{
-The body of an asynchronous generator function cannot break, continue or return a value (\ref{statementCompletion}).
-The first two are only allowed in contexts that will handle the break or continue, and return statements with an expression are not allowed in generator functions.
+The body of an asynchronous generator function
+cannot break, continue or return with an object
+(\ref{statementCompletion}).
+The first two are only allowed in contexts that will handle the break or continue,
+and return statements with an expression are not allowed in generator functions.
 }
 
 \rationale{
-When an asynchronous generator's stream has been canceled, cleanup will occur in the \FINALLY{} clauses (\ref{try}) inside the generator.
-We choose to direct any exceptions that occur at this time to the cancellation future rather than have them be lost.
+When an asynchronous generator's stream has been canceled,
+cleanup will occur in the \FINALLY{} clauses (\ref{try}) inside the generator.
+We choose to direct any exceptions that occur at this time
+to the cancellation future rather than have them be lost.
 }
 
 %\LMHash{}%
@@ -8862,16 +8888,16 @@ A new instance $im$ of the predefined class \code{Invocation} is created, such t
 \begin{itemize}
 \item \code{$im$.isMethod} evaluates to \code{\TRUE{}}.
 \item \code{$im$.memberName} evaluates to the symbol \code{\#call}.
-\item \code{$im$.positionalArguments} evaluates to an unmodifiable list with the values
-resulting from evaluation of
-\code{<Object>[$a_1, \ldots,\ a_n$]}.
+\item \code{$im$.positionalArguments} evaluates to an unmodifiable list with the objects
+  resulting from evaluation of
+  \code{<Object>[$a_1, \ldots,\ a_n$]}.
 \item \code{$im$.namedArguments} evaluates to an unmodifiable map
-with the keys and values resulting from evaluation of
+  with the keys and values resulting from evaluation of
 
-\code{<Symbol, Object>\{$\#x_{n+1}$: $a_{n+1}, \ldots,\ \#x_{n+k}$: $a_{n+k}$\}}.
+  \code{<Symbol, Object>\{$\#x_{n+1}$: $a_{n+1}, \ldots,\ \#x_{n+k}$: $a_{n+k}$\}}.
 \item \code{$im$.typeArguments} evaluates to an unmodifiable list
-with the values resulting from evaluation of
-\code{<Type>[$A_1, \ldots,\ A_r$]}.
+  with the values resulting from evaluation of
+  \code{<Type>[$A_1, \ldots,\ A_r$]}.
 \end{itemize}
 
 \LMHash{}%
@@ -9398,7 +9424,7 @@ $m$ in $o$ with respect to $L$.
 
 \LMHash{}%
 If the getter lookup succeeded then invoke the getter $o.m$
-and let $v_g$ be the returned value.
+and let $v_g$ be the returned object.
 Then the value of $i$ is the value of
 
 \code{$v_g$<$A_1, \ldots,\ A_r$>($a_1,\ \ldots,\ a_n,\ x_{n+1}$: $a_{n+1},\ \ldots,\ x_{n+k}$: $a_{n+k}$)}.
@@ -9410,14 +9436,14 @@ then a new instance $im$ of the predefined class \code{Invocation} is created, s
 \item \code{$im$.isMethod} evaluates to \code{\TRUE{}}.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
 \item \code{$im$.positionalArguments} evaluates to an unmodifiable list
-  with the values resulting from the evaluation of
+  containing the objects resulting from the evaluation of
   \code{<Object>[$a_1, \ldots,\ a_n$]}.
 \item \code{$im$.namedArguments} evaluates to an unmodifiable map
   with the keys and values resulting from the evaluation of
 
   \code{<Symbol, Object>\{$\#x_{n+1}$: $a_{n+1}, \ldots,\ \#x_{n+k}$: $a_{n+k}$\}}.
 \item \code{$im$.typeArguments} evaluates to an unmodifiable list
-  with the values resulting from the evaluation of
+  containing the objects resulting from the evaluation of
   \code{<Type>[$A_1, \ldots,\ A_r$]}.
 \end{itemize}
 
@@ -10450,14 +10476,15 @@ If the setter lookup has failed, then a new instance $im$ of the predefined clas
 \begin{itemize}
 \item \code{$im$.isSetter} evaluates to \code{\TRUE{}}.
 \item \code{$im$.memberName} evaluates to the symbol \code{v=}.
-\item \code{$im$.positionalArguments} evaluates to an unmodifiable list with the same values as
-$\code{<Object>}[o_2]$.
+\item \code{$im$.positionalArguments} evaluates to an unmodifiable list
+  containing the same objects as
+  $\code{<Object>}[o_2]$.
 \item \code{$im$.namedArguments} evaluates to an empty, unmodifiable instance of
 
-\code{Map<Symbol, Object>}.
+  \code{Map<Symbol, Object>}.
 \item \code{$im$.typeArguments} evaluates to an empty, unmodifiable instance of
 
-\code{List<Type>}.
+  \code{List<Type>}.
 \end{itemize}
 
 \LMHash{}%
@@ -10620,7 +10647,7 @@ The static type of $a$ is the least upper bound of the static type of \code{$e_1
 Evaluation of a compound assignment $a$ of the form \code{$e_1$[$e_2$] ??= $e_3$}
 proceeds as follows:
 Evaluate $e_1$ to an object $u$ and then evaluate $e_2$ to an object $i$.
-Call the \code{[]} method on $u$ with argument $i$, and let $o$ be the returned value.
+Call the \code{[]} method on $u$ with argument $i$, and let $o$ be the returned object.
 If $o$ is not the null object (\ref{null}), $a$ evaluates to $o$.
 Otherwise evaluate $e_3$ to an object $v$
 and then call the \code{[]=} method on $u$ with $i$ as first argument and $v$ as second argument.
@@ -11200,7 +11227,7 @@ At some time after $f$ is completed, control returns to the current invocation.
 If $f$ has completed with an error $x$ and stack trace $t$,
 $a$ throws $x$ and $t$
 (\ref{expressionEvaluation}).
-If $f$ completes with a value $v$, $a$ evaluates to $v$.
+If $f$ completes with an object $v$, $a$ evaluates to $v$.
 
 %Otherwise, the value of $a$ is the value of $e$. If evaluation of $e$ raises an exception $x$, $a$ raises $x$.
 
@@ -11438,8 +11465,11 @@ Assignable expressions are expressions that can appear on the left hand side of 
 This section describes how to evaluate these expressions when they do not constitute the complete left hand side of an assignment.
 
 \rationale{
-Of course, if assignable expressions always appeared \emph{as} the left hand side, one would have no need for their value, and the rules for evaluating them would be unnecessary.
-However, assignable expressions can be subexpressions of other expressions and therefore must be evaluated.
+Of course, if assignable expressions always appeared \emph{as} the left hand side,
+one would have no need for their value,
+and the rules for evaluating them would be unnecessary.
+However, assignable expressions can be subexpressions of other expressions
+and therefore must be evaluated.
 }
 
 \begin{grammar}
@@ -11577,7 +11607,9 @@ If, however, $e$ occurs inside a static member, a compile-time error occurs.
 %\item If $d$ is a library variable then:
 %  \begin{itemize}
 %  \item If $d$ is of one of the forms \code{\VAR{} $v$ = $e_i$;} , \code{$T$ $v$ = $e_i$;} , \code{\FINAL{} $v$ = $e_i$;} or \code{\FINAL{} $T$ $v$ = $e_i$;} and no value has yet been stored into $v$ then the initializer expression $e_i$ is evaluated. If, during the evaluation of $e_i$, the getter for $v$ is referenced, a \code{CyclicInitializationError} is thrown. If the evaluation succeeded yielding an object $o$, let $r$ be $o$, otherwise let $r$ be the null object (\ref{null}). In any case, $r$ is stored into $v$. The value of $e$ is $r$.
-\item If $d$ is a constant variable of one of the forms \code{\CONST{} $v$ = $e$;} or \code{\CONST{} $T$ $v$ = $e$;} then the value \id{} is the value of the constant expression $e$.
+\item If $d$ is a constant variable of one of the forms
+  \code{\CONST{} $v$ = $e$;} or \code{\CONST{} $T$ $v$ = $e$;}
+  then the value of \id{} is the value of the constant expression $e$.
 %  Otherwise
 %  \item $e$ evaluates to the current binding of \id.
 %  \end{itemize}
@@ -11764,7 +11796,7 @@ either it
 it \IndexCustom{breaks}{completion!breaks}
 or it \IndexCustom{continues}{completion!continues}
 (either to a label or without a label),
-it \IndexCustom{returns}{completion!returns} (with or without a value),
+it \IndexCustom{returns}{completion!returns} (with or without an object),
 or it \IndexCustom{throws}{completion!throws}
 an exception object and an associated stack trace.
 
@@ -11779,7 +11811,7 @@ and the execution of that other statement does not complete normally,
 then, unless otherwise stated, the execution of $s$ stops
 at that point and completes in the same way.
 \commentary{%
-For example, if execution of the body of a \DO{} loop returns a value,
+For example, if execution of the body of a \DO{} loop returns an object,
 so does execution of the \DO{} loop statement itself.%
 }
 
@@ -12845,11 +12877,12 @@ and let $T$ be the declared return type of $f$.
 Consider the case where $f$ is a synchronous non-generator function
 (\ref{functions}).
 %
-% Returning without a value is only ok for "voidy" return types.
+% Returning without an object is only ok for "voidy" return types.
 It is a compile-time error if $s$ is \code{\RETURN{};},
 unless $T$ is \VOID, \DYNAMIC, or \code{Null}.
 %
-% Returning with a value in a void function only ok when that value is "voidy".
+% Returning with an object in a void function
+% is only ok when the return type "voidy".
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 $T$ is \VOID,
 and $S$ is neither \VOID, \DYNAMIC, nor \code{Null}.
@@ -12875,7 +12908,7 @@ must return an expression explicitly.%
 }
 \rationale{%
 This helps catch situations where users forget
-to return a value in a return statement.%
+to return an object in a return statement.%
 }
 \EndCase
 
@@ -12884,7 +12917,7 @@ to return a value in a return statement.%
 Consider the case where $f$ is an asynchronous non-generator function
 (\ref{functions}).
 %
-% Returning without a value is only ok for async-"voidy" return types.
+% Returning without an object is only ok for async-"voidy" return types.
 It is a compile-time error if $s$ is \code{\RETURN{};},
 unless \flatten{T}
 (\ref{functionExpressions})
@@ -12896,7 +12929,7 @@ If no expression is given, the future will be completed with the null object
 (\ref{null})
 which motivates this rule.%
 }
-% Returning with a value in an void async function only ok
+% Returning with an object in an void async function only ok
 % when that value is async-"voidy".
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 \flatten{T} is \VOID{},
@@ -12936,7 +12969,7 @@ must return an expression explicitly.%
 }
 \rationale{%
 This helps catch situations where users forget
-to return a value in a return statement of an asynchronous function.%
+to return an object in a return statement of an asynchronous function.%
 }
 \EndCase
 
@@ -12945,11 +12978,11 @@ to return a value in a return statement of an asynchronous function.%
 It is a compile-time error if a return statement of
 the form \code{\RETURN{} $e$;} appears in a generator function.
 
-\rationale{
-In the case of a generator function, the value returned by the function is
+\rationale{%
+In the case of a generator function, the object returned by the function is
 the iterable or stream associated with it,
 and individual elements are added to that iterable using yield statements,
-and so returning a value makes no sense.
+and so returning an object makes no sense.%
 }
 \EndCase
 
@@ -12967,7 +13000,7 @@ in some, but not all, of these cases.
 The rule above helps catch such errors,
 which can otherwise be very hard to recognize.
 There is no real downside to it,
-as returning a value from a generative constructor is meaningless.
+as returning an object from a generative constructor is meaningless.
 }
 \EndCase
 
@@ -12984,7 +13017,8 @@ and $S$ is a subtype of \code{Future<\flatten{T}>}
 then let $r$ be the result of evaluating \code{await $v$}
 where $v$ is a fresh variable bound to $o$.
 Otherwise let $r$ be $o$.
-Then the return statement returns the value $r$ (\ref{statementCompletion}).
+Then the return statement returns the object $r$
+(\ref{statementCompletion}).
 
 %% TODO(eernst): We have some special cases with the dynamic semantics
 %% specified above that we may wish to consider:
@@ -13027,7 +13061,10 @@ Let $U$ be the run-time type of $r$.
 \end{itemize}
 
 \LMHash{}%
-Executing a return statement with no expression, \code{\RETURN;} returns with no value (\ref{statementCompletion}).
+Executing a return statement with no expression,
+\code{\RETURN;}
+returns without an object
+(\ref{statementCompletion}).
 
 
 \subsection{Labels}
@@ -13145,7 +13182,11 @@ If the enclosing function $m$ is marked \code{\ASYNC*} (\ref{functions}) and the
 Next, $o$ is added to the iterable or stream associated with the immediately enclosing function.
 
 \LMHash{}%
-If the enclosing function $m$ is marked \code{\ASYNC*} and the stream $u$ associated with $m$ has been canceled, then the \YIELD{} statement returns without a value (\ref{statementCompletion}), otherwise it completes normally.
+If the enclosing function $m$ is marked \code{\ASYNC*}
+and the stream $u$ associated with $m$ has been canceled,
+then the \YIELD{} statement returns without an object
+(\ref{statementCompletion}),
+otherwise it completes normally.
 
 \rationale{
 The stream associated with an asynchronous generator could be canceled by any code with a reference to that stream at any point where the generator was passivated.
@@ -13160,7 +13201,7 @@ Otherwise, if the enclosing function $m$ is marked \code{\ASYNC*} (\ref{function
 If a \YIELD{} occurred inside an infinite loop and the enclosing function never suspended, there might not be an opportunity for consumers of the enclosing stream to run and access the data in the stream.
 The stream might then accumulate an unbounded number of elements.
 Such a situation is untenable.
-Therefore, we allow the enclosing function to be suspended when a new value is added to its associated stream.
+Therefore, we allow the enclosing function to be suspended when a new object is added to its associated stream.
 However, it is not essential (and in fact, can be quite costly) to suspend the function on every \YIELD{}.
 The implementation is free to decide how often to suspend the enclosing function.
 The only requirement is that consumers are not blocked indefinitely.
@@ -13193,7 +13234,9 @@ the body of $f$ is marked \code{\SYNC*} and the type \code{Iterable<T>} may not 
 \LMLabel{yieldEach}
 
 \LMHash{}%
-The \Index{yield-each statement} adds a series of values to the result of a generator function (\ref{functions}).
+The \Index{yield-each statement} adds a series of objects
+to the result of a generator function
+(\ref{functions}).
 
 \begin{grammar}
 <yieldEachStatement> ::= \YIELD{} `*' <expression> `;'
@@ -13259,7 +13302,7 @@ Otherwise
   then $s$ is canceled by evaluating \code{\AWAIT{} v.cancel()}
   where $v$ is a fresh variable referencing the stream subscription $s$.
   Then, if the cancel completed normally,
-  the stream execution of $s$ returns without a value
+  the stream execution of $s$ returns without an object
   (\ref{statementCompletion}).
 \item
   Otherwise, $x$, or $e$ with $t$, are added to
@@ -13574,9 +13617,11 @@ If the failure is due to other causes, the repeated call behaves as if no previo
 \end{itemize}
 
 \commentary{
-In other words, one can retry a deferred load after a network failure or because a file is absent, but once one finds some content and loads it, one can no longer reload.
+In other words, one can retry a deferred load after a network failure
+or because a file is absent,
+but once one finds some content and loads it, one can no longer reload.
 
-We do not specify what value the future returned resolves to.
+We do not specify which object the future returned resolves to.
 }
 
 \LMHash{}%
@@ -15057,7 +15102,7 @@ Instead, it aims to only flag assignments
 that are almost certain to be erroneous,
 without precluding assignments that may work.
 
-For example, assigning a value of static type \code{Object}
+For example, assigning an object of static type \code{Object}
 to a variable with static type \code{String},
 while not guaranteed to be correct,
 might be fine if the run-time value happens to be a string.
@@ -15364,7 +15409,7 @@ The name \code{FutureOr} as an expression
 denotes a \code{Type} object representing the type \code{FutureOr<dynamic>}.
 
 \rationale{
-The \code{FutureOr<$T$>} type represents a case where a value can be
+The \code{FutureOr<$T$>} type represents a case where an object can be
 either an instance of the type $T$
 or the type \code{Future<$T$>}.
 Such cases occur naturally in asynchronous code.
@@ -15377,7 +15422,7 @@ The type \code{FutureOr<$T$>} has an interface that is identical to that
 of \code{Object}.
 \commentary{%
 That is, only members that \code{Object} has can be invoked
-on a value with static type \code{FutureOr<$T$>}.%
+on an object with static type \code{FutureOr<$T$>}.%
 }
 
 \rationale{
@@ -15414,7 +15459,7 @@ that the value of an expression is meaningless and intended to be discarded.
 A typical case is that the type \VOID{} is used as the return type
 of a function that ``does not return anything''.
 Technically, there will always be \emph{some} object
-which is the return value
+which is returned
 (\ref{functions}).
 But it is perfectly meaningful to have a function
 whose sole purpose is to create side-effects,
@@ -15453,7 +15498,7 @@ which are specified as such in source code.
 \LMHash{}%
 In support of the notion
 that the value of an expression with static type \VOID{} should be discarded,
-such values can only be used in specific situations:
+such objects can only be used in specific situations:
 The occurrence of an expression of type \VOID{} is a compile-time error
 unless it is permitted according to one of the following rules.
 
@@ -15564,7 +15609,7 @@ unless it is permitted according to one of the following rules.
 
 \LMHash{}%
 Finally, we need to address situations involving implicit usage of
-a value whose static type can be \VOID{}.
+an object whose static type can be \VOID{}.
 %
 It is a compile-time error for a for-in statement to have an iterator
 expression of type $T$ such that \code{Iterator<\VOID{}>}
@@ -15600,7 +15645,7 @@ because it has type \VOID.%
 \LMLabel{voidSoundness}
 
 \LMHash{}%
-The constraints on usage of a value obtained from the evaluation of
+The constraints on usage of an object obtained from the evaluation of
 an expression with static type \VOID{}
 are not strictly enforced.
 
@@ -15624,7 +15669,7 @@ will not be used.%
 
 \commentary{%
 In fact, there are numerous ways in addition to the type cast
-in which a developer can get access to such a value:%
+in which a developer can get access to such an object:%
 }
 
 \begin{dartCode}
@@ -15685,10 +15730,10 @@ which is allowed because \code{Object} and \VOID{} are both top types.%
 }
 
 \rationale{%
-Obviously, the support for preventing developers from using values
+Obviously, the support for preventing developers from using objects
 obtained from expressions of type \VOID{} is far from sound,
 in the sense that there are many ways to circumvent the rule
-that such a value should be discarded.
+that such an object should be discarded.
 
 However, we have chosen to focus on the simple, first-order usage
 (where an expression has type \VOID, and the value is used),
