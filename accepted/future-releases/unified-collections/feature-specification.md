@@ -718,6 +718,9 @@ appropriately for the given collection type.
 
     1.  Else, if the collection is a map:
 
+        1.  If `spread` is not an instance of a class that implements `Map`,
+            throw a dynamic exception.
+
         1.  Evaluate `spread.entries.iterator` to a value `iterator`.
 
         1.  Loop:
@@ -739,6 +742,9 @@ appropriately for the given collection type.
             1.  Else, throw a dynamic error.
 
     1.  Else, the collection is a list or set:
+
+        1.  If `spread` is not an instance of a class that implements
+            `Iterable`, throw a dynamic exception.
 
         1.  Evaluate `spread.iterator` to *iterator*.
 
@@ -794,6 +800,9 @@ appropriately for the given collection type.
 
     1.  Evaluate the iterator expression to a value `sequence`.
 
+    1.  If `sequence` is not an instance of a class that implements `Iterable`,
+        throw a dynamic exception.
+
     1.  Evaluate `sequence.iterator` to a value `iterator`.
 
     1.  Loop:
@@ -817,9 +826,10 @@ appropriately for the given collection type.
 
 1.  Else, if `element` is an asynchronous `await for-in` element:
 
-    1.  Evaluate the stream expression to a value `stream`. It is a dynamic
-        error if `stream` is not an instance of a class that implements
-        `Stream`.
+    1.  Evaluate the stream expression to a value `stream`.
+
+    1.  If `stream` is not an instance of a class that implements `Stream`,
+        throw a dynamic error.
 
     1.  Pause the subscription of any surrounding `await for` loop in the
         current method.
