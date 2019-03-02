@@ -1,0 +1,17 @@
+{
+  "hosting": {
+    "public": "firebase",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "redirects": [
+      {
+        "source": "!DartLangSpecDraft.pdf",
+        "destination": "https://www.dartlang.org/guides/language/spec",
+        "type": 302
+      }
+    ]
+  }
+}

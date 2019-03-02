@@ -1,5 +1,7 @@
 # Dart language evolution
 
+[![Build Status](https://travis-ci.org/dart-lang/language.svg?branch=master)](https://travis-ci.org/dart-lang/language)
+
 This repository is a place for the Dart language team to work on
 language changes and features, and to solicit and accept feedback and requests.
 

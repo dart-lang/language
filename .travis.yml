@@ -1,0 +1,36 @@
+dist: xenial
+language: node_js
+node_js:
+  - "node"
+before_install:
+  - |
+    if git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE 'dartLangSpec.tex|.travis.yml|dart.sty'; then
+      echo "dartLangSpex.tex wasn't changed; skipping spec PDF build"
+      exit 0
+    else
+      npm install -g firebase-tools@6.4.0
+      sudo apt-get update -qq
+      sudo apt-get install \
+        texlive-latex-base \
+        texlive-latex-extra \
+        texlive-fonts-recommended \
+        latex-xcolor \
+        lmodern
+    fi
+  - echo '* install completed'
+script:
+  - cd specification
+  - make
+  - mkdir firebase
+  - cp dartLangSpec.pdf firebase/DartLangSpecDraft.pdf
+deploy:
+  provider: script
+  script: cd specification; firebase deploy --project=dart-specification --token $FIREBASE_TOKEN
+  skip_cleanup: true
+  on:
+    repo: dart-lang/language
+    branch: master
+
+branches:
+  only:
+    - master
