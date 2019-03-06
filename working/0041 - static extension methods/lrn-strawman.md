@@ -322,7 +322,7 @@ Example:
 ```dart
 extension ListFancy<T> on List<T> {
 
-  List<T> copyReversed() => return List<T>(this.length)..setAll(0, this.reversed);
+  List<T> copyReversed() => List<T>(this.length)..setAll(0, this.reversed);
 
 }
 
