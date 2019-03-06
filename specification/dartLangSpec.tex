@@ -12638,7 +12638,7 @@ There are obviously situations where code does not fall through, and yet does no
 
 \begin{dartCode}
 \SWITCH{} (x) \{
-  \CASE{} 1: \TRY{} \{ $\ldots$ \RETURN{}; \} \FINALLY{} \{ $\ldots$ \RETURN{}; \}
+  \CASE{} 1: \TRY{} \{ $\ldots$ \RETURN; \} \FINALLY{} \{ $\ldots$ \RETURN; \}
 \}
 \end{dartCode}
 
@@ -12875,7 +12875,7 @@ Consider the case where $f$ is a synchronous non-generator function
 (\ref{functions}).
 %
 % Returning without an object is only ok for "voidy" return types.
-It is a compile-time error if $s$ is \code{\RETURN{};},
+It is a static warning if $s$ is \code{\RETURN;},
 unless $T$ is \VOID, \DYNAMIC, or \code{Null}.
 %
 % Returning with an object in a void function
@@ -12915,7 +12915,7 @@ Consider the case where $f$ is an asynchronous non-generator function
 (\ref{functions}).
 %
 % Returning without an object is only ok for async-"voidy" return types.
-It is a compile-time error if $s$ is \code{\RETURN{};},
+It is a static warning if $s$ is \code{\RETURN;},
 unless \flatten{T}
 (\ref{functionExpressions})
 is \VOID{}, \DYNAMIC{}, or \code{Null}.
