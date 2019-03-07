@@ -2,7 +2,7 @@
 
 [lrn@google.com](@lrhn)
 
-Version: 1.1
+Version: 1.2
 
 ## Motivation
 
@@ -34,13 +34,15 @@ for the newest language version supported by the available SDK.
 
 We assume that all language changes happen in Dart stable releases. Such releases are designated by major/minor version numbers (the third number in a semantic version is the patch number, and a patch will/should not change the language, except when fixing a bug in an earlier release). At time of writing, the most recent release is version 2.1, and the next will be 2.2.
 
-We will allow a library to select which _language version level_ it wants to be interpreted as. This can be explicitly specified in the library itself, or be implicitly applied to entire packages.
+A package selects the _language version level_ it expects using its `pubspec.yaml` SDK version constraint.
+A Dart SDK tool must reject a any version higher than what the SDK supports. A Dart SDK may also have a lowest version that it
+supports being backwards compatible with.
 
-Dart tools will have a range of versions that they support.
+We will allow an individual library to select a lower language version level than the one selected for its package, for the case where that library has not yet been migrated to the newer semantics. 
 
 The design allows existing code to keep running without modification, and new packages will automatically use the most recently available language level (assuming their SDK version is set to the most recent version, which most authors are likely to do).
 
-The exact syntax isn't decided, but maybe something like:
+The exact syntax for the library constraint isn't decided, but maybe something like:
 
 ```dart
 
@@ -70,19 +72,19 @@ The syntax can be bike-shedded a lot more. The important point is that versionin
 
 When we develop new language features under an experimental flag, that flag only enables the new features for libraries that are already using the most recent SDK language version (where it makes sense for a feature to be enabled per-library) or for programs that are entirely using the most recent language version (where the new feature is inherently global).
 
-Each package available to a program can have its own language version level associated (most likely specified in the `.packages` file). All libraries in that package will use that associated language level unless it declares a different level in the library.
+Each package available to a program will have its own language version level associated (most likely specified in the `.packages` file). All libraries in that package will use that associated language level unless it declares a different level explicitly in the library.
 
 The `pub` tool configures this default language level for a package based on its SDK dependency. If a package requires an SDK of `^2.2.0`, it will default to the 2.2 language level.
 
 This means that a package cannot use features of a new SDK release without depending on that SDK release. Individual libraries can opt-in to a lower version than the package default, but not a higher one.
 
-Unpackaged libraries (libraries with `file:` or `http:` URIs, or anything except `package:` and `dart:`) cannot use this approach to get a different default. Unpackaged libraries include *tests* in pub packages. Tools will get a `--default-package` flag that allows users to set a package that all unpackaged libraries are considered to belonging to. This should be used when running tests or other pub-package related files that are not in the Dart package. (If Dart ever gets a notion of package-privacy, this feature will allow tests to pierce the privacy of their own package, without providing a general way for code to do so).
+Unpackaged libraries (libraries with `file:` or `http:` URIs, anything except `package:` and `dart:`) cannot use this approach to get a different default. Unpackaged libraries include *tests* in pub packages. Tools will get a `--default-package` flag that allows users to set a package that all unpackaged libraries are considered as belonging to. This should be used when running tests or other pub-package related files that are not in the Dart package. (If Dart ever gets a notion of package-privacy, this feature will allow tests to pierce the privacy of their own package, without providing a general way for code to do so).
 Alternatively, unpackaged libraries can have their version specified directly on the command line for the compiler (`dart --default-version=2.2`). With no flags, neither `--default-package` or `--default-version`, unpackaged libraries default to the newest language version.
 
 
-(If we allow un-packaged code to act as if it was in a package, e.g., for testing, it will inherit the package's language level, which is reasonable since that code is usually in the same pub package).
+(If we allow un-packaged code to act as if it was in a package, e.g., for testing, it will inherit the package's language level, which is reasonable since that code is usually in the same pub package, just not in the exported Dart package).
 
-It *is* an option to only support per-package versioning. It may increase the migration cost for a package, which encourages putting it off until the latest possible moment, but it may also encourage *completing* a migration sooner instead of leaving a few less-important files hanging.
+It *is* an option to only support per-package versioning, and not have a per library versioning option. It may increase the migration cost for a package, which encourages putting it off until the latest possible moment, but it may also encourage *completing* a migration sooner instead of leaving a few less-important files hanging.
 
 #### Recommendation
 
@@ -90,6 +92,7 @@ Use `//@2.2` initially in the file to trigger language version downgrade from th
 
 Add a `#@2.2` fragment to `.packages` paths to specify the default language version for that particular package.
 This is added by `pub` when generating the `.packages` file based on the minimum required SDK of the package.
+The Pub tool may want to store this information in the pubspec.lock file as well.
 
 Add a `--default-package=foo` flag to all Dart program tools. A "program tool" is one that handles Dart source at the level of a single Dart program. That includes all compilers. This flag will make the program treat all un-packaged libraries (any library with a URI not starting with `package:` or `dart:`) as belonging to package `foo` for all practical purposes. This includes using the default language version for package `foo` for all unpackaged libraries.
 
@@ -108,13 +111,11 @@ The described approach carries a significant cost for all Dart tools. They need 
 
 Since our plan for new language features is to develop and test them under an "experiments" flag, the tools already need to be able to turn individual features on and off. When a feature is released, we can then just keep those flags alive, but link them to the language versions instead of individual command-line flags. It does mean that the tools must be able to flip flags on a per-library basis.
 
-The same feature should not be available under both a version flag and an experiment flag. The moment it releases, the experiment command-line flag stops working and cause a warning to be printer, until it is eventually removed.
+The same feature should not be available under both a version flag and an experiment flag. The moment it releases, the experiment command-line flag stops working and cause a warning to be printed, until the flag is eventually removed.
 
 We should deprecate old language _versions_ eventually. For example, we can _deprecate_ all language versions older than, say, six months (but probably more). Being deprecated means that you get a warning if using it, but everything keeps working. Then maybe we can remove support for deprecated language versions when we do a major-version release of the language.
 
-Again, we should invest in tools that automate migration to new language versions, at least as well as technically possible. That tool definitely needs to know about all language versions since
-
-2.0.
+Again, we should invest in tools that automate migration to new language versions, at least as well as technically possible. That tool definitely needs to know about all language versions since 2.0.
 
 The _Dart formatter_ might be more affected than other tools, because it can be run on individual files, without having the package resolution configuration that we would piggy-back the versioning on. Since the Dart formatter still uses the analyzer for parsing, it might be handled by the analyzer. The analyzer will need version information in all cases. Defaulting to the most recent version when there is no other hint is the obvious choice. The Dart formatter also needs to be able to _output_ all supported versions, which may be complicated (especially if we do something like adding optional semicolons in a version).
 
@@ -193,3 +194,4 @@ What happens depends on how interoperability between migrated and non-migrated c
 # Revisions
 1.0: Initial version.
 1.1: Add --default-package flag.
+1.2: Tweak text to emphasize that a package's SDK dependency is the primary switch, and library markers are for downgrading from that.
