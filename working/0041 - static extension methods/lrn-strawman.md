@@ -22,7 +22,7 @@ Being static also means being statically resolved, based only on the static type
 
 ### Other Languages
 
-Other languages have static scoped extension methods. One of the most well-known examples is C#, which has static scoped extension methods. See [this survey document](https://docs.google.com/document/d/1FP_pPEzC2Oq5U9OWt1PG7eUgeHrVnRNM8V1hLrX_YL8/edit?usp=sharing) for other languages.
+Other languages have static scoped extension methods. One of the most well-known examples is C#, which has static scoped extension methods. See [this survey document](lrn-static-extension-survey.md) for other languages.
 
 
 ## Dart Extension Methods
