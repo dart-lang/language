@@ -413,10 +413,11 @@ is `T` if downwards inference constrains the type of `listLiteral` to
 
     *   If `P` is `?` then let `S` be the inferred type of `e1` in context `?`:
 
-        *   If `S` is a subtype of `Iterable<Object>`, then the inferred list
-            element type of `element` is `T` where `T` is the type such that
-            `Iterable<T>` is a superinterface of `S` (the result of constraint
-            matching for `X` using the constraint `S <: Iterable<X>`).
+        *   If `S` is a non-`Null` subtype of `Iterable<Object>`, then the
+            inferred list element type of `element` is `T` where `T` is the type
+            such that `Iterable<T>` is a superinterface of `S` (the result of
+            constraint matching for `X` using the constraint `S <:
+            Iterable<X>`).
 
         *   If `S` is `dynamic`, then the inferred list element type of
             `element` is `dynamic`.
