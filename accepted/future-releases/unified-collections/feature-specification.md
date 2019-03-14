@@ -655,12 +655,12 @@ They are defined as:
     expression evaluating to a value of type `bool` and either:
 
     *   If the condition evaluates to `true`, then when the "then" element is a
-        constant expression and any "else" element is a potentially constant
-        element.
+        constant expression and the "else" element, if it exists, is a
+        potentially constant element.
 
     *   If the condition evaluates to `false`, then when the "then" element is a
-        potentially constant element and any "else" element is a constant
-        element.
+        potentially constant element and the "else" element, if it exists, is a
+        constant element.
 
 *   An `ifElement` is potentially constant if its condition, "then" element, and
     "else" element (if any) are potentially constant expressions.
