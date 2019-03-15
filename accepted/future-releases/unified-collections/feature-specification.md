@@ -654,13 +654,13 @@ They are defined as:
 *   An `ifElement` is a constant element if its condition is a constant
     expression evaluating to a value of type `bool` and either:
 
-    *   The condition evaluates to `true`, then when the "then" element is a
-        constant expression, and the "else" element (if it exists) is a
-        potentially constant element.
-
-    *   The condition evaluates to `false`, then when the "then" element is a
-        potentially constant element, and the "else" element (if it exists) is a
+    *   The condition evaluates to `true`, the "then" element is a constant
+        expression, and the "else" element (if it exists) is a potentially
         constant element.
+
+    *   The condition evaluates to `false`, the "then" element is a potentially
+        constant element, and the "else" element (if it exists) is a constant
+        element.
 
 *   An `ifElement` is potentially constant if its condition, "then" element, and
     "else" element (if any) are potentially constant expressions.
