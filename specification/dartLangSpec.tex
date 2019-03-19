@@ -6050,7 +6050,17 @@ The constant expression always evaluates to a \code{Type} object.
 For example, if $C$ is the name of a class or type alias, the expression \code{$C$} is a constant, and if $C$ is imported with a prefix $p$, \code{$p$.$C$} is a constant \code{Type} instance representing the type of $C$ unless $p$ is a deferred prefix.
 }
 
-\item A simple or qualified identifier denoting a top-level function (\ref{functions}) or a static method (\ref{staticMethods}) that is not qualified by a deferred prefix, is a potentially constant and constant expression.
+\item Let $e$ be a simple or qualified identifier denoting
+a top-level function (\ref{functions}) or a static method (\ref{staticMethods})
+that is not qualified by a deferred prefix.
+If $e$ is not subject to generic function instantiation
+(\ref{genericFunctionInstantiation})
+then $e$ is a potentially constant and constant expression.
+If generic function instantiation does apply to $e$
+and the provided actual type arguments are \List{T}{1}{s}
+then $e$ is a potentially constant and constant expression
+if{}f each $T_j, j \in 1 .. s$, is a constant type expression
+(\ref{constants}).
 
 \item An identifier expression denoting a parameter of a constant constructor (\ref{constantConstructors}) that occurs in the initializer list of the constructor, is a potentially constant expression.
 
