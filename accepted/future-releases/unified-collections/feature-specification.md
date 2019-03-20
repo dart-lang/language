@@ -744,7 +744,8 @@ appropriately for the given collection type.
 
                 An implementation is free to execute the previous four
                 operations in any order, except that obviously the key must be
-                evaluated by its type is checked, and likewise for the value.
+                evaluated before its type is checked, and likewise for the
+                value.
 
                 1.  Append an entry *key*: *value* to *result*.
 
