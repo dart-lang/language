@@ -736,6 +736,17 @@ appropriately for the given collection type.
 
                 1.  Evaluate `entry.value` to a value *value*.
 
+                1.  If *key* is not a subtype of the map's key type, throw a
+                    dynamic error.
+
+                1.  If *value* is not a subtype of the map's value type, throw a
+                    dynamic error.
+
+                An implementation is free to execute the previous four
+                operations in any order, except that obviously the key must be
+                evaluated before its type is checked, and likewise for the
+                value.
+
                 1.  Append an entry *key*: *value* to *result*.
 
             1.  Else, if `hasValue` is `false`, exit the loop.
@@ -755,8 +766,12 @@ appropriately for the given collection type.
 
             1.  If `hasValue` is `true`:
 
-                1.  Evaluate `iterator.current` and append the result to
-                    *result*.
+                1.  Evaluate `iterator.current` to a value *value*.
+
+                1.  If *value* is not a subtype of the collection's element
+                    type, throw a dynamic error.
+
+                1.  Append *value* to *result*.
 
             1.  Else, if `hasValue` is `false`, exit the loop.
 
