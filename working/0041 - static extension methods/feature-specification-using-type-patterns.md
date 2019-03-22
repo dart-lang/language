@@ -5,13 +5,13 @@ Author: eernst@google.com (@eernstg)
 Version: 0.1.
 
 This document is a feature specification of scoped static extension
-methods which is based on using [type patterns][] to provide access to the
-actual type arguments of the receiver. Only the core of the mechanism is
-specified, e.g., the declaration of an extension cannot contain any
-`static` declarations. We expect the omitted parts to be relatively easy to
-specify later on, when we have established that the core is well-defined.
-
+methods which is based on using
 [type patterns](https://github.com/dart-lang/language/issues/170)
+to provide access to the actual type arguments of the receiver. Only
+the core of the mechanism is specified, e.g., the declaration of an
+extension cannot contain any `static` declarations. We expect the
+omitted parts to be relatively easy to specify later on, when we have
+established that the core is well-defined.
 
 For the design considerations behind scoped static extension methods,
 please look [here](lrn-strawman.md).
@@ -36,7 +36,8 @@ extension methods:
   | <operatorSignature>
 ```
 
-The `<typePatterns>` non-terminal is defined in the [type patterns][]
+The `<typePatterns>` non-terminal is defined in the
+[type patterns](https://github.com/dart-lang/language/issues/170)
 documentation.
 
 *Briefly, a `<typePatterns>` term is a comma separated list of type
@@ -63,7 +64,8 @@ Assume that _E_ is of the form `extension E on P { ... }`. It is a
 compile-time error unless `P` is subtype robust.
 
 *The notion of being subtype robust is defined in the 
-[type patterns][] documentation. The point is that when a type pattern
+[type patterns](https://github.com/dart-lang/language/issues/170)
+documentation. The point is that when a type pattern
 `P` is subtype robust and a given type `T` matches `P`, then every
 subtype of `T` also matches `P`.*
 
@@ -115,7 +117,9 @@ _i_ in 1 .. _n_ such that _S<sub>i</sub> <: S<sub>j</sub>_ for all
 _j_ in 1 .. _n_ then let `S` be _S<sub>i</sub>_; if no such _i_ exists
 then a compile-time error occurs.
 
-*The [type patterns][] documentation defines what the matched type
+*The 
+[type patterns](https://github.com/dart-lang/language/issues/170)
+documentation defines what the matched type
 is. The brief hint is that a type `T` is matched with a type pattern
 `P`, the match succeeded, and the binding of type variables was `X1:
 S1` .. `Xk: Sk`, and then the matched type is `[U1/X1..Uk/Xk]V`, where
@@ -268,9 +272,10 @@ in the body of `List` can be, when the actual argument has static type
 
 Hence, the proper static type of `this` in `add2` could in fact be
 considered to be `List<invariant X>`, using the notation introduced in
-the [use-site invariance][] proposal.
-
+the
 [use-site invariance](https://github.com/dart-lang/language/issues/229)
+proposal.
+
 
 With use-site invariance in place, it would be possible to encounter
 call sites where the receiver has a type where some of the type
