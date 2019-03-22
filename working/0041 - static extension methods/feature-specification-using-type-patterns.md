@@ -102,11 +102,11 @@ the identifier `this` is considered to have the static type which is
 obtained by _erasing_ `P` to a type, that is, replacing `var Xj` and
 `var Xj extends Bj` by `Xj`.
 
-*Consider the mechanism which implies that `id` means `this.id` in
-the case where there is no declaration named `id` in scope; that
-mechanism applies in the body instance methods, and it applies in the
-body of extension methods as well. This means that member accesses on
-`this` can be made implicitly, again just like instance methods.*
+*Consider the mechanism which implies that `id` means `this.id` in the
+case where there is no declaration named `id` in scope; that mechanism
+applies in the body of instance methods, and it applies in the body of
+extension methods as well. This means that member accesses on `this`
+can be made implicitly, again just like instance methods.*
 
 Consider the situation where an expression `e` is used in a member
 access `e0` (*that is, `e0` is an instance
@@ -122,7 +122,7 @@ that `T` matches the type pattern in the `on` clause of each
 _E<sub>j</sub>_, _j_ in 1 .. _n_. Assume that the corresponding
 matched type is _S<sub>j</sub>_, _j_ in 1 .. _n_. If there exists an
 _i_ in 1 .. _n_ such that _S<sub>i</sub> <: S<sub>j</sub>_ for all
-_j_ in 1 .. _n_ then let `S` be _S<sub>i</sub>_; if no such _i_ exists
+_j_ in 1 .. _n_ then let _i0_ be _i_; if no such _i_ exists
 then a compile-time error occurs.
 
 *The 
@@ -130,22 +130,22 @@ then a compile-time error occurs.
 documentation defines what the matched type
 is. The brief hint is that a type `T` is matched with a type pattern
 `P`, the match succeeded, and the binding of type variables was `X1:
-S1` .. `Xk: Sk`, and then the matched type is `[U1/X1..Uk/Xk]V`, where
+S1` .. `Xk: Sk`, then the matched type is `[U1/X1..Uk/Xk]V`, where
 `V` is the type which is obtained by erasing the pattern `P`. Note
 that the match will not succeed in the case where one or more of the
 bounds are violated.*
 
-Let `F` be the member signature of `m` in _E<sub>i</sub>_, let `X1
-.. Xk` be the type variables introduced by the `on` pattern `Pi` in
-_E<sub>i</sub>_, let `X1: U1 .. Xk: Uk` be the bindings produced by
-matching `T` with `Pi`. 
+Let `F` be the member signature of `m` in _E<sub>i0</sub>_, let `X1
+.. Xk` be the type variables introduced by the `on` pattern `Pi0` in
+_E<sub>i0</sub>_, let `X1: U1 .. Xk: Uk` be the bindings produced by
+matching `T` with `Pi0`.
 
 Static analysis of `e0` (*the member access of `m` that has `e` as its
 receiver*) then proceeds considering the signature of `m` to be
 `[U1/X1 .. Uk/Xk]F`.
 
 In this case, we say that `e0` has been _statically resolved_ as an
-extension method invocation on _E<sub>i</sub>_.
+extension method invocation on _E<sub>i0</sub>_.
 
 *That is, we use the results from matching the static type `T` of the
 receiver with the extension pattern.*
