@@ -217,12 +217,13 @@ the evaluation of `e1` also throws that exception and stack trace.
 
 Assume that `xs` has static type `List<num>`. Unless otherwise proven
 safe (say, because `xs` has an exact type), an invocation like
-`xs.add(e)` is subject to a dynamic check, because the actual type
+`xs.add(42)` is subject to a dynamic check, because the actual type
 argument of `xs` at `List` can be a proper subtype of the statically
-known value `num`. 
+known value `num`.
 
-It is therefore not surprising that a dynamic check will be performed
-on the argument passed to `add2` in `main` in the following situation:
+It is therefore not surprising that a dynamic check will also be
+performed on the argument passed to `add2` in `main` in the following
+situation:
 
 ```dart
 extension E on List<var X> {
@@ -235,18 +236,39 @@ main() {
 }
 ```
 
-With the specification above, the required dynamic check will be
-performed in a similar way for the invocation of `add` and for the
-invocation of `add2`.
+A dynamic check is needed for both (the regular instance method
+invocation and the static extension method invocation), because the
+requirement on the actual argument `42` is that it has a type which is
+a subtype of the actual type argument `X` of the given list. But that
+type cannot be used for a compile-time check at the call site (because
+it is only known by an upper bound, `num`), and it cannot be denoted
+at the call site (unless we introduce an existential open operation
+which would basically have to be invoked with a copy of the pattern
+of the given extension).
 
-However, there is no need to perform a similar check in the invocation
-of `add` that occurs in the body of `add2`. The reason for this is
-that the value of `X` at run time is guaranteed to be the actual value
-of the type argument of the receiver `this`, at `List`.
+Consequently, it is checked in the body of the callee for the instance
+method that all actual arguments for parameters that are covariant
+have the required type. This specification is worded in the
+expectation that a similar approach is used for static extension
+methods. Tools may of course implement it differently as long as the
+behavior is unchanged, and soundness is maintained. But it is also a
+hint that existing techniques should suffice for this purpose as well.
 
-In that sense, we can say that the proper static type of `this` in
-`add2` is `List<invariant X>`. For more details on use-site
-invariance, please consult the [use-site invariance][] proposal.
+However, there is no need to perform a dynamic check on the actual
+argument in the invocation of `add` that occurs in the body of
+`add2`. The reason for this is that the value of `X` at run time is
+guaranteed to be the actual value of the type argument (at the type
+`List`) of the value of `this`, because there is no other way to call
+`add2` than via a static extension method invocation, and they will
+always provide a set of type arguments and `this` parameter where this
+consistency property holds. In other words, the invocation of `add` in
+the body of `add2` is safe in the same way as an invocation of `add`
+in the body of `List` can be, when the actual argument has static type
+`E` (which is the type variable declared by the class `List`).
+
+Hence, the proper static type of `this` in `add2` could in fact be
+considered to be `List<invariant X>`, using the notation introduced in
+the [use-site invariance][] proposal.
 
 [use-site invariance](https://github.com/dart-lang/language/issues/229)
 
@@ -256,7 +278,7 @@ arguments are invariant. In this case we could call a variant of the
 target method where the corresponding dynamic checks are omitted (for
 improved performance) and we can reclassify the call site as
 statically safe (which might affect the presentation of said call site
-in an IDE, or remove some hints/lints/errors). 
+in an IDE, or it might allow us to eliminate some hints/lints/errors). 
 
 ```dart
 extension E on List<var X> {
@@ -277,13 +299,16 @@ main() {
 }
 ```
 
-The safe entry can be called whenever it is statically known that the
-static and dynamic value of each of the type arguments bound by the
-primitive type patterns in `E` are equal to the dynamic ones. In
-particular, when the receiver has a type which is invariant on the
+The uncheced entry point `add2_safeX` can be called whenever it is
+guaranteed that the static value of each of the type arguments bound
+by the primitive type patterns in `E` are equal to the dynamic ones,
+for all invocations of this call site.
+
+In particular, when the receiver has a type which is invariant on the
 relevant type arguments, which includes the case when the receiver has
 an exact type (say, because it is a literal, or it is obtained by an
-instance creation expression that calls a generative constructor).
+instance creation expression that calls a generative constructor), we
+can call the unchecked entry point.
 
 The improved static type information for such extension method
 invocations may also give rise to a more precise treatment of the
@@ -292,8 +317,8 @@ introduced by `P` occurs contravariantly in the return type, or `Xj`
 is contravariant and occurs covariantly in the return type, a
 caller-side check which would otherwise have been inserted can be
 omitted. (And if we switch over to give such expressions a type which
-is a sound approximation from above, we would be able to use the
-static type directly, rather than the approximation.)
+is a sound approximation from above, we would be able to give the
+returned result a more precise type.)
 
 ## Revisions
 
