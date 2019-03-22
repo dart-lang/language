@@ -47,7 +47,7 @@ or `var X extends T` where a type could occur in a `<type>`, which is
 known as a _primitive_ type pattern. The idea is that a type patterns
 construct is a constraint on types (some types match and others do
 not), and when it matches it will bind each type variable introduced
-by a primitive type patterns to a value. For instance `List<num>` will
+by a primitive type pattern to a value. For instance `List<num>` will
 match `List<var X>` and bind `X` to `num`.*
 
 ## Static Analysis
@@ -93,12 +93,20 @@ where `Xj` is introduced occurs in a covariant respectively
 contravariant position in `P`.
 
 *The corresponding primitive type pattern is well-defined because it
-is an error to introduce the same type variable twice in `P`.*
+is an error to introduce the same type variable twice in `P`. Also,
+a primitive pattern cannot occur as the bound of a type variable in a
+generic function type.*
 
-During the static analysis of a member declaration in _E_, the
-identifier `this` is bound to the type which is obtained by erasing
-`P` to a type, that is, replacing `var Xj extends Bj` and `var Xj` by
-`Xj`.
+During the static analysis of the body of a member declaration in _E_,
+the identifier `this` is considered to have the static type which is
+obtained by _erasing_ `P` to a type, that is, replacing `var Xj` and
+`var Xj extends Bj` by `Xj`.
+
+*Consider the mechanism which implies that `id` means `this.id` in
+the case where there is no declaration named `id` in scope; that
+mechanism applies in the body instance methods, and it applies in the
+body of extension methods as well. This means that member accesses on
+`this` can be made implicitly, again just like instance methods.*
 
 Consider the situation where an expression `e` is used in a member
 access `e0` (*that is, `e0` is an instance
