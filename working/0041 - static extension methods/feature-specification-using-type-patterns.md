@@ -16,6 +16,7 @@ established that the core is well-defined.
 For the design considerations behind scoped static extension methods,
 please look [here](lrn-strawman.md).
 
+
 ## Grammar
 
 The Dart grammar is modified as follows in order to support scoped static
@@ -49,6 +50,7 @@ construct is a constraint on types (some types match and others do
 not), and when it matches it will bind each type variable introduced
 by a primitive type pattern to a value. For instance `List<num>` will
 match `List<var X>` and bind `X` to `num`.*
+
 
 ## Static Analysis
 
@@ -144,11 +146,12 @@ Static analysis of `e0` (*the member access of `m` that has `e` as its
 receiver*) then proceeds considering the signature of `m` to be
 `[U1/X1 .. Uk/Xk]F`.
 
-In this case, we say that `e0` has been _statically resolved_ as an
-extension method invocation on _E<sub>i0</sub>_.
-
 *That is, we use the results from matching the static type `T` of the
 receiver with the extension pattern.*
+
+In this case, we say that `e0` has been _statically resolved_ as an
+extension method invocation of `m` on _E<sub>i0</sub>_.
+
 
 ## Dynamic Semantics
 
@@ -169,8 +172,9 @@ T0 m<Y1 extends Bb1, .. , Ys extends Bbs>(T1 a1, .. Tm am) { ... }
 
 be a method declared in the body of _E_. Assume that each `Yj` is
 named such that it does not occur in `X1 .. Xk`. Let `Tp` be the
-result of _erasing_ `P` (replacing `var X extends B` by `X`). The
-_extension desugared_ method `m` is then the following:
+result of erasing `P` to a type (replacing `var Xj extends Bj` and
+`var Xj` by `X`). The _extension desugared_ method `m` is then the
+following:
 
 ```dart
 T0 m<X1 extends B1 .. Xk extends Bk, 
@@ -185,7 +189,7 @@ in `1 .. k` such that `Xj` is covariant and occurs covariantly in
 
 *A primitive type pattern cannot occur as the bound of a type variable
 in a generic function type, and it occurs only once in a subtype
-robust pattern.*
+robust pattern, so the above step is well-defined.*
 
 *Being covariant-by-class, and unless soundness can be proven
 otherwise, a dynamic check must be performed before the body of `m` is
@@ -222,8 +226,9 @@ the actual type arguments passed to `m` at the call site; and passing
 `o` as the first positional argument followed by the actual arguments
 passed to `m` at the call site. If this function invocation evaluates
 to an object `r` then `r` is the result of the evaluation of `e1`, and
-if the function invocation throws and exception and stack trace then
-the evaluation of `e1` also throws that exception and stack trace.
+if the function invocation throws an exception _x_ and stack trace _s_
+then the evaluation of `e1` also throws _x_ and _s_.
+
 
 ## Discussion
 
@@ -243,28 +248,30 @@ extension E on List<var X> {
 }
 
 main() {
-  List<num> xs = <int>[];
-  xs.add2(42); // Dynamic check needed.
+  List<num> ys = <int>[];
+  ys.add2(42); // Dynamic check needed.
 }
 ```
 
-A dynamic check is needed for both (the regular instance method
-invocation and the static extension method invocation), because the
-requirement on the actual argument `42` is that it has a type which is
-a subtype of the actual type argument `X` of the given list. But that
-type cannot be used for a compile-time check at the call site (because
-it is only known by an upper bound, `num`), and it cannot be denoted
-at the call site (unless we introduce an existential open operation
-which would basically have to be invoked with a copy of the pattern
-of the given extension).
+A dynamic check is needed for both the regular instance method
+invocation on `xs` and the static extension method invocation on
+`ys`, because the requirement on the actual argument `42` is that it
+has a type which is a subtype of the actual type argument `X` of the
+given list. But that type cannot be used for a compile-time check at
+the call site (because it is only known by an upper bound, `num`), and
+it cannot be denoted at the call site (unless we introduce an
+existential open operation which would basically have to be invoked
+with a copy of the pattern of the given extension).
 
 Consequently, it is checked in the body of the callee for the instance
 method that all actual arguments for parameters that are covariant
-have the required type. This specification is worded in the
-expectation that a similar approach is used for static extension
-methods. Tools may of course implement it differently as long as the
-behavior is unchanged, and soundness is maintained. But it is also a
-hint that existing techniques should suffice for this purpose as well.
+have the required type. 
+
+*This specification is worded in the expectation that a similar
+approach is used for static extension methods. Tools may of course
+implement it differently as long as the behavior is unchanged, and
+soundness is maintained. But it is also a hint that existing
+techniques should suffice for this purpose as well.*
 
 However, there is no need to perform a dynamic check on the actual
 argument in the invocation of `add` that occurs in the body of
@@ -312,10 +319,10 @@ main() {
 }
 ```
 
-The uncheced entry point `add2_safeX` can be called whenever it is
-guaranteed that the static value of each of the type arguments bound
-by the primitive type patterns in `E` are equal to the dynamic ones,
-for all invocations of this call site.
+An unchecked entry point like `add2_safeX` can be called whenever it
+is guaranteed that the static value of each of the type arguments
+bound by the primitive type patterns in `E` are equal to the dynamic
+ones, for all invocations at this call site.
 
 In particular, when the receiver has a type which is invariant on the
 relevant type arguments, which includes the case when the receiver has
@@ -332,6 +339,7 @@ caller-side check which would otherwise have been inserted can be
 omitted. (And if we switch over to give such expressions a type which
 is a sound approximation from above, we would be able to give the
 returned result a more precise type.)
+
 
 ## Revisions
 
