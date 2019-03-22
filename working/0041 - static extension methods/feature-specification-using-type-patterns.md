@@ -43,7 +43,7 @@ documentation.
 *Briefly, a `<typePatterns>` term is a comma separated list of type
 patterns, each derived from `<typePattern>`, and the latter is like a
 `<type>` except that it also allows for subterms of the form `var X`
-or var X extends T` where a type could occur in a `<type>`, which is
+or `var X extends T` where a type could occur in a `<type>`, which is
 known as a _primitive_ type pattern. The idea is that a type patterns
 construct is a constraint on types (some types match and others do
 not), and when it matches it will bind each type variable introduced
