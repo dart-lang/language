@@ -32,6 +32,10 @@ The syntax is guarded by the experiments flag `tripple-shift`,
 so to enable the syntax, the tools need to be passed a flag
 like `--enable-experiments=tripple-shift`.
 
+This also includes all derived syntax required by the specification, 
+including the `>>>=` assignment oprator and the `#>>>` symbol.
+The `Symbol` constructor must also accept `>>>` as an argument.
+
 ### Phase 2 (Use)
 
 The library team implements `int.operator>>>`.
@@ -42,6 +46,9 @@ Backends are free to optimize this operation further at any point.
 
 It is possible to delay the `int` operator until a later release,
 but it would be a better user experience to get it out as soon as possible.
+
+(It is not yet clear what semantics JS compilers will choose for `int.>>>`,
+this will also have to be decided).
 
 ### Phase 3 (Release)
 
