@@ -1,7 +1,7 @@
 # Implementation Plan for the `>>>` operator.
 
 Relevant documents:
-- [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/tripple-shift-operator/feature-specification.md)
+- [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/triple-shift-operator/feature-specification.md)
 ## Implementation and Release plan
 
 ### Phase 0 (Preliminaries)
