@@ -12,6 +12,10 @@ The `>>>` operator is reintroduced as a user-implementable operator.
 It works exactly as all other user-implementable operators.
 It has the same precedence as the `>>` and `<<` operators.
 
+That also means that `>>>=` assignment must work 
+and `#>>>` and `const Symbol(">>>")` must be valid symbols.
+The `>>>` operator should work in all the same places that `>>` currently does.
+
 The `int` class implements `>>>` as a logical right-shift operation,
 defined as:
 ```dart
@@ -34,6 +38,10 @@ defined as:
 /// or `n ~/ (1 << k)`.
 int operator >>>(int count);
 ```
+
+The JavaScript implementation of `int`'s `>>>` operator must be decided 
+and implemented by the JavaScript platforms. It likely works like `>>`
+except that it doesn't "sign-extend" the most significant bit.
 
 ## Background
 
