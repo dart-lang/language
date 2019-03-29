@@ -12294,7 +12294,7 @@ It is a compile-time error if the static type of $c$ may not be assigned to \cod
 Let $D$ be derived from \syntax{<finalConstVarOrType>?}
 and let $n0$ be an identifier that does not occur anywhere in the program.
 A for statement of the form \code{\FOR{} ($D$ \id{} \IN{} $e$) $s$}
-is then equivalent to the following code,
+is then treated as the following code,
 where $\id_1$ and $\id_2$ are fresh identifiers:
 
 \begin{normativeDartCode}
@@ -12310,7 +12310,7 @@ $T$ $\id_1$ = $e$;
 If the static type of $e$ is a top type
 (\ref{superBoundedTypes})
 then $T$ is \code{Iterable<dynamic>},
-and otherwise $T$ is the static type of $e$.
+otherwise $T$ is the static type of $e$.
 It is a compile-time error if $T$ is not assignable to \code{Iterable<dynamic>}.
 
 \commentary{
