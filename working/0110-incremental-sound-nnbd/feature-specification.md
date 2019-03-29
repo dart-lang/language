@@ -5,7 +5,7 @@ Author: leafp@google.com
 Status: Draft
 
 This is the proposed specification for [sound non-nullable by default types](http://github.com/dart-lang/language/issues/110).
-Discussion of this proposal should take place in [Issue 110](http://github.com/dart-lang/language/issues/100).
+Discussion of this proposal should take place in [Issue 110](http://github.com/dart-lang/language/issues/110).
 
 Discussion issues on specific topics related to this proposal are [here](https://github.com/dart-lang/language/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Annbd+)
 
@@ -24,17 +24,17 @@ up
 ## Syntax
 
 The grammar of types is extended to allow any type to be suffixed with a `?`
-(e.g. `int ?`) indicating the nullable version of that type.
+(e.g. `int?`) indicating the nullable version of that type.
 
 A new primitive type `Never`.  This type is denoted by the built-in type
 declaration `Never`, with the same syntactic and scoping treatment as with other
-built-in types such as `dynamic`.
+built-in types such as `Null`.
 
 The grammer of expressions is extended to allow any expression to be suffixed
 with a `!`.
 
-The grammer of static and instance fields and static and local variables is
-extended to allow any declaration to include the modifer `lazy`.
+The grammer of instance fields and local variables is extended to allow any
+declaration to include the modifer `lazy`.
 
 The grammar of function types is extended to allow an additional group of named
 parameters prefaced with the word `required` (e.g. `int Function(int, {int?
@@ -83,11 +83,11 @@ the syntactic criterion that `T` is any of:
   - `FutureOr<S>` for some `S` where `S` is nullable
   - `dynamic`
   - `void`
-  - `X extends Null`
 
 We say that a type `T` is **non-nullable** if `T <: Object`.  This is equivalent
 to the syntactic criterion that `T` is any of:
-  - `Object`, `int`, `bool`, `Never`
+  - `Object`, `int`, `bool`, `Never`, `Function`
+  - Any function type
   - Any class type or generic class type
   - `FutureOr<S>` where `S` is non-nullable
   - `X extends S` where `S` is non-nullable
@@ -118,9 +118,9 @@ fields on `Object`.
 It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
-It is an error for a top level variable, static field, or instance field with no
-static initializer to have a potentially nullable type unless the variable or
-field is marked with the `lazy` modifier.
+It is an error for an instance field with no static initializer to have a
+potentially nullable type unless the variable or field is marked with the `lazy`
+modifier.
 
 It is an error if a local variable that is potentially non-nullable and is not
 marked `lazy` is used before it is definitely assigned (see Definite Assignment
@@ -160,7 +160,8 @@ potentially nullable.
 
 It is not an error for the body of a `lazy` field to reference `this`.
 
-It is an error for a formal parameter to be declared `lazy`.
+It is an error for a toplevel variable, a static field, or a formal parameter to
+be declared `lazy`.
 
 It is an error if the type `T` in the **on-catch** clause `on T catch` is
 potentially nullable.
@@ -178,6 +179,8 @@ The default bound of generic type parameters is treated as `Object?`.
 
 ### Type promotion, Definite Assignment, and Definite Completion
 
+**TODO** Fill this out.
+
 ### Null promotion
 
 The machinery of type promotion is extended to promote the type of variables
@@ -194,14 +197,18 @@ A check of the form `e != null` or of the form `e is T` where `e` has static
 type `T?` promotes the type of `e` to `T` in the `true` continuation, and to
 `Null` in the `false` continuation.
 
+The static type of an expression `e!` is **NonNull**(`T`) where `T` is the
+static type of `e`.
 
-The **NonNull** function defines the null-promoted version of a type, and is defined as follows.
+The **NonNull** function defines the null-promoted version of a type, and is
+defined as follows.
 
 - **NonNull**(Null) = Never
 - **NonNull**(_C_<_T_<sub>1</sub>, ... , _T_<sub>_n_</sub>>) = _C_<_T_<sub>1</sub>, ... , _T_<sub>_n_</sub>>  for class *C* other than Null
 - **NonNull**(FutureOr<_T_>) = FutureOr<_T_>   
 - **NonNull**(_T_<sub>0</sub> Function(...)) = _T_<sub>0</sub> Function(...)
-- **NonNull**(_Function) = Function
+- **NonNull**(Function) = Function
+- **NonNull**(Object) = Object
 - **NonNull**(Never) = Never
 - **NonNull**(dynamic) = dynamic
 - **NonNull**(void) = void   
@@ -242,24 +249,25 @@ read.
   - If there is no initializer expression, the read causes a runtime error.
   - Evaluating the initializer expression may validly cause a write to the field
     or variable, assuming that the field or variable is not final.  In this
-    case, the variable assumes the written value for the duration of the
-    evaluation of the initializer expression, whereupon the final value of the
-    initializer expression overwrites the intermediate written value.
+    case, the variable assumes the written value.  The final value of the
+    initializer expression overwrites any intermediate written values.
   - Evaluating the initializer expression may cause an exception to be thrown.
     If the variable was written to before the exception was thrown, the value of
-    the variable on subsequent reads is the written value.  If the variable was
-    not written before the exception was thrown, then the next read attempts to
-    evaluate the initializer expression again.
+    the variable on subsequent reads is the last written value.  If the variable
+    was not written before the exception was thrown, then the next read attempts
+    to evaluate the initializer expression again.
   - If a variable or field is read from during the process of evaluating its own
     initializer expression, and no write to the variable has occurred, the read
     is treated as a first read and the initializer expression is evaluated
     again.
 
-A toplevel variable with an initializer is evaluated as if it was marked `lazy`.
-Note that this is a change from pre-NNBD semantics in that:
+A toplevel or static variable with an initializer is evaluated as if it was
+marked `lazy`.  Note that this is a change from pre-NNBD semantics in that:
   - Throwing an exception during initializer evaluation no longer sets the
     variable to `null`
-  - Reading the variable during initializer evaluation is no longer a
+  - Reading the variable during initializer evaluation is no longer a checked
+    error.
+
 
 ## Core library changes
 
@@ -269,7 +277,7 @@ argument greater than the current length of the list is a runtime error.
 ## Migration features
 
 For migration, we support incremental adoption of non-nullability as described
-in
+at a high level in
 the
 [roadmap](https://github.com/dart-lang/language/blob/master/working/0110-incremental-sound-nnbd/roadmap.md).
 
@@ -280,12 +288,14 @@ opted-in library may depend on un-opted-in libraries, and vice versa.
 
 ### Errors as warnings
 
-When weak null checking is enabled, all errors specified this proposal (that is,
-all errors that arise only out of the new features of this proposal) shall be
-treated as warnings.
+Weak null checking is enabled as soon as a package or library opts into this
+feature. When weak null checking is enabled, all errors specified this proposal
+(that is, all errors that arise only out of the new features of this proposal)
+shall be treated as warnings.
 
-When strong null checking is enabled, errors specified in this proposal shall be
-treated as errors.
+Strong null checking is enabled by running the compilation or execution
+environment with the appropriate flags.  When strong null checking is enabled,
+errors specified in this proposal shall be treated as errors.
 
 ### Legacy libraries
 
@@ -302,7 +312,6 @@ APIs.  In particular:
 In a legacy library, none of the new syntax introduced by this proposal is
 available, and it is a static error if it is used.
 
-
 ### Importing legacy libraries from opted-in libraries
 
 The type system is extended with a notion of a legacy type operator.  For every
@@ -318,6 +327,19 @@ of type inference in migrated libraries, types imported from unmigrated
 libraries shall be treated as non-nullable.  As a result, legacy types will
 never appear as type annotations in migrated libraries, nor will they appear in
 reified positions.
+
+### Type reification
+
+All types reified in legacy libraries are reified as legacy types.  Runtime
+subtyping checks treat them according to the subtyping rules specified
+separately.
+
+### Runtime checks and weak checking
+
+When weak checking is enabled, runtime type tests (including explicit and
+implicit casts) shall succeed with a warning whenever the runtime type test
+would have succeeded if all `?` types were ignored, `Never` were treated as
+`Null`, and `required` named parameters were treated as optional.
 
 ### Exports
 
