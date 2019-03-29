@@ -12292,7 +12292,7 @@ It is a compile-time error if the static type of $c$ may not be assigned to \cod
 
 \LMHash{}%
 Let $D$ be derived from \syntax{<finalConstVarOrType>?}.
-A for statement of the form \code{\FOR{} ($D$ \id{} \IN{} $e$) $s$}
+A for statement of the form \code{\FOR{} ($D$ \id{} \IN{} $e$)\,\,$S$}
 is then treated as the following code,
 where $\id_1$ and $\id_2$ are fresh identifiers:
 
@@ -12301,7 +12301,7 @@ $T$ $\id_1$ = $e$;
 \VAR{} $\id_2$ = $id_1$.iterator;
 \WHILE{} ($\id_2$.moveNext()) \{
 \ \ $D$ \id{} = $\id_2$.current;
-\ \ $s$
+\ \ $S$
 \}
 \end{normativeDartCode}
 
