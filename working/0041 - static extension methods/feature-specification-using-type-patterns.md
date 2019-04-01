@@ -26,10 +26,10 @@ extension methods:
 <extensionDeclaration> ::=
     'extension' <typeIdentifier>? 'on' <typePatterns>
     '{' (<metadata> <extensionMemberDefinition>)* '}'
-  
+
 <extensionMemberDefinition> ::=
     <instanceMethodSignature> <functionBody>
-  
+
 <instanceMethodSignature> ::=
     <functionSignature>
   | <getterSignature>
@@ -65,7 +65,7 @@ name.*)
 Assume that _E_ is of the form `extension E on P { ... }`. It is a
 compile-time error unless `P` is subtype robust.
 
-*The notion of being subtype robust is defined in the 
+*The notion of being subtype robust is defined in the
 [type patterns](https://github.com/dart-lang/language/issues/170)
 documentation. The point is that when a type pattern
 `P` is subtype robust and a given type `T` matches `P`, then every
@@ -127,7 +127,7 @@ _i_ in 1 .. _n_ such that _S<sub>i</sub> <: S<sub>j</sub>_ for all
 _j_ in 1 .. _n_ then let _i0_ be _i_; if no such _i_ exists
 then a compile-time error occurs.
 
-*The 
+*The
 [type patterns](https://github.com/dart-lang/language/issues/170)
 documentation defines what the matched type
 is. The brief hint is that a type `T` is matched with a type pattern
@@ -177,7 +177,7 @@ result of erasing `P` to a type (replacing `var Xj extends Bj` and
 following:
 
 ```dart
-T0 m<X1 extends B1 .. Xk extends Bk, 
+T0 m<X1 extends B1 .. Xk extends Bk,
     Y1 extends Bb1, .. , Ys extends Bbs>(
     Tp this, T1 a1, .. Tm am) { ... }
 ```
@@ -265,7 +265,7 @@ with a copy of the pattern of the given extension).
 
 Consequently, it is checked in the body of the callee for the instance
 method that all actual arguments for parameters that are covariant
-have the required type. 
+have the required type.
 
 *This specification is worded in the expectation that a similar
 approach is used for static extension methods. Tools may of course
@@ -298,11 +298,11 @@ arguments are invariant. In this case we could call a variant of the
 target method where the corresponding dynamic checks are omitted (for
 improved performance) and we can reclassify the call site as
 statically safe (which might affect the presentation of said call site
-in an IDE, or it might allow us to eliminate some hints/lints/errors). 
+in an IDE, or it might allow us to eliminate some hints/lints/errors).
 
 ```dart
 extension E on List<var X> {
-  void add2(X x) { 
+  void add2(X x) {
     x as X;
     return this.add(x); // Safe invocation of `add`.
   }
