@@ -48,13 +48,13 @@ or `var X extends T` where a type could occur in a `<type>`, which is
 known as a _primitive_ type pattern. The idea is that a type patterns
 construct is a constraint on types (some types match and others do
 not), and when it matches it will bind each type variable introduced
-by a primitive type pattern to a value. For instance `List<num>` will
+by a primitive type pattern to a value. For instance, `List<num>` will
 match `List<var X>` and bind `X` to `num`.*
 
 
 ## Static Analysis
 
-Let _E_ be a term derived from `<extensionDeclaration>`; we then say
+Let _E_ be a term derived from `<extensionDeclaration>`. We then say
 that _E_ is an _extension declaration_.
 
 In the case where the name of _E_ is omitted, a globally fresh name is
@@ -76,11 +76,11 @@ that textual order: `var X1 extends B1`, `var X2 extends B2`, .. `var
 Xk extends Bk`, where `extends Object` is used in the case where the
 bound is omitted.
 
-When `k > 0` a type parameter scope is associated with
-_E_, enclosed by the library scope of the enclosing library and
-enclosing the body scope of _E_. For each `j` in `1 .. k`, the type
-parameter `Xj` is introduced into the type parameter scope of _E_, and
-associated with the bound `Bj`.
+When `k > 0`, a type parameter scope is associated with _E_, enclosed
+by the library scope of the enclosing library and enclosing the body
+scope of _E_. For each `j` in `1 .. k`, the type parameter `Xj` is
+introduced into the type parameter scope of _E_, and associated with
+the bound `Bj`.
 
 *Note that no relations between the type variables `X1 .. Xk` can be
 introduced by the bounds (for instance, no F-bounds can exist),
@@ -101,7 +101,7 @@ generic function type.*
 
 During the static analysis of the body of a member declaration in _E_,
 the identifier `this` is considered to have the static type which is
-obtained by _erasing_ `P` to a type, that is, replacing `var Xj` and
+obtained by _erasing_ `P` _to a type_, that is, replacing `var Xj` and
 `var Xj extends Bj` by `Xj`.
 
 *Consider the mechanism which implies that `id` means `this.id` in the
@@ -127,15 +127,19 @@ _i_ in 1 .. _n_ such that _S<sub>i</sub> <: S<sub>j</sub>_ for all
 _j_ in 1 .. _n_ then let _i0_ be _i_; if no such _i_ exists
 then a compile-time error occurs.
 
+*Note that this makes it an error if no extension is applicable, and
+also if multiple extensions are applicable, but none of them is most
+specific.*
+
 *The
 [type patterns](https://github.com/dart-lang/language/issues/170)
-documentation defines what the matched type
-is. The brief hint is that a type `T` is matched with a type pattern
-`P`, the match succeeded, and the binding of type variables was `X1:
-S1` .. `Xk: Sk`, then the matched type is `[U1/X1..Uk/Xk]V`, where
-`V` is the type which is obtained by erasing the pattern `P`. Note
-that the match will not succeed in the case where one or more of the
-bounds are violated.*
+documentation defines what the matched type is. The brief hint is that
+a type `T` is matched with a type pattern `P`, the match succeeded,
+and the binding of type variables was `X1: S1` .. `Xk: Sk`, then the
+matched type is `[U1/X1..Uk/Xk]V`, where `V` is the type which is
+obtained by erasing the pattern `P` to a type. Note that the match
+will not succeed in the case where one or more of the bounds are
+violated.*
 
 Let `F` be the member signature of `m` in _E<sub>i0</sub>_, let `X1
 .. Xk` be the type variables introduced by the `on` pattern `Pi0` in
@@ -164,17 +168,18 @@ methods.*
 
 Let _E_ of the form `extension E on P { ... }` be a static extension,
 let `var X1 extends B1` .. `var Xk extends Bk` be the primitive type
-patterns in `P`, ordered textually. Let
+patterns in `P`, ordered textually, and using `extends Object` in the
+case where the bound is omitted. Let
 
 ```dart
 T0 m<Y1 extends Bb1, .. , Ys extends Bbs>(T1 a1, .. Tm am) { ... }
 ```
 
-be a method declared in the body of _E_. Assume that each `Yj` is
-named such that it does not occur in `X1 .. Xk`. Let `Tp` be the
-result of erasing `P` to a type (replacing `var Xj extends Bj` and
-`var Xj` by `X`). The _extension desugared_ method `m` is then the
-following:
+be a method declared in the body of _E_. Assume that the identifier
+sets `Y1 .. Ys` and `X1 .. Xk` are distinct (which can be achieved by
+local renaming of variables in `Y1 .. Ys`). Let `Tp` be the result of
+erasing `P` to a type. The _extension desugared method_ `m` is then
+the following:
 
 ```dart
 T0 m<X1 extends B1 .. Xk extends Bk,
@@ -199,7 +204,7 @@ run-time type of the receiver may result in `Ti` being a proper
 subtype of the type which was assumed to be the type annotation for
 `ai` during the static analysis of the call site.*
 
-A similar construction produces an _extension desugared_ member for
+A similar construction produces an extension desugared method for
 each getter, setter and operator declared by _E_.
 
 *Note that these must all be methods, because getters, setters, and
