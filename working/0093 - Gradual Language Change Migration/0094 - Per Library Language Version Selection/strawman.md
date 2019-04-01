@@ -204,7 +204,7 @@ along with the similar lines for all the third-party packages.
 
 Now nothing compiles because all the `floo` libraries are written for Dart 2.4. 
 
-The user then goes through every `.dart` file in the package and either upgrades them to NNBD or adds a 
+The user then goes through every `.dart` file in the package and either upgrades them to NNBD or adds an 
 
 ```dart
 // @sdk=2.4
