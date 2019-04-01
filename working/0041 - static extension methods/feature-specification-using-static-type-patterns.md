@@ -6,7 +6,7 @@ Version: 0.1.
 
 This document is a feature specification of scoped static extension
 methods which is based on using
-[type patterns](https://github.com/dart-lang/language/issues/170) 
+[type patterns](https://github.com/dart-lang/language/issues/170)
 to provide access to the statically known type arguments of the
 receiver. Only the core of the mechanism is specified, e.g., the
 declaration of an extension cannot contain any `static`
@@ -27,10 +27,10 @@ extension methods:
 <extensionDeclaration> ::=
     'extension' <typeIdentifier>? 'on' <typePatterns>
     '{' (<metadata> <extensionMemberDefinition>)* '}'
-  
+
 <extensionMemberDefinition> ::=
     <instanceMethodSignature> <functionBody>
-  
+
 <instanceMethodSignature> ::=
     <functionSignature>
   | <getterSignature>
@@ -49,13 +49,13 @@ or `var X extends T` where a type could occur in a `<type>`, which is
 known as a _primitive_ type pattern. The idea is that a type patterns
 construct is a constraint on types (some types match and others do
 not), and when it matches it will bind each type variable introduced
-by a primitive type pattern to a value. For instance `List<num>` will
+by a primitive type pattern to a value. For instance, `List<num>` will
 match `List<var X>` and bind `X` to `num`.*
 
 
 ## Static Analysis
 
-Let _E_ be a term derived from `<extensionDeclaration>`; we then say
+Let _E_ be a term derived from `<extensionDeclaration>`. We then say
 that _E_ is an _extension declaration_.
 
 In the case where the name of _E_ is omitted, a globally fresh name is
@@ -69,7 +69,7 @@ textual order: `var X1 extends B1`, `var X2 extends B2`, .. `var Xk
 extends Bk`, where `extends Object` is used in the case where the
 bound is omitted.
 
-When `k > 0` a type parameter scope is associated with
+When `k > 0`, a type parameter scope is associated with
 _E_, enclosed by the library scope of the enclosing library and
 enclosing the body scope of _E_. For each `j` in `1 .. k`, the type
 parameter `Xj` is introduced into the type parameter scope of _E_, and
@@ -88,7 +88,7 @@ is an error to introduce the same type variable twice in `P`.*
 
 During the static analysis of the body of a member declaration in _E_,
 the identifier `this` is considered to have the static type which is
-obtained by _erasing_ `P` to a type, that is, replacing `var Xj` and
+obtained by _erasing_ `P` _to a type_, that is, replacing `var Xj` and
 `var Xj extends Bj` by `Xj`.
 
 *Consider the mechanism which implies that `id` means `this.id` in the
@@ -114,15 +114,19 @@ _i_ in 1 .. _n_ such that _S<sub>i</sub> <: S<sub>j</sub>_ for all
 _j_ in 1 .. _n_ then let _i0_ be _i_; if no such _i_ exists
 then a compile-time error occurs.
 
-*The 
+*Note that this makes it an error if no extension is applicable, and
+also if multiple extensions are applicable, but none of them is most
+specific.*
+
+*The
 [type patterns](https://github.com/dart-lang/language/issues/170)
 documentation defines what the matched type
 is. The brief hint is that a type `T` is matched with a type pattern
 `P`, the match succeeded, and the binding of type variables was `X1:
 S1` .. `Xk: Sk`, then the matched type is `[U1/X1..Uk/Xk]V`, where
-`V` is the type which is obtained by erasing the pattern `P`. Note
-that the match will not succeed in the case where one or more of the
-bounds are violated.*
+`V` is the type which is obtained by erasing the pattern `P` to a
+type. Note that the match will not succeed in the case where one or
+more of the bounds are violated.*
 
 Let `F` be the member signature of `m` in _E<sub>i0</sub>_, let `X1
 .. Xk` be the type variables introduced by the `on` pattern `Pi0` in
@@ -151,25 +155,26 @@ methods.*
 
 Let _E_ of the form `extension E on P { ... }` be a static extension,
 let `var X1 extends B1` .. `var Xk extends Bk` be the primitive type
-patterns in `P`, ordered textually. Let
+patterns in `P`, ordered textually, and using `extends Object` in the
+case where the bound is omitted. Let
 
 ```dart
 T0 m<Y1 extends Bb1, .. , Ys extends Bbs>(T1 a1, .. Tm am) { ... }
 ```
 
-be a method declared in the body of _E_. Assume that each `Yj` is
-named such that it does not occur in `X1 .. Xk`. Let `Tp` be the
-result of erasing `P` to a type (replacing `var Xj extends Bj` and
-`var Xj` by `X`). The _extension desugared_ method `m` is then the
-following:
+be a method declared in the body of _E_. Assume that the identifier
+sets `Y1 .. Ys` and `X1 .. Xk` are distinct (which can be achieved by
+local renaming of variables in `Y1 .. Ys`). Let `Tp` be the result of
+erasing `P` to a type. The _extension desugared method_ `m` is then
+the following:
 
 ```dart
-T0 m<X1 extends B1 .. Xk extends Bk, 
+T0 m<X1 extends B1 .. Xk extends Bk,
     Y1 extends Bb1, .. , Ys extends Bbs>(
     Tp this, T1 a1, .. Tm am) { ... }
 ```
 
-A similar construction produces an _extension desugared_ member for
+A similar construction produces an extension desugared method for
 each getter, setter and operator declared by _E_.
 
 *Note that these must all be methods, because getters, setters, and
@@ -189,20 +194,20 @@ which is the receiver of said invocation.
 
 The extension member invocation proceeds as follows:
 
-Evaluate `e` to an object `o`. Let `Tr` be the run-time type of `o`.
-Invoke the extension desugared method for `m` with actual type
-arguments obtained by passing `V1 .. Vk` followed by the actual type
-arguments passed to `m` at the call site; and passing `o` as the first
-positional argument followed by the actual arguments passed to `m` at
-the call site. If this function invocation evaluates to an object `r`
-then `r` is the result of the evaluation of `e1`, and if the function
-invocation throws an exception _x_ and stack trace _s_ then the
-evaluation of `e1` also throws _x_ and _s_.
+Evaluate `e` to an object `o`. Invoke the extension desugared method
+for `m` with actual type arguments obtained by passing `V1 .. Vk`
+followed by the actual type arguments passed to `m` at the call site;
+and passing `o` as the first positional argument followed by the
+actual arguments passed to `m` at the call site. If this function
+invocation evaluates to an object `r` then `r` is the result of the
+evaluation of `e1`, and if the function invocation throws an exception
+_x_ and stack trace _s_ then the evaluation of `e1` also throws _x_
+and _s_.
 
 
 ## Discussion
 
-This proposal is similar to the proposal in 
+This proposal is similar to the proposal in
 [language PR #284](https://github.com/dart-lang/language/pull/284).
 It differs by using a purely static binding of the type parameters of
 the extension, whereas PR &#35;284 uses a static match plus a run-time
@@ -260,6 +265,21 @@ dynamic type (because it returns `this`).
 
 Again, Dart cannot otherwise quantify over the map types that have
 this property.
+
+On the other hand, it should be noted that _no additional type safety_
+is achieved by this pattern match, because a receiver with dynamic
+type `Map<int, num>` could have static type `Map<num, num>` and it
+would then admit an invocation of `makeIdempotent`, and it could then
+fail at `this[v] = v` because it attempts to use a `double` as a
+key. 
+
+It may be possible to express useful type relationships using static
+type patterns, but it seems likely that the statically specified
+relationships will often be somewhat misleading because they do not
+justify the removal of any dynamic checks, and they do not actually
+enforce the type argument relationships that they appear to specify
+(for instance, it can _not_ be assumed in the body of `makeIdempotent`
+that `this` has a value type which is a subtype of its key type).
 
 We can illustrate in which ways it matters that the static type
 patterns do _not_ embody an 'existential open' mechanism:
