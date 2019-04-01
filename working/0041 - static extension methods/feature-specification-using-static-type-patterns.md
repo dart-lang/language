@@ -271,7 +271,7 @@ is achieved by this pattern match, because a receiver with dynamic
 type `Map<int, num>` could have static type `Map<num, num>` and it
 would then admit an invocation of `makeIdempotent`, and it could then
 fail at `this[v] = v` because it attempts to use a `double` as a
-key. 
+key.
 
 It may be possible to express useful type relationships using static
 type patterns, but it seems likely that the statically specified
