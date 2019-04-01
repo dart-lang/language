@@ -188,7 +188,7 @@ The package `floo` wants to use NNBD, so it changes its pubspec to contain:
 
 ```yaml
 environment:
-	sdk: "^2.5.0"
+    sdk: "^2.5.0"
 ```
 
 and runs `pub get` or `pub upgrade`. This is needed when you change the SDK version, because that might affect which version of a third-party library that you use.
