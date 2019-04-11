@@ -1,8 +1,8 @@
 # Dart Language Versioning
 
-[lrn@google.com](@lrhn)
-
-Version 1.0-rc2
+[lrn@google.com](@lrhn)<br>
+Version: 1.0-rc2<br>
+Status: Preliminary Design, Under Discussion.
 
 ## Motivation
 
