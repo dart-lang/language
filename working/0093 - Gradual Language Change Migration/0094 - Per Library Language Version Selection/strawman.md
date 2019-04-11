@@ -1,8 +1,7 @@
 # Dart Language Versioning
 
-[lrn@google.com](@lrhn)
-
-Version 1.0
+[lrn@google.com](@lrhn)<br>
+Version 1.0<br>
 Status: Superceded by [design document](https://github.com/dart-lang/language/blob/master/accepted/future-releases/language-versioning/language-versioning.md)
 
 This document is no longer relevant, and should only be used for historical reference. 
