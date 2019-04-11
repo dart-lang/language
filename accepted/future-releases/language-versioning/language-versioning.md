@@ -126,7 +126,7 @@ Non-`package:` libraries (libraries with `file:` or `http:` URIs, anything excep
 
 Any tool which understands Pub package layouts should treat a file in the same pub package as having the same default language level as the actual package files from the `lib/` directory.
 
-A tool which does not understand Pub packages must get the default level to use from somewhere. We extend the `.packages` file with an extra entry which specifies the package of non-`package:` files. The entry has the form `*=quiver`, which means that such files are considered part of the `quiver` package for any purpose where that matters, including choosing the default language level. It is intended as the name of the "current Pub package".
+A tool which does not understand Pub packages must get the default level to use from somewhere. We extend the `.packages` file with an extra entry which specifies the package of non-`package:` files. The entry has the form `*:quiver`, which means that such files are considered part of the `quiver` package for any purpose where that matters, including choosing the default language level. It is intended as the name of the "current Pub package".
 
 With no default package in the `.packages` file, non-`package:` libraries default to the newest language version supported by the current SDK.
 
@@ -134,7 +134,7 @@ This feature makes non-`package:` code act as if it was in a package (even if it
 
 Other alternatives include:
 
-- A `.packages` entry of the form `*=#dart=2.5`which sets the default language version for non-`package:` files directly. This risks having a version skew between the package libraries and the non-`package:` support files in the same Pub package.
+- A `.packages` entry of the form `*:#dart=2.5`which sets the default language version for non-`package:` files directly. This risks having a version skew between the package libraries and the non-`package:` support files in the same Pub package.
 - A `--default-package=quiver` flag on all tools which works like the entry in `.packages`. We can choose to have this anyway, as an override so you don't have to edit the `.packages`, but there are no clear use-cases for it.
 - A `--default-language-version=2.5` flag on all tools which sets the default language version for non-`package:` libraries. 
 
