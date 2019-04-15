@@ -70,7 +70,7 @@ We further allow an individual library in a package to select an *earlier* langu
 
 As soon as any library in a package requires the new language feature, the package itself must require a sufficient SDK version to support the feature. This also updates the package's default language version to the higher version. In order to not have to migrate every library in the package, the author can mark unmigrated packages as such, putting them back at the language version they are compatible with. For a non-breaking language change, such marking is not necessary since the "unmigrated" libraries are already compatible with the newer language version.
 
-The syntax for defaulting to a lower language level is a comment line of the form `@dart=2.0` (allowing for whitespace except inside the `@dart` or the version) in the initial part of the file, prior to any language declarations. So, it can be preceded by a `#!` line or by other comments, but not by a `library` declaration or any other declaration. Part files cannot be marked, they are always treated the same way as the library they belong to. All tools processing source files must be able to recognize this marker and process the library accordingly. 
+The syntax for defaulting to a lower language level is a single line non-dartdoc comment of the form `@dart=2.0` (allowing for whitespace except inside the `@dart` or the version) in the initial part of the file, prior to any language declarations. So, it can be preceded by a `#!` line or by other comments, but not by a `library` declaration or any other declaration. Part files cannot be marked, they are always treated the same way as the library they belong to. All tools processing source files must be able to recognize this marker and process the library accordingly.
 
 Examples:
 
@@ -84,10 +84,8 @@ library yadda;
 or
 
 ```dart
-/*
- * This library is yadda, yadda, exceptional, yadda.
- * @dart=2.1
- */
+// @dart=2.1
+// This library is yadda, yadda, exceptional, yadda.
 import "dart:math";
 ```
 
@@ -111,7 +109,7 @@ The `.packages` file is an `.ini`-file like text file with package names as keys
 Example:
 
 ```ini
-quiver=../../.pubcache/quiver/1.3.17/lib#dart=2.5
+quiver:../../.pubcache/quiver/1.3.17/lib#dart=2.5
 ```
 
 This specifies that the `quiver` package has a default language level of 2.5.
