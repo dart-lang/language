@@ -27,22 +27,20 @@ The grammar of types is extended to allow any type to be suffixed with a `?`
 (e.g. `int?`) indicating the nullable version of that type.
 
 A new primitive type `Never`.  This type is denoted by the built-in type
-declaration `Never`, with the same syntactic and scoping treatment as with other
-built-in types such as `Null`.
+declaration `Never` declared in `dart:core`.
 
 The grammer of expressions is extended to allow any expression to be suffixed
 with a `!`.
 
-The grammer of instance fields and local variables is extended to allow any
-declaration to include the modifer `lazy`.
+The modifier `late` is added as a built-in identifier.  The grammer of top level
+variables, static fields, instance fields, and local variables is extended to
+allow any declaration to include the modifer `late`.  **TODO: consider making
+`late` a keyword**
 
-The grammar of function types is extended to allow an additional group of named
-parameters prefaced with the word `required` (e.g. `int Function(int, {int?
-y}, required {int z})`.
-
-The grammar of function/method/closure declarations is extended to allow an
-additional group of named parameters prefaced with the word `required`
-(e.g. `int f(int x, {int?  y}, required {int z})`.
+The modifier `required` is added as a built-in identifier. The grammar of
+function types is extended to allow any named parameter declaration to be
+prefixed by the `required` modifier (e.g. `int Function(int, {int?  y, required
+int z})`. **TODO: consider making `required` a keyword**
 
 
 ### Grammatical ambiguities and clarifications.
@@ -62,8 +60,8 @@ type ::= type' `?`?
 #### Conditional expression ambiguities
 
 Conditional expressions inside of braces are ambiguous between sets and maps.
-That is, `{ a as int ? - 3 : 3 }` can be parsed as a set literal `{ (a as int)
-? - 3 : 3 }` or as a map literal `{ (a as int ?) - 3 : 3 }`.  Parsers will
+That is, `{ a as bool ? - 3 : 3 }` can be parsed as a set literal `{ (a as bool)
+? - 3 : 3 }` or as a map literal `{ (a as bool ?) - 3 : 3 }`.  Parsers will
 prefer the former parse over the latter.
 
 The same is true for `{ a is int ? - 3 : 3 }`.
@@ -118,17 +116,18 @@ fields on `Object`.
 It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
-It is an error for an instance field with no static initializer to have a
-potentially nullable type unless the variable or field is marked with the `lazy`
-modifier.
+It is an error if an instance field with potentially nullable type has no
+initializer expression and is not initialized in a constructor via an
+initializing formal or an initializer list entry, unless the variable or field
+is marked with the `late` modifier.
 
 It is an error if a local variable that is potentially non-nullable and is not
-marked `lazy` is used before it is definitely assigned (see Definite Assignment
+marked `late` is used before it is definitely assigned (see Definite Assignment
 below).
 
-It is an error if a method, function, getter, or closure with a potentially
-non-nullable return type does not definitely complete (see Definite Completion
-below).
+It is an error if a method, function, getter, or function expression with a
+potentially non-nullable return type does not definitely complete (see Definite
+Completion below).
 
 It is an error if an optional parameter (named or otherwise) with no default
 value has a potentially non-nullable type.
@@ -158,10 +157,12 @@ function call.
 It is an error if the static type of `e` in the expression `throw e` is
 potentially nullable.
 
-It is not an error for the body of a `lazy` field to reference `this`.
+It is not an error for the body of a `late` field to reference `this`.
 
-It is an error for a toplevel variable, a static field, or a formal parameter to
-be declared `lazy`.
+It is an error for a formal parameter to be declared `late`.
+
+It is not a compile time error to write to a `final` variable if that variable
+is declared `late` and does not have an initializer.
 
 It is an error if the type `T` in the **on-catch** clause `on T catch` is
 potentially nullable.
@@ -204,11 +205,10 @@ The **NonNull** function defines the null-promoted version of a type, and is
 defined as follows.
 
 - **NonNull**(Null) = Never
-- **NonNull**(_C_<_T_<sub>1</sub>, ... , _T_<sub>_n_</sub>>) = _C_<_T_<sub>1</sub>, ... , _T_<sub>_n_</sub>>  for class *C* other than Null
+- **NonNull**(_C_<_T_<sub>1</sub>, ... , _T_<sub>_n_</sub>>) = _C_<_T_<sub>1</sub>, ... , _T_<sub>_n_</sub>>  for class *C* other than Null (including Object).
 - **NonNull**(FutureOr<_T_>) = FutureOr<_T_>   
 - **NonNull**(_T_<sub>0</sub> Function(...)) = _T_<sub>0</sub> Function(...)
 - **NonNull**(Function) = Function
-- **NonNull**(Object) = Object
 - **NonNull**(Never) = Never
 - **NonNull**(dynamic) = dynamic
 - **NonNull**(void) = void   
@@ -217,7 +217,7 @@ defined as follows.
 - **NonNull**(_T_?) = **NonNull**(_T_)
 - **NonNull**(_T_\*) = **NonNull**(_T_)
 
-#### Type promotion, Definite Assignment, and Definite Completion
+#### Extended Type promotion, Definite Assignment, and Definite Completion
 
 These are extended as per separate proposal.
 
@@ -240,9 +240,9 @@ evaluates to the same value as `e..<tail>`.
 
 **TODO** Define exactly how a valid `<tail>` is delimited.
 
-#### Lazy fields and variables
+#### Late fields and variables
 
-A read of a field or variable which is marked as `lazy` which has not yet been
+A read of a field or variable which is marked as `late` which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
 a value, assigned to the variable or field, and returned as the value of the
 read.
@@ -261,12 +261,37 @@ read.
     is treated as a first read and the initializer expression is evaluated
     again.
 
-A toplevel or static variable with an initializer is evaluated as if it was
-marked `lazy`.  Note that this is a change from pre-NNBD semantics in that:
+A write to a field or variable which is marked `final` and `late` is a runtime
+error unless the field or variable was declared with no initializer expression,
+and there have been no previous writes to the field or variable (including via
+an initializing formal or an initializer list entry).
+
+Overriding a field which is marked both `final` and `late` with a member which
+does not otherwise introduce a setter introduces an implicit setter which
+throws.  For example:
+
+```
+class A {
+  final late int x;
+}
+class B extends A {
+  int get x => 3;
+}
+class C extends A {
+  final late int x = 3;
+}
+void test() {
+   Expect.throws(() => new B().x = 3);
+   Expect.throws(() => new C().x = 3);
+}
+```
+
+A toplevel or static variable with an initializer is evaluated as if it
+was marked `late`.  Note that this is a change from pre-NNBD semantics in that:
   - Throwing an exception during initializer evaluation no longer sets the
     variable to `null`
-  - Reading the variable during initializer evaluation is no longer a checked
-    error.
+  - Reading the variable during initializer evaluation is no longer checked for,
+    and does not cause an error.
 
 
 ## Core library changes
