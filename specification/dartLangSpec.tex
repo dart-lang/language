@@ -826,7 +826,8 @@ Variables are storage locations in memory.
 
 <declaredIdentifier> ::= <metadata> \COVARIANT{}? <finalConstVarOrType> <identifier>
 
-<finalConstVarOrType> ::= \FINAL{} <type>?
+<finalConstVarOrType> ::= \LATE{} \FINAL{}? <type>?
+  \alt \FINAL{} <type>?
   \alt \CONST{} <type>?
   \alt <varOrType>
 
@@ -1405,13 +1406,13 @@ It is a compile-time error if a formal parameter is declared as a constant varia
 \begin{grammar}
 <formalParameterList> ::= `(' `)'
   \alt `(' <normalFormalParameters> `,'? `)'
-  \alt `(' <normalFormalParameters> `,' <optionalFormalParameters> `)'
-  \alt `(' <optionalFormalParameters> `)'
+  \alt `(' <normalFormalParameters> `,' <optionalOrNamedFormalParameters> `)'
+  \alt `(' <optionalOrNamedFormalParameters> `)'
 
 <normalFormalParameters> ::= \gnewline{}
   <normalFormalParameter> (`,' <normalFormalParameter>)*
 
-<optionalFormalParameters> ::= <optionalPositionalFormalParameters>
+<optionalOrNamedFormalParameters> ::= <optionalPositionalFormalParameters>
   \alt <namedFormalParameters>
 
 <optionalPositionalFormalParameters> ::= \gnewline{}
@@ -1479,8 +1480,8 @@ Optional parameters may be specified and provided with default values.
 \begin{grammar}
 <defaultFormalParameter> ::= <normalFormalParameter> (`=' <expression>)?
 
-<defaultNamedParameter> ::= <normalFormalParameter> (`=' <expression>)?
-  \alt <normalFormalParameter> ( `:' <expression>)?
+<defaultNamedParameter> ::= \REQUIRED{}? <normalFormalParameter> (`=' <expression>)?
+  \alt \REQUIRED{}? <normalFormalParameter> ( `:' <expression>)?
 \end{grammar}
 
 The form \syntax{<normalFormalParameter> `:' <expression>}
@@ -1848,8 +1849,13 @@ Classes may be defined by class declarations as described below, or via mixin ap
   \alt \EXTERNAL{}? <operatorSignature>
   \alt (\EXTERNAL{} \STATIC{}?)? <functionSignature>
   \alt \STATIC{} (\FINAL{} | \CONST{}) <type>? <staticFinalDeclarationList>
+  \alt \STATIC{} \LATE{} \FINAL{}? <type>? <initializedIdentifierList>
+  \alt \STATIC{} (\VAR{} | <type>) <initializedIdentifierList>
+  \alt \COVARIANT{} (\VAR{} | \LATE{}) <initializedIdentifierList>
+  \alt \COVARIANT{} \LATE{}? <type> <initializedIdentifierList>
+  \alt \LATE{} \FINAL{}? <type>? <initializedIdentifierList>
   \alt \FINAL{} <type>? <initializedIdentifierList>
-  \alt (\STATIC{} | \COVARIANT{})? (\VAR{} | <type>) <initializedIdentifierList>
+  \alt \(\VAR{} | <type>) <initializedIdentifierList>
 
 <staticFinalDeclarationList> ::= \gnewline{}
   <staticFinalDeclaration> (`,' <staticFinalDeclaration>)*
@@ -3001,7 +3007,7 @@ There are three kinds of initializers.
   \alt <assertion>
 
 <fieldInitializer> ::= \gnewline{}
-  (\THIS{} `.')? <identifier> `=' <conditionalExpression> <cascadeSection>*
+  (\THIS{} `.')? <identifier> `=' <conditionalExpression> <cascadeSequence>
 \end{grammar}
 
 \LMHash{}%
@@ -5882,7 +5888,7 @@ Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
 
 \begin{grammar}
 <expression> ::= <assignableExpression> <assignmentOperator> <expression>
-  \alt <conditionalExpression> <cascadeSection>*
+  \alt <conditionalExpression> <cascadeSequence>
   \alt <throwExpression>
 
 <expressionWithoutCascade> ::= \gnewline{}
@@ -9479,6 +9485,8 @@ has the form \code{$e$..\metavar{suffix}}
 where $e$ is an expression and \metavar{suffix} is a sequence of operator, method, getter or setter invocations.
 
 \begin{grammar}
+<cascadeSequence> ::= (`?'? <cascadeSection>+)?
+
 <cascadeSection> ::= `..' (<cascadeSelector> <argumentPart>*)
   \gnewline{} (<assignableSelector> <argumentPart>*)*
   \gnewline{} (<assignmentOperator> <expressionWithoutCascade>)?
