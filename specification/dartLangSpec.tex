@@ -1855,7 +1855,7 @@ Classes may be defined by class declarations as described below, or via mixin ap
   \alt \COVARIANT{} \LATE{}? <type> <initializedIdentifierList>
   \alt \LATE{} \FINAL{}? <type>? <initializedIdentifierList>
   \alt \FINAL{} <type>? <initializedIdentifierList>
-  \alt \(\VAR{} | <type>) <initializedIdentifierList>
+  \alt (\VAR{} | <type>) <initializedIdentifierList>
 
 <staticFinalDeclarationList> ::= \gnewline{}
   <staticFinalDeclaration> (`,' <staticFinalDeclaration>)*
@@ -14119,16 +14119,17 @@ but it is the least upper bound of all function types.
 
 \begin{grammar}
 
-<type> ::= <typeNotQuestion> `?'?
-
-<typeNotQuestion> ::= <functionType>
+<type> ::= <functionType> `?'?
   \alt <typeNotFunction>
 
-<typeNotFunction> ::= <typeNotVoidNotFunction>
-  \alt \VOID{}
+<typeNotVoid> ::= <functionType> `?'?
+  \alt <typeNotVoidNotFunction>
 
-<typeNotVoidNotFunction> ::= <typeName> <typeArguments>?
-  \alt \FUNCTION{}
+<typeNotFunction> ::= \VOID{}
+  \alt <typeNotVoidNotFunction>
+
+<typeNotVoidNotFunction> ::= <typeName> <typeArguments>? `?'?
+  \alt \FUNCTION{} `?'?
 
 <typeName> ::= <typeIdentifier> (`.' <typeIdentifier>)?
 
@@ -14139,16 +14140,10 @@ but it is the least upper bound of all function types.
 <typeNotVoidNotFunctionList> ::= \gnewline{}
   <typeNotVoidNotFunction> (`,' <typeNotVoidNotFunction>)*
 
-<typeNotVoid> ::= <typeNotVoidNotQuestion> `?'?
-
-<typeNotVoidNotQuestion> ::=
-  <functionType>
-  \alt <typeNotVoidNotFunction>
-
 <functionType> ::= <functionTypeTails>
   \alt <typeNotFunction> <functionTypeTails>
 
-<functionTypeTails> ::= <functionTypeTail> <functionTypeTails>
+<functionTypeTails> ::= <functionTypeTail> `?'? <functionTypeTails>
   \alt <functionTypeTail>
 
 <functionTypeTail> ::= \FUNCTION{} <typeParameters>? <parameterTypeList>
