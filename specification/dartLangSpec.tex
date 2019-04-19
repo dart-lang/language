@@ -3007,7 +3007,7 @@ There are three kinds of initializers.
   \alt <assertion>
 
 <fieldInitializer> ::= \gnewline{}
-  (\THIS{} `.')? <identifier> `=' <conditionalExpression> <cascadeSequence>
+  (\THIS{} `.')? <identifier> `=' <conditionalExpression> <cascadeSequence>?
 \end{grammar}
 
 \LMHash{}%
@@ -5888,7 +5888,7 @@ Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
 
 \begin{grammar}
 <expression> ::= <assignableExpression> <assignmentOperator> <expression>
-  \alt <conditionalExpression> <cascadeSequence>
+  \alt <conditionalExpression> <cascadeSequence>?
   \alt <throwExpression>
 
 <expressionWithoutCascade> ::= \gnewline{}
@@ -9485,11 +9485,13 @@ has the form \code{$e$..\metavar{suffix}}
 where $e$ is an expression and \metavar{suffix} is a sequence of operator, method, getter or setter invocations.
 
 \begin{grammar}
-<cascadeSequence> ::= (`?'? <cascadeSection>+)?
+<cascadeSequence> ::= (`?..' \alt `..`) <cascadeSection> <cascadeSectionContinuation>*
 
-<cascadeSection> ::= `..' (<cascadeSelector> <argumentPart>*)
+<cascadeSection> ::= (<cascadeSelector> <argumentPart>*)
   \gnewline{} (<assignableSelector> <argumentPart>*)*
   \gnewline{} (<assignmentOperator> <expressionWithoutCascade>)?
+
+<cascadeSectionContinuation> ::= `..' <cascadeSection>
 
 <cascadeSelector> ::= `[' <expression> `]'
   \alt <identifier>
@@ -11504,6 +11506,8 @@ and therefore must be evaluated.
 
 <assignableSelector> ::= <unconditionalAssignableSelector>
   \alt `?.' <identifier>
+  \alt `!'
+
 \end{grammar}
 
 \LMHash{}%
@@ -14114,8 +14118,10 @@ but it is the least upper bound of all function types.
 }
 
 \begin{grammar}
-<type> ::= <functionTypeTails>
-  \alt <typeNotFunction> <functionTypeTails>
+
+<type> ::= <typeNotQuestion> `?'?
+
+<typeNotQuestion> ::= <functionType>
   \alt <typeNotFunction>
 
 <typeNotFunction> ::= <typeNotVoidNotFunction>
@@ -14133,7 +14139,10 @@ but it is the least upper bound of all function types.
 <typeNotVoidNotFunctionList> ::= \gnewline{}
   <typeNotVoidNotFunction> (`,' <typeNotVoidNotFunction>)*
 
-<typeNotVoid> ::= <functionType>
+<typeNotVoid> ::= <typeNotVoidNotQuestion> `?'?
+
+<typeNotVoidNotQuestion> ::=
+  <functionType>
   \alt <typeNotVoidNotFunction>
 
 <functionType> ::= <functionTypeTails>
