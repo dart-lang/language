@@ -23,9 +23,8 @@ The implementation plan for this issue is <link to implementation plan>.
 - [ ] Issue for implementation in Cider:
 - [ ] Issue for implementation in Dartfmt:
 - [ ] Issue for implementation in Dartdoc:
-- [ ] Issue for implementation in Angular compiler:
+- [ ] Issue for implementation in build systems and Angular compiler:
 - [ ] Issue for language tests:
 - [ ] Issue for documentation:
 - [ ] Issue for specification:
 - [ ] Issue for code cleanup:
-- [ ] Issue for validating behavior of codegen:
