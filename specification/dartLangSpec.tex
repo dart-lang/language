@@ -9485,7 +9485,7 @@ has the form \code{$e$..\metavar{suffix}}
 where $e$ is an expression and \metavar{suffix} is a sequence of operator, method, getter or setter invocations.
 
 \begin{grammar}
-<cascadeSequence> ::= (`?..' \alt `..`) <cascadeSection> <cascadeSectionContinuation>*
+<cascadeSequence> ::= (`?..' \alt `..') <cascadeSection> <cascadeSectionContinuation>*
 
 <cascadeSection> ::= (<cascadeSelector> <argumentPart>*)
   \gnewline{} (<assignableSelector> <argumentPart>*)*
@@ -11506,6 +11506,7 @@ and therefore must be evaluated.
 
 <assignableSelector> ::= <unconditionalAssignableSelector>
   \alt `?.' <identifier>
+  \alt `?.[' <expression> `]'
   \alt `!'
 
 \end{grammar}

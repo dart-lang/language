@@ -4,6 +4,14 @@ Author: leafp@google.com
 
 Status: Draft
 
+## CHANGELOG
+
+2019.04.23:
+  - Added specification of short-circuiting null
+  - Added `e1?.[e2]` operator syntax
+
+## Summary
+
 This is the proposed specification for [sound non-nullable by default types](http://github.com/dart-lang/language/issues/110).
 Discussion of this proposal should take place in [Issue 110](http://github.com/dart-lang/language/issues/110).
 
@@ -23,16 +31,20 @@ up
 
 ## Syntax
 
+The precise changes to the syntax are given in an accompanying set of
+modifications to the grammar in the formal specification.  This section
+summarizes in prose the grammar changes associated with this feature.
+
 The grammar of types is extended to allow any type to be suffixed with a `?`
 (e.g. `int?`) indicating the nullable version of that type.
 
 A new primitive type `Never`.  This type is denoted by the built-in type
 declaration `Never` declared in `dart:core`.
 
-The grammer of expressions is extended to allow any expression to be suffixed
+The grammar of expressions is extended to allow any expression to be suffixed
 with a `!`.
 
-The modifier `late` is added as a built-in identifier.  The grammer of top level
+The modifier `late` is added as a built-in identifier.  The grammar of top level
 variables, static fields, instance fields, and local variables is extended to
 allow any declaration to include the modifer `late`.  **TODO: consider making
 `late` a keyword**
@@ -42,13 +54,17 @@ function types is extended to allow any named parameter declaration to be
 prefixed by the `required` modifier (e.g. `int Function(int, {int?  y, required
 int z})`. **TODO: consider making `required` a keyword**
 
+The grammar of selectors is extended to allow null-aware subscripting using the
+syntax `e1?.[e2]` which evaluates to `null` if `e1` evaluates to `null` and
+otherwise evaluates as `e1[e2]`.
+
 
 ### Grammatical ambiguities and clarifications.
 
 #### Nested nullable types
 
 The grammar for types does not allow multiple successive `?` operators on a
-type.  That is, the grammar for types is
+type.  That is, the grammar for types is nominally equivalent to:
 
 ```
 type' ::= functionType
@@ -167,6 +183,7 @@ is declared `late` and does not have an initializer.
 It is an error if the type `T` in the **on-catch** clause `on T catch` is
 potentially nullable.
 
+
 ### Assignability
 
 The definition of assignability is changed as follows.  
@@ -230,15 +247,123 @@ error if `v` is `null`, and otherwise evaluates to `v`.
 
 #### Null aware operator
 
-An expression of the form `e?.<tail>` where `<tail>` is any sequence of
-selectors evaluates to `null` if `e` evaluates to `null`, and otherwise
-evaluates to the same value as `e.<tail>`.
+The semantics of the null aware operator `?.` are defined via a source to source
+translation of expressions into Dart code extended with a let binding construct.
+The translation is defined using meta-level functions over syntax.  We use the
+notation `fn[x : Exp] : Exp => E` to define a meta-level function of type `Exp
+-> Exp` (that is, a function from expressions to expressions), and similarly
+`fn[k : Exp -> Exp] : Exp => E` to define a meta-level function of type `Exp ->
+Exp -> Exp`.  Where obvious from context, we elide the parameter and return
+types on the meta-level functions.  The meta-variables `F` and `G` are used to
+range over meta-level functions. Application of a meta-level function is written
+as `F[p]` where `p` is the argument.
 
-An expression of the form `e?..<tail>` where `<tail>` is any sequence of
-selectors evaluates to `null` if `e` evaluates to `null`, and otherwise
-evaluates to the same value as `e..<tail>`.
+The null-shorting translation of an expression `e` is meta-level function `F` of
+type `Exp -> Exp -> Exp` which takes as an argument the continuation of `e` and
+produces an expression semantically equivalent to `e` with all occurrences of
+`?.` eliminated in favor of explicit sequencing using a `let` construct.
 
-**TODO** Define exactly how a valid `<tail>` is delimited.
+Let `ID` be the identity function `fn[x : Exp] : Exp => x`.
+
+The expression translation of an expression `e` is the result of applying the
+null-shorting translation of `e` to `ID`.  That is, if `e` translates to `F`,
+then `F[ID]` is the expression translation of `e`.
+
+We use `EXP(e)` as a shorthand for the expression translation of `e`.  That is,
+if the null-shorting translation of `e` is `F`, then `EXP(e)` is `F[ID]`.
+
+We extend the expression translation to argument lists in the obvious way, using
+`ARGS(args)` to denote the result of applying the expression translation
+pointwise to the arguments in the argument list `args`.
+
+We use three combinators to express the translation.
+
+The null-aware shorting combinator `SHORT` is defined as:
+```
+  SHORT = fn[r : Exp, c : Exp -> Exp] =>
+              fn[k : Exp -> Exp] : Exp =>
+                let x = r in x == null ? null : k[c[x]]
+```
+
+where `x` is a fresh object level variable.  The `SHORT` combinator is used to
+give semantics to uses of the `?.` operator.  It is parameterized over the
+receiver of the conditional property access (`r`) and a meta-level function
+(`c`) which given an object-level variable (`x`) bound to the result of
+evaluating the receiver, produces the final expression.  The result is
+parameterized over the continuation of the expression being translated.  The
+continuation is only called in the case that the result of evaluating the
+receiver is non-null.
+
+The shorting propagation combinator `PASSTHRU` is defined as:
+```
+  PASSTHRU = fn[F : Exp -> Exp -> Exp, c : Exp -> Exp] =>
+               fn[k : Exp -> Exp] : Exp => F[fn[x] => k[c[x]]]
+```
+
+The `PASSTHRU` combinator is used to give semantics to expression forms which
+propagate null-shorting behavior.  It is parameterized over the translation `F`
+of the potentially null-shorting expression, and over a meta-level function `c`
+which given an expression which denotes the value of the translated
+null-shorting expression produces the final expression being translated.  The
+result is parameterized over the continuation of the expression being
+translated, which is called unconditionally.
+
+The null-shorting termination combinator TERM is defined as:
+```
+  TERM = fn[r : Exp] => fn[k : Exp -> Exp] : Exp => k[r]
+```
+
+The `TERM` combinator is used to give semantics to expressions which neither
+short-circuit nor propagate null-shorting behavior.  It is parameterized over
+the translated expression, and simply passes on the expression to its
+continuation.
+
+- A property access `e?.f` translates to:
+  - `SHORT[EXP(e), fn[x] => x.f]`
+- If `e` translates to `F` then `e.f` translates to:
+  - `PASSTHRU[F, fn[x] => x.f]`
+- A null aware method call `e?.m(args)` translates to:
+  - `SHORT[EXP(e), fn[x] => x.m(ARGS(args))]`
+- If `e` translates to `F` then `e.m(args)` translates to:
+  - `PASSTHRU[F, fn[x] => x.m(ARGS(args))]`
+- If `e` translates to `F` then `e(args)` translates to:
+  - `PASSTHRU[F, fn[x] => x(ARGS(args))]`
+- If `e1` translates to `F` then `e1?.[e2]` translates to:
+  - `SHORT[EXP(e1), fn[x] => x[EXP(e2)]]`
+- If `e1` translates to `F` then `e1[e2]` translates to:
+  - `PASSTHRU[F, fn[x] => x[EXP(e2)]]`
+- The assignment `e1?.f = e2` translates to:
+  - `SHORT[EXP(e1), fn[x] => x.f = EXP(e2)]`
+- The other assignment operators are handled equivalently.
+- If `e1` translates to `F` then `e1.f = e2` translates to:
+  - `PASSTHRU[F, fn[x] => x.f = EXP(e2)]`
+- The other assignment operators are handled equivalently.
+- If `e1` translates to `F` then `e1?.[e2] = e3` translates to:
+  - `SHORT[EXP(e1), fn[x] => x[EXP(e2)] = EXP(e3)]`
+- The other assignment operators are handled equivalently.
+- If `e1` translates to `F` then `e1[e2] = e3` translates to:
+  - `PASSTHRU[F, fn[x] => x[EXP(e2)] = EXP(e3)]`
+- The other assignment operators are handled equivalently.
+- A cascade expression `e..s` translates as follows, where `F` is the
+    translation of `e` and  `x` and `y` are fresh object level variables:
+    ```
+        fn[k : Exp -> Exp] : Exp =>
+           F[fn[r : Exp] : Exp => let x = r in
+                                  let y = EXP(x.s)
+                                  in k[x]
+           ]
+    ```
+- A null-shorting cascade expression `e?..s` translates as follows, where `x`
+    and `y` are fresh object level variables.
+    ```
+       fn[k : Exp -> Exp] : Exp =>
+           let x = EXP(e) in x == null ? null : let y = EXP(x.s) in k(x)
+    ```
+- All other expressions are translated compositionally using the `TERM`
+  combinator.  Examples:
+  - An identifier `x` translates to `TERM[x]`
+  - A list literal `[e1, ..., en]` translates to `TERM[ [EXP(e1), ..., EXP(en)] ]`
+  - A parenthesized expression `(e)` translates to `TERM[(EXP(e))]`
 
 #### Late fields and variables
 
