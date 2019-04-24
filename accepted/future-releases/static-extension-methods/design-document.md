@@ -1,9 +1,12 @@
 # Dart Static Extension Methods Design
-lrn@google.com
+
+lrn@google.com<br>Version: 1.0<br>Status: Design Proposal
 
 This is a design document for *static extension methods* for Dart. This document describes the most basic variant of the feature, then lists a few possible variants or extensions.
 
-The design of this feature is kept deliberately simple.
+See [Problem Description](https://github.com/dart-lang/language/issues/40) and [Feature Request](https://github.com/dart-lang/language/issues/41) for background.
+
+The design of this feature is kept deliberately simple, while still attempting to make extension methods act similarly to instance methods in most cases.
 
 ## What Are Static Extension Methods
 
@@ -13,13 +16,15 @@ Dart classes have virtual methods. An invocation like `thing.doStuff()` will inv
 doMyOtherStuff(doMyStuff(something.doStuff()).doOtherStuff())
 ```
 
-That code is so much less readable than
+That code is much less readable than:
 
 ```dart
 something.doStuff().doMyStuff().doOtherStuff().doMyOtherStuff()
 ```
 
-So, primarily for readability reasons, static extension methods will allow you to add "extension methods", which are really just static functions, to existing types, and allow you to call those methods as if they were actual methods, using `.`.
+The code is also much less discoverable. An IDE can suggest `doMyStuff()` after `something.doStuff().`, but will be unlikely to suggest putting `doMyOherStuff(…)` around the expression.
+
+For these discoverability and readability reasons, static extension methods will allow you to add "extension methods", which are really just static functions, to existing types, and allow you to discover and call those methods as if they were actual methods, using `.`-notation. It will not add any new abilities to the language which are not already available, they just require a more cumbersome and less discoverable syntax to reach.
 
 The extension methods are *static*, which means that we use the static type of an expression to figure out which method to call, and that also means that static extension methods are not virtual methods.
 
@@ -52,13 +57,13 @@ More precisely, an extension declaration is a top-level declaration with a gramm
 
 Such a declaration introduces its *name* (the identifier) into the surrounding scope. The name does not denote a type, but it can be used to denote the extension itself in various places. The name can be hidden or shown in `import` or `export` declarations.
 
-The *type* can be any valid Dart type, but not a single type variable. It can refer to the type parameters of the extension. It can be followed by `?` which means that it allows `null` values.
+The *type* can be any valid Dart type, including a single type variable. It can refer to the type parameters of the extension. It can be followed by `?` which means that it allows `null` values. When Dart gets non-nullable types by default (NNBD), this `?` syntax is removed and subsumed by nullable types like `int?` being allowed in the `<type>` position.
 
 The member declarations can be any static or instance member declaration except for instance variables and constructors.
 
 ### Scope
 
-Dart's static extension methods are *scoped*. They only apply to code that the extension itself is accessible to. Being in accessible means that using the extension's name must denote the extension. The extension is not in scope if another declaration with the same name shadows the extension, if the extension's library is not imported, if the library is imported and the extension is hidden, or the library is only imported with a prefix. In other words, if the extension had been a class, it is only in scope if using the name would denote the class&mdash; which will allow you to call static methods on the class, which is exactly what we are going to do.
+Dart's static extension methods are *scoped*. They only apply to code that the extension itself is accessible to. Being accessible means that using the extension's name must denote the extension. The extension is not in scope if another declaration with the same name shadows the extension, if the extension's library is not imported, if the library is imported and the extension is hidden, or the library is only imported with a prefix. In other words, if the extension had been a class, it is only in scope if using the name would denote the class&mdash; which will allow you to call static methods on the class, which is exactly what we are going to do.
 
 ### Extension Member Resolution
 
@@ -111,11 +116,16 @@ It is *as if* the invocation `bytes.quickSort` was converted to `MyList<int>(byt
 
 If more than one extension applies to a specific member invocation, then if exactly one of them is more specific than all the others, that one is chosen. Otherwise it is a compile-time error.
 
-An extension is more specific than another extension if its `on` type is a subtype of the `on` type of the other extension. If the extension is generic, first do instantiation to bounds, then use the `on` type of that when comparing specificity of extensions.
+An extension with `on` type clause *T*<sub>1</sub> is more specific than another extension with `on` type clause *T*<sub>2</sub> iff the instantiated type (the type after applying type inference from the receiver) of *T*<sub>1</sub> is a subtype of the instantiated type of *T*<sub>2</sub> and either:
 
-If an extension's `on` type has a trailing `?`, say `T?`, then it is considered a supertype of the corresponding type `T` without the trailing `?`, as a subtype of any supertype of `T` that also has a trailing `?`, and otherwise unrelated to all other types. So, `on int?` is less specific than `on int`, and `on int?` is more specific than `on num?`. There is no relation between `on num` and `on int?`.
+- not vice versa, or
+- the instantiate-to-bounds type of *T*<sub>1</sub> is a subtype of the instantiate-to-bounds type of *T*<sub>2</sub> and not vice versa.
 
-That is, the specificity of an extension is independent of the type it is used at. 
+This definition is designed to ensure that the extension chosen is the one that has the most precise type information available.
+
+If an extension's `on` type has a trailing `?`, say `T?`, then we treat it just as we would for the corresponding nullable type with NNBD types, which are described in a separate design document. In short, it means treating the type `T?`, for subtyping purposes, as a union type of `T` with `Null` (a least supertype of `T` and `Null`).
+
+That is, the specificity of an extension wrt. an application depends of the type it is used at, and how specific the extension is itself (what its implementation can assume about the type). 
 
 Example:
 
@@ -140,24 +150,42 @@ Here both the extensions apply, but the `SmartList` extension is more specific t
 Example:
 
 ```dart
-extension BoxCom<T extends Comparable<T>> on Box<Iterable<T>> { foo() {} }
-extension BoxList<T> on Box<List<T>> { foo() {} }
-extension BoxSpec on Box<List<num>> { foo() {} }
+extension BoxCom<T extends Comparable<T>> on Box<Iterable<T>> { T best() {...} }
+extension BoxList<T> on Box<List<T>> { T best() {...} }
+extension BoxSpec on Box<List<num>> { num best() {...} }
 ...
   List<int> x = ...;
-  x.foo();
+  var v = x.best();
+  List<num> y = ...;
+  var w = y.best();
 ```
 
-Here all three extensions apply. The most specific one is `BoxSpec` which is specialized for lists of numbers. If `BoxSpec` had not been in scope, then neither of `BoxCom` or `BoxList` would be more specific than the other. Their `on` types, when instantiated to bounds, are `Box<Iterable<Comparable<dynamic>>>` and `Box<List<dynamic>>` which are unrelated by subtyping.
+Here all three extensions apply to both invocations.
 
-This is also why we use the instantiated-to-bounds type for comparison. If we used the actual type, bound to the type variable by the current use-case, we would consider `BoxList<int>` to be more specific than `BoxSpec`, but in practice, the `BoxList<int>` extension would not be able to *use* the integer-ness of the type in its code, so `BoxSpec`, which can specialize its code for lists of numbers, is the most precise match.
+For `x.best()`, the most specific one is `BoxList`. Because `Box<List<int>>` is a proper subtype of both ` Box<iterable<int>>` and `Box<List<num>>`, we expect `BoxList` to be the best implementation. The return type causes `v` to have type `int`. If we had chosen `BoxSpec` instead, the return type could only be `num`, which is why we choose the most specific instantiated type as the winner. 
+
+For `y.best()`, the most specific extension is `BoxSpec`. The instantiated `on` types that are compared are `Box<Iterable<num>>` for `BoxCom` and `Box<List<num>>` for the two other. Using the instantiate-to-bounds types as tie-breaker, we find that `Box<List<Object>>` is less precise than `Box<List<num>>`, so the code of `BoxSpec` has more precise information available for its method implementation. The type of `w` becomes `Box<List<num>>`.
+
+In practice, unintended extension method name conflicts are likely to be rare. Intended conflicts happen where the same author is providing more specialized versions of an extension for subtypes, and in that case, picking the extension which has the most precise types available to it is considered the best choice.
 
 ### Overriding Access
 
-If two or more extensions apply to the same member access, or if a member of the receiver type prevents using an extension method, or if the extension is shadowed, then it is possible to force an extension member invocation:
+If two or more extensions apply to the same member access, or if a member of the receiver type takes precedence over an extension method, or if the extension is imported with a prefix, then it is possible to force an extension member invocation:
 
 ```dart
 MyList(object).quickSort();
+```
+
+or if you don't want the type argument to the extension to be inferred:
+
+```dart
+MyList<String>(object).quickSort();
+```
+
+or if you imported the extension with a prefix to avoid name collision:
+
+```dart
+prefix.MyList<String>(object).quickSort();
 ```
 
 The syntax looks like a constructor invocation, but it does not create a new object.
@@ -189,7 +217,7 @@ If an extension is found to be the one applying to a member invocation, then at 
 
 If the receiver is `null`, then that invocation is an immediate run-time error unless the `on` type of the extension has a trailing `?`.
 
-With NNBD types, we will not allow a non-nullable extension `on` type to apply to a member invocation with a nullable receiver type.
+With NNBD types, it is a run-time error if the receiver is `null` and the instantiated `on` type of the selected extension does not allow `null`. For sound non-nullable types, this can be excluded statically. If a receiver expression is nullable, then the matching `on` type must be nullable too. If a receiver expression is soundly non-nullable, then the value cannot be `null` at run-time. During migration, we will have unsound nullable types like `int*` which should be matched by `extension Wot on int {…}`, and in that case we will need a run-time check to avoid passing `null` to that extension.
 
 ### Semantics of Extension Members
 
@@ -253,12 +281,32 @@ void add2(T value1, T value2) {
 }
 ```
 
+### Tearoffs
+
+A static extension method can be torn off like any other instance method.
+
+```dart
+extension Foo on Bar {
+  int baz<T>(T x) => x.toString().length;
+}
+...
+  Bar b = ...;
+  int Function(int) func = b.baz;
+```
+
+This assignment does a tear-off of the `baz` method. In this case it even does generic specialization, so it creates a function value of type `int Function(int)` which, when called with argument `x`, works just as `Foo(b).baz<int>(x)`, whether or not`Foo` is in scope at the point where the function is called. The torn off function closes over both the extension type and the receiver, and over any type arguments that it is implicitly instantiated with.
+
+An explicitly overridden extension method, like `Foo<Bar>(b).baz` also works as a tear-off. 
+
+There is still no way to tear off getters, setters or operators. If we ever introduce such a feature, it should work for extension methods too.
+
 ## Summary
 
 - Extensions are declared using the syntax:
 
   ```ebnf
-  <extension> ::= `extension' <identifier><typeParameters>? `on' <type> `?'? `{'
+  <extension> ::= `extension' <identifier><typeParameters>? `on' <type> `?'?
+     `{'
        <memberDeclaration>*
      `}'
   ```
@@ -266,6 +314,7 @@ void add2(T value1, T value2) {
   where `extension` becomes a built-in identifier, `<type>` must not be a type variable, and `<memberDeclaration>` does not allow instance fields or constructors. It does allow static members.
 
 - The extension declaration introduces a name (`<identifier>`) into the surrounding scope. 
+
   - The name can be shown or hidden in imports/export. It can be shadowed by other declarations as any other top-level declaration.
   - The name can be used as suffix for invoking static members (used as a namespace, same as class/mixin declarations).
 
@@ -289,10 +338,7 @@ void add2(T value1, T value2) {
 
   that was invoked as `Foo(receiver).baz(args)`. The binding of `T` and `S` found here is the same binding used by the extension.  If the constructor invocation would be a compile-time error, the extension does not apply.
 
-- One extension is more specific than another if the `on` type of the former is a subtype of the `on` type of the latter. For generic extensions, use the `on` type after instantiating to bounds. An `on` type `T?`, with a trailing `?`, is considered more specific than the same type without a `?`, and less specific than a supertype of `T` which also has a `?`. That is:
-
-  - *S* <: *T*? iff  *S* does not have a trailing `?` and *S* <: *T*.
-  - *S*? <: *T*? iff *S* <: *T*
+- One extension is more specific than another if the instantiated `on` type of the former is a proper subtype of the instantiated `on` type of the latter, or if the two instantiated types are equivalent and the instantiate-to-bounds `on` type of the former is a proper subtype of the one on the latter.  An `on` type `T?`, with a trailing `?` works like a NNBD nullable type.
 
 - If there is no single most-specific extension which applies to a member invocation, then it is a compile-time error. (This includes the case with no applicable extensions, which is just the current behavior).
 
@@ -302,12 +348,14 @@ void add2(T value1, T value2) {
 
 - The override can also be used for extensions imported with a prefix (which are not otherwise in scope): `prefix.ExtensionName(object).method(args)`.
 
-- An invocation of an extension method throws if the receiver is `null` unless the `on` type has a trailing `?`.
+- An invocation of an extension method throws if the receiver is `null` unless the `on` type has a trailing `?`. With NNBD types, the invocation throws if the receiver is `null` and the instantiated `on` type of the selected extension does not accept `null`. (In most cases, this case can be excluded statically, but not for unsafely nullable types like `int*`).
 
 - Otherwise an invocation of an extension method runs the instance method with `this` bound to the receiver and with type variables bound to the types found by type inference (or written explicitly for an override invocation).
 
 - Inside an extension member, the current extension is considered more specific than any other extension, so if it applies to an invocation, then it doesn't matter which other extensions also apply.
+
 - Inside an *instance* extension member,:
+
   - invocations on `this` check the current extension's members *before* the `on` type members.
   - in every other way the static type of `this ` is the `on` type.
   - A `super` invocations is an invocation on `this` allowing only members of the `on` type. No extension methods apply, from the current extension or any other.
@@ -323,8 +371,8 @@ The `on <type>` clause only allows a single type. The similar clause on `mixin` 
 We could allow multiple types in the `extension` `on` clause as well. It would have the following consequences:
 
 - An extension only applies if the receiver type is a subtype of all `on` types.
-- An extension is more specific than another if for every `on` type in the latter, there is an `on` type in the former which is a subtype of that type.
-- The trailing `?` makes the most sense if it is applied only once (it's the extension which accepts and understands `null` as a receiver), but for forwards compatibility, we will need to put it on every `on` type individually.
+- An extension is more specific than another if for every `on` type in the latter, there is an `on` type in the former which is a proper subtype of that type, or the two are equivalent, and the former is a proper subtype of the latter when instantiated to bounds.
+- The trailing `?` makes the most sense if it is applied only once (it's the extension which accepts and understands `null` as a receiver), but for forwards compatibility, we will need to put it on every `on` type individually. All `on` types must be nullable in order to accept a nullable receiver.
 - There is no clear type to assign to `this` inside an instance extension method. For a mixin that's not a problem because it introduces a type by itself, and the combined super-interface is only used for `super` invocations. For extension, a statement like `var self = this;` needs to be assigned a useful type.
 
 The last item is the reason this feature is not something we will definitely do. We can start out without the feature and maybe add it later if it is necessary, but it's safer to start without it.
@@ -354,7 +402,7 @@ However, while this is possible, not all `on` types are class or mixin types. It
 
 For the first two, we could put the static members on the `Iterable` class, but since the extension does not apply to *all* iterables, it is not clear that this is correct.
 
-For `int Function(int)` and `FutureOr<int>`, it's unclear how to call such a static method at all. There is no type literal with type `int Function(int)`.  We could put the static method on `Function`, but that's not particularly discoverable, and why not require that they are put on `Functon` explicitly. For `FutureOr`, we could allow static members on `FutureOr`, but again it seems spurious. For `int?`, we could put the method on `int`, but why not  just require that it's on `int`.
+For `int Function(int)` and `FutureOr<int>`, it's unclear how to call such a static method at all. We can denote`int Function(int)` with a type alias, but putting static members on type aliases is a new concept.  We could put the static method on `Function`, but that's not particularly discoverable, and why not require that they are put on `Functon` explicitly. For `FutureOr`, we could allow static members on `FutureOr` (which is a denotable type), but again it seems spurious. For `int?`, we could put the method on `int`, but why not  just require that it's on `int`.
 
 The issue here is that the type patterns used by `on` are much more powerful than what is necessary to put static members on class types.
 
@@ -369,7 +417,33 @@ static extension Foo on int {  // or: extension Foo on static int
   print(int.fromList([1, 2])); // 2
 ```
 
-where the `on` type must be something that can already have static methods.
+where the `on` type must be something that can already have static methods. 
 
-If we allow extension static declarations like these, we could also allow extension constructors.
+The disadvantage is that if you want to introduce related functionality that is both static and instance methods on a class, then you need to write two extensions with different names.
 
+If we allow extension static declarations like these, we can also allow extension constructors.
+
+### Omitting Names For Local Extensions
+
+If an extension declaration is only used locally in a library, there is no need to worry about naming conflicts or overrides. In that case, then name identifier can be omitted.
+
+Example:
+
+```dart
+extension<T> on List<T> {
+  void quadruple() { ... }
+}
+```
+
+This is equivalent to giving the extension a fresh private name.
+
+The grammar then becomes:
+
+```ebnf
+<extension> ::= 
+  `extension' <identifier>? <typeParameters>? `on' <type> `?'? `{'
+     memberDeclaration*
+  `}'
+```
+
+This is a simple feature, but with very low impact. It only allows you to omit a singl eprivate name for an extension that is only used in a single library. Unless there is a documented demand for this feature, it doesn't seem worth the effort.
