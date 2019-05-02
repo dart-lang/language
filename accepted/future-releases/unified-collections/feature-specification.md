@@ -7,7 +7,7 @@ literals:
 * [Spread Collections][]
 * [Control Flow Collections][]
 
-[set literals]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/set-literals/feature-specification.md
+[set literals]: https://github.com/dart-lang/language/blob/master/accepted/2.2/set-literals/feature-specification.md
 [spread collections]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/spread-collections/feature-specification.md
 [control flow collections]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/control-flow-collections/feature-specification.md
 
