@@ -15,7 +15,7 @@
 \makeindex
 \title{Dart Programming Language Specification\\
 {5th edition draft}\\
-{\large Version 2.2.1-dev}}
+{\large Version 2.3.0-dev}}
 \author{}
 
 % For information about Location Markers (and in particular the
@@ -26,6 +26,10 @@
 % =======
 %
 % Significant changes to the specification.
+%
+% 2.3
+% - Added requirement that the iterator of a for-in statement must have
+%   type `Iterator`.
 %
 % 2.2
 % - Specify whether the values of literal expressions override Object.==.
@@ -38,8 +42,6 @@
 %   Function.
 % - Generalize specification of type aliases such that they can denote any
 %   type, not just function types.
-% - Added requirement that the iterator of a for-in statement must have
-%   type `Iterator`.
 %
 % 2.1
 % - Remove 64-bit constraint on integer literals compiled to JavaScript numbers.
@@ -11491,7 +11493,7 @@ and therefore must be evaluated.
 <assignableExpression> ::= <primary> <assignableSelectorPart>+
   \alt \SUPER{} <unconditionalAssignableSelector>
   \alt <constructorInvocation> <assignableSelectorPart>+
-  \alt <identifier>
+  <identifier>
 
 <assignableSelectorPart> ::= <argumentPart>* <assignableSelector>
 
@@ -12301,7 +12303,7 @@ $T$ $\id_1$ = $e$;
 \VAR{} $\id_2$ = $id_1$.iterator;
 \WHILE{} ($\id_2$.moveNext()) \{
 \ \ $D$ \id{} = $\id_2$.current;
-\ \ $S$
+\ \ \{ $S$ \}
 \}
 \end{normativeDartCode}
 
