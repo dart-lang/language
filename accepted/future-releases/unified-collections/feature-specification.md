@@ -517,7 +517,7 @@ compile-time errors. It is a compile-time error if:
     <String>{"not": "expression"} // Error.
     ```
 
-    *We prohibit map entries in list literals syntacitcally, earlier in the
+    *We prohibit map entries in list literals syntactically, earlier in the
     proposal.*
 
 *   The collection is a list and the type of any of the *leaf elements* may not
