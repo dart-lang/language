@@ -65,7 +65,7 @@ or potentially constant expressions.
 
 ## Design
 
-The precise defintion of the changes [has landed](https://github.com/dart-lang/sdk/commit/0808d29)
+The precise definition of the changes [has landed](https://github.com/dart-lang/sdk/commit/0808d29)
 in the language specification. 
 The following section summarizes the changes.
 
@@ -116,7 +116,7 @@ The `??` operator only evaluates its second operand if the first evaluates to
 
 Finally, the conditional `?`/`:` operator only evaluates one of its branches, 
 depending on whether the condition expression evaluates to `true` or `false`.
-The other branch must also be a potenatially constant expression.
+The other branch must also be a potentially constant expression.
 
 ### Potentially Constant Expressions
 
@@ -127,7 +127,7 @@ expression if it evaluated to a value without throwing.
 
 That was not a practically useful definition, 
 so it has been changed to an entirely syntactic definition which allows 
-some syntactic constructs when thier sub-expressions are also potentially constant. 
+some syntactic constructs when their sub-expressions are also potentially constant. 
 There is no need to evaluate anything to determine if an expression is potentially constant,
 and there is no *type* requirements on the expression.
 
@@ -137,7 +137,7 @@ as any other expression, independently of whether it's used at compile time.
 If a potentially constant expression is actually evaluated as part of a constant
 evaluation, then further type rules apply to the actual objects that are involved.
 
-*Notice*: That also means that there are obivous errors we do not catch.
+*Notice*: That also means that there are obvious errors we do not catch.
 For example:
 ```dart
 class C {
