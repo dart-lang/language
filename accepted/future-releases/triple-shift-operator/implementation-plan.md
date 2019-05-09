@@ -33,7 +33,7 @@ so to enable the syntax, the tools need to be passed a flag
 like `--enable-experiments=tripple-shift`.
 
 This also includes all derived syntax required by the specification, 
-including the `>>>=` assignment oprator and the `#>>>` symbol.
+including the `>>>=` assignment operator and the `#>>>` symbol.
 The `Symbol` constructor must also accept `>>>` as an argument.
 
 ### Phase 2 (Use)
