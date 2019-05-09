@@ -172,7 +172,7 @@ Those tests should not be run by default until the feature has been released.
 
 ### Usability validation
 
-If usabilility tests haven't been done earlier, do at least some informal
+If usability tests haven't been done earlier, do at least some informal
 testing on users to see if the limitations on the syntax are frustrating and if
 there are improvements we should consider.
 
