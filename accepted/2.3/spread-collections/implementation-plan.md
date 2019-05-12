@@ -5,7 +5,7 @@ Owner: rnystrom@google.com ([@munificent](https://github.com/munificent/) on Git
 Relevant links:
 
 * [Tracking issue](https://github.com/dart-lang/language/issues/47)
-* [Proposal](https://github.com/dart-lang/language/blob/master/accepted/future-releases/spread-collections/feature-specification.md)
+* [Proposal](https://github.com/dart-lang/language/blob/master/accepted/2.3/spread-collections/feature-specification.md)
 
 ## Phase 0 (Prerequisite)
 
