@@ -446,7 +446,7 @@ The grammar then becomes:
   `}'
 ```
 
-This is a simple feature, but with very low impact. It only allows you to omit a singl eprivate name for an extension that is only used in a single library. Unless there is a documented demand for this feature, it doesn't seem worth the effort.
+This is a simple feature, but with very low impact. It only allows you to omit a single private name for an extension that is only used in a single library. Unless there is a documented demand for this feature, it doesn't seem worth the effort.
 
 ### Explicitly Specify Related Declarations
 
