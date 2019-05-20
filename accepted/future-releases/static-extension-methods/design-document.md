@@ -446,4 +446,48 @@ The grammar then becomes:
   `}'
 ```
 
-This is a simple feature, but with very low impact. It only allows you to omit a single private name for an extension that is only used in a single library. Unless there is a documented demand for this feature, it doesn't seem worth the effort.
+This is a simple feature, but with very low impact. It only allows you to omit a singl eprivate name for an extension that is only used in a single library. Unless there is a documented demand for this feature, it doesn't seem worth the effort.
+
+### Explicitly Specify Related Declarations
+
+The above resolution strategy uses an implicit "more specific" relation between applicable extensions to select one of them (when possible). This may cause surprises when two unrelated extensions happen to both apply.
+
+Alternatively, we can allow extensions to declare that they are *related*, and only allow conflicts between related extensions, which are presumably aware of each other.
+
+The syntax would be:
+
+```dart
+extension Foo<T> on Iterable<T> { twizzle() {...} }
+extension Bar<T> extends Foo on List<T> { twizzle() { ... } } 
+```
+
+If both of these extensions apply, then pick the one that extends the other. If there are more related extensions which apply, then pick one which transitively extends all the others.
+
+If there isn't exactly one among applicable extensions which extends all the rest, the conflict is a compile-time error.
+
+This approach allows related extensions to declare functionality on a number of types, without accidentally allowing a conflict with an unrelated extension.
+
+### Explicitly Specify Related Declarations 2
+
+Alternative syntax: Allow extensions with the same *name* to be related:
+
+```dart
+extension Foo<T> on Iterable<T> { twizzle() { ... } }
+extension Foo<T> on List<T> { twizzle() { ... } }
+```
+
+Whenever an extension is declared with the same name as another extension in scope, it is considered as being *related*, which is an equivalence relation. The declaration extends the extension rather than conflicting with it. 
+
+Only extension resolution conflicts between related extensions are allowed and resolved, any other conflict between applicable extensions is a compile-time error. We then still need to use an ordering relation on the `on` type to figure out which one is more specific in a particular case, and it can fail if there isn't one most specific applicable extension.
+
+An explicit override like `Foo(something).twizzle()` would still have to pick the most specific applicable extension. There is no way to hide one part of an extension "cluster", and no way to override with a specific extension declaration since they all have the same name. If the extensions do not have the same number of type parameters, an explicit instantiated override like `Foo<int>(something)` won't apply to all of them, which may be confusing.
+
+Maybe even allow combined declarations when the extensions do have the same type parameters:
+
+```dart
+extension Foo<T> 
+  on Iterable<T> { twizzle() { ... } }
+  on List<T> { twizzle() { ... } }
+```
+
+This shows that it really is a single thing being declared, even if we allow multiple declarations with the same name. (We can also choose not to allow multiple declarations, and require all related extensions to be declared in a single declaration with multiple `on` clauses like above).
