@@ -50,7 +50,7 @@ More precisely, an extension declaration is a top-level declaration with a gramm
 
 ```ebnf
 <extension> ::= 
-  `extension' <identifier> <typeParameters>? `on' <type> `?'? `{'
+  `extension' <identifier>? <typeParameters>? `on' <type> `?'? `{'
      memberDeclaration*
   `}'
 ```
@@ -63,7 +63,7 @@ The member declarations can be any non-abstract static or instance member declar
 
 ### Omitting Names For Local Extensions
 
-If an extension declaration is only used locally in a library, there is no need to worry about naming conflicts or overrides. In that case, then name identifier can be omitted.
+If an extension declaration is only used locally in a library, there is no need to worry about naming conflicts or overrides. In that case, then name identifier can be omitted (hence the `<identifier>?` in the grammar above).
 
 Example:
 
@@ -75,14 +75,7 @@ extension<T> on List<T> {
 
 This is equivalent to giving the extension a fresh private name.
 
-The grammar then becomes:
-
-```ebnf
-<extension> ::= 
-  `extension' <identifier>? <typeParameters>? `on' <type> `?'? `{'
-     memberDeclaration*
-  `}'
-```
+We may need to make `on` a built-in identifier, and not allow those as names of extensions, then there should not be any parsing issue. Even without that, the grammar should be unambiguous because `extension on on on { … }` and `extension on on { … }` are distinguishable, and the final type cannot be empty. It may be *harder* to parse, though.
 
 This is a simple feature, but with very low impact. It only allows you to omit a single private name for an extension that is only used in a single library.
 
@@ -112,7 +105,7 @@ and a member access like:
 
 ```dart
 List<Duration> times = ...;
-meatimesickSort();
+times.quickSort();
 ```
 
 Here we perform type inference equivalent to what we would do for:
@@ -258,9 +251,9 @@ Inside an extension method body, `this` is bound to the original receiver, and t
 
 Invocations on `this` use the same extension method resolution as any other code. Most likely  the current extension will be the only one in scope which applies.
 
-Like for a class or mixin member declaration, the names of the extension members, both static and instance, are in the *lexical* scope of the extension member body. That is why `MySmart` above can invoke the static `smartHelper` without prefixing it by the extension name. In the same way, *instance* members are in the lexical scope. 
+Like for a class or mixin member declaration, the names of the extension members, both static and instance, are in the *lexical* scope of the extension member body. That is why `MySmart` above can invoke the static `smartHelper` without prefixing it by the extension name. In the same way, *instance* member declarations (the extension members) are in the lexical scope. 
 
-If an unqualified identifier may lexically resolves to an extension method, the invocation becomes an explicit invocation of that extension method on `this` (which we already know has a compatible type for the extension).
+If an unqualified identifier may lexically resolve to an extension method, the invocation becomes an explicit invocation of that extension method on `this` (which we already know has a compatible type for the extension).
 
 Example:
 
@@ -272,7 +265,7 @@ extension MyUnaryNumber on List<Object> {
 }
 ```
 
-Here the `list.isEven` will find that `isEven` of `MyUnaryNumber` applies, and unless there are any other extensions in scope, it will call that.
+Here the `list.isEven` will find that `isEven` of `MyUnaryNumber` applies, and unless there are any other extensions in scope, it will call that. (Or unless someone adds an `isEven` member to `List`, but that's a breaking change, and then, if still necessary, this code can change the call to `MyUnaryNumber(list).isEven`.)
 
 The unqualified `length` of `isEven` is not defined in the current lexical scope, so is equivalent to  `this.length`, which is valid since `List<Object>` has a `length` getter.
 
@@ -293,9 +286,9 @@ extension MyList<T> on List<T> {
 }
 ```
 
-You cannot *access* this member in a normal invocation, so it could be argued that you shouldn't be allowed to add it. We allow it because we do not want to make it a compile-time error for a type to add a method just because an extension is already adding a method with the same name. it will likely be a problem if any code *uses* the method, but only that code needs to change (perhaps using an override).
+You cannot *access* this member in a normal invocation, so it could be argued that you shouldn't be allowed to add it. We allow it because we do not want to make it a compile-time error to add an instance member to an existing class just because an extension is already adding a method with the same name. It will likely be a problem if any code *uses* the method, but only that code needs to change (perhaps using an override to keep using the extension).
 
-An unqualified identifier can refer to any member declaration of the extension, so inside an extension member body, `this.add` and `add` are not necessarily the same thing. This may be confusing. In practice, extensions will rarely introduce members with the same name as their `on` type's members.
+An unqualified identifier can refer to any extension member declaration of the extension, so inside an extension member body, `this.add` and `add` are not necessarily the same thing (if the `on` type has an `add` member, then `this.add` refers to that, while `add` refers to the extension method in the lexical scope). This may be confusing. In practice, extensions will rarely introduce members with the same name as their `on` type's members.
 
 ### Tearoffs
 
@@ -321,13 +314,13 @@ There is still no way to tear off getters, setters or operators. If we ever intr
 - Extensions are declared using the syntax:
 
   ```ebnf
-  <extension> ::= `extension' <identifier><typeParameters>? `on' <type> `?'?
+  <extension> ::= `extension' <identifier>? <typeParameters>? `on' <type> `?'?
      `{'
        <memberDeclaration>*
      `}'
   ```
 
-  where `extension` becomes a built-in identifier, `<type>` must not be a type variable, and `<memberDeclaration>` does not allow instance fields or constructors. It does allow static members.
+  where `extension` becomes a built-in identifier and `<memberDeclaration>` does not allow instance variables, constructors or abstract members. It does allow static members.
 
 - The extension declaration introduces a name (`<identifier>`) into the surrounding scope. 
 
@@ -360,7 +353,7 @@ There is still no way to tear off getters, setters or operators. If we ever intr
 
 - Otherwise, the single most-specific extension's member is invoked with the extension's type parameters bound to the types found by inference, and with `this ` bound to the receiver.
 
-- An extension method can be invoked explicitly using the syntax `ExtensionName(object).method(args)`. Type arguments can be applied to the extension explicitly as well, `MyList<String>(listOfString).quickSort()`. Such an invocation overrides all extension resolution. It is a compile-time error if `ExtensionName` would not apply to the `object.method(args)` invocation if it was in scope.  
+- An extension method can be invoked explicitly using the syntax `ExtensionName(object).method(args)`. Type arguments can be applied to the extension explicitly as well, `MyList<String>(listOfString).quickSort()`. Such an invocation overrides all extension resolution. It is a compile-time error if `ExtensionName` would not apply to the `object.method(args)` invocation if it was in scope. 
 
 - The override can also be used for extensions imported with a prefix (which are not otherwise in scope): `prefix.ExtensionName(object).method(args)`.
 
@@ -480,3 +473,29 @@ extension Foo<T>
 ```
 
 This shows that it really is a single thing being declared, even if we allow multiple declarations with the same name. (We can also choose not to allow multiple declarations, and require all related extensions to be declared in a single declaration with multiple `on` clauses like above).
+
+### Aliasing
+
+If we have two different extensions with the same name, they can't both be in scope, even if they don't apply to the same types. At least one of them must be delegated to a prefixed import scope, and if so, it doesn't *work* as an extension method any more.
+
+To overcome this issue, we can use a *generalized typedef* to give a new name to an existing entity in a given scope. Example:
+
+```dart
+typedef MyCleverList<T> = prefix.MyList<T>;
+```
+
+If `prefix.MyList` is an extension, this would put that extension back in the current scope under a different name (use a private name to avoid exporting the extension again).
+
+If we do this, we should be *consistent* with other type aliases, which means that the type parameter of the RHS must be explicit. Just writing
+
+```drt
+typedef MyCleverList = prefix.MyList; // bad!
+```
+
+would make `MyCleverList` an alias for `prefix.MyList<dynamic>`, which would still apply to `List<anything>`, but the type variable of `MyList` will always be `dynamic`. Similarly, we can put more bounds on the type variable:
+
+```dart
+typedef MyWidgetList<T extends Widget> = prefix.MyList<T>;
+```
+
+Here the extension will only apply if it matches `Widget` *and* would otherwise match `MyList` (but `T` needs to be a valid type argument to `MyList`, which means that it must satisfy all bounds of `MyList` as well, otherwise the typedef is rejected).
