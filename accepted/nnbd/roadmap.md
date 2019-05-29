@@ -809,14 +809,6 @@ necessity, to relieve the programmer of some of the burden of proving safety to
 the type checker.  Since Typescript is purely a static layer on top of
 Javascript, there is also no performance benefit to null-soundness for it.
 
-### Alternatives to a sound system
-
-TODO: discuss some additional options here:
-  - Typescript/C# style heavy type system with unsound holes
-  - Static only type system
-  - Simple variable/parameter/return value only annotations
-  - Dynamic checking
-
 ## Issues affecting migration paths
 
 In any of the possible paths, we have to consider what happens in the following
