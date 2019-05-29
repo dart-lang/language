@@ -15,7 +15,7 @@
 \makeindex
 \title{Dart Programming Language Specification\\
 {5th edition draft}\\
-{\large Version 2.2.1-dev}}
+{\large Version 2.3.0-dev}}
 \author{}
 
 % For information about Location Markers (and in particular the
@@ -24,7 +24,13 @@
 
 % CHANGES
 % =======
+%
 % Significant changes to the specification.
+%
+% 2.3
+% - Added requirement that the iterator of a for-in statement must have
+%   type `Iterator`.
+%
 % 2.2
 % - Specify whether the values of literal expressions override Object.==.
 % - Allow Type objects as case expressions and const map keys.
@@ -12300,24 +12306,33 @@ It is a compile-time error if the static type of $c$ may not be assigned to \cod
 \LMLabel{for-in}
 
 \LMHash{}%
-Let $D$ be derived from \syntax{<finalConstVarOrType>?}
-and let $n0$ be an identifier that does not occur anywhere in the program.
-A for statement of the form \code{\FOR{} ($D$ \id{} \IN{} $e$) $s$} is equivalent to the following code:
+Let $D$ be derived from \syntax{<finalConstVarOrType>?}.
+A for statement of the form \code{\FOR{} ($D$ \id{} \IN{} $e$)\,\,$S$}
+is then treated as the following code,
+where $\id_1$ and $\id_2$ are fresh identifiers:
 
 \begin{normativeDartCode}
-\VAR{} $n0$ = $e$.iterator;
-\WHILE{} ($n0$.moveNext()) \{
-\ \ $D$ \id{} = $n0$.current;
-\ \ $s$
+$T$ $\id_1$ = $e$;
+\VAR{} $\id_2$ = $id_1$.iterator;
+\WHILE{} ($\id_2$.moveNext()) \{
+\ \ $D$ \id{} = $\id_2$.current;
+\ \ \{ $S$ \}
 \}
 \end{normativeDartCode}
 
-For purposes of static typechecking,
-this code is checked under the assumption that $n0$ is declared to be of type $T$,
-where $T$ is the static type of \code{$e$.iterator}.
+\noindent
+If the static type of $e$ is a top type
+(\ref{superBoundedTypes})
+then $T$ is \code{Iterable<dynamic>},
+otherwise $T$ is the static type of $e$.
+It is a compile-time error if $T$ is not assignable to \code{Iterable<dynamic>}.
 
 \commentary{
-It follows that it is a compile-time error if $D$ is empty and \id{} is a final variable.
+It follows that it is a compile-time error
+if $D$ is empty and \id{} is a final variable;
+and it is a dynamic error if $e$ has a top type,
+but $e$ evaluates to an instance of a type
+which is not a subtype of \code{Iterable<dynamic>}.
 }
 
 
