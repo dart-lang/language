@@ -832,10 +832,9 @@ Variables are storage locations in memory.
 
 <declaredIdentifier> ::= <metadata> \COVARIANT{}? <finalConstVarOrType> <identifier>
 
-<finalConstVarOrType> ::= \LATE{} \FINAL{}? <type>?
-  \alt \FINAL{} <type>?
+<finalConstVarOrType> ::= \alt \LATE{}? \FINAL{} <type>?
   \alt \CONST{} <type>?
-  \alt <varOrType>
+  \alt \LATE{}? <varOrType>
 
 <varOrType> ::= \VAR{}
   \alt <type>
@@ -1854,14 +1853,12 @@ Classes may be defined by class declarations as described below, or via mixin ap
   \alt (\EXTERNAL{} \STATIC{}?)? <setterSignature>
   \alt \EXTERNAL{}? <operatorSignature>
   \alt (\EXTERNAL{} \STATIC{}?)? <functionSignature>
-  \alt \STATIC{} (\FINAL{} | \CONST{}) <type>? <staticFinalDeclarationList>
-  \alt \STATIC{} \LATE{} \FINAL{}? <type>? <initializedIdentifierList>
-  \alt \STATIC{} (\VAR{} | <type>) <initializedIdentifierList>
-  \alt \COVARIANT{} (\VAR{} | \LATE{}) <initializedIdentifierList>
-  \alt \COVARIANT{} \LATE{}? <type> <initializedIdentifierList>
-  \alt \LATE{} \FINAL{}? <type>? <initializedIdentifierList>
-  \alt \FINAL{} <type>? <initializedIdentifierList>
-  \alt (\VAR{} | <type>) <initializedIdentifierList>
+  \alt \STATIC{} \LATE{}? \FINAL{} <type>? <staticFinalDeclarationList>
+  \alt \STATIC{} \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
+  \alt \STATIC{} \CONST{) <type>? <staticFinalDeclarationList>
+  \alt \COVARIANT{} \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
+  \alt \LATE{}? \FINAL{} <type>? <initializedIdentifierList>
+  \alt \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
 
 <staticFinalDeclarationList> ::= \gnewline{}
   <staticFinalDeclaration> (`,' <staticFinalDeclaration>)*
@@ -11512,7 +11509,7 @@ and therefore must be evaluated.
 
 <assignableSelector> ::= <unconditionalAssignableSelector>
   \alt `?.' <identifier>
-  \alt `?.[' <expression> `]'
+  \alt `?[' <expression> `]'
   \alt `!'
 
 \end{grammar}
