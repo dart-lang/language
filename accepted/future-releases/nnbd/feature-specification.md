@@ -183,6 +183,8 @@ is declared `late` and does not have an initializer.
 It is an error if the type `T` in the **on-catch** clause `on T catch` is
 potentially nullable.
 
+It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
+`...?`) on a non-nullable receiver.
 
 ### Assignability
 
@@ -240,7 +242,7 @@ These are extended as per separate proposal.
 
 ### Runtime semantics
 
-#### Null assertion operator
+#### Null check operator
 
 An expression of the form `e!` evaluates `e` to a value `v`, throws a runtime
 error if `v` is `null`, and otherwise evaluates to `v`.
