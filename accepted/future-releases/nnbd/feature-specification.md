@@ -46,13 +46,12 @@ with a `!`.
 
 The modifier `late` is added as a built-in identifier.  The grammar of top level
 variables, static fields, instance fields, and local variables is extended to
-allow any declaration to include the modifer `late`.  **TODO: consider making
-`late` a keyword**
+allow any declaration to include the modifer `late`.
 
 The modifier `required` is added as a built-in identifier. The grammar of
 function types is extended to allow any named parameter declaration to be
 prefixed by the `required` modifier (e.g. `int Function(int, {int?  y, required
-int z})`. **TODO: consider making `required` a keyword**
+int z})`. 
 
 The grammar of selectors is extended to allow null-aware subscripting using the
 syntax `e1?.[e2]` which evaluates to `null` if `e1` evaluates to `null` and
@@ -87,6 +86,11 @@ The same is true for `{ int ? - 3 : 3 }` if we allow this.
 
 ## Static semantics
 
+### Legacy types
+
+The internal representation of types is extended with a type `T*` for every type
+`T` to represent legacy pre-NNBD types.  This is discussed further in the legacy
+library section below.
 
 ### Static errors
 
@@ -94,6 +98,7 @@ We say that a type `T` is **nullable** if `Null <: T`.  This is equivalent to
 the syntactic criterion that `T` is any of:
   - `Null`
   - `S?` for some `S`
+  - `S*` for some `S` where `S` is nullable
   - `FutureOr<S>` for some `S` where `S` is nullable
   - `dynamic`
   - `void`
@@ -114,12 +119,13 @@ non-nullable.
 We say that a type `T` is **potentially nullable** if `T` is not non-nullable.
 Note that this is different from saying that `T` is nullable.  For example, a
 type variable `X extends Object?` is a type which is potentially nullable but
-not nullable.
+not nullable.  Note that `T*` is always potentially nullable by this definition.
 
 We say that a type `T` is **potentially non-nullable** if `T` is not nullable.
 Note that this is different from saying that `T` is non-nullable.  For example,
 a type variable `X extends Object?` is a type which is potentially non-nullable
-but not non-nullable.
+but not non-nullable. Note that `T*` is potentially non-nullable by this
+definition if `T` is potentially non-nullable.
 
 It is an error to call a method, setter, getter or operator on an expression
 whose type is potentially nullable and not `dynamic`, except for the methods,
@@ -185,6 +191,9 @@ potentially nullable.
 
 It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
 `...?`) on a non-nullable receiver.
+
+It is an error if the object being iterated over by a `for-in` loop has a static
+type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
 
 ### Assignability
 
@@ -474,11 +483,12 @@ display the legacy type `T*` in the same way that they would display the type
 purposes of error messages that the type originates in unmigrated code.
 
 When static checking is done in a migrated library, types which are imported
-from unmigrated libraries are seen as legacy types.  However, for the purposes
-of type inference in migrated libraries, types imported from unmigrated
-libraries shall be treated as non-nullable.  As a result, legacy types will
-never appear as type annotations in migrated libraries, nor will they appear in
-reified positions.
+from unmigrated libraries are seen as legacy types.  However, type inference in
+the migrated library "erases" legacy types.  That is, if a missing type
+parameter, local variable type, or closure type is inferred to be a type `T`,
+all occurrences of `S*` in `T` shall be replaced with `S`.  As a result, legacy
+types will never appear as type annotations in migrated libraries, nor will they
+appear in reified positions.
 
 ### Type reification
 
