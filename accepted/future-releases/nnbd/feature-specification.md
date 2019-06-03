@@ -176,8 +176,8 @@ It is an error to call a method, setter, or getter on a receiver of static type
 It is an error to apply an expression of `Never` in the function position in a
 function call.
 
-It is an error if the static type of `e` in the expression `throw e` is
-potentially nullable.
+It is an error if the static type of `e` in the expression `throw e` is not
+assignable to `Object`.
 
 It is not an error for the body of a `late` field to reference `this`.
 
@@ -186,14 +186,11 @@ It is an error for a formal parameter to be declared `late`.
 It is not a compile time error to write to a `final` variable if that variable
 is declared `late` and does not have an initializer.
 
-It is an error if the type `T` in the **on-catch** clause `on T catch` is
-potentially nullable.
+It is an error if the object being iterated over by a `for-in` loop has a static
+type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
 
 It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
 `...?`) on a non-nullable receiver.
-
-It is an error if the object being iterated over by a `for-in` loop has a static
-type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
 
 ### Assignability
 
