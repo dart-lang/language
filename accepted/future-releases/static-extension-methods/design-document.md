@@ -168,9 +168,9 @@ Here both the extensions apply, but the `SmartList` extension is more specific t
 Example:
 
 ```dart
-extension BoxCom<T extends num> on Box<Iterable<T>> { T best() {...} }
-extension BoxList<T> on Box<List<T>> { T best() {...} }
-extension BoxSpec on Box<List<num>> { num best() {...} }
+extension BestCom<T extends num> on Iterable<T> { T best() {...} }
+extension BestList<T> on List<T> { T best() {...} }
+extension BestSpec on List<num> { num best() {...} }
 ...
   List<int> x = ...;
   var v = x.best();
@@ -180,11 +180,14 @@ extension BoxSpec on Box<List<num>> { num best() {...} }
 
 Here all three extensions apply to both invocations.
 
-For `x.best()`, the most specific one is `BoxList`. Because `Box<List<int>>` is a proper subtype of both ` Box<iterable<int>>` and `Box<List<num>>`, we expect `BoxList` to be the best implementation. The return type causes `v` to have type `int`. If we had chosen `BoxSpec` instead, the return type could only be `num`, which is one of the reasons why we choose the most specific instantiated type as the winner. 
+For `x.best()`, the most specific one is `BestList`. Because `List<int>` is a proper subtype of both ` iterable<int>` and `<List<num>`, we expect `BestList` to be the best implementation. The return type causes `v` to have type `int`. If we had chosen `BestSpec` instead, the return type could only be `num`, which is one of the reasons why we choose the most specific instantiated type as the winner. 
 
-For `y.best()`, the most specific extension is `BoxSpec`. The instantiated `on` types that are compared are `Box<Iterable<num>>` for `BoxCom` and `Box<List<num>>` for the two other. Using the instantiate-to-bounds types as tie-breaker, we find that `Box<List<Object>>` is less precise than `Box<List<num>>`, so the code of `BoxSpec` has more precise information available for its method implementation. The type of `w` becomes `num`.
+For `y.best()`, the most specific extension is `BestSpec`. The instantiated `on` types that are compared are `Iterable<num>` for `Best
+Com` and `List<num>` for the two other. Using the instantiate-to-bounds types as tie-breaker, we find that `List<Object>` is less precise than `List<num>`, so the code of `BestSpec` has more precise information available for its method implementation. The type of `w` becomes `num`.
 
 In practice, unintended extension method name conflicts are likely to be rare. Intended conflicts happen where the same author is providing more specialized versions of an extension for subtypes, and in that case, picking the extension which has the most precise types available to it is considered the best choice.
+
+
 
 ### Overriding Access
 
