@@ -832,9 +832,9 @@ Variables are storage locations in memory.
 
 <declaredIdentifier> ::= <metadata> \COVARIANT{}? <finalConstVarOrType> <identifier>
 
-<finalConstVarOrType> ::= \FINAL{} <type>?
+<finalConstVarOrType> ::= \alt \LATE{}? \FINAL{} <type>?
   \alt \CONST{} <type>?
-  \alt <varOrType>
+  \alt \LATE{}? <varOrType>
 
 <varOrType> ::= \VAR{}
   \alt <type>
@@ -1411,13 +1411,13 @@ It is a compile-time error if a formal parameter is declared as a constant varia
 \begin{grammar}
 <formalParameterList> ::= `(' `)'
   \alt `(' <normalFormalParameters> `,'? `)'
-  \alt `(' <normalFormalParameters> `,' <optionalFormalParameters> `)'
-  \alt `(' <optionalFormalParameters> `)'
+  \alt `(' <normalFormalParameters> `,' <optionalOrNamedFormalParameters> `)'
+  \alt `(' <optionalOrNamedFormalParameters> `)'
 
 <normalFormalParameters> ::= \gnewline{}
   <normalFormalParameter> (`,' <normalFormalParameter>)*
 
-<optionalFormalParameters> ::= <optionalPositionalFormalParameters>
+<optionalOrNamedFormalParameters> ::= <optionalPositionalFormalParameters>
   \alt <namedFormalParameters>
 
 <optionalPositionalFormalParameters> ::= \gnewline{}
@@ -1450,7 +1450,7 @@ It is a compile-time error if any default values are specified in the signature 
   \alt <simpleFormalParameter>
 
 <functionFormalParameter> ::= \gnewline{}
-  <metadata> \COVARIANT{}? <type>? <identifier> <formalParameterPart>
+  <metadata> \COVARIANT{}? <type>? <identifier> <formalParameterPart> `?'?
 
 <simpleFormalParameter> ::= <declaredIdentifier>
   \alt <metadata> \COVARIANT{}? <identifier>
@@ -1485,8 +1485,8 @@ Optional parameters may be specified and provided with default values.
 \begin{grammar}
 <defaultFormalParameter> ::= <normalFormalParameter> (`=' <expression>)?
 
-<defaultNamedParameter> ::= <normalFormalParameter> (`=' <expression>)?
-  \alt <normalFormalParameter> ( `:' <expression>)?
+<defaultNamedParameter> ::= \REQUIRED{}? <normalFormalParameter> (`=' <expression>)?
+  \alt \REQUIRED{}? <normalFormalParameter> ( `:' <expression>)?
 \end{grammar}
 
 The form \syntax{<normalFormalParameter> `:' <expression>}
@@ -1853,9 +1853,12 @@ Classes may be defined by class declarations as described below, or via mixin ap
   \alt (\EXTERNAL{} \STATIC{}?)? <setterSignature>
   \alt \EXTERNAL{}? <operatorSignature>
   \alt (\EXTERNAL{} \STATIC{}?)? <functionSignature>
-  \alt \STATIC{} (\FINAL{} | \CONST{}) <type>? <staticFinalDeclarationList>
-  \alt \FINAL{} <type>? <initializedIdentifierList>
-  \alt (\STATIC{} | \COVARIANT{})? (\VAR{} | <type>) <initializedIdentifierList>
+  \alt \STATIC{} \LATE{}? \FINAL{} <type>? <staticFinalDeclarationList>
+  \alt \STATIC{} \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
+  \alt \STATIC{} \CONST{) <type>? <staticFinalDeclarationList>
+  \alt \COVARIANT{} \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
+  \alt \LATE{}? \FINAL{} <type>? <initializedIdentifierList>
+  \alt \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
 
 <staticFinalDeclarationList> ::= \gnewline{}
   <staticFinalDeclaration> (`,' <staticFinalDeclaration>)*
@@ -3007,7 +3010,7 @@ There are three kinds of initializers.
   \alt <assertion>
 
 <fieldInitializer> ::= \gnewline{}
-  (\THIS{} `.')? <identifier> `=' <conditionalExpression> <cascadeSection>*
+  (\THIS{} `.')? <identifier> `=' <conditionalExpression> <cascadeSequence>?
 \end{grammar}
 
 \LMHash{}%
@@ -5888,7 +5891,7 @@ Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
 
 \begin{grammar}
 <expression> ::= <assignableExpression> <assignmentOperator> <expression>
-  \alt <conditionalExpression> <cascadeSection>*
+  \alt <conditionalExpression> <cascadeSequence>?
   \alt <throwExpression>
 
 <expressionWithoutCascade> ::= \gnewline{}
@@ -9485,12 +9488,16 @@ has the form \code{$e$..\metavar{suffix}}
 where $e$ is an expression and \metavar{suffix} is a sequence of operator, method, getter or setter invocations.
 
 \begin{grammar}
-<cascadeSection> ::= `..' (<cascadeSelector> <argumentPart>*)
-  \gnewline{} (<assignableSelector> <argumentPart>*)*
-  \gnewline{} (<assignmentOperator> <expressionWithoutCascade>)?
+<cascadeSequence> ::= (`?..' \alt `..') <cascadeSection> (`..' <cascadeSection>)*
+
+<cascadeSection> ::= <cascadeSelector> 
+\gnewline{} (cascadeAssignment \alt
+             <selector>* (<assignableSelector> <cascadeAssignment>)?)
 
 <cascadeSelector> ::= `[' <expression> `]'
   \alt <identifier>
+
+<cascadeAssignment> ::= <assignmentOperator> <expressionWithoutCascade>
 
 <argumentPart> ::=
   <typeArguments>? <arguments>
@@ -11288,7 +11295,8 @@ Postfix expressions invoke the postfix operators on objects.
 <constructorInvocation> ::= \gnewline{}
   <typeName> <typeArguments> `.' <identifier> <arguments>
 
-<selector> ::= <assignableSelector>
+<selector> ::= `!'
+  \alt <assignableSelector>
   \alt <argumentPart>
 
 <incrementOperator> ::= `++'
@@ -11493,15 +11501,17 @@ and therefore must be evaluated.
 <assignableExpression> ::= <primary> <assignableSelectorPart>+
   \alt \SUPER{} <unconditionalAssignableSelector>
   \alt <constructorInvocation> <assignableSelectorPart>+
-  <identifier>
-
-<assignableSelectorPart> ::= <argumentPart>* <assignableSelector>
+  \alt <identifier>
+ 
+<assignableSelectorPart> ::= (<argumentPart> \alt `!')* <assignableSelector>
 
 <unconditionalAssignableSelector> ::= `[' <expression> `]'
   \alt `.' <identifier>
 
 <assignableSelector> ::= <unconditionalAssignableSelector>
   \alt `?.' <identifier>
+  \alt `?.[' <expression> `]'
+
 \end{grammar}
 
 \LMHash{}%
@@ -14121,15 +14131,18 @@ but it is the least upper bound of all function types.
 }
 
 \begin{grammar}
-<type> ::= <functionTypeTails>
-  \alt <typeNotFunction> <functionTypeTails>
+
+<type> ::= <functionType> `?'?
   \alt <typeNotFunction>
 
-<typeNotFunction> ::= <typeNotVoidNotFunction>
-  \alt \VOID{}
+<typeNotVoid> ::= <functionType> `?'?
+  \alt <typeNotVoidNotFunction>
 
-<typeNotVoidNotFunction> ::= <typeName> <typeArguments>?
-  \alt \FUNCTION{}
+<typeNotFunction> ::= \VOID{}
+  \alt <typeNotVoidNotFunction>
+
+<typeNotVoidNotFunction> ::= <typeName> <typeArguments>? `?'?
+  \alt \FUNCTION{} `?'?
 
 <typeName> ::= <typeIdentifier> (`.' <typeIdentifier>)?
 
@@ -14140,13 +14153,10 @@ but it is the least upper bound of all function types.
 <typeNotVoidNotFunctionList> ::= \gnewline{}
   <typeNotVoidNotFunction> (`,' <typeNotVoidNotFunction>)*
 
-<typeNotVoid> ::= <functionType>
-  \alt <typeNotVoidNotFunction>
-
 <functionType> ::= <functionTypeTails>
   \alt <typeNotFunction> <functionTypeTails>
 
-<functionTypeTails> ::= <functionTypeTail> <functionTypeTails>
+<functionTypeTails> ::= <functionTypeTail> `?'? <functionTypeTails>
   \alt <functionTypeTail>
 
 <functionTypeTail> ::= \FUNCTION{} <typeParameters>? <parameterTypeList>
