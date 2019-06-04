@@ -173,8 +173,8 @@ It is an error for a class to extend, implement, or mixin the type `Never`.
 It is an error to call a method, setter, or getter on a receiver of static type
 `Never` (including via a null aware operator).
 
-It is an error to apply an expression of `Never` in the function position in a
-function call.
+It is an error to apply an expression of type `Never` in the function position
+of a function call.
 
 It is an error if the static type of `e` in the expression `throw e` is not
 assignable to `Object`.
