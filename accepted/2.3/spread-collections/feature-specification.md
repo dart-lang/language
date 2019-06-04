@@ -5,6 +5,16 @@ Author: rnystrom@google.com
 Allow the `...` in list, map, and set literals to insert multiple elements into
 a collection.
 
+**Note: Because this feature interacts heavily with [Set Literals][] and
+[Control Flow Collections][], which are all being implemented concurrently, we
+have a [unified proposal][] that covers the behavior of all three. That proposal
+is now the source of truth. This document is useful for motivation, but may be
+otherwise out of date.**
+
+[set literals]: https://github.com/dart-lang/language/blob/master/accepted/2.2/set-literals/feature-specification.md
+[control flow collections]: https://github.com/dart-lang/language/blob/master/accepted/2.3/control-flow-collections/feature-specification.md
+[unified proposal]: https://github.com/dart-lang/language/tree/master/accepted/2.3/unified-collections/feature-specification.md
+
 ## Motivation
 
 Collection literals are excellent when you want to create a new collection out

@@ -7,6 +7,12 @@ Status: Draft
 Allow `if` and `for` in collection literals to build collections using
 conditionals and repetition.
 
+**Note: Because this feature interacts heavily with [Set Literals][] and [Spread Collections][], which are all being implemented concurrently, we have a [unified proposal][] that covers the behavior of all three. That proposal is now the source of truth. This document is useful for motivation, but may be otherwise out of date.**
+
+[set literals]: https://github.com/dart-lang/language/blob/master/accepted/2.2/set-literals/feature-specification.md
+[spread collections]: https://github.com/dart-lang/language/blob/master/accepted/2.3/spread-collections/feature-specification.md
+[unified proposal]: https://github.com/dart-lang/language/tree/master/accepted/2.3/unified-collections/feature-specification.md
+
 ## Motivation
 
 A key goal of Flutter's API design is that, as much as possible, the textual

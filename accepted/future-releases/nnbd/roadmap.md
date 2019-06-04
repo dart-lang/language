@@ -388,48 +388,6 @@ multiple migrations may be necessary.
 
 The same issues with runtime behavior changes apply in this option.
 
-#### Why not roll out the runtime checking after the static checking?
-
-None of the approaches discussed above (including our proposal) completely solve
-the problem of runtime breakage caused by upstream code opting in.  This is
-particularly concerning because of the SDK: we need to migrate the SDK first in
-a waterfall migration, but doing so will be a potentially breaking change.
-
-We could split the migration in two by controlling the static checking via a
-local opt-in option, and the runtime checking via a global compile flag.  This
-seems like it solves the problem of the SDK migration: we can migrate the SDK
-without breaking downstream code (either because we follow this proposal and
-provide language support, or because we treat downstream static errors as
-warnings in un-opted-in code), and then on a per compile basis turn on the
-runtime checking.  It is unsatisfying that the same code compiled with and
-without the flag can in principle do arbitrarily different things.
-
-```dart
-onlyLoveInts(List<Object> list) {
-  if (list is List<int>) {  // True before reification is turned on, false after
-    eraseHardDrive();
-  } else {
-    winLottery();
-  }
-}
-
-onlyLoveInts(<int?>[]);
-```
-
-This is more than just a purely theoretical concern since Flutter does rely
-heavily on testing runtime type information.  However, in practice this is
-probably unlikely to be a large problem, since no existing code distinguishes
-between nullable and non-nullable types.  If, as part of the migration, we
-strongly encourage that any given library run its tests with the flag on, we can
-achieve some confidence that code will "just work" when the flag is turned on.
-
-The largest concern about deferring the runtime checking is that it potentially
-turns the local migration into a global migration.  If libraries only do the
-work necessary to pass the static checks during their initial migration, then
-turning on runtime checking may cause failures across the build, in many
-different libraries.  Turning on the flag for a single app then might require
-re-migrating many different libraries.
-
 ### Migration tooling
 
 It could be extremely valuable to provide a nullability inference tool which
@@ -850,14 +808,6 @@ seem to have chosen to be unsound in a few places out of choice in addition to
 necessity, to relieve the programmer of some of the burden of proving safety to
 the type checker.  Since Typescript is purely a static layer on top of
 Javascript, there is also no performance benefit to null-soundness for it.
-
-### Alternatives to a sound system
-
-TODO: discuss some additional options here:
-  - Typescript/C# style heavy type system with unsound holes
-  - Static only type system
-  - Simple variable/parameter/return value only annotations
-  - Dynamic checking
 
 ## Issues affecting migration paths
 
