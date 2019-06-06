@@ -7,20 +7,10 @@ Relevant documents:
 ## Implementation and Release plan
 
 This feature is non-breaking, because it is concerned with the introduction of
-support for new syntactic forms.
-Still, we will introduce it using an
-[experiments flag](https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md)
-in order to enable a controlled deployment.
-
+support for new syntactic forms. 
+Hence, there is no `--enable-experiment` flag for it.
 
 ### Phase 0 (Preliminaries)
-
-#### Release Flag
-
-The flag
-`--enable-experiment=nonfunction-type-aliases`
-must be passed for the changes to be enabled.
-In this phase, support for that flag is added to all tools.
 
 #### Tests
 
