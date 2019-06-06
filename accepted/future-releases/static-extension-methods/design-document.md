@@ -132,7 +132,7 @@ It is *as if* the invocation `times.quickSort` was converted to `MyList<Duration
 
 ### Extension Conflict Resolution
 
-If more than one extension applies to a specific member invocation, then if exactly one of them is more specific than all the others, that one is chosen. Otherwise it is a compile-time error.
+If more than one extension applies to a specific member invocation, then we resort to a heuristic to choose one of the extensions to apply. If exactly one of them is "more specific" than all the others, that one is chosen. Otherwise it is a compile-time error.
 
 An extension with `on` type clause *T*<sub>1</sub> is more specific than another extension with `on` type clause *T*<sub>2</sub> iff the instantiated type (the type after applying type inference from the receiver) of *T*<sub>1</sub> is a subtype of the instantiated type of *T*<sub>2</sub> and either:
 
@@ -186,8 +186,6 @@ For `y.best()`, the most specific extension is `BestSpec`. The instantiated `on`
 Com` and `List<num>` for the two other. Using the instantiate-to-bounds types as tie-breaker, we find that `List<Object>` is less precise than `List<num>`, so the code of `BestSpec` has more precise information available for its method implementation. The type of `w` becomes `num`.
 
 In practice, unintended extension method name conflicts are likely to be rare. Intended conflicts happen where the same author is providing more specialized versions of an extension for subtypes, and in that case, picking the extension which has the most precise types available to it is considered the best choice.
-
-
 
 ### Overriding Access
 
@@ -431,9 +429,15 @@ If we allow extension static declarations like these, we can also allow extensio
 
 ### Explicitly Specify Related Declarations
 
-The above resolution strategy uses an implicit "more specific" relation between applicable extensions to select one of them (when possible). This may cause surprises when two unrelated extensions happen to both apply.
+The conflict resolution described above is heuristic. It chooses a winner among potential extensions based entirely on the `on` type.
 
-Alternatively, we can allow extensions to declare that they are *related*, and only allow conflicts between related extensions, which are presumably aware of each other.
+If the applicable extensions are deliberately written to co-exist, with some extensions using more efficient algorithms on more precisely know receivers, then that conflict resolution algorithm gives the extension authors a clean and, hopefully, understandable way to control which extension is chosen in which situation. A more precise algorithm will be chosen over a less precise one (say, an operation on `List<int>` over one on`Iterable<int>`).
+
+However, if the applicable extensions are unrelated, written by authors which are oblivious to the other extensions, then the choice risks being arbitrary. A small change, say from `extension Foo on num` to `extension Foo<T extends num> on T`, which will not change where the extension applies, will change the specificity ordering. That makes the conflict resolution heuristic *fragile*.
+
+There is no way for an author to express the intent that one extension is a specialization of another, and that another one isn't. The only author intent available is in which extensions are imported in the library which triggers the extension member. However, anyone can add an extension to an existing library, or change the specificity of an extension (generalizing an extension with `on` type of `int`  to work on all `num`s), which should be non-breaking changes, but which affects conflict resolution.
+
+Alternatively, we can allow extensions to declare that they are *related*, and only allow conflicts between related extensions, which are presumably aware of each other. Then a conflict between any two unrelated extensions is a compile-time error and will require an explicit override, which will also be stable against future changes.
 
 The syntax would be:
 
@@ -444,13 +448,19 @@ extension Bar<T> extends Foo<T> on List<T> { twizzle() { ... } }
 
 If both of these extensions apply, then pick the one that extends the other. If there are more related extensions which apply, then pick one which transitively extends all the others.
 
+It should probably be possible to declare that an extension `extends` more than one other extension. That allows an extension hierarchy which matches a diamond type pattern. If you can only extend a single extension, only tree-shaped type hierarchies can be matched by the extensions.
+
 If there isn't exactly one among applicable extensions which extends all the rest, the conflict is a compile-time error.
 
-This approach allows related extensions to declare functionality on a number of types, without accidentally allowing a conflict with an unrelated extension.
+This approach allows related extensions to declare functionality on a number of types, without accidentally allowing a conflict with an unrelated extension. There is no heuristic in the conflict resolution, the choice is made entirely based on existing information added explicitly to make that choice. At least one author has made the explicit choice of declaring that if all the currently applicable extensions are available, their extension should be used.
 
-The extending extension must be defined on a subtype of its super-extension. In the above, the `on` type of `Bar<T>` is `List<T>`, which is a subtype of the `on` type of `Foo<T>`, which is `Iterable<T>`. Also, the declared extension methods in the extending extension must be valid overrides of the same-named super-extensions extension methods, as if it was a subclass relationship.
+This should be sufficient to avoid arbitrary extensions from applying.
 
-Using `Bar<int>(myList).fromp()` would work just like `Foo<int>(myList).fromp()`, as if `Bar` inherits the extension methods of `Foo` that it doesn't declare itself. (Maybe we can even allow `super.twizzle()` calls, which would work like `Foo<T>(this).twizzle()`).
+On top of that, we *may* want to require that the extending extension is defined `on` a subtype of its super-extension. In the above, the `on` type of `Bar<T>` is `List<T>`, which is a subtype of the `on` type of `Foo<T>`, which is `Iterable<T>`. This is not strictly required, and an extending extension could also be allowed to be declared on a supertype of the extended extension (an unrelated type would mean that the `extends` is likely unnecessary). The only reason to make the restriction is that this feature is intended for *specialization*, not wholesale replacement. Even if we do this, the subtype does not have to be a proper subtype, so it's still possible to completely shadow the extended extension.
+
+Also, we may, and perhaps should, require that the declared extension methods in the extending extension must be valid overrides of the same-named super-extension's extension methods, as if it was a subclass relationship. This will ensure that a user who only knows about the super-extension will still get a consistent signature when they instead hit the extending extension.
+
+If we do require the extending extension's `on` type to be a subtype of the extended extension's `on` type, then we can also let the extending extension *inherit* any member that it doesn't specialize. This will not work if there is more than one super-extension declaring the same member. It's unclear whether this has any advantage.
 
 ### Explicitly Specify Related Declarations 2
 
@@ -477,6 +487,8 @@ extension Foo<T>
 
 This shows that it really is a single thing being declared, even if we allow multiple declarations with the same name. (We can also choose not to allow multiple declarations, and require all related extensions to be declared in a single declaration with multiple `on` clauses like above).
 
+This approach works *badly* with static members.
+
 ### Aliasing
 
 If we have two different extensions with the same name, they can't both be in scope, even if they don't apply to the same types. At least one of them must be delegated to a prefixed import scope, and if so, it doesn't *work* as an extension method any more.
@@ -502,3 +514,10 @@ typedef MyWidgetList<T extends Widget> = prefix.MyList<T>;
 ```
 
 Here the extension will only apply if it matches `Widget` *and* would otherwise match `MyList` (but `T` needs to be a valid type argument to `MyList`, which means that it must satisfy all bounds of `MyList` as well, otherwise the typedef is rejected).
+
+The use of `typedef` for something which is not a type may be too confusing. Another option is:
+
+```dart
+extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
+```
+
