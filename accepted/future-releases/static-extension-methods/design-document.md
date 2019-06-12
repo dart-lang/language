@@ -81,7 +81,34 @@ This is a simple feature, but with very low impact. It only allows you to omit a
 
 ### Scope
 
-Dart's static extension methods are *scoped*. They only apply to code that the extension itself is accessible to. Being accessible means that using the extension's name must denote the extension. The extension is not in scope if another declaration with the same name shadows the extension, if the extension's library is not imported, if the library is imported and the extension is hidden, or the library is only imported with a prefix. In other words, if the extension had been a class, it is only in scope if using the name would denote the class&mdash; which will allow you to call static methods on the class, which is exactly what we are going to do.
+Dart's static extension methods are *scoped*. They only apply to code where the extension itself is *in scope*. Being in scope means that the extension is declared or imported into a scope which is a parent scope of the current lexical scope. The extension is not in scope if the extension declaration's library is not imported, if the library is imported and the extension is hidden, or the library is only imported with a prefix. 
+
+An extension *is* in scope if the name is *shadowed* by another declaration (a class or local variable with the same name shadowing a top-level or imported declaration, a top-level declaration shadowing an imported extension, or a non-platform import shadowing a platform import).
+
+An extension *is* in scope if is imported, and the extension name conflicts with one or more other imported declarations.
+
+The usual rules applies to referencing the extension by name, which can be useful in some situations; the extension's *name* is only accessible if it is not shadowed and not conflicting with another imported declaration.
+
+If an extension conflicts with, or is shadowed by, another declaration, and you need to access it by name anyway, it can be imported with a prefix and the name referenced through that prefix.
+
+Example:
+
+```dart
+import "all.dart";  // exposes extensions `Foo`, `Bar` and `Baz`.
+import "bar.dart";  // exposes another extension named `Bar`.
+import "bar.dart" as b;  // Also import with prefix.
+class Foo {}
+main() {
+  Foo();  // refers to class declartion.
+  Baz("ok").baz();  // Explicit reference to `Baz` extension.
+  Bar("ok").bar();  // *Compile-time error*, `Bar` name has conflict.
+  b.Bar("ok").bar();  // Valid explicit reference to `Bar` from bar.dart.
+}
+```
+
+*Rationale*: We want users to have control over which extensions are available. They control this through the imports and declarations used to include declarations into the import scope or declaration scope of the library. The typical ways to control the import scope is using `show` /`hide` in the imports or importing into a prefix scope. These features work exactly the same for extensions. On the other hand, we do not want extension writers to have to worry too much about name clashes for their extension names since most extension members are not accessed through that name anyway. In particular we do not want them to name-mangle their extensions in order to avoid hypothetical conflicts. So, all imported extensions are considered in scope, and choosing between the individual extensions is handled as described in the next section. You only run into problems with the extension name if you try to use the name itself. That way you can import two extensions with the same name and use the members without issue (as long as they don't conflict in an unresolvable way), even if you can only refer to *at most* one of them by name.
+
+You still cannot *export* two extensions with the same name.
 
 ### Extension Member Resolution
 
@@ -211,7 +238,7 @@ The syntax looks like a constructor invocation, but it does not create a new obj
 
 If `object.quickSort()` would invoke an extension method of `MyList`, then `MyList(object).quickSort()` will invoke the exact same method in the same way.
 
-The syntax is not *convenient*&mdash;you have to put the "constructor" invocation up front, which removes the one advantage that extension methods have over normal static methods. It is not intended as the common use-case, but as an escape hatch out of conflicts.
+The syntax is not *convenient*&mdash;you have to put the "constructor" invocation up front, which removes the one advantage that extension methods have over normal static methods. It is not intended as the common use-case, but as an escape hatch out of unresolvable conflicts.
 
 ### Static Members and Member Resolution
 
@@ -234,13 +261,13 @@ Like for a class or mixin declaration, static members simply treat the surroundi
 
 If an extension is found to be the one applying to a member invocation, then at run-time, the invocation will perform a method invocation of the corresponding instance member of the extension, with `this` bound to the receiver value and type parameters bound to the types found by static inference.
 
-If the receiver is `null`, then that invocation is an immediate run-time error unless the `on` type of the extension has a trailing `?`.
+Prior to NNBD, if the `on` type does not have a trailing `?`, it is a run-time error if the receiver object *r* is `null` and the resolved `on` type *T* of the extension would not satisfy `r is T`. That is, unless the type is `Null`, `Object`, or `dynamic`, it will not accept `null`. This ensure that the `this` value of the extension member cannot be `null` unless the receiver type is `Null` or a top type . If the `on` type does have a trailing `?`, then the `this` value can be `null`.
 
-With NNBD types, a non-nullable `on` type would not match a nullable receiver type, so it is impossible to invoke an extension method that does not expect `null` on a `null` value (except with legacy unsafely nullable types, then it's still a run-time error if the `on` type is not nullable)
+With NNBD types, a non-nullable `on` type would not match a nullable receiver type, so it is impossible to invoke an extension method that does not expect `null` on a `null` value (except with legacy unsafely nullable types, then it's still a run-time error if the `on` type is not nullable).
 
 In a fully migrated NNBD mode program, an extension with a non-nullable `on` type does not apply to a receiver with a nullable type, and a nullable `on` type means that the `this` value may be `null` inside the extension methods.
 
-During NNBD migration, where non-nullable type may contain `null`, it stays a run-time error if an extension method is called on `null` and a migrated extension's `on` type does not allow null, or an unmigrated extension does not have a trailing `?` on the `on` type. 
+During NNBD migration, where non-nullable type may contain `null`, it stays a run-time error if an extension method is called on `null` and a migrated extension's `on` type does not allow null, or an unmigrated extension does not have a trailing `?` on the `on` type and isn't `Null` or a top type. 
 
 During NNBD migration, we will have unsound nullable types like `int*` which should be matched by `extension Wot on int {…}` (in migrated code), and in that case we will need a run-time check to avoid passing `null` to that extension. Unmigrated extensions will still need the trailing `?` to allow getting called with `null` as receiver, but they will apply to nullable types everywhere.
 
@@ -248,13 +275,13 @@ During NNBD migration, we will have unsound nullable types like `int*` which sho
 
 When executing an extension instance member, we stated earlier that the member is invoked with the original receiver as `this` object. We still have to describe how that works, and what the lexical scope is for those members.
 
-Inside an extension method body, `this` is bound to the original receiver, and the static type of `this` is the `on` type (which may contain type variables as usual).
+Inside an extension method body, `this` does not refer to an instance of a surrounding type. Instead it is bound to the original receiver, and the static type of `this` is the declared `on` type of the surrounding extension (which may contain unbound type variables).
 
-Invocations on `this` use the same extension method resolution as any other code. Most likely  the current extension will be the only one in scope which applies.
+Invocations on `this` use the same extension method resolution as any other code. Most likely  the current extension will be the only one in scope which applies. It definitely applies to its own declared `on` type.
 
 Like for a class or mixin member declaration, the names of the extension members, both static and instance, are in the *lexical* scope of the extension member body. That is why `MySmart` above can invoke the static `smartHelper` without prefixing it by the extension name. In the same way, *instance* member declarations (the extension members) are in the lexical scope. 
 
-If an unqualified identifier may lexically resolve to an extension method, the invocation becomes an explicit invocation of that extension method on `this` (which we already know has a compatible type for the extension).
+If an unqualified identifier lexically resolves to an extension method of the surrounding extension, then that identifier is not equivalent to `this.id`, rather the invocation is equivalent to an explicit invocation of that extension method on `this` (which we already know has a compatible type for the extension): `Ext<T1,…,Tn>(this).id`, where `Ext` is the surrounding extension and `T1` through `Tn` are its type parameters, if any. The invocation works whether or not the names of the extension or parameters are actually accessible, it is not a syntactic rewrite.
 
 Example:
 
@@ -289,7 +316,7 @@ extension MyList<T> on List<T> {
 
 You cannot *access* this member in a normal invocation, so it could be argued that you shouldn't be allowed to add it. We allow it because we do not want to make it a compile-time error to add an instance member to an existing class just because an extension is already adding a method with the same name. It will likely be a problem if any code *uses* the method, but only that code needs to change (perhaps using an override to keep using the extension).
 
-An unqualified identifier can refer to any extension member declaration of the extension, so inside an extension member body, `this.add` and `add` are not necessarily the same thing (if the `on` type has an `add` member, then `this.add` refers to that, while `add` refers to the extension method in the lexical scope). This may be confusing. In practice, extensions will rarely introduce members with the same name as their `on` type's members.
+An unqualified identifier in the extension can refer to any extension member declaration, so inside an extension member body, `this.add` and `add` are not necessarily the same thing (if the `on` type has an `add` member, then `this.add` refers to that, while `add` refers to the extension method in the lexical scope). This may be confusing. In practice, extensions will rarely introduce members with the same name as their `on` type's members.
 
 ### Tearoffs
 
@@ -306,7 +333,7 @@ extension Foo on Bar {
 
 This assignment does a tear-off of the `baz` method. In this case it even does generic specialization, so it creates a function value of type `int Function(int)` which, when called with argument `x`, works just as `Foo(b).baz<int>(x)`, whether or not`Foo` is in scope at the point where the function is called. The torn off function closes over both the extension type and the receiver, and over any type arguments that it is implicitly instantiated with.
 
-An explicitly overridden extension method, like `Foo<Bar>(b).baz` also works as a tear-off. 
+An explicitly overridden extension method access, like `Foo<Bar>(b).baz`, also works as a tear-off. 
 
 There is still no way to tear off getters, setters or operators. If we ever introduce such a feature, it should work for extension methods too.
 
