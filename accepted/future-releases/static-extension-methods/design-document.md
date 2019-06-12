@@ -237,14 +237,19 @@ will fail. While we could make it work by inferring `T` as `Object`, we don't. W
 
 If more than one extension applies to a specific member invocation, then we resort to a heuristic to choose one of the extensions to apply. If exactly one of them is "more specific" than all the others, that one is chosen. Otherwise it is a compile-time error.
 
-An extension with `on` type clause *T*<sub>1</sub> is more specific than another extension with `on` type clause *T*<sub>2</sub> iff the instantiated type (the type after applying type inference from the receiver) of *T*<sub>1</sub> is a subtype of the instantiated type of *T*<sub>2</sub> and either:
+An extension with `on` type clause *T*<sub>1</sub> is more specific than another extension with `on` type clause *T*<sub>2</sub> iff 
 
-- not vice versa, or
-- the instantiate-to-bounds type of *T*<sub>1</sub> is a subtype of the instantiate-to-bounds type of *T*<sub>2</sub> and not vice versa.
+1. The latter extension is declared in a platform library, and the former extension is not, or
+2. they are both declared in platform libraries or both declared in non-platform libraries, and
+3. the instantiated type (the type after applying type inference from the receiver) of *T*<sub>1</sub> is a subtype of the instantiated type of *T*<sub>2</sub> and either
+4. not vice versa, or
+5. the instantiate-to-bounds type of *T*<sub>1</sub> is a subtype of the instantiate-to-bounds type of *T*<sub>2</sub> and not vice versa.
 
-This definition is designed to ensure that the extension chosen is the one that has the most precise type information available.
+This definition is designed to ensure that the extension chosen is the one that has the most precise type information available, while ensuring that a platform library provided extension never conflicts with a user provided extension. We avoid this because it allows adding extensions to platform libraries without breaking existing code when the platform is upgraded.
 
-If an extension's `on` type has a trailing `?`, say `T?`, then we treat it just as we would for the corresponding nullable type with NNBD types, which are described in a separate design document. In short, it means treating the type `T?`, for subtyping purposes, as a union type of `T` with `Null` (a least supertype of `T` and `Null`).
+If an extension's `on` type has a trailing `?`, say `on String?`, then we do not use that for specificity pre-NNBD. Since all receivers are potentially nullable pre-NNBD, it does not provide any useful signal.
+
+Post-NNBD, any trailing `?` is part of the `on` type, and a nullable type like `int?` is a proper supertype of, and therefore less specific than, `int`.
 
 That is, the specificity of an extension wrt. an application depends of the type it is used at, and how specific the extension is itself (what its implementation can assume about the type). 
 
