@@ -104,6 +104,12 @@ this case that name `E` is bound to the extension type `(T, E, [])`.
 With any extension type `(T, E, A)`, it is a compile-time error for `T` to
 be an extension type, and for any type in `A` to be an extension type.
 
+*Extension types of the form `(T, E, A)` are used for specifying the rules
+about terms derived from `<type>` that denote extension types, the actual
+syntax still only contains terms derived from `<type>`. The form `(T, E,
+A)` is used in the specification in order to propagate information,
+especially for member accesses.*
+
 In the case where `k` is positive (*so `E` is generic*), `E` is bound to a
 mapping that maps a sequence of `k` types `S1 .. Sk` to
 `([S1/X1, ... Sk/Xk]T, E, [S1, ..., Sk])`.
@@ -233,7 +239,13 @@ They are also different:
   later storing an element from that list in a variable with type `(T, E,
   A)`.
 
-
+- Kotlin inline classes give rise to 
+  [ambiguities](https://github.com/Kotlin/KEEP/blob/master/proposals/inline-classes.md#generic-inline-class-mapping)
+  when the inline class itself is generic, in particular because Kotlin
+  code generation needs to express the program in terms of Java. The Kotlin
+  documentation mentions that `reified` type arguments could be useful in
+  order to eliminate these ambiguities. With Dart, type arguments are
+  already reified so this ambiguity doesn't arise.
 
 
 ## Updates
