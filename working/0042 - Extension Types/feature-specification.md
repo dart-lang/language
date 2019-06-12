@@ -129,6 +129,9 @@ extension type.*
 *An example of the recursive case is that an expression of type `List<(int,
 E, [])>` is assignable to a variable of type `Iterable<(int, E, [])>`.*
 
+In a type cast or type test of the form `e as T` respectively `e is T`, it
+is a compile-time error for `T` to be an extension type.
+
 *Note that the `implements` clause allows developers to maintain
 consistency with given class types (such that the extension type "can do
 the same things"), but it does not introduce any additional
@@ -170,6 +173,15 @@ in the case where an expression `e` of type `T` occurs with context type
 
 ## Dynamic Semantics
 
+At run-time, the reification of an extension type `(T, E, A)` is the
+reification of `T`. This applies recursively as well.
+
+*For instance, `List<(T, E, A)>` is reified as `List<T>`. Consequently, a
+type cast like `e as List<T>` is possible and will succeed when the static
+type of `e` is `List<(T, E, A)>`. This allows for escaping the added
+discipline of accessing the underlying representation using an extension
+type, but only when explicitly requested by a cast.*
+
 Evaluation of an extension type creation expression `e1` of the form `E<S1,
 ... Sk>(e)` proceeds to evaluate `e` to an object `o`. In the case where the
 declaration of `E` includes a `where` clause with expression `w`, `w` is
@@ -193,6 +205,35 @@ the actual type arguments in `A`.
 method in `E` to a top-level function where the receiver is passed as an
 argument `_this`, and implicit member access in the body of `m` are made
 explicit by recursively rewriting expressions from `e` to `_this.e`.*
+
+
+## Similar Constructs
+
+The experimental Kotlin construct known as an 
+[inline class](https://kotlinlang.org/docs/reference/inline-classes.html)
+are similar to extension types in several ways:
+
+- They appear similar to a wrapper class for a given, single object, but at
+  run-time the representation can be just the wrapped object (the wrapper
+  can be "compiled away").
+- Each inline class is isolated in the type domain: It cannot have subtypes
+  nor supertypes. In this sense, an inline class wrapping an object of a
+  type `S` serves as a "branding" of the type `S` (that is, each brand of
+  `S` yields a separate type, incompatible with all other brandings of
+  `S`).
+
+They are also different:
+
+- A wrapper object _can_ exist at run time with an inline class; the Kotlin
+  documentation mentioned above says 'As a rule of thumb, inline classes
+  are boxed whenever they are used as another type'. Extension types as
+  proposed here never use boxing. Instead, extension types can be threaded
+  from type to type statically, for instance, by adding an expression of
+  static type `(T, E, A)` to a list of static type `List<(T, E, A)>`, and
+  later storing an element from that list in a variable with type `(T, E,
+  A)`.
+
+
 
 
 ## Updates
