@@ -61,9 +61,11 @@ The *type* can be any valid Dart type, including a single type variable. It can 
 
 The member declarations can be any non-abstract static or instance member declaration except for instance variables and constructors. Abstract members are not allowed since the extension declaration does not introduce an interface, and constructors are not allowed because the extension declaration doesn't introduce any type that can be constructed. Instance variables are not allowed because there won't be any memory allocation per instance that the extension applies to. We could implement instance variables using an `Expando`, but it would necessarily be nullable, so it would still not be an actual instance variable.
 
-### Omitting Names For Local Extensions
+An extension declaration with a non-private name is included in the library's export scope, and a privately named extension is not. It is a compile-time error to export two declarations, including extensions, with the same name, whether they come from declarations in the library itself or from export declarations (with the usual exception when all but one declaration come from platform libraries). Extension *members* with private names are simply inaccessible in other libraries.
 
-If an extension declaration is only used locally in a library, there is no need to worry about naming conflicts or overrides. In that case, then name identifier can be omitted (hence the `<identifier>?` in the grammar above).
+### Omitting Names For Private Extensions
+
+If an extension declaration is only used locally in a library, there might be no need to worry about naming conflicts or overrides. In that case, then name identifier can be omitted (hence the `<identifier>?` in the grammar above).
 
 Example:
 
@@ -453,68 +455,6 @@ where the `on` type must be something that can already have static methods.
 The disadvantage is that if you want to introduce related functionality that is both static and instance methods on a class, then you need to write two extensions with different names.
 
 If we allow extension static declarations like these, we can also allow extension constructors.
-
-### Explicitly Specify Related Declarations
-
-The conflict resolution described above is heuristic. It chooses a winner among potential extensions based entirely on the `on` type.
-
-If the applicable extensions are deliberately written to co-exist, with some extensions using more efficient algorithms on more precisely know receivers, then that conflict resolution algorithm gives the extension authors a clean and, hopefully, understandable way to control which extension is chosen in which situation. A more precise algorithm will be chosen over a less precise one (say, an operation on `List<int>` over one on`Iterable<int>`).
-
-However, if the applicable extensions are unrelated, written by authors which are oblivious to the other extensions, then the choice risks being arbitrary. A small change, say from `extension Foo on num` to `extension Foo<T extends num> on T`, which will not change where the extension applies, will change the specificity ordering. That makes the conflict resolution heuristic *fragile*.
-
-There is no way for an author to express the intent that one extension is a specialization of another, and that another one isn't. The only author intent available is in which extensions are imported in the library which triggers the extension member. However, anyone can add an extension to an existing library, or change the specificity of an extension (generalizing an extension with `on` type of `int`  to work on all `num`s), which should be non-breaking changes, but which affects conflict resolution.
-
-Alternatively, we can allow extensions to declare that they are *related*, and only allow conflicts between related extensions, which are presumably aware of each other. Then a conflict between any two unrelated extensions is a compile-time error and will require an explicit override, which will also be stable against future changes.
-
-The syntax would be:
-
-```dart
-extension Foo<T> on Iterable<T> { twizzle() {...} fromp() { ... }}
-extension Bar<T> extends Foo<T> on List<T> { twizzle() { ... } } 
-```
-
-If both of these extensions apply, then pick the one that extends the other. If there are more related extensions which apply, then pick one which transitively extends all the others.
-
-It should probably be possible to declare that an extension `extends` more than one other extension. That allows an extension hierarchy which matches a diamond type pattern. If you can only extend a single extension, only tree-shaped type hierarchies can be matched by the extensions.
-
-If there isn't exactly one among applicable extensions which extends all the rest, the conflict is a compile-time error.
-
-This approach allows related extensions to declare functionality on a number of types, without accidentally allowing a conflict with an unrelated extension. There is no heuristic in the conflict resolution, the choice is made entirely based on existing information added explicitly to make that choice. At least one author has made the explicit choice of declaring that if all the currently applicable extensions are available, their extension should be used.
-
-This should be sufficient to avoid arbitrary extensions from applying.
-
-On top of that, we *may* want to require that the extending extension is defined `on` a subtype of its super-extension. In the above, the `on` type of `Bar<T>` is `List<T>`, which is a subtype of the `on` type of `Foo<T>`, which is `Iterable<T>`. This is not strictly required, and an extending extension could also be allowed to be declared on a supertype of the extended extension (an unrelated type would mean that the `extends` is likely unnecessary). The only reason to make the restriction is that this feature is intended for *specialization*, not wholesale replacement. Even if we do this, the subtype does not have to be a proper subtype, so it's still possible to completely shadow the extended extension.
-
-Also, we may, and perhaps should, require that the declared extension methods in the extending extension must be valid overrides of the same-named super-extension's extension methods, as if it was a subclass relationship. This will ensure that a user who only knows about the super-extension will still get a consistent signature when they instead hit the extending extension.
-
-If we do require the extending extension's `on` type to be a subtype of the extended extension's `on` type, then we can also let the extending extension *inherit* any member that it doesn't specialize. This will not work if there is more than one super-extension declaring the same member. It's unclear whether this has any advantage.
-
-### Explicitly Specify Related Declarations 2
-
-Alternative syntax: Allow extensions with the same *name* to be related:
-
-```dart
-extension Foo<T> on Iterable<T> { twizzle() { ... } }
-extension Foo<T> on List<T> { twizzle() { ... } }
-```
-
-Whenever an extension is declared with the same name as another extension in scope, it is considered as being *related*, which is an equivalence relation. The declaration extends the extension rather than conflicting with it. 
-
-Only extension resolution conflicts between related extensions are allowed and resolved, any other conflict between applicable extensions is a compile-time error. We then still need to use an ordering relation on the `on` type to figure out which one is more specific in a particular case, and it can fail if there isn't one most specific applicable extension.
-
-An explicit override like `Foo(something).twizzle()` would still have to pick the most specific applicable extension. There is no way to hide one part of an extension "cluster", and no way to override with a specific extension declaration since they all have the same name. If the extensions do not have the same number of type parameters, an explicit instantiated override like `Foo<int>(something)` won't apply to all of them, which may be confusing.
-
-Maybe even allow combined declarations when the extensions do have the same type parameters:
-
-```dart
-extension Foo<T> 
-  on Iterable<T> { twizzle() { ... } }
-  on List<T> { twizzle() { ... } }
-```
-
-This shows that it really is a single thing being declared, even if we allow multiple declarations with the same name. (We can also choose not to allow multiple declarations, and require all related extensions to be declared in a single declaration with multiple `on` clauses like above).
-
-This approach works *badly* with static members.
 
 ### Aliasing
 
