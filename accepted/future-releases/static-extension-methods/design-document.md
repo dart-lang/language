@@ -149,6 +149,15 @@ List<Duration> times = ...;
 ... MyList(times).quickSort() ... // Infer type argument of MyList here.
 ```
 
+or for:
+
+```dart
+void Function() MyList$quickSort<T extends Comparable<T>>(List<T> $this) => 
+    () { ... }
+...
+  MyList$quickSort(times)();
+```
+
 This is inference based on static types only. The inferred type argument becomes the value of `T` for the function invocation that follows. Notice that the context type of the invocation does not affect whether the extension applies, and neither the context type nor the method invocation affects the type inference, but if the extension method itself is generic, the context type may affect the member invocation.
 
 If the inference fails, or if the synthetic constructor invocation (`MyList(times)` in the above example) would not be statically valid for any other reason, then the extension does not apply. If an extension does not have an instance member with the base name `quickSort`, it does not apply.
@@ -158,6 +167,71 @@ If exactly one extension applies to an otherwise failed member invocation, then 
 If the member is itself generic and has no type parameters supplied, normal static type inference applies again.
 
 It is *as if* the invocation `times.quickSort` was converted to `MyList<Duration>(times).quickSort()`. The difference is that there is never an actual `MyList` object, and the `this` object inside `quickSort` is just the `times` list itself (although the extension methods apply to that code too).
+
+### Generic Parameter Inference
+
+If both the extension and the method is generic, then inference must infer the extension type parameters first, to figure out whether the extension applies, and only then start inferring method type parameters. As mentioned above, the inference is similar to other cases of chained inference. 
+
+Example:
+
+```dart
+extension SuperList<T> on List<T> {
+  R foldRight<R>(R base, R combine(T element, R accumulator)) {
+    for (int i = this.length - 1; i >= 0; i--) {
+      base = combine(this[i], base);
+    }
+    return base;
+  }
+}
+...
+  List<String> strings = ...;
+  int count(String string, int length) => length + string.length;
+  ...
+  var length = strings.foldRight(0, count);
+```
+
+Here the inference occurs just as if the extension had been declared like:
+
+```dart
+class SuperList<T> {
+  final List<T> $this;
+  SuperList(this.$this);
+  R foldRight<R>(R base, R Function(T, R) combine) { ... }
+}
+```
+
+and it was invoked as `SuperList(strings).foldRight(0, count)`.
+
+Or, alternatively, like the extension method had been declared like:
+
+```dart
+R Function<R>(R, R Function(T, R)) SuperList$foldRight<T>(List<T> $this) =>
+    <R>(R base, R Function(T, R) combine) { ... };
+```
+
+and it was invoked as `SuperList$foldRight(strings)(0, count)`.
+
+In either case, the invocation of the `foldRight` method does not contribute to the inference of `T` at all, but after `T` has been inferred.
+
+The extension type parameter can also occur as a parameter type for the method.
+
+Example:
+
+```dart
+extension TypedEquals<T> {
+  bool equals(T value) => this == value;
+}
+```
+
+Using such an extension as:
+
+```dart
+Object o = ...;
+String s = ...;
+print(s.equals(o));  // Compile-time type error.
+```
+
+will fail. While we could make it work by inferring `T` as `Object`, we don't. We infer `T` *only* based on the receiver type, and therefore `T` is `String`, and `o` is not a valid argument (at least not when we remove implicit downcasts).
 
 ### Extension Conflict Resolution
 
