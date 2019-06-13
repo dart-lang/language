@@ -59,7 +59,7 @@ Such a declaration introduces its *name* (the identifier) into the surrounding s
 
 The *type* can be any valid Dart type, including a single type variable. It can refer to the type parameters of the extension. It can be followed by `?` which means that it allows `null` values. When Dart gets non-nullable types by default (NNBD), this `?` syntax is removed and subsumed by nullable types like `int?` being allowed in the `<type>` position.
 
-The member declarations can be any non-abstract static or instance member declaration except for instance variables and constructors. Abstract members are not allowed since the extension declaration does not introduce an interface, and constructors are not allowed because the extension declaration doesn't introduce any type that can be constructed. Instance variables are not allowed because there won't be any memory allocation per instance that the extension applies to. We could implement instance variables using an `Expando`, but it would necessarily be nullable, so it would still not be an actual instance variable.
+The member declarations can be any non-abstract static or instance member declaration except for instance variables and constructors. Instance member declaration parameters must not be marked `covariant`. Abstract members are not allowed since the extension declaration does not introduce an interface, and constructors are not allowed because the extension declaration doesn't introduce any type that can be constructed. Instance variables are not allowed because there won't be any memory allocation per instance that the extension applies to. We could implement instance variables using an `Expando`, but it would necessarily be nullable, so it would still not be an actual instance variable.
 
 An extension declaration with a non-private name is included in the library's export scope, and a privately named extension is not. It is a compile-time error to export two declarations, including extensions, with the same name, whether they come from declarations in the library itself or from export declarations (with the usual exception when all but one declaration come from platform libraries). Extension *members* with private names are simply inaccessible in other libraries.
 
@@ -118,7 +118,7 @@ The declaration introduces an extension. The extension's `on` type defines which
 
 For any member access, `x.foo`, `x.bar()`, `x.baz = 42`, `x(42)`, `x[0] = 1` or `x + y`, including null-aware and cascade accesses which effectively desugar to one of those direct accesses, and including implicit member accesses on `this`, the language first checks whether the static type of `x` has a member with the same base name as the operation. That is, if it has a corresponding instance member, respectively, a `foo` method or getter or a `foo=` setter. a `bar` member or `bar=` setter, a `baz` member or `baz=` setter, a `call` method, a `[]=` operator or a `+` operator. If so, then the operation is unaffected by extensions. *This check does not care whether the invocation is otherwise correct, based on number or type of the arguments, it only checks whether there is a member at all.*
 
-(The types `dynamic` and `Never` are considered as having all members, the type `void` is always a compile-time error when used in a receiver position, so none of these can ever be affected by static extension methods. Methods declared on `Object` are available on all types and therefore cannot be affected by extensions).
+(The types `dynamic` and `Never` are considered as having all members, the type `void` is always a compile-time error when used in a receiver position, so none of these can ever be affected by static extension methods. The type `Function` and all function types are considered as having a `call` member on top of any members inherited from `Object`. Methods declared on `Object` are available on all types and can therefore never be affected by extensions).
 
 If there is no such member, the operation is currently a compile-time error. In that case, all extensions in scope are checked for whether they apply. An extension applies to a member access if the static type of the receiver is a subtype of the `on` type of the extension *and* the extension has an instance member with the same base name as the operation. 
 
@@ -380,6 +380,8 @@ The unqualified `length` of `isEven` is not defined in the current lexical scope
 
 The unqualified `isEven` of `isOdd` resolves lexically to the `isEvent` getter above it, so it is equivalent to `MyUnaryNumber(this).isEven`,  even if there are other extensions in scope which define an `isEven` on `List<Object>`.
 
+An unqualified identifier `id` which is not declared in the lexical scope at all, is considered equivalent to `this.id` as usual. It is subject to extension if `id` is not declared by the static type of `this`.
+
 Even though you can access `this`, you cannot use `super` inside an extension method.
 
 ### Member Conflict Resolution
@@ -401,7 +403,7 @@ An unqualified identifier in the extension can refer to any extension member dec
 
 ### Tearoffs
 
-A static extension method can be torn off like any other instance method.
+A static extension method can be torn off like an instance method.
 
 ```dart
 extension Foo on Bar {
@@ -412,11 +414,54 @@ extension Foo on Bar {
   int Function(int) func = b.baz;
 ```
 
-This assignment does a tear-off of the `baz` method. In this case it even does generic specialization, so it creates a function value of type `int Function(int)` which, when called with argument `x`, works just as `Foo(b).baz<int>(x)`, whether or not`Foo` is in scope at the point where the function is called. The torn off function closes over both the extension type and the receiver, and over any type arguments that it is implicitly instantiated with.
+This assignment does a tear-off of the `baz` method. In this case it even does generic specialization, so it creates a function value of type `int Function(int)` which, when called with argument `x`, works just as `Foo(b).baz<int>(x)`, whether or not`Foo` is in scope at the point where the function is called. The torn off function closes over both the extension method, the receiver, and any type arguments to the extension, and if the tear-off is an instantiating tear-off of a generic method, also over the type arguments that it is implicitly instantiated with. The tear-off effectively creates a curried function from the extension:
+
+```dart
+int Function(int) func = (int x) => Foo(b).baz<int>(x);
+```
+
+(It is yet undecided whether two tear-offs of the same extension function with the same receiver will be equal in some cases or never).
 
 An explicitly overridden extension method access, like `Foo<Bar>(b).baz`, also works as a tear-off. 
 
 There is still no way to tear off getters, setters or operators. If we ever introduce such a feature, it should work for extension methods too.
+
+### The `call` Member
+
+An instance method named `call` is implicitly callable on the object, and implicitly torn off when assigning the instance to a function type.
+
+The text above suggests that an extension method named `call` can also be called implicitly. This is still being discussed.
+
+If it is decided to allow this feature, then the following should work:
+
+```dart
+extension Tricky on int {
+ 	Iterable<int> call(int to) => 
+      Iterable<int>.generate(to - this + 1, (i) => i + this);
+}
+...
+  for (var i in 1(10)) { 
+    print(i);  // prints 1, 2, 3, 4, 5, 6, 7, 8, 9, 10.
+  }
+```
+
+This looks somewhat surprising, but not much more surprising that an extension `operator[]` would: `for (var i in 1[10])...`.
+
+A second question is whether this would also work with implicit `call` method tear-off:
+
+```dart
+Iterable<int> Function(int) from2 = 2;
+```
+
+This code would find, during type inference, that `2` is not a function. It would then find that `int` does not have a `call` method. Without the extension, inference would fail there. If we allow implicit tear-off of an extension `call` method, then the next step would be to check if `int` has a `call` extension member, which it does with the above declaration. Then, if the extension member is a method, it would treat the code like the equivalent:
+
+```dart
+Iterable<int> Function(int) from2 = 2.call;
+```
+
+This implicit conversion may come at a readability cost. A type like `int` is well known as being non-callable, and because of the implicit `.call` access, there is no visible syntax at the tear-off point which can inform the reader what is going on.
+
+As such, allowing `call` as a static extension method to make objects callable, might be confusing. The solution can be to disallow it (fail if an extension method is named `call`), make it not work (`2(2)` would not consider the `call` extension method as applying), or allow it with a caution to users about using the functionality judiciously.
 
 ## Summary
 
@@ -440,7 +485,7 @@ There is still no way to tear off getters, setters or operators. If we ever intr
 
 - An extension applies to such a member invocation if 
 
-  - the extension name is visible in the lexical scope,
+  - the extension is declared or imported in the lexical scope,
   - the extension declares an instance member with the same base name, and 
   - the `on` type (after type inference) of the extension is a super-type of the static type of the receiver.
 
@@ -456,7 +501,7 @@ There is still no way to tear off getters, setters or operators. If we ever intr
 
   that was invoked as `Foo(receiver).baz(args)`. The binding of `T` and `S` found here is the same binding used by the extension.  If the constructor invocation would be a compile-time error, the extension does not apply.
 
-- One extension is more specific than another if the instantiated `on` type of the former is a proper subtype of the instantiated `on` type of the latter, or if the two instantiated types are equivalent and the instantiate-to-bounds `on` type of the former is a proper subtype of the one on the latter.  An `on` type `T?`, with a trailing `?` works like a NNBD nullable type.
+- One extension is more specific than another if the former is a non-platform extension and the latter is a platform extension, or if the instantiated `on` type of the former is a proper subtype of the instantiated `on` type of the latter, or if the two instantiated types are equivalent and the instantiate-to-bounds `on` type of the former is a proper subtype of the one on the latter. 
 
 - If there is no single most-specific extension which applies to a member invocation, then it is a compile-time error. (This includes the case with no applicable extensions, which is just the current behavior).
 
@@ -466,7 +511,7 @@ There is still no way to tear off getters, setters or operators. If we ever intr
 
 - The override can also be used for extensions imported with a prefix (which are not otherwise in scope): `prefix.ExtensionName(object).method(args)`.
 
-- An invocation of an extension method throws if the receiver is `null` unless the `on` type has a trailing `?`. With NNBD types, the invocation throws if the receiver is `null` and the instantiated `on` type of the selected extension does not accept `null`. (In most cases, this case can be excluded statically, but not for unsafely nullable types like `int*`).
+- An invocation of an extension method throws if the receiver is `null` unless the `on` type has a trailing `?` or is `Null` or a top type. With NNBD types, the invocation throws if the receiver is `null` and the instantiated `on` type of the selected extension does not accept `null`. (In most cases, this case can be excluded statically, but not for unsafely nullable types like `int*`).
 
 - Otherwise an invocation of an extension method runs the instance method with `this` bound to the receiver and with type variables bound to the types found by type inference (or written explicitly for an override invocation). The static type of `this` is the `on` type of the extension.
 
