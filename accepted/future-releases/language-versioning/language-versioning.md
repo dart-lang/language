@@ -1,28 +1,28 @@
 # Dart Language Versioning
 
 [lrn@google.com](@lrhn)<br>
-Version: 1.0-rc2<br>
+Version: 1.1<br>
 Status: Preliminary Design, Under Discussion.
 
 ## Motivation
 
 The Dart language is evolving with new language features added in most new releases.
-However, since Dart 2.0, a breaking language change is unlikely to be practically possible.
-Any breaking the language will require a large (and growing) body of code to be migrated.
+Since Dart 2.0, a breaking language change is unlikely to be practically possible.
+Any breaking of the language requires a large (and growing) body of code to be migrated.
 
-We still want to do breaking changes, because some language changes are worth it. They just have to be worth _a lot_ to be viable. 
+We still want to do breaking changes, because some language changes are worth it. They just have to be worth _a lot_ to be viable.
 In order to improve the cost/benefit ratio, we can also try to reduce the _cost_. 
 
 We will definitely invest in tools to migrate code from one version of the language to another. Such a tool should be able to take any library or package and migrate it seamlessly to a new version of the language.
 
-However, it's not clear that all language changes will permit a clean automatable migration. For example, introducing non-nullable types requires _adding_ information that was not explicitly present in the original source: is a variable intended to be nullable or not? Static analysis may get us some of the way, but there will always be programs that cannot be analyzed precisely, but where a human programmer would easily see the _meaning_ of the code. So, automatic migration tools can at most be a help&mdash;they cannot be a full solution.
+However, not all language changes will permit a clean automatable migration. For example, introducing non-nullable types requires _adding_ information that was not explicitly present in the original source: is a variable intended to be nullable or not? Static analysis may get us some of the way, but there will always be programs that cannot be analyzed precisely, but where a human programmer would easily see the _meaning_ of the code. So, automatic migration tools can at most be a help&mdash;they cannot be a full solution.
 
 This document specifies an approach to easing the migration of a breaking language change by allowing unmigrated and migrated code to both run in the same program, which allows gradual migration over time while ensuring that a valid program can still run at any stage of the migration.
 
-The end goal is still to have all code migrated to the newest language version. The feature is designed to encourage this migration by making migration the easiest path, while still allowing an author to keep some libraries back from being migrated for a while.
-The goal is not to allow code to stay unmigrated indefinitely, only to give authors *reasonable* time to perform the migration.
+The end goal is still to have all code migrated to the newest language version. This feature is designed to encourage this migration by making migration the easiest path, while still allowing an author to keep some libraries back from being migrated for a while.
+The goal is not to allow code to stay unmigrated indefinitely, only to give authors *reasonable* time to perform the migration, and to migrated a large body of code gradually.
 
-The goal of this feature is not to make future or experimental features available. We use flags for that. 
+The goal of this feature is not to make future or experimental features available. We use flags for that. Those flags will still need to interact with this feature, though.
 It is not intended to do conditional compilation based on SDK version.
 This feature is intended for shipping code running against released SDKs and language versions, 
 allowing unmigrated code targeting an older language version to run alongside migrated code 
@@ -34,11 +34,11 @@ All significant Dart language changes happen in stable releases. Such releases a
 
 This document specifies the process used to assign a *language version* to every library in a program.
 
-Then the Dart language tools must be able to handle libraries written for different language versions. Most language changes are incremental and non-breaking. For those, all the tools have to do is to make sure that a library does not use a feature which was introduced after the library's language version.
+Then the Dart language tools must be able to handle libraries written for different language versions interacting in the same program. Most language changes are incremental and non-breaking. For those, all the tools have to do is to make sure that a library does not use a feature which was introduced after the library's language version.
 
 For breaking changes, the tool must be able to handle multiple different versions of the language, and do so in a way that allows libraries on different language versions  to interact in a predictable and useful way. For example, the "non-nullable types by default" feature (NNBD) will have NNBD libraries with non-nullable or safely nullable types *and* unmigrated libraries with unsafely nullable types, and those libraries can send values back and forth between them. This is where the main complication lies, and that is beyond the scope of this document which only specifies how we assign language versions to individual libraries.
 
-This feature cannot support language changes that are fundamentally incompatible with earlier language versions, we do need the run-time system to be able to contain both language versions at the same time. For the same reason, this feature does not handle *platform library* changes that are not backwards compatible. The libraries are shared between different language level libraries, and must work on all of these. (The tools should still detect use of library features not supported by the minimum required SDK version for a package.)
+This feature cannot support language changes that are fundamentally incompatible with earlier language versions, we do need the run-time system to be able to contain both language versions at the same time. For the same reason, this feature does not handle *platform library* changes that are not backwards compatible. The libraries are shared between the different language level libraries in a program, and must work for all of these. (The tools should still detect use of library features not supported by the minimum required SDK version for a package.)
 
 Versioning uses _version number_ only. You cannot opt-in to one feature of a new version, but not the rest. You either migrate to that new version, or you do not. This allows us to keep the combinatorial complexity down to being (roughly) linear in the number of supported versions.
 
@@ -56,8 +56,7 @@ environment:
 ```
 
 We define the *default language version* of a package with a `pubspec.yaml` SDK version constraint 
-as the major and minor version number of the lowest known stable version number of a Dart release that is accepted by the constraint 
-according to the `pub_semver` package's implementation of version constraints.
+as the major and minor version number of the lowest known stable version number of a Dart release that is accepted by the constraint according to the `pub_semver` package's implementation of version constraints.
 For the package above, the default language version is 2.1. 
 
 The default language version of a package is the version of the language which is used to interpret the libraries of that package. A package should not use any SDK or language feature which is not available in its minimal required version, so interpreting a library at this language version should be safe.
@@ -68,11 +67,17 @@ If a `pubspec.yaml` does not contain a minimum SDK version, the default language
 
 We further allow an individual library in a package to select an *earlier* language version than the default version of its package, for the case where that library has not yet been migrated to the newer semantics. This allows gradual migration of a single package.
 
-As soon as any library in a package requires the new language feature, the package itself must require a sufficient SDK version to support the feature. This also updates the package's default language version to the higher version. In order to not have to migrate every library in the package, the author can mark unmigrated packages as such, putting them back at the language version they are compatible with. For a non-breaking language change, such marking is not necessary since the "unmigrated" libraries are already compatible with the newer language version.
+As soon as any library in a package requires the new language feature, the package itself must require a sufficient SDK version to support the feature. This also updates the package's default language version to the higher version. In order to not have to migrate every library in the package immediately, the author can mark unmigrated packages as such, putting them back at the language version they are compatible with. For a non-breaking language change, such marking is not necessary since the "unmigrated" libraries are already compatible with the newer language version.
 
-The syntax for defaulting to a lower language level is a comment line of the form `@dart=2.0` (allowing for whitespace except inside the `@dart` or the version) in the initial part of the file, prior to any language declarations. So, it can be preceded by a `#!` line or by other comments, but not by a `library` declaration or any other declaration. Part files cannot be marked, they are always treated the same way as the library they belong to. All tools processing source files must be able to recognize this marker and process the library accordingly. 
+The syntax for defaulting to a lower language level is line consisting only of a single-line comment of the form `// @dart = 2.0` (exactly two slashes, the string `@dart`, a `=`, and a numeral which is two decimal numbers separated by `.`) in the initial part of the file, prior to any language declarations. It can be preceded by a `#!` line or by other comments, but not by a `library` declaration or any other declaration. Whitespace (space and tabs) are allowed everywhere except between the slashes, inside the `@dart` string and inside the version numeral. The comment must be an actual single-line comment, and not a string of that form embedded in a block comment. Block comments traditionally start lines with a `*` character, but that is purely convention, so it would be possible to have a line containing just  `//@dart=2.3` inside a block comment. That will not count as a language version override marker.
 
-Examples:
+This does mean that if a later language version change the *comment syntax* in a non-backwards compatible way, we may have to add further restrictions at that point. That is unlikely to happen. 
+
+Part files may be marked, but are not required to be. They must always be treated the same way as the library they belong to, so it is a compile-time error if a part file has a different language level override than its library. Tools that work on individual part files, like the formatter, can use a marker in the part file, but if there isn't one, the tool should make an effort to find the library that the file belongs to, and use the version of that library. If the part uses a URI-based `part of` declaration, the library file should be accessible. If it uses a name-based `part of` declaration, the tool might not be able to find the library from the part file alone, and it might be prudent to add a language level override to the part file as well.
+
+All tools processing source files must be able to recognize this override marker and process the library accordingly. 
+
+**Examples:**
 
 ```dart
 #! /bin/dart
@@ -86,39 +91,48 @@ or
 ```dart
 /*
  * This library is yadda, yadda, exceptional, yadda.
- * @dart=2.1
  */
+// @dart=2.1
 import "dart:math";
+```
+
+or
+
+```dart
+// @dart = 2.1
+part of old.library.name;
 ```
 
 #### Option: Symbolic Version Names
 
-We &may& want to consider introducing symbolic names for versions mentioned in library language version tags. The most likely reason to have such a tag is that you want to stay *before* a particular breaking change, say non-nullable types by default (NNBD). It would be convenient to be able to write `//@dart<nnbd` to pick the version just before NNBD was introduced, instead of having to remember whether that was 2.4 or 2.5 (and recognizing `//@dart=2.4` as being an opt-out of the NNBD change). This should still not be a way to opt out of individual features, just a way to specify a specific version number in a more readable way.
+We *may* want to consider introducing symbolic names for versions mentioned in library language version tags. The most likely reason to have such a tag is that you want to stay *before* a particular breaking change, say non-nullable types by default (NNBD). It would be convenient to be able to write `//@dart<nnbd` to pick the version just before NNBD was introduced, instead of having to remember whether that was 2.4 or 2.5 (and recognizing `//@dart=2.4` as being an opt-out of the NNBD change). This should still not be a way to opt out of individual features, just a way to specify a specific version number in a more readable way.
 
 This feature is not required, and it might even not be desired. It's not clear whether it will reduce user confusion, or increase it. The syntax for library SDK version is a comment, so there is no syntax support to worry about.
 For now, we can do without the feature, and we can add it later if it is in demand.
 
 ## Program Library Level Configuration
 
-The features in the previous section allows each library in a single package to have an associated language level, capped from above by the minimum SDK version that the package claims to be compatible with (and capped from below by which language versions the SDK actually supports).
+The features in the previous section allows each library in a single package to have an associated language level, capped from above by the minimum SDK version that the package claims to be compatible with (and by which language versions the SDK actually supports).
 
-A language tool (like a compiler or analyzer) needs to have access to this information for *all* packages available to the program it is processing. To this end, we record the default language version for each available package in the `.packages` file, along with the path to the source files. The individual library version overrides are still available in the source files of those packages.
+A language tool (like a compiler or analyzer) needs to have access to this information for *all* packages available to the program it is processing. To this end, we record the minimum SDK version for each available package in the `.packages` file, along with the path to the source files. The individual library version overrides are still available in the source files of those packages.
 
-The `pub` tool reads the `pubspec.yaml` file of the current package, and all packages that this package recursively depends on (in many versions, then it uses constraint solving to pick a specific version of each), and writes the `pubspec.lock` and `.packages` file. Doing this, it can see the SDK requirement of each package that is available to the current package and can write this into the `.packages` file.
+The `pub` tool reads the `pubspec.yaml` file of the current package, and all packages that this package recursively depends on (in many versions, then it uses constraint solving to pick a specific version of each), and writes the `pubspec.lock` and `.packages` file. Doing this, it can see the SDK requirement of each package that is available to the current package and can write the minimum required version into the `.packages` file.
 
 The `.packages` file is an `.ini`-file like text file with package names as keys and URI references as values. The default package version for a specific package is written as a *fragment* on that URI reference. 
 
 Example:
 
 ```ini
-quiver=../../.pubcache/quiver/1.3.17/lib#dart=2.5
+quiver:../../.pubcache/quiver/1.3.17/lib#dart=2.5.3-dev.2
 ```
 
-This specifies that the `quiver` package has a default language level of 2.5.
+This specifies that the `quiver` package requires SDK version 2.5.3-dev.2, and it therefore has a default language level of 2.5, the most recent stable language version available to the minimal version allowed by the package.
 
-If an entry in the `.packages` file contains no language version fragment, or there is no `.packages` file yet, the package defaults to the most recent language version supported by the SDK processing the package.
+If an entry in the `.packages` file contains no language version fragment, or there is no `.packages` file yet, the package defaults to the most recent language version supported by the SDK processing the package. If an entry contains an invalid `dart` version value, `#dart=arglebargle` or `#dart=` or any other value which is not a semantic versioning version, then tools which need the version should report an error.
 
-The biggest issue is that tools will not have a language default version available for the current package until a `.packages` file has been generated by running `pub get`. Any tool able to understand Pub package layout should use the `pubspec.yaml` file for the language version of the current package rather than rely on an entry in the `.packages` file. This is only an issue for *new* packages, or packages with no dependencies, because otherwise the package is unusable until you run `pub get` anyway. A new package is likely to want to be run at the most recent language version, so this is not a major problem. An IDE which reruns `pub get` after each change to `pubspec.yaml` will keep the `.packages` file up-to-date.
+Tools will not have a language default version available for the current package until a `.packages` file has been generated by running `pub get`. Any tool able to understand Pub package layout may use the `pubspec.yaml` file for the language version of the current package rather than rely on an entry in the `.packages` file. A lack of a `.packages` file is only an issue for *new* packages, or packages with no dependencies, because otherwise the package is mostly unusable until you run `pub get` anyway. A new package is likely to want to be run at the most recent language version, so this is not a major problem. An IDE which reruns `pub get` after each change to `pubspec.yaml` will keep the `.packages` file up-to-date.
+
+The fragment part of the `.packages` file should be assumed to contain more than one "property" encoded using the [`application/x-www-form-urlencoded`](https://en.wikipedia.org/wiki/Percent-encoding#The_application.2Fx-www-form-urlencoded_type) format (`&`-separated entries of `=`-separated key and value pairs, each key and value URL-encoded as needed). The `dart` property is the only one used to find the default language version of the package, and it is always entirely in ASCII, so no decoding should be necessary.
 
 ### Non-`package:` Libraries
 
@@ -126,7 +140,7 @@ Non-`package:` libraries (libraries with `file:` or `http:` URIs, anything excep
 
 Any tool which understands Pub package layouts should treat a file in the same pub package as having the same default language level as the actual package files from the `lib/` directory.
 
-A tool which does not understand Pub packages must get the default level to use from somewhere. We extend the `.packages` file with an extra entry which specifies the package of non-`package:` files. The entry has the form `*:quiver`, which means that such files are considered part of the `quiver` package for any purpose where that matters, including choosing the default language level. It is intended as the name of the "current Pub package".
+A tool which does not understand Pub packages must get the default level to use from somewhere. We extend the `.packages` file with an extra entry which specifies the package of non-`package:` files. The entry has the form `:quiver` (an entry for the empty package name), which means that such files are considered part of the `quiver` package for any purpose where that matters, including choosing the default language level. It is intended as the name of the "current Pub package".
 
 With no default package in the `.packages` file, non-`package:` libraries default to the newest language version supported by the current SDK.
 
@@ -134,7 +148,8 @@ This feature makes non-`package:` code act as if it was in a package (even if it
 
 Other alternatives include:
 
-- A `.packages` entry of the form `*:#dart=2.5`which sets the default language version for non-`package:` files directly. This risks having a version skew between the package libraries and the non-`package:` support files in the same Pub package.
+- A `.packages` entry of the form `:#dart=2.5`which sets the default language version for non-`package:` files directly. This risks having a version skew between the package libraries and the non-`package:` support files in the same Pub package.
+
 - A `--default-package=quiver` flag on all tools which works like the entry in `.packages`. We can choose to have this anyway, as an override so you don't have to edit the `.packages`, but there are no clear use-cases for it.
 - A `--default-language-version=2.5` flag on all tools which sets the default language version for non-`package:` libraries. 
 
@@ -160,11 +175,38 @@ The platform tools then need to support a *range* of language version. We will e
 
 Opting in to new version is as easy as updating the SDK version in the `pubspec.yaml` and, for breaking changes, updating any libraries that need to be updated. Keeping some libraries back at an earlier version is possible, but requires extra work. When a library is migrated, the language version marker is removed, and when all libraries have been migrated, there is nothing further for the author to do. This avoids old markers cluttering code after they have become unnecessary.
 
+## Experiment Flags
+
+The Dart SDK development releases makes some new language features available under experiment flags.
+
+These are the language features which will be released in later versions of the SDK, and it allows users to prepare for that release early.
+
+Most language changes are backwards compatible, and enabling those features globally is not a problem, but other changes are breaking. The breaking changes are exactly those where language versioning is necessary, and where we want to be able to keep some libraries back from the new version during migration, and therefore also during pre-release migration and testing.
+
+To make experiments possible, and opting-out easy, experiments flags like `--enable-experiment=nnbd` will enable the new language feature (and language *changes*) for all libraries with *no* library language level marker *and* where the package's minimum SDK version (as reflected in the `.packages` file or directly from `.pubspec.yaml`) is exactly the *current* SDK's version.
+
+The SDK's version can be found in the `version` file of the SDK installation directory. Copying that string verbatim into your package's `pubspec.yaml` as, for example,
+
+```yaml
+environment:
+	sdk: "^2.2.1-edge.c2dc4a54b8ca5463473d100c5d69aed49b4ba971"
+```
+
+(then running `pub` to generate the `.packages` file) *and* passing the experiment flag to the compiler/analyzer will treat all libraries that are not opted out (by having a language level marker) as using the experimental language feature.
+
+This applies to all experiment flags, even those for non-breaking, incremental changes.
+
+It is as if the experiment flag changes the meaning of `#dart=<current SDK version>` into `#dart=<next SDK version>` and then the SDK acts like it is a next version of the SDK, where (some of) the experimental features are now enabled.
+
+This design is complicated for the user, they have to go through some hoops to enable experiments, but it also ensures that code that you migrate during the experimental phase will work without further change when the feature is released. All you have to do is update the SDK requirement to the stable version that releases the feature.
+
+(We may want to have a way to enable experiments globally for a package, so the user doesn't have to pass `--enable-experiment=nnbd` to every tool they call, including those that they are not calling directly).
+
 ## Tool Cost
 
 The described approach carries a significant cost for all Dart tools. They need to support multiple versions of the language at the same time, and need to be able to switch between the different versions on a per-library basis.
 
-Since our plan for new language features is to develop and test them under an "experiments" flag, the tools already need to be able to turn individual features on and off. When a feature is released, we can then just keep those flags alive, but link them to the language versions instead of individual command-line flags. It does mean that the tools must be able to flip flags on a per-library basis.
+We develop and test new language features "experiments" flags, so the tools already need to be able to turn individual features on and off. When a feature is released, the feature enabling is then only based on version, and not both version and command-line flags. It does mean that the tools must be able to flip flags on a per-library basis.
 
 The same feature should not be available under both a version flag and an experiment flag. The moment the feature releases, the experiment command-line flag stops working and cause a warning to be printed, until the flag is eventually removed.
 
@@ -172,9 +214,11 @@ We should deprecate old language _versions_ eventually. For example, we can _dep
 
 Again, we should invest in tools that automate migration to new language versions, at least as well as technically possible. That tool definitely needs to know about all language versions since 2.0.
 
-The _Dart formatter_ might be more affected than other tools, because it can be run on individual files, without having the package resolution configuration that we would piggy-back the versioning on. Since the Dart formatter still uses the analyzer for parsing, it might be handled by the analyzer's knowledge of `pubspec.yaml`. The analyzer will need version information in all cases. Defaulting to the most recent version when there is no other hint is the obvious choice. The Dart formatter also needs to be able to _output_ all supported versions, which may be complicated (especially if we do something like adding optional semicolons in a version).
+The _Dart formatter_ might be more affected than other tools, because it can be run on individual files, or even parts of files, without having the package resolution configuration that we would piggy-back the versioning on. Since the Dart formatter still uses the analyzer for parsing, it might be handled by the analyzer's knowledge of `pubspec.yaml`. The analyzer will need version information in all cases. Defaulting to the most recent version when there is no other hint is the obvious choice. The Dart formatter also needs to be able to _output_ all supported versions, which may be complicated (especially if we do something like adding optional semicolons in a version).
 
 Another issue is that _during_ migration, a file may not yet be at the level that the package intends.
+
+So far, all planned language changes are *syntactically* backwards compatible (no existing syntax parses differently in a newer language version, even though it might change *semantics*), so it should be possible for the Dart formatter to parse and format code in a version independent manner. As long as we keep this true, having breaking changes only in the semantics, not the grammar, the problem above might not be an issue.
 
 If a package increases its SDK requirement, it also changes the default language level. 
 
@@ -182,13 +226,23 @@ If an IDE detects a _change_ in default language level for the package being edi
 
 If neither of those happen, all old files then need to be migrated, but they are then being interpreted as the newer language by parsers. The _version migration tool_ (dartfix?) needs to see past the default language level. It might even need to be able to detect versions from source code (that is not always possible, any change that changes behavior of valid syntax cannot be detected either way).
 
+### Generated Code and Code Generators
+
+Code generation means that all code in a package is not written by the same author. The author of a package cannot generate migrated code until the code generator has been updated, and they likely can't even add a version marker to the generated file (although code-generation tools might want to introduce that feature).
+
+Code generating packages can either release a new version which only generates code using the new language version, so users migrate the generated code by changing the generator version, or they can have a single code generator package which can generate code for multiple language versions, and then the user has to parameterize the generation somehow.
+
+If the generated file is a part file, then the importing library can specify the language version and stay unmigrated until the part file generator is updated.
+
+If the generated file is a library with no language-version marker, then it may not be possible to update the package to a new language version at all until a new version of the code generator is available. On the other hand, if the generated code contains a language version marker, then it should be safe for any future language version until the chosen version becomes unsupported.
+
 ## Examples
 
 ### Manual Upgrade
 
 Assume NNBD is released in Dart version 2.5.0.
 
-The package `floo` wants to use NNBD, so it changes its pubspec to contain:
+The package `floo` wants to use NNBD, so it changes its `pubspec.yaml` to contain:
 
 ```yaml
 environment:
@@ -200,8 +254,8 @@ and runs `pub get` or `pub upgrade`. The IDE may do that automatically after any
 The `pub` tool rewrites the `.packages` file to contain the lines:
 
 ```ini
-*:floo
-floo:lib/#dart=2.5
+:floo
+floo:lib/#dart=2.5.0
 ```
 
 along with the similar lines for all the third-party packages.
@@ -233,3 +287,11 @@ The optimistic upgrade from version 2.1 to 2.5 may go through 2.2 (inserting set
 ## Revisions
 
 1.0: Initial version (adapted from [strawman proposal](<https://github.com/dart-lang/language/blob/master/working/0093%20-%20Gradual%20Language%20Change%20Migration/0094%20-%20Per%20Library%20Language%20Version%20Selection/strawman.md>)).
+
+1.1: Update specification after rewiew.
+
+- Update `.packages` file format to contain entire SDK version.
+- Restrict override syntax to only `// @dart = 2.3` format.
+- Specify experiment flag behavior.
+- Change `*:defaultPackage` to `:defaultPackage` because `*` was already a valid package name in the [`.packages` file specification](<https://github.com/lrhn/dep-pkgspec/blob/master/DEP-pkgspec.md>).
+
