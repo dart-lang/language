@@ -420,7 +420,7 @@ This assignment does a tear-off of the `baz` method. In this case it even does g
 int Function(int) func = (int x) => Foo(b).baz<int>(x);
 ```
 
-(It is yet undecided whether two tear-offs of the same extension function with the same receiver will be equal in some cases or never).
+**OPEN ISSUE:** It is yet undecided whether two tear-offs of the same extension function with the same receiver will be equal in some cases or never.
 
 An explicitly overridden extension method access, like `Foo<Bar>(b).baz`, also works as a tear-off. 
 
@@ -430,7 +430,7 @@ There is still no way to tear off getters, setters or operators. If we ever intr
 
 An instance method named `call` is implicitly callable on the object, and implicitly torn off when assigning the instance to a function type.
 
-The text above suggests that an extension method named `call` can also be called implicitly. This is still being discussed.
+**OPEN ISSUE:** The text above suggests that an extension method named `call` can also be called implicitly. This is still being discussed.
 
 If it is decided to allow this feature, then the following should work:
 
