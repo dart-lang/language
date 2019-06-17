@@ -189,7 +189,7 @@ The SDK's version can be found in the `version` file of the SDK installation dir
 
 ```yaml
 environment:
-	sdk: "^2.2.1-edge.c2dc4a54b8ca5463473d100c5d69aed49b4ba971"
+    sdk: "^2.2.1-edge.c2dc4a54b8ca5463473d100c5d69aed49b4ba971"
 ```
 
 (then running `pub` to generate the `.packages` file) *and* passing the experiment flag to the compiler/analyzer will treat all libraries that are not opted out (by having a language level marker) as using the experimental language feature.
