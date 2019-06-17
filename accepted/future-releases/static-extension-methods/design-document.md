@@ -447,13 +447,15 @@ extension Tricky on int {
 
 This looks somewhat surprising, but not much more surprising that an extension `operator[]` would: `for (var i in 1[10])...`.
 
+Any expression of the form `e1(args)` or `e1<types>(args)` where the static type of `e1` is not a function type, an interface type declaring a `call` method, or `dynamic,` will currently be a compile-time error. We would keep it a compile-time error if the interface type defines a `call` *getter*. Otherwise we would check for extensions declaring a `call` member and applying to the static type of `e1`. I any such exists, and the declared member is a method, then that method is invoked. Otherwise it is still a compile-time error.
+
 A second question is whether this would also work with implicit `call` method tear-off:
 
 ```dart
 Iterable<int> Function(int) from2 = 2;
 ```
 
-This code would find, during type inference, that `2` is not a function. It would then find that `int` does not have a `call` method. Without the extension, inference would fail there. If we allow implicit tear-off of an extension `call` method, then the next step would be to check if `int` has a `call` extension member, which it does with the above declaration. Then, if the extension member is a method, it would treat the code like the equivalent:
+This code would find, during type inference, that `2` is not a function. It would then find that `int` does not have a `call` member. Without the extension, inference would fail there. If we allow implicit tear-off of an extension `call` method, then the next step would be to check if `int` has a `call` extension member, which it does with the above declaration. Then, if the extension member is a method, it would treat the code like the equivalent:
 
 ```dart
 Iterable<int> Function(int) from2 = 2.call;
@@ -596,12 +598,14 @@ If we do this, we should be *consistent* with other type aliases, which means th
 
 ```drt
 typedef MyCleverList = prefix.MyList; // bad!
+
 ```
 
 would make `MyCleverList` an alias for `prefix.MyList<dynamic>`, which would still apply to `List<anything>`, but the type variable of `MyList` will always be `dynamic`. Similarly, we can put more bounds on the type variable:
 
 ```dart
 typedef MyWidgetList<T extends Widget> = prefix.MyList<T>;
+
 ```
 
 Here the extension will only apply if it matches `Widget` *and* would otherwise match `MyList` (but `T` needs to be a valid type argument to `MyList`, which means that it must satisfy all bounds of `MyList` as well, otherwise the typedef is rejected).
@@ -610,5 +614,6 @@ The use of `typedef` for something which is not a type may be too confusing. Ano
 
 ```dart
 extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
+
 ```
 
