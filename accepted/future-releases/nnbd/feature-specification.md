@@ -143,7 +143,7 @@ potentially non-nullable type has no initializer expression and is not
 initialized in a constructor via an initializing formal or an initializer list
 entry, unless the variable or field is marked with the `late` modifier.
 
-It is an error if a potentialy non-nullable local variable which has no
+It is an error if a potentially non-nullable local variable which has no
 initializer expression and is not marked `late` is used before it is definitely
 assigned (see Definite Assignment below).
 
