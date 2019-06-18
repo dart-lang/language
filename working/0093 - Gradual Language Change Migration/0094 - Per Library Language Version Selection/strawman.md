@@ -2,7 +2,7 @@
 
 [lrn@google.com](@lrhn)<br>
 Version 1.0<br>
-Status: Superceded by [design document](https://github.com/dart-lang/language/blob/master/accepted/future-releases/language-versioning/language-versioning.md)
+Status: Superceded by [feature specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/language-versioning/feature-specification.md)
 
 This document is no longer relevant, and should only be used for historical reference. 
 It has been superceeded by an actual design document.
