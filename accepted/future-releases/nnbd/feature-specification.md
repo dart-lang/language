@@ -138,14 +138,14 @@ fields on `Object`.
 It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
-It is an error if an instance field with potentially nullable type has no
-initializer expression and is not initialized in a constructor via an
-initializing formal or an initializer list entry, unless the variable or field
-is marked with the `late` modifier.
+It is an error if a top level variable, static variable, or instance field with
+potentially non-nullable type has no initializer expression and is not
+initialized in a constructor via an initializing formal or an initializer list
+entry, unless the variable or field is marked with the `late` modifier.
 
-It is an error if a local variable that is potentially non-nullable and is not
-marked `late` is used before it is definitely assigned (see Definite Assignment
-below).
+It is an error if a potentially non-nullable local variable which has no
+initializer expression and is not marked `late` is used before it is definitely
+assigned (see Definite Assignment below).
 
 It is an error if a method, function, getter, or function expression with a
 potentially non-nullable return type does not definitely complete (see Definite
