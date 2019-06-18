@@ -1,7 +1,7 @@
 # Dart Language Versioning
 
 [lrn@google.com](@lrhn)<br>
-Version: 1.1<br>
+Version: 1.2<br>
 Status: Preliminary Design, Under Discussion.
 
 ## Motivation
@@ -295,3 +295,4 @@ The optimistic upgrade from version 2.1 to 2.5 may go through 2.2 (inserting set
 - Specify experiment flag behavior.
 - Change `*:defaultPackage` to `:defaultPackage` because `*` was already a valid package name in the [`.packages` file specification](<https://github.com/lrhn/dep-pkgspec/blob/master/DEP-pkgspec.md>).
 
+1.2: Require language level markers in part files when the library has one.
