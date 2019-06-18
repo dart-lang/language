@@ -430,9 +430,7 @@ There is still no way to tear off getters, setters or operators. If we ever intr
 
 An instance method named `call` is implicitly callable on the object, and implicitly torn off when assigning the instance to a function type.
 
-**OPEN ISSUE:** The text above suggests that an extension method named `call` can also be called implicitly. This is still being discussed.
-
-If it is decided to allow this feature, then the following should work:
+As the initial examples suggest, an extension method named `call` can also be called implicitly. The following should work:
 
 ```dart
 extension Tricky on int {
@@ -445,9 +443,9 @@ extension Tricky on int {
   }
 ```
 
-This looks somewhat surprising, but not much more surprising that an extension `operator[]` would: `for (var i in 1[10])...`.
+This looks somewhat surprising, but not much more surprising that an extension `operator[]` would: `for (var i in 1[10])...`. We will expect users to use this power responsibly.
 
-Any expression of the form `e1(args)` or `e1<types>(args)` where the static type of `e1` is not a function type, an interface type declaring a `call` method, or `dynamic,` will currently be a compile-time error. We would keep it a compile-time error if the interface type defines a `call` *getter*. Otherwise we would check for extensions declaring a `call` member and applying to the static type of `e1`. I any such exists, and the declared member is a method, then that method is invoked. Otherwise it is still a compile-time error.
+In detail: Any expression of the form `e1(args)` or `e1<types>(args)` where `e1` does not denote a method, and where the static type of `e1` is not a function type, an interface type declaring a `call` method, or `dynamic,` will currently be a compile-time error. If the static type of `e1` is an interface type declaring a `call` *getter*, then this stays a compile-time error. Otherwise we check for extensions applying to the static type of `e1` and declaring a `call` member. I one such most specific extension exists, and it declares a `call` extension method, then the expression is equivalent to `e1.call(args)` or `e1.call<typeS>(args)`. Otherwise it is still a compile-time error.
 
 A second question is whether this would also work with implicit `call` method tear-off:
 
@@ -455,15 +453,13 @@ A second question is whether this would also work with implicit `call` method te
 Iterable<int> Function(int) from2 = 2;
 ```
 
-This code would find, during type inference, that `2` is not a function. It would then find that `int` does not have a `call` member. Without the extension, inference would fail there. If we allow implicit tear-off of an extension `call` method, then the next step would be to check if `int` has a `call` extension member, which it does with the above declaration. Then, if the extension member is a method, it would treat the code like the equivalent:
+This code will find, during type inference, that `2` is not a function. It will then find that the interface type `int` does not have a `call` method, and inference will fail to make the program valid.  
 
-```dart
-Iterable<int> Function(int) from2 = 2.call;
-```
+We could allow an applicable `call` extension method to be coerced instead, as an implicit tear-off. We will not do so.
 
-This implicit conversion may come at a readability cost. A type like `int` is well known as being non-callable, and because of the implicit `.call` access, there is no visible syntax at the tear-off point which can inform the reader what is going on.
+That is: We do *not* allow implicit tear-off of an extension `call` method in a function typed context.
 
-As such, allowing `call` as a static extension method to make objects callable, might be confusing. The solution can be to disallow it (fail if an extension method is named `call`), make it not work (`2(2)` would not consider the `call` extension method as applying), or allow it with a caution to users about using the functionality judiciously.
+This implicit conversion would come at a readability cost. A type like `int` is well known as being non-callable, and an implicit `.call` tear-off would have no visible syntax at the tear-off point to inform the reader what is going on. For implicit `call` invocations, the *arguments* are visible to a reader, but for implicit coercion to a function, there is no visible syntax at all.
 
 ## Summary
 
@@ -598,14 +594,12 @@ If we do this, we should be *consistent* with other type aliases, which means th
 
 ```drt
 typedef MyCleverList = prefix.MyList; // bad!
-
 ```
 
 would make `MyCleverList` an alias for `prefix.MyList<dynamic>`, which would still apply to `List<anything>`, but the type variable of `MyList` will always be `dynamic`. Similarly, we can put more bounds on the type variable:
 
 ```dart
 typedef MyWidgetList<T extends Widget> = prefix.MyList<T>;
-
 ```
 
 Here the extension will only apply if it matches `Widget` *and* would otherwise match `MyList` (but `T` needs to be a valid type argument to `MyList`, which means that it must satisfy all bounds of `MyList` as well, otherwise the typedef is rejected).
@@ -614,6 +608,5 @@ The use of `typedef` for something which is not a type may be too confusing. Ano
 
 ```dart
 extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
-
 ```
 
