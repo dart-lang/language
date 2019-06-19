@@ -54,7 +54,7 @@ support for this.
 ### Dartfmt
 
 Define and implement formatting rules for the new syntax. Add formatting tests.
-The new syntax is very similar to class syntax, so the formatting rules will likely be simimlar too.
+The new syntax is very similar to class syntax, so the formatting rules will likely be similar too.
 
 ### DDC
 
@@ -64,6 +64,14 @@ Otherwise, DDC may need to handle any Kernel changes or otherwise add support
 for this.
 
 Otherwise, if DDC still relies on the Analyzer, it depends on the Analyzer changes.
+
+### Formal specification
+
+Add formal specification to the language specification.
+
+### Cider
+
+Validate Cider support
 
 ### IntelliJ
 
@@ -115,6 +123,10 @@ Those tests should not be run by default until the feature has been released.
 If usabilility tests haven't been done earlier, do at least some informal
 testing on users to see if the limitations on the syntax are frustrating and if
 there are improvements we should consider.
+
+### Other Tools
+
+Validate that build systems, code generators, Angular compiler all work and are updated
 
 ## Phase 3 (Release)
 
