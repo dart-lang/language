@@ -832,7 +832,7 @@ Variables are storage locations in memory.
 
 <declaredIdentifier> ::= <metadata> \COVARIANT{}? <finalConstVarOrType> <identifier>
 
-<finalConstVarOrType> ::= \alt \LATE{}? \FINAL{} <type>?
+<finalConstVarOrType> ::= \LATE{}? \FINAL{} <type>?
   \alt \CONST{} <type>?
   \alt \LATE{}? <varOrType>
 
@@ -1855,7 +1855,7 @@ Classes may be defined by class declarations as described below, or via mixin ap
   \alt (\EXTERNAL{} \STATIC{}?)? <functionSignature>
   \alt \STATIC{} \LATE{}? \FINAL{} <type>? <staticFinalDeclarationList>
   \alt \STATIC{} \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
-  \alt \STATIC{} \CONST{) <type>? <staticFinalDeclarationList>
+  \alt \STATIC{} \CONST{} <type>? <staticFinalDeclarationList>
   \alt \COVARIANT{} \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
   \alt \LATE{}? \FINAL{} <type>? <initializedIdentifierList>
   \alt \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
