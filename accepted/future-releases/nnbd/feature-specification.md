@@ -94,8 +94,8 @@ library section below.
 
 ### Static errors
 
-We say that a type `T` is **nullable** if `Null <: T`.  This is equivalent to
-the syntactic criterion that `T` is any of:
+We say that a type `T` is **nullable** if `Null <: T` and not `T <: Object`.
+This is equivalent to the syntactic criterion that `T` is any of:
   - `Null`
   - `S?` for some `S`
   - `S*` for some `S` where `S` is nullable
@@ -103,11 +103,12 @@ the syntactic criterion that `T` is any of:
   - `dynamic`
   - `void`
 
-We say that a type `T` is **non-nullable** if `T <: Object`.  This is equivalent
-to the syntactic criterion that `T` is any of:
-  - `Object`, `int`, `bool`, `Never`, `Function`
-  - Any function type
-  - Any class type or generic class type
+We say that a type `T` is **non-nullable** if `T <: Object`.
+This is equivalent to the syntactic criterion that `T` is any of:
+  - `Never`
+  - Any function type (including `Function`)
+  - Any interface type except `dynamic`, `void`, and `Null`.
+  - `S*` for some `S` where `S` is non-nullable
   - `FutureOr<S>` where `S` is non-nullable
   - `X extends S` where `S` is non-nullable
   - `X & S` where `S` is non-nullable
@@ -119,7 +120,8 @@ non-nullable.
 We say that a type `T` is **potentially nullable** if `T` is not non-nullable.
 Note that this is different from saying that `T` is nullable.  For example, a
 type variable `X extends Object?` is a type which is potentially nullable but
-not nullable.  Note that `T*` is always potentially nullable by this definition.
+not nullable.  Note that `T*` is potentially nullable by this definition if `T`
+is potentially nullable.
 
 We say that a type `T` is **potentially non-nullable** if `T` is not nullable.
 Note that this is different from saying that `T` is non-nullable.  For example,
