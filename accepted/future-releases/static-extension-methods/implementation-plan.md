@@ -156,8 +156,11 @@ experiments flag definition file.
 
 ## Timeline
 
-Completion goals for the phases:
+Project Planning Tasks
+- [ ] File GitHub Issues + Work Estimates for identified tasks.
 
+
+Completion goals for the phases:
 *   Phase 0 (Prerequisite): TODO
 *   Phase 1 (Foundation): TODO
 *   Phase 2 (Tool Implementation): TODO
