@@ -129,9 +129,10 @@ We say that a type `T` is **potentially nullable** if `T` is not non-nullable.
 Note that this is different from saying that `T` is nullable.  For example, a
 type variable `X extends Object?` is a type which is potentially nullable but
 not nullable.  Note that `T*` is potentially nullable by this definition if `T`
-is potentially nullable.  The potentially nullable types include all of the
-types which are either definitely nullable, potentially instantiable to a
-nullable type, or which may be migrated to a nullable type.
+is potentially nullable - so `int*` is not potentially nullable, but `X*` where
+`X extends int?` is.  The potentially nullable types include all of the types
+which are either definitely nullable, potentially instantiable to a nullable
+type, or for which any migration results in a potentially nullable type.
 
 We say that a type `T` is **potentially non-nullable** if `T` is not nullable.
 Note that this is different from saying that `T` is non-nullable.  For example,
