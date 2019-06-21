@@ -103,15 +103,23 @@ This is equivalent to the syntactic criterion that `T` is any of:
   - `dynamic`
   - `void`
 
+Nullable types are types which are definitively known to be nullable, regardless
+of instantiation of type variables, and regardless of any choice of replacement
+for the `*` positions (with `?` or nothing).
+
 We say that a type `T` is **non-nullable** if `T <: Object`.
 This is equivalent to the syntactic criterion that `T` is any of:
   - `Never`
   - Any function type (including `Function`)
-  - Any interface type except `dynamic`, `void`, and `Null`.
+  - Any interface type except `Null`.
   - `S*` for some `S` where `S` is non-nullable
   - `FutureOr<S>` where `S` is non-nullable
   - `X extends S` where `S` is non-nullable
   - `X & S` where `S` is non-nullable
+
+Non-nullable types are types which are either definitively known to be
+non-nullable regardless of instantiation of type variables, or for which
+replacing the `*` positions with nothing will result in a non-nullable type.
 
 Note that there are types which are neither nullable nor non-nullable.  For
 example `X extends T` where `T` is nullable is neither nullable nor
@@ -121,7 +129,9 @@ We say that a type `T` is **potentially nullable** if `T` is not non-nullable.
 Note that this is different from saying that `T` is nullable.  For example, a
 type variable `X extends Object?` is a type which is potentially nullable but
 not nullable.  Note that `T*` is potentially nullable by this definition if `T`
-is potentially nullable.
+is potentially nullable.  The potentially nullable types include all of the
+types which are either definitely nullable, potentially instantiable to a
+nullable type, or which may be migrated to a nullable type.
 
 We say that a type `T` is **potentially non-nullable** if `T` is not nullable.
 Note that this is different from saying that `T` is non-nullable.  For example,
@@ -164,8 +174,11 @@ bound to an argument at a call site.
 It is an error to call the default `List` constructor with a length argument and
 a type argument which is potentially non-nullable.
 
-For the purposes of errors and warnings, the null aware operators `?.` and `?..`
-are checked as if the receiver of the operator had non-nullable type.
+For the purposes of errors and warnings, the null aware operators `?.`, `?..`,
+and `?.[]` are checked as if the receiver of the operator had non-nullable type.
+More specifically, if the type of the receiver of a null aware operator is `T`,
+then the operator is checked as if the receiver had type **NonNull**(`T`) (see
+definition below).
 
 It is an error for a class to extend, implement, or mixin a type of the form
 `T?` for any `T`.
