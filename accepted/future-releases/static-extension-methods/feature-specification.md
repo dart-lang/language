@@ -364,7 +364,7 @@ During NNBD migration, we will have unsound nullable types like `int*` which sho
 
 When executing an extension instance member, we stated earlier that the member is invoked with the original receiver as `this` object. We still have to describe how that works, and what the lexical scope is for those members.
 
-Inside an extension method body, `this` does not refer to an instance of a surrounding type. Instead it is bound to the original receiver, and the static type of `this` is the declared `on` type of the surrounding extension (which may contain unbound type variables).
+Inside an extension method body, `this` does not refer to an instance of a surrounding type. Instead it is bound to the original receiver, and the static type of `this` is the declared `on` type of the surrounding extension (which may contain unbound type variables). The type of `this` can be promoted by type promotion (`if (this is String) …`)as if it was a final variable.
 
 Invocations on `this` use the same extension method resolution as any other code. Most likely  the current extension will be the only one in scope which applies. It definitely applies to its own declared `on` type.
 
