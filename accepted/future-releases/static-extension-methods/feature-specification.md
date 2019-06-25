@@ -508,10 +508,6 @@ One of the reasons for having sealed classes is that it ensures the author can a
 
 Since it's possible to add extensions on superclass (including `Object`), it would not be sufficient to disallow *declaring* extensions on a sealed class, you would have to disallow *invoking* an extension on a sealed class, at least without an explicit override (which would also prevent breaking if a similarly named instance member is added).
 
-### Extension Types
-
-Extension types are very similar to extension methods, and may share a large part of both syntax and semantics. The chosen syntax and behavior of extension methods is not expected to conflict with extension types.
-
 ## Summary
 
 - Extensions are declared using the syntax:
