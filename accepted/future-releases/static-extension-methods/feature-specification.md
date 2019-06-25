@@ -1,6 +1,6 @@
 # Dart Static Extension Methods Design
 
-lrn@google.com<br>Version: 1.0<br>Status: Design Proposal
+lrn@google.com<br>Version: 1.1<br>Status: Design Proposal
 
 This is a design document for *static extension methods* for Dart. This document describes the most basic variant of the feature, then lists a few possible variants or extensions.
 
@@ -28,7 +28,7 @@ For these discoverability and readability reasons, static extension methods will
 
 The extension methods are *static*, which means that we use the static type of an expression to figure out which method to call, and that also means that static extension methods are not virtual methods.
 
-The methods we allow you to add this way are normal methods, operators, getter and setters.
+The methods we allow you to add this way are normal methods, operators, getter and setters. As such, the feature should really be called "Static Extension Members". For historical reasons, we will stick with the "Static Extension Methods" name.
 
 ## Declaring Static Extension Methods
 
@@ -315,11 +315,19 @@ or if you imported the extension with a prefix to avoid name collision:
 prefix.MyList<String>(object).quickSort();
 ```
 
-The syntax looks like a constructor invocation, but it does not create a new object.
+The syntax looks like a constructor invocation, but it does not create a new object. Instead it evaluates `object` to a value, then calls the `quickSort` extension method of `MyList` on that object.
 
 If `object.quickSort()` would invoke an extension method of `MyList`, then `MyList(object).quickSort()` will invoke the exact same method in the same way.
 
 The syntax is not *convenient*&mdash;you have to put the "constructor" invocation up front, which removes the one advantage that extension methods have over normal static methods. It is not intended as the common use-case, but as an escape hatch out of unresolvable conflicts.
+
+If the expression `MyList(object)` is evaluated for its value, it evaluates to the value of  `object`. It only works as a scope override for member lookup, similarly to how a class name works differently for static member lookup and evaluation to a `Type` object.
+
+A cascade expression like `var o = MyList(expr)..quickSort()..quickSort()` works correctly, the static members of `MyList` are invoked by the cascade, and then `o` is bound to the value of `expr`. As such, the static type of `MyList(object)` is the static type of `object`, it is just that the static type is not what is used for member lookup.
+
+_It is an valid alternative to entirely disallow evaluating `MyList(object)` for its value, but that would preclude, or at least make it more complicated, to allow cascades on extensions._
+
+You can write `Extension1(Extension2(object))`. That will evaluate `Extension2(Object)` for its value and then allow lookups on `Extension1` only.
 
 ### Static Members and Member Resolution
 
@@ -460,6 +468,57 @@ We could allow an applicable `call` extension method to be coerced instead, as a
 That is: We do *not* allow implicit tear-off of an extension `call` method in a function typed context.
 
 This implicit conversion would come at a readability cost. A type like `int` is well known as being non-callable, and an implicit `.call` tear-off would have no visible syntax at the tear-off point to inform the reader what is going on. For implicit `call` invocations, the *arguments* are visible to a reader, but for implicit coercion to a function, there is no visible syntax at all.
+
+## Migration and Breaking Changes
+
+Introduction of static extension methods is a non-breaking change to the language. No existing correct programs will change behavior.
+
+### Breaking Changes for Extension Methods
+
+Introducing a new extension to an existing library has the same problems as adding any other top-level name: A potential naming conflict. It may also change the behavior of existing extension member invocations if it causes an extension resolution conflict, and it wins by being more specific than the currently used extension. Barring an extension member conflict, adding an extension will not change the behavior of any code that isn't already a compile-time error. The choice of making interface instance members take precedence over extension methods ensures this.
+
+Adding an instance member to a class may now change behavior of code relying on extension methods. Adding instance members to interfaces is already breaking in case someone implements the interface. With extension methods, it may be breaking even for classes that are never implemented.
+
+### Migration
+
+The static extension methods feature will be released after the language versioning feature.
+
+As such, enabling extensions methods will require upgrading the library's language level to the version where extension methods are released. Since the language change is non-breaking, libraries should be able to simply upgrade their SDK dependency to the newer version and all existing code should keep working.
+
+A library which is at a language versions prior to the release of static extension methods will not be able to use extension members:
+
+- It cannot declare an extension.
+- it cannot refer to an imported extension.
+- It cannot invoke an imported extension member.
+- It *can* re-export an extension from another library.
+
+A library which has not enabled static extension members cannot use the new syntax. It also cannot use the *override* syntax (`MyExt(o).member()`) even though it is grammatically valid as a function or constructor invocation. The extension is neither a class nor a function.
+
+If such a library imports an extension declaration, say `MyExt`, then any reference to that imported name is a compile-time error, the same way as accessing a name-conflicting import. The imported declaration is still there, and can cause naming conflicts, but attempting to use it is disallowed.
+
+Invocations which would otherwise check for extension members, do not. It is as if there are no extensions in scope, even if some were imported.
+
+The library can export any other library, and will do so blindly without needing to understand the exported declarations. The exporting library can still cause a naming conflict if it exports something else with the same name as an exported extension.
+
+*This is not the only possible option. It might be possible to enable use of extensions in libraries which cannot declare them. However, it would be only half a feature without the syntax for extension member override, and enabling that syntax would also be inconsistent. As such, the simplest and safest approach is to _disable_ extensions completely in legacy libraries. The cost of enabling extensions is trivial since it will merely be a matter of increasing the library SDK requirement. There is no migration needed for a non-breaking change.*
+
+## Interaction With Potential Future Features
+
+### Non-Null by Default
+
+The interaction with NNBD was discussed above. It will be possible to declare extensions on nullable and non-nullable types, and on a nullable type, `this` may be bound to `null`.
+
+### Sealed Classes
+
+If we introduce sealed classes, we may want to consider whether to allow extensions on sealed classes, since adding members even to a sealed class could still be a breaking change.
+
+One of the reasons for having sealed classes is that it ensures the author can add to the interface without breaking code. If adding a member changes the meaning of code which currently calls an extension member, that reason is eliminated. 
+
+Since it's possible to add extensions on superclass (including `Object`), it would not be sufficient to disallow *declaring* extensions on a sealed class, you would have to disallow *invoking* an extension on a sealed class, at least without an explicit override (which would also prevent breaking if a similarly named instance member is added).
+
+### Extension Types
+
+Extension types are very similar to extension methods, and may share a large part of both syntax and semantics. The chosen syntax and behavior of extension methods is not expected to conflict with extension types.
 
 ## Summary
 
@@ -610,3 +669,7 @@ The use of `typedef` for something which is not a type may be too confusing. Ano
 extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
 ```
 
+## Versions
+
+- 1.0 - initial version
+- 1.1 - Elaborated on the behavior of the override syntax. 
