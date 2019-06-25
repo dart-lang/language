@@ -2,7 +2,7 @@
 
 [lrn@google.com](@lrhn)<br>
 Version: 1.2<br>
-Status: Preliminary Design, Under Discussion.
+Status: Ready for implementation.
 
 ## Motivation
 
