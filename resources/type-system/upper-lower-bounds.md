@@ -11,6 +11,34 @@ full Dart types, as described in the subtyping
 document
 [here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md)
 
+## Helper predicates
+
+The **TOP** predicate is true for any type which is in the equivalence class of
+top types.
+
+- **TOP**(`Object`) is true
+- **TOP**(`dynamic`) is true
+- **TOP**(`void`) is true
+- **TOP**(`FutureOr<T>`) is **TOP**(T)
+- **TOP**(T) is false otherwise
+
+The **BOTTOM** predicate is true for either of the two bottom types.
+
+- **BOTTOM**(`Null`) is true
+- **BOTTOM**(`bottom`) is true
+- **BOTTOM**(`T`) is false otherwise
+
+The **MORETOP** predicate defines a total order on the equivalence class of top
+types.
+
+- **MORETOP**(`void`, `T`) = true
+- **MORETOP**(`T`, `void`) = false
+- **MORETOP**(`dynamic`, `T`) = true
+- **MORETOP**(`T`, `dynamic`) = false
+- **MORETOP**(`Object`, `T`) = true
+- **MORETOP**(`T`, `Object`) = false
+- **MORETOP**(`FutureOr<T>`, `FutureOr<S>`) = **MORETOP**(T, S)
+
 ## Upper bounds
 
 We define the upper bound of two types T1 and T2 to be **UP**(T1,T2) as follows.
@@ -83,32 +111,6 @@ We define the upper bound of two types T1 and T2 to be **UP**(T1,T2) as follows.
 - **UP**(`C<T0, ..., Tn>`, `C<S0, ..., Sn>`) = `C<R0,..., Rn>` where `Ri` is **UP**(`Ti`, `Si`)
 - **UP**(`C0<T0, ..., Tn>`, `C1<S0, ..., Sk>`) = least upper bound of two interfaces
   as in Dart 1.
-
-The **TOP** predicate is true for any type which is in the equivalence class of
-top types.
-
-**TOP**(`Object`) is true
-**TOP**(`dynamic`) is true
-**TOP**(`void`) is true
-**TOP**(`FutureOr<T>`) is **TOP**(T)
-**TOP**(T) is false otherwise
-
-The **BOTTOM** predicate is true for either of the two bottom types.
-
-**BOTTOM**(`Null`) is true
-**BOTTOM**(`bottom`) is true
-**BOTTOM**(`T`) is false otherwise
-
-The **MORETOP** predicate defines a total order on the equivalence class of top
-types.
-
-**MORETOP**(`void`, `T`) = true
-**MORETOP**(`T`, `void`) = false
-**MORETOP**(`dynamic`, `T`) = true
-**MORETOP**(`T`, `dynamic`) = false
-**MORETOP**(`Object`, `T`) = true
-**MORETOP**(`T`, `Object`) = false
-**MORETOP**(`FutureOr<T>`, `FutureOr<S>`) = **MORETOP**(T, S)
 
 ## Lower bounds
 
