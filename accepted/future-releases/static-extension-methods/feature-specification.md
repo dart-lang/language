@@ -422,6 +422,8 @@ int Function(int) func = (int x) => Foo(b).baz<int>(x);
 
 *Torn off extension methods are never equal unless they are identical*. Unlike instance methods, which are equal if it's the same method torn off from the same object (unless it's an instantiated tear-off of a generic function), torn off extension methods may close over the type variables of the extension as well. To avoid distinction between generic and non-generic extensions, no two torn off extension methods are equal, even if they are torn off from the same extension on the same object at the same static type.
 
+Extension methods torn off *constant* receiver expressions are not constant expressions. They also create a new function object each time the tear-off expression is evaluated.
+
 An explicitly overridden extension method access, like `Foo<Bar>(b).baz`, also works as a tear-off. 
 
 There is still no way to tear off getters, setters or operators. If we ever introduce such a feature, it should work for extension methods too.
