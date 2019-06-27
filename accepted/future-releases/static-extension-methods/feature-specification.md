@@ -420,7 +420,9 @@ This assignment does a tear-off of the `baz` method. In this case it even does g
 int Function(int) func = (int x) => Foo(b).baz<int>(x);
 ```
 
-**OPEN ISSUE:** It is yet undecided whether two tear-offs of the same extension function with the same receiver will be equal in some cases or never.
+*Torn off extension methods are never equal unless they are identical*. Unlike instance methods, which are equal if it's the same method torn off from the same object (unless it's an instantiated tear-off of a generic function), torn off extension methods may close over the type variables of the extension as well. To avoid distinction between generic and non-generic extensions, no two torn off extension methods are equal, even if they are torn off from the same extension on the same object at the same static type.
+
+Extension methods torn off *constant* receiver expressions are not constant expressions. They also create a new function object each time the tear-off expression is evaluated.
 
 An explicitly overridden extension method access, like `Foo<Bar>(b).baz`, also works as a tear-off. 
 
@@ -656,4 +658,3 @@ The use of `typedef` for something which is not a type may be too confusing. Ano
 ```dart
 extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
 ```
-
