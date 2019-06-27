@@ -15,9 +15,9 @@ have a [unified proposal][] that covers the behavior of all three. That proposal
 is now the source of truth. This document is useful for motivation, but may be
 otherwise out of date.**
 
-[spread collections]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/spread-collections/feature-specification.md
-[control flow collections]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/control-flow-collections/feature-specification.md
-[unified proposal]: https://github.com/dart-lang/language/tree/master/accepted/future-releases/unified-collections/feature-specification.md
+[spread collections]: https://github.com/dart-lang/language/blob/master/accepted/2.3/spread-collections/feature-specification.md
+[control flow collections]: https://github.com/dart-lang/language/tree/master/accepted/2.3/control-flow-collections/feature-specification.md
+[unified proposal]: https://github.com/dart-lang/language/tree/master/accepted/2.3/unified-collections/feature-specification.md
 
 ## Overview
 

@@ -8,8 +8,8 @@ literals:
 * [Control Flow Collections][]
 
 [set literals]: https://github.com/dart-lang/language/blob/master/accepted/2.2/set-literals/feature-specification.md
-[spread collections]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/spread-collections/feature-specification.md
-[control flow collections]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/control-flow-collections/feature-specification.md
+[spread collections]: https://github.com/dart-lang/language/blob/master/accepted/2.3/spread-collections/feature-specification.md
+[control flow collections]: https://github.com/dart-lang/language/blob/master/accepted/2.3/control-flow-collections/feature-specification.md
 
 These features interact in several ways, some of which weren't obvious at first.
 To make things easier on implementers and anyone else trying to understand the
