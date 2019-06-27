@@ -319,11 +319,14 @@ The syntax looks like a constructor invocation, but it does not create a new obj
 
 If `object.quickSort()` would invoke an extension method of `MyList`, then `MyList(object).quickSort()` will invoke the exact same method in the same way.
 
+It is a compile-time error if `MyList` does not have a `quickSort` member. The override notation can *only* invoke extension members, not members of the receiver's interface. As such, it can also invoke extension members with the same name as members of the receiver's interface.
+
 The syntax is not *convenient*&mdash;you have to put the "constructor" invocation up front, which removes the one advantage that extension methods have over normal static methods. It is not intended as the common use-case, but as an escape hatch out of unresolvable conflicts.
 
-If the expression `MyList(object)` is evaluated for its value, it evaluates to the value of  `object`. It only works as a scope override for member lookup, similarly to how a class name works differently for static member lookup and evaluation to a `Type` object.
+If the expression `MyList(object)` is evaluated for its value, it evaluates to the value of `object`. The static type of the expression is `void` because the expression is not useful as a value expression. The syntax only acts as a scope override for following member lookups, similarly to how a class name works differently for static member lookup and evaluation to a `Type` object, or a prefix name can only be used for lookups, not as a value at all.
 
-A cascade expression like `var o = MyList(expr)..quickSort()..quickSort()` works correctly, the static members of `MyList` are invoked by the cascade, and then `o` is bound to the value of `expr`. As such, the static type of `MyList(object)` is the static type of `object`, it is just that the static type is not what is used for member lookup.
+Letting the expression have a type, rather than preventing its use completely like we do for prefixes,
+is to allow a cascade expression like `MyList(expr)..quickSort()..quickSort()` to work correctly. The static extension members of `MyList` are invoked by the cascade. If anyone tries to use that expression in a place where its value is used, that will have type `void`.
 
 _It is an valid alternative to entirely disallow evaluating `MyList(object)` for its value, but that would preclude, or at least make it more complicated, to allow cascades on extensions._
 
@@ -561,7 +564,7 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 
 - Otherwise, the single most-specific extension's member is invoked with the extension's type parameters bound to the types found by inference, and with `this ` bound to the receiver.
 
-- An extension method can be invoked explicitly using the syntax `ExtensionName(object).method(args)`. Type arguments can be applied to the extension explicitly as well, `MyList<String>(listOfString).quickSort()`. Such an invocation overrides all extension resolution. It is a compile-time error if `ExtensionName` would not apply to the `object.method(args)` invocation if it was in scope. 
+- An extension method can be invoked explicitly using the syntax `ExtensionName(object).method(args)`. Type arguments can be applied to the extension explicitly as well, `MyList<String>(listOfString).quickSort()`. Such an invocation overrides all extension resolution. It is a compile-time error if `ExtensionName` would not apply to the `object.method(args)` invocation if it was in scope. It is a compile-time error if the extension `ExtensionName` doesn't declare a member named `method`.
 
 - The override can also be used for extensions imported with a prefix (which are not otherwise in scope): `prefix.ExtensionName(object).method(args)`.
 
