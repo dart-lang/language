@@ -2,7 +2,11 @@
 
 leafp@google.com
 
-This documents the currently implemented upper and lower bound computation.
+This documents the currently implemented upper and lower bound computation,
+modified to account for explicit nullability and the accompanying type system
+changes (including the legacy types).  In the interest of backwards
+compatibility, it does not try to fix the various issues with the existing
+algorithm.  
 
 ## Types
 
@@ -23,13 +27,17 @@ top types.
 - **TOP**(`FutureOr<T>`) is **TOP**(T)
 - **TOP**(T) is false otherwise
 
+The **OBJECT** predicate is true for any type which is in the equivalence class
+of `Object`.
+
+
 - **OBJECT**(`Object`) is true
 - **OBJECT**(`dynamic`) is true
 - **OBJECT**(`void`) is true
 - **OBJECT**(`FutureOr<T>`) is **OBJECT**(T)
 - **OBJECT**(T) is false otherwise
 
-The **BOTTOM** predicate is true for things in the equivalence class of bottom.
+The **BOTTOM** predicate is true for things in the equivalence class of `Never`.
 
 - **BOTTOM**(`Never`) is true
 - **BOTTOM**(`X&T`) is true iff **BOTTOM**(`T`)
@@ -79,7 +87,7 @@ The **MOREBOTTOM** predicate defines a total order on bottom and `Null` types.
 
 ## Upper bounds
 
-We define the upper bound of two types T1 and T2 to be **UP**(T1,T2) as follows.
+We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as follows.
 
 
 - **UP**(`T`, `T`) = `T`
