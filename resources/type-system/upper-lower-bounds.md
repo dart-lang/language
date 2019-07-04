@@ -11,6 +11,17 @@ full Dart types, as described in the subtyping
 document
 [here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md)
 
+## Syntactic conventions
+
+The predicates here are defined as algorithms and should be read from top to
+bottom.  That is, a case in a predicate is considered to match only if none of
+the cases above it have matched.
+
+We assume that type variables have been alpha-varied as needed.
+
+We assume that type aliases have been expanded, and that all types are named
+(prefixed) canonically.
+
 ## Helper predicates
 
 The **TOP** predicate is true for any type which is in the equivalence class of
@@ -77,12 +88,10 @@ We define the upper bound of two types T1 and T2 to be **UP**(T1,T2) as follows.
   - otherwise **UP**(`T1`, `B2[Object/X2]`)
 
 - **UP**(`T Function<...>(...)`, `Function`) = `Function`
-- **UP**(`T Function<...>(...)`, `T2`) = `Object`
 - **UP**(`Function`, `T Function<...>(...)`) = `Function`
-- **UP**(`T1`, `T Function<...>(...)`) = `Object`
 
 - **UP**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k)`,
-         `T0 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)` = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)` = 
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2q)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - Both have the same number of required positional parameters
@@ -91,7 +100,7 @@ We define the upper bound of two types T1 and T2 to be **UP**(T1,T2) as follows.
      - `B2i` is `B0i`
      - `P2i` is **DOWN**(`P0i`, `P1i`)
 - **UP**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k, Named0)`,
-         `T0 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)` = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)` = 
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2k, Named2)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - All positional parameters are required
@@ -103,11 +112,13 @@ We define the upper bound of two types T1 and T2 to be **UP**(T1,T2) as follows.
         - where `R1i xi` is in `Named1`
         - and `R2i` is **DOWN**(`R0i`, `R1i`)
 
+- **UP**(`T Function<...>(...)`, `T2`) = `Object`
+- **UP**(`T1`, `T Function<...>(...)`) = `Object`
 - **UP**(`T Function<...>(...)`, `S Function<...>(...)`) = `Function` otherwise
 - **UP**(`T1`, `T2`) = `T2` if `T1` <: `T2`
-  - Note that both types must be interface types at this point
+  - Note that both types must be class types at this point
 - **UP**(`T1`, `T2`) = `T1` if `T2` <: `T1`
-  - Note that both types must be interface types at this point
+  - Note that both types must be class types at this point
 - **UP**(`C<T0, ..., Tn>`, `C<S0, ..., Sn>`) = `C<R0,..., Rn>` where `Ri` is **UP**(`Ti`, `Si`)
 - **UP**(`C0<T0, ..., Tn>`, `C1<S0, ..., Sk>`) = least upper bound of two interfaces
   as in Dart 1.
@@ -129,7 +140,7 @@ We define the lower bound of two types T1 and T2 to be **DOWN**(T1,T2) as follow
 - **DOWN**(`T1`, `T2`) = `T1` if **BOTTOM**(`T1`)
 
 - **DOWN**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k)`,
-         `T0 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)` = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)` = 
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2q)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - `q` is max(`k`, `l`)
@@ -140,7 +151,7 @@ We define the lower bound of two types T1 and T2 to be **DOWN**(T1,T2) as follow
      - `P2i` is `P1i` for `l` < `i` <= `q`
      - `P2i` is optional if `P0i` or `P1i` is optional
 - **DOWN**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k, Named0)`,
-         `T0 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)` = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)` = 
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2k, Named2)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - `R0` is **DOWN**(`T0`, `T1`)
@@ -187,14 +198,11 @@ The CFE currently implements upper bounds for generic functions incorrectly. Exa
 typedef G0 = T Function<T>(T x);
 typedef G1 = T Function<T>(T x);
 void main() {
-   {
-    G0 x;
-    G1 y;
-    // Analyzer: T Function<T>(T)
-    // CFE: bottom -> Object
-    var a = (x == y) ? x : y;
-
-    }
+  G0 x;
+  G1 y;
+  // Analyzer: T Function<T>(T)
+  // CFE: bottom -> Object
+  var a = (x == y) ? x : y;
 }
 ```
 
@@ -205,14 +213,12 @@ functions incorrectly.  Example:
 typedef G0 = T Function<T>(T x);
 typedef G1 = T Function<T>(T x);
 void main() {
-  {
-    void Function(G0) x;
-    void Function(G1) y;
-    int z;
-    // Analyzer: void Function(Never Function(Object))
-    // CFE:      void Function(bottom-type Function(Object))
-    var a = (x == y) ? x : y;
-  }
+  void Function(G0) x;
+  void Function(G1) y;
+  int z;
+  // Analyzer: void Function(Never Function(Object))
+  // CFE:      void Function(bottom-type Function(Object))
+  var a = (x == y) ? x : y;
 }
 ```
 
