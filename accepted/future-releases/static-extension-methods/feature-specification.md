@@ -1,6 +1,6 @@
 # Dart Static Extension Methods Design
 
-lrn@google.com<br>Version: 1.0<br>Status: Design Proposal
+lrn@google.com<br>Version: 1.1<br>Status: Design Proposal
 
 This is a design document for *static extension methods* for Dart. This document describes the most basic variant of the feature, then lists a few possible variants or extensions.
 
@@ -50,18 +50,20 @@ More precisely, an extension declaration is a top-level declaration with a gramm
 
 ```ebnf
 <extension> ::= 
-  `extension' <identifier>? <typeParameters>? `on' <type> `?'? `{'
+  `extension' <identifier>? <typeParameters>? `on' <type> `{'
      memberDeclaration*
   `}'
 ```
 
 Such a declaration introduces its *name* (the identifier) into the surrounding scope. The name does not denote a type, but it can be used to denote the extension itself in various places. The name can be hidden or shown in `import` or `export` declarations.
 
-The *type* can be any valid Dart type, including a single type variable. It can refer to the type parameters of the extension. It can be followed by `?` which means that it allows `null` values. When Dart gets non-nullable types by default (NNBD), this `?` syntax is removed and subsumed by nullable types like `int?` being allowed in the `<type>` position.
+The *type* can be any valid Dart type, including a single type variable. It can refer to the type parameters of the extension.
 
 The member declarations can be any non-abstract static or instance member declaration except for instance variables and constructors. Instance member declaration parameters must not be marked `covariant`. Abstract members are not allowed since the extension declaration does not introduce an interface, and constructors are not allowed because the extension declaration doesn't introduce any type that can be constructed. Instance variables are not allowed because there won't be any memory allocation per instance that the extension applies to. We could implement instance variables using an `Expando`, but it would necessarily be nullable, so it would still not be an actual instance variable.
 
 An extension declaration with a non-private name is included in the library's export scope, and a privately named extension is not. It is a compile-time error to export two declarations, including extensions, with the same name, whether they come from declarations in the library itself or from export declarations (with the usual exception when all but one declaration come from platform libraries). Extension *members* with private names are simply inaccessible in other libraries.
+
+We may want to make `extension` a built-in identifier. Is not necessary for disambiguation, but it may make parsing easier.
 
 ### Omitting Names For Private Extensions
 
@@ -83,7 +85,9 @@ This is a simple feature, but with very low impact. It only allows you to omit a
 
 ### Scope
 
-Dart's static extension methods are *scoped*. They only apply to code where the extension itself is *in scope*. Being in scope means that the extension is declared or imported into a scope which is a parent scope of the current lexical scope. The extension is not in scope if the extension declaration's library is not imported, if the library is imported and the extension is hidden, or the library is only imported with a prefix. 
+Dart's static extension methods are *scoped*. They only apply to code where the extension itself is *in scope*. Being in scope means that the extension is declared or imported into a scope which is a parent scope of the current lexical scope.
+
+You can *avoid* making the extension in-scope for a library by either not importing any library exporting the extension, importing such a library and hiding the extension using `hide` or `show`, or importing such a library only with a prefix.
 
 An extension *is* in scope if the name is *shadowed* by another declaration (a class or local variable with the same name shadowing a top-level or imported declaration, a top-level declaration shadowing an imported extension, or a non-platform import shadowing a platform import).
 
@@ -118,7 +122,7 @@ The declaration introduces an extension. The extension's `on` type defines which
 
 For any member access, `x.foo`, `x.bar()`, `x.baz = 42`, `x(42)`, `x[0] = 1` or `x + y`, including null-aware and cascade accesses which effectively desugar to one of those direct accesses, and including implicit member accesses on `this`, the language first checks whether the static type of `x` has a member with the same base name as the operation. That is, if it has a corresponding instance member, respectively, a `foo` method or getter or a `foo=` setter. a `bar` member or `bar=` setter, a `baz` member or `baz=` setter, a `call` method, a `[]=` operator or a `+` operator. If so, then the operation is unaffected by extensions. *This check does not care whether the invocation is otherwise correct, based on number or type of the arguments, it only checks whether there is a member at all.*
 
-(The types `dynamic` and `Never` are considered as having all members, the type `void` is always a compile-time error when used in a receiver position, so none of these can ever be affected by static extension methods. The type `Function` and all function types are considered as having a `call` member on top of any members inherited from `Object`. Methods declared on `Object` are available on all types and can therefore never be affected by extensions).
+(The types `dynamic` is considered as having all members, the type `void` and `Never` are always compile-time errors when used in a receiver position, so none of these can ever be affected by static extension methods. The type `Function` and all function types are considered as having a `call` member on top of any members inherited from `Object`. Methods declared on `Object` are available on all types and can therefore never be affected by extensions).
 
 If there is no such member, the operation is currently a compile-time error. In that case, all extensions in scope are checked for whether they apply. An extension applies to a member access if the static type of the receiver is a subtype of the `on` type of the extension *and* the extension has an instance member with the same base name as the operation. 
 
@@ -247,10 +251,6 @@ An extension with `on` type clause *T*<sub>1</sub> is more specific than another
 
 This definition is designed to ensure that the extension chosen is the one that has the most precise type information available, while ensuring that a platform library provided extension never conflicts with a user provided extension. We avoid this because it allows adding extensions to platform libraries without breaking existing code when the platform is upgraded.
 
-If an extension's `on` type has a trailing `?`, say `on String?`, then we do not use that for specificity pre-NNBD. Since all receivers are potentially nullable pre-NNBD, it does not provide any useful signal.
-
-Post-NNBD, any trailing `?` is part of the `on` type, and a nullable type like `int?` is a proper supertype of, and therefore less specific than, `int`.
-
 That is, the specificity of an extension wrt. an application depends of the type it is used at, and how specific the extension is itself (what its implementation can assume about the type). 
 
 Example:
@@ -321,6 +321,8 @@ If `object.quickSort()` would invoke an extension method of `MyList`, then `MyLi
 
 The syntax is not *convenient*&mdash;you have to put the "constructor" invocation up front, which removes the one advantage that extension methods have over normal static methods. It is not intended as the common use-case, but as an escape hatch out of unresolvable conflicts.
 
+An expression of the form `MyList(object)` or `MyList<String>(object)` must *only* be used for extension member access. It is a compile-time error to use it in any other way, similarly to how it is a compile-time error to use a *prefix* for anything other than member access. This also means that you cannot use an override expression as the receiver of a cascade, because a cascade does evaluate its receiver to a value. Unlike a prefix, it doesn't have to be followed by a `.` because extensions can also declare operators, but it must be followed by a `.`, a declared operator, or an arguments part (in case the extension implements `call`).
+
 ### Static Members and Member Resolution
 
 Static member declarations in the extension declaration can be accessed the same way as static members of a class or mixin declaration: By prefixing with the extension's name.
@@ -342,15 +344,11 @@ Like for a class or mixin declaration, static members simply treat the surroundi
 
 If an extension is found to be the one applying to a member invocation, then at run-time, the invocation will perform a method invocation of the corresponding instance member of the extension, with `this` bound to the receiver value and type parameters bound to the types found by static inference.
 
-Prior to NNBD, if the `on` type does not have a trailing `?`, it is a run-time error if the receiver object *r* is `null` and the resolved `on` type *T* of the extension would not satisfy `r is T`. That is, unless the type is `Null`, `Object`, or `dynamic`, it will not accept `null`. This ensure that the `this` value of the extension member cannot be `null` unless the receiver type is `Null` or a top type . If the `on` type does have a trailing `?`, then the `this` value can be `null`.
+Prior to NNBD, all extension members can be invoked on a `null` value. Since `null` is a subtype of the `on` type, this is consistent behavior.
 
-With NNBD types, a non-nullable `on` type would not match a nullable receiver type, so it is impossible to invoke an extension method that does not expect `null` on a `null` value (except with legacy unsafely nullable types, then it's still a run-time error if the `on` type is not nullable).
+Post-NNBD, a non-nullable `on` type would not match a nullable receiver type, so it is impossible to invoke an extension method that does not expect `null` on a `null` value.
 
-In a fully migrated NNBD mode program, an extension with a non-nullable `on` type does not apply to a receiver with a nullable type, and a nullable `on` type means that the `this` value may be `null` inside the extension methods.
-
-During NNBD migration, where non-nullable type may contain `null`, it stays a run-time error if an extension method is called on `null` and a migrated extension's `on` type does not allow null, or an unmigrated extension does not have a trailing `?` on the `on` type and isn't `Null` or a top type. 
-
-During NNBD migration, we will have unsound nullable types like `int*` which should be matched by `extension Wot on int {…}` (in migrated code), and in that case we will need a run-time check to avoid passing `null` to that extension. Unmigrated extensions will still need the trailing `?` to allow getting called with `null` as receiver, but they will apply to nullable types everywhere.
+During NNBD migration, where a non-nullable type or a legacy unsafely nullable type may contain `null` , it is a run-time error if a migrated extension with a non-nullable `on` type is called on `null`, just as all other cases where an unsafe `null` reaches a non-nullable context. This requires a run-time check which can be omitted when all non-NNBD code has been migrated.
 
 ### Semantics of Extension Members
 
@@ -558,7 +556,7 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 
 - The override can also be used for extensions imported with a prefix (which are not otherwise in scope): `prefix.ExtensionName(object).method(args)`.
 
-- An invocation of an extension method throws if the receiver is `null` unless the `on` type has a trailing `?` or is `Null` or a top type. With NNBD types, the invocation throws if the receiver is `null` and the instantiated `on` type of the selected extension does not accept `null`. (In most cases, this case can be excluded statically, but not for unsafely nullable types like `int*`).
+- An invocation of an extension method succeeds even if the receiver is `null`. With NNBD types, the invocation throws if the receiver is `null` and the instantiated `on` type of the selected extension does not accept `null`. (In most cases, this case can be excluded statically, but not for unsafely nullable types like `int*`).
 
 - Otherwise an invocation of an extension method runs the instance method with `this` bound to the receiver and with type variables bound to the types found by type inference (or written explicitly for an override invocation). The static type of `this` is the `on` type of the extension.
 
@@ -576,7 +574,6 @@ We could allow multiple types in the `extension` `on` clause as well. It would h
 
 - An extension only applies if the receiver type is a subtype of *all* `on` types.
 - An extension is more specific than another if for every `on` type in the latter, there is an `on` type in the former which is a proper subtype of that type, or the two are equivalent, and the former is a proper subtype of the latter when instantiated to bounds.
-- The trailing `?` makes the most sense if it is applied only once (it's the extension which accepts and understands `null` as a receiver), but for forwards compatibility, we will need to put it on every `on` type individually. All `on` types must be nullable in order to accept a nullable receiver.
 - There is no clear type to assign to `this` inside an instance extension method. For a mixin that's not a problem because it introduces a type by itself, and the combined super-interface is only used for `super` invocations. For extension, a statement like `var self = this;` needs to be assigned a useful type.
 
 The last item is the reason this feature is not something we will definitely do. We can start out without the feature and maybe add it later if it is necessary, but it's safer to start without it.
@@ -658,3 +655,14 @@ The use of `typedef` for something which is not a type may be too confusing. Ano
 ```dart
 extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
 ```
+
+## Revisions
+
+#### 1.0
+
+- Initial version.
+
+#### 1.1:
+
+- Removed `?` after types. The behavior was subtly inconsistent with the eventual NNBD behavior of a nullable type. Instead all extensions can be invoked on `null` until we get NNBD.
+- Sepcified that override syntax like `MyList(o)` can only be used for member access, not as an expression with a value.
