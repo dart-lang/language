@@ -122,11 +122,11 @@ The declaration introduces an extension. The extension's `on` type defines which
 
 For any member access, `x.foo`, `x.bar()`, `x.baz = 42`, `x(42)`, `x[0] = 1` or `x + y`, including null-aware and cascade accesses which effectively desugar to one of those direct accesses, and including implicit member accesses on `this`, the language first checks whether the static type of `x` has a member with the same base name as the operation. That is, if it has a corresponding instance member, respectively, a `foo` method or getter or a `foo=` setter. a `bar` member or `bar=` setter, a `baz` member or `baz=` setter, a `call` method, a `[]=` operator or a `+` operator. If so, then the operation is unaffected by extensions. *This check does not care whether the invocation is otherwise correct, based on number or type of the arguments, it only checks whether there is a member at all.*
 
-(The types `dynamic` is considered as having all members, the type `void` and `Never` are always compile-time errors when used in a receiver position, so none of these can ever be affected by static extension methods. The type `Function` and all function types are considered as having a `call` member on top of any members inherited from `Object`. Methods declared on `Object` are available on all types and can therefore never be affected by extensions).
+(The type `dynamic` is considered as having all members, a member access on the type `void` is always a compile-time error, and `Never`, introduced with NNBD, will behave as one of those two, so none of these can ever be affected by static extension methods. The type `Function` and all function types are considered as having a `call` member on top of any members inherited from `Object`. Methods declared on `Object` are available on all types and can therefore never be affected by extensions).
 
-If there is no such member, the operation is currently a compile-time error. In that case, all extensions in scope are checked for whether they apply. An extension applies to a member access if the static type of the receiver is a subtype of the `on` type of the extension *and* the extension has an instance member with the same base name as the operation. 
+If there is no such member, the operation is currently a compile-time error. In that case, all extensions in scope are checked for whether they apply. *That is, extension members only apply to code that would currently be a compile-time error*. An extension applies to a member access if the static type of the receiver is a subtype of the `on` type of the extension *and* the extension has an instance member with the same base name as the operation. 
 
-For generic extensions, standard type inference is used to infer the type arguments. As an example, take the following extension:
+For generic extensions, standard type inference is used to infer the type arguments before comparing to the `on` type. As an example, take the following extension:
 
 ```dart
 extension MyList<T extends Comparable<T>> on List<T> {
@@ -322,6 +322,19 @@ If `object.quickSort()` would invoke an extension method of `MyList`, then `MyLi
 The syntax is not *convenient*&mdash;you have to put the "constructor" invocation up front, which removes the one advantage that extension methods have over normal static methods. It is not intended as the common use-case, but as an escape hatch out of unresolvable conflicts.
 
 An expression of the form `MyList(object)` or `MyList<String>(object)` must *only* be used for extension member access. It is a compile-time error to use it in any other way, similarly to how it is a compile-time error to use a *prefix* for anything other than member access. This also means that you cannot use an override expression as the receiver of a cascade, because a cascade does evaluate its receiver to a value. Unlike a prefix, it doesn't have to be followed by a `.` because extensions can also declare operators, but it must be followed by a `.`, a declared operator, or an arguments part (in case the extension implements `call`).
+
+Notice that an explicit override introduces a type context for the *object*. Example:
+
+```dart
+extension SymDiff<T> on Set<T> {
+  Set<T> symmetricDifference(Set<T> other) =>
+      this.difference(other).union(other.difference(this))
+}
+...
+  SymDiff({}).symmetricDifference(someSet);
+```
+
+Here the inference used to infer type parameters will also affect the extension receiver "parameter", and make `{}` a set literal.
 
 ### Static Members and Member Resolution
 
