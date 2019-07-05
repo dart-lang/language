@@ -3430,7 +3430,9 @@ Constant constructors have stronger constraints than other constructors.
 For instance, all the work of a non-redirecting generative constant constructor
 must be done in its initializers
 and in the initializing expressions of
-the instance variables of the enclosing class.%
+the instance variables of the enclosing class
+(and the latter may already have happened earlier,
+because those initializing expressions must be constant).%
 }
 
 \LMHash{}%
@@ -3449,15 +3451,18 @@ The above refers to both locally declared and inherited instance variables.%
 }
 
 \LMHash{}%
-If a non-redirecting generative constant constructor is declared by a class $C$,
+If a non-redirecting generative constant constructor $k$
+is declared by a class $C$,
 it is a compile-time error
 for an instance variable declared in $C$
 to have an initializing expression that is not a constant expression.
 
 \commentary{%
-A superclass of $C$ cannot have such an initializing expression either,
-because it must necessarily declare
-a non-redirecting generative constant constructor.%
+A superclass of $C$ cannot have such an initializing expression $e$ either.
+If it has a non-redirecting generative constant constructor
+then $e$ is an error,
+and if it does not have such a constructor
+then the (implicit or explicit) superinitializer in $k$ is an error.%
 }
 
 \LMHash{}%
@@ -5983,7 +5988,7 @@ The rules for identity make it impossible for a Dart programmer to observe wheth
 \commentary{%
 All usages of 'constant' in Dart are associated with compile time.
 A potentially constant expression is an expression that will generally yield
-a constant value when the value of certain parameters is given.
+a constant value when the values of certain parameters are given.
 The constant expressions is a subset of the potentially constant expressions
 that \emph{can} be evaluated at compile time.%
 }
@@ -6075,7 +6080,7 @@ not a constant expression (\ref{const}).
 that occurs in a constant context, is a potentially constant expression if $T$ is a constant type expression, and $e_1$, \ldots{} , $e_n$ are constant expressions.
 It is further a constant expression if the list literal evaluates to an object.
 
-\item A constant set literal (\ref{set}),
+\item A constant set literal (\ref{sets}),
 \code{\CONST{} <$T$>\{$e_1$, \ldots{}, $e_n$\}}, or
 \code{<$T$>\{$e_1$, \ldots{}, $e_n$\}}
 that occurs in a constant context, is a potentially constant expression if $T$ is a constant type expression, and $e_1$, \ldots{} , $e_n$ are constant expressions.
@@ -6382,11 +6387,18 @@ For instance:
 \end{dartCode}
 
 \commentary{
-The assignment to \code{x} is allowed under the assumption that \code{q} is constant (even though \code{q} is not, in general a compile-time constant).
+The assignment to \code{x} is allowed under the assumption
+that \code{q} is constant
+(even though \code{q} is not, in general a compile-time constant).
 The assignment to \code{y} is similar, but raises additional questions.
-In this case, the superexpression of \code{p} is \code{p + 100}, and it requires that \code{p} be a numeric constant expression for the entire expression to be considered constant.
-The wording of the specification allows us to assume that \code{p} evaluates to an integer.
-A similar argument holds for \code{p} and \code{q} in the assignment to \code{z}.
+In this case, the superexpression of \code{p} is \code{p + 100},
+and it requires that \code{p} be a numeric constant expression
+for the entire expression to be considered constant.
+The wording of the specification allows us to assume
+that \code{p} evaluates to an integer,
+for an invocation of this constructor in a constant expression.
+A similar argument holds for \code{p} and \code{q}
+in the assignment to \code{z}.
 
 However, the following constructors are disallowed:
 }
@@ -6410,10 +6422,15 @@ constant expressions.%
 }
 
 \rationale{%
-All of the illegal constructors of \code{D} above could not be sensibly invoked via \NEW{}, because an expression that must be constant cannot depend on a formal parameter, which may or may not be constant.
-In contrast, the legal examples make sense regardless of whether the constructor is invoked via \CONST{} or via \NEW{}.
+All of the illegal constructors of \code{D} above
+could not be sensibly invoked via \NEW{},
+because an expression that must be constant cannot depend on
+a formal parameter, which may or may not be constant.
+In contrast, the legal examples make sense regardless of
+whether the constructor is invoked via \CONST{} or via \NEW{}.
 
-Careful readers will of course worry about cases where the actual arguments to \code{C()} are constants, but are not numeric.
+Careful readers will of course worry about cases where
+the actual arguments to \code{C()} are constants, but are not numeric.
 This is precluded by the rules on constant constructors
 (\ref{constantConstructors}),
 combined with the rules for evaluating constant objects (\ref{const}).%
