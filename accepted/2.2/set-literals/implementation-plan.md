@@ -2,7 +2,7 @@
 
 Relevant documents:
  - [Tracking issue](TODO)
- - [Full proposal](https://github.com/dart-lang/language/blob/master/accepted/future-releases/set-literals/feature-specification.md)
+ - [Full proposal](https://github.com/dart-lang/language/blob/master/accepted/2.2/set-literals/feature-specification.md)
 
 ## Implementation and Release plan
 

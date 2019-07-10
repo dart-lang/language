@@ -84,7 +84,7 @@ Widget build(BuildContext context) {
 It's arguably better than the above code, but it's not obvious or terse. Adding
 [spread syntax][spread] would let you do:
 
-[spread]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/spread-collections/feature-specification.md
+[spread]: https://github.com/dart-lang/language/blob/master/accepted/2.3/spread-collections/feature-specification.md
 
 ```dart
 Widget build(BuildContext context) {
@@ -732,7 +732,7 @@ elements to consider:
 
     See the [relevant proposal][const spread] for how these are handled.
 
-    [const spread]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/spread-collections/feature-specification.md#const-spreads
+    [const spread]: https://github.com/dart-lang/language/blob/master/accepted/2.3/spread-collections/feature-specification.md#const-spreads
 
 *   An **if element**:
 
