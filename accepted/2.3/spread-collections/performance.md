@@ -35,7 +35,7 @@ summzarize the trends.
 The benchmark is [here][code], and the full data is [here][sheet] (not visible
 outside of Google, sorry).
 
-[code]: https://github.com/dart-lang/language/tree/master/accepted/future-releases/spread-collections/benchmarks/bin/profile.dart
+[code]: https://github.com/dart-lang/language/tree/master/accepted/2.3/spread-collections/benchmarks/bin/profile.dart
 [sheet]: https://docs.google.com/spreadsheets/d/1gomXf2pPnMl95iCIHSVElB3c9giGaXDRNDJuyABXcw4/edit#gid=0&fvid=1718348639
 
 ## Methodology
