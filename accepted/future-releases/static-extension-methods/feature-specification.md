@@ -1,6 +1,6 @@
 # Dart Static Extension Methods Design
 
-lrn@google.com<br>Version: 1.1<br>Status: Design Proposal
+lrn@google.com<br>Version: 1.2<br>Status: Design Proposal
 
 This is a design document for *static extension methods* for Dart. This document describes the most basic variant of the feature, then lists a few possible variants or extensions.
 
@@ -55,7 +55,7 @@ More precisely, an extension declaration is a top-level declaration with a gramm
   `}'
 ```
 
-Such a declaration introduces its *name* (the identifier) into the surrounding scope. The name does not denote a type, but it can be used to denote the extension itself in various places. The name can be hidden or shown in `import` or `export` declarations.
+Such a declaration introduces its *name* (the identifier) into the surrounding scope. The name does not denote a type, but it can be used to denote the extension itself in various places. The name can be hidden or shown in `import` or `export` declarations. The name of an extension must not be a built-in identifier.
 
 The *type* can be any valid Dart type, including a single type variable. It can refer to the type parameters of the extension.
 
@@ -63,7 +63,9 @@ The member declarations can be any non-abstract static or instance member declar
 
 An extension declaration with a non-private name is included in the library's export scope, and a privately named extension is not. It is a compile-time error to export two declarations, including extensions, with the same name, whether they come from declarations in the library itself or from export declarations (with the usual exception when all but one declaration come from platform libraries). Extension *members* with private names are simply inaccessible in other libraries.
 
-We may want to make `extension` a built-in identifier. Is not necessary for disambiguation, but it may make parsing easier.
+We make `extension` a built-in identifier. Is not necessary for disambiguation, but it makes error-recovery in parsers much easier.
+
+
 
 ### Omitting Names For Private Extensions
 
@@ -79,7 +81,7 @@ extension<T> on List<T> {
 
 This is equivalent to giving the extension a fresh private name.
 
-We may need to make `on` a built-in identifier, and not allow those as names of extensions, then there should not be any parsing issue. Even without that, the grammar should be unambiguous because `extension on on on { … }` and `extension on on { … }` are distinguishable, and the final type cannot be empty. It may be *harder* to parse, though.
+If we make `on` a built-in identifier, then there should not be any parsing issue. Even without that, the grammar should be unambiguous because `extension on on on { … }` and `extension on on { … }` are distinguishable, and the final type cannot be empty. It may be *harder* to parse.
 
 This is a simple feature, but with very low impact. It only allows you to omit a single private name for an extension that is only used in a single library.
 
@@ -322,6 +324,8 @@ If `object.quickSort()` would invoke an extension method of `MyList`, then `MyLi
 The syntax is not *convenient*&mdash;you have to put the "constructor" invocation up front, which removes the one advantage that extension methods have over normal static methods. It is not intended as the common use-case, but as an escape hatch out of unresolvable conflicts.
 
 An expression of the form `MyList(object)` or `MyList<String>(object)` must *only* be used for extension member access. It is a compile-time error to use it in any other way, similarly to how it is a compile-time error to use a *prefix* for anything other than member access. This also means that you cannot use an override expression as the receiver of a cascade, because a cascade does evaluate its receiver to a value. Unlike a prefix, it doesn't have to be followed by a `.` because extensions can also declare operators, but it must be followed by a `.`, a declared operator, or an arguments part (in case the extension implements `call`).
+
+If an extension override expression is the first operand of a `==` operator, then the evaluation of that operator does *not* check whether the operands are `null` before invoking the `==` method of the extension. It is treated as a completely normal static method invocation. Checking for `null` before invoking an `operator==` implementation is reserved for *instance* members, not static extension members.
 
 Notice that an explicit override introduces a type context for the *object*. Example:
 
@@ -679,3 +683,9 @@ extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
 
 - Removed `?` after types. The behavior was subtly inconsistent with the eventual NNBD behavior of a nullable type. Instead all extensions can be invoked on `null` until we get NNBD.
 - Sepcified that override syntax like `MyList(o)` can only be used for member access, not as an expression with a value.
+
+#### 1.2:
+
+- Specified that `Ext(o) == null` just calls the extension operator directly, instead of short-circuiting `null` operands like an instance member `==` invocation does.
+- Specfiy that `extension` is a built-in identifier, and `on` is not.
+- Specify that the name of an extension must not be a built-in identifier.
