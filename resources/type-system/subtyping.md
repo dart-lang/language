@@ -141,6 +141,9 @@ We say that a type `T0` is a subtype of a type `T1` (written `T0 <: T1`) when:
 - **Right Top**: if `T1` is a top type (i.e. `dynamic`, or `void`, or `Object?`)
   then `T0 <: T1`
 
+- **Left Top**: if `T0` is `dynamic` or `void`
+  then `T0 <: T1` if `Object? <: T1`
+
 - **Left Bottom**: if `T0` is `Never` then `T0 <: T1`
 
 - **Right Object**: if `T1` is `Object` then:
@@ -149,6 +152,7 @@ We say that a type `T0` is a subtype of a type `T1` (written `T0 <: T1`) when:
     - if `T0` is a promoted type variable `X & S` then `T0 <: T1` iff `S <:
       Object`
     - if `T0` is `FutureOr<S>` for some `S`, then `T0 <: T1` iff `S <: Object`.
+    - if `T0` is `S*` for any `S`, then `T0 <: T1` iff `S <: T1`
     - if `T0` is `Null`, `dynamic`, `void`, or `S?` for any `S`, then the
       subtyping does not hold (per above, the result of the subtyping query is
       false).
@@ -624,7 +628,6 @@ instances of `X & T`, `T <: S` will be true, and hence `S <: M => T <: M`.
       turn requires that `Null <: X`.
 
 **Observation 4**: The following are derivable for any `T`:
-  - `T*` <: `Object`, since it suffices to show that `T <: Object`.
   - `Null <: T?`, since it suffices to show that `Null <: Null`
   - `Null <: T*`, since it suffices to show that `Null <: T?`
 
@@ -661,9 +664,9 @@ If `T1` is `Object`:
   - If `T0` is `Null`, `dynamic`, `void`, or `S?` for any `S`, the query is
     false.
     - By Observation 3 above
+  - If `T0` is `S*` for any `S`, the query is true iff `S <: Object` by lemma 3.
   - Otherwise the query is true.
-    - In this case, `T0` must be `Object`, a function type, interface type, or
-      of the form `S*` for some `S` in which case Observation 4 applies.
+    - In this case, `T0` must be `Object`, a function type, or interface type. 
 
 #### `Null` 
 
