@@ -263,6 +263,11 @@ there are two equivalences there.
   - `X extends T` is equivalent to `Null` if `T` is equivalent to `Null`.
   - `FutureOr<Null>` is equivalent `Future<Null>`.
 
+A possible variant of the previous approach would be to define a finer grained
+variant of the subtyping relation which is a total order on mutual subtypes.
+That is, if `<::` is the extended relation, we would want that `T <:: S` implies
+that `T <: S`, but also that `T <:: S` and `S <:: T` implies that `S` and `T`
+are syntactically (rather than just semantically) equal.
 
 ### FutureOr
 
