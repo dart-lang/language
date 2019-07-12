@@ -105,7 +105,7 @@ import "bar.dart";  // exposes another extension named `Bar`.
 import "bar.dart" as b;  // Also import with prefix.
 class Foo {}
 main() {
-  Foo();  // refers to class declartion.
+  Foo();  // refers to class declaration.
   Baz("ok").baz();  // Explicit reference to `Baz` extension.
   Bar("ok").bar();  // *Compile-time error*, `Bar` name has conflict.
   b.Bar("ok").bar();  // Valid explicit reference to `Bar` from bar.dart.
