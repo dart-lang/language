@@ -1,4 +1,4 @@
-# Dart 2.0 Upper and Lower bounds
+# Dart 2.0 Upper and Lower bounds (including nullability)
 
 leafp@google.com
 
@@ -41,10 +41,7 @@ top types.
 The **OBJECT** predicate is true for any type which is in the equivalence class
 of `Object`.
 
-
 - **OBJECT**(`Object`) is true
-- **OBJECT**(`dynamic`) is true
-- **OBJECT**(`void`) is true
 - **OBJECT**(`FutureOr<T>`) is **OBJECT**(T)
 - **OBJECT**(T) is false otherwise
 
@@ -70,30 +67,32 @@ The **MORETOP** predicate defines a total order on top and `Object` types.
 - **MORETOP**(`T`, `dynamic`) = false
 - **MORETOP**(`Object`, `T`) = true
 - **MORETOP**(`T`, `Object`) = false
-- **MORETOP**(`T?`, `S?`) = **MORETOP**(`T`, `S`)
-- **MORETOP**(`T?`, `S`) = true
-- **MORETOP**(`T`, `S?`) = false
 - **MORETOP**(`T*`, `S*`) = **MORETOP**(`T`, `S`)
-- **MORETOP**(`T*`, `S`) = true
-- **MORETOP**(`T`, `S*`) = false
+- **MORETOP**(`T`, `S*`) = true
+- **MORETOP**(`T*`, `S`) = false
+- **MORETOP**(`T?`, `S?`) = **MORETOP**(`T`, `S`)
+- **MORETOP**(`T`, `S?`) = true
+- **MORETOP**(`T?`, `S`) = false
 - **MORETOP**(`FutureOr<T>`, `FutureOr<S>`) = **MORETOP**(T, S)
 
-The **MOREBOTTOM** predicate defines a total order on bottom and `Null` types.
+The **MOREBOTTOM** predicate defines an (almost) total order on bottom and
+`Null` types.  This does not currently consistently order two different type
+variables with the same bound.
 
 - **MOREBOTTOM**(`Never`, `T`) = true
 - **MOREBOTTOM**(`T`, `Never`) = false
 - **MOREBOTTOM**(`Null`, `T`) = true
 - **MOREBOTTOM**(`T`, `Null`) = false
 - **MOREBOTTOM**(`T?`, `S?`) = **MOREBOTTOM**(`T`, `S`)
-- **MOREBOTTOM**(`T?`, `S`) = true
-- **MOREBOTTOM**(`T`, `S?`) = false
+- **MOREBOTTOM**(`T`, `S?`) = true
+- **MOREBOTTOM**(`T?`, `S`) = false
 - **MOREBOTTOM**(`T*`, `S*`) = **MOREBOTTOM**(`T`, `S`)
-- **MOREBOTTOM**(`T*`, `S`) = true
-- **MOREBOTTOM**(`T`, `S*`) = false
-- **MOREBOTTOM**(`X&T`, `X&S`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`T`, `S*`) = true
+- **MOREBOTTOM**(`T*`, `S`) = false
+- **MOREBOTTOM**(`X&T`, `Y&S`) = **MOREBOTTOM**(`T`, `S`)
 - **MOREBOTTOM**(`X&T`, `S`) = true
 - **MOREBOTTOM**(`S`, `X&T`) = false
-- **MOREBOTTOM**(`X extends T`, `X extends S`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`X extends T`, `Y extends S`) = **MOREBOTTOM**(`T`, `S`)
 
 
 ## Upper bounds
@@ -109,14 +108,14 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`T1`, `T2`) = `T2` if **TOP**(`T2`)
 
 - **UP**(`T1`, `T2`) where **BOTTOM**(`T1`) and **BOTTOM**(`T2`) = 
-  - `T1` if **MOREBOTTOM**(`T1`, `T2`)
-  - `T2` otherwise
-- **UP**(`T1`, `T2`) = `T1` if **BOTTOM**(`T1`)
-- **UP**(`T1`, `T2`) = `T2` if **BOTTOM**(`T2`)
+  - `T2` if **MOREBOTTOM**(`T1`, `T2`)
+  - `T1` otherwise
+- **UP**(`T1`, `T2`) = `T2` if **BOTTOM**(`T1`)
+- **UP**(`T1`, `T2`) = `T1` if **BOTTOM**(`T2`)
 
 - **UP**(`T1`, `T2`) where **NULL**(`T1`) and **NULL**(`T2`) = 
-  - `T1` **MOREBOTTOM**(`T1`, `T2`)
-  - `T2` otherwise
+  - `T2` if **MOREBOTTOM**(`T1`, `T2`)
+  - `T1` otherwise
 
 - **UP**(`T1`, `T2`) where **NULL**(`T1`) = 
   - `T2` if  `T2` is nullable
@@ -228,15 +227,15 @@ follows.
 
 
 - **DOWN**(`T1`, `T2`) where **NULL**(`T1`) and **NULL**(`T2`) =
-  - `T1` **MOREBOTTOM**(`T1`, `T2`)
+  - `T1` if **MOREBOTTOM**(`T1`, `T2`)
   - `T2` otherwise
 
-- **DOWN**(`T1`, `T2`) where **NULL**(`T1`) =
-  - `T1` if  `T2` is nullable
+- **DOWN**(`Null`, `T2`) = 
+  - `Null` if `Null <: T2`
   - `Never` otherwise
 
-- **DOWN**(`T1`, `T2`) where **NULL**(`T2`) =
-  - `T2` if  `T1` is nullable
+- **DOWN**(`T1`, `Null`) = 
+  - `Null` if `Null <: T1`
   - `Never` otherwise
 
 - **DOWN**(`T1`, `T2`) where **OBJECT**(`T1`) and **OBJECT**(`T2`) =
@@ -245,10 +244,12 @@ follows.
 
 - **DOWN**(`T1`, `T2`) where **OBJECT**(`T1`) =
   - `T2` if `T2` is non-nullable
+  - **NonNull**(`T2`) if **NonNull**(`T2`) is non-nullable
   - `Never` otherwise
 
 - **DOWN**(`T1`, `T2`) where **OBJECT**(`T2`) =
-  - `T2` if `T1` is non-nullable
+  - `T1` if `T1` is non-nullable
+  - **NonNull**(`T1`) if **NonNull**(`T1`) is non-nullable
   - `Never` otherwise
 
 - **DOWN**(`T1*`, `T2*`) = `S*` where `S` is **DOWN**(`T1`, `T2`)
