@@ -321,6 +321,8 @@ The syntax looks like a constructor invocation, but it does not create a new obj
 
 If `object.quickSort()` would invoke an extension method of `MyList` if `MyList` was the only extension in scope, then `MyList(object).quickSort()` will invoke the exact same method in the same way.
 
+It is a compile-time error if the extension does not declare a member with the provided name. An equality check like`MyList(object) == x` is always disallowed because an extension cannot declare a member named `==`, and `MyList(object) != x` is disallowed because it's also defined in terms of a member named `==`.
+
 An expression of the form `MyList(object)` or `MyList<String>(object)` must *only* be used for extension member access. It is a compile-time error to use it in any other way, similarly to how it is a compile-time error to use a *prefix* for anything other than member access. This also means that you cannot use an override expression as the receiver of a cascade, because a cascade does evaluate its receiver to a value, or of an assigning operator like `+=` or `++`. Unlike a prefix, it doesn't have to be followed by a `.` because extensions can also declare operators, but it must be followed by a `.`, a declared operator, or an arguments part (in case the extension implements `call`).
 
 The syntax is not *convenient*&mdash;you have to put the "constructor" invocation up front, which removes the one advantage that extension methods have over normal static methods, and it doesn't fit into cascades or other short-hand syntaxes. The override syntax is not intended as a common use-case, but merely as an escape hatch for otherwise unresolvable conflicts.
