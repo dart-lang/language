@@ -605,11 +605,13 @@ If last rule applied in D is:
 
 Consider a class `A` which implements `Future<Future<A>>` (such a class is
 definable in Dart).  Let `B` be `Future<A>`.  Note that `A <: B` is not
-derivable, since to show this requires that `Future<A> <: A`, which does not
-hold.  But we can show that `FutureOr<A> <: FutureOr<B>` as follows:
+derivable, since to show this requires that `Future<Future<A>> <: Future<A>`
+(super-interface), which requires that `Future<A> <: A`, which does not hold.
+
+But we *can* show that `FutureOr<A> <: FutureOr<B>` as follows:
   - It suffices to show that `A <: FutureOr<B>` and `Future<A> <: FutureOr<B>`
     - To show that `A <: FutureOr<B>`, it suffices to show that `A <:
-      Future<B>`, which holds by the super-interace rule plus identity.
+      Future<B>`, which holds by the super-interface rule plus identity.
     - To show that `Future<A> <: FutureOr<B>` it suffices to show that
       `Future<A> <: B` which holds by identity.
 
