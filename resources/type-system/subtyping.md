@@ -600,8 +600,8 @@ If last rule applied in D is:
 - QED
 
 
-**Note**: It is not the case that `FutureOr<A> <: FutureOr<B>` is derivable iff
-`A <: B` is derivable.  Counter-example (due to @fishythefish):
+**Note**: It is easy to see that `A <: B` implies `FutureOr<A> <: FutureOr<B>`,
+but the converse does not hold.  Counter-example (due to @fishythefish):
 
 Consider a class `A` which implements `Future<Future<A>>` (such a class is
 definable in Dart).  Let `B` be `Future<A>`.  Note that `A <: B` is not
