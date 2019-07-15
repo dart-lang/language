@@ -458,7 +458,7 @@ extension Tricky on int {
 
 This looks somewhat surprising, but not much more surprising that an extension `operator[]` would: `for (var i in 1[10])...`. We will expect users to use this power responsibly.
 
-In detail: Any expression of the form `e1(args)` or `e1<types>(args)` where `e1` does not denote a method, and where the static type of `e1` is not a function type, an interface type declaring a `call` method, or `dynamic,` will currently be a compile-time error. If the static type of `e1` is an interface type declaring a `call` *getter*, then this stays a compile-time error. Otherwise we check for extensions applying to the static type of `e1` and declaring a `call` member. I one such most specific extension exists, and it declares a `call` extension method, then the expression is equivalent to `e1.call(args)` or `e1.call<typeS>(args)`. Otherwise it is still a compile-time error.
+In detail: Any expression of the form `e1(args)` or `e1<types>(args)` where `e1` does not denote a method, and where the static type of `e1` is not a function type, an interface type declaring a `call` method, or `dynamic,` will currently be a compile-time error. If the static type of `e1` is an interface type declaring a `call` *getter*, then this stays a compile-time error. Otherwise we check for extensions applying to the static type of `e1` and declaring a `call` member. If one such most specific extension exists, and it declares a `call` extension method, then the expression is equivalent to `e1.call(args)` or `e1.call<typeS>(args)`. Otherwise it is still a compile-time error.
 
 A second question is whether this would also work with implicit `call` method tear-off:
 
