@@ -600,11 +600,20 @@ If last rule applied in D is:
 - QED
 
 
-**Conjecture 1**: `FutureOr<A> <: FutureOr<B>` is derivable iff `A <: B` is
-derivable.
+**Note**: It is easy to see that `A <: B` implies `FutureOr<A> <: FutureOr<B>`,
+but the converse does not hold.  Counter-example (due to @fishythefish):
 
-Showing that `A <: B => FutureOr<A> <: FutureOr<B>` is easy, but it is not
-immediately clear how to tackle the opposite direction.
+Consider a class `A` which implements `Future<Future<A>>` (such a class is
+definable in Dart).  Let `B` be `Future<A>`.  Note that `A <: B` is not
+derivable, since to show this requires that `Future<Future<A>> <: Future<A>`
+(super-interface), which requires that `Future<A> <: A`, which does not hold.
+
+But we *can* show that `FutureOr<A> <: FutureOr<B>` as follows:
+  - It suffices to show that `A <: FutureOr<B>` and `Future<A> <: FutureOr<B>`
+    - To show that `A <: FutureOr<B>`, it suffices to show that `A <:
+      Future<B>`, which holds by the super-interface rule plus identity.
+    - To show that `Future<A> <: FutureOr<B>` it suffices to show that
+      `Future<A> <: B` which holds by identity.
 
 **Lemma 10**: Transitivity of subtyping without the legacy type rules is
 admissible.  Given derivations of `A <: B` and `B <: C` which does not use any
@@ -842,6 +851,7 @@ syntax driven.
 
 ## Changelog
 
+* July 12th, 2019: Replaced conjecture on FutureOr subtyping with counter-example.
 * Jan 29th, 2019: Fixed legacy rules.
 * Dec 19th, 2018: Added subtyping for nullable types and transitional legacy
   types.
