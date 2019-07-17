@@ -1,8 +1,12 @@
-# Dart 2.0 Upper and Lower bounds
+# Dart 2.0 Upper and Lower bounds (including nullability)
 
 leafp@google.com
 
-This documents the currently implemented upper and lower bound computation.
+This documents the currently implemented upper and lower bound computation,
+modified to account for explicit nullability and the accompanying type system
+changes (including the legacy types).  In the interest of backwards
+compatibility, it does not try to fix the various issues with the existing
+algorithm.  
 
 ## Types
 
@@ -27,20 +31,35 @@ We assume that type aliases have been expanded, and that all types are named
 The **TOP** predicate is true for any type which is in the equivalence class of
 top types.
 
-- **TOP**(`Object`) is true
+- **TOP**(`T?`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
+- **TOP**(`T*`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
 - **TOP**(`dynamic`) is true
 - **TOP**(`void`) is true
 - **TOP**(`FutureOr<T>`) is **TOP**(T)
 - **TOP**(T) is false otherwise
 
-The **BOTTOM** predicate is true for either of the two bottom types.
+The **OBJECT** predicate is true for any type which is in the equivalence class
+of `Object`.
 
-- **BOTTOM**(`Null`) is true
-- **BOTTOM**(`bottom`) is true
+- **OBJECT**(`Object`) is true
+- **OBJECT**(`FutureOr<T>`) is **OBJECT**(T)
+- **OBJECT**(T) is false otherwise
+
+The **BOTTOM** predicate is true for things in the equivalence class of `Never`.
+
+- **BOTTOM**(`Never`) is true
+- **BOTTOM**(`X&T`) is true iff **BOTTOM**(`T`)
+- **BOTTOM**(`X extends T`) is true iff **BOTTOM**(`T`)
 - **BOTTOM**(`T`) is false otherwise
 
-The **MORETOP** predicate defines a total order on the equivalence class of top
-types.
+The **NULL** predicate is true for things in the equivalence class of `Null`
+
+- **NULL**(`Null`) is true
+- **NULL**(`T?`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
+- **NULL**(`T*`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
+- **NULL**(`T`) is false otherwise
+
+The **MORETOP** predicate defines a total order on top and `Object` types.
 
 - **MORETOP**(`void`, `T`) = true
 - **MORETOP**(`T`, `void`) = false
@@ -48,24 +67,85 @@ types.
 - **MORETOP**(`T`, `dynamic`) = false
 - **MORETOP**(`Object`, `T`) = true
 - **MORETOP**(`T`, `Object`) = false
+- **MORETOP**(`T*`, `S*`) = **MORETOP**(`T`, `S`)
+- **MORETOP**(`T`, `S*`) = true
+- **MORETOP**(`T*`, `S`) = false
+- **MORETOP**(`T?`, `S?`) = **MORETOP**(`T`, `S`)
+- **MORETOP**(`T`, `S?`) = true
+- **MORETOP**(`T?`, `S`) = false
 - **MORETOP**(`FutureOr<T>`, `FutureOr<S>`) = **MORETOP**(T, S)
+
+The **MOREBOTTOM** predicate defines an (almost) total order on bottom and
+`Null` types.  This does not currently consistently order two different type
+variables with the same bound.
+
+- **MOREBOTTOM**(`Never`, `T`) = true
+- **MOREBOTTOM**(`T`, `Never`) = false
+- **MOREBOTTOM**(`Null`, `T`) = true
+- **MOREBOTTOM**(`T`, `Null`) = false
+- **MOREBOTTOM**(`T?`, `S?`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`T`, `S?`) = true
+- **MOREBOTTOM**(`T?`, `S`) = false
+- **MOREBOTTOM**(`T*`, `S*`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`T`, `S*`) = true
+- **MOREBOTTOM**(`T*`, `S`) = false
+- **MOREBOTTOM**(`X&T`, `Y&S`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`X&T`, `S`) = true
+- **MOREBOTTOM**(`S`, `X&T`) = false
+- **MOREBOTTOM**(`X extends T`, `Y extends S`) = **MOREBOTTOM**(`T`, `S`)
+
 
 ## Upper bounds
 
-We define the upper bound of two types T1 and T2 to be **UP**(T1,T2) as follows.
+We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as follows.
 
 
 - **UP**(`T`, `T`) = `T`
-- **UP**(`T1`, `T2`) = `T1` if:
-  - **TOP**(`T1`) and **TOP**(`T2`)
-  - and  **MORETOP**(`T1`, `T2`)
-- **UP**(`T1`, `T2`) = `T2` if:
-  - **TOP**(`T1`) and **TOP**(`T2`)
-  - and  not **MORETOP**(`T1`, `T2`)
+- **UP**(`T1`, `T2`) where **TOP**(`T1`) and **TOP**(`T2`) = 
+  - `T1` if **MORETOP**(`T1`, `T2`)
+  - `T2` otherwise
 - **UP**(`T1`, `T2`) = `T1` if **TOP**(`T1`)
-- **UP**(`T1`, `T2`) = `T1` if **BOTTOM**(`T2`)
 - **UP**(`T1`, `T2`) = `T2` if **TOP**(`T2`)
+
+- **UP**(`T1`, `T2`) where **BOTTOM**(`T1`) and **BOTTOM**(`T2`) = 
+  - `T2` if **MOREBOTTOM**(`T1`, `T2`)
+  - `T1` otherwise
 - **UP**(`T1`, `T2`) = `T2` if **BOTTOM**(`T1`)
+- **UP**(`T1`, `T2`) = `T1` if **BOTTOM**(`T2`)
+
+- **UP**(`T1`, `T2`) where **NULL**(`T1`) and **NULL**(`T2`) = 
+  - `T2` if **MOREBOTTOM**(`T1`, `T2`)
+  - `T1` otherwise
+
+- **UP**(`T1`, `T2`) where **NULL**(`T1`) = 
+  - `T2` if  `T2` is nullable
+  - `T2?` otherwise
+
+- **UP**(`T1`, `T2`) where **NULL**(`T2`) = 
+  - `T1` if  `T1` is nullable
+  - `T1?` otherwise
+
+- **UP**(`T1`, `T2`) where **OBJECT**(`T1`) and **OBJECT**(`T2`) =
+  - `T1` if **MORETOP**(`T1`, `T2`)
+  - `T2` otherwise
+
+- **UP**(`T1`, `T2`) where **OBJECT**(`T1`) = 
+  - `T1` if `T2` is non-nullable
+  - `T1?` otherwise
+
+- **UP**(`T1`, `T2`) where **OBJECT**(`T2`) = 
+  - `T2` if `T1` is non-nullable
+  - `T2?` otherwise
+
+- **UP**(`T1*`, `T2*`) = `S*` where `S` is **UP**(`T1`, `T2`)
+- **UP**(`T1*`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`)
+- **UP**(`T1?`, `T2*`) = `S?` where `S` is **UP**(`T1`, `T2`)
+- **UP**(`T1*`, `T2`) = `S*` where `S` is **UP**(`T1`, `T2`)
+- **UP**(`T1`, `T2*`) = `S*` where `S` is **UP**(`T1`, `T2`)
+
+- **UP**(`T1?`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`)
+- **UP**(`T1?`, `T2`) = `S?` where `S` is **UP**(`T1`, `T2`)
+- **UP**(`T1`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`)
 
 - **UP**(`X1 extends B1`, `T2`) = 
   - `T2` if `X1 <: T2`
@@ -107,10 +187,13 @@ We define the upper bound of two types T1 and T2 to be **UP**(T1,T2) as follows.
      - `R0` is **UP**(`T0`, `T1`)
      - `B2i` is `B0i`
      - `P2i` is **DOWN**(`P0i`, `P1i`)
+     - `Named0` contains `R0i xi` if `R1i xi` is a required named parameter in `Named1`
+     - `Named1` contains `R1i xi` if `R0i xi` is a required named parameter in `Named0`
      - `Named2` contains exactly `R2i xi` for each `xi` in both `Named0` and `Named1` 
         - where `R0i xi` is in `Named0`
         - where `R1i xi` is in `Named1`
         - and `R2i` is **DOWN**(`R0i`, `R1i`)
+        - and `R2i xi` is required if `xi` is required in either `Named0` or `Named1`
 
 - **UP**(`T Function<...>(...)`, `T2`) = `Object`
 - **UP**(`T1`, `T Function<...>(...)`) = `Object`
@@ -125,19 +208,59 @@ We define the upper bound of two types T1 and T2 to be **UP**(T1,T2) as follows.
 
 ## Lower bounds
 
-We define the lower bound of two types T1 and T2 to be **DOWN**(T1,T2) as follows.
+We define the lower bound of two types T1 and T2 to be **DOWN**(T1,T2) as
+follows.
 
 - **DOWN**(`T`, `T`) = `T`
-- **DOWN**(`T1`, `T2`) = `T1` if:
-  - **TOP**(`T1`) and **TOP**(`T2`)
-  - and  **MORETOP**(`T2`, `T1`)
-- **DOWN**(`T1`, `T2`) = `T2` if:
-  - **TOP**(`T1`) and **TOP**(`T2`)
-  - and  not **MORETOP**(`T2`, `T1`)
+
+- **DOWN**(`T1`, `T2`) where **TOP**(`T1`) and **TOP**(`T2`) = 
+  - `T1` if **MORETOP**(`T2`, `T1`)
+  - `T2` otherwise
 - **DOWN**(`T1`, `T2`) = `T2` if **TOP**(`T1`)
-- **DOWN**(`T1`, `T2`) = `T2` if **BOTTOM**(`T2`)
 - **DOWN**(`T1`, `T2`) = `T1` if **TOP**(`T2`)
+
+- **DOWN**(`T1`, `T2`) where **BOTTOM**(`T1`) and **BOTTOM**(`T2`) =
+  - `T1` if **MOREBOTTOM**(`T1`, `T2`)
+  - `T2` otherwise
+- **DOWN**(`T1`, `T2`) = `T2` if **BOTTOM**(`T2`)
 - **DOWN**(`T1`, `T2`) = `T1` if **BOTTOM**(`T1`)
+
+
+- **DOWN**(`T1`, `T2`) where **NULL**(`T1`) and **NULL**(`T2`) =
+  - `T1` if **MOREBOTTOM**(`T1`, `T2`)
+  - `T2` otherwise
+
+- **DOWN**(`Null`, `T2`) = 
+  - `Null` if `Null <: T2`
+  - `Never` otherwise
+
+- **DOWN**(`T1`, `Null`) = 
+  - `Null` if `Null <: T1`
+  - `Never` otherwise
+
+- **DOWN**(`T1`, `T2`) where **OBJECT**(`T1`) and **OBJECT**(`T2`) =
+  - `T1` if **MORETOP**(`T2`, `T1`)
+  - `T2` otherwise
+
+- **DOWN**(`T1`, `T2`) where **OBJECT**(`T1`) =
+  - `T2` if `T2` is non-nullable
+  - **NonNull**(`T2`) if **NonNull**(`T2`) is non-nullable
+  - `Never` otherwise
+
+- **DOWN**(`T1`, `T2`) where **OBJECT**(`T2`) =
+  - `T1` if `T1` is non-nullable
+  - **NonNull**(`T1`) if **NonNull**(`T1`) is non-nullable
+  - `Never` otherwise
+
+- **DOWN**(`T1*`, `T2*`) = `S*` where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`T1*`, `T2?`) = `S*` where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`T1?`, `T2*`) = `S*` where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`T1*`, `T2`) = `S` where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`T1`, `T2*`) = `S` where `S` is **DOWN**(`T1`, `T2`)
+
+- **DOWN**(`T1?`, `T2?`) = `S?` where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`T1?`, `T2`) = `S` where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`T1`, `T2?`) = `S` where `S` is **DOWN**(`T1`, `T2`)
 
 - **DOWN**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k)`,
          `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)` = 
@@ -161,15 +284,18 @@ We define the lower bound of two types T1 and T2 to be **DOWN**(T1,T2) as follow
         - where `R0i xi` is in `Named0`
         - where `R1i xi` is in `Named1`
         - and `R2i` is **UP**(`R0i`, `R1i`)
+        - and `R2i xi` is required if `xi` is required in both `Named0` and `Named1`
      - `Named2` contains `R0i xi` for each `xi` in  `Named0` and not `Named1`
+       - where `xi` is optional in `Named2`
      - `Named2` contains `R1i xi` for each `xi` in  `Named1` and not `Named0`
+       - where `xi` is optional in `Named2`
 
-- **DOWN**(`T Function<...>(...)`, `S Function<...>(...)`) = `bottom` otherwise
+- **DOWN**(`T Function<...>(...)`, `S Function<...>(...)`) = `Never` otherwise
 
 
 - **DOWN**(`T1`, `T2`) = `T1` if `T1` <: `T2`
 - **DOWN**(`T1`, `T2`) = `T2` if `T2` <: `T1`
-- **DOWN**(`T1`, `T2`) = `bottom` otherwise
+- **DOWN**(`T1`, `T2`) = `Never` otherwise
 
 
 ## Issues and Interesting examples
