@@ -29,62 +29,62 @@ that for any two types which are mutual subtypes, their normal forms are either
 one of the primitive top types, or are syntactically identical.
 
 This is based on the following equations:
- `T?? == T?`
- `T?* == T?`
- `T*? == T?`
- `T** == T*`
- `Null? == Null`
- `Never? == Null`
- `dynamic? == dynamic`
- `void? == void`
- `FutureOr<T> == T` if `Future<T> <: T`
- `FutureOr<T> == Future<T>` if `T <: Future<T>`
- `X extend Never == Never`
- `X & T == T` if `T <: X`
- `X & T == X` if `X <: T`
+- `T?? == T?`
+- `T?* == T?`
+- `T*? == T?`
+- `T** == T*`
+- `Null? == Null`
+- `Never? == Null`
+- `dynamic? == dynamic`
+- `void? == void`
+- `FutureOr<T> == T` if `Future<T> <: T`
+- `FutureOr<T> == Future<T>` if `T <: Future<T>`
+- `X extend Never == Never`
+- `X & T == T` if `T <: X`
+- `X & T == X` if `X <: T`
 
  
-**NORM**(`T`) = `T` if `T` is primitive
-**NORM**(`FutureOr<T>`) =
-  let `S` be **NORM**(`T`)
-  if `S` is a top type then `S`
-  if `S` is `Object` then `S`
-  if `S` is `Object*` then `S`
-  if `S` is `Never` then `Future<Never>`
-  if `S` is `Null` then `Future<Null>?`
-  else `FutureOr<S>`
-**NORM**(`T?`) = 
-  let `S` be **NORM**(`T`)
-  if `S` is a top type then `S`
-  if `S` is `Never` then `Null`
-  if `S` is `Never*` then `Null`
-  if `S` is `Null` then `Null`
-  if `S` is `FutureOr<R>` and `R` is nullable then `S`
-  if `S` is `FutureOr<R>*` and `R` is nullable then `FutureOr<R>`
-  if `S` is `R?` then `R?`
-  if `S` is `R*` then `R?`
-  else `S?`
-**NORM**(`T*`) = 
-  let `S` be **NORM**(`T`)
-  if `S` is a top type then `S`
-  if `S` is `Null` then `Null`
-  if `S` is `R?` then `R?`
-  if `S` is `R*` then `R*`
-  else `S*`
-**NORM**(`X extends T`) =
-  let `S` be **NORM**(`T`)
-  if `S` is `Never` then `Never`
-  else `X extends T`
-**NORM**(`X & T`) =
-  let `S` be **NORM**(`T`)
-   if `S` is `Never` then `Never`
-   if `S` is a top type then `X`
-   if `S` is `X` then `X`
-   if `S` is `Object` and **NORM(B)** is `Object` where `B` is the bound of `X` then `X`
-  else `X & S`
-**NORM**(`C<T0, ..., Tn>`) = `C<R0, ..., Rn>` where `Ri` is **NORM**(`Ti`)
-**NORM**(`R Function<X extends B>(S)`) = `R1 Function(X extends B1>(S1)`
-  where `R1` = **NORM**(`R`)
-  and `B1` = **NORM**(`B`)
-  and `S1` = **NORM**(`S`)
+- **NORM**(`T`) = `T` if `T` is primitive
+- **NORM**(`FutureOr<T>`) =
+  - let `S` be **NORM**(`T`)
+  - if `S` is a top type then `S`
+  - if `S` is `Object` then `S`
+  - if `S` is `Object*` then `S`
+  - if `S` is `Never` then `Future<Never>`
+  - if `S` is `Null` then `Future<Null>?`
+  - else `FutureOr<S>`
+- **NORM**(`T?`) = 
+  - let `S` be **NORM**(`T`)
+  - if `S` is a top type then `S`
+  - if `S` is `Never` then `Null`
+  - if `S` is `Never*` then `Null`
+  - if `S` is `Null` then `Null`
+  - if `S` is `FutureOr<R>` and `R` is nullable then `S`
+  - if `S` is `FutureOr<R>*` and `R` is nullable then `FutureOr<R>`
+  - if `S` is `R?` then `R?`
+  - if `S` is `R*` then `R?`
+  - else `S?`
+- **NORM**(`T*`) = 
+  - let `S` be **NORM**(`T`)
+  - if `S` is a top type then `S`
+  - if `S` is `Null` then `Null`
+  - if `S` is `R?` then `R?`
+  - if `S` is `R*` then `R*`
+  - else `S*`
+- **NORM**(`X extends T`) =
+  - let `S` be **NORM**(`T`)
+  - if `S` is `Never` then `Never`
+  - else `X extends T`
+- **NORM**(`X & T`) =
+  - let `S` be **NORM**(`T`)
+   - if `S` is `Never` then `Never`
+   - if `S` is a top type then `X`
+   - if `S` is `X` then `X`
+   - if `S` is `Object` and **NORM(B)** is `Object` where `B` is the bound of `X` then `X`
+  - else `X & S`
+- **NORM**(`C<T0, ..., Tn>`) = `C<R0, ..., Rn>` where `Ri` is **NORM**(`Ti`)
+- **NORM**(`R Function<X extends B>(S)`) = `R1 Function(X extends B1>(S1)`
+  - where `R1` = **NORM**(`R`)
+  - and `B1` = **NORM**(`B`)
+  - and `S1` = **NORM**(`S`)
 
