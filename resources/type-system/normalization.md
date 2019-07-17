@@ -43,7 +43,10 @@ This is based on the following equations:
 - `X & T == T` if `T <: X`
 - `X & T == X` if `X <: T`
 
- 
+
+Applying these equations recursively and making a canonical choice when multiple
+equations apply gives us something like the following:
+
 - **NORM**(`T`) = `T` if `T` is primitive
 - **NORM**(`FutureOr<T>`) =
   - let `S` be **NORM**(`T`)
