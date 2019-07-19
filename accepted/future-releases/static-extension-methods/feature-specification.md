@@ -93,9 +93,9 @@ You can *avoid* making the extension in-scope for a library by either not import
 
 An extension *is* in scope if the name is *shadowed* by another declaration (a class or local variable with the same name shadowing a top-level or imported declaration, a top-level declaration shadowing an imported extension, or a non-platform import shadowing a platform import).
 
-An extension *is* in scope if is imported, and the extension name conflicts with one or more other imported declarations.
+An extension *is* in scope if it is imported, and the extension name conflicts with one or more other imported declarations.
 
-The usual rules applies to referencing the extension by name, which can be useful in some situations; the extension's *name* is only accessible if it is not shadowed and not conflicting with another imported declaration.
+The usual rules apply to referencing the extension by name, which can be useful in some situations; the extension's *name* is only accessible if it is not shadowed and not conflicting with another imported declaration.
 
 If an extension conflicts with, or is shadowed by, another declaration, and you need to access it by name anyway, it can be imported with a prefix and the name referenced through that prefix.
 
@@ -124,7 +124,7 @@ The declaration introduces an extension. The extension's `on` type defines which
 
 For any member access, `x.foo`, `x.bar()`, `x.baz = 42`, `x(42)`, `x[0] = 1` or `x + y`, including null-aware and cascade accesses which effectively desugar to one of those direct accesses, and including implicit member accesses on `this`, the language first checks whether the static type of `x` has a member with the same base name as the operation. That is, if it has a corresponding instance member, respectively, a `foo` method or getter or a `foo=` setter. a `bar` member or `bar=` setter, a `baz` member or `baz=` setter, a `call` method, a `[]=` operator or a `+` operator. If so, then the operation is unaffected by extensions. *This check does not care whether the invocation is otherwise correct, based on number or type of the arguments, it only checks whether there is a member at all.*
 
-(The type `dynamic` is considered as having all members, a member access on the type `void` is always a compile-time error, and `Never`, introduced with NNBD, will behave as one of those two, so none of these can ever be affected by static extension methods. The type `Function` and all function types are considered as having a `call` member on top of any members inherited from `Object`. Methods declared on `Object` are available on all types and can therefore never be affected by extensions).
+(The type `dynamic` is considered as having all members, a member access on the type `void` is always a compile-time error, and `Never`, introduced with NNBD, will behave as one of those two, so none of these can ever be affected by static extension methods. The type `Function` and all function types are considered as having a `call` member on top of any members inherited from `Object`. Methods declared on `Object` are available on all types and can therefore never be affected by extensions.)
 
 If there is no such member, the operation is currently a compile-time error. In that case, all extensions in scope are checked for whether they apply. *That is, extension members only apply to code that would currently be a compile-time error*. An extension applies to a member access if the static type of the receiver is a subtype of the `on` type of the extension *and* the extension has an instance member with the same base name as the operation. 
 
