@@ -208,6 +208,9 @@ type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
 It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
 `...?`) on a non-nullable receiver.
 
+It is a warning to use the null check operator (`!`) on a non-nullable
+expression.
+
 ### Assignability
 
 The definition of assignability is changed as follows.  
