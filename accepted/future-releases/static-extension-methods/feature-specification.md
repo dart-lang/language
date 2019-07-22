@@ -224,7 +224,7 @@ The extension type parameter can also occur as a parameter type for the method.
 Example:
 
 ```dart
-extension TypedEquals<T> {
+extension TypedEquals<T> on T {
   bool equals(T value) => this == value;
 }
 ```
