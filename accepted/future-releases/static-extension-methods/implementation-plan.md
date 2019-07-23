@@ -9,11 +9,11 @@ Relevant links:
 
 ## Phase 0 (Prerequisite)
 
-### "static-extension-methods" Experimental flag
+### "extension-methods" Experimental flag
 
 The implementation of this feature should be hidden behind an [experiment
 flag][]. Tools must be passed the flag
-`--enable-experiment=static-extension-methods` to enable the feature.
+`--enable-experiment=extension-methods` to enable the feature.
 
 [experiment flag]: https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md
 
@@ -132,7 +132,7 @@ Validate that build systems, code generators, Angular compiler all work and are 
 
 ### Enabling
 
-The language team updates the experimental flag `static-extension-methods` to
+The language team updates the experimental flag `extension-methods` to
 always be enabled and no longer be available to users, and releases this update
 in the next stable Dart release.
 
