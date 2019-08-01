@@ -13790,7 +13790,6 @@ which is an object that has the following members:
 \end{itemize}
 
 \LMHash{}%
-Otherwise, let $NS = NS_n$.
 It is a compile-time error if the current library declares a top-level member named $p$.
 
 The static type of the prefix object $p$ is a unique interface type that has those members whose names and signatures are listed above.
@@ -13798,6 +13797,9 @@ The static type of the prefix object $p$ is a unique interface type that has tho
 
 % This is problematic, because it implies that p.T would be available even in a scope that declared p. We really need to think of p as a single object with properties p.T etc., except it isn't really that
 % either. After all, p isn't actually available as a stand alone name.
+
+\LMHash{}%
+Otherwise (\commentary{when the import is not prefixed}), let $NS = NS_n$.
 
 \LMHash{}%
 Then, for each entry mapping key $k$ to declaration $d$ in $NS$, $d$ is made available in the top level scope of $L$ under the name $k$ unless either:
