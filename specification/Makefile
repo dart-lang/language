@@ -9,10 +9,12 @@ pdf:
 	makeindex $(NAME).idx
 	pdflatex $(SPEC)
 	pdflatex $(SPEC)
+	pdflatex $(SPEC)
 
 pdfhash: hash_and_list
 	pdflatex $(HASH)
 	makeindex $(NAME)-hash.idx
+	pdflatex $(HASH)
 	pdflatex $(HASH)
 	pdflatex $(HASH)
 
@@ -21,10 +23,12 @@ dvi:
 	makeindex $(NAME).idx
 	latex $(SPEC)
 	latex $(SPEC)
+	latex $(SPEC)
 
 dvihash: hash_and_list
 	latex $(HASH)
 	makeindex $(NAME)-hash.idx
+	latex $(HASH)
 	latex $(HASH)
 	latex $(HASH)
 
@@ -39,7 +43,7 @@ help:
 	@echo "  clean: remove all generated files"
 
 cleanish:
-	rm -f *.aux *.log *.toc *.out
+	rm -f *.aux *.log *.toc *.out *.idx *.ilg *.ind
 
 clean: cleanish
 	rm -f *.dvi *.pdf $(HASH) $(LIST)
