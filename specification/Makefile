@@ -8,6 +8,7 @@ pdf:
 	pdflatex $(SPEC)
 	makeindex $(NAME).idx
 	pdflatex $(SPEC)
+	makeindex $(NAME).idx
 	pdflatex $(SPEC)
 	pdflatex $(SPEC)
 
@@ -15,6 +16,7 @@ pdfhash: hash_and_list
 	pdflatex $(HASH)
 	makeindex $(NAME)-hash.idx
 	pdflatex $(HASH)
+	makeindex $(NAME)-hash.idx
 	pdflatex $(HASH)
 	pdflatex $(HASH)
 
@@ -22,6 +24,7 @@ dvi:
 	latex $(SPEC)
 	makeindex $(NAME).idx
 	latex $(SPEC)
+	makeindex $(NAME).idx
 	latex $(SPEC)
 	latex $(SPEC)
 
@@ -29,6 +32,7 @@ dvihash: hash_and_list
 	latex $(HASH)
 	makeindex $(NAME)-hash.idx
 	latex $(HASH)
+	makeindex $(NAME)-hash.idx
 	latex $(HASH)
 	latex $(HASH)
 
