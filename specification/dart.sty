@@ -318,6 +318,11 @@
 \newcommand{\Superinterfaces}[1]{\ensuremath{\metavar{Superinterfaces}({#1})}}
 \newcommand{\Superinterface}[2]{{#1}\in\Superinterfaces{#2}}
 
+% For context types: A special "type name" indicating that there is no
+% information. In other documents often written as '?', but that choice
+% is confusing given that NNBD uses '?' as actual syntax in types.
+\newcommand{\BlankContext}{\ensuremath{\Diamond}}
+
 % ----------------------------------------------------------------------
 % Support for hash valued Location Markers
 
