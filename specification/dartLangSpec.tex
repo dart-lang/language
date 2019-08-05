@@ -14348,9 +14348,10 @@ except that it can be or contain the special symbol
 \Index{\BlankContext},
 indicating that there are no expectations for this type,
 or for this part of the type.
+%
 
 \commentary{%
-Note that context types cannot occur in programs,
+Context types cannot occur in programs,
 they are only used for the purpose of specifying
 certain compile-time errors and type inference.
 For example:%
@@ -14360,11 +14361,21 @@ For example:%
 \VOID{} f(List<int> xs) => print(xs);
 \\
 \VOID{} main() \{
-  \VAR{} x;
+  int x;
   \VAR{} y = x; // \comment{Context type for }x: \BlankContext{}
-  f(x); // \comment{Context type for }x: List<int>
+  f(x + 1); // \comment{Context type for }x + 1: List<int>
 \}
 \end{dartCode}
+
+\commentary{%
+When type inference is used to obtain a type for an expression $e$,
+it may take the context type of $e$ into account.
+However, the static type $S$ and the context type $T$ of a given expression $e$
+are not guaranteed to be related in any particular way.
+For instance, there may not be a subtype relationship among $S$ and $T$,
+which may in turn cause type inference to fail,
+or there may be a compile-time error.%
+}
 
 \LMHash{}%
 The grammar rules for context types are obtained by copying
@@ -14397,9 +14408,7 @@ This is because \synt{typeName} cannot derive \synt{type}.%
 \LMHash{}%
 An expression can
 \IndexCustom{have a context type}{expression!has a context type} $T$,
-which is the case if it occurs in one of the following ways.
-When none of the specified cases is applicable
-the context type is \BlankContext.
+which is specified by cases as follows:
 
 %% TODO(eernst): The following rules specify context types that follow directly
 %% from the properties of the enclosing expression. In that sense, it assumes
@@ -14409,8 +14418,8 @@ the context type is \BlankContext.
 %%
 %% For bottom-up inference, the notion of a context type may be irrelevant.
 %%
-%% But we probably need to rewrite these rules extensively, in order to
-%% describe type inference using a more complex information flow.
+%% But we probably need to rewrite these rules in order to describe type
+%% inference using a more complex information flow.
 
 \LMHash{}%
 \Case{Literals}
@@ -14443,7 +14452,9 @@ If the literal is a map with context type
 \code{Map<$P_k$, $P_v$>}
 then $e_1$ has context type $P_k$ and $e_2$ has context type $P_v$.
 Otherwise, the context type for each expression is \BlankContext.
-% 
+%
+% TODO(eernst): With ui-as-code, add the context type for `...` as well as
+% each part of `ifElement` and `forElement`.
 %
 % For a string interpolation the context type has no information
 % and this is handled by saying that there is no context type,
@@ -14483,6 +14494,34 @@ whose default value is $e$ and type annotation is $T$,
 the context type for $e$ is $T$.
 %
 If $d$ has no type annotation, the context type for $e$ is \BlankContext.
+\EndCase
+
+\LMHash{}%
+\Case{Logical boolean expressions}
+% These expressions do not desugar to method invocations.
+When an expression $e$ occurs as an operand of one of the operators
+% logicalOrExpression
+\lit{||} or
+% logicalAndExpression
+\lit{\&\&},
+or as the operand of the negation operator
+% negationOperator
+\lit{!},
+the context type of $e$ is \code{bool}.
+\EndCase
+
+\LMHash{}%
+\Case{Equality expressions}
+\LMHash{}%
+When an expression $e$ occurs as an operand of an equality operator
+% equalityExpression
+\lit{==} or \lit{!=},
+%
+% We use \BlankContext rather than \code{Object} because we do not wish to
+% impose any type on the operand. Otherwise with NNBD we'd use \code{Object?},
+% but we don't want to feed that `?` into type inference (it might affect a
+% type argument).
+the context type of $e$ is \BlankContext.
 \EndCase
 
 \LMHash{}%
@@ -14534,12 +14573,6 @@ When an expression $e$ occurs as the right hand operand of
 one of the operators
 % ifNullExpression
 \lit{??},
-% logicalOrExpression
-\lit{||},
-% logicalAndExpression
-\lit{\&\&},
-% equalityExpression
-\lit{==}, \lit{!=}
 % relationalExpression
 \lit{>}, \lit{=}, \lit{>}, \lit{<=}, \lit{<},
 % bitwiseOrExpression
@@ -14608,6 +14641,12 @@ with declared return type $T$.
 If $f$ is synchronous then the context type for $e$ is $T$.
 If $f$ is asynchronous then the context type for $e$
 is \code{FutureOr<\flatten{T}>}.
+
+\LMHash{}%
+In these rules, if the enclosing function is a factory constructor
+then the declared return type is
+the return type of the function type of the constructor
+(\ref{constructors}).
 
 \commentary{%
 Note that $f$ cannot be a generator function:
@@ -14752,6 +14791,9 @@ Consider a for-in statement (\ref{for-in}) of the form
 where $T$ is a type annotation;
 the context type for $e$ is \code{Iterable<$T$>}.
 %
+In the same situation except that $T$ is replaced by \VAR{},
+the context type for $e$ is \code{Iterable<\BlankContext>}.
+%
 Consider a for-in statement of the form
 \code{\FOR\,\,(\id\,\,\IN\,\,$e$)\,\,$s$}
 where $T$ is the declared type of the variable \id;
@@ -14763,6 +14805,9 @@ of the form
 \code{\AWAIT\,\,\FOR\,\,($T$\,\id\,\IN\,$e$)\,\,$s$}
 where $T$ is a type annotation;
 the context type for $e$ is \code{Stream<$T$>}.
+%
+In the same situation except that $T$ is replaced by \VAR{},
+the context type for $e$ is \code{Stream<\BlankContext>}.
 %
 Consider an asynchronous for-in statement
 of the form
