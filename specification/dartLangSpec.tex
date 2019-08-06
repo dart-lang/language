@@ -14706,25 +14706,31 @@ and the subtype relationship is always determined in the same way.
   \ExtraVSP
   \RuleRawRaw{\SrnPositionalFunctionType}{Positional Function Types}{%
     \Gamma' = \Gamma\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
-    \Subtype{\Gamma'}{S_0}{T_0} \\
+    \forall j \in 1 .. s\!:\;%
+    \Subtype{\Gamma'}{B_j}{B'\!_j}\;\wedge\;\Subtype{\Gamma'}{B'\!_j}{B_j}\\
+    \Subtype{\Gamma'}{S_0}{T_0} &
     n_1 \leq n_2 &
     n_1 + k_1 \geq n_2 + k_2 &
     \forall j \in 1 .. n_2 + k_2\!:\;\Subtype{\Gamma'}{T_j}{S_j}}{%
     \begin{array}{c}
-      \Gamma\vdash\RawFunctionTypePositional{S_0}{X}{B}{s}{S}{n_1}{k_1}\;<:\;\\
-      \RawFunctionTypePositional{T_0}{X}{B}{s}{T}{n_2}{k_2}
+      \Gamma\vdash%
+      \RawFunctionTypePositional{S_0}{X}{B}{s}{S}{n_1}{k_1}\;<:\;\\
+      \RawFunctionTypePositional{T_0}{X}{B'\!}{s}{T}{n_2}{k_2}
     \end{array}}
   \ExtraVSP\ExtraVSP
   \RuleRawRaw{\SrnNamedFunctionType}{Named Function Types}{
     \Gamma' = \Gamma\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
+    \forall j \in 1 .. s\!:\;%
+    \Subtype{\Gamma'}{B_j}{B'\!_j}\;\wedge\;\Subtype{\Gamma'}{B'\!_j}{B_j}\\
     \Subtype{\Gamma'}{S_0}{T_0} &
-    \forall j \in 1 .. n\!:\;\Subtype{\Gamma'}{T_j}{S_j} \\
-    \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\} \\
+    \forall j \in 1 .. n\!:\;\Subtype{\Gamma'}{T_j}{S_j} &
+    \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\}\\
     \forall p \in 1 .. k_2, q \in 1 .. k_1:\quad
     y_{n+p} = x_{n+q}\quad\Rightarrow\quad\Subtype{\Gamma'}{T_{n+p}}{S_{n+q}}}{%
     \begin{array}{c}
-      \Gamma\vdash\RawFunctionTypeNamed{S_0}{X}{B}{s}{S}{n}{x}{k_1}\;<:\;\\
-      \RawFunctionTypeNamed{T_0}{X}{B}{s}{T}{n}{y}{k_2}
+      \Gamma\vdash%
+      \RawFunctionTypeNamed{S_0}{X}{B}{s}{S}{n}{x}{k_1}\;<:\;\\
+      \RawFunctionTypeNamed{T_0}{X}{B'\!}{s}{T}{n}{y}{k_2}
     \end{array}}
   %
   \ExtraVSP
