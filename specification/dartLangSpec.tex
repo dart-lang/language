@@ -13899,17 +13899,27 @@ The above rule makes this possible, essentially canceling \code{dart:core}'s spe
 \LMLabel{exports}
 
 \LMHash{}%
-A library $L$ exports a namespace (\ref{scoping}), meaning that the declarations in the namespace are made available to other libraries if they choose to import $L$ (\ref{imports}).
+A library $L$ exports a namespace (\ref{scoping}), meaning that
+the declarations in the namespace are made available to other libraries
+if they choose to import $L$ (\ref{imports}).
 The namespace that $L$ exports is known as its
 \IndexCustom{exported namespace}{namespace!exported}.
+
+\LMHash{}%
+A library always exports all names and all declarations in its public namespace.
+In addition, a library may choose to re-export additional libraries
+via \Index{export directives}, often referred to simply as \Index{exports}:
 
 \begin{grammar}
 <libraryExport> ::= <metadata> \EXPORT{} <configurableUri> <combinator>* `;'
 \end{grammar}
 
 \LMHash{}%
-An export specifies a URI $x$ where the declaration of an exported library is to be found.
-It is a compile-time error if the specified URI does not refer to a library declaration.
+An export specifies a URI $x$
+where the declaration of an exported library is to be found.
+The interpretation of URIs is described in section \ref{uris} below.
+It is a compile-time error if the specified URI
+does not refer to a library declaration.
 
 \LMHash{}%
 We say that a name is \Index{exported by a library}
@@ -13921,62 +13931,143 @@ We say that a declaration \Index{is exported by a library}
 \IndexCustom{exports a declaration}{exports!declaration})
 if the declaration is in the library's exported namespace.
 
+%% TODO(eernst): Move this to `Imports` when that section gets update: Seems
+%% natural to define it at the first usage in terms of the page number.
 \LMHash{}%
-A library always exports all names and all declarations in its public namespace.
-In addition, a library may choose to re-export additional libraries via \Index{export directives}, often referred to simply as \Index{exports}.
+We need to combine two namespaces,
+which is an operation that is defined
+when they have disjoint sets of keys:
+The
+\IndexCustom{union of two namespaces}{namespace!union},
+\IndexCustom{$\Namespace{a}\cup\Namespace{b}$}{%
+  $\cup$@$\Namespace{a} \cup \Namespace{b}$},
+is the namespace that maps
+each key $n$ of \Namespace{a}
+to the corresponding value $\Namespace{a}(n)$,
+and each key $n$ of \Namespace{b}
+to $\Namespace{b}(n)$.
 
 \LMHash{}%
-Let $E$ be an export directive that refers to a URI via the string $s_1$.
-Evaluation of $E$ proceeds as follows:
+The exported namespace of a library is then determined as follows.
+Let $L$ be a library,
+let \List{E}{1}{m} be the export directives of $L$,
+and let \List{L}{1}{m} be libraries
+such that $E_i$ refers to $L_i$ for all $i \in 1 .. m$.
 
 \LMHash{}%
-First,
+Let \Namespace{L} be the namespace that
+for each public top-level declaration $D$ with name $n$ in $L$ maps $n$ to $D$.
+For each $i \in 1 .. m$,
+let $\Namespace{\metavar{export}, i}$ be the exported namespace of $L_i$,
+and let \Namespace{i} be a namespace obtained from
+$\Namespace{\metavar{export}, i}$ by the narrowing process described below.
+
+\LMHash{}%
+The narrowing process that yields
+\Namespace{i} from $\Namespace{\metavar{export}, i}$
+consists of two steps,
+each of them restricting the domain of the namespace to a subset
+(\commentary{%
+that is, deleting the binding from a key to a value,
+for certain keys%
+}).
+
+{ %% Local scope: abbreviate narrowing namespaces.
+
+% The sequence of narrowed name spaces of export i.
+\def\NSNi#1{\Namespace{\metavar{narrowing},i,{#1}}}
+
+% The final narrowed name space of a given export. We don't want to
+% mention the number of hide/show clauses when the export varies.
+\def\NSN#1{\Namespace{\metavar{narrowing},{#1}}}
+
+\LMHash{}%
+Let \NSNi{0} be \Namespace{\metavar{export}, i}.
+Then, for each combinator clause $C_j$, $j \in 1 .. l$ in $E_i$:
 
 \begin{itemize}
-\item
-If the URI that is the value of $s_1$ has not yet been accessed by an import or export directive in the current isolate then the contents of the URI are compiled to yield a library $B$.
-\item Otherwise, the contents of the URI denoted by $s_1$ have been compiled into a library $B$ within the current isolate.
-\end{itemize}
+\item If $C_j$ is of the form \code{\SHOW{} $\id_1, \ldots,\ \id_k$} then let
 
-\LMHash{}%
-Let $NS_0$ be the exported namespace of $B$.
-Then, for each combinator clause $C_i, i \in 1 .. n$ in $E$:
-\begin{itemize}
-\item If $C_i$ is of the form \code{\SHOW{} $\id_1, \ldots,\ \id_k$} then let
-
-$NS_i = \SHOW{}([\id_1, \ldots,\ \id_k], NS_{i-1}$).
+$\NSNi{j} = \SHOW{}([\id_1, \ldots,\ \id_k], \NSNi{j-1})$.
 \item If $C_i$ is of the form \code{\HIDE{} $\id_1, \ldots,\ \id_k$}
 
-then let $NS_i = \HIDE{}([\id_1, \ldots,\ \id_k], NS_{i-1}$).
+then let $\NSNi{j} = \HIDE{}([\id_1, \ldots,\ \id_k], \NSNi{j-1})$.
 \end{itemize}
 
 \LMHash{}%
-For each
-entry mapping key $k$ to declaration $d$ in $NS_n$ an entry mapping $k$ to $d$ is added to the exported namespace of $L$ unless a top-level declaration with the name $k$ exists in $L$.
+Let \NSN{i} be \NSNi{l}.
 
-\LMHash{}%
-If a name $N$ is not declared by a library $L$
-and $N$ would be introduced into the exported namespace of $L$
-by exports of two libraries, $L_1$ and $L_2$,
-the exported namespace of $L_1$ binds $N$ to a declaration originating in a system library,
-and the exported namespace of $L_2$ binds $N$ to a declaration
-that does not originate in a system library,
-then the export of $L_1$ is implicitly extended by a \code{\HIDE{} $N$} clause.
-
-\rationale{
-See the discussion in section \ref{imports} for the reasoning behind this rule.
+\commentary{%
+This first step of narrowing performs the actions requested
+by \SHOW{} and \HIDE{} clauses in the export $E_i$
+and yields the result \NSN{i}.
+The second step deals with conflicts.%
 }
 
 \LMHash{}%
-We say that $L$ \Index{re-exports library} $B$, and also
-that $L$ \Index{re-exports namespace} $NS_n$.
-When no confusion can arise, we may simply state
-that $L$ \NoIndex{re-exports} $B$, or
-that $L$ \NoIndex{re-exports} $NS_n$.
+The second step starts from \NSN{i}
+and obtains the final result, \Namespace{i},
+by eliminating each key $n$, bound to declaration $D$,
+where one of the following conditions hold:
+
+\begin{itemize}
+\item \Namespace{L} maps $n$ to a declaration.
+  \commentary{%
+    In other words, a declaration in $L$ shadows
+    re-exported declarations with the same name.%
+  }
+\item The first case does not apply,
+  $L_i$ is a system library,
+  there exists a $j \not= i$ in $1 .. m$ such that
+  $L_j$ is not a system library,
+  and \NSN{j} maps $n$ to a declaration.
+  \commentary{%
+    So a re-exported declaration from a non-system library shadows
+    re-exported declarations from system libraries.%
+  }
+  \rationale{%
+    See the discussion in section \ref{imports} for
+    the reasoning behind this rule.%
+  }
+\end{itemize}
 
 \LMHash{}%
-It is a compile-time error if a name $N$ is re-exported by a library $L$ and $N$ is introduced into the export namespace of $L$ by more than one export, unless all exports refer to same declaration for the name $N$.
-It is a compile-time error to export two different libraries with the same name unless their name is the empty string.
+The removal of these bindings from \NSN{i} yields the
+final, narrowed namespace \Namespace{i}.
+
+\LMHash{}%
+Assume that $i$ and $j$ are distinct numbers in $1 .. m$.
+It is a compile-time error if there exist a key $n$ such that
+\Namespace{i} maps $n$ to a declaration $D_i$,
+and \Namespace{j} maps $n$ to a declaration $D_j$,
+and $D_i$ and $D_j$ are not the same declaration.
+}
+
+\commentary{%
+It is possible for $D_i$ and $D_j$ to be the same declaration,
+e.g., due to multiple re-exports.%
+}
+
+\LMHash{}%
+Finally, the \Index{exported namespace} of $L$ is
+$\Namespace{L} \cup \Namespace{1} \cup \ldots \Namespace{m}$.
+
+\commentary{%
+This union is well-defined because all these namespaces have
+pairwise disjoint sets of keys.%
+}
+
+\LMHash{}%
+For a given $i$,
+we say that $L$ \Index{re-exports library} $L_i$,
+and also that $L$ \Index{re-exports namespace} \Namespace{i}.
+When no confusion can arise, we may simply state
+that $L$ \NoIndex{re-exports} $L_i$, or
+that $L$ \NoIndex{re-exports} \Namespace{i}.
+
+\LMHash{}%
+It is a compile-time error to export two different libraries with the same name
+unless their name is the empty string.
 
 
 \subsection{Parts}
