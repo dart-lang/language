@@ -3,9 +3,9 @@
 This document specifies the "Strict inference" mode enabled with a static
 analysis option. As a static analysis option, we only intend to implement this
 feature in the Dart Analyzer. Under this feature, when there is not enough
-information available to infer an expression's type, rather than "falling back"
-to `dynamic` (or the type's  bound), inference is considered to have failed,
-and an analyzer "Hint" is reported at the location of the expression.
+information available to infer an expression's type, where inference "falls
+back" to `dynamic` (or the type's bound), inference is considered to have
+failed, and an analyzer "Hint" is reported at the location of the expression.
 
 ## Enabling strict inference
 
@@ -65,7 +65,7 @@ explicit type argument, and whose type cannot be inferred from downwards
 inference is considered to have an inference failure. In this example, the
 strict inference failure would report that the type of `[]` cannot be inferred,
 and suggest that the developer add an explicit type argument. The developer
-would like ly add `<String>`, thinking "`args` is a `List<String>` and I think
+would likely add `<String>`, thinking "`args` is a `List<String>` and I think
 that `fn` accepts a `List<String>`, so I'll make the empty list alternative
 also a `List<String>`." At this point, existing static analysis will inform the
 developer that a `List<String>` cannot be passed where a `List<int>` is
@@ -116,7 +116,7 @@ void main() {
 
 In strict inference mode, the inference failure on `(s, x) => s + x` will be
 reported, enouraging the developer to add a type to `s`, `a`, or `fold`,
-revealing their misunderstaing of the types.
+revealing their misunderstanding of the types.
 
 [`Iterable.fold`]: https://api.dartlang.org/stable/dart-core/Iterable/fold.html
 
@@ -124,8 +124,7 @@ revealing their misunderstaing of the types.
 
 This is an exhaustive list of conditions that result in an inference failure,
 under the strict inference mode. Examples are given for each condition, as
-well as examples that highlight code without any inference failures. The
-location of the failure is listed for each condition.
+well as examples that highlight code without any inference failures.
 
 ### Uninitialized variable
 
@@ -147,8 +146,6 @@ class C {
   static var s; // Inference failure
 }
 ```
-
-The failure is reported on the identifier of the variable or field.
 
 ### Function parameter
 
@@ -202,8 +199,6 @@ void main() {
 }
 ```
 
-The failure is reported on the parameter identifier.
-
 ### Collection literal
 
 An empty collection literal with no explicit type argument whose type cannot be
@@ -232,8 +227,6 @@ void main(List<String> args) {
   len([]);     // OK; `List list` is shorthand for `List<dynamic> list`.
 }
 ```
-
-The failure is reported on the collection literal.
 
 ### Instance creation
 
@@ -269,10 +262,6 @@ void main() {
 Future<void> fn() => Future.error("Error"); // OK
 ```
 
-The failure is reported on the constructor call. Only one failure is reported,
-even if multiple type arguments cannot be inferred, as the failure is on the
-type of object being instantiated.
-
 ### Function call
 
 Calling a generic function without explicit type arguments, such that one or
@@ -289,8 +278,6 @@ void main() {
   var b = [1, 2, 3].cast(); // Inference failure
 }
 ```
-
-The inference failure is reported on the function call.
 
 ### Function return types
 
