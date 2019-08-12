@@ -91,7 +91,7 @@ is not enough information from downwards inference (the type of `a`), and there
 is not enough information from upwards inference (the type of `(s, x) => s +
 x`). Inference gives up on the type of the function literal, and gives it
 `dynamic Function(dynamic, int)`. Inference combines that type with `bool`, the
-type of `true`, and settles on `dynamic` for T.
+type of `true`, and settles on `dynamic` for `T`.
 
 The issue would be revealed with either an explicit type on `fold`, an explicit
 type for `a`, which would help to infer the type of `s`, or an explicit type
@@ -154,7 +154,7 @@ The failure is reported on the identifier of the variable or field.
 
 A function parameter declared without a type (via `var`, `final` or without a
 modifier), which does not inherit a type (in the case of a method), and whose
-type cannot be inferred by downwards inference (in the case of a function
+type cannot be inferred from downwards inference (in the case of a function
 literal) is considered an inference failure. A function literal's parameter
 types are commonly inferred when assigning the literal to a variable typed with
 a typedef, or when passing the literal as an argument whose corresponding
@@ -195,9 +195,9 @@ void fB(String cb(int x)) => print(cb(7)); // OK
 typedef Callback = void Function(int a); // OK
 
 void main() {
-  var f = (var a) {}; // Inference failure
-  fA((a) => a * a); // OK
-  fB((a) => a * a); // OK
+  var f = (var a) {};      // Inference failure
+  fA((a) => a * a);        // OK
+  fB((a) => a * a);        // OK
   Callback g = (var a) {}; // OK
 }
 ```
@@ -208,6 +208,11 @@ The failure is reported on the parameter identifier.
 
 An empty collection literal with no explicit type argument whose type cannot be
 inferred from downwards inference is considered an inference failure.
+
+Inference on a collection literal that might be empty at runtime, and might not
+(as per collection-for and collection-if) uses the types of all possible
+elements. Therefore there is never an inference failure on such a collection
+literal.
 
 ```dart
 void main(List<String> args) {
@@ -227,8 +232,6 @@ void main(List<String> args) {
   len([]);     // OK; `List list` is shorthand for `List<dynamic> list`.
 }
 ```
-
-TODO(srawlins): Collection literal with a possible value? `[if (1==2) 7]`?
 
 The failure is reported on the collection literal.
 
