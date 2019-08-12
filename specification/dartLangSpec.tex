@@ -9575,14 +9575,15 @@ has the form \code{$e$..\metavar{suffix}}
 where $e$ is an expression and \metavar{suffix} is a sequence of operator, method, getter or setter invocations.
 
 \begin{grammar}
-<cascadeSequence> ::= (`?..' \alt `..') <cascadeSection> (`..' <cascadeSection>)*
+<cascadeSequence> ::= (`?..' | `..') <cascadeSection> (`..' <cascadeSection>)*
 
-<cascadeSection> ::= <cascadeSelector> 
-\gnewline{} (cascadeAssignment \alt
-             <selector>* (<assignableSelector> <cascadeAssignment>)?)
+<cascadeSection> ::= <cascadeSelector> <cascadeSectionTail>
 
 <cascadeSelector> ::= `[' <expression> `]'
   \alt <identifier>
+
+<cascadeSectionTail> ::= <cascadeAssignment>
+  \alt <selector>* (<assignableSelector> <cascadeAssignment>)?
 
 <cascadeAssignment> ::= <assignmentOperator> <expressionWithoutCascade>
 
@@ -14270,7 +14271,10 @@ but it is the least upper bound of all function types.
 <optionalPositionalParameterTypes> ::= `[' <normalParameterTypes> `,'? `]'
 
 <namedParameterTypes> ::=
-  `\{' <typedIdentifier> (`,' <typedIdentifier>)* `,'? `\}'
+  `\{' <namedParameterType> (`,' <namedParameterType>)* `,'? `\}'
+
+<namedParameterType> ::=
+  \REQUIRED{}? <typedIdentifier>
 
 <typedIdentifier> ::= <type> <identifier>
 \end{grammar}
