@@ -13934,9 +13934,8 @@ if the declaration is in the library's exported namespace.
 %% TODO(eernst): Move this to `Imports` when that section gets update: Seems
 %% natural to define it at the first usage in terms of the page number.
 \LMHash{}%
-We need to combine two namespaces,
-which is an operation that is defined
-when they have disjoint sets of keys:
+We define an operation for
+combining namespaces with disjoint sets of keys  as follows. 
 The
 \IndexCustom{union of two namespaces}{namespace!union},
 \IndexCustom{$\Namespace{a}\cup\Namespace{b}$}{%
@@ -13946,6 +13945,11 @@ each key $n$ of \Namespace{a}
 to the corresponding value $\Namespace{a}(n)$,
 and each key $n$ of \Namespace{b}
 to $\Namespace{b}(n)$.
+
+\commentary{%
+Note that this is well-defined because the union does not exist
+in the case where the sets of keys of the two namespaces overlap.%
+}
 
 \LMHash{}%
 The exported namespace of a library is then determined as follows.
@@ -13965,10 +13969,10 @@ $\Namespace{\metavar{export}, i}$ by the narrowing process described below.
 \LMHash{}%
 The narrowing process that yields
 \Namespace{i} from $\Namespace{\metavar{export}, i}$
-consists of two steps,
-each of them restricting the domain of the namespace to a subset
+consists of two steps.
+Each of them restricts the domain of the namespace to a subset
 (\commentary{%
-that is, deleting the binding from a key to a value,
+that is, it deletes the binding from a key to a value,
 for certain keys%
 }).
 
@@ -13983,15 +13987,16 @@ for certain keys%
 
 \LMHash{}%
 Let \NSNi{0} be \Namespace{\metavar{export}, i}.
-Then, for each combinator clause $C_j$, $j \in 1 .. l$ in $E_i$:
+Then, for each combinator clause $C_j$, $j \in 1 .. l$ in $E_i$
+(where \SHOW($\ldots$) and \HIDE($\ldots$) are defined in~\ref{imports}):
 
 \begin{itemize}
 \item If $C_j$ is of the form \code{\SHOW{} $\id_1, \ldots,\ \id_k$} then let
 
-$\NSNi{j} = \SHOW{}([\id_1, \ldots,\ \id_k], \NSNi{j-1})$.
+$\NSNi{j} = \SHOW([\id_1, \ldots,\ \id_k], \NSNi{j-1})$.
 \item If $C_i$ is of the form \code{\HIDE{} $\id_1, \ldots,\ \id_k$}
 
-then let $\NSNi{j} = \HIDE{}([\id_1, \ldots,\ \id_k], \NSNi{j-1})$.
+then let $\NSNi{j} = \HIDE([\id_1, \ldots,\ \id_k], \NSNi{j-1})$.
 \end{itemize}
 
 \LMHash{}%
