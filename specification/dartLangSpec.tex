@@ -27,10 +27,21 @@
 %
 % Significant changes to the specification.
 %
+% 2.4
+% - Clarify the section 'Exports'.
+% - Update grammar rules for <declaration>, to support `static late final`
+%   variables with no initializer; for several top-level declarations,
+%   to correct the existence and placement of <metadata>; for
+%   <assignableSelectorPart>, to simplify the grammar (preserving the
+%   derivable terms); for <topLevelDefinition>, to allow top-level final
+%   and const variables with no type, and to allow `late final` top-level
+%   variables, to allow `late` on a top-level variable declaration; and
+%   adding <namedParameterType> to allow `required` parameters.
+%
 % 2.3
-% - Added requirement that the iterator of a for-in statement must have
+% - Add requirement that the iterator of a for-in statement must have
 %   type `Iterator`.
-% - Clarified which constructors are covered by the section 'Constant
+% - Clarify which constructors are covered by the section 'Constant
 %   Constructors' and removed confusing redundancy in definiton of
 %   potentially constant expressions.
 %
@@ -1833,7 +1844,8 @@ A \Index{class} defines the form and behavior of a set of objects which are its
 Classes may be defined by class declarations as described below, or via mixin applications (\ref{mixinApplication}).
 
 \begin{grammar}
-<classDefinition> ::= <metadata> \ABSTRACT{}? \CLASS{} <identifier> <typeParameters>?
+<classDefinition> ::=
+  \ABSTRACT{}? \CLASS{} <identifier> <typeParameters>?
   \gnewline{} <superclass>? <interfaces>?
   \gnewline{} `{' (<metadata> <classMemberDefinition>)* `}'
   \alt <metadata> \ABSTRACT{}? \CLASS{} <mixinApplicationClass>
@@ -1850,20 +1862,23 @@ Classes may be defined by class declarations as described below, or via mixin ap
   \alt \STATIC{}? <setterSignature>
   \alt <operatorSignature>
 
-<declaration> ::= <constantConstructorSignature> (<redirection> | <initializers>)?
-  \alt <constructorSignature> (<redirection> | <initializers>)?
+<declaration> ::= \EXTERNAL{} <factoryConstructorSignature>
   \alt \EXTERNAL{} <constantConstructorSignature>
   \alt \EXTERNAL{} <constructorSignature>
   \alt (\EXTERNAL{} \STATIC{}?)? <getterSignature>
   \alt (\EXTERNAL{} \STATIC{}?)? <setterSignature>
-  \alt \EXTERNAL{}? <operatorSignature>
   \alt (\EXTERNAL{} \STATIC{}?)? <functionSignature>
-  \alt \STATIC{} \LATE{}? \FINAL{} <type>? <staticFinalDeclarationList>
-  \alt \STATIC{} \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
+  \alt \EXTERNAL{}? <operatorSignature>
   \alt \STATIC{} \CONST{} <type>? <staticFinalDeclarationList>
-  \alt \COVARIANT{} \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
+  \alt \STATIC{} \FINAL{} <type>? <staticFinalDeclarationList>
+  \alt \STATIC{} \LATE{} \FINAL{} <type>? <initializedIdentifierList>
+  \alt \STATIC{} \LATE{}? <varOrType> <initializedIdentifierList>
+  \alt \COVARIANT{} \LATE{}? <varOrType> <initializedIdentifierList>
   \alt \LATE{}? \FINAL{} <type>? <initializedIdentifierList>
-  \alt \LATE{}? (\VAR{} | <type>) <initializedIdentifierList>
+  \alt \LATE{}? <varOrType> <initializedIdentifierList>
+  \alt <redirectingFactoryConstructorSignature>
+  \alt <constantConstructorSignature> (<redirection> | <initializers>)?
+  \alt <constructorSignature> (<redirection> | <initializers>)?
 
 <staticFinalDeclarationList> ::= \gnewline{}
   <staticFinalDeclaration> (`,' <staticFinalDeclaration>)*
@@ -4459,7 +4474,7 @@ A mixin declaration introduces a mixin and provides a scope
 for static member declarations.
 
 \begin{grammar}
-<mixinDeclaration> ::= <metadata> \MIXIN{} <identifier> <typeParameters>?
+<mixinDeclaration> ::= \MIXIN{} <identifier> <typeParameters>?
   \gnewline{} (\ON{} <typeNotVoidList>)? <interfaces>?
   \gnewline{} `\{' (<metadata> <classMemberDefinition>)* `\}'
 \end{grammar}
@@ -4641,7 +4656,7 @@ fields, $C_q$ is also a const constructor.
 An \Index{enumerated type}, or \Index{enum}, is used to represent a fixed number of constant values.
 
 \begin{grammar}
-<enumType> ::= <metadata> \ENUM{} <identifier>
+<enumType> ::= \ENUM{} <identifier>
   \gnewline{} `{' <enumEntry> (`,' <enumEntry>)* (`,')? `}'
 
 <enumEntry> ::= <metadata> <identifier>
@@ -9573,14 +9588,15 @@ has the form \code{$e$..\metavar{suffix}}
 where $e$ is an expression and \metavar{suffix} is a sequence of operator, method, getter or setter invocations.
 
 \begin{grammar}
-<cascadeSequence> ::= (`?..' \alt `..') <cascadeSection> (`..' <cascadeSection>)*
+<cascadeSequence> ::= (`?..' | `..') <cascadeSection> (`..' <cascadeSection>)*
 
-<cascadeSection> ::= <cascadeSelector> 
-\gnewline{} (cascadeAssignment \alt
-             <selector>* (<assignableSelector> <cascadeAssignment>)?)
+<cascadeSection> ::= <cascadeSelector> <cascadeSectionTail>
 
 <cascadeSelector> ::= `[' <expression> `]'
   \alt <identifier>
+
+<cascadeSectionTail> ::= <cascadeAssignment>
+  \alt <selector>* (<assignableSelector> <cascadeAssignment>)?
 
 <cascadeAssignment> ::= <assignmentOperator> <expressionWithoutCascade>
 
@@ -11583,12 +11599,12 @@ and therefore must be evaluated.
 }
 
 \begin{grammar}
-<assignableExpression> ::= <primary> <assignableSelectorPart>+
+<assignableExpression> ::= <primary> <assignableSelectorPart>
   \alt \SUPER{} <unconditionalAssignableSelector>
-  \alt <constructorInvocation> <assignableSelectorPart>+
+  \alt <constructorInvocation> <assignableSelectorPart>
   \alt <identifier>
  
-<assignableSelectorPart> ::= (<argumentPart> \alt `!')* <assignableSelector>
+<assignableSelectorPart> ::= <selector>* <assignableSelector>
 
 <unconditionalAssignableSelector> ::= `[' <expression> `]'
   \alt `.' <identifier>
@@ -13536,23 +13552,22 @@ The members of a library $L$ are those top level declarations given within $L$.
 
 \begin{grammar}
 <topLevelDefinition> ::= <classDefinition>
+  \alt <mixinDeclaration>
   \alt <enumType>
   \alt <typeAlias>
   \alt \EXTERNAL{}? <functionSignature> `;'
   \alt \EXTERNAL{}? <getterSignature> `;'
   \alt \EXTERNAL{}? <setterSignature> `;'
   \alt <functionSignature> <functionBody>
-  \alt <type>? \GET{} <identifier> <functionBody>
-  \alt <type>? \SET{} <identifier> <formalParameterList> <functionBody>
-  \alt (\FINAL{} | \CONST{}) <type> <staticFinalDeclarationList> `;'
-  \alt <variableDeclaration> `;'
-
-<getOrSet> ::= \GET{}
-  \alt \SET{}
+  \alt <getterSignature> <functionBody>
+  \alt <setterSignature> <functionBody>
+  \alt (\FINAL{} | \CONST{}) <type>? <staticFinalDeclarationList> `;'
+  \alt \LATE{} \FINAL{} <type>? <initializedIdentifierList> `;'
+  \alt \LATE{}? <varOrType> <initializedIdentifierList> `;'
 
 <libraryDefinition> ::= \gnewline{}
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
-  \gnewline{} <topLevelDefinition>*
+  \gnewline{} <metadata> <topLevelDefinition>*
 
 <scriptTag> ::= `#!' (\~{}<NEWLINE>)* <NEWLINE>
 
@@ -14361,7 +14376,10 @@ but it is the least upper bound of all function types.
 <optionalPositionalParameterTypes> ::= `[' <normalParameterTypes> `,'? `]'
 
 <namedParameterTypes> ::=
-  `\{' <typedIdentifier> (`,' <typedIdentifier>)* `,'? `\}'
+  `\{' <namedParameterType> (`,' <namedParameterType>)* `,'? `\}'
+
+<namedParameterType> ::=
+  \REQUIRED{}? <typedIdentifier>
 
 <typedIdentifier> ::= <type> <identifier>
 \end{grammar}
@@ -14568,8 +14586,8 @@ because of the prominent occurrence of the token \TYPEDEF.
 
 \begin{grammar}
 <typeAlias> ::= \gnewline{}
-  <metadata> \TYPEDEF{} <typeIdentifier> <typeParameters>? `=' <functionType> `;'
-  \alt <metadata> \TYPEDEF{} <functionTypeAlias>
+  \TYPEDEF{} <typeIdentifier> <typeParameters>? `=' <functionType> `;'
+  \alt \TYPEDEF{} <functionTypeAlias>
 
 <functionTypeAlias> ::= <functionPrefix> <formalParameterPart> `;'
 
