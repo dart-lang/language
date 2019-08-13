@@ -27,10 +27,21 @@
 %
 % Significant changes to the specification.
 %
+% 2.4
+% - Clarify the section 'Exports'.
+% - Update grammar rules for <declaration>, to support `static late final`
+%   variables with no initializer; for several top-level declarations,
+%   to correct the existence and placement of <metadata>; for
+%   <assignableSelectorPart>, to simplify the grammar (preserving the
+%   derivable terms); for <topLevelDefinition>, to allow top-level final
+%   and const variables with no type, and to allow `late final` top-level
+%   variables, to allow `late` on a top-level variable declaration; and
+%   adding <namedParameterType> to allow `required` parameters.
+%
 % 2.3
-% - Added requirement that the iterator of a for-in statement must have
+% - Add requirement that the iterator of a for-in statement must have
 %   type `Iterator`.
-% - Clarified which constructors are covered by the section 'Constant
+% - Clarify which constructors are covered by the section 'Constant
 %   Constructors' and removed confusing redundancy in definiton of
 %   potentially constant expressions.
 %
@@ -1858,11 +1869,13 @@ Classes may be defined by class declarations as described below, or via mixin ap
   \alt (\EXTERNAL{} \STATIC{}?)? <setterSignature>
   \alt (\EXTERNAL{} \STATIC{}?)? <functionSignature>
   \alt \EXTERNAL{}? <operatorSignature>
-  \alt \STATIC{} (\FINAL{} | \CONST{}) <type>? <staticFinalDeclarationList>
+  \alt \STATIC{} \CONST{} <type>? <staticFinalDeclarationList>
+  \alt \STATIC{} \FINAL{} <type>? <staticFinalDeclarationList>
   \alt \STATIC{} \LATE{} \FINAL{} <type>? <initializedIdentifierList>
-  \alt (\STATIC{} | \COVARIANT{}) \LATE{}? <varOrType>
-       <initializedIdentifierList>
-  \alt \LATE{}? (\FINAL{} <type>? | <varOrType>) <initializedIdentifierList>
+  \alt \STATIC{} \LATE{}? <varOrType> <initializedIdentifierList>
+  \alt \COVARIANT{} \LATE{}? <varOrType> <initializedIdentifierList>
+  \alt \LATE{}? \FINAL{} <type>? <initializedIdentifierList>
+  \alt \LATE{}? <varOrType> <initializedIdentifierList>
   \alt <redirectingFactoryConstructorSignature>
   \alt <constantConstructorSignature> (<redirection> | <initializers>)?
   \alt <constructorSignature> (<redirection> | <initializers>)?
@@ -13550,11 +13563,7 @@ The members of a library $L$ are those top level declarations given within $L$.
   \alt <setterSignature> <functionBody>
   \alt (\FINAL{} | \CONST{}) <type>? <staticFinalDeclarationList> `;'
   \alt \LATE{} \FINAL{} <type>? <initializedIdentifierList> `;'
-  \alt <topLevelVariableDeclaration> `;'
-
-<topLevelVariableDeclaration> ::=
-  \LATE{}? <varOrType> <identifier> (`=' <expression>)?
-  (',' <initializedIdentifier>)*
+  \alt \LATE{}? <varOrType> <initializedIdentifierList> `;'
 
 <libraryDefinition> ::= \gnewline{}
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
