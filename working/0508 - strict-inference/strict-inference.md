@@ -287,13 +287,38 @@ failure. The return type of non-recursive local functions can always be
 inferred from downwards or upwards inference, as it will have a body, and the
 return type of the body is known (even if there are inference failures within).
 
-TODO(srawlins): Examples
+```dart
+f1() {
+  print(1);                           // Inference failure
+}
+f2() => 7;                            // Inference failure
+
+void main() {
+  f3() => 7;                          // OK (non-recursive)
+  f4() {                              // OK (non-recursive)
+    return 7;
+  }
+  f5(int n) => n < 2 ? 1 : f5(n - 1); // Inference failure
+}
+
+class C {
+  m1() => 7;                          // Inference failure
+  static m2() => 7;                   // Inference failure
+}
+
+void fn(callback()) {                 // Inference failure
+  callback();
+}
+```
 
 ## Cascading failures
 
-Cascading inference failures are not reported. That is, when inference cannot
-infer a type for an expression, it still falls back to dynamic (or the bound on
-the type) in order to continue inferring types. Common consequences include:
+The following section is non-normative.
+
+In strict inference mode, an inference failure does not change the values of
+types that are inferred. As a result, inference failures do not cascade. This
+leads to results which may be surprising. Here are some common scenarios in
+which there are fewer inference failures than one might expect.
 
 *  The type of a collection literal with elements whose types feature inference
    failures does not itself feature an inference failure.
