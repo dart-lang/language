@@ -40,6 +40,8 @@
 % - Make lexical identifier lookups use the rules for 'Identifier Reference'
 %   consistently; that is, always look up `id` as well as `id=`, and commit
 %   to the kind of declaration found by that lookup.
+% - Clarify the section 'Imports'; includes setter/getter bundling following
+%   the approach in 'Lexical Lookup'.
 %
 % 2.3
 % - Add requirement that the iterator of a for-in statement must have
@@ -619,7 +621,18 @@ The method used to enable or disable assertions is implementation specific.
 \LMLabel{scoping}
 
 \LMHash{}%
-A \Index{namespace} is a mapping of names denoting declarations to actual declarations.
+A \Index{namespace} is a mapping from names to declarations.
+It may be considered as a partial function.
+It may also be seen as a set of bindings from a name to a declaration,
+$n\mapsto{}D$,
+with the constraint that if a namespace has both
+$n\mapsto{}D_1$ and $n\mapsto{}D_2$
+then $D_1$ and $D_2$ is the same declaration.
+When a namespace is seen as a set of mappings we may also refer
+to each binding as having a \NoIndex{key}
+which is mapped to a \NoIndex{value}.
+
+\LMHash{}%
 Let $NS$ be a namespace.
 We say that a name $n$ \Index{is in} $NS$ if $n$ is a key of $NS$.
 We say a declaration $d$ \NoIndex{is in} $NS$ if a key of $NS$ maps to $d$.
@@ -1166,7 +1179,7 @@ Functions abstract over executable actions.
 
 \begin{grammar}
 <functionSignature> ::= \gnewline{}
-  <metadata> <type>? <identifier> <formalParameterPart>
+  <type>? <identifier> <formalParameterPart>
 
 <formalParameterPart> ::= <typeParameters>? <formalParameterList>
 
@@ -1754,7 +1767,7 @@ Then the static type of $F$ is
 \LMHash{}%
 Let $F$ be a function with
 type parameters \TypeParametersStd,
-required formal parameter types  \List{T}{1}{n},
+required formal parameter types \List{T}{1}{n},
 return type $T_0$
 and positional optional parameter types \List{T}{n+1}{n+k}.
 Then the static type of $F$ is
@@ -1851,7 +1864,7 @@ Classes may be defined by class declarations as described below, or via mixin ap
   \ABSTRACT{}? \CLASS{} <identifier> <typeParameters>?
   \gnewline{} <superclass>? <interfaces>?
   \gnewline{} `{' (<metadata> <classMemberDefinition>)* `}'
-  \alt <metadata> \ABSTRACT{}? \CLASS{} <mixinApplicationClass>
+  \alt \ABSTRACT{}? \CLASS{} <mixinApplicationClass>
 
 <typeNotVoidList> ::= <typeNotVoid> (`,' <typeNotVoid>)*
 
@@ -3136,7 +3149,7 @@ If $k$ is redirecting then its redirect clause has the form
 
 \code{\THIS{}.$g$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 
-where $g$ identifies another  generative constructor of the immediately surrounding class.
+where $g$ identifies another generative constructor of the immediately surrounding class.
 Then execution of $k$ to initialize $i$ proceeds by evaluating the argument list
 \code{($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 to an actual argument list $a$ of the form
@@ -5703,7 +5716,7 @@ be determined by the following iterative process, where $V_m$ denotes
   Then, for all $i \in 1 .. k$,
   $U_{i,m+1}$ is obtained from $U_{i,m}$
   by substituting $U_{j,m}$ for every occurrence of $X_j$
-  that is in a position in $V_m$ which  is not contravariant,
+  that is in a position in $V_m$ which is not contravariant,
   and substituting \code{Null} for every occurrence of $X_j$
   which is in a contravariant position in $V_m$.
 
@@ -14053,7 +14066,7 @@ The members of a library $L$ are those top level declarations given within $L$.
 
 <libraryDefinition> ::= \gnewline{}
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
-  \gnewline{} <metadata> <topLevelDefinition>*
+  \gnewline{} (<metadata> <topLevelDefinition>)*
 
 <scriptTag> ::= `#!' (\~{}<NEWLINE>)* <NEWLINE>
 
@@ -14107,63 +14120,248 @@ Since top level privates are not imported, using the top level privates of anoth
 }
 
 \LMHash{}%
-The \Index{public namespace} of library $L$ is the mapping that maps the simple name of each public top-level member $m$ of $L$ to $m$.
-The scope of a library $L$ consists of the names introduced by all top-level declarations declared in $L$, and the names added by $L$'s imports (\ref{imports}).
+The \Index{public namespace} of library $L$ is the mapping that
+maps the simple name of each public top-level member $m$ of $L$ to $m$.
+The scope of a library $L$ consists of
+the names introduced by all top-level declarations declared in $L$,
+and the names added by $L$'s imports (\ref{imports}).
 
+
+\subsection{Namespace Combinators}
+\LMLabel{namespaceCombinators}
+
+\LMHash{}%
+Imports (\ref{imports}) and exports (\ref{exports}) rely on
+\Index{namespace combinators}
+in order to adjust namespaces
+(\ref{scoping})
+and manage name clashes.
+The supported namespace combinators are \HIDE{} and \SHOW{}.
+
+\begin{grammar}
+<combinator> ::= \SHOW{} <identifierList>
+  \alt \HIDE{} <identifierList>
+
+<identifierList> ::= <identifier> (`,' <identifier>)*
+\end{grammar}
+
+\LMHash{}%
+We define several operations that compute namespaces.
+The
+\IndexCustom{union of two namespaces}{namespace!union},
+\IndexCustom{$\NamespaceName{a}\cup\NamespaceName{b}$}{%
+  $\cup$@$\NamespaceName{a} \cup \NamespaceName{b}$},
+is defined when every key where both are defined is mapped to the same value.
+\commentary{In particular, when the two namespaces have disjoint keys.}
+This union is the namespace that maps
+each key $n$ of \NamespaceName{a}
+to the corresponding value \Namespace{a}{n},
+and each key $n$ of \NamespaceName{b}
+to \Namespace{b}{n}.
+
+\commentary{%
+Note that this \emph{is} a namespace because the union is only defined
+when the mapping of any given key is unambiguous.%
+}
+
+\LMHash{}%
+The function
+\IndexCustom{\Hide{l}{\NamespaceName{a}}}{%
+  hide(l,NSa)@\Hide{l}{\NamespaceName{}}}
+takes a list of identifiers $l$ and a namespace \NamespaceName{a},
+and produces a namespace \NamespaceName{b} that is
+identical to \NamespaceName{a} except that for each identifier \id{} in $l$,
+\NamespaceName{b} is undefined at \id{} and at \code{\id=}.
+
+\LMHash{}%
+The function
+\IndexCustom{\Show{l}{\NamespaceName{a}}}{%
+  show(l,NSa)@\Show{l}{\NamespaceName{}}}
+takes a list of identifiers $l$ and a namespace \NamespaceName{a},
+and produces a namespace \NamespaceName{b} that
+maps each identifier \id{} in $l$
+where \NamespaceName{a} is defined
+to \Namespace{a}{n}.
+Furthermore, for each identifier \id{} in $l$
+where \NamespaceName{a} is defined at \code{\id=},
+\NamespaceName{b} maps \code{\id=} to \Namespace{a}{\code{\id=}}.
+Finally, \NamespaceName{b} is undefined at all other names.
+
+\commentary{%
+It is not an error to hide or show a non-existing name,
+but tools may choose to give a hint in such cases.%
+}
+
+\LMHash{}%
+Let \List{C}{1}{n} be a sequence of combinator clauses.
+\commentary{They would come from an import or export directive.}
+The
+\IndexCustom{combinator clauses can be applied to}{%
+  combinator clauses!application to namespace}
+a given namespace \NamespaceName{\metavar{start}},
+which yields a namespace \NamespaceName{\metavar{end}},
+as follows.
+
+\LMHash{}%
+Let \NamespaceName{0} be \NamespaceName{\metavar{start}}.
+For each combinator clause $C_j$, $j \in 1 .. n$:
+If $C_j$ is of the form \code{\SHOW{} $\id_1, \ldots,\ \id_k$} then let
+$\NamespaceName{j} = \Show{[\List{\id}{1}{k}]}{\NamespaceName{j-1}}$.
+If $C_i$ is of the form \code{\HIDE{} $\id_1, \ldots,\ \id_k$} then let
+$\NamespaceName{j} = \Hide{[\List{id}{1}{k}]}{\NamespaceName{j-1}}$.
+Then \NamespaceName{\metavar{end}} is \NamespaceName{n}.
+
+\commentary{%
+Note that \NamespaceName{\metavar{end}} will always agree with
+\NamespaceName{\metavar{start}} wherever both are defined,
+and the set of names where \NamespaceName{\metavar{end}} is defined
+is always a subset of that of \NamespaceName{\metavar{start}}.
+In that sense, this is a \emph{narrowing} procedure.%
+}
 
 \subsection{Imports}
 \LMLabel{imports}
 
 \LMHash{}%
-An \Index{import} specifies a library to be used in the scope of another library.
+An \Index{import} specifies a library to be used in
+the scope of another library.
+
 \begin{grammar}
 <libraryImport> ::= <metadata> <importSpecification>
 
 <importSpecification> ::= \gnewline{}
   \IMPORT{} <configurableUri> (\AS{} <identifier>)? <combinator>* `;'
   \alt \IMPORT{} <uri> \DEFERRED{} \AS{} <identifier> <combinator>* `;'
-
-<combinator> ::= \SHOW{} <identifierList>
-  \alt \HIDE{} <identifierList>
-
-<identifierList> ::= <identifier> (, <identifier>)*
 \end{grammar}
 
 \LMHash{}%
-An import specifies a URI $x$ where the declaration of an imported library is to be found.
+An import specifies a URI $x$
+where the declaration of an imported library is to be found.
+The interpretation of URIs is described elsewhere
+(\ref{uris}).
+It is a compile-time error if the specified URI
+does not refer to a library declaration.
 
 \LMHash{}%
 Imports may be
 \IndexCustom{deferred}{import!deferred} or
 \IndexCustom{immediate}{import!immediate}.
-A deferred import is distinguished by the appearance of the built-in identifier \DEFERRED{} after the URI.
+A deferred import is distinguished by the appearance of
+the built-in identifier \DEFERRED{} after the URI.
 Any import that is not deferred is immediate.
 
 \LMHash{}%
-It is a compile-time error if the specified URI of an immediate import does not refer to a library declaration.
-The interpretation of URIs is described in section \ref{uris} below.
-
-\LMHash{}%
-It is a compile-time error if the specified URI of a deferred import does not refer to a library declaration.
-
-\rationale{
-One cannot detect the problem at compile time because compilation often occurs during execution and one does not know what the URI refers to.
-However the development environment should detect the problem.
-}
-
-\LMHash{}%
-The \Index{current library} is the library currently being compiled.
-The import modifies the namespace of the current library in a manner that is determined by the imported library and by the optional elements of the import.
-
-\LMHash{}%
-An immediate import directive $I$ may optionally include a prefix clause of the form \code{\AS{} \id} used to prefix names imported by $I$.
-A deferred import must include a prefix clause or a compile-time error occurs.
-It is a compile-time error if a prefix used in a deferred import is used in another import clause.
+An immediate import directive $I$ may optionally include
+a prefix clause of the form \code{\AS{} \id} used to prefix
+names imported by $I$.
+A deferred import must include a prefix clause,
+or a compile-time error occurs.
+It is a compile-time error if a prefix used in a deferred import is used
+in another import clause.
 
 \LMHash{}%
 An import directive $I$ may optionally include namespace combinator clauses
-used to restrict the set of names imported by $I$.
-Currently, two namespace combinators are supported: \HIDE{} and \SHOW{}.
+used to restrict the set of names imported by $I$
+(\ref{namespaceCombinators}),
+as specified below.
+
+\LMHash{}%
+Let \NamespaceName{\metavar{local}} be the namespace that
+for each top-level declaration $D$ with name $n$ in $L$ maps $n$ to $D$.
+
+\LMHash{}%
+The imported namespace
+\NamespaceName{\metavar{import}}
+is then determined as follows, in two steps.
+Let $L$ be the current library,
+let \List{I}{1}{m} be the import directives of $L$,
+and let \List{L}{1}{m} be libraries
+such that $I_i$ refers to $L_i$ for all $i \in 1 .. m$.
+
+\LMHash{}%
+In the first step we compute the namespace provided by each imported library.
+For each $i \in 1 .. m$,
+let \NamespaceName{\metavar{narrowed},i} be
+the namespace obtained from applying
+the namespace combinators of $I_i$ to
+the exported namespace of $L_i$
+(\ref{namespaceCombinators}).
+
+\LMHash{}%
+In the second step we resolve conflicts
+among the namespaces obtained in the first step.
+For each $i \in 1 .. m$, the
+\Index{namespace imported from}
+$L_i$, \NamespaceName{\metavar{import},i},
+is identical to \NamespaceName{\metavar{narrowed},i},
+except that it is undefined at each name $n$
+where one of the following conditions holds,
+where \id{} is the basename of $n$:
+
+\begin{itemize}
+\item \NamespaceName{\metavar{local}} is defined at $n'$
+  such that the basename of $n'$ is \id.
+  \commentary{%
+    In other words, a declaration in the current library shadows
+    imported declarations with the same basename.%
+  }
+\item The first case does not apply, $L_i$ is a system library,
+  there exists a $j \in 1 .. m$ such that $L_j$ is not a system library,
+  and \NamespaceName{\metavar{narrowed},j} is defined at $n'$
+  such that the basename of $n'$ is \id.
+  \commentary{%
+    So an imported declaration from a non-system library shadows
+    imported declarations from system libraries.%
+  }
+\item The first case does not not apply,
+  there exists a $j \not= i$ in $1 .. m$ such
+  \NamespaceName{\metavar{narrowed},j} is defined at $n'$
+  and the basename of $n'$ is \id,
+  \Namespace{\metavar{narrowed},i}{n}
+  and \Namespace{\metavar{narrowed},j}{n'}
+  is not the same declaration,
+  and either none or both of $L_i$ and $L_j$ are system libraries.
+  \commentary{%
+    So with two distinct imported declarations with the same basename,
+    both are eliminated.%
+  }
+\end{itemize}
+
+\commentary{%
+The removal of these bindings from
+\NamespaceName{\metavar{narrowed},i}
+yields the namespace imported from $L_i$,
+\NamespaceName{\metavar{import},i},
+and ensures that each imported namespace has a
+key set which is disjoint with that of
+\NamespaceName{\metavar{local}},
+and where two imported namespaces only share keys when
+they have the same corresponding value.%
+}
+
+\LMHash{}%
+The
+\Index{imported namespace}
+of $L$ is then
+$\NamespaceName{\metavar{import}} =
+\NamespaceName{\metavar{import},1} \cup
+\ldots \NamespaceName{\metavar{import},m}$,
+and the
+\Index{library namespace}
+of $L$ is
+$\NamespaceName{\metavar{local}} \cup \NamespaceName{\metavar{import}}$.
+
+\LMHash{}%
+We say that a name is \Index{imported by a library}
+(or equivalently, that a library
+\IndexCustom{imports a name}{imports!name})
+if the name is in the library's imported namespace.
+We say that a declaration \Index{is imported by a library}
+(or equivalently, that a library
+\IndexCustom{imports a declaration}{imports!declaration})
+if the declaration is in the library's imported namespace.
+
+% !!!TODO!!! ------------------------------------------------------------ BEGIN
 
 \LMHash{}%
 Let $I$ be an import directive that refers to a URI via the string $s_1$.
@@ -14179,9 +14377,14 @@ The deferred prefix object has the following methods:
 \begin{itemize}
 \item \code{loadLibrary}.
 This method returns a future $f$.
-When called, the method causes an immediate import $I'$ to be executed at some future time, where $I'$ is derived from $I$ by eliding the word \DEFERRED{} and adding a \HIDE{} \code{loadLibrary} combinator clause.
+When called, the method causes
+an immediate import $I'$ to be executed at some future time,
+where $I'$ is derived from $I$ by eliding the word \DEFERRED{}
+and adding a \HIDE{} \code{loadLibrary} combinator clause.
 When $I'$ executes without error, $f$ completes successfully.
-If $I'$ executes without error, we say that the call to \code{loadLibrary} has succeeded, otherwise we say the call has failed.
+If $I'$ executes without error,
+we say that the call to \code{loadLibrary} has succeeded,
+otherwise we say the call has failed.
 \item
   For every top level function $f$ named \id{} in the imported library $B$,
   a corresponding method named \id{} with the same signature as $f$.
@@ -14204,19 +14407,28 @@ If $I'$ executes without error, we say that the call to \code{loadLibrary} has s
   Calling the method results in a dynamic error.
 \end{itemize}
 
-\rationale{
-The purpose of adding members of $B$ to $p$ is to ensure that any errors raised when using $p$ are correct, and no spurious errors are generated.
-In fact, at run time we cannot add these members until $B$ is loaded; but any such invocations will fail at run time as specified by virtue of being completely absent.
+\rationale{%
+The purpose of adding members of $B$ to $p$ is to ensure that
+any errors raised when using $p$ are correct,
+and no spurious errors are generated.
+In fact, at run time we cannot add these members until $B$ is loaded;
+but any such invocations will fail at run time
+as specified by virtue of being completely absent.%
 }
-%But this is still a lie detectable by reflection. Probably revise so the type of p has these members but p does not.
-
-The static type of the prefix object $p$ is a unique interface type that has those members whose names and signatures are listed above.
 
 \LMHash{}%
-After a call succeeds, the name $p$ is mapped to a non-deferred prefix object as described below.
-In addition, the prefix object also supports the \code{loadLibrary} method, and so it is possible to call \code{loadLibrary} again.
-If a call fails, nothing happens, and one again has the option to call \code{loadLibrary} again.
-Whether a repeated call to \code{loadLibrary} succeeds will vary as described below.
+The static type of the prefix object $p$ is a unique interface type
+that has those members whose names and signatures are listed above.
+
+\LMHash{}%
+After a call succeeds, the name $p$ is mapped to
+a non-deferred prefix object as described below.
+In addition, the prefix object also supports the \code{loadLibrary} method,
+and so it is possible to call \code{loadLibrary} again.
+If a call fails, nothing happens, and one has
+the option to call \code{loadLibrary} again.
+Whether a repeated call to \code{loadLibrary} succeeds
+will vary as described below.
 
 \LMHash{}%
 The effect of a repeated call to \code{$p$.loadLibrary} is as follows:
@@ -14395,6 +14607,8 @@ Other libraries may wish to use $L$ and may want to use members of $L$ that conf
 The above rule makes this possible, essentially canceling \code{dart:core}'s special treatment by means of yet another special rule.
 }
 
+% !!!TODO!!! ------------------------------------------------------------ END
+
 
 \subsection{Exports}
 \LMLabel{exports}
@@ -14418,7 +14632,8 @@ via \Index{export directives}, often referred to simply as \Index{exports}:
 \LMHash{}%
 An export specifies a URI $x$
 where the declaration of an exported library is to be found.
-The interpretation of URIs is described in section \ref{uris} below.
+The interpretation of URIs is described elsewhere
+(\ref{uris}).
 It is a compile-time error if the specified URI
 does not refer to a library declaration.
 
@@ -14432,8 +14647,6 @@ We say that a declaration \Index{is exported by a library}
 \IndexCustom{exports a declaration}{exports!declaration})
 if the declaration is in the library's exported namespace.
 
-%% TODO(eernst): Move this to `Imports` when that section gets update: Seems
-%% natural to define it at the first usage in terms of the page number.
 \LMHash{}%
 We define an operation for
 combining namespaces with disjoint sets of keys as follows.
@@ -14460,73 +14673,34 @@ and let \List{L}{1}{m} be libraries
 such that $E_i$ refers to $L_i$ for all $i \in 1 .. m$.
 
 \LMHash{}%
-Let \Namespace{L} be the namespace that
+In the first step we compute the namespace provided by each exported library.
+Let \NamespaceName{\metavar{local}} be the namespace that
 for each public top-level declaration $D$ with name $n$ in $L$ maps $n$ to $D$.
 For each $i \in 1 .. m$,
-let $\Namespace{\metavar{export}, i}$ be the exported namespace of $L_i$,
-and let \Namespace{i} be a namespace obtained from
-$\Namespace{\metavar{export}, i}$ by the narrowing process described below.
+let \NamespaceName{\metavar{narrowed},i} be
+the namespace obtained from applying
+the namespace combinators of $E_i$ to
+the exported namespace of $L_i$
+(\ref{namespaceCombinators}).
 
 \LMHash{}%
-The narrowing process that yields
-\Namespace{i} from $\Namespace{\metavar{export}, i}$
-consists of two steps.
-Each of them restricts the domain of the namespace to a subset
-(\commentary{%
-that is, it deletes the binding from a key to a value,
-for certain keys%
-}).
-
-{ %% Local scope: abbreviate narrowing namespaces.
-
-% The sequence of narrowed name spaces of export i.
-\def\NSNi#1{\Namespace{\metavar{narrowing},i,{#1}}}
-
-% The final narrowed name space of a given export. We don't want to
-% mention the number of hide/show clauses when the export varies.
-\def\NSN#1{\Namespace{\metavar{narrowing},{#1}}}
-
-\LMHash{}%
-Let \NSNi{0} be \Namespace{\metavar{export}, i}.
-Then, for each combinator clause $C_j$, $j \in 1 .. l$ in $E_i$
-(where \SHOW($\ldots$) and \HIDE($\ldots$) are defined in~\ref{imports}):
-
-\begin{itemize}
-\item If $C_j$ is of the form \code{\SHOW{} $\id_1, \ldots,\ \id_k$} then let
-
-$\NSNi{j} = \SHOW([\id_1, \ldots,\ \id_k], \NSNi{j-1})$.
-\item If $C_i$ is of the form \code{\HIDE{} $\id_1, \ldots,\ \id_k$}
-
-then let $\NSNi{j} = \HIDE([\id_1, \ldots,\ \id_k], \NSNi{j-1})$.
-\end{itemize}
-
-\LMHash{}%
-Let \NSN{i} be \NSNi{l}.
-
-\commentary{%
-This first step of narrowing performs the actions requested
-by \SHOW{} and \HIDE{} clauses in the export $E_i$
-and yields the result \NSN{i}.
-The second step deals with conflicts.%
-}
-
-\LMHash{}%
-The second step starts from \NSN{i}
-and obtains the final result, \Namespace{i},
+The second step starts from \NamespaceName{\metavar{narrowed},i}
+and obtains the result, \NamespaceName{\metavar{export},i},
 by eliminating each key $n$, bound to declaration $D$,
-where one of the following conditions hold:
+where one of the following conditions hold,
+where \id{} is the basename of $n$:
 
 \begin{itemize}
-\item \Namespace{L} maps $n$ to a declaration.
+\item \NamespaceName{\metavar{local}} is defined at $n'$
+  such that the basename of $n'$ is \id.
   \commentary{%
     In other words, a declaration in $L$ shadows
-    re-exported declarations with the same name.%
+    re-exported declarations with the same basename.%
   }
-\item The first case does not apply,
-  $L_i$ is a system library,
-  there exists a $j \not= i$ in $1 .. m$ such that
-  $L_j$ is not a system library,
-  and \NSN{j} maps $n$ to a declaration.
+\item The first case does not apply, $L_i$ is a system library,
+  there exists a $j \in 1 .. m$ such that $L_j$ is not a system library,
+  and \NamespaceName{\metavar{narrowed},j} is defined at $n'$
+  such that the basename of $n'$ is \id.
   \commentary{%
     So a re-exported declaration from a non-system library shadows
     re-exported declarations from system libraries.%
@@ -14537,17 +14711,22 @@ where one of the following conditions hold:
   }
 \end{itemize}
 
-\LMHash{}%
-The removal of these bindings from \NSN{i} yields the
-final, narrowed namespace \Namespace{i}.
+\commentary{%
+The removal of these bindings from
+\NamespaceName{\metavar{narrowed},i}
+yields the namespace exported from $L_i$,
+\NamespaceName{\metavar{export},i},
+and ensures that each exported namespace has a
+key set which is disjoint with that of
+\NamespaceName{\metavar{local}}.%
+}
 
 \LMHash{}%
 Assume that $i$ and $j$ are distinct numbers in $1 .. m$.
-It is a compile-time error if there exist a key $n$ such that
-\Namespace{i} maps $n$ to a declaration $D_i$,
-and \Namespace{j} maps $n$ to a declaration $D_j$,
-and $D_i$ and $D_j$ are not the same declaration.
-}
+It is a compile-time error if there exists a key $n$ such that
+\NamespaceName{\metavar{export},i} maps $n$ to a declaration $D_i$,
+and \NamespaceName{\metavar{export},j} maps $n$ to a declaration $D_j$,
+and $D_i$ and $D_j$ are not the same declaration.%
 
 \commentary{%
 It is possible for $D_i$ and $D_j$ to be the same declaration,
@@ -14556,20 +14735,27 @@ e.g., due to multiple re-exports.%
 
 \LMHash{}%
 Finally, the \Index{exported namespace} of $L$ is
-$\Namespace{L} \cup \Namespace{1} \cup \ldots \Namespace{m}$.
+$\NamespaceName{L} \cup
+\NamespaceName{\metavar{export},1} \cup
+\ldots \NamespaceName{\metavar{export},m}$.
 
 \commentary{%
-This union is well-defined because all these namespaces have
-pairwise disjoint sets of keys.%
+Unions of namespaces are defined elsewhere
+(\ref{imports}).
+This union is well-defined because all these namespaces only share
+keys where they have the same value.%
 }
 
 \LMHash{}%
 For a given $i$,
-we say that $L$ \Index{re-exports library} $L_i$,
-and also that $L$ \Index{re-exports namespace} \Namespace{i}.
+we say that $L$
+\Index{re-exports library}
+$L_i$, and also that $L$
+\Index{re-exports namespace}
+\NamespaceName{\metavar{export},i}.
 When no confusion can arise, we may simply state
 that $L$ \NoIndex{re-exports} $L_i$, or
-that $L$ \NoIndex{re-exports} \Namespace{i}.
+that $L$ \NoIndex{re-exports} \NamespaceName{\metavar{export},i}.
 
 \LMHash{}%
 It is a compile-time error to export two different libraries with the same name
@@ -15063,12 +15249,6 @@ A \Index{type alias} declares a name for a type expression.
 It is common to use the phrase ``a typedef'' for such a declaration,
 because of the prominent occurrence of the token \TYPEDEF.
 }
-
-% TODO(eernst): We include <metadata> in <typeAlias> even though it is not
-% there in Dart.g, because <libraryDefinition> in Dart.g allows metadata
-% before every <topLevelDefinition>, but that's not yet been transferred to
-% this document. So we'll need to remove the <metadata> below _when_ it is
-% made redundant by changing <libraryDefinition> to be like in Dart.g.
 
 \begin{grammar}
 <typeAlias> ::= \gnewline{}
