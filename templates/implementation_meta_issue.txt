@@ -15,15 +15,21 @@ The implementation plan for this issue is <link to implementation plan>.
 - [ ] Discussion and feedback
 - [ ] Implementation team sign off (this issue):
 - [ ] Issue for implementation in dart2js:
+- [ ] Issue for implementation in the VM:
 - [ ] Issue for implementation in DDC:
 - [ ] Issue for implementation in CFE:
 - [ ] Issue for implementation in Analyzer:
 - [ ] Issue for implementation in Intellij:
+- [ ] Issue for implementation in VS Code: 
 - [ ] Issue for implementation in Grok:
 - [ ] Issue for implementation in Cider:
 - [ ] Issue for implementation in Dartfmt:
 - [ ] Issue for implementation in Dartdoc:
+- [ ] Issue for dart-atom (github support):
 - [ ] Issue for implementation in build systems and Angular compiler:
+- [ ] Issue for VM Service support:
+- [ ] Issue for web debugging support:
+- [ ] Issue for dartpad/codemirror support:
 - [ ] Issue for language tests:
 - [ ] Issue for documentation:
 - [ ] Issue for specification:
