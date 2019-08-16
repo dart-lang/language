@@ -113,13 +113,34 @@ such that for a node `N` and a variable `v`, **Assigned**(`N`, `v`) is true iff
 `N` syntactically contains an assignment to `v` (regardless of reachability of
 that assignment).
 
+### Basic data structures
+
+
+- Maps
+  - We use the notation `{x: VM1, y: VM2}` to denote a map associating the
+    key `x` with the value `VM1`, and the key `y` with the value `VM2`.
+  - We use the notation `VI[x -> VM]` to denote the map which maps every key
+    in `VI` to its corresponding value in `VI` except `x`, which is mapped to
+    `VM` in the new map (regardless of any value associated with it in `VI`).
+
+- Lists
+  - We use the notation `[a, b]` to denote a list containing elements `a` and
+    `b`.
+  - We use the notation `a::l` where `l` is a list to denote a list beginning
+    with `a` and followed by all of the elements of `l`.
+
+-Stacks
+  - We use the notation `push(s, x)` to mean pushing `x` onto the top of the
+    stack `s`.
+  - We use the notation `pop(s)` to mean the stack that results from removing
+    the top element of `s`.  If `s` is empty, the result is undefined.
+  - We use the notation `top(s)` to mean the top element of the stack `s`.  If
+    `s` is empty, the result is undefined.
+
 ### Models
 
-A *type test site* is a location in the program where a variable's type is
-tested, either via an `is` expression or a cast.
-
 A *variable model*, denoted `VariableModel(declaredType, promotedTypes,
-testSites, assigned, unassigned, writeCaptured)`, represents what is statically
+tested, assigned, unassigned, writeCaptured)`, represents what is statically
 known to the flow analysis about the state of a variable at a given point in the
 source code.
 
@@ -131,9 +152,9 @@ source code.
   the variable.  Note that each entry in the ordered set must be a subtype of
   all previous entries, and of the declared type.
 
-- `testSites` is an ordered list of *type test site*s representing the set of
-  type tests that are known to have been performed on the variable in all code
-  paths leading to the given point in the source code.
+- `tested` is a set of types which are considered "of interest" for the purposes
+  of promotion, generally because the variable in question has been tested
+  against the type on some path in some way.
 
 - `assigned` is a boolean value indicating whether the variable is known to
   have been definitely assigned at the given point in the source code.
@@ -152,31 +173,23 @@ is statically known to flow analysis about the state of the program at a given
 point in the source code.
 
   - `reachable` is a stack of boolean values modeling the reachability of the
-  given point in the source code.  The ith element of the stack (counting from
-  the top of the stack) indicates whether the given program point is reachable
-  from the ith enclosing control flow split in the program.  If the bottom
-  element of `reachable` is `false`, then the given point is definitively known
-  by flow analysis to be unreachable from the start of the method under
-  analysis.  If it is `true`, then the analysis cannot eliminate the possibility
-  that the given point may be reached by some path.  Each other element of the
-  stack models the same property, starting from some control flow split between
-  the start of the program and the current node.
+  given point in the source code.  The `i`th element of the stack (counting from
+  the top of the stack) encodes whether the `i-1`th enclosing control flow split
+  is reachable from the `ith` enclosing control flow split (or when `i` is 0,
+  whether the current program point is reachable from the enclosing control flow
+  split).  So if the bottom element of `reachable` is `false`, then the current
+  program point is definitively known by flow analysis to be unreachable from
+  the first enclosing control flow split.  If it is `true`, then the analysis
+  cannot eliminate the possibility that the given point may be reached by some
+  path.  Each other element of the stack models the same property, starting from
+  some control flow split between the start of the program and the current node,
+  and treating the entry to the program as the initial control flow split.  The
+  true reachability of the current program point then is the conjunction of the
+  elements of the `reachable` stack, since each element of the stack models the
+  reachability of one control flow split from its enclosing control flow split.
 
   - `variableInfo` is a mapping from variables in scope at the given point to
   their associated *variable model*s.
-
-  - We will use the notation `{x: VM1, y: VM2}` to denote a map associating the key
-    `x` with the value `VM1`, and the key `y` with the value `VM2`.
-
-  - We will use the notation `VI[x -> VM]` to denote the map which maps every
-    key in `VI` to its corresponding value in `VI` except `x`, which is mapped
-    to `VM` in the new map (regardless of any value associated with it in `VI`).
-
-  - We will use the notation `[a, b]` to denote a list containing elements `a`
-    and `b`.
-
-  - We will use the notation `a::l` where `l` is a list to denote a list
-    beginning with `a` and followed by all of the elements of `l`.
 
 The following functions associate flow models to nodes:
 
@@ -235,47 +248,68 @@ We also make use of the following auxiliary functions:
   nodes inside of a control flow split, and is defined as `FlowModel(r2, VM)`
   where `r2` is `r` with `true` pushed as the top element of the stack.
 
-- `drop(M)`, where `M = FlowModel(r, VM)` is a flow model which models program
-  nodes after a control flow split which are only reachable by one path through
-  the split, and is defined as `FlowModel(r1, VM)` where `r0 = pop(r)` and `r1 =
-  push(pop(r0), top(r0) && top(r1))`.  Equivalently, `drop(M)` may be thought of
-  as `join(M, M)`.
+- `unsplit(M)`, where `M = FlowModel(r, VM)` is defined as `M1 = FlowModel(r1,
+  VM)` where `r1 = push(pop(pop(r1)), top(r1) && top(top(r1)))`. The model `M1`
+  is a flow model which collapses the top two elements of the reachability model
+  from `M` into a single boolean which conservatively summarizes the
+  reachability information present in `M`.
+
+- `merge(M1, M2)`, where `M1` and `M2` are flow models is the inverse of `split`
+  and represents the result of joining two flow models at the merge of two
+  control flow paths.  If `M1 = FlowModel(r1, VI1)` and `M2 = FlowModel(r2,
+  VI2)` where `pop(r1) = pop(r2) = r0` then:
+  - if `top(r1)` is true and `top(r2)` is false, then `M3` is `FlowModel(pop(r1), VI1)`.
+  - if `top(r1)` is false and `top(r2)` is true, then `M3` is `FlowModel(pop(r2), VI2)`.
+  - otherwise `M3` is `join(unsplit(M1), unsplit(M2))`
 
 - `join(M1, M2)`, where `M1` and `M2` are flow models, represents the union of
   two flow models and is defined as follows:
 
-  We define `join(M1, M2)` where `M1 = FlowModel(r1, VI1)` and `M2 =
-  FlowModel(r2, VI2))` and `pop(r1) = pop(r2) = r0` for some `r0` to be `M3` where:
-    - if `top(r1)` is true and `top(r2)` is false, then `M3` is `FlowModel(r0, VI1)`.
-    - if `r1` is false and `r2` is true, then `M3` is `FlowModel(pop(r2), VI2)`.
-    - otherwise `M3 = FlowModel(r3, VI3)` where:
-      - `r3` is `push(pop(r0), top(r0) && top(r1) && top(r2))`
-      - `VI3` maps each variable `v` in the domain of `VI1` and `VI2` to
-      `joinV(VI1(v), VI2(v))`.  Note that any variable which is in domain of
-      only one of the two is dropped, since it is no longer in scope.
+  - We define `join(M1, M2)` to be `M3 = FlowModel(r3, VI3)` where:
+    - `M1 = FlowModel(r1, VI1)`
+    - `M2 = FlowModel(r2, VI2))` 
+    - `pop(r1) = pop(r2) = r0` for some `r0` 
+    - `r3` is `push(r0, top(r1) || top(r2))`
+    - `VI3` is the map which maps each variable `v` in the domain of `VI1` and
+      `VI2` to `joinV(VI1(v), VI2(v))`.  Note that any variable which is in
+      domain of only one of the two is dropped, since it is no longer in scope.
 
-  Both join and joinV are commutative and associative by construction.
+  The `merge`, `join` and `joinV` combinators are commutative and associative by
+  construction.
 
-  For brevity, we will sometimes extend `join` to more than two arguments in the
-  obvious way.  For example, `join(M1, M2, M3)` represents `join(join(M1, M2),
-  M3)`, and `join(S)`, where S is a set of models, denotes the result of folding
-  all models in S together using `join`.
+  For brevity, we will sometimes extend `join` and `merge` to more than two
+  arguments in the obvious way.  For example, `join(M1, M2, M3)` represents
+  `join(join(M1, M2), M3)`, and `join(S)`, where S is a set of models, denotes
+  the result of folding all models in S together using `join`.
 
-- `exit(M)` represents the model corresponding to a program location which is
-  unreachable, but is otherwise modeled by flow model `M = FlowModel(r, VI)`,
-  and is defined as `FlowModel(push(pop(r), false), VI)`
+- `unreachable(M)` represents the model corresponding to a program location
+  which is unreachable, but is otherwise modeled by flow model `M = FlowModel(r,
+  VI)`, and is defined as `FlowModel(push(pop(r), false), VI)`
 
 ### Promotion
 
 Promotion policy is defined by the following operations on flow models.
 
+We say that the **current type** of a variable `x` in variable model `VM` is `S` where:
+  - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
+  - `promoted = S::l` or (`promoted = []` and `declared = S`)
+
 Policy:
-  - We say that at type `T` is a type of interest for a variable `x` in a list
-    of test sites `sites` if `sites` contains `x is T` or `x as T`.
+  - We say that at type `T` is a type of interest for a variable `x` in a set
+    of tested types `tested` if `tested` contains `T`.
+
+  - We say that a variable `x` is promotable via type test with type `T` given
+    variable model `VM` if
+    - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
+    - and `captured` is false
+    - and `S` is the current type of `x` in `VM`
+    - and not `S <: T`
+    - and `T <: S` or (`S` is `X extends R` and `T <: R`) or (`S` is `X & R` and
+      `T <: R`)
 
   - We say that a variable `x` is promotable via initialization given variable
     model `VM` if:
-    - `VM = VariableModel(declared, promoted, sites, assigned, unassigned, captured)`
+    - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
     - and `captured` is false
     - and `promoted` is empty
     - and `x` is declared with no explicit type and no initializer
@@ -283,15 +317,15 @@ Policy:
 
   - We say that a variable `x` is promotable via assignment of an expression of
     type `T` given variable model `VM` if
-    - `VM = VariableModel(declared, promoted, sites, assigned, unassigned, captured)`
+    - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
     - and `captured` is false
-    - and `promoted = S::l` or (`promoted = []` and `declared = S`)
+    - and `S` is the current type of `x` in `VM`
     - and `T <: S` and not `S <: T`
-    - and `T` is a type of interest for `x` in `sites`
+    - and `T` is a type of interest for `x` in `tested`
 
   - We say that a variable `x` is demotable via assignment of an expression of
     type `T` given variable model `VM` if
-    - `VM = VariableModel(declared, promoted, sites, assigned, unassigned, captured)`
+    - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
     - and `captured` is false
     - and promoted contains `T`
 
@@ -300,24 +334,45 @@ Definitions:
 - `assign(x, E, M)` where `x` is a local variable, `E` is an expression of
   inferred type `T`, and `M = FlowModel(r, VI)` is the flow model for `E` is
   defined to be `FlowModel(r, VI[x -> VM])` where:
-    - `VI(x) = VariableModel(declared, promoted, sites, assigned, unassigned, captured)`
+    - `VI(x) = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
     - if `captured` is true then:
-      - `VM = VariableModel(declared, promoted, sites, true, false, captured)`.
+      - `VM = VariableModel(declared, promoted, tested, true, false, captured)`.
     - otherwise if `x` is promotable via initialization given `VM` then
-      - `VM = VariableModel(declared, [T], sites, true, false, captured)`.
+      - `VM = VariableModel(declared, [T], tested, true, false, captured)`.
     - otherwise if `x` is promotable via assignment of `E` given `VM`
-      - `VM = VariableModel(declared, T::promoted, sites, true, false, captured)`.
+      - `VM = VariableModel(declared, T::promoted, tested, true, false, captured)`.
     - otherwise if `x` is demotable via assignment of `E` given `VM`
-      - `VM = VariableModel(declared, demoted, sites, true, false, captured)`.
-      - where `demoted` is the suffix of `promoted` starting with the first
-        occurrence of `T`.
+      - `VM = VariableModel(declared, demoted, tested, true, false, captured)`.
+      - where `demoted` is the suffix of `promoted` starting with the first type
+        `S` such that `T <: S`.
+
+- `promote(E, T, M)` where `E` is an expression, `T` is a type which it may be
+  promoted to, and `M = FlowModel(r, VI)` is the flow model in which to promote,
+  is defined as follows:
+  - If `E` is not a promotion target, then `M`
+  - If `E` is a promotion target `x`, then
+    - Let `VM = VariableModel(declared, promoted, tested, assigned, unassigned,
+      captured)` be the variable model for `x` in `VI`
+    - If `x` is not promotable via type test to `T` given `VM`, then return `M`
+    - Else
+      - Let `S` be the current type of `x` in `VM`
+      - If `T <: S` then let `T1` = `T`
+      - Else if `S` is `X extends R` then let `T1` = `X & T`
+      - Else If `S` is `X & R` then let `T1` = `X & T`
+      - Else `x` is not promotable (shouldn't happen since we checked above)
+      - Let `VM2 = VariableModel(declared, T1::promoted, T1::tested, assigned,
+      unassigned, captured)`
+      - Return `FlowModel(r, VI[x -> VM2])`
+- `promoteToNonNull(E, M)` where `E` is an expression and `M` is a flow model is
+  defined to be `promote(E, T, M)` where `T0` is the type of `E`, and `T` is
+  **NonNull(`T0`).
 
 Questions:
- - The interaction between assignment based promotion and downwards inference is
+ - The interaction between assignment based **promotion** and downwards inference is
    probably managable.  I think doing downwards inference using the current
    type, and then promoting the variable afterwards is fine for all reasonable
    cases.
- - The interaction between assignment based demotion and downwards inference is
+ - The interaction between assignment based **demotion** and downwards inference is
    a bit trickier.  In so far as it is manageable, I think it would need to be
    done as follows, given `x = E` where `x` has current type `S`.
      - Infer `E` in context `S`
@@ -325,7 +380,7 @@ Questions:
      applies, then instead of treating this as `x = (E as S)` (or an error),
      then instead treat `x` as promoted to `S` in the scope of the assigment.
 
-   - if a variable is tests before it is initialized, we must choose whether to
+   - if a variable is tested before it is initialized, we must choose whether to
     honor the type test or the assignment.  Above I've chosen to prefer type
     test based promotion.  Examples:
     ```
@@ -357,61 +412,59 @@ uses it to derive `after(N)`, `null(N)`, `notNull(N)`, `true(N)`, and
 If `N` is an expression, and the following rules specify the values to be
 assigned to `true(N)` and `false(N)`, but do not specify values for `null(N)`,
 `notNull(N)`, or `after(N)`, then they are by default assigned as follows:
-  - `null(N) = exit(after(N))`.
+  - `null(N) = unreachable(after(N))`.
   - `notNull(N) = join(true(N), false(N))`.
   - `after(N) = notNull(N)`.
 
-If `N` is an expression, and the above rules specify the value to be assigned to
-`after(N)`, but do not specify values for `true(N)`, `false(N)`, `null(N)`, or
-`notNull(N)`, then they are all assigned the same value as `after(N)`.
+If `N` is an expression, and the following rules specify the values to be
+assigned to `null(N)` and `notNull(N)`, but do not specify values for `true(N)`,
+`false(N)`, or `after(N)`, then they are by default assigned as follows:
+  - `true(N) = notNull(N)`.
+  - `false(N) = notNull(N)`.
+  - `after(N) = join(null(N), notNull(N))`.
 
+If `N` is an expression, and the following rules specify the value to be
+assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
+`null(N)`, or `notNull(N)`, then they are all assigned the same value as
+`after(N)`.
+
+
+- **Variable or getter**: If `N` is an expression of the form `x` 
+  where the type of `x` is `T` then:
+  - If `T <: Never` then:
+    - Let `null(N) = unreachable(before(N))`.
+    - Let `notNull(N) = unreachable(before(N))`.
+  - Otherwise if `T <: Null` then:
+    - Let `null(N) = before(N)`.
+    - Let `notNull(N) = unreachable(before(N))`.
+  - Otherwise if `T` is non-nullable then:
+    - Let `null(N) = before(N)`.
+    - Let `notNull(N) = unreachable(before(N))`.
+  - Otherwise:
+    - Let `null(N) = promote(x, Null, before(N))`
+    - Let `notNull(N) = promoteToNonNull(x, before(N))`
 
 - **True literal**: If `N` is the literal `true`, then:
   - Let `true(N) = before(N)`.
-  - Let `false(N) = exit(before(N))`.
+  - Let `false(N) = unreachable(before(N))`.
 
 - **False literal**: If `N` is the literal `false`, then:
-  - Let `true(N) = exit(before(N))`.
+  - Let `true(N) = unreachable(before(N))`.
   - Let `false(N) = before(N)`.
 
-- **Shortcut and**: If `N` is a shortcut "and" expression of the form `E1 && E2`,
-  then:
+- **null literal**: If `N` is the literal `null`, then:
+  - Let `null(N) = before(N)`.
+  - Let `notNull(N) = unreachable(before(N))`.
+
+- **other literal**: If `N` is some other literal than the above, then:
+  - Let `null(N) = unreachable(before(N))`.
+  - Let `notNull(N) = before(N)`.
+
+- **throw**: If `N` is a throw expression of the form `throw E1`, then:
   - Let `before(E1) = before(N)`.
-  - Let `before(E2) = split(true(E1))`.
-  - Let `true(N) = drop(true(E2))`.
-  - Let `false(N) = join(split(false(E1)), false(E2))`.
+  - Let `after(N) = unreachable(after(E1))`
 
-- **Shortcut or**: If `N` is a shortcut "or" expression of the form `E1 || E2`,
-  then:
-  - Let `before(E1) = before(N)`.
-  - Let `before(E2) = split(false(E1))`.
-  - Let `false(N) = drop(false(E2))`.
-  - Let `true(N) = join(split(true(E1)), true(E2))`.
-
-- **If-null**: If `N` is an if-null expression of the form `E1 ?? E2`, then:
-  - Let `before(E1) = before(N)`.
-  - Let `before(E2) = split(null(E1))`.
-  - Let `null(N) = drop(null(E2))`.
-  - Let `notNull(N) = join(split(notNull(E1)), notNull(E2))`.
-
-- **operator==** TODO
-
-- **Binary operator**: All binary operators other than `&&`, `||`, and `??` are
-  handled as calls to the appropriate `operator` method.
-
-- **Conditional expression**: If `N` is a conditional expression of the form `E1
-  ? E2 : E3`, then:
-  - Let `before(E1) = before(N)`.
-  - Let `before(E2) = split(true(E1))`.
-  - Let `before(E3) = split(false(E1))`.
-  - Let `after(N) = join(after(E2), after(E3))`.
-  - Let `true(N) = join(true(E2), true(E3))`.
-  - Let `false(N) = join(false(E2), false(E3))`.
-  - Let `null(N) = join(null(E2), null(E3))`.
-  - Let `notNull(N) = join(notNull(E2), notNull(E3))`.
-
-
-- **Local variable assignment**: If `N` is an expression of the form `x = E1`
+- **Local-variable assignment**: If `N` is an expression of the form `x = E1`
   where `x` is a local variable, then:
   - Let `before(E1) = before(N)`.
   - Let `after(N) = assign(x, E1, after(E1))`.
@@ -419,6 +472,69 @@ If `N` is an expression, and the above rules specify the value to be assigned to
   - Let `false(N) = assign(x, E1, false(E1))`.
   - Let `null(N) = assign(x, E1, null(E1))`.
   - Let `notNull(N) = assign(x, E1, notNull(E1))`.
+
+
+- **operator==** If `N` is an expression of the form `E1 == E2` then:
+  - Let `before(E1) = before(N)`
+  - Let `before(E2) = after(E1)`
+  - Let `true(N) = join(join(null(E1), null(E2)),
+                   join(notNull(E1), notNull(E2)))`
+  - Let `false(N) = join(join(null(E1), notNull(E2)),
+                         join(notNull(E1), null(E2)),
+                         join(notNull(E1), notNull(E2)))`
+
+- **Local variable conditional assignment**: If `N` is an expression of the form
+  `x ??= E1` where `x` is a local variable, then:
+  - Let `before(E1) = split(promote(x, Null, before(N)))`.
+  - Let `M1 = assign(x, E1, after(E1))`
+  - Let `M2 = split(promoteToNonNull(x, before(N)))`
+  - Let `after(N) = merge(M1, M2)`
+
+TODO: This isn't really right, `E1` isn't reallyt an expression here.
+- **Non local-variable conditional assignment**: If `N` is an expression of the form
+  `E1 ??= E2` where `E1` is not a local variable, then:
+  - Let `before(E1) = before(N)`
+  - Let `before(E2) = split(after(E1))`.
+  - Let `after(N) = merge(after(E2), split(before(N)))`
+
+TODO: Cascades
+
+- **Conditional expression**: If `N` is a conditional expression of the form `E1
+  ? E2 : E3`, then:
+  - Let `before(E1) = before(N)`.
+  - Let `before(E2) = split(true(E1))`.
+  - Let `before(E3) = split(false(E1))`.
+  - Let `after(N) = merge(after(E2), after(E3))`.
+  - Let `true(N) = merge(true(E2), true(E3))`.
+  - Let `false(N) = merge(false(E2), false(E3))`.
+  - Let `null(N) = merge(null(E2), null(E3))`.
+  - Let `notNull(N) = merge(notNull(E2), notNull(E3))`.
+
+- **If-null**: If `N` is an if-null expression of the form `E1 ?? E2`, then:
+  - Let `before(E1) = before(N)`.
+  - Let `before(E2) = split(null(E1))`.
+  - Let `null(N) = unsplit(null(E2))`.
+  - Let `notNull(N) = merge(split(notNull(E1)), notNull(E2))`.
+
+- **Shortcut and**: If `N` is a shortcut "and" expression of the form `E1 && E2`,
+  then:
+  - Let `before(E1) = before(N)`.
+  - Let `before(E2) = split(true(E1))`.
+  - Let `true(N) = unsplit(true(E2))`.
+  - Let `false(N) = merge(split(false(E1)), false(E2))`.
+
+- **Shortcut or**: If `N` is a shortcut "or" expression of the form `E1 || E2`,
+  then:
+  - Let `before(E1) = before(N)`.
+  - Let `before(E2) = split(false(E1))`.
+  - Let `false(N) = unsplit(false(E2))`.
+  - Let `true(N) = merge(split(true(E1)), true(E2))`.
+
+
+- **Binary operator**: All binary operators other than `==`, `&&`, `||`, and
+  `??`are handled as calls to the appropriate `operator` method.
+
+
 
 
 
@@ -429,11 +545,7 @@ If `N` is an expression, and the above rules specify the value to be assigned to
   - Let `before(E) = before(N)`.
   - Let `before(S1) = split(true(E))`.
   - Let `before(S2) = split(false(E))`.
-  - Let `after(N) = join(after(S1), after(S2))`.
-  - Let `true(N) = join(true(S1), true(S2))`.
-  - Let `false(N) = join(false(S1), false(S2))`.
-  - Let `null(N) = join(null(S1), null(S2))`.
-  - Let `notNull(N) = join(notNull(S1), notNull(S2))`.
+  - Let `after(N) = merge(after(S1), after(S2))`.
 
 
 - **while statement**: If `N` is a while statement of the form `while
@@ -442,10 +554,6 @@ If `N` is an expression, and the above rules specify the value to be assigned to
   - Let `before(S1) = split(true(E))`.
   - Let `before(S2) = split(false(E))`.
   - Let `after(N) = join(after(S1), after(S2))`.
-  - Let `true(N) = join(true(S1), true(S2))`.
-  - Let `false(N) = join(false(S1), false(S2))`.
-  - Let `null(N) = join(null(S1), null(S2))`.
-  - Let `notNull(N) = join(notNull(S1), notNull(S2))`.
 
 
 
@@ -461,7 +569,7 @@ If `N` is an expression, and the above rules specify the value to be assigned to
   
   - Update `break(S) = join(break(S), before(N))`.
   
-  - Let `after(N) = exit(before(N))`.
+  - Let `after(N) = unreachable(before(N))`.
   
 - **Continue statement**: If `N` is a statement of the form `continue [L];` then:
 
@@ -472,7 +580,7 @@ If `N` is an expression, and the above rules specify the value to be assigned to
     
   - Update `continue(S) = join(continue(S), before(N))`.
   
-  - Let `after(N) = exit(before(N))`.
+  - Let `after(N) = unreachable(before(N))`.
 
 - **Do statement**: If `N` is a "do" statement of the form `do S while (E);`,
   then:
@@ -519,7 +627,7 @@ If `N` is an expression, and the above rules specify the value to be assigned to
 
 ## Extended Reachability
 
-  As mentioned earlier, it would be sound to define exit(M) = ∅ for all models, but
+  As mentioned earlier, it would be sound to define unreachable(M) = ∅ for all models, but
   doing so leads to less than optimal user feedback. Consider, for example, the following code:
 
   ```dart
@@ -713,5 +821,12 @@ void test() {
   if (false && a != null) {
     a.and(3);
   }
+}
+```
+
+```dart
+Object x;
+if (false && x is int) {
+  x.isEven
 }
 ```
