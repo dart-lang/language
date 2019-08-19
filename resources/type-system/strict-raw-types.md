@@ -13,7 +13,7 @@ their bounds, or `dynamic` if there are no bounds.
 
  ```yaml
 analyzer:
-  langauge:
+  language:
     strict-raw-types: true
 ```
 
@@ -66,13 +66,13 @@ void main() {
 }
 ```
 
-The devloper likely does not realize that the parameter `e` of the callback is
+The developer likely does not realize that the parameter `e` of the callback is
 `dynamic`, and that the call to `isEven` is a dynamic dispatch.
 
 Reporting strict raw types encourages developers to fill in omitted type
 arguments, hopefully with something other than `dynamic`. In cases where the
 only good type is `dynamic`, then including it as an explicit type argument
-avoids the raw type.
+avoids the raw type, and makes the dynamic behavior more explicit in the code.
 
 ## Conditions for a raw type Hint
 
