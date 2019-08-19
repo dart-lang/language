@@ -21,13 +21,15 @@ analyzer:
 ## Motivation
 
 It is possible to write Dart code that passes all static analysis and
-compile-time checks that is guaranteed to result in runtime errors. Commone
+compile-time checks that is guaranteed to result in runtime errors. Common
 examples include runtime type errors, and no-such-method errors. New and
 experienced Dart developers alike write such code, and are surprised to see
 such errors at runtime, which look like they should be caught at compile time.
 
 The strict inference mode aims to highlight such code during static analysis.
-We can look at two common examples:
+Consider two motivating examples:
+
+### Example: under-constrained list literals
 
 ```dart
 fn(List<int> numbers) => print(numbers.first.isEven);
@@ -35,26 +37,27 @@ fn(List<int> numbers) => print(numbers.first.isEven);
 void main() {
   var args = ["one", "two", "three"];
   var useArgs = true;
-  fn(useArgs ? args : []);
+  var numbers = useArgs ? args : [];
+  fn(numbers);
 }
 ```
 
 Depending on the value of `useArgs`, the last line will result in a runtime
 error. The developer thinks that `args` is an appropriate value to send to
-`fn`, because surely static analysis would have reported if this wasn't so. In
-real world cases of this code, `fn` and `main` may be authored by different
+`fn`, because `args` is assigned to `numbers`, and `numbers` is sent to `fn`,
+so surely static analysis would have reported if this was illegal. In real
+world cases of this code, `fn` and `main` may be authored by different
 developers, and may be located in separate packages. `args` may have been
 created in a third location, by a third developer, with a complex generic type.
 Static analysis is supposed to help developers catch where they have
 misunderstood an API or the type of an object they are handling.
 
 The developer might think that the type of `[]` is unimportant, or that it is
-inferred from the `numbers` parameter type, or that it is inferred from the
-expression to the left of `:`. None of these are true. The type of `[]` is
-inferred from the types of its elements. As their are none, it "falls back" to
-`dynamic`. Then type of the conditional expression `useArgs ? args : []` is
-inferred from the "then" and "else" expressions, `args` (`List<String>`) and
-`[]` (`List<dynamic>`), resulting in LUB of the two, `List<dynamic>`.
+inferred from the expression to the left of `:`. Instead, the type of `[]` is
+only inferred from the types of its elements. As their are none, it "falls
+back" to `dynamic`. Then type of the conditional expression `useArgs ?  args :
+[]` is inferred from the "then" and "else" expressions, `args` (`List<String>`)
+and `[]` (`List<dynamic>`), resulting in LUB of the two, `List<dynamic>`.
 
 Static analysis allows a `List<dynamic>` argument for a `List<int>`, as an
 implicit cast. At runtime, however, `args` (a `List<String>`) fails to cast to
@@ -71,7 +74,9 @@ also a `List<String>`." At this point, existing static analysis will inform the
 developer that a `List<String>` cannot be passed where a `List<int>` is
 expected.
 
-Let's look at a second example. Consider the signature of [`Iterable.fold`]:
+### Example: Under-constrained generic method invocations
+
+Consider the signature of [`Iterable.fold`]:
 
 > T fold <T>(T initialValue, T combine(T previousValue, E element))
 
@@ -86,12 +91,14 @@ guaranteed to produce a failure at runtime, when `true + 1` is executed. The
 issue here is similar to the previous one: the developer likely thinks that the
 type of `s` (`T`) will be inferred from the type of `initialValue`, and that
 static analysis would report any issue with that type. But inference doesn't
-flow between parameters like that.  Instead, while trying to infer `T`, there
-is not enough information from downwards inference (the type of `a`), and there
-is not enough information from upwards inference (the type of `(s, x) => s +
-x`). Inference gives up on the type of the function literal, and gives it
-`dynamic Function(dynamic, int)`. Inference combines that type with `bool`, the
-type of `true`, and settles on `dynamic` for `T`.
+flow between parameters like that. Instead, while trying to infer the `T` on
+`fold`, there is not enough information from downwards inference (the type of
+`a`); upwards inference first constrains `T` to be a supertype of the first
+argument's type (`bool`), then must decide on the type of the second argument,
+to use that as a second constraint. `s` is assumed to be `dynamic`, which makes
+the argument's type `dynamic Function(dynamic, int)`. So inference additionally
+constrains `T` to be a supertype of `dynamic`. The LUB of `bool` and `dynamic`
+is `dynamic`, so the final static type of `T` is `dynamic`.
 
 The issue would be revealed with either an explicit type on `fold`, an explicit
 type for `a`, which would help to infer the type of `s`, or an explicit type
@@ -100,17 +107,26 @@ for `s`:
 ```dart
 void main() {
   // Each of these produce an existing error:
-  // "The operator '+' isn't defined for the class 'bool'."
+  //
+  //     "The operator '+' isn't defined for the class 'bool'."
   var b = [1, 2, 3].fold<bool>(true, (s, x) => s + x);
   bool c = [1, 2, 3].fold(true, (s, x) => s + x);
 
   // This produces an existing error:
-	// "Couldn't infer type parameter 'T'. Tried to infer 'Object' for 'T' which
-  // doesn't work: Parameter 'combine' declared as 'T Function(T, int)' but
-  // argument is 'int Function(int, int)'. The type 'Object' was inferred from:
-  // Parameter 'initialValue' declared as 'T' but argument is 'bool'. Consider
-  // passing explicit type argument(s) to the generic."
-  var d = [1, 2, 3].fold(true, (int s, x) => s + x);
+  //
+  //     "The argument type 'int Function(int, int)' can't be assigned to the 
+  //     parameter type 'Object Function(Object, int)'"
+  var d = [1, 2, 3].fold(true, (int s, int x) => s + x);
+
+  // This produces an existing error:
+  //
+  //     "Couldn't infer type parameter 'T'. Tried to infer 'Object' for 'T'
+  //     which doesn't work: Parameter 'combine' declared as
+  //     'T Function(T, int)' but argument is 'int Function(int, int)'. The type
+  //     'Object' was inferred from: Parameter 'initialValue' declared as 'T'
+  //     but argument is 'bool'. Consider passing explicit type argument(s) to
+  //     the generic."
+  var e = [1, 2, 3].fold(true, (int s, x) => s + x);
 }
 ```
 
@@ -189,7 +205,7 @@ void fA(String cb(var a)) => print(cb(7)); // Inference failure
 void fB(String cb(int x)) => print(cb(7)); // OK
 
 // Typedef parameters cannot be specified with `var`.
-typedef Callback = void Function(int a); // OK
+typedef Callback = void Function(int); // OK
 
 void main() {
   var f = (var a) {};      // Inference failure
