@@ -14154,7 +14154,7 @@ the scope of another library.
 \end{grammar}
 
 \LMHash{}%
-Syntactically, an import specifies a URI $x$
+Syntactically, an import specifies a URI $s$
 where the declaration of an imported library is to be found.
 The interpretation of URIs is described elsewhere
 (\ref{uris}).
@@ -14177,21 +14177,21 @@ a prefix clause of the form \code{\AS{} \id} used to prefix
 names imported by $I$.
 A deferred import must include a prefix clause,
 or a compile-time error occurs.
-It is a compile-time error if a prefix used in a deferred import is used
-in another import clause.
+It is a compile-time error if a prefix used in a deferred import
+is also used as the prefix of another import clause.
 
 \LMHash{}%
 An import directive $I$ may optionally include namespace combinator clauses
 used to restrict the set of names imported by $I$.
-Their application and effect on namespaces is described elsewhere
-(\ref{theImportedNamespace}, \ref{namespaceCombinators}).
+Their syntax, usage, and effect on namespaces is described elsewhere
+(\ref{namespaceCombinators}, \ref{theImportedNamespace}).
 
 \LMHash{}%
 It is a static warning to import two different libraries with the same name,
 unless their name is the empty string.
 
 \rationale{%
-If two different URIs are inadvertantly used to access the same library $L$,
+If two different URIs are inadvertently used to access the same library $L$,
 say, because of a symbolic link in the underlying file system,
 this may help explaining why there are two incompatible copies of
 the types declared in $L$.
@@ -14396,7 +14396,7 @@ where one of the following conditions holds:
     So an imported declaration from a non-system library shadows
     imported declarations from system libraries.%
   }
-\item The first case does not not apply,
+\item The first case does not apply,
   there exists a $j \in 1 .. m$ such that
   \NamespaceName{\metavar{one},j} is defined at $n'$,
   $L_i$ and $L_j$ are not the same library,
@@ -14434,8 +14434,8 @@ they both map $n$ to the same value.%
 Note that it is not an error if a name $n$ is introduced by two or more imports
 but is never used.
 In this case the conflicted name is simply eliminated from the namespace.
-Tools may choose to retain the information that there was a name clash
-in order to emit a more informative error message,
+Tools may choose to retain the information that there was a name clash,
+in order to emit a more informative error message
 if the name is used.%
 }
 
@@ -14544,14 +14544,14 @@ but will raise errors.%
 }
 
 \LMHash{}%
-After an invocation of \code{loadLibrary} succeeds,
+After an invocation of \code{$p$.loadLibrary} succeeds,
 the name $p$ is mapped to a non-deferred prefix object,
 as described below.
 In addition, the prefix object also supports the \code{loadLibrary()} method,
-and so it is possible to call \code{loadLibrary} again.
+and so it is possible to call \code{$p$.loadLibrary} again.
 If a call fails, nothing happens,
-and one has the option to call \code{loadLibrary} again.
-Whether a repeated call to \code{loadLibrary} succeeds will vary,
+and one has the option to call \code{$p$.loadLibrary} again.
+Whether a repeated call to \code{$p$.loadLibrary} succeeds will vary,
 as described below.
 
 \LMHash{}%
@@ -14583,7 +14583,7 @@ We do not specify which object the future returned resolves to.
 
 \LMHash{}%
 \Case{Evaluation of immediate imports}
-When $I_i$ is an immediate import:
+When $I_i$ is an immediate import that refers to a URI via the string $s_i$:
 
 \begin{itemize}
 \item
@@ -14601,42 +14601,46 @@ When $I_i$ is an immediate import:
 
 \LMHash{}%
 Let \NamespaceName{\metavar{import}, i} be the namespace imported from $L_i$.
-The namespace \NamespaceName{i} will then have the following mappings:
+The namespace \NamespaceName{i} will then have the following bindings:
 
 \begin{itemize}
 \item
-  For every top level function $f$ named \id{} in
+  For every top level function, getter, or setter $m$ named $n$ in
   \NamespaceName{\metavar{import}, i},
-  a corresponding method with the same name and signature as $f$
-  that forwards (\ref{functionDeclarations}) to $f$.
-\item
-  For every top level getter $g$ named \id{} in
-  \NamespaceName{\metavar{import}, i},
-  a corresponding getter that forwards to $g$.
-\item
-  For every top level setter $s$ named \code{\id=} in
-  \NamespaceName{\metavar{import}, i},
-  a corresponding setter that forwards to $s$.
+  a binding from $n$ to the result of compiling $m$.
 \item
   For every type $T$ named \id{} in
   \NamespaceName{\metavar{import}, i},
-  a corresponding getter named \id{} with return type \code{Type}
+  a compiled getter named \id{} with return type \code{Type}
   that, when invoked, returns the type object for $T$.
 \end{itemize}
 
 \LMHash{}%
-If $I_i$ has prefix $p$ then a mapping from $p$ to a non-deferred prefix object
+If $I_i$ has prefix $p$,
+and the library namespace of the current library
+does not have a binding for $p$,
+then a mapping from $p$ to a non-deferred prefix object
 with members determined by \NamespaceName{i} is introduced into the
 library namespace of the current library.
+If $I_i$ has prefix $p$,
+and the library namespace of the current library
+binds $p$ to a non-deferred prefix object $o$,
+then $o$ is extended with members as determined by \NamespaceName{i}.
 
 \LMHash{}%
-If $I_i$ does not have a prefix then each mapping in \NamespaceName{i}
+Otherwise, when $I_i$ does not have a prefix, each mapping in \NamespaceName{i}
 is introduced into the library namespace of the current library.
 
 \commentary{%
-Note that the dynamic construction of the library namespace
+The dynamic construction of the library namespace
 cannot encounter any name conflicts,
-because such conflicts would have caused a compile-time error.%
+because such conflicts would have caused a compile-time error.
+
+Library namespace construction can be completed at compile time,
+and any accesses, prefixed or not, can be resolved statically.
+So an implementation does not need to extend prefix objects dynamically,
+or even have a run-time representation of prefix objects at all,
+as long as the observable behavior is preserved.%
 }
 \EndCase
 
@@ -14661,7 +14665,7 @@ via \Index{export directives}, often referred to simply as \Index{exports}:
 \end{grammar}
 
 \LMHash{}%
-An export specifies a URI $x$
+An export specifies a URI $s$
 where the declaration of an exported library is to be found.
 The interpretation of URIs is described elsewhere
 (\ref{uris}).
@@ -14754,12 +14758,12 @@ key set which is disjoint with that of
 
 \LMHash{}%
 Assume that $i$ and $j$ are numbers in $1 .. m$.
-It is a compile-time error if there exist names $n$ and $n'$
-with the same basename such that
+It is a compile-time error
+if $L_i$ and $L_j$ are not the same library,
+either none or both of $L_i$ and $L_j$ are system libraries,
+and there exist names $n$ and $n'$ with the same basename such that:
 \NamespaceName{\metavar{export},i} is defined at $n$,
 \NamespaceName{\metavar{export},j} is defined at $n'$,
-$L_i$ and $L_j$ are not the same library,
-either none or both of $L_i$ and $L_j$ are system libraries,
 and \Namespace{\metavar{export},i}{n}
 and \Namespace{\metavar{export},j}{n'}
 is not the same declaration.
@@ -14809,7 +14813,7 @@ It is a static warning to export two different libraries with the same name,
 unless their name is the empty string.
 
 \rationale{%
-If two different URIs are inadvertantly used to access the same library $L$,
+If two different URIs are inadvertently used to access the same library $L$,
 say, because of a symbolic link in the underlying file system,
 this may help explaining why there are two incompatible copies of
 the types declared in $L$.
