@@ -14313,7 +14313,8 @@ it is undefined at each name $n$ where one of the following holds:
   is not the same declaration.
   \commentary{%
     So with two distinct imported declarations with the same basename,
-    both are eliminated.%
+    both are eliminated,
+    except when it is a getter and a setter from the same library.%
   }
   % We need 'not the same library', l != j is not enough: See comment on the
   % corresponding case for step two below (search 'not the same library').
@@ -14406,7 +14407,8 @@ where one of the following conditions holds:
   is not the same declaration.
   \commentary{%
     So with two distinct imported declarations with the same basename,
-    both are eliminated.%
+    both are eliminated,
+    except when it is a getter and a setter from the same library.%
   }
   % We need the 'not the same library' requirement (i != j is not enough),
   % because otherwise we could have two imports of the same library (without
@@ -14430,7 +14432,11 @@ they both map $n$ to the same value.%
 
 \commentary{%
 Note that it is not an error if a name $n$ is introduced by two or more imports
-but is never used.%
+but is never used.
+In this case the conflicted name is simply eliminated from the namespace.
+Tools may choose to retain the information that there was a name clash
+in order to emit a more informative error message,
+if the name is used.%
 }
 
 \rationale{%
@@ -14748,19 +14754,30 @@ key set which is disjoint with that of
 
 \LMHash{}%
 Assume that $i$ and $j$ are numbers in $1 .. m$.
-It is a compile-time error if there exists keys $n$ and $n'$ such that
+It is a compile-time error if there exist names $n$ and $n'$
+with the same basename such that
 \NamespaceName{\metavar{export},i} is defined at $n$,
 \NamespaceName{\metavar{export},j} is defined at $n'$,
 $L_i$ and $L_j$ are not the same library,
 either none or both of $L_i$ and $L_j$ are system libraries,
-$n$ and $n'$ have the same basename,
 and \Namespace{\metavar{export},i}{n}
 and \Namespace{\metavar{export},j}{n'}
 is not the same declaration.
 
 \commentary{%
-It is possible for $n$ and $n'$ to be mapped to the same declaration,
-e.g., due to multiple re-exports.%
+This means that it is an error when two distinct exported declarations have
+the same basename,
+except when it is a getter and a setter from the same library.%
+}
+
+\rationale{%
+This rule is more strict than the corresponding rule for imports:
+When two imported declarations have a name clash it is only an error to
+\emph{use} the conflicted name, it is not an error that the name clash exists.
+But with exported names it is an error that the name clash exists.
+The reason for this difference is that the error may affect
+a library $L_2$ that imports the current library $L$,
+and the maintainers of $L_2$ may not be in a position to change $L$.%
 }
 
 \LMHash{}%
@@ -14790,6 +14807,15 @@ that $L$ \NoIndex{re-exports} \NamespaceName{\metavar{export},i}.
 \LMHash{}%
 It is a static warning to export two different libraries with the same name,
 unless their name is the empty string.
+
+\rationale{%
+If two different URIs are inadvertantly used to access the same library $L$,
+say, because of a symbolic link in the underlying file system,
+this may help explaining why there are two incompatible copies of
+the types declared in $L$.
+Developers may also choose to omit library names entirely,
+which motivates the exception for the empty name.%
+}
 
 
 \subsection{Namespace Combinators}
