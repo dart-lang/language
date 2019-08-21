@@ -14138,102 +14138,6 @@ the names introduced by all top-level declarations declared in $L$,
 and the names added by $L$'s imports (\ref{imports}).
 
 
-\subsection{Namespace Combinators}
-\LMLabel{namespaceCombinators}
-
-\LMHash{}%
-Imports (\ref{imports}) and exports (\ref{exports}) rely on
-\Index{namespace combinators}
-in order to adjust namespaces
-(\ref{scoping})
-and manage name clashes.
-The supported namespace combinators are \SHOW{} and \HIDE{}.
-
-\begin{grammar}
-<combinator> ::= \SHOW{} <identifierList> | \HIDE{} <identifierList>
-
-<identifierList> ::= <identifier> (`,' <identifier>)*
-\end{grammar}
-
-\LMHash{}%
-We define several operations that compute namespaces.
-The
-\IndexCustom{union of two namespaces}{namespace!union},
-\IndexCustom{$\NamespaceName{a}\cup\NamespaceName{b}$}{%
-  $\cup$@$\NamespaceName{a} \cup \NamespaceName{b}$},
-is defined when every key where both are defined is mapped to the same value.
-This union is the namespace that maps
-each key $n$ of \NamespaceName{a}
-to the corresponding value \Namespace{a}{n},
-and each key $n$ of \NamespaceName{b}
-to \Namespace{b}{n}.
-
-\commentary{%
-Note that this \emph{is} a namespace because the union is only defined
-when the mapping of any given key is unambiguous.%
-}
-
-\LMHash{}%
-The function
-\IndexCustom{\Hide{l}{\NamespaceName{a}}}{%
-  hide(l,NSa)@\Hide{l}{\NamespaceName{}}}
-takes a list of identifiers $l$ and a namespace \NamespaceName{a},
-and produces a namespace \NamespaceName{b} that is
-identical to \NamespaceName{a} except that for each identifier \id{} in $l$,
-\NamespaceName{b} is undefined at \id{} and at \code{\id=}.
-
-\LMHash{}%
-The function
-\IndexCustom{\Show{l}{\NamespaceName{a}}}{%
-  show(l,NSa)@\Show{l}{\NamespaceName{}}}
-takes a list of identifiers $l$ and a namespace \NamespaceName{a},
-and produces a namespace \NamespaceName{b} that
-maps each identifier \id{} in $l$
-where \NamespaceName{a} is defined
-to \Namespace{a}{n}.
-Furthermore, for each identifier \id{} in $l$
-where \NamespaceName{a} is defined at \code{\id=},
-\NamespaceName{b} maps \code{\id=} to \Namespace{a}{\code{\id=}}.
-Finally, \NamespaceName{b} is undefined at all other names.
-
-\LMHash{}%
-Let \List{C}{1}{n} be a sequence of combinator clauses.
-\commentary{They would come from an import or export directive.}
-The
-\IndexCustom{combinator clauses can be applied to}{%
-  combinator clauses!application to namespace}
-a given namespace \NamespaceName{\metavar{start}},
-which yields a namespace \NamespaceName{\metavar{end}},
-as follows.
-
-\LMHash{}%
-Let \NamespaceName{0} be \NamespaceName{\metavar{start}}.
-For each combinator clause $C_j$, $j \in 1 .. n$:
-If $C_j$ is of the form \code{\SHOW{} $\id_1, \ldots,\ \id_k$} then let
-$\NamespaceName{j} = \Show{[\List{\id}{1}{k}]}{\NamespaceName{j-1}}$.
-If $C_i$ is of the form \code{\HIDE{} $\id_1, \ldots,\ \id_k$} then let
-$\NamespaceName{j} = \Hide{[\List{id}{1}{k}]}{\NamespaceName{j-1}}$.
-Then \NamespaceName{\metavar{end}} is \NamespaceName{n}.
-
-\commentary{%
-\NamespaceName{\metavar{end}} will always agree with
-\NamespaceName{\metavar{start}} wherever both are defined,
-and the set of names where \NamespaceName{\metavar{end}} is defined
-is always a subset of that of \NamespaceName{\metavar{start}}.
-In that sense, this is a \emph{narrowing} procedure.%
-}
-
-\commentary{%
-It is possible to use \HIDE{} or \SHOW{} on an identifier
-which is not in the given namespace.%
-}
-\rationale{%
-This prevents situations where, e.g.,
-removing a declaration from a library $L$ would cause
-breakage in a library that imponts $L$.%
-}
-
-
 \subsection{Imports}
 \LMLabel{imports}
 
@@ -14258,12 +14162,14 @@ It is a compile-time error if the specified URI
 does not refer to a library declaration.
 
 \LMHash{}%
-Imports may be
-\IndexCustom{deferred}{import!deferred} or
-\IndexCustom{immediate}{import!immediate}.
-A deferred import is distinguished by the appearance of
+Imports may be deferred or immediate.
+A
+\IndexCustom{deferred import}{import!deferred}
+is distinguished by the appearance of
 the built-in identifier \DEFERRED{} after the URI.
-Any import that is not deferred is immediate.
+An
+\IndexCustom{immediate import}{import!immediate}
+is an import that is not deferred.
 
 \LMHash{}%
 An immediate import directive $I$ may optionally include
@@ -14277,6 +14183,46 @@ in another import clause.
 \LMHash{}%
 An import directive $I$ may optionally include namespace combinator clauses
 used to restrict the set of names imported by $I$.
+Their application and effect on namespaces is described elsewhere
+(\ref{theImportedNamespace}, \ref{namespaceCombinators}).
+
+\LMHash{}%
+It is a static warning to import two different libraries with the same name,
+unless their name is the empty string.
+
+\rationale{%
+If two different URIs are inadvertantly used to access the same library $L$,
+say, because of a symbolic link in the underlying file system,
+this may help explaining why there are two incompatible copies of
+the types declared in $L$.
+Developers may also choose to omit library names entirely,
+which motivates the exception for the empty name.%
+}
+
+\LMHash{}%
+The dart core library \code{dart:core}
+is implicitly imported into every dart library other than itself
+via an import clause of the form
+\code{\IMPORT{} 'dart:core';}
+unless the importing library explicitly imports \code{dart:core}.
+Any import of \code{dart:core},
+even if restricted via \SHOW{}, \HIDE{} or \AS{},
+preempts the automatic import.
+
+\rationale{%
+It would be nice if there was nothing special about \code{dart:core}.
+However, its use is pervasive,
+which leads to the decision to import it automatically.
+However, some library $L$ may wish to define entities
+with names used by \code{dart:core}
+(which it can easily do, as the names declared by a library take precedence).
+Other libraries may wish to use $L$,
+and may want to use members of $L$ that conflict with the core library
+without having to use a prefix and without encountering errors.
+The above rule makes this possible,
+essentially canceling \code{dart:core}'s special treatment
+by means of yet another special rule.%
+}
 
 
 \subsubsection{The Imported Namespace}
@@ -14286,6 +14232,31 @@ used to restrict the set of names imported by $I$.
 In the following, we specify the imported namespace of a library $L$,
 \NamespaceName{\metavar{import}},
 in two steps.
+
+\LMHash{}%
+We need to introduce system libraries because they have special rules.
+A \Index{system library} is a library that is part of the Dart implementation.
+Any other library is a \Index{non-system library}.
+
+\commentary{%
+A system library can generally be recognized by having
+a URI that starts with `\code{dart:}'.
+An exception is `\code{dart:ui}' which is not a system library.%
+}
+
+\rationale{%
+The special rules for system libraries exist for the following reason.
+Normal conflicts are resolved at deployment time,
+but the functionality of a system library is
+injected into an application at run time,
+and may vary over time as the platform is upgraded.
+Thus, conflicts with a system library can arise
+outside the developer's control.
+To avoid breaking deployed applications in this way,
+conflicts with the system libraries are treated specially.%
+}
+
+\LMHash{}%
 Let \NamespaceName{\metavar{local}} be the namespace that
 for each top-level declaration $D$ with name $n$ in $L$ maps $n$ to $D$.
 An import with a prefix $p$ is included among these top-level declarations,
@@ -14295,21 +14266,67 @@ and let \List{L}{1}{m} be libraries
 such that $I_i$ refers to $L_i$ for all $i \in 1 .. m$.
 
 \LMHash{}%
-In the first step we compute the namespace provided by each imported library.
 Let $i \in 1 .. m$.
+In the first step we compute the namespace provided by each imported library,
+\NamespaceName{\metavar{one},i}.
+
+\LMHash{}%
+\Case{Step one for imports without a prefix}
+When $I_i$ has no prefix, \NamespaceName{\metavar{one},i} is
+the namespace obtained from applying the namespace combinators of $I_i$ to
+the exported namespace of $L_i$
+(\ref{namespaceCombinators}).
+\EndCase
 
 \LMHash{}%
 \Case{Step one for prefixed imports}
 When $I_i$ has prefix $p_i$,
-let \NamespaceName{\metavar{prefix},i}
-be the namespace obtained from applying the namespace combinators of $I_i$ to
-the exported namespace of $L_i$
-(\ref{namespaceCombinators}),
-and let
-\NamespaceName{\metavar{narrowed},i}
-be the namespace that maps $p_i$ to a \Index{prefix object},
-which is a mapping that associates names with entities declared in $L_i$
-as follows:
+let \List{I'}{1}{k} be the subset of \List{I}{1}{m} that have prefix $p_i$,
+and let \List{L'}{1}{k} be the corresponding libraries
+(\commentary{which is a subset of \List{L}{1}{m}}).
+Let \NamespaceName{\metavar{exported},j}, $j \in 1 .. k$,
+be the namespace obtained from applying the namespace combinators of $I'_j$ to
+the exported namespace of $L'_j$
+(\ref{namespaceCombinators}).
+
+\LMHash{}%
+Let \NamespaceName{\metavar{narrowed},j} be the namespace which is identical to
+\NamespaceName{\metavar{exported},j} except that
+it is undefined at each name $n$ where one of the following holds:
+
+\begin{itemize}
+\item $L'_j$ is a system library,
+  there exists an $l \in 1 .. k$ such that $L'_l$ is not a system library,
+  \NamespaceName{\metavar{exported},l} is defined at $n'$,
+  and $n$ and $n'$ have the same basename.
+  \commentary{%
+    So an imported declaration from a non-system library shadows
+    imported declarations from system libraries.%
+  }
+\item There exists an $l \in 1 .. k$ such that
+  \NamespaceName{\metavar{exported},l} is defined at $n'$,
+  $L'_j$ and $L'_l$ are not the same library,
+  either none or both of $L'_j$ and $L'_l$ are system libraries,
+  $n$ and $n'$ have the same basename,
+  and \Namespace{\metavar{exported},j}{n}
+  and \Namespace{\metavar{exported},l}{n'}
+  is not the same declaration.
+  \commentary{%
+    So with two distinct imported declarations with the same basename,
+    both are eliminated.%
+  }
+  % We need 'not the same library', l != j is not enough: See comment on the
+  % corresponding case for step two below (search 'not the same library').
+\end{itemize}
+
+\LMHash{}%
+Let \NamespaceName{\metavar{prefix},i} be the namespace
+$\NamespaceName{\metavar{narrowed},1} \cup \ldots
+\NamespaceName{\metavar{narrowed},k}$.
+Then \NamespaceName{\metavar{one},i} is the namespace that
+maps $p_i$ to a \Index{prefix object},
+which is a mapping that associates names with entities declared in
+\List{L'}{1}{k} as follows:
 
 \begin{itemize}
 \item
@@ -14323,7 +14340,7 @@ as follows:
 \item
   For every top level setter $s$ named \code{\id=} in
   \NamespaceName{\metavar{prefix}, i},
-  \id{} is mapped to a setter with the same parameter type as $s$.
+  \code{\id=} is mapped to a setter with the same parameter type as $s$.
 \item
   For every type $T$ named \id{} in
   \NamespaceName{\metavar{prefix}, i},
@@ -14337,100 +14354,83 @@ during static analysis,
 and a mapping that is used to access the corresponding entities
 at run time.
 Consequently, any attempt to use a prefix object on its own
-is a compile-time error.%
+is a compile-time error.
+
+Note that if $l$ and $q$ are such that
+$I_l$ and $I_q$ both have the same prefix $p$
+then
+$\NamespaceName{\metavar{one},l} = \NamespaceName{\metavar{one},q} =
+\NamespaceName{\metavar{one},l} \cup \NamespaceName{\metavar{one},q}$.%
 }
 \EndCase
 
 \LMHash{}%
-\Case{Step one for imports without a prefix}
-When $I_i$ has no prefix,
-let \NamespaceName{\metavar{narrowed},i} be
-the namespace obtained from applying the namespace combinators of $I_i$ to
-the exported namespace of $L_i$.
-\EndCase
-
-\LMHash{}%
-\Case{Step two}
+{\bf Step two.}
 In the second step we resolve conflicts
 among the namespaces obtained in the first step.
-
-\LMHash{}%
-A \Index{system library} is a library that is part of the Dart implementation.
-Any other library is a \Index{non-system library}.
-
-\rationale{%
-There is a special rule for system libraries below.
-Normal conflicts are resolved at deployment time,
-but the functionality of a system library is
-injected into an application at run time,
-and may vary over time as the platform is upgraded.
-Thus, conflicts with a system library can arise
-outside the developer's control.
-To avoid breaking deployed applications in this way,
-conflicts with the system libraries are treated specially.%
-}
-
-% We do not spell out explicitly that 'dart:ui' is not a system library.
-\commentary{%
-A system library can generally be recognized by having
-a URI of the form `\code{dart:\ldots}'.%
-}
 
 \LMHash{}%
 For each $i \in 1 .. m$, the
 \Index{namespace imported from}
 $L_i$, \NamespaceName{\metavar{import},i},
-is identical to \NamespaceName{\metavar{narrowed},i},
+is identical to \NamespaceName{\metavar{one},i},
 except that it is undefined at each name $n$
-where one of the following conditions holds,
-where \id{} is the basename of $n$:
+where one of the following conditions holds:
 
 \begin{itemize}
 \item \NamespaceName{\metavar{local}} is defined at $n'$
-  such that the basename of $n'$ is \id.
+  such that $n$ and $n'$ have the same basename.
   \commentary{%
     In other words, a declaration in the current library shadows
-    imported declarations with the same basename.
+    imported declarations.
     Note that the prefix of an import also introduces a binding
-    into \NamespaceName{\metavar{local}}.%
+    into \NamespaceName{\metavar{local}},
+    so a prefix can also shadow an imported declaration.%
   }
 \item The first case does not apply, $L_i$ is a system library,
   there exists a $j \in 1 .. m$ such that $L_j$ is not a system library,
-  and \NamespaceName{\metavar{narrowed},j} is defined at $n'$
-  such that the basename of $n'$ is \id.
+  \NamespaceName{\metavar{one},j} is defined at $n'$,
+  and $n$ and $n'$ have the same basename.
   \commentary{%
     So an imported declaration from a non-system library shadows
     imported declarations from system libraries.%
   }
 \item The first case does not not apply,
-  there exists a $j \not= i$ in $1 .. m$ such
-  \NamespaceName{\metavar{narrowed},j} is defined at $n'$
-  and the basename of $n'$ is \id,
-  \Namespace{\metavar{narrowed},i}{n}
-  and \Namespace{\metavar{narrowed},j}{n'}
-  is not the same declaration,
-  and either none or both of $L_i$ and $L_j$ are system libraries.
+  there exists a $j \in 1 .. m$ such that
+  \NamespaceName{\metavar{one},j} is defined at $n'$,
+  $L_i$ and $L_j$ are not the same library,
+  either none or both of $L_i$ and $L_j$ are system libraries,
+  $n$ and $n'$ have the same basename,
+  and \Namespace{\metavar{one},i}{n}
+  and \Namespace{\metavar{one},j}{n'}
+  is not the same declaration.
   \commentary{%
     So with two distinct imported declarations with the same basename,
     both are eliminated.%
   }
+  % We need the 'not the same library' requirement (i != j is not enough),
+  % because otherwise we could have two imports of the same library (without
+  % a prefix here, but it works the same for two imports with the same
+  % prefix), and we could focus on a getter `x` from one import of a library
+  % Lx, and on a setter `x=` from the other import of Lx, and then we would
+  % eliminate both.
 \end{itemize}
 
 \commentary{%
 The removal of these bindings from
-\NamespaceName{\metavar{narrowed},i}
+\NamespaceName{\metavar{one},i}
 yields the namespace imported from $L_i$,
 \NamespaceName{\metavar{import},i},
 and ensures that each imported namespace has a
 key set which is disjoint with that of
 \NamespaceName{\metavar{local}},
 and where two imported namespaces only share a key $n$ when
-they both map $n$ to the same value $D$.%
+they both map $n$ to the same value.%
 }
 
 \commentary{%
 Note that it is not an error if a name $n$ is introduced by two or more imports
-but is never referred to.%
+but is never used.%
 }
 
 \rationale{%
@@ -14473,49 +14473,6 @@ We say that a declaration \Index{is imported by a library}
 (or equivalently, that a library
 \IndexCustom{imports a declaration}{imports!declaration})
 if the declaration is in the library's imported namespace.
-\EndCase
-
-
-\subsubsection{Auxiliary Concepts and Rules}
-\LMLabel{auxiliaryConceptsAndRules}
-
-\LMHash{}%
-The dart core library \code{dart:core}
-is implicitly imported into every dart library other than itself
-via an import clause of the form
-\code{\IMPORT{} 'dart:core';}
-unless the importing library explicitly imports \code{dart:core}.
-Any import of \code{dart:core},
-even if restricted via \SHOW{}, \HIDE{} or \AS{},
-preempts the automatic import.
-
-\rationale{%
-It would be nice if there was nothing special about \code{dart:core}.
-However, its use is pervasive,
-which leads to the decision to import it automatically.
-However, some library $L$ may wish to define entities
-with names used by \code{dart:core}
-(which it can easily do, as the names declared by a library take precedence).
-Other libraries may wish to use $L$,
-and may want to use members of $L$ that conflict with the core library
-without having to use a prefix and without encountering errors.
-The above rule makes this possible,
-essentially canceling \code{dart:core}'s special treatment
-by means of yet another special rule.%
-}
-
-\LMHash{}%
-It is a static warning to import two different libraries with the same name,
-unless their name is the empty string.
-
-\rationale{%
-If two different URIs are inadvertantly used to access the same library $L$,
-say, because of a symbolic link in the underlying file system,
-this may help explaining why there are two incompatible copies of
-the types declared in $L$.
-Developers may also choose to omit library names entirely,
-which motivates the exception for the empty name.%
-}
 
 
 \subsubsection{Evaluation of Imports}
@@ -14530,6 +14487,10 @@ Evaluation of $I_i$ proceeds as follows:
 If $I_i$ is a deferred import with prefix $p$, a mapping of $p$ to a
 \Index{deferred prefix object} is added to
 the scope of the current library $L$.
+Let \NamespaceName{\metavar{import},i} be
+the namespace imported from the library specified by $I_i$,
+as defined previously
+(\ref{theImportedNamespace}).
 The deferred prefix object has the following members:
 
 \begin{itemize}
@@ -14544,22 +14505,26 @@ The deferred prefix object has the following members:
   we say that the call to \code{loadLibrary} has succeeded,
   otherwise we say the call has failed.
 \item
-  For every top level function $f$ named \id{} in the imported library,
+  For every top level function $f$ named \id{} in
+  \NamespaceName{\metavar{import},i},
   a corresponding method named \id{} with the same signature as $f$.
   % This error can occur because being-loaded is a dynamic property.
   Calling the method results in a dynamic error.
 \item
-  For every top level getter $g$ named \id{} in the imported library,
+  For every top level getter $g$ named \id{} in
+  \NamespaceName{\metavar{import},i},
   a corresponding getter named \id{} with the same signature as $g$.
   % This error can occur because being-loaded is a dynamic property.
   Calling the getter results in a dynamic error.
 \item
-  For every top level setter $s$ named \id{} in the imported library,
-  a corresponding setter named \id{} with the same signature as $s$.
+  For every top level setter $s$ named \code{\id=} in
+  \NamespaceName{\metavar{import},i},
+  a corresponding setter named \code{\id=} with the same signature as $s$.
   % This error can occur because being-loaded is a dynamic property.
   Calling the setter results in a dynamic error.
 \item
-  For every type $T$ named \id{} in the imported library,
+  For every type $T$ named \id{} in
+  \NamespaceName{\metavar{import},i},
   a corresponding getter named \id{} with return type \code{Type}.
   % This error can occur because being-loaded is a dynamic property.
   Calling the getter results in a dynamic error.
@@ -14731,52 +14696,49 @@ Let $L$ be a library,
 let \List{E}{1}{m} be the export directives of $L$,
 and let \List{L}{1}{m} be libraries
 such that $E_i$ refers to $L_i$ for all $i \in 1 .. m$.
-
-\LMHash{}%
-In the first step we compute the namespace provided by each exported library.
 Let \NamespaceName{\metavar{local}} be the namespace that
 for each public top-level declaration $D$ with name $n$ in $L$ maps $n$ to $D$.
 Imports with a prefix do not introduce a binding in
 \NamespaceName{\metavar{local}}.
+
+\LMHash{}%
+In the first step we compute the namespace provided by each exported library:
 For each $i \in 1 .. m$,
-let \NamespaceName{\metavar{narrowed},i} be
+\NamespaceName{\metavar{one},i} is
 the namespace obtained from applying
 the namespace combinators of $E_i$ to
 the exported namespace of $L_i$
 (\ref{namespaceCombinators}).
 
 \LMHash{}%
-The second step starts from \NamespaceName{\metavar{narrowed},i}
+The second step starts from \NamespaceName{\metavar{one},i}
 and obtains the result, \NamespaceName{\metavar{export},i},
-by eliminating each key $n$, bound to declaration $D$,
-where one of the following conditions hold,
-where \id{} is the basename of $n$:
+by eliminating each key $n$ where one of the following conditions hold:
 
 \begin{itemize}
 \item \NamespaceName{\metavar{local}} is defined at $n'$
-  such that the basename of $n'$ is \id.
+  such that $n$ and $n'$ have the same basename.
   \commentary{%
-    In other words, a declaration in $L$ shadows
-    re-exported declarations with the same basename.
-    Import prefixes of $L$ are ignored, and do not shadow anything.%
+    In other words, a declaration in $L$ shadows re-exported declarations.
+    Import prefixes of $L$ are not exported, and do not shadow anything.%
   }
 \item The first case does not apply, $L_i$ is a system library,
   there exists a $j \in 1 .. m$ such that $L_j$ is not a system library,
-  and \NamespaceName{\metavar{narrowed},j} is defined at $n'$
-  such that the basename of $n'$ is \id.
+  and \NamespaceName{\metavar{one},j} is defined at $n'$
+  such that $n$ and $n'$ have the same basename.
   \commentary{%
     So a re-exported declaration from a non-system library shadows
     re-exported declarations from system libraries.%
   }
   \rationale{%
-    See the discussion in section \ref{imports} for
+    See the discussion in section \ref{theImportedNamespace} for
     the reasoning behind this rule.%
   }
 \end{itemize}
 
 \commentary{%
 The removal of these bindings from
-\NamespaceName{\metavar{narrowed},i}
+\NamespaceName{\metavar{one},i}
 yields the namespace exported from $L_i$,
 \NamespaceName{\metavar{export},i},
 and ensures that each exported namespace has a
@@ -14785,20 +14747,25 @@ key set which is disjoint with that of
 }
 
 \LMHash{}%
-Assume that $i$ and $j$ are distinct numbers in $1 .. m$.
-It is a compile-time error if there exists a key $n$ such that
-\NamespaceName{\metavar{export},i} maps $n$ to a declaration $D_i$,
-and \NamespaceName{\metavar{export},j} maps $n$ to a declaration $D_j$,
-and $D_i$ and $D_j$ are not the same declaration.%
+Assume that $i$ and $j$ are numbers in $1 .. m$.
+It is a compile-time error if there exists keys $n$ and $n'$ such that
+\NamespaceName{\metavar{export},i} is defined at $n$,
+\NamespaceName{\metavar{export},j} is defined at $n'$,
+$L_i$ and $L_j$ are not the same library,
+either none or both of $L_i$ and $L_j$ are system libraries,
+$n$ and $n'$ have the same basename,
+and \Namespace{\metavar{export},i}{n}
+and \Namespace{\metavar{export},j}{n'}
+is not the same declaration.
 
 \commentary{%
-It is possible for $D_i$ and $D_j$ to be the same declaration,
+It is possible for $n$ and $n'$ to be mapped to the same declaration,
 e.g., due to multiple re-exports.%
 }
 
 \LMHash{}%
 Finally, the \Index{exported namespace} of $L$ is
-$\NamespaceName{L} \cup
+$\NamespaceName{\metavar{local}} \cup
 \NamespaceName{\metavar{export},1} \cup
 \ldots \NamespaceName{\metavar{export},m}$.
 
@@ -14823,6 +14790,102 @@ that $L$ \NoIndex{re-exports} \NamespaceName{\metavar{export},i}.
 \LMHash{}%
 It is a static warning to export two different libraries with the same name,
 unless their name is the empty string.
+
+
+\subsection{Namespace Combinators}
+\LMLabel{namespaceCombinators}
+
+\LMHash{}%
+Imports (\ref{imports}) and exports (\ref{exports}) rely on
+\Index{namespace combinators}
+in order to adjust namespaces
+(\ref{scoping})
+and manage name clashes.
+The supported namespace combinators are \SHOW{} and \HIDE{}.
+
+\begin{grammar}
+<combinator> ::= \SHOW{} <identifierList> | \HIDE{} <identifierList>
+
+<identifierList> ::= <identifier> (`,' <identifier>)*
+\end{grammar}
+
+\LMHash{}%
+We define several operations that compute namespaces.
+The
+\IndexCustom{union of two namespaces}{namespace!union},
+\IndexCustom{$\NamespaceName{a}\cup\NamespaceName{b}$}{%
+  $\cup$@$\NamespaceName{a} \cup \NamespaceName{b}$},
+is defined when every key where both are defined is mapped to the same value.
+This union is the namespace that maps
+each key $n$ of \NamespaceName{a}
+to the corresponding value \Namespace{a}{n},
+and each key $n$ of \NamespaceName{b}
+to \Namespace{b}{n}.
+
+\commentary{%
+Note that this \emph{is} a namespace because the union is only defined
+when the mapping of any given key is unambiguous.%
+}
+
+\LMHash{}%
+The function
+\IndexCustom{\Hide{l}{\NamespaceName{a}}}{%
+  hide(l,NSa)@\Hide{l}{\NamespaceName{}}}
+takes a list of identifiers $l$ and a namespace \NamespaceName{a},
+and produces a namespace \NamespaceName{b} that is
+identical to \NamespaceName{a} except that for each identifier \id{} in $l$,
+\NamespaceName{b} is undefined at \id{} and at \code{\id=}.
+
+\LMHash{}%
+The function
+\IndexCustom{\Show{l}{\NamespaceName{a}}}{%
+  show(l,NSa)@\Show{l}{\NamespaceName{}}}
+takes a list of identifiers $l$ and a namespace \NamespaceName{a},
+and produces a namespace \NamespaceName{b} that
+maps each identifier \id{} in $l$
+where \NamespaceName{a} is defined
+to \Namespace{a}{n}.
+Furthermore, for each identifier \id{} in $l$
+where \NamespaceName{a} is defined at \code{\id=},
+\NamespaceName{b} maps \code{\id=} to \Namespace{a}{\code{\id=}}.
+Finally, \NamespaceName{b} is undefined at all other names.
+
+\LMHash{}%
+Let \List{C}{1}{n} be a sequence of combinator clauses.
+\commentary{They would come from an import or export directive.}
+The result of
+\IndexCustom{applying the combinator clauses}{%
+  combinator clauses!application to namespace}
+to a given namespace \NamespaceName{\metavar{start}}
+is a namespace \NamespaceName{\metavar{end}},
+which is computed as follows.
+
+\LMHash{}%
+Let \NamespaceName{0} be \NamespaceName{\metavar{start}}.
+For each combinator clause $C_j$, $j \in 1 .. n$:
+If $C_j$ is of the form \code{\SHOW{} $\id_1, \ldots,\ \id_k$} then let
+$\NamespaceName{j} = \Show{[\List{\id}{1}{k}]}{\NamespaceName{j-1}}$.
+If $C_i$ is of the form \code{\HIDE{} $\id_1, \ldots,\ \id_k$} then let
+$\NamespaceName{j} = \Hide{[\List{id}{1}{k}]}{\NamespaceName{j-1}}$.
+Then \NamespaceName{\metavar{end}} is \NamespaceName{n}.
+
+\commentary{%
+\NamespaceName{\metavar{end}} will always agree with
+\NamespaceName{\metavar{start}} wherever both are defined,
+and the set of names where \NamespaceName{\metavar{end}} is defined
+is always a subset of that of \NamespaceName{\metavar{start}}.
+In that sense, this is a \emph{narrowing} procedure.%
+}
+
+\commentary{%
+Note that it is possible to use \HIDE{} or \SHOW{} on an identifier
+which is not in the given namespace.%
+}
+\rationale{%
+Allowing this prevents situations where, e.g.,
+removing a declaration from a library $L$ would cause
+breakage in a library that imponts $L$.%
+}
 
 
 \subsection{Parts}
