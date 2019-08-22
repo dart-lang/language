@@ -14415,8 +14415,8 @@ where one of the following conditions holds:
   are not the same declaration,
   $L_i$ and $L_j$ are not the same library,
   and either none or both of
-  \Namespace{\metavar{exported},j}{n} and
-  \Namespace{\metavar{exported},l}{n'}
+  \Namespace{\metavar{one},j}{n} and
+  \Namespace{\metavar{one},l}{n'}
   are declarations in a system library.
   \commentary{%
     So with two distinct imported declarations with the same basename,
@@ -14774,16 +14774,17 @@ key set which is disjoint with that of
 }
 
 \LMHash{}%
-Assume that $i$ and $j$ are numbers in $1 .. m$.
-It is a compile-time error
-if $L_i$ and $L_j$ are not the same library,
-either none or both of $L_i$ and $L_j$ are system libraries,
-and there exist names $n$ and $n'$ with the same basename such that:
+Assume that $i$ and $j$ are numbers in $1 .. m$ and $n$ and $n'$ are names.
+It is a compile-time error if
 \NamespaceName{\metavar{export},i} is defined at $n$,
 \NamespaceName{\metavar{export},j} is defined at $n'$,
-and \Namespace{\metavar{export},i}{n}
-and \Namespace{\metavar{export},j}{n'}
-is not the same declaration.
+$n$ and $n'$ have the same basename,
+\Namespace{\metavar{export},i}{n} and
+\Namespace{\metavar{export},j}{n'}
+are not the same declaration,
+and $L_i$ and $L_j$ are not the same library.
+% We need 'not the same library', i != j is not enough: See comment on the
+% corresponding case for step two above (search 'not the same library').
 
 \commentary{%
 This means that it is an error when two distinct exported declarations have
@@ -14796,9 +14797,12 @@ This rule is more strict than the corresponding rule for imports:
 When two imported declarations have a name clash it is only an error to
 \emph{use} the conflicted name, it is not an error that the name clash exists.
 But with exported names it is an error that the name clash exists.
-The reason for this difference is that the error may affect
-a library $L_2$ that imports the current library $L$,
-and the maintainers of $L_2$ may not be in a position to change $L$.%
+The reason for this difference is that the conflict may affect clients silently.
+If a library $L'$ imports the current library $L$
+and uses a name $n$ which is re-exported by $L$ from $L_n$
+then the addition of a declaration named $n$ to some other re-exported library
+will make the use of $n$ in $L'$ an error,
+and the maintainers of $L'$ may not be in a position to change $L$.%
 }
 
 \LMHash{}%
