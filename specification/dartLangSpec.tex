@@ -14749,10 +14749,14 @@ by eliminating each key $n$ where one of the following conditions hold:
     In other words, a declaration in $L$ shadows re-exported declarations.
     Import prefixes of $L$ are not exported, and do not shadow anything.%
   }
-\item The first case does not apply, $L_i$ is a system library,
-  there exists a $j \in 1 .. m$ such that $L_j$ is not a system library,
-  and \NamespaceName{\metavar{one},j} is defined at $n'$
-  such that $n$ and $n'$ have the same basename.
+\item The first case does not apply,
+  there exists a $j \in 1 .. m$ and name $n'$ such that
+  \NamespaceName{\metavar{one},j} is defined at $n'$,
+  $n$ and $n'$ have the same basename,
+  \Namespace{\metavar{one},j}{n}
+  is a declaration in a system library,
+  and \Namespace{\metavar{one},l}{n'}
+  is a declaration in a non-system library.
   \commentary{%
     So a re-exported declaration from a non-system library shadows
     re-exported declarations from system libraries.%
