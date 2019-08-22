@@ -14295,22 +14295,28 @@ Let \NamespaceName{\metavar{narrowed},j} be the namespace which is identical to
 it is undefined at each name $n$ where one of the following holds:
 
 \begin{itemize}
-\item $L'_j$ is a system library,
-  there exists an $l \in 1 .. k$ such that $L'_l$ is not a system library,
+\item There exists an $l \in 1 .. k$ and name $n'$ such that
   \NamespaceName{\metavar{exported},l} is defined at $n'$,
-  and $n$ and $n'$ have the same basename.
+  $n$ and $n'$ have the same basename,
+  \Namespace{\metavar{exported},j}{n}
+  is a declaration in a system library,
+  and \Namespace{\metavar{exported},l}{n}
+  is a declaration in a non-system library.
   \commentary{%
     So an imported declaration from a non-system library shadows
     imported declarations from system libraries.%
   }
-\item There exists an $l \in 1 .. k$ such that
+\item There exists an $l \in 1 .. k$ and name $n'$ such that
   \NamespaceName{\metavar{exported},l} is defined at $n'$,
-  $L'_j$ and $L'_l$ are not the same library,
-  either none or both of $L'_j$ and $L'_l$ are system libraries,
   $n$ and $n'$ have the same basename,
-  and \Namespace{\metavar{exported},j}{n}
+  \Namespace{\metavar{exported},j}{n}
   and \Namespace{\metavar{exported},l}{n'}
-  is not the same declaration.
+  are not the same declaration,
+  $L'_j$ and $L'_l$ are not the same library,
+  and either none or both of
+  \Namespace{\metavar{exported},j}{n} and
+  \Namespace{\metavar{exported},l}{n'}
+  are declarations in a system library.
   \commentary{%
     So with two distinct imported declarations with the same basename,
     both are eliminated,
@@ -14388,23 +14394,30 @@ where one of the following conditions holds:
     into \NamespaceName{\metavar{local}},
     so a prefix can also shadow an imported declaration.%
   }
-\item The first case does not apply, $L_i$ is a system library,
-  there exists a $j \in 1 .. m$ such that $L_j$ is not a system library,
+\item The first case does not apply,
+  there exists a $j \in 1 .. m$ and name $n'$ such that
   \NamespaceName{\metavar{one},j} is defined at $n'$,
-  and $n$ and $n'$ have the same basename.
+  $n$ and $n'$ have the same basename,
+  \Namespace{\metavar{one},j}{n}
+  is a declaration in a system library,
+  and \Namespace{\metavar{one},l}{n'}
+  is a declaration in a non-system library.
   \commentary{%
     So an imported declaration from a non-system library shadows
     imported declarations from system libraries.%
   }
 \item The first case does not apply,
-  there exists a $j \in 1 .. m$ such that
+  there exists a $j \in 1 .. m$ and name $n'$ such that
   \NamespaceName{\metavar{one},j} is defined at $n'$,
-  $L_i$ and $L_j$ are not the same library,
-  either none or both of $L_i$ and $L_j$ are system libraries,
   $n$ and $n'$ have the same basename,
-  and \Namespace{\metavar{one},i}{n}
-  and \Namespace{\metavar{one},j}{n'}
-  is not the same declaration.
+  \Namespace{\metavar{one},i}{n} and
+  \Namespace{\metavar{one},j}{n'}
+  are not the same declaration,
+  $L_i$ and $L_j$ are not the same library,
+  and either none or both of
+  \Namespace{\metavar{exported},j}{n} and
+  \Namespace{\metavar{exported},l}{n'}
+  are declarations in a system library.
   \commentary{%
     So with two distinct imported declarations with the same basename,
     both are eliminated,
@@ -14416,6 +14429,10 @@ where one of the following conditions holds:
   % prefix), and we could focus on a getter `x` from one import of a library
   % Lx, and on a setter `x=` from the other import of Lx, and then we would
   % eliminate both.
+  % Conversely, when $L_i$ and $L_j$ are not the same library then it could
+  % not possibly be a getter/setter pair from the same library: Such a pair
+  % would be exported from NS_local together, and they would be re-exported
+  % each time together (hide/show cannot distinguish).
 \end{itemize}
 
 \commentary{%
