@@ -14175,16 +14175,23 @@ is an import that is not deferred.
 An immediate import directive $I$ may optionally include
 a prefix clause of the form \code{\AS{} \id} used to prefix
 names imported by $I$.
+In this case we say that \id{} is an \Index{import prefix},
+or simply a \Index{prefix}.
+
+\LMHash{}%
 A deferred import must include a prefix clause,
 or a compile-time error occurs.
 It is a compile-time error if a prefix used in a deferred import
 is also used as the prefix of another import clause.
+It is a compile-time error if \id{} is an import prefix and
+the current library declares a top-level member named \id{}.
 
 \LMHash{}%
 An import directive $I$ may optionally include namespace combinator clauses
 used to restrict the set of names imported by $I$.
 Their syntax, usage, and effect on namespaces is described elsewhere
-(\ref{namespaceCombinators}, \ref{theImportedNamespace}).
+(\ref{namespaceCombinators}, \ref{theImportedNamespace},
+\ref{exports}).
 
 \LMHash{}%
 It is a static warning to import two different libraries with the same name,
@@ -14320,7 +14327,11 @@ it is undefined at each name $n$ where one of the following holds:
   \commentary{%
     So with two distinct imported declarations with the same basename,
     both are eliminated,
-    except when it is a getter and a setter from the same library.%
+    except when it is a getter and a setter from the same library.
+    When a name $n$ has been eliminated for this reason and a usage
+    \code{$p_i$.$n$} is encountered in $L$,
+    it is recommended that the error message mentions the conflict,
+    rather than just reporting that $n$ does not exist.%
   }
   % We need 'not the same library', l != j is not enough: See comment on the
   % corresponding case for step two below (search 'not the same library').
@@ -14418,6 +14429,7 @@ where one of the following conditions holds:
   \Namespace{\metavar{one},j}{n} and
   \Namespace{\metavar{one},l}{n'}
   are declarations in a system library.
+  %
   \commentary{%
     So with two distinct imported declarations with the same basename,
     both are eliminated,
@@ -14433,7 +14445,20 @@ where one of the following conditions holds:
   % not possibly be a getter/setter pair from the same library: Such a pair
   % would be exported from NS_local together, and they would be re-exported
   % each time together (hide/show cannot distinguish).
+
+  In this situation we say that $n$ is a
+  \IndexCustom{conflicted imported name}{import!conflicted name}%
+  \index{conflicted imported name}.
 \end{itemize}
+
+\LMHash{}%
+Let \NamespaceName{\metavar{conflict}} be the namespace
+that maps each conflicted imported name to
+the special value \ConflictValue.
+A lookup for a conflicted imported name will succeed according to
+the normal rules for namespaces and lexical scoping,
+but it is a compile-time error at the location where the name is used
+that this name is mapped to \ConflictValue.
 
 \commentary{%
 The removal of these bindings from
@@ -14450,10 +14475,8 @@ they both map $n$ to the same value.%
 \commentary{%
 Note that it is not an error if a name $n$ is introduced by two or more imports
 but is never used.
-In this case the conflicted name is simply eliminated from the namespace.
-Tools may choose to retain the information that there was a name clash,
-in order to emit a more informative error message
-if the name is used.%
+It is recommended that error messages about usages of conflicted imported names
+include a reference to all the declarations that caused the conflict.%
 }
 
 \rationale{%
@@ -14485,7 +14508,9 @@ $\NamespaceName{\metavar{import}} =
 and the
 \Index{library namespace}
 of $L$ is
-$\NamespaceName{\metavar{local}} \cup \NamespaceName{\metavar{import}}$.
+$\NamespaceName{\metavar{local}} \cup
+\NamespaceName{\metavar{import}} \cup
+\NamespaceName{\metavar{conflict}}$.
 
 \LMHash{}%
 We say that a name is \Index{imported by a library}
@@ -14725,7 +14750,9 @@ and let \List{L}{1}{m} be libraries
 such that $E_i$ refers to $L_i$ for all $i \in 1 .. m$.
 Let \NamespaceName{\metavar{local}} be the namespace that
 for each public top-level declaration $D$ with name $n$ in $L$ maps $n$ to $D$.
-Imports with a prefix do not introduce a binding in
+An import prefix
+(\ref{imports})
+does not introduce a binding in
 \NamespaceName{\metavar{local}}.
 
 \LMHash{}%
@@ -14801,8 +14828,10 @@ This rule is more strict than the corresponding rule for imports:
 When two imported declarations have a name clash it is only an error to
 \emph{use} the conflicted name, it is not an error that the name clash exists.
 But with exported names it is an error that the name clash exists.
-The reason for this difference is that the conflict may affect clients silently.
-If a library $L'$ imports the current library $L$
+The reason for this difference is that
+the conflict could silently break importers of the current library $L$,
+if we were to use the same approach for exports as for imports:
+If a library $L'$ imports $L$
 and uses a name $n$ which is re-exported by $L$ from $L_n$
 then the addition of a declaration named $n$ to some other re-exported library
 will make the use of $n$ in $L'$ an error,
@@ -14939,7 +14968,7 @@ which is not in the given namespace.%
 \rationale{%
 Allowing this prevents situations where, e.g.,
 removing a declaration from a library $L$ would cause
-breakage in a library that imponts $L$.%
+breakage in a library that imports $L$.%
 }
 
 
