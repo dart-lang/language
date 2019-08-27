@@ -8851,54 +8851,70 @@ Note that the type argument list is omitted when $r = 0$ (\ref{generics}).
 }
 
 \LMHash{}%
-It is a compile-time error if $i$ occurs inside a top-level or static function
-(be it function, method, getter, or setter)
-or a top-level or static variable initializer,
-and there is no lexically visible declaration named \id{} in scope.
+For the static analysis of $i$,
+a lexical lookup of \id{} is performed
+(\ref{lexicalLookup}):
 
 \LMHash{}%
-If there exists a lexically visible declaration named \id,
-let $D_{id}$ be the innermost such declaration.
-Then:
+\Case{Lexical lookup yields a declaration}
+In this case the lexical lookup of \id{}
+yields a declaration $D$.
 \begin{itemize}
-\item Consider the situation where $D_{id}$ is a type declaration.
-  If $D_{id}$ is a declaration of a class $C$
+\item
+  Consider the case where $D$ is a type declaration.
+  If $D$ is a declaration of a class $C$
   that has a constructor named $C$
   then the meaning of $i$ depends on the context:
   If $i$ occurs in a constant context
   (\ref{constantContexts}),
-  then $i$ is equivalent to \code{\CONST\,\,$i$};
+  then $i$ is treated as
+  (\ref{notation})
+  \code{\CONST\,\,$i$};
   if $i$ does not occur in a constant context
-  then $i$ is equivalent to \code{\NEW\,\,$i$}.
+  then $i$ is treated as \code{\NEW\,\,$i$}.
   Otherwise a compile-time error occurs
-  (\commentary{that is, if $D_{id}$ does not declare a class,
+  (\commentary{that is, if $D$ does not declare a class,
     or it declares a class that has no constructor named $C$}).
-\item Otherwise, if $D_{id}$ is an import directive
-  where \id{} is declared to be a library prefix,
-  a compile-time error occurs.
-\item Otherwise, if $D_{id}$ declares
+\item
+  Otherwise, if $D$ is a declaration of
   a local function,
   a library function, or
   a library or static getter, or a variable,
-  then $i$ is treated as a function expression invocation
+  then $i$ is treated as
+  (\ref{notation})
+  a function expression invocation
   (\ref{functionExpressionInvocation}).
-\item Otherwise, if $D_{id}$ is a static method of the enclosing class $C$,
-  $i$ is equivalent to
-  \code{$C$.\id<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
-\item Otherwise, if $i$ occurs in an instance method body,
-  $i$ is equivalent to the ordinary method invocation
-
-  \code{\THIS{}.\id<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\item
+  Otherwise, if $D$ is a static method declaration in the enclosing class $C$,
+  $i$ is treated as
+  (\ref{notation})
+  \code{$C$.$i$}
+  (\ref{ordinaryInvocation}).
+  \EndCase
 \end{itemize}
 
+\Case{Lexical lookup yields an import prefix}
+When the lexical lookup of \id{} yields an import prefix,
+a compile-time error occurs.
+\EndCase
+
+\Case{Lexical lookup yields a member signature}
+When the lexical lookup of \id{} yields a member signature,
+$i$ is treated as
+(\ref{notation})
+the ordinary method invocation
+\code{\THIS.$i$}
+(\ref{ordinaryInvocation}).
+
 \commentary{%
-Otherwise \id{} is not in scope, and
-$i$ must occur inside a top-level or static function
-(be it function, method, getter, or setter)
-or a top-level or static variable initializer,
-in which case a compile-time error occurs,
-as specified earlier in this section.%
+This occurs when no declaration named \id{} is in scope,
+but $i$ occurs in the body of an instance member declaration,
+and the interface of the enclosing class has a member named \id.
+Both the static analysis and evaluation proceeds with
+\code{\THIS.$i$},
+so there is no need to further specify the treatment of $i$.%
 }
+\EndCase
 
 
 \subsubsection{Function Expression Invocation}
@@ -11656,11 +11672,12 @@ as well as of the form \code{\id=}.
 
 \LMHash{}%
 A lexical lookup does not succeed or fail.
-It yields a result which is a declaration or an import prefix,
+It yields a result which is
+a declaration, an import prefix, or a member signature,
 unless a compile-time error occurs during the lexical lookup.
 
 \commentary{%
-A lexical lookup differs from a lookup for an instance member
+A lexical lookup differs from a lookup of an instance member
 (\ref{lookup})
 because that operation searches through a sequence of superclasses,
 whereas a lexical lookup searches through a sequence of enclosing scopes.
@@ -11673,7 +11690,22 @@ as detailed below.%
 Consider the situation where a name $n$ has basename \id{}
 (\ref{classMemberConflicts}),
 an identifier \id{} occurs at a location $\ell$,
-and a lexical lookup for $n$ is performed from $\ell$.
+and a lexical lookup of $n$ is performed from $\ell$.
+
+\commentary{%
+We need to specify a name and a location from where a lookup is performed.
+For instance,
+a lookup for a setter named \code{\id=} will be needed in some situations,
+but the token \code{\id=} does not occur in the program.
+So we cannot just say 'look up $t$',
+where $t$ is a term that occurs in the program.%
+}
+
+\LMHash{}%
+When we consider an occurrence of an identifier \id{} and say that
+a lexical lookup of \id{} is performed,
+it is understood that the lookup is performed from
+the location of said occurrence of \id.
 
 \LMHash{}%
 Let $S$ be the innermost lexical scope containing $\ell$
@@ -11854,7 +11886,7 @@ It is a compile-time error if a built-in identifier is used as
 the declared name of a prefix, class, type parameter or type alias.
 It is a compile-time error to use a built-in identifier
 other than \DYNAMIC{} or \FUNCTION{}
-in a type annotation or type parameter.
+in a type annotation or a type parameter bound.
 
 \rationale{%
 Built-in identifiers are identifiers that are used as keywords in Dart,
@@ -11874,7 +11906,8 @@ marked with either \ASYNC{}, \code{\ASYNC*} or \code{\SYNC*}.
 This makes the identifiers \AWAIT{} and \YIELD{} behave like reserved words
 in a limited context.
 This approach was chosen because it was less breaking than it would have been
-to make \AWAIT{} and \YIELD{} reserved words or built-in identifiers.%
+to make \AWAIT{} and \YIELD{} reserved words or built-in identifiers,
+at the time where these features were added to the language.%
 }
 
 \LMHash{}%
@@ -11884,10 +11917,9 @@ is determined as follows:
 
 \LMHash{}%
 \Case{Lexical lookup yields a declaration}
-Consider the case where the lexical lookup
+In this case the lexical lookup
 (\ref{lexicalLookup})
-for \id{} from the location where $e$ occurs
-yields a declaration $D$.
+for \id{} yields a declaration $D$.
 
 \begin{itemize}
 \item
@@ -11921,10 +11953,9 @@ yields a declaration $D$.
 
 \LMHash{}%
 \Case{Lexical lookup yields an import prefix}
-Consider the case where the lexical lookup
+In this case the lexical lookup
 (\ref{lexicalLookup})
-for \id{} from the location where $e$ occurs
-yields an import prefix $p$.
+for \id{} yields an import prefix $p$.
 % A prefix can never be used as a stand-alone expression.
 In this case a compile-time error occurs,
 unless the token immediately following $e$ is \lit{.}.
@@ -11943,10 +11974,9 @@ of $p$ is not used.%
 
 \LMHash{}%
 \Case{Lexical lookup yields a member signature}
-Consider the case where the lexical lookup
+In this case the lexical lookup
 (\ref{lexicalLookup})
-for \id{} from the location where $e$ occurs
-yields a member signature $s$.
+for \id{} yields a member signature $s$.
 %
 In this situation $e$ is treated as
 (\ref{notation})
@@ -11956,7 +11986,7 @@ In this situation $e$ is treated as
 This occurs when no declaration named \id{} is in scope,
 but $e$ occurs in the body of an instance member declaration,
 and the interface of the enclosing class has a member named \id.
-This implies that both the static analysis and evaluation proceeds with
+Both the static analysis and evaluation proceeds with
 \code{\THIS.\id},
 so there is no need to further specify the treatment of $e$.%
 }
@@ -11968,11 +11998,10 @@ proceeds as follows:
 
 \LMHash{}%
 \Case{Lexical lookup yields a declaration}
-Consider the case where a lexical lookup
+In this case the lexical lookup
 (\ref{lexicalLookup})
-for \id{} from the location where $e$ occurs
-yields a declaration $D$.
-In this case the evaluation of $e$ proceeds as follows:
+for \id{} yields a declaration $D$.
+The evaluation of $e$ proceeds as follows:
 
 \begin{itemize}
 \item
