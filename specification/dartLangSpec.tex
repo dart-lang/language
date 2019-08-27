@@ -8885,13 +8885,20 @@ yields a declaration $D$.
   a function expression invocation
   (\ref{functionExpressionInvocation}).
 \item
-  Otherwise, if $D$ is a static method declaration in the enclosing class $C$,
+  Otherwise, if $D$ is a static method, getter, or variable declaration
+  in the enclosing class $C$,
   $i$ is treated as
   (\ref{notation})
   \code{$C$.$i$}
   (\ref{ordinaryInvocation}).
-  \EndCase
+\item
+  \commentary{%
+    A lexical lookup will never yield a declaration $D$
+    which is an instance member.%
+  }
 \end{itemize}
+\vspace{-2ex}
+\EndCase
 
 \Case{Lexical lookup yields an import prefix}
 When the lexical lookup of \id{} yields an import prefix,
@@ -8907,14 +8914,22 @@ the ordinary method invocation
 (\ref{ordinaryInvocation}).
 
 \commentary{%
-This occurs when no declaration named \id{} is in scope,
-but $i$ occurs in the body of an instance member declaration,
+This occurs when the lexical lookup has determined that
+$i$ must invoke an instance member,
+and the location of $i$ can access \THIS{},
 and the interface of the enclosing class has a member named \id.
 Both the static analysis and evaluation proceeds with
 \code{\THIS.$i$},
 so there is no need to further specify the treatment of $i$.%
 }
 \EndCase
+
+\commentary{%
+Note that an unqualified invocation does not specify an evaluation semantics.
+This is because every case which is not an error ends in the conclusion that
+the unqualified invocation should be treated as some other construct,
+which is specified elsewhere.%
+}
 
 
 \subsubsection{Function Expression Invocation}
@@ -9317,7 +9332,7 @@ when the two function objects were created.
 In that situation it is unreasonable
 to consider the two function objects to be the same function.%
 }
-\EndCase{}
+\EndCase
 
 
 \subsection{Lookup}
@@ -11817,9 +11832,10 @@ the following errors apply:
   % - in an expression in the initializer list of a constructor
   %   (be it a superinitializer, a field initializer, or an assertion).
   It is a compile-time error if $\ell$ is not inside
-  the body of an instance member declaration.
+  the body of an instance member or a generative constructor.
 \item
-  When $\ell$ is inside the body of an instance member declaration,
+  When $\ell$ is inside the body of
+  an instance member or a generative constructor,
   it is a compile-time error if the interface of the enclosing class
   does not have a member named $n$.
   \commentary{%
@@ -11827,16 +11843,33 @@ the following errors apply:
     and also if there is one such member,
     but it is a non-setter and we are looking for a setter,
     or vice versa.%
-    \EndCase
   }
 \end{itemize}
+\vspace{-2ex}
+\EndCase
 
 % Even when we have found a declaration, it may have the wrong name.
 \LMHash{}%
 \Case{$D$ exists}
-When at least one declaration with basename \id{}
-is in scope at the location $\ell$,
-it is a compile-time error if the name of $D$ is not $n$.
+In this case, at least one declaration with basename \id{}
+is in scope at the location $\ell$.
+
+\LMHash{}%
+If $\ell$ does not occur in
+the body of an instance member or generative constructor,
+it is a compile-time error if the name of $D$ is not $n$,
+and it is a compile-time error if $D$ is an instance member.
+% An instance variable initializer is in the instance scope, so it is
+% actually possible for $D$ to be an instance member here.
+
+\LMHash{}%
+Otherwise $\ell$ occurs in
+the body of an instance member or a generative constructor.
+In this case it is a compile-time error
+if $D$ is not an instance member and the name of $D$ is not $n$;
+and it is a compile-time error
+if $D$ is an instance member,
+and the interface of the enclosing class does not have a member named $n$.
 \EndCase
 
 \commentary{%
@@ -11876,17 +11909,32 @@ and we could say that this ``pair'' shadows $s$:%
 \}
 \end{dartCode}
 
-\commentary{%
-At this point we know that $D$ exists and has name $n$;
-or $D$ does not exist,
-but the interface of the enclosing class does have
-a member named $n$.%
-}
+% At this point we know that
+% - $D$ does not exist, but $\ell$ has access to `this` and the
+%   interface of the enclosing class has a member named $n$, or
+% - $D$ exists and has name $n$, and $\ell$ cannot access `this`, or
+% - $D$ exists, its name can be different from $n$, but $\ell$ has access to
+%   `this`, and the interface of the enclosing class has a member named $n$.
+%
+% The lookup yields a member signature iff $\ell$ has access to `this` and
+% $D$ does not exist or $D$ is an instance member.
+%
+%
 
 \LMHash{}%
 Now proceed as described in the first applicable case from the following list:
 
 \begin{itemize}
+\item
+  When $D$ does not exist,
+  the lexical lookup yields the member signature of
+  the member of the interface of the enclosing class
+  which has the name $n$.
+  \commentary{%
+    In this case it is guaranteed that $\ell$ occurs inside
+    the body of an instance member or generative constructor,
+    and said member exists.%
+  }
 \item
   Consider the case where $D$ is a formal type parameter declaration.
   It is a compile-time error if $\ell$ occurs inside
@@ -11896,13 +11944,12 @@ Now proceed as described in the first applicable case from the following list:
   % This may seem inconsistent, but it should not be harmful.
   Otherwise, the lexical lookup yields $D$.
 \item
-  In the case where $D$ does not exist,
-  the lexical lookup yields the member signature of
-  the member of the interface of the enclosing class
-  which has the name $n$.
+  Consider the case where $D$ is an instance member declaration.
+  The lexical lookup then yields the member signature named $n$
+  from the interface of the enclosing class.
   \commentary{%
-    In this case it is guaranteed that $\ell$ occurs inside
-    the body of an instance member declaration,
+    It is again guaranteed that $\ell$ occurs inside
+    the body of an instance member or generative constructor,
     and said member exists.%
   }
 \item
@@ -11915,6 +11962,22 @@ Now proceed as described in the first applicable case from the following list:
   % - a local function.
   Otherwise, the lexical lookup yields $D$.
 \end{itemize}
+
+\commentary{%
+Note that a lexical lookup will never yield a declaration of
+an instance member.
+In each case where it is determined that there is no error
+and and instance member is the result of the lookup,
+the member signature from the interface of the enclosing class is yielded.
+
+The reason for this is that there may not be a declaration, e.g.,
+in the case where $D$ does not exist,
+but the interface of the class has the required member
+because more than one superinterface has the same member signature
+for the given name.
+So, for uniformity, we always report that an instance member must be used
+by yielding the member signature.%
+}
 
 
 \subsection{Identifier Reference}
@@ -12009,19 +12072,19 @@ for \id{} yields a declaration $D$.
 
 \begin{itemize}
 \item
-  If $D$ is a class, type alias or type parameter,
+  If $D$ is a class, mixin, type alias or type parameter,
   the static type of $e$ is \code{Type}.
 \item
   If $D$ is the declaration of
-  a library variable or a top-level getter,
+  a library variable or getter,
   the static type of $e$ is the static type of the
   top level getter invocation \id{}
   (\ref{topLevelGetterInvocation}).
 \item
-  If $D$ is a static method, top-level function, or local function,
+  If $D$ is a static method, library function, or local function,
   the static type of $e$ is the function type of $D$.
 \item
-  If $D$ is the declaration of a class variable or a static getter
+  If $D$ is the declaration of a static variable or getter
   and $D$ occurs in the class $C$,
   the static type of $e$ is the static type of the getter invocation
   (\ref{propertyExtraction})
@@ -12034,8 +12097,14 @@ for \id{} yields a declaration $D$.
   where $T$ is a subtype of any other type $S$
   such that $v$ is known to have type $S$,
   in which case the static type of $e$ is $T$.
-  \EndCase
+\item
+  \commentary{%
+    A lexical lookup will never yield a declaration $D$
+    which is an instance member.%
+  }
 \end{itemize}
+\vspace{-1ex}
+\EndCase
 
 \LMHash{}%
 \Case{Lexical lookup yields an import prefix}
@@ -12091,12 +12160,12 @@ The evaluation of $e$ proceeds as follows:
 
 \begin{itemize}
 \item
-  If $D$ is a class or type alias $T$,
+  If $D$ is a class, mixin, or type alias,
   the value of $e$ is an object implementing the class \code{Type}
-  which reifies $T$.
+  which reifies the corresponding type.
 \item
-  If $D$ is a type parameter $T$ then the value of $e$ is
-  the value of the actual type argument corresponding to $T$
+  If $D$ is a type parameter $X$ then the value of $e$ is
+  the value of the actual type argument corresponding to $X$
   that was passed to the generative constructor that created
   the current binding of \THIS{}.
 \item
