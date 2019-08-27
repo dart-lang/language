@@ -3484,7 +3484,7 @@ then the (implicit or explicit) superinitializer in $k$ is an error.%
 }
 
 \LMHash{}%
-The superinitializer that appears, explicitly or implicitly, 
+The superinitializer that appears, explicitly or implicitly,
 in the initializer list of a constant constructor
 must specify a constant constructor of
 the superclass of the immediately enclosing class,
@@ -10493,84 +10493,157 @@ when executed starting from exactly the same state.%
 \LMLabel{assignment}
 
 \LMHash{}%
-An assignment changes the value associated with a mutable variable or property.
+An assignment changes the value associated with a mutable variable,
+or invokes a setter.
 
 \begin{grammar}
 <assignmentOperator> ::= `='
   \alt <compoundAssignmentOperator>
+
+<compoundAssignmentOperator> ::= `*='
+  \alt `/='
+  \alt `~/='
+  \alt `\%='
+  \alt `+='
+  \alt `-='
+  \alt `\ltlt='
+  \alt `\gtgt='
+  \alt `\gtgtgt='
+  \alt `\&='
+  \alt `^='
+  \alt `|='
+  \alt `??='
 \end{grammar}
 
 \LMHash{}%
-\Case{\code{$v$ = $e$}}
-%% TODO(eernst): This _only_ works if we assume that `v = e` has already
-%% been expanded to `this.v = e` "when that's the right thing to do".
-%% Otherwise `denotes` below cannot be interpreted as the result of a lookup,
-%% and we have no precise alternative which would work. We might be able
-%% to repair this by giving a definition of `denotes` somewhere.
-Consider an assignment $a$ of the form \code{$v$ = $e$},
-where $v$ is an identifier or an identifier qualified by an import prefix,
-and $v$ denotes a variable (\ref{variables}) or \code{$v$=} denotes a setter
-(\commentary{which may be declared explicitly or induced by an instance variable, etc}).
-Let $T$ be the static type of $v$ when $v$ denotes a variable,
-otherwise let $T$ be the static type of the formal parameter of the setter \code{$v$=}.
-It is a compile-time error if the static type of $e$ may not be assigned to $T$.
+\Case{\code{\id{} = $e$}}
+Consider an assignment $a$ of the form \code{\id{} = $e$},
+where \id{} is an identifier.
+
+If \id{} is a local variable $v$
+(\commentary{which may be a formal parameter}),
+a compile-time error occurs if $v$ is final
+or if the static type of $e$ is not assignable to the declared type of $v$.
+
+Otherwise
+(\commentary{when \id{} is not a local variable}),
+a lexical lookup of \code{\id=}
+(\ref{lexicalLookup})
+is performed from the location of \id.
+
+\begin{itemize}
+\item
+  When the lexical lookup yields a declaration $D$,
+  it is guaranteed to be a setter
+  (\commentary{that may be explicit or induced implicitly by a variable})
+  because other declarations do not have a name
+  of the form \code{\id=}.
+
+  If $D$ is the declaration of a static setter in class $C$
+  then $a$ is treated as
+  (\ref{notation})
+  the assignment \code{$C$.\id{} = $e$}.
+
+  \commentary{%
+    Further analysis as well as evaluation of \code{$C$.\id{} = $e$}
+    proceeds as specified elsewhere.%
+  }
+
+  Otherwise, a compile-time error occurs,
+  unless the static type of $e$ is assignable to the parameter type of $D$.
+\item
+  When the lexical lookup yields a member signature,
+  $a$ is treated as
+  (\ref{notation})
+  \code{\THIS.\id{} = $e$}.
+
+  \commentary{%
+    This occurs when no declaration named \code{\id=} is in scope,
+    but $a$ occurs in the body of an instance member declaration,
+    and the interface of the enclosing class has a setter named \code{\id=}.
+    Both the static analysis and evaluation proceeds with
+    \code{\THIS.\id{} = $e$},
+    so there is no need to further specify the treatment of $a$.%
+  }
+\item
+  \commentary{%
+    The lexical lookup can never yield an import prefix,
+    because they never have a name of the form \code{\id=}.%
+  }
+\end{itemize}
+
+\LMHash{}%
+In all cases
+(\commentary{whether or not \id{} is a local variable, etc.}),
+the static type of $a$ is the static type of $e$.
+
+\LMHash{}%
+Evaluation of an assignment $a$ of the form \code{\id{} = $e$}
+proceeds as follows:
+
+\begin{itemize}
+\item
+  In the case where \id{} is a local variable $v$,
+  the expression $e$ is evaluated to an object $o$,
+  and the variable $v$ is bound to $o$.
+  If no error occurs, the value of $a$ is $o$.
+  \commentary{%
+    $v$ is not a final variable,
+    because a compile-time error would then have occurred.
+    But a dynamic type error could occur, e.g.,
+    when $e$ has type \DYNAMIC{} and a run-time check on $o$ fails.%
+  }
+\item
+  In the case where the lexical lookup of \code{\id=}
+  from the location of \id{}
+  yields a declaration $D$,
+  $D$ is a top level setter $s$
+  (\commentary{possibly implicitly induced by a variable}).
+
+  The expression $e$ is evaluated to an object $o$.
+  Then the setter $s$ is invoked
+  with its formal parameter bound to $o$.
+  If no error occurs, the value of $a$ is $o$.
+
+  \commentary{%
+    $D$ cannot be a static setter in a class $C$,
+    because $a$ is then treated as
+    \code{$C$.\id{} = $e$},
+    which is specified elsewhere.%
+  }
+\item
+  \commentary{%
+    The case where the lexical lookup of \code{\id=}
+    yields a member signature cannot occur,
+    because that case is treated as
+    \code{\THIS.\id{} = $e$},
+    whose evaluation is specified elsewhere.
+  }
+\end{itemize}
+
+\LMHash{}%
+\Case{\code{$p$.\id{} = $e$}}
+Consider an assignment $a$ of the form \code{$p$.\id{} = $e$},
+where $p$ is an import prefix and \id{} is an identifier.
+
+\LMHash{}%
+A compile-time error occurs,
+unless $p$ has a member which is a setter $s$ named \code{id=}
+(\commentary{which may be implicitly induced by a variable declaration})
+such that the static type of $e$
+is assignable to the parameter type of $s$.
+
+\LMHash{}%
 The static type of $a$ is the static type of $e$.
 
 \LMHash{}%
-It is a compile-time error if an assignment of the form \code{$v$ = $e$} occurs
-inside a top level or static function (be it function, method, getter, or setter) or variable initializer,
-and there is neither a mutable local variable declaration with name $v$
-nor a setter declaration with name \code{$v$=} in the lexical scope enclosing the assignment.
-
 \LMHash{}%
-Evaluation of an assignment $a$ of the form \code{$v$ = $e$}
+Evaluation of an assignment $a$ of the form \code{$p$.\id{} = $e$}
 proceeds as follows:
-%% TODO(eernst): $d$ is defined ambiguously: both getter & setter may exist.
-Let $d$ be the innermost declaration whose name is $v$ or \code{$v$=}, if it exists.
-It is a compile-time error if $d$ denotes
-a prefix object, type declaration, or function declaration.
-
-\LMHash{}%
-If $d$ is the declaration of a local variable, the expression $e$ is evaluated to an object $o$.
-Then, the variable $v$ is bound to $o$.
-If no error occurs, the value of the assignment expression is $o$.
-
-\commentary{
-If $v$ is a final variable, a compile-time error has occurred and execution is unspecified.
-But a program with no compile-time errors may incur a dynamic type error.
-}
-
-% add local functions per bug 23218
-
-\LMHash{}%
-% TODO(eernst): $d$ defined ambiguously, re-check next sentence when fixing.
-If $d$ is the declaration of a library variable, top level getter or top level setter, the expression $e$ is evaluated to an object $o$.
-% TODO(eernst): $d$ defined ambiguously, re-check when fixing: Case $d$ is the getter and there is no setter.
-Then the setter \code{$v$=} is invoked with its formal parameter bound to $o$.
-The value of the assignment expression is $o$.
-
-\LMHash{}%
-Otherwise, if $d$ is the declaration of a class variable, static getter or static setter in class $C$,
-then the assignment is equivalent to the assignment \code{$C$.$v$ = $e$}.
-
-\commentary{
-Otherwise, if $a$ occurs inside a top level or static function
-(be it function, method, getter, or setter) or variable initializer,
-a compile-time error has occurred.
-}
-
-\LMHash{}%
-%% TODO(eernst): We don't want to transform code and than complain, see if this
-%% can be reworded to rely on static checks such that it only happens when it
-%% works, or maybe that's already true.
-Otherwise, the assignment is equivalent to the assignment \code{\THIS{}.$v$ = $e$}.
-
-\LMHash{}%
-% This error can occur due to implicit casts.
-It is a dynamic type error if the dynamic type of $o$
-is not a subtype of the actual type
-(\ref{actualTypeOfADeclaration})
-of $v$.
+The expression $e$ is evaluated to an object $o$.
+Then the setter denoted by \code{$p$.\id} is invoked
+with its formal parameter bound to $o$.
+If no error occurs, the value of $a$ is $o$.
 \EndCase
 
 \LMHash{}%
@@ -10696,8 +10769,11 @@ the static type of $a$ is the static type of $e_3$.
 \LMHash{}%
 Evaluation of an assignment $a$ of the form \code{$e_1$[$e_2$] = $e_3$}
 proceeds as follows:
-Evaluate $e_1$ to an object $a$, then evaluate $e_2$ to an object $i$, and finally evaluate $e_3$ to an object $v$.
-Call the method \code{[]=} on $a$ with $i$ as first argument and $v$ as second argument.
+Evaluate $e_1$ to an object $o$,
+then evaluate $e_2$ to an object $i$,
+and finally evaluate $e_3$ to an object $v$.
+Call the method \code{[]=} on $o$
+with $i$ as first argument and $v$ as second argument.
 Then $a$ evaluates to $v$.
 % Should we add: It is a dynamic error if $e_1$ evaluates to a constant list or map?
 \EndCase
@@ -10726,11 +10802,12 @@ is equivalent to the expression \code{\SUPER.[$e_1$] = $e_2$}.
 \LMHash{}%
 \Case{\code{$v$ ??= $e$}}
 Consider a compound assignment $a$ of the form \code{$v$ ??= $e$}
-where $v$ is an identifier or an identifier qualified by an import prefix,
-such that $v$ denotes a variable or $v$ denotes a getter, and \code{$v$=} denotes a setter.
-Exactly the same compile-time errors that would be caused by \code{$v$ = $e$} are also generated in the case of $a$.
-%% TODO(eernst): We should mention other cases, e.g., `v=` denotes a setter, but there is no getter.
-The static type of $a$ is the least upper bound of the static type of $v$ and the static type of $e$.
+where $v$ is an identifier or an identifier qualified by an import prefix.
+Exactly the same compile-time errors that would be caused by
+\code{$v$ = $e$}
+are also generated in the case of $a$.
+The static type of $a$ is
+the least upper bound of the static type of $v$ and the static type of $e$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{$v$ ??= $e$}
@@ -10745,11 +10822,12 @@ and then $a$ evaluates to $r$.
 \Case{\code{$C$.$v$ ??= $e$}}
 Consider a compound assignment $a$ of the form \code{$C$.$v$ ??= $e$}
 where $C$ is a type literal
-that may or may not be qualified by an import prefix,
-such that \code{$C$.$v$} denotes a getter and \code{$C$.$v$=} denotes a setter.
-Exactly the same compile-time errors that would be caused by \code{$C$.$v$ = $e$} are also generated in the case of $a$.
-%% TODO(eernst): We should mention other cases, e.g., `C.v=` denotes a setter, but there is no getter.
-The static type of $a$ is the least upper bound of the static type of \code{$C$.$v$} and the static type of $e$.
+that may or may not be qualified by an import prefix.
+Exactly the same compile-time errors that would be caused by
+\code{$C$.$v$ = $e$}
+are also generated in the case of $a$.
+The static type of $a$ is the least upper bound of
+the static type of \code{$C$.$v$} and the static type of $e$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{$C$.$v$ ??= $e$}
@@ -10765,9 +10843,12 @@ and then $a$ evaluates to $r$.
 Consider a compound assignment $a$ of the form \code{$e_1$.$v$ ??= $e_2$}.
 Let $T$ be the static type of $e_1$ and let $x$ be a fresh variable of type $T$.
 Except for errors inside $e_1$ and references to the name $x$,
-exactly the same compile-time errors that would be caused by \code{$x$.$v$ = $e_2$} are also generated in the case of $a$.
+exactly the same compile-time errors that would be caused by
+\code{$x$.$v$ = $e_2$}
+are also generated in the case of $a$.
 %% TODO(eernst): Also, we should mention other cases, e.g., there is no getter `z.v`.
-The static type of $a$ is the least upper bound of the static type of \code{$e_1$.$v$} and the static type of $e_2$.
+The static type of $a$ is the least upper bound of
+the static type of \code{$e_1$.$v$} and the static type of $e_2$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{$e_1$.$v$ ??= $e_2$}
@@ -10783,27 +10864,36 @@ and then $a$ evaluates to $r$.
 \LMHash{}%
 \Case{\code{$e_1$[$e_2$] ??= $e_3$}}
 Consider a compound assignment $a$ of the form \code{$e_1$[$e_2$] ??= $e_3$}.
-Exactly the same compile-time errors that would be caused by \code{$e_1$[$e_2$] = $e_3$} are also generated in the case of $a$.
+Exactly the same compile-time errors that would be caused by
+\code{$e_1$[$e_2$] = $e_3$}
+are also generated in the case of $a$.
 %% TODO(eernst): We should mention other cases, e.g., there is no `operator []`.
-The static type of $a$ is the least upper bound of the static type of \code{$e_1$[$e_2$]} and the static type of $e_3$.
+The static type of $a$ is the least upper bound of
+the static type of \code{$e_1$[$e_2$]} and the static type of $e_3$.
 
 \LMHash{}%
-Evaluation of a compound assignment $a$ of the form \code{$e_1$[$e_2$] ??= $e_3$}
+Evaluation of a compound assignment $a$ of the form
+\code{$e_1$[$e_2$] ??= $e_3$}
 proceeds as follows:
 Evaluate $e_1$ to an object $u$ and then evaluate $e_2$ to an object $i$.
-Call the \code{[]} method on $u$ with argument $i$, and let $o$ be the returned object.
+Call the \code{[]} method on $u$ with argument $i$,
+and let $o$ be the returned object.
 If $o$ is not the null object (\ref{null}), $a$ evaluates to $o$.
 Otherwise evaluate $e_3$ to an object $v$
-and then call the \code{[]=} method on $u$ with $i$ as first argument and $v$ as second argument.
+and then call the \code{[]=} method on $u$
+with $i$ as first argument and $v$ as second argument.
 Then $a$ evaluates to $v$.
 \EndCase
 
 \LMHash{}%
 \Case{\code{\SUPER.$v$ ??= $e$}}
 Consider a compound assignment $a$ of the form \code{\SUPER.$v$ ??= $e$}.
-Exactly the same compile-time errors that would be caused by \code{\SUPER.$v$ = $e$} are also generated in the case of $a$.
+Exactly the same compile-time errors that would be caused by
+\code{\SUPER.$v$ = $e$}
+are also generated in the case of $a$.
 %% TODO(eernst): We should mention other cases, e.g., there is no getter `\SUPER.v`.
-The static type of $a$ is the least upper bound of the static type of \code{\SUPER.$v$} and the static type of $e$.
+The static type of $a$ is the least upper bound of
+the static type of \code{\SUPER.$v$} and the static type of $e$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{\SUPER.$v$ ??= $e$}
@@ -10817,11 +10907,14 @@ and then $a$ evaluates to $r$.
 \LMHash{}%
 \Case{\code{$e_1$?.$v$ ??= $e_2$}}
 Consider a compound assignment $a$ of the form \code{$e_1$?.$v$ ??= $e_2$}.
-Exactly the same compile-time errors that would be caused by \code{$e_1$.$v$ ??= $e_2$} are also generated in the case of $a$.
+Exactly the same compile-time errors that would be caused by
+\code{$e_1$.$v$ ??= $e_2$}
+are also generated in the case of $a$.
 % Note: We use the static type of \code{$e_1$?.$v$} rather than \code{$e_1$.$v$} even
 % though the latter would be simpler. This is because the former will remain correct
 % if NNBD is introduced, and because it reduces the amount of synthetic syntax.
-The static type of $a$ is the least upper bound of the static type of \code{$e_1$?.$v$} and the static type of $e_2$.
+The static type of $a$ is the least upper bound of
+the static type of \code{$e_1$?.$v$} and the static type of $e_2$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{$e_1$?.$v$ ??= $e_2$}
@@ -10845,7 +10938,8 @@ is equivalent to the expression \code{$C$.$v$ ??= $e$}.
 
 \LMHash{}%
 \Case{\code{$v$ $op$= $e$}}
-For any other valid operator $op$, a compound assignment of the form \code{$v$ $op$= $e$}
+For any other valid operator $op$,
+a compound assignment of the form \code{$v$ $op$= $e$}
 is equivalent to \code{$v$ = $v$ $op$ $e$},
 where $v$ is an identifier or an identifier qualified by an import prefix.
 \EndCase
@@ -10863,7 +10957,9 @@ is equivalent to \code{$C$.$v$ = $C$.$v$ $op$ $e$}.
 Consider a compound assignment $a$ of the form \code{$e_1$.$v$ $op$= $e_2$}.
 Let $x$ be a fresh variable whose static type is the static type of $e_1$.
 Except for errors inside $e_1$ and references to the name $x$,
-exactly the same compile-time errors that would be caused by \code{$x$.$v$ = $x$.$v$ $op$ $e_2$} are also generated in the case of $a$.
+exactly the same compile-time errors that would be caused by
+\code{$x$.$v$ = $x$.$v$ $op$ $e_2$}
+are also generated in the case of $a$.
 The static type of $a$ is the static type of \code{$e_1$.$v$ $op$ $e_2$}.
 
 \LMHash{}%
@@ -10881,11 +10977,14 @@ Let $x$ and $i$ be fresh variables
 where the static type of the former is the static type of $e_1$
 and the static type of the latter is the static type of $e_2$.
 Except for errors inside $e_1$ and $e_2$ and references to the names $x$ and $i$,
-exactly the same compile-time errors that would be caused by \code{$x$[$i$] = $x$[$i$] $op$ $e_3$} are also generated in the case of $a$.
+exactly the same compile-time errors that would be caused by
+\code{$x$[$i$] = $x$[$i$] $op$ $e_3$}
+are also generated in the case of $a$.
 The static type of $a$ is the static type of \code{$x$[$i$] $op$ $e_3$}.
 
 \LMHash{}%
-Evaluation of s compound assignment $a$ of the form \code{$e_1$[$e_2$] $op$= $e_3$}
+Evaluation of s compound assignment $a$ of the form
+\code{$e_1$[$e_2$] $op$= $e_3$}
 proceeds as follows:
 Evaluate $e_1$ to an object $u$ and evaluate $e_2$ to an object $v$.
 Let $x$ and $i$ be fresh variables bound to $u$ and $v$ respectively.
@@ -10896,11 +10995,14 @@ and then $a$ evaluates to $r$.
 \LMHash{}%
 \Case{\code{$e_1$?.$v$ $op$= $e_2$}}
 Consider a compound assignment $a$ of the form \code{$e_1$?.$v$ $op$= $e_2$}.
-Exactly the same compile-time errors that would be caused by \code{$e_1$.$v$ $op$= $e_2$} are also generated in the case of $a$.
+Exactly the same compile-time errors that would be caused by
+\code{$e_1$.$v$ $op$= $e_2$}
+are also generated in the case of $a$.
 The static type of $a$ is the static type of \code{$e_1$.$v$ $op$= $e_2$}.
 
 \LMHash{}%
-Evaluation of a compound assignment $a$ of the form \code{$e_1$?.$v$ $op$= $e_2$}
+Evaluation of a compound assignment $a$ of the form
+\code{$e_1$?.$v$ $op$= $e_2$}
 proceeds as follows:
 Evaluate $e_1$ to an object $u$.
 If $u$ is the null object, then $a$ evaluates to the null object (\ref{null}).
@@ -10914,22 +11016,6 @@ Then $a$ evaluates to $r$.
 A compound assignment of the form \code{$C$?.$v$ $op$ = $e_2$}
 where $C$ is a type literal
 is equivalent to the expression \code{$C$.$v$ $op$ = $e_2$}.
-
-\begin{grammar}
-<compoundAssignmentOperator> ::= `*='
-  \alt `/='
-  \alt `~/='
-  \alt `\%='
-  \alt `+='
-  \alt `-='
-  \alt `\ltlt='
-  \alt `\gtgt='
-  \alt `\gtgtgt='
-  \alt `\&='
-  \alt `^='
-  \alt `|='
-  \alt `??='
-\end{grammar}
 \EndCase
 
 
@@ -11622,7 +11708,7 @@ and therefore must be evaluated.
   \alt \SUPER{} <unconditionalAssignableSelector>
   \alt <constructorInvocation> <assignableSelectorPart>
   \alt <identifier>
- 
+
 <assignableSelectorPart> ::= <selector>* <assignableSelector>
 
 <unconditionalAssignableSelector> ::= `[' <expression> `]'
@@ -14230,7 +14316,7 @@ if the declaration is in the library's exported namespace.
 %% natural to define it at the first usage in terms of the page number.
 \LMHash{}%
 We define an operation for
-combining namespaces with disjoint sets of keys  as follows. 
+combining namespaces with disjoint sets of keys  as follows.
 The
 \IndexCustom{union of two namespaces}{namespace!union},
 \IndexCustom{$\Namespace{a}\cup\Namespace{b}$}{%
