@@ -10598,7 +10598,8 @@ proceeds as follows:
 
 \begin{itemize}
 \item
-  In the case where \id{} is a local variable $v$,
+  In the case where \id{} is a local variable $v$
+  (\commentary{which may be a formal parameter}),
   the expression $e$ is evaluated to an object $o$,
   and the variable $v$ is bound to $o$.
   If no error occurs, the value of $a$ is $o$.
@@ -10861,7 +10862,7 @@ Except for errors inside $e_1$ and references to the name $x$,
 exactly the same compile-time errors that would be caused by
 \code{$x$.$v$ = $e_2$}
 are also generated in the case of $a$.
-%% TODO(eernst): Also, we should mention other cases, e.g., there is no getter `z.v`.
+Moreover, it is a compile-time error if $T$ does not have a getter named $v$.
 The static type of $a$ is the least upper bound of
 the static type of \code{$e_1$.$v$} and the static type of $e_2$.
 
@@ -10882,7 +10883,8 @@ Consider a compound assignment $a$ of the form \code{$e_1$[$e_2$] ??= $e_3$}.
 Exactly the same compile-time errors that would be caused by
 \code{$e_1$[$e_2$] = $e_3$}
 are also generated in the case of $a$.
-%% TODO(eernst): We should mention other cases, e.g., there is no `operator []`.
+Moreover, it is a compile-time error
+if the static type of $e_1$ does not have an `\code{operator []}'.
 The static type of $a$ is the least upper bound of
 the static type of \code{$e_1$[$e_2$]} and the static type of $e_3$.
 
@@ -10906,7 +10908,9 @@ Consider a compound assignment $a$ of the form \code{\SUPER.$v$ ??= $e$}.
 Exactly the same compile-time errors that would be caused by
 \code{\SUPER.$v$ = $e$}
 are also generated in the case of $a$.
-%% TODO(eernst): We should mention other cases, e.g., there is no getter `\SUPER.v`.
+Moreover, exactly the same compile-time errors that would be caused by
+evaluation of the expression \code{\SUPER.$v$}
+are also generated in the case of $a$.
 The static type of $a$ is the least upper bound of
 the static type of \code{\SUPER.$v$} and the static type of $e$.
 
@@ -11818,6 +11822,16 @@ In the situation where $S$ has
 exactly one declaration with basename \id,
 let $D$ be that declaration.
 
+\commentary{%
+In other words, if we are looking up a name $n$ with basename \id,
+we stop searching if we find any declaration named \id{} or \code{\id=}.
+If, in that scope, there are declarations for both \id{} and \code{\id=},
+we return the one which has the requested name $n$.
+In the case where only one declaration is present, we return it,
+even though it may have the name \id{} when $n$ is \code{\id=} or vice versa.
+That situation will cause an error, as specified below.%
+}
+
 \LMHash{}%
 \Case{$D$ does not exist}
 When no declaration with basename \id{} is in scope at the location $\ell$,
@@ -11832,7 +11846,12 @@ the following errors apply:
   % - in an expression in the initializer list of a constructor
   %   (be it a superinitializer, a field initializer, or an assertion).
   It is a compile-time error if $\ell$ is not inside
+  %% TODO(eernst): Come NNBD, adjust text for `late` variable initializers.
   the body of an instance member or a generative constructor.
+  \commentary{%
+    Note that an initializing expression for an instance variable
+    is not inside such a body.%
+  }
 \item
   When $\ell$ is inside the body of
   an instance member or a generative constructor,
@@ -11856,11 +11875,17 @@ is in scope at the location $\ell$.
 
 \LMHash{}%
 If $\ell$ does not occur in
-the body of an instance member or generative constructor,
+%% TODO(eernst): Come NNBD, update text for `late` variable initializers.
+the body of an instance member or a generative constructor,
 it is a compile-time error if the name of $D$ is not $n$,
 and it is a compile-time error if $D$ is an instance member.
 % An instance variable initializer is in the instance scope, so it is
 % actually possible for $D$ to be an instance member here.
+
+\commentary{%
+Note that an initializing expression for an instance variable
+is not inside such a body.%
+}
 
 \LMHash{}%
 Otherwise $\ell$ occurs in
@@ -11967,7 +11992,7 @@ Now proceed as described in the first applicable case from the following list:
 Note that a lexical lookup will never yield a declaration of
 an instance member.
 In each case where it is determined that there is no error
-and and instance member is the result of the lookup,
+and an instance member is the result of the lookup,
 the member signature from the interface of the enclosing class is yielded.
 
 The reason for this is that there may not be a declaration, e.g.,
