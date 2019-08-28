@@ -1019,12 +1019,12 @@ The scope into which the implicit getters and setters are introduced depends on 
 
 \LMHash{}%
 A library variable introduces a getter into the top level scope of the enclosing library.
-A static class variable introduces a static getter into the immediately enclosing class.
+A class variable introduces a static getter into the immediately enclosing class.
 An instance variable introduces an instance getter into the immediately enclosing class.
 
 \LMHash{}%
 A mutable library variable introduces a setter into the top level scope of the enclosing library.
-A mutable static class variable introduces a static setter into the immediately enclosing class.
+A mutable class variable introduces a static setter into the immediately enclosing class.
 A mutable instance variable introduces an instance setter into the immediately enclosing class.
 
 \LMHash{}%
@@ -2767,7 +2767,7 @@ A constant instance variable would have the same value for all instances, and as
 The language could interpret const instance variable declarations as instance getters that return a constant.
 However, a constant instance variable could not be treated as a true compile-time constant, as its getter would be subject to overriding.
 
-Given that the value does not depend on the instance, it is better to use a static class variable.
+Given that the value does not depend on the instance, it is better to use a class variable.
 An instance getter for it can always be defined manually if desired.
 }
 
@@ -11601,7 +11601,7 @@ Consider a postfix expression $e$ of the form \code{$C$.$v$\,\op},
 where $C$ is a type literal and \op{} is either \lit{++} or \lit{-{}-}.
 A compile-time error occurs unless \code{$C$.$v$} denotes a static getter
 and there is an associated static setter \code{$v$=}
-(\commentary{possibly implicitly induced by a static variable}).
+(\commentary{possibly implicitly induced by a class variable}).
 Let $T$ be the return type of said getter.
 A compile-time error occurs if $T$ is not \DYNAMIC{}
 and $T$ does not have an operator \lit{+} (when \op{} is \lit{++})
@@ -12100,16 +12100,15 @@ for \id{} yields a declaration $D$.
   If $D$ is a class, mixin, type alias or type parameter,
   the static type of $e$ is \code{Type}.
 \item
-  If $D$ is the declaration of
-  a library variable or getter,
+  If $D$ is the declaration of a library variable or library getter,
   the static type of $e$ is the static type of the
-  top level getter invocation \id{}
+  library getter invocation \id{}
   (\ref{topLevelGetterInvocation}).
 \item
   If $D$ is a static method, library function, or local function,
   the static type of $e$ is the function type of $D$.
 \item
-  If $D$ is the declaration of a static variable or getter
+  If $D$ is the declaration of a class variable or static getter
   and $D$ occurs in the class $C$,
   the static type of $e$ is the static type of the getter invocation
   (\ref{propertyExtraction})
@@ -12163,8 +12162,8 @@ In this situation $e$ is treated as
 \code{\THIS.\id}.
 
 \commentary{%
-This occurs when no declaration named \id{} is in scope,
-but $e$ occurs in the body of an instance member declaration,
+In this case it is known that $e$ occurs in
+the body of an instance member or a generative constructor,
 and the interface of the enclosing class has a member named \id.
 Both the static analysis and evaluation proceeds with
 \code{\THIS.\id},
@@ -12194,10 +12193,9 @@ The evaluation of $e$ proceeds as follows:
   that was passed to the generative constructor that created
   the current binding of \THIS{}.
 \item
-  If $D$ is the declaration of
-  a library variable, top-level getter, or top-level setter,
-  then evaluation of $e$ is equivalent to evaluation of an invocation of
-  the top level getter \id{}
+  If $D$ is the declaration of a library variable or library getter,
+  evaluation of $e$ is equivalent to evaluation of an invocation of
+  the library getter \id{}
   (\ref{topLevelGetterInvocation}).
 \item
   If $D$ is a constant variable of one of the forms
