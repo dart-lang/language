@@ -421,13 +421,13 @@ throws.  For example:
 
 ```
 class A {
-  final late int x;
+  late final int x;
 }
 class B extends A {
   int get x => 3;
 }
 class C extends A {
-  final late int x = 3;
+  late final int x = 3;
 }
 void test() {
    Expect.throws(() => new B().x = 3);
