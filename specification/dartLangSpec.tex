@@ -11879,10 +11879,17 @@ and the name of $D$ is not $n$,
 except when $n$ is \code{\id=} and $D$ declares a local variable
 (\commentary{which may be a formal parameter}).
 
+%% TODO(eernst): Come NNBD, `this` is accessible in a `late` instance variable
+%% initializer, so they must also be included in the first case.
 \LMHash{}%
-If $\ell$ does not occur in
-%% TODO(eernst): Come NNBD, update text for `late` variable initializers.
+% Case: `this` is accessible.
+When $\ell$ occurs in
 the body of an instance member or a generative constructor,
+it is a compile-time error if $D$ is an instance member,
+and the interface of the enclosing class does not have a member named $n$.
+% Case: `this` is not accessible.
+Otherwise
+(\commentary{when $\ell$ does not occur in such a location}),
 it is a compile-time error if $D$ is an instance member.
 % An instance variable initializer is in the instance scope, so it is
 % actually possible for $D$ to be an instance member here.
@@ -11891,20 +11898,11 @@ it is a compile-time error if $D$ is an instance member.
 Note that an initializing expression for an instance variable
 is not inside such a body.%
 }
-
-\LMHash{}%
-Otherwise $\ell$ occurs in
-the body of an instance member or a generative constructor.
-In this case it is a compile-time error if $D$ is an instance member,
-and the interface of the enclosing class does not have a member named $n$.
 \EndCase
 
-\commentary{%
-Note that we are always looking up \emph{both} \id{} and \code{\id=},
-no matter whether $n$ is \id{} or \code{\id=}.%
-}
-
 \rationale{%
+We are always looking up \emph{both} \id{} and \code{\id=},
+no matter whether $n$ is \id{} or \code{\id=}.
 This approach creates a tighter connection between a pair of declarations
 where one is a getter named \id{}
 and the other is a setter named \code{\id=}.
