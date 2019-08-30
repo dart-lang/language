@@ -11874,13 +11874,16 @@ In this case, at least one declaration with basename \id{}
 is in scope at the location $\ell$.
 
 \LMHash{}%
+It is a compile-time error if $D$ is not an instance member
+and the name of $D$ is not $n$,
+except when $n$ is \code{\id=} and $D$ declares a local variable
+(\commentary{which may be a formal parameter}).
+
+\LMHash{}%
 If $\ell$ does not occur in
 %% TODO(eernst): Come NNBD, update text for `late` variable initializers.
 the body of an instance member or a generative constructor,
-it is a compile-time error if the name of $D$ is not $n$,
-except when $n$ is \code{\id=} and $D$ declares a local variable
-(\commentary{which may be a formal parameter});
-and it is a compile-time error if $D$ is an instance member.
+it is a compile-time error if $D$ is an instance member.
 % An instance variable initializer is in the instance scope, so it is
 % actually possible for $D$ to be an instance member here.
 
@@ -11892,10 +11895,7 @@ is not inside such a body.%
 \LMHash{}%
 Otherwise $\ell$ occurs in
 the body of an instance member or a generative constructor.
-In this case it is a compile-time error
-if $D$ is not an instance member and the name of $D$ is not $n$;
-and it is a compile-time error
-if $D$ is an instance member,
+In this case it is a compile-time error if $D$ is an instance member,
 and the interface of the enclosing class does not have a member named $n$.
 \EndCase
 
