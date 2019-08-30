@@ -11874,9 +11874,8 @@ In this case, at least one declaration with basename \id{}
 is in scope at the location $\ell$.
 
 \LMHash{}%
-It is a compile-time error if $D$ is not an instance member
-and the name of $D$ is not $n$,
-except when $n$ is \code{\id=} and $D$ declares a local variable
+It is a compile-time error if the name of $D$ is not $n$,
+unless $D$ is an instance member or a local variable
 (\commentary{which may be a formal parameter}).
 
 %% TODO(eernst): Come NNBD, `this` is accessible in a `late` instance variable
