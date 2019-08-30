@@ -73,7 +73,7 @@ Extension declarations have essentially the same name conflict rules as class de
 - Declares a member with the same basename as the extension.
 - Declares a type parameter with the same name as the extension.
 - Declares a member with the same basename as the name of any of the extension's type parameters.
-- Declares two members with the same basename unless one is a getter an the other is a setter.
+- Declares two members with the same basename unless one is a getter and the other is a setter.
 - Declares a setter and a getter with the same basename and one is static and the other is not.
 - Declares a member with the same basename as a member declared by `Object` (`==`, `hashCode`, `toString`, `noSuchMethod`, `runtimeType`). This applies to both static and instance member declarations.
 - Declares a constructor.
@@ -85,7 +85,7 @@ Extension declarations have essentially the same name conflict rules as class de
 
 _Abstract members are not allowed since the extension declaration does not introduce an interface, and constructors are not allowed because the extension declaration doesn't introduce any type that can be constructed. Instance variables are not allowed because there won't be any memory allocation per instance that the extension applies to. We could implement instance variables using an `Expando`, but it would necessarily be nullable, so it would still not be an actual instance variable. Users who want that functionality can still add it manually using getter/setter declarations. Members with the same base name as members of `Object` are not allowed because some of them are accessed directly by the language semantics, and it is potentially confusing and error-prone if extension members could have the same name and a wildly different signature._
 
-An extension declaration with a non-private name is included in the library's export scope, and a privately named extension is not. It is a compile-time error to export two declarations, including extensions, with the same name, whether they come from declarations in the library itself or from export declarations (with the usual exception when all but one declaration come from platform libraries). Extension *members* with private names are simply inaccessible in other libraries.
+An extension declaration with a non-private name is included in the library's export scope, and a privately named or unnamed extension is not. It is a compile-time error to export two declarations, including extensions, with the same name, whether they come from declarations in the library itself or from export declarations (with the usual exception when all but one declaration come from platform libraries). Extension *members* with private names are simply inaccessible in other libraries.
 
 We make `extension` a built-in identifier. Is not necessary for disambiguation, but it makes error-recovery in parsers much easier.
 
@@ -99,7 +99,7 @@ You can explicitly invoke an extension member on a particular object by performi
 
 An *extension application* is an expression of the form `E(expr)` or `E<typeArgs>(expr)` where `E` denotes an extension declaration (that is, `E` a simple or qualified identifier which refers to the extension declaration).
 
-An extension application is subject to static type inference.  If `E` is an extension declared as `extension E<X...> on T {...}`, then the type inference for an extension application is exactly the same as that the type inference performed for the same syntax considered as a constructor invocation on a class declared as:
+An extension application is subject to static type inference.  If `E` is an extension declared as `extension E<X...> on T {...}`, then the type inference for an extension application is done exactly the same as it would be for the same syntax considered as a constructor invocation on a class declared as:
 
 ```dart
 class E<X...> {
@@ -107,6 +107,8 @@ class E<X...> {
     E(this.$target);
 }
 ```
+
+with no context type for the constructor invocation.
 
 This will infer type arguments for `E(expr)`, and it will introduce a static context type for `expr`. *For example, if `E` is declared as `extension E<T> on Set<T> { ... }` then `E({})` will provide the `{}` literal with a context type making it a set literal.* It is a **compile-time error** if the corresponding class constructor invocation would be a compile-time error.
 
@@ -143,7 +145,7 @@ Each such simple member invocation has a corresponding member name, the name of 
 
 It is a **compile-time error** if an extension application occurs in a place where it is *not* the target expression of a simple or composite member invocation. That is, the only valid use of an extension application is to invoke members on it. *This is similar to how prefix names can also only be used as member invocation targets. The main difference is that extensions can also declare operators.*
 
-It is a **compile-time error** for a simple member invocation of an extension application if the extension does not declare an instance member with the same name as the corresponding member name of the invocation, and for a composite member invocation of an extension application if the extension does not declare both a getter and a setter with the corresponding base name of the invocation. *You can only invoke members which are actually there.*
+It is a **compile-time error** to have a simple member invocation on an extension application where the extension in question does not declare an instance member with the same name as the corresponding member name of the invocation, and for a composite member invocation on an extension application where the extension does not declare both a getter and a setter with the corresponding base name of the invocation. *You can only invoke members which are actually there.*
 
 This means that you cannot do cascade invocations on explicit extension applications: `E(e)..foo()..bar()` is a compile-time error. This is necessary because that expression evaluates to the value of `E(e)`, and an extension application does not have a value.
 
@@ -195,7 +197,7 @@ Extension members can be invoked *implicitly* (without mentioning the extension 
 
 An implicit extension member invocation occurs for a simple or composite member invocation with a target expression `e` iff there exists a unique *most specific* extension declaration which is *accessible* and *applicable* to the member invocation (see below).
 
-If `E` is the single most specific accessible and applicable extension for a member invocation *i* with target expression `e`, which would then be a compile-time error by itself,  then we treat the target expression as if it was the extension application of `E` to `e`, and if `E` is generic, also providing the type arguments inferred for `E` in checking that it was applicable. This makes the member invocation equivalent to an explicit extension member invocation. This happens even if the *name* `E` is not accessible, so this is not a syntactic rewrite.
+If `E` is the single most specific accessible and applicable extension for a member invocation *i* with target expression `e`, then we treat the target expression as if it was the extension application of the extension `E` to `e`, and if `E` is generic, also providing the type arguments inferred for `E` in checking that it was applicable. This makes the member invocation behave equivalently to an explicit extension member invocation. This happens even if the *name* of `E` is not accessible, so this is not a purely syntactic rewrite.
 
 Implicit extension member invocation can also apply to individual *cascade* invocations. A cascade is treated as if each cascade section was a separate member invocation on an expression with the same value as the cascade receiver expression (the expression before the first `..`). This means that a cascade like `o..foo()..bar()` may perform an implicit extension member invocation on `o` for `foo()` and a normal invocation on `o` for `bar()`. There is no way to specify the corresponding explicit member invocation without expanding the cascade to a sequence of individual member invocations.
 
@@ -207,7 +209,7 @@ An extension *is* accessible if its name is *shadowed* by another declaration (a
 
 An extension *is* accessible if it is imported and the extension name conflicts with one or more other imported declarations.
 
-_This definition of being accessible ignores name shadowing or import name conflicts; the extension is accessible if it *could have been* in scope absent of any declarations shadowing it or any other imports with the same name preventing access to the name. If it *is* in scope, then it is obviously also accessible._
+_This definition of being accessible ignores name shadowing or import name conflicts; the extension is accessible if it *could have been* in scope absent of any declarations shadowing it or any other imports with the same name preventing access to the name. If it *is* in scope, then it is obviously also accessible. Compilers need to remember declarations of extensions in un-prefixed imports even if those extensions declarations do not make it into the  importing library scope_
 
 You can *avoid* making the extension accessible for a library by either not importing any library exporting the extension, importing such a library and hiding the extension using `hide` or `show`, or importing such a library only with a prefix.
 
@@ -626,18 +628,6 @@ The use of `typedef` for something which is not a type may be too confusing. Ano
 ```dart
 extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
 ```
-
-### Avoiding Scope Conflicts
-
-We allow importing two extensions with the same name into the same scope, and both of them *work*. They cannot be referenced by name, but they can be implicitly invoked. This breaks the current invariant that we cannot have two declarations with the same name in the same scope.
-
-To retain this invariant, we can define a "fresh extension alias" for each extension declaration. It is a second *fresh name* for the extension (a name not occurring anywhere else in the program), which will be a fresh *private* name if the extension's name is private (or omitted, in which case we only need the one fresh name), and a fresh non-private name if the extension's name is non-private. Any implicit extension invocation uses the *fresh extension alias* name to refer to the extension (so an `expr.foo()` which resolves to a method on the extension  `Ext` is equivalent to `$fresh$Ext(expr).foo()`). 
-
-A show/hide modifier on an import or export for the name *N* must also show or hide any fresh alias which is an alias for something named *N*. So, for each fresh name, we need to be able to determine the non-fresh name it corresponds to.
-
-This has the advantage that we retain our current scope consistency *and* we can perhaps allow exporting conflicting extensions as well. If we export two extensions with the same name, we can export that as a "conflict" result (compile-time error if that name is used) but also export the fresh aliases, which makes both the extensions usable through implicit invocations.
-
-This is not something we need for other declarations than extensions. Extensions are (currently) unique in that you can refer to them *without* mentioning their name.
 
 ## Revisions
 
