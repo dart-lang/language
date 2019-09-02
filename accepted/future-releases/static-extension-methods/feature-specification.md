@@ -171,7 +171,7 @@ class E<X...> {
 
 That is, if `E` declares an instance member `T foo(T arg)`, then the inference of `E(e1).foo(e2)` will first perform inference to `E(e1)` as described above, and then perform inference on the member invocation just as if it was a class member. It is a **compile-time error** if this class member invocation would be a compile-time error
 
-The static type of a member invocation on an extension application is the return type of the extension member with the corresponding member name of the invocation, with the explicit or inferred type arguments of the extension application replacing the type parameters.
+The static type of a member invocation on an extension application is the return type of the extension member with the corresponding member name of the invocation, with the explicit or inferred type arguments of the extension application replacing the type parameters bound by the extension, and the explicit or inferred type arguments of the invoked member replacing the type parameters bound by the member
 
 ##### Composite Assignments and Increment Operations
 
@@ -203,7 +203,7 @@ Implicit extension member invocation can also apply to individual *cascade* invo
 
 ##### Accessibility
 
-An extension is *accessible* for an expression if it is declared in the current library, or if there is an `import` declaration in the current library of a library with the extension in its export scope, that import does not have a prefix, and the name of the extension is not private and it is not hidden by a `hide` or `show` modifier of the import. 
+An extension is *accessible* for an expression if it is declared in the current library, or if there is an `import` declaration in the current library of a library with the extension in its export scope, that import does not have a prefix, and the name of the extension is not private and it is not hidden by a `hide` or `show` modifier of the import.
 
 An extension *is* accessible if its name is *shadowed* by another declaration (a class or local variable with the same name shadowing a top-level or imported declaration, a top-level declaration shadowing an imported extension, or a non-platform import shadowing a platform import).
 
@@ -252,7 +252,7 @@ Example:
 
 ```dart
 extension SmartIterable<T> on Iterable<T> {
-  void doTheSmartThing(void Function(T) smart) {
+  void doTheSmartThing(void Function(T)fresh smart) {
     for (var e in this) smart(e);
   }
 }
