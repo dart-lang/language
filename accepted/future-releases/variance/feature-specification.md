@@ -235,3 +235,108 @@ class B<out X> extends A<X> {
   void foo(covariant X x) {...}
 }
 ```
+
+
+### Expressions
+
+It is a compile-time error for an instance creation expression or a collection literal to pass a type argument marked `exactly`. It is a compile-time error to pass an actual type argument to a generic function invocation which is marked `exactly`.
+
+```dart
+class A<X> {}
+
+main() {
+  var xs = <exactly num>[]; // Error.
+  var ys = <List<exactly num>>[]; // OK.
+  var a = A<exactly String>(); // Error.
+  A<exactly String> a2 = A(); // OK.
+
+  void f<X>(X x) => print(x);
+  f<exactly int>(42); // Error.
+}
+```
+
+*We could say that the list of "type arguments" passed to a constructor invocation or literal collection contains types, not type arguments; and only type arguments can be marked `exactly`. However, those types may themselves receive type arguments, and they can be marked `exactly` as needed.*
+
+The static type of an instance creation expression that invokes a generative constructor of a generic class `C` with type arguments `T1, ... Tk` is `C<exactly T1, ..., exactly Tk>`.
+
+The static type of a list literal receiving type argument `T` is `List<exactly T>`; the static type of a set literal receiving type argument `T` is `Set<exactly T>`; and the static type of a map literal receiving type arguments `K` and `V` is `Map<exactly K, exactly V>`.
+
+*It cannot be assumed that a similar relationship exists for regular invocations, say, of a static method or a factory constructor, so they couldn't allow for actual type arguments marked `exactly`.*
+
+```dart
+class C<X> {
+  C();
+  factory C.named() => C<Never>();
+}
+
+main() => C<int>.named(); // Does not have type `C<exactly int>`.
+```
+
+## Dynamic Semantics
+
+Every instance of a generic class has a type where every type argument has the modifier `exactly`.
+
+*Note that this only applies at the top level in the type of the object. It may or may not have the modifier `exactly` on type arguments of type arguments.*
+
+```dart
+main() {
+  var xs = <List<num>>[]; // Dynamic type is `List<exactly List<num>>`.
+  var ys = <List<exactly num>>[]; // `List<exactly List<exactly num>>`.
+}
+```
+
+The dynamic representation of generic class types include information about whether a given actual type argument is marked `exactly` or not.
+
+*This is required for soundness.*
+
+```dart
+main() {
+  dynamic xs = <List<exactly num>>[];
+  xs.add(<int>[]); // Must throw.
+}
+```
+
+
+## Migration
+
+This proposal supports migration of code using dynamically checked covariance to code where some explicit variance modifiers are used, thus eliminating the potential for some dynamic type errors. There are two main scenarios.
+
+Let _legacy class_ denote a generic class that has one or more type parameters with no variance modifiers.
+
+If a new class _A_ has no superinterface relationship with any legacy class (directly or indirectly) then all non-dynamic member accesses to instances of _A_ and its subtypes will be statically safe. 
+
+*In other words, if the plan is to use explicit variance only with type declarations that are not "connected to" unsoundly covariant type parameters then there is no migration.*
+
+However, there is a need for migration support in the case where an existing legacy class _B_ is modified such that one or more of its type parameters have an explicit variance modifier.
+
+In particular, an existing subtype _C_ of _B_ must now add variance modifiers in order to remain error free, and this may conflict with the existing member signatures of _C_:
+
+```dart
+// Before the update.
+class B<X> {}
+class C<X> implements B<X> {
+  void f(X x) {}
+}
+
+// After the update of `B`.
+class B<out X> {}
+class C<X> implements B<X> { // Error.
+  void f(X x) {} // If we just make it `C<out X>` then this is an error.
+}
+
+// Adjusting `C` to eliminate the errors.
+class B<out X> {}
+class C<out X> implements B<X> {
+  void f(covariant X x) {}
+}
+```
+
+This approach can be used in a scenario where all parts of the program are migrated to the new language level where explicit variance is supported.
+
+In the other scenario, some libraries will opt in using a suitable language level, and others will not.
+
+If a library _L1_ is at a language level where explicit variance is not supported (so it is 'opted out') then code in an 'opted in' library _L2_ is seen from _L1_ as erased, in the sense that (1) the variance modifiers `out` and `inout` are ignored, and `exactly` in types is ignored, and (2) it is a compile-time error to pass a type argument `T` to a type parameter with variance modifier `in`, unless `T` is a top type.
+
+Conversely, declarations in _L1_ (opted out) is seen from _L2_ (opted in) without changes. So class type parameters declared in _L1_ are considered to be unsoundly covariant by both opted in and opted out code, and similarly for type aliases used to declare function types. Types of entities exported from _L1_ to _L2_ are seen as erased (which matters when _L1_ imports entities from some other opted-in library).
+
+Reification of `exactly` on type parameters is required for a sound semantics, but during a transitional period it could be considered as a static-only attribute, thus allowing for soundness violations of this property at run time, and only enforcing it for programs with no opted out code.
