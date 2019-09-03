@@ -283,7 +283,7 @@ range over meta-level functions. Application of a meta-level function is written
 as `F[p]` where `p` is the argument.
 
 The null-shorting translation of an expression `e` is meta-level function `F` of
-type `Exp -> Exp -> Exp` which takes as an argument the continuation of `e` and
+type `(Exp -> Exp) -> Exp` which takes as an argument the continuation of `e` and
 produces an expression semantically equivalent to `e` with all occurrences of
 `?.` eliminated in favor of explicit sequencing using a `let` construct.
 
@@ -320,7 +320,7 @@ receiver is non-null.
 
 The shorting propagation combinator `PASSTHRU` is defined as:
 ```
-  PASSTHRU = fn[F : Exp -> Exp -> Exp, c : Exp -> Exp] =>
+  PASSTHRU = fn[F : (Exp -> Exp) -> Exp, c : Exp -> Exp] =>
                fn[k : Exp -> Exp] : Exp => F[fn[x] => k[c[x]]]
 ```
 
@@ -391,6 +391,13 @@ continuation.
 
 #### Late fields and variables
 
+A non-local variable declaration of the form `late final v;`, `late final T v;`,
+`late final v = e;`, or `late final T v = e;`, or the same forms with `static`
+prepended, implicitly induces a getter into the enclosing scope. Moreover, the
+forms that do not include an initializing expression `e` induce a setter as
+well. For other variable declarations including `late`, the same getters and
+setters are induced as when `late` is omitted.
+
 A read of a field or variable which is marked as `late` which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
 a value, assigned to the variable or field, and returned as the value of the
@@ -410,24 +417,24 @@ read.
     is treated as a first read and the initializer expression is evaluated
     again.
 
-A write to a field or variable which is marked `final` and `late` is a runtime
+A write to a field or variable which is marked `late` and `final` is a runtime
 error unless the field or variable was declared with no initializer expression,
 and there have been no previous writes to the field or variable (including via
 an initializing formal or an initializer list entry).
 
-Overriding a field which is marked both `final` and `late` with a member which
+Overriding a field which is marked both `late` and `final` with a member which
 does not otherwise introduce a setter introduces an implicit setter which
 throws.  For example:
 
 ```
 class A {
-  final late int x;
+  late final int x;
 }
 class B extends A {
   int get x => 3;
 }
 class C extends A {
-  final late int x = 3;
+  late final int x = 3;
 }
 void test() {
    Expect.throws(() => new B().x = 3);
