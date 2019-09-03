@@ -307,6 +307,17 @@ main() {
 *Note that there is no way to make it statically safe to pass an actual argument to a covariant formal parameter of a given member `m`. Any receiver may have a dynamic type which is a proper subtype of the statically known type, and it may have an overriding declaration of `m` that makes the parameter covariant. So, by design, a modular static analysis cannot guarantee that any given invocation will not cause a dynamic error due to a dynamic type check for a covariant parameter.*
 
 
+### Member Access Typing
+
+For soundness, occurrences of the modifier `exactly` in member signatures are subject to elimination during the computation of the type of member access operations (*such as invocations of methods, getters, or setters*).
+
+Let _D_ be the declaration of a generic class or mixin named _N_ and let _X<sub>1</sub> .. X<sub>k</sub>_ be the type parameters declared by _D_. Let _T_ be a parameterized type which applies _N_ to a list of actual type arguments _S<sub>1</sub> .. S<sub>k</sub>_ in a context where the name _N_ denotes the declaration _D_, and consider the situation where a member access to a member `m` in the interface of _T_ is performed. Let _S1<sub>1</sub> .. S1<sub>k</sub>_ be the same as _S<sub>1</sub> .. S<sub>k</sub>_, except that any occurrence of `exactly` at the top level of each type argument has been removed.
+
+Let _s_ be the member signature of `m` from the interface of _D_, and _s1_ be _[S1<sub>1</sub>/X<sub>1</sub> .. S1<sub>k</sub>/X<sub>k</sub>]s_ (*this is the "raw" version of the statically known type of `m`*).
+
+For each _j_ in 1 .. _k_, if _X<sub>j</sub>_ does not have the variance modifier `inout`, and _S<sub>j</sub>_ does not have the modifier `exactly`, then for each occurrence of _exactly X<sub>j</sub>_ in _s_, the corresponding occurrence of `exactly` in _s1_ is eliminated, and so is every occurrence of `exactly` on each enclosing type, as long as they are parameterized types.
+
+
 ## Dynamic Semantics
 
 Every instance of a generic class has a dynamic type where every type argument has the modifier `exactly`.
