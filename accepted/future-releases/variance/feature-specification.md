@@ -101,7 +101,7 @@ main() {
   List<num> xs = <int>[];
   List<exactly num> ys = xs; // This must be an error because:
   ys.add(3.41); // Safe, based on the type of `ys`, but it should throw.
-  
+
   List<exactly List<exactly num>> zs = [];
   List<exactly List<num>> ws = zs; // This must be an error because:
   ws.add(<int>[]); // Safe, based on the type of `ws`, but it should throw.
@@ -240,6 +240,18 @@ class B<out X> extends A<X> { // or `implements`.
 }
 ```
 
+Finally, the occurrences of `exactly` in member signatures are restricted. Let _D_ be a class or mixin declaration and let _s_ be the member signature of an instance member declared by _D_. It is a compile-time error if _s_ contains a type argument of the form _exactly T_ in a non-covariant position where _T_ contains an occurrence of a type variable that does not have the variance modifier `inout`.
+
+```dart
+class C<X, inout Y, in Z> {
+  void f(Map<exactly X, exactly Z> xs) {} // Errors.
+  void Function(List<exactly X>) get h => (_) {}; // Error.
+  void g(Map<exactly int, exactly Y> xs) {} // OK.
+}
+```
+
+*This restriction is required for soundness. The reason is that member accesses must use a static type for the member which is known to be a supertype of the actual type of that member, and these occurrences of `exactly` will make such supertypes so imprecise that they will not be very useful, e.g., `f` would have the member signature `void f(Never)` no matter which values for `X` and `Z` are known statically.*
+
 
 ### Expressions
 
@@ -313,16 +325,34 @@ For soundness, occurrences of the modifier `exactly` in member signatures are su
 
 Let _D_ be the declaration of a generic class or mixin named _N_ and let _X<sub>1</sub> .. X<sub>k</sub>_ be the type parameters declared by _D_. Let _T_ be a parameterized type which applies _N_ to a list of actual type arguments _S<sub>1</sub> .. S<sub>k</sub>_ in a context where the name _N_ denotes the declaration _D_, and consider the situation where a member access to a member `m` in the interface of _T_ is performed. Let _S1<sub>1</sub> .. S1<sub>k</sub>_ be the same as _S<sub>1</sub> .. S<sub>k</sub>_, except that any occurrence of `exactly` at the top level of each type argument has been removed.
 
-Let _s_ be the member signature of `m` from the interface of _D_, and _s1_ be _[S1<sub>1</sub>/X<sub>1</sub> .. S1<sub>k</sub>/X<sub>k</sub>]s_ (*this is the "raw" version of the statically known type of `m`*).
+Let _s_ be the member signature of `m` from the interface of _D_, and _s1_ be _[S1<sub>1</sub>/X<sub>1</sub> .. S1<sub>k</sub>/X<sub>k</sub>]s_. 
 
-For each _j_ in 1 .. _k_, if _X<sub>j</sub>_ does not have the variance modifier `inout`, and _S<sub>j</sub>_ does not have the modifier `exactly`, then for each occurrence of _exactly X<sub>j</sub>_ in _s_, the corresponding occurrence of `exactly` in _s1_ is eliminated, and so is every occurrence of `exactly` on each enclosing type, as long as they are parameterized types.
+*This is the "raw" version of the statically known type of `m`; to obtain a sound typing we need one more step where certain occurrences of `exactly` are erased.*
+
+For each _j_ in 1 .. _k_, if _X<sub>j</sub>_ does not have the variance modifier `inout`, and _S<sub>j</sub>_ does not have the modifier `exactly`, then for each occurrence of `exactly` on a type that contains _X<sub>j</sub>_ in _s_, the corresponding occurrence of `exactly` in _s1_ is eliminated.
+
+*For example:*
+
+```dart
+class C<X> {
+  List<exactly X> get g => [];
+}
+
+main() {
+  C<exactly int> ci = C<int>();
+  C<num> cn = ci; // OK, upcast.
+  List<num> xs = cn.g; // OK, `cn.g` has type `List<num>`.
+  List<exactly num> ys = ci.g; // OK, `ci.g` has type `List<exactly int>`.
+  ys = cn.g; // Error (downcast).
+}
+```
 
 
 ## Dynamic Semantics
 
 Every instance of a generic class has a dynamic type where every type argument has the modifier `exactly`.
 
-*Note that this only applies at the top level in the type of the object. It may or may not have the modifier `exactly` on type arguments of type arguments.*
+*Note that this only applies at the top level in the dynamic type of the object. It may or may not have the modifier `exactly` on type arguments of type arguments.*
 
 ```dart
 main() {
@@ -349,7 +379,7 @@ This proposal supports migration of code using dynamically checked covariance to
 
 Let _legacy class_ denote a generic class that has one or more type parameters with no variance modifiers.
 
-If a new class _A_ has no superinterface relationship with any legacy class (directly or indirectly) then all non-dynamic member accesses to instances of _A_ and its subtypes will be statically safe. 
+If a new class _A_ has no superinterface relationship with any legacy class (directly or indirectly) then all non-dynamic member accesses to instances of _A_ and its subtypes will be statically safe.
 
 *In other words, if the plan is to use explicit variance only with type declarations that are not "connected to" unsoundly covariant type parameters then there is no migration.*
 
