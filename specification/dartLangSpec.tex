@@ -1922,6 +1922,22 @@ The enclosing scope of an instance member declaration is the instance scope of t
 The enclosing scope of a static member declaration is the static scope of the class in which it is declared.
 
 \LMHash{}%
+The current instance
+(\commentary{and hence its members})
+can only be accessed at specific locations in a class:
+We say that a location $\ell$
+\IndexCustom{has access to \THIS{}}{has access to this@has access to \THIS{}}
+if{}f $\ell$ is inside the body of a declaration of
+an instance member or a generative constructor,
+or in the initializing expression of a \LATE{} instance variable declaration.
+
+\commentary{%
+Note that an initializing expression for a non-\LATE{} instance variable
+does not have access to \THIS,
+and neither does any part of a declaration marked \STATIC.%
+}
+
+\LMHash{}%
 Every class has a single superclass except class \code{Object} which has no superclass.
 A class may implement a number of interfaces by declaring them in its implements clause (\ref{superinterfaces}).
 
@@ -2030,8 +2046,8 @@ a member with basename (\ref{classMemberConflicts}) $C$.
 If a generic class named $G$ declares a type variable named $X$,
 it is a compile-time error
 if $X$ is equal to $G$,
-if $G$ has a member whose basename is $X$,
-and if $G$ has a constructor named \code{$G$.$X$}.
+or if $G$ has a member whose basename is $X$,
+or if $G$ has a constructor named \code{$G$.$X$}.
 
 
 \subsection{Instance Methods}
@@ -2110,7 +2126,8 @@ in a trade-off where some static type safety is lost.
 \LMLabel{operators}
 
 \LMHash{}%
-\IndexCustom{Operators}{operators} are instance methods with special names.
+\IndexCustom{Operators}{operators} are instance methods with special names,
+except for operator \lit{[]=} which is an instance setter.
 
 \begin{grammar}
 <operatorSignature> ::= \gnewline{}
@@ -3823,6 +3840,8 @@ This section specifies these errors.
 \LMHash{}%
 The \Index{basename} of a getter or method named $n$ is $n$;
 the basename of a setter named \code{$n$=} is $n$.
+The basename of an operator named $n$ is $n$,
+except for operator \code{[]=} whose basename is \code{[]}.
 
 \LMHash{}%
 Let $C$ be a class.
@@ -10574,8 +10593,8 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
   \code{\THIS.\id{} = $e$}.
 
   \commentary{%
-    In this case it is known that $a$ occurs in
-    the body of an instance member or a generative constructor,
+    In this case it is known that $a$ has access to \THIS{}
+    (\ref{classes}),
     and the interface of the enclosing class has a member named \code{\id=}.
     Both the static analysis and evaluation proceeds with
     \code{\THIS.\id{} = $e$},
@@ -11770,8 +11789,11 @@ Evaluation of an assignable expression of the form \code{\SUPER{}[$e_2$]} is equ
 This section specifies how to look up a name
 based on the enclosing lexical scopes.
 This is known as a \Index{lexical lookup}.
-When \id{} is an identifier, it may look up a name $n$ of the form \id{}
+When \id{} is an identifier or \code{[]},
+it may look up a name $n$ of the form \id{}
 as well as of the form \code{\id=}.
+When \id{} is an operator name other than \code{[]},
+it will look up \id{}.
 
 \LMHash{}%
 A lexical lookup yields a result which is
@@ -11793,9 +11815,9 @@ as detailed below.%
 
 \LMHash{}%
 Consider the situation where a name $n$ has basename \id{}
-(\ref{classMemberConflicts}),
-an identifier \id{} occurs at a location $\ell$,
-and a lexical lookup of $n$ is performed from $\ell$.
+(\ref{classMemberConflicts})
+where \id{} is an identifier or an operator name,
+and a lexical lookup of $n$ is performed from a given location $\ell$.
 
 \commentary{%
 We specify a name and a location from where a lexical lookup is performed.
@@ -11808,7 +11830,8 @@ and the location that determines which scopes are the enclosing ones.%
 }
 
 \LMHash{}%
-When we consider an occurrence of an identifier \id{} and say that
+When we consider an occurrence of
+an identifier or operator name \id{} and say that
 a lexical lookup of \id{} is performed,
 it is understood that the lookup is performed from
 the location of said occurrence of \id.
@@ -11826,8 +11849,9 @@ let $D$ be that declaration.
 \commentary{%
 A non-local variable declaration named \id{} will implicitly induce
 a getter \id{} and possibly a setter \code{\id=} into the enclosing scope.
-This means that $D$ may denote an implicitly induced getter or setter,
-which is significant in the case where an error must arise
+This means that $D$ may denote an implicitly induced getter or setter
+rather than the underlying variable declaration.
+That is significant in the case where an error must arise
 because the lookup was for one kind, but only the other kind exists.%
 }
 
@@ -11854,16 +11878,10 @@ the following errors apply:
   % - inside an instance variable initializer;
   % - in an expression in the initializer list of a constructor
   %   (be it a superinitializer, a field initializer, or an assertion).
-  It is a compile-time error if $\ell$ is not inside
-  %% TODO(eernst): Come NNBD, adjust text for `late` variable initializers.
-  the body of an instance member or a generative constructor.
-  \commentary{%
-    Note that an initializing expression for an instance variable
-    is not inside such a body.%
-  }
+  It is a compile-time error if $\ell$ does not have access to \THIS{}
+  (\ref{classes}).
 \item
-  When $\ell$ is inside the body of
-  an instance member or a generative constructor,
+  When $\ell$ has access to \THIS{}
   it is a compile-time error if the interface of the enclosing class
   does not have a member named $n$.
   \commentary{%
@@ -11890,20 +11908,14 @@ unless $D$ is an instance member or a local variable
 %% TODO(eernst): Come NNBD, `this` is accessible in a `late` instance variable
 %% initializer, so they must also be included in the first case.
 \LMHash{}%
-% Case: `this` is accessible.
-When $\ell$ occurs in
-the body of an instance member or a generative constructor,
+When $\ell$ has access to \THIS{}
+(\ref{classes}),
 it is a compile-time error if $D$ is an instance member,
 and the interface of the enclosing class does not have a member named $n$.
-% Case: `this` is not accessible.
-Otherwise, it is a compile-time error if $D$ is an instance member.
+When $\ell$ does not have access to \THIS,
+it is a compile-time error if $D$ is an instance member.
 % An instance variable initializer is in the instance scope, so it is
 % actually possible for $D$ to be an instance member here.
-
-\commentary{%
-Note that an initializing expression for an instance variable
-is not inside such a body.%
-}
 \EndCase
 
 \rationale{%
@@ -12176,8 +12188,8 @@ In this situation $e$ is treated as
 \code{\THIS.\id}.
 
 \commentary{%
-In this case it is known that $e$ occurs in
-the body of an instance member or a generative constructor,
+In this case it is known that $e$ has access to \THIS{}
+(\ref{classes}),
 and the interface of the enclosing class has a member named \id.
 Both the static analysis and evaluation proceeds with
 \code{\THIS.\id},
