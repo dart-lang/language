@@ -445,7 +445,7 @@ When the specification refers to the order given in the program, it means the or
 \LMHash{}%
 When the specification refers to a
 \IndexCustom{fresh variable}{variable!fresh},
-it means a variable with a name that doesn't occur anywhere
+it means a local variable with a name that doesn't occur anywhere
 in the current program.
 When the specification introduces a fresh variable bound to an object,
 the fresh variable is implicitly bound in a surrounding scope.
@@ -8888,7 +8888,8 @@ Let $D$ be the declaration yielded by the lexical lookup of \id{}.
   (\ref{functionExpressionInvocation}).
 \item
   Otherwise, if $D$ is
-  a static method, static getter, or class variable declaration
+  a static method or getter
+  (\commentary{which may be implicitly induced by a class variable})
   in the enclosing class or mixin $C$,
   $i$ is treated as
   (\ref{notation})
@@ -11823,7 +11824,15 @@ exactly one declaration with basename \id,
 let $D$ be that declaration.
 
 \commentary{%
-In other words, if we are looking up a name $n$ with basename \id,
+A non-local variable declaration named \id{} will implicitly induce
+a getter \id{} and possibly a setter \code{\id=} into the enclosing scope.
+This means that $D$ may denote an implicitly induced getter or setter,
+which is significant in the case where an error must arise
+because the lookup was for one kind, but only the other kind exists.%
+}
+
+\commentary{%
+If we are looking up a name $n$ with basename \id,
 we stop searching if we find any declaration named \id{} or \code{\id=}.
 If, in that scope, there are declarations for both \id{} and \code{\id=},
 we return the one which has the requested name $n$.
@@ -11960,7 +11969,8 @@ Now proceed as described in the first applicable case from the following list:
   Consider the case where $D$ is a formal type parameter declaration
   of a class or a mixin.
   It is a compile-time error if $\ell$ occurs inside
-  a static method, getter, setter, or variable initializer.
+  a static method, static getter, or static setter,
+  or inside a class variable initializer.
   % NB: There is _no_ error when it occurs in an instance variable initializer,
   % which means that it is allowed "to access `this`" in that particular case.
   % This may seem inconsistent, but it should not be harmful.
@@ -12097,7 +12107,8 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
   If $D$ declares a class, mixin, type alias or type parameter,
   the static type of $e$ is \code{Type}.
 \item
-  If $D$ is the declaration of a library variable or library getter,
+  If $D$ is the declaration of a library getter
+  (\commentary{which may be implicitly induced by a library variable}),
   the static type of $e$ is the static type of the
   library getter invocation \id{}
   (\ref{topLevelGetterInvocation}).
@@ -12111,7 +12122,8 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
     (\ref{genericFunctionInstantiation}).%
   }
 \item
-  If $D$ is the declaration of a class variable or static getter
+  If $D$ is the declaration of a static getter
+  (\commentary{which may be implicitly induced by a class variable})
   and $D$ occurs in the class $C$,
   the static type of $e$ is the return type of the getter
   \code{$C$.\id}.
@@ -12195,11 +12207,15 @@ The evaluation of $e$ proceeds as follows:
   that was passed to the generative constructor that created
   the current binding of \THIS{}.
 \item
-  If $D$ is the declaration of a library variable or library getter,
+  If $D$ is the declaration of a library getter
+  (\commentary{which may be implicitly induced by a library variable}),
   evaluation of $e$ is equivalent to evaluation of an invocation of
   the library getter \id{}
   (\ref{topLevelGetterInvocation}).
 \item
+  % We could say 'getter induced by a constant variable'; but there will always
+  % be a variable because a getter declaration cannot yield a constant, so we
+  % use the shortcut and omit mentioning the getter entirely here.
   If $D$ is a library, class, or local constant variable of one of the forms
   \code{\CONST{} $v$ = $e'$;} or \code{\CONST{} $T$ $v$ = $e'$;}
   then the value of $e$ is the value of the constant expression $e'$.
