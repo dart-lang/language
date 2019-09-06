@@ -37,6 +37,9 @@
 %   and const variables with no type, and to allow `late final` top-level
 %   variables, to allow `late` on a top-level variable declaration; and
 %   adding <namedParameterType> to allow `required` parameters.
+% - Make lexical identifier lookups use the rules for 'Identifier Reference'
+%   consistently; that is, always look up `id` as well as `id=`, and commit
+%   to the kind of declaration found by that lookup.
 %
 % 2.3
 % - Add requirement that the iterator of a for-in statement must have
@@ -442,7 +445,7 @@ When the specification refers to the order given in the program, it means the or
 \LMHash{}%
 When the specification refers to a
 \IndexCustom{fresh variable}{variable!fresh},
-it means a variable with a name that doesn't occur anywhere
+it means a local variable with a name that doesn't occur anywhere
 in the current program.
 When the specification introduces a fresh variable bound to an object,
 the fresh variable is implicitly bound in a surrounding scope.
@@ -1016,12 +1019,12 @@ The scope into which the implicit getters and setters are introduced depends on 
 
 \LMHash{}%
 A library variable introduces a getter into the top level scope of the enclosing library.
-A static class variable introduces a static getter into the immediately enclosing class.
+A class variable introduces a static getter into the immediately enclosing class.
 An instance variable introduces an instance getter into the immediately enclosing class.
 
 \LMHash{}%
 A mutable library variable introduces a setter into the top level scope of the enclosing library.
-A mutable static class variable introduces a static setter into the immediately enclosing class.
+A mutable class variable introduces a static setter into the immediately enclosing class.
 A mutable instance variable introduces an instance setter into the immediately enclosing class.
 
 \LMHash{}%
@@ -1919,6 +1922,22 @@ The enclosing scope of an instance member declaration is the instance scope of t
 The enclosing scope of a static member declaration is the static scope of the class in which it is declared.
 
 \LMHash{}%
+The current instance
+(\commentary{and hence its members})
+can only be accessed at specific locations in a class:
+We say that a location $\ell$
+\IndexCustom{has access to \THIS{}}{has access to this@has access to \THIS{}}
+if{}f $\ell$ is inside the body of a declaration of
+an instance member or a generative constructor,
+or in the initializing expression of a \LATE{} instance variable declaration.
+
+\commentary{%
+Note that an initializing expression for a non-\LATE{} instance variable
+does not have access to \THIS,
+and neither does any part of a declaration marked \STATIC.%
+}
+
+\LMHash{}%
 Every class has a single superclass except class \code{Object} which has no superclass.
 A class may implement a number of interfaces by declaring them in its implements clause (\ref{superinterfaces}).
 
@@ -2027,8 +2046,8 @@ a member with basename (\ref{classMemberConflicts}) $C$.
 If a generic class named $G$ declares a type variable named $X$,
 it is a compile-time error
 if $X$ is equal to $G$,
-if $G$ has a member whose basename is $X$,
-and if $G$ has a constructor named \code{$G$.$X$}.
+or if $G$ has a member whose basename is $X$,
+or if $G$ has a constructor named \code{$G$.$X$}.
 
 
 \subsection{Instance Methods}
@@ -2107,7 +2126,9 @@ in a trade-off where some static type safety is lost.
 \LMLabel{operators}
 
 \LMHash{}%
-\IndexCustom{Operators}{operators} are instance methods with special names.
+\IndexCustom{Operators}{operators} are instance methods with special names,
+except for operator \lit{[]} which is an instance getter
+and operator \lit{[]=} which is an instance setter.
 
 \begin{grammar}
 <operatorSignature> ::= \gnewline{}
@@ -2764,7 +2785,7 @@ A constant instance variable would have the same value for all instances, and as
 The language could interpret const instance variable declarations as instance getters that return a constant.
 However, a constant instance variable could not be treated as a true compile-time constant, as its getter would be subject to overriding.
 
-Given that the value does not depend on the instance, it is better to use a static class variable.
+Given that the value does not depend on the instance, it is better to use a class variable.
 An instance getter for it can always be defined manually if desired.
 }
 
@@ -3481,9 +3502,9 @@ then the (implicit or explicit) superinitializer in $k$ is an error.%
 }
 
 \LMHash{}%
-The superinitializer that appears, explicitly or implicitly, 
+The superinitializer that appears, explicitly or implicitly,
 in the initializer list of a constant constructor
-must specify a constant constructor of
+must specify a generative constant constructor of
 the superclass of the immediately enclosing class,
 or a compile-time error occurs.
 
@@ -3820,6 +3841,8 @@ This section specifies these errors.
 \LMHash{}%
 The \Index{basename} of a getter or method named $n$ is $n$;
 the basename of a setter named \code{$n$=} is $n$.
+The basename of an operator named $n$ is $n$,
+except for operator \code{[]=} whose basename is \code{[]}.
 
 \LMHash{}%
 Let $C$ be a class.
@@ -8848,53 +8871,89 @@ Note that the type argument list is omitted when $r = 0$ (\ref{generics}).
 }
 
 \LMHash{}%
-It is a compile-time error if $i$ occurs inside a top-level or static function
-(be it function, method, getter, or setter)
-or a top-level or static variable initializer,
-and there is no lexically visible declaration named \id{} in scope.
+Perform a lexical lookup of \id{}
+(\ref{lexicalLookup})
+from the location of $i$.
 
 \LMHash{}%
-If there exists a lexically visible declaration named \id,
-let $D_{id}$ be the innermost such declaration.
-Then:
+\Case{Lexical lookup yields a declaration}
+Let $D$ be the declaration yielded by the lexical lookup of \id{}.
+
 \begin{itemize}
-\item Consider the situation where $D_{id}$ is a type declaration.
-  If $D_{id}$ is a declaration of a class $C$
+\item
+  When $D$ is a type declaration, that is,
+  a declaration of a class, mixin, type alias, or type parameter,
+  the following applies:
+  If $D$ is a declaration of a class $C$
   that has a constructor named $C$
   then the meaning of $i$ depends on the context:
   If $i$ occurs in a constant context
   (\ref{constantContexts}),
-  then $i$ is equivalent to \code{\CONST\,\,$i$};
+  then $i$ is treated as
+  (\ref{notation})
+  \code{\CONST\,\,$i$};
   if $i$ does not occur in a constant context
-  then $i$ is equivalent to \code{\NEW\,\,$i$}.
-  Otherwise a compile-time error occurs
-  (\commentary{that is, if $D_{id}$ does not declare a class,
-    or it declares a class that has no constructor named $C$}).
-\item Otherwise, if $D_{id}$ is an import directive
-  where \id{} is declared to be a library prefix,
+  then $i$ is treated as \code{\NEW\,\,$i$}.
+  If $D$ is not a class declaration,
+  or it declares a class named $C$ that has no constructor named $C$,
   a compile-time error occurs.
-\item Otherwise, if $D_{id}$ declares
+\item
+  Otherwise, if $D$ is a declaration of
   a local function,
   a library function, or
   a library or static getter, or a variable,
-  then $i$ is treated as a function expression invocation
+  then $i$ is treated as
+  (\ref{notation})
+  a function expression invocation
   (\ref{functionExpressionInvocation}).
-\item Otherwise, if $D_{id}$ is a static method of the enclosing class $C$,
-  $i$ is equivalent to
-  \code{$C$.\id<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
-\item Otherwise, if $i$ occurs in an instance method body,
-  $i$ is equivalent to the ordinary method invocation
-
-  \code{\THIS{}.\id<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\item
+  Otherwise, if $D$ is
+  a static method or getter
+  (\commentary{which may be implicitly induced by a class variable})
+  in the enclosing class or mixin $C$,
+  $i$ is treated as
+  (\ref{notation})
+  \code{$C$.$i$}
+  (\ref{ordinaryInvocation}).
+\item
+  \commentary{%
+    A lexical lookup will never yield a declaration $D$
+    which is an instance member.%
+  }
 \end{itemize}
+\vspace{-2ex}
+\EndCase
+
+\Case{Lexical lookup yields an import prefix}
+When the lexical lookup of \id{} yields an import prefix,
+a compile-time error occurs.
+\EndCase
+
+\Case{Lexical lookup yields a member signature}
+When the lexical lookup of \id{} yields a member signature,
+$i$ is treated as
+(\ref{notation})
+%% TODO(eernst): Come extension methods, we need id --> Ext<typeArgs>(id).
+the ordinary method invocation
+\code{\THIS.$i$}
+(\ref{ordinaryInvocation}).
 
 \commentary{%
-Otherwise \id{} is not in scope, and
-$i$ must occur inside a top-level or static function
-(be it function, method, getter, or setter)
-or a top-level or static variable initializer,
-in which case a compile-time error occurs,
-as specified earlier in this section.%
+This occurs when the lexical lookup has determined that
+$i$ must invoke an instance member,
+and the location of $i$ can access \THIS{},
+and the interface of the enclosing class has a member named \id.
+Both the static analysis and evaluation proceeds with
+\code{\THIS.$i$},
+so there is no need to further specify the treatment of $i$.%
+}
+\EndCase
+
+\commentary{%
+Note that an unqualified invocation does not specify an evaluation semantics.
+This is because every case which is not an error ends in the conclusion that
+the unqualified invocation should be treated as some other construct,
+which is specified elsewhere.%
 }
 
 
@@ -9298,7 +9357,7 @@ when the two function objects were created.
 In that situation it is unreasonable
 to consider the two function objects to be the same function.%
 }
-\EndCase{}
+\EndCase
 
 
 \subsection{Lookup}
@@ -10474,84 +10533,151 @@ when executed starting from exactly the same state.%
 \LMLabel{assignment}
 
 \LMHash{}%
-An assignment changes the value associated with a mutable variable or property.
+An assignment changes the value associated with a mutable variable,
+or invokes a setter.
 
 \begin{grammar}
 <assignmentOperator> ::= `='
   \alt <compoundAssignmentOperator>
+
+<compoundAssignmentOperator> ::= `*='
+  \alt `/='
+  \alt `~/='
+  \alt `\%='
+  \alt `+='
+  \alt `-='
+  \alt `\ltlt='
+  \alt `\gtgt='
+  \alt `\gtgtgt='
+  \alt `\&='
+  \alt `^='
+  \alt `|='
+  \alt `??='
 \end{grammar}
 
 \LMHash{}%
-\Case{\code{$v$ = $e$}}
-%% TODO(eernst): This _only_ works if we assume that `v = e` has already
-%% been expanded to `this.v = e` "when that's the right thing to do".
-%% Otherwise `denotes` below cannot be interpreted as the result of a lookup,
-%% and we have no precise alternative which would work. We might be able
-%% to repair this by giving a definition of `denotes` somewhere.
-Consider an assignment $a$ of the form \code{$v$ = $e$},
-where $v$ is an identifier or an identifier qualified by an import prefix,
-and $v$ denotes a variable (\ref{variables}) or \code{$v$=} denotes a setter
-(\commentary{which may be declared explicitly or induced by an instance variable, etc}).
-Let $T$ be the static type of $v$ when $v$ denotes a variable,
-otherwise let $T$ be the static type of the formal parameter of the setter \code{$v$=}.
-It is a compile-time error if the static type of $e$ may not be assigned to $T$.
+\Case{\code{\id{} = $e$}}
+Consider an assignment $a$ of the form \code{\id{} = $e$},
+where \id{} is an identifier.
+Perform a lexical lookup of \code{\id=} from the location of \id.
+
+\begin{itemize}
+\item
+  When the lexical lookup yields a declaration $D$ of a local variable $v$
+  (\commentary{which may be a formal parameter}),
+  a compile-time error occurs if $v$ is final
+  or if the static type of $e$ is not assignable to the declared type of $v$.
+\item
+  When the lexical lookup yields a declaration $D$
+  which is not a local variable,
+  it is guaranteed to be a setter
+  (\commentary{that may be explicit or induced implicitly by a variable})
+  because other declarations do not have a name
+  of the form \code{\id=}.
+
+  If $D$ is the declaration of a static setter in class or mixin $C$
+  then $a$ is treated as
+  (\ref{notation})
+  the assignment \code{$C$.\id{} = $e$}.
+
+  \commentary{%
+    Further analysis as well as evaluation of \code{$C$.\id{} = $e$}
+    proceeds as specified elsewhere.%
+  }
+
+  Otherwise, a compile-time error occurs,
+  unless the static type of $e$ is assignable to the parameter type of $D$.
+\item
+  When the lexical lookup yields a member signature,
+  $a$ is treated as
+  (\ref{notation})
+  \code{\THIS.\id{} = $e$}.
+
+  \commentary{%
+    In this case it is known that $a$ has access to \THIS{}
+    (\ref{classes}),
+    and the interface of the enclosing class has a member named \code{\id=}.
+    Both the static analysis and evaluation proceeds with
+    \code{\THIS.\id{} = $e$},
+    so there is no need to further specify the treatment of $a$.%
+  }
+\item
+  \commentary{%
+    The lexical lookup can never yield an import prefix,
+    because they never have a name of the form \code{\id=}.%
+  }
+\end{itemize}
+
+\LMHash{}%
+In all cases
+(\commentary{whether or not \id{} is a local variable, etc.}),
+the static type of $a$ is the static type of $e$.
+
+\LMHash{}%
+Evaluation of an assignment $a$ of the form \code{\id{} = $e$}
+proceeds as follows.
+Perform a lexical lookup of \code{\id=} from the location of \id.
+
+\begin{itemize}
+\item
+  In the case where the lexical lookup yielded
+  a declaration $D$ of a local variable $v$,
+  (\commentary{which may be a formal parameter}),
+  the expression $e$ is evaluated to an object $o$,
+  and the variable $v$ is bound to $o$.
+  Then $a$ evaluates to the object $o$
+  (\ref{expressionEvaluation}).
+\item
+  In the case where the lexical lookup of \code{\id=}
+  from the location of \id{}
+  yields a declaration $D$,
+  $D$ is necessarily a top level setter $s$
+  (\commentary{possibly implicitly induced by a variable}).
+
+  The expression $e$ is evaluated to an object $o$.
+  Then the setter $s$ is invoked
+  with its formal parameter bound to $o$.
+  Then $a$ evaluates to the object $o$.
+
+  \commentary{%
+    $D$ cannot be a static setter in a class $C$,
+    because $a$ is then treated as
+    \code{$C$.\id{} = $e$},
+    which is specified elsewhere.%
+  }
+\item
+  \commentary{%
+    The case where the lexical lookup of \code{\id=}
+    yields a member signature cannot occur,
+    because that case is treated as
+    \code{\THIS.\id{} = $e$},
+    whose evaluation is specified elsewhere.
+  }
+\end{itemize}
+
+\LMHash{}%
+\Case{\code{$p$.\id{} = $e$}}
+Consider an assignment $a$ of the form \code{$p$.\id{} = $e$},
+where $p$ is an import prefix and \id{} is an identifier.
+
+\LMHash{}%
+A compile-time error occurs,
+unless $p$ has a member which is a setter $s$ named \code{id=}
+(\commentary{which may be implicitly induced by a variable declaration})
+such that the static type of $e$
+is assignable to the parameter type of $s$.
+
+\LMHash{}%
 The static type of $a$ is the static type of $e$.
 
 \LMHash{}%
-It is a compile-time error if an assignment of the form \code{$v$ = $e$} occurs
-inside a top level or static function (be it function, method, getter, or setter) or variable initializer,
-and there is neither a mutable local variable declaration with name $v$
-nor a setter declaration with name \code{$v$=} in the lexical scope enclosing the assignment.
-
 \LMHash{}%
-Evaluation of an assignment $a$ of the form \code{$v$ = $e$}
+Evaluation of an assignment $a$ of the form \code{$p$.\id{} = $e$}
 proceeds as follows:
-%% TODO(eernst): $d$ is defined ambiguously: both getter & setter may exist.
-Let $d$ be the innermost declaration whose name is $v$ or \code{$v$=}, if it exists.
-It is a compile-time error if $d$ denotes
-a prefix object, type declaration, or function declaration.
-
-\LMHash{}%
-If $d$ is the declaration of a local variable, the expression $e$ is evaluated to an object $o$.
-Then, the variable $v$ is bound to $o$.
-If no error occurs, the value of the assignment expression is $o$.
-
-\commentary{
-If $v$ is a final variable, a compile-time error has occurred and execution is unspecified.
-But a program with no compile-time errors may incur a dynamic type error.
-}
-
-% add local functions per bug 23218
-
-\LMHash{}%
-% TODO(eernst): $d$ defined ambiguously, re-check next sentence when fixing.
-If $d$ is the declaration of a library variable, top level getter or top level setter, the expression $e$ is evaluated to an object $o$.
-% TODO(eernst): $d$ defined ambiguously, re-check when fixing: Case $d$ is the getter and there is no setter.
-Then the setter \code{$v$=} is invoked with its formal parameter bound to $o$.
-The value of the assignment expression is $o$.
-
-\LMHash{}%
-Otherwise, if $d$ is the declaration of a class variable, static getter or static setter in class $C$,
-then the assignment is equivalent to the assignment \code{$C$.$v$ = $e$}.
-
-\commentary{
-Otherwise, if $a$ occurs inside a top level or static function
-(be it function, method, getter, or setter) or variable initializer,
-a compile-time error has occurred.
-}
-
-\LMHash{}%
-%% TODO(eernst): We don't want to transform code and than complain, see if this
-%% can be reworded to rely on static checks such that it only happens when it
-%% works, or maybe that's already true.
-Otherwise, the assignment is equivalent to the assignment \code{\THIS{}.$v$ = $e$}.
-
-\LMHash{}%
-% This error can occur due to implicit casts.
-It is a dynamic type error if the dynamic type of $o$
-is not a subtype of the actual type
-(\ref{actualTypeOfADeclaration})
-of $v$.
+The expression $e$ is evaluated to an object $o$.
+Then the setter denoted by \code{$p$.\id} is invoked
+with its formal parameter bound to $o$.
+Then $a$ evaluates to the object $o$.
 \EndCase
 
 \LMHash{}%
@@ -10677,8 +10803,11 @@ the static type of $a$ is the static type of $e_3$.
 \LMHash{}%
 Evaluation of an assignment $a$ of the form \code{$e_1$[$e_2$] = $e_3$}
 proceeds as follows:
-Evaluate $e_1$ to an object $a$, then evaluate $e_2$ to an object $i$, and finally evaluate $e_3$ to an object $v$.
-Call the method \code{[]=} on $a$ with $i$ as first argument and $v$ as second argument.
+Evaluate $e_1$ to an object $o$,
+then evaluate $e_2$ to an object $i$,
+and finally evaluate $e_3$ to an object $v$.
+Call the method \code{[]=} on $o$
+with $i$ as first argument and $v$ as second argument.
 Then $a$ evaluates to $v$.
 % Should we add: It is a dynamic error if $e_1$ evaluates to a constant list or map?
 \EndCase
@@ -10707,11 +10836,12 @@ is equivalent to the expression \code{\SUPER.[$e_1$] = $e_2$}.
 \LMHash{}%
 \Case{\code{$v$ ??= $e$}}
 Consider a compound assignment $a$ of the form \code{$v$ ??= $e$}
-where $v$ is an identifier or an identifier qualified by an import prefix,
-such that $v$ denotes a variable or $v$ denotes a getter, and \code{$v$=} denotes a setter.
-Exactly the same compile-time errors that would be caused by \code{$v$ = $e$} are also generated in the case of $a$.
-%% TODO(eernst): We should mention other cases, e.g., `v=` denotes a setter, but there is no getter.
-The static type of $a$ is the least upper bound of the static type of $v$ and the static type of $e$.
+where $v$ is an identifier or an identifier qualified by an import prefix.
+Exactly the same compile-time errors that would be caused by
+\code{$v$ = $e$}
+are also generated in the case of $a$.
+The static type of $a$ is
+the least upper bound of the static type of $v$ and the static type of $e$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{$v$ ??= $e$}
@@ -10726,11 +10856,12 @@ and then $a$ evaluates to $r$.
 \Case{\code{$C$.$v$ ??= $e$}}
 Consider a compound assignment $a$ of the form \code{$C$.$v$ ??= $e$}
 where $C$ is a type literal
-that may or may not be qualified by an import prefix,
-such that \code{$C$.$v$} denotes a getter and \code{$C$.$v$=} denotes a setter.
-Exactly the same compile-time errors that would be caused by \code{$C$.$v$ = $e$} are also generated in the case of $a$.
-%% TODO(eernst): We should mention other cases, e.g., `C.v=` denotes a setter, but there is no getter.
-The static type of $a$ is the least upper bound of the static type of \code{$C$.$v$} and the static type of $e$.
+that may or may not be qualified by an import prefix.
+Exactly the same compile-time errors that would be caused by
+\code{$C$.$v$ = $e$}
+are also generated in the case of $a$.
+The static type of $a$ is the least upper bound of
+the static type of \code{$C$.$v$} and the static type of $e$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{$C$.$v$ ??= $e$}
@@ -10746,9 +10877,12 @@ and then $a$ evaluates to $r$.
 Consider a compound assignment $a$ of the form \code{$e_1$.$v$ ??= $e_2$}.
 Let $T$ be the static type of $e_1$ and let $x$ be a fresh variable of type $T$.
 Except for errors inside $e_1$ and references to the name $x$,
-exactly the same compile-time errors that would be caused by \code{$x$.$v$ = $e_2$} are also generated in the case of $a$.
-%% TODO(eernst): Also, we should mention other cases, e.g., there is no getter `z.v`.
-The static type of $a$ is the least upper bound of the static type of \code{$e_1$.$v$} and the static type of $e_2$.
+exactly the same compile-time errors that would be caused by
+\code{$x$.$v$ = $e_2$}
+are also generated in the case of $a$.
+Moreover, it is a compile-time error if $T$ does not have a getter named $v$.
+The static type of $a$ is the least upper bound of
+the static type of \code{$e_1$.$v$} and the static type of $e_2$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{$e_1$.$v$ ??= $e_2$}
@@ -10764,27 +10898,39 @@ and then $a$ evaluates to $r$.
 \LMHash{}%
 \Case{\code{$e_1$[$e_2$] ??= $e_3$}}
 Consider a compound assignment $a$ of the form \code{$e_1$[$e_2$] ??= $e_3$}.
-Exactly the same compile-time errors that would be caused by \code{$e_1$[$e_2$] = $e_3$} are also generated in the case of $a$.
-%% TODO(eernst): We should mention other cases, e.g., there is no `operator []`.
-The static type of $a$ is the least upper bound of the static type of \code{$e_1$[$e_2$]} and the static type of $e_3$.
+Exactly the same compile-time errors that would be caused by
+\code{$e_1$[$e_2$] = $e_3$}
+are also generated in the case of $a$.
+Moreover, it is a compile-time error
+if the static type of $e_1$ does not have an `\code{operator []}'.
+The static type of $a$ is the least upper bound of
+the static type of \code{$e_1$[$e_2$]} and the static type of $e_3$.
 
 \LMHash{}%
-Evaluation of a compound assignment $a$ of the form \code{$e_1$[$e_2$] ??= $e_3$}
+Evaluation of a compound assignment $a$ of the form
+\code{$e_1$[$e_2$] ??= $e_3$}
 proceeds as follows:
 Evaluate $e_1$ to an object $u$ and then evaluate $e_2$ to an object $i$.
-Call the \code{[]} method on $u$ with argument $i$, and let $o$ be the returned object.
+Call the \code{[]} method on $u$ with argument $i$,
+and let $o$ be the returned object.
 If $o$ is not the null object (\ref{null}), $a$ evaluates to $o$.
 Otherwise evaluate $e_3$ to an object $v$
-and then call the \code{[]=} method on $u$ with $i$ as first argument and $v$ as second argument.
+and then call the \code{[]=} method on $u$
+with $i$ as first argument and $v$ as second argument.
 Then $a$ evaluates to $v$.
 \EndCase
 
 \LMHash{}%
 \Case{\code{\SUPER.$v$ ??= $e$}}
 Consider a compound assignment $a$ of the form \code{\SUPER.$v$ ??= $e$}.
-Exactly the same compile-time errors that would be caused by \code{\SUPER.$v$ = $e$} are also generated in the case of $a$.
-%% TODO(eernst): We should mention other cases, e.g., there is no getter `\SUPER.v`.
-The static type of $a$ is the least upper bound of the static type of \code{\SUPER.$v$} and the static type of $e$.
+Exactly the same compile-time errors that would be caused by
+\code{\SUPER.$v$ = $e$}
+are also generated in the case of $a$.
+Moreover, exactly the same compile-time errors that would be caused by
+evaluation of the expression \code{\SUPER.$v$}
+are also generated in the case of $a$.
+The static type of $a$ is the least upper bound of
+the static type of \code{\SUPER.$v$} and the static type of $e$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{\SUPER.$v$ ??= $e$}
@@ -10798,11 +10944,14 @@ and then $a$ evaluates to $r$.
 \LMHash{}%
 \Case{\code{$e_1$?.$v$ ??= $e_2$}}
 Consider a compound assignment $a$ of the form \code{$e_1$?.$v$ ??= $e_2$}.
-Exactly the same compile-time errors that would be caused by \code{$e_1$.$v$ ??= $e_2$} are also generated in the case of $a$.
+Exactly the same compile-time errors that would be caused by
+\code{$e_1$.$v$ ??= $e_2$}
+are also generated in the case of $a$.
 % Note: We use the static type of \code{$e_1$?.$v$} rather than \code{$e_1$.$v$} even
 % though the latter would be simpler. This is because the former will remain correct
 % if NNBD is introduced, and because it reduces the amount of synthetic syntax.
-The static type of $a$ is the least upper bound of the static type of \code{$e_1$?.$v$} and the static type of $e_2$.
+The static type of $a$ is the least upper bound of
+the static type of \code{$e_1$?.$v$} and the static type of $e_2$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{$e_1$?.$v$ ??= $e_2$}
@@ -10826,7 +10975,8 @@ is equivalent to the expression \code{$C$.$v$ ??= $e$}.
 
 \LMHash{}%
 \Case{\code{$v$ $op$= $e$}}
-For any other valid operator $op$, a compound assignment of the form \code{$v$ $op$= $e$}
+For any other valid operator $op$,
+a compound assignment of the form \code{$v$ $op$= $e$}
 is equivalent to \code{$v$ = $v$ $op$ $e$},
 where $v$ is an identifier or an identifier qualified by an import prefix.
 \EndCase
@@ -10844,7 +10994,9 @@ is equivalent to \code{$C$.$v$ = $C$.$v$ $op$ $e$}.
 Consider a compound assignment $a$ of the form \code{$e_1$.$v$ $op$= $e_2$}.
 Let $x$ be a fresh variable whose static type is the static type of $e_1$.
 Except for errors inside $e_1$ and references to the name $x$,
-exactly the same compile-time errors that would be caused by \code{$x$.$v$ = $x$.$v$ $op$ $e_2$} are also generated in the case of $a$.
+exactly the same compile-time errors that would be caused by
+\code{$x$.$v$ = $x$.$v$ $op$ $e_2$}
+are also generated in the case of $a$.
 The static type of $a$ is the static type of \code{$e_1$.$v$ $op$ $e_2$}.
 
 \LMHash{}%
@@ -10862,11 +11014,14 @@ Let $x$ and $i$ be fresh variables
 where the static type of the former is the static type of $e_1$
 and the static type of the latter is the static type of $e_2$.
 Except for errors inside $e_1$ and $e_2$ and references to the names $x$ and $i$,
-exactly the same compile-time errors that would be caused by \code{$x$[$i$] = $x$[$i$] $op$ $e_3$} are also generated in the case of $a$.
+exactly the same compile-time errors that would be caused by
+\code{$x$[$i$] = $x$[$i$] $op$ $e_3$}
+are also generated in the case of $a$.
 The static type of $a$ is the static type of \code{$x$[$i$] $op$ $e_3$}.
 
 \LMHash{}%
-Evaluation of s compound assignment $a$ of the form \code{$e_1$[$e_2$] $op$= $e_3$}
+Evaluation of s compound assignment $a$ of the form
+\code{$e_1$[$e_2$] $op$= $e_3$}
 proceeds as follows:
 Evaluate $e_1$ to an object $u$ and evaluate $e_2$ to an object $v$.
 Let $x$ and $i$ be fresh variables bound to $u$ and $v$ respectively.
@@ -10877,11 +11032,14 @@ and then $a$ evaluates to $r$.
 \LMHash{}%
 \Case{\code{$e_1$?.$v$ $op$= $e_2$}}
 Consider a compound assignment $a$ of the form \code{$e_1$?.$v$ $op$= $e_2$}.
-Exactly the same compile-time errors that would be caused by \code{$e_1$.$v$ $op$= $e_2$} are also generated in the case of $a$.
+Exactly the same compile-time errors that would be caused by
+\code{$e_1$.$v$ $op$= $e_2$}
+are also generated in the case of $a$.
 The static type of $a$ is the static type of \code{$e_1$.$v$ $op$= $e_2$}.
 
 \LMHash{}%
-Evaluation of a compound assignment $a$ of the form \code{$e_1$?.$v$ $op$= $e_2$}
+Evaluation of a compound assignment $a$ of the form
+\code{$e_1$?.$v$ $op$= $e_2$}
 proceeds as follows:
 Evaluate $e_1$ to an object $u$.
 If $u$ is the null object, then $a$ evaluates to the null object (\ref{null}).
@@ -10895,22 +11053,6 @@ Then $a$ evaluates to $r$.
 A compound assignment of the form \code{$C$?.$v$ $op$ = $e_2$}
 where $C$ is a type literal
 is equivalent to the expression \code{$C$.$v$ $op$ = $e_2$}.
-
-\begin{grammar}
-<compoundAssignmentOperator> ::= `*='
-  \alt `/='
-  \alt `~/='
-  \alt `\%='
-  \alt `+='
-  \alt `-='
-  \alt `\ltlt='
-  \alt `\gtgt='
-  \alt `\gtgtgt='
-  \alt `\&='
-  \alt `^='
-  \alt `|='
-  \alt `??='
-\end{grammar}
 \EndCase
 
 
@@ -11477,7 +11619,7 @@ Consider a postfix expression $e$ of the form \code{$C$.$v$\,\op},
 where $C$ is a type literal and \op{} is either \lit{++} or \lit{-{}-}.
 A compile-time error occurs unless \code{$C$.$v$} denotes a static getter
 and there is an associated static setter \code{$v$=}
-(\commentary{possibly implicitly induced by a static variable}).
+(\commentary{possibly implicitly induced by a class variable}).
 Let $T$ be the return type of said getter.
 A compile-time error occurs if $T$ is not \DYNAMIC{}
 and $T$ does not have an operator \lit{+} (when \op{} is \lit{++})
@@ -11603,7 +11745,7 @@ and therefore must be evaluated.
   \alt \SUPER{} <unconditionalAssignableSelector>
   \alt <constructorInvocation> <assignableSelectorPart>
   \alt <identifier>
- 
+
 <assignableSelectorPart> ::= <selector>* <assignableSelector>
 
 <unconditionalAssignableSelector> ::= `[' <expression> `]'
@@ -11639,6 +11781,244 @@ An assignable expression of the form \code{\SUPER{}.\id} is evaluated as a prope
 
 \LMHash{}%
 Evaluation of an assignable expression of the form \code{\SUPER{}[$e_2$]} is equivalent to evaluation of the method invocation \code{\SUPER{}.[]($e_2$)}.
+
+
+\subsection{Lexical Lookup}
+\LMLabel{lexicalLookup}
+
+\LMHash{}%
+This section specifies how to look up a name
+based on the enclosing lexical scopes.
+This is known as a \Index{lexical lookup}.
+When \id{} is an identifier,
+it may look up a name $n$ of the form \id{} as well as of the form \code{\id=}.
+
+\LMHash{}%
+A lexical lookup yields a result which is
+a declaration, an import prefix, or a member signature.
+A lexical lookup can not fail
+(\commentary{so it also makes no sense to say that it succeeds}):
+a compile-time error may occur during the lexical lookup,
+but this specification does not mention the propagation of errors.
+
+\commentary{%
+A lexical lookup differs from a lookup of an instance member
+(\ref{lookup})
+because that operation searches through a sequence of superclasses,
+whereas a lexical lookup searches through a sequence of enclosing scopes.
+A lexical lookup differs from a straightforward lookup in the enclosing scopes
+because the lexical lookup ``bundles'' getters and setters,
+as detailed below.%
+}
+
+\LMHash{}%
+Consider the situation where a name $n$ has basename \id{}
+(\ref{classMemberConflicts})
+where \id{} is an identifier,
+and a lexical lookup of $n$ is performed from a given location $\ell$.
+
+\commentary{%
+We specify a name and a location from where a lexical lookup is performed.
+The location is not always redundant:
+In some situations we perform a lookup for a setter named \code{\id=},
+but the token \code{\id=} does not occur in the program.
+To handle such situations we must specify both
+the name which is being looked up,
+and the location that determines which scopes are the enclosing ones.%
+}
+
+\LMHash{}%
+When we consider an occurrence of an identifier \id{} and say that
+a lexical lookup of \id{} is performed,
+it is understood that the lookup is performed from
+the location of said occurrence of \id.
+
+\LMHash{}%
+Let $S$ be the innermost lexical scope containing $\ell$
+which has a declaration with basename \id.
+In the case where $S$ has
+a declaration named \id{} as well as a declaration named \code{\id=},
+let $D$ be the declaration named $n$.
+In the situation where $S$ has
+exactly one declaration with basename \id,
+let $D$ be that declaration.
+
+\commentary{%
+A non-local variable declaration named \id{} will implicitly induce
+a getter \id{} and possibly a setter \code{\id=} into the enclosing scope.
+This means that $D$ may denote an implicitly induced getter or setter
+rather than the underlying variable declaration.
+That is significant in the case where an error must arise
+because the lookup was for one kind, but only the other kind exists.%
+}
+
+\commentary{%
+If we are looking up a name $n$ with basename \id,
+we stop searching if we find any declaration named \id{} or \code{\id=}.
+If, in that scope, there are declarations for both \id{} and \code{\id=},
+we return the one which has the requested name $n$.
+In the case where only one declaration is present, we return it,
+even though it may have the name \id{} when $n$ is \code{\id=} or vice versa.
+That situation may cause an error, as specified below.%
+}
+
+\LMHash{}%
+\Case{$D$ does not exist}
+When no declaration with basename \id{} is in scope at the location $\ell$,
+the following errors apply:
+
+\begin{itemize}
+\item
+  % Here is the list of cases covered by this item: \ell is..
+  % - inside a library function, getter, setter, variable initializer;
+  % - inside a static method, getter, setter, variable initializer;
+  % - inside an instance variable initializer;
+  % - in an expression in the initializer list of a constructor
+  %   (be it a superinitializer, a field initializer, or an assertion).
+  It is a compile-time error if $\ell$ does not have access to \THIS{}
+  (\ref{classes}).
+\item
+  When $\ell$ has access to \THIS{}
+  it is a compile-time error if the interface of the enclosing class
+  does not have a member named $n$.
+  \commentary{%
+    So it is an error if there is no member with the right basename at all,
+    and also if there is one such member,
+    but it is a non-setter and we are looking for a setter,
+    or vice versa.%
+  }
+\end{itemize}
+\vspace{-2ex}
+\EndCase
+
+% Even when we have found a declaration, it may have the wrong name.
+\LMHash{}%
+\Case{$D$ exists}
+In this case, at least one declaration with basename \id{}
+is in scope at the location $\ell$.
+
+\LMHash{}%
+It is a compile-time error if the name of $D$ is not $n$,
+unless $D$ is an instance member or a local variable
+(\commentary{which may be a formal parameter}).
+
+%% TODO(eernst): Come NNBD, `this` is accessible in a `late` instance variable
+%% initializer, so they must also be included in the first case.
+\LMHash{}%
+When $\ell$ has access to \THIS{}
+(\ref{classes}),
+it is a compile-time error if $D$ is an instance member,
+and the interface of the enclosing class does not have a member named $n$.
+When $\ell$ does not have access to \THIS,
+it is a compile-time error if $D$ is an instance member.
+% An instance variable initializer is in the instance scope, so it is
+% actually possible for $D$ to be an instance member here.
+\EndCase
+
+\rationale{%
+We are always looking up \emph{both} \id{} and \code{\id=},
+no matter whether $n$ is \id{} or \code{\id=}.
+This approach creates a tighter connection between a pair of declarations
+where one is a getter named \id{}
+and the other is a setter named \code{\id=}.
+This allows developers to think about
+a getter and setter that are declared together as a single entity,
+rather than two independent declarations.%
+}
+
+\commentary{%
+For example, if a term refers to \id{} and needs a setter,
+and the innermost declaration named \id{} or \code{\id=} is a getter $g$
+and there is no corresponding setter,
+it is a compile-time error.
+This error occurs even in the case where a more remote enclosing scope has
+a declaration of a setter $s$ named \code{\id=},
+because we already committed to using $g$
+(so that's actually ``a setter/getter pair where the setter is missing''),
+and we could say that this ``pair'' shadows $s$:%
+}
+
+\begin{dartCode}
+\SET{} id(int value) \{\} // \comment{This is $s$}
+\\
+\CLASS{} A \{
+  int \GET{} id => 42; // \comment{This is $g$}
+  user() \{
+    id = 0; // \comment{Compile-time error}
+  \}
+\}
+\end{dartCode}
+
+% At this point we know that
+% - $D$ does not exist, but $\ell$ has access to `this` and the
+%   interface of the enclosing class has a member named $n$, or
+% - $D$ exists and has name $n$, and $\ell$ cannot access `this`, or
+% - $D$ exists, its name can be different from $n$, but $\ell$ has access to
+%   `this`, and the interface of the enclosing class has a member named $n$, or
+% - $D$ exists and is a local variable named \id, and $n$ is \code{\id=}.
+%
+% The lookup yields a member signature iff $\ell$ has access to `this` and
+% $D$ does not exist or $D$ is an instance member.
+
+\LMHash{}%
+Now proceed as described in the first applicable case from the following list:
+
+\begin{itemize}
+\item
+  When $D$ does not exist,
+  the lexical lookup yields the member signature of
+  the member of the interface of the enclosing class
+  which has the name $n$.
+  \commentary{%
+    In this case it is guaranteed that $\ell$ occurs inside
+    the body of an instance member or generative constructor,
+    and said member exists.%
+  }
+\item
+  Consider the case where $D$ is a formal type parameter declaration
+  of a class or a mixin.
+  It is a compile-time error if $\ell$ occurs inside
+  a static method, static getter, or static setter,
+  or inside a class variable initializer.
+  % NB: There is _no_ error when it occurs in an instance variable initializer,
+  % which means that it is allowed "to access `this`" in that particular case.
+  % This may seem inconsistent, but it should not be harmful.
+  Otherwise, the lexical lookup yields $D$.
+\item
+  Consider the case where $D$ is an instance member declaration.
+  The lexical lookup then yields the member signature named $n$
+  from the interface of the enclosing class.
+  \commentary{%
+    It is again guaranteed that $\ell$ occurs inside
+    the body of an instance member or generative constructor,
+    and said member exists.%
+  }
+\item
+  % Cases covered here: $D$ is
+  % - an import with prefix \id;
+  % - a class or type alias; % whose name must be \id, no need to say that..
+  % - a library variable, getter, or setter;
+  % - a static method, getter, or setter;
+  % - a local variable (\commentary{why may be a formal parameter});
+  % - a local function.
+  Otherwise, the lexical lookup yields $D$.
+\end{itemize}
+
+\commentary{%
+Note that a lexical lookup will never yield a declaration of
+an instance member.
+In each case where it is determined that there is no error
+and an instance member is the result of the lookup,
+the member signature from the interface of the enclosing class is yielded.
+
+The reason for this is that there may not be a declaration, e.g.,
+in the case where $D$ does not exist,
+but the interface of the class has the required member
+because more than one superinterface has the same member signature
+for the given name.
+So, for uniformity, we always report that an instance member must be used
+by yielding the member signature.%
+}
 
 
 \subsection{Identifier Reference}
@@ -11677,18 +12057,14 @@ An \Index{identifier expression} consists of a single identifier; it provides ac
   \alt \STATIC{}
   \alt \TYPEDEF{}
 
-<IDENTIFIER\_START> ::= <IDENTIFIER\_START\_NO\_DOLLAR>
-  \alt `$'
+<IDENTIFIER\_START> ::= <IDENTIFIER\_START\_NO\_DOLLAR> | `$'
 
-<IDENTIFIER\_START\_NO\_DOLLAR> ::= <LETTER>
-  \alt `_'
+<IDENTIFIER\_START\_NO\_DOLLAR> ::= <LETTER> | `_'
 
 <IDENTIFIER\_PART\_NO\_DOLLAR> ::= \gnewline{}
-  <IDENTIFIER\_START\_NO\_DOLLAR>
-  \alt <DIGIT>
+  <IDENTIFIER\_START\_NO\_DOLLAR> | <DIGIT>
 
-<IDENTIFIER\_PART> ::= <IDENTIFIER\_START>
-  \alt <DIGIT>
+<IDENTIFIER\_PART> ::= <IDENTIFIER\_START> | <DIGIT>
 
 <qualified> ::= <identifier> (`.' <identifier>)?
 \end{grammar}
@@ -11696,94 +12072,204 @@ An \Index{identifier expression} consists of a single identifier; it provides ac
 \LMHash{}%
 A built-in identifier is one of the identifiers produced by the production
 \synt{BUILT\_IN\_IDENTIFIER}.
-It is a compile-time error if a built-in identifier is used as the declared name of a prefix, class, type parameter or type alias.
-It is a compile-time error to use a built-in identifier other than \DYNAMIC{} in a type annotation or type parameter.
+It is a compile-time error if a built-in identifier is used as
+the declared name of a prefix, class, mixin, type parameter, or type alias.
+It is a compile-time error to use a built-in identifier
+other than \DYNAMIC{} or \FUNCTION{}
+as an identifier in a type annotation or a type parameter bound.
 
-\rationale{
-Built-in identifiers are identifiers that are used as keywords in Dart, but are not reserved words in Javascript.
-To minimize incompatibilities when porting Javascript code to Dart, we do not make these into reserved words.
+\rationale{%
+Built-in identifiers are identifiers that are used as keywords in Dart,
+but are not reserved words.
 A built-in identifier may not be used to name a class or type.
 In other words, they are treated as reserved words when used as types.
-This eliminates many confusing situations without causing compatibility problems.
-After all, a Javascript program has no type declarations or annotations so no clash can occur.
-Furthermore, types should begin with an uppercase letter (see the appendix) and so no clash should occur in any Dart user program anyway.
+This eliminates many confusing situations,
+both for human readers and during parsing.%
 }
 
 \LMHash{}%
-It is a compile-time error if either of the identifiers \AWAIT{} or \YIELD{} is used as an identifier in a function body marked with either \ASYNC{}, \code{\ASYNC*} or \code{\SYNC*}.
+It is a compile-time error if either of the identifiers \AWAIT{} or \YIELD{}
+is used as an identifier in a function body
+marked with either \ASYNC{}, \code{\ASYNC*} or \code{\SYNC*}.
 
-\rationale{
-For compatibility reasons, new constructs cannot rely upon new reserved words or even built-in identifiers.
-However, the constructs above are only usable in contexts that require special markers introduced concurrently with these constructs, so no old code could use them.
-Hence the restriction, which treats these names as reserved words in a limited context.
+\rationale{%
+This makes the identifiers \AWAIT{} and \YIELD{} behave like reserved words
+in a limited context.
+This approach was chosen because it was less breaking than it would have been
+to make \AWAIT{} and \YIELD{} reserved words or built-in identifiers,
+at the time where these features were added to the language.%
 }
 
 \LMHash{}%
-Evaluation of an identifier expression $e$ of the form \id{} proceeds as follows:
+The static type of an identifier expression $e$ which is an identifier \id{}
+is determined as follows.
+Perform a lexical lookup of \id{}
+(\ref{lexicalLookup})
+from the location of $e$.
 
 \LMHash{}%
-Let $d$ be the innermost declaration in the enclosing lexical scope whose name is \id{} or \code{\id=}.
-If no such declaration exists in the lexical scope, let $d$ be the declaration of the inherited member named \id{} if it exists.
+\Case{Lexical lookup yields a declaration}
+Let $D$ be the declaration yielded by the lexical lookup of \id.
 
 \begin{itemize}
-\item if $d$ is a prefix $p$, a compile-time error occurs unless the token immediately following $d$ is `\code{.}'.
-\item If $d$ is a class or type alias $T$, the value of $e$ is an object implementing the class \code{Type} which reifies $T$.
-\item If $d$ is a type parameter $T$, then the value of $e$ is the value of the actual type argument corresponding to $T$ that was passed to the generative constructor that created the current binding of \THIS{}.
-If, however, $e$ occurs inside a static member, a compile-time error occurs.
+\item
+  If $D$ declares a class, mixin, type alias or type parameter,
+  the static type of $e$ is \code{Type}.
+\item
+  If $D$ is the declaration of a library getter
+  (\commentary{which may be implicitly induced by a library variable}),
+  the static type of $e$ is the static type of the
+  library getter invocation \id{}
+  (\ref{topLevelGetterInvocation}).
+\item
+  If $D$ is a static method, library function, or local function,
+  the static type of $e$ is the function type of $D$.
 
-%\commentary{We are assured that \THIS{} is well defined, because if we were in a static member the reference to $T$ is a compile-time error (\ref{generics}.)}
-%\item If $d$ is a library variable then:
-%  \begin{itemize}
-%  \item If $d$ is of one of the forms \code{\VAR{} $v$ = $e_i$;} , \code{$T$ $v$ = $e_i$;} , \code{\FINAL{} $v$ = $e_i$;} or \code{\FINAL{} $T$ $v$ = $e_i$;} and no value has yet been stored into $v$ then the initializer expression $e_i$ is evaluated. If, during the evaluation of $e_i$, the getter for $v$ is referenced, a \code{CyclicInitializationError} is thrown. If the evaluation succeeded yielding an object $o$, let $r$ be $o$, otherwise let $r$ be the null object (\ref{null}). In any case, $r$ is stored into $v$. The value of $e$ is $r$.
-\item If $d$ is a constant variable of one of the forms
-  \code{\CONST{} $v$ = $e$;} or \code{\CONST{} $T$ $v$ = $e$;}
-  then the value of \id{} is the value of the constant expression $e$.
-%  Otherwise
-%  \item $e$ evaluates to the current binding of \id.
-%  \end{itemize}
-\item If $d$ is a local variable (\commentary{which can be a formal parameter}) then $e$ evaluates to the current binding of \id.
-\item If $d$ is a static method, top-level function or local function then $e$ evaluates to the function object obtained by closurization (\ref{functionClosurization}) of the declaration denoted by $d$.
-\item If $d$ is the declaration of a class variable, static getter or static setter declared in class $C$, then evaluation of $e$ is equivalent to evaluation of the property extraction (\ref{propertyExtraction}) \code{$C$.\id}.
-\item If $d$ is the declaration of a library variable, top-level getter or top-level setter, then evaluation of $e$ is equivalent to evaluation of the top level getter invocation (\ref{topLevelGetterInvocation}) \id.
-\item Otherwise, if $e$ occurs inside a top level or static function (be it function, method, getter, or setter) or variable initializer, evaluation of $e$ causes a \code{NoSuchMethod} to be thrown.
-\item Otherwise, evaluation of $e$ is equivalent to evaluation of the property extraction (\ref{propertyExtraction}) \code{\THIS.\id}.
+  \commentary{%
+    Note that $e$ may subsequently be subjected to
+    generic function instantiation
+    (\ref{genericFunctionInstantiation}).%
+  }
+\item
+  If $D$ is the declaration of a static getter
+  (\commentary{which may be implicitly induced by a class variable})
+  and $D$ occurs in the class $C$,
+  the static type of $e$ is the return type of the getter
+  \code{$C$.\id}.
+\item
+  If $D$ is a local variable declaration
+  (\commentary{which can be a formal parameter})
+  the static type of $e$ is the type of the variable $v$ declared by $D$,
+  unless $v$ is known to have some type $T$,
+  where $T$ is a subtype of any other type $S$
+  such that $v$ is known to have type $S$,
+  in which case the static type of $e$ is $T$.
+\item
+  \commentary{%
+    A lexical lookup will never yield a declaration $D$
+    which is an instance member.%
+  }
 \end{itemize}
+\vspace{-1ex}
+\EndCase
 
 \LMHash{}%
-The static type of $e$ is determined as follows:
+\Case{Lexical lookup yields an import prefix}
+In this case the lexical lookup
+(\ref{lexicalLookup})
+for \id{} yields an import prefix $p$.
+% A prefix can never be used as a stand-alone expression.
+In this case a compile-time error occurs,
+unless the token immediately following $e$ is \lit{.}.
+No static type is associated with $e$ in this case.
+
+% A type is specified in \ref{imports}, so it would be consistent to report
+% it. However, no usage will be made of that type, because the static type
+% of every construct of the form $p$.something is specified without referring
+% to the static type of $p$. So we do not mention that type here.
+\commentary{%
+No such type is needed, because every construct where an import prefix $p$ is
+used and followed by \lit{.} is specified in such a way that the type
+of $p$ is not used.%
+}
+\EndCase
+
+\LMHash{}%
+\Case{Lexical lookup yields a member signature}
+In this case the lexical lookup
+(\ref{lexicalLookup})
+for \id{} yields a member signature $s$.
+%
+In this situation $e$ is treated as
+(\ref{notation})
+\code{\THIS.\id}.
+
+\commentary{%
+In this case it is known that $e$ has access to \THIS{}
+(\ref{classes}),
+and the interface of the enclosing class has a member named \id.
+Both the static analysis and evaluation proceeds with
+\code{\THIS.\id},
+so there is no need to further specify the treatment of $e$.%
+}
+\EndCase
+
+\LMHash{}%
+Evaluation of an identifier expression $e$ of the form \id{}
+proceeds as follows:
+
+\LMHash{}%
+\Case{Lexical lookup yields a declaration}
+In this case the lexical lookup
+(\ref{lexicalLookup})
+for \id{} yields a declaration $D$.
+The evaluation of $e$ proceeds as follows:
 
 \begin{itemize}
-\item If $d$ is a class, type alias or type parameter the static type of $e$ is \code{Type}.
-\item If $d$ is a local variable (\commentary{which can be a formal parameter})
-  the static type of $e$ is the type of the variable \id,
-  unless \id{} is known to have some type $T$,
-  in which case the static type of $e$ is $T$,
-  provided that $T$ is a subtype of any other type $S$ such that $v$ is known to have type $S$.
-\item If $d$ is a static method, top-level function or local function the static type of $e$ is the function type defined by $d$.
-\item If $d$ is the declaration of a class variable, static getter or static setter declared in class $C$,
-  the static type of $e$ is the static type of the getter invocation (\ref{propertyExtraction}) \code{$C$.\id}.
-\item If $d$ is the declaration of a library variable, top-level getter or top-level setter,
-  the static type of $e$ is the static type of the top level getter invocation \id.
-\item Otherwise, if $e$ occurs inside a top level or static function (be it function, method, getter, or setter) or variable initializer,
-  the static type of $e$ is \DYNAMIC{}.
-\item Otherwise, the static type of $e$ is the type of the property extraction (\ref{propertyExtraction}) \code{\THIS.\id}.
+\item
+  If $D$ is a class, mixin, or type alias,
+  the value of $e$ is an object implementing the class \code{Type}
+  which reifies the corresponding type.
+\item
+  If $D$ is a type parameter $X$ then the value of $e$ is
+  the value of the actual type argument corresponding to $X$
+  that was passed to the generative constructor that created
+  the current binding of \THIS{}.
+\item
+  If $D$ is the declaration of a library getter
+  (\commentary{which may be implicitly induced by a library variable}),
+  evaluation of $e$ is equivalent to evaluation of an invocation of
+  the library getter \id{}
+  (\ref{topLevelGetterInvocation}).
+\item
+  % We could say 'getter induced by a constant variable'; but there will always
+  % be a variable because a getter declaration cannot yield a constant, so we
+  % use the shortcut and omit mentioning the getter entirely here.
+  If $D$ is a library, class, or local constant variable of one of the forms
+  \code{\CONST{} $v$ = $e'$;} or \code{\CONST{} $T$ $v$ = $e'$;}
+  then the value of $e$ is the value of the constant expression $e'$.
+\item
+  If $D$ is a declaration of
+  a top-level function, static method, or local function,
+  then $e$ evaluates to the function object obtained by closurization
+  (\ref{functionClosurization})
+  of $D$.
+\item
+  If $D$ is a local variable $v$
+  (\commentary{which can be a formal parameter})
+  then $e$ evaluates to the current binding of $v$.
 \end{itemize}
 
-\commentary{
-Note that if one declares a setter, we bind to the corresponding getter even if it does not exist.
+\commentary{%
+Note that $D$ cannot be the declaration of
+a class variable, static getter or static setter declared in a class $C$,
+because in that case $e$ is treated as
+(\ref{notation})
+the property extraction
+(\ref{propertyExtraction})
+\code{$C$.\id},
+which also determines the evaluation of $e$.%
 }
-
-\rationale{
-This prevents situations where one uses uncorrelated setters and getters.
-The intent is to prevent errors when a getter in a surrounding scope is used accidentally.
-}
+\EndCase
 
 \LMHash{}%
-It is a compile-time error if an identifier expression \id{} occurs inside a top level or static function
-(be it function, method, getter, or setter)
-or in an instance variable initializer,
-or in an initializer list expression,
-and there is no declaration $d$ with name \id{} in the lexical scope enclosing the expression.
+\Case{Lexical lookup yields an import prefix}
+This situation cannot arise,
+because it is a compile-time error
+to evaluate an import prefix as an expression,
+and no constructs involving an import prefix
+(\commentary{e.g., such as a property extraction \code{$p$.$m$}})
+will evaluate the import prefix.
+\EndCase
+
+\LMHash{}%
+\Case{Lexical lookup yields a member signature}
+This situation cannot arise,
+because this only occurs when $e$ is treated as
+\code{\THIS.\id},
+whose evaluation is specified elsewhere
+(\ref{propertyExtraction}).
+\EndCase
 
 
 \subsection{Type Test}
@@ -13950,7 +14436,7 @@ if the declaration is in the library's exported namespace.
 %% natural to define it at the first usage in terms of the page number.
 \LMHash{}%
 We define an operation for
-combining namespaces with disjoint sets of keys  as follows. 
+combining namespaces with disjoint sets of keys as follows.
 The
 \IndexCustom{union of two namespaces}{namespace!union},
 \IndexCustom{$\Namespace{a}\cup\Namespace{b}$}{%
