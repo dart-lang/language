@@ -40,7 +40,7 @@
 % - Make lexical identifier lookups use the rules for 'Identifier Reference'
 %   consistently; that is, always look up `id` as well as `id=`, and commit
 %   to the kind of declaration found by that lookup.
-% - Clarify the section 'Imports'; includes setter/getter bundling following
+% - Clarify the section 'Imports'; includes `id`/`id=` processing following
 %   the approach in 'Lexical Lookup'.
 %
 % 2.3
@@ -14173,7 +14173,7 @@ is an import that is not deferred.
 
 \LMHash{}%
 An immediate import directive $I$ may optionally include
-a prefix clause of the form \code{\AS{} \id} used to prefix
+a \Index{prefix clause} of the form `\code{\AS{}\,\,\id}' used to prefix
 names imported by $I$.
 In this case we say that \id{} is an \Index{import prefix},
 or simply a \Index{prefix}.
@@ -14298,8 +14298,9 @@ the exported namespace of $L'_j$
 
 \LMHash{}%
 Let \NamespaceName{\metavar{narrowed},j} be the namespace which is identical to
-\NamespaceName{\metavar{exported},j} except that
-it is undefined at each name $n$ where one of the following holds:
+\NamespaceName{\metavar{exported},j} except that it is undefined at
+each name $n$ where \NamespaceName{\metavar{exported},j} is defined and
+one of the following conditions holds:
 
 \begin{itemize}
 \item There exists an $l \in 1 .. k$ and name $n'$ such that
@@ -14307,7 +14308,7 @@ it is undefined at each name $n$ where one of the following holds:
   $n$ and $n'$ have the same basename,
   \Namespace{\metavar{exported},j}{n}
   is a declaration in a system library,
-  and \Namespace{\metavar{exported},l}{n}
+  and \Namespace{\metavar{exported},l}{n'}
   is a declaration in a non-system library.
   \commentary{%
     So an imported declaration from a non-system library shadows
@@ -14392,8 +14393,9 @@ For each $i \in 1 .. m$, the
 \Index{namespace imported from}
 $L_i$, \NamespaceName{\metavar{import},i},
 is identical to \NamespaceName{\metavar{one},i},
-except that it is undefined at each name $n$
-where one of the following conditions holds:
+except that it is undefined at each name $n$ where
+\NamespaceName{\metavar{one},i} is defined
+and one of the following conditions holds:
 
 \begin{itemize}
 \item \NamespaceName{\metavar{local}} is defined at $n'$
@@ -14409,9 +14411,9 @@ where one of the following conditions holds:
   there exists a $j \in 1 .. m$ and name $n'$ such that
   \NamespaceName{\metavar{one},j} is defined at $n'$,
   $n$ and $n'$ have the same basename,
-  \Namespace{\metavar{one},j}{n}
+  \Namespace{\metavar{one},i}{n}
   is a declaration in a system library,
-  and \Namespace{\metavar{one},l}{n'}
+  and \Namespace{\metavar{one},j}{n'}
   is a declaration in a non-system library.
   \commentary{%
     So an imported declaration from a non-system library shadows
@@ -14426,8 +14428,8 @@ where one of the following conditions holds:
   are not the same declaration,
   $L_i$ and $L_j$ are not the same library,
   and either none or both of
-  \Namespace{\metavar{one},j}{n} and
-  \Namespace{\metavar{one},l}{n'}
+  \Namespace{\metavar{one},i}{n} and
+  \Namespace{\metavar{one},j}{n'}
   are declarations in a system library.
   %
   \commentary{%
@@ -14630,7 +14632,7 @@ When $I_i$ is an immediate import that refers to a URI via the string $s_i$:
 \begin{itemize}
 \item
   If the URI that is the value of $s_i$ has not yet been accessed by
-  an import or export (\ref{exports}) directive in the current isolate 
+  an import or export (\ref{exports}) directive in the current isolate
   then the contents of the URI are compiled to yield a library $L_i$.
   \commentary{%
     Because libraries may have mutually recursive imports,
@@ -14725,25 +14727,7 @@ We say that a declaration \Index{is exported by a library}
 if the declaration is in the library's exported namespace.
 
 \LMHash{}%
-We define an operation for
-combining namespaces with disjoint sets of keys as follows.
-The
-\IndexCustom{union of two namespaces}{namespace!union},
-\IndexCustom{$\Namespace{a}\cup\Namespace{b}$}{%
-  $\cup$@$\Namespace{a} \cup \Namespace{b}$},
-is the namespace that maps
-each key $n$ of \Namespace{a}
-to the corresponding value $\Namespace{a}(n)$,
-and each key $n$ of \Namespace{b}
-to $\Namespace{b}(n)$.
-
-\commentary{%
-Note that this is well-defined because the union does not exist
-in the case where the sets of keys of the two namespaces overlap.%
-}
-
-\LMHash{}%
-The exported namespace of a library is then determined as follows.
+The exported namespace of a library is then determined as follows, in two steps.
 Let $L$ be a library,
 let \List{E}{1}{m} be the export directives of $L$,
 and let \List{L}{1}{m} be libraries
@@ -14765,9 +14749,15 @@ the exported namespace of $L_i$
 (\ref{namespaceCombinators}).
 
 \LMHash{}%
-The second step starts from \NamespaceName{\metavar{one},i}
-and obtains the result, \NamespaceName{\metavar{export},i},
-by eliminating each key $n$ where one of the following conditions hold:
+In the second step we compute the
+\Index{namespace exported from}
+$L_i$, \NamespaceName{\metavar{export},i}.
+For each $i \in 1 .. m$,
+\NamespaceName{\metavar{export},i}
+is identical to \NamespaceName{\metavar{one},i},
+except that it is undefined at each name $n$ where
+\NamespaceName{\metavar{one},i} is defined
+and one of the following conditions hold:
 
 \begin{itemize}
 \item \NamespaceName{\metavar{local}} is defined at $n'$
@@ -14780,9 +14770,9 @@ by eliminating each key $n$ where one of the following conditions hold:
   there exists a $j \in 1 .. m$ and name $n'$ such that
   \NamespaceName{\metavar{one},j} is defined at $n'$,
   $n$ and $n'$ have the same basename,
-  \Namespace{\metavar{one},j}{n}
+  \Namespace{\metavar{one},i}{n}
   is a declaration in a system library,
-  and \Namespace{\metavar{one},l}{n'}
+  and \Namespace{\metavar{one},j}{n'}
   is a declaration in a non-system library.
   \commentary{%
     So a re-exported declaration from a non-system library shadows
@@ -14795,13 +14785,8 @@ by eliminating each key $n$ where one of the following conditions hold:
 \end{itemize}
 
 \commentary{%
-The removal of these bindings from
-\NamespaceName{\metavar{one},i}
-yields the namespace exported from $L_i$,
-\NamespaceName{\metavar{export},i},
-and ensures that each exported namespace has a
-key set which is disjoint with that of
-\NamespaceName{\metavar{local}}.%
+The removal of these bindings ensures that each exported namespace has a
+key set which is disjoint with that of \NamespaceName{\metavar{local}}.%
 }
 
 \LMHash{}%
