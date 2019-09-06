@@ -11790,11 +11790,8 @@ Evaluation of an assignable expression of the form \code{\SUPER{}[$e_2$]} is equ
 This section specifies how to look up a name
 based on the enclosing lexical scopes.
 This is known as a \Index{lexical lookup}.
-When \id{} is an identifier or \code{[]},
-it may look up a name $n$ of the form \id{}
-as well as of the form \code{\id=}.
-When \id{} is an operator name other than \code{[]},
-it will look up \id{}.
+When \id{} is an identifier,
+it may look up a name $n$ of the form \id{} as well as of the form \code{\id=}.
 
 \LMHash{}%
 A lexical lookup yields a result which is
@@ -11817,7 +11814,7 @@ as detailed below.%
 \LMHash{}%
 Consider the situation where a name $n$ has basename \id{}
 (\ref{classMemberConflicts})
-where \id{} is an identifier or an operator name,
+where \id{} is an identifier,
 and a lexical lookup of $n$ is performed from a given location $\ell$.
 
 \commentary{%
@@ -11831,8 +11828,7 @@ and the location that determines which scopes are the enclosing ones.%
 }
 
 \LMHash{}%
-When we consider an occurrence of
-an identifier or operator name \id{} and say that
+When we consider an occurrence of an identifier \id{} and say that
 a lexical lookup of \id{} is performed,
 it is understood that the lookup is performed from
 the location of said occurrence of \id.
