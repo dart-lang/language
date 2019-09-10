@@ -3841,10 +3841,11 @@ it is a compile-time error if $X$ occurs in a non-covariant position
 % Could say 'a direct superinterface', but it is easy to see that it is
 % enough to check direct superinterfaces, and it is then true
 % for indirect ones as well.
-in a superinterface of $C$.
+in a type which specifies a superinterface of $C$.
 \commentary{%
 For example, the class can not have
-\code{List<\VOID{} \FUNCTION($X$)>} as a superinterface.%
+\code{List<\VOID{} \FUNCTION($X$)>}
+in its \EXTENDS{} or \IMPLEMENTS{} clause.%
 }
 
 \LMHash{}%
