@@ -41,6 +41,8 @@
 %   consistently; that is, always look up `id` as well as `id=`, and commit
 %   to the kind of declaration found by that lookup.
 % - Specify the signature of the `call` method of a function object.
+% - Add the rule that it is an error for a type variable of a class to occur
+%   in a non-covariant position in a superinterface.
 %
 % 2.3
 % - Add requirement that the iterator of a for-in statement must have
@@ -3809,17 +3811,41 @@ a type variable (\ref{generics}), a type alias that does not denote a class (\re
 an enumerated type (\ref{enums}),
 a deferred type (\ref{staticTypes}), type \DYNAMIC{} (\ref{typeDynamic}),
 or type \code{FutureOr<$T$>} for any $T$ (\ref{typeFutureOr}).
-It is a compile-time error if two elements in the type list of the \IMPLEMENTS{} clause of a class $C$ specifies the same type $T$.
-It is a compile-time error if the superclass of a class $C$ is one of the elements of the type list of the \IMPLEMENTS{} clause of $C$.
-It is a compile-time error if a class $C$ has two superinterfaces that are different instantiations of the same generic class.
-\commentary{For example, a class may not have both `List<int>` and `List<num>` as superinterfaces.}
-% If we need to allow multiple instantiations, they'll need to have a most
-% specific one, and then we can add the following clause
-%, unless it implements one that is a subtype of all the other. \commentary{This ensures that each class implements one {\em most specific} version of a generic class' interface.}
+It is a compile-time error if two elements in the type list of
+the \IMPLEMENTS{} clause of a class $C$ specifies the same type $T$.
+It is a compile-time error if the superclass of a class $C$ is
+one of the elements of the type list of the \IMPLEMENTS{} clause of $C$.
 
-\rationale{
-One might argue that it is harmless to repeat a type in the superinterface list, so why make it an error? The issue is not so much that the situation described in program source is erroneous, but that it is pointless.
-As such, it is an indication that the programmer may very well have meant to say something else - and that is a mistake that should be called to her or his attention.
+\rationale{%
+One might argue that it is harmless to repeat a type in the superinterface list,
+so why make it an error?
+The issue is not so much that the situation is erroneous,
+but that it is pointless.
+As such, it is an indication that the programmer may very well have meant
+to say something else---and that is a mistake that should be
+called to her or his attention.%
+}
+
+\LMHash{}%
+It is a compile-time error if a class $C$ has two superinterfaces
+that are different instantiations of the same generic class.
+\commentary{%
+For example, a class can not have
+both \code{List<\VOID>} and \code{List<\DYNAMIC>} as superinterfaces,
+directly or indirectly.%
+}
+
+\LMHash{}%
+When a generic class $C$ declares a type parameter $X$,
+it is a compile-time error if $X$ occurs in a non-covariant position
+% Could say 'a direct superinterface', but it is easy to see that it is
+% enough to check direct superinterfaces, and it is then true
+% for indirect ones as well.
+in a type which specifies a superinterface of $C$.
+\commentary{%
+For example, the class can not have
+\code{List<\VOID{} \FUNCTION($X$)>}
+in its \EXTENDS{} or \IMPLEMENTS{} clause.%
 }
 
 \LMHash{}%
