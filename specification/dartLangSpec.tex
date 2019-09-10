@@ -40,6 +40,7 @@
 % - Make lexical identifier lookups use the rules for 'Identifier Reference'
 %   consistently; that is, always look up `id` as well as `id=`, and commit
 %   to the kind of declaration found by that lookup.
+% - Specify the signature of the `call` method of a function object.
 %
 % 2.3
 % - Add requirement that the iterator of a for-in statement must have
@@ -15869,7 +15870,10 @@ no subtype relationship exists.
 }
 
 \LMHash{}%
-A function object is always an instance of some class that implements the class \FUNCTION{} (\ref{functionType}).
+A function object is always an instance of some class $C$ that implements
+the class \FUNCTION{} (\ref{functionType}),
+and which has a method named \CALL{},
+whose signature is the function type $C$ itself.
 \commentary{%
 Consequently, all function types are subtypes of \FUNCTION{}
 (\ref{subtypes}).
