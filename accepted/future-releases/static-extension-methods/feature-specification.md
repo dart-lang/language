@@ -143,7 +143,7 @@ A *composite member invocation* on a target expression `X` is an expression of o
 
 Each such simple member invocation has a corresponding member name, the name of the member being invoked (and its associated basename, which is the name without the trailing `=` on setter names and `[]=`). A composite member invokes two members, so we only care about the base name.
 
-It is a **compile-time error** if an extension application occurs in a place where it is *not* the target expression of a simple or composite member invocation. That is, the only valid use of an extension application is to invoke members on it. *This is similar to how prefix names can also only be used as member invocation targets. The main difference is that extensions can also declare operators.*
+It is a **compile-time error** if an extension application occurs in a place where it is *not* the target expression of a simple or composite member invocation. That is, the only valid use of an extension application is to invoke members on it. *This is similar to how prefix names can also only be used as member invocation targets. The main difference is that extensions can also declare operators.* This also includes null-aware member access like `E(o)?.id` or `E(o)?.[v]` because those need to evaluate the target to a value and extension applications cannot evaluate to a value.
 
 It is a **compile-time error** to have a simple member invocation on an extension application where the extension in question does not declare an instance member with the same name as the corresponding member name of the invocation, and for a composite member invocation on an extension application where the extension does not declare both a getter and a setter with the corresponding base name of the invocation. *You can only invoke members which are actually there.*
 
@@ -198,6 +198,8 @@ Extension members can be invoked *implicitly* (without mentioning the extension 
 An implicit extension member invocation occurs for a simple or composite member invocation with a target expression `e` iff there exists a unique *most specific* extension declaration which is *accessible* and *applicable* to the member invocation (see below).
 
 If `E` is the single most specific accessible and applicable extension for a member invocation *i* with target expression `e`, then we treat the target expression as if it was the extension application of the extension `E` to `e`, and if `E` is generic, also providing the type arguments inferred for `E` in checking that it was applicable. This makes the member invocation behave equivalently to an explicit extension member invocation. This happens even if the *name* of `E` is not accessible, so this is not a purely syntactic rewrite.
+
+Implicit extension member invocation applies to null-aware member acccess. A null-aware invocation, for example `e?.id`, is defined as first evaluating `e` to a valuem and then if that value, `v`, is non-`null`, it performs the invocation `v.id`. This latter invocation *is* subject to implicit extension invocation if the static type of `e` does not have a member with basename `id`, and similarly for all other simple or composite instance member invocations guarded by a null-aware member access.
 
 Implicit extension member invocation can also apply to individual *cascade* invocations. A cascade is treated as if each cascade section was a separate member invocation on an expression with the same value as the cascade receiver expression (the expression before the first `..`). This means that a cascade like `o..foo()..bar()` may perform an implicit extension member invocation on `o` for `foo()` and a normal invocation on `o` for `bar()`. There is no way to specify the corresponding explicit member invocation without expanding the cascade to a sequence of individual member invocations.
 
@@ -418,7 +420,7 @@ extension Tricky on int {
 
 This looks somewhat surprising, but not much more surprising that an extension `operator[]` would: `for (var i in 1[10])...`. We will expect users to use this power responsibly.
 
-In detail: Any expression of the form `e1(args)` or `e1<types>(args)` where `e1` does not denote a method, and where the static type of `e1` is not a function type, an interface type declaring a `call` method, or `dynamic,` will currently be a compile-time error. If the static type of `e1` is an interface type declaring a `call` *getter* or a `call=` *setter*, then this stays a compile-time error. Otherwise we check for extensions applying to the static type of `e1` and declaring a `call` member. If one such most specific extension exists, and it declares a `call` extension *method*, then the expression is equivalent to `e1.call(args)` or `e1.call<typeS>(args)`. Otherwise it is still a compile-time error.
+In detail: Any expression of the form `e1(args)` or `e1<types>(args)` where `e1` does not denote a method, and where the static type of `e1` is not a function type, an interface type declaring a `call` method, or `dynamic,` will currently be a compile-time error. If the static type of `e1` is an interface type declaring a `call` *getter* or a `call=` *setter*, then this stays a compile-time error (the interface has a member with basename `call`). Otherwise we check for extensions applying to the static type of `e1` and declaring a `call` member. If one such most specific extension exists, and it declares a `call` extension *method*, then the expression is equivalent to `e1.call(args)` or `e1.call<typeS>(args)`. Otherwise it is still a compile-time error.
 
 A second question is whether this would also work with implicit `call` method tear-off:
 
@@ -651,3 +653,4 @@ extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
 
 - Elaborate on naming conflict rules.
 - Elaborate on explicit member access.
+- `Ext(o).x += v` and `Ext(o).x++` can be used.
