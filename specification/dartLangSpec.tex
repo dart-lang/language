@@ -14366,13 +14366,25 @@ which is a mapping that associates names with entities declared in
   \id{} is mapped to the type $T$.
 \end{itemize}
 
+\commentary{%
+Note that if $l$ and $q$ are such that
+$I_l$ and $I_q$ both have the same prefix $p$
+then
+$\NamespaceName{\metavar{one},l} = \NamespaceName{\metavar{one},q} =
+\NamespaceName{\metavar{one},l} \cup \NamespaceName{\metavar{one},q}$.%
+}
+
 \LMHash{}%
 Assume that $I'_j$ is deferred for some $j \in 1 .. k$.
 It is then guaranteed that $k = j = 1$, or an error would have occurred.
 In this case the prefix object will map \code{loadLibrary}
 to a function with no arguments and return type
-\code{Future<\DYNAMIC>}
-(\commentary{even if $L_j$ exports a declaration named \code{loadLibrary}}).
+\code{Future<\DYNAMIC>}.
+\commentary{%
+If $L_j$ exports a declaration named \code{loadLibrary},
+this implies that the declaration in $L_j$ is ignored,
+as if by a \HIDE{} clause in the import.%
+}
 
 \commentary{%
 A prefix object is not a Dart object, it is merely a device which is
@@ -14382,12 +14394,6 @@ and a mapping that is used to access the corresponding entities
 at run time.
 Consequently, any attempt to use a prefix object on its own
 is a compile-time error.
-
-Note that if $l$ and $q$ are such that
-$I_l$ and $I_q$ both have the same prefix $p$
-then
-$\NamespaceName{\metavar{one},l} = \NamespaceName{\metavar{one},q} =
-\NamespaceName{\metavar{one},l} \cup \NamespaceName{\metavar{one},q}$.%
 }
 \EndCase
 
