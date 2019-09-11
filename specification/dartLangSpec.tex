@@ -14366,6 +14366,14 @@ which is a mapping that associates names with entities declared in
   \id{} is mapped to the type $T$.
 \end{itemize}
 
+\LMHash{}%
+Assume that $I'_j$ is deferred for some $j \in 1 .. k$.
+It is then guaranteed that $k = j = 1$, or an error would have occurred.
+In this case the prefix object will map \code{loadLibrary}
+to a function with no arguments and return type
+\code{Future<\DYNAMIC>}
+(\commentary{even if $L_j$ exports a declaration named \code{loadLibrary}}).
+
 \commentary{%
 A prefix object is not a Dart object, it is merely a device which is
 used to manage names of the form \synt{qualified} and their types
@@ -14551,6 +14559,7 @@ The deferred prefix object has the following members:
   where $I'$ is derived from $I_i$ by eliding the word \DEFERRED{}
   and adding a \HIDE{} \code{loadLibrary} combinator clause.
   When $I'$ executes without error, $f$ completes successfully.
+  When the execution fails, the returned future completes with an \code{Error}.
   If $I'$ executes without error,
   we say that the call to \code{loadLibrary} has succeeded,
   otherwise we say the call has failed.
