@@ -329,8 +329,11 @@ typedef Callback2(int i);             // Inference failure
 void f6(callback()) {                 // Inference failure
   callback();
 }
+void f7(int callback(callback2())) {  // Inference failure
+  callback(() => print(7));
+}
 
-Function(int) f7 = (int n) {          // Inference failure
+Function(int) f8 = (int n) {          // Inference failure
   print(n);
 };
 ```
