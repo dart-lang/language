@@ -111,6 +111,15 @@ main() {
 
 *In the above example, an execution that maintains heap soundness would throw already at `ws.add(<int>[])`, because `List<int>` is not a subtype of `List<exactly num>`. Otherwise, we can proceed to `zs[0][0] = 4.31` and cause a base level type error, which illustrates that we cannot just ignore the distinction between `List<exactly num>` and `List<num>` as a type argument, neither statically nor dynamically.*
 
+Finally, the subtype rule that connects a class to its superinterfaces is updated to take `exactly` into account:
+
+Given that _C_ is a class that declares type parameters _X<sub>1</sub> .. X<sub>s</sub>_ such that
+_D&lt;T<sub>1</sub> .. T<sub>m</sub>&gt;_ is a direct superinterface of _C_, we conclude that
+_C&lt;v<sub>1</sub> S<sub>1</sub> .. v<sub>s</sub> S<sub>s</sub>&gt; <: T_
+if
+_[v<sub>1</sub> S<sub>1</sub>/X<sub>1</sub> .. v<sub>s</sub> S<sub>s</sub>/X<sub>s</sub>]D&lt;T<sub>1</sub> .. T<sub>m</sub>&gt; <: T_
+where _S<sub>j</sub>_ is a type and _v<sub>j</sub>_ is either empty or `exactly`, for all _j_ in 1 .. _s_.
+
 
 ### Variance Rules
 
