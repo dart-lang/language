@@ -35,7 +35,7 @@ The grammar is adjusted as follows:
 ```
 <typeParameter> ::= // Modified.
     <metadata> <typeParameterVariance>? <typeIdentifier>
-    (('extends'|'super') <typeNotVoid>)?
+    ('extends' <typeNotVoid>)?
 
 <typeParameterVariance> ::= // New.
     'out' | 'inout' | 'in'
@@ -171,7 +171,7 @@ If _X_ has the variance modifier `in` then it is a compile-time error for _X_ to
 
 *For superinterfaces we need slightly stronger rules than the ones that apply for types in the body of a type declaration.*
 
-Let _D_ be a class or mixin declaration, let _S_ be a superinterface of _D_, and let _X_ be a type parameter declared by _D_.
+Let _D_ be a class or mixin declaration, let _S_ be a direct superinterface of _D_, and let _X_ be a type parameter declared by _D_.
 
 It is a compile-time error if _X_ has no variance modifier and _X_ occurs in an actual type argument in _S_ such that the corresponding type parameter has a variance modifier. It is a compile-time error if _X_ has the modifier `out`, and _X_ occurs in a non-covariant position in _S_. It is a compile-time error if _X_ has the variance modifier `in`, and _X_ occurs in a non-contravariant position in _S_.
 
@@ -355,6 +355,8 @@ main() {
   ys = cn.g; // Error (downcast).
 }
 ```
+
+*This example also illustrates why the ability to have `exactly` in a member signature helps improving the static typing: The declaration in class `C` ensures that `g` actually returns a `List<exactly X>`. In the situation where the value of `X` is known at the call site to be a specific type `T`, this allows the returned result to be typed `List<exactly T>`, which in turn makes the usage of `add` and similar members statically safe.*
 
 
 ## Dynamic Semantics
