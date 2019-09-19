@@ -112,6 +112,8 @@ with no context type for the constructor invocation.
 
 This will infer type arguments for `E(expr)`, and it will introduce a static context type for `expr`. *For example, if `E` is declared as `extension E<T> on Set<T> { ... }` then `E({})` will provide the `{}` literal with a context type making it a set literal.* It is a **compile-time error** if the corresponding class constructor invocation would be a compile-time error.
 
+It is a **compile-time error** if the static type of the argument expression (`expr`) of an explicit extension invocation is `void`. *(Expressions of type `void`are only allowed in a few specific syntacitc positions, and the new explicit extension invocation object position is not included in those.)*
+
 We defined the *instantiated `on` type* of `E` as the `on` type of the declaration of `E` with the inferred or explicit type arguments of the extension application replacing the type parameters of `E`.
 
 We define the *instantiate-to-bounds `on` type* of an extension as the `on` type with type parameters replaced by the types that the instantiate-to-bounds algorithm would derive for any type parameters of the extension.
