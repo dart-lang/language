@@ -249,7 +249,7 @@ class B<out X> extends A<X> { // or `implements`.
 }
 ```
 
-Finally, the occurrences of `exactly` in member signatures are restricted. Let _D_ be a class or mixin declaration and let _s_ be the member signature of an instance member declared by _D_. It is a compile-time error if _s_ contains a type argument of the form _exactly T_ in a non-covariant position where _T_ contains an occurrence of a type variable that does not have the variance modifier `inout`.
+Finally, the occurrences of `exactly` in member signatures are restricted. Let _D_ be a class or mixin declaration and let _s_ be the member signature of an instance member declared by _D_. Assume that _s_ contains a parameterized type _T_ in a non-covariant position, and assume that _T_ has a type argument of the form _exactly U_. In this situation it is a compile-time error if _U_ contains an occurrence of a type variable that does not have the variance modifier `inout`.
 
 ```dart
 class C<X, inout Y, in Z> {
