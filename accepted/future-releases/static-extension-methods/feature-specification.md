@@ -112,7 +112,7 @@ with no context type for the constructor invocation.
 
 This will infer type arguments for `E(expr)`, and it will introduce a static context type for `expr`. *For example, if `E` is declared as `extension E<T> on Set<T> { ... }` then `E({})` will provide the `{}` literal with a context type making it a set literal.* It is a **compile-time error** if the corresponding class constructor invocation would be a compile-time error.
 
-It is a **compile-time error** if the static type of the argument expression (`expr`) of an explicit extension invocation is `void`. *(Expressions of type `void`are only allowed in a few specific syntacitc positions, and the new explicit extension invocation object position is not included in those.)*
+It is a **compile-time error** if the static type of the argument expression (`expr`) of an explicit extension invocation is `void`. *(Expressions of type `void`are only allowed in a few specific syntactic positions, and the new explicit extension invocation object position is not included in those.)*
 
 We defined the *instantiated `on` type* of `E` as the `on` type of the declaration of `E` with the inferred or explicit type arguments of the extension application replacing the type parameters of `E`.
 
@@ -179,7 +179,7 @@ The static type of a member invocation on an extension application is the return
 
 Composite member invocations, like composite assignment `e.id += 2` or increment `e.id++`, are defined in terms of two individual member invocations (always one get and one set operation). If the target expression of a composite member invocation is an extension application, we need to recognize and handle it specially.
 
-An composite assignment of the form `e1.id += 2` is equivalent to `e1.id = e1.id + 2` except that `e1` is only evaluated once, and the value is used twice. 
+A composite assignment of the form `e1.id += 2` is equivalent to `e1.id = e1.id + 2` except that `e1` is only evaluated once, and the value is used twice. 
 
 However, you cannot evaluate an extension invocation to a value, so we have to specify the case where `e1` is an extension invocation `E(e)` specially (just as we handle the cases where `e1` denotes a class or a prefix). We modify the evaluation rules for composite evaluation to account for this, ensuring that:
 
