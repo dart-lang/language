@@ -3481,7 +3481,7 @@ then the (implicit or explicit) superinitializer in $k$ is an error.%
 }
 
 \LMHash{}%
-The superinitializer that appears, explicitly or implicitly, 
+The superinitializer that appears, explicitly or implicitly,
 in the initializer list of a constant constructor
 must specify a constant constructor of
 the superclass of the immediately enclosing class,
@@ -4586,7 +4586,7 @@ interface members that are actually super-invoked.}
 \LMHash{}%
 The mixin application of $M$ to $S$ with name $N$ introduces a new
 class, $C$, with name $N$, superclass $S$,
-implemented interface $I_1$, \ldots{}, $I_k$
+implemented interface $M$
 and \metavar{members} as instance members.
 The class $C$ has no static members.
 If $S$ declares any generative constructors, then the application
@@ -11603,7 +11603,7 @@ and therefore must be evaluated.
   \alt \SUPER{} <unconditionalAssignableSelector>
   \alt <constructorInvocation> <assignableSelectorPart>
   \alt <identifier>
- 
+
 <assignableSelectorPart> ::= <selector>* <assignableSelector>
 
 <unconditionalAssignableSelector> ::= `[' <expression> `]'
@@ -13950,7 +13950,7 @@ if the declaration is in the library's exported namespace.
 %% natural to define it at the first usage in terms of the page number.
 \LMHash{}%
 We define an operation for
-combining namespaces with disjoint sets of keys  as follows. 
+combining namespaces with disjoint sets of keys as follows.
 The
 \IndexCustom{union of two namespaces}{namespace!union},
 \IndexCustom{$\Namespace{a}\cup\Namespace{b}$}{%
