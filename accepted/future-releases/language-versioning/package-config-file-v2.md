@@ -47,7 +47,7 @@ The following properties allows the generator to specify metadata about the file
 - `generated`: A string containing an ISO-8601 UTC timestamp for when the file was generated, using the format: `YYYY-MM-DDTHH:mm:ss.sssZ`.
 - `generator`: An object containing at last the following properties:
   - `name`: Name of the generator. Likely `pub`.
-  - `version`: The version of the generator. A [Semantic Version](https://semver.org/spec/v2.0.0-rc.1.html, or a prefix of such (major version only, or major/minor version only are also accepted). Pub can probably use the SDK version.
+  - `version`: The version of the generator. A [Semantic Version](https://semver.org/spec/v2.0.0.html). Pub can probably use the SDK version.
 
 These are all optional, but if they are present, they should have the expected format.
 
