@@ -322,6 +322,11 @@
 % also used when specifying lookups and scope rules.
 \newcommand{\Namespace}[1]{\ensuremath{\metavar{NS}_{#1}}}
 
+% Context types: Avoid the `?` because that is also concrete type
+% syntax.
+%% TODO(eernst): Find a suitable symbol for this, e.g., a curly questionmark.
+\newcommand{\FreeContext}{\ensuremath{\square}}
+
 % ----------------------------------------------------------------------
 % Support for hash valued Location Markers
 
