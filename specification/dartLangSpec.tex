@@ -7622,15 +7622,14 @@ the first applicable entry in the following list:
   $e$ has no \synt{typeArguments}, no elements, and $S$ is undefined:
   $e$ is a map literal.
   \commentary{%
-    In other words, an empty \code{\{\}} is a map ``by default''.%
+    In other words, an empty \code{\{\}} is a map by default.%
   }
 \item
   Otherwise, $e$ is still ambiguous.
   \commentary{%
-    This can only happen when $e$ is non-empty and $\cal L$ is empty.
-    It contains only spreads, possibly wrapped in
-    \synt{ifElement}s or \synt{forElement}s.
-    In this case disambiguation occurs during type inference
+    In this case $e$ contains only spreads,
+    wrapped zero or more times in \synt{ifElement}s or \synt{forElement}s.
+    Disambiguation will occur during type inference
     (\ref{collectionLiteralInference}).%
   }
 \end{itemize}
