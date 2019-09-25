@@ -239,8 +239,8 @@ promoted type variables `X0 & S0` and `T1` is `X0 & S1` then:
   - and `{yn+1, ... , yq}` subsetof `{xn+1, ... , xm}`
   - and `Si[Z0/Y0, ..., Zk/Yk] <: Vi[Z0/X0, ..., Zk/Xk]` for `i` in `0...n`
   - and `Si[Z0/Y0, ..., Zk/Yk] <: Tj[Z0/X0, ..., Zk/Xk]` for `i` in `n+1...q`, `yj = xi`
-  - and if `r0j` is `required` for some `j` in `n+1...m` then
-    there exists an `i` in `n+1...q` such that `xj = yi`, and `r1i` is `required`
+  - and for each `j` such that `r0j` is `required`, then there exists an
+    `i` in `n+1...q` such that `xj = yi`, and `r1i` is `required`
   - and `U0[Z0/X0, ..., Zk/Xk] <: U1[Z0/Y0, ..., Zk/Yk]`
   - and `B0i[Z0/X0, ..., Zk/Xk] === B1i[Z0/Y0, ..., Zk/Yk]` for `i` in `0...k`
   - where the `Zi` are fresh type variables with bounds `B0i[Z0/X0, ..., Zk/Xk]`
