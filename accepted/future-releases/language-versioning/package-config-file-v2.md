@@ -41,10 +41,10 @@ Naming is still open. One option is "package_config.json".
 
 The file will contain the information that was planned for the `.packages` file:
 
-- A *default package* specified by its package name.
-- A list of *packages*, each with:
+- A *default package* specified by its package name. This is the name of a package that non-package files will be considered part of for any purpose where belonging to a package is meaningful. It is intended to allow test and tool files in a Pub package to inherit any properties assigned to the corresponding Dart package (specifically language version for now, but potentially other features in the future).
+- A number of *packages*, each with:
   - A *package name*.
-  - A *path* or *location URI*.
+  - A *path* or *location URI* specifying where to find the files of the package.
   - A *language version* (major/minor version number).
 
 On top of that, we also add extra metadata which allows us to version the format and attach information about when and how the file was created.
@@ -56,11 +56,11 @@ That object has, at least, the following properties:
 - `apiVersion`: A single integer marking the version of this format, currently `2` (counting `.packages` as the first). Tools should refuse to work on files with a larger version number than the ones they are aware of. Incremental changes will not require increasing the version, so new versions are not expected any time soon, but code should still prepare for it.
 
 - `defaultPackage`: A string containing a package name.
-- `packages`: A list of packages, each with the following properties:
+- `packages`: An array of packages, each with the following properties:
   - `name`: A string containing a package name.
-  - either `path`: A string containing a relative or absolute path using `/` as separator. Every character other than `/` is used verbatim. If the path starts with a `/` or with a DOS/Windows drive letter (a single letter followed by `:/`), then it is considered absolute. If not, the path is relative to the directory of the `package_config.json` file. 
-  - or `uri`: A URI reference. This is resolved relative to the (likely `file:`) URI referencing the `.package.json` file. If the URI reference has no scheme, or if it has a `file:` scheme, it is recommended to use the `path` instead. (If we do not need non-`file:` locations, then we should only allow `path`. Do we need them?)
-  - `languageVersion`: Optional. A string containing a language version (major.minor).
+  - either `path`: A string containing a relative or absolute path OS specific path using `/` as separator. If the path is relative, it is relative to the directory of the `package_config.json` file. 
+  - or `uri`: A URI reference. This is resolved relative to the (likely `file:`) URI referencing the `.package.json` file.
+  - `languageVersion`: Optional. A string containing a Dart language version consisting of a decimal numeral, a `.` character and another decimal numeral, where the decimal numeral must not have a leading `0` unless the numeral is exactly `0`. That is, a string matched in its entirety by the regular expression `(0|[1-9]\d*)\.(0|[1-9]\d*)`. *This is the same format accepted by `// @dart = x.y` comments in source files.*
 
 Tools should ignore properties that they don't recognize. This will allow us to add more properties in the future without increasing the `apiVersion` number, but not to remove properties or change the meaning of existing properties. 
 
@@ -68,16 +68,22 @@ If we remove a property that tools rely on, change the meaning of an existing pr
 
 The following properties allows the generator to specify metadata about the file:
 
-- `generated`: A string containing an ISO-8601 UTC timestamp for when the file was generated, using the format: `YYYY-MM-DDTHH:mm:ss.sssZ`.
-- `generator`: An object containing at last the following properties:
-  - `name`: Name/identifier of the generator. Likely `pub`.
-  - `version`: The version of the generator. A [Semantic Version](https://semver.org/spec/v2.0.0-rc.1.html. Pub can probably use the SDK version.
+- `generated`: An object containing one or more of the following entries:
+  - `by`: A string with the name/identifier of the generator, for example `"by": "pub"`.
+  - `on`: A string containing an ISO-8601 UTC timestamp for when the file was generated, using the format: `YYYY-MM-DDTHH:mm:ss.sssZ`, for example `"on": "2019-09-24T12:34:56.000Z"`.
+  - ``version`: A string with the version of the generator, if the generator wants to remember that information. The version must be a [Semantic Version](https://semver.org/spec/v2.0.0.html. Pub can probably use the SDK version. Example: `"version": "2.5.0"`.
 
 These are all optional, but if they are present, they should have the expected format.
 
 The JSON properties may occur in any order, except that the `apiVersion` *must* be the first entry in the file. The Dart JSON serializer uses iteration order of the incoming map, so controlling the order is possible. The file *should* be "pretty printed" with newlines and indentation, to make human inspection easier.
 
-If a tool wants to store extra information in the `.packages.json` file, they can do so under a key prefixed by `toolname:`, so if Pub wanted to store more information on a package, say the package version, it could do so as `"pub:pkgVersion": "1.16.0"` in the package entry. Keys containing `:` are reserved for custom tool-specific properties. This feature can only really be used by the tool generating the file (as a generated file, it may be overwritten at any time), and it should be used sparingly since unknown properties are just overhead for all other users of the file. Still, if a tool can cooperate with Pub and provide the information in `pubspec.yaml`, Pub might be able to put it into the configuration file as well.
+#### Extra Information in the File
+
+If a tool wants to store extra information in the `package_config.json` file, they can do so under a key which corresponds to or contains the name or identifier of the tool. Authors should ensure that the name is available in the ecosystem before claiming it for their tool. If Pub wanted to store more information on a package, say the package version, it could do so as `"pubPkgVersion": "1.16.0"` in the package entry. 
+
+This feature can only really be used by the tool generating the file (as a generated file, it may be overwritten at any time), and it should be used sparingly since unknown properties are just overhead for all other users of the file. Still, if a tool can cooperate with Pub and provide the information in `pubspec.yaml`, Pub might be able to put it into the configuration file as well.
+
+Alternatively, we could consider to require that tools that write the configuration file, to first read an existing configuration file, and retain any properties that they do not overwrite or deliberately remove. When adding `packages` entries, the tool should retain properties from a `packages` entry in the original configuration which has the same `name` value.
 
 #### Package Names
 
