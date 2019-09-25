@@ -7027,7 +7027,7 @@ This section specifies several literal expressions denoting collections.
 Some syntactic forms may denote more than one kind of collection,
 in which case a disambiguation step is performed
 in order to determine the kind
-(\ref{collectionLiteralDisambiguation}).
+(\ref{setAndMapLiteralDisambigutation}).
 
 \begin{grammar}
 <listLiteral> ::= \CONST{}? <typeArguments>? `[' <elements>? `]'
@@ -7063,7 +7063,8 @@ Each element may be a declarative specification of a single entity,
 such as an \synt{expressionElement} or a \synt{mapElement},
 it may specify a collection which is to be included,
 of the form \synt{spreadElement},
-or it may be a computational element specifying zero or more entities,
+or it may be a computational element specifying
+how to obtain zero or more entities,
 of the form \synt{ifElement} or \synt{forElement}.
 
 \LMHash{}%
@@ -7088,16 +7089,547 @@ It is a compile-time error if the leaf elements of a \synt{listLiteral}
 contains a \synt{mapElement}.
 
 
-\subsubsection{Lists}
-\LMLabel{lists}
+\subsubsection{Type Promotion}
+\LMLabel{collectionLiteralTypePromotion}
+
+\LMHash{}%
+An \synt{ifElement} interacts with type promotion
+in the same way that \IF{} statements do.
+Assume that $\ell$ is an \synt{ifElement} of the form
+\code{\IF{} ($b$) $\ell_1$} or
+\code{\IF{} ($b$) $\ell_1$ \ELSE{} $\ell_2$}.
+If $b$ shows that a local variable $v$ has type $T$, then
+the type of $v$ is known to be $T$ in $\ell_1$,
+unless any of the following are true:
+
+\begin{itemize}
+\item $v$ is potentially mutated in $\ell_1$,
+\item $v$ is potentially mutated within a function
+  other than the one where $v$ is declared, or
+\item $v$ is accessed by a function defined in $\ell_1$ and
+  $v$ is potentially mutated anywhere in the scope of $v$.
+\end{itemize}
+
+%% TODO(eernst): Come nnbd, update this.
+\commentary{%
+Type promotion will likely get more sophisticated in a future version of Dart.
+When that happens,
+\synt{ifElements} will continue to match \IF{} statements
+(\ref{if}).%
+}
+
+
+\subsubsection{Collection Literal Element Evaluation}
+\LMLabel{collectionLiteralElementEvaluation}
+
+\LMHash{}%
+The evaluation of a syntactic sequence of collection literal elements
+(\ref{collectionLiterals})
+yields a
+\IndexCustom{collection literal object sequence}{collection literal!object sequence},
+also called an \NoIndex{object sequence} when no ambiguity can arise.
+We use the notation
+\IndexCustom{\LiteralSequence{\ldots}}{[[...]]@\LiteralSequence{\ldots}}
+to denote an object sequence of specific elements.
+Each element in the sequence is an object $o$ or a pair $o_1: o_2$.
+It is left unspecified how an object sequence is implemented,
+it is only required that it contains specific objects or pairs,
+in a specific order.
+For each kind of collection the sequence is used in the given order
+to populate the collection,
+in a manner which is specific to the kind,
+and which is specified separately
+(\ref{lists}, \ref{maps}, \ref{sets}).
+
+\commentary{%
+There may be an actual data structure representing the sequence at run time,
+but it could also be eliminated
+because each element is inserted directly into the target collection
+as soon as it has been computed,
+or because the collection is a constant.
+Note that each object sequence will exclusively contain objects,
+or it will exclusively contain pairs,
+because any mixed sequence would cause
+an error at compile time or at run time.%
+}
+
+\LMHash{}%
+Assume that a target collection \metavar{target} is given,
+and the object sequence obtained as described below will be received
+by \metavar{target} for insertion.
+Let $T_{\metavar{target}}$ denote the dynamic type of \metavar{target}.
+
+\commentary{%
+Access to \metavar{target} and its type is needed in order to
+be able to raise dynamic errors at specific points during
+the evaluation of an object sequence.%
+}
+
+\LMHash{}%
+Assume that a code location and a dynamic context is given, that is,
+a binding of names declared by the current library exists,
+the current instance of the enclosing class is accessible as \THIS{}
+if the given location is in the instance scope of a class, etc.
+In such a context it is possible to evaluate
+a sequence of collection literal elements as follows.
+
+\LMHash{}%
+Let $s_{\metavar{syntax}}$ of the form \List{\ell}{1}{k} be
+a sequence of collection literal elements.
+The sequence of objects $s_{\metavar{object}}$
+obtained by evaluating $s_{\metavar{syntax}}$
+is the concatenation of the sequences of objects $s_{\metavar{object},j}$
+obtained by evaluating each element $\ell_j$, $j \in 1 .. k$:
+$s_{\metavar{object}} = s_{\metavar{object},1}+\ldots+s_{\metavar{object},k}$.
+
+\LMHash{}%
+A single collection literal element $\ell$ evaluates to
+an object sequence $s$ as follows:
+
+\LMHash{}%
+\Case{Expression elements}
+When $\ell$ is an \synt{expressionElement} of the form $e$,
+$e$ is evaluated to an object $o$,
+and the result $s$ is \LiteralSequence{o}.
+\EndCase
+
+\LMHash{}%
+\Case{Map elements}
+When $\ell$ is a \synt{mapElement} of the form
+\code{$e_1$:\,\,$e_2$},
+$e_1$ is evaluated to an object $o_1$,
+then $e_2$ is evaluated to an object $o_2$,
+and the result $s$ is \LiteralSequence{o_1:\,o_2}.
+\EndCase
+
+\begin{figure}[t]
+\begin{normativeDartCode}
+\VAR{} iterator = spread.entries.iterator;
+\WHILE{} (iterator.moveNext()) \{
+  \VAR{} entry = iterator.current;
+  Key key = entry.key;
+  Value value = entry.value;
+  $\ldots$ // \comment{Append the pair} key:\,value \comment{to the result $s$.}
+\}
+\end{normativeDartCode}
+\vspace{-3mm}
+  \caption{Evaluation of a map spread}
+  \label{fig:evaluationOfAMapSpread}
+\end{figure}
+
+\begin{figure}[t]
+\begin{normativeDartCode}
+\VAR{} iterator = spread.iterator;
+\WHILE{} (iterator.moveNext()) \{
+  Value value = iterator.current;
+  $\ldots$ // \comment{Append} value \comment{to the result $s$.}
+\}
+\end{normativeDartCode}
+\vspace{-3mm}
+  \caption{Evaluation of a list or set spread}
+  \label{fig:evaluationOfAnIterableSpread}
+\end{figure}
+
+\LMHash{}%
+\Case{Spread elements}
+\begin{enumerate}
+\item
+  When $\ell$ is a \synt{spreadElement} of the form
+  `\code{...?$e$}', $e$ is evaluated to an object $o$.
+  If $o$ is the null object then the result $s$ is the empty sequence
+  \LiteralSequence{}.
+  Otherwise evaluation proceeds with step 2.
+
+  When $\ell$ is a \synt{spreadElement} of the form
+  `\code{...$e$}', $e$ is evaluated to an object $o$.
+  %% TODO(eernst): Come NNBD, this error cannot occur any more: delete.
+  If $o$ is the null object then a dynamic error occurs.
+  Otherwise evaluation proceeds with step 2.
+\item
+  Let $T$ be the dynamic type of $o$.
+  \begin{itemize}
+  \item
+    %% TODO(eernst): Come NNBD, change to `Object?`.
+    When both $T$ and $T_{\metavar{target}}$ is a subtype of
+    \code{Map<Object, Object>},
+    the code in Fig.~\ref{fig:evaluationOfAMapSpread} is executed,
+    where \code{spread} is a fresh variable bound to $o$
+    whose type is the static type of $e$,
+    and \code{Key} and \code{Value} are fresh type variables
+    bound to the type variables of $T_{\metavar{target}}$ at \code{Map}.
+
+    \commentary{%
+      The code for appending the pair \code{key:value} is omitted,
+      because the representation of $s$ is implementation specific.%
+    }
+
+    % Will not change with nnbd: `spread` type arguments could be \DYNAMIC{}.
+    It is allowed for an implementation to delay the dynamic errors
+    that occur if the given \code{key} does not have the type \code{Key},
+    or the given \code{value} does not have the type \code{Value},
+    except that if an error occurs
+    then it must preempt appending the pair to $s$.
+  \item
+    %% TODO(eernst): Come NNBD, change to `Object?`.
+    When both $T$ and $T_{\metavar{target}}$ is a subtype of
+    \code{Iterable<Object>},
+    the code in Fig.~\ref{fig:evaluationOfAnIterableSpread} is executed,
+    where \code{spread} is a fresh variable bound to $o$
+    whose type is the static type of $e$,
+    and \code{Value} is a fresh type variable
+    bound to the type variable of $T_{\metavar{target}}$ at \code{Iterable}.
+
+    \commentary{%
+      The code for appending the \code{value} is again omitted,
+      because it is implementation specific.%
+    }
+  \item
+    Otherwise, a dynamic error occurs.
+
+    \commentary{%
+      This occurs when the target is a map respectively iterable,
+      and the spread is not.%
+    }
+  \end{itemize}
+\end{enumerate}
+
+\commentary{%
+This may not be the most efficient way to traverse the items in a collection.
+In order to give implementations more room to optimize,
+we allow the following deviations.%
+}
+
+\LMHash{}%
+If $o$ is an object whose class implements
+\code{List}, \code{Queue}, or \code{Set},
+an implementation may choose to call \code{length} on the object.
+
+\commentary{%
+This may let it allocate space for the resulting collection more efficiently.
+Classes that implement these are expected to have an efficient,
+side-effect free implementation of \code{length}.%
+}
+
+\LMHash{}%
+If $o$ is an object whose class implements \code{List},
+an implementation may choose to call operator \lit{[]}
+in order to access elements from the list.
+If it does so, it will only pass indices
+that are non-negative and less than the value returned by \code{length}.
+
+\LMHash{}%
+A Dart implementation may detect whether these options apply
+at compile time based on the static type of $e$,
+or at runtime based on the actual value.
+\EndCase
 
 !!!HERE!!!
+
+\LMHash{}%
+\Case{Elements}
+
+\EndCase
+
+\LMHash{}%
+\Case{Elements}
+
+\EndCase
+
+\LMHash{}%
+\Case{Elements}
+
+\EndCase
+
+\LMHash{}%
+\Case{Elements}
+
+\EndCase
+
+\LMHash{}%
+\Case{Elements}
+
+\EndCase
+
+\begin{enumerate}
+\item
+  Else, if $\ell$ is an \synt{ifElement}:
+  \begin{enumerate}
+  \item
+    Evaluate the condition expression to a value \metavar{condition}.
+    \begin{enumerate}
+    \item If \metavar{condition} is \TRUE:
+      \begin{enumerate}
+      \item Evaluate the "then" element using this procedure.
+      \end{enumerate}
+    \item Else, if \metavar{condition} is \FALSE:
+      \begin{enumerate}
+      \item If there is an "else" element of the \IF:
+        %% \begin{enumerate}
+        %% \item Evaluate the "else" element using this procedure.
+        %% \end{enumerate}
+      \end{enumerate}
+    \item Else, throw a dynamic error.
+    \end{enumerate}
+  \end{enumerate}
+\item
+  Else, if $\ell$ is a synchronous \synt{forElement} for a for-in loop:
+
+  \begin{enumerate}
+  \item Evaluate the iterator expression to a value \metavar{sequence}.
+  \item If \metavar{sequence} is not an instance of
+    a class that implements \code{Iterable},
+    throw a dynamic exception.
+  \item
+    Evaluate \code{sequence.iterator} to a value \metavar{iterator}.
+    \begin{enumerate}
+    \item Loop:
+      \begin{enumerate}
+      \item
+        Evaluate \code{iterator.moveNext()} to a value \metavar{hasValue}.
+      \item
+        If \metavar{hasValue} is \TRUE:
+        %% \begin{enumerate}
+        %% \item
+        %%   If the for-in element declares a variable,
+        %%   create a new namespace and a fresh \code{variable} for it.
+        %%   Otherwise, use the existing \code{variable} it refers to.
+        %% \item
+        %%   Bind \code{variable} to
+        %%   the result of evaluating \code{iterator.current}.
+        %% \item
+        %%   Evaluate the body element using this procedure
+        %%   in the scope of \code{variable}.
+        %% \end{enumerate}
+      \item
+        Else, if \metavar{hasValue} is \FALSE, exit the loop.
+      \item
+        Else, throw a dynamic error.
+      \end{enumerate}
+    \end{enumerate}
+  \end{enumerate}
+\item
+  Else, if $\ell$ is an asynchronous \AWAIT{} for-in element:
+  \begin{enumerate}
+  \item
+    Evaluate the stream expression to a value \metavar{stream}.
+  \item
+    If \metavar{stream} is not an instance of
+    a class that implements \code{Stream},
+    throw a dynamic error.
+  \item
+    Pause the subscription of any surrounding \AWAIT{} \FOR{} loop
+    in the current method.
+  \item
+    Let \metavar{streamDone} be a value implementing \code{Future<Null>}.
+  \item
+    Listen on \metavar{stream} and take the following actions on events:
+
+    \begin{itemize}
+    \item On a data event with value \metavar{value}:
+      \begin{enumerate}
+      \item
+        If the for-in element declares a variable,
+        create a new namespace and a fresh \code{variable} for it.
+        Otherwise, use the existing `variable` it refers to.
+      \item
+        Bind \code{variable} to \metavar{value}.
+      \item
+        Evaluate the body element using this procedure.
+      \item
+        If evaluation of the body throws an
+        error \metavar{error} and stack trace \metavar{stack}, then:
+        %% \begin{enumerate}
+        %% \item
+        %%   Stop listening on the stream by calling the \code{cancel()}
+        %%   method of the corresponding stream subscription, which
+        %%   returns a future $f$.
+        %% \item
+        %%   Wait for $f$ to complete.
+        %%   If $f$ completes with
+        %%   an error \metavar{error2} and stack trace \metavar{stack2},
+        %%   then complete \metavar{streamDone}
+        %%   with error \metavar{error2} and stack trace \metavar{stack2}.
+        %%   Otherwise complete \metavar{streamDone}
+        %%   with error \metavar{error} and stack trace \metavar{stack}.
+        %% \end{enumerate}
+      \item
+        Else, evaluation of the body element completes successfully.
+        %% \begin{enumerate}
+        %% \item Resume the stream subscription if it has been paused.
+        %% \end{enumerate}
+      \item
+        On an error event
+        with error \metavar{error} and stack trace \metavar{stack}:
+        %% \begin{enumerate}
+        %% \item
+        %%   Stop listening on the stream by calling the \code{cancel()} method of
+        %%   the corresponding stream subscription,
+        %%   which returns a future $f$.
+        %% \item
+        %%   Wait for $f$ to complete.
+        %%   If `f` completes
+        %%   with an error \metavar{error2} and stack trace \metavar{stack2},
+        %%   then complete \metavar{streamDone}
+        %%   with error \metavar{error2} and stack trace \metavar{stack2}.
+        %%   Otherwise complete \metavar{streamDone}
+        %%   with error \metavar{error} and stack trace \metavar{stack}.
+        %% \end{enumerate}
+      \item
+        On a done event, complete `streamDone` with the value `null`.
+      \end{enumerate}
+    \end{itemize}
+  \item
+    Evaluation of the for-in element completes
+    when \metavar{streamDone} completes.
+    If \metavar{streamDone} completes
+    with an error \metavar{error} and stack trace \metavar{stack},
+    then evaluation of the element
+    throws \metavar{error} with stack trace \metavar{stack},
+    otherwise the evaluation completes successfully.
+  \end{enumerate}
+\item
+  Else, $\ell$ is a C-style \synt{forElement}:
+  \begin{enumerate}
+  \item
+    Evaluate the initializer clause of the element, if there is one.
+  \item
+    Loop:
+    \begin{enumerate}
+    \item
+      If the initializer clause declares a variable,
+      create a new namespace and bind that variable in that namespace.
+    \item
+      Evaluate the condition expression to a value \metavar{condition}.
+      If there is no condition expression, use \TRUE.
+    \item
+      If \metavar{condition} is \TRUE:
+      \begin{enumerate}
+      \item
+        Evaluate the body element using this procedure in the namespace
+        of the variable declared by the initializer clause
+        if there is one.
+      \item
+        If there is an increment clause, execute it.
+      \end{enumerate}
+    \item
+      Else, if \metavar{condition} is \FALSE, exit the loop.
+    \item
+      Else, throw a dynamic error.
+    \end{enumerate}
+  \end{enumerate}
+\end{enumerate}
+
+\LMHash{}%
+The procedure theoretically supports a mixture of expressions and map entries,
+but the static semantics prohibit an actual literal containing that.
+
+\LMHash{}%
+Once the \metavar{result} series of values or entries is produced
+from the tree of elements,
+the final object is produced from that based on what kind of literal it is:
+
+
+\subsubsection{List}
+\LMLabel{uiAsCodeList}
+
+!!!HERE!!!
+
+\LMHash{}%
+The result of the literal expression is a fresh instance of
+a class that implements \code{List<$E$>} where $E$ is
+the element type of the literal.
+It contains the values in \metavar{result}, in order.
+If the literal is constant,
+the list is canonicalized and immutable,
+otherwise it is not.
+
+
+\subsubsection{Set}
+\LMLabel{uiAsCodeSet}
+
+!!!HERE!!!
+
+\LMHash{}%
+Create a fresh instance \metavar{set} of
+a class that implements \code{Set<$E$>} where $E$
+is the set element type of the literal.
+
+\LMHash{}%
+For each \metavar{value} in \metavar{result}:
+
+\begin{enumerate}
+\item
+  If \metavar{set} contains
+  a value \metavar{existing} that is equal to \metavar{value}
+  according to \metavar{existing}'s operator \lit{==}:
+\item
+  If the literal is constant, it is a compile-time error.
+\item
+  Else, do nothing.
+  \commentary{Duplicates are discarded and the first one wins.}
+\item
+  Else, add \metavar{value} to \metavar{set}.
+\end{enumerate}
+
+\LMHash{}%
+The result of the literal expression is \metavar{set}.
+If the literal is constant,
+canonicalize it make the set immutable.
+
+
+\subsubsection{Map}
+\LMLabel{uiAsCodeMap}
+
+!!!HERE!!!
+
+\LMHash{}%
+Allocate a fresh instance \metavar{map} of
+a class that implements \code{LinkedHashMap<$K$, $V$>} where $K$ is
+the key type of the literal and $V$ is
+the value type.
+
+\LMHash{}%
+For each entry \code{\metavar{key}: \metavar{value}} in \metavar{result}:
+
+\begin{enumerate}
+\item
+  If \metavar{map} contains an entry \metavar{existing}
+  whose key \metavar{existingKey} is equal to \metavar{key}
+  according to \metavar{existingKeys}'s operator \lit{==}:
+  \begin{enumerate}
+  \item
+    If the literal is constant, it is a compile-time error.
+  \item
+    Else, replace the value in \metavar{existing} with \metavar{value},
+    while keeping its position in the sequence of entries
+    and \metavar{existingKey} the same.
+  \end{enumerate}
+\item
+  Else add entry \code{\metavar{key}: \metavar{value}} to \metavar{map}.
+\end{enumerate}
+
+\LMHash{}%
+The result of the map literal expression is \metavar{map}.
+If the literal is constant,
+canonicalize it and make the map immutable.
+
+
+\subsubsection{Lists}
+\LMLabel{lists}
 
 \LMHash{}%
 A \IndexCustom{list literal}{literal!list}
 denotes a list, which is an integer indexed collection of objects.
 The grammar rule for \synt{listLiteral} is specified elsewhere
 (\ref{collectionLiterals}).
+
+\LMHash{}%
+When a given list literal $e$ has no type arguments,
+the type argument $T$ is selected as specified below
+(\ref{listLiteralInference}),
+and $e$ is henceforth treated as
+(\ref{notation})
+\code{<$T$>$e$}.
 
 \LMHash{}%
 A list may contain zero or more objects.
@@ -7107,6 +7639,11 @@ An empty list has an empty set of indices.
 A non-empty list has the index set $\{0, \ldots, n - 1\}$ where $n$ is the size of the list.
 It is a dynamic error to attempt to access a list
 using an index that is not a member of its set of indices.
+
+\LMHash{}%
+The sequence of elements of a given list literal
+is determined as described below
+(\ref{listEvaluation}).
 
 \LMHash{}%
 If a list literal $\ell$ begins with the reserved word \CONST{}
@@ -7122,13 +7659,13 @@ Otherwise, it is a
 and it is evaluated at run time.
 Only run-time list literals can be mutated
 after they are created.
-% This error can occur because being constant is a dynamic property, here.
+% This error can occur because being constant is a dynamic property.
 Attempting to mutate a constant list literal will result in a dynamic error.
 
 \commentary{%
 % The following is true either directly or indirectly: There is a \CONST{}
-% modifier on the literal list, or we use the "immediate subexpression" rule
-% about constant contexts.
+% modifier on the list literal, or the list literal as a whole occurs
+% in a constant context.
 Note that the element expressions of a constant list literal
 occur in a constant context
 (\ref{constantContexts}),
@@ -7244,6 +7781,139 @@ or the form
 \code{[$e_1, \ldots, e_n$]}
 is \code{List<\DYNAMIC>}.
 
+
+\subsubsection{List Literal Inference}
+\LMLabel{listLiteralInference}
+
+!!!HERE!!!
+
+\LMHash{}%
+Inference for list literals mostly follows that of set literals
+without the complexity around disambiguation with maps and
+using \code{List} or \code{Iterable} in a few places instead of \code{Set}.
+
+\LMHash{}%
+Inside a \synt{listLiteral} \metavar{listLiteral},
+the inferred type of an element $\ell$ is a list element type $T$.
+It is computed relative to a downwards element context type $P$,
+where $P$ is $T$
+if downwards inference constrains the type of \metavar{listLiteral}
+to \code{Iterable<$T$>} for some $T$.
+Otherwise, $P$ is \lit{?}.
+
+\begin{itemize}
+\item
+  If $\ell$ is an \synt{expressionElement} with expression $e1$:
+  \begin{itemize}
+  \item
+    The inferred list element type of $\ell$ is
+    the inferred type of the expression $e1$ in context $P$.
+  \end{itemize}
+\item
+  If $\ell$ is a \synt{spreadElement} with expression $e1$:
+
+  \begin{itemize}
+  \item
+    If $P$ is \lit{?} then let $S$ be
+    the inferred type of $e1$ in context \lit{?}:
+
+    \begin{itemize}
+    \item
+      If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
+      the inferred list element type of $\ell$ is $T$ where $T$ is
+      the type such that \code{Iterable<$T$>} is
+      a superinterface of $S$
+      (\commentary{%
+        the result of constraint matching for $X$ using
+        the constraint \code{$S$ <: Iterable<$X$>}}).
+
+      \begin{itemize}
+      \item
+        If $S$ is \DYNAMIC{}, then
+        the inferred list element type of $\ell$ is \DYNAMIC{}.
+      \item
+        If $S$ is \code{Null} and the spread operator is \lit{...?}, then
+        the list element type is \code{Null}.
+      \item
+        Otherwise it is an error
+        (\commentary{%
+          because it is a spread of a non-spreadable type like Object%
+        }).
+      \end{itemize}
+    \item
+      Else, let $S$ be
+      the inferred type of $e1$ in context \code{Iterable<$P$>}:
+
+      \begin{itemize}
+      \item
+        If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
+        the inferred list element type of $\ell$ is $T$ where $T$ is
+        the type such that \code{Iterable<$T$>} is
+        a superinterface of $S$
+        (\commentary{%
+          the result of constraint matching for $X$ using
+          the constraint \code{$S$ <: Iterable<$X$>}%
+        }).
+      \item
+        If $S$ is \DYNAMIC{}, then
+        the inferred list element type of $\ell$ is \DYNAMIC{}.
+      \item
+        Otherwise it is an error.
+      \end{itemize}
+    \end{itemize}
+  \item
+    If $\ell$ is an \synt{ifElement} with one $\ell$, $p1$,
+    and no "else" element:
+    The condition is inferred with a context type of \code{bool}.
+
+    The inferred list element type of $\ell$ is
+    the inferred list element type of $p1$ with element context type $P$.
+  \item
+    If $\ell$ is a \synt{ifElement} with two $\ell$s, $p1$ and $p2$:
+    The condition is inferred with a context type of \code{bool}.
+
+    The inferred list element type of $\ell$ is
+    the least upper bound of $S1$ and $S2$ where $S1$ is
+    the inferred list element type of $p1$ and $S2$ is
+    the inferred list element type of $p2$,
+    both with element context type $P$.
+
+  \item
+    If $\ell$ is a \synt{forElement} with $\ell$ $p1$ then:
+
+    Inference for the iterated expression and the controlling variable
+    is done as for the corresponding \FOR{} or \AWAIT{} \FOR{} statement.
+
+    The inferred list element type of $\ell$ is the inferred list element
+    type of $p1$ with element context type $P$.
+  \end{itemize}
+\end{itemize}
+
+\commentary{%
+Note: $\ell$ cannot be a \synt{mapElement} as
+those are not allowed inside list literals.%
+}
+
+\LMHash{}%
+Finally, we define inference on a \synt{listLiteral} \metavar{collection}
+as follows:
+
+\begin{itemize}
+\item
+  If $P$ is \lit{?} then
+  the static type of \metavar{collection} is \code{List<$T$>} where $T$ is
+  the least upper bound of the inferred list element types of the elements.
+\item
+  Otherwise,
+  the static type of \metavar{collection} is \code{List<$T$>} where $T$ is
+  determined by downwards inference.
+\end{itemize}
+
+
+\subsubsection{List Literal Evaluation}
+\LMLabel{listLiteralEvaluation}
+
+!!!HERE!!!
 
 \subsubsection{Maps}
 \LMLabel{maps}
@@ -7552,8 +8222,8 @@ or the form
 is \code{Set<\DYNAMIC>}.
 
 
-\subsubsection{Collection Literal Disambiguation}
-\LMLabel{collectionLiteralDisambiguation}
+\subsubsection{Set and Map Literal Disambiguation}
+\LMLabel{setAndMapLiteralDisambigutation}
 
 \LMHash{}%
 Some syntactic forms like \code{\{\}} and \code{\{...\id\}} are ambiguous:
@@ -7564,7 +8234,7 @@ The first step uses only the syntax and context type,
 %% (\ref{contextType})
 and is described in this section.
 The second step uses expression types and is described next
-(\ref{collectionLiteralInference}).
+(\ref{setAndMapLiteralInference}).
 
 \LMHash{}%
 Let $e$ be a \synt{setOrMapLiteral}
@@ -7598,29 +8268,29 @@ The disambiguation step of this section is
 the first applicable entry in the following list:
 
 \begin{itemize}
-\item $e$ has \synt{typeArguments}:
-  With exactly one type argument $T$,
-  $e$ is a set literal with static type \code{Set<$T$>}.
-  With exactly two type arguments $K$ and $V$,
-  $e$ is a map literal with static type \code{Map<$K$, $V$>}.
-  With any other number of type arguments a compile-time error occurs.
+\item When $e$ has type arguments \List{T}{1}{k}:
+  If $k = 1$ then $e$ is a set literal with static type
+  \code{Set<$T_1$>}.
+  If $k = 2$ then $e$ is a map literal with static type
+  \code{Map<$T_1$, $T_2$>}.
+  If $k > 2$ a compile-time error occurs.
 \item
   %% TODO(eernst): Come nnbd: `Object?`.
-  $S <: \code{Iterable<Object>} \wedge S \not<: \code{Map<Object, Object>}$:
+  When $S <: \code{Iterable<Object>} \wedge S \not<: \code{Map<Object, Object>}$:
   $e$ is a set literal.
 \item
   %% TODO(eernst): Come nnbd: `Object?`.
-  $S <: \code{Map<Object, Object>} \wedge S \not<: \code{Iterable<Object>}$:
+  When $S <: \code{Map<Object, Object>} \wedge S \not<: \code{Iterable<Object>}$:
   $e$ is a map literal.
 \item
-  ${\cal L} \not= \emptyset$ (\commentary{$e$ has leaf elements}):
-  When $\cal L$ contains both a \synt{mapElement} and an \synt{expressionElement},
+  When ${\cal L} \not= \emptyset$ (\commentary{$e$ has leaf elements}):
+  If $\cal L$ contains both a \synt{mapElement} and an \synt{expressionElement},
   a compile-time error occurs.
-  Otherwise, when $\cal L$ contains an \synt{expressionElement}
+  Otherwise, if $\cal L$ contains an \synt{expressionElement}
   $e$ is a set literal.
   Otherwise $\cal L$ contains a \synt{mapElement}, and $e$ is a map literal.
 \item
-  $e$ has no \synt{typeArguments}, no elements, and $S$ is undefined:
+  When $e$ has no \synt{typeArguments}, no elements, and $S$ is undefined:
   $e$ is a map literal.
   \commentary{%
     In other words, an empty \code{\{\}} is a map by default.%
@@ -7631,32 +8301,29 @@ the first applicable entry in the following list:
     In this case $e$ is non-empty but contains only spreads,
     wrapped zero or more times in \synt{ifElement}s or \synt{forElement}s.
     Disambiguation will occur during inference
-    (\ref{collectionLiteralInference}).%
+    (\ref{setAndMapLiteralInference}).%
   }
 \end{itemize}
 
 \commentary{%
 When this step does not determine a static type,
 it will be determined by type inference
-(\ref{collectionLiteralInference}).%
+(\ref{setAndMapLiteralInference}).%
 }
 
 \LMHash{}%
 If this process successfully disambiguates the literal
 then we say that $e$ is
-\IndexCustom{unambiguously a map}{map!unambiguously}
-or
 \IndexCustom{unambiguously a set}{set!unambiguously},
+or
+\IndexCustom{unambiguously a map}{map!unambiguously}
 as appropriate.
 
 
-\subsubsection{Collection Literal Inference}
-\LMLabel{collectionLiteralInference}
+\subsubsection{Set and Map Literal Inference}
+\LMLabel{setAndMapLiteralInference}
 
 !!!HERE!!!
-
-\paragraph{Maps and sets}
-\LMLabel{uiAsCodeMapsAndSets}
 
 \LMHash{}%
 We perform inference on the literal,
@@ -8027,166 +8694,6 @@ Or, if there is nothing indicates that it is \emph{either} a map or set:%
 \DYNAMIC{} dyn;
 \VAR{} ambiguous = \{...dyn\};
 \end{dartCode}
-
-
-\paragraph{Lists}
-
-\LMHash{}%
-Inference for list literals mostly follows that of set literals
-without the complexity around disambiguation with maps and
-using \code{List} or \code{Iterable} in a few places instead of \code{Set}.
-
-\LMHash{}%
-Inside a \synt{listLiteral} \metavar{listLiteral},
-the inferred type of an element $\ell$ is a list element type $T$.
-It is computed relative to a downwards element context type $P$,
-where $P$ is $T$
-if downwards inference constrains the type of \metavar{listLiteral}
-to \code{Iterable<$T$>} for some $T$.
-Otherwise, $P$ is \lit{?}.
-
-\begin{itemize}
-\item
-  If $\ell$ is an \synt{expressionElement} with expression $e1$:
-  \begin{itemize}
-  \item
-    The inferred list element type of $\ell$ is
-    the inferred type of the expression $e1$ in context $P$.
-  \end{itemize}
-\item
-  If $\ell$ is a \synt{spreadElement} with expression $e1$:
-
-  \begin{itemize}
-  \item
-    If $P$ is \lit{?} then let $S$ be
-    the inferred type of $e1$ in context \lit{?}:
-
-    \begin{itemize}
-    \item
-      If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
-      the inferred list element type of $\ell$ is $T$ where $T$ is
-      the type such that \code{Iterable<$T$>} is
-      a superinterface of $S$
-      (\commentary{%
-        the result of constraint matching for $X$ using
-        the constraint \code{$S$ <: Iterable<$X$>}}).
-
-      \begin{itemize}
-      \item
-        If $S$ is \DYNAMIC{}, then
-        the inferred list element type of $\ell$ is \DYNAMIC{}.
-      \item
-        If $S$ is \code{Null} and the spread operator is \lit{...?}, then
-        the list element type is \code{Null}.
-      \item
-        Otherwise it is an error
-        (\commentary{%
-          because it is a spread of a non-spreadable type like Object%
-        }).
-      \end{itemize}
-    \item
-      Else, let $S$ be
-      the inferred type of $e1$ in context \code{Iterable<$P$>}:
-
-      \begin{itemize}
-      \item
-        If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
-        the inferred list element type of $\ell$ is $T$ where $T$ is
-        the type such that \code{Iterable<$T$>} is
-        a superinterface of $S$
-        (\commentary{%
-          the result of constraint matching for $X$ using
-          the constraint \code{$S$ <: Iterable<$X$>}%
-        }).
-      \item
-        If $S$ is \DYNAMIC{}, then
-        the inferred list element type of $\ell$ is \DYNAMIC{}.
-      \item
-        Otherwise it is an error.
-      \end{itemize}
-    \end{itemize}
-  \item
-    If $\ell$ is an \synt{ifElement} with one $\ell$, $p1$,
-    and no "else" element:
-    The condition is inferred with a context type of \code{bool}.
-
-    The inferred list element type of $\ell$ is
-    the inferred list element type of $p1$ with element context type $P$.
-  \item
-    If $\ell$ is a \synt{ifElement} with two $\ell$s, $p1$ and $p2$:
-    The condition is inferred with a context type of \code{bool}.
-
-    The inferred list element type of $\ell$ is
-    the least upper bound of $S1$ and $S2$ where $S1$ is
-    the inferred list element type of $p1$ and $S2$ is
-    the inferred list element type of $p2$,
-    both with element context type $P$.
-
-  \item
-    If $\ell$ is a \synt{forElement} with $\ell$ $p1$ then:
-
-    Inference for the iterated expression and the controlling variable
-    is done as for the corresponding \FOR{} or \AWAIT{} \FOR{} statement.
-
-    The inferred list element type of $\ell$ is the inferred list element
-    type of $p1$ with element context type $P$.
-  \end{itemize}
-\end{itemize}
-
-\commentary{%
-Note: $\ell$ cannot be a \synt{mapElement} as
-those are not allowed inside list literals.%
-}
-
-\LMHash{}%
-Finally, we define inference on a \synt{listLiteral} \metavar{collection}
-as follows:
-
-\begin{itemize}
-\item
-  If $P$ is \lit{?} then
-  the static type of \metavar{collection} is \code{List<$T$>} where $T$ is
-  the least upper bound of the inferred list element types of the elements.
-\item
-  Otherwise,
-  the static type of \metavar{collection} is \code{List<$T$>} where $T$ is
-  determined by downwards inference.
-\end{itemize}
-
-
-\subsubsection{Type promotion}
-\LMLabel{uiAsCodeTypePromotion}
-
-\LMHash{}%
-An \synt{ifElement} interacts with type promotion in
-the same way that \IF{} statements do.
-Given an \synt{ifElement} with condition \metavar{condition},
-then element \metavar{thenElement} and
-optional else element \metavar{elseElement}:
-
-\begin{itemize}
-\item
-  If \metavar{condition} shows that a local variable $v$ has type $T$, then
-  the type of $v$ is known to be $T$ in \metavar{thenElement},
-  unless any of the following are true:
-
-  \begin{itemize}
-  \item $v$ is potentially mutated in \metavar{thenElement},
-  \item $v$ is potentially mutated within a function
-    other than the one where $v$ is declared, or
-    \begin{itemize}
-    \item $v$ is accessed by a function defined in \metavar{thenElement}, and
-    \item $v$ is potentially mutated anywhere in the scope of $v$.
-    \end{itemize}
-  \end{itemize}
-\end{itemize}
-
-\commentary{%
-Note: The type promotion rules for \IF{} will likely get more sophisticated
-in a future version of Dart because of non-nullable types.
-When that happens,
-\synt{ifElements} should continue to match \IF{} statements.%
-}
 
 
 \subsubsection{Compile-time errors}
@@ -17926,7 +18433,7 @@ Also:
   \item and contains the same (identical) elements or key/value entries
     in the same order,
   \end{itemize}
-  
+
   then the current literal evaluates to the value of that previous literal.
 
   \commentary{%
@@ -17935,414 +18442,6 @@ Also:
     they contain the same keys or elements \emph{in the same order}.%
     }
 \end{itemize}
-
-\subsection{Dynamic Semantics}
-\LMLabel{uiAsCodeDynamicSemantics}
-
-\LMHash{}%
-Spread, \IF{}, and \FOR{} behave similarly across all collection types.
-To simplify the spec, there is a single procedure used for
-all kinds of collections.
-
-\LMHash{}%
-This recursive procedure builds up either a \metavar{result} sequence of
-values or key-value pair map entries.
-Then a final step handles those appropriately for the given collection type.
-
-\subsubsection{To evaluate a collection element}
-\LMLabel{uiAsCodeToEvaluateACollectionElement}
-
-%% TODO(eernst): Reshape the lists below to avoid 'too deeply nested'.
-
-\begin{enumerate}
-\item
-  If $\ell$ is an expression element:
-  \begin{enumerate}
-  \item Evaluate the element's expression and append it to \metavar{result}.
-  \end{enumerate}
-\item
-  Else, $\ell$ is a \synt{mapElement}
-  \code{\metavar{keyExpression}: \metavar{valueExpression}}:
-  \begin{enumerate}
-  \item Evaluate \metavar{keyExpression} to a value \metavar{key}.
-  \item Evaluate \metavar{valueExpression} to a value \metavar{value}.
-  \item Append an entry \code{\metavar{key}: \metavar{value}}
-    to \metavar{result}.
-  \end{enumerate}
-\item
-  Else, if $\ell$ is a spread element:
-  \begin{enumerate}
-  \item
-    Evaluate the spread expression to a value \metavar{spread}.
-    \begin{enumerate}
-    \item
-      If $\ell$ is not null-aware and \metavar{spread} is \NULL,
-      throw a dynamic exception.
-    \item
-      Else, if $\ell$ is null-aware and \metavar{spread} is \NULL,
-      do nothing.
-    \item
-      Else, if the collection is a map:
-      \begin{enumerate}
-      \item
-        If \metavar{spread} is not an instance
-        of a class that implements \code{Map},
-        throw a dynamic exception.
-      \item
-        Evaluate \code{spread.entries.iterator} to a value \metavar{iterator}.
-        %% \begin{enumerate}
-        %% \item Loop:
-        %%   \begin{enumerate}
-        %%   \item
-        %%     Evaluate \code{iterator.moveNext()} to a value \metavar{hasValue}.
-        %%   \item
-        %%     If \metavar{hasValue} is \TRUE:
-        %%     \begin{enumerate}
-        %%     \item Evaluate \code{iterator.current} to a value \metavar{entry}.
-        %%     \item Evaluate \code{entry.key} to a value \metavar{key}.
-        %%     \item Evaluate \code{entry.value} to a value \metavar{value}.
-        %%       \begin{enumerate}
-        %%       \item If \metavar{key} is not a subtype of the map's key type,
-        %%         throw a dynamic error.
-        %%       \item If \metavar{value} is not a subtype of the map's value type,
-        %%         throw a dynamic error.
-        %%       \end{enumerate}
-
-        %%       An implementation is free to execute
-        %%       the previous four operations in any order,
-        %%       except that obviously the key must be evaluated
-        %%       before its type is checked,
-        %%       and likewise for the value.
-              
-        %%     \item Append an entry \code{\metavar{key}: \metavar{value}}
-        %%       to \metavar{result}.
-        %%     \end{enumerate}
-        %%   \item
-        %%     Else, if \metavar{hasValue} is \FALSE, exit the loop.
-        %%   \item
-        %%     Else, throw a dynamic error.
-        %%   \end{enumerate}
-        %% \end{enumerate}
-      \end{enumerate}
-    \end{enumerate}
-  \item
-    Else, the collection is a list or set:
-
-    \begin{enumerate}
-    \item
-      If \metavar{spread} is not an instance of
-      a class that implements \code{Iterable},
-      throw a dynamic exception.
-    \item
-      Evaluate \code{spread.iterator} to \metavar{iterator}.
-    \item
-      Loop:
-      \begin{enumerate}
-      \item
-        Evaluate \code{iterator.moveNext()} to a value \metavar{hasValue}.
-      \item
-        If \metavar{hasValue} is \TRUE:
-        %% \begin{enumerate}
-        %% \item
-        %%   Evaluate \code{iterator.current} to a value \metavar{value}.
-        %% \item
-        %%   If \metavar{value} is not a subtype of the collection's element type,
-        %%   throw a dynamic error.
-        %% \item
-        %%   Append \metavar{value} to \metavar{result}.
-        %% \end{enumerate}
-      \item
-        Else, if \metavar{hasValue} is \FALSE, exit the loop.
-      \item
-        Else, throw a dynamic error.
-      \end{enumerate}
-
-      \commentary{%
-        The \code{iterator} API may not be
-        the most efficient way to traverse the items in a collection.
-        In order to give implementations more room to optimize,
-        we loosen the semantics:%
-      }
-      \begin{itemize}
-      \item
-        If \metavar{spread} is an object
-        whose class implements \code{List}, \code{Queue}, or \code{Set}
-        (\commentary{all from \code{dart:core}}),
-        an implementation may choose to call \code{length} on the object.
-        This may let it allocate space for the resulting collection
-        more efficiently.
-        Classes that implement these are expected to have an efficient,
-        side-effect free implementation of \code{length}.
-      \item
-        If \metavar{spread} is an object
-        whose class implements List from \code{dart:core},
-        an implementation may choose to call \lit{[]}
-        to access elements from the list.
-        If it does so, it will only pass indexes
-        \code{>= 0} and \code{<} the value returned by \code{length}.
-      \end{itemize}
-    \end{enumerate}
-
-    A Dart implementation may detect whether these options apply
-    at compile time based on the static type of \metavar{spread} or
-    at runtime based on the actual value.
-  \end{enumerate}
-\item
-  Else, if $\ell$ is an \synt{ifElement}:
-  \begin{enumerate}
-  \item
-    Evaluate the condition expression to a value \metavar{condition}.
-    \begin{enumerate}
-    \item If \metavar{condition} is \TRUE:
-      \begin{enumerate}
-      \item Evaluate the "then" element using this procedure.
-      \end{enumerate}
-    \item Else, if \metavar{condition} is \FALSE:
-      \begin{enumerate}
-      \item If there is an "else" element of the \IF:
-        %% \begin{enumerate}
-        %% \item Evaluate the "else" element using this procedure.
-        %% \end{enumerate}
-      \end{enumerate}
-    \item Else, throw a dynamic error.
-    \end{enumerate}
-  \end{enumerate}
-\item
-  Else, if $\ell$ is a synchronous \synt{forElement} for a for-in loop:
-
-  \begin{enumerate}
-  \item Evaluate the iterator expression to a value \metavar{sequence}.
-  \item If \metavar{sequence} is not an instance of
-    a class that implements \code{Iterable},
-    throw a dynamic exception.
-  \item
-    Evaluate \code{sequence.iterator} to a value \metavar{iterator}.
-    \begin{enumerate}
-    \item Loop:
-      \begin{enumerate}
-      \item
-        Evaluate \code{iterator.moveNext()} to a value \metavar{hasValue}.
-      \item
-        If \metavar{hasValue} is \TRUE:
-        %% \begin{enumerate}
-        %% \item
-        %%   If the for-in element declares a variable,
-        %%   create a new namespace and a fresh \code{variable} for it.
-        %%   Otherwise, use the existing \code{variable} it refers to.
-        %% \item
-        %%   Bind \code{variable} to
-        %%   the result of evaluating \code{iterator.current}.
-        %% \item
-        %%   Evaluate the body element using this procedure
-        %%   in the scope of \code{variable}.
-        %% \end{enumerate}
-      \item
-        Else, if \metavar{hasValue} is \FALSE, exit the loop.
-      \item
-        Else, throw a dynamic error.
-      \end{enumerate}
-    \end{enumerate}
-  \end{enumerate}
-\item
-  Else, if $\ell$ is an asynchronous \AWAIT{} for-in element:
-  \begin{enumerate}
-  \item
-    Evaluate the stream expression to a value \metavar{stream}.
-  \item
-    If \metavar{stream} is not an instance of
-    a class that implements \code{Stream},
-    throw a dynamic error.
-  \item
-    Pause the subscription of any surrounding \AWAIT{} \FOR{} loop
-    in the current method.
-  \item
-    Let \metavar{streamDone} be a value implementing \code{Future<Null>}.
-  \item
-    Listen on \metavar{stream} and take the following actions on events:
-
-    \begin{itemize}
-    \item On a data event with value \metavar{value}:
-      \begin{enumerate}
-      \item
-        If the for-in element declares a variable,
-        create a new namespace and a fresh \code{variable} for it.
-        Otherwise, use the existing `variable` it refers to.
-      \item
-        Bind \code{variable} to \metavar{value}.
-      \item
-        Evaluate the body element using this procedure.
-      \item
-        If evaluation of the body throws an
-        error \metavar{error} and stack trace \metavar{stack}, then:
-        %% \begin{enumerate}
-        %% \item
-        %%   Stop listening on the stream by calling the \code{cancel()}
-        %%   method of the corresponding stream subscription, which
-        %%   returns a future $f$.
-        %% \item
-        %%   Wait for $f$ to complete.
-        %%   If $f$ completes with
-        %%   an error \metavar{error2} and stack trace \metavar{stack2},
-        %%   then complete \metavar{streamDone}
-        %%   with error \metavar{error2} and stack trace \metavar{stack2}.
-        %%   Otherwise complete \metavar{streamDone}
-        %%   with error \metavar{error} and stack trace \metavar{stack}.
-        %% \end{enumerate}
-      \item
-        Else, evaluation of the body element completes successfully.
-        %% \begin{enumerate}
-        %% \item Resume the stream subscription if it has been paused.
-        %% \end{enumerate}
-      \item
-        On an error event
-        with error \metavar{error} and stack trace \metavar{stack}:
-        %% \begin{enumerate}
-        %% \item
-        %%   Stop listening on the stream by calling the \code{cancel()} method of
-        %%   the corresponding stream subscription,
-        %%   which returns a future $f$.
-        %% \item
-        %%   Wait for $f$ to complete.
-        %%   If `f` completes
-        %%   with an error \metavar{error2} and stack trace \metavar{stack2},
-        %%   then complete \metavar{streamDone}
-        %%   with error \metavar{error2} and stack trace \metavar{stack2}.
-        %%   Otherwise complete \metavar{streamDone}
-        %%   with error \metavar{error} and stack trace \metavar{stack}.
-        %% \end{enumerate}
-      \item
-        On a done event, complete `streamDone` with the value `null`.
-      \end{enumerate}
-    \end{itemize}
-  \item
-    Evaluation of the for-in element completes
-    when \metavar{streamDone} completes.
-    If \metavar{streamDone} completes
-    with an error \metavar{error} and stack trace \metavar{stack},
-    then evaluation of the element
-    throws \metavar{error} with stack trace \metavar{stack},
-    otherwise the evaluation completes successfully.
-  \end{enumerate}
-\item
-  Else, $\ell$ is a C-style \synt{forElement}:
-  \begin{enumerate}
-  \item
-    Evaluate the initializer clause of the element, if there is one.
-  \item
-    Loop:
-    \begin{enumerate}
-    \item
-      If the initializer clause declares a variable,
-      create a new namespace and bind that variable in that namespace.
-    \item
-      Evaluate the condition expression to a value \metavar{condition}.
-      If there is no condition expression, use \TRUE.
-    \item
-      If \metavar{condition} is \TRUE:
-      \begin{enumerate}
-      \item
-        Evaluate the body element using this procedure in the namespace
-        of the variable declared by the initializer clause
-        if there is one.
-      \item
-        If there is an increment clause, execute it.
-      \end{enumerate}
-    \item
-      Else, if \metavar{condition} is \FALSE, exit the loop.
-    \item
-      Else, throw a dynamic error.
-    \end{enumerate}
-  \end{enumerate}
-\end{enumerate}
-
-\LMHash{}%
-The procedure theoretically supports a mixture of expressions and map entries,
-but the static semantics prohibit an actual literal containing that.
-
-\LMHash{}%
-Once the \metavar{result} series of values or entries is produced
-from the tree of elements,
-the final object is produced from that based on what kind of literal it is:
-
-
-\subsubsection{List}
-\LMLabel{uiAsCodeList}
-
-\LMHash{}%
-The result of the literal expression is a fresh instance of
-a class that implements \code{List<$E$>} where $E$ is
-the element type of the literal.
-It contains the values in \metavar{result}, in order.
-If the literal is constant,
-the list is canonicalized and immutable,
-otherwise it is not.
-
-
-\subsubsection{Set}
-\LMLabel{uiAsCodeSet}
-
-\LMHash{}%
-Create a fresh instance \metavar{set} of
-a class that implements \code{Set<$E$>} where $E$
-is the set element type of the literal.
-
-\LMHash{}%
-For each \metavar{value} in \metavar{result}:
-
-\begin{enumerate}
-\item
-  If \metavar{set} contains
-  a value \metavar{existing} that is equal to \metavar{value}
-  according to \metavar{existing}'s operator \lit{==}:
-\item
-  If the literal is constant, it is a compile-time error.
-\item
-  Else, do nothing.
-  \commentary{Duplicates are discarded and the first one wins.}
-\item
-  Else, add \metavar{value} to \metavar{set}.
-\end{enumerate}
-
-\LMHash{}%
-The result of the literal expression is \metavar{set}.
-If the literal is constant,
-canonicalize it make the set immutable.
-
-
-\subsubsection{Map}
-\LMLabel{uiAsCodeMap}
-
-\LMHash{}%
-Allocate a fresh instance \metavar{map} of
-a class that implements \code{LinkedHashMap<$K$, $V$>} where $K$ is
-the key type of the literal and $V$ is
-the value type.
-
-\LMHash{}%
-For each entry \code{\metavar{key}: \metavar{value}} in \metavar{result}:
-
-\begin{enumerate}
-\item
-  If \metavar{map} contains an entry \metavar{existing}
-  whose key \metavar{existingKey} is equal to \metavar{key}
-  according to \metavar{existingKeys}'s operator \lit{==}:
-  \begin{enumerate}
-  \item
-    If the literal is constant, it is a compile-time error.
-  \item
-    Else, replace the value in \metavar{existing} with \metavar{value},
-    while keeping its position in the sequence of entries
-    and \metavar{existingKey} the same.
-  \end{enumerate}
-\item
-  Else add entry \code{\metavar{key}: \metavar{value}} to \metavar{map}.
-\end{enumerate}
-
-\LMHash{}%
-The result of the map literal expression is \metavar{map}.
-If the literal is constant,
-canonicalize it and make the map immutable.
-
 
 \printindex
 
