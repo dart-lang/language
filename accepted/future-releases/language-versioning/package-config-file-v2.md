@@ -35,7 +35,7 @@ The new file's name should signal three things:
 - It is used by the Dart language tools to understand Dart source correctly.
 - It's JSON, so in case you do want to view or edit the file, the editor can treat it properly.
 
-Naming is still open. One option is "dart_config.json".
+Naming is still open. One option is "package_config.json".
 
 ### Contents
 
@@ -58,7 +58,7 @@ That object has, at least, the following properties:
 - `defaultPackage`: A string containing a package name.
 - `packages`: A list of packages, each with the following properties:
   - `name`: A string containing a package name.
-  - either `path`: A string containing a relative or absolute path using `/` as separator. Every character other than `/` is used verbatim. If the path starts with a `/` or with a DOS/Windows drive letter (a single letter followed by `:/`), then it is considered absolute. If not, the path is relative to the directory of the `.packages.json` file. 
+  - either `path`: A string containing a relative or absolute path using `/` as separator. Every character other than `/` is used verbatim. If the path starts with a `/` or with a DOS/Windows drive letter (a single letter followed by `:/`), then it is considered absolute. If not, the path is relative to the directory of the `package_config.json` file. 
   - or `uri`: A URI reference. This is resolved relative to the (likely `file:`) URI referencing the `.package.json` file. If the URI reference has no scheme, or if it has a `file:` scheme, it is recommended to use the `path` instead. (If we do not need non-`file:` locations, then we should only allow `path`. Do we need them?)
   - `languageVersion`: Optional. A string containing a language version (major.minor).
 
@@ -96,9 +96,9 @@ Pub has stronger restrictions on its accepted package names, but this file will 
 
 ### Finding the File
 
-When compiling a Dart script file, the Dart tool will look for the necessary information starting in the directory of the script file. It will first check for a `.dart_tool/dart_config.json` file, then for a `.packages` file, the it will repeat this through the parent directories until it one such file or it reaches the file system root.
+When compiling a Dart script file, the Dart tool will look for the necessary information starting in the directory of the script file. It will first check for a `.dart_tool/package_config.json` file, then for a `.packages` file, the it will repeat this through the parent directories until it one such file or it reaches the file system root.
 
-The analyzer needs to cleverly determine which configuration file applies to which file, based on the location of scripts, which scripts may transitively import a file, and understanding of the structure of Pub packages.. It should be able to use the same algorithm as now, just that where it currently looks for a `.packages` in a directory, it will have to for `.dart_tool/dart_config.json` first.
+The analyzer needs to cleverly determine which configuration file applies to which file, based on the location of scripts, which scripts may transitively import a file, and understanding of the structure of Pub packages.. It should be able to use the same algorithm as now, just that where it currently looks for a `.packages` in a directory, it will have to for `.dart_tool/package_config.json` first.
 
 ### Specifying the File
 
@@ -142,7 +142,7 @@ in the outer object. These would be available for `String.fromEnvironment("logLe
 
 ## Summary
 
-A file,  perhaps named `dart_config.json`, stored in `.dart_tool` will coexist with `.packages` until `.packages` can be phased out.
+A file,  perhaps named `package_config.json`, stored in `.dart_tool` will coexist with `.packages` until `.packages` can be phased out.
 
 The format will look like:
 
