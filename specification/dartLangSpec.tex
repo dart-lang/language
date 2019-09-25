@@ -7605,19 +7605,20 @@ the first applicable entry in the following list:
   $e$ is a map literal with static type \code{Map<$K$, $V$>}.
   With any other number of type arguments a compile-time error occurs.
 \item
+  %% TODO(eernst): Come nnbd: `Object?`.
   $S <: \code{Iterable<Object>} \wedge S \not<: \code{Map<Object, Object>}$:
   $e$ is a set literal.
 \item
+  %% TODO(eernst): Come nnbd: `Object?`.
   $S <: \code{Map<Object, Object>} \wedge S \not<: \code{Iterable<Object>}$:
   $e$ is a map literal.
 \item
   ${\cal L} \not= \emptyset$ (\commentary{$e$ has leaf elements}):
-  When $\cal L$ contains an \synt{expressionElement} but no \synt{mapElement},
-  $e$ is a set literal.
-  When $\cal L$ contains a \synt{mapElement} but no \synt{expressionElement},
-  $e$ is a map literal.
   When $\cal L$ contains both a \synt{mapElement} and an \synt{expressionElement},
   a compile-time error occurs.
+  Otherwise, when $\cal L$ contains an \synt{expressionElement}
+  $e$ is a set literal.
+  Otherwise $\cal L$ contains a \synt{mapElement}, and $e$ is a map literal.
 \item
   $e$ has no \synt{typeArguments}, no elements, and $S$ is undefined:
   $e$ is a map literal.
@@ -7629,7 +7630,7 @@ the first applicable entry in the following list:
   \commentary{%
     In this case $e$ is non-empty but contains only spreads,
     wrapped zero or more times in \synt{ifElement}s or \synt{forElement}s.
-    Disambiguation will occur during type inference
+    Disambiguation will occur during inference
     (\ref{collectionLiteralInference}).%
   }
 \end{itemize}
@@ -7651,6 +7652,8 @@ as appropriate.
 
 \subsubsection{Collection Literal Inference}
 \LMLabel{collectionLiteralInference}
+
+!!!HERE!!!
 
 \paragraph{Maps and sets}
 \LMLabel{uiAsCodeMapsAndSets}
