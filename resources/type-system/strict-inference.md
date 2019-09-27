@@ -173,7 +173,9 @@ types are commonly inferred when assigning the literal to a variable typed with
 a typedef, or when passing the literal as an argument whose corresponding
 parameter is function-typed.
 
-"Unused" parameters named `_`, `__`, etc. never represent an inference failure.
+Parameters named `_`, `__`, etc. do not represent an inference failure. Such
+names traditionally represent variables which are ignored, and as such, their
+type, `dynamic` or not, is not important.
 
 ```dart
 void f1(a) => print(a);           // Inference failure
@@ -211,7 +213,7 @@ typedef Callback = void Function(int); // OK
 
 void main() {
   var f = (var a) {};      // Inference failure
-  var g = ([_, __]) {};    // OK
+  var g = (_, __, ___) {}; // OK
   fA((a) => a * a);        // OK
   fB((a) => a * a);        // OK
   Callback h = (var a) {}; // OK
