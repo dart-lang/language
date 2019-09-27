@@ -158,6 +158,11 @@
 \newcommand{\PairList}[4]{\ensuremath{%
   {#1}_{#3}\ {#2}_{#3},\,\ldots,\ {#1}_{#4}\ {#2}_{#4}}}
 
+% Used to specify a list of tuples of the form $(K_j, V_j)$ which are
+% used with collection literals.
+\newcommand{\KeyValueTypeList}[4]{\ensuremath{%
+  ({#1}_{#3},\,{#2}_{#3}),\,\ldots,\ ({#1}_{#4},\,{#2}_{#4})}}
+
 % Used to specify comma separated lists of triples of similar symbols,
 % as needed, e.g., for declarations of formal parameters with defaults.
 % Parameters: Name of first part of triple, name of second part,
@@ -331,7 +336,8 @@
 % a specification concept, may or may not have an actual underlying
 % data structure at run time.
 \newcommand{\LiteralSequence}[1]{\ensuremath{[\![{#1}]\!]}}
-\newcommand{\EvaluateElement}[1]{\ensuremath{\metavar{evaluateElement}({#1})}}
+\newcommand{\EvaluateElementName}{\metavar{evaluateElement}}
+\newcommand{\EvaluateElement}[1]{\ensuremath{\EvaluateElementName({#1})}}
 
 % ----------------------------------------------------------------------
 % Support for hash valued Location Markers

@@ -1940,8 +1940,10 @@ and neither does any part of a declaration marked \STATIC.%
 }
 
 \LMHash{}%
-Every class has a single superclass except class \code{Object} which has no superclass.
-A class may implement a number of interfaces by declaring them in its implements clause (\ref{superinterfaces}).
+Every class has a single superclass
+except class \code{Object} which has no superclass.
+A class may implement a number of interfaces
+by declaring them in its implements clause (\ref{superinterfaces}).
 
 \LMHash{}%
 An \IndexCustom{abstract class declaration}{class declaration!abstract}
@@ -4031,8 +4033,6 @@ from one of its superinterfaces
 }
 
 \LMHash{}%
-%% TODO(eernst): 'list of interfaces' --> 'set of interfaces' if we
-%% switch to use a total order on top types for interface specificity.
 The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
 is the interface that declares the set of member signatures $M$,
 where $M$ is determined as specified below.
@@ -4272,6 +4272,49 @@ An interface has a set of direct superinterfaces
 An interface $J$ is a \Index{superinterface} of an interface $I$
 if{}f either $J$ is a direct superinterface of $I$
 or $J$ is a superinterface of a direct superinterface of $I$.
+
+\LMHash{}%
+When we say that a type $S$
+\IndexCustom{implements}{type!implements a type}
+another type $T$,
+this means that $T$ is a superinterface of $S$.
+Assume that $G$ is a raw type
+(\ref{instantiationToBound})
+whose declaration declares $s$ type parameters.
+When we say that a type $S$
+\IndexCustom{implements}{type!implements a raw type}
+$G$,
+this means that there exist types \List{U}{1}{s}
+such that \code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
+
+\commentary{%
+Note that this is not the same as being a subtype.
+For instance, \code{List<int>} implements \code{Iterable<int>},
+but it does not implement \code{Iterable<num>}.
+Similarly, \code{List<int>} implements \code{Iterable}.
+Also, note that when $S$ implements $T$
+where $T$ is not a subtype of \code{Null},
+$S$ cannot be a subtype of \code{Null}.%
+}
+
+\LMHash{}%
+Assume that $S$ is a type and $G$ is a raw type such that $S$ implements $G$.
+It is then guaranteed that there exist \List{U}{1}{s} which are types such that
+\code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
+We then say that \List{U}{1}{s} are
+\IndexCustom{the type arguments of $S$ at $G$}{type arguments!of a type at a raw type},
+and we say that $U_j$ is
+\IndexCustom{the $j$th type argument of $S$ at $G$}{%
+  type arguments!of a type at a raw type, $j$th}.
+
+\commentary{%
+For instance, the type argument of \code{List<int>} at \code{Iterable}
+is \code{int}.
+This concept is particularly useful when
+the chain of direct superinterfaces from $S$ to $G$
+does not just pass all type arguments on unchanged, e.g.,
+with a declaration like \code{\CLASS\,\,C<X,\,Y>\,\,\EXTENDS\,\,B<List<Y>,\,Y,\,X> \{\}}.%
+}
 
 
 \subsubsection{Inheritance and Overriding}
@@ -7247,8 +7290,8 @@ It is a compile-time error if:
 An \synt{ifElement} interacts with type promotion
 in the same way that \IF{} statements do.
 Assume that $\ell$ is an \synt{ifElement} of the form
-\code{\IF{} ($b$) $\ell_1$} or
-\code{\IF{} ($b$) $\ell_1$ \ELSE{} $\ell_2$}.
+\code{\IF\,\,($b$)\,\,$\ell_1$} or
+\code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
 If $b$ shows that a local variable $v$ has type $T$, then
 the type of $v$ is known to be $T$ in $\ell_1$,
 unless any of the following are true:
@@ -7308,13 +7351,13 @@ and which is specified separately
 (\ref{lists}, \ref{maps}, \ref{sets}).%
 
 There may be an actual data structure
-representing object sequences at run time,
-but object sequences could also be eliminated, e.g.,
+representing the object sequence at run time,
+but the object sequence could also be eliminated, e.g.,
 because each element is inserted directly into the target collection
 as soon as it has been computed.
 Note that each object sequence will exclusively contain objects,
 or it will exclusively contain pairs,
-because any mixed sequence would cause
+because any attempt to create a mixed sequence would cause
 an error at compile time or
 (for a spread element with static type \DYNAMIC{})
 at run time.%
@@ -7354,14 +7397,25 @@ obtained by evaluating each element $\ell_j$, $j \in 1 .. k$:
 $s_{\metavar{object}}=\EvaluateElement{\ell_1}+\ldots+\EvaluateElement{\ell_k}$,
 where \EvaluateElement{\ell_j} denotes the object sequence yielded by
 evaluation of a single collection literal element $\ell_j$.
-The object sequences for elements
-must be computed in the textual order,
-because the computations may have side effects.
 
 \LMHash{}%
-We use the notation $\EvaluateElement{\ell} := s$
-at specific points where the computation is complete,
-in order to specify that the value of \EvaluateElement{\ell} is $s$.
+When a pseudo-statement of the form
+\code{$s = s + \EvaluateElement{\ell}$;}
+is used in normative code below,
+it denotes the extension of $s$ with the object sequence
+yielded by evaluation of $\ell$,
+but it also denotes the specification of actions taken to produce
+said object sequence,
+and to produce the side effects associated with this computation,
+as implied by evaluation of expressions which is specified below to be
+part of the evaluation of \EvaluateElement{\ell}.
+
+\LMHash{}%
+When a pseudo-statement of the form
+\code{$\EvaluateElement{\ell} := s$;}
+occurs in normative code below,
+at a point where the computation is complete,
+it specifies that the value of \EvaluateElement{\ell} is $s$.
 \IndexCustom{Evaluation of a collection literal element $\ell$}{%
   collection literal element!evaluation}
 in the given context
@@ -7500,6 +7554,7 @@ we also allow the following.%
 
 \LMHash{}%
 If $o$ is an object whose dynamic type implements
+(\ref{superinterfaces})
 \code{List}, \code{Queue}, or \code{Set},
 an implementation may choose to call \code{length} on the object.
 
@@ -7525,8 +7580,8 @@ or at runtime based on the actual value.
 \LMHash{}%
 \Case{If element}
 When $\ell$ is an \synt{ifElement} of the form
-\code{\IF{} ($b$) $\ell_1$} or
-\code{\IF{} ($b$) $\ell_1$ \ELSE{} $\ell_2$},
+\code{\IF\,\,($b$)\,\,$\ell_1$} or
+\code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$},
 the condition $b$ is evaluated to a value $o_b$.
 If $o_b$ is \TRUE{} then
 $\EvaluateElement{\ell} := \EvaluateElement{\ell_1}$.
@@ -7565,7 +7620,8 @@ $\EvaluateElement{\ell} := s$;
 \vspace{-3mm}
   \caption{Evaluation of a \synt{forElement} $\ell$ of the form
     \code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$},
-    where $P$ is derived from \synt{forLoopParts}
+    where $P$ is derived from
+    % \syntax{<forInitializerStatement> <expression>? `;' <expressionList>?}
     and \AWAIT{} is included in both the for element and the code,
     or omitted in both.}
   \label{fig:evaluationOfAForLoopElement}
@@ -7584,7 +7640,8 @@ in the static and dynamic context where $\ell$ occurs.
 
 \LMHash{}%
 \Case{For loop element}
-Let $P$ be a term derived from \synt{forLoopParts} and
+Let $P$ be a term derived from
+\syntax{<forInitializerStatement> <expression>? `;' <expressionList>?} and
 let $\ell$ be a \synt{forElement} of the form
 \code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$},
 where `\AWAIT?' indicates that \AWAIT{} may be present or absent.
@@ -7796,23 +7853,23 @@ It is computed relative to a downwards element context type $P$,
 where $P$ is $T$
 if downwards inference constrains the type of \metavar{listLiteral}
 to \code{Iterable<$T$>} for some $T$.
-Otherwise, $P$ is \lit{?}.
+Otherwise, $P$ is \FreeContext{}.
 
 \begin{itemize}
 \item
-  If $\ell$ is an \synt{expressionElement} with expression $e1$:
+  If $\ell$ is an \synt{expressionElement} with expression $e_1$:
   \begin{itemize}
   \item
     The inferred list element type of $\ell$ is
-    the inferred type of the expression $e1$ in context $P$.
+    the inferred type of the expression $e_1$ in context $P$.
   \end{itemize}
 \item
-  If $\ell$ is a \synt{spreadElement} with expression $e1$:
+  If $\ell$ is a \synt{spreadElement} with expression $e_1$:
 
   \begin{itemize}
   \item
-    If $P$ is \lit{?} then let $S$ be
-    the inferred type of $e1$ in context \lit{?}:
+    If $P$ is \FreeContext{} then let $S$ be
+    the inferred type of $e_1$ in context \FreeContext{}:
 
     \begin{itemize}
     \item
@@ -7839,7 +7896,7 @@ Otherwise, $P$ is \lit{?}.
       \end{itemize}
     \item
       Else, let $S$ be
-      the inferred type of $e1$ in context \code{Iterable<$P$>}:
+      the inferred type of $e_1$ in context \code{Iterable<$P$>}:
 
       \begin{itemize}
       \item
@@ -7897,7 +7954,7 @@ as follows:
 
 \begin{itemize}
 \item
-  If $P$ is \lit{?} then
+  If $P$ is \FreeContext{} then
   the static type of \metavar{collection} is \code{List<$T$>} where $T$ is
   the least upper bound of the inferred list element types of the elements.
 \item
@@ -7966,9 +8023,11 @@ the first applicable entry in the following list:
   \code{Map<$T_1$, $T_2$>}.
   Otherwise a compile-time error occurs.
 \item
-  When \code{Iterable} is a superinterface of $S$ and \code{Map} is not,
+  When $S$ implements
+  (\ref{superinterfaces})
+  \code{Iterable} but not \code{Map},
   $e$ is a set literal.
-  When \code{Map} is a superinterface of $S$ and \code{Iterable} is not,
+  When $S$ implements \code{Map} but not \code{Iterable},
   $e$ is a map literal.
 \item
   When ${\cal L} \not= \emptyset$ (\commentary{that is, $e$ has leaf elements}):
@@ -7980,9 +8039,11 @@ the first applicable entry in the following list:
 \item
   When $e$ is of the form \code{\{\}} and $S$ is undefined,
   $e$ is a map literal.
-  \commentary{%
-    The fact that \code{\{\}} is a map by default limited the breakage
-    when set literals were introduced.%
+  \rationale{%
+    There is no deeper reason for this choice,
+    but the fact that \code{\{\}} is a map by default
+    was useful when set literals were introduced,
+    because it would be a breaking change to make it a set.%
   }
 \item
   Otherwise, $e$ is still ambiguous.
@@ -8003,345 +8064,397 @@ it will be determined by type inference
 \LMHash{}%
 If this process successfully disambiguates the literal
 then we say that $e$ is
-\IndexCustom{unambiguously a set}{set!unambiguously},
+\IndexCustom{unambiguously a set}{set!unambiguously}
 or
-\IndexCustom{unambiguously a map}{map!unambiguously}
+\IndexCustom{unambiguously a map}{map!unambiguously},
 as appropriate.
 
 
 \subsubsection{Set and Map Literal Inference}
 \LMLabel{setAndMapLiteralInference}
 
-!!!HERE!!!
-
 \LMHash{}%
-We perform inference on the literal,
-and collect up either a set element type
-(\commentary{indicating that the literal may/must be a set}),
-or a pair of a key type and a value type
-(\commentary{indicating that the literal may/must be a map}),
-or both.
-We allow both, because spreads of expressions of type \DYNAMIC{}
-do not disambiguate,
-and can be treated as either
-(\commentary{%
-it becomes a runtime error to spread a value into the wrong kind of literal%
-}).
+This section specifies how a \synt{setOrMapLiteral} $e$ is traversed
+and an associated
+\IndexCustom{inferred element type}{set or map literal!element type}
+and/or an associated
+\IndexCustom{inferred key and value type pair}{%
+  set or map literal!key and value type pair}
+is determined.
 
-\LMHash{}%
-We require that
-at least one component unambiguously determine the literal form,
-otherwise it is a compile-time error.
-So, given:
+\commentary{%
+If $e$ has an element type then it may be a set,
+and if it has a key and value type pair then it may be a map.
+%
+However, if the literal $e$ contains a spread element of type \DYNAMIC{},
+that element cannot be used to determine whether $e$ is a set or a map.
+The ambiguity is represented as having \emph{both}
+an element type and a key and value type pair.
+
+It is an error if the ambiguity is not resolved by some other elements,
+but if it is resolved then the dynamic spread element is required
+to evaluate to a suitable instance
+(implementing \code{Iterable} when $e$ is a set,
+and implementing \code{Map} when $e$ is a map),
+which means that it is a dynamic error if there is a mismatch.
+In other situations it is a compile-time error to have both
+an element type and a key and value type pair,
+because $e$ must then be both a set and a map.
+Here is an example:%
+}
 
 \begin{dartCode}
 \DYNAMIC{} x = <int, int>\{\};
 Iterable l = [];
-Map m = {};
+Map m = \{\};
+\\
+\VOID{} main() \{
+  \{...x\}       // \comment{Compile-time error: ambiguous}
+  \{...x, ...l\} // \comment{A set, dynamic error when `x` is evaluated}
+  \{...x, ...m\} // \comment{A map, no dynamic errors}
+  \{...l, ...m\} // \comment{Compile-time error: must be both a set and a map}
+\}
 \end{dartCode}
 
 \LMHash{}%
-Then:
-
-\begin{dartCode}
-\{...x\}       // \comment{Static error, because it is ambiguous.}
-\{...x, ...l\} // \comment{Statically a set, runtime error when spreading x.}
-\{...x, ...m\} // \comment{Statically a map, no runtime error.}
-\{...l, ...m\} // \comment{Static error, because it must be both a set and a map.}
-\end{dartCode}
-
-\LMHash{}%
-In a \synt{setOrMapLiteral} \metavar{collection},
-the inferred type of an \synt{element} is a set element type $T$,
-a pair of a key type $K$ and a value type $V$, or both.
-It is computed relative to a context type $P$:
+Let \metavar{collection} be a collection literal
+derived from \synt{setOrMapLiteral}.
+The inferred type of an \synt{element} is an element type $T$,
+a pair of a key and value type $(K, V)$, or both.
+It is computed relative to a context type $P$
+(\ref{setAndMapLiteralDisambigutation}),
+which is determined as follows:
 
 \begin{itemize}
 \item
-  If \metavar{collection} is unambiguously a set literal,
-  then $P$ is \code{Set<Pe>} where $Pe$ is determined by downwards inference,
-  and may be \lit{?} if downwards inference does not constrain it.
+  If \metavar{collection} is unambiguously a set
+  (\ref{setAndMapLiteralDisambigutation})
+  then $P$ is \code{Set<$P_e$>},
+  %% TODO(eernst): Add reference when we specify inference.
+  where $P_e$ is determined by downwards inference,
+  and may be \FreeContext{}
+  %% TODO(eernst): Correct this reference when we specify context types.
+  (\ref{setAndMapLiteralDisambigutation})
+  if downwards inference does not constrain it.
+
+  %% TODO(eernst): Remove this when we specify inference.
+  \commentary{%
+    A future version of this document will specify inference,
+    the notion of downwards inference,
+    and constraining.
+    The brief intuition is that inference selects values for
+    type parameters in generic constructs
+    where no type arguments have been provided,
+    aiming at a type which matches a given context type;
+    downwards inference does this by passing information
+    from a given expression into its subexpressions,
+    and upwards inference propagates information in the opposite direction.
+    Constraints are expressed in terms of context types;
+    being unconstrained means having \FreeContext{} as the context type.
+    Having a context type that \emph{contains}
+    one or more occurrences of \FreeContext{}
+    provides a partial constraint on the inferred type.
+  }
 \item
-  If \metavar{collection} is unambiguously a map literal
-  then $P$ is \code{Map<$Pk$, $Pv$>}
-  where $Pk$ and $Pv$ are determined by downwards inference,
-  and may be \lit{?}
+  If \metavar{collection} is unambiguously a map
+  then $P$ is \code{Map<$P_k$, $P_v$>}
+  where $P_k$ and $P_v$ are determined by downwards inference,
+  and may be \FreeContext{}
   if the downwards context does not constrain one or both.
 \item
   Otherwise, \metavar{collection} is ambiguous,
-  and the downwards context for the elements of \metavar{collection} is lit{?}.
+  and the downwards context for the elements of \metavar{collection}
+  is \FreeContext.
 \end{itemize}
 
 \LMHash{}%
 We say that an element
 \IndexCustom{can be a set}{element!can be a set}
-if it has a set element type.
+if it has an element type.
 Likewise, an element
 \IndexCustom{can be a map}{element!can be a map}
-if it has a key and value type.
+if it has a key and value type pair.
 We say that an element
 \IndexCustom{must be a set}{element!must be a set}
-if it can be a set and has and no key type or value type.
+if it can be a set and has and no key and value type pair.
 We say that an element
 \IndexCustom{must be a map}{element!must be a map}
-if can be a map and has no set element type.
+if can be a map and has no element type.
 
 \LMHash{}%
-To infer the type of $\ell$:
+Let $\ell$ be a term derived from \synt{element}.
+Inference of the type of $\ell$ then proceeds as follows:
+
+\LMHash{}%
+\Case{Expression element}
+In this case $\ell$ is an expression $e$.
+%
+If $P$ is \FreeContext,
+the inferred element type of $\ell$ is
+the inferred type of $e$ in context \FreeContext.
+%
+If $P$ is \code{Set<$P_e$>},
+the inferred element type of $\ell$ is
+the inferred type of $e$ in context $P_e$.
+\EndCase
+
+\LMHash{}%
+\Case{Map element}
+In this case $\ell$ is a pair of expressions \code{$e_k$:\,$e_v$}.
+%
+If $P$ is \FreeContext{},
+the inferred key and value type pair of $\ell$ is $(K, V)$,
+where $K$ and $V$ is
+the inferred type of $e_k$ respectively $e_v$,
+in context \FreeContext.
+%
+If $P$ is \code{Map<$P_k$, $P_v$>},
+the inferred key and value type pair of $\ell$ is $(K, V)$,
+where $K$ is
+the inferred type of $e_k$ in context $P_k$, and
+the $V$ is
+the inferred type of $e_v$ in context $P_v$.
+\EndCase
+
+\LMHash{}%
+\Case{Spread element}
+In this case $\ell$ is of the form
+`\code{...$e$}' or `\code{...?$e$}'.
+If $P$ is \FreeContext{} then let $S$ be
+the inferred type of $e_1$ in context \FreeContext.
+Then:
 
 \begin{itemize}
 \item
-  If $\ell$ is an \synt{expressionElement} with expression $e1$:
-  \begin{itemize}
-  \item
-    If $P$ is \lit{?} then the inferred set element type of $\ell$ is
-    the inferred type of the expression $e1$ in context \lit{?}.
-  \item
-    If $P$ is \code{Set<$Ps$>} then the inferred set element type of $\ell$ is
-    the inferred type of the expression $e1$ in context $Ps$.
-  \end{itemize}
-\item
-  If $\ell$ is a \synt{mapElement} \code{$ek$:\,\,$ev$}:
-  \begin{itemize}
-  \item
-    If $P$ is \lit{?} then the inferred key type of $\ell$ is
-    the inferred type of $ek$ in context \lit{?} and
-    the inferred value type of $\ell$ is
-    the inferred type of $ev$ in context \lit{?}.
-  \item
-    If $P$ is \code{Map<$Pk$, $Pv$>} then
-    the inferred key type of $\ell$ is
-    the inferred type of $ek$ in context $Pk$ and
-    the inferred value type of $\ell$ is
-    the inferred type of $ev$ in context $Pv$.
-  \end{itemize}
-\item
-  If $\ell$ is a \synt{spreadElement} with expression $e1$:
-  \begin{itemize}
-  \item
-    If $P$ is \lit{?} then let $S$ be
-    the inferred type of $e1$ in context \lit{?}:
-    \begin{itemize}
-    \item
-      If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
-      the inferred set element type of $\ell$ is $T$
-      where $T$ is the type such that \code{Iterable<$T$>} is
-      a superinterface of $S$
-      (\commentary{
-        the result of constraint matching for $X$ using the constraint
-        \code{$S$ <: Iterable<$X$>}}).
-    \item
-      If $S$ is a non-\code{Null} subtype of \code{Map<Object, Object>}, then
-      the inferred key type of $\ell$ is $K$ and
-      the inferred value type of $\ell$ is $V$,
-      where $K$ and $V$ are the types such that \code{Map<$K$, $V$>} is
-      a superinterface of $S$
-      (\commentary{%
-        the result of constraint matching for $X$ and $Y$ using
-        the constraint \code{$S$ <: Map<$X$, $Y$>}%
-      }).
-
-      \commentary{%
-        Note that both this and the previous case can match on
-        the same element if $S$ is a subtype of
-        both \code{Iterable<Object>} and \code{Map<Object, Object>}.
-        In that case, we rely on other elements to disambiguate.%
-      }
-    \item
-      If $S$ is \DYNAMIC{}, then
-      the inferred set element type of $\ell$ is \DYNAMIC{},
-      the inferred key type of $\ell$ is \DYNAMIC{}, and
-      the inferred value type of $\ell$ is \DYNAMIC{}.
-
-      \commentary{%
-        We produce both a set element type here,
-        and a key/value pair here
-        and rely on other elements to disambiguate.%
-      }
-    \item
-      If $S$ is \code{Null} and the spread operator is \lit{...?} then
-      the element has set element type \code{Null},
-      map key type \code{Null} and map value type \code{Null}.
-    \item
-      If none of these cases match, it is an error.
-    \end{itemize}
-  \item
-    If $P$ is \code{Set<$Ps$>} then let $S$ be
-    the inferred type of $e1$ in context \code{Iterable<$Ps$>}:
-    \begin{itemize}
-    \item
-      If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
-      the inferred set element type of $\ell$ is $T$
-      where $T$ is the type such that \code{Iterable<T>} is
-      a superinterface of $S$
-      (\commentary{%
-        the result of constraint matching for $X$ using
-        the constraint \code{$S$ <: Iterable<$X$>}}).
-    \item
-      If $S$ is \DYNAMIC{}, then
-      the inferred set element type of $\ell$ is \DYNAMIC{}.
-    \item
-      If $S$ is \code{Null} and the spread operator is \lit{...?}, then
-      the set element type is \code{Null}.
-    \item
-      Otherwise it is an error.
-    \end{itemize}
-  \item
-    If $P$ is \code{Map<$Pk$, $Pv$>} then let $S$ be
-    the inferred type of $e1$ in context $P$:
-    \begin{itemize}
-    \item
-      If $S$ is a non-\code{Null} subtype of \code{Map<Object, Object>}, then
-      the inferred key type of $\ell$ is $K$ and
-      the inferred value type of $\ell$ is $V$,
-      where $K$ and $V$ are the types such that \code{Map<$K$, $V$>} is
-      a superinterface of $S$
-      (\commentary{%
-        the result of constraint matching for $X$ and $Y$ using
-        the constraint \code{$S$ <: Map<$X$, $Y$>}}).
-    \item
-      If $S$ is \DYNAMIC{}, then
-      the inferred key type of $\ell$ is \DYNAMIC{}, and
-      the inferred value type of $\ell$ is \DYNAMIC{}.
-    \item
-      If $S$ is \code{Null} and the spread operator is \lit{...?}, then
-      the key and value element types are \code{Null}.
-    \item
-      Otherwise it is an error.
-    \end{itemize}
-  \end{itemize}
-\item
-  If $\ell$ is an \synt{ifElement} with one $\ell$, $p1$, and no "else"
-  element:
-  The condition is inferred with a context type of \code{bool}.
-  \begin{itemize}
-  \item
-    If the inferred set element type of $p1$ is $S$ then
-    the inferred set element type of $\ell$ is $S$.
-  \item
-    If the inferred key type of $p1$ is $K$ and
-    the inferred value type of $p1$ is $V$ then
-    the inferred key and value types of $\ell$ are $K$ and $V$.
-
-    \commentary{%
-      Note that both of the above cases can simultaneously apply
-      because of \DYNAMIC{} spreads.%
-    }
-  \end{itemize}
-\item
-  If $\ell$ is an \synt{ifElement} with two elements $e1$ and $e2$:
-
-  The condition is inferred with a context type of \code{bool}.
-
-  It is a compile error if $e1$ must be a set and $e2$ must be a map
-  or vice versa.
+  If $S$ implements \code{Iterable},
+  the inferred element type of $\ell$ is
+  the type argument of $S$ at \code{Iterable}.
 
   \commentary{%
-    In other words, you can't spread
-    a map on one branch and a set on the other.
-    Since \DYNAMIC{} provides both set and map key/value types,
-    a \DYNAMIC{} in either branch does not run into this case.%
+    This is the result of constraint matching for $X$
+    using the constraint $S\,\,<:\,\,\code{Iterable<$X$>}$.
+    Note that when $S$ implements a class like \code{Map} or \code{Iterable},
+    it cannot be a subtype of \code{Null}
+    (\ref{superinterfaces}).
   }
-  \begin{itemize}
-  \item
-    If the inferred set element type of $e1$ is $S1$ and
-    the inferred set element type of $e2$ is $S2$ then
-    the inferred set element type of $\ell$ is
-    the least upper bound of $S1$ and $S2$.
-  \item
-    If the inferred key type of $e1$ is $K1$ and
-    the inferred key type of $e1$ is $V1$ and
-    the inferred key type of $e2$ is $K2$ and
-    the inferred key type of $e2$ is $V2$ then
-    the inferred key type of $\ell$ is
-    the least upper bound of $K1$ and $K2$ and
-    the inferred value type is the least upper bound of $V1$ and $V2$.
-
-    \commentary{%
-      Note that both of the above cases can simultaneously apply
-      because of \DYNAMIC{} spreads.%
-    }
-  \end{itemize}
 \item
-  If $\ell$ is a \synt{forElement} with $\ell$ $e1$ then:
+  If $S$ implements \code{Map},
+  the inferred key and value type pair of $\ell$ is $(K, V)$,
+  where $K$ is the first and $V$ the second type argument
+  of $S$ at \code{Map}.
 
-  Inference for the iterated expression and the controlling variable is done
-  as for the corresponding \FOR{} or \AWAIT{} \FOR{} statement.
+  \commentary{%
+    This is the result of constraint matching for $X$ and $Y$ using
+    the constraint $S\,\,<:\,\,\code{Map<$X$, $Y$>}$.%
 
-  \begin{itemize}
-  \item
-    If the inferred set element type of $e1$ is $S$ then
-    the inferred set element type of $\ell$ is $S$.
-  \item
-    If the inferred key type of $e1$ is $K$ and
-    the inferred key type of $e1$ is $V$ then
-    the inferred key and value types of $\ell$ are $K$ and $V$.
+    Note that this case and the previous case
+    can match on the same element simultaneously
+    when $S$ implements both \code{Iterable} and \code{Map}.
+    The same situation arises several times below.
+    In such cases we rely on other elements to disambiguate.%
+  }
+\item
+  If $S$ is \DYNAMIC{} then
+  the inferred element type of $\ell$ is \DYNAMIC,
+  and the inferred key and value type pair of $\ell$ is
+  $(\DYNAMIC, \DYNAMIC)$.
 
-    \commentary{%
-      In other words, inference flows upwards from the body element.
-      Note that both of the above cases can validly apply
-      because of \DYNAMIC{} spreads.%
-    }
-  \end{itemize}
+  \commentary{%
+    We produce both an element type and a key and value type pair here,
+    and rely on other elements to disambiguate.%
+  }
+\item
+  If $S$ is \code{Null} and the spread operator is \lit{...?} then
+  the element has element type \code{Null},
+  and key and value type pair $(\code{Null}, \code{Null})$.
+\item
+  Otherwise, a compile-time error occurs.
 \end{itemize}
 
-\LMHash{}%
-Finally, we define inference on a \synt{setOrMapLiteral} \metavar{collection}
-as follows:
+\noindent
+Otherwise, if $P$ is \code{Set<$P_e$>} then let $S$ be
+the inferred type of $e_1$ in context \code{Iterable<$P_e$>}, and then:
 
 \begin{itemize}
 \item
-  If \metavar{collection} is unambiguously a set literal:
+  If $S$ implements \code{Iterable},
+  the inferred element type of $\ell$ is
+  the type argument of $S$ at \code{Iterable}.
+  \commentary{%
+    This is the result of constraint matching for $X$ using
+    the constraint $S <: \code{Iterable<$X$>}$.%
+  }
+\item
+  If $S$ is \DYNAMIC{},
+  the inferred element type of $\ell$ is \DYNAMIC{}.
+\item
+  If $S$ is \code{Null} and the spread operator is \lit{...?},
+  the inferred element type of $\ell$ is \code{Null}.
+\item
+  Otherwise, a compile-time error occurs.
+\end{itemize}
+
+\noindent
+Otherwise, if $P$ is \code{Map<$P_k$, $P_v$>} then let $S$ be
+the inferred type of $e_1$ in context $P$, and then:
+
+\begin{itemize}
+\item
+  If $S$ implements \code{Map},
+  the inferred key and value type pair of $\ell$ is $(K, V)$,
+  where $K$ is the first and $V$ the second type argument of
+  $S$ at \code{Map}.
+  \commentary{%
+    This is the result of constraint matching for $X$ and $Y$ using
+    the constraint \code{$S$ <: Map<$X$, $Y$>}.%
+  }
+\item
+  If $S$ is \DYNAMIC,
+  the inferred key and value type pair of $\ell$ is
+
+  \noindent
+  $(\DYNAMIC, \DYNAMIC)$.
+\item
+  If $S$ is \code{Null} and the spread operator is \lit{...?},
+  the inferred key and value type pair $(\code{Null}, \code{Null})$.
+\item
+  Otherwise, a compile-time error occurs.
+\end{itemize}
+\vspace{-5mm}
+\EndCase
+
+\LMHash{}%
+\Case{If element}
+In this case $\ell$ is of the form
+\code{\IF\,\,($b$)\,\,$\ell_1$} or
+\code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
+The condition $b$ is always inferred with a context type of \code{bool}.
+
+Assume that \code{\ELSE\,\,$\ell_2$} is not present. Then:
+\begin{itemize}
+\item
+  If the inferred element type of $\ell_1$ is $S$,
+  the inferred element type of $\ell$ is $S$.
+\item
+  If the inferred key and value type pair of $\ell_1$ is $(K, V)$,
+  the inferred key and value type pair of $\ell$ is $(K, V)$.
+\end{itemize}
+
+Otherwise, \code{\ELSE\,\,$\ell_2$} is present.
+It is a compile error if $\ell_1$ must be a set and $\ell_2$ must be a map,
+or vice versa.
+
+\commentary{%
+This means that one cannot spread a map on one branch and a set on the other.
+Since \DYNAMIC{} provides both an element type and a key and value type pair,
+a \DYNAMIC{} spread in either branch does not cause the error to occur.%
+}
+
+Then:
+
+\begin{itemize}
+\item
+  If the inferred element type of $\ell_1$ is $S_1$ and
+  the inferred element type of $\ell_2$ is $S_2$,
+  the inferred element type of $\ell$ is
+  the least upper bound of $S_1$ and $S_2$.
+\item
+  If the inferred key and value type pair of $e_1$ is
+  $(K_1, V_1)$
+  and the inferred key and value type pair of $e_2$ is
+  $(K_2, V_2)$,
+  the inferred key and value type pair of $\ell$ is
+  $(K, V)$,
+  where $K$ is the least upper bound of $K_1$ and $K_2$, and
+  and $V$ is the least upper bound of $V_1$ and $V_2$.
+\end{itemize}
+\vspace{-5mm}
+\EndCase
+
+\LMHash{}%
+\Case{For element}
+In this case $\ell$ is of the form
+\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$}
+where $P$ is derived from \synt{forLoopParts} and
+`\AWAIT?' indicates that \AWAIT{} may be present or absent.
+
+Inference for the parts
+(\commentary{%
+  such as the iterable expression of a for-in,
+  or the \synt{forInitializerStatement} of a for loop%
+})
+is done as for the corresponding \FOR{} statement,
+including \AWAIT{} if and only if the element includes \AWAIT.
+
+\begin{itemize}
+\item
+  If the inferred element type of $\ell_1$ is $S$ then
+  the inferred element type of $\ell$ is $S$.
+\item
+  If the inferred key and value type pair of $e_1$ is $(K, V)$,
+  the inferred key and value type pair of $\ell$ is $(K, V)$.
+\end{itemize}
+
+\commentary{%
+In other words, inference flows upwards from the body element.%
+}
+\vspace{3mm}
+\EndCase
+
+\LMHash{}%
+Finally, we define
+\Index{type inference on a set or map literal}{%
+  type inference!set or map literal}
+as a whole.
+Assume that \metavar{collection} is derived from \synt{setOrMapLiteral},
+and the context type for \metavar{collection} is $P$.
+
+\begin{itemize}
+\item
+  If \metavar{collection} is unambiguously a set:
 
   \begin{itemize}
   \item
-    If $P$ is \lit{?} then
-    the static type of \metavar{collection} is \code{Set<$T$>} where $T$ is
-    the least upper bound of the inferred set element types of the elements.
+    If $P$ is \FreeContext{} then
+    the static type of \metavar{collection} is \code{Set<$T$>}
+    where $T$ is the least upper bound of
+    the inferred element types of the elements.
   \item
-    Otherwise, the static type of \metavar{collection} is $P$.
+    %% TODO(eernst): Feature spec says $P$, but how can we know that $P$ is a type?
+    Otherwise, the static type of \metavar{collection} is
+    the greatest closure of $P$.
 
     \commentary{%
-      Note that the element inference will never produce a key/value type here
-      given that downwards context.%
+      Note that the inference will never produce a key and value type pair
+      with the given context type.%
     }
   \end{itemize}
 \item
-  Else, if \metavar{collection} is unambiguously a map literal
-  where $P$ is \code{Map<$Pk$, $Pv$>}:
+  If \metavar{collection} is unambiguously a map
+  where $P$ is \code{Map<$P_k$, $P_v$>}
+  and the inferred key and value type pairs are
+  \KeyValueTypeList{K}{V}{1}{n}:
 
-  \begin{itemize}
-  \item
-    If $Pk$ is \lit{?} then
-    the static key type of \metavar{collection} is $K$ where $K$ is
-    the least upper bound of the inferred key types of the elements.
+  If $P_k$ is \FreeContext{},
+  the static key type of \metavar{collection} is $K$
+  where $K$ is the least upper bound of \List{K}{1}{n}.
+  Otherwise the static key type of \metavar{collection} is $K$
+  where $K$ is determined by downwards inference.
 
-  \item
-    Otherwise the static key type of \metavar{collection} is $K$ where $K$ is
-    determined by downwards inference.
-  \end{itemize}
+  If $P_v$ is \FreeContext{},
+  the static value type of \metavar{collection} is $V$
+  where $V$ is the least upper bound of \List{V}{1}{n}.
+  Otherwise the static value type of \metavar{collection} is $V$
+  where $V$ is determined by downwards inference.
+  \commentary{%
+    Note that the element inference will never produce a element type here
+    given this downwards context.%
+  }
 
-  And:
-
-  \begin{itemize}
-  \item
-    If $Pv$ is \lit{?} then
-    the static value type of \metavar{collection} is $V$ where $V$ is
-    the least upper bound of the inferred value types of the elements.
-  \item
-    Otherwise the static value type of \metavar{collection} is $V$ where $V$ is
-    determined by downwards inference.
-
-    The static type of \metavar{collection} is \code{Map<$K$, $V$>}.
-
-    \commentary{%
-      Note that the element inference will never produce a set element type here
-      given this downwards context.%
-    }
-  \end{itemize}
+  The static type of \metavar{collection} is then \code{Map<$K$, $V$>}.
 \item
   Otherwise, \metavar{collection} is still ambiguous,
-  the downwards context for the elements of \metavar{collection} is \lit{?},
+  the downwards context for the elements of \metavar{collection} is \FreeContext{},
   and the disambiguation is done using
   the immediate elements of \metavar{collection} as follows:
 
@@ -8351,7 +8464,7 @@ as follows:
     and at least one element must be a set,
     then \metavar{collection} is a set literal with
     static type \code{Set<$T$>} where $T$ is
-    the least upper bound of the set element types of the elements.
+    the least upper bound of the element types of the elements.
   \item
     If all elements can be a map,
     and at least one element must be a map, then $e$ is
@@ -8359,14 +8472,14 @@ as follows:
     the least upper bound of the key types of the elements and $V$ is
     the least upper bound of the value types.
   \item
-    Otherwise, the literal cannot be disambiguated
-    and it is a compile-time error.
+    Otherwise, a compile-time error occurs.
+    \commentary{In this case the literal cannot be disambiguated.}
   \end{itemize}
 \end{itemize}
 
 \commentary{%
-  This last case can occur if the literal \emph{must} be both a set and a map,
-  as in:%
+This last case can occur if the literal \emph{must} be both a set and a map.
+Here is an example:%
 }
 
 \begin{dartCode}
@@ -8393,7 +8506,7 @@ Or, if there is nothing indicates that it is \emph{either} a set or a map:%
 \LMHash{}%
 Create a fresh instance \metavar{set} of
 a class that implements \code{Set<$E$>} where $E$
-is the set element type of the literal.
+is the element type of the literal.
 
 \LMHash{}%
 For each \metavar{value} in \metavar{result}:
@@ -16223,12 +16336,12 @@ for the situation where $o$ was obtained as a fresh instance
 (\ref{redirectingFactoryConstructors},
 \ref{lists}, \ref{maps}, \ref{new}, \ref{functionInvocation}).
 
-\commentary{
+\commentary{%
 In particular, the dynamic type of an instance never changes.
 It is at times only specified that the given class implements
 a certain type, e.g., for a list literal.
 In these cases the dynamic type is implementation dependent,
-except of course that said subtype requirement must be satisfied.
+except of course that said superinterface constraint must be satisfied.%
 }
 
 \LMHash{}%
@@ -17128,7 +17241,7 @@ and which has a method named \CALL{},
 whose signature is the function type $C$ itself.
 \commentary{%
 Consequently, all function types are subtypes of \FUNCTION{}
-(\ref{subtypes}).
+(\ref{subtypes}).%
 }
 
 
