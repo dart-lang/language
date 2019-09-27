@@ -171,7 +171,9 @@ type cannot be inferred from downwards inference (in the case of a function
 literal) is considered an inference failure. A function literal's parameter
 types are commonly inferred when assigning the literal to a variable typed with
 a typedef, or when passing the literal as an argument whose corresponding
-parameter is  function-typed.
+parameter is function-typed.
+
+"Unused" parameters named `_`, `__`, etc. never represent an inference failure.
 
 ```dart
 void f1(a) => print(a);           // Inference failure
@@ -209,9 +211,10 @@ typedef Callback = void Function(int); // OK
 
 void main() {
   var f = (var a) {};      // Inference failure
+  var g = ([_, __]) {};    // OK
   fA((a) => a * a);        // OK
   fB((a) => a * a);        // OK
-  Callback g = (var a) {}; // OK
+  Callback h = (var a) {}; // OK
 }
 ```
 
