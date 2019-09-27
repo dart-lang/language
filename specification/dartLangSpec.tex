@@ -7651,6 +7651,134 @@ in the static and dynamic context where $\ell$ occurs.
 \EndCase
 
 
+\subsubsection{List Literal Inference}
+\LMLabel{listLiteralInference}
+
+!!!HERE!!! Raw from feature spec.
+
+\LMHash{}%
+Inference for list literals mostly follows that of set literals
+without the complexity around disambiguation with maps and
+using \code{List} or \code{Iterable} in a few places instead of \code{Set}.
+
+\LMHash{}%
+Inside a \synt{listLiteral} \metavar{listLiteral},
+the inferred type of an element $\ell$ is a list element type $T$.
+It is computed relative to a downwards element context type $P$,
+where $P$ is $T$
+if downwards inference constrains the type of \metavar{listLiteral}
+to \code{Iterable<$T$>} for some $T$.
+Otherwise, $P$ is \FreeContext{}.
+
+\begin{itemize}
+\item
+  If $\ell$ is an \synt{expressionElement} with expression $e_1$:
+  \begin{itemize}
+  \item
+    The inferred list element type of $\ell$ is
+    the inferred type of the expression $e_1$ in context $P$.
+  \end{itemize}
+\item
+  If $\ell$ is a \synt{spreadElement} with expression $e_1$:
+
+  \begin{itemize}
+  \item
+    If $P$ is \FreeContext{} then let $S$ be
+    the inferred type of $e_1$ in context \FreeContext{}:
+
+    \begin{itemize}
+    \item
+      If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
+      the inferred list element type of $\ell$ is $T$ where $T$ is
+      the type such that \code{Iterable<$T$>} is
+      a superinterface of $S$
+      (\commentary{%
+        the result of constraint matching for $X$ using
+        the constraint \code{$S$ <: Iterable<$X$>}}).
+
+      \begin{itemize}
+      \item
+        If $S$ is \DYNAMIC{}, then
+        the inferred list element type of $\ell$ is \DYNAMIC{}.
+      \item
+        If $S$ is \code{Null} and the spread operator is \lit{...?}, then
+        the list element type is \code{Null}.
+      \item
+        Otherwise it is an error
+        (\commentary{%
+          because it is a spread of a non-spreadable type like Object%
+        }).
+      \end{itemize}
+    \item
+      Else, let $S$ be
+      the inferred type of $e_1$ in context \code{Iterable<$P$>}:
+
+      \begin{itemize}
+      \item
+        If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
+        the inferred list element type of $\ell$ is $T$ where $T$ is
+        the type such that \code{Iterable<$T$>} is
+        a superinterface of $S$
+        (\commentary{%
+          the result of constraint matching for $X$ using
+          the constraint \code{$S$ <: Iterable<$X$>}%
+        }).
+      \item
+        If $S$ is \DYNAMIC{}, then
+        the inferred list element type of $\ell$ is \DYNAMIC{}.
+      \item
+        Otherwise it is an error.
+      \end{itemize}
+    \end{itemize}
+  \item
+    If $\ell$ is an \synt{ifElement} with one $\ell$, $p1$,
+    and no "else" element:
+    The condition is inferred with a context type of \code{bool}.
+
+    The inferred list element type of $\ell$ is
+    the inferred list element type of $p1$ with element context type $P$.
+  \item
+    If $\ell$ is a \synt{ifElement} with two $\ell$s, $p1$ and $p2$:
+    The condition is inferred with a context type of \code{bool}.
+
+    The inferred list element type of $\ell$ is
+    the least upper bound of $S1$ and $S2$ where $S1$ is
+    the inferred list element type of $p1$ and $S2$ is
+    the inferred list element type of $p2$,
+    both with element context type $P$.
+
+  \item
+    If $\ell$ is a \synt{forElement} with $\ell$ $p1$ then:
+
+    Inference for the iterated expression and the controlling variable
+    is done as for the corresponding \FOR{} or \AWAIT{} \FOR{} statement.
+
+    The inferred list element type of $\ell$ is the inferred list element
+    type of $p1$ with element context type $P$.
+  \end{itemize}
+\end{itemize}
+
+\commentary{%
+Note: $\ell$ cannot be a \synt{mapElement} as
+those are not allowed inside list literals.%
+}
+
+\LMHash{}%
+Finally, we define inference on a \synt{listLiteral} \metavar{collection}
+as follows:
+
+\begin{itemize}
+\item
+  If $P$ is \FreeContext{} then
+  the static type of \metavar{collection} is \code{List<$T$>} where $T$ is
+  the least upper bound of the inferred list element types of the elements.
+\item
+  Otherwise,
+  the static type of \metavar{collection} is \code{List<$T$>} where $T$ is
+  determined by downwards inference.
+\end{itemize}
+
+
 \subsubsection{List}
 \LMLabel{uiAsCodeList}
 
@@ -7834,140 +7962,6 @@ The static type of a list literal of the form
 or the form
 \code{[$e_1, \ldots, e_n$]}
 is \code{List<\DYNAMIC>}.
-
-
-\subsubsection{List Literal Inference}
-\LMLabel{listLiteralInference}
-
-!!!HERE!!! Raw from feature spec.
-
-\LMHash{}%
-Inference for list literals mostly follows that of set literals
-without the complexity around disambiguation with maps and
-using \code{List} or \code{Iterable} in a few places instead of \code{Set}.
-
-\LMHash{}%
-Inside a \synt{listLiteral} \metavar{listLiteral},
-the inferred type of an element $\ell$ is a list element type $T$.
-It is computed relative to a downwards element context type $P$,
-where $P$ is $T$
-if downwards inference constrains the type of \metavar{listLiteral}
-to \code{Iterable<$T$>} for some $T$.
-Otherwise, $P$ is \FreeContext{}.
-
-\begin{itemize}
-\item
-  If $\ell$ is an \synt{expressionElement} with expression $e_1$:
-  \begin{itemize}
-  \item
-    The inferred list element type of $\ell$ is
-    the inferred type of the expression $e_1$ in context $P$.
-  \end{itemize}
-\item
-  If $\ell$ is a \synt{spreadElement} with expression $e_1$:
-
-  \begin{itemize}
-  \item
-    If $P$ is \FreeContext{} then let $S$ be
-    the inferred type of $e_1$ in context \FreeContext{}:
-
-    \begin{itemize}
-    \item
-      If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
-      the inferred list element type of $\ell$ is $T$ where $T$ is
-      the type such that \code{Iterable<$T$>} is
-      a superinterface of $S$
-      (\commentary{%
-        the result of constraint matching for $X$ using
-        the constraint \code{$S$ <: Iterable<$X$>}}).
-
-      \begin{itemize}
-      \item
-        If $S$ is \DYNAMIC{}, then
-        the inferred list element type of $\ell$ is \DYNAMIC{}.
-      \item
-        If $S$ is \code{Null} and the spread operator is \lit{...?}, then
-        the list element type is \code{Null}.
-      \item
-        Otherwise it is an error
-        (\commentary{%
-          because it is a spread of a non-spreadable type like Object%
-        }).
-      \end{itemize}
-    \item
-      Else, let $S$ be
-      the inferred type of $e_1$ in context \code{Iterable<$P$>}:
-
-      \begin{itemize}
-      \item
-        If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
-        the inferred list element type of $\ell$ is $T$ where $T$ is
-        the type such that \code{Iterable<$T$>} is
-        a superinterface of $S$
-        (\commentary{%
-          the result of constraint matching for $X$ using
-          the constraint \code{$S$ <: Iterable<$X$>}%
-        }).
-      \item
-        If $S$ is \DYNAMIC{}, then
-        the inferred list element type of $\ell$ is \DYNAMIC{}.
-      \item
-        Otherwise it is an error.
-      \end{itemize}
-    \end{itemize}
-  \item
-    If $\ell$ is an \synt{ifElement} with one $\ell$, $p1$,
-    and no "else" element:
-    The condition is inferred with a context type of \code{bool}.
-
-    The inferred list element type of $\ell$ is
-    the inferred list element type of $p1$ with element context type $P$.
-  \item
-    If $\ell$ is a \synt{ifElement} with two $\ell$s, $p1$ and $p2$:
-    The condition is inferred with a context type of \code{bool}.
-
-    The inferred list element type of $\ell$ is
-    the least upper bound of $S1$ and $S2$ where $S1$ is
-    the inferred list element type of $p1$ and $S2$ is
-    the inferred list element type of $p2$,
-    both with element context type $P$.
-
-  \item
-    If $\ell$ is a \synt{forElement} with $\ell$ $p1$ then:
-
-    Inference for the iterated expression and the controlling variable
-    is done as for the corresponding \FOR{} or \AWAIT{} \FOR{} statement.
-
-    The inferred list element type of $\ell$ is the inferred list element
-    type of $p1$ with element context type $P$.
-  \end{itemize}
-\end{itemize}
-
-\commentary{%
-Note: $\ell$ cannot be a \synt{mapElement} as
-those are not allowed inside list literals.%
-}
-
-\LMHash{}%
-Finally, we define inference on a \synt{listLiteral} \metavar{collection}
-as follows:
-
-\begin{itemize}
-\item
-  If $P$ is \FreeContext{} then
-  the static type of \metavar{collection} is \code{List<$T$>} where $T$ is
-  the least upper bound of the inferred list element types of the elements.
-\item
-  Otherwise,
-  the static type of \metavar{collection} is \code{List<$T$>} where $T$ is
-  determined by downwards inference.
-\end{itemize}
-
-
-\subsubsection{List Literal Evaluation}
-\LMLabel{listLiteralEvaluation}
-
-!!!HERE!!! May not be needed: With element evaluation in place, it's just a short explanation in \ref{lists}.
 
 
 \subsubsection{Set and Map Literal Disambiguation}
