@@ -4302,7 +4302,7 @@ Assume that $S$ is a type and $G$ is a raw type such that $S$ implements $G$.
 Per definition there exist types \List{U}{1}{s} such that
 \code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
 We then say that \List{U}{1}{s} are the
-\IndexCustom{actual type arguments of $S$ at $G$}{
+\IndexCustom{actual type arguments of $S$ at $G$}{%
   type arguments!of a type at a raw type},
 and we say that $U_j$ is the
 \IndexCustom{$j$th actual type argument of $S$ at $G$}{%
@@ -7072,7 +7072,7 @@ This section specifies several literal expressions denoting collections.
 Some syntactic forms may denote more than one kind of collection,
 in which case a disambiguation step is performed
 in order to determine the kind
-(\ref{setAndMapLiteralDisambigutation}).
+(\ref{setAndMapLiteralDisambiguation}).
 
 \begin{grammar}
 <listLiteral> ::= \CONST{}? <typeArguments>? `[' <elements>? `]'
@@ -7126,19 +7126,76 @@ is the union of the leaf elements of $\ell_1$ and $\ell_2$.
 The leaf elements of a \synt{spreadElement} is the empty set.
 
 \commentary{%
-The leaf elements is always a set of expression elements and/or map elements.%
+The leaf elements of a collection literal is always
+a set of expression elements and/or map elements.%
 }
 
 \LMHash{}%
-It is a compile-time error if the leaf elements of a \synt{listLiteral}
-contains a \synt{mapElement}.
+In order to allow collection literals to occur as constant expressions,
+we specify what it means for an element $\ell$
+to be constant or potentially constant:
+
+\begin{itemize}
+\item
+  $\ell$ is a potentially constant respectively constant element
+  if it is derived from \synt{expressionElement},
+  of the form $e$,
+  and $e$ is a potentially constant respectively constant expression.
+\item
+  $\ell$ is a potentially constant respectively constant element
+  if it is derived from \synt{mapElement},
+  of the form \code{$e_1$:\,$e_2$},
+  and both $e_1$ and $e_2$ are
+  potentially constant respectively constant expressions.
+\item
+  Assume that $\ell$ is derived from \synt{spreadElement},
+  of the form `\code{...$e$}' or `\code{...?$e$}'.
+
+  $\ell$ is a potentially constant element
+  if $e$ is a potentially constant expression.
+
+  $\ell$ is a constant element
+  if $e$ is a constant expression that evaluates
+  to a \code{List}, \code{Set} or \code{Map} instance
+  originally created by a list, set or map literal.
+
+  Moreover, $\ell$ is a constant element if it is `\code{...?$e$}',
+  where $e$ is a constant expression that evaluates
+  to the null object.
+\item
+  Assume that $\ell$ is derived from \synt{ifElement},
+  of the form
+  \code{\IF\,\,($b$)\,\,$\ell_1$}
+  or the form
+  \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
+
+  $\ell$ is a potentially constant element
+  if $b$ is a potentially constant expression
+  and $\ell_1$ as well as $\ell_2$, if present,
+  are potentially constant.
+
+  Assume that $\ell$ is \code{\IF\,\,($b$)\,\,$\ell_1$}.
+  Then $\ell$ is a constant element
+  if $b$ is a constant expression that evaluates to \TRUE{}
+  and $\ell_1$ is constant;
+  and it is a constant element
+  if $b$ is a constant expression that evaluates to \FALSE{}
+  and $\ell_1$ is potentially constant.
+
+  Otherwise, $\ell$ is
+  \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
+  Then $\ell$ is a constant element
+  if $b$ is a constant expression that evaluates to \TRUE,
+  $\ell_1$ is constant,
+  and $\ell_2$ is potentially constant;
+  and it is a constant element
+  if $b$ is a constant expression that evaluates to \FALSE,
+  $\ell_1$ is potentially constant,
+  and $\ell_2$ is constant.
+\end{itemize}
 
 \commentary{%
-It is also a compile-time error if a set literal contains a \synt{mapElement},
-or a map literal contains an \synt{expressionElement},
-but this is only detected during the disambiguation process
-where it is determined which kind of collection
-a given \synt{setOrMapLiteral} denotes.%
+A \synt{forElement} can never occur in a constant collection literal.%
 }
 
 
@@ -7329,7 +7386,7 @@ also called an \NoIndex{object sequence} when no ambiguity can arise.
 \LMHash{}%
 We use the notation
 \IndexCustom{\LiteralSequence{\ldots}}{[[...]]@\LiteralSequence{\ldots}}
-to denote an object sequence of specific elements,
+to denote an object sequence with explicitly listed elements,
 and we use `$+$' to compute the concatenation of object sequences
 (\commentary{as in $s_1 + s_2$}),
 which is an operation that will succeed and has no side-effects.
@@ -7350,7 +7407,7 @@ For each kind of collection the sequence is used in the given order
 to populate the collection,
 in a manner which is specific to the kind,
 and which is specified separately
-(\ref{lists}, \ref{maps}, \ref{sets}).%
+(\ref{lists}, \ref{sets}, \ref{maps}).%
 
 There may be an actual data structure
 representing the object sequence at run time,
@@ -7416,8 +7473,8 @@ part of the evaluation of \EvaluateElement{\ell}.
 When a pseudo-statement of the form
 \code{$\EvaluateElement{\ell} := s$;}
 occurs in normative code below,
-at a point where the computation is complete,
-it specifies that the value of \EvaluateElement{\ell} is $s$.
+it occurs at a point where the computation is complete
+and it specifies that the value of \EvaluateElement{\ell} is $s$.
 \IndexCustom{Evaluation of a collection literal element $\ell$}{%
   collection literal element!evaluation}
 in the given context
@@ -7426,16 +7483,16 @@ is then specified as follows:
 
 \LMHash{}%
 \Case{Expression element}
-When $\ell$ is an \synt{expressionElement} of the form $e$,
-$e$ is evaluated to an object $o$,
+In this case $\ell$ is an expression $e$;
+$e$ is evaluated to an object $o$
 and $\EvaluateElement{\ell} := \LiteralSequence{o}$.
 \EndCase
 
 \LMHash{}%
 \Case{Map element}
-When $\ell$ is a \synt{mapElement} of the form
-\code{$e_1$:\,\,$e_2$},
-$e_1$ is evaluated to an object $o_1$,
+In this case $\ell$ is pair of expressions
+\code{$e_1$:$e_2$};
+first $e_1$ is evaluated to an object $o_1$,
 then $e_2$ is evaluated to an object $o_2$,
 and $\EvaluateElement{\ell} := \LiteralSequence{o_1:o_2}$.
 \EndCase
@@ -7446,14 +7503,14 @@ The element $\ell$ is of the form `\code{...$e$}' or `\code{...?$e$}'.
 Evaluate $e$ to an object $o_{\metavar{spread}}$.
 \begin{enumerate}
 \item
-  When $\ell$ is `\code{...?$e$}':
-  If $o_{\metavar{spread}}$ is the null object then
-  $\EvaluateElement{\ell} := \LiteralSequence{}$.
-  Otherwise evaluation proceeds with step 2.
-
   When $\ell$ is `\code{...$e$}':
   %% TODO(eernst): Come NNBD, this error cannot occur any more: delete.
   If $o_{\metavar{spread}}$ is the null object then a dynamic error occurs.
+  Otherwise evaluation proceeds with step 2.
+
+  When $\ell$ is `\code{...?$e$}':
+  If $o_{\metavar{spread}}$ is the null object then
+  $\EvaluateElement{\ell} := \LiteralSequence{}$.
   Otherwise evaluation proceeds with step 2.
 \item
   Let $T_{\metavar{spread}}$ be the dynamic type of $o_{\metavar{spread}}$.
@@ -7612,150 +7669,143 @@ $\EvaluateElement{\ell} := s$;
 \subsubsection{List Literal Inference}
 \LMLabel{listLiteralInference}
 
-!!!HERE!!! Raw from feature spec.
+\LMHash{}%
+This section specifies how a list literal \metavar{list} is traversed and an
+\IndexCustom{inferred element type}{list literal!element type}
+for \metavar{list} is determined.
+We specify first how to infer the element type of a single element,
+then how to use that result to infer
+the element type of \metavar{list} as a whole.
 
 \LMHash{}%
-Inference for list literals mostly follows that of set literals
-without the complexity around disambiguation with maps and
-using \code{List} or \code{Iterable} in a few places instead of \code{Set}.
-
-\LMHash{}%
-Inside a \synt{listLiteral} \metavar{listLiteral},
-the inferred type of an element $\ell$ is a list element type $T$.
-It is computed relative to a downwards element context type $P$,
-where $P$ is $T$
-if downwards inference constrains the type of \metavar{listLiteral}
-to \code{Iterable<$T$>} for some $T$.
+The context type $P$
+(\ref{setAndMapLiteralDisambiguation})
+for each element of \metavar{list} is
+obtained from the context type of \metavar{list}.
+If downwards inference constrains the type of \metavar{list}
+to \code{Iterable<$P_e$>} for some $P_e$ then $P$ is $P_e$.
 Otherwise, $P$ is \FreeContext{}.
+
+\LMHash{}%
+Let $\ell$ be a term derived from \synt{element}.
+Inference of the element type of $\ell$ with context type $P$
+proceeds as follows,
+where the context type for an element type is always $P$
+unless anything is said to the contrary:
+
+\LMHash{}%
+\Case{Expression element}
+In this case $\ell$ is an expression $e$.
+The inferred element type of $\ell$ is
+% The type of $e$ is not an element type, so we mention $P$.
+the inferred type of $e$ in context $P$.
+\EndCase
+
+\LMHash{}%
+\Case{Map element}
+In this case, a compile-time error occurs.
+\commentary{%
+A list literal can never contain a map element.%
+}
+\EndCase
+
+\LMHash{}%
+\Case{Spread element}
+Let $e$ be the expression of $\ell$.
+If $\ell$ is `\code{...$e$}',
+let $S$ be the inferred type of $e$ in context \code{Iterable<$P$>}.
+Otherwise
+(\commentary{when $\ell$ is `\code{...?$e$}'}),
+let $S$ be the non-nullable type of
+%% TODO(eernst): Clarify whether inference will indeed have that context;
+%% it is clear that we need to eliminate `Null` from $S$, and also that $e$
+%% is allowed to have a potentially nullable type, and it seems inconvenient
+%% if we use `Iterable<$P$>` as context type and fail in the case where $e$,
+%% say, has type `List<$U$>?` for some $U$.
+the inferred type of $e$ in context \code{Iterable<$P$>?}.
 
 \begin{itemize}
 \item
-  If $\ell$ is an \synt{expressionElement} with expression $e_1$:
-  \begin{itemize}
-  \item
-    The inferred list element type of $\ell$ is
-    the inferred type of the expression $e_1$ in context $P$.
-  \end{itemize}
+  If $S$ implements \code{Iterable},
+  the inferred element type of $\ell$ is
+  the type argument of $S$ at \code{Iterable}.
 \item
-  If $\ell$ is a \synt{spreadElement} with expression $e_1$:
-
-  \begin{itemize}
-  \item
-    If $P$ is \FreeContext{} then let $S$ be
-    the inferred type of $e_1$ in context \FreeContext{}:
-
-    \begin{itemize}
-    \item
-      If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
-      the inferred list element type of $\ell$ is $T$ where $T$ is
-      the type such that \code{Iterable<$T$>} is
-      a superinterface of $S$
-      (\commentary{%
-        the result of constraint matching for $X$ using
-        the constraint \code{$S$ <: Iterable<$X$>}}).
-
-      \begin{itemize}
-      \item
-        If $S$ is \DYNAMIC{}, then
-        the inferred list element type of $\ell$ is \DYNAMIC{}.
-      \item
-        If $S$ is \code{Null} and the spread operator is \lit{...?}, then
-        the list element type is \code{Null}.
-      \item
-        Otherwise it is an error
-        (\commentary{%
-          because it is a spread of a non-spreadable type like Object%
-        }).
-      \end{itemize}
-    \item
-      Else, let $S$ be
-      the inferred type of $e_1$ in context \code{Iterable<$P$>}:
-
-      \begin{itemize}
-      \item
-        If $S$ is a non-\code{Null} subtype of \code{Iterable<Object>}, then
-        the inferred list element type of $\ell$ is $T$ where $T$ is
-        the type such that \code{Iterable<$T$>} is
-        a superinterface of $S$
-        (\commentary{%
-          the result of constraint matching for $X$ using
-          the constraint \code{$S$ <: Iterable<$X$>}%
-        }).
-      \item
-        If $S$ is \DYNAMIC{}, then
-        the inferred list element type of $\ell$ is \DYNAMIC{}.
-      \item
-        Otherwise it is an error.
-      \end{itemize}
-    \end{itemize}
-  \item
-    If $\ell$ is an \synt{ifElement} with one $\ell$, $p1$,
-    and no "else" element:
-    The condition is inferred with a context type of \code{bool}.
-
-    The inferred list element type of $\ell$ is
-    the inferred list element type of $p1$ with element context type $P$.
-  \item
-    If $\ell$ is a \synt{ifElement} with two $\ell$s, $p1$ and $p2$:
-    The condition is inferred with a context type of \code{bool}.
-
-    The inferred list element type of $\ell$ is
-    the least upper bound of $S1$ and $S2$ where $S1$ is
-    the inferred list element type of $p1$ and $S2$ is
-    the inferred list element type of $p2$,
-    both with element context type $P$.
-
-  \item
-    If $\ell$ is a \synt{forElement} with $\ell$ $p1$ then:
-
-    Inference for the iterated expression and the controlling variable
-    is done as for the corresponding \FOR{} or \AWAIT{} \FOR{} statement.
-
-    The inferred list element type of $\ell$ is the inferred list element
-    type of $p1$ with element context type $P$.
-  \end{itemize}
+  If $S$ is \DYNAMIC{},
+  the inferred element type of $\ell$ is \DYNAMIC.
+\item
+  If $S$ is \code{Null} and the spread operator is \lit{...?},
+  the inferred element type of $\ell$ is \code{Null}.
+\item
+  Otherwise, a compile-time error occurs.
 \end{itemize}
-
-\commentary{%
-Note: $\ell$ cannot be a \synt{mapElement} as
-those are not allowed inside list literals.%
-}
+\vspace{-5mm}
+\EndCase
 
 \LMHash{}%
-Finally, we define inference on a \synt{listLiteral} \metavar{collection}
-as follows:
+\Case{If element}
+In this case $\ell$ is of the form
+\code{\IF\,\,($b$)\,\,$\ell_1$} or
+\code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
+The condition $b$ is always inferred with a context type of \code{bool}.
+
+Assume that \code{\ELSE\,\,$\ell_2$} is not present.
+Then, if the inferred element type of $\ell_1$ is $S$,
+the inferred element type of $\ell$ is $S$.
+
+Otherwise, \code{\ELSE\,\,$\ell_2$} is present.
+If the inferred element type of $\ell_1$ is $S_1$ and
+the inferred element type of $\ell_2$ is $S_2$,
+the inferred element type of $\ell$ is
+the least upper bound of $S_1$ and $S_2$.
+\EndCase
+
+\LMHash{}%
+\Case{For element}
+In this case $\ell$ is of the form
+\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$}
+where $P$ is derived from \synt{forLoopParts} and
+`\AWAIT?' indicates that \AWAIT{} may be present or absent.
+
+Inference for the parts
+(\commentary{%
+  such as the iterable expression of a for-in,
+  or the \synt{forInitializerStatement} of a for loop%
+})
+is done as for the corresponding \FOR{} statement,
+including \AWAIT{} if and only if the element includes \AWAIT.
+Then, if the inferred element type of $\ell_1$ is $S$,
+the inferred element type of $\ell$ is $S$.
+
+\commentary{%
+In other words, inference flows upwards from the body element.%
+}
+\vspace{3mm}
+\EndCase
+
+\LMHash{}%
+Finally, we define
+\IndexCustom{type inference on a list literal}{%
+  type inference!list literal}
+as a whole.
+Assume that \metavar{list} is derived from \synt{listLiteral}
+and contains the elements \List{\ell}{1}{n},
+and the context type for \metavar{list} is $P$.
 
 \begin{itemize}
 \item
   If $P$ is \FreeContext{} then
-  the static type of \metavar{collection} is \code{List<$T$>} where $T$ is
-  the least upper bound of the inferred list element types of the elements.
+  the static type of \metavar{list} is \code{List<$T$>},
+  where $T$ is the least upper bound of
+  the inferred element types of \List{\ell}{1}{n}.
 \item
-  Otherwise,
-  the static type of \metavar{collection} is \code{List<$T$>} where $T$ is
-  determined by downwards inference.
+  %% TODO(eernst): Feature spec says $P$, but how can we know that $P$ is a type?
+  Otherwise, the static type of \metavar{list} is \code{List<$T$>},
+  where $T$ is determined by downwards inference.
 \end{itemize}
-
-
-\subsubsection{List}
-\LMLabel{uiAsCodeList}
-
-!!!HERE!!! This should be moved into \ref{lists}.
-
-\LMHash{}%
-The result of the literal expression is a fresh instance of
-a class that implements \code{List<$E$>} where $E$ is
-the element type of the literal.
-It contains the values in \metavar{result}, in order.
-If the literal is constant,
-the list is canonicalized and immutable,
-otherwise it is not.
 
 
 \subsubsection{Lists}
 \LMLabel{lists}
-
-!!!HERE!!! Revise.
 
 \LMHash{}%
 A \IndexCustom{list literal}{literal!list}
@@ -7765,7 +7815,7 @@ The grammar rule for \synt{listLiteral} is specified elsewhere
 
 \LMHash{}%
 When a given list literal $e$ has no type arguments,
-the type argument $T$ is selected as specified below
+the type argument $T$ is selected as specified elsewhere
 (\ref{listLiteralInference}),
 and $e$ is henceforth treated as
 (\ref{notation})
@@ -7782,8 +7832,8 @@ using an index that is not a member of its set of indices.
 
 \LMHash{}%
 The sequence of elements of a given list literal
-is determined as described below
-(\ref{listEvaluation}).
+is determined by evaluation of its elements
+(\ref{collectionLiteralElementEvaluation}).
 
 \LMHash{}%
 If a list literal $\ell$ begins with the reserved word \CONST{}
@@ -7825,14 +7875,15 @@ so we cannot use type parameters inside constant expressions.%
 
 \LMHash{}%
 The value of a constant list literal
-\code{\CONST?\,\,<$E$>[$e_1, \ldots, e_n$]}
+\code{\CONST?\,\,<$E$>[$\ell_1, \ldots, \ell_n$]}
 is an object $a$ whose class implements the built-in class
 \code{List<$E$>}.
-Let $v_i$ be the value of the constant expression $e_i$, $i \in 1 .. n$.
+Let $s_i$ be the value of the constant expression $e_i$, $i \in 1 .. n$.
 The $i$th element of $a$ (at index $i - 1$) is $v_i$.
 %
 %% TODO(eernst): If inference is specified to provide all type arguments,
 %% we should delete the following.
+!!!HERE!!!
 The value of a constant list literal
 \code{\CONST?\,\,[$e_1, \ldots, e_n$]}
 is defined as the value of the constant list literal
@@ -7923,7 +7974,7 @@ is \code{List<\DYNAMIC>}.
 
 
 \subsubsection{Set and Map Literal Disambiguation}
-\LMLabel{setAndMapLiteralDisambigutation}
+\LMLabel{setAndMapLiteralDisambiguation}
 
 \LMHash{}%
 Some syntactic forms like \code{\{\}} and \code{\{...\id\}} are ambiguous:
@@ -8074,19 +8125,19 @@ derived from \synt{setOrMapLiteral}.
 The inferred type of an \synt{element} is an element type $T$,
 a pair of a key and value type $(K, V)$, or both.
 It is computed relative to a context type $P$
-(\ref{setAndMapLiteralDisambigutation}),
+(\ref{setAndMapLiteralDisambiguation}),
 which is determined as follows:
 
 \begin{itemize}
 \item
   If \metavar{collection} is unambiguously a set
-  (\ref{setAndMapLiteralDisambigutation})
+  (\ref{setAndMapLiteralDisambiguation})
   then $P$ is \code{Set<$P_e$>},
   %% TODO(eernst): Add reference when we specify inference.
   where $P_e$ is determined by downwards inference,
   and may be \FreeContext{}
   %% TODO(eernst): Correct this reference when we specify context types.
-  (\ref{setAndMapLiteralDisambigutation})
+  (\ref{setAndMapLiteralDisambiguation})
   if downwards inference does not constrain it.
 
   %% TODO(eernst): Remove this when we specify inference.
@@ -8173,7 +8224,7 @@ the inferred type of $e_v$ in context $P_v$.
 In this case $\ell$ is of the form
 `\code{...$e$}' or `\code{...?$e$}'.
 If $P$ is \FreeContext{} then let $S$ be
-the inferred type of $e_1$ in context \FreeContext.
+the inferred type of $e$ in context \FreeContext.
 Then:
 
 \begin{itemize}
@@ -8187,7 +8238,7 @@ Then:
     using the constraint $S\,\,<:\,\,\code{Iterable<$X$>}$.
     Note that when $S$ implements a class like \code{Map} or \code{Iterable},
     it cannot be a subtype of \code{Null}
-    (\ref{superinterfaces}).
+    (\ref{interfaceSuperinterfaces}).
   }
 \item
   If $S$ implements \code{Map},
@@ -8217,15 +8268,18 @@ Then:
   }
 \item
   If $S$ is \code{Null} and the spread operator is \lit{...?} then
-  the element has element type \code{Null},
-  and key and value type pair $(\code{Null}, \code{Null})$.
+  the inferred element type of $\ell$ is \code{Null},
+  and the inferred key and value type pair $(\code{Null}, \code{Null})$.
 \item
   Otherwise, a compile-time error occurs.
 \end{itemize}
 
 \noindent
+%% TODO(eernst): Clarify why we shouldn't be able to use a context type of
+%% `Iterable<$P_e$>` in the same way: infer $e$ in context `Iterable<$P_e$>`
+%% as well.
 Otherwise, if $P$ is \code{Set<$P_e$>} then let $S$ be
-the inferred type of $e_1$ in context \code{Iterable<$P_e$>}, and then:
+the inferred type of $e$ in context \code{Iterable<$P_e$>}, and then:
 
 \begin{itemize}
 \item
@@ -8248,7 +8302,7 @@ the inferred type of $e_1$ in context \code{Iterable<$P_e$>}, and then:
 
 \noindent
 Otherwise, if $P$ is \code{Map<$P_k$, $P_v$>} then let $S$ be
-the inferred type of $e_1$ in context $P$, and then:
+the inferred type of $e$ in context $P$, and then:
 
 \begin{itemize}
 \item
@@ -8373,8 +8427,8 @@ and the context type for \metavar{collection} is $P$.
     the inferred element types of the elements.
   \item
     %% TODO(eernst): Feature spec says $P$, but how can we know that $P$ is a type?
-    Otherwise, the static type of \metavar{collection} is
-    the greatest closure of $P$.
+    Otherwise, the static type of \metavar{collection} is $T$
+    where $T$ is determined by downwards inference.
 
     \commentary{%
       Note that the inference will never produce a key and value type pair
