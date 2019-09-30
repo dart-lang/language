@@ -7821,9 +7821,15 @@ and $e$ is henceforth treated as
 (\ref{notation})
 \code{<$T$>$e$}.
 
+\commentary{%
+The static type of a list literal of the form \code{<$T$>$e$}
+is \code{List<$T$>}
+(\ref{listLiteralInference}).%
+}
+
 \LMHash{}%
 A list may contain zero or more objects.
-The number of elements in a list is its size.
+The number of objects in a list is its size.
 A list has an associated set of indices.
 An empty list has an empty set of indices.
 A non-empty list has the index set $\{0, \ldots, n - 1\}$ where $n$ is the size of the list.
@@ -7831,13 +7837,13 @@ It is a dynamic error to attempt to access a list
 using an index that is not a member of its set of indices.
 
 \LMHash{}%
-The sequence of elements of a given list literal
-is determined by evaluation of its elements
+The objects in a given list literal
+is determined by evaluation of its collection literal elements
 (\ref{collectionLiteralElementEvaluation}).
 
 \LMHash{}%
-If a list literal $\ell$ begins with the reserved word \CONST{}
-or $\ell$ occurs in a constant context
+If a list literal $e$ begins with the reserved word \CONST{}
+or $e$ occurs in a constant context
 (\ref{constantContexts}),
 it is a
 \IndexCustom{constant list literal}{literal!list!constant},
@@ -7856,7 +7862,7 @@ Attempting to mutate a constant list literal will result in a dynamic error.
 % The following is true either directly or indirectly: There is a \CONST{}
 % modifier on the list literal, or the list literal as a whole occurs
 % in a constant context.
-Note that the element expressions of a constant list literal
+Note that the collection literal elements of a constant list literal
 occur in a constant context
 (\ref{constantContexts}),
 which means that \CONST{} modifiers need not be specified explicitly.%
@@ -7864,8 +7870,9 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 
 \LMHash{}%
 It is a compile-time error if an element of a constant list literal
-is not a constant expression.
+is not constant.
 It is a compile-time error if the type argument of a constant list literal
+(\commentary{no matter whether it is explicit or inferred})
 is not a constant type expression.
 
 \rationale{%
@@ -7875,29 +7882,21 @@ so we cannot use type parameters inside constant expressions.%
 
 \LMHash{}%
 The value of a constant list literal
-\code{\CONST?\,\,<$E$>[$\ell_1, \ldots, \ell_n$]}
+\code{\CONST?\,\,<$E$>[\List{\ell}{1}{m}]}
 is an object $a$ whose class implements the built-in class
-\code{List<$E$>}.
-Let $s_i$ be the value of the constant expression $e_i$, $i \in 1 .. n$.
-The $i$th element of $a$ (at index $i - 1$) is $v_i$.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-!!!HERE!!!
-The value of a constant list literal
-\code{\CONST?\,\,[$e_1, \ldots, e_n$]}
-is defined as the value of the constant list literal
-% For a constant list literal, it is never an error to have the \CONST, even if
-% it was omitted above. So we remove the `?`, making the next line well-defined.
-\code{\CONST\,\,<\DYNAMIC>[$e_1, \ldots, e_n$]}.
+\code{List<$E$>},
+and whose contents is the object sequence \List{o}{1}{n} obtained by
+evaluation of \List{\ell}{1}{m}
+(\ref{collectionLiteralElementEvaluation}).
+The $i$th object of $a$ (at index $i - 1$) is then $o_i$.
 
 \LMHash{}%
 Let
-$list_1 =$ \code{\CONST?\,\,<$V$>[$e_{11}, \ldots, e_{1n}$]}
+$list_1 =$ \code{\CONST?\,\,<$V$>[$\ell_{11}, \ldots, \ell_{1m_1}$]}
 and
-$list_2 =$ \code{\CONST?\,\,<$U$>[$e_{21}, \ldots, e_{2n}$]}
+$list_2 =$ \code{\CONST?\,\,<$U$>[$\ell_{21}, \ldots, \ell_{2m_2}$]}
 be two constant list literals and
-let the elements of $list_1$ and $list_2$ evaluate to
+let the contents of $list_1$ and $list_2$ be
 $o_{11}, \ldots, o_{1n}$ and $o_{21}, \ldots, o_{2n}$ respectively.
 If{}f \code{identical($o_{1i}$, $o_{2i}$)} for $i \in 1 .. n$ and $V == U$
 then \code{identical($list_1$, $list_2$)}.
@@ -7908,12 +7907,12 @@ In other words, constant list literals are canonicalized.%
 
 \LMHash{}%
 A run-time list literal
-\code{<$E$>[$e_1, \ldots, e_n$]}
+\code{<$E$>[$\ell_1, \ldots, \ell_m$]}
 is evaluated as follows:
 \begin{itemize}
 \item
-  First, the expressions $e_1, \ldots, e_n$ are evaluated
-  in order they appear in the program,
+  The elements $\ell_1, \ldots, \ell_m$ are evaluated
+  (\ref{collectionLiteralElementEvaluation}),
   producing objects $o_1, \ldots, o_n$.
 \item
   A fresh instance (\ref{generativeConstructors}) $a$, of size $n$,
@@ -7941,14 +7940,6 @@ if element $i$ is not a subtype of the element type of the list,
 a dynamic type error will occur when $a[i]$ is assigned $o_{i-1}$.
 }
 
-\LMHash{}%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-A run-time list literal
-\code{[$e_1, \ldots, e_n$]}
-is evaluated as
-\code{<\DYNAMIC>[$e_1, \ldots, e_n$]}.
-
 \commentary{
 There is no restriction precluding nesting of list literals.
 It follows from the rules above that
@@ -7956,21 +7947,6 @@ It follows from the rules above that
 is a list with type parameter \code{List<int>},
 containing two lists with type parameter \code{int}.
 }
-
-\LMHash{}%
-The static type of a list literal of the form
-\code{\CONST\,\,<$E$>[$e_1, \ldots, e_n$]}
-or the form
-\code{<$E$>[$e_1, \ldots, e_n$]}
-is \code{List<$E$>}.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-The static type of a list literal of the form
-\code{\CONST\,\,[$e_1, \ldots, e_n$]}
-or the form
-\code{[$e_1, \ldots, e_n$]}
-is \code{List<\DYNAMIC>}.
 
 
 \subsubsection{Set and Map Literal Disambiguation}
@@ -8495,6 +8471,7 @@ Here is an example:%
 \end{dartCode}
 
 \commentary{%
+\noindent
 Or, if there is nothing indicates that it is \emph{either} a set or a map:%
 }
 
