@@ -4299,13 +4299,15 @@ $S$ cannot be a subtype of \code{Null}.%
 
 \LMHash{}%
 Assume that $S$ is a type and $G$ is a raw type such that $S$ implements $G$.
-It is then guaranteed that there exist \List{U}{1}{s} which are types such that
+Per definition there exist types \List{U}{1}{s} such that
 \code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
-We then say that \List{U}{1}{s} are
-\IndexCustom{the type arguments of $S$ at $G$}{type arguments!of a type at a raw type},
-and we say that $U_j$ is
-\IndexCustom{the $j$th type argument of $S$ at $G$}{%
-  type arguments!of a type at a raw type, $j$th}.
+We then say that \List{U}{1}{s} are the
+\IndexCustom{actual type arguments of $S$ at $G$}{
+  type arguments!of a type at a raw type},
+and we say that $U_j$ is the
+\IndexCustom{$j$th actual type argument of $S$ at $G$}{%
+  type arguments!of a type at a raw type, $j$th},
+for any $j \in 1 .. s$.
 
 \commentary{%
 For instance, the type argument of \code{List<int>} at \code{Iterable}
@@ -7438,51 +7440,18 @@ then $e_2$ is evaluated to an object $o_2$,
 and $\EvaluateElement{\ell} := \LiteralSequence{o_1:o_2}$.
 \EndCase
 
-\begin{figure}[t]
-\begin{normativeDartCode}
-$S_{\metavar{spread}}$ spread = $o_{\metavar{spread}}$;
-\VAR{} $s$ = \LiteralSequence{};
-\FOR{} (\VAR{} v \IN{} spread) \{
-  Value value = v;
-  $s = s + \LiteralSequence{\code{value}}$;
-\}
-$\EvaluateElement{\ell} := s$;
-\end{normativeDartCode}
-\vspace{-3mm}
-  \caption{Evaluation of a list or set spread element $\ell$
-    with spread object $o_{\metavar{spread}}$.}
-  \label{fig:evaluationOfAnIterableSpreadElement}
-\end{figure}
-
-\begin{figure}[t]
-\begin{normativeDartCode}
-$S_{\metavar{spread}}$ spread = $o_{\metavar{spread}}$;
-\VAR{} $s$ = \LiteralSequence{};
-\FOR{} (\VAR{} entry \IN{} spread) \{
-  Key key = entry.key;
-  Value value = entry.value;
-  $s = s + \LiteralSequence{\code{key}:\,\code{value}}$;
-\}
-$\EvaluateElement{\ell} := s$;
-\end{normativeDartCode}
-\vspace{-3mm}
-  \caption{Evaluation of a map spread element $\ell$
-    with spread object $o_{\metavar{spread}}$.}
-  \label{fig:evaluationOfAMapSpreadElement}
-\end{figure}
-
 \LMHash{}%
 \Case{Spread element}
+The element $\ell$ is of the form `\code{...$e$}' or `\code{...?$e$}'.
+Evaluate $e$ to an object $o_{\metavar{spread}}$.
 \begin{enumerate}
 \item
-  When $\ell$ is a \synt{spreadElement} of the form
-  `\code{...?$e$}', $e$ is evaluated to an object $o_{\metavar{spread}}$.
+  When $\ell$ is `\code{...?$e$}':
   If $o_{\metavar{spread}}$ is the null object then
   $\EvaluateElement{\ell} := \LiteralSequence{}$.
   Otherwise evaluation proceeds with step 2.
 
-  When $\ell$ is a \synt{spreadElement} of the form
-  `\code{...$e$}', $e$ is evaluated to an object $o_{\metavar{spread}}$.
+  When $\ell$ is `\code{...$e$}':
   %% TODO(eernst): Come NNBD, this error cannot occur any more: delete.
   If $o_{\metavar{spread}}$ is the null object then a dynamic error occurs.
   Otherwise evaluation proceeds with step 2.
@@ -7500,12 +7469,25 @@ $\EvaluateElement{\ell} := s$;
   \begin{itemize}
   \item
     When both $T_{\metavar{spread}}$ and $T_{\metavar{target}}$ implement
+    (\ref{interfaceSuperinterfaces})
     \code{Iterable},
-    the code in Fig.~\ref{fig:evaluationOfAnIterableSpreadElement} is executed
-    in the static and dynamic context where $\ell$ occurs,
+    the following code is executed in the context where $\ell$ occurs,
     where \code{spread}, $s$, \code{v}, and \code{value} are fresh variables,
     and \code{Value} is a fresh type variable bound to the
-    actual type argument of $T_{\metavar{target}}$ at \code{Iterable}.
+    actual type argument of $T_{\metavar{target}}$ at \code{Iterable}
+    (\ref{interfaceSuperinterfaces}):
+
+    \vspace{-2ex}\begin{minipage}[t]{\textwidth}
+\begin{normativeDartCode}
+$S_{\metavar{spread}}$ spread = $o_{\metavar{spread}}$;
+\VAR{} $s$ = \LiteralSequence{};
+\FOR{} (\VAR{} v \IN{} spread) \{
+  Value value = v;
+  $s = s + \LiteralSequence{\code{value}}$;
+\}
+$\EvaluateElement{\ell} := s$;
+\end{normativeDartCode}
+    \end{minipage}
 
     \commentary{%
       The code makes use of a pseudo-variable $s$ denoting an object sequence.
@@ -7520,13 +7502,25 @@ $\EvaluateElement{\ell} := s$;
   \item
     When both $T_{\metavar{spread}}$ and $T_{\metavar{target}}$ implement
     \code{Map},
-    the code in Fig.~\ref{fig:evaluationOfAMapSpreadElement} is executed
-    in the static and dynamic context where $\ell$ occurs,
+    the following code is executed in the context where $\ell$ occurs,
     where \code{spread}, $s$, \code{entry}, \code{key}, and \code{value}
     are fresh variables,
     and \code{Key} and \code{Value} are fresh type variables bound to the
     first respectively second actual type argument
-    of $T_{\metavar{target}}$ at \code{Map}.
+    of $T_{\metavar{target}}$ at \code{Map}:
+
+    \vspace{-2ex}\begin{minipage}[t]{\textwidth}
+\begin{normativeDartCode}
+$S_{\metavar{spread}}$ spread = $o_{\metavar{spread}}$;
+\VAR{} $s$ = \LiteralSequence{};
+\FOR{} (\VAR{} entry \IN{} spread) \{
+  Key key = entry.key;
+  Value value = entry.value;
+  $s = s + \LiteralSequence{\code{key}:\,\code{value}}$;
+\}
+$\EvaluateElement{\ell} := s$;
+\end{normativeDartCode}
+    \end{minipage}
 
     % Will not change with nnbd: `spread` type arguments could be \DYNAMIC{}.
     It is allowed for an implementation to delay the dynamic errors
@@ -7553,8 +7547,8 @@ we also allow the following.%
 }
 
 \LMHash{}%
-If $o$ is an object whose dynamic type implements
-(\ref{superinterfaces})
+If $o_{\metavar{spread}}$ is an object whose dynamic type implements
+(\ref{interfaceSuperinterfaces})
 \code{List}, \code{Queue}, or \code{Set},
 an implementation may choose to call \code{length} on the object.
 
@@ -7565,7 +7559,7 @@ side-effect free implementation of \code{length}.%
 }
 
 \LMHash{}%
-If $o$ is an object whose dynamic type implements \code{List},
+If $o_{\metavar{spread}}$ is an object whose dynamic type implements \code{List},
 an implementation may choose to call operator \lit{[]}
 in order to access elements from the list.
 If it does so, it will only pass indices
@@ -7593,23 +7587,17 @@ $\EvaluateElement{\ell} := \LiteralSequence{}$.
 If $o_b$ is neither \TRUE{} nor \FALSE{} then a dynamic error occurs.
 \EndCase
 
-\begin{figure}[t]
-\begin{normativeDartCode}
-\VAR{} $s$ = \LiteralSequence{};
-\AWAIT? \FOR{} ($D$ \id{} \IN{} $e$) \{
-  $s = s + \EvaluateElement{\ell_1}$;
-\}
-$\EvaluateElement{\ell} := s$;
-\end{normativeDartCode}
-\vspace{-3mm}
-  \caption{Evaluation of a \synt{forElement} $\ell$ of the form
-    \code{\AWAIT?\,\,\FOR\,\,($D$\,\,\id\,\,\IN\,\,$e$)\,\,$\ell_1$},
-    where \AWAIT{} is included in both the for element and the code,
-    or omitted in both.}
-  \label{fig:evaluationOfAForInElement}
-\end{figure}
+\LMHash{}%
+\Case{For element}
+Let $P$ be derived from \syntax{<forLoopParts>} and
+let $\ell$ be a \synt{forElement} of the form
+\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$},
+where `\AWAIT?' indicates that \AWAIT{} may be present or absent.
+To evaluate $\ell$,
+the following code is executed in the context where $\ell$ occurs,
+where \AWAIT{} is present if and only if it is present in $\ell$:
 
-\begin{figure}[t]
+\vspace{-2ex}\begin{minipage}[t]{\textwidth}
 \begin{normativeDartCode}
 \VAR{} $s$ = \LiteralSequence{};
 \AWAIT? \FOR{} ($P$) \{
@@ -7617,37 +7605,7 @@ $\EvaluateElement{\ell} := s$;
 \}
 $\EvaluateElement{\ell} := s$;
 \end{normativeDartCode}
-\vspace{-3mm}
-  \caption{Evaluation of a \synt{forElement} $\ell$ of the form
-    \code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$},
-    where $P$ is derived from
-    % \syntax{<forInitializerStatement> <expression>? `;' <expressionList>?}
-    and \AWAIT{} is included in both the for element and the code,
-    or omitted in both.}
-  \label{fig:evaluationOfAForLoopElement}
-\end{figure}
-
-\LMHash{}%
-\Case{For-in element}
-Let $D$ be derived from \syntax{<finalConstVarOrType>?} and
-let $\ell$ be a \synt{forElement} of the form
-\code{\AWAIT?\,\,\FOR\,\,($D$\,\,\id\,\,\IN\,\,$e$)\,\,$\ell_1$},
-where `\AWAIT?' indicates that \AWAIT{} may be present or absent.
-To evaluate $\ell$,
-the code in Fig.~\ref{fig:evaluationOfAForInElement} is executed
-in the static and dynamic context where $\ell$ occurs.
-\EndCase
-
-\LMHash{}%
-\Case{For loop element}
-Let $P$ be a term derived from
-\syntax{<forInitializerStatement> <expression>? `;' <expressionList>?} and
-let $\ell$ be a \synt{forElement} of the form
-\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$},
-where `\AWAIT?' indicates that \AWAIT{} may be present or absent.
-To evaluate $\ell$,
-the code in Fig.~\ref{fig:evaluationOfAForLoopElement} is executed
-in the static and dynamic context where $\ell$ occurs.
+\end{minipage}
 \EndCase
 
 
@@ -8018,7 +7976,7 @@ the first applicable entry in the following list:
   Otherwise a compile-time error occurs.
 \item
   When $S$ implements
-  (\ref{superinterfaces})
+  (\ref{interfaceSuperinterfaces})
   \code{Iterable} but not \code{Map},
   $e$ is a set literal.
   When $S$ implements \code{Map} but not \code{Iterable},
