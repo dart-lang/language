@@ -163,6 +163,11 @@
 \newcommand{\KeyValueTypeList}[4]{\ensuremath{%
   ({#1}_{#3},\,{#2}_{#3}),\,\ldots,\ ({#1}_{#4},\,{#2}_{#4})}}
 
+% Used to specify a list of key/value pairs of the form $k_j: v_j$ which are
+% used for the semantics of collection literals.
+\newcommand{\KeyValueList}[4]{\ensuremath{%
+  {#1}_{#3}:\,{#2}_{#3},\,\ldots,\ {#1}_{#4}:\,{#2}_{#4}}}
+
 % Used to specify comma separated lists of triples of similar symbols,
 % as needed, e.g., for declarations of formal parameters with defaults.
 % Parameters: Name of first part of triple, name of second part,
