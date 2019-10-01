@@ -7074,6 +7074,20 @@ in which case a disambiguation step is performed
 in order to determine the kind
 (\ref{setAndMapLiteralDisambiguation}).
 
+\LMHash{}%
+The subsections of this section are concerned with mechanisms that are
+common to all kinds of collection literals
+(\ref{collectionLiteralTypePromotion}, \ref{collectionLiteralElementEvaluation}),
+followed by a specification of list literals
+(\ref{listLiteralInference}, \ref{lists}),
+followed by a specification of how to disambiguate and infer types
+for sets and maps
+(\ref{setAndMapLiteralDisambiguation}, \ref{setAndMapLiteralInference}),
+and finally a specification of sets
+(\ref{sets})
+and maps
+(\ref{maps}).
+
 \begin{grammar}
 <listLiteral> ::= \CONST{}? <typeArguments>? `[' <elements>? `]'
 
@@ -7133,22 +7147,30 @@ a set of expression elements and/or map elements.%
 \LMHash{}%
 In order to allow collection literals to occur as constant expressions,
 we specify what it means for an element $\ell$
-to be constant or potentially constant:
+to be
+\IndexCustom{constant}{collection literal element!constant}
+or
+\IndexCustom{potentially constant}{%
+  collection literal element!potentially constant}:
 
 \begin{itemize}
 \item
-  $\ell$ is a potentially constant respectively constant element
-  if it is derived from \synt{expressionElement},
-  of the form $e$,
-  and $e$ is a potentially constant respectively constant expression.
+  Assume that $\ell$ is an \synt{expressionElement},
+  and that it is the expression $e$.
+
+  $\ell$ is a potentially constant element
+  if $e$ is a potentially constant expression,
+  and $\ell$ is a constant element
+  if $e$ is a constant expression.
 \item
-  $\ell$ is a potentially constant respectively constant element
-  if it is derived from \synt{mapElement},
-  of the form \code{$e_1$:\,$e_2$},
-  and both $e_1$ and $e_2$ are
-  potentially constant respectively constant expressions.
+  Assume that $\ell$ is a \synt{mapElement}
+  of the form \code{$e_1$:\,$e_2$}.
+
+  $\ell$ is a potentially constant element
+  if both $e_1$ and $e_2$ are potentially constant expressions,
+  and it is a constant element if they are constant expressions.
 \item
-  Assume that $\ell$ is derived from \synt{spreadElement},
+  Assume that $\ell$ is a \synt{spreadElement}
   of the form `\code{...$e$}' or `\code{...?$e$}'.
 
   $\ell$ is a potentially constant element
@@ -7163,183 +7185,115 @@ to be constant or potentially constant:
   where $e$ is a constant expression that evaluates
   to the null object.
 \item
-  Assume that $\ell$ is derived from \synt{ifElement},
+  Assume that $\ell$ is an \synt{ifElement}
   of the form
   \code{\IF\,\,($b$)\,\,$\ell_1$}
-  or the form
+  or of the form
   \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
 
   $\ell$ is a potentially constant element
-  if $b$ is a potentially constant expression
+  if $b$ is a potentially constant expression,
   and $\ell_1$ as well as $\ell_2$, if present,
   are potentially constant.
 
-  Assume that $\ell$ is \code{\IF\,\,($b$)\,\,$\ell_1$}.
-  Then $\ell$ is a constant element
-  if $b$ is a constant expression that evaluates to \TRUE{}
-  and $\ell_1$ is constant;
-  and it is a constant element
-  if $b$ is a constant expression that evaluates to \FALSE{}
-  and $\ell_1$ is potentially constant.
+  $\ell$ is a constant element if $b$ is a constant expression
+  and:
 
-  Otherwise, $\ell$ is
-  \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
-  Then $\ell$ is a constant element
-  if $b$ is a constant expression that evaluates to \TRUE,
-  $\ell_1$ is constant,
-  and $\ell_2$ is potentially constant;
-  and it is a constant element
-  if $b$ is a constant expression that evaluates to \FALSE,
-  $\ell_1$ is potentially constant,
-  and $\ell_2$ is constant.
+  \begin{itemize}
+  \item
+    $\ell$ is \code{\IF\,\,($b$)\,\,$\ell_1$} and
+    either $b$ evaluates to \TRUE{} and $\ell_1$ is constant,
+    or $b$ evaluates to \FALSE{} and $\ell_1$ is potentially constant.
+  \item
+    $\ell$ is \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$} and
+    either $b$ evaluates to \TRUE,
+    $\ell_1$ is constant,
+    and $\ell_2$ is potentially constant;
+    or $b$ evaluates to \FALSE,
+    $\ell_1$ is potentially constant,
+    and $\ell_2$ is constant.
+  \end{itemize}
 \end{itemize}
 
 \commentary{%
 A \synt{forElement} can never occur in a constant collection literal.%
 }
 
-
-\subsubsection{Compile-time errors}
-\LMLabel{uiAsCodeCompileTimeErrors}
-
-!!!HERE!!! Integrate this into other sections.
-
-\LMHash{}%
-After type inference and disambiguation,
-the collection is checked for other compile-time errors.
-It is a compile-time error if:
-
-%% TODO(eernst): Find a way to show Dart code examples inside itemize below.
-
-\begin{itemize}
-\item
-  The collection is a map literal and leaf elements contains any
-  \synt{expressionElement} elements.
-
-  \begin{dartCode}
-    <String, int>\{"not entry"\} // Error.
-  \end{dartCode}
-\item
-  The collection is a set literal and
-  leaf elements contains any \synt{mapElement} elements.
-
-  \begin{dartCode}
-    ["not": "expression"] // Error.
-    <String>\{"not": "expression"\} // Error.
-  \end{dartCode}
-
-  \commentary{%
-    We prohibit map entries in list literals syntactically,
-    earlier in the proposal.%
-  }
-\item
-  The collection is a list and the type of any of the leaf elements
-  may not be assigned to the list's element type.
-
-  \begin{dartCode}
-    <int>[if (true) "not int"] // Error.
-  \end{dartCode}
-\item
-  The collection is a map and the key type of any of the leaf elements
-  may not be assigned to the map's key type.
-
-  \begin{dartCode}
-    <int, int>{if (true) "not int": 1} // Error.
-  \end{dartCode}
-\item
-  The collection is a map and the value type of any of the leaf elements
-  may not be assigned to the map's value type.
-
-  \begin{dartCode}
-    <int, int>{if (true) 1: "not int"} // Error.
-  \end{dartCode}
-\item
-  A non-null-aware spread element has static type \code{Null}.
-\item
-  A spread element in a list or set literal has a static type that is
-  not \DYNAMIC{} and not a subtype of \code{Iterable<Object>}.
-\item
-  A spread element in a list or set has a static type that
-  implements \code{Iterable<$T$>} for some $T$ and
-  $T$ is not assignable to the element type of the list.
-\item
-  A spread element in a map literal has a static type that is
-  not \DYNAMIC{} and not a subtype of \code{Map<Object, Object>}.
-\item
-  If a map spread element's static type
-  implements \code{Map<$K$, $V$>} for some $K$ and $V$ and
-  $K$ is not assignable to the key type of the map or
-  $V$ is not assignable to the value type of the map.
-\item
-  The variable in a \synt{forElement}
-  (\commentary{either a for-in element or C-style})
-  is declared outside of the element to be final or to not have a setter.
-
-  \begin{dartCode}
-    \FINAL{} i = 0;
-    [for (i in [1]) i] // Error.
-  \end{dartCode}
-\item
-  The type of the iterator expression in a synchronous for-in element
-  may not be assigned to \code{Iterable<$T$>} for any type $T$.
-  Otherwise, the \Index{iterable type} of the iterator is $T$.
-
-  \begin{dartCode}
-    [for (var i in "not iterable") i] // Error.
-  \end{dartCode}
-\item
-  The iterable type of the iterator in a synchronous for-in element
-  may not be assigned to the for-in variable's type.
-
-  \begin{dartCode}
-    [for (int i in ["not", "int"]) i] // Error.
-  \end{dartCode}
-\item
-  The type of the stream expression in an asynchronous \AWAIT{} for-in element
-  may not be assigned to \code{Stream<$T$>} for any type $T$.
-  Otherwise, the \Index{stream type} of the stream is $T$.
-
-  \begin{dartCode}
-    [await for (var i in "not stream") i] // Error.
-  \end{dartCode}
-\item
-  The stream type of the iterator in an asynchronous \AWAIT{} for-in element
-  may not be assigned to the for-in variable's type.
-
-  \begin{dartCode}
-    [await for (int i in Stream.fromIterable(["not", "int"])) i] // Error.
-  \end{dartCode}
-
-\item
-  \AWAIT{} \FOR{} is used when
-  the function immediately enclosing the collection literal
-  is not asynchronous.
-
-  \begin{dartCode}
-    main() {
-      [await for (_ in stream)]; // Error.
-    }
-  \end{dartCode}
-\item
-  \AWAIT{} is used before a C-style \synt{forElement}.
-  \AWAIT{} can only be used with for-in loops.
-
-  \begin{dartCode}
-    main() {
-      [await for (;;)]; // Error.
-    }
-  \end{dartCode}
-
-\item
-  The type of the condition expression
-  (\commentary{the second clause})
-  in a C-style \FOR{} element
-  may not be assigned to \code{bool}.
-
-  \begin{dartCode}
-    [for (; "not bool";) 1] // Error.
-  \end{dartCode}
-\end{itemize}
+%% TODO(eernst): We may change this text to commentary or delete it,
+%% it consists of descriptions of errors, but they are already covered
+%% elsewhere.
+%%
+%% Compile-time errors.
+%%
+%% The following compile-time errors are specified in the feature
+%% specification, but they are already implied by the errors specified
+%% elsewhere.
+%%
+%% - "A non-null-aware spread element has static type \code{Null}".
+%%   For a list literal: listLiteralInference makes this an error by case
+%%   analysis on 'Spread element'.
+%%   Set/map literal: setAndMapLiteralInference, ditto.
+%%
+%% - "A spread element in a list or set literal has a static type that is
+%%   not \DYNAMIC{} and not a subtype of \code{Iterable<Object>}".
+%%   List literal: case analysis on 'Spread element'.
+%%   Set literal: case analysis on 'Spread element': only succeeds if 
+%%   $S$ implements `Map` (and not `Iterable`), so it has a key/value
+%%   type and no element type, which is an error (\ref{sets}).
+%%
+%% - "A spread element in a list or set has a static type that
+%%   implements \code{Iterable<$T$>} for some $T$ and
+%%   $T$ is not assignable to the element type of the list."
+%%   List literal: cf. 'Spread element' this implies that the spread element
+%%   has element type $T$, and non-assignability is an error, \ref{lists}.
+%%   Set literal: cf. 'Spread element' for sets/maps: ditto.
+%%
+%% - "A spread element in a map literal has a static type that is
+%%   not \DYNAMIC{} and not a subtype of \code{Map<Object, Object>}".
+%%   Set/map 'Spread element' case analysis then implies that it implements
+%%   `Iterable` and not `Map`, in which case it has no key/value type pair,
+%%   which is an error, \ref{maps}.
+%%
+%% - "If a map spread element's static type implements \code{Map<$K$, $V$>}
+%%   for some $K$ and $V$ and $K$ is not assignable to the key type of the
+%%   map or $V$ is not assignable to the value type of the map".
+%%   This is an error, \ref{maps}.
+%%
+%% - "The variable in a \synt{forElement} (\commentary{either a for-in
+%%   element or C-style}) is declared outside of the element to be final or
+%%   to not have a setter".
+%%   This error is specified in \ref{listLiteralInference} and
+%%   \ref{setAndMapLiteralInference}.
+%%
+%% - "The type of the iterator expression in a synchronous for-in element
+%%   may not be assigned to \code{Iterable<$T$>} for any type $T$.
+%%   Otherwise, the \Index{iterable type} of the iterator is $T$".
+%%   Covered by the same text as the previous error.
+%%
+%% - "The iterable type of the iterator in a synchronous for-in element
+%%   may not be assigned to the for-in variable's type."
+%%   Covered by the same text again.
+%%
+%% - "The type of the stream expression in an asynchronous \AWAIT{} for-in element
+%%   may not be assigned to \code{Stream<$T$>} for any type $T$.
+%%   Otherwise, the \Index{stream type} of the stream is $T$".
+%%   Same text again (the `forElement` text includes both await for and for).
+%%
+%% - "The stream type of the iterator in an asynchronous \AWAIT{} for-in element
+%%   may not be assigned to the for-in variable's type".
+%%   Same text again.
+%%
+%% - "\AWAIT{} \FOR{} is used when the function immediately enclosing the
+%%   collection literal is not asynchronous".
+%%   Same text again.
+%%
+%% - "\AWAIT{} is used before a C-style \synt{forElement}.
+%%   \AWAIT{} can only be used with for-in loops".
+%%   Same text again.
+%%
+%% - "The type of the condition expression (\commentary{the second clause})
+%%   in a C-style \FOR{} element may not be assigned to \code{bool}".
+%%   Same text again.
 
 
 \subsubsection{Type Promotion}
@@ -7443,7 +7397,7 @@ $T_{\metavar{target}}$.%
 Assume that a location in code and a dynamic context is given,
 such that ordinary expression evaluation is possible.
 \IndexCustom{Evaluation of a collection literal element sequence}{%
-  collection literal element sequence!evaluation}
+  collection literal element!evaluation of sequence}
 at that location and in that context is specified as follows:
 
 \LMHash{}%
@@ -7595,7 +7549,7 @@ $\EvaluateElement{\ell} := s$;
   \end{itemize}
 \end{enumerate}
 
-\commentary{%
+\rationale{%
 This may not be the most efficient way to traverse the items in a collection,
 and implementations may of course use any other approach
 with the same observable behavior.
@@ -7609,7 +7563,7 @@ If $o_{\metavar{spread}}$ is an object whose dynamic type implements
 \code{List}, \code{Queue}, or \code{Set},
 an implementation may choose to call \code{length} on the object.
 
-\commentary{%
+\rationale{%
 This may let it allocate space for the resulting collection more efficiently.
 The given class is expected to have an efficient and
 side-effect free implementation of \code{length}.%
@@ -7684,13 +7638,14 @@ for each element of \metavar{list} is
 obtained from the context type of \metavar{list}.
 If downwards inference constrains the type of \metavar{list}
 to \code{Iterable<$P_e$>} for some $P_e$ then $P$ is $P_e$.
-Otherwise, $P$ is \FreeContext{}.
+Otherwise, $P$ is \FreeContext{}
+(\ref{setAndMapLiteralDisambiguation}).
 
 \LMHash{}%
 Let $\ell$ be a term derived from \synt{element}.
 Inference of the element type of $\ell$ with context type $P$
 proceeds as follows,
-where the context type for an element type is always $P$
+where the context type for inference of an element type is always $P$,
 unless anything is said to the contrary:
 
 \LMHash{}%
@@ -7766,6 +7721,19 @@ In this case $\ell$ is of the form
 where $P$ is derived from \synt{forLoopParts} and
 `\AWAIT?' indicates that \AWAIT{} may be present or absent.
 
+The same compile-time errors occur for $\ell$ as
+the errors that would occur with the corresponding \FOR{} statement
+\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,\{\}},
+located in the same scope as $\ell$.
+Moreover, the errors and type analysis of $\ell$ is performed
+as if it occurred in the body scope of said \FOR{} statement.
+
+\commentary{%
+For instance, if $P$ is of the form
+\code{\VAR\,\,v\,\,\IN\,\,$e_1$}
+then the variable \code{v} is in scope for $\ell$.%
+}
+
 Inference for the parts
 (\commentary{%
   such as the iterable expression of a for-in,
@@ -7809,7 +7777,7 @@ and the context type for \metavar{list} is $P$.
 
 \LMHash{}%
 A \IndexCustom{list literal}{literal!list}
-denotes a list, which is an integer indexed collection of objects.
+denotes a list object, which is an integer indexed collection of objects.
 The grammar rule for \synt{listLiteral} is specified elsewhere
 (\ref{collectionLiterals}).
 
@@ -7828,6 +7796,15 @@ is \code{List<$T$>}
 }
 
 \LMHash{}%
+Let $e$ be a list literal of the form
+\code{<$T$>[\List{\ell}{1}{m}]}.
+It is a compile-time error if a leaf element of $e$ is a
+\synt{mapElement}.
+It is a compile-time error if, for some $j \in 1 .. m$,
+$\ell_j$ does not have an element type,
+or the element type of $\ell_j$ may not be assigned to $T$.
+
+\LMHash{}%
 A list may contain zero or more objects.
 The number of objects in a list is its size.
 A list has an associated set of indices.
@@ -7836,10 +7813,12 @@ A non-empty list has the index set $\{0, \ldots, n - 1\}$ where $n$ is the size 
 It is a dynamic error to attempt to access a list
 using an index that is not a member of its set of indices.
 
-\LMHash{}%
-The objects in a given list literal
-is determined by evaluation of its collection literal elements
-(\ref{collectionLiteralElementEvaluation}).
+\commentary{%
+The system libraries support many operations on an instance
+whose type implements \code{List},
+but we specify only the minimal set of features
+which are used by the language itself.%
+}
 
 \LMHash{}%
 If a list literal $e$ begins with the reserved word \CONST{}
@@ -7869,15 +7848,17 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 }
 
 \LMHash{}%
-It is a compile-time error if an element of a constant list literal
-is not constant.
+It is a compile-time error
+if an element of a constant list literal is not constant.
 It is a compile-time error if the type argument of a constant list literal
 (\commentary{no matter whether it is explicit or inferred})
-is not a constant type expression.
+is not a constant type expression
+(\ref{constants}).
 
 \rationale{%
-The binding of a formal type parameter is not known at compile time,
-so we cannot use type parameters inside constant expressions.%
+The binding of a formal type parameter of an enclosing class or function
+is not known at compile time,
+so we cannot use such type parameters inside constant expressions.%
 }
 
 \LMHash{}%
@@ -7907,13 +7888,13 @@ In other words, constant list literals are canonicalized.%
 
 \LMHash{}%
 A run-time list literal
-\code{<$E$>[$\ell_1, \ldots, \ell_m$]}
+\code{<$E$>[\List{\ell}{1}{m}]}
 is evaluated as follows:
 \begin{itemize}
 \item
-  The elements $\ell_1, \ldots, \ell_m$ are evaluated
+  The elements \List{\ell}{1}{m} are evaluated
   (\ref{collectionLiteralElementEvaluation}),
-  producing objects $o_1, \ldots, o_n$.
+  to an object sequence \LiteralSequence{\List{o}{1}{n}}.
 \item
   A fresh instance (\ref{generativeConstructors}) $a$, of size $n$,
   whose class implements the built-in class \code{List<$E$>}
@@ -8088,10 +8069,10 @@ Iterable l = [];
 Map m = \{\};
 \\
 \VOID{} main() \{
-  \{...x\}       // \comment{Compile-time error: ambiguous}
-  \{...x, ...l\} // \comment{A set, dynamic error when `x` is evaluated}
-  \{...x, ...m\} // \comment{A map, no dynamic errors}
-  \{...l, ...m\} // \comment{Compile-time error: must be both a set and a map}
+  \VAR v1 = \{...x\};       // \comment{Compile-time error: ambiguous}
+  \VAR v2 = \{...x, ...l\}; // \comment{A set, dynamic error when `x` is evaluated}
+  \VAR v3 = \{...x, ...m\}; // \comment{A map, no dynamic errors}
+  \VAR v4 = \{...l, ...m\}; // \comment{Compile-time error: must be set and map}
 \}
 \end{dartCode}
 
@@ -8147,17 +8128,17 @@ which is determined as follows:
 \end{itemize}
 
 \LMHash{}%
-We say that an element
-\IndexCustom{can be a set}{element!can be a set}
-if it has an element type.
-Likewise, an element
-\IndexCustom{can be a map}{element!can be a map}
-if it has a key and value type pair.
-We say that an element
-\IndexCustom{must be a set}{element!must be a set}
-if it can be a set and has and no key and value type pair.
-We say that an element
-\IndexCustom{must be a map}{element!must be a map}
+We say that a collection literal element
+\IndexCustom{can be a set}{collection literal element!can be a set}
+if it has an element type;
+it
+\IndexCustom{can be a map}{collection literal element!can be a map}
+if it has a key and value type pair;
+it
+\IndexCustom{must be a set}{collection literal element!must be a set}
+if it can be a set and has and no key and value type pair;
+and it
+\IndexCustom{must be a map}{collection literal element!must be a map}
 if can be a map and has no element type.
 
 \LMHash{}%
@@ -8360,6 +8341,19 @@ In this case $\ell$ is of the form
 where $P$ is derived from \synt{forLoopParts} and
 `\AWAIT?' indicates that \AWAIT{} may be present or absent.
 
+The same compile-time errors occur for $\ell$ as
+the errors that would occur with the corresponding \FOR{} statement
+\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,\{\}},
+located in the same scope as $\ell$.
+Moreover, the errors and type analysis of $\ell$ is performed
+as if it occurred in the body scope of said \FOR{} statement.
+
+\commentary{%
+For instance, if $P$ is of the form
+\code{\VAR\,\,v\,\,\IN\,\,$e_1$}
+then the variable \code{v} is in scope for $\ell$.%
+}
+
 Inference for the parts
 (\commentary{%
   such as the iterable expression of a for-in,
@@ -8385,7 +8379,7 @@ In other words, inference flows upwards from the body element.%
 
 \LMHash{}%
 Finally, we define
-\Index{type inference on a set or map literal}{%
+\IndexCustom{type inference on a set or map literal}{%
   type inference!set or map literal}
 as a whole.
 Assume that \metavar{collection} is derived from \synt{setOrMapLiteral},
@@ -8411,6 +8405,8 @@ and the context type for \metavar{collection} is $P$.
       with the given context type.%
     }
   \end{itemize}
+
+  The static type of \metavar{collection} is then \code{Set<$T$>}.
 \item
   If \metavar{collection} is unambiguously a map
   where $P$ is \code{Map<$P_k$, $P_v$>}
@@ -8428,8 +8424,9 @@ and the context type for \metavar{collection} is $P$.
   where $V$ is the least upper bound of \List{V}{1}{n}.
   Otherwise the static value type of \metavar{collection} is $V$
   where $V$ is determined by downwards inference.
+
   \commentary{%
-    Note that the element inference will never produce a element type here
+    Note that inference will never produce a element type here
     given this downwards context.%
   }
 
@@ -8460,7 +8457,7 @@ and the context type for \metavar{collection} is $P$.
 \end{itemize}
 
 \commentary{%
-This last case can occur if the literal \emph{must} be both a set and a map.
+This last error can occur if the literal \emph{must} be both a set and a map.
 Here is an example:%
 }
 
@@ -8481,63 +8478,77 @@ Or, if there is nothing indicates that it is \emph{either} a set or a map:%
 \end{dartCode}
 
 
-\subsubsection{Set}
-\LMLabel{uiAsCodeSet}
-
-!!!HERE!!! This should be moved into \ref{sets}.
-
-\LMHash{}%
-Create a fresh instance \metavar{set} of
-a class that implements \code{Set<$E$>} where $E$
-is the element type of the literal.
-
-\LMHash{}%
-For each \metavar{value} in \metavar{result}:
-
-\begin{enumerate}
-\item
-  If \metavar{set} contains
-  a value \metavar{existing} that is equal to \metavar{value}
-  according to \metavar{existing}'s operator \lit{==}:
-\item
-  If the literal is constant, it is a compile-time error.
-\item
-  Else, do nothing.
-  \commentary{Duplicates are discarded and the first one wins.}
-\item
-  Else, add \metavar{value} to \metavar{set}.
-\end{enumerate}
-
-\LMHash{}%
-The result of the literal expression is \metavar{set}.
-If the literal is constant,
-canonicalize it make the set immutable.
-
-
 \subsubsection{Sets}
 \LMLabel{sets}
-
-!!!HERE!!! Revise.
 
 \LMHash{}%
 A \IndexCustom{set literal}{literal!set} denotes a set object.
 The grammar rule for \synt{setOrMapLiteral} which covers
 set literals as well as map literals occurs elsewhere
 (\ref{collectionLiterals}).
+A set literal consists of zero or more collection literal elements
+(\ref{collectionLiterals}).
+A term derived from \synt{setOrMapLiteral}
+may be a set literal or a map literal,
+and it is determined via a disambiguation step
+whether it is a set literal or a map literal
+(\ref{setAndMapLiteralDisambiguation}, \ref{setAndMapLiteralInference}).
 
 \LMHash{}%
-A set literal consists of zero or more element expressions.
-It is a compile-time error if a set literal has more than one type argument.
+When a given set literal $e$ has no type arguments,
+the type argument $T$ is selected as specified elsewhere
+(\ref{setAndMapLiteralInference}),
+and $e$ is henceforth treated as
+(\ref{notation})
+\code{<$T$>$e$}.
 
-\rationale{%
-A set literal with no type argument is always converted to a literal
-with a type argument by type inference (\ref{overview}), so the following
-section only address the behavior of literals with type arguments.%
+\commentary{%
+The static type of a set literal of the form \code{<$T$>$e$}
+is \code{Set<$T$>}
+(\ref{setAndMapLiteralInference}).%
 }
 
 \LMHash{}%
-If a set literal $\ell$ begins with the reserved word \CONST{}
-or $\ell$ occurs in a constant context
+Let $e$ be a set literal of the form
+\code{<$T$>\{\List{\ell}{1}{m}\}}.
+It is a compile-time error if a leaf element of $e$ is a
+\synt{mapElement}.
+It is a compile-time error if, for some $j \in 1 .. m$,
+$\ell_j$ does not have an element type,
+or the element type of $\ell_j$ may not be assigned to $T$.
+
+\LMHash{}%
+A set may contain zero or more objects.
+Sets have a method which can be used to insert objects;
+this will incur a dynamic error if the set is not modifiable.
+Otherwise, when inserting an object $o_{\metavar{new}}$ into a set $s$,
+if an object $o_{\metavar{old}}$ exists in $s$ such that
+\code{$o_{\metavar{old}}$ == $o_{\metavar{new}}$} evaluates to \TRUE{}
+then the insertion makes no changes to $s$;
+if no such object exists,
+$o_{\metavar{new}}$ is added to $s$;
+in both cases the insertion completes successfully.
+
+\LMHash{}%
+A set is ordered: iteration over the elements of a set
+occurs in the order the elements were added to the set.
+
+\commentary{%
+The system libraries support many operations on an instance
+whose type implements \code{Set},
+but we specify only the minimal set of features
+which are used by the language itself.
+
+Note that an implementation may require consistent definitions of several members
+of a class implementing \code{Set} in order to work correctly.
+For instance, there may be a getter \code{hashCode} which is required
+to have a behavior which is in some sense consistent with operator \lit{==}.
+Such constraints are documented in the system libraries.%
+}
+
+\LMHash{}%
+If a set literal $e$ begins with the reserved word \CONST{}
+or $e$ occurs in a constant context
 (\ref{constantContexts}),
 it is a
 \IndexCustom{constant set literal}{literal!set!constant}
@@ -8562,44 +8573,45 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 }
 
 \LMHash{}%
-It is a compile-time error if an element expression in a constant set literal
+It is a compile-time error if a collection literal element in a constant set literal
 is not a constant expression.
 It is a compile-time error if
 the operator \lit{==} of an element expression in a constant map literal
 is not primitive
 (\ref{theOperatorEqualsEquals}).
-It is a compile-time error if the type argument of a constant set literal
-is not a constant type expression
-(\ref{constants}).
 It is a compile-time error if two elements of a constant set literal are equal
 according to their \lit{==} operator
 (\ref{equality}).
+It is a compile-time error if the type argument of a constant set literal
+(\commentary{no matter whether it is explicit or inferred})
+is not a constant type expression
+(\ref{constants}).
+
+\rationale{%
+The binding of a formal type parameter of an enclosing class or function
+is not known at compile time,
+so we cannot use such type parameters inside constant expressions.%
+}
 
 \LMHash{}%
-The value of a constant set literal
-\code{\CONST?\,\,<$E$>\{$e_1, \ldots, e_n$\}}
+The value of a constant set literal $e$ of the form
+\code{\CONST?\,\,<$E$>\{\List{\ell}{1}{m}\}}
 is an object $s$ whose class implements the built-in class
-\code{Set<$E$>}.
-The elements of $m$ are $v_i, i \in 1 .. n$,
-where $v_i$ is the value of the constant expression $e_i$.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-The value of a constant set literal
-\code{\CONST?\,\,\{$e_1, \ldots, e_n$\}}
-is defined as the value of the constant set literal
-% For a constant set literal, it is never an error to have the \CONST, even if
-% it was omitted above. So we remove the `?`, making the next line well-defined.
-\code{\CONST\,\,<\DYNAMIC>\{$e_1, \ldots, e_n$\}}.
+\code{Set<$E$>},
+and whose contents is the set of objects in
+the object sequence \List{o}{1}{n} obtained by
+evaluation of \List{\ell}{1}{m}
+(\ref{collectionLiteralElementEvaluation}).
+The elements of $e$ occur in the same order as
+the objects in said object sequence
+(\commentary{which can be observed by iteration}).
 
 \LMHash{}%
 Let $set_1$ be a constant set literal with type argument $E$
-and element expressions, in source order, $e_{11}, \ldots, e_{1n}$ evaluating
-to objects $v_{11}, \ldots, v_{1n}$.
+containing, in that order, the objects $o_{11}, \ldots, o_{1n}$.
 Let $set_2$ be a constant set literal with type argument $F$
-and element expressions, in source order, $e_{21}, \ldots, e_{2n}$ evaluating
-to objects $v_{21}, \ldots, v_{2n}$.
-If{}f \code{identical($v_{1i}$, $v_{2i}$)}
+containing, in that order, the objects $o_{21}, \ldots, o_{2n}$.
+If{}f \code{identical($o_{1i}$, $o_{2i}$)}
 for $i \in 1 .. n$, and $E$ and $F$ is the same type,
 then \code{identical($set_1$, $set_2$)}.
 
@@ -8611,116 +8623,110 @@ if they have a different number of elements.%
 }
 
 \LMHash{}%
-A run-time set literal with element expressions $e_1, \ldots, e_n$
-(in source order) and with type argument $E$
+A run-time set literal \code{<$E$>\{\List{\ell}{1}{n}\}}
 is evaluated as follows:
 \begin{itemize}
 \item
-For each $i \in 1 .. n$ in numeric order,
-the expression $e_i$ is evaluated producing object $v_i$.
-\item A fresh object (\ref{generativeConstructors}) $s$
-implementing the built-in class \code{Set<$E$>}, is created.
-\item The set $s$ is made to have the objects $v_1, \ldots{} , v_n$ as elements,
-iterated in numerical order.
+  The elements \List{\ell}{1}{m} are evaluated
+  (\ref{collectionLiteralElementEvaluation}),
+  to an object sequence \LiteralSequence{\List{o}{1}{n}}.
 \item
-The result of the evaluation is $s$.
+  A fresh object (\ref{generativeConstructors}) $s$
+  implementing the built-in class \code{Set<$E$>}, is created.
+\item
+  For each object $o_j$ in \List{o}{1}{n}, in order,
+  $o_j$ is inserted into $s$.
+  \commentary{%
+    Note that this leaves $s$ unchanged when $s$ already contains
+    and object $o$ which is equal to $o_j$ according to operator \lit{==}.%
+  }
+\item
+  The result of the evaluation is $s$.
 \end{itemize}
 
 \LMHash{}%
 The objects created by set literals do not override
 the \lit{==} operator inherited from the \code{Object} class.
 
-\LMHash{}%
-A set literal is ordered: iterating over the elements of the sets
-always happens in the order the elements first appeared in the source code.
-
-\commentary{
-If a value repeats, the order is defined by first occurrence, but the value is defined by the last.
-}
-
-\LMHash{}%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-A run-time set literal
-\code{\{$e_1, \ldots, e_n$\}}
-is evaluated as
-\code{<\DYNAMIC>\{$e_1, \ldots, e_n$\}}.
-
-\LMHash{}%
-The static type of a set literal of the form
-\code{\CONST\,\,<$E$>\{$e_1, \ldots, e_n$\}}
-or the form
-\code{<$E$>\{$e_1, \ldots, e_n$\}}
-is
-\code{Set<$E$>}.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-The static type of a list literal of the form
-\code{\CONST\,\,\{$e_1, \ldots, e_n$\}}
-or the form
-\code{\{$e_1, \ldots, e_n$\}}
-is \code{Set<\DYNAMIC>}.
-
-
-\subsubsection{Map}
-\LMLabel{uiAsCodeMap}
-
-!!!HERE!!! This should be moved into \ref{maps}.
-
-\LMHash{}%
-Allocate a fresh instance \metavar{map} of
-a class that implements \code{LinkedHashMap<$K$, $V$>} where $K$ is
-the key type of the literal and $V$ is
-the value type.
-
-\LMHash{}%
-For each entry \code{\metavar{key}: \metavar{value}} in \metavar{result}:
-
-\begin{enumerate}
-\item
-  If \metavar{map} contains an entry \metavar{existing}
-  whose key \metavar{existingKey} is equal to \metavar{key}
-  according to \metavar{existingKeys}'s operator \lit{==}:
-  \begin{enumerate}
-  \item
-    If the literal is constant, it is a compile-time error.
-  \item
-    Else, replace the value in \metavar{existing} with \metavar{value},
-    while keeping its position in the sequence of entries
-    and \metavar{existingKey} the same.
-  \end{enumerate}
-\item
-  Else add entry \code{\metavar{key}: \metavar{value}} to \metavar{map}.
-\end{enumerate}
-
-\LMHash{}%
-The result of the map literal expression is \metavar{map}.
-If the literal is constant,
-canonicalize it and make the map immutable.
-
 
 \subsubsection{Maps}
 \LMLabel{maps}
-
-!!!HERE!!! Revise.
 
 \LMHash{}%
 A \IndexCustom{map literal}{literal!map} denotes a map object.
 The grammar rule for \synt{setOrMapLiteral} which covers both
 map literals and set literals occurs elsewhere
 (\ref{collectionLiterals}).
+A map literal consists of zero or more collection literal elements
+(\ref{collectionLiterals}).
+A term derived from \synt{setOrMapLiteral}
+may be a set literal or a map literal,
+and it is determined via a disambiguation step
+whether it is a set literal or a map literal
+(\ref{setAndMapLiteralDisambiguation}, \ref{setAndMapLiteralInference}).
 
 \LMHash{}%
-A map literal consists of zero or more entries.
+When a given map literal $e$ has no type arguments,
+the type arguments $K$ and $V$ are selected as specified elsewhere
+(\ref{setAndMapLiteralInference}),
+and $e$ is henceforth treated as
+(\ref{notation})
+\code{<$K$,\,$V$>$e$}.
+
+\commentary{%
+The static type of a map literal of the form \code{<$K$,\,$V$>$e$}
+is \code{Map<$K$,\,$V$>}
+(\ref{setAndMapLiteralInference}).%
+}
+
+\LMHash{}%
+Let $e$ be a map literal of the form
+\code{<$K$,\,$V$>\{\List{\ell}{1}{m}\}}.
+It is a compile-time error if a leaf element of $e$ is an
+\synt{expressionElement}.
+It is a compile-time error if, for some $j \in 1 .. m$,
+$\ell_j$ does not have a key and value type pair;
+or the key and value type pair of $\ell_j$ is $(K_j, V_j)$,
+and $K_j$ may not be assigned to $K$ or
+$V_j$ may not be assigned to $V$.
+
+\LMHash{}%
+A map object consists of zero or more map entries.
 Each entry has a \Index{key} and a \Index{value}.
-Each key and each value is denoted by an expression.
-It is a compile-time error if a map literal has one type argument,
-or more than two type arguments.
+A key and value pair is
+added to a map using operator \lit{[]=},
+and the value for a given key is retrieved from a map using operator \lit{[]}.
+The keys of a map are treated similarly to a set
+(\ref{sets}):
+When binding a key $k_{\metavar{new}}$ to a value $v$ in a map $m$
+(\commentary{as in \code{$m$[$k_{\metavar{new}}$]\,=\,$v$}}),
+if $m$ already has a key $k_{\metavar{old}}$ such that
+\code{$k_{\metavar{old}}$ == $k_{\metavar{new}}$} evaluates to \TRUE,
+$m$ will bind $k_{\metavar{old}}$ to $v$;
+otherwise
+(\commentary{when no such key $k_{\metavar{old}}$ exists}),
+a binding from $k_{\metavar{new}}$ to $v$ is added to $m$.
 
 \LMHash{}%
-If a map literal $\ell$ begins with the reserved word \CONST{},
-or if $\ell$ occurs in a constant context
+A map is ordered: iteration over the keys, values, or key/value pairs
+occurs in the order in which the keys were added to the set.
+
+\commentary{%
+The system libraries support many operations on an instance
+whose type implements \code{Map},
+but we specify only the minimal set of features
+which are used by the language itself.
+
+Note that an implementation may require consistent definitions of several members
+of a class implementing \code{Map} in order to work correctly.
+For instance, there may be a getter \code{hashCode} which is required
+to have a behavior which is in some sense consistent with operator \lit{==}.
+Such constraints are documented in the system libraries.%
+}
+
+\LMHash{}%
+If a map literal $e$ begins with the reserved word \CONST{},
+or if $e$ occurs in a constant context
 (\ref{constantContexts}),
 it is a
 \IndexCustom{constant map literal}{literal!map!constant}
@@ -8738,54 +8744,56 @@ Attempting to mutate a constant map literal will result in a dynamic error.
 % The following is true either directly or indirectly: There is a \CONST{}
 % modifier on the literal map, or we use the "immediate subexpression" rule
 % about constant contexts.
-Note that the key and value expressions of a constant list literal
+Note that the key and value expressions of a constant map literal
 occur in a constant context
 (\ref{constantContexts}),
 which means that \CONST{} modifiers need not be specified explicitly.%
 }
 
 \LMHash{}%
+It is a compile-time error
+if a collection literal element in a constant map literal is not constant.
 It is a compile-time error if
-either a key or a value of an entry in a constant map literal
-is not a constant expression.
-It is a compile-time error if
-the operator \lit{==} of the key of an entry in a constant map literal
+the operator \lit{==} of a key in a constant map literal
 is not primitive
 (\ref{theOperatorEqualsEquals}).
+It is a compile-time error if two keys of a constant map literal are equal
+according to their \lit{==} operator
+(\ref{equality}).
 It is a compile-time error if a type argument of a constant map literal
+(\commentary{no matter whether it is explicit or inferred})
 is not a constant type expression
 (\ref{constants}).
 
+\rationale{%
+The binding of a formal type parameter of an enclosing class or function
+is not known at compile time,
+so we cannot use such type parameters inside constant expressions.%
+}
+
 \LMHash{}%
 The value of a constant map literal
-\code{\CONST?\,\,<$K, V$>\{$k_1:e_1, \ldots, k_n:e_n$\}}
+\code{\CONST?\,\,<$K, V$>\{\List{\ell}{1}{m}\}}
 is an object $m$ whose class implements the built-in class
 \code{Map<$K, V$>}.
-The entries of $m$ are $u_i:v_i, i \in 1 .. n$,
-where $u_i$ is the value of the compile-time expression $k_i$,
-and $v_i$ is the value of the compile-time expression $e_i$.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-The value of a constant map literal
-\code{\CONST?\,\,\{$k_1:e_1, \ldots, k_n:e_n$\}}
-is defined as the value of the constant map literal
-% For a constant map literal, it is never an error to have the \CONST, even if
-% it was omitted above. So we remove the `?`, making the next line well-defined.
-\code{\CONST\,\,<\DYNAMIC, \DYNAMIC>\{$k_1:e_1, \ldots, k_n:e_n$\}}.
+The key and value pairs of $m$ is
+the pairs of the object sequence \KeyValueList{k}{v}{1}{n} obtained by
+evaluation of \List{\ell}{1}{m}
+(\ref{collectionLiteralElementEvaluation}),
+in that order.
 
 \LMHash{}%
 Let $map_1$ be a constant map literal of the form
-\code{\CONST?\,\,<$K, V$>\{$k_{11}:e_{11}, \ldots, k_{1n}:e_{1n}$\}}
+\code{\CONST?\,\,<$K, V$>\{\List{\ell}{1}{m_1}\}}
 and $map_2$ a constant map literal of the form
-\code{\CONST?\,\,<$J, U$>\{$k_{21}:e_{21}, \ldots, k_{2n}:e_{2n}$\}}.
-Let the keys of $map_1$ and $map_2$ evaluate to
-$s_{11}, \ldots, s_{1n}$ and $s_{21}, \ldots, s_{2n}$, respectively,
-and let the elements of $map_1$ and $map_2$ evaluate to
-$o_{11}, \ldots, o_{1n}$ and $o_{21}, \ldots, o_{2n}$, respectively.
+\code{\CONST?\,\,<$J, U$>\{\List{\ell}{1}{m_2}\}}.
+Assume that the key and value pairs of $map_1$ are
+\KeyValueList{k_1}{v_1}{1}{n}
+and the key and value pairs of $map_2$ are
+\KeyValueList{k_2}{v_2}{1}{n}.
 If{}f
-\code{identical($o_{1i}$, $o_{2i}$)} and
-\code{identical($s_{1i}$, $s_{2i}$)}
+\code{identical($k_{1i}$, $k_{2i}$)} and
+\code{identical($v_{1i}$, $v_{2i}$)}
 for $i \in 1 .. n$, and $K == J, V == U$, then \code{identical($map_1$, $map_2$)}.
 
 \commentary{%
@@ -8793,27 +8801,22 @@ In other words, constant map literals are canonicalized.%
 }
 
 \LMHash{}%
-It is a compile-time error if two keys of a constant map literal are equal
-according to their \lit{==} operator (\ref{equality}).
-
-\LMHash{}%
 A run-time map literal
-\code{<$K, V$>\{$k_1:e_1, \ldots, k_n:e_n$\}}
+\code{<$K, V$>\{\List{\ell}{1}{m}\}}
 is evaluated as follows:
 \begin{itemize}
 \item
-  For each $i \in 1 .. n$ in numeric order,
-  first the expression $k_i$ is evaluated producing object $u_i$,
-  and then $e_i$ is evaluated producing object $o_i$.
-  This produces all the objects $u_1, o_1, \ldots, u_n, o_n$.
+  The elements \List{\ell}{1}{m} are evaluated
+  (\ref{collectionLiteralElementEvaluation}),
+  to an object sequence \LiteralSequence{\KeyValueList{k}{v}{1}{n}}.
 \item
   A fresh instance (\ref{generativeConstructors}) $m$
   whose class implements the built-in class \code{Map<$K, V$>},
   is allocated.
 \item
   The operator \lit{[]=} is invoked on $m$
-  with first argument $u_i$ and second argument $o_i$
-  for each $i \in 1 .. n$.
+  with first argument $k_i$ and second argument $v_i$,
+  for each $i \in 1 .. n$, in that order.
 \item
   The result of the evaluation is $m$.
 \end{itemize}
@@ -8821,41 +8824,6 @@ is evaluated as follows:
 \LMHash{}%
 The objects created by map literals do not override
 the \lit{==} operator inherited from the \code{Object} class.
-
-\LMHash{}%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-A run-time map literal
-\code{\{$k_1:e_1, \ldots, k_n:e_n$\}}
-is evaluated as
-
-\code{<\DYNAMIC, \DYNAMIC>\{$k_1:e_1, \ldots, k_n:e_n$\}}.
-
-\LMHash{}%
-A map literal is ordered:
-iterating over the keys and/or values of the maps
-always happens in the order the keys appeared in the source code.
-
-\commentary{
-Of course, if a key repeats, the order is defined by first occurrence,
-but the value is defined by the last.
-}
-
-\LMHash{}%
-The static type of a map literal of the form
-\code{\CONST{} <$K, V$>\{$k_1:e_1, \ldots, k_n:e_n$\}}
-or the form
-\code{<$K, V$>\{$k_1:e_1, \ldots, k_n:e_n$\}}
-is
-\code{Map<$K, V$>}.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-The static type of a map literal of the form
-\code{\CONST{} \{$k_1:e_1, \ldots, k_n:e_n$\}}
-or the form
-\code{\{$k_1:e_1, \ldots, k_n:e_n$\}} is
-\code{Map<\DYNAMIC, \DYNAMIC>}.
 
 
 \subsection{Throw}
@@ -18363,108 +18331,7 @@ operator.
 \end{itemize}
 }
 
-
-\section*{Appendix: UI as code Feature Specification}
-\LMLabel{uiAsCode}
-
-% !!!TODO!!!
-
-\subsection{Constant Semantics}
-\LMLabel{uiAsCodeConstantSemantics}
-
-\LMHash{}%
-The runtime semantics below are used to determine the compile-time value of
-a constant collection literal,
-which is defined as a \synt{listLiteral} or \synt{setOrMapLiteral}
-that occurs in a constant context or directly preceded by \CONST{}.
-
-\LMHash{}%
-Elements in a collection may be constant, potentially constant, or neither.
-All \synt{elements} directly inside in a constant collection
-must be constant elements.
-They are defined as:
-
-\begin{itemize}
-\item
-  An \synt{expressionElement} is a constant element if
-  its expression is a constant expression, and
-  a potentially constant element if
-  its expression is a potentially constant expression.
-\item
-  A \synt{mapElement} is a constant element if
-  both its key and value expression are constant expressions, and
-  a potentially constant element if
-  both are potentially constant expressions.
-\item
-  A \synt{spreadElement} starting with \lit{...} is a constant element if
-  its expression is constant and
-  it evaluates to a constant \code{List}, \code{Set} or \code{Map}
-  instance originally created by a list, set or map literal.
-  It is a potentially constant element if
-  the expression is a potentially constant expression.
-\item
-  A \synt{spreadElement} starting with \lit{...?} is a constant element if
-  its expression is constant and it evaluates to \NULL{} or
-  a constant \code{List}, \code{Set} or \code{Map} instance
-  originally created by a list, set or map literal.
-  It is a potentially constant element if
-  the expression is potentially constant expression.
-\item
-  An \synt{ifElement} is a constant element if
-  its condition is a constant expression evaluating to
-  a value of type \code{bool} and either:
-
-  \begin{itemize}
-  \item
-    The condition evaluates to \TRUE{}, the "then" element is
-    a constant expression, and the "else" element, if any, is
-    a potentially constant element.
-  \item
-    The condition evaluates to \FALSE{}, the "then" element is
-    a potentially constant element, and the "else" element, if any, is
-    a constant element.
-  \end{itemize}
-\item
-  An \synt{ifElement} is potentially constant if
-  its condition, "then" element, and "else" element, if any, are
-  potentially constant expressions.
-\item
-  \commentary{%
-    A \synt{forElement} is never a constant or potentially constant element.
-    A \synt{forElement} cannot be used in constant collection literals.%
-  }
-\end{itemize}
-
-\LMHash{}%
-Also:
-
-\begin{itemize}
-\item
-  It is a compile-time error if
-  any element in a constant set or key in a constant map
-  does not have a primitive operator \lit{==}.
-\item
-  When evaluating a const collection literal,
-  if another const collection has previously been evaluated that:
-
-  \begin{itemize}
-  \item is of the same kind (map, set, or list),
-  \item has the same type arguments,
-  \item and contains the same (identical) elements or key/value entries
-    in the same order,
-  \end{itemize}
-
-  then the current literal evaluates to the value of that previous literal.
-
-  \commentary{%
-    In other words, constants are canonicalized.
-    Note that maps and sets are only canonicalized if
-    they contain the same keys or elements \emph{in the same order}.%
-    }
-\end{itemize}
-
 \printindex
-
 \end{document}
 
 [Text after \end{document} is ignored, hence we do not need "%"]
