@@ -7244,7 +7244,7 @@ A \synt{forElement} can never occur in a constant collection literal.%
 %% - "A spread element in a list or set literal has a static type that is
 %%   not \DYNAMIC{} and not a subtype of \code{Iterable<Object>}".
 %%   List literal: case analysis on 'Spread element'.
-%%   Set literal: case analysis on 'Spread element': only succeeds if 
+%%   Set literal: case analysis on 'Spread element': only succeeds if
 %%   $S$ implements `Map` (and not `Iterable`), so it has a key/value
 %%   type and no element type, which is an error (\ref{sets}).
 %%
@@ -7397,7 +7397,10 @@ Note that the dynamic type of \metavar{target} is statically known,
 except for the binding of any type variables in its \synt{typeArguments}.
 This implies that some questions can be answered at compile-time, e.g.,
 whether or not \code{Iterable} occurs as a superinterface of
-$T_{\metavar{target}}$.%
+$T_{\metavar{target}}$.
+In any case, $T_{\metavar{target}}$ is guaranteed to implement
+\code{Iterable} (when \metavar{target} is a list or a set)
+or \code{Map} (when \metavar{target} is a map).%
 }
 
 \LMHash{}%
@@ -7427,8 +7430,8 @@ yielded by evaluation of $\ell$,
 but it also denotes the specification of actions taken to produce
 said object sequence,
 and to produce the side effects associated with this computation,
-as implied by evaluation of expressions which is specified below to be
-part of the evaluation of \EvaluateElement{\ell}.
+as implied by evaluation of expressions and execution of statements
+as specified below for the evaluation of \EvaluateElement{\ell}.
 
 \LMHash{}%
 When a pseudo-statement of the form
@@ -7476,17 +7479,19 @@ Evaluate $e$ to an object $o_{\metavar{spread}}$.
 \item
   Let $T_{\metavar{spread}}$ be the dynamic type of $o_{\metavar{spread}}$.
   Let $S$ be the static type of $e$.
-  When $S$ is a top type
+  When $S$ is not a top type
   (\ref{superBoundedTypes}),
+  let $S_{\metavar{spread}}$ be $S$.
+  When $S$ is a top type:
+  If \metavar{target} is a list or a set then
   let $S_{\metavar{spread}}$ be \code{Iterable<\DYNAMIC>};
-  otherwise let $S_{\metavar{spread}}$ be $S$.
-  \commentary{%
-    It is a compile-time error if $S$
-    is not assignable to \code{Iterable<\DYNAMIC>}.%
-  }
+  otherwise
+  (\commentary{where \metavar{target} is a map}),
+  let $S_{\metavar{spread}}$ be \code{Map<\DYNAMIC,\,\,\DYNAMIC>}.
+
   \begin{itemize}
   \item
-    When both $T_{\metavar{spread}}$ and $T_{\metavar{target}}$ implement
+    When \metavar{target} is a list or a set and $T_{\metavar{spread}}$ implements
     (\ref{interfaceSuperinterfaces})
     \code{Iterable},
     the following code is executed in the context where $\ell$ occurs,
@@ -7518,7 +7523,7 @@ $\EvaluateElement{\ell} := s$;
       A similar approach is used in subsequent cases.%
     }
   \item
-    When both $T_{\metavar{spread}}$ and $T_{\metavar{target}}$ implement
+    When \metavar{target} is a map and $T_{\metavar{spread}}$ implements
     \code{Map},
     the following code is executed in the context where $\ell$ occurs,
     where \code{spread}, $s$, \code{entry}, \code{key}, and \code{value}
@@ -7549,7 +7554,7 @@ $\EvaluateElement{\ell} := s$;
     Otherwise, a dynamic error occurs.
 
     \commentary{%
-      This occurs when the target is a map respectively iterable,
+      This occurs when the target is an iterable respectively a map,
       and the spread is not, which is possible for
       a spread whose static type is \DYNAMIC{}.%
     }
@@ -7644,7 +7649,11 @@ The context type $P$
 for each element of \metavar{list} is
 obtained from the context type of \metavar{list}.
 If downwards inference constrains the type of \metavar{list}
-to \code{Iterable<$P_e$>} for some $P_e$ then $P$ is $P_e$.
+%% TODO(eernst): Confirm that the context type should allow for
+%% `List` as well as `Iterable`. The implementations (unsurprisingly)
+%% do that, but the feature spec only allowed for `Iterable`.
+to \code{List<$P_e$>} or \code{Iterable<$P_e$>} for some $P_e$
+then $P$ is $P_e$.
 Otherwise, $P$ is \FreeContext{}
 (\ref{setAndMapLiteralDisambiguation}).
 
@@ -7665,9 +7674,17 @@ the inferred type of $e$ in context $P$.
 
 \LMHash{}%
 \Case{Map element}
-In this case, a compile-time error occurs.
+% We cannot really tell whether this or the error in \ref{lists} arises first
+% (say, when the list literal has an explicit type argument, it is not
+% guaranteed that the implementation performs type inference on it at all).
+% So we _must_ specify the error in \ref{lists}, and this location should
+% then be a commentary, because we already have the error elsewhere.
 \commentary{%
-A list literal can never contain a map element.%
+This case can not arise,
+because it is a compile-time error
+when the leaf elements of a list literal
+contains a map element
+(\ref{lists}).%
 }
 \EndCase
 
@@ -7710,11 +7727,11 @@ In this case $\ell$ is of the form
 \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
 The condition $b$ is always inferred with a context type of \code{bool}.
 
-Assume that \code{\ELSE\,\,$\ell_2$} is not present.
+Assume that `\code{\ELSE\,\,$\ell_2$}' is not present.
 Then, if the inferred element type of $\ell_1$ is $S$,
 the inferred element type of $\ell$ is $S$.
 
-Otherwise, \code{\ELSE\,\,$\ell_2$} is present.
+Otherwise, `\code{\ELSE\,\,$\ell_2$}' is present.
 If the inferred element type of $\ell_1$ is $S_1$ and
 the inferred element type of $\ell_2$ is $S_2$,
 the inferred element type of $\ell$ is
@@ -7987,7 +8004,7 @@ the first applicable entry in the following list:
   If $k = 1$ then $e$ is a set literal with static type
   \code{Set<$T_1$>}.
   If $k = 2$ then $e$ is a map literal with static type
-  \code{Map<$T_1$, $T_2$>}.
+  \code{Map<$T_1$,\,\,$T_2$>}.
   Otherwise a compile-time error occurs.
 \item
   When $S$ implements
@@ -8124,7 +8141,7 @@ which is determined as follows:
   }
 \item
   If \metavar{collection} is unambiguously a map
-  then $P$ is \code{Map<$P_k$, $P_v$>}
+  then $P$ is \code{Map<$P_k$,\,\,$P_v$>}
   where $P_k$ and $P_v$ are determined by downwards inference,
   and may be \FreeContext{}
   if the downwards context does not constrain one or both.
@@ -8175,7 +8192,7 @@ where $K$ and $V$ is
 the inferred type of $e_k$ respectively $e_v$,
 in context \FreeContext.
 %
-If $P$ is \code{Map<$P_k$, $P_v$>},
+If $P$ is \code{Map<$P_k$,\,\,$P_v$>},
 the inferred key and value type pair of $\ell$ is $(K, V)$,
 where $K$ is
 the inferred type of $e_k$ in context $P_k$, and
@@ -8265,7 +8282,7 @@ the inferred type of $e$ in context \code{Iterable<$P_e$>}, and then:
 \end{itemize}
 
 \noindent
-Otherwise, if $P$ is \code{Map<$P_k$, $P_v$>} then let $S$ be
+Otherwise, if $P$ is \code{Map<$P_k$,\,\,$P_v$>} then let $S$ be
 the inferred type of $e$ in context $P$, and then:
 
 \begin{itemize}
@@ -8300,7 +8317,7 @@ In this case $\ell$ is of the form
 \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
 The condition $b$ is always inferred with a context type of \code{bool}.
 
-Assume that \code{\ELSE\,\,$\ell_2$} is not present. Then:
+Assume that `\code{\ELSE\,\,$\ell_2$}' is not present. Then:
 \begin{itemize}
 \item
   If the inferred element type of $\ell_1$ is $S$,
@@ -8310,7 +8327,7 @@ Assume that \code{\ELSE\,\,$\ell_2$} is not present. Then:
   the inferred key and value type pair of $\ell$ is $(K, V)$.
 \end{itemize}
 
-Otherwise, \code{\ELSE\,\,$\ell_2$} is present.
+Otherwise, `\code{\ELSE\,\,$\ell_2$}' is present.
 It is a compile error if $\ell_1$ must be a set and $\ell_2$ must be a map,
 or vice versa.
 
@@ -8416,7 +8433,7 @@ and the context type for \metavar{collection} is $P$.
   The static type of \metavar{collection} is then \code{Set<$T$>}.
 \item
   If \metavar{collection} is unambiguously a map
-  where $P$ is \code{Map<$P_k$, $P_v$>}
+  where $P$ is \code{Map<$P_k$,\,\,$P_v$>}
   and the inferred key and value type pairs are
   \KeyValueTypeList{K}{V}{1}{n}:
 
@@ -8437,7 +8454,7 @@ and the context type for \metavar{collection} is $P$.
     given this downwards context.%
   }
 
-  The static type of \metavar{collection} is then \code{Map<$K$, $V$>}.
+  The static type of \metavar{collection} is then \code{Map<$K$,\,\,$V$>}.
 \item
   Otherwise, \metavar{collection} is still ambiguous,
   the downwards context for the elements of \metavar{collection} is \FreeContext{},
@@ -8454,7 +8471,7 @@ and the context type for \metavar{collection} is $P$.
   \item
     If all elements can be a map,
     and at least one element must be a map, then $e$ is
-    a map literal with static type \code{Map<$K$, $V$>} where $K$ is
+    a map literal with static type \code{Map<$K$,\,\,$V$>} where $K$ is
     the least upper bound of the key types of the elements and $V$ is
     the least upper bound of the value types.
   \item
@@ -8681,8 +8698,8 @@ and $e$ is henceforth treated as
 \code{<$K$,\,$V$>$e$}.
 
 \commentary{%
-The static type of a map literal of the form \code{<$K$,\,$V$>$e$}
-is \code{Map<$K$,\,$V$>}
+The static type of a map literal of the form \code{<$K$,\,\,$V$>$e$}
+is \code{Map<$K$,\,\,$V$>}
 (\ref{setAndMapLiteralInference}).%
 }
 
@@ -8782,7 +8799,7 @@ so we cannot use such type parameters inside constant expressions.%
 The value of a constant map literal
 \code{\CONST?\,\,<$K, V$>\{\List{\ell}{1}{m}\}}
 is an object $m$ whose class implements the built-in class
-\code{Map<$K, V$>}.
+\code{Map<$K$,\,\,$V$>}.
 The key and value pairs of $m$ is
 the pairs of the object sequence \KeyValueList{k}{v}{1}{n} obtained by
 evaluation of \List{\ell}{1}{m}
@@ -8818,7 +8835,7 @@ is evaluated as follows:
   to an object sequence \LiteralSequence{\KeyValueList{k}{v}{1}{n}}.
 \item
   A fresh instance (\ref{generativeConstructors}) $m$
-  whose class implements the built-in class \code{Map<$K, V$>},
+  whose class implements the built-in class \code{Map<$K$,\,\,$V$>},
   is allocated.
 \item
   The operator \lit{[]=} is invoked on $m$
