@@ -1,8 +1,8 @@
 # Dart Static Extension Methods Design
 
-lrn@google.com<br>Version: 1.3<br>Status: Design Proposal
+lrn@google.com<br>Version: 1.4<br>Status: Design Document.
 
-This is a design document for *static extension methods* for Dart. This document describes the most basic variant of the feature, then lists a few possible variants or extensions.
+This is a design document for *static extension members* for Dart. This document describes the feature's syntax and semantics.
 
 See [Problem Description](https://github.com/dart-lang/language/issues/40) and [Feature Request](https://github.com/dart-lang/language/issues/41) for background.
 
@@ -539,100 +539,6 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 
 - Inside an instance extension member, extension members accessed by unqualified name are treated as extension override accesses on `this`. Otherwise invocations on `this` are treated as any other invocations on the same static type.
 
-## Variants
-
-The design above can be extended in the following ways.
-
-### Multiple `on` Types
-
-The `on <type>` clause only allows a single type. The similar clause on `mixin` declarations allow multiple types, as long as they can all agree on a single combined interface. 
-
-We could allow multiple types in the `extension` `on` clause as well. It would have the following consequences:
-
-- An extension only applies if the receiver type is a subtype of *all* `on` types.
-- An extension is more specific than another if for every `on` type in the latter, there is an `on` type in the former which is a proper subtype of that type, or the two are equivalent, and the former is a proper subtype of the latter when instantiated to bounds.
-- There is no clear type to assign to `this` inside an instance extension method. For a mixin that's not a problem because it introduces a type by itself, and the combined super-interface is only used for `super` invocations. For extension, a statement like `var self = this;` needs to be assigned a useful type.
-
-The last item is the reason this feature is not something we will definitely do. We can start out without the feature and maybe add it later if it is necessary, but it's safer to start without it.
-
-### Extending Static Members
-
-The feature above only extends instance members. There is no way to add a new static member on an existing type, something that should logically be a *simpler* operation.
-
-We could allow
-
-```dart
-extension MyInt on num {
-  int get double => this * s;
-  static int get random => 4;
-}
-```
-
-to introduce both a `double` instance getter on `num` instances and a `random` getter on `num` itself, usable as `var n = num.random;`
-
-However, while this is possible, not all `on` types are class or mixin types. It is not clear what it would mean to put static methods on `on` types of extension like:
-
-- `extension X on Iterable<int>`
-- `extension X<T extends Comparable<T>> on Iterable<T>`
-- `extension X on int Function(int)`
-- `extension X on FutureOr<int>`
-- `extension X on int?`
-
-For the first two, we could put the static members on the `Iterable` class, but since the extension does not apply to *all* iterables, it is not clear that this is correct.
-
-For `int Function(int)` and `FutureOr<int>`, it's unclear how to call such a static method at all. We can denote`int Function(int)` with a type alias, but putting static members on type aliases is a new concept.  We could put the static method on `Function`, but that's not particularly discoverable, and why not require that they are put on `Functon` explicitly. For `FutureOr`, we could allow static members on `FutureOr` (which is a denotable type), but again it seems spurious. For `int?`, we could put the method on `int`, but why not  just require that it's on `int`.
-
-The issue here is that the type patterns used by `on` are much more powerful than what is necessary to put static members on class types.
-
-It would probably be more readable to introduce a proper static extension declaration:
-
-```dart
-static extension Foo on int {  // or: extension Foo on static int 
-  int fromList(List l) => l.length;
-}
-
-...
-  print(int.fromList([1, 2])); // 2
-```
-
-where the `on` type must be something that can already have static methods. 
-
-The disadvantage is that if you want to introduce related functionality that is both static and instance methods on a class, then you need to write two extensions with different names.
-
-If we allow extension static declarations like these, we can also allow extension constructors.
-
-### Aliasing
-
-If we have two different extensions with the same name, they can't both be in scope, even if they don't apply to the same types. At least one of them must be delegated to a prefixed import scope, and if so, it doesn't *work* as an extension method any more.
-
-To overcome this issue, we can use a *generalized typedef* to give a new name to an existing entity in a given scope. Example:
-
-```dart
-typedef MyCleverList<T> = prefix.MyList<T>;
-```
-
-If `prefix.MyList` is an extension, this would put that extension back in the current scope under a different name (use a private name to avoid exporting the extension again).
-
-If we do this, we should be *consistent* with other type aliases, which means that the type parameter of the RHS must be explicit. Just writing
-
-```dart
-typedef MyCleverList = prefix.MyList; // bad!
-```
-
-would make `MyCleverList` an alias for `prefix.MyList<dynamic>`, which would still apply to `List<anything>`, but the type variable of `MyList` will always be `dynamic`. Similarly, we can put more bounds on the type variable:
-
-```dart
-typedef MyWidgetList<T extends Widget> = prefix.MyList<T>;
-```
-
-Here the extension will only apply if it matches `Widget` *and* would otherwise match `MyList` (but `T` needs to be a valid type argument to `MyList`, which means that it must satisfy all bounds of `MyList` as well, otherwise the typedef is rejected).
-
-The use of `typedef` for something which is not a type may be too confusing. Another option is:
-
-```dart
-extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
-```
-
 ## Revisions
 
 #### 1.0
@@ -656,3 +562,7 @@ extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
 - Elaborate on naming conflict rules.
 - Elaborate on explicit member access.
 - `Ext(o).x += v` and `Ext(o).x++` can be used.
+
+#### 1.4:
+
+- Remove optional variants that were not part of the final design.
