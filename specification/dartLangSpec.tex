@@ -1105,7 +1105,7 @@ will throw.
 % for instance variables also when a setter is called dynamically.
 It is a dynamic type error if the dynamic type of $o$ is not
 a subtype of the actual type of the variable $v$
-(\ref{actualTypeOfADeclaration}).
+(\ref{actualTypes}).
 
 
 \subsection{Evaluation of Implicit Variable Getters}
@@ -1782,7 +1782,7 @@ or instance method closurization
 applied to $F$,
 and let $t$ be the actual type corresponding to $T$
 at the occasion where $o$ was created
-(\ref{actualTypeOfADeclaration}).
+(\ref{actualTypes}).
 \commentary{$T$ may contain free type variables, but $t$ contains their actual values.}
 The following must then hold:
 $u$ is a class that implements the built-in class \FUNCTION{};
@@ -3016,13 +3016,13 @@ must be a potentially constant expression (\ref{constantConstructors}).
 % This error can occur due to a failed implicit cast.
 It is a dynamic type error if an actual argument passed
 in an invocation of a redirecting generative constructor $k$
-is not a subtype of the actual type (\ref{actualTypeOfADeclaration})
+is not a subtype of the actual type (\ref{actualTypes})
 of the corresponding formal parameter in the declaration of $k$.
 % This error can occur due to a failed implicit cast.
 It is a dynamic type error if an actual argument passed
 to the redirectee $k'$ of a redirecting generative constructor
 is not a subtype of the actual type
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of the corresponding formal parameter in the declaration of the redirectee.
 
 
@@ -3214,7 +3214,7 @@ Then, the instance variable $v$ of $i$ is bound to $o$.
 % This error can occur due to an implicit cast.
 It is a dynamic type error if the dynamic type of $o$ is not
 a subtype of the actual type
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of the instance variable $v$.
 
 \LMHash{}%
@@ -3279,7 +3279,7 @@ It is a compile-time error if $M$ is not the name of the immediately enclosing c
 % This error can occur due to an implicit cast.
 It is a dynamic type error if a factory returns a non-null object
 whose type is not a subtype of its actual
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 return type.
 
 \rationale{
@@ -3435,7 +3435,7 @@ and $k'$ is the redirectee of $k$.
 \LMHash{}%
 % This error can occur due to an implicit cast.
 It is a dynamic type error if an actual argument passed in an invocation of $k$
-is not a subtype of the actual type (\ref{actualTypeOfADeclaration})
+is not a subtype of the actual type (\ref{actualTypes})
 of the corresponding formal parameter in the declaration of $k$.
 
 \LMHash{}%
@@ -7185,8 +7185,8 @@ or
 
   $\ell$ is a constant element
   if $e$ is a constant expression that evaluates
-  to a \code{List}, \code{Set} or \code{Map} instance
-  originally created by a list, set or map literal.
+  to a \code{List}, \code{Set}, or \code{Map} instance
+  originally created by a list, set, or map literal.
 
   Moreover, $\ell$ is a constant element if it is `\code{...?$e$}',
   where $e$ is a constant expression that evaluates
@@ -7200,8 +7200,8 @@ or
 
   $\ell$ is a potentially constant element
   if $b$ is a potentially constant expression,
-  and $\ell_1$ as well as $\ell_2$, if present,
-  are potentially constant.
+  $\ell_1$ is potentially constant,
+  and so is $\ell_2$, if present.
 
   $\ell$ is a constant element if $b$ is a constant expression
   and:
@@ -7309,7 +7309,7 @@ A \synt{forElement} can never occur in a constant collection literal.%
 \LMHash{}%
 An \synt{ifElement} interacts with type promotion
 in the same way that \IF{} statements do.
-Assume that $\ell$ is an \synt{ifElement} of the form
+Let $\ell$ be an \synt{ifElement} of the form
 \code{\IF\,\,($b$)\,\,$\ell_1$} or
 \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
 If $b$ shows that a local variable $v$ has type $T$, then
@@ -7357,15 +7357,16 @@ and hence no notion of dynamic errors arising from
 a type mismatch during concatenation.
 
 \commentary{%
-Object sequences can safely be treated in an untyped manner
+Object sequences can safely be treated as a low-level mechanism
+which may omit otherwise required actions like dynamic type checks
 because every access to an object sequence occurs
 in code created by language defined desugaring
 on statically checked constructs.
 It is left unspecified how an object sequence is implemented,
 it is only required that it contains the indicated objects or pairs
 in the given order.
-For each kind of collection the sequence is used in the given order
-to populate the collection,
+For each kind of collection,
+the sequence is used in the given order to populate the collection,
 in a manner which is specific to the kind,
 and which is specified separately
 (\ref{lists}, \ref{sets}, \ref{maps}).%
@@ -7378,9 +7379,8 @@ as soon as it has been computed.
 Note that each object sequence will exclusively contain objects,
 or it will exclusively contain pairs,
 because any attempt to create a mixed sequence would cause
-an error at compile time or
-(for a spread element with static type \DYNAMIC{})
-at run time.%
+an error at compile time or at run time
+(the latter may occur for a spread element with static type \DYNAMIC{}).%
 }
 
 \LMHash{}%
@@ -7400,7 +7400,8 @@ whether or not \code{Iterable} occurs as a superinterface of
 $T_{\metavar{target}}$.
 In any case, $T_{\metavar{target}}$ is guaranteed to implement
 \code{Iterable} (when \metavar{target} is a list or a set)
-or \code{Map} (when \metavar{target} is a map).%
+or \code{Map} (when \metavar{target} is a map),
+but never both.%
 }
 
 \LMHash{}%
@@ -7442,7 +7443,9 @@ and it specifies that the value of \EvaluateElement{\ell} is $s$.
 \IndexCustom{Evaluation of a collection literal element $\ell$}{%
   collection literal element!evaluation}
 in the given context
-to an object sequence \EvaluateElement{\ell}
+to an object sequence
+\IndexCustom{\EvaluateElement{\ell}}{%
+  evaluateElement(l)@\emph{evaluateElement}\code{($\ell$)}}
 is then specified as follows:
 
 \LMHash{}%
@@ -7526,7 +7529,7 @@ $\EvaluateElement{\ell} := s$;
     When \metavar{target} is a map and $T_{\metavar{spread}}$ implements
     \code{Map},
     the following code is executed in the context where $\ell$ occurs,
-    where \code{spread}, $s$, \code{entry}, \code{key}, and \code{value}
+    where \code{spread}, $s$, \code{v}, \code{key}, and \code{value}
     are fresh variables,
     and \code{Key} and \code{Value} are fresh type variables bound to the
     first respectively second actual type argument
@@ -7536,9 +7539,9 @@ $\EvaluateElement{\ell} := s$;
 \begin{normativeDartCode}
 $S_{\metavar{spread}}$ spread = $o_{\metavar{spread}}$;
 \VAR{} $s$ = \LiteralSequence{};
-\FOR{} (\VAR{} entry \IN{} spread) \{
-  Key key = entry.key;
-  Value value = entry.value;
+\FOR{} (\VAR{} v \IN{} spread) \{
+  Key key = v.key;
+  Value value = v.value;
   $s = s + \LiteralSequence{\code{key}:\,\code{value}}$;
 \}
 $\EvaluateElement{\ell} := s$;
@@ -7574,24 +7577,22 @@ If $o_{\metavar{spread}}$ is an object whose dynamic type implements
 (\ref{interfaceSuperinterfaces})
 \code{List}, \code{Queue}, or \code{Set},
 an implementation may choose to call \code{length} on the object.
-
-\rationale{%
-This may let it allocate space for the resulting collection more efficiently.
-The given class is expected to have an efficient and
-side-effect free implementation of \code{length}.%
-}
-
-\LMHash{}%
 If $o_{\metavar{spread}}$ is an object whose dynamic type implements \code{List},
 an implementation may choose to call operator \lit{[]}
 in order to access elements from the list.
 If it does so, it will only pass indices
 that are non-negative and less than the value returned by \code{length}.
 
-\LMHash{}%
+\rationale{%
+This may allow for more efficient code for
+allocating the collection and accessing its parts.
+The given classes are expected to have
+an efficient and side-effect free implementation
+of \code{length} and operator \lit{[]}.
 A Dart implementation may detect whether these options apply
 at compile time based on the static type of $e$,
-or at runtime based on the actual value.
+or at runtime based on the actual value.%
+}
 \EndCase
 
 \LMHash{}%
@@ -7680,10 +7681,9 @@ the inferred type of $e$ in context $P$.
 % So we _must_ specify the error in \ref{lists}, and this location should
 % then be a commentary, because we already have the error elsewhere.
 \commentary{%
-This case can not arise,
-because it is a compile-time error
-when the leaf elements of a list literal
-contains a map element
+This cannot occur:
+it is a compile-time error
+when a leaf element of a list literal is a map element
 (\ref{lists}).%
 }
 \EndCase
@@ -7695,6 +7695,8 @@ If $\ell$ is `\code{...$e$}',
 let $S$ be the inferred type of $e$ in context \code{Iterable<$P$>}.
 Otherwise
 (\commentary{when $\ell$ is `\code{...?$e$}'}),
+%% TODO(eernst): Come NNBD, add a \ref{} to the specification of
+%% 'the non-nullable type of'.
 let $S$ be the non-nullable type of
 %% TODO(eernst): Clarify whether inference will indeed have that context;
 %% it is clear that we need to eliminate `Null` from $S$, and also that $e$
@@ -7751,7 +7753,6 @@ the errors that would occur with the corresponding \FOR{} statement
 located in the same scope as $\ell$.
 Moreover, the errors and type analysis of $\ell$ is performed
 as if it occurred in the body scope of said \FOR{} statement.
-
 \commentary{%
 For instance, if $P$ is of the form
 \code{\VAR\,\,v\,\,\IN\,\,$e_1$}
@@ -7786,14 +7787,19 @@ and the context type for \metavar{list} is $P$.
 \begin{itemize}
 \item
   If $P$ is \FreeContext{} then
-  the static type of \metavar{list} is \code{List<$T$>},
+  the inferred element type for \metavar{list} is $T$,
   where $T$ is the least upper bound of
   the inferred element types of \List{\ell}{1}{n}.
+
 \item
   %% TODO(eernst): Feature spec says $P$, but how can we know that $P$ is a type?
-  Otherwise, the static type of \metavar{list} is \code{List<$T$>},
+  Otherwise,
+  the inferred element type for \metavar{list} is $T$,
   where $T$ is determined by downwards inference.
 \end{itemize}
+
+\LMHash{}%
+In both cases, the static type of \metavar{list} is \code{List<$T$>}.
 
 
 \subsubsection{Lists}
@@ -7837,10 +7843,9 @@ A non-empty list has the index set $\{0, \ldots, n - 1\}$ where $n$ is the size 
 It is a dynamic error to attempt to access a list
 using an index that is not a member of its set of indices.
 
-\commentary{%
-The system libraries support many operations on an instance
-whose type implements \code{List},
-but we specify only the minimal set of features
+\rationale{%
+The system libraries define many members for the type \code{List},
+but we specify only the minimal set of requirements
 which are used by the language itself.%
 }
 
@@ -7887,32 +7892,39 @@ so we cannot use such type parameters inside constant expressions.%
 
 \LMHash{}%
 The value of a constant list literal
-\code{\CONST?\,\,<$E$>[\List{\ell}{1}{m}]}
-is an object $a$ whose class implements the built-in class
-\code{List<$E$>},
+\code{\CONST?\,\,<$T$>[\List{\ell}{1}{m}]}
+is an object $o$ whose class implements the built-in class
+\code{List<$t$>}
+where $t$ is the actual value of $T$
+(\ref{actualTypes}),
 and whose contents is the object sequence \List{o}{1}{n} obtained by
 evaluation of \List{\ell}{1}{m}
 (\ref{collectionLiteralElementEvaluation}).
-The $i$th object of $a$ (at index $i - 1$) is then $o_i$.
+The $i$th object of $o$ (at index $i - 1$) is then $o_i$.
 
 \LMHash{}%
-Let
-$list_1 =$ \code{\CONST?\,\,<$V$>[$\ell_{11}, \ldots, \ell_{1m_1}$]}
-and
-$list_2 =$ \code{\CONST?\,\,<$U$>[$\ell_{21}, \ldots, \ell_{2m_2}$]}
-be two constant list literals and
-let the contents of $list_1$ and $list_2$ be
-$o_{11}, \ldots, o_{1n}$ and $o_{21}, \ldots, o_{2n}$ respectively.
-If{}f \code{identical($o_{1i}$, $o_{2i}$)} for $i \in 1 .. n$ and $V == U$
-then \code{identical($list_1$, $list_2$)}.
+Let \code{\CONST?\,\,<$T_1$>[$\ell_{11}, \ldots, \ell_{1m_1}$]}
+and \code{\CONST?\,\,<$T_2$>[$\ell_{21}, \ldots, \ell_{2m_2}$]}
+be two constant list literals.
+Let $o_1$ with contents $o_{11}, \ldots, o_{1n}$ and actual type argument $t_1$
+respectively
+$o_2$ with contents $o_{21}, \ldots, o_{2n}$ and actual type argument $t_2$
+be the result of evaluating them.
+Then \code{identical($o_1$, $o_2$)} evaluates to \TRUE{} if{}f
+\code{$t_1$ == $t_2$} and \code{identical($o_{1i}$, $o_{2i}$)}
+evaluates to \TRUE{} for all $i \in 1 .. n$.
 
 \commentary{%
-In other words, constant list literals are canonicalized.%
+In other words, constant list literals are canonicalized.
+There is no need to consider canonicalization
+for other instances of type \code{List},
+because such instances cannot be
+the result of evaluating a constant expression.%
 }
 
 \LMHash{}%
 A run-time list literal
-\code{<$E$>[\List{\ell}{1}{m}]}
+\code{<$T$>[\List{\ell}{1}{m}]}
 is evaluated as follows:
 \begin{itemize}
 \item
@@ -7920,15 +7932,17 @@ is evaluated as follows:
   (\ref{collectionLiteralElementEvaluation}),
   to an object sequence \LiteralSequence{\List{o}{1}{n}}.
 \item
-  A fresh instance (\ref{generativeConstructors}) $a$, of size $n$,
-  whose class implements the built-in class \code{List<$E$>}
-  is allocated.
+  A fresh instance (\ref{generativeConstructors}) $o$, of size $n$,
+  whose class implements the built-in class \code{List<$t$>}
+  is allocated,
+  where $t$ is the actual value of $T$
+  (\ref{actualTypes}).
 \item
-  The operator \lit{[]=} is invoked on $a$ with
+  The operator \lit{[]=} is invoked on $o$ with
   first argument $i$ and second argument
   $o_{i+1}, 0 \le i < n$.
 \item
-  The result of the evaluation is $a$.
+  The result of the evaluation is $o$.
 \end{itemize}
 
 \LMHash{}%
@@ -7945,20 +7959,12 @@ if element $i$ is not a subtype of the element type of the list,
 a dynamic type error will occur when $a[i]$ is assigned $o_{i-1}$.
 }
 
-\commentary{
-There is no restriction precluding nesting of list literals.
-It follows from the rules above that
-\code{<List<int>{}>[<int>[1, 2, 3], <int>[4, 5, 6]]}
-is a list with type parameter \code{List<int>},
-containing two lists with type parameter \code{int}.
-}
-
 
 \subsubsection{Set and Map Literal Disambiguation}
 \LMLabel{setAndMapLiteralDisambiguation}
 
 \LMHash{}%
-Some syntactic forms like \code{\{\}} and \code{\{...\id\}} are ambiguous:
+Some terms like \code{\{\}} and \code{\{\,...\id\,\}} are ambiguous:
 they may be either a set literal or a map literal.
 This ambiguity is eliminated in two steps.
 The first step uses only the syntax and context type,
@@ -7974,24 +7980,30 @@ with leaf elements $\cal L$ and context type $C$.
 If $C$ is \FreeContext{} then let $S$ be undefined.
 %% TODO(eernst): Define 'greatest closure' of a context type
 %% when we define 'context type'.
-Otherwise let $S$ be the greatest closure of $\futureOrBase{C}$
+Otherwise let $S$ be the greatest closure of \futureOrBase{C}
 (\ref{typeFutureOr}).
 
 %% TODO(eernst): Delete when 'context type', 'greatest closure' are defined.
 \commentary{%
 A future version of this document will specify context types.
-The basic intuition is that a context type is the type declared for a
-\emph{receiving entity} such as
+The basic intuition is that a
+\Index{context type}
+is the type declared for a
+receiving entity such as
 a formal parameter $p$ or a declared variable $v$.
 That type will be the context type for
 an actual argument passed to $p$,
 respectively an initializing expression for $v$.
 In some situations the context has no constraints,
 e.g., when a variable is declared with \VAR{} rather than a type annotation.
-This gives rise to an unconstrained context type, \FreeContext{},
+This gives rise to an
+\IndexCustom{unconstrained context type}{context type!unconstrained},
+\IndexCustom{\rm\FreeContext}{[]@\FreeContext},
 which may also occur in a composite term, e.g., \code{List<\FreeContext>}.
-%
-The greatest closure of a context type $C$ is a supertype of all types
+%% TODO(eernst): Clarify why we do not just use i2b, rather than
+%% introducing the notion of a greatest (and least) closure.
+The greatest closure of a context type $C$ is
+approximately the least common supertype of all types
 obtainable by replacing \FreeContext{} by a type.%
 }
 
@@ -8034,7 +8046,7 @@ the first applicable entry in the following list:
   \commentary{%
     In this case $e$ is non-empty, but contains only spreads
     wrapped zero or more times in \synt{ifElement}s or \synt{forElement}s.
-    Disambiguation will occur during inference
+    Disambiguation will then occur during inference
     (\ref{setAndMapLiteralInference}).%
   }
 \end{itemize}
@@ -8083,7 +8095,7 @@ and implementing \code{Map} when $e$ is a map),
 which means that it is a dynamic error if there is a mismatch.
 In other situations it is a compile-time error to have both
 an element type and a key and value type pair,
-because $e$ must then be both a set and a map.
+because $e$ must be both a set and a map.
 Here is an example:%
 }
 
@@ -8167,7 +8179,10 @@ if can be a map and has no element type.
 
 \LMHash{}%
 Let $\ell$ be a term derived from \synt{element}.
-Inference of the type of $\ell$ then proceeds as follows:
+\IndexCustom{Inference of the type of}{%
+  type inference!collection literal element}
+$\ell$ with context type $P$ then proceeds
+as follows:
 
 \LMHash{}%
 \Case{Expression element}
@@ -8229,7 +8244,7 @@ Then:
 
   \commentary{%
     This is the result of constraint matching for $X$ and $Y$ using
-    the constraint $S\,\,<:\,\,\code{Map<$X$, $Y$>}$.%
+    the constraint $S\,\,<:\,\,\code{Map<$X$,\,\,$Y$>}$.%
 
     Note that this case and the previous case
     can match on the same element simultaneously
@@ -8293,7 +8308,7 @@ the inferred type of $e$ in context $P$, and then:
   $S$ at \code{Map}.
   \commentary{%
     This is the result of constraint matching for $X$ and $Y$ using
-    the constraint \code{$S$ <: Map<$X$, $Y$>}.%
+    the constraint \code{$S$ <: Map<$X$,\,\,$Y$>}.%
   }
 \item
   If $S$ is \DYNAMIC,
@@ -8433,17 +8448,17 @@ and the context type for \metavar{collection} is $P$.
   The static type of \metavar{collection} is then \code{Set<$T$>}.
 \item
   If \metavar{collection} is unambiguously a map
-  where $P$ is \code{Map<$P_k$,\,\,$P_v$>}
+  where $P$ is \code{Map<$P_k$,\,\,$P_v$>} or $P$ is \FreeContext{}
   and the inferred key and value type pairs are
   \KeyValueTypeList{K}{V}{1}{n}:
 
-  If $P_k$ is \FreeContext{},
+  If $P_k$ is \FreeContext{} or $P$ is \FreeContext,
   the static key type of \metavar{collection} is $K$
   where $K$ is the least upper bound of \List{K}{1}{n}.
   Otherwise the static key type of \metavar{collection} is $K$
   where $K$ is determined by downwards inference.
 
-  If $P_v$ is \FreeContext{},
+  If $P_v$ is \FreeContext{} or $P$ is \FreeContext,
   the static value type of \metavar{collection} is $V$
   where $V$ is the least upper bound of \List{V}{1}{n}.
   Otherwise the static value type of \metavar{collection} is $V$
@@ -8488,7 +8503,7 @@ Here is an example:%
 \begin{dartCode}
 \VAR{} iterable = [1, 2];
 \VAR{} map = \{1: 2\};
-\VAR{} ambiguous = \{...iterable, ...map\};
+\VAR{} ambiguous = \{...iterable, ...map\}; // \comment{Compile-time error}
 \end{dartCode}
 
 \commentary{%
@@ -8498,7 +8513,7 @@ Or, if there is nothing indicates that it is \emph{either} a set or a map:%
 
 \begin{dartCode}
 \DYNAMIC{} dyn;
-\VAR{} ambiguous = \{...dyn\};
+\VAR{} ambiguous = \{...dyn\}; // \comment{Compile-time error}
 \end{dartCode}
 
 
@@ -8558,10 +8573,9 @@ A set is ordered: iteration over the elements of a set
 occurs in the order the elements were added to the set.
 
 \commentary{%
-The system libraries support many operations on an instance
-whose type implements \code{Set},
-but we specify only the minimal set of features
-which are used by the language itself.
+The system libraries define many members for the type \code{Set},
+but we specify only the minimal set of requirements
+which are used by the language itself.%
 
 Note that an implementation may require consistent definitions of several members
 of a class implementing \code{Set} in order to work correctly.
@@ -8618,36 +8632,45 @@ so we cannot use such type parameters inside constant expressions.%
 }
 
 \LMHash{}%
-The value of a constant set literal $e$ of the form
-\code{\CONST?\,\,<$E$>\{\List{\ell}{1}{m}\}}
-is an object $s$ whose class implements the built-in class
-\code{Set<$E$>},
+The value of a constant set literal
+\code{\CONST?\,\,<$T$>\{\List{\ell}{1}{m}\}}
+is an object $o$ whose class implements the built-in class
+\code{Set<$t$>}
+where $t$ is the actual value of $T$
+(\ref{actualTypes}),
 and whose contents is the set of objects in
 the object sequence \List{o}{1}{n} obtained by
 evaluation of \List{\ell}{1}{m}
 (\ref{collectionLiteralElementEvaluation}).
-The elements of $e$ occur in the same order as
+The elements of $o$ occur in the same order as
 the objects in said object sequence
 (\commentary{which can be observed by iteration}).
 
 \LMHash{}%
-Let $set_1$ be a constant set literal with type argument $E$
-containing, in that order, the objects $o_{11}, \ldots, o_{1n}$.
-Let $set_2$ be a constant set literal with type argument $F$
-containing, in that order, the objects $o_{21}, \ldots, o_{2n}$.
-If{}f \code{identical($o_{1i}$, $o_{2i}$)}
-for $i \in 1 .. n$, and $E$ and $F$ is the same type,
-then \code{identical($set_1$, $set_2$)}.
+Let \code{\CONST?\,\,<$T_1$>\{\,$\ell_{11}, \ldots, \ell_{1m_1}$\,\}}
+and \code{\CONST?\,\,<$T_2$>\{\,$\ell_{21}, \ldots, \ell_{2m_2}$\,\}}
+be two constant set literals.
+Let $o_1$ with contents $o_{11}, \ldots, o_{1n}$ and actual type argument $t_1$
+respectively
+$o_2$ with contents $o_{21}, \ldots, o_{2n}$ and actual type argument $t_2$
+be the result of evaluating them.
+Then \code{identical($o_1$, $o_2$)} evaluates to \TRUE{} if{}f
+\code{$t_1$ == $t_2$} and \code{identical($o_{1i}$, $o_{2i}$)}
+evaluates to \TRUE{} for all $i \in 1 .. n$.
 
 \commentary{%
 In other words, constant set literals are canonicalized if they have
-the same type and the same values in the same order.
+the same type argument and the same values in the same order.
 Two constant set literals are never identical
-if they have a different number of elements.%
+if they have a different number of elements.
+There is no need to consider canonicalization
+for other instances of type \code{Set},
+because such instances cannot be
+the result of evaluating a constant expression.%
 }
 
 \LMHash{}%
-A run-time set literal \code{<$E$>\{\List{\ell}{1}{n}\}}
+A run-time set literal \code{<$T$>\{\List{\ell}{1}{n}\}}
 is evaluated as follows:
 \begin{itemize}
 \item
@@ -8655,17 +8678,19 @@ is evaluated as follows:
   (\ref{collectionLiteralElementEvaluation}),
   to an object sequence \LiteralSequence{\List{o}{1}{n}}.
 \item
-  A fresh object (\ref{generativeConstructors}) $s$
-  implementing the built-in class \code{Set<$E$>}, is created.
+  A fresh object (\ref{generativeConstructors}) $o$
+  implementing the built-in class \code{Set<$t$>} is created,
+  where $t$ is the actual value of $T$
+  (\ref{actualTypes}).
 \item
   For each object $o_j$ in \List{o}{1}{n}, in order,
-  $o_j$ is inserted into $s$.
+  $o_j$ is inserted into $o$.
   \commentary{%
-    Note that this leaves $s$ unchanged when $s$ already contains
+    Note that this leaves $o$ unchanged when $o$ already contains
     and object $o$ which is equal to $o_j$ according to operator \lit{==}.%
   }
 \item
-  The result of the evaluation is $s$.
+  The result of the evaluation is $o$.
 \end{itemize}
 
 \LMHash{}%
@@ -8677,7 +8702,8 @@ the \lit{==} operator inherited from the \code{Object} class.
 \LMLabel{maps}
 
 \LMHash{}%
-A \IndexCustom{map literal}{literal!map} denotes a map object.
+A \IndexCustom{map literal}{literal!map} denotes a map object,
+which is a mapping from keys to values.
 The grammar rule for \synt{setOrMapLiteral} which covers both
 map literals and set literals occurs elsewhere
 (\ref{collectionLiterals}).
@@ -8698,8 +8724,8 @@ and $e$ is henceforth treated as
 \code{<$K$,\,$V$>$e$}.
 
 \commentary{%
-The static type of a map literal of the form \code{<$K$,\,\,$V$>$e$}
-is \code{Map<$K$,\,\,$V$>}
+The static type of a map literal of the form \code{<$K$,\,$V$>$e$}
+is \code{Map<$K$,\,$V$>}
 (\ref{setAndMapLiteralInference}).%
 }
 
@@ -8716,7 +8742,11 @@ $V_j$ may not be assigned to $V$.
 
 \LMHash{}%
 A map object consists of zero or more map entries.
-Each entry has a \Index{key} and a \Index{value}.
+Each entry has a \Index{key} and a \Index{value},
+and we say that the map
+\IndexCustom{binds}{map!binds} or
+\IndexCustom{maps}{map!maps}
+the key to the value.
 A key and value pair is
 added to a map using operator \lit{[]=},
 and the value for a given key is retrieved from a map using operator \lit{[]}.
@@ -8738,7 +8768,7 @@ occurs in the order in which the keys were added to the set.
 \commentary{%
 The system libraries support many operations on an instance
 whose type implements \code{Map},
-but we specify only the minimal set of features
+but we specify only the minimal set of requirements
 which are used by the language itself.
 
 Note that an implementation may require consistent definitions of several members
@@ -8797,36 +8827,44 @@ so we cannot use such type parameters inside constant expressions.%
 
 \LMHash{}%
 The value of a constant map literal
-\code{\CONST?\,\,<$K, V$>\{\List{\ell}{1}{m}\}}
-is an object $m$ whose class implements the built-in class
-\code{Map<$K$,\,\,$V$>}.
-The key and value pairs of $m$ is
+\code{\CONST?\,\,<$T_1$,\,$T_2$>\{\List{\ell}{1}{m}\}}
+is an object $o$ whose class implements the built-in class
+\code{Map<$t_1$,\,\,$t_2$>},
+where $t_1$ and $t_2$ is the actual value of $T_1$ respectively $T_2$
+(\ref{actualTypes}).
+The key and value pairs of $o$ is
 the pairs of the object sequence \KeyValueList{k}{v}{1}{n} obtained by
 evaluation of \List{\ell}{1}{m}
 (\ref{collectionLiteralElementEvaluation}),
 in that order.
 
 \LMHash{}%
-Let $map_1$ be a constant map literal of the form
-\code{\CONST?\,\,<$K, V$>\{\List{\ell}{1}{m_1}\}}
-and $map_2$ a constant map literal of the form
-\code{\CONST?\,\,<$J, U$>\{\List{\ell}{1}{m_2}\}}.
-Assume that the key and value pairs of $map_1$ are
-\KeyValueList{k_1}{v_1}{1}{n}
-and the key and value pairs of $map_2$ are
-\KeyValueList{k_2}{v_2}{1}{n}.
-If{}f
-\code{identical($k_{1i}$, $k_{2i}$)} and
+Let \code{\CONST?\,\,<$U_1$,\,$V_1$>\{\List{\ell}{1}{m_1}\}}
+and \code{\CONST?\,\,<$U_2$,\,$V_2$>\{\List{\ell}{1}{m_2}\}}
+be two constant map literals.
+Let $o_1$ with contents \KeyValueList{k_1}{v_1}{1}{n}
+and actual type arguments $u_1$, $v_1$
+respectively
+$o_2$ with contents \KeyValueList{k_2}{v_2}{1}{n}
+and actual type argument $u_2$, $v_2$
+be the result of evaluating them.
+Then \code{identical($o_1$, $o_2$)} evaluates to \TRUE{} if{}f
+\code{$u_1$ == $u_2$}, \code{$v_1$ == $v_2$},
+\code{identical($k_{1i}$, $k_{2i}$)}, and
 \code{identical($v_{1i}$, $v_{2i}$)}
-for $i \in 1 .. n$, and $K == J, V == U$, then \code{identical($map_1$, $map_2$)}.
+for all $i \in 1 .. n$.
 
 \commentary{%
-In other words, constant map literals are canonicalized.%
+In other words, constant map literals are canonicalized.
+There is no need to consider canonicalization
+for other instances of type \code{Map},
+because such instances cannot be
+the result of evaluating a constant expression.%
 }
 
 \LMHash{}%
 A run-time map literal
-\code{<$K, V$>\{\List{\ell}{1}{m}\}}
+\code{<$T_1, T_2$>\{\List{\ell}{1}{m}\}}
 is evaluated as follows:
 \begin{itemize}
 \item
@@ -8834,15 +8872,17 @@ is evaluated as follows:
   (\ref{collectionLiteralElementEvaluation}),
   to an object sequence \LiteralSequence{\KeyValueList{k}{v}{1}{n}}.
 \item
-  A fresh instance (\ref{generativeConstructors}) $m$
-  whose class implements the built-in class \code{Map<$K$,\,\,$V$>},
-  is allocated.
+  A fresh instance (\ref{generativeConstructors}) $o$
+  whose class implements the built-in class \code{Map<$t_1$,\,\,$t_2$>}
+  is allocated,
+  where $t_1$ and $t_2$ are the actual values of $T_1$ respectively $T_2$
+  (\ref{actualTypes}).
 \item
-  The operator \lit{[]=} is invoked on $m$
+  The operator \lit{[]=} is invoked on $o$
   with first argument $k_i$ and second argument $v_i$,
   for each $i \in 1 .. n$, in that order.
 \item
-  The result of the evaluation is $m$.
+  The result of the evaluation is $o$.
 \end{itemize}
 
 \LMHash{}%
@@ -9678,7 +9718,7 @@ If $f$ is marked \code{\SYNC*} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $i$
 implementing \code{Iterable<$U$>} is immediately returned,
 where $U$ is determined as follows:
-Let $T$ be the actual return type of $f$ (\ref{actualTypeOfADeclaration}).
+Let $T$ be the actual return type of $f$ (\ref{actualTypes}).
 If $T$ is \code{Iterable<$S$>} for some type $S$, then $U$ is $S$,
 otherwise $U$ is \code{Object}.
 
@@ -9743,7 +9783,7 @@ Two executions of an iterator interact only via state outside the function.
 If $f$ is marked \ASYNC{} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $o$ is associated with the invocation,
 where the dynamic type of $o$ implements \code{Future<$flatten(T)$>},
-and $T$ is the actual return type of $f$ (\ref{actualTypeOfADeclaration}).
+and $T$ is the actual return type of $f$ (\ref{actualTypes}).
 Then the body of $f$ is executed until it either suspends or completes, at which point $o$ is returned.
 \commentary{
 The body of $f$ may suspend during the evaluation of an \AWAIT{} expression or execution of an asynchronous \FOR{} loop.
@@ -9766,7 +9806,7 @@ If $f$ is marked \code{\ASYNC*} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $s$
 implementing \code{Stream<$U$>} is immediately returned,
 where $U$ is determined as follows:
-Let $T$ be the actual return type of $f$ (\ref{actualTypeOfADeclaration}).
+Let $T$ be the actual return type of $f$ (\ref{actualTypes}).
 If $T$ is \code{Stream<$S$>} for some type $S$, then $U$ is $S$,
 otherwise $U$ is \code{Object}.
 When $s$ is listened to, execution of the body of $f$ will begin.
@@ -10178,19 +10218,19 @@ All of these remaining parameters are necessarily optional and thus have default
 % Check the type arguments.
 % This error can occur due to covariance and due to dynamic invocation.
 It is a dynamic type error if $t_i$ is not a subtype of the actual bound
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of the $i$th type argument of $f$, for actual type arguments $t_1, \ldots, t_r$.
 % Check the types of positional arguments.
 % This error can occur due to implicit casts, covariance, and dynamic calls.
 It is a dynamic type error if $o_i$ is not the null object (\ref{null})
 and the actual type
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of $p_i$ is not a supertype of the dynamic type of $o_i, i \in 1 .. m$.
 % Check the types of named arguments.
 % This error can occur due to implicit casts, covariance, and dynamic calls.
 It is a dynamic type error if $o_{m+j}$ is
 not the null object and the actual type
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of $q_j$ is not a supertype of the dynamic type of $o_{m+j}, j \in 1 .. l$.
 
 
@@ -10461,7 +10501,7 @@ Function closurization applied to a function declaration $f$
 amounts to the creation of a function object $o$
 which is an instance of a class $C$ whose interface is
 a subtype of the actual type $F$
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 corresponding to the signature in the function declaration $f$,
 using the current bindings of type variables, if any.
 There does not exist a function type $F'$ which is a proper subtype of $F$
@@ -12059,7 +12099,7 @@ Then, the setter \code{$v$=} is looked up (\ref{lookup}) in $o_1$ with respect t
 % This error can occur due to implicit casts and dynamic calls.
 It is a dynamic type error if the dynamic type of $o_2$
 is not a subtype of the actual parameter type of said setter
-(\ref{actualTypeOfADeclaration}).
+(\ref{actualTypes}).
 Otherwise, the body of the setter is executed with its formal parameter bound to $o_2$ and \THIS{} bound to $o_1$.
 
 \LMHash{}%
@@ -12122,7 +12162,7 @@ The value of the assignment expression is $o$.
 It is a dynamic type error if $o$ is not the null object (\ref{null})
 and the dynamic type of $o$ is
 not a subtype of the actual type of the formal parameter of \code{$v$=}
-(\ref{actualTypeOfADeclaration}) in $S_{static}$.
+(\ref{actualTypes}) in $S_{static}$.
 \EndCase
 
 \LMHash{}%
@@ -14002,7 +14042,7 @@ Then, the variable $v$ is set to $o$.
 % This error can occur due to implicit casts.
 A dynamic type error occurs
 if the dynamic type of $o$ is not a subtype of the actual type
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of $v$.
 
 % The local variable discussion does not mention how to read/write locals.
@@ -14971,7 +15011,7 @@ Executing a return statement \code{\RETURN{} $e$;} proceeds as follows:
 First the expression $e$ is evaluated, producing an object $o$.
 Let $S$ be the run-time type of $o$ and
 let $T$ be the actual return type of $f$
-(\ref{actualTypeOfADeclaration}).
+(\ref{actualTypes}).
 If the body of $f$ is marked \ASYNC{} (\ref{functions})
 and $S$ is a subtype of \code{Future<\flatten{T}>}
 then let $r$ be the result of evaluating \code{await $v$}
@@ -16344,7 +16384,7 @@ Certain dynamic type checks are performed during execution
 As specified in those locations,
 these dynamic checks are based on the dynamic types of instances,
 and the actual types of declarations
-(\ref{actualTypeOfADeclaration}).
+(\ref{actualTypes}).
 }
 
 \LMHash{}%
@@ -17893,8 +17933,8 @@ where $X_1, \ldots, X_n$ are the formal type parameters of $G$.
 %% `C<T>` for any `T`, and we have `class C<X> { void Function(X) f; }`.
 
 
-\subsubsection{Actual Type of Declaration}
-\LMLabel{actualTypeOfADeclaration}
+\subsubsection{Actual Types}
+\LMLabel{actualTypes}
 
 % NOTE(eernst): The actual type arguments in this section are dynamic entities,
 % not syntax (the concept of an 'actual type' and an 'actual bound' is used to
@@ -17911,39 +17951,36 @@ where $X_1, \ldots, X_n$ are the formal type parameters of $G$.
 % body.
 
 \LMHash{}%
-Let $T$ be the declared type of a declaration $d$,
-as it appears in the program source.
-Let $X_1, \ldots, X_n$ be the formal type parameters in scope at $d$.
+Let $T$ be a term derived from \synt{type}.
+Let \List{X}{1}{s} be the formal type parameters in scope
+at the location where $T$ occurs.
 In a context where the actual type arguments corresponding to
-$X_1, \ldots, X_n$
-are
-$t_1, \ldots, t_n$,
-the \Index{actual type} of $d$ is
-$[t_1/X_1, \ldots, t_n/X_n]T$.
+\List{X}{1}{s} are \List{t}{1}{s},
+the \Index{actual value of the type} $T$ is then
+$[t_1/X_1, \ldots, t_s/X_s]T$.
 
-\commentary{
-In the non-generic case where $n = 0$ the actual type is equal to the declared type.
-Note that
-$X_1, \ldots, X_n$
-may be declared by multiple entities, e.g.,
-one or more enclosing generic functions and an enclosing generic class.
+\LMHash{}%
+Let $D$ be a declaration with name $n$ and type annotation $T$.
+The \Index{actual type} of $D$ and of $n$ in a given context is
+then the actual value of $T$ in that context.
+
+\commentary{%
+In the non-generic case where $s = 0$,
+the actual type is equal to the declared type,
+in the sense that we use simple terms like \code{int} to denote both.
+Note that \List{X}{1}{s} may be declared by multiple entities, e.g.,
+one or more enclosing generic functions and an enclosing generic class.%
 }
 
 \LMHash{}%
 Let \code{$X$ \EXTENDS{} $B$} be a formal type parameter declaration.
-Let
-$X_1, \ldots, X_n$
-be the formal type parameters in scope at the declaration of $X$.
-In a context where the actual type arguments corresponding to
-$X_1, \ldots, X_n$
-are
-$t_1, \ldots, t_n$,
-the \Index{actual bound} for $X$ is
-$[t_1/X_1, \ldots, t_n/X_n]B$.
+The \Index{actual bound} of $X$ in a given context is
+the actual value of $B$ in that context.
 
-\commentary{
-Note that there exists a $j$ such that $X = X_j$,
-because each formal type parameter is in scope at its own declaration.
+\commentary{%
+Note that even though $X$ may occur in $B$
+it does not occur in the actual value of $B$,
+because no type has an actual value that includes a type variable.%
 }
 
 

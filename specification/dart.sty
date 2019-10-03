@@ -335,7 +335,8 @@
 % Context types: Avoid the `?` because that is also concrete type
 % syntax.
 %% TODO(eernst): Find a suitable symbol for this, e.g., a curly questionmark.
-\newcommand{\FreeContext}{\ensuremath{\square}}
+\newcommand{\FreeContext}{\ensuremath{\raisebox{0.25ex}{%
+      \makebox[0pt][c]{\hspace{0.8em}\scriptsize?}}\square}}
 
 % Sequences of objects used during collection literal evaluation: Just
 % a specification concept, may or may not have an actual underlying
