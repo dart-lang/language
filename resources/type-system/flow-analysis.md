@@ -5,7 +5,7 @@ paulberry@google.com, leafp@google.com
 This is roughly based on the proposal discussed in
 https://docs.google.com/document/d/11Xs0b4bzH6DwDlcJMUcbx4BpvEKGz8MVuJWEfo_mirE/edit.
 
-**Status**: Proposal.
+**Status**: Draft.
 
 This defines the local analysis (within function and method bodies) that
 underlies type promotion, definite assignment analysis, and reachability
@@ -59,13 +59,14 @@ int stringLength4(String? stringOrNull) {
 } // ok!
 ```
 
-Finally, to support NNBD, we believe definite assignment analysis should be added to the spec,
-so that a user is not required to initialize non-nullable local variables if it can be proven
-that they will be assigned a non-null value before being read.
-There are currently discussions underway about exactly how definite assignment should be specified,
-and there is a [prototype implementation](
-https://github.com/dart-lang/sdk/blob/master/pkg/analyzer/lib/src/dart/resolver/definite_assignment.dart)
-in the analyzer codebase which is not yet enabled.
+Finally, to support NNBD, we believe definite assignment analysis should be
+added to the spec, so that a user is not required to initialize non-nullable
+local variables if it can be proven that they will be assigned a non-null value
+before being read.  There are currently discussions underway about exactly how
+definite assignment should be specified, and there is
+a
+[prototype implementation]( https://github.com/dart-lang/sdk/blob/master/pkg/analyzer/lib/src/dart/resolver/definite_assignment.dart) in
+the analyzer codebase which is not yet enabled.
 
 With all the above, we should properly analyze these functions:
 
@@ -136,6 +137,8 @@ that assignment).
     the top element of `s`.  If `s` is empty, the result is undefined.
   - We use the notation `top(s)` to mean the top element of the stack `s`.  If
     `s` is empty, the result is undefined.
+  - Informally, we also use `a::t` to describe a stack `s` such that `top(s)` is
+    `a` and `pop(s)` is `t`.
 
 ### Models
 
@@ -249,9 +252,9 @@ We also make use of the following auxiliary functions:
   where `r2` is `r` with `true` pushed as the top element of the stack.
 
 - `unsplit(M)`, where `M = FlowModel(r, VM)` is defined as `M1 = FlowModel(r1,
-  VM)` where `r1 = push(pop(pop(r1)), top(r1) && top(top(r1)))`. The model `M1`
-  is a flow model which collapses the top two elements of the reachability model
-  from `M` into a single boolean which conservatively summarizes the
+  VM)` where `r` is of the form `n0::n1::s` and `r1 = (n0&&n1)::s`. The model
+  `M1` is a flow model which collapses the top two elements of the reachability
+  model from `M` into a single boolean which conservatively summarizes the
   reachability information present in `M`.
 
 - `merge(M1, M2)`, where `M1` and `M2` are flow models is the inverse of `split`
@@ -295,8 +298,9 @@ We say that the **current type** of a variable `x` in variable model `VM` is `S`
   - `promoted = S::l` or (`promoted = []` and `declared = S`)
 
 Policy:
-  - We say that at type `T` is a type of interest for a variable `x` in a set
-    of tested types `tested` if `tested` contains `T`.
+  - We say that at type `T` is a type of interest for a variable `x` in a set of
+    tested types `tested` if `tested` contains a type `S` such that `T` is `S`,
+    or `T` is **NonNull(`S`)**.
 
   - We say that a variable `x` is promotable via type test with type `T` given
     variable model `VM` if
@@ -327,7 +331,8 @@ Policy:
     type `T` given variable model `VM` if
     - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
     - and `captured` is false
-    - and promoted contains `T`
+    - and declared::promoted contains a type `S` such that `T` is `S` or `T` is
+      **NonNull(`S`)**.
 
 Definitions:
 
@@ -343,8 +348,11 @@ Definitions:
       - `VM = VariableModel(declared, T::promoted, tested, true, false, captured)`.
     - otherwise if `x` is demotable via assignment of `E` given `VM`
       - `VM = VariableModel(declared, demoted, tested, true, false, captured)`.
-      - where `demoted` is the suffix of `promoted` starting with the first type
-        `S` such that `T <: S`.
+      - where `previous` is the suffix of `promoted` starting with the first type
+        `S` such that `T <: S`, and:
+        - if `S`is nullable and if `T <: Q` where `Q` is **NonNull(`S`)** then
+          `demoted` is `Q::previous`
+        - otherwise `demoted` is `previous`
 
 - `promote(E, T, M)` where `E` is an expression, `T` is a type which it may be
   promoted to, and `M = FlowModel(r, VI)` is the flow model in which to promote,
@@ -478,7 +486,7 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
   - Let `before(E1) = before(N)`
   - Let `before(E2) = after(E1)`
   - Let `true(N) = join(join(null(E1), null(E2)),
-                   join(notNull(E1), notNull(E2)))`
+                        join(notNull(E1), notNull(E2)))`
   - Let `false(N) = join(join(null(E1), notNull(E2)),
                          join(notNull(E1), null(E2)),
                          join(notNull(E1), notNull(E2)))`
@@ -490,12 +498,12 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
   - Let `M2 = split(promoteToNonNull(x, before(N)))`
   - Let `after(N) = merge(M1, M2)`
 
-TODO: This isn't really right, `E1` isn't reallyt an expression here.
+TODO: This isn't really right, `E1` isn't really an expression here.
 - **Non local-variable conditional assignment**: If `N` is an expression of the form
   `E1 ??= E2` where `E1` is not a local variable, then:
   - Let `before(E1) = before(N)`
-  - Let `before(E2) = split(after(E1))`.
-  - Let `after(N) = merge(after(E2), split(before(N)))`
+  - Let `before(E2) = split(null(E1))`.
+  - Let `after(N) = merge(after(E2), split(notNull(E1)))`
 
 TODO: Cascades
 
@@ -534,7 +542,16 @@ TODO: Cascades
 - **Binary operator**: All binary operators other than `==`, `&&`, `||`, and
   `??`are handled as calls to the appropriate `operator` method.
 
+- **Null check operator**: If `N` is an expression of the form `E!`, then:
+  - Let `before(E) = before(N)`
+  - Let `null(N) = unreachable(null(E))`
+  - Let `nonNull(N) = nonNull(E)`
 
+
+TODO: Think about nullability.  Is it worth it to note that `null(x+y)` is
+unreachable if `x` has type `int`?
+
+// Model assignment LHS as expression, followed ?.x, ?.[], .x, []?
 
 
 
