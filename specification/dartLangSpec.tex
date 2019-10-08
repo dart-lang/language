@@ -28,11 +28,6 @@
 % Significant changes to the specification.
 %
 % 2.4
-% - Change specification of `await` to be type-safe.
-%   The existing specification allowed predictable run-time type errors for
-%   well-typed programs like
-%       FutureOr<Future<S>> ffs = Future<S>.value(s);
-%       Future<S> fs = await ffs;
 % - Clarify the section 'Exports'.
 % - Update grammar rules for <declaration>, to support `static late final`
 %   variables with no initializer; for several top-level declarations,
@@ -48,6 +43,9 @@
 % - Specify the signature of the `call` method of a function object.
 % - Add the rule that it is an error for a type variable of a class to occur
 %   in a non-covariant position in a superinterface.
+% - Change specification of `await` to be type-safe, avoiding cases like:
+%       FutureOr<Future<S>> ffs = Future<S>.value(s);
+%       Future<S> fs = await ffs;
 %
 % 2.3
 % - Add requirement that the iterator of a for-in statement must have
@@ -11559,8 +11557,6 @@ Tools may choose to give a hint in such cases.%
 
 \LMHash{}%
 The static type of $a$ is $T$.
-If $a$ has a static context type $R$, then the static context type of
-$e$ is \code{FutureOr<$R$>}.
 
 
 \subsection{Postfix Expressions}
