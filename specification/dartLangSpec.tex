@@ -11511,10 +11511,13 @@ An \Index{await expression} allows code to yield control until an asynchronous o
 
 \LMHash{}%
 Evaluation of an await expression $a$ of the form \code{\AWAIT{} $e$}
-with a static context type of $T$ proceeds as follows:
+where $e$ has static type $S$ proceeds as follows:
 First, the expression $e$ is evaluated to an object $o$.
+Let $T$ be \flatten{S}
+(\flatten{} is defined in section \ref{functionExpressions}).
 It is a dynamic type error if the run-time type of $o$ is not a subtype
-of \code{FutureOr<$T$>}.
+of \code{FutureOr<$T$>} \commentary{(that is, if it is neither a subtype
+of $T$ nor of \code{Future<$T$>})}.
 
 \LMHash{}%
 % NOTICE: Removed the requirement that an error thrown by $e$ is caught in a
@@ -11555,7 +11558,9 @@ Tools may choose to give a hint in such cases.%
 }
 
 \LMHash{}%
-The static type of $a$ is \flatten{S} (\flatten{} is defined in section \ref{functionExpressions}) where $S$ is the static type of $e$.
+The static type of $a$ is $T$.
+If $a$ has a static context type $R$, then the static context type of
+$e$ is \code{FutureOr<$R$>}.
 
 
 \subsection{Postfix Expressions}
