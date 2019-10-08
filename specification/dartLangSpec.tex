@@ -28,6 +28,11 @@
 % Significant changes to the specification.
 %
 % 2.4
+% - Change specification of `await` to be type-safe.
+%   The existing specification allowed predictable run-time type errors for
+%   well-typed programs like
+%       FutureOr<Future<S>> ffs = Future<S>.value(s);
+%       Future<S> fs = await ffs;
 % - Clarify the section 'Exports'.
 % - Update grammar rules for <declaration>, to support `static late final`
 %   variables with no initializer; for several top-level declarations,
@@ -11505,14 +11510,17 @@ An \Index{await expression} allows code to yield control until an asynchronous o
 \end{grammar}
 
 \LMHash{}%
-Evaluation of an await expression $a$ of the form \AWAIT{} $e$ proceeds as follows:
+Evaluation of an await expression $a$ of the form \code{\AWAIT{} $e$}
+with a static context type of $T$ proceeds as follows:
 First, the expression $e$ is evaluated to an object $o$.
+It is a dynamic type error if the run-time type of $o$ is not a subtype
+of \code{FutureOr<$T$>}.
 
 \LMHash{}%
 % NOTICE: Removed the requirement that an error thrown by $e$ is caught in a
 % future. There is no reason $var x = e; await x;$ and $await e$ should behave
 % differently, and no implementation actually implemented it.
-Then, if $o$ is not an instance of \code{Future}, then let $f$ be the result of creating a new object using the constructor \code{Future.value()} with $o$ as its argument; otherwise let $f$ be $o$.
+If the run-time type of $o$ is a subtype of \code{Future<$T$>}, then let $f$ be $o$; otherwise let $f$ be the result of creating a new object using the constructor \code{Future<$T$>.value()} with $o$ as its argument.
 
 \LMHash{}%
 Next, the stream associated with the innermost enclosing asynchronous for loop (\ref{asynchronousFor-in}), if any, is paused.
@@ -11526,27 +11534,28 @@ If $f$ completes with an object $v$, $a$ evaluates to $v$.
 %Otherwise, the value of $a$ is the value of $e$. If evaluation of $e$ raises an exception $x$, $a$ raises $x$.
 
 \commentary{%
-It is typically a compile-time error
-if the function immediately enclosing $a$ is not declared asynchronous.
-E.g., it can be a syntax error because \AWAIT{} has no special meaning
-in the context of a normal function.
-However, \code{\AWAIT($e$)} can also be a function invocation.%
+An await expression can only occur in a function which is declared
+asynchronous. The \AWAIT{} identifier has has no special meaning
+in the context of a normal function, so occurrences of \AWAIT{}
+in those functions does not introduce an await expression.
+However, \code{\AWAIT ($e$)} can be a valid function invocation in
+non-asynchronous functions.%
 }
 
 \rationale{%
-An await expression has no meaning in a synchronous function.
+An await expression could not meaningfully occur in a synchronous function.
 If such a function were to suspend waiting for a future,
 it would no longer be synchronous.%
 }
 
 \commentary{%
 It is not a compile-time error if the type of $e$ is not
-a subtype of \code{Future}.
+a supertype or subtype of \code{Future}.
 Tools may choose to give a hint in such cases.%
 }
 
 \LMHash{}%
-The static type of $a$ is \flatten{T} (\flatten{} is defined in section \ref{functionExpressions}) where $T$ is the static type of $e$.
+The static type of $a$ is \flatten{S} (\flatten{} is defined in section \ref{functionExpressions}) where $S$ is the static type of $e$.
 
 
 \subsection{Postfix Expressions}
