@@ -242,7 +242,7 @@ That raises the question of whether we want to support arbitrary constant
 expressions. That has some appeal, but means that much of the expression grammar
 would overlap the pattern grammar, which leads to ambiguity and pain. Consider,
 for example, `[1, 2]`. Is that a constant pattern containing a constant list
-literal, or a list descructuring pattern containing two literal patterns?
+literal, or a list destructuring pattern containing two literal patterns?
 
 ### Destructure collections
 
@@ -262,7 +262,6 @@ collection literal expression form:
 ```dart
 Object obj = ...
 match (obj) {
-  case (a, b) => print("tuple with elements $a and $b");
   case [a, b] => print("list with elements $a and $b");
   case {a, b} => print("set with elements $a and $b");
   case (a, b) => print("tuple with elements $a and $b");
