@@ -9670,8 +9670,18 @@ Notice that the wording avoids re-evaluating the receiver $o$ and the arguments 
 
 \LMHash{}%
 A \IndexCustom{cascaded method invocation}{method invocation!cascaded}
-has the form \code{$e$..\metavar{suffix}}
-where $e$ is an expression and \metavar{suffix} is a sequence of operator, method, getter or setter invocations.
+has the form \code{$e$..\metavar{suffix}} or \code{$e$?..\metavar{suffix}},
+where $e$ is an expression
+and \metavar{suffix} is derived from \synt{cascadeSection}.
+
+\rationale{%
+A \synt{cascadeSection} basically allows for accessing members
+including setters.
+The motivation for having cascaded invocations is that they can be
+!!!HERE!!!
+}
+
+is a sequence of operator, method, getter or setter invocations.
 
 \begin{grammar}
 <cascadeSequence> ::= (`?..' | `..') <cascadeSection> (`..' <cascadeSection>)*
