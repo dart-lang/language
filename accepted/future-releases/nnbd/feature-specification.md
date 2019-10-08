@@ -6,6 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
+2019.10.08
+  - Warning to call null check operator on non-nullable expression
+  - Factory constructors may not return null
+  - Fix discussion of legacy `is` check
+  - Specify flatten
 2019.04.23:
   - Added specification of short-circuiting null
   - Added `e1?.[e2]` operator syntax
@@ -91,6 +96,19 @@ The same is true for `{ int ? - 3 : 3 }` if we allow this.
 The internal representation of types is extended with a type `T*` for every type
 `T` to represent legacy pre-NNBD types.  This is discussed further in the legacy
 library section below.
+
+### Future flattening
+
+The **flatten** function is modified as follows:
+
+**flatten**(`T`) is defined by cases on `T`:
+  - if `T` is `S?` then **flatten**(`T`) = **flatten**(`S`)`?`
+  - otherwise if `T` is `S*` then **flatten**(`T`) = **flatten**(`S`)`*`
+  - otherwise if `T` is `FutureOr<S>` then **flatten**(`T`) = `S`
+  - otherwise if `T` is `FutureOr<S>` then **flatten**(`T`) = `S`
+  - otherwise if `T <: Future` then let `S` be a type such that `T <: Future<S>`
+and for all `R`, if `T <: Future<R>` then `S <: R`; then **flatten**('T') = `S`
+  - otherwise **flatten**('T') = `T`
 
 ### Static errors
 
@@ -204,6 +222,11 @@ is declared `late` and does not have an initializer.
 
 It is an error if the object being iterated over by a `for-in` loop has a static
 type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
+
+It is an error if the type of the value returned from a factory constructor is
+not a subtype of the class type associated with the class in which it is defined
+(specifically, it is an error to return a nullable type from a factory
+constructor for any class other than `Null`).
 
 It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
 `...?`) on a non-nullable receiver.
@@ -518,6 +541,12 @@ When weak checking is enabled, runtime type tests (including explicit and
 implicit casts) shall succeed with a warning whenever the runtime type test
 would have succeeded if all `?` types were ignored, `Never` were treated as
 `Null`, and `required` named parameters were treated as optional.
+
+In legacy libraries, whether run in strong or weak checking mode, instance
+checks (`e is T`) also return `false` whenever they would have done so pre-nnbd.
+Specifically, if `e` evaluates to `null`, then `e is T` always returns `false`
+unless `T` is `Null`, `Never`, `Object`, `dynamic`, `void`, or a nullable or
+legacy version of any of the above.
 
 ### Exports
 
