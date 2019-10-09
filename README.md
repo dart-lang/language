@@ -43,7 +43,6 @@ When commenting on issues in this repository, keep in mind:
     your experiences with other languages, but we also want to know why they are
     right for Dart in particular.
 
-
 ## License & patents
 
 See [LICENSE][license] and [PATENTS][patents].
