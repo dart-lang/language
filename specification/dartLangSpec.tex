@@ -9665,23 +9665,15 @@ Notice that the wording avoids re-evaluating the receiver $o$ and the arguments 
 \EndCase
 
 
-\subsubsection{Cascaded Invocations}
-\LMLabel{cascadedInvocations}
+\subsubsection{Cascades}
+\LMLabel{cascades}
 
 \LMHash{}%
-A \IndexCustom{cascaded method invocation}{method invocation!cascaded}
-has the form \code{$e$..\metavar{suffix}} or \code{$e$?..\metavar{suffix}},
-where $e$ is an expression
-and \metavar{suffix} is derived from \synt{cascadeSection}.
-
-\rationale{%
-A \synt{cascadeSection} basically allows for accessing members
-including setters.
-The motivation for having cascaded invocations is that they can be
-!!!HERE!!!
-}
-
-is a sequence of operator, method, getter or setter invocations.
+A \Index{cascade} is a kind of expression that allows for performing
+multiple operations on a given object
+without storing it in a variable and and accessing it via a name.
+Cascades can have different syntactic forms,
+but will always contain two periods \lit{..}.
 
 \begin{grammar}
 <cascadeSequence> ::= (`?..' | `..') <cascadeSection> (`..' <cascadeSection>)*
@@ -9701,22 +9693,125 @@ is a sequence of operator, method, getter or setter invocations.
 \end{grammar}
 
 \LMHash{}%
-Evaluation of a cascaded method invocation expression $c$ of the form \code{$e$..\metavar{suffix}} proceeds as follows:
+A \IndexCustom{cascaded member access}{cascaded member access}
+is an expression of the form
+\code{$e$..\metavar{suffix}} or \code{$e$?..\metavar{suffix}},
+% The grammar enforces that $e$ is a \synt{conditionalExpression},
+% but that is also an expression.
+where $e$ is an expression
+and \metavar{suffix} is derived from \synt{cascadeSection}.
+The form
+\code{$e$?..\metavar{suffix}}
+is also known as a
+\IndexCustom{conditional cascaded member access}{%
+  cascaded member access!conditional}.
 
+\rationale{%
+A \synt{cascadeSection} allows for accessing members, including setters.
+The motivation for having a cascaded member access is that it allows for
+performing a chain of operations based on an object
+while preserving a reference to that object for further processing.%
+}
+
+\commentary{%
+For example, \code{C()..foo.bar()} allows us to obtain a reference to
+the object $o$ which is the result of evaluating \code{C()},
+and at the same time use $o$ to invoke the getter \code{foo} and
+invoke \code{bar()} on the value returned by that getter.%
+}
+
+\LMHash{}%
+Using \synt{cascadeSequence}, an expression can include
+multiple cascade sections
+(\ref{expressions}).
+
+\LMHash{}%
+For some $k > 0$,
+let $e$ be an expression of the form
+\code{$e_0$..$s_1$\,\,$\cdots$\,\,..$s_k$}
+where $s_j$ is derived from \synt{cascadeSection}, $j \in 1 .. k$,
+such that $k$ is maximal.
+That is, there is no $s_{k+1}$ derived from \synt{cascadeSection}
+such that $e$ is a subexpression of the larger expression
+\code{$e$..$s_{k+1}$}.
+Then $e$ is treated as
+(\ref{notation})
+\code{(($e_0$..$s_1$)\,\,$\cdots$\,\,)..$s_k$}.
+
+\LMHash{}%
+For some $k > 0$,
+let $e$ be an expression of the form
+\code{$e_0$?..$s_1$\,\,$\cdots$\,\,..$s_k$}
+where $s_j$ is derived from \synt{cascadeSection}, $j \in 1 .. k$,
+such that $k$ is maximal in the same sense as above.
+Then $e$ is treated as
+\code{(($e_0$?..$s_1$)\,\,$\cdots$\,\,)?..$s_k$}.
+
+\commentary{%
+With these transformations in place,
+there will never be an expression that includes multiple cascade sections.
+So we need only specify the static analysis and dynamic semantics for
+expressions that contain a \synt{cascadeSequence}
+which contains exactly one \synt{cascadeSection}.%
+}
+
+\LMHash{}%
+% Note that the use of <conditionalExpression> here prevents a sequence of
+% multiple <cascadeSection>s, but it does allow ($e_1$..$s_1$)..$s$,
+% because (<expression>) is a primary.
+Let $e$ be an expression of the form \code{$e_0$..$s$}
+where $e_0$ is a \synt{conditionalExpression}
+and $s$ is a \synt{cascadeSection}.
+Exactly the same compile-time errors are raised for $e$
+as would be raised for \code{$e_0$.$s$}.
+The static type of $e$ is the static type of $e_0$.
+
+\LMHash{}%
+%% TODO(eernst): Come nnbd, adjust for nullability of type of $e_0$.
+Let $e$ be an expression of the form \code{$e_0$?..$s$}
+where $e_0$ is a \synt{conditionalExpression}
+and $s$ is a \synt{cascadeSection}.
+Exactly the same compile-time errors are raised for $e$
+as would be raised for \code{$e_0$?.$s$}.
+% This means that `e?.s` can has a non-nullable type when `e` has a
+% non-nullable type. But that case is a warning, so the anomaly will
+% be flagged.
+The static type of $e$ is the static type of $e_0$.
+
+\LMHash{}%
+Evaluation of a cascaded member access expression $c$ of the form
+\code{$e$..\metavar{suffix}}
+where \metavar{suffix} is derived from \synt{cascadeSection}
+proceeds as follows:
 Evaluate $e$ to an object $o$.
 Let $t$ be a fresh variable bound to $o$.
 Evaluate \code{$t$.\metavar{suffix}} to an object.
 Then $c$ evaluates to $o$.
 
 \LMHash{}%
-The static type of $c$ is the static type of $e$.
+Evaluation of a conditional cascaded member access expression $c$ of the form
+\code{$e$?..\metavar{suffix}}
+where \metavar{suffix} is derived from \synt{cascadeSection}
+proceeds as follows:
+Evaluate $e$ to an object $o$.
+If $o$ is the null object then $e$ evaluates to $o$.
+Otherwise let $t$ be a fresh variable bound to $o$ and
+evaluate \code{$t$.\metavar{suffix}} to an object.
+Then $c$ evaluates to $o$.
 
-\rationale{
-With the introduction of null-aware conditional assignable expressions (\ref{assignableExpressions}), it would make sense to extend cascades with a null-aware conditional form as well.
-One might define \code{$e$?..\metavar{suffix}} to be equivalent to the expression \code{$t$ == \NULL{} ? \NULL{} : $t$.\metavar{suffix}} where $t$ is a fresh variable bound to the value of $e$.
-
-The present specification has not added such a construct, in the interests of simplicity and rapid language evolution.
-However, Dart implementations may experiment with such constructs, as noted in section \ref{ecmaConformance}.
+\commentary{%
+Note that an expression of the form
+\code{(($e_0$?..$s_1$)\,\,$\cdots$\,\,)?..$s_k$}
+is guaranteed to have the same observable behavior as the following
+expression, where \code{\LET\,..\,\IN} is a pseudo-code expression
+that allows for the introduction and use of a local variable
+inside an expression:
+%% TODO(eernst): If we add a \LET{} to the language, make this the
+%% official desugaring of `e?..s`.
+\code{\LET\,\,v = $e_0$\,\,\IN\,\,(v == null)?%
+  \,\,null\,:\,v..$s_1$\,\,$\cdots$\,\,..$s_k$}.
+This fact can be used by implementations to avoid the repeated checks
+for null implied by the original form.%
 }
 
 
