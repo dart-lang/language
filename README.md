@@ -42,4 +42,3 @@ See [LICENSE][license] and [PATENTS][patents].
 [website]: https://www.dartlang.org
 [license]: https://github.com/dart-lang/language/blob/master/LICENSE
 [patents]: https://github.com/dart-lang/language/blob/master/PATENTS
-
