@@ -9774,8 +9774,9 @@ and $s$ is a \synt{cascadeSection}.
 Exactly the same compile-time errors are raised for $e$
 as would be raised for \code{$e_0$?.$s$}.
 % This means that `e?.s` can has a non-nullable type when `e` has a
-% non-nullable type. But that case is a warning, so the anomaly will
-% be flagged.
+% non-nullable type. But that case is a warning, so the surprising type
+% will be flagged; also, it is sound to use the non-nullable type as-is.
+% PS: The nnbd feature spec does not specify any static type for $e$.
 The static type of $e$ is the static type of $e_0$.
 
 \LMHash{}%
