@@ -9801,18 +9801,27 @@ evaluate \code{$t$.\metavar{suffix}} to an object.
 Then $c$ evaluates to $o$.
 
 \commentary{%
-Note that an expression of the form
+%% TODO(eernst): If we add a \LET{} to the language, or even just as an
+%% "official" mechanism for specification, we should make this the
+%% official desugaring of `e?..s`.
+An expression of the form
 \code{(($e_0$?..$s_1$)\,\,$\cdots$\,\,)?..$s_k$}
 is guaranteed to have the same observable behavior as the following
-expression, where \code{\LET\,..\,\IN} is a pseudo-code expression
-that allows for the introduction and use of a local variable
-inside an expression:
-%% TODO(eernst): If we add a \LET{} to the language, make this the
-%% official desugaring of `e?..s`.
-\code{\LET\,\,v = $e_0$\,\,\IN\,\,(v == null)?%
+expression, where \code{v} is a fresh variable:
+\code{\LET\,\,v = $e_0$\,\,\IN\,\,v == null?%
   \,\,null\,:\,v..$s_1$\,\,$\cdots$\,\,..$s_k$}.
-This fact can be used by implementations to avoid the repeated checks
-for null implied by the original form.%
+In this expression, \code{\LET\,..\,\IN\,..} is
+a hypothetical expression (not currently part of Dart) that allows for
+the introduction and use of a local variable inside an expression.
+Note that in the case where $e_0$ evaluates to the null object,
+evaluation of the expression
+\code{(($e_0$?..$s_1$)\,\,$\cdots$\,\,)?..$s_k$}
+will repeatedly check for null and skip the execution of $s_j$ for all $j$.
+When $e_0$ is not the null object,
+it will repeatedly be checked and found different from null,
+and all $s_j$ will be executed.
+The equivalence with the \LET{} form can be used by implementations
+to perform the null check just once.%
 }
 
 
