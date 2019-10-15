@@ -7162,23 +7162,22 @@ or
 
 \begin{itemize}
 \item
-  Assume that $\ell$ is an \synt{expressionElement},
-  and that it is the expression $e$.
+  When $\ell$ is an \synt{expressionElement} of the form $e$:
 
   $\ell$ is a potentially constant element
   if $e$ is a potentially constant expression,
   and $\ell$ is a constant element
   if $e$ is a constant expression.
 \item
-  Assume that $\ell$ is a \synt{mapElement}
-  of the form \code{$e_1$:\,$e_2$}.
+  When $\ell$ is a \synt{mapElement}
+  of the form `\code{$e_1$:\,$e_2$}':
 
   $\ell$ is a potentially constant element
   if both $e_1$ and $e_2$ are potentially constant expressions,
   and it is a constant element if they are constant expressions.
 \item
-  Assume that $\ell$ is a \synt{spreadElement}
-  of the form `\code{...$e$}' or `\code{...?$e$}'.
+  When $\ell$ is a \synt{spreadElement}
+  of the form `\code{...$e$}' or `\code{...?$e$}':
 
   $\ell$ is a potentially constant element
   if $e$ is a potentially constant expression.
@@ -7192,11 +7191,11 @@ or
   where $e$ is a constant expression that evaluates
   to the null object.
 \item
-  Assume that $\ell$ is an \synt{ifElement}
+  When $\ell$ is an \synt{ifElement}
   of the form
   \code{\IF\,\,($b$)\,\,$\ell_1$}
-  or of the form
-  \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
+  or the form
+  \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}:
 
   $\ell$ is a potentially constant element
   if $b$ is a potentially constant expression,
@@ -7424,7 +7423,7 @@ evaluation of a single collection literal element $\ell_j$.
 
 \LMHash{}%
 When a pseudo-statement of the form
-\code{$s = s + \EvaluateElement{\ell}$;}
+\code{$s := s + \EvaluateElement{\ell}$;}
 is used in normative code below,
 it denotes the extension of $s$ with the object sequence
 yielded by evaluation of $\ell$,
@@ -7509,7 +7508,7 @@ $S_{\metavar{spread}}$ spread = $o_{\metavar{spread}}$;
 \VAR{} $s$ = \LiteralSequence{};
 \FOR{} (\VAR{} v \IN{} spread) \{
   Value value = v;
-  $s = s + \LiteralSequence{\code{value}}$;
+  $s := s + \LiteralSequence{\code{value}}$;
 \}
 $\EvaluateElement{\ell} := s$;
 \end{normativeDartCode}
@@ -7542,7 +7541,7 @@ $S_{\metavar{spread}}$ spread = $o_{\metavar{spread}}$;
 \FOR{} (\VAR{} v \IN{} spread) \{
   Key key = v.key;
   Value value = v.value;
-  $s = s + \LiteralSequence{\code{key}:\,\code{value}}$;
+  $s := s + \LiteralSequence{\code{key}:\,\code{value}}$;
 \}
 $\EvaluateElement{\ell} := s$;
 \end{normativeDartCode}
@@ -7625,7 +7624,7 @@ where \AWAIT{} is present if and only if it is present in $\ell$:
 \begin{normativeDartCode}
 \VAR{} $s$ = \LiteralSequence{};
 \AWAIT? \FOR{} ($P$) \{
-  $s = s + \EvaluateElement{\ell_1}$;
+  $s := s + \EvaluateElement{\ell_1}$;
 \}
 $\EvaluateElement{\ell} := s$;
 \end{normativeDartCode}
@@ -7650,9 +7649,6 @@ The context type $P$
 for each element of \metavar{list} is
 obtained from the context type of \metavar{list}.
 If downwards inference constrains the type of \metavar{list}
-%% TODO(eernst): Confirm that the context type should allow for
-%% `List` as well as `Iterable`. The implementations (unsurprisingly)
-%% do that, but the feature spec only allowed for `Iterable`.
 to \code{List<$P_e$>} or \code{Iterable<$P_e$>} for some $P_e$
 then $P$ is $P_e$.
 Otherwise, $P$ is \FreeContext{}
@@ -8611,10 +8607,11 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 }
 
 \LMHash{}%
-It is a compile-time error if a collection literal element in a constant set literal
+It is a compile-time error if
+a collection literal element in a constant set literal
 is not a constant expression.
 It is a compile-time error if
-the operator \lit{==} of an element expression in a constant map literal
+the operator \lit{==} of an element expression in a constant set literal
 is not primitive
 (\ref{theOperatorEqualsEquals}).
 It is a compile-time error if two elements of a constant set literal are equal
