@@ -7,8 +7,9 @@ Status: Draft
 
 ## CHANGELOG
 
-2019.08.30:
-- Initial version uploaded.
+2019.10.15:
+- Created this as a variant of the feature specification that only has
+  use-site invariance (using `exactly`).
 
 
 ## Summary
@@ -23,7 +24,7 @@ This is sound for all covariant occurrences of such type parameters in the class
 
 However, in general, every member access where a covariant type parameter occurs in a non-covariant position may cause a dynamic type error, because the actual type annotation at run time&mdash;say, the type of a parameter of a method&mdash;is a subtype of the one which occurs in the static type.
 
-This proposal introduces explicit variance modifiers for type parameters, as well as invariance modifiers for actual type arguments. It includes compile-time restrictions on type declarations and on the use of objects whose static type includes these modifiers, ensuring that the above-mentioned dynamic type errors cannot occur.
+This proposal introduces explicit variance modifiers for type parameters (aka declaration-site variance), as well as variance modifiers for actual type arguments (aka use-site variance). It includes compile-time restrictions on type declarations and on the use of objects whose static type includes these modifiers, ensuring that the above-mentioned dynamic type errors cannot occur.
 
 In order to ease the transition where types with explicit variance are created and used, this proposal allows for certain subtype relationships where dynamic type checks are still needed when using legacy types (where type parameters are _implicitly_ covariant) to access an object, even in the case where the object has a type with explicit variance. For example, it is allowed to declare `class MyList<out E> implements List<E> {...}`, even though this means that `MyList` has members such as `add` that require dynamic checks and may incur a dynamic type error.
 
@@ -34,10 +35,10 @@ The grammar is adjusted as follows:
 
 ```
 <typeParameter> ::= // Modified.
-    <metadata> <typeParameterVariance>? <typeIdentifier>
+    <metadata> <varianceModifier>? <typeIdentifier>
     ('extends' <typeNotVoid>)?
 
-<typeParameterVariance> ::= // New.
+<varianceModifier> ::= // New.
     'out' | 'inout' | 'in'
 
 <typeArguments> ::= // Modified.
@@ -47,15 +48,18 @@ The grammar is adjusted as follows:
     <typeArgument> (',' <typeArgument>)*
 
 <typeArgument> ::= // New.
-    'exactly'? <type>
+    (<varianceModifier> '?'?)? <type> |
+    '*'
 ```
-
-Moreover, `'exactly'` is added to the set of built-in identifiers.
 
 
 ## Static Analysis
 
-This feature allows type parameters to be declared with a _variance modifier_ which is one of `out`, `inout`, or `in`. This implies that the use of such a type parameter is restricted, in return for improved static type safety. Moreover, the rules for other topics like subtyping and for determining the variance of a subterm in a type are adjusted.
+This feature allows type parameters to be declared with a _variance modifier_ which is one of `out`, `inout`, or `in`. This indicates that the type parameter is classified as having a specific variance, which in turn implies that the use of such a type parameter is restricted, in return for improved static type safety. This mechanism is also known as declaration-site variance.
+
+The feature also allows type arguments to have a variance modifier, optionally followed by a question mark. This indicates that the enclosing parameterized type is transformed into a supertype or subtype, allowing the instances of this type to have many different values for the given type argument (using `out` or `in`) respectively restricting them to have just one value (using `inout`). This mechanism is also known as use-site variance.
+
+Finally, the rules for other topics like subtyping and for determining the variance of a subterm in a type are adjusted.
 
 
 ### Subtype Rules
@@ -66,7 +70,9 @@ In order to conclude that _C&lt;S<sub>1</sub>,... S<sub>s</sub>&gt; <: C&lt;T<su
 
 The rule is updated as follows in order to take variance modifiers into account:
 
-Let _j_ in 1 .. _s_. If none of _S<sub>j</sub>_ or _T<sub>j</sub>_ have the modifier `exactly` then the following rules apply:
+Some occurrences of variance modifiers are redundant, and they are ignored for the purpose of determining subtype relationships: If a type parameter _X<sub>j</sub>_ has no variance modifier, or it has the variance modifier `out` then if _S<sub>j</sub>_ and/or _T<sub>j</sub>_ is of the form `out U` is treated as `U` (*which means that the rule for the case with no use-site variance modifier applies*). Similarly, if the type parameter _X<sub>j</sub>_ has the variance modifier `inout` then if _S<sub>j</sub>_ and/or _T<sub>j</sub>_ is of the form `inout U` is treated as `U`, and if the corresponding type parameter _X<sub>j</sub>_ has the variance modifier `in`, then if _S<sub>j</sub>_ and/or _T<sub>j</sub>_ is of the form `in U` is treated as `U`.
+
+Let _j_ in 1 .. _s_. If none of _S<sub>j</sub>_ or _T<sub>j</sub>_ have a variance modifier then the following rules apply:
 
 If the corresponding type parameter _X<sub>j</sub>_ has no variance modifier, or it has the variance modifier `out`, we require _S<sub>j</sub> <: T<sub>j</sub>_.
 
@@ -74,51 +80,69 @@ If the corresponding type parameter _X<sub>j</sub>_ has the variance modifier `i
 
 If the corresponding type parameter _X<sub>j</sub>_ has the variance modifier `in`, we require _T<sub>j</sub> <: S<sub>j</sub>_.
 
-If both _S<sub>j</sub>_ and _T<sub>j</sub>_ have the modifier `exactly` then let _S1<sub>j</sub>_ be _S<sub>j</sub>_ except that `exactly` has been eliminated, and similarly for _T1<sub>j</sub>_; we then require _S1<sub>j</sub> <: T1<sub>j</sub>_ as well as _T1<sub>j</sub> <: S1<sub>j</sub>_ (*whether or not the corresponding type parameter has a variance modifier, and no matter which one*).
+If _T<sub>j</sub>_ is `*` then there are no further requirements. (*So `C<S> <: C<*>` no matter what `S` is, and no matter which variance the type parameter of `C` has.*)
 
-A new subtype rule for type arguments where `exactly` does not occur symmetrically is added:
+If both _S<sub>j</sub>_ and _T<sub>j</sub>_ have the modifier `inout` then let _S1<sub>j</sub>_ be _S<sub>j</sub>_ except that `inout` has been eliminated, and similarly for _T1<sub>j</sub>_; we then require _S1<sub>j</sub> <: T1<sub>j</sub>_ as well as _T1<sub>j</sub> <: S1<sub>j</sub>_ (*whether or not the corresponding type parameter has a variance modifier, and no matter which one*).
 
-_C&lt;S<sub>1</sub>,... S<sub>s</sub>&gt; <: T_ whenever _C&lt;T<sub>1</sub>,... T<sub>s</sub>&gt; <: T_, where we have the relationship for each _j_ in 1 .. _s_ that either _S<sub>j</sub>_ is _T<sub>j</sub>_ or _S<sub>j</sub>_ is _exactly T<sub>j</sub>_.
+If the type parameter _X<sub>j</sub>_ has the variance modifier `inout`, and we have the relationship that either _T<sub>j</sub>_ is _out S<sub>j</sub>_ or _T<sub>j</sub>_ is _in T<sub>j</sub>_, there are no further requirements. (*So `C<T> <: C<out T>` and `C<T> <: C<in T>` whenever the type parameter is `inout`.*)
+
+If both _S<sub>j</sub>_ and _T<sub>j</sub>_ have the modifier `out` then let _S1<sub>j</sub>_ be _S<sub>j</sub>_ except that `out` has been eliminated, and similarly for _T1<sub>j</sub>_; we then require _S1<sub>j</sub> <: T1<sub>j</sub>_ (*whether or not the corresponding type parameter has a variance modifier, and no matter which one, except that it cannot be `in` because that makes use-site `out` an error.*)
+
+If both _S<sub>j</sub>_ and _T<sub>j</sub>_ have the modifier `in` then let _S1<sub>j</sub>_ be _S<sub>j</sub>_ except that `in` has been eliminated, and similarly for _T1<sub>j</sub>_; we then require _T1<sub>j</sub> <: S1<sub>j</sub>_ (*no matter which variance modifier the corresponding type parameter has, except that it cannot be `out` because that makes use-site `in` an error.*)
+
+If we have the relationship that _S<sub>j</sub>_ is _inout T<sub>j</sub>_, there are no further requirements. (*So `C<inout T> <: C<T>` no matter which variance modifier the type parameter has, including none.*)
 
 *For instance:*
 
 ```dart
+class C<inout X> {}
+
 // Not runnable code, just examples of subtype relationships:
-List<exactly num> <: List<num> <: List<Object> <: Object
-List<exactly List<num>> <: List<List<num>> <: List<Object>
-List<exactly List<exactly num>> <: List<List<exactly num>> <: List<List<num>>
-List<exactly num> <: Iterable<exactly num> <: Iterable<num>
+List<inout num> <: List<num> <: List<Object> <: List<*> <: Object
+List<inout List<num>> <: List<List<num>> <: List<Object>
+List<inout List<inout num>> <: List<List<inout num>> <: List<List<num>>
+List<inout num> <: Iterable<inout num> <: Iterable<num>
+List<inout num> <: List<out num> <: List<*>
+List<inout num> <: List<in num> <: List<*>
+List<out int> <: List<out num> <: List<*>
+List<in num> <: List<in int> <: List<*>
+
+// `C<inout T>` is the same as `C<T>`.
+C<num> <: C<out num> <: C<out Object> <: C<*>
+C<num> <: C<in num> <: C<in int> <: C<*>
+C<out int> <: C<out num>
+C<in num> <: C<in int>
 
 // But the subtype relation does _not_ include the following:
-List<num> <\: List<exactly num>
-List<exactly List<exactly num>> <\: List<exactly List<num>>
+List<num> <\: List<inout num>
+List<inout List<inout num>> <\: List<inout List<num>>
 ```
 
-*We cannot assign an expression of type `List<num>` to a variable of type `List<exactly num>` without a dynamic type check. Similarly, we cannot assign an expression of type `List<exactly List<exactly num>>` to a variable of type `List<exactly List<num>>`. Here is an example illustrating why this is so.*
+*We cannot assign an expression of type `List<num>` to a variable of type `List<inout num>` without a dynamic type check. Similarly, we cannot assign an expression of type `List<inout List<inout num>>` to a variable of type `List<inout List<num>>`. Here is an example illustrating why this is so.*
 
 ```dart
 main() {
   List<num> xs = <int>[];
-  List<exactly num> ys = xs; // This must be an error because:
+  List<inout num> ys = xs; // This must be an error because:
   ys.add(3.41); // Safe, based on the type of `ys`, but it should throw.
 
-  List<exactly List<exactly num>> zs = [];
-  List<exactly List<num>> ws = zs; // This must be an error because:
+  List<inout List<inout num>> zs = [];
+  List<inout List<num>> ws = zs; // This must be an error because:
   ws.add(<int>[]); // Safe, based on the type of `ws`, but it should throw.
   zs[0][0] = 4.31; // Safe, based on the type of `zs`, but it should throw.
 }
 ```
 
-*In the above example, an execution that maintains heap soundness would throw already at `ws.add(<int>[])`, because `List<int>` is not a subtype of `List<exactly num>`. Otherwise, we can proceed to `zs[0][0] = 4.31` and cause a base level type error, which illustrates that we cannot just ignore the distinction between `List<exactly num>` and `List<num>` as a type argument, neither statically nor dynamically.*
+*In the above example, an execution that maintains heap soundness would throw already at `ws.add(<int>[])`, because `List<int>` is not a subtype of `List<inout num>`. Otherwise, we can proceed to `zs[0][0] = 4.31` and cause a base level type error, which illustrates that we cannot just ignore the distinction between `List<inout num>` and `List<num>` as a type argument, neither statically nor dynamically. So there is no way we can admit that subtype relationship.*
 
-Finally, the subtype rule that connects a class to its superinterfaces is updated to take `exactly` into account:
+Finally, the subtype rule that connects a class to its superinterfaces is updated to take use-site variance into account:
 
 Given that _C_ is a class that declares type parameters _X<sub>1</sub> .. X<sub>s</sub>_ such that
 _D&lt;T<sub>1</sub> .. T<sub>m</sub>&gt;_ is a direct superinterface of _C_, we conclude that
 _C&lt;v<sub>1</sub> S<sub>1</sub> .. v<sub>s</sub> S<sub>s</sub>&gt; <: T_
 if
 _[v<sub>1</sub> S<sub>1</sub>/X<sub>1</sub> .. v<sub>s</sub> S<sub>s</sub>/X<sub>s</sub>]D&lt;T<sub>1</sub> .. T<sub>m</sub>&gt; <: T_
-where _S<sub>j</sub>_ is a type and _v<sub>j</sub>_ is either empty or `exactly`, for all _j_ in 1 .. _s_.
+where _S<sub>j</sub>_ is a type and _v<sub>j</sub>_ is either empty or a variance modifier, for all _j_ in 1 .. _s_.
 
 
 ### Variance Rules
@@ -129,7 +153,11 @@ We say that a type _S_ occurs in a _covariant position_ in a type _T_ iff one of
 
 - _T_ is _S_.
 
-- _T_ is of the form _G&lt;S<sub>1</sub>,... S<sub>n</sub>&gt;_ where _G_ denotes a generic class or type alias and _S_ occurs in a covariant position in _S<sub>j</sub>_ for some _j_ in 1 .. _n_ where the corresponding type parameter of _G_ is covariant; or in a contravariant position where the corresponding type parameter is contravariant.
+- _T_ is of the form _G&lt;S<sub>1</sub>,... S<sub>n</sub>&gt;_ where _G_ denotes a generic class or type alias and _S_ occurs in a covariant position in _S<sub>j</sub>_ which has no variance modifier, for some _j_ in 1 .. _n_ where the corresponding type parameter of _G_ is covariant; or in a contravariant position where the corresponding type parameter is contravariant.
+
+- _T_ is of the form _G&lt;S<sub>1</sub>,... out S<sub>j</sub> ... S<sub>n</sub>&gt;_ where _G_ denotes a generic class or type alias, _j_ is in 1 .. _n_, and _S_ occurs in a covariant position in _S<sub>j</sub>_.
+
+- _T_ is of the form _G&lt;S<sub>1</sub>,... in S<sub>j</sub> ... S<sub>n</sub>&gt;_ where _G_ denotes a generic class or type alias, _j_ is in 1 .. _n_, and _S_ occurs in a contravariant position in _S<sub>j</sub>_.
 
 - _T_ is of the form _S<sub>0</sub> Function&lt;X<sub>1</sub> extends B<sub>1</sub>, ...>(...)_ where the type parameter list may be omitted, and _S_ occurs in a covariant position in _S<sub>0</sub>_.
 
@@ -137,7 +165,11 @@ We say that a type _S_ occurs in a _covariant position_ in a type _T_ iff one of
 
 We say that a type _S_ occurs in a _contravariant position_ in a type _T_ iff one of the following conditions is true:
 
-- _T_ is of the form _G&lt;S<sub>1</sub>, ... S<sub>n</sub>&gt;_ where _G_ denotes a generic class or type alias and _S_ occurs in a contravariant position in _S<sub>j</sub>_ for some _j_ in 1 .. _n_ where the corresponding type parameter of _G_ is covariant; or in a covariant position where the corresponding type parameter is contravariant.
+- _T_ is of the form _G&lt;S<sub>1</sub>, ... S<sub>n</sub>&gt;_ where _G_ denotes a generic class or type alias and _S_ occurs in a contravariant position in _S<sub>j</sub>_ which has no variance modifier, for some _j_ in 1 .. _n_ where the corresponding type parameter of _G_ is covariant; or in a covariant position where the corresponding type parameter is contravariant.
+
+- _T_ is of the form _G&lt;S<sub>1</sub>,... out S<sub>j</sub> ... S<sub>n</sub>&gt;_ where _G_ denotes a generic class or type alias, _j_ is in 1 .. _n_, and _S_ occurs in a contravariant position in _S<sub>j</sub>_.
+
+- _T_ is of the form _G&lt;S<sub>1</sub>,... in S<sub>j</sub> ... S<sub>n</sub>&gt;_ where _G_ denotes a generic class or type alias, _j_ is in 1 .. _n_, and _S_ occurs in a covariant position in _S<sub>j</sub>_.
 
 - _T_ is of the form _S<sub>0</sub> Function&lt;X<sub>1</sub> extends B<sub>1</sub>, ...>(...)_ where the type parameter list may be omitted, and _S_ occurs in a contravariant position in _S<sub>0</sub>_.
 
@@ -147,6 +179,8 @@ We say that a type _S_ occurs in an _invariant position_ in a type _T_ iff one o
 
 - _T_ is of the form _G&lt;S<sub>1</sub>, ... S<sub>n</sub>&gt;_ where _G_ denotes a generic class or type alias, and _S_ occurs in an invariant position in _S<sub>j</sub>_ for some _j_ in 1 .. _n_; or _S_ occurs (in any position) in _S<sub>j</sub>_, and the corresponding type parameter of _G_ is invariant.
 
+- _T_ is of the form _G&lt;S<sub>1</sub>,... inout S<sub>j</sub> ... S<sub>n</sub>&gt;_ where _G_ denotes a generic class or type alias, _j_ is in 1 .. _n_, and _S_ occurs in _S<sub>j</sub>_ (in any position).
+
 - _T_ is of the form _S<sub>0</sub> Function&lt;X<sub>1</sub> extends B<sub>1</sub>, ... X<sub>m</sub> extends B<sub>m</sub>&gt;(S<sub>1</sub> x<sub>1</sub>, ... S<sub>k</sub> x<sub>k</sub>, [S<sub<k+1</sub> x<sub>k+1</sub> = d<sub>k+1</sub>, ... S<sub>n</sub> x<sub>n</sub> = d<sub>n</sub>])_ or of the form _S<sub>0</sub> Function&lt;X<sub>1</sub> extends B<sub>1</sub>, ... X<sub>m</sub> extends B<sub>m</sub>&gt;(S<sub>1</sub> x<sub>1</sub>, ... S<sub>k</sub> x<sub>k</sub>, {S<sub>k+1</sub> x<sub>k+1</sub> = d<sub>k+1</sub>, ... S<sub>n</sub> x<sub>n</sub> = d<sub>n</sub>})_ where the type parameter list and each default value may be omitted, and _S_ occurs in an invariant position in _S<sub>j</sub>_ for some _j_ in 0 .. _n_, or _S_ occurs (in any position) in _B<sub>i</sub>_ for some _i_ in 1 .. _m_.
 
 It is a compile-time error if a type parameter declared by a static extension has a variance modifier.
@@ -155,7 +189,7 @@ It is a compile-time error if a type parameter declared by a static extension ha
 
 It is a compile-time error if a type parameter _X_ declared by a type alias has a variance modifier, unless it is `inout`; or unless it is `out` and the right hand side of the type alias has only covariant occurrences of _X_; or unless it is `in` and the right hand side of the type alias has only contravariant occurrences of _X_.
 
-*The variance for each type parameter of a type alias is restricted based on the body of the type alias. Explicit variance modifiers may be used to document how the type parameter is used on the right hand side, and they may be used to impose more strict constraints than those implied by the right hand side.*
+*The variance for each type parameter of a type alias is restricted based on the body of the type alias. Explicit variance modifiers may be used to document how the type parameter is used on the right hand side, and they may be used to impose a variance on an unused type parameter.*
 
 We say that a type parameter _X_ of a type alias _F_ _is covariant/invariant/contravariant_ if it has the variance modifier `out`/`inout`/`in`, respectively. We say that it is _covariant/contravariant_ if it has no variance modifier, and it occurs only covariantly/contravariantly, respectively, on the right hand side of `=` in the type alias (*for an old-style type alias, rewrite it to the form using `=` and then check*). Otherwise (*when _X_ has no modifier, but occurs invariantly or both covariantly and contravariantly*), we say that _X_ _is invariant_.
 
@@ -249,44 +283,32 @@ class B<out X> extends A<X> { // or `implements`.
 }
 ```
 
-Finally, the occurrences of `exactly` in member signatures are restricted. Let _D_ be a class or mixin declaration and let _s_ be the member signature of an instance member declared by _D_. Assume that _s_ contains a parameterized type _T_ in a non-covariant position, and assume that _T_ has a type argument of the form _exactly U_. In this situation it is a compile-time error if _U_ contains an occurrence of a type variable that does not have the variance modifier `inout`.
-
-```dart
-class C<X, inout Y, in Z> {
-  void f(Map<exactly X, exactly Z> xs) {} // Errors.
-  void Function(List<exactly X>) get h => (_) {}; // Error.
-  void g(Map<exactly int, exactly Y> xs) {} // OK.
-}
-```
-
-*This restriction is required for soundness. The reason is that member accesses must use a static type for the member which is known to be a supertype of the actual type of that member, and these occurrences of `exactly` will make such supertypes so imprecise that they will not be very useful, e.g., `f` would have the member signature `void f(Never)` no matter which values for `X` and `Z` are known statically.*
-
 
 ### Expressions
 
-It is a compile-time error for an instance creation expression or a collection literal to pass a type argument marked `exactly`. It is a compile-time error to pass an actual type argument to a generic function invocation which is marked `exactly`.
+It is a compile-time error for an instance creation expression or a collection literal to pass a type argument with a variance modifier. It is a compile-time error to pass an actual type argument to a generic function invocation which has a variance modifier.
 
 ```dart
 class A<X> {}
 
 main() {
-  var xs = <exactly num>[]; // Error.
-  var ys = <List<exactly num>>[]; // OK.
-  var a = A<exactly String>(); // Error.
-  A<exactly String> a2 = A(); // OK.
+  var xs = <inout num>[]; // Error.
+  var ys = <List<inout num>>[]; // OK.
+  var a = A<out String>(); // Error.
+  A<out String> a2 = A(); // OK.
 
   void f<X>(X x) => print(x);
-  f<exactly int>(42); // Error.
+  f<inout int>(42); // Error.
 }
 ```
 
-*We could say that the list of "type arguments" passed to a constructor invocation or literal collection contains types, not type arguments; and only type arguments can be marked `exactly`. However, those types may themselves receive type arguments, and they can be marked `exactly` as needed.*
+*We could say that the list of "type arguments" passed to a constructor invocation or literal collection contains types, not type arguments; and only type arguments can have a variance modifier. However, those types may themselves receive type arguments, and they can have variance modifiers as needed.*
 
-The static type of an instance creation expression that invokes a generative constructor of a generic class `C` with type arguments `T1, ... Tk` is `C<exactly T1, ..., exactly Tk>`.
+The static type of an instance creation expression that invokes a generative constructor of a generic class `C` with type arguments `T1, ... Tk` is `C<inout T1, ..., inout Tk>`.
 
-The static type of a list literal receiving type argument `T` is `List<exactly T>`; the static type of a set literal receiving type argument `T` is `Set<exactly T>`; and the static type of a map literal receiving type arguments `K` and `V` is `Map<exactly K, exactly V>`.
+The static type of a list literal receiving type argument `T` is `List<inout T>`; the static type of a set literal receiving type argument `T` is `Set<inout T>`; and the static type of a map literal receiving type arguments `K` and `V` is `Map<inout K, inout V>`.
 
-*It cannot be assumed that a similar relationship exists for regular invocations, say, of a generic function or a factory constructor, so it is an error for an actual type argument to be marked `exactly`.*
+*It cannot be assumed that a similar relationship exists for regular invocations, say, of a generic function or a factory constructor, so it is an error for an actual type argument to have a variance modifier.*
 
 ```dart
 class C<X> {
@@ -295,15 +317,15 @@ class C<X> {
 }
 
 main() {
-  // OK, but the static and dynamic type of `c` is not `C<exactly int>`:
+  // OK, but the static and dynamic type of `c` is `C<int>`, not `C<inout int>`:
   var c = C<int>.named();
 
   // Error, because it is misleading:
-  var c2 = C<exactly int>.named();
+  var c2 = C<inout int>.named();
 }
 ```
 
-*Note that the use of `exactly` even for a type argument where the corresponding type parameter _X_ is marked `out` or `in` may be useful: The members declared in the type that receives this type argument must in general be sound with respect to _X_, but there may be some member signatures inherited from a supertype where some type parameters have no variance modifier, and the use of `exactly` will then provide a guarantee against dynamic type errors which does not otherwise exist:*
+*Note that the use of `inout` even for a type argument where the corresponding type parameter _X_ is marked `out` or `in` can be useful: The members declared in the type that receives this type argument must in general be sound with respect to _X_, but there may be some member signatures inherited from a supertype where some type parameters have no variance modifier, and the use of `inout` will then provide a guarantee against dynamic type errors which does not otherwise exist:*
 
 ```dart
 class A<X> {
@@ -317,10 +339,10 @@ class C<out Y> {
 }
 
 main() {
-  B<exactly num> b = B();
+  B<inout num> b = B();
   b.foo(17.9); // Statically safe.
 
-  C<exactly num> c = C();
+  C<inout num> c = C();
   c.bar.add(179); // Statically safe, even though `c.bar` has a legacy type.
 }
 ```
@@ -328,58 +350,60 @@ main() {
 *Note that there is no way to make it statically safe to pass an actual argument to a covariant formal parameter of a given member `m`. Any receiver may have a dynamic type which is a proper subtype of the statically known type, and it may have an overriding declaration of `m` that makes the parameter covariant. So, by design, a modular static analysis cannot guarantee that any given invocation will not cause a dynamic error due to a dynamic type check for a covariant parameter.*
 
 
-### Member Access Typing
+### Member Signatures with Conditional Variance
 
-For soundness, occurrences of the modifier `exactly` in member signatures are subject to elimination during the computation of the type of member access operations (*such as invocations of methods, getters, or setters*).
+!!!TODO!!! This section deals with `inout` which is only effective when additional information on the receiver allows it, and `out`/`in` which are effective unless additional information on the receiver allows us to omit them. They are marked for erasure by having a suffix `?`. This section will replace the following text, which is relevant only when we restrict the language to use-site _invariance_.
 
-Let _D_ be the declaration of a generic class or mixin named _N_ and let _X<sub>1</sub> .. X<sub>k</sub>_ be the type parameters declared by _D_. Let _T_ be a parameterized type which applies _N_ to a list of actual type arguments _S<sub>1</sub> .. S<sub>k</sub>_ in a context where the name _N_ denotes the declaration _D_, and consider the situation where a member access to a member `m` in the interface of _T_ is performed. Let _S1<sub>1</sub> .. S1<sub>k</sub>_ be the same as _S<sub>1</sub> .. S<sub>k</sub>_, except that any occurrence of `exactly` at the top level of each type argument has been removed.
+For soundness, occurrences of the modifier `inout` in member signatures are subject to elimination during the computation of the type of member access operations (*such as invocations of methods, getters, or setters*).
+
+Let _D_ be the declaration of a generic class or mixin named _N_ and let _X<sub>1</sub> .. X<sub>k</sub>_ be the type parameters declared by _D_. Let _T_ be a parameterized type which applies _N_ to a list of actual type arguments _S<sub>1</sub> .. S<sub>k</sub>_ in a context where the name _N_ denotes the declaration _D_, and consider the situation where a member access to a member `m` in the interface of _T_ is performed. Let _S1<sub>1</sub> .. S1<sub>k</sub>_ be the same as _S<sub>1</sub> .. S<sub>k</sub>_, except that any occurrence of `inout` at the top level of each type argument has been removed.
 
 Let _s_ be the member signature of `m` from the interface of _D_, and _s1_ be _[S1<sub>1</sub>/X<sub>1</sub> .. S1<sub>k</sub>/X<sub>k</sub>]s_. 
 
-*This is the "raw" version of the statically known type of `m`; to obtain a sound typing we need one more step where certain occurrences of `exactly` are erased.*
+*This is the "raw" version of the statically known type of `m`; to obtain a sound typing we need one more step where certain occurrences of `inout` are erased.*
 
-For each _j_ in 1 .. _k_, if _X<sub>j</sub>_ does not have the variance modifier `inout`, and _S<sub>j</sub>_ does not have the modifier `exactly`, then for each occurrence of `exactly` on a type that contains _X<sub>j</sub>_ in _s_, the corresponding occurrence of `exactly` in _s1_ is eliminated.
+For each _j_ in 1 .. _k_, if _X<sub>j</sub>_ does not have the variance modifier `inout`, and _S<sub>j</sub>_ does not have the modifier `inout`, then for each occurrence of `inout` on a type that contains _X<sub>j</sub>_ in _s_, the corresponding occurrence of `inout` in _s1_ is eliminated.
 
 *For example:*
 
 ```dart
 class C<X> {
-  List<exactly X> get g => [];
+  List<inout X> get g => [];
 }
 
 main() {
-  C<exactly int> ci = C<int>();
+  C<inout int> ci = C<int>();
   C<num> cn = ci; // OK, upcast.
   List<num> xs = cn.g; // OK, `cn.g` has type `List<num>`.
-  List<exactly num> ys = ci.g; // OK, `ci.g` has type `List<exactly int>`.
+  List<inout num> ys = ci.g; // OK, `ci.g` has type `List<inout int>`.
   ys = cn.g; // Error (downcast).
 }
 ```
 
-*This example also illustrates why the ability to have `exactly` in a member signature helps improving the static typing: The declaration in class `C` ensures that `g` actually returns a `List<exactly X>`. In the situation where the value of `X` is known at the call site to be a specific type `T`, this allows the returned result to be typed `List<exactly T>`, which in turn makes the usage of `add` and similar members statically safe.*
+*This example also illustrates why the ability to have `inout` in a member signature helps improving the static typing: The declaration in class `C` ensures that `g` actually returns a `List<inout X>`. In the situation where the value of `X` is known at the call site to be a specific type `T`, this allows the returned result to be typed `List<inout T>`, which in turn makes the usage of `add` and similar members statically safe.*
 
 
 ## Dynamic Semantics
 
-Every instance of a generic class has a dynamic type where every type argument has the modifier `exactly`.
+Every instance of a generic class has a dynamic type where every type argument has the modifier `inout`.
 
-*Note that this only applies at the top level in the dynamic type of the object. It may or may not have the modifier `exactly` on type arguments of type arguments.*
+*Note that this only applies at the top level in the dynamic type of the object. It may or may not have variance modifiers on type arguments of type arguments.*
 
 ```dart
 main() {
-  var xs = <List<num>>[]; // Dynamic type is `List<exactly List<num>>`.
-  var ys = <List<exactly num>>[]; // `List<exactly List<exactly num>>`.
+  var xs = <List<num>>[]; // Dynamic type is `List<inout List<num>>`.
+  var ys = <List<inout num>>[]; // `List<inout List<inout num>>`.
 }
 ```
 
-The dynamic representation of generic class types include information about whether a given actual type argument is marked `exactly` or not.
+The dynamic representation of generic class types include information about whether a given actual type argument has a certain variance modifier or not.
 
 *This is required for soundness.*
 
 ```dart
 main() {
-  dynamic xs = <List<exactly num>>[];
-  xs.add(<int>[]); // Must throw, hence `exactly` must be known at run time.
+  dynamic xs = <List<inout num>>[];
+  xs.add(<int>[]); // Must throw, hence `inout` must be known at run time.
 }
 ```
 
@@ -422,8 +446,8 @@ This approach can be used in a scenario where all parts of the program are migra
 
 In the other scenario, some libraries will opt in using a suitable language level, and others will not.
 
-If a library _L1_ is at a language level where explicit variance is not supported (so it is 'opted out') then code in an 'opted in' library _L2_ is seen from _L1_ as erased, in the sense that (1) the variance modifiers `out` and `inout` are ignored, and `exactly` in types is ignored, and (2) it is a compile-time error to pass a type argument `T` to a type parameter with variance modifier `in`, unless `T` is a top type; (3) any type argument `T` passed to an `in` type parameter in opted-in code is seen in opted-out code as `Object?`.
+If a library _L1_ is at a language level where explicit variance is not supported (so it is 'opted out') then code in an 'opted in' library _L2_ is seen from _L1_ as erased, in the sense that (1) the variance modifiers `out` and `inout` are ignored, and `inout` in types is ignored, and (2) it is a compile-time error to pass a type argument `T` to a type parameter with variance modifier `in`, unless `T` is a top type; (3) any type argument `T` passed to an `in` type parameter in opted-in code is seen in opted-out code as `Object?`.
 
 Conversely, declarations in _L1_ (opted out) is seen from _L2_ (opted in) without changes. So class type parameters declared in _L1_ are considered to be unsoundly covariant by both opted in and opted out code, and similarly for type aliases used to declare function types. Types of entities exported from _L1_ to _L2_ are seen as erased (which matters when _L1_ imports entities from some other opted-in library).
 
-Reification of `exactly` on type parameters is required for a sound semantics, but during a transitional period it could be considered as a static-only attribute, thus allowing for soundness violations of this property at run time, and only enforcing it for programs with no opted out code.
+Reification of `inout` on type parameters is required for a sound semantics, but during a transitional period it could be considered as a static-only attribute, thus allowing for soundness violations of this property at run time, and only enforcing it for programs with no opted out code.
