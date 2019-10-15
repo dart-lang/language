@@ -1,7 +1,7 @@
 # Dart Package Configuration File v2.0
 
 Author: lrn@google.com
-Version: 0.2
+Version: 1.0
 
 This document specifies the location, format and semantics of a new package resolution configuration file. A new file format is needed because the Dart "language versioning" feature requires adding data that are not supported by the existing file format. For backwards compatibility with third party tools, we retain the existing file for a while. Tools currently using `.packages` should migrate to using the new file when it becomes available, and tools creating `.package` should start doing so as soon as possible.
 
@@ -59,10 +59,10 @@ The file JSON text defines a JSON object (the "top level object").
 
 That object has, at least, the following properties:
 
-- `apiVersion`: A single integer marking the version of this format, currently `2` (counting `.packages` as the first). Tools should refuse to work on files with a larger version number than the ones they are aware of. Incremental changes will not require increasing the version, so new versions are not expected any time soon, but code should still prepare for it.
+- `configVersion`: A single integer marking the version of this format, currently `2` (counting `.packages` as the first). Tools should refuse to work on files with a larger version number than the ones they are aware of. Incremental changes will not require increasing the version, so new versions are not expected any time soon, but code should still prepare for it.
 - `packages`: An array of packages, each with the following properties:
   - `name`: A string containing a package name.
-  -  `rootUri`: A URI reference with no query or fragment parts. It can be, for example, a full URI, an absolute path or a relative path. The URI reference is resolved relative to the (likely `file:`) URI identifying the `package_config.json` file. If the resolved URI does not end with a `/` (signaling that it is a directory), a `/` is appended. The resulting URI specifies the *root directory* of the package. All files inside this directory, including any subdirectories, are considered to belong to the package. The value is a URI reference, and tools must support URI references with schemes and/or `%`-escapes properly.
+  - `rootUri`: A URI reference with no query or fragment parts. It can be, for example, a full URI, an absolute path or a relative path. The URI reference is resolved relative to the (likely `file:`) URI identifying the `package_config.json` file. If the resolved URI does not end with a `/` (signaling that it is a directory), a `/` is appended. The resulting URI specifies the *root directory* of the package. All files inside this directory, including any subdirectories, are considered to belong to the package. The value is a URI reference, and tools must support URI references with schemes and/or `%`-escapes properly.
   - `packageUri`: Optional. A URI reference consisting of just a relative URI path. It should be resolved against the root directory to specify the *package URI directory*, which must be a sub-directory of the root directory. If the result of this resolution does not end with a `/`, a `/` is appended. This is the directory containing files available to Dart programs using `package:packageName/...` URIs. If omitted, the root directory is also the package URI directory. The value is a URI path, and tools must support URI references with `%`-escapes and `..` segments properly, and validate that the result of resolving it against the root directory stays inside the root directory (which a leading `..` can violate).
   - `languageVersion`: Optional. A string containing a Dart language version consisting of a decimal numeral, a `.` character and another decimal numeral, where a decimal numeral must not have a leading `0` unless the numeral is exactly `0`. That is, a string matched in its entirety by the regular expression `(0|[1-9]\d*)\.(0|[1-9]\d*)`. *This is the same format accepted by `// @dart = x.y` comments in source files.*
 
@@ -74,17 +74,17 @@ The following optional properties of the top-level object allows the generator t
 - `generator`:  A string with a name/identifier of the generator which created the file, typically `"pub"`.
 - `generatorVersion`: A string with the version of the generator, if the generator wants to remember that information. The version must be a [Semantic Version](https://semver.org/spec/v2.0.0.html). Pub can use the SDK version. Example: `"generatorVersion": "2.5.0"`.
 
-The JSON properties may occur in any order, except that the `apiVersion` *must* be the first entry in the file. The Dart JSON serializer uses iteration order of the incoming map, so controlling the order is possible. The file *should* be "pretty printed" with newlines and indentation, to make human inspection easier, but tools consuming the file must accept JSON with or without any optional whitespace.
+The JSON properties may occur in any order, but where convenient, the `configVersion` *should* be the first entry in the file. The Dart JSON serializer uses iteration order of the incoming map, so controlling the order is possible. The file *should* be "pretty printed" with newlines and indentation, to make human inspection easier, but tools consuming the file must accept JSON with or without any optional whitespace.
 
 #### Stability and Versioning
 
-The `"apiVersion"` property allows versioning of the format. 
+The `"configVersion"` property allows versioning of the format. 
 
 There is no "minor version". Either the format is backwards compatible, or it is not. If we add more properties in a future release, in a backwards compatible way, tools should look for the presence those properties, not predict them based on the API version.
 
-Tools should ignore properties that they don't recognize. This will allow us to add more properties in the future without increasing the `apiVersion` number, but not to remove properties or change the meaning of existing properties. Any change which allows existing tools to continue working without doing something decidedly *wrong*, is considered no-breaking.
+Tools should ignore properties that they don't recognize. This will allow us to add more properties in the future without increasing the `configVersion` number, but not to remove properties or change the meaning of existing properties. Any change which allows existing tools to continue working without doing something decidedly *wrong*, is considered no-breaking.
 
-If we remove a property that tools rely on, change the meaning of an existing property, or add more information that is *required* for resolving and understanding Dart source files, it is probably a breaking change&mdash;tools expecting the previously available data will no longer understand the whole picture. Such changes will require increasing the `apiVersion` number.
+If we remove a property that tools rely on, change the meaning of an existing property, or add more information that is *required* for resolving and understanding Dart source files, it is probably a breaking change&mdash;tools expecting the previously available data will no longer understand the whole picture. Such changes will require increasing the `configVersion` number.
 
 #### Extra Information in the File
 
@@ -92,7 +92,7 @@ If a tool wants to store extra information in the `package_config.json` file, th
 
 This feature can only really be used by the tool generating the file (as a generated file, it may be overwritten at any time), and it should be used sparingly since unknown properties are just overhead for all other users of the file. Still, if a tool can cooperate with Pub and provide the information in `pubspec.yaml`, Pub might be able to put it into the configuration file as well.
 
-Any tool which modifies the file piecemeally by changing or add information, rather than writing it from scratch like Pub, should retain all properties that it does not recognize. This allows multiple tools to all cooperate about adding information to the file. 
+Any tool which modifies the file piecemeal by changing or adding information, rather than writing it from scratch like Pub, should retain all properties that it does not recognize. This allows multiple tools to all cooperate about adding information to the file. 
 
 Again, Pub is not required to retain any information, or read the file at all, it can overwrite the file when invoked.
 
@@ -127,6 +127,8 @@ Tools currently allow you to specify the `.packages` file with a command line ar
 ```
 
 This approach will work with the JSON configuration file as well. The tool must scan the file to detect whether it is a JSON file or an original `.packages` file. It is considered a JSON file if the first non-whitespace (space, tab, carriage return, linefeed) character is a `{`. The JSON file must start this way, and the existing format cannot do so; it must start with either a comment, `#`, or a non-empty package name, and package names cannot contain a `{` character.
+
+Tools *should* look for a `.dart_tool/package_config.json` relative to the specified file if that file turns out to be a `.packages` file.
 
 ## Possible Extensions
 
@@ -165,17 +167,17 @@ The format will look like:
 
 ```json
 {
-  "apiVersion": 2,
+  "configVersion": 2,
   "packages": [
     {
       "name": "myPackage",
-      "rootUri": ".",
+      "rootUri": "../",
       "packageUri": "lib/",
       "languageVersion": "2.6"
     },
     {
       "name": "myHelperPackage",
-      "rootUri": "../myHelperPackage/",
+      "rootUri": "../../myHelperPackage/",
       "packageUri": "lib/",
       "languageVersion": "2.5"
     },
