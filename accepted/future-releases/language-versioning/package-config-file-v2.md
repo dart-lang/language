@@ -11,7 +11,7 @@ Dart currently uses a `.packages` file to configure *package URI resolution* (co
 
 For the [*language versioning*](feature-specification.md) feature, we have proposed extending the format by adding fragments to the URI references and an entry with the empty string as key. This is a breaking change (the empty key was not previously accepted) and even more breaking for tools which assume the values are plain paths.
 
-Instead of breaking the existing file users, we will instead introduce a *new* file containing the information that we intended to store in the `.packages` file. This fill will use a structured format which allows extending it with further information in the future. We will still generate the `.packages` file for now, allowing users of the file to continue working until they can migrate to using the new file.
+Instead of breaking the existing file users, we will instead introduce a *new* file containing the information that we intended to store in the `.packages` file. This file will use a structured format which allows extending it with further information in the future. We will still generate the `.packages` file for now, allowing users of the file to continue working until they can migrate to using the new file.
 
 ## New File
 
