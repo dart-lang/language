@@ -298,7 +298,7 @@ void main() {
 ### Function return types
 
 Declaring a recursive local function, a top-level function, a static method, a
-non-overriding instance method, a typedef, a generic function type, or a
+non-overriding instance method, a type alias, a generic function type, or a
 function-typed function parameter without a return type is an inference
 failure. The return type of non-recursive local functions can always be
 inferred from downwards or upwards inference, as it will have a body, and the
