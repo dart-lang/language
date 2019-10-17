@@ -8,8 +8,7 @@ Status: Draft
 ## CHANGELOG
 
 2019.10.15:
-- Created this as a variant of the feature specification that only has
-  use-site invariance (using `exactly`).
+- Created this as a variant of the feature specification that only has use-site invariance (`exactly`): This proposal has all of `out`/`inout`/`in`.
 
 
 ## Summary
@@ -39,7 +38,7 @@ The grammar is adjusted as follows:
     ('extends' <typeNotVoid>)?
 
 <varianceModifier> ::= // New.
-    'out' | 'inout' | 'in'
+    'out' | 'inout' '?'? | 'in'
 
 <typeArguments> ::= // Modified.
     '<' <typeArgumentList> '>'
@@ -48,7 +47,7 @@ The grammar is adjusted as follows:
     <typeArgument> (',' <typeArgument>)*
 
 <typeArgument> ::= // New.
-    (<varianceModifier> '?'?)? <type> |
+    <varianceModifier>? <type> |
     '*'
 ```
 
@@ -187,19 +186,19 @@ It is a compile-time error if a type parameter declared by a static extension ha
 
 *Variance is not relevant to static extensions, because there is no notion of subsumption. Each usage will be a single call site, and the value of every type argument associated with an extension method invocation is statically known at the call site.*
 
-It is a compile-time error if a type parameter _X_ declared by a type alias has a variance modifier, unless it is `inout`; or unless it is `out` and the right hand side of the type alias has only covariant occurrences of _X_; or unless it is `in` and the right hand side of the type alias has only contravariant occurrences of _X_.
+It is a compile-time error if a type parameter _X_ declared by a type alias _F_ has a variance modifier, unless it is `inout` and _X_ occurs in an invariant position on the right hand side of _F_ (*for an old-style type alias, rewrite it to the form using `=` and then check*), or it occurs both in a covariant and a contravariant position; or unless it is `out` and the right hand side of the type alias has covariant occurrences of _X_ and no other occurrences _X_; or unless it is `in` and the right hand side of the type alias has contravariant occurrences of _X_ and no other occurrences of _X_.
 
-*The variance for each type parameter of a type alias is restricted based on the body of the type alias. Explicit variance modifiers may be used to document how the type parameter is used on the right hand side, and they may be used to impose a variance on an unused type parameter.*
+*The variance for each type parameter of a type alias is restricted based on the body of the type alias. Explicit variance modifiers can only be used to document how the type parameter is used on the right hand side.*
 
-We say that a type parameter _X_ of a type alias _F_ _is covariant/invariant/contravariant_ if it has the variance modifier `out`/`inout`/`in`, respectively. We say that it is _covariant/contravariant_ if it has no variance modifier, and it occurs only covariantly/contravariantly, respectively, on the right hand side of `=` in the type alias (*for an old-style type alias, rewrite it to the form using `=` and then check*). Otherwise (*when _X_ has no modifier, but occurs invariantly or both covariantly and contravariantly*), we say that _X_ _is invariant_.
+We say that a type parameter _X_ of a type alias _F_ _is covariant/invariant/contravariant_ if it has the variance modifier `out`/`inout`/`in`, respectively. We say that it is _covariant/contravariant_ if it has no variance modifier, and it occurs only covariantly/contravariantly, respectively, on the right hand side of `=` in the type alias. Otherwise (*when _X_ has no modifier, but occurs invariantly or both covariantly and contravariantly*), we say that _X_ _is invariant_.
 
 Let _D_ be the declaration of a class or mixin, and let _X_ be a type parameter declared by _D_.
 
 We say that _X_ _is covariant_ if it has no variance modifier or it has the variance modifier `out`; that it _is invariant_ if it has the variance modifier `inout`; and that it _is contravariant_ if it has the variance modifier `in`.
 
-If _X_ has the variance modifier `out` then it is a compile-time error for _X_ to occur in a non-covariant position in a member signature in the body of _D_, except that it is not an error if it occurs in a covariant position in the type annotation of a covariant formal parameter (*note that this is a contravariant position in the member signature as a whole*). *For instance, _X_ can not be the type of a method parameter (unless covariant), and it can not be the bound of a type parameter of a generic method.*
+If _X_ has the variance modifier `out` then it is a compile-time error for _X_ to occur in a non-covariant position in a member signature in the body of _D_, except that it is not an error if it occurs in a covariant position in the type annotation of a formal parameter that is covariant by declaration (*note that this is a contravariant position in the member signature as a whole*). *For instance, _X_ can not be the type of a method parameter (unless marked `covariant`), and it can not be the bound of a type parameter of a generic method.*
 
-If _X_ has the variance modifier `in` then it is a compile-time error for _X_ to occur in a non-contravariant position in a member signature in the body of _D_, except that it is not an error if it occurs in a contravariant position in the type of a covariant formal parameter. *For instance, _X_ can not be the return type of a method or getter, and it can not be the bound of a type parameter of a generic method.*
+If _X_ has the variance modifier `in` then it is a compile-time error for _X_ to occur in a non-contravariant position in a member signature in the body of _D_, except that it is not an error if it occurs in a contravariant position in the type of a formal parameter that is covariant by declaration. *For instance, _X_ can not be the return type of a method or getter, and it can not be the bound of a type parameter of a generic method.*
 
 *If _X_ has the variance modifier `inout` then there are no variance related restrictions on the positions where it can occur.*
 
@@ -224,10 +223,12 @@ class B<out U, inout V, in W> implements
 *But a type parameter without a variance modifier can not be used in an actual type argument for a parameter with a variance modifier, not even when that modifier is `out`. The reason for this is that it would allow a subtype to introduce the potential for dynamic errors with a member which is in the interface of the supertype and considered safe.*
 
 ```dart
+// `A` is subject to strict checks concerning the use of `X`.
 abstract class A<out X> {
   Object foo();
 }
 
+// `B` would relax the checks on the use of `X`.
 class B<X> extends A<X> {
   // The following declaration would be an error with `class B<out X>`,
   // so we do not allow it in a subtype of `class A<out X>`.
@@ -235,7 +236,9 @@ class B<X> extends A<X> {
 }
 ```
 
-*On the other hand, to ease migration, it _is_ allowed to create the opposite relationship:*
+*Note that this is a pragmatic design choice. It would be possible to allow classes like `B` to exist, if it turns out to ease the migration of existing code to use sound variance.*
+
+*It _is_ allowed to create the opposite relationship, which is surely helpful during migration:*
 
 ```dart
 class A<X> {
@@ -251,7 +254,7 @@ main() {
 }
 ```
 
-*In this situation, the invocation `myB.foo(42.1)` is subject to a dynamic type check (and it will fail if `myB` is still a `B<int>` when that invocation takes place), but it is statically known at the call site that `foo` has this property for any subtype of `A`, so we can deal with the situation statically, e.g., via a lint.*
+*In this situation, the invocation `myB.foo(42.1)` is subject to a dynamic type check (and it will fail if `myB` is still a `B<int>` when that invocation takes place). But it is statically known at the call site that `foo` has this property for any subtype of `A`, so we can deal with the situation statically, e.g., via a lint.*
 
 *An upcast (like `(myB as A<num>).foo()`) could be used to silence any diagnostic messages, so a strict rule whereby a member access like `myB.foo(42.1)` is a compile-time error may not be very helpful in practice.*
 
@@ -284,25 +287,88 @@ class B<out X> extends A<X> { // or `implements`.
 ```
 
 
+### Member signatures with Widening Use-site Variance
+
+
+
+
+*For example:*
+
+```dart
+class B<inout X> {
+  B<B<X>> m() => B<B<X>>();
+}
+
+main() {
+  B<int> bi = B<int>();
+  B<out num> bn = bi;
+  var bi2 = bi.m(); // `bi2` has type `B<B<int>>`.
+  var bn2 = bn.m(); // `bn2` has type `B<out B<out num>>`.
+}
+```
+
+
+### Member Signatures with Conditional Variance
+
+In addition to the plain variance modifiers, it is possible to use the conditional form `inout?`. The conditional variance modifier has no effect on the variance of a position in a type, but in return it will be erased from types where the corresponding typing is not guaranteed to be sound.
+
+*A major point of having `inout?` in a member signature is that it enables us to preserve a more precise return type from an instance member invocation, in cases where use-site variance (that is, `inout`) has been used to make the receiver type more precise.*
+
+It is a compile-time error if a conditional variance modifier occurs anywhere else than in the signature of an instance member of a class. If `inout?` occurs on a type argument _inout? A_ such that the corresponding type parameter has the variance modifier `inout`, that type argument is treated as _A_ (*that is, a redundant `inout?` is ignored, just like a redundant `inout`*).
+
+During static analysis of the body of a member `m`, the signature of `m` is taken to have the variance modifier `inout` wherever it is specified to be `inout?`.
+
+*This ensures soundness for the special case where `inout?` in the signature of `m` is transformed into `inout` in an expression where `m` is invoked.*
+
+For soundness, each occurrence of the modifier `inout?` in a member signature is transformed into `inout` or eliminated when computing the static type and type checking each member access (*such as an invocation of a method, getter, or setter*), based on the type of the receiver.
+
+Let _D_ be the declaration of a generic class or mixin named _N_ and let _X<sub>1</sub> .. X<sub>k</sub>_ be the type parameters declared by _D_. Let _T_ be a parameterized type which applies _N_ to a list of actual type arguments _S<sub>1</sub> .. S<sub>k</sub>_ in a context where the name _N_ denotes the declaration _D_, and consider the situation where a member access to a member `m` in the interface of _T_ is performed (*for instance, we consider `e.m()`, where `e` has type _T_*). Let _S1<sub>1</sub> .. S1<sub>k</sub>_ be types such that for each _j_ in 1 .. _k_, _S<sub>j</sub>_ is of the form _<varianceModifier> S1<sub>j</sub>_. (*In other words, _S1_ is just _S_ where variance modifiers have been stripped off.*)
+
+Let _s_ be the member signature of `m` from the interface of _D_, and _s1_ be _[S1<sub>1</sub>/X<sub>1</sub> .. S1<sub>k</sub>/X<sub>k</sub>]s_.
+
+*This is the "raw" version of the statically known type of `m`; to obtain a sound typing we need one more step where occurrences of `inout?` are transformed into `inout` or eliminated.*
+
+For each _j_ in 1 .. _k_, if _X<sub>j</sub>_ does not have the variance modifier `inout`, and _S<sub>j</sub>_ does not have the modifier `inout`, then for each occurrence of `inout?` on a type that contains _X<sub>j</sub>_ in _s_, the corresponding occurrence of `inout?` in _s1_ is eliminated. All remaining occurrences of `inout?` in _s1_ are replaced by `inout`, yielding the final member signature _s2_. The static analysis of the member access, including its static type, is then computed based on _s2_.
+
+*For example:*
+
+```dart
+class A<X> {
+  List<inout? List<inout? X>> get g => [];
+}
+
+main() {
+  A<inout int> ai = A<int>();
+  A<num> an = ai;
+  var xsi = ai.g; // `xsi` has type `List<inout List<inout int>>`.
+  xsi.add(<int>[]); // Statically safe.
+  var xsn = an.g; // `xsn` has type `List<List<num>>`.
+  xsn.add(<double>[]); // No compile-time error, but dynamic check, will throw.
+}
+```
+
+*This example illustrates why the ability to have `inout?` in a member signature helps improving the static typing: The declaration in class `A` ensures that `g` actually returns a `List<inout List<inout X>>`. In the situation where the value of `X` is known at the call site to be a specific type `T`, this allows the returned result to be typed `List<inout List<inout T>>`, which in turn makes the usage of `add` and similar members statically safe.*
+
+
 ### Expressions
 
 It is a compile-time error for an instance creation expression or a collection literal to pass a type argument with a variance modifier. It is a compile-time error to pass an actual type argument to a generic function invocation which has a variance modifier.
 
 ```dart
-class A<X> {}
+class A<inout X> {}
 
 main() {
   var xs = <inout num>[]; // Error.
   var ys = <List<inout num>>[]; // OK.
   var a = A<out String>(); // Error.
-  A<out String> a2 = A(); // OK.
+  A<in String> a2 = A(); // OK.
 
   void f<X>(X x) => print(x);
   f<inout int>(42); // Error.
 }
 ```
 
-*We could say that the list of "type arguments" passed to a constructor invocation or literal collection contains types, not type arguments; and only type arguments can have a variance modifier. However, those types may themselves receive type arguments, and they can have variance modifiers as needed.*
+*We could say that the list of "type arguments" passed to a constructor invocation or a literal collection contains types, not type arguments; and only type arguments can have a variance modifier. However, those types may themselves receive type arguments, and they can have variance modifiers as needed.*
 
 The static type of an instance creation expression that invokes a generative constructor of a generic class `C` with type arguments `T1, ... Tk` is `C<inout T1, ..., inout Tk>`.
 
@@ -335,7 +401,7 @@ class A<X> {
 class B<out X> extends A<X> {}
 
 class C<out Y> {
-  List<Y> get bar => [];
+  List<inout? Y> get bar => [];
 }
 
 main() {
@@ -348,39 +414,6 @@ main() {
 ```
 
 *Note that there is no way to make it statically safe to pass an actual argument to a covariant formal parameter of a given member `m`. Any receiver may have a dynamic type which is a proper subtype of the statically known type, and it may have an overriding declaration of `m` that makes the parameter covariant. So, by design, a modular static analysis cannot guarantee that any given invocation will not cause a dynamic error due to a dynamic type check for a covariant parameter.*
-
-
-### Member Signatures with Conditional Variance
-
-!!!TODO!!! This section deals with `inout` which is only effective when additional information on the receiver allows it, and `out`/`in` which are effective unless additional information on the receiver allows us to omit them. They are marked for erasure by having a suffix `?`. This section will replace the following text, which is relevant only when we restrict the language to use-site _invariance_.
-
-For soundness, occurrences of the modifier `inout` in member signatures are subject to elimination during the computation of the type of member access operations (*such as invocations of methods, getters, or setters*).
-
-Let _D_ be the declaration of a generic class or mixin named _N_ and let _X<sub>1</sub> .. X<sub>k</sub>_ be the type parameters declared by _D_. Let _T_ be a parameterized type which applies _N_ to a list of actual type arguments _S<sub>1</sub> .. S<sub>k</sub>_ in a context where the name _N_ denotes the declaration _D_, and consider the situation where a member access to a member `m` in the interface of _T_ is performed. Let _S1<sub>1</sub> .. S1<sub>k</sub>_ be the same as _S<sub>1</sub> .. S<sub>k</sub>_, except that any occurrence of `inout` at the top level of each type argument has been removed.
-
-Let _s_ be the member signature of `m` from the interface of _D_, and _s1_ be _[S1<sub>1</sub>/X<sub>1</sub> .. S1<sub>k</sub>/X<sub>k</sub>]s_. 
-
-*This is the "raw" version of the statically known type of `m`; to obtain a sound typing we need one more step where certain occurrences of `inout` are erased.*
-
-For each _j_ in 1 .. _k_, if _X<sub>j</sub>_ does not have the variance modifier `inout`, and _S<sub>j</sub>_ does not have the modifier `inout`, then for each occurrence of `inout` on a type that contains _X<sub>j</sub>_ in _s_, the corresponding occurrence of `inout` in _s1_ is eliminated.
-
-*For example:*
-
-```dart
-class C<X> {
-  List<inout X> get g => [];
-}
-
-main() {
-  C<inout int> ci = C<int>();
-  C<num> cn = ci; // OK, upcast.
-  List<num> xs = cn.g; // OK, `cn.g` has type `List<num>`.
-  List<inout num> ys = ci.g; // OK, `ci.g` has type `List<inout int>`.
-  ys = cn.g; // Error (downcast).
-}
-```
-
-*This example also illustrates why the ability to have `inout` in a member signature helps improving the static typing: The declaration in class `C` ensures that `g` actually returns a `List<inout X>`. In the situation where the value of `X` is known at the call site to be a specific type `T`, this allows the returned result to be typed `List<inout T>`, which in turn makes the usage of `add` and similar members statically safe.*
 
 
 ## Dynamic Semantics
