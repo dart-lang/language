@@ -236,7 +236,7 @@ class B<X> extends A<X> {
 }
 ```
 
-*Note that this is a pragmatic design choice. It would be possible to allow classes like `B` to exist, if it turns out to ease the migration of existing code to use sound variance.*
+*Note that this is a pragmatic design choice. It would be possible to allow classes like `B` to exist, if it turns out to ease migration of existing code.*
 
 *It _is_ allowed to create the opposite relationship, which is surely helpful during migration:*
 
@@ -289,8 +289,7 @@ class B<out X> extends A<X> { // or `implements`.
 
 ### Member signatures with Widening Use-site Variance
 
-
-
+!!!HERE!!!
 
 *For example:*
 
