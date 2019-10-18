@@ -43,8 +43,9 @@
 % - Specify the signature of the `call` method of a function object.
 % - Add the rule that it is an error for a type variable of a class to occur
 %   in a non-covariant position in a superinterface.
-% - Corrected grammar rules, including: added <functionExpressionBody> (to
+% - Correct several grammar rules, including: added <functionExpressionBody> (to
 %   avoid semicolon in <functionBody>), adjusted <importSpecification>.
+% - Correct the grammar and lexical rules for string literals.
 %
 % 2.3
 % - Add requirement that the iterator of a for-in statement must have
@@ -6846,6 +6847,31 @@ This can be expressed by writing smaller strings separated by whitespace, as sho
 'like so'.
 \end{dartCode}
 
+\LMHash{}%
+An auxiliary
+\Index{string interpolation state stack}
+is maintained outside the parser,
+in order to ensure that string interpolations are matched up correctly.
+
+\commentary{%
+This is necessary because the expression of a non-simple string interpolation
+may itself contain string literals
+with their own non-simple string interpolations.%
+}
+
+\LMHash{}%
+For rules with names \synt{\ldots\_BEGIN\_MID},
+a marker is pushed on the auxiliary stack to indicate that
+a string interpolation of the given kind has started,
+where the kind is \lit{\sq}, \lit{"}, \lit{\sqsqsq}, or \lit{"""}.
+For rules with names \synt{\ldots\_MID\_MID},
+only the rule with the kind on the top of the auxiliary stack can be used,
+and the marker is then popped;
+at the end the same marker is pushed.
+For rules with names \synt{\ldots\_MID\_END},
+only the rule with the kind on the top of the auxiliary stack can be used,
+and the marker is then popped.
+
 \begin{grammar}
 <multilineString> ::= <RAW\_MULTI\_LINE\_STRING>
   \alt <MULTI\_LINE\_STRING\_SQ\_BEGIN\_END>
@@ -6918,7 +6944,7 @@ including the line break at its end.
 \rationale{%
 The idea is to ignore a whitespace-only first line of a multiline string,
 where whitespace is defined as tabs, spaces and the final line break.
-These can be represented directly, 
+These can be represented directly,
 but since for most characters prefixing by backslash is
 an identity in a non-raw string,
 we allow those forms as well.%
@@ -6931,30 +6957,11 @@ denote a non-greedy token recognition step:
 It terminates as soon as the lookahead is the specified next token
 (\commentary{that is, \lit{\sqsqsq}or \lit{"""}}).
 
-\LMHash{}%
-An auxiliary
-\Index{string interpolation state stack}
-is maintained outside the parser,
-in order to ensure that string interpolations are matched up correctly.
-
 \commentary{%
-This is necessary because the expression of a non-simple string interpolation
-may itself contain string literals
-with their own non-simple string interpolations.%
+Note that multi-line string interpolation relies on
+the auxiliary string interpolation state stack,
+just like single-line string interpolation.%
 }
-
-\LMHash{}%
-For rules with names \synt{\ldots\_BEGIN\_MID},
-a marker is pushed on the auxiliary stack to indicate that
-a string interpolation of the given kind has started,
-where the kind is \lit{\sq}, \lit{"}, \lit{\sqsqsq}, or \lit{"""}.
-For rules with names \synt{\ldots\_MID\_MID},
-only the rule with the kind on the top of the auxiliary stack can be used,
-and the marker is then popped;
-at the end the same marker is pushed.
-For rules with names \synt{\ldots\_MID\_END},
-only the rule with the kind on the top of the auxiliary stack can be used,
-and the marker is then popped.
 
 \LMHash{}%
 Strings support escape sequences for special characters.
@@ -6992,9 +6999,11 @@ The escapes are:
 \item
   \lit{\$} indicating the beginning of an interpolated expression.
 \item
-  \def\k{$k$}
-  Otherwise, \syntax{`\\\k'} indicates the character $k$ for
-  any $k$ not in \syntax{$\{$`n', `r', `f', `b', `t', `v', `x', `u'$\}$}.
+  { % We need a definition for $k$ in order to be able to use it in \syntax{}.
+    \def\k{$k$}
+    Otherwise, \syntax{`\\\k'} indicates the character \k{} for
+    any \k{} not in \syntax{$\{$`n', `r', `f', `b', `t', `v', `x', `u'$\}$}.
+  }
 \end{itemize}
 
 \LMHash{}%
