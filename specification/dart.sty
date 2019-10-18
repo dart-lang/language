@@ -78,9 +78,20 @@
 \def\gtgt{>\mbox >}
 \def\gtgtgt{>\mbox >\mbox >}
 
+% Commands for single quotes, enabling them to be used
+% in a `grammar` environment.
+\def\sq{\mbox'}
+\def\sqsq{\mbox{'{}'}}
+\def\sqsqsq{\mbox{'{}'{}'}}
+
 % Used as line break in the right hand side of a grammar
 % alternative, that is, when starting a "continuation line".
 \newcommand{\gnewline}{\leavevmode\\}
+
+% Used in lexical grammar rules to express negation of a character or
+% character set (which simply denotes the set of all other characters);
+% also used to show the actual "tilde" character as source code.
+\newcommand{\gtilde}{\mbox{\code{\textasciitilde}}}
 
 % Metavariables for argument lists.
 \newcommand{\argumentList}[1]{\metavar{{#1}s}}
