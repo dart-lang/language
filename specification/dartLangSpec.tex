@@ -43,6 +43,8 @@
 % - Specify the signature of the `call` method of a function object.
 % - Add the rule that it is an error for a type variable of a class to occur
 %   in a non-covariant position in a superinterface.
+% - Corrected grammar rules, including: added <functionExpressionBody> (to
+%   avoid semicolon in <functionBody>), adjusted <importSpecification>.
 %
 % 2.3
 % - Add requirement that the iterator of a for-in statement must have
@@ -1174,7 +1176,7 @@ Functions abstract over executable actions.
 <formalParameterPart> ::= <typeParameters>? <formalParameterList>
 
 <functionBody> ::= \ASYNC{}? `=>' <expression> `;'
-  \alt (\ASYNC{} | \ASYNC `*' | \SYNC `*')? <block>
+  \alt (\ASYNC{} `*'? | \SYNC{} `*')? <block>
 
 <block> ::= `{' <statements> `}'
 \end{grammar}
@@ -7588,8 +7590,19 @@ A \IndexCustom{function literal}{literal!function}
 is an anonymous declaration and an expression
 that encapsulates an executable unit of code.
 
+%% TODO(eernst): This is highly ambiguous because <primary> derives
+%% <functionExpression>. Dart.g derives <functionExpression> from
+%% <expression> but only allows the block in <functionPrimary>, which
+%% is derived from <primary>. It has <functionExpressionWithoutCascade>
+%% as well, allowing for an `=>` function literal in a cascade assignment.
+%% However, we need to assess the breakage very carefully before adopting
+%% that approach, because it prevents function literals from being parsed
+%% as conditionalExpression, ifNullExpression, ... postfixExpression.
 \begin{grammar}
-<functionExpression> ::= <formalParameterPart> <functionBody>
+<functionExpression> ::= <formalParameterPart> <functionExpressionBody>
+
+<functionExpressionBody> ::= \ASYNC? `=>' <expression>
+  \alt (\ASYNC{} `*'? | \SYNC{} `*')? <block>
 \end{grammar}
 
 \LMHash{}%
@@ -14080,7 +14093,7 @@ The members of a library $L$ are those top level declarations given within $L$.
 
 <libraryDefinition> ::= \gnewline{}
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
-  \gnewline{} <metadata> <topLevelDefinition>*
+  \gnewline{} (<metadata> <topLevelDefinition>)*
 
 <scriptTag> ::= `#!' (\~{}<NEWLINE>)* <NEWLINE>
 
@@ -14148,7 +14161,7 @@ An \Index{import} specifies a library to be used in the scope of another library
 
 <importSpecification> ::= \gnewline{}
   \IMPORT{} <configurableUri> (\AS{} <identifier>)? <combinator>* `;'
-  \alt \IMPORT{} <uri> \DEFERRED{} \AS{} <identifier> <combinator>* `;'
+  \alt \IMPORT{} <configurableUri> \DEFERRED{} \AS{} <identifier> <combinator>* `;'
 
 <combinator> ::= \SHOW{} <identifierList>
   \alt \HIDE{} <identifierList>
