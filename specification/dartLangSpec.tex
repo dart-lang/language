@@ -2865,8 +2865,9 @@ declaration consists of a constructor name, a constructor parameter list,
 and either a redirect clause or an initializer list and an optional body.
 
 \begin{grammar}
-<constructorSignature> ::= \gnewline{}
-  <identifier> (`.' <identifier>)? <formalParameterList>
+<constructorSignature> ::= <constructorName> <formalParameterList>
+
+<constructorName> ::= <typeIdentifier> (`.' <identifier>)?
 \end{grammar}
 
 \LMHash{}%
@@ -3265,7 +3266,7 @@ is a constructor prefaced by the built-in identifier
 
 \begin{grammar}
 <factoryConstructorSignature> ::= \gnewline{}
-  \FACTORY{} <identifier> (`.' <identifier>)? <formalParameterList>
+  \CONST? \FACTORY{} <constructorName> <formalParameterList>
 \end{grammar}
 
 %The enclosing scope of a factory constructor is the static scope \ref{} of the class in which it is declared.
@@ -3306,8 +3307,11 @@ whenever the redirecting constructor is called.
 
 \begin{grammar}
 <redirectingFactoryConstructorSignature> ::= \gnewline{}
-  \CONST{}? \FACTORY{} <identifier> (`.' <identifier>)? <formalParameterList> `='
-  \gnewline{} <typeNotVoid> (`.' <identifier>)?
+  \CONST? \FACTORY{} <constructorName> <formalParameterList> '=' \gnewline{}
+  <constructorDesignation>
+
+<constructorDesignation> ::= <qualifiedName>
+  \alt <typeName> <typeArguments> (`.' <identifier>)?
 \end{grammar}
 
 Assume that
@@ -3464,7 +3468,8 @@ may be used to create compile-time constant (\ref{constants}) objects.
 A constant constructor is prefixed by the reserved word \CONST{}.
 
 \begin{grammar}
-<constantConstructorSignature> ::= \CONST{} <qualified> <formalParameterList>
+<constantConstructorSignature> ::= \gnewline{}
+  \CONST{} <constructorName> <formalParameterList>
 \end{grammar}
 
 \commentary{%
@@ -5419,8 +5424,7 @@ which will be used when no information is available for inference.%
 }
 
 \LMHash{}%
-Consider the situation where a term $t$ of the form \synt{qualified}
-(\commentary{which is syntactically the same as \synt{typeName}})
+Consider the situation where a term $t$ of the form \synt{typeName}
 denotes a generic type declaration,
 and it is used as a type or as an expression in the enclosing program.
 \commentary{%
@@ -5854,14 +5858,16 @@ also when they are deeply nested.%
 Dart supports metadata which is used to attach user defined annotations to program structures.
 
 \begin{grammar}
-<metadata> ::= (`@' <qualified> (`.' <identifier>)? <arguments>?)*
+<metadata> ::= (`@' <metadatum>)*
+
+<metadatum> ::= <qualifiedName> | <constructorDesignation> <arguments>
 \end{grammar}
 
 \LMHash{}%
 Metadata consists of a series of annotations,
 each of which begin with the character \lit{@},
 followed by a constant expression $e$ derivable from
-\syntax{<qualified> (`.' <identifier>)? <arguments>?}.
+\synt{metadatum}.
 It is a compile-time error if $e$ is not one of the following:
 \begin{itemize}
 \item A reference to a constant variable.
@@ -8043,7 +8049,7 @@ is an enumerated type (\ref{enums}).
 The \Index{new expression} invokes a constructor (\ref{constructors}).
 
 \begin{grammar}
-<newExpression> ::= \NEW{} <typeNotVoid> (`.' <identifier>)? <arguments>
+<newExpression> ::= \NEW{} <constructorDesignation> <arguments>
 \end{grammar}
 
 \LMHash{}%
@@ -8234,7 +8240,7 @@ A \Index{constant object expression} invokes a constant constructor
 (\ref{constantConstructors}).
 
 \begin{grammar}
-<constObjectExpression> ::= \CONST{} <typeNotVoid> (`.' <identifier>)? <arguments>
+<constObjectExpression> ::= \CONST{} <constructorDesignation> <arguments>
 \end{grammar}
 
 \LMHash{}%
@@ -12216,7 +12222,9 @@ An \Index{identifier expression} consists of a single identifier; it provides ac
 
 <IDENTIFIER\_PART> ::= <IDENTIFIER\_START> | <DIGIT>
 
-<qualified> ::= <identifier> (`.' <identifier>)?
+<qualifiedName> ::= <typeIdentifier>
+  \alt <typeIdentifier> `.' <identifier>
+  \alt <typeIdentifier> `.' <typeIdentifier> `.' <identifier>
 \end{grammar}
 
 \LMHash{}%
@@ -12249,6 +12257,10 @@ This approach was chosen because it was less breaking than it would have been
 to make \AWAIT{} and \YIELD{} reserved words or built-in identifiers,
 at the time where these features were added to the language.%
 }
+
+\LMHash{}%
+A \Index{qualified identifier} is an identifier preceded by
+\syntax{<identifier> `.'}.
 
 \LMHash{}%
 The static type of an identifier expression $e$ which is an identifier \id{}
