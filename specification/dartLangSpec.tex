@@ -9744,7 +9744,7 @@ Let $e$ be an expression of the form \code{$e_0$..$s$}
 where $e_0$ is an \synt{expression}
 such that $e$ is not initially conditional.
 Exactly the same compile-time errors are raised for $e$
-as would be raised for \code{$e_0$.$s$}.
+as would be raised for \code{($e_0$).$s$}.
 The static type of $e$ is the static type of $e_0$.
 
 \LMHash{}%
@@ -9754,12 +9754,12 @@ where $e_0$ is a \synt{conditionalExpression},
 exactly the same compile-time errors are raised for $e$
 % This rule is NNBD-ready, so we use it even though we could
 % use a slightly simpler set of rules today.
-as would be raised for \code{$e_0$?.$s$}.
+as would be raised for \code{($e_0$)?.$s$}.
 If $e$ is an expression of the form \code{$e_0$..$s$}
 where $e_0$ is an \synt{expression}
 such that $e$ is initially conditional,
 exactly the same compile-time errors are raised for $e$
-as would be raised for \code{$e_0$?.$s$}.
+as would be raised for \code{($e_0$)?.$s$}.
 In both cases, the static type of $e$ is the static type of $e_0$.
 
 \LMHash{}%
@@ -9775,23 +9775,34 @@ Evaluate \code{$t$.$s$} to an object
 (\commentary{which is discarded}).
 Then $e$ evaluates to $o$.
 
+\commentary{%
+The expressions \code{($e_0$).$s$} and \code{($e_0$)?.$s$} may have
+a very different syntactic structure than
+the expression that gave rise to them
+(namely an expression of the form \code{$e_0$..$s$} or \code{$e_0$?..$s$}).
+In particular, the cascade section $s$ may end in a cascade assignment
+such that \code{$e_0$..$s$} is of the form \code{$e_0$..$s'$ = $e_1$},
+where the cascade section \code{$s'$ = $e_1$} is a subterm of the cascade.
+However, \code{($e_0$).$s'$ = $e_1$} is an \synt{assignment} whose subterms are
+\code{($e_0$).$s'$} and \code{$e_1$}.
+This is possible because the grammar rules for \synt{cascadeSection}
+have been designed in such a way that it is guaranteed
+that \code{($e_0$).$s'$} can be parsed as an \synt{assignableExpression},
+and $e_1$ can be parsed as an \synt{expression}.%
+}
+
 \LMHash{}%
-% We should say that $e$ is an expression in the current program,
-% because this is a non-context-free property. It makes no sense to say that
-% "$e$ isn't a subexpression of $e$..$s$ for any $s$", unless we say "the
-% specific occurrence of $e$ in the program that we are now considering
-% isn't a subexpression of $e$..$s$ for any $s$". If this is considered
-% confusing then we can spell it out, but for now we trust the reader to
-% either understand this already, or to not notice that there is a
-% problem.
 For some $k > 0$,
 let $e$ be an expression of the form
 \code{$e_0$?..$s_1$..$s_2$ $\cdots$ ..$s_k$}
-where $e_0$ is a \synt{conditionalExpression}
-and $s_j$ is a \synt{cascadeSection} for each $j \in 1 .. k$.
+that occurs at some location $\ell$,
+such that $e_0$ is a \synt{conditionalExpression} and
+$s_j$ is a \synt{cascadeSection}, $j \in 1 .. k$.
 Assume that $e$ is maximal,
 in the sense that there does not exist a \synt{cascadeSection} $s$
-such that $e$ is a subexpression of \code{$e$..$s$}.
+such that there is an expression at location $\ell$
+of the form \code{$e$..$s$}
+(\commentary{in short, we can not make $e$ bigger}).
 Evaluation of $e$ proceeds as follows:
 Evaluate $e_0$ to an object $o$.
 If $o$ is the null object then $e$ evaluates to $o$.
