@@ -3054,7 +3054,9 @@ There are three kinds of initializers.
   \alt <assertion>
 
 <fieldInitializer> ::= \gnewline{}
-  (\THIS{} `.')? <identifier> `=' <conditionalExpression> <cascadeSequence>?
+  (\THIS{} `.')? <identifier> `=' <initializerExpression>
+
+<initializerExpression> ::= <conditionalExpression> | <cascade>
 \end{grammar}
 
 \LMHash{}%
@@ -5931,7 +5933,8 @@ Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
 
 \begin{grammar}
 <expression> ::= <assignableExpression> <assignmentOperator> <expression>
-  \alt <conditionalExpression> <cascadeSequence>?
+  \alt <conditionalExpression>
+  \alt <cascade>
   \alt <throwExpression>
 
 <expressionWithoutCascade> ::= \gnewline{}
@@ -9672,11 +9675,12 @@ Notice that the wording avoids re-evaluating the receiver $o$ and the arguments 
 A \Index{cascade} is a kind of expression that allows for performing
 multiple operations on a given object
 without storing it in a variable and accessing it via a name.
-Cascades can have different syntactic forms,
-but will always contain two periods \lit{..}.
+In general, a cascade can be recognized by the use of two periods,
+\lit{..}.
 
 \begin{grammar}
-<cascadeSequence> ::= (`?..' | `..') <cascadeSection> (`..' <cascadeSection>)*
+<cascade> ::= <cascade> `..' <cascadeSection>
+  \alt <conditionalExpression> (`?..' | `..') <cascadeSection>
 
 <cascadeSection> ::= <cascadeSelector> <cascadeSectionTail>
 
@@ -9687,21 +9691,16 @@ but will always contain two periods \lit{..}.
   \alt <selector>* (<assignableSelector> <cascadeAssignment>)?
 
 <cascadeAssignment> ::= <assignmentOperator> <expressionWithoutCascade>
-
-<argumentPart> ::=
-  <typeArguments>? <arguments>
 \end{grammar}
 
 \LMHash{}%
 A \IndexCustom{cascaded member access}{cascaded member access}
 is an expression of the form
-\code{$e$..\metavar{suffix}} or \code{$e$?..\metavar{suffix}},
-% The grammar enforces that $e$ is a \synt{conditionalExpression},
-% but that is also an expression.
+\code{$e$..$s$} or \code{$e$?..$s$},
 where $e$ is an expression
-and \metavar{suffix} is derived from \synt{cascadeSection}.
+and $s$ is derived from \synt{cascadeSection}.
 The form
-\code{$e$?..\metavar{suffix}}
+\code{$e$?..$s$}
 is also known as a
 \IndexCustom{conditional cascaded member access}{%
   cascaded member access!conditional}.
@@ -9714,115 +9713,91 @@ while preserving a reference to that object for further processing.%
 }
 
 \commentary{%
-For example, \code{C()..foo.bar()} allows us to obtain a reference to
+For example, \code{C()..foo.bar = 2} allows us to obtain a reference to
 the object $o$ which is the result of evaluating \code{C()},
 and at the same time use $o$ to invoke the getter \code{foo} and
-invoke \code{bar()} on the value returned by that getter.%
+the setter \code{bar=} on the value returned by that getter.%
 }
 
 \LMHash{}%
-Using \synt{cascadeSequence}, an expression can include
-multiple cascade sections
-(\ref{expressions}).
-
-\LMHash{}%
-For some $k > 0$,
-let $e$ be an expression of the form
-\code{$e_0$..$s_1$\,\,$\cdots$\,\,..$s_k$}
-where $s_j$ is derived from \synt{cascadeSection}, $j \in 1 .. k$,
-such that $k$ is maximal.
-That is, there is no $s_{k+1}$ derived from \synt{cascadeSection}
-such that $e$ is a subexpression of the larger expression
-\code{$e$..$s_{k+1}$}.
-Then $e$ is treated as
-(\ref{notation})
-\code{(($e_0$..$s_1$)\,\,$\cdots$\,\,)..$s_k$}.
-
-\LMHash{}%
-For some $k > 0$,
-let $e$ be an expression of the form
-\code{$e_0$?..$s_1$\,\,$\cdots$\,\,..$s_k$}
-where $s_j$ is derived from \synt{cascadeSection}, $j \in 1 .. k$,
-such that $k$ is maximal in the same sense as above.
-Then $e$ is treated as
-\code{(($e_0$?..$s_1$)\,\,$\cdots$\,\,)?..$s_k$}.
+An expression of the form \code{$e_0$?..$s$} where
+$e_0$ is a \synt{conditionalExpression} and
+$s$ is a \synt{cascadeSection} is an
+\IndexCustom{initially conditional cascaded member access}{%
+  cascaded member access!initially conditional}.
+Moreover, if \code{$e_0$} is
+an initially conditional cascaded member access and
+$s$ is derived from \synt{cascadeSection} then
+\code{$e_0$..$s$} is also initially conditional.
 
 \commentary{%
-With these transformations in place,
-there will never be an expression that includes multiple cascade sections.
-So we need only specify the static analysis and dynamic semantics for
-expressions that contain a \synt{cascadeSequence}
-which contains exactly one \synt{cascadeSection}.%
+In short, a cascade is initially conditional if
+the ``innermost dots'' are \lit{?..} rather than \lit{..}.
+Note that only the innermost dots can have the \lit{?}.
+All the non-innermost ones are implicitly skipped if the receiver is null,
+so any \lit{?} on a non-innermost \lit{..} would be useless.%
 }
 
 \LMHash{}%
-% Note that the use of <conditionalExpression> here prevents a sequence of
-% multiple <cascadeSection>s, but it does allow ($e_1$..$s_1$)..$s$,
-% because (<expression>) is a primary.
+Let $s$ be a \synt{cascadeSection}.
 Let $e$ be an expression of the form \code{$e_0$..$s$}
-where $e_0$ is a \synt{conditionalExpression}
-and $s$ is a \synt{cascadeSection}.
+where $e_0$ is an \synt{expression}
+such that $e$ is not initially conditional.
 Exactly the same compile-time errors are raised for $e$
 as would be raised for \code{$e_0$.$s$}.
 The static type of $e$ is the static type of $e_0$.
 
 \LMHash{}%
-%% TODO(eernst): Come nnbd, adjust for nullability of type of $e_0$.
-Let $e$ be an expression of the form \code{$e_0$?..$s$}
-where $e_0$ is a \synt{conditionalExpression}
-and $s$ is a \synt{cascadeSection}.
-Exactly the same compile-time errors are raised for $e$
+Let $s$ be a \synt{cascadeSection}.
+If $e$ is an expression of the form \code{$e_0$?..$s$}
+where $e_0$ is a \synt{conditionalExpression},
+exactly the same compile-time errors are raised for $e$
+% This rule is NNBD-ready, so we use it even though we could
+% use a slightly simpler set of rules today.
 as would be raised for \code{$e_0$?.$s$}.
-% This means that `e?.s` can has a non-nullable type when `e` has a
-% non-nullable type. But that case is a warning, so the surprising type
-% will be flagged; also, it is sound to use the non-nullable type as-is.
-% PS: The nnbd feature spec does not specify any static type for $e$.
-The static type of $e$ is the static type of $e_0$.
+If $e$ is an expression of the form \code{$e_0$..$s$}
+where $e_0$ is an \synt{expression}
+such that $e$ is initially conditional,
+exactly the same compile-time errors are raised for $e$
+as would be raised for \code{$e_0$?.$s$}.
+In both cases, the static type of $e$ is the static type of $e_0$.
 
 \LMHash{}%
-Evaluation of a cascaded member access expression $c$ of the form
-\code{$e$..\metavar{suffix}}
-where \metavar{suffix} is derived from \synt{cascadeSection}
+Evaluation of a cascaded member access $e$
+of the form \code{$e_0$..$s$}
+where $e$ is an \synt{expression} and
+$s$ is a \synt{cascadeSection}
+such that $e$ is not initially conditional
 proceeds as follows:
-Evaluate $e$ to an object $o$.
+Evaluate $e_0$ to an object $o$.
 Let $t$ be a fresh variable bound to $o$.
-Evaluate \code{$t$.\metavar{suffix}} to an object.
-Then $c$ evaluates to $o$.
+Evaluate \code{$t$.$s$} to an object
+(\commentary{which is discarded}).
+Then $e$ evaluates to $o$.
 
 \LMHash{}%
-Evaluation of a conditional cascaded member access expression $c$ of the form
-\code{$e$?..\metavar{suffix}}
-where \metavar{suffix} is derived from \synt{cascadeSection}
-proceeds as follows:
-Evaluate $e$ to an object $o$.
+% We should say that $e$ is an expression in the current program,
+% because this is a non-context-free property. It makes no sense to say that
+% "$e$ isn't a subexpression of $e$..$s$ for any $s$", unless we say "the
+% specific occurrence of $e$ in the program that we are now considering
+% isn't a subexpression of $e$..$s$ for any $s$". If this is considered
+% confusing then we can spell it out, but for now we trust the reader to
+% either understand this already, or to not notice that there is a
+% problem.
+For some $k > 0$,
+let $e$ be an expression of the form
+\code{$e_0$?..$s_1$..$s_2$ $\cdots$ ..$s_k$}
+where $e_0$ is a \synt{conditionalExpression}
+and $s_j$ is a \synt{cascadeSection} for each $j \in 1 .. k$.
+Assume that $e$ is maximal,
+in the sense that there does not exist a \synt{cascadeSection} $s$
+such that $e$ is a subexpression of \code{$e$..$s$}.
+Evaluation of $e$ proceeds as follows:
+Evaluate $e_0$ to an object $o$.
 If $o$ is the null object then $e$ evaluates to $o$.
-Otherwise let $t$ be a fresh variable bound to $o$ and
-evaluate \code{$t$.\metavar{suffix}} to an object.
-Then $c$ evaluates to $o$.
-
-\commentary{%
-%% TODO(eernst): If we add a \LET{} to the language, or even just as an
-%% "official" mechanism for specification, we should make this the
-%% official desugaring of `e?..s`.
-An expression of the form
-\code{(($e_0$?..$s_1$)\,\,$\cdots$\,\,)?..$s_k$}
-is guaranteed to have the same observable behavior as the following
-expression, where \code{v} is a fresh variable:
-\code{\LET\,\,v = $e_0$\,\,\IN\,\,v == null?%
-  \,\,null\,:\,v..$s_1$\,\,$\cdots$\,\,..$s_k$}.
-In this expression, \code{\LET\,..\,\IN\,..} is
-a hypothetical expression (not currently part of Dart) that allows for
-the introduction and use of a local variable inside an expression.
-Note that in the case where $e_0$ evaluates to the null object,
-evaluation of the expression
-\code{(($e_0$?..$s_1$)\,\,$\cdots$\,\,)?..$s_k$}
-will repeatedly check for null and skip the execution of $s_j$ for all $j$.
-When $e_0$ is not the null object,
-it will repeatedly be checked and found different from null,
-and all $s_j$ will be executed.
-The equivalence with the \LET{} form can be used by implementations
-to perform the null check just once.%
-}
+Otherwise, let \code{v} be a fresh variable bound to $o$.
+Then $e$ evaluates to the result of
+evaluating \code{v..$s_1$..$s_2$ $\cdots$ ..$s_k$}.
 
 
 \subsubsection{Super Invocation}
@@ -11683,6 +11658,9 @@ Postfix expressions invoke the postfix operators on objects.
 <selector> ::= `!'
   \alt <assignableSelector>
   \alt <argumentPart>
+
+<argumentPart> ::=
+  <typeArguments>? <arguments>
 
 <incrementOperator> ::= `++'
   \alt `-\mbox-'
