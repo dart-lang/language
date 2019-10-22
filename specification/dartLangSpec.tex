@@ -45,6 +45,8 @@
 %   in a non-covariant position in a superinterface.
 % - Corrected grammar rules, including: added <functionExpressionBody> (to
 %   avoid semicolon in <functionBody>), adjusted <importSpecification>.
+% - Revised section on cascades. Now uses compositional grammar, and
+%   specifies static type, compile-time errors, and includes `?..'.
 %
 % 2.3
 % - Add requirement that the iterator of a for-in statement must have
@@ -9688,7 +9690,7 @@ Notice that the wording avoids re-evaluating the receiver $o$ and the arguments 
 A \Index{cascade} is a kind of expression that allows for performing
 multiple operations on a given object
 without storing it in a variable and accessing it via a name.
-In general, a cascade can be recognized by the use of two periods,
+In general, a cascade can be recognized by the use of exactly two periods,
 \lit{..}.
 
 \begin{grammar}
