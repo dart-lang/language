@@ -43,10 +43,11 @@
 % - Specify the signature of the `call` method of a function object.
 % - Add the rule that it is an error for a type variable of a class to occur
 %   in a non-covariant position in a superinterface.
-% - Corrected grammar rules, including: added <functionExpressionBody> (to
+% - Correct several grammar rules, including: added <functionExpressionBody> (to
 %   avoid semicolon in <functionBody>), adjusted <importSpecification>.
-% - Revised section on cascades. Now uses compositional grammar, and
+% - Revise section on cascades. Now uses compositional grammar, and
 %   specifies static type, compile-time errors, and includes `?..'.
+% - Correct the grammar and lexical rules for string literals.
 %
 % 2.3
 % - Add requirement that the iterator of a for-in statement must have
@@ -371,7 +372,7 @@ An example would be:
   \alt <oneOrMoreThings>+
   \alt <anOptionalThing>?
   \alt (<some> <grouped> <things>)
-  \alt \~{}<notAThing>
+  \alt \gtilde{}<notAThing>
   \alt `aTerminal'
   \alt <A\_LEXICAL\_THING>
 \end{grammar}
@@ -1473,20 +1474,28 @@ It is a compile-time error if any default values are specified in the signature 
 \end{itemize}
 
 \begin{grammar}
-<normalFormalParameter> ::= <functionFormalParameter>
+<normalFormalParameter> ::= \gnewline{}
+  <metadata> <normalFormalParameterNoMetadata>
+
+<normalFormalParameterNoMetadata> ::= <functionFormalParameter>
   \alt <fieldFormalParameter>
   \alt <simpleFormalParameter>
 
 <functionFormalParameter> ::= \gnewline{}
-  <metadata> \COVARIANT{}? <type>? <identifier> <formalParameterPart> `?'?
+  \COVARIANT{}? <type>? <identifier> <formalParameterPart> `?'?
 
 <simpleFormalParameter> ::= <declaredIdentifier>
-  \alt <metadata> \COVARIANT{}? <identifier>
+  \alt \COVARIANT{}? <identifier>
 
 <fieldFormalParameter> ::= \gnewline{}
-  <metadata> <finalConstVarOrType>? \THIS{} `.' <identifier> \gnewline{}
-  <formalParameterPart>?
+  <finalConstVarOrType>? \THIS{} `.' <identifier> <formalParameterPart>?
 \end{grammar}
+
+\LMHash{}%
+It is a compile-time error if a formal parameter has the modifier \CONST{}
+or the modifier \LATE.
+It is a compile-time error if \VAR{} occurs as
+the first token of a \synt{fieldFormalParameter}.
 
 \LMHash{}%
 It is possible to include the modifier \COVARIANT{}
@@ -1501,7 +1510,9 @@ which means that such parameters can also be covariant.
 }
 
 \LMHash{}%
-It is a compile-time error if the modifier \COVARIANT{} occurs on a parameter of a function which is not an instance method, instance setter, or instance operator.
+It is a compile-time error if the modifier \COVARIANT{} occurs on
+a parameter of a function which is not
+an instance method, instance setter, or instance operator.
 
 
 \subsubsection{Optional Formals}
@@ -2169,7 +2180,7 @@ The following names are allowed for user-defined operators:
 \lit{-},
 \lit{+},
 \lit{/},
-\lit{\~{}/},
+\lit{\gtilde{}/},
 \lit{*},
 \lit{\%},
 \lit{|},
@@ -2180,7 +2191,7 @@ The following names are allowed for user-defined operators:
 \lit{\gtgtgt},
 \lit{[]=},
 \lit{[]},
-\lit{\~{}}.
+\lit{\gtilde{}}.
 
 \LMHash{}%
 It is a compile-time error if the arity of the user-declared operator
@@ -2193,7 +2204,7 @@ It is a compile-time error if the arity of a user-declared operator with one of 
 \lit{==},
 \lit{-},
 \lit{+},
-\lit{\~{}/},
+\lit{\gtilde{}/},
 \lit{/},
 \lit{*},
 \lit{\%},
@@ -2226,7 +2237,7 @@ for purposes of method lookup, override and reflection.
 
 \LMHash{}%
 It is a compile-time error if the arity of the user-declared operator
-\lit{\~{}}
+\lit{\gtilde}
 is not 0.
 
 \LMHash{}%
@@ -2868,8 +2879,9 @@ declaration consists of a constructor name, a constructor parameter list,
 and either a redirect clause or an initializer list and an optional body.
 
 \begin{grammar}
-<constructorSignature> ::= \gnewline{}
-  <identifier> (`.' <identifier>)? <formalParameterList>
+<constructorSignature> ::= <constructorName> <formalParameterList>
+
+<constructorName> ::= <typeIdentifier> (`.' <identifier>)?
 \end{grammar}
 
 \LMHash{}%
@@ -3270,7 +3282,7 @@ is a constructor prefaced by the built-in identifier
 
 \begin{grammar}
 <factoryConstructorSignature> ::= \gnewline{}
-  \FACTORY{} <identifier> (`.' <identifier>)? <formalParameterList>
+  \CONST? \FACTORY{} <constructorName> <formalParameterList>
 \end{grammar}
 
 %The enclosing scope of a factory constructor is the static scope \ref{} of the class in which it is declared.
@@ -3311,8 +3323,11 @@ whenever the redirecting constructor is called.
 
 \begin{grammar}
 <redirectingFactoryConstructorSignature> ::= \gnewline{}
-  \CONST{}? \FACTORY{} <identifier> (`.' <identifier>)? <formalParameterList> `='
-  \gnewline{} <typeNotVoid> (`.' <identifier>)?
+  \CONST? \FACTORY{} <constructorName> <formalParameterList> '=' \gnewline{}
+  <constructorDesignation>
+
+<constructorDesignation> ::= <qualifiedName>
+  \alt <typeName> <typeArguments> (`.' <identifier>)?
 \end{grammar}
 
 Assume that
@@ -3469,7 +3484,8 @@ may be used to create compile-time constant (\ref{constants}) objects.
 A constant constructor is prefixed by the reserved word \CONST{}.
 
 \begin{grammar}
-<constantConstructorSignature> ::= \CONST{} <qualified> <formalParameterList>
+<constantConstructorSignature> ::= \gnewline{}
+  \CONST{} <constructorName> <formalParameterList>
 \end{grammar}
 
 \commentary{%
@@ -5424,8 +5440,7 @@ which will be used when no information is available for inference.%
 }
 
 \LMHash{}%
-Consider the situation where a term $t$ of the form \synt{qualified}
-(\commentary{which is syntactically the same as \synt{typeName}})
+Consider the situation where a term $t$ of the form \synt{typeName}
 denotes a generic type declaration,
 and it is used as a type or as an expression in the enclosing program.
 \commentary{%
@@ -5859,14 +5874,16 @@ also when they are deeply nested.%
 Dart supports metadata which is used to attach user defined annotations to program structures.
 
 \begin{grammar}
-<metadata> ::= (`@' <qualified> (`.' <identifier>)? <arguments>?)*
+<metadata> ::= (`@' <metadatum>)*
+
+<metadatum> ::= <qualifiedName> | <constructorDesignation> <arguments>
 \end{grammar}
 
 \LMHash{}%
 Metadata consists of a series of annotations,
 each of which begin with the character \lit{@},
 followed by a constant expression $e$ derivable from
-\syntax{<qualified> (`.' <identifier>)? <arguments>?}.
+\synt{metadatum}.
 It is a compile-time error if $e$ is not one of the following:
 \begin{itemize}
 \item A reference to a constant variable.
@@ -6194,7 +6211,12 @@ It is further a constant expression if the map literal evaluates to an object.
 \item $e_1$ evaluates to \FALSE{} and $e_2$ is a constant expression that evaluates to an instance of type \code{bool}.
 \end{enumerate}
 
-\item An expression of the form \code{\~{}$e_1$} is a potentially constant expression if $e_1$ is a potentially constant expression. It is further a constant expression if $e_1$ is a constant expression that evaluates to an instance of type \code{int}.
+\item
+  An expression of the form \code{\gtilde{}$e_1$} is
+  a potentially constant expression
+  if $e_1$ is a potentially constant expression.
+  It is further a constant expression if $e_1$ is
+  a constant expression that evaluates to an instance of type \code{int}.
 
 \item An expression of one of the forms \code{$e_1$\,\&\,$e_2$},
   \code{$e_1$\,|\,$e_2$}, or \code{$e_1$\,\^\,$e_2$} is potentially constant
@@ -6203,7 +6225,7 @@ It is further a constant expression if the map literal evaluates to an object.
   both evaluate to instances of \code{int}, or both to instances of \code{bool}.
   % The bool case is new in 2.1.
 
-\item An expression of one of the forms \code{$e_1$\,\~{}/\,$e_2$},
+\item An expression of one of the forms \code{$e_1$\,\gtilde{}/\,$e_2$},
   \code{$e_1$\,\gtgt\,$e_2$}, \code{$e_1$\,\gtgtgt\,$e_2$},
   or \code{$e_1$\,\ltlt\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
@@ -6366,8 +6388,8 @@ some compile-time errors may manifest quite late:%
 }
 
 \begin{dartCode}
-\CONST{} x = 1 \~{}/ 0;
-\FINAL{} y = 1 \~{}/ 0;
+\CONST{} x = 1 \gtilde{}/ 0;
+\FINAL{} y = 1 \gtilde{}/ 0;
 \\
 \CLASS{} K \{
   m1() \{
@@ -6741,10 +6763,51 @@ Programmers should not depend on this distinction.
 A string can be a sequence of single line strings and multiline strings.
 
 \begin{grammar}
-<singleLineString> ::= `"' <stringContentDQ>* `"'
-  \alt `\'' <stringContentSQ>* `\''
-  \alt `r\'' (\~{}( `\'' | <NEWLINE>))* `\''
-  \alt `r"' (\~{}( `"' | <NEWLINE>))* `"'
+<singleLineString> ::= <RAW\_SINGLE\_LINE\_STRING>
+  \alt <SINGLE\_LINE\_STRING\_SQ\_BEGIN\_END>
+  \alt <SINGLE\_LINE\_STRING\_SQ\_BEGIN\_MID> <expression> \gnewline{}
+       (<SINGLE\_LINE\_STRING\_SQ\_MID\_MID> <expression>)* \gnewline{}
+       <SINGLE\_LINE\_STRING\_SQ\_MID\_END>
+  \alt <SINGLE\_LINE\_STRING\_DQ\_BEGIN\_END>
+  \alt <SINGLE\_LINE\_STRING\_DQ\_BEGIN\_MID> <expression> \gnewline{}
+       (<SINGLE\_LINE\_STRING\_DQ\_MID\_MID> <expression>)* \gnewline{}
+       <SINGLE\_LINE\_STRING\_DQ\_MID\_END>
+
+<RAW\_SINGLE\_LINE\_STRING> ::= `r' `\sq' (\gtilde{}(`\sq' | `\\r' | `\\n'))* `\sq'
+  \alt `r' `"' (\gtilde{}(`"' | `\\r' | `\\n'))* `"'
+
+<STRING\_CONTENT\_COMMON> ::= \gtilde{}(`\\' | `\sq' | `"' | `$' | `\\r' | `\\n')
+  \alt <ESCAPE\_SEQUENCE>
+  \alt `\\' \gtilde{}(`n' | `r' | `b' | `t' | `v' | `x' | `u' | `\\r' | `\\n')
+  \alt <SIMPLE\_STRING\_INTERPOLATION>
+
+<STRING\_CONTENT\_SQ> ::= <STRING\_CONTENT\_COMMON> | `"'
+
+<SINGLE\_LINE\_STRING\_SQ\_BEGIN\_END> ::= \gnewline{}
+  `\sq' <STRING\_CONTENT\_SQ>* `\sq'
+
+<SINGLE\_LINE\_STRING\_SQ\_BEGIN\_MID> ::= \gnewline{}
+  `\sq' <STRING\_CONTENT\_SQ>* `${'
+
+<SINGLE\_LINE\_STRING\_SQ\_MID\_MID> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_SQ>* `${'
+
+<SINGLE\_LINE\_STRING\_SQ\_MID\_END> := \gnewline{}
+  `}' <STRING\_CONTENT\_SQ>* `\sq'
+
+<STRING\_CONTENT\_DQ> ::= <STRING\_CONTENT\_COMMON> | `\sq'
+
+<SINGLE\_LINE\_STRING\_DQ\_BEGIN\_END> ::= \gnewline{}
+  `"' <STRING\_CONTENT\_DQ>* `"'
+
+<SINGLE\_LINE\_STRING\_DQ\_BEGIN\_MID> ::= \gnewline{}
+  `"' <STRING\_CONTENT\_DQ>* `${'
+
+<SINGLE\_LINE\_STRING\_DQ\_MID\_MID> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_DQ>* `${'
+
+<SINGLE\_LINE\_STRING\_DQ\_MID\_END> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_DQ>* `"'
 \end{grammar}
 
 \LMHash{}%
@@ -6807,18 +6870,78 @@ This can be expressed by writing smaller strings separated by whitespace, as sho
 'like so'.
 \end{dartCode}
 
-\begin{grammar}
-<multilineString> ::= `"""' <stringContentTDQ>* `"""'
-  \alt `\'\mbox\'\mbox\'' <stringContentTSQ>* `\'\mbox\'\mbox\''
-  \alt `r"""' (\~{} `"""')* `"""'
-  \alt `r\'\mbox\'\mbox\'' (\~{} `\'\mbox\'\mbox\'')* `\'\mbox\'\mbox\''
+\LMHash{}%
+An auxiliary
+\Index{string interpolation state stack}
+is maintained outside the parser,
+in order to ensure that string interpolations are matched up correctly.
 
-<ESCAPE\_SEQUENCE> ::= `\\n'
-  \alt `\\r'
-  \alt `\\f'
-  \alt `\\b'
-  \alt `\\t'
-  \alt `\\v'
+\commentary{%
+This is necessary because the expression of a non-simple string interpolation
+may itself contain string literals
+with their own non-simple string interpolations.%
+}
+
+\LMHash{}%
+For rules with names \synt{\ldots\_BEGIN\_MID},
+a marker is pushed on the auxiliary stack to indicate that
+a string interpolation of the given kind has started,
+where the kind is \lit{\sq}, \lit{"}, \lit{\sqsqsq}, or \lit{"""}.
+For rules with names \synt{\ldots\_MID\_MID},
+only the rule with the kind on the top of the auxiliary stack can be used.
+For rules with names \synt{\ldots\_MID\_END},
+only the rule with the kind on the top of the auxiliary stack can be used,
+and the marker is then popped.
+
+\begin{grammar}
+<multilineString> ::= <RAW\_MULTI\_LINE\_STRING>
+  \alt <MULTI\_LINE\_STRING\_SQ\_BEGIN\_END>
+  \alt <MULTI\_LINE\_STRING\_SQ\_BEGIN\_MID> <expression> \gnewline{}
+       (<MULTI\_LINE\_STRING\_SQ\_MID\_MID> <expression>)* \gnewline{}
+       <MULTI\_LINE\_STRING\_SQ\_MID\_END>
+  \alt <MULTI\_LINE\_STRING\_DQ\_BEGIN\_END>
+  \alt <MULTI\_LINE\_STRING\_DQ\_BEGIN\_MID> <expression> \gnewline{}
+       (<MULTI\_LINE\_STRING\_DQ\_MID\_MID> <expression>)* \gnewline{}
+       <MULTI\_LINE\_STRING\_DQ\_MID\_END>
+
+<RAW\_MULTI\_LINE\_STRING> ::= `r' `\sqsqsq' .*? `\sqsqsq'
+  \alt `r' `"""' .*? `"""'
+
+<QUOTES\_SQ> ::= | `\sq' | `\sqsq'
+
+<STRING\_CONTENT\_TSQ> ::= \gnewline{}
+  <QUOTES\_SQ> (<STRING\_CONTENT\_COMMON> | `"' | `\\r' | `\\n')
+
+<MULTI\_LINE\_STRING\_SQ\_BEGIN\_END> ::= \gnewline{}
+  `\sqsqsq' <STRING\_CONTENT\_TSQ>* `\sqsqsq'
+
+<MULTI\_LINE\_STRING\_SQ\_BEGIN\_MID> ::= \gnewline{}
+  `\sqsqsq' <STRING\_CONTENT\_TSQ>* <QUOTES\_SQ> `${'
+
+<MULTI\_LINE\_STRING\_SQ\_MID\_MID> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_TSQ>* <QUOTES\_SQ> `${'
+
+<MULTI\_LINE\_STRING\_SQ\_MID\_END> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_TSQ>* `\sqsqsq'
+
+<QUOTES\_DQ> ::= | `"' | `""'
+
+<STRING\_CONTENT\_TDQ> ::= \gnewline{}
+  <QUOTES\_DQ> (<STRING\_CONTENT\_COMMON> | `\sq' | `\\r' | `\\n')
+
+<MULTI\_LINE\_STRING\_DQ\_BEGIN\_END> ::=  \gnewline{}
+  `"""' <STRING\_CONTENT\_TDQ>* `"""'
+
+<MULTI\_LINE\_STRING\_DQ\_BEGIN\_MID> ::=  \gnewline{}
+  `"""' <STRING\_CONTENT\_TDQ>* <QUOTES\_DQ> `${'
+
+<MULTI\_LINE\_STRING\_DQ\_MID\_MID> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_TDQ>* <QUOTES\_DQ> `${'
+
+<MULTI\_LINE\_STRING\_DQ\_MID\_END> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_TDQ>* `"""'
+
+<ESCAPE\_SEQUENCE> ::= `\\n' | `\\r' | `\\f' | `\\b' | `\\t' | `\\v'
   \alt `\\x' <HEX\_DIGIT> <HEX\_DIGIT>
   \alt `\\u' <HEX\_DIGIT> <HEX\_DIGIT> <HEX\_DIGIT> <HEX\_DIGIT>
   \alt `\\u{' <HEX\_DIGIT\_SEQUENCE> `}'
@@ -6839,14 +6962,27 @@ possibly prefixed by \syntax{`\\'},
 then that line is ignored,
 including the line break at its end.
 
-\rationale{
-The idea is to ignore a whitespace-only first line of a multiline string, where whitespace is defined as tabs, spaces and the final line break.
-These can be represented directly, but since for most characters prefixing by backslash is an identity in a non-raw string, we allow those forms as well.
+\rationale{%
+The idea is to ignore a whitespace-only first line of a multiline string,
+where whitespace is defined as tabs, spaces and the final line break.
+These can be represented directly,
+but since for most characters prefixing by backslash is
+an identity in a non-raw string,
+we allow those forms as well.%
 }
 
- % could be clearer. Is the first line in """\t
- %    """ ignored not. It depends if we mean whitespace before escapes are interpreted,
- % or after, or both.  See https://code.google.com/p/dart/issues/detail?id=23020
+\LMHash{}%
+In the rule for \synt{RAW\_MULTI\_LINE\_STRING},
+the two occurrences of \lit{.*?}
+denote a non-greedy token recognition step:
+It terminates as soon as the lookahead is the specified next token
+(\commentary{that is, \lit{\sqsqsq}or \lit{"""}}).
+
+\commentary{%
+Note that multi-line string interpolation relies on
+the auxiliary string interpolation state stack,
+just like single-line string interpolation.%
+}
 
 \LMHash{}%
 Strings support escape sequences for special characters.
@@ -6884,8 +7020,11 @@ The escapes are:
 \item
   \lit{\$} indicating the beginning of an interpolated expression.
 \item
-  Otherwise, \syntax{`\\$k$'} indicates the character $k$ for
-  any $k$ not in \syntax{$\{$`n', `r', `f', `b', `t', `v', `x', `u'$\}$}.
+  { % We need a definition for $k$ in order to be able to use it in \syntax{}.
+    \def\k{$k$}
+    Otherwise, \syntax{`\\\k'} indicates the character \k{} for
+    any \k{} not in \syntax{$\{$`n', `r', `f', `b', `t', `v', `x', `u'$\}$}.
+  }
 \end{itemize}
 
 \LMHash{}%
@@ -6895,7 +7034,7 @@ in which case no escapes or interpolations are recognized.
 
 \LMHash{}%
 Line breaks in a multiline string are represented by
-the \syntax{<NEWLINE>} production.
+the \synt{NEWLINE} production.
 A line break introduces a single newline character into the string value.
 
 \LMHash{}%
@@ -6908,22 +7047,6 @@ either a sequence of four hexadecimal digits,
 or by curly brace delimited sequence of hexadecimal digits.
 
 \begin{grammar}
-<stringContentDQ> ::= \~{}( `\\' | `"' | `$' | <NEWLINE> )
-  \alt `\\' \~{}( <NEWLINE> )
-  \alt <stringInterpolation>
-
-<stringContentSQ> ::= \~{}( `\\' | `\'' | `$' | <NEWLINE> )
-  \alt `\\' \~{}( <NEWLINE> )
-  \alt <stringInterpolation>
-
-<stringContentTDQ> ::= \~{}( `\\' | `"""' | `$')
-  \alt `\\' \~{}( <NEWLINE> )
-  \alt <stringInterpolation>
-
-<stringContentTSQ> ::= \~{}( `\\' | `\'\'\'' | `$')
-  \alt `\\' \~{}( <NEWLINE> )
-  \alt <stringInterpolation>
-
 <NEWLINE> ::= `\\n'
   \alt `\\r'
   \alt `\\r\\n'
@@ -6949,14 +7072,17 @@ concatenated with the enclosing string.
 This process is known as \Index{string interpolation}.
 
 \begin{grammar}
-<stringInterpolation> ::= `$' <IDENTIFIER\_NO\_DOLLAR>
+<stringInterpolation> ::= <SIMPLE\_STRING\_INTERPOLATION>
   \alt `${' <expression> `}'
+
+<SIMPLE\_STRING\_INTERPOLATION> ::= \gnewline{}
+  `$' <IDENTIFIER\_NO\_DOLLAR>
 \end{grammar}
 
-\commentary{
+\commentary{%
 The reader will note that the expression inside the interpolation
 could itself include strings,
-which could again be interpolated recursively.
+which could again be interpolated recursively.%
 }
 
 \LMHash{}%
@@ -7940,7 +8066,7 @@ is an enumerated type (\ref{enums}).
 The \Index{new expression} invokes a constructor (\ref{constructors}).
 
 \begin{grammar}
-<newExpression> ::= \NEW{} <typeNotVoid> (`.' <identifier>)? <arguments>
+<newExpression> ::= \NEW{} <constructorDesignation> <arguments>
 \end{grammar}
 
 \LMHash{}%
@@ -8131,7 +8257,7 @@ A \Index{constant object expression} invokes a constant constructor
 (\ref{constantConstructors}).
 
 \begin{grammar}
-<constObjectExpression> ::= \CONST{} <typeNotVoid> (`.' <identifier>)? <arguments>
+<constObjectExpression> ::= \CONST{} <constructorDesignation> <arguments>
 \end{grammar}
 
 \LMHash{}%
@@ -10171,8 +10297,8 @@ The \Index{closurization of method} $f$ on object $o$
 is defined to be equivalent
 (\commentary{except for equality, as noted below}) to:
 \begin{itemize}
-%\item $(a) \{\RETURN{}$ $u$ $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \~{}/, *, \%, $|$, \^{}, \&, $<<$, $>>$} (this precludes closurization of unary -).
-%\item $() \{\RETURN{}$ \~{} $u;$\} if $f$ is named \~{}.
+%\item $(a) \{\RETURN{}$ $u$ $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde{}/, *, \%, $|$, \^{}, \&, $<<$, $>>$} (this precludes closurization of unary -).
+%\item $() \{\RETURN{}$ \gtilde{} $u;$\} if $f$ is named \gtilde{}.
 %\item $(a) \{\RETURN{}$ $u[a];$\} if $f$ is named \code{[]}.
 %\item $(a, b) \{\RETURN{}$ $u[a] = b;$\} if $f$ is named \code{[]=}.
 \item
@@ -10310,8 +10436,8 @@ is defined to be equivalent
 
 \LMHash{}%
 \begin{itemize}
-%\item $(a) \{\RETURN{}$ \SUPER{} $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \~{}/, *, \%, $|$, \^{}, \&, $<<$, $>>$}.
-%\item $() \{\RETURN{}$ \~{}\SUPER;\} if $f$ is named \~{}.
+%\item $(a) \{\RETURN{}$ \SUPER{} $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde{}/, *, \%, $|$, \^{}, \&, $<<$, $>>$}.
+%\item $() \{\RETURN{}$ \gtilde{}\SUPER;\} if $f$ is named \gtilde{}.
 %\item $(a) \{\RETURN{}$ $\SUPER[a];$\} if $f$ is named \code{[]}.
 %\item $(a, b) \{\RETURN{}$ $\SUPER[a] = b;$\} if $f$ is named \code{[]=}.
 \item
@@ -12195,7 +12321,9 @@ An \Index{identifier expression} consists of a single identifier; it provides ac
 
 <IDENTIFIER\_PART> ::= <IDENTIFIER\_START> | <DIGIT>
 
-<qualified> ::= <identifier> (`.' <identifier>)?
+<qualifiedName> ::= <typeIdentifier>
+  \alt <typeIdentifier> `.' <identifier>
+  \alt <typeIdentifier> `.' <typeIdentifier> `.' <identifier>
 \end{grammar}
 
 \LMHash{}%
@@ -12228,6 +12356,10 @@ This approach was chosen because it was less breaking than it would have been
 to make \AWAIT{} and \YIELD{} reserved words or built-in identifiers,
 at the time where these features were added to the language.%
 }
+
+\LMHash{}%
+A \Index{qualified identifier} is an identifier preceded by
+\syntax{<identifier> `.'}.
 
 \LMHash{}%
 The static type of an identifier expression $e$ which is an identifier \id{}
@@ -14184,7 +14316,7 @@ The members of a library $L$ are those top level declarations given within $L$.
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
   \gnewline{} (<metadata> <topLevelDefinition>)*
 
-<scriptTag> ::= `#!' (\~{}<NEWLINE>)* <NEWLINE>
+<scriptTag> ::= `#!' (\gtilde{}<NEWLINE>)* <NEWLINE>
 
 <libraryName> ::= <metadata> \LIBRARY{} <dottedIdentifierList> `;'
 
@@ -16868,10 +17000,10 @@ A \Index{reserved word} may not be used as an identifier; it is a compile-time e
 are sections of program text that are used for documentation.
 
 \begin{grammar}
-<SINGLE\_LINE\_COMMENT> ::= `//' \~{}(<NEWLINE>)* (<NEWLINE>)?
+<SINGLE\_LINE\_COMMENT> ::= `//' \gtilde{}(<NEWLINE>)* (<NEWLINE>)?
 
 <MULTI\_LINE\_COMMENT> ::= \gnewline{}
-  `/*' (<MULTI\_LINE\_COMMENT> | \~{} `*/')* `*/'
+  `/*' (<MULTI\_LINE\_COMMENT> | \gtilde{} `*/')* `*/'
 \end{grammar}
 
 \LMHash{}%
@@ -16913,9 +17045,9 @@ Description & Operator & Associativity & Precedence \\
 Unary postfix & \code{$e$.}, \code{$e$?.}, \code{$e$++}, \code{$e$-{}-}, \code{$e1$[$e2$]},
 \code{$e$()} & None & 16 \\
 \hline
-Unary prefix & \code{-$e$}, \code{!$e$}, \code{\~{}$e$}, \code{++$e$}, \code{-{}-$e$}, \code{\AWAIT{} $e$} & None & 15\\
+Unary prefix & \code{-$e$}, \code{!$e$}, \code{\gtilde{}$e$}, \code{++$e$}, \code{-{}-$e$}, \code{\AWAIT{} $e$} & None & 15\\
 \hline
-Multiplicative & \code{*}, \code{/}, \code{\~{}/}, \code{\%} & Left & 14\\
+Multiplicative & \code{*}, \code{/}, \code{\gtilde{}/}, \code{\%} & Left & 14\\
 \hline
 Additive & \code{+}, \code{-} & Left & 13\\
 \hline
