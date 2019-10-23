@@ -281,7 +281,9 @@ It does not specify the APIs of the Dart libraries except where those library el
 A conforming implementation of the Dart programming language must provide and support all the APIs (libraries, types, functions, getters, setters, whether top-level, static, instance or local) mandated in this specification.
 
 \LMHash{}%
-A conforming implementation is permitted to provide additional APIs, but not additional syntax, except for experimental features in support of null-aware cascades that are likely to be introduced in the next revision of this specification.
+A conforming implementation is permitted to provide additional APIs,
+but not additional syntax,
+except for experimental features.
 
 
 \section{Normative References}
@@ -9777,19 +9779,6 @@ exactly the same compile-time errors are raised for $e$
 as would be raised for \code{($e_0$)?.$s$}.
 In both cases, the static type of $e$ is the static type of $e_0$.
 
-\LMHash{}%
-Evaluation of a cascaded member access $e$
-of the form \code{$e_0$..$s$}
-where $e$ is an \synt{expression} and
-$s$ is a \synt{cascadeSection}
-such that $e$ is not initially conditional
-proceeds as follows:
-Evaluate $e_0$ to an object $o$.
-Let $t$ be a fresh variable bound to $o$.
-Evaluate \code{$t$.$s$} to an object
-(\commentary{which is discarded}).
-Then $e$ evaluates to $o$.
-
 \commentary{%
 The expressions \code{($e_0$).$s$} and \code{($e_0$)?.$s$} may have
 a very different syntactic structure than
@@ -9807,23 +9796,20 @@ and $e_1$ can be parsed as an \synt{expression}.%
 }
 
 \LMHash{}%
-For some $k > 0$,
-let $e$ be an expression of the form
-\code{$e_0$?..$s_1$..$s_2$ $\cdots$ ..$s_k$}
-that occurs at some location $\ell$,
-such that $e_0$ is a \synt{conditionalExpression} and
-$s_j$ is a \synt{cascadeSection}, $j \in 1 .. k$.
-Assume that $e$ is maximal,
-in the sense that there does not exist a \synt{cascadeSection} $s$
-such that there is an expression at location $\ell$
-of the form \code{$e$..$s$}
-(\commentary{in short, we can not make $e$ bigger}).
-Evaluation of $e$ proceeds as follows:
+Evaluation of a cascaded member access $e$
+of the form \code{$e_0$..$s$} or the form \code{$e_0$?..$s$}
+where $e$ is an \synt{expression} and
+$s$ is a \synt{cascadeSection}
+proceeds as follows:
 Evaluate $e_0$ to an object $o$.
-If $o$ is the null object then $e$ evaluates to $o$.
-Otherwise, let \code{v} be a fresh variable bound to $o$.
-Then $e$ evaluates to the result of
-evaluating \code{v..$s_1$..$s_2$ $\cdots$ ..$s_k$}.
+If $o$ is not the null object:
+let \code{v} be a fresh variable bound to $o$ and
+evaluate \code{v.$s$} to an object which is discarded,
+then $e$ evaluates to $o$.
+Otherwise $o$ is the null object.
+If $e$ is initially conditional then $e$ evaluates to $o$;
+%% TODO(eernst): With NNBD, this error cannot happen -- delete.
+otherwise a dynamic error occurs.
 
 
 \subsubsection{Super Invocation}
