@@ -863,11 +863,11 @@ Variables are storage locations in memory.
 \begin{grammar}
 <variableDeclaration> ::= <declaredIdentifier> (`,' <identifier>)*
 
-<declaredIdentifier> ::= <metadata> \COVARIANT{}? <finalConstVarOrType> <identifier>
+<declaredIdentifier> ::= \COVARIANT? <finalConstVarOrType> <identifier>
 
-<finalConstVarOrType> ::= \LATE{}? \FINAL{} <type>?
+<finalConstVarOrType> ::= \LATE? \FINAL{} <type>?
   \alt \CONST{} <type>?
-  \alt \LATE{}? <varOrType>
+  \alt \LATE? <varOrType>
 
 <varOrType> ::= \VAR{}
   \alt <type>
@@ -1184,7 +1184,7 @@ Functions abstract over executable actions.
 
 <formalParameterPart> ::= <typeParameters>? <formalParameterList>
 
-<functionBody> ::= \ASYNC{}? `=>' <expression> `;'
+<functionBody> ::= \ASYNC? `=>' <expression> `;'
   \alt (\ASYNC{} `*'? | \SYNC{} `*')? <block>
 
 <block> ::= `{' <statements> `}'
@@ -1486,10 +1486,10 @@ It is a compile-time error if any default values are specified in the signature 
   \alt <simpleFormalParameter>
 
 <functionFormalParameter> ::= \gnewline{}
-  \COVARIANT{}? <type>? <identifier> <formalParameterPart> `?'?
+  \COVARIANT? \FINAL? <type>? <identifier> <formalParameterPart> `?'?
 
 <simpleFormalParameter> ::= <declaredIdentifier>
-  \alt \COVARIANT{}? <identifier>
+  \alt \COVARIANT? \FINAL? <identifier>
 
 <fieldFormalParameter> ::= \gnewline{}
   <finalConstVarOrType>? \THIS{} `.' <identifier> <formalParameterPart>?
@@ -1528,8 +1528,8 @@ Optional parameters may be specified and provided with default values.
 \begin{grammar}
 <defaultFormalParameter> ::= <normalFormalParameter> (`=' <expression>)?
 
-<defaultNamedParameter> ::= \REQUIRED{}? <normalFormalParameter> (`=' <expression>)?
-  \alt \REQUIRED{}? <normalFormalParameter> ( `:' <expression>)?
+<defaultNamedParameter> ::= \gnewline{}
+  \REQUIRED? <normalFormalParameter> ((`=' | `:') <expression>)?
 \end{grammar}
 
 The form \syntax{<normalFormalParameter> `:' <expression>}
@@ -12782,7 +12782,7 @@ also known as a \Index{local variable declaration},
 has the following form:
 
 \begin{grammar}
-<localVariableDeclaration> ::= <initializedVariableDeclaration> `;'
+<localVariableDeclaration> ::= <metadata> <initializedVariableDeclaration> `;'
 \end{grammar}
 
 \LMHash{}%
