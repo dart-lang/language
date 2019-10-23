@@ -45,6 +45,8 @@
 %   in a non-covariant position in a superinterface.
 % - Correct several grammar rules, including: added <functionExpressionBody> (to
 %   avoid semicolon in <functionBody>), adjusted <importSpecification>.
+% - Revise section on cascades. Now uses compositional grammar, and
+%   specifies static type, compile-time errors, and includes `?..'.
 % - Correct the grammar and lexical rules for string literals.
 %
 % 2.3
@@ -280,7 +282,9 @@ It does not specify the APIs of the Dart libraries except where those library el
 A conforming implementation of the Dart programming language must provide and support all the APIs (libraries, types, functions, getters, setters, whether top-level, static, instance or local) mandated in this specification.
 
 \LMHash{}%
-A conforming implementation is permitted to provide additional APIs, but not additional syntax, except for experimental features in support of null-aware cascades that are likely to be introduced in the next revision of this specification.
+A conforming implementation is permitted to provide additional APIs,
+but not additional syntax,
+except for experimental features.
 
 
 \section{Normative References}
@@ -3068,7 +3072,9 @@ There are three kinds of initializers.
   \alt <assertion>
 
 <fieldInitializer> ::= \gnewline{}
-  (\THIS{} `.')? <identifier> `=' <conditionalExpression> <cascadeSequence>?
+  (\THIS{} `.')? <identifier> `=' <initializerExpression>
+
+<initializerExpression> ::= <conditionalExpression> | <cascade>
 \end{grammar}
 
 \LMHash{}%
@@ -5950,7 +5956,8 @@ Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
 
 \begin{grammar}
 <expression> ::= <assignableExpression> <assignmentOperator> <expression>
-  \alt <conditionalExpression> <cascadeSequence>?
+  \alt <conditionalExpression>
+  \alt <cascade>
   \alt <throwExpression>
 
 <expressionWithoutCascade> ::= \gnewline{}
@@ -9804,16 +9811,19 @@ Notice that the wording avoids re-evaluating the receiver $o$ and the arguments 
 \EndCase
 
 
-\subsubsection{Cascaded Invocations}
-\LMLabel{cascadedInvocations}
+\subsubsection{Cascades}
+\LMLabel{cascades}
 
 \LMHash{}%
-A \IndexCustom{cascaded method invocation}{method invocation!cascaded}
-has the form \code{$e$..\metavar{suffix}}
-where $e$ is an expression and \metavar{suffix} is a sequence of operator, method, getter or setter invocations.
+A \Index{cascade} is a kind of expression that allows for performing
+multiple operations on a given object
+without storing it in a variable and accessing it via a name.
+In general, a cascade can be recognized by the use of exactly two periods,
+\lit{..}.
 
 \begin{grammar}
-<cascadeSequence> ::= (`?..' | `..') <cascadeSection> (`..' <cascadeSection>)*
+<cascade> ::= <cascade> `..' <cascadeSection>
+  \alt <conditionalExpression> (`?..' | `..') <cascadeSection>
 
 <cascadeSection> ::= <cascadeSelector> <cascadeSectionTail>
 
@@ -9824,29 +9834,105 @@ where $e$ is an expression and \metavar{suffix} is a sequence of operator, metho
   \alt <selector>* (<assignableSelector> <cascadeAssignment>)?
 
 <cascadeAssignment> ::= <assignmentOperator> <expressionWithoutCascade>
-
-<argumentPart> ::=
-  <typeArguments>? <arguments>
 \end{grammar}
 
 \LMHash{}%
-Evaluation of a cascaded method invocation expression $c$ of the form \code{$e$..\metavar{suffix}} proceeds as follows:
+A \IndexCustom{cascaded member access}{cascaded member access}
+is an expression of the form
+\code{$e$..$s$} or \code{$e$?..$s$},
+where $e$ is an expression
+and $s$ is derived from \synt{cascadeSection}.
+The form
+\code{$e$?..$s$}
+is also known as a
+\IndexCustom{conditional cascaded member access}{%
+  cascaded member access!conditional}.
 
-Evaluate $e$ to an object $o$.
-Let $t$ be a fresh variable bound to $o$.
-Evaluate \code{$t$.\metavar{suffix}} to an object.
-Then $c$ evaluates to $o$.
+\rationale{%
+A \synt{cascadeSection} allows for accessing members, including setters.
+The motivation for having a cascaded member access is that it allows for
+performing a chain of operations based on an object
+while preserving a reference to that object for further processing.%
+}
+
+\commentary{%
+For example, \code{C()..foo.bar = 2} allows us to obtain a reference to
+the object $o$ which is the result of evaluating \code{C()},
+and at the same time use $o$ to invoke the getter \code{foo} and
+the setter \code{bar=} on the value returned by that getter.%
+}
 
 \LMHash{}%
-The static type of $c$ is the static type of $e$.
+An expression of the form \code{$e_0$?..$s$} where
+$e_0$ is a \synt{conditionalExpression} and
+$s$ is a \synt{cascadeSection} is an
+\IndexCustom{initially conditional cascaded member access}{%
+  cascaded member access!initially conditional}.
+Moreover, if \code{$e_0$} is
+an initially conditional cascaded member access and
+$s$ is derived from \synt{cascadeSection} then
+\code{$e_0$..$s$} is also initially conditional.
 
-\rationale{
-With the introduction of null-aware conditional assignable expressions (\ref{assignableExpressions}), it would make sense to extend cascades with a null-aware conditional form as well.
-One might define \code{$e$?..\metavar{suffix}} to be equivalent to the expression \code{$t$ == \NULL{} ? \NULL{} : $t$.\metavar{suffix}} where $t$ is a fresh variable bound to the value of $e$.
-
-The present specification has not added such a construct, in the interests of simplicity and rapid language evolution.
-However, Dart implementations may experiment with such constructs, as noted in section \ref{ecmaConformance}.
+\commentary{%
+In short, a cascade is initially conditional if
+the ``innermost dots'' are \lit{?..} rather than \lit{..}.
+Note that only the innermost dots can have the \lit{?}.
+All the non-innermost ones are implicitly skipped if the receiver is null,
+so any \lit{?} on a non-innermost \lit{..} would be useless.%
 }
+
+\LMHash{}%
+Let $s$ be a \synt{cascadeSection}.
+Let $e$ be an expression of the form \code{$e_0$..$s$}
+where $e_0$ is an \synt{expression}
+such that $e$ is not initially conditional.
+Exactly the same compile-time errors are raised for $e$
+as would be raised for \code{($e_0$).$s$}.
+The static type of $e$ is the static type of $e_0$.
+
+\LMHash{}%
+Let $s$ be a \synt{cascadeSection}.
+If $e$ is an expression of the form \code{$e_0$?..$s$}
+where $e_0$ is a \synt{conditionalExpression},
+exactly the same compile-time errors are raised for $e$
+% This rule is NNBD-ready, so we use it even though we could
+% use a slightly simpler set of rules today.
+as would be raised for \code{($e_0$)?.$s$}.
+If $e$ is an expression of the form \code{$e_0$..$s$}
+where $e_0$ is an \synt{expression}
+such that $e$ is initially conditional,
+exactly the same compile-time errors are raised for $e$
+as would be raised for \code{($e_0$)?.$s$}.
+In both cases, the static type of $e$ is the static type of $e_0$.
+
+\commentary{%
+The expressions \code{($e_0$).$s$} and \code{($e_0$)?.$s$} may have
+a very different syntactic structure than
+the expression that gave rise to them
+(namely an expression of the form \code{$e_0$..$s$} or \code{$e_0$?..$s$}).
+In particular, the cascade section $s$ may end in a cascade assignment
+such that \code{$e_0$..$s$} is of the form \code{$e_0$..$s'$ = $e_1$},
+where the cascade section \code{$s'$ = $e_1$} is a subterm of the cascade.
+However, \code{($e_0$).$s'$ = $e_1$} is an \synt{assignment} whose subterms are
+\code{($e_0$).$s'$} and \code{$e_1$}.
+This is possible because the grammar rules for \synt{cascadeSection}
+have been designed in such a way that it is guaranteed
+that \code{($e_0$).$s'$} can be parsed as an \synt{assignableExpression},
+and $e_1$ can be parsed as an \synt{expression}.%
+}
+
+\LMHash{}%
+Evaluation of a cascaded member access $e$
+of the form \code{$e_0$..$s$} or the form \code{$e_0$?..$s$}
+where $e$ is an \synt{expression} and
+$s$ is a \synt{cascadeSection}
+proceeds as follows:
+Evaluate $e_0$ to an object $o$.
+If $e$ is initially conditional and $o$ is the null object,
+then $e$ evaluates to the null object.
+Otherwise, let \code{v} be a fresh variable bound to $o$ and
+evaluate \code{v.$s$} to an object which is discarded, and
+then $e$ evaluates to $o$.
 
 
 \subsubsection{Super Invocation}
@@ -11707,6 +11793,9 @@ Postfix expressions invoke the postfix operators on objects.
 <selector> ::= `!'
   \alt <assignableSelector>
   \alt <argumentPart>
+
+<argumentPart> ::=
+  <typeArguments>? <arguments>
 
 <incrementOperator> ::= `++'
   \alt `-\mbox-'
