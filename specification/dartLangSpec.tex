@@ -27,6 +27,10 @@
 %
 % Significant changes to the specification.
 %
+% 2.6
+% - Specify static analysis of a "callable object" invocation (where
+%   the callee is an instance of a class that has a `call` method).
+%
 % 2.4
 % - Clarify the section 'Exports'.
 % - Update grammar rules for <declaration>, to support `static late final`
@@ -2292,8 +2296,8 @@ that does not fit the declaration of $m$
 (passing fewer positional arguments than required or more than supported,
 or passing named arguments with names not declared by $m$).
 % The next sentence covers both function objects and instances of
-% a class with a method named \code{call}, because we would have a
-% compile-time error invoking \code{call} with a wrongly shaped argument
+% a class with a method named \CALL, because we would have a
+% compile-time error invoking \CALL{} with a wrongly shaped argument
 % list unless the type is \DYNAMIC{} or \FUNCTION.
 This can only occur for an ordinary method invocation
 when the receiver has static type \DYNAMIC,
@@ -9202,7 +9206,17 @@ and a call to a getter \code{$b$} (with no arguments) in the latter.%
 
 \LMHash{}%
 Let $F$ be the static type of $e_f$.
-The static analysis of $i$ is performed as specified in Section~\ref{bindingActualsToFormals},
+If $F$ is an interface type that has a method named \CALL,
+$i$ is treated as
+(\ref{notation})
+the ordinary invocation
+
+\noindent
+\code{$e_f$.call<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+
+\LMHash{}%
+Otherwise, the static analysis of $i$ is performed as specified
+in Section~\ref{bindingActualsToFormals},
 using $F$ as the static type of the invoked function,
 and the static type of $i$ is as specified there.
 
