@@ -9802,14 +9802,11 @@ where $e$ is an \synt{expression} and
 $s$ is a \synt{cascadeSection}
 proceeds as follows:
 Evaluate $e_0$ to an object $o$.
-If $o$ is not the null object:
-let \code{v} be a fresh variable bound to $o$ and
-evaluate \code{v.$s$} to an object which is discarded,
+If $e$ is initially conditional and $o$ is the null object,
+then $e$ evaluates to the null object.
+Otherwise, let \code{v} be a fresh variable bound to $o$ and
+evaluate \code{v.$s$} to an object which is discarded, and
 then $e$ evaluates to $o$.
-Otherwise $o$ is the null object.
-If $e$ is initially conditional then $e$ evaluates to $o$;
-%% TODO(eernst): With NNBD, this error cannot happen -- delete.
-otherwise a dynamic error occurs.
 
 
 \subsubsection{Super Invocation}
