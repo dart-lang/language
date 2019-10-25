@@ -34,6 +34,8 @@
 %   interpolation; specify that it is a dynamic error for `loadLibrary`
 %   to load a different library than the one which was used for
 %   compile-time checks.
+% - Specify that a constant expression `e.length` can only invoke an instance
+%   getter (in particular, it cannot execute/tear-off an extension member).
 %
 % 2.4
 % - Clarify the section 'Exports'.
