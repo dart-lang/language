@@ -14550,6 +14550,13 @@ The deferred prefix object has the following members:
   an immediate import $I'$ to be executed at some future time,
   where $I'$ is derived from $I_i$ by eliding the word \DEFERRED{}
   and adding a \HIDE{} \code{loadLibrary} combinator clause.
+  % Weasel wording here: We may not want to insist that it must be a
+  % a dynamic error if an implementation loads a library where a comment
+  % was changed, or anything else that doesn't matter, or even the exact
+  % same source code was obtained from a different file. Hence the error
+  % "may be raised".
+  A dynamic error may be raised if $I'$ imports a different library
+  than the one that the specified URI referred to at compile-time.
   When $I'$ executes without error, $f$ completes successfully.
   If $I'$ executes without error,
   we say that the call to \code{loadLibrary} has succeeded,
