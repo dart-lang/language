@@ -14415,15 +14415,19 @@ A deferred import is distinguished by the appearance of the built-in identifier 
 Any import that is not deferred is immediate.
 
 \LMHash{}%
-It is a compile-time error if the specified URI of an immediate import does not refer to a library declaration.
+It is a compile-time error if the specified URI of an import does not
+refer to a library declaration.
 The interpretation of URIs is described in section \ref{uris} below.
 
 \LMHash{}%
-It is a compile-time error if the specified URI of a deferred import does not refer to a library declaration.
+It is a dynamic error if the specified URI of a deferred import does not
+refer to a library declaration when the library is loaded.
 
-\rationale{
-One cannot detect the problem at compile time because compilation often occurs during execution and one does not know what the URI refers to.
-However the development environment should detect the problem.
+\rationale{%
+One cannot detect the problem at compile time
+because compilation often occurs during execution and
+one does not know what the URI refers to.
+However the development environment should detect the problem.%
 }
 
 \LMHash{}%
@@ -14975,10 +14979,9 @@ URIs are specified by means of string literals:
 \end{grammar}
 
 \LMHash{}%
-It is a compile-time error if the string literal $x$ that describes a URI contains a string interpolation.
-
-\LMHash{}%
-It is a compile-time error if the string literal $x$ that is used in a \synt{uriTest} is not a constant expression, or if $x$ involves string interpolation.
+It is a compile-time error if a string literal that describes a URI
+or a string literal that is used in a \synt{uriTest}
+contains string interpolation.
 
 \LMHash{}%
 A \Index{configurable URI} $c$ of the form
