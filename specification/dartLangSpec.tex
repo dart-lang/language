@@ -14420,23 +14420,24 @@ refer to a library declaration.
 The interpretation of URIs is described in section \ref{uris} below.
 
 \LMHash{}%
-It is a dynamic error if the specified URI of a deferred import does not
-refer to a library declaration when the library is loaded.
-
-\rationale{%
-The problem cannot be detected at compile time because
-one does not know what the URI refers to when the library is loaded.
-However the development environment should detect the problem.%
-}
+It is a dynamic error if
+the execution of \code{loadLibrary} that loads a deferred import
+does not load the library that
+the specified URI referred to at compile-time.
 
 \LMHash{}%
 The \Index{current library} is the library currently being compiled.
-The import modifies the namespace of the current library in a manner that is determined by the imported library and by the optional elements of the import.
+The import modifies the namespace of the current library
+in a manner that is determined by the imported library and
+by the optional elements of the import.
 
 \LMHash{}%
-An immediate import directive $I$ may optionally include a prefix clause of the form \code{\AS{} \id} used to prefix names imported by $I$.
+An immediate import directive $I$ may optionally include
+a prefix clause of the form \code{\AS{} \id}
+used to prefix names imported by $I$.
 A deferred import must include a prefix clause or a compile-time error occurs.
-It is a compile-time error if a prefix used in a deferred import is used in another import clause.
+It is a compile-time error if a prefix used in a deferred import
+is used in another import clause.
 
 \LMHash{}%
 An import directive $I$ may optionally include namespace combinator clauses
@@ -14980,7 +14981,7 @@ URIs are specified by means of string literals:
 \LMHash{}%
 It is a compile-time error if a string literal that describes a URI
 or a string literal that is used in a \synt{uriTest}
-contains string interpolation.
+contains a string interpolation.
 
 \LMHash{}%
 A \Index{configurable URI} $c$ of the form
