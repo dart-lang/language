@@ -30,6 +30,10 @@
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
 %   the callee is an instance of a class that has a `call` method).
+% - Specify that <libraryImport> string literals cannot use string
+%   interpolation; specify that it is a dynamic error for `loadLibrary`
+%   to load a different library than the one which was used for
+%   compile-time checks.
 %
 % 2.4
 % - Clarify the section 'Exports'.
