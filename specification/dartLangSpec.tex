@@ -6281,6 +6281,10 @@ It is further a constant expression if the map literal evaluates to an object.
   if $e$ is a potentially constant expression.
   It is further constant if $e$ is a constant expression that
   evaluates to an instance of \code{String}.
+  % Prevent extensions methods from running arbitrary code
+  % when the receiver $e$ has static type `Object`.
+  It is a compile-time error if the execution of \code{$e$.length}
+  would not invoke an instance getter.
 
 % New in 2.1.
 \item An expression of the form \code{$e$\,\,as\,\,$T$} is potentially constant
