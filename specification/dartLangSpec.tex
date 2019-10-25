@@ -14424,9 +14424,8 @@ It is a dynamic error if the specified URI of a deferred import does not
 refer to a library declaration when the library is loaded.
 
 \rationale{%
-One cannot detect the problem at compile time
-because compilation often occurs during execution and
-one does not know what the URI refers to.
+The problem cannot be detected at compile time because
+one does not know what the URI refers to when the library is loaded.
 However the development environment should detect the problem.%
 }
 
