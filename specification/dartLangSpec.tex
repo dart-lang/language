@@ -11796,11 +11796,15 @@ Unary expressions invoke unary operators on objects.
 A \Index{unary expression} is either a postfix expression (\ref{postfixExpressions}), an await expression (\ref{awaitExpressions}) or an invocation of a prefix operator on an expression or an invocation of a unary operator on either \SUPER{} or an expression $e$.
 
 \LMHash{}%
-The expression $!e$ is equivalent to the expression \code{$e$\,?\,\FALSE\,:\,\TRUE}.
+The expression $!e$ is treated as
+(\ref{notation})
+\code{($e$\,?\,\FALSE\,:\,\TRUE)}.
 
 \LMHash{}%
-Evaluation of an expression of the form \code{++$e$} is equivalent to \code{$e$\,+=\,1}.
-Evaluation of an expression of the form \code{-{}-$e$} is equivalent to \code{$e$\,-=\,1}.
+An expression of the form \code{++$e$} is treated as
+\code{($e$\,+=\,1)}.
+An expression of the form \code{-{}-$e$} is treated as
+\code{($e$\,-=\,1)}.
 
 \LMHash{}%
 Let $e$ be an expression of the form \code{-$l$}
@@ -11812,7 +11816,7 @@ otherwise the static type of $e$ is \code{int}.
 
 \LMHash{}%
 If the static type of $e$ is \code{int} then $e$ evaluates to
-to an instance of the \code{int} class representing the numeric value $-i$.
+an instance of the \code{int} class representing the numeric value $-i$.
 If $i$ is zero and the \code{int} class can represent a negative zero value,
 then the resulting instance instead represents that negative zero value.
 It is a compile-time error if the integer $-i$ cannot be represented
@@ -11825,16 +11829,18 @@ If $i$ is zero, the resulting instance instead represents the
 \emph{negative} zero double value, \code{-0.0}.
 It is a compile-time error if the integer $-i$ cannot be represented
 exactly by an instance of \code{double}.
-\commentary{
+\commentary{%
 We treat \code{-$l$} \emph{as if} it is a single integer literal
 with a negative numeric value.
 We do not evaluate $l$ individually as an expression,
-or concern ourselves with its static type.
+or concern ourselves with its static type.%
 }
 
 \LMHash{}%
-Any other expression of the form \code{$op$ $e$} is equivalent to the method invocation \code{$e.op()$}.
-An expression of the form \code{$op$ \SUPER{}} is equivalent to the method invocation (\ref{superInvocation}) \code{\SUPER{}.$op()$}.
+Any other expression of the form \code{$op$ $e$} is equivalent to
+the method invocation \code{$e.op()$}.
+An expression of the form \code{$op$ \SUPER{}} is equivalent to
+the method invocation (\ref{superInvocation}) \code{\SUPER{}.$op()$}.
 
 
 \subsection{Await Expressions}
