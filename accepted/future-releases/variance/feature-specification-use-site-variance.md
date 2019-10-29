@@ -60,16 +60,22 @@ The feature also allows type arguments to have a variance modifier, optionally f
 
 Finally, the rules for other topics like subtyping and for determining the variance of a subterm in a type are adjusted.
 
+Some occurrences of use-site variance modifiers are redundant, and they are ignored (that is, the program is treated as if they had not been there): If a formal type parameter _X_ has the variance modifier `out` and an actual type argument of the form `out U` is passed to _X_, then that type argument is treated as `U`. Similarly, if the formal type parameter _X_ has the variance modifier `inout` and an actual type argument of the form `inout U` is passed to _X_, then that type argument is treated as `U`. Finally, if the formal type parameter _X_ has the variance modifier `in` and an actual type argument of the form `in U` is passed to _X_, then that type argument is treated as `U`.
+
+Some other occurrences of use-site variance modifiers are normalized into `*`: If a formal type parameter _X_ has no variance modifier or it has the modifier `out` and an actual type argument of the form `in U` is passed to _X_ then that type argument is trated as `*`. If a formal type parameter _X_ has the variance modifier `in` and an actual type argument of the form `out U` is passed to _X_ then that type argument is treated as `*`.
+
+(*An implementation may choose to give a warning in these situations, because these constructs are somewhat misleading for a reader of the code. This document relies on these simplifications in order to allow rules to be simpler, and in order to make it easier to reason about the correctness of the rules.*)
+
 
 ### Subtype Rules
 
 The [subtype rule](https://github.com/dart-lang/language/blob/e3010343a8e6f608a831078b0a04d4f1eeca46d4/specification/dartLangSpec.tex#L14845) for interface types that is concerned with the relationship among type arguments ('class covariance') is modified as follows:
 
+With respect to subtyping, one more redundancy rule applies: If a formal type parameter _X_ has no variance modifier and an actual type argument of the form `out U` is passed to _X_, then that type argument is treated as `U`. (*In other words, subtyping doesn't care whether a type argument is covariant in one or the other way. However, member accesses are constrained differently, which is the reason why this redundancy rule only applies to subtyping.*)
+
 In order to conclude that _C&lt;S<sub>1</sub>,... S<sub>s</sub>&gt; <: C&lt;T<sub>1</sub>,... T<sub>s</sub>&gt;_ the current rule requires that _S<sub>j</sub> <: T<sub>j</sub>_ for each _j_ in 1 .. _s_. *This means that, to be a subtype, all actual type arguments must be subtypes.*
 
 The rule is updated as follows in order to take variance modifiers into account:
-
-Some occurrences of variance modifiers are redundant, and they are ignored for the purpose of determining subtype relationships: If a type parameter _X<sub>j</sub>_ has no variance modifier, or it has the variance modifier `out` then if _S<sub>j</sub>_ and/or _T<sub>j</sub>_ is of the form `out U` is treated as `U` (*which means that the rule for the case with no use-site variance modifier applies*). Similarly, if the type parameter _X<sub>j</sub>_ has the variance modifier `inout` then if _S<sub>j</sub>_ and/or _T<sub>j</sub>_ is of the form `inout U` is treated as `U`, and if the corresponding type parameter _X<sub>j</sub>_ has the variance modifier `in`, then if _S<sub>j</sub>_ and/or _T<sub>j</sub>_ is of the form `in U` is treated as `U`.
 
 Let _j_ in 1 .. _s_. If none of _S<sub>j</sub>_ or _T<sub>j</sub>_ have a variance modifier then the following rules apply:
 
@@ -87,9 +93,9 @@ If the type parameter _X<sub>j</sub>_ has the variance modifier `inout`, and we 
 
 If both _S<sub>j</sub>_ and _T<sub>j</sub>_ have the modifier `out` then let _S1<sub>j</sub>_ be _S<sub>j</sub>_ except that `out` has been eliminated, and similarly for _T1<sub>j</sub>_; we then require _S1<sub>j</sub> <: T1<sub>j</sub>_ (*whether or not the corresponding type parameter has a variance modifier, and no matter which one, except that it cannot be `in` because that makes use-site `out` an error.*)
 
-If both _S<sub>j</sub>_ and _T<sub>j</sub>_ have the modifier `in` then let _S1<sub>j</sub>_ be _S<sub>j</sub>_ except that `in` has been eliminated, and similarly for _T1<sub>j</sub>_; we then require _T1<sub>j</sub> <: S1<sub>j</sub>_ (*no matter which variance modifier the corresponding type parameter has, except that it cannot be `out` because that makes use-site `in` an error.*)
+If both _S<sub>j</sub>_ and _T<sub>j</sub>_ have the modifier `in` then let _S1<sub>j</sub>_ be _S<sub>j</sub>_ except that `in` has been eliminated, and similarly for _T1<sub>j</sub>_; we then require _T1<sub>j</sub> <: S1<sub>j</sub>_. (*Note that the variance modifier _v_ of the corresponding type parameter must be `inout`, because the use-site `in` would be an error if _v_ were `out` or empty, and the use-site `in` would have been eliminated as redundant if _v_ were `in`.*)
 
-If we have the relationship that _S<sub>j</sub>_ is _inout T<sub>j</sub>_, there are no further requirements. (*So `C<inout T> <: C<T>` no matter which variance modifier the type parameter has, including none.*)
+If _S<sub>j</sub>_ is _inout T<sub>j</sub>_, there are no further requirements. (*So `C<inout T> <: C<T>` no matter which variance modifier the type parameter has, including none.*)
 
 *For instance:*
 
@@ -97,22 +103,23 @@ If we have the relationship that _S<sub>j</sub>_ is _inout T<sub>j</sub>_, there
 class C<inout X> {}
 
 // Not runnable code, just examples of subtype relationships:
+
 List<inout num> <: List<num> <: List<Object> <: List<*> <: Object
 List<inout List<num>> <: List<List<num>> <: List<Object>
 List<inout List<inout num>> <: List<List<inout num>> <: List<List<num>>
 List<inout num> <: Iterable<inout num> <: Iterable<num>
-List<inout num> <: List<out num> <: List<*>
-List<inout num> <: List<in num> <: List<*>
-List<out int> <: List<out num> <: List<*>
-List<in num> <: List<in int> <: List<*>
+List<inout num> <: List<out num> <: List<num> <: List<out num> <: List<*>
+List<inout num> <: List<in num> == List<*>
+List<out int> <: List<out num>
+List<in num> <: List<in int>
 
-// `C<inout T>` is the same as `C<T>`.
 C<num> <: C<out num> <: C<out Object> <: C<*>
 C<num> <: C<in num> <: C<in int> <: C<*>
 C<out int> <: C<out num>
 C<in num> <: C<in int>
 
 // But the subtype relation does _not_ include the following:
+
 List<num> <\: List<inout num>
 List<inout List<inout num>> <\: List<inout List<num>>
 ```
@@ -142,6 +149,13 @@ _C&lt;v<sub>1</sub> S<sub>1</sub> .. v<sub>s</sub> S<sub>s</sub>&gt; <: T_
 if
 _[v<sub>1</sub> S<sub>1</sub>/X<sub>1</sub> .. v<sub>s</sub> S<sub>s</sub>/X<sub>s</sub>]D&lt;T<sub>1</sub> .. T<sub>m</sub>&gt; <: T_
 where _S<sub>j</sub>_ is a type and _v<sub>j</sub>_ is either empty or a variance modifier, for all _j_ in 1 .. _s_.
+
+(*The simplifications based on redundancy apply as well. For example, `A<*>` is the lone direct superinterface of `B<in String>`:*)
+
+```dart
+class A<out X> {}
+class B<inout X> implements A<X> {}
+```
 
 
 ### Variance Rules
@@ -287,9 +301,102 @@ class B<out X> extends A<X> { // or `implements`.
 ```
 
 
-### Member signatures with Widening Use-site Variance
+### Member signatures and Use-site Variance
+
+For an instance member access (*e.g., a method or getter invocation, or a tear-off of an instance member*), the member signature is computed based on the receiver type. That member signature is then used to compute the requirements on subexpressions such as actual arguments, and it is used to compute the static type of the invocation as a whole.
+
+(*Without use-site variance, the procedure used to compute the member signature for a given receiver type `C<T1..Tk>` is simply the substitution `[T1/X1 .. Tk/Xk]s` where `X1 .. Xk` are the formal type parameters of `C` and `s` is the given signature. With use-site variance, the procedure is more complex.*)
+
+Consider a member access using the member `m` with signature `s` on a receiver with static type `C<v1 T1 .. vk Tk>`, where `vj` is a use-site modifier and `Tj` is a type, for any `j` in `1..k`.
+
+The _effective member signature_ for that member access is then the following:
+
+```
+widen(varianceMap, s)
+```
+
+where `varianceMap` is a mapping from each type variable `Xj` to the corresponding actual type argument `Tj` and use-site variance modifier `vj`.
+
+(*TODO: The following is a draft version of the specification that considers only a single type parameter `X` and variance modifier `v`. The general version is probably simply (1) a consistent renaming of the type parameters and the member signature `s`, such that no type variables are captured, and (2) a sequential application of the single-type-variable approach descrided below.*)
+
+We consider a member access where the receiver type is `C<T>` and the member signature is `s`, which corresponds to the function type `U1 Function(U2)`.
+
+We describe `widen` and the associated `narrow` function using the argument `X: T` to describe the situation where there is no use-site variance modifier, the type variable is `X`, and the actual type argument passed to `X` is `T`, and similarly for `X: out T`, `X: inout T`, and `X: in T`.
+
+When the map is not used to single out cases, we use `M` to stand for an arbitrary map (*e.g., it could stand for `X: inout T`*).
+
+We process the member signature as a whole as a function type. (*Again, we simplify it to take exactly one argument.*)
+
+In the cases, we assume the following classes, each of them taking one type argument: `Cl` (whose type parameter has no variance modifier), `Co` (with variance modifier `out`), `Ci` (with variance modifier `inout`), and `Con` (with variance modifier `in`).
+
+```
+widen(M, U1 Function(U2)) = widen(M, U1) Function(narrow(M, U2))
+
+widen(X: T, Cl<X>) = Cl<T>               // X can be legacy, out, inout.
+widen(X: out T, Cl<X>) = Cl<T>
+widen(X: inout T, Cl<X>) = Cl<T>
+widen(X: in T, Cl<X>) = Cl<*>
+widen(X: *, Cl<X>) = Cl<*>
+
+widen(X: T, Co<X>) = Co<T>               // X can be legacy, out, inout.
+widen(X: out T, Co<X>) = Co<T>
+widen(X: inout T, Co<X>) = Co<T>
+widen(X: in T, Co<X>) = Co<*>
+widen(X: *, Co<X>) = Co<*>
+
+widen(X: T, Ci<X>) = Ci<T>               // X is
+widen(X: out T, Ci<X>) = Ci<T>
+widen(X: inout T, Ci<X>) = Ci<T>
+widen(X: in T, Ci<X>) = Ci<*>
+widen(X: *, Ci<X>) = Ci<*>
+
+widen(X: T, Con<X>) = Con<T>             // X can be legacy, inout, in.
+widen(X: out T, Con<X>) = Con<T>
+widen(X: inout T, Con<X>) = Con<T>
+widen(X: in T, Con<X>) = Con<*>
+widen(X: *, Con<X>) = Con<*>
+
+
+
+
+widen
+
+widen(M, Co<X>) = Co<widen(M, X)>
+
+widen(M, Cl<U>) = Cl<widen(M, U)>
+widen(M, Co<U>) = Co<widen(M, U)>
+
+
+widen(X: out T, Ci<U>) =
+
+
+widen(X: out T, Con<U>) =
+
+
+
+
+widen(X: T, Cl<U>) =
+widen(X: T, Co<U>) =
+widen(X: T, Ci<U>) =
+widen(X: T, Con<U>) =
+
+```
 
 !!!HERE!!!
+
+*For example:*
+
+```dart
+class A<out X> {
+  A<X> get m1 => m2; // 1.
+  A<inout X> get m2 => A<X>(); // 2.
+}
+```
+
+*At 1, the receiver for the invocation of `m2` is `this` 
+
+
+
 
 *For example:*
 
