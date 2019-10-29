@@ -6154,9 +6154,13 @@ only members of the system classes
 The \IndexCustom{potentially constant expressions}{%
   potentially constant expression}
 and \IndexCustom{constant expressions}{constant expression}
-are the following:
+are determined by the following rules:
 
 \begin{itemize}
+\item
+  An expression that denotes an invocation of an extension method
+  is not potentially constant, and not constant.
+
 \item
   A literal boolean, \TRUE{} or \FALSE{} (\ref{booleans}),
   is a potentially constant and constant expression.
