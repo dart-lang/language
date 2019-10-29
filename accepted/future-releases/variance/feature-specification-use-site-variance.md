@@ -327,58 +327,180 @@ When the map is not used to single out cases, we use `M` to stand for an arbitra
 
 We process the member signature as a whole as a function type. (*Again, we simplify it to take exactly one argument.*)
 
-In the cases, we assume the following classes, each of them taking one type argument: `Cl` (whose type parameter has no variance modifier), `Co` (with variance modifier `out`), `Ci` (with variance modifier `inout`), and `Con` (with variance modifier `in`).
+In the cases, we assume the following classes, each of them taking one type argument: `Cl` (whose type parameter has no variance modifier), `Co` (with variance modifier `out`), `Ci` (with variance modifier `inout`), and `Con` (with variance modifier `in`). The intersection between the bound of `X` and the bound of the target class (`Cl`, `Co`, `Ci`, `Con`) is denoted `B`.
 
 ```
+// Function types.
 widen(M, U1 Function(U2)) = widen(M, U1) Function(narrow(M, U2))
 
-widen(X: T, Cl<X>) = Cl<T>               // X can be legacy, out, inout.
-widen(X: out T, Cl<X>) = Cl<T>
-widen(X: inout T, Cl<X>) = Cl<T>
-widen(X: in T, Cl<X>) = Cl<*>
-widen(X: *, Cl<X>) = Cl<*>
+// Interface type widening, atomic.
 
-widen(X: T, Co<X>) = Co<T>               // X can be legacy, out, inout.
-widen(X: out T, Co<X>) = Co<T>
-widen(X: inout T, Co<X>) = Co<T>
-widen(X: in T, Co<X>) = Co<*>
-widen(X: *, Co<X>) = Co<*>
+widen(v X: T, Cl<X>) = Cl<T>                 // v: legacy, out, or inout.
+widen(v X: out T, Cl<X>) = Cl<T>             // v: legacy or inout.
+widen(v X: inout T, Cl<X>) = Cl<T>           // v: legacy or out.
+widen(inout X: in T, Cl<X>) = Cl<B>
+widen(v X: *, Cl<X>) = Cl<B>                 // v: any.
 
-widen(X: T, Ci<X>) = Ci<T>               // X is
-widen(X: out T, Ci<X>) = Ci<T>
+widen(v X: T, Co<X>) = Co<T>                 // v: legacy, out, or inout.
+widen(v X: out T, Co<X>) = Co<T>             // v: legacy or inout.
+widen(v X: inout T, Co<X>) = Co<T>           // v: legacy or out.
+widen(inout X: in T, Co<X>) = Co<B>
+widen(v X: *, Co<X>) = Co<B>                 // v: any.
+
+widen(X: T, Ci<X>) = Ci<out T>
+widen(inout X: T, Ci<X>) = Ci<T>
+widen(v X: out T, Ci<X>) = Ci<out T>         // v: legacy or inout.
 widen(X: inout T, Ci<X>) = Ci<T>
-widen(X: in T, Ci<X>) = Ci<*>
-widen(X: *, Ci<X>) = Ci<*>
+widen(inout X: in T, Ci<X>) = Ci<out B>
+widen(v X: *, Ci<X>) = Ci<out B>             // v: any.
 
-widen(X: T, Con<X>) = Con<T>             // X can be legacy, inout, in.
-widen(X: out T, Con<X>) = Con<T>
-widen(X: inout T, Con<X>) = Con<T>
-widen(X: in T, Con<X>) = Con<*>
-widen(X: *, Con<X>) = Con<*>
+widen(X: T, Con<X>) = Con<Never>
+widen(v X: T, Con<X>) = Con<T>               // v: inout or in.
+widen(v X: out T, Con<X>) = Con<Never>       // v: legacy or inout.
+widen(v X: inout T, Con<X>) = Con<T>         // v: legacy or in.
+widen(inout X: in T, Con<X>) = Con<T>
+widen(v X: *, Con<X>) = Con<Never>           // v: any.
 
+widen(v X: T, Ci<out X>) = Ci<out T>         // v: legacy, out, or inout.
+widen(v X: out T, Ci<out X>) = Ci<out T>     // v: legacy or inout.
+widen(v X: inout T, Ci<out X>) = Ci<out T>   // v: legacy or out.
+widen(inout X: in T, Ci<out X>) = Ci<out B>
+widen(v X: *, Ci<out X>) = Ci<out B>         // v: any.
 
+widen(X: T, Ci<in X>) = Ci<in Never>
+widen(v X: T, Ci<in X>) = Ci<in T>           // v: inout or in.
+widen(v X: out T, Ci<in X>) = Ci<in Never>   // v: legacy or inout.
+widen(X: inout T, Ci<in X>) = Ci<in T>
+widen(in X: inout T, Ci<in X>) = Ci<in T>
+widen(inout X: in T, Ci<in X>) = Ci<in T>
+widen(v X: *, Ci<in X>) = Ci<in Never>       // v: any.
 
+widen(X: T, Co<inout X>) = Co<T>
+widen(inout X: T, Co<inout X>) = Co<inout T>
+widen(v X: out T, Co<inout X>) = Co<T>       // v: legacy or inout.
+widen(X: inout T, Co<inout X>) = Co<inout T>
+widen(inout X: in T, Co<inout X>) = Co<B>
+widen(v X: *, Co<inout X>) = Co<B>           // v: any.
 
-widen
+widen(X: T, Con<inout X>) = Con<Never>
+widen(inout X: T, Con<inout X>) = Con<inout T>
+widen(v X: out T, Con<inout X>) = Con<Never> // v: legacy or inout.
+widen(X: inout T, Con<inout X>) = Con<inout T>
+widen(inout X: in T, Con<inout X>) = Con<T>
+widen(v X: *, Con<inout X>) = Con<Never>     // v: any.
 
-widen(M, Co<X>) = Co<widen(M, X)>
+// Interface type widening, composite, used if no atomic case matches.
 
 widen(M, Cl<U>) = Cl<widen(M, U)>
+
 widen(M, Co<U>) = Co<widen(M, U)>
 
+widen(M, Ci<U>) = Ci<U>, if !doesWiden(M, Ci<U>)
+                = Ci<out widen(M, U)>, otherwise.
 
-widen(X: out T, Ci<U>) =
+widen(M, Con<U>) = Con<U>, if !doesWiden(M, Con<U>)
+                 = Con<narrow(M, U)>, otherwise.
+
+widen(M, Ci<out U>) = Ci<out widen(M, U)>
+
+widen(M, Ci<in U>) = Ci<in narrow(M, U)>
+
+widen(M, Co<inout U>) = Co<inout U>, if !doesWiden(M, Co<inout U>)
+                      = Co<widen(M, U)>, otherwise.
+
+widen(M, Con<inout U>) = Con<inout U>, if !doesWiden(M, Con<inout U>)
+                       = Con<narrow(M, U)>, otherwise.
+
+// Interface type narrowing, atomic.
+
+narrow(v X: T, Cl<X>) = Cl<Never>             // v: legacy, out, or inout.
+narrow(v X: out T, Cl<X>) = Cl<Never>         // v: legacy or inout.
+narrow(v X: inout T, Cl<X>) = Cl<T>           // v: legacy or out.
+narrow(inout X: in T, Cl<X>) = Cl<T>
+narrow(v X: *, Cl<X>) = Cl<Never>             // v: any.
+
+narrow(v X: T, Co<X>) = Co<Never>             // v: legacy, out, or inout.
+narrow(v X: out T, Co<X>) = Co<Never>         // v: legacy or inout.
+narrow(v X: inout T, Co<X>) = Co<T>           // v: legacy or out.
+narrow(inout X: in T, Co<X>) = Co<T>
+narrow(v X: *, Co<X>) = Co<Never>             // v: any.
+
+narrow(X: T, Ci<X>) = Never
+narrow(inout X: T, Ci<X>) = Ci<T>
+narrow(v X: out T, Ci<X>) = Never             // v: legacy or inout.
+narrow(X: inout T, Ci<X>) = Ci<T>
+narrow(inout X: in T, Ci<X>) = Never
+narrow(v X: *, Ci<X>) = Never                 // v: any.
+
+narrow(X: T, Con<X>) = Con<T>
+narrow(inout X: T, Con<X>) = Con<T>
+narrow(in X: T, Con<X>) = Con<B>
+narrow(v X: out T, Con<X>) = Con<T>           // v: legacy or inout.
+narrow(v X: inout T, Con<X>) = Con<T>         // v: legacy or in.
+narrow(inout X: in T, Con<X>) = Con<T>
+narrow(v X: *, Con<X>) = Con<B>               // v: any.
+
+narrow(v X: T, Ci<out X>) = Ci<Never>         // v: legacy or out.
+narrow(inout X: T, Ci<out X>) = Ci<out T>
+narrow(X: out T, Ci<out X>) = Ci<Never>
+narrow(inout X: out T, Ci<out X>) = Ci<Never>
+narrow(v X: inout T, Ci<out X>) = Ci<out T>   // v: legacy or out.
+narrow(inout X: in T, Ci<out X>) = Ci<out T>
+narrow(v X: *, Ci<out X>) = Ci<Never>         // v: any.
+
+narrow(X: T, Ci<in X>) = Ci<in Never>
+narrow(v X: T, Ci<in X>) = Ci<in T>           // v: inout or in.
+narrow(v X: out T, Ci<in X>) = Ci<in B>       // v: legacy or inout.
+narrow(X: inout T, Ci<in X>) = Ci<in T>
+narrow(in X: inout T, Ci<in X>) = Ci<in T>
+narrow(inout X: in T, Ci<in X>) = Ci<in B>
+narrow(v X: *, Ci<in X>) = Ci<in B>           // v: any.
+
+narrow(X: T, Co<inout X>) = Never
+narrow(inout X: T, Co<inout X>) = Co<inout T>
+narrow(v X: out T, Co<inout X>) = Never       // v: legacy or inout.
+narrow(X: inout T, Co<inout X>) = Co<inout T>
+narrow(inout X: in T, Co<inout X>) = Never
+narrow(v X: *, Co<inout X>) = Never           // v: any.
+
+narrow(X: T, Con<inout X>) = Never
+narrow(inout X: T, Con<inout X>) = Con<inout T>
+narrow(v X: out T, Con<inout X>) = Never     // v: legacy or inout.
+narrow(X: inout T, Con<inout X>) = Con<inout T>
+narrow(inout X: in T, Con<inout X>) = Never
+narrow(v X: *, Con<inout X>) = Never         // v: any.
+
+// Interface type narrowing, composite, used if no atomic case matches.
+
+narrow(M, Cl<U>) = Cl<narrow(M, U)>
+
+narrow(M, Co<U>) = Co<narrow(M, U)>
+
+narrow(M, Ci<U>) = Ci<U>, if !doesNarrow(M, Ci<U>)
+                 = Never, otherwise.
+
+narrow(M, Con<U>) = Con<U>, if !doesNarrow(M, Con<U>)
+                  = Con<widen(M, U)>, otherwise.
+
+narrow(M, Ci<out U>) = Ci<out narrow(M, U)>
+
+narrow(M, Ci<in U>) = Ci<in widen(M, U)>
+
+narrow(M, Co<inout U>) = Co<inout U>, if !doesNarrow(M, Co<inout U>)
+                      = Never, otherwise.
+
+narrow(M, Con<inout U>) = Con<inout U>, if !doesNarrow(M, Con<inout U>)
+                       = Never, otherwise.
+
+// Determine whether widening is a no-op.
+
+!!!HERE!!!
 
 
-widen(X: out T, Con<U>) =
+// Determine whether narrowing is a no-op.
 
+!!!HERE!!!
 
-
-
-widen(X: T, Cl<U>) =
-widen(X: T, Co<U>) =
-widen(X: T, Ci<U>) =
-widen(X: T, Con<U>) =
 
 ```
 
