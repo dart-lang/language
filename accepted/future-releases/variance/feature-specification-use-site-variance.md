@@ -395,21 +395,21 @@ widen(M, Cl<U>) = Cl<widen(M, U)>
 
 widen(M, Co<U>) = Co<widen(M, U)>
 
-widen(M, Ci<U>) = [T/X]Ci<U>, if !doesWiden(M, U)
-                = Ci<out widen(M, U)>, otherwise.
+widen(M, Ci<U>) = Ci<out widen(M, U)>, if doesWiden(M, U)
+                = [T/X]Ci<U>, otherwise.
 
-widen(M, Con<U>) = [T/X]Con<U>, if !doesNarrow(M, U)
-                 = Con<narrow(M, U)>, otherwise.
+widen(M, Con<U>) = Con<narrow(M, U)>, if doesNarrow(M, U)
+                 = [T/X]Con<U>, otherwise.
 
 widen(M, Ci<out U>) = Ci<out widen(M, U)>
 
 widen(M, Ci<in U>) = Ci<in narrow(M, U)>
 
-widen(M, Co<inout U>) = [T/X]Co<inout U>, if !doesWiden(M, U)
-                      = Co<widen(M, U)>, otherwise.
+widen(M, Co<inout U>) = Co<widen(M, U)>, if doesWiden(M, U)
+                      = [T/X]Co<inout U>, otherwise.
 
-widen(M, Con<inout U>) = [T/X]Con<inout U>, if !doesNarrow(M, U)
-                       = Con<narrow(M, U)>, otherwise.
+widen(M, Con<inout U>) = Con<narrow(M, U)>, if doesNarrow(M, U)
+                       = [T/X]Con<inout U>, otherwise.
 
 // Interface type narrowing, atomic.
 
@@ -476,20 +476,20 @@ narrow(M, Cl<U>) = Cl<narrow(M, U)>
 
 narrow(M, Co<U>) = Co<narrow(M, U)>
 
-narrow(M, Ci<U>) = Ci<U>, if !doesNarrow(M, U)
-                 = Never, otherwise.
+narrow(M, Ci<U>) = Never, if doesNarrow(M, U)
+                 = [T/X]Ci<U>, otherwise.
 
-narrow(M, Con<U>) = Con<widen(M, U)>, otherwise.
+narrow(M, Con<U>) = Con<widen(M, U)>
 
 narrow(M, Ci<out U>) = Ci<out narrow(M, U)>
 
 narrow(M, Ci<in U>) = Ci<in widen(M, U)>
 
-narrow(M, Co<inout U>) = Co<inout U>, if !doesNarrow(M, U)
-                       = Never, otherwise.
+narrow(M, Co<inout U>) = Never, if doesNarrow(M, U)
+                       = [T/X]Co<inout U>, otherwise.
 
-narrow(M, Con<inout U>) = Con<inout U>, if !doesWiden(M, U)
-                        = Never, otherwise.
+narrow(M, Con<inout U>) = Never, if doesWiden(M, U)
+                        = [T/X]Con<inout U>, otherwise.
 
 // Determine whether widening will make other changes than substitution.
 
@@ -558,7 +558,7 @@ doesWiden(M, Ci<in U>) = doesNarrow(M, U)
 doesWiden(M, Co<inout U>) = doesWiden(M, U)
 doesWiden(M, Con<inout U>) = doesNarrow(M, U)
 
-// Determine whether narrowing is a no-op.
+// Determine whether narrowing will make other changes than substitution.
 
 doesNarrow(v X: T, Cl<X>) = true                  // v: legacy, out, or inout.
 doesNarrow(v X: out T, Cl<X>) = true              // v: legacy or inout.
