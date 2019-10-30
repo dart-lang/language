@@ -321,9 +321,9 @@ where `varianceMap` is a mapping from each type variable `Xj` to the correspondi
 
 We consider a member access where the receiver type is `C<T>` and the member signature is `s`, which corresponds to the function type `U1 Function(U2)`.
 
-We describe `widen` and the associated `narrow` function using the argument `X: T` to describe the situation where there is no use-site variance modifier, the type variable is `X`, and the actual type argument passed to `X` is `T`, and similarly for `X: out T`, `X: inout T`, and `X: in T`.
+We describe `widen` and the associated `narrow` function using the argument `X: T` to describe the situation where there is no use-site variance modifier, the type variable is `X`, which is legacy, and the actual type argument passed to `X` is `T`, and similarly for `X: out T`, `X: inout T`, and `X: in T`. Similarly, `out X: v T` indicates that the declaration-site variance of `X` is `out` and the use-site variance is `v` (which can be absent, `out`, `inout`, or `in`); and similarly for `inout X: v T` and `in X: v T` with the remaining declaration-site variances.
 
-When the map is not used to single out cases, we use `M` to stand for an arbitrary map (*e.g., it could stand for `X: inout T`*).
+When the map is not used for pattern matching, we use `M` to stand for an arbitrary map (*e.g., it could stand for `out X: inout T`*).
 
 We process the member signature as a whole as a function type. (*Again, we simplify it to take exactly one argument.*)
 
