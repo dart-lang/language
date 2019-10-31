@@ -425,10 +425,11 @@ expression. The expression is syntactically restricted to be either:
 
 *   **A prefixed or qualified identifier.** In other words, `a.b`. It must
     resolve to either a top level constant imported from a library with a
-    prefix, a static constant in a class, or an enum case.
+    prefix, a static constant, or an enum value.
 
-*   **A prefixed qualified identifier.** Like `a.B.c`. It must resolve to an
-    enum case on an emum type that was imported with a prefix.
+*   **A prefixed qualified identifier.** Like `a.B.c`. It must resolve to a
+    value on an emum type that was imported with a prefix, or a static
+    declaration in a class, mixin, or extension imported with a prefix.
 
 The const expression is evaluated and the result passed to the matched value's
 `==` operator to determine if it matches.
@@ -868,9 +869,9 @@ Destructures fields from an object. It is a compile-time error if the static
 type of the value being matched does not declare members whose names match all
 of the matched fields.
 
-At runtime, invokes the corresponding field getters on the object and matches
-the results against each corresponding subpattern. The tuple pattern matches if
-all subpatterns match.
+At runtime, invokes the corresponding getters on the object and matches the
+results against each corresponding subpattern. The tuple pattern matches if all
+subpatterns match.
 
 ### Extract matcher
 
