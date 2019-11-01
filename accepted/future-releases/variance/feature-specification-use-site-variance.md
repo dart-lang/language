@@ -413,15 +413,17 @@ widen(M, Con<inout U>) = Con<narrow(M, U)>, if doesNarrow(M, U)
 
 // Interface type narrowing, atomic.
 
-narrow(v X: T, Cl<X>) = Cl<Never>             // v: legacy, out, or inout.
+narrow(X: T, Cl<X>) = Cl<Never>
+narrow(v X: T, Cl<X>) = Cl<T>                 // v: inout or in.
 narrow(v X: out T, Cl<X>) = Cl<Never>         // v: legacy or inout.
-narrow(v X: inout T, Cl<X>) = Cl<T>           // v: legacy or out.
+narrow(v X: inout T, Cl<X>) = Cl<T>           // v: legacy or in.
 narrow(inout X: in T, Cl<X>) = Cl<T>
 narrow(v X: *, Cl<X>) = Cl<Never>             // v: any.
 
-narrow(v X: T, Co<X>) = Co<Never>             // v: legacy, out, or inout.
+narrow(X: T, Co<X>) = Co<Never>
+narrow(v X: T, Co<X>) = Co<T>                 // v: inout or in.
 narrow(v X: out T, Co<X>) = Co<Never>         // v: legacy or inout.
-narrow(v X: inout T, Co<X>) = Co<T>           // v: legacy or out.
+narrow(v X: inout T, Co<X>) = Co<T>           // v: legacy or in.
 narrow(inout X: in T, Co<X>) = Co<T>
 narrow(v X: *, Co<X>) = Co<Never>             // v: any.
 
@@ -432,27 +434,22 @@ narrow(X: inout T, Ci<X>) = Ci<T>
 narrow(inout X: in T, Ci<X>) = Never
 narrow(v X: *, Ci<X>) = Never                 // v: any.
 
-narrow(X: T, Con<X>) = Con<T>
-narrow(inout X: T, Con<X>) = Con<T>
-narrow(in X: T, Con<X>) = Con<B>
+narrow(v X: T, Con<X>) = Con<T>               // v: legacy, out, or inout.
 narrow(v X: out T, Con<X>) = Con<T>           // v: legacy or inout.
-narrow(v X: inout T, Con<X>) = Con<T>         // v: legacy or in.
-narrow(inout X: in T, Con<X>) = Con<T>
+narrow(v X: inout T, Con<X>) = Con<T>         // v: legacy or out.
+narrow(inout X: in T, Con<X>) = Con<B>
 narrow(v X: *, Con<X>) = Con<B>               // v: any.
 
-narrow(v X: T, Ci<out X>) = Ci<Never>         // v: legacy or out.
-narrow(inout X: T, Ci<out X>) = Ci<out T>
-narrow(X: out T, Ci<out X>) = Ci<Never>
-narrow(inout X: out T, Ci<out X>) = Ci<Never>
-narrow(v X: inout T, Ci<out X>) = Ci<out T>   // v: legacy or out.
+narrow(X: T, Ci<out X>) = Ci<Never>
+narrow(v X: T, Ci<out X>) = Ci<out T>         // v: inout or in.
+narrow(v X: out T, Ci<out X>) = Ci<Never>     // v: legacy or inout.
+narrow(v X: inout T, Ci<out X>) = Ci<out T>   // v: legacy or in.
 narrow(inout X: in T, Ci<out X>) = Ci<out T>
 narrow(v X: *, Ci<out X>) = Ci<Never>         // v: any.
 
-narrow(X: T, Ci<in X>) = Ci<in Never>
-narrow(v X: T, Ci<in X>) = Ci<in T>           // v: inout or in.
-narrow(v X: out T, Ci<in X>) = Ci<in B>       // v: legacy or inout.
-narrow(X: inout T, Ci<in X>) = Ci<in T>
-narrow(in X: inout T, Ci<in X>) = Ci<in T>
+narrow(v X: T, Ci<in X>) = Ci<in T>           // v: legacy, out, or inout.
+narrow(v X: out T, Ci<in X>) = Ci<in T>       // v: legacy or inout.
+narrow(v X: inout T, Ci<in X>) = Ci<in T>     // v: legacy or out.
 narrow(inout X: in T, Ci<in X>) = Ci<in B>
 narrow(v X: *, Ci<in X>) = Ci<in B>           // v: any.
 
@@ -560,15 +557,17 @@ doesWiden(M, Con<inout U>) = doesNarrow(M, U)
 
 // Determine whether narrowing will make other changes than substitution.
 
-doesNarrow(v X: T, Cl<X>) = true                  // v: legacy, out, or inout.
+doesNarrow(X: T, Cl<X>) = true
+doesNarrow(v X: T, Cl<X>) = false                 // v: inout or in.
 doesNarrow(v X: out T, Cl<X>) = true              // v: legacy or inout.
-doesNarrow(v X: inout T, Cl<X>) = false           // v: legacy or out.
+doesNarrow(v X: inout T, Cl<X>) = false           // v: legacy or in.
 doesNarrow(inout X: in T, Cl<X>) = false
 doesNarrow(v X: *, Cl<X>) = true                  // v: any.
 
-doesNarrow(v X: T, Co<X>) = true                  // v: legacy, out, or inout.
+doesNarrow(X: T, Co<X>) = true
+doesNarrow(v X: T, Co<X>) = false                 // v: inout or in.
 doesNarrow(v X: out T, Co<X>) = true              // v: legacy or inout.
-doesNarrow(v X: inout T, Co<X>) = false           // v: legacy or out.
+doesNarrow(v X: inout T, Co<X>) = false           // v: legacy or in.
 doesNarrow(inout X: in T, Co<X>) = false
 doesNarrow(v X: *, Co<X>) = true                  // v: any.
 
@@ -579,27 +578,22 @@ doesNarrow(X: inout T, Ci<X>) = false
 doesNarrow(inout X: in T, Ci<X>) = true
 doesNarrow(v X: *, Ci<X>) = true                  // v: any.
 
-doesNarrow(X: T, Con<X>) = false
-doesNarrow(inout X: T, Con<X>) = false
-doesNarrow(in X: T, Con<X>) = true
+doesNarrow(v X: T, Con<X>) = false                // v: legacy, out, or inout.
 doesNarrow(v X: out T, Con<X>) = false            // v: legacy or inout.
-doesNarrow(v X: inout T, Con<X>) = false          // v: legacy or in.
-doesNarrow(inout X: in T, Con<X>) = false
+doesNarrow(v X: inout T, Con<X>) = false          // v: legacy or out.
+doesNarrow(inout X: in T, Con<X>) = true
 doesNarrow(v X: *, Con<X>) = true                 // v: any.
 
-doesNarrow(v X: T, Ci<out X>) = true              // v: legacy or out.
-doesNarrow(inout X: T, Ci<out X>) = false
-doesNarrow(X: out T, Ci<out X>) = true
-doesNarrow(inout X: out T, Ci<out X>) = true
-doesNarrow(v X: inout T, Ci<out X>) = false       // v: legacy or out.
+doesNarrow(X: T, Ci<out X>) = true
+doesNarrow(v X: T, Ci<out X>) = false             // v: inout or in.
+doesNarrow(v X: out T, Ci<out X>) = true          // v: lecacy or inout.
+doesNarrow(v X: inout T, Ci<out X>) = false       // v: legacy or in.
 doesNarrow(inout X: in T, Ci<out X>) = false
 doesNarrow(v X: *, Ci<out X>) = true              // v: any.
 
-doesNarrow(X: T, Ci<in X>) = true
-doesNarrow(v X: T, Ci<in X>) = false              // v: inout or in.
-doesNarrow(v X: out T, Ci<in X>) = true           // v: legacy or inout.
-doesNarrow(X: inout T, Ci<in X>) = false
-doesNarrow(in X: inout T, Ci<in X>) = false
+doesNarrow(v X: T, Ci<in X>) = false              // v: legacy, out, or inout.
+doesNarrow(v X: out T, Ci<in X>) = false          // v: legacy or inout.
+doesNarrow(v X: inout T, Ci<in X>) = false        // v: legacy or out.
 doesNarrow(inout X: in T, Ci<in X>) = true
 doesNarrow(v X: *, Ci<in X>) = true               // v: any.
 
