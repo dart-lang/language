@@ -128,7 +128,7 @@ A *simple member invocation* on a target expression `X` is an expression of one 
 | `X.id<types>(args)`           | `id`                                                         |
 | `-X`                          | `unary-`                                                     |
 | `~X`                          | `~`                                                          |
-| `X binop expr2`               | `+`, `-`, `*`, `/` , `~/`, `%`, `<`, `<=`, `>`, `>=`, `<<`, `>>`, `>>>`, `^`, `|`, `&` |
+| `X binop expr2`               | `+`, `-`, `*`, `/` , `~/`, `%`, `<`, `<=`, `>`, `>=`, `<<`, `>>`, `>>>`, `^`, `\|`, `&` |
 | `X[expr2]`                    | `[]`                                                         |
 | `X[expr2] = expr3`            | `[]=`                                                        |
 | `X(args)`                     | `call`                                                       |
