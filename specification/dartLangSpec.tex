@@ -9933,7 +9933,8 @@ the evaluation of constant expressions.
 \LMLabel{spawningAnIsolate}
 
 \LMHash{}%
-Spawning an isolate is accomplished via what is syntactically an ordinary library call, invoking one of the functions \code{spawnUri()} or \code{spawn()} defined in the \code{dart:isolate} library.
+Spawning an isolate is accomplished via what is syntactically an ordinary method call,
+invoking one of the static methods \code{spawnUri} or \code{spawn} defined in the \code{Isolate} class in the library \code{dart:isolate}.
 However, such calls have the semantic effect of creating a new isolate with its own memory and thread of control.
 
 \LMHash{}%
