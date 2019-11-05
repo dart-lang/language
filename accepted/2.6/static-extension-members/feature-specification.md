@@ -438,38 +438,13 @@ That is: We do *not* allow implicit tear-off of an extension `call` method in a 
 
 This implicit conversion would come at a readability cost. A type like `int` is well known as being non-callable, and an implicit `.call` tear-off would have no visible syntax at the tear-off point to inform the reader what is going on. For implicit `call` invocations, the *arguments* are visible to a reader, but for implicit coercion to a function, there is no visible syntax at all.
 
-## Migration and Breaking Changes
+## Breaking Changes
 
 Introduction of static extension methods is a non-breaking change to the language. No existing correct programs will change behavior.
-
-### Breaking Changes for Extension Methods
 
 Introducing a new extension to an existing library has the same problems as adding any other top-level name: A potential naming conflict. It may also change the behavior of existing extension member invocations if it causes an extension resolution conflict, and it wins by being more specific than the currently used extension. Barring an extension member conflict, adding an extension will not change the behavior of any code that isn't already a compile-time error. The choice of making interface instance members take precedence over extension methods ensures this.
 
 Adding an instance member to a class may now change behavior of code relying on extension methods. Adding instance members to interfaces is already breaking in case someone implements the interface. With extension methods, it may be breaking even for classes that are never implemented.
-
-### Migration
-
-The static extension methods feature will be released after the language versioning feature.
-
-As such, enabling extensions methods will require upgrading the library's language level to the version where extension methods are released. Since the language change is non-breaking, libraries should be able to simply upgrade their SDK dependency to the newer version and all existing code should keep working.
-
-A library which is at a language versions prior to the release of static extension methods will not be able to use extension members:
-
-- It cannot declare an extension.
-- it cannot refer to an imported extension.
-- It cannot invoke an imported extension member.
-- It *can* re-export an extension from another library.
-
-A library which has not enabled static extension members cannot use the new syntax. It also cannot use the *override* syntax (`MyExt(o).member()`) even though it is grammatically valid as a function or constructor invocation. The extension is neither a class nor a function.
-
-If such a library imports an extension declaration, say `MyExt`, then any reference to that imported name is a compile-time error, the same way as accessing a name-conflicting import. The imported declaration is still there, and can cause naming conflicts, but attempting to use it is disallowed.
-
-Invocations which would otherwise check for extension members, do not. It is as if there are no extensions in scope, even if some were imported.
-
-The library can export any other library, and will do so blindly without needing to understand the exported declarations. The exporting library can still cause a naming conflict if it exports something else with the same name as an exported extension.
-
-*This is not the only possible option. It might be possible to enable use of extensions in libraries which cannot declare them. However, it would be only half a feature without the syntax for extension member override, and enabling that syntax would also be inconsistent. As such, the simplest and safest approach is to _disable_ extensions completely in legacy libraries. The cost of enabling extensions is trivial since it will merely be a matter of increasing the library SDK requirement. There is no migration needed for a non-breaking change.*
 
 ## Interaction With Potential Future Features
 
