@@ -335,6 +335,12 @@ widen(M, U1 Function(U2)) = widen(M, U1) Function(narrow(M, U2))
 
 // Interface type widening, atomic.
 
+widen(v X: T, X) = T                         // v: legacy, out, or inout.
+widen(v X: out T, X) = T                     // v: legacy or inout.
+widen(v X: inout T, X) = T                   // v: legacy or out.
+widen(inout X: in T, X) = B
+widen(v X: *, X) = B                         // v: any.
+
 widen(v X: T, Cl<X>) = Cl<T>                 // v: legacy, out, or inout.
 widen(v X: out T, Cl<X>) = Cl<T>             // v: legacy or inout.
 widen(v X: inout T, Cl<X>) = Cl<T>           // v: legacy or out.
@@ -413,6 +419,13 @@ widen(M, Con<inout U>) = Con<narrow(M, U)>, if doesNarrow(M, U)
 
 // Interface type narrowing, atomic.
 
+narrow(X: T, X) = Never
+narrow(v X: T, X) = T                         // v: inout or in.
+narrow(v X: out T, X) = Never                 // v: legacy or inout.
+narrow(v X: inout T, X) = T                   // v: legacy or in.
+narrow(inout X: in T, X) = T
+narrow(v X: *, X) = Never                     // v: any.
+
 narrow(X: T, Cl<X>) = Cl<Never>
 narrow(v X: T, Cl<X>) = Cl<T>                 // v: inout or in.
 narrow(v X: out T, Cl<X>) = Cl<Never>         // v: legacy or inout.
@@ -490,6 +503,12 @@ narrow(M, Con<inout U>) = Never, if doesWiden(M, U)
 
 // Determine whether widening will make other changes than substitution.
 
+doesWiden(v X: T, X) = false                     // v: legacy, out, or inout.
+doesWiden(v X: out T, X) = false                 // v: legacy or inout.
+doesWiden(v X: inout T, X) = false               // v: legacy or out.
+doesWiden(inout X: in T, X) = true
+doesWiden(v X: *, X) = true                      // v: any.
+
 doesWiden(v X: T, Cl<X>) = false                 // v: legacy, out, or inout.
 doesWiden(v X: out T, Cl<X>) = false             // v: legacy or inout.
 doesWiden(v X: inout T, Cl<X>) = false           // v: legacy or out.
@@ -556,6 +575,13 @@ doesWiden(M, Co<inout U>) = doesWiden(M, U)
 doesWiden(M, Con<inout U>) = doesNarrow(M, U)
 
 // Determine whether narrowing will make other changes than substitution.
+
+doesNarrow(X: T, X) = true
+doesNarrow(v X: T, X) = false                     // v: inout or in.
+doesNarrow(v X: out T, X) = true                  // v: legacy or inout.
+doesNarrow(v X: inout T, X) = false               // v: legacy or in.
+doesNarrow(inout X: in T, X) = false
+doesNarrow(v X: *, X) = true                      // v: any.
 
 doesNarrow(X: T, Cl<X>) = true
 doesNarrow(v X: T, Cl<X>) = false                 // v: inout or in.
