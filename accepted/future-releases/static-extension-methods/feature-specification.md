@@ -1,12 +1,11 @@
 # Dart Static Extension Methods Design
 
-lrn@google.com<br>Version: 1.3<br>Status: Design Proposal
+lrn@google.com<br>Version: 1.5<br>Status: Design Document.
 
-**The design is finished. All future changes tracked in the final [design document](https://github.com/dart-lang/language/blob/master/accepted/2.6/static-extension-members/feature-specification.md).**
+This is a design document for *static extension members* for Dart. This document describes the feature's syntax and semantics.
 
-This is a design document for *static extension methods* for Dart. This document describes the most basic variant of the feature, then lists a few possible variants or extensions.
-
-See [Problem Description](https://github.com/dart-lang/language/issues/40) and [Feature Request](https://github.com/dart-lang/language/issues/41) for background.
+See [Problem Description](https://github.com/dart-lang/language/issues/40) and [Feature Request](https://github.com/dart-lang/language/issues/41) for background. 
+See [prefix import request](https://github.com/dart-lang/language/issues/671) for the background for the v1.5 specification update.
 
 The design of this feature is kept deliberately simple, while still attempting to make extension methods act similarly to instance methods in most cases.
 
@@ -130,7 +129,7 @@ A *simple member invocation* on a target expression `X` is an expression of one 
 | `X.id<types>(args)`           | `id`                                                         |
 | `-X`                          | `unary-`                                                     |
 | `~X`                          | `~`                                                          |
-| `X binop expr2`               | `+`, `-`, `*`, `/` , `~/`, `%`, `<`, `<=`, `>`, `>=`, `<<`, `>>`, `>>>`, `^`, `|`, `&` |
+| `X binop expr2`               | `+`, `-`, `*`, `/` , `~/`, `%`, `<`, `<=`, `>`, `>=`, `<<`, `>>`, `>>>`, `^`, `\|`, `&` |
 | `X[expr2]`                    | `[]`                                                         |
 | `X[expr2] = expr3`            | `[]=`                                                        |
 | `X(args)`                     | `call`                                                       |
@@ -209,21 +208,21 @@ Implicit extension member invocation can also apply to individual *cascade* invo
 
 ##### Accessibility
 
-An extension is *accessible* for an expression if it is declared in the current library, or if there is an `import` declaration in the current library of a library with the extension in its export scope, that import does not have a prefix, and the name of the extension is not private and it is not hidden by a `hide` or `show` modifier of the import.
+An extension is *accessible* for an expression if it is declared in the current library, or if there is a non-deferred `import` declaration in the current library of a library with the extension in its export scope, where the name of the extension is not private and it is not hidden by a `hide` or `show` modifier of the import. _This includes (non-deferred) imports with a prefix._
 
 An extension *is* accessible if its name is *shadowed* by another declaration (a class or local variable with the same name shadowing a top-level or imported declaration, a top-level declaration shadowing an imported extension, or a non-platform import shadowing a platform import).
 
 An extension *is* accessible if it is imported and the extension name conflicts with one or more other imported declarations.
 
-_This definition of being accessible ignores name shadowing or import name conflicts; the extension is accessible if it *could have been* in scope absent of any declarations shadowing it or any other imports with the same name preventing access to the name. If it *is* in scope, then it is obviously also accessible. Compilers need to remember declarations of extensions in un-prefixed imports even if those extensions declarations do not make it into the  importing library scope_
+_This definition of being accessible ignores name shadowing or import name conflicts; the extension is accessible if it *could have been* in scope absent of any declarations shadowing it or any other imports with the same name preventing access to the name. If it *is* in scope, then it is obviously also accessible. Compilers need to remember declarations of extensions in imports even if those extensions declarations do not make it into the  importing library scope_
 
-You can *avoid* making the extension accessible for a library by either not importing any library exporting the extension, importing such a library and hiding the extension using `hide` or `show`, or importing such a library only with a prefix.
+You can *avoid* making the extension accessible for a library by either not importing any library exporting the extension or by importing such a library and hiding the extension using `hide` or `show`.
 
 The usual rules apply to referencing the extension by name. The extension's *name* is not in scope (e.g., for explicit extension invocation) if it is shadowed or if it is conflicting with another imported declaration, but the extension *itself* is still accessible for implicit extension member invocations since that does not need to use the name.
 
 If an extension conflicts with, or is shadowed by, another declaration, and you need to access it by name anyway, it can be imported with a prefix and the name referenced through that prefix.
 
-_*Rationale*: We want users to have control over which extensions are available. They control this through the imports and declarations used to include declarations into the import scope or declaration scope of the library. The typical ways to control the import scope is using `show` /`hide` in the imports or importing into a prefix scope. These features work exactly the same for extensions. On the other hand, we do not want extension writers to have to worry too much about name clashes for their extension names since most extension members are not accessed through their name anyway. In particular we do not want them to name-mangle their extensions in order to avoid hypothetical conflicts. So, all imported extensions are considered accessible, and choosing between the individual extensions is handled by using explicit extension applications as described earlier. You only run into problems with the extension name if you try to use the name. That way you can import two extensions with the same name and use the members without issue (as long as they don't otherwise conflict in an unresolvable way), even if you can only refer to *at most* one of them by name._
+_*Rationale*: We want users to have control over which extensions are available. They control this through the imports and declarations used to include declarations into the import scope or declaration scope of the library. The typical ways to control the import scope is using `show` /`hide` in the imports or importing into a prefix scope. We also want prefix-imports to provide accessible extensions because authors write code that expects this to work while allowing import-with-a-prefix to be used to fix conflicts, so we will let non-prefix imported extensions take precedence over prefix-imported ones. On the other hand, we do not want extension writers to have to worry too much about name clashes for their extension names since most extension members are not accessed through their name anyway. In particular we do not want them to name-mangle their extensions in order to avoid hypothetical conflicts. So, all imported extensions are considered accessible, and choosing between the individual extensions is handled by using explicit extension applications as described earlier. You only run into problems with the extension name if you try to use the name. That way you can import two extensions with the same name and use the members without issue (as long as they don't otherwise conflict in an unresolvable way), even if you can only refer to *at most* one of them by name._
 
 You still cannot *export* two extensions with the same name. The rules for export makes it a compile-time error to add two declarations with the same name to the export scope of a library.
 
@@ -244,11 +243,13 @@ When more than one extension is accessible and applicable to a member invocation
 
 Let *i* be a member invocation with target expression `e` and corresponding member name *m*, and let `E1` and `E2` denote different accessible and applicable extensions for *i*. Let *T<sub>1</sub>* be the instantiated "on" type of `E1` wrt. `e` and let *T<sub>2</sub>* be the instantiated "on" type of `E2` wrt. `e`. Then `E1` is more specific than `E2` wrt. *i* iff:
 
-1. The `E2` extension is declared in a platform library and the `E1` extension is not, or
-2. either both or neither are declared in platform libraries and
-3. *T<sub>1</sub>* is a subtype of of *T<sub>2</sub>* and either
-4. not vice versa, or
-5. the instantiate-to-bounds `on` type of `E1` is a subtype of the instantiate-to-bounds `on` type of `E2` and not vice versa.
+1. The `E2` extension is only accessible from imports with a prefix and `E1` not, or
+2. either both or neither are only accessible from imports with a prefix and
+3. the `E2` extension is declared in a platform library and the `E1` extension is not, or
+4. either both or neither are declared in platform libraries and
+5. *T<sub>1</sub>* is a subtype of of *T<sub>2</sub>* and either
+6. not vice versa, or
+7. the instantiate-to-bounds `on` type of `E1` is a subtype of the instantiate-to-bounds `on` type of `E2` and not vice versa.
 
 ##### Examples
 
@@ -450,29 +451,6 @@ Introducing a new extension to an existing library has the same problems as addi
 
 Adding an instance member to a class may now change behavior of code relying on extension methods. Adding instance members to interfaces is already breaking in case someone implements the interface. With extension methods, it may be breaking even for classes that are never implemented.
 
-### Migration
-
-The static extension methods feature will be released after the language versioning feature.
-
-As such, enabling extensions methods will require upgrading the library's language level to the version where extension methods are released. Since the language change is non-breaking, libraries should be able to simply upgrade their SDK dependency to the newer version and all existing code should keep working.
-
-A library which is at a language versions prior to the release of static extension methods will not be able to use extension members:
-
-- It cannot declare an extension.
-- it cannot refer to an imported extension.
-- It cannot invoke an imported extension member.
-- It *can* re-export an extension from another library.
-
-A library which has not enabled static extension members cannot use the new syntax. It also cannot use the *override* syntax (`MyExt(o).member()`) even though it is grammatically valid as a function or constructor invocation. The extension is neither a class nor a function.
-
-If such a library imports an extension declaration, say `MyExt`, then any reference to that imported name is a compile-time error, the same way as accessing a name-conflicting import. The imported declaration is still there, and can cause naming conflicts, but attempting to use it is disallowed.
-
-Invocations which would otherwise check for extension members, do not. It is as if there are no extensions in scope, even if some were imported.
-
-The library can export any other library, and will do so blindly without needing to understand the exported declarations. The exporting library can still cause a naming conflict if it exports something else with the same name as an exported extension.
-
-*This is not the only possible option. It might be possible to enable use of extensions in libraries which cannot declare them. However, it would be only half a feature without the syntax for extension member override, and enabling that syntax would also be inconsistent. As such, the simplest and safest approach is to _disable_ extensions completely in legacy libraries. The cost of enabling extensions is trivial since it will merely be a matter of increasing the library SDK requirement. There is no migration needed for a non-breaking change.*
-
 ## Interaction With Potential Future Features
 
 ### Non-Null by Default
@@ -533,107 +511,11 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 
 - An extension method can be invoked explicitly using the syntax `ExtensionName(object).method(args)`. Type arguments can be applied to the extension explicitly as well, `MyList<String>(listOfString).quickSort()`. Such an invocation overrides all extension resolution. It is a compile-time error if `ExtensionName` would not apply to the `object.method(args)` invocation if it was in scope. 
 
-- The override can also be used for extensions imported with a prefix (which are not otherwise in scope): `prefix.ExtensionName(object).method(args)`.
-
 - An invocation of an extension method succeeds even if the receiver is `null`. With NNBD types, the invocation throws if the receiver is `null` and the instantiated `on` type of the selected extension does not accept `null`. (In most cases, this case can be excluded statically, but not for unsafely nullable types like `int*`).
 
 - Otherwise an invocation of an extension method runs the instance method with `this` bound to the receiver and with type variables bound to the types found by type inference (or written explicitly for an override invocation). The static type of `this` is the `on` type of the extension.
 
 - Inside an instance extension member, extension members accessed by unqualified name are treated as extension override accesses on `this`. Otherwise invocations on `this` are treated as any other invocations on the same static type.
-
-## Variants
-
-The design above can be extended in the following ways.
-
-### Multiple `on` Types
-
-The `on <type>` clause only allows a single type. The similar clause on `mixin` declarations allow multiple types, as long as they can all agree on a single combined interface. 
-
-We could allow multiple types in the `extension` `on` clause as well. It would have the following consequences:
-
-- An extension only applies if the receiver type is a subtype of *all* `on` types.
-- An extension is more specific than another if for every `on` type in the latter, there is an `on` type in the former which is a proper subtype of that type, or the two are equivalent, and the former is a proper subtype of the latter when instantiated to bounds.
-- There is no clear type to assign to `this` inside an instance extension method. For a mixin that's not a problem because it introduces a type by itself, and the combined super-interface is only used for `super` invocations. For extension, a statement like `var self = this;` needs to be assigned a useful type.
-
-The last item is the reason this feature is not something we will definitely do. We can start out without the feature and maybe add it later if it is necessary, but it's safer to start without it.
-
-### Extending Static Members
-
-The feature above only extends instance members. There is no way to add a new static member on an existing type, something that should logically be a *simpler* operation.
-
-We could allow
-
-```dart
-extension MyInt on num {
-  int get double => this * s;
-  static int get random => 4;
-}
-```
-
-to introduce both a `double` instance getter on `num` instances and a `random` getter on `num` itself, usable as `var n = num.random;`
-
-However, while this is possible, not all `on` types are class or mixin types. It is not clear what it would mean to put static methods on `on` types of extension like:
-
-- `extension X on Iterable<int>`
-- `extension X<T extends Comparable<T>> on Iterable<T>`
-- `extension X on int Function(int)`
-- `extension X on FutureOr<int>`
-- `extension X on int?`
-
-For the first two, we could put the static members on the `Iterable` class, but since the extension does not apply to *all* iterables, it is not clear that this is correct.
-
-For `int Function(int)` and `FutureOr<int>`, it's unclear how to call such a static method at all. We can denote`int Function(int)` with a type alias, but putting static members on type aliases is a new concept.  We could put the static method on `Function`, but that's not particularly discoverable, and why not require that they are put on `Functon` explicitly. For `FutureOr`, we could allow static members on `FutureOr` (which is a denotable type), but again it seems spurious. For `int?`, we could put the method on `int`, but why not  just require that it's on `int`.
-
-The issue here is that the type patterns used by `on` are much more powerful than what is necessary to put static members on class types.
-
-It would probably be more readable to introduce a proper static extension declaration:
-
-```dart
-static extension Foo on int {  // or: extension Foo on static int 
-  int fromList(List l) => l.length;
-}
-
-...
-  print(int.fromList([1, 2])); // 2
-```
-
-where the `on` type must be something that can already have static methods. 
-
-The disadvantage is that if you want to introduce related functionality that is both static and instance methods on a class, then you need to write two extensions with different names.
-
-If we allow extension static declarations like these, we can also allow extension constructors.
-
-### Aliasing
-
-If we have two different extensions with the same name, they can't both be in scope, even if they don't apply to the same types. At least one of them must be delegated to a prefixed import scope, and if so, it doesn't *work* as an extension method any more.
-
-To overcome this issue, we can use a *generalized typedef* to give a new name to an existing entity in a given scope. Example:
-
-```dart
-typedef MyCleverList<T> = prefix.MyList<T>;
-```
-
-If `prefix.MyList` is an extension, this would put that extension back in the current scope under a different name (use a private name to avoid exporting the extension again).
-
-If we do this, we should be *consistent* with other type aliases, which means that the type parameter of the RHS must be explicit. Just writing
-
-```dart
-typedef MyCleverList = prefix.MyList; // bad!
-```
-
-would make `MyCleverList` an alias for `prefix.MyList<dynamic>`, which would still apply to `List<anything>`, but the type variable of `MyList` will always be `dynamic`. Similarly, we can put more bounds on the type variable:
-
-```dart
-typedef MyWidgetList<T extends Widget> = prefix.MyList<T>;
-```
-
-Here the extension will only apply if it matches `Widget` *and* would otherwise match `MyList` (but `T` needs to be a valid type argument to `MyList`, which means that it must satisfy all bounds of `MyList` as well, otherwise the typedef is rejected).
-
-The use of `typedef` for something which is not a type may be too confusing. Another option is:
-
-```dart
-extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
-```
 
 ## Revisions
 
@@ -658,3 +540,10 @@ extension MyWidgetList<T extends Widget> = prefix.MyList<T>;
 - Elaborate on naming conflict rules.
 - Elaborate on explicit member access.
 - `Ext(o).x += v` and `Ext(o).x++` can be used.
+
+#### 1.4:
+
+- Remove optional variants that were not part of the final design.
+
+#### 1.5
+- Post 2.6 release modification to allow prefix-imported extensions to work.
