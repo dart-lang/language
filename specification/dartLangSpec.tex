@@ -11322,7 +11322,8 @@ In general, a cascade can be recognized by the use of exactly two periods,
 
 <cascadeSection> ::= <cascadeSelector> <cascadeSectionTail>
 
-<cascadeSelector> ::= `[' <expression> `]'
+<cascadeSelector> ::= `!'
+  \alt `[' <expression> `]'
   \alt <identifier>
 
 <cascadeSectionTail> ::= <cascadeAssignment>
