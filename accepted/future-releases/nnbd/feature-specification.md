@@ -228,7 +228,7 @@ not a subtype of the class type associated with the class in which it is defined
 constructor for any class other than `Null`).
 
 It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
-`...?`) on a non-nullable receiver.
+`...?`) on a non-nullable value.
 
 It is a warning to use the null check operator (`!`) on a non-nullable
 expression.
@@ -544,8 +544,7 @@ would have succeeded if all `?` types were ignored, `Never` were treated as
 In legacy libraries, whether run in strong or weak checking mode, instance
 checks (`e is T`) also return `false` whenever they would have done so pre-nnbd.
 Specifically, if `e` evaluates to `null`, then `e is T` always returns `false`
-unless `T` is `Null`, `Never`, `Object`, `dynamic`, `void`, or a nullable or
-legacy version of any of the above.
+unless `T <: Null` or `Object <: T`.
 
 ### Exports
 
