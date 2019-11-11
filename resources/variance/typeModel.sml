@@ -1,9 +1,40 @@
-exception NotYet;
+(* Model a core of the Dart types that allows for investigating the combined
+ * effect of declaration-site and use-site variance annotations on the type
+ * of a member. See comments in `widen.sml` and `showWidening.sml` for more
+ * detail.
+ *)
 
+(* D_LEGACY models a type parameter declaration with no variance modifier.
+ * D_OUT models a type parameter declaration with modifier `out` (covariance),
+ * D_INOUT models `inout` (invariance), and D_IN models `in` (contravariance).
+ *)
 datatype DeclarationVariance
   = D_LEGACY | D_OUT | D_INOUT | D_IN;
+
+(* U_NONE models an actual type argument without any use-site variance
+ * modifiers; U_OUT models `out` (covariance), U_INOUT models `inout`
+ * (invariance), U_IN models `in` (contravariance), and U_STAR models
+ * `*` (bivariance, that is, the actual type argument can be anything).
+ *)
 datatype UseVariance
   = U_NONE | U_OUT | U_INOUT | U_IN | U_STAR;
+
+(* This is a minimal model of Dart types, just sufficient to make the 
+ * important distinctions needed in order to specify the behavior of the
+ * effective member signature computation. It models 4 different classes
+ * with exactly one type parameter: `Cl` has a legacy type parameter, `Co`
+ * has a covariant type parameter, `Ci` has an invariant type parameter,
+ * an `Con` has a contravariant type parameter. Moreover, the significant
+ * use-site modifiers are modelled: `CiOut` models `Ci` with an actual type
+ * argument with an `out` modifier, `CiIn` models `Ci` with an actual type
+ * argument with an `in` modifier, `CoInout` models `Co` with an actual type
+ * argument with an `inout` modifier, and `ConInout` models `Con` with an
+ * actual type argument with an `inout` modifier.
+ * 
+ * All other combinations are redundant or errors. For instance, `Co<out T>`
+ * where the type parameter of `Co` is covariant is the same as `Co<T>`,
+ * and `Con<out T>` where the type parameter of `Con` is contravariant is
+ * an error. *)
 datatype Type
   = T_Var of string (* A type variable *)
   | T_Cl of Type (* A class whose single type argument is legacy *)
@@ -16,7 +47,7 @@ datatype Type
   | T_ConInout of Type (* T_Con with use-site modifier `inout` *)
   | T_Other; (* Any type that does not contain any type variables *)
 
-(* ---------- Substitution; ignores capture *)
+(* ---------- Substitution (ignores capture: we do not model binders) *)
 
 fun subst X T (S as T_Var Y) = if X = Y then T else S
   | subst X T (T_Cl t) = T_Cl (subst X T t)

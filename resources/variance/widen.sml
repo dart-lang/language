@@ -1,3 +1,29 @@
+(* Compute the effective signature of a member, based on the declaration-site
+ * variance modifiers in the receiver class declaration, and the use-site
+ * variance annotations in the receiver type, plus in the member signature
+ * itself. The model considers only classes with exactly one type parameter.
+ * The main functions are `widen` and `narrow`.
+ *
+ * `widen` receives an argument which is a configuration `(d, X, u, T, S)`;
+ * `d` is the declaration-site variance, `X` is the name of the type variable
+ * of the receiver class, `u` is the use-site variance in the receiver type,
+ * `T` is the actual type argument in the receiver type, and `S` is the type
+ * from the member signature. See the comments in `typeModel.sml` for more
+ * details about the modeling of `d` (with constructors of the form D_..) 
+ * and `u` (with constructors of the form U_..).
+ *
+ * `widen` will then compute a type which is a supertype of `[T/X]S` as
+ * well as a supertype of `[T1/X]S` where `T1` is any possible dynamic
+ * value of the type argument corresponding to `T`. The relationship between
+ * the type argument `T` and the possible dynamic values corresponding to
+ * `T` is determined by the given variances (declaration-site and use-site).
+ *
+ * For instance, if the receiver type is `Ci<out T>` where the type argument
+ * of `Ci` is is `inout` then the receiver will be of type `Ci<inout T1>` 
+ * at run-time, such that `T1 <: T`. Similarly, for `Ci<in T>` the known
+ * relationship is `T <: T1`, and for `Ci<T>` it is known that `T1 == T`.
+ *)
+
 (* Raised when the given configuration is an error *)
 exception Impossible;
 

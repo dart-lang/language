@@ -1,3 +1,16 @@
+(* Run this using `sml showWidening.sml` to get a printout of the systematic
+ * iteration over all combinations of a small set of cases: Declare a class
+ * `C` with a single type argument and a single member which is a getter `g`
+ * or a method `m` (thus covering a covariant and a contravariant placement
+ * of a type in a member signature). Next, declare a variable `c` whose type
+ * annotation is `C<... T>` where `T` is a type which is not modeled in more
+ * detail (any type would do), and `...` stands for a use-site variance
+ * modifier (absent, `out`, `inout`, or `in`). Finally, the printout shows
+ * the return type of the getter respectively the parameter type of the
+ * method, indicating how the declaration-site and use-site variance
+ * annotations give rise to an 'effective' member signature.
+ *)
+
 use "typeModel.sml";
 use "widen.sml";
 open List;
