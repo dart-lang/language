@@ -202,13 +202,15 @@ An implicit extension member invocation occurs for a simple or composite member 
 
 If `E` is the single most specific accessible and applicable extension for a member invocation *i* with target expression `e`, then we treat the target expression as if it was the extension application of the extension `E` to `e`, and if `E` is generic, also providing the type arguments inferred for `E` in checking that it was applicable. This makes the member invocation behave equivalently to an explicit extension member invocation. This happens even if the *name* of `E` is not accessible, so this is not a purely syntactic rewrite.
 
-Implicit extension member invocation applies to null-aware member acccess. A null-aware invocation, for example `e?.id`, is defined as first evaluating `e` to a valuem and then if that value, `v`, is non-`null`, it performs the invocation `v.id`. This latter invocation *is* subject to implicit extension invocation if the static type of `e` does not have a member with basename `id`, and similarly for all other simple or composite instance member invocations guarded by a null-aware member access.
+Implicit extension member invocation applies to null-aware member acccess. A null-aware invocation, for example `e?.id`, is defined as first evaluating `e` to a value and then if that value, `v`, is non-`null`, it performs the invocation `v.id`. This latter invocation *is* subject to implicit extension invocation if the static type of `e` does not have a member with basename `id`, and similarly for all other simple or composite instance member invocations guarded by a null-aware member access.
 
 Implicit extension member invocation can also apply to individual *cascade* invocations. A cascade is treated as if each cascade section was a separate member invocation on an expression with the same value as the cascade receiver expression (the expression before the first `..`). This means that a cascade like `o..foo()..bar()` may perform an implicit extension member invocation on `o` for `foo()` and a normal invocation on `o` for `bar()`. There is no way to specify the corresponding explicit member invocation without expanding the cascade to a sequence of individual member invocations.
 
 ##### Accessibility
 
 An extension is *accessible* for an expression if it is declared in the current library, or if there is a non-deferred `import` declaration in the current library of a library with the extension in its export scope, where the name of the extension is not private and it is not hidden by a `hide` or `show` modifier of the import. _This includes (non-deferred) imports with a prefix._
+
+It is a *compile-time error* if a deferred import declaration imports a library with an extension declaration in its export scope, unless all such extensions are hidden by `show`  or `hide` modifiers on the deferred import. *This is a temporary restriction ensuring that no extensions are introduced using deferred imports, and it allows us to later introduce any semantics for such extensions without affecting existing code*.
 
 An extension *is* accessible if its name is *shadowed* by another declaration (a class or local variable with the same name shadowing a top-level or imported declaration, a top-level declaration shadowing an imported extension, or a non-platform import shadowing a platform import).
 
@@ -431,6 +433,7 @@ A second question is whether this would also work with implicit `call` method te
 
 ```dart
 Iterable<int> Function(int) from2 = 2;
+
 ```
 
 This code will find, during type inference, that `2` is not a function. It will then find that the interface type `int` does not have a `call` method, and inference will fail to make the program valid.  
@@ -474,6 +477,7 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
      `{'
        <memberDeclaration>*
      `}'
+  
   ```
 
   where `extension` becomes a built-in identifier and `<memberDeclaration>` does not allow instance variables, constructors or abstract members. It does allow static members.
@@ -499,6 +503,7 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
     Foo(Bar<T> this._receiver);
     void baz<S>(params) => ...;
   }
+  
   ```
 
   that was invoked as `Foo(receiver).baz(args)`. The binding of `T` and `S` found here is the same binding used by the extension.  If the constructor invocation would be a compile-time error, the extension does not apply.
@@ -546,4 +551,6 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 - Remove optional variants that were not part of the final design.
 
 #### 1.5
-- Post 2.6 release modification to allow prefix-imported extensions to work.
+
+- Post 2.6 release modification to allow non-deferred prefix-imported extensions to work.
+- Disallow deferred imports of extensions by requiring the import statement to hide them.
