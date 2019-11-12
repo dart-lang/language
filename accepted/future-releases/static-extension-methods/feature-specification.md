@@ -208,7 +208,7 @@ Implicit extension member invocation can also apply to individual *cascade* invo
 
 ##### Accessibility
 
-An extension is *accessible* for an expression if it is declared in the current library, or if there is a non-deferred `import` declaration in the current library of a library with the extension in its export scope, where the name of the extension is not private and it is not hidden by a `hide` or `show` modifier of the import. _This includes (non-deferred) imports with a prefix._
+An extension is *accessible* for an expression if it is declared in the current library, or if there is a non-deferred `import` declaration in the current library of a library with the extension in its export scope, where the name of the extension is not private and it is not hidden by a `hide` combinator mentioning the extension name, or a `show` combinator not mentioning the name, on the import. _This includes (non-deferred) imports with a prefix._
 
 It is a *compile-time error* if a deferred import declaration imports a library with an extension declaration in its export scope, unless all such extensions are hidden by a `hide` combinator with the extension's name, or a `show`  combinator without the extension's name, on the deferred import. *This is a temporary restriction ensuring that no extensions are introduced using deferred imports, allowing us to later introduce semantics for such extensions without affecting existing code*.
 
