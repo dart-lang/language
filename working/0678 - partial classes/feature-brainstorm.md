@@ -24,7 +24,7 @@ An ideal solution would provide:
 Here's a motivating example with a speculative future implementation for
 [json_serializable](https://pub.dev/packages/json_serializable).
 
-### before (current behavior)
+### Before (current behavior)
 
 ```dart
 // before: User-generated code
@@ -68,7 +68,7 @@ Map<String, dynamic> _$PersonToJson(Person instance) => <String, dynamic>{
     };
 ```
 
-### after (current behavior)
+### After (possible future)
 
 ```dart
 // after: User-generated code
