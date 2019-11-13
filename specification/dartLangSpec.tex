@@ -3,7 +3,6 @@
 \usepackage{epsfig}
 \usepackage{xcolor}
 \usepackage{syntax}
-\usepackage{amssymb}
 \usepackage[fleqn]{amsmath}
 \usepackage{amssymb}
 \usepackage{semantic}
@@ -27,6 +26,17 @@
 %
 % Significant changes to the specification.
 %
+% 2.6
+% - Specify static analysis of a "callable object" invocation (where
+%   the callee is an instance of a class that has a `call` method).
+% - Specify that <libraryImport> string literals cannot use string
+%   interpolation; specify that it is a dynamic error for `loadLibrary`
+%   to load a different library than the one which was used for
+%   compile-time checks.
+% - Specify that a constant expression `e.length` can only invoke an instance
+%   getter (in particular, it cannot execute/tear-off an extension member);
+%   similar changes were made for several operators.
+%
 % 2.4
 % - Clarify the section 'Exports'.
 % - Update grammar rules for <declaration>, to support `static late final`
@@ -43,6 +53,11 @@
 % - Specify the signature of the `call` method of a function object.
 % - Add the rule that it is an error for a type variable of a class to occur
 %   in a non-covariant position in a superinterface.
+% - Correct several grammar rules, including: added <functionExpressionBody> (to
+%   avoid semicolon in <functionBody>), adjusted <importSpecification>.
+% - Revise section on cascades. Now uses compositional grammar, and
+%   specifies static type, compile-time errors, and includes `?..'.
+% - Correct the grammar and lexical rules for string literals.
 % - Change specification of `await` to be type-safe, avoiding cases like:
 %       FutureOr<Future<S>> ffs = Future<S>.value(s);
 %       Future<S> fs = await ffs;
@@ -53,6 +68,8 @@
 % - Clarify which constructors are covered by the section 'Constant
 %   Constructors' and removed confusing redundancy in definiton of
 %   potentially constant expressions.
+% - Integrate the feature specification of collection literal elements
+%   (aka UI-as-code).
 %
 % 2.2
 % - Specify whether the values of literal expressions override Object.==.
@@ -280,7 +297,9 @@ It does not specify the APIs of the Dart libraries except where those library el
 A conforming implementation of the Dart programming language must provide and support all the APIs (libraries, types, functions, getters, setters, whether top-level, static, instance or local) mandated in this specification.
 
 \LMHash{}%
-A conforming implementation is permitted to provide additional APIs, but not additional syntax, except for experimental features in support of null-aware cascades that are likely to be introduced in the next revision of this specification.
+A conforming implementation is permitted to provide additional APIs,
+but not additional syntax,
+except for experimental features.
 
 
 \section{Normative References}
@@ -368,7 +387,7 @@ An example would be:
   \alt <oneOrMoreThings>+
   \alt <anOptionalThing>?
   \alt (<some> <grouped> <things>)
-  \alt \~{}<notAThing>
+  \alt \gtilde{}<notAThing>
   \alt `aTerminal'
   \alt <A\_LEXICAL\_THING>
 \end{grammar}
@@ -1109,7 +1128,7 @@ will throw.
 % for instance variables also when a setter is called dynamically.
 It is a dynamic type error if the dynamic type of $o$ is not
 a subtype of the actual type of the variable $v$
-(\ref{actualTypeOfADeclaration}).
+(\ref{actualTypes}).
 
 
 \subsection{Evaluation of Implicit Variable Getters}
@@ -1177,7 +1196,7 @@ Functions abstract over executable actions.
 <formalParameterPart> ::= <typeParameters>? <formalParameterList>
 
 <functionBody> ::= \ASYNC{}? `=>' <expression> `;'
-  \alt (\ASYNC{} | \ASYNC `*' | \SYNC `*')? <block>
+  \alt (\ASYNC{} `*'? | \SYNC{} `*')? <block>
 
 <block> ::= `{' <statements> `}'
 \end{grammar}
@@ -1470,20 +1489,28 @@ It is a compile-time error if any default values are specified in the signature 
 \end{itemize}
 
 \begin{grammar}
-<normalFormalParameter> ::= <functionFormalParameter>
+<normalFormalParameter> ::= \gnewline{}
+  <metadata> <normalFormalParameterNoMetadata>
+
+<normalFormalParameterNoMetadata> ::= <functionFormalParameter>
   \alt <fieldFormalParameter>
   \alt <simpleFormalParameter>
 
 <functionFormalParameter> ::= \gnewline{}
-  <metadata> \COVARIANT{}? <type>? <identifier> <formalParameterPart> `?'?
+  \COVARIANT{}? <type>? <identifier> <formalParameterPart> `?'?
 
 <simpleFormalParameter> ::= <declaredIdentifier>
-  \alt <metadata> \COVARIANT{}? <identifier>
+  \alt \COVARIANT{}? <identifier>
 
 <fieldFormalParameter> ::= \gnewline{}
-  <metadata> <finalConstVarOrType>? \THIS{} `.' <identifier> \gnewline{}
-  <formalParameterPart>?
+  <finalConstVarOrType>? \THIS{} `.' <identifier> <formalParameterPart>?
 \end{grammar}
+
+\LMHash{}%
+It is a compile-time error if a formal parameter has the modifier \CONST{}
+or the modifier \LATE.
+It is a compile-time error if \VAR{} occurs as
+the first token of a \synt{fieldFormalParameter}.
 
 \LMHash{}%
 It is possible to include the modifier \COVARIANT{}
@@ -1498,7 +1525,9 @@ which means that such parameters can also be covariant.
 }
 
 \LMHash{}%
-It is a compile-time error if the modifier \COVARIANT{} occurs on a parameter of a function which is not an instance method, instance setter, or instance operator.
+It is a compile-time error if the modifier \COVARIANT{} occurs on
+a parameter of a function which is not
+an instance method, instance setter, or instance operator.
 
 
 \subsubsection{Optional Formals}
@@ -1786,7 +1815,7 @@ or instance method closurization
 applied to $F$,
 and let $t$ be the actual type corresponding to $T$
 at the occasion where $o$ was created
-(\ref{actualTypeOfADeclaration}).
+(\ref{actualTypes}).
 \commentary{$T$ may contain free type variables, but $t$ contains their actual values.}
 The following must then hold:
 $u$ is a class that implements the built-in class \FUNCTION{};
@@ -1944,8 +1973,10 @@ and neither does any part of a declaration marked \STATIC.%
 }
 
 \LMHash{}%
-Every class has a single superclass except class \code{Object} which has no superclass.
-A class may implement a number of interfaces by declaring them in its implements clause (\ref{superinterfaces}).
+Every class has a single superclass
+except class \code{Object} which has no superclass.
+A class may implement a number of interfaces
+by declaring them in its implements clause (\ref{superinterfaces}).
 
 \LMHash{}%
 An \IndexCustom{abstract class declaration}{class declaration!abstract}
@@ -2166,7 +2197,7 @@ The following names are allowed for user-defined operators:
 \lit{-},
 \lit{+},
 \lit{/},
-\lit{\~{}/},
+\lit{\gtilde{}/},
 \lit{*},
 \lit{\%},
 \lit{|},
@@ -2177,7 +2208,7 @@ The following names are allowed for user-defined operators:
 \lit{\gtgtgt},
 \lit{[]=},
 \lit{[]},
-\lit{\~{}}.
+\lit{\gtilde{}}.
 
 \LMHash{}%
 It is a compile-time error if the arity of the user-declared operator
@@ -2190,7 +2221,7 @@ It is a compile-time error if the arity of a user-declared operator with one of 
 \lit{==},
 \lit{-},
 \lit{+},
-\lit{\~{}/},
+\lit{\gtilde{}/},
 \lit{/},
 \lit{*},
 \lit{\%},
@@ -2223,7 +2254,7 @@ for purposes of method lookup, override and reflection.
 
 \LMHash{}%
 It is a compile-time error if the arity of the user-declared operator
-\lit{\~{}}
+\lit{\gtilde}
 is not 0.
 
 \LMHash{}%
@@ -2278,8 +2309,8 @@ that does not fit the declaration of $m$
 (passing fewer positional arguments than required or more than supported,
 or passing named arguments with names not declared by $m$).
 % The next sentence covers both function objects and instances of
-% a class with a method named \code{call}, because we would have a
-% compile-time error invoking \code{call} with a wrongly shaped argument
+% a class with a method named \CALL, because we would have a
+% compile-time error invoking \CALL{} with a wrongly shaped argument
 % list unless the type is \DYNAMIC{} or \FUNCTION.
 This can only occur for an ordinary method invocation
 when the receiver has static type \DYNAMIC,
@@ -2488,9 +2519,9 @@ an instance $im$ of the predefined class \code{Invocation}
 such that:
 
 \begin{itemize}
-\item \code{$im$.isMethod} evaluates to \code{\TRUE{}} if{}f $m$ is a method.
-\item \code{$im$.isGetter} evaluates to \code{\TRUE{}} if{}f $m$ is a getter.
-\item \code{$im$.isSetter} evaluates to \code{\TRUE{}} if{}f $m$ is a setter.
+\item \code{$im$.isMethod} evaluates to \TRUE{} if{}f $m$ is a method.
+\item \code{$im$.isGetter} evaluates to \TRUE{} if{}f $m$ is a getter.
+\item \code{$im$.isSetter} evaluates to \TRUE{} if{}f $m$ is a setter.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
 \item \code{$im$.positionalArguments} evaluates to an unmodifiable list
   containing the same objects as the list resulting from evaluation of
@@ -2865,8 +2896,9 @@ declaration consists of a constructor name, a constructor parameter list,
 and either a redirect clause or an initializer list and an optional body.
 
 \begin{grammar}
-<constructorSignature> ::= \gnewline{}
-  <identifier> (`.' <identifier>)? <formalParameterList>
+<constructorSignature> ::= <constructorName> <formalParameterList>
+
+<constructorName> ::= <typeIdentifier> (`.' <identifier>)?
 \end{grammar}
 
 \LMHash{}%
@@ -3018,13 +3050,13 @@ must be a potentially constant expression (\ref{constantConstructors}).
 % This error can occur due to a failed implicit cast.
 It is a dynamic type error if an actual argument passed
 in an invocation of a redirecting generative constructor $k$
-is not a subtype of the actual type (\ref{actualTypeOfADeclaration})
+is not a subtype of the actual type (\ref{actualTypes})
 of the corresponding formal parameter in the declaration of $k$.
 % This error can occur due to a failed implicit cast.
 It is a dynamic type error if an actual argument passed
 to the redirectee $k'$ of a redirecting generative constructor
 is not a subtype of the actual type
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of the corresponding formal parameter in the declaration of the redirectee.
 
 
@@ -3057,7 +3089,9 @@ There are three kinds of initializers.
   \alt <assertion>
 
 <fieldInitializer> ::= \gnewline{}
-  (\THIS{} `.')? <identifier> `=' <conditionalExpression> <cascadeSequence>?
+  (\THIS{} `.')? <identifier> `=' <initializerExpression>
+
+<initializerExpression> ::= <conditionalExpression> | <cascade>
 \end{grammar}
 
 \LMHash{}%
@@ -3216,7 +3250,7 @@ Then, the instance variable $v$ of $i$ is bound to $o$.
 % This error can occur due to an implicit cast.
 It is a dynamic type error if the dynamic type of $o$ is not
 a subtype of the actual type
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of the instance variable $v$.
 
 \LMHash{}%
@@ -3265,7 +3299,7 @@ is a constructor prefaced by the built-in identifier
 
 \begin{grammar}
 <factoryConstructorSignature> ::= \gnewline{}
-  \FACTORY{} <identifier> (`.' <identifier>)? <formalParameterList>
+  \CONST? \FACTORY{} <constructorName> <formalParameterList>
 \end{grammar}
 
 %The enclosing scope of a factory constructor is the static scope \ref{} of the class in which it is declared.
@@ -3281,7 +3315,7 @@ It is a compile-time error if $M$ is not the name of the immediately enclosing c
 % This error can occur due to an implicit cast.
 It is a dynamic type error if a factory returns a non-null object
 whose type is not a subtype of its actual
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 return type.
 
 \rationale{
@@ -3306,8 +3340,11 @@ whenever the redirecting constructor is called.
 
 \begin{grammar}
 <redirectingFactoryConstructorSignature> ::= \gnewline{}
-  \CONST{}? \FACTORY{} <identifier> (`.' <identifier>)? <formalParameterList> `='
-  \gnewline{} <typeNotVoid> (`.' <identifier>)?
+  \CONST? \FACTORY{} <constructorName> <formalParameterList> '=' \gnewline{}
+  <constructorDesignation>
+
+<constructorDesignation> ::= <qualifiedName>
+  \alt <typeName> <typeArguments> (`.' <identifier>)?
 \end{grammar}
 
 Assume that
@@ -3437,7 +3474,7 @@ and $k'$ is the redirectee of $k$.
 \LMHash{}%
 % This error can occur due to an implicit cast.
 It is a dynamic type error if an actual argument passed in an invocation of $k$
-is not a subtype of the actual type (\ref{actualTypeOfADeclaration})
+is not a subtype of the actual type (\ref{actualTypes})
 of the corresponding formal parameter in the declaration of $k$.
 
 \LMHash{}%
@@ -3464,7 +3501,8 @@ may be used to create compile-time constant (\ref{constants}) objects.
 A constant constructor is prefixed by the reserved word \CONST{}.
 
 \begin{grammar}
-<constantConstructorSignature> ::= \CONST{} <qualified> <formalParameterList>
+<constantConstructorSignature> ::= \gnewline{}
+  \CONST{} <constructorName> <formalParameterList>
 \end{grammar}
 
 \commentary{%
@@ -4059,8 +4097,6 @@ from one of its superinterfaces
 }
 
 \LMHash{}%
-%% TODO(eernst): 'list of interfaces' --> 'set of interfaces' if we
-%% switch to use a total order on top types for interface specificity.
 The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
 is the interface that declares the set of member signatures $M$,
 where $M$ is determined as specified below.
@@ -4300,6 +4336,51 @@ An interface has a set of direct superinterfaces
 An interface $J$ is a \Index{superinterface} of an interface $I$
 if{}f either $J$ is a direct superinterface of $I$
 or $J$ is a superinterface of a direct superinterface of $I$.
+
+\LMHash{}%
+When we say that a type $S$
+\IndexCustom{implements}{type!implements a type}
+another type $T$,
+this means that $T$ is a superinterface of $S$.
+Assume that $G$ is a raw type
+(\ref{instantiationToBound})
+whose declaration declares $s$ type parameters.
+When we say that a type $S$
+\IndexCustom{implements}{type!implements a raw type}
+$G$,
+this means that there exist types \List{U}{1}{s}
+such that \code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
+
+\commentary{%
+Note that this is not the same as being a subtype.
+For instance, \code{List<int>} implements \code{Iterable<int>},
+but it does not implement \code{Iterable<num>}.
+Similarly, \code{List<int>} implements \code{Iterable}.
+Also, note that when $S$ implements $T$
+where $T$ is not a subtype of \code{Null},
+$S$ cannot be a subtype of \code{Null}.%
+}
+
+\LMHash{}%
+Assume that $S$ is a type and $G$ is a raw type such that $S$ implements $G$.
+Per definition there exist types \List{U}{1}{s} such that
+\code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
+We then say that \List{U}{1}{s} are the
+\IndexCustom{actual type arguments of $S$ at $G$}{%
+  type arguments!of a type at a raw type},
+and we say that $U_j$ is the
+\IndexCustom{$j$th actual type argument of $S$ at $G$}{%
+  type arguments!of a type at a raw type, $j$th},
+for any $j \in 1 .. s$.
+
+\commentary{%
+For instance, the type argument of \code{List<int>} at \code{Iterable}
+is \code{int}.
+This concept is particularly useful when
+the chain of direct superinterfaces from $S$ to $G$
+does not just pass all type arguments on unchanged, e.g.,
+with a declaration like \code{\CLASS\,\,C<X,\,Y>\,\,\EXTENDS\,\,B<List<Y>,\,Y,\,X> \{\}}.%
+}
 
 
 \subsubsection{Inheritance and Overriding}
@@ -4959,7 +5040,7 @@ This enables typechecking code such as:
 \}
 
 \CLASS{} Sorter<T \EXTENDS{} Ordered<T\gtgt{} \{
-   sort(List<T> l) {... l[n] < l[n+1] ...}
+   sort(List<T> l) \{... l[n] < l[n+1] ...\}
 \}
 
 \end{dartCode}
@@ -5419,8 +5500,7 @@ which will be used when no information is available for inference.%
 }
 
 \LMHash{}%
-Consider the situation where a term $t$ of the form \synt{qualified}
-(\commentary{which is syntactically the same as \synt{typeName}})
+Consider the situation where a term $t$ of the form \synt{typeName}
 denotes a generic type declaration,
 and it is used as a type or as an expression in the enclosing program.
 \commentary{%
@@ -5854,14 +5934,16 @@ also when they are deeply nested.%
 Dart supports metadata which is used to attach user defined annotations to program structures.
 
 \begin{grammar}
-<metadata> ::= (`@' <qualified> (`.' <identifier>)? <arguments>?)*
+<metadata> ::= (`@' <metadatum>)*
+
+<metadatum> ::= <qualifiedName> | <constructorDesignation> <arguments>
 \end{grammar}
 
 \LMHash{}%
 Metadata consists of a series of annotations,
 each of which begin with the character \lit{@},
 followed by a constant expression $e$ derivable from
-\syntax{<qualified> (`.' <identifier>)? <arguments>?}.
+\synt{metadatum}.
 It is a compile-time error if $e$ is not one of the following:
 \begin{itemize}
 \item A reference to a constant variable.
@@ -5934,7 +6016,8 @@ Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
 
 \begin{grammar}
 <expression> ::= <assignableExpression> <assignmentOperator> <expression>
-  \alt <conditionalExpression> <cascadeSequence>?
+  \alt <conditionalExpression>
+  \alt <cascade>
   \alt <throwExpression>
 
 <expressionWithoutCascade> ::= \gnewline{}
@@ -5958,10 +6041,8 @@ Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
   \alt <numericLiteral>
   \alt <stringLiteral>
   \alt <symbolLiteral>
-  \alt <mapLiteral>
-  \alt <setLiteral>
-  \alt <setOrMapLiteral>
   \alt <listLiteral>
+  \alt <setOrMapLiteral>
 \end{grammar}
 
 \LMHash{}%
@@ -6079,9 +6160,13 @@ and \IndexCustom{constant expressions}{constant expression}
 are the following:
 
 \begin{itemize}
-\item A literal boolean, \TRUE{} or \FALSE{} (\ref{booleans}), is a potentially constant and constant expression.
+\item
+  A literal boolean, \TRUE{} or \FALSE{} (\ref{booleans}),
+  is a potentially constant and constant expression.
 
-\item A literal number (\ref{numbers}) is a potentially constant and constant expression
+\item
+  A literal number (\ref{numbers}) is
+  a potentially constant and constant expression
   if it evaluates to an instance of type \code{int} or \code{double}.
   % A too-large integer literal does not evaluate to an object.
 
@@ -6093,80 +6178,142 @@ are the following:
   if $e_1$, \ldots{}, $e_n$ are constant expressions
   evaluating to instances of \code{int}, \code{double},
   \code{String}, \code{bool}, or \code{Null}.
-\commentary{These requirements hold trivially if there are no interpolations in the string}.
-\rationale{It would be tempting to allow string interpolation where the
-interpolated value is any compile-time constant. However, this would require
-running the \code{toString()} method for constant objects, which could contain
-arbitrary code.}
+  \commentary{%
+    These requirements hold trivially
+    if there are no interpolations in the string.%
+  }
+  \rationale{%
+    It would be tempting to allow string interpolation where the
+    interpolated value is any compile-time constant.
+    However, this would require running the \code{toString()} method
+    for constant objects,
+    which could contain arbitrary code.%
+  }
 
-\item A literal symbol (\ref{symbols}) is a potentially constant and constant expression.
+\item
+  A literal symbol (\ref{symbols}) is
+  a potentially constant and constant expression.
 
-\item The literal \NULL{} (\ref{null}) is a potentially constant and constant expression.
+\item
+  The literal \NULL{} (\ref{null}) is
+  a potentially constant and constant expression.
 
-\item An identifier that denotes a constant variable is a potentially constant and constant expression.
+\item
+  An identifier that denotes a constant variable is
+  a potentially constant and constant expression.
 
-\item A qualified reference to a static constant variable (\ref{variables}) that is not qualified by a deferred prefix, is a potentially constant and constant expression.
-\commentary{
-For example, If class $C$ declares a constant static variable $v$, \code{$C$.$v$} is a constant.
-The same is true if $C$ is accessed via a prefix $p$; \code{$p$.$C$.$v$} is a constant unless $p$ is a deferred prefix.
-}
+\item
+  A qualified reference to a static constant variable
+  (\ref{variables})
+  that is not qualified by a deferred prefix,
+  is a potentially constant and constant expression.
+  \commentary{%
+    For example, if class $C$ declares a constant static variable $v$,
+    \code{$C$.$v$} is a constant.
+    The same is true if $C$ is accessed via a prefix $p$;
+    \code{$p$.$C$.$v$} is a constant unless $p$ is a deferred prefix.%
+  }
 
-\item A simple or qualified identifier denoting a class, a mixin or a type alias that is not qualified by a deferred prefix, is a potentially constant and constant expression.
-\commentary{
-The constant expression always evaluates to a \code{Type} object.
-For example, if $C$ is the name of a class or type alias, the expression \code{$C$} is a constant, and if $C$ is imported with a prefix $p$, \code{$p$.$C$} is a constant \code{Type} instance representing the type of $C$ unless $p$ is a deferred prefix.
-}
+\item
+  A simple or qualified identifier denoting a class,
+  a mixin or a type alias that is not qualified by a deferred prefix,
+  is a potentially constant and constant expression.
+  \commentary{%
+    The constant expression always evaluates to a \code{Type} object.
+    For example, if $C$ is the name of a class or type alias,
+    the expression \code{$C$} is a constant,
+    and if $C$ is imported with a prefix $p$, \code{$p$.$C$} is
+    a constant \code{Type} instance representing the type of $C$
+    unless $p$ is a deferred prefix.%
+  }
 
-\item Let $e$ be a simple or qualified identifier denoting
-a top-level function (\ref{functions}) or a static method (\ref{staticMethods})
-that is not qualified by a deferred prefix.
-If $e$ is not subject to generic function instantiation
-(\ref{genericFunctionInstantiation})
-then $e$ is a potentially constant and constant expression.
-If generic function instantiation does apply to $e$
-and the provided actual type arguments are \List{T}{1}{s}
-then $e$ is a potentially constant and constant expression
-if{}f each $T_j, j \in 1 .. s$, is a constant type expression
-(\ref{constants}).
+\item
+  Let $e$ be a simple or qualified identifier denoting
+  a top-level function (\ref{functions})
+  or a static method (\ref{staticMethods})
+  that is not qualified by a deferred prefix.
+  If $e$ is not subject to generic function instantiation
+  (\ref{genericFunctionInstantiation})
+  then $e$ is a potentially constant and constant expression.
+  If generic function instantiation does apply to $e$
+  and the provided actual type arguments are \List{T}{1}{s}
+  then $e$ is a potentially constant and constant expression
+  if{}f each $T_j, j \in 1 .. s$, is a constant type expression
+  (\ref{constants}).
 
-\item An identifier expression denoting a parameter of a constant constructor (\ref{constantConstructors}) that occurs in the initializer list of the constructor, is a potentially constant expression.
+\item
+  An identifier expression denoting a parameter of a constant constructor
+  (\ref{constantConstructors})
+  that occurs in the initializer list of the constructor,
+  is a potentially constant expression.
 
-\item A constant object expression (\ref{const}),
-\code{\CONST{} $C$<$T_1,\ \ldots,\ T_k$>(\metavar{arguments})} or
-\code{\CONST{} $C$<$T_1,\ \ldots,\ T_k$>.\id(\metavar{arguments})},
-or either expression without the leading \CONST{} that occurs in a constant context, is a potentially constant expression.
-It is further a constant expression if the invocation evaluates to an object.
-% \ref{const} requires each actual argument to be a constant expression,
-% but here we also catch errors during evaluation, e.g., `C(1, 0)` where
-% `C(double x, double y): z = x / y;`.
-It is a compile-time error if a constant object expression is
-not a constant expression (\ref{const}).
+\item
+  A constant object expression (\ref{const}),
+  \code{\CONST{} $C$<$T_1,\ \ldots,\ T_k$>(\metavar{arguments})} or
+  \code{\CONST{} $C$<$T_1,\ \ldots,\ T_k$>.\id(\metavar{arguments})},
+  or either expression without the leading \CONST{} that occurs in
+  a constant context,
+  is a potentially constant expression.
+  It is further a constant expression if the invocation evaluates to an object.
+  % \ref{const} requires each actual argument to be a constant expression,
+  % but here we also catch errors during evaluation, e.g., `C(1, 0)` where
+  % `C(double x, double y): z = x / y;`.
+  It is a compile-time error if a constant object expression is
+  not a constant expression (\ref{const}).
 
-\item A constant list literal (\ref{lists}),
-\code{\CONST{} <$T$>[$e_1$, \ldots{}, $e_n$]}, or
-\code{<$T$>[$e_1$, \ldots{}, $e_n$]}
-that occurs in a constant context, is a potentially constant expression if $T$ is a constant type expression, and $e_1$, \ldots{} , $e_n$ are constant expressions.
-It is further a constant expression if the list literal evaluates to an object.
+\item
+  A constant list literal (\ref{lists}),
+  \code{\CONST{} <$T$>[$e_1$, \ldots{}, $e_n$]}, or
+  \code{<$T$>[$e_1$, \ldots{}, $e_n$]}
+  that occurs in a constant context,
+  is a potentially constant expression if $T$ is a constant type expression,
+  and $e_1$, \ldots{} , $e_n$ are constant expressions.
+  It is further a constant expression
+  if the list literal evaluates to an object.
 
-\item A constant set literal (\ref{sets}),
-\code{\CONST{} <$T$>\{$e_1$, \ldots{}, $e_n$\}}, or
-\code{<$T$>\{$e_1$, \ldots{}, $e_n$\}}
-that occurs in a constant context, is a potentially constant expression if $T$ is a constant type expression, and $e_1$, \ldots{} , $e_n$ are constant expressions.
-It is further a constant expression if the list literal evaluates to an object.
+\item
+  A constant set literal (\ref{sets}),
+  \code{\CONST{} <$T$>\{$e_1$, \ldots{}, $e_n$\}}, or
+  \code{<$T$>\{$e_1$, \ldots{}, $e_n$\}}
+  that occurs in a constant context,
+  is a potentially constant expression
+  if $T$ is a constant type expression,
+  and $e_1$, \ldots{} , $e_n$ are constant expressions.
+  It is further a constant expression
+  if the list literal evaluates to an object.
 
-\item A constant map literal (\ref{maps}),
-\code{\CONST{} <$K$, $V$>\{$k_1$: $v_1$, \ldots{}, $k_n$: $v_n$\}}, or
-\code{<$K$, $V$>\{$k_1$: $v_1$, \ldots{}, $k_n$: $v_n$\}} that occurs in a constant context,
-is a potentially constant expression.
-It is further a constant expression if the map literal evaluates to an object.
+\item
+  A constant map literal (\ref{maps}),
+  \code{\CONST{} <$K$, $V$>\{$k_1$: $v_1$, \ldots{}, $k_n$: $v_n$\}}, or
+  \code{<$K$, $V$>\{$k_1$: $v_1$, \ldots{}, $k_n$: $v_n$\}}
+  that occurs in a constant context,
+  is a potentially constant expression.
+  It is further a constant expression
+  if the map literal evaluates to an object.
 
-\item A parenthesized expression \code{($e$)} is a potentially constant expression if $e$ is a potentially constant expression. It is further a constant expression if $e$ is a constant expression.
+\item
+  A parenthesized expression \code{($e$)} is
+  a potentially constant expression
+  if $e$ is a potentially constant expression.
+  It is further a constant expression if $e$ is a constant expression.
 
-\item An expression of the form \code{identical($e_1$, $e_2$)} is a potentially constant expression if $e_1$ and $e_2$ are potentially constant expressions and \code{identical} is statically bound to the predefined dart function \code{identical()} discussed above (\ref{objectIdentity}). It is further a constant expression if $e_1$ and $e_2$ are constant expressions.
+\item
+  An expression of the form \code{identical($e_1$, $e_2$)} is
+  a potentially constant expression
+  if $e_1$ and $e_2$ are potentially constant expressions
+  and \code{identical} is statically bound to
+  the predefined dart function \code{identical()} discussed above
+  (\ref{objectIdentity}).
+  It is further a constant expression
+  if $e_1$ and $e_2$ are constant expressions.
 
-\item An expression of the form \code{$e_1$\,!=\,$e_2$} is equivalent to \code{!($e_1$\,==\,$e_2$)} in every way, including whether it is potentially constant or constant.
+\item
+  An expression of the form \code{$e_1$\,!=\,$e_2$} is 
+  equivalent to \code{!($e_1$\,==\,$e_2$)} in every way,
+  including whether it is potentially constant or constant.
 
-\item An expression of the form \code{$e_1$\,==\,$e_2$} is potentially constant
+\item
+  An expression of the form \code{$e_1$\,==\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
   It is further constant if both $e_1$ and $e_2$ are constant and
   either $e_1$ evaluates to an object that is an instance of
@@ -6174,47 +6321,77 @@ It is further a constant expression if the map literal evaluates to an object.
   or if $e_2$ evaluates to the null object (\ref{null}).
   %TODO: Consider adding enum instances here.
 
-\item An expression of the form \code{!$e_1$} is potentially constant if $e_1$ is potentially constant. It is further constant if $e_1$ is a constant expression that evaluates to an instance of type \code{bool}.
+\item
+  An expression of the form \code{!$e_1$} is potentially constant
+  if $e_1$ is potentially constant.
+  It is further constant if $e_1$ is a constant expression that evaluates to
+  an instance of type \code{bool}.
 
-\item An expression of the form \code{$e_1$\,\&\&\,$e_2$} is potentially constant if $e_1$ and $e_2$ are both potentially constant expressions. It is further constant if $e_1$ is a constant expression and either
-\begin{enumerate}
-\item $e_1$ evaluates to \FALSE{}, or
-\item $e_1$ evaluates to \TRUE{} and $e_2$ is a constant expression that evaluates to an instance of type \code{bool}.
-\end{enumerate}
+\item
+  An expression of the form \code{$e_1$\,\&\&\,$e_2$} is
+  potentially constant if $e_1$ and $e_2$
+  are both potentially constant expressions.
+  It is further constant if $e_1$ is a constant expression and either
+  \begin{enumerate}
+  \item $e_1$ evaluates to \FALSE{}, or
+  \item $e_1$ evaluates to \TRUE{} and $e_2$ is a constant expression
+    that evaluates to an instance of type \code{bool}.
+  \end{enumerate}
 
-\item An expression of the form \code{$e_1$\,||\,$e_2$} is potentially constant if $e_1$ and $e_2$ are both potentially constant expressions. It is further constant if $e_1$ is a constant expression and either
-\begin{enumerate}
-\item $e_1$ evaluates to \TRUE{}, or
-\item $e_1$ evaluates to \FALSE{} and $e_2$ is a constant expression that evaluates to an instance of type \code{bool}.
-\end{enumerate}
+\item
+  An expression of the form \code{$e_1$\,||\,$e_2$} is
+  potentially constant if $e_1$ and $e_2$
+  are both potentially constant expressions.
+  It is further constant if $e_1$ is a constant expression and either
+  \begin{enumerate}
+  \item $e_1$ evaluates to \TRUE{}, or
+  \item $e_1$ evaluates to \FALSE{} and $e_2$ is a constant expression
+    that evaluates to an instance of type \code{bool}.
+  \end{enumerate}
 
-\item An expression of the form \code{\~{}$e_1$} is a potentially constant expression if $e_1$ is a potentially constant expression. It is further a constant expression if $e_1$ is a constant expression that evaluates to an instance of type \code{int}.
+\item
+  An expression of the form \code{\gtilde{}$e_1$} is
+  a potentially constant expression
+  if $e_1$ is a potentially constant expression.
+  It is further a constant expression if $e_1$ is
+  a constant expression that evaluates to an instance of type \code{int}
+  such that \gtilde{} denotes an instance operator invocation.
 
 \item An expression of one of the forms \code{$e_1$\,\&\,$e_2$},
   \code{$e_1$\,|\,$e_2$}, or \code{$e_1$\,\^\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
   It is further constant if both $e_1$ and $e_2$ are constant expressions that
-  both evaluate to instances of \code{int}, or both to instances of \code{bool}.
-  % The bool case is new in 2.1.
+  both evaluate to instances of \code{int},
+  or both to instances of \code{bool},
+  such that the operator symbol
+  \lit{\&}, \lit{|}, respectively \lit{\^}
+  denotes an instance operator invocation.
 
-\item An expression of one of the forms \code{$e_1$\,\~{}/\,$e_2$},
+\item An expression of one of the forms \code{$e_1$\,\gtilde{}/\,$e_2$},
   \code{$e_1$\,\gtgt\,$e_2$}, \code{$e_1$\,\gtgtgt\,$e_2$},
   or \code{$e_1$\,\ltlt\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
   It is further constant if both $e_1$ and $e_2$ are constant expressions that
-  both evaluate to an instance of \code{int}.
+  both evaluate to an instance of \code{int},
+  such that the operator symbol
+  \lit{\gtilde{}/}, \lit{\gtgt}, \lit{\gtgtgt}, respectively \lit{\ltlt}
+  denotes an instance operator invocation.
 
 \item An expression of the form \code{$e_1$\,+\,$e_2$} is
   a potentially constant expression if $e_1$ and $e_2$
   are both potentially constant expressions.
-  It is further a constant expression if both $e_1$ and $e_2$ are constant expressions
+  It is further a constant expression
+  if both $e_1$ and $e_2$ are constant expressions
   and either both evaluate to an instance of \code{int} or \code{double},
-  or both evaluate to an instance of \code{String}.
+  or both evaluate to an instance of \code{String},
+  such that \lit{+} denotes an instance operator invocation.
 
-\item An expression of the form \code{-$e_1$} is a potentially constant expression
+\item
+  An expression of the form \code{-$e_1$} is a potentially constant expression
   if $e_1$ is a potentially constant expression.
   It is further a constant expression if $e_1$ is a constant expression that
-  evaluates to an instance of type \code{int} or \code{double}.
+  evaluates to an instance of type \code{int} or \code{double},
+  such that \lit{-} denotes an instance operator invocation.
 
 \item An expression of the form \code{$e_1$\,-\,$e_2$}, \code{$e_1$\,*\,$e_2$},
   \code{$e_1$\,/\,$e_2$}, \code{$e_1$\,\%\,$e_2$}, \code{$e_1$\,<\,$e_2$},
@@ -6222,67 +6399,69 @@ It is further a constant expression if the map literal evaluates to an object.
   is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
   It is further constant if both $e_1$ and $e_2$ are constant expressions that
-  evaluate to instances of \code{int} or \code{double}.
+  evaluate to instances of \code{int} or \code{double},
+  such that the given operator symbol denotes
+  an invocation of an instance operator.
 
 \item An expression of the form \code{$e_1$\,?\,$e_2$\,:\,$e_3$}
   is potentially constant if $e_1$, $e_2$, and $e_3$
   are all potentially constant expressions.
   It is constant if $e_1$ is a constant expression and either
-\begin{enumerate}
-\item $e_1$ evaluates to \TRUE{} and $e_2$ is a constant expression, or
-\item $e_1$ evaluates to \FALSE{} and $e_3$ is a constant expression.
-\end{enumerate}
+  \begin{enumerate}
+  \item $e_1$ evaluates to \TRUE{} and $e_2$ is a constant expression, or
+  \item $e_1$ evaluates to \FALSE{} and $e_3$ is a constant expression.
+  \end{enumerate}
 
 \item An expression of the form \code{$e_1$\,??\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
   It is further constant if $e_1$ is a constant expression and either
-\begin{enumerate}
-\item $e_1$ evaluates to an object which is not the null object, or
-\item $e_1$ evaluates to the null object, and $e_2$ is a constant expression.
-\end{enumerate}
+  \begin{enumerate}
+  \item $e_1$ evaluates to an object which is not the null object, or
+  \item $e_1$ evaluates to the null object, and $e_2$ is a constant expression.
+  \end{enumerate}
 
 \item An expression of the form \code{$e$.length} is potentially constant
   if $e$ is a potentially constant expression.
   It is further constant if $e$ is a constant expression that
-  evaluates to an instance of \code{String}.
+  evaluates to an instance of \code{String},
+  such that \code{length} denotes an instance getter invocation.
 
-% New in 2.1.
 \item An expression of the form \code{$e$\,\,as\,\,$T$} is potentially constant
   if $e$ is a potentially constant expression
   and $T$ is a constant type expression,
   and it is further constant if $e$ is constant.
-\commentary{
-It is a compile-time error to evaluate the constant expression
-if the cast operation would throw, that is,
-if $e$ evaluates to an object which is not the null object and not of type $T$.
-}
+  \commentary{%
+    It is a compile-time error to evaluate the constant expression
+    if the cast operation would throw, that is,
+    if $e$ evaluates to an object which is not the null object
+    and not of type $T$.%
+  }
 
-% New in 2.1.
 \item An expression of the form \code{$e$\,\,is\,\,$T$} is potentially constant
   if $e$ is a potentially constant expression
   and $T$ is a constant type expression,
   and it is further constant if $e$ is constant.
 
-% New in 2.1.
-\item{}
+\item
   An expression of the form \code{$e$\,\,is!\,\,$T$}
   is equivalent to \code{!($e$\,\,is\,\,$T$)} in every way,
   including whether it's potentially constant or constant.
 \end{itemize}
 
 \LMHash{}%
-% New in 2.1.
 A
 \Index{constant type expression}
 is one of:
 \begin{itemize}
-\item An simple or qualified identifier
+\item
+  An simple or qualified identifier
   denoting a type declaration (a type alias, class or mixin declaration)
   that is not qualified by a deferred prefix,
   optionally followed by type arguments of the form
   \code{<$T_1$,\ \ldots,\ $T_n$>}
   where $T_1$, \ldots{}, $T_n$ are constant type expressions.
-\item A type of the form \code{FutureOr<$T$>}
+\item
+  A type of the form \code{FutureOr<$T$>}
   where $T$ is a constant type expression.
 \item
   %% TODO(eernst): This does not allow for type variables introduced by
@@ -6294,8 +6473,10 @@ is one of:
   (where $R$ and \code{<\metavar{typeParameters}>} may be omitted)
   and where $R$, \metavar{typeParameters} and \metavar{argumentTypes}
   (if present) contain only constant type expressions.
-\item The type \VOID{}.
-\item The type \DYNAMIC{}.
+\item
+  The type \VOID{}.
+\item
+  The type \DYNAMIC{}.
 \end{itemize}
 
 % Being potentially constant is entirely structural, not type based,
@@ -6311,9 +6492,11 @@ is one of:
 % If that happens in a const invociation, it's a compile-time error.
 
 \LMHash{}%
-It is a compile-time error if an expression is required to be a constant expression,
+It is a compile-time error if an expression is required to be
+a constant expression,
 but its evaluation would throw an exception.
-It is a compile-time error if an assertion is evaluated as part of a constant object expression evaluation,
+It is a compile-time error if an assertion is evaluated as part of
+a constant object expression evaluation,
 and the assertion would throw an exception.
 
 \LMHash{}%
@@ -6360,8 +6543,8 @@ some compile-time errors may manifest quite late:%
 }
 
 \begin{dartCode}
-\CONST{} x = 1 \~{}/ 0;
-\FINAL{} y = 1 \~{}/ 0;
+\CONST{} x = 1 \gtilde{}/ 0;
+\FINAL{} y = 1 \gtilde{}/ 0;
 \\
 \CLASS{} K \{
   m1() \{
@@ -6735,10 +6918,51 @@ Programmers should not depend on this distinction.
 A string can be a sequence of single line strings and multiline strings.
 
 \begin{grammar}
-<singleLineString> ::= `"' <stringContentDQ>* `"'
-  \alt `\'' <stringContentSQ>* `\''
-  \alt `r\'' (\~{}( `\'' | <NEWLINE>))* `\''
-  \alt `r"' (\~{}( `"' | <NEWLINE>))* `"'
+<singleLineString> ::= <RAW\_SINGLE\_LINE\_STRING>
+  \alt <SINGLE\_LINE\_STRING\_SQ\_BEGIN\_END>
+  \alt <SINGLE\_LINE\_STRING\_SQ\_BEGIN\_MID> <expression> \gnewline{}
+       (<SINGLE\_LINE\_STRING\_SQ\_MID\_MID> <expression>)* \gnewline{}
+       <SINGLE\_LINE\_STRING\_SQ\_MID\_END>
+  \alt <SINGLE\_LINE\_STRING\_DQ\_BEGIN\_END>
+  \alt <SINGLE\_LINE\_STRING\_DQ\_BEGIN\_MID> <expression> \gnewline{}
+       (<SINGLE\_LINE\_STRING\_DQ\_MID\_MID> <expression>)* \gnewline{}
+       <SINGLE\_LINE\_STRING\_DQ\_MID\_END>
+
+<RAW\_SINGLE\_LINE\_STRING> ::= `r' `\sq' (\gtilde{}(`\sq' | `\\r' | `\\n'))* `\sq'
+  \alt `r' `"' (\gtilde{}(`"' | `\\r' | `\\n'))* `"'
+
+<STRING\_CONTENT\_COMMON> ::= \gtilde{}(`\\' | `\sq' | `"' | `$' | `\\r' | `\\n')
+  \alt <ESCAPE\_SEQUENCE>
+  \alt `\\' \gtilde{}(`n' | `r' | `b' | `t' | `v' | `x' | `u' | `\\r' | `\\n')
+  \alt <SIMPLE\_STRING\_INTERPOLATION>
+
+<STRING\_CONTENT\_SQ> ::= <STRING\_CONTENT\_COMMON> | `"'
+
+<SINGLE\_LINE\_STRING\_SQ\_BEGIN\_END> ::= \gnewline{}
+  `\sq' <STRING\_CONTENT\_SQ>* `\sq'
+
+<SINGLE\_LINE\_STRING\_SQ\_BEGIN\_MID> ::= \gnewline{}
+  `\sq' <STRING\_CONTENT\_SQ>* `${'
+
+<SINGLE\_LINE\_STRING\_SQ\_MID\_MID> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_SQ>* `${'
+
+<SINGLE\_LINE\_STRING\_SQ\_MID\_END> := \gnewline{}
+  `}' <STRING\_CONTENT\_SQ>* `\sq'
+
+<STRING\_CONTENT\_DQ> ::= <STRING\_CONTENT\_COMMON> | `\sq'
+
+<SINGLE\_LINE\_STRING\_DQ\_BEGIN\_END> ::= \gnewline{}
+  `"' <STRING\_CONTENT\_DQ>* `"'
+
+<SINGLE\_LINE\_STRING\_DQ\_BEGIN\_MID> ::= \gnewline{}
+  `"' <STRING\_CONTENT\_DQ>* `${'
+
+<SINGLE\_LINE\_STRING\_DQ\_MID\_MID> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_DQ>* `${'
+
+<SINGLE\_LINE\_STRING\_DQ\_MID\_END> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_DQ>* `"'
 \end{grammar}
 
 \LMHash{}%
@@ -6801,18 +7025,78 @@ This can be expressed by writing smaller strings separated by whitespace, as sho
 'like so'.
 \end{dartCode}
 
-\begin{grammar}
-<multilineString> ::= `"""' <stringContentTDQ>* `"""'
-  \alt `\'\mbox\'\mbox\'' <stringContentTSQ>* `\'\mbox\'\mbox\''
-  \alt `r"""' (\~{} `"""')* `"""'
-  \alt `r\'\mbox\'\mbox\'' (\~{} `\'\mbox\'\mbox\'')* `\'\mbox\'\mbox\''
+\LMHash{}%
+An auxiliary
+\Index{string interpolation state stack}
+is maintained outside the parser,
+in order to ensure that string interpolations are matched up correctly.
 
-<ESCAPE\_SEQUENCE> ::= `\\n'
-  \alt `\\r'
-  \alt `\\f'
-  \alt `\\b'
-  \alt `\\t'
-  \alt `\\v'
+\commentary{%
+This is necessary because the expression of a non-simple string interpolation
+may itself contain string literals
+with their own non-simple string interpolations.%
+}
+
+\LMHash{}%
+For rules with names \synt{\ldots\_BEGIN\_MID},
+a marker is pushed on the auxiliary stack to indicate that
+a string interpolation of the given kind has started,
+where the kind is \lit{\sq}, \lit{"}, \lit{\sqsqsq}, or \lit{"""}.
+For rules with names \synt{\ldots\_MID\_MID},
+only the rule with the kind on the top of the auxiliary stack can be used.
+For rules with names \synt{\ldots\_MID\_END},
+only the rule with the kind on the top of the auxiliary stack can be used,
+and the marker is then popped.
+
+\begin{grammar}
+<multilineString> ::= <RAW\_MULTI\_LINE\_STRING>
+  \alt <MULTI\_LINE\_STRING\_SQ\_BEGIN\_END>
+  \alt <MULTI\_LINE\_STRING\_SQ\_BEGIN\_MID> <expression> \gnewline{}
+       (<MULTI\_LINE\_STRING\_SQ\_MID\_MID> <expression>)* \gnewline{}
+       <MULTI\_LINE\_STRING\_SQ\_MID\_END>
+  \alt <MULTI\_LINE\_STRING\_DQ\_BEGIN\_END>
+  \alt <MULTI\_LINE\_STRING\_DQ\_BEGIN\_MID> <expression> \gnewline{}
+       (<MULTI\_LINE\_STRING\_DQ\_MID\_MID> <expression>)* \gnewline{}
+       <MULTI\_LINE\_STRING\_DQ\_MID\_END>
+
+<RAW\_MULTI\_LINE\_STRING> ::= `r' `\sqsqsq' .*? `\sqsqsq'
+  \alt `r' `"""' .*? `"""'
+
+<QUOTES\_SQ> ::= | `\sq' | `\sqsq'
+
+<STRING\_CONTENT\_TSQ> ::= \gnewline{}
+  <QUOTES\_SQ> (<STRING\_CONTENT\_COMMON> | `"' | `\\r' | `\\n')
+
+<MULTI\_LINE\_STRING\_SQ\_BEGIN\_END> ::= \gnewline{}
+  `\sqsqsq' <STRING\_CONTENT\_TSQ>* `\sqsqsq'
+
+<MULTI\_LINE\_STRING\_SQ\_BEGIN\_MID> ::= \gnewline{}
+  `\sqsqsq' <STRING\_CONTENT\_TSQ>* <QUOTES\_SQ> `${'
+
+<MULTI\_LINE\_STRING\_SQ\_MID\_MID> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_TSQ>* <QUOTES\_SQ> `${'
+
+<MULTI\_LINE\_STRING\_SQ\_MID\_END> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_TSQ>* `\sqsqsq'
+
+<QUOTES\_DQ> ::= | `"' | `""'
+
+<STRING\_CONTENT\_TDQ> ::= \gnewline{}
+  <QUOTES\_DQ> (<STRING\_CONTENT\_COMMON> | `\sq' | `\\r' | `\\n')
+
+<MULTI\_LINE\_STRING\_DQ\_BEGIN\_END> ::=  \gnewline{}
+  `"""' <STRING\_CONTENT\_TDQ>* `"""'
+
+<MULTI\_LINE\_STRING\_DQ\_BEGIN\_MID> ::=  \gnewline{}
+  `"""' <STRING\_CONTENT\_TDQ>* <QUOTES\_DQ> `${'
+
+<MULTI\_LINE\_STRING\_DQ\_MID\_MID> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_TDQ>* <QUOTES\_DQ> `${'
+
+<MULTI\_LINE\_STRING\_DQ\_MID\_END> ::= \gnewline{}
+  `}' <STRING\_CONTENT\_TDQ>* `"""'
+
+<ESCAPE\_SEQUENCE> ::= `\\n' | `\\r' | `\\f' | `\\b' | `\\t' | `\\v'
   \alt `\\x' <HEX\_DIGIT> <HEX\_DIGIT>
   \alt `\\u' <HEX\_DIGIT> <HEX\_DIGIT> <HEX\_DIGIT> <HEX\_DIGIT>
   \alt `\\u{' <HEX\_DIGIT\_SEQUENCE> `}'
@@ -6833,14 +7117,27 @@ possibly prefixed by \syntax{`\\'},
 then that line is ignored,
 including the line break at its end.
 
-\rationale{
-The idea is to ignore a whitespace-only first line of a multiline string, where whitespace is defined as tabs, spaces and the final line break.
-These can be represented directly, but since for most characters prefixing by backslash is an identity in a non-raw string, we allow those forms as well.
+\rationale{%
+The idea is to ignore a whitespace-only first line of a multiline string,
+where whitespace is defined as tabs, spaces and the final line break.
+These can be represented directly,
+but since for most characters prefixing by backslash is
+an identity in a non-raw string,
+we allow those forms as well.%
 }
 
- % could be clearer. Is the first line in """\t
- %    """ ignored not. It depends if we mean whitespace before escapes are interpreted,
- % or after, or both.  See https://code.google.com/p/dart/issues/detail?id=23020
+\LMHash{}%
+In the rule for \synt{RAW\_MULTI\_LINE\_STRING},
+the two occurrences of \lit{.*?}
+denote a non-greedy token recognition step:
+It terminates as soon as the lookahead is the specified next token
+(\commentary{that is, \lit{\sqsqsq}or \lit{"""}}).
+
+\commentary{%
+Note that multi-line string interpolation relies on
+the auxiliary string interpolation state stack,
+just like single-line string interpolation.%
+}
 
 \LMHash{}%
 Strings support escape sequences for special characters.
@@ -6878,8 +7175,11 @@ The escapes are:
 \item
   \lit{\$} indicating the beginning of an interpolated expression.
 \item
-  Otherwise, \syntax{`\\$k$'} indicates the character $k$ for
-  any $k$ not in \syntax{$\{$`n', `r', `f', `b', `t', `v', `x', `u'$\}$}.
+  { % We need a definition for $k$ in order to be able to use it in \syntax{}.
+    \def\k{$k$}
+    Otherwise, \syntax{`\\\k'} indicates the character \k{} for
+    any \k{} not in \syntax{$\{$`n', `r', `f', `b', `t', `v', `x', `u'$\}$}.
+  }
 \end{itemize}
 
 \LMHash{}%
@@ -6889,7 +7189,7 @@ in which case no escapes or interpolations are recognized.
 
 \LMHash{}%
 Line breaks in a multiline string are represented by
-the \syntax{<NEWLINE>} production.
+the \synt{NEWLINE} production.
 A line break introduces a single newline character into the string value.
 
 \LMHash{}%
@@ -6902,22 +7202,6 @@ either a sequence of four hexadecimal digits,
 or by curly brace delimited sequence of hexadecimal digits.
 
 \begin{grammar}
-<stringContentDQ> ::= \~{}( `\\' | `"' | `$' | <NEWLINE> )
-  \alt `\\' \~{}( <NEWLINE> )
-  \alt <stringInterpolation>
-
-<stringContentSQ> ::= \~{}( `\\' | `\'' | `$' | <NEWLINE> )
-  \alt `\\' \~{}( <NEWLINE> )
-  \alt <stringInterpolation>
-
-<stringContentTDQ> ::= \~{}( `\\' | `"""' | `$')
-  \alt `\\' \~{}( <NEWLINE> )
-  \alt <stringInterpolation>
-
-<stringContentTSQ> ::= \~{}( `\\' | `\'\'\'' | `$')
-  \alt `\\' \~{}( <NEWLINE> )
-  \alt <stringInterpolation>
-
 <NEWLINE> ::= `\\n'
   \alt `\\r'
   \alt `\\r\\n'
@@ -6943,14 +7227,17 @@ concatenated with the enclosing string.
 This process is known as \Index{string interpolation}.
 
 \begin{grammar}
-<stringInterpolation> ::= `$' <IDENTIFIER\_NO\_DOLLAR>
+<stringInterpolation> ::= <SIMPLE\_STRING\_INTERPOLATION>
   \alt `${' <expression> `}'
+
+<SIMPLE\_STRING\_INTERPOLATION> ::= \gnewline{}
+  `$' <IDENTIFIER\_NO\_DOLLAR>
 \end{grammar}
 
-\commentary{
+\commentary{%
 The reader will note that the expression inside the interpolation
 could itself include strings,
-which could again be interpolated recursively.
+which could again be interpolated recursively.%
 }
 
 \LMHash{}%
@@ -7049,29 +7336,790 @@ The fact that symbols are easy to type and can often act as convenient substitut
 The static type of a symbol literal is \code{Symbol}.
 
 
-\subsection{Lists}
+\subsection{Collection Literals}
+\LMLabel{collectionLiterals}
+
+\LMHash{}%
+This section specifies several literal expressions denoting collections.
+Some syntactic forms may denote more than one kind of collection,
+in which case a disambiguation step is performed
+in order to determine the kind
+(\ref{setAndMapLiteralDisambiguation}).
+
+\LMHash{}%
+The subsections of this section are concerned with mechanisms that are
+common to all kinds of collection literals
+(\ref{collectionLiteralTypePromotion}, \ref{collectionLiteralElementEvaluation}),
+followed by a specification of list literals
+(\ref{listLiteralInference}, \ref{lists}),
+followed by a specification of how to disambiguate and infer types
+for sets and maps
+(\ref{setAndMapLiteralDisambiguation}, \ref{setAndMapLiteralInference}),
+and finally a specification of sets
+(\ref{sets})
+and maps
+(\ref{maps}).
+
+\begin{grammar}
+<listLiteral> ::= \CONST{}? <typeArguments>? `[' <elements>? `]'
+
+<setOrMapLiteral> ::= \CONST{}? <typeArguments>? `{' <elements>? `}'
+
+<elements> ::= <element> (`,' <element>)* `,'?
+
+<element> ::= <expressionElement>
+  \alt <mapElement>
+  \alt <spreadElement>
+  \alt <ifElement>
+  \alt <forElement>
+
+<expressionElement> ::= <expression>
+
+<mapElement> ::= <expression> `:' <expression>
+
+<spreadElement> ::= (`...' | `...?') <expression>
+
+<ifElement> ::= \IF{} `(' <expression> `)' <element> (\ELSE{} <element>)?
+
+<forElement> ::= \AWAIT{}? \FOR{} `(' <forLoopParts> `)' <element>
+\end{grammar}
+
+\LMHash{}%
+Syntactically, a \Index{collection literal} can be
+a \synt{listLiteral} or a \synt{setOrMapLiteral}.
+The contents of the collection is specified as a sequence of
+\IndexCustom{collection literal elements}{collection literal!elements},
+in short \Index{elements}.
+Each element may be a declarative specification of a single entity,
+such as an \synt{expressionElement} or a \synt{mapElement},
+it may specify a collection which is to be included,
+of the form \synt{spreadElement},
+or it may be a computational element specifying
+how to obtain zero or more entities,
+of the form \synt{ifElement} or \synt{forElement}.
+
+\commentary{%
+Terms derived from \synt{element},
+and the ability to build collections from them,
+is also known as
+\Index{UI-as-code}.%
+}
+
+\LMHash{}%
+The \Index{leaf elements} of an element $\ell$ derived from
+\synt{expressionElement} or \synt{mapElement}
+is $\{\ell\}$.
+The leaf elements of an element of the form
+\code{\IF\,($e$)\,$\ell$} or
+\code{\FOR\,(\metavar{forLoopParts})\,$\ell$}
+is the leaf elements of $\ell$.
+The leaf elements of an element of the form
+\code{\IF\,($e$)\,$\ell_1$\,\ELSE\,$\ell_2$}
+is the union of the leaf elements of $\ell_1$ and $\ell_2$.
+The leaf elements of a \synt{spreadElement} is the empty set.
+
+\commentary{%
+The leaf elements of a collection literal is always
+a set of expression elements and/or map elements.%
+}
+
+\LMHash{}%
+In order to allow collection literals to occur as constant expressions,
+we specify what it means for an element $\ell$
+to be
+\IndexCustom{constant}{collection literal element!constant}
+or
+\IndexCustom{potentially constant}{%
+  collection literal element!potentially constant}:
+
+\begin{itemize}
+\item
+  When $\ell$ is an \synt{expressionElement} of the form $e$:
+
+  $\ell$ is a potentially constant element
+  if $e$ is a potentially constant expression,
+  and $\ell$ is a constant element
+  if $e$ is a constant expression.
+\item
+  When $\ell$ is a \synt{mapElement}
+  of the form `\code{$e_1$:\,$e_2$}':
+
+  $\ell$ is a potentially constant element
+  if both $e_1$ and $e_2$ are potentially constant expressions,
+  and it is a constant element if they are constant expressions.
+\item
+  When $\ell$ is a \synt{spreadElement}
+  of the form `\code{...$e$}' or `\code{...?$e$}':
+
+  $\ell$ is a potentially constant element
+  if $e$ is a potentially constant expression.
+
+  $\ell$ is a constant element
+  if $e$ is a constant expression that evaluates
+  to a \code{List}, \code{Set}, or \code{Map} instance
+  originally created by a list, set, or map literal.
+
+  Moreover, $\ell$ is a constant element if it is `\code{...?$e$}',
+  where $e$ is a constant expression that evaluates
+  to the null object.
+\item
+  When $\ell$ is an \synt{ifElement}
+  of the form
+  \code{\IF\,\,($b$)\,\,$\ell_1$}
+  or the form
+  \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}:
+
+  $\ell$ is a potentially constant element
+  if $b$ is a potentially constant expression,
+  $\ell_1$ is potentially constant,
+  and so is $\ell_2$, if present.
+
+  $\ell$ is a constant element if $b$ is a constant expression
+  and:
+
+  \begin{itemize}
+  \item
+    $\ell$ is \code{\IF\,\,($b$)\,\,$\ell_1$} and
+    either $b$ evaluates to \TRUE{} and $\ell_1$ is constant,
+    or $b$ evaluates to \FALSE{} and $\ell_1$ is potentially constant.
+  \item
+    $\ell$ is \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$} and
+    either $b$ evaluates to \TRUE,
+    $\ell_1$ is constant,
+    and $\ell_2$ is potentially constant;
+    or $b$ evaluates to \FALSE,
+    $\ell_1$ is potentially constant,
+    and $\ell_2$ is constant.
+  \end{itemize}
+\end{itemize}
+
+\commentary{%
+A \synt{forElement} can never occur in a constant collection literal.%
+}
+
+%% TODO(eernst): We may change this text to commentary or delete it,
+%% it consists of descriptions of errors, but they are already covered
+%% elsewhere.
+%%
+%% Compile-time errors.
+%%
+%% The following compile-time errors are specified in the feature
+%% specification, but they are already implied by the errors specified
+%% elsewhere.
+%%
+%% - "A non-null-aware spread element has static type \code{Null}".
+%%   For a list literal: listLiteralInference makes this an error by case
+%%   analysis on 'Spread element'.
+%%   Set/map literal: setAndMapLiteralInference, ditto.
+%%
+%% - "A spread element in a list or set literal has a static type that is
+%%   not \DYNAMIC{} and not a subtype of \code{Iterable<Object>}".
+%%   List literal: case analysis on 'Spread element'.
+%%   Set literal: case analysis on 'Spread element': only succeeds if
+%%   $S$ implements `Map` (and not `Iterable`), so it has a key/value
+%%   type and no element type, which is an error (\ref{sets}).
+%%
+%% - "A spread element in a list or set has a static type that
+%%   implements \code{Iterable<$T$>} for some $T$ and
+%%   $T$ is not assignable to the element type of the list."
+%%   List literal: cf. 'Spread element' this implies that the spread element
+%%   has element type $T$, and non-assignability is an error, \ref{lists}.
+%%   Set literal: cf. 'Spread element' for sets/maps: ditto.
+%%
+%% - "A spread element in a map literal has a static type that is
+%%   not \DYNAMIC{} and not a subtype of \code{Map<Object, Object>}".
+%%   Set/map 'Spread element' case analysis then implies that it implements
+%%   `Iterable` and not `Map`, in which case it has no key/value type pair,
+%%   which is an error, \ref{maps}.
+%%
+%% - "If a map spread element's static type implements \code{Map<$K$, $V$>}
+%%   for some $K$ and $V$ and $K$ is not assignable to the key type of the
+%%   map or $V$ is not assignable to the value type of the map".
+%%   This is an error, \ref{maps}.
+%%
+%% - "The variable in a \synt{forElement} (\commentary{either a for-in
+%%   element or C-style}) is declared outside of the element to be final or
+%%   to not have a setter".
+%%   This error is specified in \ref{listLiteralInference} and
+%%   \ref{setAndMapLiteralInference}.
+%%
+%% - "The type of the iterator expression in a synchronous for-in element
+%%   may not be assigned to \code{Iterable<$T$>} for any type $T$.
+%%   Otherwise, the \Index{iterable type} of the iterator is $T$".
+%%   Covered by the same text as the previous error.
+%%
+%% - "The iterable type of the iterator in a synchronous for-in element
+%%   may not be assigned to the for-in variable's type."
+%%   Covered by the same text again.
+%%
+%% - "The type of the stream expression in an asynchronous \AWAIT{} for-in element
+%%   may not be assigned to \code{Stream<$T$>} for any type $T$.
+%%   Otherwise, the \Index{stream type} of the stream is $T$".
+%%   Same text again (the `forElement` text includes both await for and for).
+%%
+%% - "The stream type of the iterator in an asynchronous \AWAIT{} for-in element
+%%   may not be assigned to the for-in variable's type".
+%%   Same text again.
+%%
+%% - "\AWAIT{} \FOR{} is used when the function immediately enclosing the
+%%   collection literal is not asynchronous".
+%%   Same text again.
+%%
+%% - "\AWAIT{} is used before a C-style \synt{forElement}.
+%%   \AWAIT{} can only be used with for-in loops".
+%%   Same text again.
+%%
+%% - "The type of the condition expression (\commentary{the second clause})
+%%   in a C-style \FOR{} element may not be assigned to \code{bool}".
+%%   Same text again.
+
+
+\subsubsection{Type Promotion}
+\LMLabel{collectionLiteralTypePromotion}
+
+\LMHash{}%
+An \synt{ifElement} interacts with type promotion
+in the same way that \IF{} statements do.
+Let $\ell$ be an \synt{ifElement} of the form
+\code{\IF\,\,($b$)\,\,$\ell_1$} or
+\code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
+If $b$ shows that a local variable $v$ has type $T$, then
+the type of $v$ is known to be $T$ in $\ell_1$,
+unless any of the following are true:
+
+\begin{itemize}
+\item $v$ is potentially mutated in $\ell_1$,
+\item $v$ is potentially mutated within a function
+  other than the one where $v$ is declared, or
+\item $v$ is accessed by a function defined in $\ell_1$ and
+  $v$ is potentially mutated anywhere in the scope of $v$.
+\end{itemize}
+
+%% TODO(eernst): Come nnbd, update this.
+\commentary{%
+Type promotion will likely get more sophisticated in a future version of Dart.
+When that happens,
+\synt{ifElements} will continue to match \IF{} statements
+(\ref{if}).%
+}
+
+
+\subsubsection{Collection Literal Element Evaluation}
+\LMLabel{collectionLiteralElementEvaluation}
+
+\LMHash{}%
+The evaluation of a sequence of collection literal elements
+(\ref{collectionLiterals})
+yields a
+\IndexCustom{collection literal object sequence}{%
+  collection literal!object sequence},
+also called an \NoIndex{object sequence} when no ambiguity can arise.
+
+\LMHash{}%
+We use the notation
+\IndexCustom{\LiteralSequence{\ldots}}{[[...]]@\LiteralSequence{\ldots}}
+to denote an object sequence with explicitly listed elements,
+and we use `$+$' to compute the concatenation of object sequences
+(\commentary{as in $s_1 + s_2$}),
+which is an operation that will succeed and has no side-effects.
+Each element in the sequence is an object $o$ or a pair $o_1: o_2$.
+There is no notion of an element type for an object sequence,
+and hence no notion of dynamic errors arising from
+a type mismatch during concatenation.
+
+\commentary{%
+Object sequences can safely be treated as a low-level mechanism
+which may omit otherwise required actions like dynamic type checks
+because every access to an object sequence occurs
+in code created by language defined desugaring
+on statically checked constructs.
+It is left unspecified how an object sequence is implemented,
+it is only required that it contains the indicated objects or pairs
+in the given order.
+For each kind of collection,
+the sequence is used in the given order to populate the collection,
+in a manner which is specific to the kind,
+and which is specified separately
+(\ref{lists}, \ref{sets}, \ref{maps}).%
+
+There may be an actual data structure
+representing the object sequence at run time,
+but the object sequence could also be eliminated, e.g.,
+because each element is inserted directly into the target collection
+as soon as it has been computed.
+Note that each object sequence will exclusively contain objects,
+or it will exclusively contain pairs,
+because any attempt to create a mixed sequence would cause
+an error at compile time or at run time
+(the latter may occur for a spread element with static type \DYNAMIC{}).%
+}
+
+\LMHash{}%
+Assume that a literal collection \metavar{target} is given,
+and the object sequence obtained as described below will be used
+to populate \metavar{target}.
+Let $T_{\metavar{target}}$ denote the dynamic type of \metavar{target}.
+
+\commentary{%
+Access to the type of \metavar{target} is needed below
+in order to raise dynamic errors at specific points during
+the evaluation of an object sequence.
+Note that the dynamic type of \metavar{target} is statically known,
+except for the binding of any type variables in its \synt{typeArguments}.
+This implies that some questions can be answered at compile-time, e.g.,
+whether or not \code{Iterable} occurs as a superinterface of
+$T_{\metavar{target}}$.
+In any case, $T_{\metavar{target}}$ is guaranteed to implement
+\code{Iterable} (when \metavar{target} is a list or a set)
+or \code{Map} (when \metavar{target} is a map),
+but never both.%
+}
+
+\LMHash{}%
+Assume that a location in code and a dynamic context is given,
+such that ordinary expression evaluation is possible.
+\IndexCustom{Evaluation of a collection literal element sequence}{%
+  collection literal element!evaluation of sequence}
+at that location and in that context is specified as follows:
+
+\LMHash{}%
+Let $s_{\metavar{syntax}}$ of the form \List{\ell}{1}{k} be
+a sequence of collection literal elements.
+The sequence of objects $s_{\metavar{object}}$
+obtained by evaluating $s_{\metavar{syntax}}$
+is the concatenation of the sequences of objects
+obtained by evaluating each element $\ell_j$, $j \in 1 .. k$:
+$s_{\metavar{object}}=\EvaluateElement{\ell_1}+\ldots+\EvaluateElement{\ell_k}$,
+where \EvaluateElement{\ell_j} denotes the object sequence yielded by
+evaluation of a single collection literal element $\ell_j$.
+
+\LMHash{}%
+When a pseudo-statement of the form
+\code{$s := s + \EvaluateElement{\ell}$;}
+is used in normative code below,
+it denotes the extension of $s$ with the object sequence
+yielded by evaluation of $\ell$,
+but it also denotes the specification of actions taken to produce
+said object sequence,
+and to produce the side effects associated with this computation,
+as implied by evaluation of expressions and execution of statements
+as specified below for the evaluation of \EvaluateElement{\ell}.
+
+\LMHash{}%
+When a pseudo-statement of the form
+\code{$\EvaluateElement{\ell} := s$;}
+occurs in normative code below,
+it occurs at a point where the computation is complete
+and it specifies that the value of \EvaluateElement{\ell} is $s$.
+\IndexCustom{Evaluation of a collection literal element $\ell$}{%
+  collection literal element!evaluation}
+in the given context
+to an object sequence
+\IndexCustom{\EvaluateElement{\ell}}{%
+  evaluateElement(l)@\emph{evaluateElement}\code{($\ell$)}}
+is then specified as follows:
+
+\LMHash{}%
+\Case{Expression element}
+In this case $\ell$ is an expression $e$;
+$e$ is evaluated to an object $o$
+and $\EvaluateElement{\ell} := \LiteralSequence{o}$.
+\EndCase
+
+\LMHash{}%
+\Case{Map element}
+In this case $\ell$ is pair of expressions
+\code{$e_1$:$e_2$};
+first $e_1$ is evaluated to an object $o_1$,
+then $e_2$ is evaluated to an object $o_2$,
+and $\EvaluateElement{\ell} := \LiteralSequence{o_1:o_2}$.
+\EndCase
+
+\LMHash{}%
+\Case{Spread element}
+The element $\ell$ is of the form `\code{...$e$}' or `\code{...?$e$}'.
+Evaluate $e$ to an object $o_{\metavar{spread}}$.
+\begin{enumerate}
+\item
+  When $\ell$ is `\code{...$e$}':
+  %% TODO(eernst): Come NNBD, this error cannot occur any more: delete.
+  If $o_{\metavar{spread}}$ is the null object then a dynamic error occurs.
+  Otherwise evaluation proceeds with step 2.
+
+  When $\ell$ is `\code{...?$e$}':
+  If $o_{\metavar{spread}}$ is the null object then
+  $\EvaluateElement{\ell} := \LiteralSequence{}$.
+  Otherwise evaluation proceeds with step 2.
+\item
+  Let $T_{\metavar{spread}}$ be the dynamic type of $o_{\metavar{spread}}$.
+  Let $S$ be the static type of $e$.
+  When $S$ is not a top type
+  (\ref{superBoundedTypes}),
+  let $S_{\metavar{spread}}$ be $S$.
+  When $S$ is a top type:
+  If \metavar{target} is a list or a set then
+  let $S_{\metavar{spread}}$ be \code{Iterable<\DYNAMIC>};
+  otherwise
+  (\commentary{where \metavar{target} is a map}),
+  let $S_{\metavar{spread}}$ be \code{Map<\DYNAMIC,\,\,\DYNAMIC>}.
+
+  \begin{itemize}
+  \item
+    When \metavar{target} is a list or a set and $T_{\metavar{spread}}$ implements
+    (\ref{interfaceSuperinterfaces})
+    \code{Iterable},
+    the following code is executed in the context where $\ell$ occurs,
+    where \code{spread}, $s$, \code{v}, and \code{value} are fresh variables,
+    and \code{Value} is a fresh type variable bound to the
+    actual type argument of $T_{\metavar{target}}$ at \code{Iterable}
+    (\ref{interfaceSuperinterfaces}):
+
+    \vspace{-2ex}\begin{minipage}[t]{\textwidth}
+\begin{normativeDartCode}
+$S_{\metavar{spread}}$ spread = $o_{\metavar{spread}}$;
+\VAR{} $s$ = \LiteralSequence{};
+\FOR{} (\VAR{} v \IN{} spread) \{
+  Value value = v;
+  $s := s + \LiteralSequence{\code{value}}$;
+\}
+$\EvaluateElement{\ell} := s$;
+\end{normativeDartCode}
+    \end{minipage}
+
+    \commentary{%
+      The code makes use of a pseudo-variable $s$ denoting an object sequence.
+      We do not specify the type of $s$,
+      this variable is only used to indicate the required
+      semantic actions taken to gather the resulting object sequence.
+      In the case where the implementation does not have
+      a representation of $s$ at all,
+      the action may be to extend \metavar{target} immediately.
+      A similar approach is used in subsequent cases.%
+    }
+  \item
+    When \metavar{target} is a map and $T_{\metavar{spread}}$ implements
+    \code{Map},
+    the following code is executed in the context where $\ell$ occurs,
+    where \code{spread}, $s$, \code{v}, \code{key}, and \code{value}
+    are fresh variables,
+    and \code{Key} and \code{Value} are fresh type variables bound to the
+    first respectively second actual type argument
+    of $T_{\metavar{target}}$ at \code{Map}:
+
+    \vspace{-2ex}\begin{minipage}[t]{\textwidth}
+\begin{normativeDartCode}
+$S_{\metavar{spread}}$ spread = $o_{\metavar{spread}}$;
+\VAR{} $s$ = \LiteralSequence{};
+\FOR{} (\VAR{} v \IN{} spread) \{
+  Key key = v.key;
+  Value value = v.value;
+  $s := s + \LiteralSequence{\code{key}:\,\code{value}}$;
+\}
+$\EvaluateElement{\ell} := s$;
+\end{normativeDartCode}
+    \end{minipage}
+
+    % Will not change with nnbd: `spread` type arguments could be \DYNAMIC{}.
+    It is allowed for an implementation to delay the dynamic errors
+    that occur if the given \code{key} does not have the type \code{Key},
+    or the given \code{value} does not have the type \code{Value},
+    but it cannot occur after the pair has been appended to $s$.
+  \item
+    Otherwise, a dynamic error occurs.
+
+    \commentary{%
+      This occurs when the target is an iterable respectively a map,
+      and the spread is not, which is possible for
+      a spread whose static type is \DYNAMIC{}.%
+    }
+  \end{itemize}
+\end{enumerate}
+
+\rationale{%
+This may not be the most efficient way to traverse the items in a collection,
+and implementations may of course use any other approach
+with the same observable behavior.
+However, in order to give implementations more room to optimize
+we also allow the following.%
+}
+
+\LMHash{}%
+If $o_{\metavar{spread}}$ is an object whose dynamic type implements
+(\ref{interfaceSuperinterfaces})
+\code{List}, \code{Queue}, or \code{Set},
+an implementation may choose to call \code{length} on the object.
+If $o_{\metavar{spread}}$ is an object whose dynamic type implements \code{List},
+an implementation may choose to call operator \lit{[]}
+in order to access elements from the list.
+If it does so, it will only pass indices
+that are non-negative and less than the value returned by \code{length}.
+
+\rationale{%
+This may allow for more efficient code for
+allocating the collection and accessing its parts.
+The given classes are expected to have
+an efficient and side-effect free implementation
+of \code{length} and operator \lit{[]}.
+A Dart implementation may detect whether these options apply
+at compile time based on the static type of $e$,
+or at runtime based on the actual value.%
+}
+\EndCase
+
+\LMHash{}%
+\Case{If element}
+When $\ell$ is an \synt{ifElement} of the form
+\code{\IF\,\,($b$)\,\,$\ell_1$} or
+\code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$},
+the condition $b$ is evaluated to a value $o_b$.
+If $o_b$ is \TRUE{} then
+$\EvaluateElement{\ell} := \EvaluateElement{\ell_1}$.
+If $o_b$ is \FALSE{} and $\ell_2$ is present then
+$\EvaluateElement{\ell} := \EvaluateElement{\ell_2}$,
+and if $\ell_2$ is not present then
+$\EvaluateElement{\ell} := \LiteralSequence{}$.
+% $o_b$ can have type \DYNAMIC{}.
+If $o_b$ is neither \TRUE{} nor \FALSE{} then a dynamic error occurs.
+\EndCase
+
+\LMHash{}%
+\Case{For element}
+Let $P$ be derived from \syntax{<forLoopParts>} and
+let $\ell$ be a \synt{forElement} of the form
+\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$},
+where `\AWAIT?' indicates that \AWAIT{} may be present or absent.
+To evaluate $\ell$,
+the following code is executed in the context where $\ell$ occurs,
+where \AWAIT{} is present if and only if it is present in $\ell$:
+
+\vspace{-2ex}\begin{minipage}[t]{\textwidth}
+\begin{normativeDartCode}
+\VAR{} $s$ = \LiteralSequence{};
+\AWAIT? \FOR{} ($P$) \{
+  $s := s + \EvaluateElement{\ell_1}$;
+\}
+$\EvaluateElement{\ell} := s$;
+\end{normativeDartCode}
+\end{minipage}
+\EndCase
+
+
+\subsubsection{List Literal Inference}
+\LMLabel{listLiteralInference}
+
+\LMHash{}%
+This section specifies how a list literal \metavar{list} is traversed and an
+\IndexCustom{inferred element type}{list literal!element type}
+for \metavar{list} is determined.
+We specify first how to infer the element type of a single element,
+then how to use that result to infer
+the element type of \metavar{list} as a whole.
+
+\LMHash{}%
+The context type $P$
+(\ref{setAndMapLiteralDisambiguation})
+for each element of \metavar{list} is
+obtained from the context type of \metavar{list}.
+If downwards inference constrains the type of \metavar{list}
+to \code{List<$P_e$>} or \code{Iterable<$P_e$>} for some $P_e$
+then $P$ is $P_e$.
+Otherwise, $P$ is \FreeContext{}
+(\ref{setAndMapLiteralDisambiguation}).
+
+\LMHash{}%
+Let $\ell$ be a term derived from \synt{element}.
+Inference of the element type of $\ell$ with context type $P$
+proceeds as follows,
+where the context type for inference of an element type is always $P$,
+unless anything is said to the contrary:
+
+\LMHash{}%
+\Case{Expression element}
+In this case $\ell$ is an expression $e$.
+The inferred element type of $\ell$ is
+% The type of $e$ is not an element type, so we mention $P$.
+the inferred type of $e$ in context $P$.
+\EndCase
+
+\LMHash{}%
+\Case{Map element}
+% We cannot really tell whether this or the error in \ref{lists} arises first
+% (say, when the list literal has an explicit type argument, it is not
+% guaranteed that the implementation performs type inference on it at all).
+% So we _must_ specify the error in \ref{lists}, and this location should
+% then be a commentary, because we already have the error elsewhere.
+\commentary{%
+This cannot occur:
+it is a compile-time error
+when a leaf element of a list literal is a map element
+(\ref{lists}).%
+}
+\EndCase
+
+\LMHash{}%
+\Case{Spread element}
+Let $e$ be the expression of $\ell$.
+If $\ell$ is `\code{...$e$}',
+let $S$ be the inferred type of $e$ in context \code{Iterable<$P$>}.
+Otherwise
+(\commentary{when $\ell$ is `\code{...?$e$}'}),
+%% TODO(eernst): Come NNBD, add a \ref{} to the specification of
+%% 'the non-nullable type of'.
+let $S$ be the non-nullable type of
+%% TODO(eernst): Clarify whether inference will indeed have that context;
+%% it is clear that we need to eliminate `Null` from $S$, and also that $e$
+%% is allowed to have a potentially nullable type, and it seems inconvenient
+%% if we use `Iterable<$P$>` as context type and fail in the case where $e$,
+%% say, has type `List<$U$>?` for some $U$.
+the inferred type of $e$ in context \code{Iterable<$P$>?}.
+
+\begin{itemize}
+\item
+  If $S$ implements \code{Iterable},
+  the inferred element type of $\ell$ is
+  the type argument of $S$ at \code{Iterable}.
+\item
+  If $S$ is \DYNAMIC{},
+  the inferred element type of $\ell$ is \DYNAMIC.
+\item
+  If $S$ is \code{Null} and the spread operator is \lit{...?},
+  the inferred element type of $\ell$ is \code{Null}.
+\item
+  Otherwise, a compile-time error occurs.
+\end{itemize}
+\vspace{-5mm}
+\EndCase
+
+\LMHash{}%
+\Case{If element}
+In this case $\ell$ is of the form
+\code{\IF\,\,($b$)\,\,$\ell_1$} or
+\code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
+The condition $b$ is always inferred with a context type of \code{bool}.
+
+Assume that `\code{\ELSE\,\,$\ell_2$}' is not present.
+Then, if the inferred element type of $\ell_1$ is $S$,
+the inferred element type of $\ell$ is $S$.
+
+Otherwise, `\code{\ELSE\,\,$\ell_2$}' is present.
+If the inferred element type of $\ell_1$ is $S_1$ and
+the inferred element type of $\ell_2$ is $S_2$,
+the inferred element type of $\ell$ is
+the least upper bound of $S_1$ and $S_2$.
+\EndCase
+
+\LMHash{}%
+\Case{For element}
+In this case $\ell$ is of the form
+\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$}
+where $P$ is derived from \synt{forLoopParts} and
+`\AWAIT?' indicates that \AWAIT{} may be present or absent.
+
+The same compile-time errors occur for $\ell$ as
+the errors that would occur with the corresponding \FOR{} statement
+\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,\{\}},
+located in the same scope as $\ell$.
+Moreover, the errors and type analysis of $\ell$ is performed
+as if it occurred in the body scope of said \FOR{} statement.
+\commentary{%
+For instance, if $P$ is of the form
+\code{\VAR\,\,v\,\,\IN\,\,$e_1$}
+then the variable \code{v} is in scope for $\ell$.%
+}
+
+Inference for the parts
+(\commentary{%
+  such as the iterable expression of a for-in,
+  or the \synt{forInitializerStatement} of a for loop%
+})
+is done as for the corresponding \FOR{} statement,
+including \AWAIT{} if and only if the element includes \AWAIT.
+Then, if the inferred element type of $\ell_1$ is $S$,
+the inferred element type of $\ell$ is $S$.
+
+\commentary{%
+In other words, inference flows upwards from the body element.%
+}
+\vspace{3mm}
+\EndCase
+
+\LMHash{}%
+Finally, we define
+\IndexCustom{type inference on a list literal}{%
+  type inference!list literal}
+as a whole.
+Assume that \metavar{list} is derived from \synt{listLiteral}
+and contains the elements \List{\ell}{1}{n},
+and the context type for \metavar{list} is $P$.
+
+\begin{itemize}
+\item
+  If $P$ is \FreeContext{} then
+  the inferred element type for \metavar{list} is $T$,
+  where $T$ is the least upper bound of
+  the inferred element types of \List{\ell}{1}{n}.
+
+\item
+  %% TODO(eernst): Feature spec says $P$, but how can we know that $P$ is a type?
+  Otherwise,
+  the inferred element type for \metavar{list} is $T$,
+  where $T$ is determined by downwards inference.
+\end{itemize}
+
+\LMHash{}%
+In both cases, the static type of \metavar{list} is \code{List<$T$>}.
+
+
+\subsubsection{Lists}
 \LMLabel{lists}
 
 \LMHash{}%
 A \IndexCustom{list literal}{literal!list}
-denotes a list, which is an integer indexed collection of objects.
+denotes a list object, which is an integer indexed collection of objects.
+The grammar rule for \synt{listLiteral} is specified elsewhere
+(\ref{collectionLiterals}).
 
-\begin{grammar}
-<listLiteral> ::= \CONST{}? <typeArguments>? `[' (<expressionList> `,'?)? `]'
-\end{grammar}
+\LMHash{}%
+When a given list literal $e$ has no type arguments,
+the type argument $T$ is selected as specified elsewhere
+(\ref{listLiteralInference}),
+and $e$ is henceforth treated as
+(\ref{notation})
+\code{<$T$>$e$}.
+
+\commentary{%
+The static type of a list literal of the form \code{<$T$>$e$}
+is \code{List<$T$>}
+(\ref{listLiteralInference}).%
+}
+
+\LMHash{}%
+Let $e$ be a list literal of the form
+\code{<$T$>[\List{\ell}{1}{m}]}.
+It is a compile-time error if a leaf element of $e$ is a
+\synt{mapElement}.
+It is a compile-time error if, for some $j \in 1 .. m$,
+$\ell_j$ does not have an element type,
+or the element type of $\ell_j$ may not be assigned to $T$.
 
 \LMHash{}%
 A list may contain zero or more objects.
-The number of elements in a list is its size.
+The number of objects in a list is its size.
 A list has an associated set of indices.
 An empty list has an empty set of indices.
 A non-empty list has the index set $\{0, \ldots, n - 1\}$ where $n$ is the size of the list.
 It is a dynamic error to attempt to access a list
 using an index that is not a member of its set of indices.
 
+\rationale{%
+The system libraries define many members for the type \code{List},
+but we specify only the minimal set of requirements
+which are used by the language itself.%
+}
+
 \LMHash{}%
-If a list literal $\ell$ begins with the reserved word \CONST{}
-or $\ell$ occurs in a constant context
+If a list literal $e$ begins with the reserved word \CONST{}
+or $e$ occurs in a constant context
 (\ref{constantContexts}),
 it is a
 \IndexCustom{constant list literal}{literal!list!constant},
@@ -7083,81 +8131,86 @@ Otherwise, it is a
 and it is evaluated at run time.
 Only run-time list literals can be mutated
 after they are created.
-% This error can occur because being constant is a dynamic property, here.
+% This error can occur because being constant is a dynamic property.
 Attempting to mutate a constant list literal will result in a dynamic error.
 
 \commentary{%
 % The following is true either directly or indirectly: There is a \CONST{}
-% modifier on the literal list, or we use the "immediate subexpression" rule
-% about constant contexts.
-Note that the element expressions of a constant list literal
+% modifier on the list literal, or the list literal as a whole occurs
+% in a constant context.
+Note that the collection literal elements of a constant list literal
 occur in a constant context
 (\ref{constantContexts}),
 which means that \CONST{} modifiers need not be specified explicitly.%
 }
 
 \LMHash{}%
-It is a compile-time error if an element of a constant list literal
-is not a constant expression.
+It is a compile-time error
+if an element of a constant list literal is not constant.
 It is a compile-time error if the type argument of a constant list literal
-is not a constant type expression.
+(\commentary{no matter whether it is explicit or inferred})
+is not a constant type expression
+(\ref{constants}).
 
 \rationale{%
-The binding of a formal type parameter is not known at compile time,
-so we cannot use type parameters inside constant expressions.%
+The binding of a formal type parameter of an enclosing class or function
+is not known at compile time,
+so we cannot use such type parameters inside constant expressions.%
 }
 
 \LMHash{}%
 The value of a constant list literal
-\code{\CONST?\,\,<$E$>[$e_1, \ldots, e_n$]}
-is an object $a$ whose class implements the built-in class
-\code{List<$E$>}.
-Let $v_i$ be the value of the constant expression $e_i$, $i \in 1 .. n$.
-The $i$th element of $a$ (at index $i - 1$) is $v_i$.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-The value of a constant list literal
-\code{\CONST?\,\,[$e_1, \ldots, e_n$]}
-is defined as the value of the constant list literal
-% For a constant list literal, it is never an error to have the \CONST, even if
-% it was omitted above. So we remove the `?`, making the next line well-defined.
-\code{\CONST\,\,<\DYNAMIC>[$e_1, \ldots, e_n$]}.
+\code{\CONST?\,\,<$T$>[\List{\ell}{1}{m}]}
+is an object $o$ whose class implements the built-in class
+\code{List<$t$>}
+where $t$ is the actual value of $T$
+(\ref{actualTypes}),
+and whose contents is the object sequence \List{o}{1}{n} obtained by
+evaluation of \List{\ell}{1}{m}
+(\ref{collectionLiteralElementEvaluation}).
+The $i$th object of $o$ (at index $i - 1$) is then $o_i$.
 
 \LMHash{}%
-Let
-$list_1 =$ \code{\CONST?\,\,<$V$>[$e_{11}, \ldots, e_{1n}$]}
-and
-$list_2 =$ \code{\CONST?\,\,<$U$>[$e_{21}, \ldots, e_{2n}$]}
-be two constant list literals and
-let the elements of $list_1$ and $list_2$ evaluate to
-$o_{11}, \ldots, o_{1n}$ and $o_{21}, \ldots, o_{2n}$ respectively.
-If{}f \code{identical($o_{1i}$, $o_{2i}$)} for $i \in 1 .. n$ and $V == U$
-then \code{identical($list_1$, $list_2$)}.
+Let \code{\CONST?\,\,<$T_1$>[$\ell_{11}, \ldots, \ell_{1m_1}$]}
+and \code{\CONST?\,\,<$T_2$>[$\ell_{21}, \ldots, \ell_{2m_2}$]}
+be two constant list literals.
+Let $o_1$ with contents $o_{11}, \ldots, o_{1n}$ and actual type argument $t_1$
+respectively
+$o_2$ with contents $o_{21}, \ldots, o_{2n}$ and actual type argument $t_2$
+be the result of evaluating them.
+Then \code{identical($o_1$, $o_2$)} evaluates to \TRUE{} if{}f
+\code{$t_1$ == $t_2$} and \code{identical($o_{1i}$, $o_{2i}$)}
+evaluates to \TRUE{} for all $i \in 1 .. n$.
 
 \commentary{%
-In other words, constant list literals are canonicalized.%
+In other words, constant list literals are canonicalized.
+There is no need to consider canonicalization
+for other instances of type \code{List},
+because such instances cannot be
+the result of evaluating a constant expression.%
 }
 
 \LMHash{}%
 A run-time list literal
-\code{<$E$>[$e_1, \ldots, e_n$]}
+\code{<$T$>[\List{\ell}{1}{m}]}
 is evaluated as follows:
 \begin{itemize}
 \item
-  First, the expressions $e_1, \ldots, e_n$ are evaluated
-  in order they appear in the program,
-  producing objects $o_1, \ldots, o_n$.
+  The elements \List{\ell}{1}{m} are evaluated
+  (\ref{collectionLiteralElementEvaluation}),
+  to an object sequence \LiteralSequence{\List{o}{1}{n}}.
 \item
-  A fresh instance (\ref{generativeConstructors}) $a$, of size $n$,
-  whose class implements the built-in class \code{List<$E$>}
-  is allocated.
+  A fresh instance (\ref{generativeConstructors}) $o$, of size $n$,
+  whose class implements the built-in class \code{List<$t$>}
+  is allocated,
+  where $t$ is the actual value of $T$
+  (\ref{actualTypes}).
 \item
-  The operator \lit{[]=} is invoked on $a$ with
+  The operator \lit{[]=} is invoked on $o$ with
   first argument $i$ and second argument
   $o_{i+1}, 0 \le i < n$.
 \item
-  The result of the evaluation is $a$.
+  The result of the evaluation is $o$.
 \end{itemize}
 
 \LMHash{}%
@@ -7174,247 +8227,634 @@ if element $i$ is not a subtype of the element type of the list,
 a dynamic type error will occur when $a[i]$ is assigned $o_{i-1}$.
 }
 
-\LMHash{}%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-A run-time list literal
-\code{[$e_1, \ldots, e_n$]}
-is evaluated as
-\code{<\DYNAMIC>[$e_1, \ldots, e_n$]}.
 
-\commentary{
-There is no restriction precluding nesting of list literals.
-It follows from the rules above that
-\code{<List<int>{}>[<int>[1, 2, 3], <int>[4, 5, 6]]}
-is a list with type parameter \code{List<int>},
-containing two lists with type parameter \code{int}.
+\subsubsection{Set and Map Literal Disambiguation}
+\LMLabel{setAndMapLiteralDisambiguation}
+
+\LMHash{}%
+Some terms like \code{\{\}} and \code{\{\,...\id\,\}} are ambiguous:
+they may be either a set literal or a map literal.
+This ambiguity is eliminated in two steps.
+The first step uses only the syntax and context type,
+%% TODO(eernst): Enable this reference when 'context type' gets defined.
+%% (\ref{contextType})
+and is described in this section.
+The second step uses expression types and is described next
+(\ref{setAndMapLiteralInference}).
+
+\LMHash{}%
+Let $e$ be a \synt{setOrMapLiteral}
+with leaf elements $\cal L$ and context type $C$.
+If $C$ is \FreeContext{} then let $S$ be undefined.
+%% TODO(eernst): Define 'greatest closure' of a context type
+%% when we define 'context type'.
+Otherwise let $S$ be the greatest closure of \futureOrBase{C}
+(\ref{typeFutureOr}).
+
+%% TODO(eernst): Delete when 'context type', 'greatest closure' are defined.
+\commentary{%
+A future version of this document will specify context types.
+The basic intuition is that a
+\Index{context type}
+is the type declared for a
+receiving entity such as
+a formal parameter $p$ or a declared variable $v$.
+That type will be the context type for
+an actual argument passed to $p$,
+respectively an initializing expression for $v$.
+In some situations the context has no constraints,
+e.g., when a variable is declared with \VAR{} rather than a type annotation.
+This gives rise to an
+\IndexCustom{unconstrained context type}{context type!unconstrained},
+\IndexCustom{\rm\FreeContext}{[]@\FreeContext},
+which may also occur in a composite term, e.g., \code{List<\FreeContext>}.
+%% TODO(eernst): Clarify why we do not just use i2b, rather than
+%% introducing the notion of a greatest (and least) closure.
+The greatest closure of a context type $C$ is
+approximately the least common supertype of all types
+obtainable by replacing \FreeContext{} by a type.%
 }
 
 \LMHash{}%
-The static type of a list literal of the form
-\code{\CONST\,\,<$E$>[$e_1, \ldots, e_n$]}
-or the form
-\code{<$E$>[$e_1, \ldots, e_n$]}
-is \code{List<$E$>}.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-The static type of a list literal of the form
-\code{\CONST\,\,[$e_1, \ldots, e_n$]}
-or the form
-\code{[$e_1, \ldots, e_n$]}
-is \code{List<\DYNAMIC>}.
+The disambiguation step of this section is
+the first applicable entry in the following list:
 
-
-\subsection{Maps}
-\LMLabel{maps}
-
-\LMHash{}%
-A \IndexCustom{map literal}{literal!map} denotes a map object.
-
-\begin{grammar}
-<mapLiteral> ::= \CONST{}? <typeArguments>?
-  \gnewline{} `{' <mapLiteralEntry> (`,' <mapLiteralEntry>)* `,'? `}'
-
-<mapLiteralEntry> ::= <expression> `:' <expression>
-
-<setOrMapLiteral> ::= \CONST{}? <typeArguments>? `{' `}'
-\end{grammar}
-
-\LMHash{}%
-A \synt{setOrMapLiteral} $e$ is either a set literal (\ref {sets}) or a map literal,
-determined by the type parameters or static context type.
-If $e$ has exactly one type argument, then it is a set literal.
-If $e$ has two type arguments, then it is a map literal.
-If $e$ has three or more type arguments, it is a compile-time error.
-If $e$ has \emph{no} type arguments,
-then let $S$ be the static context type of the literal.
-If $\futureOrBase{S}$ (\ref{typeFutureOr}) is a subtype of \code{Iterable<Object>}
-and $\futureOrBase{S}$ is not a subtype of \code{Map<Object, Object>},
-then $e$ is set literal,
-and otherwise it is a map literal.
-A map literal derived from \synt{setOrMapLiteral}
-is treated the same way as one derived from \synt{mapLiteral},
-as described below.
-
-\LMHash{}%
-A map literal consists of zero or more entries.
-Each entry has a \Index{key} and a \Index{value}.
-Each key and each value is denoted by an expression.
-It is a compile-time error if a map literal has one type argument,
-or more than two type arguments.
-
-\LMHash{}%
-If a map literal $\ell$ begins with the reserved word \CONST{},
-or if $\ell$ occurs in a constant context
-(\ref{constantContexts}),
-it is a
-\IndexCustom{constant map literal}{literal!map!constant}
-which is a constant expression
-(\ref{constants})
-and therefore evaluated at compile time.
-Otherwise, it is a
-\IndexCustom{run-time map literal}{literal!map!run-time}
-and it is evaluated at run time.
-Only run-time map literals can be mutated after they are created.
-% This error can occur because being constant is a dynamic property, here.
-Attempting to mutate a constant map literal will result in a dynamic error.
+\begin{itemize}
+\item When $e$ has type arguments \List{T}{1}{k}, $k > 0$:
+  If $k = 1$ then $e$ is a set literal with static type
+  \code{Set<$T_1$>}.
+  If $k = 2$ then $e$ is a map literal with static type
+  \code{Map<$T_1$,\,\,$T_2$>}.
+  Otherwise a compile-time error occurs.
+\item
+  When $S$ implements
+  (\ref{interfaceSuperinterfaces})
+  \code{Iterable} but not \code{Map},
+  $e$ is a set literal.
+  When $S$ implements \code{Map} but not \code{Iterable},
+  $e$ is a map literal.
+\item
+  When ${\cal L} \not= \emptyset$ (\commentary{that is, $e$ has leaf elements}):
+  If $\cal L$ contains a \synt{mapElement} as well as an \synt{expressionElement},
+  a compile-time error occurs.
+  Otherwise, if $\cal L$ contains an \synt{expressionElement},
+  $e$ is a set literal.
+  Otherwise $\cal L$ contains a \synt{mapElement}, and $e$ is a map literal.
+\item
+  When $e$ is of the form \code{\{\}} and $S$ is undefined,
+  $e$ is a map literal.
+  \rationale{%
+    There is no deeper reason for this choice,
+    but the fact that \code{\{\}} is a map by default
+    was useful when set literals were introduced,
+    because it would be a breaking change to make it a set.%
+  }
+\item
+  Otherwise, $e$ is still ambiguous.
+  \commentary{%
+    In this case $e$ is non-empty, but contains only spreads
+    wrapped zero or more times in \synt{ifElement}s or \synt{forElement}s.
+    Disambiguation will then occur during inference
+    (\ref{setAndMapLiteralInference}).%
+  }
+\end{itemize}
 
 \commentary{%
-% The following is true either directly or indirectly: There is a \CONST{}
-% modifier on the literal map, or we use the "immediate subexpression" rule
-% about constant contexts.
-Note that the key and value expressions of a constant list literal
-occur in a constant context
-(\ref{constantContexts}),
-which means that \CONST{} modifiers need not be specified explicitly.%
+When this step does not determine a static type,
+it will be determined by type inference
+(\ref{setAndMapLiteralInference}).%
 }
 
 \LMHash{}%
-It is a compile-time error if
-either a key or a value of an entry in a constant map literal
-is not a constant expression.
-It is a compile-time error if
-the operator \lit{==} of the key of an entry in a constant map literal
-is not primitive
-(\ref{theOperatorEqualsEquals}).
-It is a compile-time error if a type argument of a constant map literal
-is not a constant type expression
-(\ref{constants}).
+If this process successfully disambiguates the literal
+then we say that $e$ is
+\IndexCustom{unambiguously a set}{set!unambiguously}
+or
+\IndexCustom{unambiguously a map}{map!unambiguously},
+as appropriate.
+
+
+\subsubsection{Set and Map Literal Inference}
+\LMLabel{setAndMapLiteralInference}
 
 \LMHash{}%
-The value of a constant map literal
-\code{\CONST?\,\,<$K, V$>\{$k_1:e_1, \ldots, k_n:e_n$\}}
-is an object $m$ whose class implements the built-in class
-\code{Map<$K, V$>}.
-The entries of $m$ are $u_i:v_i, i \in 1 .. n$,
-where $u_i$ is the value of the compile-time expression $k_i$,
-and $v_i$ is the value of the compile-time expression $e_i$.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-The value of a constant map literal
-\code{\CONST?\,\,\{$k_1:e_1, \ldots, k_n:e_n$\}}
-is defined as the value of the constant map literal
-% For a constant map literal, it is never an error to have the \CONST, even if
-% it was omitted above. So we remove the `?`, making the next line well-defined.
-\code{\CONST\,\,<\DYNAMIC, \DYNAMIC>\{$k_1:e_1, \ldots, k_n:e_n$\}}.
-
-\LMHash{}%
-Let $map_1$ be a constant map literal of the form
-\code{\CONST?\,\,<$K, V$>\{$k_{11}:e_{11}, \ldots, k_{1n}:e_{1n}$\}}
-and $map_2$ a constant map literal of the form
-\code{\CONST?\,\,<$J, U$>\{$k_{21}:e_{21}, \ldots, k_{2n}:e_{2n}$\}}.
-Let the keys of $map_1$ and $map_2$ evaluate to
-$s_{11}, \ldots, s_{1n}$ and $s_{21}, \ldots, s_{2n}$, respectively,
-and let the elements of $map_1$ and $map_2$ evaluate to
-$o_{11}, \ldots, o_{1n}$ and $o_{21}, \ldots, o_{2n}$, respectively.
-If{}f
-\code{identical($o_{1i}$, $o_{2i}$)} and
-\code{identical($s_{1i}$, $s_{2i}$)}
-for $i \in 1 .. n$, and $K == J, V == U$, then \code{identical($map_1$, $map_2$)}.
+This section specifies how a \synt{setOrMapLiteral} $e$ is traversed
+and an associated
+\IndexCustom{inferred element type}{set or map literal!element type}
+and/or an associated
+\IndexCustom{inferred key and value type pair}{%
+  set or map literal!key and value type pair}
+is determined.
 
 \commentary{%
-In other words, constant map literals are canonicalized.%
+If $e$ has an element type then it may be a set,
+and if it has a key and value type pair then it may be a map.
+%
+However, if the literal $e$ contains a spread element of type \DYNAMIC{},
+that element cannot be used to determine whether $e$ is a set or a map.
+The ambiguity is represented as having \emph{both}
+an element type and a key and value type pair.
+
+It is an error if the ambiguity is not resolved by some other elements,
+but if it is resolved then the dynamic spread element is required
+to evaluate to a suitable instance
+(implementing \code{Iterable} when $e$ is a set,
+and implementing \code{Map} when $e$ is a map),
+which means that it is a dynamic error if there is a mismatch.
+In other situations it is a compile-time error to have both
+an element type and a key and value type pair,
+because $e$ must be both a set and a map.
+Here is an example:%
 }
 
-\LMHash{}%
-It is a compile-time error if two keys of a constant map literal are equal
-according to their \lit{==} operator (\ref{equality}).
+\begin{dartCode}
+\DYNAMIC{} x = <int, int>\{\};
+Iterable l = [];
+Map m = \{\};
+\\
+\VOID{} main() \{
+  \VAR v1 = \{...x\};       // \comment{Compile-time error: ambiguous}
+  \VAR v2 = \{...x, ...l\}; // \comment{A set, dynamic error when `x` is evaluated}
+  \VAR v3 = \{...x, ...m\}; // \comment{A map, no dynamic errors}
+  \VAR v4 = \{...l, ...m\}; // \comment{Compile-time error: must be set and map}
+\}
+\end{dartCode}
 
 \LMHash{}%
-A run-time map literal
-\code{<$K, V$>\{$k_1:e_1, \ldots, k_n:e_n$\}}
-is evaluated as follows:
+Let \metavar{collection} be a collection literal
+derived from \synt{setOrMapLiteral}.
+The inferred type of an \synt{element} is an element type $T$,
+a pair of a key and value type $(K, V)$, or both.
+It is computed relative to a context type $P$
+(\ref{setAndMapLiteralDisambiguation}),
+which is determined as follows:
+
 \begin{itemize}
 \item
-  For each $i \in 1 .. n$ in numeric order,
-  first the expression $k_i$ is evaluated producing object $u_i$,
-  and then $e_i$ is evaluated producing object $o_i$.
-  This produces all the objects $u_1, o_1, \ldots, u_n, o_n$.
+  If \metavar{collection} is unambiguously a set
+  (\ref{setAndMapLiteralDisambiguation})
+  then $P$ is \code{Set<$P_e$>},
+  %% TODO(eernst): Add reference when we specify inference.
+  where $P_e$ is determined by downwards inference,
+  and may be \FreeContext{}
+  %% TODO(eernst): Correct this reference when we specify context types.
+  (\ref{setAndMapLiteralDisambiguation})
+  if downwards inference does not constrain it.
+
+  %% TODO(eernst): Remove this when we specify inference.
+  \commentary{%
+    A future version of this document will specify inference,
+    the notion of downwards inference,
+    and constraining.
+    The brief intuition is that inference selects values for
+    type parameters in generic constructs
+    where no type arguments have been provided,
+    aiming at a type which matches a given context type;
+    downwards inference does this by passing information
+    from a given expression into its subexpressions,
+    and upwards inference propagates information in the opposite direction.
+    Constraints are expressed in terms of context types;
+    being unconstrained means having \FreeContext{} as the context type.
+    Having a context type that \emph{contains}
+    one or more occurrences of \FreeContext{}
+    provides a partial constraint on the inferred type.
+  }
 \item
-  A fresh instance (\ref{generativeConstructors}) $m$
-  whose class implements the built-in class \code{Map<$K, V$>},
-  is allocated.
+  If \metavar{collection} is unambiguously a map
+  then $P$ is \code{Map<$P_k$,\,\,$P_v$>}
+  where $P_k$ and $P_v$ are determined by downwards inference,
+  and may be \FreeContext{}
+  if the downwards context does not constrain one or both.
 \item
-  The operator \lit{[]=} is invoked on $m$
-  with first argument $u_i$ and second argument $o_i$
-  for each $i \in 1 .. n$.
-\item
-  The result of the evaluation is $m$.
+  Otherwise, \metavar{collection} is ambiguous,
+  and the downwards context for the elements of \metavar{collection}
+  is \FreeContext.
 \end{itemize}
 
 \LMHash{}%
-The objects created by map literals do not override
-the \lit{==} operator inherited from the \code{Object} class.
+We say that a collection literal element
+\IndexCustom{can be a set}{collection literal element!can be a set}
+if it has an element type;
+it
+\IndexCustom{can be a map}{collection literal element!can be a map}
+if it has a key and value type pair;
+it
+\IndexCustom{must be a set}{collection literal element!must be a set}
+if it can be a set and has and no key and value type pair;
+and it
+\IndexCustom{must be a map}{collection literal element!must be a map}
+if can be a map and has no element type.
 
 \LMHash{}%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-A run-time map literal
-\code{\{$k_1:e_1, \ldots, k_n:e_n$\}}
-is evaluated as
-
-\code{<\DYNAMIC, \DYNAMIC>\{$k_1:e_1, \ldots, k_n:e_n$\}}.
+Let $\ell$ be a term derived from \synt{element}.
+\IndexCustom{Inference of the type of}{%
+  type inference!collection literal element}
+$\ell$ with context type $P$ then proceeds
+as follows:
 
 \LMHash{}%
-A map literal is ordered:
-iterating over the keys and/or values of the maps
-always happens in the order the keys appeared in the source code.
+\Case{Expression element}
+In this case $\ell$ is an expression $e$.
+%
+If $P$ is \FreeContext,
+the inferred element type of $\ell$ is
+the inferred type of $e$ in context \FreeContext.
+%
+If $P$ is \code{Set<$P_e$>},
+the inferred element type of $\ell$ is
+the inferred type of $e$ in context $P_e$.
+\EndCase
 
-\commentary{
-Of course, if a key repeats, the order is defined by first occurrence,
-but the value is defined by the last.
+\LMHash{}%
+\Case{Map element}
+In this case $\ell$ is a pair of expressions \code{$e_k$:\,$e_v$}.
+%
+If $P$ is \FreeContext{},
+the inferred key and value type pair of $\ell$ is $(K, V)$,
+where $K$ and $V$ is
+the inferred type of $e_k$ respectively $e_v$,
+in context \FreeContext.
+%
+If $P$ is \code{Map<$P_k$,\,\,$P_v$>},
+the inferred key and value type pair of $\ell$ is $(K, V)$,
+where $K$ is
+the inferred type of $e_k$ in context $P_k$, and
+the $V$ is
+the inferred type of $e_v$ in context $P_v$.
+\EndCase
+
+\LMHash{}%
+\Case{Spread element}
+In this case $\ell$ is of the form
+`\code{...$e$}' or `\code{...?$e$}'.
+If $P$ is \FreeContext{} then let $S$ be
+the inferred type of $e$ in context \FreeContext.
+Then:
+
+\begin{itemize}
+\item
+  If $S$ implements \code{Iterable},
+  the inferred element type of $\ell$ is
+  the type argument of $S$ at \code{Iterable}.
+
+  \commentary{%
+    This is the result of constraint matching for $X$
+    using the constraint $S\,\,<:\,\,\code{Iterable<$X$>}$.
+    Note that when $S$ implements a class like \code{Map} or \code{Iterable},
+    it cannot be a subtype of \code{Null}
+    (\ref{interfaceSuperinterfaces}).
+  }
+\item
+  If $S$ implements \code{Map},
+  the inferred key and value type pair of $\ell$ is $(K, V)$,
+  where $K$ is the first and $V$ the second type argument
+  of $S$ at \code{Map}.
+
+  \commentary{%
+    This is the result of constraint matching for $X$ and $Y$ using
+    the constraint $S\,\,<:\,\,\code{Map<$X$,\,\,$Y$>}$.%
+
+    Note that this case and the previous case
+    can match on the same element simultaneously
+    when $S$ implements both \code{Iterable} and \code{Map}.
+    The same situation arises several times below.
+    In such cases we rely on other elements to disambiguate.%
+  }
+\item
+  If $S$ is \DYNAMIC{} then
+  the inferred element type of $\ell$ is \DYNAMIC,
+  and the inferred key and value type pair of $\ell$ is
+  $(\DYNAMIC, \DYNAMIC)$.
+
+  \commentary{%
+    We produce both an element type and a key and value type pair here,
+    and rely on other elements to disambiguate.%
+  }
+\item
+  If $S$ is \code{Null} and the spread operator is \lit{...?} then
+  the inferred element type of $\ell$ is \code{Null},
+  and the inferred key and value type pair $(\code{Null}, \code{Null})$.
+\item
+  Otherwise, a compile-time error occurs.
+\end{itemize}
+
+\noindent
+%% TODO(eernst): Clarify why we shouldn't be able to use a context type of
+%% `Iterable<$P_e$>` in the same way: infer $e$ in context `Iterable<$P_e$>`
+%% as well.
+Otherwise, if $P$ is \code{Set<$P_e$>} then let $S$ be
+the inferred type of $e$ in context \code{Iterable<$P_e$>}, and then:
+
+\begin{itemize}
+\item
+  If $S$ implements \code{Iterable},
+  the inferred element type of $\ell$ is
+  the type argument of $S$ at \code{Iterable}.
+  \commentary{%
+    This is the result of constraint matching for $X$ using
+    the constraint $S <: \code{Iterable<$X$>}$.%
+  }
+\item
+  If $S$ is \DYNAMIC{},
+  the inferred element type of $\ell$ is \DYNAMIC{}.
+\item
+  If $S$ is \code{Null} and the spread operator is \lit{...?},
+  the inferred element type of $\ell$ is \code{Null}.
+\item
+  Otherwise, a compile-time error occurs.
+\end{itemize}
+
+\noindent
+Otherwise, if $P$ is \code{Map<$P_k$,\,\,$P_v$>} then let $S$ be
+the inferred type of $e$ in context $P$, and then:
+
+\begin{itemize}
+\item
+  If $S$ implements \code{Map},
+  the inferred key and value type pair of $\ell$ is $(K, V)$,
+  where $K$ is the first and $V$ the second type argument of
+  $S$ at \code{Map}.
+  \commentary{%
+    This is the result of constraint matching for $X$ and $Y$ using
+    the constraint \code{$S$ <: Map<$X$,\,\,$Y$>}.%
+  }
+\item
+  If $S$ is \DYNAMIC,
+  the inferred key and value type pair of $\ell$ is
+
+  \noindent
+  $(\DYNAMIC, \DYNAMIC)$.
+\item
+  If $S$ is \code{Null} and the spread operator is \lit{...?},
+  the inferred key and value type pair $(\code{Null}, \code{Null})$.
+\item
+  Otherwise, a compile-time error occurs.
+\end{itemize}
+\vspace{-5mm}
+\EndCase
+
+\LMHash{}%
+\Case{If element}
+In this case $\ell$ is of the form
+\code{\IF\,\,($b$)\,\,$\ell_1$} or
+\code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
+The condition $b$ is always inferred with a context type of \code{bool}.
+
+Assume that `\code{\ELSE\,\,$\ell_2$}' is not present. Then:
+\begin{itemize}
+\item
+  If the inferred element type of $\ell_1$ is $S$,
+  the inferred element type of $\ell$ is $S$.
+\item
+  If the inferred key and value type pair of $\ell_1$ is $(K, V)$,
+  the inferred key and value type pair of $\ell$ is $(K, V)$.
+\end{itemize}
+
+Otherwise, `\code{\ELSE\,\,$\ell_2$}' is present.
+It is a compile error if $\ell_1$ must be a set and $\ell_2$ must be a map,
+or vice versa.
+
+\commentary{%
+This means that one cannot spread a map on one branch and a set on the other.
+Since \DYNAMIC{} provides both an element type and a key and value type pair,
+a \DYNAMIC{} spread in either branch does not cause the error to occur.%
 }
 
+Then:
+
+\begin{itemize}
+\item
+  If the inferred element type of $\ell_1$ is $S_1$ and
+  the inferred element type of $\ell_2$ is $S_2$,
+  the inferred element type of $\ell$ is
+  the least upper bound of $S_1$ and $S_2$.
+\item
+  If the inferred key and value type pair of $e_1$ is
+  $(K_1, V_1)$
+  and the inferred key and value type pair of $e_2$ is
+  $(K_2, V_2)$,
+  the inferred key and value type pair of $\ell$ is
+  $(K, V)$,
+  where $K$ is the least upper bound of $K_1$ and $K_2$, and
+  and $V$ is the least upper bound of $V_1$ and $V_2$.
+\end{itemize}
+\vspace{-5mm}
+\EndCase
+
 \LMHash{}%
-The static type of a map literal of the form
-\code{\CONST{} <$K, V$>\{$k_1:e_1, \ldots, k_n:e_n$\}}
-or the form
-\code{<$K, V$>\{$k_1:e_1, \ldots, k_n:e_n$\}}
-is
-\code{Map<$K, V$>}.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-The static type of a map literal of the form
-\code{\CONST{} \{$k_1:e_1, \ldots, k_n:e_n$\}}
-or the form
-\code{\{$k_1:e_1, \ldots, k_n:e_n$\}} is
-\code{Map<\DYNAMIC, \DYNAMIC>}.
+\Case{For element}
+In this case $\ell$ is of the form
+\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$}
+where $P$ is derived from \synt{forLoopParts} and
+`\AWAIT?' indicates that \AWAIT{} may be present or absent.
+
+The same compile-time errors occur for $\ell$ as
+the errors that would occur with the corresponding \FOR{} statement
+\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,\{\}},
+located in the same scope as $\ell$.
+Moreover, the errors and type analysis of $\ell$ is performed
+as if it occurred in the body scope of said \FOR{} statement.
+
+\commentary{%
+For instance, if $P$ is of the form
+\code{\VAR\,\,v\,\,\IN\,\,$e_1$}
+then the variable \code{v} is in scope for $\ell$.%
+}
+
+Inference for the parts
+(\commentary{%
+  such as the iterable expression of a for-in,
+  or the \synt{forInitializerStatement} of a for loop%
+})
+is done as for the corresponding \FOR{} statement,
+including \AWAIT{} if and only if the element includes \AWAIT.
+
+\begin{itemize}
+\item
+  If the inferred element type of $\ell_1$ is $S$ then
+  the inferred element type of $\ell$ is $S$.
+\item
+  If the inferred key and value type pair of $e_1$ is $(K, V)$,
+  the inferred key and value type pair of $\ell$ is $(K, V)$.
+\end{itemize}
+
+\commentary{%
+In other words, inference flows upwards from the body element.%
+}
+\vspace{3mm}
+\EndCase
+
+\LMHash{}%
+Finally, we define
+\IndexCustom{type inference on a set or map literal}{%
+  type inference!set or map literal}
+as a whole.
+Assume that \metavar{collection} is derived from \synt{setOrMapLiteral},
+and the context type for \metavar{collection} is $P$.
+
+\begin{itemize}
+\item
+  If \metavar{collection} is unambiguously a set:
+
+  \begin{itemize}
+  \item
+    If $P$ is \FreeContext{} then
+    the static type of \metavar{collection} is \code{Set<$T$>}
+    where $T$ is the least upper bound of
+    the inferred element types of the elements.
+  \item
+    %% TODO(eernst): Feature spec says $P$, but how can we know that $P$ is a type?
+    Otherwise, the static type of \metavar{collection} is $T$
+    where $T$ is determined by downwards inference.
+
+    \commentary{%
+      Note that the inference will never produce a key and value type pair
+      with the given context type.%
+    }
+  \end{itemize}
+
+  The static type of \metavar{collection} is then \code{Set<$T$>}.
+\item
+  If \metavar{collection} is unambiguously a map
+  where $P$ is \code{Map<$P_k$,\,\,$P_v$>} or $P$ is \FreeContext{}
+  and the inferred key and value type pairs are
+  \KeyValueTypeList{K}{V}{1}{n}:
+
+  If $P_k$ is \FreeContext{} or $P$ is \FreeContext,
+  the static key type of \metavar{collection} is $K$
+  where $K$ is the least upper bound of \List{K}{1}{n}.
+  Otherwise the static key type of \metavar{collection} is $K$
+  where $K$ is determined by downwards inference.
+
+  If $P_v$ is \FreeContext{} or $P$ is \FreeContext,
+  the static value type of \metavar{collection} is $V$
+  where $V$ is the least upper bound of \List{V}{1}{n}.
+  Otherwise the static value type of \metavar{collection} is $V$
+  where $V$ is determined by downwards inference.
+
+  \commentary{%
+    Note that inference will never produce a element type here
+    given this downwards context.%
+  }
+
+  The static type of \metavar{collection} is then \code{Map<$K$,\,\,$V$>}.
+\item
+  Otherwise, \metavar{collection} is still ambiguous,
+  the downwards context for the elements of \metavar{collection} is \FreeContext{},
+  and the disambiguation is done using
+  the immediate elements of \metavar{collection} as follows:
+
+  \begin{itemize}
+  \item
+    If all elements can be a set,
+    and at least one element must be a set,
+    then \metavar{collection} is a set literal with
+    static type \code{Set<$T$>} where $T$ is
+    the least upper bound of the element types of the elements.
+  \item
+    If all elements can be a map,
+    and at least one element must be a map, then $e$ is
+    a map literal with static type \code{Map<$K$,\,\,$V$>} where $K$ is
+    the least upper bound of the key types of the elements and $V$ is
+    the least upper bound of the value types.
+  \item
+    Otherwise, a compile-time error occurs.
+    \commentary{In this case the literal cannot be disambiguated.}
+  \end{itemize}
+\end{itemize}
+
+\commentary{%
+This last error can occur if the literal \emph{must} be both a set and a map.
+Here is an example:%
+}
+
+\begin{dartCode}
+\VAR{} iterable = [1, 2];
+\VAR{} map = \{1: 2\};
+\VAR{} ambiguous = \{...iterable, ...map\}; // \comment{Compile-time error}
+\end{dartCode}
+
+\commentary{%
+\noindent
+Or, if there is nothing indicates that it is \emph{either} a set or a map:%
+}
+
+\begin{dartCode}
+\DYNAMIC{} dyn;
+\VAR{} ambiguous = \{...dyn\}; // \comment{Compile-time error}
+\end{dartCode}
 
 
-\subsection{Sets}
+\subsubsection{Sets}
 \LMLabel{sets}
 
 \LMHash{}%
 A \IndexCustom{set literal}{literal!set} denotes a set object.
-
-\begin{grammar}
-<setLiteral> ::= \CONST{}? <typeArguments>?
-  \gnewline{} `{' <expression> (`,' <expression>)* `,'? `\}'
-\end{grammar}
-
-\LMHash{}%
-A \synt{setOrMapLiteral} is either a set literal or a map literal
-(\ref{maps}).
-A set literal derived from \synt{setOrMapLiteral}
-is treated the same way as one derived from \synt{setLiteral},
-as described below.
+The grammar rule for \synt{setOrMapLiteral} which covers
+set literals as well as map literals occurs elsewhere
+(\ref{collectionLiterals}).
+A set literal consists of zero or more collection literal elements
+(\ref{collectionLiterals}).
+A term derived from \synt{setOrMapLiteral}
+may be a set literal or a map literal,
+and it is determined via a disambiguation step
+whether it is a set literal or a map literal
+(\ref{setAndMapLiteralDisambiguation}, \ref{setAndMapLiteralInference}).
 
 \LMHash{}%
-A set literal consists of zero or more element expressions.
-It is a compile-time error if a set literal has more than one type argument.
+When a given set literal $e$ has no type arguments,
+the type argument $T$ is selected as specified elsewhere
+(\ref{setAndMapLiteralInference}),
+and $e$ is henceforth treated as
+(\ref{notation})
+\code{<$T$>$e$}.
 
-\rationale{%
-A set literal with no type argument is always converted to a literal
-with a type argument by type inference (\ref{overview}), so the following
-section only address the behavior of literals with type arguments.%
+\commentary{%
+The static type of a set literal of the form \code{<$T$>$e$}
+is \code{Set<$T$>}
+(\ref{setAndMapLiteralInference}).%
 }
 
 \LMHash{}%
-If a set literal $\ell$ begins with the reserved word \CONST{}
-or $\ell$ occurs in a constant context
+Let $e$ be a set literal of the form
+\code{<$T$>\{\List{\ell}{1}{m}\}}.
+It is a compile-time error if a leaf element of $e$ is a
+\synt{mapElement}.
+It is a compile-time error if, for some $j \in 1 .. m$,
+$\ell_j$ does not have an element type,
+or the element type of $\ell_j$ may not be assigned to $T$.
+
+\LMHash{}%
+A set may contain zero or more objects.
+Sets have a method which can be used to insert objects;
+this will incur a dynamic error if the set is not modifiable.
+Otherwise, when inserting an object $o_{\metavar{new}}$ into a set $s$,
+if an object $o_{\metavar{old}}$ exists in $s$ such that
+\code{$o_{\metavar{old}}$ == $o_{\metavar{new}}$} evaluates to \TRUE{}
+then the insertion makes no changes to $s$;
+if no such object exists,
+$o_{\metavar{new}}$ is added to $s$;
+in both cases the insertion completes successfully.
+
+\LMHash{}%
+A set is ordered: iteration over the elements of a set
+occurs in the order the elements were added to the set.
+
+\commentary{%
+The system libraries define many members for the type \code{Set},
+but we specify only the minimal set of requirements
+which are used by the language itself.%
+
+Note that an implementation may require consistent definitions of several members
+of a class implementing \code{Set} in order to work correctly.
+For instance, there may be a getter \code{hashCode} which is required
+to have a behavior which is in some sense consistent with operator \lit{==}.
+Such constraints are documented in the system libraries.%
+}
+
+\LMHash{}%
+If a set literal $e$ begins with the reserved word \CONST{}
+or $e$ occurs in a constant context
 (\ref{constantContexts}),
 it is a
 \IndexCustom{constant set literal}{literal!set!constant}
@@ -7439,105 +8879,284 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 }
 
 \LMHash{}%
-It is a compile-time error if an element expression in a constant set literal
+It is a compile-time error if
+a collection literal element in a constant set literal
 is not a constant expression.
 It is a compile-time error if
-the operator \lit{==} of an element expression in a constant map literal
+the operator \lit{==} of an element expression in a constant set literal
 is not primitive
 (\ref{theOperatorEqualsEquals}).
-It is a compile-time error if the type argument of a constant set literal
-is not a constant type expression
-(\ref{constants}).
 It is a compile-time error if two elements of a constant set literal are equal
 according to their \lit{==} operator
 (\ref{equality}).
+It is a compile-time error if the type argument of a constant set literal
+(\commentary{no matter whether it is explicit or inferred})
+is not a constant type expression
+(\ref{constants}).
 
-\LMHash{}%
-The value of a constant set literal
-\code{\CONST?\,\,<$E$>\{$e_1, \ldots, e_n$\}}
-is an object $s$ whose class implements the built-in class
-\code{Set<$E$>}.
-The elements of $m$ are $v_i, i \in 1 .. n$,
-where $v_i$ is the value of the constant expression $e_i$.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-The value of a constant set literal
-\code{\CONST?\,\,\{$e_1, \ldots, e_n$\}}
-is defined as the value of the constant set literal
-% For a constant set literal, it is never an error to have the \CONST, even if
-% it was omitted above. So we remove the `?`, making the next line well-defined.
-\code{\CONST\,\,<\DYNAMIC>\{$e_1, \ldots, e_n$\}}.
-
-\LMHash{}%
-Let $set_1$ be a constant set literal with type argument $E$
-and element expressions, in source order, $e_{11}, \ldots, e_{1n}$ evaluating
-to objects $v_{11}, \ldots, v_{1n}$.
-Let $set_2$ be a constant set literal with type argument $F$
-and element expressions, in source order, $e_{21}, \ldots, e_{2n}$ evaluating
-to objects $v_{21}, \ldots, v_{2n}$.
-If{}f \code{identical($v_{1i}$, $v_{2i}$)}
-for $i \in 1 .. n$, and $E$ and $F$ is the same type,
-then \code{identical($set_1$, $set_2$)}.
-
-\commentary{%
-In other words, constant set literals are canonicalized if they have
-the same type and the same values in the same order.
-Two constant set literals are never identical
-if they have a different number of elements.%
+\rationale{%
+The binding of a formal type parameter of an enclosing class or function
+is not known at compile time,
+so we cannot use such type parameters inside constant expressions.%
 }
 
 \LMHash{}%
-A run-time set literal with element expressions $e_1, \ldots, e_n$
-(in source order) and with type argument $E$
+The value of a constant set literal
+\code{\CONST?\,\,<$T$>\{\List{\ell}{1}{m}\}}
+is an object $o$ whose class implements the built-in class
+\code{Set<$t$>}
+where $t$ is the actual value of $T$
+(\ref{actualTypes}),
+and whose contents is the set of objects in
+the object sequence \List{o}{1}{n} obtained by
+evaluation of \List{\ell}{1}{m}
+(\ref{collectionLiteralElementEvaluation}).
+The elements of $o$ occur in the same order as
+the objects in said object sequence
+(\commentary{which can be observed by iteration}).
+
+\LMHash{}%
+Let \code{\CONST?\,\,<$T_1$>\{\,$\ell_{11}, \ldots, \ell_{1m_1}$\,\}}
+and \code{\CONST?\,\,<$T_2$>\{\,$\ell_{21}, \ldots, \ell_{2m_2}$\,\}}
+be two constant set literals.
+Let $o_1$ with contents $o_{11}, \ldots, o_{1n}$ and actual type argument $t_1$
+respectively
+$o_2$ with contents $o_{21}, \ldots, o_{2n}$ and actual type argument $t_2$
+be the result of evaluating them.
+Then \code{identical($o_1$, $o_2$)} evaluates to \TRUE{} if{}f
+\code{$t_1$ == $t_2$} and \code{identical($o_{1i}$, $o_{2i}$)}
+evaluates to \TRUE{} for all $i \in 1 .. n$.
+
+\commentary{%
+In other words, constant set literals are canonicalized if they have
+the same type argument and the same values in the same order.
+Two constant set literals are never identical
+if they have a different number of elements.
+There is no need to consider canonicalization
+for other instances of type \code{Set},
+because such instances cannot be
+the result of evaluating a constant expression.%
+}
+
+\LMHash{}%
+A run-time set literal \code{<$T$>\{\List{\ell}{1}{n}\}}
 is evaluated as follows:
 \begin{itemize}
 \item
-For each $i \in 1 .. n$ in numeric order,
-the expression $e_i$ is evaluated producing object $v_i$.
-\item A fresh object (\ref{generativeConstructors}) $s$
-implementing the built-in class \code{Set<$E$>}, is created.
-\item The set $s$ is made to have the objects $v_1, \ldots{} , v_n$ as elements,
-iterated in numerical order.
+  The elements \List{\ell}{1}{m} are evaluated
+  (\ref{collectionLiteralElementEvaluation}),
+  to an object sequence \LiteralSequence{\List{o}{1}{n}}.
 \item
-The result of the evaluation is $s$.
+  A fresh object (\ref{generativeConstructors}) $o$
+  implementing the built-in class \code{Set<$t$>} is created,
+  where $t$ is the actual value of $T$
+  (\ref{actualTypes}).
+\item
+  For each object $o_j$ in \List{o}{1}{n}, in order,
+  $o_j$ is inserted into $o$.
+  \commentary{%
+    Note that this leaves $o$ unchanged when $o$ already contains
+    and object $o$ which is equal to $o_j$ according to operator \lit{==}.%
+  }
+\item
+  The result of the evaluation is $o$.
 \end{itemize}
 
 \LMHash{}%
 The objects created by set literals do not override
 the \lit{==} operator inherited from the \code{Object} class.
 
-\LMHash{}%
-A set literal is ordered: iterating over the elements of the sets
-always happens in the order the elements first appeared in the source code.
 
-\commentary{
-If a value repeats, the order is defined by first occurrence, but the value is defined by the last.
+\subsubsection{Maps}
+\LMLabel{maps}
+
+\LMHash{}%
+A \IndexCustom{map literal}{literal!map} denotes a map object,
+which is a mapping from keys to values.
+The grammar rule for \synt{setOrMapLiteral} which covers both
+map literals and set literals occurs elsewhere
+(\ref{collectionLiterals}).
+A map literal consists of zero or more collection literal elements
+(\ref{collectionLiterals}).
+A term derived from \synt{setOrMapLiteral}
+may be a set literal or a map literal,
+and it is determined via a disambiguation step
+whether it is a set literal or a map literal
+(\ref{setAndMapLiteralDisambiguation}, \ref{setAndMapLiteralInference}).
+
+\LMHash{}%
+When a given map literal $e$ has no type arguments,
+the type arguments $K$ and $V$ are selected as specified elsewhere
+(\ref{setAndMapLiteralInference}),
+and $e$ is henceforth treated as
+(\ref{notation})
+\code{<$K$,\,$V$>$e$}.
+
+\commentary{%
+The static type of a map literal of the form \code{<$K$,\,$V$>$e$}
+is \code{Map<$K$,\,$V$>}
+(\ref{setAndMapLiteralInference}).%
 }
 
 \LMHash{}%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-A run-time set literal
-\code{\{$e_1, \ldots, e_n$\}}
-is evaluated as
-\code{<\DYNAMIC>\{$e_1, \ldots, e_n$\}}.
+Let $e$ be a map literal of the form
+\code{<$K$,\,$V$>\{\List{\ell}{1}{m}\}}.
+It is a compile-time error if a leaf element of $e$ is an
+\synt{expressionElement}.
+It is a compile-time error if, for some $j \in 1 .. m$,
+$\ell_j$ does not have a key and value type pair;
+or the key and value type pair of $\ell_j$ is $(K_j, V_j)$,
+and $K_j$ may not be assigned to $K$ or
+$V_j$ may not be assigned to $V$.
 
 \LMHash{}%
-The static type of a set literal of the form
-\code{\CONST\,\,<$E$>\{$e_1, \ldots, e_n$\}}
-or the form
-\code{<$E$>\{$e_1, \ldots, e_n$\}}
-is
-\code{Set<$E$>}.
-%
-%% TODO(eernst): If inference is specified to provide all type arguments,
-%% we should delete the following.
-The static type of a list literal of the form
-\code{\CONST\,\,\{$e_1, \ldots, e_n$\}}
-or the form
-\code{\{$e_1, \ldots, e_n$\}}
-is \code{Set<\DYNAMIC>}.
+A map object consists of zero or more map entries.
+Each entry has a \Index{key} and a \Index{value},
+and we say that the map
+\IndexCustom{binds}{map!binds} or
+\IndexCustom{maps}{map!maps}
+the key to the value.
+A key and value pair is
+added to a map using operator \lit{[]=},
+and the value for a given key is retrieved from a map using operator \lit{[]}.
+The keys of a map are treated similarly to a set
+(\ref{sets}):
+When binding a key $k_{\metavar{new}}$ to a value $v$ in a map $m$
+(\commentary{as in \code{$m$[$k_{\metavar{new}}$]\,=\,$v$}}),
+if $m$ already has a key $k_{\metavar{old}}$ such that
+\code{$k_{\metavar{old}}$ == $k_{\metavar{new}}$} evaluates to \TRUE,
+$m$ will bind $k_{\metavar{old}}$ to $v$;
+otherwise
+(\commentary{when no such key $k_{\metavar{old}}$ exists}),
+a binding from $k_{\metavar{new}}$ to $v$ is added to $m$.
+
+\LMHash{}%
+A map is ordered: iteration over the keys, values, or key/value pairs
+occurs in the order in which the keys were added to the set.
+
+\commentary{%
+The system libraries support many operations on an instance
+whose type implements \code{Map},
+but we specify only the minimal set of requirements
+which are used by the language itself.
+
+Note that an implementation may require consistent definitions of several members
+of a class implementing \code{Map} in order to work correctly.
+For instance, there may be a getter \code{hashCode} which is required
+to have a behavior which is in some sense consistent with operator \lit{==}.
+Such constraints are documented in the system libraries.%
+}
+
+\LMHash{}%
+If a map literal $e$ begins with the reserved word \CONST{},
+or if $e$ occurs in a constant context
+(\ref{constantContexts}),
+it is a
+\IndexCustom{constant map literal}{literal!map!constant}
+which is a constant expression
+(\ref{constants})
+and therefore evaluated at compile time.
+Otherwise, it is a
+\IndexCustom{run-time map literal}{literal!map!run-time}
+and it is evaluated at run time.
+Only run-time map literals can be mutated after they are created.
+% This error can occur because being constant is a dynamic property, here.
+Attempting to mutate a constant map literal will result in a dynamic error.
+
+\commentary{%
+% The following is true either directly or indirectly: There is a \CONST{}
+% modifier on the literal map, or we use the "immediate subexpression" rule
+% about constant contexts.
+Note that the key and value expressions of a constant map literal
+occur in a constant context
+(\ref{constantContexts}),
+which means that \CONST{} modifiers need not be specified explicitly.%
+}
+
+\LMHash{}%
+It is a compile-time error
+if a collection literal element in a constant map literal is not constant.
+It is a compile-time error if
+the operator \lit{==} of a key in a constant map literal
+is not primitive
+(\ref{theOperatorEqualsEquals}).
+It is a compile-time error if two keys of a constant map literal are equal
+according to their \lit{==} operator
+(\ref{equality}).
+It is a compile-time error if a type argument of a constant map literal
+(\commentary{no matter whether it is explicit or inferred})
+is not a constant type expression
+(\ref{constants}).
+
+\rationale{%
+The binding of a formal type parameter of an enclosing class or function
+is not known at compile time,
+so we cannot use such type parameters inside constant expressions.%
+}
+
+\LMHash{}%
+The value of a constant map literal
+\code{\CONST?\,\,<$T_1$,\,$T_2$>\{\List{\ell}{1}{m}\}}
+is an object $o$ whose class implements the built-in class
+\code{Map<$t_1$,\,\,$t_2$>},
+where $t_1$ and $t_2$ is the actual value of $T_1$ respectively $T_2$
+(\ref{actualTypes}).
+The key and value pairs of $o$ is
+the pairs of the object sequence \KeyValueList{k}{v}{1}{n} obtained by
+evaluation of \List{\ell}{1}{m}
+(\ref{collectionLiteralElementEvaluation}),
+in that order.
+
+\LMHash{}%
+Let \code{\CONST?\,\,<$U_1$,\,$V_1$>\{\List{\ell}{1}{m_1}\}}
+and \code{\CONST?\,\,<$U_2$,\,$V_2$>\{\List{\ell}{1}{m_2}\}}
+be two constant map literals.
+Let $o_1$ with contents \KeyValueList{k_1}{v_1}{1}{n}
+and actual type arguments $u_1$, $v_1$
+respectively
+$o_2$ with contents \KeyValueList{k_2}{v_2}{1}{n}
+and actual type argument $u_2$, $v_2$
+be the result of evaluating them.
+Then \code{identical($o_1$, $o_2$)} evaluates to \TRUE{} if{}f
+\code{$u_1$ == $u_2$}, \code{$v_1$ == $v_2$},
+\code{identical($k_{1i}$, $k_{2i}$)}, and
+\code{identical($v_{1i}$, $v_{2i}$)}
+for all $i \in 1 .. n$.
+
+\commentary{%
+In other words, constant map literals are canonicalized.
+There is no need to consider canonicalization
+for other instances of type \code{Map},
+because such instances cannot be
+the result of evaluating a constant expression.%
+}
+
+\LMHash{}%
+A run-time map literal
+\code{<$T_1, T_2$>\{\List{\ell}{1}{m}\}}
+is evaluated as follows:
+\begin{itemize}
+\item
+  The elements \List{\ell}{1}{m} are evaluated
+  (\ref{collectionLiteralElementEvaluation}),
+  to an object sequence \LiteralSequence{\KeyValueList{k}{v}{1}{n}}.
+\item
+  A fresh instance (\ref{generativeConstructors}) $o$
+  whose class implements the built-in class \code{Map<$t_1$,\,\,$t_2$>}
+  is allocated,
+  where $t_1$ and $t_2$ are the actual values of $T_1$ respectively $T_2$
+  (\ref{actualTypes}).
+\item
+  The operator \lit{[]=} is invoked on $o$
+  with first argument $k_i$ and second argument $v_i$,
+  for each $i \in 1 .. n$, in that order.
+\item
+  The result of the evaluation is $o$.
+\end{itemize}
+
+\LMHash{}%
+The objects created by map literals do not override
+the \lit{==} operator inherited from the \code{Object} class.
 
 
 \subsection{Throw}
@@ -7591,8 +9210,19 @@ A \IndexCustom{function literal}{literal!function}
 is an anonymous declaration and an expression
 that encapsulates an executable unit of code.
 
+%% TODO(eernst): This is highly ambiguous because <primary> derives
+%% <functionExpression>. Dart.g derives <functionExpression> from
+%% <expression> but only allows the block in <functionPrimary>, which
+%% is derived from <primary>. It has <functionExpressionWithoutCascade>
+%% as well, allowing for an `=>` function literal in a cascade assignment.
+%% However, we need to assess the breakage very carefully before adopting
+%% that approach, because it prevents function literals from being parsed
+%% as conditionalExpression, ifNullExpression, ... postfixExpression.
 \begin{grammar}
-<functionExpression> ::= <formalParameterPart> <functionBody>
+<functionExpression> ::= <formalParameterPart> <functionExpressionBody>
+
+<functionExpressionBody> ::= \ASYNC? `=>' <expression>
+  \alt (\ASYNC{} `*'? | \SYNC{} `*')? <block>
 \end{grammar}
 
 \LMHash{}%
@@ -7923,7 +9553,7 @@ is an enumerated type (\ref{enums}).
 The \Index{new expression} invokes a constructor (\ref{constructors}).
 
 \begin{grammar}
-<newExpression> ::= \NEW{} <typeNotVoid> (`.' <identifier>)? <arguments>
+<newExpression> ::= \NEW{} <constructorDesignation> <arguments>
 \end{grammar}
 
 \LMHash{}%
@@ -8114,7 +9744,7 @@ A \Index{constant object expression} invokes a constant constructor
 (\ref{constantConstructors}).
 
 \begin{grammar}
-<constObjectExpression> ::= \CONST{} <typeNotVoid> (`.' <identifier>)? <arguments>
+<constObjectExpression> ::= \CONST{} <constructorDesignation> <arguments>
 \end{grammar}
 
 \LMHash{}%
@@ -8306,7 +9936,8 @@ the evaluation of constant expressions.
 \LMLabel{spawningAnIsolate}
 
 \LMHash{}%
-Spawning an isolate is accomplished via what is syntactically an ordinary library call, invoking one of the functions \code{spawnUri()} or \code{spawn()} defined in the \code{dart:isolate} library.
+Spawning an isolate is accomplished via what is syntactically an ordinary method call,
+invoking one of the static methods \code{spawnUri} or \code{spawn} defined in the \code{Isolate} class in the library \code{dart:isolate}.
 However, such calls have the semantic effect of creating a new isolate with its own memory and thread of control.
 
 \LMHash{}%
@@ -8368,7 +9999,7 @@ If $f$ is marked \code{\SYNC*} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $i$
 implementing \code{Iterable<$U$>} is immediately returned,
 where $U$ is determined as follows:
-Let $T$ be the actual return type of $f$ (\ref{actualTypeOfADeclaration}).
+Let $T$ be the actual return type of $f$ (\ref{actualTypes}).
 If $T$ is \code{Iterable<$S$>} for some type $S$, then $U$ is $S$,
 otherwise $U$ is \code{Object}.
 
@@ -8433,7 +10064,7 @@ Two executions of an iterator interact only via state outside the function.
 If $f$ is marked \ASYNC{} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $o$ is associated with the invocation,
 where the dynamic type of $o$ implements \code{Future<$flatten(T)$>},
-and $T$ is the actual return type of $f$ (\ref{actualTypeOfADeclaration}).
+and $T$ is the actual return type of $f$ (\ref{actualTypes}).
 Then the body of $f$ is executed until it either suspends or completes, at which point $o$ is returned.
 \commentary{
 The body of $f$ may suspend during the evaluation of an \AWAIT{} expression or execution of an asynchronous \FOR{} loop.
@@ -8456,7 +10087,7 @@ If $f$ is marked \code{\ASYNC*} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $s$
 implementing \code{Stream<$U$>} is immediately returned,
 where $U$ is determined as follows:
-Let $T$ be the actual return type of $f$ (\ref{actualTypeOfADeclaration}).
+Let $T$ be the actual return type of $f$ (\ref{actualTypes}).
 If $T$ is \code{Stream<$S$>} for some type $S$, then $U$ is $S$,
 otherwise $U$ is \code{Object}.
 When $s$ is listened to, execution of the body of $f$ will begin.
@@ -8762,7 +10393,7 @@ Figure~\ref{fig:argumentsAndParameters} shows how this situation arises.
     \end{array}
   \end{displaymath}
   %
-  \caption{Possible actual argument parts and formal parameter parts}
+  \caption{Possible actual argument parts and formal parameter parts.}
   \label{fig:argumentsAndParameters}
 \end{figure}
 
@@ -8868,19 +10499,19 @@ All of these remaining parameters are necessarily optional and thus have default
 % Check the type arguments.
 % This error can occur due to covariance and due to dynamic invocation.
 It is a dynamic type error if $t_i$ is not a subtype of the actual bound
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of the $i$th type argument of $f$, for actual type arguments $t_1, \ldots, t_r$.
 % Check the types of positional arguments.
 % This error can occur due to implicit casts, covariance, and dynamic calls.
 It is a dynamic type error if $o_i$ is not the null object (\ref{null})
 and the actual type
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of $p_i$ is not a supertype of the dynamic type of $o_i, i \in 1 .. m$.
 % Check the types of named arguments.
 % This error can occur due to implicit casts, covariance, and dynamic calls.
 It is a dynamic type error if $o_{m+j}$ is
 not the null object and the actual type
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of $q_j$ is not a supertype of the dynamic type of $o_{m+j}, j \in 1 .. l$.
 
 
@@ -9059,7 +10690,17 @@ and a call to a getter \code{$b$} (with no arguments) in the latter.%
 
 \LMHash{}%
 Let $F$ be the static type of $e_f$.
-The static analysis of $i$ is performed as specified in Section~\ref{bindingActualsToFormals},
+If $F$ is an interface type that has a method named \CALL,
+$i$ is treated as
+(\ref{notation})
+the ordinary invocation
+
+\noindent
+\code{$e_f$.call<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+
+\LMHash{}%
+Otherwise, the static analysis of $i$ is performed as specified
+in Section~\ref{bindingActualsToFormals},
 using $F$ as the static type of the invoked function,
 and the static type of $i$ is as specified there.
 
@@ -9095,7 +10736,7 @@ and its result is then the result of evaluating $i$:
 Otherwise $o$ has no method named \CALL{}.
 A new instance $im$ of the predefined class \code{Invocation} is created, such that:
 \begin{itemize}
-\item \code{$im$.isMethod} evaluates to \code{\TRUE{}}.
+\item \code{$im$.isMethod} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{\#call}.
 \item \code{$im$.positionalArguments} evaluates to an unmodifiable list
   containing the objects resulting from evaluation of
@@ -9151,7 +10792,7 @@ Function closurization applied to a function declaration $f$
 amounts to the creation of a function object $o$
 which is an instance of a class $C$ whose interface is
 a subtype of the actual type $F$
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 corresponding to the signature in the function declaration $f$,
 using the current bindings of type variables, if any.
 There does not exist a function type $F'$ which is a proper subtype of $F$
@@ -9642,7 +11283,7 @@ Then the value of $i$ is the value of
 If getter lookup has also failed,
 then a new instance $im$ of the predefined class \code{Invocation} is created, such that:
 \begin{itemize}
-\item \code{$im$.isMethod} evaluates to \code{\TRUE{}}.
+\item \code{$im$.isMethod} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
 \item \code{$im$.positionalArguments} evaluates to an unmodifiable list
   containing the objects resulting from the evaluation of
@@ -9668,16 +11309,19 @@ Notice that the wording avoids re-evaluating the receiver $o$ and the arguments 
 \EndCase
 
 
-\subsubsection{Cascaded Invocations}
-\LMLabel{cascadedInvocations}
+\subsubsection{Cascades}
+\LMLabel{cascades}
 
 \LMHash{}%
-A \IndexCustom{cascaded method invocation}{method invocation!cascaded}
-has the form \code{$e$..\metavar{suffix}}
-where $e$ is an expression and \metavar{suffix} is a sequence of operator, method, getter or setter invocations.
+A \Index{cascade} is a kind of expression that allows for performing
+multiple operations on a given object
+without storing it in a variable and accessing it via a name.
+In general, a cascade can be recognized by the use of exactly two periods,
+\lit{..}.
 
 \begin{grammar}
-<cascadeSequence> ::= (`?..' | `..') <cascadeSection> (`..' <cascadeSection>)*
+<cascade> ::= <cascade> `..' <cascadeSection>
+  \alt <conditionalExpression> (`?..' | `..') <cascadeSection>
 
 <cascadeSection> ::= <cascadeSelector> <cascadeSectionTail>
 
@@ -9688,29 +11332,105 @@ where $e$ is an expression and \metavar{suffix} is a sequence of operator, metho
   \alt <selector>* (<assignableSelector> <cascadeAssignment>)?
 
 <cascadeAssignment> ::= <assignmentOperator> <expressionWithoutCascade>
-
-<argumentPart> ::=
-  <typeArguments>? <arguments>
 \end{grammar}
 
 \LMHash{}%
-Evaluation of a cascaded method invocation expression $c$ of the form \code{$e$..\metavar{suffix}} proceeds as follows:
+A \IndexCustom{cascaded member access}{cascaded member access}
+is an expression of the form
+\code{$e$..$s$} or \code{$e$?..$s$},
+where $e$ is an expression
+and $s$ is derived from \synt{cascadeSection}.
+The form
+\code{$e$?..$s$}
+is also known as a
+\IndexCustom{conditional cascaded member access}{%
+  cascaded member access!conditional}.
 
-Evaluate $e$ to an object $o$.
-Let $t$ be a fresh variable bound to $o$.
-Evaluate \code{$t$.\metavar{suffix}} to an object.
-Then $c$ evaluates to $o$.
+\rationale{%
+A \synt{cascadeSection} allows for accessing members, including setters.
+The motivation for having a cascaded member access is that it allows for
+performing a chain of operations based on an object
+while preserving a reference to that object for further processing.%
+}
+
+\commentary{%
+For example, \code{C()..foo.bar = 2} allows us to obtain a reference to
+the object $o$ which is the result of evaluating \code{C()},
+and at the same time use $o$ to invoke the getter \code{foo} and
+the setter \code{bar=} on the value returned by that getter.%
+}
 
 \LMHash{}%
-The static type of $c$ is the static type of $e$.
+An expression of the form \code{$e_0$?..$s$} where
+$e_0$ is a \synt{conditionalExpression} and
+$s$ is a \synt{cascadeSection} is an
+\IndexCustom{initially conditional cascaded member access}{%
+  cascaded member access!initially conditional}.
+Moreover, if \code{$e_0$} is
+an initially conditional cascaded member access and
+$s$ is derived from \synt{cascadeSection} then
+\code{$e_0$..$s$} is also initially conditional.
 
-\rationale{
-With the introduction of null-aware conditional assignable expressions (\ref{assignableExpressions}), it would make sense to extend cascades with a null-aware conditional form as well.
-One might define \code{$e$?..\metavar{suffix}} to be equivalent to the expression \code{$t$ == \NULL{} ? \NULL{} : $t$.\metavar{suffix}} where $t$ is a fresh variable bound to the value of $e$.
-
-The present specification has not added such a construct, in the interests of simplicity and rapid language evolution.
-However, Dart implementations may experiment with such constructs, as noted in section \ref{ecmaConformance}.
+\commentary{%
+In short, a cascade is initially conditional if
+the ``innermost dots'' are \lit{?..} rather than \lit{..}.
+Note that only the innermost dots can have the \lit{?}.
+All the non-innermost ones are implicitly skipped if the receiver is null,
+so any \lit{?} on a non-innermost \lit{..} would be useless.%
 }
+
+\LMHash{}%
+Let $s$ be a \synt{cascadeSection}.
+Let $e$ be an expression of the form \code{$e_0$..$s$}
+where $e_0$ is an \synt{expression}
+such that $e$ is not initially conditional.
+Exactly the same compile-time errors are raised for $e$
+as would be raised for \code{($e_0$).$s$}.
+The static type of $e$ is the static type of $e_0$.
+
+\LMHash{}%
+Let $s$ be a \synt{cascadeSection}.
+If $e$ is an expression of the form \code{$e_0$?..$s$}
+where $e_0$ is a \synt{conditionalExpression},
+exactly the same compile-time errors are raised for $e$
+% This rule is NNBD-ready, so we use it even though we could
+% use a slightly simpler set of rules today.
+as would be raised for \code{($e_0$)?.$s$}.
+If $e$ is an expression of the form \code{$e_0$..$s$}
+where $e_0$ is an \synt{expression}
+such that $e$ is initially conditional,
+exactly the same compile-time errors are raised for $e$
+as would be raised for \code{($e_0$)?.$s$}.
+In both cases, the static type of $e$ is the static type of $e_0$.
+
+\commentary{%
+The expressions \code{($e_0$).$s$} and \code{($e_0$)?.$s$} may have
+a very different syntactic structure than
+the expression that gave rise to them
+(namely an expression of the form \code{$e_0$..$s$} or \code{$e_0$?..$s$}).
+In particular, the cascade section $s$ may end in a cascade assignment
+such that \code{$e_0$..$s$} is of the form \code{$e_0$..$s'$ = $e_1$},
+where the cascade section \code{$s'$ = $e_1$} is a subterm of the cascade.
+However, \code{($e_0$).$s'$ = $e_1$} is an \synt{assignment} whose subterms are
+\code{($e_0$).$s'$} and \code{$e_1$}.
+This is possible because the grammar rules for \synt{cascadeSection}
+have been designed in such a way that it is guaranteed
+that \code{($e_0$).$s'$} can be parsed as an \synt{assignableExpression},
+and $e_1$ can be parsed as an \synt{expression}.%
+}
+
+\LMHash{}%
+Evaluation of a cascaded member access $e$
+of the form \code{$e_0$..$s$} or the form \code{$e_0$?..$s$}
+where $e$ is an \synt{expression} and
+$s$ is a \synt{cascadeSection}
+proceeds as follows:
+Evaluate $e_0$ to an object $o$.
+If $e$ is initially conditional and $o$ is the null object,
+then $e$ evaluates to the null object.
+Otherwise, let \code{v} be a fresh variable bound to $o$ and
+evaluate \code{v.$s$} to an object which is discarded, and
+then $e$ evaluates to $o$.
 
 
 \subsubsection{Super Invocation}
@@ -9972,7 +11692,7 @@ The value of $i$ is the result returned by the call to the getter function.
 If the getter lookup has failed,
 then a new instance $im$ of the predefined class \code{Invocation} is created, such that:
 \begin{itemize}
-\item \code{$im$.isGetter} evaluates to \code{\TRUE{}}.
+\item \code{$im$.isGetter} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
 \item \code{$im$.positionalArguments} evaluates to an empty, unmodifiable instance of
 \code{List<Object>}.
@@ -10075,8 +11795,8 @@ The \Index{closurization of method} $f$ on object $o$
 is defined to be equivalent
 (\commentary{except for equality, as noted below}) to:
 \begin{itemize}
-%\item $(a) \{\RETURN{}$ $u$ $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \~{}/, *, \%, $|$, \^{}, \&, $<<$, $>>$} (this precludes closurization of unary -).
-%\item $() \{\RETURN{}$ \~{} $u;$\} if $f$ is named \~{}.
+%\item $(a) \{\RETURN{}$ $u$ $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde{}/, *, \%, $|$, \^{}, \&, $<<$, $>>$} (this precludes closurization of unary -).
+%\item $() \{\RETURN{}$ \gtilde{} $u;$\} if $f$ is named \gtilde{}.
 %\item $(a) \{\RETURN{}$ $u[a];$\} if $f$ is named \code{[]}.
 %\item $(a, b) \{\RETURN{}$ $u[a] = b;$\} if $f$ is named \code{[]=}.
 \item
@@ -10214,8 +11934,8 @@ is defined to be equivalent
 
 \LMHash{}%
 \begin{itemize}
-%\item $(a) \{\RETURN{}$ \SUPER{} $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \~{}/, *, \%, $|$, \^{}, \&, $<<$, $>>$}.
-%\item $() \{\RETURN{}$ \~{}\SUPER;\} if $f$ is named \~{}.
+%\item $(a) \{\RETURN{}$ \SUPER{} $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde{}/, *, \%, $|$, \^{}, \&, $<<$, $>>$}.
+%\item $() \{\RETURN{}$ \gtilde{}\SUPER;\} if $f$ is named \gtilde{}.
 %\item $(a) \{\RETURN{}$ $\SUPER[a];$\} if $f$ is named \code{[]}.
 %\item $(a, b) \{\RETURN{}$ $\SUPER[a] = b;$\} if $f$ is named \code{[]=}.
 \item
@@ -10749,13 +12469,13 @@ Then, the setter \code{$v$=} is looked up (\ref{lookup}) in $o_1$ with respect t
 % This error can occur due to implicit casts and dynamic calls.
 It is a dynamic type error if the dynamic type of $o_2$
 is not a subtype of the actual parameter type of said setter
-(\ref{actualTypeOfADeclaration}).
+(\ref{actualTypes}).
 Otherwise, the body of the setter is executed with its formal parameter bound to $o_2$ and \THIS{} bound to $o_1$.
 
 \LMHash{}%
 If the setter lookup has failed, then a new instance $im$ of the predefined class \code{Invocation} is created, such that:
 \begin{itemize}
-\item \code{$im$.isSetter} evaluates to \code{\TRUE{}}.
+\item \code{$im$.isSetter} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{v=}.
 \item \code{$im$.positionalArguments} evaluates to an unmodifiable list
   containing the same objects as
@@ -10812,7 +12532,7 @@ The value of the assignment expression is $o$.
 It is a dynamic type error if $o$ is not the null object (\ref{null})
 and the dynamic type of $o$ is
 not a subtype of the actual type of the formal parameter of \code{$v$=}
-(\ref{actualTypeOfADeclaration}) in $S_{static}$.
+(\ref{actualTypes}) in $S_{static}$.
 \EndCase
 
 \LMHash{}%
@@ -11456,11 +13176,15 @@ Unary expressions invoke unary operators on objects.
 A \Index{unary expression} is either a postfix expression (\ref{postfixExpressions}), an await expression (\ref{awaitExpressions}) or an invocation of a prefix operator on an expression or an invocation of a unary operator on either \SUPER{} or an expression $e$.
 
 \LMHash{}%
-The expression $!e$ is equivalent to the expression \code{$e$\,?\,\FALSE\,:\,\TRUE}.
+The expression $!e$ is treated as
+(\ref{notation})
+\code{($e$\,?\,\FALSE\,:\,\TRUE)}.
 
 \LMHash{}%
-Evaluation of an expression of the form \code{++$e$} is equivalent to \code{$e$\,+=\,1}.
-Evaluation of an expression of the form \code{-{}-$e$} is equivalent to \code{$e$\,-=\,1}.
+An expression of the form \code{++$e$} is treated as
+\code{($e$\,+=\,1)}.
+An expression of the form \code{-{}-$e$} is treated as
+\code{($e$\,-=\,1)}.
 
 \LMHash{}%
 Let $e$ be an expression of the form \code{-$l$}
@@ -11472,7 +13196,7 @@ otherwise the static type of $e$ is \code{int}.
 
 \LMHash{}%
 If the static type of $e$ is \code{int} then $e$ evaluates to
-to an instance of the \code{int} class representing the numeric value $-i$.
+an instance of the \code{int} class representing the numeric value $-i$.
 If $i$ is zero and the \code{int} class can represent a negative zero value,
 then the resulting instance instead represents that negative zero value.
 It is a compile-time error if the integer $-i$ cannot be represented
@@ -11485,16 +13209,18 @@ If $i$ is zero, the resulting instance instead represents the
 \emph{negative} zero double value, \code{-0.0}.
 It is a compile-time error if the integer $-i$ cannot be represented
 exactly by an instance of \code{double}.
-\commentary{
+\commentary{%
 We treat \code{-$l$} \emph{as if} it is a single integer literal
 with a negative numeric value.
 We do not evaluate $l$ individually as an expression,
-or concern ourselves with its static type.
+or concern ourselves with its static type.%
 }
 
 \LMHash{}%
-Any other expression of the form \code{$op$ $e$} is equivalent to the method invocation \code{$e.op()$}.
-An expression of the form \code{$op$ \SUPER{}} is equivalent to the method invocation (\ref{superInvocation}) \code{\SUPER{}.$op()$}.
+Any other expression of the form \code{$op$ $e$} is equivalent to
+the method invocation \code{$e.op()$}.
+An expression of the form \code{$op$ \SUPER{}} is equivalent to
+the method invocation (\ref{superInvocation}) \code{\SUPER{}.$op()$}.
 
 
 \subsection{Await Expressions}
@@ -11578,6 +13304,9 @@ Postfix expressions invoke the postfix operators on objects.
 <selector> ::= `!'
   \alt <assignableSelector>
   \alt <argumentPart>
+
+<argumentPart> ::=
+  <typeArguments>? <arguments>
 
 <incrementOperator> ::= `++'
   \alt `-\mbox-'
@@ -12103,7 +13832,9 @@ An \Index{identifier expression} consists of a single identifier; it provides ac
 
 <IDENTIFIER\_PART> ::= <IDENTIFIER\_START> | <DIGIT>
 
-<qualified> ::= <identifier> (`.' <identifier>)?
+<qualifiedName> ::= <typeIdentifier>
+  \alt <typeIdentifier> `.' <identifier>
+  \alt <typeIdentifier> `.' <typeIdentifier> `.' <identifier>
 \end{grammar}
 
 \LMHash{}%
@@ -12136,6 +13867,10 @@ This approach was chosen because it was less breaking than it would have been
 to make \AWAIT{} and \YIELD{} reserved words or built-in identifiers,
 at the time where these features were added to the language.%
 }
+
+\LMHash{}%
+A \Index{qualified identifier} is an identifier preceded by
+\syntax{<identifier> `.'}.
 
 \LMHash{}%
 The static type of an identifier expression $e$ which is an identifier \id{}
@@ -12699,7 +14434,7 @@ Then, the variable $v$ is set to $o$.
 % This error can occur due to implicit casts.
 A dynamic type error occurs
 if the dynamic type of $o$ is not a subtype of the actual type
-(\ref{actualTypeOfADeclaration})
+(\ref{actualTypes})
 of $v$.
 
 % The local variable discussion does not mention how to read/write locals.
@@ -12860,7 +14595,8 @@ The \Index{for statement} supports iteration.
 \LMLabel{forLoop}
 
 \LMHash{}%
-Execution of a for statement of the form \code{\FOR{} (\VAR{} $v$ = $e_0$; $c$; $e$) $s$} proceeds as follows:
+Execution of a for statement of the form
+\code{\FOR{} (\VAR{} $v$ = $e_0$; $c$; $e$) $s$} proceeds as follows:
 
 \LMHash{}%
 If $c$ is empty then let $c'$ be \TRUE{} otherwise let $c'$ be $c$.
@@ -12944,9 +14680,9 @@ $T$ $\id_1$ = $e$;
 \noindent
 If the static type of $e$ is a top type
 (\ref{superBoundedTypes})
-then $T$ is \code{Iterable<dynamic>},
+then $T$ is \code{Iterable<\DYNAMIC>},
 otherwise $T$ is the static type of $e$.
-It is a compile-time error if $T$ is not assignable to \code{Iterable<dynamic>}.
+It is a compile-time error if $T$ is not assignable to \code{Iterable<\DYNAMIC>}.
 
 \commentary{
 It follows that it is a compile-time error
@@ -13667,7 +15403,7 @@ Executing a return statement \code{\RETURN{} $e$;} proceeds as follows:
 First the expression $e$ is evaluated, producing an object $o$.
 Let $S$ be the run-time type of $o$ and
 let $T$ be the actual return type of $f$
-(\ref{actualTypeOfADeclaration}).
+(\ref{actualTypes}).
 If the body of $f$ is marked \ASYNC{} (\ref{functions})
 and $S$ is a subtype of \code{Future<\flatten{T}>}
 then let $r$ be the result of evaluating \code{await $v$}
@@ -14090,9 +15826,9 @@ The members of a library $L$ are those top level declarations given within $L$.
 
 <libraryDefinition> ::= \gnewline{}
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
-  \gnewline{} <metadata> <topLevelDefinition>*
+  \gnewline{} (<metadata> <topLevelDefinition>)*
 
-<scriptTag> ::= `#!' (\~{}<NEWLINE>)* <NEWLINE>
+<scriptTag> ::= `#!' (\gtilde{}<NEWLINE>)* <NEWLINE>
 
 <libraryName> ::= <metadata> \LIBRARY{} <dottedIdentifierList> `;'
 
@@ -14158,7 +15894,7 @@ An \Index{import} specifies a library to be used in the scope of another library
 
 <importSpecification> ::= \gnewline{}
   \IMPORT{} <configurableUri> (\AS{} <identifier>)? <combinator>* `;'
-  \alt \IMPORT{} <uri> \DEFERRED{} \AS{} <identifier> <combinator>* `;'
+  \alt \IMPORT{} <configurableUri> \DEFERRED{} \AS{} <identifier> <combinator>* `;'
 
 <combinator> ::= \SHOW{} <identifierList>
   \alt \HIDE{} <identifierList>
@@ -14177,25 +15913,29 @@ A deferred import is distinguished by the appearance of the built-in identifier 
 Any import that is not deferred is immediate.
 
 \LMHash{}%
-It is a compile-time error if the specified URI of an immediate import does not refer to a library declaration.
+It is a compile-time error if the specified URI of an import does not
+refer to a library declaration.
 The interpretation of URIs is described in section \ref{uris} below.
 
 \LMHash{}%
-It is a compile-time error if the specified URI of a deferred import does not refer to a library declaration.
-
-\rationale{
-One cannot detect the problem at compile time because compilation often occurs during execution and one does not know what the URI refers to.
-However the development environment should detect the problem.
-}
+It is a dynamic error if
+the execution of \code{loadLibrary} that loads a deferred import
+does not load the library that
+the specified URI referred to at compile-time.
 
 \LMHash{}%
 The \Index{current library} is the library currently being compiled.
-The import modifies the namespace of the current library in a manner that is determined by the imported library and by the optional elements of the import.
+The import modifies the namespace of the current library
+in a manner that is determined by the imported library and
+by the optional elements of the import.
 
 \LMHash{}%
-An immediate import directive $I$ may optionally include a prefix clause of the form \code{\AS{} \id} used to prefix names imported by $I$.
+An immediate import directive $I$ may optionally include
+a prefix clause of the form \code{\AS{} \id}
+used to prefix names imported by $I$.
 A deferred import must include a prefix clause or a compile-time error occurs.
-It is a compile-time error if a prefix used in a deferred import is used in another import clause.
+It is a compile-time error if a prefix used in a deferred import
+is used in another import clause.
 
 \LMHash{}%
 An import directive $I$ may optionally include namespace combinator clauses
@@ -14737,10 +16477,9 @@ URIs are specified by means of string literals:
 \end{grammar}
 
 \LMHash{}%
-It is a compile-time error if the string literal $x$ that describes a URI contains a string interpolation.
-
-\LMHash{}%
-It is a compile-time error if the string literal $x$ that is used in a \synt{uriTest} is not a constant expression, or if $x$ involves string interpolation.
+It is a compile-time error if a string literal that describes a URI
+or a string literal that is used in a \synt{uriTest}
+contains a string interpolation.
 
 \LMHash{}%
 A \Index{configurable URI} $c$ of the form
@@ -15007,12 +16746,12 @@ for the situation where $o$ was obtained as a fresh instance
 (\ref{redirectingFactoryConstructors},
 \ref{lists}, \ref{maps}, \ref{new}, \ref{functionInvocation}).
 
-\commentary{
+\commentary{%
 In particular, the dynamic type of an instance never changes.
 It is at times only specified that the given class implements
 a certain type, e.g., for a list literal.
 In these cases the dynamic type is implementation dependent,
-except of course that said subtype requirement must be satisfied.
+except of course that said superinterface constraint must be satisfied.%
 }
 
 \LMHash{}%
@@ -15040,7 +16779,7 @@ Certain dynamic type checks are performed during execution
 As specified in those locations,
 these dynamic checks are based on the dynamic types of instances,
 and the actual types of declarations
-(\ref{actualTypeOfADeclaration}).
+(\ref{actualTypes}).
 }
 
 \LMHash{}%
@@ -15376,7 +17115,7 @@ and the subtype relationship is always determined in the same way.
     \SubtypeStd{[S_1/X_1,\ldots,S_s/X_s]\code{$D$<\List{T}{1}{m}>}}{T}}{%
     \code{$C$<\List{S}{1}{s}>}\;}{\;T}
   %
-  \caption{Subtype rules}
+  \caption{Subtype rules.}
   \label{fig:subtypeRules}
 \end{figure}
 
@@ -15912,7 +17651,7 @@ and which has a method named \CALL{},
 whose signature is the function type $C$ itself.
 \commentary{%
 Consequently, all function types are subtypes of \FUNCTION{}
-(\ref{subtypes}).
+(\ref{subtypes}).%
 }
 
 
@@ -16589,8 +18328,8 @@ where $X_1, \ldots, X_n$ are the formal type parameters of $G$.
 %% `C<T>` for any `T`, and we have `class C<X> { void Function(X) f; }`.
 
 
-\subsubsection{Actual Type of Declaration}
-\LMLabel{actualTypeOfADeclaration}
+\subsubsection{Actual Types}
+\LMLabel{actualTypes}
 
 % NOTE(eernst): The actual type arguments in this section are dynamic entities,
 % not syntax (the concept of an 'actual type' and an 'actual bound' is used to
@@ -16607,39 +18346,36 @@ where $X_1, \ldots, X_n$ are the formal type parameters of $G$.
 % body.
 
 \LMHash{}%
-Let $T$ be the declared type of a declaration $d$,
-as it appears in the program source.
-Let $X_1, \ldots, X_n$ be the formal type parameters in scope at $d$.
+Let $T$ be a term derived from \synt{type}.
+Let \List{X}{1}{s} be the formal type parameters in scope
+at the location where $T$ occurs.
 In a context where the actual type arguments corresponding to
-$X_1, \ldots, X_n$
-are
-$t_1, \ldots, t_n$,
-the \Index{actual type} of $d$ is
-$[t_1/X_1, \ldots, t_n/X_n]T$.
+\List{X}{1}{s} are \List{t}{1}{s},
+the \Index{actual value of the type} $T$ is then
+$[t_1/X_1, \ldots, t_s/X_s]T$.
 
-\commentary{
-In the non-generic case where $n = 0$ the actual type is equal to the declared type.
-Note that
-$X_1, \ldots, X_n$
-may be declared by multiple entities, e.g.,
-one or more enclosing generic functions and an enclosing generic class.
+\LMHash{}%
+Let $D$ be a declaration with name $n$ and type annotation $T$.
+The \Index{actual type} of $D$ and of $n$ in a given context is
+then the actual value of $T$ in that context.
+
+\commentary{%
+In the non-generic case where $s = 0$,
+the actual type is equal to the declared type,
+in the sense that we use simple terms like \code{int} to denote both.
+Note that \List{X}{1}{s} may be declared by multiple entities, e.g.,
+one or more enclosing generic functions and an enclosing generic class.%
 }
 
 \LMHash{}%
 Let \code{$X$ \EXTENDS{} $B$} be a formal type parameter declaration.
-Let
-$X_1, \ldots, X_n$
-be the formal type parameters in scope at the declaration of $X$.
-In a context where the actual type arguments corresponding to
-$X_1, \ldots, X_n$
-are
-$t_1, \ldots, t_n$,
-the \Index{actual bound} for $X$ is
-$[t_1/X_1, \ldots, t_n/X_n]B$.
+The \Index{actual bound} of $X$ in a given context is
+the actual value of $B$ in that context.
 
-\commentary{
-Note that there exists a $j$ such that $X = X_j$,
-because each formal type parameter is in scope at its own declaration.
+\commentary{%
+Note that even though $X$ may occur in $B$
+it does not occur in the actual value of $B$,
+because no type has an actual value that includes a type variable.%
 }
 
 
@@ -16776,10 +18512,10 @@ A \Index{reserved word} may not be used as an identifier; it is a compile-time e
 are sections of program text that are used for documentation.
 
 \begin{grammar}
-<SINGLE\_LINE\_COMMENT> ::= `//' \~{}(<NEWLINE>)* (<NEWLINE>)?
+<SINGLE\_LINE\_COMMENT> ::= `//' \gtilde{}(<NEWLINE>)* (<NEWLINE>)?
 
 <MULTI\_LINE\_COMMENT> ::= \gnewline{}
-  `/*' (<MULTI\_LINE\_COMMENT> | \~{} `*/')* `*/'
+  `/*' (<MULTI\_LINE\_COMMENT> | \gtilde{} `*/')* `*/'
 \end{grammar}
 
 \LMHash{}%
@@ -16821,9 +18557,9 @@ Description & Operator & Associativity & Precedence \\
 Unary postfix & \code{$e$.}, \code{$e$?.}, \code{$e$++}, \code{$e$-{}-}, \code{$e1$[$e2$]},
 \code{$e$()} & None & 16 \\
 \hline
-Unary prefix & \code{-$e$}, \code{!$e$}, \code{\~{}$e$}, \code{++$e$}, \code{-{}-$e$}, \code{\AWAIT{} $e$} & None & 15\\
+Unary prefix & \code{-$e$}, \code{!$e$}, \code{\gtilde{}$e$}, \code{++$e$}, \code{-{}-$e$}, \code{\AWAIT{} $e$} & None & 15\\
 \hline
-Multiplicative & \code{*}, \code{/}, \code{\~{}/}, \code{\%} & Left & 14\\
+Multiplicative & \code{*}, \code{/}, \code{\gtilde{}/}, \code{\%} & Left & 14\\
 \hline
 Additive & \code{+}, \code{-} & Left & 13\\
 \hline
@@ -17052,7 +18788,6 @@ operator.
 }
 
 \printindex
-
 \end{document}
 
 [Text after \end{document} is ignored, hence we do not need "%"]
