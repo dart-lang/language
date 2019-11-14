@@ -36,6 +36,9 @@
 % - Specify that a constant expression `e.length` can only invoke an instance
 %   getter (in particular, it cannot execute/tear-off an extension member);
 %   similar changes were made for several operators.
+% - Specify the type arguments of the fields of an `Invocation` received by
+%   `noSuchMethod`, when invoked in response to a failed instance member
+%   invocation.
 %
 % 2.4
 % - Clarify the section 'Exports'.
@@ -2524,13 +2527,16 @@ such that:
 \item \code{$im$.isSetter} evaluates to \TRUE{} if{}f $m$ is a setter.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
 \item \code{$im$.positionalArguments} evaluates to an unmodifiable list
+  whose dynamic type implements \code{List<Object>},
   containing the same objects as the list resulting from evaluation of
   \code{<Object>[$a_1, \ldots,\ a_k$]}.
 \item \code{$im$.namedArguments} evaluates to an unmodifiable map
+  whose dynamic type implements \code{Map<Symbol, Object>},
   with the same keys and values as the map resulting from evaluation of
 
   \code{<Symbol, Object>\{$\#x_1$: $x_1, \ldots,\ \#x_m$: $x_m$\}}.
 \item \code{$im$.typeArguments} evaluates to an unmodifiable list
+  whose dynamic type implements \code{List<Type>},
   containing the same objects as the list resulting from evaluation of
   \code{<Type>[$X_1, \ldots,\ X_r$]}.
 \end{itemize}
@@ -10739,14 +10745,18 @@ A new instance $im$ of the predefined class \code{Invocation} is created, such t
 \item \code{$im$.isMethod} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{\#call}.
 \item \code{$im$.positionalArguments} evaluates to an unmodifiable list
+  whose dynamic type implements \code{List<Object>},
   containing the objects resulting from evaluation of
   \code{<Object>[$a_1, \ldots,\ a_n$]}.
 \item \code{$im$.namedArguments} evaluates to an unmodifiable map
+  whose dynamic type implements \code{Map<Symbol, Object>},
   with the keys and values resulting from evaluation of
 
   \code{<Symbol, Object>\{$\#x_{n+1}$: $a_{n+1}, \ldots,\ \#x_{n+k}$: $a_{n+k}$\}}.
 \item \code{$im$.typeArguments} evaluates to an unmodifiable list
+  whose dynamic type implements \code{List<Type>},
   with the values resulting from evaluation of
+
   \code{<Type>[$A_1, \ldots,\ A_r$]}.
 \end{itemize}
 
@@ -11286,13 +11296,16 @@ then a new instance $im$ of the predefined class \code{Invocation} is created, s
 \item \code{$im$.isMethod} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
 \item \code{$im$.positionalArguments} evaluates to an unmodifiable list
+  whose dynamic type implements \code{List<Object>},
   containing the objects resulting from the evaluation of
   \code{<Object>[$a_1, \ldots,\ a_n$]}.
 \item \code{$im$.namedArguments} evaluates to an unmodifiable map
+  whose dynamic type implements \code{Map<Symbol, Object>},
   with the keys and values resulting from the evaluation of
 
   \code{<Symbol, Object>\{$\#x_{n+1}$: $a_{n+1}, \ldots,\ \#x_{n+k}$: $a_{n+k}$\}}.
 \item \code{$im$.typeArguments} evaluates to an unmodifiable list
+  whose dynamic type implements \code{List<Type>},
   containing the objects resulting from the evaluation of
   \code{<Type>[$A_1, \ldots,\ A_r$]}.
 \end{itemize}
@@ -11694,14 +11707,15 @@ then a new instance $im$ of the predefined class \code{Invocation} is created, s
 \begin{itemize}
 \item \code{$im$.isGetter} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
-\item \code{$im$.positionalArguments} evaluates to an empty, unmodifiable instance of
-\code{List<Object>}.
-\item \code{$im$.namedArguments} evaluates to an empty, unmodifiable instance of
-
-\code{Map<Symbol, Object>}.
-\item \code{$im$.typeArguments} evaluates to an empty, unmodifiable instance of
-
-\code{List<Type>}.
+\item \code{$im$.positionalArguments} evaluates to an object
+  whose dynamic type implements \code{List<Object>},
+  and which is empty and unmodifiable.
+\item \code{$im$.namedArguments} evaluates to an object
+  whose dynamic type implements \code{Map<Symbol, Object>},
+  and which is empty and unmodifiable.
+\item \code{$im$.typeArguments} evaluates to an object
+  whose dynamic type implements \code{List<Type>},
+  and which is empty and unmodifiable.
 \end{itemize}
 
 \LMHash{}%
@@ -12477,15 +12491,16 @@ If the setter lookup has failed, then a new instance $im$ of the predefined clas
 \begin{itemize}
 \item \code{$im$.isSetter} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{v=}.
-\item \code{$im$.positionalArguments} evaluates to an unmodifiable list
-  containing the same objects as
+\item \code{$im$.positionalArguments} evaluates to an object
+  whose dynamic type implements \code{List<Object>},
+  which is unmodifiable, and which contains the same objects as
   $\code{<Object>}[o_2]$.
-\item \code{$im$.namedArguments} evaluates to an empty, unmodifiable instance of
-
-  \code{Map<Symbol, Object>}.
-\item \code{$im$.typeArguments} evaluates to an empty, unmodifiable instance of
-
-  \code{List<Type>}.
+\item \code{$im$.namedArguments} evaluates to an object
+  whose dynamic type implements \code{Map<Symbol, Object>},
+  and which is empty and unmodifiable.
+\item \code{$im$.typeArguments} evaluates to an object
+  whose dynamic type implements \code{List<Type>},
+  and which is empty and unmodifiable.
 \end{itemize}
 
 \LMHash{}%
