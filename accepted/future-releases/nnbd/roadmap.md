@@ -1,5 +1,7 @@
 # Sound non-nullable (by default) types with incremental migration 
 
+Note: the current draft spec is [here](feature-specification.md)
+
 Author: leafp@google.com
 
 This document proposes a roadmap for implementing a sound null tracking type
