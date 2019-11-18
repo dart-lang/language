@@ -15,7 +15,9 @@ An ideal solution would provide:
 - Allow computer-generated code to add members (functions, fields, properties,
   constructors, etc) to human-generated code directly – without requiring
   subclasses, mix-ins, or manually connecting generated private members with user-created public members.
-- Allow user-created "stubs" to be added filled in by generated code. This
+  - The user will still have to provide "stubs" for these members to enable
+    static analysis.
+- Allow user-created "stubs" to be filled in by generated code. This allows
   a number of static-analysis and tooling scenarios to work without the code
   being generated first.
 
@@ -77,13 +79,20 @@ import 'package:json_annotation/json_annotation.dart';
 part 'example.g.dart';
 
 @JsonSerializable(nullable: false)
-class Person {
+class Person partial {
   final String firstName;
   final String lastName;
   final DateTime dateOfBirth;
   Person({this.firstName, this.lastName, this.dateOfBirth});
 
-  // No special wiring needed!
+  // These stubs ensure the shape of the type is fully visible before code
+  // generation to enable static analysis. The stubs can also be available
+  // in the analyzer API allow code generation to use them. For instance:
+  // json_serializable could drop the explicit annotations to enable/disable
+  // factory and/or toJson members and instead just key off the existence of
+  // the corresponding stubs.
+  partial factory Person.fromJson(Map<String, dynamic json>);
+  partial Map<String, dynamic> toJson();
 }
 ```
 
@@ -91,7 +100,7 @@ class Person {
 // after: machine-generated
 part of 'example.dart';
 
-class Person {
+class Person partial {
   // Note: instead of a factory constructor, a "normal" constructor could be
   // generated that simply populates the fields!
   factory Person.fromJson(Map<String, dynamic> json) =>
@@ -116,15 +125,15 @@ class Person {
 The following would be legal:
 
 ```dart
-class Person{}
-class Person{}
-class Person{}
+class Person partial {}
+class Person partial {}
+class Person partial {}
 ```
 
 ...and would be treated as
 
 ```dart
-class Person{}
+class Person {}
 ```
 
 > Why not restrict it to one-definition-per-file? It's common for code
@@ -135,12 +144,12 @@ generators to create one file with the output from several separate generators.
 The following would be legal:
 
 ```dart
-class Person extends A<int> {
+class Person extends A<int> partial {
   final int field;
   Person(this.field);
 }
 
-class Person implements B<String>{}
+class Person implements B<String> partial {}
 ```
 
 ...and would be treated as
@@ -164,7 +173,7 @@ The following would be legal:
 // User-defined class
 class Person {
   // Reusing `external` keyword here. Not sure if we can/want to add another
-  // keyword
+  // keyword. We don't want this to "look" abstract.
   external int get value;
 }
 
