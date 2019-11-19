@@ -1,10 +1,13 @@
-# Sound non-nullable (by default) types with incremental migration 
+# Sound non-nullable (by default) types with incremental migration
 
 Author: leafp@google.com
 
 Status: Draft
 
 ## CHANGELOG
+
+2019.11.1
+  - Clarify runtime instance checks and casts.
 
 2019.10.08
   - Warning to call null check operator on non-nullable expression
@@ -539,8 +542,8 @@ separately.
 When weak checking is enabled, runtime type tests (including explicit and
 implicit casts) shall succeed whenever the runtime type test would have
 succeeded if all `?` types were ignored, `Never` were treated as `Null`,
-`Object` is treated as nullable, and `required` named parameters were treated as
-optional.
+`Object` were treated as nullable, and `required` named parameters were treated
+as optional.
 
 Instance checks (`e is T`) and casts (`e as T`) behave differently when run in
 strong vs weak checking mode.
@@ -550,36 +553,36 @@ types ignored, `Never` treated as `Null`, `Object` treated as nullable, and
 `required` parameters treated as optional.
 
 Let `NNBD_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` as specified in the
-[NNBD subtyping rules][https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md].
+[NNBD subtyping rules](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
 
 We define the weak checking and strong checking mode instance tests as follows:
 
-In weak checking mode if `e` has runtime type `S`, an instance check `e is T`
-(whether defined in a legacy or opted-in library) is evaluated as follows:
+**In weak checking mode**: if `e` has runtime type `S`, an instance check `e is T`
+**whether defined in a legacy or opted-in library** is evaluated as follows:
   - If `S` is `Null` return `LEGACY_SUBTYPE(T, NULL) || LEGACY_SUBTYPE(Object,
     T)`
   - Otherwise return `LEGACY_SUBTYPE(S, T)`
 
-In strong checking mode if `e` has runtime type `S`, an instance check `e is T`
-defined in a legacy library is evaluated as follows:
+**In strong checking mode**: if `e` has runtime type `S`, an instance check `e is T`
+defined in a **legacy library** is evaluated as follows:
   - If `S` is `Null` return `NNBD_SUBTYPE(T, NULL) || NNBD_SUBTYPE(Object, T)`
   - Otherwise return `NNBD_SUBTYPE(S, T)`
 
-In strong checking mode if `e` has runtime type `S`, an instance check `e is T`
-defined in an opted-in library is evaluated as follows:
+**In strong checking mode**: if `e` has runtime type `S`, an instance check `e is T`
+defined in an **opted-in library** is evaluated as follows:
   - return `NNBD_SUBTYPE(S, T)`
 
 We define the weak checking and strong checking mode casts as follows:
 
-In weak checking mode if `e` has runtime type `S`, an instance check `e is T`
-(whether defined in a legacy or opted-in library) is evaluated as follows:
+**In weak checking mode**: if `e` has runtime type `S`, a cast `e as T`
+**whether defined in a legacy or opted-in library** is evaluated as follows:
   - return `LEGACY_SUBTYPE(S, T)`
 
-In strong checking mode if `e` has runtime type `S`, an instance check `e is T`
-(whether defined in a legacy or opted-in library) is evaluated as follows:
+**In strong checking mode**: if `e` has runtime type `S`, a cast `e as T`
+**whether defined in a legacy or opted-in library** is evaluated as follows:
   - return `NNBD_SUBTYPE(S, T)`
 
-In weak checking mode, we ensure that opted in libraries do not break downstream
+In weak checking mode, we ensure that opted-in libraries do not break downstream
 clients by continuing to evaluate instance checks and casts with the same
 semantics as in pre-nnbd Dart.  All runtime subtype checks are done using the
 legacy subtyping, and instance checks maintain the pre-nnbd behavior on `null`
