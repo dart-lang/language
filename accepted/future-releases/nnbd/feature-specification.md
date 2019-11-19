@@ -541,46 +541,57 @@ separately.
 
 When weak checking is enabled, runtime type tests (including explicit and
 implicit casts) shall succeed whenever the runtime type test would have
-succeeded if all `?` types were ignored, `Never` were treated as `Null`,
-`Object` were treated as nullable, and `required` named parameters were treated
-as optional.
+succeeded if all `?` on types were ignored, `*` was added to each type, and
+`required` parameters were treated as optional.  This has the effect of treating
+`Never` as equivalent to `Null`, restoring `Null` to the bottom of the type
+hierarchy, treating `Object` as nullable, and ignoring `required` on named
+parameters.  This is intended to provide the same subtyping results as pre-nnbd
+Dart.
 
 Instance checks (`e is T`) and casts (`e as T`) behave differently when run in
 strong vs weak checking mode.
 
-Let `LEGACY_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` with all `?`
-types ignored, `Never` treated as `Null`, `Object` treated as nullable, and
-`required` parameters treated as optional.
+Let `LEGACY_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` in the modified
+semantics as described above: that is, with all `?` on types ignored, `*` added
+to each type, and `required` parameters treated as optional.
 
 Let `NNBD_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` as specified in the
 [NNBD subtyping rules](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
 
 We define the weak checking and strong checking mode instance tests as follows:
 
-**In weak checking mode**: if `e` has runtime type `S`, an instance check `e is T`
-**whether defined in a legacy or opted-in library** is evaluated as follows:
+**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` **whether textually occurring in a legacy
+or opted-in library** is evaluated as follows:
   - If `S` is `Null` return `LEGACY_SUBTYPE(T, NULL) || LEGACY_SUBTYPE(Object,
     T)`
   - Otherwise return `LEGACY_SUBTYPE(S, T)`
 
-**In strong checking mode**: if `e` has runtime type `S`, an instance check `e is T`
-defined in a **legacy library** is evaluated as follows:
+**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` textually occurring in a **legacy library**
+is evaluated as follows:
   - If `S` is `Null` return `NNBD_SUBTYPE(T, NULL) || NNBD_SUBTYPE(Object, T)`
   - Otherwise return `NNBD_SUBTYPE(S, T)`
 
-**In strong checking mode**: if `e` has runtime type `S`, an instance check `e is T`
-defined in an **opted-in library** is evaluated as follows:
+**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` textually occurring in an **opted-in
+library** is evaluated as follows:
   - return `NNBD_SUBTYPE(S, T)`
 
 We define the weak checking and strong checking mode casts as follows:
 
-**In weak checking mode**: if `e` has runtime type `S`, a cast `e as T`
-**whether defined in a legacy or opted-in library** is evaluated as follows:
-  - return `LEGACY_SUBTYPE(S, T)`
+**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
+library** is evaluated as follows:
+  - if `LEGACY_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
+    `CastError` is thrown.
 
-**In strong checking mode**: if `e` has runtime type `S`, a cast `e as T`
-**whether defined in a legacy or opted-in library** is evaluated as follows:
-  - return `NNBD_SUBTYPE(S, T)`
+**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
+library** is evaluated as follows:
+  - if `NNBD_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
+    `CastError` is thrown.
+
 
 In weak checking mode, we ensure that opted-in libraries do not break downstream
 clients by continuing to evaluate instance checks and casts with the same
