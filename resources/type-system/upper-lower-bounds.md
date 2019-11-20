@@ -101,40 +101,44 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 
 
 - **UP**(`T`, `T`) = `T`
-- **UP**(`T1`, `T2`) where **TOP**(`T1`) and **TOP**(`T2`) = 
+- **UP**(`T1`, `T2`) where **TOP**(`T1`) and **TOP**(`T2`) =
   - `T1` if **MORETOP**(`T1`, `T2`)
   - `T2` otherwise
 - **UP**(`T1`, `T2`) = `T1` if **TOP**(`T1`)
 - **UP**(`T1`, `T2`) = `T2` if **TOP**(`T2`)
 
-- **UP**(`T1`, `T2`) where **BOTTOM**(`T1`) and **BOTTOM**(`T2`) = 
+- **UP**(`T1`, `T2`) where **BOTTOM**(`T1`) and **BOTTOM**(`T2`) =
   - `T2` if **MOREBOTTOM**(`T1`, `T2`)
   - `T1` otherwise
 - **UP**(`T1`, `T2`) = `T2` if **BOTTOM**(`T1`)
 - **UP**(`T1`, `T2`) = `T1` if **BOTTOM**(`T2`)
 
-- **UP**(`T1`, `T2`) where **NULL**(`T1`) and **NULL**(`T2`) = 
+- **UP**(`T1`, `T2`) where **NULL**(`T1`) and **NULL**(`T2`) =
   - `T2` if **MOREBOTTOM**(`T1`, `T2`)
   - `T1` otherwise
 
-- **UP**(`T1`, `T2`) where **NULL**(`T1`) = 
+- **UP**(`T1`, `T2`) where **NULL**(`T1`) =
   - `T2` if  `T2` is nullable
+  - `T2*` if `T1 <: Object` (that is, `T1` is equivalent to `Never*`)
   - `T2?` otherwise
 
-- **UP**(`T1`, `T2`) where **NULL**(`T2`) = 
+- **UP**(`T1`, `T2`) where **NULL**(`T2`) =
   - `T1` if  `T1` is nullable
+  - `T1*` if `T2 <: Object` (that is, `T2` is equivalent to `Never*`)
   - `T1?` otherwise
 
 - **UP**(`T1`, `T2`) where **OBJECT**(`T1`) and **OBJECT**(`T2`) =
   - `T1` if **MORETOP**(`T1`, `T2`)
   - `T2` otherwise
 
-- **UP**(`T1`, `T2`) where **OBJECT**(`T1`) = 
+- **UP**(`T1`, `T2`) where **OBJECT**(`T1`) =
   - `T1` if `T2` is non-nullable
+  - `T1*` if `T2 <: Object` (that is, `T2` is a `*` type)
   - `T1?` otherwise
 
-- **UP**(`T1`, `T2`) where **OBJECT**(`T2`) = 
+- **UP**(`T1`, `T2`) where **OBJECT**(`T2`) =
   - `T2` if `T1` is non-nullable
+  - `T2*` if `T1 <: Object` (that is, `T1` is a `*` type)
   - `T2?` otherwise
 
 - **UP**(`T1*`, `T2*`) = `S*` where `S` is **UP**(`T1`, `T2`)
@@ -147,22 +151,22 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`T1?`, `T2`) = `S?` where `S` is **UP**(`T1`, `T2`)
 - **UP**(`T1`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`)
 
-- **UP**(`X1 extends B1`, `T2`) = 
+- **UP**(`X1 extends B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
   - otherwise **UP**(`B1[Object/X1]`, `T2`)
 
-- **UP**(`X1 & B1`, `T2`) = 
+- **UP**(`X1 & B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
   - otherwise **UP**(`B1[Object/X1]`, `T2`)
 
-- **UP**(`T1`, `X2 extends B2`) = 
+- **UP**(`T1`, `X2 extends B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
   - otherwise **UP**(`T1`, `B2[Object/X2]`)
 
-- **UP**(`T1`, `X2 & B2`) = 
+- **UP**(`T1`, `X2 & B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
   - otherwise **UP**(`T1`, `B2[Object/X2]`)
@@ -171,7 +175,7 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`Function`, `T Function<...>(...)`) = `Function`
 
 - **UP**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k)`,
-         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)`) = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)`) =
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2q)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - Both have the same number of required positional parameters
@@ -180,7 +184,7 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
      - `B2i` is `B0i`
      - `P2i` is **DOWN**(`P0i`, `P1i`)
 - **UP**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k, Named0)`,
-         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)`) = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)`) =
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2k, Named2)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - All positional parameters are required
@@ -195,9 +199,9 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
         - and `R2i` is **DOWN**(`R0i`, `R1i`)
         - and `R2i xi` is required if `xi` is required in either `Named0` or `Named1`
 
+- **UP**(`T Function<...>(...)`, `S Function<...>(...)`) = `Function` otherwise
 - **UP**(`T Function<...>(...)`, `T2`) = `Object`
 - **UP**(`T1`, `T Function<...>(...)`) = `Object`
-- **UP**(`T Function<...>(...)`, `S Function<...>(...)`) = `Function` otherwise
 - **UP**(`T1`, `T2`) = `T2` if `T1` <: `T2`
   - Note that both types must be class types at this point
 - **UP**(`T1`, `T2`) = `T1` if `T2` <: `T1`
@@ -213,7 +217,7 @@ follows.
 
 - **DOWN**(`T`, `T`) = `T`
 
-- **DOWN**(`T1`, `T2`) where **TOP**(`T1`) and **TOP**(`T2`) = 
+- **DOWN**(`T1`, `T2`) where **TOP**(`T1`) and **TOP**(`T2`) =
   - `T1` if **MORETOP**(`T2`, `T1`)
   - `T2` otherwise
 - **DOWN**(`T1`, `T2`) = `T2` if **TOP**(`T1`)
@@ -230,11 +234,11 @@ follows.
   - `T1` if **MOREBOTTOM**(`T1`, `T2`)
   - `T2` otherwise
 
-- **DOWN**(`Null`, `T2`) = 
+- **DOWN**(`Null`, `T2`) =
   - `Null` if `Null <: T2`
   - `Never` otherwise
 
-- **DOWN**(`T1`, `Null`) = 
+- **DOWN**(`T1`, `Null`) =
   - `Null` if `Null <: T1`
   - `Never` otherwise
 
@@ -263,7 +267,7 @@ follows.
 - **DOWN**(`T1`, `T2?`) = `S` where `S` is **DOWN**(`T1`, `T2`)
 
 - **DOWN**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k)`,
-         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)` = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)` =
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2q)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - `q` is max(`k`, `l`)
@@ -274,7 +278,7 @@ follows.
      - `P2i` is `P1i` for `l` < `i` <= `q`
      - `P2i` is optional if `P0i` or `P1i` is optional
 - **DOWN**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k, Named0)`,
-         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)` = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)` =
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2k, Named2)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - `R0` is **DOWN**(`T0`, `T1`)
