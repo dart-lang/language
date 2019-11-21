@@ -5,6 +5,8 @@ Version: 0.1 (draft)
 
 ## Background
 
+See issue #698 for the feature discussion.
+
 ### Verbosity
 
 Creating a class with a simple constructor is fairly short because of Dart's initializing formals, but it's still entirely boiler-plate code that repeats names that already exist elsewhere in the class declaration. You need to repeat the name at least once. Forwarding constructor parameters is even more verbose, especially for named parameters.
