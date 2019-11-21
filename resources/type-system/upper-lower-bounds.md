@@ -119,12 +119,12 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 
 - **UP**(`T1`, `T2`) where **NULL**(`T1`) =
   - `T2` if  `T2` is nullable
-  - `T2*` if `T1 <: Object` (that is, `T1` is equivalent to `Never*`)
+  - `T2*` if `Null <: T2` or `T1 <: Object` (that is, `T1` or `T2` is legacy)
   - `T2?` otherwise
 
 - **UP**(`T1`, `T2`) where **NULL**(`T2`) =
   - `T1` if  `T1` is nullable
-  - `T1*` if `T2 <: Object` (that is, `T2` is equivalent to `Never*`)
+  - `T1*` if `Null <: T1` or `T2 <: Object` (that is, `T1` or `T2` is legacy)
   - `T1?` otherwise
 
 - **UP**(`T1`, `T2`) where **OBJECT**(`T1`) and **OBJECT**(`T2`) =
@@ -133,12 +133,12 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 
 - **UP**(`T1`, `T2`) where **OBJECT**(`T1`) =
   - `T1` if `T2` is non-nullable
-  - `T1*` if `T2 <: Object` (that is, `T2` is a `*` type)
+  - `T1*` if `Null <: T2` (that is, `T2` is legacy)
   - `T1?` otherwise
 
 - **UP**(`T1`, `T2`) where **OBJECT**(`T2`) =
   - `T2` if `T1` is non-nullable
-  - `T2*` if `T1 <: Object` (that is, `T1` is a `*` type)
+  - `T2*` if `Null <: T1` (that is, `T1` is legacy)
   - `T2?` otherwise
 
 - **UP**(`T1*`, `T2*`) = `S*` where `S` is **UP**(`T1`, `T2`)
