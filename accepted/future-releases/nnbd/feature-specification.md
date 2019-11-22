@@ -561,10 +561,16 @@ Let `NNBD_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` as specified in the
 We define the weak checking and strong checking mode instance tests as follows:
 
 **In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
-type `S`, an instance check `e is T` **whether textually occurring in a legacy
-or opted-in library** is evaluated as follows:
+type `S`, an instance check `e is T` occurring in a **legacy library** is
+evaluated as follows:
   - If `S` is `Null` return `LEGACY_SUBTYPE(T, NULL) || LEGACY_SUBTYPE(Object,
     T)`
+  - Otherwise return `LEGACY_SUBTYPE(S, T)`
+
+**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` occurring in an **opted-in library** is
+evaluated as follows:
+  - If `S` is `Null` return `NNBD_SUBTYPE(NULL, T)`
   - Otherwise return `LEGACY_SUBTYPE(S, T)`
 
 **In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
