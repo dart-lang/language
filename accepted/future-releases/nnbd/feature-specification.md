@@ -6,7 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
-2019.11.1
+2019.11.22
+  - Additional errors and warnings around late variables
+
+2019.11.21
   - Clarify runtime instance checks and casts.
 
 2019.10.08
@@ -217,7 +220,16 @@ assignable to `Object`.
 
 It is not an error for the body of a `late` field to reference `this`.
 
-It is an error for a formal parameter to be declared `late`.
+It is an error for a variable to be declared as `late` in any of the following
+positions: in a formal parameter list of any kind; in a catch clause; in the
+variable binding section of a c-style `for` loop, a `for in` loop, an `await
+for` loop, or a `for element` in a collection literal.
+
+It is an error for the initializer expression of a `late` local variable to use
+a prefix `await` expression.
+
+It is an error for a class with a `const` constructor to have a `late final`
+field.
 
 It is not a compile time error to write to a `final` variable if that variable
 is declared `late` and does not have an initializer.
@@ -423,7 +435,8 @@ A read of a field or variable which is marked as `late` which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
 a value, assigned to the variable or field, and returned as the value of the
 read.
-  - If there is no initializer expression, the read causes a runtime error.
+  - If there is no initializer expression, the read causes a runtime error to be
+    thrown which is an instance of `LateInitializationError`.
   - Evaluating the initializer expression may validly cause a write to the field
     or variable, assuming that the field or variable is not final.  In this
     case, the variable assumes the written value.  The final value of the
@@ -438,10 +451,22 @@ read.
     is treated as a first read and the initializer expression is evaluated
     again.
 
-A write to a field or variable which is marked `final` and `late` is a runtime
-error unless the field or variable was declared with no initializer expression,
-and there have been no previous writes to the field or variable (including via
-an initializing formal or an initializer list entry).
+A write to a field or variable which is marked `final` and `late` causes a
+runtime error to be thrown which is an instance of `LateInitializationError`
+unless the field or variable was declared with no initializer expression,
+**and** there have been no previous writes to the field or variable (including
+via an initializing formal or an initializer list entry).  Note that this
+includes the implicit initializing writes induced by evaluating the initializer
+during a read.  Hence, the following program terminates with a
+`LateInitializationError` exception.
+
+```dart
+int i = 0;
+late final int x = i++ == 0 ? x + 1 : 0;
+void main() {
+  print(x);
+}
+```
 
 Overriding a field which is marked both `final` and `late` with a member which
 does not otherwise introduce a setter introduces an implicit setter which
