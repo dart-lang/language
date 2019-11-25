@@ -395,8 +395,8 @@ A non-local variable declaration of the form `late final v;`, `late final T v;`,
 `late final v = e;`, or `late final T v = e;`, or the same forms with `static`
 prepended, implicitly induces a getter into the enclosing scope. Moreover, the
 forms that do not include an initializing expression `e` induce a setter as
-well. For other variable declarations including `late`, the same getters and
-setters are induced as when `late` is omitted.
+well. Non-final non-local variable declarations including `late` induce a 
+getter as well as a setter.
 
 A read of a field or variable which is marked as `late` which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
@@ -417,10 +417,15 @@ read.
     is treated as a first read and the initializer expression is evaluated
     again.
 
-A write to a field or variable which is marked `late` and `final` is a runtime
-error unless the field or variable was declared with no initializer expression,
-and there have been no previous writes to the field or variable (including via
-an initializing formal or an initializer list entry).
+Let `v` be a `late` and `final` non-local variable without an initializing
+expression.  It is a run-time error to invoke the setter `v=` if a value
+has previously been assigned to `v` (which could be due to an initializing
+formal or a constructor initializer list, or due to an invocation of the
+setter).
+
+Let `v` be a `late` and `final` local variable without an initializing
+expression. It is a run-time error to assign a value to `v` if a value has
+previously been assigned to `v`.
 
 Overriding a field which is marked both `late` and `final` with a member which
 does not otherwise introduce a setter introduces an implicit setter which
