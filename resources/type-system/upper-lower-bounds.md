@@ -184,16 +184,21 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2k, Named2)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - All positional parameters are required
-     - `R0` is **UP**(`T0`, `T1`)
-     - `B2i` is `B0i`
-     - `P2i` is **DOWN**(`P0i`, `P1i`)
-     - `Named0` contains `R0i xi` if `R1i xi` is a required named parameter in `Named1`
-     - `Named1` contains `R1i xi` if `R0i xi` is a required named parameter in `Named0`
-     - `Named2` contains exactly `R2i xi` for each `xi` in both `Named0` and `Named1` 
+     - `Named0` contains an entry (optional or required) of the form `R0i xi`
+       for every required named parameter `R1i xi` in `Named1`
+     - `Named1` contains an entry (optional or required) of the form `R1i xi`
+       for every required named parameter `R0i xi` in `Named0`
+     - The result is defined as follows:
+       - `R0` is **UP**(`T0`, `T1`)
+       - `B2i` is `B0i`
+       - `P2i` is **DOWN**(`P0i`, `P1i`)
+       - `Named2` contains exactly `R2i xi` for each `xi` in both `Named0` and
+         `Named1`
         - where `R0i xi` is in `Named0`
         - where `R1i xi` is in `Named1`
         - and `R2i` is **DOWN**(`R0i`, `R1i`)
-        - and `R2i xi` is required if `xi` is required in either `Named0` or `Named1`
+        - and `R2i xi` is required if `xi` is required in either `Named0` or
+          `Named1`
 
 - **UP**(`T Function<...>(...)`, `T2`) = `Object`
 - **UP**(`T1`, `T Function<...>(...)`) = `Object`
