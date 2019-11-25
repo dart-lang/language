@@ -418,10 +418,10 @@ read.
     again.
 
 Let `v` be a `late` and `final` non-local variable without an initializing
-expression.  It is a run-time error to invoke the setter `v=` if a value
-has previously been assigned to `v` (which could be due to an initializing
-formal or a constructor initializer list, or due to an invocation of the
-setter).
+expression.  It is a run-time error to invoke the setter `v=` which is
+implicitly induced by `v` if a value has previously been assigned to `v`
+(which could be due to an initializing formal or a constructor initializer
+list, or due to an invocation of the setter).
 
 Let `v` be a `late` and `final` local variable without an initializing
 expression. It is a run-time error to assign a value to `v` if a value has
