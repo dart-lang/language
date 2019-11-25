@@ -7,7 +7,7 @@ Status: Draft
 ## CHANGELOG
 
 2019.11.25:
-  - Made implicitly induced getters/setters for late variables explicit.
+  - Specified implicitly induced getters/setters for late variables.
 
 2019.04.23:
   - Added specification of short-circuiting null
