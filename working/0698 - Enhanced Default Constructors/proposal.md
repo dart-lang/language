@@ -1,7 +1,7 @@
 # Dart Enhanced Default Constructors
 
 Author: [lrn@google.com](mailto:lrn@google.com)
-Version: 0.2 (draft)
+Version: 0.3 (draft)
 
 ## Background
 
@@ -13,7 +13,7 @@ Creating a class with a simple constructor is fairly short because of Dart's ini
 
 ```dart
 class Complex {
-	final double real, imaginary;
+  final double real, imaginary;
   Complex({this.real, this.imaginary});
 }
 class ColorComplex extends Complex {
@@ -32,21 +32,21 @@ Dart adds a *default constructor* to any class which doesn't declare any constru
 
 If that constructor would not be valid for the class, for example if the class declares a final instance variable with no initializer, or if the superclass does not have an unnamed generative constructor with no required parameters, then it's a compile-time error.
 
-In most situations, there is no difference between declaring the constructor above explicitly and getting the default constructor. The only distinction is that you can extract a mixin from a class if it has `Object` as superclass and it declares no non-factory constructor.
+In most situations, there is no difference between declaring the constructor above explicitly and getting the default constructor. The only distinction is that you can extract a mixin from a class if it has `Object` as superclass and it *declares* no non-factory constructor.
 
 ### Mixin Application Forwarding Constructors
 
-A *mixin application* receives corresponding forwarding constructors for all accessible generative constructors of the superclass. The forwarding constructor has the same basename (identifer after the class name for named constructors, empty for the unnamed constructor), the same parameter signature as the superclass constructor, including default values for optional parameters, and an initializer list with a `super`-invocation to the corresponding superclass constructor which forwards each parameter as an argument to the corresponding superclass constructor parameter. The forwarding constructor is `const` if the superclass constructor is `const` *and* the mixin declares no instance variables.
+A *mixin application* receives corresponding forwarding constructors for all accessible generative constructors of the superclass. The forwarding constructor has the same basename (identifier after the class name for named constructors, empty for the unnamed constructor), the same parameter signature as the superclass constructor, including default values for optional parameters, and an initializer list with a `super`-invocation to the corresponding superclass constructor which forwards each parameter as an argument to the corresponding superclass constructor parameter. The forwarding constructor is `const` if the superclass constructor is `const` *and* the mixin declares no instance variables.
 
 Since a mixin application class cannot contain static members, there is no risk of the introducing a conflict between a constructor name and a static member. 
 
 ### Goal
 
-We want to allow classes with fields that can be constructed without having to write constructors. That is, we want *initializing default constructors* which takes parameters class fields (with some exceptions) and initializes the fields.
+We want to allow classes with fields without having to write constructors. That is, we want *initializing default constructors* which takes parameters for class fields (with some necessary exceptions) and initializes the fields.
 
 We want those constructors to be independent of the order of the fields in the class, so the constructor parameters will be *named*.
 
-We want this feature to compose well, so if a superclass gets an initializing default constructor, then a subclass should also be able to have one, which means that the subclass constructor needs to forward parameters to the superclass (at least unless there is a naming conflict).
+We want this feature to compose well, so if a superclass gets an initializing default constructor, then a subclass should also be able to have one, which means that the subclass constructor needs to *forward* parameters to the superclass (at least unless there is a naming conflict).
 
 If possible, it would be nice to be able to forward other constructors as well, so that mixin applications are not the only way to forward constructors automatically when that's all you need.
 
@@ -108,9 +108,9 @@ We will introduce *initializing* and *forwarding* constructors, and have *defaul
 
 An initializing constructor for a class *C* is a generative constructor with *implicitly* introduced named initializing formals without default values for each instance variable declared in *C* which is not declared `late` and which does not have an initializer expression. The named parameter is required if the instance variable's type is potentially non-nullable. In NNBD-legacy code, the parameter is required if the instance variable is final.
 
-A constructor can be made initializing by writing `default` as a modifier before the constructor, after any `const` modifier.
+A generative constructor can be made initializing by writing `default` as a modifier before the constructor, after any `const` modifier.
 
-Such a constructor must not declare any optional positional parameters. It may declare other parameters, and then an initializing formal is not introduced for an instance variable when the constructor declares another parameter with the same name. This allows users to explicitly initialize some fields and still have default initialization for the remaining fields.
+Such a constructor must not declare any optional positional parameters. It may declare other parameters, and then an initializing formal is not introduced for an instance variable when the constructor declares another parameter with the same name. This allows users to explicitly initialize some fields and still have default initialization for the remaining fields. The constructor may have an initializer list and a body as normal, the `default`  modifier implicitly introduces a number of named parameters into parameter list, and it does nothing else.
 
 #### Example
 
@@ -136,7 +136,6 @@ would expand to;
 
 ```dart
   Person(this.lastName, {required this.firstName, required this.age}) : super()
-
 ```
 
 because the explicitly supplied `lastName` parameter takes precedence over inserting an initializing formal parameter for that field.
@@ -145,21 +144,23 @@ because the explicitly supplied `lastName` parameter takes precedence over inser
 
 A forwarding constructor for a class *C* is a generative constructor with *implicitly* introduced formal parameters and a super constructor invocation forwarding those parameters to a the superclass constructor.
 
-A forwarding constructor with no other parameters will have the same parameter signature as the superclass constructor, including default value for optional parameters, and will forward all parameters to the superclass constructor in the initializer list.
+A forwarding constructor with no other parameters declared will have the same parameter signature as the superclass constructor, including default value for optional parameters, and will forward all parameters to the superclass constructor in the initializer list.
 
-A constructor can be made forwarding by writing a reference to a super-constructor (`super` or `super.id`) in a in place of a required positional parameter in the constructor parameter list *and* omitting the super-invocation in the initializer list. 
+A constructor can be made forwarding by writing a reference to a superconstructor (`super` or `super.id`) in place of a required positional parameter in the constructor parameter list *and* omitting the super-invocation in the initializer list. It's a *compile-time error* to have both a superconstructor in the parameter list and a super invocation in the initializer list. It is a compile-time error to have a superconstructor in the parameter list of anything but a non-forwarding generative constructor.
 
-The super-constructor entry is expanded to add a number of *forwarded parameters* to the forwarding constructor's parameter list. One positional forwarded parameter is added for each positional parameter of the referenced superconstructor, in order, at the position of the constructor reference in the forwarding constructor parameter list, and one named forwarded parameter is added for each named parameter of the superconstructor, with the following modifications:
+The superconstructor entry is expanded to add a number of *forwarded parameters* to the forwarding constructor's parameter list. One positional forwarded parameter is added for each positional parameter of the referenced superconstructor, in order, at the position of the constructor reference in the forwarding constructor parameter list, and one named forwarded parameter is added for each named parameter of the superconstructor, under the following constraints:
 
-- If the forwarding constructor is also an initializing constructor, then the field-initializing parameters from that are added to the forwarding constructor before considering forwarding.
+- If the forwarding constructor is also an initializing constructor, then those named field-initializing parameters are added to the forwarding constructor before considering forwarding.
 - If the forwarding constructor declares a parameter (including initializing constructor parameters introduced above) with the same name as a required named superconstructor parameter, it is a *compile-time error*.
 - If the forwarding constructor declares a parameter (including initializing constructor parameters introduced above) with the same name as an optional named superconstructor parameter, then the superconstructor parameter is ignored and no corresponding parameter is introduced in the forwarding constructor
 - If the forwarding constructor declares a parameter (including initializing constructor parameters introduced above) with the same name as a positional superconstructor parameter, call it *originalName*, then, for documentation purposes, the corresponding forwarding constructor parameter uses the name *originalName_n* where *n* is a decimal integer representing for the smallest integer greater than zero which makes the name different from any parameter name declared by the forwarding constructor or by the superconstructor.
-- If the forwarding constructor declares any named parameters, including if it is an initializing constructor, then all optional positional superconstructor parameters are ignored.
-- If the forwarding constructor declares any positional parameters after the superconstructor reference entry, then all positional superconstructor-derived parameters are ignored.
+- If the forwarding constructor declares any named parameters, including if it is an initializing constructor, then all optional positional superconstructor parameters are ignored and no corresponding parameter is introduced in the forwarding constructor..
+- If the forwarding constructor declares any positional parameters after the superconstructor reference entry, then all optional positional superconstructor parameters are ignored and no corresponding parameter is introduced in the forwarding constructor.
 - Otherwise the forwarded parameters are optional if they are optional in the superconstructor, and if so, they have the same default value, if any.
 
 Then a super-invocation is added to the initializer list where each such forwarded parameter is forwarded as a corresponding superconstructor argument.
+
+The constructor may have an initializer list and a body as normal, excapt that the initializer list must not contain an explicit superconstructor invocation.
 
 #### Example
 
@@ -167,7 +168,6 @@ The class `Fireman`above could be given an initializing constructor by writing:
 
 ```dart
   default Fireman(super);
-
 ```
 
 This would expand to the constructor:
@@ -176,7 +176,6 @@ This would expand to the constructor:
   Fireman({required this.yearsOfService, required String firstName,
            required String lastName, required int age})
       : super(firstName: firstName, lastName: lastName, age: age);
-
 ```
 
 It's also possible to have other parameters in the parameter list, before or after the forwarded positional parameters:
@@ -185,12 +184,17 @@ It's also possible to have other parameters in the parameter list, before or aft
 class Point {
   final int x, y;
   Point(this.x, this.y);
+  double get distanceFromOrigo => sqrt(x * x + y * y);
 }
-class ColorPoint extends Point {
+class Color3DPoint extends Point {
   final Color color;
-  Point(this.color, super); // Expands to: Point(this.color, int x, int y) : super(x, y);
+  final int z;
+  final double _cachedDistanceFromOrigo;
+  // Expands to: Point(this.color, int x, int y, this.z) : super(x, y);
+  Point(this.color, super, this.z) 
+      : _cachedDistanceFromOrigo = sqrt(x * x + y * y + z * z);
+  double get distanceFromOrigo => _cachedDistanceFromOrigo;
 }
-
 ```
 
 ### Default Constructors
@@ -204,35 +208,18 @@ It is a compile-time error if:
 - *C* declares a private-named, non-`late`, and potentially non-nullable instance variable with no initializer expressions. 
 - Or in **NNBD-legacy mode**, *C* declares a private-named and final instance variable with no initializer expression.
 
-Otherwise, for each constructor *s* of the superclass, named `S` or `S.id`, satisfying all of the following:
+It is also a *compile-time error* if *S* does not declare an unnamed generative constructor.
 
-- If *s* is a named constructor with name `S.id` then:
-  - *s* is accessible ( `id` is not a private identifier or *S* is not declared in a different library), and
-  - *C* does not declare a static member named *id*.
-- The *s* constructor is a generative constructor.
-- *C* does not declare an instance variable with no initializer expression and with the same basename as a required named parameter of *s*.
+Otherwise let *s* be the unnamed generative constructor of *S*.
 
-add a generative initializing and forwarding default constructor *c* to *C* with the corresponding name `C` or `C.id`, and the following declaration:
+It is a *compile-time error* if *C* declares a non-`late` instance variable with no initializer expression and with the same basename as a required named parameter of *s*.
 
-```dart
-default C(super);
-
-```
-
-or
-
-```dart
-default C.id(super.id);
-
-```
-
-It is a *compile-time error* if there are no superclass constructors satisfying these requirements. (This is not a necessity, it's completely valid for a class to have no generative constructors, which is what currently happens if a class declares only factory constructors. We require the author to explicitly opt in to this behavior because *if* it is unintentional, it is a very hard-to-spot error.)
+Otherwise add a generative initializing and forwarding default unnamed constructor *c* to *C* with the name `C` and the following declaration `default C(super);`.
 
 The constructor *c* is not  `const`. It's possible to declare a const initializing and forwarding constructor by explicitly writing:
 
 ```dart
 const default C(super);
-
 ```
 
 ### Mixin Application Forwarding Constructors
@@ -251,6 +238,8 @@ In NNBD libraries, we do not make parameters corresponding to *final* instance v
 
 An instance variable in a subclass will always shadow a named parameter of the same name in a superclass constructor when both initializing and forwarding. That's why we do not let default constructors forward to superclass constructors which have a required named parameter with such a name, and make it a compile-time error for an explicitly written forwarding constructor. As usual, naming conflicts must be handled by the user when there is no good default.
 
+It is a *compile-time error* if there is no unnamed superclass constructor satisfying the requirements for a default constructor. This is not a necessity, it's completely valid for a class to have no generative constructors, which is what currently happens if a class declares only factory constructors. We require the author to explicitly opt in to this behavior because *if* it is unintentional, it is a very hard-to-spot error.
+
 Superclass constructors with optional positional parameters are hard to forward to. It would be wonderful if it was possible to have both optional positional parameters and named parameters on the same function. We ignore the optional parameters when they would occur in a constructor where they cannot be optional, either because there are also named parameters, or because there are later required parameters, like you would get for `Foo(default, this.x)`, or where they are followed by other optional parameters. The last case is to avoid adding an optional parameter to a superclass constructor from being a breaking change. The alternative would be to make the parameter required, which would also make adding an *optional* parameter to a superclass constructor a breaking change. This feature is about doing the right thing easily in simple cases. In cases with conflicts and incompatible parameter lists, it will still be necessary (or at least better) to write the constructor by hand.
 
 You only get default constructors when you declare *no* constructors. If you want to forward ten superclass constructors, and change the eleventh just a bit, or add an eleventh factory constructor, then you have to write all of the other ten, but at least you only need to write `default Foo.bar(super.bar);` and not repeat every parameter. 
@@ -261,7 +250,7 @@ It's always possible to write exactly the same constructors manually, so this ch
 
 The change is *non-breaking* for default constructors. Any existing valid class that gets a default constructor with the new specification would also get a default constructor in the existing language. It will have a superclass with an unnamed constructor accepting zero arguments, and it will have no fields requiring initialization, so it too will have an unnamed constructor accepting zero arguments. Calling that constructor with no arguments will initialize any instance variable with no initializer to  `null`  and call the superclass unnamed constructor with the same result as calling it with zero arguments. That is exactly the same behavior as currently defined for the default constructor. 
 
-The change is non-breaking for mixin application because the semantics of forwarding constructors match the existing behavior when there are no further parameters declared.
+The change is non-breaking for mixin application because the semantics of forwarding constructors with no extra parameters declared matches the existing behavior for forwarding mixin application construtors.
 
 The added features, initializing constructors, forwarding constructors and initializing and forwarding default constructors, do introduce new ways to cause errors. We have attempted to minimize such cases, but whenever there is an implicit connection between two classes, a change to one may change the other without anybody meaning to.
 
@@ -275,13 +264,13 @@ Most other changes have been designed around, so they reduce the usefulness of f
 
 Adding an optional positional parameter to a superclass constructor to a class would have been a breaking change if we allowed any positional parameter after the forwarded optional parameter in the subclass constructor because it would change the position of an existing parameter. We deliberately avoided that at the cost of adding restrictions on when we can forward optional positional parameters.
 
-Adding a static member to a class may suppress a default constructor. If the class author is not aware of that default constructor (perhaps it was added to the superclass after the subclass was written), this can come as a surprise. It may break downstream code using the constructor, even if the author doesn't get any errors. That suggests that maybe having all the forwarding constructors by default is not a good idea anyway.
+Adding a static member to a class would have suppress a default constructor if we forwarded all constructors, not just unnamed ones. If the class author was not aware of that default constructor (perhaps it was added to the superclass after the subclass was written), this would come as a surprise. It may break downstream code using the constructor, even if the author doesn't get any errors. That suggests that maybe all the forwarding constructors by default is not a good idea.
 
 ## Variants
 
-This proposal goes about as far as possible in forwarding to superclass constructors, in part because it can then subsume mixin application constructor forwarding, and in part because it's very useful when extending classes without introducing new fields.
+This proposal goes about as far as possible in forwarding parameters to superclass constructors, in part because it can then subsume mixin application constructor forwarding, and in part because it's very useful when extending classes without introducing new fields.
 
-This means that we *can* choose to do *less* and still be useful.
+This means that we *can* perhaps choose to do *less* and still be useful. 
 
 We may also want to allow forwarding constructors declared on mixins, which currently do not allow constructors. That would allow a significant number of use-cases.
 
@@ -289,6 +278,8 @@ We may also want to allow forwarding constructors declared on mixins, which curr
 
 Default constructors now have named initializing formal parameters for each public instance variable declared in the class, unless the variable has an initializer. The parameter is required if the variable is potentially non-nullable (it has to be when its type is potentially non-nullable).
 
-Default constructors forward to superclass generative constructors where possible, not just to the unnamed zero-argument superclass constructor. It's not possible when the superclass constructor is not accessible, or it has a required named argument with the same name as a subclass instance variable without an initializer (the ones that initializing formals are added for). 
+Default constructors forward parameters to the unnamed superclass generative constructors where possible, not just to the unnamed zero-argument superclass constructor. It's not possible when the superclass constructor has a required named argument with the same name as a subclass instance variable without an initializer (the ones that initializing formals are added for). 
 
-This works for all classes that do not declare a constructor. Mixin applications are just a special case of this, and they get the same forwarding constructors as now. In theory, all class declarations are mixin applications, sometimes just with a mixin literal, and now we treat them all the same.
+This works for all classes that do not declare any constructor. Mixin applications get all constructors forwarded, which matches current behavior.
+
+The initializing and forwarding constructor features are available for explicit use, not only as part of default constructors.
