@@ -62,44 +62,8 @@ int stringLength4(String? stringOrNull) {
 Finally, to support NNBD, we believe definite assignment analysis should be
 added to the spec, so that a user is not required to initialize non-nullable
 local variables if it can be proven that they will be assigned a non-null value
-before being read.  There are currently discussions underway about exactly how
-definite assignment should be specified, and there is
-a
-[prototype implementation]( https://github.com/dart-lang/sdk/blob/master/pkg/analyzer/lib/src/dart/resolver/definite_assignment.dart) in
-the analyzer codebase which is not yet enabled.
+before being read.
 
-With all the above, we should properly analyze these functions:
-
-```dart
-int stringLength5(String? stringOrNull) {
-  String string;
-  if (stringOrNull != null) {
-    string = stringOrNull;
-  }
-  return string.length; // error string may not have been assigned
-}
-
-int stringLength6(String? stringOrNull) {
-  String string;
-  if (stringOrNull != null) {
-    string = stringOrNull;
-  } else {
-    string = '';
-  }
-  return string.length; // ok
-}
-```
-
-We believe that all three kinds of analysis can be specified (and implemented)
-using a common framework, and that by doing so, we can make all three of them
-more sophisticated without a great deal of extra effort.  This document outlines
-the formulation we have in mind, and illustrates the benefits through some
-examples.  The design is inspired by the Wikipedia article on definite
-assignment analysis, and shares many of its concepts with the prototype
-implementation of definite assignment analysis in the analyzer, as well as the
-implementation of type promotion in the front end.  It also takes many ideas
-from prior work by Johnni Winther in Java, and it is similar to analysis that is
-currently done by the dart2js back-end.
 
 ## Terminology and Notation
 
@@ -218,7 +182,15 @@ The following functions associate flow models to nodes:
   evaluate to `null`.
 
 - `break(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
-  represents TODO.
+  represents the join of the flow models reaching each `break` statement
+  targetting `S`.
+
+- `continue(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
+  represents the join of the flow models reaching each `continue` statement
+  targetting `S`.
+
+- `assignedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
+  represents the set of variables assigned to in `S`.
 
 Note that `true`, `false`, `null`, and `notNull` are defined for all expressions
 regardless of their static types.
@@ -288,6 +260,15 @@ We also make use of the following auxiliary functions:
 - `unreachable(M)` represents the model corresponding to a program location
   which is unreachable, but is otherwise modeled by flow model `M = FlowModel(r,
   VI)`, and is defined as `FlowModel(push(pop(r), false), VI)`
+
+- `demoteVariables(M, S)` represents the flow model derived from `M` in which
+  all variables in `S` have been demoted to their declared types.  It is defined
+  as `FlowModel(r, VI1)` where `M` is `FlowModel(r, VI0)` and `VI1` is the map
+  such that:
+    - `VI0` maps `v` to `VM0 = VariableModel(d0, p0, s0, a0, u0, c0)`
+    - If `S` contains `v` then `VI1` maps `v` to `VariableModel(d0, [], s0, a0, u0, c0)`
+    - Otherwise `VI1` maps `v` to `VM0`
+
 
 ### Promotion
 
@@ -373,7 +354,18 @@ Definitions:
       - Return `FlowModel(r, VI[x -> VM2])`
 - `promoteToNonNull(E, M)` where `E` is an expression and `M` is a flow model is
   defined to be `promote(E, T, M)` where `T0` is the type of `E`, and `T` is
-  **NonNull(`T0`).
+  **NonNull(`T0`)**.
+- `factor(T, S)` where `T` and `S` are types defines the "remainder" of `T` when
+  `S` has been removed from consideration by an instance check.  It is defined
+  as follows:
+  - If `T <: S` then `Never`
+  - Else if `T` is `R?` and `Null <: S` then `factor(R, S)`
+  - Else if `T` is `R?` then `factor(R, S)?`
+  - Else if `T` is `R*` and `Null <: S` then `factor(R, S)`
+  - Else if `T` is `R*` then `factor(R, S)*`
+  - Else if `T` is `FutureOr<R>` and `Future<R> <: S` then `factor(R, S)`
+  - Else if `T` is `FutureOr<R>` and `R <: S` then `factor(Future<R>, S)`
+
 
 Questions:
  - The interaction between assignment based **promotion** and downwards inference is
@@ -481,7 +473,6 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
   - Let `null(N) = assign(x, E1, null(E1))`.
   - Let `notNull(N) = assign(x, E1, notNull(E1))`.
 
-
 - **operator==** If `N` is an expression of the form `E1 == E2` then:
   - Let `before(E1) = before(N)`
   - Let `before(E2) = after(E1)`
@@ -491,6 +482,17 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
                          join(notNull(E1), null(E2)),
                          join(notNull(E1), notNull(E2)))`
 
+- **instance check** If `N` is an expression of the form `E1 is S` where the
+  static type of `E1` is `T` then:
+  - Let `before(E1) = before(N)`
+  - Let `true(N) = promote(E1, S, after(E1))`
+  - Let `false(N) = promote(E1, factor(T, S), after(E1))`
+
+- **type cast** If `N` is an expression of the form `E1 as S` where the
+  static type of `E1` is `T` then:
+  - Let `before(E1) = before(N)`
+  - Let `after(N) = promote(E1, S, after(E1))`
+
 - **Local variable conditional assignment**: If `N` is an expression of the form
   `x ??= E1` where `x` is a local variable, then:
   - Let `before(E1) = split(promote(x, Null, before(N)))`.
@@ -499,13 +501,12 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
   - Let `after(N) = merge(M1, M2)`
 
 TODO: This isn't really right, `E1` isn't really an expression here.
+
 - **Non local-variable conditional assignment**: If `N` is an expression of the form
   `E1 ??= E2` where `E1` is not a local variable, then:
   - Let `before(E1) = before(N)`
   - Let `before(E2) = split(null(E1))`.
   - Let `after(N) = merge(after(E2), split(notNull(E1)))`
-
-TODO: Cascades
 
 - **Conditional expression**: If `N` is a conditional expression of the form `E1
   ? E2 : E3`, then:
@@ -538,7 +539,6 @@ TODO: Cascades
   - Let `false(N) = unsplit(false(E2))`.
   - Let `true(N) = merge(split(true(E1)), true(E2))`.
 
-
 - **Binary operator**: All binary operators other than `==`, `&&`, `||`, and
   `??`are handled as calls to the appropriate `operator` method.
 
@@ -547,15 +547,57 @@ TODO: Cascades
   - Let `null(N) = unreachable(null(E))`
   - Let `nonNull(N) = nonNull(E)`
 
+- **Method invocation**: If `N` is an expression of the form `E1.m1(E2)`, then:
+  - Let `before(E1) = before(N)`
+  - Let `before(E2) = after(E2)`
+  - Let `T` be the static return type of the invocation
+  - If `T <: Never` then:
+    - Let `null(N) = unreachable(before(N))`.
+    - Let `notNull(N) = unreachable(before(N))`.
+  - Otherwise if `T <: Null` then:
+    - Let `null(N) = before(N)`.
+    - Let `notNull(N) = unreachable(before(N))`.
+  - Otherwise if `T` is non-nullable then:
+    - Let `null(N) = before(N)`.
+    - Let `notNull(N) = unreachable(before(N))`.
+  - Otherwise:
+    - Let `null(N) = promote(x, Null, before(N))`
+    - Let `notNull(N) = promoteToNonNull(x, before(N))`
 
-TODO: Think about nullability.  Is it worth it to note that `null(x+y)` is
-unreachable if `x` has type `int`?
 
-// Model assignment LHS as expression, followed ?.x, ?.[], .x, []?
-
-
+TODO: Add missing expressions, handle cascades and left-hand sides accurately
 
 ### Statements
+
+- **Expression statement**: If `N` is an expression statement of the form `E` then:
+  - Let `before(E) = before(N)`.
+  - Let `after(N) = after(E)`.
+
+- **Break statement**: If `N` is a statement of the form `break [L];`, then:
+
+  - Let `S` be the statement targeted by the `break`.  If `L` is not present,
+    this is the innermost `do`, `for`, `switch`, or `while` statement.
+    Otherwise it is the `do`, `for`, `switch`, or `while` statement with a label
+    matching `L`.
+
+  - Update `break(S) = join(break(S), before(N))`.
+
+  - Let `after(N) = unreachable(before(N))`.
+
+- **Continue statement**: If `N` is a statement of the form `continue [L];` then:
+
+  - Let `S` be the statement targeted by the `continue`.  If `L` is not present,
+    this is the innermost `do`, `for`, or `while` statement.  Otherwise it is
+    the `do`, `for`, or `while` statement with a label matching `L`, or the
+    `switch` statement containing a switch case with a label matching `L`.
+
+  - Update `continue(S) = join(continue(S), before(N))`.
+
+  - Let `after(N) = unreachable(before(N))`.
+
+- **Return statement**: If `N` is a statement of the form `return E1;` then:
+  - Let `before(E) = before(N)`.
+  - Let `after(N) = unreachable(after(E))`;
 
 - **Conditional statement**: If `N` is a conditional statement of the form `if
   (E) S1 else S2` then:
@@ -564,271 +606,42 @@ unreachable if `x` has type `int`?
   - Let `before(S2) = split(false(E))`.
   - Let `after(N) = merge(after(S1), after(S2))`.
 
-
 - **while statement**: If `N` is a while statement of the form `while
-  (E) S1` then:
+  (E) S` then:
+  - Let `before(E) = demoteVariables(before(N), assignedIn(N))`.
+  - Let `before(S) = split(true(E))`.
+  - Let `after(N) = join(false(E), unsplit(break(S))`
+
+- **do while statement**: If `N` is a do while statement of the form `do S while
+  (E)` then:
+  - Let `before(S) = demoteVariables(before(N), assignedIn(N))`.
+  - Let `before(E) = join(after(S), continue(N))`
+  - Let `after(N) = join(false(E), break(S))`
+
+- **switch statement**: If `N` is a switch statement of the form `switch (E)
+  {alternatives}` then:
   - Let `before(E) = before(N)`.
-  - Let `before(S1) = split(true(E))`.
-  - Let `before(S2) = split(false(E))`.
-  - Let `after(N) = join(after(S1), after(S2))`.
+  - For each `C` in `alternatives` with statement body `S`:
+    - If `C` is labelled let `before(S) = demoteVariables(after(E),
+      assignedIn(N)` otherwise let `before(S) = after(E)`.
+  - If the cases are exhaustive, then let `after(N) = break(N)` otherwise let
+    `after(N) = join(after(E), break(N))`.
 
+- **try catch**: If `N` is a try/catch statement of the form `try B
+alternatives` then:
+  - Let `before(B) = before(N)`
+  - Foreach catch block `on Ti Si` in `alternatives`:
+    - Let `before(Si) = demoteVariables(before(N), assignedIn(B))`
+  - Let `after(N) = join(after(B), after(C0), ..., after(Ck))`
 
+TODO: Define restrict 
+TODO: Does this correctly handle the fact that `B2` may be reached even if
+`after(B1)` may be marked as "unreachable"?
+- **try finally**: If `N` is a try/finally statement of the form `try B1 finally B2` then:
+  - Let `before(B1) = before(N)`
+  - Let `before(B2) = join(after(B1), demoteVariables(before(N), assignedIn(B)))`
+  - Let `after(N) = restrict(after(B1), after(B2), assignednIn(N))`
 
-
-- TODO: assignment, return, 
-
-- **Break statement**: If `N` is a statement of the form `break [L];`, then:
-
-  - Let `S` be the statement targeted by the `break`.  If `L` is not present,
-    this is the innermost `do`, `for`, `switch`, or `while` statement.
-    Otherwise it is the `do`, `for`, `switch`, or `while` statement with a label
-    matching `L`.
-  
-  - Update `break(S) = join(break(S), before(N))`.
-  
-  - Let `after(N) = unreachable(before(N))`.
-  
-- **Continue statement**: If `N` is a statement of the form `continue [L];` then:
-
-  - Let `S` be the statement targeted by the `continue`.  If `L` is not present,
-    this is the innermost `do`, `for`, or `while` statement.  Otherwise it is
-    the `do`, `for`, or `while` statement with a label matching `L`, or the
-    `switch` statement containing a switch case with a label matching `L`.
-    
-  - Update `continue(S) = join(continue(S), before(N))`.
-  
-  - Let `after(N) = unreachable(before(N))`.
-
-- **Do statement**: If `N` is a "do" statement of the form `do S while (E);`,
-  then:
-  
-  - TODO: work on proofs
-
-### Functions
-
-- **Top level function or method**: If `N` is a top level function or method of
-  the form `[R] name([T1] P1, [T2] P2, ... [Tn] Pn) B`, then:
-  
-  - If `R` is present, let `R' = R`.  Otherwise let `R'` be the inferred return
-    type of the top level function or method.
-    
-  - For each parameter `Pi`, if `Ti` is present let `Ti' = Ti`.  Otherwise let
-    `Ti'` be the inferred parameter type.
-    
-  - If `B` is a block, let `B' = B`.  If `B` takes the form `=> E;`, then let
-    `B' = { return E; }`.
-  
-  - Let `before(B') = FlowModel(true, {P1: VariableModel(T1', T1', [], false,
-    false), P2: VariableModel(T2', T2', [], false, false), ... Pn:
-    VariableModel(Tn', Tn', [], false, false)})`.
-  
-  - Visit `B'` to determine `after(B')`.
-  
-  - If `after(B').reachable` is `true`, and `R'` is not nullable, then there is
-    a static error: control flow reached the end of the top level function or
-    method without returning a value.
-    
-- **Factory constructor**: Factory constructors are treated as the equivalent
-  static method, having an implicit return type `C` (where `C` is the type of
-  the enclosing class).  TODO: should the implicit return type of the factory
-  constructor be `C?` instead?
-    
-- **Generative constructor**: If `N` is a generative constructor of the form
-  `name([T1] P1, [T2] P2, ... [Tn] Pn) : I1, I2, ... In B`, then:
-  
-  - TODO: specify the rule here.  Account for the wacky scoping rules with
-    `this.` as well as the fact that a `this.` parameter may effectively have
-    two types.
-
-- TODO: redirecting factory and generative constructors.
-
-## Extended Reachability
-
-  As mentioned earlier, it would be sound to define unreachable(M) = ∅ for all models, but
-  doing so leads to less than optimal user feedback. Consider, for example, the following code:
-
-  ```dart
-    void f(Object o) {
-      throw ...; // Temporary hack (S1)
-      if (o is! int) return; // (S2)
-      print(o.isEven); // (S3)
-      print(o.hashCodee); // (S4)
-    }
-  ```
-
-  Due to the unconditional throw at (S1), `after(S1)` would be considered unreachable,
-  so both branches of the if statement at (S2) would be considered unreachable.
-  Consequently, when the states associated with the two branches are joined,
-  there will be no way to tell that the promotion of `o` to `int` should be kept,
-  so the type promotion model will be `o` → `Object`.
-
-  This creates a conundrum: do we report errors in unreachable code?
-  If we do, then we would flag (S3) as an error, likely causing user frustration.
-  If we don’t, then we would fail to notice the misspelling at (S4),
-  again likely causing frustration.
-
-  We solve this by extending reachability analysis as follows.
-  On entry to a branching construct such as an `if` statement or a loop,
-  we provisionally reset reachability analysis to `true`
-  (i.e., we provisionally assume that the code is reachable).
-  On exit, we correct the provisional assumption by anding in the actual reachability
-  of the branching construct.
-  So for instance, the reachability formulas for an `if` statement become:
-
-TODO fold this into the algorithm section
-
-  - `before(C)` ← 𝐓
-  - `before(S1)` ← `true(C)`
-  - `before(S2)` ← `falseC)`
-  - `after(IF)` ← `join(after(S1), after(S2)` ∧ `before(IF)`
-
-  And the reachability formulas for `E1 && E2` become:
-
-  - `before(E1)` ← 𝐓
-  - `before(E2)` ← `true(E1)`
-  - `true(&&)` ← `true(E2)` ∧ `before(&&)`
-  - `false(&&)` ← `join(false(E1), false(E2))` ∧ `before(&&)`
-  - `after(&&)` ← `join(true(&&), false(&&))`
-
-  This modification is only performed for reachability analysis; the other analyses are unchanged.
-  However since the join operations for the other analyses make use of reachability analysis
-  to decide which branches to discard, this has the effect of allowing the other analyses
-  to produce intuitive results when analyzing unreachable code.
-
-  This analysis is sound because its only effect is to change the analysis of code
-  that is truly unreachable.  Any model whatsoever is sound for unreachable code,
-  because the true set of program states for unreachable code is the empty set;
-  therefore any model is a valid conservative approximation of the true set of program states.
-
-## Alternatives considered
-
-TODO: rewrite so that we actually describe the choices rather than just
-referring to options in
-https://docs.google.com/document/d/11Xs0b4bzH6DwDlcJMUcbx4BpvEKGz8MVuJWEfo_mirE/edit
-
-- Do we use the "single pass analysis" option or the "fixed point analysis"
-  option?  Single pass analysis.  Rationale: fixed point analysis is a big
-  additional complication and it conflicts with the front end team's desire to
-  analyze all the code in a single pass.  We can always switch to the fixed
-  point approach in the future if there's sufficient user demand.
-
-- Do we include the extension "allow bottom to influence reachability"?  Yes.
-  Rationale: it's an easy extension and it has tangible benefits (e.g. it allows
-  `if (x == null) reportError()` to promote `x` to non-nullable).
-
-- Do we include the extension "provisionally reachable code"?  Yes.  Rationale:
-  this is required to ensure that the new algorithm produces results that are
-  strictly better than the old algorithm.
-
-- Do we include the extension "complete switch" as described in [issue 35716](
-  https://github.com/dart-lang/sdk/issues/35716)?  Yes.  Rationale: this is a
-  simple improvement with obvious benefits for non-nullability.
-
-- Do we keep the existing requirements for switch cases to end in
-  `break`, `continue`, `rethrow`, or `return` statements (see the section
-  "Switch" in the spec), or do we replace these requirements with a requirement
-  based on the new reachability analysis?  Replace them.  Rationale: this should
-  reduce user surprise by avoiding two different notions of reachability in the
-  spec.  No existing code should be broken by this change, and in the process
-  we should be able to address [improved switch flow analysis](
-  https://github.com/dart-lang/sdk/issues/35390).
-
-- Do we include the extension "more accurate handling of throws"?  No.
-  Rationale: it's not clear that there's a significant benefit, and it makes it
-  harder to prove the system is sound.
-  
-- Do we include the extension "promote via runtimeType equality check"?  No.
-  Rationale: AFAIK, there hasn't been a great deal of demand for this.
-  
-- Do we include the extension "promote via downcast"?  Yes.  Rationale: although
-  I'm not aware of any user demand for it, this feature is fits well with the
-  overall design principles of the rest of the proposal, so including it should
-  reduce user surprise.  Note that since implicit downcasts will be switched off
-  when the user opts into NNBD, "promote via downcast" really means "promote via
-  explicit downcast".
-  
-- Do we include the extension "use least upper bound in join"?  No.  Rationale:
-  this could lead to promoted types that were not explicitly named by the user,
-  which is problematic for the reasons explained in Johnni's paper.
-  
-- Do we include the extension "support non-null branches"?  Yes.  Rationale:
-  this is a critical feature we need for non-nullability.
-  
-- Do we include the extension "support null branches"?  Yes.  Rationale: it's a
-  trivial extension with a well understood use case.
-  
-- Do we include the extension "ensure-guarding"?  Yes.  Rationale: there's a
-  well understood use case for this.  Note that we only promote to types that
-  are "of interest", so that we never promote a variable to a more specific type
-  than the user has mentioned.
-  
-- Do we include the extension "partial union type support"?  No.  Rationale:
-  union types are a can of worms that the language team is deliberately not
-  opening yet.
-  
-- Do we include the extension "final fields and variables"?  No.  Rationale:
-  this is fairly orthogonal to the rest of the proposal, so if we're interested
-  in doing it we should do it separately.
-  
-- Do we include the extension "checked final field promotion"?  No.  Rationale:
-  in addition to being fairly orthogonal to the rest of the proposal, it is
-  somewhat controversial due to how it interacts with soundness.  If we're going
-  to do this it should be in a separate proposal.
-  
-- Do we include the extension "checked asserts"?  No.  Rationale: this has
-  similar soundness issues to "checked final field promotion".
-  
-- Do we include the extension "null and nonNull models"?  Yes.  Rationale: this
-  reduces user surprise by making the `??` operator participate in type
-  promotion in a similar way to how `&&` and `||` do.
-  
-- Do we include the extension "type checking of assignment values"?  Yes.
-  Rationale: this is a trivial extension to the proposal and real-world code
-  could benefit from it.
-
-
-## Implementation notes
-
-Flow analysis of a function or method is defined via two recursive passes over
-the source code.  In the first pass, TODO.  In the second pass, flow models are
-are assigned to `before(N)` and `after(N)` for every statement or expression
-`N`, and to `true(E)`, `false(E)`, `null(E)`, and `notNull(E)` for every
-expression `E`.  The second pass is interleaved with type inference.
-
-For both passes, we will define the steps that are taken to *visit* a node `N`.
-In most cases this will involve visiting all of the statements and expressions
-constituting `N` in some well-defined order.
-
-Implementation note: as with type inference, it is not necessary to implement
-flow analysis in this way; the flow models for some expressions and statements
-could be completely or partially computed during the first pass, which could
-occur during parsing.
-
-### First pass
-
-A small amount of information needs to be gathered beforehand, namely which variables
-are potentially assigned in certain scopes; hopefully it is possible to gather this
-information during earlier analysis phases.
-
-TODO: List information needed by next pass
-
-## Integration with type inference
-
-TODO: talk about where in the algorithm upwards and downwards inference happens,
-and where context is carried.
-
-## Proof of soundness
-
-Goal is to show that each concrete program state `S` reached during program
-execution is consistent with the static flow model from the corresponding
-location in the source code.
-
-## Comparison to previous type promotion algorithm
-
-TODO
-
-Note that I may need to assume covariance of inference for this proof.
-(TODO(paulberry): explain this)
 
 ## Interesting examples
 
