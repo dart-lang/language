@@ -394,12 +394,16 @@ continuation.
 
 #### Late fields and variables
 
-A non-local variable declaration of the form `late final v;`, `late final T v;`,
-`late final v = e;`, or `late final T v = e;`, or the same forms with `static`
-prepended, implicitly induces a getter into the enclosing scope. Moreover, the
-forms that do not include an initializing expression `e` induce a setter as
-well. Non-final non-local variable declarations including `late` induce a 
-getter as well as a setter.
+A non-local `late` variable declaration _D_ implicitly induces a getter
+into the enclosing scope. It also induces an implicit setter iff one of the
+following conditions is satisfied:
+
+- _D_ is non-final.
+- _D_ is late, final, and has no initializing expression.
+
+*The late final variable declaration with no initializer is special in that it
+is the only final variable which can be the target of an assignment. It can only
+be assigned once, but this is enforced dynamically rather than statically.*
 
 A read of a field or variable which is marked as `late` which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
