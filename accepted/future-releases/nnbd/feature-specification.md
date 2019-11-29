@@ -63,10 +63,10 @@ The modifier `late` is added as a built-in identifier.  The grammar of top level
 variables, static fields, instance fields, and local variables is extended to
 allow any declaration to include the modifer `late`.
 
-The modifier `required` is added as a built-in identifier. The grammar of
+The modifier `required` is added as a built-in identifier.  The grammar of
 function types is extended to allow any named parameter declaration to be
 prefixed by the `required` modifier (e.g. `int Function(int, {int?  y, required
-int z})`. 
+int z})`.
 
 The grammar of selectors is extended to allow null-aware subscripting using the
 syntax `e1?.[e2]` which evaluates to `null` if `e1` evaluates to `null` and
@@ -82,7 +82,7 @@ type.  That is, the grammar for types is nominally equivalent to:
 
 ```
 type' ::= functionType
-          | qualified typeArguments? 
+          | qualified typeArguments?
 
 type ::= type' `?`?
 ```
@@ -164,7 +164,7 @@ type, or for which any migration results in a potentially nullable type.
 We say that a type `T` is **potentially non-nullable** if `T` is not nullable.
 Note that this is different from saying that `T` is non-nullable.  For example,
 a type variable `X extends Object?` is a type which is potentially non-nullable
-but not non-nullable. Note that `T*` is potentially non-nullable by this
+but not non-nullable.  Note that `T*` is potentially non-nullable by this
 definition if `T` is potentially non-nullable.
 
 It is an error to call a method, setter, getter or operator on an expression
@@ -254,7 +254,7 @@ expression.
 
 ### Assignability
 
-The definition of assignability is changed as follows.  
+The definition of assignability is changed as follows.
 
 A type `T` is **assignable** to a type `S` if `T` is `dynamic`, or if `S` is a
 subtype of `T`.
@@ -291,12 +291,12 @@ defined as follows.
 
 - **NonNull**(Null) = Never
 - **NonNull**(_C_<_T_<sub>1</sub>, ... , _T_<sub>_n_</sub>>) = _C_<_T_<sub>1</sub>, ... , _T_<sub>_n_</sub>>  for class *C* other than Null (including Object).
-- **NonNull**(FutureOr<_T_>) = FutureOr<_T_>   
+- **NonNull**(FutureOr<_T_>) = FutureOr<_T_>
 - **NonNull**(_T_<sub>0</sub> Function(...)) = _T_<sub>0</sub> Function(...)
 - **NonNull**(Function) = Function
 - **NonNull**(Never) = Never
 - **NonNull**(dynamic) = dynamic
-- **NonNull**(void) = void   
+- **NonNull**(void) = void
 - **NonNull**(_X_) = X & **NonNull**(B), where B is the bound of X.
 - **NonNull**(_X_ & T) = X & **NonNull**(T)
 - **NonNull**(_T_?) = **NonNull**(_T_)
@@ -323,8 +323,8 @@ notation `fn[x : Exp] : Exp => E` to define a meta-level function of type `Exp
 `fn[k : Exp -> Exp] : Exp => E` to define a meta-level function of type `Exp ->
 Exp -> Exp`.  Where obvious from context, we elide the parameter and return
 types on the meta-level functions.  The meta-variables `F` and `G` are used to
-range over meta-level functions. Application of a meta-level function is written
-as `F[p]` where `p` is the argument.
+range over meta-level functions.  Application of a meta-level function is
+written as `F[p]` where `p` is the argument.
 
 The null-shorting translation of an expression `e` is meta-level function `F` of
 type `(Exp -> Exp) -> Exp` which takes as an argument the continuation of `e` and
@@ -436,15 +436,16 @@ continuation.
 #### Late fields and variables
 
 A non-local `late` variable declaration _D_ implicitly induces a getter
-into the enclosing scope. It also induces an implicit setter iff one of the
+into the enclosing scope.  It also induces an implicit setter iff one of the
 following conditions is satisfied:
 
   - _D_ is non-final.
   - _D_ is late, final, and has no initializing expression.
 
 The late final variable declaration with no initializer is special in that it
-is the only final variable which can be the target of an assignment. It can only
-be assigned once, but this is enforced dynamically rather than statically.
+is the only final variable which can be the target of an assignment.  It
+can only be assigned once, but this is enforced dynamically rather than
+statically.
 
 A read of a field or variable which is marked as `late` which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
@@ -466,17 +467,17 @@ read.
     is treated as a first read and the initializer expression is evaluated
     again.
 
-Let `v` be a `late` and `final` non-local variable without an initializing
-expression.  It is a run-time error, throwing an instance of 
-`LateInitializationError`, to invoke the setter `v=` which is
-implicitly induced by `v` if a value has previously been assigned to `v`
+Let _D_ be a `late` and `final` non-local variable declaration named `v`
+without an initializing expression.  It is a run-time error, throwing an
+instance of `LateInitializationError`, to invoke the setter `v=` which is
+implicitly induced by _D_ if a value has previously been assigned to `v`
 (which could be due to an initializing formal or a constructor initializer
 list, or due to an invocation of the setter).
 
-Let `v` be a `late` and `final` local variable without an initializing
-expression. It is a run-time error, throwing an instance of
-`LateInitializationError`, to assign a value to `v` if a value has
-previously been assigned to `v`.
+Let _D_ be a `late` and `final` local variable declaration named `v`
+without an initializing expression.  It is a run-time error, throwing an
+instance of `LateInitializationError`, to assign a value to `v` if a value
+has previously been assigned to `v`.
 
 Note that this includes the implicit initializing writes induced by
 evaluating the initializer during a read.  Hence, the following program
@@ -538,9 +539,9 @@ opted-in library may depend on un-opted-in libraries, and vice versa.
 ### Errors as warnings
 
 Weak null checking is enabled as soon as a package or library opts into this
-feature. When weak null checking is enabled, all errors specified this proposal
-(that is, all errors that arise only out of the new features of this proposal)
-shall be treated as warnings.
+feature.  When weak null checking is enabled, all errors specified this
+proposal (that is, all errors that arise only out of the new features of
+this proposal) shall be treated as warnings.
 
 Strong null checking is enabled by running the compilation or execution
 environment with the appropriate flags.  When strong null checking is enabled,
