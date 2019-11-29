@@ -1,4 +1,4 @@
-# Sound non-nullable (by default) types with incremental migration 
+# Sound non-nullable (by default) types with incremental migration
 
 Author: leafp@google.com
 
@@ -8,6 +8,18 @@ Status: Draft
 
 2019.11.25:
   - Specified implicitly induced getters/setters for late variables.
+
+2019.11.22
+  - Additional errors and warnings around late variables
+
+2019.11.21
+  - Clarify runtime instance checks and casts.
+
+2019.10.08
+  - Warning to call null check operator on non-nullable expression
+  - Factory constructors may not return null
+  - Fix discussion of legacy `is` check
+  - Specify flatten
 
 2019.04.23:
   - Added specification of short-circuiting null
@@ -94,6 +106,18 @@ The same is true for `{ int ? - 3 : 3 }` if we allow this.
 The internal representation of types is extended with a type `T*` for every type
 `T` to represent legacy pre-NNBD types.  This is discussed further in the legacy
 library section below.
+
+### Future flattening
+
+The **flatten** function is modified as follows:
+
+**flatten**(`T`) is defined by cases on `T`:
+  - if `T` is `S?` then **flatten**(`T`) = **flatten**(`S`)`?`
+  - otherwise if `T` is `S*` then **flatten**(`T`) = **flatten**(`S`)`*`
+  - otherwise if `T` is `FutureOr<S>` then **flatten**(`T`) = `S`
+  - otherwise if `T <: Future` then let `S` be a type such that `T <: Future<S>`
+and for all `R`, if `T <: Future<R>` then `S <: R`; then **flatten**('T') = `S`
+  - otherwise **flatten**('T') = `T`
 
 ### Static errors
 
@@ -200,7 +224,16 @@ assignable to `Object`.
 
 It is not an error for the body of a `late` field to reference `this`.
 
-It is an error for a formal parameter to be declared `late`.
+It is an error for a variable to be declared as `late` in any of the following
+positions: in a formal parameter list of any kind; in a catch clause; in the
+variable binding section of a c-style `for` loop, a `for in` loop, an `await
+for` loop, or a `for element` in a collection literal.
+
+It is an error for the initializer expression of a `late` local variable to use
+a prefix `await` expression.
+
+It is an error for a class with a `const` constructor to have a `late final`
+field.
 
 It is not a compile time error to write to a `final` variable if that variable
 is declared `late` and does not have an initializer.
@@ -208,8 +241,16 @@ is declared `late` and does not have an initializer.
 It is an error if the object being iterated over by a `for-in` loop has a static
 type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
 
+It is an error if the type of the value returned from a factory constructor is
+not a subtype of the class type associated with the class in which it is defined
+(specifically, it is an error to return a nullable type from a factory
+constructor for any class other than `Null`).
+
 It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
-`...?`) on a non-nullable receiver.
+`...?`) on a non-nullable value.
+
+It is a warning to use the null check operator (`!`) on a non-nullable
+expression.
 
 ### Assignability
 
@@ -398,18 +439,19 @@ A non-local `late` variable declaration _D_ implicitly induces a getter
 into the enclosing scope. It also induces an implicit setter iff one of the
 following conditions is satisfied:
 
-- _D_ is non-final.
-- _D_ is late, final, and has no initializing expression.
+  - _D_ is non-final.
+  - _D_ is late, final, and has no initializing expression.
 
-*The late final variable declaration with no initializer is special in that it
+The late final variable declaration with no initializer is special in that it
 is the only final variable which can be the target of an assignment. It can only
-be assigned once, but this is enforced dynamically rather than statically.*
+be assigned once, but this is enforced dynamically rather than statically.
 
 A read of a field or variable which is marked as `late` which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
 a value, assigned to the variable or field, and returned as the value of the
 read.
-  - If there is no initializer expression, the read causes a runtime error.
+  - If there is no initializer expression, the read causes a runtime error to be
+    thrown which is an instance of `LateInitializationError`.
   - Evaluating the initializer expression may validly cause a write to the field
     or variable, assuming that the field or variable is not final.  In this
     case, the variable assumes the written value.  The final value of the
@@ -425,14 +467,28 @@ read.
     again.
 
 Let `v` be a `late` and `final` non-local variable without an initializing
-expression.  It is a run-time error to invoke the setter `v=` which is
+expression.  It is a run-time error, throwing an instance of 
+`LateInitializationError`, to invoke the setter `v=` which is
 implicitly induced by `v` if a value has previously been assigned to `v`
 (which could be due to an initializing formal or a constructor initializer
 list, or due to an invocation of the setter).
 
 Let `v` be a `late` and `final` local variable without an initializing
-expression. It is a run-time error to assign a value to `v` if a value has
+expression. It is a run-time error, throwing an instance of
+`LateInitializationError`, to assign a value to `v` if a value has
 previously been assigned to `v`.
+
+Note that this includes the implicit initializing writes induced by
+evaluating the initializer during a read.  Hence, the following program
+terminates with a `LateInitializationError` exception.
+
+```dart
+int i = 0;
+late final int x = i++ == 0 ? x + 1 : 0;
+void main() {
+  print(x);
+}
+```
 
 Overriding a field which is marked both `late` and `final` with a member which
 does not otherwise introduce a setter introduces an implicit setter which
@@ -472,7 +528,7 @@ argument greater than the current length of the list is a runtime error.
 For migration, we support incremental adoption of non-nullability as described
 at a high level in
 the
-[roadmap](https://github.com/dart-lang/language/blob/master/working/0110-incremental-sound-nnbd/roadmap.md).
+[roadmap](https://github.com/dart-lang/language/blob/master/accepted/future-releases/nnbd/roadmap.md).
 
 ### Opted in libraries.
 
@@ -531,9 +587,86 @@ separately.
 ### Runtime checks and weak checking
 
 When weak checking is enabled, runtime type tests (including explicit and
-implicit casts) shall succeed with a warning whenever the runtime type test
-would have succeeded if all `?` types were ignored, `Never` were treated as
-`Null`, and `required` named parameters were treated as optional.
+implicit casts) shall succeed whenever the runtime type test would have
+succeeded if all `?` on types were ignored, `*` was added to each type, and
+`required` parameters were treated as optional.  This has the effect of treating
+`Never` as equivalent to `Null`, restoring `Null` to the bottom of the type
+hierarchy, treating `Object` as nullable, and ignoring `required` on named
+parameters.  This is intended to provide the same subtyping results as pre-nnbd
+Dart.
+
+Instance checks (`e is T`) and casts (`e as T`) behave differently when run in
+strong vs weak checking mode.
+
+Let `LEGACY_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` in the modified
+semantics as described above: that is, with all `?` on types ignored, `*` added
+to each type, and `required` parameters treated as optional.
+
+Let `NNBD_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` as specified in the
+[NNBD subtyping rules](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
+
+We define the weak checking and strong checking mode instance tests as follows:
+
+**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` occurring in a **legacy library** is
+evaluated as follows:
+  - If `S` is `Null` return `LEGACY_SUBTYPE(T, NULL) || LEGACY_SUBTYPE(Object,
+    T)`
+  - Otherwise return `LEGACY_SUBTYPE(S, T)`
+
+**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` occurring in an **opted-in library** is
+evaluated as follows:
+  - If `S` is `Null` return `NNBD_SUBTYPE(NULL, T)`
+  - Otherwise return `LEGACY_SUBTYPE(S, T)`
+
+**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` textually occurring in a **legacy library**
+is evaluated as follows:
+  - If `S` is `Null` return `NNBD_SUBTYPE(T, NULL) || NNBD_SUBTYPE(Object, T)`
+  - Otherwise return `NNBD_SUBTYPE(S, T)`
+
+**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` textually occurring in an **opted-in
+library** is evaluated as follows:
+  - return `NNBD_SUBTYPE(S, T)`
+
+We define the weak checking and strong checking mode casts as follows:
+
+**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
+library** is evaluated as follows:
+  - if `LEGACY_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
+    `CastError` is thrown.
+
+**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
+library** is evaluated as follows:
+  - if `NNBD_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
+    `CastError` is thrown.
+
+
+In weak checking mode, we ensure that opted-in libraries do not break downstream
+clients by continuing to evaluate instance checks and casts with the same
+semantics as in pre-nnbd Dart.  All runtime subtype checks are done using the
+legacy subtyping, and instance checks maintain the pre-nnbd behavior on `null`
+instances.  In strong checking mode, we use the specified nnbd subtyping for all
+instance checks and casts.  However, in legacy libraries, we continue to
+specifically reject instance tests on `null` instances unless the tested type is
+a bottom or top type.  The rationale for this is that type tests performed in a
+legacy library will generally be performed with a legacy type as the tested
+type.  Without specifically rejecting `null` instances, successful instance
+checks in legacy libraries would no longer guarantee that the tested object is
+not `null` - a regression relative to the weak checking.
+
+When developers enable strong checking in their tests and applications, new
+runtime cast failures may arise.  The process of migrating libraries and
+applications will require users to track down these changes in behavior.
+Development platforms are encouraged to provide facilities to help users
+understand these changes: for example, by providing a debugging option in which
+instance checks or casts which would result in a different outcome if run in
+strong checking mode vs weak checking mode are flagged for the developer by
+logging a warning or breaking to the debugger.
 
 ### Exports
 

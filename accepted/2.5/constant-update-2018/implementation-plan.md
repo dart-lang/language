@@ -2,7 +2,7 @@
 
 Relevant documents:
  - [Tracking issue](https://github.com/dart-lang/language/issues/60)
- - [Full proposal](https://github.com/dart-lang/language/blob/master/accepted/future-releases/constant-update-2018/feature-specification.md)
+ - [Full proposal](https://github.com/dart-lang/language/blob/master/accepted/2.5/constant-update-2018/feature-specification.md)
 
 ## Implementation and Release plan
 

@@ -118,7 +118,7 @@ types tries to enable:
 ```dart
 newtype NonNegativeInt wraps int {
   NonNegativeInt(this._value) {
-    if (value < 0) throw ArgumentError();
+    if (_value < 0) throw ArgumentError();
   }
 }
 

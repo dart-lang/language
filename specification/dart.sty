@@ -78,9 +78,20 @@
 \def\gtgt{>\mbox >}
 \def\gtgtgt{>\mbox >\mbox >}
 
+% Commands for single quotes, enabling them to be used
+% in a `grammar` environment.
+\def\sq{\mbox'}
+\def\sqsq{\mbox{'{}'}}
+\def\sqsqsq{\mbox{'{}'{}'}}
+
 % Used as line break in the right hand side of a grammar
 % alternative, that is, when starting a "continuation line".
 \newcommand{\gnewline}{\leavevmode\\}
+
+% Used in lexical grammar rules to express negation of a character or
+% character set (which simply denotes the set of all other characters);
+% also used to show the actual "tilde" character as source code.
+\newcommand{\gtilde}{\mbox{\code{\textasciitilde}}}
 
 % Metavariables for argument lists.
 \newcommand{\argumentList}[1]{\metavar{{#1}s}}
@@ -157,6 +168,16 @@
 % index at start, index at end.
 \newcommand{\PairList}[4]{\ensuremath{%
   {#1}_{#3}\ {#2}_{#3},\,\ldots,\ {#1}_{#4}\ {#2}_{#4}}}
+
+% Used to specify a list of tuples of the form $(K_j, V_j)$ which are
+% used with collection literals.
+\newcommand{\KeyValueTypeList}[4]{\ensuremath{%
+  ({#1}_{#3},\,{#2}_{#3}),\,\ldots,\ ({#1}_{#4},\,{#2}_{#4})}}
+
+% Used to specify a list of key/value pairs of the form $k_j: v_j$ which are
+% used for the semantics of collection literals.
+\newcommand{\KeyValueList}[4]{\ensuremath{%
+  {#1}_{#3}:\,{#2}_{#3},\,\ldots,\ {#1}_{#4}:\,{#2}_{#4}}}
 
 % Used to specify comma separated lists of triples of similar symbols,
 % as needed, e.g., for declarations of formal parameters with defaults.
@@ -321,6 +342,19 @@
 % Namespaces, needed in the specification of imports and exports, and
 % also used when specifying lookups and scope rules.
 \newcommand{\Namespace}[1]{\ensuremath{\metavar{NS}_{#1}}}
+
+% Context types: Avoid the `?` because that is also concrete type
+% syntax.
+%% TODO(eernst): Find a suitable symbol for this, e.g., a curly questionmark.
+\newcommand{\FreeContext}{\ensuremath{\raisebox{0.25ex}{%
+      \makebox[0pt][c]{\hspace{0.8em}\scriptsize?}}\square}}
+
+% Sequences of objects used during collection literal evaluation: Just
+% a specification concept, may or may not have an actual underlying
+% data structure at run time.
+\newcommand{\LiteralSequence}[1]{\ensuremath{[\![{#1}]\!]}}
+\newcommand{\EvaluateElementName}{\metavar{evaluateElement}}
+\newcommand{\EvaluateElement}[1]{\ensuremath{\EvaluateElementName({#1})}}
 
 % ----------------------------------------------------------------------
 % Support for hash valued Location Markers
