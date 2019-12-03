@@ -107,6 +107,44 @@ The internal representation of types is extended with a type `T*` for every type
 `T` to represent legacy pre-NNBD types.  This is discussed further in the legacy
 library section below.
 
+### Subtyping
+
+We modify the subtyping rules to account for nullability and legacy types as
+specified
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
+We write `S <: T` to mean that the type `S` is a subtype of `T` according to the
+rules specified there.
+
+
+We define a `LEGACY_SUBTYPE(S, T)` to be true iff `S` would be a subtype of `T`
+in a modification of the rules above in which all `?` on types were ignored, `*`
+was added to each type, and `required` parameters were treated as optional.
+This has the effect of treating `Never` as equivalent to `Null`, restoring
+`Null` to the bottom of the type hierarchy, treating `Object` as nullable, and
+ignoring `required` on named parameters.  This is intended to provide the same
+subtyping results as pre-nnbd Dart.
+
+Where potentially ambiguous, we sometimes write `NNBD__SUBTYPE(S, T)` to mean
+the full subtyping relation without the legacy exceptions defined in the
+previous paragraph.
+
+### Upper and lower bounds
+
+We modify the upper and lower bound rules to account for nullability and legacy
+types as
+specified
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).  
+3
+## Type normalization
+
+We define a normalization procedure on types which defines a canonical
+representation for otherwise equivalent
+types
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/normalization.md).
+This defines a procedure **NORM(`T`)** such that **NORM(`T`)** is syntactically
+equal to **NORM(`S`)** modulo replacement of primitive top types iff `S <: T`
+and `T <: S`.
+
 ### Future flattening
 
 The **flatten** function is modified as follows:
@@ -579,6 +617,153 @@ all occurrences of `S*` in `T` shall be replaced with `S`.  As a result, legacy
 types will never appear as type annotations in migrated libraries, nor will they
 appear in reified positions.
 
+### Exports
+
+If an unmigrated library re-exports a migrated library, the re-exported symbols
+retain their migrated status (that is, downstream migrated libraries will see
+their migrated types).
+
+It is an error for a migrated library to re-export symbols from an unmigrated
+library.
+
+### Super-interface and member type computation with legacy types.
+
+A class defined in a legacy library may have in its set of super-interfaces both
+legacy and opted-in interfaces, and hence may have members which are derived
+from either, or both.  Similarly, a class defined in an opted-in library may
+have in its set of super-interfaces both legacy and opted-in interfaces, and
+hence may have members which are derived from either, or both.  We define the
+super-interface and member signature computation for such classes as follows.
+
+#### Classes defined in legacy libraries
+
+The legacy erasure of a type `T` denoted `LEGACY_ERASURE(T)` is `T` with all
+occurrences of `?` removed, `Never` replaced with `Null`, and all types marked
+as legacy types.
+
+A direct super-interface of a class defined in a legacy library (that is, an
+interface which is listed in the `extends`, `implements` or `with` clauses of
+the class) has all generic arguments (and all sub-components of the generic
+arguments) marked as legacy types.
+
+If a class `C` in a legacy library implements the same generic class `I` more
+than once, it is an error if the `LEGACY_ERASURE` of all such super-interfaces
+are not all syntactically equal.  For the purposes of runtime subtyping checks,
+`C` is considered to implement the canonical `LEGACY_ERASURE` of the
+super-interfaces in question.
+
+A member which is defined in a class in a legacy library (whether concrete or
+abstract), is given a signature in which every type is a legacy type.  It is an
+error if the signature of a member is not a correct override of all members of
+the same name in super-interfaces of the class, using the legacy subtyping
+rules.
+
+#### Classes defined in legacy libraries as seen from opted-in libraries
+
+The `LEGACY_TOP_MERGE` of two types `T` and `S` is the unique type `R` defined
+as:
+ - `LEGACY_TOP_MERGE(T?, S?) = LEGACY_TOP_MERGE(T, S)?`
+ - `LEGACY_TOP_MERGE(T?, S*) = LEGACY_TOP_MERGE(T, S)*`
+ - `LEGACY_TOP_MERGE(T*, S?) = LEGACY_TOP_MERGE(T, S)*`
+ - `LEGACY_TOP_MERGE(T*, S*) = LEGACY_TOP_MERGE(T, S)*`
+ - `LEGACY_TOP_MERGE(T*, S)  = LEGACY_TOP_MERGE(T, S)*`
+ - `LEGACY_TOP_MERGE(T, S*)  = LEGACY_TOP_MERGE(T, S)*`
+ - `LEGACY_TOP_MERGE(T?, S)  = LEGACY_TOP_MERGE(T, S)*`
+ - `LEGACY_TOP_MERGE(T, S?)  = LEGACY_TOP_MERGE(T, S)*`
+ - `LEGACY_TOP_MERGE(Never, Null)  = Null`
+ - `LEGACY_TOP_MERGE(Null, Never)  = Null`
+ - `LEGACY_TOP_MERGE(void, void)  = void`
+ - `LEGACY_TOP_MERGE(Object, Object)  = Object`
+ - `LEGACY_TOP_MERGE(dynamic, dynamic)  = Object`
+ - `LEGACY_TOP_MERGE(Object, void)  = void`
+   - And the reverse
+ - `LEGACY_TOP_MERGE(dynamic, void)  = void`
+   - And the reverse
+ - `LEGACY_TOP_MERGE(Object, dynamic)  = Object`
+   - And the reverse
+ - And for all other types, recursively applying the transformation over the
+   structure of the type
+   - e.g. ``LEGACY_TOP_MERGE(C<T>, C<S>)  = C<LEGACY_TOP_MERGE(T, S)>`
+
+In other words, `LEGACY_TOP_MERGE` takes two types which are structurally equal
+except for the placement of `?` and `*`, the use of `Null` vs `Never`, and the
+particular choice of top types, and finds a single canonical type to represent
+them. The `LEGACY_TOP_MERGE` of two types is not always defined.
+
+If a class which is defined in a legacy library inherits a member with the same
+name from multiple super-interfaces, then error checking is done as usual using
+the legacy typing rules which ignore nullability.  This means that it is valid
+for a legacy class to inherit the same member signature with contradictory
+nullability information. For the purposes of member lookup within the legacy
+library itself, nullability information is ignored, and so it is valid to simply
+erase the nullability information within the legacy library. When referenced
+from an opted-in library, if there are multiple signatures `T0, ... Tn` for a
+member `m`, and there is a single `Ti` such that `LEGACY_SUBTYPE(Ti, Tk)` for
+each `k` in `0, ..., n`, then the signature of `m` is taken as `Ti`.  Otherwise,
+the signature of `m` for the purposes of member lookup is the `LEGACY_TOP_MERGE`
+of `S0, ..., Sn`, where `Si` is **NORM(`Ti`)**.
+
+
+#### Classes defined in opted-in libraries
+
+The `NNBD_TOP_MERGE` of two types `T` and `S` is the unique type `R` defined
+as:
+ - `NNBD_TOP_MERGE(Object?, Object?)  = Object`
+ - `NNBD_TOP_MERGE(dynamic, dynamic)  = Object`
+ - `NNBD_TOP_MERGE(void, void)  = void`
+ - `NNBD_TOP_MERGE(Object?, void)  = void`
+   - And the reverse
+ - `NNBD_TOP_MERGE(dynamic, void)  = void`
+   - And the reverse
+ - `NNBD_TOP_MERGE(Object?, dynamic)  = Object`
+   - And the reverse
+ - `NNBD_TOP_MERGE(Never*, Null)  = Null`
+   - And the reverse
+ - `NNBD_TOP_MERGE(T?, S?) = NNBD_TOP_MERGE(T, S)?`
+ - `NNBD_TOP_MERGE(T?, S*) = NNBD_TOP_MERGE(T, S)?`
+ - `NNBD_TOP_MERGE(T*, S?) = NNBD_TOP_MERGE(T, S)?`
+ - `NNBD_TOP_MERGE(T*, S*) = NNBD_TOP_MERGE(T, S)*`
+ - `NNBD_TOP_MERGE(T*, S)  = NNBD_TOP_MERGE(T, S)`
+ - `NNBD_TOP_MERGE(T, S*)  = NNBD_TOP_MERGE(T, S)`
+
+ - And for all other types, recursively applying the transformation over the
+   structure of the type
+   - e.g. ``NNBD_TOP_MERGE(C<T>, C<S>)  = C<NNBD_TOP_MERGE(T, S)>`
+
+In other words, `NNBD_TOP_MERGE` takes two types which are structurally equal
+except for the placement `*` types, and the particular choice of top types, and
+finds a single canonical type to represent them by replacing `?` with `*` or
+adding `*` as required.. The `NNBD_TOP_MERGE` of two types is not defined for
+types which are not otherwise structurally equal.
+
+A direct super-interface of a class defined in an opted-in library (that is, an
+interface which is listed in the `extends`, `implements` or `with` clauses of
+the class) has all generic arguments (and all sub-components of the generic
+arguments) marked as nullable or non-nullable as written.
+
+If a class `C` in an opted-in library implements the same generic class `I` more
+than once as `I0, .., In`, and at least one of the `Ii` is not syntactically
+equal to the others, then it is an error if `NNBD_TOP_MERGE(S0, ..., Sn)` is not
+defined where `Si` is **NORM(`Ii`)**.  Otherwise, for the purposes of runtime
+subtyping checks, `C` is considered to implement the canonical interface given
+by `NNBD_TOP_MERGE(S0, ..., Sn)`.  
+
+If a class `C` in an opted-in library overrides a member, it is an error if its
+signature is not a subtype of the types of all overriden members from all
+super-interfaces (whether legacy or opted-in).  Members which are inherited from
+opted-in classes through legacy classes are still seen as having their opted-in
+signature.
+
+If a class `C` in an opted-in library inherits a member `m` with the same name
+from multiple super-interfaces (whether legacy or opted-in), let `T0, ..., Tn`
+be the signatures of the inherited members.  If there is exactly one `Ti` such
+that `NNBD_SUBTYPE(Ti, Tk)` for all `k` in `0...n`, then the signature of `m` is
+considered to be `Ti`.  If there are more than one such `Ti`, then it is an
+error if the `NNBD_TOP_MERGE` of `S0, ..., Sn` does not exist, where `Si` is
+**NORM(`Ti`)**.  Otherwise, the signature of `m` for the purposes of member
+lookup is the `NNBD_TOP_MERGE` of the `Si`.
+
+
 ### Type reification
 
 All types reified in legacy libraries are reified as legacy types.  Runtime
@@ -598,13 +783,6 @@ Dart.
 
 Instance checks (`e is T`) and casts (`e as T`) behave differently when run in
 strong vs weak checking mode.
-
-Let `LEGACY_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` in the modified
-semantics as described above: that is, with all `?` on types ignored, `*` added
-to each type, and `required` parameters treated as optional.
-
-Let `NNBD_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` as specified in the
-[NNBD subtyping rules](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
 
 We define the weak checking and strong checking mode instance tests as follows:
 
@@ -669,34 +847,3 @@ instance checks or casts which would result in a different outcome if run in
 strong checking mode vs weak checking mode are flagged for the developer by
 logging a warning or breaking to the debugger.
 
-### Exports
-
-If an unmigrated library re-exports a migrated library, the re-exported symbols
-retain their migrated status (that is, downstream migrated libraries will see
-their migrated types).
-
-It is an error for a migrated library to re-export symbols from an unmigrated
-library.
-
-### Override checking
-
-In an unmigrated library, override checking is done using legacy types.  This
-means that an unmigrated library can bring together otherwise incompatible
-methods.  When choosing the most specific signature during interface
-computation, all nullability and requiredness annotations are ignored, and the
-`Never` type is treated as `Null`.
-
-In a migrated library, override checking must check that an override is
-consistent with all overridden methods from other migrated libraries in the
-super-interface chain, since a legacy library is permitted to override otherwise
-incompatible signatures for a method.
-
-## Subtyping
-
-We modify the subtyping rules to account for nullability and legacy types as
-specified
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
-
-## Upper and lower bounds
-
-**TODO** This is work in progress
