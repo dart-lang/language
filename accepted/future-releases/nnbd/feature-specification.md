@@ -230,10 +230,11 @@ variable binding section of a c-style `for` loop, a `for in` loop, an `await
 for` loop, or a `for element` in a collection literal.
 
 It is an error for the initializer expression of a `late` local variable to use
-a prefix `await` expression.
+a prefix `await` expression that is not nested inside of another function
+expression.
 
 It is an error for a class with a `const` constructor to have a `late final`
-field.
+instance variable.
 
 It is not a compile time error to write to a `final` variable if that variable
 is declared `late` and does not have an initializer.
