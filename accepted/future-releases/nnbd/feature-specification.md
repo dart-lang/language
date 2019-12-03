@@ -116,7 +116,7 @@ We write `S <: T` to mean that the type `S` is a subtype of `T` according to the
 rules specified there.
 
 
-We define a `LEGACY_SUBTYPE(S, T)` to be true iff `S` would be a subtype of `T`
+We define `LEGACY_SUBTYPE(S, T)` to be true iff `S` would be a subtype of `T`
 in a modification of the rules above in which all `?` on types were ignored, `*`
 was added to each type, and `required` parameters were treated as optional.
 This has the effect of treating `Never` as equivalent to `Null`, restoring
@@ -124,7 +124,7 @@ This has the effect of treating `Never` as equivalent to `Null`, restoring
 ignoring `required` on named parameters.  This is intended to provide the same
 subtyping results as pre-nnbd Dart.
 
-Where potentially ambiguous, we sometimes write `NNBD__SUBTYPE(S, T)` to mean
+Where potentially ambiguous, we sometimes write `NNBD_SUBTYPE(S, T)` to mean
 the full subtyping relation without the legacy exceptions defined in the
 previous paragraph.
 
@@ -134,7 +134,7 @@ We modify the upper and lower bound rules to account for nullability and legacy
 types as
 specified
 [here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).  
-3
+
 ## Type normalization
 
 We define a normalization procedure on types which defines a canonical
@@ -683,7 +683,7 @@ as:
    - And the reverse
  - And for all other types, recursively applying the transformation over the
    structure of the type
-   - e.g. ``LEGACY_TOP_MERGE(C<T>, C<S>)  = C<LEGACY_TOP_MERGE(T, S)>`
+   - e.g. `LEGACY_TOP_MERGE(C<T>, C<S>)  = C<LEGACY_TOP_MERGE(T, S)>`
 
 In other words, `LEGACY_TOP_MERGE` takes two types which are structurally equal
 except for the placement of `?` and `*`, the use of `Null` vs `Never`, and the
@@ -728,7 +728,7 @@ as:
 
  - And for all other types, recursively applying the transformation over the
    structure of the type
-   - e.g. ``NNBD_TOP_MERGE(C<T>, C<S>)  = C<NNBD_TOP_MERGE(T, S)>`
+   - e.g. `NNBD_TOP_MERGE(C<T>, C<S>)  = C<NNBD_TOP_MERGE(T, S)>`
 
 In other words, `NNBD_TOP_MERGE` takes two types which are structurally equal
 except for the placement `*` types, and the particular choice of top types, and
