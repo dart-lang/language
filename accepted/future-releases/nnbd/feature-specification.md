@@ -607,23 +607,23 @@ type `T`, there is an additional type `T*` which is the legacy version of the
 type.  There is no surface syntax for legacy types, and implementations should
 display the legacy type `T*` in the same way that they would display the type
 `T`, except in so far as it is useful to communicate to programmers for the
-purposes of error messages that the type originates in unmigrated code.
+purposes of error messages that the type originates in legacy code.
 
-When static checking is done in a migrated library, types which are imported
-from unmigrated libraries are seen as legacy types.  However, type inference in
-the migrated library "erases" legacy types.  That is, if a missing type
+When static checking is done in an opted-in library, types which are imported
+from legacy libraries are seen as legacy types.  However, type inference in
+the opted-in library "erases" legacy types.  That is, if a missing type
 parameter, local variable type, or closure type is inferred to be a type `T`,
 all occurrences of `S*` in `T` shall be replaced with `S`.  As a result, legacy
-types will never appear as type annotations in migrated libraries, nor will they
+types will never appear as type annotations in opted-in libraries, nor will they
 appear in reified positions.
 
 ### Exports
 
-If an unmigrated library re-exports a migrated library, the re-exported symbols
-retain their migrated status (that is, downstream migrated libraries will see
-their migrated types).
+If a legacy library re-exports an opted-in library, the re-exported symbols
+retain their opted-in status (that is, downstream migrated libraries will see
+their nnbd-aware types).
 
-It is an error for a migrated library to re-export symbols from an unmigrated
+It is an error for an opted-in library to re-export symbols from a legacy
 library.
 
 ### Super-interface and member type computation with legacy types.
@@ -638,8 +638,8 @@ super-interface and member signature computation for such classes as follows.
 #### Classes defined in legacy libraries
 
 The legacy erasure of a type `T` denoted `LEGACY_ERASURE(T)` is `T` with all
-occurrences of `?` removed, `Never` replaced with `Null`, and all types marked
-as legacy types.
+occurrences of `?` removed, `Never` replaced with `Null`, `required` removed
+from all parameters, and all types marked as legacy types.
 
 A direct super-interface of a class defined in a legacy library (that is, an
 interface which is listed in the `extends`, `implements` or `with` clauses of
@@ -690,18 +690,22 @@ except for the placement of `?` and `*`, the use of `Null` vs `Never`, and the
 particular choice of top types, and finds a single canonical type to represent
 them. The `LEGACY_TOP_MERGE` of two types is not always defined.
 
+The `LEGACY_TOP_MERGE` of more than two types is defined by taking the
+`LEGACY_TOP_MERGE` of the first two, and then recursively taking the
+`LEGACY_TOP_MERGE` of the rest.
+
 If a class which is defined in a legacy library inherits a member with the same
 name from multiple super-interfaces, then error checking is done as usual using
 the legacy typing rules which ignore nullability.  This means that it is valid
 for a legacy class to inherit the same member signature with contradictory
-nullability information. For the purposes of member lookup within the legacy
-library itself, nullability information is ignored, and so it is valid to simply
-erase the nullability information within the legacy library. When referenced
-from an opted-in library, if there are multiple signatures `T0, ... Tn` for a
-member `m`, and there is a single `Ti` such that `LEGACY_SUBTYPE(Ti, Tk)` for
-each `k` in `0, ..., n`, then the signature of `m` is taken as `Ti`.  Otherwise,
-the signature of `m` for the purposes of member lookup is the `LEGACY_TOP_MERGE`
-of `S0, ..., Sn`, where `Si` is **NORM(`Ti`)**.
+nullability information. For the purposes of member lookup within a legacy
+library, nullability information is ignored, and so it is valid to simply erase
+the nullability information within the legacy library. When referenced from an
+opted-in library, if there are multiple signatures `T0, ... Tn` for a member
+`m`, and there is a single `Ti` such that `LEGACY_SUBTYPE(Ti, Tk)` for each `k`
+in `0, ..., n`, then the signature of `m` is taken as `Ti`.  Otherwise, the
+signature of `m` for the purposes of member lookup is the `LEGACY_TOP_MERGE` of
+`S0, ..., Sn`, where `Si` is **NORM(`Ti`)**.
 
 
 #### Classes defined in opted-in libraries
@@ -735,6 +739,10 @@ except for the placement `*` types, and the particular choice of top types, and
 finds a single canonical type to represent them by replacing `?` with `*` or
 adding `*` as required.. The `NNBD_TOP_MERGE` of two types is not defined for
 types which are not otherwise structurally equal.
+
+The `NNBD_TOP_MERGE` of more than two types is defined by taking the
+`NNBD_TOP_MERGE` of the first two, and then recursively taking the
+`NNBD_TOP_MERGE` of the rest.
 
 A direct super-interface of a class defined in an opted-in library (that is, an
 interface which is listed in the `extends`, `implements` or `with` clauses of
