@@ -171,7 +171,7 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`Function`, `T Function<...>(...)`) = `Function`
 
 - **UP**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k)`,
-         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)` = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)`) = 
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2q)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - Both have the same number of required positional parameters
@@ -180,7 +180,7 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
      - `B2i` is `B0i`
      - `P2i` is **DOWN**(`P0i`, `P1i`)
 - **UP**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k, Named0)`,
-         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)` = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)`) = 
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2k, Named2)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - All positional parameters are required

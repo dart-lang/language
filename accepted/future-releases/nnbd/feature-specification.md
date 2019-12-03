@@ -1,10 +1,25 @@
-# Sound non-nullable (by default) types with incremental migration 
+# Sound non-nullable (by default) types with incremental migration
 
 Author: leafp@google.com
 
 Status: Draft
 
 ## CHANGELOG
+
+2019.11.25:
+  - Specified implicitly induced getters/setters for late variables.
+
+2019.11.22
+  - Additional errors and warnings around late variables
+
+2019.11.21
+  - Clarify runtime instance checks and casts.
+
+2019.10.08
+  - Warning to call null check operator on non-nullable expression
+  - Factory constructors may not return null
+  - Fix discussion of legacy `is` check
+  - Specify flatten
 
 2019.04.23:
   - Added specification of short-circuiting null
@@ -48,10 +63,10 @@ The modifier `late` is added as a built-in identifier.  The grammar of top level
 variables, static fields, instance fields, and local variables is extended to
 allow any declaration to include the modifer `late`.
 
-The modifier `required` is added as a built-in identifier. The grammar of
+The modifier `required` is added as a built-in identifier.  The grammar of
 function types is extended to allow any named parameter declaration to be
 prefixed by the `required` modifier (e.g. `int Function(int, {int?  y, required
-int z})`. 
+int z})`.
 
 The grammar of selectors is extended to allow null-aware subscripting using the
 syntax `e1?.[e2]` which evaluates to `null` if `e1` evaluates to `null` and
@@ -67,7 +82,7 @@ type.  That is, the grammar for types is nominally equivalent to:
 
 ```
 type' ::= functionType
-          | qualified typeArguments? 
+          | qualified typeArguments?
 
 type ::= type' `?`?
 ```
@@ -91,6 +106,18 @@ The same is true for `{ int ? - 3 : 3 }` if we allow this.
 The internal representation of types is extended with a type `T*` for every type
 `T` to represent legacy pre-NNBD types.  This is discussed further in the legacy
 library section below.
+
+### Future flattening
+
+The **flatten** function is modified as follows:
+
+**flatten**(`T`) is defined by cases on `T`:
+  - if `T` is `S?` then **flatten**(`T`) = **flatten**(`S`)`?`
+  - otherwise if `T` is `S*` then **flatten**(`T`) = **flatten**(`S`)`*`
+  - otherwise if `T` is `FutureOr<S>` then **flatten**(`T`) = `S`
+  - otherwise if `T <: Future` then let `S` be a type such that `T <: Future<S>`
+and for all `R`, if `T <: Future<R>` then `S <: R`; then **flatten**('T') = `S`
+  - otherwise **flatten**('T') = `T`
 
 ### Static errors
 
@@ -137,7 +164,7 @@ type, or for which any migration results in a potentially nullable type.
 We say that a type `T` is **potentially non-nullable** if `T` is not nullable.
 Note that this is different from saying that `T` is non-nullable.  For example,
 a type variable `X extends Object?` is a type which is potentially non-nullable
-but not non-nullable. Note that `T*` is potentially non-nullable by this
+but not non-nullable.  Note that `T*` is potentially non-nullable by this
 definition if `T` is potentially non-nullable.
 
 It is an error to call a method, setter, getter or operator on an expression
@@ -197,7 +224,16 @@ assignable to `Object`.
 
 It is not an error for the body of a `late` field to reference `this`.
 
-It is an error for a formal parameter to be declared `late`.
+It is an error for a variable to be declared as `late` in any of the following
+positions: in a formal parameter list of any kind; in a catch clause; in the
+variable binding section of a c-style `for` loop, a `for in` loop, an `await
+for` loop, or a `for element` in a collection literal.
+
+It is an error for the initializer expression of a `late` local variable to use
+a prefix `await` expression.
+
+It is an error for a class with a `const` constructor to have a `late final`
+field.
 
 It is not a compile time error to write to a `final` variable if that variable
 is declared `late` and does not have an initializer.
@@ -205,12 +241,20 @@ is declared `late` and does not have an initializer.
 It is an error if the object being iterated over by a `for-in` loop has a static
 type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
 
+It is an error if the type of the value returned from a factory constructor is
+not a subtype of the class type associated with the class in which it is defined
+(specifically, it is an error to return a nullable type from a factory
+constructor for any class other than `Null`).
+
 It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
-`...?`) on a non-nullable receiver.
+`...?`) on a non-nullable value.
+
+It is a warning to use the null check operator (`!`) on a non-nullable
+expression.
 
 ### Assignability
 
-The definition of assignability is changed as follows.  
+The definition of assignability is changed as follows.
 
 A type `T` is **assignable** to a type `S` if `T` is `dynamic`, or if `S` is a
 subtype of `T`.
@@ -247,12 +291,12 @@ defined as follows.
 
 - **NonNull**(Null) = Never
 - **NonNull**(_C_<_T_<sub>1</sub>, ... , _T_<sub>_n_</sub>>) = _C_<_T_<sub>1</sub>, ... , _T_<sub>_n_</sub>>  for class *C* other than Null (including Object).
-- **NonNull**(FutureOr<_T_>) = FutureOr<_T_>   
+- **NonNull**(FutureOr<_T_>) = FutureOr<_T_>
 - **NonNull**(_T_<sub>0</sub> Function(...)) = _T_<sub>0</sub> Function(...)
 - **NonNull**(Function) = Function
 - **NonNull**(Never) = Never
 - **NonNull**(dynamic) = dynamic
-- **NonNull**(void) = void   
+- **NonNull**(void) = void
 - **NonNull**(_X_) = X & **NonNull**(B), where B is the bound of X.
 - **NonNull**(_X_ & T) = X & **NonNull**(T)
 - **NonNull**(_T_?) = **NonNull**(_T_)
@@ -279,11 +323,11 @@ notation `fn[x : Exp] : Exp => E` to define a meta-level function of type `Exp
 `fn[k : Exp -> Exp] : Exp => E` to define a meta-level function of type `Exp ->
 Exp -> Exp`.  Where obvious from context, we elide the parameter and return
 types on the meta-level functions.  The meta-variables `F` and `G` are used to
-range over meta-level functions. Application of a meta-level function is written
-as `F[p]` where `p` is the argument.
+range over meta-level functions.  Application of a meta-level function is
+written as `F[p]` where `p` is the argument.
 
 The null-shorting translation of an expression `e` is meta-level function `F` of
-type `Exp -> Exp -> Exp` which takes as an argument the continuation of `e` and
+type `(Exp -> Exp) -> Exp` which takes as an argument the continuation of `e` and
 produces an expression semantically equivalent to `e` with all occurrences of
 `?.` eliminated in favor of explicit sequencing using a `let` construct.
 
@@ -320,7 +364,7 @@ receiver is non-null.
 
 The shorting propagation combinator `PASSTHRU` is defined as:
 ```
-  PASSTHRU = fn[F : Exp -> Exp -> Exp, c : Exp -> Exp] =>
+  PASSTHRU = fn[F : (Exp -> Exp) -> Exp, c : Exp -> Exp] =>
                fn[k : Exp -> Exp] : Exp => F[fn[x] => k[c[x]]]
 ```
 
@@ -391,11 +435,24 @@ continuation.
 
 #### Late fields and variables
 
+A non-local `late` variable declaration _D_ implicitly induces a getter
+into the enclosing scope.  It also induces an implicit setter iff one of the
+following conditions is satisfied:
+
+  - _D_ is non-final.
+  - _D_ is late, final, and has no initializing expression.
+
+The late final variable declaration with no initializer is special in that it
+is the only final variable which can be the target of an assignment.  It
+can only be assigned once, but this is enforced dynamically rather than
+statically.
+
 A read of a field or variable which is marked as `late` which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
 a value, assigned to the variable or field, and returned as the value of the
 read.
-  - If there is no initializer expression, the read causes a runtime error.
+  - If there is no initializer expression, the read causes a runtime error to be
+    thrown which is an instance of `LateInitializationError`.
   - Evaluating the initializer expression may validly cause a write to the field
     or variable, assuming that the field or variable is not final.  In this
     case, the variable assumes the written value.  The final value of the
@@ -410,24 +467,43 @@ read.
     is treated as a first read and the initializer expression is evaluated
     again.
 
-A write to a field or variable which is marked `final` and `late` is a runtime
-error unless the field or variable was declared with no initializer expression,
-and there have been no previous writes to the field or variable (including via
-an initializing formal or an initializer list entry).
+Let _D_ be a `late` and `final` non-local variable declaration named `v`
+without an initializing expression.  It is a run-time error, throwing an
+instance of `LateInitializationError`, to invoke the setter `v=` which is
+implicitly induced by _D_ if a value has previously been assigned to `v`
+(which could be due to an initializing formal or a constructor initializer
+list, or due to an invocation of the setter).
 
-Overriding a field which is marked both `final` and `late` with a member which
+Let _D_ be a `late` and `final` local variable declaration named `v`
+without an initializing expression.  It is a run-time error, throwing an
+instance of `LateInitializationError`, to assign a value to `v` if a value
+has previously been assigned to `v`.
+
+Note that this includes the implicit initializing writes induced by
+evaluating the initializer during a read.  Hence, the following program
+terminates with a `LateInitializationError` exception.
+
+```dart
+int i = 0;
+late final int x = i++ == 0 ? x + 1 : 0;
+void main() {
+  print(x);
+}
+```
+
+Overriding a field which is marked both `late` and `final` with a member which
 does not otherwise introduce a setter introduces an implicit setter which
 throws.  For example:
 
 ```
 class A {
-  final late int x;
+  late final int x;
 }
 class B extends A {
   int get x => 3;
 }
 class C extends A {
-  final late int x = 3;
+  late final int x = 3;
 }
 void test() {
    Expect.throws(() => new B().x = 3);
@@ -453,7 +529,7 @@ argument greater than the current length of the list is a runtime error.
 For migration, we support incremental adoption of non-nullability as described
 at a high level in
 the
-[roadmap](https://github.com/dart-lang/language/blob/master/working/0110-incremental-sound-nnbd/roadmap.md).
+[roadmap](https://github.com/dart-lang/language/blob/master/accepted/future-releases/nnbd/roadmap.md).
 
 ### Opted in libraries.
 
@@ -463,9 +539,9 @@ opted-in library may depend on un-opted-in libraries, and vice versa.
 ### Errors as warnings
 
 Weak null checking is enabled as soon as a package or library opts into this
-feature. When weak null checking is enabled, all errors specified this proposal
-(that is, all errors that arise only out of the new features of this proposal)
-shall be treated as warnings.
+feature.  When weak null checking is enabled, all errors specified this
+proposal (that is, all errors that arise only out of the new features of
+this proposal) shall be treated as warnings.
 
 Strong null checking is enabled by running the compilation or execution
 environment with the appropriate flags.  When strong null checking is enabled,
@@ -512,9 +588,86 @@ separately.
 ### Runtime checks and weak checking
 
 When weak checking is enabled, runtime type tests (including explicit and
-implicit casts) shall succeed with a warning whenever the runtime type test
-would have succeeded if all `?` types were ignored, `Never` were treated as
-`Null`, and `required` named parameters were treated as optional.
+implicit casts) shall succeed whenever the runtime type test would have
+succeeded if all `?` on types were ignored, `*` was added to each type, and
+`required` parameters were treated as optional.  This has the effect of treating
+`Never` as equivalent to `Null`, restoring `Null` to the bottom of the type
+hierarchy, treating `Object` as nullable, and ignoring `required` on named
+parameters.  This is intended to provide the same subtyping results as pre-nnbd
+Dart.
+
+Instance checks (`e is T`) and casts (`e as T`) behave differently when run in
+strong vs weak checking mode.
+
+Let `LEGACY_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` in the modified
+semantics as described above: that is, with all `?` on types ignored, `*` added
+to each type, and `required` parameters treated as optional.
+
+Let `NNBD_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` as specified in the
+[NNBD subtyping rules](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
+
+We define the weak checking and strong checking mode instance tests as follows:
+
+**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` occurring in a **legacy library** is
+evaluated as follows:
+  - If `S` is `Null` return `LEGACY_SUBTYPE(T, NULL) || LEGACY_SUBTYPE(Object,
+    T)`
+  - Otherwise return `LEGACY_SUBTYPE(S, T)`
+
+**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` occurring in an **opted-in library** is
+evaluated as follows:
+  - If `S` is `Null` return `NNBD_SUBTYPE(NULL, T)`
+  - Otherwise return `LEGACY_SUBTYPE(S, T)`
+
+**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` textually occurring in a **legacy library**
+is evaluated as follows:
+  - If `S` is `Null` return `NNBD_SUBTYPE(T, NULL) || NNBD_SUBTYPE(Object, T)`
+  - Otherwise return `NNBD_SUBTYPE(S, T)`
+
+**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, an instance check `e is T` textually occurring in an **opted-in
+library** is evaluated as follows:
+  - return `NNBD_SUBTYPE(S, T)`
+
+We define the weak checking and strong checking mode casts as follows:
+
+**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
+library** is evaluated as follows:
+  - if `LEGACY_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
+    `CastError` is thrown.
+
+**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
+library** is evaluated as follows:
+  - if `NNBD_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
+    `CastError` is thrown.
+
+
+In weak checking mode, we ensure that opted-in libraries do not break downstream
+clients by continuing to evaluate instance checks and casts with the same
+semantics as in pre-nnbd Dart.  All runtime subtype checks are done using the
+legacy subtyping, and instance checks maintain the pre-nnbd behavior on `null`
+instances.  In strong checking mode, we use the specified nnbd subtyping for all
+instance checks and casts.  However, in legacy libraries, we continue to
+specifically reject instance tests on `null` instances unless the tested type is
+a bottom or top type.  The rationale for this is that type tests performed in a
+legacy library will generally be performed with a legacy type as the tested
+type.  Without specifically rejecting `null` instances, successful instance
+checks in legacy libraries would no longer guarantee that the tested object is
+not `null` - a regression relative to the weak checking.
+
+When developers enable strong checking in their tests and applications, new
+runtime cast failures may arise.  The process of migrating libraries and
+applications will require users to track down these changes in behavior.
+Development platforms are encouraged to provide facilities to help users
+understand these changes: for example, by providing a debugging option in which
+instance checks or casts which would result in a different outcome if run in
+strong checking mode vs weak checking mode are flagged for the developer by
+logging a warning or breaking to the debugger.
 
 ### Exports
 

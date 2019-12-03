@@ -1,11 +1,10 @@
 # Dart Static Extension Methods Design
 
-lrn@google.com<br>Version: 1.5<br>Status: Design Document.
+lrn@google.com<br>Version: 1.4<br>Status: Design Document.
 
 This is a design document for *static extension members* for Dart. This document describes the feature's syntax and semantics.
 
-See [Problem Description](https://github.com/dart-lang/language/issues/40) and [Feature Request](https://github.com/dart-lang/language/issues/41) for background. 
-See [Prefix import request](https://github.com/dart-lang/language/issues/671) for the background for the v1.5 specification update.
+See [Problem Description](https://github.com/dart-lang/language/issues/40) and [Feature Request](https://github.com/dart-lang/language/issues/41) for background.
 
 The design of this feature is kept deliberately simple, while still attempting to make extension methods act similarly to instance methods in most cases.
 
@@ -208,23 +207,21 @@ Implicit extension member invocation can also apply to individual *cascade* invo
 
 ##### Accessibility
 
-An extension is *accessible* for an expression if it is declared in the current library, or if there is a non-deferred `import` declaration in the current library of a library with the extension in its export scope, where the name of the extension is not private and it is not hidden by a `hide` combinator mentioning the extension name, or a `show` combinator not mentioning the name, on the import. _This includes (non-deferred) imports with a prefix._
-
-It is a *compile-time error* if a deferred import declaration imports a library with an extension declaration in its export scope, unless all such extensions are hidden by a `hide` combinator with the extension's name, or a `show`  combinator without the extension's name, on the deferred import. *This is a temporary restriction ensuring that no extensions are introduced using deferred imports, allowing us to later introduce semantics for such extensions without affecting existing code*.
+An extension is *accessible* for an expression if it is declared in the current library, or if there is an `import` declaration in the current library of a library with the extension in its export scope, that import does not have a prefix, and the name of the extension is not private and it is not hidden by a `hide` or `show` modifier of the import.
 
 An extension *is* accessible if its name is *shadowed* by another declaration (a class or local variable with the same name shadowing a top-level or imported declaration, a top-level declaration shadowing an imported extension, or a non-platform import shadowing a platform import).
 
 An extension *is* accessible if it is imported and the extension name conflicts with one or more other imported declarations.
 
-_This definition of being accessible ignores name shadowing or import name conflicts; the extension is accessible if it *could have been* in scope absent of any declarations shadowing it or any other imports with the same name preventing access to the name. If it *is* in scope, then it is obviously also accessible. Compilers need to remember declarations of extensions in imports even if those extensions declarations do not make it into the  importing library scope_
+_This definition of being accessible ignores name shadowing or import name conflicts; the extension is accessible if it *could have been* in scope absent of any declarations shadowing it or any other imports with the same name preventing access to the name. If it *is* in scope, then it is obviously also accessible. Compilers need to remember declarations of extensions in un-prefixed imports even if those extensions declarations do not make it into the  importing library scope_
 
-You can *avoid* making the extension accessible for a library by either not importing any library exporting the extension or by importing such a library and hiding the extension using a `hide` combinator with the extension name or a `show` combinator without the extension name.
+You can *avoid* making the extension accessible for a library by either not importing any library exporting the extension, importing such a library and hiding the extension using `hide` or `show`, or importing such a library only with a prefix.
 
-The usual rules apply to referencing the extension by name. The extension's *name* is not in scope (e.g., for explicit extension invocation) if it is shadowed or if it is conflicting with another imported declaration, but the extension *itself* is still accessible for implicit extension member invocations since that operation does not reference the extension by name.
+The usual rules apply to referencing the extension by name. The extension's *name* is not in scope (e.g., for explicit extension invocation) if it is shadowed or if it is conflicting with another imported declaration, but the extension *itself* is still accessible for implicit extension member invocations since that does not need to use the name.
 
 If an extension conflicts with, or is shadowed by, another declaration, and you need to access it by name anyway, it can be imported with a prefix and the name referenced through that prefix.
 
-_*Rationale*: We want users to have control over which extensions are available. They control this through the imports and declarations used to include declarations into the library. The typical ways to control name conflicts of the imported names is to use `show` /`hide` in the imports or importing into a prefix scope. On the other hand, we do not want extension writers to have to worry too much about name clashes for their extension names since most extension members are not accessed through their name anyway. In particular we do not want them to name-mangle their extensions in order to avoid hypothetical conflicts. So, all imported extensions are considered accessible, and choosing between the individual extensions is handled by using explicit extension applications as described earlier. You only run into problems with the extension name if you try to use the name. That way you can import two extensions with the same name and use the members without issue (as long as they don't otherwise conflict in an unresolvable way), even if you can only refer to *at most* one of them by name._
+_*Rationale*: We want users to have control over which extensions are available. They control this through the imports and declarations used to include declarations into the import scope or declaration scope of the library. The typical ways to control the import scope is using `show` /`hide` in the imports or importing into a prefix scope. These features work exactly the same for extensions. On the other hand, we do not want extension writers to have to worry too much about name clashes for their extension names since most extension members are not accessed through their name anyway. In particular we do not want them to name-mangle their extensions in order to avoid hypothetical conflicts. So, all imported extensions are considered accessible, and choosing between the individual extensions is handled by using explicit extension applications as described earlier. You only run into problems with the extension name if you try to use the name. That way you can import two extensions with the same name and use the members without issue (as long as they don't otherwise conflict in an unresolvable way), even if you can only refer to *at most* one of them by name._
 
 You still cannot *export* two extensions with the same name. The rules for export makes it a compile-time error to add two declarations with the same name to the export scope of a library.
 
@@ -250,8 +247,6 @@ Let *i* be a member invocation with target expression `e` and corresponding memb
 3. *T<sub>1</sub>* is a subtype of of *T<sub>2</sub>* and either
 4. not vice versa, or
 5. the instantiate-to-bounds `on` type of `E1` is a subtype of the instantiate-to-bounds `on` type of `E2` and not vice versa.
-
-This definition ensures that "more specific than" is a partial order (anti-symmetric and transitive) relation.
 
 ##### Examples
 
@@ -432,7 +427,7 @@ In detail: Any expression of the form `e1(args)` or `e1<types>(args)` where `e1`
 A second question is whether this would also work with implicit `call` method tear-off:
 
 ```dart
-Iterable<int> Function(int) from2 = 2; // Erroneous code!
+Iterable<int> Function(int) from2 = 2;
 ```
 
 This code will find, during type inference, that `2` is not a function. It will then find that the interface type `int` does not have a `call` method, and inference will fail to make the program valid.  
@@ -453,11 +448,34 @@ Introducing a new extension to an existing library has the same problems as addi
 
 Adding an instance member to a class may now change behavior of code relying on extension methods. Adding instance members to interfaces is already breaking in case someone implements the interface. With extension methods, it may be breaking even for classes that are never implemented.
 
+### Migration
+
+The static extension methods feature will be released after the language versioning feature.
+
+As such, enabling extensions methods will require upgrading the library's language level to the version where extension methods are released. Since the language change is non-breaking, libraries should be able to simply upgrade their SDK dependency to the newer version and all existing code should keep working.
+
+A library which is at a language versions prior to the release of static extension methods will not be able to use extension members:
+
+- It cannot declare an extension.
+- it cannot refer to an imported extension.
+- It cannot invoke an imported extension member.
+- It *can* re-export an extension from another library.
+
+A library which has not enabled static extension members cannot use the new syntax. It also cannot use the *override* syntax (`MyExt(o).member()`) even though it is grammatically valid as a function or constructor invocation. The extension is neither a class nor a function.
+
+If such a library imports an extension declaration, say `MyExt`, then any reference to that imported name is a compile-time error, the same way as accessing a name-conflicting import. The imported declaration is still there, and can cause naming conflicts, but attempting to use it is disallowed.
+
+Invocations which would otherwise check for extension members, do not. It is as if there are no extensions in scope, even if some were imported.
+
+The library can export any other library, and will do so blindly without needing to understand the exported declarations. The exporting library can still cause a naming conflict if it exports something else with the same name as an exported extension.
+
+*This is not the only possible option. It might be possible to enable use of extensions in libraries which cannot declare them. However, it would be only half a feature without the syntax for extension member override, and enabling that syntax would also be inconsistent. As such, the simplest and safest approach is to _disable_ extensions completely in legacy libraries. The cost of enabling extensions is trivial since it will merely be a matter of increasing the library SDK requirement. There is no migration needed for a non-breaking change.*
+
 ## Interaction With Potential Future Features
 
 ### Non-Null by Default
 
-The interaction with NNBD was discussed above. It will be possible to declare extensions on nullable and non-nullable types, and only on a nullable type can `this` be bound to `null`.
+The interaction with NNBD was discussed above. It will be possible to declare extensions on nullable and non-nullable types, and on a nullable type, `this` may be bound to `null`.
 
 ### Sealed Classes
 
@@ -476,7 +494,6 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
      `{'
        <memberDeclaration>*
      `}'
-  
   ```
 
   where `extension` becomes a built-in identifier and `<memberDeclaration>` does not allow instance variables, constructors or abstract members. It does allow static members.
@@ -490,7 +507,7 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 
 - An extension applies to such a member invocation if 
 
-  - the extension is declared or imported by the current library,
+  - the extension is declared or imported in the lexical scope,
   - the extension declares an instance member with the same base name, and 
   - the `on` type (after type inference) of the extension is a super-type of the static type of the receiver.
 
@@ -502,7 +519,6 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
     Foo(Bar<T> this._receiver);
     void baz<S>(params) => ...;
   }
-  
   ```
 
   that was invoked as `Foo(receiver).baz(args)`. The binding of `T` and `S` found here is the same binding used by the extension.  If the constructor invocation would be a compile-time error, the extension does not apply.
@@ -514,6 +530,8 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 - Otherwise, the single most-specific extension's member is invoked with the extension's type parameters bound to the types found by inference, and with `this ` bound to the receiver.
 
 - An extension method can be invoked explicitly using the syntax `ExtensionName(object).method(args)`. Type arguments can be applied to the extension explicitly as well, `MyList<String>(listOfString).quickSort()`. Such an invocation overrides all extension resolution. It is a compile-time error if `ExtensionName` would not apply to the `object.method(args)` invocation if it was in scope. 
+
+- The override can also be used for extensions imported with a prefix (which are not otherwise in scope): `prefix.ExtensionName(object).method(args)`.
 
 - An invocation of an extension method succeeds even if the receiver is `null`. With NNBD types, the invocation throws if the receiver is `null` and the instantiated `on` type of the selected extension does not accept `null`. (In most cases, this case can be excluded statically, but not for unsafely nullable types like `int*`).
 
@@ -548,9 +566,3 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 #### 1.4:
 
 - Remove optional variants that were not part of the final design.
-
-#### 1.5
-
-- Post 2.6 release modification to allow non-deferred prefix-imported extensions to work.
-- Removed discussion of interaction with language versioning since extension methods launched before language versioning.
-- Disallow deferred imports of extensions by requiring the import statement to hide them.
