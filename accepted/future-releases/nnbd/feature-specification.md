@@ -491,26 +491,6 @@ void main() {
 }
 ```
 
-Overriding a field which is marked both `late` and `final` with a member which
-does not otherwise introduce a setter introduces an implicit setter which
-throws.  For example:
-
-```
-class A {
-  late final int x;
-}
-class B extends A {
-  int get x => 3;
-}
-class C extends A {
-  late final int x = 3;
-}
-void test() {
-   Expect.throws(() => new B().x = 3);
-   Expect.throws(() => new C().x = 3);
-}
-```
-
 A toplevel or static variable with an initializer is evaluated as if it
 was marked `late`.  Note that this is a change from pre-NNBD semantics in that:
   - Throwing an exception during initializer evaluation no longer sets the
