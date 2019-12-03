@@ -25,8 +25,9 @@ resolved to a canonical name.
 
 The **NORM** relation defines the canonical representative of classes of
 equivalent types.  In the absence of legacy (*) types, it should be the case
-that for any two types which are mutual subtypes, their normal forms are either
-one of the primitive top types, or are syntactically identical.
+that for any two types which are mutual subtypes, their normal forms are
+syntactically identical up to identification of top types (`dynamic`, `void`,
+`Object?`).
 
 This is based on the following equations:
 - `T?? == T?`
@@ -37,6 +38,8 @@ This is based on the following equations:
 - `Never? == Null`
 - `dynamic? == dynamic`
 - `void? == void`
+- `dynamic* == dynamic`
+- `void* == void`
 - `FutureOr<T> == T` if `Future<T> <: T`
 - `FutureOr<T> == Future<T>` if `T <: Future<T>`
 - `X extend Never == Never`
@@ -77,7 +80,7 @@ equations apply gives us something like the following:
 - **NORM**(`X extends T`) =
   - let `S` be **NORM**(`T`)
   - if `S` is `Never` then `Never`
-  - else `X extends T`
+  - else `X extends S`
 - **NORM**(`X & T`) =
   - let `S` be **NORM**(`T`)
    - if `S` is `Never` then `Never`
