@@ -658,6 +658,30 @@ error if the signature of a member is not a correct override of all members of
 the same name in super-interfaces of the class, using the legacy subtyping
 rules.
 
+Using the legacy erasure for checking super-interfaces accounts for opted-out
+classes which depend on both opted-in and opted-out versions of the same generic
+interface.
+
+```dart
+//opted in
+class I<T> {}
+
+// opted in
+class A implements I<int?> {}
+
+// opted out
+class B implements I<int> {}
+
+// opted out
+class C extends A implements B {}
+```
+
+The class `C` is not considered erroneous, despite implementing both `I<int?>`
+and `I<int*>`, since legacy erasure makes both of those interfaces equal.  The
+canonical interface which `C` is chosen to implement for the purposes of runtime
+type checks is `I<int*>`.
+
+
 #### Classes defined in legacy libraries as seen from opted-in libraries
 
 The `LEGACY_TOP_MERGE` of two types `T` and `S` is the unique type `R` defined
@@ -674,7 +698,7 @@ as:
  - `LEGACY_TOP_MERGE(Null, Never)  = Null`
  - `LEGACY_TOP_MERGE(void, void)  = void`
  - `LEGACY_TOP_MERGE(Object, Object)  = Object`
- - `LEGACY_TOP_MERGE(dynamic, dynamic)  = Object`
+ - `LEGACY_TOP_MERGE(dynamic, dynamic)  = dynamic`
  - `LEGACY_TOP_MERGE(Object, void)  = void`
    - And the reverse
  - `LEGACY_TOP_MERGE(dynamic, void)  = void`
@@ -707,19 +731,65 @@ in `0, ..., n`, then the signature of `m` is taken as `Ti`.  Otherwise, the
 signature of `m` for the purposes of member lookup is the `LEGACY_TOP_MERGE` of
 `S0, ..., Sn`, where `Si` is **NORM(`Ti`)**.
 
+We use legacy subtyping when checking inherited member signature coherence in
+classes because opted out libraries may bring together otherwise incompatible
+member signatures without causing an error.
+
+```dart
+// opted_in.dart
+class A {
+  int? foo(int? x) {}
+}
+class B {
+  int foo(int x) {}
+}
+opted_out.dart
+```
+```dart
+// opted out
+// @dart = 2.6
+import 'opted_in.dart';
+
+class C extends A implements B {}
+```
+
+The class `C` is accepted, since the versions of `foo` inherited from `A` and
+`B` are compatible.
+
+If the class `C` is now used within an opted-in library, we must decide what
+signature to ascribe to `foo`.  The `LEGACY_TOP_MERGE` function computes a
+signature for `foo` which preserves as much of the nullability information as
+possible from the inherited members while still arriving at a single coherent
+signature.  In this case, `LEGACY_TOP_MERGE(int? Function(int?), int
+Function(int))` is `int* Function(int*)` and so the following code is accepted:
+
+```dart
+//opted in
+import 'opted_out.dart';
+void test() {
+  new C().foo(null).isEven;
+}
+```
+
+The `LEGACY_TOP_MERGE` also accounts for differences that arise between
+signatures that are otherwise mutual subtypes but which differ in their
+particular choice of top types (e.g. using `dynamic` vs `Object`).  These
+discrepancies are currently resolved simply by choosing the first signature in a
+canonical order.
+
 
 #### Classes defined in opted-in libraries
 
 The `NNBD_TOP_MERGE` of two types `T` and `S` is the unique type `R` defined
 as:
- - `NNBD_TOP_MERGE(Object?, Object?)  = Object`
- - `NNBD_TOP_MERGE(dynamic, dynamic)  = Object`
+ - `NNBD_TOP_MERGE(Object?, Object?)  = Object?`
+ - `NNBD_TOP_MERGE(dynamic, dynamic)  = dynamic`
  - `NNBD_TOP_MERGE(void, void)  = void`
  - `NNBD_TOP_MERGE(Object?, void)  = void`
    - And the reverse
  - `NNBD_TOP_MERGE(dynamic, void)  = void`
    - And the reverse
- - `NNBD_TOP_MERGE(Object?, dynamic)  = Object`
+ - `NNBD_TOP_MERGE(Object?, dynamic)  = Object?`
    - And the reverse
  - `NNBD_TOP_MERGE(Never*, Null)  = Null`
    - And the reverse
