@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2019.12.03:
+  - Change warnings around null aware operaters to account for legacy types.
+
 2019.11.25:
   - Specified implicitly induced getters/setters for late variables.
 
@@ -247,10 +250,10 @@ not a subtype of the class type associated with the class in which it is defined
 constructor for any class other than `Null`).
 
 It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
-`...?`) on a non-nullable value.
+`...?`) on a value of type `T` if `T <: Object` and not `Null <: T`.
 
 It is a warning to use the null check operator (`!`) on a non-nullable
-expression.
+expression of type `T` if `T <: Object` and not `Null <: T`.
 
 ### Assignability
 
@@ -501,8 +504,9 @@ was marked `late`.  Note that this is a change from pre-NNBD semantics in that:
 
 ## Core library changes
 
-Calling the `.length` setter on a `List` of non-nullable element type with an
-argument greater than the current length of the list is a runtime error.
+Calling the `.length` setter on a `List` with element type `E` with an argument
+greater than the current length of the list is a runtime error unless `Null <:
+E`.
 
 ## Migration features
 
