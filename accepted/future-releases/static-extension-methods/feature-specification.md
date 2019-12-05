@@ -1,6 +1,6 @@
 # Dart Static Extension Methods Design
 
-lrn@google.com<br>Version: 1.5<br>Status: Design Document.
+lrn@google.com<br>Version: 1.6<br>Status: Design Document.
 
 This is a design document for *static extension members* for Dart. This document describes the feature's syntax and semantics.
 
@@ -119,36 +119,48 @@ We defined the *instantiated `on` type* of `E` as the `on` type of the declarati
 
 We define the *instantiate-to-bounds `on` type* of an extension as the `on` type with type parameters replaced by the types that the instantiate-to-bounds algorithm would derive for any type parameters of the extension.
 
-A *simple member invocation* on a target expression `X` is an expression of one of the forms:
+A *simple member invocation,* null aware or not, on a target expression `X` is an expression of one of the forms:
 
-| Member invocation on target X | Corresponding member name                                    |
-| :---------------------------- | :----------------------------------------------------------- |
-| `X.id`                        | `id`                                                         |
-| `X.id = expr2`                | `id=`                                                        |
-| `X.id(args)`                  | `id`                                                         |
-| `X.id<types>(args)`           | `id`                                                         |
-| `-X`                          | `unary-`                                                     |
-| `~X`                          | `~`                                                          |
-| `X binop expr2`               | `+`, `-`, `*`, `/` , `~/`, `%`, `<`, `<=`, `>`, `>=`, `<<`, `>>`, `>>>`, `^`, `\|`, `&` |
-| `X[expr2]`                    | `[]`                                                         |
-| `X[expr2] = expr3`            | `[]=`                                                        |
-| `X(args)`                     | `call`                                                       |
-| `X<types>(args)`              | `call`                                                       |
+| Simple invocation   | Simple null-aware invocation | Corresponding member name |
+| :------------------ | :--------------------------- | :------------------------ |
+| `X.id`              | `X?.id`                      | `id`                      |
+| `X.id = expr2`      | `X?.id = expr2`              | `id=`                     |
+| `X.id(args)`        | `X?.id(args)`                | `id`                      |
+| `X.id<types>(args)` | `X?.id<types>(args)`         | `id`                      |
+| `X[expr2]`          | `X?.[expr2]`                 | `[]`                      |
+| `X[expr2] = expr3`  | `X?.[expr2] = expr3`         | `[]=`                     |
+| `-X`                |                              | `unary-`                  |
+| `~X`                |                              | `~`                       |
+| `X binop expr2`     |                              | `binop`                   |
+| `X(args)`           |                              | `call`                    |
+| `X<types>(args)`    |                              | `call`                    |
 
-A *composite member invocation* on a target expression `X` is an expression of one of the forms:
+where `binop` is one of `+`, `-`, `*`, `/` , `~/`, `%`, `<`, `<=`, `>`, `>=`, `<<`, `>>`, `>>>`, `^`, `\|`, and `&`.
 
-| Composite member invocation on target X                | Corresponding member base name |
-| ------------------------------------------------------ | ------------------------------ |
-| `X.id binop= expr2`                                    | `id`                           |
-| `X[expr1] binop= expr2`                                | `[]`                           |
-| `X.id++`, `X.id--`, `++X.id`, `--X.id`                 | `id`                           |
-| `X[expr1]++`, `X[expr1]--`, `++X[expr1]`, `--X[expr1]` | `[]`                           |
+A *composite member invocation*, either null-aware or not, on a target expression `X` is an expression of one of the forms:
 
-Each such simple member invocation has a corresponding member name, the name of the member being invoked (and its associated basename, which is the name without the trailing `=` on setter names and `[]=`). A composite member invokes two members, so we only care about the base name.
+| Composite invocation    | Composite null-aware invocation | Member base name |
+| :---------------------- | :------------------------------ | :--------------- |
+| `X.id binop= expr2`     | `X?.id binop= expr2`            | `id`             |
+| `X[expr1] binop= expr2` | `X?.[expr1] binop= expr2`       | `[]`             |
+| `X.id++`                | `X?.id++`                       | `id`             |
+| `X.id--`                | `X?.id--`                       | `id`             |
+| `++X.id`                | `++X?.id`                       | `id`             |
+| `--X.id`                | `--X?.id`                       | `id`             |
+| `X[expr]++`             | `X?.[expr]++`                   | `[]`             |
+| `X[expr]--`             | `X?.[expr]--`                   | `[]`             |
+| `++X[expr]`             | `++X?.[expr]`                   | `[]`             |
+| `--X[expr]`             | `--X?.[expr]`                   | `[]`             |
 
-It is a **compile-time error** if an extension application occurs in a place where it is *not* the target expression of a simple or composite member invocation. That is, the only valid use of an extension application is to invoke members on it. *This is similar to how prefix names can also only be used as member invocation targets. The main difference is that extensions can also declare operators.* This also includes null-aware member access like `E(o)?.id` or `E(o)?.[v]` because those need to evaluate the target to a value and extension applications cannot evaluate to a value.
+Each simple member invocation has a *corresponding member name*, the name of the member being invoked (and its associated basename, which is the name without the trailing `=` on setter names and `[]=`). 
 
-It is a **compile-time error** to have a simple member invocation on an extension application where the extension in question does not declare an instance member with the same name as the corresponding member name of the invocation, and for a composite member invocation on an extension application where the extension does not declare both a getter and a setter with the corresponding base name of the invocation. *You can only invoke members which are actually there.*
+A composite member invocation invokes both a getter and a setter, so the table above lists only the basename of those two.
+
+A null-aware member invocation is listed with its *corresponding simple* (non-null-aware) *invocation* form which corresponds to the operation being performed when the target is not `null`.
+
+It is a **compile-time error** if an extension application occurs in a place where it is *not* the target expression of a simple or composite member invocation. That is, the only valid use of an extension application is to invoke members on it. *This is similar to how prefix names can also only be used as member invocation targets. The main difference is that extensions can also declare operators.* 
+
+It is a **compile-time error** to have a simple member invocation on an extension application where the extension in question does not declare an instance member with the same name as the corresponding member name of the invocation, or to have a composite member invocation on an extension application where the extension does not declare both a getter and a setter with the corresponding base name of the invocation. *You can only invoke members which are actually there.*
 
 This means that you cannot do cascade invocations on explicit extension applications: `E(e)..foo()..bar()` is a compile-time error. This is necessary because that expression evaluates to the value of `E(e)`, and an extension application does not have a value.
 
@@ -160,7 +172,7 @@ extension E<X...> on T {
 }
 ```
 
-then the type inference on *A* is the same that would be applied to the member invocation on $E$ considered as a constructor invocation on a class declared as:
+then the type inference on *A* is the same that would be applied to the member invocation on *E* considered as a constructor invocation on a class declared as:
 
 ```dart
 class E<X...> {
@@ -174,11 +186,11 @@ class E<X...> {
 
 That is, if `E` declares an instance member `T foo(T arg)`, then the inference of `E(e1).foo(e2)` will first perform inference to `E(e1)` as described above, and then perform inference on the member invocation just as if it was a class member. It is a **compile-time error** if this class member invocation would be a compile-time error
 
-The static type of a member invocation on an extension application is the return type of the extension member with the corresponding member name of the invocation, with the explicit or inferred type arguments of the extension application replacing the type parameters bound by the extension, and the explicit or inferred type arguments of the invoked member replacing the type parameters bound by the member
+The static type of a member invocation on an extension application is the return type of the extension member with the corresponding member name of the invocation, with the explicit or inferred type arguments of the extension application replacing the type parameters bound by the extension, and the explicit or inferred type arguments of the invoked member replacing the type parameters bound by the member.
 
 ##### Composite Assignments and Increment Operations
 
-Composite member invocations, like composite assignment `e.id += 2` or increment `e.id++`, are defined in terms of two individual member invocations (always one get and one set operation). If the target expression of a composite member invocation is an extension application, we need to recognize and handle it specially.
+Composite member invocations, like the composite assignment `e.id += 2` or the increment `e.id++`, are defined in terms of two individual member invocations (always one *get* operation and one *set* operation with the same basename). If the target expression of a composite member invocation is an extension application, we need to recognize and handle it specially.
 
 A composite assignment of the form `e1.id += 2` is equivalent to `e1.id = e1.id + 2` except that `e1` is only evaluated once, and the value is used twice. 
 
@@ -194,6 +206,12 @@ Increment/decrement operations like `++e` and `e--` are equivalent to composite 
   - `E<...>(e).id++` is equivalent to `E<...>(e).id = E<...>(e).id + 1` except that `e` is only evaluated once, and the value of the increment expression is the value of the subexpression `E<...>(e).id` before the addition. Symmetrically for post-decrement.
   - `E<...>(e)[e1]++` is equivalent to `E<...>(e)[e2] = E<...>(e)[e2] + 1` except that `e` and `e2` are only evaluated once, and the value of the increment expression is the value of the subexpression `E<...>(e)[e2]` before the addition. Symmetrically for post decrement.
 
+##### Null Aware Member Invocations
+
+A null-aware member invocation, whether simpler or composite, where the target is a extension application `E(e1)`, is evaluated by first evaluating `e1` to a value *v*. If *v* is `null` then the entire null-aware member invocation evaluates to `null` (and with NNBD, so does a following chain of selectors). If not, then the evaluation continues as the *corresponding simple  member invocation* with target `E(t)` where `t` is a fresh variable bound to *v*.
+
+The static type of a null-aware member invocation on an extension application is the same as the static type of the corresponding simple member invocation with the same extension application as target. (With NNBD, the type of `e1` is promoted to non-`null` before inferring the `on` type of the extension application, just as for the *implicit* invocation `e1?.…`, and the result type becomes nullable if it isn't already.)
+
 ### Implicit Extension Member Invocation
 
 Extension members can be invoked *implicitly* (without mentioning the extension by name) as if they were members of the `on` type of the extension. This is intended as the primary way to use extensions, with explicit extension member invocation as a fallback for cases where the implicit extension resolution doesn't do what the user want. 
@@ -202,21 +220,21 @@ An implicit extension member invocation occurs for a simple or composite member 
 
 If `E` is the single most specific accessible and applicable extension for a member invocation *i* with target expression `e`, then we treat the target expression as if it was the extension application of the extension `E` to `e`, and if `E` is generic, also providing the type arguments inferred for `E` in checking that it was applicable. This makes the member invocation behave equivalently to an explicit extension member invocation. This happens even if the *name* of `E` is not accessible, so this is not a purely syntactic rewrite.
 
-Implicit extension member invocation applies to null-aware member acccess. A null-aware invocation, for example `e?.id`, is defined as first evaluating `e` to a value and then if that value, `v`, is non-`null`, it performs the invocation `v.id`. This latter invocation *is* subject to implicit extension invocation if the static type of `e` does not have a member with basename `id`, and similarly for all other simple or composite instance member invocations guarded by a null-aware member access.
+Implicit extension member invocation applies to null-aware member access. A null-aware invocation, for example `e?.id`, is defined as first evaluating `e` to a value and then if that value, `v`, is non-`null`, it performs the invocation `v.id`. This latter invocation *is* subject to implicit extension invocation if the static type of `e` does not have a member with basename `id`, and similarly for all other simple or composite instance member invocations guarded by a null-aware member access.
 
 Implicit extension member invocation can also apply to individual *cascade* invocations. A cascade is treated as if each cascade section was a separate member invocation on an expression with the same value as the cascade receiver expression (the expression before the first `..`). This means that a cascade like `o..foo()..bar()` may perform an implicit extension member invocation on `o` for `foo()` and a normal invocation on `o` for `bar()`. There is no way to specify the corresponding explicit member invocation without expanding the cascade to a sequence of individual member invocations.
 
 ##### Accessibility
 
-An extension is *accessible* for an expression if it is declared in the current library, or if there is a non-deferred `import` declaration in the current library of a library with the extension in its export scope, where the name of the extension is not private and it is not hidden by a `hide` combinator mentioning the extension name, or a `show` combinator not mentioning the name, on the import. _This includes (non-deferred) imports with a prefix._
+An extension is *accessible* for an expression if it is declared in the current library, or if there is a non-deferred `import` declaration in the current library which imports a library with the extension in its export scope, where the name of the extension is not private, and the declaration is not hidden by a `hide` combinator mentioning the extension name, or a `show` combinator not mentioning the name, on the import. _This includes (non-deferred) imports with a prefix._
 
-It is a *compile-time error* if a deferred import declaration imports a library with an extension declaration in its export scope, unless all such extensions are hidden by a `hide` combinator with the extension's name, or a `show`  combinator without the extension's name, on the deferred import. *This is a temporary restriction ensuring that no extensions are introduced using deferred imports, allowing us to later introduce semantics for such extensions without affecting existing code*.
+It is a *compile-time error* if a *deferred* import declaration imports a library with an extension declaration in its export scope, unless all such extensions are hidden by a `hide` combinator with the extension's name, or a `show`  combinator without the extension's name, on the deferred import. *This is a temporary restriction ensuring that no extensions are introduced using deferred imports, allowing us to later introduce semantics for such extensions without affecting existing code*.
 
 An extension *is* accessible if its name is *shadowed* by another declaration (a class or local variable with the same name shadowing a top-level or imported declaration, a top-level declaration shadowing an imported extension, or a non-platform import shadowing a platform import).
 
 An extension *is* accessible if it is imported and the extension name conflicts with one or more other imported declarations.
 
-_This definition of being accessible ignores name shadowing or import name conflicts; the extension is accessible if it *could have been* in scope absent of any declarations shadowing it or any other imports with the same name preventing access to the name. If it *is* in scope, then it is obviously also accessible. Compilers need to remember declarations of extensions in imports even if those extensions declarations do not make it into the  importing library scope_
+_This definition of being accessible ignores name shadowing or import name conflicts; the extension is accessible if it *could have been* referenced by name absent of any declarations shadowing it or its import prefix, and absent any other imported declarations with the same name preventing access to the name. If it *is* in scope, then it is obviously also accessible. Compilers need to remember declarations of extensions in imports even if those extensions declarations do not make it into the  importing library scope_
 
 You can *avoid* making the extension accessible for a library by either not importing any library exporting the extension or by importing such a library and hiding the extension using a `hide` combinator with the extension name or a `show` combinator without the extension name.
 
@@ -232,8 +250,8 @@ You still cannot *export* two extensions with the same name. The rules for expor
 
 An extension `E` is *applicable* to a simple or composite member invocation with corresponding member *basename* *m* and target expression `e`, where `e` has static type *S*, if
 
-- The invocation is an *instance* member invocation. That is the case if the expression `e` does not denote a prefix or a class, mixin or extension declaration *(then the member invocation would be a static invocation)*, and it is not an explicit extension application. An instance member invocation on `e` will always begin by evaluating `e` to an object, and then continue by performing an instance member invocation on that object.
-- The type *S*  does not have a member with the basename  *m*. For this, the type `dynamic`is considered as having all member names, and an expression of type `Never` or `void` cannot occur as the target of a member invocation, so none of these can ever have applicable extensions. Function types and the type `Function` are considered as having a `call` member. *This ensure that if there is an applicable extension, the existing invocation would otherwise be a compile-time error*. Members of `Object` exists on all types, so they can never be the target of implicit member invocations _(they can also not be declared as extension members)_.
+- The invocation is an *instance* member invocation. That is the case if the expression `e` does not denote a prefix or a class, mixin or extension declaration *(because then the member invocation would be a static invocation)*, and it is not an explicit extension application. An instance member invocation on `e` will always begin by evaluating `e` to an object, and then continue by performing an instance member invocation on that object.
+- The type *S* does not have a member with the basename *m*. For this, the type `dynamic`is considered as having all member names, and an expression of type `Never` or `void` cannot occur as the target of a member invocation, so none of these can ever have applicable extensions. Function types and the type `Function` are considered as having a `call` member. *This ensure that if there is an applicable extension, the existing invocation would otherwise be a compile-time error*. Members of `Object` exists on all types, so they can never be the target of implicit member invocations _(they can also not be declared as extension members)_.
 - The extension application `E(x)` would be valid (not a compile-time error) where `x` is a fresh variable with static type *S* (to avoid type inference for any type parameters of `E` from affecting the already determined static type of `e`) in a scope where `E` denotes the extension.
 - and `E` declares an instance member with the basename *m*.
 
@@ -416,7 +434,7 @@ As the initial examples suggest, an extension method named `call` can also be ca
 
 ```dart
 extension Tricky on int {
- 	Iterable<int> call(int to) => 
+  Iterable<int> call(int to) => 
       Iterable<int>.generate(to - this + 1, (i) => i + this);
 }
 ...
@@ -457,7 +475,7 @@ Adding an instance member to a class may now change behavior of code relying on 
 
 ### Non-Null by Default
 
-The interaction with NNBD was discussed above. It will be possible to declare extensions on nullable and non-nullable types, and only on a nullable type can `this` be bound to `null`.
+The interaction with NNBD was discussed above. It will be possible to declare extensions on nullable and non-nullable types, and only on a nullable type can `this` be bound to `null`. Null-aware extension member invocations, both explicit and implicit, will evaluate the receiver expression first, and then only apply the extension to a non-null value.
 
 ### Sealed Classes
 
@@ -472,7 +490,7 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 - Extensions are declared using the syntax:
 
   ```ebnf
-  <extension> ::= `extension' <identifier>? <typeParameters>? `on' <type> `?'?
+  <extension> ::= `extension' <identifier>? <typeParameters>? `on' <type>
      `{'
        <memberDeclaration>*
      `}'
@@ -499,7 +517,7 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
   ```dart
   class Foo<T> {
     Bar<T> _receiver;
-    Foo(Bar<T> this._receiver);
+    Foo(this._receiver);
     void baz<S>(params) => ...;
   }
   
@@ -515,7 +533,7 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 
 - An extension method can be invoked explicitly using the syntax `ExtensionName(object).method(args)`. Type arguments can be applied to the extension explicitly as well, `MyList<String>(listOfString).quickSort()`. Such an invocation overrides all extension resolution. It is a compile-time error if `ExtensionName` would not apply to the `object.method(args)` invocation if it was in scope. 
 
-- An invocation of an extension method succeeds even if the receiver is `null`. With NNBD types, the invocation throws if the receiver is `null` and the instantiated `on` type of the selected extension does not accept `null`. (In most cases, this case can be excluded statically, but not for unsafely nullable types like `int*`).
+- An invocation of an extension method succeeds even if the receiver is `null`. With legacy NNBD types, the invocation throws if the receiver is `null` and the instantiated `on` type of the selected extension does not accept `null`, which can only happen if the extension is declared in NNBD code. For full NNBD types, an extension with a non-nullable `on` type is not applicable to a nullable receiver.
 
 - Otherwise an invocation of an extension method runs the instance method with `this` bound to the receiver and with type variables bound to the types found by type inference (or written explicitly for an override invocation). The static type of `this` is the `on` type of the extension.
 
@@ -530,7 +548,7 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 #### 1.1:
 
 - Removed `?` after types. The behavior was subtly inconsistent with the eventual NNBD behavior of a nullable type. Instead all extensions can be invoked on `null` until we get NNBD.
-- Sepcified that override syntax like `MyList(o)` can only be used for member access, not as an expression with a value.
+- Specified that override syntax like `MyList(o)` can only be used for member access, not as an expression with a value.
 
 #### 1.2:
 
@@ -554,3 +572,7 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 - Post 2.6 release modification to allow non-deferred prefix-imported extensions to work.
 - Removed discussion of interaction with language versioning since extension methods launched before language versioning.
 - Disallow deferred imports of extensions by requiring the import statement to hide them.
+
+#### 1.6
+
+* Allow `Ext(e)?.foo` and `Ext(e)?.[e2]` and specify their meaning.
