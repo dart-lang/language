@@ -57,30 +57,34 @@ If possible, it should be easy to migrate to and from using the feature. Having 
 The following class declarations could be made valid:
 
 ```dart
-class Person {
-  final String firstName;
-  final String lastName;
-  final int age;
+class Parcel {
+  final Address receiver;
+  final int weightInGrams;
 }
-class Fireman extends Person {
-  final int yearsOfService;
-}
+ 
+class ShippableParcel extends Parcel {
+ final Postage postage;
+}  
 ```
 
-You could then, perhaps, instantiate a `Fireman` as:
+You could then, perhaps, instantiate a `WeighedParcel` as:
 
 ```dart
-Fireman(firstName: "John", lastName: "Doe", age: 37, yearsOfService: 12)
+ShippableParcel(receiver: address, weightInGrams: 497, postage: Postage.paid(payment))
 ```
 
-It would automatically introduce an *initializing default constructor* which can initialize all the fields.
+It would automatically introduce an *initializing default constructor* which can initialize all the public fields.
 
 (This is still verbose, because of the named arguments, but it's consistent and easy to write.)
 
 Maybe you can extend classes with non-default constructors too and forward implicitly to those as well:
 
 ```dart
-class ColorBox extends Rectangle<int> {
+class Box {
+  final int minX, minY, maxX, maxY;
+  Rectangle(this.minX, this.minY, this.maxX, this.maxY);
+}
+class ColorBox extends Box {
   final Color color;
 }
   ... ColorBox(0, 10, 0, 10, color: Color.red) ...
@@ -88,57 +92,58 @@ class ColorBox extends Rectangle<int> {
 
 This will require some constraints on the superclass constructors, though. For example, we can't have both optional positional parameters and named parameters on the same class.
 
-It is still a very useful feature when you simply add methods to a class, and no new fields:
+It is still a very useful feature when you simply add methods to a class, and no new fields, and you don't want
+to forward all the constructor parameters:
 
 ```dart
-class MyRectangle extends Rectangle<int> {
-  MyRectangle affineTransform(int a, int b, int c, int d) =>
-      MyRectangle(a * left + b * top, c * left + d * top,
-                  a * right + b * bottom, c * right + d * bottom);
+class MyBox extends Box {
+  MyBox affineTransform(int a, int b, int c, int d) =>
+      MyBox(a * minX + b * minY, c * minX + d * minY,
+            a * maxX + b * maxY, c * maxX + d * maxY);
 }
 ```
 
-Here you could implicitly "inherit" all constructors from the superclass without having to rewrite them.
+Here you could implicitly "inherit" the default constructor from the superclass without having to rewrite it.
 
 ## Proposal
 
-We will introduce *initializing* and *forwarding* constructors, and have *default constructors* be both.
+We introduce *initializing* and *forwarding* constructors, and have *default constructors* be both.
 
 ### Initializing Constructor
 
-An initializing constructor for a class *C* is a generative constructor with *implicitly* introduced named initializing formals without default values for each instance variable declared in *C* which is not declared `late` and which does not have an initializer expression. The named parameter is required if the instance variable's type is potentially non-nullable. In NNBD-legacy code, the parameter is required if the instance variable is final.
+An initializing constructor for a class *C* is a generative constructor with *implicitly* introduced named initializing formals, without default values, for each public instance variable declared in *C* which is not declared `late` and which does not have an initializer expression. In NNBD code the named parameter is `required` if the instance variable's type is potentially non-nullable.
 
 A generative constructor can be made initializing by writing `default` as a modifier before the constructor, after any `const` modifier.
 
-Such a constructor must not declare any optional positional parameters. It may declare other parameters, and then an initializing formal is not introduced for an instance variable when the constructor declares another parameter with the same name. This allows users to explicitly initialize some fields and still have default initialization for the remaining fields. The constructor may have an initializer list and a body as normal, the `default`  modifier implicitly introduces a number of named parameters into parameter list, and it does nothing else.
+Such a constructor must not declare any optional positional parameters. It may declare other parameters, and then an initializing formal is not introduced for an instance variable when the constructor declares another parameter with the same name. This allows users to explicitly initialize some fields and still have default initialization for the remaining fields. The constructor may have an initializer list and a body as normal, the `default`  modifier implicitly introduces a number of named initializing formal parameters into parameter list, and it does nothing else.
 
 #### Example
 
-The class `Person` above could be given an initializing constructor by declaring a constructor of the form:
+The class `Parcel` above could be given an initializing constructor by declaring a constructor of the form:
 
 ```dart
-  default Person();
+  default Parcel();
 ```
 
 This would expand to the constructor:
 
 ```dart
-  Person({required this.firstName, required this.lastName, required this.age}) : super();
+  Person({required this.address, required this.weightInGrams}) : super();
 ```
 
 An initializing constructor of the form:
 
 ```dart
-  default Person(this.lastName);
+  default Parcel(this.address);
 ```
 
 would expand to;
 
 ```dart
-  Person(this.lastName, {required this.firstName, required this.age}) : super()
+  Parcel(this.address, {required this.weightInGrams}) : super()
 ```
 
-because the explicitly supplied `lastName` parameter takes precedence over inserting an initializing formal parameter for that field.
+because the explicitly supplied `address` parameter takes precedence over inserting an initializing formal parameter for that field.
 
 ### Forwarding Constructor
 
@@ -164,18 +169,18 @@ The constructor may have an initializer list and a body as normal, excapt that t
 
 #### Example
 
-The class `Fireman`above could be given an initializing constructor by writing:
+The class `ShippableParcel`above could be given an initializing constructor by writing:
 
 ```dart
-  default Fireman(super);
+  default ShippableParcel(super);
 ```
 
 This would expand to the constructor:
 
 ```dart
-  Fireman({required this.yearsOfService, required String firstName,
-           required String lastName, required int age})
-      : super(firstName: firstName, lastName: lastName, age: age);
+  ShippableParcel({required this.postage, required Address address,
+           required int weightInGrams})
+      : super(address: address, weightInGrams: weightInGrams);
 ```
 
 It's also possible to have other parameters in the parameter list, before or after the forwarded positional parameters:
@@ -189,11 +194,10 @@ class Point {
 class Color3DPoint extends Point {
   final Color color;
   final int z;
-  final double _cachedDistanceFromOrigo;
-  // Expands to: Point(this.color, int x, int y, this.z) : super(x, y);
-  Point(this.color, super, this.z) 
-      : _cachedDistanceFromOrigo = sqrt(x * x + y * y + z * z);
-  double get distanceFromOrigo => _cachedDistanceFromOrigo;
+  final double distanceFromOrigo;
+  // Expands to: Color3DPoint(this.color, int x, int y, this.z) : super(x, y);
+  Color3DPoint(this.color, super, this.z) 
+      : distanceFromOrigo = sqrt(x * x + y * y + z * z); // Cache the value.
 }
 ```
 
@@ -242,7 +246,9 @@ It is a *compile-time error* if there is no unnamed superclass constructor satis
 
 Superclass constructors with optional positional parameters are hard to forward to. It would be wonderful if it was possible to have both optional positional parameters and named parameters on the same function. We ignore the optional parameters when they would occur in a constructor where they cannot be optional, either because there are also named parameters, or because there are later required parameters, like you would get for `Foo(default, this.x)`, or where they are followed by other optional parameters. The last case is to avoid adding an optional parameter to a superclass constructor from being a breaking change. The alternative would be to make the parameter required, which would also make adding an *optional* parameter to a superclass constructor a breaking change. This feature is about doing the right thing easily in simple cases. In cases with conflicts and incompatible parameter lists, it will still be necessary (or at least better) to write the constructor by hand.
 
-You only get default constructors when you declare *no* constructors. If you want to forward ten superclass constructors, and change the eleventh just a bit, or add an eleventh factory constructor, then you have to write all of the other ten, but at least you only need to write `default Foo.bar(super.bar);` and not repeat every parameter. 
+You only get a default constructor when you declare *no* constructors. At least it's easy to introduce the equivalent of a default constructor explicitly: `default Foo(super);`. 
+
+You only get the unnnamed constructor as default forwarded constructor. We could forward all accessible named constructors too, but it might introduce constructors that you are not interested in, or not aware of, but which your clients start using anyway. If you later add a static member with the same name, it will hide the named forwarding constructor and break client code. It's easy to get a forwarding constructor if you do want it: `default Foo.foo(super.foo);`.
 
 It's always possible to write exactly the same constructors manually, so this change does not introduce any new expressive power. It's always possible to move away from default constructors to explicitly written constructors (except for classes used as mixins, which are always going to be highly restricted). As such, the feature has no back-end impact, it can be implemented entirely in the front-end. Back-ends may want to tree-shake unused constructors, or unused constructors parameters, though.
 
@@ -258,13 +264,13 @@ The added features, initializing constructors, forwarding constructors and initi
 
 A number of changes to a class or superclass can be breaking.
 
-Anything which changes an existing valid constructor invocation to be invalid is a breaking change, as it has always been. That would include adding a non-nullable field without an initializer to a class. That would currently be a compile-time error because the field is not initialized, and with this change it becomes a compile-time error because no existing call to the constructor passes the corresponding required parameter.
+Anything which changes an existing valid constructor invocation to be invalid is a breaking change, as it has always been. That would include adding a non-nullable field without an initializer to a class. That would currently be a compile-time error because the field is not initialized, and with this change it becomes a compile-time error because no existing call to the constructor passes the corresponding required parameter. This merely moves the error somewhere else, but without proper testing, that somewhere else might be client code.
 
-Most other changes have been designed around, so they reduce the usefulness of forwarding rather than introduce new breaking changes.
+Most other potentially breaking changes have been avoided by designing this feature to reduce the usefulness of forwarding rather than introduce new breaking changes.
 
-Adding an optional positional parameter to a superclass constructor to a class would have been a breaking change if we allowed any positional parameter after the forwarded optional parameter in the subclass constructor because it would change the position of an existing parameter. We deliberately avoided that at the cost of adding restrictions on when we can forward optional positional parameters.
+Adding an optional positional parameter to a superclass constructor to a class would have been a breaking change if we allowed any positional parameter after the forwarded optional parameter in the subclass constructor, because it would change the position of an existing parameter. We deliberately avoided that at the cost of adding restrictions on when we can forward optional positional parameters.
 
-Adding a static member to a class would have suppress a default constructor if we forwarded all constructors, not just unnamed ones. If the class author was not aware of that default constructor (perhaps it was added to the superclass after the subclass was written), this would come as a surprise. It may break downstream code using the constructor, even if the author doesn't get any errors. That suggests that maybe all the forwarding constructors by default is not a good idea.
+Adding a static member to a class would suppress a named "default constructor" if we forwarded all constructors by default, not just unnamed ones. If the class author was not aware of that default constructor (perhaps it was added to the superclass after the subclass was written), this would come as a surprise. It may break downstream code using the constructor, even if the author doesn't get any errors. That suggests that maybe all the forwarding constructors by default is not a good idea.
 
 ## Variants
 
@@ -272,13 +278,16 @@ This proposal goes about as far as possible in forwarding parameters to supercla
 
 This means that we *can* perhaps choose to do *less* and still be useful. 
 
-We may also want to allow forwarding constructors declared on mixins, which currently do not allow constructors. That would allow a significant number of use-cases.
+We may also want to allow forwarding constructors declared on mixins, which currently do not allow constructors. That would allow a significant number of use-cases. 
+
+We may want to allow non-nullable instance variables to be declared on mixins and still provide forwarding constructors, or allow final instance variables on mixins while still having a const forwading and initializing constructor.
+
 
 ## Summary
 
-Default constructors now have named initializing formal parameters for each public instance variable declared in the class, unless the variable has an initializer. The parameter is required if the variable is potentially non-nullable (it has to be when its type is potentially non-nullable).
+Default constructors now have named initializing formal parameters for each public instance variable declared in the class, unless the variable is late or has an initializer. The parameter is required if the variable is potentially non-nullable (it has to be when its type is potentially non-nullable).
 
-Default constructors forward parameters to the unnamed superclass generative constructors where possible, not just to the unnamed zero-argument superclass constructor. It's not possible when the superclass constructor has a required named argument with the same name as a subclass instance variable without an initializer (the ones that initializing formals are added for). 
+Default constructors forward parameters to the unnamed superclass generative constructors where possible, not just to the unnamed zero-argument superclass constructor. It's not possible when the superclass constructor has a required named argument which is shadowed by a parameter of the subclass constructor (including the ones introduced to initialize fields). 
 
 This works for all classes that do not declare any constructor. Mixin applications get all constructors forwarded, which matches current behavior.
 
