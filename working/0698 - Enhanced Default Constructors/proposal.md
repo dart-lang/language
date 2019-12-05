@@ -5,7 +5,7 @@ Version: 0.3 (draft)
 
 ## Background
 
-See issue #698 for the feature discussion.
+See issue [#698](https://github.com/dart-lang/language/issues/698) for the feature discussion.
 
 ### Verbosity
 
