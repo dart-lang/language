@@ -4,6 +4,13 @@ Owner: leafp@google.com
 
 Status: Draft
 
+## CHANGELOG
+
+2019.12.03:
+  - Update top level inference for non-nullability, function expression
+    inference.
+
+
 ## Inference overview
 
 Type inference in Dart takes three different forms.  The first is mixin
@@ -14,21 +21,23 @@ The second and third forms are local type inference and top-level inference.
 These two forms of inference are mutually interdependent, and are specified
 here.
 
-Top-level inference is the process by which the types of un-annotated static
-variables and class members are inferred based on the types of overriden members
-and initializing expressions.  Since some top-level declarations have their types
-inferred from initializing expressions, top-level inference involves local type
-inference as a sub-procedure.
+Top-level inference is the process by which the types of top-level variables and
+several kinds of class members are inferred when type annotations are omitted,
+based on the types of overridden members and initializing expressions.  Since
+some top-level declarations have their types inferred from initializing
+expressions, top-level inference involves local type inference as a
+sub-procedure.
 
-Local type inference is the process by which the types of un-annotated local
-variables and closure parameters and missing type arguments to literals,
-constructors, and generic methods are inferred.
+Local type inference is the process by which the types of local variables and
+closure parameters declared without a type annotation are inferred; and by which
+missing type arguments to list literals, map literals, set literals, constructor
+invocations, and generic method invocations are inferred.
 
 
 ## Top-level inference
 
 Top-level inference derives the type of declarations based on two sources of
-information: the types of overriden declarations, and the types of initializing
+information: the types of overridden declarations, and the types of initializing
 expressions.  In particular:
 
 1. **Method override inference**
@@ -77,11 +86,12 @@ other declarations.
 
 Because of the possibility of inference dependency cycles between top-level
 declarations, the inference procedure relies on the set of *available* variables
-for which a type is known.  A variable's type is known if:
+(*which are the variables for which a type is known*).  A variable is
+*available* iff:
   - The variable was explicitly annotated with a type by the programmer.
   - A type for the variable was previously inferred.
 
-Any variable whose type is not *available* is said to be *unavailable*.  If the
+Any variable which is not *available* is said to be *unavailable*.  If the
 inference process requires the type of an *unavailable* variable in order to
 proceed, it is an error.  **If there is any order of inference of declarations
 which avoids such an error, the inference procedure is required to find it**.  A
@@ -102,7 +112,9 @@ be an error.
 The general inference procedure is as follows.
 
 - Mark every top level, static or instance declaration (fields, setters,
-  getters, constructors, methods) with a complete explicit type as *available*.
+  getters, constructors, methods) which is completely type annotated (that is,
+  which has all parameters, return types and field types explicitly annotated)
+  as *available*.
 - For each declaration `D` which is not *available*:
   - If `D` is a method, setter or getter declaration with name `x`:
     - If `D` overrides another method, field, setter, or getter
@@ -132,7 +144,7 @@ The general inference procedure is as follows.
 #### Override inference
 
 If override inference is performed on a declaration `D`, and any member which is
-directly overriden by `D` is not *available*, it is an error.  As noted above,
+directly overridden by `D` is not *available*, it is an error.  As noted above,
 the inference algorithm is required to find an ordering which avoids such an
 error if there is such an ordering.  Note that method override inference is
 independent of non-override inference, and hence can be completed prior to the
@@ -140,20 +152,20 @@ rest of top level inference if desired.
 
 ##### Method override inference
 
-A method which subject to override inference is missing one or more component
-types of its signature. Each missing type is filled in with the corresponding
-type from the overridden or implemented method.  If there are multiple
-overridden/implemented methods, and any two of them have non-equal types
-(declared or inferred) for a parameter position which is being inferred for the
-overriding method, it is an error.  If there is no corresponding parameter
-position in the overridden method to infer from and the signatures are
-compatible, it is treated as dynamic (e.g. overriding a one parameter method
-with a method that takes a second optional parameter).  Note: if there is no
-corresponding parameter position in the overriden method to infer from and the
-signatures are incompatible (e.g. overriding a one parameter method with a
-method that takes a second non-optional parameter), the inference result is not
-defined and tools are free to either emit an error, or to defer the error to
-override checking.
+A method which is subject to override inference is missing one or more component
+types of its signature, and it overrides one or more declarations. Each missing
+type is filled in with the corresponding type from the overridden or implemented
+method.  If there are multiple overridden/implemented methods, and any two of
+them have non-equal types (declared or inferred) for a parameter position which
+is being inferred for the overriding method, it is an error.  If there is no
+corresponding parameter position in the overridden method to infer from and the
+signatures are compatible, it is treated as dynamic (e.g. overriding a one
+parameter method with a method that takes a second optional parameter).  Note:
+if there is no corresponding parameter position in the overridden method to
+infer from and the signatures are incompatible (e.g. overriding a one parameter
+method with a method that takes a second non-optional parameter), the inference
+result is not defined and tools are free to either emit an error, or to defer
+the error to override checking.
 
 
 ##### Instance field, getter, and setter override inference
@@ -164,41 +176,135 @@ name in some superclass or interface (explicitly declared or induced by an
 instance variable declaration), and similarly for setters overriding getters,
 fields, etc.
 
-A getter, setter or field which overrides/implements only a getter is inferred
-to have the type taken from the overridden getter result type.
+The return type of a getter, parameter type of a setter or type of a field which
+overrides/implements only a getter is inferred to be the result type of the
+overridden getter.
 
-A getter, setter or field which overrides/implements only a setter is inferred
-to have the type taken from the overridden setter parameter.
+The return type of a getter, parameter type of a setter or type of a field which
+overrides/implements only a setter is inferred to be the parameter type of the
+overridden setter.
 
-A getter which overrides/implements both a setter and a getter is inferred to
-have the type taken from the overridden getter result type.
+The return type of a getter which overrides/implements both a setter and a
+getter is inferred to be the result type of the overridden getter.
 
-A setter which overrides/implements both a setter and a getter is inferred to
-have the type taken from the overridden setter parameter type.
+The parameter type of a setter which overrides/implements both a setter and a
+getter is inferred to be the parameter type of the overridden setter.
 
-A final field which overrides/implements both a setter and a getter is inferred
-to have the type taken from the overridden getter result type.
+The type of a final field which overrides/implements both a setter and a getter
+is inferred to be the result type of the overridden getter.
 
-A non-final field which overrides/implements both a setter and a getter is
-inferred to have the type taken from the overridden setter parameter type if
-this type is the same as the return type of the overridden getter (if the types
-are not the same then inference fails with an error).
+The type of a non-final field which overrides/implements both a setter and a
+getter is inferred to be the parameter type of the overridden setter if this
+type is the same as the return type of the overridden getter (if the types are
+not the same then inference fails with an error).
 
 Note that overriding a field is addressed via the implicit induced getter/setter
 pair (or just getter in the case of a final field).
 
+Note that `late` fields are inferred exactly as non-`late` fields.  However,
+unlike normal fields, the initializer for a `late` field may reference `this`.
+
+## Function literal return type inference.
+
+Function literals which are inferred in an empty typing context (see below) are
+inferred using the declared type for all of their parameters.  If a parameter
+has no declared type, it is treated as if it was declared with type `dynamic`.
+Inference for each returned expression in the body of the function literal is
+done in an empty typing context (see below).
+
+Function literals which are inferred in an non-empty typing context where the
+context type is a function type are inferred as follows.  Each parameter is
+assumed to have its declared type if present, or the type taken from the
+corresponding parameter (if any) from the typing context if not present.  The
+return type of the context function type is used at several points during
+inference.  We refer to this type as the **imposed return type
+schema**. Inference for each returned or yielded expression in the body of the
+function literal is done using a context type derived from the imposed return
+type schema as follows:
+  - If the function expression is neither `async` nor a generator, then the
+    context type is the imposed return type.
+  - If the function expression is declared `async*` and the imposed return type
+    is of the form `Stream<S>` for some `S`, then the context type is `S`.
+  - If the function expression is declared `sync*` and the imposed return type
+    is of the form `Iterable<S>` for some `S`, then the context type is `S`.
+  - Otherwise the context type is `FutureOr<flatten(T)>` where `T` is the
+    imposed return type.
+
+In order to infer the return type of a function literal, we first infer the
+**actual returned type** of the function literal.
+
+The actual returned type of a function literal with an expression body is the
+inferred type of the expression body, using the local type inference algorithm
+described below with a typing context as computed above.
+
+The actual returned type of a function literal with a block body is computed as
+follows.  Let `T` be `Never` if every control path through the block exits the
+block without reaching the end of the block, as computed by the **definite
+completion** analysis specified elsewhere.  Let `T` be `Null` if any control
+path reaches the end of the block without exiting the block, as computed by the
+**definite completion** analysis specified elsewhere.  Let `K` be the typing
+context for the function body as computed above from the imposed return type
+schema.
+  - For each `return e;` statement in the block, let `S` be the inferred type of
+    `e`, using the local type inference algorithm described below with typing
+    context `K`, and update `T` to be `UP(flatten(S), T)` if the enclosing
+    function is `async`, or `UP(S, T)` otherwise.
+  - For each `return;` statement in the block, update `T` to be `UP(Null, T)`.
+  - For each `yield e;` statement in the block, let `S` be the inferred type of
+    `e`, using the local type inference algorithm described below with typing
+    context `K`, and update `T` to be `UP(S, T)`.
+  - If the enclosing function is marked `sync*`, then for each `yield* e;`
+    statement in the block, let `S` be the inferred type of `e`, using the
+    local type inference algorithm described below with a typing context of
+    `Iterable<K>`; let `E` be the type such that `Iterable<E>` is a
+    super-interface of `S`; and update `T` to be `UP(E, T)`.
+  - If the enclosing function is marked `async*`, then for each `yield* e;`
+    statement in the block, let `S` be the inferred type of `e`, using the
+    local type inference algorithm described below with a typing context of
+    `Stream<K>`; let `E` be the type such that `Stream<E>` is a super-interface
+    of `S`; and update `T` to be `UP(E, T)`.
+
+The **actual returned type** of the function literal is the value of `T` after
+all `return` and `yield` statements in the block body have been considered.
+
+Let `T` be the **actual returned type** of a function literal as computed above.
+Let `R` be the greatest closure of the typing context `K` as computed above.  If
+`T <: R` then let `S` be `T`.  Otherwise, let `S` be `R`.  The inferred return
+type of the function literal is then defined as follows:
+  - If the function literal is marked `async` then the inferred return type is
+    `Future<flatten(S)>`.
+  - If the function literal is marked `async*` then the inferred return type is
+    `Stream<S>`.
+  - If the function literal is marked `sync*` then the inferred return type is
+    `Iterable<S>`.
+  - Otherwise, the inferred return type is `S`.
+
+## Local return type inference.
+
+A local function definition which has no explicit return type is subject to the
+same return type inference as a function expression with no typing context.
+During inference of the function body, any recursive calls to the function are
+treated as having return type `dynamic`.
+
+In Dart code which has opted into the NNBD semantics, local function body
+inference is changed so that the local function name is not considered
+*available* for inference while performing inference on the body.  As a result,
+any recursive calls to the function for which the result type is required for
+inference to complete will no longer be treated as having return type `dynamic`,
+but will instead result in an inference failure.
+
 ## Local type inference
 
-When types are omitted on local variable declarations and function expressions,
-or when type arguments are omitted from literal expressions, constructor
-invocations, or generic function invocations, then local type inference is used
-to fill in the missing type information.  Local type inference is also used as
-part of top-level inference as described above, in order to infer types for
-initializer expressions.  In order to uniformly treat use of local type
-inference in top-level inference and in method body inference, it is defined
-with respect to a set of *available* variables as defined above.  Note however
-that top-level inference never depends on method body inference, and so method
-body inference can be performed as a subsequent step.  If this order of
+When type annotations are omitted on local variable declarations and function
+literals, or when type arguments are omitted from literal expressions,
+constructor invocations, or generic function invocations, then local type
+inference is used to fill in the missing type information.  Local type inference
+is also used as part of top-level inference as described above, in order to
+infer types for initializer expressions.  In order to uniformly treat use of
+local type inference in top-level inference and in method body inference, it is
+defined with respect to a set of *available* variables as defined above.  Note
+however that top-level inference never depends on method body inference, and so
+method body inference can be performed as a subsequent step.  If this order of
 inference is followed, then method body inference should never fail due to a
 reference to an *unavailable* variable, since local variable declarations can
 always be traversed in an appropriate statically pre-determined order.
@@ -397,6 +503,7 @@ replaced with `Null`, and every covariant occurrence of `Ti` replaced with
 
 # MATERIAL BELOW HERE HAS NOT BEEN UPDATED #
 
+<!--
 
 ## Upper bound
 
@@ -828,3 +935,5 @@ inference.  Appropriate adjustments for asynchronous and generator functions.
 
 Do statements 
 For each statement
+
+-->
