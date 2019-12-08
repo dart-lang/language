@@ -135,7 +135,7 @@ types as
 specified
 [here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).  
 
-## Type normalization
+### Type normalization
 
 We define a normalization procedure on types which defines a canonical
 representation for otherwise equivalent
@@ -344,14 +344,14 @@ defined as follows.
 
 These are extended as per separate proposal.
 
-### Runtime semantics
+## Runtime semantics
 
-#### Null check operator
+### Null check operator
 
 An expression of the form `e!` evaluates `e` to a value `v`, throws a runtime
 error if `v` is `null`, and otherwise evaluates to `v`.
 
-#### Null aware operator
+### Null aware operator
 
 The semantics of the null aware operator `?.` are defined via a source to source
 translation of expressions into Dart code extended with a let binding construct.
@@ -471,7 +471,7 @@ continuation.
   - A list literal `[e1, ..., en]` translates to `TERM[ [EXP(e1), ..., EXP(en)] ]`
   - A parenthesized expression `(e)` translates to `TERM[(EXP(e))]`
 
-#### Late fields and variables
+### Late fields and variables
 
 A non-local `late` variable declaration _D_ implicitly induces a getter
 into the enclosing scope.  It also induces an implicit setter iff one of the
