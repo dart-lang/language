@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2019.12.03:
+  - Change warnings around null aware operaters to account for legacy types.
+
 2019.11.25:
   - Specified implicitly induced getters/setters for late variables.
 
@@ -152,6 +155,15 @@ Note that there are types which are neither nullable nor non-nullable.  For
 example `X extends T` where `T` is nullable is neither nullable nor
 non-nullable.
 
+We say that a type `T` is **strictly non-nullable** if `T <: Object` and not
+`Null <: T`.  This is equivalent to the syntactic criterion that `T` is any of:
+  - `Never`
+  - Any function type (including `Function`)
+  - Any interface type except `Null`.
+  - `FutureOr<S>` where `S` is non-nullable
+  - `X extends S` where `S` is non-nullable
+  - `X & S` where `S` is non-nullable
+
 We say that a type `T` is **potentially nullable** if `T` is not non-nullable.
 Note that this is different from saying that `T` is nullable.  For example, a
 type variable `X extends Object?` is a type which is potentially nullable but
@@ -247,10 +259,10 @@ not a subtype of the class type associated with the class in which it is defined
 constructor for any class other than `Null`).
 
 It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
-`...?`) on a non-nullable value.
+`...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
 
-It is a warning to use the null check operator (`!`) on a non-nullable
-expression.
+It is a warning to use the null check operator (`!`) on an expression of type
+`T` if `T` is **strictly non-nullable** .
 
 ### Assignability
 
@@ -501,8 +513,9 @@ was marked `late`.  Note that this is a change from pre-NNBD semantics in that:
 
 ## Core library changes
 
-Calling the `.length` setter on a `List` of non-nullable element type with an
-argument greater than the current length of the list is a runtime error.
+Calling the `.length` setter on a `List` with element type `E` with an argument
+greater than the current length of the list is a runtime error unless `Null <:
+E`.
 
 ## Migration features
 
