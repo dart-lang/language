@@ -276,7 +276,7 @@ follows.
      - `P2i` is **UP**(`P0i`, `P1i`) for `i` <= than min(`k`, `l`)
      - `P2i` is `P0i` for `k` < `i` <= `q`
      - `P2i` is `P1i` for `l` < `i` <= `q`
-     - `P2i` is optional if `P0i` or `P1i` is optional
+     - `P2i` is optional if `P0i` or `P1i` is optional, or if min(k, l) < i <= q
 - **DOWN**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k, Named0)`,
          `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)` =
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2k, Named2)` if:
