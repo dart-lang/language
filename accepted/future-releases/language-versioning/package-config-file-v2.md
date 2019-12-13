@@ -71,7 +71,7 @@ It is an error if the package URI of a package is inside another package's root 
 It is an error if two different packages have the same directory as root URI.
 If any of these happen, the configuration is invalid and must be rejected.
 
-If one package's root URI is inside another package's root URI, any file which is inside both is considered to belong to the inner root's package. *That is, package roots can be nested inside each other, and a file belongs only to the package with the nearest package root.*
+If one package's root URI is inside another package's root URI, any file which is inside both is considered to belong to the inner root's package. *That is, package roots can be nested inside each other, and a file belongs only to the package with the nearest package root. This ensures that all files belong to at most one package.*
 
 The following optional properties of the top-level object allows the generator to specify metadata about the file. They can all be omitted, but if they are present, they should have the expected format.
 
