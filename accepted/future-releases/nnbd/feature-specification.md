@@ -623,8 +623,11 @@ If a legacy library re-exports an opted-in library, the re-exported symbols
 retain their opted-in status (that is, downstream migrated libraries will see
 their nnbd-aware types).
 
-It is an error for an opted-in library to re-export symbols from a legacy
-library.
+It is an error for an opted-in library to re-export symbols which are defined in
+a legacy library (note that a symbol which is defined in an opted-in library and
+then exported from a legacy library is accepted for re-export from a third
+opted-in library since the symbol is not **defined** in the legacy library which
+first exports it).
 
 ### Super-interface and member type computation with legacy types.
 
@@ -684,52 +687,18 @@ type checks is `I<int*>`.
 
 #### Classes defined in legacy libraries as seen from opted-in libraries
 
-The `LEGACY_TOP_MERGE` of two types `T` and `S` is the unique type `R` defined
-as:
- - `LEGACY_TOP_MERGE(T?, S?) = LEGACY_TOP_MERGE(T, S)?`
- - `LEGACY_TOP_MERGE(T?, S*) = LEGACY_TOP_MERGE(T, S)*`
- - `LEGACY_TOP_MERGE(T*, S?) = LEGACY_TOP_MERGE(T, S)*`
- - `LEGACY_TOP_MERGE(T*, S*) = LEGACY_TOP_MERGE(T, S)*`
- - `LEGACY_TOP_MERGE(T*, S)  = LEGACY_TOP_MERGE(T, S)*`
- - `LEGACY_TOP_MERGE(T, S*)  = LEGACY_TOP_MERGE(T, S)*`
- - `LEGACY_TOP_MERGE(T?, S)  = LEGACY_TOP_MERGE(T, S)*`
- - `LEGACY_TOP_MERGE(T, S?)  = LEGACY_TOP_MERGE(T, S)*`
- - `LEGACY_TOP_MERGE(Never, Null)  = Null`
- - `LEGACY_TOP_MERGE(Null, Never)  = Null`
- - `LEGACY_TOP_MERGE(void, void)  = void`
- - `LEGACY_TOP_MERGE(Object, Object)  = Object`
- - `LEGACY_TOP_MERGE(dynamic, dynamic)  = dynamic`
- - `LEGACY_TOP_MERGE(Object, void)  = void`
-   - And the reverse
- - `LEGACY_TOP_MERGE(dynamic, void)  = void`
-   - And the reverse
- - `LEGACY_TOP_MERGE(Object, dynamic)  = Object`
-   - And the reverse
- - And for all other types, recursively applying the transformation over the
-   structure of the type
-   - e.g. `LEGACY_TOP_MERGE(C<T>, C<S>)  = C<LEGACY_TOP_MERGE(T, S)>`
-
-In other words, `LEGACY_TOP_MERGE` takes two types which are structurally equal
-except for the placement of `?` and `*`, the use of `Null` vs `Never`, and the
-particular choice of top types, and finds a single canonical type to represent
-them. The `LEGACY_TOP_MERGE` of two types is not always defined.
-
-The `LEGACY_TOP_MERGE` of more than two types is defined by taking the
-`LEGACY_TOP_MERGE` of the first two, and then recursively taking the
-`LEGACY_TOP_MERGE` of the rest.
-
-If a class which is defined in a legacy library inherits a member with the same
+Members inherited in a class in an opted-in library, which are inherited via a
+class or mixin defined in a legacy library are viewed with their erased legacy
+signature, even if they were original defined in an opted-in library.  Note that
+if a class which is defined in a legacy library inherits a member with the same
 name from multiple super-interfaces, then error checking is done as usual using
 the legacy typing rules which ignore nullability.  This means that it is valid
 for a legacy class to inherit the same member signature with contradictory
 nullability information. For the purposes of member lookup within a legacy
 library, nullability information is ignored, and so it is valid to simply erase
 the nullability information within the legacy library. When referenced from an
-opted-in library, if there are multiple signatures `T0, ... Tn` for a member
-`m`, and there is a single `Ti` such that `LEGACY_SUBTYPE(Ti, Tk)` for each `k`
-in `0, ..., n`, then the signature of `m` is taken as `Ti`.  Otherwise, the
-signature of `m` for the purposes of member lookup is the `LEGACY_TOP_MERGE` of
-`S0, ..., Sn`, where `Si` is **NORM(`Ti`)**.
+opted-in library, the same erasure is performed, and the member is seen at its
+legacy type.
 
 We use legacy subtyping when checking inherited member signature coherence in
 classes because opted out libraries may bring together otherwise incompatible
@@ -757,11 +726,10 @@ The class `C` is accepted, since the versions of `foo` inherited from `A` and
 `B` are compatible.
 
 If the class `C` is now used within an opted-in library, we must decide what
-signature to ascribe to `foo`.  The `LEGACY_TOP_MERGE` function computes a
-signature for `foo` which preserves as much of the nullability information as
-possible from the inherited members while still arriving at a single coherent
-signature.  In this case, `LEGACY_TOP_MERGE(int? Function(int?), int
-Function(int))` is `int* Function(int*)` and so the following code is accepted:
+signature to ascribe to `foo`.  The `LEGACY_ERASURE` function computes a legacy
+signature for `foo` which drops the nullability information producing a single
+signature, in this case `int* Function(int*)`.  Consequently, the following code
+is accepted:
 
 ```dart
 //opted in
@@ -770,13 +738,6 @@ void test() {
   new C().foo(null).isEven;
 }
 ```
-
-The `LEGACY_TOP_MERGE` also accounts for differences that arise between
-signatures that are otherwise mutual subtypes but which differ in their
-particular choice of top types (e.g. using `dynamic` vs `Object`).  These
-discrepancies are currently resolved simply by choosing the first signature in a
-canonical order.
-
 
 #### Classes defined in opted-in libraries
 
