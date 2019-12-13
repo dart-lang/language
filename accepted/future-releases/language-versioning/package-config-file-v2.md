@@ -1,7 +1,7 @@
 # Dart Package Configuration File v2.0
 
 Author: lrn@google.com
-Version: 1.0
+Version: 1.1
 
 This document specifies the location, format and semantics of a new package resolution configuration file. A new file format is needed because the Dart "language versioning" feature requires adding data that are not supported by the existing file format. For backwards compatibility with third party tools, we retain the existing file for a while. Tools currently using `.packages` should migrate to using the new file when it becomes available, and tools creating `.package` should start doing so as soon as possible.
 
@@ -23,7 +23,7 @@ The JSON format is extensible and efficiently parsable in languages other than D
 
 JSON is easy to read, but not easy to *write* by hand (although doable), and it does not allow comments. This is a machine generated file that is not intended to be edited by hand, and comments can be added as object properties with names like `"toolComment"`.
 
-The primary way for users to create the file is by running the Pub tool. That tool is free to overwrite an existing file, and Pub may be invoked automatically by editors, so any manually added changes are likely lost. There is no support for manual edits surviving across generation of a new file. 
+The primary way for users to create the file is by running the Pub tool. That tool is free to overwrite an existing file, and Pub may be invoked automatically by editors, so any manually added changes are likely lost. There is no support for manual edits surviving across generation of a new file.
 
 Some users may use other tools than Pub to control their package resolution. Those tools need to also support the new format.
 
@@ -37,7 +37,7 @@ Tools which needs the file will automatically look for it in `.dart_tool` subdir
 
 The new file is named `package_config.json`.
 
-The file's name should signal three things: 
+The file's name should signal three things:
 
 - It is used by the Dart language tools to understand Dart and Pub packages source correctly, hence the "package".
 - It is a generated file, not intended for manual editing. The "config" is intended to give this association. It is a "scare word" by being abbreviated and vague, while still correctly describing the content.
@@ -55,7 +55,7 @@ The file will contain information specifying:
 
 On top of that, we also add extra metadata which allows us to version the format and attach information about when and how the file was created.
 
-The file JSON text defines a JSON object (the "top level object"). 
+The file JSON text defines a JSON object (the "top level object").
 
 That object has, at least, the following properties:
 
@@ -66,7 +66,12 @@ That object has, at least, the following properties:
   - `packageUri`: Optional. A URI reference consisting of just a relative URI path. It should be resolved against the root directory to specify the *package URI directory*, which must be a sub-directory of the root directory. If the result of this resolution does not end with a `/`, a `/` is appended. This is the directory containing files available to Dart programs using `package:packageName/...` URIs. If omitted, the root directory is also the package URI directory. The value is a URI path, and tools must support URI references with `%`-escapes and `..` segments properly, and validate that the result of resolving it against the root directory stays inside the root directory (which a leading `..` can violate).
   - `languageVersion`: Optional. A string containing a Dart language version consisting of a decimal numeral, a `.` character and another decimal numeral, where a decimal numeral must not have a leading `0` unless the numeral is exactly `0`. That is, a string matched in its entirety by the regular expression `(0|[1-9]\d*)\.(0|[1-9]\d*)`. *This is the same format accepted by `// @dart = x.y` comments in source files.*
 
-It is an error if any file or directory belongs to more than one package. This situation happens if two packages have specified root directories where one is a subdirectory of the other, or they are even the same directory. If that happens, the configuration is invalid and must be rejected.
+It is an error if the package URI of a package is not inside the same package's root URI.
+It is an error if the package URI of a package is inside another package's root URI.
+It is an error if two different packages have the same directory as root URI.
+If any of these happen, the configuration is invalid and must be rejected.
+
+If one package's root URI is inside another package's root URI, any file which is inside both is considered to belong to the inner root's package. *That is, package roots can be nested inside each other, and a file belongs only to the package with the nearest package root.*
 
 The following optional properties of the top-level object allows the generator to specify metadata about the file. They can all be omitted, but if they are present, they should have the expected format.
 
@@ -78,7 +83,7 @@ The JSON properties may occur in any order, but where convenient, the `configVer
 
 #### Stability and Versioning
 
-The `"configVersion"` property allows versioning of the format. 
+The `"configVersion"` property allows versioning of the format.
 
 There is no "minor version". Either the format is backwards compatible, or it is not. If we add more properties in a future release, in a backwards compatible way, tools should look for the presence those properties, not predict them based on the API version.
 
@@ -88,11 +93,11 @@ If we remove a property that tools rely on, change the meaning of an existing pr
 
 #### Extra Information in the File
 
-If a tool wants to store extra information in the `package_config.json` file, they can do so under a key which corresponds to or contains the name or identifier of the tool. Authors should ensure that the name is available in the ecosystem before claiming it for their tool. If Pub wanted to store more information on a package, say the package version, it could do so as `"pubPkgVersion": "1.16.0"` in the package entry. 
+If a tool wants to store extra information in the `package_config.json` file, they can do so under a key which corresponds to or contains the name or identifier of the tool. Authors should ensure that the name is available in the ecosystem before claiming it for their tool. If Pub wanted to store more information on a package, say the package version, it could do so as `"pubPkgVersion": "1.16.0"` in the package entry.
 
 This feature can only really be used by the tool generating the file (as a generated file, it may be overwritten at any time), and it should be used sparingly since unknown properties are just overhead for all other users of the file. Still, if a tool can cooperate with Pub and provide the information in `pubspec.yaml`, Pub might be able to put it into the configuration file as well.
 
-Any tool which modifies the file piecemeal by changing or adding information, rather than writing it from scratch like Pub, should retain all properties that it does not recognize. This allows multiple tools to all cooperate about adding information to the file. 
+Any tool which modifies the file piecemeal by changing or adding information, rather than writing it from scratch like Pub, should retain all properties that it does not recognize. This allows multiple tools to all cooperate about adding information to the file.
 
 Again, Pub is not required to retain any information, or read the file at all, it can overwrite the file when invoked.
 
@@ -106,7 +111,7 @@ A package name is used as both a URI path segment and a directory name. To ensur
 - but no `:` or `%`,
 - and containing at least one non-`.` character.
 
-This allows the characters: `a`-`z`, `A`-`Z`, `0`-`9`, `-`, `.`, `_`, `~`, `!`, `$`, `&`, `'`, `(`, `)`, `*`, `+`, `,`, `;`, `=`, `@`. 
+This allows the characters: `a`-`z`, `A`-`Z`, `0`-`9`, `-`, `.`, `_`, `~`, `!`, `$`, `&`, `'`, `(`, `)`, `*`, `+`, `,`, `;`, `=`, `@`.
 It avoids the characters `/`, `\` and `:` which are meaningful in paths on various operating systems, as well as the strings `.` and `..`, and it ensures that the package name is a valid non-empty URI path segment.
 
 Pub has stronger restrictions on its accepted package names, but this file will also be used in settings where packages are not supplied by Pub.
@@ -134,7 +139,7 @@ Tools *should* look for a `.dart_tool/package_config.json` relative to the speci
 
 We can consider already adding more features to the format. These features should be ones that are of relevance to compilers reading source files, since that is the goal of the file.
 
-Any such extensions would need to be added by the generator, so in practice they must come from `pubspec.yaml` to begin with. If the Pub tool wants to support these, it is possible. 
+Any such extensions would need to be added by the generator, so in practice they must come from `pubspec.yaml` to begin with. If the Pub tool wants to support these, it is possible.
 
 ### Experiments
 
@@ -186,10 +191,16 @@ The format will look like:
       "rootUri": "/users/myself/.pubcache/test-1.16.0/lib/",
       "languageVersion": "2.5"
     },
-    ... 
+    ...
   ],
   "generated": "2019-09-12T12:13:14Z",
   "generator": "pub",
   "generatorVersion": "2.6.0-dev.0.2"
 }
 ```
+
+## Revisions
+
+1.0: Initial version.
+
+1.1: Allow overlapping package roots, but not package URI directories.
