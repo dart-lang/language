@@ -6,6 +6,16 @@ Status: Draft
 
 ## CHANGELOG
 
+2019.12.08
+  - Allow elision of default value in abstract methods
+  - **CHANGE** Allow operations on `Never` and specify the typing
+  - Specify the type signature for calling Object methods on nullable types
+  - Specify implicit conversion behavior
+  - Allow potentially constant type variables in instance checks and casts
+  - Specify the error thrown by the null check operator
+  - Specify `fromEnvironment` and `Iterator.current` library breaking changes
+  - Fix definition of strictly non-nullable
+
 2019.12.03:
   - Change warnings around null aware operaters to account for legacy types.
 
@@ -198,9 +208,9 @@ We say that a type `T` is **strictly non-nullable** if `T <: Object` and not
   - `Never`
   - Any function type (including `Function`)
   - Any interface type except `Null`.
-  - `FutureOr<S>` where `S` is non-nullable
-  - `X extends S` where `S` is non-nullable
-  - `X & S` where `S` is non-nullable
+  - `FutureOr<S>` where `S` is strictly non-nullable
+  - `X extends S` where `S` is strictly non-nullable
+  - `X & S` where `S` is strictly non-nullable
 
 We say that a type `T` is **potentially nullable** if `T` is not non-nullable.
 Note that this is different from saying that `T` is nullable.  For example, a
@@ -242,7 +252,8 @@ potentially non-nullable return type does not definitely complete (see Definite
 Completion below).
 
 It is an error if an optional parameter (named or otherwise) with no default
-value has a potentially non-nullable type.
+value has a potentially non-nullable type **except** in the parameter list of an
+abstract method declaration.
 
 It is an error if a required named parameter has a default value.
 
@@ -263,11 +274,15 @@ It is an error for a class to extend, implement, or mixin a type of the form
 
 It is an error for a class to extend, implement, or mixin the type `Never`.
 
-It is an error to call a method, setter, or getter on a receiver of static type
-`Never` (including via a null aware operator).
+It is not an error to call or tear-off a method, setter, or getter, or to read
+or write a field, on a receiver of static type `Never`.  Implementations that
+provide feedback about dead or unreachable code are encouraged to indicate that
+any arguments to the invocation are unreachable.
 
-It is an error to apply an expression of type `Never` in the function position
-of a function call.
+It is not an error to apply an expression of type `Never` in the function
+position of a function call. Implementations that provide feedback about dead or
+unreachable code are encouraged to indicate that any arguments to the call are
+unreachable.
 
 It is an error if the static type of `e` in the expression `throw e` is not
 assignable to `Object`.
@@ -303,6 +318,25 @@ It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
 It is a warning to use the null check operator (`!`) on an expression of type
 `T` if `T` is **strictly non-nullable** .
 
+### Expression typing
+
+It is permitted to invoke or tear-off a method, setter, getter, or operator that
+is defined on `Object` on potentially nullable type.  The type used for static
+analysis of such an invocation or tear-off shall be the type declared on the
+relevant member on `Object`.  For example, given a receiver `o` of type `T?`,
+invoking an `Object` member on `o` shall use the type of the member as declared
+on `Object`, regardless of the type of the member as declared on `T` (note that
+the type as declared on `T` must be a subtype of the type on `Object`, and so
+choosing the `Object` type is a sound choice.  The opposite choice is not
+sound).
+
+Calling a method (including an operator) or getter on a receiver of static type
+`Never` is treated by static analysis as producing a result of type `Never`.
+Tearing off a method from a receiver of static type `Never` produces a value of
+type `Never`.  Applying an expression of type `Never` in the function position
+of a function call produces a result of type `Never`.
+
+
 ### Assignability
 
 The definition of assignability is changed as follows.
@@ -313,6 +347,93 @@ subtype of `T`.
 ### Generics
 
 The default bound of generic type parameters is treated as `Object?`.
+
+### Implicit conversions
+
+The implicit conversion of integer literals to double literals is performed when
+the context type is `double` or `double?`.
+
+The implicit tear-off conversion which converts uses of instances of classes
+with call methods to the tear-off of their `.call` method when the context type
+is a function type is performed when the context type is a function type, or the
+nullable version of a context type.
+
+Implicit tear-off conversion is *not* performed on objects of nullable type,
+regardless of the context type.  For example:
+
+```dart
+class C {
+  int call() {}
+}
+void main() {
+  int Function()? c0 = new C(); // Ok
+  int Function()? c0 = (null as C?); // static error
+  int Function()  c1 = (null as C?); // static error
+}
+```
+
+### Const objects
+
+The definition of potentially constant expressions is extended to include type
+casts and instance checks on potentially constant types, as follows.
+
+We change the following specification text:
+
+```
+\item An expression of the form \code{$e$\,\,as\,\,$T$} is potentially constant
+  if $e$ is a potentially constant expression
+  and $T$ is a constant type expression,
+  and it is further constant if $e$ is constant.
+```
+
+to
+
+```
+\item An expression of the form \code{$e$\,\,as\,\,$T$} is potentially constant
+  if $e$ is a potentially constant expression
+  and $T$ is a potentially constant type expression,
+  and it is further constant if $e$ is constant.
+```
+
+where the definition of a "potentially constant type expression" is the same as
+the current definition for a "constant type expression" with the addition that a
+type variable is allowed as a "potentially constant type expression".
+
+This is motivated by the requirement to make downcasts explicit as part of the
+NNBD release.  Current constant evaluation is permitted to evaluate implicit
+downcasts involving type variables.  Without this change, it is difficult to
+change such implicit downcasts to an explicit form.  For example this class is
+currently valid Dart code, but is invalid after the NNBD restriction on implicit
+downcasts because of the implied downcast on the initialization of `w`:
+
+
+```dart
+const num three = 3;
+
+class ConstantClass<T extends num> {
+  final T w;
+  const ConstantClass() : w = three /* as T */;
+}
+
+void main() {
+  print(const ConstantClass<int>());
+}
+```
+
+With this change, the following is a valid migration of this code:
+
+```dart
+const num three = 3;
+
+class ConstantClass<T extends num> {
+  final T w;
+  const ConstantClass() : w = three as T;
+}
+
+void main() {
+  print(const ConstantClass<int>());
+}
+```
 
 ### Type promotion, Definite Assignment, and Definite Completion
 
@@ -362,7 +483,8 @@ These are extended as per separate proposal.
 ### Null check operator
 
 An expression of the form `e!` evaluates `e` to a value `v`, throws a runtime
-error if `v` is `null`, and otherwise evaluates to `v`.
+error which is an instance of `CastError` if `v` is `null`, and otherwise
+evaluates to `v`.
 
 ### Null aware operator
 
@@ -552,9 +674,27 @@ was marked `late`.  Note that this is a change from pre-NNBD semantics in that:
 
 ## Core library changes
 
+Certain core libraries APIs will have a change in specified behavior only when
+interacting with opted in code.  These changes are as follows.
+
 Calling the `.length` setter on a `List` with element type `E` with an argument
 greater than the current length of the list is a runtime error unless `Null <:
 E`.
+
+The `Iterator.current` getter is given an non-nullable return type, and is
+changed such that the behavior if it is called before calling
+`Iterator.moveNext` or after `Iterator.moveNext` has returned `false` is
+unspecified and implementation defined.  In most core library implementations,
+the implemented behavior will to return `null` if the element type is
+`nullable`, and otherwise to throw an error.
+
+### Legacy breaking changes
+
+We will make a small set of minimally breaking changes to the core library APIs
+that apply to legacy code as well.  These changes are as follows.
+
+The `String.fromEnvironment` and `int.fromEnvironment` contructors have default
+values for their optional parameters.
 
 ## Migration features
 
