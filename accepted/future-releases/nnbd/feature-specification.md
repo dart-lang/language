@@ -14,6 +14,7 @@ Status: Draft
   - Allow potentially constant type variables in instance checks and casts
   - Specify the error thrown by the null check operator
   - Specify `fromEnvironment` and `Iterator.current` library breaking changes
+  - Fix definition of strictly non-nullable
 
 2019.12.03:
   - Change warnings around null aware operaters to account for legacy types.
@@ -207,9 +208,9 @@ We say that a type `T` is **strictly non-nullable** if `T <: Object` and not
   - `Never`
   - Any function type (including `Function`)
   - Any interface type except `Null`.
-  - `FutureOr<S>` where `S` is non-nullable
-  - `X extends S` where `S` is non-nullable
-  - `X & S` where `S` is non-nullable
+  - `FutureOr<S>` where `S` is strictly non-nullable
+  - `X extends S` where `S` is strictly non-nullable
+  - `X & S` where `S` is strictly non-nullable
 
 We say that a type `T` is **potentially nullable** if `T` is not non-nullable.
 Note that this is different from saying that `T` is nullable.  For example, a
