@@ -62,16 +62,19 @@ That object has, at least, the following properties:
 - `configVersion`: A single integer marking the version of this format, currently `2` (counting `.packages` as the first). Tools should refuse to work on files with a larger version number than the ones they are aware of. Incremental changes will not require increasing the version, so new versions are not expected any time soon, but code should still prepare for it.
 - `packages`: An array of packages, each with the following properties:
   - `name`: A string containing a package name.
-  - `rootUri`: A URI reference with no query or fragment parts. It can be, for example, a full URI, an absolute path or a relative path. The URI reference is resolved relative to the (likely `file:`) URI identifying the `package_config.json` file. If the resolved URI does not end with a `/` (signaling that it is a directory), a `/` is appended. The resulting URI specifies the *root directory* of the package. All files inside this directory, including any subdirectories, are considered to belong to the package. The value is a URI reference, and tools must support URI references with schemes and/or `%`-escapes properly.
+  - `rootUri`: A URI reference with no query or fragment parts. It can be, for example, a full URI, an absolute path or a relative path. The URI reference is resolved relative to the (likely `file:`) URI identifying the `package_config.json` file. If the resolved URI does not end with a `/` (signaling that it is a directory), a `/` is appended. The resulting URI specifies the *root directory* of the package. All files inside this directory, including any subdirectories, are considered to belong to the package, execpt if they belong to a nested package. The value is a URI reference, and tools must support URI references with schemes and/or `%`-escapes properly.
   - `packageUri`: Optional. A URI reference consisting of just a relative URI path. It should be resolved against the root directory to specify the *package URI directory*, which must be a sub-directory of the root directory. If the result of this resolution does not end with a `/`, a `/` is appended. This is the directory containing files available to Dart programs using `package:packageName/...` URIs. If omitted, the root directory is also the package URI directory. The value is a URI path, and tools must support URI references with `%`-escapes and `..` segments properly, and validate that the result of resolving it against the root directory stays inside the root directory (which a leading `..` can violate).
   - `languageVersion`: Optional. A string containing a Dart language version consisting of a decimal numeral, a `.` character and another decimal numeral, where a decimal numeral must not have a leading `0` unless the numeral is exactly `0`. That is, a string matched in its entirety by the regular expression `(0|[1-9]\d*)\.(0|[1-9]\d*)`. *This is the same format accepted by `// @dart = x.y` comments in source files.*
 
 It is an error if the package URI of a package is not inside the same package's root URI.
-It is an error if the package URI of a package is inside another package's root URI.
+It is an error if the package URI of a package is inside a nested package's root URI.
+It is an error if a nested package's root URI is insde the package URI of a package .
 It is an error if two different packages have the same directory as root URI.
 If any of these happen, the configuration is invalid and must be rejected.
 
 If one package's root URI is inside another package's root URI, any file which is inside both is considered to belong to the inner root's package. *That is, package roots can be nested inside each other, and a file belongs only to the package with the nearest package root. This ensures that all files belong to at most one package.*
+
+All files inside a package's package URI must belong to that package, so it must not overlap with any other nested package's root.
 
 The following optional properties of the top-level object allows the generator to specify metadata about the file. They can all be omitted, but if they are present, they should have the expected format.
 
