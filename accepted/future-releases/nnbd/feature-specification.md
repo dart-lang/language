@@ -493,6 +493,36 @@ These are extended as per separate proposal.
 
 ## Runtime semantics
 
+### Runtime type equality operator
+
+Two objects `T1` and `T2` which are instances of `Type` (that is, runtime type
+objects) are considered equal if and only if their normal forms **NORM(`T1`)**
+and **NORM(`T2`)** are syntactically equal up to equivalence of bound variables
+and **ignoring `*` modifiers on types**.  So for example, the runtime type
+objects corresponding to `List<int>` and `List<int*>` are considered equal.
+Note that we do not equate primitive top types.  `List<void>` and
+`List<dynamic>` are still considered distinct runtime type objects.  Note that
+we also do not equate `Never` and `Null`, and we do not equate function types
+which differ in the placement of `required` on parameter types.  Because of
+this, the equality described here is not equivalent to syntactic equality on the
+`LEGACY_ERASURE` of the types.
+
+
+### Const evaluation and canonicalization
+
+In weak checking mode, all generic const constructors and generic const literals
+are treated as if all type arguments passed to them were legacy types (both at
+the top level, and recursively over the structure of the types), regardless of
+whether the constructed class is defined in a legacy library or not, and
+regardless of whether the constructor invocation or literal occurs in a legacy
+library or not.  This ensures that const objects continue to canonicalize
+consistently across legacy and opted-in libraries.
+
+In strong checking mode, all generic const constructors and generic const
+literals are evaluated using the actual type arguments provided, whether legacy
+or non-legacy.  This ensures that in strong checking mode, the final consistent
+semantics are obeyed.
+
 ### Null check operator
 
 An expression of the form `e!` evaluates `e` to a value `v`, throws a runtime
