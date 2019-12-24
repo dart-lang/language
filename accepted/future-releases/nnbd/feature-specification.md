@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2019.12.17
+  - Specify errors around definitely (un)assigned late variables.
+
 2019.12.08
   - Allow elision of default value in abstract methods
   - **CHANGE** Allow operations on `Never` and specify the typing
@@ -303,6 +306,16 @@ instance variable.
 
 It is not a compile time error to write to a `final` variable if that variable
 is declared `late` and does not have an initializer.
+
+It is a compile time error to assign a value to a local variable marked `late`
+and `final` when the variable is **definitely assigned**.  This includes all
+forms of assignments, including assignments via the composite assignment
+operators as well as pre and post-fix operators.
+
+It is a compile time error to read a local variable marked `late` when the
+variable is **definitely unassigned**. This includes all forms of reads,
+including implicit reads via the composite assignment operators as well as pre
+and post-fix operators.
 
 It is an error if the object being iterated over by a `for-in` loop has a static
 type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
