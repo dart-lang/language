@@ -6,6 +6,22 @@ Status: Draft
 
 ## CHANGELOG
 
+2019.12.17
+  - Specify errors around definitely (un)assigned late variables.
+
+2019.12.08
+  - Allow elision of default value in abstract methods
+  - **CHANGE** Allow operations on `Never` and specify the typing
+  - Specify the type signature for calling Object methods on nullable types
+  - Specify implicit conversion behavior
+  - Allow potentially constant type variables in instance checks and casts
+  - Specify the error thrown by the null check operator
+  - Specify `fromEnvironment` and `Iterator.current` library breaking changes
+  - Fix definition of strictly non-nullable
+
+2019.12.03:
+  - Change warnings around null aware operaters to account for legacy types.
+
 2019.11.25:
   - Specified implicitly induced getters/setters for late variables.
 
@@ -107,6 +123,43 @@ The internal representation of types is extended with a type `T*` for every type
 `T` to represent legacy pre-NNBD types.  This is discussed further in the legacy
 library section below.
 
+### Subtyping
+
+We modify the subtyping rules to account for nullability and legacy types as
+specified
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
+We write `S <: T` to mean that the type `S` is a subtype of `T` according to the
+rules specified there.
+
+
+We define `LEGACY_SUBTYPE(S, T)` to be true iff `S` would be a subtype of `T`
+in a modification of the rules above in which all `?` on types were ignored, `*`
+was added to each type, and `required` parameters were treated as optional.
+This has the effect of treating `Never` as equivalent to `Null`, restoring
+`Null` to the bottom of the type hierarchy, treating `Object` as nullable, and
+ignoring `required` on named parameters.  This is intended to provide the same
+subtyping results as pre-nnbd Dart.
+
+Where potentially ambiguous, we sometimes write `NNBD_SUBTYPE(S, T)` to mean
+the full subtyping relation without the legacy exceptions defined in the
+previous paragraph.
+
+### Upper and lower bounds
+
+We modify the upper and lower bound rules to account for nullability and legacy
+types as
+specified
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).  
+
+### Type normalization
+
+We define a normalization procedure on types which defines a canonical
+representation for otherwise equivalent
+types
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/normalization.md).
+This defines a procedure **NORM(`T`)** such that **NORM(`T`)** is syntactically
+equal to **NORM(`S`)** modulo replacement of primitive top types iff `S <: T`
+and `T <: S`.
 
 ### Future flattening
 
@@ -153,6 +206,15 @@ Note that there are types which are neither nullable nor non-nullable.  For
 example `X extends T` where `T` is nullable is neither nullable nor
 non-nullable.
 
+We say that a type `T` is **strictly non-nullable** if `T <: Object` and not
+`Null <: T`.  This is equivalent to the syntactic criterion that `T` is any of:
+  - `Never`
+  - Any function type (including `Function`)
+  - Any interface type except `Null`.
+  - `FutureOr<S>` where `S` is strictly non-nullable
+  - `X extends S` where `S` is strictly non-nullable
+  - `X & S` where `S` is strictly non-nullable
+
 We say that a type `T` is **potentially nullable** if `T` is not non-nullable.
 Note that this is different from saying that `T` is nullable.  For example, a
 type variable `X extends Object?` is a type which is potentially nullable but
@@ -193,7 +255,8 @@ potentially non-nullable return type does not definitely complete (see Definite
 Completion below).
 
 It is an error if an optional parameter (named or otherwise) with no default
-value has a potentially non-nullable type.
+value has a potentially non-nullable type **except** in the parameter list of an
+abstract method declaration.
 
 It is an error if a required named parameter has a default value.
 
@@ -214,11 +277,15 @@ It is an error for a class to extend, implement, or mixin a type of the form
 
 It is an error for a class to extend, implement, or mixin the type `Never`.
 
-It is an error to call a method, setter, or getter on a receiver of static type
-`Never` (including via a null aware operator).
+It is not an error to call or tear-off a method, setter, or getter, or to read
+or write a field, on a receiver of static type `Never`.  Implementations that
+provide feedback about dead or unreachable code are encouraged to indicate that
+any arguments to the invocation are unreachable.
 
-It is an error to apply an expression of type `Never` in the function position
-of a function call.
+It is not an error to apply an expression of type `Never` in the function
+position of a function call. Implementations that provide feedback about dead or
+unreachable code are encouraged to indicate that any arguments to the call are
+unreachable.
 
 It is an error if the static type of `e` in the expression `throw e` is not
 assignable to `Object`.
@@ -231,13 +298,24 @@ variable binding section of a c-style `for` loop, a `for in` loop, an `await
 for` loop, or a `for element` in a collection literal.
 
 It is an error for the initializer expression of a `late` local variable to use
-a prefix `await` expression.
+a prefix `await` expression that is not nested inside of another function
+expression.
 
 It is an error for a class with a `const` constructor to have a `late final`
-field.
+instance variable.
 
 It is not a compile time error to write to a `final` variable if that variable
 is declared `late` and does not have an initializer.
+
+It is a compile time error to assign a value to a local variable marked `late`
+and `final` when the variable is **definitely assigned**.  This includes all
+forms of assignments, including assignments via the composite assignment
+operators as well as pre and post-fix operators.
+
+It is a compile time error to read a local variable marked `late` when the
+variable is **definitely unassigned**. This includes all forms of reads,
+including implicit reads via the composite assignment operators as well as pre
+and post-fix operators.
 
 It is an error if the object being iterated over by a `for-in` loop has a static
 type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
@@ -248,10 +326,29 @@ not a subtype of the class type associated with the class in which it is defined
 constructor for any class other than `Null`).
 
 It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
-`...?`) on a non-nullable value.
+`...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
 
-It is a warning to use the null check operator (`!`) on a non-nullable
-expression.
+It is a warning to use the null check operator (`!`) on an expression of type
+`T` if `T` is **strictly non-nullable** .
+
+### Expression typing
+
+It is permitted to invoke or tear-off a method, setter, getter, or operator that
+is defined on `Object` on potentially nullable type.  The type used for static
+analysis of such an invocation or tear-off shall be the type declared on the
+relevant member on `Object`.  For example, given a receiver `o` of type `T?`,
+invoking an `Object` member on `o` shall use the type of the member as declared
+on `Object`, regardless of the type of the member as declared on `T` (note that
+the type as declared on `T` must be a subtype of the type on `Object`, and so
+choosing the `Object` type is a sound choice.  The opposite choice is not
+sound).
+
+Calling a method (including an operator) or getter on a receiver of static type
+`Never` is treated by static analysis as producing a result of type `Never`.
+Tearing off a method from a receiver of static type `Never` produces a value of
+type `Never`.  Applying an expression of type `Never` in the function position
+of a function call produces a result of type `Never`.
+
 
 ### Assignability
 
@@ -263,6 +360,93 @@ subtype of `T`.
 ### Generics
 
 The default bound of generic type parameters is treated as `Object?`.
+
+### Implicit conversions
+
+The implicit conversion of integer literals to double literals is performed when
+the context type is `double` or `double?`.
+
+The implicit tear-off conversion which converts uses of instances of classes
+with call methods to the tear-off of their `.call` method when the context type
+is a function type is performed when the context type is a function type, or the
+nullable version of a context type.
+
+Implicit tear-off conversion is *not* performed on objects of nullable type,
+regardless of the context type.  For example:
+
+```dart
+class C {
+  int call() {}
+}
+void main() {
+  int Function()? c0 = new C(); // Ok
+  int Function()? c0 = (null as C?); // static error
+  int Function()  c1 = (null as C?); // static error
+}
+```
+
+### Const objects
+
+The definition of potentially constant expressions is extended to include type
+casts and instance checks on potentially constant types, as follows.
+
+We change the following specification text:
+
+```
+\item An expression of the form \code{$e$\,\,as\,\,$T$} is potentially constant
+  if $e$ is a potentially constant expression
+  and $T$ is a constant type expression,
+  and it is further constant if $e$ is constant.
+```
+
+to
+
+```
+\item An expression of the form \code{$e$\,\,as\,\,$T$} is potentially constant
+  if $e$ is a potentially constant expression
+  and $T$ is a potentially constant type expression,
+  and it is further constant if $e$ is constant.
+```
+
+where the definition of a "potentially constant type expression" is the same as
+the current definition for a "constant type expression" with the addition that a
+type variable is allowed as a "potentially constant type expression".
+
+This is motivated by the requirement to make downcasts explicit as part of the
+NNBD release.  Current constant evaluation is permitted to evaluate implicit
+downcasts involving type variables.  Without this change, it is difficult to
+change such implicit downcasts to an explicit form.  For example this class is
+currently valid Dart code, but is invalid after the NNBD restriction on implicit
+downcasts because of the implied downcast on the initialization of `w`:
+
+
+```dart
+const num three = 3;
+
+class ConstantClass<T extends num> {
+  final T w;
+  const ConstantClass() : w = three /* as T */;
+}
+
+void main() {
+  print(const ConstantClass<int>());
+}
+```
+
+With this change, the following is a valid migration of this code:
+
+```dart
+const num three = 3;
+
+class ConstantClass<T extends num> {
+  final T w;
+  const ConstantClass() : w = three as T;
+}
+
+void main() {
+  print(const ConstantClass<int>());
+}
+```
 
 ### Type promotion, Definite Assignment, and Definite Completion
 
@@ -307,7 +491,7 @@ defined as follows.
 
 These are extended as per separate proposal.
 
-### Runtime semantics
+## Runtime semantics
 
 ### Runtime type equality operator
 
@@ -339,12 +523,13 @@ literals are evaluated using the actual type arguments provided, whether legacy
 or non-legacy.  This ensures that in strong checking mode, the final consistent
 semantics are obeyed.
 
-#### Null check operator
+### Null check operator
 
 An expression of the form `e!` evaluates `e` to a value `v`, throws a runtime
-error if `v` is `null`, and otherwise evaluates to `v`.
+error which is an instance of `CastError` if `v` is `null`, and otherwise
+evaluates to `v`.
 
-#### Null aware operator
+### Null aware operator
 
 The semantics of the null aware operator `?.` are defined via a source to source
 translation of expressions into Dart code extended with a let binding construct.
@@ -464,7 +649,7 @@ continuation.
   - A list literal `[e1, ..., en]` translates to `TERM[ [EXP(e1), ..., EXP(en)] ]`
   - A parenthesized expression `(e)` translates to `TERM[(EXP(e))]`
 
-#### Late fields and variables
+### Late fields and variables
 
 A non-local `late` variable declaration _D_ implicitly induces a getter
 into the enclosing scope.  It also induces an implicit setter iff one of the
@@ -532,8 +717,27 @@ was marked `late`.  Note that this is a change from pre-NNBD semantics in that:
 
 ## Core library changes
 
-Calling the `.length` setter on a `List` of non-nullable element type with an
-argument greater than the current length of the list is a runtime error.
+Certain core libraries APIs will have a change in specified behavior only when
+interacting with opted in code.  These changes are as follows.
+
+Calling the `.length` setter on a `List` with element type `E` with an argument
+greater than the current length of the list is a runtime error unless `Null <:
+E`.
+
+The `Iterator.current` getter is given an non-nullable return type, and is
+changed such that the behavior if it is called before calling
+`Iterator.moveNext` or after `Iterator.moveNext` has returned `false` is
+unspecified and implementation defined.  In most core library implementations,
+the implemented behavior will to return `null` if the element type is
+`nullable`, and otherwise to throw an error.
+
+### Legacy breaking changes
+
+We will make a small set of minimally breaking changes to the core library APIs
+that apply to legacy code as well.  These changes are as follows.
+
+The `String.fromEnvironment` and `int.fromEnvironment` contructors have default
+values for their optional parameters.
 
 ## Migration features
 
@@ -580,15 +784,224 @@ type `T`, there is an additional type `T*` which is the legacy version of the
 type.  There is no surface syntax for legacy types, and implementations should
 display the legacy type `T*` in the same way that they would display the type
 `T`, except in so far as it is useful to communicate to programmers for the
-purposes of error messages that the type originates in unmigrated code.
+purposes of error messages that the type originates in legacy code.
 
-When static checking is done in a migrated library, types which are imported
-from unmigrated libraries are seen as legacy types.  However, type inference in
-the migrated library "erases" legacy types.  That is, if a missing type
+When static checking is done in an opted-in library, types which are imported
+from legacy libraries are seen as legacy types.  However, type inference in
+the opted-in library "erases" legacy types.  That is, if a missing type
 parameter, local variable type, or closure type is inferred to be a type `T`,
 all occurrences of `S*` in `T` shall be replaced with `S`.  As a result, legacy
-types will never appear as type annotations in migrated libraries, nor will they
+types will never appear as type annotations in opted-in libraries, nor will they
 appear in reified positions.
+
+### Exports
+
+If a legacy library re-exports an opted-in library, the re-exported symbols
+retain their opted-in status (that is, downstream migrated libraries will see
+their nnbd-aware types).
+
+It is an error for an opted-in library to re-export symbols which are defined in
+a legacy library (note that a symbol which is defined in an opted-in library and
+then exported from a legacy library is accepted for re-export from a third
+opted-in library since the symbol is not **defined** in the legacy library which
+first exports it).
+
+### Super-interface and member type computation with legacy types.
+
+A class defined in a legacy library may have in its set of super-interfaces both
+legacy and opted-in interfaces, and hence may have members which are derived
+from either, or both.  Similarly, a class defined in an opted-in library may
+have in its set of super-interfaces both legacy and opted-in interfaces, and
+hence may have members which are derived from either, or both.  We define the
+super-interface and member signature computation for such classes as follows.
+
+#### Classes defined in legacy libraries
+
+The legacy erasure of a type `T` denoted `LEGACY_ERASURE(T)` is `T` with all
+occurrences of `?` removed, `Never` replaced with `Null`, `required` removed
+from all parameters, and all types marked as legacy types.
+
+A direct super-interface of a class defined in a legacy library (that is, an
+interface which is listed in the `extends`, `implements` or `with` clauses of
+the class) has all generic arguments (and all sub-components of the generic
+arguments) marked as legacy types.
+
+If a class `C` in a legacy library implements the same generic class `I` more
+than once, it is an error if the `LEGACY_ERASURE` of all such super-interfaces
+are not all syntactically equal.  For the purposes of runtime subtyping checks,
+`C` is considered to implement the canonical `LEGACY_ERASURE` of the
+super-interfaces in question.
+
+A member which is defined in a class in a legacy library (whether concrete or
+abstract), is given a signature in which every type is a legacy type.  It is an
+error if the signature of a member is not a correct override of all members of
+the same name in super-interfaces of the class, using the legacy subtyping
+rules.
+
+Using the legacy erasure for checking super-interfaces accounts for opted-out
+classes which depend on both opted-in and opted-out versions of the same generic
+interface.
+
+```dart
+//opted in
+class I<T> {}
+
+// opted in
+class A implements I<int?> {}
+
+// opted out
+class B implements I<int> {}
+
+// opted out
+class C extends A implements B {}
+```
+
+The class `C` is not considered erroneous, despite implementing both `I<int?>`
+and `I<int*>`, since legacy erasure makes both of those interfaces equal.  The
+canonical interface which `C` is chosen to implement for the purposes of runtime
+type checks is `I<int*>`.
+
+
+#### Classes defined in legacy libraries as seen from opted-in libraries
+
+Members inherited in a class in an opted-in library, which are inherited via a
+class or mixin defined in a legacy library are viewed with their erased legacy
+signature, even if they were original defined in an opted-in library.  Note that
+if a class which is defined in a legacy library inherits a member with the same
+name from multiple super-interfaces, then error checking is done as usual using
+the legacy typing rules which ignore nullability.  This means that it is valid
+for a legacy class to inherit the same member signature with contradictory
+nullability information. For the purposes of member lookup within a legacy
+library, nullability information is ignored, and so it is valid to simply erase
+the nullability information within the legacy library. When referenced from an
+opted-in library, the same erasure is performed, and the member is seen at its
+legacy type.
+
+We use legacy subtyping when checking inherited member signature coherence in
+classes because opted out libraries may bring together otherwise incompatible
+member signatures without causing an error.
+
+```dart
+// opted_in.dart
+class A {
+  int? foo(int? x) {}
+}
+class B {
+  int foo(int x) {}
+}
+```
+```dart
+// opted_out.dart
+// @dart = 2.6
+import 'opted_in.dart';
+
+class C extends A implements B {}
+```
+
+The class `C` is accepted, since the versions of `foo` inherited from `A` and
+`B` are compatible.
+
+If the class `C` is now used within an opted-in library, we must decide what
+signature to ascribe to `foo`.  The `LEGACY_ERASURE` function computes a legacy
+signature for `foo` which drops the nullability information producing a single
+signature, in this case `int* Function(int*)`.  Consequently, the following code
+is accepted:
+
+```dart
+//opted in
+import 'opted_out.dart';
+void test() {
+  new C().foo(null).isEven;
+}
+```
+
+#### Classes defined in opted-in libraries
+
+The `NNBD_TOP_MERGE` of two types `T` and `S` is the unique type `R` defined
+as:
+ - `NNBD_TOP_MERGE(Object?, Object?)  = Object?`
+ - `NNBD_TOP_MERGE(dynamic, dynamic)  = dynamic`
+ - `NNBD_TOP_MERGE(void, void)  = void`
+ - `NNBD_TOP_MERGE(Object?, void)  = void`
+   - And the reverse
+ - `NNBD_TOP_MERGE(dynamic, void)  = void`
+   - And the reverse
+ - `NNBD_TOP_MERGE(Object?, dynamic)  = Object?`
+   - And the reverse
+ - `NNBD_TOP_MERGE(Never*, Null)  = Null`
+   - And the reverse
+ - `NNBD_TOP_MERGE(T?, S?) = NNBD_TOP_MERGE(T, S)?`
+ - `NNBD_TOP_MERGE(T?, S*) = NNBD_TOP_MERGE(T, S)?`
+ - `NNBD_TOP_MERGE(T*, S?) = NNBD_TOP_MERGE(T, S)?`
+ - `NNBD_TOP_MERGE(T*, S*) = NNBD_TOP_MERGE(T, S)*`
+ - `NNBD_TOP_MERGE(T*, S)  = NNBD_TOP_MERGE(T, S)`
+ - `NNBD_TOP_MERGE(T, S*)  = NNBD_TOP_MERGE(T, S)`
+
+ - And for all other types, recursively applying the transformation over the
+   structure of the type
+   - e.g. `NNBD_TOP_MERGE(C<T>, C<S>)  = C<NNBD_TOP_MERGE(T, S)>`
+
+In other words, `NNBD_TOP_MERGE` takes two types which are structurally equal
+except for the placement `*` types, and the particular choice of top types, and
+finds a single canonical type to represent them by replacing `?` with `*` or
+adding `*` as required.. The `NNBD_TOP_MERGE` of two types is not defined for
+types which are not otherwise structurally equal.
+
+The `NNBD_TOP_MERGE` of more than two types is defined by taking the
+`NNBD_TOP_MERGE` of the first two, and then recursively taking the
+`NNBD_TOP_MERGE` of the rest.
+
+A direct super-interface of a class defined in an opted-in library (that is, an
+interface which is listed in the `extends`, `implements` or `with` clauses of
+the class) has all generic arguments (and all sub-components of the generic
+arguments) marked as nullable or non-nullable as written.
+
+If a class `C` in an opted-in library implements the same generic class `I` more
+than once as `I0, .., In`, and at least one of the `Ii` is not syntactically
+equal to the others, then it is an error if `NNBD_TOP_MERGE(S0, ..., Sn)` is not
+defined where `Si` is **NORM(`Ii`)**.  Otherwise, for the purposes of runtime
+subtyping checks, `C` is considered to implement the canonical interface given
+by `NNBD_TOP_MERGE(S0, ..., Sn)`.
+
+If a class `C` in an opted-in library overrides a member, it is an error if its
+signature is not a subtype of the types of all overriden members from all
+super-interfaces (whether legacy or opted-in).  For the purposes of override
+checking, members which are inherited from opted-in classes through legacy
+classes are still checked against each original declaration at its opted-in
+type.  For example, the following override is considered an error.
+
+```dart
+// opted_in.dart
+class A {
+  int foo(int? x) {}
+}
+```
+```dart
+// opted_out.dart
+// @dart = 2.6
+import 'opted_in.dart';
+
+class B extends A {}
+```
+
+```dart
+// opted_in.dart
+class C extends B {
+  // Override checking is done against the opted-in signature of A.foo
+  int? foo(int x) {}
+}
+```
+
+
+If a class `C` in an opted-in library inherits a member `m` with the same name
+from multiple super-interfaces (whether legacy or opted-in), let `T0, ..., Tn`
+be the signatures of the inherited members.  If there is exactly one `Ti` such
+that `NNBD_SUBTYPE(Ti, Tk)` for all `k` in `0...n`, then the signature of `m` is
+considered to be `Ti`.  If there are more than one such `Ti`, then it is an
+error if the `NNBD_TOP_MERGE` of `S0, ..., Sn` does not exist, where `Si` is
+**NORM(`Ti`)**.  Otherwise, the signature of `m` for the purposes of member
+lookup is the `NNBD_TOP_MERGE` of the `Si`.
+
 
 ### Type reification
 
@@ -609,13 +1022,6 @@ Dart.
 
 Instance checks (`e is T`) and casts (`e as T`) behave differently when run in
 strong vs weak checking mode.
-
-Let `LEGACY_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` in the modified
-semantics as described above: that is, with all `?` on types ignored, `*` added
-to each type, and `required` parameters treated as optional.
-
-Let `NNBD_SUBTYPE(S, T)` be true iff `S` is a subtype of `T` as specified in the
-[NNBD subtyping rules](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
 
 We define the weak checking and strong checking mode instance tests as follows:
 
@@ -680,34 +1086,3 @@ instance checks or casts which would result in a different outcome if run in
 strong checking mode vs weak checking mode are flagged for the developer by
 logging a warning or breaking to the debugger.
 
-### Exports
-
-If an unmigrated library re-exports a migrated library, the re-exported symbols
-retain their migrated status (that is, downstream migrated libraries will see
-their migrated types).
-
-It is an error for a migrated library to re-export symbols from an unmigrated
-library.
-
-### Override checking
-
-In an unmigrated library, override checking is done using legacy types.  This
-means that an unmigrated library can bring together otherwise incompatible
-methods.  When choosing the most specific signature during interface
-computation, all nullability and requiredness annotations are ignored, and the
-`Never` type is treated as `Null`.
-
-In a migrated library, override checking must check that an override is
-consistent with all overridden methods from other migrated libraries in the
-super-interface chain, since a legacy library is permitted to override otherwise
-incompatible signatures for a method.
-
-## Subtyping
-
-We modify the subtyping rules to account for nullability and legacy types as
-specified
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
-
-## Upper and lower bounds
-
-**TODO** This is work in progress
