@@ -223,6 +223,10 @@ We also make use of the following auxiliary functions:
   nodes inside of a control flow split, and is defined as `FlowModel(r2, VM)`
   where `r2` is `r` with `true` pushed as the top element of the stack.
 
+- `drop(M)`, where `M = FlowModel(r, VM)` is defined as `FlowModel(r1, VM)`
+  where where `r` is of the form `n0::r1`.  This is the flow model which drops
+  the reachability information encoded in the top entry in the stack.
+
 - `unsplit(M)`, where `M = FlowModel(r, VM)` is defined as `M1 = FlowModel(r1,
   VM)` where `r` is of the form `n0::n1::s` and `r1 = (n0&&n1)::s`. The model
   `M1` is a flow model which collapses the top two elements of the reachability
@@ -256,6 +260,56 @@ We also make use of the following auxiliary functions:
   arguments in the obvious way.  For example, `join(M1, M2, M3)` represents
   `join(join(M1, M2), M3)`, and `join(S)`, where S is a set of models, denotes
   the result of folding all models in S together using `join`.
+
+- `restrictV(VMB, VMF, b)`, where `VMB` and `VMF` are variable models and `b` is
+  a boolean indicating wether the variable is written in the finally block,
+  represents the composition of two variable models through a try/finally and is
+  defined as follows:
+  - If `VMB = VariableModel(d1, p1, s1, a1, u1, c1)` and
+  - If `VMF = VariableModel(d2, p2, s2, a2, u2, c2)` then
+  - `VM3 = VariableModel(d3, p3, s3, a3, u3, c3)` where
+   - `d3 = d1 = d2`
+     - Note that all models must agree on the declared type of a variable
+   - if `b` is true then `p3 = p2`
+   - if `b` is false then if the last entry in `p1` is a subtype of the last
+     entry of `p2`, then `p3 = p1` else `p3 = p2`.  If the variable is not
+     written to in the finally block, then it is valid to use any promotions
+     from the try block in any subsequent code (since if any subsequent code is
+     executed, the try block must have completed normally).  We only choose to
+     do so if the last entry is more precise.  (TODO: is this the right thing to
+     do here?).
+   - `s3 = s1 U s2`
+     - The set of test sites is the union of the test sites on either path.
+   - `a3 = a2`
+     - A variable is definitely assigned if it is definitely assigned in the
+       model of the finally block (note that the finally block is analyzed using
+       the join of the model from before the try block and after the try block,
+       and so assignments that may have occurred in the try block are already
+       modelled here).
+   - `u3 = u2`
+     - A variable is definitely unassigned if it is definitely unassigned in the
+       model of the finally block (note that the finally block is analyzed using
+       the join of the model from before the try block and after the try block,
+       and so the absence of any assignments that may have occurred in the try
+       block is already modelled here).
+   - `c3 = c2`
+     - A variable is captured if it is captured in the model of the finally
+       block (note that the finally block is analyzed using the join of the
+       model from before the try block and after the try block, and so any
+       captures from the try block are already modelled here).
+
+- `restrict(MB, MF, N)`, where `MB` and `MF` are flow models and `N` is a set of
+  variables assigned in the finally clause, models the flow of information
+  through a try/finally statement, and is defined as follows:
+
+  - We define `restrict(MB, MF, N)` to be `M3 = FlowModel(r3, VI3)` where:
+    - `MB = FlowModel(rb, VIB)`
+    - `MF = FlowModel(rf, VIF))`
+    - `pop(rb) = pop(rf) = r0` for some `r0`
+    - `r3` is `push(r0, top(rb) && top(rf))`
+    - `b` is true if `v` is in `N` and otherwise false
+    - `VI3` is the map which maps each variable `v` in the domain of `VIB` and
+      `VIF` to `restrictV(VIB(v), VIF(v), b)`.
 
 - `unreachable(M)` represents the model corresponding to a program location
   which is unreachable, but is otherwise modeled by flow model `M = FlowModel(r,
@@ -634,13 +688,10 @@ alternatives` then:
     - Let `before(Si) = demoteVariables(before(N), assignedIn(B))`
   - Let `after(N) = join(after(B), after(C0), ..., after(Ck))`
 
-TODO: Define restrict 
-TODO: Does this correctly handle the fact that `B2` may be reached even if
-`after(B1)` may be marked as "unreachable"?
 - **try finally**: If `N` is a try/finally statement of the form `try B1 finally B2` then:
-  - Let `before(B1) = before(N)`
-  - Let `before(B2) = join(after(B1), demoteVariables(before(N), assignedIn(B)))`
-  - Let `after(N) = restrict(after(B1), after(B2), assignednIn(N))`
+  - Let `before(B1) = split(before(N))`
+  - Let `before(B2) = split(join(drop(after(B1)), demoteVariables(before(N), assignedIn(B1))))`
+  - Let `after(N) = restrict(after(B1), after(B2), assignedIn(B2))`
 
 
 ## Interesting examples
