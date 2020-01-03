@@ -281,8 +281,8 @@ It is an error if a potentially non-nullable local variable which has no
 initializer expression and is not marked `late` is used before it is definitely
 assigned (see Definite Assignment below).
 
-It is an error if a method, function, getter, or function expression with a
-potentially non-nullable return type **may completely normally**.
+It is an error if the body of a method, function, getter, or function expression
+with a potentially non-nullable return type **may completely normally**.
 
 It is an error if an optional parameter (named or otherwise) with no default
 value has a potentially non-nullable type **except** in the parameter list of an
@@ -356,14 +356,15 @@ constructor for any class other than `Null`).
 
 It is an error if any case of a switch statement except the last case (the
 default case if present) **may complete normally**.  The previous syntactic
-restriction requiring the last statement of each case to be one of a delimited
-set of statements (break, continue, return, throw, or rethrow) is removed.
+restriction requiring the last statement of each case to be one of an enumerated
+list of statements (break, continue, return, throw, or rethrow) is removed.
 
 Given a switch statement which switches over an expression `e` of type `T`,
-where the cases are dispatched based on expressions `e0...ek`:
-  - It is no longer required that the `ei` be instances of the same class.
-  - It is an error if the static type of any of the `ei` is not a subtype of
-    `T`.
+where the cases are dispatched based on expressions `e0`...`ek`:
+  - It is no longer required that the `ei` evaluate to instances of the same
+    class.
+  - It is an error if any of the `ei` evaluate to a value whose static type is
+    not a subtype of `T`.
   - It is an error if any of the `ei` evaluate to constants for which equality
     is not primitive.
   - If `T` is an enum type, it is a warning if the switch does not handle all
@@ -373,8 +374,8 @@ where the cases are dispatched based on expressions `e0...ek`:
   - It is a warning if a switch over a nullable type does not handle `null`
     either explicitly or via a default.
 
-It is an error if a class as a setter and a getter with the same basename where
-the return type of the setter is not a subtype of the argument type of the
+It is an error if a class has a setter and a getter with the same basename where
+the return type of the getter is not a subtype of the argument type of the
 setter.  Note that this error specifically requires subtyping and not
 assignability and hence makes no exception for `dynamic`.
 
