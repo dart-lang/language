@@ -89,7 +89,7 @@ equations apply gives us something like the following:
    - if `S` is `Object` and **NORM(B)** is `Object` where `B` is the bound of `X` then `X`
   - else `X & S`
 - **NORM**(`C<T0, ..., Tn>`) = `C<R0, ..., Rn>` where `Ri` is **NORM**(`Ti`)
-- **NORM**(`R Function<X extends B>(S)`) = `R1 Function(X extends B1>(S1)`
+- **NORM**(`R Function<X extends B>(S)`) = `R1 Function<X extends B1>(S1)`
   - where `R1` = **NORM**(`R`)
   - and `B1` = **NORM**(`B`)
   - and `S1` = **NORM**(`S`)
