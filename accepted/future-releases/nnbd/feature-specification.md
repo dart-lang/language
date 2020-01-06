@@ -6,6 +6,13 @@ Status: Draft
 
 ## CHANGELOG
 
+2019.12.27
+  - Update errors for switch statements.
+  - Make it an error entirely to use the default `List` constructor in opted-in
+    code.
+  - Clarify that setter/getter assignability uses subtyping instead of
+    assignability.
+
 2019.12.17
   - Specify errors around definitely (un)assigned late variables.
 
@@ -88,6 +95,13 @@ The grammar of selectors is extended to allow null-aware subscripting using the
 syntax `e1?.[e2]` which evaluates to `null` if `e1` evaluates to `null` and
 otherwise evaluates as `e1[e2]`.
 
+The grammar of cascade sequences is extended to allow the first cascade of a
+sequence to be written as `?..` indicating that the cascade is null-shorting.
+
+All of the syntax changes for this feature have been incorporated into
+the
+[formal grammar](https://github.com/dart-lang/language/blob/master/specification/dartLangSpec.tex),
+which serves as the canonical reference for the grammatical changes.
 
 ### Grammatical ambiguities and clarifications.
 
@@ -174,6 +188,7 @@ and for all `R`, if `T <: Future<R>` then `S <: R`; then **flatten**('T') = `S`
   - otherwise **flatten**('T') = `T`
 
 ### Static errors
+#### Nullability definitions
 
 We say that a type `T` is **nullable** if `Null <: T` and not `T <: Object`.
 This is equivalent to the syntactic criterion that `T` is any of:
@@ -230,6 +245,22 @@ a type variable `X extends Object?` is a type which is potentially non-nullable
 but not non-nullable.  Note that `T*` is potentially non-nullable by this
 definition if `T` is potentially non-nullable.
 
+
+#### Reachability
+
+A number of errors and warnings are updated to take reachability of statements
+into account.  Computation of code reachability
+is
+[specified separately](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
+
+We say that a statement **may complete normally** if the specified control flow
+analysis determines that any control flow path may reach the end of the
+statement without returning, throwing an exception not caught within the
+statement, breaking to a location outside of the statement, or continuing to a
+location outside of the statement.
+
+#### Errors and Warnings
+
 It is an error to call a method, setter, getter or operator on an expression
 whose type is potentially nullable and not `dynamic`, except for the methods,
 setters, getters, and operators on `Object`.
@@ -250,9 +281,8 @@ It is an error if a potentially non-nullable local variable which has no
 initializer expression and is not marked `late` is used before it is definitely
 assigned (see Definite Assignment below).
 
-It is an error if a method, function, getter, or function expression with a
-potentially non-nullable return type does not definitely complete (see Definite
-Completion below).
+It is an error if the body of a method, function, getter, or function expression
+with a potentially non-nullable return type **may completely normally**.
 
 It is an error if an optional parameter (named or otherwise) with no default
 value has a potentially non-nullable type **except** in the parameter list of an
@@ -263,8 +293,7 @@ It is an error if a required named parameter has a default value.
 It is an error if a named parameter that is part of a `required` group is not
 bound to an argument at a call site.
 
-It is an error to call the default `List` constructor with a length argument and
-a type argument which is potentially non-nullable.
+It is an error to call the default `List` constructor.
 
 For the purposes of errors and warnings, the null aware operators `?.`, `?..`,
 and `?.[]` are checked as if the receiver of the operator had non-nullable type.
@@ -324,6 +353,31 @@ It is an error if the type of the value returned from a factory constructor is
 not a subtype of the class type associated with the class in which it is defined
 (specifically, it is an error to return a nullable type from a factory
 constructor for any class other than `Null`).
+
+It is an error if any case of a switch statement except the last case (the
+default case if present) **may complete normally**.  The previous syntactic
+restriction requiring the last statement of each case to be one of an enumerated
+list of statements (break, continue, return, throw, or rethrow) is removed.
+
+Given a switch statement which switches over an expression `e` of type `T`,
+where the cases are dispatched based on expressions `e0`...`ek`:
+  - It is no longer required that the `ei` evaluate to instances of the same
+    class.
+  - It is an error if any of the `ei` evaluate to a value whose static type is
+    not a subtype of `T`.
+  - It is an error if any of the `ei` evaluate to constants for which equality
+    is not primitive.
+  - If `T` is an enum type, it is a warning if the switch does not handle all
+    enum cases, either explicitly or via a default.
+  - If `T` is `Q?` where `Q` is an enum type, it is a warning if the switch does
+    not handle all enum cases and `null`, either explicitly or via a default.
+  - It is a warning if a switch over a nullable type does not handle `null`
+    either explicitly or via a default.
+
+It is an error if a class has a setter and a getter with the same basename where
+the return type of the getter is not a subtype of the argument type of the
+setter.  Note that this error specifically requires subtyping and not
+assignability and hence makes no exception for `dynamic`.
 
 It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
 `...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
@@ -448,10 +502,6 @@ void main() {
 }
 ```
 
-### Type promotion, Definite Assignment, and Definite Completion
-
-**TODO** Fill this out.
-
 ### Null promotion
 
 The machinery of type promotion is extended to promote the type of variables
@@ -487,25 +537,28 @@ defined as follows.
 - **NonNull**(_T_?) = **NonNull**(_T_)
 - **NonNull**(_T_\*) = **NonNull**(_T_)
 
-#### Extended Type promotion, Definite Assignment, and Definite Completion
+#### Extended Type promotion, Definite Assignment, and Reachability
 
-These are extended as per separate proposal.
+These are extended as
+per
+[separate proposal](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
 
 ## Runtime semantics
 
 ### Runtime type equality operator
 
 Two objects `T1` and `T2` which are instances of `Type` (that is, runtime type
-objects) are considered equal if and only if their normal forms **NORM(`T1`)**
-and **NORM(`T2`)** are syntactically equal up to equivalence of bound variables
-and **ignoring `*` modifiers on types**.  So for example, the runtime type
-objects corresponding to `List<int>` and `List<int*>` are considered equal.
-Note that we do not equate primitive top types.  `List<void>` and
-`List<dynamic>` are still considered distinct runtime type objects.  Note that
-we also do not equate `Never` and `Null`, and we do not equate function types
-which differ in the placement of `required` on parameter types.  Because of
-this, the equality described here is not equivalent to syntactic equality on the
-`LEGACY_ERASURE` of the types.
+objects) are considered equal if and only if the runtime type objects `T1` and
+`T2` corresponds to the types `S1` and `S2` respectively, and the normal forms
+**NORM(`S1`)** and **NORM(`S2`)** are syntactically equal up to equivalence of
+bound variables and **ignoring `*` modifiers on types**.  So for example, the
+runtime type objects corresponding to `List<int>` and `List<int*>` are
+considered equal.  Note that we do not equate primitive top types.  `List<void>`
+and `List<dynamic>` are still considered distinct runtime type objects.  Note
+that we also do not equate `Never` and `Null`, and we do not equate function
+types which differ in the placement of `required` on parameter types.  Because
+of this, the equality described here is not equivalent to syntactic equality on
+the `LEGACY_ERASURE` of the types.
 
 
 ### Const evaluation and canonicalization
