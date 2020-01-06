@@ -17,9 +17,6 @@ for planning and rolling out language changes.
 Features currently being worked on are listed in the
 [language funnel](https://github.com/dart-lang/language/projects/1).
 
-Notes from language design meetings can be
-found [here](https://github.com/dart-lang/language/blob/master/minutes/).
-
 # Dart Language
 
 [Dart][website] is an open-source, scalable programming language, with robust
