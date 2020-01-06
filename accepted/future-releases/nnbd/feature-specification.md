@@ -548,16 +548,17 @@ per
 ### Runtime type equality operator
 
 Two objects `T1` and `T2` which are instances of `Type` (that is, runtime type
-objects) are considered equal if and only if their normal forms **NORM(`T1`)**
-and **NORM(`T2`)** are syntactically equal up to equivalence of bound variables
-and **ignoring `*` modifiers on types**.  So for example, the runtime type
-objects corresponding to `List<int>` and `List<int*>` are considered equal.
-Note that we do not equate primitive top types.  `List<void>` and
-`List<dynamic>` are still considered distinct runtime type objects.  Note that
-we also do not equate `Never` and `Null`, and we do not equate function types
-which differ in the placement of `required` on parameter types.  Because of
-this, the equality described here is not equivalent to syntactic equality on the
-`LEGACY_ERASURE` of the types.
+objects) are considered equal if and only if the runtime type objects `T1` and
+`T2` corresponds to the types `S1` and `S2` respectively, and the normal forms
+**NORM(`S1`)** and **NORM(`S2`)** are syntactically equal up to equivalence of
+bound variables and **ignoring `*` modifiers on types**.  So for example, the
+runtime type objects corresponding to `List<int>` and `List<int*>` are
+considered equal.  Note that we do not equate primitive top types.  `List<void>`
+and `List<dynamic>` are still considered distinct runtime type objects.  Note
+that we also do not equate `Never` and `Null`, and we do not equate function
+types which differ in the placement of `required` on parameter types.  Because
+of this, the equality described here is not equivalent to syntactic equality on
+the `LEGACY_ERASURE` of the types.
 
 
 ### Const evaluation and canonicalization
