@@ -128,7 +128,7 @@ The class `Parcel` above could be given an initializing constructor by declaring
 This would expand to the constructor:
 
 ```dart
-  Person({required this.address, required this.weightInGrams}) : super();
+  Parcel({required this.address, required this.weightInGrams}) : super();
 ```
 
 An initializing constructor of the form:
