@@ -26,6 +26,10 @@
 %
 % Significant changes to the specification.
 %
+% 2.7
+% - Clarify that <libraryDeclaration> and <partDeclaration> are the
+%   start symbols of the grammar.
+%
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
 %   the callee is an instance of a class that has a `call` method).
@@ -15839,7 +15843,7 @@ The members of a library $L$ are those top level declarations given within $L$.
   \alt \LATE{} \FINAL{} <type>? <initializedIdentifierList> `;'
   \alt \LATE{}? <varOrType> <initializedIdentifierList> `;'
 
-<libraryDefinition> ::= \gnewline{}
+<libraryDeclaration> ::= \gnewline{}
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
   \gnewline{} (<metadata> <topLevelDefinition>)*
 
@@ -15854,8 +15858,30 @@ The members of a library $L$ are those top level declarations given within $L$.
 \end{grammar}
 
 \LMHash{}%
+A library contains a string which is derived from \synt{libraryDeclaration}.
+
+\commentary{%
+We could say that \synt{libraryDeclaration} is a
+\Index{start symbol}
+of the grammar,
+because the syntactic derivation of any library starts from there.
+Unlike a traditional context free grammar,
+the Dart grammar does not have exactly one start symbol.
+In particular, \synt{partDeclaration}
+(\ref{parts})
+is used in the same manner to derive the contents of a part.
+There could be more, e.g.,
+a hypothetical Dart REPL (read-eval-print loop) could use
+\synt{expression} or \synt{statement} as a start symbol.
+So there is no grammar for Dart programs as such,
+only for some building blocks that are used to construct Dart programs.%
+}
+
+\LMHash{}%
 Libraries may be explicitly named or implicitly named.
-An \Index{explicitly named library} begins with the word \LIBRARY{} (possibly prefaced with any applicable metadata annotations), followed by a qualified identifier that gives the name of the library.
+An \Index{explicitly named library} begins with the word \LIBRARY{}
+(possibly prefaced with any applicable metadata annotations),
+followed by a qualified identifier that gives the name of the library.
 
 \commentary{
 Technically, each dot and identifier is a separate token and so spaces between them are acceptable.
@@ -16372,11 +16398,14 @@ unless their name is the empty string.
 \LMLabel{parts}
 
 \LMHash{}%
-A library may be divided into \Index{parts}, each of which can be stored in a separate location.
+A library may be divided into \Index{parts},
+each of which can be stored in a separate location.
 A library identifies its parts by listing them via \PART{} directives.
 
 \LMHash{}%
-A \Index{part directive} specifies a URI where a Dart compilation unit that should be incorporated into the current library may be found.
+A \Index{part directive} specifies a URI where
+a Dart compilation unit that should be incorporated into the current library
+may be found.
 
 \begin{grammar}
 <partDirective> ::= <metadata> \PART{} <uri> `;'
@@ -16387,8 +16416,18 @@ A \Index{part directive} specifies a URI where a Dart compilation unit that shou
 \end{grammar}
 
 \LMHash{}%
-A \Index{part header} begins with \PART{} \OF{} followed by the name of the library the part belongs to.
-A part declaration consists of a part header followed by a sequence of top-level declarations.
+A part contains a string which is derived from \synt{partDeclaration}.
+
+\commentary{%
+So we could say that \synt{partDeclaration} is a start symbol of the grammar,
+as discussed in Sect.~\ref{librariesAndScripts}.%
+}
+
+\LMHash{}%
+A \Index{part header} begins with \PART{} \OF{} followed by
+the name of the library the part belongs to.
+A part declaration consists of a part header followed by
+a sequence of top-level declarations.
 
 \LMHash{}%
 Compiling a part directive of the form \code{\PART{} $s$;} causes the Dart system to attempt to compile the contents of the URI that is the value of $s$.
@@ -16856,10 +16895,10 @@ because of the prominent occurrence of the token \TYPEDEF.
 }
 
 % TODO(eernst): We include <metadata> in <typeAlias> even though it is not
-% there in Dart.g, because <libraryDefinition> in Dart.g allows metadata
+% there in Dart.g, because <libraryDeclaration> in Dart.g allows metadata
 % before every <topLevelDefinition>, but that's not yet been transferred to
 % this document. So we'll need to remove the <metadata> below _when_ it is
-% made redundant by changing <libraryDefinition> to be like in Dart.g.
+% made redundant by changing <libraryDeclaration> to be like in Dart.g.
 
 \begin{grammar}
 <typeAlias> ::= \gnewline{}
