@@ -27,6 +27,8 @@
 % Significant changes to the specification.
 %
 % 2.7
+% - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
+%   'class declaration' everywhere, so `<classDefinition>` is inconsistent).
 % - Clarify that <libraryDeclaration> and <partDeclaration> are the
 %   start symbols of the grammar.
 %
@@ -50,7 +52,7 @@
 %   variables with no initializer; for several top-level declarations,
 %   to correct the existence and placement of <metadata>; for
 %   <assignableSelectorPart>, to simplify the grammar (preserving the
-%   derivable terms); for <topLevelDefinition>, to allow top-level final
+%   derivable terms); for <topLevelDeclaration>, to allow top-level final
 %   and const variables with no type, and to allow `late final` top-level
 %   variables, to allow `late` on a top-level variable declaration; and
 %   adding <namedParameterType> to allow `required` parameters.
@@ -1889,15 +1891,15 @@ A \Index{class} defines the form and behavior of a set of objects which are its
 Classes may be defined by class declarations as described below, or via mixin applications (\ref{mixinApplication}).
 
 \begin{grammar}
-<classDefinition> ::=
+<classDeclaration> ::=
   \ABSTRACT{}? \CLASS{} <identifier> <typeParameters>?
   \gnewline{} <superclass>? <interfaces>?
-  \gnewline{} `{' (<metadata> <classMemberDefinition>)* `}'
+  \gnewline{} `{' (<metadata> <classMemberDeclaration>)* `}'
   \alt <metadata> \ABSTRACT{}? \CLASS{} <mixinApplicationClass>
 
 <typeNotVoidList> ::= <typeNotVoid> (`,' <typeNotVoid>)*
 
-<classMemberDefinition> ::= <declaration> `;'
+<classMemberDeclaration> ::= <declaration> `;'
   \alt <methodSignature> <functionBody>
 
 <methodSignature> ::= <constructorSignature> <initializers>?
@@ -4620,7 +4622,7 @@ for static member declarations.
 \begin{grammar}
 <mixinDeclaration> ::= \MIXIN{} <identifier> <typeParameters>?
   \gnewline{} (\ON{} <typeNotVoidList>)? <interfaces>?
-  \gnewline{} `\{' (<metadata> <classMemberDefinition>)* `\}'
+  \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
 \end{grammar}
 
 \LMHash{}
@@ -15829,7 +15831,7 @@ A top-level declaration is either a class (\ref{classes}), a type alias declarat
 The members of a library $L$ are those top level declarations given within $L$.
 
 \begin{grammar}
-<topLevelDefinition> ::= <classDefinition>
+<topLevelDeclaration> ::= <classDeclaration>
   \alt <mixinDeclaration>
   \alt <enumType>
   \alt <typeAlias>
@@ -15845,7 +15847,7 @@ The members of a library $L$ are those top level declarations given within $L$.
 
 <libraryDeclaration> ::= \gnewline{}
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
-  \gnewline{} (<metadata> <topLevelDefinition>)*
+  \gnewline{} (<metadata> <topLevelDeclaration>)*
 
 <scriptTag> ::= `#!' (\gtilde{}<NEWLINE>)* <NEWLINE>
 
@@ -16412,7 +16414,7 @@ may be found.
 
 <partHeader> ::= <metadata> \PART{} \OF{} <identifier> (`.' <identifier>)* `;'
 
-<partDeclaration> ::= <partHeader> <topLevelDefinition>* <EOF>
+<partDeclaration> ::= <partHeader> <topLevelDeclaration>* <EOF>
 \end{grammar}
 
 \LMHash{}%
@@ -16896,7 +16898,7 @@ because of the prominent occurrence of the token \TYPEDEF.
 
 % TODO(eernst): We include <metadata> in <typeAlias> even though it is not
 % there in Dart.g, because <libraryDeclaration> in Dart.g allows metadata
-% before every <topLevelDefinition>, but that's not yet been transferred to
+% before every <topLevelDeclaration>, but that's not yet been transferred to
 % this document. So we'll need to remove the <metadata> below _when_ it is
 % made redundant by changing <libraryDeclaration> to be like in Dart.g.
 
