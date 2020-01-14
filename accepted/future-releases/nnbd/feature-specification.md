@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.01.14
+  - **CHANGE** Strong mode is auto-opted in when the "main" file is opted in.
+  -  Specify weak mode/strong mode flag
+
 2019.12.27
   - Update errors for switch statements.
   - Make it an error entirely to use the default `List` constructor in opted-in
@@ -1081,20 +1085,20 @@ We define the weak checking and strong checking mode instance tests as follows:
 **In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
 type `S`, an instance check `e is T` occurring in a **legacy library** is
 evaluated as follows:
-  - If `S` is `Null` return `LEGACY_SUBTYPE(T, NULL) || LEGACY_SUBTYPE(Object,
+  - If `S` is `Null` return `LEGACY_SUBTYPE(T, Null) || LEGACY_SUBTYPE(Object,
     T)`
   - Otherwise return `LEGACY_SUBTYPE(S, T)`
 
 **In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
 type `S`, an instance check `e is T` occurring in an **opted-in library** is
 evaluated as follows:
-  - If `S` is `Null` return `NNBD_SUBTYPE(NULL, T)`
+  - If `S` is `Null` return `NNBD_SUBTYPE(Null, T)`
   - Otherwise return `LEGACY_SUBTYPE(S, T)`
 
 **In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
 type `S`, an instance check `e is T` textually occurring in a **legacy library**
 is evaluated as follows:
-  - If `S` is `Null` return `NNBD_SUBTYPE(T, NULL) || NNBD_SUBTYPE(Object, T)`
+  - If `S` is `Null` return `NNBD_SUBTYPE(T, Null) || NNBD_SUBTYPE(Object, T)`
   - Otherwise return `NNBD_SUBTYPE(S, T)`
 
 **In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
