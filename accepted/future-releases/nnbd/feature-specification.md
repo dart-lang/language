@@ -1,4 +1,4 @@
-# Sound non-nullable (by default) types with incremental migration
+# Null safety: Sound non-nullable types by default with incremental migration
 
 Author: leafp@google.com
 
