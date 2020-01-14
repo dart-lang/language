@@ -26,6 +26,12 @@
 %
 % Significant changes to the specification.
 %
+% 2.7
+% - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
+%   'class declaration' everywhere, so `<classDefinition>` is inconsistent).
+% - Clarify that <libraryDeclaration> and <partDeclaration> are the
+%   start symbols of the grammar.
+%
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
 %   the callee is an instance of a class that has a `call` method).
@@ -46,7 +52,7 @@
 %   variables with no initializer; for several top-level declarations,
 %   to correct the existence and placement of <metadata>; for
 %   <assignableSelectorPart>, to simplify the grammar (preserving the
-%   derivable terms); for <topLevelDefinition>, to allow top-level final
+%   derivable terms); for <topLevelDeclaration>, to allow top-level final
 %   and const variables with no type, and to allow `late final` top-level
 %   variables, to allow `late` on a top-level variable declaration; and
 %   adding <namedParameterType> to allow `required` parameters.
@@ -1885,15 +1891,15 @@ A \Index{class} defines the form and behavior of a set of objects which are its
 Classes may be defined by class declarations as described below, or via mixin applications (\ref{mixinApplication}).
 
 \begin{grammar}
-<classDefinition> ::=
+<classDeclaration> ::=
   \ABSTRACT{}? \CLASS{} <identifier> <typeParameters>?
   \gnewline{} <superclass>? <interfaces>?
-  \gnewline{} `{' (<metadata> <classMemberDefinition>)* `}'
+  \gnewline{} `{' (<metadata> <classMemberDeclaration>)* `}'
   \alt <metadata> \ABSTRACT{}? \CLASS{} <mixinApplicationClass>
 
 <typeNotVoidList> ::= <typeNotVoid> (`,' <typeNotVoid>)*
 
-<classMemberDefinition> ::= <declaration> `;'
+<classMemberDeclaration> ::= <declaration> `;'
   \alt <methodSignature> <functionBody>
 
 <methodSignature> ::= <constructorSignature> <initializers>?
@@ -4616,7 +4622,7 @@ for static member declarations.
 \begin{grammar}
 <mixinDeclaration> ::= \MIXIN{} <identifier> <typeParameters>?
   \gnewline{} (\ON{} <typeNotVoidList>)? <interfaces>?
-  \gnewline{} `\{' (<metadata> <classMemberDefinition>)* `\}'
+  \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
 \end{grammar}
 
 \LMHash{}
@@ -15825,7 +15831,7 @@ A top-level declaration is either a class (\ref{classes}), a type alias declarat
 The members of a library $L$ are those top level declarations given within $L$.
 
 \begin{grammar}
-<topLevelDefinition> ::= <classDefinition>
+<topLevelDeclaration> ::= <classDeclaration>
   \alt <mixinDeclaration>
   \alt <enumType>
   \alt <typeAlias>
@@ -15839,9 +15845,9 @@ The members of a library $L$ are those top level declarations given within $L$.
   \alt \LATE{} \FINAL{} <type>? <initializedIdentifierList> `;'
   \alt \LATE{}? <varOrType> <initializedIdentifierList> `;'
 
-<libraryDefinition> ::= \gnewline{}
+<libraryDeclaration> ::= \gnewline{}
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
-  \gnewline{} (<metadata> <topLevelDefinition>)*
+  \gnewline{} (<metadata> <topLevelDeclaration>)*
 
 <scriptTag> ::= `#!' (\gtilde{}<NEWLINE>)* <NEWLINE>
 
@@ -15854,8 +15860,30 @@ The members of a library $L$ are those top level declarations given within $L$.
 \end{grammar}
 
 \LMHash{}%
+A library contains a string which is derived from \synt{libraryDeclaration}.
+
+\commentary{%
+We could say that \synt{libraryDeclaration} is a
+\Index{start symbol}
+of the grammar,
+because the syntactic derivation of any library starts from there.
+Unlike a traditional context free grammar,
+the Dart grammar does not have exactly one start symbol.
+In particular, \synt{partDeclaration}
+(\ref{parts})
+is used in the same manner to derive the contents of a part.
+There could be more, e.g.,
+a hypothetical Dart REPL (read-eval-print loop) could use
+\synt{expression} or \synt{statement} as a start symbol.
+So there is no grammar for Dart programs as such,
+only for some building blocks that are used to construct Dart programs.%
+}
+
+\LMHash{}%
 Libraries may be explicitly named or implicitly named.
-An \Index{explicitly named library} begins with the word \LIBRARY{} (possibly prefaced with any applicable metadata annotations), followed by a qualified identifier that gives the name of the library.
+An \Index{explicitly named library} begins with the word \LIBRARY{}
+(possibly prefaced with any applicable metadata annotations),
+followed by a qualified identifier that gives the name of the library.
 
 \commentary{
 Technically, each dot and identifier is a separate token and so spaces between them are acceptable.
@@ -16372,23 +16400,36 @@ unless their name is the empty string.
 \LMLabel{parts}
 
 \LMHash{}%
-A library may be divided into \Index{parts}, each of which can be stored in a separate location.
+A library may be divided into \Index{parts},
+each of which can be stored in a separate location.
 A library identifies its parts by listing them via \PART{} directives.
 
 \LMHash{}%
-A \Index{part directive} specifies a URI where a Dart compilation unit that should be incorporated into the current library may be found.
+A \Index{part directive} specifies a URI where
+a Dart compilation unit that should be incorporated into the current library
+may be found.
 
 \begin{grammar}
 <partDirective> ::= <metadata> \PART{} <uri> `;'
 
 <partHeader> ::= <metadata> \PART{} \OF{} <identifier> (`.' <identifier>)* `;'
 
-<partDeclaration> ::= <partHeader> <topLevelDefinition>* <EOF>
+<partDeclaration> ::= <partHeader> <topLevelDeclaration>* <EOF>
 \end{grammar}
 
 \LMHash{}%
-A \Index{part header} begins with \PART{} \OF{} followed by the name of the library the part belongs to.
-A part declaration consists of a part header followed by a sequence of top-level declarations.
+A part contains a string which is derived from \synt{partDeclaration}.
+
+\commentary{%
+So we could say that \synt{partDeclaration} is a start symbol of the grammar,
+as discussed in Sect.~\ref{librariesAndScripts}.%
+}
+
+\LMHash{}%
+A \Index{part header} begins with \PART{} \OF{} followed by
+the name of the library the part belongs to.
+A part declaration consists of a part header followed by
+a sequence of top-level declarations.
 
 \LMHash{}%
 Compiling a part directive of the form \code{\PART{} $s$;} causes the Dart system to attempt to compile the contents of the URI that is the value of $s$.
@@ -16856,10 +16897,10 @@ because of the prominent occurrence of the token \TYPEDEF.
 }
 
 % TODO(eernst): We include <metadata> in <typeAlias> even though it is not
-% there in Dart.g, because <libraryDefinition> in Dart.g allows metadata
-% before every <topLevelDefinition>, but that's not yet been transferred to
+% there in Dart.g, because <libraryDeclaration> in Dart.g allows metadata
+% before every <topLevelDeclaration>, but that's not yet been transferred to
 % this document. So we'll need to remove the <metadata> below _when_ it is
-% made redundant by changing <libraryDefinition> to be like in Dart.g.
+% made redundant by changing <libraryDeclaration> to be like in Dart.g.
 
 \begin{grammar}
 <typeAlias> ::= \gnewline{}
