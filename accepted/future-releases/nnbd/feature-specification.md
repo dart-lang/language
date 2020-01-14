@@ -549,6 +549,38 @@ per
 
 ## Runtime semantics
 
+### Weak and strong semantics
+
+To allow the null safety feature to be rolled out incrementally, we define two
+modes of execution.
+
+**Weak checking** mode largely ignores the nullability of types at runtime, as
+defined below.  Unmigrated programs or programs consisting of a mix of migrated
+and unmigrated code are expected to run without encountering new nullability
+related errors at runtime.  **This mode is unsound** in the sense that variables
+marked as non-nullable may still be null at runtime.
+
+**Strong checking** mode respects the nullability of types at runtime in casts
+and instance checks, as defined below.  Unmigrated programs or programs
+consisting of a mix of migrated and unmigrated code may fail at runtime with new
+cast failures due to the nullability annotations in runtime type objects.
+**This mode is unsound** if any part of the program is still unmigrated.  **This
+mode is sound** if all parts of the program have been migrated.
+
+Weak vs strong runtime checking can be controlled at runtime via the
+`--[no-]runtime-null-safety` flag, where the negated version of the flag implies
+weak mode and the unnegated version implies strong mode.
+
+In the absence of an explicit value for the flag, the mode of execution depends
+on migrated status of the program entry point.  If the entry point of the
+program (`main`) is in an opted-in library, then the program is compiled and run
+as if `--runtime-null-safety` were specified on the command line.  Otherwise,
+the program is run as if `--no-runtime-null-safety` were specified on the
+command line.
+
+Compilers may (and are encouraged to) print a warning when compiling a program
+with unmigrated libraries in strong mode.
+
 ### Runtime type equality operator
 
 Two objects `T1` and `T2` which are instances of `Type` (that is, runtime type
@@ -816,8 +848,9 @@ proposal (that is, all errors that arise only out of the new features of
 this proposal) shall be treated as warnings.
 
 Strong null checking is enabled by running the compilation or execution
-environment with the appropriate flags.  When strong null checking is enabled,
-errors specified in this proposal shall be treated as errors.
+environment with the appropriate flags as described above.  When strong null
+checking is enabled, errors specified in this proposal shall be treated as
+errors.
 
 ### Legacy libraries
 
