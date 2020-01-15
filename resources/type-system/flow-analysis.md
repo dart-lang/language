@@ -94,7 +94,7 @@ that assignment).
   - We use the notation `a::l` where `l` is a list to denote a list beginning
     with `a` and followed by all of the elements of `l`.
 
--Stacks
+- Stacks
   - We use the notation `push(s, x)` to mean pushing `x` onto the top of the
     stack `s`.
   - We use the notation `pop(s)` to mean the stack that results from removing
@@ -278,8 +278,9 @@ We also make use of the following auxiliary functions:
      executed, the try block must have completed normally).  We only choose to
      do so if the last entry is more precise.  (TODO: is this the right thing to
      do here?).
-   - `s3 = s1 U s2`
-     - The set of test sites is the union of the test sites on either path.
+   - `s3 = s2`
+     - The set of types of interest is the set of types of interest in the
+       finally block.
    - `a3 = a2`
      - A variable is definitely assigned if it is definitely assigned in the
        model of the finally block (note that the finally block is analyzed using
@@ -527,6 +528,10 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
   - Let `null(N) = assign(x, E1, null(E1))`.
   - Let `notNull(N) = assign(x, E1, notNull(E1))`.
 
+TODO(leafp): Per
+discussion
+[here](https://github.com/dart-lang/language/pull/763/files#r364003138), this is
+wrong.  This needs reconsideration.
 - **operator==** If `N` is an expression of the form `E1 == E2` then:
   - Let `before(E1) = before(N)`
   - Let `before(E2) = after(E1)`
