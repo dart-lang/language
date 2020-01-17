@@ -568,14 +568,14 @@ cast failures due to the nullability annotations in runtime type objects.
 mode is sound** if all parts of the program have been migrated.
 
 Weak vs strong runtime checking can be controlled at runtime via the
-`--[no-]runtime-null-safety` flag, where the negated version of the flag implies
+`--[no-]null-safety` flag, where the negated version of the flag implies
 weak mode and the unnegated version implies strong mode.
 
 In the absence of an explicit value for the flag, the mode of execution depends
 on migrated status of the program entry point.  If the entry point of the
 program (`main`) is in an opted-in library, then the program is compiled and run
-as if `--runtime-null-safety` were specified on the command line.  Otherwise,
-the program is run as if `--no-runtime-null-safety` were specified on the
+as if `--null-safety` were specified on the command line.  Otherwise,
+the program is run as if `--no-null-safety` were specified on the
 command line.
 
 Compilers may (and are encouraged to) print a warning when compiling a program
