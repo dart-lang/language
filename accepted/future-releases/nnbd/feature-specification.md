@@ -1083,7 +1083,7 @@ import 'opted_in.dart';
 class C extends A implements B {}
 
 ```
-```
+```dart
 //opted in
 import 'opted_out.dart';
 class D extends C {}
