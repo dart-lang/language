@@ -12,6 +12,9 @@ https://docs.google.com/document/d/11Xs0b4bzH6DwDlcJMUcbx4BpvEKGz8MVuJWEfo_mirE/
 2019.01.16
   - Modify `restrictV` to make a variable definitely assigned in a try block or
     a finally block definitely assigned after the block.
+  - Clarify that initialization promotion does not apply to formal parameters.
+
+## Summary
 
 This defines the local analysis (within function and method bodies) that
 underlies type promotion, definite assignment analysis, and reachability
@@ -353,7 +356,7 @@ Policy:
       `T <: R`)
 
   - We say that a variable `x` is promotable via initialization given variable
-    model `VM` if:
+    model `VM` if `x` is a local variable (not a formal parameter) and:
     - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
     - and `captured` is false
     - and `promoted` is empty
