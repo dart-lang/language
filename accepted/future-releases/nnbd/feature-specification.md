@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2019.01.21
+  - **CHANGE** Change to specification of weak and strong mode instance checks
+    to make them behave uniformly across legacy and opted-in libraries.
+
 2019.12.27
   - Update errors for switch statements.
   - Make it an error entirely to use the default `List` constructor in opted-in
@@ -1109,7 +1113,6 @@ apply.
 Note also that except in the case that `T` is of the form `X` or `X*` for some
 type variable `X`, it is statically decidable which clause applies.
 
-
 Note that given the definitions above, the result of an instance check may vary
 depending on whether it is run in strong or weak mode.  However, in the specific
 case that the value being checked is `null`, instance checks will always return
@@ -1144,7 +1147,6 @@ type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
 library** is evaluated as follows:
   - if `NNBD_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
     `CastError` is thrown.
-
 
 In weak checking mode, we ensure that opted-in libraries do not break downstream
 clients by continuing to evaluate instance checks and casts with the same
