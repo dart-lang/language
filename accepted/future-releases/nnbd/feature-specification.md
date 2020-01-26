@@ -6,7 +6,7 @@ Status: Draft
 
 ## CHANGELOG
 
-2019.01.21
+2020.01.21
   - Clarify that method inheritance checking is done relative to the
     consolidated super-interface signature.
 
