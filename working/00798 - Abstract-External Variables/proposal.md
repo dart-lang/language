@@ -1,7 +1,7 @@
 # Abstract and External Field Declarations
 
 Author: lrn@google.com<br>
-Proposed solution to: https://github.com/dart-lang/language/issues/798
+Proposed solution to: https://github.com/dart-lang/language/issues/44
 
 
 ## Background and Motivation
