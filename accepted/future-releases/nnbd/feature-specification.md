@@ -7,7 +7,7 @@ Status: Draft
 ## CHANGELOG
 
 
-2019.01.21
+2020.01.27
   - **CHANGE** Change to specification of weak and strong mode instance checks
     to make them behave uniformly across legacy and opted-in libraries.
 
