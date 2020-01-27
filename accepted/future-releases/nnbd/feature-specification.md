@@ -6,9 +6,14 @@ Status: Draft
 
 ## CHANGELOG
 
+
 2019.01.21
   - **CHANGE** Change to specification of weak and strong mode instance checks
     to make them behave uniformly across legacy and opted-in libraries.
+
+2020.01.21
+  - Clarify that method inheritance checking is done relative to the
+    consolidated super-interface signature.
 
 2019.12.27
   - Update errors for switch statements.
@@ -1051,13 +1056,46 @@ class C extends B {
 
 
 If a class `C` in an opted-in library inherits a member `m` with the same name
-from multiple super-interfaces (whether legacy or opted-in), let `T0, ..., Tn`
-be the signatures of the inherited members.  If there is exactly one `Ti` such
-that `NNBD_SUBTYPE(Ti, Tk)` for all `k` in `0...n`, then the signature of `m` is
-considered to be `Ti`.  If there are more than one such `Ti`, then it is an
-error if the `NNBD_TOP_MERGE` of `S0, ..., Sn` does not exist, where `Si` is
-**NORM(`Ti`)**.  Otherwise, the signature of `m` for the purposes of member
+from multiple direct super-interfaces (whether legacy or opted-in), let `T0,
+..., Tn` be the signatures of the inherited members.  If there is exactly one
+`Ti` such that `NNBD_SUBTYPE(Ti, Tk)` for all `k` in `0...n`, then the signature
+of `m` is considered to be `Ti`.  If there are more than one such `Ti`, then it
+is an error if the `NNBD_TOP_MERGE` of `S0, ..., Sn` does not exist, where `Si`
+is **NORM(`Ti`)**.  Otherwise, the signature of `m` for the purposes of member
 lookup is the `NNBD_TOP_MERGE` of the `Si`.
+
+Note that when a member `m` is inherited from multiple indirect super-interfaces
+**via** a single direct super-interface, override checking is only performed
+against the signature of the direct super-interface which mediates the
+inheritance as described above.  Hence the following example is not an error,
+since the direct super-interface `C` of `D` mediates the conflicting inherited
+signatures of `foo` as `C.foo` with signature `int* Function(int*)`.
+
+```dart
+// opted_in.dart
+class A {
+  int? foo(int? x) {}
+}
+class B {
+  int foo(int x) {}
+}
+```
+```dart
+// opted_out.dart
+// @dart = 2.6
+import 'opted_in.dart';
+
+class C extends A implements B {}
+
+```
+```dart
+//opted in
+import 'opted_out.dart';
+class D extends C {}
+void test() {
+  new D().foo(null).isEven;
+}
+```
 
 
 ### Type reification

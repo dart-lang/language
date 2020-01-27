@@ -48,7 +48,7 @@ except that it doesn't "sign-extend" the most significant bit.
 When Dart chose arbitrary size integers as its `int` type, it also removed
 the `>>>` operator, not just from `int`, but from the language.
 
-Now that Dart has chosen to use unsigned 64-bit integers as its `int` type,
+Now that Dart has chosen to use signed 64-bit integers as its `int` type,
 there is again need for a logical right shift operator on `int`,
 and so we reintroduce the `>>>` operator in the language.
 
