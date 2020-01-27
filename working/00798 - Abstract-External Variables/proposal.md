@@ -8,7 +8,9 @@ Proposed solution to: https://github.com/dart-lang/language/issues/798
 
 Currently Dart does not have a way to declare an “abstract field” other than to declare an abstract getter/setter pair. There are situations where it would be more *convenient* (and even more *readable*) to simply declare a field (`int x;` rather than `int get x; set(int x);`), however the syntax does not allow that field to be *abstract*. 
 
-If a class is used entirely as an *interface*, then declaring a field has worked until now. It introduces a getter and setter to the interface, and if nobody *extends* the class anyway, it doesn’t matter that it allocates space for a field. 
+If a class is used entirely as an *interface*, then declaring a field has worked until now. It introduces a getter and setter to the interface, and if nobody *extends* the class anyway, it doesn’t matter that it allocates space for a field.
+
+The same issue applies to mixins, where you may want to add an abstract field to the mixin, which allows the code of mixin itself to access the field without requiring an implementation. This currently requires you to write a getter/setter pair instead.
 
 With the Null Safety feature, that stops working for non-nullable fields. A non-nullable field *must* be initialized, which means that simply declaring a non-abstract field imposes further requirements on the class. Either the field must be initialized, `int x = 0;`, which requires an arbitrary value that is confusing to readers (and not all types even have an easily creatable dummy-value), or the field must be initialized by a constructor, and a plain interface class likely has no constructor, so it gets the default constructor which does not initialize anything. So, an interface class with an `int x;` field will stop working with Null Safety.
 
@@ -72,3 +74,4 @@ The DartDoc tool can treat external and abstract variable declarations like any 
 
 The Dart Formatter needs to recognize the prefixes and treat them like any other prefixe (like `static` , `final` or `late`).
 
+The proposed syntax solves the existing problems of `dart:ffi`, it supports easier writing interfaces post Null Safety, and it can also be used to more easily add "field" signatures to mixins.
