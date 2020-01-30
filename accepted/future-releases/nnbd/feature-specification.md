@@ -10,7 +10,7 @@ Status: Draft
   - **CHANGE** Relax the exhaustiveness check on switches.
   - Specify the type of throw expressions.
   - Specify the override inference exception for operator==.
-  - **CHANGE** Specify that instantiate to bounds uses `Never` instead of `Null.
+  - **CHANGE** Specify that instantiate to bounds uses `Never` instead of `Null`.
   - **CHANGE** Specify that least and greatest closure uses `Never` instead of
     `Null.
   - Specify that type variable elimination is performed on constants using least
