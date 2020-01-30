@@ -448,8 +448,8 @@ type variables appearing in contravariant positions instead of `Null`.
 
 The definitions of least and greatest closure are changed in null safe libraries
 to substitute `Never` in positions where previously `Null` would have been
-substituted, and `Object?` in positions where previously `Object` would have
-been substituted.
+substituted, and `Object?` in positions where previously `Object` or `dynamic`
+would have been substituted.
 
 ### Const type variable elimination
 
