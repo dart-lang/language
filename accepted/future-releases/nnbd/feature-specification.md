@@ -6,6 +6,23 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.01.29
+  - **CHANGE** Relax the exhaustiveness check on switches.
+  - Specify the type of throw expressions.
+  - Specify the override inference exception for operator==.
+  - **CHANGE** Specify that instantiate to bounds uses `Never` instead of `Null.
+  - **CHANGE** Specify that least and greatest closure uses `Never` instead of
+    `Null.
+  - Specify that type variable elimination is performed on constants using least
+    closure.
+  - Clarify extension method resolution on nullable types.
+  - **CHANGE** Add missing cases to `NNBD_TOP_MERGE` and specify it's behavior
+    on `covariant` parameters.
+  - Fix the definition of `NORM` for un-promoted type variables
+  - Change the notion of type equality for generic function bounds to mutual
+    subtyping.
+  - **CHANGE** Specify that debug assertions are added to methods in strong
+    mode.
 
 2020.01.27
   - **CHANGE** Change to specification of weak and strong mode instance checks
@@ -380,8 +397,6 @@ where the cases are dispatched based on expressions `e0`...`ek`:
     enum cases, either explicitly or via a default.
   - If `T` is `Q?` where `Q` is an enum type, it is a warning if the switch does
     not handle all enum cases and `null`, either explicitly or via a default.
-  - It is a warning if a switch over a nullable type does not handle `null`
-    either explicitly or via a default.
 
 It is an error if a class has a setter and a getter with the same basename where
 the return type of the getter is not a subtype of the argument type of the
@@ -412,6 +427,54 @@ Tearing off a method from a receiver of static type `Never` produces a value of
 type `Never`.  Applying an expression of type `Never` in the function position
 of a function call produces a result of type `Never`.
 
+The static type of a `throw e` expression is `Never`.
+
+In legacy mode, an override of operator== with no explicit parameter type
+inherits the parameter type of the overridden method if any override of
+operator== between the overriding method and Object.== has an explicit parameter
+type.  Otherwise, the parameter type of the overriding method is dynamic.
+
+Top level variable and local function inference is performed
+as
+[specified separately](https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md).
+Method body inference is not yet specified.
+
+### Instantiate to bounds
+
+The computation of instantiation to bounds is changed to substitute `Never` for
+type variables appearing in contravariant positions instead of `Null`.
+
+### Least and greatest closure
+
+The definitions of least and greatest closure are changed in null safe libraries
+to substitute `Never` in positions where previously `Null` would have been
+substituted, and `Object?` in positions where previously `Object` would have
+been substituted.
+
+### Const type variable elimination
+
+If performing inference on a const value of a generic class results results in
+inferred type arguments to the generic class which contain free type variables
+from an enclosing generic class or method, the free type variables shall be
+eliminated by taking the least closure of the inferred type with respect to the
+free type variables.  Note that free type variables which are explicitly used as
+type arguments in const generic instances are still considered erroneous.
+
+```dart
+class G<T> {
+  void foo() {
+    const List<T> c = <T>[]; // Error
+    const List<T> d = [];    // The list literal is inferred as <Never>[]
+  }
+}
+```
+
+### Extension method resolution
+
+For the purposes of extension method resolution, there is no special treatment
+of nullable types with respect to what members are considered accessible.  That
+is, the only members that are considered accessible (and hence which take
+precedence over extensions) are the members on `Object`.
 
 ### Assignability
 
@@ -990,6 +1053,10 @@ as:
    - And the reverse
  - `NNBD_TOP_MERGE(Object?, dynamic)  = Object?`
    - And the reverse
+ - `NNBD_TOP_MERGE(Object*, void)  = void`
+   - And the reverse
+ - `NNBD_TOP_MERGE(Object*, dynamic)  = Object?`
+   - And the reverse
  - `NNBD_TOP_MERGE(Never*, Null)  = Null`
    - And the reverse
  - `NNBD_TOP_MERGE(T?, S?) = NNBD_TOP_MERGE(T, S)?`
@@ -1002,6 +1069,16 @@ as:
  - And for all other types, recursively applying the transformation over the
    structure of the type
    - e.g. `NNBD_TOP_MERGE(C<T>, C<S>)  = C<NNBD_TOP_MERGE(T, S)>`
+
+ - When computing the `NNBD_TOP_MERGE` of two method parameters at least one of
+   which is marked as covariant, the following algorithm is used to compute the
+   canonical parameter type.
+   - Given two corresponding parameters of type `T1` and `T2` where at least
+      one of the parameters has a `covariant` declaration:
+     - if `T1 <: T2` and `T2 <: T1` then the result is `NNBD_TOP_MERGE(T1, T2)`,
+     and it is covariant.
+     - otherwise, if `T1 <: T2` then the result is `T2` and it is covariant
+     - otherwise the result is `T1` and it is covariant
 
 In other words, `NNBD_TOP_MERGE` takes two types which are structurally equal
 except for the placement `*` types, and the particular choice of top types, and
@@ -1206,3 +1283,13 @@ understand these changes: for example, by providing a debugging option in which
 instance checks or casts which would result in a different outcome if run in
 strong checking mode vs weak checking mode are flagged for the developer by
 logging a warning or breaking to the debugger.
+
+### Automatic debug assertion insertion
+
+When running in strong checking mode, implementations shall insert code
+equivalent to `assert(x != null)` in the prelude of every method or function
+defined in an opted-in library for each parameter `x` which has a non-nullable
+type.  When compiling a program in which all libraries are opted in, these
+assertions will never fire and may be elided, but during the migration when
+mixed mode code is being executed it is possible for opted-out libraries to
+cause the invariants of the null safety checking to be violated.
