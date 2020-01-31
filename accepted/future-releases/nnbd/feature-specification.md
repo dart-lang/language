@@ -6,6 +6,12 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.01.31
+  - Specify that mixins must not have uninitialized potentially non-nullable 
+    non-late fields.
+  - Remove reference to `CastError`. A failed `!` check is just a
+    "dynamic type error" like the `as` check in the current language specification.
+
 2020.01.29
   - **CHANGE** Relax the exhaustiveness check on switches.
   - Specify the type of throw expressions.
@@ -298,10 +304,21 @@ fields on `Object`.
 It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
-It is an error if a top level variable, static variable, or instance field with
-potentially non-nullable type has no initializer expression and is not
-initialized in a constructor via an initializing formal or an initializer list
-entry, unless the variable or field is marked with the `late` modifier.
+It is an error if a top level variable or static variable with a non-nullable type 
+has no initializer expression unless the variable is marked with the `late` modifier.
+
+It is an error if a class declaration declares an instance variable with a potentially 
+non-nullable type and no initializer expression, and the class has a generative constructor 
+where the variable is not initialized via an initializing formal or an initializer list entry, 
+unless the variable is marked with the `late` modifier.
+
+It is an error if a mixin declaration declares an instance variable 
+with a potentially non-nullable type and no initializer expression 
+unless the variable is marked with the `late` modifier.
+
+It is an error to derive a mixin from a class declaration which contains 
+an instance variable with a potentially non-nullable type and no initializer expression
+unless the variable is marked with the `late` modifier.
 
 It is an error if a potentially non-nullable local variable which has no
 initializer expression and is not marked `late` is used before it is definitely
@@ -473,8 +490,8 @@ class G<T> {
 
 For the purposes of extension method resolution, there is no special treatment
 of nullable types with respect to what members are considered accessible.  That
-is, the only members that are considered accessible (and hence which take
-precedence over extensions) are the members on `Object`.
+is, the only members of a nullable tyhpe that are considered accessible 
+(and hence which take precedence over extensions) are the members on `Object`.
 
 ### Assignability
 
@@ -650,9 +667,10 @@ semantics are obeyed.
 
 ### Null check operator
 
-An expression of the form `e!` evaluates `e` to a value `v`, throws a runtime
-error which is an instance of `CastError` if `v` is `null`, and otherwise
-evaluates to `v`.
+When evaluating an expression of the form `e!`, 
+where `e` evaluates to a value `v`, 
+a dynamic type error occurs if `v` is `null`, 
+and otherwise the expression evaluates to `v`.
 
 ### Null aware operator
 
