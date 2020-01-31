@@ -815,10 +815,9 @@ implicitly induced by _D_ if a value has previously been assigned to `v`
 (which could be due to an initializing formal or a constructor initializer
 list, or due to an invocation of the setter).
 
-Let _D_ be a `late` and `final` local variable declaration named `v`
-without an initializing expression.  It is a run-time error, throwing an
-instance of `LateInitializationError`, to assign a value to `v` if a value
-has previously been assigned to `v`.
+Let _D_ be a `late` and `final` local variable declaration named `v`.  It is a
+run-time error, throwing an instance of `LateInitializationError`, to assign a
+value to `v` if a value has previously been assigned to `v`.
 
 Note that this includes the implicit initializing writes induced by
 evaluating the initializer during a read.  Hence, the following program
