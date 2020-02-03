@@ -8,7 +8,7 @@ Status: Draft
 
 2020.01.31
   - Specify that mixins must not have uninitialized potentially non-nullable 
-    non-late fields.
+    non-late fields, and nor must classes with no generative constructors.
   - Remove reference to `CastError`. A failed `!` check is just a
     "dynamic type error" like the `as` check in the current language specification.
 
@@ -312,8 +312,8 @@ non-nullable type and no initializer expression, and the class has a generative 
 where the variable is not initialized via an initializing formal or an initializer list entry, 
 unless the variable is marked with the `late` modifier.
 
-It is an error if a mixin declaration declares an instance variable 
-with a potentially non-nullable type and no initializer expression 
+It is an error if a mixin declaration or a class declaration with no generative constructors
+declares an instance variable with a potentially non-nullable type and no initializer expression 
 unless the variable is marked with the `late` modifier.
 
 It is an error to derive a mixin from a class declaration which contains 
