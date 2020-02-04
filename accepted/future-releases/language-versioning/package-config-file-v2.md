@@ -136,7 +136,7 @@ Tools currently allow you to specify the `.packages` file with a command line ar
 
 This approach will work with the JSON configuration file as well. The tool must scan the file to detect whether it is a JSON file or an original `.packages` file. It is considered a JSON file if the first non-whitespace (space, tab, carriage return, linefeed) character is a `{`. The JSON file must start this way, and the existing format cannot do so; it must start with either a comment, `#`, or a non-empty package name, and package names cannot contain a `{` character.
 
-Tools *should* look for a `.dart_tool/package_config.json` relative to the specified file if that file turns out to be a `.packages` file.
+Tools *must* look for a `.dart_tool/package_config.json` relative to the specified file if that file turns out to be a `.packages` file.
 
 ## Possible Extensions
 
