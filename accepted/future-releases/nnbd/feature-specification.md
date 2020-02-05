@@ -470,7 +470,7 @@ would have been substituted.
 
 ### Const type variable elimination
 
-If performing inference on a const value of a generic class results results in
+If performing inference on a const value of a generic class results in
 inferred type arguments to the generic class which contain free type variables
 from an enclosing generic class or method, the free type variables shall be
 eliminated by taking the least closure of the inferred type with respect to the
