@@ -178,7 +178,7 @@ We write `S <: T` to mean that the type `S` is a subtype of `T` according to the
 rules specified there.
 
 
-We define `LEGACY_SUBTYPE(S, T)` to be true if `S` would be a subtype of `T`
+We define `LEGACY_SUBTYPE(S, T)` to be true iff `S` would be a subtype of `T`
 in a modification of the rules above in which all `?` on types were ignored, `*`
 was added to each type, and `required` parameters were treated as optional.
 This has the effect of treating `Never` as equivalent to `Null`, restoring
@@ -204,7 +204,7 @@ representation for otherwise equivalent
 types
 [here](https://github.com/dart-lang/language/blob/master/resources/type-system/normalization.md).
 This defines a procedure **NORM(`T`)** such that **NORM(`T`)** is syntactically
-equal to **NORM(`S`)** modulo replacement of primitive top types if `S <: T`
+equal to **NORM(`S`)** modulo replacement of primitive top types iff `S <: T`
 and `T <: S`.
 
 ### Future flattening
@@ -795,7 +795,7 @@ continuation.
 ### Late fields and variables
 
 A non-local `late` variable declaration _D_ implicitly induces a getter
-into the enclosing scope.  It also induces an implicit setter if one of the
+into the enclosing scope.  It also induces an implicit setter iff one of the
 following conditions is satisfied:
 
   - _D_ is non-final.
