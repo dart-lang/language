@@ -31,6 +31,9 @@
 %   'class declaration' everywhere, so `<classDefinition>` is inconsistent).
 % - Clarify that <libraryDeclaration> and <partDeclaration> are the
 %   start symbols of the grammar.
+% - Clarify the notion of being 'noSuchMethod forwarded': `m` is indeed
+%   noSuchMethod forwarded if an implementation of `m` is inherited, but
+%   it does not have the required signature.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -2380,9 +2383,12 @@ one of the following is true:
 
 \begin{itemize}
 \item $C$ has a non-trivial \code{noSuchMethod},
-  the interface of $C$ contains $m$,
-  and $C$ has no concrete declaration of $m$
-  (\commentary{that is, no member $m$ is declared or inherited by $C$}).
+  the interface of $C$ contains a member signature $s$ named $m$,
+  and $C$ has no concrete declaration named $m$ that correctly overrides $s$
+  (\commentary{%
+    that is, no member named $m$ is declared or inherited by $C$,
+    or one is inherited, but it does not have the required signature%
+  }).
 \item
   % Inaccessible private methods are not present in the interface of a class,
   % so we need to find a class that can access $m$.
@@ -2450,8 +2456,8 @@ because compilers control the treatment of private names.
 
 \LMHash{}%
 It is a compile-time error if a concrete class $C$ has
-a \code{noSuchMethod} forwarded method signature $S$
-for a method named $m$,
+a \code{noSuchMethod} forwarded member signature $S$
+for a member named $m$,
 and a superclass of $C$ has an accessible concrete declaration of $m$
 which is not a \code{noSuchMethod} forwarder.
 
