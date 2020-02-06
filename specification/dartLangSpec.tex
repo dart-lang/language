@@ -2404,16 +2404,18 @@ one of the following is true:
 \end{itemize}
 
 \LMHash{}%
+For a concrete class $C$, a
+\IndexCustom{noSuchMethod forwarder}{noSuchMethod forwarder}
+is implicitly induced for each member $m$ which is noSuchMethod forwarded.
+
+\LMHash{}%
 It is a compile-time error if a concrete class $C$ has
 an unimplemented member named $m$ with signature $S$,
 and a superclass of $C$ has an accessible concrete declaration of $m$
-which is not a \code{noSuchMethod} forwarder.
+which is not a noSuchMethod forwarder.
 
 \LMHash{}%
-For a concrete class $C$, a
-\IndexCustom{\code{noSuchMethod} forwarder}{noSuchMethod forwarder}
-is implicitly induced for each member $m$ which is noSuchMethod forwarded.
-This is a concrete member of $C$
+A noSuchMethod forwarder is a concrete member of $C$
 with the signature taken from the interface of $C$ respectively $D$ above,
 and with the same default value for each optional parameter.
 It can be invoked in an ordinary invocation and in a superinvocation,
