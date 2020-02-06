@@ -57,9 +57,9 @@ It does so by:
 
 ### Package Default Language Version
 
-A language tool (like a compiler or analyzer) needs to derive this information for *all* packages available to the program it is processing. To this end, we record a language version for each available package in the new [`dart_tool/package_config.json`](https://github.com/dart-lang/language/blob/master/accepted/future-releases/language-versioning/package-config-file-v2.md) file (which replaces `.packages` as the package configuration file), and this language version is used to define the *default* language version for all libraries in that package. Each individual library can override the default language version if necessary.
+A language tool (like a compiler or analyzer) needs to derive this information for *all* packages available to the program it is processing. To this end, we record a language version for each available package in the new [`.dart_tool/package_config.json`](https://github.com/dart-lang/language/blob/master/accepted/future-releases/language-versioning/package-config-file-v2.md) file (which replaces `.packages` as the package configuration file), and this language version is used to define the *default* language version for all libraries in that package. Each individual library can override the default language version if necessary.
 
-The `dart_tool/package_config.json` file is a JSON formatted text file which declares a number of named packages with a root and a package URI root directory for each. The SDK version for a specific package is added as an extra `languageVersion` property on the JSON object for the package.  The package configuration file is generated automatically by the `pub` tool as documented in the file’s specification.
+The `.dart_tool/package_config.json` file is a JSON formatted text file which declares a number of named packages with a root and a package URI root directory for each. The SDK version for a specific package is added as an extra `languageVersion` property on the JSON object for the package.  The package configuration file is generated automatically by the `pub` tool as documented in the file’s specification.
 
 Example package entry:
 
@@ -80,7 +80,7 @@ Tools will not have a language default version available for the current package
 
 ### Package Library Language Version
 
-The *default* language version of a Dart library is the default language version of the package that the library belongs to. If the library does not belong to a package, it has no default version. Which package a file belongs to is defined by the `dart_tool/package_config.json` file.
+The *default* language version of a Dart library is the default language version of the package that the library belongs to. If the library does not belong to a package, it has no default version. Which package a file belongs to is defined by the `.dart_tool/package_config.json` file.
 
 The package configuration file assigns both a root directory and a package URI root directory to a package, where the latter must be contained in the former. The package configuration specification states how these directories may overlap, and the package configuration is used to associate each file to at most one package. A file belongs to a package if its path is inside the package’s declared root directory and not inside any nested package’s root directory. A file with a `package:packageName/…` URI belongs to the package with name `packageName`. *(This is effectively the same as resolving the package URI to a file URI and then figuring out which package that file URI belongs to.)*
 
