@@ -2376,9 +2376,10 @@ where only the null object is accepted:
 \end{dartCode}
 
 \LMHash{}%
-Let $C$ be a concrete class and
-let $L$ be the library that contains the declaration of $C$.
-The member $m$ is \Index{noSuchMethod forwarded} in $C$ if{}f
+Let $C$ be a concrete class,
+let $L$ be the library that contains the declaration of $C$,
+and let $m$ be a name.
+Then $m$ is \Index{noSuchMethod forwarded} in $C$ if{}f
 one of the following is true:
 
 \begin{itemize}
@@ -2393,22 +2394,22 @@ one of the following is true:
 \item
   \textbf{Forced by privacy:}
   There exists a direct or indirect superinterface
-  $D$ of $C$ which is declared in the library $L_2$,
-  the interface of $D$ contains $m$
-  (\commentary{which implies that $m$ is accessible to $L_2$}),
-  $m$ is inaccessible to $L$,
+  $D$ of $C$ which is declared in a library $L_2$ different from $L$,
+  the interface of $D$ contains a member signature $S$ named $m$,
+  $m$ is a private name,
   and no superclass of $C$ has
-  a concrete member of $m$ accessible to $L_2$.
+  a concrete member named $m$ accessible to $L_2$
+  that correctly overrides $S$.
 \end{itemize}
 
 \LMHash{}%
 For a concrete class $C$, a
-\IndexCustom{noSuchMethod forwarder}{noSuchMethod forwarder}
+\Index{noSuchMethod forwarder}
 is implicitly induced for each member $m$ which is noSuchMethod forwarded.
 
 \LMHash{}%
 It is a compile-time error if a concrete class $C$ has
-an noSuchMethod forwarded member named $m$ with signature $S$,
+a noSuchMethod forwarded member named $m$ with signature $S$,
 and a superclass of $C$ has an accessible concrete declaration of $m$
 which is not a noSuchMethod forwarder.
 
