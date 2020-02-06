@@ -2382,9 +2382,10 @@ The member $m$ is \Index{noSuchMethod forwarded} in $C$ if{}f
 one of the following is true:
 
 \begin{itemize}
-\item $C$ has a non-trivial \code{noSuchMethod},
-  the interface of $C$ contains a member signature $s$ named $m$,
-  and $C$ has no concrete declaration named $m$ that correctly overrides $s$
+\item \textbf{Requested in program:}
+  $C$ has a non-trivial \code{noSuchMethod},
+  the interface of $C$ contains a member signature $S$ named $m$,
+  and $C$ has no concrete member named $m$ that correctly overrides $S$
   (\commentary{%
     that is, no member named $m$ is declared or inherited by $C$,
     or one is inherited, but it does not have the required signature%
@@ -2392,20 +2393,26 @@ one of the following is true:
 \item
   % Inaccessible private methods are not present in the interface of a class,
   % so we need to find a class that can access $m$.
+  \textbf{Forced by privacy:}
   There exists a direct or indirect superinterface
   $D$ of $C$ which is declared in the library $L_2$,
   the interface of $D$ contains $m$
   (\commentary{which implies that $m$ is accessible to $L_2$}),
   $m$ is inaccessible to $L$,
   and no superclass of $C$ has
-  a concrete declaration of $m$ accessible to $L_2$.
+  a concrete member of $m$ accessible to $L_2$.
 \end{itemize}
+
+\LMHash{}%
+It is a compile-time error if a concrete class $C$ has
+an unimplemented member named $m$ with signature $S$,
+and a superclass of $C$ has an accessible concrete declaration of $m$
+which is not a \code{noSuchMethod} forwarder.
 
 \LMHash{}%
 For a concrete class $C$, a
 \IndexCustom{\code{noSuchMethod} forwarder}{noSuchMethod forwarder}
-is implicitly induced for each member $m$
-which is noSuchMethod forwarded.
+is implicitly induced for each member $m$ which is noSuchMethod forwarded.
 This is a concrete member of $C$
 with the signature taken from the interface of $C$ respectively $D$ above,
 and with the same default value for each optional parameter.
@@ -2415,55 +2422,11 @@ and when $m$ is a method it can be closurized
 using a property extraction
 (\ref{propertyExtraction}).
 
-\commentary{
-This implies that a \code{noSuchMethod} forwarder has the same
-properties as an explicitly declared concrete member,
-except of course that a \code{noSuchMethod} forwarder
-does not prevent itself from being induced.
-We do not specify the body of a \code{noSuchMethod} forwarder,
-but it will invoke \code{noSuchMethod},
-and we specify the dynamic semantics of executing it below.
-}
-
-\commentary{
-At the beginning of this section we mentioned that implicit invocations
-of \code{noSuchMethod} can only occur
-with a receiver of static type \DYNAMIC{}
-or a function of static type \DYNAMIC{} or \FUNCTION{}.
-With a \code{noSuchMethod} forwarder,
-\code{noSuchMethod} can also be invoked
-on a receiver whose static type is not \DYNAMIC{}.
-No similar situation exists for functions,
-because it is impossible to induce a \code{noSuchMethod} forwarder
-into the class of a function object.
-}
-
-\commentary{
-For a concrete class $C$,
-we may think of a non-trivial \code{noSuchMethod}
-(declared in or inherited by $C$)
-as a request for ``automatic implementation'' of all unimplemented members
-in the interface of $C$ as \code{noSuchMethod} forwarders.
-Similarly, there is an implicit request for
-automatic implementation of all unimplemented
-inaccessible members of any concrete class,
-whether or not there is a non-trivial \code{noSuchMethod}.
-Note that the latter cannot be written explicitly in Dart,
-because their names are inaccessible;
-but the language can still specify that they are induced implicitly,
-because compilers control the treatment of private names.
-}
-
-\LMHash{}%
-It is a compile-time error if a concrete class $C$ has
-a \code{noSuchMethod} forwarded member signature $S$
-for a member named $m$,
-and a superclass of $C$ has an accessible concrete declaration of $m$
-which is not a \code{noSuchMethod} forwarder.
-
-\commentary{
-This can only happen if that concrete declaration does not
-correctly override $S$. Consider the following example:
+\commentary{%
+The error concerned with an implictly induced forwarder
+that would override a human-written declaration
+can only occur if that concrete declaration does not
+correctly override $S$. Consider the following example:%
 }
 
 \begin{dartCode}
@@ -2506,6 +2469,45 @@ It is no problem, however,
 to let a \code{noSuchMethod} forwarder override
 another \code{noSuchMethod} forwarder,
 and hence there is no error in that situation.
+}
+
+\commentary{
+This implies that a \code{noSuchMethod} forwarder has the same
+properties as an explicitly declared concrete member,
+except of course that a \code{noSuchMethod} forwarder
+does not prevent itself from being induced.
+We do not specify the body of a \code{noSuchMethod} forwarder,
+but it will invoke \code{noSuchMethod},
+and we specify the dynamic semantics of executing it below.
+}
+
+\commentary{
+At the beginning of this section we mentioned that implicit invocations
+of \code{noSuchMethod} can only occur
+with a receiver of static type \DYNAMIC{}
+or a function of static type \DYNAMIC{} or \FUNCTION{}.
+With a \code{noSuchMethod} forwarder,
+\code{noSuchMethod} can also be invoked
+on a receiver whose static type is not \DYNAMIC{}.
+No similar situation exists for functions,
+because it is impossible to induce a \code{noSuchMethod} forwarder
+into the class of a function object.
+}
+
+\commentary{
+For a concrete class $C$,
+we may think of a non-trivial \code{noSuchMethod}
+(declared in or inherited by $C$)
+as a request for ``automatic implementation'' of all unimplemented members
+in the interface of $C$ as \code{noSuchMethod} forwarders.
+Similarly, there is an implicit request for
+automatic implementation of all unimplemented
+inaccessible members of any concrete class,
+whether or not there is a non-trivial \code{noSuchMethod}.
+Note that the latter cannot be written explicitly in Dart,
+because their names are inaccessible;
+but the language can still specify that they are induced implicitly,
+because compilers control the treatment of private names.
 }
 
 \LMHash{}%
