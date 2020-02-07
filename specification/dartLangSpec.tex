@@ -31,6 +31,9 @@
 %   'class declaration' everywhere, so `<classDefinition>` is inconsistent).
 % - Clarify that <libraryDeclaration> and <partDeclaration> are the
 %   start symbols of the grammar.
+% - Clarify the notion of being 'noSuchMethod forwarded': `m` is indeed
+%   noSuchMethod forwarded if an implementation of `m` is inherited, but
+%   it does not have the required signature.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -2373,35 +2376,53 @@ where only the null object is accepted:
 \end{dartCode}
 
 \LMHash{}%
-Let $C$ be a concrete class and
-let $L$ be the library that contains the declaration of $C$.
-The member $m$ is \Index{noSuchMethod forwarded} in $C$ if{}f
+Let $C$ be a concrete class,
+let $L$ be the library that contains the declaration of $C$,
+and let $m$ be a name.
+Then $m$ is \Index{noSuchMethod forwarded} in $C$ if{}f
 one of the following is true:
 
 \begin{itemize}
-\item $C$ has a non-trivial \code{noSuchMethod},
-  the interface of $C$ contains $m$,
-  and $C$ has no concrete declaration of $m$
-  (\commentary{that is, no member $m$ is declared or inherited by $C$}).
+\item \textbf{Requested in program:}
+  $C$ has a non-trivial \code{noSuchMethod},
+  the interface of $C$ contains a member signature $S$ named $m$,
+  and $C$ has no concrete member named $m$ and accessible to $L$
+  that correctly overrides $S$
+  (\commentary{%
+    that is, no member named $m$ is declared or inherited by $C$,
+    or one is inherited, but it does not have the required signature%
+  }).
+  In this case we also say that $S$ is noSuchMethod forwarded.
 \item
-  % Inaccessible private methods are not present in the interface of a class,
-  % so we need to find a class that can access $m$.
+  \textbf{Forced by privacy:}
   There exists a direct or indirect superinterface
-  $D$ of $C$ which is declared in the library $L_2$,
-  the interface of $D$ contains $m$
-  (\commentary{which implies that $m$ is accessible to $L_2$}),
-  $m$ is inaccessible to $L$,
+  $D$ of $C$ which is declared in a library $L_2$ different from $L$,
+  the interface of $D$ contains a member signature $S$ named $m$,
+  $m$ is a private name,
   and no superclass of $C$ has
-  a concrete declaration of $m$ accessible to $L_2$.
+  a concrete member named $m$ accessible to $L_2$
+  that correctly overrides $S$.
+  In this case we also say that $S$ is noSuchMethod forwarded.
 \end{itemize}
 
 \LMHash{}%
 For a concrete class $C$, a
-\IndexCustom{\code{noSuchMethod} forwarder}{noSuchMethod forwarder}
-is implicitly induced for each member $m$
+\Index{noSuchMethod forwarder}
+is implicitly induced for each member signature
 which is noSuchMethod forwarded.
-This is a concrete member of $C$
-with the signature taken from the interface of $C$ respectively $D$ above,
+
+\LMHash{}%
+It is a compile-time error if the name $m$ is noSuchMethod forwarded
+in a concrete class $C$,
+and a superclass of $C$ has an accessible concrete declaration of $m$
+which is not a noSuchMethod forwarder.
+
+\LMHash{}%
+%% TODO(eernst): We used to say 'the interface of $C$ or $D$'; but we
+%% need to change 'accessible' to a scheme similar to name-merging everywhere
+%% in order to be able to say this precisely.
+A noSuchMethod forwarder is a concrete member of $C$
+with the signature taken from the interface of $C$,
 and with the same default value for each optional parameter.
 It can be invoked in an ordinary invocation and in a superinvocation,
 and when $m$ is a method it can be closurized
@@ -2409,11 +2430,60 @@ and when $m$ is a method it can be closurized
 using a property extraction
 (\ref{propertyExtraction}).
 
+\commentary{%
+The error concerned with an implictly induced forwarder
+that would override a human-written declaration
+can only occur if that concrete declaration does not
+correctly override $S$. Consider the following example:%
+}
+
+\begin{dartCode}
+\CLASS{} A \{
+  foo(int i) => \NULL;
+\}
+
+\ABSTRACT{} \CLASS{} B \{
+  foo([int i]);
+\}
+
+\CLASS{} C \EXTENDS{} A \IMPLEMENTS{} B \{
+  noSuchMethod(Invocation i) => ...;
+  // Error: noSuchMethod forwarder cannot override `A.foo`.
+\}
+\end{dartCode}
+
+\commentary{
+In this example,
+an implementation with signature \code{foo(int i)} is inherited by \code{C},
+and the superinterface \code{B} declares
+the signature \code{foo([int i])}.
+This is a compile-time error because \code{C} does not have
+a method implementation with signature \code{foo([int])}.
+We do not wish to implicitly induce
+a \code{noSuchMethod} forwarder with signature \code{foo([int])}
+because it would override \code{A.foo},
+and that is likely to be highly confusing for developers.
+%
+In particular, it would cause an invocation like \code{C().foo(42)}
+to invoke \code{noSuchMethod},
+even though that is an invocation which is correct for
+the declaration of \code{foo} in \code{A}.
+%
+Hence, we require developers to explicitly resolve the conflict
+whenever an implicitly induced \code{noSuchMethod} forwarder
+would override an explicitly declared inherited implementation.
+%
+It is no problem, however,
+to let a \code{noSuchMethod} forwarder override
+another \code{noSuchMethod} forwarder,
+and hence there is no error in that situation.
+}
+
 \commentary{
 This implies that a \code{noSuchMethod} forwarder has the same
 properties as an explicitly declared concrete member,
 except of course that a \code{noSuchMethod} forwarder
-does not prevent itself from being induced.
+does not prevent itself or another noSuchMethod forwarder from being induced.
 We do not specify the body of a \code{noSuchMethod} forwarder,
 but it will invoke \code{noSuchMethod},
 and we specify the dynamic semantics of executing it below.
@@ -2446,60 +2516,6 @@ Note that the latter cannot be written explicitly in Dart,
 because their names are inaccessible;
 but the language can still specify that they are induced implicitly,
 because compilers control the treatment of private names.
-}
-
-\LMHash{}%
-It is a compile-time error if a concrete class $C$ has
-a \code{noSuchMethod} forwarded method signature $S$
-for a method named $m$,
-and a superclass of $C$ has an accessible concrete declaration of $m$
-which is not a \code{noSuchMethod} forwarder.
-
-\commentary{
-This can only happen if that concrete declaration does not
-correctly override $S$. Consider the following example:
-}
-
-\begin{dartCode}
-\CLASS{} A \{
-  foo(int i) => \NULL;
-\}
-
-\ABSTRACT{} \CLASS{} B \{
-  foo([int i]);
-\}
-
-\CLASS{} C \EXTENDS{} A \IMPLEMENTS{} B \{
-  noSuchMethod(Invocation i) => ...;
-  // Error: Forwarder would override `A.foo`.
-\}
-\end{dartCode}
-
-\commentary{
-In this example,
-an implementation with signature \code{foo(int i)} is inherited by \code{C},
-and the superinterface \code{B} declares
-the signature \code{foo([int i])}.
-This is a compile-time error because \code{C} does not have
-a method implementation with signature \code{foo([int])}.
-We do not wish to implicitly induce
-a \code{noSuchMethod} forwarder with signature \code{foo([int])}
-because it would override \code{A.foo},
-and that is likely to be highly confusing for developers.
-%
-In particular, it would cause an invocation like \code{C().foo(42)}
-to invoke \code{noSuchMethod},
-even though that is an invocation which is correct for
-the declaration of \code{foo} in \code{A}.
-%
-Hence, we require developers to explicitly resolve the conflict
-whenever an implicitly induced \code{noSuchMethod} forwarder
-would override an explicitly declared inherited implementation.
-%
-It is no problem, however,
-to let a \code{noSuchMethod} forwarder override
-another \code{noSuchMethod} forwarder,
-and hence there is no error in that situation.
 }
 
 \LMHash{}%
