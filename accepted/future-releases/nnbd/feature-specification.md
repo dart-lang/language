@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.02.07
+  - Adjust `NNBD_TOP_MERGE` such that `void` doesn't prevail over `Object?`
+    and `dynamic`.
+
 2020.01.31
   - Specify that mixins must not have uninitialized potentially non-nullable 
     non-late fields, and nor must classes with no generative constructors.
@@ -1064,13 +1068,13 @@ as:
  - `NNBD_TOP_MERGE(Object?, Object?)  = Object?`
  - `NNBD_TOP_MERGE(dynamic, dynamic)  = dynamic`
  - `NNBD_TOP_MERGE(void, void)  = void`
- - `NNBD_TOP_MERGE(Object?, void)  = void`
+ - `NNBD_TOP_MERGE(Object?, void)  = Object?`
    - And the reverse
- - `NNBD_TOP_MERGE(dynamic, void)  = void`
+ - `NNBD_TOP_MERGE(dynamic, void)  = dynamic`
    - And the reverse
  - `NNBD_TOP_MERGE(Object?, dynamic)  = Object?`
    - And the reverse
- - `NNBD_TOP_MERGE(Object*, void)  = void`
+ - `NNBD_TOP_MERGE(Object*, void)  = Object?`
    - And the reverse
  - `NNBD_TOP_MERGE(Object*, dynamic)  = Object?`
    - And the reverse
