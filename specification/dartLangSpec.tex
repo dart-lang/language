@@ -2392,6 +2392,7 @@ one of the following is true:
     that is, no member named $m$ is declared or inherited by $C$,
     or one is inherited, but it does not have the required signature%
   }).
+  In this case we also say that $S$ is noSuchMethod forwarded.
 \item
   \textbf{Forced by privacy:}
   There exists a direct or indirect superinterface
@@ -2401,16 +2402,18 @@ one of the following is true:
   and no superclass of $C$ has
   a concrete member named $m$ accessible to $L_2$
   that correctly overrides $S$.
+  In this case we also say that $S$ is noSuchMethod forwarded.
 \end{itemize}
 
 \LMHash{}%
 For a concrete class $C$, a
 \Index{noSuchMethod forwarder}
-is implicitly induced for each member $m$ which is noSuchMethod forwarded.
+is implicitly induced for each member signature
+which is noSuchMethod forwarded.
 
 \LMHash{}%
-It is a compile-time error if a concrete class $C$ has
-a noSuchMethod forwarded member named $m$ with signature $S$,
+It is a compile-time error if the name $m$ is noSuchMethod forwarded
+in a concrete class $C$,
 and a superclass of $C$ has an accessible concrete declaration of $m$
 which is not a noSuchMethod forwarder.
 
@@ -2442,7 +2445,7 @@ correctly override $S$. Consider the following example:%
 
 \CLASS{} C \EXTENDS{} A \IMPLEMENTS{} B \{
   noSuchMethod(Invocation i) => ...;
-  // Error: Forwarder would override `A.foo`.
+  // Error: noSuchMethod forwarder cannot override `A.foo`.
 \}
 \end{dartCode}
 
