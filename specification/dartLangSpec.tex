@@ -2386,7 +2386,8 @@ one of the following is true:
 \item \textbf{Requested in program:}
   $C$ has a non-trivial \code{noSuchMethod},
   the interface of $C$ contains a member signature $S$ named $m$,
-  and $C$ has no concrete member named $m$ that correctly overrides $S$
+  and $C$ has no concrete member named $m$ and accessible to $L$
+  that correctly overrides $S$
   (\commentary{%
     that is, no member named $m$ is declared or inherited by $C$,
     or one is inherited, but it does not have the required signature%
