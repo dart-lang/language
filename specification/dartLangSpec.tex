@@ -2418,8 +2418,11 @@ and a superclass of $C$ has an accessible concrete declaration of $m$
 which is not a noSuchMethod forwarder.
 
 \LMHash{}%
+%% TODO(eernst): We used to say 'the interface of $C$ or $D$'; but we
+%% need to change 'accessible' to a scheme similar to name-merging everywhere
+%% in order to be able to say this precisely.
 A noSuchMethod forwarder is a concrete member of $C$
-with the signature taken from the interface of $C$ respectively $D$ above,
+with the signature taken from the interface of $C$,
 and with the same default value for each optional parameter.
 It can be invoked in an ordinary invocation and in a superinvocation,
 and when $m$ is a method it can be closurized
@@ -2480,7 +2483,7 @@ and hence there is no error in that situation.
 This implies that a \code{noSuchMethod} forwarder has the same
 properties as an explicitly declared concrete member,
 except of course that a \code{noSuchMethod} forwarder
-does not prevent itself from being induced.
+does not prevent itself or another noSuchMethod forwarder from being induced.
 We do not specify the body of a \code{noSuchMethod} forwarder,
 but it will invoke \code{noSuchMethod},
 and we specify the dynamic semantics of executing it below.
