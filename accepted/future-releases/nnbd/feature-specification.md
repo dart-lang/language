@@ -914,7 +914,6 @@ viewed by the legacy library with nullability related features erased from their
 APIs.  In particular:
   - All types of the form `T?` in the opted-in API are treated as `T`.
   - All required named parameters are treated as optional named parameters.
-  - The type `Never` is treated as the type `Null`
 
 In a legacy library, none of the new syntax introduced by this proposal is
 available, and it is a static error if it is used.
