@@ -34,6 +34,8 @@
 % - Clarify the notion of being 'noSuchMethod forwarded': `m` is indeed
 %   noSuchMethod forwarded if an implementation of `m` is inherited, but
 %   it does not have the required signature.
+% - Clarify static checks on `yield` and `yield*` to explicitly ensure that
+%   assignability is enforced per element.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -15646,17 +15648,24 @@ The current call to \code{moveNext()} returns \TRUE.
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error if a yield statement appears in a function that is not a generator function.
+It is a compile-time error if a yield statement appears in
+a function that is not a generator function.
 
 \LMHash{}%
-Let $T$ be the static type of $e$ and let $f$ be the immediately enclosing function.
-It is a compile-time error if either:
-\begin{itemize}
-\item
-the body of $f$ is marked \code{\ASYNC*} and the type \code{Stream<T>} may not be assigned to the declared return type of $f$.
-\item
-the body of $f$ is marked \code{\SYNC*} and the type \code{Iterable<T>} may not be assigned to the declared return type of $f$.
-\end{itemize}
+Let $T_e$ be the static type of $e$ and
+let $f$ be the immediately enclosing function.
+\commentary{Let $T_f$ specify the type of elements that $f$ yields:}
+If the body of $f$ is marked \code{\ASYNC*} and
+the declared return type of $f$ implements \code{Stream<$U$>} for some $U$
+(\ref{interfaceSuperinterfaces})
+then let $T_f$ be $U$.
+Otherwise, if the body of $f$ is marked \code{\SYNC*} and
+the declared return type of $f$ implements \code{Iterable<$U$>} for some $U$
+then let $T_f$ be $U$.
+% $f$ is a generator function, so the return type must be a supertype of
+% `Iterable<U>`/`Stream<U>` for some `U`, so here it can only be a top type.
+Otherwise let $T_f$ be \DYNAMIC.
+It is a compile-time error if $T_e$ may not be assigned to $T_f$.
 
 
 \subsubsection{Yield-Each}
@@ -15747,14 +15756,36 @@ It is a compile-time error if a yield-each statement appears
 in a function that is not a generator function.
 
 \LMHash{}%
-Let $T$ be the static type of $e$ and let $f$ be
-the immediately enclosing function.
-It is a compile-time error if $T$ may not be assigned to
-the declared return type of $f$.
-If $f$ is synchronous it is a compile-time error
-if $T$ may not be assigned to \code{Iterable}.
-If $f$ is asynchronous it is a compile-time error
-if $T$ may not be assigned to \code{Stream}.
+Let $T$ be the static type of $e$ and
+let $f$ be the immediately enclosing function.
+
+\LMHash{}%
+\commentary{Let $T_e$ specify the type of elements that $e$ provides:}
+If the body of $f$ is marked \code{\ASYNC*} and
+$T$ implements \code{Stream<$U$>} for some $U$
+(\ref{interfaceSuperinterfaces})
+then let $T_e$ be $U$.
+Otherwise, if the body of $f$ is marked \code{\SYNC*} and
+$T$ implements \code{Iterable<$U$>} for some $U$
+then let $T_e$ be $U$.
+%% TODO(eernst): Come nnbd, change 'a top type' to \DYNAMIC{}.
+Otherwise if $T$ is a top type then let $T_e$ be \DYNAMIC.
+Otherwise a compile-time error occurs.
+
+\LMHash{}%
+\commentary{Let $T_f$ specify the type of elements that $f$ yields:}
+If the body of $f$ is marked \code{\ASYNC*} and
+the declared return type of $f$ implements \code{Stream<$U$>} for some $U$
+then let $T_f$ be $U$.
+Otherwise, if the body of $f$ is marked \code{\SYNC*} and
+the declared return type of $f$ implements \code{Iterable<$U$>} for some $U$
+then let $T_f$ be $U$.
+% $f$ is a generator function, so the return type must be a supertype of
+% `Iterable<U>`/`Stream<U>` for some `U`, so here it can only be a top type.
+Otherwise let $T_f$ be \DYNAMIC.
+
+\LMHash{}%
+It is a compile-time error if $T_e$ may not be assigned to $T_f$.
 
 
 \subsection{Assert}
