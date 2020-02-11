@@ -1358,6 +1358,39 @@ It is a compile-time error if the declared return type of a function marked \ASY
 It is a compile-time error if the declared return type of a function marked \code{\SYNC*} is not a supertype of \code{Iterable<$T$>} for some type $T$.
 It is a compile-time error if the declared return type of a function marked \code{\ASYNC*} is not a supertype of \code{Stream<$T$>} for some type $T$.
 
+\LMHash{}%
+We define the notion of the
+\IndexCustom{element type of a generator}{function!generator!element type}
+as follows:
+%
+If the function $f$ is a synchronous generator
+whose declared return type implements \code{Iterable<$U$>} for some $U$
+(\ref{interfaceSuperinterfaces})
+then the element type of $f$ is $U$.
+%
+If the function $f$ is an asynchronous generator
+whose declared return type implements \code{Stream<$U$>} for some $U$
+then the element type of $f$ is $U$.
+%
+Otherwise, if the function $f$ is a generator
+(\commentary{synchronous or asynchronous})
+then the element type of $f$ is \DYNAMIC.
+
+\commentary{%
+%% TODO(eernst): Come nnbd, change 'a top type' to \DYNAMIC.
+In the latter case the return type is a top type,
+because the declaration of $f$ would otherwise be a compile-time error.
+This implies that there is no information about
+the type of elements that the generator will yield.%
+}
+
+Let $f$ be with declared return type $T$.
+If $T$ implements \code{Iterable<$U$>} for some $U$
+(\ref{interfaceSuperinterfaces})
+then the element type of $f$ is $U$.
+
+
+
 
 \subsection{Function Declarations}
 \LMLabel{functionDeclarations}
@@ -15592,34 +15625,25 @@ Execution of a \CONTINUE{} statement \code{\CONTINUE{};} continues without a lab
 \LMLabel{yield}
 
 \LMHash{}%
-The \Index{yield statement} adds an element to the result of a generator function (\ref{functions}).
+The \Index{yield statement} adds an object to
+the result of a generator function
+(\ref{functions}).
 
 \begin{grammar}
 <yieldStatement> ::= \YIELD{} <expression> `;'
 \end{grammar}
 
 \LMHash{}%
-It is a compile-time error if a yield statement appears in
-a function that is not a generator function.
+Let $s$ be a yield statement of the form \code{\YIELD\,\,$e$;}.
+Let $f$ be the immediately enclosing function of $s$.
+It is a compile-time error if there is no such function,
+or it is not a generator.
+It is a compile-time error if the static type of $e$
+may not be assigned to the element type of $f$
+(\ref{functions}).
 
 \LMHash{}%
-Let $T_e$ be the static type of $e$ and
-let $f$ be the immediately enclosing function.
-\commentary{Let $T_f$ specify the type of elements that $f$ yields:}
-If the body of $f$ is marked \code{\ASYNC*} and
-the declared return type of $f$ implements \code{Stream<$U$>} for some $U$
-(\ref{interfaceSuperinterfaces})
-then let $T_f$ be $U$.
-Otherwise, if the body of $f$ is marked \code{\SYNC*} and
-the declared return type of $f$ implements \code{Iterable<$U$>} for some $U$
-then let $T_f$ be $U$.
-% $f$ is a generator function, so the return type must be a supertype of
-% `Iterable<U>`/`Stream<U>` for some `U`, so here it can only be a top type.
-Otherwise let $T_f$ be \DYNAMIC.
-It is a compile-time error if $T_e$ may not be assigned to $T_f$.
-
-\LMHash{}%
-Execution of a statement $s$ of the form \code{\YIELD{} $e$;}
+Execution of a statement $s$ of the form \code{\YIELD\,\,$e$;}
 proceeds as follows:
 
 \LMHash{}%
@@ -15697,8 +15721,8 @@ If the enclosing function $m$ is marked \code{\SYNC*} (\ref{functions}) then:
 \LMLabel{yieldEach}
 
 \LMHash{}%
-The \Index{yield-each statement} adds a series of objects
-to the result of a generator function
+The \Index{yield-each statement} adds a series of objects to
+the result of a generator function
 (\ref{functions}).
 
 \begin{grammar}
@@ -15706,49 +15730,37 @@ to the result of a generator function
 \end{grammar}
 
 \LMHash{}%
-It is a compile-time error if a yield-each statement appears
-in a function that is not a generator function.
+Let $s$ be a yield-each statement of the form \code{\YIELD*\,\,$e$;}.
+Let $f$ be the immediately enclosing function of $s$.
+It is a compile-time error if there is no such function,
+or it is not a generator.
 
 \LMHash{}%
-Let $T$ be the static type of $e$ and
-let $f$ be the immediately enclosing function.
-
-\LMHash{}%
-\commentary{Let $T_e$ specify the type of elements that $e$ provides:}
-If the body of $f$ is marked \code{\ASYNC*} and
-$T$ implements \code{Stream<$U$>} for some $U$
+Let $T_f$ be the element type of $f$
+(\ref{functions}),
+and let $T$ be the static type of $e$.
+If $f$ is a generator and
+$T$ implements \code{Iterable<$U$>} or \code{Stream<$U$>} for some $U$
 (\ref{interfaceSuperinterfaces})
 then let $T_e$ be $U$.
-Otherwise, if the body of $f$ is marked \code{\SYNC*} and
-$T$ implements \code{Iterable<$U$>} for some $U$
-then let $T_e$ be $U$.
-%% TODO(eernst): Come nnbd, change 'a top type' to \DYNAMIC{}.
-Otherwise if $T$ is a top type then let $T_e$ be \DYNAMIC.
+%% TODO(eernst): Come nnbd, change 'a top type or null' to \DYNAMIC{} or Never.
+Otherwise, if $T$ is a top type or the built-in type \code{Null}
+then let $T_e$ be \DYNAMIC.
 Otherwise a compile-time error occurs.
-
-\LMHash{}%
-\commentary{Let $T_f$ specify the type of elements that $f$ yields:}
-If the body of $f$ is marked \code{\ASYNC*} and
-the declared return type of $f$ implements \code{Stream<$U$>} for some $U$
-then let $T_f$ be $U$.
-Otherwise, if the body of $f$ is marked \code{\SYNC*} and
-the declared return type of $f$ implements \code{Iterable<$U$>} for some $U$
-then let $T_f$ be $U$.
-% $f$ is a generator function, so the return type must be a supertype of
-% `Iterable<U>`/`Stream<U>` for some `U`, so here it can only be a top type.
-Otherwise let $T_f$ be \DYNAMIC.
-
-\LMHash{}%
+\commentary{So $T_e$ is the type of elements that $e$ provides.}
 It is a compile-time error if $T_e$ may not be assigned to $T_f$.
 
 \LMHash{}%
-Execution of a statement $s$ of the form \code{\YIELD* $e$;} proceeds as follows:
+Execution of a statement $s$ of the form \code{\YIELD* $e$;}
+proceeds as follows:
 
 \LMHash{}%
 First, the expression $e$ is evaluated to an object $o$.
 
 \LMHash{}%
-If the immediately enclosing function $m$ is marked \code{\SYNC*} (\ref{functions}), then:
+If the immediately enclosing function $m$ is marked \code{\SYNC*}
+(\ref{functions}),
+then:
 \begin{enumerate}
 \item
   % This error can occur due to implicit casts.
@@ -15770,6 +15782,10 @@ If the immediately enclosing function $m$ is marked \code{\SYNC*} (\ref{function
   (\ref{statementCompletion}).
   Otherwise, the result $x$ of the getter invocation is added to
   the iterable associated with $m$.
+  \commentary{%
+    Note that a dynamic error occurs if the dynamic type of $x$ is
+    not a subtype of the element type of said iterable.%
+  }
   Execution of the function $m$ immediately enclosing $s$ is suspended
   until the nullary method \code{moveNext()} is invoked
   upon the iterator used to initiate the current invocation of $m$,
@@ -15792,22 +15808,27 @@ Otherwise
 \item
   The $o$ stream is listened to, creating a subscription $s$,
   and for each event $x$, or error $e$ with stack trace $t$, of $s$:
-\begin{itemize}
-\item
-  If the stream $u$ associated with $m$ has been paused,
-  then execution of $m$ is suspended until $u$ is resumed or canceled.
-\item
-  If the stream $u$ associated with $m$ has been canceled,
-  then $s$ is canceled by evaluating \code{\AWAIT{} v.cancel()}
-  where $v$ is a fresh variable referencing the stream subscription $s$.
-  Then, if the cancel completed normally,
-  the stream execution of $s$ returns without an object
-  (\ref{statementCompletion}).
-\item
-  Otherwise, $x$, or $e$ with $t$, are added to
-  the stream associated with $m$ in the order they appear in $o$.
-  The function $m$ may suspend.
-\end{itemize}
+  \begin{itemize}
+  \item
+    If the stream $u$ associated with $m$ has been paused,
+    then execution of $m$ is suspended until $u$ is resumed or canceled.
+  \item
+    If the stream $u$ associated with $m$ has been canceled,
+    then $s$ is canceled by evaluating \code{\AWAIT{} v.cancel()}
+    where $v$ is a fresh variable referencing the stream subscription $s$.
+    Then, if the cancel completed normally,
+    the stream execution of $s$ returns without an object
+    (\ref{statementCompletion}).
+  \item
+    Otherwise, $x$, or $e$ with $t$, are added to
+    the stream associated with $m$ in the order they appear in $o$.
+    \commentary{%
+      Note that a dynamic error occurs if $x$ is added
+      and the dynamic type of $x$ is not a subtype of
+      the element type of said stream.%
+    }
+    The function $m$ may suspend.
+  \end{itemize}
 \item
   If the stream $o$ is done, execution of $s$ completes normally.
 \end{itemize}
