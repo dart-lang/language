@@ -34,6 +34,8 @@
 % - Clarify the notion of being 'noSuchMethod forwarded': `m` is indeed
 %   noSuchMethod forwarded if an implementation of `m` is inherited, but
 %   it does not have the required signature.
+% - Clarify static checks on `yield` and `yield*` to explicitly ensure that
+%   assignability is enforced per element.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -1355,6 +1357,39 @@ This situation is very unusual so it is not worth making an exception to the gen
 It is a compile-time error if the declared return type of a function marked \ASYNC{} is not a supertype of \code{Future<$T$>} for some type $T$.
 It is a compile-time error if the declared return type of a function marked \code{\SYNC*} is not a supertype of \code{Iterable<$T$>} for some type $T$.
 It is a compile-time error if the declared return type of a function marked \code{\ASYNC*} is not a supertype of \code{Stream<$T$>} for some type $T$.
+
+\LMHash{}%
+We define the notion of the
+\IndexCustom{element type of a generator}{function!generator!element type}
+as follows:
+%
+If the function $f$ is a synchronous generator
+whose declared return type implements \code{Iterable<$U$>} for some $U$
+(\ref{interfaceSuperinterfaces})
+then the element type of $f$ is $U$.
+%
+If the function $f$ is an asynchronous generator
+whose declared return type implements \code{Stream<$U$>} for some $U$
+then the element type of $f$ is $U$.
+%
+Otherwise, if the function $f$ is a generator
+(\commentary{synchronous or asynchronous})
+then the element type of $f$ is \DYNAMIC.
+
+\commentary{%
+%% TODO(eernst): Come nnbd, change 'a top type' to \DYNAMIC.
+In the latter case the return type is a top type,
+because the declaration of $f$ would otherwise be a compile-time error.
+This implies that there is no information about
+the type of elements that the generator will yield.%
+}
+
+Let $f$ be with declared return type $T$.
+If $T$ implements \code{Iterable<$U$>} for some $U$
+(\ref{interfaceSuperinterfaces})
+then the element type of $f$ is $U$.
+
+
 
 
 \subsection{Function Declarations}
@@ -6336,7 +6371,7 @@ are the following:
   if $e_1$ and $e_2$ are constant expressions.
 
 \item
-  An expression of the form \code{$e_1$\,!=\,$e_2$} is 
+  An expression of the form \code{$e_1$\,!=\,$e_2$} is
   equivalent to \code{!($e_1$\,==\,$e_2$)} in every way,
   including whether it is potentially constant or constant.
 
@@ -15586,29 +15621,49 @@ Execution of a \CONTINUE{} statement \code{\CONTINUE{} $L$;} continues to the la
 Execution of a \CONTINUE{} statement \code{\CONTINUE{};} continues without a label (\ref{statementCompletion}).
 
 
-\subsection{Yield and Yield-Each}
-\LMLabel{yieldAndYieldEach}
-
-
-\subsubsection{Yield}
+\subsection{Yield}
 \LMLabel{yield}
 
 \LMHash{}%
-The \Index{yield statement} adds an element to the result of a generator function (\ref{functions}).
+The \Index{yield statement} adds an object to
+the result of a generator function
+(\ref{functions}).
 
 \begin{grammar}
 <yieldStatement> ::= \YIELD{} <expression> `;'
 \end{grammar}
 
 \LMHash{}%
-Execution of a statement $s$ of the form \code{\YIELD{} $e$;} proceeds as follows:
+Let $s$ be a yield statement of the form \code{\YIELD\,\,$e$;}.
+Let $f$ be the immediately enclosing function of $s$.
+It is a compile-time error if there is no such function,
+or it is not a generator.
+It is a compile-time error if the static type of $e$
+may not be assigned to the element type of $f$
+(\ref{functions}).
+
+\LMHash{}%
+Execution of a statement $s$ of the form \code{\YIELD\,\,$e$;}
+proceeds as follows:
 
 \LMHash{}%
 First, the expression $e$ is evaluated to an object $o$.
-If the enclosing function $m$ is marked \code{\ASYNC*} (\ref{functions}) and the stream $u$ associated with $m$ has been paused, then the nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}), if any, is paused and execution of $m$ is suspended until $u$ is resumed or canceled.
+If the enclosing function $m$ is marked \code{\ASYNC*}
+(\ref{functions})
+and the stream $u$ associated with $m$ has been paused,
+then the nearest enclosing asynchronous for loop
+(\ref{asynchronousFor-in}),
+if any, is paused and execution of $m$ is suspended
+until $u$ is resumed or canceled.
 
 \LMHash{}%
-Next, $o$ is added to the iterable or stream associated with the immediately enclosing function.
+Next, $o$ is added to the iterable or stream associated
+with the immediately enclosing function.
+
+\commentary{%
+Note that a dynamic error occurs if the dynamic type of $o$
+is not a subtype of the element type of said iterable or stream.%
+}
 
 \LMHash{}%
 If the enclosing function $m$ is marked \code{\ASYNC*}
@@ -15617,54 +15672,57 @@ then the \YIELD{} statement returns without an object
 (\ref{statementCompletion}),
 otherwise it completes normally.
 
-\rationale{
-The stream associated with an asynchronous generator could be canceled by any code with a reference to that stream at any point where the generator was passivated.
+\rationale{%
+The stream associated with an asynchronous generator could be canceled
+by any code with a reference to that stream at any point
+where the generator was passivated.
 Such a cancellation constitutes an irretrievable error for the generator.
-At this point, the only plausible action for the generator is to clean up after itself via its \FINALLY{} clauses.
+At this point, the only plausible action for the generator is
+to clean up after itself via its \FINALLY{} clauses.%
 }
 
 \LMHash{}%
-Otherwise, if the enclosing function $m$ is marked \code{\ASYNC*} (\ref{functions}) then the enclosing function may suspend, in which case the nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}), if any, is paused first.
+Otherwise, if the enclosing function $m$ is marked \code{\ASYNC*}
+(\ref{functions})
+then the enclosing function may suspend,
+in which case the nearest enclosing asynchronous for loop
+(\ref{asynchronousFor-in}),
+if any, is paused first.
 
-\rationale{
-If a \YIELD{} occurred inside an infinite loop and the enclosing function never suspended, there might not be an opportunity for consumers of the enclosing stream to run and access the data in the stream.
+\rationale{%
+If a \YIELD{} occurred inside an infinite loop
+and the enclosing function never suspended,
+there might not be an opportunity for consumers of the enclosing stream
+to run and access the data in the stream.
 The stream might then accumulate an unbounded number of elements.
 Such a situation is untenable.
-Therefore, we allow the enclosing function to be suspended when a new object is added to its associated stream.
-However, it is not essential (and in fact, can be quite costly) to suspend the function on every \YIELD{}.
-The implementation is free to decide how often to suspend the enclosing function.
-The only requirement is that consumers are not blocked indefinitely.
+Therefore, we allow the enclosing function to be suspended
+when a new object is added to its associated stream.
+However, it is not essential (and in fact, can be quite costly)
+to suspend the function on every \YIELD{}.
+The implementation is free to decide
+how often to suspend the enclosing function.
+The only requirement is that consumers are not blocked indefinitely.%
 }
 
 \LMHash{}%
 If the enclosing function $m$ is marked \code{\SYNC*} (\ref{functions}) then:
 \begin{itemize}
 \item
-Execution of the function $m$ immediately enclosing $s$ is suspended until the nullary method \code{moveNext()} is invoked upon the iterator used to initiate the current invocation of $m$.
+  Execution of the function $m$ immediately enclosing $s$ is suspended
+  until the nullary method \code{moveNext()} is invoked upon
+  the iterator used to initiate the current invocation of $m$.
 \item
-The current call to \code{moveNext()} returns \TRUE.
-\end{itemize}
-
-\LMHash{}%
-It is a compile-time error if a yield statement appears in a function that is not a generator function.
-
-\LMHash{}%
-Let $T$ be the static type of $e$ and let $f$ be the immediately enclosing function.
-It is a compile-time error if either:
-\begin{itemize}
-\item
-the body of $f$ is marked \code{\ASYNC*} and the type \code{Stream<T>} may not be assigned to the declared return type of $f$.
-\item
-the body of $f$ is marked \code{\SYNC*} and the type \code{Iterable<T>} may not be assigned to the declared return type of $f$.
+  The current call to \code{moveNext()} returns \TRUE.
 \end{itemize}
 
 
-\subsubsection{Yield-Each}
+\subsection{Yield-Each}
 \LMLabel{yieldEach}
 
 \LMHash{}%
-The \Index{yield-each statement} adds a series of objects
-to the result of a generator function
+The \Index{yield-each statement} adds a series of objects to
+the result of a generator function
 (\ref{functions}).
 
 \begin{grammar}
@@ -15672,13 +15730,37 @@ to the result of a generator function
 \end{grammar}
 
 \LMHash{}%
-Execution of a statement $s$ of the form \code{\YIELD* $e$;} proceeds as follows:
+Let $s$ be a yield-each statement of the form \code{\YIELD*\,\,$e$;}.
+Let $f$ be the immediately enclosing function of $s$.
+It is a compile-time error if there is no such function,
+or it is not a generator.
+
+\LMHash{}%
+Let $T_f$ be the element type of $f$
+(\ref{functions}),
+and let $T$ be the static type of $e$.
+If $f$ is a generator and
+$T$ implements \code{Iterable<$U$>} or \code{Stream<$U$>} for some $U$
+(\ref{interfaceSuperinterfaces})
+then let $T_e$ be $U$.
+%% TODO(eernst): Come nnbd, change 'a top type or null' to \DYNAMIC{} or Never.
+Otherwise, if $T$ is a top type or the built-in type \code{Null}
+then let $T_e$ be \DYNAMIC.
+Otherwise a compile-time error occurs.
+\commentary{So $T_e$ is the type of elements that $e$ provides.}
+It is a compile-time error if $T_e$ may not be assigned to $T_f$.
+
+\LMHash{}%
+Execution of a statement $s$ of the form \code{\YIELD* $e$;}
+proceeds as follows:
 
 \LMHash{}%
 First, the expression $e$ is evaluated to an object $o$.
 
 \LMHash{}%
-If the immediately enclosing function $m$ is marked \code{\SYNC*} (\ref{functions}), then:
+If the immediately enclosing function $m$ is marked \code{\SYNC*}
+(\ref{functions}),
+then:
 \begin{enumerate}
 \item
   % This error can occur due to implicit casts.
@@ -15700,6 +15782,10 @@ If the immediately enclosing function $m$ is marked \code{\SYNC*} (\ref{function
   (\ref{statementCompletion}).
   Otherwise, the result $x$ of the getter invocation is added to
   the iterable associated with $m$.
+  \commentary{%
+    Note that a dynamic error occurs if the dynamic type of $x$ is
+    not a subtype of the element type of said iterable.%
+  }
   Execution of the function $m$ immediately enclosing $s$ is suspended
   until the nullary method \code{moveNext()} is invoked
   upon the iterator used to initiate the current invocation of $m$,
@@ -15722,39 +15808,30 @@ Otherwise
 \item
   The $o$ stream is listened to, creating a subscription $s$,
   and for each event $x$, or error $e$ with stack trace $t$, of $s$:
-\begin{itemize}
-\item
-  If the stream $u$ associated with $m$ has been paused,
-  then execution of $m$ is suspended until $u$ is resumed or canceled.
-\item
-  If the stream $u$ associated with $m$ has been canceled,
-  then $s$ is canceled by evaluating \code{\AWAIT{} v.cancel()}
-  where $v$ is a fresh variable referencing the stream subscription $s$.
-  Then, if the cancel completed normally,
-  the stream execution of $s$ returns without an object
-  (\ref{statementCompletion}).
-\item
-  Otherwise, $x$, or $e$ with $t$, are added to
-  the stream associated with $m$ in the order they appear in $o$.
-  The function $m$ may suspend.
-\end{itemize}
+  \begin{itemize}
+  \item
+    If the stream $u$ associated with $m$ has been paused,
+    then execution of $m$ is suspended until $u$ is resumed or canceled.
+  \item
+    If the stream $u$ associated with $m$ has been canceled,
+    then $s$ is canceled by evaluating \code{\AWAIT{} v.cancel()}
+    where $v$ is a fresh variable referencing the stream subscription $s$.
+    Then, if the cancel completed normally,
+    the stream execution of $s$ returns without an object
+    (\ref{statementCompletion}).
+  \item
+    Otherwise, $x$, or $e$ with $t$, are added to
+    the stream associated with $m$ in the order they appear in $o$.
+    \commentary{%
+      Note that a dynamic error occurs if $x$ is added
+      and the dynamic type of $x$ is not a subtype of
+      the element type of said stream.%
+    }
+    The function $m$ may suspend.
+  \end{itemize}
 \item
   If the stream $o$ is done, execution of $s$ completes normally.
 \end{itemize}
-
-\LMHash{}%
-It is a compile-time error if a yield-each statement appears
-in a function that is not a generator function.
-
-\LMHash{}%
-Let $T$ be the static type of $e$ and let $f$ be
-the immediately enclosing function.
-It is a compile-time error if $T$ may not be assigned to
-the declared return type of $f$.
-If $f$ is synchronous it is a compile-time error
-if $T$ may not be assigned to \code{Iterable}.
-If $f$ is asynchronous it is a compile-time error
-if $T$ may not be assigned to \code{Stream}.
 
 
 \subsection{Assert}
