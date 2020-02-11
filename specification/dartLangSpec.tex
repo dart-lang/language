@@ -6338,7 +6338,7 @@ are the following:
   if $e_1$ and $e_2$ are constant expressions.
 
 \item
-  An expression of the form \code{$e_1$\,!=\,$e_2$} is 
+  An expression of the form \code{$e_1$\,!=\,$e_2$} is
   equivalent to \code{!($e_1$\,==\,$e_2$)} in every way,
   including whether it is potentially constant or constant.
 
@@ -15588,11 +15588,7 @@ Execution of a \CONTINUE{} statement \code{\CONTINUE{} $L$;} continues to the la
 Execution of a \CONTINUE{} statement \code{\CONTINUE{};} continues without a label (\ref{statementCompletion}).
 
 
-\subsection{Yield and Yield-Each}
-\LMLabel{yieldAndYieldEach}
-
-
-\subsubsection{Yield}
+\subsection{Yield}
 \LMLabel{yield}
 
 \LMHash{}%
@@ -15601,51 +15597,6 @@ The \Index{yield statement} adds an element to the result of a generator functio
 \begin{grammar}
 <yieldStatement> ::= \YIELD{} <expression> `;'
 \end{grammar}
-
-\LMHash{}%
-Execution of a statement $s$ of the form \code{\YIELD{} $e$;} proceeds as follows:
-
-\LMHash{}%
-First, the expression $e$ is evaluated to an object $o$.
-If the enclosing function $m$ is marked \code{\ASYNC*} (\ref{functions}) and the stream $u$ associated with $m$ has been paused, then the nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}), if any, is paused and execution of $m$ is suspended until $u$ is resumed or canceled.
-
-\LMHash{}%
-Next, $o$ is added to the iterable or stream associated with the immediately enclosing function.
-
-\LMHash{}%
-If the enclosing function $m$ is marked \code{\ASYNC*}
-and the stream $u$ associated with $m$ has been canceled,
-then the \YIELD{} statement returns without an object
-(\ref{statementCompletion}),
-otherwise it completes normally.
-
-\rationale{
-The stream associated with an asynchronous generator could be canceled by any code with a reference to that stream at any point where the generator was passivated.
-Such a cancellation constitutes an irretrievable error for the generator.
-At this point, the only plausible action for the generator is to clean up after itself via its \FINALLY{} clauses.
-}
-
-\LMHash{}%
-Otherwise, if the enclosing function $m$ is marked \code{\ASYNC*} (\ref{functions}) then the enclosing function may suspend, in which case the nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}), if any, is paused first.
-
-\rationale{
-If a \YIELD{} occurred inside an infinite loop and the enclosing function never suspended, there might not be an opportunity for consumers of the enclosing stream to run and access the data in the stream.
-The stream might then accumulate an unbounded number of elements.
-Such a situation is untenable.
-Therefore, we allow the enclosing function to be suspended when a new object is added to its associated stream.
-However, it is not essential (and in fact, can be quite costly) to suspend the function on every \YIELD{}.
-The implementation is free to decide how often to suspend the enclosing function.
-The only requirement is that consumers are not blocked indefinitely.
-}
-
-\LMHash{}%
-If the enclosing function $m$ is marked \code{\SYNC*} (\ref{functions}) then:
-\begin{itemize}
-\item
-Execution of the function $m$ immediately enclosing $s$ is suspended until the nullary method \code{moveNext()} is invoked upon the iterator used to initiate the current invocation of $m$.
-\item
-The current call to \code{moveNext()} returns \TRUE.
-\end{itemize}
 
 \LMHash{}%
 It is a compile-time error if a yield statement appears in
@@ -15667,8 +15618,82 @@ then let $T_f$ be $U$.
 Otherwise let $T_f$ be \DYNAMIC.
 It is a compile-time error if $T_e$ may not be assigned to $T_f$.
 
+\LMHash{}%
+Execution of a statement $s$ of the form \code{\YIELD{} $e$;}
+proceeds as follows:
 
-\subsubsection{Yield-Each}
+\LMHash{}%
+First, the expression $e$ is evaluated to an object $o$.
+If the enclosing function $m$ is marked \code{\ASYNC*}
+(\ref{functions})
+and the stream $u$ associated with $m$ has been paused,
+then the nearest enclosing asynchronous for loop
+(\ref{asynchronousFor-in}),
+if any, is paused and execution of $m$ is suspended
+until $u$ is resumed or canceled.
+
+\LMHash{}%
+Next, $o$ is added to the iterable or stream associated
+with the immediately enclosing function.
+
+\commentary{%
+Note that a dynamic error occurs if the dynamic type of $o$
+is not a subtype of the element type of said iterable or stream.%
+}
+
+\LMHash{}%
+If the enclosing function $m$ is marked \code{\ASYNC*}
+and the stream $u$ associated with $m$ has been canceled,
+then the \YIELD{} statement returns without an object
+(\ref{statementCompletion}),
+otherwise it completes normally.
+
+\rationale{%
+The stream associated with an asynchronous generator could be canceled
+by any code with a reference to that stream at any point
+where the generator was passivated.
+Such a cancellation constitutes an irretrievable error for the generator.
+At this point, the only plausible action for the generator is
+to clean up after itself via its \FINALLY{} clauses.%
+}
+
+\LMHash{}%
+Otherwise, if the enclosing function $m$ is marked \code{\ASYNC*}
+(\ref{functions})
+then the enclosing function may suspend,
+in which case the nearest enclosing asynchronous for loop
+(\ref{asynchronousFor-in}),
+if any, is paused first.
+
+\rationale{%
+If a \YIELD{} occurred inside an infinite loop
+and the enclosing function never suspended,
+there might not be an opportunity for consumers of the enclosing stream
+to run and access the data in the stream.
+The stream might then accumulate an unbounded number of elements.
+Such a situation is untenable.
+Therefore, we allow the enclosing function to be suspended
+when a new object is added to its associated stream.
+However, it is not essential (and in fact, can be quite costly)
+to suspend the function on every \YIELD{}.
+The implementation is free to decide
+how often to suspend the enclosing function.
+The only requirement is that consumers are not blocked indefinitely.%
+}
+
+\LMHash{}%
+If the enclosing function $m$ is marked \code{\SYNC*} (\ref{functions}) then:
+\begin{itemize}
+\item
+  Execution of the function $m$ immediately enclosing $s$ is suspended
+  until the nullary method \code{moveNext()} is invoked upon
+  the iterator used to initiate the current invocation of $m$.
+\item
+  The current call to \code{moveNext()} returns \TRUE.
+\end{itemize}
+
+
+\subsection{Yield-Each}
 \LMLabel{yieldEach}
 
 \LMHash{}%
@@ -15679,6 +15704,42 @@ to the result of a generator function
 \begin{grammar}
 <yieldEachStatement> ::= \YIELD{} `*' <expression> `;'
 \end{grammar}
+
+\LMHash{}%
+It is a compile-time error if a yield-each statement appears
+in a function that is not a generator function.
+
+\LMHash{}%
+Let $T$ be the static type of $e$ and
+let $f$ be the immediately enclosing function.
+
+\LMHash{}%
+\commentary{Let $T_e$ specify the type of elements that $e$ provides:}
+If the body of $f$ is marked \code{\ASYNC*} and
+$T$ implements \code{Stream<$U$>} for some $U$
+(\ref{interfaceSuperinterfaces})
+then let $T_e$ be $U$.
+Otherwise, if the body of $f$ is marked \code{\SYNC*} and
+$T$ implements \code{Iterable<$U$>} for some $U$
+then let $T_e$ be $U$.
+%% TODO(eernst): Come nnbd, change 'a top type' to \DYNAMIC{}.
+Otherwise if $T$ is a top type then let $T_e$ be \DYNAMIC.
+Otherwise a compile-time error occurs.
+
+\LMHash{}%
+\commentary{Let $T_f$ specify the type of elements that $f$ yields:}
+If the body of $f$ is marked \code{\ASYNC*} and
+the declared return type of $f$ implements \code{Stream<$U$>} for some $U$
+then let $T_f$ be $U$.
+Otherwise, if the body of $f$ is marked \code{\SYNC*} and
+the declared return type of $f$ implements \code{Iterable<$U$>} for some $U$
+then let $T_f$ be $U$.
+% $f$ is a generator function, so the return type must be a supertype of
+% `Iterable<U>`/`Stream<U>` for some `U`, so here it can only be a top type.
+Otherwise let $T_f$ be \DYNAMIC.
+
+\LMHash{}%
+It is a compile-time error if $T_e$ may not be assigned to $T_f$.
 
 \LMHash{}%
 Execution of a statement $s$ of the form \code{\YIELD* $e$;} proceeds as follows:
@@ -15750,42 +15811,6 @@ Otherwise
 \item
   If the stream $o$ is done, execution of $s$ completes normally.
 \end{itemize}
-
-\LMHash{}%
-It is a compile-time error if a yield-each statement appears
-in a function that is not a generator function.
-
-\LMHash{}%
-Let $T$ be the static type of $e$ and
-let $f$ be the immediately enclosing function.
-
-\LMHash{}%
-\commentary{Let $T_e$ specify the type of elements that $e$ provides:}
-If the body of $f$ is marked \code{\ASYNC*} and
-$T$ implements \code{Stream<$U$>} for some $U$
-(\ref{interfaceSuperinterfaces})
-then let $T_e$ be $U$.
-Otherwise, if the body of $f$ is marked \code{\SYNC*} and
-$T$ implements \code{Iterable<$U$>} for some $U$
-then let $T_e$ be $U$.
-%% TODO(eernst): Come nnbd, change 'a top type' to \DYNAMIC{}.
-Otherwise if $T$ is a top type then let $T_e$ be \DYNAMIC.
-Otherwise a compile-time error occurs.
-
-\LMHash{}%
-\commentary{Let $T_f$ specify the type of elements that $f$ yields:}
-If the body of $f$ is marked \code{\ASYNC*} and
-the declared return type of $f$ implements \code{Stream<$U$>} for some $U$
-then let $T_f$ be $U$.
-Otherwise, if the body of $f$ is marked \code{\SYNC*} and
-the declared return type of $f$ implements \code{Iterable<$U$>} for some $U$
-then let $T_f$ be $U$.
-% $f$ is a generator function, so the return type must be a supertype of
-% `Iterable<U>`/`Stream<U>` for some `U`, so here it can only be a top type.
-Otherwise let $T_f$ be \DYNAMIC.
-
-\LMHash{}%
-It is a compile-time error if $T_e$ may not be assigned to $T_f$.
 
 
 \subsection{Assert}
