@@ -1836,7 +1836,7 @@ Then the static type of $F$ is
 \LMHash{}%
 Let $F$ be a function with
 type parameters \TypeParametersStd,
-required formal parameter types  \List{T}{1}{n},
+required formal parameter types \List{T}{1}{n},
 return type $T_0$
 and positional optional parameter types \List{T}{n+1}{n+k}.
 Then the static type of $F$ is
@@ -3239,7 +3239,7 @@ If $k$ is redirecting then its redirect clause has the form
 
 \code{\THIS{}.$g$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 
-where $g$ identifies another  generative constructor of the immediately surrounding class.
+where $g$ identifies another generative constructor of the immediately surrounding class.
 Then execution of $k$ to initialize $i$ proceeds by evaluating the argument list
 \code{($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 to an actual argument list $a$ of the form
@@ -7147,10 +7147,10 @@ and the marker is then popped.
 <STRING\_CONTENT\_TDQ> ::= \gnewline{}
   <QUOTES\_DQ> (<STRING\_CONTENT\_COMMON> | `\sq' | `\\r' | `\\n')
 
-<MULTI\_LINE\_STRING\_DQ\_BEGIN\_END> ::=  \gnewline{}
+<MULTI\_LINE\_STRING\_DQ\_BEGIN\_END> ::= \gnewline{}
   `"""' <STRING\_CONTENT\_TDQ>* `"""'
 
-<MULTI\_LINE\_STRING\_DQ\_BEGIN\_MID> ::=  \gnewline{}
+<MULTI\_LINE\_STRING\_DQ\_BEGIN\_MID> ::= \gnewline{}
   `"""' <STRING\_CONTENT\_TDQ>* <QUOTES\_DQ> `${'
 
 <MULTI\_LINE\_STRING\_DQ\_MID\_MID> ::= \gnewline{}
@@ -10121,7 +10121,7 @@ Each iterator runs with its own shallow copies of all local variables; in partic
 \commentary{
 Two executions of an iterator interact only via state outside the function.
 }
-% The alternative would be to cache the results of an iterator in the iterable, and check the cache at each \YIELD{}.  This would have strange issues as well. The yielded value might differ from the expression in the yield. And it is a potential memory leak as the cache is kept alive by any iterator.
+% The alternative would be to cache the results of an iterator in the iterable, and check the cache at each \YIELD{}. This would have strange issues as well. The yielded value might differ from the expression in the yield. And it is a potential memory leak as the cache is kept alive by any iterator.
 
 \LMHash{}%
 If $f$ is marked \ASYNC{} (\ref{functions}),
@@ -11327,7 +11327,7 @@ considering $F$ to be the static type of the function to call,
 and the static type of $i$ is as specified there.
 
 \LMHash{}%
-It is a compile-time error to invoke any of  the methods of class \code{Object}
+It is a compile-time error to invoke any of the methods of class \code{Object}
 on a prefix object
 (\ref{imports})
 or on a constant type literal that is immediately followed by the token `.'\,.
@@ -13092,7 +13092,7 @@ Another implication is that there is never a need to use \code{identical()} to t
 An equality expression of the form \code{$e_1$ != $e_2$} is equivalent to the expression \code{!($e_1$ == $e_2$)}.
 An equality expression of the form \code{\SUPER{} != $e$} is equivalent to the expression \code{!(\SUPER{} == $e$)}.
 
-%The expression $e_1$ is evaluated to an object $o_1$; then the expression $e_2$ is evaluated to an object $o_2$.  Next, if $o_1$ and $o_2$ are the same object, then $ee$ evaluates to \TRUE{}, otherwise $ee$ evaluates to \FALSE{}.
+%The expression $e_1$ is evaluated to an object $o_1$; then the expression $e_2$ is evaluated to an object $o_2$. Next, if $o_1$ and $o_2$ are the same object, then $ee$ evaluates to \TRUE{}, otherwise $ee$ evaluates to \FALSE{}.
 
 \LMHash{}%
 The static type of an equality expression is \code{bool}.
@@ -15926,7 +15926,7 @@ It cannot be viewed as a function call that is being optimized away because the 
 %\rationale{
 %Since \ASSERT{} is a built-in identifier, one might define a function or method with this name.
 %It is impossible to distinguish as \ASSERT{} statement from a method invocation in such a situation.
-%One could choose to always interpret such code as an \ASSERT{} statement. Or we could choose to give priority to any lexically visible user defined function.  The former can cause rather puzzling situations, e.g.,}
+%One could choose to always interpret such code as an \ASSERT{} statement. Or we could choose to give priority to any lexically visible user defined function. The former can cause rather puzzling situations, e.g.,}
 
 %\begin{dartCode}
 % assert(bool b)\{print('My Personal Assertion \$b');\}
