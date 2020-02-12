@@ -1836,7 +1836,7 @@ Then the static type of $F$ is
 \LMHash{}%
 Let $F$ be a function with
 type parameters \TypeParametersStd,
-required formal parameter types  \List{T}{1}{n},
+required formal parameter types \List{T}{1}{n},
 return type $T_0$
 and positional optional parameter types \List{T}{n+1}{n+k}.
 Then the static type of $F$ is
@@ -3239,7 +3239,7 @@ If $k$ is redirecting then its redirect clause has the form
 
 \code{\THIS{}.$g$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 
-where $g$ identifies another  generative constructor of the immediately surrounding class.
+where $g$ identifies another generative constructor of the immediately surrounding class.
 Then execution of $k$ to initialize $i$ proceeds by evaluating the argument list
 \code{($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 to an actual argument list $a$ of the form
@@ -7147,10 +7147,10 @@ and the marker is then popped.
 <STRING\_CONTENT\_TDQ> ::= \gnewline{}
   <QUOTES\_DQ> (<STRING\_CONTENT\_COMMON> | `\sq' | `\\r' | `\\n')
 
-<MULTI\_LINE\_STRING\_DQ\_BEGIN\_END> ::=  \gnewline{}
+<MULTI\_LINE\_STRING\_DQ\_BEGIN\_END> ::= \gnewline{}
   `"""' <STRING\_CONTENT\_TDQ>* `"""'
 
-<MULTI\_LINE\_STRING\_DQ\_BEGIN\_MID> ::=  \gnewline{}
+<MULTI\_LINE\_STRING\_DQ\_BEGIN\_MID> ::= \gnewline{}
   `"""' <STRING\_CONTENT\_TDQ>* <QUOTES\_DQ> `${'
 
 <MULTI\_LINE\_STRING\_DQ\_MID\_MID> ::= \gnewline{}
@@ -10121,7 +10121,7 @@ Each iterator runs with its own shallow copies of all local variables; in partic
 \commentary{
 Two executions of an iterator interact only via state outside the function.
 }
-% The alternative would be to cache the results of an iterator in the iterable, and check the cache at each \YIELD{}.  This would have strange issues as well. The yielded value might differ from the expression in the yield. And it is a potential memory leak as the cache is kept alive by any iterator.
+% The alternative would be to cache the results of an iterator in the iterable, and check the cache at each \YIELD{}. This would have strange issues as well. The yielded value might differ from the expression in the yield. And it is a potential memory leak as the cache is kept alive by any iterator.
 
 \LMHash{}%
 If $f$ is marked \ASYNC{} (\ref{functions}),
@@ -11273,44 +11273,73 @@ instance member named $m$, unless either:
 \item $T$ is \DYNAMIC{}.
 Or
 \item $T$ is \FUNCTION{} and $m$ is \CALL.
-\rationale{
+\rationale{%
 This means that for invocations of an instance method named \CALL,
 a receiver of type \FUNCTION{} is treated like a receiver of type \DYNAMIC{}.
-The expectation is that any concrete subclass of \FUNCTION{} will implement \CALL,
-but there is no method signature which can be assumed for \CALL{} in \FUNCTION{}
-because every signature will conflict with some potential overriding declarations.
-Note that any use of \CALL{} on a subclass of \FUNCTION{} that fails to implement \CALL{} will provoke a compile-time error,
-as this exemption is limited to type \FUNCTION{}, and does not apply to its subtypes.
+The expectation is that any concrete subclass of \FUNCTION{}
+will implement \CALL,
+but there is no method signature
+which can be assumed for \CALL{} in \FUNCTION{}
+because every signature will conflict with
+some potential overriding declarations.
+Note that any use of \CALL{} on
+a subclass of \FUNCTION{} that fails to implement \CALL{}
+will provoke a compile-time error,
+as this exemption is limited to type \FUNCTION{},
+and does not apply to its subtypes.%
 }
 \end{itemize}
 
 \LMHash{}%
-If $T$ did not have an accessible member named $m$ the static type of $i$ is \DYNAMIC{},
+If $T$ did not have an accessible member named $m$
+the static type of $i$ is \DYNAMIC{},
 and no further static checks are performed on $i$
-(\commentary{except that subexpressions of $i$ are subject to their own static analysis}).
+(\commentary{%
+except that subexpressions of $i$ are subject to their own static analysis%
+}).
 
 \LMHash{}%
 Otherwise \code{$T$.$m$} denotes an instance member.
 Let $L$ be the library that contains $i$.
 Let $d$ be the result of method lookup for $m$ in $T$ with respect to $L$,
 and if the method lookup succeeded then let $F$ be the static type of $d$.
+
+\LMHash{}%
 Otherwise, let $d$ be the result of getter lookup for $m$ in $T$ with respect to $L$
 and let $F$ be the return type of $d$.
 (\commentary{Since \code{$T$.$m$} exists we cannot have a failure in both lookups.})
+If the getter return type $F$ is an interface type
+that has a method named \CALL,
+$i$ is treated as
+(\ref{notation})
+the ordinary invocation
+
+\noindent
+\code{$e$.$m$.call<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+
+\noindent
+which determines any further static analysis.
 
 \LMHash{}%
-The static analysis of $i$ is performed as specified in Section~\ref{bindingActualsToFormals},
+Otherwise, the static analysis of $i$ is performed
+as specified in Section~\ref{bindingActualsToFormals},
+considering $F$ to be the static type of the function to call,
 and the static type of $i$ is as specified there.
 
 \LMHash{}%
-It is a compile-time error to invoke any of the methods of class \code{Object} on a prefix object (\ref{imports})
+It is a compile-time error to invoke any of the methods of class \code{Object}
+on a prefix object
+(\ref{imports})
 or on a constant type literal that is immediately followed by the token `.'\,.
 
-\rationale{
-The reason for the latter is that this syntax is reserved for invocation of static methods.
-For instance, \code{int.toString()} is similar to \code{C.someStaticMethod()}, and
-it would be confusing if just a couple of expressions of this form were instance method invocations.
-If needed, \code{(int).toString()} may be used instead.
+\rationale{%
+The reason for the latter is that this syntax is reserved for
+invocation of static methods.
+For instance, \code{int.toString()} is similar to
+\code{C.someStaticMethod()}, and
+it would be confusing if just a couple of expressions of this form
+were instance method invocations.
+If needed, \code{(int).toString()} may be used instead.%
 }
 
 \LMHash{}%
@@ -11348,7 +11377,8 @@ Then the value of $i$ is the value of
 
 \LMHash{}%
 If getter lookup has also failed,
-then a new instance $im$ of the predefined class \code{Invocation} is created, such that:
+then a new instance $im$ of the predefined class \code{Invocation} is created,
+such that:
 \begin{itemize}
 \item \code{$im$.isMethod} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
@@ -11368,13 +11398,15 @@ then a new instance $im$ of the predefined class \code{Invocation} is created, s
 \end{itemize}
 
 \LMHash{}%
-Then the method \code{noSuchMethod()} is looked up in $o$ and invoked with argument $im$,
+Then the method \code{noSuchMethod()} is looked up in $o$ and
+invoked with argument $im$,
 and the result of this invocation is the result of evaluating $i$.
 
-\commentary{
+\commentary{%
 The situation where \code{noSuchMethod} is invoked can only arise
 when the static type of $e$ is \DYNAMIC{}.
-Notice that the wording avoids re-evaluating the receiver $o$ and the arguments $a_i$.
+Notice that the wording avoids re-evaluating the receiver $o$ and
+the arguments $a_i$.%
 }
 \EndCase
 
@@ -13060,7 +13092,7 @@ Another implication is that there is never a need to use \code{identical()} to t
 An equality expression of the form \code{$e_1$ != $e_2$} is equivalent to the expression \code{!($e_1$ == $e_2$)}.
 An equality expression of the form \code{\SUPER{} != $e$} is equivalent to the expression \code{!(\SUPER{} == $e$)}.
 
-%The expression $e_1$ is evaluated to an object $o_1$; then the expression $e_2$ is evaluated to an object $o_2$.  Next, if $o_1$ and $o_2$ are the same object, then $ee$ evaluates to \TRUE{}, otherwise $ee$ evaluates to \FALSE{}.
+%The expression $e_1$ is evaluated to an object $o_1$; then the expression $e_2$ is evaluated to an object $o_2$. Next, if $o_1$ and $o_2$ are the same object, then $ee$ evaluates to \TRUE{}, otherwise $ee$ evaluates to \FALSE{}.
 
 \LMHash{}%
 The static type of an equality expression is \code{bool}.
@@ -15894,7 +15926,7 @@ It cannot be viewed as a function call that is being optimized away because the 
 %\rationale{
 %Since \ASSERT{} is a built-in identifier, one might define a function or method with this name.
 %It is impossible to distinguish as \ASSERT{} statement from a method invocation in such a situation.
-%One could choose to always interpret such code as an \ASSERT{} statement. Or we could choose to give priority to any lexically visible user defined function.  The former can cause rather puzzling situations, e.g.,}
+%One could choose to always interpret such code as an \ASSERT{} statement. Or we could choose to give priority to any lexically visible user defined function. The former can cause rather puzzling situations, e.g.,}
 
 %\begin{dartCode}
 % assert(bool b)\{print('My Personal Assertion \$b');\}
