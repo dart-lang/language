@@ -36,6 +36,8 @@
 %   it does not have the required signature.
 % - Clarify static checks on `yield` and `yield*` to explicitly ensure that
 %   assignability is enforced per element.
+% - Update whitelist for expressions of type void to include `await e`,
+%   consistent with decision in SDK issue #33415.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
