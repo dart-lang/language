@@ -18224,6 +18224,14 @@ unless it is permitted according to one of the following rules.
   which in turn restricts where it can occur.%
   }
 \item
+  In an expression of the form \code{\AWAIT\,\,$e$}, $e$ may have type \VOID.
+  \rationale{%
+  This rule was adopted because it was a substantial breaking change
+  to turn this situation into an error
+  at the time where the treatment of \VOID{} was changed.
+  Tools may choose to give a hint in such cases.%
+  }
+\item
   \commentary{%
   In a return statement \code{\RETURN\,$e$;},
   $e$ may have type \VOID{} in a number of situations
