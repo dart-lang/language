@@ -36,6 +36,8 @@
 %   it does not have the required signature.
 % - Clarify static checks on `yield` and `yield*` to explicitly ensure that
 %   assignability is enforced per element.
+% - Update whitelist for expressions of type void to include `await e`,
+%   consistent with decision in SDK issue #33415.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -18222,6 +18224,14 @@ unless it is permitted according to one of the following rules.
   \rationale{%
   The static type of the null coalescing expression is then \VOID,
   which in turn restricts where it can occur.%
+  }
+\item
+  In an expression of the form \code{\AWAIT\,\,$e$}, $e$ may have type \VOID.
+  \rationale{%
+  This rule was adopted because it was a substantial breaking change
+  to turn this situation into an error
+  at the time where the treatment of \VOID{} was changed.
+  Tools may choose to give a hint in such cases.%
   }
 \item
   \commentary{%
