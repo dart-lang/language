@@ -86,8 +86,8 @@ like:
 
 ```dart
 var params = {
-  "userId": 123,
-  "timeout": 300,
+  'userId': 123,
+  'timeout': 300,
 }..addAll(uri.queryParameters);
 ```
 
@@ -95,8 +95,8 @@ With this proposal, it becomes:
 
 ```dart
 var params = {
-  "userId": 123,
-  "timeout": 300,
+  'userId': 123,
+  'timeout': 300,
   ...uri.queryParameters
 };
 ```
@@ -405,7 +405,7 @@ we know exactly how constants of those classes behave. Thus, we state:
 This enables in-place literals (which aren't very useful):
 
 ```dart
-const list = [...["why"]];
+const list = [...['why']];
 ```
 
 It also enables const expressions that refer to constant collections defined
