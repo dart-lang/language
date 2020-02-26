@@ -38,6 +38,8 @@
 %   assignability is enforced per element.
 % - Update whitelist for expressions of type void to include `await e`,
 %   consistent with decision in SDK issue #33415.
+% - Re-adjust `yield*` rules: Per-element type checks are not supported,
+%   the given Iterable/Stream must have a safe element type.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
