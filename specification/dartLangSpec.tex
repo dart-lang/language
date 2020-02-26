@@ -1386,13 +1386,6 @@ This implies that there is no information about
 the type of elements that the generator will yield.%
 }
 
-Let $f$ be with declared return type $T$.
-If $T$ implements \code{Iterable<$U$>} for some $U$
-(\ref{interfaceSuperinterfaces})
-then the element type of $f$ is $U$.
-
-
-
 
 \subsection{Function Declarations}
 \LMLabel{functionDeclarations}
@@ -15773,6 +15766,8 @@ or it is not a generator.
 Let $T_f$ be the element type of $f$
 (\ref{functions}),
 and let $T$ be the static type of $e$.
+It is a compile-time error if $T$ may not be assigned to
+the declared return type of $f$.
 If $f$ is a generator and
 $T$ implements \code{Iterable<$U$>} or \code{Stream<$U$>} for some $U$
 (\ref{interfaceSuperinterfaces})
@@ -15799,7 +15794,7 @@ then:
 \item
   % This error can occur due to implicit casts.
   It is a dynamic type error
-  if the class of $o$ does not implement \code{Iterable}.
+  if the class of $o$ is not a subtype of \code{Iterable<$T_f$>}.
   Otherwise
 \item
   The method \code{iterator} is invoked upon $o$ returning an object $i$.
@@ -15834,7 +15829,7 @@ If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
 \item
   % This error can occur due to implicit casts.
   It is a dynamic type error if the class of $o$
-  does not implement \code{Stream}.
+  is not a subtype of \code{Stream<$T_f$>}.
 Otherwise
 \item
   The nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}),
