@@ -15770,6 +15770,14 @@ Let $T_f$ be the element type of $f$
 and let $T$ be the static type of $e$.
 It is a compile-time error if $T$ may not be assigned to
 the declared return type of $f$.
+If $f$ is a synchronous generator,
+it is a compile-time error if $T$ may not be assigned to
+\code{Iterable<$T_f$>}.
+Otherwise $f$ is an asynchronous generator,
+and it is a compile-time error if $T$ may not be assigned to
+\code{Stream<$T_f$>}.
+
+\LMHash{}%
 If $f$ is a generator and
 $T$ implements \code{Iterable<$U$>} or \code{Stream<$U$>} for some $U$
 (\ref{interfaceSuperinterfaces})
