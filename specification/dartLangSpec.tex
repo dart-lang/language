@@ -15776,17 +15776,6 @@ and it is a compile-time error if $T$ may not be assigned to
 \code{Stream<$T_f$>}.
 
 \LMHash{}%
-If $T$ implements \code{Iterable<$U$>} or \code{Stream<$U$>} for some $U$
-(\ref{interfaceSuperinterfaces})
-then let $T_e$ be $U$.
-%% TODO(eernst): Come nnbd, change 'a top type or null' to \DYNAMIC{} or Never.
-Otherwise, if $T$ is a top type or the built-in type \code{Null}
-then let $T_e$ be \DYNAMIC.
-Otherwise a compile-time error occurs.
-\commentary{So $T_e$ is the type of elements that $e$ provides.}
-It is a compile-time error if $T_e$ may not be assigned to $T_f$.
-
-\LMHash{}%
 Execution of a statement $s$ of the form `\code{\YIELD*\,\,$e$;}'
 proceeds as follows:
 
