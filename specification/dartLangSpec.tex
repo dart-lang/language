@@ -38,6 +38,8 @@
 %   assignability is enforced per element.
 % - Update whitelist for expressions of type void to include `await e`,
 %   consistent with decision in SDK issue #33415.
+% - Re-adjust `yield*` rules: Per-element type checks are not supported,
+%   the given Iterable/Stream must have a safe element type.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -1385,13 +1387,6 @@ because the declaration of $f$ would otherwise be a compile-time error.
 This implies that there is no information about
 the type of elements that the generator will yield.%
 }
-
-Let $f$ be with declared return type $T$.
-If $T$ implements \code{Iterable<$U$>} for some $U$
-(\ref{interfaceSuperinterfaces})
-then the element type of $f$ is $U$.
-
-
 
 
 \subsection{Function Declarations}
@@ -15764,7 +15759,7 @@ the result of a generator function
 \end{grammar}
 
 \LMHash{}%
-Let $s$ be a yield-each statement of the form \code{\YIELD*\,\,$e$;}.
+Let $s$ be a yield-each statement of the form `\code{\YIELD*\,\,$e$;}'.
 Let $f$ be the immediately enclosing function of $s$.
 It is a compile-time error if there is no such function,
 or it is not a generator.
@@ -15773,8 +15768,15 @@ or it is not a generator.
 Let $T_f$ be the element type of $f$
 (\ref{functions}),
 and let $T$ be the static type of $e$.
-If $f$ is a generator and
-$T$ implements \code{Iterable<$U$>} or \code{Stream<$U$>} for some $U$
+If $f$ is a synchronous generator,
+it is a compile-time error if $T$ may not be assigned to
+\code{Iterable<$T_f$>}.
+Otherwise $f$ is an asynchronous generator,
+and it is a compile-time error if $T$ may not be assigned to
+\code{Stream<$T_f$>}.
+
+\LMHash{}%
+If $T$ implements \code{Iterable<$U$>} or \code{Stream<$U$>} for some $U$
 (\ref{interfaceSuperinterfaces})
 then let $T_e$ be $U$.
 %% TODO(eernst): Come nnbd, change 'a top type or null' to \DYNAMIC{} or Never.
@@ -15785,7 +15787,7 @@ Otherwise a compile-time error occurs.
 It is a compile-time error if $T_e$ may not be assigned to $T_f$.
 
 \LMHash{}%
-Execution of a statement $s$ of the form \code{\YIELD* $e$;}
+Execution of a statement $s$ of the form `\code{\YIELD*\,\,$e$;}'
 proceeds as follows:
 
 \LMHash{}%
@@ -15799,7 +15801,7 @@ then:
 \item
   % This error can occur due to implicit casts.
   It is a dynamic type error
-  if the class of $o$ does not implement \code{Iterable}.
+  if the class of $o$ is not a subtype of \code{Iterable<$T_f$>}.
   Otherwise
 \item
   The method \code{iterator} is invoked upon $o$ returning an object $i$.
@@ -15834,7 +15836,7 @@ If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
 \item
   % This error can occur due to implicit casts.
   It is a dynamic type error if the class of $o$
-  does not implement \code{Stream}.
+  is not a subtype of \code{Stream<$T_f$>}.
 Otherwise
 \item
   The nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}),
