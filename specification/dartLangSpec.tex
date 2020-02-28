@@ -40,6 +40,7 @@
 %   consistent with decision in SDK issue #33415.
 % - Re-adjust `yield*` rules: Per-element type checks are not supported,
 %   the given Iterable/Stream must have a safe element type.
+% - Specify static analysis of asynchronous for-in statements.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -14874,24 +14875,29 @@ proceeds as follows:
 \LMHash{}%
 The expression $e$ is evaluated to an object $o$.
 % This error can occur due to implicit casts and null.
-It is a dynamic type error if $o$ is not an instance of a class that implements \code{Stream}.
-It is a compile-time error if $D$ is empty and \id{} is a final variable.
+It is a dynamic type error if $o$ is not an instance of
+a class that implements \code{Stream}.
 
 \LMHash{}%
-The stream associated with the innermost enclosing asynchronous for loop, if any, is paused.
+The stream associated with the innermost enclosing asynchronous for loop,
+if any, is paused.
 The stream $o$ is listened to, producing a stream subscription $u$,
 and execution of the asynchronous for-in loop is suspended
 until a stream event is available.
-\commentary{
-This allows other asynchronous events to execute while this loop is waiting for stream events.
+\commentary{%
+This allows other asynchronous events to execute
+while this loop is waiting for stream events.%
 }
 
-Pausing an asynchronous for loop means pausing the associated stream subscription.
+Pausing an asynchronous for loop means
+pausing the associated stream subscription.
 A stream subscription is paused by calling its \code{pause} method.
-If the subscription is already paused, an implementation may omit further calls to \code{pause}.
+If the subscription is already paused,
+an implementation may omit further calls to \code{pause}.
 
-\commentary{
-The \code{pause} call can throw, although that should never happen for a correctly implemented stream.
+\commentary{%
+The \code{pause} call can throw,
+although that should never happen for a correctly implemented stream.%
 }
 
 \LMHash{}%
@@ -14899,7 +14905,7 @@ For each \Index{data event} from $u$,
 the statement $s_b$ is executed with \id{} bound to
 the value of the current data event.
 
-\commentary{
+\commentary{%
 Either execution of $s_b$ is completely synchronous, or it contains an
 asynchronous construct (\AWAIT{}, \AWAIT{} \FOR{}, \YIELD{} or \YIELD*)
 which will pause the stream subscription of its surrounding asynchronous loop.
@@ -14908,7 +14914,7 @@ before execution of $s_b$ is complete,
 if $o$ is a correctly implemented stream.
 If $o$ doesn't act as a valid stream,
 for example by not respecting pause requests,
-the behavior of the asynchronous loop may become unpredictable.
+the behavior of the asynchronous loop may become unpredictable.%
 }
 
 \LMHash{}%
@@ -14929,10 +14935,10 @@ Otherwise execution of $s$ completes in the same way as the execution of $s_b$.
 Otherwise the execution of $s_b$ is suspended again,
 waiting for the next stream subscription event,
 and $u$ is resumed if it has been paused.
-\commentary{
+\commentary{%
 The \code{resume} call can throw, in which case the asynchronous for
 loop also throws.
-That should never happen for a correctly implemented stream.
+That should never happen for a correctly implemented stream.%
 }
 
 \LMHash{}%
