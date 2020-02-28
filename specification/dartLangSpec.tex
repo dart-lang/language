@@ -487,12 +487,23 @@ and use a concise and clear notation across the specification.
 When the specification refers to the order given in the program, it means the order of the program source code text, scanning left-to-right and top-to-bottom.
 
 \LMHash{}%
+%% TODO(eernst): Come nnbd, specify that a fresh variable with a specific
+%% declared type is assumed to be definitely assigned, such that it is
+%% never an error to evaluate it.
 When the specification refers to a
 \IndexCustom{fresh variable}{variable!fresh},
 it means a local variable with a name that doesn't occur anywhere
 in the current program.
 When the specification introduces a fresh variable bound to an object,
 the fresh variable is implicitly bound in a surrounding scope.
+
+\commentary{%
+Note that a fresh variable $v$ is never promoted,
+because there are no references to it in the current program.
+So if $v$ is a fresh variable of type $T$,
+and $v$ is used as en expression,
+the static type of that expression is $T$.%
+}
 
 \LMHash{}%
 References to otherwise unspecified names of program entities
@@ -14842,8 +14853,8 @@ Assume that $v$ is a fresh variable with declared type $T_{\metavar{elm}}$.
 %% Several cases here: \id{} could denote a local variable, an instance or
 %% static setter, nothing, or a lot of things causing an error.
 A compile-time error occurs if replacing $s$ by
-the statement `\code{\id\,\,=\,\,$v$;}'
-would give rise to a compile-time error.
+the statement $s_1$ of the form `\code{\id\,\,=\,\,$v$;}'
+would make $s_1$ a compile-time error.
 
 \LMHash{}%
 Otherwise, $D$ is not empty:
@@ -14952,7 +14963,13 @@ Otherwise execution of $s_b$ throws
 with $e$ as exception object and $st$ as stack trace.
 
 \LMHash{}%
-When $u$ is done, execution of $s_b$ and $s$ completes normally.
+If $u$ emits an error event
+with error object \metavar{error} and associated stack trace \metavar{stack},
+then $u$ is cancelled and completed in the same way as if
+$s_b$ had completed by throwing \metavar{error} and \metavar{stack}.
+
+\LMHash{}%
+When $u$ emits a done event, execution of $s$ completes normally.
 
 
 \subsection{While}
