@@ -14793,6 +14793,12 @@ but $e$ evaluates to an instance of a type
 which is not a subtype of \code{Iterable<dynamic>}.
 }
 
+\LMHash{}%
+The scope introduced by \code{\{\,$S$\,\}} around $S$
+is known as the
+\IndexCustom{scope of the for-in statement $s$}{%
+  scope!for-in statement}.
+
 
 \subsubsection{Asynchronous For-in}
 \LMLabel{asynchronousFor-in}
@@ -14800,12 +14806,69 @@ which is not a subtype of \code{Iterable<dynamic>}.
 \LMHash{}%
 A for-in statement may be asynchronous.
 The asynchronous form is designed to iterate over streams.
-An asynchronous for loop is distinguished by the keyword \AWAIT{} immediately preceding the keyword \FOR.
+An asynchronous for loop is distinguished by
+the keyword \AWAIT{} immediately preceding the keyword \FOR.
+
+\LMHash{}%
+It is a compile-time error if an asynchronous for-in statement appears
+inside a synchronous function (\ref{functions}).
+It is a compile-time error if a traditional for loop
+(\ref{forLoop})
+is prefixed by the \AWAIT{} keyword.
+
+\rationale{%
+An asynchronous loop would make no sense within a synchronous function,
+for the same reasons that an await expression makes no sense in
+a synchronous function.%
+}
+
+\LMHash{}%
+Let $D$ be derived from \syntax{<finalConstVarOrType>?}\ and
+let $s$ be an asynchronous for-in statement of the form
+`\code{\AWAIT\,\,\FOR\,\,($D$\,\,\id\,\,\IN\,\,$e$)\,\,$s_b$}'.
+Let $T_e$ be the static type of $e$.
+A compile-time error occurs unless $T_e$ may be assigned to
+\code{Stream<\DYNAMIC>}.
+%% TODO(eernst): Come nnbd, `a top type` --> `\DYNAMIC{}`.
+If $T_e$ is a top type then let $T_{\metavar{elm}}$ be \DYNAMIC.
+Otherwise there exists a type $U$
+such that $T_e$ implements \code{Stream<$U$>},
+in which case $T_{\metavar{elm}}$ is $U$.
+
+\LMHash{}%
+If $D$ is empty:
+Assume that $v$ is a fresh variable with declared type $T_{\metavar{elm}}$.
+%% Several cases here: \id{} could denote a local variable, an instance or
+%% static setter, nothing, or a lot of things causing an error.
+A compile-time error occurs if replacing $s$ by
+the statement `\code{\id\,\,=\,\,$v$;}'
+would give rise to a compile-time error.
+
+\LMHash{}%
+Otherwise, $D$ is not empty:
+Let $V$ be the declared type of \id.
+\commentary{%
+Type inference is assumed to have taken place already
+(\ref{overview}),
+so $V$ may be present explicitly or it may have been inferred.%
+}
+A compile-time error occurs unless $T_{\metavar{elm}}$ may be assigned to $V$.
+
+\LMHash{}%
+In either case
+(\commentary{with an empty or non-empty $D$}),
+a fresh scope, the
+\IndexCustom{scope of the asynchronous for-in statement $s$}{%
+  scope!asynchronous for-in statement},
+is introduced which has the enclosing scope of $s$ as its enclosing scope,
+and which is the current scope for the body $s_b$.
+If $D$ is non-empty it introduces a local variable into
+the scope of $s$ with the name \id{} and the declared type $V$.
 
 \LMHash{}%
 Let $D$ be derived from \syntax{<finalConstVarOrType>?}.
-Execution of a for-in statement, $f$, of the form
-\code{\AWAIT{} \FOR{} ($D$ \id{} \IN{} $e$) $s$}
+Execution of a for-in statement, $s$, of the form
+`\code{\AWAIT\,\,\FOR\,\,($D$\,\,\id\,\,\IN\,\,$e$)\,\,$s_b$}'
 proceeds as follows:
 
 \LMHash{}%
@@ -14833,27 +14896,39 @@ The \code{pause} call can throw, although that should never happen for a correct
 
 \LMHash{}%
 For each \Index{data event} from $u$,
-the statement $s$ is executed with \id{} bound to the value of the current data event.
+the statement $s_b$ is executed with \id{} bound to
+the value of the current data event.
 
 \commentary{
-Either execution of $s$ is completely synchronous, or it contains an
+Either execution of $s_b$ is completely synchronous, or it contains an
 asynchronous construct (\AWAIT{}, \AWAIT{} \FOR{}, \YIELD{} or \YIELD*)
 which will pause the stream subscription of its surrounding asynchronous loop.
-This ensures that no other event of $u$ occurs before execution of $s$ is complete, if $o$ is a correctly implemented stream.
-If $o$ doesn't act as a valid stream, for example by not respecting pause requests, the behavior of the asynchronous loop may become unpredictable.
+This ensures that no other event of $u$ occurs
+before execution of $s_b$ is complete,
+if $o$ is a correctly implemented stream.
+If $o$ doesn't act as a valid stream,
+for example by not respecting pause requests,
+the behavior of the asynchronous loop may become unpredictable.
 }
 
 \LMHash{}%
-If execution of $s$ continues without a label, or to a label (\ref{labels}) that prefixes the asynchronous for statement (\ref{statementCompletion}), then the execution of $s$ is treated as if it had completed normally.
+If execution of $s_b$ continues without a label, or
+to a label (\ref{labels}) that prefixes the asynchronous for statement
+(\ref{statementCompletion}),
+then the execution of $s_b$ is treated as if it had completed normally.
 
-If execution of $s$ otherwise does not complete normally, the subscription $u$ is canceled by evaluating \code{\AWAIT{} $v$.cancel()} where $v$ is a fresh variable referencing the stream subscription $u$.
+If execution of $s_b$ otherwise does not complete normally,
+the subscription $u$ is canceled by evaluating \code{\AWAIT{} $v$.cancel()}
+where $v$ is a fresh variable referencing the stream subscription $u$.
 If that evaluation throws,
-execution of $f$ throws the same exception and stack trace.
-Otherwise execution of $f$ completes in the same way as the execution of $s$.
+execution of $s_b$ throws the same exception and stack trace.
+Otherwise execution of $s$ completes in the same way as the execution of $s_b$.
 % Notice: The previous specification was unclear about what happened when
 % a subscripton is canceled. This text is explicit, and existing
 % implementations may not properly await the cancel call.
-Otherwise the execution of $f$ is suspended again, waiting for the next stream subscription event, and $u$ is resumed if it has been paused.
+Otherwise the execution of $s_b$ is suspended again,
+waiting for the next stream subscription event,
+and $u$ is resumed if it has been paused.
 \commentary{
 The \code{resume} call can throw, in which case the asynchronous for
 loop also throws.
@@ -14866,19 +14941,12 @@ with error object $e$ and stack trace $st$,
 the subscription $u$ is canceled by evaluating \code{\AWAIT{} v.cancel()}
 where $v$ is a fresh variable referencing the stream subscription $u$.
 If that evaluation throws,
-execution of $f$ throws the same exception object and stack trace.
-Otherwise execution of $f$ throws with $e$ as exception object and $st$ as stack trace.
+execution of $s_b$ throws the same exception object and stack trace.
+Otherwise execution of $s_b$ throws
+with $e$ as exception object and $st$ as stack trace.
 
 \LMHash{}%
-When $u$ is done, execution of $f$ completes normally.
-
-\LMHash{}%
-It is a compile-time error if an asynchronous for-in statement appears inside a synchronous function (\ref{functions}).
-It is a compile-time error if a traditional for loop (\ref{forLoop}) is prefixed by the \AWAIT{} keyword.
-
-\rationale{
-An asynchronous loop would make no sense within a synchronous function, for the same reasons that an await expression makes no sense in a synchronous function.
-}
+When $u$ is done, execution of $s_b$ and $s$ completes normally.
 
 
 \subsection{While}
