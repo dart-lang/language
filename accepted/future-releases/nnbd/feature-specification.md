@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.02.28
+  - Specify that a `covariant late final x;` is an allowed instance variable which 
+    introduces a setter.
+
 2020.01.31
   - Specify that mixins must not have uninitialized potentially non-nullable 
     non-late fields, and nor must classes with no generative constructors.
@@ -805,6 +809,9 @@ The late final variable declaration with no initializer is special in that it
 is the only final variable which can be the target of an assignment.  It
 can only be assigned once, but this is enforced dynamically rather than
 statically.
+
+An instance variable declaration may be declared `covariant` iff it introduces
+an implicit setter.
 
 A read of a field or variable which is marked as `late` which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
