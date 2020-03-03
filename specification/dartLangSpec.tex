@@ -14939,11 +14939,11 @@ although that should never happen for a correctly implemented stream.%
 
 \LMHash{}%
 For each \Index{data event} from $u$,
-the statement $s_b$ is executed with a fresh variable named \id{} bound to
+the statement $s_b$ is executed in a fresh scope where \id{} is bound to
 the value of the current data event.
 
 \commentary{%
-The fact that each iteration uses a fresh variable ensures that
+The fact that each iteration uses a fresh scope ensures that
 the variable may be captured by referencing it in a function literal in $s_b$,
 and the captured variable will then retain the value from that iteration,
 rather than being updated in each subsequent iteration.%
