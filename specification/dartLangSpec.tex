@@ -3163,8 +3163,10 @@ There are three kinds of initializers.
 \end{grammar}
 
 \LMHash{}%
-If an \synt{initializerExpression} is a \synt{functionExpression},
-a compile-time error occurs.
+It is a compile-time error if a \synt{functionExpression} occurs
+as a subterm of an \synt{initializerExpression} $e$,
+unless it occurs inside a subterm of $e$ which is of the form
+\syntax{`(' <expression> `)'}.
 
 \rationale{%
 The reason for having this restriction is that
@@ -3188,10 +3190,7 @@ Assuming that this restriction did not exist, consider the following example:
 `\code{C():\,\,\THIS.y\,\,=\,(x)\,\{\ldots\}}'.
 If that snippet of code is followed by `\code{;}' or `\code{,}'
 then `\code{(x)\,\{\ldots\}}' is a function literal,
-otherwise it is the expression \code{(x)} followed by the constructor body.
-If needed, the restriction may be avoided
-by adding a parenthesis around the function literal,
-`\code{C():\,\,\THIS.y\,\,=\,((x)\,\{\ldots\})}'.%
+otherwise it is the expression \code{(x)} followed by the constructor body.%
 }
 
 \LMHash{}%
