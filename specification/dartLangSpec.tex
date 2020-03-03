@@ -3128,9 +3128,11 @@ of the corresponding formal parameter in the declaration of the redirectee.
 \LMLabel{initializerLists}
 
 \LMHash{}%
-An initializer list begins with a colon, and consists of a comma-separated list of individual \Index{initializers}.
+An initializer list begins with a colon,
+and consists of a comma-separated list of individual
+\Index{initializers}.
 
-\commentary{
+\commentary{%
 There are three kinds of initializers.
 \begin{itemize}
 \item[$\bullet$] A \emph{superinitializer} identifies a
@@ -3141,7 +3143,7 @@ There are three kinds of initializers.
 \item[$\bullet$] An \emph{instance variable initializer}
   assigns an object to an individual instance variable.
 \item[$\bullet$] An assertion.
-\end{itemize}
+\end{itemize}%
 }
 
 \begin{grammar}
@@ -3159,10 +3161,43 @@ There are three kinds of initializers.
 \end{grammar}
 
 \LMHash{}%
+If an \synt{initializerExpression} is a \synt{functionExpression},
+a compile-time error occurs.
+
+\rationale{%
+The reason for having this restriction is that
+it may be necessary to scan the code
+to the end of a potentially long function body in order to determine
+whether that function body is the body of the constructor,
+or it is the body of a function literal
+which is an \synt{initializerExpression}.
+This may impede the readability of the code for human beings,
+and it may cause performance issues for parsers.
+Also, such a function literal may capture variables from
+the formal parameter initializer scope
+(\ref{generativeConstructors}),
+which may be error prone because such a variable has
+the same name as an instance field,
+but it is a distinct variable and may have a different value.%
+}
+
+\commentary{%
+Assuming that this restriction did not exist, consider the following example:
+`\code{C():\,\,\THIS.y\,\,=\,(x)\,\{\ldots\}}'.
+If that snippet of code is followed by `\code{;}' or `\code{,}'
+then `\code{(x)\,\{\ldots\}}' is a function literal,
+otherwise it is the expression \code{(x)} followed by the constructor body.
+If needed, the restriction may be avoided
+by adding a parenthesis around the function literal,
+`\code{C():\,\,\THIS.y\,\,=\,((x)\,\{\ldots\})}'.%
+}
+
+\LMHash{}%
 An initializer of the form \code{$v$ = $e$} is equivalent to
 an initializer of the form \code{\THIS{}.$v$ = $e$},
 both forms are called \Index{instance variable initializers}.
-It is a compile-time error if the enclosing class does not declare an instance variable named $v$.
+It is a compile-time error if the enclosing class does not declare
+an instance variable named $v$.
 Otherwise, let $T$ be the static type of $v$.
 It is a compile-time error unless the static type of $e$ is assignable to $T$.
 
@@ -3176,8 +3211,10 @@ respectively
 
 \noindent{}%
 Let $S$ be the superclass of the enclosing class of $s$.
-It is a compile-time error if class $S$ does not declare a generative constructor named $S$ (respectively \code{$S$.\id}).
-Otherwise, the static analysis of $s$ is performed as specified in Section~\ref{bindingActualsToFormals},
+It is a compile-time error if class $S$ does not declare
+a generative constructor named $S$ (respectively \code{$S$.\id}).
+Otherwise, the static analysis of $s$ is performed
+as specified in Section~\ref{bindingActualsToFormals},
 as if \code{\SUPER{}} respectively \code{\SUPER{}.\id}
 had had the function type of the denoted constructor,
 %% TODO(eernst): The following is very imprecise, it just serves to remember
@@ -3190,14 +3227,25 @@ in the header of the current class.
 
 \LMHash{}%
 Let $k$ be a generative constructor.
-Then $k$ may include at most one superinitializer in its initializer list or a compile-time error occurs.
-If no superinitializer is provided, an implicit superinitializer of the form \SUPER{}() is added at the end of $k$'s initializer list,
+Then $k$ may include at most one superinitializer in its initializer list
+or a compile-time error occurs.
+If no superinitializer is provided,
+an implicit superinitializer of the form \SUPER{}() is added
+at the end of $k$'s initializer list,
 unless the enclosing class is class \code{Object}.
-It is a compile-time error if a superinitializer appears in $k$'s initializer list at any other position than at the end.
-It is a compile-time error if more than one initializer corresponding to a given instance variable appears in $k$'s initializer list.
-It is a compile-time error if $k$'s initializer list contains an initializer for a variable that is initialized by means of an initializing formal of $k$.
-It is a compile-time error if $k$'s initializer list contains an initializer for a final variable $f$ whose declaration includes an initialization expression.
-It is a compile-time error if $k$ includes an initializing formal for a final variable $f$ whose declaration includes an initialization expression.
+It is a compile-time error if a superinitializer appears
+in $k$'s initializer list at any other position than at the end.
+It is a compile-time error if more than one initializer corresponding to
+a given instance variable appears in $k$'s initializer list.
+It is a compile-time error if $k$'s initializer list contains
+an initializer for a variable that is initialized by means of
+an initializing formal of $k$.
+It is a compile-time error if $k$'s initializer list contains
+an initializer for a final variable $f$ whose declaration includes
+an initialization expression.
+It is a compile-time error if $k$ includes an initializing formal for
+a final variable $f$ whose declaration includes
+an initialization expression.
 
 \LMHash{}%
 Let $f$ be a final instance variable declared in
@@ -3211,14 +3259,19 @@ by one of the following means:
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error if $k$'s initializer list contains an initializer for a variable that is not an instance variable declared in the immediately surrounding class.
+It is a compile-time error if $k$'s initializer list contains
+an initializer for a variable that is not
+an instance variable declared in the immediately surrounding class.
 
-\commentary{
-The initializer list may of course contain an initializer for any instance variable declared by the immediately surrounding class, even if it is not final.
+\commentary{%
+The initializer list may of course contain an initializer for
+any instance variable declared by the immediately surrounding class,
+even if it is not final.%
 }
 
 \LMHash{}%
-It is a compile-time error if a generative constructor of class \code{Object} includes a superinitializer.
+It is a compile-time error if a generative constructor of class \code{Object}
+includes a superinitializer.
 
 
 \paragraph{Execution of Generative Constructors}
