@@ -44,6 +44,8 @@
 %   `T` is a function type, plus other similar cases.
 % - Specify actual type arguments passed to a generic function which is invoked
 %   with no type arguments (so it must be a dynamic invocation).
+% - Specify that an <initializerExpression> cannot be a function literal. This
+%   does not break existing code, it has been implemented at least since 2013.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
