@@ -428,7 +428,7 @@ Definitions:
   - Else if `T` is `R*` then `factor(R, S)*`
   - Else if `T` is `FutureOr<R>` and `Future<R> <: S` then `factor(R, S)`
   - Else if `T` is `FutureOr<R>` and `R <: S` then `factor(Future<R>, S)`
-
+  - Else `T`
 
 Questions:
  - The interaction between assignment based **promotion** and downwards inference is
