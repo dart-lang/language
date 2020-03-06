@@ -6,6 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.03.05
+  - Update grammar for null aware subscript.
+  - Fix reversed subtype order in assignability.
+  - Fix inconsistent uses of `null` and `Null` in instance checks.
+
 2020.02.28
   - Specify that a `covariant late final x;` is an allowed instance variable which 
     introduces a setter.
@@ -128,7 +133,7 @@ prefixed by the `required` modifier (e.g. `int Function(int, {int?  y, required
 int z})`.
 
 The grammar of selectors is extended to allow null-aware subscripting using the
-syntax `e1?.[e2]` which evaluates to `null` if `e1` evaluates to `null` and
+syntax `e1?[e2]` which evaluates to `null` if `e1` evaluates to `null` and
 otherwise evaluates as `e1[e2]`.
 
 The grammar of cascade sequences is extended to allow the first cascade of a
@@ -163,6 +168,16 @@ prefer the former parse over the latter.
 The same is true for `{ a is int ? - 3 : 3 }`.
 
 The same is true for `{ int ? - 3 : 3 }` if we allow this.
+
+#### Null aware subscript
+
+Certain uses of null aware subscripts in conditional expressions are ambiguous.
+For example, `{ a?[b]:c }` can be parsed either as a set literal or a map
+literal, depending on whether the `?` is interpreted as part of a null aware
+subscript or as part of a conditional expression.  Whenever there is a sequence
+of tokens which may be parsed either as a conditional expression or as two
+expressions separated by a colon, the first of which is a a null aware
+subscript, parsers shall choose to parse as a conditional expression.
 
 
 ## Static semantics
@@ -343,7 +358,7 @@ bound to an argument at a call site.
 It is an error to call the default `List` constructor.
 
 For the purposes of errors and warnings, the null aware operators `?.`, `?..`,
-and `?.[]` are checked as if the receiver of the operator had non-nullable type.
+and `?[]` are checked as if the receiver of the operator had non-nullable type.
 More specifically, if the type of the receiver of a null aware operator is `T`,
 then the operator is checked as if the receiver had type **NonNull**(`T`) (see
 definition below).
@@ -424,7 +439,7 @@ the return type of the getter is not a subtype of the argument type of the
 setter.  Note that this error specifically requires subtyping and not
 assignability and hence makes no exception for `dynamic`.
 
-It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
+It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, or
 `...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
 
 It is a warning to use the null check operator (`!`) on an expression of type
@@ -501,8 +516,8 @@ is, the only members of a nullable tyhpe that are considered accessible
 
 The definition of assignability is changed as follows.
 
-A type `T` is **assignable** to a type `S` if `T` is `dynamic`, or if `S` is a
-subtype of `T`.
+A type `T` is **assignable** to a type `S` if `T` is `dynamic`, or if `T` is a
+subtype of `S`.
 
 ### Generics
 
@@ -759,7 +774,7 @@ continuation.
   - `PASSTHRU[F, fn[x] => x.m(ARGS(args))]`
 - If `e` translates to `F` then `e(args)` translates to:
   - `PASSTHRU[F, fn[x] => x(ARGS(args))]`
-- If `e1` translates to `F` then `e1?.[e2]` translates to:
+- If `e1` translates to `F` then `e1?[e2]` translates to:
   - `SHORT[EXP(e1), fn[x] => x[EXP(e2)]]`
 - If `e1` translates to `F` then `e1[e2]` translates to:
   - `PASSTHRU[F, fn[x] => x[EXP(e2)]]`
@@ -769,7 +784,7 @@ continuation.
 - If `e1` translates to `F` then `e1.f = e2` translates to:
   - `PASSTHRU[F, fn[x] => x.f = EXP(e2)]`
 - The other assignment operators are handled equivalently.
-- If `e1` translates to `F` then `e1?.[e2] = e3` translates to:
+- If `e1` translates to `F` then `e1?[e2] = e3` translates to:
   - `SHORT[EXP(e1), fn[x] => x[EXP(e2)] = EXP(e3)]`
 - The other assignment operators are handled equivalently.
 - If `e1` translates to `F` then `e1[e2] = e3` translates to:
@@ -1227,7 +1242,7 @@ type `S`, an instance check `e is T` occurring in a **legacy library** or an
 **opted-in library** is evaluated as follows:
   - If `v` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, NULL)
     || LEGACY_SUBTYPE(Object, T)`
-  - If `S` is `Null` and `T` is not a legacy type, return `NNBD_SUBTYPE(NULL,
+  - If `v` is `null` and `T` is not a legacy type, return `NNBD_SUBTYPE(NULL,
     T)`
   - Otherwise return `LEGACY_SUBTYPE(S, T)`
 
@@ -1242,7 +1257,7 @@ the case that `v` is `null`.
 **In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
 type `S`, an instance check `e is T` occurring in a **legacy library** or an
 **opted-in library** is evaluated as follows:
-  - If `S` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, NULL)
+  - If `v` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, NULL)
     || LEGACY_SUBTYPE(Object, T)`
   - Otherwise return `NNBD_SUBTYPE(S, T)`
 
