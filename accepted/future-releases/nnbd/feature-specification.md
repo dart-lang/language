@@ -8,6 +8,8 @@ Status: Draft
 
 2020.03.05
   - Update grammar for null aware subscript.
+  - Fix reversed subtype order in assignability.
+  - Fix inconsistent uses of `null` and `Null` in instance checks.
 
 2020.02.28
   - Specify that a `covariant late final x;` is an allowed instance variable which 
@@ -437,7 +439,7 @@ the return type of the getter is not a subtype of the argument type of the
 setter.  Note that this error specifically requires subtyping and not
 assignability and hence makes no exception for `dynamic`.
 
-It is a warning to use a null aware operator (`?.`, `?[`, `?..`, `??`, `??=`, or
+It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, or
 `...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
 
 It is a warning to use the null check operator (`!`) on an expression of type
@@ -514,8 +516,8 @@ is, the only members of a nullable tyhpe that are considered accessible
 
 The definition of assignability is changed as follows.
 
-A type `T` is **assignable** to a type `S` if `T` is `dynamic`, or if `S` is a
-subtype of `T`.
+A type `T` is **assignable** to a type `S` if `T` is `dynamic`, or if `T` is a
+subtype of `S`.
 
 ### Generics
 
@@ -1240,7 +1242,7 @@ type `S`, an instance check `e is T` occurring in a **legacy library** or an
 **opted-in library** is evaluated as follows:
   - If `v` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, NULL)
     || LEGACY_SUBTYPE(Object, T)`
-  - If `S` is `Null` and `T` is not a legacy type, return `NNBD_SUBTYPE(NULL,
+  - If `v` is `null` and `T` is not a legacy type, return `NNBD_SUBTYPE(NULL,
     T)`
   - Otherwise return `LEGACY_SUBTYPE(S, T)`
 
@@ -1255,7 +1257,7 @@ the case that `v` is `null`.
 **In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
 type `S`, an instance check `e is T` occurring in a **legacy library** or an
 **opted-in library** is evaluated as follows:
-  - If `S` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, NULL)
+  - If `v` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, NULL)
     || LEGACY_SUBTYPE(Object, T)`
   - Otherwise return `NNBD_SUBTYPE(S, T)`
 
