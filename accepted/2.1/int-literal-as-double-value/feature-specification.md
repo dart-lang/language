@@ -76,10 +76,10 @@ Examples where context isn't expecting double:
 ```dart
 var doubleList = [3.14159, 2.71828, 1.61803, 0]; // Obviously meant 0.0!
 const x = -0;  // Not -0.0, even though there is *no other reason* to write it.
-var x1 = funtionExpectingDouble(0);  // Works. 
+var x1 = functionExpectingDouble(0);  // Works. 
 // Let's refactor the constant into a named variable.
 const zero = 0;
-var x2 = funtionExpectingDouble(zero);  // Fails now?
+var x2 = functionExpectingDouble(zero);  // Fails now?
 ```
 
 The `doubleList` needs to be written as either:
