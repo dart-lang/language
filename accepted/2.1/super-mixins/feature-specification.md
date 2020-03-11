@@ -147,7 +147,7 @@ superclass and mixin.
 Applications of generic mixin declarations may in some circumstances elide actual
 type arguments which will be filled in by an inference process as described
 in
-[this accompanying document](https://github.com/dart-lang/language/blob/master/working/0006.%20Super-invocations%20in%20mixins/0007.%20Mixin%20declarations/mixin-inference.md)
+[this accompanying document](https://github.com/dart-lang/language/blob/master/accepted/2.1/super-mixins/mixin-inference.md)
 
 For example:
 
