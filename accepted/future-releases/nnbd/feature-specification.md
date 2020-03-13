@@ -344,7 +344,7 @@ initializer expression and is not marked `late` is used before it is definitely
 assigned (see Definite Assignment below).
 
 It is an error if the body of a method, function, getter, or function expression
-with a potentially non-nullable return type **may completely normally**.
+with a potentially non-nullable return type **may complete normally**.
 
 It is an error if an optional parameter (named or otherwise) with no default
 value has a potentially non-nullable type **except** in the parameter list of an
