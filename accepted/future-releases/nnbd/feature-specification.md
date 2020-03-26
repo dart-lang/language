@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.03.26
+  - Adjust mixed-mode inheritance rules to express a consolidated model
+    where legacy types prevail in some additional cases.
+
 2020.03.05
   - Update grammar for null aware subscript.
   - Fix reversed subtype order in assignability.
@@ -1177,6 +1181,9 @@ class C extends B {
 }
 ```
 
+It is difficult to predict the outcome of migrating `B` in such situations, but
+lints or hints may be used by tools to communicate to developers that `C` may
+need to be changed again when `B` is migrated.
 
 If a class `C` in an opted-in library inherits a member `m` with the same name
 from multiple direct super-interfaces (whether legacy or opted-in), let `T0,
