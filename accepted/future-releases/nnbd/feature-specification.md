@@ -992,9 +992,12 @@ arguments) marked as legacy types.
 
 If a class `C` in a legacy library implements the same generic class `I` more
 than once, it is an error if the `LEGACY_ERASURE` of all such super-interfaces
-are not all syntactically equal.  For the purposes of runtime subtyping checks,
-`C` is considered to implement the canonical `LEGACY_ERASURE` of the
-super-interfaces in question.
+are not all syntactically equal.
+
+When `C` implements `I` once, and also when `C` implements `I` more than once
+without error, `C` is considered to implement the canonical `LEGACY_ERASURE` of
+`I`. This determines the outcome of dynamic instance checks applied to instances
+of `C`, as well as static subtype checks on expressions of type `C`.
 
 A member which is defined in a class in a legacy library (whether concrete or
 abstract), is given a signature in which every type is a legacy type.  It is an
@@ -1004,7 +1007,7 @@ rules.
 
 Using the legacy erasure for checking super-interfaces accounts for opted-out
 classes which depend on both opted-in and opted-out versions of the same generic
-interface.
+interface. For example:
 
 ```dart
 //opted in
@@ -1022,8 +1025,7 @@ class C extends A implements B {}
 
 The class `C` is not considered erroneous, despite implementing both `I<int?>`
 and `I<int*>`, since legacy erasure makes both of those interfaces equal.  The
-canonical interface which `C` is chosen to implement for the purposes of runtime
-type checks is `I<int*>`.
+interface which `C` is considered to implement is `I<int*>`.
 
 
 #### Classes defined in legacy libraries as seen from opted-in libraries
@@ -1137,16 +1139,21 @@ arguments) marked as nullable or non-nullable as written.
 If a class `C` in an opted-in library implements the same generic class `I` more
 than once as `I0, .., In`, and at least one of the `Ii` is not syntactically
 equal to the others, then it is an error if `NNBD_TOP_MERGE(S0, ..., Sn)` is not
-defined where `Si` is **NORM(`Ii`)**.  Otherwise, for the purposes of runtime
-subtyping checks, `C` is considered to implement the canonical interface given
-by `NNBD_TOP_MERGE(S0, ..., Sn)`.
+defined where `Si` is **NORM(`Ii`)**.
+
+If `C` implements `I` once, or `C` implements `I` multiple times without error,
+`C` is considered to implement the canonical interface given by
+`NNBD_TOP_MERGE(S0, ..., Sn)`. This determines the outcome of dynamic instance
+checks applied to instances of `C`, as well as static subtype checks on
+expressions of type `C`.
 
 If a class `C` in an opted-in library overrides a member, it is an error if its
 signature is not a subtype of the types of all overriden members from all
-super-interfaces (whether legacy or opted-in).  For the purposes of override
-checking, members which are inherited from opted-in classes through legacy
-classes are still checked against each original declaration at its opted-in
-type.  For example, the following override is considered an error.
+direct super-interfaces (whether legacy or opted-in).  This implies that
+override checks for a member `m` may succeed due to a legacy member signature
+for `m` in a direct super-interface, even in the case where an indirect
+super-interface has a member signature for `m` where the override would be a
+compile-time error. For example:
 
 ```dart
 // opted_in.dart
@@ -1165,7 +1172,7 @@ class B extends A {}
 ```dart
 // opted_in.dart
 class C extends B {
-  // Override checking is done against the opted-in signature of A.foo
+  // Override checking is done against the legacy signature of B.foo.
   int? foo(int x) {}
 }
 ```
