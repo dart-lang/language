@@ -12,11 +12,11 @@ Status: Draft
   - Fix inconsistent uses of `null` and `Null` in instance checks.
 
 2020.02.28
-  - Specify that a `covariant late final x;` is an allowed instance variable which 
+  - Specify that a `covariant late final x;` is an allowed instance variable which
     introduces a setter.
 
 2020.01.31
-  - Specify that mixins must not have uninitialized potentially non-nullable 
+  - Specify that mixins must not have uninitialized potentially non-nullable
     non-late fields, and nor must classes with no generative constructors.
   - Remove reference to `CastError`. A failed `!` check is just a
     "dynamic type error" like the `as` check in the current language specification.
@@ -214,7 +214,7 @@ previous paragraph.
 We modify the upper and lower bound rules to account for nullability and legacy
 types as
 specified
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).  
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).
 
 ### Type normalization
 
@@ -323,19 +323,19 @@ fields on `Object`.
 It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
-It is an error if a top level variable or static variable with a non-nullable type 
+It is an error if a top level variable or static variable with a non-nullable type
 has no initializer expression unless the variable is marked with the `late` modifier.
 
-It is an error if a class declaration declares an instance variable with a potentially 
-non-nullable type and no initializer expression, and the class has a generative constructor 
-where the variable is not initialized via an initializing formal or an initializer list entry, 
+It is an error if a class declaration declares an instance variable with a potentially
+non-nullable type and no initializer expression, and the class has a generative constructor
+where the variable is not initialized via an initializing formal or an initializer list entry,
 unless the variable is marked with the `late` modifier.
 
 It is an error if a mixin declaration or a class declaration with no generative constructors
-declares an instance variable with a potentially non-nullable type and no initializer expression 
+declares an instance variable with a potentially non-nullable type and no initializer expression
 unless the variable is marked with the `late` modifier.
 
-It is an error to derive a mixin from a class declaration which contains 
+It is an error to derive a mixin from a class declaration which contains
 an instance variable with a potentially non-nullable type and no initializer expression
 unless the variable is marked with the `late` modifier.
 
@@ -509,7 +509,7 @@ class G<T> {
 
 For the purposes of extension method resolution, there is no special treatment
 of nullable types with respect to what members are considered accessible.  That
-is, the only members of a nullable tyhpe that are considered accessible 
+is, the only members of a nullable tyhpe that are considered accessible
 (and hence which take precedence over extensions) are the members on `Object`.
 
 ### Assignability
@@ -686,9 +686,9 @@ semantics are obeyed.
 
 ### Null check operator
 
-When evaluating an expression of the form `e!`, 
-where `e` evaluates to a value `v`, 
-a dynamic type error occurs if `v` is `null`, 
+When evaluating an expression of the form `e!`,
+where `e` evaluates to a value `v`,
+a dynamic type error occurs if `v` is `null`,
 and otherwise the expression evaluates to `v`.
 
 ### Null aware operator
