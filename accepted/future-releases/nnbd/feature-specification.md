@@ -27,11 +27,11 @@ Status: Draft
   - Specify the override inference exception for operator==.
   - **CHANGE** Specify that instantiate to bounds uses `Never` instead of `Null`.
   - **CHANGE** Specify that least and greatest closure uses `Never` instead of
-    `Null.
+    `Null`.
   - Specify that type variable elimination is performed on constants using least
     closure.
   - Clarify extension method resolution on nullable types.
-  - **CHANGE** Add missing cases to `NNBD_TOP_MERGE` and specify it's behavior
+  - **CHANGE** Add missing cases to `NNBD_TOP_MERGE` and specify its behavior
     on `covariant` parameters.
   - Fix the definition of `NORM` for un-promoted type variables
   - Change the notion of type equality for generic function bounds to mutual
@@ -68,7 +68,7 @@ Status: Draft
   - Fix definition of strictly non-nullable
 
 2019.12.03:
-  - Change warnings around null aware operaters to account for legacy types.
+  - Change warnings around null aware operators to account for legacy types.
 
 2019.11.25:
   - Specified implicitly induced getters/setters for late variables.
@@ -235,8 +235,8 @@ The **flatten** function is modified as follows:
   - otherwise if `T` is `S*` then **flatten**(`T`) = **flatten**(`S`)`*`
   - otherwise if `T` is `FutureOr<S>` then **flatten**(`T`) = `S`
   - otherwise if `T <: Future` then let `S` be a type such that `T <: Future<S>`
-and for all `R`, if `T <: Future<R>` then `S <: R`; then **flatten**('T') = `S`
-  - otherwise **flatten**('T') = `T`
+and for all `R`, if `T <: Future<R>` then `S <: R`; then **flatten**(`T`) = `S`
+  - otherwise **flatten**(`T`) = `T`
 
 ### Static errors
 #### Nullability definitions
@@ -352,8 +352,8 @@ abstract method declaration.
 
 It is an error if a required named parameter has a default value.
 
-It is an error if a named parameter that is part of a `required` group is not
-bound to an argument at a call site.
+It is an error if a required named parameter is not bound to an argument at a
+call site.
 
 It is an error to call the default `List` constructor.
 
@@ -529,9 +529,8 @@ The implicit conversion of integer literals to double literals is performed when
 the context type is `double` or `double?`.
 
 The implicit tear-off conversion which converts uses of instances of classes
-with call methods to the tear-off of their `.call` method when the context type
-is a function type is performed when the context type is a function type, or the
-nullable version of a context type.
+with call methods to the tear-off of their `.call` method is performed when the
+context type is a function type, or the nullable version of a function type.
 
 Implicit tear-off conversion is *not* performed on objects of nullable type,
 regardless of the context type.  For example:
