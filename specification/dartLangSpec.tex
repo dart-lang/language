@@ -10392,18 +10392,13 @@ Similarly for a
 \IndexCustom{\FUNCTION{} bounded type}{type!function bounded}.
 
 \LMHash{}%
-Similarly, we introduce the notion of a
-\IndexCustom{function-type bounded type}{type!function-type bounded}:
-Every function type $T$
-(\ref{functionTypes})
-is a function-type bounded type,
-with associated function type $T$;
-if $B$ is function-type bounded with associated function type $T$ and
-$X$ is a type variable with bound $B$
-then $X$ is function-type bounded with associated function type $T$;
-finally, if $B$ is function-type bounded with associated function type $T$ and
-$X$ is a type variable
-then $X \& B$ is function-type bounded with associated function type $T$.
+A
+\IndexCustom{function-type bounded type}{type!function-type bounded}
+is a type $T$ which is $T_0$ bounded where $T_0$ is a function type
+(\ref{functionTypes}).
+A function-type bounded type $T$ has an
+\Index{associated function type}
+which is the unique function type $T_0$ such that $T$ is $T_0$ bounded.
 
 \LMHash{}%
 If the static type of $f$ is \DYNAMIC{} bounded or \FUNCTION{} bounded,
@@ -10414,8 +10409,9 @@ Otherwise, it is a compile-time error if the static type of $f$ is not
 function-type bounded.
 
 \LMHash{}%
-Otherwise, the static type of $f$ is function-type bounded
-with some associated function type $F$.
+If no error occurred and the static analysis of $i$ is not complete
+then the static type $T_f$ of $f$ is function-type bounded;
+let $F$ be the associated function type of $T_f$.
 
 \LMHash{}%
 Let $S_0$ be the return type of $F$,
