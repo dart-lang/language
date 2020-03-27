@@ -4158,6 +4158,16 @@ from one of its superinterfaces
 (\ref{covariantParameters}).
 }
 
+/LMHash{}%
+For the purpose of performing static checks on ordinary method invocations
+(\ref{ordinaryInvocation})
+and property extractions
+(\ref{propertyExtraction}),
+any type $T$ which is $T_0$ bounded
+(\ref{bindingActualsToFormals}),
+where $T_0$ is a class with interface $I$,
+is also considered to have interface $I$.
+
 \LMHash{}%
 The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
 is the interface that declares the set of member signatures $M$,
