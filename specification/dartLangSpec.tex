@@ -40,6 +40,8 @@
 %   consistent with decision in SDK issue #33415.
 % - Re-adjust `yield*` rules: Per-element type checks are not supported,
 %   the given Iterable/Stream must have a safe element type.
+% - Clarify that an expression of type `X extends T` can be invoked when
+%   `T` is a function type, plus other similar cases.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -4155,6 +4157,16 @@ the property of being covariant-by-declaration
 from one of its superinterfaces
 (\ref{covariantParameters}).
 }
+
+\LMHash{}%
+For the purpose of performing static checks on ordinary method invocations
+(\ref{ordinaryInvocation})
+and property extractions
+(\ref{propertyExtraction}),
+any type $T$ which is $T_0$ bounded
+(\ref{bindingActualsToFormals}),
+where $T_0$ is a class with interface $I$,
+is also considered to have interface $I$.
 
 \LMHash{}%
 The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
@@ -10372,12 +10384,46 @@ even though there may not be a corresponding entity in the heap at run time.
 It is a compile-time error if $q_j = q_k$ for any $j \ne k$.
 
 \LMHash{}%
-If the static type of $f$ is \DYNAMIC{} or the built-in class \FUNCTION{},
-no further static checks are performed and the static type of $i$ is \DYNAMIC{};
-otherwise, it is a compile-time error if the static type of $f$ is not a function type.
+For a given type $T_0$, we introduce the notion of a
+\IndexCustom{$T_0$ bounded type}{type!T0 bounded}:
+$T_0$ itself is $T_0$ bounded;
+if $B$ is $T_0$ bounded and
+$X$ is a type variable with bound $B$
+then $X$ is $T_0$ bounded;
+finally, if $B$ is $T_0$ bounded and
+$X$ is a type variable
+then $X \& B$ is $T_0$ bounded.
+In particular, a
+\IndexCustom{\DYNAMIC{} bounded type}{type!dynamic bounded}
+is either \DYNAMIC{} itself
+or a type variable whose bound is \DYNAMIC{} bounded,
+or an intersection whose second operand is \DYNAMIC{} bounded.
+Similarly for a
+\IndexCustom{\FUNCTION{} bounded type}{type!function bounded}.
 
 \LMHash{}%
-Otherwise, the static type of $f$ is a function type $F$.
+A
+\IndexCustom{function-type bounded type}{type!function-type bounded}
+is a type $T$ which is $T_0$ bounded where $T_0$ is a function type
+(\ref{functionTypes}).
+A function-type bounded type $T$ has an
+\Index{associated function type}
+which is the unique function type $T_0$ such that $T$ is $T_0$ bounded.
+
+\LMHash{}%
+If the static type of $f$ is \DYNAMIC{} bounded or \FUNCTION{} bounded,
+no further static checks are performed on the invocation $i$
+(\commentary{apart from separate static checks on subterms like arguments}),
+and the static type of $i$ is \DYNAMIC{}.
+Otherwise, it is a compile-time error if the static type of $f$ is not
+function-type bounded.
+
+\LMHash{}%
+If no error occurred and the static analysis of $i$ is not complete
+then the static type $T_f$ of $f$ is function-type bounded;
+let $F$ be the associated function type of $T_f$.
+
+\LMHash{}%
 Let $S_0$ be the return type of $F$,
 let $X_1\ \EXTENDS\ B_1, \ldots, X_s\ \EXTENDS\ B_s$
 be the formal type parameters,
@@ -11267,9 +11313,20 @@ It is a compile-time error if $T$ does not have an accessible
 (\ref{privacy})
 instance member named $m$, unless either:
 \begin{itemize}
-\item $T$ is \DYNAMIC{}.
-Or
-\item $T$ is \FUNCTION{} and $m$ is \CALL.
+\item
+  $T$ is \DYNAMIC{} bounded
+  (\ref{bindingActualsToFormals});
+  in this case no further static checks are performed on $i$
+  (\commentary{apart from separate static checks on subterms like arguments})
+  and the static type of $i$ is \DYNAMIC.
+  Or
+\item
+  $T$ is \FUNCTION{} bounded
+  (\ref{bindingActualsToFormals})
+  and $m$ is \CALL;
+  in this case no further static checks are performed on $i$
+  (\commentary{apart from separate static checks on subterms like arguments})
+  and the static type of $i$ is \DYNAMIC.
 \rationale{%
 This means that for invocations of an instance method named \CALL,
 a receiver of type \FUNCTION{} is treated like a receiver of type \DYNAMIC{}.
@@ -11736,8 +11793,9 @@ of a static method on the denoted class.
 \LMHash{}%
 Let $T$ be the static type of $e$.
 It is a compile-time error if $T$ does not have a method or getter named \id{}
-unless $T$ is \DYNAMIC{},
-or $T$ is \FUNCTION{} and \id{} is \CALL{}.
+unless $T$ is \DYNAMIC{} bounded
+(\ref{bindingActualsToFormals}),
+or $T$ is \FUNCTION{} bounded and \id{} is \CALL.
 The static type of $i$ is:
 
 \begin{itemize}
@@ -11745,8 +11803,9 @@ The static type of $i$ is:
   if $T$ has an accessible instance getter named \id{}.
 \item The function type of the method signature \code{$T$.\id},
   if $T$ has an accessible instance method named \id{}.
+\item \FUNCTION{} if $T$ is \FUNCTION{} bounded and \id{} is \CALL.
 \item The type \DYNAMIC{} otherwise.
-  \commentary{This only occurs when $T$ is \DYNAMIC{} or \FUNCTION.}
+  \commentary{This only occurs when $T$ is \DYNAMIC{} bounded.}
 \end{itemize}
 
 \commentary{
@@ -11757,7 +11816,8 @@ thus obtained does take parameter covariance into account.
 }
 
 \LMHash{}%
-Evaluation of a property extraction $i$ of the form \code{$e$.\id} proceeds as follows:
+Evaluation of a property extraction $i$ of the form \code{$e$.\id}
+proceeds as follows:
 
 \LMHash{}%
 First, the expression $e$ is evaluated to an object $o$.
@@ -17785,7 +17845,8 @@ may support more strict static checks as an option.
 \LMLabel{functionTypes}
 
 \LMHash{}%
-Function types come in two variants:
+\IndexCustom{Function types}{type!function}
+come in two variants:
 \begin{enumerate}
 \item
   The types of functions that only have positional parameters.
