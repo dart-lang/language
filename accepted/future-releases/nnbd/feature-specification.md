@@ -999,9 +999,10 @@ than once, it is an error if the `LEGACY_ERASURE` of all such super-interfaces
 are not all syntactically equal.
 
 When `C` implements `I` once, and also when `C` implements `I` more than once
-without error, `C` is considered to implement the canonical `LEGACY_ERASURE` of
-`I`. This determines the outcome of dynamic instance checks applied to instances
-of `C`, as well as static subtype checks on expressions of type `C`.
+without error, `C` is considered to implement the canonical signature given by
+`LEGACY_ERASURE` of the super-interfaces in question. This determines the
+outcome of dynamic instance checks applied to instances of `C`, as well as
+static subtype checks on expressions of type `C`.
 
 A member which is defined in a class in a legacy library (whether concrete or
 abstract), is given a signature in which every type is a legacy type.  It is an
