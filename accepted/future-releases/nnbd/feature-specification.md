@@ -1144,13 +1144,10 @@ arguments) marked as nullable or non-nullable as written.
 If a class `C` in an opted-in library implements the same generic class `I` more
 than once as `I0, .., In`, and at least one of the `Ii` is not syntactically
 equal to the others, then it is an error if `NNBD_TOP_MERGE(S0, ..., Sn)` is not
-defined where `Si` is **NORM(`Ii`)**.
-
-If `C` implements `I` once, or `C` implements `I` multiple times without error,
-`C` is considered to implement the canonical interface given by
-`NNBD_TOP_MERGE(S0, ..., Sn)`. This determines the outcome of dynamic instance
-checks applied to instances of `C`, as well as static subtype checks on
-expressions of type `C`.
+defined where `Si` is **NORM(`Ii`)**.  Otherwise, `C` is considered to
+implement the canonical interface given by `NNBD_TOP_MERGE(S0, ..., Sn)`.  This
+determines the outcome of dynamic instance checks applied to instances of `C`,
+as well as static subtype checks on expressions of type `C`.
 
 If a class `C` in an opted-in library overrides a member, it is an error if its
 signature is not a subtype of the types of all overriden members from all
