@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.03.20
+  - **CHANGE** `NNBD_TOP_MERGE` resolves all conflicting top types to `Object?`.
+
 2020.03.05
   - Update grammar for null aware subscript.
   - Fix reversed subtype order in assignability.
@@ -1085,13 +1088,13 @@ as:
  - `NNBD_TOP_MERGE(Object?, Object?)  = Object?`
  - `NNBD_TOP_MERGE(dynamic, dynamic)  = dynamic`
  - `NNBD_TOP_MERGE(void, void)  = void`
- - `NNBD_TOP_MERGE(Object?, void)  = void`
+ - `NNBD_TOP_MERGE(Object?, void)  = Object?`
    - And the reverse
- - `NNBD_TOP_MERGE(dynamic, void)  = void`
+ - `NNBD_TOP_MERGE(dynamic, void)  = Object?`
    - And the reverse
  - `NNBD_TOP_MERGE(Object?, dynamic)  = Object?`
    - And the reverse
- - `NNBD_TOP_MERGE(Object*, void)  = void`
+ - `NNBD_TOP_MERGE(Object*, void)  = Object?`
    - And the reverse
  - `NNBD_TOP_MERGE(Object*, dynamic)  = Object?`
    - And the reverse
