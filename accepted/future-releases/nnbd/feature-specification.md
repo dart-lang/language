@@ -6,17 +6,21 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.03.26
+  - Adjust mixed-mode inheritance rules to express a consolidated model
+    where legacy types prevail in some additional cases.
+
 2020.03.05
   - Update grammar for null aware subscript.
   - Fix reversed subtype order in assignability.
   - Fix inconsistent uses of `null` and `Null` in instance checks.
 
 2020.02.28
-  - Specify that a `covariant late final x;` is an allowed instance variable which 
+  - Specify that a `covariant late final x;` is an allowed instance variable which
     introduces a setter.
 
 2020.01.31
-  - Specify that mixins must not have uninitialized potentially non-nullable 
+  - Specify that mixins must not have uninitialized potentially non-nullable
     non-late fields, and nor must classes with no generative constructors.
   - Remove reference to `CastError`. A failed `!` check is just a
     "dynamic type error" like the `as` check in the current language specification.
@@ -214,7 +218,7 @@ previous paragraph.
 We modify the upper and lower bound rules to account for nullability and legacy
 types as
 specified
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).  
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).
 
 ### Type normalization
 
@@ -323,19 +327,19 @@ fields on `Object`.
 It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
-It is an error if a top level variable or static variable with a non-nullable type 
+It is an error if a top level variable or static variable with a non-nullable type
 has no initializer expression unless the variable is marked with the `late` modifier.
 
-It is an error if a class declaration declares an instance variable with a potentially 
-non-nullable type and no initializer expression, and the class has a generative constructor 
-where the variable is not initialized via an initializing formal or an initializer list entry, 
+It is an error if a class declaration declares an instance variable with a potentially
+non-nullable type and no initializer expression, and the class has a generative constructor
+where the variable is not initialized via an initializing formal or an initializer list entry,
 unless the variable is marked with the `late` modifier.
 
 It is an error if a mixin declaration or a class declaration with no generative constructors
-declares an instance variable with a potentially non-nullable type and no initializer expression 
+declares an instance variable with a potentially non-nullable type and no initializer expression
 unless the variable is marked with the `late` modifier.
 
-It is an error to derive a mixin from a class declaration which contains 
+It is an error to derive a mixin from a class declaration which contains
 an instance variable with a potentially non-nullable type and no initializer expression
 unless the variable is marked with the `late` modifier.
 
@@ -509,7 +513,7 @@ class G<T> {
 
 For the purposes of extension method resolution, there is no special treatment
 of nullable types with respect to what members are considered accessible.  That
-is, the only members of a nullable tyhpe that are considered accessible 
+is, the only members of a nullable tyhpe that are considered accessible
 (and hence which take precedence over extensions) are the members on `Object`.
 
 ### Assignability
@@ -685,9 +689,9 @@ semantics are obeyed.
 
 ### Null check operator
 
-When evaluating an expression of the form `e!`, 
-where `e` evaluates to a value `v`, 
-a dynamic type error occurs if `v` is `null`, 
+When evaluating an expression of the form `e!`,
+where `e` evaluates to a value `v`,
+a dynamic type error occurs if `v` is `null`,
 and otherwise the expression evaluates to `v`.
 
 ### Null aware operator
@@ -991,9 +995,13 @@ arguments) marked as legacy types.
 
 If a class `C` in a legacy library implements the same generic class `I` more
 than once, it is an error if the `LEGACY_ERASURE` of all such super-interfaces
-are not all syntactically equal.  For the purposes of runtime subtyping checks,
-`C` is considered to implement the canonical `LEGACY_ERASURE` of the
-super-interfaces in question.
+are not all syntactically equal.
+
+When `C` implements `I` once, and also when `C` implements `I` more than once
+without error, `C` is considered to implement the canonical signature given by
+`LEGACY_ERASURE` of the super-interfaces in question. This determines the
+outcome of dynamic instance checks applied to instances of `C`, as well as
+static subtype checks on expressions of type `C`.
 
 A member which is defined in a class in a legacy library (whether concrete or
 abstract), is given a signature in which every type is a legacy type.  It is an
@@ -1003,7 +1011,7 @@ rules.
 
 Using the legacy erasure for checking super-interfaces accounts for opted-out
 classes which depend on both opted-in and opted-out versions of the same generic
-interface.
+interface. For example:
 
 ```dart
 //opted in
@@ -1021,8 +1029,7 @@ class C extends A implements B {}
 
 The class `C` is not considered erroneous, despite implementing both `I<int?>`
 and `I<int*>`, since legacy erasure makes both of those interfaces equal.  The
-canonical interface which `C` is chosen to implement for the purposes of runtime
-type checks is `I<int*>`.
+interface which `C` is considered to implement is `I<int*>`.
 
 
 #### Classes defined in legacy libraries as seen from opted-in libraries
@@ -1136,16 +1143,18 @@ arguments) marked as nullable or non-nullable as written.
 If a class `C` in an opted-in library implements the same generic class `I` more
 than once as `I0, .., In`, and at least one of the `Ii` is not syntactically
 equal to the others, then it is an error if `NNBD_TOP_MERGE(S0, ..., Sn)` is not
-defined where `Si` is **NORM(`Ii`)**.  Otherwise, for the purposes of runtime
-subtyping checks, `C` is considered to implement the canonical interface given
-by `NNBD_TOP_MERGE(S0, ..., Sn)`.
+defined where `Si` is **NORM(`Ii`)**.  Otherwise, `C` is considered to
+implement the canonical interface given by `NNBD_TOP_MERGE(S0, ..., Sn)`.  This
+determines the outcome of dynamic instance checks applied to instances of `C`,
+as well as static subtype checks on expressions of type `C`.
 
 If a class `C` in an opted-in library overrides a member, it is an error if its
 signature is not a subtype of the types of all overriden members from all
-super-interfaces (whether legacy or opted-in).  For the purposes of override
-checking, members which are inherited from opted-in classes through legacy
-classes are still checked against each original declaration at its opted-in
-type.  For example, the following override is considered an error.
+direct super-interfaces (whether legacy or opted-in).  This implies that
+override checks for a member `m` may succeed due to a legacy member signature
+for `m` in a direct super-interface, even in the case where an indirect
+super-interface has a member signature for `m` where the override would be a
+compile-time error. For example:
 
 ```dart
 // opted_in.dart
@@ -1164,11 +1173,14 @@ class B extends A {}
 ```dart
 // opted_in.dart
 class C extends B {
-  // Override checking is done against the opted-in signature of A.foo
+  // Override checking is done against the legacy signature of B.foo.
   int? foo(int x) {}
 }
 ```
 
+It is difficult to predict the outcome of migrating `B` in such situations, but
+lints or hints may be used by tools to communicate to developers that `C` may
+need to be changed again when `B` is migrated.
 
 If a class `C` in an opted-in library inherits a member `m` with the same name
 from multiple direct super-interfaces (whether legacy or opted-in), let `T0,
