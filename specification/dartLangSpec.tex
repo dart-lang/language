@@ -10574,15 +10574,14 @@ derived from an actual argument part of the form
 is bound to the formal type parameters and formal parameters of $f$ as follows:
 
 \LMHash{}%
-% Passing a wrong number of actual type arguments: Passing none.
+% Passing a wrong number of actual type arguments.
 If $r = 0$ and $s > 0$ then replace the actual type argument list:
-let $r$ be $s$ and let $t_i$ for $i \in 1 .. s$ be the result of
+Let $r$ be $s$ and let $t_i$ for $i \in 1 .. s$ be the result of
 instantiation to bound
 (\ref{instantiationToBound})
 on the formal type parameters of $f$.
-A dynamic error occurs if this instantiation to bound fails,
-and if the resulting type argument list is not regular-bounded.
-% Passing a wrong number of actual type arguments: Passing some.
+A dynamic error occurs if this instantiation to bound fails.
+% If the type argument list is not regular-bounded, an error occurs below.
 Otherwise, if $r \not= s$, a \code{NoSuchMethodError} is thrown.
 
 \LMHash{}%
