@@ -6,9 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
-2020.03.26
+2020.04.01
   - Adjust mixed-mode inheritance rules to express a consolidated model
-    where legacy types prevail in some additional cases.
+    where legacy types prevail in some additional cases; also state
+    that mitigated interfaces are used for dynamic instance checks as
+    well as for static subtype checks.
 
 2020.03.05
   - Update grammar for null aware subscript.
