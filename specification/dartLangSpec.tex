@@ -10574,13 +10574,18 @@ derived from an actual argument part of the form
 is bound to the formal type parameters and formal parameters of $f$ as follows:
 
 \LMHash{}%
-% Passing a wrong number of actual type arguments.
+% Passing a wrong number of actual type arguments: Passing none.
 If $r = 0$ and $s > 0$ then replace the actual type argument list:
-%% TODO[instantiate-to-bound]: The actual type arguments passed here
-%% should be chosen based on the instantiate-to-bound algorithm, but we
-%% cannot yet refer to that because it hasn't yet been specified here.
-let $r$ be $s$ and $t_i = \DYNAMIC{}$ for $i \in 1 .. s$.
-Then, if $r \not= s$, a \code{NoSuchMethodError} is thrown.
+let $r$ be $s$ and let $t_i$ for $i \in 1 .. s$ be the result of
+instantiation to bound
+(\ref{instantiationToBound})
+on the formal type parameters of $f$.
+A dynamic error occurs if this instantiation to bound fails,
+and if the resulting type argument list is not regular-bounded.
+% Passing a wrong number of actual type arguments: Passing some.
+Otherwise, if $r \not= s$, a \code{NoSuchMethodError} is thrown.
+
+\LMHash{}%
 % Passing named arguments to a function with optional positional parameters.
 If $l > 0$ and $n \not= h$, a \code{NoSuchMethodError} is thrown.
 % Passing too few or too many positional arguments.
@@ -17128,13 +17133,14 @@ Any self reference in a type alias,
 either directly or recursively via another type declaration,
 is a compile-time error.
 
-\commentary{
+\commentary{%
 This kind of error may also arise when type arguments have been
 omitted in the program, but are added during static analysis
 via instantiation to bound
 (\ref{instantiationToBound})
-or via type inference
-(\commentary{which will be specified later (\ref{overview})}).
+or via type inference,
+which will be specified later
+(\ref{overview}).%
 }
 
 \commentary{%
