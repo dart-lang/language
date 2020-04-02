@@ -1008,8 +1008,8 @@ static subtype checks on expressions of type `C`.
 A member which is defined in a class in a legacy library (whether concrete or
 abstract), is given a signature in which every type is a legacy type.  It is an
 error if the signature of a member is not a correct override of all members of
-the same name in the direct super-interfaces of the class, using the legacy
-subtyping rules.
+the same name in super-interfaces of the class, using the legacy subtyping
+rules.
 
 Using the legacy erasure for checking super-interfaces accounts for opted-out
 classes which depend on both opted-in and opted-out versions of the same generic
