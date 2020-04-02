@@ -6,10 +6,6 @@ Status: Draft
 
 ## CHANGELOG
 
-2020.04.02
-  - Clarify that legacy class override checks are done with respect to the
-    direct super-interfaces.
-
 2020.04.01
   - Adjust mixed-mode inheritance rules to express a consolidated model
     where legacy types prevail in some additional cases; also state
