@@ -903,10 +903,9 @@ cases.  A conditional expression of type `dynamic` may evaluated to any value,
 and hence must be implicitly downcast to `bool`, after which no further check is
 required.
 
-In mixed mode (weak mode evaluation) Dart, values of type `Never` and `bool` may
-evaluate to `null`, and so a boolean conversion check must be performed in
-addition to any implicit downcasts implied.  The full semantics then are given
-as follows.
+In weak mode execution, values of type `Never` and `bool` may evaluate to
+`null`, and so a boolean conversion check must be performed in addition to any
+implicit downcasts implied.  The full semantics then are given as follows.
 
 Given a boolean conditional expression `e` where `e` has type `S`, it is a
 static error if `S` is not assignable to `bool`.  Otherwise:
