@@ -2,6 +2,11 @@
 
 leafp@google.com
 
+## CHANGELOG
+
+2020.03.30
+  - **CHANGE** Update DOWN algorithm with extensions for FutureOr
+
 This documents the currently implemented upper and lower bound computation,
 modified to account for explicit nullability and the accompanying type system
 changes (including the legacy types).  In the interest of backwards
@@ -304,6 +309,18 @@ follows.
 
 - **DOWN**(`T1`, `T2`) = `T1` if `T1` <: `T2`
 - **DOWN**(`T1`, `T2`) = `T2` if `T2` <: `T1`
+
+- **DOWN**(`FutureOr<T1>`, `FutureOr<T2>`) = `FutureOr<S>`
+  - where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`FutureOr<T1>`, `Future<T2>`) = `Future<S>`
+  - where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`Future<T1>`, `FutureOr<T2>`) = `Future<S>`
+  - where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`FutureOr<T1>`, `T2`) = `S`
+  - where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`T1`, `FutureOr<T2>`) = `S`
+  - where `S` is **DOWN**(`T1`, `T2`)
+
 - **DOWN**(`T1`, `T2`) = `Never` otherwise
 
 
@@ -403,9 +420,3 @@ variant of the subtyping relation which is a total order on mutual subtypes.
 That is, if `<::` is the extended relation, we would want that `T <:: S` implies
 that `T <: S`, but also that `T <:: S` and `S <:: T` implies that `S` and `T`
 are syntactically (rather than just semantically) equal.
-
-### FutureOr
-
-We could choose to do better for `FutureOr<T>`.  The inference algorithm
-currently special cases this for lower bounds, and it's a bit of an unpleasent
-asymmetry that we deal with this in inference but not in the normal computation.
