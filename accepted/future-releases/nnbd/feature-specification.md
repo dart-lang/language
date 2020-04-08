@@ -6,8 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
-2020.04.07
+2020.04.08
   - **CHANGE** `NNBD_TOP_MERGE` resolves all conflicting top types to `Object?`.
+
+2020.04.07
+  - Clarify semantics of boolean conditional checks in strong and weak mode.
 
 2020.04.02
   - Clarify that legacy class override checks are done with respect to the
@@ -889,6 +892,41 @@ was marked `late`.  Note that this is a change from pre-NNBD semantics in that:
     variable to `null`
   - Reading the variable during initializer evaluation is no longer checked for,
     and does not cause an error.
+
+### Boolean conditional evaluation.
+
+The requirement that the condition in a boolean conditional control expression
+(e.g. the a conditional statement, conditional element, `while` loop, etc) be
+assignable to `bool` is unchanged from pre null-safe Dart.  The change in
+assignability means that the static type of the condition may only be `dynamic`,
+`Never`, or `bool`.  In full null-safe Dart, an expression of type `Never` will
+always diverge and an expression of type `bool` will never evaluate to a value
+other than `true` or `false`, and hence no conversion is required in these
+cases.  A conditional expression of type `dynamic` may evaluated to any value,
+and hence must be implicitly downcast to `bool`, after which no further check is
+required.
+
+In weak mode execution, values of type `Never` and `bool` may evaluate to
+`null`, and so a boolean conversion check must be performed in addition to any
+implicit downcasts implied.  The full semantics then are given as follows.
+
+Given a boolean conditional expression `e` where `e` has type `S`, it is a
+static error if `S` is not assignable to `bool`.  Otherwise:
+
+In NNBD strong mode, evaluation proceeds as follows:
+  - First `e` is implicitly cast to `bool` if required.
+    - This cast may fail, and if so it is a TypeError.
+  - If the cast does not fail, then the result is known to be a non-null
+    boolean, and evaluation of the enclosing conditional proceeds as usual.
+
+In NNBD weak mode, evaluation proceeds as follows:
+  - First `e` is implicitly cast to `bool` if required (using
+    `LEGACY_SUBTYPE(e.runtimeType, bool)`)
+    - This cast may fail, and if so it is a TypeError.
+  - If the cast does not fail, then the result may still be `null`, and so the
+  result must be checked against `null`.
+    - If the `null` check fails, it is an AssertionError, otherwise evaluation
+      of the enclosing conditional proceeds as usual.
 
 
 ## Core library changes
