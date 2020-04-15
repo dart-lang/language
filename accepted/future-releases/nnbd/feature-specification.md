@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.04.13
+  - **CHANGE** The default type of the error variable in a catch clause is
+    `Object`.
+
 2020.04.08
   - **CHANGE** `NNBD_TOP_MERGE` resolves all conflicting top types to `Object?`.
 
@@ -490,6 +494,10 @@ Top level variable and local function inference is performed
 as
 [specified separately](https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md).
 Method body inference is not yet specified.
+
+If no type is specified in a catch clause, then the default type of the error
+variable is `Object`, instead of `dynamic` as was the case in pre-null safe
+Dart.
 
 ### Instantiate to bounds
 
