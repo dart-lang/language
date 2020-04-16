@@ -42,6 +42,8 @@
 %   the given Iterable/Stream must have a safe element type.
 % - Clarify that an expression of type `X extends T` can be invoked when
 %   `T` is a function type, plus other similar cases.
+% - Define the 'future value type' of an `async` function. Used for returns,
+%   correcting the spec error reported as language issue #929.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -1366,7 +1368,8 @@ It is a compile-time error if the declared return type of a function marked \cod
 
 \LMHash{}%
 We define the notion of the
-\IndexCustom{element type of a generator}{function!generator!element type}
+\IndexCustom{element type of a generator function}{%
+  function!generator!element type}
 as follows:
 %
 If the function $f$ is a synchronous generator
@@ -1383,12 +1386,30 @@ Otherwise, if the function $f$ is a generator
 then the element type of $f$ is \DYNAMIC.
 
 \commentary{%
-%% TODO(eernst): Come nnbd, change 'a top type' to \DYNAMIC.
+%% TODO(eernst): Come nnbd, change 'a top type' to 'a top type or `Object`'.
 In the latter case the return type is a top type,
 because the declaration of $f$ would otherwise be a compile-time error.
 This implies that there is no information about
 the type of elements that the generator will yield.%
 }
+
+% Note, come nnbd, that the following is not just `flatten(T)`: With return
+% type `Future<int>?` we must get the future value type `int`, not `int?`.
+\LMHash{}%
+We define the notion of the
+\IndexCustom{future value type of an asynchronous non-generator function}{%
+  function!asynchronous non-generator!future value type}
+Let the function $f$ be an asynchronous non-generator.
+If, for some $U$, the declared return type $T$ of $f$ is
+% An error has occurred unless `Future<U> <: $T$` for some `U`, so $T$ is
+% `Future<U>` or `FutureOr<U>` (come nnbd: or `Object`, `Future<U>?`, or
+% `FutureOr<U>?`) for some `U`, or it is a top type.
+\code{Future<$U$>} or \code{FutureOr<$U$>}
+%% TODO(eernst): Come nnbd: `or \code{Future<$U$>?} or \code{FutureOr<$U$>?}`
+then the future value type of $f$ is $U$.
+%
+Otherwise, if $T$ is \VOID{} then the future value type of $f$ is \VOID.
+Otherwise, the future value type of $f$ is \DYNAMIC.
 
 
 \subsection{Function Declarations}
@@ -15468,11 +15489,14 @@ to return an object in a return statement.%
 \LMHash{}%
 \Case{Asynchronous non-generator functions}
 Consider the case where $f$ is an asynchronous non-generator function
-(\ref{functions}).
+(\ref{functions})
+with future value type
+(\ref{functions})
+$T_v$.
 %
 % Returning without an object is only ok for async-"voidy" return types.
 It is a compile-time error if $s$ is \code{\RETURN{};},
-unless \flatten{T}
+unless $T_v$
 (\ref{functionExpressions})
 is \VOID{}, \DYNAMIC{}, or \code{Null}.
 %
@@ -15482,40 +15506,34 @@ If no expression is given, the future will be completed with the null object
 (\ref{null})
 which motivates this rule.%
 }
-% Returning with an object in an void async function only ok
+% Returning with an object in a void async function only ok
 % when that value is async-"voidy".
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-\flatten{T} is \VOID{},
+$T_v$ is \VOID,
 and \flatten{S} is neither \VOID{}, \DYNAMIC{}, nor \code{Null}.
 %
 % Returning async-void in a "non-async-voidy" function is an error.
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-\flatten{T} is neither \VOID{}, \DYNAMIC{}, nor \code{Null},
-and \flatten{S} is \VOID{}.
+%% TODO(eernst): Come nnbd: Remove `Null`.
+$T_v$ is neither \VOID{}, \DYNAMIC{}, nor \code{Null},
+%% TODO(eernst): Come nnbd: `\VOID{} or \code{\VOID?}`.
+and \flatten{S} is \VOID.
 %
 % Otherwise, returning an un-deasync-assignable value is an error.
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+%% TODO(eernst): Come nnbd: `not \VOID{} nor \code{\VOID?}`.
 \flatten{S} is not \VOID,
-and \code{Future<\flatten{S}>} is not assignable to $T$.
+% We cannot just check whether `FutureOr<flatten(S)>` is assignable to $T_v$,
+% this would make it an error to `return 42` with return type `Future<num>`.
+% And we cannot check whether `Future<flatten(S)>` is assignable to $T$,
+% this makes it an error to `return Future<int>.value(1)` with return type
+% `Future<Future<int>>`.
+and $S$ as well as \flatten{S} are not assignable to $T_v$.
 
 \commentary{%
-Note that \flatten{T} cannot be \VOID, \DYNAMIC, or \code{Null}
-in the last case,
-because then \code{Future<$U$>} is assignable to $T$ for \emph{all} $U$.
-In particular, when $T$ is \code{FutureOr<Null>}
-(which is equivalent to \code{Future<Null>}),
-\code{Future<\flatten{S}>} is assignable to $T$ for all $S$.
-This means that no compile-time error is raised,
-but \emph{only} the null object (\ref{null})
-or an instance of \code{Future<Null>} can successfully be returned at run time.
-This is not an anomaly,
-it corresponds to the treatment of a synchronous function
-with return type \code{Null};
-but tools may choose to give a hint that a downcast is unlikely to succeed.
-
 An error will not be raised if $f$ has no declared return type,
-since the return type would be \DYNAMIC,
-and \code{Future<\flatten{S}>} is assignable to \DYNAMIC{} for all $S$.
+since the return type and $T_v$ would then be \DYNAMIC,
+and all types are assignable to \DYNAMIC.
 However, an asynchronous non-generator function
 that declares a return type which is not ``voidy''
 must return an expression explicitly.%
