@@ -6,6 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.04.20
+  - **CHANGE** (by adding a rule that overrides an existing rule in the language
+    specification). Specify that it is a compile-time error to await an
+    expression whose static type is `void`.
+
 2020.04.13
   - **CHANGE** The default type of the error variable in a catch clause is
     `Object`.
@@ -458,6 +463,11 @@ It is an error if a class has a setter and a getter with the same basename where
 the return type of the getter is not a subtype of the argument type of the
 setter.  Note that this error specifically requires subtyping and not
 assignability and hence makes no exception for `dynamic`.
+
+If the static type of `e` is `void`, the expression `await e` is a compile-time
+error. *This implies that
+[this](https://github.com/dart-lang/language/blob/780cd5a8be92e88e8c2c74ed282785a2e8eda393/specification/dartLangSpec.tex#L18281)
+list item will be removed from the language specification.*
 
 It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, or
 `...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
