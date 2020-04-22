@@ -14,7 +14,7 @@
 \makeindex
 \title{Dart Programming Language Specification\\
 {5th edition draft}\\
-{\large Version 2.3.0-dev}}
+{\large Version 2.8.0-dev}}
 \author{}
 
 % For information about Location Markers (and in particular the
@@ -42,6 +42,8 @@
 %   the given Iterable/Stream must have a safe element type.
 % - Clarify that an expression of type `X extends T` can be invoked when
 %   `T` is a function type, plus other similar cases.
+% - Specify actual type arguments passed to a generic function which is invoked
+%   with no type arguments (so it must be a dynamic invocation).
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -6014,10 +6016,11 @@ If instantiation to bound on $f$ yields
 a list of type arguments \List{T}{1}{k} such that,
 for some $j \in 1..k$,
 $T_j$ is or contains a type which is not well-bounded,
-or if \List{T}{1}{k} does not satisfy their bounds,
+or if \List{T}{1}{k} does not satisfy the bounds
+on the formal type parameters of $f$,
 then we say that
-\IndexCustom{$f$ does not admit dynamically chosen type arguments}{%
-  generic function!does not admit dynamically chosen type arguments}.
+\IndexCustom{$f$ does not have default type arguments}{%
+  generic function!does not have default type arguments}.
 
 
 \section{Metadata}
@@ -10597,7 +10600,7 @@ is bound to the formal type parameters and formal parameters of $f$ as follows:
 \LMHash{}%
 % Passing a wrong number of actual type arguments.
 If $r = 0$ and $s > 0$ then
-if $f$ does not admit dynamically chosen type arguments
+if $f$ does not have default type arguments
 (\ref{instantiationToBound})
 then a dynamic error occurs.
 Otherwise replace the actual type argument list:
