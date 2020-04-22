@@ -14,7 +14,7 @@
 \makeindex
 \title{Dart Programming Language Specification\\
 {5th edition draft}\\
-{\large Version 2.3.0-dev}}
+{\large Version 2.8.0-dev}}
 \author{}
 
 % For information about Location Markers (and in particular the
@@ -42,6 +42,8 @@
 %   the given Iterable/Stream must have a safe element type.
 % - Clarify that an expression of type `X extends T` can be invoked when
 %   `T` is a function type, plus other similar cases.
+% - Specify actual type arguments passed to a generic function which is invoked
+%   with no type arguments (so it must be a dynamic invocation).
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -5998,6 +6000,28 @@ Conversely, instantiation to bound acts on types which are syntactic subterms,
 also when they are deeply nested.%
 }
 
+\LMHash{}%
+\IndexCustom{Instantiation to bound on a generic function $f$}{%
+  generic function!instantiation to bound}
+also uses the algorithm described above,
+taking the formal parameters \List{X}{1}{k} from the declaration of $f$,
+with bounds \List{B}{1}{k}, and,
+for each $i \in 1 .. k$,
+letting $S_i$ denote the result of instantiation to bound on $B_i$,
+and letting $S_i$ be \DYNAMIC{} when the $i$th bound is omitted.
+
+\LMHash{}%
+Let $f$ be a generic function declaration.
+If instantiation to bound on $f$ yields
+a list of type arguments \List{T}{1}{k} such that,
+for some $j \in 1..k$,
+$T_j$ is or contains a type which is not well-bounded,
+or if \List{T}{1}{k} does not satisfy the bounds
+on the formal type parameters of $f$,
+then we say that
+\IndexCustom{$f$ does not have default type arguments}{%
+  generic function!does not have default type arguments}.
+
 
 \section{Metadata}
 \LMLabel{metadata}
@@ -10575,12 +10599,20 @@ is bound to the formal type parameters and formal parameters of $f$ as follows:
 
 \LMHash{}%
 % Passing a wrong number of actual type arguments.
-If $r = 0$ and $s > 0$ then replace the actual type argument list:
-%% TODO[instantiate-to-bound]: The actual type arguments passed here
-%% should be chosen based on the instantiate-to-bound algorithm, but we
-%% cannot yet refer to that because it hasn't yet been specified here.
-let $r$ be $s$ and $t_i = \DYNAMIC{}$ for $i \in 1 .. s$.
-Then, if $r \not= s$, a \code{NoSuchMethodError} is thrown.
+If $r = 0$ and $s > 0$ then
+if $f$ does not have default type arguments
+(\ref{instantiationToBound})
+then a dynamic error occurs.
+Otherwise replace the actual type argument list:
+Let $r$ be $s$ and let $t_i$ for $i \in 1 .. s$ be the result of
+instantiation to bound
+(\ref{instantiationToBound})
+on the formal type parameters of $f$,
+substituting the actual values of any free type variables
+(\ref{actualTypes}).
+Otherwise, if $r \not= s$, a \code{NoSuchMethodError} is thrown.
+
+\LMHash{}%
 % Passing named arguments to a function with optional positional parameters.
 If $l > 0$ and $n \not= h$, a \code{NoSuchMethodError} is thrown.
 % Passing too few or too many positional arguments.
@@ -10597,8 +10629,9 @@ $o_i, i \in 1 .. m$,
 and $q_j$ is bound to $o_{m+j}, j \in 1 .. l$.
 All remaining formal parameters of $f$ are bound to their default values.
 
-\commentary{
-All of these remaining parameters are necessarily optional and thus have default values.
+\commentary{%
+All of these remaining parameters are necessarily optional
+and thus have default values.%
 }
 
 \LMHash{}%
@@ -17128,13 +17161,14 @@ Any self reference in a type alias,
 either directly or recursively via another type declaration,
 is a compile-time error.
 
-\commentary{
+\commentary{%
 This kind of error may also arise when type arguments have been
 omitted in the program, but are added during static analysis
 via instantiation to bound
 (\ref{instantiationToBound})
-or via type inference
-(\commentary{which will be specified later (\ref{overview})}).
+or via type inference,
+which will be specified later
+(\ref{overview}).%
 }
 
 \commentary{%
