@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.04.24
+  - Specify static analysis of `e1 == e2`.
+
 2020.04.20
   - **CHANGE** (by adding a rule that overrides an existing rule in the language
     specification). Specify that it is a compile-time error to await an
