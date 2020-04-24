@@ -495,10 +495,16 @@ of a function call produces a result of type `Never`.
 
 The static type of a `throw e` expression is `Never`.
 
-In legacy mode, an override of operator== with no explicit parameter type
+An expression of the form `e1 == e2` where the static type of `e1` and `e2` is
+`T1` respectively `T2` is type checked as an invocation of the instance method
+`operator ==` on **NonNull**(`T1`) with an actual argument of type
+**NonNull**(`T2`).
+
+In legacy mode, an override of `operator ==` with no explicit parameter type
 inherits the parameter type of the overridden method if any override of
-operator== between the overriding method and Object.== has an explicit parameter
-type.  Otherwise, the parameter type of the overriding method is dynamic.
+`operator ==` between the overriding method and `Object.==` has an explicit
+parameter type.  Otherwise, the parameter type of the overriding method is
+`dynamic`.
 
 Top level variable and local function inference is performed
 as
