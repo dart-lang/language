@@ -7,6 +7,11 @@ Status: Draft
 ## CHANGELOG
 
 2020.04.30
+  - **CHANGE** (by overriding rules in the language specification): Change
+    static rules for return statements, and dynamic semantics of return in
+    asynchronous non-generators.
+
+2020.04.30
   - Specify static analysis of `e1 == e2`.
 
 2020.04.20
@@ -265,6 +270,120 @@ The **flatten** function is modified as follows:
   - otherwise if `T <: Future` then let `S` be a type such that `T <: Future<S>`
 and for all `R`, if `T <: Future<R>` then `S <: R`; then **flatten**(`T`) = `S`
   - otherwise **flatten**(`T`) = `T`
+
+### The future value type of an asynchronous generator
+
+_We specify a concept which corresponds to the type of object which is
+delivered by an `async` function, that is, the type of object which is used to
+complete the future which is returned from such a function when it suspends
+for the first time._
+
+Let _f_ be an asynchronous non-generator function. We define the notion of the
+**future value type** of _f_ as follows: If, for some `U`, the declared return
+type `T` of _f_ is `Future<U>`, `FutureOr<U>`, `Future<U>?`, or `FutureOr<U>?`,
+the future value type of _f_ is `U`.
+Otherwise, if `T` is `void` then the future value type of _f_ is `void`.
+Otherwise, the future value type of _f_ is `Object?`.
+
+### Return statements
+
+The static analysis of return statements is changed in the following
+way, where `$T$` is the declared return type and `$S$` is the static type of
+the expression `e`:
+
+At [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15477)
+about synchronous non-generator functions, the text is changed as follows:
+
+```
+It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+$T$ is neither \VOID{} nor \DYNAMIC,
+and $S$ is \VOID.
+```
+
+_Comparing to Dart before null-safety, this means that it is no longer allowed
+to "return void to null" in a regular function._
+
+At [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15525)
+about an asynchronous non-generator function with future value type `$T_v$`,
+the text is changed as follows:
+
+```
+It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+$T_v$ is neither \VOID{} nor \DYNAMIC,
+and \flatten{S} is \VOID{}.
+```
+
+_Comparing to Dart before null-safety, this means that it is no longer allowed
+to "return void to null" in an `async` function, nor to "return a void future
+to null"._
+
+The next sentence is changed as follows:
+
+```
+It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+\flatten{S} is not \VOID,
+$S$ is not assignable to $T$,
+and flatten{S} is not a subtype of $T$.
+```
+
+_Comparing to Dart before null-safety, this means that it is now allowed
+to return a future when the future value type is a suitable future; for
+instance, we can have `return Future<int>.value(42)` in an `async` function
+with declared return type `Future<Future<int>>`. Conversely, it is no longer
+allowed to return a `Future<dynamic>` or `FutureOr<dynamic>` when the future
+value type is `Future<U>` for some `U` which is not a top type, because it is
+no longer enough that `dynamic` is assignable to `U`._
+
+The dynamic semantics specified at
+[this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15597)
+is changed as follows, where `$f$` is the enclosing function with declared
+return type `$T$`, and `$e$` is the returned expression with static type `$S$`:
+
+```
+When $f$ is a synchronous non-generator, evaluation proceeds as follows:
+The expression $e$ is evaluated to an object $o$.
+A dynamic error occurs unless the dynamic type of $o$ is a subtype of
+the actual return type of $f$
+(\ref{actualTypes}).
+Then the return statement $s$ completes returning $o$
+(\ref{statementCompletion}).
+
+When $f$ is an asynchronous non-generator with future value type $T_v$,
+the return statement $s$ is desugared as follows at compile time,
+where \code{\SUSPEND{} $e$} is a statement that evaluates $e$ to an object
+$o$, then completes the returned future if $f$ with $o$, and finally suspends
+the execution of $f$. The first item whose requirement is satisfied is used:
+
+\begin{itemize}
+\item When $S$ is a subtype of $T_v$: \code{\SUSPEND{} $e$;}.
+\item When $S$ is \DYNAMIC{}:
+  \code{\VAR r = $e$; \SUSPEND{} r \IS{} Future<$T_v$> ? \AWAIT{} r : (r \AS{} $T_v$)}.
+\item When $
+
+\end{itemize}
+
+
+
+evaluation proceeds as follows.
+The expression $e$ is evaluated to an object $o$.
+Then:
+
+
+Let $S$ be the run-time type of $o$ and
+let $T$ be the actual return type of $f$
+(\ref{actualTypes}).
+If the body of $f$ is marked \ASYNC{} (\ref{functions})
+and $S$ is a subtype of \code{Future<\flatten{T}>}
+then let $r$ be the result of evaluating \code{await $v$}
+where $v$ is a fresh variable bound to $o$.
+Otherwise let $r$ be $o$.
+Then the return statement returns the object $r$
+(\ref{statementCompletion}).
+```
+
+
+
+
 
 ### Static errors
 #### Nullability definitions
