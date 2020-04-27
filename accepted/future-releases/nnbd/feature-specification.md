@@ -348,41 +348,78 @@ the actual return type of $f$
 Then the return statement $s$ completes returning $o$
 (\ref{statementCompletion}).
 
-When $f$ is an asynchronous non-generator with future value type $T_v$,
-the return statement $s$ is desugared as follows at compile time,
-where \code{\SUSPEND{} $e$} is a statement that evaluates $e$ to an object
-$o$, then completes the returned future if $f$ with $o$, and finally suspends
-the execution of $f$. The first item whose requirement is satisfied is used:
+\commentary{%
+The case where the evaluation of $e$ throws is covered by
+the general rule which propagates the throwing completion,
+in this case to the call site.%
+}
+
+When $f$ is an asynchronous non-generator with future value type $T_v$
+(\ref{functions}),
+the return statement $s$ is desugared at compile time as described below.
+The resulting code uses \code{\_return $e'$},
+which is a statement that evaluates $e'$ to an object
+$o'$, completes the returned future of $f$ with $o'$,
+and finally returns without an object
+(\ref{statementCompletion}),
+thus terminating the execution of $f$.
+Alternatively, if the evaluation of $e'$ throws
+an object \metavar{error} and stack trace \metavar{stackTrace},
+the returned future of $f$ is error-completed
+with \metavar{error} and \metavar{stackTrace},
+and finally the statement returns without an object.
+The desugaring proceeds as follows,
+where $\Gamma$ is the typing environment of $s$,
+and the first item whose requirement is satisfied is used:
 
 \begin{itemize}
-\item When $S$ is a subtype of $T_v$: \code{\SUSPEND{} $e$;}.
-\item When $S$ is \DYNAMIC{}:
-  \code{\VAR r = $e$; \SUSPEND{} r \IS{} Future<$T_v$> ? \AWAIT{} r : (r \AS{} $T_v$)}.
-\item When $
-
+\item% 1
+  When $S$ is \DYNAMIC:
+  \code{\VAR r = $e$; \_return r \IS{} Future<$T_v$> ? \AWAIT{} r : (r \AS{} $T_v$);}
+\item% 2
+  When \SubtypeStd{S}{T_v}: \code{\_return $e$;}
+\item% 3
+  When \SubtypeStd{S}{\code{Future<$T_v$>}}: \code{\_return \AWAIT{} $e$;}
+\item% 4
+  When $S$ is of the form \code{FutureOr<$U$>} where \SubtypeStd{U}{T_v}:
+  \code{\VAR r = $e$; \_return r is Future<$T_v$> ? \AWAIT{} r : r;}
 \end{itemize}
 
+\commentary{%
+Note that one of the above cases apply, or a compile-time error has occurred.%
+% It is required at compile-time that S is assignable to T_v, or that
+% flatten(S) <: T_v. If S is assignable to T_v then item 1 or 2 will apply.
+% Otherwise flatten(S) <: T_v. We know that flatten(S) != S, or S would be
+% assignable to T_v (and item 1 or 2 would apply). So S is of the form
+% FutureOr<S1> where S1 <: T_v; or S implements Future<S1> and
+% flatten(S) == S1. In the latter case item 3 applies, and in the former case
+% item 4 applies.
+}
 
+% The new semantics preserves the pre-null-safety semantics with the following
+% exceptions:
+%
+% The old semantics tests for `is Future<flatten(T)>` where `T` is the declared
+% return type; the new semantics tests for `is Future<T_v>` where `T_v` is the
+% future value type. They differ only for null-safety specific types of the
+% forms `Future<U>?`, `FutureOr<U>?`, or `Object`. So the use of 'future value
+% type' causes no difference in behavior.
+%
+% item 1: Identical behavior, we always await a `Future<T_v>`, never await any
+% other type of object (e.g., we don't await a `Future<dynamic>`), and always
+% guard an object which is not awaited with a dynamic type check.
+%
+% item 2: Breaking change when the value of $e$ has type `T_v & Future<T_v>`,
+% which is expected to be very rare. New semantics will then use said value,
+% old semantics would await it. Remaining cases: identical behavior.
+%
+% item 3 and 4: New semantics is identical to old semantics.
 
-evaluation proceeds as follows.
-The expression $e$ is evaluated to an object $o$.
-Then:
-
-
-Let $S$ be the run-time type of $o$ and
-let $T$ be the actual return type of $f$
-(\ref{actualTypes}).
-If the body of $f$ is marked \ASYNC{} (\ref{functions})
-and $S$ is a subtype of \code{Future<\flatten{T}>}
-then let $r$ be the result of evaluating \code{await $v$}
-where $v$ is a fresh variable bound to $o$.
-Otherwise let $r$ be $o$.
-Then the return statement returns the object $r$
-(\ref{statementCompletion}).
+\commentary{%
+There cases where $f$ is a generator cannot occur,
+because in that case $s$ is a compile-time error.%
+}
 ```
-
-
-
 
 
 ### Static errors
