@@ -271,19 +271,27 @@ The **flatten** function is modified as follows:
 and for all `R`, if `T <: Future<R>` then `S <: R`; then **flatten**(`T`) = `S`
   - otherwise **flatten**(`T`) = `T`
 
-### The future value type of an asynchronous generator
+### The future value type of an asynchronous non-generator function
 
 _We specify a concept which corresponds to the type of object which is
 delivered by an `async` function, that is, the type of object which is used to
 complete the future which is returned from such a function when it suspends
 for the first time._
 
-Let _f_ be an asynchronous non-generator function. We define the notion of the
-**future value type** of _f_ as follows: If, for some `U`, the declared return
-type `T` of _f_ is `Future<U>`, `FutureOr<U>`, `Future<U>?`, or `FutureOr<U>?`,
-the future value type of _f_ is `U`.
-Otherwise, if `T` is `void` then the future value type of _f_ is `void`.
-Otherwise, the future value type of _f_ is `Object?`.
+Let _f_ be an asynchronous non-generator function with declared return type
+`T`. Then the **future value type** of _f_ is **futureValueType**(`T`).
+The function **futureValueType** is defined as follows:
+
+- **futureValueType**(`S?`) = **futureValueType**(`S`), for all `S`.
+- **futureValueType**(`S*`) = **futureValueType**(`S`), for all `S`.
+- **futureValueType**(`Future<S>`) = `S`, for all `S`.
+- **futureValueType**(`FutureOr<S>`) = `S`, for all `S`.
+- **futureValueType**(`void`) = `void`.
+- Otherwise, for all `S`, **futureValueType**(`S`) = `Object?`.
+
+_Note that it is a compile-time error unless the return type of an asynchronous
+non-generator function is a supertype of `Future<Never>`, which means that
+the last case will only be applied when `S` is a non-`void` top type._
 
 ### Return statements
 
@@ -297,7 +305,7 @@ about synchronous non-generator functions, the text is changed as follows:
 ```
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 $T$ is neither \VOID{} nor \DYNAMIC,
-and $S$ is \VOID.
+and $S$ is \VOID, \code{\VOID?}, or \code{\VOID*}.
 ```
 
 _Comparing to Dart before null-safety, this means that it is no longer allowed
@@ -310,7 +318,7 @@ the text is changed as follows:
 ```
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 $T_v$ is neither \VOID{} nor \DYNAMIC,
-and \flatten{S} is \VOID{}.
+and \flatten{S} is \VOID, \code{\VOID?}, or \code{\VOID*}.
 ```
 
 _Comparing to Dart before null-safety, this means that it is no longer allowed
@@ -349,51 +357,54 @@ Then the return statement $s$ completes returning $o$
 (\ref{statementCompletion}).
 
 \commentary{%
-The case where the evaluation of $e$ throws is covered by
-the general rule which propagates the throwing completion,
-in this case to the call site.%
+The case where the evaluation of $e$ throws is covered by the general rule
+which propagates the throwing completion from $e$ to $s$ to the function body.%
 }
 
 When $f$ is an asynchronous non-generator with future value type $T_v$
 (\ref{functions}),
-the return statement $s$ is desugared at compile time as described below.
-The resulting code uses \code{\_return $e'$},
-which is a statement that evaluates $e'$ to an object
-$o'$, completes the returned future of $f$ with $o'$,
-and finally returns without an object
-(\ref{statementCompletion}),
-thus terminating the execution of $f$.
-Alternatively, if the evaluation of $e'$ throws
-an object \metavar{error} and stack trace \metavar{stackTrace},
-the returned future of $f$ is error-completed
-with \metavar{error} and \metavar{stackTrace},
-and finally the statement returns without an object.
-The desugaring proceeds as follows,
-where $\Gamma$ is the typing environment of $s$,
-and the first item whose requirement is satisfied is used:
+the return statement $s$ is desugared at compile time.
+In the definition, the first item whose requirement is satisfied is used,
+and $\Gamma$ denotes the typing environment of $s$:
 
 \begin{itemize}
 \item% 1
   When $S$ is \DYNAMIC:
-  \code{\VAR r = $e$; \_return r \IS{} Future<$T_v$> ? \AWAIT{} r : (r \AS{} $T_v$);}
+  \code{\VAR{} r = $e$; \RETURN{} r \IS{} Future<$T_v$> ? \AWAIT{} r : (r \AS{} $T_v$);}
 \item% 2
-  When \SubtypeStd{S}{T_v}: \code{\_return $e$;}
+  When $\flatten{S} \not= S$ and \SubtypeStd{\flatten{S}}{T_v}:
+  % flatten(S) != S implies that `Future` or `FutureOr` occurs.
+  \begin{itemize}
+  \item% 2a
+    When \SubtypeStd{S}{\code{Future<$T_v$>}} or
+    $S$ is of the form \code{$S_1$?} such that
+    $S_1$ implements \code{Future<$U$>} and \SubtypeStd{\code{$U$}?}{T_v}:
+    \code{\RETURN{} \AWAIT{} $e$;}
+  \item% 2b
+    When $S$ is of the form \code{FutureOr<$U$>} where \SubtypeStd{U}{T_v},
+    or $S$ is of the form \code{FutureOr<$U$>?}
+    where \SubtypeStd{\code{$U$?}}{T_v}:
+    \code{\VAR{} r = $e$; \RETURN{} r is Future<$T_v$> ? \AWAIT{} r : r;}
+  \end{itemize}
 \item% 3
-  When \SubtypeStd{S}{\code{Future<$T_v$>}}: \code{\_return \AWAIT{} $e$;}
-\item% 4
-  When $S$ is of the form \code{FutureOr<$U$>} where \SubtypeStd{U}{T_v}:
-  \code{\VAR r = $e$; \_return r is Future<$T_v$> ? \AWAIT{} r : r;}
+  When \SubtypeStd{S}{T_v}: \code{\RETURN{} $e$;}
 \end{itemize}
 
 \commentary{%
 Note that one of the above cases apply, or a compile-time error has occurred.%
 % It is required at compile-time that S is assignable to T_v, or that
-% flatten(S) <: T_v. If S is assignable to T_v then item 1 or 2 will apply.
-% Otherwise flatten(S) <: T_v. We know that flatten(S) != S, or S would be
-% assignable to T_v (and item 1 or 2 would apply). So S is of the form
-% FutureOr<S1> where S1 <: T_v; or S implements Future<S1> and
-% flatten(S) == S1. In the latter case item 3 applies, and in the former case
-% item 4 applies.
+% flatten(S) <: T_v.
+%
+% If S is assignable to T_v then at least item 1 or 3 applies.
+%
+% Otherwise flatten(S) <: T_v. If flatten(S) == S, then S <: T_v, which is the
+% previous case (and 1 or 3 applies).
+%
+% So S != flatten(S) <: T_v. In this situation there will be an item
+% under item 2 that applies: S is of the form FutureOr<S1> where S1 <: T_v; or
+% S is of the form FutureOr<S1>? where S1? <: T_v; or S implements Future<S1>
+% and flatten(S) == S1; or S is S1? such that S1 implements Future<S2>, and
+% S2? <: T_v. In each case, subitem 2a or 3b applies.
 }
 
 % The new semantics preserves the pre-null-safety semantics with the following
@@ -409,18 +420,17 @@ Note that one of the above cases apply, or a compile-time error has occurred.%
 % other type of object (e.g., we don't await a `Future<dynamic>`), and always
 % guard an object which is not awaited with a dynamic type check.
 %
-% item 2: Breaking change when the value of $e$ has type `T_v & Future<T_v>`,
+% item 2: New semantics is identical to old semantics.
+%
+% item 3: Breaking change when the value of $e$ has type `Future<T_v> & T_v`,
 % which is expected to be very rare. New semantics will then use said value,
 % old semantics would await it. Remaining cases: identical behavior.
-%
-% item 3 and 4: New semantics is identical to old semantics.
 
 \commentary{%
-There cases where $f$ is a generator cannot occur,
+The cases where $f$ is a generator cannot occur,
 because in that case $s$ is a compile-time error.%
 }
 ```
-
 
 ### Static errors
 #### Nullability definitions
