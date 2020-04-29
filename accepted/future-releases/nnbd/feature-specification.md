@@ -503,11 +503,13 @@ Consider an expression `e` of the form `e1 == e2` where the static type of
 formal parameter of `operator ==` in the interface of **NonNull**(`T1`).
 It is a compile-time error unless `T2` is assignable to `S?`.
 
-_In particular, even if the static type of `e1` is potentially nullable,
-the parameter type of the `operator ==` of the corresponding non-null type
-is taken into account. Similarly, it is not a compile-time error for the
-static type of `e2` to be potentially nullable, even when the parameter type
-of said `operator ==` is non-nullable (which is a very common case)._
+_Even if the static type of `e1` is potentially nullable, the parameter type
+of the `operator ==` of the corresponding non-null type is taken into account,
+because that instance method will not be invoked when `e1` is null. Similarly,
+it is not a compile-time error for the static type of `e2` to be potentially
+nullable, even when the parameter type of said `operator ==` is non-nullable.
+This is again safe, because the instance method will not be invoked when `e2`
+is null._
 
 In legacy mode, an override of `operator ==` with no explicit parameter type
 inherits the parameter type of the overridden method if any override of
