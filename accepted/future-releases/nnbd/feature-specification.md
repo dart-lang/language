@@ -10,7 +10,7 @@ Status: Draft
   - **CHANGE** (by overriding rules in the language specification): Change
     static rules for return statements, and dynamic semantics of return in
     asynchronous non-generators.
-  - Added rule that the use of expressions of type `void*` is restricted in
+  - Add rule that the use of expressions of type `void*` is restricted in
     the same way as expressions of type `void`.
 
 2020.04.30
