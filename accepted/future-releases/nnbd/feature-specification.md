@@ -296,7 +296,7 @@ the last case will only be applied when `S` is a non-`void` top type._
 
 The static analysis of return statements is changed in the following
 way, where `$T$` is the declared return type and `$S$` is the static type of
-the expression `e`:
+the expression `e`.
 
 At [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15477)
 about synchronous non-generator functions, the text is changed as follows:
@@ -338,8 +338,7 @@ to return a future when the future value type is a suitable future; for
 instance, we can have `return Future<int>.value(42)` in an `async` function
 with declared return type `Future<Future<int>>`. Conversely, it is no longer
 allowed to return a `Future<dynamic>` or `FutureOr<dynamic>` when the future
-value type is `Future<U>` for some `U` which is not a top type, because it is
-no longer enough that `dynamic` is assignable to `U`._
+value type is `Future<U>` for some `U` which is not a top type._
 
 The dynamic semantics specified at
 [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15597)
