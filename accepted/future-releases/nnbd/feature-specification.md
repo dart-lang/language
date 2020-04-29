@@ -498,20 +498,16 @@ of a function call produces a result of type `Never`.
 
 The static type of a `throw e` expression is `Never`.
 
-An expression `e` of the form `e1 == e2` is treated as
-`let v1 = e1, v2 = e2 in v1 != null ? (v2 != null ? v1.==(v2) : false) : (v2 !=
-null ? false : true)`,
-where `v1.==(v2)` denotes an invocation of the instance method `operator ==`
-on `v1`, and the `let` construct is defined in the section 'Null aware
-operator'.
+Consider an expression `e` of the form `e1 == e2` where the static type of
+`e1` is `T1` and the static type of `e2` is `T2`. Let `S` be the type of the
+formal parameter of `operator ==` in the interface of **NonNull**(`T1`).
+It is a compile-time error unless `T2` is assignable to `S?`.
 
 _In particular, even if the static type of `e1` is potentially nullable,
 the parameter type of the `operator ==` of the corresponding non-null type
 is taken into account. Similarly, it is not a compile-time error for the
-static type of `e2` to be potentially nullable even when `operator ==` is
-statically known to have a parameter type which is non-nullable. Of course,
-implementations may eliminate the parts of this expression that are known to
-be unreachable, e.g., if the static type of `e1` is strictly non-nullable._
+static type of `e2` to be potentially nullable, even when the parameter type
+of said `operator ==` is non-nullable (which is a very common case)._
 
 In legacy mode, an override of `operator ==` with no explicit parameter type
 inherits the parameter type of the overridden method if any override of
