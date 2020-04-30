@@ -7,6 +7,13 @@ Status: Draft
 ## CHANGELOG
 
 2020.04.30
+  - **CHANGE** (by overriding rules in the language specification): Change
+    static rules for return statements, and dynamic semantics of return in
+    asynchronous non-generators.
+  - Add rule that the use of expressions of type `void*` is restricted in
+    the same way as expressions of type `void`.
+
+2020.04.30
   - Specify static analysis of `e1 == e2`.
 
 2020.04.20
@@ -266,6 +273,113 @@ The **flatten** function is modified as follows:
 and for all `R`, if `T <: Future<R>` then `S <: R`; then **flatten**(`T`) = `S`
   - otherwise **flatten**(`T`) = `T`
 
+### The future value type of an asynchronous non-generator function
+
+_We specify a concept which corresponds to the static type of objects which may
+be contained in the Future object returned by an async function with a given
+declared return type._
+
+Let _f_ be an asynchronous non-generator function with declared return type
+`T`. Then the **future value type** of _f_ is **futureValueType**(`T`).
+The function **futureValueType** is defined as follows:
+
+- **futureValueType**(`S?`) = **futureValueType**(`S`), for all `S`.
+- **futureValueType**(`S*`) = **futureValueType**(`S`), for all `S`.
+- **futureValueType**(`Future<S>`) = `S`, for all `S`.
+- **futureValueType**(`FutureOr<S>`) = `S`, for all `S`.
+- **futureValueType**(`void`) = `void`.
+- Otherwise, for all `S`, **futureValueType**(`S`) = `Object?`.
+
+_Note that it is a compile-time error unless the return type of an asynchronous
+non-generator function is a supertype of `Future<Never>`, which means that
+the last case will only be applied when `S` is a non-`void` top type._
+
+### Return statements
+
+The static analysis of return statements is changed in the following
+way, where `$T$` is the declared return type and `$S$` is the static type of
+the expression `e`.
+
+At [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15477)
+about synchronous non-generator functions, the text is changed as follows:
+
+```
+It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+$T$ is neither \VOID{} nor \DYNAMIC,
+and $S$ is \VOID{} or \code{\VOID*}.
+```
+
+_Comparing to Dart before null-safety, this means that it is no longer allowed
+to "return void to null" in a regular function._
+
+At [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15525)
+about an asynchronous non-generator function with future value type `$T_v$`,
+the text is changed as follows:
+
+```
+It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+$T_v$ is neither \VOID{} nor \DYNAMIC,
+and \flatten{S} is \VOID{} or \code{\VOID*}.
+```
+
+_Comparing to Dart before null-safety, this means that it is no longer allowed
+to "return void to null" in an `async` function, nor to "return a void future
+to null"._
+
+The next sentence is changed as follows:
+
+```
+It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+\flatten{S} is not \VOID,
+$S$ is not assignable to $T_v$,
+and flatten{S} is not a subtype of $T_v$.
+```
+
+_Comparing to Dart before null-safety, this means that it is now allowed
+to return a future when the future value type is a suitable future; for
+instance, we can have `return Future<int>.value(42)` in an `async` function
+with declared return type `Future<Future<int>>`. Conversely, it is no longer
+allowed to return a `Future<dynamic>` or `FutureOr<dynamic>` when the future
+value type is `Future<U>` for some `U` which is not a top type._
+
+The dynamic semantics specified at
+[this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15597)
+is changed as follows, where `$f$` is the enclosing function with declared
+return type `$T$`, and `$e$` is the returned expression with static type `$S$`:
+
+```
+When $f$ is a synchronous non-generator, evaluation proceeds as follows:
+The expression $e$ is evaluated to an object $o$.
+A dynamic error occurs unless the dynamic type of $o$ is a subtype of
+the actual return type of $f$
+(\ref{actualTypes}).
+Then the return statement $s$ completes returning $o$
+(\ref{statementCompletion}).
+
+\commentary{%
+The case where the evaluation of $e$ throws is covered by the general rule
+which propagates the throwing completion from $e$ to $s$ to the function body.%
+}
+
+When $f$ is an asynchronous non-generator with future value type $T_v$
+(\ref{functions}), evaluation proceeds as follows:
+The expression $e$ is evaluated to an object $o$.
+If the run-time type of $o$ is a subtype of \code{Future<$T_v$>},
+let \code{v} be a fresh variable bound to $o$ and
+evaluate \code{\AWAIT{} v} to an object $r$;
+otherwise let $r$ be $o$.
+A dynamic error occurs unless the dynamic type of $r$
+is a subtype of the actual value of $T_v$
+(\ref{actualTypes}).
+Then the return statement $s$ completes returning $r$
+(\ref{statementCompletion}).
+
+\commentary{%
+The cases where $f$ is a generator cannot occur,
+because in that case $s$ is a compile-time error.%
+}
+```
+
 ### Static errors
 #### Nullability definitions
 
@@ -471,6 +585,11 @@ If the static type of `e` is `void`, the expression `await e` is a compile-time
 error. *This implies that
 [this](https://github.com/dart-lang/language/blob/780cd5a8be92e88e8c2c74ed282785a2e8eda393/specification/dartLangSpec.tex#L18281)
 list item will be removed from the language specification.*
+
+A compile-time error occurs if an expression has static type `void*`, and it
+does not occur in any of the ways specified in
+[this list](https://github.com/dart-lang/language/blob/780cd5a8be92e88e8c2c74ed282785a2e8eda393/specification/dartLangSpec.tex#L18238).
+*This implies that `void*` is treated the same as `void`.*
 
 It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, or
 `...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
