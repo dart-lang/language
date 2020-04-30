@@ -6,7 +6,7 @@ Status: Draft
 
 ## CHANGELOG
 
-2020.04.24
+2020.04.30
   - Specify static analysis of `e1 == e2`.
 
 2020.04.20
@@ -489,6 +489,10 @@ on `Object`, regardless of the type of the member as declared on `T` (note that
 the type as declared on `T` must be a subtype of the type on `Object`, and so
 choosing the `Object` type is a sound choice.  The opposite choice is not
 sound).
+
+_Note that evaluation of an expression `e` of the form `e1 == e2` is not an
+invocation of `operator ==`, it includes special treatment of null. The
+precise rules are specified later in this section._
 
 Calling a method (including an operator) or getter on a receiver of static type
 `Never` is treated by static analysis as producing a result of type `Never`.
