@@ -314,35 +314,37 @@ _Comparing to Dart before null-safety, this means that it is no longer allowed
 to return a void expression in a regular function if the return type is
 `Null`._
 
-At [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15525)
+At [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15507)
 about an asynchronous non-generator function with future value type `$T_v$`,
 the text is changed as follows:
 
 ```
+It is a compile-time error if $s$ is \code{\RETURN{};},
+unless $T_v$
+is \VOID, \DYNAMIC, or \code{Null}.
+%
+It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+$T_v$ is \VOID,
+and \flatten{S} is neither \VOID, \code{\VOID*}, nor \DYNAMIC.
+
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 $T_v$ is neither \VOID{} nor \DYNAMIC,
 and \flatten{S} is \VOID{} or \code{\VOID*}.
-```
 
-_Comparing to Dart before null-safety, this means that it is no longer allowed
-to "return void to null" in an `async` function, nor to "return a void future
-to null"._
-
-The next sentence is changed as follows:
-
-```
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-\flatten{S} is not \VOID,
+\flatten{S} is not \VOID{} nor \code{\VOID*},
 $S$ is not assignable to $T_v$,
 and flatten{S} is not a subtype of $T_v$.
 ```
 
-_Comparing to Dart before null-safety, this means that it is now allowed
-to return a future when the future value type is a suitable future; for
-instance, we can have `return Future<int>.value(42)` in an `async` function
-with declared return type `Future<Future<int>>`. Conversely, it is no longer
-allowed to return a `Future<dynamic>` or `FutureOr<dynamic>` when the future
-value type is `Future<U>` for some `U` which is not a top type._
+_Comparing to Dart before null-safety, this means that it is no longer allowed
+to return an expression whose flattened static type is `void` in an `async`
+function with future value type `Null`. Also, it is now allowed to return a
+future when the future value type is a suitable future; for instance, we can
+have `return Future<int>.value(42)` in an `async` function with declared return
+type `Future<Future<int>>`. Conversely, it is no longer allowed to return a
+`Future<dynamic>` or `FutureOr<dynamic>` when the future value type is
+`Future<U>` for some `U` which is not a top type or `Object`._
 
 The dynamic semantics specified at
 [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15597)
