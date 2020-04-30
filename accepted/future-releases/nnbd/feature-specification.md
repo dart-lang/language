@@ -11,7 +11,7 @@ Status: Draft
     static rules for return statements, and dynamic semantics of return in
     asynchronous non-generators.
   - Add rule that the use of expressions of type `void*` is restricted in
-    the same way as expressions of type `void`.
+    the same way as the use of expressions of type `void`.
 
 2020.04.30
   - Specify static analysis of `e1 == e2`.
@@ -292,7 +292,8 @@ The function **futureValueType** is defined as follows:
 
 _Note that it is a compile-time error unless the return type of an asynchronous
 non-generator function is a supertype of `Future<Never>`, which means that
-the last case will only be applied when `S` is a non-`void` top type._
+the last case will only be applied when `S` is `Object` or a non-`void` top
+type._
 
 ### Return statements
 
@@ -310,7 +311,8 @@ and $S$ is \VOID{} or \code{\VOID*}.
 ```
 
 _Comparing to Dart before null-safety, this means that it is no longer allowed
-to "return void to null" in a regular function._
+to return a void expression in a regular function if the return type is
+`Null`._
 
 At [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15525)
 about an asynchronous non-generator function with future value type `$T_v$`,
@@ -345,7 +347,7 @@ value type is `Future<U>` for some `U` which is not a top type._
 The dynamic semantics specified at
 [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15597)
 is changed as follows, where `$f$` is the enclosing function with declared
-return type `$T$`, and `$e$` is the returned expression with static type `$S$`:
+return type `$T$`, and `$e$` is the returned expression:
 
 ```
 When $f$ is a synchronous non-generator, evaluation proceeds as follows:
