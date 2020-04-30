@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.04.30
+  - Specify static analysis of `e1 == e2`.
+
 2020.04.20
   - **CHANGE** (by adding a rule that overrides an existing rule in the language
     specification). Specify that it is a compile-time error to await an
@@ -487,6 +490,10 @@ the type as declared on `T` must be a subtype of the type on `Object`, and so
 choosing the `Object` type is a sound choice.  The opposite choice is not
 sound).
 
+_Note that evaluation of an expression `e` of the form `e1 == e2` is not an
+invocation of `operator ==`, it includes special treatment of null. The
+precise rules are specified later in this section._
+
 Calling a method (including an operator) or getter on a receiver of static type
 `Never` is treated by static analysis as producing a result of type `Never`.
 Tearing off a method from a receiver of static type `Never` produces a value of
@@ -495,10 +502,24 @@ of a function call produces a result of type `Never`.
 
 The static type of a `throw e` expression is `Never`.
 
-In legacy mode, an override of operator== with no explicit parameter type
+Consider an expression `e` of the form `e1 == e2` where the static type of
+`e1` is `T1` and the static type of `e2` is `T2`. Let `S` be the type of the
+formal parameter of `operator ==` in the interface of **NonNull**(`T1`).
+It is a compile-time error unless `T2` is assignable to `S?`.
+
+_Even if the static type of `e1` is potentially nullable, the parameter type
+of the `operator ==` of the corresponding non-null type is taken into account,
+because that instance method will not be invoked when `e1` is null. Similarly,
+it is not a compile-time error for the static type of `e2` to be potentially
+nullable, even when the parameter type of said `operator ==` is non-nullable.
+This is again safe, because the instance method will not be invoked when `e2`
+is null._
+
+In legacy mode, an override of `operator ==` with no explicit parameter type
 inherits the parameter type of the overridden method if any override of
-operator== between the overriding method and Object.== has an explicit parameter
-type.  Otherwise, the parameter type of the overriding method is dynamic.
+`operator ==` between the overriding method and `Object.==` has an explicit
+parameter type.  Otherwise, the parameter type of the overriding method is
+`dynamic`.
 
 Top level variable and local function inference is performed
 as
