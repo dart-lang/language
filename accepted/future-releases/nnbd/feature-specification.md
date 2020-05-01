@@ -348,8 +348,8 @@ with declared return type `Future<Future<int>>`. Finally, let `S` be
 `Future<dynamic>` or `FutureOr<dynamic>`; it is then no longer allowed to
 return an expression with static type `S`, unless the future value type is a
 supertype of `S`. This differs from Dart before null-safety in that it was
-allowed to return an expression of type `Future<U>` when `U` was assignable to
-the future value type._
+allowed to return an expression of these types with a declared return type
+of the form `Future<T>` for any `T`._
 
 The dynamic semantics specified at
 [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15597)
