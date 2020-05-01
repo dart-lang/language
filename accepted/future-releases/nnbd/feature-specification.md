@@ -326,11 +326,11 @@ is \VOID, \DYNAMIC, or \code{Null}.
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 $T_v$ is \VOID,
 and \flatten{S} is neither \VOID, \code{\VOID*}, nor \DYNAMIC.
-
+%
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 $T_v$ is neither \VOID{} nor \DYNAMIC,
 and \flatten{S} is \VOID{} or \code{\VOID*}.
-
+%
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 \flatten{S} is not \VOID{} nor \code{\VOID*},
 $S$ is not assignable to $T_v$,
