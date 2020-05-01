@@ -325,7 +325,8 @@ is \VOID, \DYNAMIC, or \code{Null}.
 %
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 $T_v$ is \VOID,
-and \flatten{S} is neither \VOID, \code{\VOID*}, \DYNAMIC, nor \code{Null}.
+and \flatten{S} is neither \VOID, \DYNAMIC, \code{Null},
+\code{\VOID*}, \code{\DYNAMIC*}, nor \code{Null*}.
 %
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 $T_v$ is neither \VOID{} nor \DYNAMIC,
