@@ -339,12 +339,17 @@ and flatten{S} is not a subtype of $T_v$.
 
 _Comparing to Dart before null-safety, this means that it is no longer allowed
 to return an expression whose flattened static type is `void` in an `async`
-function with future value type `Null`. Also, it is now allowed to return a
-future when the future value type is a suitable future; for instance, we can
-have `return Future<int>.value(42)` in an `async` function with declared return
-type `Future<Future<int>>`. Conversely, it is no longer allowed to return a
-`Future<dynamic>` or `FutureOr<dynamic>` when the future value type is
-`Future<U>` for some `U` which is not a top type or `Object`._
+function with future value type `Null`; nor is it allowed, in an `async`
+function with future value type `void`, to return an expression whose flattened
+static type is not `void`, `void*`, `dynamic`, or `Null`. Conversely, it is
+allowed to return a future when the future value type is a suitable future;
+for instance, we can have `return Future<int>.value(42)` in an `async` function
+with declared return type `Future<Future<int>>`. Finally, let `S` be
+`Future<dynamic>` or `FutureOr<dynamic>`; it is then no longer allowed to
+return an expression with static type `S`, unless the future value type is a
+supertype of `S`. This differs from Dart before null-safety in that it was
+allowed to return an expression of type `Future<U>` when `U` was assignable to
+the future value type._
 
 The dynamic semantics specified at
 [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15597)
