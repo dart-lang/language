@@ -307,7 +307,7 @@ about synchronous non-generator functions, the text is changed as follows:
 ```
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 $T$ is neither \VOID{} nor \DYNAMIC,
-and $S$ is \VOID{} or \code{\VOID*}.
+and $S$ is \VOID.
 ```
 
 _Comparing to Dart before null-safety, this means that it is no longer allowed
@@ -325,15 +325,14 @@ is \VOID, \DYNAMIC, or \code{Null}.
 %
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 $T_v$ is \VOID,
-and \flatten{S} is neither \VOID, \DYNAMIC, \code{Null},
-\code{\VOID*}, \code{\DYNAMIC*}, nor \code{Null*}.
+and \flatten{S} is neither \VOID, \DYNAMIC, \code{Null}.
 %
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 $T_v$ is neither \VOID{} nor \DYNAMIC,
-and \flatten{S} is \VOID{} or \code{\VOID*}.
+and \flatten{S} is \VOID.
 %
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-\flatten{S} is not \VOID{} nor \code{\VOID*},
+\flatten{S} is not \VOID,
 $S$ is not assignable to $T_v$,
 and flatten{S} is not a subtype of $T_v$.
 ```
