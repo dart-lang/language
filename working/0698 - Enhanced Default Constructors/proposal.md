@@ -67,7 +67,7 @@ class ShippableParcel extends Parcel {
 }  
 ```
 
-You could then, perhaps, instantiate a `WeighedParcel` as:
+You could then, perhaps, instantiate a `ShippableParcel` as:
 
 ```dart
 ShippableParcel(receiver: address, weightInGrams: 497, postage: Postage.paid(payment))
@@ -205,7 +205,7 @@ class Color3DPoint extends Point {
 
 A default constructor is a constructor which is automatically inserted if a class declares *no* constructors.
 
-Let *C* be a class declaration with name `C` and superclass *S* with name `S` 
+Let *C* be a class declaration with name `C` and superclass *S* with name `S`, and which declares no constructors.
 
 It is a compile-time error if:
 
@@ -220,7 +220,7 @@ It is a *compile-time error* if *C* declares a non-`late` instance variable with
 
 Otherwise add a generative initializing and forwarding default unnamed constructor *c* to *C* with the name `C` and the following declaration `default C(super);`.
 
-The constructor *c* is not  `const`. It's possible to declare a const initializing and forwarding constructor by explicitly writing:
+The constructor *c* is not `const`. It's possible to declare a const initializing and forwarding constructor by explicitly writing:
 
 ```dart
 const default C(super);
@@ -270,7 +270,7 @@ Most other potentially breaking changes have been avoided by designing this feat
 
 Adding an optional positional parameter to a superclass constructor to a class would have been a breaking change if we allowed any positional parameter after the forwarded optional parameter in the subclass constructor, because it would change the position of an existing parameter. We deliberately avoided that at the cost of adding restrictions on when we can forward optional positional parameters.
 
-Adding a static member to a class would suppress a named "default constructor" if we forwarded all constructors by default, not just unnamed ones. If the class author was not aware of that default constructor (perhaps it was added to the superclass after the subclass was written), this would come as a surprise. It may break downstream code using the constructor, even if the author doesn't get any errors. That suggests that maybe all the forwarding constructors by default is not a good idea.
+Adding a static member to a class would suppress a named "default constructor" if we forwarded all constructors by default, not just unnamed ones. If the class author was not aware of that default constructor (perhaps it was added to the superclass after the subclass was written), this would come as a surprise. It may break downstream code using the constructor, even if the author doesn't get any errors. That suggests that maybe forwarding all constructors by default is not a good idea.
 
 ## Variants
 
@@ -285,9 +285,9 @@ We may want to allow non-nullable instance variables to be declared on mixins an
 
 ## Summary
 
-Default constructors now have named initializing formal parameters for each public instance variable declared in the class, unless the variable is late or has an initializer. The parameter is required if the variable is potentially non-nullable (it has to be when its type is potentially non-nullable).
+Default constructors now have named initializing formal parameters for each public instance variable declared in the class, unless the variable is late or has an initializer. The parameter is required if the variable is potentially non-nullable (a parameter has to be required when its type is potentially non-nullable).
 
-Default constructors forward parameters to the unnamed superclass generative constructors where possible, not just to the unnamed zero-argument superclass constructor. It's not possible when the superclass constructor has a required named argument which is shadowed by a parameter of the subclass constructor (including the ones introduced to initialize fields). 
+Default constructors forward parameters to an unnamed superclass generative constructor where possible, not just to the unnamed zero-argument superclass constructor. Forwarding is not possible when the superclass constructor has a required named argument which is shadowed by a parameter of the subclass constructor (including the ones introduced to initialize fields). 
 
 This works for all classes that do not declare any constructor. Mixin applications get all constructors forwarded, which matches current behavior.
 
