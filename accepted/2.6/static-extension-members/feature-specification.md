@@ -40,7 +40,7 @@ A static extension of a type is declared using syntax like:
 extension MyFancyList<T> on List<T> {
   int get doubleLength => this.length * 2;
   List<T> operator-() => this.reversed.toList();
-  List<List<T>> split(int at) => 
+  List<List<T>> split(int at) =>
       <List<T>>[this.sublist(0, at), this.sublist(at)];
   List<T> mapToList<R>(R Function(T) convert) => this.map(convert).toList();
 }
@@ -49,7 +49,7 @@ extension MyFancyList<T> on List<T> {
 More precisely, an extension declaration is a declaration with a grammar similar to:
 
 ```ebnf
-<extensionDeclaration> ::= 
+<extensionDeclaration> ::=
   <metadata> `extension' <identifier>? <typeParameters>? `on' <type> `{'
      (<metadata> <classMemberDefinition>)*
   `}'
@@ -145,7 +145,9 @@ A *composite member invocation* on a target expression `X` is an expression of o
 
 Each such simple member invocation has a corresponding member name, the name of the member being invoked (and its associated basename, which is the name without the trailing `=` on setter names and `[]=`). A composite member invokes two members, so we only care about the base name.
 
-It is a **compile-time error** if an extension application occurs in a place where it is *not* the target expression of a simple or composite member invocation. That is, the only valid use of an extension application is to invoke members on it. *This is similar to how prefix names can also only be used as member invocation targets. The main difference is that extensions can also declare operators.* This also includes null-aware member access like `E(o)?.id` or `E(o)?.[v]` because those need to evaluate the target to a value and extension applications cannot evaluate to a value.
+It is a **compile-time error** if an extension application occurs in a place where it is *not* the target expression of a simple or composite member invocation. That is, the only valid use of an extension application is to invoke members on it. *This is similar to how prefix names can also only be used as member invocation targets. The main difference is that extensions can also declare operators.*
+
+Null-aware member accesses like `E(o)?.id` or `E(o)?[e]` are allowed, with the following meaning: `E(o)?.id` is treated as `let v = o in v == null ? null : E(v).id`, and similarly for other null-aware constructs.
 
 It is a **compile-time error** to have a simple member invocation on an extension application where the extension in question does not declare an instance member with the same name as the corresponding member name of the invocation, and for a composite member invocation on an extension application where the extension does not declare both a getter and a setter with the corresponding base name of the invocation. *You can only invoke members which are actually there.*
 
@@ -165,8 +167,8 @@ then the type inference on *A* is the same that would be applied to the member i
 class E<X...> {
   final T $target;
   E(this.$target);
-  ... members // with inference applied to the body, including implicit extension 
-              // member invocations as described in later sections, 
+  ... members // with inference applied to the body, including implicit extension
+              // member invocations as described in later sections,
               // and with `$target` instead of `this` ...
 }
 ```
@@ -179,7 +181,7 @@ The static type of a member invocation on an extension application is the return
 
 Composite member invocations, like composite assignment `e.id += 2` or increment `e.id++`, are defined in terms of two individual member invocations (always one get and one set operation). If the target expression of a composite member invocation is an extension application, we need to recognize and handle it specially.
 
-A composite assignment of the form `e1.id += 2` is equivalent to `e1.id = e1.id + 2` except that `e1` is only evaluated once, and the value is used twice. 
+A composite assignment of the form `e1.id += 2` is equivalent to `e1.id = e1.id + 2` except that `e1` is only evaluated once, and the value is used twice.
 
 However, you cannot evaluate an extension invocation to a value, so we have to specify the case where `e1` is an extension invocation `E(e)` specially (just as we handle the cases where `e1` denotes a class or a prefix). We modify the evaluation rules for composite evaluation to account for this, ensuring that:
 
@@ -195,7 +197,7 @@ Increment/decrement operations like `++e` and `e--` are equivalent to composite 
 
 ### Implicit Extension Member Invocation
 
-Extension members can be invoked *implicitly* (without mentioning the extension by name) as if they were members of the `on` type of the extension. This is intended as the primary way to use extensions, with explicit extension member invocation as a fallback for cases where the implicit extension resolution doesn't do what the user want. 
+Extension members can be invoked *implicitly* (without mentioning the extension by name) as if they were members of the `on` type of the extension. This is intended as the primary way to use extensions, with explicit extension member invocation as a fallback for cases where the implicit extension resolution doesn't do what the user want.
 
 An implicit extension member invocation occurs for a simple or composite member invocation with a target expression `e` iff there exists a unique *most specific* extension declaration which is *accessible* and *applicable* to the member invocation (see below).
 
@@ -287,7 +289,7 @@ extension BestSpec on List<num> { num best() {...} }
 
 Here all three extensions apply to both invocations.
 
-For `x.best()`, the most specific one is `BestList`. Because `List<int>` is a proper subtype of both ` iterable<int>` and `<List<num>`, we expect `BestList` to be the best implementation. The return type causes `v` to have type `int`. If we had chosen `BestSpec` instead, the return type could only be `num`, which is one of the reasons why we choose the most specific instantiated type as the winner. 
+For `x.best()`, the most specific one is `BestList`. Because `List<int>` is a proper subtype of both ` iterable<int>` and `<List<num>`, we expect `BestList` to be the best implementation. The return type causes `v` to have type `int`. If we had chosen `BestSpec` instead, the return type could only be `num`, which is one of the reasons why we choose the most specific instantiated type as the winner.
 
 For `y.best()`, the most specific extension is `BestSpec`. The instantiated `on` types that are compared are `Iterable<num>` for `Best
 Com` and `List<num>` for the two other. Using the instantiate-to-bounds types as tie-breaker, we find that `List<Object>` is less precise than `List<num>`, so the code of `BestSpec` has more precise information available for its method implementation. The type of `w` becomes `num`.
@@ -333,7 +335,7 @@ Inside an extension method body, `this` does not refer to an instance of a surro
 
 Invocations on `this` use the same extension method resolution as any other code. Most likely, the current extension will be the only one in scope which applies. It definitely applies to its own declared `on` type.
 
-Like for a class or mixin member declaration, the names of the extension members, both static and instance, are in the *lexical* scope of the extension member body. That is why `MySmart` above can invoke the static `smartHelper` without prefixing it by the extension name. In the same way, *instance* member declarations (the extension members) are in the lexical scope. 
+Like for a class or mixin member declaration, the names of the extension members, both static and instance, are in the *lexical* scope of the extension member body. That is why `MySmart` above can invoke the static `smartHelper` without prefixing it by the extension name. In the same way, *instance* member declarations (the extension members) are in the lexical scope.
 
 If an unqualified identifier inside an extension instance member lexically resolves to an extension member of the surrounding extension (if the nearest enclosing declaration with the same basename is an instance member of an extension), then that identifier is not equivalent to `this.id`, rather the invocation is equivalent to an explicit invocation of that extension method on `this` (which we already know has a compatible type for the extension): `Ext<T1,…,Tn>(this).id`, where `Ext` is the surrounding extension and `T1` through `Tn` are its type parameters, if any. The invocation works whether or not the names of the extension or parameters are actually accessible, it is not a syntactic rewrite.
 
@@ -411,11 +413,11 @@ As the initial examples suggest, an extension method named `call` can also be ca
 
 ```dart
 extension Tricky on int {
- 	Iterable<int> call(int to) => 
+ 	Iterable<int> call(int to) =>
       Iterable<int>.generate(to - this + 1, (i) => i + this);
 }
 ...
-  for (var i in 1(10)) { 
+  for (var i in 1(10)) {
     print(i);  // prints 1, 2, 3, 4, 5, 6, 7, 8, 9, 10.
   }
 ```
@@ -430,7 +432,7 @@ A second question is whether this would also work with implicit `call` method te
 Iterable<int> Function(int) from2 = 2;
 ```
 
-This code will find, during type inference, that `2` is not a function. It will then find that the interface type `int` does not have a `call` method, and inference will fail to make the program valid.  
+This code will find, during type inference, that `2` is not a function. It will then find that the interface type `int` does not have a `call` method, and inference will fail to make the program valid.
 
 We could allow an applicable `call` extension method to be coerced instead, as an implicit tear-off. We will not do so.
 
@@ -481,7 +483,7 @@ The interaction with NNBD was discussed above. It will be possible to declare ex
 
 If we introduce sealed classes, we may want to consider whether to allow extensions on sealed classes, since adding members even to a sealed class could still be a breaking change.
 
-One of the reasons for having sealed classes is that it ensures the author can add to the interface without breaking code. If adding a member changes the meaning of code which currently calls an extension member, that reason is eliminated. 
+One of the reasons for having sealed classes is that it ensures the author can add to the interface without breaking code. If adding a member changes the meaning of code which currently calls an extension member, that reason is eliminated.
 
 Since it's possible to add extensions on superclass (including `Object`), it would not be sufficient to disallow *declaring* extensions on a sealed class, you would have to disallow *invoking* an extension on a sealed class, at least without an explicit override (which would also prevent breaking if a similarly named instance member is added).
 
@@ -498,17 +500,17 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 
   where `extension` becomes a built-in identifier and `<memberDeclaration>` does not allow instance variables, constructors or abstract members. It does allow static members.
 
-- The extension declaration introduces a name (`<identifier>`) into the surrounding scope. 
+- The extension declaration introduces a name (`<identifier>`) into the surrounding scope.
 
   - The name can be shown or hidden in imports/export. It can be shadowed by other declarations as any other top-level declaration.
   - The name can be used as prefix for invoking static members (used as a namespace, same as class/mixin declarations).
 
 - A member invocation (getter/setter/method/operator) which targets a member that is not on the static type of the receiver (no member with same base-name is available) is subject to extension application.  It would otherwise be a compile-time error.
 
-- An extension applies to such a member invocation if 
+- An extension applies to such a member invocation if
 
   - the extension is declared or imported in the lexical scope,
-  - the extension declares an instance member with the same base name, and 
+  - the extension declares an instance member with the same base name, and
   - the `on` type (after type inference) of the extension is a super-type of the static type of the receiver.
 
 - Type inference for `extension Foo<T> on Bar<T> { baz<S>(params) => ...}` for an invocation `receiver.baz(args)` is performed as if the extension was a class:
@@ -523,13 +525,13 @@ Since it's possible to add extensions on superclass (including `Object`), it wou
 
   that was invoked as `Foo(receiver).baz(args)`. The binding of `T` and `S` found here is the same binding used by the extension.  If the constructor invocation would be a compile-time error, the extension does not apply.
 
-- One extension is more specific than another if the former is a non-platform extension and the latter is a platform extension, or if the instantiated `on` type of the former is a proper subtype of the instantiated `on` type of the latter, or if the two instantiated types are equivalent and the instantiate-to-bounds `on` type of the former is a proper subtype of the one on the latter. 
+- One extension is more specific than another if the former is a non-platform extension and the latter is a platform extension, or if the instantiated `on` type of the former is a proper subtype of the instantiated `on` type of the latter, or if the two instantiated types are equivalent and the instantiate-to-bounds `on` type of the former is a proper subtype of the one on the latter.
 
 - If there is no single most-specific extension which applies to a member invocation, then it is a compile-time error. (This includes the case with no applicable extensions, which is just the current behavior).
 
 - Otherwise, the single most-specific extension's member is invoked with the extension's type parameters bound to the types found by inference, and with `this ` bound to the receiver.
 
-- An extension method can be invoked explicitly using the syntax `ExtensionName(object).method(args)`. Type arguments can be applied to the extension explicitly as well, `MyList<String>(listOfString).quickSort()`. Such an invocation overrides all extension resolution. It is a compile-time error if `ExtensionName` would not apply to the `object.method(args)` invocation if it was in scope. 
+- An extension method can be invoked explicitly using the syntax `ExtensionName(object).method(args)`. Type arguments can be applied to the extension explicitly as well, `MyList<String>(listOfString).quickSort()`. Such an invocation overrides all extension resolution. It is a compile-time error if `ExtensionName` would not apply to the `object.method(args)` invocation if it was in scope.
 
 - The override can also be used for extensions imported with a prefix (which are not otherwise in scope): `prefix.ExtensionName(object).method(args)`.
 
