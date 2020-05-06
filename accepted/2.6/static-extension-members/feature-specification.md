@@ -145,7 +145,9 @@ A *composite member invocation* on a target expression `X` is an expression of o
 
 Each such simple member invocation has a corresponding member name, the name of the member being invoked (and its associated basename, which is the name without the trailing `=` on setter names and `[]=`). A composite member invokes two members, so we only care about the base name.
 
-It is a **compile-time error** if an extension application occurs in a place where it is *not* the target expression of a simple or composite member invocation. That is, the only valid use of an extension application is to invoke members on it. *This is similar to how prefix names can also only be used as member invocation targets. The main difference is that extensions can also declare operators.* This also includes null-aware member access like `E(o)?.id` or `E(o)?.[v]` because those need to evaluate the target to a value and extension applications cannot evaluate to a value.
+It is a **compile-time error** if an extension application occurs in a place where it is *not* the target expression of a simple or composite member invocation. That is, the only valid use of an extension application is to invoke members on it. *This is similar to how prefix names can also only be used as member invocation targets. The main difference is that extensions can also declare operators.*
+
+Null-aware member accesses like `E(o)?.id` or `E(o)?[e]` are allowed, with the following meaning: `E(o)?.id` is treated as `let v = o in v == null ? null : E(v).id`, and similarly for other null-aware constructs.
 
 It is a **compile-time error** to have a simple member invocation on an extension application where the extension in question does not declare an instance member with the same name as the corresponding member name of the invocation, and for a composite member invocation on an extension application where the extension does not declare both a getter and a setter with the corresponding base name of the invocation. *You can only invoke members which are actually there.*
 
