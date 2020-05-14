@@ -1,4 +1,5 @@
-# Sound non-nullable (by default) types with incremental migration 
+# Null Safety
+## Sound non-nullable (by default) types with incremental migration 
 
 Note: the current draft spec is [here](feature-specification.md)
 
