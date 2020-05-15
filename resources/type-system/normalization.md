@@ -80,7 +80,7 @@ equations apply gives us something like the following:
 - **NORM**(`X extends T`) =
   - let `S` be **NORM**(`T`)
   - if `S` is `Never` then `Never`
-  - else `X extends S`
+  - else `X extends T`
 - **NORM**(`X & T`) =
   - let `S` be **NORM**(`T`)
    - if `S` is `Never` then `Never`

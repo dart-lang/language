@@ -14,7 +14,7 @@
 \makeindex
 \title{Dart Programming Language Specification\\
 {5th edition draft}\\
-{\large Version 2.3.0-dev}}
+{\large Version 2.8.0-dev}}
 \author{}
 
 % For information about Location Markers (and in particular the
@@ -31,6 +31,19 @@
 %   'class declaration' everywhere, so `<classDefinition>` is inconsistent).
 % - Clarify that <libraryDeclaration> and <partDeclaration> are the
 %   start symbols of the grammar.
+% - Clarify the notion of being 'noSuchMethod forwarded': `m` is indeed
+%   noSuchMethod forwarded if an implementation of `m` is inherited, but
+%   it does not have the required signature.
+% - Clarify static checks on `yield` and `yield*` to explicitly ensure that
+%   assignability is enforced per element.
+% - Update whitelist for expressions of type void to include `await e`,
+%   consistent with decision in SDK issue #33415.
+% - Re-adjust `yield*` rules: Per-element type checks are not supported,
+%   the given Iterable/Stream must have a safe element type.
+% - Clarify that an expression of type `X extends T` can be invoked when
+%   `T` is a function type, plus other similar cases.
+% - Specify actual type arguments passed to a generic function which is invoked
+%   with no type arguments (so it must be a dynamic invocation).
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -1353,6 +1366,32 @@ It is a compile-time error if the declared return type of a function marked \ASY
 It is a compile-time error if the declared return type of a function marked \code{\SYNC*} is not a supertype of \code{Iterable<$T$>} for some type $T$.
 It is a compile-time error if the declared return type of a function marked \code{\ASYNC*} is not a supertype of \code{Stream<$T$>} for some type $T$.
 
+\LMHash{}%
+We define the notion of the
+\IndexCustom{element type of a generator}{function!generator!element type}
+as follows:
+%
+If the function $f$ is a synchronous generator
+whose declared return type implements \code{Iterable<$U$>} for some $U$
+(\ref{interfaceSuperinterfaces})
+then the element type of $f$ is $U$.
+%
+If the function $f$ is an asynchronous generator
+whose declared return type implements \code{Stream<$U$>} for some $U$
+then the element type of $f$ is $U$.
+%
+Otherwise, if the function $f$ is a generator
+(\commentary{synchronous or asynchronous})
+then the element type of $f$ is \DYNAMIC.
+
+\commentary{%
+%% TODO(eernst): Come nnbd, change 'a top type' to \DYNAMIC.
+In the latter case the return type is a top type,
+because the declaration of $f$ would otherwise be a compile-time error.
+This implies that there is no information about
+the type of elements that the generator will yield.%
+}
+
 
 \subsection{Function Declarations}
 \LMLabel{functionDeclarations}
@@ -1798,7 +1837,7 @@ Then the static type of $F$ is
 \LMHash{}%
 Let $F$ be a function with
 type parameters \TypeParametersStd,
-required formal parameter types  \List{T}{1}{n},
+required formal parameter types \List{T}{1}{n},
 return type $T_0$
 and positional optional parameter types \List{T}{n+1}{n+k}.
 Then the static type of $F$ is
@@ -2373,35 +2412,53 @@ where only the null object is accepted:
 \end{dartCode}
 
 \LMHash{}%
-Let $C$ be a concrete class and
-let $L$ be the library that contains the declaration of $C$.
-The member $m$ is \Index{noSuchMethod forwarded} in $C$ if{}f
+Let $C$ be a concrete class,
+let $L$ be the library that contains the declaration of $C$,
+and let $m$ be a name.
+Then $m$ is \Index{noSuchMethod forwarded} in $C$ if{}f
 one of the following is true:
 
 \begin{itemize}
-\item $C$ has a non-trivial \code{noSuchMethod},
-  the interface of $C$ contains $m$,
-  and $C$ has no concrete declaration of $m$
-  (\commentary{that is, no member $m$ is declared or inherited by $C$}).
+\item \textbf{Requested in program:}
+  $C$ has a non-trivial \code{noSuchMethod},
+  the interface of $C$ contains a member signature $S$ named $m$,
+  and $C$ has no concrete member named $m$ and accessible to $L$
+  that correctly overrides $S$
+  (\commentary{%
+    that is, no member named $m$ is declared or inherited by $C$,
+    or one is inherited, but it does not have the required signature%
+  }).
+  In this case we also say that $S$ is noSuchMethod forwarded.
 \item
-  % Inaccessible private methods are not present in the interface of a class,
-  % so we need to find a class that can access $m$.
+  \textbf{Forced by privacy:}
   There exists a direct or indirect superinterface
-  $D$ of $C$ which is declared in the library $L_2$,
-  the interface of $D$ contains $m$
-  (\commentary{which implies that $m$ is accessible to $L_2$}),
-  $m$ is inaccessible to $L$,
+  $D$ of $C$ which is declared in a library $L_2$ different from $L$,
+  the interface of $D$ contains a member signature $S$ named $m$,
+  $m$ is a private name,
   and no superclass of $C$ has
-  a concrete declaration of $m$ accessible to $L_2$.
+  a concrete member named $m$ accessible to $L_2$
+  that correctly overrides $S$.
+  In this case we also say that $S$ is noSuchMethod forwarded.
 \end{itemize}
 
 \LMHash{}%
 For a concrete class $C$, a
-\IndexCustom{\code{noSuchMethod} forwarder}{noSuchMethod forwarder}
-is implicitly induced for each member $m$
+\Index{noSuchMethod forwarder}
+is implicitly induced for each member signature
 which is noSuchMethod forwarded.
-This is a concrete member of $C$
-with the signature taken from the interface of $C$ respectively $D$ above,
+
+\LMHash{}%
+It is a compile-time error if the name $m$ is noSuchMethod forwarded
+in a concrete class $C$,
+and a superclass of $C$ has an accessible concrete declaration of $m$
+which is not a noSuchMethod forwarder.
+
+\LMHash{}%
+%% TODO(eernst): We used to say 'the interface of $C$ or $D$'; but we
+%% need to change 'accessible' to a scheme similar to name-merging everywhere
+%% in order to be able to say this precisely.
+A noSuchMethod forwarder is a concrete member of $C$
+with the signature taken from the interface of $C$,
 and with the same default value for each optional parameter.
 It can be invoked in an ordinary invocation and in a superinvocation,
 and when $m$ is a method it can be closurized
@@ -2409,11 +2466,60 @@ and when $m$ is a method it can be closurized
 using a property extraction
 (\ref{propertyExtraction}).
 
+\commentary{%
+The error concerned with an implictly induced forwarder
+that would override a human-written declaration
+can only occur if that concrete declaration does not
+correctly override $S$. Consider the following example:%
+}
+
+\begin{dartCode}
+\CLASS{} A \{
+  foo(int i) => \NULL;
+\}
+
+\ABSTRACT{} \CLASS{} B \{
+  foo([int i]);
+\}
+
+\CLASS{} C \EXTENDS{} A \IMPLEMENTS{} B \{
+  noSuchMethod(Invocation i) => ...;
+  // Error: noSuchMethod forwarder cannot override `A.foo`.
+\}
+\end{dartCode}
+
+\commentary{
+In this example,
+an implementation with signature \code{foo(int i)} is inherited by \code{C},
+and the superinterface \code{B} declares
+the signature \code{foo([int i])}.
+This is a compile-time error because \code{C} does not have
+a method implementation with signature \code{foo([int])}.
+We do not wish to implicitly induce
+a \code{noSuchMethod} forwarder with signature \code{foo([int])}
+because it would override \code{A.foo},
+and that is likely to be highly confusing for developers.
+%
+In particular, it would cause an invocation like \code{C().foo(42)}
+to invoke \code{noSuchMethod},
+even though that is an invocation which is correct for
+the declaration of \code{foo} in \code{A}.
+%
+Hence, we require developers to explicitly resolve the conflict
+whenever an implicitly induced \code{noSuchMethod} forwarder
+would override an explicitly declared inherited implementation.
+%
+It is no problem, however,
+to let a \code{noSuchMethod} forwarder override
+another \code{noSuchMethod} forwarder,
+and hence there is no error in that situation.
+}
+
 \commentary{
 This implies that a \code{noSuchMethod} forwarder has the same
 properties as an explicitly declared concrete member,
 except of course that a \code{noSuchMethod} forwarder
-does not prevent itself from being induced.
+does not prevent itself or another noSuchMethod forwarder from being induced.
 We do not specify the body of a \code{noSuchMethod} forwarder,
 but it will invoke \code{noSuchMethod},
 and we specify the dynamic semantics of executing it below.
@@ -2446,60 +2552,6 @@ Note that the latter cannot be written explicitly in Dart,
 because their names are inaccessible;
 but the language can still specify that they are induced implicitly,
 because compilers control the treatment of private names.
-}
-
-\LMHash{}%
-It is a compile-time error if a concrete class $C$ has
-a \code{noSuchMethod} forwarded method signature $S$
-for a method named $m$,
-and a superclass of $C$ has an accessible concrete declaration of $m$
-which is not a \code{noSuchMethod} forwarder.
-
-\commentary{
-This can only happen if that concrete declaration does not
-correctly override $S$. Consider the following example:
-}
-
-\begin{dartCode}
-\CLASS{} A \{
-  foo(int i) => \NULL;
-\}
-
-\ABSTRACT{} \CLASS{} B \{
-  foo([int i]);
-\}
-
-\CLASS{} C \EXTENDS{} A \IMPLEMENTS{} B \{
-  noSuchMethod(Invocation i) => ...;
-  // Error: Forwarder would override `A.foo`.
-\}
-\end{dartCode}
-
-\commentary{
-In this example,
-an implementation with signature \code{foo(int i)} is inherited by \code{C},
-and the superinterface \code{B} declares
-the signature \code{foo([int i])}.
-This is a compile-time error because \code{C} does not have
-a method implementation with signature \code{foo([int])}.
-We do not wish to implicitly induce
-a \code{noSuchMethod} forwarder with signature \code{foo([int])}
-because it would override \code{A.foo},
-and that is likely to be highly confusing for developers.
-%
-In particular, it would cause an invocation like \code{C().foo(42)}
-to invoke \code{noSuchMethod},
-even though that is an invocation which is correct for
-the declaration of \code{foo} in \code{A}.
-%
-Hence, we require developers to explicitly resolve the conflict
-whenever an implicitly induced \code{noSuchMethod} forwarder
-would override an explicitly declared inherited implementation.
-%
-It is no problem, however,
-to let a \code{noSuchMethod} forwarder override
-another \code{noSuchMethod} forwarder,
-and hence there is no error in that situation.
 }
 
 \LMHash{}%
@@ -3188,7 +3240,7 @@ If $k$ is redirecting then its redirect clause has the form
 
 \code{\THIS{}.$g$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 
-where $g$ identifies another  generative constructor of the immediately surrounding class.
+where $g$ identifies another generative constructor of the immediately surrounding class.
 Then execution of $k$ to initialize $i$ proceeds by evaluating the argument list
 \code{($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 to an actual argument list $a$ of the form
@@ -4107,6 +4159,16 @@ the property of being covariant-by-declaration
 from one of its superinterfaces
 (\ref{covariantParameters}).
 }
+
+\LMHash{}%
+For the purpose of performing static checks on ordinary method invocations
+(\ref{ordinaryInvocation})
+and property extractions
+(\ref{propertyExtraction}),
+any type $T$ which is $T_0$ bounded
+(\ref{bindingActualsToFormals}),
+where $T_0$ is a class with interface $I$,
+is also considered to have interface $I$.
 
 \LMHash{}%
 The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
@@ -5042,7 +5104,7 @@ even though \THIS{} is not available.
 }
 
 \commentary{
-Because type parameters are in scope in their bounds, we support F-bounded quantification (if you don't know what that is, don't ask).
+Because type parameters are in scope in their bounds, we support F-bounded quantification.
 This enables typechecking code such as:
 }
 
@@ -5938,6 +6000,28 @@ Conversely, instantiation to bound acts on types which are syntactic subterms,
 also when they are deeply nested.%
 }
 
+\LMHash{}%
+\IndexCustom{Instantiation to bound on a generic function $f$}{%
+  generic function!instantiation to bound}
+also uses the algorithm described above,
+taking the formal parameters \List{X}{1}{k} from the declaration of $f$,
+with bounds \List{B}{1}{k}, and,
+for each $i \in 1 .. k$,
+letting $S_i$ denote the result of instantiation to bound on $B_i$,
+and letting $S_i$ be \DYNAMIC{} when the $i$th bound is omitted.
+
+\LMHash{}%
+Let $f$ be a generic function declaration.
+If instantiation to bound on $f$ yields
+a list of type arguments \List{T}{1}{k} such that,
+for some $j \in 1..k$,
+$T_j$ is or contains a type which is not well-bounded,
+or if \List{T}{1}{k} does not satisfy the bounds
+on the formal type parameters of $f$,
+then we say that
+\IndexCustom{$f$ does not have default type arguments}{%
+  generic function!does not have default type arguments}.
+
 
 \section{Metadata}
 \LMLabel{metadata}
@@ -6320,7 +6404,7 @@ are the following:
   if $e_1$ and $e_2$ are constant expressions.
 
 \item
-  An expression of the form \code{$e_1$\,!=\,$e_2$} is 
+  An expression of the form \code{$e_1$\,!=\,$e_2$} is
   equivalent to \code{!($e_1$\,==\,$e_2$)} in every way,
   including whether it is potentially constant or constant.
 
@@ -7096,10 +7180,10 @@ and the marker is then popped.
 <STRING\_CONTENT\_TDQ> ::= \gnewline{}
   <QUOTES\_DQ> (<STRING\_CONTENT\_COMMON> | `\sq' | `\\r' | `\\n')
 
-<MULTI\_LINE\_STRING\_DQ\_BEGIN\_END> ::=  \gnewline{}
+<MULTI\_LINE\_STRING\_DQ\_BEGIN\_END> ::= \gnewline{}
   `"""' <STRING\_CONTENT\_TDQ>* `"""'
 
-<MULTI\_LINE\_STRING\_DQ\_BEGIN\_MID> ::=  \gnewline{}
+<MULTI\_LINE\_STRING\_DQ\_BEGIN\_MID> ::= \gnewline{}
   `"""' <STRING\_CONTENT\_TDQ>* <QUOTES\_DQ> `${'
 
 <MULTI\_LINE\_STRING\_DQ\_MID\_MID> ::= \gnewline{}
@@ -10070,7 +10154,7 @@ Each iterator runs with its own shallow copies of all local variables; in partic
 \commentary{
 Two executions of an iterator interact only via state outside the function.
 }
-% The alternative would be to cache the results of an iterator in the iterable, and check the cache at each \YIELD{}.  This would have strange issues as well. The yielded value might differ from the expression in the yield. And it is a potential memory leak as the cache is kept alive by any iterator.
+% The alternative would be to cache the results of an iterator in the iterable, and check the cache at each \YIELD{}. This would have strange issues as well. The yielded value might differ from the expression in the yield. And it is a potential memory leak as the cache is kept alive by any iterator.
 
 \LMHash{}%
 If $f$ is marked \ASYNC{} (\ref{functions}),
@@ -10324,12 +10408,46 @@ even though there may not be a corresponding entity in the heap at run time.
 It is a compile-time error if $q_j = q_k$ for any $j \ne k$.
 
 \LMHash{}%
-If the static type of $f$ is \DYNAMIC{} or the built-in class \FUNCTION{},
-no further static checks are performed and the static type of $i$ is \DYNAMIC{};
-otherwise, it is a compile-time error if the static type of $f$ is not a function type.
+For a given type $T_0$, we introduce the notion of a
+\IndexCustom{$T_0$ bounded type}{type!T0 bounded}:
+$T_0$ itself is $T_0$ bounded;
+if $B$ is $T_0$ bounded and
+$X$ is a type variable with bound $B$
+then $X$ is $T_0$ bounded;
+finally, if $B$ is $T_0$ bounded and
+$X$ is a type variable
+then $X \& B$ is $T_0$ bounded.
+In particular, a
+\IndexCustom{\DYNAMIC{} bounded type}{type!dynamic bounded}
+is either \DYNAMIC{} itself
+or a type variable whose bound is \DYNAMIC{} bounded,
+or an intersection whose second operand is \DYNAMIC{} bounded.
+Similarly for a
+\IndexCustom{\FUNCTION{} bounded type}{type!function bounded}.
 
 \LMHash{}%
-Otherwise, the static type of $f$ is a function type $F$.
+A
+\IndexCustom{function-type bounded type}{type!function-type bounded}
+is a type $T$ which is $T_0$ bounded where $T_0$ is a function type
+(\ref{functionTypes}).
+A function-type bounded type $T$ has an
+\Index{associated function type}
+which is the unique function type $T_0$ such that $T$ is $T_0$ bounded.
+
+\LMHash{}%
+If the static type of $f$ is \DYNAMIC{} bounded or \FUNCTION{} bounded,
+no further static checks are performed on the invocation $i$
+(\commentary{apart from separate static checks on subterms like arguments}),
+and the static type of $i$ is \DYNAMIC{}.
+Otherwise, it is a compile-time error if the static type of $f$ is not
+function-type bounded.
+
+\LMHash{}%
+If no error occurred and the static analysis of $i$ is not complete
+then the static type $T_f$ of $f$ is function-type bounded;
+let $F$ be the associated function type of $T_f$.
+
+\LMHash{}%
 Let $S_0$ be the return type of $F$,
 let $X_1\ \EXTENDS\ B_1, \ldots, X_s\ \EXTENDS\ B_s$
 be the formal type parameters,
@@ -10481,12 +10599,20 @@ is bound to the formal type parameters and formal parameters of $f$ as follows:
 
 \LMHash{}%
 % Passing a wrong number of actual type arguments.
-If $r = 0$ and $s > 0$ then replace the actual type argument list:
-%% TODO[instantiate-to-bound]: The actual type arguments passed here
-%% should be chosen based on the instantiate-to-bound algorithm, but we
-%% cannot yet refer to that because it hasn't yet been specified here.
-let $r$ be $s$ and $t_i = \DYNAMIC{}$ for $i \in 1 .. s$.
-Then, if $r \not= s$, a \code{NoSuchMethodError} is thrown.
+If $r = 0$ and $s > 0$ then
+if $f$ does not have default type arguments
+(\ref{instantiationToBound})
+then a dynamic error occurs.
+Otherwise replace the actual type argument list:
+Let $r$ be $s$ and let $t_i$ for $i \in 1 .. s$ be the result of
+instantiation to bound
+(\ref{instantiationToBound})
+on the formal type parameters of $f$,
+substituting the actual values of any free type variables
+(\ref{actualTypes}).
+Otherwise, if $r \not= s$, a \code{NoSuchMethodError} is thrown.
+
+\LMHash{}%
 % Passing named arguments to a function with optional positional parameters.
 If $l > 0$ and $n \not= h$, a \code{NoSuchMethodError} is thrown.
 % Passing too few or too many positional arguments.
@@ -10503,8 +10629,9 @@ $o_i, i \in 1 .. m$,
 and $q_j$ is bound to $o_{m+j}, j \in 1 .. l$.
 All remaining formal parameters of $f$ are bound to their default values.
 
-\commentary{
-All of these remaining parameters are necessarily optional and thus have default values.
+\commentary{%
+All of these remaining parameters are necessarily optional
+and thus have default values.%
 }
 
 \LMHash{}%
@@ -11219,47 +11346,87 @@ It is a compile-time error if $T$ does not have an accessible
 (\ref{privacy})
 instance member named $m$, unless either:
 \begin{itemize}
-\item $T$ is \DYNAMIC{}.
-Or
-\item $T$ is \FUNCTION{} and $m$ is \CALL.
-\rationale{
+\item
+  $T$ is \DYNAMIC{} bounded
+  (\ref{bindingActualsToFormals});
+  in this case no further static checks are performed on $i$
+  (\commentary{apart from separate static checks on subterms like arguments})
+  and the static type of $i$ is \DYNAMIC.
+  Or
+\item
+  $T$ is \FUNCTION{} bounded
+  (\ref{bindingActualsToFormals})
+  and $m$ is \CALL;
+  in this case no further static checks are performed on $i$
+  (\commentary{apart from separate static checks on subterms like arguments})
+  and the static type of $i$ is \DYNAMIC.
+\rationale{%
 This means that for invocations of an instance method named \CALL,
 a receiver of type \FUNCTION{} is treated like a receiver of type \DYNAMIC{}.
-The expectation is that any concrete subclass of \FUNCTION{} will implement \CALL,
-but there is no method signature which can be assumed for \CALL{} in \FUNCTION{}
-because every signature will conflict with some potential overriding declarations.
-Note that any use of \CALL{} on a subclass of \FUNCTION{} that fails to implement \CALL{} will provoke a compile-time error,
-as this exemption is limited to type \FUNCTION{}, and does not apply to its subtypes.
+The expectation is that any concrete subclass of \FUNCTION{}
+will implement \CALL,
+but there is no method signature
+which can be assumed for \CALL{} in \FUNCTION{}
+because every signature will conflict with
+some potential overriding declarations.
+Note that any use of \CALL{} on
+a subclass of \FUNCTION{} that fails to implement \CALL{}
+will provoke a compile-time error,
+as this exemption is limited to type \FUNCTION{},
+and does not apply to its subtypes.%
 }
 \end{itemize}
 
 \LMHash{}%
-If $T$ did not have an accessible member named $m$ the static type of $i$ is \DYNAMIC{},
+If $T$ did not have an accessible member named $m$
+the static type of $i$ is \DYNAMIC{},
 and no further static checks are performed on $i$
-(\commentary{except that subexpressions of $i$ are subject to their own static analysis}).
+(\commentary{%
+except that subexpressions of $i$ are subject to their own static analysis%
+}).
 
 \LMHash{}%
 Otherwise \code{$T$.$m$} denotes an instance member.
 Let $L$ be the library that contains $i$.
 Let $d$ be the result of method lookup for $m$ in $T$ with respect to $L$,
 and if the method lookup succeeded then let $F$ be the static type of $d$.
+
+\LMHash{}%
 Otherwise, let $d$ be the result of getter lookup for $m$ in $T$ with respect to $L$
 and let $F$ be the return type of $d$.
 (\commentary{Since \code{$T$.$m$} exists we cannot have a failure in both lookups.})
+If the getter return type $F$ is an interface type
+that has a method named \CALL,
+$i$ is treated as
+(\ref{notation})
+the ordinary invocation
+
+\noindent
+\code{$e$.$m$.call<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+
+\noindent
+which determines any further static analysis.
 
 \LMHash{}%
-The static analysis of $i$ is performed as specified in Section~\ref{bindingActualsToFormals},
+Otherwise, the static analysis of $i$ is performed
+as specified in Section~\ref{bindingActualsToFormals},
+considering $F$ to be the static type of the function to call,
 and the static type of $i$ is as specified there.
 
 \LMHash{}%
-It is a compile-time error to invoke any of the methods of class \code{Object} on a prefix object (\ref{imports})
+It is a compile-time error to invoke any of the methods of class \code{Object}
+on a prefix object
+(\ref{imports})
 or on a constant type literal that is immediately followed by the token `.'\,.
 
-\rationale{
-The reason for the latter is that this syntax is reserved for invocation of static methods.
-For instance, \code{int.toString()} is similar to \code{C.someStaticMethod()}, and
-it would be confusing if just a couple of expressions of this form were instance method invocations.
-If needed, \code{(int).toString()} may be used instead.
+\rationale{%
+The reason for the latter is that this syntax is reserved for
+invocation of static methods.
+For instance, \code{int.toString()} is similar to
+\code{C.someStaticMethod()}, and
+it would be confusing if just a couple of expressions of this form
+were instance method invocations.
+If needed, \code{(int).toString()} may be used instead.%
 }
 
 \LMHash{}%
@@ -11297,7 +11464,8 @@ Then the value of $i$ is the value of
 
 \LMHash{}%
 If getter lookup has also failed,
-then a new instance $im$ of the predefined class \code{Invocation} is created, such that:
+then a new instance $im$ of the predefined class \code{Invocation} is created,
+such that:
 \begin{itemize}
 \item \code{$im$.isMethod} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
@@ -11317,13 +11485,15 @@ then a new instance $im$ of the predefined class \code{Invocation} is created, s
 \end{itemize}
 
 \LMHash{}%
-Then the method \code{noSuchMethod()} is looked up in $o$ and invoked with argument $im$,
+Then the method \code{noSuchMethod()} is looked up in $o$ and
+invoked with argument $im$,
 and the result of this invocation is the result of evaluating $i$.
 
-\commentary{
+\commentary{%
 The situation where \code{noSuchMethod} is invoked can only arise
 when the static type of $e$ is \DYNAMIC{}.
-Notice that the wording avoids re-evaluating the receiver $o$ and the arguments $a_i$.
+Notice that the wording avoids re-evaluating the receiver $o$ and
+the arguments $a_i$.%
 }
 \EndCase
 
@@ -11656,8 +11826,9 @@ of a static method on the denoted class.
 \LMHash{}%
 Let $T$ be the static type of $e$.
 It is a compile-time error if $T$ does not have a method or getter named \id{}
-unless $T$ is \DYNAMIC{},
-or $T$ is \FUNCTION{} and \id{} is \CALL{}.
+unless $T$ is \DYNAMIC{} bounded
+(\ref{bindingActualsToFormals}),
+or $T$ is \FUNCTION{} bounded and \id{} is \CALL.
 The static type of $i$ is:
 
 \begin{itemize}
@@ -11665,8 +11836,9 @@ The static type of $i$ is:
   if $T$ has an accessible instance getter named \id{}.
 \item The function type of the method signature \code{$T$.\id},
   if $T$ has an accessible instance method named \id{}.
+\item \FUNCTION{} if $T$ is \FUNCTION{} bounded and \id{} is \CALL.
 \item The type \DYNAMIC{} otherwise.
-  \commentary{This only occurs when $T$ is \DYNAMIC{} or \FUNCTION.}
+  \commentary{This only occurs when $T$ is \DYNAMIC{} bounded.}
 \end{itemize}
 
 \commentary{
@@ -11677,7 +11849,8 @@ thus obtained does take parameter covariance into account.
 }
 
 \LMHash{}%
-Evaluation of a property extraction $i$ of the form \code{$e$.\id} proceeds as follows:
+Evaluation of a property extraction $i$ of the form \code{$e$.\id}
+proceeds as follows:
 
 \LMHash{}%
 First, the expression $e$ is evaluated to an object $o$.
@@ -13009,7 +13182,7 @@ Another implication is that there is never a need to use \code{identical()} to t
 An equality expression of the form \code{$e_1$ != $e_2$} is equivalent to the expression \code{!($e_1$ == $e_2$)}.
 An equality expression of the form \code{\SUPER{} != $e$} is equivalent to the expression \code{!(\SUPER{} == $e$)}.
 
-%The expression $e_1$ is evaluated to an object $o_1$; then the expression $e_2$ is evaluated to an object $o_2$.  Next, if $o_1$ and $o_2$ are the same object, then $ee$ evaluates to \TRUE{}, otherwise $ee$ evaluates to \FALSE{}.
+%The expression $e_1$ is evaluated to an object $o_1$; then the expression $e_2$ is evaluated to an object $o_2$. Next, if $o_1$ and $o_2$ are the same object, then $ee$ evaluates to \TRUE{}, otherwise $ee$ evaluates to \FALSE{}.
 
 \LMHash{}%
 The static type of an equality expression is \code{bool}.
@@ -13540,7 +13713,7 @@ and therefore must be evaluated.
 
 <assignableSelector> ::= <unconditionalAssignableSelector>
   \alt `?.' <identifier>
-  \alt `?.[' <expression> `]'
+  \alt `?' `[' <expression> `]'
 
 \end{grammar}
 
@@ -15570,29 +15743,49 @@ Execution of a \CONTINUE{} statement \code{\CONTINUE{} $L$;} continues to the la
 Execution of a \CONTINUE{} statement \code{\CONTINUE{};} continues without a label (\ref{statementCompletion}).
 
 
-\subsection{Yield and Yield-Each}
-\LMLabel{yieldAndYieldEach}
-
-
-\subsubsection{Yield}
+\subsection{Yield}
 \LMLabel{yield}
 
 \LMHash{}%
-The \Index{yield statement} adds an element to the result of a generator function (\ref{functions}).
+The \Index{yield statement} adds an object to
+the result of a generator function
+(\ref{functions}).
 
 \begin{grammar}
 <yieldStatement> ::= \YIELD{} <expression> `;'
 \end{grammar}
 
 \LMHash{}%
-Execution of a statement $s$ of the form \code{\YIELD{} $e$;} proceeds as follows:
+Let $s$ be a yield statement of the form \code{\YIELD\,\,$e$;}.
+Let $f$ be the immediately enclosing function of $s$.
+It is a compile-time error if there is no such function,
+or it is not a generator.
+It is a compile-time error if the static type of $e$
+may not be assigned to the element type of $f$
+(\ref{functions}).
+
+\LMHash{}%
+Execution of a statement $s$ of the form \code{\YIELD\,\,$e$;}
+proceeds as follows:
 
 \LMHash{}%
 First, the expression $e$ is evaluated to an object $o$.
-If the enclosing function $m$ is marked \code{\ASYNC*} (\ref{functions}) and the stream $u$ associated with $m$ has been paused, then the nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}), if any, is paused and execution of $m$ is suspended until $u$ is resumed or canceled.
+If the enclosing function $m$ is marked \code{\ASYNC*}
+(\ref{functions})
+and the stream $u$ associated with $m$ has been paused,
+then the nearest enclosing asynchronous for loop
+(\ref{asynchronousFor-in}),
+if any, is paused and execution of $m$ is suspended
+until $u$ is resumed or canceled.
 
 \LMHash{}%
-Next, $o$ is added to the iterable or stream associated with the immediately enclosing function.
+Next, $o$ is added to the iterable or stream associated
+with the immediately enclosing function.
+
+\commentary{%
+Note that a dynamic error occurs if the dynamic type of $o$
+is not a subtype of the element type of said iterable or stream.%
+}
 
 \LMHash{}%
 If the enclosing function $m$ is marked \code{\ASYNC*}
@@ -15601,54 +15794,57 @@ then the \YIELD{} statement returns without an object
 (\ref{statementCompletion}),
 otherwise it completes normally.
 
-\rationale{
-The stream associated with an asynchronous generator could be canceled by any code with a reference to that stream at any point where the generator was passivated.
+\rationale{%
+The stream associated with an asynchronous generator could be canceled
+by any code with a reference to that stream at any point
+where the generator was passivated.
 Such a cancellation constitutes an irretrievable error for the generator.
-At this point, the only plausible action for the generator is to clean up after itself via its \FINALLY{} clauses.
+At this point, the only plausible action for the generator is
+to clean up after itself via its \FINALLY{} clauses.%
 }
 
 \LMHash{}%
-Otherwise, if the enclosing function $m$ is marked \code{\ASYNC*} (\ref{functions}) then the enclosing function may suspend, in which case the nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}), if any, is paused first.
+Otherwise, if the enclosing function $m$ is marked \code{\ASYNC*}
+(\ref{functions})
+then the enclosing function may suspend,
+in which case the nearest enclosing asynchronous for loop
+(\ref{asynchronousFor-in}),
+if any, is paused first.
 
-\rationale{
-If a \YIELD{} occurred inside an infinite loop and the enclosing function never suspended, there might not be an opportunity for consumers of the enclosing stream to run and access the data in the stream.
+\rationale{%
+If a \YIELD{} occurred inside an infinite loop
+and the enclosing function never suspended,
+there might not be an opportunity for consumers of the enclosing stream
+to run and access the data in the stream.
 The stream might then accumulate an unbounded number of elements.
 Such a situation is untenable.
-Therefore, we allow the enclosing function to be suspended when a new object is added to its associated stream.
-However, it is not essential (and in fact, can be quite costly) to suspend the function on every \YIELD{}.
-The implementation is free to decide how often to suspend the enclosing function.
-The only requirement is that consumers are not blocked indefinitely.
+Therefore, we allow the enclosing function to be suspended
+when a new object is added to its associated stream.
+However, it is not essential (and in fact, can be quite costly)
+to suspend the function on every \YIELD{}.
+The implementation is free to decide
+how often to suspend the enclosing function.
+The only requirement is that consumers are not blocked indefinitely.%
 }
 
 \LMHash{}%
 If the enclosing function $m$ is marked \code{\SYNC*} (\ref{functions}) then:
 \begin{itemize}
 \item
-Execution of the function $m$ immediately enclosing $s$ is suspended until the nullary method \code{moveNext()} is invoked upon the iterator used to initiate the current invocation of $m$.
+  Execution of the function $m$ immediately enclosing $s$ is suspended
+  until the nullary method \code{moveNext()} is invoked upon
+  the iterator used to initiate the current invocation of $m$.
 \item
-The current call to \code{moveNext()} returns \TRUE.
-\end{itemize}
-
-\LMHash{}%
-It is a compile-time error if a yield statement appears in a function that is not a generator function.
-
-\LMHash{}%
-Let $T$ be the static type of $e$ and let $f$ be the immediately enclosing function.
-It is a compile-time error if either:
-\begin{itemize}
-\item
-the body of $f$ is marked \code{\ASYNC*} and the type \code{Stream<T>} may not be assigned to the declared return type of $f$.
-\item
-the body of $f$ is marked \code{\SYNC*} and the type \code{Iterable<T>} may not be assigned to the declared return type of $f$.
+  The current call to \code{moveNext()} returns \TRUE.
 \end{itemize}
 
 
-\subsubsection{Yield-Each}
+\subsection{Yield-Each}
 \LMLabel{yieldEach}
 
 \LMHash{}%
-The \Index{yield-each statement} adds a series of objects
-to the result of a generator function
+The \Index{yield-each statement} adds a series of objects to
+the result of a generator function
 (\ref{functions}).
 
 \begin{grammar}
@@ -15656,18 +15852,38 @@ to the result of a generator function
 \end{grammar}
 
 \LMHash{}%
-Execution of a statement $s$ of the form \code{\YIELD* $e$;} proceeds as follows:
+Let $s$ be a yield-each statement of the form `\code{\YIELD*\,\,$e$;}'.
+Let $f$ be the immediately enclosing function of $s$.
+It is a compile-time error if there is no such function,
+or it is not a generator.
+
+\LMHash{}%
+Let $T_f$ be the element type of $f$
+(\ref{functions}),
+and let $T$ be the static type of $e$.
+If $f$ is a synchronous generator,
+it is a compile-time error if $T$ may not be assigned to
+\code{Iterable<$T_f$>}.
+Otherwise $f$ is an asynchronous generator,
+and it is a compile-time error if $T$ may not be assigned to
+\code{Stream<$T_f$>}.
+
+\LMHash{}%
+Execution of a statement $s$ of the form `\code{\YIELD*\,\,$e$;}'
+proceeds as follows:
 
 \LMHash{}%
 First, the expression $e$ is evaluated to an object $o$.
 
 \LMHash{}%
-If the immediately enclosing function $m$ is marked \code{\SYNC*} (\ref{functions}), then:
+If the immediately enclosing function $m$ is marked \code{\SYNC*}
+(\ref{functions}),
+then:
 \begin{enumerate}
 \item
   % This error can occur due to implicit casts.
   It is a dynamic type error
-  if the class of $o$ does not implement \code{Iterable}.
+  if the class of $o$ is not a subtype of \code{Iterable<$T_f$>}.
   Otherwise
 \item
   The method \code{iterator} is invoked upon $o$ returning an object $i$.
@@ -15684,6 +15900,10 @@ If the immediately enclosing function $m$ is marked \code{\SYNC*} (\ref{function
   (\ref{statementCompletion}).
   Otherwise, the result $x$ of the getter invocation is added to
   the iterable associated with $m$.
+  \commentary{%
+    Note that a dynamic error occurs if the dynamic type of $x$ is
+    not a subtype of the element type of said iterable.%
+  }
   Execution of the function $m$ immediately enclosing $s$ is suspended
   until the nullary method \code{moveNext()} is invoked
   upon the iterator used to initiate the current invocation of $m$,
@@ -15698,7 +15918,7 @@ If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
 \item
   % This error can occur due to implicit casts.
   It is a dynamic type error if the class of $o$
-  does not implement \code{Stream}.
+  is not a subtype of \code{Stream<$T_f$>}.
 Otherwise
 \item
   The nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}),
@@ -15706,39 +15926,30 @@ Otherwise
 \item
   The $o$ stream is listened to, creating a subscription $s$,
   and for each event $x$, or error $e$ with stack trace $t$, of $s$:
-\begin{itemize}
-\item
-  If the stream $u$ associated with $m$ has been paused,
-  then execution of $m$ is suspended until $u$ is resumed or canceled.
-\item
-  If the stream $u$ associated with $m$ has been canceled,
-  then $s$ is canceled by evaluating \code{\AWAIT{} v.cancel()}
-  where $v$ is a fresh variable referencing the stream subscription $s$.
-  Then, if the cancel completed normally,
-  the stream execution of $s$ returns without an object
-  (\ref{statementCompletion}).
-\item
-  Otherwise, $x$, or $e$ with $t$, are added to
-  the stream associated with $m$ in the order they appear in $o$.
-  The function $m$ may suspend.
-\end{itemize}
+  \begin{itemize}
+  \item
+    If the stream $u$ associated with $m$ has been paused,
+    then execution of $m$ is suspended until $u$ is resumed or canceled.
+  \item
+    If the stream $u$ associated with $m$ has been canceled,
+    then $s$ is canceled by evaluating \code{\AWAIT{} v.cancel()}
+    where $v$ is a fresh variable referencing the stream subscription $s$.
+    Then, if the cancel completed normally,
+    the stream execution of $s$ returns without an object
+    (\ref{statementCompletion}).
+  \item
+    Otherwise, $x$, or $e$ with $t$, are added to
+    the stream associated with $m$ in the order they appear in $o$.
+    \commentary{%
+      Note that a dynamic error occurs if $x$ is added
+      and the dynamic type of $x$ is not a subtype of
+      the element type of said stream.%
+    }
+    The function $m$ may suspend.
+  \end{itemize}
 \item
   If the stream $o$ is done, execution of $s$ completes normally.
 \end{itemize}
-
-\LMHash{}%
-It is a compile-time error if a yield-each statement appears
-in a function that is not a generator function.
-
-\LMHash{}%
-Let $T$ be the static type of $e$ and let $f$ be
-the immediately enclosing function.
-It is a compile-time error if $T$ may not be assigned to
-the declared return type of $f$.
-If $f$ is synchronous it is a compile-time error
-if $T$ may not be assigned to \code{Iterable}.
-If $f$ is asynchronous it is a compile-time error
-if $T$ may not be assigned to \code{Stream}.
 
 
 \subsection{Assert}
@@ -15801,7 +16012,7 @@ It cannot be viewed as a function call that is being optimized away because the 
 %\rationale{
 %Since \ASSERT{} is a built-in identifier, one might define a function or method with this name.
 %It is impossible to distinguish as \ASSERT{} statement from a method invocation in such a situation.
-%One could choose to always interpret such code as an \ASSERT{} statement. Or we could choose to give priority to any lexically visible user defined function.  The former can cause rather puzzling situations, e.g.,}
+%One could choose to always interpret such code as an \ASSERT{} statement. Or we could choose to give priority to any lexically visible user defined function. The former can cause rather puzzling situations, e.g.,}
 
 %\begin{dartCode}
 % assert(bool b)\{print('My Personal Assertion \$b');\}
@@ -16950,13 +17161,14 @@ Any self reference in a type alias,
 either directly or recursively via another type declaration,
 is a compile-time error.
 
-\commentary{
+\commentary{%
 This kind of error may also arise when type arguments have been
 omitted in the program, but are added during static analysis
 via instantiation to bound
 (\ref{instantiationToBound})
-or via type inference
-(\commentary{which will be specified later (\ref{overview})}).
+or via type inference,
+which will be specified later
+(\ref{overview}).%
 }
 
 \commentary{%
@@ -17667,7 +17879,8 @@ may support more strict static checks as an option.
 \LMLabel{functionTypes}
 
 \LMHash{}%
-Function types come in two variants:
+\IndexCustom{Function types}{type!function}
+come in two variants:
 \begin{enumerate}
 \item
   The types of functions that only have positional parameters.
@@ -18097,6 +18310,14 @@ unless it is permitted according to one of the following rules.
   \rationale{%
   The static type of the null coalescing expression is then \VOID,
   which in turn restricts where it can occur.%
+  }
+\item
+  In an expression of the form \code{\AWAIT\,\,$e$}, $e$ may have type \VOID.
+  \rationale{%
+  This rule was adopted because it was a substantial breaking change
+  to turn this situation into an error
+  at the time where the treatment of \VOID{} was changed.
+  Tools may choose to give a hint in such cases.%
   }
 \item
   \commentary{%

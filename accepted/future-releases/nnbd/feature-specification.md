@@ -6,9 +6,85 @@ Status: Draft
 
 ## CHANGELOG
 
-2020.01.14
+2020.05.14
   - **CHANGE** Strong mode is auto-opted in when the "main" file is opted in.
   -  Specify weak mode/strong mode flag
+
+2020.04.30
+  - **CHANGE** (by overriding rules in the language specification): Change
+    static rules for return statements, and dynamic semantics of return in
+    asynchronous non-generators.
+  - Add rule that the use of expressions of type `void*` is restricted in
+    the same way as the use of expressions of type `void`.
+
+2020.04.30
+  - Specify static analysis of `e1 == e2`.
+
+2020.04.20
+  - **CHANGE** (by adding a rule that overrides an existing rule in the language
+    specification). Specify that it is a compile-time error to await an
+    expression whose static type is `void`.
+
+2020.04.13
+  - **CHANGE** The default type of the error variable in a catch clause is
+    `Object`.
+
+2020.04.08
+  - **CHANGE** `NNBD_TOP_MERGE` resolves all conflicting top types to `Object?`.
+
+2020.04.07
+  - Clarify semantics of boolean conditional checks in strong and weak mode.
+
+2020.04.02
+  - Clarify that legacy class override checks are done with respect to the
+    direct super-interfaces.
+
+2020.04.01
+  - Adjust mixed-mode inheritance rules to express a consolidated model
+    where legacy types prevail in some additional cases; also state
+    that mitigated interfaces are used for dynamic instance checks as
+    well as for static subtype checks.
+
+2020.03.05
+  - Update grammar for null aware subscript.
+  - Fix reversed subtype order in assignability.
+  - Fix inconsistent uses of `null` and `Null` in instance checks.
+
+2020.02.28
+  - Specify that a `covariant late final x;` is an allowed instance variable which
+    introduces a setter.
+
+2020.01.31
+  - Specify that mixins must not have uninitialized potentially non-nullable
+    non-late fields, and nor must classes with no generative constructors.
+  - Remove reference to `CastError`. A failed `!` check is just a
+    "dynamic type error" like the `as` check in the current language specification.
+
+2020.01.29
+  - **CHANGE** Relax the exhaustiveness check on switches.
+  - Specify the type of throw expressions.
+  - Specify the override inference exception for operator==.
+  - **CHANGE** Specify that instantiate to bounds uses `Never` instead of `Null`.
+  - **CHANGE** Specify that least and greatest closure uses `Never` instead of
+    `Null`.
+  - Specify that type variable elimination is performed on constants using least
+    closure.
+  - Clarify extension method resolution on nullable types.
+  - **CHANGE** Add missing cases to `NNBD_TOP_MERGE` and specify its behavior
+    on `covariant` parameters.
+  - Fix the definition of `NORM` for un-promoted type variables
+  - Change the notion of type equality for generic function bounds to mutual
+    subtyping.
+  - **CHANGE** Specify that debug assertions are added to methods in strong
+    mode.
+
+2020.01.27
+  - **CHANGE** Change to specification of weak and strong mode instance checks
+    to make them behave uniformly across legacy and opted-in libraries.
+
+2020.01.21
+  - Clarify that method inheritance checking is done relative to the
+    consolidated super-interface signature.
 
 2019.12.27
   - Update errors for switch statements.
@@ -31,7 +107,7 @@ Status: Draft
   - Fix definition of strictly non-nullable
 
 2019.12.03:
-  - Change warnings around null aware operaters to account for legacy types.
+  - Change warnings around null aware operators to account for legacy types.
 
 2019.11.25:
   - Specified implicitly induced getters/setters for late variables.
@@ -96,7 +172,7 @@ prefixed by the `required` modifier (e.g. `int Function(int, {int?  y, required
 int z})`.
 
 The grammar of selectors is extended to allow null-aware subscripting using the
-syntax `e1?.[e2]` which evaluates to `null` if `e1` evaluates to `null` and
+syntax `e1?[e2]` which evaluates to `null` if `e1` evaluates to `null` and
 otherwise evaluates as `e1[e2]`.
 
 The grammar of cascade sequences is extended to allow the first cascade of a
@@ -131,6 +207,16 @@ prefer the former parse over the latter.
 The same is true for `{ a is int ? - 3 : 3 }`.
 
 The same is true for `{ int ? - 3 : 3 }` if we allow this.
+
+#### Null aware subscript
+
+Certain uses of null aware subscripts in conditional expressions are ambiguous.
+For example, `{ a?[b]:c }` can be parsed either as a set literal or a map
+literal, depending on whether the `?` is interpreted as part of a null aware
+subscript or as part of a conditional expression.  Whenever there is a sequence
+of tokens which may be parsed either as a conditional expression or as two
+expressions separated by a colon, the first of which is a a null aware
+subscript, parsers shall choose to parse as a conditional expression.
 
 
 ## Static semantics
@@ -167,7 +253,7 @@ previous paragraph.
 We modify the upper and lower bound rules to account for nullability and legacy
 types as
 specified
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).  
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).
 
 ### Type normalization
 
@@ -188,8 +274,124 @@ The **flatten** function is modified as follows:
   - otherwise if `T` is `S*` then **flatten**(`T`) = **flatten**(`S`)`*`
   - otherwise if `T` is `FutureOr<S>` then **flatten**(`T`) = `S`
   - otherwise if `T <: Future` then let `S` be a type such that `T <: Future<S>`
-and for all `R`, if `T <: Future<R>` then `S <: R`; then **flatten**('T') = `S`
-  - otherwise **flatten**('T') = `T`
+and for all `R`, if `T <: Future<R>` then `S <: R`; then **flatten**(`T`) = `S`
+  - otherwise **flatten**(`T`) = `T`
+
+### The future value type of an asynchronous non-generator function
+
+_We specify a concept which corresponds to the static type of objects which may
+be contained in the Future object returned by an async function with a given
+declared return type._
+
+Let _f_ be an asynchronous non-generator function with declared return type
+`T`. Then the **future value type** of _f_ is **futureValueType**(`T`).
+The function **futureValueType** is defined as follows:
+
+- **futureValueType**(`S?`) = **futureValueType**(`S`), for all `S`.
+- **futureValueType**(`S*`) = **futureValueType**(`S`), for all `S`.
+- **futureValueType**(`Future<S>`) = `S`, for all `S`.
+- **futureValueType**(`FutureOr<S>`) = `S`, for all `S`.
+- **futureValueType**(`void`) = `void`.
+- Otherwise, for all `S`, **futureValueType**(`S`) = `Object?`.
+
+_Note that it is a compile-time error unless the return type of an asynchronous
+non-generator function is a supertype of `Future<Never>`, which means that
+the last case will only be applied when `S` is `Object` or a non-`void` top
+type._
+
+### Return statements
+
+The static analysis of return statements is changed in the following
+way, where `$T$` is the declared return type and `$S$` is the static type of
+the expression `e`.
+
+At [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15477)
+about synchronous non-generator functions, the text is changed as follows:
+
+```
+It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+$T$ is neither \VOID{} nor \DYNAMIC,
+and $S$ is \VOID.
+```
+
+_Comparing to Dart before null-safety, this means that it is no longer allowed
+to return a void expression in a regular function if the return type is
+`Null`._
+
+At [this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15507)
+about an asynchronous non-generator function with future value type `$T_v$`,
+the text is changed as follows:
+
+```
+It is a compile-time error if $s$ is \code{\RETURN{};},
+unless $T_v$
+is \VOID, \DYNAMIC, or \code{Null}.
+%
+It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+$T_v$ is \VOID,
+and \flatten{S} is neither \VOID, \DYNAMIC, \code{Null}.
+%
+It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+$T_v$ is neither \VOID{} nor \DYNAMIC,
+and \flatten{S} is \VOID.
+%
+It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+\flatten{S} is not \VOID,
+$S$ is not assignable to $T_v$,
+and flatten{S} is not a subtype of $T_v$.
+```
+
+_Comparing to Dart before null-safety, this means that it is no longer allowed
+to return an expression whose flattened static type is `void` in an `async`
+function with future value type `Null`; nor is it allowed, in an `async`
+function with future value type `void`, to return an expression whose flattened
+static type is not `void`, `void*`, `dynamic`, or `Null`. Conversely, it is
+allowed to return a future when the future value type is a suitable future;
+for instance, we can have `return Future<int>.value(42)` in an `async` function
+with declared return type `Future<Future<int>>`. Finally, let `S` be
+`Future<dynamic>` or `FutureOr<dynamic>`; it is then no longer allowed to
+return an expression with static type `S`, unless the future value type is a
+supertype of `S`. This differs from Dart before null-safety in that it was
+allowed to return an expression of these types with a declared return type
+of the form `Future<T>` for any `T`._
+
+The dynamic semantics specified at
+[this location](https://github.com/dart-lang/language/blob/65b8267be0ebb9b3f0849e2061e6132021a4827d/specification/dartLangSpec.tex#L15597)
+is changed as follows, where `$f$` is the enclosing function with declared
+return type `$T$`, and `$e$` is the returned expression:
+
+```
+When $f$ is a synchronous non-generator, evaluation proceeds as follows:
+The expression $e$ is evaluated to an object $o$.
+A dynamic error occurs unless the dynamic type of $o$ is a subtype of
+the actual return type of $f$
+(\ref{actualTypes}).
+Then the return statement $s$ completes returning $o$
+(\ref{statementCompletion}).
+
+\commentary{%
+The case where the evaluation of $e$ throws is covered by the general rule
+which propagates the throwing completion from $e$ to $s$ to the function body.%
+}
+
+When $f$ is an asynchronous non-generator with future value type $T_v$
+(\ref{functions}), evaluation proceeds as follows:
+The expression $e$ is evaluated to an object $o$.
+If the run-time type of $o$ is a subtype of \code{Future<$T_v$>},
+let \code{v} be a fresh variable bound to $o$ and
+evaluate \code{\AWAIT{} v} to an object $r$;
+otherwise let $r$ be $o$.
+A dynamic error occurs unless the dynamic type of $r$
+is a subtype of the actual value of $T_v$
+(\ref{actualTypes}).
+Then the return statement $s$ completes returning $r$
+(\ref{statementCompletion}).
+
+\commentary{%
+The cases where $f$ is a generator cannot occur,
+because in that case $s$ is a compile-time error.%
+}
+```
 
 ### Static errors
 #### Nullability definitions
@@ -276,17 +478,28 @@ fields on `Object`.
 It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
-It is an error if a top level variable, static variable, or instance field with
-potentially non-nullable type has no initializer expression and is not
-initialized in a constructor via an initializing formal or an initializer list
-entry, unless the variable or field is marked with the `late` modifier.
+It is an error if a top level variable or static variable with a non-nullable type
+has no initializer expression unless the variable is marked with the `late` modifier.
+
+It is an error if a class declaration declares an instance variable with a potentially
+non-nullable type and no initializer expression, and the class has a generative constructor
+where the variable is not initialized via an initializing formal or an initializer list entry,
+unless the variable is marked with the `late` modifier.
+
+It is an error if a mixin declaration or a class declaration with no generative constructors
+declares an instance variable with a potentially non-nullable type and no initializer expression
+unless the variable is marked with the `late` modifier.
+
+It is an error to derive a mixin from a class declaration which contains
+an instance variable with a potentially non-nullable type and no initializer expression
+unless the variable is marked with the `late` modifier.
 
 It is an error if a potentially non-nullable local variable which has no
 initializer expression and is not marked `late` is used before it is definitely
 assigned (see Definite Assignment below).
 
 It is an error if the body of a method, function, getter, or function expression
-with a potentially non-nullable return type **may completely normally**.
+with a potentially non-nullable return type **may complete normally**.
 
 It is an error if an optional parameter (named or otherwise) with no default
 value has a potentially non-nullable type **except** in the parameter list of an
@@ -294,13 +507,13 @@ abstract method declaration.
 
 It is an error if a required named parameter has a default value.
 
-It is an error if a named parameter that is part of a `required` group is not
-bound to an argument at a call site.
+It is an error if a required named parameter is not bound to an argument at a
+call site.
 
 It is an error to call the default `List` constructor.
 
 For the purposes of errors and warnings, the null aware operators `?.`, `?..`,
-and `?.[]` are checked as if the receiver of the operator had non-nullable type.
+and `?[]` are checked as if the receiver of the operator had non-nullable type.
 More specifically, if the type of the receiver of a null aware operator is `T`,
 then the operator is checked as if the receiver had type **NonNull**(`T`) (see
 definition below).
@@ -375,15 +588,23 @@ where the cases are dispatched based on expressions `e0`...`ek`:
     enum cases, either explicitly or via a default.
   - If `T` is `Q?` where `Q` is an enum type, it is a warning if the switch does
     not handle all enum cases and `null`, either explicitly or via a default.
-  - It is a warning if a switch over a nullable type does not handle `null`
-    either explicitly or via a default.
 
 It is an error if a class has a setter and a getter with the same basename where
 the return type of the getter is not a subtype of the argument type of the
 setter.  Note that this error specifically requires subtyping and not
 assignability and hence makes no exception for `dynamic`.
 
-It is a warning to use a null aware operator (`?.`, `?..`, `??`, `??=`, or
+If the static type of `e` is `void`, the expression `await e` is a compile-time
+error. *This implies that
+[this](https://github.com/dart-lang/language/blob/780cd5a8be92e88e8c2c74ed282785a2e8eda393/specification/dartLangSpec.tex#L18281)
+list item will be removed from the language specification.*
+
+A compile-time error occurs if an expression has static type `void*`, and it
+does not occur in any of the ways specified in
+[this list](https://github.com/dart-lang/language/blob/780cd5a8be92e88e8c2c74ed282785a2e8eda393/specification/dartLangSpec.tex#L18238).
+*This implies that `void*` is treated the same as `void`.*
+
+It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, or
 `...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
 
 It is a warning to use the null check operator (`!`) on an expression of type
@@ -401,19 +622,89 @@ the type as declared on `T` must be a subtype of the type on `Object`, and so
 choosing the `Object` type is a sound choice.  The opposite choice is not
 sound).
 
+_Note that evaluation of an expression `e` of the form `e1 == e2` is not an
+invocation of `operator ==`, it includes special treatment of null. The
+precise rules are specified later in this section._
+
 Calling a method (including an operator) or getter on a receiver of static type
 `Never` is treated by static analysis as producing a result of type `Never`.
 Tearing off a method from a receiver of static type `Never` produces a value of
 type `Never`.  Applying an expression of type `Never` in the function position
 of a function call produces a result of type `Never`.
 
+The static type of a `throw e` expression is `Never`.
+
+Consider an expression `e` of the form `e1 == e2` where the static type of
+`e1` is `T1` and the static type of `e2` is `T2`. Let `S` be the type of the
+formal parameter of `operator ==` in the interface of **NonNull**(`T1`).
+It is a compile-time error unless `T2` is assignable to `S?`.
+
+_Even if the static type of `e1` is potentially nullable, the parameter type
+of the `operator ==` of the corresponding non-null type is taken into account,
+because that instance method will not be invoked when `e1` is null. Similarly,
+it is not a compile-time error for the static type of `e2` to be potentially
+nullable, even when the parameter type of said `operator ==` is non-nullable.
+This is again safe, because the instance method will not be invoked when `e2`
+is null._
+
+In legacy mode, an override of `operator ==` with no explicit parameter type
+inherits the parameter type of the overridden method if any override of
+`operator ==` between the overriding method and `Object.==` has an explicit
+parameter type.  Otherwise, the parameter type of the overriding method is
+`dynamic`.
+
+Top level variable and local function inference is performed
+as
+[specified separately](https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md).
+Method body inference is not yet specified.
+
+If no type is specified in a catch clause, then the default type of the error
+variable is `Object`, instead of `dynamic` as was the case in pre-null safe
+Dart.
+
+### Instantiate to bounds
+
+The computation of instantiation to bounds is changed to substitute `Never` for
+type variables appearing in contravariant positions instead of `Null`.
+
+### Least and greatest closure
+
+The definitions of least and greatest closure are changed in null safe libraries
+to substitute `Never` in positions where previously `Null` would have been
+substituted, and `Object?` in positions where previously `Object` or `dynamic`
+would have been substituted.
+
+### Const type variable elimination
+
+If performing inference on a const value of a generic class results in
+inferred type arguments to the generic class which contain free type variables
+from an enclosing generic class or method, the free type variables shall be
+eliminated by taking the least closure of the inferred type with respect to the
+free type variables.  Note that free type variables which are explicitly used as
+type arguments in const generic instances are still considered erroneous.
+
+```dart
+class G<T> {
+  void foo() {
+    const List<T> c = <T>[]; // Error
+    const List<T> d = [];    // The list literal is inferred as <Never>[]
+  }
+}
+```
+
+### Extension method resolution
+
+For the purposes of extension method resolution, there is no special treatment
+of nullable types with respect to what members are considered accessible.  That
+is, the only members of a nullable tyhpe that are considered accessible
+(and hence which take precedence over extensions) are the members on `Object`.
 
 ### Assignability
 
 The definition of assignability is changed as follows.
 
-A type `T` is **assignable** to a type `S` if `T` is `dynamic`, or if `S` is a
-subtype of `T`.
+A type `T` is **assignable** to a type `S` if `T` is `dynamic`, or if `T` is a
+subtype of `S`.
 
 ### Generics
 
@@ -425,9 +716,8 @@ The implicit conversion of integer literals to double literals is performed when
 the context type is `double` or `double?`.
 
 The implicit tear-off conversion which converts uses of instances of classes
-with call methods to the tear-off of their `.call` method when the context type
-is a function type is performed when the context type is a function type, or the
-nullable version of a context type.
+with call methods to the tear-off of their `.call` method is performed when the
+context type is a function type, or the nullable version of a function type.
 
 Implicit tear-off conversion is *not* performed on objects of nullable type,
 regardless of the context type.  For example:
@@ -614,9 +904,10 @@ semantics are obeyed.
 
 ### Null check operator
 
-An expression of the form `e!` evaluates `e` to a value `v`, throws a runtime
-error which is an instance of `CastError` if `v` is `null`, and otherwise
-evaluates to `v`.
+When evaluating an expression of the form `e!`,
+where `e` evaluates to a value `v`,
+a dynamic type error occurs if `v` is `null`,
+and otherwise the expression evaluates to `v`.
 
 ### Null aware operator
 
@@ -701,7 +992,7 @@ continuation.
   - `PASSTHRU[F, fn[x] => x.m(ARGS(args))]`
 - If `e` translates to `F` then `e(args)` translates to:
   - `PASSTHRU[F, fn[x] => x(ARGS(args))]`
-- If `e1` translates to `F` then `e1?.[e2]` translates to:
+- If `e1` translates to `F` then `e1?[e2]` translates to:
   - `SHORT[EXP(e1), fn[x] => x[EXP(e2)]]`
 - If `e1` translates to `F` then `e1[e2]` translates to:
   - `PASSTHRU[F, fn[x] => x[EXP(e2)]]`
@@ -711,7 +1002,7 @@ continuation.
 - If `e1` translates to `F` then `e1.f = e2` translates to:
   - `PASSTHRU[F, fn[x] => x.f = EXP(e2)]`
 - The other assignment operators are handled equivalently.
-- If `e1` translates to `F` then `e1?.[e2] = e3` translates to:
+- If `e1` translates to `F` then `e1?[e2] = e3` translates to:
   - `SHORT[EXP(e1), fn[x] => x[EXP(e2)] = EXP(e3)]`
 - The other assignment operators are handled equivalently.
 - If `e1` translates to `F` then `e1[e2] = e3` translates to:
@@ -752,6 +1043,9 @@ is the only final variable which can be the target of an assignment.  It
 can only be assigned once, but this is enforced dynamically rather than
 statically.
 
+An instance variable declaration may be declared `covariant` iff it introduces
+an implicit setter.
+
 A read of a field or variable which is marked as `late` which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
 a value, assigned to the variable or field, and returned as the value of the
@@ -779,10 +1073,9 @@ implicitly induced by _D_ if a value has previously been assigned to `v`
 (which could be due to an initializing formal or a constructor initializer
 list, or due to an invocation of the setter).
 
-Let _D_ be a `late` and `final` local variable declaration named `v`
-without an initializing expression.  It is a run-time error, throwing an
-instance of `LateInitializationError`, to assign a value to `v` if a value
-has previously been assigned to `v`.
+Let _D_ be a `late` and `final` local variable declaration named `v`.  It is a
+run-time error, throwing an instance of `LateInitializationError`, to assign a
+value to `v` if a value has previously been assigned to `v`.
 
 Note that this includes the implicit initializing writes induced by
 evaluating the initializer during a read.  Hence, the following program
@@ -802,6 +1095,41 @@ was marked `late`.  Note that this is a change from pre-NNBD semantics in that:
     variable to `null`
   - Reading the variable during initializer evaluation is no longer checked for,
     and does not cause an error.
+
+### Boolean conditional evaluation.
+
+The requirement that the condition in a boolean conditional control expression
+(e.g. the a conditional statement, conditional element, `while` loop, etc) be
+assignable to `bool` is unchanged from pre null-safe Dart.  The change in
+assignability means that the static type of the condition may only be `dynamic`,
+`Never`, or `bool`.  In full null-safe Dart, an expression of type `Never` will
+always diverge and an expression of type `bool` will never evaluate to a value
+other than `true` or `false`, and hence no conversion is required in these
+cases.  A conditional expression of type `dynamic` may evaluated to any value,
+and hence must be implicitly downcast to `bool`, after which no further check is
+required.
+
+In weak mode execution, values of type `Never` and `bool` may evaluate to
+`null`, and so a boolean conversion check must be performed in addition to any
+implicit downcasts implied.  The full semantics then are given as follows.
+
+Given a boolean conditional expression `e` where `e` has type `S`, it is a
+static error if `S` is not assignable to `bool`.  Otherwise:
+
+In NNBD strong mode, evaluation proceeds as follows:
+  - First `e` is implicitly cast to `bool` if required.
+    - This cast may fail, and if so it is a TypeError.
+  - If the cast does not fail, then the result is known to be a non-null
+    boolean, and evaluation of the enclosing conditional proceeds as usual.
+
+In NNBD weak mode, evaluation proceeds as follows:
+  - First `e` is implicitly cast to `bool` if required (using
+    `LEGACY_SUBTYPE(e.runtimeType, bool)`)
+    - This cast may fail, and if so it is a TypeError.
+  - If the cast does not fail, then the result may still be `null`, and so the
+  result must be checked against `null`.
+    - If the `null` check fails, it is an AssertionError, otherwise evaluation
+      of the enclosing conditional proceeds as usual.
 
 
 ## Core library changes
@@ -918,19 +1246,23 @@ arguments) marked as legacy types.
 
 If a class `C` in a legacy library implements the same generic class `I` more
 than once, it is an error if the `LEGACY_ERASURE` of all such super-interfaces
-are not all syntactically equal.  For the purposes of runtime subtyping checks,
-`C` is considered to implement the canonical `LEGACY_ERASURE` of the
-super-interfaces in question.
+are not all syntactically equal.
+
+When `C` implements `I` once, and also when `C` implements `I` more than once
+without error, `C` is considered to implement the canonical signature given by
+`LEGACY_ERASURE` of the super-interfaces in question. This determines the
+outcome of dynamic instance checks applied to instances of `C`, as well as
+static subtype checks on expressions of type `C`.
 
 A member which is defined in a class in a legacy library (whether concrete or
 abstract), is given a signature in which every type is a legacy type.  It is an
 error if the signature of a member is not a correct override of all members of
-the same name in super-interfaces of the class, using the legacy subtyping
-rules.
+the same name in the direct super-interfaces of the class, using the legacy
+subtyping rules.
 
 Using the legacy erasure for checking super-interfaces accounts for opted-out
 classes which depend on both opted-in and opted-out versions of the same generic
-interface.
+interface. For example:
 
 ```dart
 //opted in
@@ -948,8 +1280,7 @@ class C extends A implements B {}
 
 The class `C` is not considered erroneous, despite implementing both `I<int?>`
 and `I<int*>`, since legacy erasure makes both of those interfaces equal.  The
-canonical interface which `C` is chosen to implement for the purposes of runtime
-type checks is `I<int*>`.
+interface which `C` is considered to implement is `I<int*>`.
 
 
 #### Classes defined in legacy libraries as seen from opted-in libraries
@@ -1012,11 +1343,15 @@ as:
  - `NNBD_TOP_MERGE(Object?, Object?)  = Object?`
  - `NNBD_TOP_MERGE(dynamic, dynamic)  = dynamic`
  - `NNBD_TOP_MERGE(void, void)  = void`
- - `NNBD_TOP_MERGE(Object?, void)  = void`
+ - `NNBD_TOP_MERGE(Object?, void)  = Object?`
    - And the reverse
- - `NNBD_TOP_MERGE(dynamic, void)  = void`
+ - `NNBD_TOP_MERGE(dynamic, void)  = Object?`
    - And the reverse
  - `NNBD_TOP_MERGE(Object?, dynamic)  = Object?`
+   - And the reverse
+ - `NNBD_TOP_MERGE(Object*, void)  = Object?`
+   - And the reverse
+ - `NNBD_TOP_MERGE(Object*, dynamic)  = Object?`
    - And the reverse
  - `NNBD_TOP_MERGE(Never*, Null)  = Null`
    - And the reverse
@@ -1030,6 +1365,16 @@ as:
  - And for all other types, recursively applying the transformation over the
    structure of the type
    - e.g. `NNBD_TOP_MERGE(C<T>, C<S>)  = C<NNBD_TOP_MERGE(T, S)>`
+
+ - When computing the `NNBD_TOP_MERGE` of two method parameters at least one of
+   which is marked as covariant, the following algorithm is used to compute the
+   canonical parameter type.
+   - Given two corresponding parameters of type `T1` and `T2` where at least
+      one of the parameters has a `covariant` declaration:
+     - if `T1 <: T2` and `T2 <: T1` then the result is `NNBD_TOP_MERGE(T1, T2)`,
+     and it is covariant.
+     - otherwise, if `T1 <: T2` then the result is `T2` and it is covariant
+     - otherwise the result is `T1` and it is covariant
 
 In other words, `NNBD_TOP_MERGE` takes two types which are structurally equal
 except for the placement `*` types, and the particular choice of top types, and
@@ -1049,16 +1394,18 @@ arguments) marked as nullable or non-nullable as written.
 If a class `C` in an opted-in library implements the same generic class `I` more
 than once as `I0, .., In`, and at least one of the `Ii` is not syntactically
 equal to the others, then it is an error if `NNBD_TOP_MERGE(S0, ..., Sn)` is not
-defined where `Si` is **NORM(`Ii`)**.  Otherwise, for the purposes of runtime
-subtyping checks, `C` is considered to implement the canonical interface given
-by `NNBD_TOP_MERGE(S0, ..., Sn)`.
+defined where `Si` is **NORM(`Ii`)**.  Otherwise, `C` is considered to
+implement the canonical interface given by `NNBD_TOP_MERGE(S0, ..., Sn)`.  This
+determines the outcome of dynamic instance checks applied to instances of `C`,
+as well as static subtype checks on expressions of type `C`.
 
 If a class `C` in an opted-in library overrides a member, it is an error if its
 signature is not a subtype of the types of all overriden members from all
-super-interfaces (whether legacy or opted-in).  For the purposes of override
-checking, members which are inherited from opted-in classes through legacy
-classes are still checked against each original declaration at its opted-in
-type.  For example, the following override is considered an error.
+direct super-interfaces (whether legacy or opted-in).  This implies that
+override checks for a member `m` may succeed due to a legacy member signature
+for `m` in a direct super-interface, even in the case where an indirect
+super-interface has a member signature for `m` where the override would be a
+compile-time error. For example:
 
 ```dart
 // opted_in.dart
@@ -1077,20 +1424,56 @@ class B extends A {}
 ```dart
 // opted_in.dart
 class C extends B {
-  // Override checking is done against the opted-in signature of A.foo
+  // Override checking is done against the legacy signature of B.foo.
   int? foo(int x) {}
 }
 ```
 
+It is difficult to predict the outcome of migrating `B` in such situations, but
+lints or hints may be used by tools to communicate to developers that `C` may
+need to be changed again when `B` is migrated.
 
 If a class `C` in an opted-in library inherits a member `m` with the same name
-from multiple super-interfaces (whether legacy or opted-in), let `T0, ..., Tn`
-be the signatures of the inherited members.  If there is exactly one `Ti` such
-that `NNBD_SUBTYPE(Ti, Tk)` for all `k` in `0...n`, then the signature of `m` is
-considered to be `Ti`.  If there are more than one such `Ti`, then it is an
-error if the `NNBD_TOP_MERGE` of `S0, ..., Sn` does not exist, where `Si` is
-**NORM(`Ti`)**.  Otherwise, the signature of `m` for the purposes of member
+from multiple direct super-interfaces (whether legacy or opted-in), let `T0,
+..., Tn` be the signatures of the inherited members.  If there is exactly one
+`Ti` such that `NNBD_SUBTYPE(Ti, Tk)` for all `k` in `0...n`, then the signature
+of `m` is considered to be `Ti`.  If there are more than one such `Ti`, then it
+is an error if the `NNBD_TOP_MERGE` of `S0, ..., Sn` does not exist, where `Si`
+is **NORM(`Ti`)**.  Otherwise, the signature of `m` for the purposes of member
 lookup is the `NNBD_TOP_MERGE` of the `Si`.
+
+Note that when a member `m` is inherited from multiple indirect super-interfaces
+**via** a single direct super-interface, override checking is only performed
+against the signature of the direct super-interface which mediates the
+inheritance as described above.  Hence the following example is not an error,
+since the direct super-interface `C` of `D` mediates the conflicting inherited
+signatures of `foo` as `C.foo` with signature `int* Function(int*)`.
+
+```dart
+// opted_in.dart
+class A {
+  int? foo(int? x) {}
+}
+class B {
+  int foo(int x) {}
+}
+```
+```dart
+// opted_out.dart
+// @dart = 2.6
+import 'opted_in.dart';
+
+class C extends A implements B {}
+
+```
+```dart
+//opted in
+import 'opted_out.dart';
+class D extends C {}
+void test() {
+  new D().foo(null).isEven;
+}
+```
 
 
 ### Type reification
@@ -1113,31 +1496,59 @@ Dart.
 Instance checks (`e is T`) and casts (`e as T`) behave differently when run in
 strong vs weak checking mode.
 
+
 We define the weak checking and strong checking mode instance tests as follows:
 
 **In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
-type `S`, an instance check `e is T` occurring in a **legacy library** is
-evaluated as follows:
-  - If `S` is `Null` return `LEGACY_SUBTYPE(T, Null) || LEGACY_SUBTYPE(Object,
+type `S`, an instance check `e is T` occurring in a **legacy library** or an
+**opted-in library** is evaluated as follows:
+  - If `v` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, Null)
+    || LEGACY_SUBTYPE(Object, T)`
+  - If `v` is `null` and `T` is not a legacy type, return `NNBD_SUBTYPE(Null,
     T)`
   - Otherwise return `LEGACY_SUBTYPE(S, T)`
 
-**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
-type `S`, an instance check `e is T` occurring in an **opted-in library** is
-evaluated as follows:
-  - If `S` is `Null` return `NNBD_SUBTYPE(Null, T)`
-  - Otherwise return `LEGACY_SUBTYPE(S, T)`
+A type is a legacy type if it is of the form `R*` for some `R` after normalizing
+away nested nullability annotations - e.g. `int*` is a legacy type, but `int?*`
+is not, since the normal form of the latter is `int?`.
+
+Note that except in the case that `T` is of the form `X` or `X*` for some type
+variable `X`, it is statically decidable which of the first two clauses apply in
+the case that `v` is `null`.
 
 **In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
-type `S`, an instance check `e is T` textually occurring in a **legacy library**
-is evaluated as follows:
-  - If `S` is `Null` return `NNBD_SUBTYPE(T, Null) || NNBD_SUBTYPE(Object, T)`
+type `S`, an instance check `e is T` occurring in a **legacy library** or an
+**opted-in library** is evaluated as follows:
+  - If `v` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, Null)
+    || LEGACY_SUBTYPE(Object, T)`
   - Otherwise return `NNBD_SUBTYPE(S, T)`
 
-**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
-type `S`, an instance check `e is T` textually occurring in an **opted-in
-library** is evaluated as follows:
-  - return `NNBD_SUBTYPE(S, T)`
+Note that in a program with no opted out libraries, the first clause can never
+apply.
+
+Note also that except in the case that `T` is of the form `X` or `X*` for some
+type variable `X`, it is statically decidable which clause applies.
+
+Note that given the definitions above, the result of an instance check may vary
+depending on whether it is run in strong or weak mode.  However, in the specific
+case that the value being checked is `null`, instance checks will always return
+the same result regardless of mode, and regardless of whether the check occurs
+in an opted in or opted out library.
+
+| T            | Any mode |
+| -------- | ------------- |
+| Never     |  false               |
+| Never*     |  true               |
+| Never?     |  true               |
+| Null         | true                |
+| int           | false               |
+| int*         | false                |
+| int?         | true                |
+| Object    | false                 |
+| Object*  | true                 |
+| Object?  | true                 |
+| dynamic | true                 |
+
 
 We define the weak checking and strong checking mode casts as follows:
 
@@ -1153,19 +1564,17 @@ library** is evaluated as follows:
   - if `NNBD_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
     `CastError` is thrown.
 
-
 In weak checking mode, we ensure that opted-in libraries do not break downstream
 clients by continuing to evaluate instance checks and casts with the same
 semantics as in pre-nnbd Dart.  All runtime subtype checks are done using the
 legacy subtyping, and instance checks maintain the pre-nnbd behavior on `null`
 instances.  In strong checking mode, we use the specified nnbd subtyping for all
-instance checks and casts.  However, in legacy libraries, we continue to
-specifically reject instance tests on `null` instances unless the tested type is
-a bottom or top type.  The rationale for this is that type tests performed in a
-legacy library will generally be performed with a legacy type as the tested
-type.  Without specifically rejecting `null` instances, successful instance
-checks in legacy libraries would no longer guarantee that the tested object is
-not `null` - a regression relative to the weak checking.
+instance checks and casts, except that we continue to treat `null` specially for
+instance checks against legacy types.  The rationale for this is that type tests
+performed in a legacy library will generally be performed with a legacy type as
+the tested type.  Without specifically rejecting `null` instances, successful
+instance checks in legacy libraries would no longer guarantee that the tested
+object is not `null` - a regression relative to the weak checking.
 
 When developers enable strong checking in their tests and applications, new
 runtime cast failures may arise.  The process of migrating libraries and
@@ -1176,3 +1585,12 @@ instance checks or casts which would result in a different outcome if run in
 strong checking mode vs weak checking mode are flagged for the developer by
 logging a warning or breaking to the debugger.
 
+### Automatic debug assertion insertion
+
+When running in strong checking mode, implementations shall insert code
+equivalent to `assert(x != null)` in the prelude of every method or function
+defined in an opted-in library for each parameter `x` which has a non-nullable
+type.  When compiling a program in which all libraries are opted in, these
+assertions will never fire and may be elided, but during the migration when
+mixed mode code is being executed it is possible for opted-out libraries to
+cause the invariants of the null safety checking to be violated.

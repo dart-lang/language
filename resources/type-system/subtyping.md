@@ -92,11 +92,7 @@ capture-avoiding substitution of types `T0, ..., Tk` for the type variables
 ## Type equality
 
 We say that a type `T0` is equal to another type `T1` (written `T0 === T1`) if
-the two types are structurally equal up to renaming of bound type variables,
-and equating all top types.
-
-TODO: make these rules explicit.
-
+`T0 <: T1` and `T1 <: T0`.
 
 ## Algorithmic subtyping
 
