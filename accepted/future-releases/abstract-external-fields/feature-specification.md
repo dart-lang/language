@@ -5,167 +5,194 @@ Version: 1.0
 
 ## Background and Motivation
 
-Dart allows abstract instance methods, getters and setters to be declared in
-classes and mixins. It allows external functions, methods, getters, setters and
-constructors to be declared as top-level, static or instance declarations.
+Dart allows abstract instance methods, getters and setters to be declared
+in classes and mixins.  It allows external functions, methods, getters, and
+setters to be declared as top-level, static or instance declarations, and
+it allows external constructors to be declared in classes.
 
-The syntax of an abstract member is simply a declaration with no body. The
-syntax for an external declaration prefixes the declaration with the modifier
-`external`.
+The syntax of an abstract member is simply a declaration with no body.  The
+syntax for an external declaration prefixes the declaration with the
+modifier `external`.
 
-There are two use-cases not supported by this:
+Abstract declarations add members to a class interface, allowing statically
+checked usage of different implementations provided in subclasses.
+External declarations add members to a namespace (such as a class interface
+or a library namespace), also allowing statically checked usage of
+implementations that are not known statically; the declarations are
+associated with implementations via an implementation specific mechanism.
 
-1. Easily declaring an abstract "field" (a pair of an abstract getter and an
-   abstract setter) inside an "interface" class. Currently that requires two
-   declarations: `int get foo;set foo(int _);`. Users often mistakenly write
-   `int foo;` which works until someone *extends* the class instead of
-   implementing it. Then they get an extra field on every instance of the
-   class.
-2. Easily declaring an external "field". This has come up in `dart:ffi` where
-   users write Dart classes as a way to describe native memory layout. All
-   instances of the interface will be backed by native (external)
-   code. Currently `dart:ffi` users simply declare the field as `int foo;`.
+A field is associated with a storage location and an implicitly induced
+setter and/or getter which amounts to an implementation, so fields seem to
+be inherently non-abstract and non-external. However, we can identify the
+field with its accessors:
 
-Using a non-abstract field declaration has "worked" for both situations until
-Null Safety. It's not perfect, but it isn't *wrong*.
+1. An "abstract instance field" can be a pair of an abstract instance
+   getter and an abstract instance setter.  This can be useful, because one
+   declaration replaces two declarations containing some redundant
+   elements: `int get foo;s et foo(int _);`.  Developers could otherwise
+   use a concrete field, `int foo;`, but this may cause a waste of space if
+   someone _extends_ the class instead of implementing it, because the
+   intention is to override the getter and setter, and never use the
+   storage.
 
-With Null Safety that approach no longer works. Declaring a field as `int foo;`
-means that it must be initialized by a constructor since non-nullable fields
-cannot be left uninitialized.
+2. Similarly, an "external field" can be a pair of an external getter and
+   an external setter.  This came up in connection with `dart:ffi`, where
+   users write Dart classes in order to specify a native memory layout.
+   All instances of the interface will be backed by native (external)
+   code. Currently, `dart:ffi` developers use a regular field declaration,
+   `int foo;`, but what is actually needed is an external setter and/or
+   getter.
 
-So, to provide a migration path for these uses, preferably a *better* one than
-the current pre-Null Safety state, we introduce *abstract and external field
-declarations*.
+An abstract or external field declaration replaces a setter/getter pair or
+a getter.  In the former case it helps avoid redundant specification of the
+name and type, which is more concise and less error-prone.  In the latter
+case the declaration may actually be more verbose (`abstract final int foo;`
+vs. `int get foo;`), but it does no harm to include support for these
+forms, and they may be used to maintain a specific coding style, or it may
+be used by the implementation specific mechanism which is used with a
+certain external field declaration,
 
-## Proposal
+A concrete field declaration can be made to work for both situations until
+the null-safety features are introduced.  It is suboptimal, but it works.
+With `dart:ffi`, domain specific rules are used to determine which fields
+are "external", and how they should be connected with the relevant external
+entities.
 
-An instance variable can be declared abstract by prefixing it with the reserved
-word `abstract`.
+With null safety that approach no longer works.  For a field whose type
+annotation is a non-nullable type, e.g., `int foo;`, it is an error unless
+initialization is performed by every generative constructor, or the field
+itself is modified to have an initializing expression, e.g.,
+`int foo = 0;`.  This adds yet another element to the declaration which is
+meaningless, confusing for readers of the code, and which may be
+inconvenient to write.  It may even involve nonsensical code like
+`X foo = throw 0;` (where `X` is a type variable) in the case where no
+expression is statically known to evaluate to an instance with the required
+type.
 
-Currently variable declarations inside a class can have the "modifiers":
+To provide a migration path for these use cases, we introduce _abstract and
+external field declarations_.
 
-* `static` &mdash; makes the variable a class variable instead of an instance variable.
-* `const` &mdash; makes the variable a compile-time constant.
-* `covariant`&mdash; makes the implicit setter's parameter covariant.
-* `late` &mdash; makes the variable "late initialized", allowing it to stay uninitialized after creation.
-* `final` &mdash; makes there be no setter, unless the variable is late and has no initializer.
-* `var` &mdash; makes the variable non-final.
-* a type &mdash; the type of the variable.
-* an initializer expression &mdash; initializes the variable to a specific value on creation or first read.
 
-Not all combinations are allowed.
+## Feature Specification
 
-A `var` cannot be combined with `final` or a type.
+This section specifies abstract and external variables.
 
-The `final` and `covariant` are usually mutually exclusive, because `covariant`
-modifies a setter and `final` prevents a setter from existing (unless the
-variable is `late` and has no initializer).
 
-The `covariant` modifier only applies to instance members, so it's incompatible
-with `static`.
+### Syntax
 
-A `const` variable must be `static`, non-`late`, non-`final` (but implicitly
-counts as final) and must have an initializer.
-
-If the modifiers occur, they must occur in the order listed here.
-
-To this we add the modifiers `abstract` and `external`, making the possible
-modifiers:
-
-* `external`
-* `static`
-* `const`
-* `abstract`
-* `covariant`
-* `late`
-* `final`
-* `var`
-* a type.
-
-* initializer expression.
-
-### Abstract Fields
-
-An abstract instance variable is an instance variable with the `abstract`
-modifier. That means a non-static variable declared inside a class or mixin
-declaration.
-
-It *must not* be `external`, `static` or `const`, so the declaration starts with
-`abstract`. It must not be `late` or have an initializer expression.
-
-That makes it a non-external instance variable with no initializer and not
-`late`, which means that it can be represented by an abstract getter and, if not
-`final`, an abstract setter.
-
-Being `late` or `external` or having an initializer are *implementation*
-details. An abstract variable (getter/setter) declaration must not have any
-such. It can be `covariant` if it's not `final`.
-
-The abstract instance variable declaration with type *T* means exactly the same
-as an abstract getter declaration with the same name and return type *T* , and,
-if not `final`, an abstract setter declaration with the same name and parameter
-type *T*. As such, the abstract instance variable introduces only members into
-the class interface, there is no implementation.
-
-Examples:
-
-```dart
-abstract int x; &mapsto; int get x; set x(int x);
-abstract final int x; &mapsto; int get x;
-abstract covariant int x; &mapsto; int get x; set x(covariant int x);
-abstract var x; &mapsto; get x; set x(x); // May inherit types.
+The grammar is modified as follows:
 
 ```
+<topLevelDefinition> ::=
+  ... |
+  // New alternative.
+  'external' ('final' <type>? | <varOrType>) <identifierList> ';'
 
-A declaration of `abstract var x;` or `abstract final x;`, with no declared type, may inherit types from the super-interfaces of the class.
+<finalVarOrType> ::= // New rule.
+  'final' <type>? |
+  <varOrType>
 
-As a special rule for `abstract var x`, If the super-interfaces of the class has only a getter or only a setter, then that type is inherited by the abstract variable declaration and is used for both the implicit getter and setter.
+<declaration> ::=
+  ... |
+  // New alternative.
+  'external' ('static'? <finalVarOrType> | 'covariant' <varOrType>)
+      <identifierList> |
+  // New alternative.
+  'abstract' (<finalVarOrType> | 'covariant' <varOrType>) <identifierList>
+```
 
-Any metadata on the abstract instance variable declaration applies to both the setter and the getter.
+### Static Analysis
 
-### External Fields
+The features specified in this document are syntactic sugar, that is, they
+are specified in terms of a small program transformation that eliminates
+them.  This fully determines the further static analysis (including errors
+and warnings), and the dynamic semantics.  The transformations are as
+follows:
 
-An external field is a variable declaration starting with `external`.
+An abstract instance variable declaration is treated as an abstract setter
+declaration and/or an abstract getter declaration, with the same name and
+member signature as the setter and/or getter which are implicitly induced
+for the corresponding concrete variable declaration. _For example:_
 
-An external variable declaration cannot be `const`, `abstract` or `late`, or
-have an initializer expression. All of these are implementation choices (or
-documented lack of it, for `abstract`), and external fields are considered
-implemented externally, so all implementation details must be kept out of the
-Dart declaration.
+```dart
+class A {
+  // Abstract instance variables.
+  abstract int i1, i2;
+  abstract var x;
+  abstract final int fi;
+  abstract final fx;
+  abstract covariant num cn;
+  abstract covariant var cx;
 
-Both top-level and class-level variable declarations can be `external` and
-class-level declarations can be `static`. It can be `covariant` only if it's an
-instance variable (not static, not top-level). Local variables cannot be
-external.
+  // Desugared meaning of the above.
+  abstract int get i1;
+  abstract void set i1(int _);
+  abstract int get i2;
+  abstract void set i2(int _);
+  abstract dynamic get x;
+  abstract void set x(dynamic _);
+  abstract int get fi;
+  abstract dynamic get fx;
+  abstract num get cn;
+  abstract void cn(covariant num _);
+  abstract dynamic get cx;
+  abstract void set cx(covariant dynamic _);
+}
+```
 
-An external variable declaration is completely equivalent to an external getter
-declaration and, if not `final`, an external setter declaration, both with the
-same type and name.
+An external variable declaration is treated as an external setter
+declaration and/or an external getter declaration, with the same name and
+member signature as the setter and/or getter which are implicitly induced
+for the corresponding concrete non-external variable declaration.
+_For example:_
 
-This means that external instance variables need not (and must not) be
-initialized by constructors. They are treated exactly as an instance
-getter/setter pair for all static analysis purposes. The implementation will be
-provided by the run-time system somehow.
+```dart
+// External instance variables. PS: Covariance not supported at top level.
+external int i1; // ...
+external final fx;
 
-A instance variable declaration of `external var x;` or `external final x;`,
-with no declared type, may inherit types from the super-interfaces of the
-class.
+// Desugared meaning of the above.
+external int get i1;
+external void set i1(int _); // ...
+external dynamic get fx;
 
-As a special rule for `external var x`, If the super-interfaces of the class has
-only a getter or only a setter, then that type is inherited by the abstract
-variable declaration and is used for both the implicit getter and setter.
+class A {
+  // External instance variables.
+  external int i1; // ...
+  external covariant var cx;
+
+  // Desugared meaning of external instance variables.
+  external int get i1;
+  external void set i1(int _); // ...
+  external dynamic get cx;
+  external void set cx(covariant dynamic _);
+
+  // External static variables. PS: Covariance not supported with static.
+  external static int i1; // ...
+  external static final fx;
+
+  // Desugared meaning of external static variables.
+  external static int get i1;
+  external static void set i1(int _); // ...
+  external static dynamic get fx;
+}
+```
 
 Any metadata on the abstract instance variable declaration applies to both the
 setter and the getter.
 
-## Summary
 
-We allow `abstract` to prefix an instance variable declaration which is not
-`late` and has no initializer.
+### Dynamic Semantics
 
-We allow `external` to prefix a top-level, static or instance variable
-declaration which is not `abstract`, `const` or `late`, and has no initializer.
+There are no changes to the dynamic semantics, because abstract and
+external variables are eliminated by desugaring before run time.
 
-Both are equivalent to an abstract, respectively external, getter and (unless
-`final`) setter declaration which has the same name, type (as return or
-parameter type), and metadata.
+
+## Discussion
+
+The ability to declare multiple abstract or external variables together
+allows developers to avoid repeating the type and properties like `final`,
+if they should be identical in several declarations.
+
+However, it would of course be easy to omit this feature, if it is
+considered to lower the maintainability or readability of the code.
