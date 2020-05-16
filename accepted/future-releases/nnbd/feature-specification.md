@@ -1521,8 +1521,8 @@ type `S`, an instance check `e is T` occurring in an **opted-in library** is
 evaluated as follows:
   - Return `NNBD_SUBTYPE(S, T)`
 
-Note that it is an error to run a program containing opted-in libraries in
-strong checking mode.
+Note that it is an error to run a program containing legacy libraries in strong
+checking mode.
 
 Note that given the definitions above, the result of an instance check may vary
 depending on whether it is run in strong or weak mode.  However, in the specific
