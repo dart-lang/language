@@ -101,6 +101,7 @@ The grammar is modified as follows:
   'abstract' (<finalVarOrType> | 'covariant' <varOrType>) <identifierList>
 ```
 
+
 ### Static Analysis
 
 The features specified in this document are syntactic sugar, that is, they
@@ -109,13 +110,16 @@ them.  This fully determines the further static analysis (including errors
 and warnings), and the dynamic semantics.  The transformations are as
 follows:
 
-An abstract instance variable declaration is treated as an abstract setter
-declaration and/or an abstract getter declaration, with the same name and
-member signature as the setter and/or getter which are implicitly induced
-for the corresponding concrete variable declaration. _For example:_
+An abstract instance variable declaration _D_ is treated as an abstract setter
+declaration and/or an abstract getter declaration. The setter is included if
+and only if _D_ is non-final. The return type of the getter and the parameter
+type of the setter, if present, is the type of _D_ (*which may be declared
+explicitly, obtained by override inference, or defaulted to `dynamic`*).  The
+parameter of the setter, if present, has the modifier `covariant` if and only if
+_D_ has the modifier `covariant`. _For example:_
 
 ```dart
-class A {
+abstract class A {
   // Abstract instance variables.
   abstract int i1, i2;
   abstract var x;
@@ -125,26 +129,29 @@ class A {
   abstract covariant var cx;
 
   // Desugared meaning of the above.
-  abstract int get i1;
-  abstract void set i1(int _);
-  abstract int get i2;
-  abstract void set i2(int _);
-  abstract dynamic get x;
-  abstract void set x(dynamic _);
-  abstract int get fi;
-  abstract dynamic get fx;
-  abstract num get cn;
-  abstract void cn(covariant num _);
-  abstract dynamic get cx;
-  abstract void set cx(covariant dynamic _);
+  int get i1;
+  void set i1(int _);
+  int get i2;
+  void set i2(int _);
+  dynamic get x;
+  void set x(dynamic _);
+  int get fi;
+  dynamic get fx;
+  num get cn;
+  void cn(covariant num _);
+  dynamic get cx;
+  void set cx(covariant dynamic _);
 }
 ```
 
-An external variable declaration is treated as an external setter
-declaration and/or an external getter declaration, with the same name and
-member signature as the setter and/or getter which are implicitly induced
-for the corresponding concrete non-external variable declaration.
-_For example:_
+An external variable declaration _D_ is treated as an external setter
+declaration and/or an external getter declaration.  The setter is included
+if and only if _D_ is non-final. The return type of the getter and the
+parameter type of the setter, if present, is the type of _D_ (*which may be
+declared explicitly, obtained by override inference, or defaulted to
+`dynamic`*).  The parameter of the setter, if present, has the modifier
+`covariant` if and only if _D_ has the modifier `covariant` (*the grammar
+only allows this modifier on external instance variables*). _For example:_
 
 ```dart
 // External instance variables. PS: Covariance not supported at top level.
@@ -178,21 +185,21 @@ class A {
 }
 ```
 
-Any metadata on the abstract instance variable declaration applies to both the
-setter and the getter.
+Metadata on an abstract or external variable declaration _D_ is associated
+with both getter and the setter, if present, that arise by desugaring of
+_D_.
 
 
 ### Dynamic Semantics
 
 There are no changes to the dynamic semantics, because abstract and
-external variables are eliminated by desugaring before run time.
+external variables are eliminated by desugaring at compile time.
 
 
 ## Discussion
 
 The ability to declare multiple abstract or external variables together
 allows developers to avoid repeating the type and properties like `final`,
-if they should be identical in several declarations.
-
-However, it would of course be easy to omit this feature, if it is
-considered to lower the maintainability or readability of the code.
+if they are identical for several declared variables.  However, it would of
+course be easy to omit this feature, if it is considered detrimental to the
+maintainability or readability of the code.
