@@ -501,8 +501,8 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
     - Let `null(N) = before(N)`.
     - Let `notNull(N) = unreachable(before(N))`.
   - Otherwise if `T` is non-nullable then:
-    - Let `null(N) = before(N)`.
-    - Let `notNull(N) = unreachable(before(N))`.
+    - Let `null(N) = unreachable(before(N))`.
+    - Let `notNull(N) = before(N)`.
   - Otherwise:
     - Let `null(N) = promote(x, Null, before(N))`
     - Let `notNull(N) = promoteToNonNull(x, before(N))`
