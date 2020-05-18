@@ -78,15 +78,15 @@ equations apply gives us something like the following:
   - if `S` is `R*` then `R*`
   - else `S*`
 - **NORM**(`X extends T`) =
-  - let `S` be **NORM**(`T`)
-  - if `S` is `Never` then `Never`
+  - if `T` is `Never` then `Never`
+  - if `T` is a type variable `Y` and **NORM**(`Y`) is `Never` then `Never`
   - else `X extends T`
-- **NORM**(`X & T`) =
+- **NORM**(`X & T`) =o
   - let `S` be **NORM**(`T`)
    - if `S` is `Never` then `Never`
    - if `S` is a top type then `X`
    - if `S` is `X` then `X`
-   - if `S` is `Object` and **NORM(B)** is `Object` where `B` is the bound of `X` then `X`
+   - if **NORM(B)** is a subtype of S where `B` is the bound of `X` then `X`
   - else `X & S`
 - **NORM**(`C<T0, ..., Tn>`) = `C<R0, ..., Rn>` where `Ri` is **NORM**(`Ti`)
 - **NORM**(`R Function<X extends B>(S)`) = `R1 Function<X extends B1>(S1)`
@@ -94,3 +94,6 @@ equations apply gives us something like the following:
   - and `B1` = **NORM**(`B`)
   - and `S1` = **NORM**(`S`)
 
+Note that there is currently no place in the type system where normalization can
+apply to intersection types (promoted types). The rule is included here for
+completeness.
