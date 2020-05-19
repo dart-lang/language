@@ -141,7 +141,7 @@ Discussion issues on specific topics related to this proposal are [here](https:/
 The motivations for the feature along with the migration plan and strategy are
 discussed in more detail in
 the
-[roadmap](https://github.com/dart-lang/language/blob/master/working/0110-incremental-sound-nnbd/roadmap.md).
+[roadmap](https://github.com/dart-lang/language/blob/master/accepted/future-releases/nnbd/roadmap.md).
 
 This proposal draws on the proposal that Patrice Chalin wrote
 up [here](https://github.com/dart-archive/dart_enhancement_proposals/issues/30),
