@@ -181,7 +181,7 @@ cannot use override inference.*
 If there is no corresponding parameter in `s` for a parameter of the
 declaration of `m` in `C`, it is treated as `dynamic` (*e.g., this occurs
 when overriding a one parameter method with a method that takes a second
-optional parameter).
+optional parameter*).
 
 
 ##### Instance field, getter, and setter override inference
