@@ -25,7 +25,7 @@ to be inherently non-abstract and non-external.
 However, we may focus on the implicitly induced setter and/or getter for a
 given instance variable declaration, in which case it is simply considered
 to be a more concise notation for said accessors. The point is that the
-getter and/or setter is added to the class interface, and they are intended
+setter and/or getter is added to the class interface, and they are intended
 to be implemented by subtypes.
 
 As a workaround, it is possible to use a concrete instance variable as an
@@ -163,7 +163,7 @@ declared explicitly, obtained by override inference, or defaulted to
 only allows this modifier on external instance variables*). _For example:_
 
 ```dart
-// External instance variables. PS: Covariance not supported at top level.
+// External top level variables. PS: Covariance not supported at top level.
 external int i1; // ...
 external final fx;
 
