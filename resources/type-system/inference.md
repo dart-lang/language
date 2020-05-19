@@ -164,7 +164,7 @@ rest of top level inference if desired.
 
 ##### Method override inference
 
-A member `m` of a class `C` which is subject to override inference is
+A method `m` of a class `C` which is subject to override inference is
 missing one or more component types of its signature, and one or more of
 the direct superinterfaces of `C` has a member named `m` (*that is, `C.m`
 overrides one or more declarations*).  Each missing type is filled in with
