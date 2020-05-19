@@ -255,8 +255,8 @@ We also make use of the following auxiliary functions:
 
   - We define `join(M1, M2)` to be `M3 = FlowModel(r3, VI3)` where:
     - `M1 = FlowModel(r1, VI1)`
-    - `M2 = FlowModel(r2, VI2))` 
-    - `pop(r1) = pop(r2) = r0` for some `r0` 
+    - `M2 = FlowModel(r2, VI2))`
+    - `pop(r1) = pop(r2) = r0` for some `r0`
     - `r3` is `push(r0, top(r1) || top(r2))`
     - `VI3` is the map which maps each variable `v` in the domain of `VI1` and
       `VI2` to `joinV(VI1(v), VI2(v))`.  Note that any variable which is in
@@ -492,7 +492,7 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
 `after(N)`.
 
 
-- **Variable or getter**: If `N` is an expression of the form `x` 
+- **Variable or getter**: If `N` is an expression of the form `x`
   where the type of `x` is `T` then:
   - If `T <: Never` then:
     - Let `null(N) = unreachable(before(N))`.
