@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.06.04:
+  - Make conflict resolution for override inference explicit.
+
 2020.06.02
   - Account for the special treatment of bottom types during function literal
   inference.
@@ -51,7 +54,7 @@ expressions.  In particular:
 1. **Method override inference**
     * If you omit a return type or parameter type from an overridden or
     implemented method, inference will try to fill in the missing type using the
-    signature of the method you are overriding.
+    signature of the methods you are overriding.
 2. **Static variable and field inference**
     * If you omit the type of a field, setter, or getter, which overrides a
    corresponding member of a superclass, then inference will try to fill in the
@@ -158,22 +161,27 @@ error if there is such an ordering.  Note that method override inference is
 independent of non-override inference, and hence can be completed prior to the
 rest of top level inference if desired.
 
+
 ##### Method override inference
 
-A method which is subject to override inference is missing one or more component
-types of its signature, and it overrides one or more declarations. Each missing
-type is filled in with the corresponding type from the overridden or implemented
-method.  If there are multiple overridden/implemented methods, and any two of
-them have non-equal types (declared or inferred) for a parameter position which
-is being inferred for the overriding method, it is an error.  If there is no
-corresponding parameter position in the overridden method to infer from and the
-signatures are compatible, it is treated as dynamic (e.g. overriding a one
-parameter method with a method that takes a second optional parameter).  Note:
-if there is no corresponding parameter position in the overridden method to
-infer from and the signatures are incompatible (e.g. overriding a one parameter
-method with a method that takes a second non-optional parameter), the inference
-result is not defined and tools are free to either emit an error, or to defer
-the error to override checking.
+A member `m` of a class `C` which is subject to override inference is
+missing one or more component types of its signature, and one or more of
+the direct superinterfaces of `C` has a member named `m` (*that is, `C.m`
+overrides one or more declarations*).  Each missing type is filled in with
+the corresponding type from the combined member signature `s` of `m` in the
+direct superinterfaces of `C`.
+
+A compile-time error occurs if `s` does not exist.  *E.g., one
+superinterface could have signature `void m([int])` and another one could
+have signature `void m(num)`, such that none of them is most specific.
+There may still exist a valid override of both (e.g., `void m([num])`).  In
+this situation `C.m` can be declared with a complete signature, it just
+cannot use override inference.*
+
+If there is no corresponding parameter in `s` for a parameter of the
+declaration of `m` in `C`, it is treated as `dynamic` (*e.g., this occurs
+when overriding a one parameter method with a method that takes a second
+optional parameter).
 
 
 ##### Instance field, getter, and setter override inference
