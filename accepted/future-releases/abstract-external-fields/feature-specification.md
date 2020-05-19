@@ -73,10 +73,18 @@ similar way as for the abstract instance variables.
 
 ## Feature Specification
 
-In response to the above motivation, we introduce _external variable
-dclarations_ and _abstract variable declarations_, which are syntactic
-sugar for the implicitly induced accessors of similar, concrete variable
-declarations, carrying over the property of being abstract or external.
+We introduce abstract and external variable declarations.
+
+An _abstract instance variable declaration_ is an instance variable
+declaration prefixed by the modifier `abstract`. It must not be late, and
+it cannot have an initializer expression.
+
+An _external variable declaration_ is a non-local, non-parameter variable
+declaration prefixed by the modifier `external`. It must not be abstract,
+const, or late, and it cannot have an initializer expression.
+
+The syntax and behavior of these constructs is specified in the following
+sections.
 
 
 ### Syntax
