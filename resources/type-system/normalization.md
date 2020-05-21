@@ -81,7 +81,7 @@ equations apply gives us something like the following:
   - if `T` is `Never` then `Never`
   - if `T` is a type variable `Y` and **NORM**(`Y`) is `Never` then `Never`
   - else `X extends T`
-- **NORM**(`X & T`) =o
+- **NORM**(`X & T`) =
   - let `S` be **NORM**(`T`)
    - if `S` is `Never` then `Never`
    - if `S` is a top type then `X`
