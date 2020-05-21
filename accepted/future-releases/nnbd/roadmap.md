@@ -258,8 +258,7 @@ code.  Consider this code.
 library opted_in;
 
 void takesListNonNull(List<int> l) {
-
-print(l[0].isEven);
+  print(l[0].isEven);
 }
 
 library opted_out;
