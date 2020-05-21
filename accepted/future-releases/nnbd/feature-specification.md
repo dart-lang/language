@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.05.20
+  - Turn new references to `CastError` into being dynamic type errors.
+
 2020.05.14
   - **CHANGE** Strong mode is auto-opted in when the "main" file is opted in.
   - **CHANGE** Specify weak mode/strong mode flag.
@@ -1551,13 +1554,13 @@ We define the weak checking and strong checking mode casts as follows:
 type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
 library** is evaluated as follows:
   - if `LEGACY_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
-    `CastError` is thrown.
+    dynamic type error occurs.
 
 **In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
 type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
 library** is evaluated as follows:
   - if `NNBD_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
-    `CastError` is thrown.
+    dynamic type error occurs.
 
 In weak checking mode, we ensure that opted-in libraries do not break downstream
 clients by continuing to evaluate instance checks and casts with the same
