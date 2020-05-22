@@ -6,6 +6,16 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.05.20
+  - Turn new references to `CastError` into being dynamic type errors.
+
+2020.05.14
+  - **CHANGE** Strong mode is auto-opted in when the "main" file is opted in.
+  - **CHANGE** Specify weak mode/strong mode flag.
+  - **CHANGE** Specify that it is an error to run in strong mode if any library
+    is opted out.
+  - **CHANGE** Weak mode does not demote static errors to warnings.
+
 2020.04.30
   - **CHANGE** (by overriding rules in the language specification): Change
     static rules for return statements, and dynamic semantics of return in
@@ -134,7 +144,7 @@ Discussion issues on specific topics related to this proposal are [here](https:/
 The motivations for the feature along with the migration plan and strategy are
 discussed in more detail in
 the
-[roadmap](https://github.com/dart-lang/language/blob/master/working/0110-incremental-sound-nnbd/roadmap.md).
+[roadmap](https://github.com/dart-lang/language/blob/master/accepted/future-releases/nnbd/roadmap.md).
 
 This proposal draws on the proposal that Patrice Chalin wrote
 up [here](https://github.com/dart-archive/dart_enhancement_proposals/issues/30),
@@ -835,6 +845,38 @@ per
 
 ## Runtime semantics
 
+### Weak and strong semantics
+
+To allow the null safety feature to be rolled out incrementally, we define two
+modes of compilation and execution.
+
+**Weak checking** mode largely ignores the nullability of types at runtime, as
+defined below.  Unmigrated programs or programs consisting of a mix of migrated
+and unmigrated code are expected to run without encountering new nullability
+related errors at runtime.  **This mode is unsound** in the sense that variables
+marked as non-nullable may still be null at runtime.
+
+**Strong checking** mode respects the nullability of types at runtime in casts
+and instance checks, as defined below.  Unmigrated programs or programs
+consisting of a mix of migrated and unmigrated code may not be compiled or run
+with strong checking enabled, and it is a compile time error if unmigrated code
+is attempted to be compiled with strong checking enabled.
+
+Weak vs strong runtime checking can be controlled at runtime via the
+`--[no-]sound-null-safety` flag, where the negated version of the flag implies
+weak mode and the unnegated version implies strong mode.
+
+In the absence of an explicit value for the flag, the mode of execution depends
+on migrated status of the program entry point.  If the entry point of the
+program (`main`) is in an opted-in library, then the program is compiled and run
+as if `--sound-null-safety` were specified on the command line.  Otherwise,
+the program is run as if `--no-sound-null-safety` were specified on the
+command line.
+
+Compilers may (and are encouraged to) print a warning indicating that strong
+checking has been disabled when compiling a program that contains migrated
+libraries in weak mode.
+
 ### Runtime type equality operator
 
 Two objects `T1` and `T2` which are instances of `Type` (that is, runtime type
@@ -1134,14 +1176,12 @@ opted-in library may depend on un-opted-in libraries, and vice versa.
 
 ### Errors as warnings
 
-Weak null checking is enabled as soon as a package or library opts into this
-feature.  When weak null checking is enabled, all errors specified this
-proposal (that is, all errors that arise only out of the new features of
-this proposal) shall be treated as warnings.
-
-Strong null checking is enabled by running the compilation or execution
-environment with the appropriate flags.  When strong null checking is enabled,
-errors specified in this proposal shall be treated as errors.
+An earlier version of this proposal specified that null safety related static
+errors in opted-in code should be demoted to warnings when running in weak mode.
+This behavior has been eliminated based on early feedback.  Null safety related
+errors in opted-in code behave as usual independently of the compilation mode,
+subject to differences in const evaluation and the usual suppression of errors
+when interacting with legacy (opted-out) code (see below).
 
 ### Legacy libraries
 
@@ -1465,9 +1505,9 @@ We define the weak checking and strong checking mode instance tests as follows:
 **In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
 type `S`, an instance check `e is T` occurring in a **legacy library** or an
 **opted-in library** is evaluated as follows:
-  - If `v` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, NULL)
+  - If `v` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, Null)
     || LEGACY_SUBTYPE(Object, T)`
-  - If `v` is `null` and `T` is not a legacy type, return `NNBD_SUBTYPE(NULL,
+  - If `v` is `null` and `T` is not a legacy type, return `NNBD_SUBTYPE(Null,
     T)`
   - Otherwise return `LEGACY_SUBTYPE(S, T)`
 
@@ -1480,17 +1520,12 @@ variable `X`, it is statically decidable which of the first two clauses apply in
 the case that `v` is `null`.
 
 **In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
-type `S`, an instance check `e is T` occurring in a **legacy library** or an
-**opted-in library** is evaluated as follows:
-  - If `v` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, NULL)
-    || LEGACY_SUBTYPE(Object, T)`
-  - Otherwise return `NNBD_SUBTYPE(S, T)`
+type `S`, an instance check `e is T` occurring in an **opted-in library** is
+evaluated as follows:
+  - Return `NNBD_SUBTYPE(S, T)`
 
-Note that in a program with no opted out libraries, the first clause can never
-apply.
-
-Note also that except in the case that `T` is of the form `X` or `X*` for some
-type variable `X`, it is statically decidable which clause applies.
+Note that it is an error to run a program containing legacy libraries in strong
+checking mode.
 
 Note that given the definitions above, the result of an instance check may vary
 depending on whether it is run in strong or weak mode.  However, in the specific
@@ -1519,25 +1554,20 @@ We define the weak checking and strong checking mode casts as follows:
 type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
 library** is evaluated as follows:
   - if `LEGACY_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
-    `CastError` is thrown.
+    dynamic type error occurs.
 
 **In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
 type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
 library** is evaluated as follows:
   - if `NNBD_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
-    `CastError` is thrown.
+    dynamic type error occurs.
 
 In weak checking mode, we ensure that opted-in libraries do not break downstream
 clients by continuing to evaluate instance checks and casts with the same
 semantics as in pre-nnbd Dart.  All runtime subtype checks are done using the
 legacy subtyping, and instance checks maintain the pre-nnbd behavior on `null`
 instances.  In strong checking mode, we use the specified nnbd subtyping for all
-instance checks and casts, except that we continue to treat `null` specially for
-instance checks against legacy types.  The rationale for this is that type tests
-performed in a legacy library will generally be performed with a legacy type as
-the tested type.  Without specifically rejecting `null` instances, successful
-instance checks in legacy libraries would no longer guarantee that the tested
-object is not `null` - a regression relative to the weak checking.
+instance checks and casts.
 
 When developers enable strong checking in their tests and applications, new
 runtime cast failures may arise.  The process of migrating libraries and
@@ -1550,10 +1580,10 @@ logging a warning or breaking to the debugger.
 
 ### Automatic debug assertion insertion
 
-When running in strong checking mode, implementations shall insert code
-equivalent to `assert(x != null)` in the prelude of every method or function
-defined in an opted-in library for each parameter `x` which has a non-nullable
-type.  When compiling a program in which all libraries are opted in, these
-assertions will never fire and may be elided, but during the migration when
-mixed mode code is being executed it is possible for opted-out libraries to
-cause the invariants of the null safety checking to be violated.
+When running in weak checking mode, implementations may insert code equivalent
+to `assert(x != null)` in the prelude of every method or function defined in an
+opted-in library for each parameter `x` which has a non-nullable type.  When
+compiling a program in strong checking mode, these assertions will never fire
+and should be elided, but during the migration when mixed mode code is being
+executed it is possible for opted-out libraries to cause the invariants of the
+null safety checking to be violated.
