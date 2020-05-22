@@ -423,7 +423,7 @@ replaced with `Never`, and every contravariant occurrence of `Xi` replaced with
 We define the greatest closure of a type `M` with respect to a set of type
 variables `X0, ..., Xn` to be `M` with every contravariant occurrence of `Xi`
 replaced with `Never`, and every covariant occurrence of `Xi` replaced with
-`Object?`. The invariant variables are treated as described explicitly below.
+`Object?`. The invariant occurrences are treated as described explicitly below.
 
 - If `S` is `X` where `X` is in `L`
   - The least closure of `S` with respect to `L` is `Never`
@@ -452,14 +452,8 @@ replaced with `Never`, and every covariant occurrence of `Xi` replaced with
     is the least closure of `Ti` with respect to `L`
   - The greatest closure of `S` with respect to `L` is `C<U0, ..., Uk>` where
     `Ui` is the greatest closure of `Ti` with respect to `L`
-- if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
-  [Tn+1 xn+1, ..., Tm xm])` and `L` contains any free type variables from any of
-  the `Bi`:
-  - The least closure of `S` with respect to `L` is `Null`
-  - The greatest closure of `S` with respect to `L` is `Object`
 - if `S` is `T Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
-  [Tn+1 xn+1, ..., Tm xm])` and `L` does not contain any free type variables
-  from any of the `Bi`:
+  [Tn+1 xn+1, ..., Tm xm])` and no type variable in `L` occurs in any of the `Bi`:
   - The least closure of `S` with respect to `L` is `U Function<X0 extends B0,
   ...., Xk extends Bk>(U0 x0, ...., Un1 xn, [Un+1 xn+1, ..., Um xm])` where:
     - `U` is the least closure of `T` with respect to `L`
@@ -473,9 +467,7 @@ replaced with `Never`, and every covariant occurrence of `Xi` replaced with
     - with the usual capture avoiding requirement that the `Xi` do not appear in
   `L`.
 - if `S` is `T Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
-  {Tn+1 xn+1, ..., Tm xm})` and  
-  `L` does not contain any free type variables
-  from any of the `Bi`:
+  {Tn+1 xn+1, ..., Tm xm})` and no type variable in `L` occurs in any of the `Bi`:
   - The least closure of `S` with respect to `L` is `U Function<X0 extends B0,
   ...., Xk extends Bk>(U0 x0, ...., Un1 xn, {Un+1 xn+1, ..., Um xm})` where:
     - `U` is the least closure of `T` with respect to `L`
@@ -493,7 +485,7 @@ replaced with `Never`, and every covariant occurrence of `Xi` replaced with
 {Tn+1 xn+1, ..., Tm xm})`and `L` contains any free type variables
   from any of the `Bi`:
   - The least closure of `S` with respect to `L` is `Never`
-  - The greatest closure of `S` with respect to `L` is `Object?`
+  - The greatest closure of `S` with respect to `L` is `Function`
 
 
 ### Type schema elimination (least and greatest closure of a type schema)
@@ -559,13 +551,13 @@ is a solution to the new constraint.
 The motivation for these operations is that constraint generation may produce a
 constraint on a type variable from an outer scope (say `S`) that refers to a
 type variable from an inner scope (say `T`).  For example, ` <T>(T) -> List<T> <:
-<T>(T -> S) ` constrains `List<T>` to be a subtype of `S`.  But this
+<T>(T) -> S ` constrains `List<T>` to be a subtype of `S`.  But this
 constraint is ill-formed outside of the scope of `T`, and hence if inference
 requires this constraint to be generated and moved out of the scope of `T`, we
 must approximate the constraint to the nearest constraint which does not mention
 `T`, but which still implies the original constraint.  Choosing the greatest
-closure of `List<T>` (i.e. `List<Object>`) as the new supertype constraint on
-`S` results in the constraint `List<Object> <: S`, which implies the original
+closure of `List<T>` (i.e. `List<Object?>`) as the new supertype constraint on
+`S` results in the constraint `List<Object?> <: S`, which implies the original
 constraint.
 
 Example:
@@ -783,7 +775,7 @@ respect to `L` under constraint set `C2`
       - In other words, we choose the bounds for the fresh variables from
         whichever of the two generic function types is a type schema and does
         not contain any variables from `L`.
-  - And `F0[Z0/T0, ..., Zn/Tn]` is a subtype match for `F0[Z0/S0, ..., Zn/Sn]`
+  - And `F0[Z0/T0, ..., Zn/Tn]` is a subtype match for `F1[Z0/S0, ..., Zn/Sn]`
 with respect to `L` under constraints `C0`
   - And `C1` is  `C02 + ... + Cn2 + C0`
   - And `C2` is `C1` with each constraint replaced with its closure with respect
