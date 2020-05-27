@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.05.27
+  - Update function literal return type inference to use
+    **futureValueTypeSchema**.
+
 2019.12.03:
   - Update top level inference for non-nullability, function expression
     inference.
