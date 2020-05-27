@@ -220,15 +220,17 @@ return type of the context function type is used at several points during
 inference.  We refer to this type as the **imposed return type
 schema**. Inference for each returned or yielded expression in the body of the
 function literal is done using a context type derived from the imposed return
-type schema as follows:
+type schema `S` as follows:
   - If the function expression is neither `async` nor a generator, then the
-    context type is the imposed return type.
-  - If the function expression is declared `async*` and the imposed return type
-    is of the form `Stream<S>` for some `S`, then the context type is `S`.
-  - If the function expression is declared `sync*` and the imposed return type
-    is of the form `Iterable<S>` for some `S`, then the context type is `S`.
-  - Otherwise the context type is `FutureOr<flatten(T)>` where `T` is the
-    imposed return type.
+    context type is `S`.
+  - If the function expression is declared `async*` and `S` is of the form
+    `Stream<S1>` for some `S1`, then the context type is `S1`.
+  - If the function expression is declared `sync*` and `S` is of the form
+    `Iterable<S1>` for some `S1`, then the context type is `S1`.
+  - Otherwise the context type is `FutureOr<futureValueTypeSchema(S)>` where
+    `futureValueTypeSchema` is defined as `futureValueType`
+    [here](https://github.com/dart-lang/language/blob/master/accepted/future-releases/nnbd/feature-specification.md#the-future-value-type-of-an-asynchronous-non-generator-function),
+     with the added case that it maps the empty context `_` to itself.
 
 In order to infer the return type of a function literal, we first infer the
 **actual returned type** of the function literal.
