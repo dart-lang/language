@@ -17,16 +17,9 @@ or a library namespace), also allowing statically checked usage of
 implementations that are not known statically; the declarations are
 associated with implementations via an implementation specific mechanism.
 
-However, variables do not seem to be compatible with these modifiers. A
-variable is associated with a storage location and an implicitly induced
-setter and/or getter. This amounts to an implementation, so variables seem
-to be inherently non-abstract and non-external.
-
-However, we may focus on the implicitly induced setter and/or getter for a
-given instance variable declaration, in which case it is simply considered
-to be a more concise notation for said accessors. The point is that the
-setter and/or getter is added to the class interface, and they are intended
-to be implemented by subtypes.
+Previously, Dart supported neither abstract nor external variables of any
+kind. Such constructs are useful if viewed as declaring a pair consisting
+of a setter and a getter.
 
 As a workaround, it is possible to use a concrete instance variable as an
 "abstract instance variable" by simply ignoring the implementation. The
@@ -35,11 +28,13 @@ getter to the interface of the enclosing class (let us call it `C`). Any
 concrete subtypes (`class D implements C ..`) will be required to implement
 said accessors.
 
-However, _subclasses_ of `C` will not be required to implement the
-accessors, they will tacity inherit the implementation of the concrete
-field, which may be a bug. Also, if the subclasses of `C` _do_ implement
-the accessors, the storage reserved for the concrete variable will be a
-space leak (it's simply unused).
+However, if `D` is a _subclass_ of `C` then `D` is not required to
+implement the accessors. Instead, `D` tacity inherits the implementation of
+the concrete field. This may be a bug, because `C` is designed for having
+these accessors overridden to do specific things that the concrete variable
+will not do.  Also, if `D` _does_ override the accessors with a getter and
+setter as intended, the storage reserved for the concrete instance variable
+will be a space leak (it's simply unused).
 
 Finally, if null-safety is enabled then a concrete instance variable
 declaration (say, `int foo;`) is a compile-time error if the type of the
