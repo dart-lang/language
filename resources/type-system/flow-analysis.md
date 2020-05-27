@@ -132,13 +132,15 @@ source code.
   of promotion, generally because the variable in question has been tested
   against the type on some path in some way.
 
-- `assigned` is a boolean value indicating whether the variable is known to
-  have been definitely assigned at the given point in the source code.
+- `assigned` is a boolean value indicating whether the variable has definitely
+  been assigned at the given point in the source code.  When `assigned` is
+  true, we say that the variable is _definitely assigned_ at that point.
 
-- `unassigned` is a boolean value indicating whether the variable is known not
-  to have been definitely assigned at the given point in the source code.  (Note
-  that a variable may not be both definitely assigned and definitely
-  unassigned).
+- `unassigned` is a boolean value indicating whether the variable has
+  definitely not been assigned at the given point in the source code.  When
+  `unassigned` is true, we say that the variable is _definitely unassigned_ at
+  that point.  (Note that a variable cannot be both definitely assigned and
+  definitely unassigned at any location).
 
 - `writeCaptured` is a boolean value indicating whether a closure might exist at
   the given point in the source code, which could potentially write to the
