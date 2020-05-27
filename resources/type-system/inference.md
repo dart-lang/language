@@ -227,10 +227,22 @@ type schema `S` as follows:
     `Stream<S1>` for some `S1`, then the context type is `S1`.
   - If the function expression is declared `sync*` and `S` is of the form
     `Iterable<S1>` for some `S1`, then the context type is `S1`.
-  - Otherwise the context type is `FutureOr<futureValueTypeSchema(S)>` where
-    `futureValueTypeSchema` is defined as `futureValueType`
-    [here](https://github.com/dart-lang/language/blob/master/accepted/future-releases/nnbd/feature-specification.md#the-future-value-type-of-an-asynchronous-non-generator-function),
-     with the added case that it maps the empty context `_` to itself.
+  - Otherwise the context type is `FutureOr<futureValueTypeSchema(S)>`.
+
+The function **futureValueTypeSchema** is defined as follows:
+
+- **futureValueTypeSchema**(`S?`) = **futureValueTypeSchema**(`S`), for all `S`.
+- **futureValueTypeSchema**(`S*`) = **futureValueTypeSchema**(`S`), for all `S`.
+- **futureValueTypeSchema**(`Future<S>`) = `S`, for all `S`.
+- **futureValueTypeSchema**(`FutureOr<S>`) = `S`, for all `S`.
+- **futureValueTypeSchema**(`void`) = `void`.
+- **futureValueTypeSchema**(`_`) = `_`.
+- Otherwise, for all `S`, **futureValueTypeSchema**(`S`) = `Object?`.
+
+_Note that it is a compile-time error unless the return type of an asynchronous
+non-generator function is a supertype of `Future<Never>`, which means that
+the last case will only be applied when `S` is `Object` or a non-`void` top
+type._
 
 In order to infer the return type of a function literal, we first infer the
 **actual returned type** of the function literal.
