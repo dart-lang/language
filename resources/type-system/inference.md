@@ -522,7 +522,7 @@ T check<T>(C<List<T>> f) {
   return null as T;
 }
 void test() {
-  var x = check(C((List<int> x) {})); // Should inver `int` for `T`
+  var x = check(C((List<int> x) {})); // Should infer `int` for `T`
   String s = x; // Should be an error, `T` should be int.
 }
 ```
