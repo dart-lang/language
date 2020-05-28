@@ -17,61 +17,81 @@ or a library namespace), also allowing statically checked usage of
 implementations that are not known statically; the declarations are
 associated with implementations via an implementation specific mechanism.
 
+Dart does not allow variables of any kind to be abstract or external. This
+may seem obvious because variables are either storage locations (locals) or
+a combination of a storage location and an implicitly induced getter and
+possibly setter (all non-local variables), so they always have an
+implementation.
 
+However, the need for an abstract or external getter and possibly setter
+may arise, and a non-local variable declaration is a concise and
+non-redundant way to specify the desired signatures.
 
+This need came up in connection with `dart:ffi`, where users write Dart
+classes in order to specify a native memory layout. All instances of the
+interface will be backed by native (external) code. Currently, `dart:ffi`
+developers use a regular instance variable declaration, like `int foo;`,
+and add metadata to this declaration in order to specify the corresponding
+foreign language representation.
 
-Previously, Dart supported neither abstract nor external variables of any
-kind. Such constructs are useful if viewed as declaring a pair consisting
-of a setter and a getter.
+What is actually needed is an external getter and possible setter, but if
+`dart:ffi` commits to using that then there will be a large amount of
+client code that declares getter/setter pairs with a non-trivial amount of
+redundancy: The name is specified twice, the type is specified twice, and
+there might be a need for two copies of metadata specifying the native
+representation. So `dart:ffi` uses regular instance variable declarations
+today.
 
-As a workaround, it is possible to use a concrete instance variable as an
-"abstract instance variable" by simply ignoring the implementation. The
-concrete variable declaration will add the implicitly induced setter and/or
-getter to the interface of the enclosing class (let us call it `C`). Any
-concrete subtypes (`class D implements C ..`) will be required to implement
-said accessors.
+Similarly, a class can of course declare an abstract getter/setter pair if
+needed, but this again causes the name and type to be specified twice.
+
+As a workaround, it is possible to use a concrete instance variable as a
+replacement for an abstract getter and possibly setter, by simply ignoring
+the implementation. The concrete variable declaration will add the
+implicitly induced getter and possible setter to the interface of the
+enclosing class (let us call it `C`). Any concrete subtypes (`class D
+implements C ..`) will be required to implement said accessors. So far, it
+just works.
 
 However, if `D` is a _subclass_ of `C` then `D` is not required to
 implement the accessors. Instead, `D` tacity inherits the implementation of
-the concrete field. This may be a bug, because `C` is designed for having
+the concrete variable. This may be a bug, because `C` is designed for having
 these accessors overridden to do specific things that the concrete variable
-will not do.  Also, if `D` _does_ override the accessors with a getter and
+will not do. Also, if `D` _does_ override the accessors with a getter and
 setter as intended, the storage reserved for the concrete instance variable
-will be a space leak (it's simply unused).
+will be a space leak (it is unused).
 
 Finally, if null-safety is enabled then a concrete instance variable
 declaration (say, `int foo;`) is a compile-time error if the type of the
 variable is non-nullable, unless the variable is initialized in the
-initializer list of each generative constructor of the class.
+initializer list of each generative constructor of the class. This problem
+arises both in connection with `dart:ffi` and for a an instance variable
+which is used as a replacement for an abstract getter and possibly setter.
 
 So the existing workaround of using a concrete instance variable to emulate
 an abstract instance variable is inconvenient, error prone, and confusing
-for a reader of the code, and for a writer of a subclass.
+for a reader of the code, and for a writer of a subclass, and similar
+problems exist when a regular variable is used as a replacement for an
+external getter and possibly setter.
 
-A similar perspective can be used as a foundation for the notion of an
-"external variable". We focus on the implicitly induced setter and/or
-getter for a given variable declaration, and the external variable
-declaration is thus simply a concise notation for said accessors.
 
-The need for such accessors came up in connection with `dart:ffi`, where
-users write Dart classes in order to specify a native memory layout. All
-instances of the interface will be backed by native (external)
-code. Currently, `dart:ffi` developers use a regular field declaration,
-like `int foo;`, and add metadata to this declaration in order to specify
-the corresponding foreign language representation. But what is actually
-needed is an external setter and/or getter.
+## Design Idea
 
-It is of course possible to declare an external setter and/or getter
-directly. However, this gives rise to duplicate code elements (the name and
-type and metadata may need to be written twice, and they must be kept
-consistent when the code is maintained). This means that the ability to
-declare an external variable and avoid this duplication is useful, in a
-similar way as for the abstract instance variables.
+In response to the issues above, this document introduces abstract and
+external variables.
+
+The basic idea is that an abstract variable is syntactic sugar for an
+abstract getter and possibly an abstract setter, and similarly for an
+external variable, in both cases such that there is no storage and no
+implementation of the getter and possible setter, and they have the same
+signatures as the ones that would be induced implicitly by a concrete
+variable declaration.
+
+The next section is the normative text that specifies the syntax and
+semantics that realize this idea.
 
 
 ## Feature Specification
-
-We introduce abstract and external variable declarations.
 
 An _abstract instance variable declaration_ is an instance variable
 declaration prefixed by the modifier `abstract`. It must not be late, and
@@ -117,13 +137,14 @@ them. This fully determines the further static analysis (including errors
 and warnings), and the dynamic semantics. The transformations are as
 follows:
 
-An abstract instance variable declaration _D_ is treated as an abstract setter
-declaration and/or an abstract getter declaration. The setter is included if
-and only if _D_ is non-final. The return type of the getter and the parameter
-type of the setter, if present, is the type of _D_ (*which may be declared
-explicitly, obtained by override inference, or defaulted to `dynamic`*). The
-parameter of the setter, if present, has the modifier `covariant` if and only if
-_D_ has the modifier `covariant`. _For example:_
+An abstract instance variable declaration _D_ is treated as an abstract
+getter declaration and possibly an abstract setter declaration. The setter
+is included if and only if _D_ is non-final. The return type of the getter
+and the parameter type of the setter, if present, is the type of _D_
+(*which may be declared explicitly, obtained by override inference, or
+defaulted to `dynamic`*). The parameter of the setter, if present, has the
+modifier `covariant` if and only if _D_ has the modifier `covariant`. _For
+example:_
 
 ```dart
 abstract class A {
@@ -151,11 +172,11 @@ abstract class A {
 }
 ```
 
-An external variable declaration _D_ is treated as an external setter
-declaration and/or an external getter declaration. The setter is included
-if and only if _D_ is non-final. The return type of the getter and the
-parameter type of the setter, if present, is the type of _D_ (*which may be
-declared explicitly, obtained by override inference, or defaulted to
+An external variable declaration _D_ is treated as an external getter
+declaration and possibly an external setter declaration. The setter is
+included if and only if _D_ is non-final. The return type of the getter and
+the parameter type of the setter, if present, is the type of _D_ (*which
+may be declared explicitly, obtained by override inference, or defaulted to
 `dynamic`*). The parameter of the setter, if present, has the modifier
 `covariant` if and only if _D_ has the modifier `covariant` (*the grammar
 only allows this modifier on external instance variables*). _For example:_
