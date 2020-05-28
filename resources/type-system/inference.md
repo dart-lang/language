@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.05.27
+  - Update function literal return type inference to use
+    **futureValueTypeSchema**.
+
 2019.12.03:
   - Update top level inference for non-nullability, function expression
     inference.
@@ -44,7 +48,7 @@ expressions.  In particular:
     * If you omit a return type or parameter type from an overridden or
     implemented method, inference will try to fill in the missing type using the
     signature of the method you are overriding.
-2. **Static variable and field inference** 
+2. **Static variable and field inference**
     * If you omit the type of a field, setter, or getter, which overrides a
    corresponding member of a superclass, then inference will try to fill in the
    missing type using the type of the corresponding member of the superclass.
@@ -220,15 +224,29 @@ return type of the context function type is used at several points during
 inference.  We refer to this type as the **imposed return type
 schema**. Inference for each returned or yielded expression in the body of the
 function literal is done using a context type derived from the imposed return
-type schema as follows:
+type schema `S` as follows:
   - If the function expression is neither `async` nor a generator, then the
-    context type is the imposed return type.
-  - If the function expression is declared `async*` and the imposed return type
-    is of the form `Stream<S>` for some `S`, then the context type is `S`.
-  - If the function expression is declared `sync*` and the imposed return type
-    is of the form `Iterable<S>` for some `S`, then the context type is `S`.
-  - Otherwise the context type is `FutureOr<flatten(T)>` where `T` is the
-    imposed return type.
+    context type is `S`.
+  - If the function expression is declared `async*` and `S` is of the form
+    `Stream<S1>` for some `S1`, then the context type is `S1`.
+  - If the function expression is declared `sync*` and `S` is of the form
+    `Iterable<S1>` for some `S1`, then the context type is `S1`.
+  - Otherwise the context type is `FutureOr<futureValueTypeSchema(S)>`.
+
+The function **futureValueTypeSchema** is defined as follows:
+
+- **futureValueTypeSchema**(`S?`) = **futureValueTypeSchema**(`S`), for all `S`.
+- **futureValueTypeSchema**(`S*`) = **futureValueTypeSchema**(`S`), for all `S`.
+- **futureValueTypeSchema**(`Future<S>`) = `S`, for all `S`.
+- **futureValueTypeSchema**(`FutureOr<S>`) = `S`, for all `S`.
+- **futureValueTypeSchema**(`void`) = `void`.
+- **futureValueTypeSchema**(`_`) = `_`.
+- Otherwise, for all `S`, **futureValueTypeSchema**(`S`) = `Object?`.
+
+_Note that it is a compile-time error unless the return type of an asynchronous
+non-generator function is a supertype of `Future<Never>`, which means that
+the last case will only be applied when `S` is `Object` or a non-`void` top
+type._
 
 In order to infer the return type of a function literal, we first infer the
 **actual returned type** of the function literal.
@@ -364,7 +382,7 @@ The covariant occurrences of a type (schema) `T` in another type (schema) `S` ar
     - the covariant occurrencs of `T` in `U`
   - if `S` is an interface type `C<T0, ..., Tk>`
     - the union of the covariant occurrences of `T` in `Ti` for `i` in `0, ..., k`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`, 
+  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
       the union of:
     - the covariant occurrences of `T` in `U`
     - the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
@@ -380,7 +398,7 @@ The contravariant occurrences of a type `T` in another type `S` are:
     - the contravariant occurrencs of `T` in `U`
   - if `S` is an interface type `C<T0, ..., Tk>`
     - the union of the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., k`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`, 
+  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
       the union of:
     - the contravariant occurrences of `T` in `U`
     - the covariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
@@ -396,7 +414,7 @@ The invariant occurrences of a type `T` in another type `S` are:
     - the invariant occurrencs of `T` in `U`
   - if `S` is an interface type `C<T0, ..., Tk>`
     - the union of the invariant occurrences of `T` in `Ti` for `i` in `0, ..., k`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`, 
+  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
       the union of:
     - the invariant occurrences of `T` in `U`
     - the invariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
@@ -474,14 +492,14 @@ replaced with `Null`, and every covariant occurrence of `Ti` replaced with
   from any of the `Bi`:
   - The least closure of `S` with respect to `L` is `U Function<X0 extends B0,
   ...., Xk extends Bk>(U0 x0, ...., Un1 xn, [Un+1 xn+1, ..., Um xm])` where:
-    - `U` is the least closure of `T` with respect to `L` 
-    - `Ui` is the greatest closure of `Ti` with respect to `L` 
+    - `U` is the least closure of `T` with respect to `L`
+    - `Ui` is the greatest closure of `Ti` with respect to `L`
     - with the usual capture avoiding requirement that the `Xi` do not appear in
   `L`.
   - The greatest closure of `S` with respect to `L` is `U Function<X0 extends B0,
   ...., Xk extends Bk>(U0 x0, ...., Un1 xn, [Un+1 xn+1, ..., Um xm])` where:
-    - `U` is the greatest closure of `T` with respect to `L` 
-    - `Ui` is the least closure of `Ti` with respect to `L` 
+    - `U` is the greatest closure of `T` with respect to `L`
+    - `Ui` is the least closure of `Ti` with respect to `L`
     - with the usual capture avoiding requirement that the `Xi` do not appear in
   `L`.
 - if `S` is `T Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
@@ -489,14 +507,14 @@ replaced with `Null`, and every covariant occurrence of `Ti` replaced with
   from any of the `Bi`:
   - The least closure of `S` with respect to `L` is `U Function<X0 extends B0,
   ...., Xk extends Bk>(U0 x0, ...., Un1 xn, {Un+1 xn+1, ..., Um xm})` where:
-    - `U` is the least closure of `T` with respect to `L` 
-    - `Ui` is the greatest closure of `Ti` with respect to `L` 
+    - `U` is the least closure of `T` with respect to `L`
+    - `Ui` is the greatest closure of `Ti` with respect to `L`
     - with the usual capture avoiding requirement that the `Xi` do not appear in
   `L`.
   - The greatest closure of `S` with respect to `L` is `U Function<X0 extends B0,
   ...., Xk extends Bk>(U0 x0, ...., Un1 xn, {Un+1 xn+1, ..., Um xm})` where:
-    - `U` is the greatest closure of `T` with respect to `L` 
-    - `Ui` is the least closure of `Ti` with respect to `L` 
+    - `U` is the greatest closure of `T` with respect to `L`
+    - `Ui` is the least closure of `Ti` with respect to `L`
     - with the usual capture avoiding requirement that the `Xi` do not appear in
   `L`.
 
@@ -680,7 +698,7 @@ to `L` under constraints `C`:
   - If `R<B0, ..., Bj>` is the superclass of `P<M0, ..., Mk>` and `R<B0, ...,
 Bj>` is a subtype match for `Q<N0, ..., Nj>` with respect to `L` under
 constraints `C`.
-  - Or `R<B0, ..., Bj>` is one of the interfaces implemented by `P<M0, ..., Mk>` 
+  - Or `R<B0, ..., Bj>` is one of the interfaces implemented by `P<M0, ..., Mk>`
 (considered in lexical order) and `R<B0, ..., Bj>` is a subtype match for `Q<N0,
 ..., Nj>` with respect to `L` under constraints `C`.
   - Or `R<B0, ..., Bj>` is a mixin into `P<M0, ..., Mk>` (considered in lexical
@@ -781,7 +799,7 @@ Otherwise:
   - If `C` does not constrain `Ti` then `Pi` is `?`
   - If `C` partially constrains `Ti`
     - If `C` is over constrained, then it is an inference failure error
-    - Otherwise `Pi` is the constraint solution for `Ti` with respect to `C` 
+    - Otherwise `Pi` is the constraint solution for `Ti` with respect to `C`
   - If `C` fully constrains `Ti`, then
     - Let `Ai` be `Bi[R0/T0, ..., ?/Ti, ..., ?/Tn]`
     - If `C + Ti <: Ai` is over constrained, it is an inference failure error.
@@ -799,7 +817,7 @@ have not been fixed by downwards resolution.
 generic method of type `<T0 extends B0, ..., Tn extends Bn>(P0, ..., Pk) -> Q`
 given actual argument types `R0, ..., Rk`, a partial solution `[T0 -> P0, ...,
 Tn -> Pn]` and a partial constraint set `Cp`:
-  - If `Ri <: Pi [T0, ..., Tn] -> Ci` 
+  - If `Ri <: Pi [T0, ..., Tn] -> Ci`
   - And the full constraint resolution of `Cp + C0 + ... + Cn` for `<T0 extends
 B0, ..., Tn extends Bn>` given the initial partial solution `[T0 -> P0, ..., Tn
 -> Pn]` is `[T0 -> M0, ..., Tn -> Mn]`
@@ -889,7 +907,7 @@ downwards context `P` with respect to return type `Q`.
   - And `<T0 extends B0, ..., Tn extends Bn>(P0, ..., Pk) -> Q` resolves via
 upwards resolution to a full solution `[T0 -> M0, ..., Tn -> Mn]`
     - Given partial solution `[T0 -> Q0, ..., Tn -> Qn]`
-    - And partial constraint set `Cp` 
+    - And partial constraint set `Cp`
     - And actual argument types `R0, ..., Rk`
   - And `N` is `Q[M0/T0, ..., Mn/Tn]`
 - A constructor invocation is inferred exactly as if it were a static generic
@@ -933,7 +951,7 @@ Return statements pull the return type from the enclosing function for downwards
 inference, and compute the upper bound of all returned values for upwards
 inference.  Appropriate adjustments for asynchronous and generator functions.
 
-Do statements 
+Do statements
 For each statement
 
 -->
