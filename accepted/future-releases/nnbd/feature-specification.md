@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.05.18
+  - **CHANGE** Changes to definite assignment for local variables without types.
+
 2020.05.14
   - **CHANGE** Strong mode is auto-opted in when the "main" file is opted in.
   - **CHANGE** Specify weak mode/strong mode flag.
@@ -481,25 +484,24 @@ fields on `Object`.
 It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
-It is an error if a top level variable or static variable with a non-nullable type
-has no initializer expression unless the variable is marked with the `late` modifier.
+It is an error if a top level variable or static variable with a non-nullable
+type has no initializer expression unless the variable is marked with the `late`
+modifier.
 
-It is an error if a class declaration declares an instance variable with a potentially
-non-nullable type and no initializer expression, and the class has a generative constructor
-where the variable is not initialized via an initializing formal or an initializer list entry,
-unless the variable is marked with the `late` modifier.
+It is an error if a class declaration declares an instance variable with a
+potentially non-nullable type and no initializer expression, and the class has a
+generative constructor where the variable is not initialized via an initializing
+formal or an initializer list entry, unless the variable is marked with the
+`late` modifier.
 
-It is an error if a mixin declaration or a class declaration with no generative constructors
-declares an instance variable with a potentially non-nullable type and no initializer expression
-unless the variable is marked with the `late` modifier.
+It is an error if a mixin declaration or a class declaration with no generative
+constructors declares an instance variable with a potentially non-nullable type
+and no initializer expression unless the variable is marked with the `late`
+modifier.
 
-It is an error to derive a mixin from a class declaration which contains
-an instance variable with a potentially non-nullable type and no initializer expression
-unless the variable is marked with the `late` modifier.
-
-It is an error if a potentially non-nullable local variable which has no
-initializer expression and is not marked `late` is used before it is definitely
-assigned (see Definite Assignment below).
+It is an error to derive a mixin from a class declaration which contains an
+instance variable with a potentially non-nullable type and no initializer
+expression unless the variable is marked with the `late` modifier.
 
 It is an error if the body of a method, function, getter, or function expression
 with a potentially non-nullable return type **may complete normally**.
@@ -553,18 +555,9 @@ expression.
 It is an error for a class with a `const` constructor to have a `late final`
 instance variable.
 
-It is not a compile time error to write to a `final` variable if that variable
-is declared `late` and does not have an initializer.
-
-It is a compile time error to assign a value to a local variable marked `late`
-and `final` when the variable is **definitely assigned**.  This includes all
-forms of assignments, including assignments via the composite assignment
-operators as well as pre and post-fix operators.
-
-It is a compile time error to read a local variable marked `late` when the
-variable is **definitely unassigned**. This includes all forms of reads,
-including implicit reads via the composite assignment operators as well as pre
-and post-fix operators.
+It is not a compile time error to write to a `final` top-level variable field
+(static or instance) if that variable is declared `late` and does not have an
+initializer.  For local variables, see the section below.
 
 It is an error if the object being iterated over by a `for-in` loop has a static
 type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
@@ -612,6 +605,198 @@ It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, o
 
 It is a warning to use the null check operator (`!`) on an expression of type
 `T` if `T` is **strictly non-nullable** .
+
+### Local variables and definite (un)assignment.
+
+As part of the null safety release, errors for local variables are specified to
+take into account **definite assignment** and **definite unassignment** (see
+the secontion on Definite Assignment below).
+
+In all cases in this section, errors that are described as occurring on reads of
+a variable are intended to apply to all form of reads, including indirectly as
+part of composite assignment operators, as well as via pre and post-fix
+operators.  Similarly, errors that are described as occurring on writes of a
+variable are intended to apply to all form of writes.
+
+It is a compile time error to assign a value to a local variable marked `final`
+when the variable is **definitely assigned**.  This includes variables that are
+also marked `late`.  A variable is always considered definitely assigned if it
+has an explicit initializer, or an implicit initializer as part of a larger
+construct (e.g. the loop variable in a `for in` construct).
+
+It is not a compile time error to write to a `final` local variable if that
+variable is declared `late`, does not have an initializer, and is not
+**definitely assigned**.
+
+It is not a compile time error to write to a `final` local variable if that
+variable is **definitely unassigned** (and hence does not have an initializer).
+
+It is a compile time error to read a local variable when the variable is
+**definitely unassigned** unless the variable is non-final and has nullable
+type, either explicitly provided or inferred directly from the initalizer.  This
+includes variables marked `late` and/or `final`.
+
+The erors specified above are summarized in the following table.  A variable
+which has an initializer (explicit or implicit) is always considered definitely
+assigned, and is never considered definitely unassigned.
+
+
+Read Errors:
+
+| Declaration form  | Def. Assigned | Not Def. Assigned | Def. Unassigned |
+| -------- ---------| ------------- | ----------------- | --------------- |
+| var x;            | Ok            | Error             | Error           |
+| final x;          | Ok            | Error             | Error           |
+| int x;            | Ok            | Error             | Error           |
+| int? x;           | Ok            | Ok                | Ok              |
+| final int x;      | Ok            | Error             | Error           |
+| final int? x;     | Ok            | Error             | Error           |
+| late var x;       | Ok            | Ok                | Error           |
+| late final x;     | Ok            | Ok                | Error           |
+| late T x;         | Ok            | Ok                | Error           |
+| late final T x;   | Ok            | Ok                | Error           |
+
+Write Errors:
+
+| Declaration form  | Def. Assigned | Not Def. UnAssigned | Def. Unassigned |
+| -------- ---------| ------------- | ------------------- | --------------- |
+| var x;            | Ok            | Ok                  | Ok              |
+| final x;          | Error         | Error               | Ok              |
+| int x;            | Ok            | Ok                  | Ok              |
+| int? x;           | Ok            | Ok                  | Ok              |
+| final int x;      | Error         | Error               | Ok              |
+| final int? x;     | Error         | Error               | Ok              |
+| late var x;       | Ok            | Ok                  | Ok              |
+| late final x;     | Error         | Ok                  | Ok              |
+| late T x;         | Ok            | Ok                  | Ok              |
+| late final T x;   | Error         | Ok                  | Ok              |
+
+### Local variables and initialization based inference
+
+Local variables with explicitly written types are given the declared types as
+written.  The declared type of the variable is considered a "type of interest"
+in the sense defined in the flow analysis specification.  If the variable has an
+initializer (explicit or implicit) and is not `final`, then the declaration is
+treated as an assignment for the purposes of promotion.
+
+*Treating the declared type of the variable as a "type of interest" implies that
+if the variable is a nullable type, then its non-nullable version is also a type
+of interest.  Treating the initialization as an assignment for the purposes of
+promotion means that initializing a mutable variable declared at type `T?` with
+a value of non-nullable type `T` immediately promotes the variable to the
+non-nullable type.*
+
+```dart
+void test() {
+  int? x = 3; // x is declared at `int?`
+  x.isEven; // Valid, x has been promoted to `int`
+  x = null; // Valid, demotes to the declared type.
+}
+```
+
+Local variables with no explicitly written type but with an initializer are
+given an inferred declared type equal to the type of their initializer.  In the
+case that the type of the initializer is a promoted type variable `X & T`, the
+inferred type of the variable shall be `X`.  However, such a variable shall be
+treated as immediately promoted to `X & T`.
+
+In the null safety release, local variables with no explicitly written type and
+no initializer are subject to further promotion based inference.  The variables
+under consideration here are those declared as `var x;`, `final x;`, `late var
+x;`, or `late final x;`.  We refer to such variables as **untyped variables**.
+
+An **initializing assignment** is an assignment to an **untyped variable** when
+that variable is in the **definitely unassigned** state.  Such an assignment on
+a path shall cause the variable in question to be treated by the flow analysis
+on that path as if it were declared with the assigned expression as its
+initializing expression, up until the next join point in the program.  We refer
+to this inferred type as the **initialization inferred type** of the variable.
+The **initialization inferred type** of the variable is always treated as a
+**type of interest** for the purposes of promotion (including its non-nullable
+version if applicable).
+
+```dart
+void test() {
+  var x; // x is an untyped variable
+  x = 3; // x is given the initialization inferred type of `int`
+}
+```
+
+At a join point in the program, it is an error if an **untyped variable** has
+been given an **initialization inferred type** on one of the paths to the join
+point and not another, unless the variable is declared as `late`.
+
+```dart
+void test(bool b) {
+  var x; // x is an untyped variable
+  if (b) {
+    x = 3;
+  } // Error, x has not been given an inferred type on all paths
+
+  late var y; // y is a late untyped variable
+  if (b) {
+    y = 3;
+  } // Ok, y has inferred type `int`
+}
+```
+
+At a join point in the program, if an **untyped variable** has been given an
+**initialization inferred type** on more than one of the paths to the join
+point, the variable is treated after the join point as having the
+**initialization inferred type** equal to the upper bound of the
+**initialization inferred types** from the paths into the join point.  The
+**initialization inferred type** so computed is treated as a **type of
+interest** for the variable in question (including its non-nullable version if
+applicable).  The promoted type chains for the variable on the respective paths
+are intersected as usual.
+
+```dart
+void test(bool b) {
+  var x; // x is an untyped variable
+  if (b) {
+    x = 3;
+  } else {
+    x = 3.0;
+  } // x is has type num = UP(int, double)
+
+  late var y; // y is a late untyped variable
+  if (b) {
+    if (b) {
+      y = 3;
+    } else {
+      y = 3.0;
+    } // y has type num
+    y = 3.0; // y is promoted to double, since double is a type of interest
+    y = (3 as num); y is demoted to num.
+  } // y still has type num
+  y = "hello";  // Error, not an initializating write.
+}
+```
+
+It is an error to read an **untyped variable** when it has no **initialization
+inferred type**.
+
+
+```dart
+void test(bool b) {
+  var x; // x is an untyped variable
+  print(x); // Error, no initialization inferred type
+
+  late var y; // y is a late untyped variable
+  var f = () => print(y); // Error, y has no initialization inferred type
+
+
+  var z;
+  do {
+    // z is potentially assigned.
+    if (b) {
+      z = 42;
+    } else {
+      z = 37;
+    }
+  } while (something);
+  print(z); // Error, z has not initialization inferred type
+```
 
 ### Expression typing
 
