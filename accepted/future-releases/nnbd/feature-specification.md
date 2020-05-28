@@ -6,8 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
-2020.05.18
+2020.05.28
   - **CHANGE** Changes to definite assignment for local variables without types.
+
+2020.05.20
+  - Turn new references to `CastError` into being dynamic type errors.
 
 2020.05.14
   - **CHANGE** Strong mode is auto-opted in when the "main" file is opted in.
@@ -144,7 +147,7 @@ Discussion issues on specific topics related to this proposal are [here](https:/
 The motivations for the feature along with the migration plan and strategy are
 discussed in more detail in
 the
-[roadmap](https://github.com/dart-lang/language/blob/master/working/0110-incremental-sound-nnbd/roadmap.md).
+[roadmap](https://github.com/dart-lang/language/blob/master/accepted/future-releases/nnbd/roadmap.md).
 
 This proposal draws on the proposal that Patrice Chalin wrote
 up [here](https://github.com/dart-archive/dart_enhancement_proposals/issues/30),
@@ -1736,13 +1739,13 @@ We define the weak checking and strong checking mode casts as follows:
 type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
 library** is evaluated as follows:
   - if `LEGACY_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
-    `CastError` is thrown.
+    dynamic type error occurs.
 
 **In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
 type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
 library** is evaluated as follows:
   - if `NNBD_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
-    `CastError` is thrown.
+    dynamic type error occurs.
 
 In weak checking mode, we ensure that opted-in libraries do not break downstream
 clients by continuing to evaluate instance checks and casts with the same

@@ -1,4 +1,5 @@
-# Sound non-nullable (by default) types with incremental migration 
+# Null Safety
+## Sound non-nullable (by default) types with incremental migration 
 
 Note: the current draft spec is [here](feature-specification.md)
 
@@ -257,8 +258,7 @@ code.  Consider this code.
 library opted_in;
 
 void takesListNonNull(List<int> l) {
-
-print(l[0].isEven);
+  print(l[0].isEven);
 }
 
 library opted_out;
