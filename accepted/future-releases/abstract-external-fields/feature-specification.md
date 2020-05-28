@@ -17,6 +17,9 @@ or a library namespace), also allowing statically checked usage of
 implementations that are not known statically; the declarations are
 associated with implementations via an implementation specific mechanism.
 
+
+
+
 Previously, Dart supported neither abstract nor external variables of any
 kind. Such constructs are useful if viewed as declaring a pair consisting
 of a setter and a getter.
@@ -90,7 +93,7 @@ The grammar is modified as follows:
 <topLevelDefinition> ::=
   ... |
   // New alternative.
-  'external' ('final' <type>? | <varOrType>) <identifierList> ';'
+  'external' <finalVarOrType> <identifierList> ';'
 
 <finalVarOrType> ::= // New rule.
   'final' <type>? |
