@@ -240,13 +240,13 @@ The function **futureValueTypeSchema** is defined as follows:
 - **futureValueTypeSchema**(`Future<S>`) = `S`, for all `S`.
 - **futureValueTypeSchema**(`FutureOr<S>`) = `S`, for all `S`.
 - **futureValueTypeSchema**(`void`) = `void`.
+- **futureValueTypeSchema**(`dynamic`) = `dynamic`.
 - **futureValueTypeSchema**(`_`) = `_`.
 - Otherwise, for all `S`, **futureValueTypeSchema**(`S`) = `Object?`.
 
 _Note that it is a compile-time error unless the return type of an asynchronous
 non-generator function is a supertype of `Future<Never>`, which means that
-the last case will only be applied when `S` is `Object` or a non-`void` top
-type._
+the last case will only be applied when `S` is `Object` or a top type._
 
 In order to infer the return type of a function literal, we first infer the
 **actual returned type** of the function literal.
