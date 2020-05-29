@@ -618,7 +618,7 @@ It is a warning to use the null check operator (`!`) on an expression of type
 
 As part of the null safety release, errors for local variables are specified to
 take into account **definite assignment** and **definite unassignment** (see
-the secontion on Definite Assignment below).
+the section on Definite Assignment below).
 
 In all cases in this section, errors that are described as occurring on reads of
 a variable are intended to apply to all form of reads, including indirectly as
