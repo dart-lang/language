@@ -731,8 +731,11 @@ void test() {
 ```
 
 At a join point in the program, it is an error if an **untyped variable** has
-been given an **initialization inferred type** on one of the paths to the join
-point and not another, unless the variable is declared as `late`.
+been given an **initialization inferred type** on one of the reachable paths to
+the join point and not on another reachable path, unless the variable is
+declared as `late`.  Note that it is valid for a variable to have no
+**initialization inferred type** on a path into a join point which is known to
+be unreachable.
 
 ```dart
 void test(bool b) {
@@ -745,15 +748,22 @@ void test(bool b) {
   if (b) {
     y = 3;
   } // Ok, y has inferred type `int`
+
+  var z;
+  if (b) {
+     z = 3;
+  } else {
+    return;
+  }  // No error: z has been given a type on all reachable paths into the join
 }
 ```
 
 At a join point in the program, if an **untyped variable** has been given an
-**initialization inferred type** on more than one of the paths to the join
-point, the variable is treated after the join point as having the
+**initialization inferred type** on more than one of the reachable paths to the
+join point, the variable is treated after the join point as having the
 **initialization inferred type** equal to the upper bound of the
-**initialization inferred types** from the paths into the join point.  The
-**initialization inferred type** so computed is treated as a **type of
+**initialization inferred types** from the reachable paths into the join point.
+The **initialization inferred type** so computed is treated as a **type of
 interest** for the variable in question (including its non-nullable version if
 applicable).  The promoted type chains for the variable on the respective paths
 are intersected as usual.
@@ -778,6 +788,15 @@ void test(bool b) {
     y = (3 as num); y is demoted to num.
   } // y still has type num
   y = "hello";  // Error, not an initializating write.
+
+ var z; // z is an untyped variable
+ if (b) {
+   x = 3; // x is promoted to int
+ } else {
+   x = 3.0;
+   return;
+ }
+ x.isEven; // No error, only one reachable path
 }
 ```
 
@@ -803,7 +822,35 @@ void test(bool b) {
       z = 37;
     }
   } while (something);
-  print(z); // Error, z has not initialization inferred type
+  print(z); // Error, z has no initialization inferred type
+```
+
+Note that as a consequence of the above it is impossible, in an error-free
+program, to observe the static type or contents of an untyped variable before it
+has been initialized and given an inferred type.  From this standpoint it may be
+thought of as having no type.  However, IDEs and tools may wish to report a
+static type for such a variable for the purposes of documentation and error
+reporting.  For such purposes, tools shall treat an untyped variable as if it
+were declared with a type equal to the upper bound of all of the
+**initialization inferred types** that it is ascribed in the method, plus
+`Never`.  Note that as a consequence a variable which is ascribed no
+**initialization inferred types** on any path shall be treated as having
+declared type `Never`.
+
+```dart
+void test(b) {
+  var x; // x is an untyped variable, documented as having type num
+  var z; // z is an untyped variable, documented as having type Never
+  if (b) {
+    x = 3.0; // x is inferred to double
+    return;
+  } else if (b) {
+    return;  // Note, x is has inferred type
+  } else {
+    x = 3; // x is inferred to int
+  }
+  x.isEven; // x remains inferred to int, since only one path reaches here
+}
 ```
 
 ### Expression typing
