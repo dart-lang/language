@@ -762,20 +762,16 @@ void test(bool b) {
 
 At a join point in the program, if an **untyped variable** has been given an
 **initialization inferred type** on more than one of the reachable paths to the
-join point, the variable is treated after the join point as having the
-**initialization inferred type** equal to the upper bound of the
-**initialization inferred types** from the reachable paths into the join point.
-The **initialization inferred type** so computed is treated as a **type of
-interest** for the variable in question (including its non-nullable version if
-applicable).  If the newly computed **initialization inferred type** is not a
-subtype of the original **initialization inferred type** on a given path, the
-original **initialization inferred type** for that variable on that path shall
-be added to the head of the promoted type chain for that variable on the
-respective path before intersecting the promoted type chains.  The promoted type
-chains for the variable on the respective paths are then intersected as usual.
-*Adding the original inferred type to the head of promoted type chain allows a
-variable which has been promoted on one path to the inferred type of the other
-path to remain at the shared common type (see example below).*
+join point and all of such **initialization inferred types** are syntactically
+equal, the variable is treated after the join point as having that
+**initialization inferred type**.  The promoted type chains for the variable on
+the respective paths are then intersected as usual.
+
+At a join point in the program, if an **untyped variable** has been given an
+**initialization inferred type** on more than one of the reachable paths to the
+join point and any two such **initialization inferred types** are not
+syntactically equal, it is an error.
+
 
 ```dart
 void test(bool b) {
@@ -784,7 +780,7 @@ void test(bool b) {
     x = 3;
   } else {
     x = 3.0;
-  } // x is has type num = UP(int, double)
+  } // Error: x has two different types on different paths
 
   late var y; // y is a late untyped variable
   if (b) {
@@ -792,19 +788,16 @@ void test(bool b) {
       y = 3;
     } else {
       y = 3.0;
-    } // y has type num
-    y = 3.0; // y is promoted to double, since double is a type of interest
-    y = (3 as num); y is demoted to num.
-  } // y still has type num
-  y = "hello";  // Error, not an initializating write.
+    } // Error: y has two different types on different paths
+  }
 
  var z; // z is an untyped variable
  if (b) {
    z = 3; // z is promoted to int
  } else {
-   z = 3.0;
+   z = 3.0; // z is promoted to double
    return;
- }
+ } // No error.  z is inferred as int on the only reachable path
  z.isEven; // No error, only one reachable path
 
  var u; // u is an untyped variable
@@ -814,12 +807,7 @@ void test(bool b) {
    // u has inferred type num, but is promoted to int
  } else {
    u = 3;
- }
- // At the join point, the initialization inferred type becomes
- // UP(num, int) = num. However, int is added to the promotion
- // chain on the second path before intersecting the promotion
- // chains, and hence the promoted type of u becomes int
- u.isEven; // No error.  u has inferred type num, promoted to int
+ } // Error: u is inferred to different types on different paths
 }
 ```
 
@@ -857,7 +845,10 @@ purposes, tools shall treat an untyped variable as if it were declared with a
 type equal to the upper bound of all of the **initialization inferred types**
 that it is ascribed in the method, plus `Never`.  The latter implies that a
 variable which is ascribed no **initialization inferred types** on any path
-shall be treated as having declared type `Never`.
+shall be treated as having declared type `Never`.  Note that despite the
+requirement that the **initialization inferred types** be equal at join points,
+it is possible for a variable to take on different **initialization inferred
+types** on paths that never join before exiting.
 
 ```dart
 void test(b) {
