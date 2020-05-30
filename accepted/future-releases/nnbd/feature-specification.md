@@ -558,9 +558,9 @@ expression.
 It is an error for a class with a `const` constructor to have a `late final`
 instance variable.
 
-It is not a compile time error to write to a `final` top-level variable field
-(static or instance) if that variable is declared `late` and does not have an
-initializer.  For local variables, see the section below.
+It is not a compile time error to write to a `final` non-local variable or field
+if that variable or field is declared `late` and does not have an initializer.
+For local variables, see the section below.
 
 It is an error if the object being iterated over by a `for-in` loop has a static
 type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
@@ -622,32 +622,34 @@ operators.  Similarly, errors that are described as occurring on writes of a
 variable are intended to apply to all form of writes.
 
 It is a compile time error to assign a value to a local variable marked `final`
-when the variable is **definitely assigned**.  This includes variables that are
-also marked `late`.  A variable is always considered definitely assigned if it
-has an explicit initializer, or an implicit initializer as part of a larger
-construct (e.g. the loop variable in a `for in` construct).
+unless the variable is **definitely unassigned**, or the variable is marked
+`late`. Conversely, it is not a compile time error to write to a `final` local
+variable if that variable is **definitely unassigned**.
 
-It is not a compile time error to write to a `final` local variable if that
-variable is declared `late`, does not have an initializer, and is not
-**definitely assigned**.
+It is a compile time error to assign a value to a local variable marked `final`
+and `late` if the variable is **definitely assigned**.  Conversely, it is not a
+compile time error to write to a `final` local variable if that variable is
+declared `late`, and is not **definitely assigned**.
 
-It is not a compile time error to write to a `final` local variable if that
-variable is **definitely unassigned** (and hence does not have an initializer).
+*Note that a variable is always considered definitely assigned and not
+definitely unassigned if it has an explicit initializer, or an implicit
+initializer as part of a larger construct (e.g. the loop variable in a `for in`
+construct).
 
 It is a compile time error to read a local variable when the variable is
 **definitely unassigned** unless the variable is non-final and has nullable
-type, either explicitly provided or inferred directly from the initalizer.  This
-includes variables marked `late` and/or `final`.
+type.  This includes variables marked `late` and/or `final`.
 
-The erors specified above are summarized in the following table.  A variable
-which has an initializer (explicit or implicit) is always considered definitely
-assigned, and is never considered definitely unassigned.
+The erors specified above are summarized in the following table (using `int` as
+an example non-nullable type).  A variable which has an initializer (explicit or
+implicit) is always considered definitely assigned, and is never considered
+definitely unassigned.
 
 
 Read Errors:
 
-| Declaration form  | Def. Assigned | Not Def. Assigned | Def. Unassigned |
-| -------- ---------| ------------- | ----------------- | --------------- |
+| Declaration form  | Def. Assigned | Neither           | Def. Unassigned |
+| ----------------- | ------------- | ----------------- | --------------- |
 | var x;            | Ok            | Error             | Error           |
 | final x;          | Ok            | Error             | Error           |
 | int x;            | Ok            | Error             | Error           |
@@ -656,13 +658,13 @@ Read Errors:
 | final int? x;     | Ok            | Error             | Error           |
 | late var x;       | Ok            | Ok                | Error           |
 | late final x;     | Ok            | Ok                | Error           |
-| late T x;         | Ok            | Ok                | Error           |
-| late final T x;   | Ok            | Ok                | Error           |
+| late int x;       | Ok            | Ok                | Error           |
+| late final int x; | Ok            | Ok                | Error           |
 
 Write Errors:
 
-| Declaration form  | Def. Assigned | Not Def. UnAssigned | Def. Unassigned |
-| -------- ---------| ------------- | ------------------- | --------------- |
+| Declaration form  | Def. Assigned | Neither             | Def. Unassigned |
+| ----------------- | ------------- | ------------------- | --------------- |
 | var x;            | Ok            | Ok                  | Ok              |
 | final x;          | Error         | Error               | Ok              |
 | int x;            | Ok            | Ok                  | Ok              |
@@ -671,8 +673,8 @@ Write Errors:
 | final int? x;     | Error         | Error               | Ok              |
 | late var x;       | Ok            | Ok                  | Ok              |
 | late final x;     | Error         | Ok                  | Ok              |
-| late T x;         | Ok            | Ok                  | Ok              |
-| late final T x;   | Error         | Ok                  | Ok              |
+| late int x;       | Ok            | Ok                  | Ok              |
+| late final int x; | Error         | Ok                  | Ok              |
 
 ### Local variables and initialization based inference
 
@@ -703,10 +705,10 @@ case that the type of the initializer is a promoted type variable `X & T`, the
 inferred type of the variable shall be `X`.  However, such a variable shall be
 treated as immediately promoted to `X & T`.
 
-In the null safety release, local variables with no explicitly written type and
-no initializer are subject to further promotion based inference.  The variables
-under consideration here are those declared as `var x;`, `final x;`, `late var
-x;`, or `late final x;`.  We refer to such variables as **untyped variables**.
+Local variables with no explicitly written type and no initializer are subject
+to further promotion based inference.  The variables under consideration here
+are those declared as `var x;`, `final x;`, `late var x;`, or `late final x;`.
+We refer to such variables as **untyped variables**.
 
 An **initializing assignment** is an assignment to an **untyped variable** when
 that variable is in the **definitely unassigned** state.  Such an assignment on
@@ -749,7 +751,7 @@ void test(bool b) {
      z = 3;
   } else {
     return;
-  }  // No error: z has been given a type on all reachable paths into the join
+  }  // Ok, z has inferred type `int` even though it is unassigned on one path.
 }
 ```
 
@@ -822,15 +824,14 @@ void test(bool b) {
 
 Note that as a consequence of the above it is impossible, in an error-free
 program, to observe the static type or contents of an untyped variable before it
-has been initialized and given an inferred type.  From this standpoint it may be
-thought of as having no type.  However, IDEs and tools may wish to report a
-static type for such a variable for the purposes of documentation and error
-reporting.  For such purposes, tools shall treat an untyped variable as if it
-were declared with a type equal to the upper bound of all of the
-**initialization inferred types** that it is ascribed in the method, plus
-`Never`.  Note that as a consequence a variable which is ascribed no
-**initialization inferred types** on any path shall be treated as having
-declared type `Never`.
+has been given an inferred type.  From this standpoint it may be thought of as
+having no type.  However, IDEs and tools may wish to report a static type for
+such a variable for the purposes of documentation and error reporting.  For such
+purposes, tools shall treat an untyped variable as if it were declared with a
+type equal to the upper bound of all of the **initialization inferred types**
+that it is ascribed in the method, plus `Never`.  Note that as a consequence a
+variable which is ascribed no **initialization inferred types** on any path
+shall be treated as having declared type `Never`.
 
 ```dart
 void test(b) {
@@ -840,7 +841,7 @@ void test(b) {
     x = 3.0; // x is inferred to double
     return;
   } else if (b) {
-    return;  // Note, x is has inferred type
+    return;  // Note, x has no inferred type on this path
   } else {
     x = 3; // x is inferred to int
   }
