@@ -492,8 +492,8 @@ fields on `Object`.
 It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
-It is an error if a top level variable or static variable with a non-nullable
-type has no initializer expression unless the variable is marked with the `late`
+It is an error if a top level variable or static variable has a non-nullable
+type and no initializer expression unless the variable is marked with the `late`
 modifier.
 
 It is an error if a class declaration declares an instance variable with a
@@ -626,15 +626,13 @@ part of composite assignment operators, as well as via pre and post-fix
 operators.  Similarly, errors that are described as occurring on writes of a
 variable are intended to apply to all form of writes.
 
-It is a compile time error to assign a value to a local variable marked `final`
-unless the variable is **definitely unassigned**, or the variable is marked
-`late`. Conversely, it is not a compile time error to write to a `final` local
-variable if that variable is **definitely unassigned**.
+It is a compile time error to assign a value to a `final`, non-`late` local
+variable which is not **definitely unassigned**.  Thus, it is *not* an error to
+assign to a **definitely unassigned** `final` local variable.
 
-It is a compile time error to assign a value to a local variable marked `final`
-and `late` if the variable is **definitely assigned**.  Conversely, it is not a
-compile time error to write to a `final` local variable if that variable is
-declared `late`, and is not **definitely assigned**.
+It is a compile time error to assign a value to a `final`, `late` local variable
+if it is **definitely assigned**. Thus, it is *not* an error to assign to a
+*not* **definitely assigned** `final`, `late` local variable.
 
 *Note that a variable is always considered definitely assigned and not
 definitely unassigned if it has an explicit initializer, or an implicit
