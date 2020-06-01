@@ -298,12 +298,12 @@ The function **futureValueType** is defined as follows:
 - **futureValueType**(`Future<S>`) = `S`, for all `S`.
 - **futureValueType**(`FutureOr<S>`) = `S`, for all `S`.
 - **futureValueType**(`void`) = `void`.
+- **futureValueType**(`dynamic`) = `dynamic`.
 - Otherwise, for all `S`, **futureValueType**(`S`) = `Object?`.
 
 _Note that it is a compile-time error unless the return type of an asynchronous
 non-generator function is a supertype of `Future<Never>`, which means that
-the last case will only be applied when `S` is `Object` or a non-`void` top
-type._
+the last case will only be applied when `S` is `Object` or a top type._
 
 ### Return statements
 
