@@ -9,7 +9,10 @@ https://docs.google.com/document/d/11Xs0b4bzH6DwDlcJMUcbx4BpvEKGz8MVuJWEfo_mirE/
 
 ## CHANGELOG
 
-2019.01.16
+2020.06.02
+  - Specify the interaction between downwards inference and promotion/demotion.
+
+2020.01.16
   - Modify `restrictV` to make a variable definitely assigned in a try block or
     a finally block definitely assigned after the block.
   - Clarify that initialization promotion does not apply to formal parameters.
@@ -432,36 +435,22 @@ Definitions:
   - Else if `T` is `FutureOr<R>` and `R <: S` then `factor(Future<R>, S)`
   - Else `T`
 
-Questions:
- - The interaction between assignment based **promotion** and downwards inference is
-   probably managable.  I think doing downwards inference using the current
-   type, and then promoting the variable afterwards is fine for all reasonable
-   cases.
- - The interaction between assignment based **demotion** and downwards inference is
-   a bit trickier.  In so far as it is manageable, I think it would need to be
-   done as follows, given `x = E` where `x` has current type `S`.
-     - Infer `E` in context `S`
-     - if the inferred type of `E` is `T` and `S <: T` and the demotion policy
-     applies, then instead of treating this as `x = (E as S)` (or an error),
-     then instead treat `x` as promoted to `S` in the scope of the assigment.
+#### Interactions between downwards inference and promotion
 
-   - if a variable is tested before it is initialized, we must choose whether to
-    honor the type test or the assignment.  Above I've chosen to prefer type
-    test based promotion.  Examples:
-    ```
-      test1() {
-        var x;
-        if (x is num) {
-           x = 3; // not an initializing promotion, since it's already promoted
-        }
-      }
-      test2() {
-        var x;
-        if (x is String) {
-           x = 3; // not an initializing promotion, nor an assignment promotion
-        }
-      }
-     ```
+Given an assignment (or composite assignment) `x = E` where `x` has current type
+`S` (possibly the result of promotion), inference and promotion interact as
+follows.
+  - Inference for `E` is done as usual, using `S` as the downwards typing
+    context.  All reference to `x` within `E` are treated as having type `S` as
+    usual.
+  - Let `T` be the resulting inferred type of `E`.
+  - If `T` is assignable to `S` then no further work is required.
+  - Otherwise, the assignment is treated as an assignment of an expression of
+    type `T` to a variable of type `S`, that is:
+    - If the demotion policy applies, treat the assignment as a demoting
+      assignment which demotes `x` to `T`.
+    - Otherwise, it is an error, unless `T` is dynamic, in which case it is an
+      implicit downcast.
 
 ## Flow analysis
 
