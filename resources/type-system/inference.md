@@ -216,7 +216,7 @@ unlike normal fields, the initializer for a `late` field may reference `this`.
 
 Function literals which are inferred in an empty typing context (see below) are
 inferred using the declared type for all of their parameters.  If a parameter
-has no declared type, it is treated as if it was declared with type `dynamic.
+has no declared type, it is treated as if it was declared with type `dynamic`.
 Inference for each returned expression in the body of the function literal is
 done in an empty typing context (see below).
 

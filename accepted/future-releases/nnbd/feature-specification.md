@@ -1228,12 +1228,12 @@ appear in reified positions.
 ### Typedefs defined in legacy libraries used in opted-in libraries
 
 A typedef which is define in a legacy library and used in an opted-in library is
-treated defining a function type all of the components of which are treated as
-legacy, but which is treated as non-nullable at the top level.  Hence given the
-following program, it is an error to assign a nullable value to a variable of
-type `F` in an opted-in library, but any function which is compatible with a
-legacy function of type `int* Function(int*)` may be assigned to such a
-variable.
+treated as defining a function type, all of the components of which are
+legacy. The function type itself is treated as non-nullable (and not legacy) at
+the top level.  Hence given the following program, it is an error to assign a
+nullable value to a variable of type `F` in an opted-in library, but any
+function which is compatible with a legacy function of type `int*
+Function(int*)` may be assigned to such a variable.
 
 ```dart
 // Opted-out library "opted_out.dart".

@@ -444,13 +444,8 @@ follows.
     context.  All reference to `x` within `E` are treated as having type `S` as
     usual.
   - Let `T` be the resulting inferred type of `E`.
-  - If `T` is assignable to `S` then no further work is required.
-  - Otherwise, the assignment is treated as an assignment of an expression of
-    type `T` to a variable of type `S`, that is:
-    - If the demotion policy applies, treat the assignment as a demoting
-      assignment which demotes `x` to `T`.
-    - Otherwise, it is an error, unless `T` is dynamic, in which case it is an
-      implicit downcast.
+  - The assignment is treated as an assignment of an expression of type `T` to a
+    variable of type `S`, with the usual promotion, demotion and errors applied.
 
 ## Flow analysis
 
