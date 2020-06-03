@@ -164,7 +164,7 @@ rest of top level inference if desired.
 
 ##### Method override inference
 
-A method `m` of a class `C` which is subject to override inference is
+A method `m` of a class `C` is subject to override inference if it is
 missing one or more component types of its signature, and one or more of
 the direct superinterfaces of `C` has a member named `m` (*that is, `C.m`
 overrides one or more declarations*).  Each missing type is filled in with
@@ -183,42 +183,55 @@ declaration of `m` in `C`, it is treated as `dynamic` (*e.g., this occurs
 when overriding a one parameter method with a method that takes a second
 optional parameter*).
 
+*Note that override inference does not provide other properties of a
+parameter than the type. E.g., it does not make a parameter `required`
+based on overridden declarations. This property must then be specified
+explicitly if needed.*
+
 
 ##### Instance field, getter, and setter override inference
 
 The inferred type of a getter, setter, or field is computed as follows.  Note
 that we say that a setter overrides a getter if there is a getter of the same
 name in some superclass or interface (explicitly declared or induced by an
-instance variable declaration), and similarly for setters overriding getters,
+instance variable declaration), and similarly for getters overriding setters,
 fields, etc.
 
-The return type of a getter, parameter type of a setter or type of a field which
-overrides/implements only a getter is inferred to be the result type of the
-overridden getter.
+The return type of a getter, parameter type of a setter or type of a field
+which overrides/implements only one or more getters is inferred to be the
+return type of the combined member signature of said getter in the direct
+superinterfaces.
 
-The return type of a getter, parameter type of a setter or type of a field which
-overrides/implements only a setter is inferred to be the parameter type of the
-overridden setter.
+The return type of a getter, parameter type of a setter or type of a field
+which overrides/implements only one or more setters is inferred to be the
+parameter type of the combined member signature of said setter in the
+direct superinterfaces.
 
 The return type of a getter which overrides/implements both a setter and a
-getter is inferred to be the result type of the overridden getter.
+getter is inferred to be the return type of the combined member signature
+of said getter in the direct superinterfaces.
 
-The parameter type of a setter which overrides/implements both a setter and a
-getter is inferred to be the parameter type of the overridden setter.
+The parameter type of a setter which overrides/implements both a setter and
+a getter is inferred to be the parameter type of the combined member
+signature of said setter in the direct superinterfaces.
 
-The type of a final field which overrides/implements both a setter and a getter
-is inferred to be the result type of the overridden getter.
+The type of a final field which overrides/implements both a setter and a
+getter is inferred to be the return type of the combined member signature
+of said getter in the direct superinterfaces.
 
-The type of a non-final field which overrides/implements both a setter and a
-getter is inferred to be the parameter type of the overridden setter if this
-type is the same as the return type of the overridden getter (if the types are
-not the same then inference fails with an error).
+The type of a non-final field which overrides/implements both a setter and
+a getter is inferred to be the parameter type of the combined member
+signature of said setter in the direct superinterfaces, if this type is the
+same as the return type of the combined member signature of said getter in
+the direct superinterfaces. If the types are not the same then inference
+fails with an error.
 
 Note that overriding a field is addressed via the implicit induced getter/setter
 pair (or just getter in the case of a final field).
 
 Note that `late` fields are inferred exactly as non-`late` fields.  However,
 unlike normal fields, the initializer for a `late` field may reference `this`.
+
 
 ## Function literal return type inference.
 
