@@ -6,6 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
+2020..06.02
+  - Fix the diff to the spec for potentially constant instance checks
+  - Specify that extensions do not apply to values of type `Never`
+  - Specify the treatment of typedefs from legacy libraries
+
 2020.05.20
   - Turn new references to `CastError` into being dynamic type errors.
 
@@ -702,8 +707,12 @@ class G<T> {
 
 For the purposes of extension method resolution, there is no special treatment
 of nullable types with respect to what members are considered accessible.  That
-is, the only members of a nullable tyhpe that are considered accessible
+is, the only members of a nullable type that are considered accessible
 (and hence which take precedence over extensions) are the members on `Object`.
+
+For the purposes of extension method resolution, the type `Never` is considered
+to implement all members, and hence no extension may apply to an expression of
+type `Never`.
 
 ### Assignability
 
@@ -756,7 +765,8 @@ We change the following specification text:
 to
 
 ```
-\item An expression of the form \code{$e$\,\,as\,\,$T$} is potentially constant
+\item An expression of the form \code{$e$\,\,as\,\,$T$} or
+  \code{$e$\,\,is\,\,$T$} is potentially constant
   if $e$ is a potentially constant expression
   and $T$ is a potentially constant type expression,
   and it is further constant if $e$ is constant.
@@ -1214,6 +1224,31 @@ parameter, local variable type, or closure type is inferred to be a type `T`,
 all occurrences of `S*` in `T` shall be replaced with `S`.  As a result, legacy
 types will never appear as type annotations in opted-in libraries, nor will they
 appear in reified positions.
+
+### Typedefs defined in legacy libraries used in opted-in libraries
+
+A typedef which is define in a legacy library and used in an opted-in library is
+treated as defining a function type, all of the components of which are
+legacy. The function type itself is treated as non-nullable (and not legacy) at
+the top level.  Hence given the following program, it is an error to assign a
+nullable value to a variable of type `F` in an opted-in library, but any
+function which is compatible with a legacy function of type `int*
+Function(int*)` may be assigned to such a variable.
+
+```dart
+// Opted-out library "opted_out.dart".
+typedef F = int Function(int);
+
+// Opted-in library "main.dart"
+import "opted_out.dart";
+
+int? f1(int x) => x;
+
+void test() {
+    F f = null; // Static error
+    f = f1;  // No error
+}
+```
 
 ### Exports
 

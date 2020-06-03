@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.06.02
+  - Account for the special treatment of bottom types during function literal
+  inference.
+
 2020.05.27
   - Update function literal return type inference to use
     **futureValueTypeSchema**.
@@ -217,10 +221,17 @@ Inference for each returned expression in the body of the function literal is
 done in an empty typing context (see below).
 
 Function literals which are inferred in an non-empty typing context where the
-context type is a function type are inferred as follows.  Each parameter is
-assumed to have its declared type if present, or the type taken from the
-corresponding parameter (if any) from the typing context if not present.  The
-return type of the context function type is used at several points during
+context type is a function type are inferred as described below.
+
+Each parameter is assumed to have its declared type if present.  If no type is
+declared for a parameter and there is a corresponding parameter in the context
+type schema with type schema `K`, the parameter is given an inferred type `T`
+where `T` is derived from `K` as follows.  If the greatest closure of `K` is `S`
+and `S` is a subtype of `Null`, then `T` is `Object?`.  Otherwise, `T` is `S`.
+If there is no corresponding parameter in the context type schema, the variable
+is treated as having type `dynamic`.
+
+The return type of the context function type is used at several points during
 inference.  We refer to this type as the **imposed return type
 schema**. Inference for each returned or yielded expression in the body of the
 function literal is done using a context type derived from the imposed return
