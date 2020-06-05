@@ -638,6 +638,10 @@ It is a compile time error to read a local variable when the variable is
 **definitely unassigned** unless the variable is non-final and has nullable
 type.  This includes variables marked `late` and/or `final`.
 
+It is a compile time error to read a local variable when the variable is not
+**definitely assigned** unless the variable is non-final and has nullable type
+or is `late`.
+
 The erors specified above are summarized in the following table (using `int` as
 an example non-nullable type).  A variable which has an initializer (explicit or
 implicit) is always considered definitely assigned, and is never considered
