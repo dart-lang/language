@@ -639,20 +639,22 @@ It is a compile time error to read a local variable when the variable is
 type.  This includes variables marked `late` and/or `final`.
 
 It is a compile time error to read a local variable when the variable is not
-**definitely assigned** unless the variable is non-final and has nullable type
-or is `late`.
+**definitely assigned** unless the variable is non-final and has nullable type,
+or is `late`, or is declared using `var` with no type and no initializer.
 
 The erors specified above are summarized in the following table (using `int` as
 an example non-nullable type).  A variable which has an initializer (explicit or
 implicit) is always considered definitely assigned, and is never considered
-definitely unassigned.
+definitely unassigned.  Note that the `var x` form may only be read in the "not
+definitely assigned" state when it has been subject to initialization promotion
+as described below.
 
 
 Read Errors:
 
 | Declaration form  | Def. Assigned | Neither           | Def. Unassigned |
 | ----------------- | ------------- | ----------------- | --------------- |
-| var x;            | Ok            | Error             | Error           |
+| var x;            | Ok            | Ok/Error          | Error           |
 | final x;          | Ok            | Error             | Error           |
 | int x;            | Ok            | Error             | Error           |
 | int? x;           | Ok            | Ok                | Ok              |
@@ -707,6 +709,8 @@ case that the type of the initializer is a promoted type variable `X & T`, the
 inferred type of the variable shall be `X`.  However, such a variable shall be
 treated as immediately promoted to `X & T`.
 
+#### Untyped variables
+
 Local variables with no explicitly written type and no initializer are subject
 to further promotion based inference.  The variables under consideration here
 are those declared as `var x;`, `final x;`, `late var x;`, or `late final x;`.
@@ -732,13 +736,13 @@ void test() {
 At a join point in the program, it is an error if an **untyped variable** has
 been given an **initialization inferred type** on one of the reachable paths to
 the join point and not on another reachable path, unless the variable is
-declared as `late`.  Note that it is valid for a variable to have no
-**initialization inferred type** on a path into a join point which is known to
-be unreachable.
+declared as `late`, or using `var`.  Note that it is valid for a variable to
+have no **initialization inferred type** on a path into a join point when the
+join point is known to be unreachable along that path.
 
 ```dart
 void test(bool b) {
-  var x; // x is an untyped variable
+  final x; // x is an untyped variable
   if (b) {
     x = 3;
   } // Error, x has not been given an inferred type on all paths
@@ -748,7 +752,7 @@ void test(bool b) {
     y = 3;
   } // Ok, y has inferred type `int`
 
-  var z;
+  final z;
   if (b) {
      z = 3;
   } else {
@@ -758,53 +762,114 @@ void test(bool b) {
 ```
 
 At a join point in the program, if an **untyped variable** has been given an
-**initialization inferred type** on more than one of the reachable paths to the
-join point and all of such **initialization inferred types** are syntactically
-equal, the variable is treated after the join point as having that
-**initialization inferred type**.  The promoted type chains for the variable on
-the respective paths are then intersected as usual.
+**initialization inferred type** on all of the reachable paths into the join and
+at least one of the paths is reachable, then the **initialization inferred
+type** for the variable after the join point is computed as follows:
+  - If the **initialization inferred type** on each reachable path is the same
+    type `T` (using syntactic equality), then the **initialization inferred
+    type** after the join is `T`.
+  - If the **initialization inferred type** on one or more reachable paths is
+    the same type `T` (using syntactic equality), and the **initialization
+    inferred type** on all other reachable paths is `Null`, then the
+    **initialization inferred type** after the join is `T?`.
+  - Otherwise, it is an error.
+
+In other words, if an **untyped** variable of any kind is assigned on all paths
+into the join, it must be assigned either a value of the same type, or a value
+of type `Null`, on all paths; and if the variable is assigned a value of type
+`Null` on any path, then the variable is treated as having nullable type.
 
 At a join point in the program, if an **untyped variable** has been given an
-**initialization inferred type** on more than one of the reachable paths to the
-join point and any two such **initialization inferred types** are not
-syntactically equal, it is an error.
+**initialization inferred type** on some but not all of the reachable paths into
+the join, then the **initialization inferred type** for the variable after the
+join point is computed as follows:
+  - If the variable is declared `final` and not `late` it is an error, and there
+    is no **initialization inferred type** after the join.
+  - If the variable is declared `late` and the **initialization inferred type**
+    on each path which has one is the same type `T` (using syntactic equality),
+    then the **initialization inferred type** after the join is `T`.
+  - If the variable is declared `late` and/or `var` and the **initialization
+    inferred type** on one or more paths is the same type `T` (using syntactic
+    equality), and the **initialization inferred type** on one or more paths is
+    `Null`, then the **initialization inferred type** after the join is `T?`.
+  - If the variable is declared `var` and not `late` and the **initialization
+    inferred type** on one or more paths is the same type `T` (using syntactic
+    equality), and the **initialization inferred type** on all other paths (if
+    any) is `Null`, then the **initialization inferred type** after the join is
+    `T?`.
+  - Otherwise it is an error.
+
+In other words, a non-`late`, `final` **untyped** variable must be assigned a
+value on every path, but a variable declared `late` and/or `var` may be assigned
+a value on only some of the paths into a join.  In the latter case, the type is
+made nullable if the variable is declared as non-`late`, and the variable is
+treated as implicitly null initialized.  Variables declared `late` are only made
+nullable if `Null` is explicitly assigned on one more paths into the join, and
+there is no implicit null initialization.  In all cases, the values assigned
+must all have the same type, or type `Null`.
 
 
 ```dart
 void test(bool b) {
-  var x; // x is an untyped variable
-  if (b) {
-    x = 3;
-  } else {
-    x = 3.0;
-  } // Error: x has two different types on different paths
-
-  late var y; // y is a late untyped variable
-  if (b) {
+  { // late and/or final the same
+    var x; // x is an untyped variable
     if (b) {
-      y = 3;
+      x = 3;
     } else {
-      y = 3.0;
-    } // Error: y has two different types on different paths
+      x = 3.0;
+    } // Error: x has two different types on different paths
   }
 
- var z; // z is an untyped variable
- if (b) {
-   z = 3; // z is promoted to int
- } else {
-   z = 3.0; // z is promoted to double
-   return;
- } // No error.  z is inferred as int on the only reachable path
- z.isEven; // No error, only one reachable path
+  { // late and/or final the same
+    var x; // x is an untyped variable
+    if (b) {
+      x = 3;
+    } else {
+      x = null;
+    } // x has type int?
+  }
 
- var u; // u is an untyped variable
- if (b) {
-   u = 0 as num; // u is promoted to num
-   if (u is! int) u = 1;
-   // u has inferred type num, but is promoted to int
- } else {
-   u = 3;
- } // Error: u is inferred to different types on different paths
+  {
+    var x; // x is an untyped variable
+    if (b) {
+      x = 3;
+    }
+    // x has type int?
+  }
+
+  {
+    final x; // x is an untyped variable
+    if (b) {
+      x = 3;
+    }
+    // Error: not assigned on all paths
+  }
+
+  { // late final the same
+    late x; // x is an untyped variable
+    if (b) {
+      x = 3;
+    }
+    // x has type int
+  }
+
+  var z; // z is an untyped variable
+  if (b) {
+    z = 3; // z is promoted to int
+   } else {
+    z = 3.0; // z is promoted to double
+    return;
+  } // No error.  z is inferred as int on the only reachable path
+  z.isEven; // No error, only one reachable path
+
+  var u; // u is an untyped variable
+  if (b) {
+    u = 0 as num; // u is promoted to num
+    if (u is! int) u = 1;
+    // u has inferred type num, but is promoted to int
+  } else {
+    u = 3;
+  } // Error: u is inferred to different types on different paths
 }
 ```
 
@@ -814,23 +879,39 @@ inferred type**.
 
 ```dart
 void test(bool b) {
-  var x; // x is an untyped variable
-  print(x); // Error, no initialization inferred type
+  {
+    var x; // x is an untyped variable
+    print(x); // Error, no initialization inferred type
+  }
 
-  late var y; // y is a late untyped variable
-  var f = () => print(y); // Error, y has no initialization inferred type
+  {
+    late var x; // x is an untyped variable
+    var f = () => print(x); // Error, x has no initialization inferred type
+  }
 
-
-  var z;
-  do {
-    // z is potentially assigned.
+  {
+    var x; // x is an untyped variable
     if (b) {
-      z = 42;
+      print(x); // Error: x has no initialization inferred type.
+      x = 3;
     } else {
-      z = 37;
-    }
-  } while (something);
-  print(z); // Error, z has no initialization inferred type
+      x = 4;
+    } // x is inferred as type int
+    print(x); // No error here, since x has been inferred at this point
+  }
+
+  {
+    var z;
+    do {
+      // z is potentially assigned.
+      if (b) {
+        z = 42;
+      } else {
+        z = 37;
+      }
+    } while (something);
+    print(z); // Error, z has no initialization inferred type
+  }
 ```
 
 As a consequence of the above it is impossible, in an error-free program, to
