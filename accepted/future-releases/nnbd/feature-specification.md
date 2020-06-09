@@ -612,8 +612,10 @@ It is a warning to use the null check operator (`!`) on an expression of type
 ### Local variables and definite (un)assignment.
 
 As part of the null safety release, errors for local variables are specified to
-take into account **definite assignment** and **definite unassignment** (see
-the section on Definite Assignment below).
+take into account **definite assignment** and **definite unassignment** (see the
+section on Definite Assignment below).  We say that a variable is **potentially
+assigned** if it is not **definitely unassigned**, and that a variable is
+**potentially unassigned** if it is not **definitely assigned**.
 
 In all cases in this section, errors that are described as occurring on reads of
 a variable are intended to apply to all form of reads, including indirectly as
@@ -622,35 +624,37 @@ operators.  Similarly, errors that are described as occurring on writes of a
 variable are intended to apply to all form of writes.
 
 It is a compile time error to assign a value to a `final`, non-`late` local
-variable which is not **definitely unassigned**.  Thus, it is *not* an error to
+variable which is **potentially assigned**.  Thus, it is *not* an error to
 assign to a **definitely unassigned** `final` local variable.
 
 It is a compile time error to assign a value to a `final`, `late` local variable
 if it is **definitely assigned**. Thus, it is *not* an error to assign to a
-*not* **definitely assigned** `final`, `late` local variable.
+**potentially unassigned** `final`, `late` local variable.
 
-*Note that a variable is always considered definitely assigned and not
-definitely unassigned if it has an explicit initializer, or an implicit
+*Note that a variable is always considered **definitely assigned** and not
+**definitely unassigned** if it has an explicit initializer, or an implicit
 initializer as part of a larger construct (e.g. the loop variable in a `for in`
-construct).
+construct).*
 
 It is a compile time error to read a local variable when the variable is
 **definitely unassigned** unless the variable is non-final and has nullable
-type.  This includes variables marked `late` and/or `final`.
+type.
 
-It is a compile time error to read a local variable when the variable is not
-**definitely assigned** unless the variable is non-final and has nullable type,
-or is `late`, or is declared using `var` with no type and no initializer.
+It is a compile time error to read a local variable when the variable is
+**potentially unassigned** unless the variable is non-final and has nullable
+type, or is `late`, or is declared using `var` with no type and no initializer.
 
-The erors specified above are summarized in the following table (using `int` as
-an example non-nullable type).  A variable which has an initializer (explicit or
+The errors specified above are summarized in the following table, where `int` is
+used as an example of an arbitrary **potentially non-nullable** type, `int?` is
+used as an example of an arbitrary **nullable** type, and `T` is used to stand
+for a type of any nullability.  A variable which has an initializer (explicit or
 implicit) is always considered definitely assigned, and is never considered
-definitely unassigned.  Note that the `var x` form may only be read in the "not
-definitely assigned" state when it has been subject to initialization promotion
-as described below.
+definitely unassigned.  Note that the `var x` form may only be read in the
+**potentially unassigned** state when it has been subject to initialization
+promotion as described below.
 
 
-Read Errors:
+Read Behavior:
 
 | Declaration form  | Def. Assigned | Neither           | Def. Unassigned |
 | ----------------- | ------------- | ----------------- | --------------- |
@@ -658,14 +662,13 @@ Read Errors:
 | final x;          | Ok            | Error             | Error           |
 | int x;            | Ok            | Error             | Error           |
 | int? x;           | Ok            | Ok                | Ok              |
-| final int x;      | Ok            | Error             | Error           |
-| final int? x;     | Ok            | Error             | Error           |
+| final T x;        | Ok            | Error             | Error           |
 | late var x;       | Ok            | Ok                | Error           |
 | late final x;     | Ok            | Ok                | Error           |
-| late int x;       | Ok            | Ok                | Error           |
-| late final int x; | Ok            | Ok                | Error           |
+| late T x;         | Ok            | Ok                | Error           |
+| late final T x;   | Ok            | Ok                | Error           |
 
-Write Errors:
+Write Behavior:
 
 | Declaration form  | Def. Assigned | Neither             | Def. Unassigned |
 | ----------------- | ------------- | ------------------- | --------------- |
@@ -673,12 +676,11 @@ Write Errors:
 | final x;          | Error         | Error               | Ok              |
 | int x;            | Ok            | Ok                  | Ok              |
 | int? x;           | Ok            | Ok                  | Ok              |
-| final int x;      | Error         | Error               | Ok              |
-| final int? x;     | Error         | Error               | Ok              |
+| final T x;        | Error         | Error               | Ok              |
 | late var x;       | Ok            | Ok                  | Ok              |
 | late final x;     | Error         | Ok                  | Ok              |
-| late int x;       | Ok            | Ok                  | Ok              |
-| late final int x; | Error         | Ok                  | Ok              |
+| late T x;         | Ok            | Ok                  | Ok              |
+| late final T x;   | Error         | Ok                  | Ok              |
 
 ### Local variables and initialization based inference
 
@@ -704,10 +706,12 @@ void test() {
 ```
 
 Local variables with no explicitly written type but with an initializer are
-given an inferred declared type equal to the type of their initializer.  In the
-case that the type of the initializer is a promoted type variable `X & T`, the
-inferred type of the variable shall be `X`.  However, such a variable shall be
-treated as immediately promoted to `X & T`.
+given an inferred type equal to the type of their initializer.  The inferred
+type of the variable is considered a "type of interest" in the sense defined in
+the flow analysis specification.  In the case that the type of the initializer
+is a promoted type variable `X & T`, the inferred type of the variable shall be
+`X`.  However, such a variable shall be treated as immediately promoted to `X &
+T`.
 
 #### Untyped variables
 
@@ -761,6 +765,18 @@ void test(bool b) {
 }
 ```
 
+At join points, some adjustment to the **initialization inferred type** is done
+to account for nullability.  Informally, a non-`late`, `final` **untyped**
+variable must be assigned a value on every path, but a variable declared `late`
+and/or `var` may be assigned a value on only some of the paths into a join.  In
+the latter case, the type is made nullable if the variable is declared as
+non-`late`, and the variable is treated as implicitly null initialized.
+Variables declared `late` are only made nullable if `Null` is explicitly
+assigned on one more paths into the join, and there is no implicit null
+initialization.  In all cases, the values assigned must all have the same type,
+or type `Null`.  More precisely, the **initialization inferred type** of a
+variable after a join point is specified as follows.
+
 At a join point in the program, if an **untyped variable** has been given an
 **initialization inferred type** on all of the reachable paths into the join and
 at least one of the paths is reachable, then the **initialization inferred
@@ -785,28 +801,14 @@ the join, then the **initialization inferred type** for the variable after the
 join point is computed as follows:
   - If the variable is declared `final` and not `late` it is an error, and there
     is no **initialization inferred type** after the join.
-  - If the variable is declared `late` and the **initialization inferred type**
-    on each path which has one is the same type `T` (using syntactic equality),
-    then the **initialization inferred type** after the join is `T`.
-  - If the variable is declared `late` and/or `var` and the **initialization
-    inferred type** on one or more paths is the same type `T` (using syntactic
-    equality), and the **initialization inferred type** on one or more paths is
-    `Null`, then the **initialization inferred type** after the join is `T?`.
-  - If the variable is declared `var` and not `late` and the **initialization
-    inferred type** on one or more paths is the same type `T` (using syntactic
-    equality), and the **initialization inferred type** on all other paths (if
-    any) is `Null`, then the **initialization inferred type** after the join is
-    `T?`.
+  - Otherwise, if the variable is declared `late` and the **initialization
+    inferred type** on each path which has one is the same type `T` (using
+    syntactic equality), then the **initialization inferred type** after the
+    join is `T`.
+  - Otherwise, if the **initialization inferred type** on each path into the
+    `join` which has one is either `T`, `T?`, or `Null` for some type `T`, the
+    **initialization inferred type** after the join is `T?`.
   - Otherwise it is an error.
-
-In other words, a non-`late`, `final` **untyped** variable must be assigned a
-value on every path, but a variable declared `late` and/or `var` may be assigned
-a value on only some of the paths into a join.  In the latter case, the type is
-made nullable if the variable is declared as non-`late`, and the variable is
-treated as implicitly null initialized.  Variables declared `late` are only made
-nullable if `Null` is explicitly assigned on one more paths into the join, and
-there is no implicit null initialization.  In all cases, the values assigned
-must all have the same type, or type `Null`.
 
 
 ```dart
