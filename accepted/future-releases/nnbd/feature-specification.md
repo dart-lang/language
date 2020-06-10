@@ -726,14 +726,16 @@ are those declared as `var x;`, `final x;`, `late var x;`, or `late final x;`.
 We refer to such variables as **untyped variables**.
 
 An **initializing assignment** is an assignment to an **untyped variable** when
-that variable is in the **definitely unassigned** state.  Such an assignment on
-a path shall cause the variable in question to be treated by the flow analysis
-on that path as if it were declared with the assigned expression as its
-initializing expression, up until the next join point in the program.  We refer
-to this inferred type as the **initialization inferred type** of the variable.
-The **initialization inferred type** of the variable is always treated as a
-**type of interest** for the purposes of promotion (including its non-nullable
-version if applicable).
+that variable is in the **definitely unassigned** state, and the variable would
+have been promoted if it had been declared with type `Object?` and the type of
+the assigned expression were a type of interest for the variable.  Such an
+assignment on a path shall cause the variable in question to be treated by the
+flow analysis on that path as if it were declared with the assigned expression
+as its initializing expression, up until the next join point in the program.  We
+refer to this inferred type as the **initialization inferred type** of the
+variable.  The **initialization inferred type** of the variable is always
+treated as a **type of interest** for the purposes of promotion (including its
+non-nullable version if applicable).
 
 ```dart
 void test() {
