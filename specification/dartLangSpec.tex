@@ -5051,7 +5051,8 @@ that are similar to instance methods in use,
 but similar to non-method functions in that
 they are declared outside the target class, in a static extension,
 and they are resolved statically,
-based on whether the relevant static extension is in scope.
+based on whether the relevant static extension is in scope,
+and whether the invocation satisfies several other requirements.
 
 \begin{grammar}
 <staticExtensionDeclaration> ::=
@@ -5064,27 +5065,83 @@ A declaration derived from \synt{staticExtensionDeclaration} is known as a
 \IndexCustom{static extension declaration}{static extension!declaration}.
 It introduces a
 \Index{static extension}
-with the given name into the namespace of the enclosing library
+with the given \synt{identifier}, if present,
+into the namespace of the enclosing library
 (\commentary{and hence into the library scope}),
 and provides a scope for the declaration of
 static extension members.
-If no name is given,
-the static extension is treated as having a fresh, private name.
+Additionally,
+the static extension is introduced into the library namespace
+with a fresh, private name.
+The former is known as the
+\IndexCustom{declared name}{static extension!declared name}
+of the static extension,
+and the latter is known as the
+\IndexCustom{fresh name}{static extension!fresh name}
+of the static extension.
+
+%% TODO(eernst): When https://github.com/dart-lang/language/pull/534 lands,
+%% this paragraph should perhaps be moved into \ref{imports}.
+\LMHash{}%
+When the current library $L$ imports a library $L'$ such that
+the imported namespace from $L'$ contains a name $n$ denoting
+a static extension $E$,
+a fresh private name $n_f$ is added to
+the library scope of the current library,
+bound to $E$.
+\commentary{%
+This implies that $n$ is a public name exported by $L'$
+which is not removed using a \HIDE{} or \SHOW{} clause on the given import.%
+}
+The name $n_f$ is known as the
+\NoIndex{fresh name}
+of $E$ in the current library.
+
+\commentary{%
+This means that the declared name of $E$ is
+in the library scope of the current library
+following the same rules as the names of
+other imported public declarations like classes.
+%
+When the declared name of $E$ is imported,
+the fresh name of $E$ in the current library is also created.
+%
+However, the fresh name of $E$ is created in one \emph{additional} case,
+namely when there is a name clash with some other imported library
+on the declared name of $E$,
+in which case it is an error to use the declared name.%
+}
+
+\commentary{%
+The fresh name makes it possible for a static extension to be used
+even in the case where the declared name is omitted,
+or the declared name is shadowed by a declaration in an intermediate scope,
+namely in an implicit invocation
+(\ref{implicitStaticExtensionInvocations}).%
+}
+
+\rationale{%
+The fact that a static extension can be used implicitly even in the case where
+it does not have a declared name or the declared name is shadowed or conflicted
+reflects the fact that the primary intended usage is implicit invocation.
+Even though a developer cannot know (and hence cannot use) the fresh name
+of a given static extension, an implicit invocation can use it.%
+}
 
 \LMHash{}%
-The \synt{identifier}, if present, is known as the static extension's
-\IndexCustom{name}{static extension!name},
-and the \synt{type} is known as the static extension's
+The \synt{type} in a static extension declaration
+is known as the static extension's
 \IndexCustom{\ON{} type}{static extension!\ON{} type}.
+The \ON{} type can be any valid type, including a type variable.
 
 \commentary{%
 The basic intuition is that a static extension \code{E} may have
 an \ON{} type $T$ (specifying the type of receiver) and a set of members.
 If $e$ is an expression whose static type is $T$
 and \code{foo()} is a member declared by \code{E},
-\code{$e$.foo()} invokes said member with the value of $e$ bound to \THIS{}.
+\code{$e$.foo()} may invoke said member with the value of $e$ bound to \THIS{}.
 An explicitly resolved form \code{E($e$).foo()} is available,
-such that \code{E.foo} can be invoked even in the case, e.g.,
+such that \code{E.foo} can be invoked even in the case
 where \code{$e$.foo()} would invoke some other function
 because some other static extension is more specific.
 Details of these concepts, rules, and mechanisms are given
@@ -5092,66 +5149,61 @@ in this section and its subsections.%
 }
 
 \LMHash{}%
-The name of a static extension does not denote a type,
+The declared name of a static extension does not denote a type,
 but it can be used to denote the static extension itself
 (\commentary{%
-  e.g., in order to access static members of the static extension,
-  or in order to resolve an invocation explicitly%
+e.g., in order to access static members of the static extension,
+or in order to resolve an invocation explicitly%
 }).
-A compile-time error occurs if a static extension name is a built-in identifier.
+A compile-time error occurs if the declared name of a static extension
+is a built-in identifier.
 
 \LMHash{}%
-The current scope for a static extension is
+The current scope for a static extension declaration is
 the library scope of the enclosing library.
 %
-A static extension may be generic
+A static extension declaration may be generic
 (\ref{generics}),
 which introduces the static extension's
-\IndexCustom{type parameter scope}{extension!type parameter scope},
+\IndexCustom{type parameter scope}{static extension!type parameter scope},
 which has the library scope as its enclosing scope.
 The type parameter scope is the current scope for
-the type parameters and for the extension's \ON{} \synt{type},
+the type parameters and for the static extension's \ON{} \synt{type},
 if it exists,
 otherwise the library scope is their current scope.
 %
-The current scope for the members is the static extension's
-\IndexCustom{body scope}{extension!body scope},
+The current scope for the member declarations is the static extension's
+\IndexCustom{body scope}{static extension!body scope},
 which has the type parameter scope as its enclosing scope if it exists,
 and otherwise the library scope.
 
 \LMHash{}%
-The \ON{} type can be any valid type, including a type variable.
-
-\commentary{%
-The \ON{} type of a static extension serves to specify which type of
-expression can occur syntactically as the receiver for
-an invocation of its members.
-It also serves to define the notion of specificity
-(\ref{staticExtensionSpecificity}),
-which is needed in order to select one static extension among several
-applicable
-(\ref{staticExtensionApplicability})
-ones.%
-}
-
-\LMHash{}%
-Let $E$ be a static extension named \code{E}.
-Member naming conflict errors may occur in $E$
+Let $D$ be a static extension declaration with declared name \code{E}.
+A member declaration in $D$ with the modifier \STATIC{} is designated as a
+\IndexCustom{static member}{static extension!static member}
+declaration.
+%
+A member declaration in $D$ without the modifier \STATIC{} is designated as an
+\IndexCustom{instance member}{static extension!instance member}
+declaration.
+%
+Member naming conflict errors may occur in $D$
 in situations that also occur in classes and mixins
 (\ref{classMemberConflicts}).
 Moreover, a compile-time error occurs in the following situations:
 
 \begin{itemize}
-\item $E$ declares a member whose basename is \code{E}.
-\item $E$ declares a type parameter named \code{E}.
-\item $E$ declares a member whose basename is the name of a type parameter
-  of $E$.
-\item $E$ declares a member (static or not) with the same basename as a
+\item $D$ declares a member whose basename is \code{E}.
+\item $D$ declares a type parameter named \code{E}.
+\item $D$ declares a member whose basename is the name of a type parameter
+  of $D$.
+\item $D$ declares a member (static or not) with the same basename as a
   member declared by the built-in class \code{Object}.
-\item $E$ declares a constructor.
-\item $E$ declares an instance variable.
-\item $E$ declares an abstract member.
-\item $E$ declares a member with a formal parameter marked \COVARIANT.
+\item $D$ declares a constructor.
+\item $D$ declares an instance variable.
+\item $D$ declares an abstract member.
+\item $D$ declares a method with a formal parameter
+  with the modifier \COVARIANT.
 \end{itemize}
 
 \rationale{%
@@ -5172,389 +5224,321 @@ as in \code{E(e).toString(14)},
 which would be confusing and error-prone.%
 }
 
-\LMHash{}%
-Let \code{E} be the name of a static extension $E$.
-\code{E} is in scope using existing rules for top-level declarations.
 
-\commentary{
-As mentioned, \code{E} is added to the library namespace and scope,
-bound to $E$.
-Hence, $E$ is included in the library's exported namespace
-if{}f \code{E} is a public name.
-Morover, \SHOW{} and \HIDE{} clauses can be used to control access
-to $E$ via the name \code{E} in import directives.
-%
-Similarly, names of static extensions are subject to the same conflict
-rules as other names.
-In particular, it is a compile-time error to export two declarations
-with the same name,
-including static extensions,
-except that when the conflict is concerned with
-a declaration $D_1$ from a system library
-and a declaration $D_2$ from a non-system library
-then $D_1$ is ignored.
-%
-Static extension \emph{members} with private names are
-inaccessible in other libraries.%
-}
-
-
-\subsection{Explicit Extension Member Invocation}
-\LMLabel{explicitExtensionMemberInvocation}
-
-!!!TODO!!!
+\subsection{Explicit Invocation of an Instance Member of a Static Extension}
+\LMLabel{explicitStaticExtensionInvocations}
 
 \LMHash{}%
-A static extension member can be invoked explicitly on a particular
-object by performing a *member invocation* on an *extension
-application*.
-
-An *extension application* is an expression of the form \code{$E$(expr)} or
-\code{$E$<typeArgs>(expr)} where $E$ denotes an extension declaration (that
-is, $E$ a simple or qualified identifier which refers to the extension
-declaration).
-
-An extension application is subject to static type inference.  If $E$
-is an extension declared as \code{extension E<X...> on T \{...\}},
-then the type inference for an extension application is done exactly
-the same as it would be for the same syntax considered as a
-constructor invocation on a class declared as:
-
-\begin{dartCode}
-class E<X...> \{
-  final T target;
-  E(this.target);
-\}
-\end{dartCode}
-
-with no context type for the constructor invocation.
-
-This will infer type arguments for \code{E(expr)}, and it will
-introduce a static context type for \code{expr}.
+Let $E$ be a simple or qualified identifier that denotes a static extension.
+A \IndexCustom{static extension application}{static extension!application}
+is then an expression of the form
+\syntax{$E$ <typeArguments>? `(' <expression> `)'}.
+A static extension member with a name accessible to the current library
+can be invoked explicitly on a particular object
+by performing a member invocation
+(\ref{memberInvocations})
+where the receiver is a static extension application.
 
 \commentary{%
-For example, if $E$ is
-declared as \code{extension E<T> on Set<T> \{ ... \}} then
-\code{E({})} will provide the \code{\{\}} literal with a context
-type making it a set literal.%
+Type inference is not yet specified in this document,
+and is assumed to have taken place already
+(\ref{overview}),
+but the following describes the intended treatment.
+This section and its subsections have similar commentary about type inference
+below, marked 'With type inference: \ldots'.
+
+Let $E$ be a simple or qualified identifier denoting
+a static extension named \code{E} and declared as follows:%
 }
 
-It is a **compile-time error** if the corresponding class constructor
-invocation would be a compile-time error.
-
-It is a **compile-time error** if the static type of the argument
-expression (\code{expr}) of an explicit extension invocation is
-\VOID{}.
-
-We defined the *instantiated \ON{} type* of $E$ as the \ON{} type of the
-declaration of $E$ with the inferred or explicit type arguments of the
-extension application replacing the type parameters of $E$.
-
-We define the *instantiate-to-bounds \ON{} type* of an extension as the
-\ON{} type with type parameters replaced by the types that the
-instantiate-to-bounds algorithm would derive for any type parameters
-of the extension.
-
-A *simple member invocation* on a target expression `X` is an
-expression of one of the forms:
-
-| Member invocation on target X | Corresponding member name                                    |
-| :---------------------------- | :----------------------------------------------------------- |
-| `X.id`                        | `id`                                                         |
-| `X.id = expr2`                | `id=`                                                        |
-| `X.id(args)`                  | `id`                                                         |
-| `X.id<types>(args)`           | `id`                                                         |
-| `-X`                          | `unary-`                                                     |
-| `~X`                          | `~`                                                          |
-| `X binop expr2`               | `+`, `-`, `*`, `/` , `~/`, `%`, `<`, `<=`, `>`, `>=`, `<<`, `>>`, `>>>`, `^`, `\|`, `&` |
-| `X[expr2]`                    | `[]`                                                         |
-| `X[expr2] = expr3`            | `[]=`                                                        |
-| `X(args)`                     | `call`                                                       |
-| `X<types>(args)`              | `call`                                                       |
-
-A *composite member invocation* on a target expression `X` is an
-expression of one of the forms:
-
-| Composite member invocation on target X                | Corresponding member base name |
-| ------------------------------------------------------ | ------------------------------ |
-| `X.id binop= expr2`                                    | `id`                           |
-| `X[expr1] binop= expr2`                                | `[]`                           |
-| `X.id++`, `X.id--`, `++X.id`, `--X.id`                 | `id`                           |
-| `X[expr1]++`, `X[expr1]--`, `++X[expr1]`, `--X[expr1]` | `[]`                           |
-
-Each such simple member invocation has a corresponding member name,
-the name of the member being invoked (and its associated basename,
-which is the name without the trailing \lit{=} on setter names and
-\lit{[]=}). A composite member invokes two members, so we only care about
-the base name.
-
-It is a **compile-time error** if an extension application occurs in a
-place where it is *not* the target expression of a simple or composite
-member invocation. That is, the only valid use of an extension
-application is to invoke members on it. *This is similar to how prefix
-names can also only be used as member invocation targets. The main
-difference is that extensions can also declare operators.*
-
-Null-aware member accesses like \code{E(o)?.id} or \code{E(o)?[e]} are
-allowed, with the following meaning: \code{E(o)?.id} is treated as
-\code{let v = o in v == null ? null : E(v).id},
-and similarly for other null-aware constructs.
-
-It is a **compile-time error** to have a simple member invocation on
-an extension application where the extension in question does not
-declare an instance member with the same name as the corresponding
-member name of the invocation, and for a composite member invocation
-on an extension application where the extension does not declare both
-a getter and a setter with the corresponding base name of the
-invocation. *You can only invoke members which are actually there.*
-
-This means that you cannot do cascade invocations on explicit
-extension applications: \code{E(e)..foo()..bar()} is a compile-time
-error. This is necessary because that expression evaluates to the
-value of \code{E(e)}, and an extension application does not have a
-value.
-
-if *A* is a member invocation with an extension application of an
-extension *E* as target expression, then type inference applies to the
-member invocation. If \code{E} is declared as
-
 \begin{dartCode}
-extension E<X...> on T \{
-  ... members ...
-\}
+\EXTENSION{} E<\TypeParametersStd> on $T$ \{\,\ldots\,\}
 \end{dartCode}
 
-then the type inference on *A* is the same that would be applied to
-the member invocation on $E$ considered as a constructor invocation on
-a class declared as:
+\noindent
+\commentary{%
+Type inference for a static extension application
+of the form \code{$E$($e$)}
+is done exactly the same as it would be for
+the same syntax considered as a constructor invocation
+where $E$ is assumed to denote the following class,
+and the context type is empty (implying no requirements):%
+}
 
 \begin{dartCode}
-class E<X...> \{
+\CLASS{} E<\TypeParametersStd> \{
   final T target;
   E(this.target);
-  ... members // with inference applied to the body, including implicit extension
-              // member invocations as described in later sections,
-              // and with \code{target} instead of \THIS{} ...
 \}
 \end{dartCode}
 
-That is, if $E$ declares an instance member \code{T foo(T arg)}, then the
-inference of \code{E(e1).foo(e2)} will first perform inference to
-\code{E(e1)} as described above, and then perform inference on the
-member invocation just as if it was a class member. It is a
-**compile-time error** if this class member invocation would be a
-compile-time error.
+\noindent
+\commentary{%
+This will infer type arguments for \code{$E$($e$)}, and it will
+introduce a context type for the expression $e$.
+For example, if $E$ is declared as
+\code{\EXTENSION{} E<T> on Set<T> \{\,\ldots\,\}}
+then \code{E(\{\})} will provide the expression \code{\{\}} with
+a context type that makes it a set literal.%
+}
 
-The static type of a member invocation on an extension application is
-the return type of the extension member with the corresponding member
-name of the invocation, with the explicit or inferred type arguments
-of the extension application replacing the type parameters bound by
-the extension, and the explicit or inferred type arguments of the
-invoked member replacing the type parameters bound by the member
+\LMHash{}%
+Let $a$ be a static extension application of the form
+\code{$E$<\List{T}{1}{s}>($e$)},
+where $E$ denotes a static extension declared as
 
-\subsubsection{Composite Assignments and Increment Operations}
-\LMLabel{compositeAssignmentsAndIncrementOperations}
+\noindent
+\EXTENSION{} E<\TypeParametersStd> \ON{} $T$ \{\,\ldots\,\}.
 
-Composite member invocations, like composite assignment \code{e.id += 2} or
-increment \code{e.id++}, are defined in terms of two individual member
-invocations (always one get and one set operation). If the target
-expression of a composite member invocation is an extension
-application, we need to recognize and handle it specially.
+\LMHash{}%
+We define the
+\IndexCustom{instantiated \ON{} type}{static extension!instantiated \ON{} type}
+of $a$ as $[T_1/X_1, \ldots, T_s/X_s]T$.
+We define the
+\IndexCustom{instantiation-to-bound \ON{} type}{
+  static extension!instantiation-to-bound \ON{} type}
+of $a$ as $[U_1/X_1, \ldots, U_s/X_s]T$,
+where \List{U}{1}{s} is the result of instantiation to bound
+on the type parameters of $E$
+(\ref{instantiationToBound}).
+%
+A compile-time error occurs unless
+\SubtypeNE{T_j}{[T_1/X_1, \ldots, T_s/X_s]B_j},
+$j \in 1 .. s$
+(\commentary{that is, the bounds cannot be violated}).
+%
+A compile-time error occurs unless the static type of $e$ is assignable to
+the instantiated \ON{} type of $a$.
+\commentary{%
+Note that a compile-time error occurs as well
+if the static type of $e$ is \VOID{}
+(\ref{typeVoid}).%
+}
 
-A composite assignment of the form \code{e1.id += 2} is equivalent to
-\code{e1.id = e1.id + 2} except that \code{e1} is only evaluated once,
-and the value is used twice.
+\LMHash{}%
+It is a compile-time error if a static extension application occurs
+in a location where it is \emph{not} the syntactic receiver of
+a simple or composite member invocation
+(\ref{memberInvocations}).
 
-However, you cannot evaluate an extension invocation to a value, so we
-have to specify the case where \code{e1} is an extension invocation
-\code{E(e)} specially (just as we handle the cases where \code{e1}
-denotes a class or a prefix). We modify the evaluation rules for
-composite evaluation to account for this, ensuring that:
+\commentary{%
+That is, the only valid use of a static extension application is
+to invoke members on it.
+This is similar to how prefix names can also only be used as
+member invocation targets,
+except that static extensions can also declare operators.%
+}
 
-- An expression of the form \code{e1.id op= e2} where \code{e1} is
-  an extension application \code{E<...>(e)}, is treated as if it was
-  \code{E<...>(e).id = E<...>(e).id op e2} except that \code{e} is
-  only type-inferred and evaluate once.
-- An expression of the form \code{e1[e2] op= e3} where \code{e1} is an
-  extension application \code{E<...>(e)}, is treated as if it was
-  \code{E<...>(e)[e2] = E<...>(e)[e2] op e3} except that \code{e} and
-  \code{e2} are type-inferred and evaluated only once.
+\LMHash{}%
+Let $i$ be a simple member invocation
+(\ref{memberInvocations})
+whose receiver $r$ is a static extension application of the form
+\code{$E$<\List{T}{1}{k}>($e$)}
+(\commentary{which is \code{$E$($e$)} when $k$ is zero})
+whose corresponding member name is $n$,
+and assume that $r$ has no compile-time errors.
+A compile-time error occurs unless the static extension denoted by $E$
+declares a member named $n$.
+Otherwise let \List{X}{1}{k} be the type parameters of said static extension.
+Let $s$ be the member signature of the member $n$ declared by $E$.
+Exactly the same compile-time errors occur for $i$ as
+the ones that would occur for a member invocation $i_1$
+which is obtained from $i$ by replacing $r$ by
+a variable whose declared type is a class that declares
+a member $n$ with member signature
+$[T_1/X_1, \ldots, T_k/X_k]s$
+(\commentary{so when $E$ is non-generic, this is just $s$}).
+Said member signature is called the
+\IndexCustom{invocation member signature}{
+  static extension!invocation member signature}
+of $i$.
+The static type of $i$ is the return type of
+the invocation member signature of $i$.
 
-Increment/decrement operations like \code{++e} and \code{e--} are
-equivalent to composite assignments, except that the
-post-increment/decrement operations evaluate to one of the
-intermediate values of the computation.
+\commentary{%
+With type inference:
+In the case where the invocation member signature $s_i$ is generic,
+type inference occurs on $i$ in the same way as it
+would occur for an invocation of a function whose type is the
+function type of $s_i$.%
+}
 
-- A pre-increment expression of the form \code{++e1.id} is generally
-  equivalent to  \code{e1.id += 1}. 
-  Similarly for \code{--e1.id}, \code{++e1[e2]} and \code{--e1[e2]}.
-  This applies when \code{e1} is an extension application too, reducing
-  it to the former case.
-- A post-increment expression of the form \code{e1.id++} is generally
-  equivalent to \code{e1.id += 1} (which is \code{e1.id = e1.id + 1}
-  except that subexpressions of \code{e1} are not evaluated more than once), 
-  but the value of the expression is the value from evaluating \code{e1.id}
-  before adding \code{1}. This too, works similarly when \code{e1} is
-  an extension application:
-  - \code{E<...>(e).id++} is equivalent to
-    \code{E<...>(e).id = E<...>(e).id + 1} except that \code{e} is only
-    evaluated once, and the value of the increment expression is the value
-    of the subexpression \code{E<...>(e).id} before the addition.
-    Symmetrically for post-decrement.
-  - \code{E<...>(e)[e1]++} is equivalent to 
-    \code{E<...>(e)[e2] = E<...>(e)[e2] + 1} except that \code{e} and 
-    \code{e2} are only evaluated once, and the value of the increment
-    expression is the value of the subexpression \code{E<...>(e)[e2]}
-    before the addition. Symmetrically for post decrement.
+\LMHash{}%
+For the dynamic semantics,
+let $i$ be a simple, unconditional member invocation
+whose receiver $r$ is a static extension application of the form
+\code{$E$<\List{T}{1}{k}>($e$)}
+where the type parameters of $E$ are \List{X}{1}{k}
+and the actual values of \List{T}{1}{k} are \List{t}{1}{k}
+(\ref{actualTypes}),
+and whose corresponding member name is $n$.
+Let $m$ be the member of $E$ that has the name $n$.
+Evaluation of $i$ proceeds by evaluating
+$e$ to an object $o$,
+evaluating the actual arguments to an evaluated actual argument part
+\code{<$u_1$, \ldots, $u_m$>($o_1, \ldots,\ o_n,\ x_{n+1}$: $o_{n+1}, \ldots,\ x_{n+k}$: $o_{n+k}$)},
+incurring a dynamic error if an actual value argument does not have
+a dynamic type which is a subtype of the corresponding actual parameter type,
+and finally executing $m$
+in a binding environment where \List{X}{1}{k} are bound to \List{t}{1}{k},
+\THIS{} is bound to $o$,
+and each formal parameter is bound to the corresponding actual argument.
+The value of $i$ is the value returned by the invocation of $m$.
 
-\subsection{Implicit Extension Member Invocation}
-\LMLabel{implicitExtensionMemberInvocation}
+\LMHash{}%
+When $i$ is a conditional or composite member invocation,
+the static analysis and dynamic semantics is determined by
+member invocation desugaring
+(\ref{memberInvocations}).
 
-Extension members can be invoked *implicitly* (without mentioning the
-extension by name) as if they were members of the \ON{} type of the
-extension. This is intended as the primary way to use extensions, with
-explicit extension member invocation as a fallback for cases where the
-implicit extension resolution doesn't do what the user want.
+\rationale{%
+Note that a cascade (\ref{cascades})
+whose receiver is a static extension application $a$ is a compile-time error.
+This is so because it would force each \synt{cascadeSection}
+to invoke a member of the same static extension,
+which is unlikely to be desirable.%
+}
 
-An implicit extension member invocation occurs for a simple or
-composite member invocation with a target expression \code{e} iff there
-exists a unique *most specific* extension declaration which is
-*accessible* and *applicable* to the member invocation (see below).
 
-If $E$ is the single most specific accessible and applicable extension
-for a member invocation *i* with target expression \code{e}, then we treat
-the target expression as if it was the extension application of the
-extension $E$ to \code{e}, and if $E$ is generic, also providing the type
-arguments inferred for $E$ in checking that it was applicable. This
-makes the member invocation behave equivalently to an explicit
-extension member invocation. This happens even if the *name* of $E$ is
-not accessible, so this is not a purely syntactic rewrite.
+\subsection{Implicit Invocation of an Instance Member of a Static Extension}
+\LMLabel{implicitStaticExtensionInvocations}
 
-Implicit extension member invocation applies to null-aware member
-acccess. A null-aware invocation, for example \code{e?.id}, is defined as
-first evaluating \code{e} to a value and then if that value, \code{v}, is
-non-null, it performs the invocation \code{v.id}. This latter invocation
-*is* subject to implicit extension invocation if the static type of
-\code{e} does not have a member with basename \code{id}, and similarly
-for all other simple or composite instance member invocations guarded
-by a null-aware member access.
+\LMHash{}%
+Instance members of a static extension can be invoked implicitly
+(\commentary{without mentioning the name of the static extension}),
+as if they were instance members of the receiver of
+the given member invocation.
 
-Implicit extension member invocation can also apply to individual
-*cascade* invocations. A cascade is treated as if each cascade section
+\commentary{%
+For instance, if \code{E<$T_1, T_2$>($e_1$).m<$T_3$>($e_2$)} is
+a correct explicit invocation of the instance member \code{m} of
+an extension \code{E},
+then \code{$e_1$.m<$T_3$>($e_2$)} may be
+a correct implicit invocation with the same meaning.
+In other words,
+the receiver $r$ of a member invocation can be implicitly replaced by
+an explicit extension application with receiver $r$,
+if a number of requirements that are detailed below are satisfied.%
+}
+
+\rationale{%
+Implicit invocation is intended as the primary way to use static extensions,
+with explicit invocation as a fallback
+in case the implicit invocation is an error, or
+the implicit invocation resolves to an instance member of
+a different static extension than the intended one.%
+}
+
+\LMHash{}%
+An implicit static extension member invocation occurs
+for a member invocation $i$
+(\ref{memberInvocations})
+with receiver $r$ and corresponding member name $m$ if{}f
+(1) $i$ is a compile-time error
+because the interface of the static type of $r$ does not have a member
+whose basename is the basename of $m$,
+and (2) there exists a unique most specific
+(\ref{staticExtensionSpecificity})
+static extension denoted by $E$ which is
+accessible
+(\ref{staticExtensionAccessibility})
+and applicable
+(\ref{staticExtensionApplicability})
+to $i$.
+
+\LMHash{}%
+In the case where no compile-time error occurs,
+$i$ is treated as $i'$, which is obtained from $i$ by
+replacing $r$ by \code{$E$($r$)}.
+
+\commentary{%
+With type inference:
+When $E$ is generic,
+type inference applied to \code{$E$($r$)} may provide actual type arguments,
+yielding an $i'$ of the form \code{$E$<\List{T}{1}{k}>($r$)}.
+If this type inference step fails then $E$ is not applicable
+(\ref{staticExtensionApplicability}).%
+}
+
+\LMHash{}%
+Implicit invocation of an instance member of a static extension
+in a cascade is also possible.
+!!!TODO!!!
 was a separate member invocation on an expression with the same value
 as the cascade receiver expression (the expression before the first
 \code{..}). This means that a cascade like \code{o..foo()..bar()} may
-perform an implicit extension member invocation on \code{o} for
+perform an implicit static extension member invocation on \code{o} for
 \code{foo()} and a normal invocation on \code{o} for
 \code{bar()}. There is no way to specify the corresponding explicit
 member invocation without expanding the cascade to a sequence of
 individual member invocations.
 
-\subsubsection{Accessibility}
+
+\subsubsection{Accessibility of a Static Extension}
 \LMLabel{staticExtensionAccessibility}
 
-An extension is *accessible* for an expression if it is declared in
-the current library, or if there is an import directive in the
-current library of a library with the extension in its export scope,
-that import does not have a prefix, and the name of the extension is
-not private and it is not hidden by a \HIDE{} or \SHOW{} modifier of the
-import.
-
-An extension *is* accessible if its name is *shadowed* by another
-declaration (a class or local variable with the same name shadowing a
-top-level or imported declaration, a top-level declaration shadowing
-an imported extension, or a non-platform import shadowing a platform
-import).
-
-An extension *is* accessible if it is imported and the extension name
-conflicts with one or more other imported declarations.
+\LMHash{}%
+A static extension $E$ is
+\IndexCustom{accessible}{static extension!accessibility}
+in a given scope $S$
+if there exists a name $n$ such that a lexical lookup for $n$ from $S$
+(\ref{lexicalLookup})
+yields $E$.
 
 \commentary{%
-This definition of being accessible ignores name shadowing or import
-name conflicts; the extension is accessible if it *could have been* in
-scope absent of any declarations shadowing it or any other imports
-with the same name preventing access to the name. If it *is* in scope,
-then it is obviously also accessible. Compilers need to remember
-declarations of extensions in un-prefixed imports even if those
-extensions declarations do not make it into the  importing library
-scope.%
+The name $n$ can be the declared name of $E$ or the fresh name of $E$,
+but since the fresh name is always in scope
+whenever the declared name is in scope,
+it is sufficient to consider the fresh name.
+%
+When the fresh name of $E$ is in the library scope,
+it is availably in \emph{any} scope,
+because the name is fresh and hence it cannot be shadowed
+by any declaration in any intermediate scope.
+%
+This implies that if $E$ is accessible anywhere in a given library $L$
+then it is accessible everywhere in $L$.%
 }
 
-You can *avoid* making the extension accessible for a library by
-either not importing any library exporting the extension, importing
-such a library and hiding the extension using \HIDE{} or \SHOW, or
-importing such a library only with a prefix.
 
-The usual rules apply to referencing the extension by name. The
-extension's *name* is not in scope (e.g., for explicit extension
-invocation) if it is shadowed or if it is conflicting with another
-imported declaration, but the extension *itself* is still accessible
-for implicit extension member invocations since that does not need to
-use the name.
-
-If an extension conflicts with, or is shadowed by, another
-declaration, and you need to access it by name anyway, it can be
-imported with a prefix and the name referenced through that prefix.
-
-\rationale{We want users to have control over which extensions are
-  available. They control this through the imports and declarations
-  used to include declarations into the import scope or declaration
-  scope of the library. The typical ways to control the import scope
-  is using \SHOW{} or \HIDE{} in the imports or importing into a prefix
-  scope. These features work exactly the same for extensions. On the
-  other hand, we do not want extension writers to have to worry too
-  much about name clashes for their extension names since most
-  extension members are not accessed through their name anyway. In
-  particular we do not want them to name-mangle their extensions in
-  order to avoid hypothetical conflicts. So, all imported extensions
-  are considered accessible, and choosing between the individual
-  extensions is handled by using explicit extension applications as
-  described earlier. You only run into problems with the extension
-  name if you try to use the name. That way you can import two
-  extensions with the same name and use the members without issue (as
-  long as they don't otherwise conflict in an unresolvable way), even
-  if you can only refer to *at most* one of them by name.}
-
-You still cannot *export* two extensions with the same name. The rules
-for export makes it a compile-time error to add two declarations with
-the same name to the export scope of a library.
-
-\subsubsection{Applicability}
+\subsubsection{Applicability of a Static Extension}
 \LMLabel{staticExtensionApplicability}
 
-An extension $E$ is *applicable* to a simple or composite member
+!!!TODO!!!
+
+An static extension $E$ is *applicable* to a simple or composite member
 invocation with corresponding member *basename* *m* and target
 expression \code{e}, where \code{e} has static type *S*, if
 
-- The invocation is an *instance* member invocation. That is the case if the expression \code{e} does not denote a prefix or a class, mixin or extension declaration *(then the member invocation would be a static invocation)*, and it is not an explicit extension application. An instance member invocation on \code{e} will always begin by evaluating \code{e} to an object, and then continue by performing an instance member invocation on that object.
-- The type *S*  does not have a member with the basename  *m*. For this, the type \DYNAMIC{} is considered as having all member names, and an expression of type \code{Never} or \VOID{} cannot occur as the target of a member invocation, so none of these can ever have applicable extensions. Function types and the type \code{Function} are considered as having a \CALL{} member. *This ensure that if there is an applicable extension, the existing invocation would otherwise be a compile-time error*. Members of \code{Object} exists on all types, so they can never be the target of implicit member invocations (\commentary{they can also not be declared as extension members}).
-- The extension application \code{E(x)} would be valid (not a compile-time error) where \code{x} is a fresh variable with static type $S$ (to avoid type inference for any type parameters of \code{E} from affecting the already determined static type of \code{e}) in a scope where \code{E} denotes the extension.
+- The invocation is an *instance* member invocation. That is the case if the expression \code{e} does not denote a prefix or a class, mixin or static extension declaration *(then the member invocation would be a static invocation)*, and it is not an explicit static extension application. An instance member invocation on \code{e} will always begin by evaluating \code{e} to an object, and then continue by performing an instance member invocation on that object.
+- The type *S*  does not have a member with the basename  *m*. For this, the type \DYNAMIC{} is considered as having all member names, and an expression of type \code{Never} or \VOID{} cannot occur as the target of a member invocation, so none of these can ever have applicable static extensions. Function types and the type \code{Function} are considered as having a \CALL{} member. *This ensure that if there is an applicable static extension, the existing invocation would otherwise be a compile-time error*. Members of \code{Object} exists on all types, so they can never be the target of implicit member invocations (\commentary{they can also not be declared as static extension members}).
+- The static extension application \code{E(x)} would be valid (not a compile-time error) where \code{x} is a fresh variable with static type $S$ (to avoid type inference for any type parameters of \code{E} from affecting the already determined static type of \code{e}) in a scope where \code{E} denotes the static extension.
 - and \code{E} declares an instance member with the basename *m*.
 
 Notice that the context type of the invocation does not affect whether
-the extension applies, and neither the context type nor the method
-invocation affects the type inference of \code{e}, but if the extension
+the static extension applies, and neither the context type nor the method
+invocation affects the type inference of \code{e}, but if the static extension
 method itself is generic, the context type may affect the member
 invocation.
 
-\subsubsection{Specificity}
+\subsubsection{Specificity of a Static Extension}
 \LMLabel{staticExtensionSpecificity}
 
-When more than one extension is accessible and applicable to a member
-invocation, we define a partial ordering on those extensions wrt. that
+When more than one static extension is accessible and applicable to a member
+invocation, we define a partial ordering on those static extensions wrt. that
 member invocation, so that we can choose the "best" candidate which
-will have its extension member be implicitly invoked.
+will have its static extension member be implicitly invoked.
 
 Let *i* be a member invocation with target expression \code{e} and
 corresponding member name *m*, and let \code{E1} and \code{E2} denote
-different accessible and applicable extensions for *i*. Let
+different accessible and applicable static extensions for *i*. Let
 $T_1$ be the instantiated \ON{} type of \code{E1} wrt. \code{e} and
 let $T_2$ be the instantiated \ON{} type of \code{E2}
 wrt. \code{e}. Then \code{E1} is more specific than \code{E2} wrt. *i*
 iff:
 
-1. The \code{E2} extension is declared in a platform library and the
-   \code{E1} extension is not, or
+1. The \code{E2} static extension is declared in a platform library and the
+   \code{E1} static extension is not, or
 2. either both or neither are declared in platform libraries and
 3. $T_1$ is a subtype of of $T_2$ and either
 4. not vice versa, or
@@ -5564,8 +5548,8 @@ iff:
 
 \subsubsection{Examples}
 
-The following examples display the implicit extension resolution when
-multiple applicable extensions are available.
+The following examples display the implicit static extension resolution when
+multiple applicable static extensions are available.
 
 Example:
 
@@ -5585,8 +5569,8 @@ extension SmartList<T> on List<T> \{
   x.doTheSmartThing(print);
 \end{dartCode}
 
-Here both the extensions apply, but the \code{SmartList} extension is
-more specific than the \code{SmartIterable} extension because
+Here both the static extensions apply, but the \code{SmartList} static extension is
+more specific than the \code{SmartIterable} static extension because
 \SubtypeStd{\code{List<dynamic>}}{\code{Iterable<dynamic>}}.
 
 Example:
@@ -5612,7 +5596,7 @@ type \code{int}.  If we had chosen \code{BestSpec} instead, the return
 type could only be \code{num}, which is one of the reasons why we
 choose the most specific instantiated type as the winner.
 
-For \code{y.best()}, the most specific extension is \code{BestSpec}.
+For \code{y.best()}, the most specific static extension is \code{BestSpec}.
 The instantiated \ON{} types that are compared are
 \code{Iterable<num>} for \code{BestCom} and \code{List<num>} for the
 two other. Using the instantiate-to-bounds types as tie-breaker, we
@@ -5620,18 +5604,18 @@ find that \code{List<Object>} is less precise than \code{List<num>},
 so the code of \code{BestSpec} has more precise information available
 for its method implementation. The type of \code{w} becomes \code{num}.
 
-In practice, unintended extension method name conflicts are likely to
+In practice, unintended static extension method name conflicts are likely to
 be rare. Intended conflicts happen where the same author is providing
-more specialized versions of an extension for subtypes, and in that
-case, picking the extension which has the most precise types available
+more specialized versions of an static extension for subtypes, and in that
+case, picking the static extension which has the most precise types available
 to it is considered the best choice.
 
 \subsection{Static Members and Member Resolution}
 \LMLabel{staticMembersAndMemberResolution}
 
-Static member declarations in the extension declaration can be
+Static member declarations in the static extension declaration can be
 accessed the same way as static members of a class or mixin
-declaration: By prefixing with the extension's name.
+declaration: By prefixing with the static extension's name.
 
 Example:
 
@@ -5648,10 +5632,10 @@ Like for a class or mixin declaration, static members simply treat the
 surrounding declaration as a namespace.
 
 It is a **compile-time error** if a simple or qualified identifier
-denoting the extension occurs in an expression except as the extension
-name of an extension application or as the target of a (static) simple
+denoting the static extension occurs in an expression except as the static extension
+name of an static extension application or as the target of a (static) simple
 or composite member invocation. In the latter case, it is a
-**compile-time error** if the extension does not declare a static
+**compile-time error** if the static extension does not declare a static
 member with the corresponding member name (or both a getter and a
 setter for a composite member invocation), and the invocation itself
 must be a valid invocation as for any other static member invocation.
@@ -5659,29 +5643,29 @@ must be a valid invocation as for any other static member invocation.
 \subsection{Semantics of Invocations}
 \LMLabel{semanticsOfInvocations}
 
-An extension member invocation is a member invocation where the target
-is an extension application, or where the target is an object where we
-perform implicit extension application. At run-time, implicit
-extension invocations have been resolved and any type arguments will
+An static extension member invocation is a member invocation where the target
+is an static extension application, or where the target is an object where we
+perform implicit static extension application. At run-time, implicit
+static extension invocations have been resolved and any type arguments will
 have been inferred, so we can assume they are all known.
 
 Evaluating the invocation performs a method invocation of the
-corresponding instance member of the extension, with `this` bound to
-the receiver value and type parameters (both for the extension and for
+corresponding instance member of the static extension, with `this` bound to
+the receiver value and type parameters (both for the static extension and for
 the member itself, if that is generic) bound to the types found by
 static inference.
 
-Prior to NNBD, all extension members can be invoked on the null
+Prior to NNBD, all static extension members can be invoked on the null
 object. Since \code{Null} is a subtype of the \ON{} type, this is
 consistent behavior.
 
 Post-NNBD, a non-nullable \ON{} type would not match a nullable
-receiver type, so it is impossible to invoke an extension method that
+receiver type, so it is impossible to invoke an static extension method that
 does not expect null on the null object.
 
 During NNBD migration, where a non-nullable type or a legacy unsafely
 nullable type may contain the null object, it is a run-time error if a
-migrated extension with a non-nullable \ON{} type is called on the
+migrated static extension with a non-nullable \ON{} type is called on the
 null object, just as all other cases where an unsafe null reaches a
 non-nullable context. This requires a run-time check which can be
 omitted when all non-NNBD code has been migrated.
@@ -5689,42 +5673,42 @@ omitted when all non-NNBD code has been migrated.
 \subsection{Semantics of Extension Members}
 \LMLabel{semanticsOfExtensionMembers}
 
-When executing an extension instance member, we stated earlier that
+When executing an static extension instance member, we stated earlier that
 the member is invoked with the original receiver as \THIS{} object. We
 still have to describe how that works, and what the lexical scope is
 for those members.
 
-Inside an extension method body, \THIS{} does not refer to an instance
+Inside an static extension method body, \THIS{} does not refer to an instance
 of a surrounding type. Instead it is bound to the original receiver,
 and the static type of \THIS{} is the declared \ON{} type of the
-surrounding extension.
+surrounding static extension.
 
-Invocations on \THIS{} use the same extension method resolution as any
-other code. Most likely, the current extension will be the only one in
+Invocations on \THIS{} use the same static extension method resolution as any
+other code. Most likely, the current static extension will be the only one in
 scope which applies. It definitely applies to its own declared \ON{}
 type.
 
 Like for a class or mixin member declaration, the names of the
-extension members, both static and instance, are in the *lexical*
-scope of the extension member body. That is why \code{MySmart} above
+static extension members, both static and instance, are in the *lexical*
+scope of the static extension member body. That is why \code{MySmart} above
 can invoke the static \code{smartHelper} without prefixing it by the
-extension name. In the same way, *instance* member declarations (the
-extension members) are in the lexical scope.
+static extension name. In the same way, *instance* member declarations (the
+static extension members) are in the lexical scope.
 
-If an unqualified identifier inside an extension instance member
-lexically resolves to an extension member of the surrounding extension
+If an unqualified identifier inside an static extension instance member
+lexically resolves to an static extension member of the surrounding static extension
 (if the nearest enclosing declaration with the same basename is an
-instance member of an extension), then that identifier is not
+instance member of an static extension), then that identifier is not
 equivalent to \code{\THIS.id}, rather the invocation is equivalent to
-an explicit invocation of that extension method on \THIS{} (which we
-already know has a compatible type for the extension):
+an explicit invocation of that static extension method on \THIS{} (which we
+already know has a compatible type for the static extension):
 \code{Ext<T1,…,Tn>(this).id}, where \code{Ext} is the surrounding
-extension and \code{T1} through \code{Tn} are its type parameters, if
-any. The invocation works whether or not the names of the extension or
+static extension and \code{T1} through \code{Tn} are its type parameters, if
+any. The invocation works whether or not the names of the static extension or
 parameters are actually accessible, it is not a syntactic rewrite.
 
-If an unqualified identifier inside an extension *static* member
-lexically resolves to an extension member, it is a **compile-time
+If an unqualified identifier inside an static extension *static* member
+lexically resolves to an static extension member, it is a **compile-time
 error**. This is similar to how a static member cannot access instance
 members of the same class by name.
 
@@ -5740,7 +5724,7 @@ extension MyUnaryNumber on List<Object> \{
 
 Here the \code{list.isEven} will find that \code{isEven} of
 \code{MyUnaryNumber} applies, and unless there are any other
-extensions in scope, it will call that. (Or unless someone adds an
+static extensions in scope, it will call that. (Or unless someone adds an
 \code{isEven} member to \code{List}, but that's a breaking change, and
 then, if still necessary, this code can change the call to
 \code{MyUnaryNumber(list).isEven}.) 
@@ -5751,21 +5735,21 @@ valid since \code{List<Object>} has a \code{length} getter.
 
 The unqualified \code{isEven} of \code{isOdd} resolves lexically to
 the \code{isEven} getter above it, so it is equivalent to
-\code{MyUnaryNumber(this).isEven}, even if there are other extensions
+\code{MyUnaryNumber(this).isEven}, even if there are other static extensions
 in scope which define an \code{isEven} on \code{List<Object>}.
 
 An unqualified identifier \code{id} which is not declared in the lexical
 scope at all, is considered equivalent to \code{\THIS.id} inside instance
-members as usual. It is subject to extension if \code{id} is not declared
+members as usual. It is subject to static extension if \code{id} is not declared
 by the static type of \THIS{} (the \ON{} type).
 
 Even though you can access \THIS, you cannot use \SUPER{} inside an
-extension method.
+static extension method.
 
 \subsection{Member Conflict Resolution}
 \LMLabel{memberConflictResolution}
 
-An extension can declare a member with the same (base-)name as a
+An static extension can declare a member with the same (base-)name as a
 member of the type it is declared on. This does not cause a
 compile-time conflict, even if the member does not have a compatible
 signature.
@@ -5782,17 +5766,17 @@ extension MyList<T> on List<T> \{
 You cannot *access* this member in a normal invocation, so it could be
 argued that you shouldn't be allowed to add it. We allow it because we
 do not want to make it a compile-time error to add an instance member
-to an existing class just because an extension is already adding a
+to an existing class just because an static extension is already adding a
 method with the same name. It will likely be a problem if any code
 *uses* the method, but only that code needs to change (perhaps using
-an override to keep using the extension).
+an override to keep using the static extension).
 
-An unqualified identifier in the extension can refer to any extension
-member declaration, so inside an extension member body, \code{\THIS.add} and
+An unqualified identifier in the static extension can refer to any static extension
+member declaration, so inside an static extension member body, \code{\THIS.add} and
 \code{add} are not necessarily the same thing (if the \ON{} type has an
 \code{add} member, then \code{\THIS.add} refers to that, while
-\code{add} refers to the extension method in the lexical scope). This
-may be confusing. In practice, extensions will rarely introduce
+\code{add} refers to the static extension method in the lexical scope). This
+may be confusing. In practice, static extensions will rarely introduce
 members with the same name as their \ON{} type's members.
 
 \subsection{Tearoffs}
@@ -5814,35 +5798,35 @@ it even does generic specialization, so it creates a function value of
 type \code{int Function(int)} which, when called with argument
 \code{x}, works just as \code{Foo(b).baz<int>(x)}, whether or not
 \code{Foo} is in scope at the point where the function is called. The
-torn off function closes over both the extension method, the receiver,
-and any type arguments to the extension, and if the tear-off is an
+torn off function closes over both the static extension method, the receiver,
+and any type arguments to the static extension, and if the tear-off is an
 instantiating tear-off of a generic method, also over the type
 arguments that it is implicitly instantiated with. The tear-off
-effectively creates a curried function from the extension:
+effectively creates a curried function from the static extension:
 
 \begin{dartCode}
 int Function(int) func = (int x) => Foo(b).baz<int>(x);
 \end{dartCode}
 
 \commentary{%
-  Torn off extension methods are never equal unless they
+  Torn off static extension methods are never equal unless they
   are identical*. Unlike instance methods, which are equal if it's the
   same method torn off from the same object (unless it's an
-  instantiated tear-off of a generic function), torn off extension
-  methods may close over the type variables of the extension as
+  instantiated tear-off of a generic function), torn off static extension
+  methods may close over the type variables of the static extension as
   well. To avoid distinction between generic and non-generic
-  extensions, no two torn off extension methods are equal, even if
-  they are torn off from the same extension on the same object at the
+  static extensions, no two torn off static extension methods are equal, even if
+  they are torn off from the same static extension on the same object at the
   same static type.%
 }
 
-An extension method torn off a *constant* receiver expression is not a
+An static extension method torn off a *constant* receiver expression is not a
 constant expression. It creates a new function object each time the
 tear-off expression is evaluated.
 
-An explicit extension method application member invocation like
+An explicit static extension method application member invocation like
 \code{Foo<Bar>(b).baz}, also creates a tear-off if \code{Foo.baz} is
-an extension method.
+an static extension method.
 
 \commentary{There is no way to tear off getters, setters or operators.}
 
@@ -5854,7 +5838,7 @@ A class instance method named \CALL{} is implicitly callable on the
 object, and implicitly torn off when assigning the instance to a
 function type. 
 
-As the initial examples suggest, an extension method named \CALL{} can
+As the initial examples suggest, an static extension method named \CALL{} can
 also be called implicitly. The following must work:
 
 \begin{dartCode}
@@ -5869,7 +5853,7 @@ extension Tricky on int \{
 \end{dartCode}
 
 This looks somewhat surprising, but not much more surprising that an
-extension \code{\OPERATOR []} would: \code{for (var i in 1[10])...}.
+static extension \code{\OPERATOR []} would: \code{for (var i in 1[10])...}.
 We will expect users to use this power responsibly.
 
 In detail: Any expression of the form \code{e1(args)} or
@@ -5879,9 +5863,9 @@ interface type declaring a \CALL{} method, or \DYNAMIC, will currently
 be a compile-time error. If the static type of \code{e1} is an interface
 type declaring a \CALL{} *getter* or a \code{call=} *setter*, then this
 stays a compile-time error (the interface has a member with basename
-\code{call}). Otherwise we check for extensions applying to the static type
+\code{call}). Otherwise we check for static extensions applying to the static type
 of \code{e1} and declaring a \CALL{} member. If one such most specific
-extension exists, and it declares a \CALL{} extension *method*, then
+static extension exists, and it declares a \CALL{} static extension *method*, then
 the expression is equivalent to \code{e1.call(args)} or
 \code{e1.call<typeS>(args)}. Otherwise it is still a compile-time error.
 
@@ -5897,10 +5881,10 @@ function. It will then find that the interface type \code{int} does
 not have a \CALL{} method, and inference will fail to make the program
 valid.
 
-We could allow an applicable \CALL{} extension method to be coerced
+We could allow an applicable \CALL{} static extension method to be coerced
 instead, as an implicit tear-off. We will not do so.
 
-That is: We do *not* allow implicit tear-off of an extension \CALL{}
+That is: We do *not* allow implicit tear-off of an static extension \CALL{}
 method in a function typed context.
 
 This implicit conversion would come at a readability cost. A type like
@@ -5915,7 +5899,7 @@ coercion to a function, there is no visible syntax at all.
 
 
 The design of this feature is kept deliberately simple,
-while still attempting to make extension methods act
+while still attempting to make static extension methods act
 similarly to instance methods in most cases.
 
 Dart classes have virtual methods.
@@ -5947,16 +5931,16 @@ unlikely to suggest putting \code{doMyOtherStuff(...)} around the
 expression.
 
 For these discoverability and readability reasons, static extension
-methods will allow you to add "extension methods", which are really
+methods will allow you to add "static extension methods", which are really
 just static functions, to existing types, and allow you to discover
 and call those methods as if they were actual methods, using
 \code{.}-notation. It will not add any new abilities to the language
 which are not already available, they just require a more cumbersome and
 less discoverable syntax to reach.
 
-The extension methods are *static*, which means that we use the static
+The static extension methods are *static*, which means that we use the static
 type of an expression to figure out which method to call, and that
-also means that static extension methods are not virtual methods.
+also means that static static extension methods are not virtual methods.
 
 The methods we allow you to add this way are normal methods,
 operators, getter and setters. As such, the feature should really be
@@ -12347,6 +12331,264 @@ Per the rules for identifier references, an identifier will not be treated as a 
 
 \LMHash{}%
 The static type of $i$ is the declared return type of $m$.
+
+
+\subsection{Member Invocations}
+\LMLabel{memberInvocations}
+
+\begin{figure}[h]
+  \begin{minipage}[t]{\textwidth}
+    \begin{displaymath}
+      \hspace{-2mm}\begin{array}[t]{lll}
+        \parbox{.22\textwidth}{\small Simple member\\invocation}
+        & \parbox{.17\textwidth}{\small Corresponding member name} \\[3mm]
+        \hline
+        \code{$r$.\id, $r$?.\id}                         & \id \\
+        \code{$r$.\id{} = $e$,
+          $r$?.\id{} = $e$}                              & \code{\id=} \\
+        \code{$r$.\id(\metavar{args}),
+          $r$?.\id(\metavar{args})}                      & \id \\
+        \code{$r$.\id<\metavar{types}>(\metavar{args})}  & \id \\
+        \code{$r$?.\id<\metavar{types}>(\metavar{args})} & \id \\
+        \code{-$r$}                                      & \code{unary-} \\
+        \code{\gtilde{}$r$}                              & \gtilde{} \\
+        \code{$r$ $\oplus$ $e$}                          & \oplus \\
+        \code{$r$[$e$]}                                  & \code{[]} \\
+        %% TODO(eernst): Come nnbd, uncomment this.
+        % \code{$r$?[$e$]}                                 & \code{[]} \\
+        \code{$r$[$e_1$] = $e_2$}                        & \code{[]=} \\
+        %% TODO(eernst): Come nnbd, uncomment this.
+        % \code{$r$?[$e_1$] = $e_2$}                       & \code{[]=} \\
+        \code{$r$(\metavar{args})}                       & \CALL{} \\
+        \code{$r$<\metavar{types}>(\metavar{args})}      & \CALL{} \\
+      \end{array}
+      \quad
+      \begin{array}[t]{ll}
+        \parbox{.23\textwidth}{\small Composite member\\invocation}
+        & \parbox{.18\textwidth}{\small Corresponding member name} \\[3mm]
+        \hline
+        \code{$r$.\id{} $\otimes$= $e$}      & \id \\
+        \code{$r$?.\id{} $\otimes$= $e$}     & \id \\
+        \code{$r$[$e_1$] $\otimes$= $e_2$}  & \code{[]} \\
+        %% TODO(eernst): Come nnbd, uncomment this.
+        % \code{$r$?[$e_1$] $\otimes$= $e_2$} & \code{[]} \\
+        \code{++$r$.\id, -{}-$r$.\id}       & \id \\
+        \code{$r$.\id++, $r$.\id-{}-}       & \id \\
+        \code{++$r$[$e$], -{}-$r$[$e$]}     & \code{[]} \\
+        \code{$r$[$e$]++, $r$[$e$]-{}-}     & \code{[]}
+      \end{array}
+    \end{displaymath}
+  \end{minipage}
+
+  \vspace{4mm}
+  \begin{minipage}[t]{\textwidth}
+    \small
+    In the tables above,
+    $r$, $e$, $e_1$, $e_2$ are expressions;
+    \metavar{args} is derived from \synt{arguments};
+    \metavar{types} is derived from \synt{typeArguments};
+    `$\oplus$' is an \synt{operator} which is not \lit{==};
+    %% TODO(eernst): Add exception for &&=, ||= when support for them is added.
+    and `\code{$\otimes$=}' is a \synt{compoundAssignmentOperator}.
+  \end{minipage}
+  %
+  \caption{Member invocations with syntactic receiver $r$.}
+  \label{fig:memberInvocations}
+\end{figure}
+
+\LMHash{}%
+A \Index{member invocation} is an expression with a specific syntactic form
+whose dynamic semantics involves invocation of
+one or two instance members of a given receiver,
+or invocation of static extension members.
+This section specifies which syntactic forms are member invocations,
+and defines some terminology
+which is needed in order to denote
+specific parts of several syntactic forms collectively.
+
+\LMHash{}%
+The static analysis and dynamic semantics of
+each of the syntactic forms that are member invocations
+is specified separately,
+this section is only concerned with
+the syntactic classification and terminology.
+
+\commentary{%
+For example, one kind of member invocation is an ordinary method invocation
+(\ref{ordinaryInvocation}).%
+}
+
+\LMHash{}%
+A
+\IndexCustom{simple member invocation}{member invocation!simple}
+respectively
+\IndexCustom{composite member invocation}{member invocation!composite}
+on a
+\IndexCustom{syntactic receiver}{member invocation!syntactic receiver}
+expression $r$ is an expression of
+one of the forms shown in Fig.~\ref{fig:memberInvocations}.
+Each member invocation has a
+\IndexCustom{corresponding member name}{
+  member invocation!corresponding member name}
+as shown in the figure.
+
+\LMHash{}%
+Each member invocation in Fig.~\ref{fig:memberInvocations} that contains
+\lit{?} is a
+\IndexCustom{conditional member invocation}{member invocation!conditional}.
+An
+\IndexCustom{unconditional member invocation}{member invocation!unconditional}
+is a member invocation which is not conditional.
+
+\commentary{%
+For a simple member invocation the corresponding member name is
+the name of the member which is invoked
+in the case where the member invocation invokes an instance member.
+For a composite member invocation it is the name of the getter
+and the basename of both the getter and the setter.%
+}
+
+\rationale{%
+Note that $r$ cannot be \SUPER{}
+even though \code{\SUPER.m()} invokes an instance method.
+This is because the semantics of a superinvocation is different from
+that of other invocations.
+Among the binary operators, \lit{==} is not included.
+This is because evaluation of \code{$e_1$ == $e_2$}
+involves more steps than an instance member invocation.
+Similarly, \lit{\&\&}, and \lit{||} are not included
+because their evaluation does not involve method invocation.%
+}
+
+\begin{figure}[t]
+  \begin{minipage}[h]{\textwidth}
+    \begin{displaymath}
+      \begin{array}{ll}
+        \mbox{Source} & \mbox{Desugared form} \\
+        \hline
+        % ---------- Simple member invocations.
+        \code{$r$?.\id} &
+        \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r'$.\id}
+        \\
+        \code{$r$?.\id{} = $e$} &
+        \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r'$.\id{} = $e$}
+        \\
+        \code{$r$?.\id(\metavar{args})} &
+        \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r'$.\id(\metavar{args})}
+        \\
+        \code{$r$?.\id<\metavar{types}>(\metavar{args})} &
+        \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r$.\id<\metavar{types}>(\metavar{args})}
+        \\
+        %% TODO(eernst): Come nnbd, uncomment this.
+        \code{$r$?[$e$]} &
+        \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r'$[$e$]}
+        \\
+        %% TODO(eernst): Come nnbd, uncomment this.
+        \code{$r$?[$e_1$] = $e_2$} &
+        \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r'$[$e_1$] = $e_2$}
+        \\
+        % ---------- Composite member invocations.
+        \code{$r$.\id{} ??= $e$} &
+        \code{\LET{} $v$\,=\,$r'$.\id\ \IN{} $v$\,==\,\NULL\ ?\ %
+          $r'$.\id\,=\,$e$\,:\,$v$}
+        \\
+        \code{$r$.\id{} $\otimes$= $e$} &
+        \code{$r'$.\id{} = $r'$.\id{} $\otimes$ $e$}
+        \\
+        \code{$r$?.\id{} $\otimes$= $e$} &
+        \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r'$.\id\,$\otimes$=\,\,$e$}
+        \\
+        \code{$r$[$e_1$] ??= $e_2$} &
+        \code{\LET{} $v$\,=\,$e_1$, $v'$ = $r'$[$v$] \IN{} $v'$\,==\,\NULL\ %
+          ?\ $r'$[$v$]\,=\,$e_2$\,:\,$v'$}
+        \\
+        \code{$r$[$e_1$] $\otimes$= $e_2$} &
+        \code{\LET{} $v$\,=\,$e_1$ \IN{} $r'$[$v$] = $r'$[$v$] $\otimes$ $e_2$}
+        \\
+        %% TODO(eernst): Come nnbd, un-comment this. 4 similar cases below.
+        %% \code{$r$?[$e_1$] $\otimes$= $e_2$} &
+        %% \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ %
+        %%   $r'$[$e_1$]\,\,$\otimes$=\,\,$e_2$}
+        %% \\
+        \code{++$r$.\id} &
+        \code{$r$.\id{} += 1}
+        \\
+        \code{-{}-$r$.\id} &
+        \code{$r$.\id{} -= 1}
+        \\
+        \code{$r$.\id++} &
+        \code{\LET{} $v$\,=\,$r'$.\id,\ $v'$\,=\,$r'$.\id\,=\,$v$\,+\,1\ %
+          \IN\ $v$}
+        \\
+        \code{$r$.\id-{}-} &
+        \code{\LET{} $v$\,=\,$r'$.\id,\ $v'$\,=\,$r'$.\id\,=\,$v$\,-\,1\ %
+          \IN\ $v$}
+        \\
+        \code{++$r$[$e$]} &
+        \code{$r$[$e$] += 1}
+        \\
+        \code{-{}-$r$[$e$]} &
+        \code{$r$[$e$] -= 1}
+        \\
+        \code{$r$[$e$]++} & 
+        \code{\LET{} $v$\,=\,$e$,\ $v'$\,=\,$r'$[$v$],\ %
+          $v''$\,=\,$r'$[$v$]\,=\,$v'$\,+\,1\ \IN\ $v'$}
+        \\
+        \code{$r$[$e$]-{}-} &
+        \code{\LET{} $v$\,=\,$e$,\ $v'$\,=\,$r'$[$v$],\ %
+          $v''$\,=\,$r'$[$v$]\,=\,$v'$\,-\,1\ \IN\ $v'$}
+      \end{array}
+    \end{displaymath}
+  \end{minipage}
+  %
+  \caption{Desugaring of member invocations.
+    `\code{$\otimes$=}' is a \synt{compoundAssignmentOperator}.
+    The first applicable rule is used.
+    In particular, `\code{$\otimes$=}' cannot be `\code{??=}'
+    when an earlier rule with `\code{??=}' matches.
+    $r'$ is known as the \emph{replacement receiver} of
+    the composite member invocation,
+    and it is specified in the main text
+    (\ref{memberInvocations}).}
+  \label{fig:desugarCompositeMemberInvocations}
+\end{figure}
+
+\LMHash{}%
+A composite member invocation is an abbreviated form
+whose meaning is reduced to simple member invocations
+as shown in Fig.~\ref{fig:desugarCompositeMemberInvocations}.
+This step is known as a \Index{desugaring} transformation,
+and we say that the resulting expression has been \Index{desugared}.
+Fig.~\ref{fig:desugarCompositeMemberInvocations} contains
+several occurrences of $r'$
+which is the
+\IndexCustom{replacement receiver}{method invocation!replacement receiver}
+of the composite method invocation.
+The meaning of each occurrence of $r'$ is determined as follows:
+
+\LMHash{}%
+When the receiver $r$ is a static extension application
+(\ref{explicitStaticExtensionInvocations})
+of the form \code{$E$<\List{T}{1}{k}>($e_r$)}
+(\commentary{where $k = 0$ means that the type argument list is absent}):
+Let $v_r$ be a fresh variable bound to the value of $e_r$
+and with the same static type as $e_r$,
+then $r'$ is \code{$E$<\List{T}{1}{k}>($v_r$)} when it occurs
+as the receiver of a member invocation,
+and otherwise $r'$ is $v_r$.
+
+\LMHash{}%
+When $r$ is not a static extension application,
+$r'$ is a fresh variable bound to the value of $r$,
+with the same static type as $r$.
+
+\commentary{%
+This corresponds to an extra outermost \LET{} in a number of rules
+in Fig.~\ref{fig:desugarCompositeMemberInvocations},
+and an explicit distinction between the two forms of $r$,
+but the figure would be considerably more verbose if it had been
+specified in that manner.%
+}
 
 
 \subsection{Method Invocation}
