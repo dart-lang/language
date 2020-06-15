@@ -78,30 +78,31 @@ external getter and possibly setter.
 ## Design Idea
 
 In response to the issues above, this document introduces abstract and
-external variables.
+external variable declarations.
 
 The basic idea is that an abstract variable is syntactic sugar for an
-abstract getter and possibly an abstract setter, and similarly for an
-external variable, in both cases such that there is no storage and no
-implementation of the getter and possible setter, and they have the same
-signatures as the ones that would be induced implicitly by a concrete
-variable declaration.
+abstract getter and possibly an abstract setter. Similarly, an external
+variable is syntactic sugar for an external getter and possibly an external
+setter. In both cases there is no storage and no implementation backing
+the getter and possible setter, they merely have the same interface getter
+and setter signatures as would be induced by a concrete variable
+declaration.
 
-The next section is the normative text that specifies the syntax and
+The next section is the normative text which specifies the syntax and
 semantics that realize this idea.
 
 
 ## Feature Specification
 
 An _abstract instance variable declaration_ is an instance variable
-declaration prefixed by the modifier `abstract`. It must not be late, and
-it cannot have an initializer expression.
+declaration prefixed by the modifier `abstract`. The declaration must not
+be late, and it cannot have an initializer expression.
 
 An _external variable declaration_ is a non-local, non-parameter variable
-declaration prefixed by the modifier `external`. It must not be abstract,
-const, or late, and it cannot have an initializer expression.
+declaration prefixed by the modifier `external`. The declaration must not
+be abstract, const, or late, and it cannot have an initializer expression.
 
-The syntax and behavior of these constructs is specified in the following
+The syntax and behavior of these constructs are specified in the following
 sections.
 
 
@@ -133,8 +134,9 @@ The grammar is modified as follows:
 
 The features specified in this document are syntactic sugar, that is, they
 are specified in terms of a small program transformation that eliminates
-them. This fully determines the further static analysis (including errors
-and warnings), and the dynamic semantics. The transformations are as
+the usages of these features by replacing them with a different syntactic
+construct. This fully determines the further static analysis (including
+errors and warnings), and the dynamic semantics. The transformations are as
 follows:
 
 An abstract instance variable declaration _D_ is treated as an abstract
