@@ -5417,7 +5417,7 @@ then \code{$e_1$.m<$T_3$>($e_2$)} may be
 a correct implicit invocation with the same meaning.
 In other words,
 the receiver $r$ of a member invocation can be implicitly replaced by
-an explicit extension application with receiver $r$,
+a static extension application with receiver $r$,
 if a number of requirements that are detailed below are satisfied.%
 }
 
@@ -5434,8 +5434,7 @@ An implicit static extension member invocation occurs
 for a member invocation $i$
 (\ref{memberInvocations})
 with receiver $r$ and corresponding member name $m$ if{}f
-(1) $i$ is a compile-time error
-because the interface of the static type of $r$ does not have a member
+(1) the interface of the static type of $r$ does not have a member
 whose basename is the basename of $m$,
 and (2) there exists a unique most specific
 (\ref{staticExtensionSpecificity})
@@ -5460,19 +5459,12 @@ If this type inference step fails then $E$ is not applicable
 (\ref{staticExtensionApplicability}).%
 }
 
-\LMHash{}%
+\commentary{%
 Implicit invocation of an instance member of a static extension
-in a cascade is also possible.
-!!!TODO!!!
-was a separate member invocation on an expression with the same value
-as the cascade receiver expression (the expression before the first
-\code{..}). This means that a cascade like \code{o..foo()..bar()} may
-perform an implicit static extension member invocation on \code{o} for
-\code{foo()} and a normal invocation on \code{o} for
-\code{bar()}. There is no way to specify the corresponding explicit
-member invocation without expanding the cascade to a sequence of
-individual member invocations.
-
+in a cascade is also possible,
+because a cascade is desugared to an expression that contains
+one or more member invocations.%
+}
 
 \subsubsection{Accessibility of a Static Extension}
 \LMLabel{staticExtensionAccessibility}
@@ -5510,7 +5502,7 @@ An static extension $E$ is *applicable* to a simple or composite member
 invocation with corresponding member *basename* *m* and target
 expression \code{e}, where \code{e} has static type *S*, if
 
-- The invocation is an *instance* member invocation. That is the case if the expression \code{e} does not denote a prefix or a class, mixin or static extension declaration *(then the member invocation would be a static invocation)*, and it is not an explicit static extension application. An instance member invocation on \code{e} will always begin by evaluating \code{e} to an object, and then continue by performing an instance member invocation on that object.
+- The invocation is an *instance* member invocation. That is the case if the expression \code{e} does not denote a prefix or a class, mixin or static extension declaration *(then the member invocation would be a static invocation)*, and it is not a static extension application. An instance member invocation on \code{e} will always begin by evaluating \code{e} to an object, and then continue by performing an instance member invocation on that object.
 - The type *S*  does not have a member with the basename  *m*. For this, the type \DYNAMIC{} is considered as having all member names, and an expression of type \code{Never} or \VOID{} cannot occur as the target of a member invocation, so none of these can ever have applicable static extensions. Function types and the type \code{Function} are considered as having a \CALL{} member. *This ensure that if there is an applicable static extension, the existing invocation would otherwise be a compile-time error*. Members of \code{Object} exists on all types, so they can never be the target of implicit member invocations (\commentary{they can also not be declared as static extension members}).
 - The static extension application \code{E(x)} would be valid (not a compile-time error) where \code{x} is a fresh variable with static type $S$ (to avoid type inference for any type parameters of \code{E} from affecting the already determined static type of \code{e}) in a scope where \code{E} denotes the static extension.
 - and \code{E} declares an instance member with the basename *m*.
@@ -12843,21 +12835,22 @@ In general, a cascade can be recognized by the use of exactly two periods,
 
 \LMHash{}%
 A \IndexCustom{cascaded member access}{cascaded member access}
-is an expression of the form
-\code{$e$..$s$} or \code{$e$?..$s$},
-where $e$ is an expression
-and $s$ is derived from \synt{cascadeSection}.
-The form
-\code{$e$?..$s$}
-is also known as a
-\IndexCustom{conditional cascaded member access}{%
-  cascaded member access!conditional}.
+is an expression derived from \synt{cascade}.
 
 \rationale{%
 A \synt{cascadeSection} allows for accessing members, including setters.
 The motivation for having a cascaded member access is that it allows for
 performing a chain of operations based on an object
 while preserving a reference to that object for further processing.%
+}
+
+\commentary{%
+Let $e_0$ be a static extension application
+(\ref{staticExtensions}).
+Note that it is then a compile-time error
+to have a \synt{cascade} of the form
+\code{$e_0$..$c$} or \code{$e_0$?..$c$},
+where $c$ is a \synt{cascadeSection}.%
 }
 
 \commentary{%
@@ -12887,57 +12880,39 @@ so any \lit{?} on a non-innermost \lit{..} would be useless.%
 }
 
 \LMHash{}%
-Let $s$ be a \synt{cascadeSection}.
-Let $e$ be an expression of the form \code{$e_0$..$s$}
-where $e_0$ is an \synt{expression}
-such that $e$ is not initially conditional.
-Exactly the same compile-time errors are raised for $e$
-as would be raised for \code{($e_0$).$s$}.
-The static type of $e$ is the static type of $e_0$.
+The static analysis and dynamic semantics of a cascaded member access
+is specified in terms of the following desugaring step.
 
 \LMHash{}%
-Let $s$ be a \synt{cascadeSection}.
-If $e$ is an expression of the form \code{$e_0$?..$s$}
-where $e_0$ is a \synt{conditionalExpression},
-exactly the same compile-time errors are raised for $e$
-% This rule is NNBD-ready, so we use it even though we could
-% use a slightly simpler set of rules today.
-as would be raised for \code{($e_0$)?.$s$}.
-If $e$ is an expression of the form \code{$e_0$..$s$}
-where $e_0$ is an \synt{expression}
-such that $e$ is initially conditional,
-exactly the same compile-time errors are raised for $e$
-as would be raised for \code{($e_0$)?.$s$}.
-In both cases, the static type of $e$ is the static type of $e_0$.
+Let $e$ be a cascaded member access which is not initially conditional.
+This implies that there exist terms \List{c}{1}{k}
+derived from \synt{cascadeSection}
+and a \synt{conditionalExpression} $e_0$
+which is not a static extension application,
+and $e$ is \code{$e_0$..$c_1\ \cdots\ $..$c_k$}.
+In this case, $e$ is desugared to
+
+\noindent
+\code{\LET\ $v$\,\,=\,\,$e_0$, $v_1$\,\,=\,\,$v$.$c_1$,\ %
+  \ldots,\ $v_k$\,\,=\,\,$v$.$c_k$\ \IN\ $v$}.
+
+\LMHash{}%
+Let $e$ be a cascaded member access which is initially conditional.
+This implies that there exist terms \List{c}{1}{k}
+derived from \synt{cascadeSection}
+and a \synt{conditionalExpression} $e_0$
+which is not a static extension application,
+and $e$ is \code{$e_0$?..$c_1\ \cdots\ $..$c_k$}.
+In this case, $e$ is desugared to
+
+\noindent
+\code{\LET\ $v$\,\,=\,\,$e_0$\ \IN\ $v$\,==\,\NULL\ ?\ \NULL\ :\ %
+  \LET\ $v_1$\,\,=\,\,$v$.$c_1$,\ \ldots,\ $v_k$\,\,=\,\,$v$.$c_k$ \IN\ $v$}.
 
 \commentary{%
-The expressions \code{($e_0$).$s$} and \code{($e_0$)?.$s$} may have
-a very different syntactic structure than
-the expression that gave rise to them
-(namely an expression of the form \code{$e_0$..$s$} or \code{$e_0$?..$s$}).
-In particular, the cascade section $s$ may end in a cascade assignment
-such that \code{$e_0$..$s$} is of the form \code{$e_0$..$s'$ = $e_1$},
-where the cascade section \code{$s'$ = $e_1$} is a subterm of the cascade.
-However, \code{($e_0$).$s'$ = $e_1$} is an \synt{assignment} whose subterms are
-\code{($e_0$).$s'$} and \code{$e_1$}.
-This is possible because the grammar rules for \synt{cascadeSection}
-have been designed in such a way that it is guaranteed
-that \code{($e_0$).$s'$} can be parsed as an \synt{assignableExpression},
-and $e_1$ can be parsed as an \synt{expression}.%
+Note that the grammar is such that \code{$v$.$c_j$} is
+a syntactically correct expression for all $j$.%
 }
-
-\LMHash{}%
-Evaluation of a cascaded member access $e$
-of the form \code{$e_0$..$s$} or the form \code{$e_0$?..$s$}
-where $e$ is an \synt{expression} and
-$s$ is a \synt{cascadeSection}
-proceeds as follows:
-Evaluate $e_0$ to an object $o$.
-If $e$ is initially conditional and $o$ is the null object,
-then $e$ evaluates to the null object.
-Otherwise, let \code{v} be a fresh variable bound to $o$ and
-evaluate \code{v.$s$} to an object which is discarded, and
-then $e$ evaluates to $o$.
 
 
 \subsubsection{Super Invocation}
