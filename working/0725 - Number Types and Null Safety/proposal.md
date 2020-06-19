@@ -1,6 +1,6 @@
 # Dart Null Safe Numbers
 
-Author: lrn@google.com<br>Version: 1.1
+Author: lrn@google.com<br>Version: 1.2
 
 ## Background
 
@@ -8,9 +8,11 @@ Most Dart number operations behave such that if all operand are integers, the re
 
 That's not something the general Dart type system can capture, so Dart special-cases number operators in the type system specification so that, for example, `1 + 1` can has static type `int` even though `int.operator+` actually has the signature `num Function(num)`.
 
-The rules do not cover all integer operations, or any double operations, and this means that a few operations have the default type of `num` inherited from the `num` interface. That has so far not been a serious problem since Dart has had *implicit downcasts* which allows `num` to be assigned to both `int` and `double`. Some static checking my be lacking, but it still runs.
+The special-cased typing works because the language enforces that the only subclasses of `num` is `int` and `double`, and those cannot have subclasses at all. Even though operators are otherwise virtual, the only two `+` operations that can possibly be in play for `numValue + something`  are the `int.operator+` and `double.operator+`  which have known behavior compatible with the special typing, and `intValue + something` is known to call the `int.operator+` method. (This is also the reason those operators can be used in constant expressions: Their behavior is known at compile-time.).
 
-With Null Safety, we remove implicit downcasts from the language. This causes some existing, functioning code to become invalid.
+The current rules do not cover all integer operations, or any double operations, and this means that a few operations have the default type of `num` inherited from the `num` interface. That has so far not been a serious problem since Dart has had *implicit downcasts* which allows `num` to be assigned to both `int` and `double`. Some static checking my be lacking, but it still runs.
+
+With Null Safety, we remove implicit downcasts from the language. This causes some existing, functioning code to become invalid, and currently the only workaround is adding an explicit cast.
 
 This behavior also interacts with type inference because the inference doesn't take the special rules for numbers into account, leading to users being surprised when `double x = 1 + await Future(() => 2.5);` fails to recognize that the result is a `double`.
 
@@ -22,7 +24,7 @@ See [language#971][], [language#597][], [sdk#41559][], [sdk#39652][], [sdk#32645
 
 The special-case typing rules only apply to arithmetic *operators* (`+`, `-`, `*`, `%`). They do not apply to `int.remainder`, even though it is otherwise equivalent to `%`,and they do not apply to `num.clamp`. These are the two remaining members of `int` which has a return type of `num`.
 
-This has caused issues before, but now those issues become invalid [impliciit downcasts][sdk#39652].
+This has caused issues before, but now those issues become invalid without [impliciit downcasts][sdk#39652].
 
 ### Rules do not work with type variables
 
