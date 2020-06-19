@@ -1,6 +1,6 @@
 # Dart Null Safe Numbers
 
-Author: lrn@google.com<br>Version: 1.0
+Author: lrn@google.com<br>Version: 1.1
 
 ## Background
 
@@ -43,6 +43,23 @@ expectsDouble(y); // Used to be implicit downcast, now a compile-time error.
 
 Code like `int n = …; double y = n * 2;` is a compile-time error. The type context for `2` is `num`. The author expected `2` to be a double literal, and it's possible to recognize that *making* it a double literal would make the code correct. Not all instances of this problem are as obvious as this one, for example: `double y = n * await Future(() => 2.0);` will infer the future to be a `Future<num>` independently of the operation.
 
+## Solution goal
+
+This document proposes new rules that should solve the problems mentioned above. The *goal* is to allow code that users will naturally write and expect to work, to actually work. The users expected mental model can be summarized 
+
+> If all operands are integers, the result is and integer, and if any operand is a double, the result is a double.
+
+Users understand that both `int` and `double` are sealed types and that all `num` objects are really either an `int` or a `double`. They also understand type promotion, so checking that something is a an `int`  should make it work like an `int`. This means that `T extends num`  should act like `num` and  `T & int` should act like `int`.
+
+Such a user would expect the following code to work:
+
+```dart
+double lerp(num start, num end, double y) => start + (end - start) * y;
+T add<T extends num>(T a, T b) => a + b;
+```
+
+because any attempt to plug in actual values will give sound results.
+
 ## Solution proposal
 
 ### Extend the rules
@@ -77,6 +94,8 @@ We extend type inference to take the special number rules into account.
 > For  `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)` where `e1` has static type `int`, if the context type of the entire expression is `int`, then the context type of `e2` is `int`, and if the context type of the entire expression is `double`, then the context type of `e2` is `double`.
 
 > If the context type of `e1.clamp(e2, e3)` is `int` and the static type of `e1` is `int`, then the context types of `e2` and `e3` are both `int`.<br>If the context type of `e1.clamp(e2, e3)` is `double` and the static type of `e1` is `double`, then the context types of `e2` and `e3` are both `double`.
+
+(This does emphasize the inherent non-symmetry of Dart operators: The first operand is a receiver which is always evaluated with no type context, and the second operand is an argument, which is type inferred *after* the method has been detected and used to find the parameter type to use as type context.)
 
 ## Summary
 
