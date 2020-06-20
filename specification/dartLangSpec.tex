@@ -590,6 +590,42 @@ that some language features are introducing essential semantics,
 and others are better described as mere abbreviations of existing constructs.%
 }
 
+\LMHash{}%
+The specification uses one syntactic construct, the
+\IndexCustom{\LET{} expression}{let expression@\LET{} expression},
+which is not derivable in the grammar
+(\commentary{that is, no Dart source code contains such an expression}).
+This expression is helpful in specifying certain syntactic forms
+that are treated as other syntactic forms,
+because it allows for introducing and initializing one or more fresh variables,
+and using them in an expression
+(\commentary{that is, \LET{} expressions can arise during desugaring}).
+The syntax of a \LET{} expression is as follows:
+
+\begin{grammar}
+<letExpression> ::= \LET{} <staticFinalDeclarationList> \IN{} <expression>
+\end{grammar}
+
+\LMHash{}%
+Let $e_{\metavar{let}}$ be a \LET{} expression of the form
+\code{\LET\,\,$v_1$\,=\,$e_1$, $\cdots$, $v_k$\,=\,$e_k$\ \IN\ $e$}.
+It is required that $v_j$ is a fresh variable, $j \in 1 .. k$
+(\commentary{which is tacitly assumed whenever a \LET{} expression is used}).
+$e_{\metavar{let}}$ contains $k$ nested scopes, \List{S}{1}{k};
+the current scope of $e_1$ is the current scope of $e_{\metavar{let}}$,
+the current scope of $e_{j+1}$ is $S_j$, $j \in 1 .. k - 1$,
+and the current scope of $e$ is $S_k$.
+For $j \in 1 .. k$, $v_j$ introduces a final, local variable into $S_j$,
+with the static type of $e_j$ as its declared type.
+For type inference of $e_j$, the empty context type is used.
+
+\LMHash{}
+Evaluation of $e_{\metavar{let}}$ proceeds by
+evaluating $e_j$ to an object $o_j$ and binding $v_j$ to $o_j$,
+where $j \in 1 .. k$, in that order.
+Finally, $e$ is evaluated to an object $o$ and then
+$e_{\metavar{let}}$ evaluates to $o$.
+
 
 \section{Overview}
 \LMLabel{overview}
