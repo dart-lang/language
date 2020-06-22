@@ -611,9 +611,11 @@ Let $e_{\metavar{let}}$ be a \LET{} expression of the form
 \code{\LET\,\,$v_1$\,=\,$e_1$, $\cdots$, $v_k$\,=\,$e_k$\ \IN\ $e$}.
 It is required that $v_j$ is a fresh variable, $j \in 1 .. k$
 (\commentary{which is tacitly assumed whenever a \LET{} expression is used}).
-$e_{\metavar{let}}$ contains $k$ nested scopes, \List{S}{1}{k};
-the current scope of $e_1$ is the current scope of $e_{\metavar{let}}$,
-the current scope of $e_{j+1}$ is $S_j$, $j \in 1 .. k - 1$,
+$e_{\metavar{let}}$ contains $k$ nested scopes, \List{S}{1}{k}.
+The enclosing scope for $S_1$ is the current scope for $e_{\metavar{let}}$,
+and the enclosing scope for $S_j$ is $S_{j-1}$, $j \in 2 .. k$.
+The current scope of $e_1$ is the current scope of $e_{\metavar{let}}$,
+the current scope of $e_j$ is $S_{j-1}$, $j \in 2 .. k$,
 and the current scope of $e$ is $S_k$.
 For $j \in 1 .. k$, $v_j$ introduces a final, local variable into $S_j$,
 with the static type of $e_j$ as its declared type.
@@ -5366,6 +5368,14 @@ except that static extensions can also declare operators.%
 }
 
 \LMHash{}%
+A static extension application does not have a type.
+
+\commentary{%
+This is consistent with the fact that any use of a static extension application
+where a type is needed is a compile-time error.%
+}
+
+\LMHash{}%
 Let $i$ be a simple member invocation
 (\ref{memberInvocations})
 whose receiver $r$ is a static extension application of the form
@@ -5520,7 +5530,7 @@ whenever the declared name is in scope,
 it is sufficient to consider the fresh name.
 %
 When the fresh name of $E$ is in the library scope,
-it is availably in \emph{any} scope,
+it is available in \emph{any} scope,
 because the name is fresh and hence it cannot be shadowed
 by any declaration in any intermediate scope.
 %
@@ -5532,54 +5542,138 @@ then it is accessible everywhere in $L$.%
 \subsubsection{Applicability of a Static Extension}
 \LMLabel{staticExtensionApplicability}
 
-!!!TODO!!!
+\LMHash{}%
+Let $E$ be a static extension.
+Let $e$ be a member invocation
+(\ref{memberInvocations})
+with a receiver $r$ with static type $S$
+and with a corresponding member name whose basename is $m$.
+We say that $E$ is
+\IndexCustom{applicable}{static extension!is applicable}
+to $e$ if the following conditions are all satisfied:
 
-An static extension $E$ is *applicable* to a simple or composite member
-invocation with corresponding member *basename* *m* and target
-expression \code{e}, where \code{e} has static type *S*, if
+\begin{itemize}
+\item
+  $r$ is not a type literal.
 
-- The invocation is an *instance* member invocation. That is the case if the expression \code{e} does not denote a prefix or a class, mixin or static extension declaration *(then the member invocation would be a static invocation)*, and it is not a static extension application. An instance member invocation on \code{e} will always begin by evaluating \code{e} to an object, and then continue by performing an instance member invocation on that object.
-- The type *S*  does not have a member with the basename  *m*. For this, the type \DYNAMIC{} is considered as having all member names, and an expression of type \code{Never} or \VOID{} cannot occur as the target of a member invocation, so none of these can ever have applicable static extensions. Function types and the type \code{Function} are considered as having a \CALL{} member. *This ensure that if there is an applicable static extension, the existing invocation would otherwise be a compile-time error*. Members of \code{Object} exists on all types, so they can never be the target of implicit member invocations (\commentary{they can also not be declared as static extension members}).
-- The static extension application \code{E(x)} would be valid (not a compile-time error) where \code{x} is a fresh variable with static type $S$ (to avoid type inference for any type parameters of \code{E} from affecting the already determined static type of \code{e}) in a scope where \code{E} denotes the static extension.
-- and \code{E} declares an instance member with the basename *m*.
+  \commentary{%
+    This means that the invocation is an instance member invocation,
+    in the sense that $r$ denotes an object,
+    so it may invoke an instance member or be an error,
+    but it cannot be a static member access.
+    Note that $r$ also does not denote a prefix or a static extension,
+    and it is not a static extension application,
+    because they do not have a type.%
+  }
+\item
+  The type $S$ does not have a member with the basename $m$,
+  and $S$ is neither \DYNAMIC{} nor \code{Never}.
 
-Notice that the context type of the invocation does not affect whether
-the static extension applies, and neither the context type nor the method
-invocation affects the type inference of \code{e}, but if the static extension
-method itself is generic, the context type may affect the member
-invocation.
+  \commentary{%
+    \DYNAMIC{} and \code{Never} are considered to have all members.
+    Also, it is an error to access a member on a receiver of type \VOID{}
+    (\ref{typeVoid}),
+    so static extensions are never applicable to receivers of
+    any of the types \DYNAMIC, \code{Never}, or \VOID.%
+   }
+
+  For the purpose of determining static extension applicability,
+  function types and the type \code{Function}
+  are considered to have a member named \CALL.
+
+  \commentary{%
+    Hence, static extensions are never applicable to functions
+    when the basename of the member is \CALL.
+    %
+    Instance members declared by the built-in class \code{Object}
+    exist on all types,
+    so no static extension is ever applicable for members with such names.%
+  }
+\item
+  Consider a static extension application $a$ of the form \code{$E$($v$)}
+  where $v$ is a fresh variable with static type $S$.
+  It is required that an occurrence of $a$ at the location of $e$
+  is not a compile-time error.
+
+  \commentary{%
+    In other words, $S$ must match the \ON{} type of $E$.
+    With type inference, inferred actual type arguments may be added,
+    yielding \code{$E$<\List{S}{1}{k}>($v$)},
+    which is then required to not be an error.%
+  }
+\item
+  The static extension $E$ declares an instance member with basename $m$.
+\end{itemize}
+
+\commentary{%
+With type inference:
+The context type of the invocation does not affect
+whether the static extension is applicable,
+and neither the context type nor the method invocation affects
+the type inference of $r$,
+but if the static extension method itself is generic,
+the context type may affect the member invocation.%
+}
+
 
 \subsubsection{Specificity of a Static Extension}
 \LMLabel{staticExtensionSpecificity}
 
-When more than one static extension is accessible and applicable to a member
-invocation, we define a partial ordering on those static extensions wrt. that
-member invocation, so that we can choose the "best" candidate which
-will have its static extension member be implicitly invoked.
+\LMHash{}%
+When \List{E}{1}{k}, $k > 1$, are static extensions
+which are is accessible and applicable to a member invocation $e$
+(\ref{memberInvocations}),
+we define the notion of
+\IndexCustom{specificity}{static extension!specificity},
+which is a partial order on \List{E}{1}{k}.
 
-Let *i* be a member invocation with target expression \code{e} and
-corresponding member name *m*, and let \code{E1} and \code{E2} denote
-different accessible and applicable static extensions for *i*. Let
-$T_1$ be the instantiated \ON{} type of \code{E1} wrt. \code{e} and
-let $T_2$ be the instantiated \ON{} type of \code{E2}
-wrt. \code{e}. Then \code{E1} is more specific than \code{E2} wrt. *i*
-iff:
+\commentary{%
+The specificity is used to determine
+which static extension method to execute
+in this situation where more than one choice is possible
+(\ref{implicitStaticExtensionInvocations}).%
+}
 
-1. The \code{E2} static extension is declared in a platform library and the
-   \code{E1} static extension is not, or
-2. either both or neither are declared in platform libraries and
-3. $T_1$ is a subtype of of $T_2$ and either
-4. not vice versa, or
-5. the instantiate-to-bounds \ON{} type of \code{E1} is a subtype of
-   the instantiate-to-bounds \ON{} type of \code{E2} and not vice
-   versa.
+\LMHash{}%
+Let $e$ be a member invocation with receiver $r$
+and correspsonding member name $m$,
+and let $E_1$ and $E_2$ denote two distinct
+accessible and applicable static extensions for $e$.
+Let $T_j$ be the instantiated \ON{} type of $e$ with respect to $E_j$,
+and $S_j$ be the instantiation-to-bound \ON{} type of $e$ with respect to $E_j$,
+for $j \in 1 .. 2$
+(\ref{explicitStaticExtensionInvocations}).
+Then $E_1$ is more specific than $E_2$ with respect $e$
+if any of the following conditions is satisfied:
+
+\begin{itemize}
+\item
+  $E_1$ is not declared in a system library,
+  but $E_2$ is declared in a system library.
+\item
+  $E_1$ and $E_2$ are both declared in a system library,
+  or neither of them is declared in a system library, and
+  \begin{itemize}
+  \item \SubtypeNE{T_1}{T_2}, but not \SubtypeNE{T_2}{T_1}, or
+  \item \SubtypeNE{T_1}{T_2}, \SubtypeNE{T_2}{T_1}, and
+    \SubtypeNE{S_1}{S_2}, but not \SubtypeNE{S_2}{S_1}.
+  \end{itemize}
+
+  \commentary{%
+    In other words, the instantiated \ON{} type determines the specificity,
+    and the instantiation-to-bound \ON{} type is used as a tie breaker
+    in the case where subtyping does not distinguish between the former.%
+  }
+\end{itemize}
+
 
 \subsubsection{Examples}
+\LMLabel{staticExtensionExamples}
 
+\commentary{%
 The following examples display the implicit static extension resolution when
-multiple applicable static extensions are available.
-
-Example:
+multiple applicable static extensions are available.%
+}
 
 \begin{dartCode}
 extension SmartIterable<T> on Iterable<T> \{
@@ -5597,11 +5691,12 @@ extension SmartList<T> on List<T> \{
   x.doTheSmartThing(print);
 \end{dartCode}
 
-Here both the static extensions apply, but the \code{SmartList} static extension is
+\commentary{%
+Here both the static extensions apply,
+but the \code{SmartList} static extension is
 more specific than the \code{SmartIterable} static extension because
-\SubtypeStd{\code{List<dynamic>}}{\code{Iterable<dynamic>}}.
-
-Example:
+\SubtypeNE{\code{List<dynamic>}}{\code{Iterable<dynamic>}}.%
+}
 
 \begin{dartCode}
 extension BestCom<T extends num> on Iterable<T> { T best() {...} }
@@ -5614,6 +5709,7 @@ extension BestSpec on List<num> { num best() {...} }
   var w = y.best();
 \end{dartCode}
 
+\commentary{%
 Here all three extensions apply to both invocations.
 
 For \code{x.best()}, the most specific one is \code{BestList}.
@@ -5636,16 +5732,23 @@ In practice, unintended static extension method name conflicts are likely to
 be rare. Intended conflicts happen where the same author is providing
 more specialized versions of an static extension for subtypes, and in that
 case, picking the static extension which has the most precise types available
-to it is considered the best choice.
+to it is considered the best choice.%
+}
+
 
 \subsection{Static Members and Member Resolution}
 \LMLabel{staticMembersAndMemberResolution}
 
+!!!TODO!!!
+
+\LMHash{}%
 Static member declarations in the static extension declaration can be
 accessed the same way as static members of a class or mixin
 declaration: By prefixing with the static extension's name.
 
+\commentary{
 Example:
+}
 
 \begin{dartCode}
 extension MySmart on Object \{
