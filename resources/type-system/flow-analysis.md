@@ -9,6 +9,11 @@ https://docs.google.com/document/d/11Xs0b4bzH6DwDlcJMUcbx4BpvEKGz8MVuJWEfo_mirE/
 
 ## CHANGELOG
 
+2020.06.29
+  - Fix handling of variables that are write captured in loops, switch
+    statements, and try-blocks (such variables should be conservatively assumed
+    to be captured).
+
 2020.06.02
   - Specify the interaction between downwards inference and promotion/demotion.
 
@@ -206,6 +211,10 @@ The following functions associate flow models to nodes:
 - `assignedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
   represents the set of variables assigned to in `S`.
 
+- `capturedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
+  represents the set of variables assigned to in a local function or function
+  expression in `S`.
+
 Note that `true`, `false`, `null`, and `notNull` are defined for all expressions
 regardless of their static types.
 
@@ -329,12 +338,17 @@ We also make use of the following auxiliary functions:
   which is unreachable, but is otherwise modeled by flow model `M = FlowModel(r,
   VI)`, and is defined as `FlowModel(push(pop(r), false), VI)`
 
-- `demoteVariables(M, S)` represents the flow model derived from `M` in which
-  all variables in `S` have been demoted to their declared types.  It is defined
-  as `FlowModel(r, VI1)` where `M` is `FlowModel(r, VI0)` and `VI1` is the map
+- `conservativeJoin(M, written, captured)` represents a conservative
+  approximation of the flow model that could result from joining `M` with a
+  model in which variables in `written` might have been written to and variables
+  in `captured` might have been write-captured.  It is defined as
+  `FlowModel(r, VI1)` where `M` is `FlowModel(r, VI0)` and `VI1` is the map
   such that:
     - `VI0` maps `v` to `VM0 = VariableModel(d0, p0, s0, a0, u0, c0)`
-    - If `S` contains `v` then `VI1` maps `v` to `VariableModel(d0, [], s0, a0, u0, c0)`
+    - If `captured` contains `v` then `VI1` maps `v` to
+      `VariableModel(d0, [], s0, a0, u0, true)`
+    - Otherwise if `written` contains `v` then `VI1` maps `c` to
+      `VariableModel(d0, [], s0, a0, u0, c0)`
     - Otherwise `VI1` maps `v` to `VM0`
 
 
@@ -661,13 +675,13 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
 
 - **while statement**: If `N` is a while statement of the form `while
   (E) S` then:
-  - Let `before(E) = demoteVariables(before(N), assignedIn(N))`.
+  - Let `before(E) = conservativeJoin(before(N), assignedIn(N), capturedIn(N))`.
   - Let `before(S) = split(true(E))`.
   - Let `after(N) = join(false(E), unsplit(break(S))`
 
 - **do while statement**: If `N` is a do while statement of the form `do S while
   (E)` then:
-  - Let `before(S) = demoteVariables(before(N), assignedIn(N))`.
+  - Let `before(S) = conservativeJoin(before(N), assignedIn(N), capturedIn(N))`.
   - Let `before(E) = join(after(S), continue(N))`
   - Let `after(N) = join(false(E), break(S))`
 
@@ -675,21 +689,21 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
   {alternatives}` then:
   - Let `before(E) = before(N)`.
   - For each `C` in `alternatives` with statement body `S`:
-    - If `C` is labelled let `before(S) = demoteVariables(after(E),
-      assignedIn(N)` otherwise let `before(S) = after(E)`.
+    - If `C` is labelled let `before(S) = conservativeJoin(after(E),
+      assignedIn(N), capturedIn(N))` otherwise let `before(S) = after(E)`.
   - If the cases are exhaustive, then let `after(N) = break(N)` otherwise let
     `after(N) = join(after(E), break(N))`.
 
 - **try catch**: If `N` is a try/catch statement of the form `try B
 alternatives` then:
   - Let `before(B) = before(N)`
-  - Foreach catch block `on Ti Si` in `alternatives`:
-    - Let `before(Si) = demoteVariables(before(N), assignedIn(B))`
+  - For each catch block `on Ti Si` in `alternatives`:
+    - Let `before(Si) = conservativeJoin(before(N), assignedIn(B), capturedIn(B))`
   - Let `after(N) = join(after(B), after(C0), ..., after(Ck))`
 
 - **try finally**: If `N` is a try/finally statement of the form `try B1 finally B2` then:
   - Let `before(B1) = split(before(N))`
-  - Let `before(B2) = split(join(drop(after(B1)), demoteVariables(before(N), assignedIn(B1))))`
+  - Let `before(B2) = split(join(drop(after(B1)), conservativeJoin(before(N), assignedIn(B1), capturedIn(B1))))`
   - Let `after(N) = restrict(after(B1), after(B2), assignedIn(B2))`
 
 
