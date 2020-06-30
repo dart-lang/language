@@ -209,11 +209,21 @@ The following functions associate flow models to nodes:
   targetting `S`.
 
 - `assignedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
-  represents the set of variables assigned to in `S`.
+  or a `for` element in a collection, represents the set of variables assigned
+  to in the recurrent part of `S`, where the "recurrent" part of `S` is defined
+  as:
+  - If `S` is a `do` or `while` statement, the entire statement `S`.
+  - If `S` is a `for` statement or a `for` element in a collection, whose
+    `forLoopParts` take the form of a traditional for loop, all of `S` except
+    the `forInitializerStatement`.
+  - If `S` is a `for` statement or a `for` element in a collection, whose
+    `forLoopParts` take the form of a for-in loop, the body of `S`.
+  - If `S` is a `switch` statement, all of `S` except the switch `expression`.
 
 - `capturedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
   represents the set of variables assigned to in a local function or function
-  expression in `S`.
+  expression in the recurrent part of `S`, where the "recurrent" part of `s` is
+  defined as in `assignedIn`, above.
 
 Note that `true`, `false`, `null`, and `notNull` are defined for all expressions
 regardless of their static types.
