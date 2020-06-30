@@ -5676,14 +5676,14 @@ multiple applicable static extensions are available.%
 }
 
 \begin{dartCode}
-extension SmartIterable<T> on Iterable<T> \{
-  void doTheSmartThing(void Function(T) smart) \{
-    for (var e in this) smart(e);
+\EXTENSION{} SmartIterable<T> \ON{} Iterable<T> \{
+  \VOID{} doTheSmartThing(void \FUNCTION(T) smart) \{
+    \FOR{} (\VAR{} e \IN{} \THIS) smart(e);
   \}
 \}
-extension SmartList<T> on List<T> \{
-  void doTheSmartThing(void Function(T) smart) \{
-    for (int i = 0; i < length; i++) smart(this[i]);
+\EXTENSION{} SmartList<T> \ON{} List<T> \{
+  \VOID{} doTheSmartThing(\VOID{} \FUNCTION(T) smart) \{
+    \FOR{} (int i = 0; i < length; i++) smart(\THIS[i]);
   \}
 \}
 ...
@@ -5699,14 +5699,14 @@ more specific than the \code{SmartIterable} static extension because
 }
 
 \begin{dartCode}
-extension BestCom<T extends num> on Iterable<T> { T best() {...} }
-extension BestList<T> on List<T> { T best() {...} }
-extension BestSpec on List<num> { num best() {...} }
+\EXTENSION{} BestCom<T \EXTENDS{} num> \ON{} Iterable<T> \{ T best() \{...\}\}
+\EXTENSION{} BestList<T> \ON{} List<T> \{ T best() \{...\}\}
+\EXTENSION{} BestSpec \ON{} List<num> \{ num best() \{...\}\}
 ...
   List<int> x = ...;
-  var v = x.best();
+  \VAR{} v = x.best();
   List<num> y = ...;
-  var w = y.best();
+  \VAR{} w = y.best();
 \end{dartCode}
 
 \commentary{%
