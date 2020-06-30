@@ -347,7 +347,7 @@ We also make use of the following auxiliary functions:
     - `VI0` maps `v` to `VM0 = VariableModel(d0, p0, s0, a0, u0, c0)`
     - If `captured` contains `v` then `VI1` maps `v` to
       `VariableModel(d0, [], s0, a0, u0, true)`
-    - Otherwise if `written` contains `v` then `VI1` maps `c` to
+    - Otherwise if `written` contains `v` then `VI1` maps `v` to
       `VariableModel(d0, [], s0, a0, u0, c0)`
     - Otherwise `VI1` maps `v` to `VM0`
 
