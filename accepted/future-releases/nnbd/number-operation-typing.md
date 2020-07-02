@@ -16,7 +16,7 @@ With Null Safety, we remove implicit downcasts from the language. This causes so
 
 This behavior also interacts with type inference because the inference doesn't take the special rules for numbers into account, leading to users being surprised when `double x = 1 + await Future(() => 2.5);` fails to recognize that the result is a `double`.
 
-See [language#971][], [language#597][], [sdk#41559][], [sdk#39652][], [sdk#32645][], [sdk#28249][].
+See [language#971][], [language#725][], [language#597][], [sdk#41559][], [sdk#39652][], [sdk#32645][], [sdk#28249][].
 
 ## Concrete issues
 
@@ -133,6 +133,7 @@ The changes cover *all the listed issued*:
 These changes will remove some common pitfalls introduced (or worsened) by removing implicit downcasts with Null Safety.
 
 [language#597]: https://github.com/dart-lang/language/issues/597
+[language#725]: https://github.com/dart-lang/language/issues/725
 [language#971]: https://github.com/dart-lang/language/issues/971
 [sdk#28249]: https://github.com/dart-lang/sdk/issues/28249
 [sdk#32645]: https://github.com/dart-lang/sdk/issues/32645
