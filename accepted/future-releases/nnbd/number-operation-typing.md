@@ -1,6 +1,6 @@
 # Dart Null Safe Numbers
 
-Author: lrn@google.com<br>Version: 1.4
+Author: lrn@google.com<br>Version: 1.3
 
 ## Background
 
@@ -8,15 +8,15 @@ Most Dart number operations behave such that if all operand are integers, the re
 
 That's not something the general Dart type system can capture, so Dart special-cases number operators in the type system specification so that, for example, `1 + 1` can has static type `int` even though `int.operator+` actually has the signature `num Function(num)`.
 
-The special-cased typing works because the language enforces that the only subclasses of `num` is `int` and `double`, and those cannot have subclasses at all. Even though operators are otherwise virtual, the only two `+` operations that can possibly be in play for `numValue + something`  are the `int.operator+` and `double.operator+`  which have known behavior compatible with the special typing, and `intValue + something` is known to call the `int.operator+` method. (This is also the reason those operators can be used in constant expressions: Their behavior is known at compile-time.).
+The special-cased typing works because the language enforces that the only subclasses of `num` is `int` and `double`, and those cannot have subclasses at all. Even though operators are otherwise virtual, the only two `+` operations that can possibly be in play for `numValue + something`  are the `int.operator+` and `double.operator+`  which have known behavior compatible with the special typing, and `intValue + something` is known to call the `int.operator+` method. (This is also the reason those operators can be used in constant expressions: Their behavior is known at compile-time.).
 
-The current rules do not cover all integer operations, or any double operations, and this means that a few operations have the default type of `num` inherited from the `num` interface. That has so far not been a serious problem since Dart has had *implicit downcasts* which allows `num` to be assigned to both `int` and `double`. Some static checking my be lacking, but it still runs.
+The current rules do not cover all integer operations, or any double operations, and this means that a few operations have the default type of `num` inherited from the `num` interface. That has so far not been a serious problem since Dart has had *implicit downcasts* which allows `num` to be assigned to both `int` and `double`. Some static checking my be lacking, but it still runs.
 
 With Null Safety, we remove implicit downcasts from the language. This causes some existing, functioning code to become invalid, and currently the only workaround is adding an explicit cast.
 
-This behavior also interacts with type inference because the inference doesn't take the special rules for numbers into account, leading to users being surprised when `double x = 1 + await Future(() => 2.5);` fails to recognize that the result is a `double`.
+This behavior also interacts with type inference because the inference doesn't take the special rules for numbers into account, leading to users being surprised when `double x = 1 + await Future(() => 2.5);` fails to recognize that the result is a `double`.
 
-See [language#971][], [language#725][], [language#597][], [sdk#41559][], [sdk#39652][], [sdk#32645][], [sdk#28249][].
+See [language#971][], [language#597][], [sdk#41559][], [sdk#39652][], [sdk#32645][], [sdk#28249][].
 
 ## Concrete issues
 
@@ -32,7 +32,7 @@ An operation like `T add<T extends num>(T a, T b) => a + b;` becomes invalid wit
 
 ### No special case for `num op double`
 
-We recognize that `int + int` is an `int`  and that `int + double` is a `double`, but not that `num + double` is a `double`, even though it always is. That missing case has generally been saved by implicit downcast because the result is `num` and `num`  can be assigned to `double` (and because there are very few members on `double` that are not also members of `num`). It can happen accidentally, for example:
+We recognize that `int + int` is an `int`  and that `int + double` is a `double`, but not that `num + double` is a `double`, even though it always is. That missing case has generally been saved by implicit downcast because the result is `num` and `num`  can be assigned to `double` (and because there are very few members on `double` that are not also members of `num`). It can happen accidentally, for example:
 
 ```dart
 int n = …, m = …;
@@ -51,7 +51,7 @@ This document specifies new rules that solves the problems mentioned above. The 
 
 > If all operands are integers, the result is and integer, and if any operand is a double, the result is a double.
 
-Users understand that both `int` and `double` are sealed types and that all `num` objects are really either an `int` or a `double`. They also understand type promotion, so checking that something is a an `int`  should make it work like an `int`. This means that `T extends num`  should act like `num` and  `T & int` should act like `int`.
+Users understand that both `int` and `double` are sealed types and that all `num` objects are really either an `int` or a `double`. They also understand type promotion, so checking that something is a an `int`  should make it work like an `int`. This means that `T extends num`  should act like `num` and  `T & int` should act like `int`.
 
 Such a user would expect the following code to work:
 
@@ -62,46 +62,75 @@ T add<T extends num>(T a, T b) => a + b;
 
 because any attempt to plug in actual values will give sound results.
 
-Users also understand that `clamp` will return either the receiver or one of the arguments. If those all have the same type, the result will have that type.
+Users also understand that `clamp` will return either the receiver or one of the arguments. If those all have the same type, the result will have that type.
 
 ## Solution
 
 ### Extended Rules
 
-We extend the special-casing rules of `+`, `-`, `*` and `%` to also cover calls of the `remainder` method, and to also work with type parameters which extend `num` , `int` or `double`. Finally, if the second operand is a `double` and the first is a `num`, the result is guaranteed to be a `double`.
+We extend the special-casing rules of `+`, `-`, `*` and `%` to also cover calls of the `remainder` method, and to also work with type parameters which extend `num` , `int` or `double`. Finally, if the second operand is a `double` and the first is a `num`, the result is guaranteed to be a `double`.
 
 That is:
 
-> For an expression `e` of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)`, where the static type of `e1` is a non-`Never` type *T* where *T* <: `num` and the static type of `e2` is a non-`Never` type *S* where *S* <: `num`:
+> For an expression `e` of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)`, where the static type of `e1` is a non-`Never` type *T* where *T* <: `num` and the static type of `e2` is a non-`Never` type *S* where *S* <: `num`:
 >
-> * If S <: T then the static type of `e` is *T*. 
-> * Otherwise If *T* <: *S* then the static type of `e` is *S*.
-> * Otherwise if *T* <: `int` and *S* <: `int` then the static type of `e` is `int`.
-> * Otherwise if *T* <: `double` or *S* <: *double* then the static type of *e* is `double`.
+> * If *T* <: `int` and *S* <: `int` then the static type of `e` is *T*.
+> * Otherwise if *T* <: `double` , then the static type of `e` is *T*.
+> * Otherwise if *S* <: `double` then the static type of `e` is `double`.
+> * Otherwise if *T* is not a subtype of `int` or `double`, then the static type of `e` is *T*.
 > * Otherwise the static type of *e* is `num`.
 
 We also special-case the `clamp` method:
 
 > For a normal invocation `e` of the form `e1.clamp(e2, e3)`, where the static types of `e1`, `e2` and `e3` are *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> respectively, which are all non-`Never` subtypes of `num`:
 >
-> * If any of *T*<sub>1</sub>, *T*<sub>2</sub> or *T*<sub>3</sub> is a supertype of the other two, the first such is the static type of `e`.
+> * If any of *T*<sub>1</sub>, *T*<sub>2</sub> or *T*<sub>3</sub> is a supertype of the other two, the first such (in source order of the corresponding operands) is the static type of `e`.
 > * Otherwise, if all of *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> are subtypes of `int`, the static type of `e` is `int`.
 > * Otherwise if all of *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> are subtypes of `double`, the static type of `e` is `double`.
-> * Otherwise the static type of `e` is `num`.
+> * Otherwise the static type of `e` is `num`.
 
 With these extensions, we cover all members on `int` which has a return type of `num`, and we ensure that a using operands with the *same* type gives a result of that type, even if that type is a type variable (like `X extends int`) or promoted type variable (like `X & int`).
 
-There are no special rules for `/` and `~/` because their return type is not `num`, and the return value's type is independent of the argument types. A `/` operation always returns a `double` and a `~/` operation always returns an `int`.
+There are no special rules for `/` and `~/` because their return type is not `num`, and the return value's type is independent of the argument types. A `/` operation always returns a `double` and a `~/` operation always returns an `int`.
+
+Tabulated, the rules for binary operators are:
+
+
+| op1 \\ op2  | int     | int+    | double  | double+ | num     | num+    |
+| :---------: | ------- | ------- | ------- | ------- | ------- | ------- |
+|   **int**   | int     | int     | double  | double  | num     | num     |
+|  **int+**   | int+    | int+    | double  | double  | num     | num     |
+| **double**  | double  | double  | double  | double  | double  | double  |
+| **double+** | double+ | double+ | double+ | double+ | double+ | double+ |
+|   **num**   | num     | num     | double  | double  | num     | num     |
+|  **num+**   | num+    | num+    | double  | double  | num+    | num+    |
+
+where `int+` represents a non-`Never` *proper* subtype of `int`, and when the result is `int+`, it is the same type as the first operand.
+
+The rules are *not symmetric*. When possible, the type of the expression is the type of the first operand (which can be a type variable, even a promoted one), and otherwise it's a plain `int`, ``double` or `num` type. The typing prefers the type of the first operand because it allows operations like `x += 1`  to work seamlessly.
 
 ### Improved context type
 
 We extend type inference to take the special number rules into account.
 
-> For  `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)` where the static type of  `e1` is a non-`Never` subtype of `int`, if the context type of the entire expression is `int`, then the context type of `e2` is `int`. If the static type of `e1` is a non-`Never` subtype of `num` that is *not* a subtype of `double` and the context type of the entire expression is `double`, then the context type of `e2` is `double`.
+> For an expression `e` of the form  `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)`, if the static type of  `e1` is a non-`Never` subtype of `int`, if the context type of `e` is a non-`Nevers` subtype of `int`, then the context type of `e2` is `int`. If the static type of `e1` is a non-`Never` subtype of `num` that is *not* a subtype of `double` and the context type of`e` is `double`, then the context type of `e2` is `double`.
 
-> If the context type of `e1.clamp(e2, e3)` is a non-`Never` subtype of `num`, *T*, and the static type of `e1` is a non-`Never` subtype of *T*, then the context types of `e2` and `e3` are both *T*.<br>Otherwise, if the context type of the invocation is `int` and the static type of `e1` is a non-`Never` subtype of `int`, then the context types of `e2` and `e3` are both `int`, and if the context type of the invocation is `double` and the static type of `e1` is a non-`Never` subtype of `double`, then the context types of `e2` and `e3` are both `double`. Otherwise the context types of `e2` and `e3` are `num`.
+> If the context type of `e1.clamp(e2, e3)` is a non-`Never` subtype of `num`, *T*, then the context types of `e2` and `e3` are also *T*. Otherwise the context types of `e2` and `e3` are `num`.
 
 (This does emphasize the inherent non-symmetry of Dart operators: The first operand is a receiver which is always evaluated with no type context, and is then used to resolve the operator method against, and the second operand is an argument to that method. We need to fully resolve the first operand and the operator before we can even begin with the second operand.)
+
+Tabulated, the context type of the second operand, based on the first operand and the context type of the entire operation, is:
+
+| op1 \\ ctx  | int             | int+            | double | double+         | num  | num+            |
+| :---------: | --------------- | --------------- | ------ | --------------- | ---- | --------------- |
+|   **int**   | int             | int<sup>*</sup> | double | num<sup>*</sup> | num  | num<sup>*</sup> |
+|  **int+**   | int             | int             | double | num<sup>*</sup> | num  | num<sup>*</sup> |
+| **double**  | num<sup>*</sup> | num<sup>*</sup> | num    | num<sup>*</sup> | num  | num<sup>*</sup> |
+| **double+** | num<sup>*</sup> | num<sup>*</sup> | num    | num             | num  | num<sup>*</sup> |
+|   **num**   | num<sup>*</sup> | num<sup>*</sup> | double | num<sup>*</sup> | num  | num<sup>*</sup> |
+|  **num+**   | num<sup>*</sup> | num<sup>*</sup> | double | num<sup>*</sup> | num  | num             |
+
+The cases marked with <sup>\*</sup> are inherently invalid. There is no valid second operand which can make the operation satisfy the context type. That is also the reason for the asymmetry around `doubles`/`double+`. We could change the rules to make the context type `double` in those cases, for symmetry, or in case it makes implementation easier, but it would not change that the program is inherently invalid.
 
 ### Compound Operations
 
@@ -111,11 +140,13 @@ These extensions also carry over to the compound assignment operators and increm
 
 An `lhs += e` expression is roughly equivalent to `lhs = lhs + e` except that subexpressions of `lhs` are only evaluated once. The static typing rules that apply to `lhs + e` also applies to `lhs += e`, and similarly for the other binary operators that are special cased.
 
-That means that `int x = 0; x += 1;` works because `x += 2` is equivalent to `x =  x + 2`, and `x + 2` has type `int`.
+That means that `int x = 0; x += 2;` works because `x += 2` is equivalent to `x =  x + 2`, and `x + 2` has type `int`.
+
+In general the type of `x + 2` is the same as the type of `x` where possible, exactly to allow compound assignment to work no matter which number type is on the left-hand side.
 
 ### Increment/Decrement Operators
 
-The prefix and suffix increment and decrement operators (`++x`, `x++`, `--x` and `x--`) are roughly equivalent to expressions containing `x + 1` or `x - 1`. The static typing rules that apply to `+` also apply to `--` and `++`, with the caveat that the `1` is not treated as a number literal that can potentially be a `double`, even if we apply a context type of `double` to the position. The `1` is *always* an integer literal.
+The prefix and suffix increment and decrement operators (`++x`, `x++`, `--x` and `x--`) are roughly equivalent to expressions containing `x + 1` or `x - 1`. The static typing rules that apply to `+` also apply to `--` and `++`, with the caveat that the `1` is not treated as a number literal that can potentially be a `double`, even if we apply a context type of `double` to the position. The `1` is *always* an integer literal.
 
 ## Summary
 
@@ -133,7 +164,6 @@ The changes cover *all the listed issued*:
 These changes will remove some common pitfalls introduced (or worsened) by removing implicit downcasts with Null Safety.
 
 [language#597]: https://github.com/dart-lang/language/issues/597
-[language#725]: https://github.com/dart-lang/language/issues/725
 [language#971]: https://github.com/dart-lang/language/issues/971
 [sdk#28249]: https://github.com/dart-lang/sdk/issues/28249
 [sdk#32645]: https://github.com/dart-lang/sdk/issues/32645
