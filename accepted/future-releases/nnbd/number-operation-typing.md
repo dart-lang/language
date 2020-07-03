@@ -97,7 +97,7 @@ There are no special rules for `/` and `~/` because their return type is not `nu
 
 We extend type inference to take the special number rules into account.
 
-> For  `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)` where `e1` has static type `int`, if the context type of the entire expression is `int`, then the context type of `e2` is `int`, and if the context type of the entire expression is `double`, then the context type of `e2` is `double`.
+> For  `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)` where the static type of  `e1` is a non-`Never` subtype of `int`, if the context type of the entire expression is `int`, then the context type of `e2` is `int`. If the static type of `e1` is a non-`Never` subtype of `num` that is *not* a subtype of `double` and the context type of the entire expression is `double`, then the context type of `e2` is `double`.
 
 > If the context type of `e1.clamp(e2, e3)` is a non-`Never` subtype of `num`, *T*, and the static type of `e1` is a non-`Never` subtype of *T*, then the context types of `e2` and `e3` are both *T*.<br>Otherwise, if the context type of the invocation is a non-`Never` subtype of `int` and the static type of `e1` is a non-`Never` subtype of `int`, then the context types of `e2` and `e3` are both `int`, and if the context type of the invocation is a non-`Never` subtype of `double` and the static type of `e1` is a non-`Never` subtype of `double`, then the context types of `e2` and `e3` are both `double`. Otherwise the context types of `e2` and `e3` are `num`.
 
