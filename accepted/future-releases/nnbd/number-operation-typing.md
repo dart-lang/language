@@ -75,7 +75,7 @@ Let `e` be an expression of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`, `e
 * If *T* <: `double` , then the static type of `e` is *T*.
 * Otherwise if *S* is a non-`Never` subtype of `double` then the static type of `e` is `double`.
 * Otherwise, if *S* is a non-`Never` subtype of  `int` then the static type of `e` is *T*.
-* Otherwise if *S* <: *T* and *T* <: *S*, then the static type of `e` is *T*.
+* Otherwise if is a non-`Never` subtype of *T* , then the static type of `e` is *T*.
 * Otherwise the static type of *e* is `num`.
 
 We also special-case the `clamp` method.
@@ -98,7 +98,7 @@ The rules for the binary operators can be summarized (non-normatively) as:
 | **<: double** | *T*    | *T*       | *T*     | *T*     |
 |  **<: num**   | *T*    | double    | num/*T* | num     |
 
-where `<: num` here represents a subtype of `num` which is *not* also a subtype of `int` or `double`, and "num/*T*" covers the case where the static type is *T* when *S* and *T* are mutual subtypes, and `num` when they are not.
+where `<: num` here represents a subtype of `num` which is *not* also a subtype of `int` or `double`, and "num/*T*" covers the case where the static type is *T* when *S* <: *T* , and `num` when they are not.
 
 The rules are *not symmetric*. When possible, the type of the expression is the type of the first operand (which can be a type variable, even a promoted one), and otherwise it's a plain `int`, `double` or `num` type. The typing prefers the type of the first operand because it allows operations like `x += 1`  to work seamlessly.
 
