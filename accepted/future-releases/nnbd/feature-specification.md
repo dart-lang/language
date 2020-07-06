@@ -650,6 +650,11 @@ Consider an expression `e` of the form `e1 == e2` where the static type of
 formal parameter of `operator ==` in the interface of **NonNull**(`T1`).
 It is a compile-time error unless `T2` is assignable to `S?`.
 
+Similarly, consider an expression `e` of the form `super == e2`, inside a class
+`C`, where the static type of `e2` is `T2`.  Let `S` be the type of the formal
+parameter of `operator ==` in the super-interface of `C`.  It is a compile-time
+error unless `T2` is assignable to `S?`.
+
 _Even if the static type of `e1` is potentially nullable, the parameter type
 of the `operator ==` of the corresponding non-null type is taken into account,
 because that instance method will not be invoked when `e1` is null. Similarly,
