@@ -70,67 +70,71 @@ Users also understand that `clamp` will return either the receiver or one of the
 
 We extend the special-casing rules of `+`, `-`, `*` and `%` to also cover calls of the `remainder` method, and to also work with type parameters which extend `num` , `int` or `double`. Finally, if the second operand is a `double` and the first is a `num`, the result is guaranteed to be a `double`.
 
-That is:
+Let `e` be an expression of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)`, where the static type of `e1` is a non-`Never` type *T* where *T* <: `num` and the static type of `e2` is *S*. Then:
 
-> For an expression `e` of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)`, where the static type of `e1` is a non-`Never` type *T* where *T* <: `num` and the static type of `e2` is a non-`Never` type *S* where *S* <: `num`:
->
-> * If *T* <: `int` and *S* <: `int` then the static type of `e` is *T*.
-> * Otherwise if *T* <: `double` , then the static type of `e` is *T*.
-> * Otherwise if *S* <: `double` then the static type of `e` is `double`.
-> * Otherwise if *T* is not a subtype of `int` or `double`, then the static type of `e` is *T*.
-> * Otherwise the static type of *e* is `num`.
+* If *T* <: `double` , then the static type of `e` is *T*.
+* Otherwise if *S* is a non-`Never` subtype of `double` then the static type of `e` is `double`.
+* Otherwise, if *S* is a non-`Never` subtype of  `int` then the static type of `e` is *T*.
+* Otherwise if *S* <: *T* and *T* <: *S*, then the static type of `e` is *T*.
+* Otherwise the static type of *e* is `num`.
 
-We also special-case the `clamp` method:
+We also special-case the `clamp` method.
 
-> For a normal invocation `e` of the form `e1.clamp(e2, e3)`, where the static types of `e1`, `e2` and `e3` are *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> respectively, which are all non-`Never` subtypes of `num`:
->
-> * If any of *T*<sub>1</sub>, *T*<sub>2</sub> or *T*<sub>3</sub> is a supertype of the other two, the first such (in source order of the corresponding operands) is the static type of `e`.
-> * Otherwise, if all of *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> are subtypes of `int`, the static type of `e` is `int`.
-> * Otherwise if all of *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> are subtypes of `double`, the static type of `e` is `double`.
-> * Otherwise the static type of `e` is `num`.
+Let `e` be a normal invocation of the form `e1.clamp(e2, e3)`, where the static types of `e1`, `e2` and `e3` are *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> respectively, and where  *T*<sub>1 is a non-`Never` subtype of `num`. Let *R* be LUB(*T*<sub>1</sub>, *T*<sub>2</sub>, *T*<sub>3</sub>). Then:
 
-With these extensions, we cover all members on `int` which has a return type of `num`, and we ensure that a using operands with the *same* type gives a result of that type, even if that type is a type variable (like `X extends int`) or promoted type variable (like `X & int`).
+* If *R* <: `num`, the static type of`e` as *R*.
+* Otherwise the static type of `e` is `num`.
 
-There are no special rules for `/` and `~/` because their return type is not `num`, and the return value's type is independent of the argument types. A `/` operation always returns a `double` and a `~/` operation always returns an `int`.
+With these typing rules, we cover all the instance members of `int` which has a return type of `num`, and we ensure that a using operands with the *same* type gives a result of that type, even if that type is a type variable (like `X extends int`) or promoted type variable (like `X & int`).
 
-Tabulated, the rules for binary operators are:
+There are no special rules for `/` and `~/` because their return type is not `num`, and the return value's type is independent of the argument types. A `/` operation always returns a `double` and a `~/` operation always returns an `int`.ma
+
+The rules for the binary operators can be summarized (non-normatively) as:
 
 
-| op1 \\ op2  | int     | int+    | double  | double+ | num     | num+    |
-| :---------: | ------- | ------- | ------- | ------- | ------- | ------- |
-|   **int**   | int     | int     | double  | double  | num     | num     |
-|  **int+**   | int+    | int+    | double  | double  | num     | num     |
-| **double**  | double  | double  | double  | double  | double  | double  |
-| **double+** | double+ | double+ | double+ | double+ | double+ | double+ |
-|   **num**   | num     | num     | double  | double  | num     | num     |
-|  **num+**   | num+    | num+    | double  | double  | num+    | num+    |
+|  *T* \\ *S*   | <: int | <: double | <: num  | dynamic |
+| :-----------: | ------ | --------- | ------- | ------- |
+|  **<: int**   | *T*    | double    | num     | num     |
+| **<: double** | *T*    | *T*       | *T*     | *T*     |
+|  **<: num**   | *T*    | double    | num/*T* | num     |
 
-where `int+` represents a non-`Never` *proper* subtype of `int`, and when the result is `int+`, it is the same type as the first operand.
+where `<: num` here represents a subtype of `num` which is *not* also a subtype of `int` or `double`, and "num/*T*" covers the case where the static type is *T* when *S* and *T* are mutual subtypes, and `num` when they are not.
 
-The rules are *not symmetric*. When possible, the type of the expression is the type of the first operand (which can be a type variable, even a promoted one), and otherwise it's a plain `int`, ``double` or `num` type. The typing prefers the type of the first operand because it allows operations like `x += 1`  to work seamlessly.
+The rules are *not symmetric*. When possible, the type of the expression is the type of the first operand (which can be a type variable, even a promoted one), and otherwise it's a plain `int`, `double` or `num` type. The typing prefers the type of the first operand because it allows operations like `x += 1`  to work seamlessly.
+
+*In general, `x + integer` has the same static type as `x`.*
 
 ### Improved context type
 
 We extend type inference to take the special number rules into account.
 
-> For an expression `e` of the form  `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)`, if the static type of  `e1` is a non-`Never` subtype of `int`, if the context type of `e` is a non-`Nevers` subtype of `int`, then the context type of `e2` is `int`. If the static type of `e1` is a non-`Never` subtype of `num` that is *not* a subtype of `double` and the context type of`e` is `double`, then the context type of `e2` is `double`.
+If `e` is an expression of the form  `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)`, where *C* is the context type of `e` and *T* is the static type of `e1`, and where both *C*  and *T* are non-`Never` subtypes of `num`, then:
 
-> If the context type of `e1.clamp(e2, e3)` is a non-`Never` subtype of `num`, *T*, then the context types of `e2` and `e3` are also *T*. Otherwise the context types of `e2` and `e3` are `num`.
+* If *C* <: `int` and *T* <: `int`, then the context type of `e2` is `int`. 
+* If *C* <: `double` and *T* is not a subtype of `double`, then the context type of `e2` is `double`.
+
+It is a compile-time error if the static type of `e2` is not a subtype of `num`. *(It is not necessarily a compile-time error if the static type of `e2` is not a subtype of _C_.)*
+
+If `e` is an expression of the form `e1.clamp(e2, e3)` where *C* is the context type of `e` and *T* is the static type of `e1` where both *T* is a non-`Never` subtype of `num`, then:
+
+* If *C* is a non-`Never` subtype of `num` then  the context type of `e2` and `e3` is *C*.
+* Otherwise the context type of `e2` an `e3` is `num`
+
+It is a compile-time error if the static type of `e2` or `e3` is not a subtype of `num`.  *(It is not necessarily a compile-time error if the static type of `e2` or `e3` is not a subtype of _C_.)*
 
 (This does emphasize the inherent non-symmetry of Dart operators: The first operand is a receiver which is always evaluated with no type context, and is then used to resolve the operator method against, and the second operand is an argument to that method. We need to fully resolve the first operand and the operator before we can even begin with the second operand.)
 
-Tabulated, the context type of the second operand, based on the first operand and the context type of the entire operation, is:
+For the binary operators, the context type of the second operand, based on the first operand and the context type of the entire operation, can be summarized (non-normatively) as:
 
-| op1 \\ ctx  | int             | int+            | double | double+         | num  | num+            |
-| :---------: | --------------- | --------------- | ------ | --------------- | ---- | --------------- |
-|   **int**   | int             | int<sup>*</sup> | double | num<sup>*</sup> | num  | num<sup>*</sup> |
-|  **int+**   | int             | int             | double | num<sup>*</sup> | num  | num<sup>*</sup> |
-| **double**  | num<sup>*</sup> | num<sup>*</sup> | num    | num<sup>*</sup> | num  | num<sup>*</sup> |
-| **double+** | num<sup>*</sup> | num<sup>*</sup> | num    | num             | num  | num<sup>*</sup> |
-|   **num**   | num<sup>*</sup> | num<sup>*</sup> | double | num<sup>*</sup> | num  | num<sup>*</sup> |
-|  **num+**   | num<sup>*</sup> | num<sup>*</sup> | double | num<sup>*</sup> | num  | num             |
+|  *C* \\ *T*   | <: int | <: double       | <: num          |
+| :-----------: | ------ | --------------- | --------------- |
+|  **<: int**   | int    | num<sup>*</sup> | num<sup>*</sup> |
+| **<: double** | double | num             | double          |
+|  **<: num**   | num    | num             | num             |
 
-The cases marked with <sup>\*</sup> are inherently invalid. There is no valid second operand which can make the operation satisfy the context type. That is also the reason for the asymmetry around `doubles`/`double+`. We could change the rules to make the context type `double` in those cases, for symmetry, or in case it makes implementation easier, but it would not change that the program is inherently invalid.
+where `<: num` here represents a subtype of `num` which is *not* also a subtype of `int` or `double`.
+
+The cases marked with <sup>\*</sup> are inherently invalid. There is no valid second operand which can make the operation satisfy the context type. There are many of the other cases that can also be impossible to satisfy if the context type is a *proper* subtype of `int` or `double`, and *T* is not an equivalent type.
 
 ### Compound Operations
 
@@ -140,13 +144,21 @@ These extensions also carry over to the compound assignment operators and increm
 
 An `lhs += e` expression is roughly equivalent to `lhs = lhs + e` except that subexpressions of `lhs` are only evaluated once. The static typing rules that apply to `lhs + e` also applies to `lhs += e`, and similarly for the other binary operators that are special cased.
 
-That means that `int x = 0; x += 2;` works because `x += 2` is equivalent to `x =  x + 2`, and `x + 2` has type `int`.
+The static type of `lhs += e` is the static type of `lhs + e`.
 
-In general the type of `x + 2` is the same as the type of `x` where possible, exactly to allow compound assignment to work no matter which number type is on the left-hand side.
+In general the static type of `x + integer` is the same as the static type of `x` when the type is a subtype of `num`, exactly to allow compound assignment to work no matter which number type is on the left-hand side. 
+
+*It's possible to have a setter with a less specific argument type than the type of the corresponding getter, like `set foo(num x); int get x;`. That is not a problem for these rules, it merely means that for `x += e`, equivalent to `x = x + e`, the context type might not be the same as the type of  reading `x`. The typing and context rules are compatible with this.*
 
 ### Increment/Decrement Operators
 
-The prefix and suffix increment and decrement operators (`++x`, `x++`, `--x` and `x--`) are roughly equivalent to expressions containing `x + 1` or `x - 1`. The static typing rules that apply to `+` also apply to `--` and `++`, with the caveat that the `1` is not treated as a number literal that can potentially be a `double`, even if we apply a context type of `double` to the position. The `1` is *always* an integer literal.
+The prefix and suffix increment and decrement operators (`++x`, `x++`, `--x` and `x--`) are roughly equivalent to expressions containing `x + 1` or `x - 1`, and assignments of that back to `x` (the only difference is whether the result value is the value of `x` before or after the assignment). 
+
+If `e` is an assignable expression with a static type *T* which is a non-`Never` subtype of `num`, then the static type of `e++`, `e--`, `++e` and `--e` is always *T*.
+
+The value of of `x++` and `x--` is the value of `x`, so that follows directly.
+
+The value of `++x` and `--x` is the value of `x + (1 as int)` or `x - (1 as int)`, which is the same as the type of `x` for any subtype of `num`.
 
 ## Summary
 
@@ -170,3 +182,12 @@ These changes will remove some common pitfalls introduced (or worsened) by remov
 [sdk#39652]: https://github.com/dart-lang/sdk/issues/39652
 [sdk#41559]: https://github.com/dart-lang/sdk/issues/41559
 
+## Revisions
+
+1.0 – Initial draft version.
+
+1.1 – Addressed initial comments.
+
+1.2 – Initial published version.
+
+1.3 – Simplified rules and fixed unsound edge cases.
