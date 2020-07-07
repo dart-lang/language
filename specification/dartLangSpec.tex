@@ -16265,12 +16265,29 @@ If the failure is due to other causes, the repeated call behaves as if no previo
 \end{itemize}
 \end{itemize}
 
-\commentary{
+\commentary{%
 In other words, one can retry a deferred load after a network failure
 or because a file is absent,
 but once one finds some content and loads it, one can no longer reload.
 
-We do not specify which object the future returned resolves to.
+We do not specify which object the future returned resolves to.%
+}
+
+%% TODO(eernst): When landing PR #534, preserve the following 2 paragraphs.
+\LMHash{}%
+An implementation is allowed to invoke \code{loadLibrary}
+one or more times on all deferred prefixes
+before \code{main}
+(\ref{scripts})
+is invoked.
+
+\commentary{%
+This means that an implementation can treat deferred imports
+essentially as if they had been immediate
+(as long as it is all of them or none of them, in the whole program),
+but it must still be possible to invoke \code{loadLibrary}
+and get the same behavior as if the library had already been loaded
+due to a user-written invocation of \code{loadLibrary}.%
 }
 
 \LMHash{}%
