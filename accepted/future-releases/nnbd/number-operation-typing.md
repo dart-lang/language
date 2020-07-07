@@ -73,21 +73,21 @@ We extend the special-casing rules of `+`, `-`, `*` and `%` to also cover calls 
 Let `e` be an expression of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)`, where the static type of `e1` is a non-`Never` type *T* where *T* <: `num` and the static type of `e2` is *S*. Then:
 
 * If *T* <: `double` , then the static type of `e` is *T*.
-* Otherwise if *S* is a non-`Never` subtype of `double` then the static type of `e` is `double`.
+* Otherwise, if *S* is a non-`Never` subtype of `double` then the static type of `e` is `double`.
 * Otherwise, if *S* is a non-`Never` subtype of  `int` then the static type of `e` is *T*.
-* Otherwise if is a non-`Never` subtype of *T* , then the static type of `e` is *T*.
+* Otherwise, if *S* is a non-`Never` subtype of *T*  then the static type of `e` is *T*.
 * Otherwise the static type of *e* is `num`.
 
 We also special-case the `clamp` method.
 
-Let `e` be a normal invocation of the form `e1.clamp(e2, e3)`, where the static types of `e1`, `e2` and `e3` are *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> respectively, and where  *T*<sub>1 is a non-`Never` subtype of `num`. Let *R* be LUB(*T*<sub>1</sub>, *T*<sub>2</sub>, *T*<sub>3</sub>). Then:
+Let `e` be a normal invocation of the form `e1.clamp(e2, e3)`, where the static types of `e1`, `e2` and `e3` are *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> respectively, and where  *T*<sub>1</sub> is a non-`Never` subtype of `num`. Let *R* be LUB(*T*<sub>1</sub>, *T*<sub>2</sub>, *T*<sub>3</sub>). Then:
 
-* If *R* <: `num`, the static type of`e` as *R*.
+* If *R* <: `num`, the static type of `e` as *R*.
 * Otherwise the static type of `e` is `num`.
 
 With these typing rules, we cover all the instance members of `int` which has a return type of `num`, and we ensure that a using operands with the *same* type gives a result of that type, even if that type is a type variable (like `X extends int`) or promoted type variable (like `X & int`).
 
-There are no special rules for `/` and `~/` because their return type is not `num`, and the return value's type is independent of the argument types. A `/` operation always returns a `double` and a `~/` operation always returns an `int`.ma
+There are no special rules for `/` and `~/` because their return type is not `num`, and the return value's type is independent of the argument types. A `/` operation always returns a `double` and a `~/` operation always returns an `int`.
 
 The rules for the binary operators can be summarized (non-normatively) as:
 
@@ -112,15 +112,16 @@ If `e` is an expression of the form  `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` 
 
 * If *C* <: `int` and *T* <: `int`, then the context type of `e2` is `int`. 
 * If *C* <: `double` and *T* is not a subtype of `double`, then the context type of `e2` is `double`.
+* Otherwise, the context type of `e2` is `num`.
 
-It is a compile-time error if the static type of `e2` is not a subtype of `num`. *(It is not necessarily a compile-time error if the static type of `e2` is not a subtype of _C_.)*
+*(It is not necessarily a compile-time error if the static type of `e2` is not a subtype of _C_, but it is still a compile-time error if the static type of `e2` is not assignable to the actual parameter type,`num`.)*
 
 If `e` is an expression of the form `e1.clamp(e2, e3)` where *C* is the context type of `e` and *T* is the static type of `e1` where both *T* is a non-`Never` subtype of `num`, then:
 
 * If *C* is a non-`Never` subtype of `num` then  the context type of `e2` and `e3` is *C*.
 * Otherwise the context type of `e2` an `e3` is `num`
 
-It is a compile-time error if the static type of `e2` or `e3` is not a subtype of `num`.  *(It is not necessarily a compile-time error if the static type of `e2` or `e3` is not a subtype of _C_.)*
+*(It is not necessarily a compile-time error if the static type of `e2` or `e3` is not a subtype of _C_, but it is still a compile-time error if the static type of `e2` or `e3` is not assignable to the actual parameter type,`num`.)*
 
 (This does emphasize the inherent non-symmetry of Dart operators: The first operand is a receiver which is always evaluated with no type context, and is then used to resolve the operator method against, and the second operand is an argument to that method. We need to fully resolve the first operand and the operator before we can even begin with the second operand.)
 
