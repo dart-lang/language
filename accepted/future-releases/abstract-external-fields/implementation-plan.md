@@ -18,6 +18,10 @@ must be passed to tools in order to enable the feature.
 
 [experiment flag]: https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md
 
+This feature is only enabled when null-safety is also enabled. A tool
+should emit an error message and stop if an attempt is made to enable
+this feature without null-safety.
+
 The experiment flag will be required during the period where the
 feature has not yet been released, so it may be implemented incompletely
 and there may be breaking changes to the static and dynamic properties
