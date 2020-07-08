@@ -293,8 +293,15 @@ We also make use of the following auxiliary functions:
   - `VM3 = VariableModel(d3, p3, s3, a3, u3, c3)` where
    - `d3 = d1 = d2`
      - Note that all models must agree on the declared type of a variable
-   - if `b` is true then `p3 = p2`
-   - if `b` is false then if the last entry in `p1` is a subtype of the last
+   - `c3 = c2`
+     - A variable is captured if it is captured in the model of the finally
+       block (note that the finally block is analyzed using the join of the
+       model from before the try block and after the try block, and so any
+       captures from the try block are already modelled here).
+   - if `c3` is true then `p3 = []`.  (_Captured variables can never be
+     promoted._)
+   - Otherwise, if `b` is true then `p3 = p2`
+   - Otherwise, if the last entry in `p1` is a subtype of the last
      entry of `p2`, then `p3 = p1` else `p3 = p2`.  If the variable is not
      written to in the finally block, then it is valid to use any promotions
      from the try block in any subsequent code (since if any subsequent code is
@@ -315,11 +322,6 @@ We also make use of the following auxiliary functions:
        the join of the model from before the try block and after the try block,
        and so the absence of any assignments that may have occurred in the try
        block is already modelled here).
-   - `c3 = c2`
-     - A variable is captured if it is captured in the model of the finally
-       block (note that the finally block is analyzed using the join of the
-       model from before the try block and after the try block, and so any
-       captures from the try block are already modelled here).
 
 - `restrict(MB, MF, N)`, where `MB` and `MF` are flow models and `N` is a set of
   variables assigned in the finally clause, models the flow of information
