@@ -10,7 +10,7 @@ That's not something the general Dart type system can capture, so Dart special-c
 
 The special-cased typing works because the language enforces that the only subclasses of `num` is `int` and `double`, and those cannot have subclasses at all. Even though operators are otherwise virtual, the only two `+` operations that can possibly be in play for `numValue + something`  are the `int.operator+` and `double.operator+`  which have known behavior compatible with the special typing, and `intValue + something` is known to call the `int.operator+` method. (This is also the reason those operators can be used in constant expressions: Their behavior is known at compile-time.).
 
-The current rules do not cover all integer operations, or any double operations, and this means that a few operations have the default type of `num` inherited from the `num` interface. That has so far not been a serious problem since Dart has had *implicit downcasts* which allows `num` to be assigned to both `int` and `double`. Some static checking my be lacking, but it still runs.
+The original Dart 2.0 rules do not cover all integer operations, or any double operations, and this means that a few operations have the default type of `num` inherited from the `num` interface. That has so far not been a serious problem since Dart has had *implicit downcasts* which allows `num` to be assigned to both `int` and `double`. Some static checking my be lacking, but it still runs.
 
 With Null Safety, we remove implicit downcasts from the language. This causes some existing, functioning code to become invalid, and currently the only workaround is adding an explicit cast.
 
@@ -24,11 +24,11 @@ See [language#971][], [language#597][], [sdk#41559][], [sdk#39652][], [sdk#32645
 
 The special-case typing rules only apply to arithmetic *operators* (`+`, `-`, `*`, `%`). They do not apply to `int.remainder`, even though it is otherwise equivalent to `%`,and they do not apply to `num.clamp`. These are the two remaining members of `int` which has a return type of `num`.
 
-This has caused issues before, but now those issues become compile-time errors because of the lack of [impliciit downcasts][sdk#39652].
+This has caused issues before, but now those issues become compile-time errors because of the lack of [implicit downcasts][sdk#39652].
 
 ### Rules do not work with type variables
 
-An operation like `T add<T extends num>(T a, T b) => a + b;` becomes invalid with Null Safety because the type of `a + b` is num, not `T`, and the implicit down-cast from `num` to `T` is no longer valid.
+An operation like `T add<T extends num>(T a, T b) => a + b;` becomes invalid with Null Safety because the type of `a + b` is `num`, not `T`, and the implicit down-cast from `num` to `T` is no longer valid.
 
 ### No special case for `num op double`
 
@@ -43,7 +43,7 @@ expectsDouble(y); // Used to be implicit downcast, now a compile-time error.
 
 ### Inference doesn't know special rules
 
-Code like `int n = …; double y = n * 2;` is a compile-time error. The type context for `2` is `num`. The author expected `2` to be a double literal, and it's possible to recognize that *making* it a double literal would make the code correct. Not all instances of this problem are as obvious as this one, for example: `double y = n * await Future(() => 2.0);` will currently infer the future to be a `Future<num>` independently of the operation.
+Code like `int n = …; double y = n * 2;` is a compile-time error. The type context for `2` is `num`. The author expected `2` to be a double literal, and it's possible to recognize that *making* it a double literal would make the code correct. Not all instances of this problem are as obvious as this one, for example: `double y = n * await Future(() => 2.0);` will infer the future to be a `Future<num>` independently of the operation.
 
 ## Solution goal
 
@@ -60,7 +60,7 @@ double lerp(num start, num end, double y) => start + (end - start) * y;
 T add<T extends num>(T a, T b) => a + b;
 ```
 
-because any attempt to plug in actual values will give sound results.
+because any attempt to plug in actual values will give sound results. They will expect `x += 1;` to work no matter which numeric type `x` has.
 
 Users also understand that `clamp` will return either the receiver or one of the arguments. If those all have the same type, the result will have that type.
 
@@ -70,7 +70,7 @@ Users also understand that `clamp` will return either the receiver or one of the
 
 We extend the special-casing rules of `+`, `-`, `*` and `%` to also cover calls of the `remainder` method, and to also work with type parameters which extend `num` , `int` or `double`. Finally, if the second operand is a `double` and the first is a `num`, the result is guaranteed to be a `double`.
 
-Let `e` be an expression of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)`, where the static type of `e1` is a non-`Never` type *T* where *T* <: `num` and the static type of `e2` is *S*. Then:
+Let `e` be an expression of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`, `e1 % e2` or `e1.remainder(e2)`, where the static type of `e1` is a non-`Never` type *T* and *T* <: `num`, and where the static type of `e2` is *S* and *S* is assignable to `num`. Then:
 
 * If *T* <: `double` , then the static type of `e` is *T*.
 * Otherwise, if *S* is a non-`Never` subtype of `double` then the static type of `e` is `double`.
@@ -80,7 +80,7 @@ Let `e` be an expression of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`, `e
 
 We also special-case the `clamp` method.
 
-Let `e` be a normal invocation of the form `e1.clamp(e2, e3)`, where the static types of `e1`, `e2` and `e3` are *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> respectively, and where  *T*<sub>1</sub> is a non-`Never` subtype of `num`. Let *R* be LUB(*T*<sub>1</sub>, *T*<sub>2</sub>, *T*<sub>3</sub>). Then:
+Let `e` be a normal invocation of the form `e1.clamp(e2, e3)`, where the static types of `e1`, `e2` and `e3` are *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> respectively, and where  *T*<sub>1</sub>, *T*<sub>2</sub>, and *T*<sub>3</sub> are all non-`Never` subtypes of `num`. Let *R* be LUB(*T*<sub>1</sub>, *T*<sub>2</sub>, *T*<sub>3</sub>). Then:
 
 * If *R* <: `num`, the static type of `e` as *R*.
 * Otherwise the static type of `e` is `num`.
@@ -123,7 +123,7 @@ If `e` is an expression of the form `e1.clamp(e2, e3)` where *C* is the context 
 
 *(It is not necessarily a compile-time error if the static type of `e2` or `e3` is not a subtype of _C_, but it is still a compile-time error if the static type of `e2` or `e3` is not assignable to the actual parameter type,`num`.)*
 
-(This does emphasize the inherent non-symmetry of Dart operators: The first operand is a receiver which is always evaluated with no type context, and is then used to resolve the operator method against, and the second operand is an argument to that method. We need to fully resolve the first operand and the operator before we can even begin with the second operand.)
+These rules emphasize the inherent non-symmetry of Dart operators: The first operand is a receiver which is always evaluated with no type context, and is then used to resolve the operator method against, and the second operand is an argument to that method. We need to fully resolve the first operand and the operator before we can even begin with the second operand.
 
 For the binary operators, the context type of the second operand, based on the first operand and the context type of the entire operation, can be summarized (non-normatively) as:
 
@@ -149,17 +149,13 @@ The static type of `lhs += e` is the static type of `lhs + e`.
 
 In general the static type of `x + integer` is the same as the static type of `x` when the type is a subtype of `num`, exactly to allow compound assignment to work no matter which number type is on the left-hand side. 
 
-*It's possible to have a setter with a less specific argument type than the type of the corresponding getter, like `set foo(num x); int get x;`. That is not a problem for these rules, it merely means that for `x += e`, equivalent to `x = x + e`, the context type might not be the same as the type of  reading `x`. The typing and context rules are compatible with this.*
+*It's possible to have a setter with a less specific argument type than the type of the corresponding getter, like `set foo(num x); int get foo;`. That is not a problem for these rules, it merely means that for `foo += e`, equivalent to `foo = foo + e`, the context type might not be the same as the type of  reading `x`. The typing and context rules are compatible with this.*
 
 ### Increment/Decrement Operators
 
 The prefix and suffix increment and decrement operators (`++x`, `x++`, `--x` and `x--`) are roughly equivalent to expressions containing `x + 1` or `x - 1`, and assignments of that back to `x` (the only difference is whether the result value is the value of `x` before or after the assignment). 
 
-If `e` is an assignable expression with a static type *T* which is a non-`Never` subtype of `num`, then the static type of `e++`, `e--`, `++e` and `--e` is always *T*.
-
-The value of of `x++` and `x--` is the value of `x`, so that follows directly.
-
-The value of `++x` and `--x` is the value of `x + (1 as int)` or `x - (1 as int)`, which is the same as the type of `x` for any subtype of `num`.
+*If `e` is an assignable expression with a static type T which is a non-`Never` subtype of `num`, then the static type of `e++`, `e--`, `++e` and `--e` is always T. This follows from the current semantics where the type of `e++` and `e--` is the static type of `e`, and `++e` and `--e` are equivalent to `e += 1` or `e -= 1`.*
 
 ## Summary
 
