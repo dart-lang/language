@@ -80,9 +80,11 @@ Add formatting tests.
 
 Add a formal specification of this feature to the language specification.
 
-### Cider
+### Cider, DartPad
 
-Validate Cider support.
+Cider and DartPad syntax highlighting uses codemirror, which should
+be updated to support the new syntax:
+https://github.com/codemirror/CodeMirror/blob/master/mode/dart/dart.js.
 
 ### IntelliJ
 
@@ -94,20 +96,27 @@ Update Grok to handle the new AST.
 
 ### Analysis server
 
-No additional work is expected for the analysis server.
+Code completion may need to change in order to include
+new syntax.
 
-### Atom plug-in
+### Update github syntax highlighting
 
-The [Dart Atom plug-in][atom] has a grammar for syntax highlighting
-Dart code in Atom. This same grammar is also used for syntax highlighting
-on GitHub. Update this to handle the new syntax.
+Github's syntax highlighting should support the new syntax:
+https://github.com/dart-lang/dart-syntax-highlight/tree/master/grammars.
 
-[atom]: https://github.com/dart-atom/dart
+When the grammar is updated, please create an issue on the
+Dart-Code/Dart-Code repository, such that the grammar can be
+copied and used with VS Code as well.
 
 ### VS Code
 
-Update the syntax highlighting grammar to support the new syntax (and,
-likely apply a very similar diff to the Atom grammar above).
+The grammar mentioned in the section about github is used with
+VS Code as well. An issue should be created on Dart-Code/Dart-Code
+when the grammar has been updated.
+
+### Dartdoc
+
+Dartdoc implements support for the new syntax.
 
 ### Co19 tests
 
