@@ -2321,9 +2321,8 @@ is not 0.
 It is a compile-time error to declare an optional parameter in an operator.
 
 \LMHash{}%
-It is a compile-time error if the return type of a user-declared operator
-\lit{[]=}
-is explicitly declared and not \VOID{}.
+It is a compile-time error if a user-declared operator \lit{[]=}
+declares a return type other than \VOID{}.
 
 \commentary{
 If no return type is specified for a user-declared operator
