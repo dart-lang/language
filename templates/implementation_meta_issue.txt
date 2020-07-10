@@ -25,11 +25,11 @@ The implementation plan for this issue is <link to implementation plan>.
 - [ ] Issue for implementation in Grok:
 - [ ] Issue for implementation in Dartfmt:
 - [ ] Issue for implementation in Dartdoc:
+- [ ] Issue for [highlight.js support](https://github.com/highlightjs/highlight.js) (api.dart.dev, api.pub.dev, Dartdoc):
 - [ ] Issue for implementation in build systems and Angular compiler:
 - [ ] Issue for VM Service support:
 - [ ] Issue for web debugging support:
 - [ ] Issue for [codemirror support](https://github.com/codemirror/CodeMirror/) (Cider, dartpad):
-- [ ] Issue for [highlight.js support](https://github.com/highlightjs/highlight.js) (api.dart.dev and api.pub.dev):
 - [ ] Issue for language tests:
 - [ ] Issue for documentation:
 - [ ] Issue for specification:
