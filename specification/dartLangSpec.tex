@@ -26,6 +26,10 @@
 %
 % Significant changes to the specification.
 %
+% 2.8
+% - Change several warnings to compile-time errors, matching the actual
+%   behavior of tools.
+%
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
 %   'class declaration' everywhere, so `<classDefinition>` is inconsistent).
@@ -2317,7 +2321,7 @@ is not 0.
 It is a compile-time error to declare an optional parameter in an operator.
 
 \LMHash{}%
-It is a static warning if the return type of a user-declared operator
+It is a compile-time error if the return type of a user-declared operator
 \lit{[]=}
 is explicitly declared and not \VOID{}.
 
@@ -2786,8 +2790,8 @@ We could enforce this via the grammar, but we'd have to specify the evaluation r
 }
 
 \LMHash{}%
-It is a static warning if a setter declares a return type other than \VOID{}.
-It is a static warning if a class has
+It is a compile-time error if a setter declares a return type other than \VOID.
+It is a compile-time error if a class has
 a setter named \code{$v$=} with argument type $T$ and
 a getter named $v$ with return type $S$,
 and $S$ may not be assigned to $T$.
@@ -16401,7 +16405,8 @@ In contrast a library comprises both imports and their usage; the library is und
 }
 
 \LMHash{}%
-It is a static warning to import two different libraries with the same name unless their name is the empty string.
+It is a compile-time error to import two different libraries with the same name
+unless their name is the empty string.
 
 \commentary{
 A widely disseminated library should be given a name that will not conflict with other such libraries.
