@@ -9,6 +9,9 @@ https://docs.google.com/document/d/11Xs0b4bzH6DwDlcJMUcbx4BpvEKGz8MVuJWEfo_mirE/
 
 ## CHANGELOG
 
+2020.07.12
+  - Specify initialization based promotion.
+
 2020.06.29
   - Fix handling of variables that are write captured in loops, switch
     statements, and try-blocks (such variables should be conservatively assumed
@@ -128,8 +131,11 @@ tested, assigned, unassigned, writeCaptured)`, represents what is statically
 known to the flow analysis about the state of a variable at a given point in the
 source code.
 
-- `declaredType` is the type assigned to the variable at its declaration site
-  (either explicitly or by type inference).
+- `declaredType` is either the type assigned to the variable at its declaration
+  site (either explicitly or by initializer based inference), or an
+  **initialization inferred type** computed by the flow analysis.  An
+  **initialization inferred type** may be in one of three states: absent,
+  provisional, or final.
 
 - `promotedTypes` is an ordered set of types that the variable has been promoted
   to, with the final entry in the ordered set being the current promoted type of
@@ -220,13 +226,36 @@ regardless of their static types.
 
 We also make use of the following auxiliary functions:
 
-- `joinV(VM1, VM2)`, where `VM1` and `VM2` are variable models, represents the
-  union of two variable models, defined as follows:
+- `joinDeclaredType(d1, d2)` is defined as:
+  - if `d1` and `d2` are declared types (the variable was declared with a type,
+    or has a type inferred from its initializer), then `d3`.
+  - Otherwise, `d1` and `d2` are **initialization inferred types** and are
+    merged as follows:
+    - If `d1` and `d2` are both missing, then `d3` is missing.
+    - Otherwise if `r1` and `r2` are both true and either `d1` or `d2` is
+      missing, and the variable in question was not declared `late` then it is
+      an error.
+    - Otherwise if `d1` and `d2` are equal then `d3` is `d1`, and is final if
+      either are final.
+    - Otherwise if `d1` and `d2` are both final, then it is an error.
+    - Otherwise if `d1` is final:
+      - if `d2` is `Null` and `d1` is not nullable, it is an error
+      - Otherwise if `d2` is neither equal to `d1` nor to `d1?` then it is an
+        error.
+      - Otherwise `d3` is `d1` and it is final.
+    - Otherwise if `d2` is final, then `d3` is defined by the symmetric variant
+      of the prevous case.
+    - Otherwise if `d1` is `Null` or `d2?` then `d3` is `d2?`.
+    - Otherwise if `d2` is `Null` or `d1?` then `d3` is `d1?`.
+    - Otherwise it is an error.
+
+- `joinV(VM1, r1, VM2, r2)`, where `VM1` and `VM2` are variable models and `ri`
+  indicates whether the path modeled by `VMi` is reachable, represents the union
+  of two variable models, defined as follows:
   - If `VM1 = VariableModel(d1, p1, s1, a1, u1, c1)` and
   - If `VM2 = VariableModel(d2, p2, s2, a2, u2, c2)` then
   - `VM3 = VariableModel(d3, p3, s3, a3, u3, c3)` where
-   - `d3 = d1 = d2`
-     - Note that all models must agree on the declared type of a variable
+   - `d3 = joinDeclaredType(d1, r1, d2, r2)`
    - `p3 = p1 ^ p2`
      - `p1` and `p2` are totally ordered subsets of a global partial order.
   Their intersection is a subset of each, and as such is also totally ordered.
@@ -273,8 +302,9 @@ We also make use of the following auxiliary functions:
     - `pop(r1) = pop(r2) = r0` for some `r0`
     - `r3` is `push(r0, top(r1) || top(r2))`
     - `VI3` is the map which maps each variable `v` in the domain of `VI1` and
-      `VI2` to `joinV(VI1(v), VI2(v))`.  Note that any variable which is in
-      domain of only one of the two is dropped, since it is no longer in scope.
+      `VI2` to `joinV(VI1(v), top(r1), VI2(v), top(r2))`.  Note that any
+      variable which is in domain of only one of the two is dropped, since it is
+      no longer in scope.
 
   The `merge`, `join` and `joinV` combinators are commutative and associative by
   construction.
@@ -284,22 +314,23 @@ We also make use of the following auxiliary functions:
   `join(join(M1, M2), M3)`, and `join(S)`, where S is a set of models, denotes
   the result of folding all models in S together using `join`.
 
-- `restrictV(VMB, VMF, b)`, where `VMB` and `VMF` are variable models and `b` is
-  a boolean indicating wether the variable is written in the finally block,
-  represents the composition of two variable models through a try/finally and is
-  defined as follows:
+- `restrictV(VMB, rb, VMF, rf, b)`, where `VMB` and `VMF` are variable models,
+  `rb` (`rf` respectively) indicates whether the path modeled by `VMB` (`VMF`
+  respectively) is reachable, and `b` is a boolean indicating whether the
+  variable is written in the finally block, represents the composition of two
+  variable models through a try/finally and is defined as follows:
   - If `VMB = VariableModel(d1, p1, s1, a1, u1, c1)` and
   - If `VMF = VariableModel(d2, p2, s2, a2, u2, c2)` then
   - `VM3 = VariableModel(d3, p3, s3, a3, u3, c3)` where
-   - `d3 = d1 = d2`
-     - Note that all models must agree on the declared type of a variable
+   - `d3 = joinDeclaredType(d1, r1, d2, r2)`
    - `c3 = c2`
      - A variable is captured if it is captured in the model of the finally
        block (note that the finally block is analyzed using the join of the
        model from before the try block and after the try block, and so any
        captures from the try block are already modelled here).
-   - if `c3` is true then `p3 = []`.  (_Captured variables can never be
-     promoted._)
+   - if `c3` is true:
+     - if `d3` is not missing then it is made final
+     - and `p3 = []`.  (_Captured variables can never be promoted._)
    - Otherwise, if `b` is true then `p3 = p2`
    - Otherwise, if the last entry in `p1` is a subtype of the last
      entry of `p2`, then `p3 = p1` else `p3 = p2`.  If the variable is not
@@ -334,7 +365,7 @@ We also make use of the following auxiliary functions:
     - `r3` is `push(r0, top(rb) && top(rf))`
     - `b` is true if `v` is in `N` and otherwise false
     - `VI3` is the map which maps each variable `v` in the domain of `VIB` and
-      `VIF` to `restrictV(VIB(v), VIF(v), b)`.
+      `VIF` to `restrictV(VIB(v), top(rb), VIF(v), top(rf), b)`.
 
 - `unreachable(M)` represents the model corresponding to a program location
   which is unreachable, but is otherwise modeled by flow model `M = FlowModel(r,
@@ -347,6 +378,8 @@ We also make use of the following auxiliary functions:
   `FlowModel(r, VI1)` where `M` is `FlowModel(r, VI0)` and `VI1` is the map
   such that:
     - `VI0` maps `v` to `VM0 = VariableModel(d0, p0, s0, a0, u0, c0)`
+    - If `captured` or `written` contains `v` and `d0` is not missing, then
+      `d3` is made final if it is not already so.
     - If `captured` contains `v` then `VI1` maps `v` to
       `VariableModel(d0, [], s0, a0, u0, true)`
     - Otherwise if `written` contains `v` then `VI1` maps `v` to
@@ -361,6 +394,7 @@ Promotion policy is defined by the following operations on flow models.
 We say that the **current type** of a variable `x` in variable model `VM` is `S` where:
   - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
   - `promoted = S::l` or (`promoted = []` and `declared = S`)
+  - if `S` is missing, then an operation requiring the **current type** is an error
 
 Policy:
   - We say that at type `T` is a type of interest for a variable `x` in a set of
@@ -381,7 +415,7 @@ Policy:
     - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
     - and `captured` is false
     - and `promoted` is empty
-    - and `x` is declared with no explicit type and no initializer
+    - and `declared` is missing
     - and `assigned` is false and `unassigned` is true
 
   - We say that a variable `x` is promotable via assignment of an expression of
@@ -408,7 +442,8 @@ Definitions:
     - if `captured` is true then:
       - `VM = VariableModel(declared, promoted, tested, true, false, captured)`.
     - otherwise if `x` is promotable via initialization given `VM` then
-      - `VM = VariableModel(declared, [T], tested, true, false, captured)`.
+      - `VM = VariableModel(T, [], T::tested, true, false, captured)`.
+      - Where the declared type `T` is provisional.
     - otherwise if `x` is promotable via assignment of `E` given `VM`
       - `VM = VariableModel(declared, T::promoted, tested, true, false, captured)`.
     - otherwise if `x` is demotable via assignment of `E` given `VM`
@@ -433,7 +468,7 @@ Definitions:
       - Else if `S` is `X extends R` then let `T1` = `X & T`
       - Else If `S` is `X & R` then let `T1` = `X & T`
       - Else `x` is not promotable (shouldn't happen since we checked above)
-      - Let `VM2 = VariableModel(declared, T1::promoted, T1::tested, assigned,
+      - Let `VM2 = VariableModel(declared, T1::promoted, S::tested, assigned,
       unassigned, captured)`
       - Return `FlowModel(r, VI[x -> VM2])`
 - `promoteToNonNull(E, M)` where `E` is an expression and `M` is a flow model is
