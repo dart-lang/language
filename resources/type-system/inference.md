@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.07.14:
+  - Infer return type `void` from context with function literals.
+
 2020.06.04:
   - Make conflict resolution for override inference explicit.
 
@@ -318,9 +321,11 @@ The **actual returned type** of the function literal is the value of `T` after
 all `return` and `yield` statements in the block body have been considered.
 
 Let `T` be the **actual returned type** of a function literal as computed above.
-Let `R` be the greatest closure of the typing context `K` as computed above.  If
-`T <: R` then let `S` be `T`.  Otherwise, let `S` be `R`.  The inferred return
-type of the function literal is then defined as follows:
+Let `R` be the greatest closure of the typing context `K` as computed above.
+If `R` is `void`, or the function literal is marked `async` and `R` is
+`FutureOr<void>`, let `S` be `void`. Otherwise, if `T <: R` then let `S` be
+`T`.  Otherwise, let `S` be `R`.  The inferred return type of the function
+literal is then defined as follows:
   - If the function literal is marked `async` then the inferred return type is
     `Future<flatten(S)>`.
   - If the function literal is marked `async*` then the inferred return type is
