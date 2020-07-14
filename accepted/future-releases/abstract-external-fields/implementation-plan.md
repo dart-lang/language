@@ -9,25 +9,17 @@ Relevant links:
 
 ## Phase 0 (Preliminary steps)
 
-### "external-abstract-variables" Experimental flag
+### Experimental flag
 
 The implementation of this feature is hidden behind an
 [experiment flag][].
-The flag `--enable-experiment=external-abstract-variables`
+The flag `--enable-experiment=non-nullable`
 must be passed to tools in order to enable the feature.
 
 [experiment flag]: https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md
 
-This feature is only enabled when null-safety is also enabled. A tool
-should emit an error message and stop if an attempt is made to enable
-this feature without null-safety.
-
-The experiment flag will be required during the period where the
-feature has not yet been released, so it may be implemented incompletely
-and there may be breaking changes to the static and dynamic properties
-of the feature until the release. When released, the feature will be
-enabled without the flag, and support for the flag will be removed
-in later stable releases.
+This means that the feature is considered to be part of the null-safety
+feature bundle, and it will be enabled by default along with null-safety.
 
 ### Tests
 
