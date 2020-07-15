@@ -29,7 +29,7 @@
 % 2.8
 % - Change several warnings to compile-time errors, matching the actual
 %   behavior of tools.
-% - Eliminate error for library name conflicts.
+% - Eliminate error for library name conflicts in imports and exports.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -16603,10 +16603,6 @@ and also that $L$ \Index{re-exports namespace} \Namespace{i}.
 When no confusion can arise, we may simply state
 that $L$ \NoIndex{re-exports} $L_i$, or
 that $L$ \NoIndex{re-exports} \Namespace{i}.
-
-\LMHash{}%
-It is a compile-time error to export two different libraries with the same name
-unless their name is the empty string.
 
 
 \subsection{Parts}
