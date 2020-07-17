@@ -688,7 +688,8 @@ Dart.
 In a collection literal in Dart before null-safety, the inferred element
 type of a spread element of the form `...?e` where `e` has static type
 `Null` is `Null`, and so are the inferred key type and value type. With
-null-safety, the inferred element, key, and value type is `Never`
+null-safety, when the static type of `e` is `Null` or a subtype thereof, the
+inferred element, key, and value type is `Never`
 (which corresponds to 6 changes in
 [this section](https://github.com/dart-lang/language/blob/9e12517922c1f0021aead2af163c3b502497f312/specification/dartLangSpec.tex#L8433)).
 
