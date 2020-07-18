@@ -6,7 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
-2020..06.02
+2020.07.09
+  - Specify combined member signature and spread element typing
+    with null-safety.
+
+2020.06.02
   - Fix the diff to the spec for potentially constant instance checks
   - Specify that extensions do not apply to values of type `Never`
   - Specify the treatment of typedefs from legacy libraries
@@ -679,6 +683,22 @@ If no type is specified in a catch clause, then the default type of the error
 variable is `Object`, instead of `dynamic` as was the case in pre-null safe
 Dart.
 
+#### Spread element typing
+
+In a collection literal in Dart before null-safety, the inferred element
+type of a spread element of the form `...?e` where `e` has static type
+`Null` is `Null`, and so are the inferred key type and value type.
+
+With null-safety, when the static type of `e` is `Null` or a potentially
+nullable subtype thereof, the inferred element, key, and value type
+of `...?e` is `Never`.
+
+Similarly, when the static type of `e` is a subtype of `Never`,
+the element, key, and value type of `...e` and `...?e` is `Never`.
+
+*When the static type _S_ of `e` is strictly non-nullable, such as when _S_
+is `Never`, `...?e` is a warning, but it may still occur.*
+
 ### Instantiate to bounds
 
 The computation of instantiation to bounds is changed to substitute `Never` for
@@ -730,6 +750,25 @@ subtype of `S`.
 ### Generics
 
 The default bound of generic type parameters is treated as `Object?`.
+
+### Combined member signatures
+
+[This section](https://github.com/dart-lang/language/blob/9e12517922c1f0021aead2af163c3b502497f312/specification/dartLangSpec.tex#L4241)
+in the language specification defines the notion of a _combined member
+signature_. In Dart before null-safety it is based on the textually first
+superinterface that has a most specific signature. With null-safety it
+is changed such that the all the most specific signatures are merged.
+
+This is achieved by changing
+[this paragraph](https://github.com/dart-lang/language/blob/9e12517922c1f0021aead2af163c3b502497f312/specification/dartLangSpec.tex#L4373)
+to the following:
+
+"Let _m<sub>all</sub>_ be the result of applying `NNBD_TOP_MERGE` to
+the elements in _M<sub>all</sub>_, ordered according to the interface
+_I<sub>1</sub> .. I<sub>k</sub>_ that each signature came from."
+
+Moreover, the occurrence of _m<sub>i</sub>_ in the next paragraph is
+changed to _m<sub>all</sub>_.
 
 ### Implicit conversions
 
