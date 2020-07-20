@@ -6,6 +6,7 @@ feature in the Dart Analyzer. Under this feature, when there is not enough
 information available to infer an expression's type, where inference "falls
 back" to `dynamic` (or the type's bound), inference is considered to have
 failed, and an analyzer "Hint" is reported at the location of the expression.
+The expression is said to contain an "inference failure."
 
 ## Enabling strict inference
 
@@ -173,9 +174,9 @@ types are commonly inferred when assigning the literal to a variable typed with
 a typedef, or when passing the literal as an argument whose corresponding
 parameter is function-typed.
 
-Parameters named `_`, `__`, etc. do not represent an inference failure. Such
-names traditionally represent variables which are ignored, and as such, their
-type, `dynamic` or not, is not important.
+A parameter of a non-abstract function, which is declared without a type, and
+which is not referenced from inside the function body does not contain an
+inference failure.
 
 ```dart
 void f1(a) => print(a);           // Inference failure
