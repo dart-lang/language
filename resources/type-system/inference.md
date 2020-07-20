@@ -337,8 +337,8 @@ Let `T` be the **actual returned type** of a function literal as computed above.
 Let `R` be the greatest closure of the typing context `K` as computed above.
 
 With null safety: if `R` is `void`, or the function literal is marked `async`
-and `R` is `FutureOr<void>`, let `S` be `void`; without null-safety: no special
-treatment is applicable to `void`.
+and `R` is `FutureOr<void>`, let `S` be `void` (without null-safety: no special
+treatment is applicable to `void`).
 
 Otherwise, if `T <: R` then let `S` be `T`.  Otherwise, let `S` be `R`.  The
 inferred return type of the function literal is then defined as follows:
