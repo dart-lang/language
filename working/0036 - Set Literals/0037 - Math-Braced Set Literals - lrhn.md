@@ -1,5 +1,6 @@
 # Set Literals Proposal
 Author: lrn@google.com
+Status: Superseded by [design document](https://github.com/dart-lang/language/blob/master/accepted/2.2/set-literals/feature-specification.md) and language specification.
 
 Proposed solution for [Set Literals Problem](http://github.com/dart-lang/language/issues/36).
 Discussion about his proposal should go in [Issue 37](http://github.com/dart-lang/language/issues/37)

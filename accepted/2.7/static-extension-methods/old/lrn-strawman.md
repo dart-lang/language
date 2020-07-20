@@ -546,7 +546,7 @@ I suggest making static methods declared in an `extension` declaration be plain 
 
 ```dart
 extension MyList on List<Object> {
-  bool equals(List<Objectt> other) => listEquals(this, other);
+  bool equals(List<Object> other) => listEquals(this, other);
   static bool listEquals(List self, List other) {
     if (self.length != other.length) return false;
     for (int i = 0; i < self.length; i++) {

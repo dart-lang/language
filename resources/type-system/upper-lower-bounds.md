@@ -2,6 +2,11 @@
 
 leafp@google.com
 
+## CHANGELOG
+
+2020.03.30
+  - **CHANGE** Update DOWN algorithm with extensions for FutureOr
+
 This documents the currently implemented upper and lower bound computation,
 modified to account for explicit nullability and the accompanying type system
 changes (including the legacy types).  In the interest of backwards
@@ -101,40 +106,44 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 
 
 - **UP**(`T`, `T`) = `T`
-- **UP**(`T1`, `T2`) where **TOP**(`T1`) and **TOP**(`T2`) = 
+- **UP**(`T1`, `T2`) where **TOP**(`T1`) and **TOP**(`T2`) =
   - `T1` if **MORETOP**(`T1`, `T2`)
   - `T2` otherwise
 - **UP**(`T1`, `T2`) = `T1` if **TOP**(`T1`)
 - **UP**(`T1`, `T2`) = `T2` if **TOP**(`T2`)
 
-- **UP**(`T1`, `T2`) where **BOTTOM**(`T1`) and **BOTTOM**(`T2`) = 
+- **UP**(`T1`, `T2`) where **BOTTOM**(`T1`) and **BOTTOM**(`T2`) =
   - `T2` if **MOREBOTTOM**(`T1`, `T2`)
   - `T1` otherwise
 - **UP**(`T1`, `T2`) = `T2` if **BOTTOM**(`T1`)
 - **UP**(`T1`, `T2`) = `T1` if **BOTTOM**(`T2`)
 
-- **UP**(`T1`, `T2`) where **NULL**(`T1`) and **NULL**(`T2`) = 
+- **UP**(`T1`, `T2`) where **NULL**(`T1`) and **NULL**(`T2`) =
   - `T2` if **MOREBOTTOM**(`T1`, `T2`)
   - `T1` otherwise
 
-- **UP**(`T1`, `T2`) where **NULL**(`T1`) = 
+- **UP**(`T1`, `T2`) where **NULL**(`T1`) =
   - `T2` if  `T2` is nullable
+  - `T2*` if `Null <: T2` or `T1 <: Object` (that is, `T1` or `T2` is legacy)
   - `T2?` otherwise
 
-- **UP**(`T1`, `T2`) where **NULL**(`T2`) = 
+- **UP**(`T1`, `T2`) where **NULL**(`T2`) =
   - `T1` if  `T1` is nullable
+  - `T1*` if `Null <: T1` or `T2 <: Object` (that is, `T1` or `T2` is legacy)
   - `T1?` otherwise
 
 - **UP**(`T1`, `T2`) where **OBJECT**(`T1`) and **OBJECT**(`T2`) =
   - `T1` if **MORETOP**(`T1`, `T2`)
   - `T2` otherwise
 
-- **UP**(`T1`, `T2`) where **OBJECT**(`T1`) = 
+- **UP**(`T1`, `T2`) where **OBJECT**(`T1`) =
   - `T1` if `T2` is non-nullable
+  - `T1*` if `Null <: T2` (that is, `T2` is legacy)
   - `T1?` otherwise
 
-- **UP**(`T1`, `T2`) where **OBJECT**(`T2`) = 
+- **UP**(`T1`, `T2`) where **OBJECT**(`T2`) =
   - `T2` if `T1` is non-nullable
+  - `T2*` if `Null <: T1` (that is, `T1` is legacy)
   - `T2?` otherwise
 
 - **UP**(`T1*`, `T2*`) = `S*` where `S` is **UP**(`T1`, `T2`)
@@ -147,22 +156,22 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`T1?`, `T2`) = `S?` where `S` is **UP**(`T1`, `T2`)
 - **UP**(`T1`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`)
 
-- **UP**(`X1 extends B1`, `T2`) = 
+- **UP**(`X1 extends B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
   - otherwise **UP**(`B1[Object/X1]`, `T2`)
 
-- **UP**(`X1 & B1`, `T2`) = 
+- **UP**(`X1 & B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
   - otherwise **UP**(`B1[Object/X1]`, `T2`)
 
-- **UP**(`T1`, `X2 extends B2`) = 
+- **UP**(`T1`, `X2 extends B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
   - otherwise **UP**(`T1`, `B2[Object/X2]`)
 
-- **UP**(`T1`, `X2 & B2`) = 
+- **UP**(`T1`, `X2 & B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
   - otherwise **UP**(`T1`, `B2[Object/X2]`)
@@ -171,7 +180,7 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`Function`, `T Function<...>(...)`) = `Function`
 
 - **UP**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k)`,
-         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)`) = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)`) =
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2q)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - Both have the same number of required positional parameters
@@ -180,24 +189,29 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
      - `B2i` is `B0i`
      - `P2i` is **DOWN**(`P0i`, `P1i`)
 - **UP**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k, Named0)`,
-         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)`) = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)`) =
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2k, Named2)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - All positional parameters are required
-     - `R0` is **UP**(`T0`, `T1`)
-     - `B2i` is `B0i`
-     - `P2i` is **DOWN**(`P0i`, `P1i`)
-     - `Named0` contains `R0i xi` if `R1i xi` is a required named parameter in `Named1`
-     - `Named1` contains `R1i xi` if `R0i xi` is a required named parameter in `Named0`
-     - `Named2` contains exactly `R2i xi` for each `xi` in both `Named0` and `Named1` 
+     - `Named0` contains an entry (optional or required) of the form `R0i xi`
+       for every required named parameter `R1i xi` in `Named1`
+     - `Named1` contains an entry (optional or required) of the form `R1i xi`
+       for every required named parameter `R0i xi` in `Named0`
+     - The result is defined as follows:
+       - `R0` is **UP**(`T0`, `T1`)
+       - `B2i` is `B0i`
+       - `P2i` is **DOWN**(`P0i`, `P1i`)
+       - `Named2` contains exactly `R2i xi` for each `xi` in both `Named0` and
+         `Named1`
         - where `R0i xi` is in `Named0`
         - where `R1i xi` is in `Named1`
         - and `R2i` is **DOWN**(`R0i`, `R1i`)
-        - and `R2i xi` is required if `xi` is required in either `Named0` or `Named1`
+        - and `R2i xi` is required if `xi` is required in either `Named0` or
+          `Named1`
 
+- **UP**(`T Function<...>(...)`, `S Function<...>(...)`) = `Function` otherwise
 - **UP**(`T Function<...>(...)`, `T2`) = `Object`
 - **UP**(`T1`, `T Function<...>(...)`) = `Object`
-- **UP**(`T Function<...>(...)`, `S Function<...>(...)`) = `Function` otherwise
 - **UP**(`T1`, `T2`) = `T2` if `T1` <: `T2`
   - Note that both types must be class types at this point
 - **UP**(`T1`, `T2`) = `T1` if `T2` <: `T1`
@@ -213,7 +227,7 @@ follows.
 
 - **DOWN**(`T`, `T`) = `T`
 
-- **DOWN**(`T1`, `T2`) where **TOP**(`T1`) and **TOP**(`T2`) = 
+- **DOWN**(`T1`, `T2`) where **TOP**(`T1`) and **TOP**(`T2`) =
   - `T1` if **MORETOP**(`T2`, `T1`)
   - `T2` otherwise
 - **DOWN**(`T1`, `T2`) = `T2` if **TOP**(`T1`)
@@ -230,11 +244,11 @@ follows.
   - `T1` if **MOREBOTTOM**(`T1`, `T2`)
   - `T2` otherwise
 
-- **DOWN**(`Null`, `T2`) = 
+- **DOWN**(`Null`, `T2`) =
   - `Null` if `Null <: T2`
   - `Never` otherwise
 
-- **DOWN**(`T1`, `Null`) = 
+- **DOWN**(`T1`, `Null`) =
   - `Null` if `Null <: T1`
   - `Never` otherwise
 
@@ -263,7 +277,7 @@ follows.
 - **DOWN**(`T1`, `T2?`) = `S` where `S` is **DOWN**(`T1`, `T2`)
 
 - **DOWN**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k)`,
-         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)` = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1l)` =
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2q)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - `q` is max(`k`, `l`)
@@ -272,9 +286,9 @@ follows.
      - `P2i` is **UP**(`P0i`, `P1i`) for `i` <= than min(`k`, `l`)
      - `P2i` is `P0i` for `k` < `i` <= `q`
      - `P2i` is `P1i` for `l` < `i` <= `q`
-     - `P2i` is optional if `P0i` or `P1i` is optional
+     - `P2i` is optional if `P0i` or `P1i` is optional, or if min(k, l) < i <= q
 - **DOWN**(`T0 Function<X0 extends B00, ... Xm extends B0m>(P00, ... P0k, Named0)`,
-         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)` = 
+         `T1 Function<X0 extends B10, ... Xm extends B1m>(P10, ... P1k, Named1)` =
    `R0 Function<X0 extends B20, ..., Xm extends B2m>(P20, ..., P2k, Named2)` if:
      - each `B0i` and `B1i` are equal types (syntactically)
      - `R0` is **DOWN**(`T0`, `T1`)
@@ -295,6 +309,18 @@ follows.
 
 - **DOWN**(`T1`, `T2`) = `T1` if `T1` <: `T2`
 - **DOWN**(`T1`, `T2`) = `T2` if `T2` <: `T1`
+
+- **DOWN**(`FutureOr<T1>`, `FutureOr<T2>`) = `FutureOr<S>`
+  - where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`FutureOr<T1>`, `Future<T2>`) = `Future<S>`
+  - where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`Future<T1>`, `FutureOr<T2>`) = `Future<S>`
+  - where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`FutureOr<T1>`, `T2`) = `S`
+  - where `S` is **DOWN**(`T1`, `T2`)
+- **DOWN**(`T1`, `FutureOr<T2>`) = `S`
+  - where `S` is **DOWN**(`T1`, `T2`)
+
 - **DOWN**(`T1`, `T2`) = `Never` otherwise
 
 
@@ -394,9 +420,3 @@ variant of the subtyping relation which is a total order on mutual subtypes.
 That is, if `<::` is the extended relation, we would want that `T <:: S` implies
 that `T <: S`, but also that `T <:: S` and `S <:: T` implies that `S` and `T`
 are syntactically (rather than just semantically) equal.
-
-### FutureOr
-
-We could choose to do better for `FutureOr<T>`.  The inference algorithm
-currently special cases this for lower bounds, and it's a bit of an unpleasent
-asymmetry that we deal with this in inference but not in the normal computation.
