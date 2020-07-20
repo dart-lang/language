@@ -14,7 +14,7 @@ the Analyzer's  `language` section:
 
 ```yaml
 analyzer:
-  langauge:
+  language:
     strict-inference: true
 ```
 
