@@ -6,6 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.07.20
+  - Clarify that some rules are specific to code without/with null safety.
+    'Without null safety, ...' respectively 'with null safety, ...' is used
+    to indicate such rules, and the remaining text is applicable in both cases.
+
 2020.07.14:
   - Infer return type `void` from context with function literals.
 
@@ -251,9 +256,10 @@ Each parameter is assumed to have its declared type if present.  If no type is
 declared for a parameter and there is a corresponding parameter in the context
 type schema with type schema `K`, the parameter is given an inferred type `T`
 where `T` is derived from `K` as follows.  If the greatest closure of `K` is `S`
-and `S` is a subtype of `Null`, then `T` is `Object?`.  Otherwise, `T` is `S`.
-If there is no corresponding parameter in the context type schema, the variable
-is treated as having type `dynamic`.
+and `S` is a subtype of `Null`, then without null safety `T` is `dynamic`, and
+with null safety `T` is `Object?`. Otherwise, `T` is `S`. If there is no
+corresponding parameter in the context type schema, the variable is treated as
+having type `dynamic`.
 
 The return type of the context function type is used at several points during
 inference.  We refer to this type as the **imposed return type
@@ -266,7 +272,9 @@ type schema `S` as follows:
     `Stream<S1>` for some `S1`, then the context type is `S1`.
   - If the function expression is declared `sync*` and `S` is of the form
     `Iterable<S1>` for some `S1`, then the context type is `S1`.
-  - Otherwise the context type is `FutureOr<futureValueTypeSchema(S)>`.
+  - Otherwise, without null safety, the context type is `FutureOr<flatten(T)>`
+    where `T` is the imposed return type schema; with null safety, the context
+    type is `FutureOr<futureValueTypeSchema(S)>`.
 
 The function **futureValueTypeSchema** is defined as follows:
 
@@ -276,8 +284,13 @@ The function **futureValueTypeSchema** is defined as follows:
 - **futureValueTypeSchema**(`FutureOr<S>`) = `S`, for all `S`.
 - **futureValueTypeSchema**(`void`) = `void`.
 - **futureValueTypeSchema**(`dynamic`) = `dynamic`.
-- **futureValueTypeSchema**(`_`) = `_`.
+- **futureValueTypeSchema**(`?`) = `?`.
 - Otherwise, for all `S`, **futureValueTypeSchema**(`S`) = `Object?`.
+
+_In this definition, when `?` occurs as a type on its own, it is the type
+schema that imposes no constraints, cf. section 'Type Schemas'. Note that it
+has nothing to do with nullability, and in particular it does not stand for
+`T?` for any `T`._
 
 _Note that it is a compile-time error unless the return type of an asynchronous
 non-generator function is a supertype of `Future<Never>`, which means that
@@ -322,10 +335,14 @@ all `return` and `yield` statements in the block body have been considered.
 
 Let `T` be the **actual returned type** of a function literal as computed above.
 Let `R` be the greatest closure of the typing context `K` as computed above.
-If `R` is `void`, or the function literal is marked `async` and `R` is
-`FutureOr<void>`, let `S` be `void`. Otherwise, if `T <: R` then let `S` be
-`T`.  Otherwise, let `S` be `R`.  The inferred return type of the function
-literal is then defined as follows:
+
+With null safety: if `R` is `void`, or the function literal is marked `async`
+and `R` is `FutureOr<void>`, let `S` be `void`; without null-safety: no special
+treatment is applicable to `void`.
+
+Otherwise, if `T <: R` then let `S` be `T`.  Otherwise, let `S` be `R`.  The
+inferred return type of the function literal is then defined as follows:
+
   - If the function literal is marked `async` then the inferred return type is
     `Future<flatten(S)>`.
   - If the function literal is marked `async*` then the inferred return type is
@@ -336,17 +353,17 @@ literal is then defined as follows:
 
 ## Local return type inference.
 
-A local function definition which has no explicit return type is subject to the
-same return type inference as a function expression with no typing context.
-During inference of the function body, any recursive calls to the function are
-treated as having return type `dynamic`.
+Without null safety, a local function definition which has no explicit return
+type is subject to the same return type inference as a function expression with
+no typing context.  During inference of the function body, any recursive calls
+to the function are treated as having return type `dynamic`.
 
-In Dart code which has opted into the NNBD semantics, local function body
-inference is changed so that the local function name is not considered
-*available* for inference while performing inference on the body.  As a result,
-any recursive calls to the function for which the result type is required for
-inference to complete will no longer be treated as having return type `dynamic`,
-but will instead result in an inference failure.
+With null safety, local function body inference is changed so that the local
+function name is not considered *available* for inference while performing
+inference on the body.  As a result, any recursive calls to the function for
+which the result type is required for inference to complete will no longer be
+treated as having return type `dynamic`, but will instead result in an inference
+failure.
 
 ## Local type inference
 
