@@ -209,11 +209,21 @@ The following functions associate flow models to nodes:
   targetting `S`.
 
 - `assignedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
-  represents the set of variables assigned to in `S`.
+  or a `for` element in a collection, represents the set of variables assigned
+  to in the recurrent part of `S`, where the "recurrent" part of `S` is defined
+  as:
+  - If `S` is a `do` or `while` statement, the entire statement `S`.
+  - If `S` is a `for` statement or a `for` element in a collection, whose
+    `forLoopParts` take the form of a traditional for loop, all of `S` except
+    the `forInitializerStatement`.
+  - If `S` is a `for` statement or a `for` element in a collection, whose
+    `forLoopParts` take the form of a for-in loop, the body of `S`.
+  - If `S` is a `switch` statement, all of `S` except the switch `expression`.
 
 - `capturedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
   represents the set of variables assigned to in a local function or function
-  expression in `S`.
+  expression in the recurrent part of `S`, where the "recurrent" part of `s` is
+  defined as in `assignedIn`, above.
 
 Note that `true`, `false`, `null`, and `notNull` are defined for all expressions
 regardless of their static types.
@@ -348,9 +358,9 @@ We also make use of the following auxiliary functions:
   such that:
     - `VI0` maps `v` to `VM0 = VariableModel(d0, p0, s0, a0, u0, c0)`
     - If `captured` contains `v` then `VI1` maps `v` to
-      `VariableModel(d0, [], s0, a0, u0, true)`
+      `VariableModel(d0, [], s0, a0, false, true)`
     - Otherwise if `written` contains `v` then `VI1` maps `v` to
-      `VariableModel(d0, [], s0, a0, u0, c0)`
+      `VariableModel(d0, [], s0, a0, false, c0)`
     - Otherwise `VI1` maps `v` to `VM0`
 
 
@@ -420,13 +430,13 @@ Definitions:
         - otherwise `demoted` is `previous`
 
 - `promote(E, T, M)` where `E` is an expression, `T` is a type which it may be
-  promoted to, and `M = FlowModel(r, VI)` is the flow model in which to promote,
-  is defined as follows:
-  - If `E` is not a promotion target, then `M`
+  promoted to, and `M1 = FlowModel(r, VI)` is the flow model in which to
+  promote, is defined to be `M3`, where:
+  - If `E` is not a promotion target, then `M3` = `M1`
   - If `E` is a promotion target `x`, then
     - Let `VM = VariableModel(declared, promoted, tested, assigned, unassigned,
       captured)` be the variable model for `x` in `VI`
-    - If `x` is not promotable via type test to `T` given `VM`, then return `M`
+    - If `x` is not promotable via type test to `T` given `VM`, then `M3` = `M1`
     - Else
       - Let `S` be the current type of `x` in `VM`
       - If `T <: S` then let `T1` = `T`
@@ -435,7 +445,8 @@ Definitions:
       - Else `x` is not promotable (shouldn't happen since we checked above)
       - Let `VM2 = VariableModel(declared, T1::promoted, T1::tested, assigned,
       unassigned, captured)`
-      - Return `FlowModel(r, VI[x -> VM2])`
+      - Let `M2 = FlowModel(r, VI[x -> VM2])`
+      - If `T1 <: Never` then `M3` = `unreachable(M2)`, otherwise `M3` = `M2`
 - `promoteToNonNull(E, M)` where `E` is an expression and `M` is a flow model is
   defined to be `promote(E, T, M)` where `T0` is the type of `E`, and `T` is
   **NonNull(`T0`)**.

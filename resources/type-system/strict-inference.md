@@ -6,6 +6,7 @@ feature in the Dart Analyzer. Under this feature, when there is not enough
 information available to infer an expression's type, where inference "falls
 back" to `dynamic` (or the type's bound), inference is considered to have
 failed, and an analyzer "Hint" is reported at the location of the expression.
+The expression is said to contain an "inference failure."
 
 ## Enabling strict inference
 
@@ -14,7 +15,7 @@ the Analyzer's  `language` section:
 
 ```yaml
 analyzer:
-  langauge:
+  language:
     strict-inference: true
 ```
 
@@ -171,7 +172,11 @@ type cannot be inferred from downwards inference (in the case of a function
 literal) is considered an inference failure. A function literal's parameter
 types are commonly inferred when assigning the literal to a variable typed with
 a typedef, or when passing the literal as an argument whose corresponding
-parameter is  function-typed.
+parameter is function-typed.
+
+A parameter of a non-abstract function, which is declared without a type, and
+which is not referenced from inside the function body does not contain an
+inference failure.
 
 ```dart
 void f1(a) => print(a);           // Inference failure
@@ -209,9 +214,10 @@ typedef Callback = void Function(int); // OK
 
 void main() {
   var f = (var a) {};      // Inference failure
+  var g = (_, __, ___) {}; // OK
   fA((a) => a * a);        // OK
   fB((a) => a * a);        // OK
-  Callback g = (var a) {}; // OK
+  Callback h = (var a) {}; // OK
 }
 ```
 

@@ -26,6 +26,11 @@
 %
 % Significant changes to the specification.
 %
+% 2.8
+% - Change several warnings to compile-time errors, matching the actual
+%   behavior of tools.
+% - Eliminate error for library name conflicts in imports and exports.
+%
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
 %   'class declaration' everywhere, so `<classDefinition>` is inconsistent).
@@ -2317,9 +2322,8 @@ is not 0.
 It is a compile-time error to declare an optional parameter in an operator.
 
 \LMHash{}%
-It is a static warning if the return type of a user-declared operator
-\lit{[]=}
-is explicitly declared and not \VOID{}.
+It is a compile-time error if a user-declared operator \lit{[]=}
+declares a return type other than \VOID{}.
 
 \commentary{
 If no return type is specified for a user-declared operator
@@ -2786,8 +2790,8 @@ We could enforce this via the grammar, but we'd have to specify the evaluation r
 }
 
 \LMHash{}%
-It is a static warning if a setter declares a return type other than \VOID{}.
-It is a static warning if a class has
+It is a compile-time error if a setter declares a return type other than \VOID.
+It is a compile-time error if a class has
 a setter named \code{$v$=} with argument type $T$ and
 a getter named $v$ with return type $S$,
 and $S$ may not be assigned to $T$.
@@ -4423,7 +4427,10 @@ or $J$ is a superinterface of a direct superinterface of $I$.
 When we say that a type $S$
 \IndexCustom{implements}{type!implements a type}
 another type $T$,
-this means that $T$ is a superinterface of $S$.
+this means that $T$ is a superinterface of $S$,
+or $S$ is $S_0$ bounded for some type $S_0$
+(\ref{bindingActualsToFormals}),
+and $T$ is a superinterface of $S_0$.
 Assume that $G$ is a raw type
 (\ref{instantiationToBound})
 whose declaration declares $s$ type parameters.
@@ -4431,7 +4438,7 @@ When we say that a type $S$
 \IndexCustom{implements}{type!implements a raw type}
 $G$,
 this means that there exist types \List{U}{1}{s}
-such that \code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
+such that $S$ implements \code{$G$<\List{U}{1}{s}>}.
 
 \commentary{%
 Note that this is not the same as being a subtype.
@@ -4445,8 +4452,8 @@ $S$ cannot be a subtype of \code{Null}.%
 
 \LMHash{}%
 Assume that $S$ is a type and $G$ is a raw type such that $S$ implements $G$.
-Per definition there exist types \List{U}{1}{s} such that
-\code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
+Then there exist unique types \List{U}{1}{s} such that
+$S$ implements \code{$G$<\List{U}{1}{s}>}.
 We then say that \List{U}{1}{s} are the
 \IndexCustom{actual type arguments of $S$ at $G$}{%
   type arguments!of a type at a raw type},
@@ -16395,17 +16402,7 @@ The use of a class or interface, and of its members, is separate from its declar
 The usage and declaration may occur in widely separated places in the code, and may in fact be authored by different people or organizations.
 It is important that errors are given at the offending declaration so that the party that receives the error can respond to it a meaningful way.
 
-In contrast a library comprises both imports and their usage; the library is under the control of a single party and so any problem stemming from the import can be resolved even if it is reported at the use site.
-
-%On a related note, the provenance of the conflicting elements is not considered. An element that is imported via distinct paths may conflict with itself. This avoids variants of the well known "diamond" problem.
-}
-
-\LMHash{}%
-It is a static warning to import two different libraries with the same name unless their name is the empty string.
-
-\commentary{
-A widely disseminated library should be given a name that will not conflict with other such libraries.
-The preferred mechanism for this is using pub, the Dart package manager, which provides a global namespace for libraries, and conventions that leverage that namespace.
+In contrast a library comprises both imports and their usage; the library is under the control of a single party and so any problem stemming from the import can be resolved even if it is reported at the use site.%
 }
 
 \commentary{
@@ -16609,10 +16606,6 @@ and also that $L$ \Index{re-exports namespace} \Namespace{i}.
 When no confusion can arise, we may simply state
 that $L$ \NoIndex{re-exports} $L_i$, or
 that $L$ \NoIndex{re-exports} \Namespace{i}.
-
-\LMHash{}%
-It is a compile-time error to export two different libraries with the same name
-unless their name is the empty string.
 
 
 \subsection{Parts}
