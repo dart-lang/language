@@ -4427,7 +4427,10 @@ or $J$ is a superinterface of a direct superinterface of $I$.
 When we say that a type $S$
 \IndexCustom{implements}{type!implements a type}
 another type $T$,
-this means that $T$ is a superinterface of $S$.
+this means that $T$ is a superinterface of $S$,
+or $S$ is $S_0$ bounded for some type $S_0$
+(\ref{bindingActualsToFormals}),
+and $T$ is a superinterface of $S_0$.
 Assume that $G$ is a raw type
 (\ref{instantiationToBound})
 whose declaration declares $s$ type parameters.
@@ -4435,7 +4438,7 @@ When we say that a type $S$
 \IndexCustom{implements}{type!implements a raw type}
 $G$,
 this means that there exist types \List{U}{1}{s}
-such that \code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
+such that $S$ implements \code{$G$<\List{U}{1}{s}>}.
 
 \commentary{%
 Note that this is not the same as being a subtype.
@@ -4449,8 +4452,8 @@ $S$ cannot be a subtype of \code{Null}.%
 
 \LMHash{}%
 Assume that $S$ is a type and $G$ is a raw type such that $S$ implements $G$.
-Per definition there exist types \List{U}{1}{s} such that
-\code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
+Then there exist unique types \List{U}{1}{s} such that
+$S$ implements \code{$G$<\List{U}{1}{s}>}.
 We then say that \List{U}{1}{s} are the
 \IndexCustom{actual type arguments of $S$ at $G$}{%
   type arguments!of a type at a raw type},
