@@ -284,13 +284,8 @@ The function **futureValueTypeSchema** is defined as follows:
 - **futureValueTypeSchema**(`FutureOr<S>`) = `S`, for all `S`.
 - **futureValueTypeSchema**(`void`) = `void`.
 - **futureValueTypeSchema**(`dynamic`) = `dynamic`.
-- **futureValueTypeSchema**(`?`) = `?`.
+- **futureValueTypeSchema**(`_`) = `_`.
 - Otherwise, for all `S`, **futureValueTypeSchema**(`S`) = `Object?`.
-
-_In this definition, when `?` occurs as a type on its own, it is the type
-schema that imposes no constraints, cf. section 'Type Schemas'. Note that it
-has nothing to do with nullability, and in particular it does not stand for
-`T?` for any `T`._
 
 _Note that it is a compile-time error unless the return type of an asynchronous
 non-generator function is a supertype of `Future<Never>`, which means that
