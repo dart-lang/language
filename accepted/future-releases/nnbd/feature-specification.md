@@ -14,8 +14,8 @@ Status: Draft
 2020.05.20
   - Turn new references to `CastError` into being dynamic type errors.
 
-2020.05.18
-  - **CHANGE** Changes to definite assignment for local variables without types.
+2020.07.21
+  - **CHANGE** Changes to definite assignment for local variables.
 
 2020.05.14
   - **CHANGE** Strong mode is auto-opted in when the "main" file is opted in.
@@ -563,8 +563,8 @@ expression.
 It is an error for a class with a `const` constructor to have a `late final`
 instance variable.
 
-It is not a compile time error to write to a `final` non-local variable or field
-if that variable or field is declared `late` and does not have an initializer.
+It is not a compile time error to write to a `final` non-local or instance
+variable if that variable is declared `late` and does not have an initializer.
 For local variables, see the section below.
 
 It is an error if the object being iterated over by a `for-in` loop has a static
@@ -624,17 +624,17 @@ assigned** if it is not **definitely unassigned**, and that a variable is
 
 In all cases in this section, errors that are described as occurring on reads of
 a variable are intended to apply to all form of reads, including indirectly as
-part of composite assignment operators, as well as via pre and post-fix
+part of compound assignment operators, as well as via pre and post-fix
 operators.  Similarly, errors that are described as occurring on writes of a
 variable are intended to apply to all form of writes.
 
 It is a compile time error to assign a value to a `final`, non-`late` local
-variable which is **potentially assigned**.  Thus, it is *not* an error to
-assign to a **definitely unassigned** `final` local variable.
+variable which is **potentially assigned**.  Thus, it is *not* a compile time
+error to assign to a **definitely unassigned** `final` local variable.
 
 It is a compile time error to assign a value to a `final`, `late` local variable
-if it is **definitely assigned**. Thus, it is *not* an error to assign to a
-**potentially unassigned** `final`, `late` local variable.
+if it is **definitely assigned**. Thus, it is *not* a compile time error to
+assign to a **potentially unassigned** `final`, `late` local variable.
 
 *Note that a variable is always considered **definitely assigned** and not
 **definitely unassigned** if it has an explicit initializer, or an implicit
@@ -694,11 +694,11 @@ initializer (explicit or implicit) and is not `final`, then the declaration is
 treated as an assignment for the purposes of promotion.
 
 *Treating the declared type of the variable as a "type of interest" implies that
-if the variable is a nullable type, then its non-nullable version is also a type
-of interest.  Treating the initialization as an assignment for the purposes of
-promotion means that initializing a mutable variable declared at type `T?` with
-a value of non-nullable type `T` immediately promotes the variable to the
-non-nullable type.*
+if the variable has a nullable type, then the non-nullable version of that type
+is also a type of interest.  Treating the initialization as an assignment for
+the purposes of promotion means that initializing a mutable variable declared at
+type `T?` with a value of non-nullable type `T` immediately promotes the
+variable to the non-nullable type.*
 
 ```dart
 void test() {
@@ -709,13 +709,13 @@ void test() {
 ```
 
 Local variables with no explicitly written type but with an initializer are
-given an inferred type equal to the type of their initializer, unless the that
-type is a subtype of `Null`, in which case the inferred type of the variable
-shall be `dynamic`.  The inferred type of the variable is considered a "type of
-interest" in the sense defined in the flow analysis specification.  In the case
-that the type of the initializer is a promoted type variable `X & T`, the
-inferred type of the variable shall be `X`.  However, such a variable shall be
-treated as immediately promoted to `X & T`.
+given an inferred type equal to the type of their initializer, unless that type
+is a subtype of `Null`, in which case the inferred type of the variable shall be
+`dynamic`.  The inferred type of the variable is considered a "type of interest"
+in the sense defined in the flow analysis specification.  In the case that the
+type of the initializer is a promoted type variable `X & T`, the inferred type
+of the variable shall be `X`.  However, such a variable shall be treated as
+immediately promoted to `X & T`.
 
 ### Expression typing
 
