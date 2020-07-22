@@ -1579,7 +1579,8 @@ It is a compile-time error if a parameter derived from
 which is not a non-redirecting generative constructor.
 
 \commentary{%
-The \synt{fieldFormalParameter} construct is described elsewhere
+A \synt{fieldFormalParameter} declares an initializing formal,
+which is described elsewhere
 (\ref{generativeConstructors}).%
 }
 
@@ -2981,16 +2982,17 @@ A \IndexCustom{generative constructor}{constructor!generative}
 declaration consists of a constructor name, a formal parameter list
 (\ref{formalParameters}),
 and either a redirect clause or an initializer list and an optional body.
-\commentary{%
-See \synt{declaration} and \synt{methodSignature}
-for grammar rules where these elements are included.%
-}
 
 \begin{grammar}
 <constructorSignature> ::= <constructorName> <formalParameterList>
 
 <constructorName> ::= <typeIdentifier> (`.' <identifier>)?
 \end{grammar}
+
+\commentary{%
+See \synt{declaration} and \synt{methodSignature} for grammar rules
+introducing a redirection or an initializer list and a body.%
+}
 
 \LMHash{}%
 If a formal parameter declaration $p$ is derived from
