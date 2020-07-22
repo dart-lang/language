@@ -2978,16 +2978,27 @@ and either a redirect clause or an initializer list and an optional body.
 \end{grammar}
 
 \LMHash{}%
-A \Index{constructor parameter list} is a parenthesized, comma-separated list of formal constructor parameters.
-A \Index{formal constructor parameter} is either a formal parameter (\ref{formalParameters}) or an initializing formal.
-An \Index{initializing formal} has the form \code{\THIS{}.\id}, where \id{} is the name of an instance variable of the immediately enclosing class.
-It is a compile-time error if \id{} is not an instance variable of the immediately enclosing class.
-It is a compile-time error if an initializing formal is used by a function other than a non-redirecting generative constructor.
+A \Index{constructor parameter list} is
+a parenthesized, comma-separated list of formal constructor parameters.
+A \Index{formal constructor parameter} is a formal parameter
+(\ref{formalParameters}),
+which can be an initializing formal.
+An \Index{initializing formal} contains a term of the form \code{\THIS.\id},
+where \id{} is the name of an instance variable of
+the immediately enclosing class.
+It is a compile-time error if \id{} is not
+an instance variable of the immediately enclosing class.
+It is a compile-time error if an initializing formal is declared in
+a function declaration which is not a non-redirecting generative constructor.
 
 \LMHash{}%
-If an explicit type is attached to the initializing formal, that is its static type.
-Otherwise, the type of an initializing formal named \id{} is $T_{id}$, where $T_{id}$ is the type of the instance variable named \id{} in the immediately enclosing class.
-It is a compile-time error if the static type of \id{} is not a subtype of $T_{id}$.
+Assume that $p$ is a declaration of an initializing formal parameter named \id.
+Let $T_{id}$ be the type of the instance variable named \id{} in
+the immediately enclosing class.
+If $p$ has a type annotation $T$ then the declared type of $p$ is $T$.
+Otherwise, the declared type of $p$ is $T_{id}$.
+It is a compile-time error if the declared type of $p$
+is not a subtype of $T_{id}$.
 
 \LMHash{}%
 Initializing formals constitute an exception to the rule that
