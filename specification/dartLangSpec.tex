@@ -621,7 +621,7 @@ For $j \in 1 .. k$, $v_j$ introduces a final, local variable into $S_j$,
 with the static type of $e_j$ as its declared type.
 For type inference of $e_j$, the empty context type is used.
 
-\LMHash{}
+\LMHash{}%
 Evaluation of $e_{\metavar{let}}$ proceeds by
 evaluating $e_j$ to an object $o_j$ and binding $v_j$ to $o_j$,
 where $j \in 1 .. k$, in that order.
@@ -4601,7 +4601,7 @@ among the most specific member signatures \Mall.
 }
 }
 
-\LMHash{}
+\LMHash{}%
 The combined member signature is then $m'$,
 which is obtained from $m_i$ by adding the modifier \COVARIANT{}
 to each parameter $p$ (if it is not already present)
@@ -4909,14 +4909,14 @@ for static member declarations.
   \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
 \end{grammar}
 
-\LMHash{}
+\LMHash{}%
 It is a compile-time error to declare a constructor in a mixin-declaration.
 
-\LMHash{}
+\LMHash{}%
 A mixin declaration with no \code{\ON{}} clause is equivalent
 to one with the clause \code{\ON{} Object}.
 
-\LMHash{}
+\LMHash{}%
 Let $M$ be a \MIXIN{} declaration of the form
 
 \begin{normativeDartCode}
@@ -4958,7 +4958,7 @@ If the mixin declaration $M$ has only one declared superinterface, $T_1$,
 then the superinvocation interface $M_{super}$ has exactly the same members
 as the interface $T_1$.}
 
-\LMHash{}
+\LMHash{}%
 Let $M_I$ be the interface that would be defined by the class declaration
 
 \begin{normativeDartCode}
@@ -5670,6 +5670,8 @@ if any of the following conditions is satisfied:
 \subsubsection{Examples}
 \LMLabel{staticExtensionExamples}
 
+!!!TODO!!!
+
 \commentary{%
 The following examples display the implicit static extension resolution when
 multiple applicable static extensions are available.%
@@ -5735,74 +5737,11 @@ case, picking the static extension which has the most precise types available
 to it is considered the best choice.%
 }
 
-
-\subsection{Static Members and Member Resolution}
-\LMLabel{staticMembersAndMemberResolution}
-
-!!!TODO!!!
-
-\LMHash{}%
-Static member declarations in the static extension declaration can be
-accessed the same way as static members of a class or mixin
-declaration: By prefixing with the static extension's name.
-
-\commentary{
-Example:
-}
-
-\begin{dartCode}
-extension MySmart on Object \{
-  smart() => smartHelper(this);  // valid
-  static smartHelper(Object o) \{ ... \}
-\}
-...
-  MySmart.smartHelper(someObject);  // valid
-\end{dartCode}
-
-Like for a class or mixin declaration, static members simply treat the
-surrounding declaration as a namespace.
-
-It is a **compile-time error** if a simple or qualified identifier
-denoting the static extension occurs in an expression except as the static extension
-name of an static extension application or as the target of a (static) simple
-or composite member invocation. In the latter case, it is a
-**compile-time error** if the static extension does not declare a static
-member with the corresponding member name (or both a getter and a
-setter for a composite member invocation), and the invocation itself
-must be a valid invocation as for any other static member invocation.
-
-\subsection{Semantics of Invocations}
-\LMLabel{semanticsOfInvocations}
-
-An static extension member invocation is a member invocation where the target
-is an static extension application, or where the target is an object where we
-perform implicit static extension application. At run-time, implicit
-static extension invocations have been resolved and any type arguments will
-have been inferred, so we can assume they are all known.
-
-Evaluating the invocation performs a method invocation of the
-corresponding instance member of the static extension, with `this` bound to
-the receiver value and type parameters (both for the static extension and for
-the member itself, if that is generic) bound to the types found by
-static inference.
-
-Prior to NNBD, all static extension members can be invoked on the null
-object. Since \code{Null} is a subtype of the \ON{} type, this is
-consistent behavior.
-
-Post-NNBD, a non-nullable \ON{} type would not match a nullable
-receiver type, so it is impossible to invoke an static extension method that
-does not expect null on the null object.
-
-During NNBD migration, where a non-nullable type or a legacy unsafely
-nullable type may contain the null object, it is a run-time error if a
-migrated static extension with a non-nullable \ON{} type is called on the
-null object, just as all other cases where an unsafe null reaches a
-non-nullable context. This requires a run-time check which can be
-omitted when all non-NNBD code has been migrated.
-
 \subsection{Semantics of Extension Members}
 \LMLabel{semanticsOfExtensionMembers}
+
+!!!TODO!!! Use lexical lookup, and include special rule about access to
+static extension instance member overriding acces to instance member. !!!
 
 When executing an static extension instance member, we stated earlier that
 the member is invoked with the original receiver as \THIS{} object. We
@@ -12332,6 +12271,7 @@ For instance, there could be a type parameter \code{X}
 that does not occur in the signature of the function,
 and the function could create and return a \code{List<X>}.%
 }
+\EndCase
 
 \LMHash{}%
 \Case{Local Functions}
@@ -12766,7 +12706,7 @@ are also generated in the case of $i$.
 Evaluation of $i$ proceeds as follows:
 
 \LMHash{}%
-If $e$ is a type literal, $i$ is equivalent to
+If $e$ is a type literal, $i$ is treated as
 
 \code{$e$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
@@ -12780,14 +12720,71 @@ Then $e$ evaluates to $r$.
 \EndCase
 
 \LMHash{}%
+\Case{\code{$C$.$m$<$\cdots$>($\cdots$)}}
+A \IndexCustom{static member invocation}{member invocation!static}
+$i$ is an invocation of the form
+\code{$C$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)},
+where $C$ is a type literal, or $C$ denotes a static extension.
+
+\commentary{
+Non-generic invocations arise as the special case
+where the number of type arguments is zero (\ref{generics}).
+}
+
+\LMHash{}%
+A compile-time error occurs
+unless $C$ denotes a class, a mixin, or a static extension that declares
+a static member named $m$,
+which we will call the
+\IndexCustom{denoted member}{static member invocation!denoted member}
+of $i$.
+When the denoted member is a static method, let $F$ be its function type;
+when the denoted member is a static getter, let $F$ be its return type;
+when the denoted member is neither, a compile-time error occurs.
+
+\LMHash{}%
+The static analysis of $i$ is then performed
+as specified in Section~\ref{bindingActualsToFormals},
+considering $F$ to be the static type of the function to call,
+and the static type of $i$ is as specified there.
+
+\LMHash{}%
+Evaluation of a static method invocation $i$ of the form
+
+\noindent
+\code{$C$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+
+\noindent
+proceeds as follows:
+
+\LMHash{}%
+If the denoted member of $i$ is a static method,
+let $f$ be the function declared by that member.
+The binding of actual arguments to formal parameters is performed
+as specified in Section~\ref{bindingActualsToFormals}.
+The body of $f$ is then executed with respect to the bindings
+that resulted from the evaluation of the argument part.
+The value of $i$ is the object returned by the execution of $f$'s body.
+
+\LMHash{}%
+If the denoted member of $i$ is a static getter,
+invoke said getter and let $v_f$ be
+a fresh variable bound to the returned object.
+Then the value of $i$ is the value of
+\code{$v_f$<$A_1, \ldots,\ A_r$>($a_1,\ \ldots,\ a_n,\ x_{n+1}$: $a_{n+1},\ \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\EndCase
+
+\LMHash{}%
 \Case{\code{$e$.$m$<$\cdots$>($\cdots$)}}
 An \IndexCustom{unconditional ordinary method invocation}{%
   method invocation!unconditional ordinary}
 $i$ has the form
-\code{$e$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{$e$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+where $e$ is an expression that is not a type literal,
+and does not denote a static extension.
 
 \commentary{
-Non-generic invocations again arise as the special case
+Non-generic invocations arise as the special case
 where the number of type arguments is zero (\ref{generics}).
 }
 
@@ -13186,7 +13183,7 @@ Consider a \IndexCustom{conditional property extraction expression}{%
 $i$ of the form \code{$e$?.\id}.
 
 \LMHash{}%
-If $e$ is a type literal, $i$ is equivalent to \code{$e$.\id}.
+If $e$ is a type literal, $i$ is treated as \code{$e$.\id}.
 
 \LMHash{}%
 Otherwise, the static type of $i$ is the same as
@@ -13202,7 +13199,7 @@ Evaluation of a conditional property extraction expression $i$
 of the form \code{$e$?.\id} proceeds as follows:
 
 \LMHash{}%
-If $e$ is a type literal,
+If $e$ is a type literal or $e$ denotes a static extension,
 evaluation of $i$ amounts to evaluation of \code{$e$.\id}.
 
 \LMHash{}%
@@ -13214,13 +13211,48 @@ Then $i$ evaluates to $r$.
 \EndCase
 
 \LMHash{}%
+\Case{Static}
+Let \id{} be an identifier;
+a \IndexCustom{static property extraction}{%
+  property extraction!static}
+$i$ is an expression of the form \code{$C$.\id},
+where $C$ is a type literal or $C$ denotes a static extension.
+
+\LMHash{}%
+A compile-time error occurs
+unless $C$ denotes a class, a mixin, or a static extension that declares
+a static member named $m$,
+which we will call the
+\IndexCustom{denoted member}{static property extraction!denoted member}
+of $i$.
+If the denoted member is a static getter,
+the static type of $i$ is the return type of said getter;
+if the denoted member is a static method,
+the static type of $i$ is the function type of said method;
+if the denoted member is neither, a compile-time error occurs.
+
+\LMHash{}%
+Evaluation of a static property extraction $i$ of the form \code{$C$.\id}
+proceeds as follows:
+If the denoted member of $i$ is a static getter,
+said getter is invoked, yielding an object $o$,
+and $i$ then evaluates to $o$.
+If the denoted member of $i$ is a static method,
+$i$ evaluates to a function object by function closurization
+(\ref{functionClosurization})
+applied to said static method.
+\EndCase
+
+\LMHash{}%
 \Case{Unconditional}
 Let \id{} be an identifier;
 an \IndexCustom{unconditional property extraction}{%
   property extraction!unconditional}
-may be of the form \code{$e$.\id} where $e$ is an expression
-(\ref{getterAccessAndMethodExtraction}),
-or of the form \code{\SUPER.\id}
+is an expression of the form \code{$e$.\id}
+where $e$ is an expression that is not a type literal,
+and does not denote a static extension
+(\ref{getterAccessAndMethodExtraction});
+or it is an expression of the form \code{\SUPER.\id}
 (\ref{superGetterAccessAndMethodClosurization}).
 \EndCase
 
@@ -14027,6 +14059,7 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
     whose evaluation is specified elsewhere.
   }
 \end{itemize}
+\EndCase
 
 \LMHash{}%
 \Case{\code{$p$.\id{} = $e$}}
