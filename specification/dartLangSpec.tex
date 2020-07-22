@@ -1574,6 +1574,16 @@ It is a compile-time error if \VAR{} occurs as
 the first token of a \synt{fieldFormalParameter}.
 
 \LMHash{}%
+It is a compile-time error if a parameter derived from
+\synt{fieldFormalParameter} occurs in a function declaration
+which is not a non-redirecting generative constructor.
+
+\commentary{%
+The \synt{fieldFormalParameter} construct is described elsewhere
+(\ref{generativeConstructors}).%
+}
+
+\LMHash{}%
 It is possible to include the modifier \COVARIANT{}
 in some forms of parameter declarations.
 The effect of doing this is described in a separate section
@@ -2968,8 +2978,13 @@ If{}f no constructor is specified for a class $C$, it implicitly has a default c
 
 \LMHash{}%
 A \IndexCustom{generative constructor}{constructor!generative}
-declaration consists of a constructor name, a constructor parameter list,
+declaration consists of a constructor name, a formal parameter list
+(\ref{formalParameters}),
 and either a redirect clause or an initializer list and an optional body.
+\commentary{%
+See \synt{declaration} and \synt{methodSignature}
+for grammar rules where these elements are included.%
+}
 
 \begin{grammar}
 <constructorSignature> ::= <constructorName> <formalParameterList>
@@ -2978,17 +2993,20 @@ and either a redirect clause or an initializer list and an optional body.
 \end{grammar}
 
 \LMHash{}%
-A \Index{constructor parameter list} is
-a parenthesized, comma-separated list of formal constructor parameters.
-A \Index{formal constructor parameter} is a formal parameter
-(\ref{formalParameters}),
-which can be an initializing formal.
-An \Index{initializing formal} contains a term of the form \code{\THIS.\id},
-where \id{} is the name of the initializing formal.
+If a formal parameter declaration $p$ is derived from
+\synt{fieldFormalParameter},
+it declares an \Index{initializing formal parameter}.
+A term of the form \code{\THIS.\id} is contained in $p$,
+and \id{} is the \NoIndex{name} of $p$.
 It is a compile-time error if \id{} is not also the name of
 an instance variable of the immediately enclosing class.
-It is a compile-time error if an initializing formal is declared in
-a function declaration which is not a non-redirecting generative constructor.
+
+\commentary{%
+Note that it is a compile-time error for an initializing formal
+to occur in any function which is not a non-redirecting generative constructor
+(\ref{requiredFormals}),
+so there is always an enclosing class.%
+}
 
 \LMHash{}%
 Assume that $p$ is a declaration of an initializing formal parameter named \id.
