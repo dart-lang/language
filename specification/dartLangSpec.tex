@@ -2984,9 +2984,8 @@ A \Index{formal constructor parameter} is a formal parameter
 (\ref{formalParameters}),
 which can be an initializing formal.
 An \Index{initializing formal} contains a term of the form \code{\THIS.\id},
-where \id{} is the name of an instance variable of
-the immediately enclosing class.
-It is a compile-time error if \id{} is not
+where \id{} is the name of the initializing formal.
+It is a compile-time error if \id{} is not also the name of
 an instance variable of the immediately enclosing class.
 It is a compile-time error if an initializing formal is declared in
 a function declaration which is not a non-redirecting generative constructor.
