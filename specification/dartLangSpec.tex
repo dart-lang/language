@@ -30,6 +30,8 @@
 % - Change several warnings to compile-time errors, matching the actual
 %   behavior of tools.
 % - Eliminate error for library name conflicts in imports and exports.
+% - Clarify the specification of initializing formals. Fix error: Add
+%   missing `?' at the end for function typed initializing formal.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -1564,7 +1566,7 @@ It is a compile-time error if any default values are specified in the signature 
   \alt \COVARIANT{}? <identifier>
 
 <fieldFormalParameter> ::= \gnewline{}
-  <finalConstVarOrType>? \THIS{} `.' <identifier> <formalParameterPart>?
+  <finalConstVarOrType>? \THIS{} `.' <identifier> (<formalParameterPart> `?'?)?
 \end{grammar}
 
 \LMHash{}%
@@ -1572,6 +1574,17 @@ It is a compile-time error if a formal parameter has the modifier \CONST{}
 or the modifier \LATE.
 It is a compile-time error if \VAR{} occurs as
 the first token of a \synt{fieldFormalParameter}.
+
+\LMHash{}%
+It is a compile-time error if a parameter derived from
+\synt{fieldFormalParameter} occurs as a parameter of a function
+which is not a non-redirecting generative constructor.
+
+\commentary{%
+A \synt{fieldFormalParameter} declares an initializing formal,
+which is described elsewhere
+(\ref{generativeConstructors}).%
+}
 
 \LMHash{}%
 It is possible to include the modifier \COVARIANT{}
@@ -2968,7 +2981,8 @@ If{}f no constructor is specified for a class $C$, it implicitly has a default c
 
 \LMHash{}%
 A \IndexCustom{generative constructor}{constructor!generative}
-declaration consists of a constructor name, a constructor parameter list,
+declaration consists of a constructor name, a formal parameter list
+(\ref{formalParameters}),
 and either a redirect clause or an initializer list and an optional body.
 
 \begin{grammar}
@@ -2977,17 +2991,35 @@ and either a redirect clause or an initializer list and an optional body.
 <constructorName> ::= <typeIdentifier> (`.' <identifier>)?
 \end{grammar}
 
-\LMHash{}%
-A \Index{constructor parameter list} is a parenthesized, comma-separated list of formal constructor parameters.
-A \Index{formal constructor parameter} is either a formal parameter (\ref{formalParameters}) or an initializing formal.
-An \Index{initializing formal} has the form \code{\THIS{}.\id}, where \id{} is the name of an instance variable of the immediately enclosing class.
-It is a compile-time error if \id{} is not an instance variable of the immediately enclosing class.
-It is a compile-time error if an initializing formal is used by a function other than a non-redirecting generative constructor.
+\commentary{%
+See \synt{declaration} and \synt{methodSignature} for grammar rules
+introducing a redirection or an initializer list and a body.%
+}
 
 \LMHash{}%
-If an explicit type is attached to the initializing formal, that is its static type.
-Otherwise, the type of an initializing formal named \id{} is $T_{id}$, where $T_{id}$ is the type of the instance variable named \id{} in the immediately enclosing class.
-It is a compile-time error if the static type of \id{} is not a subtype of $T_{id}$.
+If a formal parameter declaration $p$ is derived from
+\synt{fieldFormalParameter},
+it declares an \Index{initializing formal parameter}.
+A term of the form \code{\THIS.\id} is contained in $p$,
+and \id{} is the \NoIndex{name} of $p$.
+It is a compile-time error if \id{} is not also the name of
+an instance variable of the immediately enclosing class.
+
+\commentary{%
+Note that it is a compile-time error for an initializing formal
+to occur in any function which is not a non-redirecting generative constructor
+(\ref{requiredFormals}),
+so there is always an enclosing class.%
+}
+
+\LMHash{}%
+Assume that $p$ is a declaration of an initializing formal parameter named \id.
+Let $T_{id}$ be the type of the instance variable named \id{} in
+the immediately enclosing class.
+If $p$ has a type annotation $T$ then the declared type of $p$ is $T$.
+Otherwise, the declared type of $p$ is $T_{id}$.
+It is a compile-time error if the declared type of $p$
+is not a subtype of $T_{id}$.
 
 \LMHash{}%
 Initializing formals constitute an exception to the rule that
