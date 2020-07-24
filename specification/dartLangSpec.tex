@@ -5390,23 +5390,49 @@ Let $s$ be the member signature of the member $n$ declared by $E$.
 Exactly the same compile-time errors occur for $i$ as
 the ones that would occur for a member invocation $i_1$
 which is obtained from $i$ by replacing $r$ by
-a variable whose declared type is a class that declares
-a member $n$ with member signature
-$[T_1/X_1, \ldots, T_k/X_k]s$
-(\commentary{so when $E$ is non-generic, this is just $s$}).
-Said member signature is called the
+a variable whose type is
+a class $C$ declared in the same scope as $E$
+that declares a member $n$ with member signature
+$s_1 = [T_1/X_1, \ldots, T_k/X_k]s$:
+
+\begin{normativeDartCode}
+\ABSTRACT{} \CLASS{} $C$ \{
+  $D$ // \comment{Member declaration with signature $s_1$.}
+\}
+\end{normativeDartCode}
+
+\LMHash{}%
+The member signature $s_1$ is called the
 \IndexCustom{invocation member signature}{
   static extension!invocation member signature}
 of $i$.
 The static type of $i$ is the return type of
 the invocation member signature of $i$.
+\commentary{For example:}
+
+\begin{dartCode}
+\EXTENSION{} E<X> \ON{} List<X> \{
+  List<List<X>{}> split(int at) =>
+      [this.sublist(0, at), this.sublist(at)];
+\}
+\\
+\VOID{} main() \{
+  List<num> xs = [1, 2, 3];
+  \VAR{} ys = E<num>(xs).split(1); // \comment{(*)}
+\}
+\\
+\ABSTRACT{} \CLASS{} C \{
+  // \comment{Declaration with invocation member signature for (*).}
+  List<List<num>{}> split(int at);
+\}
+\end{dartCode}
 
 \commentary{%
 With type inference:
-In the case where the invocation member signature $s_i$ is generic,
+In the case where the invocation member signature $s_1$ is generic,
 type inference occurs on $i$ in the same way as it
 would occur for an invocation of a function whose type is the
-function type of $s_i$.%
+function type of $s_1$.%
 }
 
 \LMHash{}%
@@ -5592,7 +5618,8 @@ to $e$ if the following conditions are all satisfied:
 \item
   Consider a static extension application $a$ of the form \code{$E$($v$)}
   where $v$ is a fresh variable with static type $S$.
-  It is required that an occurrence of $a$ at the location of $e$
+  It is required that an occurrence of $a$
+  in the scope which is the current scope for $e$
   is not a compile-time error.
 
   \commentary{%
@@ -5666,37 +5693,32 @@ if any of the following conditions is satisfied:
   }
 \end{itemize}
 
-
-\subsubsection{Examples}
-\LMLabel{staticExtensionExamples}
-
-!!!TODO!!!
-
 \commentary{%
-The following examples display the implicit static extension resolution when
-multiple applicable static extensions are available.%
+The following examples illustrate implicit static extension resolution
+when multiple applicable static extensions are available.%
 }
 
 \begin{dartCode}
-\EXTENSION{} SmartIterable<T> \ON{} Iterable<T> \{
-  \VOID{} doTheSmartThing(void \FUNCTION(T) smart) \{
-    \FOR{} (\VAR{} e \IN{} \THIS) smart(e);
+\EXTENSION{} ExtendIterable<T> \ON{} Iterable<T> \{
+  \VOID{} myForEach(void \FUNCTION(T) f) \{
+    \FOR{} (\VAR{} x \IN{} \THIS) f(x);
   \}
 \}
-\EXTENSION{} SmartList<T> \ON{} List<T> \{
-  \VOID{} doTheSmartThing(\VOID{} \FUNCTION(T) smart) \{
-    \FOR{} (int i = 0; i < length; i++) smart(\THIS[i]);
+\EXTENSION{} ExtendList<T> \ON{} List<T> \{
+  \VOID{} myForEach(\VOID{} \FUNCTION(T) f) \{
+    \FOR{} (int i = 0; i < length; i++) f(\THIS[i]);
   \}
 \}
-...
-  List<int> x = ....;
-  x.doTheSmartThing(print);
+\\
+\VOID{} main() \{
+  List<int> x = [1];
+  x.myForEach(print);
+\}
 \end{dartCode}
 
 \commentary{%
-Here both the static extensions apply,
-but the \code{SmartList} static extension is
-more specific than the \code{SmartIterable} static extension because
+Here both of the static extensions apply,
+but \code{ExtendList} is more specific than \code{ExtendIterable} because
 \SubtypeNE{\code{List<dynamic>}}{\code{Iterable<dynamic>}}.%
 }
 
@@ -5704,120 +5726,125 @@ more specific than the \code{SmartIterable} static extension because
 \EXTENSION{} BestCom<T \EXTENDS{} num> \ON{} Iterable<T> \{ T best() \{...\}\}
 \EXTENSION{} BestList<T> \ON{} List<T> \{ T best() \{...\}\}
 \EXTENSION{} BestSpec \ON{} List<num> \{ num best() \{...\}\}
-...
+\\
+\VOID{} main() \{
   List<int> x = ...;
   \VAR{} v = x.best();
   List<num> y = ...;
   \VAR{} w = y.best();
+\}
 \end{dartCode}
 
 \commentary{%
 Here all three extensions apply to both invocations.
+For \code{x.best()}, \code{BestList} is most specific,
+because \code{List<int>} is a proper subtype of both
+\code{Iterable<int>} and \code{<List<num>}.
+Hence, the type of \code{x.best()} is \code{int}.
 
-For \code{x.best()}, the most specific one is \code{BestList}.
-Because \code{List<int>} is a proper subtype of both
-\code{Iterable<int>} and \code{<List<num>}, we expect \code{BestList}
-to be the best implementation. The return type causes \code{v} to have
-type \code{int}.  If we had chosen \code{BestSpec} instead, the return
-type could only be \code{num}, which is one of the reasons why we
-choose the most specific instantiated type as the winner.
-
-For \code{y.best()}, the most specific static extension is \code{BestSpec}.
+For \code{y.best()}, \code{BestSpec} is most specific.
 The instantiated \ON{} types that are compared are
-\code{Iterable<num>} for \code{BestCom} and \code{List<num>} for the
-two other. Using the instantiate-to-bounds types as tie-breaker, we
-find that \code{List<Object>} is less precise than \code{List<num>},
-so the code of \code{BestSpec} has more precise information available
-for its method implementation. The type of \code{w} becomes \code{num}.
-
-In practice, unintended static extension method name conflicts are likely to
-be rare. Intended conflicts happen where the same author is providing
-more specialized versions of an static extension for subtypes, and in that
-case, picking the static extension which has the most precise types available
-to it is considered the best choice.%
+\code{Iterable<num>} for \code{BestCom} and
+\code{List<num>} for the two other extensions.
+Using the instantiation-to-bound \ON{} types as a tie breaker,
+we find that \code{List<Object>} is less precise than \code{List<num>},
+so \code{BestSpec} is most selected.
+Hence, the type of \code{y.best()} is \code{num}.%
 }
 
-\subsection{Semantics of Extension Members}
-\LMLabel{semanticsOfExtensionMembers}
+\rationale{%
+In general, the definition of specificity aims to select
+the static extension which has more precise type information available.
+This does not necessarily yield the most precise type of the result
+(for instance, \code{BestSpec.best} could have returned \code{Object}),
+but it is also important that the rule is simple.
 
-!!!TODO!!! Use lexical lookup, and include special rule about access to
-static extension instance member overriding acces to instance member. !!!
+In practice, we expect unintended static extension
+member name conflicts to be rare.
+If the same author is providing more specialized versions of
+a static extension for subtypes,
+the choice of a static extension which has the most precise types available
+is likely to be a rather unsurprising and useful behavior.%
+}
 
-When executing an static extension instance member, we stated earlier that
-the member is invoked with the original receiver as \THIS{} object. We
-still have to describe how that works, and what the lexical scope is
-for those members.
 
-Inside an static extension method body, \THIS{} does not refer to an instance
-of a surrounding type. Instead it is bound to the original receiver,
-and the static type of \THIS{} is the declared \ON{} type of the
-surrounding static extension.
+\subsection{Static analysis of Members of a Static Extension}
+\LMLabel{staticAnalysisOfMembersOfAStaticExtension}
 
-Invocations on \THIS{} use the same static extension method resolution as any
-other code. Most likely, the current static extension will be the only one in
-scope which applies. It definitely applies to its own declared \ON{}
-type.
+\LMHash{}%
+Static analysis of the member declarations in a static extension $E$
+relies on the scopes of the static extension
+(\ref{staticExtensions})
+and follows the normal rules except for the following:
 
-Like for a class or mixin member declaration, the names of the
-static extension members, both static and instance, are in the *lexical*
-scope of the static extension member body. That is why \code{MySmart} above
-can invoke the static \code{smartHelper} without prefixing it by the
-static extension name. In the same way, *instance* member declarations (the
-static extension members) are in the lexical scope.
+\LMHash{}%
+When static analysis is performed on the body of an instance member
+of a static extension $E$ with \ON{} type $T_{on}$,
+the static type of \THIS{} is $T_{on}$.
 
-If an unqualified identifier inside an static extension instance member
-lexically resolves to an static extension member of the surrounding static extension
-(if the nearest enclosing declaration with the same basename is an
-instance member of an static extension), then that identifier is not
-equivalent to \code{\THIS.id}, rather the invocation is equivalent to
-an explicit invocation of that static extension method on \THIS{} (which we
-already know has a compatible type for the static extension):
-\code{Ext<T1,…,Tn>(this).id}, where \code{Ext} is the surrounding
-static extension and \code{T1} through \code{Tn} are its type parameters, if
-any. The invocation works whether or not the names of the static extension or
-parameters are actually accessible, it is not a syntactic rewrite.
+\LMHash{}%
+A compile-time error occurs if the body of an extension member
+contains \SUPER{}.
 
-If an unqualified identifier inside an static extension *static* member
-lexically resolves to an static extension member, it is a **compile-time
-error**. This is similar to how a static member cannot access instance
-members of the same class by name.
-
-Example:
+\commentary{%
+A lexical lookup in a static extension $E$ may yield
+a declaration of an instance method declared in $E$.
+As specified elsewhere
+(\ref{lexicalLookup}),
+this implies that static extension instance methods
+will shadow class instance methods
+when called from another extension instance method
+inside the same extension just using the name
+(that is, using \code{m()} and not \code{\THIS.m()}).
+%
+This is an exception,
+because invocation of a static extension instance member with basename \id{}
+will otherwise never occur when
+the interface of the static type of the receiver has
+a member with basename \id{}.
+Here is an example:%
+}
 
 \begin{dartCode}
-extension MyUnaryNumber on List<Object> \{
+\EXTENSION{} MyUnaryNumber \ON{} List<Object> \{
   bool get isEven => length.isEven;
   bool get isOdd => !isEven;
   static bool isListEven(List<Object> list) => list.isEven;
 \}
 \end{dartCode}
 
-Here the \code{list.isEven} will find that \code{isEven} of
-\code{MyUnaryNumber} applies, and unless there are any other
-static extensions in scope, it will call that. (Or unless someone adds an
-\code{isEven} member to \code{List}, but that's a breaking change, and
-then, if still necessary, this code can change the call to
-\code{MyUnaryNumber(list).isEven}.) 
+\commentary{%
+With \code{list.isEven},
+\code{isEven} resolves to the declaration in \code{MyUnaryNumber},
+given that \code{List} does not have a member with basename \code{isEven},
+and unless there are any other static extensions in scope creating a conflict.
 
-The unqualified \code{length} of \code{isEven} is not defined in the
-current lexical scope, so is equivalent to  \code{\THIS.length}, which is
-valid since \code{List<Object>} has a \code{length} getter.
+The unqualified \code{length} in the declaration of \code{isEven}
+is not defined in the current lexical scope,
+so it is treated as \code{\THIS.length},
+because the interface of the \ON{} type \code{List<Object>} has
+a \code{length} getter.
 
 The unqualified \code{isEven} of \code{isOdd} resolves lexically to
-the \code{isEven} getter above it, so it is equivalent to
-\code{MyUnaryNumber(this).isEven}, even if there are other static extensions
-in scope which define an \code{isEven} on \code{List<Object>}.
+the \code{isEven} getter above it,
+so it is treated as \code{MyUnaryNumber(this).isEven},
+even if there are other static extensions in scope
+which define an \code{isEven} on \code{List<Object>}.
 
-An unqualified identifier \code{id} which is not declared in the lexical
-scope at all, is considered equivalent to \code{\THIS.id} inside instance
-members as usual. It is subject to static extension if \code{id} is not declared
-by the static type of \THIS{} (the \ON{} type).
+An unqualified identifier \code{id} which is not in scope
+is treated as \code{\THIS.id} inside instance members as usual
+(\ref{lexicalLookup}).
+If \code{id} is not declared by the static type of \THIS{}
+(the \ON{} type)
+then it may be an error,
+or it may be resolved using a different static extension.%
+}
 
-Even though you can access \THIS, you cannot use \SUPER{} inside an
-static extension method.
 
 \subsection{Member Conflict Resolution}
 \LMLabel{memberConflictResolution}
+
+!!!TODO!!!
 
 An static extension can declare a member with the same (base-)name as a
 member of the type it is declared on. This does not cause a
@@ -11848,8 +11875,21 @@ Let $D$ be the declaration yielded by the lexical lookup of \id{}.
   \code{$C$.$i$}
   (\ref{ordinaryInvocation}).
 \item
+  If $D$ is an instance member of a static extension $E$
+  with type parameters \List{X}{1}{k},
+  $i$ is treated as \code{$E$<\List{X}{1}{k}>(\THIS).$i$}.
+  Both the static analysis and evaluation
+  proceeds with the transformed expression,
+  so there is no need to further specify the treatment of $i$.
+
   \commentary{%
-    A lexical lookup will never yield a declaration $D$
+    In other words, inside $E$ the instance members of $E$ will shadow
+    the instance members of the \ON{} type, that is,
+    the extension has higher priority than the object interface.
+    The opposite is true for invocations everywhere outside $E$.
+
+    There is no need to consider an instance member of a class,
+    because a lexical lookup in a class will never yield a declaration
     which is an instance member.%
   }
 \end{itemize}
@@ -11865,7 +11905,6 @@ a compile-time error occurs.
 When the lexical lookup of \id{} yields a member signature,
 $i$ is treated as
 (\ref{notation})
-%% TODO(eernst): Come extension methods, we need id --> Ext<typeArgs>(id).
 the ordinary method invocation
 \code{\THIS.$i$}
 (\ref{ordinaryInvocation}).
@@ -12692,11 +12731,13 @@ and similarly for formal type parameter lists (\ref{generics}).
 \LMHash{}%
 The static type of $i$ is the same as the static type of
 
+\noindent
 \code{$e$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \noindent
 Exactly the same compile-time errors that would be caused by
 
+\noindent
 \code{$e$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 
 \noindent
@@ -12706,8 +12747,9 @@ are also generated in the case of $i$.
 Evaluation of $i$ proceeds as follows:
 
 \LMHash{}%
-If $e$ is a type literal, $i$ is treated as
+If $e$ is a type literal or denotes a static extension, $i$ is treated as
 
+\noindent
 \code{$e$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \LMHash{}%
@@ -15300,8 +15342,10 @@ the following errors apply:
   (\ref{classes}).
 \item
   When $\ell$ has access to \THIS{}
-  it is a compile-time error if the interface of the enclosing class
-  does not have a member named $n$.
+  it is a compile-time error if $\ell$ occurs in
+  a class $C$ and the interface of $C$ does not have a member named $n$;
+  and it is a compile-time error if $\ell$ occurs in a static extension $E$,
+  and the interface of the \ON{} type of $E$ does not have a member named $n$.
   \commentary{%
     So it is an error if there is no member with the right basename at all,
     and also if there is one such member,
@@ -15326,10 +15370,19 @@ unless $D$ is an instance member or a local variable
 %% TODO(eernst): Come NNBD, `this` is accessible in a `late` instance variable
 %% initializer, so they must also be included in the first case.
 \LMHash{}%
+% Has chosen instance member, wants getter/setter, has only the opposite.
 When $\ell$ has access to \THIS{}
-(\ref{classes}),
+(\ref{classes})
+and is located in a class $C$,
 it is a compile-time error if $D$ is an instance member,
-and the interface of the enclosing class does not have a member named $n$.
+and the interface of $C$ does not have a member named $n$.
+% Has chosen static extension instance member, wants getter/setter,
+% has only the opposite.
+When $\ell$ has access to \THIS{}
+and occurs in a static extension $E$,
+it is a compile-time error if $D$ is an instance member,
+and $E$ does not declare a member named $n$.
+% No access to this.
 When $\ell$ does not have access to \THIS,
 it is a compile-time error if $D$ is an instance member.
 % An instance variable initializer is in the class scope, so it is
@@ -15371,28 +15424,38 @@ and we could say that this ``pair'' shadows $s$:%
 \end{dartCode}
 
 % At this point we know that
-% - $D$ does not exist, but $\ell$ has access to `this` and the
-%   interface of the enclosing class has a member named $n$, or
+% - $D$ does not exist, but $\ell$ has access to `this` and the interface of
+%   the enclosing class / of the on-type of the enclosing static extension has
+%   a member named $n$, or
 % - $D$ exists and has name $n$, and $\ell$ cannot access `this`, or
-% - $D$ exists, its name can be different from $n$, but $\ell$ has access to
-%   `this`, and the interface of the enclosing class has a member named $n$, or
+% - $\ell$ occurs in a class $C$, $D$ exists, its name can be different from
+%   $n$, but $\ell$ has access to `this`, and the interface of $C$ has a
+%   member named $n$, or
+% - $\ell$ occurs in an extension $E$, $D$ exists and is a static or instance
+%   member with the name $n$ (and access to `this` exists in the latter case),
+%   or
 % - $D$ exists and is a local variable named \id, and $n$ is \code{\id=}.
 %
 % The lookup yields a member signature iff $\ell$ has access to `this` and
-% $D$ does not exist or $D$ is an instance member.
+% $D$ does not exist or $D$ is an instance member of a class.
 
 \LMHash{}%
 Now proceed as described in the first applicable case from the following list:
 
 \begin{itemize}
 \item
-  When $D$ does not exist,
+  When $D$ does not exist:
+  If $\ell$ occurs in a class $C$,
   the lexical lookup yields the member signature of
-  the member of the interface of the enclosing class
+  the member of the interface of $C$
+  which has the name $n$.
+  If $\ell$ occurs in a static extension $E$ with \ON{} type $T_{on}$,
+  the lexical lookup yields the member signature of
+  the member of the interface of $T_{on}$
   which has the name $n$.
   \commentary{%
     In this case it is guaranteed that $\ell$ occurs inside
-    the body of an instance member or generative constructor,
+    the body of an instance member or a generative constructor,
     and said member exists.%
   }
 \item
@@ -15406,21 +15469,22 @@ Now proceed as described in the first applicable case from the following list:
   % This may seem inconsistent, but it should not be harmful.
   Otherwise, the lexical lookup yields $D$.
 \item
-  Consider the case where $D$ is an instance member declaration.
+  Consider the case where $D$ is an instance member declaration in a class $C$.
   The lexical lookup then yields the member signature named $n$
-  from the interface of the enclosing class.
+  in the interface of $C$.
   \commentary{%
     It is again guaranteed that $\ell$ occurs inside
-    the body of an instance member or generative constructor,
-    and said member exists.%
+    the body of an instance member or generative constructor of $C$,
+    and that said member exists.%
   }
 \item
   % Cases covered here: $D$ is
   % - an import with prefix \id;
   % - a class or type alias; % whose name must be \id, no need to say that..
   % - a library variable, getter, or setter;
-  % - a static method, getter, or setter;
-  % - a local variable (\commentary{why may be a formal parameter});
+  % - a static method/getter/setter of a class, mixin, or static extension;
+  % - an instance method of a static extension;
+  % - a local variable (\commentary{which may be a formal parameter});
   % - a local function.
   Otherwise, the lexical lookup yields $D$.
 \end{itemize}
