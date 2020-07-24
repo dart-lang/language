@@ -5655,10 +5655,8 @@ we define the notion of
 which is a partial order on \List{E}{1}{k}.
 
 \commentary{%
-The specificity is used to determine
-which static extension method to execute
-in this situation where more than one choice is possible
-(\ref{implicitStaticExtensionInvocations}).%
+Specificity is used to determine which static extension method to execute
+in the situation where more than one choice is possible.%
 }
 
 \LMHash{}%
@@ -5794,8 +5792,9 @@ As specified elsewhere
 this implies that static extension instance methods
 will shadow class instance methods
 when called from another extension instance method
-inside the same extension just using the name
-(that is, using \code{m()} and not \code{\THIS.m()}).
+inside the same extension as an unqualified function invocation
+(that is, using \code{m()} and not \code{\THIS.m()},
+\ref{unqualifiedInvocation}).
 %
 This is an exception,
 because invocation of a static extension instance member with basename \id{}
@@ -5810,6 +5809,8 @@ Here is an example:%
   bool get isEven => length.isEven;
   bool get isOdd => !isEven;
   static bool isListEven(List<Object> list) => list.isEven;
+  List<Object> get first => [];
+  List<Object> get smallest => first;
 \}
 \end{dartCode}
 
@@ -5817,19 +5818,31 @@ Here is an example:%
 With \code{list.isEven},
 \code{isEven} resolves to the declaration in \code{MyUnaryNumber},
 given that \code{List} does not have a member with basename \code{isEven},
-and unless there are any other static extensions in scope creating a conflict.
+and unless there are any other static extensions creating a conflict.
 
-The unqualified \code{length} in the declaration of \code{isEven}
+The use of \code{length} in the declaration of \code{isEven}
 is not defined in the current lexical scope,
 so it is treated as \code{\THIS.length},
 because the interface of the \ON{} type \code{List<Object>} has
 a \code{length} getter.
 
-The unqualified \code{isEven} of \code{isOdd} resolves lexically to
+The use of \code{isEven} in \code{isOdd} resolves lexically to
 the \code{isEven} getter above it,
 so it is treated as \code{MyUnaryNumber(this).isEven},
 even if there are other static extensions in scope
 which define an \code{isEven} on \code{List<Object>}.
+
+The use of \code{first} in \code{smallest} resolves lexically to
+the \code{first} getter above it,
+even though there is a member with the same basename in
+the interface of \THIS.
+The getter \code{first} cannot be called
+in an implicit invocation from anywhere outside of \code{MyUnaryNumber}.
+This is the exceptional case mentioned above,
+where a member of a static extension shadows
+a regular instance member on \THIS.
+In practice, static extensions will very rarely introduce members
+with the same basename as a member of its \ON{} type's interface.
 
 An unqualified identifier \code{id} which is not in scope
 is treated as \code{\THIS.id} inside instance members as usual
@@ -5841,43 +5854,10 @@ or it may be resolved using a different static extension.%
 }
 
 
-\subsection{Member Conflict Resolution}
-\LMLabel{memberConflictResolution}
-
-!!!TODO!!!
-
-An static extension can declare a member with the same (base-)name as a
-member of the type it is declared on. This does not cause a
-compile-time conflict, even if the member does not have a compatible
-signature.
-
-Example:
-
-\begin{dartCode}
-extension MyList<T> on List<T> \{
-  void add(T value, {int count = 1}) \{ ... \}
-  void add2(T value1, T value2) \{ ... \}
-\}
-\end{dartCode}
-
-You cannot *access* this member in a normal invocation, so it could be
-argued that you shouldn't be allowed to add it. We allow it because we
-do not want to make it a compile-time error to add an instance member
-to an existing class just because an static extension is already adding a
-method with the same name. It will likely be a problem if any code
-*uses* the method, but only that code needs to change (perhaps using
-an override to keep using the static extension).
-
-An unqualified identifier in the static extension can refer to any static extension
-member declaration, so inside an static extension member body, \code{\THIS.add} and
-\code{add} are not necessarily the same thing (if the \ON{} type has an
-\code{add} member, then \code{\THIS.add} refers to that, while
-\code{add} refers to the static extension method in the lexical scope). This
-may be confusing. In practice, static extensions will rarely introduce
-members with the same name as their \ON{} type's members.
-
 \subsection{Tearoffs}
 \LMLabel{tearOffs}
+
+!!!TODO!!!
 
 A static extension method can be torn off like an instance method.
 
