@@ -443,7 +443,7 @@ Definitions:
       - Else if `S` is `X extends R` then let `T1` = `X & T`
       - Else If `S` is `X & R` then let `T1` = `X & T`
       - Else `x` is not promotable (shouldn't happen since we checked above)
-      - Let `VM2 = VariableModel(declared, T1::promoted, T1::tested, assigned,
+      - Let `VM2 = VariableModel(declared, T1::promoted, T::tested, assigned,
       unassigned, captured)`
       - Let `M2 = FlowModel(r, VI[x -> VM2])`
       - If `T1 <: Never` then `M3` = `unreachable(M2)`, otherwise `M3` = `M2`
