@@ -227,7 +227,7 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
     super-interfaces used consists of the `LEGACY_ERASURE` of the
     super-interfaces of the two types.
   - For an upper bound computation in an opted in library, no modification of
-    the set of super-interfaces if performed.
+    the set of super-interfaces is performed.
 
 ## Lower bounds
 
