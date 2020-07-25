@@ -1558,7 +1558,6 @@ void test() {
 }
 ```
 
-
 ### Type reification
 
 All types reified in legacy libraries are reified as legacy types.  Runtime
