@@ -193,13 +193,6 @@ The following functions associate flow models to nodes:
 - `false(E)`, where `E` is an expression, represents the *flow model* just after
   execution of `E`, assuming that `E` completes normally and evaluates to `false`.
 
-- `null(E)`, where `E` is an expression, represents the *flow model* just after
-  execution of `E`, assuming that `E` completes normally and evaluates to `null`.
-
-- `notNull(E)`, where `E` is an expression, represents the *flow model* just
-  after execution of `E`, assuming that `E` completes normally and does not
-  evaluate to `null`.
-
 - `break(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
   represents the join of the flow models reaching each `break` statement
   targetting `S`.
@@ -225,8 +218,8 @@ The following functions associate flow models to nodes:
   expression in the recurrent part of `S`, where the "recurrent" part of `s` is
   defined as in `assignedIn`, above.
 
-Note that `true`, `false`, `null`, and `notNull` are defined for all expressions
-regardless of their static types.
+Note that `true` and `false` are defined for all expressions regardless of their
+static types.
 
 We also make use of the following auxiliary functions:
 
@@ -429,11 +422,22 @@ Definitions:
           `demoted` is `Q::previous`
         - otherwise `demoted` is `previous`
 
+- `stripParens(E1)`, where `E1` is an expression, is the result of stripping
+  outer parentheses from the expression `E1`.  It is defined to be the
+  expression `E3`, where:
+  - If `E1` is a parenthesized expression of the form `(E2)`, then `E3` =
+    `stripParens(E2)`.
+  - Otherwise, `E3` = `E1`.
+
+- `equivalentToNull(T)`, where `T` is a type, indicates whether `T` is
+  equivalent to the `Null` type.  It is defined to be true if `T <: Null` and
+  `Null <: T`; otherwise false.
+
 - `promote(E, T, M)` where `E` is an expression, `T` is a type which it may be
   promoted to, and `M1 = FlowModel(r, VI)` is the flow model in which to
   promote, is defined to be `M3`, where:
-  - If `E` is not a promotion target, then `M3` = `M1`
-  - If `E` is a promotion target `x`, then
+  - If `stripParens(E)` is not a promotion target, then `M3` = `M1`
+  - If `stripParens(E)` is a promotion target `x`, then
     - Let `VM = VariableModel(declared, promoted, tested, assigned, unassigned,
       captured)` be the variable model for `x` in `VI`
     - If `x` is not promotable via type test to `T` given `VM`, then `M3` = `M1`
@@ -482,43 +486,24 @@ constructor, or field declaration to be analyzed.
 ### Expressions
 
 Analysis of an expression `N` assumes that `before(N)` has been computed, and
-uses it to derive `after(N)`, `null(N)`, `notNull(N)`, `true(N)`, and
-`false(N)`.
+uses it to derive `after(N)`, `true(N)`, and `false(N)`.
 
 If `N` is an expression, and the following rules specify the values to be
-assigned to `true(N)` and `false(N)`, but do not specify values for `null(N)`,
-`notNull(N)`, or `after(N)`, then they are by default assigned as follows:
-  - `null(N) = unreachable(after(N))`.
-  - `notNull(N) = join(true(N), false(N))`.
-  - `after(N) = notNull(N)`.
-
-If `N` is an expression, and the following rules specify the values to be
-assigned to `null(N)` and `notNull(N)`, but do not specify values for `true(N)`,
-`false(N)`, or `after(N)`, then they are by default assigned as follows:
-  - `true(N) = notNull(N)`.
-  - `false(N) = notNull(N)`.
-  - `after(N) = join(null(N), notNull(N))`.
+assigned to `true(N)` and `false(N)`, but do not specify the value for
+`after(N)`, then it is by default assigned as follows:
+  - `after(N) = join(true(N), false(N))`.
 
 If `N` is an expression, and the following rules specify the value to be
-assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
-`null(N)`, or `notNull(N)`, then they are all assigned the same value as
-`after(N)`.
+assigned to `after(N)`, but do not specify values for `true(N)` and `false(N)`,
+then they are all assigned the same value as `after(N)`.
 
 
 - **Variable or getter**: If `N` is an expression of the form `x`
   where the type of `x` is `T` then:
   - If `T <: Never` then:
-    - Let `null(N) = unreachable(before(N))`.
-    - Let `notNull(N) = unreachable(before(N))`.
-  - Otherwise if `T <: Null` then:
-    - Let `null(N) = before(N)`.
-    - Let `notNull(N) = unreachable(before(N))`.
-  - Otherwise if `T` is non-nullable then:
-    - Let `null(N) = unreachable(before(N))`.
-    - Let `notNull(N) = before(N)`.
+    - Let `after(N) = unreachable(before(N))`.
   - Otherwise:
-    - Let `null(N) = promote(x, Null, before(N))`
-    - Let `notNull(N) = promoteToNonNull(x, before(N))`
+    - Let `after(N) = before(N)`.
 
 - **True literal**: If `N` is the literal `true`, then:
   - Let `true(N) = before(N)`.
@@ -528,13 +513,10 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
   - Let `true(N) = unreachable(before(N))`.
   - Let `false(N) = before(N)`.
 
-- **null literal**: If `N` is the literal `null`, then:
-  - Let `null(N) = before(N)`.
-  - Let `notNull(N) = unreachable(before(N))`.
+- TODO(paulberry): list, map, and set literals.
 
 - **other literal**: If `N` is some other literal than the above, then:
-  - Let `null(N) = unreachable(before(N))`.
-  - Let `notNull(N) = before(N)`.
+  - Let `after(N) = before(N)`.
 
 - **throw**: If `N` is a throw expression of the form `throw E1`, then:
   - Let `before(E1) = before(N)`.
@@ -546,21 +528,35 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
   - Let `after(N) = assign(x, E1, after(E1))`.
   - Let `true(N) = assign(x, E1, true(E1))`.
   - Let `false(N) = assign(x, E1, false(E1))`.
-  - Let `null(N) = assign(x, E1, null(E1))`.
-  - Let `notNull(N) = assign(x, E1, notNull(E1))`.
 
-TODO(leafp): Per
-discussion
-[here](https://github.com/dart-lang/language/pull/763/files#r364003138), this is
-wrong.  This needs reconsideration.
-- **operator==** If `N` is an expression of the form `E1 == E2` then:
-  - Let `before(E1) = before(N)`
-  - Let `before(E2) = after(E1)`
-  - Let `true(N) = join(join(null(E1), null(E2)),
-                        join(notNull(E1), notNull(E2)))`
-  - Let `false(N) = join(join(null(E1), notNull(E2)),
-                         join(notNull(E1), null(E2)),
-                         join(notNull(E1), notNull(E2)))`
+- **operator==** If `N` is an expression of the form `E1 == E2`, where the
+  static type of `E1` is `T1` and the static type of `E2` is `T2`, then:
+  - Let `before(E1) = before(N)`.
+  - Let `before(E2) = after(E1)`.
+  - If `equivalentToNull(T1)` and `equivalentToNull(T2)`, then:
+    - Let `true(N) = after(E2)`.
+    - Let `false(N) = unreachable(after(E2))`.
+  - Otherwise, if `equivalentToNull(T1)` and `T2` is non-nullable, or
+    `equivalentToNull(T2)` and `T1` is non-nullable, then:
+    - Let `true(N) = unreachable(after(E2))`.
+    - Let `false(N) = after(E2)`.
+  - Otherwise, if `stripParens(E1)` is a `null` literal, then:
+    - Let `true(N) = after(E2)`.
+    - Let `false(N) = promoteToNonNull(E2, after(E2))`.
+  - Otherwise, if `stripParens(E2)` is a `null` literal, then:
+    - Let `true(N) = after(E1)`.
+    - Let `false(N) = promoteToNonNull(E1, after(E2))`.
+  - Otherwise:
+    - Let `after(N) = after(E2)`.
+
+  Note that it is tempting to generalize the two `null` literal cases to apply
+  to any expression whose type is `Null`, but this would be unsound in cases
+  where `E2` assigns to `x`.  (Consider, for example, `(int? x) => x == (x =
+  null) ? true : x.isEven`, which tries to call `null.isEven` in the event of a
+  non-null input).
+
+- **operator!=** If `N` is an expression of the form `E1 != E2`, it is treated
+  as equivalent to the expression `!(E1 == E2)`.
 
 - **instance check** If `N` is an expression of the form `E1 is S` where the
   static type of `E1` is `T` then:
@@ -582,11 +578,18 @@ wrong.  This needs reconsideration.
 
 TODO: This isn't really right, `E1` isn't really an expression here.
 
-- **Non local-variable conditional assignment**: If `N` is an expression of the form
-  `E1 ??= E2` where `E1` is not a local variable, then:
-  - Let `before(E1) = before(N)`
-  - Let `before(E2) = split(null(E1))`.
-  - Let `after(N) = merge(after(E2), split(notNull(E1)))`
+- **Non local-variable conditional assignment**: If `N` is an expression of the
+  form `E1 ??= E2` where `E1` is not a local variable, and the type of `E1` is
+  `T1`, then:
+  - Let `before(E1) = before(N)`.
+  - If `T1` is potentially nullable, then:
+    - Let `before(E2) = split(after(E1))`.
+    - Let `after(N) = merge(after(E2), split(after(E1)))`.
+  - Otherwise:
+    - Let `before(E2) = unreachable(after(E1))`.
+    - Let `after(N) = after(E1)`.
+
+  TODO(paulberry): this doesn't seem to match what's currently implemented.
 
 - **Conditional expression**: If `N` is a conditional expression of the form `E1
   ? E2 : E3`, then:
@@ -596,14 +599,16 @@ TODO: This isn't really right, `E1` isn't really an expression here.
   - Let `after(N) = merge(after(E2), after(E3))`.
   - Let `true(N) = merge(true(E2), true(E3))`.
   - Let `false(N) = merge(false(E2), false(E3))`.
-  - Let `null(N) = merge(null(E2), null(E3))`.
-  - Let `notNull(N) = merge(notNull(E2), notNull(E3))`.
 
-- **If-null**: If `N` is an if-null expression of the form `E1 ?? E2`, then:
+- **If-null**: If `N` is an if-null expression of the form `E1 ?? E2`, where the
+  type of `E1` is `T1`, then:
   - Let `before(E1) = before(N)`.
-  - Let `before(E2) = split(null(E1))`.
-  - Let `null(N) = unsplit(null(E2))`.
-  - Let `notNull(N) = merge(split(notNull(E1)), notNull(E2))`.
+  - If `T1` is potentially nullable, then:
+    - Let `before(E2) = split(after(E1))`.
+    - Let `after(N) = merge(after(E2), split(after(E1)))`.
+  - Otherwise:
+    - Let `before(E2) = unreachable(after(E1))`.
+    - Let `after(N) = after(E1)`.
 
 - **Shortcut and**: If `N` is a shortcut "and" expression of the form `E1 && E2`,
   then:
@@ -623,27 +628,21 @@ TODO: This isn't really right, `E1` isn't really an expression here.
   `??`are handled as calls to the appropriate `operator` method.
 
 - **Null check operator**: If `N` is an expression of the form `E!`, then:
-  - Let `before(E) = before(N)`
-  - Let `null(N) = unreachable(null(E))`
-  - Let `nonNull(N) = nonNull(E)`
+  - Let `before(E) = before(N)`.
+  - Let `after(E) = promoteToNonNull(E, after(E))`.
 
 - **Method invocation**: If `N` is an expression of the form `E1.m1(E2)`, then:
   - Let `before(E1) = before(N)`
-  - Let `before(E2) = after(E2)`
+  - Let `before(E2) = after(E1)`
   - Let `T` be the static return type of the invocation
   - If `T <: Never` then:
-    - Let `null(N) = unreachable(before(N))`.
-    - Let `notNull(N) = unreachable(before(N))`.
-  - Otherwise if `T <: Null` then:
-    - Let `null(N) = before(N)`.
-    - Let `notNull(N) = unreachable(before(N))`.
-  - Otherwise if `T` is non-nullable then:
-    - Let `null(N) = before(N)`.
-    - Let `notNull(N) = unreachable(before(N))`.
+    - Let `after(N) = unreachable(after(E2))`.
   - Otherwise:
-    - Let `null(N) = promote(x, Null, before(N))`
-    - Let `notNull(N) = promoteToNonNull(x, before(N))`
+    - Let `after(N) = promoteToNonNull(E1, after(E2))`
 
+  TODO(paulberry): is the `promoteToNonNull` part of method invocations
+  implemented?
+  TODO(paulberry): handle `E1.m1(E2, E3, ...)`.
 
 TODO: Add missing expressions, handle cascades and left-hand sides accurately
 
