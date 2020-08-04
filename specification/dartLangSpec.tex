@@ -2963,9 +2963,9 @@ We may also omit such a substitution when the given context is
 the instance scope of $C$, where $X_1, \ldots, X_m$ are in scope.
 }
 
-\commentary{%
+\commentary{
 A constructor declaration may conflict with static member declarations
-(\ref{classMemberConflicts}).%
+(\ref{classMemberConflicts}).
 }
 
 % In what scope do constructors go? The simple names of named constructors go in the static scope of the class. Unnamed ones go nowhere, but we use the class name to refer to them; the class name could also in the static scope of the class as well to prevent weird errors, or we could ban it explicitly and avoiding duplication. Similarly, the instance scope could contain the constructor names and class name, or we could have special rules to prevent collisions between instance members and constructors or the class.
@@ -2973,26 +2973,7 @@ A constructor declaration may conflict with static member declarations
 % The enclosing scope of a generative constructor is the instance scope of the class in which it is declared (but what about redirecting?)
 
 \LMHash{}%
-If{}f no constructor is specified for a class $C$,
-it implicitly has a default constructor \code{C():\ \SUPER();}
-unless $C$ is the built-in class \code{Object}.
-
-\LMHash{}%
-If a class $C$ has no generative constructors
-(\ref{generativeConstructors}),
-it is a compile-time error if $C$ has
-a final instance variable declaration which is not initializing
-(\ref{variables}).
-
-\commentary{%
-This can occur if $C$ declares a factory constructor
-(\ref{factories}),
-and no other constructors.%
-}
-\rationale{%
-This error must occur,
-because soundness may otherwise be violated if a mixin is derived from $C$.%
-}
+If{}f no constructor is specified for a class $C$, it implicitly has a default constructor \code{C() : \SUPER{}() \{\}}, unless $C$ is class \code{Object}.
 
 
 \subsubsection{Generative Constructors}
@@ -3272,12 +3253,6 @@ by one of the following means:
 \item $f$ is initialized by means of an initializing formal of $k$.
 \item $f$ has an initializer in $k$'s initializer list.
 \end{itemize}
-
-\commentary{%
-When a class does not have any generative constructors at all,
-initialization of final instance variables is ensured by a similar error
-(\ref{constructors})%
-}
 
 \LMHash{}%
 It is a compile-time error if $k$'s initializer list contains an initializer for a variable that is not an instance variable declared in the immediately surrounding class.
