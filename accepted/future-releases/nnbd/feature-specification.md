@@ -6,9 +6,12 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.08.05
+  - Specify updates to super-bounded type rules for null safety.
+
 2020.07.09
   - Specify combined member signature and spread element typing
-    with null-safety.
+    with null safety.
 
 2020.06.02
   - Fix the diff to the spec for potentially constant instance checks
@@ -699,10 +702,26 @@ the element, key, and value type of `...e` and `...?e` is `Never`.
 *When the static type _S_ of `e` is strictly non-nullable, such as when _S_
 is `Never`, `...?e` is a warning, but it may still occur.*
 
-### Instantiate to bounds
+### Instantiation to bound
 
-The computation of instantiation to bounds is changed to substitute `Never` for
+The computation of instantiation to bound is changed to substitute `Never` for
 type variables appearing in contravariant positions instead of `Null`.
+
+### Super-bounded types
+
+Null safety requires two changes to the section 'Super-Bounded Types' in the
+language specification.
+
+The definition of a top type is changed: _T_ is a top type if and only if
+`Object?` is a subtype of _T_.
+
+The definition of a super-bounded type is changed such that occurrences of
+`Null` are replaced by types involving `Never`, and `Object` is replaced by
+`Object?`. This causes one sentence to change, with the following result:
+
+Let _T'_ be the result of replacing every occurrence in _T_ of a top type in
+a covariant position by `Never`, and every occurrence in _T_ of a type
+_S_ where _S <: Never_ in a contravariant position by `Object?`.
 
 ### Least and greatest closure
 
