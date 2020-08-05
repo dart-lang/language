@@ -721,7 +721,7 @@ The definition of a super-bounded type is changed such that occurrences of
 
 Let _T'_ be the result of replacing every occurrence in _T_ of a top type in
 a covariant position by `Never`, and every occurrence in _T_ of a type
-_S_ where _S <: Never_ in a contravariant position by `Object?`.
+_S_ in a contravariant position where _S <: Never_ by `Object?`.
 
 ### Least and greatest closure
 
