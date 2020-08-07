@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.08.06
+  - Specify error for uninitialized final instance variable in class
+    with no generative constructors.
+
 2020.07.09
   - Specify combined member signature and spread element typing
     with null-safety.
@@ -493,21 +497,20 @@ fields on `Object`.
 It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
-It is an error if a top level variable or static variable with a non-nullable type
-has no initializer expression unless the variable is marked with the `late` modifier.
+It is an error if a top level variable or static variable with a non-nullable
+type has no initializer expression unless the variable is marked with a
+`late` or `external` modifier.
 
-It is an error if a class declaration declares an instance variable with a potentially
-non-nullable type and no initializer expression, and the class has a generative constructor
-where the variable is not initialized via an initializing formal or an initializer list entry,
-unless the variable is marked with the `late` modifier.
+It is an error if a class declaration declares an instance variable with a
+potentially non-nullable type and no initializer expression, and the class has
+a generative constructor where the variable is not initialized via an
+initializing formal or an initializer list entry, unless the variable is marked
+with a `late`, `abstract`, or `external` modifier.
 
-It is an error if a mixin declaration or a class declaration with no generative constructors
-declares an instance variable with a potentially non-nullable type and no initializer expression
-unless the variable is marked with the `late` modifier.
-
-It is an error to derive a mixin from a class declaration which contains
-an instance variable with a potentially non-nullable type and no initializer expression
-unless the variable is marked with the `late` modifier.
+It is an error if a mixin declaration or a class declaration with no generative
+constructors declares an instance variable without an initializing expression
+which is final or whose type is potentially non-nullable, unless the variable
+is marked with a `late`, `abstract`, or `external` modifier.
 
 It is an error if a potentially non-nullable local variable which has no
 initializer expression and is not marked `late` is used before it is definitely
