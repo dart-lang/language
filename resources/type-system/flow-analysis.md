@@ -434,13 +434,13 @@ Definitions:
   `Null <: T`; otherwise false.
 
 - `promote(E, T, M)` where `E` is an expression, `T` is a type which it may be
-  promoted to, and `M1 = FlowModel(r, VI)` is the flow model in which to
-  promote, is defined to be `M3`, where:
-  - If `stripParens(E)` is not a promotion target, then `M3` = `M1`
+  promoted to, and `M = FlowModel(r, VI)` is the flow model in which to promote,
+  is defined to be `M3`, where:
+  - If `stripParens(E)` is not a promotion target, then `M3` = `M`
   - If `stripParens(E)` is a promotion target `x`, then
     - Let `VM = VariableModel(declared, promoted, tested, assigned, unassigned,
       captured)` be the variable model for `x` in `VI`
-    - If `x` is not promotable via type test to `T` given `VM`, then `M3` = `M1`
+    - If `x` is not promotable via type test to `T` given `VM`, then `M3` = `M`
     - Else
       - Let `S` be the current type of `x` in `VM`
       - If `T <: S` then let `T1` = `T`
@@ -578,16 +578,16 @@ then they are all assigned the same value as `after(N)`.
 
 TODO: This isn't really right, `E1` isn't really an expression here.
 
-- **Non local-variable conditional assignment**: If `N` is an expression of the
-  form `E1 ??= E2` where `E1` is not a local variable, and the type of `E1` is
-  `T1`, then:
+- **Conditional assignment to a non local-variable**: If `N` is an expression of
+  the form `E1 ??= E2` where `E1` is not a local variable, and the type of `E1`
+  is `T1`, then:
   - Let `before(E1) = before(N)`.
-  - If `T1` is potentially nullable, then:
-    - Let `before(E2) = split(after(E1))`.
-    - Let `after(N) = merge(after(E2), split(after(E1)))`.
-  - Otherwise:
+  - If `T1` is strictly non-nullable, then:
     - Let `before(E2) = unreachable(after(E1))`.
     - Let `after(N) = after(E1)`.
+  - Otherwise:
+    - Let `before(E2) = split(after(E1))`.
+    - Let `after(N) = merge(after(E2), split(after(E1)))`.
 
   TODO(paulberry): this doesn't seem to match what's currently implemented.
 
@@ -603,12 +603,14 @@ TODO: This isn't really right, `E1` isn't really an expression here.
 - **If-null**: If `N` is an if-null expression of the form `E1 ?? E2`, where the
   type of `E1` is `T1`, then:
   - Let `before(E1) = before(N)`.
-  - If `T1` is potentially nullable, then:
-    - Let `before(E2) = split(after(E1))`.
-    - Let `after(N) = merge(after(E2), split(after(E1)))`.
-  - Otherwise:
+  - If `T1` is strictly non-nullable, then:
     - Let `before(E2) = unreachable(after(E1))`.
     - Let `after(N) = after(E1)`.
+  - Otherwise:
+    - Let `before(E2) = split(after(E1))`.
+    - Let `after(N) = merge(after(E2), split(after(E1)))`.
+
+  TODO(paulberry): this doesn't seem to match what's currently implemented.
 
 - **Shortcut and**: If `N` is a shortcut "and" expression of the form `E1 && E2`,
   then:
@@ -637,6 +639,8 @@ TODO: This isn't really right, `E1` isn't really an expression here.
   - Let `T` be the static return type of the invocation
   - If `T <: Never` then:
     - Let `after(N) = unreachable(after(E2))`.
+  - Otherwise, if `m1` is a method declared on `Object` (e.g. `toString`), then:
+    - Let `after(N) = after(E2)`.
   - Otherwise:
     - Let `after(N) = promoteToNonNull(E1, after(E2))`
 
