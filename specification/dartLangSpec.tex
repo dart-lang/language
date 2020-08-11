@@ -19062,8 +19062,8 @@ which means that this seemingly expensive step can be confined to some extent.
 The \code{int} type represents integers.
 The specification is written with 64-bit two's complement integers as the
 intended implementation, but when Dart is compiled to JavaScript,
-the implementation of \code{int} will instead use the JavaScript
-number type.
+the implementation of \code{int} will instead use the JavaScript number type,
+with bit operations applied to the low 32 bits as an unsigned value.
 
 This introduces a number of differencs:
 \begin{itemize}
@@ -19072,12 +19072,13 @@ Valid values of JavaScript \code{int} are any
 IEEE-754 64-bit floating point number with no fractional part.
 This includes positive and negative \Index{infinity},
 which can be reached by overflowing
-(integer division by zero is still not allowed).
+(integer division by zero is still a dynamic error).
 Otherwise valid integer literals (including any leading minus sign)
 that represent invalid JavaScript \code{int} values
-cannot be compiled to JavaScript.
-Operations on integers may lose precision since 64-bit floating point numbers
-are limited to 53 significant bits.
+are compile-time errors when compiling to JavaScript.
+Operations on integers may lose precision,
+because they are represented as 64-bit floating point numbers
+that are limited to 53 significant bits.
 \item[$\bullet$]
 JavaScript \code{int} instances also implement \code{double},
 and integer-valued \code{double} instances also implement \code{int}.
@@ -19085,10 +19086,13 @@ The \code{int} and \code{double} class are still separate subclasses of the
 class \code{num},
 but \emph{instances} of either class that represent an integer
 act as if they are actually instances of a common subclass implementing both
-\code{int} and \code{double}. Fractional numbers only implement \code{double}.
+\code{int} and \code{double}.
+Fractional numbers only implement \code{double}.
 \item[$\bullet$]
-Bitwise operations on integers (and, or, xor, negate and shifts)
-all truncate the operands to 32-bit values.
+Bitwise operations on integers (and, or, xor, negate, and shifts)
+all truncate the operands to 32-bit values
+and operate on them as unsigned values
+(for example, \code{-1 << 1} evaluates to 4294967294).
 \item[$\bullet$]
 The \code{identical} method cannot distinguish the values $0.0$ and $-0.0$,
 and it cannot recognize any \Index{NaN} value as identical to itself.
