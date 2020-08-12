@@ -5789,15 +5789,16 @@ A lexical lookup in a static extension $E$ may yield
 a declaration of an instance method declared in $E$.
 As specified elsewhere
 (\ref{lexicalLookup}),
-this implies that static extension instance methods
-will shadow class instance methods
-when called from another extension instance method
-inside the same extension as an unqualified function invocation
-(that is, using \code{m()} and not \code{\THIS.m()},
+this implies that static extension instance members
+will shadow class instance members
+when called from another instance member inside the same static extension
+using an unqualified function invocation
+(that is, invoking it as \code{m()} and not \code{\THIS.m()},
 \ref{unqualifiedInvocation}).
 %
 This is an exception,
-because invocation of a static extension instance member with basename \id{}
+because implicit invocation of
+a static extension instance member with basename \id{}
 will otherwise never occur when
 the interface of the static type of the receiver has
 a member with basename \id{}.
@@ -5854,62 +5855,118 @@ or it may be resolved using a different static extension.%
 }
 
 
-\subsection{Tearoffs}
-\LMLabel{tearOffs}
+\subsection{Static Extension Method Closurization}
+\LMLabel{staticExtensionMethodClosurization}
 
-!!!TODO!!!
+\LMHash{}%
+A static extension instance method is subject to closurization
+in a similar manner as class instance methods
+(\ref{superGetterAccessAndMethodClosurization}).
 
-A static extension method can be torn off like an instance method.
-
-\begin{dartCode}
-extension Foo on Bar \{
-  int baz<T>(T x) => x.toString().length;
-\}
-...
-  Bar b = ...;
-  int Function(int) func = b.baz;
-\end{dartCode}
-
-This assignment does a tear-off of the \code{baz} method. In this case
-it even does generic specialization, so it creates a function value of
-type \code{int Function(int)} which, when called with argument
-\code{x}, works just as \code{Foo(b).baz<int>(x)}, whether or not
-\code{Foo} is in scope at the point where the function is called. The
-torn off function closes over both the static extension method, the receiver,
-and any type arguments to the static extension, and if the tear-off is an
-instantiating tear-off of a generic method, also over the type
-arguments that it is implicitly instantiated with. The tear-off
-effectively creates a curried function from the static extension:
-
-\begin{dartCode}
-int Function(int) func = (int x) => Foo(b).baz<int>(x);
-\end{dartCode}
+\LMHash{}%
+Let $a$ be a static extension application
+(\ref{explicitStaticExtensionInvocations})
+of the form \code{$E$<\List{S}{1}{m}>($e_1$)}.
+Let \List{Y}{1}{m} be the formal type parameters of the static extension $E$.
+%
+An expression $e$ of the form \code{$a$.\id}
+where \id{} is an identifier is then known as a
+\IndexCustom{static extension property extraction}{%
+  static extension!property extraction}.
+It is a compile-time error unless $E$ declares an instance member named \id.
+If said instance member is a method then
+$e$ has the static type $[S_1/Y_1, \ldots, S_m/Y_m]F$,
+where $F$ is the function type of said method declaration.
 
 \commentary{%
-  Torn off static extension methods are never equal unless they
-  are identical*. Unlike instance methods, which are equal if it's the
-  same method torn off from the same object (unless it's an
-  instantiated tear-off of a generic function), torn off static extension
-  methods may close over the type variables of the static extension as
-  well. To avoid distinction between generic and non-generic
-  static extensions, no two torn off static extension methods are equal, even if
-  they are torn off from the same static extension on the same object at the
-  same static type.%
+If \id{} is a getter then $e$ is a getter invocation,
+which is specified elsewhere
+(\ref{explicitStaticExtensionInvocations}).%
 }
 
-An static extension method torn off a *constant* receiver expression is not a
-constant expression. It creates a new function object each time the
-tear-off expression is evaluated.
+\LMHash{}%
+If \id{} is a method then $e$ is known as an
+\IndexCustom{instance method closurization}{%
+  static extension!instance method closurization}
+of \id{} on $a$,
+and evaluation of $e$ proceeds as follows:
 
-An explicit static extension method application member invocation like
-\code{Foo<Bar>(b).baz}, also creates a tear-off if \code{Foo.baz} is
-an static extension method.
+\LMHash{}%
+Evaluate $e_1$ to an object $o$.
+Let $u$ be a fresh final variable bound to $o$,
+then $e$ evaluates to a function object which is equivalent to:
+\begin{itemize}
+\item
+\begin{normativeDartCode}
+<\TypeParameters{X}{B'}{s}>
+($\PairList{T}{p}{1}{n},\ $\{$T_{n+1}\ p_{n+1} = d_1, \ldots,\ T_{n+k}\ p_{n+k} = d_k$\}) =>
+\quad$E$<\List{S}{1}{m}>($u$)
+\quad.\id<\List{X}{1}{s}>($\List{p}{1}{n},\ p_{n+1}$: $p_{n+1}, \ldots,\ p_{n+k}$: $p_{n+k}$);
+\end{normativeDartCode}
+where \id{} declares type parameters
+\TypeParametersStd{},
+required parameters \List{p}{1}{n},
+and named parameters \List{p}{n+1}{n+k} with defaults \List{d}{1}{k},
+using \code{null} for parameters whose default value is not specified.
+\item
+\begin{normativeDartCode}
+<\TypeParameters{X}{B'}{s}>
+($\PairList{T}{p}{1}{n},\ $[$T_{n+1}\ p_{n+1} = d_1, \ldots,\ T_{n+k}\ p_{n+k} = d_k$]) =>
+\quad$E$<\List{S}{1}{m}>($u$).\id<\List{X}{1}{s}>(\List{p}{1}{n+k});
+\end{normativeDartCode}
+where \id{} declares type parameters
+\TypeParametersStd{},
+required parameters \List{p}{1}{n},
+and optional positional parameters
+\List{p}{n+1}{n+k} with defaults \List{d}{1}{k},
+using \code{null} for parameters whose default value is not specified.
+\end{itemize}
 
-\commentary{There is no way to tear off getters, setters or operators.}
+\LMHash{}%
+In the function literals above,
+$B'_j = [S_1/Y_1, \ldots, S_m/Y_m]B_j, j \in 1 .. s$,
+and $T_j = [S_1/Y_1, \ldots, S_m/Y_m]T'_j, j \in 1 .. n+k$,
+where $T'_j$ is the type of the corresponding parameter in
+the declaration of \id.
+
+\commentary{%
+In other words, the closurization is
+a function literal whose signature is the same as that of \id,
+except that the actual type arguments are substituted for
+the formal type parameters of $E$,
+and then it simply forwards the invocation
+to \id{} with the captured object $u$ as the receiver.%
+}
+
+\commentary{%
+Two static extension instance method closurizations are never equal
+unless they are identical.
+Note that this differs from closurizations of class instance methods,
+which are equal when they tear off the same method of the same receiver.%
+}
+
+\rationale{%
+The reason for this difference is that even if $o_1$ and $o_2$
+are instance method closurizations of the same static extension $E$
+applied to the same receiver $o$,
+they may have different actual type arguments passed to $E$,
+because those type arguments are determined by the call site
+(and with inference: by the static type of the expression yielding $o$),
+and not just by the properties of $o$ and the torn-off method.%
+}
+
+\commentary{%
+Note that an instance method closurization on a static extension is not
+a constant expression,
+even in the case where the receiver is a constant expression.
+This is because it creates a new function object each time it is evaluated.%
+}
 
 
 \subsection{The \CALL{} Member}
 \LMLabel{theCallMember}
+
+!!!TODO!!!
 
 A class instance method named \CALL{} is implicitly callable on the
 object, and implicitly torn off when assigning the instance to a
@@ -12064,8 +12121,9 @@ is not itself a subtype of any function type
 
 \LMHash{}%
 Let $f$ be an expression denoting
-a declaration of a local function, a static method, or a top-level function
-(\ref{identifierReference})
+a declaration of a top-level function, a local function,
+a static method of a class, of a mixin, or of a static extension
+(\ref{identifierReference});
 or let $f$ be a function literal
 (\ref{functionExpressions}).
 Evaluation of $f$ yields a function object
@@ -12079,7 +12137,8 @@ respectively to the function literal $f$ considered as a function declaration.
 denotes instance method closurization
 (\ref{ordinaryMemberClosurization})
 as well as function closurization,
-and it is also used as a shorthand for either of them when there is no ambiguity.
+and it is also used as a shorthand for either of them
+when there is no ambiguity.
 
 \LMHash{}%
 Function closurization applied to a function declaration $f$
