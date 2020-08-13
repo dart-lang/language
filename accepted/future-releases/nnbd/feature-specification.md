@@ -709,19 +709,24 @@ type variables appearing in contravariant positions instead of `Null`.
 
 ### Super-bounded types
 
-Null safety requires two changes to the section 'Super-Bounded Types' in the
-language specification.
+Null safety requires three changes to the section 'Super-Bounded Types' in
+the language specification.
 
 The definition of a top type is changed: _T_ is a top type if and only if
-`Object?` is a subtype of _T_.
+`Object?` is a subtype of _T_. Note that the helper predicate **TOP**
+provides a syntactic characterization of the same concept.
 
 The definition of a super-bounded type is changed such that occurrences of
 `Null` are replaced by types involving `Never`, and `Object` is replaced by
-`Object?`. This causes one sentence to change, with the following result:
+`Object?`. Moreover, top types in invariant positions and in positions that
+have no variance (*unused type parameters in a type alias*) are given the
+same treatment as top types in covariant positions. This causes one
+sentence to change, with the following result:
 
-Let _T'_ be the result of replacing every occurrence in _T_ of a top type in
-a covariant position by `Never`, and every occurrence in _T_ of a type
-_S_ in a contravariant position where _S <: Never_ by `Object?`.
+Let _T'_ be the result of replacing every occurrence in _T_ of a type _S_
+in a contravariant position where _S <: Never_ by `Object?`, and every
+occurrence in _T_ of a top type in a position which is not contravariant by
+`Never`.
 
 ### Least and greatest closure
 

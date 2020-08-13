@@ -42,11 +42,11 @@ We assume that type aliases have been expanded, and that all types are named
 This document relies on several type classification helper predicates
 which are specified in the
 [null safety specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/nnbd/feature-specification.md):
-**TOP**, which is true for all top types,
-**OBJECT**, which is true for types equivalent to `Object`,
-**BOTTOM**, which is true for types equivalentto `Never`,
-**NULL**, which is true for types equivalent to `Null`,
-**MORETOP**, which is a total order on top and `Object` types, and
+**TOP**, which is true for all top types;
+**OBJECT**, which is true for types equivalent to `Object`;
+**BOTTOM**, which is true for types equivalent to `Never`;
+**NULL**, which is true for types equivalent to `Null`;
+**MORETOP**, which is a total order on top and `Object` types; and
 **MOREBOTTOM**, which is an (almost) total order on bottom and `Null` types.
 
 ## Upper bounds
