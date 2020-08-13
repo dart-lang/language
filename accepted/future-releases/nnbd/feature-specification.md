@@ -917,6 +917,87 @@ These are extended as
 per
 [separate proposal](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
 
+## Helper predicates
+
+The following helper predicates are used to classify types. They are syntactic
+in nature such that termination is obvious. In particular, they do not rely on
+subtyping.
+
+The **TOP** predicate is true for any type which is in the equivalence class of
+top types.
+
+- **TOP**(`T?`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
+- **TOP**(`T*`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
+- **TOP**(`dynamic`) is true
+- **TOP**(`void`) is true
+- **TOP**(`FutureOr<T>`) is **TOP**(T)
+- **TOP**(T) is false otherwise
+
+**TOP**(`T`) is true if and only if `T` is a supertype of `Object?`.
+
+The **OBJECT** predicate is true for any type which is in the equivalence class
+of `Object`.
+
+- **OBJECT**(`Object`) is true
+- **OBJECT**(`FutureOr<T>`) is **OBJECT**(T)
+- **OBJECT**(`T`) is false otherwise
+
+**OBJECT**(`T`) is true if and only if `T` is a subtype and a supertype of
+`Object`.
+
+The **BOTTOM** predicate is true for things in the equivalence class of `Never`.
+
+- **BOTTOM**(`Never`) is true
+- **BOTTOM**(`X&T`) is true iff **BOTTOM**(`T`)
+- **BOTTOM**(`X extends T`) is true iff **BOTTOM**(`T`)
+- **BOTTOM**(`T`) is false otherwise
+
+**BOTTOM**(`T`) is true if and only if `T` is a subtype of `Never`.
+
+The **NULL** predicate is true for things in the equivalence class of `Null`
+
+- **NULL**(`Null`) is true
+- **NULL**(`T?`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
+- **NULL**(`T*`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
+- **NULL**(`T`) is false otherwise
+
+**NULL**(`T`) is true if and only if `T` is a subtype and a supertype of `Null`.
+
+The **MORETOP** predicate defines a total order on top and `Object` types.
+
+- **MORETOP**(`void`, `T`) = true
+- **MORETOP**(`T`, `void`) = false
+- **MORETOP**(`dynamic`, `T`) = true
+- **MORETOP**(`T`, `dynamic`) = false
+- **MORETOP**(`Object`, `T`) = true
+- **MORETOP**(`T`, `Object`) = false
+- **MORETOP**(`T*`, `S*`) = **MORETOP**(`T`, `S`)
+- **MORETOP**(`T`, `S*`) = true
+- **MORETOP**(`T*`, `S`) = false
+- **MORETOP**(`T?`, `S?`) = **MORETOP**(`T`, `S`)
+- **MORETOP**(`T`, `S?`) = true
+- **MORETOP**(`T?`, `S`) = false
+- **MORETOP**(`FutureOr<T>`, `FutureOr<S>`) = **MORETOP**(T, S)
+
+The **MOREBOTTOM** predicate defines an (almost) total order on bottom and
+`Null` types.  This does not currently consistently order two different type
+variables with the same bound.
+
+- **MOREBOTTOM**(`Never`, `T`) = true
+- **MOREBOTTOM**(`T`, `Never`) = false
+- **MOREBOTTOM**(`Null`, `T`) = true
+- **MOREBOTTOM**(`T`, `Null`) = false
+- **MOREBOTTOM**(`T?`, `S?`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`T`, `S?`) = true
+- **MOREBOTTOM**(`T?`, `S`) = false
+- **MOREBOTTOM**(`T*`, `S*`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`T`, `S*`) = true
+- **MOREBOTTOM**(`T*`, `S`) = false
+- **MOREBOTTOM**(`X&T`, `Y&S`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`X&T`, `S`) = true
+- **MOREBOTTOM**(`S`, `X&T`) = false
+- **MOREBOTTOM**(`X extends T`, `Y extends S`) = **MOREBOTTOM**(`T`, `S`)
+
 ## Runtime semantics
 
 ### Weak and strong semantics
