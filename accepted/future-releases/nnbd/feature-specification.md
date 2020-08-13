@@ -650,11 +650,11 @@ initializer as part of a larger construct (e.g. the loop variable in a `for in`
 construct).*
 
 It is a compile time error to read a local variable when the variable is
-**definitely unassigned** unless the variable is non-final and has nullable
-type.
+**definitely unassigned** unless the variable is non-`final`, and non-`late`,
+and has nullable type.
 
 It is a compile time error to read a local variable when the variable is
-**potentially unassigned** unless the variable is non-final and has nullable
+**potentially unassigned** unless the variable is non-`final` and has nullable
 type, or is `late`.
 
 The errors specified above are summarized in the following table, where `int` is
