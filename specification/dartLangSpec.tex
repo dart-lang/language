@@ -40,6 +40,7 @@
 % - Merge the 'static' and 'instance' scope of a class, yielding a single
 %   'class' scope.
 % - Add specification of `>>` in JavaScript compiled code, in appendix.
+% - Integrate extension methods into dartLangSpec.tex.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -59,7 +60,6 @@
 %   `T` is a function type, plus other similar cases.
 % - Specify actual type arguments passed to a generic function which is invoked
 %   with no type arguments (so it must be a dynamic invocation).
-% - Integrate extension methods into dartLangSpec.tex.
 %
 % 2.6
 % - Specify static analysis of a "callable object" invocation (where
@@ -5120,8 +5120,8 @@ of the extension.
 %% TODO(eernst): When https://github.com/dart-lang/language/pull/534 lands,
 %% this paragraph should perhaps be moved into \ref{imports}.
 \LMHash{}%
-When the current library $L$ imports a library $L'$ such that
-the imported namespace from $L'$ contains a name $n$ denoting
+When the current library $L$ has a non-deferred import of a library $L'$
+such that the imported namespace from $L'$ contains a name $n$ denoting
 an extension $E$,
 a fresh private name $n_f$ is added to
 the library scope of the current library,
@@ -5152,7 +5152,9 @@ in which case it is an error to use the declared name.%
 \commentary{%
 The fresh name makes it possible for an extension to be used
 even in the case where the declared name is omitted,
-or the declared name is shadowed by a declaration in an intermediate scope,
+or the declared name
+or an import prefix that provides access to the declared name
+is shadowed by a declaration in an intermediate scope,
 namely in an implicit invocation
 (\ref{implicitExtensionInvocations}).%
 }
@@ -5163,6 +5165,24 @@ it does not have a declared name or the declared name is shadowed or conflicted
 reflects the fact that the primary intended usage is implicit invocation.
 Even though a developer cannot know (and hence cannot use) the fresh name
 of a given extension, an implicit invocation can use it.%
+}
+
+\LMHash{}%
+It is a compile-time error if the current library $L$ has
+a deferred import of a library $L'$
+such that the imported namespace from $L'$ contains
+a name denoting an extension.
+
+\commentary{%
+This implies that the import must use \HIDE{} or \SHOW{} to eliminate
+the names of extensions from the deferred import.%
+}
+
+\rationale{%
+This restriction ensures that no extensions are introduced
+using deferred imports,
+which allows us to introduce a semantics for such extensions in the future
+without affecting existing code.%
 }
 
 \LMHash{}%
@@ -5536,6 +5556,7 @@ in a cascade is also possible,
 because a cascade is desugared to an expression that contains
 one or more member invocations.%
 }
+
 
 \subsubsection{Accessibility of an Extension}
 \LMLabel{extensionAccessibility}
@@ -6009,70 +6030,121 @@ which makes `\code{\THIS\,\,\IS\,\,T}' evaluate to false.%
 }
 
 
-\subsection{The \CALL{} Member}
-\LMLabel{theCallMember}
+\subsection{The \CALL{} Member of an Extension}
+\LMLabel{theCallMemberOfAnExtension}
 
-!!!TODO!!!
+\LMHash{}%
+An extension can provide a \CALL{} method which is invoked implicitly,
+similarly to a function expression invocation
+(\ref{functionExpressionInvocation}).
 
-A class instance method named \CALL{} is implicitly callable on the
-object, and implicitly torn off when assigning the instance to a
-function type.
-
-As the initial examples suggest, an extension method named \CALL{} can
-also be called implicitly. The following must work:
+\commentary{%
+E.g., \code{$e$()} is treated as \code{$e$.call()}
+when the static type of $e$ is a non-function that has a method named 'call'.
+Here is an example where the \CALL{} method comes from an extension:%
+}
 
 \begin{dartCode}
-extension Tricky on int \{
+\EXTENSION{} $E$ \ON{} int \{
   Iterable<int> call(int to) =>
       Iterable<int>.generate(to - this + 1, (i) => this + i);
 \}
-...
-  for (var i in 1(10)) \{
-    print(i);  // prints 1, 2, 3, 4, 5, 6, 7, 8, 9, 10.
-  \}
+\\
+\VOID{} main() \{
+  \FOR{} (\VAR{} i \IN{} 1(3)) print(i); // \comment{Prints 1, 2, 3.}
+  \FOR{} (\VAR{} i \IN{} $E$(4)(5)) print(i); // \comment{Prints 4, 5.}
+\}
 \end{dartCode}
 
-This looks somewhat surprising, but not much more surprising that an
-extension \code{\OPERATOR []} would: \code{for (var i in 1[10])...}.
-We will expect users to use this power responsibly.
+\rationale{%
+This may look somewhat surprising,
+though similar to an approach using \code{\OPERATOR []}:
+\code{\FOR{} (\VAR{} i \IN{} 1[3])\,\,\{\,...\,\}}.
+We expect developers to use this power responsibly.%
+}
 
-In detail: Any expression of the form \code{e1(args)} or
-\code{e1<types>(args)} where \code{e1} does not denote a method, and
-where the static type of \code{e1} is not a function type, an
-interface type declaring a \CALL{} method, or \DYNAMIC, will currently
-be a compile-time error. If the static type of \code{e1} is an interface
-type declaring a \CALL{} *getter* or a \code{call=} *setter*, then this
-stays a compile-time error (the interface has a member with basename
-\code{call}). Otherwise we check for extensions applying to the static type
-of \code{e1} and declaring a \CALL{} member. If one such most specific
-extension exists, and it declares a \CALL{} extension *method*, then
-the expression is equivalent to \code{e1.call(args)} or
-\code{e1.call<typeS>(args)}. Otherwise it is still a compile-time error.
+\LMHash{}%
+Let $a$ be an extension application
+(\ref{explicitExtensionInvocations}),
+and $i$ an expression of the form
 
-A second question is whether this would also work with implicit
-\CALL{} method tear-off:
+\noindent
+\code{$a$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
+
+\noindent
+(\commentary{where the type argument list is omitted when $r$ is zero}).
+$i$ is then treated as
+(\ref{notation})
+
+\noindent
+\code{$a$.\CALL<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}.
+
+\commentary{%
+In other words, an invocation of an extension application
+is immediately treated as an invocation of an extension method named \CALL.%
+}
+
+\LMHash{}%
+Let $e$ be an expression with static type $S$
+which is not a property extraction expression
+(\ref{propertyExtraction}),
+and let $i$ be an expression of the form
+
+\noindent
+\code{$e$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
+
+\noindent
+(\commentary{where the type argument list is again omitted when $r$ is zero}).
+If $S$ is \DYNAMIC, \FUNCTION, or a function type,
+or the interface of $S$ has a method named \CALL,
+$i$ is specified elsewhere
+(\ref{functionExpressionInvocation}).
+Otherwise, if $S$ has a non-method instance member with basename \CALL{}
+then $i$ is a compile-time error.
+Otherwise, $i$ is treated as the expression $i'$ which is
+
+\noindent
+\code{$e$.\CALL<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}.
+
+\commentary{%
+Note that $i'$ can be an implicit invocation of an extension method named \CALL,
+and it can be an error.
+In the latter case, error messages should be worded in terms of $i$, not $i'$.%
+}
+
+\LMHash{}%
+It is a compile-time error unless $i'$ is an implicit invocation of
+an extension instance method named \CALL{}.
+
+\commentary{%
+In particular, $i'$ cannot be an invocation of an extension getter
+whose return type is a function type, \FUNCTION, or \DYNAMIC.%
+}
+
+\commentary{%
+Note that there is no support for an implicit property extraction
+which tears off an extension method named \CALL.
+For instance, assuming the extension $E$ declared in the previous example:%
+}
 
 \begin{dartCode}
-Iterable<int> Function(int) from2 = 2;
+Iterable<int> \FUNCTION(int) from2 = 2; // \comment{Error.}
 \end{dartCode}
 
-This code will find, during type inference, that \code{2} is not a
-function. It will then find that the interface type \code{int} does
-not have a \CALL{} method, and inference will fail to make the program
-valid.
+\rationale{%
+The implicit property extraction could be allowed,
+but it would come at a readability cost.
+A type like \code{int} is well known as being non-callable,
+and an implicit \code{.call} tear-off would have no visible syntax.
+In an implicit \CALL{} invocation, the arguments are visible to a reader,
+but for an implicit tear-off of a \CALL{} function,
+there is no visible syntax at all.%
+}
 
-We could allow an applicable \CALL{} extension method to be coerced
-instead, as an implicit tear-off. We will not do so.
-
-That is: We do *not* allow implicit tear-off of an extension \CALL{}
-method in a function typed context.
-
-This implicit conversion would come at a readability cost. A type like
-\code{int} is well known as being non-callable, and an implicit
-\code{.call} tear-off would have no visible syntax at the tear-off
-point to inform the reader what is going on. For implicit \CALL{}
-invocations, the *arguments* are visible to a reader, but for implicit
-coercion to a function, there is no visible syntax at all.
+\commentary{%
+If desired, the property extraction can be expressed explicitly
+using \code{2.\CALL}.%
+}
 
 
 \section{Enums}
