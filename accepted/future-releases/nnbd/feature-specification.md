@@ -910,11 +910,12 @@ The section 'Scripts' in the language specification is replaced by the
 following:
 
 Let _L_ be a library that exports a declaration _D_ named `main`.  It is a
-compile-time error unless _D_ is a function.  It is a compile-time error if
-_D_ declares more than two required positional parameters, or if there are
-any required named parameters.  It is a compile-time error if _D_ declares
-at least one positional parameter, and the first positional parameter has a
-type which is not a supertype of `List<String>`.
+compile-time error unless _D_ is a function declaration.  It is a
+compile-time error if _D_ declares more than two required positional
+parameters, or if there are any required named parameters.  It is a
+compile-time error if _D_ declares at least one positional parameter, and
+the first positional parameter has a type which is not a supertype of
+`List<String>`.
 
 Implementations are free to impose any additional restrictions on the
 signature of `main`.
@@ -933,7 +934,7 @@ it is invoked with the following two actual arguments:
 - An object specified when the current isolate _i_ was created,
   for example through the invocation of `Isolate.spawnUri` that spawned _i_,
   or the null object if no such object was supplied.
-  A dynamic error occurs unless the run-time type of this object is a
+  A dynamic error occurs if the run-time type of this object is not a
   subtype of the declared type of the corresponding parameter of `main`.
 
 If `main` cannot be called with two positional arguments, but it can be
@@ -944,12 +945,14 @@ If `main` cannot be called with one or two positional arguments, it is
 invoked with no arguments.
 
 In each of the above three cases, an implementation is free to provide
-additional arguments allowed by the signature of `main`, but must ensure
-that a dynamic error occurs if an actual argument does not have a run-time
-type which is a subtype of the declared type of the parameter.
+additional arguments allowed by the signature of `main` (*the above rules
+ensure that the corresponding parameters are optional*).  But the
+implementation must ensure that a dynamic error occurs if an actual
+argument does not have a run-time type which is a subtype of the declared
+type of the parameter.
 
-A Dart program will typically be executed by executing a script.
-The procedure whereby this script is chosen is implementation specific.
+A Dart program will typically be executed by executing a script.  The
+procedure whereby this script is chosen is implementation specific.
 
 ## Runtime semantics
 
