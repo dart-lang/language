@@ -16219,7 +16219,7 @@ the scope of another library.
 
 <importSpecification> ::= \gnewline{}
   \IMPORT{} <configurableUri> (\AS{} <identifier>)? <combinator>* `;'
-  \alt \IMPORT{} <uri> \DEFERRED{} \AS{} <identifier> <combinator>* `;'
+  \alt \IMPORT{} <configurableUri> \DEFERRED{} \AS{} <identifier> <combinator>* `;'
 \end{grammar}
 
 \LMHash{}%
@@ -16227,8 +16227,14 @@ Syntactically, an import specifies a URI $s$
 where the declaration of an imported library is to be found.
 The interpretation of URIs is described elsewhere
 (\ref{uris}).
-It is a compile-time error if the specified URI
+It is a compile-time error if the specified URI of an import
 does not refer to a library declaration.
+
+\LMHash{}%
+The \Index{current library} is the library currently being compiled.
+The import modifies the namespace of the current library
+in a manner that is determined by the imported library and
+by the optional elements of the import.
 
 \LMHash{}%
 Imports may be deferred or immediate.
@@ -16261,19 +16267,6 @@ used to restrict the set of names imported by $I$.
 Their syntax, usage, and effect on namespaces is described elsewhere
 (\ref{namespaceCombinators}, \ref{theImportedNamespace},
 \ref{exports}).
-
-\LMHash{}%
-It is a static warning to import two different libraries with the same name,
-unless their name is the empty string.
-
-\rationale{%
-If two different URIs are inadvertently used to access the same library $L$,
-say, because of a symbolic link in the underlying file system,
-this may help explaining why there are two incompatible copies of
-the types declared in $L$.
-Developers may also choose to omit library names entirely,
-which motivates the exception for the empty name.%
-}
 
 \LMHash{}%
 The dart core library \code{dart:core}
@@ -16922,19 +16915,6 @@ $L_i$, and also that $L$
 When no confusion can arise, we may simply state
 that $L$ \NoIndex{re-exports} $L_i$, or
 that $L$ \NoIndex{re-exports} \NamespaceName{\metavar{export},i}.
-
-\LMHash{}%
-It is a static warning to export two different libraries with the same name,
-unless their name is the empty string.
-
-\rationale{%
-If two different URIs are inadvertently used to access the same library $L$,
-say, because of a symbolic link in the underlying file system,
-this may help explaining why there are two incompatible copies of
-the types declared in $L$.
-Developers may also choose to omit library names entirely,
-which motivates the exception for the empty name.%
-}
 
 
 \subsection{Namespace Combinators}
