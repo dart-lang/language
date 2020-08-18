@@ -16203,8 +16203,15 @@ Since top level privates are not imported, using the top level privates of anoth
 }
 
 \LMHash{}%
-The \Index{public namespace} of library $L$ is the mapping that maps the simple name of each public top-level member $m$ of $L$ to $m$.
-The scope of a library $L$ consists of the names introduced by all top-level declarations declared in $L$, and the names added by $L$'s imports (\ref{imports}).
+The \Index{public namespace} of library $L$ is the mapping that maps
+the simple name of each public top-level member $m$ of $L$ to $m$.
+The \Index{local namespace} of library $L$ is the mapping that maps
+the names introduced by each top-level member of $L$
+as well as import prefixes
+(\ref{imports})
+and fresh names of extensions
+(\ref{extensions})
+to the corresponding declaration.
 
 
 \subsection{Imports}
@@ -16223,10 +16230,10 @@ the scope of another library.
 \end{grammar}
 
 \LMHash{}%
-Syntactically, an import specifies a URI $s$
-where the declaration of an imported library is to be found.
-The interpretation of URIs is described elsewhere
+The interpretation of configurable URIs is described elsewhere
 (\ref{uris}).
+An import specifies a URI $s$
+where the declaration of an imported library is to be found.
 It is a compile-time error if the specified URI of an import
 does not refer to a library declaration.
 
@@ -16240,7 +16247,7 @@ by the optional elements of the import.
 Imports may be deferred or immediate.
 A
 \IndexCustom{deferred import}{import!deferred}
-is distinguished by the appearance of
+is distinguished by the occurrence of
 the built-in identifier \DEFERRED{} after the URI.
 An
 \IndexCustom{immediate import}{import!immediate}
@@ -16326,8 +16333,8 @@ conflicts with the system libraries are treated specially.%
 }
 
 \LMHash{}%
-Let \NamespaceName{\metavar{local}} be the namespace that
-for each top-level declaration $D$ with name $n$ in $L$ maps $n$ to $D$.
+Let \NamespaceName{\metavar{local}} be the local namespace of $L$
+(\ref{librariesAndScripts}).
 An import with a prefix $p$ is included among these top-level declarations,
 and it causes $p$ to be mapped to a prefix object as described below.
 Let \List{I}{1}{m} be the import directives of $L$,
@@ -16778,10 +16785,10 @@ via \Index{export directives}, often referred to simply as \Index{exports}:
 \end{grammar}
 
 \LMHash{}%
+The interpretation of configurable URIs is described elsewhere
+(\ref{uris}).
 An export specifies a URI $s$
 where the declaration of an exported library is to be found.
-The interpretation of URIs is described elsewhere
-(\ref{uris}).
 It is a compile-time error if the specified URI
 does not refer to a library declaration.
 
@@ -16801,12 +16808,13 @@ Let $L$ be a library,
 let \List{E}{1}{m} be the export directives of $L$,
 and let \List{L}{1}{m} be libraries
 such that $E_i$ refers to $L_i$ for all $i \in 1 .. m$.
-Let \NamespaceName{\metavar{local}} be the namespace that
-for each public top-level declaration $D$ with name $n$ in $L$ maps $n$ to $D$.
-An import prefix
-(\ref{imports})
-does not introduce a binding in
-\NamespaceName{\metavar{local}}.
+Let \NamespaceName{\metavar{public}} be the public namespace of $L$
+(\ref{librariesAndScripts}).
+
+\commentary{%
+Note that private names and import prefixes are not present
+in \NamespaceName{\metavar{public}}.%
+}
 
 \LMHash{}%
 In the first step we compute the namespace provided by each exported library:
@@ -16829,7 +16837,7 @@ except that it is undefined at each name $n$ where
 and one of the following conditions hold:
 
 \begin{itemize}
-\item \NamespaceName{\metavar{local}} is defined at $n'$
+\item \NamespaceName{\metavar{public}} is defined at $n'$
   such that $n$ and $n'$ have the same basename.
   \commentary{%
     In other words, a declaration in $L$ shadows re-exported declarations.
@@ -16855,7 +16863,7 @@ and one of the following conditions hold:
 
 \commentary{%
 The removal of these bindings ensures that each exported namespace has a
-key set which is disjoint with that of \NamespaceName{\metavar{local}}.%
+key set which is disjoint with that of \NamespaceName{\metavar{public}}.%
 }
 
 \LMHash{}%
@@ -16894,7 +16902,7 @@ and the maintainers of $L'$ may not be in a position to change $L$.%
 
 \LMHash{}%
 Finally, the \Index{exported namespace} of $L$ is
-$\NamespaceName{\metavar{local}} \cup
+$\NamespaceName{\metavar{public}} \cup
 \NamespaceName{\metavar{export},1} \cup
 \ldots \NamespaceName{\metavar{export},m}$.
 
