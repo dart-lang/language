@@ -16301,6 +16301,102 @@ essentially canceling \code{dart:core}'s special treatment
 by means of yet another special rule.%
 }
 
+\subsubsection{Conflict Merging of Namespaces}
+\LMLabel{conflictMergingOfNamespaces}
+
+\LMHash{}%
+In the following, we define an operation on namespaces
+which eliminates the binding of names in case of name clashes,
+and keeps track of such name clashes using a special value,
+\Index{\ConflictValue}.
+
+\LMHash{}%
+When a name $n$ is mapped to \ConflictValue{} by a namespace,
+we say that the name is
+\IndexCustom{conflicted}{conflicted name}.
+A lookup for a conflicted name will succeed according to
+the normal rules for namespaces and lexical scoping,
+but it is a compile-time error at the location where the name is used
+that this name is conflicted.
+
+\LMHash{}%
+Let \List{L}{1}{m} be a list of libraries
+(\commentary{the list may or may not contain duplicates}).
+Let \List{\metavar{NS}}{1}{m} be a list of namespaces
+(\commentary{again possibly with some duplicates}),
+such that \NamespaceName{j}
+is a subset of the namespace exported by $L_j$,
+for each $j \in 1 .. m$.
+
+\LMHash{}%
+The
+\IndexCustom{conflict merging}{namespace!conflict merging}
+of \List{\metavar{NS}}{1}{m}
+with associated libraries \List{L}{1}{m} is then
+$\NamespaceName{\metavar{conflict}} \cup
+\NamespaceName{\metavar{narrowed},1} \cup\,
+\ldots\ \NamespaceName{\metavar{narrowed},m}$,
+where the namespaces \NamespaceName{\metavar{conflict}} and
+\List{\metavar{NS}}{\metavar{narrowed},1}{\metavar{narrowed},m}
+are specified below.
+
+\LMHash{}%
+\NamespaceName{\metavar{conflict}} is empty except for the
+bindings mentioned below.
+\NamespaceName{\metavar{narrowed},i} is identical to
+\NamespaceName{i}, for all $i \in 1 .. m$,
+except that the former is undefined at each name $n$ where
+the latter is defined,
+and one of the following conditions holds:
+
+\begin{itemize}
+\item There exists a $j \in 1 .. m$ and name $n'$ such that
+  \NamespaceName{j} is defined at $n'$,
+  $n$ and $n'$ have the same basename,
+  \Namespace{i}{n} is a declaration in a system library,
+  and \Namespace{j}{n'} is a declaration in a non-system library.
+  \commentary{%
+    So an imported declaration from a non-system library shadows
+    imported declarations from system libraries.%
+  }
+\item There exists a $j \in 1 .. m$ and name $n'$ such that
+  \NamespaceName{j} is defined at $n'$,
+  $n$ and $n'$ have the same basename,
+  \Namespace{i}{n} and \Namespace{j}{n'} are not the same declaration,
+  $L_i$ and $L_j$ are not the same library,
+  and either none or both of
+  \Namespace{i}{n} and \Namespace{j}{n'}
+  are declarations in a system library.
+  %
+  \commentary{%
+    So with two distinct imported declarations with the same basename,
+    both are eliminated,
+    except when it is a getter and a setter from the same library.%
+  }
+  % We need the 'not the same library' requirement (i != j is not enough),
+  % because otherwise we could have two imports of the same library,
+  % and we could focus on a getter `x` from one import of a library
+  % Lx, and on a setter `x=` from the other import of Lx, and then we would
+  % eliminate both.
+  % Conversely, when $L_i$ and $L_j$ are not the same library then it could
+  % not possibly be a getter/setter pair from the same library: Such a pair
+  % would be exported together, and they would be re-exported each time
+  % together (hide/show cannot distinguish).
+
+  In this situation $n$ is mapped to \ConflictValue{}
+  by \NamespaceName{\metavar{conflict}}.
+\end{itemize}
+
+\commentary{%
+In summary, conflict merging takes a list of namespaces and produces
+a namespace that is the union of several disjoint namespaces:
+A conflict namespace that records all unresolved name clashes,
+and a list of namespaces where clashing names have been removed.
+Some name clashes have been resolved by preferring
+declarations from non-system libraries
+over declarations from system libraries.%
+}
+
 
 \subsubsection{The Imported Namespace}
 \LMLabel{theImportedNamespace}
@@ -16341,7 +16437,6 @@ and it causes $p$ to be mapped to a prefix namespace as described below.
 Let \List{I}{1}{m} be the import directives of $L$,
 and let \List{L}{1}{m} be libraries
 such that $I_i$ refers to $L_i$ for all $i \in 1 .. m$.
-
 \commentary{%
 It is not an error to have multiple imports of the same library.%
 }
@@ -16371,74 +16466,18 @@ the exported namespace of $L'_j$
 (\ref{namespaceCombinators}).
 
 \LMHash{}%
-Let \NamespaceName{\metavar{narrowed},j} be the namespace which is identical to
-\NamespaceName{\metavar{exported},j} except that it is undefined at
-each name $n$ where \NamespaceName{\metavar{exported},j} is defined and
-one of the following conditions holds:
-
-\begin{itemize}
-\item There exists an $l \in 1 .. k$ and name $n'$ such that
-  \NamespaceName{\metavar{exported},l} is defined at $n'$,
-  $n$ and $n'$ have the same basename,
-  \Namespace{\metavar{exported},j}{n}
-  is a declaration in a system library,
-  and \Namespace{\metavar{exported},l}{n'}
-  is a declaration in a non-system library.
-  \commentary{%
-    So an imported declaration from a non-system library shadows
-    imported declarations from system libraries.%
-  }
-\item There exists an $l \in 1 .. k$ and name $n'$ such that
-  \NamespaceName{\metavar{exported},l} is defined at $n'$,
-  $n$ and $n'$ have the same basename,
-  \Namespace{\metavar{exported},j}{n}
-  and \Namespace{\metavar{exported},l}{n'}
-  are not the same declaration,
-  $L'_j$ and $L'_l$ are not the same library,
-  and either none or both of
-  \Namespace{\metavar{exported},j}{n} and
-  \Namespace{\metavar{exported},l}{n'}
-  are declarations in a system library.
-  \commentary{%
-    So with two distinct imported declarations with the same basename,
-    both are eliminated,
-    except when it is a getter and a setter from the same library.
-    When a name $n$ has been eliminated for this reason and a usage
-    \code{$p_i$.$n$} is encountered in $L$,
-    it is recommended that the error message mentions the conflict,
-    rather than just reporting that $n$ does not exist.%
-  }
-  % We need 'not the same library', l != j is not enough: See comment on the
-  % corresponding case for step two below (search 'not the same library').
-\end{itemize}
+Let \NamespaceName{\metavar{prefix},i} be the namespace obtained from applying
+conflict merging to
+\List{\metavar{NS}}{\metavar{exported},1}{\metavar{exported},k}
+and the associated libraries \List{L'}{1}{k}
+(\ref{conflictMergingOfNamespaces}).
+Then \NamespaceName{\metavar{one},i} is a namespace that has
+a single binding that maps $p_i$ to \NamespaceName{\metavar{prefix},i}.
 
 \LMHash{}%
-Let \NamespaceName{\metavar{prefix},i} be the namespace
-$\NamespaceName{\metavar{narrowed},1} \cup \ldots
-\NamespaceName{\metavar{narrowed},k}$.
-Then \NamespaceName{\metavar{one},i} is a namespace that has
-a single binding that maps $p_i$ to a \Index{prefix namespace},
-which is a mapping that associates names with entities declared in
-\List{L'}{1}{k} as follows:
-
-\begin{itemize}
-\item
-  For every top level function $f$ named \id{} in
-  \NamespaceName{\metavar{prefix}, i},
-  \id{} is mapped to a function with the same name and signature as $f$.
-\item
-  For every top level getter $g$ named \id{} in
-  \NamespaceName{\metavar{prefix}, i},
-  \id{} is mapped to a getter with the same return type as $g$.
-\item
-  For every top level setter $s$ named \code{\id=} in
-  \NamespaceName{\metavar{prefix}, i},
-  \code{\id=} is mapped to a setter with the same parameter type as $s$.
-\item
-  For every type $T$ named \id{} in
-  \NamespaceName{\metavar{prefix}, i},
-  \id{} is mapped to the type $T$.
-\end{itemize}
+In this situation we say that \NamespaceName{\metavar{one},i} is a
+\Index{prefix namespace},
+because it maps a library prefix to a namespace.
 
 \commentary{%
 A prefix namespace is not a Dart object, it is merely a device which is
@@ -16463,130 +16502,50 @@ In the second step we resolve conflicts
 among the namespaces obtained in the first step.
 
 \LMHash{}%
-For each $i \in 1 .. m$, the
-\Index{namespace imported from}
-$L_i$, \NamespaceName{\metavar{import},i},
-is identical to \NamespaceName{\metavar{one},i},
+Let \NamespaceName{\metavar{merged}} be the result of applying
+conflict merging to the namespaces
+\List{\metavar{NS}}{\metavar{one},1}{\metavar{one},m}
+with associated libraries \List{L}{1}{m}.
+
+\LMHash{}%
+Let \NamespaceName{\metavar{import}}
+be the namespace which is identical to \NamespaceName{\metavar{merged}},
 except that it is undefined at each name $n$ where
-\NamespaceName{\metavar{one},i} is defined
-and one of the following conditions holds:
-
-\begin{itemize}
-\item \NamespaceName{\metavar{local}} is defined at $n'$
-  such that $n$ and $n'$ have the same basename.
-  \commentary{%
-    In other words, a declaration in the current library shadows
-    imported declarations.
-    Note that the prefix of an import also introduces a binding
-    into \NamespaceName{\metavar{local}},
-    so a prefix can also shadow an imported declaration.%
-  }
-\item The first case does not apply,
-  there exists a $j \in 1 .. m$ and name $n'$ such that
-  \NamespaceName{\metavar{one},j} is defined at $n'$,
-  $n$ and $n'$ have the same basename,
-  \Namespace{\metavar{one},i}{n}
-  is a declaration in a system library,
-  and \Namespace{\metavar{one},j}{n'}
-  is a declaration in a non-system library.
-  \commentary{%
-    So an imported declaration from a non-system library shadows
-    imported declarations from system libraries.%
-  }
-\item The first case does not apply,
-  there exists a $j \in 1 .. m$ and name $n'$ such that
-  \NamespaceName{\metavar{one},j} is defined at $n'$,
-  $n$ and $n'$ have the same basename,
-  \Namespace{\metavar{one},i}{n} and
-  \Namespace{\metavar{one},j}{n'}
-  are not the same declaration,
-  $L_i$ and $L_j$ are not the same library,
-  and either none or both of
-  \Namespace{\metavar{one},i}{n} and
-  \Namespace{\metavar{one},j}{n'}
-  are declarations in a system library.
-  %
-  \commentary{%
-    So with two distinct imported declarations with the same basename,
-    both are eliminated,
-    except when it is a getter and a setter from the same library.%
-  }
-  % We need the 'not the same library' requirement (i != j is not enough),
-  % because otherwise we could have two imports of the same library (without
-  % a prefix here, but it works the same for two imports with the same
-  % prefix), and we could focus on a getter `x` from one import of a library
-  % Lx, and on a setter `x=` from the other import of Lx, and then we would
-  % eliminate both.
-  % Conversely, when $L_i$ and $L_j$ are not the same library then it could
-  % not possibly be a getter/setter pair from the same library: Such a pair
-  % would be exported from NS_local together, and they would be re-exported
-  % each time together (hide/show cannot distinguish).
-
-  In this situation we say that $n$ is a
-  \IndexCustom{conflicted imported name}{import!conflicted name}%
-  \index{conflicted imported name}.
-\end{itemize}
-
-\LMHash{}%
-Let \NamespaceName{\metavar{conflict}} be the namespace
-that maps each conflicted imported name to
-the special value \ConflictValue.
-A lookup for a conflicted imported name will succeed according to
-the normal rules for namespaces and lexical scoping,
-but it is a compile-time error at the location where the name is used
-that this name is mapped to \ConflictValue.
+\NamespaceName{\metavar{local}} is defined at $n'$
+such that $n$ and $n'$ have the same basename.
 
 \commentary{%
-The removal of these bindings from
-\NamespaceName{\metavar{one},i}
-yields the namespace imported from $L_i$,
-\NamespaceName{\metavar{import},i},
-and ensures that each imported namespace has a
-key set which is disjoint with that of
-\NamespaceName{\metavar{local}},
-and where two imported namespaces only share a key $n$ when
-they both map $n$ to the same value.%
-}
-
-\commentary{%
-Note that it is not an error if a name $n$ is introduced by two or more imports
-but is never used.
-It is recommended that error messages about usages of conflicted imported names
-include a reference to all the declarations that caused the conflict.%
-}
-
-\rationale{%
-The policy above makes libraries more robust
-in the face of additions made to their imports.
-
-A clear distinction needs to be made between this approach,
-and seemingly similar policies with respect to classes or interfaces.
-The use of a class or interface, and of its members,
-is separate from its declaration.
-The usage and declaration may occur in widely separated places in the code,
-and may in fact be authored by different people or organizations.
-It is important that errors are given at the offending declaration
-so that the party that receives the error can respond to it a meaningful way.
-
-In contrast, a library comprises both imports and their usage;
-the library is under the control of a single party and so
-any problem stemming from the import can be resolved
-even if it is reported at the use site.%
+In other words, a declaration in the current library shadows
+imported declarations.
+Note that the prefix of an import also introduces a binding
+into \NamespaceName{\metavar{local}},
+so a prefix can also shadow an imported declaration.%
 }
 
 \LMHash{}%
-The
+The namespace \NamespaceName{\metavar{import}} is known as the
 \Index{imported namespace}
-of $L$ is then
-$\NamespaceName{\metavar{import}} =
-\NamespaceName{\metavar{import},1} \cup
-\ldots \NamespaceName{\metavar{import},m}$,
-and the
-\Index{library namespace}
-of $L$ is
-$\NamespaceName{\metavar{local}} \cup
-\NamespaceName{\metavar{import}} \cup
-\NamespaceName{\metavar{conflict}}$.
+of $L$.
+The \Index{library namespace} of $L$ is
+$\NamespaceName{\metavar{local}} \cup \NamespaceName{\metavar{import}}$.
+
+\LMHash{}%
+Let $i \in 1 .. m$ and let
+\NamespaceName{\metavar{import},i} be
+the intersection of \NamespaceName{\metavar{one},i}
+and \NamespaceName{\metavar{import}}.
+If $L_i$ is imported without a prefix, the
+\IndexCustom{namespace imported from}{library!namespace imported from}
+$L_i$ is \NamespaceName{\metavar{import},i}.
+Otherwise $L_i$ is imported with a prefix $p$,
+in which case the namespace imported from $L_i$
+is \Namespace{\metavar{import},i}{p}.
+
+\commentary{%
+So the namespace imported by $L_i$ contains the bindings exported by $L_i$,
+except the ones removed by namespace combinators,
+and except the ones removed by conflict merging.%
+}
 
 \LMHash{}%
 We say that a name is \Index{imported by a library}
@@ -16601,6 +16560,8 @@ if the declaration is in the library's imported namespace.
 
 \subsubsection{Evaluation of Imports}
 \LMLabel{evaluationOfImports}
+
+!!!TODO!!!
 
 \LMHash{}%
 Let $I_i$ be an import directive that refers to a URI via the string $s_i$.
