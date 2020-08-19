@@ -702,7 +702,8 @@ instead they have their own dedicated namespace.
 It is therefore impossible, e.g., to define a class that declares
 a method and a getter with the same name in Dart.
 Similarly one cannot declare a top-level function with
-the same name as a library variable or a class.%
+the same name as a library variable or a class
+which is declared in the same library.%
 }
 
 \LMHash{}%
@@ -711,7 +712,7 @@ declared in the same scope.
 
 \commentary{%
 In some cases, the name of the declaration differs from
-the identifier used to declare it.
+the identifier that occurs in the declaration syntax used to declare it.
 Setters have names that are distinct from the corresponding getters
 because they always have an \lit{=} automatically added at the end,
 and unary minus has the special name unary-.%
@@ -11484,7 +11485,7 @@ and the static type of $i$ is as specified there.
 
 \LMHash{}%
 It is a compile-time error to invoke any of the methods of class \code{Object}
-on a prefix object
+on a prefix namespace
 (\ref{imports})
 or on a constant type literal that is immediately followed by the token `.'\,.
 
@@ -11870,11 +11871,11 @@ Consider an unconditional property extraction $i$
 (\ref{propertyExtraction})
 of the form \code{$e$.\id}.
 It is a compile-time error if \id{} is a member of class \code{Object}
-and $e$ is either a prefix object (\ref{imports})
+and $e$ is either a prefix namespace (\ref{imports})
 or a type literal.
 
 \commentary{
-It may seem obvious that it is an error to use prefix object,
+It may seem obvious that it is an error to use prefix namespace,
 but more surprising that it also applies to a type literal.
 In particular, we cannot use \code{int.toString}
 to obtain a function object for the \code{toString} method of the
@@ -16204,22 +16205,22 @@ Since top level privates are not imported, using the top level privates of anoth
 
 \LMHash{}%
 The \Index{public namespace} of library $L$ is the mapping that maps
-the simple name of each public top-level member $m$ of $L$ to $m$.
+the simple name of each public top-level member declaration $m$ of $L$ to $m$.
 The \Index{local namespace} of library $L$ is the mapping that maps
-the names introduced by each top-level member of $L$
+the names introduced by each top-level member declaration of $L$
 as well as import prefixes
 (\ref{imports})
 and fresh names of extensions
 (\ref{extensions})
-to the corresponding declaration.
+to the corresponding declaration or import prefix.
 
 
 \subsection{Imports}
 \LMLabel{imports}
 
 \LMHash{}%
-An \Index{import} specifies a library to be used in
-the scope of another library.
+An \Index{import} specifies a library whose exported namespace
+is made available in the current library.
 
 \begin{grammar}
 <libraryImport> ::= <metadata> <importSpecification>
@@ -16261,8 +16262,8 @@ In this case we say that \id{} is an \Index{import prefix},
 or simply a \Index{prefix}.
 
 \LMHash{}%
-A deferred import must include a prefix clause,
-or a compile-time error occurs.
+It is a compile-time error if a deferred import does not include
+a prefix clause.
 It is a compile-time error if a prefix used in a deferred import
 is also used as the prefix of another import clause.
 It is a compile-time error if \id{} is an import prefix and
@@ -16289,7 +16290,7 @@ preempts the automatic import.
 It would be nice if there was nothing special about \code{dart:core}.
 However, its use is pervasive,
 which leads to the decision to import it automatically.
-However, some library $L$ may wish to define entities
+On the other hand, some library $L$ may wish to define entities
 with names used by \code{dart:core}
 (which it can easily do, as the names declared by a library take precedence).
 Other libraries may wish to use $L$,
@@ -16336,10 +16337,14 @@ conflicts with the system libraries are treated specially.%
 Let \NamespaceName{\metavar{local}} be the local namespace of $L$
 (\ref{librariesAndScripts}).
 An import with a prefix $p$ is included among these top-level declarations,
-and it causes $p$ to be mapped to a prefix object as described below.
+and it causes $p$ to be mapped to a prefix namespace as described below.
 Let \List{I}{1}{m} be the import directives of $L$,
 and let \List{L}{1}{m} be libraries
 such that $I_i$ refers to $L_i$ for all $i \in 1 .. m$.
+
+\commentary{%
+It is not an error to have multiple imports of the same library.%
+}
 
 \LMHash{}%
 Let $i \in 1 .. m$.
@@ -16357,9 +16362,9 @@ the exported namespace of $L_i$
 \LMHash{}%
 \Case{Step one for prefixed imports}
 When $I_i$ has prefix $p_i$,
-let \List{I'}{1}{k} be the subset of \List{I}{1}{m} that have prefix $p_i$,
+let \List{I'}{1}{k} be the sublist of \List{I}{1}{m} that have prefix $p_i$,
 and let \List{L'}{1}{k} be the corresponding libraries
-(\commentary{which is a subset of \List{L}{1}{m}}).
+(\commentary{which is a sublist of \List{L}{1}{m}}).
 Let \NamespaceName{\metavar{exported},j}, $j \in 1 .. k$,
 be the namespace obtained from applying the namespace combinators of $I'_j$ to
 the exported namespace of $L'_j$
@@ -16411,8 +16416,8 @@ one of the following conditions holds:
 Let \NamespaceName{\metavar{prefix},i} be the namespace
 $\NamespaceName{\metavar{narrowed},1} \cup \ldots
 \NamespaceName{\metavar{narrowed},k}$.
-Then \NamespaceName{\metavar{one},i} is the namespace that
-maps $p_i$ to a \Index{prefix object},
+Then \NamespaceName{\metavar{one},i} is a namespace that has
+a single binding that maps $p_i$ to a \Index{prefix namespace},
 which is a mapping that associates names with entities declared in
 \List{L'}{1}{k} as follows:
 
@@ -16436,12 +16441,12 @@ which is a mapping that associates names with entities declared in
 \end{itemize}
 
 \commentary{%
-A prefix object is not a Dart object, it is merely a device which is
+A prefix namespace is not a Dart object, it is merely a device which is
 used to manage names of the form \synt{qualified} and their types
 during static analysis,
 and a mapping that is used to access the corresponding entities
 at run time.
-Consequently, any attempt to use a prefix object on its own
+Consequently, any attempt to use a prefix namespace as an object
 is a compile-time error.
 
 Note that if $l$ and $q$ are such that
@@ -16604,13 +16609,13 @@ Evaluation of $I_i$ proceeds as follows:
 \LMHash{}%
 \Case{Evaluation of deferred imports}
 If $I_i$ is a deferred import with prefix $p$, a mapping of $p$ to a
-\Index{deferred prefix object} is added to
+\Index{deferred prefix namespace} is added to
 the scope of the current library $L$.
 Let \NamespaceName{\metavar{import},i} be
 the namespace imported from the library specified by $I_i$,
 as defined previously
 (\ref{theImportedNamespace}).
-The deferred prefix object has the following members:
+The deferred prefix namespace has the following bindings:
 
 \begin{itemize}
 \item \code{loadLibrary()}.
@@ -16665,9 +16670,9 @@ but will raise errors.%
 
 \LMHash{}%
 After an invocation of \code{$p$.loadLibrary} succeeds,
-the name $p$ is mapped to a non-deferred prefix object,
+the name $p$ is mapped to a non-deferred prefix namespace,
 as described below.
-In addition, the prefix object also supports the \code{loadLibrary()} method,
+In addition, the prefix namespace also supports the \code{loadLibrary()} method,
 and so it is possible to call \code{$p$.loadLibrary} again.
 If a call fails, nothing happens,
 and one has the option to call \code{$p$.loadLibrary} again.
@@ -16739,13 +16744,13 @@ The namespace \NamespaceName{i} will then have the following bindings:
 If $I_i$ has prefix $p$,
 and the library namespace of the current library
 does not have a binding for $p$,
-then a mapping from $p$ to a non-deferred prefix object
+then a mapping from $p$ to a non-deferred prefix namespace
 with members determined by \NamespaceName{i} is introduced into the
 library namespace of the current library.
 If $I_i$ has prefix $p$,
 and the library namespace of the current library
-binds $p$ to a non-deferred prefix object $o$,
-then $o$ is extended with members as determined by \NamespaceName{i}.
+binds $p$ to a non-deferred prefix namespace $o$,
+then $o$ is extended with bindings as determined by \NamespaceName{i}.
 
 \LMHash{}%
 Otherwise, when $I_i$ does not have a prefix, each mapping in \NamespaceName{i}
@@ -16758,8 +16763,8 @@ because such conflicts would have caused a compile-time error.
 
 Library namespace construction can be completed at compile time,
 and any accesses, prefixed or not, can be resolved statically.
-So an implementation does not need to extend prefix objects dynamically,
-or even have a run-time representation of prefix objects at all,
+So an implementation does not need to extend prefix namespaces dynamically,
+or even have a run-time representation of prefix namespaces at all,
 as long as the observable behavior is preserved.%
 }
 \EndCase
