@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.08.19
+  - Include selector `!` among the null-shorting constructs.
+
 2020.08.06
   - Specify error for uninitialized final instance variable in class
     with no generative constructors.
@@ -1157,6 +1160,8 @@ continuation.
   - `SHORT[EXP(e1), fn[x] => x[EXP(e2)]]`
 - If `e1` translates to `F` then `e1[e2]` translates to:
   - `PASSTHRU[F, fn[x] => x[EXP(e2)]]`
+- If `e` translates to `F` then `e!` translates to:
+  - `PASSTHRU[F, fn[x] => x!]`
 - The assignment `e1?.f = e2` translates to:
   - `SHORT[EXP(e1), fn[x] => x.f = EXP(e2)]`
 - The other assignment operators are handled equivalently.
