@@ -22,6 +22,9 @@ Status: Draft
 2020.05.20
   - Turn new references to `CastError` into being dynamic type errors.
 
+2020.07.21
+  - **CHANGE** Changes to definite assignment for local variables.
+
 2020.05.14
   - **CHANGE** Strong mode is auto-opted in when the "main" file is opted in.
   - **CHANGE** Specify weak mode/strong mode flag.
@@ -498,23 +501,23 @@ It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
 It is an error if a top level variable or static variable with a non-nullable
-type has no initializer expression unless the variable is marked with a
-`late` or `external` modifier.
+type has no initializer expression unless the variable is marked with a `late`
+or `external` modifier.
 
 It is an error if a class declaration declares an instance variable with a
-potentially non-nullable type and no initializer expression, and the class has
-a generative constructor where the variable is not initialized via an
-initializing formal or an initializer list entry, unless the variable is marked
-with a `late`, `abstract`, or `external` modifier.
+potentially non-nullable type and no initializer expression, and the class has a
+generative constructor where the variable is not initialized via an initializing
+formal or an initializer list entry, unless the variable is marked with a
+`late`, `abstract`, or `external` modifier.
 
 It is an error if a mixin declaration or a class declaration with no generative
 constructors declares an instance variable without an initializing expression
-which is final or whose type is potentially non-nullable, unless the variable
-is marked with a `late`, `abstract`, or `external` modifier.
+which is final or whose type is potentially non-nullable, unless the variable is
+marked with a `late`, `abstract`, or `external` modifier.
 
-It is an error if a potentially non-nullable local variable which has no
-initializer expression and is not marked `late` is used before it is definitely
-assigned (see Definite Assignment below).
+It is an error to derive a mixin from a class declaration which contains an
+instance variable with a potentially non-nullable type and no initializer
+expression unless the variable is marked with the `late` modifier.
 
 It is an error if the body of a method, function, getter, or function expression
 with a potentially non-nullable return type **may complete normally**.
@@ -568,18 +571,9 @@ expression.
 It is an error for a class with a `const` constructor to have a `late final`
 instance variable.
 
-It is not a compile time error to write to a `final` variable if that variable
-is declared `late` and does not have an initializer.
-
-It is a compile time error to assign a value to a local variable marked `late`
-and `final` when the variable is **definitely assigned**.  This includes all
-forms of assignments, including assignments via the composite assignment
-operators as well as pre and post-fix operators.
-
-It is a compile time error to read a local variable marked `late` when the
-variable is **definitely unassigned**. This includes all forms of reads,
-including implicit reads via the composite assignment operators as well as pre
-and post-fix operators.
+It is not a compile time error to write to a `final` non-local or instance
+variable if that variable is declared `late` and does not have an initializer.
+For local variables, see the section below.
 
 It is an error if the object being iterated over by a `for-in` loop has a static
 type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
@@ -627,6 +621,109 @@ It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, o
 
 It is a warning to use the null check operator (`!`) on an expression of type
 `T` if `T` is **strictly non-nullable** .
+
+### Local variables and definite (un)assignment.
+
+As part of the null safety release, errors for local variables are specified to
+take into account **definite assignment** and **definite unassignment** (see the
+section on Definite Assignment below).  We say that a variable is **potentially
+assigned** if it is not **definitely unassigned**, and that a variable is
+**potentially unassigned** if it is not **definitely assigned**.
+
+In all cases in this section, errors that are described as occurring on reads of
+a variable are intended to apply to all form of reads, including indirectly as
+part of compound assignment operators, as well as via pre and post-fix
+operators.  Similarly, errors that are described as occurring on writes of a
+variable are intended to apply to all form of writes.
+
+It is a compile time error to assign a value to a `final`, non-`late` local
+variable which is **potentially assigned**.  Thus, it is *not* a compile time
+error to assign to a **definitely unassigned** `final` local variable.
+
+It is a compile time error to assign a value to a `final`, `late` local variable
+if it is **definitely assigned**. Thus, it is *not* a compile time error to
+assign to a **potentially unassigned** `final`, `late` local variable.
+
+*Note that a variable is always considered **definitely assigned** and not
+**definitely unassigned** if it has an explicit initializer, or an implicit
+initializer as part of a larger construct (e.g. the loop variable in a `for in`
+construct).*
+
+It is a compile time error to read a local variable when the variable is
+**definitely unassigned** unless the variable is non-`final`, and non-`late`,
+and has nullable type.
+
+It is a compile time error to read a local variable when the variable is
+**potentially unassigned** unless the variable is non-`final` and has nullable
+type, or is `late`.
+
+The errors specified above are summarized in the following table, where `int` is
+used as an example of an arbitrary **potentially non-nullable** type, `int?` is
+used as an example of an arbitrary **nullable** type, and `T` is used to stand
+for a type of any nullability.  A variable which has an initializer (explicit or
+implicit) is always considered definitely assigned, and is never considered
+definitely unassigned.
+
+
+Read Behavior:
+
+| Declaration form  | Def. Assigned | Neither           | Def. Unassigned |
+| ----------------- | ------------- | ----------------- | --------------- |
+| var x;            | Ok            | Ok                | Ok              |
+| final x;          | Ok            | Error             | Error           |
+| int x;            | Ok            | Error             | Error           |
+| int? x;           | Ok            | Ok                | Ok              |
+| final T x;        | Ok            | Error             | Error           |
+| late var x;       | Ok            | Ok                | Error           |
+| late final x;     | Ok            | Ok                | Error           |
+| late T x;         | Ok            | Ok                | Error           |
+| late final T x;   | Ok            | Ok                | Error           |
+
+Write Behavior:
+
+| Declaration form  | Def. Assigned | Neither             | Def. Unassigned |
+| ----------------- | ------------- | ------------------- | --------------- |
+| var x;            | Ok            | Ok                  | Ok              |
+| final x;          | Error         | Error               | Ok              |
+| int x;            | Ok            | Ok                  | Ok              |
+| int? x;           | Ok            | Ok                  | Ok              |
+| final T x;        | Error         | Error               | Ok              |
+| late var x;       | Ok            | Ok                  | Ok              |
+| late final x;     | Error         | Ok                  | Ok              |
+| late T x;         | Ok            | Ok                  | Ok              |
+| late final T x;   | Error         | Ok                  | Ok              |
+
+### Local variables and inference
+
+Local variables with explicitly written types are given the declared types as
+written.  The declared type of the variable is considered a "type of interest"
+in the sense defined in the flow analysis specification.  If the variable has an
+initializer (explicit or implicit) and is not `final`, then the declaration is
+treated as an assignment for the purposes of promotion.
+
+*Treating the declared type of the variable as a "type of interest" implies that
+if the variable has a nullable type, then the non-nullable version of that type
+is also a type of interest.  Treating the initialization as an assignment for
+the purposes of promotion means that initializing a mutable variable declared at
+type `T?` with a value of non-nullable type `T` immediately promotes the
+variable to the non-nullable type.*
+
+```dart
+void test() {
+  int? x = 3; // x is declared at `int?`
+  x.isEven; // Valid, x has been promoted to `int`
+  x = null; // Valid, demotes to the declared type.
+}
+```
+
+Local variables with no explicitly written type but with an initializer are
+given an inferred type equal to the type of their initializer, unless that type
+is a subtype of `Null`, in which case the inferred type of the variable shall be
+`dynamic`.  The inferred type of the variable is considered a "type of interest"
+in the sense defined in the flow analysis specification.  In the case that the
+type of the initializer is a promoted type variable `X & T`, the inferred type
+of the variable shall be `X`.  However, such a variable shall be treated as
+immediately promoted to `X & T`.
 
 ### Expression typing
 

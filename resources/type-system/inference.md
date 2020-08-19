@@ -149,8 +149,9 @@ The general inference procedure is as follows.
         - Record the type of `x` and mark `x` as *available*.
     - Otherwise, if `D` has an initializing expression `e`:
       - Perform local type inference on `e`.
-      - Record the type of `x` to be the inferred type of `e`, and mark `x` as
-        *available*.
+      - Let `T` be the inferred type of `e`, or `dynamic` if the inferred type
+        of `e` is a subtype of `Null`.  Record the type of `x` to be `T` and
+        mark `x` as *available*.
     - Otherwise record the type of `x` to be `dynamic` and mark `x` as
       *available*.
   - If `D` is a constructor declaration `C(...)` for which one or more of the
