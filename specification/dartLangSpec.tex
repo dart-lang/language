@@ -16302,88 +16302,6 @@ essentially canceling \code{dart:core}'s special treatment
 by means of yet another special rule.%
 }
 
-\subsubsection{Conflict Merging of Namespaces}
-\LMLabel{conflictMergingOfNamespaces}
-
-\LMHash{}%
-In this section we define an operation on namespaces
-which eliminates certain bindings of names in case of name clashes,
-and keeps track of such name clashes using a special value,
-\Index{\ConflictValue}.
-
-\LMHash{}%
-When a name $n$ is mapped to \ConflictValue{} by a namespace,
-we say that $n$ is
-\IndexCustom{conflicted}{conflicted name}.
-A lookup for a conflicted name will succeed according to
-the normal rules for namespaces and lexical scoping,
-but it is a compile-time error at the location where the name is used
-that this name is conflicted.
-
-\LMHash{}%
-Let \List{\metavar{NS}}{1}{m} be a list of namespaces
-(\commentary{the list may or may not contain duplicates}).
-The
-\IndexCustom{conflict merging}{namespace!conflict merging}
-of \List{\metavar{NS}}{1}{m} is then
-$\NamespaceName{\metavar{conflict}} \cup
-\NamespaceName{\metavar{narrowed},1} \cup\,
-\ldots\ \NamespaceName{\metavar{narrowed},m}$,
-where the namespaces \NamespaceName{\metavar{conflict}} and
-\NamespaceName{\metavar{narrowed},i}, $i \in 1 .. m$,
-are specified as follows:
-
-\LMHash{}%
-\NamespaceName{\metavar{conflict}} is empty except for the
-bindings mentioned below.
-\NamespaceName{\metavar{narrowed},i} is identical to
-\NamespaceName{i}, $i \in 1 .. m$,
-except that the former is undefined at each name $n$ where
-the latter is defined,
-and one of the following conditions holds:
-
-\begin{itemize}
-\item There exists a $j \in 1 .. m$ and name $n'$ such that
-  \NamespaceName{j} is defined at $n'$,
-  $n$ and $n'$ have the same basename,
-  \Namespace{i}{n} is a declaration in a system library,
-  and \Namespace{j}{n'} is a declaration in a non-system library.
-  \commentary{%
-    So an imported declaration from a non-system library shadows
-    imported declarations from system libraries.%
-  }
-\item There exists a $j \in 1 .. m$ and name $n'$ such that
-  \NamespaceName{j} is defined at $n'$,
-  $n$ and $n'$ have the same basename,
-  \Namespace{i}{n} and \Namespace{j}{n'} are not the same declaration
-  and not a getter and a setter declared in the same library,
-  and either none or both of
-  \Namespace{i}{n} and \Namespace{j}{n'}
-  are declarations in a system library.
-  %
-  \commentary{%
-    So with two distinct imported declarations with the same basename,
-    both are eliminated,
-    except when it is a getter and a setter from the same library.%
-  }
-
-  In this situation $n$ is mapped to \ConflictValue{}
-  by \NamespaceName{\metavar{conflict}}.
-  \commentary{By symmetry, $n'$ is also conflicted.}
-\end{itemize}
-
-\commentary{%
-In summary, conflict merging takes a list of namespaces and produces
-a namespace that is the union of several disjoint namespaces
-(because all name clashes have been eliminated):
-A conflict namespace that records all unresolved name clashes,
-and a list of namespaces where clashing names have been removed.
-Some name clashes have been resolved by preferring
-declarations from non-system libraries
-over declarations from system libraries.%
-}
-
-
 \subsubsection{The Imported Namespace}
 \LMLabel{theImportedNamespace}
 
@@ -16512,16 +16430,17 @@ The \Index{library namespace} of $L$ is
 $\NamespaceName{\metavar{local}} \cup \NamespaceName{\metavar{import}}$.
 
 \LMHash{}%
-Let $i \in 1 .. m$ and let
-\NamespaceName{\metavar{import},i} be
-the intersection of \NamespaceName{\metavar{one},i}
-and \NamespaceName{\metavar{import}}.
+Let $i \in 1 .. m$.
 If $L_i$ is imported without a prefix, the
 \IndexCustom{namespace imported from}{library!namespace imported from}
-$L_i$ is \NamespaceName{\metavar{import},i}.
+$L_i$ is the conflict narrowed namespace
+(\ref{conflictMergingOfNamespaces})
+of \NamespaceName{\metavar{one},i}.
+%
 Otherwise $L_i$ is imported with a prefix $p$,
-in which case the namespace imported from $L_i$
-is \Namespace{\metavar{import},i}{p}.
+in which case the \NoIndex{namespace imported from} $L_i$
+is the conflict narrowed namespace
+of \NamespaceName{\metavar{exported},i}.
 
 \commentary{%
 So the namespace imported by $L_i$ contains the bindings exported by $L_i$,
@@ -16531,19 +16450,13 @@ and except the ones removed by conflict merging.%
 
 \LMHash{}%
 We say that a name is \Index{imported by a library}
-(or equivalently, that a library
-\IndexCustom{imports a name}{imports!name})
 if the name is in the library's imported namespace.
 We say that a declaration \Index{is imported by a library}
-(or equivalently, that a library
-\IndexCustom{imports a declaration}{imports!declaration})
 if the declaration is in the library's imported namespace.
 
 
 \subsubsection{Evaluation of Imports}
 \LMLabel{evaluationOfImports}
-
-!!!TODO!!!
 
 \LMHash{}%
 Let $I_i$ be an import directive that refers to a URI via the string $s_i$.
@@ -16561,9 +16474,10 @@ as defined previously
 The deferred prefix namespace has the following bindings:
 
 \begin{itemize}
-\item \code{loadLibrary()}.
-  This method returns a future $f$.
-  When called, the method causes
+\item The name \code{loadLibrary} is bound to 
+  a function with signature \code{Future<\VOID> loadLibrary()}.
+  This function returns a future $f$.
+  When called, the function causes
   an immediate import $I'$ to be executed at some future time,
   where $I'$ is derived from $I_i$ by eliding the word \DEFERRED{}
   and adding a \HIDE{} \code{loadLibrary} combinator clause.
@@ -16612,32 +16526,32 @@ but will raise errors.%
 }
 
 \LMHash{}%
-After an invocation of \code{$p$.loadLibrary} succeeds,
+After an invocation of \code{$p$.loadLibrary()} succeeds,
 the name $p$ is mapped to a non-deferred prefix namespace,
 as described below.
-In addition, the prefix namespace also supports the \code{loadLibrary()} method,
-and so it is possible to call \code{$p$.loadLibrary} again.
+In addition, the prefix namespace also supports the \code{loadLibrary} function,
+and so it is possible to invoke \code{$p$.loadLibrary()} again.
 If a call fails, nothing happens,
-and one has the option to call \code{$p$.loadLibrary} again.
-Whether a repeated call to \code{$p$.loadLibrary} succeeds will vary,
+and one has the option to invoke \code{$p$.loadLibrary()} again.
+Whether a repeated call to \code{$p$.loadLibrary()} succeeds will vary,
 as described below.
 
 \LMHash{}%
-The effect of a repeated call to \code{$p$.loadLibrary} is as follows:
+The effect of a repeated invocation of \code{$p$.loadLibrary()} is as follows:
 \begin{itemize}
 \item
-  If another call to \code{$p$.loadLibrary} has already succeeded,
-  the repeated call also succeeds.
+  If another invocation of \code{$p$.loadLibrary()} has already succeeded,
+  the repeated invocation also succeeds.
   Otherwise,
 \item
-  If another call to \code{$p$.loadLibrary} has failed:
+  If another invocation of \code{$p$.loadLibrary()} has failed:
   \begin{itemize}
   \item
     If the failure is due to a compilation error,
-    the repeated call fails for the same reason.
+    the repeated invocation fails for the same reason.
   \item
     If the failure is due to other causes,
-    the repeated call behaves as if no previous call had been made.
+    the repeated invocation behaves as if no previous call had been made.
   \end{itemize}
 \end{itemize}
 
@@ -16645,7 +16559,7 @@ The effect of a repeated call to \code{$p$.loadLibrary} is as follows:
 In other words, one can retry a deferred load after a network failure
 or because a file is absent,
 but once one finds some content and loads it, one can no longer reload.
-We do not specify which object the future returned resolves to.
+We do not specify which object the future returned resolves to.%
 }
 \EndCase
 
@@ -16721,7 +16635,7 @@ A library $L$ exports a namespace (\ref{scoping}), meaning that
 the declarations in the namespace are made available to other libraries
 if they choose to import $L$ (\ref{imports}).
 The namespace that $L$ exports is known as its
-\IndexCustom{exported namespace}{namespace!exported}.
+\IndexCustom{exported namespace}{library!exported namespace of}.
 
 \LMHash{}%
 A library always exports all names and all declarations in its public namespace.
@@ -16741,17 +16655,7 @@ It is a compile-time error if the specified URI
 does not refer to a library declaration.
 
 \LMHash{}%
-We say that a name is \Index{exported by a library}
-(or equivalently, that a library
-\IndexCustom{exports a name}{exports!name})
-if the name is in the library's exported namespace.
-We say that a declaration \Index{is exported by a library}
-(or equivalently, that a library
-\IndexCustom{exports a declaration}{exports!declaration})
-if the declaration is in the library's exported namespace.
-
-\LMHash{}%
-The exported namespace of a library is then determined as follows, in two steps.
+The exported namespace of a library is determined as follows, in two steps.
 Let $L$ be a library,
 let \List{E}{1}{m} be the export directives of $L$,
 and let \List{L}{1}{m} be libraries
@@ -16771,67 +16675,27 @@ For each $i \in 1 .. m$,
 the namespace obtained from applying
 the namespace combinators of $E_i$ to
 the exported namespace of $L_i$
-(\ref{namespaceCombinators}).
+(\ref{namespaceCombinators}),
+and removing each binding of a name $n$ such that
+\NamespaceName{\metavar{public}} is defined at $n'$,
+and $n$ and $n'$ have the same basename.
+\commentary{So local declarations shadow re-exported ones.}
 
 \LMHash{}%
-In the second step we compute the
-\Index{namespace exported from}
-$L_i$, \NamespaceName{\metavar{export},i}.
-For each $i \in 1 .. m$,
-\NamespaceName{\metavar{export},i}
-is identical to \NamespaceName{\metavar{one},i},
-except that it is undefined at each name $n$ where
-\NamespaceName{\metavar{one},i} is defined
-and one of the following conditions hold:
-
-\begin{itemize}
-\item \NamespaceName{\metavar{public}} is defined at $n'$
-  such that $n$ and $n'$ have the same basename.
-  \commentary{%
-    In other words, a declaration in $L$ shadows re-exported declarations.
-    Import prefixes of $L$ are not exported, and do not shadow anything.%
-  }
-\item The first case does not apply,
-  there exists a $j \in 1 .. m$ and name $n'$ such that
-  \NamespaceName{\metavar{one},j} is defined at $n'$,
-  $n$ and $n'$ have the same basename,
-  \Namespace{\metavar{one},i}{n}
-  is a declaration in a system library,
-  and \Namespace{\metavar{one},j}{n'}
-  is a declaration in a non-system library.
-  \commentary{%
-    So a re-exported declaration from a non-system library shadows
-    re-exported declarations from system libraries.%
-  }
-  \rationale{%
-    See the discussion in section \ref{theImportedNamespace} for
-    the reasoning behind this rule.%
-  }
-\end{itemize}
-
-\commentary{%
-The removal of these bindings ensures that each exported namespace has a
-key set which is disjoint with that of \NamespaceName{\metavar{public}}.%
-}
+The
+\IndexCustom{namespace re-exported from}{library!namespace re-exported from}
+$L_i$ is \NamespaceName{\metavar{one},i}.
 
 \LMHash{}%
-Assume that $i$ and $j$ are numbers in $1 .. m$ and $n$ and $n'$ are names.
-It is a compile-time error if
-\NamespaceName{\metavar{export},i} is defined at $n$,
-\NamespaceName{\metavar{export},j} is defined at $n'$,
-$n$ and $n'$ have the same basename,
-\Namespace{\metavar{export},i}{n} and
-\Namespace{\metavar{export},j}{n'}
-are not the same declaration,
-and $L_i$ and $L_j$ are not the same library.
-% We need 'not the same library', i != j is not enough: See comment on the
-% corresponding case for step two above (search 'not the same library').
-
-\commentary{%
-This means that it is an error when two distinct exported declarations have
-the same basename,
-except when it is a getter and a setter from the same library.%
-}
+In the second step we compute the exported namespace of $L$.
+Let \NamespaceName{\metavar{merged}} be the result of applying
+conflict merging
+(\ref{conflictMergingOfNamespaces})
+to \List{\metavar{NS}}{\metavar{one},1}{\metavar{one},m}.
+A compile-time error occurs if any name in
+\NamespaceName{\metavar{merged}}
+is conflicted
+(\commentary{that is, the name is mapped to \ConflictValue}).
 
 \rationale{%
 This rule is more strict than the corresponding rule for imports:
@@ -16849,17 +16713,16 @@ and the maintainers of $L'$ may not be in a position to change $L$.%
 }
 
 \LMHash{}%
-Finally, the \Index{exported namespace} of $L$ is
-$\NamespaceName{\metavar{public}} \cup
-\NamespaceName{\metavar{export},1} \cup
-\ldots \NamespaceName{\metavar{export},m}$.
+The
+\IndexCustom{exported namespace}{library!exported namespace of}
+of $L$ is
+$\NamespaceName{\metavar{public}} \cup \NamespaceName{\metavar{merged}}$.
 
-\commentary{%
-Unions of namespaces are defined elsewhere
-(\ref{namespaceCombinators}).
-This union is well-defined because all these namespaces only share
-keys where they have the same value.%
-}
+\LMHash{}%
+We say that a name is \Index{exported by a library}
+if the name is in the library's exported namespace.
+We say that a declaration \Index{is exported by a library}
+if the declaration is in the library's exported namespace.
 
 \LMHash{}%
 For a given $i$,
@@ -16967,6 +16830,99 @@ Allowing this prevents situations where, e.g.,
 removing a declaration from a library $L$ would cause
 breakage in a library that imports $L$.%
 }
+
+
+\subsection{Conflict Merging of Namespaces}
+\LMLabel{conflictMergingOfNamespaces}
+
+\LMHash{}%
+In this section we define an operation on namespaces
+which eliminates certain bindings of names in case of name clashes,
+and keeps track of such name clashes using a special value,
+\Index{\ConflictValue}.
+
+\LMHash{}%
+When a name $n$ is mapped to \ConflictValue{} by a namespace,
+we say that $n$ is
+\IndexCustom{conflicted}{conflicted name}.
+A lookup for a conflicted name will succeed according to
+the normal rules for namespaces and lexical scoping,
+but it is a compile-time error at the location where the name is used
+that this name is conflicted.
+
+\LMHash{}%
+Let \List{\metavar{NS}}{1}{m} be a list of namespaces
+(\commentary{the list may or may not contain duplicates}).
+The
+\IndexCustom{conflict merging}{namespace!conflict merging}
+of \List{\metavar{NS}}{1}{m} is then
+$\NamespaceName{\metavar{conflict}} \cup
+\NamespaceName{\metavar{narrowed},1} \cup\,
+\ldots\ \NamespaceName{\metavar{narrowed},m}$,
+where the namespaces \NamespaceName{\metavar{conflict}} and
+\NamespaceName{\metavar{narrowed},i}, $i \in 1 .. m$,
+are specified as follows:
+
+\LMHash{}%
+\NamespaceName{\metavar{conflict}} is empty except for the
+bindings mentioned below.
+\NamespaceName{\metavar{narrowed},i} is identical to
+\NamespaceName{i}, $i \in 1 .. m$,
+except that the former is undefined at each name $n$ where
+the latter is defined,
+and one of the following conditions holds:
+
+\begin{itemize}
+\item There exists a $j \in 1 .. m$ and name $n'$ such that
+  \NamespaceName{j} is defined at $n'$,
+  $n$ and $n'$ have the same basename,
+  \Namespace{i}{n} is a declaration in a system library,
+  and \Namespace{j}{n'} is a declaration in a non-system library.
+  \commentary{%
+    So a declaration from a non-system library shadows
+    declarations from system libraries.%
+  }
+\item There exists a $j \in 1 .. m$ and name $n'$ such that
+  \NamespaceName{j} is defined at $n'$,
+  $n$ and $n'$ have the same basename,
+  \Namespace{i}{n} and \Namespace{j}{n'} are not the same declaration
+  and not a getter and a setter declared in the same library,
+  and either none or both of
+  \Namespace{i}{n} and \Namespace{j}{n'}
+  are declarations in a system library.
+  %
+  \commentary{%
+    So with two distinct declarations with the same basename,
+    both are eliminated,
+    except when it is a getter and a setter from the same library.%
+  }
+
+  In this situation $n$ is mapped to \ConflictValue{}
+  by \NamespaceName{\metavar{conflict}}.
+  \commentary{%
+    We can swap all names and use the rule again,
+    so $n'$ is also conflicted.%
+  }
+\end{itemize}
+
+\commentary{%
+In short, conflict merging takes a list of namespaces and produces
+a namespace that is the union of several disjoint namespaces
+(because all name clashes have been eliminated):
+A conflict namespace that records all unresolved name clashes,
+and a list of namespaces where clashing names have been removed.
+Some name clashes have been resolved by preferring
+declarations from non-system libraries
+over declarations from system libraries.%
+}
+
+\LMHash{}%
+It is useful to be able to refer to the result of narrowing.
+Let \List{\metavar{NS}}{1}{m} be a list of namespaces, $j \in 1 .. m$,
+and consider the conflict merging as specified above.
+The
+\IndexCustom{conflict narrowed namespace}{namespace!conflict narrowed}
+of \NamespaceName{j} is then \NamespaceName{\metavar{narrowed},j}.
 
 
 \subsection{Parts}
