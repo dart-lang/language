@@ -16213,7 +16213,8 @@ as well as import prefixes
 and fresh names of extensions
 (\ref{extensions})
 to the corresponding declaration or import prefix.
-
+The \Index{library scope} of library $L$ is the outermost scope in $L$,
+and its namespace is the local namespace of $L$.
 
 \subsection{Imports}
 \LMLabel{imports}
@@ -16305,14 +16306,14 @@ by means of yet another special rule.%
 \LMLabel{conflictMergingOfNamespaces}
 
 \LMHash{}%
-In the following, we define an operation on namespaces
-which eliminates the binding of names in case of name clashes,
+In this section we define an operation on namespaces
+which eliminates certain bindings of names in case of name clashes,
 and keeps track of such name clashes using a special value,
 \Index{\ConflictValue}.
 
 \LMHash{}%
 When a name $n$ is mapped to \ConflictValue{} by a namespace,
-we say that the name is
+we say that $n$ is
 \IndexCustom{conflicted}{conflicted name}.
 A lookup for a conflicted name will succeed according to
 the normal rules for namespaces and lexical scoping,
@@ -16320,31 +16321,23 @@ but it is a compile-time error at the location where the name is used
 that this name is conflicted.
 
 \LMHash{}%
-Let \List{L}{1}{m} be a list of libraries
-(\commentary{the list may or may not contain duplicates}).
 Let \List{\metavar{NS}}{1}{m} be a list of namespaces
-(\commentary{again possibly with some duplicates}),
-such that \NamespaceName{j}
-is a subset of the namespace exported by $L_j$,
-for each $j \in 1 .. m$.
-
-\LMHash{}%
+(\commentary{the list may or may not contain duplicates}).
 The
 \IndexCustom{conflict merging}{namespace!conflict merging}
-of \List{\metavar{NS}}{1}{m}
-with associated libraries \List{L}{1}{m} is then
+of \List{\metavar{NS}}{1}{m} is then
 $\NamespaceName{\metavar{conflict}} \cup
 \NamespaceName{\metavar{narrowed},1} \cup\,
 \ldots\ \NamespaceName{\metavar{narrowed},m}$,
 where the namespaces \NamespaceName{\metavar{conflict}} and
-\List{\metavar{NS}}{\metavar{narrowed},1}{\metavar{narrowed},m}
-are specified below.
+\NamespaceName{\metavar{narrowed},i}, $i \in 1 .. m$,
+are specified as follows:
 
 \LMHash{}%
 \NamespaceName{\metavar{conflict}} is empty except for the
 bindings mentioned below.
 \NamespaceName{\metavar{narrowed},i} is identical to
-\NamespaceName{i}, for all $i \in 1 .. m$,
+\NamespaceName{i}, $i \in 1 .. m$,
 except that the former is undefined at each name $n$ where
 the latter is defined,
 and one of the following conditions holds:
@@ -16362,8 +16355,8 @@ and one of the following conditions holds:
 \item There exists a $j \in 1 .. m$ and name $n'$ such that
   \NamespaceName{j} is defined at $n'$,
   $n$ and $n'$ have the same basename,
-  \Namespace{i}{n} and \Namespace{j}{n'} are not the same declaration,
-  $L_i$ and $L_j$ are not the same library,
+  \Namespace{i}{n} and \Namespace{j}{n'} are not the same declaration
+  and not a getter and a setter declared in the same library,
   and either none or both of
   \Namespace{i}{n} and \Namespace{j}{n'}
   are declarations in a system library.
@@ -16373,23 +16366,16 @@ and one of the following conditions holds:
     both are eliminated,
     except when it is a getter and a setter from the same library.%
   }
-  % We need the 'not the same library' requirement (i != j is not enough),
-  % because otherwise we could have two imports of the same library,
-  % and we could focus on a getter `x` from one import of a library
-  % Lx, and on a setter `x=` from the other import of Lx, and then we would
-  % eliminate both.
-  % Conversely, when $L_i$ and $L_j$ are not the same library then it could
-  % not possibly be a getter/setter pair from the same library: Such a pair
-  % would be exported together, and they would be re-exported each time
-  % together (hide/show cannot distinguish).
 
   In this situation $n$ is mapped to \ConflictValue{}
   by \NamespaceName{\metavar{conflict}}.
+  \commentary{By symmetry, $n'$ is also conflicted.}
 \end{itemize}
 
 \commentary{%
 In summary, conflict merging takes a list of namespaces and produces
-a namespace that is the union of several disjoint namespaces:
+a namespace that is the union of several disjoint namespaces
+(because all name clashes have been eliminated):
 A conflict namespace that records all unresolved name clashes,
 and a list of namespaces where clashing names have been removed.
 Some name clashes have been resolved by preferring
@@ -16469,7 +16455,6 @@ the exported namespace of $L'_j$
 Let \NamespaceName{\metavar{prefix},i} be the namespace obtained from applying
 conflict merging to
 \List{\metavar{NS}}{\metavar{exported},1}{\metavar{exported},k}
-and the associated libraries \List{L'}{1}{k}
 (\ref{conflictMergingOfNamespaces}).
 Then \NamespaceName{\metavar{one},i} is a namespace that has
 a single binding that maps $p_i$ to \NamespaceName{\metavar{prefix},i}.
@@ -16504,10 +16489,7 @@ among the namespaces obtained in the first step.
 \LMHash{}%
 Let \NamespaceName{\metavar{merged}} be the result of applying
 conflict merging to the namespaces
-\List{\metavar{NS}}{\metavar{one},1}{\metavar{one},m}
-with associated libraries \List{L}{1}{m}.
-
-\LMHash{}%
+\List{\metavar{NS}}{\metavar{one},1}{\metavar{one},m}.
 Let \NamespaceName{\metavar{import}}
 be the namespace which is identical to \NamespaceName{\metavar{merged}},
 except that it is undefined at each name $n$ where
