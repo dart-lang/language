@@ -32,6 +32,7 @@
 % - Eliminate error for library name conflicts in imports and exports.
 % - Clarify the specification of initializing formals. Fix error: Add
 %   missing `?' at the end for function typed initializing formal.
+% - Adjust specification of JS number semantics.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -19061,39 +19062,43 @@ which means that this seemingly expensive step can be confined to some extent.
 \commentary{
 The \code{int} type represents integers.
 The specification is written with 64-bit two's complement integers as the
-intended implementation, but when Dart is compiled to JavaScript,
-the implementation of \code{int} will instead use the JavaScript
-number type.
+intended implementation. But when Dart is compiled to JavaScript,
+the implementation of \code{int} will instead use the JavaScript number type
+and the corresponding JavaScript operations,
+except for bit operations as explained below.
 
-This introduces a number of differencs:
+This introduces a number of differences:
 \begin{itemize}
 \item[$\bullet$]
-Valid values of JavaScript \code{int} are any
-IEEE-754 64-bit floating point number with no fractional part.
-This includes positive and negative \Index{infinity},
-which can be reached by overflowing
-(integer division by zero is still not allowed).
-Otherwise valid integer literals (including any leading minus sign)
-that represent invalid JavaScript \code{int} values
-cannot be compiled to JavaScript.
-Operations on integers may lose precision since 64-bit floating point numbers
-are limited to 53 significant bits.
+  Valid values of JavaScript \code{int} are any IEEE-754 64-bit
+  floating point number with no fractional part.  This includes
+  positive and negative \Index{infinity}, which can be reached by
+  overflowing (integer division by zero is still a dynamic error).
+  Otherwise valid integer literals (including any leading minus sign)
+  that represent invalid JavaScript \code{int} values are compile-time
+  errors when compiling to JavaScript.  Operations on integers may
+  lose precision, because the operands and the result are represented
+  as 64-bit floating point numbers that are limited to 53 significant
+  bits.
 \item[$\bullet$]
-JavaScript \code{int} instances also implement \code{double},
-and integer-valued \code{double} instances also implement \code{int}.
-The \code{int} and \code{double} class are still separate subclasses of the
-class \code{num},
-but \emph{instances} of either class that represent an integer
-act as if they are actually instances of a common subclass implementing both
-\code{int} and \code{double}. Fractional numbers only implement \code{double}.
+  JavaScript \code{int} instances also implement \code{double}, and
+  integer-valued \code{double} instances also implement \code{int}.
+  The \code{int} and \code{double} class are still separate subclasses
+  of the class \code{num}, but \emph{instances} of either class that
+  represent an integer act as if they are actually instances of a
+  common subclass implementing both \code{int} and \code{double}.
+  Fractional numbers only implement \code{double}.
 \item[$\bullet$]
-Bitwise operations on integers (and, or, xor, negate and shifts)
-all truncate the operands to 32-bit values.
+  Bitwise operations on integers (and, or, xor, negation, and shifts)
+  all truncate the operands to 32-bit two's complement integers,
+  perform 32-bit operations on those,
+  and the resulting 32 bits are interpreted as a 32-bit unsigned integer
+  (for example, \code{-1 <{}< 1} evaluates to 4294967294).
 \item[$\bullet$]
-The \code{identical} method cannot distinguish the values $0.0$ and $-0.0$,
-and it cannot recognize any \Index{NaN} value as identical to itself.
-For efficiency, the \code{identical} operation uses the JavaScript \code{===}
-operator.
+  The \code{identical} method cannot distinguish the values $0.0$ and
+  $-0.0$, and it cannot recognize any \Index{NaN} value as identical
+  to itself.  For efficiency, the \code{identical} operation uses the
+  JavaScript \code{===} operator.
 \end{itemize}
 }
 
