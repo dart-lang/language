@@ -32,6 +32,7 @@
 % - Eliminate error for library name conflicts in imports and exports.
 % - Clarify the specification of initializing formals. Fix error: Add
 %   missing `?' at the end for function typed initializing formal.
+% - Revise and clarify the sections Imports and Exports.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -673,16 +674,34 @@ The method used to enable or disable assertions is implementation specific.
 \LMLabel{scoping}
 
 \LMHash{}%
-A \Index{namespace} is a mapping from names to declarations.
-It may be considered as a partial function.
-It may also be seen as a set of bindings from a name to a declaration,
-$n\mapsto{}D$,
-with the constraint that if a namespace has both
-$n\mapsto{}D_1$ and $n\mapsto{}D_2$
-then $D_1$ and $D_2$ is the same declaration.
-When a namespace is seen as a set of mappings we may also refer
-to each binding as having a \NoIndex{key}
-which is mapped to a \NoIndex{value}.
+A \Index{namespace} is a partial function that maps names to namespace values.
+A \Index{name} is a lexical token which is an \synt{IDENTIFIER},
+an \synt{IDENTIFIER} followed by \lit{=}, or
+an \synt{operator};
+and a \Index{namespace value} is
+a declaration, a namespace, or the special value \ConflictValue{}
+(\ref{conflictMergingOfNamespaces}).
+
+\LMHash{}%
+The graph of a namespace \NamespaceName{} is the set
+$\{(n, V)\;|\;\Namespace{}{n} = V\}$,
+and for any $(n, V)$ in that set we say that \NamespaceName{}
+\IndexCustom{maps}{namespace!maps a key to a value}
+the
+\IndexCustom{key}{namespace!key}
+$n$ to the
+\IndexCustom{value}{namespace!value}
+$V$,
+and that \NamespaceName{}
+\IndexCustom{has the binding}{namespace!has a binding}
+$n\mapsto{}V$.
+\commentary{%
+The fact that \NamespaceName{} is a partial function just means that
+each name is mapped to at most one namespace value.
+That is, if \NamespaceName{} has the bindings
+$n\mapsto{}V_1$ and $n\mapsto{}V_2$
+then $V_1 = V_2$.%
+}
 
 \LMHash{}%
 Let \NamespaceName{} be a namespace.
@@ -692,18 +711,32 @@ We say a declaration $d$ \NoIndex{is in} \NamespaceName{}
 if a key of \NamespaceName{} is mapped to $d$.
 
 \LMHash{}%
-A scope $S_0$ induces a namespace \NamespaceName{0} that maps
-the simple name of each variable, type or function declaration $d$
-declared in $S_0$ to $d$.
-Labels are not included in the induced namespace of a scope;
-instead they have their own dedicated namespace.
+A scope $S_0$ has an associated namespace \NamespaceName{0}.
+The bindings of \NamespaceName{0} is specified in this document by saying that
+a given declaration $D$ named $n$
+\IndexCustom{introduces}{declaration!introduces an entity into a scope}
+a specific entity $V$ into $S_0$,
+which means that the binding $n\mapsto{}V$ is added to \NamespaceName{0}.
 
 \commentary{%
-It is therefore impossible, e.g., to define a class that declares
-a method and a getter with the same name in Dart.
-Similarly one cannot declare a top-level function with
-the same name as a library variable or a class
-which is declared in the same library.%
+In some cases, the name of the declaration differs from
+the identifier that occurs in the declaration syntax used to declare it.
+Setters have names that are distinct from the corresponding getters
+because they always have an \lit{=} automatically added at the end,
+and the unary minus operator has the special name unary-.%
+}
+
+\commentary{%
+It is typically the case that $V$ is $D$,
+but there are exceptions:
+A variable declaration introduces an implicitly induced getter declaration,
+and in some cases also an implicitly induced setter declaration into the
+given scope.%
+}
+
+\commentary{%
+Note that labels are not included in the namespace of a scope.
+They are resolved lexically rather then being looked up in a namespace.%
 }
 
 \LMHash{}%
@@ -711,11 +744,11 @@ It is a compile-time error if there is more than one entity with the same name
 declared in the same scope.
 
 \commentary{%
-In some cases, the name of the declaration differs from
-the identifier that occurs in the declaration syntax used to declare it.
-Setters have names that are distinct from the corresponding getters
-because they always have an \lit{=} automatically added at the end,
-and unary minus has the special name unary-.%
+It is therefore impossible, e.g., to define a class that declares
+a method and a getter with the same name in Dart.
+Similarly one cannot declare a top-level function with
+the same name as a library variable or a class
+which is declared in the same library.%
 }
 
 \LMHash{}%
@@ -808,12 +841,14 @@ otherwise it is \IndexCustom{public}{public!identifier}.
 A declaration $m$ is \Index{accessible to a library} $L$
 if $m$ is declared in $L$ or if $m$ is public.
 
-\commentary{
-This means private declarations may only be accessed within the library in which they are declared.
+\commentary{%
+This means private declarations may only be accessed within
+the library in which they are declared.%
 }
 
 \LMHash{}%
-Privacy applies only to declarations within a library, not to library declarations themselves.
+Privacy applies only to declarations within a library,
+not to the library declaration as a whole.
 
 \rationale{
 Libraries do not reference each other by name and so the idea of a private library is meaningless.
@@ -7462,8 +7497,12 @@ All occurrences of \code{\#$\id.\id_2\ldots\id_n$} with the same sequence of ide
 evaluate to the same instance,
 and no other symbol literals evaluate to that \code{Symbol} instance
 or to a \code{Symbol} instance that is \lit{==} to that instance.
-\commentary{This kind of symbol literal denotes the name of a library declaration. Library names are not subject to library privacy, even
-if some of its identifiers begin with an underscore.}
+\commentary{%
+This kind of symbol literal denotes the name of a library declaration,
+as specified in a \synt{libraryName}.
+Library names are not subject to library privacy, even
+if some of its identifiers begin with an underscore.%
+}
 
 \LMHash{}%
 A symbol literal \code{\#\metavar{operator}} evaluates to an instance of \code{Symbol}
@@ -11485,9 +11524,7 @@ and the static type of $i$ is as specified there.
 
 \LMHash{}%
 It is a compile-time error to invoke any of the methods of class \code{Object}
-on a prefix namespace
-(\ref{imports})
-or on a constant type literal that is immediately followed by the token `.'\,.
+on a constant type literal that is immediately followed by the token `.'\,.
 
 \rationale{%
 The reason for the latter is that this syntax is reserved for
@@ -11870,14 +11907,12 @@ or of the form \code{\SUPER.\id}
 Consider an unconditional property extraction $i$
 (\ref{propertyExtraction})
 of the form \code{$e$.\id}.
-It is a compile-time error if \id{} is a member of class \code{Object}
-and $e$ is either a prefix namespace (\ref{imports})
-or a type literal.
+It is a compile-time error if \id{} is the name of
+a member of the built-in class \code{Object}
+and $e$ is a type literal.
 
 \commentary{
-It may seem obvious that it is an error to use prefix namespace,
-but more surprising that it also applies to a type literal.
-In particular, we cannot use \code{int.toString}
+This means that we cannot use \code{int.toString}
 to obtain a function object for the \code{toString} method of the
 \code{Type} object for \code{int}.
 But we can use \code{(int).toString}:
@@ -16207,14 +16242,12 @@ Since top level privates are not imported, using the top level privates of anoth
 The \Index{public namespace} of library $L$ is the mapping that maps
 the simple name of each public top-level member declaration $m$ of $L$ to $m$.
 The \Index{local namespace} of library $L$ is the mapping that maps
-the names introduced by each top-level member declaration of $L$
-as well as import prefixes
-(\ref{imports})
-and fresh names of extensions
-(\ref{extensions})
-to the corresponding declaration or import prefix.
+the names introduced by each top-level declaration of $L$
+to the corresponding declaration.
 The \Index{library scope} of library $L$ is the outermost scope in $L$,
-and its namespace is the local namespace of $L$.
+and its namespace is the library namespace of $L$
+(\ref{theImportedNamespace}).
+
 
 \subsection{Imports}
 \LMLabel{imports}
@@ -16227,8 +16260,7 @@ is made available in the current library.
 <libraryImport> ::= <metadata> <importSpecification>
 
 <importSpecification> ::= \gnewline{}
-  \IMPORT{} <configurableUri> (\AS{} <identifier>)? <combinator>* `;'
-  \alt \IMPORT{} <configurableUri> \DEFERRED{} \AS{} <identifier> <combinator>* `;'
+  \IMPORT{} <configurableUri> (\DEFERRED? \AS{} <identifier>)? <combinator>* `;'
 \end{grammar}
 
 \LMHash{}%
@@ -16262,10 +16294,14 @@ names imported by $I$.
 In this case we say that \id{} is an \Index{import prefix},
 or simply a \Index{prefix}.
 
+\commentary{%
+Note that the grammar enforces that a deferred import
+includes a prefix clause,
+so we can refer to \emph{the} prefix clause of a deferred import.%
+}
+
 \LMHash{}%
-It is a compile-time error if a deferred import does not include
-a prefix clause.
-It is a compile-time error if a prefix used in a deferred import
+It is a compile-time error if the prefix used in a deferred import
 is also used as the prefix of another import clause.
 It is a compile-time error if \id{} is an import prefix and
 the current library declares a top-level member named \id{}.
@@ -16308,7 +16344,7 @@ by means of yet another special rule.%
 \LMHash{}%
 In the following, we specify the imported namespace of a library $L$,
 \NamespaceName{\metavar{import}},
-in two steps.
+and use that to define the namespace that defines the library scope of $L$.
 
 \LMHash{}%
 We need to introduce system libraries because they have special rules.
@@ -16317,8 +16353,7 @@ Any other library is a \Index{non-system library}.
 
 \commentary{%
 A system library can generally be recognized by having
-a URI that starts with `\code{dart:}'.
-An exception is `\code{dart:ui}' which is not a system library.%
+a URI that starts with `\code{dart:}'.%
 }
 
 \rationale{%
@@ -16336,8 +16371,6 @@ conflicts with the system libraries are treated specially.%
 \LMHash{}%
 Let \NamespaceName{\metavar{local}} be the local namespace of $L$
 (\ref{librariesAndScripts}).
-An import with a prefix $p$ is included among these top-level declarations,
-and it causes $p$ to be mapped to a prefix namespace as described below.
 Let \List{I}{1}{m} be the import directives of $L$,
 and let \List{L}{1}{m} be libraries
 such that $I_i$ refers to $L_i$ for all $i \in 1 .. m$.
@@ -16347,7 +16380,11 @@ It is not an error to have multiple imports of the same library.%
 
 \LMHash{}%
 Let $i \in 1 .. m$.
+
+\LMHash{}%
+{\bf Step one.}
 In the first step we compute the namespace provided by each imported library,
+respectively by each group of libraries imported with the same prefix,
 \NamespaceName{\metavar{one},i}.
 
 \LMHash{}%
@@ -16355,11 +16392,20 @@ In the first step we compute the namespace provided by each imported library,
 When $I_i$ has no prefix, \NamespaceName{\metavar{one},i} is
 the namespace obtained from applying the namespace combinators of $I_i$ to
 the exported namespace of $L_i$
-(\ref{namespaceCombinators}).
+(\ref{namespaceCombinators}),
+and eliminating every binding
+where the key is an import prefix declared in $L$.
+
+\commentary{%
+The former ensures that \HIDE{} and \SHOW{} directives are taken into account,
+and the latter ensures that an import prefix will shadow an imported name.%
+}
 \EndCase
 
 \LMHash{}%
 \Case{Step one for prefixed imports}
+In this step we resolve name conflicts
+among names imported with the same prefix.
 When $I_i$ has prefix $p_i$,
 let \List{I'}{1}{k} be the sublist of \List{I}{1}{m} that have prefix $p_i$,
 and let \List{L'}{1}{k} be the corresponding libraries
@@ -16370,10 +16416,39 @@ the exported namespace of $L'_j$
 (\ref{namespaceCombinators}).
 
 \LMHash{}%
+For later reference, we need to introduce a way to refer to certain extensions:
+If \NamespaceName{\metavar{exported},j} contains an extension $E$
+(\ref{extensions})
+then we say that $E$ is
+\IndexCustom{exported to}{extension!exported to a prefix}
+$p_i$.
+\commentary{%
+Note that $E$ is `exported to $p_i$',
+even in the case where there is a name clash with a different import
+which makes it an error to access $E$ using its name
+because that name is conflicted.
+The point is that $E$ can still be used implicitly,
+based on its fresh name.%
+}
+
+\LMHash{}%
+When $I_i$ is a non-deferred import:
 Let \NamespaceName{\metavar{prefix},i} be the namespace obtained from applying
 conflict merging to
 \List{\metavar{NS}}{\metavar{exported},1}{\metavar{exported},k}
 (\ref{conflictMergingOfNamespaces}).
+
+\LMHash{}%
+When $I_i$ is a deferred import:
+In this case $k$ is 1
+(\commentary{otherwise a compile-time error would occur}),
+and \NamespaceName{\metavar{prefix},i} is the namespace obtained by
+adding a binding of the name \code{loadLibrary}
+to an implicitly induced declaration of a function with signature
+\code{Future<\VOID> loadLibrary()}
+to \NamespaceName{\metavar{exported},1}.
+
+\LMHash{}%
 Then \NamespaceName{\metavar{one},i} is a namespace that has
 a single binding that maps $p_i$ to \NamespaceName{\metavar{prefix},i}.
 
@@ -16383,13 +16458,13 @@ In this situation we say that \NamespaceName{\metavar{one},i} is a
 because it maps a library prefix to a namespace.
 
 \commentary{%
-A prefix namespace is not a Dart object, it is merely a device which is
-used to manage names of the form \synt{qualified} and their types
-during static analysis,
-and a mapping that is used to access the corresponding entities
-at run time.
+A prefix namespace is not a Dart object,
+it is merely a device which is used to manage
+expressions of the form \synt{qualifiedName} and what they refer to
+during static analysis.
 Consequently, any attempt to use a prefix namespace as an object
-is a compile-time error.
+is a compile-time error, e.g.,
+it cannot be the result of an expression evaluation.
 
 Note that if $l$ and $q$ are such that
 $I_l$ and $I_q$ both have the same prefix $p$
@@ -16401,7 +16476,7 @@ $\NamespaceName{\metavar{one},l} = \NamespaceName{\metavar{one},q} =
 
 \LMHash{}%
 {\bf Step two.}
-In the second step we resolve conflicts
+In the second step we resolve top level conflicts
 among the namespaces obtained in the first step.
 
 \LMHash{}%
@@ -16416,18 +16491,38 @@ such that $n$ and $n'$ have the same basename.
 
 \commentary{%
 In other words, a declaration in the current library shadows
-imported declarations.
-Note that the prefix of an import also introduces a binding
-into \NamespaceName{\metavar{local}},
-so a prefix can also shadow an imported declaration.%
+imported declarations.%
 }
 
 \LMHash{}%
-The namespace \NamespaceName{\metavar{import}} is known as the
-\Index{imported namespace}
-of $L$.
-The \Index{library namespace} of $L$ is
-$\NamespaceName{\metavar{local}} \cup \NamespaceName{\metavar{import}}$.
+The \Index{imported namespace} of $L$ is then \NamespaceName{\metavar{import}}.
+
+\LMHash{}%
+Let $\cal E$ be a set of extension declarations
+(\ref{extensions})
+with the following members:
+An extension declaration $E$ is a member of $\cal E$
+if there is an $i \in 1 .. m$ and a name $n$
+such that $\Namespace{\metavar{one},i}{n} = E$,
+or if there is a prefix $p_i$ such that $E$ is exported to $p_i$
+(\commentary{as defined in step one}).
+%
+Let \NamespaceName{\metavar{extensions}} be a namespace that
+for each extension $E$ in $\cal E$ maps a fresh name to $E$.
+
+\commentary{%
+\NamespaceName{\metavar{extensions}} provides a fresh name
+allowing implicit access to each extension exported by an imported library
+and not removed by \HIDE{} or \SHOW{},
+even the ones that cannot be accessed using their declared name,
+because of a name clash.%
+}
+
+\LMHash{}%
+The \Index{library namespace} of $L$ is then
+$\NamespaceName{\metavar{local}} \cup
+\NamespaceName{\metavar{import}} \cup
+\NamespaceName{\metavar{extensions}}$.
 
 \LMHash{}%
 Let $i \in 1 .. m$.
@@ -16495,9 +16590,11 @@ The deferred prefix namespace has the following bindings:
 \item
   For every top level function $f$ named \id{} in
   \NamespaceName{\metavar{import},i},
-  a corresponding method named \id{} with the same signature as $f$.
+  a corresponding function named \id{} with the same signature as $f$.
   % This error can occur because being-loaded is a dynamic property.
-  Calling the method results in a dynamic error.
+  Calling the function results in a dynamic error,
+  and so does closurizing it
+  (\ref{functionClosurization}).
 \item
   For every top level getter $g$ named \id{} in
   \NamespaceName{\metavar{import},i},
@@ -16511,7 +16608,7 @@ The deferred prefix namespace has the following bindings:
   % This error can occur because being-loaded is a dynamic property.
   Calling the setter results in a dynamic error.
 \item
-  For every type $T$ named \id{} in
+  For every class, mixin and type alias declaration named \id{} in
   \NamespaceName{\metavar{import},i},
   a corresponding getter named \id{} with return type \code{Type}.
   % This error can occur because being-loaded is a dynamic property.
@@ -16531,7 +16628,7 @@ the name $p$ is mapped to a non-deferred prefix namespace,
 as described below.
 In addition, the prefix namespace also supports the \code{loadLibrary} function,
 and so it is possible to invoke \code{$p$.loadLibrary()} again.
-If a call fails, nothing happens,
+If a call fails, the library has not been loaded,
 and one has the option to invoke \code{$p$.loadLibrary()} again.
 Whether a repeated call to \code{$p$.loadLibrary()} succeeds will vary,
 as described below.
@@ -16559,7 +16656,7 @@ The effect of a repeated invocation of \code{$p$.loadLibrary()} is as follows:
 In other words, one can retry a deferred load after a network failure
 or because a file is absent,
 but once one finds some content and loads it, one can no longer reload.
-We do not specify which object the future returned resolves to.%
+We do not specify which object the returned future resolves to.%
 }
 \EndCase
 
