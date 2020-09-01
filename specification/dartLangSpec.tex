@@ -752,6 +752,15 @@ which is declared in the same library.%
 }
 
 \LMHash{}%
+In order to specify a few properties of execution,
+we introduce the notion of a
+\Index{dynamic namespace}.
+This is a partial function from names to run-time entities,
+in particular objects and compiled code.
+Each dynamic namespace corresponds to a namespace with the same keys,
+but with values that correspond to the semantics of the namespace values.
+
+\LMHash{}%
 Dart is lexically scoped.
 Scopes may nest.
 A name or declaration $d$ is \Index{available in scope} $S$ if $d$ is in the namespace induced by $S$ or if $d$ is available in the lexically enclosing scope of $S$.
@@ -16680,7 +16689,7 @@ When $I_i$ is an immediate import that refers to a URI via the string $s_i$:
 
 \LMHash{}%
 Let \NamespaceName{\metavar{import}, i} be the namespace imported from $L_i$.
-The namespace \NamespaceName{i} will then have the following bindings:
+The dynamic namespace \NamespaceName{i} will then have the following bindings:
 
 \begin{itemize}
 \item
@@ -16696,26 +16705,26 @@ The namespace \NamespaceName{i} will then have the following bindings:
 
 \LMHash{}%
 If $I_i$ has prefix $p$,
-and the library namespace of the current library
+and the dynamic library namespace of the current library
 does not have a binding for $p$,
-then a mapping from $p$ to a non-deferred prefix namespace
+then a mapping from $p$ to a non-deferred dynamic prefix namespace
 with members determined by \NamespaceName{i} is introduced into the
-library namespace of the current library.
+dynamic library namespace of the current library.
 If $I_i$ has prefix $p$,
-and the library namespace of the current library
-binds $p$ to a non-deferred prefix namespace $o$,
+and the dynamic library namespace of the current library
+binds $p$ to a non-deferred dynamic prefix namespace $o$,
 then $o$ is extended with bindings as determined by \NamespaceName{i}.
 
 \LMHash{}%
 Otherwise, when $I_i$ does not have a prefix, each mapping in \NamespaceName{i}
-is introduced into the library namespace of the current library.
+is introduced into the dynamic library namespace of the current library.
 
 \commentary{%
-The dynamic construction of the library namespace
+The construction of the dynamic library namespace
 cannot encounter any name conflicts,
 because such conflicts would have caused a compile-time error.
 
-Library namespace construction can be completed at compile time,
+Dynamic library namespace construction can be completed at compile time,
 and any accesses, prefixed or not, can be resolved statically.
 So an implementation does not need to extend prefix namespaces dynamically,
 or even have a run-time representation of prefix namespaces at all,
@@ -16768,7 +16777,7 @@ in \NamespaceName{\metavar{public}}.%
 \LMHash{}%
 In the first step we compute the namespace provided by each exported library:
 For each $i \in 1 .. m$,
-\NamespaceName{\metavar{one},i} is
+\NamespaceName{\metavar{exported},i} is
 the namespace obtained from applying
 the namespace combinators of $E_i$ to
 the exported namespace of $L_i$
@@ -16781,7 +16790,7 @@ and $n$ and $n'$ have the same basename.
 \LMHash{}%
 The
 \IndexCustom{namespace re-exported from}{library!namespace re-exported from}
-$L_i$ is \NamespaceName{\metavar{one},i}.
+$L_i$ is \NamespaceName{\metavar{exported},i}.
 
 \LMHash{}%
 In the second step we compute the exported namespace of $L$.
@@ -16792,7 +16801,7 @@ to \List{\metavar{NS}}{\metavar{one},1}{\metavar{one},m}.
 A compile-time error occurs if any name in
 \NamespaceName{\metavar{merged}}
 is conflicted
-(\commentary{that is, the name is mapped to \ConflictValue}).
+(\ref{conflictMergingOfNamespaces}).
 
 \rationale{%
 This rule is more strict than the corresponding rule for imports:
@@ -16827,10 +16836,10 @@ we say that $L$
 \Index{re-exports library}
 $L_i$, and also that $L$
 \Index{re-exports namespace}
-\NamespaceName{\metavar{export},i}.
+\NamespaceName{\metavar{exported},i}.
 When no confusion can arise, we may simply state
 that $L$ \NoIndex{re-exports} $L_i$, or
-that $L$ \NoIndex{re-exports} \NamespaceName{\metavar{export},i}.
+that $L$ \NoIndex{re-exports} \NamespaceName{\metavar{exported},i}.
 
 
 \subsection{Namespace Combinators}
@@ -16963,8 +16972,8 @@ are specified as follows:
 \LMHash{}%
 \NamespaceName{\metavar{conflict}} is empty except for the
 bindings mentioned below.
-\NamespaceName{\metavar{narrowed},i} is identical to
-\NamespaceName{i}, $i \in 1 .. m$,
+For each $i \in 1 .. m$,
+\NamespaceName{\metavar{narrowed},i} is identical to \NamespaceName{i},
 except that the former is undefined at each name $n$ where
 the latter is defined,
 and one of the following conditions holds:
@@ -16979,7 +16988,7 @@ and one of the following conditions holds:
     So a declaration from a non-system library shadows
     declarations from system libraries.%
   }
-\item There exists a $j \in 1 .. m$ and name $n'$ such that
+\item Otherwise, there exists a $j \in 1 .. m$ and name $n'$ such that
   \NamespaceName{j} is defined at $n'$,
   $n$ and $n'$ have the same basename,
   \Namespace{i}{n} and \Namespace{j}{n'} are not the same declaration
@@ -17015,11 +17024,11 @@ over declarations from system libraries.%
 
 \LMHash{}%
 It is useful to be able to refer to the result of narrowing.
-Let \List{\metavar{NS}}{1}{m} be a list of namespaces, $j \in 1 .. m$,
+Let \List{\metavar{NS}}{1}{m} be a list of namespaces, $i \in 1 .. m$,
 and consider the conflict merging as specified above.
 The
 \IndexCustom{conflict narrowed namespace}{namespace!conflict narrowed}
-of \NamespaceName{j} is then \NamespaceName{\metavar{narrowed},j}.
+of \NamespaceName{i} is then \NamespaceName{\metavar{narrowed},i}.
 
 
 \subsection{Parts}
