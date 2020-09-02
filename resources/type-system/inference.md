@@ -7,6 +7,9 @@ Status: Draft
 ## CHANGELOG
 
 2019.09.01
+  - Fix incorrect placement of left top rule in constraint solving.
+
+2019.09.01
   - Add left top rule to constraint solving.
   - Specify inference constraint solving.
 
@@ -775,6 +778,8 @@ clauses need be tried.
   - Only if `P0` is a subtype match for `Q` under constraint set `C`.
 - If `Q` is a legacy type `Q0*` then the match holds under constraint set `C`:
   - Only if `P` is a subtype match for `Q?` under constraint set `C`.
+- If `P` is `dynamic` or `void` then the match holds under constraint set `C`
+  - Only if `Object?` is a subtype match for `Q` under constraint set `C`.
 - If `Q` is `FutureOr<Q0>` the match holds under constraint set `C`:
   - If `P` is `FutureOr<P0>` and `P0` is a subtype match for `Q0` under
     constraint set `C`.
@@ -797,11 +802,8 @@ clauses need be tried.
 - If `P` is `P0?` the match holds under constraint set `C1 + C2`:
   - If `P0` is a subtype match for `Q` under constraint set `C1`
   - And if `Null` is a subtype match for `Q` under constraint set `C2`
-
 - If `Q` is `dynamic`, `Object?`, or `void` then the match holds under no
   constraints.
-- If `P` is `dynamic` or `void` then the match holds under constraint set `C` if
-  `Object?` is a subtype match for `Q` under constraint set `C`.
 - If `P` is `Never` then the match holds under no constraints.
 - If `Q` is `Object`, then the match holds under no constraints:
   - Only if `P` is non-nullable.
