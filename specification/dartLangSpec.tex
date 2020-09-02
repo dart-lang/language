@@ -26,6 +26,14 @@
 %
 % Significant changes to the specification.
 %
+% 2.8
+% - Change several warnings to compile-time errors, matching the actual
+%   behavior of tools.
+% - Eliminate error for library name conflicts in imports and exports.
+% - Clarify the specification of initializing formals. Fix error: Add
+%   missing `?' at the end for function typed initializing formal.
+% - Adjust specification of JS number semantics.
+%
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
 %   'class declaration' everywhere, so `<classDefinition>` is inconsistent).
@@ -1362,9 +1370,17 @@ This situation is very unusual so it is not worth making an exception to the gen
 }
 
 \LMHash{}%
-It is a compile-time error if the declared return type of a function marked \ASYNC{} is not a supertype of \code{Future<$T$>} for some type $T$.
-It is a compile-time error if the declared return type of a function marked \code{\SYNC*} is not a supertype of \code{Iterable<$T$>} for some type $T$.
-It is a compile-time error if the declared return type of a function marked \code{\ASYNC*} is not a supertype of \code{Stream<$T$>} for some type $T$.
+It is a compile-time error if the declared return type of
+a function marked \ASYNC{} is not
+a supertype of \code{Future<$T$>} for some type $T$.
+It is a compile-time error if the declared return type of
+a function marked \code{\SYNC*} is not
+a supertype of \code{Iterable<$T$>} for some type $T$.
+It is a compile-time error if the declared return type of
+a function marked \code{\ASYNC*} is not
+a supertype of \code{Stream<$T$>} for some type $T$.
+It is a compile-time error if the declared return type of
+a function marked \code{\SYNC*} or \code{\ASYNC*} is \VOID.
 
 \LMHash{}%
 We define the notion of the
@@ -1551,7 +1567,7 @@ It is a compile-time error if any default values are specified in the signature 
   \alt \COVARIANT{}? <identifier>
 
 <fieldFormalParameter> ::= \gnewline{}
-  <finalConstVarOrType>? \THIS{} `.' <identifier> <formalParameterPart>?
+  <finalConstVarOrType>? \THIS{} `.' <identifier> (<formalParameterPart> `?'?)?
 \end{grammar}
 
 \LMHash{}%
@@ -1559,6 +1575,17 @@ It is a compile-time error if a formal parameter has the modifier \CONST{}
 or the modifier \LATE.
 It is a compile-time error if \VAR{} occurs as
 the first token of a \synt{fieldFormalParameter}.
+
+\LMHash{}%
+It is a compile-time error if a parameter derived from
+\synt{fieldFormalParameter} occurs as a parameter of a function
+which is not a non-redirecting generative constructor.
+
+\commentary{%
+A \synt{fieldFormalParameter} declares an initializing formal,
+which is described elsewhere
+(\ref{generativeConstructors}).%
+}
 
 \LMHash{}%
 It is possible to include the modifier \COVARIANT{}
@@ -2309,9 +2336,8 @@ is not 0.
 It is a compile-time error to declare an optional parameter in an operator.
 
 \LMHash{}%
-It is a static warning if the return type of a user-declared operator
-\lit{[]=}
-is explicitly declared and not \VOID{}.
+It is a compile-time error if a user-declared operator \lit{[]=}
+declares a return type other than \VOID{}.
 
 \commentary{
 If no return type is specified for a user-declared operator
@@ -2778,8 +2804,8 @@ We could enforce this via the grammar, but we'd have to specify the evaluation r
 }
 
 \LMHash{}%
-It is a static warning if a setter declares a return type other than \VOID{}.
-It is a static warning if a class has
+It is a compile-time error if a setter declares a return type other than \VOID.
+It is a compile-time error if a class has
 a setter named \code{$v$=} with argument type $T$ and
 a getter named $v$ with return type $S$,
 and $S$ may not be assigned to $T$.
@@ -2956,7 +2982,8 @@ If{}f no constructor is specified for a class $C$, it implicitly has a default c
 
 \LMHash{}%
 A \IndexCustom{generative constructor}{constructor!generative}
-declaration consists of a constructor name, a constructor parameter list,
+declaration consists of a constructor name, a formal parameter list
+(\ref{formalParameters}),
 and either a redirect clause or an initializer list and an optional body.
 
 \begin{grammar}
@@ -2965,17 +2992,35 @@ and either a redirect clause or an initializer list and an optional body.
 <constructorName> ::= <typeIdentifier> (`.' <identifier>)?
 \end{grammar}
 
-\LMHash{}%
-A \Index{constructor parameter list} is a parenthesized, comma-separated list of formal constructor parameters.
-A \Index{formal constructor parameter} is either a formal parameter (\ref{formalParameters}) or an initializing formal.
-An \Index{initializing formal} has the form \code{\THIS{}.\id}, where \id{} is the name of an instance variable of the immediately enclosing class.
-It is a compile-time error if \id{} is not an instance variable of the immediately enclosing class.
-It is a compile-time error if an initializing formal is used by a function other than a non-redirecting generative constructor.
+\commentary{%
+See \synt{declaration} and \synt{methodSignature} for grammar rules
+introducing a redirection or an initializer list and a body.%
+}
 
 \LMHash{}%
-If an explicit type is attached to the initializing formal, that is its static type.
-Otherwise, the type of an initializing formal named \id{} is $T_{id}$, where $T_{id}$ is the type of the instance variable named \id{} in the immediately enclosing class.
-It is a compile-time error if the static type of \id{} is not a subtype of $T_{id}$.
+If a formal parameter declaration $p$ is derived from
+\synt{fieldFormalParameter},
+it declares an \Index{initializing formal parameter}.
+A term of the form \code{\THIS.\id} is contained in $p$,
+and \id{} is the \NoIndex{name} of $p$.
+It is a compile-time error if \id{} is not also the name of
+an instance variable of the immediately enclosing class.
+
+\commentary{%
+Note that it is a compile-time error for an initializing formal
+to occur in any function which is not a non-redirecting generative constructor
+(\ref{requiredFormals}),
+so there is always an enclosing class.%
+}
+
+\LMHash{}%
+Assume that $p$ is a declaration of an initializing formal parameter named \id.
+Let $T_{id}$ be the type of the instance variable named \id{} in
+the immediately enclosing class.
+If $p$ has a type annotation $T$ then the declared type of $p$ is $T$.
+Otherwise, the declared type of $p$ is $T_{id}$.
+It is a compile-time error if the declared type of $p$
+is not a subtype of $T_{id}$.
 
 \LMHash{}%
 Initializing formals constitute an exception to the rule that
@@ -4415,7 +4460,10 @@ or $J$ is a superinterface of a direct superinterface of $I$.
 When we say that a type $S$
 \IndexCustom{implements}{type!implements a type}
 another type $T$,
-this means that $T$ is a superinterface of $S$.
+this means that $T$ is a superinterface of $S$,
+or $S$ is $S_0$ bounded for some type $S_0$
+(\ref{bindingActualsToFormals}),
+and $T$ is a superinterface of $S_0$.
 Assume that $G$ is a raw type
 (\ref{instantiationToBound})
 whose declaration declares $s$ type parameters.
@@ -4423,7 +4471,7 @@ When we say that a type $S$
 \IndexCustom{implements}{type!implements a raw type}
 $G$,
 this means that there exist types \List{U}{1}{s}
-such that \code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
+such that $S$ implements \code{$G$<\List{U}{1}{s}>}.
 
 \commentary{%
 Note that this is not the same as being a subtype.
@@ -4437,8 +4485,8 @@ $S$ cannot be a subtype of \code{Null}.%
 
 \LMHash{}%
 Assume that $S$ is a type and $G$ is a raw type such that $S$ implements $G$.
-Per definition there exist types \List{U}{1}{s} such that
-\code{$G$<\List{U}{1}{s}>} is a superinterface of $S$.
+Then there exist unique types \List{U}{1}{s} such that
+$S$ implements \code{$G$<\List{U}{1}{s}>}.
 We then say that \List{U}{1}{s} are the
 \IndexCustom{actual type arguments of $S$ at $G$}{%
   type arguments!of a type at a raw type},
@@ -16387,17 +16435,7 @@ The use of a class or interface, and of its members, is separate from its declar
 The usage and declaration may occur in widely separated places in the code, and may in fact be authored by different people or organizations.
 It is important that errors are given at the offending declaration so that the party that receives the error can respond to it a meaningful way.
 
-In contrast a library comprises both imports and their usage; the library is under the control of a single party and so any problem stemming from the import can be resolved even if it is reported at the use site.
-
-%On a related note, the provenance of the conflicting elements is not considered. An element that is imported via distinct paths may conflict with itself. This avoids variants of the well known "diamond" problem.
-}
-
-\LMHash{}%
-It is a static warning to import two different libraries with the same name unless their name is the empty string.
-
-\commentary{
-A widely disseminated library should be given a name that will not conflict with other such libraries.
-The preferred mechanism for this is using pub, the Dart package manager, which provides a global namespace for libraries, and conventions that leverage that namespace.
+In contrast a library comprises both imports and their usage; the library is under the control of a single party and so any problem stemming from the import can be resolved even if it is reported at the use site.%
 }
 
 \commentary{
@@ -16601,10 +16639,6 @@ and also that $L$ \Index{re-exports namespace} \Namespace{i}.
 When no confusion can arise, we may simply state
 that $L$ \NoIndex{re-exports} $L_i$, or
 that $L$ \NoIndex{re-exports} \Namespace{i}.
-
-\LMHash{}%
-It is a compile-time error to export two different libraries with the same name
-unless their name is the empty string.
 
 
 \subsection{Parts}
@@ -19028,39 +19062,43 @@ which means that this seemingly expensive step can be confined to some extent.
 \commentary{
 The \code{int} type represents integers.
 The specification is written with 64-bit two's complement integers as the
-intended implementation, but when Dart is compiled to JavaScript,
-the implementation of \code{int} will instead use the JavaScript
-number type.
+intended implementation. But when Dart is compiled to JavaScript,
+the implementation of \code{int} will instead use the JavaScript number type
+and the corresponding JavaScript operations,
+except for bit operations as explained below.
 
-This introduces a number of differencs:
+This introduces a number of differences:
 \begin{itemize}
 \item[$\bullet$]
-Valid values of JavaScript \code{int} are any
-IEEE-754 64-bit floating point number with no fractional part.
-This includes positive and negative \Index{infinity},
-which can be reached by overflowing
-(integer division by zero is still not allowed).
-Otherwise valid integer literals (including any leading minus sign)
-that represent invalid JavaScript \code{int} values
-cannot be compiled to JavaScript.
-Operations on integers may lose precision since 64-bit floating point numbers
-are limited to 53 significant bits.
+  Valid values of JavaScript \code{int} are any IEEE-754 64-bit
+  floating point number with no fractional part.  This includes
+  positive and negative \Index{infinity}, which can be reached by
+  overflowing (integer division by zero is still a dynamic error).
+  Otherwise valid integer literals (including any leading minus sign)
+  that represent invalid JavaScript \code{int} values are compile-time
+  errors when compiling to JavaScript.  Operations on integers may
+  lose precision, because the operands and the result are represented
+  as 64-bit floating point numbers that are limited to 53 significant
+  bits.
 \item[$\bullet$]
-JavaScript \code{int} instances also implement \code{double},
-and integer-valued \code{double} instances also implement \code{int}.
-The \code{int} and \code{double} class are still separate subclasses of the
-class \code{num},
-but \emph{instances} of either class that represent an integer
-act as if they are actually instances of a common subclass implementing both
-\code{int} and \code{double}. Fractional numbers only implement \code{double}.
+  JavaScript \code{int} instances also implement \code{double}, and
+  integer-valued \code{double} instances also implement \code{int}.
+  The \code{int} and \code{double} class are still separate subclasses
+  of the class \code{num}, but \emph{instances} of either class that
+  represent an integer act as if they are actually instances of a
+  common subclass implementing both \code{int} and \code{double}.
+  Fractional numbers only implement \code{double}.
 \item[$\bullet$]
-Bitwise operations on integers (and, or, xor, negate and shifts)
-all truncate the operands to 32-bit values.
+  Bitwise operations on integers (and, or, xor, negation, and shifts)
+  all truncate the operands to 32-bit two's complement integers,
+  perform 32-bit operations on those,
+  and the resulting 32 bits are interpreted as a 32-bit unsigned integer
+  (for example, \code{-1 <{}< 1} evaluates to 4294967294).
 \item[$\bullet$]
-The \code{identical} method cannot distinguish the values $0.0$ and $-0.0$,
-and it cannot recognize any \Index{NaN} value as identical to itself.
-For efficiency, the \code{identical} operation uses the JavaScript \code{===}
-operator.
+  The \code{identical} method cannot distinguish the values $0.0$ and
+  $-0.0$, and it cannot recognize any \Index{NaN} value as identical
+  to itself.  For efficiency, the \code{identical} operation uses the
+  JavaScript \code{===} operator.
 \end{itemize}
 }
 

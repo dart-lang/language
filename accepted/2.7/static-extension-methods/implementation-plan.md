@@ -5,7 +5,7 @@ Owner: lrn@google.com ([@lrhn](https://github.com/lrhn/) on GitHub)
 Relevant links:
 
 * [Tracking issue](https://github.com/dart-lang/language/issues/41)
-* [Proposal](https://github.com/dart-lang/language/blob/master/accepted/future-releases/static-extension-methods/feature-specification.md)
+* [Proposal](https://github.com/dart-lang/language/blob/master/accepted/2.7/static-extension-methods/feature-specification.md)
 
 ## Phase 0 (Prerequisite)
 

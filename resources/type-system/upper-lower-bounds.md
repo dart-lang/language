@@ -4,6 +4,9 @@ leafp@google.com
 
 ## CHANGELOG
 
+2020.07.21
+  - **CHANGE** Specify treatment of mixed hierarchies.
+
 2020.03.30
   - **CHANGE** Update DOWN algorithm with extensions for FutureOr
 
@@ -217,8 +220,14 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`T1`, `T2`) = `T1` if `T2` <: `T1`
   - Note that both types must be class types at this point
 - **UP**(`C<T0, ..., Tn>`, `C<S0, ..., Sn>`) = `C<R0,..., Rn>` where `Ri` is **UP**(`Ti`, `Si`)
-- **UP**(`C0<T0, ..., Tn>`, `C1<S0, ..., Sk>`) = least upper bound of two interfaces
-  as in Dart 1.
+- **UP**(`C0<T0, ..., Tn>`, `C1<S0, ..., Sk>`) = least upper bound of two
+  interfaces as in Dart 1, with modifications for handling mixed null safe and
+  legacy code as follows:
+  - For an upper bound computation in a legacy library, the set of
+    super-interfaces used consists of the `LEGACY_ERASURE` of the
+    super-interfaces of the two types.
+  - For an upper bound computation in an opted in library, no modification of
+    the set of super-interfaces is performed.
 
 ## Lower bounds
 

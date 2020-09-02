@@ -8,9 +8,26 @@ Status: Draft
 
 2019.09.01
   - Add left top rule to constraint solving.
-
-2019.05.07:
   - Specify inference constraint solving.
+
+2020.07.20
+  - Clarify that some rules are specific to code without/with null safety.
+    'Without null safety, ...' respectively 'with null safety, ...' is used
+    to indicate such rules, and the remaining text is applicable in both cases.
+
+2020.07.14:
+  - Infer return type `void` from context with function literals.
+
+2020.06.04:
+  - Make conflict resolution for override inference explicit.
+
+2020.06.02
+  - Account for the special treatment of bottom types during function literal
+  inference.
+
+2020.05.27
+  - Update function literal return type inference to use
+    **futureValueTypeSchema**.
 
 2019.12.03:
   - Update top level inference for non-nullability, function expression
@@ -49,8 +66,8 @@ expressions.  In particular:
 1. **Method override inference**
     * If you omit a return type or parameter type from an overridden or
     implemented method, inference will try to fill in the missing type using the
-    signature of the method you are overriding.
-2. **Static variable and field inference** 
+    signature of the methods you are overriding.
+2. **Static variable and field inference**
     * If you omit the type of a field, setter, or getter, which overrides a
    corresponding member of a superclass, then inference will try to fill in the
    missing type using the type of the corresponding member of the superclass.
@@ -136,8 +153,9 @@ The general inference procedure is as follows.
         - Record the type of `x` and mark `x` as *available*.
     - Otherwise, if `D` has an initializing expression `e`:
       - Perform local type inference on `e`.
-      - Record the type of `x` to be the inferred type of `e`, and mark `x` as
-        *available*.
+      - Let `T` be the inferred type of `e`, or `dynamic` if the inferred type
+        of `e` is a subtype of `Null`.  Record the type of `x` to be `T` and
+        mark `x` as *available*.
     - Otherwise record the type of `x` to be `dynamic` and mark `x` as
       *available*.
   - If `D` is a constructor declaration `C(...)` for which one or more of the
@@ -156,22 +174,32 @@ error if there is such an ordering.  Note that method override inference is
 independent of non-override inference, and hence can be completed prior to the
 rest of top level inference if desired.
 
+
 ##### Method override inference
 
-A method which is subject to override inference is missing one or more component
-types of its signature, and it overrides one or more declarations. Each missing
-type is filled in with the corresponding type from the overridden or implemented
-method.  If there are multiple overridden/implemented methods, and any two of
-them have non-equal types (declared or inferred) for a parameter position which
-is being inferred for the overriding method, it is an error.  If there is no
-corresponding parameter position in the overridden method to infer from and the
-signatures are compatible, it is treated as dynamic (e.g. overriding a one
-parameter method with a method that takes a second optional parameter).  Note:
-if there is no corresponding parameter position in the overridden method to
-infer from and the signatures are incompatible (e.g. overriding a one parameter
-method with a method that takes a second non-optional parameter), the inference
-result is not defined and tools are free to either emit an error, or to defer
-the error to override checking.
+A method `m` of a class `C` is subject to override inference if it is
+missing one or more component types of its signature, and one or more of
+the direct superinterfaces of `C` has a member named `m` (*that is, `C.m`
+overrides one or more declarations*).  Each missing type is filled in with
+the corresponding type from the combined member signature `s` of `m` in the
+direct superinterfaces of `C`.
+
+A compile-time error occurs if `s` does not exist.  *E.g., one
+superinterface could have signature `void m([int])` and another one could
+have signature `void m(num)`, such that none of them is most specific.
+There may still exist a valid override of both (e.g., `void m([num])`).  In
+this situation `C.m` can be declared with a complete signature, it just
+cannot use override inference.*
+
+If there is no corresponding parameter in `s` for a parameter of the
+declaration of `m` in `C`, it is treated as `dynamic` (*e.g., this occurs
+when overriding a one parameter method with a method that takes a second
+optional parameter*).
+
+*Note that override inference does not provide other properties of a
+parameter than the type. E.g., it does not make a parameter `required`
+based on overridden declarations. This property must then be specified
+explicitly if needed.*
 
 
 ##### Instance field, getter, and setter override inference
@@ -179,36 +207,44 @@ the error to override checking.
 The inferred type of a getter, setter, or field is computed as follows.  Note
 that we say that a setter overrides a getter if there is a getter of the same
 name in some superclass or interface (explicitly declared or induced by an
-instance variable declaration), and similarly for setters overriding getters,
+instance variable declaration), and similarly for getters overriding setters,
 fields, etc.
 
-The return type of a getter, parameter type of a setter or type of a field which
-overrides/implements only a getter is inferred to be the result type of the
-overridden getter.
+The return type of a getter, parameter type of a setter or type of a field
+which overrides/implements only one or more getters is inferred to be the
+return type of the combined member signature of said getter in the direct
+superinterfaces.
 
-The return type of a getter, parameter type of a setter or type of a field which
-overrides/implements only a setter is inferred to be the parameter type of the
-overridden setter.
+The return type of a getter, parameter type of a setter or type of a field
+which overrides/implements only one or more setters is inferred to be the
+parameter type of the combined member signature of said setter in the
+direct superinterfaces.
 
 The return type of a getter which overrides/implements both a setter and a
-getter is inferred to be the result type of the overridden getter.
+getter is inferred to be the return type of the combined member signature
+of said getter in the direct superinterfaces.
 
-The parameter type of a setter which overrides/implements both a setter and a
-getter is inferred to be the parameter type of the overridden setter.
+The parameter type of a setter which overrides/implements both a setter and
+a getter is inferred to be the parameter type of the combined member
+signature of said setter in the direct superinterfaces.
 
-The type of a final field which overrides/implements both a setter and a getter
-is inferred to be the result type of the overridden getter.
+The type of a final field which overrides/implements both a setter and a
+getter is inferred to be the return type of the combined member signature
+of said getter in the direct superinterfaces.
 
-The type of a non-final field which overrides/implements both a setter and a
-getter is inferred to be the parameter type of the overridden setter if this
-type is the same as the return type of the overridden getter (if the types are
-not the same then inference fails with an error).
+The type of a non-final field which overrides/implements both a setter and
+a getter is inferred to be the parameter type of the combined member
+signature of said setter in the direct superinterfaces, if this type is the
+same as the return type of the combined member signature of said getter in
+the direct superinterfaces. If the types are not the same then inference
+fails with an error.
 
 Note that overriding a field is addressed via the implicit induced getter/setter
 pair (or just getter in the case of a final field).
 
 Note that `late` fields are inferred exactly as non-`late` fields.  However,
 unlike normal fields, the initializer for a `late` field may reference `this`.
+
 
 ## Function literal return type inference.
 
@@ -219,22 +255,46 @@ Inference for each returned expression in the body of the function literal is
 done in an empty typing context (see below).
 
 Function literals which are inferred in an non-empty typing context where the
-context type is a function type are inferred as follows.  Each parameter is
-assumed to have its declared type if present, or the type taken from the
-corresponding parameter (if any) from the typing context if not present.  The
-return type of the context function type is used at several points during
+context type is a function type are inferred as described below.
+
+Each parameter is assumed to have its declared type if present.  If no type is
+declared for a parameter and there is a corresponding parameter in the context
+type schema with type schema `K`, the parameter is given an inferred type `T`
+where `T` is derived from `K` as follows.  If the greatest closure of `K` is `S`
+and `S` is a subtype of `Null`, then without null safety `T` is `dynamic`, and
+with null safety `T` is `Object?`. Otherwise, `T` is `S`. If there is no
+corresponding parameter in the context type schema, the variable is treated as
+having type `dynamic`.
+
+The return type of the context function type is used at several points during
 inference.  We refer to this type as the **imposed return type
 schema**. Inference for each returned or yielded expression in the body of the
 function literal is done using a context type derived from the imposed return
-type schema as follows:
+type schema `S` as follows:
   - If the function expression is neither `async` nor a generator, then the
-    context type is the imposed return type.
-  - If the function expression is declared `async*` and the imposed return type
-    is of the form `Stream<S>` for some `S`, then the context type is `S`.
-  - If the function expression is declared `sync*` and the imposed return type
-    is of the form `Iterable<S>` for some `S`, then the context type is `S`.
-  - Otherwise the context type is `FutureOr<flatten(T)>` where `T` is the
-    imposed return type.
+    context type is `S`.
+  - If the function expression is declared `async*` and `S` is of the form
+    `Stream<S1>` for some `S1`, then the context type is `S1`.
+  - If the function expression is declared `sync*` and `S` is of the form
+    `Iterable<S1>` for some `S1`, then the context type is `S1`.
+  - Otherwise, without null safety, the context type is `FutureOr<flatten(T)>`
+    where `T` is the imposed return type schema; with null safety, the context
+    type is `FutureOr<futureValueTypeSchema(S)>`.
+
+The function **futureValueTypeSchema** is defined as follows:
+
+- **futureValueTypeSchema**(`S?`) = **futureValueTypeSchema**(`S`), for all `S`.
+- **futureValueTypeSchema**(`S*`) = **futureValueTypeSchema**(`S`), for all `S`.
+- **futureValueTypeSchema**(`Future<S>`) = `S`, for all `S`.
+- **futureValueTypeSchema**(`FutureOr<S>`) = `S`, for all `S`.
+- **futureValueTypeSchema**(`void`) = `void`.
+- **futureValueTypeSchema**(`dynamic`) = `dynamic`.
+- **futureValueTypeSchema**(`_`) = `_`.
+- Otherwise, for all `S`, **futureValueTypeSchema**(`S`) = `Object?`.
+
+_Note that it is a compile-time error unless the return type of an asynchronous
+non-generator function is a supertype of `Future<Never>`, which means that
+the last case will only be applied when `S` is `Object` or a top type._
 
 In order to infer the return type of a function literal, we first infer the
 **actual returned type** of the function literal.
@@ -274,9 +334,15 @@ The **actual returned type** of the function literal is the value of `T` after
 all `return` and `yield` statements in the block body have been considered.
 
 Let `T` be the **actual returned type** of a function literal as computed above.
-Let `R` be the greatest closure of the typing context `K` as computed above.  If
-`T <: R` then let `S` be `T`.  Otherwise, let `S` be `R`.  The inferred return
-type of the function literal is then defined as follows:
+Let `R` be the greatest closure of the typing context `K` as computed above.
+
+With null safety: if `R` is `void`, or the function literal is marked `async`
+and `R` is `FutureOr<void>`, let `S` be `void` (without null-safety: no special
+treatment is applicable to `void`).
+
+Otherwise, if `T <: R` then let `S` be `T`.  Otherwise, let `S` be `R`.  The
+inferred return type of the function literal is then defined as follows:
+
   - If the function literal is marked `async` then the inferred return type is
     `Future<flatten(S)>`.
   - If the function literal is marked `async*` then the inferred return type is
@@ -287,17 +353,17 @@ type of the function literal is then defined as follows:
 
 ## Local return type inference.
 
-A local function definition which has no explicit return type is subject to the
-same return type inference as a function expression with no typing context.
-During inference of the function body, any recursive calls to the function are
-treated as having return type `dynamic`.
+Without null safety, a local function definition which has no explicit return
+type is subject to the same return type inference as a function expression with
+no typing context.  During inference of the function body, any recursive calls
+to the function are treated as having return type `dynamic`.
 
-In Dart code which has opted into the NNBD semantics, local function body
-inference is changed so that the local function name is not considered
-*available* for inference while performing inference on the body.  As a result,
-any recursive calls to the function for which the result type is required for
-inference to complete will no longer be treated as having return type `dynamic`,
-but will instead result in an inference failure.
+With null safety, local function body inference is changed so that the local
+function name is not considered *available* for inference while performing
+inference on the body.  As a result, any recursive calls to the function for
+which the result type is required for inference to complete will no longer be
+treated as having return type `dynamic`, but will instead result in an inference
+failure.
 
 ## Local type inference
 
@@ -369,7 +435,7 @@ The covariant occurrences of a type (schema) `T` in another type (schema) `S` ar
     - the covariant occurrencs of `T` in `U`
   - if `S` is an interface type `C<T0, ..., Tk>`
     - the union of the covariant occurrences of `T` in `Ti` for `i` in `0, ..., k`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`, 
+  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
       the union of:
     - the covariant occurrences of `T` in `U`
     - the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
@@ -385,7 +451,7 @@ The contravariant occurrences of a type `T` in another type `S` are:
     - the contravariant occurrencs of `T` in `U`
   - if `S` is an interface type `C<T0, ..., Tk>`
     - the union of the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., k`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`, 
+  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
       the union of:
     - the contravariant occurrences of `T` in `U`
     - the covariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
@@ -401,7 +467,7 @@ The invariant occurrences of a type `T` in another type `S` are:
     - the invariant occurrencs of `T` in `U`
   - if `S` is an interface type `C<T0, ..., Tk>`
     - the union of the invariant occurrences of `T` in `Ti` for `i` in `0, ..., k`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`, 
+  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
       the union of:
     - the invariant occurrences of `T` in `U`
     - the invariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
@@ -757,8 +823,14 @@ with respect to `L` under constraints `C`:
   - If `C1<B0, ..., Bj>` is a superinterface of `C0<M0, ..., Mk>` and `C1<B0,
 ..., Bj>` is a subtype match for `C1<N0, ..., Nj>` with respect to `L` under
 constraints `C`.
+  - Or `R<B0, ..., Bj>` is one of the interfaces implemented by `P<M0, ..., Mk>`
+(considered in lexical order) and `R<B0, ..., Bj>` is a subtype match for `Q<N0,
+..., Nj>` with respect to `L` under constraints `C`.
+  - Or `R<B0, ..., Bj>` is a mixin into `P<M0, ..., Mk>` (considered in lexical
+order) and `R<B0, ..., Bj>` is a subtype match for `Q<N0, ..., Nj>` with respect
+to `L` under constraints `C`.
 
-- If `Q` is `Function` then the match holds under no constraints:
+- A type `P` is a subtype match for `Function` with respect to `L` under no constraints:
   - If `P` is a function type.
 
 - A function type `(M0,..., Mn, [M{n+1}, ..., Mm]) -> R0` is a subtype match for
@@ -871,7 +943,7 @@ Otherwise:
   - If `C` does not constrain `Ti` then `Pi` is `?`
   - If `C` partially constrains `Ti`
     - If `C` is over constrained, then it is an inference failure error
-    - Otherwise `Pi` is the constraint solution for `Ti` with respect to `C` 
+    - Otherwise `Pi` is the constraint solution for `Ti` with respect to `C`
   - If `C` fully constrains `Ti`, then
     - Let `Ai` be `Bi[R0/T0, ..., ?/Ti, ..., ?/Tn]`
     - If `C + Ti <: Ai` is over constrained, it is an inference failure error.
@@ -889,7 +961,7 @@ have not been fixed by downwards resolution.
 generic method of type `<T0 extends B0, ..., Tn extends Bn>(P0, ..., Pk) -> Q`
 given actual argument types `R0, ..., Rk`, a partial solution `[T0 -> P0, ...,
 Tn -> Pn]` and a partial constraint set `Cp`:
-  - If `Ri <: Pi [T0, ..., Tn] -> Ci` 
+  - If `Ri <: Pi [T0, ..., Tn] -> Ci`
   - And the full constraint resolution of `Cp + C0 + ... + Cn` for `<T0 extends
 B0, ..., Tn extends Bn>` given the initial partial solution `[T0 -> P0, ..., Tn
 -> Pn]` is `[T0 -> M0, ..., Tn -> Mn]`
@@ -979,7 +1051,7 @@ downwards context `P` with respect to return type `Q`.
   - And `<T0 extends B0, ..., Tn extends Bn>(P0, ..., Pk) -> Q` resolves via
 upwards resolution to a full solution `[T0 -> M0, ..., Tn -> Mn]`
     - Given partial solution `[T0 -> Q0, ..., Tn -> Qn]`
-    - And partial constraint set `Cp` 
+    - And partial constraint set `Cp`
     - And actual argument types `R0, ..., Rk`
   - And `N` is `Q[M0/T0, ..., Mn/Tn]`
 - A constructor invocation is inferred exactly as if it were a static generic
@@ -1023,7 +1095,7 @@ Return statements pull the return type from the enclosing function for downwards
 inference, and compute the upper bound of all returned values for upwards
 inference.  Appropriate adjustments for asynchronous and generator functions.
 
-Do statements 
+Do statements
 For each statement
 
 -->

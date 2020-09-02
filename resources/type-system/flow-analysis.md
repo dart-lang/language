@@ -9,7 +9,15 @@ https://docs.google.com/document/d/11Xs0b4bzH6DwDlcJMUcbx4BpvEKGz8MVuJWEfo_mirE/
 
 ## CHANGELOG
 
-2019.01.16
+2020.06.29
+  - Fix handling of variables that are write captured in loops, switch
+    statements, and try-blocks (such variables should be conservatively assumed
+    to be captured).
+
+2020.06.02
+  - Specify the interaction between downwards inference and promotion/demotion.
+
+2020.01.16
   - Modify `restrictV` to make a variable definitely assigned in a try block or
     a finally block definitely assigned after the block.
   - Clarify that initialization promotion does not apply to formal parameters.
@@ -132,13 +140,15 @@ source code.
   of promotion, generally because the variable in question has been tested
   against the type on some path in some way.
 
-- `assigned` is a boolean value indicating whether the variable is known to
-  have been definitely assigned at the given point in the source code.
+- `assigned` is a boolean value indicating whether the variable has definitely
+  been assigned at the given point in the source code.  When `assigned` is
+  true, we say that the variable is _definitely assigned_ at that point.
 
-- `unassigned` is a boolean value indicating whether the variable is known not
-  to have been definitely assigned at the given point in the source code.  (Note
-  that a variable may not be both definitely assigned and definitely
-  unassigned).
+- `unassigned` is a boolean value indicating whether the variable has
+  definitely not been assigned at the given point in the source code.  When
+  `unassigned` is true, we say that the variable is _definitely unassigned_ at
+  that point.  (Note that a variable cannot be both definitely assigned and
+  definitely unassigned at any location).
 
 - `writeCaptured` is a boolean value indicating whether a closure might exist at
   the given point in the source code, which could potentially write to the
@@ -183,13 +193,6 @@ The following functions associate flow models to nodes:
 - `false(E)`, where `E` is an expression, represents the *flow model* just after
   execution of `E`, assuming that `E` completes normally and evaluates to `false`.
 
-- `null(E)`, where `E` is an expression, represents the *flow model* just after
-  execution of `E`, assuming that `E` completes normally and evaluates to `null`.
-
-- `notNull(E)`, where `E` is an expression, represents the *flow model* just
-  after execution of `E`, assuming that `E` completes normally and does not
-  evaluate to `null`.
-
 - `break(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
   represents the join of the flow models reaching each `break` statement
   targetting `S`.
@@ -199,10 +202,24 @@ The following functions associate flow models to nodes:
   targetting `S`.
 
 - `assignedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
-  represents the set of variables assigned to in `S`.
+  or a `for` element in a collection, represents the set of variables assigned
+  to in the recurrent part of `S`, where the "recurrent" part of `S` is defined
+  as:
+  - If `S` is a `do` or `while` statement, the entire statement `S`.
+  - If `S` is a `for` statement or a `for` element in a collection, whose
+    `forLoopParts` take the form of a traditional for loop, all of `S` except
+    the `forInitializerStatement`.
+  - If `S` is a `for` statement or a `for` element in a collection, whose
+    `forLoopParts` take the form of a for-in loop, the body of `S`.
+  - If `S` is a `switch` statement, all of `S` except the switch `expression`.
 
-Note that `true`, `false`, `null`, and `notNull` are defined for all expressions
-regardless of their static types.
+- `capturedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
+  represents the set of variables assigned to in a local function or function
+  expression in the recurrent part of `S`, where the "recurrent" part of `s` is
+  defined as in `assignedIn`, above.
+
+Note that `true` and `false` are defined for all expressions regardless of their
+static types.
 
 We also make use of the following auxiliary functions:
 
@@ -255,8 +272,8 @@ We also make use of the following auxiliary functions:
 
   - We define `join(M1, M2)` to be `M3 = FlowModel(r3, VI3)` where:
     - `M1 = FlowModel(r1, VI1)`
-    - `M2 = FlowModel(r2, VI2))` 
-    - `pop(r1) = pop(r2) = r0` for some `r0` 
+    - `M2 = FlowModel(r2, VI2))`
+    - `pop(r1) = pop(r2) = r0` for some `r0`
     - `r3` is `push(r0, top(r1) || top(r2))`
     - `VI3` is the map which maps each variable `v` in the domain of `VI1` and
       `VI2` to `joinV(VI1(v), VI2(v))`.  Note that any variable which is in
@@ -279,8 +296,15 @@ We also make use of the following auxiliary functions:
   - `VM3 = VariableModel(d3, p3, s3, a3, u3, c3)` where
    - `d3 = d1 = d2`
      - Note that all models must agree on the declared type of a variable
-   - if `b` is true then `p3 = p2`
-   - if `b` is false then if the last entry in `p1` is a subtype of the last
+   - `c3 = c2`
+     - A variable is captured if it is captured in the model of the finally
+       block (note that the finally block is analyzed using the join of the
+       model from before the try block and after the try block, and so any
+       captures from the try block are already modelled here).
+   - if `c3` is true then `p3 = []`.  (_Captured variables can never be
+     promoted._)
+   - Otherwise, if `b` is true then `p3 = p2`
+   - Otherwise, if the last entry in `p1` is a subtype of the last
      entry of `p2`, then `p3 = p1` else `p3 = p2`.  If the variable is not
      written to in the finally block, then it is valid to use any promotions
      from the try block in any subsequent code (since if any subsequent code is
@@ -301,11 +325,6 @@ We also make use of the following auxiliary functions:
        the join of the model from before the try block and after the try block,
        and so the absence of any assignments that may have occurred in the try
        block is already modelled here).
-   - `c3 = c2`
-     - A variable is captured if it is captured in the model of the finally
-       block (note that the finally block is analyzed using the join of the
-       model from before the try block and after the try block, and so any
-       captures from the try block are already modelled here).
 
 - `restrict(MB, MF, N)`, where `MB` and `MF` are flow models and `N` is a set of
   variables assigned in the finally clause, models the flow of information
@@ -324,12 +343,17 @@ We also make use of the following auxiliary functions:
   which is unreachable, but is otherwise modeled by flow model `M = FlowModel(r,
   VI)`, and is defined as `FlowModel(push(pop(r), false), VI)`
 
-- `demoteVariables(M, S)` represents the flow model derived from `M` in which
-  all variables in `S` have been demoted to their declared types.  It is defined
-  as `FlowModel(r, VI1)` where `M` is `FlowModel(r, VI0)` and `VI1` is the map
+- `conservativeJoin(M, written, captured)` represents a conservative
+  approximation of the flow model that could result from joining `M` with a
+  model in which variables in `written` might have been written to and variables
+  in `captured` might have been write-captured.  It is defined as
+  `FlowModel(r, VI1)` where `M` is `FlowModel(r, VI0)` and `VI1` is the map
   such that:
     - `VI0` maps `v` to `VM0 = VariableModel(d0, p0, s0, a0, u0, c0)`
-    - If `S` contains `v` then `VI1` maps `v` to `VariableModel(d0, [], s0, a0, u0, c0)`
+    - If `captured` contains `v` then `VI1` maps `v` to
+      `VariableModel(d0, [], s0, a0, false, true)`
+    - Otherwise if `written` contains `v` then `VI1` maps `v` to
+      `VariableModel(d0, [], s0, a0, false, c0)`
     - Otherwise `VI1` maps `v` to `VM0`
 
 
@@ -398,23 +422,35 @@ Definitions:
           `demoted` is `Q::previous`
         - otherwise `demoted` is `previous`
 
+- `stripParens(E1)`, where `E1` is an expression, is the result of stripping
+  outer parentheses from the expression `E1`.  It is defined to be the
+  expression `E3`, where:
+  - If `E1` is a parenthesized expression of the form `(E2)`, then `E3` =
+    `stripParens(E2)`.
+  - Otherwise, `E3` = `E1`.
+
+- `equivalentToNull(T)`, where `T` is a type, indicates whether `T` is
+  equivalent to the `Null` type.  It is defined to be true if `T <: Null` and
+  `Null <: T`; otherwise false.
+
 - `promote(E, T, M)` where `E` is an expression, `T` is a type which it may be
   promoted to, and `M = FlowModel(r, VI)` is the flow model in which to promote,
-  is defined as follows:
-  - If `E` is not a promotion target, then `M`
-  - If `E` is a promotion target `x`, then
+  is defined to be `M3`, where:
+  - If `stripParens(E)` is not a promotion target, then `M3` = `M`
+  - If `stripParens(E)` is a promotion target `x`, then
     - Let `VM = VariableModel(declared, promoted, tested, assigned, unassigned,
       captured)` be the variable model for `x` in `VI`
-    - If `x` is not promotable via type test to `T` given `VM`, then return `M`
+    - If `x` is not promotable via type test to `T` given `VM`, then `M3` = `M`
     - Else
       - Let `S` be the current type of `x` in `VM`
       - If `T <: S` then let `T1` = `T`
       - Else if `S` is `X extends R` then let `T1` = `X & T`
       - Else If `S` is `X & R` then let `T1` = `X & T`
       - Else `x` is not promotable (shouldn't happen since we checked above)
-      - Let `VM2 = VariableModel(declared, T1::promoted, T1::tested, assigned,
+      - Let `VM2 = VariableModel(declared, T1::promoted, T::tested, assigned,
       unassigned, captured)`
-      - Return `FlowModel(r, VI[x -> VM2])`
+      - Let `M2 = FlowModel(r, VI[x -> VM2])`
+      - If `T1 <: Never` then `M3` = `unreachable(M2)`, otherwise `M3` = `M2`
 - `promoteToNonNull(E, M)` where `E` is an expression and `M` is a flow model is
   defined to be `promote(E, T, M)` where `T0` is the type of `E`, and `T` is
   **NonNull(`T0`)**.
@@ -430,36 +466,17 @@ Definitions:
   - Else if `T` is `FutureOr<R>` and `R <: S` then `factor(Future<R>, S)`
   - Else `T`
 
-Questions:
- - The interaction between assignment based **promotion** and downwards inference is
-   probably managable.  I think doing downwards inference using the current
-   type, and then promoting the variable afterwards is fine for all reasonable
-   cases.
- - The interaction between assignment based **demotion** and downwards inference is
-   a bit trickier.  In so far as it is manageable, I think it would need to be
-   done as follows, given `x = E` where `x` has current type `S`.
-     - Infer `E` in context `S`
-     - if the inferred type of `E` is `T` and `S <: T` and the demotion policy
-     applies, then instead of treating this as `x = (E as S)` (or an error),
-     then instead treat `x` as promoted to `S` in the scope of the assigment.
+#### Interactions between downwards inference and promotion
 
-   - if a variable is tested before it is initialized, we must choose whether to
-    honor the type test or the assignment.  Above I've chosen to prefer type
-    test based promotion.  Examples:
-    ```
-      test1() {
-        var x;
-        if (x is num) {
-           x = 3; // not an initializing promotion, since it's already promoted
-        }
-      }
-      test2() {
-        var x;
-        if (x is String) {
-           x = 3; // not an initializing promotion, nor an assignment promotion
-        }
-      }
-     ```
+Given an assignment (or composite assignment) `x = E` where `x` has current type
+`S` (possibly the result of promotion), inference and promotion interact as
+follows.
+  - Inference for `E` is done as usual, using `S` as the downwards typing
+    context.  All reference to `x` within `E` are treated as having type `S` as
+    usual.
+  - Let `T` be the resulting inferred type of `E`.
+  - The assignment is treated as an assignment of an expression of type `T` to a
+    variable of type `S`, with the usual promotion, demotion and errors applied.
 
 ## Flow analysis
 
@@ -469,43 +486,24 @@ constructor, or field declaration to be analyzed.
 ### Expressions
 
 Analysis of an expression `N` assumes that `before(N)` has been computed, and
-uses it to derive `after(N)`, `null(N)`, `notNull(N)`, `true(N)`, and
-`false(N)`.
+uses it to derive `after(N)`, `true(N)`, and `false(N)`.
 
 If `N` is an expression, and the following rules specify the values to be
-assigned to `true(N)` and `false(N)`, but do not specify values for `null(N)`,
-`notNull(N)`, or `after(N)`, then they are by default assigned as follows:
-  - `null(N) = unreachable(after(N))`.
-  - `notNull(N) = join(true(N), false(N))`.
-  - `after(N) = notNull(N)`.
-
-If `N` is an expression, and the following rules specify the values to be
-assigned to `null(N)` and `notNull(N)`, but do not specify values for `true(N)`,
-`false(N)`, or `after(N)`, then they are by default assigned as follows:
-  - `true(N) = notNull(N)`.
-  - `false(N) = notNull(N)`.
-  - `after(N) = join(null(N), notNull(N))`.
+assigned to `true(N)` and `false(N)`, but do not specify the value for
+`after(N)`, then it is by default assigned as follows:
+  - `after(N) = join(true(N), false(N))`.
 
 If `N` is an expression, and the following rules specify the value to be
-assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
-`null(N)`, or `notNull(N)`, then they are all assigned the same value as
-`after(N)`.
+assigned to `after(N)`, but do not specify values for `true(N)` and `false(N)`,
+then they are all assigned the same value as `after(N)`.
 
 
-- **Variable or getter**: If `N` is an expression of the form `x` 
+- **Variable or getter**: If `N` is an expression of the form `x`
   where the type of `x` is `T` then:
   - If `T <: Never` then:
-    - Let `null(N) = unreachable(before(N))`.
-    - Let `notNull(N) = unreachable(before(N))`.
-  - Otherwise if `T <: Null` then:
-    - Let `null(N) = before(N)`.
-    - Let `notNull(N) = unreachable(before(N))`.
-  - Otherwise if `T` is non-nullable then:
-    - Let `null(N) = before(N)`.
-    - Let `notNull(N) = unreachable(before(N))`.
+    - Let `after(N) = unreachable(before(N))`.
   - Otherwise:
-    - Let `null(N) = promote(x, Null, before(N))`
-    - Let `notNull(N) = promoteToNonNull(x, before(N))`
+    - Let `after(N) = before(N)`.
 
 - **True literal**: If `N` is the literal `true`, then:
   - Let `true(N) = before(N)`.
@@ -515,13 +513,10 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
   - Let `true(N) = unreachable(before(N))`.
   - Let `false(N) = before(N)`.
 
-- **null literal**: If `N` is the literal `null`, then:
-  - Let `null(N) = before(N)`.
-  - Let `notNull(N) = unreachable(before(N))`.
+- TODO(paulberry): list, map, and set literals.
 
 - **other literal**: If `N` is some other literal than the above, then:
-  - Let `null(N) = unreachable(before(N))`.
-  - Let `notNull(N) = before(N)`.
+  - Let `after(N) = before(N)`.
 
 - **throw**: If `N` is a throw expression of the form `throw E1`, then:
   - Let `before(E1) = before(N)`.
@@ -533,21 +528,35 @@ assigned to `after(N)`, but do not specify values for `true(N)`, `false(N)`,
   - Let `after(N) = assign(x, E1, after(E1))`.
   - Let `true(N) = assign(x, E1, true(E1))`.
   - Let `false(N) = assign(x, E1, false(E1))`.
-  - Let `null(N) = assign(x, E1, null(E1))`.
-  - Let `notNull(N) = assign(x, E1, notNull(E1))`.
 
-TODO(leafp): Per
-discussion
-[here](https://github.com/dart-lang/language/pull/763/files#r364003138), this is
-wrong.  This needs reconsideration.
-- **operator==** If `N` is an expression of the form `E1 == E2` then:
-  - Let `before(E1) = before(N)`
-  - Let `before(E2) = after(E1)`
-  - Let `true(N) = join(join(null(E1), null(E2)),
-                        join(notNull(E1), notNull(E2)))`
-  - Let `false(N) = join(join(null(E1), notNull(E2)),
-                         join(notNull(E1), null(E2)),
-                         join(notNull(E1), notNull(E2)))`
+- **operator==** If `N` is an expression of the form `E1 == E2`, where the
+  static type of `E1` is `T1` and the static type of `E2` is `T2`, then:
+  - Let `before(E1) = before(N)`.
+  - Let `before(E2) = after(E1)`.
+  - If `equivalentToNull(T1)` and `equivalentToNull(T2)`, then:
+    - Let `true(N) = after(E2)`.
+    - Let `false(N) = unreachable(after(E2))`.
+  - Otherwise, if `equivalentToNull(T1)` and `T2` is non-nullable, or
+    `equivalentToNull(T2)` and `T1` is non-nullable, then:
+    - Let `true(N) = unreachable(after(E2))`.
+    - Let `false(N) = after(E2)`.
+  - Otherwise, if `stripParens(E1)` is a `null` literal, then:
+    - Let `true(N) = after(E2)`.
+    - Let `false(N) = promoteToNonNull(E2, after(E2))`.
+  - Otherwise, if `stripParens(E2)` is a `null` literal, then:
+    - Let `true(N) = after(E1)`.
+    - Let `false(N) = promoteToNonNull(E1, after(E2))`.
+  - Otherwise:
+    - Let `after(N) = after(E2)`.
+
+  Note that it is tempting to generalize the two `null` literal cases to apply
+  to any expression whose type is `Null`, but this would be unsound in cases
+  where `E2` assigns to `x`.  (Consider, for example, `(int? x) => x == (x =
+  null) ? true : x.isEven`, which tries to call `null.isEven` in the event of a
+  non-null input).
+
+- **operator!=** If `N` is an expression of the form `E1 != E2`, it is treated
+  as equivalent to the expression `!(E1 == E2)`.
 
 - **instance check** If `N` is an expression of the form `E1 is S` where the
   static type of `E1` is `T` then:
@@ -569,11 +578,18 @@ wrong.  This needs reconsideration.
 
 TODO: This isn't really right, `E1` isn't really an expression here.
 
-- **Non local-variable conditional assignment**: If `N` is an expression of the form
-  `E1 ??= E2` where `E1` is not a local variable, then:
-  - Let `before(E1) = before(N)`
-  - Let `before(E2) = split(null(E1))`.
-  - Let `after(N) = merge(after(E2), split(notNull(E1)))`
+- **Conditional assignment to a non local-variable**: If `N` is an expression of
+  the form `E1 ??= E2` where `E1` is not a local variable, and the type of `E1`
+  is `T1`, then:
+  - Let `before(E1) = before(N)`.
+  - If `T1` is strictly non-nullable, then:
+    - Let `before(E2) = unreachable(after(E1))`.
+    - Let `after(N) = after(E1)`.
+  - Otherwise:
+    - Let `before(E2) = split(after(E1))`.
+    - Let `after(N) = merge(after(E2), split(after(E1)))`.
+
+  TODO(paulberry): this doesn't seem to match what's currently implemented.
 
 - **Conditional expression**: If `N` is a conditional expression of the form `E1
   ? E2 : E3`, then:
@@ -583,14 +599,18 @@ TODO: This isn't really right, `E1` isn't really an expression here.
   - Let `after(N) = merge(after(E2), after(E3))`.
   - Let `true(N) = merge(true(E2), true(E3))`.
   - Let `false(N) = merge(false(E2), false(E3))`.
-  - Let `null(N) = merge(null(E2), null(E3))`.
-  - Let `notNull(N) = merge(notNull(E2), notNull(E3))`.
 
-- **If-null**: If `N` is an if-null expression of the form `E1 ?? E2`, then:
+- **If-null**: If `N` is an if-null expression of the form `E1 ?? E2`, where the
+  type of `E1` is `T1`, then:
   - Let `before(E1) = before(N)`.
-  - Let `before(E2) = split(null(E1))`.
-  - Let `null(N) = unsplit(null(E2))`.
-  - Let `notNull(N) = merge(split(notNull(E1)), notNull(E2))`.
+  - If `T1` is strictly non-nullable, then:
+    - Let `before(E2) = unreachable(after(E1))`.
+    - Let `after(N) = after(E1)`.
+  - Otherwise:
+    - Let `before(E2) = split(after(E1))`.
+    - Let `after(N) = merge(after(E2), split(after(E1)))`.
+
+  TODO(paulberry): this doesn't seem to match what's currently implemented.
 
 - **Shortcut and**: If `N` is a shortcut "and" expression of the form `E1 && E2`,
   then:
@@ -610,27 +630,23 @@ TODO: This isn't really right, `E1` isn't really an expression here.
   `??`are handled as calls to the appropriate `operator` method.
 
 - **Null check operator**: If `N` is an expression of the form `E!`, then:
-  - Let `before(E) = before(N)`
-  - Let `null(N) = unreachable(null(E))`
-  - Let `nonNull(N) = nonNull(E)`
+  - Let `before(E) = before(N)`.
+  - Let `after(E) = promoteToNonNull(E, after(E))`.
 
 - **Method invocation**: If `N` is an expression of the form `E1.m1(E2)`, then:
   - Let `before(E1) = before(N)`
-  - Let `before(E2) = after(E2)`
+  - Let `before(E2) = after(E1)`
   - Let `T` be the static return type of the invocation
   - If `T <: Never` then:
-    - Let `null(N) = unreachable(before(N))`.
-    - Let `notNull(N) = unreachable(before(N))`.
-  - Otherwise if `T <: Null` then:
-    - Let `null(N) = before(N)`.
-    - Let `notNull(N) = unreachable(before(N))`.
-  - Otherwise if `T` is non-nullable then:
-    - Let `null(N) = before(N)`.
-    - Let `notNull(N) = unreachable(before(N))`.
+    - Let `after(N) = unreachable(after(E2))`.
+  - Otherwise, if `m1` is a method declared on `Object` (e.g. `toString`), then:
+    - Let `after(N) = after(E2)`.
   - Otherwise:
-    - Let `null(N) = promote(x, Null, before(N))`
-    - Let `notNull(N) = promoteToNonNull(x, before(N))`
+    - Let `after(N) = promoteToNonNull(E1, after(E2))`
 
+  TODO(paulberry): is the `promoteToNonNull` part of method invocations
+  implemented?
+  TODO(paulberry): handle `E1.m1(E2, E3, ...)`.
 
 TODO: Add missing expressions, handle cascades and left-hand sides accurately
 
@@ -675,13 +691,13 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
 
 - **while statement**: If `N` is a while statement of the form `while
   (E) S` then:
-  - Let `before(E) = demoteVariables(before(N), assignedIn(N))`.
+  - Let `before(E) = conservativeJoin(before(N), assignedIn(N), capturedIn(N))`.
   - Let `before(S) = split(true(E))`.
   - Let `after(N) = join(false(E), unsplit(break(S))`
 
 - **do while statement**: If `N` is a do while statement of the form `do S while
   (E)` then:
-  - Let `before(S) = demoteVariables(before(N), assignedIn(N))`.
+  - Let `before(S) = conservativeJoin(before(N), assignedIn(N), capturedIn(N))`.
   - Let `before(E) = join(after(S), continue(N))`
   - Let `after(N) = join(false(E), break(S))`
 
@@ -689,21 +705,21 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
   {alternatives}` then:
   - Let `before(E) = before(N)`.
   - For each `C` in `alternatives` with statement body `S`:
-    - If `C` is labelled let `before(S) = demoteVariables(after(E),
-      assignedIn(N)` otherwise let `before(S) = after(E)`.
+    - If `C` is labelled let `before(S) = conservativeJoin(after(E),
+      assignedIn(N), capturedIn(N))` otherwise let `before(S) = after(E)`.
   - If the cases are exhaustive, then let `after(N) = break(N)` otherwise let
     `after(N) = join(after(E), break(N))`.
 
 - **try catch**: If `N` is a try/catch statement of the form `try B
 alternatives` then:
   - Let `before(B) = before(N)`
-  - Foreach catch block `on Ti Si` in `alternatives`:
-    - Let `before(Si) = demoteVariables(before(N), assignedIn(B))`
+  - For each catch block `on Ti Si` in `alternatives`:
+    - Let `before(Si) = conservativeJoin(before(N), assignedIn(B), capturedIn(B))`
   - Let `after(N) = join(after(B), after(C0), ..., after(Ck))`
 
 - **try finally**: If `N` is a try/finally statement of the form `try B1 finally B2` then:
   - Let `before(B1) = split(before(N))`
-  - Let `before(B2) = split(join(drop(after(B1)), demoteVariables(before(N), assignedIn(B1))))`
+  - Let `before(B2) = split(join(drop(after(B1)), conservativeJoin(before(N), assignedIn(B1), capturedIn(B1))))`
   - Let `after(N) = restrict(after(B1), after(B2), assignedIn(B2))`
 
 
