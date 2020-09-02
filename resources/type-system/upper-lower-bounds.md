@@ -4,6 +4,10 @@ leafp@google.com
 
 ## CHANGELOG
 
+2020.09.01
+  - **CHANGE** Update treatment of implicit bounds and recursion
+    for null safety.
+
 2020.07.21
   - **CHANGE** Specify treatment of mixed hierarchies.
 
@@ -14,7 +18,7 @@ This documents the currently implemented upper and lower bound computation,
 modified to account for explicit nullability and the accompanying type system
 changes (including the legacy types).  In the interest of backwards
 compatibility, it does not try to fix the various issues with the existing
-algorithm.  
+algorithm.
 
 ## Types
 
@@ -162,22 +166,38 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`X1 extends B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
-  - otherwise **UP**(`B1[Object/X1]`, `T2`)
+  - otherwise **UP**(`B1a`, `T2`)
+    where `B1a` is obtained from `B1` by replacing contravariant occurrences
+    of `X1` by `Never`, and other occurrences of `X1` by `Object?`
+    when the resulting type is a supertype of `B1` assuming `B1`,
+    and `B1a` is otherwise `Object?`.
 
 - **UP**(`X1 & B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
-  - otherwise **UP**(`B1[Object/X1]`, `T2`)
+  - otherwise **UP**(`B1a`, `T2`)
+    where `B1a` is obtained from `B1` by replacing contravariant occurrences
+    of `X1` by `Never`, and other occurrences of `X1` by `Object?`
+    when the resulting type is a supertype of `B1` assuming `B1`,
+    and `B1a` is otherwise `Object?`.
 
 - **UP**(`T1`, `X2 extends B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
-  - otherwise **UP**(`T1`, `B2[Object/X2]`)
+  - otherwise **UP**(`T1`, `B2a`)
+    where `B2a` is obtained from `B2` by replacing contravariant occurrences
+    of `X2` by `Never`, and other occurrences of `X2` by `Object?`
+    when the resulting type is a supertype of `B2` assuming `B2`,
+    and `B2a` is otherwise `Object?`.
 
 - **UP**(`T1`, `X2 & B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
-  - otherwise **UP**(`T1`, `B2[Object/X2]`)
+  - otherwise **UP**(`T1`, `B2a`)
+    where `B2a` is obtained from `B2` by replacing contravariant occurrences
+    of `X2` by `Never`, and other occurrences of `X2` by `Object?`
+    when the resulting type is a supertype of `B2` assuming `B2`,
+    and `B2a` is otherwise `Object?`.
 
 - **UP**(`T Function<...>(...)`, `Function`) = `Function`
 - **UP**(`Function`, `T Function<...>(...)`) = `Function`
@@ -213,8 +233,8 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
           `Named1`
 
 - **UP**(`T Function<...>(...)`, `S Function<...>(...)`) = `Function` otherwise
-- **UP**(`T Function<...>(...)`, `T2`) = `Object`
-- **UP**(`T1`, `T Function<...>(...)`) = `Object`
+- **UP**(`T Function<...>(...)`, `T2`) = **UP**(`Object`, `T2`)
+- **UP**(`T1`, `T Function<...>(...)`) = **UP**(`T1`, `Object`)
 - **UP**(`T1`, `T2`) = `T2` if `T1` <: `T2`
   - Note that both types must be class types at this point
 - **UP**(`T1`, `T2`) = `T1` if `T2` <: `T1`
@@ -420,7 +440,7 @@ that are not identical are `T0` and `S0` respectively, and **MORETOP**(`T0`,
 `S0`).
 
 A similar treatment would need to be done for the bottom types as well, since
-there are two equivalences there. 
+there are two equivalences there.
   - `X extends T` is equivalent to `Null` if `T` is equivalent to `Null`.
   - `FutureOr<Null>` is equivalent `Future<Null>`.
 
