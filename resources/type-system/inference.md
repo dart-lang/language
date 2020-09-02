@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2019.09.01
+  - Add left top rule to constraint solving.
+
 2019.05.07:
   - Specify inference constraint solving.
 
@@ -731,6 +734,8 @@ clauses need be tried.
 
 - If `Q` is `dynamic`, `Object?`, or `void` then the match holds under no
   constraints.
+- If `P` is `dynamic` or `void` then the match holds under constraint set `C` if
+  `Object?` is a subtype match for `Q` under constraint set `C`.
 - If `P` is `Never` then the match holds under no constraints.
 - If `Q` is `Object`, then the match holds under no constraints:
   - Only if `P` is non-nullable.
