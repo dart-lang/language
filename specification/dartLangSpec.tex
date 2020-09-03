@@ -16578,23 +16578,24 @@ We say that a declaration \Index{is imported by a library}
 if the declaration is in the library's imported namespace.
 
 
-\subsubsection{Evaluation of Imports}
-\LMLabel{evaluationOfImports}
+\subsubsection{Semantics of Imports}
+\LMLabel{semanticsOfImports}
 
 \LMHash{}%
 Let $I_i$ be an import directive that refers to a URI via the string $s_i$.
-Evaluation of $I_i$ proceeds as follows:
+The semantics of $I_i$ is specified as follows:
 
 \LMHash{}%
-\Case{Evaluation of deferred imports}
-If $I_i$ is a deferred import with prefix $p$, a mapping of $p$ to a
-\Index{deferred prefix namespace} is added to
-the scope of the current library $L$.
+\Case{Semantics of deferred imports}
+If $I_i$ is a deferred import with prefix $p$, a binding of $p$ to a
+\Index{deferred prefix run-time namespace}
+\NamespaceName{\metavar{deferred}} is
+present in the library namespace of the current library $L$.
 Let \NamespaceName{\metavar{import},i} be
 the namespace imported from the library specified by $I_i$,
 as defined previously
 (\ref{theImportedNamespace}).
-The deferred prefix namespace has the following bindings:
+\NamespaceName{\metavar{deferred}} then has the following bindings:
 
 \begin{itemize}
 \item The name \code{loadLibrary} is bound to 
@@ -16611,8 +16612,8 @@ The deferred prefix namespace has the following bindings:
   % "may be raised".
   A dynamic error may be raised if $I'$ imports a different library
   than the one that the specified URI referred to at compile-time.
-  When $I'$ executes without error, $f$ completes successfully.
-  If $I'$ executes without error,
+  When $I'$ is loaded without error, $f$ completes successfully.
+  If $I'$ is loaded without error,
   we say that the call to \code{loadLibrary} has succeeded,
   otherwise we say the call has failed.
 \item
@@ -16644,7 +16645,8 @@ The deferred prefix namespace has the following bindings:
 \end{itemize}
 
 \rationale{%
-The purpose of adding members of the imported library to $p$
+The purpose of having members of the imported library in
+\NamespaceName{\metavar{deferred}}
 is to ensure that usages of members that have not yet been loaded
 can be resolved normally and has a well-defined behavior,
 but will raise errors.%
@@ -16652,14 +16654,23 @@ but will raise errors.%
 
 \LMHash{}%
 After an invocation of \code{$p$.loadLibrary()} succeeds,
-the name $p$ is mapped to a non-deferred prefix namespace,
-as described below.
-In addition, the prefix namespace also supports the \code{loadLibrary} function,
+the name $p$ is mapped to a non-deferred prefix run-time namespace
+\NamespaceName{\metavar{loaded}},
+with bindings as described below for immediate imports.
+In addition, \NamespaceName{\metavar{loaded}}
+maps \code{loadLibrary} to a function with the same signature as before,
 and so it is possible to invoke \code{$p$.loadLibrary()} again.
 If a call fails, the library has not been loaded,
 and one has the option to invoke \code{$p$.loadLibrary()} again.
 Whether a repeated call to \code{$p$.loadLibrary()} succeeds will vary,
 as described below.
+
+\commentary{%
+Note that it is a compile-time error for a deferred prefix
+to be used in more than one import,
+which means that the update of the binding of $p$
+does not interfere with other imports.%
+}
 
 \LMHash{}%
 The effect of a repeated invocation of \code{$p$.loadLibrary()} is as follows:
@@ -16689,22 +16700,16 @@ We do not specify which object the returned future resolves to.%
 \EndCase
 
 \LMHash{}%
-\Case{Evaluation of immediate imports}
+\Case{Semantics of immediate imports}
 When $I_i$ is an immediate import that refers to a URI via the string $s_i$:
+Let $\ell_i$ denote the run-time entity that corresponds to the result of
+compiling the library $L_i$ denoted by $s_i$.
 
-\begin{itemize}
-\item
-  If the URI that is the value of $s_i$ has not yet been accessed by
-  an import or export (\ref{exports}) directive in the current isolate
-  then the contents of the URI are compiled to yield a library $L_i$.
-  \commentary{%
-    Because libraries may have mutually recursive imports,
-    care must be taken to avoid an infinite regress.%
-  }
-\item
-  Otherwise, the contents of the URI denoted by $s_i$ has been compiled into
-  a library $L_i$ within the current isolate.
-\end{itemize}
+\LMHash{}%
+$\ell_i$ is accessible in the current isolate at run time
+due to an implementation specific mechanism,
+and it provides access to the result of compiling functions,
+as well as other resources needed for the execution of code in $L_i$.
 
 \LMHash{}%
 Let \NamespaceName{\metavar{import}, i} be the namespace imported from $L_i$.
@@ -16714,41 +16719,32 @@ The run-time namespace \NamespaceName{i} will then have the following bindings:
 \item
   For every top level function, getter, or setter $m$ named $n$ in
   \NamespaceName{\metavar{import}, i},
-  a binding from $n$ to the result of compiling $m$.
+  a binding from $n$ to the result of compiling $m$,
+  obtained from $\ell_i$.
 \item
-  For every type $T$ named \id{} in
-  \NamespaceName{\metavar{import}, i},
+  For every name \id{} in \NamespaceName{\metavar{import}, i}
+  that is bound to a class, mixin, or type alias declaration
+  introducing a type $T$,
   a binding from \id{} to a compiled getter with return type \code{Type}
   that, when invoked, returns the type object for $T$.
 \end{itemize}
 
 \LMHash{}%
 If $I_i$ has prefix $p$,
-and the dynamic library namespace of the current library
-does not have a binding for $p$,
-then a mapping from $p$ to a non-deferred dynamic prefix namespace
-with members determined by \NamespaceName{i} is introduced into the
-dynamic library namespace of the current library.
-If $I_i$ has prefix $p$,
-and the dynamic library namespace of the current library
-binds $p$ to a non-deferred dynamic prefix namespace $o$,
-then $o$ is extended with bindings as determined by \NamespaceName{i}.
-
-\LMHash{}%
-Otherwise, when $I_i$ does not have a prefix, each mapping in \NamespaceName{i}
-is introduced into the dynamic library namespace of the current library.
+the run-time library namespace of the current library
+maps $p$ to a non-deferred prefix run-time namespace \NamespaceName{p}
+containing the mappings of \NamespaceName{i}.
 
 \commentary{%
-The construction of the dynamic library namespace
-cannot encounter any name conflicts,
-because such conflicts would have caused a compile-time error.
-
-Dynamic library namespace construction can be completed at compile time,
-and any accesses, prefixed or not, can be resolved statically.
-So an implementation does not need to extend prefix namespaces dynamically,
-or even have a run-time representation of prefix namespaces at all,
-as long as the observable behavior is preserved.%
+\NamespaceName{p} may have additional mappings
+because there can be several imports with the same prefix
+as long as they are all immediate.%
 }
+
+\LMHash{}%
+Otherwise, when $I_i$ does not have a prefix,
+the run-time library namespace of the current library
+contains each mapping in \NamespaceName{i}.
 \EndCase
 
 
