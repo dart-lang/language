@@ -677,7 +677,8 @@ The method used to enable or disable assertions is implementation specific.
 A \Index{namespace} is a partial function that maps names to namespace values.
 A \Index{name} is a lexical token which is an \synt{IDENTIFIER},
 an \synt{IDENTIFIER} followed by \lit{=}, or
-an \synt{operator};
+an \synt{operator},
+or \code{unary-};
 and a \Index{namespace value} is
 a declaration, a namespace, or the special value \ConflictValue{}
 (\ref{conflictMergingOfNamespaces}).
@@ -723,7 +724,7 @@ In some cases, the name of the declaration differs from
 the identifier that occurs in the declaration syntax used to declare it.
 Setters have names that are distinct from the corresponding getters
 because they always have an \lit{=} automatically added at the end,
-and the unary minus operator has the special name unary-.%
+and the unary minus operator has the special name \code{unary-}.%
 }
 
 \commentary{%
@@ -752,13 +753,26 @@ which is declared in the same library.%
 }
 
 \LMHash{}%
-In order to specify a few properties of execution,
-we introduce the notion of a
-\Index{dynamic namespace}.
+We introduce the notion of a
+\Index{run-time namespace}.
 This is a partial function from names to run-time entities,
-in particular objects and compiled code.
-Each dynamic namespace corresponds to a namespace with the same keys,
+in particular storage locations and compiled code.
+Each run-time namespace corresponds to a namespace with the same keys,
 but with values that correspond to the semantics of the namespace values.
+
+\rationale{%
+A namespace typically maps a name to a declaration,
+and it can be used statically to figure out what that name refers to.
+For example,
+a variable is associated with an actual storage location at run time.
+We introduce the notion of a run-time namespace based on a namespace,
+such that the dynamic semantics can access run-time entities
+like that storage location.
+The same code may be executed multiple times with the same run-time namespace,
+or with different run-time namespaces for each execution.
+E.g., local variables for a function invocation are specific to the invocation,
+and instance variables are specific to an object.%
+}
 
 \LMHash{}%
 Dart is lexically scoped.
@@ -855,23 +869,28 @@ This means private declarations may only be accessed within
 the library in which they are declared.%
 }
 
-\LMHash{}%
+\rationale{%
 Privacy applies only to declarations within a library,
 not to the library declaration as a whole.
-
-\rationale{
-Libraries do not reference each other by name and so the idea of a private library is meaningless.
-Thus, if the name of a library begins with an underscore, it has no effect on the accessibility of the library or its members.
+This is because libraries do not reference each other by name,
+and so the idea of a private library is meaningless
+(\ref{imports}).
+Thus, if the name of a library begins with an underscore,
+it has no effect on the accessibility of the library or its members.%
 }
 
-\rationale{
-Privacy is, at this point, a static notion tied to a particular piece of code (a library).
-It is designed to support software engineering concerns rather than security concerns.
+\rationale{%
+Privacy is, at this point, a static notion tied to
+a particular piece of code (a library).
+It is designed to support software engineering concerns
+rather than security concerns.
 Untrusted code should always run in an another isolate.
-It is possible that libraries will become first class objects and privacy will be a dynamic notion tied to a library instance.
 
-Privacy is indicated by the name of a declaration - hence privacy and naming are not orthogonal.
-This has the advantage that both humans and machines can recognize access to private declarations at the point of use without knowledge of the context from which the declaration is derived.
+Privacy is indicated by the name of a declaration---hence
+privacy and naming are not orthogonal.
+This has the advantage that both humans and machines
+can recognize access to private declarations at the point of use
+without knowledge of the context from which the declaration is derived.%
 }
 
 
@@ -11917,7 +11936,7 @@ Consider an unconditional property extraction $i$
 (\ref{propertyExtraction})
 of the form \code{$e$.\id}.
 It is a compile-time error if \id{} is the name of
-a member of the built-in class \code{Object}
+an instance member of the built-in class \code{Object}
 and $e$ is a type literal.
 
 \commentary{
@@ -16689,7 +16708,7 @@ When $I_i$ is an immediate import that refers to a URI via the string $s_i$:
 
 \LMHash{}%
 Let \NamespaceName{\metavar{import}, i} be the namespace imported from $L_i$.
-The dynamic namespace \NamespaceName{i} will then have the following bindings:
+The run-time namespace \NamespaceName{i} will then have the following bindings:
 
 \begin{itemize}
 \item
