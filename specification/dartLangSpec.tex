@@ -6178,6 +6178,7 @@ Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
   \alt <identifier>
   \alt <newExpression>
   \alt <constObjectExpression>
+  \alt <constructorInvocation>
   \alt `(' <expression> `)'
 
 <literal> ::= <nullLiteral>
@@ -13535,7 +13536,6 @@ Postfix expressions invoke the postfix operators on objects.
 
 \begin{grammar}
 <postfixExpression> ::= <assignableExpression> <postfixOperator>
-  \alt <constructorInvocation> <selector>*
   \alt <primary> <selector>*
 
 <postfixOperator> ::= <incrementOperator>
@@ -13751,7 +13751,6 @@ and therefore must be evaluated.
 \begin{grammar}
 <assignableExpression> ::= <primary> <assignableSelectorPart>
   \alt \SUPER{} <unconditionalAssignableSelector>
-  \alt <constructorInvocation> <assignableSelectorPart>
   \alt <identifier>
 
 <assignableSelectorPart> ::= <selector>* <assignableSelector>
