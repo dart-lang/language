@@ -778,8 +778,6 @@ clauses need be tried.
   - Only if `P0` is a subtype match for `Q` under constraint set `C`.
 - If `Q` is a legacy type `Q0*` then the match holds under constraint set `C`:
   - Only if `P` is a subtype match for `Q?` under constraint set `C`.
-- If `P` is `dynamic` or `void` then the match holds under constraint set `C`
-  - Only if `Object?` is a subtype match for `Q` under constraint set `C`.
 - If `Q` is `FutureOr<Q0>` the match holds under constraint set `C`:
   - If `P` is `FutureOr<P0>` and `P0` is a subtype match for `Q0` under
     constraint set `C`.
@@ -789,6 +787,8 @@ clauses need be tried.
   - Or if `P` is a subtype match for `Future<Q0>` under **empty** constraint set
     `C`
 - If `Q` is `Q0?` the match holds under constraint set `C`:
+  - If `P` is `dynamic` or `void` and `Object` is a subtype match for `Q0` under
+    constraint set `C`.
   - If `P` is `P0?` and `P0` is a subtype match for `Q0` under
     constraint set `C`.
   - Or if `P` is a subtype match for `Q0` under **non-empty** constraint set
