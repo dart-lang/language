@@ -365,6 +365,16 @@ We say that the **current type** of a variable `x` in variable model `VM` is `S`
   - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
   - `promoted = S::l` or (`promoted = []` and `declared = S`)
 
+We say that a type `S` is **promatable by** another type `T` iff:
+  - Not `S <: T`, and
+  - `T <: S` or (`S` is `X extends R` and `R` is promotable by `T`)
+    or (`S` is `X & R` and `R` is promotable by `T`).
+
+When `S` is promotable by `T`, the **outcome** of promoting `S` by `T` is:
+  - `T`, when `T <: S`.
+  - `X & U`, when `S` is `X extends R` or `X & R`, and `U`
+    is the outcome of promoting `R` by `T`.
+
 Policy:
   - We say that at type `T` is a type of interest for a variable `x` in a set of
     tested types `tested` if `tested` contains a type `S` such that `T` is `S`,
@@ -375,9 +385,7 @@ Policy:
     - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
     - and `captured` is false
     - and `S` is the current type of `x` in `VM`
-    - and not `S <: T`
-    - and `T <: S` or (`S` is `X extends R` and `T <: R`) or (`S` is `X & R` and
-      `T <: R`)
+    - and `S` is promotable by `T`.
 
   - We say that a variable `x` is promotable via initialization given variable
     model `VM` if `x` is a local variable (not a formal parameter) and:
@@ -443,9 +451,8 @@ Definitions:
     - If `x` is not promotable via type test to `T` given `VM`, then `M3` = `M`
     - Else
       - Let `S` be the current type of `x` in `VM`
-      - If `T <: S` then let `T1` = `T`
-      - Else if `S` is `X extends R` then let `T1` = `X & T`
-      - Else If `S` is `X & R` then let `T1` = `X & T`
+      - If `S` is promotable by `T` then let `T1` be the outcome of
+        promoting `S` by `T`.
       - Else `x` is not promotable (shouldn't happen since we checked above)
       - Let `VM2 = VariableModel(declared, T1::promoted, T::tested, assigned,
       unassigned, captured)`
