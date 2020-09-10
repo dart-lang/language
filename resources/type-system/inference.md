@@ -787,15 +787,15 @@ clauses need be tried.
   - Or if `P` is a subtype match for `Future<Q0>` under **empty** constraint set
     `C`
 - If `Q` is `Q0?` the match holds under constraint set `C`:
-  - If `P` is `dynamic` or `void` and `Object` is a subtype match for `Q0` under
-    constraint set `C`.
   - If `P` is `P0?` and `P0` is a subtype match for `Q0` under
     constraint set `C`.
+  - Or if `P` is `dynamic` or `void` and `Object` is a subtype match for `Q0`
+    under constraint set `C`.
   - Or if `P` is a subtype match for `Q0` under **non-empty** constraint set
-    `C`
-  - Or if `P` is a subtype match for `Null` under constraint set `C`
+    `C`.
+  - Or if `P` is a subtype match for `Null` under constraint set `C`.
   - Or if `P` is a subtype match for `Q0` under **empty** constraint set
-    `C`
+    `C`.
 - If `P` is `FutureOr<P0>` the match holds under constraint set `C1 + C2`:
   - If `Future<P0>` is a subtype match for `Q` under constraint set `C1`
   - And if `P0` is a subtype match for `Q` under constraint set `C2`
