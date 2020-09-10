@@ -379,14 +379,6 @@ Policy:
     - and `T <: S` or (`S` is `X extends R` and `T <: R`) or (`S` is `X & R` and
       `T <: R`)
 
-  - We say that a variable `x` is promotable via initialization given variable
-    model `VM` if `x` is a local variable (not a formal parameter) and:
-    - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
-    - and `captured` is false
-    - and `promoted` is empty
-    - and `x` is declared with no explicit type and no initializer
-    - and `assigned` is false and `unassigned` is true
-
   - We say that a variable `x` is promotable via assignment of an expression of
     type `T` given variable model `VM` if
     - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
@@ -410,8 +402,6 @@ Definitions:
     - `VI(x) = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
     - if `captured` is true then:
       - `VM = VariableModel(declared, promoted, tested, true, false, captured)`.
-    - otherwise if `x` is promotable via initialization given `VM` then
-      - `VM = VariableModel(declared, [T], tested, true, false, captured)`.
     - otherwise if `x` is promotable via assignment of `E` given `VM`
       - `VM = VariableModel(declared, T::promoted, tested, true, false, captured)`.
     - otherwise if `x` is demotable via assignment of `E` given `VM`
