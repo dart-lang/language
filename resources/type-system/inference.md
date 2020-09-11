@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2019.09.01
+  - Add left top rule to constraint solving.
+  - Specify inference constraint solving.
+
 2020.07.20
   - Clarify that some rules are specific to code without/with null safety.
     'Without null safety, ...' respectively 'with null safety, ...' is used
@@ -149,8 +153,9 @@ The general inference procedure is as follows.
         - Record the type of `x` and mark `x` as *available*.
     - Otherwise, if `D` has an initializing expression `e`:
       - Perform local type inference on `e`.
-      - Record the type of `x` to be the inferred type of `e`, and mark `x` as
-        *available*.
+      - Let `T` be the inferred type of `e`, or `dynamic` if the inferred type
+        of `e` is a subtype of `Null`.  Record the type of `x` to be `T` and
+        mark `x` as *available*.
     - Otherwise record the type of `x` to be `dynamic` and mark `x` as
       *available*.
   - If `D` is a constructor declaration `C(...)` for which one or more of the
@@ -394,16 +399,15 @@ The meta-variable `C` ranges over classes.
 The meta-variable `B` ranges over types used as bounds for type variables.
 
 
-
 ### Type schemas
 
 Local type inference uses a notion of `type schema`, which is a slight
 generalization of the normal Dart type syntax.  The grammar of Dart types is
-extended with an additional construct `?` which can appear anywhere that a type
-is expected.  The intent is that `?` represents a component of a type which has
+extended with an additional construct `_` which can appear anywhere that a type
+is expected.  The intent is that `_` represents a component of a type which has
 not yet been fixed by inference.  Type schemas cannot appear in programs or in
 final inferred types: they are purely part of the specification of the local
-inference process.  In this document, we sometimes refer to `?` as "the unknown
+inference process.  In this document, we sometimes refer to `_` as "the unknown
 type".
 
 It is an invariant that a type schema will never appear as the right hand
@@ -474,25 +478,6 @@ The invariant occurrences of a type `T` in another type `S` are:
     - the invariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
     - all occurrences of `T` in `Bi` for `i` in `0, ..., k`
 
-### Type schema elimination (least and greatest closure of a type schema)
-
-We define the least closure of a type schema `P` with respect to `?` to be `P`
-with every covariant occurrence of `?` replaced with `Null`, and every invariant
-or contravariant occurrence of `?` replaced with `Object`.
-
-We define the greatest closure of a type schema `P` with respect to `?` to be
-`P` with every invariant and covariant occurrence of `?` replaced with `Object`,
-and every contravariant occurrence of `?` replaced with `Null`.
-
-Note that the closure of a type schema is a proper type.
-
-Note that the least closure of a type schema is always a subtype of any type
-which matches the schema, and the greatest closure of a type schema is always a
-supertype of any type which matches the schema.  **This is not true for invariant
-types.**
-
-TODO: decide what to do about invariant types.
-
 ### Type variable elimination (least and greatest closure of a type)
 
 Given a type `S` and a set of type variables `L` consisting of the variables
@@ -500,22 +485,27 @@ Given a type `S` and a set of type variables `L` consisting of the variables
 `L` as follows.
 
 We define the least closure of a type `M` with respect to a set of type
-variables `T0, ..., Tn` to be `M` with every covariant occurrence of `Ti`
-replaced with `Null`, and every contravariant occurrence of `Ti` replaced with
-`Object`.
+variables `X0, ..., Xn` to be `M` with every covariant occurrence of `Xi`
+replaced with `Never`, and every contravariant occurrence of `Xi` replaced with
+`Object?`.  The invariant occurrences are treated as described explicitly below.
 
 We define the greatest closure of a type `M` with respect to a set of type
-variables `T0, ..., Tn` to be `M` with every contravariant occurrence of `Ti`
-replaced with `Null`, and every covariant occurrence of `Ti` replaced with
-`Object`.
+variables `X0, ..., Xn` to be `M` with every contravariant occurrence of `Xi`
+replaced with `Never`, and every covariant occurrence of `Xi` replaced with
+`Object?`. The invariant occurrences are treated as described explicitly below.
 
 - If `S` is `X` where `X` is in `L`
-  - The least closure of `S` with respect to `L` is `Null`
-  - The greatest closure of `S` with respect to `L` is `Object`
+  - The least closure of `S` with respect to `L` is `Never`
+  - The greatest closure of `S` with respect to `L` is `Object?`
 - If `S` is a base type (or in general, if it does not contain any variable from
   `L`)
   - The least closure of `S` is `S`
   - The greatest closure of `S` is `S`
+- if `S` is `T?`
+  - The least closure of `S` with respect to `L` is `U?` where `U` is the
+    least closure of `T` with respect to `L`
+  - The greatest closure of `S` with respect to `L` is `U?` where `U` is
+    the greatest closure of `T` with respect to `L`
 - if `S` is `Future<T>`
   - The least closure of `S` with respect to `L` is `Future<U>` where `U` is the
     least closure of `T` with respect to `L`
@@ -531,14 +521,8 @@ replaced with `Null`, and every covariant occurrence of `Ti` replaced with
     is the least closure of `Ti` with respect to `L`
   - The greatest closure of `S` with respect to `L` is `C<U0, ..., Uk>` where
     `Ui` is the greatest closure of `Ti` with respect to `L`
-- if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
-  [Tn+1 xn+1, ..., Tm xm])` and `L` contains any free type variables from any of
-  the `Bi`:
-  - The least closure of `S` with respect to `L` is `Null`
-  - The greatest closure of `S` with respect to `L` is `Object`
 - if `S` is `T Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
-  [Tn+1 xn+1, ..., Tm xm])` and `L` does not contain any free type variables
-  from any of the `Bi`:
+  [Tn+1 xn+1, ..., Tm xm])` and no type variable in `L` occurs in any of the `Bi`:
   - The least closure of `S` with respect to `L` is `U Function<X0 extends B0,
   ...., Xk extends Bk>(U0 x0, ...., Un1 xn, [Un+1 xn+1, ..., Um xm])` where:
     - `U` is the least closure of `T` with respect to `L`
@@ -552,8 +536,7 @@ replaced with `Null`, and every covariant occurrence of `Ti` replaced with
     - with the usual capture avoiding requirement that the `Xi` do not appear in
   `L`.
 - if `S` is `T Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
-  {Tn+1 xn+1, ..., Tm xm})` and `L` does not contain any free type variables
-  from any of the `Bi`:
+  {Tn+1 xn+1, ..., Tm xm})` and no type variable in `L` occurs in any of the `Bi`:
   - The least closure of `S` with respect to `L` is `U Function<X0 extends B0,
   ...., Xk extends Bk>(U0 x0, ...., Un1 xn, {Un+1 xn+1, ..., Um xm})` where:
     - `U` is the least closure of `T` with respect to `L`
@@ -566,17 +549,52 @@ replaced with `Null`, and every covariant occurrence of `Ti` replaced with
     - `Ui` is the least closure of `Ti` with respect to `L`
     - with the usual capture avoiding requirement that the `Xi` do not appear in
   `L`.
+- if `S` is `T Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
+    [Tn+1 xn+1, ..., Tm xm])` or `T Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
+{Tn+1 xn+1, ..., Tm xm})`and `L` contains any free type variables
+  from any of the `Bi`:
+  - The least closure of `S` with respect to `L` is `Never`
+  - The greatest closure of `S` with respect to `L` is `Function`
 
 
-# MATERIAL BELOW HERE HAS NOT BEEN UPDATED #
+### Type schema elimination (least and greatest closure of a type schema)
 
-<!--
+We define the greatest and least closure of a type schema `P` with respect to
+`_` in the same way as we define the greatest and least closure with respect to
+a type variable `X` above, where `_` is treated as a type variable in the set
+`L`.
+
+Note that the least closure of a type schema is always a subtype of any type
+which matches the schema, and the greatest closure of a type schema is always a
+supertype of any type which matches the schema.
+
 
 ## Upper bound
 
 We write `UP(T0, T1)` for the upper bound of `T0` and `T1`and `DOWN(T0, T1)` for
-the lower bound of `T0` and `T1`.  This extends to type schema by taking `UP(T,
-?) == T` and `DOWN(T, ?) == T` and symmetrically.
+the lower bound of `T0` and `T1`.  This extends to type schema as follows:
+  - We add the axiom that `UP(T, _) == T` and the symmetric version.
+  - We replace all uses of `T1 <: T2` in the `UP` algorithm by `S1 <: S2` where
+  `Si` is the least closure of `Ti` with respect to `_`.
+  - We add the axiom that `DOWN(T, _) == T` and the symmetric version.
+  - We replace all uses of `T1 <: T2` in the `DOWN` algorithm by `S1 <: S2` where
+  `Si` is the greatest closure of `Ti` with respect to `_`.
+
+The following example illustrates the effect of taking the least/greatest
+closure in the subtyping algorithm.
+
+```
+class C<X> {
+  C(void Function(X) x);
+}
+T check<T>(C<List<T>> f) {
+  return null as T;
+}
+void test() {
+  var x = check(C((List<int> x) {})); // Should infer `int` for `T`
+  String s = x; // Should be an error, `T` should be int.
+}
+```
 
 ## Type constraints
 
@@ -587,6 +605,7 @@ Tt` for some type `Tb` which satisfies schema `Pb`, and some type `Tt` which
 satisfies schema `Pt`.  Constraints in which `X` appears free in either `Pb` or
 `Pt` are ill-formed.
 
+
 ### Closure of type constraints
 
 The closure of a type constraint `Pb <: X <: Pt` with respect to a set of type
@@ -594,23 +613,34 @@ variables `L` is the subtype constraint `Qb <: X :< Qt` where `Qb` is the
 greatest closure of `Pb` with respect to `L`, and `Qt` is the least closure of
 `Pt` with respect to `L`.
 
-XXX this is wrong, fix
-
 Note that the closure of a type constraint implies the original constraint: that
 is, any solution to the original constraint that is closed with respect to `L`,
 is a solution to the new constraint.
 
 The motivation for these operations is that constraint generation may produce a
 constraint on a type variable from an outer scope (say `S`) that refers to a
-type variable from an inner scope (say `T`).  For example, ` <T>(S) -> int <:
-<T>(List<T> -> int ` constrains `List<T>` to be a subtype of `S`.  But this
+type variable from an inner scope (say `T`).  For example, ` <T>(T) -> List<T> <:
+<T>(T) -> S ` constrains `List<T>` to be a subtype of `S`.  But this
 constraint is ill-formed outside of the scope of `T`, and hence if inference
 requires this constraint to be generated and moved out of the scope of `T`, we
 must approximate the constraint to the nearest constraint which does not mention
 `T`, but which still implies the original constraint.  Choosing the greatest
-closure of `List<T>` (i.e. `List<Object>`) as the new supertype constraint on
-`S` results in the constraint `List<Object> <: S`, which implies the original
+closure of `List<T>` (i.e. `List<Object?>`) as the new supertype constraint on
+`S` results in the constraint `List<Object?> <: S`, which implies the original
 constraint.
+
+Example:
+```dart
+class C<T> {
+  C(T Function<X>(X x));
+}
+
+List<Y> foo<Y>(Y y) => [y];
+
+void main() {
+  var x = C(foo); // Should infer C<List<Object?>>
+}
+```
 
 ### Constraint solving
 
@@ -624,48 +654,58 @@ operations on constraint sets.
 The merge of constraint set `C` for a type variable `X` is a type constraint `Mb
 <: X <: Mt` defined as follows:
   - let `Mt` be the lower bound of the `Mti` such that `Mbi <: X <: Mti` is in
-      `C` (and `?` if there are no constraints for `X` in `C`)
+      `C` (and `_` if there are no constraints for `X` in `C`)
   - let `Mb` be the upper bound of the `Mbi` such that `Mbi <: X <: Mti` is in
-      `C` (and `?` if there are no constraints for `X` in `C`)
+      `C` (and `_` if there are no constraints for `X` in `C`)
+
+Note that the merge of a constraint set `C` summarizes all of the constraints in
+the set in the sense that any solution for the merge is a solution for each
+constraint individually.
 
 #### Constraint solution for a type variable
 
 The constraint solution for a type variable `X` with respect to a constraint set
-`C` is defined as follows:
+`C` is the type schema defined as follows:
   - let `Mb <: X <: Mt` be the merge of `C` with respect to `X`.
-  - If `Mb` is known (that is, it does not contain `?`) then the solution is
+  - If `Mb` is known (that is, it does not contain `_`) then the solution is
     `Mb`
-  - Otherwise, if `Mt` is known (that is, it does not contain `?`) then the
+  - Otherwise, if `Mt` is known (that is, it does not contain `_`) then the
     solution is `Mt`
-  - Otherwise, if `Mb` is not `?` then the solution is `Mb`
+  - Otherwise, if `Mb` is not `_` then the solution is `Mb`
   - Otherwise the solution is `Mt`
+
+Note that the constraint solution is a type schema, and hence may contain
+occurences of the unknown type.
 
 #### Grounded constraint solution for a type variable
 
 The grounded constraint solution for a type variable `X` with respect to a
 constraint set `C` is define as follows:
   - let `Mb <: X <: Mt` be the merge of `C` with respect to `X`.
-  - If `Mb` is known (that is, it does not contain `?`) then the solution is
+  - If `Mb` is known (that is, it does not contain `_`) then the solution is
     `Mb`
-  - Otherwise, if `Mt` is known (that is, it does not contain `?`) then the
+  - Otherwise, if `Mt` is known (that is, it does not contain `_`) then the
     solution is `Mt`
-  - Otherwise, if `Mb` is not `?` then the solution is the least closure of
-    `Mb` with respect to `?`
-  - Otherwise the solution is the greatest closure of `Mt` with respect to `?`.
+  - Otherwise, if `Mb` is not `_` then the solution is the least closure of
+    `Mb` with respect to `_`
+  - Otherwise the solution is the greatest closure of `Mt` with respect to `_`.
+
+Note that the grounded constraint solution is a type, and hence may not contain
+occurences of the unknown type.
+
 
 #### Constrained type variables
 
 A constraint set `C` constrains a type variable `X` if there exists a `c` in `C`
-of the form `Pb <: X <: Pt` where either `Pb` or `Pt` is not `?`.
+of the form `Pb <: X <: Pt` where either `Pb` or `Pt` is not `_`.
 
 A constraint set `C` partially constrains a type variable `X` if the constraint
 solution for `X` with respect to `C` is a type schema (that is, it contains
-`?`).
+`_`).
 
 A constraint set `C` fully constrains a type variable `X` if the constraint
 solution for `X` with respect to `C` is a proper type (that is, it does not
-contain `?`).
-
+contain `_`).
 
 ## Subtype constraint generation
 
@@ -676,21 +716,28 @@ constraints `C`.
 We write this operation as a relation as follows:
 
 ```
-P <: Q [L] -> C
+P <# Q [L] -> C
 ```
 
 where `P` and `Q` are type schemas, `L` is a list of type variables `X0, ...,
 Xn`, and `C` is a list of subtype and supertype constraints on the `Xi`.
 
 This relation can be read as "`P` is a subtype match for `Q` with respect to the
-list of type variables `L` under constraints `C`".
-
+list of type variables `L` under constraints `C`".  Not all schemas `P` and `Q`
+are in the relation: the relation may fail to hold, which is distinct from the
+relation holding but producing no constraints.
 
 By invariant, at any point in constraint generation, only one of `P` and `Q` may
-be a type schema (that is, contain `?`), only one of `P` and `Q` may contain any
+be a type schema (that is, contain `_`), only one of `P` and `Q` may contain any
 of the `Xi`, and neither may contain both.  That is, constraint generation is a
 relation on type-schema/type pairs and type/type-schema pairs, only the type
-element of which may refer to the `Xi`.
+element of which may refer to the `Xi`.  The presentation below does not
+explicitly track which side of the relation currently contains a schema and
+which currently contains the variables being solved for, but it does at one
+point rely on being able to recover this information.  This information can be
+tracked explicitly in the relation by (for example) adding a boolean to the
+relation which is negated at contravariant points.
+
 
 ### Notes:
 
@@ -705,47 +752,76 @@ element of which may refer to the `Xi`.
 
 ### Rules
 
-- The unknown type `?` is a subtype match for any type `Q` with no constraints.
-- Any type `P` is a subtype match for the unknown type `?` with no constraints.
-- A type variable `X` in `L` is a subtype match for any type schema `Q`:
-  - Under constraint `? <: X <: Q`.
-- A type schema `Q` is a subtype match for a type variable `X` in `L`:
-  - Under constraint `Q <: X <: ?`.
-- Any two equal types `P` and `Q` are subtype matches under no constraints.
-- Any type `P` is a subtype match for `dynamic`, `Object`, or `void` under no
+For two type schemas `P` and `Q`, a set of type variables `L`, and a set of
+constraints `C`, we define `P <# Q [L] -> C` via the following algorithm.
+
+Note that the order matters: we consider earlier clauses first.
+
+Note that the rules are written assuming that if the conditions of a particular
+case (including the sub-clauses) fail to hold, then they "fall through" to try
+subsequent cluases except in the case that a subclause is prefixed with "Only
+if", in which case a failure of the prefixed clause implies that no subsequent
+clauses need be tried.
+
+- If `P` is `_` then the match holds with no constraints.
+- If `Q` is `_` then the match holds with no constraints.
+- If `P` is a type variable `X` in `L`, then the match holds:
+  - Under constraint `_ <: X <: Q`.
+- If `Q` is a type variable `X` in `L`, then the match holds:
+  - Under constraint `P <: X <: _`.
+- If `P` and `Q` are identical types, then the subtype match holds under no
   constraints.
-- `Null` is a subtype match for any type `Q` under no constraints.
-- `FutureOr<P>` is a subtype match for `FutureOr<Q>` with respect to `L` under
-  constraints `C`:
-  - If `P` is a subtype match for `Q` with respect to `L` under constraints `C`.
-- `FutureOr<P>` is a subtype match for `Q` with respect to `L` under
-constraints `C0 + C1`.
-  - If `Future<P>` is a subtype match for `Q` with respect to `L` under
-    constraints `C0`.
-  - And `P` is a subtype match for `Q` with respect to `L` under constraints
-    `C1`.
-- `P` is a subtype match for `FutureOr<Q>` with respect to `L` under constraints
-  `C`:
-  - If `P` is a subtype match for `Future<Q>` with respect to `L` under
-    constraints `C`.
-  - Or `P` is not a subtype match for `Future<Q>` with respect to `L` under
-    constraints `C`
-    - And `P` is a subtype match for `Q` with respect to `L` under constraints
-      `C`
-- A type variable `X` not in `L` with bound `P` is a subtype match for the same
-type variable `X` with bound `Q` with respect to `L` under constraints `C`:
-  - If `P` is a subtype match for `Q` with respect to `L` under constraints `C`.
-- A type variable `X` not in `L` with bound `P` is a subtype match for a type
-`Q` with respect to `L` under constraints `C`:
-  - If `P` is a subtype match for `Q` with respect to `L` under constraints `C`.
-- A type `P<M0, ..., Mk>` is a subtype match for `P<N0, ..., Nk>` with respect
-to `L` under constraints `C0 + ... + Ck`:
+- If `P` is a legacy type `P0*` then the match holds under constraint set `C`:
+  - Only if `P0` is a subtype match for `Q` under constraint set `C`.
+- If `Q` is a legacy type `Q0*` then the match holds under constraint set `C`:
+  - Only if `P` is a subtype match for `Q?` under constraint set `C`.
+- If `Q` is `FutureOr<Q0>` the match holds under constraint set `C`:
+  - If `P` is `FutureOr<P0>` and `P0` is a subtype match for `Q0` under
+    constraint set `C`.
+  - Or if `P` is a subtype match for `Future<Q0>` under **non-empty** constraint set
+    `C`
+  - Or if `P` is a subtype match for `Q0` under constraint set `C`
+  - Or if `P` is a subtype match for `Future<Q0>` under **empty** constraint set
+    `C`
+- If `Q` is `Q0?` the match holds under constraint set `C`:
+  - If `P` is `P0?` and `P0` is a subtype match for `Q0` under
+    constraint set `C`.
+  - Or if `P` is a subtype match for `Q0` under **non-empty** constraint set
+    `C`
+  - Or if `P` is a subtype match for `Null` under constraint set `C`
+  - Or if `P` is a subtype match for `Q0` under **empty** constraint set
+    `C`
+- If `P` is `FutureOr<P0>` the match holds under constraint set `C1 + C2`:
+  - If `Future<P0>` is a subtype match for `Q` under constraint set `C1`
+  - And if `P0` is a subtype match for `Q` under constraint set `C2`
+- If `P` is `P0?` the match holds under constraint set `C1 + C2`:
+  - If `P0` is a subtype match for `Q` under constraint set `C1`
+  - And if `Null` is a subtype match for `Q` under constraint set `C2`
+
+- If `Q` is `dynamic`, `Object?`, or `void` then the match holds under no
+  constraints.
+- If `P` is `dynamic` or `void` then the match holds under constraint set `C` if
+  `Object?` is a subtype match for `Q` under constraint set `C`.
+- If `P` is `Never` then the match holds under no constraints.
+- If `Q` is `Object`, then the match holds under no constraints:
+  - Only if `P` is non-nullable.
+- If `P` is `Null`, then the match holds under no constraints:
+  - Only if `Q` is nullable.
+
+- If `P` is a type variable `X` with bound `B` (or a promoted type variable `X &
+  B`), the match holds with constraint set `C`:
+  - If `B` is a subtype match for `Q` with constraint set `C`
+    - Note that we have already eliminated the case that `X` is a variable in
+      `L`.
+
+- If `P` is `C<M0, ..., Mk>` and `Q` is `C<N0, ..., Nk>`, then the match holds
+  under constraints `C0 + ... + Ck`:
   - If `Mi` is a subtype match for `Ni` with respect to `L` under constraints
-    `C`.
-- A type `P<M0, ..., Mk>` is a subtype match for `Q<N0, ..., Nj>` with respect
-to `L` under constraints `C`:
-  - If `R<B0, ..., Bj>` is the superclass of `P<M0, ..., Mk>` and `R<B0, ...,
-Bj>` is a subtype match for `Q<N0, ..., Nj>` with respect to `L` under
+    `Ci`.
+- If `P` is `C0<M0, ..., Mk>` and `Q` is `C1<N0, ..., Nj>` then the match holds
+with respect to `L` under constraints `C`:
+  - If `C1<B0, ..., Bj>` is a superinterface of `C0<M0, ..., Mk>` and `C1<B0,
+..., Bj>` is a subtype match for `C1<N0, ..., Nj>` with respect to `L` under
 constraints `C`.
   - Or `R<B0, ..., Bj>` is one of the interfaces implemented by `P<M0, ..., Mk>`
 (considered in lexical order) and `R<B0, ..., Bj>` is a subtype match for `Q<N0,
@@ -753,8 +829,10 @@ constraints `C`.
   - Or `R<B0, ..., Bj>` is a mixin into `P<M0, ..., Mk>` (considered in lexical
 order) and `R<B0, ..., Bj>` is a subtype match for `Q<N0, ..., Nj>` with respect
 to `L` under constraints `C`.
+
 - A type `P` is a subtype match for `Function` with respect to `L` under no constraints:
   - If `P` is a function type.
+
 - A function type `(M0,..., Mn, [M{n+1}, ..., Mm]) -> R0` is a subtype match for
   a function type `(N0,..., Nk, [N{k+1}, ..., Nr]) -> R1` with respect to `L`
   under constraints `C0 + ... + Cr + C`
@@ -765,14 +843,31 @@ to `L` under constraints `C`.
   under constraints `Ci`.
 - Function types with named parameters are treated analogously to the positional
   parameter case above.
-- A generic function type `<T0 extends B0, ..., Tn extends Bn>F0` is a subtype
-match for a generic function type `<S0 extends B0, ..., Sn extends Bn>F1` with
-respect to `L` under constraints `Cl`:
-  - If `F0[Z0/T0, ..., Zn/Tn]` is a subtype match for `F0[Z0/S0, ..., Zn/Sn]`
-with respect to `L` under constraints `C`, where each `Zi` is a fresh type
-variable with bound `Bi`.
-  - And `Cl` is `C` with each constraint replaced with its closure with respect
+
+- A generic function type `<T0 extends B00, ..., Tn extends B0n>F0` is a subtype
+match for a generic function type `<S0 extends B10, ..., Sn extends B1n>F1` with
+respect to `L` under constraint set `C2`
+  - If `B0i` is a subtype match for `B1i` with constraint set `Ci0`
+  - And `B1i` is a subtype match for `B0i` with constraint set `Ci1`
+  - And `Ci2` is `Ci0 + Ci1`
+  - And `Z0...Zn` are fresh variables with bounds `B20, ..., B2n`
+    - Where `B2i` is `B0i[Z0/T0, ..., Zn/Tn]` if `P` is a type schema
+    - Or `B2i` is `B1i[Z0/S0, ..., Zn/Sn]` if `Q` is a type schema
+      - In other words, we choose the bounds for the fresh variables from
+        whichever of the two generic function types is a type schema and does
+        not contain any variables from `L`.
+  - And `F0[Z0/T0, ..., Zn/Tn]` is a subtype match for `F1[Z0/S0, ..., Zn/Sn]`
+with respect to `L` under constraints `C0`
+  - And `C1` is  `C02 + ... + Cn2 + C0`
+  - And `C2` is `C1` with each constraint replaced with its closure with respect
     to `[Z0, ..., Zn]`.
+
+
+<!--
+
+
+# MATERIAL BELOW HERE HAS NOT BEEN UPDATED #
+
 
 ## Expression inference
 
