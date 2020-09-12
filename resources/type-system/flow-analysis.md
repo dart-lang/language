@@ -691,6 +691,15 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
   - Let `before(E) = join(after(S), continue(N))`
   - Let `after(N) = join(false(E), break(S))`
 
+- **for each statement**: If `N` is a for statement of the form `for (T X in E)
+  S`, `for (var X in E) S`, or `for (X in E) S`, then:
+  - Let `before(E) = before(N)`
+  - Let `before(S) = conservativeJoin(after(E), assignedIn(N), capturedIn(N))`
+  - Let `after(N) = join(before(S), break(S))`
+
+  TODO(paulberry): this glosses over how we handle the implicit assignment to X.
+  See https://github.com/dart-lang/sdk/issues/42653.
+
 - **switch statement**: If `N` is a switch statement of the form `switch (E)
   {alternatives}` then:
   - Let `before(E) = before(N)`.
