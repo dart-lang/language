@@ -10,13 +10,16 @@ be filed [here](https://github.com/dart-lang/language/issues).
 
 # Dart language team
 
-As of January 2020, the Dart language team consists of:
+As of June 2020, the Dart language team consists of:
 
 * Leaf Petersen ([@leafpetersen](https://github.com/leafpetersen)), language engineer
 * Lasse R.H. Nielsen ([@lrhn](https://github.com/lrhn)), language engineer
 * Bob Nystrom
  ([@munificent](https://github.com/munificent)), language engineer
 * Erik Ernst ([@eernstg](https://github.com/eernstg)), language engineer, [specification][specification] maintainer
+* Nate Bosch ([@natebosch](https://github.com/natebosch)), language engineer
+* Jake MacDonald ([@jakemac53](https://github.com/jakemac53)), language engineer
+* Paul Berry ([@stereotype441](https://github.com/stereotype441)), language engineer
 * Michael Thomsen ([@mit-mit](https://github.com/mit-mit)), product manager
 
 # Organization

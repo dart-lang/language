@@ -22,7 +22,7 @@ See [language#971][], [language#597][], [sdk#41559][], [sdk#39652][], [sdk#32645
 
 ### Some methods are not special-cased
 
-The special-case typing rules only apply to arithmetic *operators* (`+`, `-`, `*`, `%`). They do not apply to `int.remainder`, even though it is otherwise equivalent to `%`,and they do not apply to `num.clamp`. These are the two remaining members of `int` which has a return type of `num`.
+The special-case typing rules only apply to arithmetic *operators* (`+`, `-`, `*`, `%`). They do not apply to `int.remainder`, even though it is otherwise equivalent to `%`,and they do not apply to `num.clamp`. These are the two remaining members of `int` which have a return type of `num`.
 
 This has caused issues before, but now those issues become compile-time errors because of the lack of [implicit downcasts][sdk#39652].
 

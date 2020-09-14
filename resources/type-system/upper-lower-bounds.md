@@ -5,8 +5,11 @@ leafp@google.com
 ## CHANGELOG
 
 2020.09.01
-  - **CHANGE** Update treatment of implicit bounds and recursion
-    for null safety.
+  - **CHANGE** Update **UP** in cases about type variables and promoted type
+    variables involving F-bounds, and in two cases about function types.
+
+2020.08.13
+  - Move helper predicates to the null safety specification.
 
 2020.07.21
   - **CHANGE** Specify treatment of mixed hierarchies.
@@ -40,72 +43,15 @@ We assume that type aliases have been expanded, and that all types are named
 
 ## Helper predicates
 
-The **TOP** predicate is true for any type which is in the equivalence class of
-top types.
-
-- **TOP**(`T?`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
-- **TOP**(`T*`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
-- **TOP**(`dynamic`) is true
-- **TOP**(`void`) is true
-- **TOP**(`FutureOr<T>`) is **TOP**(T)
-- **TOP**(T) is false otherwise
-
-The **OBJECT** predicate is true for any type which is in the equivalence class
-of `Object`.
-
-- **OBJECT**(`Object`) is true
-- **OBJECT**(`FutureOr<T>`) is **OBJECT**(T)
-- **OBJECT**(T) is false otherwise
-
-The **BOTTOM** predicate is true for things in the equivalence class of `Never`.
-
-- **BOTTOM**(`Never`) is true
-- **BOTTOM**(`X&T`) is true iff **BOTTOM**(`T`)
-- **BOTTOM**(`X extends T`) is true iff **BOTTOM**(`T`)
-- **BOTTOM**(`T`) is false otherwise
-
-The **NULL** predicate is true for things in the equivalence class of `Null`
-
-- **NULL**(`Null`) is true
-- **NULL**(`T?`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
-- **NULL**(`T*`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
-- **NULL**(`T`) is false otherwise
-
-The **MORETOP** predicate defines a total order on top and `Object` types.
-
-- **MORETOP**(`void`, `T`) = true
-- **MORETOP**(`T`, `void`) = false
-- **MORETOP**(`dynamic`, `T`) = true
-- **MORETOP**(`T`, `dynamic`) = false
-- **MORETOP**(`Object`, `T`) = true
-- **MORETOP**(`T`, `Object`) = false
-- **MORETOP**(`T*`, `S*`) = **MORETOP**(`T`, `S`)
-- **MORETOP**(`T`, `S*`) = true
-- **MORETOP**(`T*`, `S`) = false
-- **MORETOP**(`T?`, `S?`) = **MORETOP**(`T`, `S`)
-- **MORETOP**(`T`, `S?`) = true
-- **MORETOP**(`T?`, `S`) = false
-- **MORETOP**(`FutureOr<T>`, `FutureOr<S>`) = **MORETOP**(T, S)
-
-The **MOREBOTTOM** predicate defines an (almost) total order on bottom and
-`Null` types.  This does not currently consistently order two different type
-variables with the same bound.
-
-- **MOREBOTTOM**(`Never`, `T`) = true
-- **MOREBOTTOM**(`T`, `Never`) = false
-- **MOREBOTTOM**(`Null`, `T`) = true
-- **MOREBOTTOM**(`T`, `Null`) = false
-- **MOREBOTTOM**(`T?`, `S?`) = **MOREBOTTOM**(`T`, `S`)
-- **MOREBOTTOM**(`T`, `S?`) = true
-- **MOREBOTTOM**(`T?`, `S`) = false
-- **MOREBOTTOM**(`T*`, `S*`) = **MOREBOTTOM**(`T`, `S`)
-- **MOREBOTTOM**(`T`, `S*`) = true
-- **MOREBOTTOM**(`T*`, `S`) = false
-- **MOREBOTTOM**(`X&T`, `Y&S`) = **MOREBOTTOM**(`T`, `S`)
-- **MOREBOTTOM**(`X&T`, `S`) = true
-- **MOREBOTTOM**(`S`, `X&T`) = false
-- **MOREBOTTOM**(`X extends T`, `Y extends S`) = **MOREBOTTOM**(`T`, `S`)
-
+This document relies on several type classification helper predicates
+which are specified in the
+[null safety specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/nnbd/feature-specification.md):
+**TOP**, which is true for all top types;
+**OBJECT**, which is true for types equivalent to `Object`;
+**BOTTOM**, which is true for types equivalent to `Never`;
+**NULL**, which is true for types equivalent to `Null`;
+**MORETOP**, which is a total order on top and `Object` types; and
+**MOREBOTTOM**, which is an (almost) total order on bottom and `Null` types.
 
 ## Upper bounds
 

@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.09.10
+  - Specify updates to super-bounded type rules for null safety.
+
 2020.08.12
   - Specify constraints on the `main` function.
 
@@ -15,7 +18,7 @@ Status: Draft
 
 2020.07.09
   - Specify combined member signature and spread element typing
-    with null-safety.
+    with null safety.
 
 2020.06.02
   - Fix the diff to the spec for potentially constant instance checks
@@ -802,10 +805,31 @@ the element, key, and value type of `...e` and `...?e` is `Never`.
 *When the static type _S_ of `e` is strictly non-nullable, such as when _S_
 is `Never`, `...?e` is a warning, but it may still occur.*
 
-### Instantiate to bounds
+### Instantiation to bound
 
-The computation of instantiation to bounds is changed to substitute `Never` for
+The computation of instantiation to bound is changed to substitute `Never` for
 type variables appearing in contravariant positions instead of `Null`.
+
+### Super-bounded types
+
+Null safety requires three changes to the section 'Super-Bounded Types' in
+the language specification.
+
+The definition of a top type is changed: _T_ is a top type if and only if
+`Object?` is a subtype of _T_. Note that the helper predicate **TOP**
+provides a syntactic characterization of the same concept.
+
+The definition of a super-bounded type is changed such that occurrences of
+`Null` are replaced by types involving `Never`, and `Object` is replaced by
+`Object?`. Moreover, top types in invariant positions and in positions that
+have no variance (*unused type parameters in a type alias*) are given the
+same treatment as top types in covariant positions. This causes one
+sentence to change, with the following result:
+
+Let _T'_ be the result of replacing every occurrence in _T_ of a type _S_
+in a contravariant position where _S <: Never_ by `Object?`, and every
+occurrence in _T_ of a top type in a position which is not contravariant by
+`Never`.
 
 ### Least and greatest closure
 
@@ -1000,6 +1024,87 @@ defined as follows.
 These are extended as
 per
 [separate proposal](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
+
+## Helper predicates
+
+The following helper predicates are used to classify types. They are syntactic
+in nature such that termination is obvious. In particular, they do not rely on
+subtyping.
+
+The **TOP** predicate is true for any type which is in the equivalence class of
+top types.
+
+- **TOP**(`T?`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
+- **TOP**(`T*`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
+- **TOP**(`dynamic`) is true
+- **TOP**(`void`) is true
+- **TOP**(`FutureOr<T>`) is **TOP**(T)
+- **TOP**(T) is false otherwise
+
+**TOP**(`T`) is true if and only if `T` is a supertype of `Object?`.
+
+The **OBJECT** predicate is true for any type which is in the equivalence class
+of `Object`.
+
+- **OBJECT**(`Object`) is true
+- **OBJECT**(`FutureOr<T>`) is **OBJECT**(T)
+- **OBJECT**(`T`) is false otherwise
+
+**OBJECT**(`T`) is true if and only if `T` is a subtype and a supertype of
+`Object`.
+
+The **BOTTOM** predicate is true for things in the equivalence class of `Never`.
+
+- **BOTTOM**(`Never`) is true
+- **BOTTOM**(`X&T`) is true iff **BOTTOM**(`T`)
+- **BOTTOM**(`X extends T`) is true iff **BOTTOM**(`T`)
+- **BOTTOM**(`T`) is false otherwise
+
+**BOTTOM**(`T`) is true if and only if `T` is a subtype of `Never`.
+
+The **NULL** predicate is true for things in the equivalence class of `Null`
+
+- **NULL**(`Null`) is true
+- **NULL**(`T?`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
+- **NULL**(`T*`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
+- **NULL**(`T`) is false otherwise
+
+**NULL**(`T`) is true if and only if `T` is a subtype and a supertype of `Null`.
+
+The **MORETOP** predicate defines a total order on top and `Object` types.
+
+- **MORETOP**(`void`, `T`) = true
+- **MORETOP**(`T`, `void`) = false
+- **MORETOP**(`dynamic`, `T`) = true
+- **MORETOP**(`T`, `dynamic`) = false
+- **MORETOP**(`Object`, `T`) = true
+- **MORETOP**(`T`, `Object`) = false
+- **MORETOP**(`T*`, `S*`) = **MORETOP**(`T`, `S`)
+- **MORETOP**(`T`, `S*`) = true
+- **MORETOP**(`T*`, `S`) = false
+- **MORETOP**(`T?`, `S?`) = **MORETOP**(`T`, `S`)
+- **MORETOP**(`T`, `S?`) = true
+- **MORETOP**(`T?`, `S`) = false
+- **MORETOP**(`FutureOr<T>`, `FutureOr<S>`) = **MORETOP**(T, S)
+
+The **MOREBOTTOM** predicate defines an (almost) total order on bottom and
+`Null` types.  This does not currently consistently order two different type
+variables with the same bound.
+
+- **MOREBOTTOM**(`Never`, `T`) = true
+- **MOREBOTTOM**(`T`, `Never`) = false
+- **MOREBOTTOM**(`Null`, `T`) = true
+- **MOREBOTTOM**(`T`, `Null`) = false
+- **MOREBOTTOM**(`T?`, `S?`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`T`, `S?`) = true
+- **MOREBOTTOM**(`T?`, `S`) = false
+- **MOREBOTTOM**(`T*`, `S*`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`T`, `S*`) = true
+- **MOREBOTTOM**(`T*`, `S`) = false
+- **MOREBOTTOM**(`X&T`, `Y&S`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`X&T`, `S`) = true
+- **MOREBOTTOM**(`S`, `X&T`) = false
+- **MOREBOTTOM**(`X extends T`, `Y extends S`) = **MOREBOTTOM**(`T`, `S`)
 
 ### The main function
 
