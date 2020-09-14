@@ -710,10 +710,10 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
 - **for statement**: If `N` is a for statement of the form `for (D; C; U) S`,
   then:
   - Let `before(D) = before(N)`.
-  - Let `before(E1) = conservativeJoin(after(D), assignedIn(N), capturedIn(N))`.
+  - Let `before(C) = conservativeJoin(after(D), assignedIn(N), capturedIn(N))`.
   - Let `before(S) = split(true(C))`.
   - Let `before(U) = merge(after(S), continue(S))`.
-  - Let `after(N) = inheritTested(join(false(E), unsplit(break(S))), after(U))`.
+  - Let `after(N) = inheritTested(join(false(C), unsplit(break(S))), after(U))`.
 
 - **do while statement**: If `N` is a do while statement of the form `do S while
   (E)` then:
