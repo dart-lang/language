@@ -167,37 +167,29 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
   - otherwise **UP**(`B1a`, `T2`)
-    where `B1a` is obtained from `B1` by replacing contravariant occurrences
-    of `X1` by `Never`, and other occurrences of `X1` by `Object?`
-    when the resulting type is a supertype of `B1` assuming `B1`,
-    and `B1a` is otherwise `Object?`.
+    where `B1a` is the greatest closure of `B1` with respect to `X1`,
+    as defined in [inference.md].
 
 - **UP**(`X1 & B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
   - otherwise **UP**(`B1a`, `T2`)
-    where `B1a` is obtained from `B1` by replacing contravariant occurrences
-    of `X1` by `Never`, and other occurrences of `X1` by `Object?`
-    when the resulting type is a supertype of `B1` assuming `B1`,
-    and `B1a` is otherwise `Object?`.
+    where `B1a` is the greatest closure of `B1` with respect to `X1`,
+    as defined in [inference.md].
 
 - **UP**(`T1`, `X2 extends B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
   - otherwise **UP**(`T1`, `B2a`)
-    where `B2a` is obtained from `B2` by replacing contravariant occurrences
-    of `X2` by `Never`, and other occurrences of `X2` by `Object?`
-    when the resulting type is a supertype of `B2` assuming `B2`,
-    and `B2a` is otherwise `Object?`.
+    where `B2a` is the greatest closure of `B2` with respect to `X2`,
+    as defined in [inference.md].
 
 - **UP**(`T1`, `X2 & B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
   - otherwise **UP**(`T1`, `B2a`)
-    where `B2a` is obtained from `B2` by replacing contravariant occurrences
-    of `X2` by `Never`, and other occurrences of `X2` by `Object?`
-    when the resulting type is a supertype of `B2` assuming `B2`,
-    and `B2a` is otherwise `Object?`.
+    where `B2a` is the greatest closure of `B2` with respect to `X2`,
+    as defined in [inference.md].
 
 - **UP**(`T Function<...>(...)`, `Function`) = `Function`
 - **UP**(`Function`, `T Function<...>(...)`) = `Function`
@@ -248,6 +240,8 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
     super-interfaces of the two types.
   - For an upper bound computation in an opted in library, no modification of
     the set of super-interfaces is performed.
+
+[inference.md]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md
 
 ## Lower bounds
 
