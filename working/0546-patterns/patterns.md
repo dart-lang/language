@@ -431,8 +431,8 @@ expression. The expression is syntactically restricted to be either:
     value on an enum type that was imported with a prefix, or a static
     declaration in a class, mixin, or extension imported with a prefix.
 
-The const expression is evaluated and the result passed to the matched value's
-`==` operator to determine if it matches.
+The const expression is evaluated and the matched value is passed to the
+result's `==` operator to determine if it matches.
 
 **TODO: Do we want to allow other kinds of constant expressions like `1 + 2`?
 Switch statements allow arbitrary const expressions. We probably don't want to
@@ -461,6 +461,10 @@ capture the rest in a variable?**
 
 **TODO: Can the pattern have a type argument? If so, can that have a type
 pattern?**
+
+**TODO: Calling `length` and `[]` may have user-visible side effects, but it
+would be nice if compilers could cache the result of a previous call when
+processing a series of list patterns. Decide how to specify that.**
 
 ### Map matcher
 
