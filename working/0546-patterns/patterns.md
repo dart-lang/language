@@ -409,7 +409,7 @@ literalMatcher ::=
 
 A literal pattern determines if the value is equivalent to the given literal
 value. The pattern matches if the two values are equal, determined by passing
-the pattern's literal value to the `==` method on the value being matched.
+the value being matched to the `==` method on the pattern's literal value.
 
 ### Constant matcher
 
