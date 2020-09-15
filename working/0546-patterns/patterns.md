@@ -16,7 +16,7 @@ functional language like SML and graft it directly onto an object-oriented
 language like Dart. SML's type system is based on algebraic datatypes and has no
 notion of subtyping.
 
-The impedence mismatch between existing functional-style pattern syntax and
+The impedance mismatch between existing functional-style pattern syntax and
 Dart causes (at least) two challenges:
 
 ### Challenge 1: Bare identifiers
@@ -34,7 +34,7 @@ main() {
 }
 ```
 
-Here's a match statement which contains a bunch of cases. Each case contains a
+Here's a match statement which contains a couple of cases. Each case contains a
 pattern that the value is matched against. Look at `a` inside the `[a]` pattern.
 It could mean either:
 
@@ -146,10 +146,10 @@ type as an annotation, explicit cast, or type test.
 These challenges come up often, especially when evolving a language with a rich
 syntax like Dart. There's only so much ASCII to go around. For example, consider
 the humble: `{}`. In Dart 1.0, this could already mean two different things: an
-empty map literal for a `Map<dynamic>` or an empty block. When we added type
-inference in Dart 2.0, that same pair of characters could mean an empty map of
-any of a variety of different types. Then in Dart 2.2, we added set literals, so
-now it could potentially be an empty set.
+empty map literal for a `Map<dynamic, dynamic>`, or an empty block. When we
+added type inference in Dart 2.0, that same pair of characters could mean an
+empty map of any of a variety of different types. Then in Dart 2.2, we added set
+literals, so now it could potentially be an empty set.
 
 There are several ways to solve these kinds of problems. The first simply avoids
 the problem entirely and the others rely on using some surrounding contextual
@@ -219,7 +219,7 @@ are roughly in order. When possible, the safest solution is to come up with
 distinct syntax. That can be difficult if users already have a strong
 expectation for a certain syntax based on existing language features or other
 languages. Novel syntax carries a high unfamiliarity cost. For features like
-pattern matching that are primarily syntax sugar, an ugly distinct syntax can
+pattern matching that are primarily syntax sugar, a distinct but ugly syntax can
 nullify the value of the feature.
 
 Barring that, the less context you use the better. There is a sliding scale for
@@ -240,7 +240,7 @@ evidence this is a good balance.
 
 ## Two kinds of patterns
 
-Patterns generally do one of three things:
+A pattern generally does one of three things:
 
 1.  Perform some kind of test on an object to decide whether to execute some
     piece of code or not. In other words, if the object **matches** the pattern,
@@ -428,7 +428,7 @@ expression. The expression is syntactically restricted to be either:
     prefix, a static constant, or an enum value.
 
 *   **A prefixed qualified identifier.** Like `a.B.c`. It must resolve to a
-    value on an emum type that was imported with a prefix, or a static
+    value on an enum type that was imported with a prefix, or a static
     declaration in a class, mixin, or extension imported with a prefix.
 
 The const expression is evaluated and the result passed to the matched value's
