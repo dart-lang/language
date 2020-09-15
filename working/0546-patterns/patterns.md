@@ -313,7 +313,7 @@ abstract class Geometry {}
 
 class Point extends Geometry {
   final num x, y;
-  Rect(this.x, this.y);
+  Point(this.x, this.y);
 }
 
 class Circle extends Geometry {
