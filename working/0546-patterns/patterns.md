@@ -570,7 +570,8 @@ binders ::= binder ( "," binder )* ","?
 wildcardBinder ::= "_"
 ```
 
-Does nothing. Always successfully matches, but binds no variable.
+Does nothing. Placeholder in contexts where a subpattern is expected but you
+don't want to bind anything.
 
 ### Variable binder
 
