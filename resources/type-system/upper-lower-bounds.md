@@ -4,6 +4,10 @@ leafp@google.com
 
 ## CHANGELOG
 
+2020.09.01
+  - **CHANGE** Update **UP** in cases about type variables and promoted type
+    variables involving F-bounds, and in two cases about function types.
+
 2020.08.13
   - Move helper predicates to the null safety specification.
 
@@ -108,22 +112,30 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`X1 extends B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
-  - otherwise **UP**(`B1[Object/X1]`, `T2`)
+  - otherwise **UP**(`B1a`, `T2`)
+    where `B1a` is the greatest closure of `B1` with respect to `X1`,
+    as defined in [inference.md].
 
 - **UP**(`X1 & B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
-  - otherwise **UP**(`B1[Object/X1]`, `T2`)
+  - otherwise **UP**(`B1a`, `T2`)
+    where `B1a` is the greatest closure of `B1` with respect to `X1`,
+    as defined in [inference.md].
 
 - **UP**(`T1`, `X2 extends B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
-  - otherwise **UP**(`T1`, `B2[Object/X2]`)
+  - otherwise **UP**(`T1`, `B2a`)
+    where `B2a` is the greatest closure of `B2` with respect to `X2`,
+    as defined in [inference.md].
 
 - **UP**(`T1`, `X2 & B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
-  - otherwise **UP**(`T1`, `B2[Object/X2]`)
+  - otherwise **UP**(`T1`, `B2a`)
+    where `B2a` is the greatest closure of `B2` with respect to `X2`,
+    as defined in [inference.md].
 
 - **UP**(`T Function<...>(...)`, `Function`) = `Function`
 - **UP**(`Function`, `T Function<...>(...)`) = `Function`
@@ -159,8 +171,8 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
           `Named1`
 
 - **UP**(`T Function<...>(...)`, `S Function<...>(...)`) = `Function` otherwise
-- **UP**(`T Function<...>(...)`, `T2`) = `Object`
-- **UP**(`T1`, `T Function<...>(...)`) = `Object`
+- **UP**(`T Function<...>(...)`, `T2`) = **UP**(`Object`, `T2`)
+- **UP**(`T1`, `T Function<...>(...)`) = **UP**(`T1`, `Object`)
 - **UP**(`T1`, `T2`) = `T2` if `T1` <: `T2`
   - Note that both types must be class types at this point
 - **UP**(`T1`, `T2`) = `T1` if `T2` <: `T1`
@@ -174,6 +186,8 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
     super-interfaces of the two types.
   - For an upper bound computation in an opted in library, no modification of
     the set of super-interfaces is performed.
+
+[inference.md]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md
 
 ## Lower bounds
 
