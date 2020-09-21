@@ -724,12 +724,12 @@ void test() {
 
 Local variables with no explicitly written type but with an initializer are
 given an inferred type equal to the type of their initializer, unless that type
-is a subtype of `Null`, in which case the inferred type of the variable shall be
-`dynamic`.  The inferred type of the variable is considered a "type of interest"
-in the sense defined in the flow analysis specification.  In the case that the
-type of the initializer is a promoted type variable `X & T`, the inferred type
-of the variable shall be `X`.  However, such a variable shall be treated as
-immediately promoted to `X & T`.
+is `Null`, in which case the inferred type of the variable shall be `dynamic`.
+The inferred type of the variable is considered a "type of interest" in the
+sense defined in the flow analysis specification.  In the case that the type of
+the initializer is a promoted type variable `X & T`, the inferred type of the
+variable shall be `X`.  However, such a variable shall be treated as immediately
+promoted to `X & T`.
 
 ### Expression typing
 
@@ -1357,10 +1357,10 @@ following conditions is satisfied:
   - _D_ is non-final.
   - _D_ is late, final, and has no initializing expression.
 
-The late final variable declaration with no initializer is special in that it
-is the only final variable which can be the target of an assignment.  It
-can only be assigned once, but this is enforced dynamically rather than
-statically.
+The late final variable declaration with no initializer is permitted, and
+introduces a variable which may be assigned to so long as the variable is not
+known to be definitely assigned.  The property that the variable is never
+mutated after initialization is enforced dynamically rather than statically.
 
 An instance variable declaration may be declared `covariant` iff it introduces
 an implicit setter.
