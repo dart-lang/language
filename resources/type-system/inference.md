@@ -779,8 +779,7 @@ clauses need be tried.
 - If `Q` is a legacy type `Q0*` then the match holds under constraint set `C`:
   - If `P` is `dynamic` or `void` and `P` is a subtype match for `Q0` under
     constraint set `C`.
-  - Or if `P` is not `dynamic` or `void` and `P` is a subtype match for `Q0?`
-    under constraint set `C`.
+  - Or if `P` is a subtype match for `Q0?` under constraint set `C`.
 - If `Q` is `FutureOr<Q0>` the match holds under constraint set `C`:
   - If `P` is `FutureOr<P0>` and `P0` is a subtype match for `Q0` under
     constraint set `C`.
