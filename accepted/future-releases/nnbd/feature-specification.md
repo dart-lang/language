@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.09.21
+  - Specify that when a variable inferred from an initializer with intersection
+    type is immediately promoted, the intersection type is a type of interest.
+
 2020.09.10
   - Specify updates to super-bounded type rules for null safety.
 
@@ -728,8 +732,10 @@ is `Null`, in which case the inferred type of the variable shall be `dynamic`.
 The inferred type of the variable is considered a "type of interest" in the
 sense defined in the flow analysis specification.  In the case that the type of
 the initializer is a promoted type variable `X & T`, the inferred type of the
-variable shall be `X`.  However, such a variable shall be treated as immediately
-promoted to `X & T`.
+variable shall be `X`, but `X & T` shall be considered as a type of interest and
+the initialization treated as an assignment for the purposes of promotion.
+Consequently, such a variable shall be treated as immediately promoted to `X &
+T`.
 
 ### Expression typing
 
