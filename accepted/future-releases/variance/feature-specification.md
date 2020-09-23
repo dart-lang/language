@@ -14,7 +14,7 @@ Status: Draft
 ## Summary
 
 This document specifies sound and explicit declaration-site
-[variance](https://github.com/dart-lang/language/issues/214)
+[variance](https://github.com/dart-lang/language/issues/524)
 in Dart.
 
 Issues on topics related to this proposal can be found
@@ -60,9 +60,12 @@ The grammar is adjusted as follows:
     <metadata> <typeParameterVariance>? <typeIdentifier>
     ('extends' <typeNotVoid>)?
 
-<typeParameterVariance> ::= // New.
+<typeParameterVariance> ::= // New rule.
     'out' | 'inout' | 'in'
 ```
+
+`out` and `inout` are added to the set of built-in identifiers (* and `in`
+is already a reserved word*).
 
 
 ## Static Analysis
@@ -168,51 +171,39 @@ The invariant occurrences of a type `T` in another type `S` are:
     - the invariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
     - all occurrences of `T` in `Bi` for `i` in `0, ..., k`
 
-It is a compile-time error if a type parameter declared by a static
-extension has a variance modifier.
+It is a compile-time error if a variance modifier is specified for a type
+parameter declared by a static extension, a generic function type, a
+generic function or method, or a type alias.
 
 *Variance is not relevant to static extensions, because there is no notion
 of subsumption. Each usage will be a single call site, and the value of
 every type argument associated with an extension method invocation is
-statically known at the call site.*
+statically known at the call site. Similar reasons apply for functions and
+function types. Finally, the variance of a type parameter declared by a
+type alias is determined by the usage of that type parameter in the body of
+the type alias.*
 
-It is a compile-time error if a type parameter _X_ declared by a type alias
-has a variance modifier, unless it is `inout`; or unless it is `out` and
-the right hand side of the type alias has only covariant occurrences of
-_X_; or unless it is `in` and the right hand side of the type alias has
-only contravariant occurrences of _X_.
+We say that a type parameter _X_ of a type alias _F_ _is covariant_ if it
+only occurs covariantly in the body of _F_; that it _is contravariant_ if
+it occurs contravariantly in the body of _F_ and does not occur covariantly
+or invariantly; that it _is invariant_ if it occurs invariantly in the body
+of _F_ (*with no constraints on other occurrences*), or if it occurs both
+covariantly and contravariantly.
 
-*The variance for each type parameter of a type alias is restricted based
-on the body of the type alias. Explicit variance modifiers may be used to
-document how the type parameter is used on the right hand side, and they
-may be used to impose more strict constraints than those implied by the
-right hand side.*
-
-We say that a type parameter _X_ of a type alias _F_ _is
-covariant/invariant/contravariant_ if it has the variance modifier
-`out`/`inout`/`in`, respectively. We say that it is
-_covariant/contravariant_ if it has no variance modifier, and it occurs
-only covariantly/contravariantly, respectively, on the right hand side of
-`=` in the type alias (*for an old-style type alias, rewrite it to the form
-using `=` and then check*). Otherwise (*when _X_ has no modifier, but
-occurs invariantly or both covariantly and contravariantly*), we say that
-_X_ _is invariant_.
+*In particular, an unused type parameter is considered covariant.*
 
 Let _D_ be the declaration of a class or mixin, and let _X_ be a type
 parameter declared by _D_.
 
-We say that _X_ _is covariant_ if it has no variance modifier or it has the
-variance modifier `out`; that it _is invariant_ if it has the variance
-modifier `inout`; and that it _is contravariant_ if it has the variance
-modifier `in`.
-
 If _X_ has the variance modifier `out` then it is a compile-time error for
 _X_ to occur in a non-covariant position in a member signature in the body
 of _D_, except that it is not an error if it occurs in a covariant position
-in the type annotation of a covariant formal parameter (*note that this is
-a contravariant position in the member signature as a whole*). *For
-instance, _X_ can not be the type of a method parameter (unless covariant),
-and it can not be the bound of a type parameter of a generic method.*
+in the type annotation of a covariant formal parameter (*this is a
+contravariant position in the member signature as a whole*).
+
+*In particular, _X_ can not be the type of a method parameter (unless
+covariant), and it can not be the bound of a type parameter of a generic
+method.*
 
 If _X_ has the variance modifier `in` then it is a compile-time error for
 _X_ to occur in a non-contravariant position in a member signature in the
@@ -255,18 +246,17 @@ class B<out U, inout V, in W> implements
 
 *But a type parameter without a variance modifier can not be used in an
 actual type argument for a parameter with a variance modifier, not even
-when that modifier is `out`. The reason for this is that it would allow a
-subtype to introduce the potential for dynamic errors with a member which
-is in the interface of the supertype and considered safe.*
+when that modifier is `out`. The reason for this is that the sound treatment
+of type parameters should not silently change to an unsound treatment
+in a subtype.*
 
 ```dart
 abstract class A<out X> {
   Object foo();
 }
 
-class B<X> extends A<X> {
-  // The following declaration would be an error with `class B<out X>`,
-  // so we do not allow it in a subtype of `class A<out X>`.
+class B<X> extends A<X> { // Error!
+  // If allowed, `X` could occur contravariantly, which is unsafe.
   void Function(X) foo() => (X x) {};
 }
 ```
@@ -341,13 +331,21 @@ class B<out X> extends A<X> { // or `implements`.
 
 ### Type Inference
 
-During downwards inference, a context type 
+During type inference, downwards resolution produces constraints on type
+variables with a variance modifier, rather than fixing them to a specific
+value in a partial solution. Upwards resolution will then include those
+constraints.
+
+Detailed rules will be specified in
+[inference.md]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md
 
 
 ## Dynamic Semantics
 
+This feature causes the dynamic semantics to change in only one way:
 The subtype relationship specified in the section on the static analysis
-is applied during run-time type tests and type checks.
+is different from the subtype relationship without this feature, and the
+updated rules are used during run-time type tests and type checks.
 
 
 ## Migration
@@ -360,11 +358,11 @@ scenarios.
 Let _legacy class_ denote a generic class that has one or more type
 parameters with no variance modifiers.
 
-If a new class _A_ has no superinterface relationship with any legacy class
-(directly or indirectly) then all non-dynamic member accesses to instances
+If a new class _A_ has no direct or indirect superinterface which is a
+legacy class then all non-dynamic member accesses to instances
 of _A_ and its subtypes will be statically safe.
 
-*In other words, if the plan is to use explicit variance only with type
+*In other words, when using sound, explicit variance only with type
 declarations that are not "connected to" unsoundly covariant type
 parameters then there is no migration.*
 
@@ -410,9 +408,8 @@ type argument `T` to a type parameter with variance modifier `in`, unless
 `T` is a top type; (3) any type argument `T` passed to an `in` type
 parameter in opted-in code is seen in opted-out code as `Object?`.
 
-Conversely, declarations in _L1_ (opted out) is seen from _L2_ (opted in)
+Conversely, a declaration in _L1_ (opted out) is seen from _L2_ (opted in)
 without changes. So class type parameters declared in _L1_ are considered
-to be unsoundly covariant by both opted in and opted out code, and
-similarly for type aliases used to declare function types. Types of
+to be unsoundly covariant by both opted in and opted out code. Types of
 entities exported from _L1_ to _L2_ are seen as erased (which matters when
 _L1_ imports entities from some other opted-in library).
