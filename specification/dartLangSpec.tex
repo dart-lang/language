@@ -16612,10 +16612,10 @@ as defined previously
   % "may be raised".
   A dynamic error may be raised if $I'$ imports a different library
   than the one that the specified URI referred to at compile-time.
-  When $I'$ is loaded without error, $f$ completes successfully.
-  If $I'$ is loaded without error,
-  we say that the call to \code{loadLibrary} has succeeded,
-  otherwise we say the call has failed.
+  We say that the invocation of \code{loadLibrary}
+  \IndexCustom{succeeds}{loadLibrary!succeeds} if $f$ completes with a value,
+  and that the invocation
+  \IndexCustom{fails}{loadLibrary!fails} if $f$ completes with an error.
 \item
   For every top level function $f$ named \id{} in
   \NamespaceName{\metavar{import},i},
@@ -16653,7 +16653,7 @@ but will raise errors.%
 }
 
 \LMHash{}%
-After an invocation of \code{$p$.loadLibrary()} succeeds,
+When an invocation of \code{$p$.loadLibrary()} succeeds,
 the name $p$ is mapped to a non-deferred prefix run-time namespace
 \NamespaceName{\metavar{loaded}},
 with bindings as described below for immediate imports.
@@ -16725,8 +16725,7 @@ The run-time namespace \NamespaceName{i} will then have the following bindings:
   For every name \id{} in \NamespaceName{\metavar{import}, i}
   that is bound to a class, mixin, or type alias declaration
   introducing a type $T$,
-  a binding from \id{} to a compiled getter with return type \code{Type}
-  that, when invoked, returns the type object for $T$.
+  a binding from \id{} to the compiled representation of $T$.
 \end{itemize}
 
 \LMHash{}%
@@ -16822,7 +16821,7 @@ is conflicted
 This rule is more strict than the corresponding rule for imports:
 When two imported declarations have a name clash it is only an error to
 \emph{use} the conflicted name, it is not an error that the name clash exists.
-But with exported names it is an error that the name clash exists.
+With exported names it is an error that the name clash exists.
 The reason for this difference is that
 the conflict could silently break importers of the current library $L$,
 if we were to use the same approach for exports as for imports:
