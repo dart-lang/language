@@ -16701,15 +16701,15 @@ We do not specify which object the returned future resolves to.%
 
 \LMHash{}%
 \Case{Semantics of immediate imports}
-When $I_i$ is an immediate import that refers to a URI via the string $s_i$:
-Let $\ell_i$ denote the run-time entity that corresponds to the result of
-compiling the library $L_i$ denoted by $s_i$.
-
-\LMHash{}%
-$\ell_i$ is accessible in the current isolate at run time
-due to an implementation specific mechanism,
-and it provides access to the result of compiling functions,
-as well as other resources needed for the execution of code in $L_i$.
+When $I_i$ is an immediate import with a library URI, $u_i$,
+represented by the string $s_i$:
+Let $L_i$ be the library obtained from the source code denoted by $s_i$,
+and let $\ell_i$ be the result of compiling $L_i$.
+We then say that the URI $u_i$ denotes the library $L_i$
+(which also determines $\ell_i$).
+All imports and exports of the same URI in a Dart program denotes
+the same library,
+and imports or exports of different URIs denote distinct libraries.
 
 \LMHash{}%
 Let \NamespaceName{\metavar{import}, i} be the namespace imported from $L_i$.
@@ -16730,7 +16730,7 @@ The run-time namespace \NamespaceName{i} will then have the following bindings:
 
 \LMHash{}%
 If $I_i$ has prefix $p$,
-the run-time library namespace of the current library
+the run-time namespace of the current library
 maps $p$ to a non-deferred prefix run-time namespace \NamespaceName{p}
 containing the mappings of \NamespaceName{i}.
 
