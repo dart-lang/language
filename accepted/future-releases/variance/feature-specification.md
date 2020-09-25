@@ -341,65 +341,25 @@ updated rules are used during run-time type tests and type checks.
 ## Migration
 
 This proposal supports migration of code using dynamically checked
-covariance to code where some explicit variance modifiers are used, thus
-eliminating the potential for some dynamic type errors. There are two
-scenarios.
+covariance to code where some explicit variance modifiers are used, based
+on language versions.
 
-Let _legacy class_ denote a generic class that has one or more type
-parameters with no variance modifiers.
+We use the phrase _legacy library_ to denote a library which is written in
+a language version that does not support sound variance.
 
-If a new class _A_ has no direct or indirect superinterface which is a
-legacy class then all non-dynamic member accesses to instances
-of _A_ and its subtypes will be statically safe.
 
-*In other words, when using sound, explicit variance only with type
-declarations that are not "connected to" unsoundly covariant type
-parameters then there is no migration.*
+### Legacy libraries seen from a soundly variant library
 
-However, there is a need for migration support in the case where an
-existing legacy class _B_ is modified such that an explicit variance
-modifier is added to one or more of its type parameters.
+When a library _L_ with sound variance imports a legacy library _L2_, the
+declarations imported from _L2_ are seen in _L_ as if they had been
+declared in the language with sound variance.
 
-In particular, an existing subtype _C_ of _B_ must now add variance
-modifiers in order to remain error free, and this may conflict with the
-existing member signatures of _C_:
+*In other words, source code in _L2_ is seen as having variance modifiers
+available, but it is simply not using them.*
 
-```dart
-// Before the update.
-class B<X> {}
-class C<X> implements B<X> {
-  void f(X x) {}
-}
 
-// After the update of `B`.
-class B<out X> {}
-class C<X> implements B<X> { // Error.
-  void f(X x) {} // If we just make it `C<out X>` then this is an error.
-}
+### Soundly variant libraries seen from a legacy library
 
-// Adjusting `C` to eliminate the errors.
-class B<out X> {}
-class C<out X> implements B<X> {
-  void f(covariant X x) {}
-}
-```
-
-This approach can be used in a scenario where all parts of the program are
-migrated to the new language level where explicit variance is supported.
-
-In the other scenario, some libraries will opt in using a suitable language
-level, and others will not.
-
-If a library _L1_ is at a language level where explicit variance is not
-supported (so it is 'opted out') then code in an 'opted in' library _L2_ is
-seen from _L1_ as erased, in the sense that (1) the variance modifiers
-`out` and `inout` are ignored, and (2) it is a compile-time error to pass a
-type argument `T` to a type parameter with variance modifier `in`, unless
-`T` is a top type; (3) any type argument `T` passed to an `in` type
-parameter in opted-in code is seen in opted-out code as `Object?`.
-
-Conversely, a declaration in _L1_ (opted out) is seen from _L2_ (opted in)
-without changes. So class type parameters declared in _L1_ are considered
-to be unsoundly covariant by both opted in and opted out code. Types of
-entities exported from _L1_ to _L2_ are seen as erased (which matters when
-_L1_ imports entities from some other opted-in library).
+When a legacy library _L_ imports a library _L2_ with sound variance, the
+declarations imported from _L2_ are _legacy erased_. This means that all
+variance modifiers in type parameter declarations are removed.
