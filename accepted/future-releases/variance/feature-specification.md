@@ -213,26 +213,21 @@ can not be the return type of a method or getter, and it can not be the
 bound of a type parameter of a generic method.*
 
 *If _X_ has the variance modifier `inout` then there are no variance
-related restrictions on the positions where it can occur.*
-
-*For superinterfaces we need slightly stronger rules than the ones that
-apply for types in the body of a type declaration.*
+related restrictions on the positions where it can occur in member
+signatures.*
 
 Let _D_ be a class or mixin declaration, let _S_ be a direct superinterface
-of _D_, and let _X_ be a type parameter declared by _D_.
+of _D_, and let _X_ be a type parameter declared by _D_.  It is a
+compile-time error if _X_ is covariant and _X_ occurs in a non-covariant
+position in _S_. It is a compile-time error if _X_ is contravariant, and
+_X_ occurs in a non-contravariant position in _S_.  In these rules, type
+inference of _S_ is assumed to have taken place already.
 
-It is a compile-time error if _X_ has no variance modifier and _X_ occurs
-in an actual type argument in _S_ such that the corresponding type
-parameter has a variance modifier. It is a compile-time error if _X_ has
-the modifier `out`, and _X_ occurs in a non-covariant position in _S_. It
-is a compile-time error if _X_ has the variance modifier `in`, and _X_
-occurs in a non-contravariant position in _S_.
-
-*A type parameter with variance modifier `inout` can occur in any position
-in a superinterface, and other variance modifiers have constraints such
-that if we consider type arguments _Args1_ and _Args2_ passed to _D_ such
-that the former produces a subtype, then we also have _S1 <: S2_ where _S1_
-and _S2_ are the corresponding instantiations of _S_.*
+*An invariant type parameter can occur in any position in a superinterface.
+These constraints on allowed locations for type parameters ensure that if
+we consider type arguments _Args1_ and _Args2_ passed to _D_ such that the
+former produces a subtype, then we also have _S1 <: S2_ where _S1_ and _S2_
+are the corresponding instantiations of _S_.*
 
 ```dart
 class A<out X, inout Y, in Z> {}
@@ -244,89 +239,83 @@ class B<out U, inout V, in W> implements
 // A<num Function(int), String Function(String), int Function(String)>.
 ```
 
-*But a type parameter without a variance modifier can not be used in an
-actual type argument for a parameter with a variance modifier, not even
-when that modifier is `out`. The reason for this is that the sound treatment
-of type parameters should not silently change to an unsound treatment
-in a subtype.*
+*In a superinterface, a type parameter without a variance modifier can be
+used in an actual type argument for a parameter with a variance modifier,
+and vice versa. This creates a subtype hierarchy where sound and unsound
+variance is mixed, which is helpful during a transitional period where
+sound variance is introduced, or even as a more permanent choice if some
+widely used classes (say, `List`) cannot be migrated to use sound
+variance. However, it causes dynamic type checks to occur.*
 
 ```dart
+// Superinterface uses sound variance, subtype uses legacy.
+
 abstract class A<out X> {
-  Object foo();
+  X get x;
 }
 
-class B<X> extends A<X> { // Error!
-  // If allowed, `X` could occur contravariantly, which is unsafe.
-  void Function(X) foo() => (X x) {};
+class B<X> implements A<X> {
+  late X x;
+}
+
+void main() {
+  B<num> b = B<int>();
+  b.x = 3.7; // Dynamic error.
 }
 ```
 
-*On the other hand, to ease migration, it _is_ allowed to create the
-opposite relationship:*
+*Hence, no additional type safety is obtained when a class using legacy
+variance has a supertype which uses sound variance.*
 
 ```dart
-class A<X> {
-  void foo(X x) {}
+// Superinterface uses legacy covariance, subtype uses sound variance.
+
+abstract class C<X> {
+  X x;
+  C(this.x);
 }
 
-class B<out X> extends A<X> {}
+class D<in X> extends C<void Function(X)> {
+  D(): super((X x) {});
+}
 
-main() {
-  B<num> myB = B<int>();
-  ...
-  myB.foo(42.1);
+void main() {
+  D<int> d = D<num>();
+  d.x(24); // OK.
+  d.x = (int i) {}; // Dynamic error.
 }
 ```
 
-*In this situation, the invocation `myB.foo(42.1)` is subject to a dynamic
-type check (and it will fail if `myB` is still a `B<int>` when that
-invocation takes place), but it is statically known at the call site that
-`foo` has this property for any subtype of `A`, so we can deal with the
-situation statically, e.g., via a lint.*
+*The class `D` inherits a setter with argument type `void Function(X)` even
+though it is an error to declare such a setter in `D`. It would be easy to
+prohibit invocations of that setter on an instance of type `D<...>`, but the
+invocation could then be performed using an upcast to `C`, so there is no
+real protection against executing such methods on that instance.*
 
-*An upcast (like `(myB as A<num>).foo()`) could be used to silence any
-diagnostic messages, so a strict rule whereby a member access like
-`myB.foo(42.1)` is a compile-time error may not be very helpful in
-practice.*
-
-*Note that the class `B` _can_ be written in such a way that the potential
-dynamic type error is eliminated:*
+*Note that the subclass _can_ be written in such a way that the potential
+dynamic type error is eliminated, if it is possible to write a useful
+implementation with a safe signature:*
 
 ```dart
-class A<X> {
-  void foo(X x) {}
-}
-
-class B<out X> extends A<X> {
-  void foo(Object? o) {...}
+class SafeD<in X> extends C<void Function(X)> {
+  set x(void Function(Never) value) { 
+    if (value is void Function(X)) super.x = value;
+  }
 }
 ```
 
-*In this case an invocation of `foo` on a `B` will never incur a dynamic
-error due to the run-time type of its argument, which might be a useful
-migration strategy in the case where a lot of call sites are flagged by a
-lint, especially when `B.foo` is genuinely able to perform its task with
-objects whose type is not `X`.*
-
-*However, in the more likely case where `foo` does require an argument of
-type `X`, we do not wish to insist that developers declare an apparently
-safe member signature like `void foo(Object?)`, and then throw an exception
-in the body of `foo`. That would just eliminate some compile-time errors at
-call sites which are actually justified.*
-
-*If such a method needs to be implemented, the modifier `covariant` must be
-used, in order to avoid the compile-time error for member signatures
-involving an `out` type parameter:*
+*Otherwise, the modifier `covariant` can be used to avoid the compile-time
+error for the member signature:*
 
 ```dart
-class A<X> {
-  void foo(X x) {}
-}
-
-class B<out X> extends A<X> { // or `implements`.
-  void foo(covariant X x) {...}
+class ExplicitlyUnsafeD<in X> extends C<void Function(X)> {
+  set x(covariant void Function(X) value) => super.x = value;
 }
 ```
+
+*This makes it possible to declare method implementations with unsafe
+signatures, even in the case where the relevant type parameters of the
+enclosing class use sound variance.*
 
 
 ### Type Inference
