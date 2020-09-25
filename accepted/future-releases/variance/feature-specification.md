@@ -363,3 +363,8 @@ available, but it is simply not using them.*
 When a legacy library _L_ imports a library _L2_ with sound variance, the
 declarations imported from _L2_ are _legacy erased_. This means that all
 variance modifiers in type parameter declarations are removed.
+
+*[TODO: This is a source of unsoundness; we probably cannot require that
+every type argument passed to a contravariant type parameter in legacy code
+must be a top type. Can we generate all the required dynamic checks to
+maintain soundness?]*
