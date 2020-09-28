@@ -150,7 +150,7 @@ source code.
   that point.  (Note that a variable cannot be both definitely assigned and
   definitely unassigned at any location).
 
-- `writeCaptured` is a boolean value indicating whether a closure unenvaluated
+- `writeCaptured` is a boolean value indicating whether a closure or an unevaluated
   late variable initializer might exist at the given point in the source code,
   which could potentially write to the variable.  Note that for purposes of
   write captures performed by a late variable initializer, we only consider
