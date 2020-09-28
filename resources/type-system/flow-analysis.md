@@ -150,9 +150,13 @@ source code.
   that point.  (Note that a variable cannot be both definitely assigned and
   definitely unassigned at any location).
 
-- `writeCaptured` is a boolean value indicating whether a closure might exist at
-  the given point in the source code, which could potentially write to the
-  variable.
+- `writeCaptured` is a boolean value indicating whether a closure or an unevaluated
+  late variable initializer might exist at the given point in the source code,
+  which could potentially write to the variable.  Note that for purposes of
+  write captures performed by a late variable initializer, we only consider
+  variable writes performed within the initializer expression itself; a late
+  variable initializer is not per se considered to write to the late variable
+  itself.
 
 A *flow model*, denoted `FlowModel(reachable, variableInfo)`, represents what
 is statically known to flow analysis about the state of the program at a given
