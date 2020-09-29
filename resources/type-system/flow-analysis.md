@@ -659,13 +659,9 @@ TODO: This isn't really right, `E1` isn't really an expression here.
   - Let `T` be the static return type of the invocation
   - If `T <: Never` then:
     - Let `after(N) = unreachable(after(E2))`.
-  - Otherwise, if `m1` is a method declared on `Object` (e.g. `toString`), then:
-    - Let `after(N) = after(E2)`.
   - Otherwise:
-    - Let `after(N) = promoteToNonNull(E1, after(E2))`
+    - Let `after(N) = after(E2)`.
 
-  TODO(paulberry): is the `promoteToNonNull` part of method invocations
-  implemented?
   TODO(paulberry): handle `E1.m1(E2, E3, ...)`.
 
 TODO: Add missing expressions, handle cascades and left-hand sides accurately
