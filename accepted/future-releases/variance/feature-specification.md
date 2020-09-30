@@ -367,7 +367,7 @@ variance modifiers in type parameter declarations are ignored.
 *To maintain a sound heap in a mixed program execution (that is, when both
 legacy libraries and libraries with sound variance exist), it is then
 necessary to perform some type checks at run time.  In particular, a
-dynamic type check is performed on method calls: The actual argument for
+dynamic type check is performed on method calls, on the actual argument for
 each instance method parameter whose declared type contains a contravariant
 type variable. Moreover, a caller-side check is performed on each
 expression whose static type contains a contravariant type variable.*
