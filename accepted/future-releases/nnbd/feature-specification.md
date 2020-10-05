@@ -626,6 +626,9 @@ does not occur in any of the ways specified in
 [this list](https://github.com/dart-lang/language/blob/780cd5a8be92e88e8c2c74ed282785a2e8eda393/specification/dartLangSpec.tex#L18238).
 *This implies that `void*` is treated the same as `void`.*
 
+It is a warning to use a null aware member access (`?.`, `?..`) whose receiver
+is a type literal. *E.g., `C?.staticMethod()` is a warning.*
+
 It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, or
 `...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
 
