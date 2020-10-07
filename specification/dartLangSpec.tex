@@ -16692,9 +16692,11 @@ The effect of a repeated invocation of \code{$p$.loadLibrary()} is as follows:
 \end{itemize}
 
 \commentary{%
-In other words, one can retry a deferred load after a network failure
-or because a file is absent,
-but once one finds some content and loads it, one can no longer reload.
+In other words, a successful \code{loadLibrary()} guarantees that
+the import can be successfully accessed through the import prefix.
+If an invocation of \code{loadLibrary()} is initiated after
+another invocation has completed successfully,
+it is guaranteed to also complete successfully (success is idempotent).
 We do not specify which object the returned future resolves to.%
 }
 \EndCase
@@ -16703,10 +16705,8 @@ We do not specify which object the returned future resolves to.%
 \Case{Semantics of immediate imports}
 When $I_i$ is an immediate import with a library URI, $u_i$,
 represented by the string $s_i$:
-Let $L_i$ be the library obtained from the source code denoted by $s_i$,
-and let $\ell_i$ be the result of compiling $L_i$.
-We then say that the URI $u_i$ denotes the library $L_i$
-(which also determines $\ell_i$).
+Let $L_i$ be the library obtained from the source code denoted by $s_i$.
+We then say that the URI $u_i$ denotes the library $L_i$.
 All imports and exports of the same URI in a Dart program denotes
 the same library,
 and imports or exports of different URIs denote distinct libraries.
@@ -16719,8 +16719,7 @@ The run-time namespace \NamespaceName{i} will then have the following bindings:
 \item
   For every top level function, getter, or setter $m$ named $n$ in
   \NamespaceName{\metavar{import}, i},
-  a binding from $n$ to the result of compiling $m$,
-  obtained from $\ell_i$.
+  a binding from $n$ to said function, getter, or setter.
 \item
   For every name \id{} in \NamespaceName{\metavar{import}, i}
   that is bound to a class, mixin, or type alias declaration
