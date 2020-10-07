@@ -173,6 +173,11 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`T Function<...>(...)`, `S Function<...>(...)`) = `Function` otherwise
 - **UP**(`T Function<...>(...)`, `T2`) = **UP**(`Object`, `T2`)
 - **UP**(`T1`, `T Function<...>(...)`) = **UP**(`T1`, `Object`)
+- **UP**(`FutureOr<T1>`, `FutureOr<T2>`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
+- **UP**(`Future<T1>`, `FutureOr<T2>`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
+- **UP**(`FutureOr<T1>`, `Future<T2>`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
+- **UP**(`T1`, `FutureOr<T2>`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
+- **UP**(`FutureOr<T1>`, `T2`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
 - **UP**(`T1`, `T2`) = `T2` if `T1` <: `T2`
   - Note that both types must be class types at this point
 - **UP**(`T1`, `T2`) = `T1` if `T2` <: `T1`
