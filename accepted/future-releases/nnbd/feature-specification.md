@@ -6,8 +6,16 @@ Status: Draft
 
 ## CHANGELOG
 
-2020.10.05
+2020.10.09
   - Clarify that `main` cannot be a getter.
+
+2020.10.05
+  - Specify that a null-aware static member access (e.g., `C?.staticMethod()`)
+    is a warning.
+
+2020.09.21
+  - Specify that when a variable inferred from an initializer with intersection
+    type is immediately promoted, the intersection type is a type of interest.
 
 2020.09.10
   - Specify updates to super-bounded type rules for null safety.
@@ -625,6 +633,10 @@ does not occur in any of the ways specified in
 [this list](https://github.com/dart-lang/language/blob/780cd5a8be92e88e8c2c74ed282785a2e8eda393/specification/dartLangSpec.tex#L18238).
 *This implies that `void*` is treated the same as `void`.*
 
+Let `C` be a type literal denoting a class, mixin, or extension. It is a warning
+to use a null aware member access with receiver `C`. *E.g., `C?.staticMethod()` 
+is a warning.*
+
 It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, or
 `...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
 
@@ -727,12 +739,14 @@ void test() {
 
 Local variables with no explicitly written type but with an initializer are
 given an inferred type equal to the type of their initializer, unless that type
-is a subtype of `Null`, in which case the inferred type of the variable shall be
-`dynamic`.  The inferred type of the variable is considered a "type of interest"
-in the sense defined in the flow analysis specification.  In the case that the
-type of the initializer is a promoted type variable `X & T`, the inferred type
-of the variable shall be `X`.  However, such a variable shall be treated as
-immediately promoted to `X & T`.
+is `Null`, in which case the inferred type of the variable shall be `dynamic`.
+The inferred type of the variable is considered a "type of interest" in the
+sense defined in the flow analysis specification.  In the case that the type of
+the initializer is a promoted type variable `X & T`, the inferred type of the
+variable shall be `X`, but `X & T` shall be considered as a type of interest and
+the initialization treated as an assignment for the purposes of promotion.
+Consequently, such a variable shall be treated as immediately promoted to `X &
+T`.
 
 ### Expression typing
 
@@ -1360,10 +1374,10 @@ following conditions is satisfied:
   - _D_ is non-final.
   - _D_ is late, final, and has no initializing expression.
 
-The late final variable declaration with no initializer is special in that it
-is the only final variable which can be the target of an assignment.  It
-can only be assigned once, but this is enforced dynamically rather than
-statically.
+The late final variable declaration with no initializer is permitted, and
+introduces a variable which may be assigned to so long as the variable is not
+known to be definitely assigned.  The property that the variable is never
+mutated after initialization is enforced dynamically rather than statically.
 
 An instance variable declaration may be declared `covariant` iff it introduces
 an implicit setter.

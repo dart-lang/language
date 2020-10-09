@@ -150,9 +150,13 @@ source code.
   that point.  (Note that a variable cannot be both definitely assigned and
   definitely unassigned at any location).
 
-- `writeCaptured` is a boolean value indicating whether a closure might exist at
-  the given point in the source code, which could potentially write to the
-  variable.
+- `writeCaptured` is a boolean value indicating whether a closure or an unevaluated
+  late variable initializer might exist at the given point in the source code,
+  which could potentially write to the variable.  Note that for purposes of
+  write captures performed by a late variable initializer, we only consider
+  variable writes performed within the initializer expression itself; a late
+  variable initializer is not per se considered to write to the late variable
+  itself.
 
 A *flow model*, denoted `FlowModel(reachable, variableInfo)`, represents what
 is statically known to flow analysis about the state of the program at a given
@@ -655,13 +659,9 @@ TODO: This isn't really right, `E1` isn't really an expression here.
   - Let `T` be the static return type of the invocation
   - If `T <: Never` then:
     - Let `after(N) = unreachable(after(E2))`.
-  - Otherwise, if `m1` is a method declared on `Object` (e.g. `toString`), then:
-    - Let `after(N) = after(E2)`.
   - Otherwise:
-    - Let `after(N) = promoteToNonNull(E1, after(E2))`
+    - Let `after(N) = after(E2)`.
 
-  TODO(paulberry): is the `promoteToNonNull` part of method invocations
-  implemented?
   TODO(paulberry): handle `E1.m1(E2, E3, ...)`.
 
 TODO: Add missing expressions, handle cascades and left-hand sides accurately
