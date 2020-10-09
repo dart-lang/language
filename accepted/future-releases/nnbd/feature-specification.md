@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.10.09
+  - Clarify that operators not mentioned explicitly in the rules
+    do not participate in the null-shorting transformation.
+
 2020.10.05
   - Specify that a null-aware static member access (e.g., `C?.staticMethod()`)
     is a warning.
@@ -1375,10 +1379,11 @@ This equivalence is not applicable in the above rules, so operators not
 mentioned specifically in a rule are handled in the case for 'other'
 expressions, not in the case for `e.m(args)`.
 
-*This means that null-shorting stops at operators. For instance, `e?.f + b`
-is a compile-time error because `e?.f` can be null, it is not an expression
-where both `.f` and `+ b` will be skipped if `e` is null.  Similarly, both
-`-a?.f` and `~a?.f` is an error, it does not null-short like `a?.f.op()`.*
+*This means that the null-shorting transformation stops at operators. For
+instance, `e?.f + b` is a compile-time error because `e?.f` can be null, it is
+not an expression where both `.f` and `+ b` will be skipped if `e` is null.
+Similarly, both `-a?.f` and `~a?.f` is an error, it does not null-short like
+`a?.f.op()`.*
 
 ### Late fields and variables
 
