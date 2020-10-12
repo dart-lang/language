@@ -28,7 +28,7 @@ Newer features can be found in, respectively should be submitted to,
 the language repository [here](https://github.com/dart-lang/language).
 
 The status of every feature specification in this directory is that it is
-background material, and the contents has been integrated into the language
+background material, and the contents have been integrated into the language
 specification. Consequently, these feature specifications can only be used
 as a source of informal background information. Precise rules about the
 features should be looked up in the language specification.
