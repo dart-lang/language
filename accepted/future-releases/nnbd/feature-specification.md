@@ -6,9 +6,12 @@ Status: Draft
 
 ## CHANGELOG
 
-2020.10.09
+2020.10.12
   - Clarify that operators not mentioned explicitly in the rules
     do not participate in the null-shorting transformation.
+
+2020.10.09
+  - Clarify that `main` cannot be a getter.
 
 2020.10.05
   - Specify that a null-aware static member access (e.g., `C?.staticMethod()`)
@@ -1130,7 +1133,7 @@ The section 'Scripts' in the language specification is replaced by the
 following:
 
 Let _L_ be a library that exports a declaration _D_ named `main`.  It is a
-compile-time error unless _D_ is a function declaration.  It is a
+compile-time error unless _D_ is a non-getter function declaration.  It is a
 compile-time error if _D_ declares more than two required positional
 parameters, or if there are any required named parameters.  It is a
 compile-time error if _D_ declares at least one positional parameter, and
