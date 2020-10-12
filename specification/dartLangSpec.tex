@@ -11460,13 +11460,71 @@ which determines any further static analysis.
 Otherwise, the static analysis of $i$ is performed
 as specified in Section~\ref{bindingActualsToFormals},
 considering $F$ to be the static type of the function to call,
-and the static type of $i$ is as specified there.
+and the static type of $i$ is as specified there,
+except that invocations of methods named \code{remainder}
+or \code{clamp} on non-\code{Never} subtypes of \code{num}
+have special rules similar to those for additive (\ref{additiveExpressions})
+and multipliative (\ref{multiplicativeExpressions}) operators.
+
+\LMHash{}%
+If $i$ is an invocation of the form \code{$e$.remainder($e_2$)}
+then let $C$ is the context type of $i$.
+If $T\,\,<:\,\,\code{num}$ and not $T\,\,<:\,\,\code{Never}$, then:
+\begin{itemize}
+  \item{} If $\code{int}\,\,<:\,\,C$ and not $\code{num}\,\,<:\,\,C$,
+      and $T\,\,<:\,\,\code{int}$
+      then the context type of $e_2$ is \code{int}.
+  \item{} If $\code{double}\,\,<:\,\,C$ and not $\code{num}\,\,<:\,\,C$,
+      and not $T\,\,<:\,\,\code{double}$
+     then the context type of $e_2$ is \code{double}.
+  \item{} Otherwise the context type of $e_2$ is \code{num}.
+\end{itemize}
+Let further $S$ is the static type of $e_2$.
+If $T\,\,<:\,\,\code{num}$ and not $T\,\,<:\,\,\code{Never}$
+and $S$ is assignable to \code{num},
+then the static type of $i$ is determined as follows:
+\begin{itemize}
+  \item{} If $T\,\,<:\,\,\code{double}$
+    then the static type of $i$ is $T$.
+  \item{} Otherwise, if $S\,\,<:\,\,\code{double}$
+    and not $S\,\,<:\,\,\code{Never}$,
+    then the static type of $i$ is \code{double}.
+  \item{} Otherwise, if $T\,\,<:\,\,\code{int}$,
+    $S\,\,<:\,\,\code{int}$ and not $S\,\,<:\,\,\code{Never}$,
+    then the static type of $i$ is \code{int}.
+  \item{} Otherwise the static type of $i$ is \code{num}.
+\end{itemize}
+
+\LMHash{}%
+If $i$ is an invocation of the form \code{$e$.clamp($e_2$, $e_3$)},
+where $T\,\,<:\,\,\code{num}$ and not $T\,\,<:\,\,\code{Never}$,
+then let $C$ be the context type of $i$.
+\begin{itemize}
+  \item{} If $T\,\,<:\,\,\code{int}$,
+    $\code{int}\,\,<:\,\,S$ and not $\code{num}\,\,<:\,\,S$,
+    then the context type of $e_2$ and $e_3$ is \code{int}.
+  \item{} If $T\,\,<:\,\,\code{double}$,
+    $\code{double}\,\,<:\,\,S$ and not $\code{num}\,\,<:\,\,S$,
+    then the context type of $e_2$ and $e_3$ is \code{double}.
+  \item{} Otherwise the context type of $e_2$ and $e_3$ is \code{num}.
+\end{itemize}
+Let further $T_2$ be the static type of $e_2$ and $T_3$ be the static type
+of $e_3$.
+\begin{itemize}
+  \item{} If all of $T$, $T_2$ and $T_3$ are subtypes of \code{int}, but
+    not subtypes of \code{Never}, then the static type of $i$ is \code{int}.
+  \item{} If all of $T$, $T_2$ and $T_3$ are subtypes of \code{double}, but
+    not subtypes of \code{Never}, then the static type of $i$ is \code{double}.
+  \item{} Otherwise the static type of $i$ is \code{num}.
+\end{itemize}
 
 \LMHash{}%
 It is a compile-time error to invoke any of the methods of class \code{Object}
 on a prefix object
 (\ref{imports})
 or on a constant type literal that is immediately followed by the token `.'\,.
+%% TODO: Is it necessary to disallow prefix objects.
+%% This smells like a leftover from "prefix objects".
 
 \rationale{%
 The reason for the latter is that this syntax is reserved for
@@ -13354,11 +13412,42 @@ An additive expression of the form $e_1$ $op$ $e_2$ is equivalent to the method 
 An additive expression of the form \SUPER{} $op$ $e_2$ is equivalent to the method invocation \code{\SUPER{}.$op$($e_2$)}.
 
 \LMHash{}%
-The static type of an additive expression is usually determined by the signature given in the declaration of the operator used.
-However, invocations of the operators \code{+} and \code{-} of class \code{int} are treated specially by the typechecker.
-The static type of an expression $e_1 + e_2$ where $e_1$ has static type \code{int} is \code{int} if the static type of $e_2$ is \code{int}, and \code{double} if the static type of $e_2$ is \code{double}.
-The static type of an expression $e_1 - e_2$ where $e_1$ has static type \code{int} is \code{int} if the static type of $e_2$ is \code{int}, and \code{double} if the static type of $e_2$ is \code{double}.
+The static type of an additive expression is usually determined
+by the signature given in the declaration of the operator used.
+However, invocations of the operators \code{+} and \code{-} of
+class \code{int}, \code{dobule} and \code{num}
+are treated specially by the typechecker.
 
+\LMHash{}%
+Let $e$ be an additive expression of the form \code{$e_1$ $op$ $e_2$},
+let $T$ be the static type of $e_1$,
+and let $C$ be the context type of $e$.
+
+If $T\,\,<:\,\,\code{num}$ and not $T\,\,<:\,\,\code{Never}$, then:
+\begin{itemize}
+  \item{} If $\code{int}\,\,<:\,\,C$ and not $\code{num}\,\,<:\,\,C$,
+      and $T\,\,<:\,\,\code{int}$
+      then the context type of $e_2$ is \code{int}.
+  \item{} If $\code{double}\,\,<:\,\,C$ and not $\code{num}\,\,<:\,\,C$,
+      and not $T\,\,<:\,\,\code{double}$
+     then the context type of $e_2$ is \code{double}.
+  \item{} Otherwise the context type of $e_2$ is \code{num}.
+\end{itemize}
+Let further $S$ is the static type of $e_2$.
+If $T\,\,<:\,\,\code{num}$ and not $T\,\,<:\,\,\code{Never}$
+and $S$ is assignable to \code{num},
+then the static type of $e$ is determined as follows:
+\begin{itemize}
+  \item{} If $T\,\,<:\,\,\code{double}$
+    then the static type of $e$ is $T$.
+  \item{} Otherwise, if $S\,\,<:\,\,\code{double}$
+    and not $S\,\,<:\,\,\code{Never}$,
+    then the static type of $e$ is \code{double}.
+  \item{} Otherwise, if $T\,\,<:\,\,\code{int}$,
+    $S\,\,<:\,\,\code{int}$ and not $S\,\,<:\,\,\code{Never}$,
+    then the static type of $e$ is \code{int}.
+  \item{} Otherwise the static type of $e$ is \code{num}.
+\end{itemize}
 
 \subsection{Multiplicative Expressions}
 \LMLabel{multiplicativeExpressions}
@@ -13385,10 +13474,42 @@ A multiplicative expression of the form $e_1$ $op$ $e_2$ is equivalent to the me
 A multiplicative expression of the form \SUPER{} $op$ $e_2$ is equivalent to the method invocation \code{\SUPER{}.$op$($e_2$)}.
 
 \LMHash{}%
-The static type of an multiplicative expression is usually determined by the signature given in the declaration of the operator used.
-However, invocations of the operators \code{*} and \code{\%} of class \code{int} are treated specially by the typechecker.
-The static type of an expression $e_1 * e_2$ where $e_1$ has static type \code{int} is \code{int} if the static type of $e_2$ is \code{int}, and \code{double} if the static type of $e_2$ is \code{double}.
-The static type of an expression $e_1 \% e_2$ where $e_1$ has static type \code{int} is \code{int} if the static type of $e_2$ is \code{int}, and \code{double} if the static type of $e_2$ is \code{double}.
+The static type of an multiplicative expression is usually determined
+by the signature given in the declaration of the operator used.
+However, invocations of the operators \code{*} and \code{\%} of
+class \code{int}, \code{double} and \code{num}
+are treated specially by the typechecker.
+
+\LMHash{}%
+Let $e$ be a multiplicative expression of the form \code{$e_1$ $op$ $e_2$},
+let $T$ be the static type of $e_1$,
+and let $C$ be the context type of $e$.
+
+If $T\,\,<:\,\,\code{num}$ and not $T\,\,<:\,\,\code{Never}$, then:
+\begin{itemize}
+  \item{} If $\code{int}\,\,<:\,\,C$ and not $\code{num}\,\,<:\,\,C$,
+      and $T\,\,<:\,\,\code{int}$
+      then the context type of $e_2$ is \code{int}.
+  \item{} If $\code{double}\,\,<:\,\,C$ and not $\code{num}\,\,<:\,\,C$,
+      and not $T\,\,<:\,\,\code{double}$
+     then the context type of $e_2$ is \code{double}.
+  \item{} Otherwise the context type of $e_2$ is \code{num}.
+\end{itemize}
+Let further $S$ is the static type of $e_2$.
+If $T\,\,<:\,\,\code{num}$ and not $T\,\,<:\,\,\code{Never}$
+and $S$ is assignable to \code{num},
+then the static type of $e$ is determined as follows:
+\begin{itemize}
+  \item{} If $T\,\,<:\,\,\code{double}$
+    then the static type of $e$ is $T$.
+  \item{} Otherwise, if $S\,\,<:\,\,\code{double}$
+    and not $S\,\,<:\,\,\code{Never}$,
+    then the static type of $e$ is \code{double}.
+  \item{} Otherwise, if $T\,\,<:\,\,\code{int}$,
+    $S\,\,<:\,\,\code{int}$ and not $S\,\,<:\,\,\code{Never}$,
+    then the static type of $e$ is \code{int}.
+  \item{} Otherwise the static type of $e$ is \code{num}.
+\end{itemize}
 
 
 \subsection{Unary Expressions}
