@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.10.12
+  - Clarify that operators not mentioned explicitly in the rules
+    do not participate in the null-shorting transformation.
+
 2020.10.09
   - Clarify that `main` cannot be a getter.
 
@@ -1364,6 +1368,25 @@ continuation.
   - An identifier `x` translates to `TERM[x]`
   - A list literal `[e1, ..., en]` translates to `TERM[ [EXP(e1), ..., EXP(en)] ]`
   - A parenthesized expression `(e)` translates to `TERM[(EXP(e))]`
+
+The language specification specifies that an invocation of any of several
+operators is considered equivalent to a member access (this applies to
+relational expressions, bitwise expressions, shift expressions, additive
+expressions, multiplicative expressions, and unary expressions).
+
+*For example, `a + b` is specified as equivalent to `a.plus(b)`,
+where `plus` is assumed to be a method with the same behavior as `+`.
+Similarly, `-e` is equivalent to `e.unaryMinus()`.*
+
+This equivalence is not applicable in the above rules, so operators not
+mentioned specifically in a rule are handled in the case for 'other'
+expressions, not in the case for `e.m(args)`.
+
+*This means that the null-shorting transformation stops at operators. For
+instance, `e?.f + b` is a compile-time error because `e?.f` can be null, it is
+not an expression where both `.f` and `+ b` will be skipped if `e` is null.
+Similarly, both `-a?.f` and `~a?.f` are errors, and do not null-short like
+`a?.f.op()`.*
 
 ### Late fields and variables
 
