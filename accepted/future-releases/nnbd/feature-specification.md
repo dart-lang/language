@@ -1382,7 +1382,7 @@ expressions, not in the case for `e.m(args)`.
 *This means that the null-shorting transformation stops at operators. For
 instance, `e?.f + b` is a compile-time error because `e?.f` can be null, it is
 not an expression where both `.f` and `+ b` will be skipped if `e` is null.
-Similarly, both `-a?.f` and `~a?.f` is an error, it does not null-short like
+Similarly, both `-a?.f` and `~a?.f` are errors, and do not null-short like
 `a?.f.op()`.*
 
 ### Late fields and variables
