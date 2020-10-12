@@ -3,7 +3,7 @@
 This directory contains background material only. Consult the 
 [language specification](https://dart.dev/guides/language/spec)
 and the 
-[language repository](https://github.com/dart-lang/language)
+[language repository](https://github.com/dart-lang/language/tree/master/accepted)
 for current information.
 
 ### What is a feature specification?
@@ -22,9 +22,10 @@ _nearly_ as complete and correct as the language specification.
 
 ### Feature specifications in this directory
 
-This directory contains older feature specifications, newer ones can be
-found in, respectively should be submitted to, the language repository
-[here](https://github.com/dart-lang/language).
+This directory contains older, archived feature specifications 
+which were originally located in the [Dart SDK repository](https://github.com/dart-lang/sdk).
+Newer features can be found in, respectively should be submitted to, 
+the language repository [here](https://github.com/dart-lang/language).
 
 The status of every feature specification in this directory is that it is
 background material, and the contents has been integrated into the language
