@@ -4,6 +4,13 @@ leafp@google.com
 
 ## CHANGELOG
 
+2020.09.01
+  - **CHANGE** Update **UP** in cases about type variables and promoted type
+    variables involving F-bounds, and in two cases about function types.
+
+2020.08.13
+  - Move helper predicates to the null safety specification.
+
 2020.07.21
   - **CHANGE** Specify treatment of mixed hierarchies.
 
@@ -14,7 +21,7 @@ This documents the currently implemented upper and lower bound computation,
 modified to account for explicit nullability and the accompanying type system
 changes (including the legacy types).  In the interest of backwards
 compatibility, it does not try to fix the various issues with the existing
-algorithm.  
+algorithm.
 
 ## Types
 
@@ -36,72 +43,15 @@ We assume that type aliases have been expanded, and that all types are named
 
 ## Helper predicates
 
-The **TOP** predicate is true for any type which is in the equivalence class of
-top types.
-
-- **TOP**(`T?`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
-- **TOP**(`T*`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
-- **TOP**(`dynamic`) is true
-- **TOP**(`void`) is true
-- **TOP**(`FutureOr<T>`) is **TOP**(T)
-- **TOP**(T) is false otherwise
-
-The **OBJECT** predicate is true for any type which is in the equivalence class
-of `Object`.
-
-- **OBJECT**(`Object`) is true
-- **OBJECT**(`FutureOr<T>`) is **OBJECT**(T)
-- **OBJECT**(T) is false otherwise
-
-The **BOTTOM** predicate is true for things in the equivalence class of `Never`.
-
-- **BOTTOM**(`Never`) is true
-- **BOTTOM**(`X&T`) is true iff **BOTTOM**(`T`)
-- **BOTTOM**(`X extends T`) is true iff **BOTTOM**(`T`)
-- **BOTTOM**(`T`) is false otherwise
-
-The **NULL** predicate is true for things in the equivalence class of `Null`
-
-- **NULL**(`Null`) is true
-- **NULL**(`T?`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
-- **NULL**(`T*`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
-- **NULL**(`T`) is false otherwise
-
-The **MORETOP** predicate defines a total order on top and `Object` types.
-
-- **MORETOP**(`void`, `T`) = true
-- **MORETOP**(`T`, `void`) = false
-- **MORETOP**(`dynamic`, `T`) = true
-- **MORETOP**(`T`, `dynamic`) = false
-- **MORETOP**(`Object`, `T`) = true
-- **MORETOP**(`T`, `Object`) = false
-- **MORETOP**(`T*`, `S*`) = **MORETOP**(`T`, `S`)
-- **MORETOP**(`T`, `S*`) = true
-- **MORETOP**(`T*`, `S`) = false
-- **MORETOP**(`T?`, `S?`) = **MORETOP**(`T`, `S`)
-- **MORETOP**(`T`, `S?`) = true
-- **MORETOP**(`T?`, `S`) = false
-- **MORETOP**(`FutureOr<T>`, `FutureOr<S>`) = **MORETOP**(T, S)
-
-The **MOREBOTTOM** predicate defines an (almost) total order on bottom and
-`Null` types.  This does not currently consistently order two different type
-variables with the same bound.
-
-- **MOREBOTTOM**(`Never`, `T`) = true
-- **MOREBOTTOM**(`T`, `Never`) = false
-- **MOREBOTTOM**(`Null`, `T`) = true
-- **MOREBOTTOM**(`T`, `Null`) = false
-- **MOREBOTTOM**(`T?`, `S?`) = **MOREBOTTOM**(`T`, `S`)
-- **MOREBOTTOM**(`T`, `S?`) = true
-- **MOREBOTTOM**(`T?`, `S`) = false
-- **MOREBOTTOM**(`T*`, `S*`) = **MOREBOTTOM**(`T`, `S`)
-- **MOREBOTTOM**(`T`, `S*`) = true
-- **MOREBOTTOM**(`T*`, `S`) = false
-- **MOREBOTTOM**(`X&T`, `Y&S`) = **MOREBOTTOM**(`T`, `S`)
-- **MOREBOTTOM**(`X&T`, `S`) = true
-- **MOREBOTTOM**(`S`, `X&T`) = false
-- **MOREBOTTOM**(`X extends T`, `Y extends S`) = **MOREBOTTOM**(`T`, `S`)
-
+This document relies on several type classification helper predicates
+which are specified in the
+[null safety specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/nnbd/feature-specification.md):
+**TOP**, which is true for all top types;
+**OBJECT**, which is true for types equivalent to `Object`;
+**BOTTOM**, which is true for types equivalent to `Never`;
+**NULL**, which is true for types equivalent to `Null`;
+**MORETOP**, which is a total order on top and `Object` types; and
+**MOREBOTTOM**, which is an (almost) total order on bottom and `Null` types.
 
 ## Upper bounds
 
@@ -162,22 +112,30 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`X1 extends B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
-  - otherwise **UP**(`B1[Object/X1]`, `T2`)
+  - otherwise **UP**(`B1a`, `T2`)
+    where `B1a` is the greatest closure of `B1` with respect to `X1`,
+    as defined in [inference.md].
 
 - **UP**(`X1 & B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
-  - otherwise **UP**(`B1[Object/X1]`, `T2`)
+  - otherwise **UP**(`B1a`, `T2`)
+    where `B1a` is the greatest closure of `B1` with respect to `X1`,
+    as defined in [inference.md].
 
 - **UP**(`T1`, `X2 extends B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
-  - otherwise **UP**(`T1`, `B2[Object/X2]`)
+  - otherwise **UP**(`T1`, `B2a`)
+    where `B2a` is the greatest closure of `B2` with respect to `X2`,
+    as defined in [inference.md].
 
 - **UP**(`T1`, `X2 & B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
-  - otherwise **UP**(`T1`, `B2[Object/X2]`)
+  - otherwise **UP**(`T1`, `B2a`)
+    where `B2a` is the greatest closure of `B2` with respect to `X2`,
+    as defined in [inference.md].
 
 - **UP**(`T Function<...>(...)`, `Function`) = `Function`
 - **UP**(`Function`, `T Function<...>(...)`) = `Function`
@@ -213,8 +171,13 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
           `Named1`
 
 - **UP**(`T Function<...>(...)`, `S Function<...>(...)`) = `Function` otherwise
-- **UP**(`T Function<...>(...)`, `T2`) = `Object`
-- **UP**(`T1`, `T Function<...>(...)`) = `Object`
+- **UP**(`T Function<...>(...)`, `T2`) = **UP**(`Object`, `T2`)
+- **UP**(`T1`, `T Function<...>(...)`) = **UP**(`T1`, `Object`)
+- **UP**(`FutureOr<T1>`, `FutureOr<T2>`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
+- **UP**(`Future<T1>`, `FutureOr<T2>`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
+- **UP**(`FutureOr<T1>`, `Future<T2>`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
+- **UP**(`T1`, `FutureOr<T2>`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
+- **UP**(`FutureOr<T1>`, `T2`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
 - **UP**(`T1`, `T2`) = `T2` if `T1` <: `T2`
   - Note that both types must be class types at this point
 - **UP**(`T1`, `T2`) = `T1` if `T2` <: `T1`
@@ -228,6 +191,8 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
     super-interfaces of the two types.
   - For an upper bound computation in an opted in library, no modification of
     the set of super-interfaces is performed.
+
+[inference.md]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md
 
 ## Lower bounds
 
@@ -420,7 +385,7 @@ that are not identical are `T0` and `S0` respectively, and **MORETOP**(`T0`,
 `S0`).
 
 A similar treatment would need to be done for the bottom types as well, since
-there are two equivalences there. 
+there are two equivalences there.
   - `X extends T` is equivalent to `Null` if `T` is equivalent to `Null`.
   - `FutureOr<Null>` is equivalent `Future<Null>`.
 

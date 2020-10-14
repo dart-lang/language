@@ -6,8 +6,29 @@ Status: Draft
 
 ## CHANGELOG
 
-2020.08.19
+2020.10.14
   - Include selector `!` among the null-shorting constructs.
+
+2020.10.12
+  - Clarify that operators not mentioned explicitly in the rules
+    do not participate in the null-shorting transformation.
+
+2020.10.09
+  - Clarify that `main` cannot be a getter.
+
+2020.10.05
+  - Specify that a null-aware static member access (e.g., `C?.staticMethod()`)
+    is a warning.
+
+2020.09.21
+  - Specify that when a variable inferred from an initializer with intersection
+    type is immediately promoted, the intersection type is a type of interest.
+
+2020.09.10
+  - Specify updates to super-bounded type rules for null safety.
+
+2020.08.12
+  - Specify constraints on the `main` function.
 
 2020.08.06
   - Specify error for uninitialized final instance variable in class
@@ -15,7 +36,7 @@ Status: Draft
 
 2020.07.09
   - Specify combined member signature and spread element typing
-    with null-safety.
+    with null safety.
 
 2020.06.02
   - Fix the diff to the spec for potentially constant instance checks
@@ -619,6 +640,10 @@ does not occur in any of the ways specified in
 [this list](https://github.com/dart-lang/language/blob/780cd5a8be92e88e8c2c74ed282785a2e8eda393/specification/dartLangSpec.tex#L18238).
 *This implies that `void*` is treated the same as `void`.*
 
+Let `C` be a type literal denoting a class, mixin, or extension. It is a warning
+to use a null aware member access with receiver `C`. *E.g., `C?.staticMethod()` 
+is a warning.*
+
 It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, or
 `...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
 
@@ -721,12 +746,14 @@ void test() {
 
 Local variables with no explicitly written type but with an initializer are
 given an inferred type equal to the type of their initializer, unless that type
-is a subtype of `Null`, in which case the inferred type of the variable shall be
-`dynamic`.  The inferred type of the variable is considered a "type of interest"
-in the sense defined in the flow analysis specification.  In the case that the
-type of the initializer is a promoted type variable `X & T`, the inferred type
-of the variable shall be `X`.  However, such a variable shall be treated as
-immediately promoted to `X & T`.
+is `Null`, in which case the inferred type of the variable shall be `dynamic`.
+The inferred type of the variable is considered a "type of interest" in the
+sense defined in the flow analysis specification.  In the case that the type of
+the initializer is a promoted type variable `X & T`, the inferred type of the
+variable shall be `X`, but `X & T` shall be considered as a type of interest and
+the initialization treated as an assignment for the purposes of promotion.
+Consequently, such a variable shall be treated as immediately promoted to `X &
+T`.
 
 ### Expression typing
 
@@ -802,10 +829,31 @@ the element, key, and value type of `...e` and `...?e` is `Never`.
 *When the static type _S_ of `e` is strictly non-nullable, such as when _S_
 is `Never`, `...?e` is a warning, but it may still occur.*
 
-### Instantiate to bounds
+### Instantiation to bound
 
-The computation of instantiation to bounds is changed to substitute `Never` for
+The computation of instantiation to bound is changed to substitute `Never` for
 type variables appearing in contravariant positions instead of `Null`.
+
+### Super-bounded types
+
+Null safety requires three changes to the section 'Super-Bounded Types' in
+the language specification.
+
+The definition of a top type is changed: _T_ is a top type if and only if
+`Object?` is a subtype of _T_. Note that the helper predicate **TOP**
+provides a syntactic characterization of the same concept.
+
+The definition of a super-bounded type is changed such that occurrences of
+`Null` are replaced by types involving `Never`, and `Object` is replaced by
+`Object?`. Moreover, top types in invariant positions and in positions that
+have no variance (*unused type parameters in a type alias*) are given the
+same treatment as top types in covariant positions. This causes one
+sentence to change, with the following result:
+
+Let _T'_ be the result of replacing every occurrence in _T_ of a type _S_
+in a contravariant position where _S <: Never_ by `Object?`, and every
+occurrence in _T_ of a top type in a position which is not contravariant by
+`Never`.
 
 ### Least and greatest closure
 
@@ -1001,6 +1049,137 @@ These are extended as
 per
 [separate proposal](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
 
+## Helper predicates
+
+The following helper predicates are used to classify types. They are syntactic
+in nature such that termination is obvious. In particular, they do not rely on
+subtyping.
+
+The **TOP** predicate is true for any type which is in the equivalence class of
+top types.
+
+- **TOP**(`T?`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
+- **TOP**(`T*`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
+- **TOP**(`dynamic`) is true
+- **TOP**(`void`) is true
+- **TOP**(`FutureOr<T>`) is **TOP**(T)
+- **TOP**(T) is false otherwise
+
+**TOP**(`T`) is true if and only if `T` is a supertype of `Object?`.
+
+The **OBJECT** predicate is true for any type which is in the equivalence class
+of `Object`.
+
+- **OBJECT**(`Object`) is true
+- **OBJECT**(`FutureOr<T>`) is **OBJECT**(T)
+- **OBJECT**(`T`) is false otherwise
+
+**OBJECT**(`T`) is true if and only if `T` is a subtype and a supertype of
+`Object`.
+
+The **BOTTOM** predicate is true for things in the equivalence class of `Never`.
+
+- **BOTTOM**(`Never`) is true
+- **BOTTOM**(`X&T`) is true iff **BOTTOM**(`T`)
+- **BOTTOM**(`X extends T`) is true iff **BOTTOM**(`T`)
+- **BOTTOM**(`T`) is false otherwise
+
+**BOTTOM**(`T`) is true if and only if `T` is a subtype of `Never`.
+
+The **NULL** predicate is true for things in the equivalence class of `Null`
+
+- **NULL**(`Null`) is true
+- **NULL**(`T?`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
+- **NULL**(`T*`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
+- **NULL**(`T`) is false otherwise
+
+**NULL**(`T`) is true if and only if `T` is a subtype and a supertype of `Null`.
+
+The **MORETOP** predicate defines a total order on top and `Object` types.
+
+- **MORETOP**(`void`, `T`) = true
+- **MORETOP**(`T`, `void`) = false
+- **MORETOP**(`dynamic`, `T`) = true
+- **MORETOP**(`T`, `dynamic`) = false
+- **MORETOP**(`Object`, `T`) = true
+- **MORETOP**(`T`, `Object`) = false
+- **MORETOP**(`T*`, `S*`) = **MORETOP**(`T`, `S`)
+- **MORETOP**(`T`, `S*`) = true
+- **MORETOP**(`T*`, `S`) = false
+- **MORETOP**(`T?`, `S?`) = **MORETOP**(`T`, `S`)
+- **MORETOP**(`T`, `S?`) = true
+- **MORETOP**(`T?`, `S`) = false
+- **MORETOP**(`FutureOr<T>`, `FutureOr<S>`) = **MORETOP**(T, S)
+
+The **MOREBOTTOM** predicate defines an (almost) total order on bottom and
+`Null` types.  This does not currently consistently order two different type
+variables with the same bound.
+
+- **MOREBOTTOM**(`Never`, `T`) = true
+- **MOREBOTTOM**(`T`, `Never`) = false
+- **MOREBOTTOM**(`Null`, `T`) = true
+- **MOREBOTTOM**(`T`, `Null`) = false
+- **MOREBOTTOM**(`T?`, `S?`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`T`, `S?`) = true
+- **MOREBOTTOM**(`T?`, `S`) = false
+- **MOREBOTTOM**(`T*`, `S*`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`T`, `S*`) = true
+- **MOREBOTTOM**(`T*`, `S`) = false
+- **MOREBOTTOM**(`X&T`, `Y&S`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`X&T`, `S`) = true
+- **MOREBOTTOM**(`S`, `X&T`) = false
+- **MOREBOTTOM**(`X extends T`, `Y extends S`) = **MOREBOTTOM**(`T`, `S`)
+
+### The main function
+
+The section 'Scripts' in the language specification is replaced by the
+following:
+
+Let _L_ be a library that exports a declaration _D_ named `main`.  It is a
+compile-time error unless _D_ is a non-getter function declaration.  It is a
+compile-time error if _D_ declares more than two required positional
+parameters, or if there are any required named parameters.  It is a
+compile-time error if _D_ declares at least one positional parameter, and
+the first positional parameter has a type which is not a supertype of
+`List<String>`.
+
+Implementations are free to impose any additional restrictions on the
+signature of `main`.
+
+A _script_ is a library that exports a declaration named `main`.
+A script _L_ is executed as follows:
+
+First, _L_ is compiled as a library as specified above.
+Then, the top-level function defined by `main`
+in the exported namespace of _L_ is invoked as follows:
+
+If `main` can be called with with two positional arguments,
+it is invoked with the following two actual arguments:
+
+- An object whose run-time type implements `List<String>`.
+- An object specified when the current isolate _i_ was created,
+  for example through the invocation of `Isolate.spawnUri` that spawned _i_,
+  or the null object if no such object was supplied.
+  A dynamic error occurs if the run-time type of this object is not a
+  subtype of the declared type of the corresponding parameter of `main`.
+
+If `main` cannot be called with two positional arguments, but it can be
+called with one positional argument, it is invoked with an object whose
+run-time type implements `List<String>` as the only argument.
+
+If `main` cannot be called with one or two positional arguments, it is
+invoked with no arguments.
+
+In each of the above three cases, an implementation is free to provide
+additional arguments allowed by the signature of `main` (*the above rules
+ensure that the corresponding parameters are optional*).  But the
+implementation must ensure that a dynamic error occurs if an actual
+argument does not have a run-time type which is a subtype of the declared
+type of the parameter.
+
+A Dart program will typically be executed by executing a script.  The
+procedure whereby this script is chosen is implementation specific.
+
 ## Runtime semantics
 
 ### Weak and strong semantics
@@ -1195,6 +1374,25 @@ continuation.
   - A list literal `[e1, ..., en]` translates to `TERM[ [EXP(e1), ..., EXP(en)] ]`
   - A parenthesized expression `(e)` translates to `TERM[(EXP(e))]`
 
+The language specification specifies that an invocation of any of several
+operators is considered equivalent to a member access (this applies to
+relational expressions, bitwise expressions, shift expressions, additive
+expressions, multiplicative expressions, and unary expressions).
+
+*For example, `a + b` is specified as equivalent to `a.plus(b)`,
+where `plus` is assumed to be a method with the same behavior as `+`.
+Similarly, `-e` is equivalent to `e.unaryMinus()`.*
+
+This equivalence is not applicable in the above rules, so operators not
+mentioned specifically in a rule are handled in the case for 'other'
+expressions, not in the case for `e.m(args)`.
+
+*This means that the null-shorting transformation stops at operators. For
+instance, `e?.f + b` is a compile-time error because `e?.f` can be null, it is
+not an expression where both `.f` and `+ b` will be skipped if `e` is null.
+Similarly, both `-a?.f` and `~a?.f` are errors, and do not null-short like
+`a?.f.op()`.*
+
 ### Late fields and variables
 
 A non-local `late` variable declaration _D_ implicitly induces a getter
@@ -1204,10 +1402,10 @@ following conditions is satisfied:
   - _D_ is non-final.
   - _D_ is late, final, and has no initializing expression.
 
-The late final variable declaration with no initializer is special in that it
-is the only final variable which can be the target of an assignment.  It
-can only be assigned once, but this is enforced dynamically rather than
-statically.
+The late final variable declaration with no initializer is permitted, and
+introduces a variable which may be assigned to so long as the variable is not
+known to be definitely assigned.  The property that the variable is never
+mutated after initialization is enforced dynamically rather than statically.
 
 An instance variable declaration may be declared `covariant` iff it introduces
 an implicit setter.
