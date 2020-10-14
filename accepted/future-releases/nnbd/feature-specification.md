@@ -6,13 +6,37 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.10.14
+  - Include selector `!` among the null-shorting constructs.
+
+2020.10.12
+  - Clarify that operators not mentioned explicitly in the rules
+    do not participate in the null-shorting transformation.
+
+2020.10.09
+  - Clarify that `main` cannot be a getter.
+
+2020.10.05
+  - Specify that a null-aware static member access (e.g., `C?.staticMethod()`)
+    is a warning.
+
+2020.09.21
+  - Specify that when a variable inferred from an initializer with intersection
+    type is immediately promoted, the intersection type is a type of interest.
+
+2020.09.10
+  - Specify updates to super-bounded type rules for null safety.
+
+2020.08.12
+  - Specify constraints on the `main` function.
+
 2020.08.06
   - Specify error for uninitialized final instance variable in class
     with no generative constructors.
 
 2020.07.09
   - Specify combined member signature and spread element typing
-    with null-safety.
+    with null safety.
 
 2020.06.02
   - Fix the diff to the spec for potentially constant instance checks
@@ -21,6 +45,9 @@ Status: Draft
 
 2020.05.20
   - Turn new references to `CastError` into being dynamic type errors.
+
+2020.07.21
+  - **CHANGE** Changes to definite assignment for local variables.
 
 2020.05.14
   - **CHANGE** Strong mode is auto-opted in when the "main" file is opted in.
@@ -498,23 +525,23 @@ It is an error to call an expression whose type is potentially nullable and not
 `dynamic`.
 
 It is an error if a top level variable or static variable with a non-nullable
-type has no initializer expression unless the variable is marked with a
-`late` or `external` modifier.
+type has no initializer expression unless the variable is marked with a `late`
+or `external` modifier.
 
 It is an error if a class declaration declares an instance variable with a
-potentially non-nullable type and no initializer expression, and the class has
-a generative constructor where the variable is not initialized via an
-initializing formal or an initializer list entry, unless the variable is marked
-with a `late`, `abstract`, or `external` modifier.
+potentially non-nullable type and no initializer expression, and the class has a
+generative constructor where the variable is not initialized via an initializing
+formal or an initializer list entry, unless the variable is marked with a
+`late`, `abstract`, or `external` modifier.
 
 It is an error if a mixin declaration or a class declaration with no generative
 constructors declares an instance variable without an initializing expression
-which is final or whose type is potentially non-nullable, unless the variable
-is marked with a `late`, `abstract`, or `external` modifier.
+which is final or whose type is potentially non-nullable, unless the variable is
+marked with a `late`, `abstract`, or `external` modifier.
 
-It is an error if a potentially non-nullable local variable which has no
-initializer expression and is not marked `late` is used before it is definitely
-assigned (see Definite Assignment below).
+It is an error to derive a mixin from a class declaration which contains an
+instance variable with a potentially non-nullable type and no initializer
+expression unless the variable is marked with the `late` modifier.
 
 It is an error if the body of a method, function, getter, or function expression
 with a potentially non-nullable return type **may complete normally**.
@@ -568,18 +595,9 @@ expression.
 It is an error for a class with a `const` constructor to have a `late final`
 instance variable.
 
-It is not a compile time error to write to a `final` variable if that variable
-is declared `late` and does not have an initializer.
-
-It is a compile time error to assign a value to a local variable marked `late`
-and `final` when the variable is **definitely assigned**.  This includes all
-forms of assignments, including assignments via the composite assignment
-operators as well as pre and post-fix operators.
-
-It is a compile time error to read a local variable marked `late` when the
-variable is **definitely unassigned**. This includes all forms of reads,
-including implicit reads via the composite assignment operators as well as pre
-and post-fix operators.
+It is not a compile time error to write to a `final` non-local or instance
+variable if that variable is declared `late` and does not have an initializer.
+For local variables, see the section below.
 
 It is an error if the object being iterated over by a `for-in` loop has a static
 type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
@@ -622,11 +640,120 @@ does not occur in any of the ways specified in
 [this list](https://github.com/dart-lang/language/blob/780cd5a8be92e88e8c2c74ed282785a2e8eda393/specification/dartLangSpec.tex#L18238).
 *This implies that `void*` is treated the same as `void`.*
 
+Let `C` be a type literal denoting a class, mixin, or extension. It is a warning
+to use a null aware member access with receiver `C`. *E.g., `C?.staticMethod()` 
+is a warning.*
+
 It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, or
 `...?`) on an expression of type `T` if `T` is **strictly non-nullable**.
 
 It is a warning to use the null check operator (`!`) on an expression of type
 `T` if `T` is **strictly non-nullable** .
+
+### Local variables and definite (un)assignment.
+
+As part of the null safety release, errors for local variables are specified to
+take into account **definite assignment** and **definite unassignment** (see the
+section on Definite Assignment below).  We say that a variable is **potentially
+assigned** if it is not **definitely unassigned**, and that a variable is
+**potentially unassigned** if it is not **definitely assigned**.
+
+In all cases in this section, errors that are described as occurring on reads of
+a variable are intended to apply to all form of reads, including indirectly as
+part of compound assignment operators, as well as via pre and post-fix
+operators.  Similarly, errors that are described as occurring on writes of a
+variable are intended to apply to all form of writes.
+
+It is a compile time error to assign a value to a `final`, non-`late` local
+variable which is **potentially assigned**.  Thus, it is *not* a compile time
+error to assign to a **definitely unassigned** `final` local variable.
+
+It is a compile time error to assign a value to a `final`, `late` local variable
+if it is **definitely assigned**. Thus, it is *not* a compile time error to
+assign to a **potentially unassigned** `final`, `late` local variable.
+
+*Note that a variable is always considered **definitely assigned** and not
+**definitely unassigned** if it has an explicit initializer, or an implicit
+initializer as part of a larger construct (e.g. the loop variable in a `for in`
+construct).*
+
+It is a compile time error to read a local variable when the variable is
+**definitely unassigned** unless the variable is non-`final`, and non-`late`,
+and has nullable type.
+
+It is a compile time error to read a local variable when the variable is
+**potentially unassigned** unless the variable is non-`final` and has nullable
+type, or is `late`.
+
+The errors specified above are summarized in the following table, where `int` is
+used as an example of an arbitrary **potentially non-nullable** type, `int?` is
+used as an example of an arbitrary **nullable** type, and `T` is used to stand
+for a type of any nullability.  A variable which has an initializer (explicit or
+implicit) is always considered definitely assigned, and is never considered
+definitely unassigned.
+
+
+Read Behavior:
+
+| Declaration form  | Def. Assigned | Neither           | Def. Unassigned |
+| ----------------- | ------------- | ----------------- | --------------- |
+| var x;            | Ok            | Ok                | Ok              |
+| final x;          | Ok            | Error             | Error           |
+| int x;            | Ok            | Error             | Error           |
+| int? x;           | Ok            | Ok                | Ok              |
+| final T x;        | Ok            | Error             | Error           |
+| late var x;       | Ok            | Ok                | Error           |
+| late final x;     | Ok            | Ok                | Error           |
+| late T x;         | Ok            | Ok                | Error           |
+| late final T x;   | Ok            | Ok                | Error           |
+
+Write Behavior:
+
+| Declaration form  | Def. Assigned | Neither             | Def. Unassigned |
+| ----------------- | ------------- | ------------------- | --------------- |
+| var x;            | Ok            | Ok                  | Ok              |
+| final x;          | Error         | Error               | Ok              |
+| int x;            | Ok            | Ok                  | Ok              |
+| int? x;           | Ok            | Ok                  | Ok              |
+| final T x;        | Error         | Error               | Ok              |
+| late var x;       | Ok            | Ok                  | Ok              |
+| late final x;     | Error         | Ok                  | Ok              |
+| late T x;         | Ok            | Ok                  | Ok              |
+| late final T x;   | Error         | Ok                  | Ok              |
+
+### Local variables and inference
+
+Local variables with explicitly written types are given the declared types as
+written.  The declared type of the variable is considered a "type of interest"
+in the sense defined in the flow analysis specification.  If the variable has an
+initializer (explicit or implicit) and is not `final`, then the declaration is
+treated as an assignment for the purposes of promotion.
+
+*Treating the declared type of the variable as a "type of interest" implies that
+if the variable has a nullable type, then the non-nullable version of that type
+is also a type of interest.  Treating the initialization as an assignment for
+the purposes of promotion means that initializing a mutable variable declared at
+type `T?` with a value of non-nullable type `T` immediately promotes the
+variable to the non-nullable type.*
+
+```dart
+void test() {
+  int? x = 3; // x is declared at `int?`
+  x.isEven; // Valid, x has been promoted to `int`
+  x = null; // Valid, demotes to the declared type.
+}
+```
+
+Local variables with no explicitly written type but with an initializer are
+given an inferred type equal to the type of their initializer, unless that type
+is `Null`, in which case the inferred type of the variable shall be `dynamic`.
+The inferred type of the variable is considered a "type of interest" in the
+sense defined in the flow analysis specification.  In the case that the type of
+the initializer is a promoted type variable `X & T`, the inferred type of the
+variable shall be `X`, but `X & T` shall be considered as a type of interest and
+the initialization treated as an assignment for the purposes of promotion.
+Consequently, such a variable shall be treated as immediately promoted to `X &
+T`.
 
 ### Expression typing
 
@@ -702,10 +829,31 @@ the element, key, and value type of `...e` and `...?e` is `Never`.
 *When the static type _S_ of `e` is strictly non-nullable, such as when _S_
 is `Never`, `...?e` is a warning, but it may still occur.*
 
-### Instantiate to bounds
+### Instantiation to bound
 
-The computation of instantiation to bounds is changed to substitute `Never` for
+The computation of instantiation to bound is changed to substitute `Never` for
 type variables appearing in contravariant positions instead of `Null`.
+
+### Super-bounded types
+
+Null safety requires three changes to the section 'Super-Bounded Types' in
+the language specification.
+
+The definition of a top type is changed: _T_ is a top type if and only if
+`Object?` is a subtype of _T_. Note that the helper predicate **TOP**
+provides a syntactic characterization of the same concept.
+
+The definition of a super-bounded type is changed such that occurrences of
+`Null` are replaced by types involving `Never`, and `Object` is replaced by
+`Object?`. Moreover, top types in invariant positions and in positions that
+have no variance (*unused type parameters in a type alias*) are given the
+same treatment as top types in covariant positions. This causes one
+sentence to change, with the following result:
+
+Let _T'_ be the result of replacing every occurrence in _T_ of a type _S_
+in a contravariant position where _S <: Never_ by `Object?`, and every
+occurrence in _T_ of a top type in a position which is not contravariant by
+`Never`.
 
 ### Least and greatest closure
 
@@ -901,6 +1049,137 @@ These are extended as
 per
 [separate proposal](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
 
+## Helper predicates
+
+The following helper predicates are used to classify types. They are syntactic
+in nature such that termination is obvious. In particular, they do not rely on
+subtyping.
+
+The **TOP** predicate is true for any type which is in the equivalence class of
+top types.
+
+- **TOP**(`T?`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
+- **TOP**(`T*`) is true iff **TOP**(`T`) or **OBJECT**(`T`)
+- **TOP**(`dynamic`) is true
+- **TOP**(`void`) is true
+- **TOP**(`FutureOr<T>`) is **TOP**(T)
+- **TOP**(T) is false otherwise
+
+**TOP**(`T`) is true if and only if `T` is a supertype of `Object?`.
+
+The **OBJECT** predicate is true for any type which is in the equivalence class
+of `Object`.
+
+- **OBJECT**(`Object`) is true
+- **OBJECT**(`FutureOr<T>`) is **OBJECT**(T)
+- **OBJECT**(`T`) is false otherwise
+
+**OBJECT**(`T`) is true if and only if `T` is a subtype and a supertype of
+`Object`.
+
+The **BOTTOM** predicate is true for things in the equivalence class of `Never`.
+
+- **BOTTOM**(`Never`) is true
+- **BOTTOM**(`X&T`) is true iff **BOTTOM**(`T`)
+- **BOTTOM**(`X extends T`) is true iff **BOTTOM**(`T`)
+- **BOTTOM**(`T`) is false otherwise
+
+**BOTTOM**(`T`) is true if and only if `T` is a subtype of `Never`.
+
+The **NULL** predicate is true for things in the equivalence class of `Null`
+
+- **NULL**(`Null`) is true
+- **NULL**(`T?`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
+- **NULL**(`T*`) is true iff **NULL**(`T`) or **BOTTOM**(`T`)
+- **NULL**(`T`) is false otherwise
+
+**NULL**(`T`) is true if and only if `T` is a subtype and a supertype of `Null`.
+
+The **MORETOP** predicate defines a total order on top and `Object` types.
+
+- **MORETOP**(`void`, `T`) = true
+- **MORETOP**(`T`, `void`) = false
+- **MORETOP**(`dynamic`, `T`) = true
+- **MORETOP**(`T`, `dynamic`) = false
+- **MORETOP**(`Object`, `T`) = true
+- **MORETOP**(`T`, `Object`) = false
+- **MORETOP**(`T*`, `S*`) = **MORETOP**(`T`, `S`)
+- **MORETOP**(`T`, `S*`) = true
+- **MORETOP**(`T*`, `S`) = false
+- **MORETOP**(`T?`, `S?`) = **MORETOP**(`T`, `S`)
+- **MORETOP**(`T`, `S?`) = true
+- **MORETOP**(`T?`, `S`) = false
+- **MORETOP**(`FutureOr<T>`, `FutureOr<S>`) = **MORETOP**(T, S)
+
+The **MOREBOTTOM** predicate defines an (almost) total order on bottom and
+`Null` types.  This does not currently consistently order two different type
+variables with the same bound.
+
+- **MOREBOTTOM**(`Never`, `T`) = true
+- **MOREBOTTOM**(`T`, `Never`) = false
+- **MOREBOTTOM**(`Null`, `T`) = true
+- **MOREBOTTOM**(`T`, `Null`) = false
+- **MOREBOTTOM**(`T?`, `S?`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`T`, `S?`) = true
+- **MOREBOTTOM**(`T?`, `S`) = false
+- **MOREBOTTOM**(`T*`, `S*`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`T`, `S*`) = true
+- **MOREBOTTOM**(`T*`, `S`) = false
+- **MOREBOTTOM**(`X&T`, `Y&S`) = **MOREBOTTOM**(`T`, `S`)
+- **MOREBOTTOM**(`X&T`, `S`) = true
+- **MOREBOTTOM**(`S`, `X&T`) = false
+- **MOREBOTTOM**(`X extends T`, `Y extends S`) = **MOREBOTTOM**(`T`, `S`)
+
+### The main function
+
+The section 'Scripts' in the language specification is replaced by the
+following:
+
+Let _L_ be a library that exports a declaration _D_ named `main`.  It is a
+compile-time error unless _D_ is a non-getter function declaration.  It is a
+compile-time error if _D_ declares more than two required positional
+parameters, or if there are any required named parameters.  It is a
+compile-time error if _D_ declares at least one positional parameter, and
+the first positional parameter has a type which is not a supertype of
+`List<String>`.
+
+Implementations are free to impose any additional restrictions on the
+signature of `main`.
+
+A _script_ is a library that exports a declaration named `main`.
+A script _L_ is executed as follows:
+
+First, _L_ is compiled as a library as specified above.
+Then, the top-level function defined by `main`
+in the exported namespace of _L_ is invoked as follows:
+
+If `main` can be called with with two positional arguments,
+it is invoked with the following two actual arguments:
+
+- An object whose run-time type implements `List<String>`.
+- An object specified when the current isolate _i_ was created,
+  for example through the invocation of `Isolate.spawnUri` that spawned _i_,
+  or the null object if no such object was supplied.
+  A dynamic error occurs if the run-time type of this object is not a
+  subtype of the declared type of the corresponding parameter of `main`.
+
+If `main` cannot be called with two positional arguments, but it can be
+called with one positional argument, it is invoked with an object whose
+run-time type implements `List<String>` as the only argument.
+
+If `main` cannot be called with one or two positional arguments, it is
+invoked with no arguments.
+
+In each of the above three cases, an implementation is free to provide
+additional arguments allowed by the signature of `main` (*the above rules
+ensure that the corresponding parameters are optional*).  But the
+implementation must ensure that a dynamic error occurs if an actual
+argument does not have a run-time type which is a subtype of the declared
+type of the parameter.
+
+A Dart program will typically be executed by executing a script.  The
+procedure whereby this script is chosen is implementation specific.
+
 ## Runtime semantics
 
 ### Weak and strong semantics
@@ -1060,6 +1339,8 @@ continuation.
   - `SHORT[EXP(e1), fn[x] => x[EXP(e2)]]`
 - If `e1` translates to `F` then `e1[e2]` translates to:
   - `PASSTHRU[F, fn[x] => x[EXP(e2)]]`
+- If `e` translates to `F` then `e!` translates to:
+  - `PASSTHRU[F, fn[x] => x!]`
 - The assignment `e1?.f = e2` translates to:
   - `SHORT[EXP(e1), fn[x] => x.f = EXP(e2)]`
 - The other assignment operators are handled equivalently.
@@ -1093,6 +1374,25 @@ continuation.
   - A list literal `[e1, ..., en]` translates to `TERM[ [EXP(e1), ..., EXP(en)] ]`
   - A parenthesized expression `(e)` translates to `TERM[(EXP(e))]`
 
+The language specification specifies that an invocation of any of several
+operators is considered equivalent to a member access (this applies to
+relational expressions, bitwise expressions, shift expressions, additive
+expressions, multiplicative expressions, and unary expressions).
+
+*For example, `a + b` is specified as equivalent to `a.plus(b)`,
+where `plus` is assumed to be a method with the same behavior as `+`.
+Similarly, `-e` is equivalent to `e.unaryMinus()`.*
+
+This equivalence is not applicable in the above rules, so operators not
+mentioned specifically in a rule are handled in the case for 'other'
+expressions, not in the case for `e.m(args)`.
+
+*This means that the null-shorting transformation stops at operators. For
+instance, `e?.f + b` is a compile-time error because `e?.f` can be null, it is
+not an expression where both `.f` and `+ b` will be skipped if `e` is null.
+Similarly, both `-a?.f` and `~a?.f` are errors, and do not null-short like
+`a?.f.op()`.*
+
 ### Late fields and variables
 
 A non-local `late` variable declaration _D_ implicitly induces a getter
@@ -1102,10 +1402,10 @@ following conditions is satisfied:
   - _D_ is non-final.
   - _D_ is late, final, and has no initializing expression.
 
-The late final variable declaration with no initializer is special in that it
-is the only final variable which can be the target of an assignment.  It
-can only be assigned once, but this is enforced dynamically rather than
-statically.
+The late final variable declaration with no initializer is permitted, and
+introduces a variable which may be assigned to so long as the variable is not
+known to be definitely assigned.  The property that the variable is never
+mutated after initialization is enforced dynamically rather than statically.
 
 An instance variable declaration may be declared `covariant` iff it introduces
 an implicit setter.

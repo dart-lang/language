@@ -150,9 +150,13 @@ source code.
   that point.  (Note that a variable cannot be both definitely assigned and
   definitely unassigned at any location).
 
-- `writeCaptured` is a boolean value indicating whether a closure might exist at
-  the given point in the source code, which could potentially write to the
-  variable.
+- `writeCaptured` is a boolean value indicating whether a closure or an unevaluated
+  late variable initializer might exist at the given point in the source code,
+  which could potentially write to the variable.  Note that for purposes of
+  write captures performed by a late variable initializer, we only consider
+  variable writes performed within the initializer expression itself; a late
+  variable initializer is not per se considered to write to the late variable
+  itself.
 
 A *flow model*, denoted `FlowModel(reachable, variableInfo)`, represents what
 is statically known to flow analysis about the state of the program at a given
@@ -203,14 +207,18 @@ The following functions associate flow models to nodes:
 
 - `assignedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
   or a `for` element in a collection, represents the set of variables assigned
-  to in the recurrent part of `S`, where the "recurrent" part of `S` is defined
-  as:
+  to in the recurrent part of `S`, not counting initializations of variables at
+  their declaration sites.  The "recurrent" part of `S` is defined as:
   - If `S` is a `do` or `while` statement, the entire statement `S`.
   - If `S` is a `for` statement or a `for` element in a collection, whose
     `forLoopParts` take the form of a traditional for loop, all of `S` except
     the `forInitializerStatement`.
   - If `S` is a `for` statement or a `for` element in a collection, whose
-    `forLoopParts` take the form of a for-in loop, the body of `S`.
+    `forLoopParts` take the form of a for-in loop, the body of `S`.  A loop of
+    the form `for (var x in ...) ...` is not considered to assign to `x`
+    (because `var x in ...` is considered an initialization of `x` at its
+    declaration site), but a loop of the form `for (x in ...) ...` (where `x` is
+    declared elsewhere in the function) *is* considered to assign to `x`.
   - If `S` is a `switch` statement, all of `S` except the switch `expression`.
 
 - `capturedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
@@ -356,6 +364,28 @@ We also make use of the following auxiliary functions:
       `VariableModel(d0, [], s0, a0, false, c0)`
     - Otherwise `VI1` maps `v` to `VM0`
 
+- `inheritTestedV(VM1, VM2)`, where `VM1` and `VM2` are variable models,
+  represents a modification of `VM1` to include any additional types of interest
+  from `VM2`.  It is defined as follows:
+
+  - We define `inheritTestedV(VM1, VM2)` to be `VM3 = VariableModel(d1, p1, s3,
+    a1, u1, c1)` where:
+    - `VM1 = VariableModel(d1, p1, s1, a1, u1, c1)`
+    - `VM2 = VariableModel(d2, p2, s2, a2, u2, c2)`
+    - `s3 = s1 U s2`
+      - The set of test sites is the union of the test sites on either path
+
+- `inheritTested(M1, M2)`, where `M1` and `M2` are flow models, represents a
+  modification of `M1` to include any additional types of interest from `M2`.
+  It is defined as follows:
+
+  - We define `inheritTested(M1, M2)` to be `M3 = FlowModel(r1, VI3)` where:
+    - `M1 = FlowModel(r1, VI1)`
+    - `M2 = FlowModel(r2, VI2)`
+    - `VI3` is the map which maps each variable `v` in the domain of both `VI1`
+      and `VI2` to `inheritTestedV(VI1(v), VI2(v))`, and maps each variable in
+      the domain of `VI1` but not `VI2` to `VI1(v)`.
+
 
 ### Promotion
 
@@ -378,14 +408,6 @@ Policy:
     - and not `S <: T`
     - and `T <: S` or (`S` is `X extends R` and `T <: R`) or (`S` is `X & R` and
       `T <: R`)
-
-  - We say that a variable `x` is promotable via initialization given variable
-    model `VM` if `x` is a local variable (not a formal parameter) and:
-    - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
-    - and `captured` is false
-    - and `promoted` is empty
-    - and `x` is declared with no explicit type and no initializer
-    - and `assigned` is false and `unassigned` is true
 
   - We say that a variable `x` is promotable via assignment of an expression of
     type `T` given variable model `VM` if
@@ -410,8 +432,6 @@ Definitions:
     - `VI(x) = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
     - if `captured` is true then:
       - `VM = VariableModel(declared, promoted, tested, true, false, captured)`.
-    - otherwise if `x` is promotable via initialization given `VM` then
-      - `VM = VariableModel(declared, [T], tested, true, false, captured)`.
     - otherwise if `x` is promotable via assignment of `E` given `VM`
       - `VM = VariableModel(declared, T::promoted, tested, true, false, captured)`.
     - otherwise if `x` is demotable via assignment of `E` given `VM`
@@ -639,13 +659,9 @@ TODO: This isn't really right, `E1` isn't really an expression here.
   - Let `T` be the static return type of the invocation
   - If `T <: Never` then:
     - Let `after(N) = unreachable(after(E2))`.
-  - Otherwise, if `m1` is a method declared on `Object` (e.g. `toString`), then:
-    - Let `after(N) = after(E2)`.
   - Otherwise:
-    - Let `after(N) = promoteToNonNull(E1, after(E2))`
+    - Let `after(N) = after(E2)`.
 
-  TODO(paulberry): is the `promoteToNonNull` part of method invocations
-  implemented?
   TODO(paulberry): handle `E1.m1(E2, E3, ...)`.
 
 TODO: Add missing expressions, handle cascades and left-hand sides accurately
@@ -693,13 +709,30 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
   (E) S` then:
   - Let `before(E) = conservativeJoin(before(N), assignedIn(N), capturedIn(N))`.
   - Let `before(S) = split(true(E))`.
-  - Let `after(N) = join(false(E), unsplit(break(S))`
+  - Let `after(N) = inheritTested(join(false(E), unsplit(break(S))), after(S))`.
+
+- **for statement**: If `N` is a for statement of the form `for (D; C; U) S`,
+  then:
+  - Let `before(D) = before(N)`.
+  - Let `before(C) = conservativeJoin(after(D), assignedIn(N), capturedIn(N))`.
+  - Let `before(S) = split(true(C))`.
+  - Let `before(U) = merge(after(S), continue(S))`.
+  - Let `after(N) = inheritTested(join(false(C), unsplit(break(S))), after(U))`.
 
 - **do while statement**: If `N` is a do while statement of the form `do S while
   (E)` then:
   - Let `before(S) = conservativeJoin(before(N), assignedIn(N), capturedIn(N))`.
   - Let `before(E) = join(after(S), continue(N))`
   - Let `after(N) = join(false(E), break(S))`
+
+- **for each statement**: If `N` is a for statement of the form `for (T X in E)
+  S`, `for (var X in E) S`, or `for (X in E) S`, then:
+  - Let `before(E) = before(N)`
+  - Let `before(S) = conservativeJoin(after(E), assignedIn(N), capturedIn(N))`
+  - Let `after(N) = join(before(S), break(S))`
+
+  TODO(paulberry): this glosses over how we handle the implicit assignment to X.
+  See https://github.com/dart-lang/sdk/issues/42653.
 
 - **switch statement**: If `N` is a switch statement of the form `switch (E)
   {alternatives}` then:
