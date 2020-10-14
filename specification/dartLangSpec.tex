@@ -17010,8 +17010,8 @@ and one of the following conditions holds:
 \item Otherwise, there exists a $j \in 1 .. m$ and name $n'$ such that
   \NamespaceName{j} is defined at $n'$,
   $n$ and $n'$ have the same basename,
-  \Namespace{i}{n} and \Namespace{j}{n'} are declarations
-  that are not the same declaration
+  \Namespace{i}{n} and \Namespace{j}{n'} are not the same declaration
+  and not the same namespace
   and not a getter and a setter declared in the same library,
   and either none or both of
   \Namespace{i}{n} and \Namespace{j}{n'}
@@ -17032,17 +17032,6 @@ and one of the following conditions holds:
 \end{itemize}
 
 \commentary{%
-Note that the case where \NamespaceName{i} is a prefix namespace,
-that is, \Namespace{i}{n} is a namespace,
-never causes a conflict:
-If \Namespace{j}{n'} is a namespace then $n$ is equal to $n'$
-and the namespace \Namespace{i}{n} is equal to the namespace \Namespace{j}{n'},
-so there is no conflict.
-The case where \Namespace{i}{n} is a namespace
-and \Namespace{j}{n'} is a declaration cannot occur,
-because conflict merging is only used
-when imported declarations have already been shadowed by import prefixes.
-
 In short, conflict merging takes a list of namespaces and produces
 a namespace that is the union of several disjoint namespaces
 (because all name clashes have been eliminated):
