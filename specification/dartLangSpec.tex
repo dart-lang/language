@@ -17025,7 +17025,9 @@ and one of the following conditions holds:
     must both be declarations or must both be namespaces,
     because conflict merging is applied to namespaces where
     imported declarations that conflict with an import prefix
-    have already been eliminated.%
+    have already been eliminated.
+    When they are both namespaces there is no conflict,
+    because it is then the same namespace.%
   }
 
   In this situation $n$ is mapped to \ConflictValue{}
