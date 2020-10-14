@@ -341,7 +341,18 @@
 
 % Namespaces, needed in the specification of imports and exports, and
 % also used when specifying lookups and scope rules.
-\newcommand{\Namespace}[1]{\ensuremath{\metavar{NS}_{#1}}}
+\newcommand{\NamespaceName}[1]{\ensuremath{\metavar{NS}_{#1}}}
+\newcommand{\Namespace}[2]{\ensuremath{\NamespaceName{#1}({#2})}}
+
+% Functions used in the specification of the namespace combinators
+% `show` and `hide`.
+\newcommand{\ShowName}{\metavar{show}}
+\newcommand{\HideName}{\metavar{hide}}
+\newcommand{\Show}[2]{\ensuremath{\ShowName({#1},{#2})}}
+\newcommand{\Hide}[2]{\ensuremath{\HideName({#1},{#2})}}
+
+% A special value in a namespace, used to indicate a conflict.
+\newcommand{\ConflictValue}{\mbox{NAME\_CONFLICT}}
 
 % Context types: Avoid the `?` because that is also concrete type
 % syntax.
