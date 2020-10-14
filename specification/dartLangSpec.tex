@@ -674,7 +674,12 @@ The method used to enable or disable assertions is implementation specific.
 \LMLabel{scoping}
 
 \LMHash{}%
-A \Index{namespace} is a partial function that maps names to namespace values.
+A \IndexCustom{compile-time namespace}{namespace!compile-time}
+is a partial function that maps names to namespace values.
+Compile-time namespaces are used much more frequently than run-time namespaces
+(\commentary{defined later in this section}),
+so when the word \Index{namespace} is used alone,
+it means compile-time namespace.
 A \Index{name} is a lexical token which is an \synt{IDENTIFIER},
 an \synt{IDENTIFIER} followed by \lit{=}, or
 an \synt{operator},
@@ -684,9 +689,7 @@ a declaration, a namespace, or the special value \ConflictValue{}
 (\ref{conflictMergingOfNamespaces}).
 
 \LMHash{}%
-The graph of a namespace \NamespaceName{} is the set
-$\{(n, V)\;|\;\Namespace{}{n} = V\}$,
-and for any $(n, V)$ in that set we say that \NamespaceName{}
+If $\Namespace{}{n} = V$ then we say that \NamespaceName{}
 \IndexCustom{maps}{namespace!maps a key to a value}
 the
 \IndexCustom{key}{namespace!key}
@@ -728,15 +731,16 @@ and the unary minus operator has the special name \code{unary-}.%
 }
 
 \commentary{%
-It is typically the case that $V$ is $D$,
-but there are exceptions:
-A variable declaration introduces an implicitly induced getter declaration,
+It is typically the case that $V$ is the declaration $D$ itself,
+but there are exceptions.
+For example,
+a variable declaration introduces an implicitly induced getter declaration,
 and in some cases also an implicitly induced setter declaration into the
 given scope.%
 }
 
 \commentary{%
-Note that labels are not included in the namespace of a scope.
+Note that labels (\ref{labels}) are not included in the namespace of a scope.
 They are resolved lexically rather then being looked up in a namespace.%
 }
 
@@ -756,7 +760,7 @@ which is declared in the same library.%
 We introduce the notion of a
 \Index{run-time namespace}.
 This is a partial function from names to run-time entities,
-in particular storage locations and compiled code.
+in particular storage locations and functions.
 Each run-time namespace corresponds to a namespace with the same keys,
 but with values that correspond to the semantics of the namespace values.
 
@@ -770,7 +774,8 @@ such that the dynamic semantics can access run-time entities
 like that storage location.
 The same code may be executed multiple times with the same run-time namespace,
 or with different run-time namespaces for each execution.
-E.g., local variables for a function invocation are specific to the invocation,
+E.g., local variables declared inside a function
+are specific to each invocation of the function,
 and instance variables are specific to an object.%
 }
 
@@ -16267,9 +16272,9 @@ Since top level privates are not imported, using the top level privates of anoth
 }
 
 \LMHash{}%
-The \Index{public namespace} of library $L$ is the mapping that maps
+The \Index{public namespace} of library $L$ is the namespace that maps
 the simple name of each public top-level member declaration $m$ of $L$ to $m$.
-The \Index{local namespace} of library $L$ is the mapping that maps
+The \Index{local namespace} of library $L$ is the namespace that maps
 the names introduced by each top-level declaration of $L$
 to the corresponding declaration.
 The \Index{library scope} of library $L$ is the outermost scope in $L$,
@@ -16282,7 +16287,7 @@ and its namespace is the library namespace of $L$
 
 \LMHash{}%
 An \Index{import} specifies a library whose exported namespace
-is made available in the current library.
+(or a subset of its mappings) is made available in the current library.
 
 \begin{grammar}
 <libraryImport> ::= <metadata> <importSpecification>
@@ -16331,8 +16336,8 @@ so we can refer to \emph{the} prefix clause of a deferred import.%
 \LMHash{}%
 It is a compile-time error if the prefix used in a deferred import
 is also used as the prefix of another import clause.
-It is a compile-time error if \id{} is an import prefix and
-the current library declares a top-level member named \id{}.
+It is a compile-time error if \id{} is an import prefix,
+and the current library declares a top-level member with basename \id{}.
 
 \LMHash{}%
 An import directive $I$ may optionally include namespace combinator clauses
@@ -16397,6 +16402,23 @@ conflicts with the system libraries are treated specially.%
 }
 
 \LMHash{}%
+Let $I$ be an import directive and let $L$ be the library imported by $I$.
+The
+\IndexCustom{namespace provided by}{%
+  namespace!provided by an import directive}
+by the import directive $I$ is the namespace obtained from applying
+the namespace combinators of $I$
+to the exported namespace of $L$
+(\ref{namespaceCombinators}).
+
+\commentary{%
+Note that the namespace provided by an import directive $I$ is not
+the same as the namespace imported from $I$.
+The latter includes conflict resolution,
+and is defined later in this section.%
+}
+
+\LMHash{}%
 Let \NamespaceName{\metavar{local}} be the local namespace of $L$
 (\ref{librariesAndScripts}).
 Let \List{I}{1}{m} be the import directives of $L$,
@@ -16411,22 +16433,22 @@ Let $i \in 1 .. m$.
 
 \LMHash{}%
 {\bf Step one.}
-In the first step we compute the namespace provided by each imported library,
+In the first step we compute the namespace obtained from each imported library,
 respectively by each group of libraries imported with the same prefix,
 \NamespaceName{\metavar{one},i}.
 
 \LMHash{}%
 \Case{Step one for imports without a prefix}
-When $I_i$ has no prefix, \NamespaceName{\metavar{one},i} is
-the namespace obtained from applying the namespace combinators of $I_i$ to
-the exported namespace of $L_i$
-(\ref{namespaceCombinators}),
-and eliminating every binding
-where the key is an import prefix declared in $L$.
+When $I_i$ has no prefix, \NamespaceName{\metavar{one},i} is obtained
+from the namespace provided by the import directive $I_i$
+by eliminating every binding for a name whose basename is
+the same as the basename of a top-level declaration in $L$,
+or whose basename is the prefix of an import directive in $L$.
 
 \commentary{%
-The former ensures that \HIDE{} and \SHOW{} directives are taken into account,
-and the latter ensures that an import prefix will shadow an imported name.%
+This step ensures that \SHOW{} and \HIDE{} directives are taken into account,
+and that an import prefix as well as a local declaration
+will shadow an imported name.%
 }
 \EndCase
 
@@ -16439,25 +16461,8 @@ let \List{I'}{1}{k} be the sublist of \List{I}{1}{m} that have prefix $p_i$,
 and let \List{L'}{1}{k} be the corresponding libraries
 (\commentary{which is a sublist of \List{L}{1}{m}}).
 Let \NamespaceName{\metavar{exported},j}, $j \in 1 .. k$,
-be the namespace obtained from applying the namespace combinators of $I'_j$ to
-the exported namespace of $L'_j$
-(\ref{namespaceCombinators}).
-
-\LMHash{}%
-For later reference, we need to introduce a way to refer to certain extensions:
-If \NamespaceName{\metavar{exported},j} contains an extension $E$
-(\ref{extensions})
-then we say that $E$ is
-\IndexCustom{exported to}{extension!exported to a prefix}
-$p_i$.
-\commentary{%
-Note that $E$ is `exported to $p_i$',
-even in the case where there is a name clash with a different import
-which makes it an error to access $E$ using its name
-because that name is conflicted.
-The point is that $E$ can still be used implicitly,
-based on its fresh name.%
-}
+be the namespace provided by the import directive $I'_j$
+(\commentary{which takes \SHOW{} and \HIDE{} into account}).
 
 \LMHash{}%
 When $I_i$ is a non-deferred import:
@@ -16508,33 +16513,21 @@ In the second step we resolve top level conflicts
 among the namespaces obtained in the first step.
 
 \LMHash{}%
-Let \NamespaceName{\metavar{merged}} be the result of applying
-conflict merging to the namespaces
+The \Index{imported namespace} of $L$, \NamespaceName{\metavar{import}},
+is then the result of applying conflict merging to the namespaces
 \List{\metavar{NS}}{\metavar{one},1}{\metavar{one},m}.
-Let \NamespaceName{\metavar{import}}
-be the namespace which is identical to \NamespaceName{\metavar{merged}},
-except that it is undefined at each name $n$ where
-\NamespaceName{\metavar{local}} is defined at $n'$
-such that $n$ and $n'$ have the same basename.
-
-\commentary{%
-In other words, a declaration in the current library shadows
-imported declarations.%
-}
-
-\LMHash{}%
-The \Index{imported namespace} of $L$ is then \NamespaceName{\metavar{import}}.
 
 \LMHash{}%
 Let $\cal E$ be a set of extension declarations
 (\ref{extensions})
 with the following members:
 An extension declaration $E$ is a member of $\cal E$
-if there is an $i \in 1 .. m$ and a name $n$
-such that $\Namespace{\metavar{one},i}{n} = E$,
-or if there is a prefix $p_i$ such that $E$ is exported to $p_i$
-(\commentary{as defined in step one}).
-%
+if there is an $i \in 1 .. m$ such that
+$E$ is in the namespace provided by the import directive $I_i$
+(\commentary{%
+note that this takes \SHOW{} and \HIDE{} into account,
+and it includes extensions imported both without and with a prefix%
+}).
 Let \NamespaceName{\metavar{extensions}} be a namespace that
 for each extension $E$ in $\cal E$ maps a fresh name to $E$.
 
@@ -16572,10 +16565,20 @@ and except the ones removed by conflict merging.%
 }
 
 \LMHash{}%
-We say that a name is \Index{imported by a library}
-if the name is in the library's imported namespace.
-We say that a declaration \Index{is imported by a library}
-if the declaration is in the library's imported namespace.
+Let $L$ be a library with imported namespace \NamespaceName.
+We say that a name is
+\IndexCustom{imported by $L$}{imported!name}
+if the name is a key of \NamespaceName.
+We say that a declaration is
+\IndexCustom{imported by $L$}{imported!declaration}
+if the declaration is a value of \NamespaceName.
+We say that a name is
+\IndexCustom{imported by $L$ with prefix $p$}{imported!name, with prefix}
+if the name is a key of \Namespace{}{p}.
+We say that a declaration is
+\IndexCustom{imported by $L$ with prefix $p$}{%
+  imported!declaration, with prefix}
+if the declaration is a value of \Namespace{}{p}.
 
 
 \subsubsection{Semantics of Imports}
@@ -16605,13 +16608,13 @@ as defined previously
   an immediate import $I'$ to be executed at some future time,
   where $I'$ is derived from $I_i$ by eliding the word \DEFERRED{}
   and adding a \HIDE{} \code{loadLibrary} combinator clause.
-  % Weasel wording here: We may not want to insist that it must be a
-  % a dynamic error if an implementation loads a library where a comment
-  % was changed, or anything else that doesn't matter, or even the exact
-  % same source code was obtained from a different file. Hence the error
-  % "may be raised".
-  A dynamic error may be raised if $I'$ imports a different library
-  than the one that the specified URI referred to at compile-time.
+  The execution of the immediate import may fail
+  for implementation specific reasons.
+  \commentary{%
+    For instance, $I'$ imports a different library than the one
+    that the specified URI referred to at compile-time;
+    or an OS level file read error occurs; etc.%
+  }
   We say that the invocation of \code{loadLibrary}
   \IndexCustom{succeeds}{loadLibrary!succeeds} if $f$ completes with a value,
   and that the invocation
@@ -16649,7 +16652,7 @@ The purpose of having members of the imported library in
 \NamespaceName{\metavar{deferred}}
 is to ensure that usages of members that have not yet been loaded
 can be resolved normally and has a well-defined behavior,
-but will raise errors.%
+which will raise errors.%
 }
 
 \LMHash{}%
@@ -16659,7 +16662,8 @@ the name $p$ is mapped to a non-deferred prefix run-time namespace
 with bindings as described below for immediate imports.
 In addition, \NamespaceName{\metavar{loaded}}
 maps \code{loadLibrary} to a function with the same signature as before,
-and so it is possible to invoke \code{$p$.loadLibrary()} again.
+and so it is possible to invoke \code{$p$.loadLibrary()} again,
+which will always succeed.
 If a call fails, the library has not been loaded,
 and one has the option to invoke \code{$p$.loadLibrary()} again.
 Whether a repeated call to \code{$p$.loadLibrary()} succeeds will vary,
@@ -16774,7 +16778,9 @@ It is a compile-time error if the specified URI
 does not refer to a library declaration.
 
 \LMHash{}%
-The exported namespace of a library is determined as follows, in two steps.
+The
+\Index{exported namespace}
+of a library is determined as follows, in two steps.
 Let $L$ be a library,
 let \List{E}{1}{m} be the export directives of $L$,
 and let \List{L}{1}{m} be libraries
@@ -16798,7 +16804,7 @@ the exported namespace of $L_i$
 and removing each binding of a name $n$ such that
 \NamespaceName{\metavar{public}} is defined at $n'$,
 and $n$ and $n'$ have the same basename.
-\commentary{So local declarations shadow re-exported ones.}
+\commentary{Because local declarations will shadow re-exported ones.}
 
 \LMHash{}%
 The
@@ -16818,9 +16824,9 @@ is conflicted
 
 \rationale{%
 This rule is more strict than the corresponding rule for imports:
-When two imported declarations have a name clash it is only an error to
+When two imported declarations have a name clash, it is only an error to
 \emph{use} the conflicted name, it is not an error that the name clash exists.
-With exported names it is an error that the name clash exists.
+With exported names, it is an error that the name clash exists.
 The reason for this difference is that
 the conflict could silently break importers of the current library $L$,
 if we were to use the same approach for exports as for imports:
@@ -17013,7 +17019,10 @@ and one of the following conditions holds:
   \commentary{%
     So with two distinct declarations with the same basename,
     both are eliminated,
-    except when it is a getter and a setter from the same library.%
+    except when it is a getter and a setter from the same library.
+    Note that \Namespace{i}{n} and \Namespace{j}{n'} must be declarations,
+    because conflict merging is never applied to namespaces
+    where a shared key is an import prefix.%
   }
 
   In this situation $n$ is mapped to \ConflictValue{}
