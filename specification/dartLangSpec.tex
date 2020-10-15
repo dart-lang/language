@@ -16601,7 +16601,7 @@ as defined previously
 \NamespaceName{\metavar{deferred}} then has the following bindings:
 
 \begin{itemize}
-\item The name \code{loadLibrary} is bound to 
+\item The name \code{loadLibrary} is bound to
   a function with signature \code{Future<\VOID> loadLibrary()}.
   This function returns a future $f$.
   When called, the function causes
@@ -17011,6 +17011,7 @@ and one of the following conditions holds:
   \NamespaceName{j} is defined at $n'$,
   $n$ and $n'$ have the same basename,
   \Namespace{i}{n} and \Namespace{j}{n'} are not the same declaration
+  and not the same namespace
   and not a getter and a setter declared in the same library,
   and either none or both of
   \Namespace{i}{n} and \Namespace{j}{n'}
@@ -17020,9 +17021,13 @@ and one of the following conditions holds:
     So with two distinct declarations with the same basename,
     both are eliminated,
     except when it is a getter and a setter from the same library.
-    Note that \Namespace{i}{n} and \Namespace{j}{n'} must be declarations,
-    because conflict merging is never applied to namespaces
-    where a shared key is an import prefix.%
+    Note that \Namespace{i}{n} and \Namespace{j}{n'}
+    must both be declarations or must both be namespaces,
+    because conflict merging is applied to namespaces where
+    imported declarations that conflict with an import prefix
+    have already been eliminated.
+    When they are both namespaces there is no conflict,
+    because it is then the same namespace.%
   }
 
   In this situation $n$ is mapped to \ConflictValue{}
