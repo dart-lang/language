@@ -995,11 +995,11 @@ Variables are storage locations in memory.
 \begin{grammar}
 <variableDeclaration> ::= <declaredIdentifier> (`,' <identifier>)*
 
-<declaredIdentifier> ::= <metadata> \COVARIANT{}? <finalConstVarOrType> <identifier>
+<declaredIdentifier> ::= \COVARIANT? <finalConstVarOrType> <identifier>
 
-<finalConstVarOrType> ::= \LATE{}? \FINAL{} <type>?
+<finalConstVarOrType> ::= \LATE? \FINAL{} <type>?
   \alt \CONST{} <type>?
-  \alt \LATE{}? <varOrType>
+  \alt \LATE? <varOrType>
 
 <varOrType> ::= \VAR{}
   \alt <type>
@@ -1316,7 +1316,7 @@ Functions abstract over executable actions.
 
 <formalParameterPart> ::= <typeParameters>? <formalParameterList>
 
-<functionBody> ::= \ASYNC{}? `=>' <expression> `;'
+<functionBody> ::= \ASYNC? `=>' <expression> `;'
   \alt (\ASYNC{} `*'? | \SYNC{} `*')? <block>
 
 <block> ::= `{' <statements> `}'
@@ -1652,10 +1652,10 @@ It is a compile-time error if any default values are specified in the signature 
   \alt <simpleFormalParameter>
 
 <functionFormalParameter> ::= \gnewline{}
-  \COVARIANT{}? <type>? <identifier> <formalParameterPart> `?'?
+  \COVARIANT? <type>? <identifier> <formalParameterPart> `?'?
 
 <simpleFormalParameter> ::= <declaredIdentifier>
-  \alt \COVARIANT{}? <identifier>
+  \alt \COVARIANT? <identifier>
 
 <fieldFormalParameter> ::= \gnewline{}
   <finalConstVarOrType>? \THIS{} `.' <identifier> (<formalParameterPart> `?'?)?
@@ -1705,8 +1705,8 @@ Optional parameters may be specified and provided with default values.
 \begin{grammar}
 <defaultFormalParameter> ::= <normalFormalParameter> (`=' <expression>)?
 
-<defaultNamedParameter> ::= \REQUIRED{}? <normalFormalParameter> (`=' <expression>)?
-  \alt \REQUIRED{}? <normalFormalParameter> ( `:' <expression>)?
+<defaultNamedParameter> ::= \gnewline{}
+  \REQUIRED? <normalFormalParameter> ((`=' | `:') <expression>)?
 \end{grammar}
 
 The form \syntax{<normalFormalParameter> `:' <expression>}
@@ -2049,10 +2049,10 @@ Classes may be defined by class declarations as described below, or via mixin ap
 
 \begin{grammar}
 <classDeclaration> ::=
-  \ABSTRACT{}? \CLASS{} <identifier> <typeParameters>?
+  \ABSTRACT? \CLASS{} <identifier> <typeParameters>?
   \gnewline{} <superclass>? <interfaces>?
   \gnewline{} `{' (<metadata> <classMemberDeclaration>)* `}'
-  \alt \ABSTRACT{}? \CLASS{} <mixinApplicationClass>
+  \alt \ABSTRACT? \CLASS{} <mixinApplicationClass>
 
 <typeNotVoidList> ::= <typeNotVoid> (`,' <typeNotVoid>)*
 
@@ -2061,25 +2061,25 @@ Classes may be defined by class declarations as described below, or via mixin ap
 
 <methodSignature> ::= <constructorSignature> <initializers>?
   \alt <factoryConstructorSignature>
-  \alt \STATIC{}? <functionSignature>
-  \alt \STATIC{}? <getterSignature>
-  \alt \STATIC{}? <setterSignature>
+  \alt \STATIC? <functionSignature>
+  \alt \STATIC? <getterSignature>
+  \alt \STATIC? <setterSignature>
   \alt <operatorSignature>
 
 <declaration> ::= \EXTERNAL{} <factoryConstructorSignature>
   \alt \EXTERNAL{} <constantConstructorSignature>
   \alt \EXTERNAL{} <constructorSignature>
-  \alt (\EXTERNAL{} \STATIC{}?)? <getterSignature>
-  \alt (\EXTERNAL{} \STATIC{}?)? <setterSignature>
-  \alt (\EXTERNAL{} \STATIC{}?)? <functionSignature>
-  \alt \EXTERNAL{}? <operatorSignature>
+  \alt (\EXTERNAL{} \STATIC?)? <getterSignature>
+  \alt (\EXTERNAL{} \STATIC?)? <setterSignature>
+  \alt (\EXTERNAL{} \STATIC?)? <functionSignature>
+  \alt \EXTERNAL? <operatorSignature>
   \alt \STATIC{} \CONST{} <type>? <staticFinalDeclarationList>
   \alt \STATIC{} \FINAL{} <type>? <staticFinalDeclarationList>
   \alt \STATIC{} \LATE{} \FINAL{} <type>? <initializedIdentifierList>
-  \alt \STATIC{} \LATE{}? <varOrType> <initializedIdentifierList>
-  \alt \COVARIANT{} \LATE{}? <varOrType> <initializedIdentifierList>
-  \alt \LATE{}? \FINAL{} <type>? <initializedIdentifierList>
-  \alt \LATE{}? <varOrType> <initializedIdentifierList>
+  \alt \STATIC{} \LATE? <varOrType> <initializedIdentifierList>
+  \alt \COVARIANT{} \LATE? <varOrType> <initializedIdentifierList>
+  \alt \LATE? \FINAL{} <type>? <initializedIdentifierList>
+  \alt \LATE? <varOrType> <initializedIdentifierList>
   \alt <redirectingFactoryConstructorSignature>
   \alt <constantConstructorSignature> (<redirection> | <initializers>)?
   \alt <constructorSignature> (<redirection> | <initializers>)?
@@ -2370,8 +2370,8 @@ The following names are allowed for user-defined operators:
 \lit{\^},
 \lit{\&},
 \lit{\ltlt},
-\lit{\gtgt},
 \lit{\gtgtgt},
+\lit{\gtgt},
 \lit{[]=},
 \lit{[]},
 \lit{\gtilde{}}.
@@ -2395,8 +2395,8 @@ It is a compile-time error if the arity of a user-declared operator with one of 
 \lit{\^},
 \lit{\&},
 \lit{\ltlt},
-\lit{\gtgt},
 \lit{\gtgtgt},
+\lit{\gtgt},
 \lit{[]}
 is not 1.
 It is a compile-time error if the arity of the user-declared operator
@@ -3191,7 +3191,7 @@ instead, it has a redirect clause that specifies which constructor the invocatio
 <redirection> ::= `:' \THIS{} (`.' <identifier>)? <arguments>
 \end{grammar}
 
-\def\ConstMetavar{\mbox{\CONST{}?}}
+\def\ConstMetavar{\mbox{\CONST?}}
 
 \LMHash{}%
 Assume that
@@ -4215,10 +4215,10 @@ Let $m$ be a method signature of the form
 \code{$T_0$ \id<\TypeParametersStd>(}
 
 \noindent
-\code{\qquad\qquad\List{\COVARIANT{}?\ T}{1}{n},}
+\code{\qquad\qquad\List{\COVARIANT?\ T}{1}{n},}
 
 \noindent
-\code{\qquad\qquad[\PairList{\COVARIANT{}?\ T}{= d}{n+1}{n+k}])}.
+\code{\qquad\qquad[\PairList{\COVARIANT?\ T}{= d}{n+1}{n+k}])}.
 
 \noindent
 The \IndexCustom{function type of}{method signature!function type}
@@ -4234,10 +4234,10 @@ Let $m$ be a method signature of the form
 \code{$T_0$ \id<\TypeParametersStd>(}
 
 \noindent
-\code{\qquad\qquad\List{\COVARIANT{}?\ T}{1}{n},}
+\code{\qquad\qquad\List{\COVARIANT?\ T}{1}{n},}
 
 \noindent
-\code{\qquad\qquad\{\TripleList{\COVARIANT{}?\ T}{x}{= d}{n+1}{n+k}\})}.
+\code{\qquad\qquad\{\TripleList{\COVARIANT?\ T}{x}{= d}{n+1}{n+k}\})}.
 
 \noindent
 The \NoIndex{function type of} $m$ is then
@@ -7601,9 +7601,9 @@ and maps
 (\ref{maps}).
 
 \begin{grammar}
-<listLiteral> ::= \CONST{}? <typeArguments>? `[' <elements>? `]'
+<listLiteral> ::= \CONST? <typeArguments>? `[' <elements>? `]'
 
-<setOrMapLiteral> ::= \CONST{}? <typeArguments>? `{' <elements>? `}'
+<setOrMapLiteral> ::= \CONST? <typeArguments>? `{' <elements>? `}'
 
 <elements> ::= <element> (`,' <element>)* `,'?
 
@@ -7621,7 +7621,7 @@ and maps
 
 <ifElement> ::= \IF{} `(' <expression> `)' <element> (\ELSE{} <element>)?
 
-<forElement> ::= \AWAIT{}? \FOR{} `(' <forLoopParts> `)' <element>
+<forElement> ::= \AWAIT? \FOR{} `(' <forLoopParts> `)' <element>
 \end{grammar}
 
 \LMHash{}%
@@ -9939,9 +9939,9 @@ and then evaluation of $e$ also throws exception object $x$ and stack trace $t$
 \Case{Redirecting factory constructors}
 When $q$ is a redirecting factory constructor
 (\ref{factories})
-of the form \code{\CONST{}? $T$($p_1, \ldots,\ p_{n+k}$) = $c$;} or
-of the form \code{\CONST{}? $T$.\id($p_1, \ldots,\ p_{n+k}$) = $c$;}
-where \code{\CONST{}?} indicates that \CONST{} may be present or absent,
+of the form \code{\CONST? $T$($p_1, \ldots,\ p_{n+k}$) = $c$;} or
+of the form \code{\CONST? $T$.\id($p_1, \ldots,\ p_{n+k}$) = $c$;}
+where \code{\CONST?} indicates that \CONST{} may be present or absent,
 the remaining evaluation of $e$ is equivalent to
 evaluating
 \code{\NEW{} $c$($v_1, \ldots,\ v_n,\ x_{n+1}$: $v_{n+1}, \ldots,\ x_{n+k}$: $v_{n+k}$)}
@@ -12630,8 +12630,8 @@ or invokes a setter.
   \alt `+='
   \alt `-='
   \alt `\ltlt='
-  \alt `\gtgt='
   \alt `\gtgtgt='
+  \alt `\gtgt='
   \alt `\&='
   \alt `^='
   \alt `|='
@@ -13401,8 +13401,8 @@ Shift expressions invoke the shift operators on objects.
   \alt \SUPER{} (<shiftOperator> <additiveExpression>)+
 
 <shiftOperator> ::= `\ltlt'
-  \alt `\gtgt'
   \alt `\gtgtgt'
+  \alt `\gtgt'
 \end{grammar}
 
 \LMHash{}%
@@ -14147,10 +14147,12 @@ An \Index{identifier expression} consists of a single identifier; it provides ac
   \alt \IMPLEMENTS{}
   \alt \IMPORT{}
   \alt \INTERFACE{}
+  \alt \LATE{}
   \alt \LIBRARY{}
-  \alt \OPERATOR{}
   \alt \MIXIN{}
+  \alt \OPERATOR{}
   \alt \PART{}
+  \alt \REQUIRED{}
   \alt \SET{}
   \alt \STATIC{}
   \alt \TYPEDEF{}
@@ -14611,7 +14613,7 @@ also known as a \Index{local variable declaration},
 has the following form:
 
 \begin{grammar}
-<localVariableDeclaration> ::= <initializedVariableDeclaration> `;'
+<localVariableDeclaration> ::= <metadata> <initializedVariableDeclaration> `;'
 \end{grammar}
 
 \LMHash{}%
@@ -14780,7 +14782,7 @@ of $v$.
 A function declaration statement declares a new local function (\ref{functionDeclarations}).
 
 \begin{grammar}
-<localFunctionDeclaration> ::= <functionSignature> <functionBody>
+<localFunctionDeclaration> ::= <metadata> <functionSignature> <functionBody>
 \end{grammar}
 
 \LMHash{}%
@@ -14912,7 +14914,7 @@ The \Index{for statement} supports iteration.
 <forStatement> ::= \AWAIT? \FOR{} `(' <forLoopParts> `)' <statement>
 
 <forLoopParts> ::= <forInitializerStatement> <expression>? `;' <expressionList>?
-  \alt <declaredIdentifier> \IN{} <expression>
+  \alt <metadata> <declaredIdentifier> \IN{} <expression>
   \alt <identifier> \IN{} <expression>
 
 <forInitializerStatement> ::= <localVariableDeclaration>
@@ -16184,19 +16186,19 @@ The members of a library $L$ are those top level declarations given within $L$.
   \alt <mixinDeclaration>
   \alt <enumType>
   \alt <typeAlias>
-  \alt \EXTERNAL{}? <functionSignature> `;'
-  \alt \EXTERNAL{}? <getterSignature> `;'
-  \alt \EXTERNAL{}? <setterSignature> `;'
+  \alt \EXTERNAL{} <functionSignature> `;'
+  \alt \EXTERNAL{} <getterSignature> `;'
+  \alt \EXTERNAL{} <setterSignature> `;'
   \alt <functionSignature> <functionBody>
   \alt <getterSignature> <functionBody>
   \alt <setterSignature> <functionBody>
   \alt (\FINAL{} | \CONST{}) <type>? <staticFinalDeclarationList> `;'
   \alt \LATE{} \FINAL{} <type>? <initializedIdentifierList> `;'
-  \alt \LATE{}? <varOrType> <initializedIdentifierList> `;'
+  \alt \LATE? <varOrType> <initializedIdentifierList> `;'
 
 <libraryDeclaration> ::= \gnewline{}
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
-  \gnewline{} (<metadata> <topLevelDeclaration>)*
+  \gnewline{} (<metadata> <topLevelDeclaration>)* <EOF>
 
 <scriptTag> ::= `#!' (\gtilde{}<NEWLINE>)* <NEWLINE>
 
@@ -17359,7 +17361,7 @@ but it is the least upper bound of all function types.
   `\{' <namedParameterType> (`,' <namedParameterType>)* `,'? `\}'
 
 <namedParameterType> ::=
-  \REQUIRED{}? <typedIdentifier>
+  \REQUIRED? <typedIdentifier>
 
 <typedIdentifier> ::= <type> <identifier>
 \end{grammar}
