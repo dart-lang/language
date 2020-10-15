@@ -995,7 +995,7 @@ Variables are storage locations in memory.
 \begin{grammar}
 <variableDeclaration> ::= <declaredIdentifier> (`,' <identifier>)*
 
-<declaredIdentifier> ::= <metadata> \COVARIANT? <finalConstVarOrType> <identifier>
+<declaredIdentifier> ::= \COVARIANT? <finalConstVarOrType> <identifier>
 
 <finalConstVarOrType> ::= \LATE? \FINAL{} <type>?
   \alt \CONST{} <type>?
@@ -2370,8 +2370,8 @@ The following names are allowed for user-defined operators:
 \lit{\^},
 \lit{\&},
 \lit{\ltlt},
-\lit{\gtgt},
 \lit{\gtgtgt},
+\lit{\gtgt},
 \lit{[]=},
 \lit{[]},
 \lit{\gtilde{}}.
@@ -2395,8 +2395,8 @@ It is a compile-time error if the arity of a user-declared operator with one of 
 \lit{\^},
 \lit{\&},
 \lit{\ltlt},
-\lit{\gtgt},
 \lit{\gtgtgt},
+\lit{\gtgt},
 \lit{[]}
 is not 1.
 It is a compile-time error if the arity of the user-declared operator
@@ -12630,8 +12630,8 @@ or invokes a setter.
   \alt `+='
   \alt `-='
   \alt `\ltlt='
-  \alt `\gtgt='
   \alt `\gtgtgt='
+  \alt `\gtgt='
   \alt `\&='
   \alt `^='
   \alt `|='
@@ -13401,8 +13401,8 @@ Shift expressions invoke the shift operators on objects.
   \alt \SUPER{} (<shiftOperator> <additiveExpression>)+
 
 <shiftOperator> ::= `\ltlt'
-  \alt `\gtgt'
   \alt `\gtgtgt'
+  \alt `\gtgt'
 \end{grammar}
 
 \LMHash{}%
@@ -14147,10 +14147,12 @@ An \Index{identifier expression} consists of a single identifier; it provides ac
   \alt \IMPLEMENTS{}
   \alt \IMPORT{}
   \alt \INTERFACE{}
+  \alt \LATE{}
   \alt \LIBRARY{}
-  \alt \OPERATOR{}
   \alt \MIXIN{}
+  \alt \OPERATOR{}
   \alt \PART{}
+  \alt \REQUIRED{}
   \alt \SET{}
   \alt \STATIC{}
   \alt \TYPEDEF{}
@@ -14913,7 +14915,7 @@ The \Index{for statement} supports iteration.
 
 <forLoopParts> ::= <forInitializerStatement> <expression>? `;' <expressionList>?
   \alt <metadata> <declaredIdentifier> \IN{} <expression>
-  \alt <metadata> <identifier> \IN{} <expression>
+  \alt <identifier> \IN{} <expression>
 
 <forInitializerStatement> ::= <localVariableDeclaration>
   \alt <expression>? `;'
@@ -16184,9 +16186,9 @@ The members of a library $L$ are those top level declarations given within $L$.
   \alt <mixinDeclaration>
   \alt <enumType>
   \alt <typeAlias>
-  \alt \EXTERNAL? <functionSignature> `;'
-  \alt \EXTERNAL? <getterSignature> `;'
-  \alt \EXTERNAL? <setterSignature> `;'
+  \alt \EXTERNAL{} <functionSignature> `;'
+  \alt \EXTERNAL{} <getterSignature> `;'
+  \alt \EXTERNAL{} <setterSignature> `;'
   \alt <functionSignature> <functionBody>
   \alt <getterSignature> <functionBody>
   \alt <setterSignature> <functionBody>
@@ -16196,7 +16198,7 @@ The members of a library $L$ are those top level declarations given within $L$.
 
 <libraryDeclaration> ::= \gnewline{}
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
-  \gnewline{} (<metadata> <topLevelDeclaration>)*
+  \gnewline{} (<metadata> <topLevelDeclaration>)* <EOF>
 
 <scriptTag> ::= `#!' (\gtilde{}<NEWLINE>)* <NEWLINE>
 
