@@ -6,6 +6,9 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.10.26
+  - Specify that constant evaluation executes all assertions.
+  
 2020.10.14
   - Include selector `!` among the null-shorting constructs.
 
@@ -1007,6 +1010,33 @@ void main() {
   print(const ConstantClass<int>());
 }
 ```
+
+### Constant assertions
+
+Currently assertions are enabled only when the compiler is passed an `enable-asserts` flag.
+With null safety, when an assert is evaluated as part of a constant invocation of a `const`
+constructor, any `assert`s in the initializer list are evaluated. 
+The `enable-asserts` flag then only applies to *run-time assertions*.
+
+More precisely, a assert _s_ of the form <code>assert(_e_<sub>1</sub>, _e_<sub>2</sub>)</code>
+is executed as follows:
+  * If the execution of _s_ happens during evaluation of a const invocation of the 
+    surrounding `const` constructor, then _e_<sub>1</sub> is evaluated to a constant value _c_.
+    It is a compile-time error if this evaluation would have thrown, or if _c_ is not the
+    `bool` value `true`, and otherwise _s_ completes normally.
+  * Otherwise (when it's not part of a constant evaluation), if run-time assertions are enabled
+    then then _e_<sub>1</sub> is evaluated to a value _v_.
+    If _v_ is not an instance of the type `bool`, then a dynamic error occurs.
+    If _v_ is the value `false` then _e_<sub>2</sub> is evaluated to a value _m_,
+    and an object, _o_, implementing the class `AssertionError` and containing _m_ is created.
+    Then execution of _s_ throws _o_ and a stack trace corresponding 
+    to the current evaluation context.
+    If _v_ is the value `true` then execution of *s* completes normally.
+  * Otherwise (when execution is not not part of a constant evaluation 
+    and run-time assertions are disabled), execution of _s_ completes normally without evaluating
+    either of _e_<sub>1</sub> or _e_<sub>2</sub>.
+
+(An assert of the form <code>assert(_e_)</code> is equivalent to <code>assert(_e_, null)</code>.)
 
 ### Null promotion
 
