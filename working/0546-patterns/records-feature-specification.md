@@ -291,7 +291,17 @@ colliding with fields in an actual record object.)
 
 These are pure interfaces and have no runtime behavior.
 
-### Equality
+### Records
+
+#### Members
+
+Each field in the record's shape exposes a corresponding getter. Invoking that
+getter returns the value provided for that field when the record was created.
+Record fields are immutable and do not have setters.
+
+The `toString()` method's behavior is unspecified.
+
+#### Equality
 
 Records behave similar to other primitive types in Dart with regards two
 equality. They implement `==` such that two records are equal iff they have the
@@ -307,7 +317,7 @@ print(a == b); // true.
 The implementation of `hashCode` follows this. Two records that are equal have
 the same hash code.
 
-### Identity
+#### Identity
 
 We expect records to often be used for multiple return values. In that case, and
 in others, we would like compilers to be able to easily optimize away the heap
