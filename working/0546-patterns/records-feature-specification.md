@@ -303,7 +303,7 @@ The `toString()` method's behavior is unspecified.
 
 #### Equality
 
-Records behave similar to other primitive types in Dart with regards two
+Records behave similar to other primitive types in Dart with regards to
 equality. They implement `==` such that two records are equal iff they have the
 same shape and all corresponding pairs of fields are equal (determined using
 `==`).
@@ -354,3 +354,17 @@ The language's rules around when string operations are canonicalized and when
 they are not are also somewhat subtle in ways that make using strings in an
 IdentityHashMap brittle, but it doesn't seem cause problems. Users don't seem
 to rely on `identical()` for anything more than a fast early check for equality.
+
+#### Runtime type
+
+The runtime type of a record is determined from the runtime types of
+its fields. There is no notion of a separate, explicitly reified type. So, here:
+
+```dart
+(num, Object) pair = (1, 2.3);
+print(pair is (int, double)); // "true".
+```
+
+The runtime type of `pair` is `(int, double)`, not `(num, Object)`, However, the
+variable declaration is still valid and sound because records are naturally
+covariant in their field types.
