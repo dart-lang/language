@@ -1236,7 +1236,7 @@ the `LEGACY_ERASURE` of the types.
 
 ### Const evaluation and canonicalization
 
-In unsound null checking mode, all generic const constructors and generic
+With unsound null checking, all generic const constructors and generic
 const literals are treated as if all type arguments passed to them were legacy
 types (both at the top level, and recursively over the structure of the
 types), regardless of whether the constructed class is defined in a legacy
