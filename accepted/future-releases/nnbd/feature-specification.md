@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.11.09
+  - Change terminology to use sound or unsound null checking rather than
+    weak or strong mode.
+
 2020.10.14
   - Include selector `!` among the null-shorting constructs.
 
@@ -641,7 +645,7 @@ does not occur in any of the ways specified in
 *This implies that `void*` is treated the same as `void`.*
 
 Let `C` be a type literal denoting a class, mixin, or extension. It is a warning
-to use a null aware member access with receiver `C`. *E.g., `C?.staticMethod()` 
+to use a null aware member access with receiver `C`. *E.g., `C?.staticMethod()`
 is a warning.*
 
 It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, or
@@ -1182,26 +1186,26 @@ procedure whereby this script is chosen is implementation specific.
 
 ## Runtime semantics
 
-### Weak and strong semantics
+### Unsound and sound semantics
 
 To allow the null safety feature to be rolled out incrementally, we define two
 modes of compilation and execution.
 
-**Weak checking** mode largely ignores the nullability of types at runtime, as
-defined below.  Unmigrated programs or programs consisting of a mix of migrated
-and unmigrated code are expected to run without encountering new nullability
-related errors at runtime.  **This mode is unsound** in the sense that variables
-marked as non-nullable may still be null at runtime.
+**Unsound null checking** mode largely ignores the nullability of types at
+runtime, as defined below.  Unmigrated programs or programs consisting of a
+mix of migrated and unmigrated code are expected to run without encountering
+new nullability related errors at runtime.  **This mode is unsound** in the
+sense that variables marked as non-nullable may still be null at runtime.
 
-**Strong checking** mode respects the nullability of types at runtime in casts
-and instance checks, as defined below.  Unmigrated programs or programs
+**Sound null checking** mode respects the nullability of types at runtime in
+casts and instance checks, as defined below.  Unmigrated programs or programs
 consisting of a mix of migrated and unmigrated code may not be compiled or run
-with strong checking enabled, and it is a compile time error if unmigrated code
-is attempted to be compiled with strong checking enabled.
+with sound null checking, and it is a compile time error if unmigrated
+code is attempted to be compiled with sound null checking enabled.
 
-Weak vs strong runtime checking can be controlled at runtime via the
+Unsound vs sound null checking can be controlled at runtime via the
 `--[no-]sound-null-safety` flag, where the negated version of the flag implies
-weak mode and the unnegated version implies strong mode.
+unsound null checking and the unnegated version implies sound null checking.
 
 In the absence of an explicit value for the flag, the mode of execution depends
 on migrated status of the program entry point.  If the entry point of the
@@ -1210,9 +1214,9 @@ as if `--sound-null-safety` were specified on the command line.  Otherwise,
 the program is run as if `--no-sound-null-safety` were specified on the
 command line.
 
-Compilers may (and are encouraged to) print a warning indicating that strong
+Compilers may (and are encouraged to) print a warning indicating that sound null
 checking has been disabled when compiling a program that contains migrated
-libraries in weak mode.
+libraries with unsound null checking.
 
 ### Runtime type equality operator
 
@@ -1232,18 +1236,18 @@ the `LEGACY_ERASURE` of the types.
 
 ### Const evaluation and canonicalization
 
-In weak checking mode, all generic const constructors and generic const literals
-are treated as if all type arguments passed to them were legacy types (both at
-the top level, and recursively over the structure of the types), regardless of
-whether the constructed class is defined in a legacy library or not, and
-regardless of whether the constructor invocation or literal occurs in a legacy
-library or not.  This ensures that const objects continue to canonicalize
-consistently across legacy and opted-in libraries.
+In unsound null checking mode, all generic const constructors and generic
+const literals are treated as if all type arguments passed to them were legacy
+types (both at the top level, and recursively over the structure of the
+types), regardless of whether the constructed class is defined in a legacy
+library or not, and regardless of whether the constructor invocation or
+literal occurs in a legacy library or not.  This ensures that const objects
+continue to canonicalize consistently across legacy and opted-in libraries.
 
-In strong checking mode, all generic const constructors and generic const
+With sound null checking, all generic const constructors and generic const
 literals are evaluated using the actual type arguments provided, whether legacy
-or non-legacy.  This ensures that in strong checking mode, the final consistent
-semantics are obeyed.
+or non-legacy.  This ensures that with sound null checking, the final
+consistent semantics are obeyed.
 
 ### Null check operator
 
@@ -1473,20 +1477,21 @@ cases.  A conditional expression of type `dynamic` may evaluated to any value,
 and hence must be implicitly downcast to `bool`, after which no further check is
 required.
 
-In weak mode execution, values of type `Never` and `bool` may evaluate to
-`null`, and so a boolean conversion check must be performed in addition to any
-implicit downcasts implied.  The full semantics then are given as follows.
+During unsound null checking execution, values of type `Never` and `bool` may
+evaluate to `null`, and so a boolean conversion check must be performed in
+addition to any implicit downcasts implied.  The full semantics then are given
+as follows.
 
 Given a boolean conditional expression `e` where `e` has type `S`, it is a
 static error if `S` is not assignable to `bool`.  Otherwise:
 
-In NNBD strong mode, evaluation proceeds as follows:
+With sound null checking, evaluation proceeds as follows:
   - First `e` is implicitly cast to `bool` if required.
     - This cast may fail, and if so it is a TypeError.
   - If the cast does not fail, then the result is known to be a non-null
     boolean, and evaluation of the enclosing conditional proceeds as usual.
 
-In NNBD weak mode, evaluation proceeds as follows:
+With unsound null checking, evaluation proceeds as follows:
   - First `e` is implicitly cast to `bool` if required (using
     `LEGACY_SUBTYPE(e.runtimeType, bool)`)
     - This cast may fail, and if so it is a TypeError.
@@ -1535,11 +1540,12 @@ opted-in library may depend on un-opted-in libraries, and vice versa.
 ### Errors as warnings
 
 An earlier version of this proposal specified that null safety related static
-errors in opted-in code should be demoted to warnings when running in weak mode.
-This behavior has been eliminated based on early feedback.  Null safety related
-errors in opted-in code behave as usual independently of the compilation mode,
-subject to differences in const evaluation and the usual suppression of errors
-when interacting with legacy (opted-out) code (see below).
+errors in opted-in code should be demoted to warnings when running with
+unsound null checking.  This behavior has been eliminated based on early
+feedback.  Null safety related errors in opted-in code behave as usual
+independently of the compilation mode, subject to differences in const
+evaluation and the usual suppression of errors when interacting with legacy
+(opted-out) code (see below).
 
 ### Legacy libraries
 
@@ -1867,9 +1873,9 @@ All types reified in legacy libraries are reified as legacy types.  Runtime
 subtyping checks treat them according to the subtyping rules specified
 separately.
 
-### Runtime checks and weak checking
+### Runtime checks and unsound null checking
 
-When weak checking is enabled, runtime type tests (including explicit and
+With unsound null checking, runtime type tests (including explicit and
 implicit casts) shall succeed whenever the runtime type test would have
 succeeded if all `?` on types were ignored, `*` was added to each type, and
 `required` parameters were treated as optional.  This has the effect of treating
@@ -1878,13 +1884,14 @@ hierarchy, treating `Object` as nullable, and ignoring `required` on named
 parameters.  This is intended to provide the same subtyping results as pre-nnbd
 Dart.
 
-Instance checks (`e is T`) and casts (`e as T`) behave differently when run in
-strong vs weak checking mode.
+Instance checks (`e is T`) and casts (`e as T`) behave differently when run
+with sound vs unsound null checking.
 
 
-We define the weak checking and strong checking mode instance tests as follows:
+We define the instance tests with unsound null checking and sound null
+checking as follows:
 
-**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
+**With unsound null checking**: if `e` evaluates to a value `v` and `v` has runtime
 type `S`, an instance check `e is T` occurring in a **legacy library** or an
 **opted-in library** is evaluated as follows:
   - If `v` is `null` and `T` is a legacy type, return `LEGACY_SUBTYPE(T, Null)
@@ -1901,19 +1908,19 @@ Note that except in the case that `T` is of the form `X` or `X*` for some type
 variable `X`, it is statically decidable which of the first two clauses apply in
 the case that `v` is `null`.
 
-**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
-type `S`, an instance check `e is T` occurring in an **opted-in library** is
-evaluated as follows:
+**With sound null checking**: if `e` evaluates to a value `v` and `v` has
+runtime type `S`, an instance check `e is T` occurring in an **opted-in
+library** is evaluated as follows:
   - Return `NNBD_SUBTYPE(S, T)`
 
-Note that it is an error to run a program containing legacy libraries in strong
-checking mode.
+Note that it is an error to run a program containing legacy libraries with
+sound null checking.
 
 Note that given the definitions above, the result of an instance check may vary
-depending on whether it is run in strong or weak mode.  However, in the specific
-case that the value being checked is `null`, instance checks will always return
-the same result regardless of mode, and regardless of whether the check occurs
-in an opted in or opted out library.
+depending on whether it is run with sound or unsound null checking.  However,
+in the specific case that the value being checked is `null`, instance checks
+will always return the same result regardless of mode, and regardless of
+whether the check occurs in an opted in or opted out library.
 
 | T            | Any mode |
 | -------- | ------------- |
@@ -1930,42 +1937,42 @@ in an opted in or opted out library.
 | dynamic | true                 |
 
 
-We define the weak checking and strong checking mode casts as follows:
+We define casts with unsound null checking and sound null checking as follows:
 
-**In weak checking mode**: if `e` evaluates to a value `v` and `v` has runtime
-type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
-library** is evaluated as follows:
+**With unsound null checking**: if `e` evaluates to a value `v` and `v` has
+runtime type `S`, a cast `e as T` **whether textually occurring in a legacy or
+opted-in library** is evaluated as follows:
   - if `LEGACY_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
     dynamic type error occurs.
 
-**In strong checking mode**: if `e` evaluates to a value `v` and `v` has runtime
-type `S`, a cast `e as T` **whether textually occurring in a legacy or opted-in
-library** is evaluated as follows:
+**With sound null checking**: if `e` evaluates to a value `v` and `v` has
+runtime type `S`, a cast `e as T` **whether textually occurring in a legacy or
+opted-in library** is evaluated as follows:
   - if `NNBD_SUBTYPE(S, T)` then `e as T` evaluates to `v`.  Otherwise a
     dynamic type error occurs.
 
-In weak checking mode, we ensure that opted-in libraries do not break downstream
-clients by continuing to evaluate instance checks and casts with the same
-semantics as in pre-nnbd Dart.  All runtime subtype checks are done using the
-legacy subtyping, and instance checks maintain the pre-nnbd behavior on `null`
-instances.  In strong checking mode, we use the specified nnbd subtyping for all
-instance checks and casts.
+With unsound null checking, we ensure that opted-in libraries do not break
+downstream clients by continuing to evaluate instance checks and casts with
+the same semantics as in pre-nnbd Dart.  All runtime subtype checks are done
+using the legacy subtyping, and instance checks maintain the pre-nnbd behavior
+on `null` instances.  With sound null checking, we use the specified nnbd
+subtyping for all instance checks and casts.
 
-When developers enable strong checking in their tests and applications, new
+When developers enable sound null checking in their tests and applications, new
 runtime cast failures may arise.  The process of migrating libraries and
 applications will require users to track down these changes in behavior.
 Development platforms are encouraged to provide facilities to help users
 understand these changes: for example, by providing a debugging option in which
-instance checks or casts which would result in a different outcome if run in
-strong checking mode vs weak checking mode are flagged for the developer by
+instance checks or casts which would result in a different outcome if run with
+sound null checking vs unsound null checking are flagged for the developer by
 logging a warning or breaking to the debugger.
 
 ### Automatic debug assertion insertion
 
-When running in weak checking mode, implementations may insert code equivalent
-to `assert(x != null)` in the prelude of every method or function defined in an
-opted-in library for each parameter `x` which has a non-nullable type.  When
-compiling a program in strong checking mode, these assertions will never fire
-and should be elided, but during the migration when mixed mode code is being
-executed it is possible for opted-out libraries to cause the invariants of the
-null safety checking to be violated.
+When running with unsound null checking, implementations may insert code
+equivalent to `assert(x != null)` in the prelude of every method or function
+defined in an opted-in library for each parameter `x` which has a non-nullable
+type.  When compiling a program with sound null checking, these assertions will
+never fire and should be elided, but during the migration when mixed mode code
+is being executed it is possible for opted-out libraries to cause the
+invariants of the null safety checking to be violated.
