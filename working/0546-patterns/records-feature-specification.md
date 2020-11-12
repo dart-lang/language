@@ -193,7 +193,7 @@ of elements. Dart records are *containers* for elements.
 
 ## Static semantics
 
-We define **shape** the mean the number of positional fields (the record's
+We define **shape** to mean the number of positional fields (the record's
 **arity**) and the set of names of its named fields. Record types are
 structural, not nominal. Records produced in unrelated libraries have the exact
 same static type if they have the same shape and their corresponding fields have
