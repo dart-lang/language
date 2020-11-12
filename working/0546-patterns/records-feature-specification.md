@@ -109,30 +109,26 @@ grammar is:
 literal           ::= record
                     | // Existing literal productions...
 
-record            ::= '(' recordBody ')'
+record            ::= '(' recordField ( ',' recordField )* ','? ')'
 
-recordBody        ::= recordField ',' ( recordFields ','? )?
-                    | ( recordFields ',' )? recordNamedFields ','?
-
-recordFields      ::= recordField ( ',' recordField )*
-
-recordField       ::= expression
-
-recordNamedFields ::= recordNamedField ( ',' recordNamedField )*
-
-recordNamedField  ::= identifier ':' expression
+recordField       ::= (identifier ':' )? expression
 ```
 
-This is roughly like the grammar for a function call argument list, except that
-a completely empty field list is not allowed and if there is only a single
-positional field, it *must* have a trailing comma. This is similar to tuples in
-Python and avoids the ambiguity between parenthesized expressions and single
-positional element records.
+This is somewhat like the grammar for a function call argument list, except that
+positional and named fields are allowed to intermix. (There's no real reason
+argument lists don't also allow that, and it's a long-standing feature request.)
+There are a couple of syntactic restrictions not captured by the grammar. It is
+a compile-time error if a record has any of:
 
-It is a compile-time error if a record has the same field name more than once or
-if the name of a named field collides with the implicit name defined for a
-positional field (see below). It is a compile-time error if a record has a field
-named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
+*   only a single positional field with no trailing comma. This avoids ambiguity
+    with parenthesized expressions. Python has a similar rule.
+
+*   the same field name more than once.
+
+*   a field name that collides with the implicit name defined for a
+    positional field (see below).
+
+*   a field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
 ### Record type annotations
 
@@ -193,6 +189,9 @@ of elements and thus a single-element tuple is identical to the bare element
 itself. Dart records are *containers* for elements. A one-positional-element
 record containing an `int` is not the same as a bare `int`.)
 
+It is a compile-time error if two record type fields have the same name or if
+a named field collides with the implicit name of a positional field.
+
 ## Static semantics
 
 We define **shape** to mean the number of positional fields (the record's
@@ -201,24 +200,29 @@ structural, not nominal. Records produced in unrelated libraries have the exact
 same static type if they have the same shape and their corresponding fields have
 the same types.
 
+The order of named fields is not significant. The record types `{int a, int b}`
+and `{int b, int a}` are identical to the type system. (Tools may or may not
+display them to users in a canonical form similar to how they handle function
+typedefs.)
+
 ### Members
 
 A record type declares all of the members defined on Object. It also exposes
 getters for each named field where the name of the getter is the field's name
 and the getter's type is the field's type.
 
-In addition, for each position field, the record type declares a getter named
-`field<n>` where `<n>` is the zero-based index of the field's position and where
+In addition, for each positional field, the record type declares a getter named
+`field<n>` where `<n>` is the number of preceding positional fields and where
 the getter's type is the field's type.
 
-For example, the record expression `(1, true, s: "string")` has a record type
+For example, the record expression `(1, s: "string", true)` has a record type
 whose signature is like:
 
 ```dart
 class {
   int get field0;
-  bool get field1;
   String get s;
+  bool get field1;
 }
 ```
 
