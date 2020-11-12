@@ -186,10 +186,12 @@ parentheses:
 
 Like record expressions, a record type must have at least one field.
 
-Unlike expressions a trailing comma is not required in the single positional
-field case. `(int)` is valid record type and is distinct from the type `int`.
-This is different from functional languages where tuples are a *concatenation*
-of elements. Dart records are *containers* for elements.
+Unlike expressions, a trailing comma is not required in the single positional
+field case. `(int)` is a valid record type and is distinct from the type `int`.
+(This is different from functional languages where tuples are a *concatenation*
+of elements and thus a single-element tuple is identical to the bare element
+itself. Dart records are *containers* for elements. A one-positional-element
+record containing an `int` is not the same as a bare `int`.)
 
 ## Static semantics
 
