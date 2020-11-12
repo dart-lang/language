@@ -2018,25 +2018,51 @@ will necessarily have the same run-time type.
 \LMHash{}%
 An \IndexCustom{external function}{function!external}
 is a function whose body is provided separately from its declaration.
-An external function may be a top-level function (\ref{librariesAndScripts}), a method (\ref{instanceMethods}, \ref{staticMethods}), a getter (\ref{getters}), a setter (\ref{setters}) or a non-redirecting constructor (\ref{generativeConstructors}, \ref{factories}).
-External functions are introduced via the built-in identifier \EXTERNAL{} (\ref{identifierReference}) followed by the function signature.
+An external function may be
+a top-level function (\ref{librariesAndScripts}),
+a method (\ref{instanceMethods}, \ref{staticMethods}),
+a getter (\ref{getters}),
+a setter (\ref{setters}),
+or a non-redirecting constructor
+(\ref{generativeConstructors}, \ref{factories}).
+External functions are introduced via the built-in identifier \EXTERNAL{}
+(\ref{identifierReference})
+followed by the function signature.
 
-\rationale{
-External functions allow us to introduce type information for code that is not statically known to the Dart compiler.
+\rationale{%
+External functions allow us to introduce type information for code
+that is not statically known to the Dart compiler.%
 }
 
-\commentary{
-Examples of external functions might be foreign functions (defined in C, or Javascript etc.), primitives of the implementation (as defined by the Dart run-time system), or code that was dynamically generated but whose interface is statically known.
+\commentary{%
+Examples of external functions might be foreign functions
+(defined in C, or Javascript etc.),
+primitives of the implementation (as defined by the Dart run-time system),
+or code that was dynamically generated but whose interface is statically known.
 However, an abstract method is different from an external function,
-as it has \emph{no} body.
+as it has \emph{no} body.%
 }
 
 \LMHash{}%
-An external function is connected to its body by an implementation specific mechanism.
-Attempting to invoke an external function that has not been connected to its body will throw a \code{NoSuchMethodError} or some subclass thereof.
+An external function is connected to its body by
+an implementation specific mechanism.
+Attempting to invoke an external function
+that has not been connected to its body
+will throw a \code{NoSuchMethodError} or some subclass thereof.
 
 \LMHash{}%
-The actual syntax is given in sections \ref{classes} and \ref{librariesAndScripts} below.
+An implementation specific compile-time error can be raised
+at an \EXTERNAL{} function declaration.
+
+\commentary{%
+Such errors are intended to indicate that
+every invocation of that function would throw, e.g.,
+because it is known that it will not be connected to a body.%
+}
+
+\LMHash{}%
+The actual syntax is given in
+sections \ref{classes} and \ref{librariesAndScripts} below.
 
 
 \section{Classes}
