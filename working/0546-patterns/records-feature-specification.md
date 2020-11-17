@@ -354,7 +354,7 @@ To balance those, the rules for `identical()` on records are:
 The latter sounds alarming, but in practice it does not appear to be harmful.
 The language's rules around when string operations are canonicalized and when
 they are not are also somewhat subtle in ways that make using strings in an
-IdentityHashMap brittle, but it doesn't seem cause problems. Users don't seem
+IdentityHashMap brittle, but it doesn't seem to cause problems. Users don't seem
 to rely on `identical()` for anything more than a fast early check for equality.
 
 #### Runtime type
