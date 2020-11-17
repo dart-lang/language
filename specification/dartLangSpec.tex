@@ -993,10 +993,6 @@ If an uncaught exception is thrown by a running isolate $A$, $A$ is immediately 
 Variables are storage locations in memory.
 
 \begin{grammar}
-<variableDeclaration> ::= <declaredIdentifier> (`,' <identifier>)*
-
-<declaredIdentifier> ::= \COVARIANT? <finalConstVarOrType> <identifier>
-
 <finalConstVarOrType> ::= \LATE? \FINAL{} <type>?
   \alt \CONST{} <type>?
   \alt \LATE? <varOrType>
@@ -1011,12 +1007,6 @@ Variables are storage locations in memory.
 
 <initializedIdentifierList> ::= <initializedIdentifier> (`,' <initializedIdentifier>)*
 \end{grammar}
-
-\LMHash{}%
-A \synt{variableDeclaration} that declares two or more variables
-is equivalent to multiple variable declarations declaring
-the same set of variable names in the same order,
-with the same type and modifiers.
 
 \LMHash{}%
 An \synt{initializedVariableDeclaration}
@@ -1656,6 +1646,8 @@ It is a compile-time error if any default values are specified in the signature 
 
 <simpleFormalParameter> ::= <declaredIdentifier>
   \alt \COVARIANT? <identifier>
+
+<declaredIdentifier> ::= \COVARIANT? <finalConstVarOrType> <identifier>
 
 <fieldFormalParameter> ::= \gnewline{}
   <finalConstVarOrType>? \THIS{} `.' <identifier> (<formalParameterPart> `?'?)?
