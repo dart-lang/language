@@ -58,7 +58,7 @@ void main(List<String> arguments) {
           .replaceAll(r'\sqsq', r"\'\'")
           .replaceAll(r'\sq', r"\'")
           .replaceAll(r'\\', r'\')
-          .replaceAll('<NEWLINE>', "'\\n'")
+          .replaceAll(r'\FUNCTION{}', "'Function'")
           .replaceAllMapped(
               keywordRegExp, (match) => "'${match[1]!.toLowerCase()}'")
           .replaceAllMapped(ruleRegExp, (match) => match[1]!);
