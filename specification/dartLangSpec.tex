@@ -7209,7 +7209,7 @@ A string can be a sequence of single line strings and multiline strings.
 <SINGLE\_LINE\_STRING\_SQ\_MID\_MID> ::= \gnewline{}
   `}' <STRING\_CONTENT\_SQ>* `${'
 
-<SINGLE\_LINE\_STRING\_SQ\_MID\_END> := \gnewline{}
+<SINGLE\_LINE\_STRING\_SQ\_MID\_END> ::= \gnewline{}
   `}' <STRING\_CONTENT\_SQ>* `\sq'
 
 <STRING\_CONTENT\_DQ> ::= <STRING\_CONTENT\_COMMON> | `\sq'
@@ -14153,7 +14153,6 @@ An \Index{identifier expression} consists of a single identifier; it provides ac
 
 \begin{grammar}
 <identifier> ::= <IDENTIFIER>
-  .
 
 <IDENTIFIER\_NO\_DOLLAR> ::= <IDENTIFIER\_START\_NO\_DOLLAR>
   \gnewline{} <IDENTIFIER\_PART\_NO\_DOLLAR>*
