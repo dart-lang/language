@@ -3,18 +3,42 @@
 Author: Bob Nystrom
 Status: Draft
 
-## Summary
+## Motivation
 
-This proposal is one piece of the larger "tuples, records, and pattern matching"
-family of features.
+When you want to bundle multiple objects into a single value, Dart gives you a
+couple of options. You can define a class with fields for the values. This works
+well when you also have meaningful behavior to attach to the data. But it's
+quite verbose and it means any other code using this bundle of data is now also
+coupled to that particular class definition.
 
-Records are an anonymous aggregate type. Like lists and maps, they let you
-combine several values into a single new object. Unlike other collection types,
-records are fixed-sized, heterogeneous, and typed. Each element in a record may
-have a different type and the static type system tracks them separately.
+Instead, you could wrap them up in a collection like a list, map, or set. This
+is lightweight and avoids bringing in any coupling other than the Dart core
+library. But it does not work well with the static type system. If you want to
+bundle a number and a string together, the best you can do is a `List<Object>`
+and then the type system has lost track of how many elements there are and what
+their individual types are.
+
+You've probably noticed this if you've ever used `Future.wait()` to wait on a
+couple of futures of different types. You end up having to cast the results back
+out since the type system no longer knows which element in the returned list has
+which type.
+
+This proposal, part of the larger "tuples, records, and pattern matching" family
+of features, adds **records** to Dart. Records are an anonymous immutable
+aggregate type. Like lists and maps, they let you combine several values into a
+single new object. Unlike other collection types, records are fixed-sized,
+heterogeneous, and typed. Each element in a record may have a different type and
+the static type system tracks them separately.
+
+Unlike classes, records are *structurally* typed. You do not have to declare a
+record type and give it a name. If two unrelated libraries create records with
+the same set of fields, the type system understands that those records are the
+same type even though the libraries are not coupled to each other.
+
+## Introduction
 
 Many languages, especially those with a static functional heritage, have
- **[tuple][]** or **product** types:
+**[tuple][]** or **product** types:
 
 [tuple]: https://en.wikipedia.org/wiki/Product_type
 
@@ -197,9 +221,9 @@ same static type if they have the same shape and their corresponding fields have
 the same types.
 
 The order of named fields is not significant. The record types `{int a, int b}`
-and `{int b, int a}` are identical to the type system. (Tools may or may not
-display them to users in a canonical form similar to how they handle function
-typedefs.)
+and `{int b, int a}` are identical to the type system and the runtime. (Tools
+may or may not display them to users in a canonical form similar to how they
+handle function typedefs.)
 
 ### Members
 
@@ -323,39 +347,51 @@ the same hash code.
 
 We expect records to often be used for multiple return values. In that case, and
 in others, we would like compilers to be able to easily optimize away the heap
-allocation and initialization of the record object. Dart's rules around
-`identical()` can make that more difficult. If a record must have a persistent,
-observable identity, it is harder for a compiler to optimize it away.
+allocation and initialization of the record object. If we require each record
+to have a persistent identity that is tied to its creation and user visible
+through calls to `identical()`, then optimizing away the creation of these
+objects is harder.
 
-At the same time, `identical()` is *useful* for performance because it can be a
-fast path to tell if references to two objects must be equivalent because they
-point to the *same* object.
+Semantically, we do not want records to have unique identities distinct from
+their contents. A record *is* its contents in the same way that every value 3
+in a program is the "same" 3 whether it came from the number literal `3` or the
+result of `1 + 2`.
 
-To balance those, the rules for `identical()` on records are:
+This is why `==` for records is defined in terms of their shape and fields. Two
+records with the same shape and fields are equivalent. Identity follows similar
+rules. Calling `identical()` with a record argument returns:
 
-*   Two *constant* records with the same shape and identical corresponding
-    pairs of fields are identical. This is the usual rule that constants are
-    canonicalized.
+*   `false`, if the other argument is not a record.
+*   `false`, if the records do not have the same shape. *Since named field
+    order is not part of a record's shape, this implies that named field order
+    does not affect identity either. `(a: 1, b: 2)` and `(b: 2, a: 1)` are
+    identical.*
+*   `false`, if any pair of corresponding fields are not identical.
+*   Otherwise `true`.
 
-*   Two non-constant records that are not equal according to `==` must not be
-    identical. In other words, there are not "false positives" where
-    `identical()` returns `true` for two records where `==` would return
-    `false`. This implies that records with different shapes are never
-    identical.
+This means `identical()` on records is structural and recursive. However, since
+records are immutable and `identical()` on other aggregate types does not
+recurse into fields, it cannot be *cyclic.*
 
-*   Non-constant records with the same shape and equal corresponding fields *may
-    or may not* be identical. This means false negatives are allowed. It is
-    possible to create a single record, have two different references to it
-    flow through the program and then have `identical()` on them return *false*
-    because the compiler happened to optimize away one or the other's
-    representation such that they are no longer references to the same object
-    in memory.
+An important use case for `identical()` is as a fast path check for equality.
+It's common to use `identical()` to quickly see if two objects are "the same",
+and if so avoid the potentially slower call to `==`. We have some concern that
+structural rules for `identical()` of records could be slow.
 
-The latter sounds alarming, but in practice it does not appear to be harmful.
-The language's rules around when string operations are canonicalized and when
-they are not are also somewhat subtle in ways that make using strings in an
-IdentityHashMap brittle, but it doesn't seem to cause problems. Users don't seem
-to rely on `identical()` for anything more than a fast early check for equality.
+We will coordinate with the implementation teams and if they are not confident
+that they can get reasonable performance out of it, we may change these rules
+before accepting the proposal. "Reasonable" here means fast enough that users
+won't find themselves wishing for some other specialized `reallyIdentical()`
+function that avoids the cost of structural `identical()` checks on records.
+
+**TODO: Discuss with implementation teams.**
+
+#### Expandos
+
+Like numbers, records do not have a well-defined persistent identity. That means
+[Expandos][] can not be attached to them.
+
+[expandos]: https://api.dart.dev/stable/2.10.4/dart-core/Expando-class.html
 
 #### Runtime type
 
