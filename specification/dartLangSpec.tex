@@ -3561,7 +3561,8 @@ whenever the redirecting constructor is called.
   \CONST? \FACTORY{} <constructorName> <formalParameterList> '=' \gnewline{}
   <constructorDesignation>
 
-<constructorDesignation> ::= <qualifiedName>
+<constructorDesignation> ::= <typeIdentifier>
+  \alt <qualifiedName>
   \alt <typeName> <typeArguments> (`.' <identifier>)?
 \end{grammar}
 
@@ -6189,7 +6190,8 @@ Dart supports metadata which is used to attach user defined annotations to progr
 \begin{grammar}
 <metadata> ::= (`@' <metadatum>)*
 
-<metadatum> ::= <qualifiedName> | <constructorDesignation> <arguments>
+<metadatum> ::= \gnewline{}
+  <identifier> | <qualifiedName> | <constructorDesignation> <arguments>
 \end{grammar}
 
 \LMHash{}%
@@ -14183,8 +14185,7 @@ An \Index{identifier expression} consists of a single identifier; it provides ac
 
 <IDENTIFIER\_PART> ::= <IDENTIFIER\_START> | <DIGIT>
 
-<qualifiedName> ::= <typeIdentifier>
-  \alt <typeIdentifier> `.' <identifier>
+<qualifiedName> ::= <typeIdentifier> `.' <identifier>
   \alt <typeIdentifier> `.' <typeIdentifier> `.' <identifier>
 \end{grammar}
 
