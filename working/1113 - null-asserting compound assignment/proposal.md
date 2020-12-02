@@ -90,8 +90,8 @@ to
 This allows one optional `!` exactly where it affects a composite operation, and nowhere else.
 
 This grammar is not ambiguous. The `++x!` looks like it could be a problem,
-but because prefix-`++` only applies to an `<assignableExpression>`, a
-ny existing valid expression starting with `++x!` would need to be followed 
+but because prefix-`++` only applies to an `<assignableExpression>`, 
+any existing valid expression starting with `++x!` would need to be followed 
 by a selector making it into an assignable expression, like `++x!.foo`,
 and because postfix selectors bind stronger than prefix operators,
 there is no valid parse which accepts `++x!` as an unary expression
