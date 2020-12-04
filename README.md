@@ -40,7 +40,7 @@ and by uploading documents, tests or other resources.
 When commenting on issues in this repository, keep in mind:
 
 -   :+1: reactions are more useful than comments to show support.
--   Motivating examples help us understand why you want new features more than
+-   Motivating examples to help us understand why you want new features more than
     pointers to other languages which have them. We love hearing feedback about
     your experiences with other languages, but we also want to know why they are
     right for Dart in particular.
