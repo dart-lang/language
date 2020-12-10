@@ -2,7 +2,7 @@
 
 Author: eernst@google.com (@eernstg).
 
-Version: 0.3.
+Version: 0.4.
 
 ## Motivation and Scope
 
@@ -149,6 +149,21 @@ error when `G<int>` is a type alias application that denotes a class `C` or
 a parameterized type like `C<String, int>`, even in the case where `C`
 declares a static method named `m`.*
 
+We say that `F` _expands to a type variable_ if `F` is a type alias whose
+body is a type variable, or if the body of `F` is a (possibly qualified)
+identifier `G` denoting a type alias that expands to a type variable, or
+the body of `F` is a parameterized type `G<T1, .. Tk>` where `G` denotes a
+type alias that expands to a type variable.
+
+It is a compile-time error if an instance creation `C<T1, .. Tk>(...)` or 
+`C<T1, .. Tk>.name()` (where `k` may be zero, which means that the type
+argument list is absent) if `C` denotes a type alias that expands to a type
+variable.
+
+*The rationale for this error is that Dart does not support instance 
+creation for types (say, `new X()` where `X` is a type variable, or
+`new (dynamic Function())()`), and a type argument is a type rather than
+a class.*
 
 ### Dynamic Semantics
 
@@ -171,6 +186,9 @@ fresh type variable bound to the denoted type.
 
 
 ## Versions
+
+* Dec 10th, 2020, version 0.4: Specifying a compile-time error when a type
+  alias that expands to a type variable is used in an instance creation.
 
 * Nov 29th, 2018, version 0.3: Allowing type aliases to be used as classes,
   including for invocation of static methods.
