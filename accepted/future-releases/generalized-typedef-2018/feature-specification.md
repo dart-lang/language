@@ -165,6 +165,7 @@ creation for types (say, `new X()` where `X` is a type variable, or
 `new (dynamic Function())()`), and a type argument is a type rather than
 a class.*
 
+
 ### Dynamic Semantics
 
 *The dynamic semantics relies on elaborations on the program performed
