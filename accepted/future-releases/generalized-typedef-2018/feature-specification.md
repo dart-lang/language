@@ -155,7 +155,7 @@ identifier `G` denoting a type alias that expands to a type variable, or
 the body of `F` is a parameterized type `G<T1, .. Tk>` where `G` denotes a
 type alias that expands to a type variable.
 
-It is a compile-time error if an instance creation `C<T1, .. Tk>(...)` or 
+It is a compile-time error for an instance creation `C<T1, .. Tk>(...)` or 
 `C<T1, .. Tk>.name()` (where `k` may be zero, which means that the type
 argument list is absent) if `C` denotes a type alias that expands to a type
 variable.
