@@ -351,7 +351,7 @@ printGeometry(Geometry geometry) {
 
 Here, the outer `Point(...)` pattern is a matcher that does a type test to see
 if `geometry` is a Point. If it is not, it simply proceeds to the next case. If
-`geometry` is a point, the `Point(...)` patterns destructures the value and
+`geometry` is a point, the inner `Point(...)` patterns destructures the value and
 evaluates its two subpatterns. The `var x` and `var y` patterns are *bind
 matchers* that hop over to the bind category to bind variables. A bind matcher
 is a special kind of matcher that contains a binder as a subpattern. This lets
