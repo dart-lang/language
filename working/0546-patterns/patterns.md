@@ -343,7 +343,7 @@ test and field access like so:
 ```dart
 printGeometry(Geometry geometry) {
   match (geometry) {
-    case Point(var x, var y) => print("Point $y, $y");
+    case Point(var x, var y) => print("Point $x, $y");
     case Circle(var x, var y, var radius) => print("Circle $x, $y, $radius");
   }
 }
