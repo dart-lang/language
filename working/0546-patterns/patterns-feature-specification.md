@@ -58,7 +58,7 @@ variables:
 
 ```dart
 var (lat, long) = geoCode('Aarhus');
-print('Location lat:$lat, long:$lonng');
+print('Location lat:$lat, long:$long');
 ```
 
 List and map patterns let you likewise destructure those respective collection
@@ -78,7 +78,7 @@ print(a + b); // 3.
 
 You often have a family of related types and an operation that needs specific
 behavior for each type. In an object-oriented language, the natural way to model
-that is by implementing each operation in ann instance method on its respective
+that is by implementing each operation in an instance method on its respective
 type:
 
 ```dart
@@ -719,7 +719,7 @@ This is essentially a convenience over using multiple variable matchers. It
 spares you from having to write `var` or `final` before every destructured
 variable:
 
-```
+```dart
 switch (obj) {
   // Instead of:
   case [var a, var b, var c]: ...
