@@ -165,6 +165,11 @@ creation for types (say, `new X()` where `X` is a type variable, or
 `new (dynamic Function())()`), and a type argument is a type rather than
 a class.*
 
+It is a compile-time error for a redirecting factory constructor to have a
+body which is a type alias that expands to a type variable, or a body which
+is a parameterized type of the form `F<T1, .. Tk>`, where `F` is a type
+alias that expands to a type variable.
+
 
 ### Dynamic Semantics
 
