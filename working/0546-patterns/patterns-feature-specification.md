@@ -58,7 +58,7 @@ variables:
 
 ```dart
 var (lat, long) = geoCode('Aarhus');
-print('Location lat:$lat, long:$lonng');
+print('Location lat:$lat, long:$long');
 ```
 
 List and map patterns let you likewise destructure those respective collection
@@ -166,7 +166,7 @@ particular, this proposal extends Dart to allow patterns in:
 ### Binding and matching patterns
 
 Languages with patterns have to deal with a tricky ambiguity. What does a bare
-identifier inside a pattern mean? In some cases, you would like it declare a
+identifier inside a pattern mean? In some cases, you would like it to declare a
 variable with that name:
 
 ```dart
@@ -637,7 +637,7 @@ The expression is syntactically restricted to be either:
     prefix, a static constant in a class, or an enum case.
 
 *   **A prefixed qualified identifier.** Like `a.B.c`. It must resolve to an
-    enum case on an emum type that was imported with a prefix.
+    enum case on an enum type that was imported with a prefix.
 
 To avoid ambiguity with wildcard matchers, the identifier cannot be `_`.
 
