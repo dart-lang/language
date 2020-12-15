@@ -78,7 +78,7 @@ print(a + b); // 3.
 
 You often have a family of related types and an operation that needs specific
 behavior for each type. In an object-oriented language, the natural way to model
-that is by implementing each operation in ann instance method on its respective
+that is by implementing each operation in an instance method on its respective
 type:
 
 ```dart
