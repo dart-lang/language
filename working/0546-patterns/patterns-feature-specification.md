@@ -22,9 +22,9 @@ highly-voted user requests. It directly addresses:
 *   [Type patterns](https://github.com/dart-lang/language/issues/170) (4 👍)
 *   [Type decomposition](https://github.com/dart-lang/language/issues/169)
 
-For comparison, the current #1 issue, [Data classes](https://github.com/dart-lang/language/issues/314) has 489 👍.
+(For comparison, the current #1 issue, [Data classes](https://github.com/dart-lang/language/issues/314) has 489 👍.)
 
-In particular, the proposal covers a couple of coding styles and idioms users
+In particular, this proposal covers several coding styles and idioms users
 would like to express:
 
 ### Multiple returns
@@ -35,7 +35,7 @@ ad hoc way of aggregating multiple values going into a function, but there is
 no equally easy way to aggregate multiple values coming *out*. You're left with
 having to create a class, which is verbose and couples any users of the API to
 that specific class declaration. Or you pack the values into a List or Map and
-end up losing safety.
+end up losing type safety.
 
 Records are sort of like "first class argument lists" and give you a natural
 way to return multiple values:
@@ -78,7 +78,7 @@ print(a + b); // 3.
 
 You often have a family of related types and an operation that needs specific
 behavior for each type. In an object-oriented language, the natural way to model
-that is by implementing each operation in ann instance method on its respective
+that is by implementing each operation as an instance method on its respective
 type:
 
 ```dart
@@ -102,9 +102,10 @@ class Circle implements Shape {
 ```
 
 Here, the `calculateArea()` operation is supported by all shapes by implementing
-it in each class. This works well for operations that feel closely tied to each
-class, but it splits the behavior for the entire operation across many classes
-and requires you to be able to add new instance methods to those classes.
+the method in each class. This works well for operations that feel closely tied
+to the class, but it splits the behavior for the entire operation across many
+classes and requires you to be able to add new instance methods to those
+classes.
 
 Some behavior is more naturally modeled with the operations for all types kept
 together in a single function. Today, you can accomplish that using manual type
@@ -140,8 +141,8 @@ As you can see, it also adds an expression form for `switch`.
 
 ## Patterns
 
-The core of this proposal is a new category of language construct called
-*patterns*. "Expression" and "statement" are both syntactic categories in the
+The core of this proposal is a new category of language construct called a
+*pattern*. "Expression" and "statement" are both syntactic categories in the
 grammar. Patterns form a third category. Like expressions and statements,
 patterns are often composed of other subpatterns.
 
@@ -154,8 +155,8 @@ The basic idea with a pattern is that it:
 *   If (and only if) a pattern does match, the pattern may bind new variables in
     some scope.
 
-Patterns appear inside a number of other constructs in the language. In
-particular, this proposal extends Dart to allow patterns in:
+Patterns appear inside a number of other constructs in the language. This
+proposal extends Dart to allow patterns in:
 
 * Top-level and local variable declarations.
 * Static and instance field declarations.
@@ -190,15 +191,14 @@ Here, `a` and `b` are references to constants and the pattern checks to see if
 the value being switched on is equivalent to a list containing those two
 elements.
 
-This proposal follows Swift in that it addresses this ambiguity by dividing
-patterns into two general categories *binding patterns* or *binders* and
-*matching patterns* or *matchers*. (Binding patterns don't always necessarily
-bind a variable, but "binder" is easier to say than "irrefutable pattern".)
-
-Binders appear in irrefutable contexts like variable declarations where the
-intent is to destructure and bind variables. Matchers appear in contexts like
-switch cases where the intent is also to see if the value matches the pattern
-or not and where comparison to other values is meaningful.
+This proposal follows Swift and addresses the ambiguity by dividing patterns
+into two general categories *binding patterns* or *binders* and *matching
+patterns* or *matchers*. (Binding patterns don't always necessarily bind a
+variable, but "binder" is easier to say than "irrefutable pattern".) Binders
+appear in irrefutable contexts like variable declarations where the intent is to
+destructure and bind variables. Matchers appear in contexts like switch cases
+where the intent is also to see if the value matches the pattern or not and
+where control flow can occur when the pattern doesn't match.
 
 ## Syntax
 
@@ -231,9 +231,9 @@ a single declaration "section". No comma-separated multiple declarations like:
 var a = 1, b = 2;
 ```
 
-Also, declarations with patterns must have an initializer. This is not a real
-restriction since the only reason to use a pattern in a declaration is to match
-or destructure some actual value.
+Also, declarations with patterns must have an initializer. This is not
+restriction since the reason to use patterns in variable declarations is to
+destructure values.
 
 Add these new rules:
 
@@ -246,7 +246,7 @@ patternDeclarator ::= 'late'? ( 'final' | 'var' )
 
 **TODO: Should we support destructuring in `const` declarations?**
 
-And incorporate those into these existing rules:
+And incorporate the new rules into these existing rules:
 
 ```
 topLevelDeclaration ::=
@@ -286,7 +286,7 @@ user-visible and an implementation must execute the *first* case that matches.
 
 #### Guard clauses
 
-We also allow an optional *guard* clause to appear after a case. This enables
+We also allow an optional *guard clause* to appear after a case. This enables
 a switch case to evaluate a secondary arbitrary predicate:
 
 ```dart
@@ -319,11 +319,23 @@ of the block statement. It is a compile-time error if *s* is not a `break`,
 `continue`, `rethrow` or `return` statement or an expression statement where the
 expression is a `throw` expression.
 
+Empty cases continue to fallthrough to the next case as before:
+
+*This prints "1 or 2":*
+
+```dart
+switch (1) {
+  case 1:
+  case 2:
+    print("1 or 2");
+}
+```
+
 ### Switch expression
 
 When you want an `if` statement in an expression context, you can use a
-conditional expression (`?:`). There is no corresponding form for multi-way
-branching, so we define a new switch expression form. It takes code like this:
+conditional expression (`?:`). There is no expression form for multi-way
+branching, so we define a new switch expression. It takes code like this:
 
 ```dart
 Color shiftHue(Color color) {
@@ -408,10 +420,9 @@ in the rest of the block or exits if the pattern does not match.**
 ### Irrefutable patterns ("binders")
 
 Binders are the subset of patterns whose aim is to define new variables in some
-scope. A binder can never be refuted.
-
-To avoid ambiguity with existing variable declaration syntax, the outermost
-pattern where a binding pattern is allowed is somewhat restricted:
+scope. A binder can never be refuted. To avoid ambiguity with existing variable
+declaration syntax, the outermost pattern where a binding pattern is allowed is
+somewhat restricted:
 
 ```
 declarationBinder ::=
@@ -477,9 +488,10 @@ a nested type. For example:
 
 ```dart
 switch (object) {
-  case List<final E>
-Map<String, final V>
-Set<List<(final A, b: final B)>>
+  case List<final E>: ...
+  case Map<String, final V>: ...
+  case Set<List<(final A, b: final B)>>: ...
+}
 ```
 
 **TODO: Do we want to support function types? If so, how do we handle
@@ -531,7 +543,7 @@ capturing the suffix.**
 
 A variable binding pattern matches the value and binds it to a new variable.
 These often occur as subpatterns of a destructuring pattern in order to capture
-one a destructured value.
+a destructured value.
 
 ```
 variableBinder ::= typeWithBinder? identifier
@@ -637,7 +649,7 @@ The expression is syntactically restricted to be either:
     prefix, a static constant in a class, or an enum case.
 
 *   **A prefixed qualified identifier.** Like `a.B.c`. It must resolve to an
-    enum case on an emum type that was imported with a prefix.
+    enum case on an enum type that was imported with a prefix.
 
 To avoid ambiguity with wildcard matchers, the identifier cannot be `_`.
 
