@@ -58,7 +58,7 @@ variables:
 
 ```dart
 var (lat, long) = geoCode('Aarhus');
-print('Location lat:$lat, long:$lonng');
+print('Location lat:$lat, long:$long');
 ```
 
 List and map patterns let you likewise destructure those respective collection
