@@ -731,7 +731,7 @@ This is essentially a convenience over using multiple variable matchers. It
 spares you from having to write `var` or `final` before every destructured
 variable:
 
-```
+```dart
 switch (obj) {
   // Instead of:
   case [var a, var b, var c]: ...
