@@ -4326,6 +4326,9 @@ any type $T$ which is $T_0$ bounded
 (\ref{bindingActualsToFormals}),
 where $T_0$ is a class with interface $I$,
 is also considered to have interface $I$.
+Similarly, when $T$ is $F$ bounded where $F$ is a function type,
+$T$ is considered to have a method named \CALL{} with signature $m$,
+such that the function type of $m$ is $F$.
 
 \LMHash{}%
 The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
@@ -10551,10 +10554,10 @@ corresponds to $f$.
 %
 A reference to this section is also used in other sections
 when actual arguments are to be bound to the corresponding formal parameters,
-and $f$ is about to be invoked, to specify the dynamic semantics.
+and $f$ is about to be invoked, to specify the dynamic semantics.%
 }
 
-\commentary{
+\commentary{%
 We do not call $f$ a `function object' here, because we do not wish to imply
 that every function invocation must involve a separate evaluation
 of an expression that yields a function object,
@@ -10566,7 +10569,7 @@ So, in this section,
 the word `function' is more low-level than `function object',
 but `function' still denotes a semantic entity
 which is associated with a function declaration,
-even though there may not be a corresponding entity in the heap at run time.
+even though there may not be a corresponding entity in the heap at run time.%
 }
 
 \LMHash{}%
