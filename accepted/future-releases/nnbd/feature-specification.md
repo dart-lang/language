@@ -11,6 +11,8 @@ Status: Draft
   - Specify canonicalization of type literals.
   - Specify the unsound mode legacy rewrite of type arguments to const
     constructors and literals.
+  - Specify that constant object canonicalization is done with respect to normal
+    forms of generic type arguments.
 
 2020.11.09
   - Change terminology to use sound or unsound null checking rather than
@@ -1285,8 +1287,8 @@ modifiers.  We choose `R` arbitrarily as the type literal corresponding to one
 of **NORM**(`S1`) or **NORM**(`S2`) with all legacy type modifiers erased.
 
 The effect of this definition is to ensure that type literals which look
-indentical in the source syntax but which may differ by the presence of legacy
-type modifiers are canonicalized consistenly in the sense that any two type
+identical in the source syntax but which may differ by the presence of legacy
+type modifiers are canonicalized consistently in the sense that any two type
 literals which would compare equal via the definition of runtime type equality
 given above will be canonicalized to the same type object.  The choice of what
 type object to canonicalize to is arbitrary in that placement of legacy
