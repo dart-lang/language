@@ -6,6 +6,12 @@ Status: Draft
 
 ## CHANGELOG
 
+2020.12.30
+  - Remove the warning for overrides with different default values.
+  - Specify canonicalization of type literals.
+  - Specify the unsound mode legacy rewrite of type arguments to const
+    constructors and literals.
+
 2020.11.09
   - Change terminology to use sound or unsound null checking rather than
     weak or strong mode.
@@ -654,6 +660,10 @@ It is a warning to use a null aware operator (`?.`, `?[]`, `?..`, `??`, `??=`, o
 It is a warning to use the null check operator (`!`) on an expression of type
 `T` if `T` is **strictly non-nullable** .
 
+It is no longer a warning to override a method which has a default value for a
+parameter with a method with a different default value for the corresponding
+parameter.
+
 ### Local variables and definite (un)assignment.
 
 As part of the null safety release, errors for local variables are specified to
@@ -1236,18 +1246,92 @@ the `LEGACY_ERASURE` of the types.
 
 ### Const evaluation and canonicalization
 
-With unsound null checking, all generic const constructors and generic
-const literals are treated as if all type arguments passed to them were legacy
-types (both at the top level, and recursively over the structure of the
-types), regardless of whether the constructed class is defined in a legacy
-library or not, and regardless of whether the constructor invocation or
-literal occurs in a legacy library or not.  This ensures that const objects
-continue to canonicalize consistently across legacy and opted-in libraries.
+Const evaluation is modified so that legacy and opted-in instances canonicalize
+more consistently as defined below, using the operation **LEGACY_TYPE**(`T`) on
+types `T` defined as follows.
+
+- **LEGACY_TYPE**(`T`) = `T` if `T` is `dynamic`, `void`, `Null`
+- **LEGACY_TYPE**(`T`) = `T*` if `T` is `Never` or `Object`
+- **LEGACY_TYPE**(`FutureOr<T>`) = `FutureOr<S>*`
+- **LEGACY_TYPE**(`T?`) =
+  - let `S` be **LEGACY_TYPE**(`T`)
+  - if `S` is `R*` then `R?`
+  - else `S?`
+- **LEGACY_TYPE**(`T*`) = **LEGACY_TYPE**(`T`)
+- **LEGACY_TYPE**(`X extends T`) = `X*`
+- **LEGACY_TYPE**(`X & T`) =
+  - This case should not occur, since intersection types are not permitted as
+    generic arguments.
+- **LEGACY_TYPE**(`C<T0, ..., Tn>`) = `C<R0, ..., Rn>*`
+  - where `Ri` is **LEGACY_TYPE**(`Ti`)
+- **LEGACY_TYPE**(`R Function<X extends B>(S)`) = `F*`
+  - where `F = R1 Function<X extends B1>(S1)`
+  - and `R1` = **LEGACY_TYPE**(`R`)
+  - and `B1` = **LEGACY_TYPE**(`B`)
+  - and `S1` = **LEGACY_TYPE**(`S`)
+
+Note that if `T` is a normal form type, then **LEGACY_TYPE**(`T`) is also a
+normal form type.
+
+#### Type literals
+
+Two constant type literals `T1` and `T2` canonicalize to the same object if they
+are equal using the definition of runtime type equality specified above.  The
+object `R` which serves as the canonical form for `T1` and `T2` is defined as
+follows. Let `S1` and `S2` be the types to which `T1` and `T2` correspond.  Note
+that by assumption, **NORM**(`S1`) and **NORM**(`S2`) are syntactically
+identical up to the identity of bound variables and the placement of legacy type
+modifiers.  We choose `R` arbitrarily as the type literal corresponding to one
+of **NORM**(`S1`) or **NORM**(`S2`) with all legacy type modifiers erased.
+
+The effect of this definition is to ensure that type literals which look
+indentical in the source syntax but which may differ by the presence of legacy
+type modifiers are canonicalized consistenly in the sense that any two type
+literals which would compare equal via the definition of runtime type equality
+given above will be canonicalized to the same type object.  The choice of what
+type object to canonicalize to is arbitrary in that placement of legacy
+modifiers in type literals is not otherwise observable in the language.  Any
+consistent choice of placement of legacy modifiers is hence an equally valid
+implementation.
+
+Note that the choice of canonicalization for type literals does not depend
+directly on whether sound or unsound null safety semantics are in use.  However,
+soundly null safe programs will never contain legacy types, and hence the
+erasure of legacy type modifiers is never necessary when running in sound mode.
+
+#### Constant instances
+
+In both sound and unsound null checking, canonicalization of generic object
+instances is performed relative to the normal forms of their generic type
+arguments.  That is, an instance of `C<T0>` canonicalizes to the same object as
+`C<T1>` if `T0` and `T1` have the same normal form (up to the identity of bound
+variables), and the objects are otherwise identical.
 
 With sound null checking, all generic const constructors and generic const
-literals are evaluated using the actual type arguments provided, whether legacy
-or non-legacy.  This ensures that with sound null checking, the final
-consistent semantics are obeyed.
+literals are evaluated using the actual type arguments provided.  This ensures
+that with sound null checking, the final consistent semantics are obeyed.
+
+With unsound null checking, all generic const constructors and generic const
+literals are additionally treated as if all type arguments passed to them were
+legacy types regardless of whether the constructed class is defined in a legacy
+library or not, and regardless of whether the constructor invocation or literal
+occurs in a legacy library or not.  That is, a constructor invocation or object
+literal with generic type parameters `Ti` is treated as if the parameters were
+**LEGACY_TYPE**('Ti'). Implementations may choose to eagerly normalize the type
+arguments before applying the legacy rewrite, as desired.
+
+This ensures that const objects which appear identical in the syntax continue to
+canonicalize consistently across legacy and opted-in libraries.  Unlike the case
+of type literals, the choice to rewrite the type arguments is not arbitrary,
+since the outcome of constant instance checks and casts may depend on the legacy
+status of the type arguments.
+
+The Dart static analysis tool does not distinguish between sound and unsound
+checking mode, and hence it is expected that there will be some small level of
+infidelity in the constant evaluation semantics in the analyzer.  In practice,
+programs that observe object identity at compile time are almost non-existent,
+and so it may prove most pragmatic in the analyzer to always use the provided
+type arguments.
 
 ### Null check operator
 
