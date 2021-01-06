@@ -1248,13 +1248,122 @@ the `LEGACY_ERASURE` of the types.
 
 ### Const evaluation and canonicalization
 
-Const evaluation is modified so that legacy and opted-in instances canonicalize
-more consistently as defined below, using the operation **LEGACY_TYPE**(`T`) on
-types `T` defined as follows.
+Const evaluation is modified so that both type literals and legacy and opted-in
+instances canonicalize more consistently as defined below.
+
+#### Type literals
+
+Two constant type literals `T1` and `T2` compare as identical if they
+are equal using the definition of runtime type equality specified above.
+
+The effect of this definition is to ensure that constant type literals which
+look identical in the source syntax but which may differ by the presence of
+legacy type modifiers are canonicalized consistently in the sense that any two
+type literals which would compare equal via the definition of runtime type
+equality given above will compare as identical.  For runtime implementations
+which implement identity by choosing a canonical representative for the
+equivalence class of equal instances, the choice of what type object to
+canonicalize to is arbitrary in that placement of legacy modifiers in type
+literals is not otherwise observable in the language.
+
+Note that the choice of canonicalization for type literals does not depend
+directly on whether sound or unsound null safety semantics are in use.
+
+#### Constant instances
+
+In both sound and unsound null checking, and in both opted in and opted out
+code, comparison of constant instances for identity is defined such that any two
+instances which are otherwise identical except for their generic type arguments
+shall be considered identical if those generic type arguments compare equal
+using the definition of runtime type object equality defined above.  That is,
+comparison (or canonicalization) of constant instances of generic classes is
+performed relative to the normal forms of their generic type arguments, and
+ignoring legacy type annotations as described above.  Hence, an instance of
+`C<T0>` compares identical to `C<T1>` if `T0` and `T1` have the same normal form
+(up to the identity of bound variables), and the objects are otherwise
+identical.
+
+Implementations of the Dart runtime semantics rely on canonicalization of
+constant objects to allow the identity semantics specified above to be
+implemented as fast pointer equality checks on the reference to the canonical
+form.  The definition above defines equivalence classes of constant objects for
+which we must choose the canonical representative.  The choice of this
+representative is observable in mixed mode programs, since instances with
+different degrees of "legacy-ness" in their type arguments are considered
+identical, but may contain operations which perform casts and instance checks
+which will evaluate differently depending on whether a legacy type or a
+non-legacy type is used in the canonical representative.  For example:
+
+```dart
+// null safe code.
+class C<T> {
+  void test(Object? o) {
+    assert(o is T);
+  }
+  const C(Object? o) : assert(o is T);
+}
+
+// If the canonical instance uses `int`, this is a compile time error
+// If the canonical instance uses `int*`, this is not a compile time error
+const c1 = C<int>(null);
+
+// If the canonical instance uses `int`, this throws
+// If the canonical instance uses `int*`, this does not throw
+void test1() => c1.test(null);
+
+
+// Opted out code
+
+// If the canonical instance uses `int`, this is a compile time error
+// If the canonical instance uses `int*`, this is not a compile time error
+const c2 = C<int>(null);
+
+// If the canonical instance uses `int`, this throws
+// If the canonical instance uses `int*`, this does not throw
+void test1() => c2.test(null);
+```
+
+We therefore define the choice of the canonical instance representing an
+equivalence class of constant objects as follows.
+
+With sound null checking, all generic const constructors and generic const
+literals are evaluated using the type arguments provided, and canonicalization
+is performed with respect to the normal form of the type arguments.  This
+ensures that with sound null checking, the final consistent semantics are
+obeyed, since it is not observable which instance is chosen as the canonical
+representative in sound mode.
+
+With unsound null checking, all generic const constructors and generic const
+literals are additionally treated as if all type arguments passed to them were
+legacy types regardless of whether the constructed class was defined in a legacy
+library or not, and regardless of whether the constructor invocation or literal
+occured in a legacy library or not.  Specifically, a constructor invocation or
+object literal with generic type parameters `Ti` is treated as if the parameters
+were **LEGACY_TYPE**('Ti') as defined below. Implementations may choose to
+eagerly normalize the type arguments before applying the legacy rewrite, as
+desired.  This ensures that const objects which appear identical in the syntax
+continue to canonicalize consistently across legacy and opted-in libraries.
+
+The Dart static analysis tool does not distinguish between sound and unsound
+checking mode, and hence it is expected that there will be some small level of
+infidelity in the constant evaluation semantics in the analyzer.  Identity
+semantics for constant objects can be faithfully modeled in the analyzer using
+the existing strategy of implementing identity directly, rather than via
+choosing a canonical representative for each equivalence class.  However, the
+lack of a canonical representative is observable at compile time in rare cases,
+such as the example shown above.  We propose that the analyzer should choose to
+evaluate those constants in opted in libraries using sound mode semantics, and
+to evaluate those in opted out libraries using unsound mode semantics.  Hence in
+the example above, the definition of `c1` would be a compile time error, but the
+definition of `c2` would not.
+
+The exact definition of the **LEGACY_TYPE**(`T`) erasure operation on types `T`
+used above is defined as follows.
 
 - **LEGACY_TYPE**(`T`) = `T` if `T` is `dynamic`, `void`, `Null`
 - **LEGACY_TYPE**(`T`) = `T*` if `T` is `Never` or `Object`
 - **LEGACY_TYPE**(`FutureOr<T>`) = `FutureOr<S>*`
+  - where `S` is **LEGACY_TYPE**(`T`)
 - **LEGACY_TYPE**(`T?`) =
   - let `S` be **LEGACY_TYPE**(`T`)
   - if `S` is `R*` then `R?`
@@ -1266,74 +1375,18 @@ types `T` defined as follows.
     generic arguments.
 - **LEGACY_TYPE**(`C<T0, ..., Tn>`) = `C<R0, ..., Rn>*`
   - where `Ri` is **LEGACY_TYPE**(`Ti`)
+  - Note this includes the case of an interface type with no generic parameters
+    (e.g `int`).
 - **LEGACY_TYPE**(`R Function<X extends B>(S)`) = `F*`
   - where `F = R1 Function<X extends B1>(S1)`
   - and `R1` = **LEGACY_TYPE**(`R`)
   - and `B1` = **LEGACY_TYPE**(`B`)
   - and `S1` = **LEGACY_TYPE**(`S`)
+  - Note, this generalizes to arbitrary number of type and term parameters.
 
 Note that if `T` is a normal form type, then **LEGACY_TYPE**(`T`) is also a
 normal form type.
 
-#### Type literals
-
-Two constant type literals `T1` and `T2` canonicalize to the same object if they
-are equal using the definition of runtime type equality specified above.  The
-object `R` which serves as the canonical form for `T1` and `T2` is defined as
-follows. Let `S1` and `S2` be the types to which `T1` and `T2` correspond.  Note
-that by assumption, **NORM**(`S1`) and **NORM**(`S2`) are syntactically
-identical up to the identity of bound variables and the placement of legacy type
-modifiers.  We choose `R` arbitrarily as the type literal corresponding to one
-of **NORM**(`S1`) or **NORM**(`S2`) with all legacy type modifiers erased.
-
-The effect of this definition is to ensure that type literals which look
-identical in the source syntax but which may differ by the presence of legacy
-type modifiers are canonicalized consistently in the sense that any two type
-literals which would compare equal via the definition of runtime type equality
-given above will be canonicalized to the same type object.  The choice of what
-type object to canonicalize to is arbitrary in that placement of legacy
-modifiers in type literals is not otherwise observable in the language.  Any
-consistent choice of placement of legacy modifiers is hence an equally valid
-implementation.
-
-Note that the choice of canonicalization for type literals does not depend
-directly on whether sound or unsound null safety semantics are in use.  However,
-soundly null safe programs will never contain legacy types, and hence the
-erasure of legacy type modifiers is never necessary when running in sound mode.
-
-#### Constant instances
-
-In both sound and unsound null checking, canonicalization of generic object
-instances is performed relative to the normal forms of their generic type
-arguments.  That is, an instance of `C<T0>` canonicalizes to the same object as
-`C<T1>` if `T0` and `T1` have the same normal form (up to the identity of bound
-variables), and the objects are otherwise identical.
-
-With sound null checking, all generic const constructors and generic const
-literals are evaluated using the actual type arguments provided.  This ensures
-that with sound null checking, the final consistent semantics are obeyed.
-
-With unsound null checking, all generic const constructors and generic const
-literals are additionally treated as if all type arguments passed to them were
-legacy types regardless of whether the constructed class is defined in a legacy
-library or not, and regardless of whether the constructor invocation or literal
-occurs in a legacy library or not.  That is, a constructor invocation or object
-literal with generic type parameters `Ti` is treated as if the parameters were
-**LEGACY_TYPE**('Ti'). Implementations may choose to eagerly normalize the type
-arguments before applying the legacy rewrite, as desired.
-
-This ensures that const objects which appear identical in the syntax continue to
-canonicalize consistently across legacy and opted-in libraries.  Unlike the case
-of type literals, the choice to rewrite the type arguments is not arbitrary,
-since the outcome of constant instance checks and casts may depend on the legacy
-status of the type arguments.
-
-The Dart static analysis tool does not distinguish between sound and unsound
-checking mode, and hence it is expected that there will be some small level of
-infidelity in the constant evaluation semantics in the analyzer.  In practice,
-programs that observe object identity at compile time are almost non-existent,
-and so it may prove most pragmatic in the analyzer to always use the provided
-type arguments.
 
 ### Null check operator
 
