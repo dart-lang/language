@@ -36,6 +36,7 @@
 % - Revise and clarify the sections Imports and Exports.
 % - Bug fix: Change <qualifiedName> to omit the single identifier, then add it
 %   back when <qualifiedName> is used, as <typeIdentifier> resp. <identifier>.
+% - Clarify that a function-type bounded receiver has a `.call` method.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -4326,9 +4327,9 @@ any type $T$ which is $T_0$ bounded
 (\ref{bindingActualsToFormals}),
 where $T_0$ is a class with interface $I$,
 is also considered to have interface $I$.
-Similarly, when $T$ is $F$ bounded where $F$ is a function type,
+Similarly, when $T$ is $T_0$ bounded where $T_0$ is a function type,
 $T$ is considered to have a method named \CALL{} with signature $m$,
-such that the function type of $m$ is $F$.
+such that the function type of $m$ is $T_0$.
 
 \LMHash{}%
 The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
