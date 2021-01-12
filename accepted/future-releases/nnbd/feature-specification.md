@@ -1267,7 +1267,7 @@ canonicalize to is arbitrary in that placement of legacy modifiers in type
 literals is not otherwise observable in the language.
 
 Note that the choice of canonicalization for type literals does not depend
-directly on whether sound or unsound null safety semantics are in use.
+directly on whether sound or unsound null checking is in use.
 
 #### Constant instances
 
@@ -1297,10 +1297,11 @@ non-legacy type is used in the canonical representative.  For example:
 ```dart
 // null safe code.
 class C<T> {
+  final T x;
   void test(Object? o) {
-    assert(o is T);
+    o as T;
   }
-  const C(Object? o) : assert(o is T);
+  const C(Object? o) : x = o as T;
 }
 
 // If the canonical instance uses `int`, this is a compile time error
@@ -1333,16 +1334,15 @@ ensures that with sound null checking, the final consistent semantics are
 obeyed, since it is not observable which instance is chosen as the canonical
 representative in sound mode.
 
-With unsound null checking, all generic const constructors and generic const
-literals are additionally treated as if all type arguments passed to them were
-legacy types regardless of whether the constructed class was defined in a legacy
-library or not, and regardless of whether the constructor invocation or literal
-occured in a legacy library or not.  Specifically, a constructor invocation or
-object literal with generic type parameters `Ti` is treated as if the parameters
-were **LEGACY_TYPE**('Ti') as defined below. Implementations may choose to
-eagerly normalize the type arguments before applying the legacy rewrite, as
-desired.  This ensures that const objects which appear identical in the syntax
-continue to canonicalize consistently across legacy and opted-in libraries.
+With unsound null checking, all generic constant object expressions are
+additionally treated as if all type arguments passed to them were legacy types
+regardless of whether the constructed class was defined in a legacy library or
+not, and regardless of whether the constructor invocation or literal occured in
+a legacy library or not.  Specifically, a constant object expression with
+generic type parameters `Ti` is treated as if the parameters were
+**CONST_CANONICAL_TYPE**('Ti') as defined below.  This ensures that const
+objects which appear identical in the syntax continue to canonicalize
+consistently across legacy and opted-in libraries.
 
 The Dart static analysis tool does not distinguish between sound and unsound
 checking mode, and hence it is expected that there will be some small level of
@@ -1357,35 +1357,35 @@ to evaluate those in opted out libraries using unsound mode semantics.  Hence in
 the example above, the definition of `c1` would be a compile time error, but the
 definition of `c2` would not.
 
-The exact definition of the **LEGACY_TYPE**(`T`) erasure operation on types `T`
-used above is defined as follows.
+The **CONST_CANONICAL_TYPE**(`T`) erasure operation on types `T` used above is
+defined as follows.
 
-- **LEGACY_TYPE**(`T`) = `T` if `T` is `dynamic`, `void`, `Null`
-- **LEGACY_TYPE**(`T`) = `T*` if `T` is `Never` or `Object`
-- **LEGACY_TYPE**(`FutureOr<T>`) = `FutureOr<S>*`
-  - where `S` is **LEGACY_TYPE**(`T`)
-- **LEGACY_TYPE**(`T?`) =
-  - let `S` be **LEGACY_TYPE**(`T`)
+- **CONST_CANONICAL_TYPE**(`T`) = `T` if `T` is `dynamic`, `void`, `Null`
+- **CONST_CANONICAL_TYPE**(`T`) = `T*` if `T` is `Never` or `Object`
+- **CONST_CANONICAL_TYPE**(`FutureOr<T>`) = `FutureOr<S>*`
+  - where `S` is **CONST_CANONICAL_TYPE**(`T`)
+- **CONST_CANONICAL_TYPE**(`T?`) =
+  - let `S` be **CONST_CANONICAL_TYPE**(`T`)
   - if `S` is `R*` then `R?`
   - else `S?`
-- **LEGACY_TYPE**(`T*`) = **LEGACY_TYPE**(`T`)
-- **LEGACY_TYPE**(`X extends T`) = `X*`
-- **LEGACY_TYPE**(`X & T`) =
+- **CONST_CANONICAL_TYPE**(`T*`) = **CONST_CANONICAL_TYPE**(`T`)
+- **CONST_CANONICAL_TYPE**(`X extends T`) = `X*`
+- **CONST_CANONICAL_TYPE**(`X & T`) =
   - This case should not occur, since intersection types are not permitted as
     generic arguments.
-- **LEGACY_TYPE**(`C<T0, ..., Tn>`) = `C<R0, ..., Rn>*`
-  - where `Ri` is **LEGACY_TYPE**(`Ti`)
+- **CONST_CANONICAL_TYPE**(`C<T0, ..., Tn>`) = `C<R0, ..., Rn>*`
+  - where `Ri` is **CONST_CANONICAL_TYPE**(`Ti`)
   - Note this includes the case of an interface type with no generic parameters
     (e.g `int`).
-- **LEGACY_TYPE**(`R Function<X extends B>(S)`) = `F*`
+- **CONST_CANONICAL_TYPE**(`R Function<X extends B>(S)`) = `F*`
   - where `F = R1 Function<X extends B1>(S1)`
-  - and `R1` = **LEGACY_TYPE**(`R`)
-  - and `B1` = **LEGACY_TYPE**(`B`)
-  - and `S1` = **LEGACY_TYPE**(`S`)
+  - and `R1` = **CONST_CANONICAL_TYPE**(`R`)
+  - and `B1` = **CONST_CANONICAL_TYPE**(`B`)
+  - and `S1` = **CONST_CANONICAL_TYPE**(`S`)
   - Note, this generalizes to arbitrary number of type and term parameters.
 
-Note that if `T` is a normal form type, then **LEGACY_TYPE**(`T`) is also a
-normal form type.
+Note that if `T` is a normal form type, then **CONST_CANONICAL_TYPE**(`T`) is
+also a normal form type.
 
 
 ### Null check operator
