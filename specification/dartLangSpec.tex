@@ -3076,7 +3076,7 @@ $[T_1/X_1, \ldots, T_m/X_m]F$,
 where $X_j, j \in 1 .. m$ are the formal type parameters of $C$
 and $T_j, j \in 1 .. m$ are specified in the given context.
 We may also omit such a substitution when the given context is
-the instance scope of $C$, where $X_1, \ldots, X_m$ are in scope.
+the class scope of $C$, where $X_1, \ldots, X_m$ are in scope.
 }
 
 \commentary{%
@@ -14044,7 +14044,7 @@ it is a compile-time error if $D$ is an instance member,
 and the interface of the enclosing class does not have a member named $n$.
 When $\ell$ does not have access to \THIS,
 it is a compile-time error if $D$ is an instance member.
-% An instance variable initializer is in the instance scope, so it is
+% An instance variable initializer is in the class scope, so it is
 % actually possible for $D$ to be an instance member here.
 \EndCase
 
@@ -19294,13 +19294,18 @@ Comments may nest.
 \LMHash{}%
 \IndexCustom{Documentation comments}{documentation comments}
 are comments that begin with the tokens \code{///} or \code{/**}.
-Documentation comments are intended to be processed by a tool that produces human readable documentation.
+Documentation comments are intended to be processed by
+a tool that produces human readable documentation.
 
 \LMHash{}%
-The scope of a documentation comment immediately preceding the declaration of a class $C$ is the instance scope of $C$.
+The scope of a documentation comment immediately preceding
+the declaration of a class $C$ is
+the class scope of $C$.
 
 \LMHash{}%
-The scope of a documentation comment immediately preceding the declaration of a function $f$ is the scope in force at the very beginning of the body of $f$.
+The scope of a documentation comment immediately preceding
+the declaration of a function $f$ is
+the current scope at the very beginning of the body of $f$.
 
 
 \subsection{Operator Precedence}
