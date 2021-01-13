@@ -2126,22 +2126,25 @@ The \IndexCustom{members}{members} of a class
 are its static and instance members.
 
 \LMHash{}%
-A class has several scopes:
+A class declaration has two scopes:
 \begin{itemize}
-\item A \IndexCustom{type-parameter scope}{scope!type parameter},
+\item
+  A \IndexCustom{type-parameter scope}{scope!type parameter},
   which is empty if the class is not generic (\ref{generics}).
-The enclosing scope of the type-parameter scope of a class is the enclosing scope of the class declaration.
-\item A \IndexCustom{static scope}{scope!static}.
-The enclosing scope of the static scope of a class is the type parameter scope (\ref{generics}) of the class.
-\item An \IndexCustom{instance scope}{scope!instance}.
-The enclosing scope of a class' instance scope is the class' static scope.
+  The enclosing scope of the type-parameter scope of a class declaration is
+  the current scope of the class declaration
+  (\commentary{which is the library scope of the current library}).
+\item
+  A \IndexCustom{class scope}{scope!class}.
+  The enclosing scope of the class scope of a class declaration is
+  the type parameter scope of the class declaration.
 \end{itemize}
 
 \LMHash{}%
-The enclosing scope of an instance member declaration is the instance scope of the class in which it is declared.
-
-\LMHash{}%
-The enclosing scope of a static member declaration is the static scope of the class in which it is declared.
+The enclosing scope of an instance member declaration,
+a static member declaration,
+or a constructor declaration is
+the class scope of the class in which it is declared.
 
 \LMHash{}%
 The current instance
@@ -3076,17 +3079,29 @@ We may also omit such a substitution when the given context is
 the instance scope of $C$, where $X_1, \ldots, X_m$ are in scope.
 }
 
-\commentary{
+\commentary{%
 A constructor declaration may conflict with static member declarations
 (\ref{classMemberConflicts}).
 }
 
-% In what scope do constructors go? The simple names of named constructors go in the static scope of the class. Unnamed ones go nowhere, but we use the class name to refer to them; the class name could also in the static scope of the class as well to prevent weird errors, or we could ban it explicitly and avoiding duplication. Similarly, the instance scope could contain the constructor names and class name, or we could have special rules to prevent collisions between instance members and constructors or the class.
-
-% The enclosing scope of a generative constructor is the instance scope of the class in which it is declared (but what about redirecting?)
+\commentary{%
+A constructor declaration does not introduce a name into a scope.
+The resolution of an instance creation expression
+(\ref{new})
+to a particular constructor
+relies on the library scope to determine the class
+(possibly via an import prefix),
+and for a constructor denoted by \code{$C$.\id} or \code{$prefix$.$C$.\id},
+it is directly specified that the class $C$ must declare
+a constructor with the name \code{$C$.\id}.
+In other words, the constructor is never determined via a lexical lookup,
+only the class.%
+}
 
 \LMHash{}%
-If{}f no constructor is specified for a class $C$, it implicitly has a default constructor \code{C() : \SUPER{}() \{\}}, unless $C$ is class \code{Object}.
+If{}f no constructor is specified for a class $C$,
+it implicitly has a default constructor \code{C():\ \SUPER()\ \{\}},
+unless $C$ is the built-in class \code{Object}.
 
 
 \subsubsection{Generative Constructors}
@@ -3523,8 +3538,6 @@ is a constructor prefaced by the built-in identifier
   \CONST? \FACTORY{} <constructorName> <formalParameterList>
 \end{grammar}
 
-%The enclosing scope of a factory constructor is the static scope \ref{} of the class in which it is declared.
-
 \LMHash{}%
 The return type of a factory whose signature is of the form \FACTORY{} $M$ or the form \FACTORY{} \code{$M$.\id} is $M$ if $M$ is not a generic type;
 otherwise the return type is \code{$M$<$T_1, \ldots,\ T_n$>} where $T_1, \ldots, T_n$ are the type parameters of the enclosing class.
@@ -3870,13 +3883,9 @@ for class \code{Object}.
 <mixins> ::= \WITH{} <typeNotVoidList>
 \end{grammar}
 
-%The superclass clause of a class C is processed within the enclosing scope of the static scope of C.
-%\commentary{
-%This means that in a generic class, the type parameters of the generic are available in the superclass clause.
-%}
-
 \LMHash{}%
-The scope of the \EXTENDS{} and \WITH{} clauses of a class $C$ is the type-parameter scope of $C$.
+The scope of the \EXTENDS{} and \WITH{} clauses of a class $C$ is
+the type-parameter scope of $C$.
 
 \LMHash{}%
 It is a compile-time error if the type in the \EXTENDS{} clause of a class $C$ is
