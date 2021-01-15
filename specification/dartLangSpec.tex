@@ -3082,17 +3082,18 @@ A constructor declaration may conflict with static member declarations
 
 \commentary{%
 A constructor declaration does not introduce a name into a scope.
-The resolution of an instance creation expression
-(\ref{new})
-to a particular constructor
-relies on the library scope to determine the class
-(possibly via an import prefix),
-and for a constructor denoted by \code{$C$.\id} or \code{$prefix$.$C$.\id},
-it is directly specified that the class $C$ must declare
-a constructor with the name \code{$C$.\id}.
-In other words, the constructor is never determined via a lexical lookup,
-only the class
-(\ref{functionExpressionInvocation}).%
+If a function expression invocation
+(\ref{functionExpressionInvocation})
+or an instance creation
+(\ref{instanceCreation})
+denotes a constructor as
+$C$, \code{$prefix$.$C$}, \code{$C$.\id}, or \code{\metavar{prefix}.$C$.\id},
+resolution relies on the library scope to determine the class
+(possibly via an import prefix).
+The class declaration is then directly checked for
+whether it has a constructor named $C$ respectively \code{$C$.\id}.
+It is not possible for an identifier to directly refer to a constructor,
+since the constructor is not in any scope used for resolving identifiers.%
 }
 
 \LMHash{}%
