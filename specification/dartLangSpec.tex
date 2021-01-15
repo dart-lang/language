@@ -37,6 +37,8 @@
 % - Bug fix: Change <qualifiedName> to omit the single identifier, then add it
 %   back when <qualifiedName> is used, as <typeIdentifier> resp. <identifier>.
 % - Clarify that a function-type bounded receiver has a `.call` method.
+% - Merge the 'static' and 'instance' scope of a class, yielding a single
+%   'class' scope.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -1592,11 +1594,6 @@ The body of a function declaration introduces a new scope known as the function'
 \IndexCustom{body scope}{scope!function body}.
 The body scope of a function $f$ is enclosed in the scope introduced by the formal parameter scope of $f$.
 
-%The formal parameter scope of a function maps the name of each formal parameter $p$ to the value $p$ is bound to.
-
-% The formal parameters of a function are processed in the enclosing scope of the function.
-% \commentary{this means that the parameters themselves may not be referenced within the formal parameter list.}
-
 \LMHash{}%
 It is a compile-time error if a formal parameter is declared as a constant variable (\ref{variables}).
 
@@ -2126,22 +2123,24 @@ The \IndexCustom{members}{members} of a class
 are its static and instance members.
 
 \LMHash{}%
-A class has several scopes:
+A class declaration introduces two scopes:
 \begin{itemize}
-\item A \IndexCustom{type-parameter scope}{scope!type parameter},
+\item
+  A \IndexCustom{type-parameter scope}{scope!type parameter},
   which is empty if the class is not generic (\ref{generics}).
-The enclosing scope of the type-parameter scope of a class is the enclosing scope of the class declaration.
-\item A \IndexCustom{static scope}{scope!static}.
-The enclosing scope of the static scope of a class is the type parameter scope (\ref{generics}) of the class.
-\item An \IndexCustom{instance scope}{scope!instance}.
-The enclosing scope of a class' instance scope is the class' static scope.
+  The enclosing scope of the type-parameter scope of a class declaration is
+  the library scope of the current library.
+\item
+  A \IndexCustom{class scope}{scope!class}.
+  The enclosing scope of the class scope of a class declaration is
+  the type parameter scope of the class declaration.
 \end{itemize}
 
 \LMHash{}%
-The enclosing scope of an instance member declaration is the instance scope of the class in which it is declared.
-
-\LMHash{}%
-The enclosing scope of a static member declaration is the static scope of the class in which it is declared.
+The current scope of an instance member declaration,
+a static member declaration,
+or a constructor declaration is
+the class scope of the class in which it is declared.
 
 \LMHash{}%
 The current instance
@@ -3073,21 +3072,35 @@ $[T_1/X_1, \ldots, T_m/X_m]F$,
 where $X_j, j \in 1 .. m$ are the formal type parameters of $C$
 and $T_j, j \in 1 .. m$ are specified in the given context.
 We may also omit such a substitution when the given context is
-the instance scope of $C$, where $X_1, \ldots, X_m$ are in scope.
+the class scope of $C$, where $X_1, \ldots, X_m$ are in scope.
 }
 
-\commentary{
+\commentary{%
 A constructor declaration may conflict with static member declarations
-(\ref{classMemberConflicts}).
+(\ref{classMemberConflicts}).%
 }
 
-% In what scope do constructors go? The simple names of named constructors go in the static scope of the class. Unnamed ones go nowhere, but we use the class name to refer to them; the class name could also in the static scope of the class as well to prevent weird errors, or we could ban it explicitly and avoiding duplication. Similarly, the instance scope could contain the constructor names and class name, or we could have special rules to prevent collisions between instance members and constructors or the class.
-
-% The enclosing scope of a generative constructor is the instance scope of the class in which it is declared (but what about redirecting?)
+\commentary{%
+A constructor declaration does not introduce a name into a scope.
+If a function expression invocation
+(\ref{functionExpressionInvocation})
+or an instance creation
+(\ref{instanceCreation})
+denotes a constructor as
+$C$, \code{$prefix$.$C$}, \code{$C$.\id}, or \code{\metavar{prefix}.$C$.\id},
+resolution relies on the library scope to determine the class
+(possibly via an import prefix).
+The class declaration is then directly checked for
+whether it has a constructor named $C$ respectively \code{$C$.\id}.
+It is not possible for an identifier to directly refer to a constructor,
+since the constructor is not in any scope used for resolving identifiers.%
+}
 
 \LMHash{}%
-If{}f no constructor is specified for a class $C$, it implicitly has a default constructor \code{C() : \SUPER{}() \{\}}, unless $C$ is class \code{Object}.
-
+If{}f no constructor is specified for a class $C$,
+it implicitly has a default constructor \code{C():\ \SUPER()\ \{\}},
+unless $C$ is the built-in class \code{Object}.
+%% TODO(eernst): With null safety, add `or \code{Null}`.
 
 \subsubsection{Generative Constructors}
 \LMLabel{generativeConstructors}
@@ -3523,8 +3536,6 @@ is a constructor prefaced by the built-in identifier
   \CONST? \FACTORY{} <constructorName> <formalParameterList>
 \end{grammar}
 
-%The enclosing scope of a factory constructor is the static scope \ref{} of the class in which it is declared.
-
 \LMHash{}%
 The return type of a factory whose signature is of the form \FACTORY{} $M$ or the form \FACTORY{} \code{$M$.\id} is $M$ if $M$ is not a generic type;
 otherwise the return type is \code{$M$<$T_1, \ldots,\ T_n$>} where $T_1, \ldots, T_n$ are the type parameters of the enclosing class.
@@ -3870,13 +3881,9 @@ for class \code{Object}.
 <mixins> ::= \WITH{} <typeNotVoidList>
 \end{grammar}
 
-%The superclass clause of a class C is processed within the enclosing scope of the static scope of C.
-%\commentary{
-%This means that in a generic class, the type parameters of the generic are available in the superclass clause.
-%}
-
 \LMHash{}%
-The scope of the \EXTENDS{} and \WITH{} clauses of a class $C$ is the type-parameter scope of $C$.
+The scope of the \EXTENDS{} and \WITH{} clauses of a class $C$ is
+the type-parameter scope of $C$.
 
 \LMHash{}%
 It is a compile-time error if the type in the \EXTENDS{} clause of a class $C$ is
@@ -5080,7 +5087,7 @@ operations where formal type parameters are replaced by actual type arguments.
 
 \LMHash{}%
 A \IndexCustom{generic class declaration}{class declaration!generic}
-introduces a generic class into the enclosing library scope.
+introduces a generic class into the library scope of the current library.
 A \IndexCustom{generic class}{class!generic}
 is a mapping that accepts a list of actual type arguments and maps them to a class.
 Consider a generic class declaration $G$ named $C$ with formal type parameter declarations
@@ -5210,7 +5217,7 @@ or it is the type \code{FutureOr}.
 
 \LMHash{}%
 A \IndexCustom{generic function declaration}{function declaration!generic}
-introduces a generic function (\ref{formalParameters}) into the enclosing scope.
+introduces a generic function (\ref{formalParameters}) into the current scope.
 
 \LMHash{}%
 Consider a function invocation expression of the form
@@ -5283,7 +5290,7 @@ This enables typechecking code such as:
 
 \end{dartCode}
 
-\commentary{
+\commentary{%
 Even where type parameters are in scope there are numerous restrictions at this time:
 \begin{itemize}
 \item[$\bullet$] A type parameter cannot be used to name a constructor in an instance creation expression (\ref{instanceCreation}).
@@ -5292,48 +5299,8 @@ Even where type parameters are in scope there are numerous restrictions at this 
 \end{itemize}
 
 The normative versions of these are given in the appropriate sections of this specification.
-Some of these restrictions may be lifted in the future.
+Some of these restrictions may be lifted in the future.%
 }
-
-%The {\em induced type set}, $S$, of a parameterized type $T$ is the set consisting of
-%\begin{itemize}
-%\item The supertypes of any type in $S$.
-%\item The type arguments of any parameterized type in $S$.
-%\end{itemize}
-
-%Let $P$ be the generic instantiation of a generic type with its own type parameters. It is a compile-time error if the induced type set of $P$ is not finite.
-
-%\rationale {A typical recursive type declaration such as}
-
-%\begin{dartCode}
-%\CLASS{} B<S> \{\}
-%\CLASS{} D<T> \EXTENDS{} B<D<T$>>$ \{\}
-%\end{dartCode}
-
-%\rationale{
-%poses no problem under this rule. The generic instantiation \code{D<T>} has an induced
-%set consisting of: \code{B<D<T$>>$, Object, D<T>, T}. However, the following variant
-%}
-
-%\begin{dartCode}
-%\CLASS{} B<S> \{\}
-%\CLASS{} D<T> \EXTENDS{} B<D<D<T$>>>$ \{\}
-%\end{dartCode}
-
-%\rationale{
-%is disallowed. Consider again the generic instantiation \code{D<T>}. It leads to the
-%superclass \code{B<D<D<T$>>>$}, and so adds \code{D<D$<$T$>>$} to the induced set. The latter in turn leads to \code{B<D<D<D<T$>>>>$} and \code{D<D<D<T$>>>$}
-%and so on ad infinitum.}
-
-%\commentary{
-%The above requirement does not preclude the use of arbitrary recursive types in the body of a generic class. }
-%A generic has a type parameter scope. The enclosing scope of a type parameter scope of a generic G is the enclosing scope of G.
-
-%class T {...}
-
-%class G<T> extends T;
-
-%By current rules, this is illegal. Make sure we preserve this.
 
 
 \subsection{Variance}
@@ -9792,10 +9759,6 @@ but no fresh instances are created as a direct consequence of
 the factory constructor invocation.
 }
 
-%It is a compile-time error if any of the type arguments to a constructor of a generic type invoked by a new expression or a constant object expression do not denote types in the enclosing lexical scope.
-
-%It is a compile-time error if a constructor of a non-generic type invoked by a new expression or a constant object expression is passed any type arguments. It is a compile-time error if a constructor of a generic type with $n$ type parameters invoked by a new expression or a constant object expression is passed $m$ type arguments where $m \ne n$, or if any of its type arguments is misconstructed (\ref{parameterizedTypes}).
-
 \LMHash{}%
 It is a compile-time error if
 the type $T$ in an instance creation expression of one of the forms
@@ -13969,7 +13932,7 @@ let $D$ be that declaration.
 
 \commentary{%
 A non-local variable declaration named \id{} will implicitly induce
-a getter \id{} and possibly a setter \code{\id=} into the enclosing scope.
+a getter \id{} and possibly a setter \code{\id=} into the current scope.
 This means that $D$ may denote an implicitly induced getter or setter
 rather than the underlying variable declaration.
 That is significant in the case where an error must arise
@@ -14035,7 +13998,7 @@ it is a compile-time error if $D$ is an instance member,
 and the interface of the enclosing class does not have a member named $n$.
 When $\ell$ does not have access to \THIS,
 it is a compile-time error if $D$ is an instance member.
-% An instance variable initializer is in the instance scope, so it is
+% An instance variable initializer is in the class scope, so it is
 % actually possible for $D$ to be an instance member here.
 \EndCase
 
@@ -14591,7 +14554,8 @@ Execution of a block statement $\{s_1, \ldots, s_n\}$ proceeds as follows:
 For $i \in 1 .. n, s_i$ is executed.
 
 \LMHash{}%
-A block statement introduces a new scope, which is nested in the lexically enclosing scope in which the block statement appears.
+A block statement introduces a new scope,
+whose enclosing scope is the current scope of the block statement.
 
 
 \subsection{Expression Statements}
@@ -14643,7 +14607,7 @@ has the following form:
 \LMHash{}%
 Each local variable declaration introduces
 a \IndexCustom{local variable}{variable!local}
-into the innermost enclosing scope.
+into the current scope.
 
 \commentary{
 Local variables do not induce getters and setters.
@@ -14814,7 +14778,7 @@ A function declaration statement of one of the forms
 \code{\id{} \metavar{signature} \{ \metavar{statements} \}}
 or
 \code{$T$ \id{} \metavar{signature} \{ \metavar{statements} \}}
-causes a new function named \id{} to be added to the innermost enclosing scope.
+causes a new function named \id{} to be added to the current scope.
 It is a compile-time error to reference a local function before its declaration.
 
 \commentary{
@@ -17407,12 +17371,10 @@ A type $T$ is \Index{malformed} if{}f:
 \begin{itemize}
 \item
   $T$ has the form \id{} or the form \code{\metavar{prefix}.\id},
-  and in the enclosing lexical scope,
-  the name \id{} (respectively \code{\metavar{prefix}.\id})
-  does not denote a type.
+  and it does not denote a declaration of a type.
 \item
-  $T$ denotes a type variable in the enclosing lexical scope,
-  but occurs in the signature or body of a static member.
+  $T$ denotes a type variable,
+  but it occurs in the signature or body of a static member.
 \item
   $T$ is a parameterized type of the form \code{$G$<$S_1, \ldots,\ S_n$>},
   and $G$ is malformed,
@@ -19285,13 +19247,16 @@ Comments may nest.
 \LMHash{}%
 \IndexCustom{Documentation comments}{documentation comments}
 are comments that begin with the tokens \code{///} or \code{/**}.
-Documentation comments are intended to be processed by a tool that produces human readable documentation.
+Documentation comments are intended to be processed by
+a tool that produces human readable documentation.
 
 \LMHash{}%
-The scope of a documentation comment immediately preceding the declaration of a class $C$ is the instance scope of $C$.
+The current scope for a documentation comment immediately preceding
+the declaration of a class $C$ is the class scope of $C$.
 
 \LMHash{}%
-The scope of a documentation comment immediately preceding the declaration of a function $f$ is the scope in force at the very beginning of the body of $f$.
+The current scope for a documentation comment immediately preceding
+the declaration of a function $f$ is the formal parameter scope of $f$.
 
 
 \subsection{Operator Precedence}
