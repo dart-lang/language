@@ -1558,7 +1558,7 @@ written to causes the initializer expression of the variable to be evaluated to
 a value, assigned to the variable or field, and returned as the value of the
 read.
   - If there is no initializer expression, the read causes a runtime error to be
-    thrown which is an instance of `LateInitializationError`.
+    thrown.
   - Evaluating the initializer expression may validly cause a write to the field
     or variable, assuming that the field or variable is not final.  In this
     case, the variable assumes the written value.  The final value of the
@@ -1574,19 +1574,19 @@ read.
     again.
 
 Let _D_ be a `late` and `final` non-local variable declaration named `v`
-without an initializing expression.  It is a run-time error, throwing an
-instance of `LateInitializationError`, to invoke the setter `v=` which is
+without an initializing expression.  
+It is a run-time error, to invoke the setter `v=` which is
 implicitly induced by _D_ if a value has previously been assigned to `v`
 (which could be due to an initializing formal or a constructor initializer
 list, or due to an invocation of the setter).
 
 Let _D_ be a `late` and `final` local variable declaration named `v`.  It is a
-run-time error, throwing an instance of `LateInitializationError`, to assign a
-value to `v` if a value has previously been assigned to `v`.
+run-time error, to assign a value to `v` if a value has previously
+been assigned to `v`.
 
 Note that this includes the implicit initializing writes induced by
 evaluating the initializer during a read.  Hence, the following program
-terminates with a `LateInitializationError` exception.
+terminates with an error.
 
 ```dart
 int i = 0;
