@@ -1,5 +1,10 @@
 # Dart "Small Features" 21Q1
 
+## Changelog
+
+- 2021-02-03: Initial version
+
+## Specification
 We have a [list](https://github.com/dart-lang/language/issues/1077) of smaller language enhancement features which are expected to be:
 
 * Non-breaking.
@@ -88,7 +93,7 @@ We reintroduce the `>>>` operator where it originally occurred in the Dart gramm
   \alt `\gtgt'
 ```
 
-Because this makes `>>>` an `<operator>` and a `<binaryOpartor>`, it directly enables `#>>>` to be written a `Symbol` literal, and it allows declaring `operator >>>` as an instance member with a single positional argument.
+Because this makes `>>>` an `<operator>` and a `<binaryOpartor>`, it directly enables `#>>>` to be written a `Symbol` literal, and it allows declaring `operator >>>` as an instance member with a single positional argument. As for any other `<operator>`, you can do composite assignment as `x >>>= y`.
 
 Further, the `Symbol` constructor must accept the string `">>>"` as argument and create a symbol equal to `#>>>` (identical if `const` invoked).
 
@@ -96,7 +101,7 @@ Some tests have already been committed, and the feature is currently under the `
 
 Very little actual change is expected since the `>>>` operator behaves equivalently to `>>` and `<<`, so the same code paths should apply as soon as we are past lexical analysis.
 
-When the operator has been enabled, we'll quickly (in the same dev-release series) introduce:
+When the operator has been enabled, we'll quickly (in the same dev-release series if possible, possibly early Q2) introduce:
 
 ```dart
 int operator >>>(int shift);
@@ -104,6 +109,6 @@ int operator >>>(int shift);
 
 on the `int` class, which will work similarly to `>>`, but will zero-extend instead of sign-extend. 
 
-At that point, the `>>>` operator on `int` must be **valid in constant and potentially constant expressions**, so `1 << 3` is a compile-time constant expression with the value `8`, and `const C(int x) : y = 1 << x;` is valid (although potentially throwing if `x > 63`) as a constant constructor.
+At that point, the `>>>` operator on `int` must be **valid in constant and potentially constant expressions**, so `0x40 >>> 3` is a compile-time constant expression with the value `8`, and `const C(int x) : y = 0xFFFFFFFF >>> x;` is valid (although potentially throwing if `x > 63`) as a constant constructor.
 
 Backends may want to optimize this to use available bitwise shift operations (like `>>>` in JavaScript), and intrinsify the function if possible. This can be done at any later time, though.
