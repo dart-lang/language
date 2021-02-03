@@ -134,6 +134,9 @@ The Dart library team introduces `int.operator>>>` as soon as possible.
 The language team adds the feature to the CHANGELOG. They write some sort of
 announcement email or blog post.
 
+The language tour needs to be updated to mention `>>>` as a user definable
+operator.
+
 ## Phase 4 (Clean-up)
 
 ### Remove flag
