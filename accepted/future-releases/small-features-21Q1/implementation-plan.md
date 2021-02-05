@@ -93,8 +93,7 @@ There are no new quick-fixes needed.
 
 ### VS Code and Github grammar
 
-Update the (syntax highlighting grammar)[https://github.com/dart-lang/dart-syntax-highlight] to support
-the control flow syntax.
+Update the (syntax highlighting grammar)[https://github.com/dart-lang/dart-syntax-highlight] to support the new syntax.
 
 ### VM
 
