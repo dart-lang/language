@@ -91,18 +91,10 @@ The analyzer should likely recognize the grammar even without the experiment fla
 
 There are no new quick-fixes needed.
 
-### Atom plug-in
+### VS Code and Github grammar
 
-The [Dart Atom plug-in][atom] has a grammar for syntax highlighting Dart code in
-Atom. This same grammar is also used for syntax highlighting on GitHub. Update
-this to handle the new syntax.
-
-[atom]: https://github.com/dart-atom/dart
-
-### VS Code
-
-Update the syntax highlighting grammar to support the control flow syntax (and,
-likely apply a very similar diff to the Atom grammar above).
+Update the (syntax highlighting grammar)[https://github.com/dart-lang/dart-syntax-highlight] to support
+the control flow syntax.
 
 ### VM
 
