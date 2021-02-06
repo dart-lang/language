@@ -19,7 +19,7 @@ The implementation plan for this issue is <link to implementation plan>.
 - [ ] Issue for implementation in DDC:
 - [ ] Issue for implementation in CFE:
 - [ ] Issue for implementation in Analyzer:
-- [ ] Issue for implementation in Intellij:
+- [ ] Issue for implementation in IntelliJ:
 - [ ] Issue for implementation in [Github syntax highlighting](https://github.com/dart-lang/dart-syntax-highlight/):
 - [ ] Issue for copying Github grammar for use with VS Code:
 - [ ] Issue for implementation in Grok:
@@ -29,7 +29,7 @@ The implementation plan for this issue is <link to implementation plan>.
 - [ ] Issue for implementation in build systems and Angular compiler:
 - [ ] Issue for VM Service support:
 - [ ] Issue for web debugging support:
-- [ ] Issue for [codemirror support](https://github.com/codemirror/CodeMirror/) (Cider, dartpad):
+- [ ] Issue for [CodeMirror support](https://github.com/codemirror/CodeMirror/) (Cider, DartPad):
 - [ ] Issue for language tests:
 - [ ] Issue for documentation:
 - [ ] Issue for specification:
