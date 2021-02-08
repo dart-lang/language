@@ -7850,7 +7850,9 @@ also called an \NoIndex{object sequence} when no ambiguity can arise.
 
 \LMHash{}%
 We use the notation
-\IndexCustom{\LiteralSequence{\ldots}}{[[...]]@\LiteralSequence{\ldots}}
+% `\LiteralSequence` cannot be used after `@`, so we use an approximation.
+\IndexCustom{\LiteralSequence{\ldots}}{[[...]]@%
+  \ensuremath{[\hspace{-0.6mm}[\ldots]\hspace{-0.6mm}]}}
 to denote an object sequence with explicitly listed elements,
 and we use `$+$' to compute the concatenation of object sequences
 (\commentary{as in $s_1 + s_2$}),
