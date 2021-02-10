@@ -19501,9 +19501,14 @@ This introduces a number of differences:
 \item[$\bullet$]
   Bitwise operations on integers (and, or, xor, negation, and shifts)
   all truncate the operands to 32-bit two's complement integers,
-  perform 32-bit operations on those,
-  and the resulting 32 bits are interpreted as a 32-bit unsigned integer
-  (for example, \code{-1 <{}< 1} evaluates to 4294967294).
+  perform 32-bit operations on those, and the resulting 32 bits are
+  interpreted as a 32-bit unsigned integer. For example,
+  \code{-1\,\ltlt\,1} evaluates to 4294967294. The right shift
+  operator, \lit{\gtgt}, performs a signed shift when the sign bit of
+  the JavaScript number is 1, and an unsigned shift when it is 0. For
+  example, with one in bits 1 and 31 and zeros elsewhere the shift is
+  unsigned in \code{0x80000002\ \gtgt\ 1\ ==\ 0x40000001}, and signed in
+  \code{-0x7ffffffe\ \gtgt\ 1\ ==\ 0xc0000001}.
 \item[$\bullet$]
   The \code{identical} method cannot distinguish the values $0.0$ and
   $-0.0$, and it cannot recognize any \Index{NaN} value as identical
