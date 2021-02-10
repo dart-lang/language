@@ -244,6 +244,8 @@ From these sample use cases and others, we can generalize some requirements:
   class code generator for instance would ideally be a combination of several
   more targeted code generators for each of the desired features (`copyWith()`,
   `==`, `hashCode`, etc).
+* **Generated code must be debuggable and user visible**. See the Usability
+  section below.
 
 ## Design constraints
 
@@ -394,11 +396,14 @@ between macro defining libraries.
 
 Macros can easily lead to incomprehensible programs if they become overly
 magical, or are a complete black box to the user. In order to demystify macros
-you would ideally be able to easily navigate to their implementation code, as
-well as visualize in some way the code they generated in your program.
+you should:
 
-When errors occur in generated code, how does the user trace backwards to
-understand where that code came from and how it was generated?
+* Be able to easily navigate to their implementation code.
+* Be able to visualize in some way the code they generated in your program, at
+  development time.
+* Be able to debug generated code (step through it, etc).
+* Be able to trace errors that flow through generated code, as well as navigate
+  back to the line in the macro implementation that produced the code.
 
 ### Performance
 
