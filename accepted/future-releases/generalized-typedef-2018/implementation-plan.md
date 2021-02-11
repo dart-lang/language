@@ -49,7 +49,7 @@ declarations and usages in the following situations:
 The co19 team start creating tests early, such that those tests can be
 used during implementation as well.
 
-### Phase 1 (Implementation)
+### Phase 1 (Analyzer and CFE Implementation)
 
 All tools implement syntactic support for type aliases of the form
 
@@ -62,14 +62,35 @@ where `type` can be any type, rather than just a function type.
 All tools implement support for using such type aliases, in all situations
 mentioned under phase 0.
 
-### Phase 2 (Release)
+### Phase 2 (IDE tooling and Documentation)
 
-The feature is released as part of the next stable Dart release.
+IDEs and other tools which consume/display Dart code should be updated to handle
+the new syntax.
 
-## Timeline
+IDE support for any desired quick fixes, refactors, go-to-definition, etc should
+be implemented and validated as necessary.
 
-Completion goals for the phases:
+Dartdoc support validated.
 
-- Phase 0: (TODO)
-- Phase 1: (TODO)
-- Phase 2: (TODO)
+Dart format support validated.
+
+Documentation landed.
+
+### Phase 3 (Core libraries and frameworks)
+
+Validate that frameworks (Angular) work correctly with generalized typedefs.
+
+Consider whether we wish to add any typedefs to the core libraries and/or
+Flutter at release.
+
+
+### Phase 4 (Release)
+
+This feature is currently targetted to be released at the start of Q2.
+
+Prior to release, all tests relying on the experiment flag should be passing (or
+known to be incorrect tests).
+
+After the flag is flipped, all tests using the flag should have the flag
+removed.
+
