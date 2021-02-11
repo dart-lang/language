@@ -262,6 +262,9 @@ ensure that we don't compromise the existing advantages of Dart.
   workflow—any change in the program should not have to rerun all
   metaprogramming in the entire program. It should at worst require a rerun of
   the metaprogramming in libraries that depend on the modified library.
+* **Must support expression evaluation**. Expression evaluation is a vital tool
+  for the development experience and we need to ensure it is not negatively
+  affected.
 
 For the most part the design constraints here align with the modular compilation
 design constraints. In short, metaprogramming should not introduce global action
@@ -354,7 +357,9 @@ accumulate imperative features or end up replaced by those that do.
 
 In the Dart ecosystem, in the absence of metaprogramming in the language, users
 often resort to code generators. Some of those are quite sophisticated and are
-written in imperative Dart code.
+written in imperative Dart code. These typically take the form of kernel
+transformers or separate build processes like build_runner which run before the
+compilers and are not directly integrated.
 
 Rust has a nice [declarative, rule-based macro system][rust_declarative_macros].
 But, because that rule-based system is limited, Rust also has a second
@@ -389,6 +394,9 @@ both are applied to the same class, does the memoized field get serialized?
 Do macros run before type checking, after, or interleaved? What is the static
 type context in which a macro runs?
 
+How do macros interact with const canonicalization and evaluation, do they run
+before, after, or interleaved? Can macros read const values *and* generate them?
+
 There are additional considerations if we allow recursive macros, and cycles
 between macro defining libraries.
 
@@ -398,12 +406,14 @@ Macros can easily lead to incomprehensible programs if they become overly
 magical, or are a complete black box to the user. In order to demystify macros
 you should:
 
-* Be able to easily navigate to their implementation code.
-* Be able to visualize in some way the code they generated in your program, at
+* Be able to easily navigate to the macro implementation.
+* Be able to visualize in some way the code generated into your program, at
   development time.
 * Be able to debug generated code (step through it, etc).
+  * Possibly provide an opt out for this, if feasible/desirable.
 * Be able to trace errors that flow through generated code, as well as navigate
   back to the line in the macro implementation that produced the code.
+* Be able to auto-complete macro generated apis.
 
 ### Performance
 
