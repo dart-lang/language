@@ -28,9 +28,9 @@ The language specification is already updated with this feature.
 ### Phase 1 (Implementation)
 
 All tools implement syntactic support for the `>>>` operator.
-The syntax is guarded by the experiments flag `tripple-shift`,
+The syntax is guarded by the experiments flag `triple-shift`,
 so to enable the syntax, the tools need to be passed a flag
-like `--enable-experiments=tripple-shift`.
+like `--enable-experiments=triple-shift`.
 
 This also includes all derived syntax required by the specification, 
 including the `>>>=` assignment oprator and the `#>>>` symbol.

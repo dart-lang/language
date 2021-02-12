@@ -15,12 +15,12 @@ We have a [list](https://github.com/dart-lang/language/issues/1077) of smaller l
 For the first quarter of 2021, we schedule three of these:
 
 1. Allow type arguments on annotations ([#1297](https://github.com/dart-lang/language/issues/1297)).
-2. Allow generic function types as type arguments ([#496](https://github.com/dart-lang/language/issues/496)).
+2. Allow generic function types as type arguments and bounds ([#496](https://github.com/dart-lang/language/issues/496)).
 3. Allow `>>>` as an overridable operator ([#120](https://github.com/dart-lang/language/issues/120)).
 
 Allowing type arguments for annotations removes an unnecessary historical restriction on annotation syntax, and the VM team have a vested interest in the feature for use in `dart:ffi`. This feature was chosen because of a pressing need for it.
 
-Allowing generic functions as type arguments is a restriction originally introduced as a precautionary measure, because it wasn't clear that the type system wouldn't become undecidable without it. We don't *think* that's a problem, and it's been a tripwire for people writing, e.g., lists of generic functions, where the type inference would infer a type argument that the compiler then reported as invalid. This feature was chosen because it is related to the previous change, and is expected to be very minor in scope.
+Allowing generic functions as type arguments and bounds is a restriction originally introduced as a precautionary measure, because it wasn't clear that the type system wouldn't become undecidable without it. We don't *think* that's a problem, and it's been a tripwire for people writing, e.g., lists of generic functions, where the type inference would infer a type argument that the compiler then reported as invalid. This feature was chosen because it is related to the previous change, and is expected to be very minor in scope.
 
 Reintroducing the `>>>` operator was intended for Dart 2.0, but was repeatedly postponed as not important. We do want it for the unsigned shift of integers, and it's been mostly implemented on some of our platforms already. This feature was chosen because it is already half-way implemented.
 
@@ -66,20 +66,21 @@ The largest expected effort for this implementation is the analyzer adding a pla
 
 If type arguments are allowed and omitted, the types are inferred from the types of the arguments to the constructor, as for any other constant invocation. This already happens (checked in VM with `dart:mirrors`), so no change is necessary.
 
-## Allow generic function types as type arguments
+## Allow generic function types as type arguments and bounds
 
-The language disallows generic function types as type arguments.
+The language disallows generic function types as type arguments and bounds.
 
 ```dart
-List<T Function<T>(T)> idFunctions; // INVALID
+late List<T Function<T>(T)> idFunctions; // INVALID.
 var callback = [foo<T>(T value) => value]; // Inferred as above, then invalid.
+late S Function<S extends T Function<T>(T)>(S) f; // INVALID.
 ```
 
-We remove that restriction, so a type argument *can* be a generic function type.
+We remove that restriction, so a type argument and a bound *can* be a generic function type.
 
 This requires no new syntax, and in some cases only the removal of a single check. There might be some platforms where the implementation currently assumes that generic function types cannot occur as the value of type variables (an proof-of-concept attempt hit an assert in the VM). Such assumptions will need to be flushed out with tests and fixed.
 
-Because we already infer `List<T Function<T>(T)>` in the code above, this change will not affect type inference, it will just make the inferred type not be an error afterwards.
+Because we already infer `List<T Function<T>(T)>` in the code above, this change will not affect type inference, it will just make the inferred type not be an error afterwards.
 
 We do not expect the removal of this restriction to affect the feasibility of type inference. After all, it's already possible to have a generic function type occurring covariantly in a type argument, like `List<T Function<T>(T) Function()>`.
 
