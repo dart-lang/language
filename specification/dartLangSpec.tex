@@ -423,7 +423,7 @@ An example would be:
   \alt <oneOrMoreThings>+
   \alt <anOptionalThing>?
   \alt (<some> <grouped> <things>)
-  \alt \gtilde{}<notAThing>
+  \alt \gtilde<notAThing>
   \alt `aTerminal'
   \alt <A\_LEXICAL\_THING>
 \end{grammar}
@@ -2383,7 +2383,7 @@ The following names are allowed for user-defined operators:
 \lit{-},
 \lit{+},
 \lit{/},
-\lit{\gtilde{}/},
+\lit{\gtilde/},
 \lit{*},
 \lit{\%},
 \lit{|},
@@ -2394,7 +2394,7 @@ The following names are allowed for user-defined operators:
 \lit{\gtgt},
 \lit{[]=},
 \lit{[]},
-\lit{\gtilde{}}.
+\lit{\gtilde}.
 
 \LMHash{}%
 It is a compile-time error if the arity of the user-declared operator
@@ -2407,7 +2407,7 @@ It is a compile-time error if the arity of a user-declared operator with one of 
 \lit{==},
 \lit{-},
 \lit{+},
-\lit{\gtilde{}/},
+\lit{\gtilde/},
 \lit{/},
 \lit{*},
 \lit{\%},
@@ -6579,7 +6579,7 @@ are the following:
   \end{enumerate}
 
 \item
-  An expression of the form \code{\gtilde{}$e_1$} is
+  An expression of the form \code{\gtilde$e_1$} is
   a potentially constant expression
   if $e_1$ is a potentially constant expression.
   It is further a constant expression if $e_1$ is
@@ -6596,14 +6596,14 @@ are the following:
   \lit{\&}, \lit{|}, respectively \lit{\^}
   denotes an instance operator invocation.
 
-\item An expression of one of the forms \code{$e_1$\,\gtilde{}/\,$e_2$},
+\item An expression of one of the forms \code{$e_1$\,\gtilde/\,$e_2$},
   \code{$e_1$\,\gtgt\,$e_2$}, \code{$e_1$\,\gtgtgt\,$e_2$},
   or \code{$e_1$\,\ltlt\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
   It is further constant if both $e_1$ and $e_2$ are constant expressions that
   both evaluate to an instance of \code{int},
   such that the operator symbol
-  \lit{\gtilde{}/}, \lit{\gtgt}, \lit{\gtgtgt}, respectively \lit{\ltlt}
+  \lit{\gtilde/}, \lit{\gtgt}, \lit{\gtgtgt}, respectively \lit{\ltlt}
   denotes an instance operator invocation.
 
 \item An expression of the form \code{$e_1$\,+\,$e_2$} is
@@ -6772,8 +6772,8 @@ some compile-time errors may manifest quite late:%
 }
 
 \begin{dartCode}
-\CONST{} x = 1 \gtilde{}/ 0;
-\FINAL{} y = 1 \gtilde{}/ 0;
+\CONST{} x = 1 \gtilde/ 0;
+\FINAL{} y = 1 \gtilde/ 0;
 \\
 \CLASS{} K \{
   m1() \{
@@ -7157,12 +7157,12 @@ A string can be a sequence of single line strings and multiline strings.
        (<SINGLE\_LINE\_STRING\_DQ\_MID\_MID> <expression>)* \gnewline{}
        <SINGLE\_LINE\_STRING\_DQ\_MID\_END>
 
-<RAW\_SINGLE\_LINE\_STRING> ::= `r' `\sq' (\gtilde{}(`\sq' | `\\r' | `\\n'))* `\sq'
-  \alt `r' `"' (\gtilde{}(`"' | `\\r' | `\\n'))* `"'
+<RAW\_SINGLE\_LINE\_STRING> ::= `r' `\sq' (\gtilde(`\sq' | `\\r' | `\\n'))* `\sq'
+  \alt `r' `"' (\gtilde(`"' | `\\r' | `\\n'))* `"'
 
-<STRING\_CONTENT\_COMMON> ::= \gtilde{}(`\\' | `\sq' | `"' | `$' | `\\r' | `\\n')
+<STRING\_CONTENT\_COMMON> ::= \gtilde(`\\' | `\sq' | `"' | `$' | `\\r' | `\\n')
   \alt <ESCAPE\_SEQUENCE>
-  \alt `\\' \gtilde{}(`n' | `r' | `b' | `t' | `v' | `x' | `u' | `\\r' | `\\n')
+  \alt `\\' \gtilde(`n' | `r' | `b' | `t' | `v' | `x' | `u' | `\\r' | `\\n')
   \alt <SIMPLE\_STRING\_INTERPOLATION>
 
 <STRING\_CONTENT\_SQ> ::= <STRING\_CONTENT\_COMMON> | `"'
@@ -12119,8 +12119,8 @@ The \Index{closurization of method} $f$ on object $o$
 is defined to be equivalent
 (\commentary{except for equality, as noted below}) to:
 \begin{itemize}
-%\item $(a) \{\RETURN{}$ $u$ $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde{}/, *, \%, $|$, \^{}, \&, $<<$, $>>$} (this precludes closurization of unary -).
-%\item $() \{\RETURN{}$ \gtilde{} $u;$\} if $f$ is named \gtilde{}.
+%\item $(a) \{\RETURN{}$ $u$ $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde/, *, \%, $|$, \^{}, \&, $<<$, $>>$} (this precludes closurization of unary -).
+%\item $() \{\RETURN{}$ \gtilde{} $u;$\} if $f$ is named \gtilde.
 %\item $(a) \{\RETURN{}$ $u[a];$\} if $f$ is named \code{[]}.
 %\item $(a, b) \{\RETURN{}$ $u[a] = b;$\} if $f$ is named \code{[]=}.
 \item
@@ -12258,8 +12258,8 @@ is defined to be equivalent
 
 \LMHash{}%
 \begin{itemize}
-%\item $(a) \{\RETURN{}$ \SUPER{} $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde{}/, *, \%, $|$, \^{}, \&, $<<$, $>>$}.
-%\item $() \{\RETURN{}$ \gtilde{}\SUPER;\} if $f$ is named \gtilde{}.
+%\item $(a) \{\RETURN{}$ \SUPER{} $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde/, *, \%, $|$, \^{}, \&, $<<$, $>>$}.
+%\item $() \{\RETURN{}$ \gtilde\SUPER;\} if $f$ is named \gtilde.
 %\item $(a) \{\RETURN{}$ $\SUPER[a];$\} if $f$ is named \code{[]}.
 %\item $(a, b) \{\RETURN{}$ $\SUPER[a] = b;$\} if $f$ is named \code{[]=}.
 \item
@@ -16190,7 +16190,7 @@ The members of a library $L$ are those top level declarations given within $L$.
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
   \gnewline{} (<metadata> <topLevelDeclaration>)* <EOF>
 
-<scriptTag> ::= `#!' (\gtilde{}<NEWLINE>)* <NEWLINE>
+<scriptTag> ::= `#!' (\gtilde<NEWLINE>)* <NEWLINE>
 
 <libraryName> ::= <metadata> \LIBRARY{} <dottedIdentifierList> `;'
 
@@ -19230,7 +19230,7 @@ A \Index{reserved word} may not be used as an identifier; it is a compile-time e
 are sections of program text that are used for documentation.
 
 \begin{grammar}
-<SINGLE\_LINE\_COMMENT> ::= `//' \gtilde{}(<NEWLINE>)* (<NEWLINE>)?
+<SINGLE\_LINE\_COMMENT> ::= `//' \gtilde(<NEWLINE>)* (<NEWLINE>)?
 
 <MULTI\_LINE\_COMMENT> ::= \gnewline{}
   `/*' (<MULTI\_LINE\_COMMENT> | \gtilde{} `*/')* `*/'
@@ -19278,9 +19278,9 @@ Description & Operator & Associativity & Precedence \\
 Unary postfix & \code{$e$.}, \code{$e$?.}, \code{$e$++}, \code{$e$-{}-}, \code{$e1$[$e2$]},
 \code{$e$()} & None & 16 \\
 \hline
-Unary prefix & \code{-$e$}, \code{!$e$}, \code{\gtilde{}$e$}, \code{++$e$}, \code{-{}-$e$}, \code{\AWAIT{} $e$} & None & 15\\
+Unary prefix & \code{-$e$}, \code{!$e$}, \code{\gtilde$e$}, \code{++$e$}, \code{-{}-$e$}, \code{\AWAIT{} $e$} & None & 15\\
 \hline
-Multiplicative & \code{*}, \code{/}, \code{\gtilde{}/}, \code{\%} & Left & 14\\
+Multiplicative & \code{*}, \code{/}, \code{\gtilde/}, \code{\%} & Left & 14\\
 \hline
 Additive & \code{+}, \code{-} & Left & 13\\
 \hline
@@ -19499,11 +19499,20 @@ This introduces a number of differences:
   common subclass implementing both \code{int} and \code{double}.
   Fractional numbers only implement \code{double}.
 \item[$\bullet$]
-  Bitwise operations on integers (and, or, xor, negation, and shifts)
-  all truncate the operands to 32-bit two's complement integers,
-  perform 32-bit operations on those,
-  and the resulting 32 bits are interpreted as a 32-bit unsigned integer
-  (for example, \code{-1 <{}< 1} evaluates to 4294967294).
+  Bitwise operations on integers (\lit{\&}, \lit{|}, \lit{\^},
+  \lit{\gtilde}, \lit{\ltlt}, and \lit{\gtgt}) all truncate the
+  operands to 32-bit two's complement integers, perform 32-bit
+  operations on those, and the resulting 32 bits are interpreted as a
+  32-bit unsigned integer. For example, \code{-1\,\ltlt\,1} evaluates
+  to 4294967294 (also known as \code{(-2).toUnsigned(32)}. The right
+  shift operator, \lit{\gtgt}, performs a signed right shift on the
+  32 bits when the original number is negative, and an unsigned right
+  shift when the original number is non-negative.  For example:
+  \code{0x80000002\,\gtgt\,1\ ==\ 0x40000001}, but
+  \code{-0x7FFFFFFD\,\gtgt\,1\ ==\ 0xC0000001}
+  (where we note that both \code{0x80000002} and \code{-0x7FFFFFFD}
+  yield the 32-bit two's complement representation \code{0x80000002},
+  but have different values for the IEEE 754 sign bit).
 \item[$\bullet$]
   The \code{identical} method cannot distinguish the values $0.0$ and
   $-0.0$, and it cannot recognize any \Index{NaN} value as identical
