@@ -12,8 +12,9 @@ Status: Draft
 
 ## Introduction
 
-This specifies support for extension types in Dart as an enhancement of the
-extension methods mechanism that Dart has supported since version 2.6.
+This document specifies support for a feature known as extension types,
+which is an enhancement of the extension methods mechanism that Dart has
+supported since version 2.6.
 
 An _extension type_ is a zero-cost abstraction mechanism that allows
 developers to replace the set of available operations on a given object
