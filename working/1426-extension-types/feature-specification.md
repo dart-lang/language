@@ -583,12 +583,20 @@ _E_, and with a single argument constructor setting that field to the
 argument. A getter `E.class get box` is implicitly induced in _E_, and it
 returns an object that wraps `this`.
 
-In the case where it would be a compile-time error to declare such a member
-named `box`, the member is not induced.
+`E.class` also implicitly induces a getter `E get unbox` which returns the
+value of the final field mentioned above.
 
-*The latter rule helps avoiding conflicts in situations where `box` is a
-non-hidden instance member, and it allows developers to write their own
-declaration of `box` if needed.*
+*In the case where the extension type is protected, the `unbox` getter
+cannot be written in Dart (because a cast to `E` is then a compile-time
+error), so `unbox` must be a language feature in this case. For
+convenience, it is induced implicitly for all extension types.*
+
+In the case where it would be a compile-time error to declare such a member
+named `box` or `unbox`, said member is not induced.
+
+*The latter rule helps avoiding conflicts in situations where `box` or
+`unbox` is a non-hidden instance member, and it allows developers to write
+their own implementations if needed.*
 
 
 ## Dynamic Semantics
