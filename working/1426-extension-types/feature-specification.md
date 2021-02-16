@@ -196,7 +196,7 @@ following:
 ```ebnf
 <extensionDeclaration> ::=
   'protected'? 'extension' 'type'? <identifier>? <typeParameters>?
-      <extensionShowHidePart> 'on' <type> '{'
+      <extensionShowHidePart> 'on' <type> <interfaces>? '{'
     (<metadata> <extensionMemberDefinition>)* 
   '}'
 
@@ -432,6 +432,36 @@ void main() {
 ```
 
 
+### Implementing superinterfaces
+
+This section specifies the effect of having an `<interfaces>` part in an
+extension declaration.
+
+Let `E` be an extension declaration where `<interfaces>?` is of the form
+`implements T1, .. Tm`. We say that `E` has `T1` .. `Tm` as its direct
+superinterfaces.
+
+A compile-time error occurs if a direct superinterface does not denote a
+class, or if it denotes a class which cannot be a superinterface of a
+class.
+
+*For instance, `implements int` is an error.*
+
+For each member `m` named `n` in each direct superinterface of `E`, an
+error occurs unless `E` declares a member `m1` named `n` which is a correct
+override of `m`, or the show/hide part of `E` enables an instance member of
+the on-type which is a correct override of `m`.
+
+No subtype relationship exists between `E` and `T1, .. Tm`.
+
+*This means that when an extension type implements a set of interfaces, it
+is enforced that all the specified members are available, and that they
+have a signature which is compatible with the ones in `T1, .. Tm`, but
+there is no assignability from an expression of type `E` to a variable
+whose declared type is `Tj` for some `j` in 1..m. For that, it is necessary
+to use `box`, as described below.*
+
+
 ### Invariant enforcement through introduction: Protected extension types
 
 This section specifies the effect of including the keyword `protected` as
@@ -547,10 +577,11 @@ on-type. So it's a wrapper with the same interface as the extension type.*
 
 Let _E_ be an explicit extension type. The declaration of _E_ implicitly
 induces a declaration of a class `E.class` with the same type parameters
-and members as _E_, subclass of `Object`, with a final field whose type
-is the on-type of _E_, and with a single argument constructor setting that
-field to the argument. A getter `E.class get box` is implicitly induced in
-_E_, and it returns an object that wraps `this`.
+and members as _E_, subclass of `Object`, with the same direct
+superinterfaces as `E`, with a final field whose type is the on-type of
+_E_, and with a single argument constructor setting that field to the
+argument. A getter `E.class get box` is implicitly induced in _E_, and it
+returns an object that wraps `this`.
 
 In the case where it would be a compile-time error to declare such a member
 named `box`, the member is not induced.
