@@ -39,6 +39,7 @@
 % - Clarify that a function-type bounded receiver has a `.call` method.
 % - Merge the 'static' and 'instance' scope of a class, yielding a single
 %   'class' scope.
+% - Add specification of `>>` in JavaScript compiled code, in appendix.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -19507,12 +19508,15 @@ This introduces a number of differences:
   to 4294967294 (also known as \code{(-2).toUnsigned(32)}. The right
   shift operator, \lit{\gtgt}, performs a signed right shift on the
   32 bits when the original number is negative, and an unsigned right
-  shift when the original number is non-negative.  For example:
+  shift when the original number is non-negative. Both kinds of shift
+  writes bit $k+1$ into position $k$, $0 \leq k < 31$; but the signed
+  shift leaves bit 31 unchanged, and the unsigned shift writes a 0
+  as bit 31. For example:
   \code{0x80000002\,\gtgt\,1\ ==\ 0x40000001}, but
-  \code{-0x7FFFFFFD\,\gtgt\,1\ ==\ 0xC0000001}
-  (where we note that both \code{0x80000002} and \code{-0x7FFFFFFD}
+  \code{-0x7FFFFFFE\,\gtgt\,1\ ==\ 0xC0000001}.
+  In this example we note that both \code{0x80000002} and \code{-0x7FFFFFFE}
   yield the 32-bit two's complement representation \code{0x80000002},
-  but have different values for the IEEE 754 sign bit).
+  but they have different values for the IEEE 754 sign bit.
 \item[$\bullet$]
   The \code{identical} method cannot distinguish the values $0.0$ and
   $-0.0$, and it cannot recognize any \Index{NaN} value as identical
