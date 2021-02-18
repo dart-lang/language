@@ -261,10 +261,11 @@ following:
   <type> | <identifier> | 'operator' <operator>
 ```
 
-*Note that `<type>` derives `<typeIdentifier>`, which makes `<identifier>`
-nearly redundant. However, `<identifier>` is still needed because it
-includes some strings that cannot be the name of a type, e.g., the built-in
-identifiers.*
+*In the rule `<extensionShowHideElement>`, note that `<type>` derives
+`<typeIdentifier>`, which makes `<identifier>` nearly redundant. However,
+`<identifier>` is still needed because it includes some strings that cannot
+be the name of a type but can be the basename of a member, e.g., the
+built-in identifiers.*
 
 
 ## Static Analysis
@@ -413,6 +414,19 @@ type explicitly says `type`, and the extension type must be the static type
 of a receiver in order to invoke any members of the extension type, which
 is achieved by explicitly declaring it as a variable type, a return type,
 etc.*
+
+Let `E` be an explicit extension type declaration, and consider an
+occurrence of an identifier expression `id` in the body of an instance
+member of `E`. If a lexical lookup of `id` yields a declaration of a
+member of `E`, the expression is treated as `let v = this in v.id`
+where the static type of `v` is the enclosing extension type `E`.
+A similar rule holds for function invocations of the form `id(args)`, and
+for operator invocations of the form `this OP arg` or `OP arg`.
+
+*This means that members of `E` can be invoked implicitly on `this` inside
+`E`, just like the members in a non-explicit extension declaration. Another
+way to describe this rule is that it makes `E` non-explicit inside the body
+of `E`, but only when the receiver is `this`.*
 
 An explicit extension declaration may declare one or more non-redirecting
 factory constructors. A factory constructor which is declared in an
