@@ -8,7 +8,7 @@ Status: Draft
 ## Change Log
 
 2021.02.15
-  - Initial version, based on 
+  - Initial version, based on
     [language issue 1426](https://github.com/dart-lang/language/issues/1426).
 
 
@@ -242,9 +242,9 @@ following:
 
 ```ebnf
 <extensionDeclaration> ::=
-  'protected'? 'extension' ('type'? <identifier> <typeParameters>?)?
+  'protected'? 'extension' ('type'? <typeIdentifier> <typeParameters>?)?
       <extensionShowHidePart> 'on' <type> <interfaces>? '{'
-    (<metadata> <extensionMemberDefinition>)* 
+    (<metadata> <extensionMemberDefinition>)*
   '}'
 
 <extensionShowHidePart> ::=
@@ -254,7 +254,7 @@ following:
 
 <extensionHideClause> ::= 'hide' <extensionShowHideList>
 
-<extensionShowHideList> ::= 
+<extensionShowHideList> ::=
   <extensionShowHideElement> (',' <extensionShowHideElement>)*
 
 <extensionShowHideElement> ::=
@@ -319,8 +319,8 @@ show/hide part specified in a later section).*
 Let `E` be an extension declaration named `Ext` with type parameters
 <code>X<sub>1</sub> extends B<sub>1</sub>, .. X<sub>k</sub> extends B<sub>k</sub></code>
 and on-type clause `on T`. Then we say that the _declared on-type_ of `Ext`
-is `T`, and the _instantiated on-type_ of 
-<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code> 
+is `T`, and the _instantiated on-type_ of
+<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code>
 is
 <code>[S<sub>1</sub>/X<sub>1</sub>, .. S<sub>k</sub>/X<sub>k</sub>]T</code>.
 We will omit 'declared' and 'instantiated' from the phrase when it is clear
@@ -328,7 +328,7 @@ from the context whether we are talking about the extension itself or a
 particular instantiation of a generic extension. For non-generic
 extensions, the on-type is the same in either case.
 
-An extension type `E` of the form 
+An extension type `E` of the form
 <code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code>
 is a subtype of `Object?`, and a proper supertype of the
 instantiated on-type of `E`. In the case where the instantiated on-type of
@@ -378,16 +378,20 @@ the typical usage for the extension methods mechanism that Dart has had
 since version 2.6, and it is available with no changes for an extension
 declaration that does not include the keyword `type`. The other kinds of
 invocations of extension members are explicit extension member invocations
-(like `Ext(e).m()`) and typed extension member invocation (like `e.m()`
-where the static type of `e` is `Ext`).*
+(assuming that `E` is an extension type, an example would be
+`E(e).m()`) and typed extension member invocation (like `e.m()` where the
+static type of `e` is an extension type).*
 
 Let `E` be an extension declaration such that the keyword `extension` is
-followed by `type`. In this case, `E` is not applicable for an implicit
-extension method invocation.
+followed by `type`. We say that `E` is an _explicit_ extension type
+declaration, and that it introduces an _explicit_ extension type.
 
-*Such an extension type is not applicable to implicit invocations where a
-plain extension would be applicable. The extension otherwise works the
-same as an extension without the `type` modifier. For example:*
+An explicit extension type is not applicable for an implicit extension
+method invocation.
+
+*In other words, methods of an explicit extension type cannot be called on
+the on-type, only on the extension type. Otherwise, it works the same as an
+extension without the `type` modifier. For example:*
 
 ```dart
 extension type Age on int {
@@ -402,14 +406,41 @@ void main() {
 }
 ```
 
-When the keyword `extension` is followed by `type` in an extension
-declaration, we say that it is an _explicit_ extension type declaration,
-and that it introduces an _explicit_ extension type.
+*The terminology using the word 'explicit' is motivated by two things: (1)
+The extension type "is not implicit", because it doesn't allow for implicit
+extension member invocations, hence it "is explicit". (2) The extension
+type explicitly says `type`, and the extension type must be the static type
+of a receiver in order to invoke any members of the extension type, which
+is achieved by explicitly declaring it as a variable type, a return type,
+etc.*
 
-*This terminology is motivated by two things: (1) The extension type "is
-not implicit", because it doesn't allow for implicit extension method
-invocations. (2) The extension type explicitly says `type`, and it must
-also be used explicitly as a type.*
+An explicit extension declaration may declare one or more non-redirecting
+factory constructors. A factory constructor which is declared in an
+extension declaration is also known as an _extension type constructor_.
+
+*The purpose of having an extension type constructor is that it bundles an
+approach for building an instance of the on-type of an extension type `E`
+with `E` itself, which makes it easy to recognize that this is a way to
+obtain a value of type `E`. It can also be used to verify that an existing
+object (provided as an actual argument to the constructor) satisfies the
+requirements for having the type `E`. Protected extension types, described
+below, provide support for enforcing this kind of verification.*
+
+An instance creation expression of the form
+<code>E<T<sub>1</sub>, .. T<sub>k</sub>>(...)</code>
+or
+<code>E<T<sub>1</sub>, .. T<sub>k</sub>>.name(...)</code>
+is used to invoke these constructors, and the type of such an expression is
+<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>.
+
+During static analysis of the body of an extension type constructor, the
+return type is considered to be the on-type of the enclosing extension type
+declaration.
+
+It is a compile-time error if it is possible to reach the end of an
+extension type constructor without returning anything. *Even in the case
+where the on-type is nullable and the intended representation is the null
+object, an explicit `return null;` is required.*
 
 Let `E` be an explicit extension type declaration. It is not an error to
 declare a member in `E` which is also a member of `Object?`.
@@ -560,7 +591,7 @@ class.
 
 *For instance, `implements int` is an error.*
 
-If the `<interfaces>?` part of `E` is empty, it is treated as 
+If the `<interfaces>?` part of `E` is empty, it is treated as
 `implements Object`.
 
 For each member `m` named `n` in each direct superinterface of `E`, an
@@ -584,34 +615,13 @@ This section specifies the effect of including the keyword `protected` as
 the first token in an extension declaration.
 
 *The core idea is that no object can have a protected extension type as its
-static type unless it has been returned by a specific kind of function
-known as an extension type constructor. This allows developers to gain
-control over which instances get to have that type. For instance, it is
-possible to enforce that those instances satisfy certain constraints.*
+static type unless it has been returned by an extension type constructor.
+This allows developers to gain control over which instances get to have
+that type.*
 
 Let `D` be an explicit extension type declaration named `E` which is
 prefixed by `protected`. We say that it is a _protected extension type
 declaration_, and that it introduces a _protected extension type_.
-
-A protected extension declaration may declare one or more non-redirecting
-factory constructors. A factory constructor which is declared in an
-extension declaration is also known as an _extension type constructor_.
-
-An instance creation expression of the form 
-<code>E<T<sub>1</sub>, .. T<sub>k</sub>>(...)</code> 
-or
-<code>E<T<sub>1</sub>, .. T<sub>k</sub>>.name(...)</code>
-is used to invoke these constructors, and the type of such an expression is
-<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>.
-
-During static analysis of the body of an extension type constructor, the
-return type is considered to be the on-type of the enclosing extension type
-declaration.
-
-It is a compile-time error if it is possible to reach the
-end of an extension type constructor without returning anything.
-*Even in the case where the on-type is nullable and the intended
-representation is the null object, an explicit `return null;` is required.*
 
 Let `E` be the name of a protected extension type declaration.
 The type `E` (or
@@ -631,10 +641,16 @@ or a type cast (`o as E` respectively
 *The subtype relationships and the type test/cast errors ensure that an
 instance creation expression is the only way to create values of a
 protected extension type `E`: There is no assignability from the on-type to
-`E`, and it is an error to cast or promote an expression to `E`. This is a
-crucial property, because it ensures that the value of an expression with
-static type `E` has been obtained as the return value of an extension type
-constructor.*
+`E`, and it is an error to cast or promote an expression to `E`.*
+
+*This is a crucial property, because it ensures that the value of an
+expression with static type `E` has been obtained as the return value of an
+extension type constructor, and that allows us to write arbitrary code that
+ensures that an object typed as `E` satisfies certain constraints. For
+instance, if all constructors of `E` ensure that a given invariant holds,
+and if every member of `E` preserves that invariant, and if there are no
+aliases to the underlying instance of the on-type of `E` typed as any other
+type than `E`, then the invariant is guaranteed to be preserved.*
 
 It is a compile-time error for an extension declaration to start with the
 keyword `protected`, unless it is explicit (*that is, unless it also has
@@ -764,7 +780,7 @@ If `e` is an expression whose static type is the extension type
 then a member access like `e.m(args)` is executed by evaluating `e` to an
 object which is bound to a fresh variable `v`, and then evaluating
 <code>Ext<S<sub>1</sub>, .. S<sub>k</sub>>(v).m(args)</code>,
-and similarly for instance getters and operators. 
+and similarly for instance getters and operators.
 
 The dynamic semantics of an invocation of an instance method of the on-type
 which is enabled in an explicit extension type by the show/hide part is as
@@ -799,8 +815,9 @@ viewed as having an extension type. By soundness, the run-time type of `o`
 will be a subtype of the on-type of `E`.*
 
 The run-time representation of a type argument which is a non-protected
-extension type `E` (respectively `E<T1, .. Tk>`) is the corresponding
-instantiated on-type.
+extension type `E` (respectively 
+<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>) 
+is the corresponding instantiated on-type.
 
 *This means that a non-protected extension type and the underlying on-type
 are considered as being the same type at run time. So we can freely use a
@@ -809,8 +826,10 @@ instance, or as a type argument in the static type of a data structure or
 function involving the extension type.*
 
 The run-time representation of a type argument which is a protected
-extension type `E` (respectively `E<T1, .. Tk>`) is an identification of
-`E` (respectively `E<T1, .. Tk>`).
+extension type `E` (respectively 
+<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>) 
+is an identification of `E` (respectively 
+<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>).
 
 *In particular, it is not the same as the run-time representation of the
 corresponding on-type. This is necessary in order to maintain that the
@@ -830,7 +849,7 @@ function object of type `void Function(E)`. This seems to be a soundness
 violation because `T <: E` and not vice versa, statically. However, we
 consider such types to be the same type at run time, which is in any case
 the finest distinction that we can maintain because there is no
-representation of `Ext` at run time. There is no soundness issue, because
+representation of `E` at run time. There is no soundness issue, because
 the added discipline of a non-protected extension type is voluntary.*
 
 A type test, `o is U`, and a type cast, `o as U`, where `U` is or contains
