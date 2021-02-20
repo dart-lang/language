@@ -651,6 +651,7 @@ target type in a type test (`o is E` respectively
 <code>o is E<T<sub>1</sub>, .. T<sub>k</sub>></code>)
 or a type cast (`o as E` respectively
 <code>o as E<T<sub>1</sub>, .. T<sub>k</sub>></code>).
+The type `dynamic` is not assignable to any protected extension type.
 
 *The subtype relationships and the type test/cast errors ensure that an
 instance creation expression is the only way to create values of a
