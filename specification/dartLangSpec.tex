@@ -6619,111 +6619,14 @@ Otherwise, said parameterized type \code{$C$<$T_1, \ldots,\ T_m$>} denotes an ap
 This yields a class $C'$ whose members are equivalent to those of a class declaration which is obtained from the declaration $G$ by replacing each occurrence of $X_j$ by $T_j$.
 
 \commentary{%
-% TODO(eernst): make sure this list of properties is complete.
 Other properties of $C'$ such as the subtype relationships
 are specified elsewhere
 (\ref{subtypes}).%
 }
 
-\LMHash{}%
-A \IndexCustom{generic type alias}{type alias!generic}
-is a declaration $D$ of one of the following forms:
-
-\begin{itemize}
-\item \code{$m$ \TYPEDEF{} \id<\TypeParametersStd> = $T$;}
-\item \code{$m$ \TYPEDEF{} $S$?\ \id<\TypeParametersStd>(\\
-  \mbox\quad\PairList{T}{p}{1}{n},\ [\PairList{T}{p}{n+1}{n+k}]);}
-\item \code{$m$ \TYPEDEF{} $S$?\ \id<\TypeParametersStd>(\\
-  \mbox\quad\PairList{T}{p}{1}{n},\ \{\PairList{T}{p}{n+1}{n+k}\});}
-\end{itemize}
-
-\noindent
-where $m$ is derived from \synt{metadata},
-$T$ is a type,
-and \code{$S$?} is a type or the empty string.
-Let $S'$ be \code{$S$?} if it is a type, otherwise let $S'$ be \DYNAMIC.
-The associated type of $D$, call it $F$, is, respectively:
-
-\begin{itemize}
-\item $T$
-\item \FunctionTypeSimple{S'}{\FunctionTypePositionalArgumentsStd}
-\item \FunctionTypeSimple{S'}{\FunctionTypeNamedArgumentsStd}
-\end{itemize}
-
-\LMHash{}%
-$D$ introduces a mapping from actual type argument lists to types.
-Under the assumption that \List{X}{1}{s} are types such that
-$X_j <: B_j$, for all $j \in 1 .. s$,
-it is a compile-time error if $T$ is not regular-bounded,
-and it is a compile-time error if any type occurring in $T$ is not well-bounded.
-
 \commentary{%
-This means that the bounds declared for
-the formal type parameters of a generic type alias
-must be such that when they are satisfied,
-the bounds that pertain to the body are also satisfied,
-and a type occurring as a subterm of the body can violate its bounds,
-but only if it is a correct super-bounded type.%
-}
-
-\LMHash{}%
-Moreover,
-let $T_1,\ \ldots,\ T_l$ be types
-and let $U$ be the parameterized type \code{\id<$T_1, \ldots,\ T_l$>}
-in a location where \id{} denotes $D$.
-It is a compile-time error if $l \not= s$.
-It is a compile-time error if $U$ is not well-bounded
-(\ref{superBoundedTypes}).
-
-\LMHash{}%
-Otherwise,
-$U$ denotes an application of the mapping denoted by $D$ to the type arguments
-$T_1, \ldots, T_s$,
-yielding the type
-$[T_1/X_1, \ldots, T_s/X_s]F$.
-
-\commentary{%
-Note that the type alias syntax without \lit{=}
-can only express function types,
-and it cannot express the type of a generic function.
-When such a type alias is generic,
-it always expresses a family of non-generic function types.
-These restrictions exist because that syntax was defined
-before generic functions were added to Dart.%
-}
-
-\rationale{%
-The requirement that satisfaction of the bounds on
-the formal type parameters of a generic type alias $D$
-must imply satisfaction of all bounds pertaining to
-every type that occurs in the body of $D$
-limits the expressive power of generic type aliases.
-However, it would require the constraints on formal type parameters
-to be expressed in a much more powerful language
-if we were to allow a significantly larger set of types
-to be expressed using a generic type alias.%
-}
-
-\commentary{%
-For example, consider the following code:%
-}
-
-\begin{dartCode}
-\CLASS{} A<X \EXTENDS{} \VOID{} \FUNCTION(num)> \{\}
-\TYPEDEF{} F<Y> = A<\VOID{} \FUNCTION(Y)> \FUNCTION(); // \comment{compile-time error}
-\end{dartCode}
-
-\commentary{%
-There is no way to specify a bound on \code{Y} in the declaration of \code{F}
-which will ensure that all bounds on the right hand side are respected.
-This is because the actual requirement is that \code{Y} must be
-a \emph{supertype} of \code{num},
-but Dart does not support lower bounds for type parameters.
-The type \code{A<\VOID{} \FUNCTION(U)> \FUNCTION()}
-can still be specified explicitly
-for every \code{U} which satisfies the bounds declared by \code{A}.
-So the types can be expressed,
-they just cannot be abbreviated using a generic type alias.%
+Generic type aliases are specified elsewhere
+(\ref{typedef}).%
 }
 
 \LMHash{}%
@@ -19631,19 +19534,15 @@ A constant type literal is a constant expression (\ref{constants}).%
 \LMLabel{typedef}
 
 \LMHash{}%
-A \Index{type alias} declares a name for a type expression.
+A \Index{type alias} declares a name for a type,
+or for a mapping from type arguments to types.
 
 \commentary{%
 It is common to use the phrase ``a typedef'' for such a declaration,
 because of the prominent occurrence of the token \TYPEDEF.%
 }
 
-% TODO(eernst): We include <metadata> in <typeAlias> even though it is not
-% there in Dart.g, because <libraryDeclaration> in Dart.g allows metadata
-% before every <topLevelDeclaration>, but that's not yet been transferred to
-% this document. So we'll need to remove the <metadata> below _when_ it is
-% made redundant by changing <libraryDeclaration> to be like in Dart.g.
-
+%%TODO(eernst): With null safety, change <functionType> to <type>.
 \begin{grammar}
 <typeAlias> ::= \gnewline{}
   \TYPEDEF{} <typeIdentifier> <typeParameters>? `=' <functionType> `;'
@@ -19655,42 +19554,131 @@ because of the prominent occurrence of the token \TYPEDEF.%
 \end{grammar}
 
 \LMHash{}%
-The effect of a type alias of the form
-\code{\TYPEDEF{} \id{} = $T$;}
-declared in a library $L$ is to introduce the name \id{} into the scope of $L$,
-bound to the type $T$.
-
-\LMHash{}%
-The effect of a type alias of the form
+Consider a type alias declaration $D$ of the form
 
 \noindent
-\code{\TYPEDEF{} $T$ \id($T_1\ p_1, \ldots,\ T_n\ p_n,\ [T_{n+1}\ p_{n+1}, \ldots,\ T_{n+k}\ p_{n+k}]$);}
+\code{\TYPEDEF{} \id<\TypeParametersStd> = $T$;}
 
 \noindent
-declared in a library $L$ is to introduce the name \id{} into the scope of $L$, bound to the function type
-\FunctionTypeSimple{T}{\List{T}{1}{n},\ [\List{T}{n+1}{n+k}]}.
+declared in a library $L$.
+The effect of $D$ is to introduce \id{} into the library scope of $L$.
+When $s = 0$
+(\commentary{where the type alias is non-generic})
+\id{} is bound to $T$.
+When $s > 0$
+(\commentary{where the type alias is generic})
+\id{} is bound to a mapping from a type argument list
+\List{U}{1}{s}
+to the type
+$[U_1/X_1, \ldots, U_s/X_s]T$.
 
 \LMHash{}%
-The effect of a type alias of the form
+Under the assumption that \List{X}{1}{s} are types such that
+$X_j <: B_j$, for all $j \in 1 .. s$,
+it is a compile-time error if $T$ is not regular-bounded,
+and it is a compile-time error if any type occurring in $T$ is not well-bounded.
+
+\commentary{
+This means that the bounds declared for
+the formal type parameters of a generic type alias
+must be such that when they are satisfied,
+the bounds that pertain to the body are also satisfied,
+and a type occurring as a subterm of the body can violate its bounds,
+but only if it is a correct super-bounded type.
+}
+
+\LMHash{}%
+Moreover,
+let $T_1,\ \ldots,\ T_l$ be types
+and let $U$ be the parameterized type \code{\id<$T_1, \ldots,\ T_l$>}
+in a location where \id{} denotes $D$.
+It is a compile-time error if $l \not= s$.
+It is a compile-time error if $U$ is not well-bounded
+(\ref{superBoundedTypes}).
+
+\LMHash{}%
+For historic reasons, a type alias can have two more forms.
+Let $S?$ be a term which is empty or derived from \synt{type}.
+The two older forms are then as follows:
+
+\LMHash{}%
+A type alias of the form
 
 \noindent
-\code{\TYPEDEF{} $T$ \id($T_1\ p_1, \ldots,\ T_n\ p_n,\ \{T_{n+1}\ p_{n+1}, \ldots,\ T_{n+k}\ p_{n+k}\}$);}
+\code{\TYPEDEF{} $S?$ \id<\TypeParametersStd>(}
 
 \noindent
-declared in a library $L$ is to introduce the name \id{} into the scope of $L$, bound to the function type
-\FunctionTypeSimple{T}{\List{T}{1}{n},\ \{\PairList{T}{p}{n+1}{n+k}\}}.
+\code{\quad$T_1\ p_1, \ldots,\ T_n\ p_n,\ [T_{n+1}\ p_{n+1}, \ldots,\ T_{n+k}\ p_{n+k}]$);}
+
+\noindent
+is treated as
+
+\noindent
+\code{\TYPEDEF{} \id<\TypeParametersStd> =}
+
+\noindent
+\code{\quad$S?$ \FUNCTION($T_1\ p_1, \ldots,\ T_n\ p_n,\ [T_{n+1}\ p_{n+1}, \ldots,\ T_{n+k}\ p_{n+k}]$);}
 
 \LMHash{}%
-In either case, if{}f no return type is specified, it is taken to be \DYNAMIC{}.
-Likewise, if a type annotation is omitted on a formal parameter, it is taken to be \DYNAMIC{}.
+A type alias of the form
+
+\noindent
+\code{\TYPEDEF{} $S?$ \id<\TypeParametersStd>(}
+
+\noindent
+\code{\quad$T_1\ p_1, \ldots,\ T_n\ p_n,\ \{T_{n+1}\ p_{n+1}, \ldots,\ T_{n+k}\ p_{n+k}\}$);}
+
+\noindent
+is treated as
+
+\noindent
+\code{\TYPEDEF{} \id<\TypeParametersStd> =}
+
+\noindent
+\code{\quad$S?$ \FUNCTION($T_1\ p_1, \ldots,\ T_n\ p_n,\ \{T_{n+1}\ p_{n+1}, \ldots,\ T_{n+k}\ p_{n+k}\}$);}
 
 \LMHash{}%
-It is a compile-time error if any default values are specified
-in the signature of a function type in a type alias.
-%A typedef may only refer to itself via the bounds of its generic parameters.
-Any self reference in a type alias,
-either directly or recursively via another type declaration,
-is a compile-time error.
+It is a compile-time error if a default value is specified for
+a formal parameter in these older forms.
+
+\commentary{%
+Note that the old forms can only define function types,
+and they cannot denote the type of a generic function.
+When such a type alias has type parameters,
+it always expresses a family of non-generic function types.
+These restrictions exist because that syntax was defined
+before generic functions were added to Dart.%
+}
+
+\LMHash{}%
+Let $D_F$ be a type alias declaration of the form
+
+\noindent
+\code{\TYPEDEF{} $F$<\TypeParametersStd> = $T$;}
+
+\noindent
+If $T$ or $B_j$ for some $j \in 1 .. s$ is or contains
+an identifier or qualified identifier $G$ denoting
+a type alias declaration $D_G$,
+then we say that
+\IndexCustom{$D_F$ depends on $D_G$}{type alias!dependency}.
+
+%%TODO(eernst): The relaxation where a type alias dependency arises
+%% via $T$, but not via $B_j$, is more permissive and allows for some
+%% type aliases to be declared that will be an error withthe above rule.
+%% It is very likely that the more relaxed rule can be used. This is a
+%% possible enhancement for the future, and a non breaking change.
+
+\LMHash{}%
+Let $D$ be a type alias delaration,
+and let $M$ be the transitive closure of
+the type alias declarations that $D$ depends on.
+A compile-time error occurs if $D \in M$.
+
+\commentary{%
+In other words, it is an error for a type alias declaration
+to depend on itself, directly or indirectly.%
+}
 
 \commentary{%
 This kind of error may also arise when type arguments have been
@@ -19702,7 +19690,7 @@ which will be specified later
 (\ref{overview}).%
 }
 
-\commentary{%
+\LMHash{}%
 A type alias can be used as a type annotation,
 as a return type or parameter type in a function declaration,
 in a function type,
@@ -19711,21 +19699,43 @@ in a type test,
 in a type cast,
 and in an \ON{} clause of a \TRY{} statement.
 
-Consider the case where the body of a given type alias $F$
-is a \synt{typeName} that denotes a non-generic class,
-or it is a parameterized type that starts with
-a \synt{typeName} that denotes a generic class,
-or one of these cases occur indirectly via another type alias.
-In this case $F$ or a parameterized type that starts with $F$,
-whichever is not an error,
-can also be used to name a constructor in an instance creation expression
+\LMHash{}%
+Consider a type alias declaration of the form
+
+\noindent
+\code{\TYPEDEF{} $F$<\TypeParametersStd> = $X_j$;}
+
+\noindent
+for some $j \in 1 .. s$.
+In this case we say that $F$
+\IndexCustom{expands to a type variable}{%
+  type alias!expands to a type variable}.
+Similarly, with a type alias of the form
+
+\noindent
+\code{\TYPEDEF{} $G$<\TypeParametersStd> = $H$<$T_1, \ldots\ T_k$>;}
+
+\noindent
+where $H$ denotes a type alias declaration that expands to a type variable,
+we also say that \NoIndex{$G$ expands to a type variable}.
+
+\LMHash{}%
+Consider a type alias $F$ that does not expand to a type variable.
+$F$, and a parameterized type that starts with $F$, if not an error,
+can be used
+to denote a constructor in an instance creation expression
 (\ref{instanceCreation}),
+it can be used as a redirectee constructor
+in a redirecting factory constructor
+(\ref{redirectingFactoryConstructors}),
 and it can be used as a superclass, mixin, or superinterface
-(\ref{superclasses}, \ref{superinterfaces}, \ref{mixinApplication}).
-Moreover, $F$ or a parameterized type that starts with $F$,
-whichever is not an error,
-can be used to invoke static methods of the denoted class.%
-}
+(\ref{superclasses}, \ref{mixinApplication}, \ref{superinterfaces}).
+A compile-time error occurs at each of these usages,
+if $F$ does expand to a type variable.
+
+\LMHash{}%
+Finally, $F$
+can be used to invoke static methods of the denoted class.
 
 \rationale{%
 This indirectly allows an invocation of a static method to pass
@@ -19739,14 +19749,6 @@ At that time,
 existing invocations where type arguments are passed indirectly will not break,
 because it is currently an error for a static method to depend on the value
 of a formal type parameter of the enclosing class.%
-}
-
-%% TODO(eernst): Move specification of generic type aliases to this
-%% section, change the non-generic case to a special case.
-\commentary{%
-The generic variants of type alias declarations are specified
-in the section about generics
-(\ref{generics}).%
 }
 
 
