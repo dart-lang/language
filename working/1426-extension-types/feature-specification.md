@@ -900,7 +900,13 @@ proceeds in the same way.
 This mechanism could be an optional extension of the currently specified
 rule (where any type cast to `E` is an error, statically or dynamically):
 If `E` does not declare a getter `bool get verifyThis` then every cast to
-`E` will fail at run time.
+`E` fails at run time.
+
+*In other words, a dynamic cast to a protected extension type `E` with no
+getter of the form `bool get verifyThis` works as if we had had `bool get
+verifyThis => false`, except that each dynamic cast to `E` will fail like
+this even in the case where we have a different member named `verifyThis`,
+e.g., `void verifyThis(int i) {}`.*
 
 
 ### Non-object entities
