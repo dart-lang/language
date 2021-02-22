@@ -44,6 +44,12 @@
 % - Specify identifier references denoting extension members.
 % - Remove a few null safety features, to enable publishing a stable
 %   version of the specification which is purely about Dart 2.11.
+% - Reorganize specification of type aliases to be in section 'Type Aliases'
+%   (this used to be both there, and in 'Generics').
+% - Clarify the cyclicity error for type aliases ("F is not allowed to depend
+%   on itself).
+% - Add the error for a type alias $F$ used in an instance creation etc., when
+%   $F$ expands to a type variable.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -19720,7 +19726,7 @@ where $H$ denotes a type alias declaration that expands to a type variable,
 we also say that \NoIndex{$G$ expands to a type variable}.
 
 \LMHash{}%
-Consider a type alias $F$ that does not expand to a type variable.
+Consider a type alias $F$.
 $F$, and a parameterized type that starts with $F$, if not an error,
 can be used
 to denote a constructor in an instance creation expression
@@ -19730,8 +19736,23 @@ in a redirecting factory constructor
 (\ref{redirectingFactoryConstructors}),
 and it can be used as a superclass, mixin, or superinterface
 (\ref{superclasses}, \ref{mixinApplication}, \ref{superinterfaces}).
-A compile-time error occurs at each of these usages,
-if $F$ does expand to a type variable.
+
+\LMHash{}%
+In each of these cases,
+a compile-time error occurs if $F$ expands to a type variable,
+or if the usage is a parameterized type which is not regular-bounded.
+\commentary{For example:}
+
+\begin{dartCode}
+\CLASS{} C<X extends num> \{\}
+\TYPEDEF{} F<Y extends int> = C<Y>;
+\\
+\VOID{} main() \{
+  F<int>(); // \comment{OK.}
+  C<num>(); // \comment{OK.}
+  F<num>(); // \comment{Error.}
+\}
+\end{dartCode}
 
 \LMHash{}%
 Finally, $F$
