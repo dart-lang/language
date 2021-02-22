@@ -879,6 +879,30 @@ extension type, e.g., `myList is List<nat>`.*
 ## Discussion
 
 
+### Casting to a protected extension type
+
+We could use the following mechanism to enable casts to a protected
+extension type to succeed at run time:
+
+Assume that `E` is a protected extension type that declares a `bool get
+verifyThis` getter.
+
+If such a getter exists, then the execution of a type cast `c` of the form
+`o as E` proceeds as follows: First, a cast `o as T` is executed, where `T`
+is the instantiated on-type corresponding to `E`. If this cast succeeds
+then `o.verifyThis` is evaluated to an object `o1`. If `o1` is the true
+object then `c` completes normally and yields `o`; otherwise `c` encounters
+a dynamic type error.
+
+A cast of the form `o as X` where `X` is a type variable bound to `E`
+proceeds in the same way.
+
+This mechanism could be an optional extension of the currently specified
+rule (where any type cast to `E` is an error, statically or dynamically):
+If `E` does not declare a getter `bool get verifyThis` then every cast to
+`E` will fail at run time.
+
+
 ### Non-object entities
 
 If we introduce any non-object entities in Dart (that is, entities that
