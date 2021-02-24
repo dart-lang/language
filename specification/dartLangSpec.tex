@@ -19664,8 +19664,7 @@ Let $D_F$ be a type alias declaration of the form
 
 \noindent
 If $T$ or $B_j$ for some $j \in 1 .. s$ is or contains
-an identifier or qualified identifier $G$ denoting
-a type alias declaration $D_G$,
+a \synt{typeName} $G$ denoting a type alias declaration $D_G$,
 then we say that
 \IndexCustom{$D_F$ depends on $D_G$}{type alias!dependency}.
 
@@ -19697,50 +19696,57 @@ which will be specified later
 }
 
 \LMHash{}%
-A type alias can be used as a type annotation,
-as a return type or parameter type in a function declaration,
-in a function type,
-as a type argument,
-in a type test,
-in a type cast,
-and in an \ON{} clause of a \TRY{} statement.
-
-\LMHash{}%
-Consider a type alias declaration of the form
-
-\noindent
+We define the notion that a type alias declaration
+\NoIndex{expands to a type variable}
+inductively as follows:
+When $j \in 1 .. s$, we say that a type alias declaration of the form
 \code{\TYPEDEF{} $F$<\TypeParametersStd> = $X_j$;}
+\NoIndex{expands to a type variable at position} $j$.
+Similarly, if $H$ denotes a type alias declaration
+that declares $k$ type parameters and
+expands to a type variable at position $i \in 1 .. k$,
+we say that the type alias declaration
 
 \noindent
-for some $j \in 1 .. s$.
-In this case we say that $F$
+\code{\TYPEDEF{} $G$<\TypeParametersStd> = $H$<\List{T}{1}{s}>;}
+
+\noindent
+\NoIndex{expands to a type variable at position} $j$
+when $T_i$ is $X_j$ for some $j \in 1 .. s$.
+We say that a type alias declaration
 \IndexCustom{expands to a type variable}{%
-  type alias!expands to a type variable}.
-Similarly, with a type alias of the form
+  type alias!expands to a type variable}
+if it expands to a type variable at any position.
 
-\noindent
-\code{\TYPEDEF{} $G$<\TypeParametersStd> = $H$<$T_1, \ldots\ T_k$>;}
-
-\noindent
-where $H$ denotes a type alias declaration that expands to a type variable,
-we also say that \NoIndex{$G$ expands to a type variable}.
-
-\LMHash{}%
-Consider a type alias $F$.
-$F$, and a parameterized type that starts with $F$, if not an error,
-can be used
-to denote a constructor in an instance creation expression
-(\ref{instanceCreation}),
-it can be used as a redirectee constructor
-in a redirecting factory constructor
-(\ref{redirectingFactoryConstructors}),
-and it can be used as a superclass, mixin, or superinterface
-(\ref{superclasses}, \ref{mixinApplication}, \ref{superinterfaces}).
+\commentary{%
+This means that if a type alias declaration named $F$
+expands to a type variable
+then \code{$F$<\List{T}{1}{s}>} is $T_j$ for some $j \in 1 .. s$.
+If the declaration does not expand to a type variable then that never occurs.%
+}
 
 \LMHash{}%
-In each of these cases,
-a compile-time error occurs if $F$ expands to a type variable,
-or if the usage is a parameterized type which is not regular-bounded.
+Let $T$ be a parameterized type \code{$F$<$T_1, \ldots T_k$>}
+in a scope where $F$ denotes a type alias declaration $D$.
+We say that $T$
+\IndexCustom{uses $D$ as a class}{type alias!used as a class}
+when $T$ occurs in one of the following ways:
+
+\begin{itemize}
+\item $T$ denotes a constructor in an instance creation expression
+  (\ref{instanceCreation}).
+\item $T$ is the redirectee in a redirecting factory constructor
+  (\ref{redirectingFactoryConstructors}).
+\item $T$ is used as a superclass, a mixin, or a superinterface
+  in a class declaration
+  (\ref{superclasses}, \ref{mixinApplication}, \ref{superinterfaces}).
+\end{itemize}
+
+\LMHash{}%
+A compile-time error occurs if $D$ expands to a type variable
+and $T$ uses $D$ as a class.
+A compile-time error occurs if $T$ uses $D$ as a class,
+and $T$ is not regular-bounded.
 \commentary{For example:}
 
 \begin{dartCode}
@@ -19757,6 +19763,18 @@ or if the usage is a parameterized type which is not regular-bounded.
 \LMHash{}%
 Finally, $F$
 can be used to invoke static methods of the denoted class.
+
+\begin{dartCode}
+\CLASS{} C<X> \{
+  static void staticMethod() \{\}
+\}
+\\
+\TYPEDEF{} F = C<int>;
+\\
+\VOID{} main() \{
+  F.staticMethod(); // \comment{OK.}
+\}
+\end{dartCode}
 
 \rationale{%
 This indirectly allows an invocation of a static method to pass
