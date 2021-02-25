@@ -259,7 +259,10 @@ following:
   <extensionShowHideElement> (',' <extensionShowHideElement>)*
 
 <extensionShowHideElement> ::=
-  <type> | <identifier> | 'operator' <operator>
+  <type> |
+  <identifier> |
+  'operator' <operator> |
+  ('get'|'set') <identifier>
 ```
 
 *In the rule `<extensionShowHideElement>`, note that `<type>` derives
@@ -831,8 +834,8 @@ viewed as having an extension type. By soundness, the run-time type of `o`
 will be a subtype of the on-type of `E`.*
 
 The run-time representation of a type argument which is a non-protected
-extension type `E` (respectively 
-<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>) 
+extension type `E` (respectively
+<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>)
 is the corresponding instantiated on-type.
 
 *This means that a non-protected extension type and the underlying on-type
@@ -842,9 +845,9 @@ instance, or as a type argument in the static type of a data structure or
 function involving the extension type.*
 
 The run-time representation of a type argument which is a protected
-extension type `E` (respectively 
-<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>) 
-is an identification of `E` (respectively 
+extension type `E` (respectively
+<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>)
+is an identification of `E` (respectively
 <code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>).
 
 *In particular, it is not the same as the run-time representation of the
