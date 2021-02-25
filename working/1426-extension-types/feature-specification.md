@@ -650,6 +650,13 @@ of `Never`.
 *In contrast to non-protected extension types, the extension type has no
 subtype relationship with its on-type.*
 
+It is a compile-time error if a protected extension type `E` is used to
+perform an explicit extension method invocation.
+
+*That is, `E(o).foo()` is an error when `E` is a protected extension
+type, also in the case where the static type of `o` matches the on-type of
+`E`. We can only access the members of `E` when the receiver has type `E`.*
+
 It is a compile-time error if a protected extension type `E` is the
 target type in a type test (`o is E` respectively
 <code>o is E<T<sub>1</sub>, .. T<sub>k</sub>></code>)
@@ -888,15 +895,28 @@ extension type, e.g., `myList is List<nat>`.*
 We could use the following mechanism to enable casts to a protected
 extension type to succeed at run time:
 
-Assume that `E` is a protected extension type that declares a `bool get
-verifyThis` getter.
+Assume that `E` is a protected extension type that declares a
+`bool get verifyThis` getter.
 
 If such a getter exists, then the execution of a type cast `c` of the form
 `o as E` proceeds as follows: First, a cast `o as T` is executed, where `T`
 is the instantiated on-type corresponding to `E`. If this cast succeeds
-then `o.verifyThis` is evaluated to an object `o1`. If `o1` is the true
-object then `c` completes normally and yields `o`; otherwise `c` encounters
-a dynamic type error.
+then `this` is bound to `o` and `verifyThis` is evaluated to an object
+`o1`. If `o1` is the true object then `c` completes normally and yields
+`o`; otherwise `c` encounters a dynamic type error.
+
+*This implies that it is possible to execute `verifyThis` as declared in
+`E` in a situation where `this` is bound to an object that has not
+necessarily been returned by a constructor in `E`, and which isn't
+guaranteed to make `verifyThis` return true. In other words, this seems to
+be a violation of the discipline associated with protected extension types,
+because that object "isn't worthy of being `this` for the execution of any
+code in `E`". However, it seems more natural to access the "candidate
+`this`" using `this` than it would be if we were to use a different
+declaration to perform the verification (say, a static function in `E`). 
+Also, it is obvious that the `this` in the body of `verifyThis` may not
+satisfy the requirements, and we trust developers to write the
+implementation of `verifyThis` with that fact in mind.*
 
 A cast of the form `o as X` where `X` is a type variable bound to `E`
 proceeds in the same way.
