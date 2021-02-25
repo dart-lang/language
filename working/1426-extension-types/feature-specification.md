@@ -242,7 +242,8 @@ following:
 
 ```ebnf
 <extensionDeclaration> ::=
-  'protected'? 'extension' ('type'? <typeIdentifier> <typeParameters>?)?
+  'protected'? 'extension'
+      (<typeIdentifier>? | 'type' <typeIdentifier>) <typeParameters>?
       <extensionShowHidePart> 'on' <type> <interfaces>? '{'
     (<metadata> <extensionMemberDefinition>)*
   '}'
