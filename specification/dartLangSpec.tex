@@ -598,8 +598,15 @@ which is not derivable in the grammar
 This expression is helpful in specifying certain syntactic forms
 that are treated as other syntactic forms,
 because it allows for introducing and initializing one or more fresh variables,
-and using them in an expression
-(\commentary{that is, \LET{} expressions can arise during desugaring}).
+and using them in an expression.
+
+\commentary{%
+That is, a \LET{} expression is only introduced as a tool
+to define the evaluation semantics of an expression
+in terms of other expressions containing \LET{} expressions.%
+}
+
+\LMHash{}%
 The syntax of a \LET{} expression is as follows:
 
 \begin{grammar}
@@ -608,9 +615,12 @@ The syntax of a \LET{} expression is as follows:
 
 \LMHash{}%
 Let $e_{\metavar{let}}$ be a \LET{} expression of the form
-\code{\LET\,\,$v_1$\,=\,$e_1$, $\cdots$, $v_k$\,=\,$e_k$\ \IN\ $e$}.
+\LetMany{$v_1$}{$e_1$}{$v_k$}{$e_k$}{$e$}.
 It is required that $v_j$ is a fresh variable, $j \in 1 .. k$
-(\commentary{which is tacitly assumed whenever a \LET{} expression is used}).
+(\commentary{%
+which is tacitly assumed whenever a \LET{} expression is used,
+and nothing is stated to the contrary%
+}).
 $e_{\metavar{let}}$ contains $k$ nested scopes, \List{S}{1}{k}.
 The enclosing scope for $S_1$ is the current scope for $e_{\metavar{let}}$,
 and the enclosing scope for $S_j$ is $S_{j-1}$, $j \in 2 .. k$.
@@ -619,7 +629,13 @@ the current scope of $e_j$ is $S_{j-1}$, $j \in 2 .. k$,
 and the current scope of $e$ is $S_k$.
 For $j \in 1 .. k$, $v_j$ introduces a final, local variable into $S_j$,
 with the static type of $e_j$ as its declared type.
-For type inference of $e_j$, the empty context type is used.
+
+\commentary{%
+Type inference of $e_j$ and the context type used for inference of $e_j$
+are not relevant,
+it is assumed that type inference has occurred already
+(\ref{overview}).%
+}
 
 \LMHash{}%
 Evaluation of $e_{\metavar{let}}$ proceeds by
@@ -2171,8 +2187,8 @@ A class declaration introduces two scopes:
   The enclosing scope of the type-parameter scope of a class declaration is
   the library scope of the current library.
 \item
-  A \IndexCustom{class scope}{scope!class}.
-  The enclosing scope of the class scope of a class declaration is
+  A \IndexCustom{body scope}{scope!class body}.
+  The enclosing scope of the body scope of a class declaration is
   the type parameter scope of the class declaration.
 \end{itemize}
 
@@ -2180,7 +2196,7 @@ A class declaration introduces two scopes:
 The current scope of an instance member declaration,
 a static member declaration,
 or a constructor declaration is
-the class scope of the class in which it is declared.
+the body scope of the class in which it is declared.
 
 \LMHash{}%
 The current instance
@@ -3112,7 +3128,7 @@ $[T_1/X_1, \ldots, T_m/X_m]F$,
 where $X_j, j \in 1 .. m$ are the formal type parameters of $C$
 and $T_j, j \in 1 .. m$ are specified in the given context.
 We may also omit such a substitution when the given context is
-the class scope of $C$, where $X_1, \ldots, X_m$ are in scope.
+the body scope of $C$, where $X_1, \ldots, X_m$ are in scope.
 }
 
 \commentary{%
@@ -5083,13 +5099,13 @@ fields, $C_q$ is also a const constructor.
 \LMLabel{extensions}
 
 \LMHash{}%
-This section specifies extensions,
-which is a mechanism that supports the declaration of functions
+This section specifies extensions.
+This mechanism supports the declaration of functions
 that are similar to instance methods in use,
 but similar to non-method functions in that
-they are declared outside the target class, in an extension,
-and they are resolved statically,
-based on whether the relevant extension is in scope,
+they are declared outside the target class,
+and they are resolved statically.
+The resolution is based on whether the relevant extension is in scope,
 and whether the invocation satisfies several other requirements.
 
 \begin{grammar}
@@ -5117,31 +5133,17 @@ and the latter is known as the
 \IndexCustom{fresh name}{extension!fresh name}
 of the extension.
 
-%% TODO(eernst): When https://github.com/dart-lang/language/pull/534 lands,
-%% this paragraph should perhaps be moved into \ref{imports}.
-\LMHash{}%
-When the current library $L$ has a non-deferred import of a library $L'$
-such that the imported namespace from $L'$ contains a name $n$ denoting
-an extension $E$,
-a fresh private name $n_f$ is added to
-the library scope of the current library,
-bound to $E$.
 \commentary{%
-This implies that $n$ is a public name exported by $L'$
-which is not removed using a \HIDE{} or \SHOW{} clause on the given import.%
-}
-The name $n_f$ is known as the
-\NoIndex{fresh name}
-of $E$ in the current library.
-
-\commentary{%
-This means that the declared name of $E$ is
+A fresh name is also introduced into
+the library namespace of the current library
+for each imported extension,
+even when it is imported with a prefix
+(\ref{theImportedNamespace}).
+%
+The declared name of an extension $E$ is
 in the library scope of the current library
 following the same rules as the names of
-other imported public declarations like classes.
-%
-When the declared name of $E$ is imported,
-the fresh name of $E$ in the current library is also created.
+other locally declared or imported public declarations like classes.
 %
 However, the fresh name of $E$ is created in one \emph{additional} case,
 namely when there is a name clash with some other imported library
@@ -5151,8 +5153,7 @@ in which case it is an error to use the declared name.%
 
 \commentary{%
 The fresh name makes it possible for an extension to be used
-even in the case where the declared name is omitted,
-or the declared name
+even in the case where the declared name
 or an import prefix that provides access to the declared name
 is shadowed by a declaration in an intermediate scope,
 namely in an implicit invocation
@@ -5216,23 +5217,22 @@ A compile-time error occurs if the declared name of a extension
 is a built-in identifier.
 
 \LMHash{}%
-The current scope for an extension declaration is
-the library scope of the enclosing library.
-%
-An extension declaration may be generic
-(\ref{generics}),
-which introduces the extension's
-\IndexCustom{type parameter scope}{extension!type parameter scope},
-which has the library scope as its enclosing scope.
-The type parameter scope is the current scope for
-the type parameters and for the extension's \ON{} \synt{type},
-if it exists,
-otherwise the library scope is their current scope.
-%
-The current scope for the member declarations is the extension's
-\IndexCustom{body scope}{extension!body scope},
-which has the type parameter scope as its enclosing scope if it exists,
-and otherwise the library scope.
+An extension declaration introduces two scopes:
+\begin{itemize}
+\item
+  A \IndexCustom{type-parameter scope}{scope!type parameter},
+  which is empty if the extension is not generic (\ref{generics}).
+  The enclosing scope of the type-parameter scope of an extension declaration is
+  the library scope of the current library.
+  The type parameter scope is the current scope for
+  the type parameters and for the extension's \ON{} \synt{type}.
+\item
+  A \IndexCustom{body scope}{scope!extension body}.
+  The enclosing scope of the body scope of an extension declaration is
+  the type parameter scope of the extension declaration.
+  The current scope for an extension member declaration is
+  the body scope of the enclosing extension declaration.
+\end{itemize}
 
 \LMHash{}%
 Let $D$ be an extension declaration with declared name \code{E}.
@@ -5273,7 +5273,7 @@ does not introduce any type that can be constructed.
 Instance variables are not allowed because no memory is allocated
 for each object accessed as \THIS{} in the members.
 Developers can emulate per-\THIS{} state if needed,
-e.g., using a global map.
+e.g., using an \code{Expando}.
 %
 Members with the same basename as members of \code{Object}
 are not allowed because they could only be invoked using explicit resolution,
@@ -5324,7 +5324,7 @@ and the context type is empty (implying no requirements):%
 
 \begin{dartCode}
 \CLASS{} E<\TypeParametersStd> \{
-  final T target;
+  final $T$ target;
   E(this.target);
 \}
 \end{dartCode}
@@ -5539,7 +5539,7 @@ to $i$.
 \LMHash{}%
 In the case where no compile-time error occurs,
 $i$ is treated as $i'$, which is obtained from $i$ by
-replacing $r$ by \code{$E$($r$)}.
+replacing the leading $r$ by \code{$E$($r$)}.
 
 \commentary{%
 With type inference:
@@ -5670,7 +5670,7 @@ the context type may affect the member invocation.%
 
 \LMHash{}%
 When \List{E}{1}{k}, $k > 1$, are extensions
-which are is accessible and applicable to a member invocation $e$
+which are accessible and applicable to a member invocation $e$
 (\ref{memberInvocations}),
 we define the notion of
 \IndexCustom{specificity}{extension!specificity},
@@ -5817,12 +5817,11 @@ using an unqualified function invocation
 (that is, invoking it as \code{m()} and not \code{\THIS.m()},
 \ref{unqualifiedInvocation}).
 %
-This is an exception,
-because implicit invocation of
-an extension instance member with basename \id{}
-will otherwise never occur when
-the interface of the static type of the receiver has
+This is the only situation where implicit invocation of
+an extension member with basename \id{}
+can succeed even if the interface of the receiver has
 a member with basename \id{}.
+%
 On the other hand, it is consistent with the general property of Dart that
 lexically enclosing declarations shadow other declarations, e.g.,
 an inherited declaration can be shadowed by a global declaration.
@@ -5959,7 +5958,7 @@ so $X_j$ must be renamed if \List{S}{1}{m} contains any occurrences of $X_j$,
 for all $j \in 1 .. s$.
 
 \commentary{%
-In other words, the closurization is
+In other words, the closurization is the value of
 a function literal whose signature is the same as that of \id,
 except that the actual type arguments are substituted for
 the formal type parameters of $E$,
@@ -12701,8 +12700,7 @@ because their evaluation does not involve method invocation.%
         \\
         % ---------- Composite member invocations.
         \code{$r$.\id{} ??= $e$} &
-        \code{\LET{} $v$\,=\,$r'$.\id\ \IN{} $v$\,==\,\NULL\ ?\ %
-          $r'$.\id\,=\,$e$\,:\,$v$}
+        \Let{$v$}{$r'$.\id}{$v$\,==\,\NULL\ ?\ $r'$.\id\,=\,$e$\,:\,$v$}
         \\
         \code{$r$.\id{} $\otimes$= $e$} &
         \code{$r'$.\id{} = $r'$.\id{} $\otimes$ $e$}
@@ -12711,11 +12709,11 @@ because their evaluation does not involve method invocation.%
         \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r'$.\id\,$\otimes$=\,\,$e$}
         \\
         \code{$r$[$e_1$] ??= $e_2$} &
-        \code{\LET{} $v$\,=\,$e_1$, $v'$ = $r'$[$v$] \IN{} $v'$\,==\,\NULL\ %
-          ?\ $r'$[$v$]\,=\,$e_2$\,:\,$v'$}
+        \LetTwo{$v$}{$e_1$}{$v'$}{$r'$[$v$]}{%
+          $v'$\,==\,\NULL\ ?\ $r'$[$v$]\,=\,$e_2$\,:\,$v'$}
         \\
         \code{$r$[$e_1$] $\otimes$= $e_2$} &
-        \code{\LET{} $v$\,=\,$e_1$ \IN{} $r'$[$v$] = $r'$[$v$] $\otimes$ $e_2$}
+        \Let{$v$}{$e_1$}{$r'$[$v$] = $r'$[$v$]\,$\otimes$\,$e_2$}
         \\
         %% TODO(eernst): Come nnbd, un-comment this. 4 similar cases below.
         %% \code{$r$?[$e_1$] $\otimes$= $e_2$} &
@@ -12729,12 +12727,10 @@ because their evaluation does not involve method invocation.%
         \code{$r$.\id{} -= 1}
         \\
         \code{$r$.\id++} &
-        \code{\LET{} $v$\,=\,$r'$.\id,\ $v'$\,=\,$r'$.\id\,=\,$v$\,+\,1\ %
-          \IN\ $v$}
+        \LetTwo{$v$}{$r'$.\id}{$v'$}{$r'$.\id\,=\,$v$\,+\,1}{$v$}
         \\
         \code{$r$.\id-{}-} &
-        \code{\LET{} $v$\,=\,$r'$.\id,\ $v'$\,=\,$r'$.\id\,=\,$v$\,-\,1\ %
-          \IN\ $v$}
+        \LetTwo{$v$}{$r'$.\id}{$v'$}{$r'$.\id\,=\,$v$\,-\,1}{$v$}
         \\
         \code{++$r$[$e$]} &
         \code{$r$[$e$] += 1}
@@ -12743,12 +12739,12 @@ because their evaluation does not involve method invocation.%
         \code{$r$[$e$] -= 1}
         \\
         \code{$r$[$e$]++} &
-        \code{\LET{} $v$\,=\,$e$,\ $v'$\,=\,$r'$[$v$],\ %
-          $v''$\,=\,$r'$[$v$]\,=\,$v'$\,+\,1\ \IN\ $v'$}
+        \LetThree{$v$}{$e$}{$v'$}{$r'$[$v$]}{$v''$}{%
+          $r'$[$v$]\,=\,$v'$\,+\,1}{$v'$}
         \\
         \code{$r$[$e$]-{}-} &
-        \code{\LET{} $v$\,=\,$e$,\ $v'$\,=\,$r'$[$v$],\ %
-          $v''$\,=\,$r'$[$v$]\,=\,$v'$\,-\,1\ \IN\ $v'$}
+        \LetThree{$v$}{$e$}{$v'$}{$r'$[$v$]}{$v''$}{%
+          $r'$[$v$]\,=\,$v'$\,-\,1}{$v'$}
       \end{array}
     \end{displaymath}
   \end{minipage}
@@ -12795,8 +12791,9 @@ $r'$ is a fresh variable bound to the value of $r$,
 with the same static type as $r$.
 
 \commentary{%
-This corresponds to an extra outermost \LET{} in a number of rules
-in Fig.~\ref{fig:desugarCompositeMemberInvocations},
+This corresponds to an extra outermost \LET{} in each rule
+in Fig.~\ref{fig:desugarCompositeMemberInvocations}
+where $r'$ occurs,
 and an explicit distinction between the two forms of $r$,
 but the figure would be considerably more verbose if it had been
 specified in that manner.%
@@ -13173,8 +13170,7 @@ and $e$ is \code{$e_0$..$c_1\ \cdots\ $..$c_k$}.
 In this case, $e$ is desugared to
 
 \noindent
-\code{\LET\ $v$\,\,=\,\,$e_0$, $v_1$\,\,=\,\,$v$.$c_1$,\ %
-  \ldots,\ $v_k$\,\,=\,\,$v$.$c_k$\ \IN\ $v$}.
+\LetThree{$v$}{$e_0$}{$v_1$}{$v$.$c_1$,\ $\cdots$}{$v_k$}{$v$.$c_k$}{$v$}.
 
 \LMHash{}%
 Let $e$ be a cascaded member access which is initially conditional.
@@ -13186,8 +13182,8 @@ and $e$ is \code{$e_0$?..$c_1\ \cdots\ $..$c_k$}.
 In this case, $e$ is desugared to
 
 \noindent
-\code{\LET\ $v$\,\,=\,\,$e_0$\ \IN\ $v$\,==\,\NULL\ ?\ \NULL\ :\ %
-  \LET\ $v_1$\,\,=\,\,$v$.$c_1$,\ \ldots,\ $v_k$\,\,=\,\,$v$.$c_k$ \IN\ $v$}.
+\Let{$v$}{$e_0$}{%
+$v$\,==\,\NULL\ ?\ \NULL\ :\ \LetMany{$v_1$}{$v$.$c_1$}{$v_k$}{$v$.$c_k$}{$v$}}.
 
 \commentary{%
 Note that the grammar is such that \code{$v$.$c_j$} is
@@ -15377,10 +15373,12 @@ as detailed below.%
 }
 
 \LMHash{}%
-Consider the situation where a name $n$ has basename \id{}
+Consider the situation where a name \DefineSymbol{n}
+has basename \DefineSymbol{\id}
 (\ref{classMemberConflicts})
 where \id{} is an identifier,
-and a lexical lookup of $n$ is performed from a given location $\ell$.
+and a lexical lookup of $n$ is performed from a given location
+\DefineSymbol{\ell}.
 
 \commentary{%
 We specify a name and a location from where a lexical lookup is performed.
@@ -15393,17 +15391,16 @@ and the location that determines which scopes are the enclosing ones.%
 }
 
 \LMHash{}%
-When we consider an occurrence of an identifier \id{} and say that
-a lexical lookup of \id{} is performed,
+When we say that a lexical lookup of the identifier \id{} is performed,
 it is understood that the lookup is performed from
-the location of said occurrence of \id.
+the location of the given occurrence of \id.
 
 \LMHash{}%
-Let $S$ be the innermost lexical scope containing $\ell$
+Let \DefineSymbol{S} be the innermost lexical scope containing $\ell$
 which has a declaration with basename \id.
 In the case where $S$ has
 a declaration named \id{} as well as a declaration named \code{\id=},
-let $D$ be the declaration named $n$.
+let \DefineSymbol{D} be the declaration named $n$.
 In the situation where $S$ has
 exactly one declaration with basename \id,
 let $D$ be that declaration.
@@ -15445,8 +15442,10 @@ the following errors apply:
 \item
   When $\ell$ has access to \THIS{}
   it is a compile-time error if $\ell$ occurs in
-  a class $C$ and the interface of $C$ does not have a member named $n$;
-  and it is a compile-time error if $\ell$ occurs in an extension $E$,
+  a class \DefineSymbol{C} and
+  the interface of $C$ does not have a member named $n$;
+  and it is a compile-time error if $\ell$ occurs in
+  an extension \DefineSymbol{E},
   and the interface of the \ON{} type of $E$ does not have a member named $n$.
   \commentary{%
     So it is an error if there is no member with the right basename at all,
@@ -15475,19 +15474,19 @@ unless $D$ is an instance member or a local variable
 % Has chosen instance member, wants getter/setter, has only the opposite.
 When $\ell$ has access to \THIS{}
 (\ref{classes})
-and is located in a class $C$,
+and is located in a class \DefineSymbol{C},
 it is a compile-time error if $D$ is an instance member,
 and the interface of $C$ does not have a member named $n$.
 % Has chosen extension instance member, wants getter/setter,
 % has only the opposite.
 When $\ell$ has access to \THIS{}
-and occurs in an extension $E$,
+and occurs in an extension \DefineSymbol{E},
 it is a compile-time error if $D$ is an instance member,
 and $E$ does not declare a member named $n$.
 % No access to this.
 When $\ell$ does not have access to \THIS,
 it is a compile-time error if $D$ is an instance member.
-% An instance variable initializer is in the class scope, so it is
+% An instance variable initializer is in the body scope, so it is
 % actually possible for $D$ to be an instance member here.
 \EndCase
 
@@ -15547,11 +15546,12 @@ Now proceed as described in the first applicable case from the following list:
 \begin{itemize}
 \item
   When $D$ does not exist:
-  If $\ell$ occurs in a class $C$,
+  If $\ell$ occurs in a class \DefineSymbol{C},
   the lexical lookup yields the member signature of
   the member of the interface of $C$
   which has the name $n$.
-  If $\ell$ occurs in an extension $E$ with \ON{} type $T_{on}$,
+  If $\ell$ occurs in an extension \DefineSymbol{E}
+  with \ON{} type \DefineSymbol{T_{on}},
   the lexical lookup yields the member signature of
   the member of the interface of $T_{on}$
   which has the name $n$.
@@ -15571,7 +15571,8 @@ Now proceed as described in the first applicable case from the following list:
   % This may seem inconsistent, but it should not be harmful.
   Otherwise, the lexical lookup yields $D$.
 \item
-  Consider the case where $D$ is an instance member declaration in a class $C$.
+  Consider the case where $D$ is an instance member declaration in
+  a class \DefineSymbol{C}.
   The lexical lookup then yields the member signature named $n$
   in the interface of $C$.
   \commentary{%
@@ -18019,7 +18020,9 @@ $E$ is in the namespace provided by the import directive $I_i$
 (\commentary{%
 note that this takes \SHOW{} and \HIDE{} into account,
 and it includes extensions imported both without and with a prefix%
-}).
+}),
+and $E$ is not declared in the current library
+(\commentary{which could be the case if it imports itself}).
 Let \NamespaceName{\metavar{extensions}} be a namespace that
 for each extension $E$ in $\cal E$ maps a fresh name to $E$.
 
@@ -20754,7 +20757,9 @@ a tool that produces human readable documentation.
 
 \LMHash{}%
 The current scope for a documentation comment immediately preceding
-the declaration of a class $C$ is the class scope of $C$.
+the declaration of a class $C$ is the
+\IndexCustom{body scope}{scope!for statement body}
+of $C$.
 
 \LMHash{}%
 The current scope for a documentation comment immediately preceding
