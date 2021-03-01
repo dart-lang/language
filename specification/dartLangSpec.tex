@@ -5109,13 +5109,13 @@ The resolution is based on whether the relevant extension is in scope,
 and whether the invocation satisfies several other requirements.
 
 \begin{grammar}
-<staticExtensionDeclaration> ::=
+<extensionDeclaration> ::=
   \gnewline{} \EXTENSION{} <identifier>? <typeParameters>? \ON{} <type>
   \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
 \end{grammar}
 
 \LMHash{}%
-A declaration derived from \synt{staticExtensionDeclaration} is known as an
+A declaration derived from \synt{extensionDeclaration} is known as an
 \IndexCustom{extension declaration}{extension!declaration}.
 It introduces an
 \Index{extension}
@@ -5141,21 +5141,21 @@ even when it is imported with a prefix
 (\ref{theImportedNamespace}).
 %
 The declared name of an extension $E$ is
-in the library scope of the current library
+introduced into the library scope of the current library
 following the same rules as the names of
-other locally declared or imported public declarations like classes.
+other locally declared or imported declarations like classes.
 %
-However, the fresh name of $E$ is created in one \emph{additional} case,
-namely when there is a name clash with some other imported library
-on the declared name of $E$,
-in which case it is an error to use the declared name.%
+A fresh name of $E$ is introduced in these cases,
+but also in one additional case:
+when there is a name clash on the declared name of $E$.%
 }
 
 \commentary{%
 The fresh name makes it possible for an extension to be used
 even in the case where the declared name
 or an import prefix that provides access to the declared name
-is shadowed by a declaration in an intermediate scope,
+is shadowed by a declaration in an intermediate scope
+or conflicted by a name clash,
 namely in an implicit invocation
 (\ref{implicitExtensionInvocations}).%
 }
@@ -5562,7 +5562,7 @@ one or more member invocations.%
 \LMLabel{extensionAccessibility}
 
 \LMHash{}%
-A static extension $E$ is
+An extension $E$ is
 \IndexCustom{accessible}{extension!accessibility}
 in a given scope $S$
 if there exists a name $n$ such that a lexical lookup for $n$ from $S$
@@ -17674,7 +17674,7 @@ The members of a library $L$ are those top level declarations given within $L$.
 \begin{grammar}
 <topLevelDeclaration> ::= <classDeclaration>
   \alt <mixinDeclaration>
-  \alt <staticExtensionDeclaration>
+  \alt <extensionDeclaration>
   \alt <enumType>
   \alt <typeAlias>
   \alt \EXTERNAL{} <functionSignature> `;'
