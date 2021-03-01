@@ -2525,15 +2525,16 @@ and the instance methods inherited by $C$ from its superclass
 (\ref{inheritanceAndOverriding}).
 
 \LMHash{}%
-Consider a class $C$.
-It is a compile-time error if an instance method declaration in $C$ has
-a member signature $m$
-(\ref{interfaces})
+\BlindDefineSymbol{C, D, m}
+Consider a class $C$
+and an instance member declaration $D$ in $C$, with member signature $m$
+(\ref{interfaces}).
+It is a compile-time error if $D$ overrides a declaration
 % Note that $m'$ is accessible, due to the definition of 'overrides'.
-which overrides a member signature $m'$
+with member signature $m'$
 from a direct superinterface of $C$
 (\ref{interfaceInheritanceAndOverriding}),
-unless this is a correct member override
+unless $m$ is a correct member override of $m'$
 (\ref{correctMemberOverrides}).
 
 \commentary{%
@@ -2548,7 +2549,7 @@ E.g., $D$ could be an instance getter and $D'$ a static setter
 \LMHash{}%
 For each parameter $p$ of $m$ where \COVARIANT{} is present,
 it is a compile-time error if there exists
-a direct or indirect superinterface $J$ of $C$ which has
+a direct or indirect superinterface of $C$ which has
 an accessible method signature $m''$ with the same name as $m$,
 such that $m''$ has a parameter $p''$ that corresponds to $p$
 (\ref{covariantParameters}),
@@ -2788,6 +2789,7 @@ where only the null object is accepted:%
 \end{dartCode}
 
 \LMHash{}%
+\BlindDefineSymbol{C, L, m}%
 Let $C$ be a concrete class,
 let $L$ be the library that contains the declaration of $C$,
 and let $m$ be a name.
@@ -2931,23 +2933,25 @@ because compilers control the treatment of private names.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{C, m, X_j}%
 For the dynamic semantics,
 assume that a class $C$ has an implicitly induced
 \code{noSuchMethod} forwarder named $m$,
 with formal type parameters
 \code{$X_1,\ \ldots,\ X_r$},
 positional formal parameters
-\code{$a1,\ \ldots,\ a_k$}
-(\commentary{some of which may be optional when $m = 0$}),
+\BlindDefineSymbol{a_j, k, x_j, n}%
+\code{$a_1,\ \ldots,\ a_k$}
+(\commentary{some of which may be optional when $n = 0$}),
 and named formal parameters with names
-\code{$x_1,\ \ldots,\ x_m$}
+\code{$x_1,\ \ldots,\ x_n$}
 (\commentary{with default values as mentioned above}).
 
 \commentary{%
 For this purpose we need not distinguish between
 a signature that has optional positional parameters and
 a signature that has named parameters,
-because the former is covered by $m = 0$.%
+because the former is covered by $n = 0$.%
 }
 
 \LMHash{}%
@@ -2976,7 +2980,7 @@ such that:
 \end{itemize}
 
 \LMHash{}%
-Next, \code{noSuchMethod} is invoked with $i$ as the actual argument,
+Next, \code{noSuchMethod} is invoked with $im$ as the actual argument,
 and the result obtained from there is returned by the execution of $m$.
 
 \commentary{%
@@ -3354,6 +3358,7 @@ it implicitly has a default constructor \code{C():\ \SUPER()\ \{\}},
 unless $C$ is the built-in class \code{Object}.
 %% TODO(eernst): With null safety, add `or \code{Null}`.
 
+
 \subsubsection{Generative Constructors}
 \LMLabel{generativeConstructors}
 
@@ -3489,32 +3494,39 @@ and with which arguments.
 \def\ConstMetavar{\mbox{\CONST?}}
 
 \LMHash{}%
+\BlindDefineSymbol{C, X_j, B_j, m}%
 Assume that
 \code{$C$<$X_1\ \EXTENDS\ B_1 \ldots,\ X_m\ \EXTENDS\ B_m$>}
 is the name and formal type parameters of the enclosing class,
 $\ConstMetavar$ stands for either \CONST{} or nothing,
 $N$ is $C$ or $C.\id_0$ for some identifier $\id_0$,
 and \id{} is an identifier.
-Consider a declaration of a redirecting generative constructor $k$ of one of the forms
+Consider a declaration of a redirecting generative constructor $k$
+of one of the forms
 
-\code{$\ConstMetavar$ $N$($T_1\ x_1 \ldots,\ T_n\ x_n,\ $[$T_{n+1}\ x_{n+1} = d_1 \ldots,\ T_{n+k}\ x_{n+k} = d_k$]): $R$;}
+\noindent
+\code{$\ConstMetavar$ $N$($T_1\ x_1 \ldots,\ T_n\ x_n,\ $[$T_{n+1}\ x_{n+1} = d_1 \ldots,\ T_{n+k}\ x_{n+k} = d_k$]):\ $R$;}
 
-\code{$\ConstMetavar$ $N$($T_1\ x_1 \ldots,\ T_n\ x_n,\ $\{$T_{n+1}\ x_{n+1} = d_1 \ldots,\ T_{n+k}\ x_{n+k} = d_k$\}): $R$;}
+\noindent
+\code{$\ConstMetavar$ $N$($T_1\ x_1 \ldots,\ T_n\ x_n,\ $\{$T_{n+1}\ x_{n+1} = d_1 \ldots,\ T_{n+k}\ x_{n+k} = d_k$\}):\ $R$;}
 
 \noindent
 where $R$ is of one of the forms
 
-\code{$\THIS{}$($e_1 \ldots,\ e_p,\ x_1$: $e_{p+1}, \ldots,\ x_q$: $e_{p+q}$)}
+\noindent
+\code{$\THIS{}$($e_1 \ldots,\ e_p,\ x_1$:\ $e_{p+1}, \ldots,\ x_q$:\ $e_{p+q}$)}
 
-\code{$\THIS{}.\id$($e_1 \ldots,\ e_p,\ x_1$: $e_{p+1}, \ldots,\ x_q$: $e_{p+q}$)}
+\noindent
+\code{$\THIS{}.\id$($e_1 \ldots,\ e_p,\ x_1$:\ $e_{p+1}, \ldots,\ x_q$:\ $e_{p+q}$)}
 
 \LMHash{}%
 The
 \IndexCustom{redirectee constructor}{constructor!redirectee}
 for this declaration is then the constructor denoted by
 \code{$C$<$X_1 \ldots,\ X_m$>} respectively \code{$C$<$X_1 \ldots,\ X_m$>.\id}.
-It is a compile-time error if the static argument list type (\ref{actualArgumentLists}) of
-\code{($e_1 \ldots,\ e_p,\ x_1$: $e_{p+1}, \ldots,\ x_q$: $e_{p+q}$)}
+It is a compile-time error if the static argument list type
+(\ref{actualArgumentLists})
+of \code{($e_1 \ldots,\ e_p,\ x_1$:\ $e_{p+1}, \ldots,\ x_q$:\ $e_{p+q}$)}
 is not an assignable match for the formal parameter list of the redirectee.
 
 \commentary{%
@@ -3563,7 +3575,8 @@ of the corresponding formal parameter in the declaration of the redirectee.
 \LMLabel{initializerLists}
 
 \LMHash{}%
-An initializer list begins with a colon, and consists of a comma-separated list of individual \Index{initializers}.
+An initializer list begins with a colon,
+and consists of a comma-separated list of individual \Index{initializers}.
 
 \commentary{%
 There are three kinds of initializers.
@@ -3597,22 +3610,27 @@ There are three kinds of initializers.
 An initializer of the form \code{$v$ = $e$} is equivalent to
 an initializer of the form \code{\THIS{}.$v$ = $e$},
 both forms are called \Index{instance variable initializers}.
-It is a compile-time error if the enclosing class does not declare an instance variable named $v$.
+It is a compile-time error if the enclosing class
+does not declare an instance variable named $v$.
 Otherwise, let $T$ be the static type of $v$.
 It is a compile-time error unless the static type of $e$ is assignable to $T$.
 
 \LMHash{}%
 Consider a \Index{superinitializer} $s$ of the form
 
-\code{\SUPER{}($a_1, \ldots,\ a_n,\ x_{n+1}: a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\noindent
+\code{\SUPER{}($a_1, \ldots,\ a_n,\ x_{n+1}:\ a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
 respectively
 
-\code{\SUPER{}.\id($a_1, \ldots,\ a_n,\ x_{n+1}: a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\noindent
+\code{\SUPER{}.\id($a_1, \ldots,\ a_n,\ x_{n+1}:\ a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}.
 
 \noindent{}%
 Let $S$ be the superclass of the enclosing class of $s$.
-It is a compile-time error if class $S$ does not declare a generative constructor named $S$ (respectively \code{$S$.\id}).
-Otherwise, the static analysis of $s$ is performed as specified in Section~\ref{bindingActualsToFormals},
+It is a compile-time error if class $S$ does not declare
+a generative constructor named $S$ (respectively \code{$S$.\id}).
+Otherwise, the static analysis of $s$ is performed
+as specified in Section~\ref{bindingActualsToFormals},
 as if \code{\SUPER{}} respectively \code{\SUPER{}.\id}
 had had the function type of the denoted constructor,
 %% TODO(eernst): The following is very imprecise, it just serves to remember
@@ -3624,18 +3642,29 @@ for the corresponding actual type arguments passed to the superclass
 in the header of the current class.
 
 \LMHash{}%
-Let $k$ be a generative constructor.
-Then $k$ may include at most one superinitializer in its initializer list or a compile-time error occurs.
-If no superinitializer is provided, an implicit superinitializer of the form \SUPER{}() is added at the end of $k$'s initializer list,
+Let \DefineSymbol{k} be a generative constructor.
+Then $k$ may include at most one superinitializer in its initializer list
+or a compile-time error occurs.
+If no superinitializer is provided,
+an implicit superinitializer of the form \SUPER{}() is added
+at the end of $k$'s initializer list,
 unless the enclosing class is class \code{Object}.
-It is a compile-time error if a superinitializer appears in $k$'s initializer list at any other position than at the end.
-It is a compile-time error if more than one initializer corresponding to a given instance variable appears in $k$'s initializer list.
-It is a compile-time error if $k$'s initializer list contains an initializer for a variable that is initialized by means of an initializing formal of $k$.
-It is a compile-time error if $k$'s initializer list contains an initializer for a final variable $f$ whose declaration includes an initialization expression.
-It is a compile-time error if $k$ includes an initializing formal for a final variable $f$ whose declaration includes an initialization expression.
+It is a compile-time error if a superinitializer appears
+in $k$'s initializer list at any other position than at the end.
+It is a compile-time error if more than one initializer corresponding
+to a given instance variable appears in $k$'s initializer list.
+It is a compile-time error if $k$'s initializer list contains
+an initializer for a variable that is initialized by means of
+an initializing formal of $k$.
+It is a compile-time error if $k$'s initializer list contains
+an initializer for a final variable $f$ whose declaration includes
+an initialization expression.
+It is a compile-time error if $k$ includes an initializing formal
+for a final variable $f$ whose declaration includes
+an initialization expression.
 
 \LMHash{}%
-Let $f$ be a final instance variable declared in
+Let \DefineSymbol{f} be a final instance variable declared in
 the immediately enclosing class.
 A compile-time error occurs unless $f$ is initialized
 by one of the following means:
@@ -3646,7 +3675,9 @@ by one of the following means:
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error if $k$'s initializer list contains an initializer for a variable that is not an instance variable declared in the immediately surrounding class.
+It is a compile-time error if $k$'s initializer list contains
+an initializer for a variable that is not
+an instance variable declared in the immediately surrounding class.
 
 \commentary{%
 The initializer list may of course contain an initializer for
@@ -3663,11 +3694,12 @@ includes a superinitializer.
 \LMLabel{executionOfGenerativeConstructors}
 
 \LMHash{}%
+\BlindDefineSymbol{k, T, i}%
 Execution of a generative constructor $k$ of type $T$
 to initialize a fresh instance $i$
 is always done with respect to a set of bindings for its formal parameters
 and the type parameters of the immediately enclosing class bound to
-a set of actual type arguments of $T$, $t_1, \ldots, t_m$.
+a set of actual type arguments of $T$, \DefineSymbol{\List{t}{1}{m}}.
 
 \commentary{%
 These bindings are usually determined by the instance creation expression
@@ -3678,21 +3710,27 @@ However, they may also be determined by a reflective call.%
 \LMHash{}%
 If $k$ is redirecting then its redirect clause has the form
 
-\code{\THIS{}.$g$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\code{\THIS{}.$g$($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
 
-where $g$ identifies another generative constructor of the immediately surrounding class.
-Then execution of $k$ to initialize $i$ proceeds by evaluating the argument list
-\code{($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+where \DefineSymbol{g} identifies another generative constructor
+of the immediately surrounding class.
+Then execution of $k$ to initialize $i$ proceeds by
+evaluating the argument list
+\code{($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
 to an actual argument list $a$ of the form
-\code{($o_1, \ldots,\ o_n,\ x_{n+1}$: $o_{n+1}, \ldots,\ x_{n+k}$: $o_{n+k}$)}
-in an environment where the type parameters of the enclosing class are bound to
+\code{($o_1, \ldots,\ o_n,\ x_{n+1}$:\ $o_{n+1}, \ldots,\ x_{n+k}$:\ $o_{n+k}$)}
+in an environment where the
+type parameters of the enclosing class are bound to
 $t_1, \ldots, t_m$.
 
 \LMHash{}%
-Next, the body of $g$ is executed to initialize $i$ with respect to the bindings that map
-the formal parameters of $g$ to the corresponding objects in the actual argument list $a$,
+Next, the body of $g$ is executed to initialize $i$
+with respect to the bindings that map
+the formal parameters of $g$ to the corresponding objects
+in the actual argument list $a$,
 with \THIS{} bound to $i$,
-and the type parameters of the immediately enclosing class bound to $t_1, \ldots, t_m$.
+and the type parameters of the immediately enclosing class bound to
+\List{t}{1}{m}.
 
 \LMHash{}%
 Otherwise, $k$ is not redirecting.
@@ -3707,9 +3745,10 @@ then $e$ is evaluated to an object $o$
 and the instance variable $v$ of $i$ is bound to $o$.
 
 \LMHash{}%
-Any initializing formals declared in $k$'s parameter list are executed in the order they appear in the program text.
-% In fact, this order is unobservable; this could be done any time prior to running the body, since
-% these only effect \THIS{}.
+Any initializing formals declared in $k$'s parameter list
+are executed in the order they appear in the program text.
+% In fact, this order is unobservable; this could be done any time
+% prior to running the body, since these only effect \THIS{}.
 Then, the initializers of $k$'s initializer list are executed to initialize $i$
 in the order they appear in the program, as described below
 (p.\,\pageref{executionOfInitializerLists}).
@@ -3730,7 +3769,8 @@ implicitly added superinitializer (\ref{initializerLists}) is executed to
 further initialize $i$.
 
 \LMHash{}%
-After the superinitializer has completed, the body of $k$ is executed in a scope where \THIS{} is bound to $i$.
+After the superinitializer has completed, the body of $k$ is executed
+in a scope where \THIS{} is bound to $i$.
 
 \rationale{%
 This process ensures that no uninitialized final instance variable
@@ -3747,12 +3787,13 @@ nor can \THIS{} be passed into any other code being invoked in the initializer.%
 \LMLabel{executionOfInitializerLists}
 
 \LMHash{}%
-During the execution of a generative constructor to initialize an instance $i$,
+During the execution of a generative constructor to initialize an instance
+\DefineSymbol{i},
 execution of an initializer of the form \code{\THIS{}.$v$ = $e$}
 proceeds as follows:
 
 \LMHash{}%
-First, the expression $e$ is evaluated to an object $o$.
+First, the expression $e$ is evaluated to an object \DefineSymbol{o}.
 Then, the instance variable $v$ of $i$ is bound to $o$.
 % This error can occur due to an implicit cast.
 It is a dynamic type error if the dynamic type of $o$ is not
@@ -3761,26 +3802,28 @@ a subtype of the actual type
 of the instance variable $v$.
 
 \LMHash{}%
-Execution of an initializer that is an assertion proceeds by executing the assertion (\ref{assert}).
+Execution of an initializer that is an assertion proceeds by
+executing the assertion (\ref{assert}).
 
 \LMHash{}%
-Consider a superinitializer $s$ of the form
+Consider a superinitializer \DefineSymbol{s} of the form
 
-\code{\SUPER{}($a_1, \ldots,\ a_n,\ x_{n+1}: a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\noindent
+\code{\SUPER{}($a_1, \ldots,\ a_n,\ x_{n+1}:\ a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
 respectively
 
-\code{\SUPER{}.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\noindent
+\code{\SUPER{}.\id($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}.
 
 \LMHash{}%
+\BlindDefineSymbol{C, S, u_j, p}
 Let $C$ be the class in which $s$ appears and let $S$ be the superclass of $C$.
 If $S$ is generic (\ref{generics}),
 let $u_1, \ldots, u_p$ be the actual type arguments passed to $S$,
-obtained by substituting $t_1, \ldots, t_m$
-for the formal type parameters of $C$
-in the superclass as specified in the header of $C$, and
-$t_1, \ldots, t_m$
-are the actual bindings of the type variables of $C$.
-Let $k$ be the constructor declared in $S$ and named
+obtained by substituting the actual bindings \List{t}{1}{m}
+of the formal type parameters of $C$
+in the superclass as specified in the header of $C$.
+Let \DefineSymbol{k} be the constructor declared in $S$ and named
 $S$ respectively \code{$S$.\id}.
 
 \LMHash{}%
@@ -3810,11 +3853,17 @@ is a constructor prefaced by the built-in identifier
 \end{grammar}
 
 \LMHash{}%
-The return type of a factory whose signature is of the form \FACTORY{} $M$ or the form \FACTORY{} \code{$M$.\id} is $M$ if $M$ is not a generic type;
-otherwise the return type is \code{$M$<$T_1, \ldots,\ T_n$>} where $T_1, \ldots, T_n$ are the type parameters of the enclosing class.
+The return type of a factory whose signature is of
+the form \FACTORY{} $M$ or
+the form \FACTORY{} \code{$M$.\id}
+is $M$ if $M$ is not a generic type;
+otherwise the return type is
+\code{$M$<$T_1, \ldots,\ T_n$>}
+where $T_1, \ldots, T_n$ are the type parameters of the enclosing class.
 
 \LMHash{}%
-It is a compile-time error if $M$ is not the name of the immediately enclosing class.
+It is a compile-time error if $M$ is not the name of
+the immediately enclosing class.
 
 \LMHash{}%
 % This error can occur due to an implicit cast.
@@ -3856,12 +3905,14 @@ whenever the redirecting constructor is called.
 \end{grammar}
 
 Assume that
+\BlindDefineSymbol{C, X_j, B_j, m}%
 \code{$C$<$X_1\ \EXTENDS\ B_1 \ldots,\ X_m\ \EXTENDS\ B_m$>}
 is the name and formal type parameters of the enclosing class,
 $\ConstMetavar$ is \CONST{} or empty,
-$N$ is $C$ or $C.\id_0$ for some identifier $\id_0$,
-$T$ is a type name, and \id{} is an identifier,
-then consider a declaration of a redirecting factory constructor $k$ of one of the forms
+\DefineSymbol{N} is $C$ or $C.\id_0$ for some identifier $\id_0$,
+and \DefineSymbol{\id} is an identifier,
+then consider a declaration of a redirecting factory constructor
+\DefineSymbol{k} of one of the forms
 
 \begin{normativeDartCode}
 $\ConstMetavar$ \FACTORY{}
@@ -3872,6 +3923,7 @@ $\ConstMetavar$ \FACTORY{}
 \end{normativeDartCode}
 
 \noindent
+\BlindDefineSymbol{R, T}%
 where $R$ is of one of the forms
 \code{$T$<$S_1 \ldots,\ S_p$>} or
 \code{$T$<$S_1 \ldots,\ S_p$>.\id}.
@@ -3888,7 +3940,7 @@ Otherwise, it is a compile-time error
 if $R$ denotes a generative constructor and $D$ is abstract.
 Otherwise, the
 \IndexCustom{redirectee constructor}{constructor!redirectee}
-for this declaration is the constructor denoted by $R$.
+for this declaration is the constructor \DefineSymbol{k'} denoted by $R$.
 
 \LMHash{}%
 A redirecting factory constructor $q'$ is \Index{redirection-reachable}
@@ -3900,7 +3952,8 @@ It is a compile-time error if a redirecting factory constructor
 is redirection-reachable from itself.
 
 \LMHash{}%
-Let $\argumentList{T}$ be the static argument list type (\ref{actualArgumentLists})
+Let $\argumentList{T}$ be the static argument list type
+(\ref{actualArgumentLists})
 \code{($T_1 \ldots,\ T_{n+k}$)}
 when $k$ takes no named arguments, and
 \code{($T_1 \ldots,\ T_n,\ T_{n+1}\ x_{n+1},\ \ldots,\ T_{n+k}\ x_{n+k}$)}
@@ -3971,11 +4024,11 @@ It is a compile-time error if $k$ is prefixed with the \CONST{} modifier
 but $k'$ is not a constant constructor (\ref{constantConstructors}).
 
 \LMHash{}%
-Let $T_1, \ldots, T_m$ be the actual type arguments passed to $k'$
+Let \DefineSymbol{\List{T}{1}{m}} be the actual type arguments passed to $k'$
 in the declaration of $k$.
-Let $X_1, \ldots, X_m$ be the formal type arguments declared by
+Let \DefineSymbol{\List{X}{1}{m}} be the formal type parameters declared by
 the class that contains the declaration of $k'$.
-Let $F'$ be the function type of $k'$ (\ref{constructors}).
+Let \DefineSymbol{F'} be the function type of $k'$ (\ref{constructors}).
 It is a compile-time error if $[T_1/X_1, \ldots, T_m/X_m]F'$
 is not a subtype of the function type of $k$.
 
@@ -3988,8 +4041,8 @@ the interface of the immediately enclosing class of $k$.%
 
 \LMHash{}%
 For the dynamic semantics,
-assume that $k$ is a redirecting factory constructor
-and $k'$ is the redirectee of $k$.
+assume that \DefineSymbol{k} is a redirecting factory constructor
+and \DefineSymbol{k'} is the redirectee of $k$.
 
 \LMHash{}%
 % This error can occur due to an implicit cast.
@@ -3999,7 +4052,8 @@ of the corresponding formal parameter in the declaration of $k$.
 
 \LMHash{}%
 When the redirectee $k'$ is a factory constructor,
-execution of $k$ amounts to execution of $k'$ with the actual arguments passed to $k$.
+execution of $k$ amounts to execution of $k'$
+with the actual arguments passed to $k$.
 The result of the execution of $k'$ is the result of $k$.
 
 \LMHash{}%
@@ -4007,9 +4061,12 @@ When the redirectee $k'$ is a generative constructor,
 let $o$ be a fresh instance (\ref{generativeConstructors})
 of the class that contains $k'$.
 Execution of $k$ then amounts to execution of $k'$ to initialize $o$,
-governed by the same rules as an instance creation expression (\ref{instanceCreation}).
-If $k$ completed normally then the execution of $k'$ completes normally returning $o$,
-otherwise $k'$ completes by throwing the exception and stack trace thrown by $k$.
+governed by the same rules as an instance creation expression
+(\ref{instanceCreation}).
+If $k'$ completed normally then the execution of $k$
+completes normally returning $o$,
+otherwise $k$ completes by throwing the exception and stack trace
+thrown by $k'$.
 
 
 \subsubsection{Constant Constructors}
@@ -4051,6 +4108,7 @@ The above refers to both locally declared and inherited instance variables.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{k, C}%
 If a non-redirecting generative constant constructor $k$
 is declared by a class $C$,
 it is a compile-time error
@@ -4080,7 +4138,8 @@ must be a potentially constant expression
 or a compile-time error occurs.
 
 \LMHash{}%
-When a constant constructor $k$ is invoked from a constant object expression,
+When a constant constructor \DefineSymbol{k} is invoked from
+a constant object expression,
 it is a compile-time error if
 the invocation of $k$ at run time would throw an exception,
 and it is a compile-time error if
@@ -4171,8 +4230,10 @@ The scope of the \EXTENDS{} and \WITH{} clauses of a class $C$ is
 the type-parameter scope of $C$.
 
 \LMHash{}%
-It is a compile-time error if the type in the \EXTENDS{} clause of a class $C$ is
-a type variable (\ref{generics}), a type alias that does not denote a class (\ref{typedef}),
+It is a compile-time error if the type
+in the \EXTENDS{} clause of a class $C$ is
+a type variable (\ref{generics}),
+a type alias that does not denote a class (\ref{typedef}),
 an enumerated type (\ref{enums}),
 a deferred type (\ref{staticTypes}), type \DYNAMIC{} (\ref{typeDynamic}),
 or type \code{FutureOr<$T$>} for any $T$ (\ref{typeFutureOr}).
@@ -4221,7 +4282,8 @@ It is a compile-time error if a class $C$ is a superclass of itself.
 Let $C$ be a class, let $A$ be a superclass of $C$, and
 let $S_1, \ldots, S_k$ be superclasses of $C$ that are also subclasses of $A$.
 $C$ \Index{inherits} all concrete, accessible instance members of $A$
-that have not been overridden by a concrete declaration in $C$ or in at least one of $S_1, \ldots, S_k$.
+that have not been overridden by a concrete declaration in $C$
+or in at least one of $S_1, \ldots, S_k$.
 
 \rationale{%
 It would be more attractive to give a purely local definition of inheritance,
@@ -4243,10 +4305,12 @@ let $\{S_1, \ldots, S_k\}$ be the set of all superclasses of $C$,
 where $S_i$ is the superclass of $S_{i-1}$ for $i \in 1 .. k$.
 \commentary{$S_k$ is the built-in class \code{Object}.}
 Let $C$ declare a concrete member $m$, and
-let $m'$ be a concrete member of $S_j, j \in 1 .. k$, that has the same name as $m$,
+let $m'$ be a concrete member of $S_j, j \in 1 .. k$, that has
+the same name as $m$,
 such that $m'$ is accessible to $L$.
 Then $m$ overrides $m'$
-if $m'$ is not already overridden by a concrete member of at least one of $S_1, \ldots, S_{j-1}$
+if $m'$ is not already overridden by a concrete member of
+at least one of $S_1, \ldots, S_{j-1}$
 and neither $m$ nor $m'$ are instance variables.
 
 \commentary{%
@@ -4364,11 +4428,14 @@ the \IMPLEMENTS{} clause of the class.
 \end{grammar}
 
 \LMHash{}%
-The scope of the \IMPLEMENTS{} clause of a class $C$ is the type-parameter scope of $C$.
+The scope of the \IMPLEMENTS{} clause of a class $C$ is
+the type-parameter scope of $C$.
 
 \LMHash{}%
-It is a compile-time error if an element in the type list of the \IMPLEMENTS{} clause of a class $C$ is
-a type variable (\ref{generics}), a type alias that does not denote a class (\ref{typedef}),
+It is a compile-time error if an element
+in the type list of the \IMPLEMENTS{} clause of a class $C$ is
+a type variable (\ref{generics}),
+a type alias that does not denote a class (\ref{typedef}),
 an enumerated type (\ref{enums}),
 a deferred type (\ref{staticTypes}), type \DYNAMIC{} (\ref{typeDynamic}),
 or type \code{FutureOr<$T$>} for any $T$ (\ref{typeFutureOr}).
@@ -4410,7 +4477,8 @@ in its \EXTENDS{} or \IMPLEMENTS{} clause.%
 }
 
 \LMHash{}%
-It is a compile-time error if the interface of a class $C$ is a superinterface of itself.
+It is a compile-time error if the interface of a class $C$ is
+a superinterface of itself.
 
 \commentary{%
 A class does not inherit members from its superinterfaces.
@@ -4434,7 +4502,7 @@ The basename of an operator named $n$ is $n$,
 except for operator \code{[]=} whose basename is \code{[]}.
 
 \LMHash{}%
-Let $C$ be a class.
+Let \DefineSymbol{C} be a class.
 It is a compile-time error if $C$
 declares a constructor named \code{$C$.$n$} and
 a static member with basename $n$.
@@ -4445,7 +4513,7 @@ It is a compile-time error if the interface of $C$
 has a method named $n$ and a setter with basename $n$.
 
 \LMHash{}%
-When $C$ is a mixin or an extension,
+When \DefineSymbol{C} is a mixin or an extension,
 the compile-time errors occur according to the same rules.
 \commentary{%
 This is redundant in some cases.
@@ -4540,7 +4608,7 @@ depends on the former and not on the latter.%
 }
 
 \LMHash{}%
-Let $m$ be a method signature of the form
+Let \DefineSymbol{m} be a method signature of the form
 
 \noindent
 \code{$T_0$ \id<\TypeParametersStd>(}
@@ -4559,7 +4627,7 @@ $m$ is then
 \FunctionTypePositionalStd{T_0}.
 
 \LMHash{}%
-Let $m$ be a method signature of the form
+Let \DefineSymbol{m} be a method signature of the form
 
 \noindent
 \code{$T_0$ \id<\TypeParametersStd>(}
@@ -4577,7 +4645,7 @@ The \NoIndex{function type of} $m$ is then
 \FunctionTypeNamedStd{T_0}.
 
 \LMHash{}%
-Let $m$ be a setter signature of the form
+Let \DefineSymbol{m} be a setter signature of the form
 \code{\VOID\ \SET\ \id(\COVARIANT?\ $T$ $p$)}.
 The \NoIndex{function type of} $m$ is then
 \FunctionTypeSimple{\VOID}{$T$}.
@@ -4641,6 +4709,7 @@ $T$ is considered to have a method named \CALL{} with signature $m$,
 such that the function type of $m$ is $T_0$.
 
 \LMHash{}%
+\BlindDefineSymbol{I, \List{I}{1}{k}}
 The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
 is the interface that declares the set of member signatures $M$,
 where $M$ is determined as specified below.
@@ -4756,10 +4825,11 @@ one of the purposes of computing a combined interface.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{\id, L, I_j, k}%
 Now we define combined member signatures.
 Let \id{} be an identifier, $L$ a library,
 \List{I}{1}{k} a list of interfaces,
-and $M_0$ the set of
+and \DefineSymbol{M_0} the set of
 all member signatures from \List{I}{1}{k} named \id{}
 and accessible to $L$.
 The
@@ -4776,7 +4846,8 @@ If $M_0$ contains exactly one member signature $m'$,
 the combined member signature is $m'$.
 
 \LMHash{}%
-Otherwise, $M_0$ contains more than one member signature \List{m}{1}{q}.
+Otherwise, $M_0$ contains more than one member signature
+\DefineSymbol{\List{m}{1}{q}}.
 
 \LMHash{}%
 \Case{Failing mixtures}
@@ -4802,6 +4873,7 @@ because the name \id{} in the former case always ends in \lit{=},
 which is never true in the latter case.
 
 \LMHash{}%
+\BlindDefineSymbol{N}%
 Determine whether there exists a non-empty set $N \subseteq 1 .. q$ such that
 for each $i \in N$,
 the function type of $m_i$ is a subtype of
@@ -4825,6 +4897,7 @@ in the sense that their function types are subtypes of them all.%
 \LMHash{}%
 Otherwise, when a set $N$ as specified above exists,
 let \Nall{} be the greatest set satisfying the requirement on $N$,
+\BlindDefineSymbol{\Mall}%
 and let $\Mall{} = \{ m_i\;|\;i \in \Nall\}$.
 \commentary{%
 That is, \Mall{} contains all member signatures named \id{}
@@ -4840,6 +4913,7 @@ and we do that by using the ordering of the given interfaces.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{\MallFirst}%
 Let $j \in 1 .. k$ be the smallest number such that
 $\MallFirst{} = \Mall{} \cap I_j$ is non-empty.
 Let $m_i$ be the single element that \MallFirst{} contains.
@@ -4935,8 +5009,10 @@ with a declaration like
 \LMLabel{interfaceInheritanceAndOverriding}
 
 \LMHash{}%
+\BlindDefineSymbol{J, K}%
 Let $J$ be an interface and $K$ be a library.
-We define $\inherited{J, K}$ to be the set of member signatures $m$
+We define $\inherited{J, K}$ to be the set of member signatures
+\DefineSymbol{m}
 such that all of the following hold:
 \begin{itemize}
 \item $m$ is accessible to $K$ and
@@ -4950,7 +5026,7 @@ such that all of the following hold:
 
 \LMHash{}%
 Furthermore, we define $\overrides{J, K}$ to be
-the set of member signatures $m'$
+the set of member signatures \DefineSymbol{m'}
 such that all of the following hold:
 \begin{itemize}
 \item $J$ is the interface of a class $C$.
@@ -4991,6 +5067,7 @@ if the computation of said combined member signature fails.
 \LMLabel{correctMemberOverrides}
 
 \LMHash{}%
+\BlindDefineSymbol{m, m', \id}%
 Let $m$ and $m'$ be member signatures with the same name \id.
 Then $m$ is a \Index{correct override} of $m'$
 if{}f the following criteria are all satisfied:
@@ -5054,9 +5131,12 @@ A mixin is either derived from an existing class declaration
 or introduced by a mixin declaration.
 
 \LMHash{}%
-Mixin application occurs when one or more mixins are mixed into a class declaration via its \WITH{} clause (\ref{mixinApplication}).
+Mixin application occurs when one or more mixins are mixed into
+a class declaration via its \WITH{} clause (\ref{mixinApplication}).
 Mixin application may be used to extend a class per section \ref{classes};
-alternatively, a class may be defined as a mixin application as described in the following section.
+alternatively, a class may be defined as a mixin application
+as described in the following section.
+
 
 \subsection{Mixin Classes}
 \LMLabel{mixinClasses}
@@ -5069,7 +5149,8 @@ alternatively, a class may be defined as a mixin application as described in the
 \end{grammar}
 
 \LMHash{}%
-It is a compile-time error if an element in the type list of the \WITH{} clause of a mixin application is
+It is a compile-time error if an element in
+the type list of the \WITH{} clause of a mixin application is
 a type variable (\ref{generics}),
 a function type (\ref{functionTypes}),
 a type alias that does not denote a class (\ref{typedef}),
@@ -5091,13 +5172,19 @@ Let $D$ be a mixin application class declaration of the form
 
 \LMHash{}%
 It is a compile-time error if $S$ is an enumerated type (\ref{enums}).
-It is a compile-time error if any of $M_1, \ldots, M_k$ is an enumerated type (\ref{enums}).
-It is a compile-time error if a well formed mixin cannot be derived from each of $M_1, \ldots, M_k$.
+It is a compile-time error if any of $M_1, \ldots, M_k$ is an enumerated type
+(\ref{enums}).
+It is a compile-time error if a well formed mixin
+cannot be derived from each of $M_1, \ldots, M_k$.
 
 \LMHash{}%
-The effect of $D$ in library $L$ is to introduce the name $N$ into the scope of $L$, bound to the class (\ref{classes}) defined by the clause \code{$S$ \WITH{} $M_1$, \ldots{}, $M_n$} with name $N$, as described below.
+The effect of $D$ in library $L$ is to introduce the name $N$ into
+the scope of $L$, bound to the class (\ref{classes}) defined by the clause
+\code{$S$ \WITH{} $M_1$, \ldots{}, $M_n$}
+with name $N$, as described below.
 If $k > 0$ then the class also implements $I_1$, \ldots{}, $I_k$.
-If{}f the class declaration is prefixed by the built-in identifier \ABSTRACT{}, the class being defined is made an abstract class.
+If{}f the class declaration is prefixed by the built-in identifier \ABSTRACT{},
+the class being defined is made an abstract class.
 
 \LMHash{}%
 A clause of the form \code{$S$ \WITH{} $M_1$, \ldots{}, $M_n$}
@@ -5117,8 +5204,11 @@ Then \code{$S$ \WITH{} $M_1$, \ldots{}, $M_n$} defines the class yielded
 by the mixin application of the mixin of $M_n$ to the class $X$ with name $N$.
 
 \LMHash{}%
-In either case, let $K$ be a class declaration with the same constructors, superclass, interfaces and instance members as the defined class.
-It is a compile-time error if the declaration of $K$ would cause a compile-time error.
+In either case, let $K$ be a class declaration with
+the same constructors, superclass, interfaces and instance members as
+the defined class.
+It is a compile-time error if the declaration of $K$ would cause
+a compile-time error.
 % TODO(eernst): Not completely!
 % We do not want super-invocations on covariant implementations
 % to be compile-time errors.
@@ -5134,10 +5224,14 @@ but which is not a correct override of $m$
 \LMLabel{mixinDeclaration}
 
 \LMHash{}%
-A mixin defines zero or more \IndexCustom{mixin member declarations}{mixin!member declaration},
-zero or more \IndexCustom{required superinterfaces}{mixin!required superinterface},
-one \IndexCustom{combined superinterface}{mixin!combined superinterface},
-and zero or more \IndexCustom{implemented interfaces}{mixin!implemented interface}.
+A mixin defines zero or more
+\IndexCustom{mixin member declarations}{mixin!member declaration},
+zero or more
+\IndexCustom{required superinterfaces}{mixin!required superinterface},
+one
+\IndexCustom{combined superinterface}{mixin!combined superinterface},
+and zero or more
+\IndexCustom{implemented interfaces}{mixin!implemented interface}.
 
 \LMHash{}%
 The mixin derived from a class declaration:
@@ -5181,6 +5275,7 @@ Let $M$ be a \MIXIN{} declaration of the form
 \}
 \end{normativeDartCode}
 
+\LMHash{}%
 It is a compile-time error if any of the types $T_1$ through $T_n$
 or $I_1$ through $I_k$ is
 a type variable (\ref{generics}),
@@ -5199,6 +5294,7 @@ Let $M_S$ be the interface declared by the class declaration
 \ABSTRACT{} \CLASS{} $M_{super}$<$P_1$, \ldots{}, $P_m$> \IMPLEMENTS{} $T_1$, $\dots{}$, $T_n$ \{\}
 \end{normativeDartCode}
 
+\noindent
 where $M_{super}$ is a fresh name.
 It is a compile-time error for the mixin declaration if the $M_S$
 class declaration would cause a compile-time error,
@@ -5244,6 +5340,7 @@ the \NoIndex{combined superinterface} $M_S$,
 \NoIndex{implemented interface}s $I_1$, \ldots{}, $I_k$
 and the instance members declared in $M$ as \Index{mixin member declarations}.
 
+
 \subsection{Mixin Application}
 \LMLabel{mixinApplication}
 
@@ -5287,7 +5384,10 @@ to the mixin application.}
 
 Let $S_N$ be the name of $S$.
 
-For each generative constructor of the form \code{$S_q$($T_{1}$ $a_{1}$, $\ldots$, $T_{k}$ $a_{k}$)} of $S$ that is accessible to $L_C$, $C$ has an implicitly declared constructor of the form
+For each generative constructor of the form
+\code{$S_q$($T_{1}$ $a_{1}$, $\ldots$, $T_{k}$ $a_{k}$)}
+of $S$ that is accessible to $L_C$, $C$ has
+an implicitly declared constructor of the form
 
 \begin{normativeDartCode}
 $C_q$($T_{1}$ $a_{1}$, \ldots, $T_{k}$ $a_{k}$): $\SUPER_q$($a_{1}$, $\ldots$, $a_{k}$);
@@ -5301,7 +5401,10 @@ If $S_q$ is a generative const constructor, and $C$ does not declare any
 instance variables, $C_q$ is also a const constructor.
 
 \LMHash{}%
-For each generative constructor of the form \code{$S_q$($T_{1}$ $a_{1}$, \ldots , $T_{k}$ $a_{k}$, [$T_{k+1}$ $a_{k+1}$ = $d_1$, \ldots , $T_{k+p}$ $a_{k+p}$ = $d_p$])} of $S$ that is accessible to $L_C$, $C$ has an implicitly declared constructor of the form
+For each generative constructor of the form
+\code{$S_q$($T_{1}$ $a_{1}$, \ldots , $T_{k}$ $a_{k}$, [$T_{k+1}$ $a_{k+1}$ = $d_1$, \ldots , $T_{k+p}$ $a_{k+p}$ = $d_p$])}
+of $S$ that is accessible to $L_C$, $C$ has
+an implicitly declared constructor of the form
 
 \begin{normativeDartCode}
 $C_q$($T_{1}$ $a_{1}$, \ldots , $T_{k}$ $a_{k}$, [$T_{k+1}$ $a_{k+1}$ = $d'_{1}$, \ldots , $T_{k+p}$ $a_{k+p}$ = $d'_p$])
@@ -5319,7 +5422,10 @@ If $S_q$ is a generative const constructor, and $MC$ does not declare any
 instance variables, $C_q$ is also a const constructor.
 
 \LMHash{}%
-For each generative constructor of the form \code{$S_q$($T_{1}$ $a_{1}$, \ldots , $T_{k}$ $a_{k}$, \{$T_{k+1}$ $a_{k+1}$ = $d_1$, \ldots , $T_{k+n}$ $a_{k+n}$ = $d_n$\})} of $S$ that is accessible to $L_C$, $C$ has an implicitly declared constructor of the form
+For each generative constructor of the form
+\code{$S_q$($T_{1}$ $a_{1}$, \ldots , $T_{k}$ $a_{k}$, \{$T_{k+1}$ $a_{k+1}$ = $d_1$, \ldots , $T_{k+n}$ $a_{k+n}$ = $d_n$\})}
+of $S$ that is accessible to $L_C$, $C$ has
+an implicitly declared constructor of the form
 
 \begin{normativeDartCode}
 $C_q$($T_{1}$ $a_{1}$, \ldots , $T_{k}$ $a_{k}$, \{$T_{k+1}$ $a_{k+1}$ = $d'_1$, \ldots , $T_{k+n}$ $a_{k+n}$ = $d'_n$\})
@@ -5331,7 +5437,8 @@ where $C_q$ is obtained from $S_q$ by replacing occurrences of $S_N$
 which denote the superclass by $N$,
 $\SUPER_q$ is obtained from $S_q$ by replacing occurrences of $S_N$
 which denote the superclass by \SUPER{},
-and $d'_i$, $i \in 1..n$, is a constant expression evaluating to the same value as $d_i$.
+and $d'_i$, $i \in 1..n$, is a constant expression evaluating to
+the same value as $d_i$.
 If $S_q$ is a generative const constructor, and $M$ does not declare any
 fields, $C_q$ is also a const constructor.
 
@@ -5410,7 +5517,7 @@ of a given extension, an implicit invocation can use it.%
 }
 
 \LMHash{}%
-It is a compile-time error if the current library $L$ has
+It is a compile-time error if the current library has
 a deferred import of a library $L'$
 such that the imported namespace from $L'$ contains
 a name denoting an extension.
@@ -5476,6 +5583,7 @@ An extension declaration introduces two scopes:
 \end{itemize}
 
 \LMHash{}%
+\BlindDefineSymbol{D, \code{E}}%
 Let $D$ be an extension declaration with declared name \code{E}.
 A member declaration in $D$ with the modifier \STATIC{} is designated as a
 \IndexCustom{static member}{extension!static member}
@@ -5527,7 +5635,8 @@ which would be confusing and error-prone.%
 \LMLabel{explicitExtensionInvocations}
 
 \LMHash{}%
-Let $E$ be a simple or qualified identifier that denotes an extension.
+Let \DefineSymbol{E} be a simple or qualified identifier
+that denotes an extension.
 An \IndexCustom{extension application}{extension!application}
 is then an expression of the form
 \syntax{$E$ <typeArguments>? `(' <expression> `)'}.
@@ -5581,11 +5690,13 @@ a context type that makes it a set literal.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{a, E, T_j, e}%
 Let $a$ be an extension application of the form
 \code{$E$<\List{T}{1}{s}>($e$)},
 where $E$ denotes an extension declared as
 
 \noindent
+\BlindDefineSymbol{X_j, B_j, s}
 \EXTENSION{} E<\TypeParametersStd> \ON{} $T$ \{\,\ldots\,\}.
 
 \LMHash{}%
@@ -5638,17 +5749,20 @@ where a type is needed is a compile-time error.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{i, r}%
 Let $i$ be a simple member invocation
 (\ref{memberInvocations})
 whose receiver $r$ is an extension application of the form
+\BlindDefineSymbol{E, T_j, k, e}%
 \code{$E$<\List{T}{1}{k}>($e$)}
 (\commentary{which is \code{$E$($e$)} when $k$ is zero})
-whose corresponding member name is $n$,
+whose corresponding member name is \DefineSymbol{n},
 and assume that $r$ has no compile-time errors.
 A compile-time error occurs unless the extension denoted by $E$
 declares a member named $n$.
-Otherwise let \List{X}{1}{k} be the type parameters of said extension.
-Let $s$ be the member signature of the member $n$ declared by $E$.
+Otherwise let \DefineSymbol{\List{X}{1}{k}} be
+the type parameters of said extension.
+Let \DefineSymbol{s} be the member signature of the member $n$ declared by $E$.
 Exactly the same compile-time errors occur for $i$ as
 the ones that would occur for a member invocation $i_1$
 which is obtained from $i$ by replacing $r$ by
@@ -5698,13 +5812,16 @@ function type of $s_1$.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{i, r}%
 For the dynamic semantics,
 let $i$ be a simple, unconditional member invocation
 whose receiver $r$ is an extension application of the form
+\BlindDefineSymbol{E, T_j, k, e}%
 \code{$E$<\List{T}{1}{k}>($e$)}
-where the type parameters of $E$ are \List{X}{1}{k}
-and the actual values of \List{T}{1}{k} are \List{t}{1}{k}
+where the type parameters of $E$ are \DefineSymbol{\List{X}{1}{k}}
+and the actual values of \List{T}{1}{k} are \DefineSymbol{\List{t}{1}{k}}
 (\ref{actualTypes}),
+\BlindDefineSymbol{n, m}%
 and whose corresponding member name is $n$.
 Let $m$ be the member of $E$ that has the name $n$.
 Evaluation of $i$ proceeds by evaluating
@@ -5763,6 +5880,7 @@ a different extension than the intended one.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{i, r, m}%
 An implicit extension member invocation occurs
 for a member invocation $i$
 (\ref{memberInvocations})
@@ -5830,6 +5948,7 @@ then it is accessible everywhere in $L$.%
 \LMLabel{extensionApplicability}
 
 \LMHash{}%
+\BlindDefineSymbol{E, e, r, S, m}%
 Let $E$ be an extension.
 Let $e$ be a member invocation
 (\ref{memberInvocations})
@@ -5910,6 +6029,7 @@ the context type may affect the member invocation.%
 \LMLabel{extensionSpecificity}
 
 \LMHash{}%
+\BlindDefineSymbol{E_j, k}%
 When \List{E}{1}{k}, $k > 1$, are extensions
 which are accessible and applicable to a member invocation $e$
 (\ref{memberInvocations}),
@@ -5923,10 +6043,13 @@ in the situation where more than one choice is possible.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{e, r, m}%
 Let $e$ be a member invocation with receiver $r$
 and correspsonding member name $m$,
+\BlindDefineSymbol{E_1, E_2}%
 and let $E_1$ and $E_2$ denote two distinct
 accessible and applicable extensions for $e$.
+\BlindDefineSymbol{T_j, S_j}%
 Let $T_j$ be the instantiated \ON{} type of $e$ with respect to $E_j$,
 and $S_j$ be the instantiation-to-bound \ON{} type of $e$ with respect to $E_j$,
 for $j \in 1 .. 2$
@@ -6128,11 +6251,14 @@ in a similar manner as class instance methods
 (\ref{superGetterAccessAndMethodClosurization}).
 
 \LMHash{}%
+\BlindDefineSymbol{a, E, S_j, e_1}%
 Let $a$ be an extension application
 (\ref{explicitExtensionInvocations})
 of the form \code{$E$<\List{S}{1}{m}>($e_1$)}.
-Let \List{Y}{1}{m} be the formal type parameters of the extension $E$.
+Let \DefineSymbol{\List{Y}{1}{m}} be the formal type parameters
+of the extension $E$.
 %
+\BlindDefineSymbol{e, \id}%
 An expression $e$ of the form \code{$a$.\id}
 where \id{} is an identifier is then known as an
 \IndexCustom{extension property extraction}{%
@@ -6304,6 +6430,7 @@ We expect developers to use this power responsibly.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{a, i}%
 Let $a$ be an extension application
 (\ref{explicitExtensionInvocations}),
 and $i$ an expression of the form
@@ -6325,6 +6452,7 @@ is immediately treated as an invocation of an extension method named \CALL.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{e, S, i}%
 Let $e$ be an expression with static type $S$
 which is not a property extraction expression
 (\ref{propertyExtraction}),
