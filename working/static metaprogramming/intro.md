@@ -293,11 +293,11 @@ Dart needs to provide a way for users to:
 2. **Define some metaprogramming** that specifies how the copyWith() method is
    defined in terms of the class’s fields. That metaprogramming needs to be
    authored in some kind of metaprogramming language.
-3. It uses some sort of **introspection mechanism** to walk over the class’s
-   field declarations.
-4. Based on that it uses some other **construction mechanism** to produce a new
-   method including its signature and body. The resulting is then added to the
-   original class declaration.
+3. Use an **introspection mechanism** to walk over the class’s field
+   declarations.
+4. Use a **construction mechanism** to produce a new method including its
+   signature and body. The resulting is then added to the original class
+   declaration.
 
 The approach we propose is **macros**, and the above requirements list can be
 stated more concretely as:
