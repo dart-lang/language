@@ -9,6 +9,7 @@
 \def\DYNAMIC{\builtinId{dynamic}}
 \def\EXPORT{\builtinId{export}}
 \def\EXTERNAL{\builtinId{external}}
+\def\EXTENSION{\builtinId{extension}}
 \def\FACTORY{\builtinId{factory}}
 \def\FUNCTION{\builtinId{Function}}
 \def\GET{\builtinId{get}}
@@ -66,6 +67,16 @@
 \def\WHILE{\keyword{while}}
 \def\WITH{\keyword{with}}
 \def\YIELD{\keyword{yield}}
+
+% Used to specify syntactic sugar.
+\def\LET{\keyword{let}}
+\newcommand{\Let}[3]{\code{\LET\,\,{#1}\,=\,{#2}\ \IN\ {#3}}}
+\newcommand{\LetTwo}[5]{%
+  \code{\LET\,\,{#1}\,=\,{#2},\ {#3}\,=\,{#4}\ \IN\ {#5}}}
+\newcommand{\LetThree}[7]{%
+  \code{\LET\,\,{#1}\,=\,{#2},\ {#3}\,=\,{#4},\ {#5}\,=\,{#6}\ \IN\ {#7}}}
+\newcommand{\LetMany}[5]{%
+  \code{\LET\,\,{#1}\,=\,{#2},\ $\cdots$,\ {#3}\,=\,{#4}\ \IN\ {#5}}}
 
 % Used for inline code snippets.
 \def\code#1{\texttt{#1}}
@@ -146,6 +157,10 @@
 % Used for defining occurrence of phrase, with customized index entry.
 \newcommand{\IndexCustom}[2]{%
   \leavevmode\marginpar{\ensuremath{\diamond}}\emph{#1}\index{#2}}
+
+% Used for the defining occurrence of a local symbol.
+\newcommand{\DefineSymbol}[1]{%
+  \leavevmode\marginpar{\ensuremath{#1}}\ensuremath{#1}}
 
 % Used when one concept should have >1 entry in the index. Does not add
 % the diamond in the margin and shows no text where the command occurs.
