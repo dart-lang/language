@@ -220,7 +220,9 @@ remaining code is almost pure boilerplate that is identical across all
 `StatefulWidget` and `State` subclasses.
 
 There are other patterns in Flutter like this that are commonly applied to
-widget classes but require Flutter users to write a lot of repetitive code.
+widget classes but require Flutter users to write a lot of repetitive code,
+such as the `dispose()` method which needs to do any required cleanup of widget
+state (removing listeners, calling custom `dispose` methods on fields, etc).
 Metaprogramming could enable the Flutter framework to express these patterns
 more tersely and with less chance for user error.
 
@@ -301,15 +303,17 @@ The approach we propose is **macros**, and the above requirements list can be
 stated more concretely as:
 
 1. We design some sort of syntax to apply a macro by name to a given class,
-   method declaration, etc. We haven’t spent time here yet.
-2. Metaprogramming happens by defining a macro, which can be called at compile
-   time.
-3. The introspection system is TBD. It could be an imperative API similar to the
-   existing mirrors API or analyzer API (but run at compile-time), or perhaps
-   something declarative like to pattern matching over syntax examples.
-4. We could use an imperative API to construct new pieces of Dart code in a
-   macro, but some sort of quotation syntax would make this nicer and make the
-   API less brittle.
+   method declaration, etc.
+2. We propose to design a way of defining macros which can be then be applied
+   as above.
+3. We propose to design an introspection system to allow macros to introspect
+   on the program during their execution. This might be an imperative API
+   similar to the existing mirrors API or analyzer API, or something
+   declarative like to pattern matching over syntax examples.
+4. We propose to consider designing a quotation syntax so that macros that
+   generate Dart code can generate code in a readable fashion. This also means
+   code generators only depend on language *syntax* for code generation and not
+   an imperative api, which will better stand the test of time.
 
 Most of this is as-yet-undesigned, but the key piece is that **we think macros
 should be written in normal imperative Dart code which is executed at compile
