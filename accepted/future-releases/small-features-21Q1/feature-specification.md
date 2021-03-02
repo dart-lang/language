@@ -120,10 +120,10 @@ Libraries using a language version prior to the introduction of these features (
 interact with libraries using those features (opted in libraries) as follows.
 
 In an opted out library:
-* It is a compile-time error to declare an operator method named `>>>`, or if to have `e1 >>> e2` as an expression.
-* It is a compile-time error to contain an explicit type argument on an annotation constructor invocation.
+* It is a compile-time error to declare an operator method named `>>>`, or to have `e1 >>> e2` as an expression.
+* It is a compile-time error for an annotation constructor invocation to have an explicity type argument.
 * It is a compile-time error to declare a type parameter with a generic function type (GFT) as bound.
-* It is a compile-time to use a GFT as a type argument anywhere. This includes:
+* It is a compile-time error to use a GFT as a type argument anywhere. This includes:
     * Inferred types.
     * The implicit type arguments of an instantiated tear-off.
     * Types produced by instantiate to bounds.
@@ -136,7 +136,7 @@ In an opted out library:
 That is, there is no new expressiveness in an opted out library due to these features. 
 Everything which was previously an error to write, explicitly or implicity, is still an error.
 
-This does mean, since type parameter bounds are invariant, that if a class in an opted in library declared an instance
+This does mean, since type parameter bounds are invariant, that if a class in an opted in library declares an instance
 member with a GFT-bounded type parameter, an opted out library cannot implement that interface.
-No existing classes declares such a boundo, and changing the bound is a breaking change no matter what it's changed to, 
-so that is not expected to be am issue. We have no plans to add GFT-bounds to existing platform library interfaces.
+No existing classes declares such a bound, and changing the bound is a breaking change no matter what it's changed to, 
+so that is not expected to be an issue. We have no plans to add GFT-bounds to existing platform library interfaces.
