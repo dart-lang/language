@@ -156,11 +156,16 @@
 
 % Used for defining occurrence of phrase, with customized index entry.
 \newcommand{\IndexCustom}[2]{%
-  \leavevmode\marginpar{\ensuremath{\diamond}}\emph{#1}\index{#2}}
+  \leavevmode\marginpar{\quad\ensuremath{\diamond}}\emph{#1}\index{#2}}
 
 % Used for the defining occurrence of a local symbol.
 \newcommand{\DefineSymbol}[1]{%
-  \leavevmode\marginpar{\ensuremath{#1}}\ensuremath{#1}}
+  \leavevmode\marginpar{\quad\textcolor{black}{\ensuremath{#1}}}\ensuremath{#1}}
+
+% Used to indicate a defining occurrence of a local symbol without
+% typesetting that symbol.
+\newcommand{\BlindDefineSymbol}[1]{%
+  \leavevmode\marginpar{\quad\textcolor{black}{\ensuremath{#1}}}}
 
 % Used when one concept should have >1 entry in the index. Does not add
 % the diamond in the margin and shows no text where the command occurs.
@@ -172,7 +177,7 @@
 
 % Same appearance, but not adding an entry to the index.
 \newcommand{\NoIndex}[1]{%
-  \leavevmode\marginpar{\ensuremath{\diamond}}\emph{#1}}
+  \leavevmode\marginpar{\quad\ensuremath{\diamond}}\emph{#1}}
 
 % Used to specify comma separated lists of similar symbols.
 \newcommand{\List}[3]{\ensuremath{{#1}_{#2},\,\ldots,\ {#1}_{#3}}}
