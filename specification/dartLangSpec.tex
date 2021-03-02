@@ -401,16 +401,22 @@ Examples would be \SWITCH{} or \CLASS{}.%
 
 \LMHash{}%
 Grammar productions are given in a common variant of EBNF.
-The left hand side of a production ends with a colon.
-On the right hand side, alternation is represented by vertical bars, and sequencing by spacing.
+The left hand side of a production ends with `\lit{::=}'.
+On the right hand side, alternation is represented by vertical bars,
+and sequencing by spacing.
 As in PEGs, alternation gives priority to the left.
-Optional elements of a production are suffixed by a question mark like so: \code{anElephant?}.
-Appending a star to an element of a production means it may be repeated zero or more times.
+Optional elements of a production are suffixed by a question mark
+like so: \code{anElephant?}.
+Appending a star to an element of a production means
+it may be repeated zero or more times.
 Appending a plus sign to a production means it occurs one or more times.
 Parentheses are used for grouping.
 Negation is represented by prefixing an element of a production with a tilde.
-Negation is similar to the not combinator of PEGs, but it consumes input if it matches.
-In the context of a lexical production it consumes a single character if there is one; otherwise, a single token if there is one.
+Negation is similar to the not combinator of PEGs,
+but it consumes input if it matches.
+In the context of a lexical production it consumes
+a single character if there is one;
+otherwise, a single token if there is one.
 
 \commentary{%
 An example would be:%
@@ -452,7 +458,7 @@ or a subterm of an immediate subterm of $t$.
 
 \LMHash{}%
 A list \DefineSymbol{x_1, \ldots, x_n} denotes any list of
-\DefineSymbol{n} elements of the form $x_i, 1 \le i \le n$.
+$n$ elements of the form $x_i, 1 \le i \le n$.
 Note that $n$ may be zero, in which case the list is empty.
 We use such lists extensively throughout this specification.
 
@@ -481,8 +487,8 @@ is preserved during substitution.%
 }
 
 \LMHash{}%
-We sometimes abuse list or map literal syntax, writing $[o_1, \ldots, o_n]$
-(respectively $\{k_1: o_1, \ldots, k_n: o_n\}$)
+We sometimes abuse list or map literal syntax, writing \code{[\List{o}{1}{n}]}
+(respectively \code{\{$k_1$:\ $o_1$, \ldots, $k_n$:\ $o_n$\}})
 where the $o_i$ and $k_i$ may be objects rather than expressions.
 The intent is to denote a list (respectively map) object
 whose elements are the $o_i$
@@ -670,8 +676,11 @@ itself.
 
 \LMHash{}%
 The right margin also contains symbols.
-Whenever a symbol (\commentary{say, $C$ or $x_j$}) is introduced
-and used in more than a few lines of text,
+Whenever a symbol
+\BlindDefineSymbol{\textcolor{commentaryColor}{C}}%
+\BlindDefineSymbol{\textcolor{commentaryColor}{x_j}}%
+(\commentary{say, $C$ or $x_j$})
+is introduced and used in more than a few lines of text,
 it is shown in the margin.
 
 \commentary{%
@@ -679,7 +688,12 @@ The point is that it is easy to find the definition of a symbol
 by scanning back in the text until that symbol occurs in the margin.
 To avoid useless verbosity, some symbols are not mentioned in the margin.
 For instance, we may introduce \List{e}{1}{k},
-but only show $e_j$ and $k$ in the margin.%
+but only show $e_j$ and $k$ in the margin.
+
+Note that it may be necessary to look at a few lines of text
+above the `$\diamond$' or symbol,
+because the margin markers can be pushed down one line
+when there is more than one marker for a single line.%
 }
 
 
@@ -1411,8 +1425,8 @@ a subtype of the actual type of the variable $v$
 \LMLabel{evaluationOfImplicitVariableGetters}
 
 \LMHash{}%
-Let \DefineSymbol{d} be the declaration of
-a static or instance variable \DefineSymbol{v}.
+\BlindDefineSymbol{d, v}%
+Let $d$ be the declaration of a static or instance variable $v$.
 If $d$ is an instance variable,
 then the invocation of the implicit getter of $v$ evaluates to
 the object stored in $v$.
@@ -1647,7 +1661,7 @@ We define the notion of the
 \IndexCustom{element type of a generator}{function!generator!element type}
 as follows:
 %
-If the function \DefineSymbol{f} is a synchronous generator
+If the function $f$ is a synchronous generator
 whose declared return type implements \code{Iterable<$U$>} for some $U$
 (\ref{interfaceSuperinterfaces})
 then the element type of $f$ is $U$.
@@ -1748,7 +1762,7 @@ Getters, setters, operators, and constructors.%
 The formal type parameter list of a function declaration introduces
 a new scope known as the function's
 \IndexCustom{type parameter scope}{scope!type parameter}.
-The type parameter scope of a generic function \DefineSymbol{f} is enclosed in
+The type parameter scope of a generic function $f$ is enclosed in
 the scope where $f$ is declared.
 Every formal type parameter introduces a type into the type parameter scope.
 
@@ -1990,13 +2004,13 @@ based on reasoning that the static type analysis does not capture.%
 Let $m$ be a method signature with formal type parameters
 \List{X}{1}{s},
 positional formal parameters \List{p}{1}{n},
-\BlindDefineSymbol{p, n, q, k}%
+\BlindDefineSymbol{p_j, n, q_j, k}%
 and named formal parameters \List{q}{1}{k}.
 \BlindDefineSymbol{m', X'_j}%
 Let $m'$ be a method signature with formal type parameters
 \List{X'\!}{1}{s},
 positional formal parameters \List{p'\!}{1}{n'},
-\BlindDefineSymbol{p', n', q', k'}%
+\BlindDefineSymbol{p'_j, n', q'_j, k'}%
 and named formal parameters \List{q'\!}{1}{k'}.
 %
 Assume that $j \in 1 .. n'$, and $j \leq n$;
@@ -2056,6 +2070,7 @@ such that $p'$ is covariant-by-declaration.
 Assume that \BlindDefineSymbol{C, X_j, B_j, s}$C$ is a generic class
 with formal type parameter declarations
 \code{$X_1\ \EXTENDS\ B_1 \ldots,\ X_s\ \EXTENDS\ B_s$},
+\BlindDefineSymbol{m, p, T}%
 let $m$ be a declaration of an instance method in $C$
 (which can be a method, a setter, or an operator),
 let $p$ be a parameter declared by $m$, and
@@ -2933,7 +2948,7 @@ because compilers control the treatment of private names.%
 }
 
 \LMHash{}%
-\BlindDefineSymbol{C, m, X_j}%
+\BlindDefineSymbol{C, m, X_j, r}%
 For the dynamic semantics,
 assume that a class $C$ has an implicitly induced
 \code{noSuchMethod} forwarder named $m$,
@@ -2956,7 +2971,7 @@ because the former is covered by $n = 0$.%
 
 \LMHash{}%
 The execution of the body of $m$ creates
-an instance $im$ of the predefined class \code{Invocation}
+an instance \DefineSymbol{im} of the predefined class \code{Invocation}
 such that:
 
 \begin{itemize}
@@ -3498,10 +3513,12 @@ and with which arguments.
 Assume that
 \code{$C$<$X_1\ \EXTENDS\ B_1 \ldots,\ X_m\ \EXTENDS\ B_m$>}
 is the name and formal type parameters of the enclosing class,
+\BlindDefineSymbol{\ConstMetavar}%
 $\ConstMetavar$ stands for either \CONST{} or nothing,
 $N$ is $C$ or $C.\id_0$ for some identifier $\id_0$,
+\BlindDefineSymbol{N, \id}%
 and \id{} is an identifier.
-Consider a declaration of a redirecting generative constructor $k$
+Consider a declaration of a redirecting generative constructor
 of one of the forms
 
 \noindent
@@ -3517,7 +3534,7 @@ where $R$ is of one of the forms
 \code{$\THIS{}$($e_1 \ldots,\ e_p,\ x_1$:\ $e_{p+1}, \ldots,\ x_q$:\ $e_{p+q}$)}
 
 \noindent
-\code{$\THIS{}.\id$($e_1 \ldots,\ e_p,\ x_1$:\ $e_{p+1}, \ldots,\ x_q$:\ $e_{p+q}$)}
+\code{$\THIS{}.\id$($e_1 \ldots,\ e_p,\ x_1$:\ $e_{p+1}, \ldots,\ x_q$:\ $e_{p+q}$)}.
 
 \LMHash{}%
 The
@@ -3612,8 +3629,8 @@ an initializer of the form \code{\THIS{}.$v$ = $e$},
 both forms are called \Index{instance variable initializers}.
 It is a compile-time error if the enclosing class
 does not declare an instance variable named $v$.
-Otherwise, let $T$ be the static type of $v$.
-It is a compile-time error unless the static type of $e$ is assignable to $T$.
+It is a compile-time error unless the static type of $e$
+is assignable to the declared type of $v$.
 
 \LMHash{}%
 Consider a \Index{superinitializer} $s$ of the form
@@ -3793,7 +3810,7 @@ execution of an initializer of the form \code{\THIS{}.$v$ = $e$}
 proceeds as follows:
 
 \LMHash{}%
-First, the expression $e$ is evaluated to an object \DefineSymbol{o}.
+First, the expression $e$ is evaluated to an object $o$.
 Then, the instance variable $v$ of $i$ is bound to $o$.
 % This error can occur due to an implicit cast.
 It is a dynamic type error if the dynamic type of $o$ is not
@@ -3908,8 +3925,9 @@ Assume that
 \BlindDefineSymbol{C, X_j, B_j, m}%
 \code{$C$<$X_1\ \EXTENDS\ B_1 \ldots,\ X_m\ \EXTENDS\ B_m$>}
 is the name and formal type parameters of the enclosing class,
+\BlindDefineSymbol{\ConstMetavar, N}%
 $\ConstMetavar$ is \CONST{} or empty,
-\DefineSymbol{N} is $C$ or $C.\id_0$ for some identifier $\id_0$,
+$N$ is $C$ or $C.\id_0$ for some identifier $\id_0$,
 and \DefineSymbol{\id} is an identifier,
 then consider a declaration of a redirecting factory constructor
 \DefineSymbol{k} of one of the forms
@@ -4108,8 +4126,7 @@ The above refers to both locally declared and inherited instance variables.%
 }
 
 \LMHash{}%
-\BlindDefineSymbol{k, C}%
-If a non-redirecting generative constant constructor $k$
+If a non-redirecting generative constant constructor \DefineSymbol{k}
 is declared by a class $C$,
 it is a compile-time error
 for an instance variable declared in $C$
@@ -4717,7 +4734,7 @@ The \Index{direct superinterfaces} of $I$ is the set \List{I}{1}{k}.
 
 \LMHash{}%
 Let $M_0$ be the set of all member signatures declared by \List{I}{1}{k}.
-$M$ is then the smallest set satisfying the following:
+\DefineSymbol{M} is then the smallest set satisfying the following:
 
 \begin{itemize}
 \item For each name \id{} and library $L$ such that $M_0$ contains
@@ -5696,7 +5713,7 @@ Let $a$ be an extension application of the form
 where $E$ denotes an extension declared as
 
 \noindent
-\BlindDefineSymbol{X_j, B_j, s}
+\BlindDefineSymbol{X_j, B_j, s, T}%
 \EXTENSION{} E<\TypeParametersStd> \ON{} $T$ \{\,\ldots\,\}.
 
 \LMHash{}%
@@ -6255,7 +6272,8 @@ in a similar manner as class instance methods
 Let $a$ be an extension application
 (\ref{explicitExtensionInvocations})
 of the form \code{$E$<\List{S}{1}{m}>($e_1$)}.
-Let \DefineSymbol{\List{Y}{1}{m}} be the formal type parameters
+\BlindDefineSymbol{Y_j, m}%
+Let \List{Y}{1}{m} be the formal type parameters
 of the extension $E$.
 %
 \BlindDefineSymbol{e, \id}%
