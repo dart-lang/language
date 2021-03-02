@@ -1105,16 +1105,15 @@ via code run reflectively, where the mirror system can catch it.
 Typically, once a compile-time error is thrown and $A$ is suspended,
 $A$ will then be terminated.
 However, this depends on the overall environment.
-A Dart engine runs in the context of an \Index{embedder},
+A Dart engine runs in the context of a \Index{runtime},
 a program that interfaces between the engine and
 the surrounding computing environment.
-The embedder will often be a web browser, but need not be;
-it may be a C++ program on the server for example.
+The runtime may be, for instance, a C++ program on the server.
 When an isolate fails with a compile-time error as described above,
-control returns to the embedder,
+control returns to the runtime,
 along with an exception describing the problem.
-This is necessary so that the embedder can clean up resources etc.
-It is then the embedder's decision whether to terminate the isolate or not.%
+This is necessary so that the runtime can clean up resources etc.
+It is then the runtime's decision whether to terminate the isolate or not.%
 }
 
 \LMHash{}%
@@ -8775,11 +8774,10 @@ print("A simple sum: 2 + 2 = " +
 \end{dartCode}
 
 \rationale{%
-which prints 'A simple sum: 2 + 2 = 22' rather than
-'A simple sum: 2 + 2 = 4'.
-However, the use of the concatenation operation is still discouraged
-for efficiency reasons.
-Instead, the recommended Dart idiom is to use string interpolation.%
+which would print `\code{A simple sum: 2 + 2 = 22}' rather than
+`\code{A simple sum: 2 + 2 = 4}'.
+However, for efficiency reasons,
+the recommended Dart idiom is to use string interpolation.%
 }
 
 \begin{dartCode}
@@ -10990,7 +10988,7 @@ and $t$ as stack trace (\ref{expressionEvaluation}).
 If $v$ is an instance of class \code{Error} or a subclass thereof,
 and it is the first time that \code{Error} object is thrown,
 the stack trace $t$ is stored on $v$ so that it will be returned
-by the $v$'s \code{stackTrace} getter
+by the \code{stackTrace} getter inherited from \code{Error}.
 
 \commentary{%
 If the same \code{Error} object is thrown more than once,
@@ -11745,7 +11743,7 @@ which will force the isolate to be suspended.
 
 \commentary{%
 As discussed in section \ref{errorsAndWarnings},
-the handling of a suspended isolate is the responsibility of the embedder.%
+the handling of a suspended isolate is the responsibility of the runtime.%
 }
 
 
@@ -19315,7 +19313,7 @@ Otherwise, any relative URI is interpreted as relative to the location of the cu
 All further interpretation of URIs is implementation dependent.
 
 \commentary{%
-This means it is dependent on the embedder.%
+This means it is dependent on the runtime.%
 }
 
 
