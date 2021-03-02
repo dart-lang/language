@@ -18,7 +18,7 @@ list.add(3);
 Which is asking for a copy/paste error, we’d rather write:
 
 ```dart
-for (var i = 1; i <= 5; i++) {
+for (var i = 1; i <= 3; i++) {
   list.add(i);
 }
 ```
