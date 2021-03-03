@@ -113,3 +113,30 @@ on the `int` class, which will work similarly to `>>`, but will zero-extend inst
 At that point, the `>>>` operator on `int` must be **valid in constant and potentially constant expressions**, so `0x40 >>> 3` is a compile-time constant expression with the value `8`, and `const C(int x) : y = 0xFFFFFFFF >>> x;` is valid (although potentially throwing if `x > 63`) as a constant constructor.
 
 Backends may want to optimize this to use available bitwise shift operations (like `>>>` in JavaScript), and intrinsify the function if possible. This can be done at any later time, though.
+
+## Mixed Mode Programs
+
+Libraries using a language version prior to the introduction of these features (opted out libraries) 
+interact with libraries using those features (opted in libraries) as follows.
+
+In an opted out library:
+* It is a compile-time error to declare an operator method named `>>>`, or to have `e1 >>> e2` as an expression.
+* It is a compile-time error for an annotation constructor invocation to have an explicity type argument.
+* It is a compile-time error to declare a type parameter with a generic function type (GFT) as bound.
+* It is a compile-time error to use a GFT as a type argument anywhere. This includes:
+    * Inferred types.
+    * The implicit type arguments of an instantiated tear-off.
+    * Types produced by instantiate to bounds.
+    * Types produced by expanding references to type aliases into their aliased type.
+    * The corresponding explicit extension invocation for an implicit extension invocation.
+* It is *not* an error to refer to or use a symbol from an opted in library which uses a GFT as a type argument or bound.
+  (That is, it's not an error to simply have an expression with a static type which includes GFT as a type argument or bound.)
+* It is *not* an error to export a symbol from an opted in library which uses a GFT as a type argument or bound.
+
+That is, there is no new expressiveness in an opted out library due to these features. 
+Everything which was previously an error to write, explicitly or implicity, is still an error.
+
+This does mean, since type parameter bounds are invariant, that if a class in an opted in library declares an instance
+member with a GFT-bounded type parameter, an opted out library cannot implement that interface.
+No existing classes declares such a bound, and changing the bound is a breaking change no matter what it's changed to, 
+so that is not expected to be an issue. We have no plans to add GFT-bounds to existing platform library interfaces.
