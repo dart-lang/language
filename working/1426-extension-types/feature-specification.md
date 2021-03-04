@@ -306,13 +306,19 @@ type_.
 If `e` is an expression whose static type is the extension type
 <code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code>,
 then a member access like `e.m(args)` is treated as
-<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>>(v).m(args)</code>
-where `v` is a fresh variable whose declared type
-is the on-type corresponding to `Ext<S1, .. Sm>`, and similarly for
-instance getters and operators. This rule also applies when a member access
-implicitly has the receiver `this`, and the static type of `this` is an
-extension type (*which can only occur in an extension type member
+<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>>(e as T).m(args)</code>
+where `T` is the on-type corresponding to `Ext<S1, .. Sm>`, and similarly
+for instance getters and operators. This rule also applies when a member
+access implicitly has the receiver `this`, and the static type of `this` is
+an extension type (*which can only occur in an extension type member
 declaration*).
+
+*Note that the cast `e as T` is needed because an explicit extension method
+invocation requires the syntactic receiver `e` to have the corresponding
+on-type `T`. But the cast can be compiled as a no-op, because an instance
+whose static type is an extension type is guaranteed to be an instance of
+the corresponding on-type. So it does no cost anything, and it will not
+fail.*
 
 *That is, when the type of an expression is an extension type, all method
 invocations on that expression will invoke an extension method declared by
@@ -798,15 +804,18 @@ type, which will only work in a manner which is resolved statically.*
 
 ## Dynamic Semantics
 
-The dynamic semantics of extension method invocation is very similar to
-the semantics of invocations of the existing extension methods:
+The dynamic semantics of extension method invocation follows from the code
+transformation specified in the section about the static analysis.
 
-If `e` is an expression whose static type is the extension type
+*So, if `e` is an expression whose static type `E` is the extension type
 <code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code>,
-then a member access like `e.m(args)` is executed by evaluating `e` to an
-object which is bound to a fresh variable `v`, and then evaluating
-<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>>(v).m(args)</code>,
-and similarly for instance getters and operators.
+then a member access like `e.m(args)` is executed as
+<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>>(e as T).m(args)</code>
+where `T` is the instantiated on-type corresponding to `E`,
+and similarly for instance getters and operators.*
+
+*As mentioned in the section about the static analysis, the cast is
+guaranteed to succeed, so it can be eliminated at compile time.*
 
 The dynamic semantics of an invocation of an instance method of the on-type
 which is enabled in an explicit extension type by the show/hide part is as
