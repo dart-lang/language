@@ -274,6 +274,32 @@ built-in identifiers.*
 
 ## Static Analysis
 
+This document needs to refer to explicit extension method invocations. With
+the existing extension method declarations, `E<T1, .. Tk>(o).m()` denotes
+an explicit invocation of the extension member named `m` declared by `E`,
+with `o` bound to `this` and the type parameters bound to `T1, .. Tk`.
+
+This document uses `invokeExtensionMethod(E<T1, .. Tk>, o).m()` to denote
+the same extension method invocation. Note that `invokeExtensionMethod` is
+used as a specification device, it cannot occur in Dart source code.
+
+*This is needed, because `E<T1, .. Tk>(o)` can be an extension type
+constructor invocation, which makes `E<T1, .. Tk>(o).m()` when specifying
+extensions that may or may not have a constructor.*
+
+The static analysis of `invokeExtensionMethod` is that it takes exactly two
+positional arguments and must be the receiver in a member access. The first
+argument must be a `<type>`, denoting an extension type _T_, and the second
+argument must be an expression whose type is _T_ or the corresponding
+instantiated on-type. The member access must be a member of `E`. If the
+member access is a method invocation (including an invocation of an
+operator that takes at least one argument), it is allowed to pass an actual
+argument list, and the static analysis of the actual arguments proceeds as
+with other function calls, using a signature where the formal type
+parameters are replaced by `T1, .. Tk`. The type of the entire member
+access is the return type of said member if it is a member invocation, and
+the function type of the method if it is an extension member tear-off.
+
 Assume that _E_ is an extension declaration of the following form:
 
 ```dart
@@ -306,19 +332,11 @@ type_.
 If `e` is an expression whose static type is the extension type
 <code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code>,
 then a member access like `e.m(args)` is treated as
-<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>>(e as T).m(args)</code>
-where `T` is the on-type corresponding to `Ext<S1, .. Sm>`, and similarly
-for instance getters and operators. This rule also applies when a member
-access implicitly has the receiver `this`, and the static type of `this` is
-an extension type (*which can only occur in an extension type member
-declaration*).
-
-*Note that the cast `e as T` is needed because an explicit extension method
-invocation requires the syntactic receiver `e` to have the corresponding
-on-type `T`. But the cast can be compiled as a no-op, because an instance
-whose static type is an extension type is guaranteed to be an instance of
-the corresponding on-type. So it does no cost anything, and it will not
-fail.*
+<code>invokeExtensionMethod(Ext<S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>
+and similarly for instance getters and operators. This rule also applies
+when a member access implicitly has the receiver `this`, and the static
+type of `this` is an extension type (*which can only occur in an extension
+type member declaration where the on-type is itself an extension type*).
 
 *That is, when the type of an expression is an extension type, all method
 invocations on that expression will invoke an extension method declared by
@@ -350,14 +368,6 @@ instantiated on-type of `E`. In the case where the instantiated on-type of
 extension type is in a sense "in prison", and we can only obtain a
 different type for it by forgetting everything (going to a top type), or by
 means of an explicit cast, typically a downcast to the on-type.*
-
-*There is one exception where an extension type has a supertype which is
-not a top type: If `Ext1` is an extension type with on-type `Ext2` which is
-also an extension type, the former is a supertype of the latter, `Ext2 <:
-Ext1`. However the underlying representation is still "in prison" if we
-perform an upcast from `Ext2` to `Ext1`, because the implementation of
-`Ext1` will treat the underlying object according to the discipline
-enforced by `Ext2`, and then add its own layer of extra discipline.*
 
 When `E` is a non-protected extension type, a type test `o is E` and a type
 check `o as E` can be performed. Such checks performed on a local variable
@@ -568,10 +578,11 @@ A compile-time error occurs if a member included by the show/hide part has
 a basename which is also the basename of a member declaration in the
 extension type.
 
-*For instance, if an extension `E` contains a declaration of a method named
-`toString`, the hide clause must include `toString` (or a class type,
-because they all include `toString`). Otherwise, the member declaration
-named `toString` would be an error.*
+*For instance, if an extension `E` with a hide clause contains a
+declaration of a method named `toString`, the hide clause must include
+`toString` (or a class type, because they all include
+`toString`). Otherwise, the member declaration named `toString` would be an
+error.*
 
 Let `E` be an extension type with a show/hide part such that a member `m`
 is included in the interface of `E`. The member signature of `m` is the
@@ -729,8 +740,8 @@ protected extension type EvenIntBox on IntBox {
 void main() {
   var evenIntBox = EvenIntBox(42);
   evenIntBox.next(); // Methods of `EvenIntBox` maintain the invariant.
-  evenIntBox = intBox; // Compile-time error, types not assignable.
-  evenIntBox = intBox as EvenIntBox; // Compile-time error, can't cast.
+  evenIntBox = IntBox(2); // Compile-time error, types not assignable.
+  evenIntBox = IntBox(2) as EvenIntBox; // Compile-time error, can't cast.
 
   // We cannot escape by a cast when the protected extension type is
   // a type argument (or a return/parameter type in a function type).
@@ -810,12 +821,18 @@ transformation specified in the section about the static analysis.
 *So, if `e` is an expression whose static type `E` is the extension type
 <code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code>,
 then a member access like `e.m(args)` is executed as
-<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>>(e as T).m(args)</code>
-where `T` is the instantiated on-type corresponding to `E`,
+<code>invokeExtensionMethod(Ext<S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>
 and similarly for instance getters and operators.*
 
-*As mentioned in the section about the static analysis, the cast is
-guaranteed to succeed, so it can be eliminated at compile time.*
+Let `e0` be this `invokeExtensionMethod` expression. The semantics of `e0`
+is that `e` is evaluated to an object `o`, the argument list denoted by
+`(args)` is evaluated to an actual argument list value `(o1, .. ok, x1:
+ok+1, .. xn: ok+n)`, and then the body of `E.m` is executed in an
+environment where `this` is bound to `o`, the type variables `X1, .. Xk`
+are bound to the actual values of `S1, .. Sk`, and the formal parameters
+are bound to the actual arguments. If the body completes returning an
+object `o2` then `e0` completes with the object `o2`, and if the body
+throws then `e0` throws the same object and stack trace.
 
 The dynamic semantics of an invocation of an instance method of the on-type
 which is enabled in an explicit extension type by the show/hide part is as
@@ -838,7 +855,7 @@ executed at a call site `myNum.floor()` based on a compile-time decision
 when the receiver `myNum` has static type `MyNum`. In particular, the
 extension method `floor` will never be executed when the receiver has type
 `dynamic`. The forwarding expression `this.floor()` in the implicitly
-induced getter will invoke the instance method, which is subject to late
+induced method will invoke the instance method, which is subject to late
 binding (so we may end up running `int.floor()` or `double.floor()`,
 depending on the dynamic type of `this`).*
 
@@ -922,7 +939,7 @@ be a violation of the discipline associated with protected extension types,
 because that object "isn't worthy of being `this` for the execution of any
 code in `E`". However, it seems more natural to access the "candidate
 `this`" using `this` than it would be if we were to use a different
-declaration to perform the verification (say, a static function in `E`). 
+declaration to perform the verification (say, a static function in `E`).
 Also, it is obvious that the `this` in the body of `verifyThis` may not
 satisfy the requirements, and we trust developers to write the
 implementation of `verifyThis` with that fact in mind.*
