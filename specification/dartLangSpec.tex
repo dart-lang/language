@@ -16352,10 +16352,9 @@ The evaluation of $e$ proceeds as follows:
 \item
   If $D$ is an instance method declaration in an extension $E$
   with type parameters \List{X}{1}{s},
-  then $e$ evaluates to the extension method closurization
-  \code{$E$<\List{t}{1}{s}>(\THIS).\id}
-  (\ref{extensionMethodClosurization}),
-  where \List{t}{1}{s} are the current bindings of said type parameters.
+  then $e$ evaluates to the result of the extension method closurization
+  \code{$E$<\List{X}{1}{s}>(\THIS).\id}
+  (\ref{extensionMethodClosurization}).
 \item
   If $D$ is a local variable $v$
   (\commentary{which can be a formal parameter})
