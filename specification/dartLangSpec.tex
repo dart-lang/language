@@ -15853,22 +15853,41 @@ the following errors apply:
   It is a compile-time error if $\ell$ does not have access to \THIS{}
   (\ref{classes}).
 \item
-  When $\ell$ has access to \THIS{}
-  it is a compile-time error if $\ell$ occurs in
-  a class \DefineSymbol{C} and
-  the interface of $C$ does not have a member named $n$;
-  and it is a compile-time error if $\ell$ occurs in
-  an extension \DefineSymbol{E},
-  and the interface of the \ON{} type of $E$ does not have a member named $n$.
-  \commentary{%
-    So it is an error if there is no member with the right basename at all,
-    and also if there is one such member,
-    but it is a non-setter and we are looking for a setter,
-    or vice versa.%
-  }
+  Consider the case where $\ell$ has access to \THIS,
+  and $\ell$ occurs in a class \DefineSymbol{C}.
+  If the interface of $C$ has a member named $n$,
+  let \DefineSymbol{s} be the member signature of said member.
+  Otherwise, if there is an accessible extension $E$
+  such that $C$ matches the \ON{} type of $E$
+  and $E$ has an instance member named $n$,
+  let $S$ be the member signature of said member.
+  Otherwise, a compile-time error occurs.
+\item
+  \BlindDefineSymbol{E, T}%
+  Consider the case where $\ell$ has access to \THIS,
+  and $\ell$ occurs in an extension $E$ with \ON{} type $T$.
+  If the interface of $T$ has a member named $n$,
+  let \DefineSymbol{s} be the member signature of said member.
+  Otherwise, if there is an accessible extension $E_1$
+  such that $T$ matches the \ON{} type of $E_1$
+  and $E_1$ has an instance member named $n$,
+  let $s$ be the member signature of said member.
+  Otherwise, a compile-time error occurs.
 \end{itemize}
 \vspace{-2ex}
 \EndCase
+
+\commentary{%
+So it is an error if there is no member with the right basename at all,
+and no applicable extension member.  
+It is also an error if there is one such member,
+but it is a non-setter and we are looking for a setter,
+or vice versa.%
+}
+
+\LMHash{}%
+We refer to the member signature $s$ specified in the two cases above as the
+\Index{member signature found by lexical lookup}.
 
 % Even when we have found a declaration, it may have the wrong name.
 \LMHash{}%
@@ -15958,16 +15977,10 @@ Now proceed as described in the first applicable case from the following list:
 
 \begin{itemize}
 \item
-  When $D$ does not exist:
-  If $\ell$ occurs in a class \DefineSymbol{C},
-  the lexical lookup yields the member signature of
-  the member of the interface of $C$
-  which has the name $n$.
-  If $\ell$ occurs in an extension \DefineSymbol{E}
-  with \ON{} type \DefineSymbol{T_{on}},
-  the lexical lookup yields the member signature of
-  the member of the interface of $T_{on}$
-  which has the name $n$.
+  When $D$ does not exist,
+  the lexical lookup yields the
+  member signature found by lexical lookup
+  (\ref{lexicalLookup}).
   \commentary{%
     In this case it is guaranteed that $\ell$ occurs inside
     the body of an instance member or a generative constructor,
