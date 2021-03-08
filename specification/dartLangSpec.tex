@@ -15861,20 +15861,32 @@ the following errors apply:
 \item
   Consider the case where $\ell$ has access to \THIS,
   and $\ell$ occurs in a class \DefineSymbol{C}.
-  A compile-time error occurs
-  if the interface of $C$ does not have a member named $n$,
-  and there is no accessible extension $E$
-  such that $C$ matches the \ON{} type of $E$
-  and $E$ has an instance member named $n$.
+  A compile-time error occurs in each of the following two situations:
+  \begin{itemize}
+  \item
+    The interface of $C$ does not have a member named $n$,
+    but it does have a member with basename \id.
+  \item
+    The interface of $C$ does not have a member with basename \id,
+    and there is no accessible extension $E$,
+    such that $C$ matches the \ON{} type of $E$,
+    and $E$ has an instance member named $n$.
+  \end{itemize}
 \item
   \BlindDefineSymbol{E, T}%
   Consider the case where $\ell$ has access to \THIS,
   and $\ell$ occurs in an extension $E$ with \ON{} type $T$.
-  A compile-time error occurs
-  if the interface of $T$ does not have a member named $n$,
-  and there is no accessible extension $E_1$
-  such that $T$ matches the \ON{} type of $E_1$
-  and $E_1$ has an instance member named $n$.
+  A compile-time error occurs in the following two situations:
+  \begin{itemize}
+  \item
+    The interface of $T$ does not have a member named $n$,
+    but it does have a member with basename \id.
+  \item
+    The interface of $T$ does not have a member with basename \id,
+    and there is no accessible extension $E_1$,
+    such that $T$ matches the \ON{} type of $E_1$,
+    and $E_1$ has an instance member named $n$.
+  \end{itemize}
 \end{itemize}
 \vspace{-2ex}
 \EndCase
