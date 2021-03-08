@@ -374,6 +374,10 @@
 % A special value in a namespace, used to indicate a conflict.
 \newcommand{\ConflictValue}{\mbox{NAME\_CONFLICT}}
 
+% A special value yielded by lexical lookups, indicating that the
+% given expression should be transformed by prepending \THIS.
+\newcommand{\PrependThisValue}{\mbox{PREPEND\_THIS}}
+
 % Context types: Avoid the `?` because that is also concrete type
 % syntax.
 %% TODO(eernst): Find a suitable symbol for this, e.g., a curly questionmark.
