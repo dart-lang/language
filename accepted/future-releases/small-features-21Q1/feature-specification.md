@@ -44,21 +44,15 @@ However, the *grammar* does not allow type arguments, meaning that it's not poss
 
 There is no technical reason for this restriction. It was just simpler, and probably didn't seem necessary at the time metadata was introduced. It does now.
 
-The only change is in the grammar, from
+There is no change in the grammar, it already allows the type arguments:
 
 ```
-<metadatum> ::= \gnewline{}
+<metadatum> ::=
   <identifier> | <qualifiedName> | <constructorDesignation> <arguments>
-```
 
-to
-
+<constructorDesignation> ::= ... |
+  <typeName> <typeArguments> (‘.’ <identifier>)?
 ```
-<metadatum> ::= \gnewline{}
-  <identifier> | <qualifiedName> | <constructorDesignation> <argumentPart>
-```
-
-The corresponding constructor invocation must still be valid, now including the type arguments.
 
 The constructed constant, if accessible in any way, will contain the provided type arguments, exactly like if it had been created by a <code>\`const' \<constructorDesignation> \<argumentPart></code> production, and is canonicalized correspondingly.
 
