@@ -50,6 +50,8 @@
 %   on itself).
 % - Add the error for a type alias $F$ used in an instance creation etc., when
 %   $F$ expands to a type variable.
+% - Correct lexical lookup rules to include implicit extension method
+%   invocation.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -16032,15 +16034,16 @@ Note that a lexical lookup will never yield a declaration of
 an instance member.
 In each case where it is determined that there is no error
 and an instance member is the result of the lookup,
-the member signature from the interface of the enclosing class is yielded.
+the special value \PrependThisValue{} is yielded.
 
 The reason for this is that there may not be a declaration, e.g.,
 in the case where $D$ does not exist,
 but the interface of the class has the required member
 because more than one superinterface has the same member signature
-for the given name.
-So, for uniformity, we always report that an instance member must be used
-by yielding the member signature.%
+for the given name,
+or an extension method is applicable.
+So, for uniformity,
+in these situations we always report that \THIS{} should be added.%
 }
 
 
