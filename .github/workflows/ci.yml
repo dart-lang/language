@@ -28,7 +28,7 @@ jobs:
             texlive-latex-extra \
             texlive-fonts-recommended \
             lmodern
-      - name: Build soecification
+      - name: Build specification
         run: |
           cd specification
           make
