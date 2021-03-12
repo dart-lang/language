@@ -7,7 +7,7 @@ Status: Draft
 
 ## Change Log
 
-2021.02.15
+2021.03.12
   - Initial version, based on
     [language issue 1426](https://github.com/dart-lang/language/issues/1426).
 
@@ -242,7 +242,7 @@ following:
 
 ```ebnf
 <extensionDeclaration> ::=
-  'protected'? 'extension'
+  'extension'
       (<typeIdentifier>? | 'type' <typeIdentifier>) <typeParameters>?
       <extensionShowHidePart> 'on' <type> <interfaces>? '{'
     (<metadata> <extensionMemberDefinition>)*
@@ -369,13 +369,10 @@ extension type is in a sense "in prison", and we can only obtain a
 different type for it by forgetting everything (going to a top type), or by
 means of an explicit cast, typically a downcast to the on-type.*
 
-When `E` is a non-protected extension type, a type test `o is E` and a type
-check `o as E` can be performed. Such checks performed on a local variable
-can promote the variable to the extension type using the normal rules for
-type promotion.
-
-*Protected extension types are introduced in a section below, and they have
-a more strict rule for type tests and type casts.*
+When `E` is an extension type, a type test `o is E` and a type check `o as
+E` can be performed. Such checks performed on a local variable can promote
+the variable to the extension type using the normal rules for type
+promotion.
 
 *Compared to the existing extension methods feature, there is no change to
 the type of `this` in the body of an extension type _E_: It is the on-type
@@ -457,8 +454,7 @@ approach for building an instance of the on-type of an extension type `E`
 with `E` itself, which makes it easy to recognize that this is a way to
 obtain a value of type `E`. It can also be used to verify that an existing
 object (provided as an actual argument to the constructor) satisfies the
-requirements for having the type `E`. Protected extension types, described
-below, provide support for enforcing this kind of verification.*
+requirements for having the type `E`.*
 
 An instance creation expression of the form
 <code>E<T<sub>1</sub>, .. T<sub>k</sub>>(...)</code>
@@ -644,133 +640,6 @@ whose declared type is `Tj` for some `j` in 1..m. For that, it is necessary
 to use `box`, as described below.*
 
 
-### Gaining control over the instances: Protected extension types
-
-This section specifies the effect of including the keyword `protected` as
-the first token in an extension declaration.
-
-*The core idea is that no object can have a protected extension type as its
-static type unless it has been returned by an extension type constructor.
-This allows developers to gain control over which instances get to have
-that type.*
-
-Let `D` be an explicit extension type declaration named `E` which is
-prefixed by `protected`. We say that it is a _protected extension type
-declaration_, and that it introduces a _protected extension type_.
-
-Let `E` be the name of a protected extension type declaration.
-The type `E` (or
-<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>
-if `E` is generic) is a proper subtype of `Object?` and a proper supertype
-of `Never`.
-
-*In contrast to non-protected extension types, the extension type has no
-subtype relationship with its on-type.*
-
-It is a compile-time error if a protected extension type `E` is used to
-perform an explicit extension method invocation.
-
-*That is, `E(o).foo()` is an error when `E` is a protected extension
-type, also in the case where the static type of `o` matches the on-type of
-`E`. We can only access the members of `E` when the receiver has type `E`.*
-
-It is a compile-time error if a protected extension type `E` is the
-target type in a type test (`o is E` respectively
-<code>o is E<T<sub>1</sub>, .. T<sub>k</sub>></code>)
-or a type cast (`o as E` respectively
-<code>o as E<T<sub>1</sub>, .. T<sub>k</sub>></code>).
-The type `dynamic` is not assignable to any protected extension type.
-
-*The subtype relationships and the type test/cast errors ensure that an
-instance creation expression is the only way to create values of a
-protected extension type `E`: There is no assignability from the on-type to
-`E`, and it is an error to cast or promote an expression to `E`.*
-
-*This is a crucial property, because it ensures that the value of an
-expression with static type `E` has been obtained as the return value of an
-extension type constructor, and that allows us to write arbitrary code that
-ensures that an object typed as `E` satisfies certain constraints. For
-instance, if all constructors of `E` ensure that a given invariant holds,
-and if every member of `E` preserves that invariant, and if there are no
-aliases to the underlying instance of the on-type of `E` typed as any other
-type than `E`, then the invariant is guaranteed to be preserved.*
-
-It is a compile-time error for an extension declaration to start with the
-keyword `protected`, unless it is explicit (*that is, unless it also has
-the keyword `type`*).
-
-*A protected extension type should not allow for implicit extension method
-invocations, because they are inherently not guarded by the execution of an
-extension type constructor.*
-
-*For example:*
-
-```dart
-protected extension type nat on int {
-  factory nat(int value) =>
-      value >= 0 ? value : throw "Attempt to create an invalid nat";
-}
-
-void main() {
-  nat n1 = 42; // Error.
-  var n2 = nat(42); // OK at compile time, and at run time.
-  var n3 = nat(-1); // OK at compile time, throws at run time.
-}
-```
-
-*The following example illustrates the subtyping relationships; it
-illustrates the use of a constructor to enforce an invariant (that the
-`int` in the `IntBox` is even); and it illustrates that the available
-methods (there is just one: `next()`) all preserve that invariant.*
-
-```dart
-class IntBox {
-  int i;
-  IntBox(this.i);
-}
-
-protected extension type EvenIntBox on IntBox {
-  factory EvenIntBox(int i) =>
-      i.isEven ? IntBox(i) : throw "Invalid EvenIntBox";
-  factory EvenIntBox.fromIntBox(IntBox intBox) =>
-      intBox.i.isEven ? intBox : throw "Invalid EvenIntBox";
-  void next() => this.i += 2;
-}
-
-void main() {
-  var evenIntBox = EvenIntBox(42);
-  evenIntBox.next(); // Methods of `EvenIntBox` maintain the invariant.
-  evenIntBox = IntBox(2); // Compile-time error, types not assignable.
-  evenIntBox = IntBox(2) as EvenIntBox; // Compile-time error, can't cast.
-
-  // We cannot escape by a cast when the protected extension type is
-  // a type argument (or a return/parameter type in a function type).
-  var evenIntBoxes = [evenIntBox]; // Type `List<EvenIntBox>`.
-  evenIntBoxes[0].next(); // Elements typed as `EvenIntBox`.
-  List<IntBox> intBoxes = evenIntBoxes; // Compile-time error.
-  intBoxes = evenIntBoxes as dynamic; // Run-time error.
-
-  // We _can_ escape the protected extension type by an explicit cast.
-  var intBox = evenIntBox as IntBox; // OK statically and dynamically.
-  intBox.i++; // Invariant of `evenIntBox` violated!
-}
-```
-
-*Note that an explicit cast can be used to escape the protected extension
-type and obtain a reference to the underlying object under some other type,
-e.g., the on-type. This means that we can break the invariant, because the
-object is no longer handled with the discipline that the extension type
-members apply.*
-
-*Hence, the protection offered by a protected extension type is easy to
-violate, but the point is that it is reasonably easy to avoid violating
-this protection, and hence the mechanism can be used by developers who wish
-to maintain that specific discipline.*
-
-*A harder protection can be achieved by boxing the extension type, as
-described in the next section.*
-
-
 ### Boxing
 
 This section describes the implicitly induced `box` getter of an explicit
@@ -791,11 +660,6 @@ it returns an object that wraps `this`.
 `E.class` also implicitly induces a getter `E get unbox` which returns the
 value of the final field mentioned above, typed as the associated extension
 type.
-
-*In the case where the extension type is protected, the `unbox` getter
-cannot be written in Dart (because a cast to `E` is then a compile-time
-error), so `unbox` must be a language feature in this case. For
-convenience, it is induced implicitly for all extension types.*
 
 In the case where it would be a compile-time error to declare such a member
 named `box` or `unbox`, said member is not induced.
@@ -866,100 +730,35 @@ is _no_ reification of `E` associated with `o`.
 viewed as having an extension type. By soundness, the run-time type of `o`
 will be a subtype of the on-type of `E`.*
 
-The run-time representation of a type argument which is a non-protected
+The run-time representation of a type argument which is an
 extension type `E` (respectively
 <code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>)
 is the corresponding instantiated on-type.
 
-*This means that a non-protected extension type and the underlying on-type
-are considered as being the same type at run time. So we can freely use a
-cast to introduce or discard the extension type, as the static type of an
+*This means that an extension type and the underlying on-type are
+considered as being the same type at run time. So we can freely use a cast
+to introduce or discard the extension type, as the static type of an
 instance, or as a type argument in the static type of a data structure or
 function involving the extension type.*
 
-The run-time representation of a type argument which is a protected
-extension type `E` (respectively
-<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>)
-is an identification of `E` (respectively
-<code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>).
-
-*In particular, it is not the same as the run-time representation of the
-corresponding on-type. This is necessary in order to maintain that the
-on-type and the protected extension type are unrelated.*
-
-*For a protected extension type `E`, with a data structure or function where
-`E` occurs as a subterm in the type (that is, as a type argument, a return
-type, or a parameter type), a cast that tries to introduce or discard the
-protected extension type will fail at run time.*
-
-*In the non-protected case this treatment may appear to be
-unsound. However, it is in fact sound: Let `E` be a non-protected
-extension type with on-type `T`. This implies that `void Function(E)` is
-represented as `void Function(T)` at run-time. In other words, it is
-possible to have a variable of type `void Function(T)` that refers to a
-function object of type `void Function(E)`. This seems to be a soundness
-violation because `T <: E` and not vice versa, statically. However, we
-consider such types to be the same type at run time, which is in any case
-the finest distinction that we can maintain because there is no
-representation of `E` at run time. There is no soundness issue, because
-the added discipline of a non-protected extension type is voluntary.*
+*This treatment may appear to be unsound. However, it is in fact sound: Let
+`E` be a non-protected extension type with on-type `T`. This implies that
+`void Function(E)` is represented as `void Function(T)` at run-time. In
+other words, it is possible to have a variable of type `void Function(T)`
+that refers to a function object of type `void Function(E)`. This seems to
+be a soundness violation because `T <: E` and not vice versa,
+statically. However, we consider such types to be the same type at run
+time, which is in any case the finest distinction that we can maintain
+because there is no representation of `E` at run time. There is no
+soundness issue, because the added discipline of a non-protected extension
+type is voluntary.*
 
 A type test, `o is U`, and a type cast, `o as U`, where `U` is or contains
 an extension type, is performed at run time as a type test and type cast on
 the run-time representation of the extension type as described above.
 
-*Note that `U` cannot be a protected extension type, because the expression
-would then be a compile-time error, but it could contain a protected
-extension type, e.g., `myList is List<nat>`.*
-
 
 ## Discussion
-
-
-### Casting to a protected extension type
-
-We could use the following mechanism to enable casts to a protected
-extension type to succeed at run time:
-
-Assume that `E` is a protected extension type that declares a
-`bool get verifyThis` getter.
-
-If such a getter exists, then the execution of a type cast `c` of the form
-`o as E` proceeds as follows: First, a cast `o as T` is executed, where `T`
-is the instantiated on-type corresponding to `E`. If this cast succeeds
-then `this` is bound to `o` and `verifyThis` is evaluated to an object
-`o1`. If `o1` is the true object then `c` completes normally and yields
-`o`; otherwise `c` encounters a dynamic type error.
-
-*This implies that it is possible to execute `verifyThis` as declared in
-`E` in a situation where `this` is bound to an object that has not
-necessarily been returned by a constructor in `E`, and which isn't
-guaranteed to make `verifyThis` return true. In other words, this seems to
-be a violation of the discipline associated with protected extension types,
-because that object "isn't worthy of being `this` for the execution of any
-code in `E`". However, it seems more natural to access the "candidate
-`this`" using `this` than it would be if we were to use a different
-declaration to perform the verification (say, a static function in `E`).
-Also, it is obvious that the `this` in the body of `verifyThis` may not
-satisfy the requirements, and we trust developers to write the
-implementation of `verifyThis` with that fact in mind.*
-
-A cast of the form `o as X` where `X` is a type variable bound to `E`
-proceeds in the same way.
-
-This mechanism could be an optional extension of the currently specified
-rule (where any type cast to `E` is an error, statically or dynamically):
-If `E` does not declare a getter `bool get verifyThis` then every cast to
-`E` fails at run time.
-
-*In other words, a dynamic cast to a protected extension type `E` with no
-getter of the form `bool get verifyThis` works as if we had had `bool get
-verifyThis => false`, except that each dynamic cast to `E` will fail like
-this even in the case where we have a different member named `verifyThis`,
-e.g., `void verifyThis(int i) {}`.*
-
-
-### Non-object entities
 
 If we introduce any non-object entities in Dart (that is, entities that
 cannot be assigned to a variable of type `Object?`, e.g., external C /
@@ -968,31 +767,3 @@ allow for extension types whose on-type is a non-object type.
 
 This should not cause any particular problems: If the on-type is a
 non-object type, then the extension type will not be a subtype of `Object`.
-
-
-### Defining void
-
-We may be able to use extension types to define `void`:
-
-```dart
-extension type void on Object? hide Object? {}
-```
-
-This approach does not admit any member accesses for a receiver of type
-`void`.
-
-It shouldn't be assignable to anything other type than `dynamic` without a
-cast, and that is not a property which is achieved with this proposal. It
-is actually assignable to any top type.
-
-However, if we can restrict the assignability as desired then, compared to
-the treatment of today, we would get support for voidness preservation.
-That is, it would no longer be possible to forget voidness without a cast
-in a number of higher order situations:
-
-```dart
-List<Object?> objects = <void>[]; // Error.
-
-void f(Object? o) { print(o); }
-Object? Function(void) g = f; // Error, for both types in the signature.
-```
