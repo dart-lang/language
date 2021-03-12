@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  # Run on PRs and pushes to the default branch.
+  push:
+    branches: [ master ]
+    paths:
+      - 'specification/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'specification/**'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  specification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - name: Install tools
+        run: | 
+          npm install -g firebase-tools@7.2.0
+          sudo apt-get update -qq
+          sudo apt-get install \
+            texlive-latex-base \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            lmodern
+      - name: Build specification
+        run: |
+          cd specification
+          make
+          mkdir firebase
+          cp dartLangSpec.pdf firebase/DartLangSpecDraft.pdf
+      - name: Deploy
+        if: |
+          github.event_name == 'push'
+          && github.ref == 'refs/heads/master'
+          && github.repository == 'dart-lang/language'
+        run: |
+          cd specification
+          firebase deploy --project=dart-specification
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

@@ -1,6 +1,6 @@
 # Dart language evolution
 
-[![Build Status](https://travis-ci.org/dart-lang/language.svg?branch=master)](https://travis-ci.org/dart-lang/language)
+[![Build Status](https://github.com/dart-lang/language/workflows/CI/badge.svg)](https://github.com/dart-lang/language/actions?query=workflow%3ACI+branch%3Amaster)
 
 This repository is a place for the [Dart][website] language team to work on
 language changes and features, and to solicit and accept feedback and requests.
