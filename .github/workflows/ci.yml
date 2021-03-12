@@ -41,6 +41,6 @@ jobs:
           && github.repository == 'dart-lang/language'
         run: |
           cd specification
-          firebase deploy --project=dart-specification --token $FIREBASE_TOKEN
+          firebase deploy --project=dart-specification
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
