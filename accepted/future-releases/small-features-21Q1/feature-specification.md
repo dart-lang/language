@@ -36,7 +36,7 @@ We currently allow metadata to be a call to a constant constructor:
 @Deprecated("Do not use this thing")
 ```
 
-However, the *grammar* does not allow type arguments, meaning that it's not possible to write:
+However, it is not possible to pass type arguments to the constructor invocation:
 
 ```dart
 @TypeHelper<int>(42, "The meaning")
@@ -44,7 +44,8 @@ However, the *grammar* does not allow type arguments, meaning that it's not poss
 
 There is no technical reason for this restriction. It was just simpler, and probably didn't seem necessary at the time metadata was introduced. It does now.
 
-There is no change in the grammar, it already allows the type arguments:
+There is no change in the current grammar, it already allows the type arguments,
+and we just need to stop reporting those type arguments as an error:
 
 ```
 <metadatum> ::=
