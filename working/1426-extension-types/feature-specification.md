@@ -193,8 +193,8 @@ statically.
 
 Like extension methods, extension types are static in nature: An extension
 type declaration may declare some type parameters (just like the current
-extension declarations). The type parameters will be bound to a type which
-is determined by the static type of the receiver. Similarly, like extension
+extension declarations). The type parameters will be bound to types which
+are determined by the static type of the receiver. Similarly, like extension
 methods, members of an extension type are resolved statically, i.e., if
 `tiny.leaves` is an invocation of an extension type getter `leaves`, then
 the declaration named `leaves` whose body is executed is determined at
@@ -283,22 +283,26 @@ This document uses `invokeExtensionMethod(E<T1, .. Tk>, o).m()` to denote
 the same extension method invocation. Note that `invokeExtensionMethod` is
 used as a specification device, it cannot occur in Dart source code.
 
-*This is needed, because `E<T1, .. Tk>(o)` can be an extension type
-constructor invocation, which makes `E<T1, .. Tk>(o).m()` when specifying
-extensions that may or may not have a constructor.*
+*This is needed because `E<T1, .. Tk>(o)` can be an extension type
+constructor invocation, which makes `E<T1, .. Tk>(o).m()` ambiguous when
+specifying extensions that may or may not have a constructor. The use of
+`invokeExtensionMethod` makes it explicit and unambiguous that we are
+talking about an extension method invocation.*
 
 The static analysis of `invokeExtensionMethod` is that it takes exactly two
 positional arguments and must be the receiver in a member access. The first
 argument must be a `<type>`, denoting an extension type _T_, and the second
-argument must be an expression whose type is _T_ or the corresponding
-instantiated on-type. The member access must be a member of `E`. If the
-member access is a method invocation (including an invocation of an
-operator that takes at least one argument), it is allowed to pass an actual
-argument list, and the static analysis of the actual arguments proceeds as
-with other function calls, using a signature where the formal type
-parameters are replaced by `T1, .. Tk`. The type of the entire member
-access is the return type of said member if it is a member invocation, and
-the function type of the method if it is an extension member tear-off.
+argument must be an expression whose static type is _T_ or the
+corresponding instantiated on-type. The member access must be a member of
+`E`. If the member access is a method invocation (including an invocation
+of an operator that takes at least one argument), it is allowed to pass an
+actual argument list, and the static analysis of the actual arguments
+proceeds as with other function calls, using a signature where the formal
+type parameters of `E` are replaced by `T1, .. Tk`. The type of the entire
+member access is the return type of said member if it is a member
+invocation, and the function type of the method if it is an extension
+member tear-off, again substituting `T1, .. Tk` for the formal type
+parameters.
 
 Assume that _E_ is an extension declaration of the following form:
 
@@ -313,12 +317,14 @@ discussed in later sections. The properties specified here are valid for
 those forms as well, except for the differences which are specified
 explicitly.*
 
-It is then allowed to use `Ext<S1, .. Sk>` as a type: It can occur as the
-declared type of a variable or parameter, as the return type of a function
-or getter, as a type argument in a type, or as the on-type of an extension.
+It is then allowed to use `Ext<S1, .. Sk>` as a type.
 
-*In particular, it is allowed to create a new instance where one or more
-extension types occur as type arguments.*
+*For example, it can occur as the declared type of a variable or parameter,
+as the return type of a function or getter, as a type argument in a type,
+as the on-type of an extension, as the type in the `onPart` of a
+try/catch statement, or in a type test `o is E` or a type cast `o as E`, or
+as the body of a type alias. It is also allowed to create a new instance
+where one or more extension types occur as type arguments.*
 
 When `k` is zero, `Ext<S1, .. Sk>` simply stands for `Ext`, a non-generic
 extension. When `k` is greater than zero, a raw occurrence `Ext` is treated
@@ -328,6 +334,14 @@ arguments.
 We say that the static type of said variable, parameter, etc. _is the
 extension type_ `Ext<S1, .. Sk>`, and that its static type _is an extension
 type_.
+
+A compile-time error occurs if an extension type is used as a
+superinterface of a class or mixin, or if an extension type is used to
+derive a mixin.
+
+*So `class C extends E1 with E2 implements E3 {}` has three errors if `E1`,
+`E2`, and `E3` are extension types, and `mixin M on E1 implements E2 {}`
+has two errors.*
 
 If `e` is an expression whose static type is the extension type
 <code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code>,
@@ -369,10 +383,10 @@ extension type is in a sense "in prison", and we can only obtain a
 different type for it by forgetting everything (going to a top type), or by
 means of an explicit cast, typically a downcast to the on-type.*
 
-When `E` is an extension type, a type test `o is E` and a type check `o as
-E` can be performed. Such checks performed on a local variable can promote
-the variable to the extension type using the normal rules for type
-promotion.
+When `E` is an extension type, a type test `o is E` or `o is! E` and a type
+check `o as E` can be performed. Such checks performed on a local variable
+can promote the variable to the extension type using the normal rules for
+type promotion.
 
 *Compared to the existing extension methods feature, there is no change to
 the type of `this` in the body of an extension type _E_: It is the on-type
@@ -404,8 +418,8 @@ Let `E` be an extension declaration such that the keyword `extension` is
 followed by `type`. We say that `E` is an _explicit_ extension type
 declaration, and that it introduces an _explicit_ extension type.
 
-An explicit extension type is not applicable for an implicit extension
-method invocation.
+An explicit extension type declaration is not applicable for an implicit
+extension method invocation.
 
 *In other words, methods of an explicit extension type cannot be called on
 the on-type, only on the extension type. Otherwise, it works the same as an
@@ -418,7 +432,7 @@ extension type Age on int {
 
 void main() {
   int i = 42;
-  i.next; // Error, no such method.
+  i.next; // Compile-time error.
   Age age = 42;
   age.next; // OK.
 }
@@ -436,14 +450,14 @@ Let `E` be an explicit extension type declaration, and consider an
 occurrence of an identifier expression `id` in the body of an instance
 member of `E`. If a lexical lookup of `id` yields a declaration of a
 member of `E`, the expression is treated as `let v = this in v.id`
-where the static type of `v` is the enclosing extension type `E`.
+where the static type of `v` is the enclosing extension type.
 A similar rule holds for function invocations of the form `id(args)`, and
 for operator invocations of the form `this OP arg` or `OP arg`.
 
 *This means that members of `E` can be invoked implicitly on `this` inside
 `E`, just like the members in a non-explicit extension declaration. Another
 way to describe this rule is that it makes `E` non-explicit inside the body
-of `E`, but only when the receiver is `this`.*
+of `E`, but only when the receiver is an implicit `this`.*
 
 An explicit extension declaration may declare one or more non-redirecting
 factory constructors. A factory constructor which is declared in an
@@ -464,30 +478,25 @@ is used to invoke these constructors, and the type of such an expression is
 <code>E<T<sub>1</sub>, .. T<sub>k</sub>></code>.
 
 During static analysis of the body of an extension type constructor, the
-return type is considered to be the on-type of the enclosing extension type
-declaration.
+return type is considered to be the extension type declared by the
+enclosing declaration.
+
+*This means that the constructor can return an expression whose static type
+is the on-type, as well as an expression whose static type is the extension
+type.*
 
 It is a compile-time error if it is possible to reach the end of an
 extension type constructor without returning anything. *Even in the case
 where the on-type is nullable and the intended representation is the null
 object, an explicit `return null;` is required.*
 
-Let `E` be an explicit extension type declaration. It is not an error to
+Let `E` be an explicit extension type declaration. It is an error to
 declare a member in `E` which is also a member of `Object?`.
 
-*This differs from a non-explicit extension type declaration (which
-includes all existing declarations of extension methods), where such a
-member is a compile-time error. The rationale is that an extension method
-like `toString()` on an extension type `E` can be invoked on a receiver
-whose static type is `E`. It should be noted that the extension method
-named `toString` will only be invoked when the static receiver type is `E`,
-and, e.g., `(o as Object?).toString()` will invoke the implementation of
-`toString()` in the run-time class of `o`.*
-
-*The members of `Object?` are part of the interface of every extension
-type, and this means that it is a compile-time error if said member
-declaration is not a correct override of the declaration in `Object?`. For
-instance, `bool toString(int arg) => true;` is an error.*
+*This is because the members of `Object?` are by default shown, as
+specified below in the section about the show/hide part. It is possible to
+use `hide` to omit some or all of these members, in which case it is
+possible to declare members in `E` with those names.*
 
 *It may not be obvious why we would want to prevent implicit invocations of
 the members of any given extension type. Here is a rationale:*
@@ -516,11 +525,12 @@ This section specifies the effect of including a non-empty
 `<extensionShowHidePart>` in an extension declaration.
 
 *The show/hide part provides access to a subset of the members of the
-interface of the on-type. For instance, there may be some read-only methods
-that we can safely call on the on-type, because they won't violate any
-invariants associated with the extension type. We could write forwarding
-members in the extension body, but using show/hide can have the same
-effect, and it is much more concise and convenient.*
+interface of the on-type. For instance, if the intended purpose of the
+extension type is to maintain a certain set of invariants about the state
+of the on-type instance, it is no problem to let clients invoke any methods
+that do not change the state. We could write forwarding members in the
+extension body to enable those methods, but using show/hide can have the
+same effect, and it is much more concise and convenient.*
 
 We use the phrase _extension show/hide part_, or just _show/hide part_ when
 no doubt can arise, to denote a phrase derived from
@@ -534,24 +544,42 @@ available for invocation on a receiver whose type is the given extension
 type.
 
 If the show/hide part is empty, no instance members except the ones
-declared for `Object?` can be invoked on a receiver whose static type is
+declared for `Object` can be invoked on a receiver whose static type is
 the given extension type.
+
+*That is, an empty show/hide part works like `show Object`.*
 
 If the show/hide part is a show clause listing some identifiers and types,
 invocation of an instance member is allowed if its basename is one of the
 given identifiers, or it is the name of a member of the interface of one of
-the types. Instance members declared for `Object?` can also be invoked.
+the types. Instance members declared for `Object` can also be invoked.
+
+*That is, a lone show clause enables the specified members plus the ones
+declared for `Object` (if not already included).*
 
 If the show/hide part is a hide clause listing some identifiers and types,
 invocation of an instance member is allowed if it is in the interface of
 the on-type and _not_ among the given identifiers, nor in the interface of
 the specified types.
 
+*That is, a lone hide clause `hide t1, .. tk` works like
+`show T hide t1, .. tk` where `T` is the on-type.*
+
 If the show/hide part is a show clause followed by a hide clause, then the
 available instance members is computed by first computing the set of
 included instance members specified by the show clause as described above,
 and then removing instance members from that set according to the hide
 clause, as described above.
+
+An `<extensionShowHideElement>` can be of the form `get <id>` or `set <id>`
+or `operator <operator>` where `<operator>` must be an operator which can
+be declared as an instance member of a class. These forms are used to
+enable a getter (without the setter), a setter (without the getter), or an
+operator.
+
+*If the interface contains a getter `x` and a setter `x=` then `show x`
+will enable both, but `show get x` or `show set x` can be used to enable
+only one of them, and similarly for `hide`.*
 
 In a show or hide clause, it is possible that an
 `<extensionShowHideElement>` is an identifier that is the basename of a
@@ -589,7 +617,7 @@ qualified identifier denoting a generic type, but no actual type
 arguments*). In this case the omitted type arguments are determined by the
 corresponding superinterface of the on-type.
 
-*For example:*
+*Here is an example using a show/hide part:*
 
 ```dart
 extension type MyInt on int show num, isEven hide floor {
@@ -634,7 +662,7 @@ No subtype relationship exists between `E` and `T1, .. Tm`.
 
 *This means that when an extension type implements a set of interfaces, it
 is enforced that all the specified members are available, and that they
-have a signature which is compatible with the ones in `T1, .. Tm`, but
+have a signature which is compatible with the ones in `T1, .. Tm`. But
 there is no assignability from an expression of type `E` to a variable
 whose declared type is `Tj` for some `j` in 1..m. For that, it is necessary
 to use `box`, as described below.*
@@ -652,10 +680,10 @@ on-type. So it's a wrapper with the same interface as the extension type.*
 Let `E` be an explicit extension type. The declaration of `E` implicitly
 induces a declaration of a class `E.class`, with the same type parameters
 and members as `E`. It is a subclass of `Object`, with the same direct
-superinterfaces as `E`, with a final field whose type is the on-type of
-`E`, and with an unnamed single argument constructor setting that field to
-the argument. A getter `E.class get box` is implicitly induced in `E`, and
-it returns an object that wraps `this`.
+superinterfaces as `E`, with a final private field whose type is the
+on-type of `E`, and with an unnamed single argument constructor setting
+that field to the argument. A getter `E.class get box` is implicitly
+induced in `E`, and it returns an object that wraps `this`.
 
 `E.class` also implicitly induces a getter `E get unbox` which returns the
 value of the final field mentioned above, typed as the associated extension
@@ -667,6 +695,14 @@ named `box` or `unbox`, said member is not induced.
 *The latter rule helps avoiding conflicts in situations where `box` or
 `unbox` is a non-hidden instance member, and it allows developers to write
 their own implementations if needed.*
+
+A compile-time error occurs at any reference to `E.class` or to the `box`
+member if the class `E.class` has any compile-time errors.
+
+*For example, with an extension type `E` it is allowed to `hide toString`
+and declare a `String toString(int radix)` (which is not a correct override
+of `Object.toString`), but it is then an error to invoke `box`, and it is
+an error to have any occurrence of `E.class`.*
 
 *The rationale for having this mechanism is that the wrapper object is a
 full-fledged object: It is a subtype of all the direct superinterfaces of
@@ -695,7 +731,7 @@ ok+1, .. xn: ok+n)`, and then the body of `E.m` is executed in an
 environment where `this` is bound to `o`, the type variables `X1, .. Xk`
 are bound to the actual values of `S1, .. Sk`, and the formal parameters
 are bound to the actual arguments. If the body completes returning an
-object `o2` then `e0` completes with the object `o2`, and if the body
+object `o2`, then `e0` completes with the object `o2`; if the body
 throws then `e0` throws the same object and stack trace.
 
 The dynamic semantics of an invocation of an instance method of the on-type
@@ -753,17 +789,31 @@ because there is no representation of `E` at run time. There is no
 soundness issue, because the added discipline of a non-protected extension
 type is voluntary.*
 
-A type test, `o is U`, and a type cast, `o as U`, where `U` is or contains
-an extension type, is performed at run time as a type test and type cast on
-the run-time representation of the extension type as described above.
+A type test, `o is U` or `o is! U`, and a type cast, `o as U`, where `U` is
+or contains an extension type, is performed at run time as a type test and
+type cast on the run-time representation of the extension type as described
+above.
 
 
 ## Discussion
+
+### Non-object types
 
 If we introduce any non-object entities in Dart (that is, entities that
 cannot be assigned to a variable of type `Object?`, e.g., external C /
 JavaScript / ... entities, or non-boxed tuples, etc), then we may wish to
 allow for extension types whose on-type is a non-object type.
 
-This should not cause any particular problems: If the on-type is a
-non-object type, then the extension type will not be a subtype of `Object`.
+In this case we may be able to consider an extension type `E` on a
+non-object type `T` to be a supertype of `T`, but unrelated to all subtypes
+of `Object?`.
+
+### Protection
+
+The ability to "enter" an extension type implicitly may be considered to be
+too permissive.
+
+If we wish to uphold the property that every instance typed as a given
+extension type `E` has been "vetted" by a particular piece of user-written
+code then we may use a protected extension type. This concept is described
+in a separate document.
