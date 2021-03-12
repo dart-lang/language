@@ -36,7 +36,7 @@ We currently allow metadata to be a call to a constant constructor:
 @Deprecated("Do not use this thing")
 ```
 
-However, it is not possible to pass type arguments to the constructor invocationn:
+However, it is not possible to pass type arguments to the constructor invocation:
 
 ```dart
 @TypeHelper<int>(42, "The meaning")
