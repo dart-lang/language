@@ -19680,6 +19680,35 @@ before generic functions were added to Dart.%
 }
 
 \LMHash{}%
+A type alias $F$ can be used to invoke static methods of the denoted class.
+
+\begin{dartCode}
+\CLASS{} C<X> \{
+  static void staticMethod() \{\}
+\}
+\\
+\TYPEDEF{} F = C<int>;
+\\
+\VOID{} main() \{
+  F.staticMethod(); // \comment{OK.}
+\}
+\end{dartCode}
+
+\rationale{%
+This indirectly allows an invocation of a static method to pass
+a list of actual type arguments to the class.
+This is currently an error when it occurs directly
+(e.g., \code{List<int>.castFrom(xs)}).
+But it may be part of a future language extension to allow
+static methods to use the type parameters declared by the enclosing class,
+in which case both the direct and indirect approach will be allowed.
+At that time,
+existing invocations where type arguments are passed indirectly will not break,
+because it is currently an error for a static method to depend on the value
+of a formal type parameter of the enclosing class.%
+}
+
+\LMHash{}%
 Let $D_F$ be a type alias declaration of the form
 
 \noindent
@@ -19728,8 +19757,8 @@ When $D$ is a type alias declaration of the form
 we say that the parameterized type $U$ of the form
 \code{$F$<\List{U}{1}{s}>}
 in a scope where $F$ resolves to $D$
-\IndexCustom{alias-expands in one step to}{
-  type alias!alias-expands in one step}
+\IndexCustom{alias expands in one step to}{
+  type alias!alias expands in one step}
 $[U_1/X_1, \ldots, U_s/X_s]T$.
 
 \commentary{%
@@ -19740,15 +19769,15 @@ and we are just replacing the type alias name by its body.%
 \LMHash{}%
 If $U$ is a type we may repeatedly replace each subterm of $U$
 which is a parameterized type applying a type alias to some type arguments
-by its expansion in one step
+by its alias expansion in one step
 (\commentary{including the non-generic case where there are no type arguments}).
 When no further steps are possible we say that the resulting type is the
-\IndexCustom{transitive alias-expansion}{
-  type alias!transitive alias-expansion}
+\IndexCustom{transitive alias expansion}{
+  type alias!transitive alias expansion}
 of $U$.
 
 \commentary{%
-Note that the transitive alias-expansion exists,
+Note that the transitive alias expansion exists,
 because it is an error for a type alias declaration
 to depend on itself.%
 }
@@ -19762,7 +19791,7 @@ Let $D$ be a type alias declaration of the form
 \noindent
 We say that $D$
 \NoIndex{expands to a type variable}
-if the transitive alias-expansion of $T$ is $X_j$ for some $j \in 1 .. s$.
+if the transitive alias expansion of $T$ is $X_j$ for some $j \in 1 .. s$.
 
 \LMHash{}%
 Let $T$ be a parameterized type \code{$F$<\List{T}{1}{s}>}
@@ -19815,36 +19844,6 @@ and $T$ is not regular-bounded.
   F<num>(); // \comment{Error.}
 \}
 \end{dartCode}
-
-\LMHash{}%
-Finally, $F$
-can be used to invoke static methods of the denoted class.
-
-\begin{dartCode}
-\CLASS{} C<X> \{
-  static void staticMethod() \{\}
-\}
-\\
-\TYPEDEF{} F = C<int>;
-\\
-\VOID{} main() \{
-  F.staticMethod(); // \comment{OK.}
-\}
-\end{dartCode}
-
-\rationale{%
-This indirectly allows an invocation of a static method to pass
-a list of actual type arguments to the class.
-This is currently an error when it occurs directly
-(e.g., \code{List<int>.castFrom(xs)}).
-But it may be part of a future language extension to allow
-static methods to use the type parameters declared by the enclosing class,
-in which case both the direct and indirect approach will be allowed.
-At that time,
-existing invocations where type arguments are passed indirectly will not break,
-because it is currently an error for a static method to depend on the value
-of a formal type parameter of the enclosing class.%
-}
 
 
 \subsection{Subtypes}
