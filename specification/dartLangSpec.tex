@@ -104,7 +104,7 @@
 % - Add requirement that the iterator of a for-in statement must have
 %   type `Iterator`.
 % - Clarify which constructors are covered by the section 'Constant
-%   Constructors' and removed confusing redundancy in definiton of
+%   Constructors' and removed confusing redundancy in definition of
 %   potentially constant expressions.
 % - Integrate the feature specification of collection literal elements
 %   (aka UI-as-code).
@@ -1717,7 +1717,7 @@ It is a compile-time error to preface a function declaration
 with the built-in identifier \STATIC{}.
 
 \LMHash{}%
-When we say that a function $f_1$ \Index{forwards} to another function $f_2$, 
+When we say that a function $f_1$ \Index{forwards} to another function $f_2$,
 we mean that invoking $f_1$ causes $f_2$ to be executed
 with the same arguments and/or receiver as $f_1$,
 and returns the result of executing $f_2$ to the caller of $f_1$,
@@ -1952,7 +1952,7 @@ they would be considered private and inaccessible to
 callers from outside the library where it was defined.
 If a method outside the library overrode a method with a private optional name,
 it would not be a subtype of the original method.
-The static checker would of course flag such situations, 
+The static checker would of course flag such situations,
 but the consequence would be that adding a private named formal would break
 clients outside the library in a way they could not easily correct.%
 }
@@ -3432,7 +3432,7 @@ Each initializing formal in the formal parameter list introduces a final local v
 \commentary{%
 This means that formal parameters, including initializing formals,
 must have distinct names, and that initializing formals
-are in scope for the initializer list, 
+are in scope for the initializer list,
 but they are not in scope for the body of the constructor.
 When a formal parameter introduces a local variable into two scopes,
 it is still one variable and hence one storage location.
@@ -5230,7 +5230,7 @@ a compile-time error.
 % to be compile-time errors.
 
 \commentary{%
-It is an error, for example, if $M$ contains a member declaration $d$ 
+It is an error, for example, if $M$ contains a member declaration $d$
 which overrides a member signature $m$ in the interface of $S$,
 but which is not a correct override of $m$
 (\ref{correctMemberOverrides}).%
@@ -8254,7 +8254,7 @@ is one of:
 % be computed statically without running user code.
 
 % A validly typed potentially constant expression can still fail when evaluated.
-% If that happens in a const invociation, it's a compile-time error.
+% If that happens in a const invocation, it's a compile-time error.
 
 \LMHash{}%
 It is a compile-time error if an expression is required to be
@@ -13772,7 +13772,7 @@ Messages are the sole means of communication among isolates.
 Messages are sent by invoking specific methods in the Dart libraries; there is no specific syntax for sending a message.
 
 \commentary{%
-In other words, the methods supporting sending messages 
+In other words, the methods supporting sending messages
 embody primitives of Dart that are not accessible to ordinary code,
 much like the methods that spawn isolates.%
 }
@@ -16880,13 +16880,13 @@ The reason for this equivalence is to catch errors such as%
 
 \rationale{%
 Under reasonable scope rules such code is problematic.
-If we assume that \code{v} is declared 
-in the scope of the method \code{main()}, 
-then when \code{somePredicate} is false, 
+If we assume that \code{v} is declared
+in the scope of the method \code{main()},
+then when \code{somePredicate} is false,
 \code{v} will be uninitialized when accessed.
-The cleanest approach would be to require a block following the test, 
+The cleanest approach would be to require a block following the test,
 rather than an arbitrary statement.
-However, this goes against long standing custom, 
+However, this goes against long standing custom,
 undermining Dart's goal of familiarity.
 Instead, we choose to insert a block, introducing a scope,
 around the statement following the predicate
@@ -17141,7 +17141,7 @@ It is a compile-time error if an asynchronous for-in statement appears inside a 
 It is a compile-time error if a traditional for loop (\ref{forLoop}) is prefixed by the \AWAIT{} keyword.
 
 \rationale{%
-An asynchronous loop would make no sense within a synchronous function, 
+An asynchronous loop would make no sense within a synchronous function,
 for the same reasons that an await expression makes no sense
 in a synchronous function.%
 }
@@ -18083,7 +18083,8 @@ then:
   if the class of $o$ is not a subtype of \code{Iterable<$T_f$>}.
   Otherwise
 \item
-  The method \code{iterator} is invoked upon $o$ returning an object $i$.
+  The getter \code{iterator} is invoked upon $o$ returning an object $i$.
+  Otherwise
 \item
   \label{moveNext} The \code{moveNext} method of $i$ is invoked on it
   with no arguments.
@@ -18118,34 +18119,75 @@ If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
   is not a subtype of \code{Stream<$T_f$>}.
 Otherwise
 \item
+  If the stream associated with $m$ has been cancelled,
+  then execution of $s$ completes by returning without a value.
+  \commentary{In this case, the \code{\YIELD*} operation does
+  not begin to listen to the stream $o$.}
+Otherwise
+\item
+  The $o$ stream is listened to by invoking \code{$v_o$.listen}
+  with system provided arguments,
+  where $v_o$ is a fresh variable referencing the stream $o$.
+  Let $u$ be the stream subscription returned by the call to
+  \code{$p$.listen} and let $v$ be a fresh variable bound to $u$.
+\item
+  If the stream associated with $m$ is paused, then $u$ is immediately
+  paused as if by invoking \code{$v$.pause} with no arguments.
+\item{}
+  If the stream associated with $m$ has been cancelled, then
+  $u$ is cancelled by executing \code{await $v$.cancel();}.
+  If this execution does not throw, the execution of $s$
+  completes by returning without a value.
+  % This can only happen if a call to "listen" or "pause" above has
+  % side effects which cancels the stream of $m$.
+\item
   The nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}),
   if any, is paused.
 \item
-  The $o$ stream is listened to, creating a subscription $s$,
-  and for each event $x$, or error $e$ with stack trace $t$, of $s$:
+  Execution of $m$ is suspended.
+  While $m$ is suspended, the following reactions happen if $u$ delivers
+  an event or if the stream associated with $m$ is paused, resumed or cancelled.
+  \commentary{It is unspecified what happens if $u$ delivers events
+  before $m$ is suspended or after $m$ is resumed, or if $u$ delivers events
+  after a call to \code{$v$.cancel} or a call to \code{$v$.pause} which has
+  not been followed by a call to \code{$v$.resume}, or after having delivered
+  a done event.}
+  % Such events should be ignored.
   \begin{itemize}
   \item
-    If the stream $u$ associated with $m$ has been paused,
-    then execution of $m$ is suspended until $u$ is resumed or canceled.
+    If the stream associated with $m$ becomes paused,
+    then $u$ is paused by executing \code{$v$.pause();}.
+    It is unspecified what happens if this execution throws.
+    % The error can be passed to \code{Zone.current.handleUncaughtError}.
   \item
-    If the stream $u$ associated with $m$ has been canceled,
-    then $s$ is canceled by evaluating \code{\AWAIT{} v.cancel()}
-    where $v$ is a fresh variable referencing the stream subscription $s$.
-    Then, if the cancel completed normally,
-    the stream execution of $s$ returns without an object
-    (\ref{statementCompletion}).
+    If the stream associated with $m$ is resumed after being paused,
+    then $u$ is resumed as by executing \code{$v$.resume();}.
+    It is unspecified what happens if this execution throws.
+    % The error can be passed to \code{Zone.current.handleUncaughtError}.
+    \item
+    If the stream associated with $m$ is cancelled,
+    then $u$ is also cancelled as by executing \code{await $v$.cancel();}.
+
+    At some future time, execution of $m$ resumes. If the execution above
+    completed by throwing an error \metavar{er} and stack trace \metavar{st},
+    then execution of $s$ completes by throwing \metavar{er}
+    and stack trace \metavar{st}.
+    Otherwise, execution of $s$ completes by returning without a value.
   \item
-    Otherwise, $x$, or $e$ with $t$, are added to
-    the stream associated with $m$ in the order they appear in $o$.
-    \commentary{%
-      Note that a dynamic error occurs if $x$ is added
-      and the dynamic type of $x$ is not a subtype of
-      the element type of said stream.%
-    }
-    The function $m$ may suspend.
+    If $u$ emits a data event with value $x$,
+    then if the runtime type of $x$ is not a subtype of $T_v$,
+    then the stream associated with $m$ emits a dynamic type error.
+    Otherwise the stream associated with $m$ immediately emits
+    a data event with value $x$.
+  \item
+    If $u$ emits an error event with error \metavar{er}
+    and stack trace \metavar{st},
+    then the stream associated with $m$ immediately emits an error event
+    with error \metavar{er} and stack trace \metavar{st}.
+  \item
+    If $u$ closes \commentary{(by emitting a done event)},
+    then execution of $m$ resumes and execution of $s$ completes normally.
   \end{itemize}
-\item
-  If the stream $o$ is done, execution of $s$ completes normally.
 \end{itemize}
 
 
