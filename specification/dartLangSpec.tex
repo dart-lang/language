@@ -19719,56 +19719,83 @@ which will be specified later
 }
 
 \LMHash{}%
-We define the notion that a type alias declaration
-\NoIndex{expands to a type variable}
-inductively as follows:
-When $j \in 1 .. s$, we say that a type alias declaration of the form
-\code{\TYPEDEF{} $F$<\TypeParametersStd> = $X_j$;}
-\NoIndex{expands to a type variable at position} $j$.
-Similarly, if $H$ denotes a type alias declaration
-that declares $k$ type parameters and
-expands to a type variable at position $i \in 1 .. k$,
-we say that the type alias declaration
+When $D$ is a type alias declaration of the form
 
 \noindent
-\code{\TYPEDEF{} $G$<\TypeParametersStd> = $H$<\List{T}{1}{s}>;}
+\code{\TYPEDEF{} $F$<\TypeParametersStd> = $T$;}
 
 \noindent
-\NoIndex{expands to a type variable at position} $j$
-when $T_i$ is $X_j$ for some $j \in 1 .. s$.
-We say that a type alias declaration
-\IndexCustom{expands to a type variable}{%
-  type alias!expands to a type variable}
-if it expands to a type variable at any position.
+we say that the parameterized type $U$ of the form
+\code{$F$<\List{U}{1}{s}>}
+in a scope where $F$ resolves to $D$
+\IndexCustom{alias-expands in one step to}{
+  type alias!alias-expands in one step}
+$[U_1/X_1, \ldots, U_s/X_s]T$.
 
 \commentary{%
-This means that if a type alias declaration named $F$
-expands to a type variable
-then \code{$F$<\List{T}{1}{s}>} is $T_j$ for some $j \in 1 .. s$.
-If the declaration does not expand to a type variable then that never occurs.%
+Note that $s$ can be zero, in which case $F$ is non-generic,
+and we are just replacing the type alias name by its body.%
 }
 
 \LMHash{}%
-Let $T$ be a parameterized type \code{$F$<$T_1, \ldots T_k$>}
+If $U$ is a type we may repeatedly replace each subterm of $U$
+which is a parameterized type applying a type alias to some type arguments
+by its expansion in one step
+(\commentary{including the non-generic case where there are no type arguments}).
+When no further steps are possible we say that the resulting type is the
+\IndexCustom{transitive alias-expansion}{
+  type alias!transitive alias-expansion}
+of $U$.
+
+\commentary{%
+Note that the transitive alias-expansion exists,
+because it is an error for a type alias declaration
+to depend on itself.%
+}
+
+\LMHash{}%
+Let $D$ be a type alias declaration of the form
+
+\noindent
+\code{\TYPEDEF{} $F$<\TypeParametersStd> = $T$;}
+
+\noindent
+We say that $D$
+\NoIndex{expands to a type variable}
+if the transitive alias-expansion of $T$ is $X_j$ for some $j \in 1 .. s$.
+
+\LMHash{}%
+Let $T$ be a parameterized type \code{$F$<\List{T}{1}{s}>}
 in a scope where $F$ denotes a type alias declaration $D$.
 We say that $T$
 \IndexCustom{uses $D$ as a class}{type alias!used as a class}
 when $T$ occurs in one of the following ways:
 
 \begin{itemize}
-\item $T$ occurs in an instance creation expression
-  of the form \code{$T$(\ldots)} or the form \code{$T$.\id(\ldots)}
-  (\ref{instanceCreation}),
-  or of the same forms with \NEW{} or \CONST{} prepended.
-\item $T$ is the redirectee in a redirecting factory constructor
+\item
+  $T$ occurs in an instance creation expression of the form
+  \code{$T$(\ldots)} or the form \code{$T$.\id(\ldots)}
+  (\ref{instanceCreation}), or of the same forms with \NEW{} or
+  \CONST{} prepended.
+\item
+  $T$ or \code{$T$.\id} is the redirectee in a redirecting factory constructor
   (\ref{redirectingFactoryConstructors}).
-\item $T$ is used as a superclass, a mixin, or a superinterface
+\item
+  $T$ is used as a superclass, a mixin, or a superinterface
   in a class declaration
   (\ref{superclasses}, \ref{mixinApplication}, \ref{superinterfaces}),
   or as an \ON{} type or a superinterface in a mixin declaration
   (\ref{mixinDeclaration}).
   % It is OK to use it as the \ON{} type of an extension declaration:
   % In that position it is used as a type, not as a class.
+\item
+  $T$ is used in an expression of the form `\code{$T$.\id\;\metavar{args}}'
+  where \metavar{args} is derived from \syntax{<argumentPart>?}.
+
+  \commentary{%
+    This is the situation where the type alias is used to invoke
+    a static getter or a static method.%
+  }
 \end{itemize}
 
 \LMHash{}%
