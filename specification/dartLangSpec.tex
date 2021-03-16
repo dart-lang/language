@@ -41,6 +41,7 @@
 %   'class' scope.
 % - Add specification of `>>` in JavaScript compiled code, in appendix.
 % - Integrate the specification of extension methods into this document.
+% - Specify identifier references denoting extension members.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -16213,7 +16214,8 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
 
 \begin{itemize}
 \item
-  If $D$ declares a class, mixin, type alias or type parameter,
+  If $D$ declares a class, mixin, type alias, an enumerated type,
+  or a type parameter,
   the static type of $e$ is \code{Type}.
 \item
   If $D$ is the declaration of a library getter
@@ -16245,9 +16247,19 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
   such that $v$ is known to have type $S$,
   in which case the static type of $e$ is $T$.
 \item
+  % Extension getter invocation by scope.
+  If $D$ is a declaration of an instance getter
+  in an extension declaration $E$,
+  then the static type of $e$ is the return type of $D$.
+\item
+  % Extension method tear-off by scope.
+  If $D$ is a declaration of an instance method
+  in an extension declaration $E$,
+  then the static type of $e$ is the function type of $D$.
+\item
   \commentary{%
-    A lexical lookup will never yield a declaration $D$
-    which is an instance member.%
+    A lexical lookup will never yield a declaration
+    which is an instance member of a class.%
   }
 \end{itemize}
 \vspace{-1ex}
@@ -16334,6 +16346,17 @@ The evaluation of $e$ proceeds as follows:
   then $e$ evaluates to the function object obtained by closurization
   (\ref{functionClosurization})
   of $D$.
+\item
+  If $D$ is an instance getter declaration in an extension declaration $E$,
+  then $e$ evaluates to the result of invoking said getter
+  with the current binding of \THIS{}, and
+  the current bindings of the type parameters declared by $D$.
+\item
+  If $D$ is an instance method declaration in an extension declaration $E$
+  with type parameters \List{X}{1}{s},
+  then $e$ evaluates to the result of the extension method closurization
+  \code{$E$<\List{X}{1}{s}>(\THIS).\id}
+  (\ref{extensionMethodClosurization}).
 \item
   If $D$ is a local variable $v$
   (\commentary{which can be a formal parameter})
