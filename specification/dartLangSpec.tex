@@ -16214,7 +16214,8 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
 
 \begin{itemize}
 \item
-  If $D$ declares a class, mixin, type alias or type parameter,
+  If $D$ declares a class, mixin, type alias, an enumerated type,
+  or a type parameter,
   the static type of $e$ is \code{Type}.
 \item
   If $D$ is the declaration of a library getter
@@ -16247,16 +16248,17 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
   in which case the static type of $e$ is $T$.
 \item
   % Extension getter invocation by scope.
-  If $D$ is a declaration of an instance getter in an extension $E$
+  If $D$ is a declaration of an instance getter
+  in an extension declaration $E$,
   then the static type of $e$ is the return type of $D$.
 \item
   % Extension method tear-off by scope.
   If $D$ is a declaration of an instance method
-  in an extension $E$ then the static type of $e$ is
-  the function type of $D$.
+  in an extension declaration $E$,
+  then the static type of $e$ is the function type of $D$.
 \item
   \commentary{%
-    A lexical lookup will never yield a declaration $D$
+    A lexical lookup will never yield a declaration
     which is an instance member of a class.%
   }
 \end{itemize}
@@ -16345,12 +16347,12 @@ The evaluation of $e$ proceeds as follows:
   (\ref{functionClosurization})
   of $D$.
 \item
-  If $D$ is an instance getter declaration in an extension $E$,
+  If $D$ is an instance getter declaration in an extension declaration $E$,
   then $e$ evaluates to the result of invoking said getter
   with the current binding of \THIS{}, and
   the current bindings of the type parameters declared by $D$.
 \item
-  If $D$ is an instance method declaration in an extension $E$
+  If $D$ is an instance method declaration in an extension declaration $E$
   with type parameters \List{X}{1}{s},
   then $e$ evaluates to the result of the extension method closurization
   \code{$E$<\List{X}{1}{s}>(\THIS).\id}
