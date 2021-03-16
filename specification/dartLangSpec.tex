@@ -19548,7 +19548,7 @@ It is common to use the phrase ``a typedef'' for such a declaration,
 because of the prominent occurrence of the token \TYPEDEF.%
 }
 
-%%TODO(eernst): With null safety, change <functionType> to <type>.
+%%TODO(eernst): With non-function type aliases, change <functionType> to <type>.
 \begin{grammar}
 <typeAlias> ::= \gnewline{}
   \TYPEDEF{} <typeIdentifier> <typeParameters>? `=' <functionType> `;'
@@ -19603,9 +19603,11 @@ It is a compile-time error if $U$ is not well-bounded
 (\ref{superBoundedTypes}).
 
 \LMHash{}%
-For historic reasons, a type alias can have two more forms.
-Let $S?$ be a term which is empty or derived from \synt{type}.
-The two older forms are then as follows:
+For historic reasons, a type alias can have two more forms,
+derived using \synt{functionTypeAlias}.
+Let \DefineSymbol{S?} be a term which is empty or derived from \synt{type},
+and similarly for \DefineSymbol{T_j?} for any $j$.
+The two older forms are then defined as follows:
 
 \LMHash{}%
 A type alias of the form
@@ -19614,7 +19616,7 @@ A type alias of the form
 \code{\TYPEDEF{} $S?$ \id<\TypeParametersStd>(}
 
 \noindent
-\code{\quad$T_1\ p_1, \ldots,\ T_n\ p_n,\ [T_{n+1}\ p_{n+1}, \ldots,\ T_{n+k}\ p_{n+k}]$);}
+\code{\quad$T_1?\ p_1, \ldots,\ T_n?\ p_n,\ [T_{n+1}?\ p_{n+1}, \ldots,\ T_{n+k}?\ p_{n+k}]$);}
 
 \noindent
 is treated as
@@ -19632,7 +19634,7 @@ A type alias of the form
 \code{\TYPEDEF{} $S?$ \id<\TypeParametersStd>(}
 
 \noindent
-\code{\quad$T_1\ p_1, \ldots,\ T_n\ p_n,\ \{T_{n+1}\ p_{n+1}, \ldots,\ T_{n+k}\ p_{n+k}\}$);}
+\code{\quad$T_1?\ p_1, \ldots,\ T_n?\ p_n,\ \{T_{n+1}?\ p_{n+1}, \ldots,\ T_{n+k}?\ p_{n+k}\}$);}
 
 \noindent
 is treated as
@@ -19644,8 +19646,29 @@ is treated as
 \code{\quad$S?$ \FUNCTION($T_1\ p_1, \ldots,\ T_n\ p_n,\ \{T_{n+1}\ p_{n+1}, \ldots,\ T_{n+k}\ p_{n+k}\}$);}
 
 \LMHash{}%
+In these rules, for each $j$, if $T_j?$ is empty
+then \DefineSymbol{T_j} is \DYNAMIC,
+otherwise $T_j$ is $T_j?$.
+
+\commentary{%
+This means that the older forms allow for a parameter type to be omitted,
+in which case it is taken to be \DYNAMIC,
+but the parameter name cannot be omitted.
+This rule is error prone,
+and hence the newer form (with \lit{=}) is recommended.
+For instance, the declaration \code{\TYPEDEF{} $F$(int);}
+specifies that $F$ denotes the type
+\code{\DYNAMIC{} \FUNCTION(\DYNAMIC)},
+and it is documented, but technically ignored,
+that the parameter has the name \code{int}.
+It is extremely likely that a reader will misread this,
+and assume that \code{int} is the parameter type.%
+}
+
+\LMHash{}%
 It is a compile-time error if a default value is specified for
-a formal parameter in these older forms.
+a formal parameter in these older forms,
+or if a formal parameter has the modifier \COVARIANT.
 
 \commentary{%
 Note that the old forms can only define function types,
@@ -19670,7 +19693,7 @@ then we say that
 
 %%TODO(eernst): The relaxation where a type alias dependency arises
 %% via $T$, but not via $B_j$, is more permissive and allows for some
-%% type aliases to be declared that will be an error withthe above rule.
+%% type aliases to be declared that will be an error with the above rule.
 %% It is very likely that the more relaxed rule can be used. This is a
 %% possible enhancement for the future, and a non breaking change.
 
@@ -19733,13 +19756,19 @@ We say that $T$
 when $T$ occurs in one of the following ways:
 
 \begin{itemize}
-\item $T$ denotes a constructor in an instance creation expression
-  (\ref{instanceCreation}).
+\item $T$ occurs in an instance creation expression
+  of the form \code{$T$(\ldots)} or the form \code{$T$.\id(\ldots)}
+  (\ref{instanceCreation}),
+  or of the same forms with \NEW{} or \CONST{} prepended.
 \item $T$ is the redirectee in a redirecting factory constructor
   (\ref{redirectingFactoryConstructors}).
 \item $T$ is used as a superclass, a mixin, or a superinterface
   in a class declaration
-  (\ref{superclasses}, \ref{mixinApplication}, \ref{superinterfaces}).
+  (\ref{superclasses}, \ref{mixinApplication}, \ref{superinterfaces}),
+  or as an \ON{} type or a superinterface in a mixin declaration
+  (\ref{mixinDeclaration}).
+  % It is OK to use it as the \ON{} type of an extension declaration:
+  % In that position it is used as a type, not as a class.
 \end{itemize}
 
 \LMHash{}%
