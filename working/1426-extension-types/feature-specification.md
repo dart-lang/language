@@ -242,11 +242,20 @@ following:
 
 ```ebnf
 <extensionDeclaration> ::=
-  'extension'
-      (<typeIdentifier>? | 'type' <typeIdentifier>) <typeParameters>?
-      <extensionShowHidePart> 'on' <type> <interfaces>? '{'
+  'extension' (<typeIdentifier>? | 'type' <typeIdentifier>) <typeParameters>?
+      <extensionExtendsPart>? 'on' <type> <extensionShowHidePart> <interfaces>?
+  '{'
     (<metadata> <extensionMemberDefinition>)*
   '}'
+
+<extensionExtendsPart> ::=
+  'extends' <extensionExtendsList>
+
+<extensionExtendsList> ::=
+  <extensionExtendsElement> (',' <extensionExtendsList>)?
+
+<extensionExtendsElement> ::=
+  <type> <extensionShowHidePart>
 
 <extensionShowHidePart> ::=
   <extensionShowClause>? <extensionHideClause>?
@@ -594,13 +603,14 @@ work-around is to import the shadowed type `T` with a prefix `p` and put
 `p.T` in the show or hide clause.*
 
 A compile-time error occurs if a hide or show clause contains an identifier
-which is not the basename of an instance member of the on-type. A
-compile-time error occurs if a hide or show clause contains a type which is
-not among the types that are implemented by the on-type of the extension.
+which is not the basename of an instance member of the on-type, and also
+not the name of a type in scope. A compile-time error occurs if a hide or
+show clause contains a type which is not among the types that are
+implemented by the on-type of the extension.
 
 A compile-time error occurs if a member included by the show/hide part has
-a basename which is also the basename of a member declaration in the
-extension type.
+a name which is also the name of a member declaration in the extension
+type.
 
 *For instance, if an extension `E` with a hide clause contains a
 declaration of a method named `toString`, the hide clause must include
@@ -711,6 +721,114 @@ supports late binding of the extension methods, and even dynamic
 invocations. It is costly (it takes space and time to allocate and
 initialize the wrapper object), but it is more robust than the extension
 type, which will only work in a manner which is resolved statically.*
+
+
+### Composing extension types
+
+This section describes the effect of including a clause derived from
+`<extensionExtendsPart>` in an extension declaration. We use the phrase
+_the extension extends clause_ to refer to this clause, or just _the
+extends clause_ when no ambiguity can arise.
+
+*The rationale is that the set of members and member implementations of a
+given extension type may need to overlap with that of other extension
+types. The extends clause allows for implementation reuse by putting shared
+members in a "super-extension" `E0` and putting `E0` in the extends clause
+of several extension type declarations `E1 .. Ek`, thus "inheriting" the
+members of `E0` into all of `E1 .. Ek` without code duplication.*
+
+*Note that there is no subtype relationship between `E0` and `Ej` in this
+scenario, only code reuse. This also implies that there is no need to
+require anything that resembles a correct override relationship
+
+Assume that `E` is an extension declaration, and `E0` occurs as the `<type>`
+in an `<extensionExtendsElement>` in the extends clause of `E`. In this
+case we say that `E0` is a superextension of `E`.
+
+A compile-time error occurs if `E0` is a type name or a
+parameterized type which occurs as a superextension in an extension
+declaration `E`, but `E0` does not denote an extension type.
+
+*`E0` can be any kind of extension type. For instance, it can be useful for
+an extension type `E` with on-type `T` to extend an extension type `E0`
+even in the case where `E0` is not explicit. In that case the members of
+`E0` can be invoked on `this` inside `E` anyway, and on any expression
+whose static type is `T` outside `E`, but when a receiver has type `E` then
+the members of `E0` are not applicable, unless the on-type of `E0` is a top
+type. But `E` can enable the `E0` members on such receivers by extending
+`E0`.*
+
+Assume that an extension declaration `E` has on-type `T`, and that the
+extension type `E0` is a superextension of `E` (*note that `E0` may have
+some actual type arguments*).  Assume that `S` is the instantiated on-type
+corresponding to `E0`. A compile-time error occurs unless `T` is a subtype
+of `S`.
+
+*This ensures that it is sound to bind the value of `this` in `E` to `this`
+in `E0` when invoking members of `E0`.*
+
+Consider an `<extensionExtendsElement>` of the form `E0
+<extensionShowHidePart>`.  The _associated members_ of said extends element
+are computed from the instance members of `E0` in the same way as we
+compute the included instance members of the on-type using the 
+`<extensionShowHidePart>` that follows the on-type in the declaration.
+
+Assume that `E` is an extension declaration and that the extension type
+`E0` is a superextension of `E`. Let `m` be the name of an associated
+member of `E0`. A compile-time error occurs if `E` also declares a member
+named `m`.
+
+Assume that `E` is an extension declaration and that the extension types
+`E0a` and `E0b` are superextensions of `E`. Let `Ma` be the associated
+members of `E0a`, and `Mb` the associated members of `E0b`. A compile-time
+error occurs unless the member names of `Ma` and the member names of `Mb`
+are disjoint sets.
+
+*It is allowed for `E` to select a getter from `E0a` and the corresponding
+setter from `E0b`, even though Dart generally treats a getter/setter pair
+as a unit. However, a show/hide part explicitly supports separation of a
+getter/setter pair using `get m` respectively `set m`. The rationale is
+that an extension type may well be used to provide a read-only interface
+for an object whose members do otherwise allow for mutation, and this
+requires that the getter is included and the setter is not.*
+
+*Conflicts between superextensions are not allowed, they must be resolved
+explicitly (using show/hide). The rationale is that the extends clause of
+an extension is concerned with code reuse, not modeling, and there is no
+reason to believe that any implicit conflict resolution will consistently
+do the right thing.*
+
+The effect of having an extension type `E` with superextensions `E1, .. Ek`
+is that the union of the members declared by `E` and associated members of
+`E1, .. Ek` can be invoked on a receiver of type `E`.
+
+Also, if `E` is non-explicit (*hence, implicit invocation of members of `E`
+is enabled*) then the same set of members can be invoked implicitly on a
+receiver whose type matches the on-type of `E`. There is no conflict if it
+is possible to invoke an extension member `Ej.m` both because `Ej` admits
+an implicit invocation and because `E` admits an implicit invocation and
+`Ej` is a superextension of `E`.*
+
+In the body of `E`, the specification of lexical lookup is changed to
+include an additional case: If a lexical lookup is performed for a name
+`n`, and no declarations of the basename of `n` is found in the enclosing
+scopes, and a member declaration named `n` exists in the sets of associated
+members of superextensions, then that member declaration is the result of
+the lookup; if the lookup is for a setter and a getter is found or vice
+versa, then a compile-time error occurs. Otherwise, if the set of
+associated members does not contain a member whose basename is the basename
+of `n`, the lexical lookup yields the special value `PREPEND_THIS` (*which
+brings us back to the existing rules*).
+
+*This means that the declarations that occur in the enclosing syntax, i.e.,
+in an enclosing lexical scope, get the highest priority, as always in
+Dart. Those declarations may be top-level declarations, or they may be
+members of the enclosing extension declaration (in which case an invocation
+involves `this` when it is an instance member). The second highest priority
+is given to instance members of superextensions (where invocations always
+involve `this`). The next priority is given to instance members of the
+on-type, and finally we can have an implicit invocation of a member of
+another (non-explicit) extension.*
 
 
 ## Dynamic Semantics
