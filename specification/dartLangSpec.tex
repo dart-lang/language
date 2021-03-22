@@ -15845,6 +15845,39 @@ even though it may have the name \id{} when $n$ is \code{\id=} or vice versa.
 That situation may cause an error, as specified below.%
 }
 
+% Even when we have found a declaration, it may have the wrong name.
+\LMHash{}%
+\Case{$D$ exists}
+In this case, at least one declaration with basename \id{}
+is in scope at the location $\ell$.
+
+\LMHash{}%
+It is a compile-time error if the name of $D$ is not $n$,
+unless $D$ is an instance member or a local variable
+(\commentary{which may be a formal parameter}).
+
+%% TODO(eernst): Come NNBD, `this` is accessible in a `late` instance variable
+%% initializer, so they must also be included in the first case.
+\LMHash{}%
+% Has chosen instance member, wants getter/setter, has only the opposite.
+When $\ell$ has access to \THIS{}
+(\ref{classes})
+and is located in a class or mixin \DefineSymbol{A},
+it is a compile-time error if $D$ is an instance member,
+and the interface of $A$ does not have a member named $n$.
+% Has chosen extension instance member, wants getter/setter,
+% has only the opposite.
+When $\ell$ has access to \THIS{}
+and occurs in an extension \DefineSymbol{E},
+it is a compile-time error if $D$ is an instance member,
+and $E$ does not declare a member named $n$.
+% No access to this.
+When $\ell$ does not have access to \THIS,
+it is a compile-time error if $D$ is an instance member.
+% An instance variable initializer is in the body scope, so it is
+% actually possible for $D$ to be an instance member here.
+\EndCase
+
 \LMHash{}%
 \Case{$D$ does not exist}
 When no declaration with basename \id{} is in scope at the location $\ell$,
@@ -15862,18 +15895,23 @@ the following errors apply:
   (\ref{classes}).
 \item
   Consider the case where $\ell$ has access to \THIS,
-  and $\ell$ occurs in a class \DefineSymbol{C}.
+  and $\ell$ occurs in a class or a mixin \DefineSymbol{A}.
   A compile-time error occurs in each of the following two situations:
   \begin{itemize}
   \item
-    The interface of $C$ does not have a member named $n$,
+    The interface of $A$ does not have a member named $n$,
     but it does have a member with basename \id.
   \item
-    The interface of $C$ does not have a member with basename \id,
-    and there is no accessible extension $E$,
-    such that $C$ matches the \ON{} type of $E$,
-    and $E$ has an instance member named $n$.
+    The interface of $A$ does not have a member with basename \id,
+    and there is no accessible extension $E$
+    such that $A$ matches the \ON{} type of $E$,
+    and $E$ has an instance member with basename \id.
   \end{itemize}
+  \commentary{%
+    In other words, we get an error if
+    we find a getter, but we are looking for a setter, or vice versa;
+    and we get an error if we cannot find anything at all.%
+  }
 \item
   \BlindDefineSymbol{E, T}%
   Consider the case where $\ell$ has access to \THIS,
@@ -15894,45 +15932,11 @@ the following errors apply:
 \EndCase
 
 \commentary{%
-So it is an error if there is no member with the right basename,
-and there is also no applicable extension member with the right basename.
-It is also an error if there is one such member,
-but it is a non-setter and we are looking for a setter,
-or vice versa.%
+We could describe these rules as having a built-in priority system:
+The lexically enclosing scopes have the highest priority;
+members of the interface of \THIS{} have the next priority;
+and implicitly invoked extension methods have the lowest priority.%
 }
-
-% Even when we have found a declaration, it may have the wrong name.
-\LMHash{}%
-\Case{$D$ exists}
-In this case, at least one declaration with basename \id{}
-is in scope at the location $\ell$.
-
-\LMHash{}%
-It is a compile-time error if the name of $D$ is not $n$,
-unless $D$ is an instance member or a local variable
-(\commentary{which may be a formal parameter}).
-
-%% TODO(eernst): Come NNBD, `this` is accessible in a `late` instance variable
-%% initializer, so they must also be included in the first case.
-\LMHash{}%
-% Has chosen instance member, wants getter/setter, has only the opposite.
-When $\ell$ has access to \THIS{}
-(\ref{classes})
-and is located in a class \DefineSymbol{C},
-it is a compile-time error if $D$ is an instance member,
-and the interface of $C$ does not have a member named $n$.
-% Has chosen extension instance member, wants getter/setter,
-% has only the opposite.
-When $\ell$ has access to \THIS{}
-and occurs in an extension \DefineSymbol{E},
-it is a compile-time error if $D$ is an instance member,
-and $E$ does not declare a member named $n$.
-% No access to this.
-When $\ell$ does not have access to \THIS,
-it is a compile-time error if $D$ is an instance member.
-% An instance variable initializer is in the body scope, so it is
-% actually possible for $D$ to be an instance member here.
-\EndCase
 
 \rationale{%
 We are always looking up \emph{both} \id{} and \code{\id=},
