@@ -15995,8 +15995,7 @@ Now proceed as described in the first applicable case from the following list:
 \begin{itemize}
 \item
   When $D$ does not exist,
-  the lexical lookup yields the
-  special value \PrependThisValue.
+  the lexical lookup yields the value \PrependThisValue.
   \commentary{%
     In this case it is guaranteed that $\ell$ has access to \THIS,
     and there is a class or extension instance member
@@ -16014,12 +16013,11 @@ Now proceed as described in the first applicable case from the following list:
   Otherwise, the lexical lookup yields $D$.
 \item
   Consider the case where $D$ is an instance member declaration in
-  a class $C$.
+  a class or mixin $A$.
   The lexical lookup then yields \PrependThisValue.
   \commentary{%
-    It is again guaranteed that $\ell$ has access to \THIS,
-    and there is a class instance member or an applicable extension member
-    with the requested name.%
+    In this case it is guaranteed that $\ell$ has access to \THIS,
+    and there is a class instance member with the requested name.%
   }
 \item
   % Cases covered here: $D$ is
@@ -16038,7 +16036,7 @@ Note that a lexical lookup will never yield a declaration of
 an instance member.
 In each case where it is determined that there is no error
 and an instance member is the result of the lookup,
-the special value \PrependThisValue{} is yielded.
+the value \PrependThisValue{} is yielded.
 
 The reason for this is that there may not be a declaration, e.g.,
 in the case where $D$ does not exist,
