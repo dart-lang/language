@@ -5990,14 +5990,14 @@ to $e$ if the following conditions are all satisfied:
   }
 \item
   The type $S$ does not have a member with the basename $m$,
-  and $S$ is neither \DYNAMIC{} nor \code{Never}.
+  and $S$ is not \DYNAMIC.
 
   \commentary{%
-    \DYNAMIC{} and \code{Never} are considered to have all members.
+    \DYNAMIC{} is considered to have all members.
     Also, it is an error to access a member on a receiver of type \VOID{}
     (\ref{typeVoid}),
     so extensions are never applicable to receivers of
-    any of the types \DYNAMIC, \code{Never}, or \VOID.%
+    any of the types \DYNAMIC{} or \VOID.%
    }
 
   For the purpose of determining extension applicability,
