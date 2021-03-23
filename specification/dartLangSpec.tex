@@ -19654,7 +19654,7 @@ otherwise $T_j$ is $T_j?$.
 This means that the older forms allow for a parameter type to be omitted,
 in which case it is taken to be \DYNAMIC,
 but the parameter name cannot be omitted.
-This rule is error prone,
+This behavior is error prone,
 and hence the newer form (with \lit{=}) is recommended.
 For instance, the declaration \code{\TYPEDEF{} $F$(int);}
 specifies that $F$ denotes the type
@@ -19677,35 +19677,6 @@ When such a type alias has type parameters,
 it always expresses a family of non-generic function types.
 These restrictions exist because that syntax was defined
 before generic functions were added to Dart.%
-}
-
-\LMHash{}%
-A type alias $F$ can be used to invoke static methods of the denoted class.
-
-\begin{dartCode}
-\CLASS{} C<X> \{
-  static void staticMethod() \{\}
-\}
-\\
-\TYPEDEF{} F = C<int>;
-\\
-\VOID{} main() \{
-  F.staticMethod(); // \comment{OK.}
-\}
-\end{dartCode}
-
-\rationale{%
-This indirectly allows an invocation of a static method to pass
-a list of actual type arguments to the class.
-This is currently an error when it occurs directly
-(e.g., \code{List<int>.castFrom(xs)}).
-But it may be part of a future language extension to allow
-static methods to use the type parameters declared by the enclosing class,
-in which case both the direct and indirect approach will be allowed.
-At that time,
-existing invocations where type arguments are passed indirectly will not break,
-because it is currently an error for a static method to depend on the value
-of a formal type parameter of the enclosing class.%
 }
 
 \LMHash{}%
@@ -19779,22 +19750,91 @@ of $U$.
 \commentary{%
 Note that the transitive alias expansion exists,
 because it is an error for a type alias declaration
-to depend on itself.%
+to depend on itself.
+However, it may be large.
+For instance, \code{\TYPEDEF{} $F$<$X$> = Map<$X$, $X$>;} yields
+an exponential size increase for \code{$F$<$F$<\ldots$F$<int>\ldots{}>{}>}.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{D, F, T}%
 Let $D$ be a type alias declaration of the form
 
 \noindent
 \code{\TYPEDEF{} $F$<\TypeParametersStd> = $T$;}
 
 \noindent
-We say that $D$
-\NoIndex{expands to a type variable}
-if the transitive alias expansion of $T$ is $X_j$ for some $j \in 1 .. s$.
+and let \DefineSymbol{U} be a parameterized type of the form
+\code{$F$<\List{U}{1}{s}>}
+in a scope where $F$ denotes $D$.
+Assume that the transitive alias expansion of $U$ is
+a type of the form $C$ or \code{$p$.$C$}
+where $C$ is an identifier denoting a class or mixin,
+and $p$ is an identifier denoting an import prefix,
+optionally followed by \synt{typeArguments}.
+Assume that $U$ occurs in an expression $e$ of the form
+`\code{$U$.\id\;\metavar{args}}'
+where \metavar{args} is derived from \syntax{<argumentPart>?},
+such that \id{} is the name of
+a static member of $C$ respectively \code{$p$.$C$}.
+The expression $e$ is then treated as
+`\code{$C$.\id\;\metavar{args}}'
+respectively
+`\code{$p$.$C$.\id\;\metavar{args}}'.
+
+\commentary{%
+This means that it is possible to use a type alias
+to invoke a static member of a class or a mixin.
+For example:%
+}
+
+\begin{dartCode}
+\CLASS{} C<X> \{
+  static void staticMethod() \{\}
+\}
+\\
+\TYPEDEF{} F = C<int>;
+\\
+\VOID{} main() \{
+  F.staticMethod(); // \comment{OK.}
+\}
+\end{dartCode}
+
+\rationale{%
+Note that the type arguments passed to $C$ respectively \code{$p$.$C$}
+are erased,
+such that the resulting expression can be a correct static member invocation.
+If a future version of Dart allows type arguments to be passed via the class
+in an invocation of a static member,
+it may be preferable to preserve these type arguments.
+At that time,
+existing invocations where type arguments are passed in this manner
+will not break,
+because it is currently an error for a static member to depend on the value
+of a formal type parameter of the enclosing class.%
+}
 
 \LMHash{}%
+\BlindDefineSymbol{D, F, X_j, B_j}%
+Let $D$ be a type alias declaration of the form
+
+\noindent
+\code{\TYPEDEF{} $F$<\TypeParametersStd> = $T$;}
+
+\noindent
+\BlindDefineSymbol{Y_j}%
+Let \List{Y}{1}{s} be fresh type variables,
+assumed to satisfy the bounds of $D$.
+We say that $D$
+\NoIndex{expands to a type variable}
+if the transitive alias expansion of
+\code{$F$<\List{Y}{1}{s}>}
+is $Y_j$ for some $j \in 1 .. s$.
+
+\LMHash{}%
+\BlindDefineSymbol{T, F, D}%
 Let $T$ be a parameterized type \code{$F$<\List{T}{1}{s}>}
+(where $s$ can be zero)
 in a scope where $F$ denotes a type alias declaration $D$.
 We say that $T$
 \IndexCustom{uses $D$ as a class}{type alias!used as a class}
@@ -19803,11 +19843,17 @@ when $T$ occurs in one of the following ways:
 \begin{itemize}
 \item
   $T$ occurs in an instance creation expression of the form
-  \code{$T$(\ldots)} or the form \code{$T$.\id(\ldots)}
-  (\ref{instanceCreation}), or of the same forms with \NEW{} or
-  \CONST{} prepended.
+  \code{$nc$ $T$(\ldots)} or the form \code{$nc$ $T$.\id(\ldots)},
+  where $nc$ is either \NEW{} or \CONST{}
+  (\ref{instanceCreation}).
+  \commentary{%
+    Note that, e.g., \code{$T$(42)} may be an instance creation,
+    but it is then treated as \code{\NEW{} $T$(42)} or \code{\CONST{} $T$(42)},
+    which means that it is included here
+    (\ref{unqualifiedInvocation}).%
+  }
 \item
-  $T$ or \code{$T$.\id} is the redirectee in a redirecting factory constructor
+  $T$ or \code{$T$.\id} is the redirectee in a redirecting factory constructor,
   (\ref{redirectingFactoryConstructors}).
 \item
   $T$ is used as a superclass, a mixin, or a superinterface
@@ -19818,17 +19864,12 @@ when $T$ occurs in one of the following ways:
   % It is OK to use it as the \ON{} type of an extension declaration:
   % In that position it is used as a type, not as a class.
 \item
-  $T$ is used in an expression of the form `\code{$T$.\id\;\metavar{args}}'
-  where \metavar{args} is derived from \syntax{<argumentPart>?}.
-
-  \commentary{%
-    This is the situation where the type alias is used to invoke
-    a static getter or a static method.%
-  }
+  $T$ is used to invoke a static member of a class or mixin,
+  as described above.
 \end{itemize}
 
 \LMHash{}%
-A compile-time error occurs if $D$ expands to a type variable
+A compile-time error occurs if $D$ expands to a type variable,
 and $T$ uses $D$ as a class.
 A compile-time error occurs if $T$ uses $D$ as a class,
 and $T$ is not regular-bounded.
@@ -19837,11 +19878,13 @@ and $T$ is not regular-bounded.
 \begin{dartCode}
 \CLASS{} C<X extends num> \{\}
 \TYPEDEF{} F<Y extends int> = C<Y>;
+\TYPEDEF{} G<Z> = Z;
 \\
 \VOID{} main() \{
   F<int>(); // \comment{OK.}
   C<num>(); // \comment{OK.}
   F<num>(); // \comment{Error.}
+  G<C<int>{}>(); // \comment{Error.}
 \}
 \end{dartCode}
 
