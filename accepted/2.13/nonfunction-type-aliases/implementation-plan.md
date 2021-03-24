@@ -2,7 +2,7 @@
 
 Relevant documents:
  - [Tracking issue](https://github.com/dart-lang/language/issues/115)
- - [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/generalized-typedef-2018/feature-specification.md)
+ - [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/2.13/nonfunction-type-aliases/feature-specification.md)
 
 ## Implementation and Release plan
 
