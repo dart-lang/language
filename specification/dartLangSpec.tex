@@ -12395,7 +12395,7 @@ the ordinary method invocation
 \commentary{%
 This occurs when the lexical lookup has determined that
 $i$ must invoke an instance member of a class or an extension,
-and the location of $i$ can access \THIS{},
+and the location of $i$ can access \THIS,
 and the interface of the enclosing class has a member named \id,
 or there is an applicable extension with such a member.
 Both the static analysis and evaluation proceeds with
@@ -15777,11 +15777,21 @@ a declaration, an import prefix,
 or the special value
 \Index{\PrependThisValue},
 which indicates that the lookup should be transformed into
-a member access on \THIS{}.
-A lexical lookup can not fail
-(\commentary{so it also makes no sense to say that it succeeds}):
-a compile-time error may occur during the lexical lookup,
-but this specification does not mention the propagation of errors.
+a member access on \THIS.
+
+\LMHash{}%
+A lexical lookup may incur a compile-time error.
+However, that is different from a result yielded by the lexical lookup
+because this specification never specifies propagation of errors.
+\commentary{%
+In other words, when other parts of this specification indicate that
+a lexical lookup is performed,
+they need to consider the further steps taken when the result
+is a declaration, when it is an import prefix,
+and when it is \PrependThisValue,
+but they do not mention that, e.g., \code{\id.m} is an error
+because the lexical lookup for \id{} incurred an error.%
+}
 
 \commentary{%
 A lexical lookup differs from a lookup of an instance member
@@ -15794,8 +15804,9 @@ as detailed below.%
 }
 
 \LMHash{}%
-Consider the situation where a name \DefineSymbol{n}
-has basename \DefineSymbol{\id}
+\BlindDefineSymbol{n, id}%
+Consider the situation where a name $n$
+has basename \id{}
 (\ref{classMemberConflicts})
 where \id{} is an identifier,
 and a lexical lookup of $n$ is performed from a given location
@@ -15841,7 +15852,7 @@ we stop searching if we find any declaration named \id{} or \code{\id=}.
 If, in that scope, there are declarations for both \id{} and \code{\id=},
 we return the one which has the requested name $n$.
 In the case where only one declaration is present, we return it,
-even though it may have the name \id{} when $n$ is \code{\id=} or vice versa.
+even though it may have the name \id{} when $n$ is \code{\id=}, or vice versa.
 That situation may cause an error, as specified below.%
 }
 
@@ -15856,21 +15867,31 @@ It is a compile-time error if the name of $D$ is not $n$,
 unless $D$ is an instance member or a local variable
 (\commentary{which may be a formal parameter}).
 
+\commentary{%
+That is, it is an error if we look for a setter and find a getter,
+or vice versa,
+but not an error if we look for a setter and find a local variable.
+If we look for a setter and find an instance getter (or vice versa)
+it is not an error,
+because the setter could be inherited.
+That is checked below.%
+}
+
 %% TODO(eernst): Come NNBD, `this` is accessible in a `late` instance variable
 %% initializer, so they must also be included in the first case.
 \LMHash{}%
 % Has chosen instance member, wants getter/setter, has only the opposite.
 When $\ell$ has access to \THIS{}
 (\ref{classes})
-and is located in a class or mixin \DefineSymbol{A},
+and is located in a class or mixin $A$,
 it is a compile-time error if $D$ is an instance member,
 and the interface of $A$ does not have a member named $n$.
 % Has chosen extension instance member, wants getter/setter,
 % has only the opposite.
 When $\ell$ has access to \THIS{}
-and occurs in an extension \DefineSymbol{E},
+and occurs in an extension $E$,
 it is a compile-time error if $D$ is an instance member,
-and $E$ does not declare a member named $n$.
+and the name of $D$ is not $n$.
 % No access to this.
 When $\ell$ does not have access to \THIS,
 it is a compile-time error if $D$ is an instance member.
@@ -15880,63 +15901,10 @@ it is a compile-time error if $D$ is an instance member.
 
 \LMHash{}%
 \Case{$D$ does not exist}
-When no declaration with basename \id{} is in scope at the location $\ell$,
-the following errors apply:
-
-\begin{itemize}
-\item
-  % Here is the list of cases covered by this item: \ell is..
-  % - inside a library function, getter, setter, variable initializer;
-  % - inside a static method, getter, setter, variable initializer;
-  % - inside an instance variable initializer;
-  % - in an expression in the initializer list of a constructor
-  %   (be it a superinitializer, a field initializer, or an assertion).
-  It is a compile-time error if $\ell$ does not have access to \THIS{}
-  (\ref{classes}).
-\item
-  Consider the case where $\ell$ has access to \THIS,
-  and $\ell$ occurs in a class or a mixin \DefineSymbol{A}.
-  A compile-time error occurs in each of the following two situations:
-  \begin{itemize}
-  \item
-    The interface of $A$ does not have a member named $n$,
-    but it does have a member with basename \id.
-  \item
-    The interface of $A$ does not have a member with basename \id,
-    and there is no accessible extension $E$
-    such that $A$ matches the \ON{} type of $E$,
-    and $E$ has an instance member with basename \id.
-  \end{itemize}
-  \commentary{%
-    In other words, we get an error if
-    we find a getter, but we are looking for a setter, or vice versa;
-    and we get an error if we cannot find anything at all.%
-  }
-\item
-  \BlindDefineSymbol{E, T}%
-  Consider the case where $\ell$ has access to \THIS,
-  and $\ell$ occurs in an extension $E$ with \ON{} type $T$.
-  A compile-time error occurs in the following two situations:
-  \begin{itemize}
-  \item
-    The interface of $T$ does not have a member named $n$,
-    but it does have a member with basename \id.
-  \item
-    The interface of $T$ does not have a member with basename \id,
-    and there is no accessible extension $E_1$,
-    such that $T$ matches the \ON{} type of $E_1$,
-    and $E_1$ has an instance member named $n$.
-  \end{itemize}
-\end{itemize}
-\vspace{-2ex}
+If $\ell$ does not have access to \THIS{}
+(\ref{classes}),
+a compile-time error occurs.
 \EndCase
-
-\commentary{%
-We could describe these rules as having a built-in priority system:
-The lexically enclosing scopes have the highest priority;
-members of the interface of \THIS{} have the next priority;
-and implicitly invoked extension methods have the lowest priority.%
-}
 
 \rationale{%
 We are always looking up \emph{both} \id{} and \code{\id=},
@@ -15990,12 +15958,13 @@ and we could say that this ``pair'' shadows $s$:%
 % extension member.
 
 \LMHash{}%
-Now proceed as described in the first applicable case from the following list:
+If no error occurred,
+proceed as described in the first applicable case from the following list:
 
 \begin{itemize}
 \item
   When $D$ does not exist,
-  the lexical lookup yields the value \PrependThisValue.
+  the lexical lookup yields \PrependThisValue.
   \commentary{%
     In this case it is guaranteed that $\ell$ has access to \THIS,
     and there is a class or extension instance member
@@ -16016,8 +15985,7 @@ Now proceed as described in the first applicable case from the following list:
   a class or mixin $A$.
   The lexical lookup then yields \PrependThisValue.
   \commentary{%
-    In this case it is guaranteed that $\ell$ has access to \THIS,
-    and there is a class instance member with the requested name.%
+    In this case it is guaranteed that $\ell$ has access to \THIS.%
   }
 \item
   % Cases covered here: $D$ is
@@ -16031,12 +15999,12 @@ Now proceed as described in the first applicable case from the following list:
   Otherwise, the lexical lookup yields $D$.
 \end{itemize}
 
-\commentary{%
+\rationale{%
 Note that a lexical lookup will never yield a declaration of
 an instance member.
 In each case where it is determined that there is no error
 and an instance member is the result of the lookup,
-the value \PrependThisValue{} is yielded.
+\PrependThisValue{} is yielded.
 
 The reason for this is that there may not be a declaration, e.g.,
 in the case where $D$ does not exist,
