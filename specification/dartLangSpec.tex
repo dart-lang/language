@@ -15856,13 +15856,14 @@ even though it may have the name \id{} when $n$ is \code{\id=}, or vice versa.
 That situation may cause an error, as specified below.%
 }
 
+\LMHash{}%
+In the first step, we check for several potential errors.
+
 % Even when we have found a declaration, it may have the wrong name.
 \LMHash{}%
 \Case{$D$ exists}
 In this case, at least one declaration with basename \id{}
 is in scope at the location $\ell$.
-
-\LMHash{}%
 It is a compile-time error if the name of $D$ is not $n$,
 unless $D$ is an instance member or a local variable
 (\commentary{which may be a formal parameter}).
@@ -15874,36 +15875,18 @@ but not an error if we look for a setter and find a local variable.
 If we look for a setter and find an instance getter (or vice versa)
 it is not an error,
 because the setter could be inherited.
-That is checked below.%
+That is checked after adding \THIS{} below.%
 }
 
-%% TODO(eernst): Come NNBD, `this` is accessible in a `late` instance variable
-%% initializer, so they must also be included in the first case.
 \LMHash{}%
-% Has chosen instance member, wants getter/setter, has only the opposite.
-When $\ell$ has access to \THIS{}
-(\ref{classes})
-and is located in a class or mixin $A$,
-it is a compile-time error if $D$ is an instance member,
-and the interface of $A$ does not have a member named $n$.
-% Has chosen extension instance member, wants getter/setter,
-% has only the opposite.
-When $\ell$ has access to \THIS{}
-and occurs in an extension $E$,
-it is a compile-time error if $D$ is an instance member,
-and the name of $D$ is not $n$.
-% No access to this.
-When $\ell$ does not have access to \THIS,
-it is a compile-time error if $D$ is an instance member.
-% An instance variable initializer is in the body scope, so it is
-% actually possible for $D$ to be an instance member here.
+If $D$ is an instance member,
+it is a compile-time error if $\ell$ does not have access to \THIS.
 \EndCase
 
 \LMHash{}%
 \Case{$D$ does not exist}
-If $\ell$ does not have access to \THIS{}
-(\ref{classes}),
-a compile-time error occurs.
+It is a compile-time error if $\ell$ does not have access to \THIS{}
+(\ref{classes}).
 \EndCase
 
 \rationale{%
@@ -15940,25 +15923,8 @@ and we could say that this ``pair'' shadows $s$:%
 \}
 \end{dartCode}
 
-% At this point we know that
-% - $D$ does not exist, but $\ell$ has access to `this` and the interface of
-%   the enclosing class / of the on-type of the enclosing extension has
-%   a member named $n$, or
-% - $D$ exists and has name $n$, and $\ell$ cannot access `this`, or
-% - $\ell$ occurs in a class $C$, $D$ exists, its name can be different from
-%   $n$, but $\ell$ has access to `this`, and the interface of $C$ has a
-%   member named $n$, or
-% - $\ell$ occurs in an extension $E$, $D$ exists and is a static or instance
-%   member with the name $n$ (and access to `this` exists in the latter case),
-%   or
-% - $D$ exists and is a local variable named \id, and $n$ is \code{\id=}.
-%
-% The lookup yields \PrependThisValue iff $\ell$ has access to `this` and
-% $D$ does not exist or $D$ is an instance member of a class or an applicable
-% extension member.
-
 \LMHash{}%
-If no error occurred,
+In the second and last step, if no error occurred,
 proceed as described in the first applicable case from the following list:
 
 \begin{itemize}
@@ -15967,8 +15933,10 @@ proceed as described in the first applicable case from the following list:
   the lexical lookup yields \PrependThisValue.
   \commentary{%
     In this case it is guaranteed that $\ell$ has access to \THIS,
-    and there is a class or extension instance member
-    with the requested name.%
+    and $n$ will be treated as \code{\THIS.$n$}.
+    But errors may still occur, e.g.,
+    because there is no member of the interface of \THIS{} named $n$,
+    and also no accessible and applicable extension method.%
   }
 \item
   Consider the case where $D$ is a formal type parameter declaration
@@ -15985,7 +15953,8 @@ proceed as described in the first applicable case from the following list:
   a class or mixin $A$.
   The lexical lookup then yields \PrependThisValue.
   \commentary{%
-    In this case it is guaranteed that $\ell$ has access to \THIS.%
+    In this case it is guaranteed that $\ell$ has access to \THIS,
+    but some errors may still occur.%
   }
 \item
   % Cases covered here: $D$ is
