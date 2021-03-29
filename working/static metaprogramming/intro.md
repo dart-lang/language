@@ -425,6 +425,17 @@ A Turing-complete programming language that runs in your typechecker opens the
 door to user-code that locks the IDE. How do we ensure that users maintain a
 fast edit refresh cycle when arbitrary Dart code may be running during compilation?
 
+### Security
+
+Ensure that the user has visibility on the execution of the macro, minimizing threats
+of malicious code injected which could run when the user opens the IDE for example. 
+Scope and perhaps limit write/execution access of macros access in the host machine which
+could write a binary executable with data stored in a .dart file. Today, when a user
+downloads a .dart code from the web and executes it, he is fully aware of the execution.
+In addition, the compiler is not capable of call executables or scripts that the user
+creates in .dart (although it does call other parts of the framework).
+
+
 [function_builders]: https://github.com/apple/swift-evolution/blob/9992cf3c11c2d5e0ea20bee98657d93902d5b174/proposals/XXXX-function-builders.md
 [zig_compile_time_execution]: https://andrewkelley.me/post/zig-programming-language-blurs-line-compile-time-run-time.html#:~:text=Compile%2DTime%20Parameters,-Compile%2Dtime%20parameters&text=In%20Zig%2C%20types%20are%20first,functions%2C%20and%20returned%20from%20functions.&text=At%20the%20callsite%2C%20the%20value,is%20known%20at%20compile%2Dtime.
 [data_classes_issue]: https://github.com/dart-lang/language/issues/314
