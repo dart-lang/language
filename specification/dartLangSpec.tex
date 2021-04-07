@@ -12384,8 +12384,8 @@ When the lexical lookup of \id{} yields an import prefix,
 a compile-time error occurs.
 \EndCase
 
-\Case{Lexical lookup yields \PrependThisValue}
-When the lexical lookup of \id{} yields \PrependThisValue,
+\Case{Lexical lookup yields nothing}
+When the lexical lookup of \id{} yields nothing,
 $i$ is treated as
 (\ref{notation})
 the ordinary method invocation
@@ -14541,7 +14541,7 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
   Otherwise, a compile-time error occurs,
   unless the static type of $e$ is assignable to the parameter type of $D$.
 \item
-  When the lexical lookup yields \PrependThisValue,
+  When the lexical lookup yields nothing,
   $a$ is treated as
   (\ref{notation})
   \code{\THIS.\id{} = $e$}.
@@ -14602,7 +14602,7 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
 \item
   \commentary{%
     The case where the lexical lookup of \code{\id=}
-    yields \PrependThisValue{} cannot occur,
+    yields nothing cannot occur,
     because that case is treated as
     \code{\THIS.\id{} = $e$},
     whose evaluation is specified elsewhere.%
@@ -15772,24 +15772,31 @@ When \id{} is an identifier,
 it may look up a name $n$ of the form \id{} as well as of the form \code{\id=}.
 
 \LMHash{}%
-A lexical lookup yields a result which is
-a declaration, an import prefix,
-or the special value
-\Index{\PrependThisValue},
-which indicates that the lookup should be transformed into
-a member access on \THIS.
+A lexical lookup can yield a declaration or an import prefix,
+and it can yield nothing.
+
+\commentary{%
+It is not a compile-time error when the lexical lookup yields nothing.
+In this situation the given name $n$ will be transformed into
+\code{\THIS.$n$},
+and the static analysis of the resulting expression
+may or may not have any compile-time errors.%
+}
 
 \LMHash{}%
-A lexical lookup may incur a compile-time error.
-However, that is different from a result yielded by the lexical lookup
-because this specification never specifies propagation of errors.
+A lexical lookup may incur a compile-time error,
+as specified below.
+However, that is different from a result yielded by the lexical lookup,
+because this specification never specifies the propagation of errors.
+
 \commentary{%
 In other words, when other parts of this specification indicate that
 a lexical lookup is performed,
-they need to consider the further steps taken when the result
-is a declaration, when it is an import prefix,
-and when it is \PrependThisValue,
-but they do not mention that, e.g., \code{\id.m} is an error
+they need to consider the further steps taken
+when the lookup yields a declaration,
+when it yields an import prefix,
+and when it yields nothing.
+But they do not mention that, e.g., \code{\id.m} is an error
 because the lexical lookup for \id{} incurred an error.%
 }
 
@@ -15872,10 +15879,11 @@ unless $D$ is an instance member or a local variable
 That is, it is an error if we look for a setter and find a getter,
 or vice versa,
 but not an error if we look for a setter and find a local variable.
-If we look for a setter and find an instance getter (or vice versa)
+If we look for a setter and find an instance getter, or vice versa,
 it is not an error,
 because the setter could be inherited.
-That is checked after adding \THIS{} below.%
+That is checked after yielding nothing
+(which implies that \THIS{} will be prepended).%
 }
 
 \LMHash{}%
@@ -15930,7 +15938,7 @@ proceed as described in the first applicable case from the following list:
 \begin{itemize}
 \item
   When $D$ does not exist,
-  the lexical lookup yields \PrependThisValue.
+  the lexical lookup yields nothing.
   \commentary{%
     In this case it is guaranteed that $\ell$ has access to \THIS,
     and $n$ will be treated as \code{\THIS.$n$}.
@@ -15951,10 +15959,9 @@ proceed as described in the first applicable case from the following list:
 \item
   Consider the case where $D$ is an instance member declaration in
   a class or mixin $A$.
-  The lexical lookup then yields \PrependThisValue.
+  The lexical lookup then yields nothing.
   \commentary{%
-    In this case it is guaranteed that $\ell$ has access to \THIS,
-    but some errors may still occur.%
+    In this case it is guaranteed that $\ell$ has access to \THIS.%
   }
 \item
   % Cases covered here: $D$ is
@@ -15971,18 +15978,16 @@ proceed as described in the first applicable case from the following list:
 \rationale{%
 Note that a lexical lookup will never yield a declaration of
 an instance member.
-In each case where it is determined that there is no error
+In each case where it is determined that there is no error,
 and an instance member is the result of the lookup,
-\PrependThisValue{} is yielded.
+the lexical lookup yields nothing.
 
-The reason for this is that there may not be a declaration, e.g.,
-in the case where $D$ does not exist,
-but the interface of the class has the required member
-because more than one superinterface has the same member signature
-for the given name,
-or an extension method is applicable.
+The reason for this is that there may not be a declaration in scope,
+but the interface of the class could have the required member,
+or an extension method could be applicable.
 So, for uniformity,
-in these situations we always report that \THIS{} should be added.%
+in these situations we always report that nothing was found,
+which implies that \THIS{} should be added.%
 }
 
 
@@ -16156,19 +16161,17 @@ in such a way that the type of $p$ is not used.%
 \EndCase
 
 \LMHash{}%
-\Case{Lexical lookup yields \PrependThisValue}
-In this case the lexical lookup
+\Case{Lexical lookup yields nothing}
+When the lexical lookup
 (\ref{lexicalLookup})
-for \id{} yields \PrependThisValue.
-%
-In this situation $e$ is treated as
+for \id{} yields nothing,
+$e$ is treated as
 (\ref{notation})
 \code{\THIS.\id}.
 
 \commentary{%
 In this case it is known that $e$ has access to \THIS{}
-(\ref{classes}),
-and the interface of the enclosing class has a member named \id.
+(\ref{classes}).
 Both the static analysis and evaluation proceeds with
 \code{\THIS.\id},
 so there is no need to further specify the treatment of $e$.%
@@ -16255,7 +16258,7 @@ will evaluate the import prefix.
 \EndCase
 
 \LMHash{}%
-\Case{Lexical lookup yields \PrependThisValue}
+\Case{Lexical lookup yields nothing}
 This situation cannot arise,
 because this only occurs when $e$ is treated as
 \code{\THIS.\id},
