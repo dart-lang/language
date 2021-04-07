@@ -50,6 +50,8 @@
 %   on itself).
 % - Add the error for a type alias $F$ used in an instance creation etc., when
 %   $F$ expands to a type variable.
+% - Correct lexical lookup rules to include implicit extension method
+%   invocation.
 %
 % 2.7
 % - Rename non-terminals `<...Definition>` to `<...Declaration>` (e.g., it is
@@ -12382,8 +12384,8 @@ When the lexical lookup of \id{} yields an import prefix,
 a compile-time error occurs.
 \EndCase
 
-\Case{Lexical lookup yields a member signature}
-When the lexical lookup of \id{} yields a member signature,
+\Case{Lexical lookup yields nothing}
+When the lexical lookup of \id{} yields nothing,
 $i$ is treated as
 (\ref{notation})
 the ordinary method invocation
@@ -12392,9 +12394,10 @@ the ordinary method invocation
 
 \commentary{%
 This occurs when the lexical lookup has determined that
-$i$ must invoke an instance member,
-and the location of $i$ can access \THIS{},
-and the interface of the enclosing class has a member named \id.
+$i$ must invoke an instance member of a class or an extension,
+and the location of $i$ can access \THIS,
+and the interface of the enclosing class has a member named \id,
+or there is an applicable extension with such a member.
 Both the static analysis and evaluation proceeds with
 \code{\THIS.$i$},
 so there is no need to further specify the treatment of $i$.%
@@ -14538,7 +14541,7 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
   Otherwise, a compile-time error occurs,
   unless the static type of $e$ is assignable to the parameter type of $D$.
 \item
-  When the lexical lookup yields a member signature,
+  When the lexical lookup yields nothing,
   $a$ is treated as
   (\ref{notation})
   \code{\THIS.\id{} = $e$}.
@@ -14546,7 +14549,8 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
   \commentary{%
     In this case it is known that $a$ has access to \THIS{}
     (\ref{classes}),
-    and the interface of the enclosing class has a member named \code{\id=}.
+    and the interface of the enclosing class has a member named \code{\id=},
+    or there is an applicable extension with a member named \code{\id=}.
     Both the static analysis and evaluation proceeds with
     \code{\THIS.\id{} = $e$},
     so there is no need to further specify the treatment of $a$.%
@@ -14570,7 +14574,7 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
 
 \begin{itemize}
 \item
-  In the case where the lexical lookup yielded
+  In the case where the lexical lookup yields
   a declaration $D$ of a local variable $v$,
   (\commentary{which may be a formal parameter}),
   the expression $e$ is evaluated to an object $o$,
@@ -14598,7 +14602,7 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
 \item
   \commentary{%
     The case where the lexical lookup of \code{\id=}
-    yields a member signature cannot occur,
+    yields nothing cannot occur,
     because that case is treated as
     \code{\THIS.\id{} = $e$},
     whose evaluation is specified elsewhere.%
@@ -15768,12 +15772,33 @@ When \id{} is an identifier,
 it may look up a name $n$ of the form \id{} as well as of the form \code{\id=}.
 
 \LMHash{}%
-A lexical lookup yields a result which is
-a declaration, an import prefix, or a member signature.
-A lexical lookup can not fail
-(\commentary{so it also makes no sense to say that it succeeds}):
-a compile-time error may occur during the lexical lookup,
-but this specification does not mention the propagation of errors.
+A lexical lookup can yield a declaration or an import prefix,
+and it can yield nothing.
+
+\commentary{%
+It is not a compile-time error when the lexical lookup yields nothing.
+In this situation the given name $n$ will be transformed into
+\code{\THIS.$n$},
+and the static analysis of the resulting expression
+may or may not have any compile-time errors.%
+}
+
+\LMHash{}%
+A lexical lookup may incur a compile-time error,
+as specified below.
+However, that is different from a result yielded by the lexical lookup,
+because this specification never specifies the propagation of errors.
+
+\commentary{%
+In other words, when other parts of this specification indicate that
+a lexical lookup is performed,
+they need to consider the further steps taken
+when the lookup yields a declaration,
+when it yields an import prefix,
+and when it yields nothing.
+But they do not mention that, e.g., \code{\id.m} is an error
+because the lexical lookup for \id{} incurred an error.%
+}
 
 \commentary{%
 A lexical lookup differs from a lookup of an instance member
@@ -15786,8 +15811,9 @@ as detailed below.%
 }
 
 \LMHash{}%
-Consider the situation where a name \DefineSymbol{n}
-has basename \DefineSymbol{\id}
+\BlindDefineSymbol{n, id}%
+Consider the situation where a name $n$
+has basename \id{}
 (\ref{classMemberConflicts})
 where \id{} is an identifier,
 and a lexical lookup of $n$ is performed from a given location
@@ -15809,7 +15835,7 @@ it is understood that the lookup is performed from
 the location of the given occurrence of \id.
 
 \LMHash{}%
-Let \DefineSymbol{S} be the innermost lexical scope containing $\ell$
+Let $S$ be the innermost lexical scope containing $\ell$
 which has a declaration with basename \id.
 In the case where $S$ has
 a declaration named \id{} as well as a declaration named \code{\id=},
@@ -15833,74 +15859,42 @@ we stop searching if we find any declaration named \id{} or \code{\id=}.
 If, in that scope, there are declarations for both \id{} and \code{\id=},
 we return the one which has the requested name $n$.
 In the case where only one declaration is present, we return it,
-even though it may have the name \id{} when $n$ is \code{\id=} or vice versa.
+even though it may have the name \id{} when $n$ is \code{\id=}, or vice versa.
 That situation may cause an error, as specified below.%
 }
 
 \LMHash{}%
-\Case{$D$ does not exist}
-When no declaration with basename \id{} is in scope at the location $\ell$,
-the following errors apply:
-
-\begin{itemize}
-\item
-  % Here is the list of cases covered by this item: \ell is..
-  % - inside a library function, getter, setter, variable initializer;
-  % - inside a static method, getter, setter, variable initializer;
-  % - inside an instance variable initializer;
-  % - in an expression in the initializer list of a constructor
-  %   (be it a superinitializer, a field initializer, or an assertion).
-  It is a compile-time error if $\ell$ does not have access to \THIS{}
-  (\ref{classes}).
-\item
-  When $\ell$ has access to \THIS{}
-  it is a compile-time error if $\ell$ occurs in
-  a class \DefineSymbol{C} and
-  the interface of $C$ does not have a member named $n$;
-  and it is a compile-time error if $\ell$ occurs in
-  an extension \DefineSymbol{E},
-  and the interface of the \ON{} type of $E$ does not have a member named $n$.
-  \commentary{%
-    So it is an error if there is no member with the right basename at all,
-    and also if there is one such member,
-    but it is a non-setter and we are looking for a setter,
-    or vice versa.%
-  }
-\end{itemize}
-\vspace{-2ex}
-\EndCase
+In the first step, we check for several potential errors.
 
 % Even when we have found a declaration, it may have the wrong name.
 \LMHash{}%
 \Case{$D$ exists}
 In this case, at least one declaration with basename \id{}
 is in scope at the location $\ell$.
-
-\LMHash{}%
 It is a compile-time error if the name of $D$ is not $n$,
 unless $D$ is an instance member or a local variable
 (\commentary{which may be a formal parameter}).
 
-%% TODO(eernst): Come NNBD, `this` is accessible in a `late` instance variable
-%% initializer, so they must also be included in the first case.
+\commentary{%
+That is, it is an error if we look for a setter and find a getter,
+or vice versa,
+but not an error if we look for a setter and find a local variable.
+If we look for a setter and find an instance getter, or vice versa,
+it is not an error,
+because the setter could be inherited.
+That is checked after yielding nothing
+(which implies that \THIS{} will be prepended).%
+}
+
 \LMHash{}%
-% Has chosen instance member, wants getter/setter, has only the opposite.
-When $\ell$ has access to \THIS{}
-(\ref{classes})
-and is located in a class \DefineSymbol{C},
-it is a compile-time error if $D$ is an instance member,
-and the interface of $C$ does not have a member named $n$.
-% Has chosen extension instance member, wants getter/setter,
-% has only the opposite.
-When $\ell$ has access to \THIS{}
-and occurs in an extension \DefineSymbol{E},
-it is a compile-time error if $D$ is an instance member,
-and $E$ does not declare a member named $n$.
-% No access to this.
-When $\ell$ does not have access to \THIS,
-it is a compile-time error if $D$ is an instance member.
-% An instance variable initializer is in the body scope, so it is
-% actually possible for $D$ to be an instance member here.
+If $D$ is an instance member,
+it is a compile-time error if $\ell$ does not have access to \THIS.
+\EndCase
+
+\LMHash{}%
+\Case{$D$ does not exist}
+It is a compile-time error if $\ell$ does not have access to \THIS{}
+(\ref{classes}).
 \EndCase
 
 \rationale{%
@@ -15937,41 +15931,20 @@ and we could say that this ``pair'' shadows $s$:%
 \}
 \end{dartCode}
 
-% At this point we know that
-% - $D$ does not exist, but $\ell$ has access to `this` and the interface of
-%   the enclosing class / of the on-type of the enclosing extension has
-%   a member named $n$, or
-% - $D$ exists and has name $n$, and $\ell$ cannot access `this`, or
-% - $\ell$ occurs in a class $C$, $D$ exists, its name can be different from
-%   $n$, but $\ell$ has access to `this`, and the interface of $C$ has a
-%   member named $n$, or
-% - $\ell$ occurs in an extension $E$, $D$ exists and is a static or instance
-%   member with the name $n$ (and access to `this` exists in the latter case),
-%   or
-% - $D$ exists and is a local variable named \id, and $n$ is \code{\id=}.
-%
-% The lookup yields a member signature iff $\ell$ has access to `this` and
-% $D$ does not exist or $D$ is an instance member of a class.
-
 \LMHash{}%
-Now proceed as described in the first applicable case from the following list:
+In the second and last step, if no error occurred,
+proceed as described in the first applicable case from the following list:
 
 \begin{itemize}
 \item
-  When $D$ does not exist:
-  If $\ell$ occurs in a class \DefineSymbol{C},
-  the lexical lookup yields the member signature of
-  the member of the interface of $C$
-  which has the name $n$.
-  If $\ell$ occurs in an extension \DefineSymbol{E}
-  with \ON{} type \DefineSymbol{T_{on}},
-  the lexical lookup yields the member signature of
-  the member of the interface of $T_{on}$
-  which has the name $n$.
+  When $D$ does not exist,
+  the lexical lookup yields nothing.
   \commentary{%
-    In this case it is guaranteed that $\ell$ occurs inside
-    the body of an instance member or a generative constructor,
-    and said member exists.%
+    In this case it is guaranteed that $\ell$ has access to \THIS,
+    and $n$ will be treated as \code{\THIS.$n$}.
+    But errors may still occur, e.g.,
+    because there is no member of the interface of \THIS{} named $n$,
+    and also no accessible and applicable extension method.%
   }
 \item
   Consider the case where $D$ is a formal type parameter declaration
@@ -15985,13 +15958,10 @@ Now proceed as described in the first applicable case from the following list:
   Otherwise, the lexical lookup yields $D$.
 \item
   Consider the case where $D$ is an instance member declaration in
-  a class \DefineSymbol{C}.
-  The lexical lookup then yields the member signature named $n$
-  in the interface of $C$.
+  a class or mixin $A$.
+  The lexical lookup then yields nothing.
   \commentary{%
-    It is again guaranteed that $\ell$ occurs inside
-    the body of an instance member or generative constructor of $C$,
-    and that said member exists.%
+    In this case it is guaranteed that $\ell$ has access to \THIS.%
   }
 \item
   % Cases covered here: $D$ is
@@ -16005,20 +15975,19 @@ Now proceed as described in the first applicable case from the following list:
   Otherwise, the lexical lookup yields $D$.
 \end{itemize}
 
-\commentary{%
+\rationale{%
 Note that a lexical lookup will never yield a declaration of
 an instance member.
-In each case where it is determined that there is no error
+In each case where it is determined that there is no error,
 and an instance member is the result of the lookup,
-the member signature from the interface of the enclosing class is yielded.
+the lexical lookup yields nothing.
 
-The reason for this is that there may not be a declaration, e.g.,
-in the case where $D$ does not exist,
-but the interface of the class has the required member
-because more than one superinterface has the same member signature
-for the given name.
-So, for uniformity, we always report that an instance member must be used
-by yielding the member signature.%
+The reason for this is that there may not be a declaration in scope,
+but the interface of the class could have the required member,
+or an extension method could be applicable.
+So, for uniformity,
+in these situations we always report that nothing was found,
+which implies that \THIS{} should be added.%
 }
 
 
@@ -16192,19 +16161,17 @@ in such a way that the type of $p$ is not used.%
 \EndCase
 
 \LMHash{}%
-\Case{Lexical lookup yields a member signature}
-In this case the lexical lookup
+\Case{Lexical lookup yields nothing}
+When the lexical lookup
 (\ref{lexicalLookup})
-for \id{} yields a member signature $s$.
-%
-In this situation $e$ is treated as
+for \id{} yields nothing,
+$e$ is treated as
 (\ref{notation})
 \code{\THIS.\id}.
 
 \commentary{%
 In this case it is known that $e$ has access to \THIS{}
-(\ref{classes}),
-and the interface of the enclosing class has a member named \id.
+(\ref{classes}).
 Both the static analysis and evaluation proceeds with
 \code{\THIS.\id},
 so there is no need to further specify the treatment of $e$.%
@@ -16291,7 +16258,7 @@ will evaluate the import prefix.
 \EndCase
 
 \LMHash{}%
-\Case{Lexical lookup yields a member signature}
+\Case{Lexical lookup yields nothing}
 This situation cannot arise,
 because this only occurs when $e$ is treated as
 \code{\THIS.\id},
