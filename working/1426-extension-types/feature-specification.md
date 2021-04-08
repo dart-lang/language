@@ -505,13 +505,10 @@ Let `E` be an explicit extension type declaration, and consider an
 occurrence of an identifier expression `id` in the body of an instance
 member of `E`. If a lexical lookup of `id` yields a declaration of a
 member of `E`, the expression is treated as `let v = this as E in v.id`.
-A similar rule holds for function invocations of the form `id(args)`, and
-for operator invocations of the form `this OP arg` or `OP arg`.
+A similar rule holds for function invocations of the form `id(args)`.
 
 *This means that members of `E` can be invoked implicitly on `this` inside
-`E`, just like the members in a non-explicit extension declaration. Another
-way to describe this rule is that it makes `E` non-explicit inside the body
-of `E`, but only when the receiver is an implicit `this`.*
+`E`, just like the members in a non-explicit extension declaration.*
 
 An explicit extension declaration may declare one or more non-redirecting
 factory constructors. A factory constructor which is declared in an
