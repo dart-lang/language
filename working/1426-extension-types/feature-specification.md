@@ -19,15 +19,18 @@ This document specifies a language feature that we call "extension types".
 The feature introduces extension types, which are a new kind of type
 declared by a new extension type declaration. An extension type provides a
 replacement or modification of the members available on instances of
-existing types: when the static type of the instance is the extension type,
-the available members are exactly the ones provided by the extension type.
+existing types: when the static type of the instance is an extension type $E$,
+the available members are exactly the ones provided by $E$
+(plus the accessible and applicable extension methods declared
+by other extensions, if any).
 
 In contrast, when the static type of an instance is not an extension type,
 it is always the run-time type of the instance or a supertype. This means
 that the available members are the members of the run-time type of the
-instance or a subset thereof. Hence, using a supertype as the static type
-allows us to see only a subset of the members, but using an extension type
-allows us to _replace_ the set of members.
+instance or a subset thereof (again: plus extension methods, if
+any). Hence, using a supertype as the static type allows us to see only a
+subset of the members, but using an extension type allows us to _replace_
+the set of members.
 
 The functionality is entirely static. Extension types is an enhancement of
 the extension methods feature which was added to Dart in version 2.6. In
@@ -335,6 +338,15 @@ try/catch statement, or in a type test `o is E` or a type cast `o as E`, or
 as the body of a type alias. It is also allowed to create a new instance
 where one or more extension types occur as type arguments.*
 
+A compile-time error occurs if the type `Ext<S1, .. Sk>` is not
+regular-bounded.
+
+*In other words, such types can not be super-bounded. The reason for this
+restriction is that it is unsound to execute code in the body of `Ext` in
+the case where the values of the type variables do not satisfy their
+declared bounds, and those values will be obtained directly from the static
+type of the receiver in each member invocation on `Ext`.*
+
 When `k` is zero, `Ext<S1, .. Sk>` simply stands for `Ext`, a non-generic
 extension. When `k` is greater than zero, a raw occurrence `Ext` is treated
 like a raw type: Instantiation to bound is used to obtain the omitted type
@@ -353,20 +365,52 @@ derive a mixin.
 has two errors.*
 
 If `e` is an expression whose static type is the extension type
-<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code>,
+<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code>
+and the basename of `m` is the basename of a member declared by `Ext`,
 then a member access like `e.m(args)` is treated as
-<code>invokeExtensionMethod(Ext<S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>
-and similarly for instance getters and operators. This rule also applies
-when a member access implicitly has the receiver `this`, and the static
-type of `this` is an extension type (*which can only occur in an extension
-type member declaration where the on-type is itself an extension type*).
+<code>invokeExtensionMethod(Ext<S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>,
+and similarly for instance getters and operators.
 
-*That is, when the type of an expression is an extension type, all method
-invocations on that expression will invoke an extension method declared by
-that extension, and similarly for other member accesses. In particular, we
-cannot invoke an instance member when the receiver type is an extension
-type (unless the the extension type enables them explicitly, cf. the
-show/hide part specified in a later section).*
+Lexical lookup for identifier references and unqualified function
+invocations in the body of an extension declaration work the same as today:
+In the body of an extension declaration `Ext` with type parameters
+<code>X<sub>1</sub>, .. X<sub>k</sub></code>, for an invocation like
+`m(args)`, if a declaration named `m` is found in the body of `Ext` 
+then that invocation is treated as
+<code>invokeExtensionMethod(Ext<X<sub>1</sub>, .. X<sub>k</sub>>, this).m(args)</code>.
+If `Ext` does not declare any member whose basename is the basename of `m`,
+`m(args)` is treated as `this.m(args)`.
+
+*For example:*
+
+```dart
+extension Ext1 on int {
+  void foo() { print('Ext1.foo'); }
+  void baz() { print('Ext1.baz'); }
+  void qux() { print('Ext1.qux'); }
+}
+
+void qux() { print('qux'); }
+
+extension Ext2 on Ext1 {
+  void foo() { print('Ext2.foo); }
+  void bar() { 
+    foo(); // Prints 'Ext2.foo'.
+    1.foo(); // Prints 'Ext1.foo'.
+    baz(); // Prints 'Ext1.baz'.
+    qux(); // Prints 'qux'.
+  }
+}
+```
+
+*That is, when the type of an expression is an extension type `E` with
+on-type `T`, all method invocations on that expression will invoke an
+instance method declared by `E`, and similarly for other member accesses
+(or it is an extension method invocation on some other extension `E1` with
+on-type `T1` such that `T` matches `T1`). In particular, we cannot invoke
+an instance member when the receiver type is an extension type (unless the
+the extension type enables them explicitly, cf. the show/hide part
+specified in a later section).*
 
 Let `E` be an extension declaration named `Ext` with type parameters
 <code>X<sub>1</sub> extends B<sub>1</sub>, .. X<sub>k</sub> extends B<sub>k</sub></code>
@@ -380,11 +424,12 @@ from the context whether we are talking about the extension itself or a
 particular instantiation of a generic extension. For non-generic
 extensions, the on-type is the same in either case.
 
-An extension type `E` of the form
-<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code>
-is a subtype of `Object?`, and a proper supertype of the
-instantiated on-type of `E`. In the case where the instantiated on-type of
-`E` is not a top type, `E` is also a proper subtype of `Object?`.
+Let `E` be an extension type of the form
+<code>Ext<S<sub>1</sub>, .. S<sub>k</sub>></code>,
+and let `T` be the corresponding instantiated on-type.
+When `T` is a top type, `E` is also a top type.
+Otherwise, `E` is a proper subtype of `Object?`, and a proper supertype of
+`T`.
 
 *That is, the underlying on-type can only be recovered by an explicit cast
 (except when the on-type is a top type). So an expression whose type is an
@@ -430,8 +475,9 @@ declaration, and that it introduces an _explicit_ extension type.
 An explicit extension type declaration is not applicable for an implicit
 extension method invocation.
 
-*In other words, methods of an explicit extension type cannot be called on
-the on-type, only on the extension type. Otherwise, it works the same as an
+*In other words, methods of an explicit extension type `E` cannot be called
+on the on-type, only on the extension type (except in the body of `E` where
+the members of `E` are in scope). Otherwise, it works the same as an
 extension without the `type` modifier. For example:*
 
 ```dart
@@ -458,8 +504,7 @@ etc.*
 Let `E` be an explicit extension type declaration, and consider an
 occurrence of an identifier expression `id` in the body of an instance
 member of `E`. If a lexical lookup of `id` yields a declaration of a
-member of `E`, the expression is treated as `let v = this in v.id`
-where the static type of `v` is the enclosing extension type.
+member of `E`, the expression is treated as `let v = this as E in v.id`.
 A similar rule holds for function invocations of the form `id(args)`, and
 for operator invocations of the form `this OP arg` or `OP arg`.
 
