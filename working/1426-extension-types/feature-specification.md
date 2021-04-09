@@ -95,7 +95,7 @@ extension TinyJson on Object {
     if (self is num) {
       yield self;
     } else if (self is List<dynamic>) {
-      for (Object element in self) {
+      for (var element in self) {
         yield* element.leaves;
       }
     } else {
@@ -165,7 +165,7 @@ class TinyJson {
     if (self is num) {
       yield self;
     } else if (self is List<dynamic>) {
-      for (Object element in self) {
+      for (var element in self) {
         yield* TinyJson(element).leaves;
       }
     } else {
@@ -224,7 +224,7 @@ extension type ListSize<X> on List<X> {
 
 void main() {
   ListSize<String> xs = <String>['Hello']; // OK, upcast.
-  print(xs); // OK, `toString()` available on Object?.
+  print(xs); // OK, `toString()` available on `Object`.
   print("Size: ${xs.size}. Front: ${xs.front()}"); // OK.
   xs[0]; // Error, `operator []` not a member of `ListSize`.
 
@@ -245,8 +245,12 @@ following:
 
 ```ebnf
 <extensionDeclaration> ::=
-  'extension' (<typeIdentifier>? | 'type' <typeIdentifier>) <typeParameters>?
-      <extensionExtendsPart>? 'on' <type> <extensionShowHidePart> <interfaces>?
+  'extension' 
+      (<typeIdentifier>? | 'type' <typeIdentifier>) <typeParameters>?
+      <extensionExtendsPart>?
+      'on' <type>
+      <extensionShowHidePart>
+      <interfaces>?
   '{'
     (<metadata> <extensionMemberDefinition>)*
   '}'
@@ -350,7 +354,8 @@ type of the receiver in each member invocation on `Ext`.*
 When `k` is zero, `Ext<S1, .. Sk>` simply stands for `Ext`, a non-generic
 extension. When `k` is greater than zero, a raw occurrence `Ext` is treated
 like a raw type: Instantiation to bound is used to obtain the omitted type
-arguments.
+arguments. *Note that this may yield a super-bounded type, which is then a
+compile-time error.*
 
 We say that the static type of said variable, parameter, etc. _is the
 extension type_ `Ext<S1, .. Sk>`, and that its static type _is an extension
@@ -378,7 +383,7 @@ In the body of an extension declaration `Ext` with type parameters
 `m(args)`, if a declaration named `m` is found in the body of `Ext` 
 then that invocation is treated as
 <code>invokeExtensionMethod(Ext<X<sub>1</sub>, .. X<sub>k</sub>>, this).m(args)</code>.
-If `Ext` does not declare any member whose basename is the basename of `m`,
+If there is no declaration in scope whose basename is the basename of `m`,
 `m(args)` is treated as `this.m(args)`.
 
 *For example:*
@@ -396,6 +401,7 @@ extension Ext2 on Ext1 {
   void foo() { print('Ext2.foo); }
   void bar() { 
     foo(); // Prints 'Ext2.foo'.
+    this.foo(); // Prints 'Ext1.foo'.
     1.foo(); // Prints 'Ext1.foo'.
     baz(); // Prints 'Ext1.baz'.
     qux(); // Prints 'qux'.
@@ -408,9 +414,9 @@ on-type `T`, all method invocations on that expression will invoke an
 instance method declared by `E`, and similarly for other member accesses
 (or it is an extension method invocation on some other extension `E1` with
 on-type `T1` such that `T` matches `T1`). In particular, we cannot invoke
-an instance member when the receiver type is an extension type (unless the
-the extension type enables them explicitly, cf. the show/hide part
-specified in a later section).*
+an instance member of the on-type when the receiver type is an extension
+type (unless the extension type enables them explicitly, cf. the show/hide
+part specified in a later section).*
 
 Let `E` be an extension declaration named `Ext` with type parameters
 <code>X<sub>1</sub> extends B<sub>1</sub>, .. X<sub>k</sub> extends B<sub>k</sub></code>
@@ -471,6 +477,12 @@ static type of `e` is an extension type).*
 Let `E` be an extension declaration such that the keyword `extension` is
 followed by `type`. We say that `E` is an _explicit_ extension type
 declaration, and that it introduces an _explicit_ extension type.
+We say that an extension type declaration or extension type is _implicit_
+in the case where it is not explicit.
+
+*In particular, every extension declaration in current Dart code is
+implicit, and if it has a name then it introduces an implicit extension
+type.*
 
 An explicit extension type declaration is not applicable for an implicit
 extension method invocation.
@@ -487,7 +499,7 @@ extension type Age on int {
 
 void main() {
   int i = 42;
-  i.next; // Compile-time error.
+  i.next; // Compile-time error, no such member.
   Age age = 42;
   age.next; // OK.
 }
@@ -508,7 +520,7 @@ member of `E`, the expression is treated as `let v = this as E in v.id`.
 A similar rule holds for function invocations of the form `id(args)`.
 
 *This means that members of `E` can be invoked implicitly on `this` inside
-`E`, just like the members in a non-explicit extension declaration.*
+`E`, just like the members in an implicit extension declaration.*
 
 An explicit extension declaration may declare one or more non-redirecting
 factory constructors. A factory constructor which is declared in an
@@ -542,9 +554,9 @@ where the on-type is nullable and the intended representation is the null
 object, an explicit `return null;` is required.*
 
 Let `E` be an explicit extension type declaration. It is an error to
-declare a member in `E` which is also a member of `Object?`.
+declare a member in `E` which is also a member of `Object`.
 
-*This is because the members of `Object?` are by default shown, as
+*This is because the members of `Object` are by default shown, as
 specified below in the section about the show/hide part. It is possible to
 use `hide` to omit some or all of these members, in which case it is
 possible to declare members in `E` with those names.*
@@ -625,7 +637,7 @@ clause, as described above.
 An `<extensionShowHideElement>` can be of the form `get <id>` or `set <id>`
 or `operator <operator>` where `<operator>` must be an operator which can
 be declared as an instance member of a class. These forms are used to
-enable a getter (without the setter), a setter (without the getter), or an
+specify a getter (without the setter), a setter (without the getter), or an
 operator.
 
 *If the interface contains a getter `x` and a setter `x=` then `show x`
@@ -641,8 +653,8 @@ in scope. In this case, the name shall refer to the member.
 member names start with a lower-case letter. Some type names start with a
 lower-case letter, too (e.g., `int` and `dynamic`), but those names do not
 occur frequently as member names. Should a conflict arise anyway, a
-work-around is to import the shadowed type `T` with a prefix `p` and put
-`p.T` in the show or hide clause.*
+work-around is to use a type alias declaration to obtain a fresh name for
+the shadowed type name.*
 
 A compile-time error occurs if a hide or show clause contains an identifier
 which is not the basename of an instance member of the on-type, and also
@@ -681,7 +693,7 @@ void main() {
   m.twice; // OK, in the extension type.
   m.isEven; // OK, a shown instance member.
   m.ceil(); // OK, a shown instance member.
-  m.toString(); // OK, an `Object?` member.
+  m.toString(); // OK, an `Object` member.
   m.floor(); // Error, hidden.
 }
 ```
@@ -702,9 +714,6 @@ class.
 
 *For instance, `implements int` is an error.*
 
-If the `<interfaces>?` part of `E` is empty, it is treated as
-`implements Object`.
-
 For each member `m` named `n` in each direct superinterface of `E`, an
 error occurs unless `E` declares a member `m1` named `n` which is a correct
 override of `m`, or the show/hide part of `E` enables an instance member of
@@ -718,6 +727,14 @@ have a signature which is compatible with the ones in `T1, .. Tm`. But
 there is no assignability from an expression of type `E` to a variable
 whose declared type is `Tj` for some `j` in 1..m. For that, it is necessary
 to use `box`, as described below.*
+
+If the `<interfaces>?` part of `E` is empty, the errors specified in this
+section can not occur. *In particular, even `toString` and other members of
+`Object` can be declared with signatures that are not correct overrides of
+the correspsonding member signature in `Object`. Note, however, that a
+different error occurs for a declaration named, say, `toString`, unless
+there is a clause like `hide toString` in the show/hide part (because of
+the name clash).*
 
 
 ### Boxing
@@ -793,12 +810,12 @@ declaration `E`, but `E0` does not denote an extension type.
 
 *`E0` can be any kind of extension type. For instance, it can be useful for
 an extension type `E` with on-type `T` to extend an extension type `E0`
-even in the case where `E0` is not explicit. In that case the members of
-`E0` can be invoked on `this` inside `E` anyway, and on any expression
-whose static type is `T` outside `E`, but when a receiver has type `E` then
-the members of `E0` are not applicable, unless the on-type of `E0` is a top
-type. But `E` can enable the `E0` members on such receivers by extending
-`E0`.*
+even in the case where `E0` is an implicit extension type. In that case the
+members of `E0` can be invoked on `this` inside `E` anyway, and on any
+expression whose static type is `T` outside `E`, but when a receiver has
+type `E` then the members of `E0` are not applicable, unless the on-type of
+`E0` is a top type. But `E` can enable the `E0` members on such receivers
+by extending `E0`.*
 
 Assume that an extension declaration `E` has on-type `T`, and that the
 extension type `E0` is a superextension of `E` (*note that `E0` may have
@@ -844,23 +861,24 @@ The effect of having an extension type `E` with superextensions `E1, .. Ek`
 is that the union of the members declared by `E` and associated members of
 `E1, .. Ek` can be invoked on a receiver of type `E`.
 
-Also, if `E` is non-explicit (*hence, implicit invocation of members of `E`
-is enabled*) then the same set of members can be invoked implicitly on a
-receiver whose type matches the on-type of `E`. There is no conflict if it
-is possible to invoke an extension member `Ej.m` both because `Ej` admits
-an implicit invocation and because `E` admits an implicit invocation and
-`Ej` is a superextension of `E`.*
+Also, if `E` is an implicit extension type (*hence, implicit invocation of
+members of `E` is enabled*) then the same set of members can be invoked
+implicitly on a receiver whose type matches the on-type of `E`. There is no
+conflict if it is possible to invoke an extension member `Ej.m` both
+because `Ej` admits an implicit invocation, and because `E` admits an
+implicit invocation and `Ej` is a superextension of `E`.*
 
 In the body of `E`, the specification of lexical lookup is changed to
 include an additional case: If a lexical lookup is performed for a name
-`n`, and no declarations of the basename of `n` is found in the enclosing
-scopes, and a member declaration named `n` exists in the sets of associated
-members of superextensions, then that member declaration is the result of
-the lookup; if the lookup is for a setter and a getter is found or vice
-versa, then a compile-time error occurs. Otherwise, if the set of
-associated members does not contain a member whose basename is the basename
-of `n`, the lexical lookup yields the special value `PREPEND_THIS` (*which
-brings us back to the existing rules*).
+`n`, and no declarations whose basename is the basename of `n` is found in
+the enclosing scopes, and a member declaration named `n` exists in the sets
+of associated members of superextensions, then that member declaration is
+the result of the lookup; if the lookup is for a setter and a getter is
+found or vice versa, then a compile-time error occurs. Otherwise, if the
+set of associated members does not contain a member whose basename is the
+basename of `n`, the lexical lookup yields nothing (*which implies that
+`this.` will be prepended to the expression, following the existing
+rules*).
 
 *This means that the declarations that occur in the enclosing syntax, i.e.,
 in an enclosing lexical scope, get the highest priority, as always in
@@ -870,7 +888,8 @@ involves `this` when it is an instance member). The second highest priority
 is given to instance members of superextensions (where invocations always
 involve `this`). The next priority is given to instance members of the
 on-type, and finally we can have an implicit invocation of a member of
-another (non-explicit) extension.*
+some other extension `E1`, as long as `E1` is implicit and the type of
+`this` matches the on-type of `E1`.*
 
 
 ## Dynamic Semantics
@@ -940,8 +959,8 @@ function involving the extension type.*
 *This treatment may appear to be unsound. However, it is in fact sound: Let
 `E` be a non-protected extension type with on-type `T`. This implies that
 `void Function(E)` is represented as `void Function(T)` at run-time. In
-other words, it is possible to have a variable of type `void Function(T)`
-that refers to a function object of type `void Function(E)`. This seems to
+other words, it is possible to have a variable of type `void Function(E)`
+that refers to a function object of type `void Function(T)`. This seems to
 be a soundness violation because `T <: E` and not vice versa,
 statically. However, we consider such types to be the same type at run
 time, which is in any case the finest distinction that we can maintain
