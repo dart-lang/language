@@ -13,8 +13,8 @@
 \usepackage{makeidx}
 \makeindex
 \title{Dart Programming Language Specification\\
-{5th edition}\\
-{\large Version 2.10}}
+{6th edition draft}\\
+{\large Version 2.13-dev}}
 \author{}
 
 % For information about Location Markers (and in particular the
@@ -25,6 +25,10 @@
 % =======
 %
 % Significant changes to the specification.
+%
+% 2.13 (there was no 2.12)
+% - Revert the CL where certain null safety features were removed (to enable
+%   publishing a stable version of the specification).
 %
 % 2.8 - 2.10
 % - Change several warnings to compile-time errors, matching the actual
@@ -1163,9 +1167,9 @@ $A$ is immediately suspended.
 Variables are storage locations in memory.
 
 \begin{grammar}
-<finalConstVarOrType> ::= \FINAL{} <type>?
+<finalConstVarOrType> ::= \LATE? \FINAL{} <type>?
   \alt \CONST{} <type>?
-  \alt <varOrType>
+  \alt \LATE? <varOrType>
 
 <varOrType> ::= \VAR{}
   \alt <type>
@@ -1883,7 +1887,7 @@ A \Index{required formal parameter} may be specified in one of three ways:
   \alt <simpleFormalParameter>
 
 <functionFormalParameter> ::= \gnewline{}
-  \COVARIANT? <type>? <identifier> <formalParameterPart>
+  \COVARIANT? <type>? <identifier> <formalParameterPart> `?'?
 
 <simpleFormalParameter> ::= <declaredIdentifier>
   \alt \COVARIANT? <identifier>
@@ -1891,11 +1895,12 @@ A \Index{required formal parameter} may be specified in one of three ways:
 <declaredIdentifier> ::= \COVARIANT? <finalConstVarOrType> <identifier>
 
 <fieldFormalParameter> ::= \gnewline{}
-  <finalConstVarOrType>? \THIS{} `.' <identifier> (<formalParameterPart>)?
+  <finalConstVarOrType>? \THIS{} `.' <identifier> (<formalParameterPart> `?'?)?
 \end{grammar}
 
 \LMHash{}%
-It is a compile-time error if a formal parameter has the modifier \CONST.
+It is a compile-time error if a formal parameter has the modifier \CONST{}
+or the modifier \LATE.
 It is a compile-time error if \VAR{} occurs as
 the first token of a \synt{fieldFormalParameter}.
 
@@ -1938,7 +1943,7 @@ Optional parameters may be specified and provided with default values.
 <defaultFormalParameter> ::= <normalFormalParameter> (`=' <expression>)?
 
 <defaultNamedParameter> ::= \gnewline{}
-  <normalFormalParameter> ((`=' | `:') <expression>)?
+  \REQUIRED? <normalFormalParameter> ((`=' | `:') <expression>)?
 \end{grammar}
 
 The form \syntax{<normalFormalParameter> `:' <expression>}
@@ -2353,11 +2358,11 @@ Classes may be defined by class declarations as described below, or via mixin ap
   \alt \EXTERNAL? <operatorSignature>
   \alt \STATIC{} \CONST{} <type>? <staticFinalDeclarationList>
   \alt \STATIC{} \FINAL{} <type>? <staticFinalDeclarationList>
-  \alt \STATIC{} \FINAL{} <type>? <initializedIdentifierList>
-  \alt \STATIC{} <varOrType> <initializedIdentifierList>
-  \alt \COVARIANT{} <varOrType> <initializedIdentifierList>
-  \alt \FINAL{} <type>? <initializedIdentifierList>
-  \alt <varOrType> <initializedIdentifierList>
+  \alt \STATIC{} \LATE{} \FINAL{} <type>? <initializedIdentifierList>
+  \alt \STATIC{} \LATE? <varOrType> <initializedIdentifierList>
+  \alt \COVARIANT{} \LATE? <varOrType> <initializedIdentifierList>
+  \alt \LATE? \FINAL{} <type>? <initializedIdentifierList>
+  \alt \LATE? <varOrType> <initializedIdentifierList>
   \alt <redirectingFactoryConstructorSignature>
   \alt <constantConstructorSignature> (<redirection> | <initializers>)?
   \alt <constructorSignature> (<redirection> | <initializers>)?
@@ -2409,10 +2414,11 @@ can only be accessed at specific locations in a class:
 We say that a location $\ell$
 \IndexCustom{has access to \THIS{}}{has access to this@has access to \THIS{}}
 if{}f $\ell$ is inside the body of a declaration of
-an instance member or a generative constructor.
+an instance member or a generative constructor,
+or in the initializing expression of a \LATE{} instance variable declaration.
 
 \commentary{%
-Note that an initializing expression for an instance variable
+Note that an initializing expression for a non-\LATE{} instance variable
 does not have access to \THIS,
 and neither does any part of a declaration marked \STATIC.%
 }
@@ -5998,14 +6004,14 @@ to $e$ if the following conditions are all satisfied:
   }
 \item
   The type $S$ does not have a member with the basename $m$,
-  and $S$ is not \DYNAMIC.
+  and $S$ is neither \DYNAMIC{} nor \code{Never}.
 
   \commentary{%
-    \DYNAMIC{} is considered to have all members.
+    \DYNAMIC{} and \code{Never} are considered to have all members.
     Also, it is an error to access a member on a receiver of type \VOID{}
     (\ref{typeVoid}),
     so extensions are never applicable to receivers of
-    any of the types \DYNAMIC{} or \VOID.%
+    any of the types \DYNAMIC, \code{Never}, or \VOID.%
    }
 
   For the purpose of determining extension applicability,
@@ -13493,7 +13499,7 @@ In general, a cascade can be recognized by the use of exactly two periods,
 
 \begin{grammar}
 <cascade> ::= <cascade> `..' <cascadeSection>
-  \alt <conditionalExpression> `..' <cascadeSection>
+  \alt <conditionalExpression> (`?..' | `..') <cascadeSection>
 
 <cascadeSection> ::= <cascadeSelector> <cascadeSectionTail>
 
@@ -15733,6 +15739,8 @@ and therefore must be evaluated.%
 
 <assignableSelector> ::= <unconditionalAssignableSelector>
   \alt `?.' <identifier>
+  \alt `?' `[' <expression> `]'
+
 \end{grammar}
 
 \LMHash{}%
@@ -16019,10 +16027,12 @@ An \Index{identifier expression} consists of a single identifier; it provides ac
   \alt \IMPLEMENTS{}
   \alt \IMPORT{}
   \alt \INTERFACE{}
+  \alt \LATE{}
   \alt \LIBRARY{}
   \alt \MIXIN{}
   \alt \OPERATOR{}
   \alt \PART{}
+  \alt \REQUIRED{}
   \alt \SET{}
   \alt \STATIC{}
   \alt \TYPEDEF{}
@@ -18129,8 +18139,8 @@ The members of a library $L$ are those top level declarations given within $L$.
   \alt <getterSignature> <functionBody>
   \alt <setterSignature> <functionBody>
   \alt (\FINAL{} | \CONST{}) <type>? <staticFinalDeclarationList> `;'
-  \alt \FINAL{} <type>? <initializedIdentifierList> `;'
-  \alt <varOrType> <initializedIdentifierList> `;'
+  \alt \LATE{} \FINAL{} <type>? <initializedIdentifierList> `;'
+  \alt \LATE? <varOrType> <initializedIdentifierList> `;'
 
 <libraryDeclaration> ::= \gnewline{}
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
@@ -19264,17 +19274,17 @@ but it is the least upper bound of all function types.%
 
 \begin{grammar}
 
-<type> ::= <functionType>
+<type> ::= <functionType> `?'?
   \alt <typeNotFunction>
 
-<typeNotVoid> ::= <functionType>
+<typeNotVoid> ::= <functionType> `?'?
   \alt <typeNotVoidNotFunction>
 
 <typeNotFunction> ::= \VOID{}
   \alt <typeNotVoidNotFunction>
 
-<typeNotVoidNotFunction> ::= <typeName> <typeArguments>?
-  \alt \FUNCTION{}
+<typeNotVoidNotFunction> ::= <typeName> <typeArguments>? `?'?
+  \alt \FUNCTION{} `?'?
 
 <typeName> ::= <typeIdentifier> (`.' <typeIdentifier>)?
 
@@ -19288,7 +19298,7 @@ but it is the least upper bound of all function types.%
 <functionType> ::= <functionTypeTails>
   \alt <typeNotFunction> <functionTypeTails>
 
-<functionTypeTails> ::= <functionTypeTail> <functionTypeTails>
+<functionTypeTails> ::= <functionTypeTail> `?'? <functionTypeTails>
   \alt <functionTypeTail>
 
 <functionTypeTail> ::= \FUNCTION{} <typeParameters>? <parameterTypeList>
@@ -19312,7 +19322,8 @@ but it is the least upper bound of all function types.%
 <namedParameterTypes> ::=
   `\{' <namedParameterType> (`,' <namedParameterType>)* `,'? `\}'
 
-<namedParameterType> ::= <typedIdentifier>
+<namedParameterType> ::=
+  \REQUIRED? <typedIdentifier>
 
 <typedIdentifier> ::= <type> <identifier>
 \end{grammar}
