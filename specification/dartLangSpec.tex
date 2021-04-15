@@ -8969,13 +8969,16 @@ denotes a name that would be either
 a valid declaration name or a valid library name in a Dart program.
 
 \begin{grammar}
-<symbolLiteral> ::= `#' (<operator> | (<identifier> (`.' <identifier>)*))
+<symbolLiteral> ::= `#' (<operator> | <symbolIdentifier> (`.' <symbolIdentifier>)*)
+
+<symbolIdentifier> ::= <identifier> | <reservedWord>
 \end{grammar}
 
 \LMHash{}%
-A symbol literal \code{\#\id} where \id{} is an identifier
+A symbol literal \code{\#\id} where \id{} is a symbol identifier
 that does not begin with an underscore (`\code{\_}'),
-evaluates to an instance of \code{Symbol} representing the identifier \id.
+evaluates to an instance of \code{Symbol}
+representing the symbol identifier \id.
 All occurrences of \code{\#\id} evaluate to the same instance
 \commentary{(symbol instances are canonicalized)},
 and no other symbol literals evaluate to that \code{Symbol} instance
@@ -8984,9 +8987,11 @@ or to a \code{Symbol} instance that is equal
 
 \LMHash{}%
 A symbol literal \code{\#$\id.\id_2\ldots\id_n$}
-where $\id{} \ldots \id_n$ are identifiers,
-evaluates to an instance of \code{Symbol} representing that particular sequence of identifiers.
-All occurrences of \code{\#$\id.\id_2\ldots\id_n$} with the same sequence of identifiers
+where $\id{} \ldots \id_n$ are symbol identifiers
+evaluates to an instance of \code{Symbol}
+representing that particular sequence of symbol identifiers.
+All occurrences of \code{\#$\id.\id_2\ldots\id_n$}
+with the same sequence of identifiers
 evaluate to the same instance,
 and no other symbol literals evaluate to that \code{Symbol} instance
 or to a \code{Symbol} instance that is \lit{==} to that instance.
@@ -8998,7 +9003,8 @@ if some of its identifiers begin with an underscore.%
 }
 
 \LMHash{}%
-A symbol literal \code{\#\metavar{operator}} evaluates to an instance of \code{Symbol}
+A symbol literal \code{\#\metavar{operator}} evaluates to
+an instance of \code{Symbol}
 representing that particular operator name.
 All occurrences of \code{\#\metavar{operator}} evaluate to the same instance,
 and no other symbol literals evaluate to that \code{Symbol} instance
@@ -9007,7 +9013,8 @@ or to a \code{Symbol} instance that is \lit{==} to that instance.
 \LMHash{}%
 A symbol literal \code{\#\_\id}, evaluates to an instance of \code{Symbol}
 representing the private identifier \code{\_\id} of the containing library.
-All occurrences of \code{\#\_\id} \emph{in the same library} evaluate to the same instance,
+All occurrences of \code{\#\_\id} \emph{in the same library} evaluate to
+the same instance,
 and no other symbol literals evaluate to that \code{Symbol} instance
 or to a \code{Symbol} instance that is \lit{==} to that instance.
 
@@ -16048,6 +16055,13 @@ An \Index{identifier expression} consists of a single identifier; it provides ac
 
 <qualifiedName> ::= <typeIdentifier> `.' <identifier>
   \alt <typeIdentifier> `.' <typeIdentifier> `.' <identifier>
+
+<LETTER> ::= `a' .. `z'
+  \alt `A' .. `Z'
+
+<DIGIT> ::= `0' .. `9'
+
+<WHITESPACE> ::= (`\\t' | ` ' | <NEWLINE>)+
 \end{grammar}
 
 \LMHash{}%
@@ -21424,17 +21438,28 @@ At any point in the tokenization process, the longest possible token is recogniz
 \LMLabel{reservedWords}
 
 \LMHash{}%
-A \Index{reserved word} may not be used as an identifier; it is a compile-time error if a reserved word is used where an identifier is expected.
+A \Index{reserved word} can only be used in the syntactic positions
+specified by the grammar.
+In particular, a compile-time error occurs if a reserved word is used
+where an identifier is expected.
 
-\ASSERT{}, \BREAK{}, \CASE{}, \CATCH{}, \CLASS{}, \CONST{}, \CONTINUE{}, \DEFAULT{}, \DO{}, \ELSE{}, \ENUM{}, \EXTENDS{}, \FALSE{}, \FINAL{}, \FINALLY{}, \FOR{}, \IF{}, \IN{}, \IS{}, \NEW{}, \NULL{}, \RETHROW, \RETURN{}, \SUPER{}, \SWITCH{}, \THIS{}, \THROW{}, \TRUE{}, \TRY{}, \VAR{}, \VOID{}, \WHILE{}, \WITH{}.
+\commentary{%
+Note that reserved words occur bold and unquoted in grammar rules
+(e.g., \ASSERT{})
+even though the consistent notation would use quotes
+(e.g., \lit{assert}).
+This notational abuse occurs because we believe
+it makes the grammar rules more readable.%
+}
 
 \begin{grammar}
-<LETTER> ::= `a' .. `z'
-  \alt `A' .. `Z'
-
-<DIGIT> ::= `0' .. `9'
-
-<WHITESPACE> ::= (`\\t' | ` ' | <NEWLINE>)+
+<reservedWord> ::= \ASSERT{} | \BREAK{} | \CASE{} | \CATCH{} |
+    \CLASS{} | \CONST{} | \CONTINUE{}
+  \alt\hspace{-3mm} \DEFAULT{} | \DO{} | \ELSE{} | \ENUM{} | \EXTENDS{} |
+    \FALSE{} | \FINAL{} | \FINALLY{} | \FOR{} | \IF{} | \IN{} | \IS{}
+  \alt\hspace{-3mm} \NEW{} | \NULL{} | \RETHROW{} | \RETURN{} | \SUPER{} |
+    \SWITCH{} | \THIS{} | \THROW{} | \TRUE{} | \TRY{}
+  \alt\hspace{-3mm} \VAR{} | \VOID{} | \WHILE{} | \WITH{}
 \end{grammar}
 
 
