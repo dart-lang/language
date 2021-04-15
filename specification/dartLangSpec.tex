@@ -8975,10 +8975,10 @@ a valid declaration name or a valid library name in a Dart program.
 
 \LMHash{}%
 A symbol literal \code{\#\id} where \id{} is an identifier
-that does not begin with an underscore (`\code{\_}'),
+that does not begin with an underscore (`\code{\_}') or \VOID{}
 evaluates to an instance of \code{Symbol}
-representing the identifier \id.
-All occurrences of \code{\#\id} evaluate to the same instance
+representing the identifier \id respectively \VOID.
+All occurrences of such symbol literals evaluate to the same instance
 \commentary{(symbol instances are canonicalized)},
 and no other symbol literals evaluate to that \code{Symbol} instance
 or to a \code{Symbol} instance that is equal
