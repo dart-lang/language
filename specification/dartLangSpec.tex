@@ -8969,16 +8969,15 @@ denotes a name that would be either
 a valid declaration name or a valid library name in a Dart program.
 
 \begin{grammar}
-<symbolLiteral> ::= `#' (<operator> | <symbolIdentifier> (`.' <symbolIdentifier>)*)
-
-<symbolIdentifier> ::= <identifier> | <reservedWord>
+<symbolLiteral> ::=
+  `#' (<operator> | <identifier> (`.' <identifier>)* | \VOID{})
 \end{grammar}
 
 \LMHash{}%
-A symbol literal \code{\#\id} where \id{} is a symbol identifier
+A symbol literal \code{\#\id} where \id{} is an identifier
 that does not begin with an underscore (`\code{\_}'),
 evaluates to an instance of \code{Symbol}
-representing the symbol identifier \id.
+representing the identifier \id.
 All occurrences of \code{\#\id} evaluate to the same instance
 \commentary{(symbol instances are canonicalized)},
 and no other symbol literals evaluate to that \code{Symbol} instance
@@ -8987,9 +8986,9 @@ or to a \code{Symbol} instance that is equal
 
 \LMHash{}%
 A symbol literal \code{\#$\id.\id_2\ldots\id_n$}
-where $\id{} \ldots \id_n$ are symbol identifiers
+where $\id{} \ldots \id_n$ are identifiers
 evaluates to an instance of \code{Symbol}
-representing that particular sequence of symbol identifiers.
+representing that particular sequence of identifiers.
 All occurrences of \code{\#$\id.\id_2\ldots\id_n$}
 with the same sequence of identifiers
 evaluate to the same instance,
