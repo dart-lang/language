@@ -8966,34 +8966,28 @@ the concatenation of the strings $s_0$, $r_1$, \ldots, $r_n$, and $s_n$.
 \LMHash{}%
 A \IndexCustom{symbol literal}{literal!symbol}
 denotes a name that would be either
-a valid declaration name or a valid library name in a Dart program.
+a valid declaration name, a valid library name, or \VOID.
 
 \begin{grammar}
 <symbolLiteral> ::=
-  `#' (<operator> | <identifier> (`.' <identifier>)* | \VOID{})
+  `#' (<identifier> (`.' <identifier>)* | <operator> | \VOID)
 \end{grammar}
 
 \LMHash{}%
-A symbol literal \code{\#\id} where \id{} is an identifier
-that does not begin with an underscore (`\code{\_}') or \VOID{}
-evaluates to an instance of \code{Symbol}
-representing the identifier \id respectively \VOID.
-All occurrences of such symbol literals evaluate to the same instance
-\commentary{(symbol instances are canonicalized)},
-and no other symbol literals evaluate to that \code{Symbol} instance
-or to a \code{Symbol} instance that is equal
-(according to the \lit{==} operator \ref{equality}) to that instance.
+The static type of a symbol literal is \code{Symbol}.
 
 \LMHash{}%
-A symbol literal \code{\#$\id.\id_2\ldots\id_n$}
-where $\id{} \ldots \id_n$ are identifiers
+Let \id{} be an identifier that does not begin with an underscore
+(`\code{\_}').
+The symbol literal \code{\#\id}
+evaluates to an instance of \code{Symbol}
+representing the identifier \id.
+
+\LMHash{}%
+A symbol literal \code{\#$\id_1$.$\id_2$.$\cdots$.$\id_n$}
+where \List{\id}{1}{n} are identifiers
 evaluates to an instance of \code{Symbol}
 representing that particular sequence of identifiers.
-All occurrences of \code{\#$\id.\id_2\ldots\id_n$}
-with the same sequence of identifiers
-evaluate to the same instance,
-and no other symbol literals evaluate to that \code{Symbol} instance
-or to a \code{Symbol} instance that is \lit{==} to that instance.
 \commentary{%
 This kind of symbol literal denotes the name of a library declaration,
 as specified in a \synt{libraryName}.
@@ -9002,20 +8996,39 @@ if some of its identifiers begin with an underscore.%
 }
 
 \LMHash{}%
-A symbol literal \code{\#\metavar{operator}} evaluates to
-an instance of \code{Symbol}
+A symbol literal \code{\#\metavar{op}}
+where \metavar{op} is derived from \synt{operator}
+evaluates to an instance of \code{Symbol}
 representing that particular operator name.
-All occurrences of \code{\#\metavar{operator}} evaluate to the same instance,
-and no other symbol literals evaluate to that \code{Symbol} instance
-or to a \code{Symbol} instance that is \lit{==} to that instance.
 
 \LMHash{}%
-A symbol literal \code{\#\_\id}, evaluates to an instance of \code{Symbol}
+The symbol literal \code{\#void}
+evaluates to an instance of \code{Symbol}
+representing the reserved word \VOID.
+
+\LMHash{}%
+Assume that the term $t$ is an identifier \id{}
+that does not start with an underscore,
+that $t$ is \VOID,
+that $t$ is a period separated sequence of identifiers
+\code{$id_1$.$id_2$.$\cdots$.$id_n$},
+or that $t$ is derived from \synt{operator}.
+Any two occurrences of \code{\#t} evaluate to the same object
+(\commentary{that is, symbol instances are canonicalized}),
+and no other symbol literals evaluate to that object,
+nor to a \code{Symbol} instance that is equal to that object
+according to the \lit{==} operator
+(\ref{equality}).
+
+\LMHash{}%
+A symbol literal \code{\#\_\id} where \id{} is an identifier
+evaluates to an instance of \code{Symbol}
 representing the private identifier \code{\_\id} of the containing library.
 All occurrences of \code{\#\_\id} \emph{in the same library} evaluate to
-the same instance,
-and no other symbol literals evaluate to that \code{Symbol} instance
-or to a \code{Symbol} instance that is \lit{==} to that instance.
+the same object,
+and no other symbol literals evaluate to the same object,
+nor to a \code{Symbol} instance that is equal to that object
+according to the \lit{==} operator.
 
 \LMHash{}%
 The objects created by symbol literals all override
@@ -9048,9 +9061,6 @@ reflective code easier to read and write.
 The fact that symbols are easy to type and can often act as
 convenient substitutes for enums are secondary benefits.%
 }
-
-\LMHash{}%
-The static type of a symbol literal is \code{Symbol}.
 
 
 \subsection{Collection Literals}
