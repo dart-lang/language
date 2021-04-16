@@ -19311,8 +19311,8 @@ but it is the least upper bound of all function types.%
 <normalParameterTypes> ::= \gnewline{}
   <normalParameterType> (`,' <normalParameterType>)*
 
-<normalParameterType> ::= <typedIdentifier>
-  \alt <type>
+<normalParameterType> ::= <metadata> <typedIdentifier>
+  \alt <metadata> <type>
 
 <optionalParameterTypes> ::= <optionalPositionalParameterTypes>
   \alt <namedParameterTypes>
@@ -19323,7 +19323,7 @@ but it is the least upper bound of all function types.%
   `\{' <namedParameterType> (`,' <namedParameterType>)* `,'? `\}'
 
 <namedParameterType> ::=
-  \REQUIRED? <typedIdentifier>
+  <metadata> \REQUIRED? <typedIdentifier>
 
 <typedIdentifier> ::= <type> <identifier>
 \end{grammar}
