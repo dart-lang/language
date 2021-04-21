@@ -18209,7 +18209,8 @@ effectively enforcing a global namespace.%
 \LMHash{}%
 A library may optionally begin with a \Index{script tag}.
 Script tags are intended for use with scripts (\ref{scripts}).
-A script tag can be used to identify the interpreter of the script to whatever computing environment the script is embedded in.
+A script tag can be used to identify the interpreter of the script to
+whatever computing environment the script is embedded in.
 The script tag must appear before any whitespace or comments.
 A script tag begins with \lit{\#!} and ends at the end of the line.
 Any characters that follow \lit{\#!} in the script tag are ignored by
@@ -18217,8 +18218,10 @@ the Dart implementation.
 
 \LMHash{}%
 Libraries are units of privacy.
-A private declaration declared within a library $L$ can only be accessed by code within $L$.
-Any attempt to access a private member declaration from outside $L$ will cause a method, getter or setter lookup failure.
+A private declaration declared within a library $L$
+can only be accessed by code within $L$.
+Any attempt to access a private member declaration from outside $L$
+will cause a method, getter or setter lookup failure.
 
 \commentary{%
 Since top level privates are not imported,
@@ -18227,13 +18230,19 @@ using the top level privates of another library is never possible.%
 
 \LMHash{}%
 The \Index{public namespace} of library $L$ is the namespace that maps
-the simple name of each public top-level member declaration $m$ of $L$ to $m$.
+the name of each public top-level member declaration $m$ of $L$ to $m$.
 The \Index{local namespace} of library $L$ is the namespace that maps
 the names introduced by each top-level declaration of $L$
 to the corresponding declaration.
 The \Index{library scope} of library $L$ is the outermost scope in $L$,
 and its namespace is the library namespace of $L$
 (\ref{theImportedNamespace}).
+
+\LMHash{}%
+% A setter can not be paired with a function, class, etc.
+It is a compile-time error if the local namespace of library $L$
+has two declarations with the same basename,
+except when they are a getter and a setter.
 
 
 \subsection{Imports}
