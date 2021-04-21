@@ -26,9 +26,11 @@
 %
 % Significant changes to the specification.
 %
-% 2.13 (there was no 2.12)
+% 2.12 - 2.13 (there was no 2.11)
 % - Revert the CL where certain null safety features were removed (to enable
 %   publishing a stable version of the specification).
+% - Add rule that a top-level pair of declarations with the same basename
+%   is a compile-time error except when it is a getter/setter pair.
 %
 % 2.8 - 2.10
 % - Change several warnings to compile-time errors, matching the actual
@@ -4541,7 +4543,9 @@ It is a compile-time error if $C$
 declares a static member with basename $n$ and
 the interface of $C$ has an instance member with basename $n$.
 It is a compile-time error if the interface of $C$
-has a method named $n$ and a setter with basename $n$.
+has an instance method named $n$ and an instance setter with basename $n$.
+It is a compile-time error if $C$ declares a static method named $n$
+and a static setter with basename $n$.
 
 \LMHash{}%
 When \DefineSymbol{C} is a mixin or an extension,
@@ -18232,7 +18236,8 @@ effectively enforcing a global namespace.%
 \LMHash{}%
 A library may optionally begin with a \Index{script tag}.
 Script tags are intended for use with scripts (\ref{scripts}).
-A script tag can be used to identify the interpreter of the script to whatever computing environment the script is embedded in.
+A script tag can be used to identify the interpreter of the script to
+whatever computing environment the script is embedded in.
 The script tag must appear before any whitespace or comments.
 A script tag begins with \lit{\#!} and ends at the end of the line.
 Any characters that follow \lit{\#!} in the script tag are ignored by
@@ -18240,8 +18245,8 @@ the Dart implementation.
 
 \LMHash{}%
 Libraries are units of privacy.
-A private declaration declared within a library $L$ can only be accessed by code within $L$.
-Any attempt to access a private member declaration from outside $L$ will cause a method, getter or setter lookup failure.
+A private declaration declared within a library $L$
+can only be accessed by code within $L$.
 
 \commentary{%
 Since top level privates are not imported,
@@ -18250,13 +18255,26 @@ using the top level privates of another library is never possible.%
 
 \LMHash{}%
 The \Index{public namespace} of library $L$ is the namespace that maps
-the simple name of each public top-level member declaration $m$ of $L$ to $m$.
+the name of each public top-level member declaration $m$ of $L$ to $m$.
 The \Index{local namespace} of library $L$ is the namespace that maps
 the names introduced by each top-level declaration of $L$
 to the corresponding declaration.
 The \Index{library scope} of library $L$ is the outermost scope in $L$,
 and its namespace is the library namespace of $L$
 (\ref{theImportedNamespace}).
+
+\LMHash{}%
+% A setter can not be paired with a function, class, etc.
+It is a compile-time error if the local namespace of library $L$
+has two declarations with the same basename,
+except when they are a getter and a setter.
+
+\commentary{%
+Two distinct names $n_1$ and $n_2$ can only have the same basename
+when they are of the form \id{} and \code{\id=},
+so this kind of conflict \emph{always} involves a setter.
+But the other declaration could be a function, a class, etc.%
+}
 
 
 \subsection{Imports}
@@ -18795,7 +18813,7 @@ In the second step we compute the exported namespace of $L$.
 Let \NamespaceName{\metavar{merged}} be the result of applying
 conflict merging
 (\ref{conflictMergingOfNamespaces})
-to \List{\metavar{NS}}{\metavar{one},1}{\metavar{one},m}.
+to \List{\metavar{NS}}{\metavar{exported},1}{\metavar{exported},m}.
 A compile-time error occurs if any name in
 \NamespaceName{\metavar{merged}}
 is conflicted
