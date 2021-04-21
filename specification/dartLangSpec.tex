@@ -18222,8 +18222,6 @@ the Dart implementation.
 Libraries are units of privacy.
 A private declaration declared within a library $L$
 can only be accessed by code within $L$.
-Any attempt to access a private member declaration from outside $L$
-will cause a method, getter or setter lookup failure.
 
 \commentary{%
 Since top level privates are not imported,
@@ -18245,6 +18243,13 @@ and its namespace is the library namespace of $L$
 It is a compile-time error if the local namespace of library $L$
 has two declarations with the same basename,
 except when they are a getter and a setter.
+
+\commentary{%
+Two distinct names $n_1$ and $n_2$ can only have the same basename
+when they are of the form \id{} and \code{\id=},
+so this kind of conflict \emph{always} involves a setter.
+But the other declaration could be a function, a class, etc.%
+}
 
 
 \subsection{Imports}
