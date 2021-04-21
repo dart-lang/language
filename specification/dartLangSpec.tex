@@ -4541,7 +4541,9 @@ It is a compile-time error if $C$
 declares a static member with basename $n$ and
 the interface of $C$ has an instance member with basename $n$.
 It is a compile-time error if the interface of $C$
-has a method named $n$ and a setter with basename $n$.
+has an instance method named $n$ and an instance setter with basename $n$.
+It is a compile-time error if $C$ declares a static method named $n$
+and a static setter with basename $n$.
 
 \LMHash{}%
 When \DefineSymbol{C} is a mixin or an extension,
