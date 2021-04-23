@@ -1771,7 +1771,7 @@ It is a compile-time error to preface a function declaration
 with the built-in identifier \STATIC.
 
 \LMHash{}%
-When we say that a function $f_1$ \Index{forwards} to another function $f_2$, 
+When we say that a function $f_1$ \Index{forwards} to another function $f_2$,
 we mean that invoking $f_1$ causes $f_2$ to be executed
 with the same arguments and/or receiver as $f_1$,
 and returns the result of executing $f_2$ to the caller of $f_1$,
@@ -2011,7 +2011,7 @@ they would be considered private and inaccessible to
 callers from outside the library where it was defined.
 If a method outside the library overrode a method with a private optional name,
 it would not be a subtype of the original method.
-The static checker would of course flag such situations, 
+The static checker would of course flag such situations,
 but the consequence would be that adding a private named formal would break
 clients outside the library in a way they could not easily correct.%
 }
@@ -3513,7 +3513,7 @@ both the formal parameter scope and the formal parameter initializer scope.
 \commentary{%
 This means that formal parameters, including initializing formals,
 must have distinct names, and that initializing formals
-are in scope for the initializer list, 
+are in scope for the initializer list,
 but they are not in scope for the body of the constructor.
 When a formal parameter introduces a local variable into two scopes,
 it is still one variable and hence one storage location.
@@ -5318,7 +5318,7 @@ a compile-time error.
 % to be compile-time errors.
 
 \commentary{%
-It is an error, for example, if $M$ contains a member declaration $d$ 
+It is an error, for example, if $M$ contains a member declaration $d$
 which overrides a member signature $m$ in the interface of $S$,
 but which is not a correct override of $m$
 (\ref{correctMemberOverrides}).%
@@ -11363,7 +11363,7 @@ We do not support self-types at this point.%
 
 \LMHash{}%
 It is a compile-time error if \THIS{} appears, implicitly or explicitly,
-in a top-level function or variable initializer, in a factory constructor, 
+in a top-level function or variable initializer, in a factory constructor,
 or in a static method or variable initializer,
 or in the initializer of an instance variable.
 
@@ -13899,7 +13899,7 @@ Messages are the sole means of communication among isolates.
 Messages are sent by invoking specific methods in the Dart libraries; there is no specific syntax for sending a message.
 
 \commentary{%
-In other words, the methods supporting sending messages 
+In other words, the methods supporting sending messages
 embody primitives of Dart that are not accessible to ordinary code,
 much like the methods that spawn isolates.%
 }
@@ -17149,13 +17149,13 @@ The reason for this equivalence is to catch errors such as%
 
 \rationale{%
 Under reasonable scope rules such code is problematic.
-If we assume that \code{v} is declared 
-in the scope of the method \code{main()}, 
-then when \code{somePredicate} is false, 
+If we assume that \code{v} is declared
+in the scope of the method \code{main()},
+then when \code{somePredicate} is false,
 \code{v} will be uninitialized when accessed.
-The cleanest approach would be to require a block following the test, 
+The cleanest approach would be to require a block following the test,
 rather than an arbitrary statement.
-However, this goes against long standing custom, 
+However, this goes against long standing custom,
 undermining Dart's goal of familiarity.
 Instead, we choose to insert a block, introducing a scope,
 around the statement following the predicate
@@ -17440,7 +17440,7 @@ It is a compile-time error if a traditional for loop (\ref{forLoop}) is
 prefixed by the \AWAIT{} keyword.
 
 \rationale{%
-An asynchronous loop would make no sense within a synchronous function, 
+An asynchronous loop would make no sense within a synchronous function,
 for the same reasons that an await expression makes no sense
 in a synchronous function.%
 }
@@ -19927,7 +19927,7 @@ in a type annotation, type test, type cast or as a type parameter.
 However, all other compile-time errors must be issued
 under the assumption that all deferred libraries have successfully been loaded.
 
-% Now, when passed to a generic, p.T also has to be treated as dynamic - 
+% Now, when passed to a generic, p.T also has to be treated as dynamic -
 % otherwise we have to fail immediately. Where do we say that? And how does
 % this fit with idea that as a type object it fails? Should we say that the
 % accessor on p returns dynamic instead of failing? Do we distinguish its use
