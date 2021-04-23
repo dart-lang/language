@@ -1831,12 +1831,13 @@ This means that formal type parameters are in scope
 in the bounds of parameter declarations,
 allowing for so-called F-bounded type parameters like
 
-\code{class C<X \EXTENDS{} Comparable<X>{}> \{ \ldots{} \}},
+\noindent
+\code{class C<X \EXTENDS{} Comparable<X>{}> \{ \ldots\ \}},
 
 \noindent
 and the formal type parameters are in scope for each other,
 allowing dependencies like
-\code{class D<X \EXTENDS{} Y, Y> \{ \ldots{} \}}.%
+\code{class D<X \EXTENDS{} Y, Y> \{ \ldots\ \}}.%
 }
 
 \LMHash{}%
@@ -3808,6 +3809,7 @@ However, they may also be determined by a reflective call.%
 \LMHash{}%
 If $k$ is redirecting then its redirect clause has the form
 
+\noindent
 \code{\THIS.$g$($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
 
 where \DefineSymbol{g} identifies another generative constructor
@@ -11386,12 +11388,16 @@ the factory constructor invocation.%
 It is a compile-time error if
 the type $T$ in an instance creation expression of one of the forms
 
+\noindent
 \code{\NEW{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
 
+\noindent
 \code{\NEW{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
 
+\noindent
 \code{\CONST{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
 
+\noindent
 \code{\CONST{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 
 \noindent
@@ -11411,9 +11417,11 @@ The \Index{new expression} invokes a constructor (\ref{constructors}).
 \LMHash{}%
 Let $e$ be a new expression of the form
 
+\noindent
 \code{\NEW{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 or the form
 
+\noindent
 \code{\NEW{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \LMHash{}%
@@ -11500,11 +11508,13 @@ Evaluation of $e$ proceeds as follows:
 \LMHash{}%
 First, the argument part
 
+\noindent
 \code{<$U_1, \ldots,\ U_m$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 
 \noindent
 is evaluated, yielding the evaluated actual argument part
 
+\noindent
 \code{<$u_1, \ldots,\ u_m$>($o_1, \ldots,\ o_n,\ x_{n+1}$: $o_{n+1},\ \ldots,\ x_{n+k}$: $o_{n+k}$)}.
 
 \noindent
@@ -11603,9 +11613,11 @@ A \Index{constant object expression} invokes a constant constructor
 \LMHash{}%
 Let $e$ be a constant object expression of the form
 
+\noindent
 \code{\CONST{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 or the form
 
+\noindent
 \code{\CONST{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \LMHash{}%
@@ -12055,11 +12067,13 @@ The \Index{static argument list type} of $L$ is then
 \LMHash{}%
 Let $\argumentList{S}$ be the static argument list type
 
+\noindent
 \code{($S_1 \ldots,\ S_m,\ S_{m+1}\ y_{m+1} \ldots,\ S_{m+p}\ y_{m+p}$)}
 
 \noindent
 and let $\parameterList{P}$ be the formal parameter list
 
+\noindent
 \code{($T_1\ x_1 \ldots,\ T_n\ x_n,\ $[$T_{n+1}\ x_{n+1} = d_1, \ldots,\ T_{n+k}\ x_{n+k} = d_k$])}
 
 \noindent
@@ -12079,11 +12093,13 @@ assignable to $T_i$ for all $i \in 1 .. m$.
 \LMHash{}%
 Let $\argumentList{S}$ be the static argument list type
 
+\noindent
 \code{($S_1 \ldots,\ S_m,\ S_{m+1}\ y_{m+1} \ldots,\ S_{m+p}\ y_{m+p}$)}
 
 \noindent
 and let $\parameterList{P}$ be the formal parameter list
 
+\noindent
 \code{($T_1\ x_1 \ldots,\ T_n\ x_n,\ $\{$T_{n+1}\ x_{n+1} = d_1, \ldots,\ T_{n+k}\ x_{n+k} = d_k$\})}
 
 \noindent
@@ -12160,8 +12176,8 @@ and have parentheses at the end, such that the ambiguity arises.%
 \LMHash{}%
 Evaluation of an actual argument part of the form
 
+\noindent
 \code{<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_m,\ q_1$: $a_{m+1}, \ldots,\ q_l$: $a_{m+l}$)}
-
 proceeds as follows:
 
 \LMHash{}%
@@ -12415,11 +12431,13 @@ and let $p_{h+1}, \ldots, p_{h+k}$ be the optional parameters declared by $f$.
 \LMHash{}%
 An evaluated actual argument part
 
+\noindent
 \code{<$t_1, \ldots,\ t_r$>($o_1, \ldots,\ o_m,\ q_1$: $o_{m+1},\ \ldots,\ q_l$: $o_{m+l}$)}
 
 \noindent
 derived from an actual argument part of the form
 
+\noindent
 \code{<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_m,\ q_1$: $a_{m+1}, \ldots,\ q_l$: $a_{m+l}$)}
 
 \noindent
@@ -13634,6 +13652,7 @@ If the getter lookup succeeded then invoke the getter $o.m$
 and let $v_g$ be the returned object.
 Then the value of $i$ is the value of
 
+\noindent
 \code{$v_g$<$A_1, \ldots,\ A_r$>($a_1,\ \ldots,\ a_n,\ x_{n+1}$: $a_{n+1},\ \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \LMHash{}%
@@ -13786,6 +13805,7 @@ a syntactically correct expression for all $j$.%
 \LMHash{}%
 A super method invocation $i$ has the form
 
+\noindent
 \code{\SUPER.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \commentary{%
@@ -21907,34 +21927,42 @@ Otherwise:
 \begin{itemize}
 \item If
 
+\noindent
 \code{$F = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($T_1, \ldots,\ T_r,\ $[$T_{r+1}, \ldots,\ T_n$]) $ \rightarrow T_0$} and
 
+\noindent
 \code{$G = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($S_1, \ldots,\ S_r,\ $[$S_{r+1}, \ldots,\ S_k$]) $ \rightarrow S_0$}
 
 \noindent
 where $k \le n$ then the least upper bound of $F$ and $G$ is
 
+\noindent
 \code{<$X_1\ B_1, \ldots,\ X_s\ B_s$>($L_1, \ldots,\ L_r,\ $[$L_{r+1}, \ldots,\ L_k$]) $ \rightarrow L_0$}
 
 \noindent
 where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. k$.
 \item If
 
+\noindent
 \code{$F = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($T_1, \ldots,\ T_r,\ $[$T_{r+1}, \ldots,\ T_n$]) $ \rightarrow T_0$},
 
+\noindent
 \code{$G = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($S_1, \ldots,\ S_r,\ $\{ \ldots{} \}) $ \rightarrow S_0$}
 
 \noindent
 then the least upper bound of $F$ and $G$ is
 
+\noindent
 \code{<$X_1\ B_1, \ldots,\ X_s\ B_s$>($L_1, \ldots,\ L_r$) $ \rightarrow L_0$}
 
 \noindent
 where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. r$.
 \item If
 
+\noindent
 \code{$F = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($T_1, \ldots,\ T_r,\ $\{$T_{r+1}\ p_{r+1}, \ldots,\ T_f\ p_f$\}) $ \rightarrow T_0$},
 
+\noindent
 \code{$G = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($S_1, \ldots,\ S_r,\ $\{$S_{r+1}\ q_{r+1}, \ldots,\ S_g\ q_g$\}) $ \rightarrow S_0$}
 
 then let
@@ -21943,6 +21971,7 @@ and let $X_j$ be the least upper bound of the types of $x_j$ in $F$ and
 $G, j \in m .. n$.
 Then the least upper bound of $F$ and $G$ is
 
+\noindent
 \code{<$X_1\ B_1, \ldots,\ X_s\ B_s$>($L_1, \ldots,\ L_r,\ $\{$X_m\ x_m, \ldots,\ X_n\ x_n$\}) $ \rightarrow L_0$}
 
 where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. r$
