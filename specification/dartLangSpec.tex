@@ -341,15 +341,24 @@
 \LMLabel{ecmaScope}
 
 \LMHash{}%
-This Ecma standard specifies the syntax and semantics of the Dart programming language.
-It does not specify the APIs of the Dart libraries except where those library elements are essential to the correct functioning of the language itself (e.g., the existence of class \code{Object} with methods such as \code{noSuchMethod}, \code{runtimeType}).
+This Ecma standard specifies the syntax and semantics of
+the Dart programming language.
+It does not specify the APIs of the Dart libraries
+except where those library elements are essential to
+the correct functioning of the language itself
+(e.g., the existence of class \code{Object} with methods
+such as \code{noSuchMethod}, \code{runtimeType}).
 
 
 \section{Conformance}
 \LMLabel{ecmaConformance}
 
 \LMHash{}%
-A conforming implementation of the Dart programming language must provide and support all the APIs (libraries, types, functions, getters, setters, whether top-level, static, instance or local) mandated in this specification.
+A conforming implementation of the Dart programming language
+must provide and support all the APIs
+(libraries, types, functions, getters, setters,
+whether top-level, static, instance or local)
+mandated in this specification.
 
 \LMHash{}%
 A conforming implementation is permitted to provide additional APIs,
@@ -361,9 +370,11 @@ except for experimental features.
 \LMLabel{ecmaNormativeReferences}
 
 \LMHash{}%
-The following referenced documents are indispensable for the application of this document.
+The following referenced documents are indispensable for
+the application of this document.
 For dated references, only the edition cited applies.
-For undated references, the latest edition of the referenced document (including any amendments) applies.
+For undated references, the latest edition of the referenced document
+(including any amendments) applies.
 
 \begin{enumerate}
 \item
@@ -377,7 +388,8 @@ For undated references, the latest edition of the referenced document (including
 \LMLabel{ecmaTermsAndDefinitions}
 
 \LMHash{}%
-Terms and definitions used in this specification are given in the body of the specification proper.
+Terms and definitions used in this specification are given in
+the body of the specification proper.
 % End Ecma Boilerplate
 
 
@@ -397,7 +409,13 @@ Distinguishing normative from non-normative helps clarify
 what part of the text is binding and what part is merely expository.%
 }
 \item[Commentary]
-  Comments such as ``\commentary{The careful reader will have noticed that the name Dart has four characters}'' serve to illustrate or clarify the specification, but are redundant with the normative text.
+  Comments such as
+  ``\commentary{%
+    The careful reader will have noticed
+    that the name Dart has four characters%
+  }''
+  serve to illustrate or clarify the specification,
+  but are redundant with the normative text.
 \commentary{%
 The difference between commentary and rationale can be subtle.%
 }
@@ -455,12 +473,16 @@ An example would be:%
 \LMHash{}%
 Both syntactic and lexical productions are represented this way.
 Lexical productions are distinguished by their names.
-The names of lexical productions consist exclusively of upper case characters and underscores.
-As always, within grammatical productions, whitespace and comments between elements of the production are implicitly ignored unless stated otherwise.
+The names of lexical productions consist exclusively of
+upper case characters and underscores.
+As always, within grammatical productions,
+whitespace and comments between elements of the production
+are implicitly ignored unless stated otherwise.
 Punctuation tokens appear in quotes.
 
 \LMHash{}%
-Productions are embedded, as much as possible, in the discussion of the constructs they represent.
+Productions are embedded, as much as possible,
+in the discussion of the constructs they represent.
 
 \LMHash{}%
 A \Index{term} is a syntactic construct.
@@ -493,9 +515,11 @@ in which each occurrence of $y_i, 1 \le i \le n$ has been replaced by $x_i$.
 \LMHash{}%
 This operation is also known as \Index{substitution},
 and it is the variant that avoids capture.
-That is, when $E$ contains a construct that introduces $y_i$ into a nested scope for some $i \in 1 .. n$,
+That is, when $E$ contains a construct that introduces $y_i$ into
+a nested scope for some $i \in 1 .. n$,
 the substitution will not replace $y_i$ in that scope.
-Conversely, if such a replacement would put an identifier \id{} (a subterm of $x_i$) into a scope where \id{} is declared,
+Conversely, if such a replacement would put an identifier \id{}
+(a subterm of $x_i$) into a scope where \id{} is declared,
 the relevant declarations in $E$ are systematically renamed to fresh names.
 
 \commentary{%
@@ -515,7 +539,8 @@ whose elements are the $o_i$
 \BlindDefineSymbol{x, op, y}%
 The specifications of operators often involve statements such as
 \code{$x$ \metavar{op} $y$} is equivalent to the method invocation
-\IndexCustom{\rm\code{$x$.\metavar{op}($y$)}}{x.op(y)@\code{$x$.\metavar{op}($y$)}}.
+\IndexCustom{\rm\code{$x$.\metavar{op}($y$)}}{%
+  x.op(y)@\code{$x$.\metavar{op}($y$)}}.
 Such specifications should be understood as a shorthand for:
 \begin{itemize}
 \item
@@ -718,9 +743,13 @@ when there is more than one marker for a single line.%
 \LMLabel{overview}
 
 \LMHash{}%
-Dart is a class-based, single-inheritance, pure object-oriented programming language.
+Dart is a class-based, single-inheritance, pure
+object-oriented programming language.
 Dart is optionally typed (\ref{types}) and supports reified generics.
-The run-time type of every object is represented as an instance of class \code{Type} which can be obtained by calling the getter \code{runtimeType} declared in class \code{Object}, the root of the Dart class hierarchy.
+The run-time type of every object is represented as
+an instance of class \code{Type} which can be obtained
+by calling the getter \code{runtimeType} declared in class \code{Object},
+the root of the Dart class hierarchy.
 
 \LMHash{}%
 Dart programs may be statically checked.
@@ -1181,7 +1210,8 @@ Variables are storage locations in memory.
 
 <initializedIdentifier> ::= <identifier> (`=' <expression>)?
 
-<initializedIdentifierList> ::= <initializedIdentifier> (`,' <initializedIdentifier>)*
+<initializedIdentifierList> ::=
+  <initializedIdentifier> (`,' <initializedIdentifier>)*
 \end{grammar}
 
 \LMHash{}%
@@ -1244,14 +1274,19 @@ A \IndexCustom{static variable}{variable!static}
 is a variable that is not associated with a particular instance,
 but rather with an entire library or class.
 Static variables include library variables and class variables.
-Class variables are variables whose declaration is immediately nested inside a class declaration and includes the modifier \STATIC{}.
+Class variables are variables whose declaration is
+immediately nested inside a class declaration and
+includes the modifier \STATIC{}.
 A library variable is implicitly static.
-It is a compile-time error to preface a top-level variable declaration with the built-in identifier (\ref{identifierReference}) \STATIC{}.
+It is a compile-time error to preface a top-level variable declaration
+with the built-in identifier (\ref{identifierReference}) \STATIC.
 
 \LMHash{}%
 A \IndexCustom{constant variable}{variable!constant}
 is a variable whose declaration includes the modifier \CONST{}.
-A constant variable must be initialized to a constant expression (\ref{constants}) or a compile-time error occurs.
+A constant variable must be initialized to a constant expression
+(\ref{constants})
+or a compile-time error occurs.
 
 \commentary{%
 An initializing expression of a constant variable occurs in a constant context
@@ -1265,7 +1300,7 @@ is a variable whose binding is fixed upon initialization;
 a final variable $v$ will always refer to the same object
 after $v$ has been initialized.
 A variable is final if{}f its declaration includes
-the modifier \FINAL{} or the modifier \CONST{}.
+the modifier \FINAL{} or the modifier \CONST.
 
 \LMHash{}%
 A \IndexCustom{mutable variable}{variable!mutable}
@@ -1509,7 +1544,8 @@ Functions abstract over executable actions.
 \end{grammar}
 
 \LMHash{}%
-Functions can be introduced by function declarations (\ref{functionDeclarations}),
+Functions can be introduced by function declarations
+(\ref{functionDeclarations}),
 method declarations (\ref{instanceMethods}, \ref{staticMethods}),
 getter declarations (\ref{getters}),
 setter declarations (\ref{setters}),
@@ -1597,7 +1633,8 @@ OR
   It is a compile-time error if one of the following conditions hold:
   \begin{itemize}
   \item The function is synchronous, $T$ is not \VOID{},
-    and it would have been a compile-time error to declare the function with the body
+    and it would have been a compile-time error
+    to declare the function with the body
     \code{\{ \RETURN{} $e$; \}}
     rather than \code{=> $e$}.
     \commentary{%
@@ -1952,14 +1989,18 @@ The form \syntax{<normalFormalParameter> `:' <expression>}
 is equivalent to the form
 \syntax{<normalFormalParameter> `=' <expression>}.
 The colon-syntax is included only for backwards compatibility.
-It is deprecated and will be removed in a later version of the language specification.
+It is deprecated and will be removed in
+a later version of the language specification.
 
 \LMHash{}%
-It is a compile-time error if the default value of an optional parameter is not a constant expression (\ref{constants}).
-If no default is explicitly specified for an optional parameter an implicit default of \NULL{} is provided.
+It is a compile-time error if the default value of an optional parameter is
+not a constant expression (\ref{constants}).
+If no default is explicitly specified for an optional parameter
+an implicit default of \NULL{} is provided.
 
 \LMHash{}%
-It is a compile-time error if the name of a named optional parameter begins with an `_' character.
+It is a compile-time error if the name of a named optional parameter
+begins with an `_' character.
 
 \rationale{%
 The need for this restriction is a direct consequence of
@@ -2330,7 +2371,8 @@ sections \ref{classes} and \ref{librariesAndScripts} below.
 \LMHash{}%
 A \Index{class} defines the form and behavior of a set of objects which are its
 \IndexCustom{instances}{instance}.
-Classes may be defined by class declarations as described below, or via mixin applications (\ref{mixinApplication}).
+Classes may be defined by class declarations as described below,
+or via mixin applications (\ref{mixinApplication}).
 
 \begin{grammar}
 <classDeclaration> ::=
@@ -2376,7 +2418,8 @@ Classes may be defined by class declarations as described below, or via mixin ap
 \end{grammar}
 
 \LMHash{}%
-It is possible to include the modifier \COVARIANT{} in some forms of declarations.
+It is possible to include the modifier \COVARIANT{}
+in some forms of declarations.
 The effect of doing this is described elsewhere
 (\ref{covariantParameters}).
 
@@ -2524,8 +2567,8 @@ The rules of inheritance determine what members a class has.%
 \\
 \CLASS{} B \EXTENDS{} A \{
   int i = 1; // \comment{getter i and setter i= override versions from A}
-  \STATIC{} j; // \comment{compile-time error: static getter \& setter conflict with}
-  // \comment{instance getter \& setter}
+  \STATIC{} j; // \comment{compile-time error: static getter \& setter conflict}
+  // \comment{with instance getter \& setter}
 \\
   // \comment{compile-time error: static method conflicts with instance method}
   \STATIC{} f(x) => 3;
@@ -2642,7 +2685,9 @@ and operator \lit{[]=} which is an instance setter.
 \end{grammar}
 
 \LMHash{}%
-An operator declaration is identified using the built-in identifier (\ref{identifierReference}) \OPERATOR{}.
+An operator declaration is identified using the built-in identifier
+(\ref{identifierReference})
+\OPERATOR.
 
 \LMHash{}%
 The following names are allowed for user-defined operators:
@@ -2670,7 +2715,8 @@ The following names are allowed for user-defined operators:
 \LMHash{}%
 It is a compile-time error if the arity of the user-declared operator
 \lit{[]=} is not 2.
-It is a compile-time error if the arity of a user-declared operator with one of the names:
+It is a compile-time error if the arity of a user-declared operator
+with one of the names:
 \lit{<},
 \lit{>},
 \lit{<=},
@@ -3116,7 +3162,8 @@ has a primitive operator \lit{==}.
 \LMLabel{getters}
 
 \LMHash{}%
-Getters are functions (\ref{functions}) that are used to retrieve the values of object properties.
+Getters are functions (\ref{functions}) that are used
+to retrieve the values of object properties.
 
 \begin{grammar}
 <getterSignature> ::= <type>? \GET{} <identifier>
@@ -3126,7 +3173,8 @@ Getters are functions (\ref{functions}) that are used to retrieve the values of 
 If no return type is specified, the return type of the getter is \DYNAMIC{}.
 
 \LMHash{}%
-A getter definition that is prefixed with the \STATIC{} modifier defines a static getter.
+A getter definition that is prefixed with the \STATIC{} modifier defines
+a static getter.
 Otherwise, it defines an instance getter.
 The name of the getter is given by the identifier in the definition.
 
@@ -3153,7 +3201,8 @@ are given elsewhere
 \LMLabel{setters}
 
 \LMHash{}%
-Setters are functions (\ref{functions}) that are used to set the values of object properties.
+Setters are functions (\ref{functions}) that are used to set
+the values of object properties.
 
 \begin{grammar}
 <setterSignature> ::= <type>? \SET{} <identifier> <formalParameterList>
@@ -3165,9 +3214,11 @@ If no return type is specified, the return type of the setter is \VOID{}
 }
 
 \LMHash{}%
-A setter definition that is prefixed with the \STATIC{} modifier defines a static setter.
+A setter definition that is prefixed with the \STATIC{} modifier defines
+a static setter.
 Otherwise, it defines an instance setter.
-The name of a setter is obtained by appending the string `=' to the identifier given in its signature.
+The name of a setter is obtained by appending the string `=' to
+the identifier given in its signature.
 
 \commentary{%
 Hence, a setter name can never conflict with, override or be overridden by
@@ -3215,7 +3266,8 @@ An \IndexCustom{abstract method}{method!abstract}
 (respectively,
 \IndexCustom{abstract getter}{getter!abstract} or
 \IndexCustom{abstract setter}{setter!abstract})
-is an instance method, getter or setter that is not declared \EXTERNAL{} and does not provide an implementation.
+is an instance method, getter or setter that is not declared \EXTERNAL{}
+and does not provide an implementation.
 A \IndexCustom{concrete method}{method!concrete}
 (respectively,
 \IndexCustom{concrete getter}{getter!concrete} or
@@ -3336,12 +3388,18 @@ regardless of whether the modifier \COVARIANT{} is present.%
 \LMLabel{constructors}
 
 \LMHash{}%
-A \Index{constructor} is a special function that is used in instance creation expressions (\ref{instanceCreation}) to obtain objects, typically by creating or initializing them.
-Constructors may be generative (\ref{generativeConstructors}) or they may be factories (\ref{factories}).
+A \Index{constructor} is a special function that is used
+in instance creation expressions (\ref{instanceCreation}) to obtain objects,
+typically by creating or initializing them.
+Constructors may be generative (\ref{generativeConstructors})
+or they may be factories (\ref{factories}).
 
 \LMHash{}%
-A \Index{constructor name} always begins with the name of its immediately enclosing class, and may optionally be followed by a dot and an identifier \id.
-It is a compile-time error if the name of a constructor is not a constructor name.
+A \Index{constructor name} always begins with
+the name of its immediately enclosing class,
+and may optionally be followed by a dot and an identifier \id.
+It is a compile-time error if the name of a constructor
+is not a constructor name.
 
 \LMHash{}%
 The
@@ -3441,10 +3499,15 @@ every formal parameter introduces a local variable into
 the formal parameter scope (\ref{formalParameters}).
 When the formal parameter list of a non-redirecting generative constructor
 contains any initializing formals, a new scope is introduced, the
-\IndexCustom{formal parameter initializer scope}{scope!formal parameter initializer},
+\IndexCustom{formal parameter initializer scope}{%
+  scope!formal parameter initializer},
 which is the current scope of the initializer list of the constructor,
 and which is enclosed in the scope where the constructor is declared.
-Each initializing formal in the formal parameter list introduces a final local variable into the formal parameter initializer scope, but not into the formal parameter scope; every other formal parameter introduces a local variable into both the formal parameter scope and the formal parameter initializer scope.
+Each initializing formal in the formal parameter list
+introduces a final local variable into the formal parameter initializer scope,
+but not into the formal parameter scope;
+every other formal parameter introduces a local variable into
+both the formal parameter scope and the formal parameter initializer scope.
 
 \commentary{%
 This means that formal parameters, including initializing formals,
@@ -3491,8 +3554,10 @@ class A \{
 \end{dartCode}
 
 \LMHash{}%
-A \Index{fresh instance} is an instance whose identity is distinct from any previously allocated instance of its class.
-A generative constructor always operates on a fresh instance of its immediately enclosing class.
+A \Index{fresh instance} is an instance whose identity is distinct from
+any previously allocated instance of its class.
+A generative constructor always operates on a fresh instance of
+its immediately enclosing class.
 
 \commentary{%
 The above holds if the constructor is actually run, as it is by \NEW{}.
@@ -4196,7 +4261,9 @@ and that same expression would evaluate without errors at run time.%
 
 \LMHash{}%
 \IndexCustom{Static methods}{method!static}
-are functions, other than getters or setters, whose declarations are immediately contained within a class declaration and that are declared \STATIC{}.
+are functions, other than getters or setters,
+whose declarations are immediately contained within a class declaration
+and that are declared \STATIC{}.
 The static methods of a class $C$ are those static methods declared by $C$.
 
 \rationale{%
@@ -6557,7 +6624,8 @@ using \code{2.\CALL}.%
 \LMLabel{enums}
 
 \LMHash{}%
-An \Index{enumerated type}, or \Index{enum}, is used to represent a fixed number of constant values.
+An \Index{enumerated type}, or \Index{enum}, is used to represent
+a fixed number of constant values.
 
 \begin{grammar}
 <enumType> ::= \ENUM{} <identifier>
@@ -6622,8 +6690,10 @@ operations where formal type parameters are replaced by actual type arguments.%
 A \IndexCustom{generic class declaration}{class declaration!generic}
 introduces a generic class into the library scope of the current library.
 A \IndexCustom{generic class}{class!generic}
-is a mapping that accepts a list of actual type arguments and maps them to a class.
-Consider a generic class declaration $G$ named $C$ with formal type parameter declarations
+is a mapping that accepts a list of actual type arguments
+and maps them to a class.
+Consider a generic class declaration $G$ named $C$
+with formal type parameter declarations
 $X_1\ \EXTENDS\ B_1, \ldots,\ X_m\ \EXTENDS\ B_m$,
 and a parameterized type $T$ of the form \code{$C$<$T_1, \ldots,\ T_l$>}.
 
@@ -6633,8 +6703,12 @@ It is a compile-time error if $T$ is not well-bounded
 (\ref{superBoundedTypes}).
 
 \LMHash{}%
-Otherwise, said parameterized type \code{$C$<$T_1, \ldots,\ T_m$>} denotes an application of the generic class declared by $G$ to the type arguments $T_1, \ldots, T_m$.
-This yields a class $C'$ whose members are equivalent to those of a class declaration which is obtained from the declaration $G$ by replacing each occurrence of $X_j$ by $T_j$.
+Otherwise, said parameterized type \code{$C$<$T_1, \ldots,\ T_m$>} denotes
+an application of the generic class declared by $G$ to the type arguments
+$T_1, \ldots, T_m$.
+This yields a class $C'$ whose members are equivalent to those of
+a class declaration which is obtained from the declaration $G$ by replacing
+each occurrence of $X_j$ by $T_j$.
 
 \commentary{%
 Other properties of $C'$ such as the subtype relationships
@@ -6659,7 +6733,8 @@ introduces a generic function (\ref{formalParameters}) into the current scope.
 \LMHash{}%
 Consider a function invocation expression of the form
 \code{f<$T_1, \ldots,\ T_l$>(\ldots)},
-where the static type of \code{f} is a generic function type with formal type parameters
+where the static type of \code{f} is a generic function type
+with formal type parameters
 $X_1\ \EXTENDS\ B_1, \ldots,\ X_m\ \EXTENDS\ B_m$.
 It is a compile-time error if $m \not= l$.
 It is a compile-time error if there exists a $j$
@@ -6680,7 +6755,8 @@ the corresponding actual type argument.%
 \end{grammar}
 
 \LMHash{}%
-A type parameter $T$ may be suffixed with an \EXTENDS{} clause that specifies the \Index{upper bound} for $T$.
+A type parameter $T$ may be suffixed with an \EXTENDS{} clause
+that specifies the \Index{upper bound} for $T$.
 If no \EXTENDS{} clause is present, the upper bound is \code{Object}.
 It is a compile-time error if a type parameter is a supertype of its upper bound
 when that upper bound is itself a type variable.
@@ -6694,9 +6770,11 @@ and
 
 \LMHash{}%
 Type parameters are declared in the type parameter scope of a class or function.
-The type parameters of a generic $G$ are in scope in the bounds of all of the type parameters of $G$.
+The type parameters of a generic $G$ are in scope in
+the bounds of all of the type parameters of $G$.
 The type parameters of a generic class declaration $G$ are also in scope in
-the \EXTENDS{} and \IMPLEMENTS{} clauses of $G$ (if these exist) and in the body of $G$.
+the \EXTENDS{} and \IMPLEMENTS{} clauses of $G$ (if these exist)
+and in the body of $G$.
 
 \commentary{%
 However, a type parameter of a generic class
@@ -7235,7 +7313,8 @@ an \code{F<$T$>} for \emph{all possible} values of $T$.%
 \LMLabel{auxiliaryConceptsForInstantiationToBound}
 
 \LMHash{}%
-Before we specify instantiation to bound we need to define two auxiliary concepts.
+Before we specify instantiation to bound
+we need to define two auxiliary concepts.
 Let $T$ be a raw type.
 A type $S$ then
 \IndexCustom{raw-depends on}{raw-depends on!type}
@@ -7493,7 +7572,8 @@ in particular because invariant parameters fail to satisfy the expectation that
 a raw type denotes a supertype of all the expressible regular-bounded types.
 
 We could easily have made every instantiation to bound an error
-when applied to a type where invariance occurs anywhere during the run of the algorithm.
+when applied to a type where invariance occurs anywhere
+during the run of the algorithm.
 However, there are a number of cases where this choice produces a usable type,
 and we decided that it is not helpful to outlaw such cases.%
 }
@@ -7610,7 +7690,8 @@ then we say that
 \LMLabel{metadata}
 
 \LMHash{}%
-Dart supports metadata which is used to attach user defined annotations to program structures.
+Dart supports metadata which is used to attach
+user defined annotations to program structures.
 
 \begin{grammar}
 <metadata> ::= (`@' <metadatum>)*
@@ -7728,7 +7809,8 @@ Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
 \end{grammar}
 
 \LMHash{}%
-An expression $e$ may always be enclosed in parentheses, but this never has any semantic effect on $e$.
+An expression $e$ may always be enclosed in parentheses,
+but this never has any semantic effect on $e$.
 
 \commentary{%
 However, it may have an effect on the surrounding expression.
@@ -7779,22 +7861,30 @@ and throws the same exception object and stack trace.
 \LMLabel{objectIdentity}
 
 \LMHash{}%
-The predefined Dart function \code{identical()} is defined such that \code{identical($c_1$, $c_2$)} if{}f:
+The predefined Dart function \code{identical()}
+is defined such that \code{identical($c_1$, $c_2$)} if{}f:
 \begin{itemize}
-\item $c_1$ evaluates to either the null object (\ref{null}) or an instance of \code{bool} and \code{$c_1$ == $c_2$}, OR
+\item $c_1$ evaluates to either the null object (\ref{null})
+  or an instance of \code{bool} and \code{$c_1$ == $c_2$}, OR
 \item $c_1$ and $c_2$ are instances of \code{int} and \code{$c_1$ == $c_2$}, OR
 \item $c_1$ and $c_2$ are constant strings and \code{$c_1$ == $c_2$}, OR
-\item $c_1$ and $c_2$ are instances of \code{double} and one of the following holds:
+\item $c_1$ and $c_2$ are instances of \code{double}
+  and one of the following holds:
   \begin{itemize}
   \item $c_1$ and $c_2$ are non-zero and \code{$c_1$ == $c_2$}.
   \item Both $c_1$ and $c_2$ are $+0.0$.
   \item Both $c_1$ and $c_2$ are $-0.0$.
-  \item Both $c_1$ and $c_2$ represent a NaN value with the same underlying bit pattern.
+  \item Both $c_1$ and $c_2$ represent a NaN value
+    with the same underlying bit pattern.
   \end{itemize}
  OR
-\item $c_1$ and $c_2$ are constant lists that are defined to be identical in the specification of literal list expressions (\ref{lists}), OR
-\item $c_1$ and $c_2$ are constant maps that are defined to be identical in the specification of literal map expressions (\ref{maps}), OR
-\item $c_1$ and $c_2$ are constant objects of the same class $C$ and the value of each instance variable of $c_1$ is identical to the value of the corresponding instance variable of $c_2$. OR
+\item $c_1$ and $c_2$ are constant lists that are defined to be identical
+  in the specification of literal list expressions (\ref{lists}), OR
+\item $c_1$ and $c_2$ are constant maps that are defined to be identical
+  in the specification of literal map expressions (\ref{maps}), OR
+\item $c_1$ and $c_2$ are constant objects of the same class $C$
+  and the value of each instance variable of $c_1$ is identical to
+  the value of the corresponding instance variable of $c_2$. OR
 \item $c_1$ and $c_2$ are the same object.
 \end{itemize}
 
@@ -8272,7 +8362,9 @@ which will cause a compilation error.%
 The treatment of \code{\NULL{}} merits some discussion.
 Consider \code{\NULL{} + 2}.
 This expression always causes an error.
-We could have chosen not to treat it as a constant expression (and in general, not to allow \code{\NULL{}} as a subexpression of numeric or boolean constant expressions).
+We could have chosen not to treat it as a constant expression
+(and in general, not to allow \code{\NULL{}} as
+a subexpression of numeric or boolean constant expressions).
 There are two arguments for including it:
 First, it is constant so we \emph{can} evaluate it at compile time.
 Second, it seems more useful to give
@@ -8432,8 +8524,10 @@ The null object is the sole instance of the built-in class \code{Null}.
 % The following can be a consequence of the declaration of `Null`,
 % but we don't spell that out, we just require that it is an error.
 Attempting to instantiate \code{Null} causes a compile-time error.
-It is a compile-time error for a class to extend, mix in or implement \code{Null}.
-The \code{Null} class extends the \code{Object} class and declares no methods except those also declared by \code{Object}.
+It is a compile-time error for a class to extend, mix in or implement
+\code{Null}.
+The \code{Null} class extends the \code{Object} class
+and declares no methods except those also declared by \code{Object}.
 In particular, the \code{Null} class does not override the \lit{==} operator
 inherited from the \code{Object} class.
 
@@ -8446,7 +8540,8 @@ The static type of \NULL{} is the \code{Null} type.
 
 \LMHash{}%
 A \IndexCustom{numeric literal}{literal!numeric}
-is either a decimal or hexadecimal numeral representing an integer value, or a decimal double representation.
+is either a decimal or hexadecimal numeral representing an integer value,
+or a decimal double representation.
 
 \begin{grammar}
 <numericLiteral> ::= <NUMBER>
@@ -8497,7 +8592,9 @@ Otherwise it is an \code{int}, even in situations where that is an error.%
 \LMHash{}%
 A numeric literal that is not an integer literal is a
 \IndexCustom{double literal}{literal!double}.
-\commentary{A double literal always contains either a decimal point or an exponent part.}
+\commentary{%
+A double literal always contains either a decimal point or an exponent part.%
+}
 The static type of a double literal is \code{double}.
 
 \LMHash{}%
@@ -8548,12 +8645,17 @@ is the precise value of the \code{double} instance.%
 }
 
 \LMHash{}%
-It is a compile-time error for a class to extend, mix in or implement \code{int}.
-It is a compile-time error for a class to extend, mix in or implement \code{double}.
-It is a compile-time error for any class other than \code{int} and \code{double} to extend, mix in or implement \code{num}.
+It is a compile-time error for a class to extend, mix in or implement
+\code{int}.
+It is a compile-time error for a class to extend, mix in or implement
+\code{double}.
+It is a compile-time error for any class
+other than \code{int} and \code{double} to extend, mix in or implement
+\code{num}.
 
 \LMHash{}%
-The instances of \code{int} and \code{double} all override the \lit{==} operator inherited from the \code{Object} class.
+The instances of \code{int} and \code{double} all override
+the \lit{==} operator inherited from the \code{Object} class.
 
 
 \subsection{Booleans}
@@ -8583,7 +8685,8 @@ The \code{bool} class does not override the \lit{==} operator inherited from
 the \code{Object} class.
 
 \LMHash{}%
-Invoking the getter \code{runtimeType} on a boolean value returns the \code{Type} object that is the value of the expression \code{bool}.
+Invoking the getter \code{runtimeType} on a boolean value returns
+the \code{Type} object that is the value of the expression \code{bool}.
 The static type of a boolean literal is \code{bool}.
 
 
@@ -8618,7 +8721,8 @@ A string can be a sequence of single line strings and multiline strings.
        (<SINGLE\_LINE\_STRING\_DQ\_MID\_MID> <expression>)* \gnewline{}
        <SINGLE\_LINE\_STRING\_DQ\_MID\_END>
 
-<RAW\_SINGLE\_LINE\_STRING> ::= `r' `\sq' (\gtilde(`\sq' | `\\r' | `\\n'))* `\sq'
+<RAW\_SINGLE\_LINE\_STRING> ::=
+  `r' `\sq' (\gtilde(`\sq' | `\\r' | `\\n'))* `\sq'
   \alt `r' `"' (\gtilde(`"' | `\\r' | `\\n'))* `"'
 
 <STRING\_CONTENT\_COMMON> ::= \gtilde(`\\' | `\sq' | `"' | `$' | `\\r' | `\\n')
@@ -8656,7 +8760,8 @@ A string can be a sequence of single line strings and multiline strings.
 \end{grammar}
 
 \LMHash{}%
-A single line string is delimited by either matching single quotes or matching double quotes.
+A single line string is delimited by
+either matching single quotes or matching double quotes.
 
 \commentary{%
 Hence, `abc' and ``abc'' are both legal strings,
@@ -9080,7 +9185,8 @@ in order to determine the kind
 \LMHash{}%
 The subsections of this section are concerned with mechanisms that are
 common to all kinds of collection literals
-(\ref{collectionLiteralTypePromotion}, \ref{collectionLiteralElementEvaluation}),
+(\ref{collectionLiteralTypePromotion},
+\ref{collectionLiteralElementEvaluation}),
 followed by a specification of list literals
 (\ref{listLiteralInference}, \ref{lists}),
 followed by a specification of how to disambiguate and infer types
@@ -9283,8 +9389,8 @@ A \synt{forElement} can never occur in a constant collection literal.%
 %%   may not be assigned to the for-in variable's type."
 %%   Covered by the same text again.
 %%
-%% - "The type of the stream expression in an asynchronous \AWAIT{} for-in element
-%%   may not be assigned to \code{Stream<$T$>} for any type $T$.
+%% - "The type of the stream expression in an asynchronous \AWAIT{} for-in
+%%   element may not be assigned to \code{Stream<$T$>} for any type $T$.
 %%   Otherwise, the \Index{stream type} of the stream is $T$".
 %%   Same text again (the `forElement` text includes both await for and for).
 %%
@@ -9498,7 +9604,8 @@ Evaluate $e$ to an object $o_{\metavar{spread}}$.
 
   \begin{itemize}
   \item
-    When \metavar{target} is a list or a set and $T_{\metavar{spread}}$ implements
+    When \metavar{target} is a list or a set
+    and $T_{\metavar{spread}}$ implements
     (\ref{interfaceSuperinterfaces})
     \code{Iterable},
     the following code is executed in the context where $\ell$ occurs,
@@ -9581,7 +9688,8 @@ If $o_{\metavar{spread}}$ is an object whose dynamic type implements
 (\ref{interfaceSuperinterfaces})
 \code{List}, \code{Queue}, or \code{Set},
 an implementation may choose to call \code{length} on the object.
-If $o_{\metavar{spread}}$ is an object whose dynamic type implements \code{List},
+If $o_{\metavar{spread}}$ is an object
+whose dynamic type implements \code{List},
 an implementation may choose to call operator \lit{[]}
 in order to access elements from the list.
 If it does so, it will only pass indices
@@ -9793,7 +9901,7 @@ and the context type for \metavar{list} is $P$.
   the inferred element types of \List{\ell}{1}{n}.
 
 \item
-  %% TODO(eernst): Feature spec says $P$, but how can we know that $P$ is a type?
+  %% TODO(eernst): Feature spec says $P$, but how do we know $P$ is a type?
   Otherwise,
   the inferred element type for \metavar{list} is $T$,
   where $T$ is determined by downwards inference.
@@ -9840,7 +9948,8 @@ A list may contain zero or more objects.
 The number of objects in a list is its size.
 A list has an associated set of indices.
 An empty list has an empty set of indices.
-A non-empty list has the index set $\{0, \ldots, n - 1\}$ where $n$ is the size of the list.
+A non-empty list has the index set $\{0, \ldots, n - 1\}$
+where $n$ is the size of the list.
 It is a dynamic error to attempt to access a list
 using an index that is not a member of its set of indices.
 
@@ -10028,7 +10137,8 @@ the first applicable entry in the following list:
   $e$ is a map literal.
 \item
   When ${\cal L} \not= \emptyset$ (\commentary{that is, $e$ has leaf elements}):
-  If $\cal L$ contains a \synt{mapElement} as well as an \synt{expressionElement},
+  If $\cal L$ contains a \synt{mapElement}
+  as well as an \synt{expressionElement},
   a compile-time error occurs.
   Otherwise, if $\cal L$ contains an \synt{expressionElement},
   $e$ is a set literal.
@@ -10436,7 +10546,7 @@ and the context type for \metavar{collection} is $P$.
     where $T$ is the least upper bound of
     the inferred element types of the elements.
   \item
-    %% TODO(eernst): Feature spec says $P$, but how can we know that $P$ is a type?
+    %% TODO(eernst): Feature spec says $P$, but how do we know $P$ is a type?
     Otherwise, the static type of \metavar{collection} is $T$
     where $T$ is determined by downwards inference.
 
@@ -10473,7 +10583,8 @@ and the context type for \metavar{collection} is $P$.
   The static type of \metavar{collection} is then \code{Map<$K$,\,\,$V$>}.
 \item
   Otherwise, \metavar{collection} is still ambiguous,
-  the downwards context for the elements of \metavar{collection} is \FreeContext{},
+  the downwards context for the elements of \metavar{collection}
+  is \FreeContext,
   and the disambiguation is done using
   the immediate elements of \metavar{collection} as follows:
 
@@ -10578,7 +10689,8 @@ The system libraries define many members for the type \code{Set},
 but we specify only the minimal set of requirements
 which are used by the language itself.%
 
-Note that an implementation may require consistent definitions of several members
+Note that an implementation may require
+consistent definitions of several members
 of a class implementing \code{Set} in order to work correctly.
 For instance, there may be a getter \code{hashCode} which is required
 to have a behavior which is in some sense consistent with operator \lit{==}.
@@ -10773,7 +10885,8 @@ whose type implements \code{Map},
 but we specify only the minimal set of requirements
 which are used by the language itself.
 
-Note that an implementation may require consistent definitions of several members
+Note that an implementation may require
+consistent definitions of several members
 of a class implementing \code{Map} in order to work correctly.
 For instance, there may be a getter \code{hashCode} which is required
 to have a behavior which is in some sense consistent with operator \lit{==}.
@@ -10905,7 +11018,9 @@ The \Index{throw expression} is used to throw an exception.
 \end{grammar}
 
 \LMHash{}%
-Evaluation of a throw expression of the form \code{\THROW{} $e$;} proceeds as follows:
+Evaluation of a throw expression of the form
+\code{\THROW{} $e$;}
+proceeds as follows:
 
 \LMHash{}%
 The expression $e$ is evaluated to an object $v$
@@ -10995,7 +11110,8 @@ then $S <: R$.
 \rationale{%
 This ensures that
 \code{Future<$S$>}
-is the most specific generic instantiation of \code{Future} that is a supertype of $T$.
+is the most specific generic instantiation of \code{Future} that is
+a supertype of $T$.
 %% TODO[class-interfaces]: When we have finished the specification of class
 %% interface computations we may have the following property, but it is not
 %% true at this point. Adjust the following by then!
@@ -11022,7 +11138,7 @@ is
 \FunctionTypePositionalStd{T_0},
 
 \noindent
-%% TODO[inference]: The static type of the function literal may come from context.
+%% TODO[inference]: The static type of the function literal may be inferred.
 where $T_0$ is the static type of $e$.
 \EndCase
 
@@ -11229,7 +11345,8 @@ at the occasion where the evaluation occurred
 \LMLabel{this}
 
 \LMHash{}%
-The reserved word \THIS{} denotes the target of the current instance member invocation.
+The reserved word \THIS{} denotes
+the target of the current instance member invocation.
 
 \begin{grammar}
 <thisExpression> ::= \THIS{}
@@ -11243,7 +11360,10 @@ We do not support self-types at this point.%
 }
 
 \LMHash{}%
-It is a compile-time error if \THIS{} appears, implicitly or explicitly, in a top-level function or variable initializer, in a factory constructor, or in a static method or variable initializer, or in the initializer of an instance variable.
+It is a compile-time error if \THIS{} appears, implicitly or explicitly,
+in a top-level function or variable initializer, in a factory constructor, 
+or in a static method or variable initializer,
+or in the initializer of an instance variable.
 
 
 \subsection{Instance Creation}
@@ -11421,7 +11541,8 @@ if $R$ is a generic class,
 with its type parameters bound to $u_1, \ldots, u_m$.
 
 \LMHash{}%
-If execution of $q$ completes normally (\ref{statementCompletion}), $e$ evaluates to $i$.
+If execution of $q$ completes normally (\ref{statementCompletion}),
+$e$ evaluates to $i$.
 Otherwise execution of $q$ throws an exception object $x$ and stack trace $t$,
 and then evaluation of $e$ also throws exception object $x$ and stack trace $t$
 (\ref{expressionEvaluation}).
@@ -11668,12 +11789,16 @@ the evaluation of constant expressions.%
 \LMLabel{spawningAnIsolate}
 
 \LMHash{}%
-Spawning an isolate is accomplished via what is syntactically an ordinary method call,
-invoking one of the static methods \code{spawnUri} or \code{spawn} defined in the \code{Isolate} class in the library \code{dart:isolate}.
-However, such calls have the semantic effect of creating a new isolate with its own memory and thread of control.
+Spawning an isolate is accomplished via what is syntactically
+an ordinary method call,
+invoking one of the static methods \code{spawnUri} or \code{spawn} defined in
+the \code{Isolate} class in the library \code{dart:isolate}.
+However, such calls have the semantic effect of creating
+a new isolate with its own memory and thread of control.
 
 \LMHash{}%
-An isolate's memory is finite, as is the space available to its thread's call stack.
+An isolate's memory is finite, as is the space available to
+its thread's call stack.
 % This error can occur because memory usage is a dynamic property.
 It is possible for a running isolate to exhaust its memory or stack,
 resulting in a dynamic error that cannot be effectively caught,
@@ -11690,22 +11815,35 @@ the handling of a suspended isolate is the responsibility of the runtime.%
 
 \LMHash{}%
 Function invocation occurs in the following cases:
-when a function expression (\ref{functionExpressions}) is invoked (\ref{functionExpressionInvocation}),
-when a method (\ref{methodInvocation}), getter (\ref{topLevelGetterInvocation}, \ref{propertyExtraction}) or setter (\ref{assignment}) is invoked,
+when a function expression (\ref{functionExpressions})
+is invoked (\ref{functionExpressionInvocation}),
+when a method (\ref{methodInvocation}),
+getter (\ref{topLevelGetterInvocation}, \ref{propertyExtraction})
+or setter (\ref{assignment})
+is invoked,
 or when a constructor is invoked
-(either via instance creation (\ref{instanceCreation}), constructor redirection (\ref{redirectingGenerativeConstructors}), or super initialization).
-The various kinds of function invocation differ as to how the function to be invoked, $f$, is determined, as well as whether \THIS{} (\ref{this}) is bound.
+(either via instance creation (\ref{instanceCreation}),
+constructor redirection (\ref{redirectingGenerativeConstructors}),
+or super initialization).
+The various kinds of function invocation differ as to
+how the function to be invoked, $f$, is determined,
+as well as whether \THIS{} (\ref{this}) is bound.
 Once $f$ has been determined,
-formal type parameters of $f$ are bound to the corresponding actual type arguments,
+formal type parameters of $f$ are bound to
+the corresponding actual type arguments,
 and the formal parameters of $f$ are bound to corresponding actual arguments.
-When the body of $f$ is executed it will be executed with the aforementioned bindings.
+When the body of $f$ is executed it will be executed
+with the aforementioned bindings.
 
 \LMHash{}%
-Executing a body of the form \code{=> $e$} is equivalent to executing a body of the form \code{\{ return $e$; \}}.
-Execution a body of the form \code{\ASYNC{} => $e$} is equivalent to executing a body of the form \code{\ASYNC{} \{ return $e$; \}}.
+Executing a body of the form \code{=> $e$} is equivalent to executing
+a body of the form \code{\{ return $e$; \}}.
+Execution a body of the form \code{\ASYNC{} => $e$} is equivalent to executing
+a body of the form \code{\ASYNC{} \{ return $e$; \}}.
 
 \LMHash{}%
-If $f$ is synchronous and is not a generator (\ref{functions}) then execution of the body of $f$ begins immediately.
+If $f$ is synchronous and is not a generator (\ref{functions}) then
+execution of the body of $f$ begins immediately.
 If the execution of the body of $f$ returns an object $v$
 (\ref{statementCompletion}),
 the invocation evaluates to $v$.
@@ -11716,10 +11854,12 @@ the invocation throws the same exception object and stack trace
 (\ref{expressionEvaluation}).
 
 \commentary{%
-A complete function body can never break or continue (\ref{statementCompletion})
+A complete function body can never break or continue
+(\ref{statementCompletion})
 because a \BREAK{} or \CONTINUE{} statement must always occur inside
 the statement that is the target of the \BREAK{} or \CONTINUE{}.
-This means that a function body can only either complete normally, throw, or return.
+This means that a function body can only
+either complete normally, throw, or return.
 Completing normally or returning without an object is treated
 the same as returning with the null object (\ref{null}),
 so the result of executing a function body can always be used as
@@ -11747,7 +11887,9 @@ by the Dart implementation in that case is \code{iterator}.%
 }
 
 \LMHash{}%
-The iterable implementation must comply with the contract of \code{Iterable} and should not take any steps identified as exceptionally efficient in that contract.
+The iterable implementation must comply with
+the contract of \code{Iterable} and should not
+take any steps identified as exceptionally efficient in that contract.
 
 \commentary{%
 The contract explicitly mentions a number of situations
@@ -11782,7 +11924,8 @@ When execution of the body of $f$ completes (\ref{statementCompletion}),
 
 \LMHash{}%
 Each iterator starts a separate computation.
-If the \code{\SYNC*} function is impure, the sequence of objects yielded by each iterator may differ.
+If the \code{\SYNC*} function is impure,
+the sequence of objects yielded by each iterator may differ.
 
 \commentary{%
 One can derive more than one iterator from a given iterable.
@@ -11805,14 +11948,19 @@ even if their bindings are modified by the function.
 \commentary{%
 Two executions of an iterator interact only via state outside the function.%
 }
-% The alternative would be to cache the results of an iterator in the iterable, and check the cache at each \YIELD{}. This would have strange issues as well. The yielded value might differ from the expression in the yield. And it is a potential memory leak as the cache is kept alive by any iterator.
+% The alternative would be to cache the results of an iterator in the iterable,
+% and check the cache at each \YIELD{}. This would have strange issues as well.
+% The yielded value might differ from the expression in the yield. And it is a
+% potential memory leak as the cache is kept alive by any iterator.
 
 \LMHash{}%
 If $f$ is marked \ASYNC{} (\ref{functions}),
-then a fresh instance (\ref{generativeConstructors}) $o$ is associated with the invocation,
+then a fresh instance (\ref{generativeConstructors}) $o$
+is associated with the invocation,
 where the dynamic type of $o$ implements \code{Future<$flatten(T)$>},
 and $T$ is the actual return type of $f$ (\ref{actualTypes}).
-Then the body of $f$ is executed until it either suspends or completes, at which point $o$ is returned.
+Then the body of $f$ is executed until it either suspends or completes,
+at which point $o$ is returned.
 \commentary{%
 The body of $f$ may suspend during the evaluation of an \AWAIT{} expression
 or execution of an asynchronous \FOR{} loop.%
@@ -11849,7 +11997,8 @@ When execution of the body of $f$ completes:
   then its cancellation future is completed with the null object (\ref{null}).
 \item If it throws an exception object $e$ and stack trace $t$:
   \begin{itemize}
-  \item If $s$ has been canceled then its cancellation future is completed with error $e$ and stack trace $t$.
+  \item If $s$ has been canceled then its cancellation future is completed
+    with error $e$ and stack trace $t$.
   \item otherwise the error $e$ and stack trace $t$ are emitted by $s$.
   \end{itemize}
 \item $s$ is closed.
@@ -11969,13 +12118,16 @@ whenever the former can safely be passed to the latter.%
 \LMLabel{actualArguments}
 
 \LMHash{}%
-Function invocation involves evaluation of the list of actual arguments to the function,
+Function invocation involves evaluation of
+the list of actual arguments to the function,
 and binding of the results to the function's formal parameters.
 
 \LMHash{}%
-When parsing an argument list, an ambiguity may arise because the same source code could be one generic function invocation,
+When parsing an argument list, an ambiguity may arise because
+the same source code could be one generic function invocation,
 and it could be two or more relational expressions and/or shift expressions.
-In this situation, the expression is always parsed as a generic function invocation.
+In this situation, the expression is always parsed
+as a generic function invocation.
 
 % Should we specify the precise disambiguation rule here?:
 %   We have seen 'a', '<', a matching '>', and '(', where
@@ -12013,8 +12165,12 @@ Evaluation of an actual argument part of the form
 proceeds as follows:
 
 \LMHash{}%
-The type arguments $A_1, \ldots, A_r$ are evaluated in the order they appear in the program, producing types $t_1, \ldots, t_r$.
-The arguments $a_1, \ldots, a_{m+l}$ are evaluated in the order they appear in the program, producing objects $o_1, \ldots, o_{m+l}$.
+The type arguments $A_1, \ldots, A_r$ are evaluated
+in the order they appear in the program,
+producing types $t_1, \ldots, t_r$.
+The arguments $a_1, \ldots, a_{m+l}$ are evaluated
+in the order they appear in the program,
+producing objects $o_1, \ldots, o_{m+l}$.
 
 \commentary{%
 Simply stated, an argument part consisting of $s$ type arguments,
@@ -12036,7 +12192,8 @@ and similarly for empty type parameter lists (\ref{generics}).%
 }
 
 \LMHash{}%
-Consider an invocation $i$ of a function $f$ with an actual argument part of the form
+Consider an invocation $i$ of a function $f$ with
+an actual argument part of the form
 \code{<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_m,\ q_1$: $a_{m+1}, \ldots,\ q_l$: $a_{m+l}$)}.
 
 \commentary{%
@@ -12196,7 +12353,8 @@ Figure~\ref{fig:argumentsAndParameters} shows how this situation arises.%
 \end{figure}
 
 \LMHash{}%
-% Type inference is assumed complete, so we must have the correct number of type arguments.
+% Type inference is assumed complete, so we must have
+% the correct number of type arguments.
 It is a compile-time error if $r \not= s$.
 It is a compile-time error if $r = s$ and for some $j \in 1 .. s$,
 $A_j \not<: [A_1/X_1, \ldots, A_r/X_s]B_j$.
@@ -12217,8 +12375,10 @@ For each named argument there must be a named parameter with the same name.%
 The static type of $i$ is $[A_1/X_1, \ldots, A_r/X_s]S_0$.
 
 \LMHash{}%
-It is a compile-time error if $T_j$ may not be assigned to $S_j, j \in 1 .. m$.
-It is a compile-time error if $T_{m+j}$ may not be assigned to $S_{q_j}, j \in 1 .. l$.
+It is a compile-time error if $T_j$ may not be assigned to
+$S_j, j \in 1 .. m$.
+It is a compile-time error if $T_{m+j}$ may not be assigned to
+$S_{q_j}, j \in 1 .. l$.
 
 \commentary{%
 Consider the case where the function invocation in focus here is
@@ -12540,7 +12700,8 @@ If $o$ is a function object then the function invocation
 \code{$f$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
 
 \noindent
-is evaluated by binding actuals to formals as specified in Section~\ref{bindingActualsToFormals},
+is evaluated by binding actuals to formals
+as specified in Section~\ref{bindingActualsToFormals},
 and executing the body of $f$ with those bindings;
 the returned result is then the result of evaluating $i$.
 
@@ -12555,7 +12716,8 @@ and its result is then the result of evaluating $i$:
 
 \LMHash{}%
 Otherwise $o$ has no method named \CALL{}.
-A new instance $im$ of the predefined class \code{Invocation} is created, such that:
+A new instance $im$ of the predefined class \code{Invocation} is created,
+such that:
 \begin{itemize}
 \item \code{$im$.isMethod} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{\#call}.
@@ -12947,7 +13109,9 @@ is largely to allow smoother mixin composition.%
 \LMLabel{topLevelGetterInvocation}
 
 \LMHash{}%
-Evaluation of a top-level getter invocation $i$ of the form $m$, where $m$ is an identifier, proceeds as follows:
+Evaluation of a top-level getter invocation $i$ of the form $m$,
+where $m$ is an identifier,
+proceeds as follows:
 
 \LMHash{}%
 The getter function $m$ is invoked.
@@ -13401,7 +13565,8 @@ Let $d$ be the result of method lookup for $m$ in $T$ with respect to $L$,
 and if the method lookup succeeded then let $F$ be the static type of $d$.
 
 \LMHash{}%
-Otherwise, let $d$ be the result of getter lookup for $m$ in $T$ with respect to $L$
+Otherwise, let $d$ be the result of getter lookup
+for $m$ in $T$ with respect to $L$,
 and let $F$ be the return type of $d$.
 (\commentary{
 Since \code{$T$.$m$} exists we cannot have a failure in both lookups.%
@@ -13624,13 +13789,15 @@ A super method invocation $i$ has the form
 \code{\SUPER{}.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \commentary{%
-Note that non-generic invocations arise as the special case where the number of type arguments is zero,
+Note that non-generic invocations arise as
+the special case where the number of type arguments is zero,
 in which case the type argument list is omitted,
 and similarly for formal type parameter lists (\ref{generics}).%
 }
 
 \LMHash{}%
-It is a compile-time error if a super method invocation occurs in a top-level function or variable initializer,
+It is a compile-time error if a super method invocation occurs
+in a top-level function or variable initializer,
 in an instance variable initializer or initializer list,
 in class \code{Object},
 in a factory constructor,
@@ -13657,7 +13824,8 @@ If both lookups failed, a compile-time error occurs.
 
 \LMHash{}%
 Otherwise (\commentary{when one of the lookups succeeded}),
-the static analysis of $i$ is performed as specified in Section~\ref{bindingActualsToFormals},
+the static analysis of $i$ is performed
+as specified in Section~\ref{bindingActualsToFormals},
 considering the function to have static type $F$,
 and the static type of $i$ is as specified there.
 
@@ -13911,7 +14079,8 @@ The value of $i$ is the result returned by the call to the getter function.
 
 \LMHash{}%
 If the getter lookup has failed,
-then a new instance $im$ of the predefined class \code{Invocation} is created, such that:
+then a new instance $im$ of the predefined class \code{Invocation} is created,
+such that:
 \begin{itemize}
 \item \code{$im$.isGetter} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
@@ -13927,7 +14096,8 @@ then a new instance $im$ of the predefined class \code{Invocation} is created, s
 \end{itemize}
 
 \LMHash{}%
-Then the method \code{noSuchMethod()} is looked up in $o$ and invoked with argument $im$,
+Then the method \code{noSuchMethod()} is looked up
+in $o$ and invoked with argument $im$,
 and the result of this invocation is the result of evaluating $i$.
 
 \commentary{%
@@ -13965,7 +14135,8 @@ thus obtained does take parameter covariance into account.%
 }
 
 \LMHash{}%
-Evaluation of a property extraction $i$ of the form $\SUPER.m$ proceeds as follows:
+Evaluation of a property extraction $i$ of the form $\SUPER.m$
+proceeds as follows:
 
 \LMHash{}%
 Let $g$ be the method implementation currently executing,
@@ -14017,7 +14188,9 @@ The \Index{closurization of method} $f$ on object $o$
 is defined to be equivalent
 (\commentary{except for equality, as noted below}) to:
 \begin{itemize}
-%\item $(a) \{\RETURN{}$ $u$ $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde/, *, \%, $|$, \^{}, \&, $<<$, $>>$} (this precludes closurization of unary -).
+%\item $(a) \{\RETURN{}$ $u$ $op$ $a;$\} if $f$ is named $op$
+%  and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde/, *, \%, $|$,
+%  \^{}, \&, $<<$, $>>$} (this precludes closurization of unary -).
 %\item $() \{\RETURN{}$ \gtilde{} $u;$\} if $f$ is named \gtilde.
 %\item $(a) \{\RETURN{}$ $u[a];$\} if $f$ is named \code{[]}.
 %\item $(a, b) \{\RETURN{}$ $u[a] = b;$\} if $f$ is named \code{[]=}.
@@ -14051,7 +14224,8 @@ using \code{null} for parameters whose default value is not specified.
 \LMHash{}%
 $B'_j, j \in 1 .. s$, are determined as follows:
 If $o$ is an instance of a non-generic class, $B'_j = B_j, j \in 1 .. s$.
-Otherwise, let $X'_1, \ldots, X'_{s'}$ be the formal type parameters of the class of $o$,
+Otherwise, let $X'_1, \ldots, X'_{s'}$ be
+the formal type parameters of the class of $o$,
 and $t'_1, \ldots, t'_{s'}$ be the actual type arguments.
 Then $B'_j = [t'_1/X'_1, \ldots, t'_{s'}/X'_{s'}]B_j, j \in 1 .. s$.
 
@@ -14089,25 +14263,29 @@ Note that for the static type it is ignored whether a parameter is covariant.%
 \LMHash{}%
 If $T$ is a non-generic class then for $j \in 1 .. n+k$,
 $T_j$ is a type annotation that denotes the same type as that
-which is denoted by the type annotation on the corresponding parameter declaration in $D$.
+which is denoted by the type annotation on
+the corresponding parameter declaration in $D$.
 If that parameter declaration has no type annotation then $T_j$ is \DYNAMIC{}.
 
 \LMHash{}%
 Otherwise $T$ is a generic instantiation of a generic class $G$.
 Let $X''_1, \ldots, X''_{s''}$ be the formal type parameters of $G$,
 and $t''_1, \ldots, t''_{s''}$ be the actual type arguments of $o$ at $T$.
-Then $T_j$ is a type annotation that denotes $[t''_1/X''_1, \ldots, t''_{s''}/X''_{s''}]S_j$,
+Then $T_j$ is a type annotation that denotes
+$[t''_1/X''_1, \ldots, t''_{s''}/X''_{s''}]S_j$,
 where $S_j$ is the type annotation of the corresponding parameter in $D$.
 If that parameter declaration has no type annotation then $T_j$ is \DYNAMIC{}.
 
 \LMHash{}%
 There is one way in which
 the function object yielded by the instance method closurization differs from
-the function object obtained by function closurization on the above mentioned function literal:
+the function object obtained by function closurization on
+the above mentioned function literal:
 Assume that $o_1$ and $o_2$ are objects, $m$ is an identifier,
 and $c_1$ and $c_2$ are function objects
 obtained by closurization of $m$ on $o_1$ respectively $o_2$.
-Then \code{$c_1$ == $c_2$} evaluates to true if and only if $o_1$ and $o_2$ is the same object.
+Then \code{$c_1$ == $c_2$} evaluates to true
+if and only if $o_1$ and $o_2$ is the same object.
 
 \commentary{%
 % Spell out the consequences for `==` and for `identical`, for the receivers
@@ -14117,7 +14295,8 @@ from the same object are equal,
 and two closurizations of a method $m$
 from non-identical objects are not equal.
 Assuming that $v_i$ is a fresh variable bound to an object, $i \in 1 .. 2$,
-it also follows that \code{identical($v_1.m, v_2.m$)} must be false when $v_1$ and $v_2$ are not bound to the same object.
+it also follows that \code{identical($v_1.m, v_2.m$)} must be false
+when $v_1$ and $v_2$ are not bound to the same object.
 However, Dart implementations are not required to canonicalize function objects,
 which means that \code{identical($v_1.m, v_2.m$)} is not guaranteed to be true,
 even when it is known that $v_1$ and $v_2$ are bound to the same object.%
@@ -14144,9 +14323,11 @@ in which case the type parameter declarations are omitted (\ref{generics}).%
 }
 
 \LMHash{}%
-Consider expressions in the body of a class $T$ which is a subclass of a given class $S$,
+Consider expressions in the body of a class $T$ which is
+a subclass of a given class $S$,
 where a method declaration that implements $f$ exists in $S$,
-and there is no class $U$ which is a subclass of $S$ and a superclass of $T$ which implements $f$.
+and there is no class $U$ which is
+a subclass of $S$ and a superclass of $T$ which implements $f$.
 
 \commentary{%
 In short, consider a situation where
@@ -14162,7 +14343,9 @@ is defined to be equivalent
 
 \LMHash{}%
 \begin{itemize}
-%\item $(a) \{\RETURN{}$ \SUPER{} $op$ $a;$\} if $f$ is named $op$ and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde/, *, \%, $|$, \^{}, \&, $<<$, $>>$}.
+%\item $(a) \{\RETURN{}$ \SUPER{} $op$ $a;$\} if $f$ is named $op$
+%   and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde/, *, \%, $|$,
+%   \^{}, \&, $<<$, $>>$}.
 %\item $() \{\RETURN{}$ \gtilde\SUPER;\} if $f$ is named \gtilde.
 %\item $(a) \{\RETURN{}$ $\SUPER[a];$\} if $f$ is named \code{[]}.
 %\item $(a, b) \{\RETURN{}$ $\SUPER[a] = b;$\} if $f$ is named \code{[]=}.
@@ -14233,33 +14416,38 @@ Note that for the static type it is ignored whether a parameter is covariant.%
 \LMHash{}%
 If $S$ is a non-generic class then for $j \in 1 .. n+k$,
 $T_j$ is a type annotation that denotes the same type as that
-which is denoted by the type annotation on the corresponding parameter declaration in $D$.
+which is denoted by the type annotation on
+the corresponding parameter declaration in $D$.
 If that parameter declaration has no type annotation then $T_j$ is \DYNAMIC{}.
 
 \LMHash{}%
 Otherwise $S$ is a generic instantiation of a generic class $G$.
 Let $X''_1, \ldots, X''_{s''}$ be the formal type parameters of $G$,
 and $t''_1, \ldots, t''_{s''}$ be the actual type arguments of $o$ at $S$.
-Then $T_j$ is a type annotation that denotes $[t''_1/X''_1, \ldots, t''_{s''}/X''_{s''}]S_j$,
+Then $T_j$ is a type annotation that denotes
+$[t''_1/X''_1, \ldots, t''_{s''}/X''_{s''}]S_j$,
 where $S_j$ is the type annotation of the corresponding parameter in $D$.
 If that parameter declaration has no type annotation then $T_j$ is \DYNAMIC{}.
 
 \LMHash{}%
 There is one way in which
 the function object yielded by the super closurization differs from
-the function object obtained by function closurization on the above mentioned function literal:
+the function object obtained by function closurization on
+the above mentioned function literal:
 Assume that an occurrence of the expression \SUPER{}.$m$ in a given class
-is evaluated on two occasions where \THIS{} is bound to $o_1$ respectively $o_2$,
+is evaluated on two occasions where \THIS{}
+is bound to $o_1$ respectively $o_2$,
 and the resulting function objects are $c_1$ respectively $c_2$:
-\code{$c_1$ == $c_2$} is then true if and only if $o_1$ and $o_2$ is the same object.
+\code{$c_1$ == $c_2$} is then true
+if and only if $o_1$ and $o_2$ is the same object.
 
 
 \subsubsection{Generic Method Instantiation}
 \LMLabel{genericMethodInstantiation}
 
-%% TODO(eernst): Like generic function instantiation, generic method instantiation
-%% relies on type inference. See the comment in \ref{genericFunctionInstantiation}
-%% for further details.
+%% TODO(eernst): Like generic function instantiation, generic method
+%% instantiation relies on type inference. See the comment in
+%% \ref{genericFunctionInstantiation} for further details.
 
 \LMHash{}%
 Generic method instantiation is a mechanism that yields
@@ -14696,15 +14884,18 @@ Evaluation of an assignment of the form \code{$e_1$.$v$ = $e_2$}
 proceeds as follows:
 The expression $e_1$ is evaluated to an object $o_1$.
 Then, the expression $e_2$ is evaluated to an object $o_2$.
-Then, the setter \code{$v$=} is looked up (\ref{lookup}) in $o_1$ with respect to the current library.
+Then, the setter \code{$v$=} is looked up (\ref{lookup})
+in $o_1$ with respect to the current library.
 % This error can occur due to implicit casts and dynamic calls.
 It is a dynamic type error if the dynamic type of $o_2$
 is not a subtype of the actual parameter type of said setter
 (\ref{actualTypes}).
-Otherwise, the body of the setter is executed with its formal parameter bound to $o_2$ and \THIS{} bound to $o_1$.
+Otherwise, the body of the setter is executed with
+its formal parameter bound to $o_2$ and \THIS{} bound to $o_1$.
 
 \LMHash{}%
-If the setter lookup has failed, then a new instance $im$ of the predefined class \code{Invocation} is created, such that:
+If the setter lookup has failed, then a new instance $im$ of
+the predefined class \code{Invocation} is created, such that:
 \begin{itemize}
 \item \code{$im$.isSetter} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{v=}.
@@ -14721,7 +14912,8 @@ If the setter lookup has failed, then a new instance $im$ of the predefined clas
 \end{itemize}
 
 \LMHash{}%
-Then the method \code{noSuchMethod()} is looked up in $o_1$ and invoked with argument $im$.
+Then the method \code{noSuchMethod()} is looked up in $o_1$
+and invoked with argument $im$.
 
 \commentary{%
 The situation where \code{noSuchMethod} is invoked can only arise
@@ -14729,14 +14921,16 @@ when the static type of $e_1$ is \DYNAMIC{}.%
 }
 
 \LMHash{}%
-The value of the assignment expression is $o_2$ irrespective of whether setter lookup has failed or succeeded.
+The value of the assignment expression is $o_2$
+irrespective of whether setter lookup has failed or succeeded.
 \EndCase
 
 \LMHash{}%
 \Case{\code{\SUPER.$v$ = $e$}}
 Consider an assignment $a$ of the form \code{\SUPER.$v$ = $e$}.
 Let $S_{static}$ be the superclass of the immediately enclosing class.
-It is a compile-time error if $S_{static}$ does not have a concrete accessible instance setter named \code{$v$=}.
+It is a compile-time error if $S_{static}$ does not have
+a concrete accessible instance setter named \code{$v$=}.
 Otherwise, it is a compile-time error if the static type of $e$
 may not be assigned to the static type of the formal parameter of said setter.
 The static type of $a$ is the static type of $e$.
@@ -14744,10 +14938,12 @@ The static type of $a$ is the static type of $e$.
 \LMHash{}%
 Evaluation of an assignment of the form \code{\SUPER.$v$ = $e$}
 proceeds as follows:
-Let $g$ be the currently executing method, and let $C$ be the class in which $g$ was looked up.
+Let $g$ be the currently executing method, and let $C$ be
+the class in which $g$ was looked up.
 Let $S_{dynamic}$ be the superclass of $C$.
 The expression $e$ is evaluated to an object $o$.
-Then, the setter \code{$v$=} is looked up (\ref{lookup}) in $S_{dynamic}$ with respect to the current library.
+Then, the setter \code{$v$=} is looked up (\ref{lookup})
+in $S_{dynamic}$ with respect to the current library.
 The body of \code{$v$=} is executed with its formal parameter bound to $o$
 and \THIS{} bound to the current value of \THIS{}.
 
@@ -14791,7 +14987,8 @@ and finally evaluate $e_3$ to an object $v$.
 Call the method \code{[]=} on $o$
 with $i$ as first argument and $v$ as second argument.
 Then $a$ evaluates to $v$.
-% Should we add: It is a dynamic error if $e_1$ evaluates to a constant list or map?
+% Should we add: It is a dynamic error if $e_1$ evaluates to
+% a constant list or map?
 \EndCase
 
 \LMHash{}%
@@ -14929,9 +15126,10 @@ Consider a compound assignment $a$ of the form \code{$e_1$?.$v$ ??= $e_2$}.
 Exactly the same compile-time errors that would be caused by
 \code{$e_1$.$v$ ??= $e_2$}
 are also generated in the case of $a$.
-% Note: We use the static type of \code{$e_1$?.$v$} rather than \code{$e_1$.$v$} even
-% though the latter would be simpler. This is because the former will remain correct
-% if NNBD is introduced, and because it reduces the amount of synthetic syntax.
+% Note: We use the static type of \code{$e_1$?.$v$} rather than
+% \code{$e_1$.$v$} even though the latter would be simpler. This is because
+% the former will remain correct if NNBD is introduced, and because it reduces
+% the amount of synthetic syntax.
 The static type of $a$ is the least upper bound of
 the static type of \code{$e_1$?.$v$} and the static type of $e_2$.
 
@@ -14995,7 +15193,8 @@ Consider a compound assignment $a$ of the form \code{$e_1$[$e_2$] $op$= $e_3$}.
 Let $x$ and $i$ be fresh variables
 where the static type of the former is the static type of $e_1$
 and the static type of the latter is the static type of $e_2$.
-Except for errors inside $e_1$ and $e_2$ and references to the names $x$ and $i$,
+Except for errors inside $e_1$ and $e_2$ and references to
+the names $x$ and $i$,
 exactly the same compile-time errors that would be caused by
 \code{$x$[$i$] = $x$[$i$] $op$ $e_3$}
 are also generated in the case of $a$.
@@ -15042,7 +15241,8 @@ is equivalent to the expression \code{$C$.$v$ $op$ = $e_2$}.
 \LMLabel{conditional}
 
 \LMHash{}%
-A \Index{conditional expression} evaluates one of two expressions based on a boolean condition.
+A \Index{conditional expression} evaluates one of two expressions
+based on a boolean condition.
 
 \begin{grammar}
 <conditionalExpression> ::= <ifNullExpression>
@@ -15050,13 +15250,15 @@ A \Index{conditional expression} evaluates one of two expressions based on a boo
 \end{grammar}
 
 \LMHash{}%
-Evaluation of a conditional expression $c$ of the form $e_1 ? e_2 : e_3$ proceeds as follows:
+Evaluation of a conditional expression $c$ of the form $e_1 ? e_2 : e_3$
+proceeds as follows:
 
 \LMHash{}%
 First, $e_1$ is evaluated to an object $o_1$.
 % This error can occur due to implicit casts and null.
 It is a dynamic error if the run-time type of $o_1$ is not \code{bool}.
-If $r$ is \TRUE, then the value of $c$ is the result of evaluating the expression $e_2$.
+If $r$ is \TRUE, then the value of $c$ is
+the result of evaluating the expression $e_2$.
 Otherwise the value of $c$ is the result of evaluating the expression $e_3$.
 
 \LMHash{}%
@@ -15072,15 +15274,18 @@ $v$ is potentially mutated anywhere in the scope of $v$.
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error if the static type of $e_1$ may not be assigned to \code{bool}.
-The static type of $c$ is the least upper bound (\ref{leastUpperBounds}) of the static type of $e_2$ and the static type of $e_3$.
+It is a compile-time error if
+the static type of $e_1$ may not be assigned to \code{bool}.
+The static type of $c$ is the least upper bound (\ref{leastUpperBounds}) of
+the static type of $e_2$ and the static type of $e_3$.
 
 
 \subsection{If-null Expressions}
 \LMLabel{ifNull}
 
 \LMHash{}%
-An \Index{if-null expression} evaluates an expression and if the result is the null object (\ref{null}), evaluates another.
+An \Index{if-null expression} evaluates an expression and
+if the result is the null object (\ref{null}), evaluates another.
 
 \begin{grammar}
 <ifNullExpression> ::= <logicalOrExpression> (`??' <logicalOrExpression>)*
@@ -15097,14 +15302,16 @@ Otherwise evaluate $e_2$ to an object $r$,
 and then $e$ evaluates to $r$.
 
 \LMHash{}%
-The static type of $e$ is the least upper bound (\ref{leastUpperBounds}) of the static type of $e_1$ and the static type of $e_2$.
+The static type of $e$ is the least upper bound (\ref{leastUpperBounds}) of
+the static type of $e_1$ and the static type of $e_2$.
 
 
 \subsection{Logical Boolean Expressions}
 \LMLabel{logicalBooleanExpressions}
 
 \LMHash{}%
-The logical boolean expressions combine boolean objects using the boolean conjunction and disjunction operators.
+The logical boolean expressions combine boolean objects using
+the boolean conjunction and disjunction operators.
 
 \begin{grammar}
 <logicalOrExpression> ::= \gnewline{}
@@ -15114,23 +15321,29 @@ The logical boolean expressions combine boolean objects using the boolean conjun
 \end{grammar}
 
 \LMHash{}%
-A \Index{logical boolean expression} is either an equality expression (\ref{equality}), or an invocation of a logical boolean operator on an expression $e_1$ with argument $e_2$.
+A \Index{logical boolean expression} is either an equality expression
+(\ref{equality}),
+or an invocation of a logical boolean operator on
+an expression $e_1$ with argument $e_2$.
 
 \LMHash{}%
 Evaluation of a logical boolean expression $b$ of the form $e_1 || e_2$ causes
 the evaluation of $e_1$ to an object $o_1$.
 % This error can occur due to implicit casts and null.
 It is a dynamic error if the run-time type of $o_1$ is not \code{bool}.
-If $o_1$ is \TRUE, the result of evaluating $b$ is \TRUE, otherwise $e_2$ is evaluated to an object $o_2$.
+If $o_1$ is \TRUE, the result of evaluating $b$ is \TRUE,
+otherwise $e_2$ is evaluated to an object $o_2$.
 % This error can occur due to implicit casts and null.
 It is a dynamic error if the run-time type of $o_2$ is not \code{bool}.
 Otherwise the result of evaluating $b$ is $o_2$.
 
 \LMHash{}%
-Evaluation of a logical boolean expression $b$ of the form $e_1 \&\& e_2$ causes the evaluation of $e_1$ producing an object $o_1$.
+Evaluation of a logical boolean expression $b$ of the form $e_1 \&\& e_2$
+causes the evaluation of $e_1$ producing an object $o_1$.
 % This error can occur due to implicit casts and null.
 It is a dynamic error if the run-time type of $o_1$ is not \code{bool}.
-If $o_1$ is \FALSE, the result of evaluating $b$ is \FALSE, otherwise $e_2$ is evaluated to an object $o_2$.
+If $o_1$ is \FALSE, the result of evaluating $b$ is \FALSE,
+otherwise $e_2$ is evaluated to an object $o_2$.
 % This error can occur due to implicit casts and null.
 It is a dynamic error if the run-time type of $o_2$ is not \code{bool}.
 Otherwise the result of evaluating $b$ is $o_2$.
@@ -15140,8 +15353,10 @@ A logical boolean expression $b$ of the form $e_1 \&\& e_2$
 shows that a local variable $v$ has type $T$
 if both of the following conditions hold:
 \begin{itemize}
-\item Either $e_1$ shows that $v$ has type $T$ or $e_2$ shows that $v$ has type $T$.
-\item $v$ is not mutated in $e_2$ or within a function other than the one where $v$ is declared.
+\item Either $e_1$ shows that $v$ has type $T$
+  or $e_2$ shows that $v$ has type $T$.
+\item $v$ is not mutated in $e_2$ or within a function
+  other than the one where $v$ is declared.
 \end{itemize}
 
 \LMHash{}%
@@ -15167,7 +15382,9 @@ $v$ is potentially mutated anywhere in the scope of $v$.
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error if the static type of $e_1$ may not be assigned to \code{bool} or if the static type of $e_2$ may not be assigned to \code{bool}.
+It is a compile-time error if
+the static type of $e_1$ may not be assigned to \code{bool}
+or if the static type of $e_2$ may not be assigned to \code{bool}.
 The static type of a logical boolean expression is \code{bool}.
 
 
@@ -15187,25 +15404,38 @@ Equality expressions test objects for equality.
 \end{grammar}
 
 \LMHash{}%
-An \Index{equality expression} is either a relational expression (\ref{relationalExpressions}), or an invocation of an equality operator on either \SUPER{} or an expression $e_1$, with argument $e_2$.
+An \Index{equality expression} is either a relational expression
+(\ref{relationalExpressions}),
+or an invocation of an equality operator on either \SUPER{}
+or an expression $e_1$, with argument $e_2$.
 
 \LMHash{}%
-Evaluation of an equality expression $ee$ of the form \code{$e_1$ == $e_2$} proceeds as follows:
+Evaluation of an equality expression $ee$ of the form \code{$e_1$ == $e_2$}
+proceeds as follows:
 \begin{itemize}
 \item The expression $e_1$ is evaluated to an object $o_1$.
 \item The expression $e_2$ is evaluated to an object $o_2$.
-\item If either $o_1$ or $o_2$ is the null object (\ref{null}), then $ee$ evaluates to \TRUE{} if both $o_1$ and $o_2$ are the null object and to \FALSE{} otherwise.
+\item If either $o_1$ or $o_2$ is the null object (\ref{null}),
+  then $ee$ evaluates to \TRUE{} if both $o_1$ and $o_2$ are the null object
+  and to \FALSE{} otherwise.
 Otherwise,
-\item evaluation of $ee$ is equivalent to the method invocation \code{$o_1$.==($o_2$)}.
+\item evaluation of $ee$ is equivalent to the method invocation
+  \code{$o_1$.==($o_2$)}.
 \end{itemize}
 
 \LMHash{}%
-Evaluation of an equality expression $ee$ of the form \code{\SUPER{} == $e$} proceeds as follows:
+Evaluation of an equality expression $ee$ of the form
+\code{\SUPER{} == $e$}
+proceeds as follows:
 \begin{itemize}
 \item The expression $e$ is evaluated to an object $o$.
-\item If either \THIS{} or $o$ is the null object (\ref{null}), then $ee$ evaluates to evaluates to \TRUE{} if both \THIS{} and $o$ are the null object and to \FALSE{} otherwise.
+\item If either \THIS{} or $o$ is the null object (\ref{null}),
+  then $ee$ evaluates to evaluates to \TRUE{}
+  if both \THIS{} and $o$ are the null object
+  and to \FALSE{} otherwise.
 Otherwise,
-\item evaluation of $ee$ is equivalent to the method invocation \code{\SUPER{}.==($o$)}.
+\item evaluation of $ee$ is equivalent to the method invocation
+  \code{\SUPER{}.==($o$)}.
 \end{itemize}
 
 \commentary{%
@@ -15222,10 +15452,15 @@ nor should anyone ever worry about whether to write
 }
 
 \LMHash{}%
-An equality expression of the form \code{$e_1$ != $e_2$} is equivalent to the expression \code{!($e_1$ == $e_2$)}.
-An equality expression of the form \code{\SUPER{} != $e$} is equivalent to the expression \code{!(\SUPER{} == $e$)}.
+An equality expression of the form \code{$e_1$ != $e_2$} is equivalent to
+the expression \code{!($e_1$ == $e_2$)}.
+An equality expression of the form \code{\SUPER{} != $e$} is equivalent to
+the expression \code{!(\SUPER{} == $e$)}.
 
-%The expression $e_1$ is evaluated to an object $o_1$; then the expression $e_2$ is evaluated to an object $o_2$. Next, if $o_1$ and $o_2$ are the same object, then $ee$ evaluates to \TRUE{}, otherwise $ee$ evaluates to \FALSE{}.
+%The expression $e_1$ is evaluated to an object $o_1$;
+% then the expression $e_2$ is evaluated to an object $o_2$.
+% Next, if $o_1$ and $o_2$ are the same object,
+% then $ee$ evaluates to \TRUE{}, otherwise $ee$ evaluates to \FALSE{}.
 
 \LMHash{}%
 The static type of an equality expression is \code{bool}.
@@ -15249,11 +15484,16 @@ Relational expressions invoke the relational operators on objects.
 \end{grammar}
 
 \LMHash{}%
-A \Index{relational expression} is either a bitwise expression (\ref{bitwiseExpressions}), or an invocation of a relational operator on either \SUPER{} or an expression $e_1$, with argument $e_2$.
+A \Index{relational expression} is either a bitwise expression
+(\ref{bitwiseExpressions}),
+or an invocation of a relational operator on either \SUPER{}
+or an expression $e_1$, with argument $e_2$.
 
 \LMHash{}%
-A relational expression of the form $e_1$ $op$ $e_2$ is equivalent to the method invocation \code{$e_1$.$op$($e_2$)}.
-A relational expression of the form \SUPER{} $op$ $e_2$ is equivalent to the method invocation \code{\SUPER{}.$op$($e_2$)}.
+A relational expression of the form $e_1$ $op$ $e_2$ is equivalent to
+the method invocation \code{$e_1$.$op$($e_2$)}.
+A relational expression of the form \SUPER{} $op$ $e_2$ is equivalent to
+the method invocation \code{\SUPER{}.$op$($e_2$)}.
 
 
 \subsection{Bitwise Expressions}
@@ -15280,11 +15520,16 @@ Bitwise expressions invoke the bitwise operators on objects.
 \end{grammar}
 
 \LMHash{}%
-A \Index{bitwise expression} is either a shift expression (\ref{shift}), or an invocation of a bitwise operator on either \SUPER{} or an expression $e_1$, with argument $e_2$.
+A \Index{bitwise expression} is either a shift expression (\ref{shift}),
+or an invocation of a bitwise operator
+on either \SUPER{} or an expression $e_1$,
+with argument $e_2$.
 
 \LMHash{}%
-A bitwise expression of the form \code{$e_1$ $op$ $e_2$} is equivalent to the method invocation $e_1.op(e_2)$.
-A bitwise expression of the form \code{\SUPER{} $op$ $e_2$} is equivalent to the method invocation \code{\SUPER{}.$op$($e_2$)}.
+A bitwise expression of the form \code{$e_1$ $op$ $e_2$} is equivalent to
+the method invocation $e_1.op(e_2)$.
+A bitwise expression of the form \code{\SUPER{} $op$ $e_2$} is equivalent to
+the method invocation \code{\SUPER{}.$op$($e_2$)}.
 
 \commentary{%
 It should be obvious that the static type rules for these expressions
@@ -15312,11 +15557,17 @@ Shift expressions invoke the shift operators on objects.
 \end{grammar}
 
 \LMHash{}%
-A \Index{shift expression} is either an additive expression (\ref{additiveExpressions}), or an invocation of a shift operator on either \SUPER{} or an expression $e_1$, with argument $e_2$.
+A \Index{shift expression} is either an additive expression
+(\ref{additiveExpressions}),
+or an invocation of a shift operator
+on either \SUPER{} or an expression $e_1$,
+with argument $e_2$.
 
 \LMHash{}%
-A shift expression of the form $e_1$ $op$ $e_2$ is equivalent to the method invocation \code{$e_1$.$op$($e_2$)}.
-A shift expression of the form \SUPER{} $op$ $e_2$ is equivalent to the method invocation \code{\SUPER{}.$op$($e_2$)}.
+A shift expression of the form $e_1$ $op$ $e_2$ is equivalent to
+the method invocation \code{$e_1$.$op$($e_2$)}.
+A shift expression of the form \SUPER{} $op$ $e_2$ is equivalent to
+the method invocation \code{\SUPER{}.$op$($e_2$)}.
 
 \commentary{%
 Note that this definition implies left-to-right evaluation order
@@ -15345,17 +15596,31 @@ Additive expressions invoke the addition operators on objects.
 \end{grammar}
 
 \LMHash{}%
-An \Index{additive expression} is either a multiplicative expression (\ref{multiplicativeExpressions}), or an invocation of an additive operator on either \SUPER{} or an expression $e_1$, with argument $e_2$.
+An \Index{additive expression} is either a multiplicative expression
+(\ref{multiplicativeExpressions}),
+or an invocation of an additive operator
+on either \SUPER{} or an expression $e_1$,
+with argument $e_2$.
 
 \LMHash{}%
-An additive expression of the form $e_1$ $op$ $e_2$ is equivalent to the method invocation \code{$e_1$.$op$($e_2$)}.
-An additive expression of the form \SUPER{} $op$ $e_2$ is equivalent to the method invocation \code{\SUPER{}.$op$($e_2$)}.
+An additive expression of the form $e_1$ $op$ $e_2$ is equivalent to
+the method invocation \code{$e_1$.$op$($e_2$)}.
+An additive expression of the form \SUPER{} $op$ $e_2$ is equivalent to
+the method invocation \code{\SUPER{}.$op$($e_2$)}.
 
 \LMHash{}%
-The static type of an additive expression is usually determined by the signature given in the declaration of the operator used.
-However, invocations of the operators \code{+} and \code{-} of class \code{int} are treated specially by the typechecker.
-The static type of an expression $e_1 + e_2$ where $e_1$ has static type \code{int} is \code{int} if the static type of $e_2$ is \code{int}, and \code{double} if the static type of $e_2$ is \code{double}.
-The static type of an expression $e_1 - e_2$ where $e_1$ has static type \code{int} is \code{int} if the static type of $e_2$ is \code{int}, and \code{double} if the static type of $e_2$ is \code{double}.
+The static type of an additive expression is usually determined by
+the signature given in the declaration of the operator used.
+However, invocations of the operators \code{+} and \code{-} of class \code{int}
+are treated specially by the typechecker.
+The static type of an expression $e_1 + e_2$
+where $e_1$ has static type \code{int}
+is \code{int} if the static type of $e_2$ is \code{int},
+and \code{double} if the static type of $e_2$ is \code{double}.
+The static type of an expression $e_1 - e_2$
+where $e_1$ has static type \code{int}
+is \code{int} if the static type of $e_2$ is \code{int},
+and \code{double} if the static type of $e_2$ is \code{double}.
 
 
 \subsection{Multiplicative Expressions}
@@ -15376,17 +15641,31 @@ Multiplicative expressions invoke the multiplication operators on objects.
 \end{grammar}
 
 \LMHash{}%
- A \Index{multiplicative expression} is either a unary expression (\ref{unaryExpressions}), or an invocation of a multiplicative operator on either \SUPER{} or an expression $e_1$, with argument $e_2$.
+A \Index{multiplicative expression} is either a unary expression
+(\ref{unaryExpressions}),
+or an invocation of a multiplicative operator
+on either \SUPER{} or an expression $e_1$,
+with argument $e_2$.
 
 \LMHash{}%
-A multiplicative expression of the form $e_1$ $op$ $e_2$ is equivalent to the method invocation \code{$e_1$.$op$($e_2$)}.
-A multiplicative expression of the form \SUPER{} $op$ $e_2$ is equivalent to the method invocation \code{\SUPER{}.$op$($e_2$)}.
+A multiplicative expression of the form $e_1$ $op$ $e_2$ is equivalent to
+the method invocation \code{$e_1$.$op$($e_2$)}.
+A multiplicative expression of the form \SUPER{} $op$ $e_2$ is equivalent to
+the method invocation \code{\SUPER{}.$op$($e_2$)}.
 
 \LMHash{}%
-The static type of an multiplicative expression is usually determined by the signature given in the declaration of the operator used.
-However, invocations of the operators \code{*} and \code{\%} of class \code{int} are treated specially by the typechecker.
-The static type of an expression $e_1 * e_2$ where $e_1$ has static type \code{int} is \code{int} if the static type of $e_2$ is \code{int}, and \code{double} if the static type of $e_2$ is \code{double}.
-The static type of an expression $e_1 \% e_2$ where $e_1$ has static type \code{int} is \code{int} if the static type of $e_2$ is \code{int}, and \code{double} if the static type of $e_2$ is \code{double}.
+The static type of an multiplicative expression is usually determined by
+the signature given in the declaration of the operator used.
+However, invocations of the operators \code{*} and \code{\%} of class \code{int}
+are treated specially by the typechecker.
+The static type of an expression $e_1 * e_2$
+where $e_1$ has static type \code{int}
+is \code{int} if the static type of $e_2$ is \code{int},
+and \code{double} if the static type of $e_2$ is \code{double}.
+The static type of an expression $e_1 \% e_2$
+where $e_1$ has static type \code{int}
+is \code{int} if the static type of $e_2$ is \code{int},
+and \code{double} if the static type of $e_2$ is \code{double}.
 
 
 \subsection{Unary Expressions}
@@ -15414,7 +15693,11 @@ Unary expressions invoke unary operators on objects.
 \end{grammar}
 
 \LMHash{}%
-A \Index{unary expression} is either a postfix expression (\ref{postfixExpressions}), an await expression (\ref{awaitExpressions}) or an invocation of a prefix operator on an expression or an invocation of a unary operator on either \SUPER{} or an expression $e$.
+A \Index{unary expression} is either a postfix expression
+(\ref{postfixExpressions}),
+an await expression (\ref{awaitExpressions})
+or an invocation of a prefix operator on an expression
+or an invocation of a unary operator on either \SUPER{} or an expression $e$.
 
 \LMHash{}%
 The expression $!e$ is treated as
@@ -15468,7 +15751,10 @@ the method invocation (\ref{superInvocation}) \code{\SUPER{}.$op()$}.
 \LMLabel{awaitExpressions}
 
 \LMHash{}%
-An \Index{await expression} allows code to yield control until an asynchronous operation (\ref{functions}) completes.
+An \Index{await expression} allows code to
+yield control until an asynchronous operation
+(\ref{functions})
+completes.
 
 \begin{grammar}
 <awaitExpression> ::= \AWAIT{} <unaryExpression>
@@ -15488,18 +15774,26 @@ of $T$ nor of \code{Future<$T$>})}.
 % NOTICE: Removed the requirement that an error thrown by $e$ is caught in a
 % future. There is no reason $var x = e; await x;$ and $await e$ should behave
 % differently, and no implementation actually implemented it.
-If the run-time type of $o$ is a subtype of \code{Future<$T$>}, then let $f$ be $o$; otherwise let $f$ be the result of creating a new object using the constructor \code{Future<$T$>.value()} with $o$ as its argument.
+If the run-time type of $o$ is a subtype of \code{Future<$T$>},
+then let $f$ be $o$;
+otherwise let $f$ be the result of creating
+a new object using the constructor \code{Future<$T$>.value()}
+with $o$ as its argument.
 
 \LMHash{}%
-Next, the stream associated with the innermost enclosing asynchronous for loop (\ref{asynchronousFor-in}), if any, is paused.
-The current invocation of the function body immediately enclosing $a$ is suspended until after $f$ completes.
+Next, the stream associated with the innermost enclosing asynchronous for loop
+(\ref{asynchronousFor-in}),
+if any, is paused.
+The current invocation of the function body immediately enclosing $a$
+is suspended until after $f$ completes.
 At some time after $f$ is completed, control returns to the current invocation.
 If $f$ has completed with an error $x$ and stack trace $t$,
 $a$ throws $x$ and $t$
 (\ref{expressionEvaluation}).
 If $f$ completes with an object $v$, $a$ evaluates to $v$.
 
-%Otherwise, the value of $a$ is the value of $e$. If evaluation of $e$ raises an exception $x$, $a$ raises $x$.
+% Otherwise, the value of $a$ is the value of $e$. If evaluation of
+% $e$ raises an exception $x$, $a$ raises $x$.
 
 \commentary{%
 An await expression can only occur in a function which is declared
@@ -15713,7 +16007,8 @@ Then $e$ evaluates to $r$.
 \Case{\code{$e_1$?.$v$++}, \code{$e_1$?.$v$-{}-}}
 Consider a postfix expression $e$ of the form \code{$e_1$?.$v$\,\op}
 where \op{} is either \lit{++} or \lit{-{}-}.
-Exactly the same compile-time errors that would be caused by \code{$e_1$.$v$\,\op}
+Exactly the same compile-time errors that would be caused by
+\code{$e_1$.$v$\,\op}
 are also generated in the case of \code{$e_1$?.$v$\,\op}.
 The static type of $e$ is the static type of \code{$e_1$.$v$}.
 
@@ -15735,8 +16030,10 @@ Then $e$ evaluates to $o$.
 \LMLabel{assignableExpressions}
 
 \LMHash{}%
-Assignable expressions are expressions that can appear on the left hand side of an assignment.
-This section describes how to evaluate these expressions when they do not constitute the complete left hand side of an assignment.
+Assignable expressions are expressions
+that can appear on the left hand side of an assignment.
+This section describes how to evaluate these expressions
+when they do not constitute the complete left hand side of an assignment.
 
 \rationale{%
 Of course, if assignable expressions
@@ -15767,26 +16064,35 @@ and therefore must be evaluated.%
 An \Index{assignable expression} is either:
 \begin{itemize}
 \item An identifier.
-\item An invocation (possibly conditional) of a getter (\ref{getters}) or list access operator on an expression $e$.
+\item An invocation (possibly conditional) of a getter (\ref{getters})
+  or list access operator on an expression $e$.
 \item An invocation of a getter or list access operator on \SUPER{}.
 \end{itemize}
 
 \LMHash{}%
-An assignable expression of the form \id{} is evaluated as an identifier expression (\ref{identifierReference}).
+An assignable expression of the form \id{} is evaluated as
+an identifier expression (\ref{identifierReference}).
 
-%An assignable expression of the form \code{$e$.\id($a_1, \ldots,\ a_n$)} is evaluated as a method invocation (\ref{methodInvocation}).
-
-\LMHash{}%
-An assignable expression of the form \code{$e$.\id} or \code{$e$?.\id} is evaluated as a property extraction (\ref{propertyExtraction}).
-
-\LMHash{}%
-An assignable expression of the form \code{$e_1$[$e_2$]} is evaluated as a method invocation of the operator method \code{[]} on $e_1$ with argument $e_2$.
+%An assignable expression of the form \code{$e$.\id($a_1, \ldots,\ a_n$)}
+% is evaluated as a method invocation (\ref{methodInvocation}).
 
 \LMHash{}%
-An assignable expression of the form \code{\SUPER{}.\id} is evaluated as a property extraction.
+An assignable expression of the form \code{$e$.\id} or \code{$e$?.\id}
+is evaluated as a property extraction (\ref{propertyExtraction}).
 
 \LMHash{}%
-Evaluation of an assignable expression of the form \code{\SUPER{}[$e_2$]} is equivalent to evaluation of the method invocation \code{\SUPER{}.[]($e_2$)}.
+An assignable expression of the form \code{$e_1$[$e_2$]}
+is evaluated as a method invocation of
+the operator method \code{[]} on $e_1$ with argument $e_2$.
+
+\LMHash{}%
+An assignable expression of the form \code{\SUPER{}.\id} is evaluated as
+a property extraction.
+
+\LMHash{}%
+Evaluation of an assignable expression of the form \code{\SUPER{}[$e_2$]}
+is equivalent to
+evaluation of the method invocation \code{\SUPER{}.[]($e_2$)}.
 
 
 \subsection{Lexical Lookup}
@@ -16023,7 +16329,8 @@ which implies that \THIS{} should be added.%
 \LMLabel{identifierReference}
 
 \LMHash{}%
-An \Index{identifier expression} consists of a single identifier; it provides access to an object via an unqualified name.
+An \Index{identifier expression} consists of a single identifier;
+it provides access to an object via an unqualified name.
 
 \begin{grammar}
 <identifier> ::= <IDENTIFIER>
@@ -16582,8 +16889,10 @@ in some scope $s$
 if $v$ is mutable, and an assignment to $v$ occurs in $s$.
 
 \LMHash{}%
-A local variable declaration of the form \code{\VAR{} $v$;} is equivalent to \code{\VAR{} $v$ = \NULL{};}.
-A local variable declaration of the form \code{$T$ $v$;} is equivalent to \code{$T$ $v$ = \NULL{};}.
+A local variable declaration of the form \code{\VAR{} $v$;} is equivalent to
+\code{\VAR{} $v$ = \NULL{};}.
+A local variable declaration of the form \code{$T$ $v$;} is equivalent to
+\code{$T$ $v$ = \NULL{};}.
 
 \commentary{%
 This holds regardless of the type $T$.
@@ -16605,7 +16914,8 @@ is \DYNAMIC{}.
 \LMHash{}%
 Let $v$ be a local variable declared by an initializing variable declaration,
 and let $e$ be the associated initializing expression.
-It is a compile-time error if the static type of $e$ is not assignable to the type of $v$.
+It is a compile-time error if the static type of $e$ is not assignable to
+the type of $v$.
 It is a compile-time error if a local variable $v$ is final,
 and the declaration of $v$ is not an initializing variable declaration.
 
@@ -16718,7 +17028,8 @@ of $v$.
 \LMLabel{localFunctionDeclaration}
 
 \LMHash{}%
-A function declaration statement declares a new local function (\ref{functionDeclarations}).
+A function declaration statement declares a new local function
+(\ref{functionDeclarations}).
 
 \begin{grammar}
 <localFunctionDeclaration> ::= <metadata> <functionSignature> <functionBody>
@@ -16795,8 +17106,14 @@ The \Index{if statement} allows for conditional execution of statements.
 \end{grammar}
 
 \LMHash{}%
-An if statement of the form \code{\IF{} ($e$) $s_1$ \ELSE{} $s_2$} where $s_1$ is not a block statement is equivalent to the statement \code{\IF{} ($e$) \{$s_1$\} \ELSE{} $s_2$}.
-An if statement of the form \code{\IF{} ($e$) $s_1$ \ELSE{} $s_2$} where $s_2$ is not a block statement is equivalent to the statement \code{\IF{} ($e$) $s_1$ \ELSE{} \{$s_2$\}}.
+An if statement of the form
+\code{\IF{} ($e$) $s_1$ \ELSE{} $s_2$}
+where $s_1$ is not a block statement is equivalent to the statement
+\code{\IF{} ($e$) \{$s_1$\} \ELSE{} $s_2$}.
+An if statement of the form
+\code{\IF{} ($e$) $s_1$ \ELSE{} $s_2$}
+where $s_2$ is not a block statement is equivalent to the statement
+\code{\IF{} ($e$) $s_1$ \ELSE{} \{$s_2$\}}.
 
 \rationale{%
 The reason for this equivalence is to catch errors such as%
@@ -16831,16 +17148,21 @@ to help avoid such situations.%
 }
 
 \LMHash{}%
-Execution of an if statement of the form \code{\IF{} ($b$) $s_1$ \ELSE{} $s_2$} where $s_1$ and $s_2$ are block statements, proceeds as follows:
+Execution of an if statement of the form
+\code{\IF{} ($b$) $s_1$ \ELSE{} $s_2$}
+where $s_1$ and $s_2$ are block statements,
+proceeds as follows:
 
 \LMHash{}%
 First, the expression $b$ is evaluated to an object $o$.
 % This error can occur due to implicit casts and null.
 It is a dynamic error if the run-time type of $o$ is not \code{bool}.
-If $o$ is \TRUE{}, then the block statement $s_1$ is executed, otherwise the block statement $s_2$ is executed.
+If $o$ is \TRUE{}, then the block statement $s_1$ is executed,
+otherwise the block statement $s_2$ is executed.
 
 \LMHash{}%
-It is a compile-time error if the type of the expression $b$ may not be assigned to \code{bool}.
+It is a compile-time error if the type of the expression $b$
+may not be assigned to \code{bool}.
 
 \LMHash{}%
 If $b$ shows that a local variable $v$ has type $T$,
@@ -16855,7 +17177,8 @@ $v$ is potentially mutated anywhere in the scope of $v$.
 \end{itemize}
 
 \LMHash{}%
-An if statement of the form \code{\IF{} ($e$) $s$} is equivalent to the if statement \code{\IF{} ($e$) $s$ \ELSE{} \{\}}.
+An if statement of the form \code{\IF{} ($e$) $s$} is equivalent to
+the if statement \code{\IF{} ($e$) $s$ \ELSE{} \{\}}.
 
 
 \subsection{For}
@@ -16876,7 +17199,8 @@ The \Index{for statement} supports iteration.
 \end{grammar}
 
 \LMHash{}%
- The for statement has three forms - the traditional for loop and two forms of the for-in statement - synchronous and asynchronous.
+The for statement has three forms - the traditional for loop
+and two forms of the for-in statement - synchronous and asynchronous.
 
 
 \subsubsection{For Loop}
@@ -16894,28 +17218,31 @@ First the variable declaration statement \VAR{} $v = e_0$ is executed.
 Then:
 \begin{enumerate}
 \item
-\label{beginFor}
-If this is the first iteration of the for loop, let $v'$ be $v$.
-Otherwise, let $v'$ be the variable $v''$ created in the previous execution of step \ref{allocateFreshVar}.
+  \label{beginFor}
+  If this is the first iteration of the for loop, let $v'$ be $v$.
+  Otherwise, let $v'$ be the variable $v''$ created in
+  the previous execution of step \ref{allocateFreshVar}.
 \item
-The expression $[v'/v]c$ is evaluated to an object $o$.
-% This error can occur due to implicit casts and null.
-It is a dynamic error if the run-time type of $o$ is not \code{bool}.
-If $o$ is \FALSE{}, the for loop completes normally.
-Otherwise, execution continues at step \ref{beginIteration}.
+  The expression $[v'/v]c$ is evaluated to an object $o$.
+  % This error can occur due to implicit casts and null.
+  It is a dynamic error if the run-time type of $o$ is not \code{bool}.
+  If $o$ is \FALSE{}, the for loop completes normally.
+  Otherwise, execution continues at step \ref{beginIteration}.
 \item
-\label{beginIteration}
-The statement $[v'/v]\{s\}$ is executed.
+  \label{beginIteration}
+  The statement $[v'/v]\{s\}$ is executed.
 
-If this execution completes normally, continues without a label,
-or continues to a label (\ref{labels}) that prefixes this \FOR{} statement (\ref{statementCompletion}),
-then execution of the statement is treated as if it had completed normally.
+  If this execution completes normally, continues without a label,
+  or continues to a label (\ref{labels})
+  that prefixes this \FOR{} statement (\ref{statementCompletion}),
+  then execution of the statement is treated as if it had completed normally.
 
-\label{allocateFreshVar}
-Let $v''$ be a fresh variable.
-$v''$ is bound to the value of $v'$.
+  \label{allocateFreshVar}
+  Let $v''$ be a fresh variable.
+  $v''$ is bound to the value of $v'$.
 \item
-The expression $[v''/v]e$ is evaluated, and the process recurses at step \ref{beginFor}.
+  The expression $[v''/v]e$ is evaluated, and
+  the process recurses at step \ref{beginFor}.
 \end{enumerate}
 
 \rationale{%
@@ -16935,9 +17262,11 @@ and then modifies $v''$ as required for the next iteration.%
 }
 
 \LMHash{}%
-It is a compile-time error if the static type of $c$ may not be assigned to \code{bool}.
+It is a compile-time error if the static type of $c$
+may not be assigned to \code{bool}.
 
-%A for statement of the form \code{\FOR{} ($d$ ; $c$; $e$) $s$} is equivalent to the following code:
+%A for statement of the form \code{\FOR{} ($d$ ; $c$; $e$) $s$}
+%is equivalent to the following code:
 
 %\code{
 %\{$d$;
@@ -16973,7 +17302,8 @@ If the static type of $e$ is a top type
 (\ref{superBoundedTypes})
 then $T$ is \code{Iterable<\DYNAMIC>},
 otherwise $T$ is the static type of $e$.
-It is a compile-time error if $T$ is not assignable to \code{Iterable<\DYNAMIC>}.
+It is a compile-time error if $T$ is not assignable to
+\code{Iterable<\DYNAMIC>}.
 
 \commentary{%
 It follows that it is a compile-time error
@@ -16990,7 +17320,8 @@ which is not a subtype of \code{Iterable<dynamic>}.%
 \LMHash{}%
 A for-in statement may be asynchronous.
 The asynchronous form is designed to iterate over streams.
-An asynchronous for loop is distinguished by the keyword \AWAIT{} immediately preceding the keyword \FOR.
+An asynchronous for loop is distinguished by
+the keyword \AWAIT{} immediately preceding the keyword \FOR.
 
 \LMHash{}%
 Let $D$ be derived from \syntax{<finalConstVarOrType>?}.
@@ -17001,11 +17332,13 @@ proceeds as follows:
 \LMHash{}%
 The expression $e$ is evaluated to an object $o$.
 % This error can occur due to implicit casts and null.
-It is a dynamic type error if $o$ is not an instance of a class that implements \code{Stream}.
+It is a dynamic type error if $o$ is not an instance of
+a class that implements \code{Stream}.
 It is a compile-time error if $D$ is empty and \id{} is a final variable.
 
 \LMHash{}%
-The stream associated with the innermost enclosing asynchronous for loop, if any, is paused.
+The stream associated with the innermost enclosing asynchronous for loop,
+if any, is paused.
 The stream $o$ is listened to, producing a stream subscription $u$,
 and execution of the asynchronous for-in loop is suspended
 until a stream event is available.
@@ -17014,9 +17347,11 @@ This allows other asynchronous events to execute
 while this loop is waiting for stream events.%
 }
 
-Pausing an asynchronous for loop means pausing the associated stream subscription.
+Pausing an asynchronous for loop means pausing
+the associated stream subscription.
 A stream subscription is paused by calling its \code{pause} method.
-If the subscription is already paused, an implementation may omit further calls to \code{pause}.
+If the subscription is already paused, an implementation may omit
+further calls to \code{pause}.
 
 \commentary{%
 The \code{pause} call can throw, although that should never happen
@@ -17025,7 +17360,8 @@ for a correctly implemented stream.%
 
 \LMHash{}%
 For each \Index{data event} from $u$,
-the statement $s$ is executed with \id{} bound to the value of the current data event.
+the statement $s$ is executed with \id{} bound to
+the value of the current data event.
 
 \commentary{%
 Either execution of $s$ is completely synchronous, or it contains an
@@ -17040,16 +17376,24 @@ the behavior of the asynchronous loop may become unpredictable.%
 }
 
 \LMHash{}%
-If execution of $s$ continues without a label, or to a label (\ref{labels}) that prefixes the asynchronous for statement (\ref{statementCompletion}), then the execution of $s$ is treated as if it had completed normally.
+If execution of $s$ continues without a label,
+or to a label (\ref{labels})
+that prefixes the asynchronous for statement (\ref{statementCompletion}),
+then the execution of $s$ is treated as if it had completed normally.
 
-If execution of $s$ otherwise does not complete normally, the subscription $u$ is canceled by evaluating \code{\AWAIT{} $v$.cancel()} where $v$ is a fresh variable referencing the stream subscription $u$.
+\LMHash{}%
+If execution of $s$ otherwise does not complete normally,
+the subscription $u$ is canceled by evaluating \code{\AWAIT{} $v$.cancel()}
+where $v$ is a fresh variable referencing the stream subscription $u$.
 If that evaluation throws,
 execution of $f$ throws the same exception and stack trace.
 Otherwise execution of $f$ completes in the same way as the execution of $s$.
 % Notice: The previous specification was unclear about what happened when
 % a subscripton is canceled. This text is explicit, and existing
 % implementations may not properly await the cancel call.
-Otherwise the execution of $f$ is suspended again, waiting for the next stream subscription event, and $u$ is resumed if it has been paused.
+Otherwise the execution of $f$ is suspended again, waiting for
+the next stream subscription event,
+and $u$ is resumed if it has been paused.
 \commentary{%
 The \code{resume} call can throw, in which case the asynchronous for
 loop also throws.
@@ -17063,14 +17407,17 @@ the subscription $u$ is canceled by evaluating \code{\AWAIT{} v.cancel()}
 where $v$ is a fresh variable referencing the stream subscription $u$.
 If that evaluation throws,
 execution of $f$ throws the same exception object and stack trace.
-Otherwise execution of $f$ throws with $e$ as exception object and $st$ as stack trace.
+Otherwise execution of $f$ throws
+with $e$ as exception object and $st$ as stack trace.
 
 \LMHash{}%
 When $u$ is done, execution of $f$ completes normally.
 
 \LMHash{}%
-It is a compile-time error if an asynchronous for-in statement appears inside a synchronous function (\ref{functions}).
-It is a compile-time error if a traditional for loop (\ref{forLoop}) is prefixed by the \AWAIT{} keyword.
+It is a compile-time error if an asynchronous for-in statement appears
+inside a synchronous function (\ref{functions}).
+It is a compile-time error if a traditional for loop (\ref{forLoop}) is
+prefixed by the \AWAIT{} keyword.
 
 \rationale{%
 An asynchronous loop would make no sense within a synchronous function, 
@@ -17083,14 +17430,16 @@ in a synchronous function.%
 \LMLabel{while}
 
 \LMHash{}%
-The while statement supports conditional iteration, where the condition is evaluated prior to the loop.
+The while statement supports conditional iteration,
+where the condition is evaluated prior to the loop.
 
 \begin{grammar}
 <whileStatement> ::= \WHILE{} `(' <expression> `)' <statement>
 \end{grammar}
 
 \LMHash{}%
-Execution of a while statement of the form \code{\WHILE{} ($e$) $s$;} proceeds as follows:
+Execution of a while statement of the form \code{\WHILE{} ($e$) $s$;}
+proceeds as follows:
 
 \LMHash{}%
 The expression $e$ is evaluated to an object $o$.
@@ -17098,12 +17447,17 @@ The expression $e$ is evaluated to an object $o$.
 It is a dynamic error if the run-time type of $o$ is not \code{bool}.
 
 \LMHash{}%
-If $o$ is \FALSE{}, then execution of the while statement completes normally (\ref{statementCompletion}).
+If $o$ is \FALSE{}, then execution of the while statement completes normally
+(\ref{statementCompletion}).
 
 \LMHash{}%
 Otherwise $o$ is \TRUE{} and then the statement $\{s\}$ is executed.
-If that execution completes normally or it continues with no label or to a label (\ref{labels}) that prefixes the \WHILE{} statement (\ref{statementCompletion}), then the while statement is re-executed.
-If the execution breaks without a label, execution of the while statement completes normally.
+If that execution completes normally or it continues with no label
+or to a label (\ref{labels}) that prefixes the \WHILE{} statement
+(\ref{statementCompletion}),
+then the while statement is re-executed.
+If the execution breaks without a label,
+execution of the while statement completes normally.
 \commentary{%
 If the execution breaks with a label that prefixes the \WHILE{} statement,
 it does end execution of the loop,
@@ -17120,35 +17474,43 @@ the static type of $e$ may not be assigned to \code{bool}.
 \LMLabel{do}
 
 \LMHash{}%
-The do statement supports conditional iteration, where the condition is evaluated after the loop.
+The do statement supports conditional iteration,
+where the condition is evaluated after the loop.
 
 \begin{grammar}
 <doStatement> ::= \DO{} <statement> \WHILE{} `(' <expression> `)' `;'
 \end{grammar}
 
 \LMHash{}%
-Execution of a do statement of the form \code{\DO{} $s$ \WHILE{} ($e$);} proceeds as follows:
+Execution of a do statement of the form \code{\DO{} $s$ \WHILE{} ($e$);}
+proceeds as follows:
 
 \LMHash{}%
 The statement $\{s\}$ is executed.
-If that execution continues with no label, or to a label (\ref{labels}) that prefixes the do statement (\ref{statementCompletion}), then the execution of $s$ is treated as if it had completed normally.
+If that execution continues with no label,
+or to a label (\ref{labels}) that prefixes the do statement
+(\ref{statementCompletion}),
+then the execution of $s$ is treated as if it had completed normally.
 
 \LMHash{}%
 Then, the expression $e$ is evaluated to an object $o$.
 % This error can occur due to implicit casts and null.
 It is a dynamic error if the run-time type of $o$ is not \code{bool}.
-If $o$ is \FALSE{}, execution of the do statement completes normally (\ref{statementCompletion}).
+If $o$ is \FALSE{}, execution of the do statement completes normally
+(\ref{statementCompletion}).
 If $o$ is \TRUE{}, then the do statement is re-executed.
 
 \LMHash{}%
-It is a compile-time error if the static type of $e$ may not be assigned to \code{bool}.
+It is a compile-time error if the static type of $e$
+may not be assigned to \code{bool}.
 
 
 \subsection{Switch}
 \LMLabel{switch}
 
 \LMHash{}%
-The \Index{switch statement} supports dispatching control among a large number of cases.
+The \Index{switch statement} supports dispatching control among
+a large number of cases.
 
 \begin{grammar}
 <switchStatement> ::= \gnewline{}
@@ -17189,16 +17551,21 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 }
 
 \LMHash{}%
-It is a compile-time error unless each expression $e_j, j \in 1 .. n$ is constant.
-It is a compile-time error if the value of the expressions $e_j, j \in 1 .. n$ are not either:
+It is a compile-time error unless each expression
+$e_j, j \in 1 .. n$ is constant.
+It is a compile-time error if the value of the expressions
+$e_j, j \in 1 .. n$ are not either:
 \begin{itemize}
 \item instances of the same class $C$, for all $j \in 1 .. n$, or
-\item instances of a class that implements \code{int}, for all $j \in 1 .. n$, or
-\item instances of a class that implements \code{String}, for all $j \in 1 .. n$.
+\item instances of a class that implements \code{int},
+  for all $j \in 1 .. n$, or
+\item instances of a class that implements \code{String},
+  for all $j \in 1 .. n$.
 \end{itemize}
 
 \commentary{%
-In other words, all the expressions in the cases evaluate to constants of the exact same user defined class or are of certain known types.
+In other words, all the expressions in the cases evaluate to constants of
+the exact same user defined class or are of certain known types.
 %% TODO(eernst): Update when we specify inference: const List<int> xs = [];
 %% may be a counter-example: The value is a list that "knows" it is a
 %% `List<int>` independently of the type annotation, but it wouldn't be a
@@ -17252,7 +17619,8 @@ or the form
 proceeds as follows:
 
 \LMHash{}%
-The statement \code{\VAR{} \id{} = $e$;} is evaluated, where \id{} is a fresh variable.
+The statement \code{\VAR{} \id{} = $e$;} is evaluated,
+where \id{} is a fresh variable.
 % This error can occur due to implicit casts and standard subsumption.
 %% TODO(eernst): But why couldn't $e$ be an instance of a subtype?!
 It is a dynamic error if the value of $e$ is
@@ -17264,8 +17632,10 @@ the type of $e$ does not matter.%
 }
 
 \LMHash{}%
-Next, the case clause \CASE{} $e_{1}$: $s_{1}$ is matched against \id, if $n > 0$.
-Otherwise if there is a \DEFAULT{} clause, the case statements $s_{n+1}$ are executed (\ref{case-execute}).
+Next, the case clause \CASE{} $e_{1}$: $s_{1}$ is matched against \id,
+if $n > 0$.
+Otherwise if there is a \DEFAULT{} clause,
+the case statements $s_{n+1}$ are executed (\ref{case-execute}).
 
 \LMHash{}%
 Matching of a \CASE{} clause \CASE{} $e_{k}: s_{k}$ of a switch statement
@@ -17285,8 +17655,12 @@ against the value of a variable \id{} proceeds as follows:
 The expression \code{$e_k$ == \id} is evaluated to an object $o$.
 % This error can occur due to implicit casts and null.
 It is a dynamic error if the run-time type of $o$ is not \code{bool}.
-If $o$ is \FALSE{} the following case, \CASE{} $e_{k+1}: s_{k+1}$ is matched against \id{} if $k < n$, and if $k = n$, then the \DEFAULT{} clause's statements are executed (\ref{case-execute}).
-If $o$ is \TRUE{}, let $h$ be the smallest number such that $h \ge k$ and $s_h$ is non-empty.
+If $o$ is \FALSE{} the following case,
+\CASE{} $e_{k+1}: s_{k+1}$ is matched against \id{} if $k < n$,
+and if $k = n$, then the \DEFAULT{} clause's statements are executed
+(\ref{case-execute}).
+If $o$ is \TRUE{}, let $h$ be the smallest number
+such that $h \ge k$ and $s_h$ is non-empty.
 If no such $h$ exists, let $h = n + 1$.
 The case statements $s_h$ are then executed (\ref{case-execute}).
 
@@ -17307,16 +17681,23 @@ against the value of a variable \id{} proceeds as follows:
 The expression \code{$e_k$ == \id} is evaluated to an object $o$.
 % This error can occur due to implicit casts and null.
 It is a dynamic error if the run-time type of $o$ is not \code{bool}.
-If $o$ is \FALSE{} the following case, \CASE{} $e_{k+1}: s_{k+1}$ is matched against \id{} if $k < n$.
-If $o$ is \TRUE{}, let $h$ be the smallest integer such that $h \ge k$ and $s_h$ is non-empty.
-If such a $h$ exists, the case statements $s_h$ are executed (\ref{case-execute}).
-Otherwise the switch statement completes normally (\ref{statementCompletion}).
+If $o$ is \FALSE{} the following case,
+\CASE{} $e_{k+1}: s_{k+1}$ is matched against \id{} if $k < n$.
+If $o$ is \TRUE{}, let $h$ be the smallest integer
+such that $h \ge k$ and $s_h$ is non-empty.
+If such a $h$ exists, the case statements $s_h$ are executed
+(\ref{case-execute}).
+Otherwise the switch statement completes normally
+(\ref{statementCompletion}).
 
 \LMHash{}%
-It is a compile-time error if the type of $e$ may not be assigned to the type of $e_k$.
+It is a compile-time error if the type of $e$
+may not be assigned to the type of $e_k$.
 Let $s$ be the last statement of the statement sequence $s_k$.
-If $s$ is a non-empty block statement, let $s$ instead be the last statement of the block statement.
-It is a compile-time error if $s$ is not a \BREAK{}, \CONTINUE{}, \RETHROW{} or \RETURN{} statement
+If $s$ is a non-empty block statement, let $s$ instead be
+the last statement of the block statement.
+It is a compile-time error if $s$ is not
+a \BREAK{}, \CONTINUE{}, \RETHROW{} or \RETURN{} statement
 or an expression statement where the expression is a \THROW{} expression.
 
 \rationale{%
@@ -17359,8 +17740,10 @@ and such code can always be refactored.%
 It is a static warning if all of the following conditions hold:
 \begin{itemize}
 \item The switch statement does not have a default clause.
-\item The static type of $e$ is an enumerated type with elements $\id_1, \ldots, \id_n$.
-\item The sets $\{e_1, \ldots, e_k\} $ and $\{\id_1, \ldots, \id_n\}$ are not the same.
+\item The static type of $e$ is an enumerated
+  type with elements $\id_1, \ldots, \id_n$.
+\item The sets $\{e_1, \ldots, e_k\} $ and $\{\id_1, \ldots, \id_n\}$
+  are not the same.
 \end{itemize}
 
 \commentary{%
@@ -17412,21 +17795,31 @@ The last case in a switch (default or otherwise) can `fall-through'
 to the end of the statement.%
 }
 
-If execution of $\{s_h\}$ breaks with no label (\ref{statementCompletion}), then the execution of the switch statement completes normally.
+If execution of $\{s_h\}$ breaks with no label (\ref{statementCompletion}),
+then the execution of the switch statement completes normally.
 
-If execution of $\{s_h\}$ continues to a label (\ref{statementCompletion}), and the label is $label_{ij}$, where $1 \le i \le n+1$ if the \SWITCH{} statement has a \DEFAULT{}, or $1 \le i \le n$ if there is no \DEFAULT{}, and where $1 \le j \le j_{i}$, then
-let $h$ be the smallest number such that $h \ge i$ and $s_h$ is non-empty.
-If no such $h$ exists, let $h = n + 1$ if the \SWITCH{} statement has a \DEFAULT{}, otherwise let $h = n$.
+If execution of $\{s_h\}$ continues to a label
+(\ref{statementCompletion}),
+and the label is $label_{ij}$,
+where $1 \le i \le n+1$ if the \SWITCH{} statement has a \DEFAULT{},
+or $1 \le i \le n$ if there is no \DEFAULT{},
+and where $1 \le j \le j_{i}$,
+then let $h$ be the smallest number such that $h \ge i$ and $s_h$ is non-empty.
+If no such $h$ exists,
+let $h = n + 1$ if the \SWITCH{} statement has a \DEFAULT{},
+otherwise let $h = n$.
 The case statements $s_h$ are then executed (\ref{case-execute}).
 
-If execution of $\{s_h\}$ completes in any other way, execution of the \SWITCH{} statement completes in the same way.
+If execution of $\{s_h\}$ completes in any other way,
+execution of the \SWITCH{} statement completes in the same way.
 
 
 \subsection{Rethrow}
 \LMLabel{rethrow}
 
 \LMHash{}%
-The \Index{rethrow statement} is used to re-throw an exception and its associated stack trace.
+The \Index{rethrow statement} is used to
+re-throw an exception and its associated stack trace.
 
 \begin{grammar}
 <rethrowStatement> ::= \RETHROW{} `;'
@@ -17436,7 +17829,9 @@ The \Index{rethrow statement} is used to re-throw an exception and its associate
 Execution of a \code{\RETHROW{}} statement proceeds as follows:
 
 \LMHash{}%
-Let $f$ be the immediately enclosing function, and let \code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$)} be the immediately enclosing catch clause (\ref{try}).
+Let $f$ be the immediately enclosing function,
+and let \code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$)}
+be the immediately enclosing catch clause (\ref{try}).
 
 \rationale{%
 A \RETHROW{} statement always appears inside a \CATCH{} clause,
@@ -17447,17 +17842,20 @@ a \CATCH{} clause of that form.%
 }
 
 \LMHash{}%
-The \RETHROW{} statement throws (\ref{statementCompletion}) with $p_1$ as the exception object and $p_2$ as the stack trace.
+The \RETHROW{} statement throws (\ref{statementCompletion})
+with $p_1$ as the exception object and $p_2$ as the stack trace.
 
 \LMHash{}%
-It is a compile-time error if a \code{\RETHROW{}} statement is not enclosed within an \ON-\CATCH{} clause.
+It is a compile-time error if a \code{\RETHROW{}} statement is not
+enclosed within an \ON-\CATCH{} clause.
 
 
 \subsection{Try}
 \LMLabel{try}
 
 \LMHash{}%
-The try statement supports the definition of exception handling code in a structured way.
+The try statement supports the definition of exception handling code
+in a structured way.
 
 \begin{grammar}
 <tryStatement> ::= \TRY{} <block> (<onPart>+ <finallyPart>? | <finallyPart>)
@@ -17474,7 +17872,11 @@ The try statement supports the definition of exception handling code in a struct
 A try statement consists of a block statement, followed by at least one of:
 \begin{enumerate}
 \item
-A set of \ON{}-\CATCH{} clauses, each of which specifies (either explicitly or implicitly) the type of exception object to be handled, one or two exception parameters, and a block statement.
+  A set of \ON{}-\CATCH{} clauses, each of which specifies
+  (either explicitly or implicitly)
+  the type of exception object to be handled,
+  one or two exception parameters,
+  and a block statement.
 \item
 A \FINALLY{} clause, which consists of a block statement.
 \end{enumerate}
@@ -17487,23 +17889,45 @@ leaving what looks like a Javascript catch clause.%
 }
 
 \LMHash{}%
-A try statement of the form \code{\TRY{} $s_1$ $on-catch_1 \ldots on-catch_n$;} is equivalent to the statement \code{\TRY{} $s_1$ $on-catch_1 \ldots on-catch_n$ \FINALLY{} $\{\}$}.
+A try statement of the form
+\code{\TRY{} $s_1$ $on-catch_1 \ldots on-catch_n$;}
+is equivalent to the statement
+\code{\TRY{} $s_1$ $on-catch_1 \ldots on-catch_n$ \FINALLY{} $\{\}$}.
 
 \LMHash{}%
-An \ON{}-\CATCH{} clause of the form \code{\ON{} $T$ \CATCH{} ($p_1$) $s$} is equivalent to an \ON{}-\CATCH{} clause \code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$) $s$} where $p_2$ is a fresh identifier.
+An \ON{}-\CATCH{} clause of the form
+\code{\ON{} $T$ \CATCH{} ($p_1$) $s$}
+is equivalent to an \ON{}-\CATCH{} clause
+\code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$) $s$}
+where $p_2$ is a fresh identifier.
 
 \LMHash{}%
-An \ON{}-\CATCH{} clause of the form \code{\ON{} $T$ $s$} is equivalent to an \ON{}-\CATCH{} clause \code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$) $s$} where $p_1$ and $p_2$ are fresh identifiers.
+An \ON{}-\CATCH{} clause of the form
+\code{\ON{} $T$ $s$}
+is equivalent to an \ON{}-\CATCH{} clause
+\code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$) $s$}
+where $p_1$ and $p_2$ are fresh identifiers.
 
 \LMHash{}%
-An \ON{}-\CATCH{} clause of the form \code{\CATCH{} ($p$) $s$} is equivalent to an \ON{}-\CATCH{} clause \code{\ON{} \DYNAMIC{} \CATCH{} ($p$, $p_2$) $s$} where $p_2$ is a fresh identifier.
+An \ON{}-\CATCH{} clause of the form
+\code{\CATCH{} ($p$) $s$}
+is equivalent to an \ON{}-\CATCH{} clause
+\code{\ON{} \DYNAMIC{} \CATCH{} ($p$, $p_2$) $s$}
+where $p_2$ is a fresh identifier.
 
-An \ON{}-\CATCH{} clause of the form \code{\CATCH{} ($p_1$, $p_2$) $s$} is equivalent to an \ON{}-\CATCH{} clause \code{\ON{} \DYNAMIC{} \CATCH{} ($p_1$, $p_2$) $s$}.
+An \ON{}-\CATCH{} clause of the form
+\code{\CATCH{} ($p_1$, $p_2$) $s$}
+is equivalent to an \ON{}-\CATCH{} clause
+\code{\ON{} \DYNAMIC{} \CATCH{} ($p_1$, $p_2$) $s$}.
 
 \LMHash{}%
-An \ON{}-\CATCH{} clause of the form \code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$) $s$} introduces a new scope $CS$ in which final local variables specified by $p_1$ and $p_2$ are defined.
+An \ON{}-\CATCH{} clause of the form
+\code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$) $s$}
+introduces a new scope $CS$ in which final local variables
+specified by $p_1$ and $p_2$ are defined.
 The statement $s$ is enclosed within $CS$.
-The static type of $p_1$ is $T$ and the static type of $p_2$ is \code{StackTrace}.
+The static type of $p_1$ is $T$
+and the static type of $p_2$ is \code{StackTrace}.
 
 \LMHash{}%
 Execution of a \TRY{} statement $s$ of the form:
@@ -17519,14 +17943,22 @@ proceeds as follows:
 
 \LMHash{}%
 First $b$ is executed.
-If execution of $b$ throws (\ref{statementCompletion}) with exception object $e$ and stack trace $t$, then $e$ and $t$ are matched against the \ON{}-\CATCH{} clauses to yield a new completion (\ref{on-catch}).
+If execution of $b$ throws (\ref{statementCompletion})
+with exception object $e$ and stack trace $t$,
+then $e$ and $t$ are matched against the \ON{}-\CATCH{} clauses
+to yield a new completion (\ref{on-catch}).
 
-Then, even if execution of $b$ did not complete normally or matching against the \ON{}-\CATCH{} clauses did not complete normally, the $f$ block is executed.
+Then, even if execution of $b$ did not complete normally
+or matching against the \ON{}-\CATCH{} clauses did not complete normally,
+the $f$ block is executed.
 
 If execution of $f$ does not complete normally,
 execution of the \TRY{} statement completes in the same way.
-Otherwise if execution of $b$ threw (\ref{statementCompletion}), the \TRY{} statement completes in the same way as the matching against the \ON{}-\CATCH{} clauses.
-Otherwise the \TRY{} statement completes in the same way as the execution of $b$.
+Otherwise if execution of $b$ threw (\ref{statementCompletion}),
+the \TRY{} statement completes in the same way as
+the matching against the \ON{}-\CATCH{} clauses.
+Otherwise the \TRY{} statement completes in the same way as
+the execution of $b$.
 
 \LMHash{}%
 It is a compile-time error if $T_i$, $1 \le i \le n$ is a deferred type.
@@ -17536,7 +17968,8 @@ It is a compile-time error if $T_i$, $1 \le i \le n$ is a deferred type.
 \LMLabel{on-catch}
 
 \LMHash{}%
-Matching an exception object $e$ and stack trace $t$ against a (potentially empty) sequence of \ON{}-\CATCH{} clauses of the form
+Matching an exception object $e$ and stack trace $t$ against
+a (potentially empty) sequence of \ON{}-\CATCH{} clauses of the form
 
 \begin{normativeDartCode}
 \ON{} $T_1$ \CATCH{} ($e_1$, $st_1$) \{ $s_1$ \}
@@ -17546,17 +17979,25 @@ Matching an exception object $e$ and stack trace $t$ against a (potentially empt
 proceeds as follows:
 
 \LMHash{}%
-If there are no \ON{}-\CATCH{} clauses ($n = 0$), matching throws the exception object $e$ and stack trace $t$ (\ref{statementCompletion}).
+If there are no \ON{}-\CATCH{} clauses ($n = 0$), matching throws
+the exception object $e$ and stack trace $t$
+(\ref{statementCompletion}).
 
 \LMHash{}%
 Otherwise the exception is matched against the first clause.
 
 \LMHash{}%
-Otherwise, if the type of $e$ is a subtype of $T_1$, then the first clause matches, and then $e_1$ is bound to the exception object $e$ and $t_1$ is bound to the stack trace $t$, and $s_1$ is executed in this scope.
+Otherwise, if the type of $e$ is a subtype of $T_1$,
+then the first clause matches,
+and then $e_1$ is bound to the exception object $e$
+and $t_1$ is bound to the stack trace $t$,
+and $s_1$ is executed in this scope.
 The matching completes in the same way as this execution.
 
 \LMHash{}%
-Otherwise, if the first clause did not match $e$, $e$ and $t$ are recursively matched against the remaining \ON{}-\CATCH{} clauses:
+Otherwise, if the first clause did not match $e$,
+$e$ and $t$ are recursively matched against
+the remaining \ON{}-\CATCH{} clauses:
 
 \begin{normativeDartCode}
 \ON{} $T_2$ \CATCH{} ($e_2$, $t_2$) \{ $s_2$ \}
@@ -17786,7 +18227,9 @@ returns without an object
 \LMHash{}%
 A \Index{label} is an identifier followed by a colon.
 A \Index{labeled statement} is a statement prefixed by a label $L$.
-A \Index{labeled case clause} is a case clause within a switch statement (\ref{switch}) prefixed by a label $L$.
+A \Index{labeled case clause} is a case clause within a switch statement
+(\ref{switch})
+prefixed by a label $L$.
 
 \rationale{%
 The sole role of labels is to provide targets for
@@ -17804,7 +18247,8 @@ then execution of $s$ completes normally,
 otherwise execution of $s$ completes in the same ways as the execution of $s_l$.
 
 \LMHash{}%
-The namespace of labels is distinct from the one used for types, functions and variables.
+The namespace of labels is distinct from the one used for
+types, functions and variables.
 
 \LMHash{}%
 The scope of a label that labels a statement $s$ is $s$.
@@ -17821,7 +18265,8 @@ is primarily making Dart a better target for code generation.%
 \LMLabel{break}
 
 \LMHash{}%
-The \Index{break statement} consists of the reserved word \BREAK{} and an optional label (\ref{labels}).
+The \Index{break statement} consists of
+the reserved word \BREAK{} and an optional label (\ref{labels}).
 
 \begin{grammar}
 <breakStatement> ::= \BREAK{} <identifier>? `;'
@@ -17836,18 +18281,22 @@ If $s_b$ is of the form \code{\BREAK{};},
 then it is a compile-time error if $s_b$ is not enclosed in an
 \code{\AWAIT{} \FOR{}} (\ref{asynchronousFor-in}),
 \DO{} (\ref{do}), \FOR{} (\ref{for}), \SWITCH{} (\ref{switch})
-or \WHILE{} (\ref{while}) statement within the innermost function in which $s_b$ occurs.
+or \WHILE{} (\ref{while}) statement within
+the innermost function in which $s_b$ occurs.
 
 \LMHash{}%
-Execution of a \BREAK{} statement \code{\BREAK{} $L$;} breaks to the label $L$ (\ref{statementCompletion}).
-Execution of a \BREAK{} statement \code{\BREAK{};} breaks without a label (\ref{statementCompletion}).
+Execution of a \BREAK{} statement \code{\BREAK{} $L$;} breaks to the label $L$
+(\ref{statementCompletion}).
+Execution of a \BREAK{} statement \code{\BREAK{};} breaks without a label
+(\ref{statementCompletion}).
 
 
 \subsection{Continue}
 \LMLabel{continue}
 
 \LMHash{}%
-The \Index{continue statement} consists of the reserved word \CONTINUE{} and an optional label (\ref{labels}).
+The \Index{continue statement} consists of the reserved word \CONTINUE{}
+and an optional label (\ref{labels}).
 
 \begin{grammar}
 <continueStatement> ::= \CONTINUE{} <identifier>? `;'
@@ -17868,8 +18317,10 @@ then it is a compile-time error if $s_c$ is not enclosed in an
 within the innermost function in which $s_c$ occurs.
 
 \LMHash{}%
-Execution of a \CONTINUE{} statement \code{\CONTINUE{} $L$;} continues to the label $L$ (\ref{statementCompletion}).
-Execution of a \CONTINUE{} statement \code{\CONTINUE{};} continues without a label (\ref{statementCompletion}).
+Execution of a \CONTINUE{} statement \code{\CONTINUE{} $L$;} continues
+to the label $L$ (\ref{statementCompletion}).
+Execution of a \CONTINUE{} statement \code{\CONTINUE{};} continues
+without a label (\ref{statementCompletion}).
 
 
 \subsection{Yield}
@@ -18085,7 +18536,8 @@ Otherwise
 \LMLabel{assert}
 
 \LMHash{}%
-An \Index{assert statement} is used to disrupt normal execution if a given boolean condition does not hold.
+An \Index{assert statement} is used to disrupt normal execution
+if a given boolean condition does not hold.
 
 \begin{grammar}
 <assertStatement> ::= <assertion> `;'
@@ -18100,7 +18552,8 @@ That comma, if present, has no effect.
 An assertion with a trailing comma is equivalent to one with that comma removed.
 
 \LMHash{}%
-An assertion of the form \code{\ASSERT($e$)} is equivalent to an assertion of the form \code{\ASSERT($e$, \NULL{})}.
+An assertion of the form \code{\ASSERT($e$)} is equivalent to
+an assertion of the form \code{\ASSERT($e$, \NULL{})}.
 
 \LMHash{}%
 Execution of an assert statement executes the assertion as described below
@@ -18122,12 +18575,17 @@ It is a dynamic type error if $r$ is not of type \code{bool}.
 Hence it is a compile-time error if that situation arises
 during evaluation of an assertion in a \CONST{} constructor invocation.%
 }
-If $r$ is \TRUE{} then execution of the assert statement completes normally (\ref{statementCompletion}).
+If $r$ is \TRUE{} then execution of the assert statement completes normally
+(\ref{statementCompletion}).
 Otherwise, $e$ is evaluated to an object $m$
-and then the execution of the assert statement throws (\ref{statementCompletion}) an \code{AssertionError} containing $m$ and with a stack trace corresponding to the current execution state at the assertion.
+and then the execution of the assert statement throws
+(\ref{statementCompletion})
+an \code{AssertionError} containing $m$ and with
+a stack trace corresponding to the current execution state at the assertion.
 
 \LMHash{}%
-It is a compile-time error if the type of $c$ may not be assigned to \code{bool}.
+It is a compile-time error if the type of $c$
+may not be assigned to \code{bool}.
 
 \rationale{%
 Why is this a statement, not a built in function call?
@@ -18145,12 +18603,17 @@ because the arguments might have side effects.%
 \LMLabel{librariesAndScripts}
 
 \LMHash{}%
-A Dart program consists of one or more libraries, and may be built out of one or more \Index{compilation units}.
+A Dart program consists of one or more libraries,
+and may be built out of one or more \Index{compilation units}.
 A compilation unit may be a library or a part (\ref{parts}).
 
 \LMHash{}%
-A library consists of (a possibly empty) set of imports, a set of exports, and a set of top-level declarations.
-A top-level declaration is either a class (\ref{classes}), a type alias declaration (\ref{typedef}), a function (\ref{functions}) or a variable declaration (\ref{variables}).
+A library consists of (a possibly empty) set of imports, a set of exports,
+and a set of top-level declarations.
+A top-level declaration is either a class (\ref{classes}),
+a type alias declaration (\ref{typedef}),
+a function (\ref{functions})
+or a variable declaration (\ref{variables}).
 The members of a library $L$ are those top level declarations given within $L$.
 
 \begin{grammar}
@@ -19091,10 +19554,15 @@ A part declaration consists of a part header followed by
 a sequence of top-level declarations.
 
 \LMHash{}%
-Compiling a part directive of the form \code{\PART{} $s$;} causes the Dart system to attempt to compile the contents of the URI that is the value of $s$.
-The top-level declarations at that URI are then compiled by the Dart compiler in the scope of the current library.
-It is a compile-time error if the contents of the URI are not a valid part declaration.
-It is a compile-time error if the referenced part declaration $p$ names a library other than the current library as the library to which $p$ belongs.
+Compiling a part directive of the form \code{\PART{} $s$;}
+causes the Dart system to attempt to compile the contents of
+the URI that is the value of $s$.
+The top-level declarations at that URI are then compiled by the Dart compiler
+in the scope of the current library.
+It is a compile-time error if the contents of the URI are not
+a valid part declaration.
+It is a compile-time error if the referenced part declaration $p$ names
+a library other than the current library as the library to which $p$ belongs.
 
 \LMHash{}%
 It is a compile-time error if a library contains
@@ -19231,7 +19699,8 @@ A \Index{configurable URI} $c$ of the form
 \end{itemize}
 
 \LMHash{}%
-This specification does not discuss the interpretation of URIs, with the following exceptions.
+This specification does not discuss the interpretation of URIs,
+with the following exceptions.
 
 \rationale{%
 The interpretation of URIs is mostly left to
@@ -19244,10 +19713,12 @@ in practice this will usually depend on the browser and cannot be relied upon.%
 }
 
 \LMHash{}%
-A URI of the form \code{dart:$s$} is interpreted as a reference to a system library (\ref{imports}) $s$.
+A URI of the form \code{dart:$s$} is interpreted as
+a reference to a system library (\ref{imports}) $s$.
 
 \LMHash{}%
-A URI of the form \code{package:$s$} is interpreted in an implementation specific manner.
+A URI of the form \code{package:$s$} is interpreted in
+an implementation specific manner.
 
 \rationale{%
 The intent is that, during development, Dart programmers can rely on
@@ -19255,7 +19726,8 @@ a package manager to find elements of their program.%
 }
 
 \LMHash{}%
-Otherwise, any relative URI is interpreted as relative to the location of the current library.
+Otherwise, any relative URI is interpreted as relative to
+the location of the current library.
 All further interpretation of URIs is implementation dependent.
 
 \commentary{%
@@ -19295,7 +19767,8 @@ Types are specified using the following grammar rules.
 %% The precise rules are slightly different than the following sentence, but
 %% we should be able to make do with that for now.
 \LMHash{}%
-In the grammar rules below, \synt{typeIdentifier} denotes an identifier which can be
+In the grammar rules below, \synt{typeIdentifier} denotes
+an identifier which can be
 the name of a type, that is, it denotes an \synt{IDENTIFIER} which is not a
 \synt{BUILT\_IN\_IDENTIFIER}.
 
@@ -19434,7 +19907,12 @@ in a type annotation, type test, type cast or as a type parameter.
 However, all other compile-time errors must be issued
 under the assumption that all deferred libraries have successfully been loaded.
 
-% Now, when passed to a generic, p.T also has to be treated as dynamic - otherwise we have to fail immediately. Where do we say that? And how does this fit with idea that as a type object it fails? Should we say that the accessor on p returns dynamic instead of failing? Do we distinguish its use in a constructor vs its use in an annotation? It's not that we evaluate type objects in constructor args - these cannot represent parameterized types.
+% Now, when passed to a generic, p.T also has to be treated as dynamic - 
+% otherwise we have to fail immediately. Where do we say that? And how does
+% this fit with idea that as a type object it fails? Should we say that the
+% accessor on p returns dynamic instead of failing? Do we distinguish its use
+% in a constructor vs its use in an annotation? It's not that we evaluate type
+% objects in constructor args - these cannot represent parameterized types.
 
 
 \subsubsection{Type Promotion}
@@ -19447,14 +19925,22 @@ In some cases, the type of a local variable
 may be promoted from the declared type, based on control flow.
 
 \LMHash{}%
-We say that a variable $v$ is known to have type $T$ whenever we allow the type of $v$ to be promoted.
-The exact circumstances when type promotion is allowed are given in the relevant sections of the specification (\ref{logicalBooleanExpressions}, \ref{conditional} and \ref{if}).
+We say that a variable $v$ is known to have type $T$
+whenever we allow the type of $v$ to be promoted.
+The exact circumstances when type promotion is allowed are given in
+the relevant sections of the specification
+(\ref{logicalBooleanExpressions}, \ref{conditional} and \ref{if}).
 
 \LMHash{}%
-Type promotion for a variable $v$ is allowed only when we can deduce that such promotion is valid based on an analysis of certain boolean expressions.
-In such cases, we say that the boolean expression $b$ shows that $v$ has type $T$.
-As a rule, for all variables $v$ and types $T$, a boolean expression does not show that $v$ has type $T$.
-Those situations where an expression does show that a variable has a type are mentioned explicitly in the relevant sections of this specification (\ref{typeTest} and \ref{logicalBooleanExpressions}).
+Type promotion for a variable $v$ is allowed only when we can deduce that
+such promotion is valid based on an analysis of certain boolean expressions.
+In such cases, we say that
+the boolean expression $b$ shows that $v$ has type $T$.
+As a rule, for all variables $v$ and types $T$, a boolean expression
+does not show that $v$ has type $T$.
+Those situations where an expression does show that a variable has a type are
+mentioned explicitly in the relevant sections of this specification
+(\ref{typeTest} and \ref{logicalBooleanExpressions}).
 
 
 \subsection{Dynamic Type System}
@@ -20461,8 +20947,10 @@ include the application of a rule where the environment is used.
   A function type $F_1$ with positional optional parameters
   is a subtype of
   another function type $F_2$ with positional optional parameters
-  if the former has at most the same number of required parameters as the latter,
-  and the latter has at least the same total number of parameters as the former;
+  if the former has at most
+  the same number of required parameters as the latter,
+  and the latter has at least
+  the same total number of parameters as the former;
   the return type of $F_1$ is a subtype of that of $F_2$;
   and each parameter type of $F_1$ is a \emph{supertype} of
   the corresponding parameter type of $F_2$, if any.
@@ -20521,8 +21009,8 @@ include the application of a rule where the environment is used.
   that exists between two parameterized types based on $C$ and $D$.
   %
   %% TODO(eernst): Note that the specification of how to pass type arguments in
-  %% \ref{mixinApplication} is incorrect, and also that it will need to be rewritten
-  %% completely for the integration of the new mixin construct.
+  %% \ref{mixinApplication} is incorrect, and also that it will need to be
+  %% rewritten completely for the integration of the new mixin construct.
   The case where the superclass is a mixin application is covered via
   the equivalence with a declaration of a regular (possibly generic) superclass
   (\ref{mixinApplication}),
@@ -20703,7 +21191,8 @@ the type $G$ is equivalent to
 The built-in type declaration \code{dynamic},
 which is declared in the library \code{dart:core},
 denotes the \DYNAMIC{} type.
-When the name \DYNAMIC{} exported by \code{dart:core} is evaluated as an expression,
+When the name \DYNAMIC{} exported by \code{dart:core} is evaluated
+as an expression,
 it evaluates to a \code{Type} object representing the \DYNAMIC{} type,
 even though \DYNAMIC{} is not a class.
 
@@ -20722,26 +21211,32 @@ whenever doing so is sound.
 
 \begin{itemize}
 \item
-  Let $e$ be an expression of the form \code{$d$.\id}, which is not followed by an
-  argument part, where the static type of $d$ is \DYNAMIC, and \id{} is the name of a
-  getter declared in \code{Object}; if the return type of \code{Object.\id} is $T$
-  then the static type of $e$ is $T$.
+  Let $e$ be an expression of the form \code{$d$.\id},
+  which is not followed by an argument part,
+  where the static type of $d$ is \DYNAMIC,
+  and \id{} is the name of a getter declared in \code{Object};
+  if the return type of \code{Object.\id} is $T$ then
+  the static type of $e$ is $T$.
   \commentary{%
   For instance, \code{d.hashCode} has type \code{int}
   and \code{d.runtimeType} has type \code{Type}.%
   }
 
 \item
-  Let $e$ be an expression of the form \code{$d$.\id}, which is not followed by an
-  argument part, where the static type of $d$ is \DYNAMIC, and \id{} is the name of a
-  method declared in \code{Object} whose method signature has type $F$
-  (\commentary{which is a function type}). The static type of $e$ is then $F$.
+  Let $e$ be an expression of the form \code{$d$.\id},
+  which is not followed by an argument part,
+  where the static type of $d$ is \DYNAMIC,
+  and \id{} is the name of a method declared in \code{Object}
+  whose method signature has type $F$
+  (\commentary{which is a function type}).
+  The static type of $e$ is then $F$.
   \commentary{%
-  For instance, \code{$d$.toString} has type \code{String \FUNCTION()}.%
+    For instance, \code{$d$.toString} has type \code{String \FUNCTION()}.%
   }
 
 \item
-  Let $e$ be an expression which is of the form \code{$d$.\id(\metavar{arguments})}
+  Let $e$ be an expression which is of the form
+  \code{$d$.\id(\metavar{arguments})}
   or the form \code{$d$.\id<\metavar{typeArguments}>(\metavar{arguments})},
   where the static type of $d$ is \DYNAMIC,
   \id{} is the name of a getter declared in \code{Object} with return type $F$,
@@ -20768,11 +21263,13 @@ whenever doing so is sound.
   an actual argument list derived from \synt{arguments},
   and \id{} is the name of a method declared in \code{Object}
   whose method signature has type $F$.
-  If the number of positional actual arguments in \metavar{arguments} is less than the
-  number of required positional arguments of $F$ or greater than the number
-  of positional arguments in $F$, or if \metavar{arguments} includes any named
-  arguments with a name that is not declared in $F$, the type of $e$ is
-  \DYNAMIC. Otherwise, the type of $e$ is the return type in $F$.
+  If the number of positional actual arguments in \metavar{arguments}
+  is less than the number of required positional arguments of $F$
+  or greater than the number of positional arguments in $F$,
+  or if \metavar{arguments} includes any named arguments
+  with a name that is not declared in $F$,
+  the type of $e$ is \DYNAMIC.
+  Otherwise, the type of $e$ is the return type in $F$.
   \commentary{%
     So \code{$d$.toString(bazzle:\,42)} has type \DYNAMIC{} whereas
     \code{$d$.toString()} has type \code{String}.
@@ -20783,20 +21280,21 @@ whenever doing so is sound.
 \item
   Let $e$ be an expression of the form
   \code{$d$.\id<\metavar{typeArguments}>(\metavar{arguments})} where
-  the static type of $d$ is \DYNAMIC, \metavar{typeArguments} is a list of actual
+  the static type of $d$ is \DYNAMIC,
+  \metavar{typeArguments} is a list of actual
   type arguments derived from \synt{typeArguments}, and
   \metavar{arguments} is an actual argument list derived from \synt{arguments}.
   It is a compile-time error if \id{} is the name of
   a non-generic method declared in \code{Object}.
   \commentary{%
-  No generic methods are declared in \code{Object}.
-  Hence, we do not specify that there must be
-  the statically required number of actual type arguments, and
-  they must satisfy the bounds.
-  That would otherwise be the consistent approach,
-  because the invocation is guaranteed to fail when any of those
-  requirements are violated,
-  but generalizations of this mechanism would need to include such rules.%
+    No generic methods are declared in \code{Object}.
+    Hence, we do not specify that there must be
+    the statically required number of actual type arguments, and
+    they must satisfy the bounds.
+    That would otherwise be the consistent approach,
+    because the invocation is guaranteed to fail when any of those
+    requirements are violated,
+    but generalizations of this mechanism would need to include such rules.%
   }
 
 \item
@@ -20808,7 +21306,7 @@ whenever doing so is sound.
   a getter or method invocation that corresponds to one of the cases above,
   the corresponding static analysis and compile-time errors apply.
   \commentary{%
-  For instance, \code{$d$..foobar(16)..hashCode()} is an error.%
+    For instance, \code{$d$..foobar(16)..hashCode()} is an error.%
   }
 \end{itemize}
 
@@ -20819,7 +21317,8 @@ Of course, some expressions like \code{x[1, 2]} are syntax errors
 even though they could also be considered "invocations",
 and subexpressions are checked separately so
 any given actual argument could be a compile-time error.
-But almost any given argument list shape could be handled via \code{noSuchMethod},
+But almost any given argument list shape could be handled via
+\code{noSuchMethod},
 and an argument of any type could be accepted because any
 formal parameter in an overriding declaration could have its type
 annotation contravariantly changed to \code{Object}.
@@ -21251,8 +21750,11 @@ that the indirect cases are covered as closely as needed in practice.%
 % on inference. That new concept should probably be added to this section.
 
 \LMHash{}%
-A \emph{parameterized type} is a syntactic construct where the name of a generic type declaration is applied to a list of actual type arguments.
-A \emph{generic instantiation} is the operation where a generic type is applied to actual type arguments.
+A \emph{parameterized type} is a syntactic construct
+where the name of a generic type declaration is applied to
+a list of actual type arguments.
+A \emph{generic instantiation} is the operation where
+a generic type is applied to actual type arguments.
 
 \commentary{%
 So a parameterized type is the syntactic concept that corresponds to
@@ -21265,7 +21767,8 @@ Let $T$ be a parameterized type \code{$G$<$S_1, \ldots,\ S_n$>}.
 
 \LMHash{}%
 It is a compile-time error if $G$ is not a generic type,
-or $G$ is a generic type, but the number of formal type parameters in the declaration of $G$ is not $n$.
+or $G$ is a generic type,
+but the number of formal type parameters in the declaration of $G$ is not $n$.
 Otherwise, let
 $X_1, \ldots, X_n$
 be the formal type parameters of $G$, and let
@@ -21283,7 +21786,8 @@ It is a compile-time error if $T$ is malbounded.
 \LMHash{}%
 $T$ is evaluated as follows.
 Let $t_i$ be the result of evaluating $S_i$, for $i \in 1 .. n$.
-$T$ then evaluates to the generic instantiation where $G$ is applied to $t_1, \ldots, t_n$.
+$T$ then evaluates to the generic instantiation
+where $G$ is applied to $t_1, \ldots, t_n$.
 
 \LMHash{}%
 Let $T$ be a parameterized type of the form
@@ -21296,11 +21800,12 @@ is
 $[A_1/X_1, \ldots, A_n/X_n]S$,
 where $X_1, \ldots, X_n$ are the formal type parameters of $G$.
 
-%% TODO(eernst): This is the location where we can specify that each of the type arguments
-%% of the receiver type \code{$G$<$A_1, \ldots,\ A_n$>} must be replaced by the bottom type
-%% (`Null`, for now) in locations of the member type where it occurs contravariantly. For
-%% instance, `c.f` should have static type `void Function(Null)` when `c` has static type
-%% `C<T>` for any `T`, and we have `class C<X> { void Function(X) f; }`.
+%% TODO(eernst): This is the location where we can specify that each of the
+%% type arguments of the receiver type \code{$G$<$A_1, \ldots,\ A_n$>} must be
+%% replaced by the bottom type (`Null`, for now) in locations of the member
+%% type where it occurs contravariantly. For instance, `c.f` should have
+%% static type `void Function(Null)` when `c` has static type `C<T>` for any
+%% `T`, and we have `class C<X> { void Function(X) f; }`.
 
 
 \subsubsection{Actual Types}
@@ -21371,7 +21876,7 @@ Furthermore,
 we define $S_n = \{T | T \in S \wedge depth(T) = n\}$ for any finite $n$
 where $depth(T)$ is the number of steps in the longest inheritance path
 from $T$ to \code{Object}.
-%TODO(lrn): Specify that "inheritance path" is a path in the superinterface graph.
+%TODO(lrn): Specify: "inheritance path" is a path in the superinterface graph.
 Let $q$ be the largest number such that $S_q$ has cardinality one,
 which must exist because $S_0$ is $\{\code{Object}\}$.
 The least upper bound of $I$ and $J$ is the sole element of $S_q$.
@@ -21381,7 +21886,8 @@ The least upper bound of \DYNAMIC{} and any type $T$ is \DYNAMIC{}.
 The least upper bound of \VOID{} and any type $T \ne \DYNAMIC{}$ is \VOID{}.
 The least upper bound of $\bot$ and any type $T$ is $T$.
 Let $U$ be a type variable with upper bound $B$.
-The least upper bound of $U$ and a type $T \ne \bot$ is the least upper bound of $B$ and $T$.
+The least upper bound of $U$ and a type $T \ne \bot$ is
+the least upper bound of $B$ and $T$.
 
 \LMHash{}%
 The least upper bound operation is commutative and idempotent,
@@ -21393,7 +21899,8 @@ but it is not associative.
 %% (\FunctionTypePositionalStd{} etc.); these updates are made by CL 84908.
 
 \LMHash{}%
-The least upper bound of a function type and an interface type $T$ is the least upper bound of \FUNCTION{} and $T$.
+The least upper bound of a function type and an interface type $T$ is
+the least upper bound of \FUNCTION{} and $T$.
 Let $F$ and $G$ be function types.
 If $F$ and $G$ differ in their number of required parameters,
 then the least upper bound of $F$ and $G$ is \FUNCTION{}.
@@ -21457,8 +21964,10 @@ in which case the type parameter declarations are omitted (\ref{generics}).%
 
 \LMHash{}%
 Dart source text is represented as a sequence of Unicode code points.
-This sequence is first converted into a sequence of tokens according to the lexical rules given in this specification.
-At any point in the tokenization process, the longest possible token is recognized.
+This sequence is first converted into a sequence of tokens
+according to the lexical rules given in this specification.
+At any point in the tokenization process,
+the longest possible token is recognized.
 
 
 \subsubsection{Reserved Words}
@@ -21507,11 +22016,16 @@ are sections of program text that are used for documentation.
 \LMHash{}%
 Dart supports both single-line and multi-line comments.
 A \Index{single line comment} begins with the token \code{//}.
-Everything between \code{//} and the end of line must be ignored by the Dart compiler unless the comment is a documentation comment.
+Everything between \code{//} and the end of line
+must be ignored by the Dart compiler
+unless the comment is a documentation comment.
 
 \LMHash{}%
-A \Index{multi-line comment} begins with the token \code{/*} and ends with the token \code{*/}.
-Everything between \code{/}* and \code{*}/ must be ignored by the Dart compiler unless the comment is a documentation comment.
+A \Index{multi-line comment} begins with the token \code{/*}
+and ends with the token \code{*/}.
+Everything between \code{/}* and \code{*}/
+must be ignored by the Dart compiler
+unless the comment is a documentation comment.
 Comments may nest.
 
 \LMHash{}%
@@ -21716,7 +22230,8 @@ may cause backtracking to take place.
 Next, rules \SrnPositionalFunctionType--\SrnCovariance{}
 require work proportional to the size of $S$ and $T$,
 due to the number of premises that must be checked.
-Finally, rule~\SrnSuperinterface{} requires work proportional to the size of $S$,
+Finally, rule~\SrnSuperinterface{} requires work
+proportional to the size of $S$,
 and it may also incur the cost of searching up to the entire set of
 direct and indirect superinterfaces of the candidate subtype $S$,
 until the corresponding premise for one of them is shown to hold,
