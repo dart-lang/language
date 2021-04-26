@@ -1486,42 +1486,42 @@ If $d$ is a static variable
 then the implicit getter method of $v$ executes as follows:
 \begin{itemize}
 \item {\bf Non-constant variable declaration with initializer}.
-If $d$ is of one of the forms
-\code{\VAR{} $v$ = $e$;},
-\code{$T$ $v$ = $e$;},
-\code{\FINAL{} $v$ = $e$;},
-\code{\FINAL{} $T$ $v$ = $e$;},
-\code{\STATIC{} $v$ = $e$;},
-\code{\STATIC{} $T$ $v$ = $e$; },
-\code{\STATIC{} \FINAL{} $v$ = $e$; } or
-\code{\STATIC{} \FINAL{} $T$ $v$ = $e$;}
-and no object has yet been stored into $v$
-then the initializing expression $e$ is evaluated.
-If, during the evaluation of $e$, the getter for $v$ is invoked,
-a \code{CyclicInitializationError} is thrown.
-If the evaluation of $e$ throws an exception $e$ and stack trace $s$,
-the null object (\ref{null}) is stored into $v$;
-the execution of the getter then throws $e$ and stack trace $s$.
-Otherwise, the evaluation of $e$ succeeded yielding an object $o$;
-then $o$ is stored into $v$ and
-the execution of the getter completes by returning $o$.
-Otherwise,
-(\commentary{when an object $o$ has been stored in $v$})
-execution of the getter completes by returning $o$.
+  If $d$ is of one of the forms
+  \code{\VAR{} $v$ = $e$;},
+  \code{$T$ $v$ = $e$;},
+  \code{\FINAL{} $v$ = $e$;},
+  \code{\FINAL{} $T$ $v$ = $e$;},
+  \code{\STATIC{} $v$ = $e$;},
+  \code{\STATIC{} $T$ $v$ = $e$; },
+  \code{\STATIC{} \FINAL{} $v$ = $e$; } or
+  \code{\STATIC{} \FINAL{} $T$ $v$ = $e$;}
+  and no object has yet been stored into $v$
+  then the initializing expression $e$ is evaluated.
+  If, during the evaluation of $e$, the getter for $v$ is invoked,
+  a \code{CyclicInitializationError} is thrown.
+  If the evaluation of $e$ throws an exception $e$ and stack trace $s$,
+  the null object (\ref{null}) is stored into $v$;
+  the execution of the getter then throws $e$ and stack trace $s$.
+  Otherwise, the evaluation of $e$ succeeded yielding an object $o$;
+  then $o$ is stored into $v$ and
+  the execution of the getter completes by returning $o$.
+  Otherwise,
+  (\commentary{when an object $o$ has been stored in $v$})
+  execution of the getter completes by returning $o$.
 \item {\bf Constant variable declaration}.
-If $d$ is of one of the forms
-\code{\CONST{} $v$ = $e$;},
-\code{\CONST{} $T$ $v$ = $e$;},
-\code{\STATIC{} \CONST{} $v$ = $e$;} or
-\code{\STATIC{} \CONST{} $T$ $v$ = $e$;}
-the result of the getter is the value of the constant expression $e$.
-\commentary{%
-Note that a constant expression cannot depend on itself,
-so no cyclic references can occur.%
-}
+  If $d$ is of one of the forms
+  \code{\CONST{} $v$ = $e$;},
+  \code{\CONST{} $T$ $v$ = $e$;},
+  \code{\STATIC{} \CONST{} $v$ = $e$;} or
+  \code{\STATIC{} \CONST{} $T$ $v$ = $e$;}
+  the result of the getter is the value of the constant expression $e$.
+  \commentary{%
+  Note that a constant expression cannot depend on itself,
+  so no cyclic references can occur.%
+  }
 \item {\bf Variable declaration without initializer}.
-The result of executing the getter method is the object stored in $v$.
-\commentary{This may be the initial value, that is, the null object.}
+  The result of executing the getter method is the object stored in $v$.
+  \commentary{This may be the initial value, that is, the null object.}
 \end{itemize}
 
 
@@ -4313,7 +4313,7 @@ If no \EXTENDS{} clause is specified, then either:
 \begin{itemize}
 \item $C$ is \code{Object}, which has no superclass. OR
 \item Class $C$ is deemed to have an \EXTENDS{} clause of the form
-\code{\EXTENDS{} Object}, and the rules above apply.
+  \code{\EXTENDS{} Object}, and the rules above apply.
 \end{itemize}
 
 \LMHash{}%
@@ -4370,7 +4370,7 @@ A class $S$ is a \Index{superclass} of a class $C$ if{}f either:
 \begin{itemize}
 \item $S$ is the superclass of $C$, or
 \item $S$ is a superclass of a class $S'$,
-and $S'$ is the superclass of $C$.
+  and $S'$ is the superclass of $C$.
 \end{itemize}
 
 \LMHash{}%
@@ -11102,25 +11102,26 @@ which is used below and in other sections, as follows:
 \item If $T$ is \code{FutureOr<$S$>} for some $S$ then $\flatten{T} = S$.
 
 \item Otherwise if
-\code{$T <:$ Future}
-then let $S$ be a type such that
-\code{$T <:$ Future<$S$>}
-and for all $R$, if
-\code{$T <:$ Future<$R$>}
-then $S <: R$.
+  \code{$T <:$ Future}
+  then let $S$ be a type such that
+  \code{$T <:$ Future<$S$>}
+  and for all $R$, if
+  \code{$T <:$ Future<$R$>}
+  then $S <: R$.
 
-\rationale{%
-This ensures that
-\code{Future<$S$>}
-is the most specific generic instantiation of \code{Future} that is
-a supertype of $T$.
-%% TODO[class-interfaces]: When we have finished the specification of class
-%% interface computations we may have the following property, but it is not
-%% true at this point. Adjust the following by then!
-Note that $S$ is well-defined because of the requirements on superinterfaces.%
-}
+  \rationale{%
+    This ensures that
+    \code{Future<$S$>}
+    is the most specific generic instantiation of \code{Future} that is
+    a supertype of $T$.
+    %% TODO[class-interfaces]: When we have finished the specification of class
+    %% interface computations we may have the following property, but it is not
+    %% true at this point. Adjust the following by then!
+    Note that $S$ is well-defined because of
+    the requirements on superinterfaces.%
+  }
 
-Then $\flatten{T} = S$.
+  Then $\flatten{T} = S$.
 
 \item In any other circumstance, $\flatten{T} = T$.
 \end{itemize}
@@ -11735,13 +11736,15 @@ Which is well-defined for the same reason.%
 \item If during execution of the program,
   a constant object expression has already evaluated to
   an instance $j$ of class $R$ with type arguments $U_i, 1 \le i \le m$, then:
-\begin{itemize}
-\item For each instance variable $f$ of $i$,
-  let $v_{if}$ be the value of the instance variable $f$ in $i$, and
-  let $v_{jf}$ be the value of the instance variable $f$ in $j$.
-  If \code{identical($v_{if}$, $v_{jf}$)} for all instance variables $f$ in $i$
-  then the value of $e$ is $j$, otherwise the value of $e$ is $i$.
-\end{itemize}
+  \begin{itemize}
+  \item For each instance variable $f$ of $i$,
+    let $v_{if}$ be the value of the instance variable $f$ in $i$, and
+    let $v_{jf}$ be the value of the instance variable $f$ in $j$.
+    If \code{identical($v_{if}$, $v_{jf}$)}
+    for all instance variables $f$ in $i$
+    then the value of $e$ is $j$,
+    otherwise the value of $e$ is $i$.
+  \end{itemize}
 \item Otherwise the value of $e$ is $i$.
 \end{itemize}
 
@@ -15288,9 +15291,9 @@ unless any of the following are true:
 \begin{itemize}
 \item $v$ is potentially mutated in $e_2$,
 \item $v$ is potentially mutated within a function other
-than the one where $v$ is declared, or
+  than the one where $v$ is declared, or
 \item $v$ is accessed by a function defined in $e_2$ and
-$v$ is potentially mutated anywhere in the scope of $v$.
+  $v$ is potentially mutated anywhere in the scope of $v$.
 \end{itemize}
 
 \LMHash{}%
@@ -15396,9 +15399,9 @@ unless any of the following are true:
 \item $v$ is potentially mutated in $e_1$,
 \item $v$ is potentially mutated in $e_2$,
 \item $v$ is potentially mutated within a function other
-than the one where $v$ is declared, or
+  than the one where $v$ is declared, or
 \item $v$ is accessed by a function defined in $e_2$ and
-$v$ is potentially mutated anywhere in the scope of $v$.
+  $v$ is potentially mutated anywhere in the scope of $v$.
 \end{itemize}
 
 \LMHash{}%
@@ -17191,9 +17194,9 @@ unless any of the following are true
 \begin{itemize}
 \item $v$ is potentially mutated in $s_1$,
 \item $v$ is potentially mutated within a function other
-than the one where $v$ is declared, or
+  than the one where $v$ is declared, or
 \item $v$ is accessed by a function defined in $s_1$ and
-$v$ is potentially mutated anywhere in the scope of $v$.
+  $v$ is potentially mutated anywhere in the scope of $v$.
 \end{itemize}
 
 \LMHash{}%
@@ -18519,7 +18522,7 @@ If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
   % This error can occur due to implicit casts.
   It is a dynamic type error if the class of $o$
   is not a subtype of \code{Stream<$T_f$>}.
-Otherwise
+  Otherwise
 \item
   The nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}),
   if any, is paused.
@@ -19690,32 +19693,43 @@ A \Index{configurable URI} $c$ of the form
 \code{\metavar{uri} $\metavar{configurationUri}_1$ \ldots $\metavar{configurationUri}_n$}
 \IndexCustom{specifies a URI}{specify a URI} as follows:
 \begin{itemize}
-\item{} Let $u$ be \metavar{uri}.
-\item{} For each of the following configuration URIs of the form \code{\IF{} ($\metavar{test}_i$) $\metavar{uri}_i$}, in source order, do the following.
-\begin{itemize}
-  \item{} If $\metavar{test}_i$ is \code{\metavar{ids}} with no \lit{==} clause, it is
-  equivalent to \code{\metavar{ids} == "true"}.
-  \item{} If $\metavar{test}_i$ is \code{\metavar{ids} == \metavar{string}},
-  then create a string, \metavar{key}, from \metavar{ids}
-  by concatenating the identfiers and dots,
-  omitting any spaces between them that may occur in the source.
-  \item{} Look up \metavar{key} in the available
-  \Index{compilation environment}.
-  \commentary{%
-  The compilation environment is provided by the platform.
-  It maps some string keys to string values,
-  and can be accessed programmatically using the
-  \code{const String.fromEnvironment} constructor.
-  Tools may choose to only make some parts of the compilation environment
-  available for choosing configuration URIs.%
-  }
-  \item{} If the environment contains an entry for \metavar{key} and the
-  associated value is equal, as a constant string value, to the value of
-  the string literal \metavar{string},
-  then let $u$ be $\metavar{uri}_i$ and stop iterating the configuration URIs.
-  \item{} Otherwise proceed to the next configuration URI.
-\end{itemize}
-\item{} The URI specified by $c$ is $u$.
+\item
+  Let $u$ be \metavar{uri}.
+\item
+  For each of the following configuration URIs of the form
+  \code{\IF{} ($\metavar{test}_i$) $\metavar{uri}_i$},
+  in source order, do the following.
+  \begin{itemize}
+  \item
+    If $\metavar{test}_i$ is \code{\metavar{ids}}
+    with no \lit{==} clause, it is
+    equivalent to \code{\metavar{ids} == "true"}.
+  \item
+    If $\metavar{test}_i$ is \code{\metavar{ids} == \metavar{string}},
+    then create a string, \metavar{key}, from \metavar{ids}
+    by concatenating the identfiers and dots,
+    omitting any spaces between them that may occur in the source.
+  \item
+    Look up \metavar{key} in the available
+    \Index{compilation environment}.
+    \commentary{%
+      The compilation environment is provided by the platform.
+      It maps some string keys to string values,
+      and can be accessed programmatically using the
+      \code{const String.fromEnvironment} constructor.
+      Tools may choose to only make some parts of the compilation environment
+      available for choosing configuration URIs.%
+    }
+  \item
+    If the environment contains an entry for \metavar{key} and the
+    associated value is equal, as a constant string value, to the value of
+    the string literal \metavar{string},
+    then let $u$ be $\metavar{uri}_i$ and stop iterating the configuration URIs.
+  \item
+    Otherwise proceed to the next configuration URI.
+  \end{itemize}
+\item
+  The URI specified by $c$ is $u$.
 \end{itemize}
 
 \LMHash{}%
@@ -21237,8 +21251,8 @@ whenever doing so is sound.
   if the return type of \code{Object.\id} is $T$ then
   the static type of $e$ is $T$.
   \commentary{%
-  For instance, \code{d.hashCode} has type \code{int}
-  and \code{d.runtimeType} has type \code{Type}.%
+    For instance, \code{d.hashCode} has type \code{int}
+    and \code{d.runtimeType} has type \code{Type}.%
   }
 
 \item
