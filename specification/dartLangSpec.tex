@@ -37,20 +37,20 @@
 %   behavior of tools.
 % - Eliminate error for library name conflicts in imports and exports.
 % - Clarify the specification of initializing formals. Fix error: Add
-%   missing `?' at the end for function typed initializing formal.
+%   missing `?` at the end for function typed initializing formal.
 % - Adjust specification of JS number semantics.
 % - Revise and clarify the sections Imports and Exports.
 % - Bug fix: Change <qualifiedName> to omit the single identifier, then add it
 %   back when <qualifiedName> is used, as <typeIdentifier> resp. <identifier>.
 % - Clarify that a function-type bounded receiver has a `.call` method.
-% - Merge the 'static' and 'instance' scope of a class, yielding a single
-%   'class' scope.
+% - Merge the `static' and `instance' scope of a class, yielding a single
+%   `class' scope.
 % - Add specification of `>>` in JavaScript compiled code, in appendix.
 % - Integrate the specification of extension methods into this document.
 % - Specify identifier references denoting extension members.
 % - Remove a few null safety features, to enable publishing a stable
 %   version of the specification which is purely about Dart 2.10.
-% - Reorganize specification of type aliases to be in section 'Type Aliases'
+% - Reorganize specification of type aliases to be in section `Type Aliases'
 %   (this used to be both there, and in 'Generics').
 % - Clarify the cyclicity error for type aliases ("F is not allowed to depend
 %   on itself).
@@ -64,7 +64,7 @@
 %   'class declaration' everywhere, so `<classDefinition>` is inconsistent).
 % - Clarify that <libraryDeclaration> and <partDeclaration> are the
 %   start symbols of the grammar.
-% - Clarify the notion of being 'noSuchMethod forwarded': `m` is indeed
+% - Clarify the notion of being `noSuchMethod forwarded': `m` is indeed
 %   noSuchMethod forwarded if an implementation of `m` is inherited, but
 %   it does not have the required signature.
 % - Clarify static checks on `yield` and `yield*` to explicitly ensure that
@@ -93,7 +93,7 @@
 %   invocation.
 %
 % 2.4
-% - Clarify the section 'Exports'.
+% - Clarify the section `Exports'.
 % - Update grammar rules for <declaration>, to support `static late final`
 %   variables with no initializer; for several top-level declarations,
 %   to correct the existence and placement of <metadata>; for
@@ -111,7 +111,7 @@
 % - Correct several grammar rules, including: added <functionExpressionBody> (to
 %   avoid semicolon in <functionBody>), adjusted <importSpecification>.
 % - Revise section on cascades. Now uses compositional grammar, and
-%   specifies static type, compile-time errors, and includes `?..'.
+%   specifies static type, compile-time errors, and includes `?..`.
 % - Correct the grammar and lexical rules for string literals.
 % - Change specification of `await` to be type-safe, avoiding cases like:
 %       FutureOr<Future<S>> ffs = Future<S>.value(s);
@@ -238,8 +238,8 @@
 %   and that the `int` class is intended as signed 64-bit integer, but
 %   that platforms may differ.
 % - Specify variance and super-bounded types.
-% - Introduce `subterm` and `immediate subterm`.
-% - Introduce `top type`.
+% - Introduce `subterm' and `immediate subterm'.
+% - Introduce `top type'.
 % - Specify configurable imports.
 % - Specify the dynamic type of the Iterable/Future/Stream returned from
 %   invocations of functions marked sync*/async/async*.
@@ -298,7 +298,7 @@
 %   In many cases, the rewrite wasn't safe for asynchronous code.
 % - Removed generalized tear-offs.
 % - Allow "rethrow" to also end a switch case. Allow braces around switch cases.
-% - Allow using '=' as default-value separator for named parameters.
+% - Allow using `=` as default-value separator for named parameters.
 % - Make it a compile-time error if a library includes the same part twice.
 % - Now more specific about the return types of sync*/async/async* functions
 %   in relation to return statements.
@@ -1728,7 +1728,7 @@ Otherwise, if the function $f$ is a generator
 then the element type of $f$ is \DYNAMIC.
 
 \commentary{%
-%% TODO(eernst): Come nnbd, change 'a top type' to \DYNAMIC.
+%% TODO(eernst): Come nnbd, change `a top type' to \DYNAMIC.
 In the latter case the return type is a top type,
 because the declaration of $f$ would otherwise be a compile-time error.
 This implies that there is no information about
@@ -2510,7 +2510,7 @@ When a class name appears as a type,
 that name denotes the interface of the class.
 
 \LMHash{}%
-% The use of 'concrete member' below may seem redundant, because a class
+% The use of `concrete member' below may seem redundant, because a class
 % does not inherit abstract members from its superclass, but this
 % underscores the fact that even when an abstract declaration of $m$ is
 % declared in $C$, $C$ does not "have" $m$.
@@ -2605,7 +2605,7 @@ Consider a class $C$
 and an instance member declaration $D$ in $C$, with member signature $m$
 (\ref{interfaces}).
 It is a compile-time error if $D$ overrides a declaration
-% Note that $m'$ is accessible, due to the definition of 'overrides'.
+% Note that $m'$ is accessible, due to the definition of `overrides'.
 with member signature $m'$
 from a direct superinterface of $C$
 (\ref{interfaceInheritanceAndOverriding}),
@@ -2910,8 +2910,8 @@ and a superclass of $C$ has an accessible concrete declaration of $m$
 which is not a noSuchMethod forwarder.
 
 \LMHash{}%
-%% TODO(eernst): We used to say 'the interface of $C$ or $D$'; but we
-%% need to change 'accessible' to a scheme similar to name-merging everywhere
+%% TODO(eernst): We used to say `the interface of $C$ or $D$'; but we
+%% need to change `accessible' to a scheme similar to name-merging everywhere
 %% in order to be able to say this precisely.
 A noSuchMethod forwarder is a concrete member of $C$
 with the signature taken from the interface of $C$,
@@ -3996,7 +3996,7 @@ whenever the redirecting constructor is called.
 
 \begin{grammar}
 <redirectingFactoryConstructorSignature> ::= \gnewline{}
-  \CONST? \FACTORY{} <constructorName> <formalParameterList> '=' \gnewline{}
+  \CONST? \FACTORY{} <constructorName> <formalParameterList> `=' \gnewline{}
   <constructorDesignation>
 
 <constructorDesignation> ::= <typeIdentifier>
@@ -4568,7 +4568,7 @@ directly or indirectly.%
 \LMHash{}%
 When a generic class $C$ declares a type parameter $X$,
 it is a compile-time error if $X$ occurs in a non-covariant position
-% Could say 'a direct superinterface', but it is easy to see that it is
+% Could say `a direct superinterface', but it is easy to see that it is
 % enough to check direct superinterfaces, and it is then true
 % for indirect ones as well.
 in a type which specifies a superinterface of $C$.
@@ -4785,8 +4785,8 @@ The \Index{direct superinterfaces} of $I$ are the direct superinterfaces of $C$
 (\ref{superinterfaces}).
 
 \commentary{%
-We say that the class interface 'declares' these member signatures,
-such that we can say that an interface 'declares' or 'has' a member,
+We say that the class interface `declares' these member signatures,
+such that we can say that an interface `declares' or `has' a member,
 just like we do for classes.
 Note that a member signature $s$ of the interface of class $C$
 may have a parameter $p$ with modifier \COVARIANT,
@@ -6511,7 +6511,7 @@ similarly to a function expression invocation
 
 \commentary{%
 E.g., \code{$e$()} is treated as \code{$e$.call()}
-when the static type of $e$ is a non-function that has a method named 'call'.
+when the static type of $e$ is a non-function that has a method named \CALL.
 Here is an example where the \CALL{} method comes from an extension:%
 }
 
@@ -8480,7 +8480,7 @@ if{}f one of the following applies:
 % We avoid the circularity "constant context depends on constant list literal,
 % etc., which depends on constant context" by mentioning the \CONST{} modifier
 % explicitly here. So 'constant context' is consistently a lower-level concept
-% based on syntax, and 'constant X expressions' (like 'constant list literal')
+% based on syntax, and `constant X expressions' (like `constant list literal')
 % are built on top of this.
 
 \begin{itemize}
@@ -8766,10 +8766,10 @@ A single line string is delimited by
 either matching single quotes or matching double quotes.
 
 \commentary{%
-Hence, `abc' and ``abc'' are both legal strings,
-as are `He said ``To be or not to be'' did he not?' and
-``He said `To be or not to be' didn't he''.
-However ``This ` is not a valid string, nor is `this''.%
+Hence, \code{'abc'} and \code{"abc"} are both legal strings,
+as are \code{'He said "To be or not to be" did he not?'} and
+\code{"He said 'To be or not to be' didn't he?"}.
+However, \code{"This'} is not a valid string, nor is \code{'this"}.%
 }
 
 \commentary{%
@@ -10090,12 +10090,12 @@ The second step uses expression types and is described next
 Let $e$ be a \synt{setOrMapLiteral}
 with leaf elements $\cal L$ and context type $C$.
 If $C$ is \FreeContext{} then let $S$ be undefined.
-%% TODO(eernst): Define 'greatest closure' of a context type
-%% when we define 'context type'.
+%% TODO(eernst): Define `greatest closure' of a context type
+%% when we define `context type'.
 Otherwise let $S$ be the greatest closure of \futureOrBase{C}
 (\ref{typeFutureOr}).
 
-%% TODO(eernst): Delete when 'context type', 'greatest closure' are defined.
+%% TODO(eernst): Delete when `context type', `greatest closure' are defined.
 \commentary{%
 A future version of this document will specify context types.
 The basic intuition is that a
@@ -12146,9 +12146,9 @@ In this situation, the expression is always parsed
 as a generic function invocation.
 
 % Should we specify the precise disambiguation rule here?:
-%   We have seen 'a', '<', a matching '>', and '(', where
-%   'a' is tricky because we can have things like 'new Foo().m<...>(...',
-%   'x..y(...).m<...>(...', etc, basically everything that can precede
+%   We have seen `a`, `<`, a matching `>`, and `(`, where
+%   `a` is tricky because we can have things like `new Foo().m<...>(...`,
+%   `x..y(...).m<...>(...`, etc, basically everything that can precede
 %   argumentPart in the grammar.
 
 \commentary{%
@@ -12887,7 +12887,7 @@ to the corresponding generic function.%
 
 \LMHash{}%
 Let $f$ of the form
-\syntax{<identifier> ('.'~<identifier>\,('.'~<identifier>)?)?}~be
+\syntax{<identifier> (`.'~<identifier>\,(`.'~<identifier>)?)?}~be
 an expression that denotes
 a declaration of a local function, a static method, or a top-level function,
 and let $G$ be the static type of $f$.
@@ -13062,7 +13062,7 @@ because, e.g., a `method lookup' and a `getter lookup' are used
 in different situations.%
 }
 
-{ % Scope for 'lookup' definition.
+{ % Scope for `lookup' definition.
 
 \def\LookupDefinitionWithStart#1{
 \LMHash{}%
@@ -16006,7 +16006,7 @@ or operator \lit{-} (when \op{} is \lit{-{}-}),
 or if the return type of this operator is not assignable to
 the second argument type of said operator \lit{[]=}.
 % We allow `e1[e2]++;` also when the entry has static type double,
-% so we can't just say 'assignable'.
+% so we can't just say `assignable'.
 A compile-time error occurs if passing the integer literal \code{1}
 as an argument to said operator \lit{+} or \lit{-} would be an error.
 The static type of $e$ is $T$.
@@ -21762,7 +21762,7 @@ that the indirect cases are covered as closely as needed in practice.%
 
 % TODO(eernst): We may want to add a new concept for the application of a
 % generic function to actual type arguments (maybe it's an extra kind of
-% 'parameterized type', but it differs from the generic class case because
+% `parameterized type', but it differs from the generic class case because
 % we _can_ have dynamic invocations of a generic function). But this does
 % not arise as a stand-alone entity before we introduce generic tear-offs
 % (\code{var f = foo<int>;}), or if we allow it to arise implicitly based
@@ -21831,7 +21831,7 @@ where $X_1, \ldots, X_n$ are the formal type parameters of $G$.
 \LMLabel{actualTypes}
 
 % NOTE(eernst): The actual type arguments in this section are dynamic entities,
-% not syntax (the concept of an 'actual type' and an 'actual bound' is used to
+% not syntax (the concept of an `actual type' and an 'actual bound' is used to
 % specify the dynamic semantics, including dynamic errors). So we use $t_i$
 % to denote these type arguments, just like all those locations where the
 % concept is used, rather than $A_i$ which is frequently used to denote the
