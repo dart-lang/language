@@ -293,7 +293,7 @@ extension SmartList<T> on List<T> {
   x.doTheSmartThing(print);
 ```
 
-Here both the extensions apply, but the `SmartList` extension is more specific than the `SmartIterable` extension because `List<dynamic>` &lt;: `Iterable<dynamic>`.
+Here both the extensions apply, but the `SmartList` extension is more specific than the `SmartIterable` extension because `List<int>` &lt;: `Iterable<int>`.
 
 Example:
 
