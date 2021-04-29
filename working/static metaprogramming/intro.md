@@ -427,13 +427,20 @@ fast edit refresh cycle when arbitrary Dart code may be running during compilati
 
 ### Security
 
-Ensure that the user has visibility on the execution of the macro, minimizing threats
-of malicious code injected which could run when the user opens the IDE for example. 
-Scope and perhaps limit write/execution access of macros access in the host machine which
-could write a binary executable with data stored in a .dart file. Today, when a user
-downloads a .dart code from the web and executes it, he is fully aware of the execution.
-In addition, the compiler is not capable of call executables or scripts that the user
-creates in .dart (although it does call other parts of the framework).
+Today, users are fully aware of exactly when third party code (excluding code
+from the sdk) might be executed (only when they explicitly run a program). This
+will change with this proposal, since it involves running user code as a part
+of the compilation and likely program analysis process. This means that even
+opening your IDE for instance could expose you to malicious code if we aren't
+careful.
+
+In order to minimize the threat of malicious code which could run in these
+contexts, we will likely need to limit the read/write/execution access of
+macro code, including access to ffi or other libraries which might enable that
+same access.
+
+One possible way to do this would to be to explicitly limit the `dart:`
+libraries that are available for use at compile time.
 
 
 [function_builders]: https://github.com/apple/swift-evolution/blob/9992cf3c11c2d5e0ea20bee98657d93902d5b174/proposals/XXXX-function-builders.md
