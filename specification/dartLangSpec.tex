@@ -19558,7 +19558,7 @@ may be found.
 \begin{grammar}
 <partDirective> ::= <metadata> \PART{} <uri> `;'
 
-<partHeader> ::= <metadata> \PART{} \OF{} <identifier> (`.' <identifier>)* `;'
+<partHeader> ::= <metadata> \PART{} \OF{} (<dottedIdentifierList> | <uri>) `;'
 
 <partDeclaration> ::= <partHeader> <topLevelDeclaration>* <EOF>
 \end{grammar}
@@ -19573,7 +19573,8 @@ as discussed in Sect.~\ref{librariesAndScripts}.%
 
 \LMHash{}%
 A \Index{part header} begins with \PART{} \OF{} followed by
-the name of the library the part belongs to.
+the name of the library the part belongs to,
+or a \synt{uri} denoting said library.
 A part declaration consists of a part header followed by
 a sequence of top-level declarations.
 
