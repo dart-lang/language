@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.4
+Author: lrn@google.com<br>Version: 2.5
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
@@ -171,6 +171,10 @@ Type intList = List<int>; // In-line instantiated type literal.
 
 These grammar changes allows *type parameters* without following parenthesized arguments in places where we previously did not allow them. For example, this means that `<typeArguments>` becomes a *selector* by itself, not just followed by arguments.
 
+It applies to instance methods as well as local, static and top-level function declarations. For instance methods, it applies to references of the form
+
+`instanceMethod<int>` (with implicit `this`), `object.instanceMethod<int>` (including `this`) and `super.instanceMethod<int>`.
+
 The static type of the explicitly instantiated tear-offs are the same as if the type parameter had been inferred, but no longer depends on the context type.
 
 The static type of the instantiated type literal is `Type`. This also satisfies issue [#123](https://github.com/dart-lang/language/issues/123). 
@@ -259,19 +263,60 @@ T top<T>(T value) => value;
 class C {
   static T stat<T>(T value) => value;
   T inst<T>(T value) => value;
+  void method() {
+    var f1 = stat<int>;
+    var f1TypeName = stat<int>.runtimeType.toString();
+    var f2 = inst<int>;
+    var f2TypeName = inst<int>.runtimeType.toString();
+    var f3 = this.inst<int>;
+    var f3TypeName = this.inst<int>.runtimeType.toString();
+  }
+}
+mixin M on C {
+  static T mstat<T>(T value) => value;
+  T minst<T>(T value) => value;
+  void mmethod() {
+    var f1 = mstat<int>;
+    var f1TypeName = mstat<int>.runtimeType.toString();
+    var f2 = minst<int>;
+    var f2TypeName = minst<int>.runtimeType.toString();
+    var f3 = this.minst<int>;
+    var f3TypeName = this.minst<int>.runtimeType.toString();
+  }
+}
+extension Ext on C {
+  static T estat<T>(T value) => value;
+  T einst<T>(T value) => value;  
+  void emethod() {
+    var f1 = estat<int>; // works like (int $) => Ext.estat<int>($)
+    var f1TypeName = estat<int>.runtimeType.toString();
+    var f2 = einst<int>; // works like (int $) => Ext(this).einst<int>($)
+    var f2TypeName = einst<int>.runtimeType.toString();
+    var f3 = this.einst<int>; // works like (int $) => Ext(this).einst<int>($)
+    var f3TypeName = this.einst<int>.runtimeType.toString();
+  }
+}
+class D extends C with M {
+  void method() {
+    var f4 = super.inst<int>; // works like (int $) => super.inst<int>($)
+    var f4TypeName = super.inst<int>.runtimeType.toString();
+  }
 }
 void main() {
   // Type literals.
   var t1 = List<int>; // Type object for `List<int>`.
   var t2 = ListList<int>; // Type object for `List<List<int>>`.
-  // Tear-offs.
+  
+  // Instantiated function tear-offs.
   T local<T>(T value) => value;
   
   const f1 = top<int>; // int Function(int), works like (int $) => top<int>($);
   const f2 = C.stat<int>; // int Function(int), works like (int $) => C.stat<int>($);
-  var c = C();
-  var f3 = C().inst<int>; // int Function(int), works like (int $) => c.inst<int>($);
-  var f4 = local<int>; // int Function(int), works like (int $) => local<int>($);
+  var f3 = local<int>; // int Function(int), works like (int $) => local<int>($);
+  var d = D();
+  var f4 = d.inst<int>; // int Function(int), works like (int $) => c.inst<int>($);
+  var f5 = d.minst<int>; // int Function(int), works like (int $) => c.minst<int>($);
+  var f6 = d.einst<int>; // int Function(int), works like (int $) => Ext(c).einst<int>($);
   
   var typeName = List<int>.toString();
   var functionTypeName = local<int>.runtimeType.toString();
@@ -283,7 +328,7 @@ Finally, we formalize the current behavior disallowing instantiated tear-off of 
 ```dart
 T func<T>(T value) => value;
 var funcValue = func;
-int Function(int) f = funcValue.call; // Disallow!
+int Function(int) f = funcValue.call; // Disallowed!
 ```
 
 We can detect these statically, and they always throw at run-time, so we can special case them.
@@ -322,3 +367,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.2: Revision. Propose generic tear-off functions.
 * 2.3: Include `F<Type>` as an expression, specify tear-offs from type aliases.
 * 2.4: Only allow tear-offs of declarations and instance methods, not arbitrary functions. Specify disambiguation strategy for parsing ambiguities.
+* 2.5: Elaborate on instance member tear-offs.
