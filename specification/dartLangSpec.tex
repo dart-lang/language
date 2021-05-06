@@ -14545,7 +14545,8 @@ would have been a compile-time error.%
 Let $i$ be a property extraction expression of the form
 \code{$e$?.\id}, \code{$e$.\id}, or \code{\SUPER.\id}
 (\ref{propertyExtraction}, \ref{superGetterAccessAndMethodClosurization}),
-which is statically resolved to denote an instance method named \id,
+which is statically resolved to denote an instance method named \id{}
+that is not the \CALL{} method of a function type,
 and let $G$ be the static type of $i$.
 Consider the situation where $G$ is a function type of the form
 \RawFunctionType{T_0}{X}{B}{s}{\metavar{parameters}}
