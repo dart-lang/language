@@ -5465,42 +5465,93 @@ and the instance members declared in $M$ as \Index{mixin member declarations}.
 A mixin may be applied to a superclass, yielding a new class.
 
 \LMHash{}%
-Let $S$ be a class,
-$M$ be a mixin with \NoIndex{required superinterface}s $T_1$, \ldots, $T_n$,
-\NoIndex{combined superinterface} $M_S$,
-\NoIndex{implemented interfaces} $I_1$, \ldots, $I_k$ and
-\metavar{members} as \NoIndex{mixin member declarations},
-and let $N$ be a name.
+\BlindDefineSymbol{S, S'}%
+Let $S$ be a class, and let $S'$ be a parameterized type of the form
+\code{$S$<$\cdots$>}.
+\commentary{%
+This includes the case where $S$ is non-generic and $S'$ is $S$.%
+}
 
 \LMHash{}%
-It is a compile-time error to apply $M$ to $S$ if $S$ does not implement,
-directly or indirectly, all of $T_1$, \ldots, $T_n$.
+\BlindDefineSymbol{M, \metavar{members}}%
+Let $M$ be a mixin with member declarations \metavar{members}.
+\BlindDefineSymbol{M', T_j}%
+Let $M'$ be a parameterized type of the form
+\code{$M$<$\cdots$>}
+\commentary{(again including the case where $M'$ is $M$)}.
+Let \List{T}{1}{n} be the required superinterfaces,
+\BlindDefineSymbol{M_S, I_j}
+$M_S$ the combined superinterface,
+\List{I}{1}{k} the implemented interfaces,
+all of $M$ and corresponding to $M'$.
+
+\LMHash{}%
+It is a compile-time error to apply $M'$ to $S'$
+unless $S'$ implements each of \List{T}{1}{n}
+(\ref{interfaceSuperinterfaces}).
 It is a compile-time error if any of \metavar{members} contains a
-super-invocation of a member $m$ \commentary{(for example \code{super.foo},
-\code{super + 2}, or \code{super[1] = 2})}, and $S$ does not have a concrete
-implementation of $m$ which is a valid override of the member $m$ in
-the interface $M_S$. \rationale{We treat super-invocations in mixins as
-interface invocations on the combined superinterface, so we require the
-superclass of a mixin application to have valid implementations of those
-interface members that are actually super-invoked.}
+super-invocation of a member $m$
+\commentary{%
+(for example \code{super.foo}, \code{super + 2}, or \code{super[1] = 2})%
+},
+and $S'$ does not have a concrete implementation of $m$ which is
+a valid override of the member $m$ in the interface $M_S$.
+\rationale{%
+We treat super-invocations in mixins as interface invocations on
+the combined superinterface,
+so we require the superclass of a mixin application to have
+valid implementations of those interface members
+that are actually super-invoked.%
+}
 
 \LMHash{}%
-The mixin application of $M$ to $S$ with name $N$ introduces a new
-class, $C$, with name $N$, superclass $S$,
-implemented interface $M$
-and \metavar{members} as instance members.
+Let \DefineSymbol{L_C} be the library containing the mixin application.
+\commentary{%
+That is, the library containing the clause \code{$S$ \WITH{} $M$}
+or the clause \code{$S_0$ \WITH{} $M_1$, \ldots,\ $M_k$, $M$} giving rise
+to the mixin application.%
+}
+Let \DefineSymbol{L_M} be the library containing the declaration of $M$.
+
+\LMHash{}%
+Assume that $S$ has a member $m_S$ which is accessible to $L_M$,
+that $m_S$ has the name $n$ which is private
+(\commentary{so $m_S$ is declared in $L_M$}),
+and that $M$ declares a member $m_M$ which is also named $n$
+\commentary{(note that $m_M$ is also declared in $L_M$)}.
+In this case a compile-time error occurs.
+
+\commentary{%
+In this situation $m_M$ would override $m_S$ if $M'$ is applied to $S'$,
+and this happens because of the mixin application which is outside of $L_M$,
+even though $m_M$ and $m_S$ are private.
+One of the unfortunate consequences of this situanion is that
+invocations of $m_S$ which could otherwise be statically resolved
+(in cases where it is otherwise guaranteed that $m_S$ is not overridden)
+must now be invoked using late binding.
+Because of this, and because of some other complications,
+this kind of ``private overriding from outside'' is prevented by making it
+a compile-time error to perform the mixin application.%
+}
+
+\LMHash{}%
+Let \DefineSymbol{N} be a name.
+The
+\Index{mixin application}
+of $M'$ to $S'$ with name $N$
+introduces a new class, \DefineSymbol{C},
+with name $N$, superclass $S'$, implemented interface $M'$,
+and instance members
+which are the concrete declarations in \metavar{members},
+substituting type variables of $M$ corresponding to $M'$.
 The class $C$ has no static members.
 If $S$ declares any generative constructors, then the application
 introduces generative constructors on $C$ as follows:
 
 \LMHash{}%
-Let $L_C$ be the library containing the mixin application.
-\commentary{That is, the library containing the clause \code{$S$ \WITH{} $M$}
-or the clause \code{$S_0$ \WITH{} $M_1$, \ldots,\ $M_k$, $M$} giving rise
-to the mixin application.}
+Let \DefineSymbol{S_N} be the name of $S$.
 
-Let $S_N$ be the name of $S$.
-
+\LMHash{}%
 For each generative constructor of the form
 \code{$S_q$($T_{1}$ $a_{1}$, $\ldots$, $T_{k}$ $a_{k}$)}
 of $S$ that is accessible to $L_C$, $C$ has
