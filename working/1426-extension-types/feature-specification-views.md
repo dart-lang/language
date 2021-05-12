@@ -317,6 +317,7 @@ but this is ambiguous since
 <code>V<T<sub>1</sub>, .. T<sub>k</sub>>(o)</code>
 can be a view constructor invocation.  Similarly,
 <code>V<T<sub>1</sub>, .. T<sub>k</sub>>.m(o, args)</code>
+is similar to a static method invocation and it may match the semantics
 quite well, but that is also confusing because it looks like actual source
 code, but it couldn't be used in an actual program.*
 
@@ -327,14 +328,14 @@ denotes an explicit invocation of the extension member
 named `m` declared by the extension `E`, with `o` bound to `this`, the type
 parameters bound to <code>T<sub>1</sub>, .. T<sub>k</sub></code>,
 and value parameters bound to the values of `args`.  If `V` is a view with
-the same declaration of a member `m`,
+the same on-type, type parameters, and same declaration of a member `m`,
 <code>invokeViewMethod(V, <T<sub>1</sub>, .. T<sub>k</sub>>, o).m(args)</code>
 denotes an invocation of the view method `m` with the same bindings.*
 
 The static analysis of `invokeViewMethod` is that it takes exactly three
 positional arguments and must be the receiver in a member access. The first
-argument must be a name that denotes an extension, the next argument must
-be a type argument list, together yielding a view type _V_. The third
+argument must be a name that denotes a view declaration, the next argument
+must be a type argument list, together yielding a view type _V_. The third
 argument must be an expression whose static type is _V_ or the
 corresponding instantiated on-type (defined below). The member access must
 be a member of `V`.
@@ -355,14 +356,14 @@ for the formal type parameters.
 ### Dynamic Semantics of invokeViewMethod
 
 Let `e0` be an expression of the form
-<code>invokeViewMethod(View<S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>
+<code>invokeViewMethod(View, <S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>
 Evaluation of `e0` proceeds by evaluating `e` to an object `o` and
-evaluating `args` to an actual argument list, and then executing
+evaluating `args` to an actual argument list `args1`, and then executing
 the body of `View.m` in an environment where `this` is bound to `o`,
 the type variables of `View` are bound to the actual values of
 <code>S<sub>1</sub>, .. S<sub>k</sub></code>,
-and the formal parameters of `m` are bound to `args` in the same way
-as they would be bound for a normal function call. If the body completes
+and the formal parameters of `m` are bound to `args1` in the same way
+that they would be bound for a normal function call. If the body completes
 returning an object `o2`, then `e0` completes with the object `o2`; if the
 body throws then the evaluation of `e0` throws the same object with the
 same stack trace.
@@ -416,7 +417,7 @@ If `e` is an expression whose static type is the view type
 <code>View<S<sub>1</sub>, .. S<sub>k</sub>></code>
 and the basename of `m` is the basename of a member declared by `V`,
 then a member access like `e.m(args)` is treated as
-<code>invokeViewMethod(View<S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>,
+<code>invokeViewMethod(View, <S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>,
 and similarly for instance getters and operators.
 
 Lexical lookup for identifier references and unqualified function
@@ -427,7 +428,7 @@ In the body of a view declaration `V` with name `View` and type parameters
 <code>X<sub>1</sub>, .. X<sub>k</sub></code>, for an invocation like
 `m(args)`, if a declaration named `m` is found in the body of `V`
 then that invocation is treated as
-<code>invokeViewMethod(View<X<sub>1</sub>, .. X<sub>k</sub>>, this).m(args)</code>.
+<code>invokeViewMethod(View, <X<sub>1</sub>, .. X<sub>k</sub>>, this).m(args)</code>.
 If there is no declaration in scope whose basename is the basename of `m`,
 `m(args)` is treated as `this.m(args)`. *See a later section for the lookup
 rule when an `extends` clause is present.*
@@ -481,7 +482,7 @@ from the context whether we are talking about the view itself or a
 particular instantiation of a generic view. For non-generic views, the
 on-type is the same in either case.
 
-Let `V` be an view type of the form
+Let `V` be a view type of the form
 <code>View<S<sub>1</sub>, .. S<sub>k</sub>></code>,
 and let `T` be the corresponding instantiated on-type.
 When `T` is a top type, `V` is also a top type.
@@ -564,9 +565,9 @@ same effect, and it is much more concise and convenient.*
 
 We use the phrase _view show/hide part_, or just _show/hide part_ when
 no doubt can arise, to denote a phrase derived from
-`<viewShowHidePart>`. Similarly, an `<viewShowClause>` is known
-as an _view show clause_, and an `<viewHideClause>` is known as
-an _view hide clause_, similarly abbreviated to _show clause_ and
+`<viewShowHidePart>`. Similarly, a `<viewShowClause>` is known
+as a _view show clause_, and a `<viewHideClause>` is known as
+a _view hide clause_, similarly abbreviated to _show clause_ and
 _hide clause_.
 
 The show/hide part specifies which instance members of the on-type are
@@ -600,7 +601,7 @@ included instance members specified by the show clause as described above,
 and then removing instance members from that set according to the hide
 clause, as described above.
 
-An `<viewShowHideElement>` can be of the form `get <id>` or `set <id>`
+A `<viewShowHideElement>` can be of the form `get <id>` or `set <id>`
 or `operator <operator>` where `<operator>` must be an operator which can
 be declared as an instance member of a class. These forms are used to
 specify a getter (without the setter), a setter (without the getter), or an
@@ -759,14 +760,15 @@ _the extends clause_ when no ambiguity can arise.
 given view may need to overlap with that of other views. The extends clause
 allows for implementation reuse by putting shared members in a "super-view"
 `V0` and putting `V0` in the extends clause of several view declarations
-<code>V<sub>1</sub> .. V<sub>k</sub></code>, 
-thus "inheriting" the members of `V0` into all of 
+<code>V<sub>1</sub> .. V<sub>k</sub></code>,
+thus "inheriting" the members of `V0` into all of
 <code>V<sub>1</sub> .. V<sub>k</sub></code>
 without code duplication.*
 
-*Note that there is no subtype relationship between `V0` and `Vj` in this
-scenario, only code reuse. This also implies that there is no need to
-require anything that resembles a correct override relationship
+*Note that there is no subtype relationship between `V0` and
+<code>V<sub>j</sub></code>
+in this scenario, only code reuse. This also implies that there is no need
+to require anything that resembles a correct override relationship.*
 
 Assume that `V` is a view declaration, and `V0` occurs as the `<type>`
 in a `<viewExtendsElement>` in the extends clause of `V`. In this
@@ -830,33 +832,37 @@ basename of `n`, the lexical lookup yields nothing (*which implies that
 `this.` will be prepended to the expression, following the existing
 rules*).
 
-In the body of `V`, the syntax of an explicit extension method invocation
-can be used to invoke a member of a superview which is hidden. *For
-instance, `V3(this).foo();` can be used to call the `foo` of `V3`  in the
-case where the extends clause has `extends ... V3 hide foo, ...`.*
+In the body of `V`, a superinvocation syntax similar to an explicit
+extension method invocation can be used to invoke a member of a superview
+which is hidden: The invocation starts with `super.` followed by the name
+of the given superview, followed by the member access. The superview may be
+omitted in the case where there is no ambiguity.
+
+*For instance, `super.V3.foo()` can be used to call the `foo` of `V3` on
+`this` in the case where the extends clause has `extends ... V3 hide
+foo, ...`. If no other superview has a member with basename `foo` it is
+also possible to call it using `super.foo()`.*
 
 *This means that the declarations that occur in the enclosing syntax, i.e.,
 in an enclosing lexical scope, get the highest priority, as always in
 Dart. Those declarations may be top-level declarations, or they may be
 members of the enclosing view declaration (in which case an invocation
 involves `this` when it is an instance member). The second highest priority
-is given to instance members of superviews (where invocations always
-involve `this`). The next priority is given to instance members of the
-on-type, and finally we can have an implicit invocation of a member of
-an extension `E1`, as long as the type of `this` matches the on-type of
-`E1`.*
+is given to instance members of superviews. The next priority is given to
+instance members of the on-type.  Finally we can have an implicit
+invocation of a member of an extension `E1` in some cases where the type of
+`this` matches the on-type of `E1`.*
 
 
 ## Dynamic Semantics of Views
 
 The dynamic semantics of view member invocation follows from the code
-transformation specified in the section about the static analysis:
+transformation specified in the section about the static analysis.
 
-Let `e` be an expression whose static type `T` is the view type
-<code>View<S<sub>1</sub>, .. S<sub>k</sub>></code>.
-A member access like `e.m(args)` is then executed as
-<code>invokeViewMethod(View, <S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>,
-and similarly for instance getters and operators.*
+*In short, with `e` of type
+<code>View<S<sub>1</sub>, .. S<sub>k</sub>></code>,
+`e.m(args)` is treated as
+<code>invokeViewMethod(View, <S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>.*
 
 The dynamic semantics of an invocation of an instance method of the on-type
 which is enabled in a view type by the show/hide part is as if a forwarder
@@ -864,24 +870,13 @@ were implicitly induced in the view, with the same signature as that of the
 on-type. *For example:*
 
 ```dart
-// View using show/hide:
 view MyNum on num show floor {}
 
-// Works like the following:
-view MyNum on num {
-  int floor() => this.floor();
+void main() {
+  MyNum myNum = 1;
+  myNum.floor(); // Call instance method as if myNum had had type `int`.
 }
 ```
-
-*Note that this implies that the view method `floor` never overrides
-the instance member `floor`, but the view method `floor` will be
-executed at a call site `myNum.floor()` based on a compile-time decision
-when the receiver `myNum` has static type `MyNum`. In particular, the
-view method `floor` will never be executed when the receiver has type
-`dynamic`. The forwarding expression `this.floor()` in the implicitly
-induced method will invoke the instance method, which is subject to late
-binding (so we may end up running `int.floor()` or `double.floor()`,
-depending on the dynamic type of `this`).*
 
 At run time, for a given instance `o` typed as a view type `V`, there
 is _no_ reification of `V` associated with `o`.
