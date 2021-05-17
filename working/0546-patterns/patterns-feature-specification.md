@@ -888,7 +888,7 @@ we can calculate the static type of the pattern.
 
 The value's static type is used to do upwards type inference on the pattern for
 patterns in variable declarations and switches. Also, a pattern's static type
-may be used down "downwards" ("inwards"?) inference of a pattern's subpatterns
+may be used for "downwards" ("inwards"?) inference of a pattern's subpatterns
 in the same way that a collection literal's type argument is used for inference
 on the collection's elements.
 
@@ -920,9 +920,11 @@ The static type of a pattern `p` being matched against a value of type `M` is:
         use it for all subpatterns. In:*
 
         ```dart
-        var [a, b] = [1, bool];`
+        var [a, b] = [1, bool];
+        ```
 
         *both `a` and `b` use `Object` as their matched value type.*
+
     3.  The static type of `p` is `List<S>` where:
         1.  If `p` has a type argument, `S` is that type. *If the list pattern
             has an explicit type argument, that wins.*
