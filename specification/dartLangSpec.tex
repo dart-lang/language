@@ -149,8 +149,8 @@
 %   declaration must be taken into account during static checks.
 % - Disallow any expression statement starting with `{`, not just
 %   those that are map literals.
-% - Define a notion of lookup that is needed for super invocations, adjust
-%   specification of super invocations accordingly.
+% - Define a notion of lookup that is needed for superinvocations, adjust
+%   specification of superinvocations accordingly.
 % - Specify that it is a dynamic error to initialize a non-static variable
 %   with an object that does not have the declared type (e.g., a failed cast).
 % - Specify for constructor initializers that target variable must exist and
@@ -4490,7 +4490,7 @@ The controlling language is in the relevant sections of the specification.
 \item It is an error to call a non-factory constructor of an abstract class
   using an instance creation expression (\ref{instanceCreation}),
   such a constructor may only be invoked from another constructor
-  using a super invocation (\ref{superInvocation}).
+  using a superinvocation (\ref{superInvocations}).
 \item If a class defines an instance member named $m$,
   and any of its superinterfaces have a member signature named $m$,
   the interface of the class contains the $m$ from the class itself.
@@ -7793,6 +7793,7 @@ Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
 
 <primary> ::= <thisExpression>
   \alt \SUPER{} <unconditionalAssignableSelector>
+  \alt \SUPER{} <argumentPart>
   \alt <functionExpression>
   \alt <literal>
   \alt <identifier>
@@ -13800,15 +13801,17 @@ a syntactically correct expression for all $j$.%
 }
 
 
-\subsubsection{Super Invocation}
-\LMLabel{superInvocation}
+\subsubsection{Superinvocations}
+\LMLabel{superInvocations}
 
-% Conditional super invocation is meaningless: \THIS{} is not null.
+% Conditional superinvocations are meaningless: \THIS{} is not null.
 
 \LMHash{}%
-A super method invocation $i$ has the form
+A \Index{method superinvocation} $i$ has the form
+\BlindDefineSymbol{i, m, A_j, a_j, x_j}%
 
 \noindent
+\BlindDefineSymbol{}%
 \code{\SUPER.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \commentary{%
@@ -13819,7 +13822,7 @@ and similarly for formal type parameter lists (\ref{generics}).%
 }
 
 \LMHash{}%
-It is a compile-time error if a super method invocation occurs
+It is a compile-time error if a method superinvocation occurs
 in a top-level function or variable initializer,
 in an instance variable initializer or initializer list,
 in class \code{Object},
@@ -13831,18 +13834,20 @@ or in a static method or variable initializer.
 \def\SuperClass{\ensuremath{S_{\mbox{\scriptsize{}super}}}}
 
 \LMHash{}%
+\BlindDefineSymbol{\SuperClass, L}%
 Let \SuperClass{} be the superclass (\ref{superclasses})
 of the immediately enclosing class for $i$,
+\BlindDefineSymbol{D, F}%
 and let $L$ be the library that contains $i$.
-Let the declaration $d$ be
+Let the declaration $D$ be
 the result of looking up the method $m$ in \SuperClass{}
 with respect to $L$ (\ref{lookup}),
-and let $F$ be the static type of $d$.
+and let $F$ be the static type of $D$.
 Otherwise, if the method lookup failed,
-let the declaration $d$ be the result of looking up
+let the declaration $D$ be the result of looking up
 the getter $m$ with respect to $L$ in \SuperClass{}
 (\ref{lookup}),
-and let $F$ be the return type of $d$.
+and let $F$ be the return type of $D$.
 If both lookups failed, a compile-time error occurs.
 
 \LMHash{}%
@@ -13860,18 +13865,40 @@ as well as when it does not exist at all.%
 }
 
 \LMHash{}%
+An
+\IndexCustom{implicit \CALL{} superinvocation}{
+  method superinvocation!implicit \CALL}
+has the form
+
+\noindent
+\code{\SUPER<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+
+\noindent
+and it is treated as
+
+\noindent
+\code{\SUPER.\CALL<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+
+\commentary{%
+The type argument list is again omitted when $r = 0$.%
+}
+
+\LMHash{}%
+\BlindDefineSymbol{o, C, \SuperClass}%
 Evaluation of $i$ proceeds as follows:
 Let $o$ be the current binding of \THIS,
 let $C$ be the enclosing class for $i$,
 and let \SuperClass{} be the superclass (\ref{superclasses}) of $C$.
-Let the declaration $d$ be the result of looking up
+Let \DefineSymbol{L} be the library that contains $C$.
+\BlindDefineSymbol{D, f}%
+Let the declaration $D$ be the result of looking up
 the method $m$ with respect to $L$ in $o$ starting with \SuperClass{}
 (\ref{lookup}).
 If the lookup succeeded,
-let $f$ denote the function associated with $d$.
+let $f$ denote the function associated with $D$.
 %
 Otherwise (\commentary{when method lookup failed}),
-let the declaration $d$ be the result of looking up
+let the declaration $D$ be the result of looking up
 the getter $m$ with respect to $L$ in $o$ starting with \SuperClass{}
 (\ref{lookup}).
 If the getter lookup succeeded,
@@ -13879,8 +13906,9 @@ invoke said getter with \THIS{} bound to $o$,
 and let $f$ denote the returned object.
 
 \commentary{%
-If both lookups failed, the exact same lookups would have failed
-at compile-time, and the program then has a compile-time error.%
+It cannot occur that both lookups fail,
+because the corresponding lookups would then have failed at compile-time,
+in which case the program has a compile-time error.%
 }
 
 \LMHash{}%
@@ -14354,7 +14382,7 @@ a subclass of $S$ and a superclass of $T$ which implements $f$.
 
 \commentary{%
 In short, consider a situation where
-a super invocation of $f$ will execute $f$ as declared in $S$.%
+a superinvocation of $f$ will execute $f$ as declared in $S$.%
 }
 
 \LMHash{}%
@@ -15768,7 +15796,7 @@ or concern ourselves with its static type.%
 Any other expression of the form \code{$op$ $e$} is equivalent to
 the method invocation \code{$e.op()$}.
 An expression of the form \code{$op$ \SUPER} is equivalent to
-the method invocation (\ref{superInvocation}) \code{\SUPER.$op()$}.
+the method invocation (\ref{superInvocations}) \code{\SUPER.$op()$}.
 
 
 \subsection{Await Expressions}
