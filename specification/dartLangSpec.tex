@@ -20458,6 +20458,15 @@ and $T$ is not regular-bounded.
 \}
 \end{dartCode}
 
+\LMHash{}%
+When we use phrases like `let $S$ be a class' or `assume that $S$ is a mixin',
+it is understood that this includes the case where
+$S$ is a \synt{typeName} denoting a type alias, or
+$S$ is a parameterized type of the form
+\syntax{<typeName> <typeArguments>}
+where the type name denotes a type alias,
+and the transitive alias expansion of $S$ denotes a class respectively a mixin.
+
 
 \subsection{Subtypes}
 \LMLabel{subtypes}
