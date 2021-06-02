@@ -56,6 +56,8 @@ and then it's a compile-time error if an expression *e* with a static type which
 
 This would capture more positions of futures which might get dropped, and would even avoid `as void` being useful to avoid the warning. It avoids relying on the type of the expression propagating out to the place where the value is discarded. Example: `test ? Object() : Future.value(2);` is an expression-statement where the expression has static type `Object`, and if `test` is false, it does not await the future. Unless we make the context type of these expressions be `void`, and propagate that context  type into the subexpressions in tail position (we currently don't), we won't be able to use static types alone to catch this example. Even if we did that, we couldn't/shouldn't propagate the context type past an `as` cast.
 
+We'd also make it an error to use <code>unawaited *e*</code> when *e* does not have *any* expression *e*<sub>2</sub> in tail position which is potentially a future.
+
 It's all about how *complete* we want to be vs. how complicated the analysis becomes&mdash;for tools and for users who need to understand the language.
 
 ### The false positive marker
