@@ -240,7 +240,7 @@ rules for elements used in view declarations:
 
 ```ebnf
 <viewDeclaration> ::=
-  'view' <typeIdentifier> <typeParameters>?
+  ('open' | 'closed')? 'view' <typeIdentifier> <typeParameters>?
       <viewExtendsPart>?
       'on' <type>
       <viewShowHidePart>
@@ -470,7 +470,7 @@ member of the on-type when the receiver type is a view type (unless the
 view type enables them explicitly, cf. the show/hide part specified in a
 later section).*
 
-Let `V` be a view declaration named `View` with type parameters
+Let `D` be a view declaration named `View` with type parameters
 <code>X<sub>1</sub> extends B<sub>1</sub>, .. X<sub>k</sub> extends B<sub>k</sub></code>
 and on-type clause `on T`. Then we say that the _declared on-type_ of `View`
 is `T`, and the _instantiated on-type_ corresponding to
@@ -482,23 +482,34 @@ from the context whether we are talking about the view itself or a
 particular instantiation of a generic view. For non-generic views, the
 on-type is the same in either case.
 
+We say that `D` is _open_ respectively _closed_ if its declaration
+starts with the keyword `open` respectively `closed`, and similarly we
+say that a view type <code>View<T<sub>1</sub>, .. T<sub>k</sub>></code>
+where `View` denotes `D` is _open_ respectively _closed_.
+If `D` starts with the keyword `view` we say that `D` is _plain_
+and that corresponding view types are _plain_.
+
 Let `V` be a view type of the form
 <code>View<S<sub>1</sub>, .. S<sub>k</sub>></code>,
 and let `T` be the corresponding instantiated on-type.
 When `T` is a top type, `V` is also a top type.
-Otherwise, `V` is a proper subtype of `Object?`, and a proper supertype of
-`T`.
+Otherwise the following applies:
 
-*That is, the underlying on-type can only be recovered by an explicit cast
-(except when the on-type is a top type). So an expression whose type is a
-view type is in a sense "in prison", and we can only obtain a different
-type for it by forgetting everything (going to a top type), or by means of
-an explicit cast, typically a downcast to the on-type.*
+- If `V` is a plain view type then `V` is a proper subtype of `Object?`,
+and a proper supertype of `T`. *That is, an expression of the on-type can
+freely be assigned to a variable of the view type, but in the opposite
+direction there must be an explicit cast.*
+- If `V` is a closed view type then `V` is a proper subtype of `Object?`.
+*So the on-type and the view type are unrelated, and there is no
+assignability in either direction. In this case a view constructor may be
+used to obtain a value of the view type (see below).*
+- If `V` is an open view type then `V` is an alias for `T`. *So the on-type
+and the view type are freely assignable to each other.*
 
-When `V` is a view type, a type test `o is V` or `o is! V` and a type
-check `o as V` can be performed. Such checks performed on a local variable
-can promote the variable to the view type using the normal rules for
-type promotion.
+When `V` is a view type which is not closed, a type test `o is V`
+or `o is! V` and a type check `o as V` can be performed. Such checks
+performed on a local variable can promote the variable to the view type
+using the normal rules for type promotion.
 
 In the body of a member of a view `V`, the static type of `this` is the
 on-type of `V`.
@@ -528,20 +539,28 @@ or
 is used to invoke these constructors, and the type of such an expression is
 <code>V<T<sub>1</sub>, .. T<sub>k</sub>></code>.
 
-During static analysis of the body of a view constructor, the return type
-is considered to be the view type declared by the enclosing
-declaration.
+During static analysis of the body of a view constructor of a view which is
+not closed, the return type is considered to be the view type declared by
+the enclosing declaration.
 
 *This means that the constructor can return an expression whose static type
 is the on-type, as well as an expression whose static type is the view
 type.*
+
+During static analysis of the body of a view constructor of a view which is
+closed, the return type is considered to be the on-type of the enclosing
+declaration.
+
+*So these constuctors can only return an expression of the on-type, not an
+expression of the view type, but an explicit cast to the on-type can be
+used if needed.*
 
 It is a compile-time error if it is possible to reach the end of a view
 constructor without returning anything. *Even in the case where the on-type
 is nullable and the intended representation is the null object, an explicit
 `return null;` is required.*
 
-Let `V` be a view type declaration. It is an error to declare a member in
+Let `V` be a view declaration. It is an error to declare a member in
 `V` which is also a member of `Object`.
 
 *This is because the members of `Object` are by default shown, as
