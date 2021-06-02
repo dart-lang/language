@@ -62,7 +62,7 @@ It's all about how *complete* we want to be vs. how complicated the analysis bec
 
 ### The false positive marker
 
-To avoid the compile-time error, you can do any number of things within the language (including casting it using `as void`, although that would probably give you an "unnecessary cast" warning instead). We introduce a *recommend* way to avoid waiting for the future, by prefixing the expression with the contextually reserved word `unawaited` where you would otherwise write `await` to await the future. In short: `unawaited` becomes a reserved word inside asynchronous functions, just like  `await` and  `yield` currently are. It can be used in exactly the same places as `await`.
+To avoid the compile-time error, you can do any number of things within the language (including casting it using `as void`, although that would probably give you an "unnecessary cast" warning instead). We introduce a *recommended* way to avoid waiting for the future, by prefixing the expression with the contextually reserved word `unawaited` where you would otherwise write `await` to await the future. In short: `unawaited` becomes a reserved word inside asynchronous functions, just like  `await` and  `yield` currently are. It can be used in exactly the same places as `await`.
 
 This keyword is deliberately visible and up-front so that people reading the code are aware that a future is being ignored here. A reviewer can easily see that a future is not awaited, and question whether it should be.
 
