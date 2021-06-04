@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.7
+Author: lrn@google.com<br>Version: 2.8
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
@@ -40,6 +40,8 @@ If *C* denotes a class declaration and *C.name* is the name of a constructor of 
 
 just as you can currently invoke the constructor as <code>*C*.*name*(*args*)</code>, or <code>*C*\<*typeArgs*>.*name*(*args*)</code>.
 
+Expressions of the form <code>*C*\<*typeArgs*>.*name*</code> are potentially compile-time constant expressions and are compile-time constants if the type arguments are constant types.
+
 _The former syntax, without type arguments, is currently allowed by the language grammar, but is rejected by the static semantics as not being a valid expression. The latter syntax is not currently grammatically an expression. Both can occur as part of a_ constructor invocation, but cannot be expressions by themselves because they have no values. We introduce a static and dynamic expression semantic for such a *named constructor tear-off expression*.
 
 A named constructor tear-off expression of one of the forms above evaluates to a function value which could be created by tearing off a *corresponding constructor function*, which would be a static function defined on the class denoted by *C*, with a fresh name here represented by adding `$tearoff`:
@@ -74,13 +76,13 @@ The static type of the named constructor tear-off expression is the same as the 
 This introduces an **ambiguity** in the grammar. If `List.filled` is a valid expression, then `List.filled(4, 4)` can both be a constructor invocation *and* a tear-off followed by a function invocation, and `List.filled<int>(4, 4)` can *only* be valid as a tear-off followed by a function invocation.
 This is similar to the existing possible ambiguity for an instance method invocation like `o.m(arg)`, and we resolve it the same way, by always preferring the direct invocation over doing a tear-off and a function invocation. 
 
-We do not allow `List.filled<int>(4, 4)` at all.  We could allow it, it's syntacitcally similar to a getter invocation like `o.getter<int>(4)`, which we do handle without issues, but allowing that syntax to be a constructor tear-off could interfere with a possible later introduction of *generic constructors*. We only do constructor tear-off when the constructor reference is *not* followed by a *typeArguments* or *arguments* production. If it is followed by those, then it's a constructor *invocation*, and it's currently an error if it includes type arguments. That is, an expression of the form `List.filled<int>(4, 4)` is *invalid*, it's not interpreted as a constructor tear-off followed by a function invocation, but always as a constructor invocation&mdash;and the `List.filled` constructor is not a generic construct (no constructor is, yet). You can write `(List.filled)<int>(4, 4)` to do the tear-off or `List<int>.filled(4, 4)` to do the invocation.
+We do not allow `List.filled<int>(4, 4)` at all.  We could allow it, it's syntactically similar to a getter invocation like `o.getter<int>(4)`, which we do handle without issues, but allowing that syntax to be a constructor tear-off could interfere with a possible later introduction of *generic constructors*. We only do constructor tear-off when the constructor reference is *not* followed by a *typeArguments* or *arguments* production. If it is followed by those, then it's a constructor *invocation*, and it's currently an error if it includes type arguments. That is, an expression of the form `List.filled<int>(4, 4)` is *invalid*, it's not interpreted as a constructor tear-off followed by a function invocation, but always as a constructor invocation&mdash;and the `List.filled` constructor is not a generic construct (no constructor is, yet). You can write `(List.filled)<int>(4, 4)` to do the tear-off or `List<int>.filled(4, 4)` to do the invocation.
 
 #### Tearing off constructors from type aliases
 
 *With generalized type-aliases*, it's possible to declare a class-alias like `typedef IntList = List<int>;`. We allow calling constructors on such a type alias, so we will also allow tearing off such a constructor.
 
-Example class alises:
+Example class aliases:
 
 ```dart
 typedef IntList                   = List<int>; // Non-generic alias.
@@ -129,7 +131,7 @@ var f = IntList.filled; // Equivalent to `List<int>.filled` or `List.filled$tear
 
 **Tearing off a constructor from an instantiated generic alias for a class is equivalent to tearing off the constructor from the aliased class (which is instantiated by the instantiated alias if the class is generic, which it probably is since otherwise the alias doesn't use its type parameter).**
 
-A *generic* type alias is not an alias for *one* type, but for a family of types. If the type alias is *instantiated* (implicitly or explicitly) before the tear-off, then the result is still the same as tearing the constructor off the aliased type directly, using the corresponding constructor function of the class, and it's constant and canonicalized if the type arguments are constant. 
+A *generic* type alias is not an alias for *one* type, but for a family of types. If the type alias is *instantiated* (implicitly or explicitly) before the tear-off, then the result is still the same as tearing the constructor off the aliased type directly, using the corresponding constructor function of the class, and it's constant and canonicalized if the instantiating type arguments are compile-time constant types.
 
 Example:
 
@@ -140,7 +142,18 @@ List<double> Function(int, double) makeDoubleList = NumList.filled; // Same as `
 
 Here `NumList<int>` is a single type (`List<int>`), and the tear-off happens from that type.
 
-**If the generic alias is not a proper rename for the class it alises, then tearing off a constructor from the uninstantiated alias is equivalent to tearing off the corresponding constructor function of the alias, which is a generic function. The result always a generic function, and is always a compile-time constant.**
+Notice that whether an alias expansion is constant depends on the parameters, not the result. Example:
+
+```dart
+typedef Ignore2<T, S> = List<T>;
+void foo<X>() {
+  var c = Ignore2<int, X>.filled; // Aka List<int>.filled, but is *not constant*.
+}
+```
+
+In this example, `Ignore2<int, X>.filled` is treated exactly like `List<Y>.filled` where `Y` happens to be bound to `int` when the expression is evaluated. There is no canonicalization. Such a situation, where a type alias has parameters it does not use, is expected to be extremely rare.
+
+**If the generic alias is not a proper rename for the class it aliases, then tearing off a constructor from the uninstantiated alias is equivalent to tearing off the corresponding constructor function of the alias, which is a generic function. The result always a generic function, and is always a compile-time constant.**
 
 If the generic alias is *not* instantiated before the constructor is torn off, then the tear-off abstracts over the type parameters *of the alias*, and tearing off a constructor works equivalently to tearing off the corresponding constructor function *of the alias* (where the generics match the type alias, not the underlying class). This is where we use the corresponding constructor function of the alias&mdash;except when the alias is a *proper rename*, as defined below. 
 
@@ -172,7 +185,7 @@ A type alias of the form <code>typedef *A*\<*X*<sub>1</sub> extends *P*<sub>1</s
 * *n* = *m*.
 * *P*<sub>*i*</sub>[*X*<sub>1</sub>&mapsto;*Y*<sub>1</sub>, &hellip; *X*<sub>*n*</sub>&mapsto;*Y*<sub>*n*</sub>] and *Q*<sub>*i*</sub> are mutual subtypes for all 1 &le; *i* &le; *n*.
 
-That is, an alias is not a proper rename if it accepts different type parameters than the class it alises, whether it be the bounds, the order, or even the number of type parameters.
+That is, an alias is not a proper rename if it accepts different type parameters than the class it aliases, whether it be the bounds, the order, or even the number of type parameters.
 
 Example:
 
@@ -502,4 +515,5 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.4: Only allow tear-offs of declarations and instance methods, not arbitrary functions. Specify disambiguation strategy for parsing ambiguities.
 * 2.5: Elaborate on instance member tear-offs.
 * 2.6: Elaborate on constructor name clashes and alias tear-off identity.
-* 2.7: State that we do not allow implicit `.call` member instantiations on callable objects.
+* 2.7: State that we do not allow implicit `.call` member instantiations on callable objects.
+* 2.8: State that unused type arguments of a type alias still affect whether they are constant.
