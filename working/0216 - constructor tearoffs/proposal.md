@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.8
+Author: lrn@google.com<br>Version: 2.9
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
@@ -351,6 +351,14 @@ _This might set us up for problems if we ever decide to use any of the infix ope
 
 **Identity and equality** is not affected by explicit instantiation, it works exactly like if the same types had been inferred.
 
+#### Static invocations
+
+A static member invocation still only works on an *uninstantiated* type literal. You can write `List.copyRange`, but not `List<int>.copyRange`.
+
+Allowing `List<int>.copyRange` is confusing. The invocation will not have access to the type parameter anyway, so allowing it is not going to help anyone. The occurrence of `List` in `List.copyRange` refers to the class *declaration*, treated as a namespace, not the class itself.
+
+This goes for type aliases too. We can declare `typedef MyList<T> = List<T>;` and `typedef IntList = List<int>;` and do `MyList.copyRange` or `IntList.copyRange` to access the static member of *the declaration* of the type being aliased. This is specially introduced semantics for aliases of class or mixin types, not something that falls out of first resolving the type alias to the class or mixin type. We do not allow `MyList<int>.copyRange` either, even though we allow `IntList.copyRange`. They are not the same when doing static member accesses.
+
 ### No instantiated tearing off function `call` methods
 
 We further formalize a restriction that the current implementation has.
@@ -517,3 +525,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.6: Elaborate on constructor name clashes and alias tear-off identity.
 * 2.7: State that we do not allow implicit `.call` member instantiations on callable objects.
 * 2.8: State that unused type arguments of a type alias still affect whether they are constant.
+* 2.9: Make it explicit that you cannot access static members through instantiated type literals.
