@@ -31,6 +31,8 @@
 %   publishing a stable version of the specification).
 % - Add rule that a top-level pair of declarations with the same basename
 %   is a compile-time error except when it is a getter/setter pair.
+% - Change grammar to enable non-function type aliases. Correct rule for
+%   invoking `F.staticMethod()` where `F` is a type alias.
 %
 % 2.8 - 2.10
 % - Change several warnings to compile-time errors, matching the actual
@@ -20117,10 +20119,9 @@ It is common to use the phrase ``a typedef'' for such a declaration,
 because of the prominent occurrence of the token \TYPEDEF.%
 }
 
-%%TODO(eernst): With non-function type aliases, change <functionType> to <type>.
 \begin{grammar}
 <typeAlias> ::= \gnewline{}
-  \TYPEDEF{} <typeIdentifier> <typeParameters>? `=' <functionType> `;'
+  \TYPEDEF{} <typeIdentifier> <typeParameters>? `=' <type> `;'
   \alt \TYPEDEF{} <functionTypeAlias>
 
 <functionTypeAlias> ::= <functionPrefix> <formalParameterPart> `;'
@@ -20333,23 +20334,24 @@ Let $D$ be a type alias declaration of the form
 \code{\TYPEDEF{} $F$<\TypeParametersStd> = $T$;}
 
 \noindent
-and let \DefineSymbol{U} be a parameterized type of the form
-\code{$F$<\List{U}{1}{s}>}
-in a scope where $F$ denotes $D$.
-Assume that the transitive alias expansion of $U$ is
-a type of the form $C$ or \code{$p$.$C$}
-where $C$ is an identifier denoting a class or mixin,
-and $p$ is an identifier denoting an import prefix,
-optionally followed by \synt{typeArguments}.
+and let \DefineSymbol{U} be a type of the form $F$ or \code{$p$.$F$}
+in a scope where this term denotes $D$.
+Assume that the transitive alias expansion of \code{$F$<\List{X}{1}{s}>} is
+\BlindDefineSymbol{C, q}%
+a type of the form $C$ or \code{$q$.$C$},
+optionally followed by \synt{typeArguments},
+where $q$ is an identifier denoting an import prefix,
+and $C$ respectively \code{$q$.$C$} denotes a class or mixin
+(\commentary{in particular, $C$ can not be a type variable}).
 Assume that $U$ occurs in an expression $e$ of the form
 `\code{$U$.\id\;\metavar{args}}'
 where \metavar{args} is derived from \syntax{<argumentPart>?},
 such that \id{} is the name of
-a static member of $C$ respectively \code{$p$.$C$}.
+a static member of $C$ respectively \code{$q$.$C$}.
 The expression $e$ is then treated as
 `\code{$C$.\id\;\metavar{args}}'
 respectively
-`\code{$p$.$C$.\id\;\metavar{args}}'.
+`\code{$q$.$C$.\id\;\metavar{args}}'.
 
 \commentary{%
 This means that it is possible to use a type alias
