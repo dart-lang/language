@@ -4458,7 +4458,8 @@ The controlling language is in the relevant sections of the specification.
   they declared or inherited (\ref{scoping}, \ref{classes}).
 \item Static members are never inherited.
 \item It is an error if you have a static member named $m$ in your class
-  and an instance member of the same name (\ref{classMemberConflicts}).
+  and an instance member of the same basename
+  (\ref{classMemberConflicts}).
 \item It is an error if you have a static setter \code{$v$=},
   and an instance member $v$ (\ref{setters}).
 \item It is an error if you have a static getter $v$
@@ -4511,8 +4512,8 @@ The controlling language is in the relevant sections of the specification.
   for a method in its interface
   unless it has a non-trivial \code{noSuchMethod}
   (\ref{theMethodNoSuchMethod}).
-\item The identifier of a named constructor cannot be
-  the same as the name of a static member declared in the same class
+\item The identifier of a named constructor cannot be the same as
+  the basename of a static member declared in the same class
   (\ref{classMemberConflicts}).
 \end{enumerate}%
 }
