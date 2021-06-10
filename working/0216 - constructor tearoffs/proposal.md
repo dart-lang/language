@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.9
+Author: lrn@google.com<br>Version: 2.10
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
@@ -357,7 +357,15 @@ A static member invocation still only works on an *uninstantiated* type literal.
 
 Allowing `List<int>.copyRange` is confusing. The invocation will not have access to the type parameter anyway, so allowing it is not going to help anyone. The occurrence of `List` in `List.copyRange` refers to the class *declaration*, treated as a namespace, not the class itself.
 
-This goes for type aliases too. We can declare `typedef MyList<T> = List<T>;` and `typedef IntList = List<int>;` and do `MyList.copyRange` or `IntList.copyRange` to access the static member of *the declaration* of the type being aliased. This is specially introduced semantics for aliases of class or mixin types, not something that falls out of first resolving the type alias to the class or mixin type. We do not allow `MyList<int>.copyRange` either, even though we allow `IntList.copyRange`. They are not the same when doing static member accesses.
+This goes for type aliases too. We can declare `typedef MyList<T> = List<T>;` and `typedef IntList = List<int>;` and do `MyList.copyRange` or `IntList.copyRange` to access the static member of *the declaration* of the type being aliased. This is specially introduced semantics for aliases of class or mixin types, not something that falls out of first resolving the type alias to the class or mixin type. We do not allow `MyList<int>.copyRange` either, even though we allow `IntList.copyRange`. They are not the same when doing static member accesses.
+
+#### Constructor/type object member ambiguity
+
+Until now, writing `C.foo` means that `foo` must be a static member of `C`. If you write `C.toString()`, then it's interpreted as trying to call a static `toString` method on the class `C`, not the instance `toString` method of the `Type` object for the class `C`. You have to write `(C).toString()` if that is what you want.
+
+Similarly, we always treat `C<T>.toString()` as an attempted constructor invocation, not an invocation of the instance `toString` method of the `Type` object corresponding to `C<T>` (which is now otherwise a valid expression). 
+
+That is, disambiguation of the otherwise grammatically ambiguous "(instantiated class-reference or type-literal).name" always chooses the "constructor tear-off" interpretation over the "type-literal instance member" interpretation. If followed by an argument list, it's always treated as a constructor invocation, not the (now otherwise allowed) `Type` object instance method invocation. This is a generalization of what we already do for static members and for constructor invocations.
 
 ### No instantiated tearing off function `call` methods
 
@@ -526,3 +534,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.7: State that we do not allow implicit `.call` member instantiations on callable objects.
 * 2.8: State that unused type arguments of a type alias still affect whether they are constant.
 * 2.9: Make it explicit that you cannot access static members through instantiated type literals.
+* 2.10: Make it explicit that `C<T>.toString` is a constructor reference, not an instance member on a `Type` object.
