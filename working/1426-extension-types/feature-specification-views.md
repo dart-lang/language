@@ -200,16 +200,17 @@ for late binding of a view member, and hence there is no notion of
 overriding. In return for this lack of expressive power, we get improved
 performance.
 
-Here is another example. It illustrates the fact that a view type `V` with
-on-type `T` introduces a type `V` which is a supertype of `T`. This makes
-it possible to assign an expression of type `T` to a variable of type
-`V`. This corresponds to "entering" the view type (accepting the specific
-discipline associated with `V`). Conversely, a cast from `V` to `T` is a
-downcast, and hence it must be written explicitly. This cast corresponds to
-"exiting" the view type (allowing for violations of the discipline
-associated with `V`), and the fact that the cast must be written explicitly
-helps developers maintaining the discipline as intended, rather than
-dropping out of the view type by accident, silently.
+Here is another example. It illustrates the fact that a plain view with
+on-type `T` introduces a view type `V` which is a supertype of `T`. (There
+are two other kinds, `open` and `closed` views, with different subtyping
+relationships.) This makes it possible to assign an expression of type `T`
+to a variable of type `V`. This corresponds to "entering" the view type
+(accepting the specific discipline associated with `V`). Conversely, a cast
+from `V` to `T` is a downcast, and hence it must be written explicitly.
+This cast corresponds to "exiting" the view type (allowing for violations
+of the discipline associated with `V`), and the fact that the cast must be
+written explicitly helps developers maintaining the discipline as intended,
+rather than dropping out of the view type by accident, silently.
 
 ```dart
 view ListSize<X> on List<X> {
@@ -245,6 +246,7 @@ rules for elements used in view declarations:
       'on' <type>
       <viewShowHidePart>
       <interfaces>?
+      ('box' 'as' <typeName>)?
   '{'
     (<metadata> <viewMemberDefinition>)*
   '}'
@@ -334,11 +336,14 @@ denotes an invocation of the view method `m` with the same bindings.*
 
 The static analysis of `invokeViewMethod` is that it takes exactly three
 positional arguments and must be the receiver in a member access. The first
-argument must be a name that denotes a view declaration, the next argument
-must be a type argument list, together yielding a view type _V_. The third
-argument must be an expression whose static type is _V_ or the
-corresponding instantiated on-type (defined below). The member access must
-be a member of `V`.
+argument must be a type name that denotes a view declaration, the next
+argument must be a type argument list, together yielding a view type
+_V_. The third argument must be an expression whose static type is _V_ or
+the corresponding instantiated on-type (defined below). The member access
+must be a member of `V` or an associated member of a superview of `V`.
+
+*Superviews and associated members are specified in the section 'Composing
+view types'.*
 
 If the member access is a method invocation (including an invocation of an
 operator that takes at least one argument), it is allowed to pass an actual
@@ -413,7 +418,7 @@ class or mixin, or if a view type is used to derive a mixin.
 `V2`, and `V3` are view types, and `mixin M on V1 implements V2 {}`
 has two errors.*
 
-If `e` is an expression whose static type is the view type
+If `e` is an expression whose static type `V` is the view type
 <code>View<S<sub>1</sub>, .. S<sub>k</sub>></code>
 and the basename of `m` is the basename of a member declared by `V`,
 then a member access like `e.m(args)` is treated as
@@ -484,7 +489,7 @@ on-type is the same in either case.
 
 We say that `D` is _open_ respectively _closed_ if its declaration
 starts with the keyword `open` respectively `closed`, and similarly we
-say that a view type <code>View<T<sub>1</sub>, .. T<sub>k</sub>></code>
+say that a view type <code>View<S<sub>1</sub>, .. S<sub>k</sub>></code>
 where `View` denotes `D` is _open_ respectively _closed_.
 If `D` starts with the keyword `view` we say that `D` is _plain_
 and that corresponding view types are _plain_.
@@ -519,7 +524,9 @@ type of `this` in the body of a view type _V_. Similarly, members of _V_
 invoked in the body of _V_ are subject to the same treatment as members of
 an extension, which means that view members of the enclosing view can be
 invoked implicitly, and view members are given higher priority than
-instance methods on `this`, when `this` is implicit.*
+instance methods on `this`, when `this` is implicit. Note that 
+associated members of superviews can be invoked implicitly as well, as
+specified in section 'Composing view types'.*
 
 A view declaration may declare one or more non-redirecting
 factory constructors. A factory constructor which is declared in a
@@ -723,7 +730,8 @@ the name clash).*
 
 ### Boxing
 
-This section describes the implicitly induced `box` getter of a view type.
+This section describes the `box` getter of a view type, which is implicitly
+induced when the clause `'box' 'as' <typeName>` is included.
 
 *It may be helpful to equip each view with a companion class whose
 instances have a single field holding an instance of the on-type. So it's a
@@ -731,15 +739,26 @@ wrapper with the same interface as the view type, except that the view type
 may have an implicitly induced getter named `box` and the companion class
 may have an implicitly induced getter named `unbox`.*
 
-Let `V` be a view type. The declaration of `V` implicitly induces a
-declaration of a class `V.class`, with the same type parameters and members
-as `V`. It is a subclass of `Object`, with the same direct superinterfaces
-as `V`, with a final private field whose type is the on-type of `V`, and
-with an unnamed single argument constructor setting that field to the
-argument. A getter `V.class get box` is implicitly induced in `V`, and it
-returns an object that wraps `this`.
+Let `V` be a view whose declaration includes the clause `box as typeName`.
 
-`V.class` also implicitly induces a getter `V get unbox` which returns the
+In the case where `typeName` denotes an existing class, it is a
+compile-time error unless it has members with signatures as described
+below. In the case where `typeName` denotes any other declaration, a
+compile-time error occurs.
+
+In the case where `typeName` does not resolve to a declaration, a
+compile-time error occurs unless `typeName` is a `<typeIdentifier>`.
+If no error occurred, a new class named `typeName` is implicitly induced
+into the same scope as the view declaration as follows:
+
+The class `typeName` has the same type parameters and members as `V`. It is
+a subclass of `Object`, with the same direct superinterfaces as `V`, with a
+final private field whose type is the on-type of `V`, and with an unnamed
+single argument constructor setting that field to the argument. A getter
+`Name get box` is implicitly induced in `V`, and it returns an object that
+wraps `this`.
+
+`Name` also implicitly induces a getter `V get unbox` which returns the
 value of the final field mentioned above, typed as the associated view
 type.
 
@@ -749,15 +768,6 @@ named `box` or `unbox`, said member is not induced.
 *The latter rule helps avoiding conflicts in situations where `box` or
 `unbox` is a non-hidden instance member, and it allows developers to write
 their own implementations if needed.*
-
-A compile-time error occurs at any reference to `V.class` or to the `box`
-member if the implicitly induced class `V.class` would have any
-compile-time errors.
-
-*For example, with a view type `V` it is allowed to `hide toString`
-and declare a `String toString(int radix)` (which is not a correct override
-of `Object.toString`), but it is then an error to invoke `box`, and it is
-an error to have any occurrence of `V.class`.*
 
 *The rationale for having this mechanism is that the wrapper object is a
 full-fledged object: It is a subtype of all the direct superinterfaces of
@@ -795,7 +805,7 @@ case we say that `V0` is a superview of `V`.
 
 A compile-time error occurs if `V0` is a type name or a parameterized type
 which occurs as a superview in a view declaration `V`, but `V0` does not
-denote a view type.
+denote a view type nor an extension.
 
 Assume that a view declaration `V` has on-type `T`, and that the view type
 `V0` is a superview of `V` (*note that `V0` may have some actual type
