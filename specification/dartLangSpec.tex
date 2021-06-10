@@ -34,6 +34,8 @@
 % - Change grammar to enable non-function type aliases. Correct rule for
 %   invoking `F.staticMethod()` where `F` is a type alias.
 % - Add missing error for cyclic redirecting generative constructor.
+% - Clarify rules about error on mixin application involving private
+%   members in different library.
 %
 % 2.8 - 2.10
 % - Change several warnings to compile-time errors, matching the actual
@@ -5507,9 +5509,12 @@ that are actually super-invoked.%
 \LMHash{}%
 Let \DefineSymbol{L_C} be the library containing the mixin application.
 \commentary{%
-That is, the library containing the clause \code{$S$ \WITH{} $M$}
-or the clause \code{$S_0$ \WITH{} $M_1$, \ldots,\ $M_k$, $M$} giving rise
-to the mixin application.%
+That is, the library containing the clause
+\code{$S_0$ \WITH{} \List{M}{1}{k}} where
+$M$ is $M_j$ and
+$S$ is \code{$S_0$ \WITH{} \List{M}{1}{j - 1}},
+for some $j \in 1 .. k$
+(so for $j = 1$ we have \code{$S$ \WITH{} $M$, \ldots}).%
 }
 Let \DefineSymbol{L_M} be the library containing the declaration of $M$.
 
@@ -5517,7 +5522,7 @@ Let \DefineSymbol{L_M} be the library containing the declaration of $M$.
 Assume that $S$ has a concrete member $m_S$ which is accessible to $L_M$,
 that $m_S$ has the name $n$ which is private
 (\commentary{so $m_S$ is declared in $L_M$}),
-and that $M$ declares a concrete member $m_M$ which is also named $n$
+and that $M$ declares a member $m_M$ which is also named $n$
 \commentary{(note that $m_M$ is also declared in $L_M$)}.
 In this case a compile-time error occurs.
 
