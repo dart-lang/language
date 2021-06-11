@@ -33,6 +33,7 @@
 %   is a compile-time error except when it is a getter/setter pair.
 % - Change grammar to enable non-function type aliases. Correct rule for
 %   invoking `F.staticMethod()` where `F` is a type alias.
+% - Add missing error for cyclic redirecting generative constructor.
 %
 % 2.8 - 2.10
 % - Change several warnings to compile-time errors, matching the actual
@@ -3650,6 +3651,15 @@ and it would be surprising
 if $e_j$ were subject to more strict constraints than the ones applied to
 actual arguments to function invocations in general.%
 }
+
+\LMHash{}%
+A redirecting generative constructor $q'$ is \Index{redirection-reachable}
+from a redirecting generative constructor $q$ if{}f
+$q'$ is the redirectee constructor of $q$,
+or $q''$ is the redirectee constructor of $q$
+and $q'$ is redirection-reachable from $q''$.
+It is a compile-time error if a redirecting generative constructor
+is redirection-reachable from itself.
 
 \LMHash{}%
 When $\ConstMetavar$ is \CONST,
