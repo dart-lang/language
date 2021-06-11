@@ -33,6 +33,7 @@
 %   is a compile-time error except when it is a getter/setter pair.
 % - Change grammar to enable non-function type aliases. Correct rule for
 %   invoking `F.staticMethod()` where `F` is a type alias.
+% - Add missing error for cyclic redirecting generative constructor.
 %
 % 2.8 - 2.10
 % - Change several warnings to compile-time errors, matching the actual
@@ -3652,6 +3653,15 @@ actual arguments to function invocations in general.%
 }
 
 \LMHash{}%
+A redirecting generative constructor $q'$ is \Index{redirection-reachable}
+from a redirecting generative constructor $q$ if{}f
+$q'$ is the redirectee constructor of $q$,
+or $q''$ is the redirectee constructor of $q$
+and $q'$ is redirection-reachable from $q''$.
+It is a compile-time error if a redirecting generative constructor
+is redirection-reachable from itself.
+
+\LMHash{}%
 When $\ConstMetavar$ is \CONST,
 it is a compile-time error if the redirectee is not a constant constructor.
 Moreover, when $\ConstMetavar$ is \CONST, each
@@ -4458,7 +4468,8 @@ The controlling language is in the relevant sections of the specification.
   they declared or inherited (\ref{scoping}, \ref{classes}).
 \item Static members are never inherited.
 \item It is an error if you have a static member named $m$ in your class
-  and an instance member of the same name (\ref{classMemberConflicts}).
+  and an instance member of the same basename
+  (\ref{classMemberConflicts}).
 \item It is an error if you have a static setter \code{$v$=},
   and an instance member $v$ (\ref{setters}).
 \item It is an error if you have a static getter $v$
@@ -4511,8 +4522,8 @@ The controlling language is in the relevant sections of the specification.
   for a method in its interface
   unless it has a non-trivial \code{noSuchMethod}
   (\ref{theMethodNoSuchMethod}).
-\item The identifier of a named constructor cannot be
-  the same as the name of a static member declared in the same class
+\item The identifier of a named constructor cannot be the same as
+  the basename of a static member declared in the same class
   (\ref{classMemberConflicts}).
 \end{enumerate}%
 }
