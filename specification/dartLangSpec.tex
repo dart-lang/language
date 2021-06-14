@@ -5520,7 +5520,7 @@ Let \DefineSymbol{L_M} be the library containing the declaration of $M$.
 
 \LMHash{}%
 Assume that $L_C$ and $L_M$ is not the same library,
-that $S$ has a concrete member $m_S$ which is accessible to $L_M$,
+that the interface of $S$ has a member $m_S$ which is accessible to $L_M$,
 that $m_S$ has the name $n$ which is private
 (\commentary{so $m_S$ is declared in $L_M$}),
 and that $M$ declares a member $m_M$ which is also named $n$
@@ -5531,10 +5531,18 @@ In this case a compile-time error occurs.
 In this situation $m_M$ would override $m_S$ if $M'$ is applied to $S'$,
 and this happens because of the mixin application which is outside of $L_M$,
 even though $m_M$ and $m_S$ are private.
-One of the unfortunate consequences of this situanion is that
+One of the unfortunate consequences of this situation is that
 invocations of $m_S$ which could otherwise be statically resolved
 (in cases where it is otherwise guaranteed that $m_S$ is not overridden)
 must now be invoked using late binding.
+Note that the error occurs even in some cases where
+there appears to be no overriding,
+because one or both of the declarations are abstract.
+However, those situations may still give rise to
+an implicitly induced implementation, e.g.,
+because an inherited implementation performs no type checks
+on a given parameter,
+but a superinterface specifies that this parameter is covariant.
 Because of this, and because of some other complications,
 this kind of ``private overriding from outside'' is prevented by making it
 a compile-time error to perform the mixin application.%
