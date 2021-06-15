@@ -60,7 +60,7 @@ analyzer:
 
 ### dart2js, DDC, VM
 
-The feature is expected to to be desugared, which means that it will not
+The feature is expected to be desugared, which means that it will not
 exist in kernel code, and backends need not implement anything.
 
 ### Dartfmt
