@@ -1986,7 +1986,8 @@ Optional parameters may be specified and provided with default values.
 <defaultFormalParameter> ::= <normalFormalParameter> (`=' <expression>)?
 
 <defaultNamedParameter> ::= \gnewline{}
-  \REQUIRED? <normalFormalParameter> ((`=' | `:') <expression>)?
+  <metadata> \REQUIRED? <normalFormalParameterNoMetadata>
+  ((`=' | `:') <expression>)?
 \end{grammar}
 
 The form \syntax{<normalFormalParameter> `:' <expression>}
