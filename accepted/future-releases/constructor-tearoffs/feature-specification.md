@@ -381,7 +381,7 @@ The grammar changes necessary for these changes will be provided separately (lik
 
 ## Summary
 
-We allow `TypeName.name` and `TypeName<typeArgs>.name`, when not followed by a type argument list or function argument list, as expressions which creates tear-offs of the the constructor `TypeName.name`.  The `TypeName` can refer to a class declaration or to a type alias declaration which aliases a class.
+We allow `TypeName.name` and `TypeName<typeArgs>.name`, when not followed by a type argument list or function argument list, as expressions which creates tear-offs of the constructor `TypeName.name`.  The `TypeName` can refer to a class declaration or to a type alias declaration which aliases a class.
 
 ```dart
 typedef ListList<T> = List<List<T>>;

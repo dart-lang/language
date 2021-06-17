@@ -19,7 +19,7 @@ flag][]. Tools must be passed the flag
 
 While this feature is under development, individual tools may have incomplete or
 changing implementations behind the flag. When all tools have completely
-implemented the feature, the the feature will be enabled by default, and the
+implemented the feature, the feature will be enabled by default, and the
 flag removed in a stable release.
 
 ### "triple-shift" Experimental flag

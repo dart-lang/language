@@ -258,7 +258,7 @@ We also make use of the following auxiliary functions:
   where `r2` is `r` with `true` pushed as the top element of the stack.
 
 - `drop(M)`, where `M = FlowModel(r, VM)` is defined as `FlowModel(r1, VM)`
-  where where `r` is of the form `n0::r1`.  This is the flow model which drops
+  where `r` is of the form `n0::r1`.  This is the flow model which drops
   the reachability information encoded in the top entry in the stack.
 
 - `unsplit(M)`, where `M = FlowModel(r, VM)` is defined as `M1 = FlowModel(r1,

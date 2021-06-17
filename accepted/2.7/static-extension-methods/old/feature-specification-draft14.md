@@ -246,7 +246,7 @@ Let *i* be a member invocation with target expression `e` and corresponding memb
 
 1. The `E2` extension is declared in a platform library and the `E1` extension is not, or
 2. either both or neither are declared in platform libraries and
-3. *T<sub>1</sub>* is a subtype of of *T<sub>2</sub>* and either
+3. *T<sub>1</sub>* is a subtype of *T<sub>2</sub>* and either
 4. not vice versa, or
 5. the instantiate-to-bounds `on` type of `E1` is a subtype of the instantiate-to-bounds `on` type of `E2` and not vice versa.
 

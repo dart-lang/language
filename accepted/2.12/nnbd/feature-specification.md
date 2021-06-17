@@ -273,7 +273,7 @@ For example, `{ a?[b]:c }` can be parsed either as a set literal or a map
 literal, depending on whether the `?` is interpreted as part of a null aware
 subscript or as part of a conditional expression.  Whenever there is a sequence
 of tokens which may be parsed either as a conditional expression or as two
-expressions separated by a colon, the first of which is a a null aware
+expressions separated by a colon, the first of which is a null aware
 subscript, parsers shall choose to parse as a conditional expression.
 
 
@@ -1169,7 +1169,7 @@ First, _L_ is compiled as a library as specified above.
 Then, the top-level function defined by `main`
 in the exported namespace of _L_ is invoked as follows:
 
-If `main` can be called with with two positional arguments,
+If `main` can be called with two positional arguments,
 it is invoked with the following two actual arguments:
 
 - An object whose run-time type implements `List<String>`.
