@@ -24,7 +24,7 @@ to users.
 
 While developing, individual tools may have incomplete implementations behind the flag.
 When all tools have completely implemented the feature,
-the the feature will be enabled, and the flag removed, in a stable release.
+the feature will be enabled, and the flag removed, in a stable release.
 
 
 ### Phase 0 (Prerequisite)

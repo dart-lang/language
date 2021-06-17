@@ -38,7 +38,7 @@ Proposals may be iterated on in-place.
 
 As mentioned, alternative proposals should have their own issue and writeup.
 
-All proposals should be linked from and link to the the 'request' for
+All proposals should be linked from and link to the 'request' for
 the user problem/feature request they are trying to address.
 
 ### External (outside of the language team) feedback

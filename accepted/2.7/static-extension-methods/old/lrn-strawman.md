@@ -305,7 +305,7 @@ Bar<num, num> bar = Bar<int, double>();
 main() { var list = bar.baz(); }
 ```
 
-The static type of `list` will be `List<num>`, that much is certain. However, we can't bind `T` at run-time to _the_ run-time type argument of `Bar` because there are two values. We _do not_ want to compute the least-upper-bound of the two two run-time types. We also do not want to fail at run-time. That doesn't really leave us with any good solution except using the static type.
+The static type of `list` will be `List<num>`, that much is certain. However, we can't bind `T` at run-time to _the_ run-time type argument of `Bar` because there are two values. We _do not_ want to compute the least-upper-bound of the two run-time types. We also do not want to fail at run-time. That doesn't really leave us with any good solution except using the static type.
 
 The problem with this example was ambiguity. We cannot extract _the_ run-time type argument when the type variable occurs more than once in the type constraint list. We _can_ if it occurs exactly once.
 

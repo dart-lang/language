@@ -45,7 +45,7 @@ whose corresponding parameter type is `int`.
 
 Note that the heap invariant is violated during execution at the point
 where `a` is initialized, even though the program has no error according
-the the existing rules (before the inclusion of this feature).
+to the existing rules (before the inclusion of this feature).
 
 The underlying issue is that the contravariant usage of a type variable in
 a superinterface creates a twisted subtype lattice where `B` "goes in one

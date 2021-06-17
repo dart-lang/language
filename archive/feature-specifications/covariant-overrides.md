@@ -146,7 +146,7 @@ For a covariant parameter, the override rule is that its type must be
 either a supertype or a subtype of the type declared for the corresponding
 parameter in each of the directly or indirectly overridden declarations.
 
-*For a parameter which is not covariant, the override rule is is unchanged:
+*For a parameter which is not covariant, the override rule is unchanged:
 its type must be a supertype of the type declared for the corresponding
 parameter in each directly overridden declaration. This includes the
 typical case where the type does not change, because any type is a
@@ -445,7 +445,7 @@ can be implemented, and both choices provide a certain amount of protection
 against tightening types by accident. We have chosen the permissive variant,
 and it is always possible to make a linter require a stricter one.
 
-For a regular (non-covariant) parameter, the override rule is is unchanged:
+For a regular (non-covariant) parameter, the override rule is unchanged:
 its type must be a supertype of the type declared for the same parameter in
 each directly overridden declaration. This includes the typical case where the
 type does not change, because any type is a supertype of itself.

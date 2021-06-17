@@ -1006,7 +1006,7 @@ propagation?
   signature.
   - In general, if the function signature is compatible with the context type,
     take any available information from the context.  If the function signature
-    is not compatible, this this should always be a type error anyway, so
+    is not compatible, this should always be a type error anyway, so
     implementations should be free to choose the best error recovery path.
   - The monomorphic case can be treated as a degenerate case of the polymorphic
     rule
