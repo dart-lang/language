@@ -5247,6 +5247,9 @@ if{}f the following criteria are all satisfied:
 A mixin describes the difference between a class and its superclass.
 A mixin is either derived from an existing class declaration
 or introduced by a mixin declaration.
+It is a compile-time error to derive a mixin from
+a class that explicitly declares a generative constructor,
+or from a class that has a superclass other than \code{Object}.
 
 \LMHash{}%
 Mixin application occurs when one or more mixins are mixed into
@@ -5292,8 +5295,6 @@ Let $D$ be a mixin application class declaration of the form
 It is a compile-time error if $S$ is an enumerated type (\ref{enums}).
 It is a compile-time error if any of $M_1, \ldots, M_k$ is an enumerated type
 (\ref{enums}).
-It is a compile-time error if a well formed mixin
-cannot be derived from each of $M_1, \ldots, M_k$.
 
 \LMHash{}%
 The effect of $D$ in library $L$ is to introduce the name $N$ into
