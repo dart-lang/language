@@ -194,11 +194,11 @@ and are based on the structure of the type itself, as in current Dart:
     directly construct anything internally if it wouldn't cause a problem to do
     so, even an interface or an abstract class.* **TODO: Even a mixin?**
 
-*   The usual restrictions on mixing and extending classes: You can't mix
-    in a class unless it has a default constructor. You can't extend a class
-    that has only factory constructors. No inheritance cycles, etc.
+*   It is a compile-time error to extend a type that has at least one factory
+    constructor and no generative constructors.
 
-    **TODO: Fill this in more precisely.**
+*   It is a compile-time error to mix in a type that explicitly declares a
+    generative constructor or has a superclass other than `Object`.
 
 The rules for using types *outside* of their module are based on the
 capabilities the type explicitly provides:
