@@ -249,9 +249,9 @@ inadvertently break a capability that the type offers.
 
 *   It is a compile-time error if a class C marked `interface` has a superclass
     D which is not also marked `interface`, unless C and D are declared in the
-    same module. *In other words, you can't extend a class with no interface
-    that you don't control and then retroactively give it an interface by way of
-    a subclass. This ensures that if you declare a class C with no interface,
+    same module. *In other words, someone can't extend a class with no interface
+    that they don't control and then retroactively give it an interface by way
+    of a subclass. This ensures that if you declare a class C with no interface,
     then any object of type C will reliably be an instance of your actual class
     C or some other type you control.*
 
