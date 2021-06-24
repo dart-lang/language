@@ -266,13 +266,16 @@ the language version before modules will behave as if all class declarations
 are implicitly marked with all of the capabilities the class can support. In
 particular:
 
-*   All classes are treated as implicitly marked `interface`.
+*   All classes and mixins are treated as implicitly marked `interface`.
+
+*   If the class has at least one generative constructor (which may be default),
+    it is treated as implicitly marked `open`.
 
 *   If the class has at least one generative constructor (which may be default)
-    and is not marked `abstract` it is treated as implicitly marked `open`.
+    and is not marked `abstract` it is treated as implicitly marked `class`.
 
-*   If the class has no constructors, it is treated as implicitly marked
-    `mixin`.
+*   If the class has no non-default generative constructors, and `Object` as
+    superclass, it is treated as implicitly marked `mixin`.
 
 [language versioning]: https://dart.dev/guides/language/evolution#language-versioning
 
