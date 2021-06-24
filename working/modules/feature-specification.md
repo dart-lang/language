@@ -258,9 +258,29 @@ inadvertently break a capability that the type offers.
 ### Capabilities on legacy classes
 
 The above syntax means that it an error to implement, mixin, or extend a class
-declared just using `class`. This would break nearly all existing Dart code.
-To avoid that, we specify that Dart classes that are not in modules are
-implicitly treated as if they were declared as `open interface mixin class`.
+declared just using `class`. This would break nearly all existing Dart code if
+it were retroactively applied to existing code.
+
+Fortunately, we have [language versioning][] to help. Dart libraries still at
+the language version before modules will behave as if all class declarations
+are implicitly marked with all of the capabilities the class can support. In
+particular:
+
+*   All classes are treated as implicitly marked `interface`.
+
+*   If the class has at least one generative constructor (which may be default)
+    and is not marked `abstract` it is treated as implicitly marked `open`.
+
+*   If the class has no constructors, it is treated as implicitly marked
+    `mixin`.
+
+[language versioning]: https://dart.dev/guides/language/evolution#language-versioning
+
+When updating a library to the language version that supports modules, you'll
+want to decide what capabilities to offer, or just place all the modifiers you
+can to preserve the class's current behavior.
+
+**TODO: Investigate tooling to automatically migrate.**
 
 ## Capability controls on members
 
