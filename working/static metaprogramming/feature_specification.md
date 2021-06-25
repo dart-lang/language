@@ -91,9 +91,9 @@ hosted [here][docs].
 
 ### Macro API
 
-All macro interfaces implement the [Macro][Macro] class, so you can follow the
-"Implementors" links to see all the available types of macros. Here are some
-direct links to the root interfaces for each phase:
+All macros implement a subtype of the [Macro][Macro] class, so you can follow
+the "Implementors" links to see all the available types of macros. Here are
+some direct links to the root interfaces for each phase:
 
 - [TypeMacro][TypeMacro]
 - [DeclarationMacro][DeclarationMacro]
