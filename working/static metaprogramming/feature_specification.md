@@ -167,6 +167,13 @@ api - these have apis to get a reference to a `Type` object. We will want to add
 the ability to do the same for any arbitrary identifier, and then the ability
 to emit references to these inside of [Code][Code] objects.
 
+## Limitations
+
+- Macros cannot be applied from within the same library cycle as they are
+  defined.
+- Macros cannot write arbitrary files to disk, and read them in later. They
+  can only generate code into the library where they are applied.
+
 [Code]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Code-class.html
 [ClassDeclaration]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclaration-class.html
 [ClassDeclarationBuilder]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationBuilder-class.html
