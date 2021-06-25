@@ -121,8 +121,8 @@ class ClassDeclarationMacro implements DeclarationMacro {
 ```
 
 The [ClassDeclaration][ClassDeclaration] instance you get here provides all the
-introspective class to you that is available for classes in the `declaration`
-phase.
+introspective information to you that is available for classes in the
+`declaration` phase.
 
 The `builder` instances also provide an api that allows you to retrieve an
 introspection object for any `Type` object available to the macro itself, so
