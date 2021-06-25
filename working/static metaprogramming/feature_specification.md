@@ -101,7 +101,8 @@ direct links to the root interfaces for each phase:
 
 Each of these has more specific implementations for the specific type of
 declaration that they annotate. So for instance the
-[ClassDeclarationMacro][ClassDeclarationMacro] is the interface
+[ClassDeclarationMacro][ClassDeclarationMacro] is the interface used for macros
+that apply to classes, and run in the "declaration" phase.
 
 ### Introspection API
 
