@@ -12846,6 +12846,17 @@ yielding the same completion
 (\ref{statementCompletion})
 as the invocation of $f$ would have yielded.
 
+\LMHash{}%
+Let $e_1$ and $e_2$ be two constant expressions that both
+evaluate to a function object which is obtained by function closurization
+of the same function declaration.
+In this case \code{identical($e_1$, $e_2$)} shall evaluate to true.
+
+\commentary{%
+That is, constant expressions whose evaluation is a function closurization
+are canonicalized.%
+}
+
 
 \subsubsection{Generic Function Instantiation}
 \LMLabel{genericFunctionInstantiation}
@@ -13057,6 +13068,20 @@ In that situation it is unreasonable
 to consider the two function objects to be the same function.%
 }
 \EndCase
+
+\LMHash{}%
+Let $e_1$ and $e_2$ be two constant expressions that both
+evaluate to a function object
+which is obtained by generic function instantiation
+of the same function declaration
+and with the same type arguments.
+In this case \code{identical($e_1$, $e_2$)} shall evaluate to true.
+
+\commentary{%
+That is, constant expressions whose evaluation is
+a generic function instantiation
+are canonicalized.%
+}
 
 
 \subsection{Lookup}
