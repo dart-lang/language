@@ -8,21 +8,39 @@ Status: **Work In Progress**
 
 See the [intro](intro.md) document for the motivation for this proposal.
 
-## Overview - Multi-Phase Approach
+## Usage
 
-At a high level, the idea of this proposal is to split macros into three
-separate phases. Each phase has different capabilities in terms of both program
-introspection, and program modification. As you move through the phases you
-generally get more introspective power, but less power to mutate the program.
+To a user, macros are essentially "active" metadata annotations that do some
+processing at compile time to the declaration they are applied to.
 
-In general, the introspection apis are limited such that only things produced
+```dart
+@myCoolMacro
+class MyClass {}
+```
+
+This syntax is familiar, and it already exists, so there isn't a compelling
+motivation to invent new syntax for macro applications.
+
+This also allows for intuitive configuration of macros via their constructor,
+while simultaneously not allowing them to have mutable internal state which
+we also want.
+
+## Implementation Overview - Multi-Phase Approach
+
+At a high level the idea is to build the program up in a series of steps with
+macro phases interleaved between them. At each phase, macros only have access
+to the parts of the program that are already complete, and can produce
+information for later phases. Later phases generally get more introspective
+power, but less power to mutate the program.
+
+In general, the introspection APIs are limited such that only things produced
 by previous phases can be introspected upon. This ensures we always give
-accurate and complete information in these apis.
+accurate and complete information in these APIs.
 
-A single macro can run in multiple phases if needed. A common use case for this
-is running in an early phase to define the signature of a new declaration, and
-then filling in the implementation of that declaration later on when more
-introspection power is available.
+A macro can contribute code in multiple phases if needed. A common usecase for
+this is running in an early phase to define the signature of a new declaration,
+and then filling in the implementation of that declaration in a later phase when
+more introspection power is available.
 
 When a macro adds a new declaration, it may also add a macro application to that
 declaration, but only if that macro runs in a *later* phase than the current
@@ -42,20 +60,20 @@ resolve to that type once macros are done (a new type could be introduced which
 shadows the original one).
 
 Once this phase completes, all subsequent phases know exactly which type any
-reference is resolved to, and can ask questions about subtype relations, etc.
+named reference is resolved to, and can ask questions about subtype relations,
+etc.
 
 ### Phase 2: Declaration Macros
 
-In this phase, macros can contribute new (non-type) declarations to the program,
-these can be new members on classes as well as top level declarations.
+In this phase, macros can contribute new function, variable, and member
+declarations to the program.
 
-When running on classes, these macros can also introspect on the members of the
-class that they annotate, as well as the classes in their super chain, but they
-*cannot* introspect on the members of other types.
+When applied to a class, a macro can introspect on the members of that class and
+its superclasses, but they cannot introspect on the members of other types.
 
-When multiple macros in this phase are applied to the same declaration, they are
-able to see the declarations added by previously applied macros, but not later
-applied ones (see [Macro Ordering](#macro-ordering)).
+When multiple macros are applied to the same declaration, they are able to see
+the declarations added by previously applied macros, but not later applied ones
+(see [Macro Ordering](#macro-ordering)).
 
 ### Phase 3: Definition Macros
 
@@ -68,7 +86,7 @@ a scope with each other, but not with the original function body.
 
 In addition these macros can add supporting declarations to the surrounding
 scope, but these are private to the macro generated code, and never show up in
-introspection apis.
+introspection APIs.
 
 These macros can fully introspect on any type reachable from the declarations
 they annotate, including introspecting on members of classes, etc.
@@ -81,37 +99,43 @@ members are applied before macros on the class.
 When multiple macros are applied to the same declaration, they are applied right
 to left.
 
-Macros applied to different declarations in the same scope can be applied in any
-order.
+By design, users can't observe the order that macros on different declarations
+are applied.
 
 ## APIs
 
-The specific apis for macros are being prototyped currently, and the docs are
+The specific APIs for macros are being prototyped currently, and the docs are
 hosted [here][docs].
 
 ### Macro API
 
-All macros implement a subtype of the [Macro][Macro] class, so you can follow
-the "Implementors" links to see all the available types of macros. Here are
-some direct links to the root interfaces for each phase:
+Every macro is a user-defined class that implements one or more special macro
+interfaces. Every macro interface is a subtype of a root [Macro][] type. There
+are interfaces for each kind of declaration macros can be applied to — class,
+function, etc. Then, for each of those, there is an interface for each macro
+phase — type, declaration, and definition.
 
-- [TypeMacro][TypeMacro]
-- [DeclarationMacro][DeclarationMacro]
-- [DefinitionMacro][DefinitionMacro]
+A single macro class can implement as many of these interfaces as it wants to.
+This can allow a single macro to participate in multiple phases and to support
+being applied to multiple kinds of declarations.
 
-Each of these has more specific implementations for the specific type of
-declaration that they annotate. So for instance the
-[ClassDeclarationMacro][ClassDeclarationMacro] is the interface used for macros
-that apply to classes, and run in the "declaration" phase.
+Here are some direct links to the root interfaces for each phase:
+
+- [TypeMacro][]
+- [DeclarationMacro][]
+- [DefinitionMacro][]
+
+As an example, the interface you should implement for a macro that runs on
+classes in the declaration phase is [ClassDeclarationMacro][].
 
 ### Introspection API
 
-The first argument to any method that you override in your macro is the
-introspection object. This is a representation of the declaration that was
-annotated with the macro.
+The first argument to any method that you implement in your macro is the
+introspection object. This is a representation of the declaration that the macro
+was applied to.
 
-For example, lets look at the [ClassDeclarationMacro][ClassDeclarationMacro]
-API, which has the following method that you must override:
+For example, lets look at the [ClassDeclarationMacro][] API, which has the
+following method that you must override:
 
 ```dart
 class ClassDeclarationMacro implements DeclarationMacro {
@@ -120,35 +144,36 @@ class ClassDeclarationMacro implements DeclarationMacro {
 }
 ```
 
-The [ClassDeclaration][ClassDeclaration] instance you get here provides all the
+The [ClassDeclaration][] instance you get here provides all the
 introspective information to you that is available for classes in the
 `declaration` phase.
 
-The `builder` instances also provide an api that allows you to retrieve an
-introspection object for any `Type` object available to the macro itself, so
-for instance the [DeclarationBuilder][DeclarationBuilder] class (which
-[ClassDeclarationBuilder][ClassDeclarationBuilder] extends), exposes the
-[typeDeclarationOf][typeDeclarationOf] api.
+The `builder` parameter also provides an api that allows you to retrieve an
+introspection object for any `Type` object available to the macro at runtime.
+The introspection capabilites of these objects are limited to the information
+produced by the previous macro phase of macros, similar to the capabilites
+provided for type references on the declaration.
 
 ### Code Building API
 
-At the root of the API for generating code, are the [Code][Code] and
-`*Builder` classes. The `*Builder` instance is always passed as the second
-argument to the methods you override in your macro.
+At the root of the API for generating code, are the [Code][] and `*Builder`
+classes.
 
-In your macro, you will generally use the introspection api you are given in
-order to construct the desired [Code][Code], and then pass that to an api from
-the builder instance in order to add it to the program.
+- The [Code][] class and its subtypes are first-class representations of
+  pieces of Dart programs, essentially abstract syntax trees.
+- The `*Builder` instance is always passed as the second argument to the methods
+  you implement in your macro, and is what you use to actually augment the
+  program with [Code][].
 
 There is a different type of `*Builder` for each specific type of macro, for
-instance if you look at the [DeclarationBuilder][DeclarationBuilder] class, you
-will see this interface method `void addToLibrary(Declaration declaration)`.
-The [Declaration][Declaration] class here is a subtype of [Code][Code].
+instance if you look at the [DeclarationBuilder][] class, you will see this
+interface method `void addToLibrary(Declaration declaration)`. The
+[Declaration][] class here is a subtype of [Code][].
 
-Most subtypes of [Code][Code] require fully syntactically valid code in order to
+Most subtypes of [Code][] require fully syntactically valid code in order to
 be constructed, but where you need to build up something in smaller pieces you
-can use the [Fragment][Fragment] subtype. Any arbitrary String can be passed to
-this class, allowing you to build up your code fragments however you like.
+can use the [Fragment][] subtype. Any arbitrary String can be passed to this
+class, allowing you to build up your code fragments however you like.
 
 ## Scoping
 
@@ -163,16 +188,19 @@ something from the macro scope, but in the code generated for the original
 library.
 
 We do have the start of something like this already available in the `builder`
-api - these have apis to get a reference to a `Type` object. We will want to add
+api - these have APIs to get a reference to a `Type` object. We will want to add
 the ability to do the same for any arbitrary identifier, and then the ability
-to emit references to these inside of [Code][Code] objects.
+to emit references to these inside of [Code][] objects.
 
 ## Limitations
 
 - Macros cannot be applied from within the same library cycle as they are
   defined.
+  - **TODO**: Explain library cycles, and why they are a problem.
 - Macros cannot write arbitrary files to disk, and read them in later. They
   can only generate code into the library where they are applied.
+  - **TODO**: Full list of available `dart:` apis.
+  - **TODO**: Design a safe api for read-only access to files.
 
 [Code]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Code-class.html
 [ClassDeclaration]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclaration-class.html
