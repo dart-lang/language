@@ -52,11 +52,26 @@ module.
 
 ## Capability controls on types
 
-Dart defaults to being maximally permissive. When you define a class, it can,
-unless prohibited by its own structure, be used as an interface, superclass, or
-mixin. This is useful for consumers of the class because they are given the
-flexibility to do with it as they will. This flexibility comes with some
-downsides:
+There are three fundamental kinds of entities in Dart's semantics:
+
+*   A **class** has a set of member declarations and a superclass (which may be
+    Object). You can use a class **construct** new instances (if not abstract)
+    and/or you can **extend** one as a superclass.
+
+*   An **interface** is a set of member *signatures*.
+
+*   A **mixin** is a set of member declarations. Unlike a class, a mixin does
+    *not* have a superclass. You have to apply the mixin to some concrete
+    superclass in order to get a class that you can construct.
+
+Dart's syntax somewhat obscures this. There is no dedicated syntax for declaring
+an interface. Until recently there was also no syntax for declaring a mixin.
+Instead, a class declaration can, unless prohibited by its own structure, be
+used as an interface, superclass, or mixin.
+
+Inferring interfaces from classes and mixins a useful tool to avoid the
+redundancy found in Java and C# code. It provides consumers of the class maximum
+flexibility. But it comes at a cost:
 
 *   Since a class may be used as an interface, adding a method is potentially a
     breaking change, even if the author never intended the class's interface to
@@ -81,39 +96,24 @@ downsides:
 
 [ex]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/patterns-feature-specification.md#exhaustiveness-and-reachability
 
-Because of these, users ask for control over the affordances a class provides
-([349][], [704][], [987][]). Adding modules to the language is a good
-opportunity to add those.
-
-Note that the above reasons only come into play when *unknown code* works with
-a class. Thus these restrictions only apply to code using a class outside of
-the module where the class is declared. Inside the class's own module, you are
-free to use the class however you want. It's your class.
-
-There are four capabilities a class may expose to outside code:
+Because of these, users ask for control over the affordances a declaration
+provides ([349][], [704][], [987][]). Modules are a natural boundary for those
+restrictions.
 
 [349]: https://github.com/dart-lang/language/issues/349
 [704]: https://github.com/dart-lang/language/issues/704
 [987]: https://github.com/dart-lang/language/issues/987
 
-*   **Constructible.** – Whether a new instance can be created by calling one of
-    its constructors.
+Note that the above problems only come into play when *unknown code* works with
+a type. Thus these restrictions only apply to code using a type outside of the
+module where the type is declared. Inside the types's own module, you are free
+to use types however you want. It's your code.
 
-*   **Extensible.** – Whether the class can be used as a superclass of another
-    class in its `extends` clause.
+### Types of types and capabilities
 
-*   **Implementable.** – Whether the class exposes an interface that can be
-    implemented.
-
-*   **Mix-in** – Whether the class defines a mixin can be mixed in to other
-    classes.
-
-Ideally, a class would have full control over which of these capabilities it
-allows and all combinations would be expressible. Dart already supports a
-couple of combinations: an `abstract class` cannot be constructed, and a `mixin`
-declaration cannot be constructed or extended.
-
-An analysis of Google's corpus shows these combinations are most common:
+Restating the above, there are four affordances a type might offer:
+**construct**, **extend**, **implement**, and **mix in**. An analysis of the
+class declarations in Google's corpus shows these combinations are most common:
 
 ```
 Construct               63.93% 6605
@@ -124,114 +124,126 @@ Construct + Implement    2.36%  244
 Mixin                    1.25%  129
 ```
 
-All other combinations are less than 1% *but do occur in practice*. The latter
-implies that we should support all 16 combinations. To keep declarations terse,
-the default behavior should reflect the most common combinations and modifiers
-should opt for less common choices. Given the numbers above, that means classes
-should default to constructible, but not extensible, implementable, or
-mixin-able ("miscible"?).
+All other combinations are less than 1%. Every combination occurs in practice,
+though the few examples of combinations involving mixins and classes seem to be
+historical from the time before Dart's dedicated mixin syntax.
+
+## Mixins and classes
+
+Combinations of classes and interfaces make sense. Likewise, it seems natural to
+derive an interface from a mixin. But deriving both a class and a mixin from the
+same declaration has proven to be confusing.
+
+A mixin, by definition, has no superclass. In order to construct or extend
+something, it must be a full-formed class with an inheritance chain all the way
+up to Object. When you derive a mixin from a class today, Dart discards the
+superclass and any inherited methods.
+
+This is a continuing source of confusion for users, which is one reason we added
+dedicated `mixin` syntax. Now that we have language versioning, we can complete
+that transition. With this proposal, **a class declaration no longer defines an
+implicit mixin declaration.** The only way to create a mixin is using `mixin`.
 
 ### Syntax
 
-Following Dart's existing syntax, we use `mixin` to allow mixing-in and
-`abstract` to prevent constructing. Following Java and others, we use
-`interface` to allow implementing. Following Swift and Kotlin, we use `open` to
-allow subclassing.
+We support all combinations of the above four capabilities, except for
+combinations with Mixin + Construct or Mixin + Extend.
 
-Using all of those strictly as modifiers on `class` would lead to some awkard
-combinations (like `abstract interface` for what would just be `interface` in
-other languages), so the rules for combining them are a little more complex. In
-grammarese, the allowed combinations and modifier orders are:
+Following Dart's existing syntax, we use `class` to define classes, `mixin`
+define mixins, and `abstract` to prevent constructing. Following Java and
+others, we use `interface` (as a modifier here) to allow implementing. Following
+Swift and Kotlin, we use `open` to allow subclassing.
+
+The updated grammar is:
 
 ```
 topLevelDeclaration ::=
-    abstractClassDeclaration
-  | classDeclaration
-  | interfaceDeclaration
+    classDeclaration
   | mixinDeclaration
   // existing rules...
 
-abstractClassDeclaration ::= 'open'? 'abstract' 'class' // ...
-classDeclaration         ::= 'open'? 'interface'? 'mixin'? 'class' // ...
-mixinDeclaration         ::= 'open'? 'interface'? 'mixin' // ...
-interfaceDeclaration     ::= 'interface' // ...
+classDeclaration ::= 'open'? 'interface'? 'abstract'? 'class' identifier
+  typeParameters? superclass? interfaces?
+  '{' (metadata classMemberDeclaration)* '}'
+
+mixinDeclaration ::= 'interface'? 'mixin' identifier typeParameters?
+  ('on' typeNotVoidList)? interfaces?
+  '{' (metadata classMemberDeclaration)* '}'
 ```
 
 That yields these combinations:
 
 ```
-class                               // 63.93% Construct
-abstract class                      // 14.09% (none)
-interface                           //  9.77% Implement
-open abstract class                 //  6.47% Extend
-interface class                     //  2.36% Implement Construct
-mixin                               //  1.25% Mix-in
-open class                          //  0.86% Extend Construct
-open interface                      //  0.76% Implement Extend
-open interface class                //  0.20% Implement Extend Construct
-open mixin                          //  0.14% Mix-in Extend
-interface mixin                     //  0.09% Mix-in Implement
-open interface mixin                //  0.03% Mix-in Implement Extend
-mixin class                         //  0.02% Mix-in Construct
-open mixin class                    //  0.02% Mix-in Extend Construct
-interface mixin class               //  0.01% Mix-in Implement Construct
-open interface mixin class          //  0.00% Mix-in Implement Extend Construct
+class                         // 63.93% Construct
+abstract class                // 14.09% (none)
+interface abstract class      //  9.77% Implement
+open abstract class           //  6.47% Extend
+interface class               //  2.36% Implement Construct
+mixin                         //  1.25% Mix-in
+open class                    //  0.86% Extend Construct
+open interface abstract class //  0.76% Implement Extend
+open interface class          //  0.20% Implement Extend Construct
+interface mixin               //  0.09% Mix-in Implement
 ```
 
-Note that the names gradually get longer for less common combinations, so it
-seems this is roughly in line with keeping the common options terse.
+Using `abstract class` to opt out of constructing is pretty verbose, especially
+when combined with other modifiers. We could conceivably drop it from classes
+that have `interface`:
+
+```
+interface abstract class      -> interface
+open interface abstract class -> open interface
+```
+
+But it might be confusing that a type declared using only `interface` does in
+fact define a class that may have concrete methods and even be constructed and
+used as a class inside the module. Dart users today are already used to using
+`abstract class` to declare interfaces, so this isn't too much of a stretch.
+Also, this leaves `interface` available as potential future syntax for defining
+a pure interface, if a need for such thing should arrive.
 
 ### Static semantics
 
-There are four "kinds" of types: `abstract class`, `class`, `interface`, and
-`mixin`.
-
-The rules for using the type within its module are as permissive as possible
+Within a module, despite all the new modifiers, the semantics are roughly the
+same. The rules for using a type within its module are as permissive as possible
 and are based on the structure of the type itself, as in current Dart:
 
-*   It is a compile-time error to invoke a generative constructor of a type if
-    the type defines or inherits any unimplemented abstract members. *You can
-    directly construct anything internally if it wouldn't cause a problem to do
-    so, even an interface or an abstract class.* **TODO: Even a mixin?**
+*   It is a compile-time error to invoke a generative constructor of a class if
+    the class defines or inherits any unimplemented abstract members. *You can
+    directly construct abstract classes internally if it wouldn't cause a
+    problem to do so. Mixins never have generative cosntructors.*
 
-*   It is a compile-time error to extend a type that has at least one factory
-    constructor and no generative constructors.
+*   It is a compile-time error to extend a class that has at least one factory
+    constructor and no generative constructors. It is a compile time error to
+    extend a mixin.
 
-*   It is a compile-time error to mix in a type that explicitly declares a
-    generative constructor or has a superclass other than `Object`.
+*   It is a compile-time error to mix in a class.
 
 The rules for using types *outside* of their module are based on the
-capabilities the type explicitly provides:
+capabilities the type explicitly permits:
 
-*   It is a compile-time error to invoke a generative constructor of an abstract
-    class, interface, or mixin outside of the module where the type is defined.
+*   It is a compile-time error to invoke a generative constructor of a class
+    marked `abstract` outside of the module where the class is defined.
 
-*   It is a compile-time error for a type to appear in an `extends` clause
-    outside of the module where the type is defined unless the type is marked
+*   It is a compile-time error for a class to appear in an `extends` clause
+    outside of the module where the class is defined unless the class is marked
     `open`.
 
 *   It is a compile-time error for a type to appear in an `implements` clause
-    outside of the module where the type is defined unless the type is an
-    interface or is marked `interface`.
+    outside of the module where the type is defined unless the type is marked
+    `interface`.
 
-*   It is a compile-time error for a type to appear in a `with` clause outside
-    of the module where the type is defined unless the type is a mixin or is
-    marked `mixin`.
+*   It is a compile-time error for a class to appear in a `with` clause.
 
 We also want to make sure the type structurally supports any capability it
 claims to offer. This helps package maintainers catch mistakes where they
 inadvertently break a capability that the type offers.
 
 *   It is a compile-time error if a non-abstract class contains an abstract
-    method or inherits an abstract method no corresponding implementation.
+    method or inherits an abstract method with no corresponding implementation.
     *Since a non-abstract class declares that code outside the module can
-    construct it, this rule ensures that it is safe to do so.*
-
-    *All other kinds of types -- abstract classes, interfaces, and mixins -- may
-    contain both abstract and non-abstract members. Even interfaces can contain
-    non-abstract members. This is because while an interface can't be
-    constructed or extended outside of the module, it can be internally if it
-    has no abstract members.*
+    construct it, this rule ensures that it is safe to do so. Abstract classes
+    and mixins may contain both abstract and non-abstract members.*
 
 *   It is a compile-time error if a public-named type marked `class` does not
     have a public-named constructor. *The constructor can be a default or
@@ -244,13 +256,10 @@ inadvertently break a capability that the type offers.
 
     **TODO: Is this too much of a restriction?**
 
-*   It is a compile-time error if a public-named type marked `mixin` defines
-    any constructors. **TODO: Is this restriction correct?**
-
 *   It is a compile-time error if a class C marked `interface` has a superclass
     D which is not also marked `interface`, unless C and D are declared in the
-    same module. *In other words, someone can't extend a class with no interface
-    that they don't control and then retroactively give it an interface by way
+    same module. *In other words, someone can't extend a class with an interface
+    that they don't control and then retroactively expose its interface by way
     of a subclass. This ensures that if you declare a class C with no interface,
     then any object of type C will reliably be an instance of your actual class
     C or some other type you control.*
@@ -271,23 +280,26 @@ particular:
 *   If the class has at least one generative constructor (which may be default),
     it is treated as implicitly marked `open`.
 
-*   If the class has at least one generative constructor (which may be default)
-    and is not marked `abstract` it is treated as implicitly marked `class`.
-
 *   If the class has no non-default generative constructors, and `Object` as
-    superclass, it is treated as implicitly marked `mixin`.
+    superclass, it continues to expose an implicit mixin.
 
 [language versioning]: https://dart.dev/guides/language/evolution#language-versioning
 
 When updating a library to the language version that supports modules, you'll
 want to decide what capabilities to offer, or just place all the modifiers you
-can to preserve the class's current behavior.
+need to preserve the class's current behavior.
+
+Migrating a class that is used both as a class and a mixin is harder. For that,
+you will have to migrate it to two separate declarations and give one of them
+a different name. Fortunately, classes used this way are very rare.
 
 **TODO: Investigate tooling to automatically migrate.**
 
 ## Capability controls on members
 
 **TODO: Do we want 'final' non-overridable members?**
+
+**TODO: Protected?**
 
 ## Implicit modules and legacy code
 
