@@ -398,7 +398,7 @@ class C<T> {
   final T x;
   const C.new(this.x); // Same as: `const C(this.x);`
   C.other(T x) : this.new(x); // Same as: `: this(x)`
-  factory C.d(int x) = D<T>.new;  // same as: `= D<T>;`
+  factory C.d(T x) = D<T>.new;  // same as: `= D<T>;`
 }
 class D<T> extends C<T> {
   const D(T x) : super.new(x); // Same as: `: super(x);`
