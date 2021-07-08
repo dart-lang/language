@@ -5204,28 +5204,42 @@ if{}f the following criteria are all satisfied:
   $F$ must then be a subtype of $F'$.
 
   \commentary{%
-  The subtype requirement ensures that argument list shapes
-  that are admissible for an invocation of a method with signature $m'$
-  are also admissible for an invocation of a method with signature $m$.
-  For instance, $m'$ may accept 2 or 3 positional arguments,
-  and $m$ may accept 1, 2, 3, or 4 positional arguments, but not vice versa.
-  This is a built-in property of the function type subtype rules.
-  %
-  Note that a member signature differs from
-  an underlying syntactic declaration $D$ in a class $C$.
-  In particular,
-  a parameter in a member signature has the modifier \COVARIANT{}
-  if and only if the parameter is covariant-by-declaration
-  (\ref{covariantParameters}),
-  and that may be the case due to declarations in a supertype of $C$,
-  so that modifier need not be present in $D$.
-  %
-  There is an additional potential compile-time error associated with
-  a parameter which is covariant-by-declaration
-  (\ref{instanceMethods}).
-  But we cannot cover that here as a property of member overrides,
-  because it is concerned with declarations in all superinterfaces,
-  indirect as well as direct.%
+    The subtype requirement ensures that argument list shapes
+    that are admissible for an invocation of a method with signature $m'$
+    are also admissible for an invocation of a method with signature $m$.
+    For instance, $m'$ may accept 2 or 3 positional arguments,
+    and $m$ may accept 1, 2, 3, or 4 positional arguments, but not vice versa.
+    This is a built-in property of the function type subtype rules.
+
+    Note that a member signature differs from
+    an underlying syntactic declaration $D$ in a class $C$.
+    In particular,
+    a parameter in a member signature has the modifier \COVARIANT{}
+    if and only if the parameter is covariant-by-declaration
+    (\ref{covariantParameters}),
+    and that may be the case due to declarations in a supertype of $C$,
+    so that modifier need not be present syntactically in $D$.
+  }
+
+  It is a compile-time error if $m'$ has a parameter
+  with the modifier \COVARIANT,
+  and the corresponding parameter in $m$ does not have that modifier.
+
+  \commentary{%
+    This can only occur in the case where $m$ is the signature of
+    a concrete member declaration inherited from a superclass.
+    Otherwise, if $m$ needs to be a correct override of $m'$ then
+    $m'$ is already a member of a superinterface of the enclosing class
+    of the declaration whose signature is $m$.
+    Every \COVARIANT{} parameter of $m'$ is then also \COVARIANT{} in $m$,
+    with or without an explicit occurrence of the modifier \COVARIANT.
+
+    There is one additional potential compile-time error associated with
+    a parameter which is covariant-by-declaration
+    (\ref{instanceMethods}).
+    We cannot cover that error here as a property of member overrides,
+    because it is concerned with declarations in all superinterfaces,
+    indirect as well as direct.%
   }
 \item
   If $m$ and $m'$ are both methods,
