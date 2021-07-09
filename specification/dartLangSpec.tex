@@ -5216,26 +5216,16 @@ if{}f the following criteria are all satisfied:
     This is a built-in property of the function type subtype rules.
   }
 
-  If $p'$ is a formal parameter in $m'$ which is covariant-by-declaration,
-  the corresponding parameter $p$ in $m$ must also be covariant-by-declaration
-  unless the type of $p$ is a top type
-  (\ref{superBoundedTypes}).
-
   \commentary{%
-    This requirement is satisfied in the typical case, but not in all cases:
-    When $m$ is the member signature of a declaration in a class $C$
-    and $m'$ is a member signature from a superinterface of $C$,
-    this requirement will never fail.
-    This is because $p$ is automatically and implicitly covariant-by-declaration
-    whenever $p'$ is covariant-by-declaration.
-
-    However, if $m$ is the signature of a concrete member declaration
+    Note that if $m$ is the signature of a concrete member declaration
     inherited from a superclass $S$ into a class $C$,
     a parameter $p$ may not be covariant-by-declaration
     even though $p'$ is covariant-by-declaration.
-    In this case the inherited member fails to be a correct override
-    of the member in that superinterface
-    (unless $p$ has a top type, where the covariance cannot cause unsoundness).
+    In this case, for soundness, there may be a need to perform
+    a dynamic type check on the actual argument passed to $p$,
+    which is not performed by the inherited implementation.
+    An implementation may choose to generate a forwarding method
+    to ensure that the required type check is performed.
   }
 \item
   %% TODO(eernst): Come nnbd, this warning is removed.
