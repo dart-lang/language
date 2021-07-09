@@ -5250,11 +5250,12 @@ if{}f the following criteria are all satisfied:
 
 \commentary{%
 Note that a parameter which is covariant-by-declaration
-must have a type which is subject to one more check
+must have a type which satisfies one more requirement,
+relative to the corresponding parameters in all superinterfaces,
+both direct and indirect
 (\ref{instanceMethods}).
-We cannot cover that property here,
-because it is concerned with declarations in all superinterfaces,
-whereas the notion of a correct member override is only concerned with
+We cannot make that requirement a part of the notion of correct overrides,
+because correct overrides are only concerned with
 the relation to a single superinterface.%
 }
 
