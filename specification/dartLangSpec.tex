@@ -34,6 +34,8 @@
 % - Change grammar to enable non-function type aliases. Correct rule for
 %   invoking `F.staticMethod()` where `F` is a type alias.
 % - Add missing error for cyclic redirecting generative constructor.
+% - Clarify the treatment of `covariant` parameters in the interface of a class
+%   that inherits an implementation where those parameters are not covariant.
 %
 % 2.8 - 2.10
 % - Change several warnings to compile-time errors, matching the actual
@@ -5221,9 +5223,10 @@ if{}f the following criteria are all satisfied:
     so that modifier need not be present syntactically in $D$.
   }
 
-  It is a compile-time error if $m'$ has a parameter
-  with the modifier \COVARIANT,
-  and the corresponding parameter in $m$ does not have that modifier.
+  If $p'$ is a formal parameter in $m'$ that has the modifier \COVARIANT,
+  the corresponding parameter $p$ in $m$ must also have the modifier \COVARIANT,
+  unless the type of $p$ is a top type
+  (\ref{superBoundedTypes}).
 
   \commentary{%
     This can only occur in the case where $m$ is the signature of
