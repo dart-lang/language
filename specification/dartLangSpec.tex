@@ -5222,21 +5222,20 @@ if{}f the following criteria are all satisfied:
   (\ref{superBoundedTypes}).
 
   \commentary{%
-    This requirement can actually be violated:
-    If $m$ is the signature of a concrete member declaration
-    inherited from a superclass $S$ into a class $C$,
-    a parameter $p$ may not be covariant-by-declaration
-    even though the parameter corresponding to $p$ in a superinterface of $C$
-    is covariant-by-declaration.
-    In this case the inherited member fails to be a correct override
-    of the member in that superinterface
-    (unless $p$ has a top type, where the covariance cannot cause unsoundness).
-
-    Otherwise, when $m$ is the member signature of a declaration in a class $C$
+    This requirement is satisfied in the typical case, but not in all cases:
+    When $m$ is the member signature of a declaration in a class $C$
     and $m'$ is a member signature from a superinterface of $C$,
     this requirement will never fail.
     This is because $p$ is automatically and implicitly covariant-by-declaration
     whenever $p'$ is covariant-by-declaration.
+
+    However, if $m$ is the signature of a concrete member declaration
+    inherited from a superclass $S$ into a class $C$,
+    a parameter $p$ may not be covariant-by-declaration
+    even though $p'$ is covariant-by-declaration.
+    In this case the inherited member fails to be a correct override
+    of the member in that superinterface
+    (unless $p$ has a top type, where the covariance cannot cause unsoundness).
   }
 \item
   %% TODO(eernst): Come nnbd, this warning is removed.
