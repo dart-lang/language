@@ -34,6 +34,8 @@
 % - Change grammar to enable non-function type aliases. Correct rule for
 %   invoking `F.staticMethod()` where `F` is a type alias.
 % - Add missing error for cyclic redirecting generative constructor.
+% - Clarify the treatment of `covariant` parameters in the interface of a class
+%   that inherits an implementation where those parameters are not covariant.
 %
 % 2.8 - 2.10
 % - Change several warnings to compile-time errors, matching the actual
@@ -5194,51 +5196,68 @@ if{}f the following criteria are all satisfied:
 \begin{itemize}
 \item
   $m$ and $m'$ are both methods, both getters, or both setters.
-  % We cannot have a setter and a method, say, because they cannot have
-  % the same name. However, we must _allow_ $m$ and $m'$ to be two setters.
+\item
+  If $m$ and $m'$ are both getters:
+  The return type of $m$ must be a subtype of the return type of $m'$.
 \item
   If $m$ and $m'$ are both methods or both setters:
   Let $F$ be the function type of $m$
   except that the parameter type is the built-in class \code{Object}
-  for each parameter of $m$ which has the modifier \COVARIANT.
+  for each parameter of $m$ which is covariant-by-declaration
+  (\ref{covariantParameters}).
   Let $F'$ be the function type of $m'$.
   $F$ must then be a subtype of $F'$.
 
   \commentary{%
-  The subtype requirement ensures that argument list shapes
-  that are admissible for an invocation of a method with signature $m'$
-  are also admissible for an invocation of a method with signature $m$.
-  For instance, $m'$ may accept 2 or 3 positional arguments,
-  and $m$ may accept 1, 2, 3, or 4 positional arguments, but not vice versa.
-  This is a built-in property of the function type subtype rules.
-  %
-  Note that a member signature differs from
-  an underlying syntactic declaration $D$ in a class $C$.
-  In particular,
-  a parameter in a member signature has the modifier \COVARIANT{}
-  if and only if the parameter is covariant-by-declaration
-  (\ref{covariantParameters}),
-  and that may be the case due to declarations in a supertype of $C$,
-  so that modifier need not be present in $D$.
-  %
-  There is an additional potential compile-time error associated with
-  a parameter which is covariant-by-declaration
-  (\ref{instanceMethods}).
-  But we cannot cover that here as a property of member overrides,
-  because it is concerned with declarations in all superinterfaces,
-  indirect as well as direct.%
+    The subtype requirement ensures that argument list shapes
+    that are admissible for an invocation of a method with signature $m'$
+    are also admissible for an invocation of a method with signature $m$.
+    For instance, $m'$ may accept 2 or 3 positional arguments,
+    and $m$ may accept 1, 2, 3, or 4 positional arguments, but not vice versa.
+    This is a built-in property of the function type subtype rules.
+  }
+
+  If $p'$ is a formal parameter in $m'$ which is covariant-by-declaration,
+  the corresponding parameter $p$ in $m$ must also be covariant-by-declaration
+  unless the type of $p$ is a top type
+  (\ref{superBoundedTypes}).
+
+  \commentary{%
+    This requirement is satisfied in the typical case, but not in all cases:
+    When $m$ is the member signature of a declaration in a class $C$
+    and $m'$ is a member signature from a superinterface of $C$,
+    this requirement will never fail.
+    This is because $p$ is automatically and implicitly covariant-by-declaration
+    whenever $p'$ is covariant-by-declaration.
+
+    However, if $m$ is the signature of a concrete member declaration
+    inherited from a superclass $S$ into a class $C$,
+    a parameter $p$ may not be covariant-by-declaration
+    even though $p'$ is covariant-by-declaration.
+    In this case the inherited member fails to be a correct override
+    of the member in that superinterface
+    (unless $p$ has a top type, where the covariance cannot cause unsoundness).
   }
 \item
+  %% TODO(eernst): Come nnbd, this warning is removed.
   If $m$ and $m'$ are both methods,
   $p$ is an optional parameter of $m$,
   $p'$ is the parameter of $m'$ corresponding to $p$,
   $p$ has default value $d$ and $p'$ has default value $d'$,
   then $d$ and $d'$ must be identical,
   or a static warning occurs.
-\item
-  If $m$ and $m'$ are both getters:
-  The return type of $m$ must be a subtype of the return type of $m'$.
 \end{itemize}
+
+\commentary{%
+Note that a parameter which is covariant-by-declaration
+must have a type which satisfies one more requirement,
+relative to the corresponding parameters in all superinterfaces,
+both direct and indirect
+(\ref{instanceMethods}).
+We cannot make that requirement a part of the notion of correct overrides,
+because correct overrides are only concerned with
+the relation to a single superinterface.%
+}
 
 
 \section{Mixins}
