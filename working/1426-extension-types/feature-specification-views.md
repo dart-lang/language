@@ -32,12 +32,12 @@ the set of members, with subsetting as a special case.
 
 The functionality is entirely static. Invocation of a view member is
 resolved at compile-time, based on the static type of the receiver.  Inside
-the view declaration, the scoping and the type and meaning of `this` is the
-same as for extension methods (a feature which was added to Dart in version
-2.6). This is important because it implies that the language Dart has a
-single and consistent semantics for all statically resolved member
-invocations, rather than having one set of rules for extension methods, and
-a different set of rules for view members.
+the view declaration, the reserved word `super` is treated as an identifier
+denoting a final variable whose type is the on-type of the enclosing view
+declaration. At run time, the value of `super` is the current on-type instance
+of the view. Similarly, the type of `this` is the view type declared by the
+enclosing declaration, and the run-time value of `this` is also the current
+on-type instance.
 
 
 ## Motivation
@@ -323,8 +323,8 @@ is similar to a static method invocation and it may match the semantics
 quite well, but that is also confusing because it looks like actual source
 code, but it couldn't be used in an actual program.*
 
-*Let us compare view methods to extension methods, noting that they are
-similar in many ways. With an extension declaration `E`,
+*Let us compare view methods to extension methods. With an extension
+declaration `E`,
 <code>E<T<sub>1</sub>, .. T<sub>k</sub>>(o).m(args)</code>
 denotes an explicit invocation of the extension member
 named `m` declared by the extension `E`, with `o` bound to `this`, the type
@@ -333,6 +333,11 @@ and value parameters bound to the values of `args`.  If `V` is a view with
 the same on-type, type parameters, and same declaration of a member `m`,
 <code>invokeViewMethod(V, <T<sub>1</sub>, .. T<sub>k</sub>>, o).m(args)</code>
 denotes an invocation of the view method `m` with the same bindings.*
+
+*The extension method and the view method differ in that the extension
+does not introduce a type, and `this` has the on-type of the extension.
+In contrast, the view introduces a type, `this` has that view type, and
+`super` is used to access the on-type instance using the on-type.*
 
 The static analysis of `invokeViewMethod` is that it takes exactly three
 positional arguments and must be the receiver in a member access. The first
@@ -364,8 +369,8 @@ Let `e0` be an expression of the form
 <code>invokeViewMethod(View, <S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>
 Evaluation of `e0` proceeds by evaluating `e` to an object `o` and
 evaluating `args` to an actual argument list `args1`, and then executing
-the body of `View.m` in an environment where `this` is bound to `o`,
-the type variables of `View` are bound to the actual values of
+the body of `View.m` in an environment where `this` and `super` are bound
+to `o`, the type variables of `View` are bound to the actual values of
 <code>S<sub>1</sub>, .. S<sub>k</sub></code>,
 and the formal parameters of `m` are bound to `args1` in the same way
 that they would be bound for a normal function call. If the body completes
@@ -516,17 +521,20 @@ or `o is! V` and a type check `o as V` can be performed. Such checks
 performed on a local variable can promote the variable to the view type
 using the normal rules for type promotion.
 
-In the body of a member of a view `V`, the static type of `this` is the
-on-type of `V`.
+In the body of a member of a view `V`, the static type of `super` is the
+on-type of `V`, and the static type of `this` is the view type introduced
+by `V`.
 
-*Compared to the extension methods feature, there is no difference wrt the
-type of `this` in the body of a view type _V_. Similarly, members of _V_
+*Compared to the extension methods feature, the type of `this` in the body 
+of an extension declaration is the on-type, which is the role held by `super`
+in the body of _V_. The type of `this` in the body of _V_ has the view type
+introduced by _V_ as its static type. Apart from that, members of _V_
 invoked in the body of _V_ are subject to the same treatment as members of
 an extension, which means that view members of the enclosing view can be
-invoked implicitly, and view members are given higher priority than
-instance methods on `this`, when `this` is implicit. Note that 
-associated members of superviews can be invoked implicitly as well, as
-specified in section 'Composing view types'.*
+invoked implicitly. Instance members of the on-type can be invoked by using
+`super` as the syntactic receiver. Note that associated members of superviews
+can be invoked implicitly as well, as specified in section 'Composing view
+types'.*
 
 A view declaration may declare one or more non-redirecting
 factory constructors. A factory constructor which is declared in a
@@ -756,7 +764,8 @@ a subclass of `Object`, with the same direct superinterfaces as `V`, with a
 final private field whose type is the on-type of `V`, and with an unnamed
 single argument constructor setting that field to the argument. A getter
 `Name get box` is implicitly induced in `V`, and it returns an object that
-wraps `this`.
+wraps the underlying on-type instance which was the receiver of the
+invocation of `box`.
 
 `Name` also implicitly induces a getter `V get unbox` which returns the
 value of the final field mentioned above, typed as the associated view
@@ -812,7 +821,7 @@ Assume that a view declaration `V` has on-type `T`, and that the view type
 arguments*).  Assume that `S` is the instantiated on-type corresponding to
 `V0`. A compile-time error occurs unless `T` is a subtype of `S`.
 
-*This ensures that it is sound to bind the value of `this` in `V` to `this`
+*This ensures that it is sound to bind the value of `super` in `V` to `super`
 in `V0` when invoking members of `V0`.*
 
 Consider a `<viewExtendsElement>` of the form `V0 <viewShowHidePart>`.  The
@@ -864,21 +873,17 @@ rules*).
 In the body of `V`, a superinvocation syntax similar to an explicit
 extension method invocation can be used to invoke a member of a superview
 which is hidden: The invocation starts with `super.` followed by the name
-of the given superview, followed by the member access. The superview may be
-omitted in the case where there is no ambiguity.
+of the given superview, followed by the member access.
 
 *For instance, `super.V3.foo()` can be used to call the `foo` of `V3` on
 `this` in the case where the extends clause has `extends ... V3 hide
-foo, ...`. If no other superview has a member with basename `foo` it is
-also possible to call it using `super.foo()`.*
+foo, ...`.*
 
 *This means that the declarations that occur in the enclosing syntax, i.e.,
 in an enclosing lexical scope, get the highest priority, as always in
 Dart. Those declarations may be top-level declarations, or they may be
-members of the enclosing view declaration (in which case an invocation
-involves `this` when it is an instance member). The second highest priority
-is given to instance members of superviews. The next priority is given to
-instance members of the on-type.  Finally we can have an implicit
+members of the enclosing view declaration. The second highest priority
+is given to instance members of superviews. Finally we can have an implicit
 invocation of a member of an extension `E1` in some cases where the type of
 `this` matches the on-type of `E1`.*
 
