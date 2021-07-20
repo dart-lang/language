@@ -48,7 +48,146 @@ module.
 
 ## Authoring modules
 
-**TODO**
+Packages must declare all their dependencies in the package's pubspec. Libraries
+must declare all of their imports at the top of the file. It would be a real
+pain if users also had to explicitly author the boundaries and dependencies of
+every single module too.
+
+To avoid that, module boundaries and dependencies are inferred automatically
+when possible. **By default every Dart library is its own module.** Creating a
+library implicitly creates a new module for it. This defaults modules that are
+fairly fine-grained and whose scope aligns with the construct users are already
+familiar with.
+
+### Module names
+
+Every module has a name, which is a dotted identifier. The name can be whatever
+you want. It is local to the package and does not have to be globally unique. It
+just needs to be different from the names of other modules in the same package.
+
+By default, the implicit module for each library is named based on the library's
+path from the package root and the library's base name. So a library at
+`lib/src/set.dart` implicitly goes into a module named `lib.src.set`. The
+library in `test/set_test.dart` implicitly creates a module named
+`test.set_test`.
+
+**TODO: Is this the right rule? What about dots in file names?**
+
+### Module boundaries
+
+A library can provide an explicit module name using a `library` directive with
+an `in` clause like:
+
+```dart
+library in some.module.name;
+```
+
+All libraries in the same package with the same module name are grouped into the
+same module.
+
+### Module dependencies
+
+A Dart compiler needs to know which modules depend on which others to know what
+order to process or compile them. These dependencies are inferred from the
+imports (and exports) of the libraries in the module. **A module M depends on
+all of the modules that contain libraries that the libraries in M import or
+export.**
+
+Since dependencies are inferred, error messages from prohibited cyclic
+dependencies among module could be confusing. We suggest that tools mention the
+specific libraries whose imports cause the module dependency when explaining the
+error.
+
+## Privacy
+
+Identifiers starting with `_` are private in Dart. Declarations named with a
+leading underscore cannot be accessed outside of the library where it appears.
+Semantically, private names behave as if the leading underscore is replaced
+with a unique [mangled name][] based on the library where the name appears.
+
+[mangled name]: https://en.wikipedia.org/wiki/Name_mangling
+
+Instead of using libraries as the privacy boundary, we extend it to the module.
+All libraries within a module can access private declarations from any other
+library in the same module: they can call private top-level functions, construct
+private classes, override private methods, etc. It is as if the `_` is mangled
+based on the *module's* name instead of the *library's*.
+
+This does *not* mean that libraries in the same module share the same top-level
+namespace. A private declaration in library A is not accessible to library B in
+the same module unless B explicitly imports A. Each library still controls its
+own namespace. It's just that if a library imports another in the same module,
+it can then see private names from that other module.
+
+It is already an established pattern in Dart to locate multiple class
+declarations in the same library so that they can share access to private state
+and behavior. This lets users extend that pattern across multiple files without
+having to use part files.
+
+### Code generation
+
+This should also address many of the limitations of using part files for
+generated code. Code generation often uses parts so that the main library can
+access private declarations in the generated library (or vice versa). But this
+means the generated part file cannot have its own imports and those have to be
+hand-authored in the main library. With this, the generated code could be in a
+separate library but in the same module as the hand-authored library. It can
+then access private members in the main library but contain its own imports.
+
+### Friend modules
+
+White box testing refers to unit tests that validate not just the external
+public API of a class or library, but its private state and implementation as
+well. The Dart language currently doesn't have good support for this. Since
+tests are separate libraries from the code under test, any API being tested
+must be visible so the test can see it. But that makes the API visible to all
+external users of the library as well.
+
+Our analysis tools provide some support for white box testing through the
+[`@visibleForTesting`][visible] annotation. This can be placed on a public
+declaration and users will get a static warning if the declaration is used
+anywhere but tests. But this is only a tooling-level feature. The language
+itself doesn't enforce this.
+
+[visible]: https://api.flutter.dev/flutter/meta/visibleForTesting-constant.html
+
+We can provide easier support by allowing a test module to directly access
+private declarations. To enable that and other patterns, we allow a module to
+declare itself a friend to another module.
+
+Any one library in the module can add a `library` directive with a `friend`
+clause indicating the name of the module this module friends:
+
+```dart
+library friend some.other.module;
+```
+
+Private identifiers in friend modules are visible to all libraries in both
+modules. Friendship is transitive. If module A is a friend of B which is a
+friend of C, then A, B, and C, all have access to each other's private
+identifiers.
+
+Allowing any module to unilaterally declare itself a friend of another could
+break the encapsulation of package APIs and make the ecosystem fragile. To
+avoid that, a module can only declare itself a friend of another module in the
+same package. This lets test modules declare themselves friends of library
+modules, but prohibits breaking package encapsulation.
+
+It is a compile-time error if multiple libraries in the same module have
+`friend` clauses. A module can only friend one other module. (But a module can
+*be a friend of* multiple other modules. Friendship forms a tree where all
+modules in the tree share the same private names.)
+
+## Library directive syntax
+
+Taking the above into account, the grammar for the `library` directive is:
+
+```
+libraryName ::= metadata 'library'
+    dottedIdentifierList?
+    ( 'in' dottedIdentifierList )?
+    ( 'friend' dottedIdentifierList )? ';'
+```
 
 ## Capability controls on types
 
@@ -304,3 +443,19 @@ a different name. Fortunately, classes used this way are very rare.
 ## Implicit modules and legacy code
 
 **TODO**
+
+## Questions
+
+Here are some design questions you might ask:
+
+#### Why not infer module boundaries based on import cycles?
+
+Our existing build systems automatically resolve import cycles by collecting all
+libraries in a cycle together and creating build targets for each [strongly
+connected component][scc]. We could do something similar for modules. But module
+boundaries affect compile errors around class access restrictions and privacy. I
+think it would be surprising to users if adding or removing a single import
+spontaneously changed how private names get resolved or caused compile errors
+around invalid extends or implements clauses to appear or disappear.
+
+[scc]: https://en.wikipedia.org/wiki/Strongly_connected_component
