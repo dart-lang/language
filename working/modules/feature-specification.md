@@ -117,7 +117,7 @@ This does *not* mean that libraries in the same module share the same top-level
 namespace. A private declaration in library A is not accessible to library B in
 the same module unless B explicitly imports A. Each library still controls its
 own namespace. It's just that if a library imports another in the same module,
-it can then see private names from that other module.
+it can then see private names from that other library.
 
 It is already an established pattern in Dart to locate multiple class
 declarations in the same library so that they can share access to private state
