@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.10
+Author: lrn@google.com<br>Version: 2.11
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
@@ -317,6 +317,25 @@ It applies to instance methods as well as local, static and top-level function d
 
 `instanceMethod<int>` (with implicit `this`), `object.instanceMethod<int>` (including `this`) and `super.instanceMethod<int>`.
 
+Cascades can contain explicitly instantiated tearoffs, e.g., `receiver..foo()..instanceMethod<int>..bar`. *Note that this is allowed for consistency, but it will compute a value and discard it, and hence it is only useful in rather rare cases.*
+
+```dart
+class A {
+  List<X> m<X>(X x) => [x];
+}
+
+extension FunctionApplier on Function {
+  void applyAndPrint(List<Object?> positionalArguments) =>
+      print(Function.apply(this, positionalArguments, const {}));
+}
+
+void main() {
+  A()
+    ..m<int>.applyAndPrint([2])
+    ..m<String>.applyAndPrint(['three']);
+}
+```
+
 The static type of the explicitly instantiated tear-offs are the same as if the type parameter had been inferred, but no longer depends on the context type.
 
 The static type of the instantiated type literal is `Type`. This also satisfies issue [#123](https://github.com/dart-lang/language/issues/123). 
@@ -377,7 +396,7 @@ That makes it a compile-time error to *explicitly* instantiate the `call` method
 
 ### Grammar changes
 
-The grammar changes necessary for these changes will be provided separately (likely as changes to the spec grammar).
+The grammar changes necessary for these changes are provided separately (as [changes to the spec grammar](https://dart-review.googlesource.com/c/sdk/+/197161)).
 
 ## Summary
 
@@ -535,3 +554,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.8: State that unused type arguments of a type alias still affect whether they are constant.
 * 2.9: Make it explicit that you cannot access static members through instantiated type literals.
 * 2.10: Make it explicit that `C<T>.toString` is a constructor reference, not an instance member on a `Type` object.
+* 2.11: Mention cascades.
