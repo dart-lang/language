@@ -317,7 +317,24 @@ It applies to instance methods as well as local, static and top-level function d
 
 `instanceMethod<int>` (with implicit `this`), `object.instanceMethod<int>` (including `this`) and `super.instanceMethod<int>`.
 
-Cascades can contain explicitly instantiated tearoffs, e.g., `receiver..foo()..instanceMethod<int>..bar`. *Note that this is allowed for consistency, but it will compute a value and discard it, so it is hardly useful.*
+Cascades can contain explicitly instantiated tearoffs, e.g., `receiver..foo()..instanceMethod<int>..bar`. *Note that this is allowed for consistency, but it will compute a value and discard it, and hence it is only useful in rather rare cases.*
+
+```dart
+class A {
+  List<X> m<X>(X x) => [x];
+}
+
+extension FunctionApplier on Function {
+  void applyAndPrint(List<Object?> positionalArguments) =>
+      print(Function.apply(this, positionalArguments, const {}));
+}
+
+void main() {
+  A()
+    ..m<int>.applyAndPrint([2])
+    ..m<String>.applyAndPrint(['three']);
+}
+```
 
 The static type of the explicitly instantiated tear-offs are the same as if the type parameter had been inferred, but no longer depends on the context type.
 
