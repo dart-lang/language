@@ -38,16 +38,16 @@ hand-authored in the main library file. This breaks the desired encapsulation
 of the code generator and increases the friction of maintaining code that uses
 code generation.
 
-### White box testing
+### Clear box testing
 
-White box testing refers to unit tests that validate not just the external
+Clear box testing refers to unit tests that validate not just the external
 public API of a class or library, but its private state and implementation as
 well. The Dart language currently doesn't have good support for this. Since
 tests are separate libraries from the code under test, any API being tested must
 be public so the test can see it. That makes the API visible to all external
 users of the library as well.
 
-Our analysis tools provide some support for white box testing through the
+Our analysis tools provide some support for clear box testing through the
 [`@visibleForTesting`][visible] annotation. This can be placed on a public
 declaration and users will get a static warning if the declaration is used
 anywhere but tests. But this is only a tooling-level feature. The language
