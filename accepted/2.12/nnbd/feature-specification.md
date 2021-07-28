@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2021.07.28
+  - Allow a constant factory constructor in a class with a late final instance
+    variable.
+
 2020.12.30
   - Remove the warning for overrides with different default values.
   - Specify canonicalization of type literals.
