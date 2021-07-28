@@ -1,29 +1,38 @@
-# Static Metaprogramming
+# Macros
 
 Authors: Jacob MacDonald, Bob Nystrom
 
 Status: **Work In Progress**
 
-## Motivation
+## Introduction
 
-See the [intro](intro.md) document for the motivation for this proposal.
-
-## Usage
-
-To a user, macros are essentially "active" metadata annotations that do some
-processing at compile time to the declaration they are applied to.
+See the [intro](intro.md) document for the motivation. The proposal introduces
+macros to Dart. A **macro declaration** is a user-defined Dart class that
+implements one or more new built-in macro interfaces. These interfaces allow the
+macro class to introspect over code and then produce new declarations or modify
+declarations. A **macro appplication** tells a Dart implementation to invoke the
+given macro on the given code. We use the existing metadata annotation syntax to
+apply macros. For example:
 
 ```dart
 @myCoolMacro
 class MyClass {}
 ```
 
-This syntax is familiar, and it already exists, so there isn't a compelling
-motivation to invent new syntax for macro applications.
+Here, if `myCoolMacro` resolves to an instance of a class implementing one or
+more of the macro interfaces, then the annotation is treated as an application
+of the `myCoolMacro` macro to the class MyClass. The macro may then look at
+the member declarations in the class, define new members, fill in method bodies,
+etc.
 
-This also allows for intuitive configuration of macros via their constructor,
-while simultaneously not allowing them to have mutable internal state which
-we also want.
+You can think of macros as exposing functionality similar to existing [code
+generation tools][codegen], but integrated more fully into the language.
+
+[codegen]: https://dart.dev/tools/build_runner
+
+**TODO: Describe scope and limitations of macros. What kinds of things they are
+and are not allowed to do and why. Are there simple principles we can use to
+define the boundary?**
 
 ## Implementation Overview - Multi-Phase Approach
 
@@ -37,7 +46,7 @@ In general, the introspection APIs are limited such that only things produced
 by previous phases can be introspected upon. This ensures we always give
 accurate and complete information in these APIs.
 
-A macro can contribute code in multiple phases if needed. A common usecase for
+A macro can contribute code in multiple phases if needed. A common use case for
 this is running in an early phase to define the signature of a new declaration,
 and then filling in the implementation of that declaration in a later phase when
 more introspection power is available.
