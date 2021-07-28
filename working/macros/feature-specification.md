@@ -35,6 +35,84 @@ generation tools][codegen], but integrated more fully into the language.
 and are not allowed to do and why. Are there simple principles we can use to
 define the boundary?**
 
+## Ordering
+
+A Dart program may contain a mixture of macros that introspect over portions of
+the Dart program, macro applications that change that Dart program, and macros
+that are themselves implemented in Dart and thus potentially affected by changes
+to the Dart code too. That raises a number of questions about how to compile and
+apply macros in a well-defined way.
+
+Our basic principles are:
+
+1.  When possible, macro application order is *not* user-visible. Most macro
+    applications are isolated from each other. This makes it easier for users to
+    reason about them separately, and gives implementations freedom to evaluate
+    (or re-evaluate) them in whatever order is most efficient.
+
+1.  When users apply macros to the *same* portions of the program where the
+    ordering does matter, they can easily control that ordering.
+
+Here is how we resolve cases where ordering comes into play:
+
+### Macro compilation order
+
+Applying a macro involves executing the Dart code inside the body of the macro.
+Obviously, that code must be type-checked and compiled before it can be run. To
+ensure that the code defining the macro can be compiled before it's applied, we
+have the following restrictions:
+
+*   **A macro cannot be applied in the same library where it is defined.** The
+    macro must always be defined in some other library that you import into the
+    library where it is applied. This way, the library where the macro is
+    defined can be compiled first.
+
+*   **There must be no import path from the library where a macro is defined to
+    any library where it is used.** Since the library applying the macro *must*
+    import the definition, this is another way of saying that there can't be any
+    cyclic imports (directly or indirectly) between the library where a macro is
+    defined and any library where it is used. This ensures that we can reliably
+    compile the library where the macro is defined first because it doesn't
+    depend on any of the libraries using the macro.
+
+**TODO: Instead of the above rules, we are considering a more formal notion of
+"[modules]" or "library groups" to enforce this acyclicity.**
+
+[modules]: https://github.com/dart-lang/language/tree/master/working/modules
+
+### Macro application order
+
+Multiple macros may be applied to the same declaration, or to declarations that
+contain one another. For example, you may apply two macros to the same class, or
+to a class and a method in the same class. Since those macros may introspect
+over the declaration as well as modify it, the order that those macros are
+applied is potentially user-visible.
+
+Fortunately, since they are all applied to the same textual piece of code, the
+user can *control* that order. We use syntactic order to control application
+order of macros:
+
+*   **Macros are applied to inner declarations before outer ones.** Macros on
+    class members are applied before macros on the class, macros on top-level
+    declarations are applied before a macro on the entire library, etc.
+
+*   **Macros applied to the same declaration are applied right to left.** For
+    example:
+
+    ```dart
+    @third
+    @second
+    @first
+    class C {}
+    ```
+
+    Here, the macros applied to C are run `first`, `second`, then `third`.
+
+Otherwise, macros are constrained so that any other evaluation order is not user
+visible. For example, if two macros applied to two methods in the same class,
+there is no way for those macros to interfere with each other such that the
+application order can be detected.
+
 ## Implementation Overview - Multi-Phase Approach
 
 At a high level the idea is to build the program up in a series of steps with
@@ -100,17 +178,6 @@ introspection APIs.
 
 These macros can fully introspect on any type reachable from the declarations
 they annotate, including introspecting on members of classes, etc.
-
-### Macro Ordering
-
-Macros are applied to inner declarations first - so for instance macros on class
-members are applied before macros on the class.
-
-When multiple macros are applied to the same declaration, they are applied right
-to left.
-
-By design, users can't observe the order that macros on different declarations
-are applied.
 
 ## APIs
 
