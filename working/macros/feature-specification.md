@@ -6,13 +6,14 @@ Status: **Work In Progress**
 
 ## Introduction
 
-See the [intro](intro.md) document for the motivation. The proposal introduces
-macros to Dart. A **macro declaration** is a user-defined Dart class that
-implements one or more new built-in macro interfaces. These interfaces allow the
-macro class to introspect over code and then produce new declarations or modify
-declarations. A **macro appplication** tells a Dart implementation to invoke the
-given macro on the given code. We use the existing metadata annotation syntax to
-apply macros. For example:
+The [motivation](motivation.md) document has context on why we are looking at
+static metaprogramming. This proposal introduces macros to Dart. A **macro
+declaration** is a user-defined Dart class that implements one or more new
+built-in macro interfaces. These interfaces allow the macro class to introspect
+over code and then produce new declarations or modify declarations. A **macro
+appplication** tells a Dart implementation to invoke the given macro on the
+given code. We use the existing metadata annotation syntax to apply macros. For
+example:
 
 ```dart
 @myCoolMacro
