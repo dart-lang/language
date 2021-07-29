@@ -609,7 +609,7 @@ a prefix `await` expression that is not nested inside of another function
 expression.
 
 It is an error for a class with a generative `const` constructor to have a 
-`late final` instance variable without an initializing expression.
+`late final` instance variable.
 
 It is not a compile time error to write to a `final` non-local or instance
 variable if that variable is declared `late` and does not have an initializer.
