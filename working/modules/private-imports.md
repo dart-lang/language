@@ -205,8 +205,12 @@ handled above):
     the receiver. Include only types and superinterfaces defined in the current
     library or in libraries that were imported with a private import clause.
 
-2.  It is a compile-time error if multiple declarations match from more than
-    one library. For example:
+2.  If any of the members is declared in the current library, then the name
+    resolves to the private name in this library. Local private instance members
+    shadow imported ones.
+
+3.  Else, it is a compile-time error if multiple declarations match from
+    more than one library. For example:
 
     ```dart
     // a.dart
@@ -255,10 +259,22 @@ handled above):
     }
     ```
 
-3.  Else, if all matching declarations are from the same library, then the
+    To avoid these errors, in many cases users can upcast to the specific type
+    whose private method they want to call:
+
+    ```dart
+    import 'a.dart' show _;
+    import 'b.dart' show _;
+
+    main() {
+      (B() as A)._private(); // Refers to A._private().
+    }
+    ```
+
+4.  Else, if all matching declarations are from the same library, then the
     identifier is resolved to the private name in that library.
 
-4.  Else, if no names match, perform the same process but looking for extension
+5.  Else, if no names match, perform the same process but looking for extension
     members defined on the type of the receiver.
 
 If the receiver has type `dynamic`, then private members are always resolved
