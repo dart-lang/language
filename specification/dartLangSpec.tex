@@ -26,6 +26,10 @@
 %
 % Significant changes to the specification.
 %
+% 2.14
+% - Add constraint on type of parameter which is covariant-by-declaration in
+%   the case where the method is inherited (that case was omitted by mistake).
+%
 % 2.12 - 2.13 (there was no 2.11)
 % - Revert the CL where certain null safety features were removed (to enable
 %   publishing a stable version of the specification).
@@ -2524,7 +2528,8 @@ that name denotes the interface of the class.
 A concrete class must fully implement its interface:
 \BlindDefineSymbol{C, I, m}%
 Let $C$ be a concrete class with interface $I$.
-Assume that $I$ has an accessible member signature $m$.
+Assume that $I$ has an accessible member signature $m$,
+and $C$ does not declare a member with the same name as $m$.
 It is a compile-time error if $C$ does not have
 a concrete accessible member with the same name as $m$,
 unless $C$ has a non-trivial \code{noSuchMethod}
@@ -2548,13 +2553,22 @@ satisfy the class interface
 (in which case it will be overridden by another \code{noSuchMethod} forwarder).%
 }
 
+\LMHash{}%
+Assume that $C$ has a concrete accessible member with the same name as $m$,
+with a method signature $m'$ which is a correct override of $m$.
+For each parameter $p$ of $m'$ where \COVARIANT{} is present,
+it is a compile-time error if there exists
+a direct or indirect superinterface of $C$ which has
+an accessible method signature $m''$ with the same name as $m$,
+such that $m''$ has a parameter $p''$ that corresponds to $p$
+(\ref{covariantParameters}),
+unless the type of $p$ is a subtype or a supertype of the type of $p''$.
+
 \commentary{%
-It is a compile-time error if a class declares two members of the same name,
-either because it declares the same name twice in the same scope
-(\ref{scoping}),
-or because it declares a static member and an instance member
-with the same name
-(\ref{classMemberConflicts}).%
+This ensures that an inherited method satisfies the same constraint
+for each formal parameter which is covariant-by-declaration
+as the constraint which is specified for a declaration in $C$
+(\ref{instanceMethods}).%
 }
 
 \commentary{%
@@ -2635,7 +2649,7 @@ a direct or indirect superinterface of $C$ which has
 an accessible method signature $m''$ with the same name as $m$,
 such that $m''$ has a parameter $p''$ that corresponds to $p$
 (\ref{covariantParameters}),
-unless the type of $p$ is assignable to the type of $p''$.
+unless the type of $p$ is a subtype or a supertype of the type of $p''$.
 
 \commentary{%
 This means that
