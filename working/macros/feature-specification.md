@@ -39,7 +39,7 @@ define the boundary?**
 
 A Dart program may contain a mixture of macros that introspect over portions of
 the Dart program, macro applications that change that Dart program, and macros
-that are themselves implemented in Dart and thus potentially affected by changes
+are themselves implemented in Dart and thus potentially affected by changes
 to the Dart code too. That raises a number of questions about how to compile and
 apply macros in a well-defined way.
 
