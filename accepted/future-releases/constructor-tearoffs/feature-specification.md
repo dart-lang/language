@@ -398,7 +398,7 @@ That makes it a compile-time error to *explicitly* instantiate the `call` method
 
 A compile-time error occurs if a constructor tear-off denotes a generative constructor declared in an abstract class.
 
-*A generative constructor declared in an abstract class may well be executed as part of the execution of a constructor tear-off, via a superinitializer. But it cannot be torn off on its own, because the execution of a constructor tear-off is an instance creation, and abstract classes do not have instances. There is no similar constraint on a factory constructor.*
+*A generative constructor declared in an abstract class may well be executed as part of the execution of a constructor tear-off, via a superinitializer. It cannot, however, be torn off on its own, because the execution of a constructor tear-off is an instance creation, and abstract classes do not have instances. There is no similar constraint on a factory constructor.*
 
 ### Grammar changes
 
