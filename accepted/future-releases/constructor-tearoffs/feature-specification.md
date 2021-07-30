@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.11
+Author: lrn@google.com<br>Version: 2.12
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
@@ -394,6 +394,12 @@ Currently you can do instantiated tear-offs of *instance* methods. We restrict t
 
 That makes it a compile-time error to *explicitly* instantiate the `call` method of an expression with a function type or of type `Function`, and the tear-off of a `call`  method of a function type is not subject to implicit instantiation (so the tear-off is always generic, even if the context type requires it not to be, which is then guaranteed to introduce a type error).
 
+### Constructors in abstract classes
+
+A compile-time error occurs if a constructor tear-off denotes a generative constructor declared in an abstract class.
+
+*A generative constructor declared in an abstract class may well be executed as part of the execution of a constructor tear-off, via a superinitializer. It cannot, however, be torn off on its own, because the execution of a constructor tear-off is an instance creation, and abstract classes do not have instances. There is no similar constraint on a factory constructor.*
+
 ### Grammar changes
 
 The grammar changes necessary for these changes are provided separately (as [changes to the spec grammar](https://dart-review.googlesource.com/c/sdk/+/197161)).
@@ -555,3 +561,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.9: Make it explicit that you cannot access static members through instantiated type literals.
 * 2.10: Make it explicit that `C<T>.toString` is a constructor reference, not an instance member on a `Type` object.
 * 2.11: Mention cascades.
+* 2.12: Mention abstract classes.
