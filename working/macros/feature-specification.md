@@ -123,7 +123,7 @@ Imagine you have the following:
 }
 
 class Bar {
-  memoize@ int three() => 3;
+  @memoize int three() => 3;
 }
 ```
 
