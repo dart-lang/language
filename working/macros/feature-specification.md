@@ -10,10 +10,10 @@ The [motivation](motivation.md) document has context on why we are looking at
 static metaprogramming. This proposal introduces macros to Dart. A **macro
 declaration** is a user-defined Dart class that implements one or more new
 built-in macro interfaces. These interfaces allow the macro class to introspect
-over code and then produce new declarations or modify declarations. A **macro
-appplication** tells a Dart implementation to invoke the given macro on the
-given code. We use the existing metadata annotation syntax to apply macros. For
-example:
+over parts of the program and then produce new declarations or modify
+declarations. A **macro appplication** tells a Dart implementation to invoke the
+given macro on the given code. We use the existing metadata annotation syntax to
+apply macros. For example:
 
 ```dart
 @myCoolMacro
@@ -113,66 +113,116 @@ visible. For example, if two macros applied to two methods in the same class,
 there is no way for those macros to interfere with each other such that the
 application order can be detected.
 
-## Implementation Overview - Multi-Phase Approach
+### Introspection of macro modifications
 
-At a high level the idea is to build the program up in a series of steps with
-macro phases interleaved between them. At each phase, macros only have access
-to the parts of the program that are already complete, and can produce
-information for later phases. Later phases generally get more introspective
-power, but less power to mutate the program.
+Imagine you have the following:
 
-In general, the introspection APIs are limited such that only things produced
-by previous phases can be introspected upon. This ensures we always give
-accurate and complete information in these APIs.
+```dart
+@serialize class Foo {
+  Bar bar;
+}
 
-A macro can contribute code in multiple phases if needed. A common use case for
-this is running in an early phase to define the signature of a new declaration,
-and then filling in the implementation of that declaration in a later phase when
-more introspection power is available.
+class Bar {
+  @memoize int three() => 3;
+}
+```
 
-When a macro adds a new declaration, it may also add a macro application to that
-declaration, but only if that macro runs in a *later* phase than the current
-one.
+The `@memoize` macro on Bar adds a field, `_memo`, to the surrounding class to
+store the memoized value. The `@serialize` on Foo generates a `toJson()` method
+that recursively serializes all of the fields on Foo. Since it does so
+recursively, it would end up traversing into and introspecting on the fields of
+Bar. When that happens, does the `@serialize` macro see the `_memo` field added
+by `@memoize`? The answer depends on which macro runs first. But, since these
+are unrelated macros on essentially unrelated declarations, that order shouldn't
+be user visible.
 
-### Phase 1: Type Macros
+Our solution to this is stratify macro application into phases. The
+introspection API is restricted so that macros within a phase cannot see any
+changes made by other macros in the same phase. The phases are described in
+detail below.
 
-In this phase, macros are allowed to contribute entirely new types to the
-program. These could come in the form of classes, typedefs, enums, etc.
+### Complete macro application order
 
-Since new types can be contributed to the program in this phase, very little
-reflective power is provided to these macros. You can see the names of types
-that are referenced in the declaration for instance, but you can't ask if they
-are a subtype of a known type, because we don't know how the types will resolve
-yet. Even a type which could be resolved to an existing type might not actually
-resolve to that type once macros are done (a new type could be introduced which
-shadows the original one).
+When all of these are put together, an idealized compilation and macro
+application of a Dart program looks like this:
 
-Once this phase completes, all subsequent phases know exactly which type any
-named reference is resolved to, and can ask questions about subtype relations,
-etc.
+1.  For each library, ordered topologically by imports:
 
-### Phase 2: Declaration Macros
+    1.  For each declaration, with nested declarations ordered first:
 
-In this phase, macros can contribute new function, variable, and member
-declarations to the program.
+        1.  Apply each phase 1 macro to the declaration, from right to left.
 
-When applied to a class, a macro can introspect on the members of that class and
-its superclasses, but they cannot introspect on the members of other types.
+    1.  At this point, all top level identifiers can be resolved.
 
-When multiple macros are applied to the same declaration, they are able to see
-the declarations added by previously applied macros, but not later applied ones
-(see [Macro Ordering](#macro-ordering)).
+    1.  For each declaration, with nested declarations ordered first:
 
-### Phase 3: Definition Macros
+        1.  Apply each phase 2 macro to the declaration, from right to left.
 
-The primary job of these macros is to fill in implementations of existing
-declarations (which must be abstract or external).
+    1.  At this point, all declarations and their signatures exist. The library
+        can be type checked.
 
-They are also allowed to wrap existing methods or constructors, by injecting
-some code before and/or after those method bodies. These statements do share
-a scope with each other, but not with the original function body.
+    1.  For each declaration, with nested declarations ordered first:
 
-In addition these macros can add supporting declarations to the surrounding
+        1.  Apply each phase 3 macro to the declaration, from right to left.
+
+    1.  Now all macros have been applied, all imperative code exists, and the
+        library can be completely compiled. Any macros defined in this library
+        are ready to be used by later libraries.
+
+## Macro phases
+
+The basic idea is to build the program up in a series of steps. In each phase,
+macros only have access to the parts of the program that are already complete,
+and produce information for later phases. As the program is incrementally
+"pinned down", later phases gain more introspective power, but have less power
+to mutate the program.
+
+A single macro class can participate in multiple phases by implementing more
+than one of the macro phase interfaces. For example, a macro might declare a new
+member in an early phase and then provide its implementation in a later phase.
+
+There are three phases:
+
+### Phase 1: Type macros
+
+Here, macros contribute new types to the program&mdash;classes, typedefs, enums,
+etc. This is the only phase where a macro can introduce a new visible name into
+the top level scope.
+
+Very little reflective power is provided in this phase. Since other macros
+running in parallel may be declaring new types, we can't even assume that all
+top-level identifiers can be resolved. You can see the names of types that are
+referenced in the declaration the macro is applied to, but you can't ask if they
+are a subtype of a known type, type hierarchies have not been resolved yet. Even
+a type which could be resolved to an existing type might not actually resolve to
+that type once macros are done (a new type could be introduced which shadows the
+original one).
+
+After this phase completes, all top-level names are declared. Subsequent phases
+know exactly which type any named reference resolves to, and can ask questions
+about subtype relations, etc.
+
+### Phase 2: Declaration macros
+
+In this phase, macros declare functions, variables, and members. "Declaring"
+here means specifying the name and type signature, but not the body of a
+function or initializer for a variable. In other words, macros in this phase
+specify the declarative structure but no imperative code.
+
+When applied to a class, a macro can introspect on all of the members of that
+class and its superclasses, but they cannot introspect on the members of other
+types.
+
+### Phase 3: Definition macros
+
+In the final phase, macros provide the imperative code to fill in abstract or
+external members.
+
+Macros in this phase can also wrap existing methods or constructors, by
+injecting some code before and/or after those method bodies. These statements
+share a scope with each other, but not with the original function body.
+
+Phase three macros can add new supporting declarations to the surrounding
 scope, but these are private to the macro generated code, and never show up in
 introspection APIs.
 
