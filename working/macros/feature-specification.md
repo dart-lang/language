@@ -186,8 +186,8 @@ There are three phases:
 ### Phase 1: Type macros
 
 Here, macros contribute new types to the program&mdash;classes, typedefs, enums,
-etc. In this phase, all a macro can really do is declare that the type *exists*.
-Essentially just specifying its name in the top level scope.
+etc. This is the only phase where a macro can introduce a new visible name into
+the top level scope.
 
 Very little reflective power is provided in this phase. Since other macros
 running in parallel may be declaring new types, we can't even assume that all
