@@ -304,20 +304,69 @@ class, allowing you to build up your code fragments however you like.
 
 ## Scoping
 
-**TODO**: Fill in this section with more detail and a real proposal.
+### Generated identifiers
 
 Macros will likely want to introduce references to identifiers that are not in
 the scope of the library in which they are running, but are in the scope of the
-macro itself.
+macro itself, or possibly even in some other library that is known to the
+macro, but not imported by the library where the macro is applied.
 
-We will want some way of providing an affordance to emit a reference to
-something from the macro scope, but in the code generated for the original
-library.
+Even if an identifier is expected to be in scope of the library in which the
+macro is running (lets say its exported by the macro library), that identifier
+could be shadowed by another identifier in the library.
 
-We do have the start of something like this already available in the `builder`
-api - these have APIs to get a reference to a `Type` object. We will want to add
-the ability to do the same for any arbitrary identifier, and then the ability
-to emit references to these inside of [Code][] objects.
+To enable a macro to safely emit a reference to a known identifier, there is
+a `ResolvedIdentifier` subtype of `Code`. This class takes both a simple name
+for the identifier (no prefix allowed), as well as a library uri, where that
+identifier should be looked up.
+
+The generated code should be equivalent to adding a new import to the library,
+with the specified uri and a unique prefix. In the code the identifier will be
+emitted with that unique prefix followed by its simple name.
+
+Note that technically this allows macros to add references to libraries that
+the macro itself does not depend on, and the users application also may not
+depend on. This is discouraged, but not prevented, and should result in an error
+if it happens.
+
+### Generated declarations
+
+Macros may add new declarations which collide with existing symbols in the
+library. We want to ensure that the intent of any user written code is always
+clear in this case. Consider the following example:
+
+```dart
+int get x => 1;
+
+@generateX 
+class Bar {
+  // Generated: int get x => 2;
+
+  // Should this return the top level `x`, or the generated instance getter?
+  int get y => x; 
+}
+```
+
+Every choice here has a lot of downsides, so it is instead an error. More
+specifically, if any identifier *could be* resolved prior to macros running,
+then a macro cannot alter the program in a way that changes *how* that
+identifier would resolve.
+
+This follows from the general principle that macros should not alter the
+meaning of existing code. Adding the getter `x` here shadows the top level `x`,
+changing the meaning of the original code.
+
+Note, that if the getter were written as `int get y => this.x;`, then a macro
+*would* be allowed to introduce the new getter `x`, because `this.x` could not
+previously be resolved.
+
+There is an exception to this rule, which is that macros are always allowed to
+override declarations from their super types, and that is not considered to be
+a violation of this rule.
+
+Macros similarly cannot introduce declarations that directly conflict with
+existing declarations in the same library. These rules are the same as if the
+code were hand written.
 
 ## Limitations
 
