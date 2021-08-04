@@ -4,6 +4,23 @@ Authors: Jacob MacDonald, Bob Nystrom
 
 Status: **Work In Progress**
 
+- [Introduction](#introduction)
+- [Ordering](#ordering)
+  - [Macro compilation order](#macro-compilation-order)
+  - [Macro application order](#macro-application-order)
+  - [Introspection of macro modifications](#introspection-of-macro-modifications)
+  - [Complete macro application order](#complete-macro-application-order)
+- [Macro phases](#macro-phases)
+  - [Phase 1: Type macros](#phase-1-type-macros)
+  - [Phase 2: Declaration macros](#phase-2-declaration-macros)
+  - [Phase 3: Definition macros](#phase-3-definition-macros)
+- [APIs](#apis)
+  - [Macro API](#macro-api)
+  - [Introspection API](#introspection-api)
+  - [Code Building API](#code-building-api)
+- [Scoping](#scoping)
+- [Limitations](#limitations)
+
 ## Introduction
 
 The [motivation](motivation.md) document has context on why we are looking at
