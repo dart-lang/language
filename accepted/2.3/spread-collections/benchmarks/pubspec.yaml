@@ -1,3 +1,4 @@
 name: benchmarks
+publish_to: none
 environment:
   sdk: ">=2.3.0 <3.0.0"
