@@ -8,3 +8,5 @@ dartLangSpec*.pdf
 dartLangSpec*.toc
 *-hash.tex
 *-list.txt
+.dart_tool/
+.packages

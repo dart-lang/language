@@ -1,1 +1,3 @@
 /out
+.dart_tool/
+.packages
