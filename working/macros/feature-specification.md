@@ -304,7 +304,7 @@ class, allowing you to build up your code fragments however you like.
 
 ## Scoping
 
-### Generated identifiers
+### Resolved identifiers
 
 Macros will likely want to introduce references to identifiers that are not in
 the scope of the library in which they are running, but are in the scope of the
