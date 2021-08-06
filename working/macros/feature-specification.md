@@ -316,12 +316,12 @@ macro is running (lets say its exported by the macro library), that identifier
 could be shadowed by another identifier in the library.
 
 To enable a macro to safely emit a reference to a known identifier, there is
-a `ResolvedIdentifier` subtype of `Code`. This class takes both a simple name
-for the identifier (no prefix allowed), as well as a library uri, where that
-identifier should be looked up.
+a `Identifier` subtype of `Code`. This class takes both a simple name for the
+identifier (no prefix allowed), as well as a library URI, where that identifier
+should be looked up.
 
 The generated code should be equivalent to adding a new import to the library,
-with the specified uri and a unique prefix. In the code the identifier will be
+with the specified URI and a unique prefix. In the code the identifier will be
 emitted with that unique prefix followed by its simple name.
 
 Note that technically this allows macros to add references to libraries that
@@ -332,7 +332,7 @@ if it happens.
 ### Generated declarations
 
 A key use of macros is to generate new declarations, and hand-authored code may
-refer to them — it may call macro-generated functions, read macro-generated
+refer to them—it may call macro-generated functions, read macro-generated
 fields, construct macro-generated classes, etc. This means that before macros
 are applied, code may contain identifiers that cannot be resolved. This is not
 an error. Any identifier that can't be resolved before the macro is applied is
@@ -340,12 +340,11 @@ allowed to be resolved to a macro-produced identifier after macros are applied.
 
 Macros are not permitted to introduce declarations that directly conflict with
 existing declarations in the same library. These rules are the same as if the
-code were hand written.
+code were handwritten.
 
-Macros may also end up adding new declarations which shadow existing symbols in
-the library, but don't directly conflict. In this case we want to ensure that
-the intent of any user written code is always clear. Consider the following
-example:
+Macros may also add declarations which shadow existing symbols in the library,
+but don't directly conflict. In this case we want to ensure that the intent of
+any user written code is always clear. Consider the following example:
 
 ```dart
 int get x => 1;
@@ -369,16 +368,16 @@ There are several potential choices to we could make here:
     generated instance getter `x`).
 3.  We could make it some kind of error for a macro to introduce an identifier
     that shadows another.
-4.  We could make it error to use an identifier shadowed by one produced by a
-    macro.
+4.  We could make it a compile-time error to *use* an identifier shadowed by one
+    produced by a macro.
 
 The first two choices could be very confusing to users, some will expect one
 behavior while others expect the other. The third choice would work but might be
 overly restrictive. The final option still avoids the ambiguity, and is a bit
 more permissive than the third.
 
-It similarly also is not allowed for one macro to produce an declaration that
-the identifier resolves to and then another macro to produce another declaration
+It similarly also is not allowed for one macro to produce a declaration that the
+identifier resolves to and then another macro to produce another declaration
 that then shadows that one. In other words, any hand-authored identifier may be
 resolved at any point during macro application, but it may only be resolved
 once.
@@ -403,10 +402,6 @@ top level `x`, changing the meaning of the original code.
 Note, that if the getter were written as `int get y => this.x;`, then a macro
 *would* be allowed to introduce the new getter `x`, because `this.x` could not
 previously be resolved.
-
-There is an exception to this rule, which is that macros are always allowed to
-override declarations from their super types, and that is not considered to be
-a violation of this rule.
 
 ## Limitations
 
