@@ -9216,7 +9216,8 @@ evaluates to an instance of \code{Symbol}
 representing the private identifier \code{\_\id} of the enclosing library.
 All occurrences of \code{\#\_\id} \emph{in the same library} evaluate to
 the same object,
-and no other symbol literals evaluate to the same object,
+and no other symbol literal or \code{Symbol} constructor invocation
+evaluates to the same object,
 nor to a \code{Symbol} instance that is equal to that object
 according to the \lit{==} operator.
 
