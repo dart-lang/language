@@ -9169,35 +9169,20 @@ evaluates to an instance of \code{Symbol}
 representing the reserved word \VOID.
 
 \LMHash{}%
-Assume that the term $t$ is such that
-one of the following conditions is satisfied:
-
-\begin{itemize}
-\item $t$ is an identifier that does not start with an underscore.
-\item $t$ is \VOID.
-\item $t$ is a period separated sequence of identifiers
-  \code{$id_1$.$id_2$.$\cdots$.$id_n$}.
-\item $t$ is derived from \synt{operator}.
-\end{itemize}
-
-\LMHash{}%
-Any two occurrences of \code{\#t} evaluate to the same object,
-and so does a symbol obtained as the value of a constant expression
-of the form \code{Symbol($s$)} or \code{\CONST{} Symbol($s$)},
-where $s$ is a constant expression evaluating to
-a string whose contents is the same characters as $t$.
-\commentary{That is, symbol instances are canonicalized.}
-
-\LMHash{}%
-In these cases, we say that the given symbol is a
+For the value $o$ of a symbol literal representing a source code term
+like an identifier or an operator, we say that $o$ is a
 \IndexCustom{non-private symbol based on}{symbol!non-private, based on}
-the string $s$.
-If $o$ is an instance of \code{Symbol} obtained by
-a non-constant evaluation of an expression
-of the form \code{Symbol($e$)} or the form \code{new Symbol($e$)}
-then we also say that the given symbol is a
-\NoIndex{non-private symbol based on}
-the string which is the value of $e$ at the invocation of the constructor.
+the string whose contents is the characters of that term, without whitespace.
+
+\LMHash{}%
+If $o$ is the value of an invocation of the \code{Symbol} constructor
+of the form
+\code{Symbol($e$)}, \code{\NEW\,\,Symbol($e$)},
+or \code{\CONST\,\,Symbol($e$)},
+where $e$ is an expression
+(\commentary{constant if necessary})
+that evaluates to a string $s$,
+we say that $o$ is a \NoIndex{non-private symbol based on} $s$.
 
 \commentary{%
 Note that \code{Symbol('\_foo')} is a non-private symbol,
@@ -9205,7 +9190,16 @@ and it is distinct from \code{\#\_foo}, as described below.%
 }
 
 \LMHash{}%
-If $o_1$ and $o_2$ are non-private symbols based on strings $s_1$ and $s_2$
+Assume that $i \in 1,2$,
+and that $o_i$ is the value of a constant expression
+which is a symbol based on the string $s_i$.
+If \code{$s_1$\,==\,$s_2$} then $o_1$ and $o_2$ is the same object.
+\commentary{That is, symbol instances are canonicalized.}
+
+\LMHash{}%
+If $o_1$ and $o_2$ are non-private symbols
+(\commentary{not necessarily constant})
+based on strings $s_1$ and $s_2$
 then $o_1$ and $o_2$ are equal according to operator \lit{==}
 if and only if \code{$s_1$ == $s_2$}
 (\ref{equality}).
