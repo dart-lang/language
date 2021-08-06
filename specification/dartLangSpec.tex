@@ -9184,7 +9184,8 @@ one of the following conditions is satisfied:
 Any two occurrences of \code{\#t} evaluate to the same object,
 and so does a symbol obtained as the value of a constant expression
 of the form \code{Symbol($s$)} or \code{\CONST{} Symbol($s$)},
-where $s$ is a constant string whose contents is $t$.
+where $s$ is a constant expression evaluating to
+a string whose contents is the same characters as $t$.
 \commentary{That is, symbol instances are canonicalized.}
 
 \LMHash{}%
@@ -9193,10 +9194,10 @@ In these cases, we say that the given symbol is a
 the string $s$.
 If $o$ is an instance of \code{Symbol} obtained by
 a non-constant evaluation of an expression
-of the form \code{Symbol($s'$)} or the form \code{new Symbol($s'$)}
+of the form \code{Symbol($e$)} or the form \code{new Symbol($e$)}
 then we also say that the given symbol is a
 \NoIndex{non-private symbol based on}
-the string $s'$.
+the string which is the value of $e$ at the invocation of the constructor.
 
 \commentary{%
 Note that \code{Symbol('\_foo')} is a non-private symbol,
