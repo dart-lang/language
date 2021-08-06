@@ -29,6 +29,7 @@
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
 %   the case where the method is inherited (that case was omitted by mistake).
+% - Clarify symbol equality and identity.
 %
 % 2.12 - 2.13 (there was no 2.11)
 % - Revert the CL where certain null safety features were removed (to enable
@@ -9168,32 +9169,51 @@ evaluates to an instance of \code{Symbol}
 representing the reserved word \VOID.
 
 \LMHash{}%
-Assume that the term $t$ is an identifier \id{}
-that does not start with an underscore,
-that $t$ is \VOID,
-that $t$ is a period separated sequence of identifiers
-\code{$id_1$.$id_2$.$\cdots$.$id_n$},
-or that $t$ is derived from \synt{operator}.
-Any two occurrences of \code{\#t} evaluate to the same object
-(\commentary{that is, symbol instances are canonicalized}),
-and no other symbol literals evaluate to that object,
-nor to a \code{Symbol} instance that is equal to that object
-according to the \lit{==} operator
+For the value $o$ of a symbol literal representing a source code term
+like an identifier or an operator, we say that $o$ is a
+\IndexCustom{non-private symbol based on}{symbol!non-private, based on}
+the string whose contents is the characters of that term, without whitespace.
+
+\LMHash{}%
+If $o$ is the value of an invocation of the \code{Symbol} constructor
+of the form
+\code{Symbol($e$)}, \code{\NEW\,\,Symbol($e$)},
+or \code{\CONST\,\,Symbol($e$)},
+where $e$ is an expression
+(\commentary{constant if necessary})
+that evaluates to a string $s$,
+we say that $o$ is a \NoIndex{non-private symbol based on} $s$.
+
+\commentary{%
+Note that \code{Symbol('\_foo')} is a non-private symbol,
+and it is distinct from \code{\#\_foo}, as described below.%
+}
+
+\LMHash{}%
+Assume that $i \in 1,2$,
+and that $o_i$ is the value of a constant expression
+which is a symbol based on the string $s_i$.
+If \code{$s_1$\,==\,$s_2$} then $o_1$ and $o_2$ is the same object.
+\commentary{That is, symbol instances are canonicalized.}
+
+\LMHash{}%
+If $o_1$ and $o_2$ are non-private symbols
+(\commentary{not necessarily constant})
+based on strings $s_1$ and $s_2$
+then $o_1$ and $o_2$ are equal according to operator \lit{==}
+if and only if \code{$s_1$ == $s_2$}
 (\ref{equality}).
 
 \LMHash{}%
 A symbol literal \code{\#\_\id} where \id{} is an identifier
 evaluates to an instance of \code{Symbol}
-representing the private identifier \code{\_\id} of the containing library.
+representing the private identifier \code{\_\id} of the enclosing library.
 All occurrences of \code{\#\_\id} \emph{in the same library} evaluate to
 the same object,
-and no other symbol literals evaluate to the same object,
+and no other symbol literal or \code{Symbol} constructor invocation
+evaluates to the same object,
 nor to a \code{Symbol} instance that is equal to that object
 according to the \lit{==} operator.
-
-\LMHash{}%
-The objects created by symbol literals all override
-the \lit{==} operator inherited from the \code{Object} class.
 
 \rationale{%
 One may well ask what is the motivation for introducing literal symbols?
