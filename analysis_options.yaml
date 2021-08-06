@@ -1,0 +1,3 @@
+analyzer:
+  exclude:
+    - accepted/2.3/spread-collections/examples/**
