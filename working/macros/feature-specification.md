@@ -321,20 +321,106 @@ class, allowing you to build up your code fragments however you like.
 
 ## Scoping
 
-**TODO**: Fill in this section with more detail and a real proposal.
+### Resolved identifiers
 
 Macros will likely want to introduce references to identifiers that are not in
 the scope of the library in which they are running, but are in the scope of the
-macro itself.
+macro itself, or possibly even references which are not in scope of either the
+macro itself or the library where it is applied.
 
-We will want some way of providing an affordance to emit a reference to
-something from the macro scope, but in the code generated for the original
-library.
+Even if an identifier is in scope of the library in which the macro is applied
+(lets say its exported by the macro library), that identifier could be shadowed
+by another identifier in the library.
 
-We do have the start of something like this already available in the `builder`
-api - these have APIs to get a reference to a `Type` object. We will want to add
-the ability to do the same for any arbitrary identifier, and then the ability
-to emit references to these inside of [Code][] objects.
+**TODO**: Investigate other approaches to the proposal below, see discussion
+at https://github.com/dart-lang/language/pull/1779#discussion_r683843130.
+
+To enable a macro to safely emit a reference to a known identifier, there is
+a `Identifier` subtype of `Code`. This class takes both a simple name for the
+identifier (no prefix allowed), as well as a library URI, where that identifier
+should be looked up.
+
+The generated code should be equivalent to adding a new import to the library,
+with the specified URI and a unique prefix. In the code the identifier will be
+emitted with that unique prefix followed by its simple name.
+
+Note that technically this allows macros to add references to libraries that
+the macro itself does not depend on, and the users application also may not
+depend on. This is discouraged, but not prevented, and should result in an error
+if it happens.
+
+### Generated declarations
+
+A key use of macros is to generate new declarations, and handwritten code may
+refer to them—it may call macro-generated functions, read macro-generated
+fields, construct macro-generated classes, etc. This means that before macros
+are applied, code may contain identifiers that cannot be resolved. This is not
+an error. Any identifier that can't be resolved before the macro is applied is
+allowed to be resolved to a macro-produced identifier after macros are applied.
+
+All the rules below apply only to the library in which a macro is applied—macro
+applications in imported libraries are considered to be fully expanded already
+and are treated exactly the same as handwritten code.
+
+Macros are not permitted to introduce declarations that directly conflict with
+existing declarations in the same library. These rules are the same as if the
+code were handwritten.
+
+Macros may also add declarations which shadow existing symbols in the library,
+but don't directly conflict. In this case we want to ensure that the intent of
+any user written code is always clear. Consider the following example:
+
+```dart
+int get x => 1;
+
+@generateX 
+class Bar {
+  // Generated: int get x => 2;
+
+  // Should this return the top level `x`, or the generated instance getter?
+  int get y => x; 
+}
+```
+
+There are several potential choices to we could make here:
+
+1.  We could say that any identifier that can be resolved before macro
+    application keeps its original resolution (so `x` would still resolve to the
+    original, top level `x`).
+2.  We could re-resolve all identifiers after the macros are applied, which can
+    possibly change what they resolve to (in this case `x` would resolve to the
+    generated instance getter `x`).
+3.  We could make it some kind of error for a macro to introduce an identifier
+    that shadows another.
+4.  We could make it a compile-time error to *use* an identifier shadowed by one
+    produced by a macro.
+
+The first two choices could be very confusing to users, some will expect one
+behavior while others expect the other. The third choice would work but might be
+overly restrictive. The final option still avoids the ambiguity, and is a bit
+more permissive than the third.
+
+It similarly also is not allowed for one macro to produce a declaration that the
+identifier resolves to and then another macro to produce another declaration
+that then shadows that one. In other words, any hand-authored identifier may be
+resolved at any point during macro application, but it may only be resolved
+once.
+
+These constraints produce this rule:
+
+*   It is a compile-time error if any hand-authored identifier in a library
+    containing a macro application would bind to a different declaration when
+    resolved before and after macro expansion in that library. In other words,
+    it is a compile-time error if a macro introduces an identifier that shadows
+    a handwritten identifier that is used in the same library.
+
+This follows from the general principle that macros should not alter the
+meaning of existing code. Adding the getter `x` in the example above shadows the
+top level `x`, changing the meaning of the original code.
+
+Note, that if the getter were written as `int get y => this.x;`, then a macro
+*would* be allowed to introduce the new getter `x`, because `this.x` could not
+previously be resolved.
 
 ## Limitations
 
