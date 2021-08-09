@@ -39,12 +39,13 @@ different libraries. To use a dynamically loaded library, the library needs some
 well-defined interface that both sides agree on to communicate, an [ABI].
 
 [ABI]: https://en.wikipedia.org/wiki/Application_binary_interface
-[fork]:
 
 Dart has no concept of an ABI and no existing way for a user to define a
 chunk of Dart code that should be compiled as a separately loadable unit. (It
 has an [FFI], but that's for talking between Dart and C, not between two
 separately compiled pieces of Dart.
+
+[FFI]: https://dart.dev/guides/libraries/c-interop
 
 The [isolate API] is a step in this direction, but it doesn't cover this use
 case. It can load Dart code dynamically *from source* with the JIT, but not
