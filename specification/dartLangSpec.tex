@@ -9170,9 +9170,15 @@ representing the reserved word \VOID.
 
 \LMHash{}%
 For the value $o$ of a symbol literal representing a source code term
-like an identifier or an operator, we say that $o$ is a
+as specified in the previous paragraphs, we say that $o$ is a
 \IndexCustom{non-private symbol based on}{symbol!non-private, based on}
 the string whose contents is the characters of that term, without whitespace.
+
+\commentary{%
+Note that this does not apply for private symbols,
+which are discussed below.
+A private symbol is not based on any string.%
+}
 
 \LMHash{}%
 If $o$ is the value of an invocation of the \code{Symbol} constructor
@@ -9205,7 +9211,7 @@ if and only if \code{$s_1$ == $s_2$}
 (\ref{equality}).
 
 \LMHash{}%
-A symbol literal \code{\#\_\id} where \id{} is an identifier
+A symbol literal \code{\#\_\id} where \code{\_\id} is an identifier
 evaluates to an instance of \code{Symbol}
 representing the private identifier \code{\_\id} of the enclosing library.
 All occurrences of \code{\#\_\id} \emph{in the same library} evaluate to
