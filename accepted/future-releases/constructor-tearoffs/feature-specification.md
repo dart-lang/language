@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.12
+Author: lrn@google.com<br>Version: 2.13
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
@@ -360,13 +360,15 @@ The look-ahead tokens which force the prior tokens to be type arguments are:
 
 > `(`  `)`  `]`  `}`  `:`  `;`  `,`  `.`  `?`  `==`  `!=` `..` `?.` `??` `?..` 
 >
-> `&` `|` `^` `+` `*`  `%`  `/`  `~/`
+> `&` `|` `^` `+` `*`  `%`  `/`  `~/` `is` `as`
 
 Any other token following the ambiguous `>` will make the prior tokens be parsed as comma separated `<` and `>` operator invocations.
 
 _We could add `&&` and `||` to the list, but it won't matter since the result is going to be invalid in either case, because those operators do not work on `Type` or function values and cannot be defined using extension methods._
 
 _This might set us up for problems if we ever decide to use any of the infix operators as prefix operators, like `-` is now, but it does allow defining those operators on `Type` or `Function` and using them. Not allowing the infix operators is an alternative_
+
+_Note that including `as` in this list is technically a breaking change because `as` is not a reserved word, but this is extremely unlikely to cause a breakage in practice._
 
 **Identity and equality** is not affected by explicit instantiation, it works exactly like if the same types had been inferred.
 
@@ -562,3 +564,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.10: Make it explicit that `C<T>.toString` is a constructor reference, not an instance member on a `Type` object.
 * 2.11: Mention cascades.
 * 2.12: Mention abstract classes.
+* 2.13: Add `is` and `as` disambiguation tokens.
