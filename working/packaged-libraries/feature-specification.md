@@ -530,17 +530,23 @@ This example does *not* override the imported member:
 // a.dart
 class A {
   _private() => 'A._private()';
+  callFromA() => _private();
 }
 
 // b.dart
 import 'a.dart' show _;
 
-class B { // No superinterface from a.dart.
+mixin B { // No superinterface from a.dart.
   _private() => 'B._private()'; // Private to current library.
+  callFromB() => _private();
 }
 
-class C extends B implements A {
-  // Error, missing implementation of A._private().
+class C extends A with B {}
+
+main() {
+  var c = C();
+  print(c.callFromA()); // "A._private()".
+  print(c.callFromB()); // "B._private()".
 }
 ```
 
@@ -553,7 +559,8 @@ In order to not break existing code, we gate the support for private imports and
 disallowing parts behind a new language version. When users upgrade to the
 latest version, they can copy the contents of all of their part files into the
 main library file, or convert the part files into libraries that are
-private-imported by the main library.
+private-imported by the main library or vice versa if the part accesses private
+names from the main library.
 
 We will want to migrate packages that code generate parts to support generating
 libraries with private imports before this feature rolls out widely.
@@ -574,8 +581,8 @@ by code generators whose output is not committed with the package's code.
 There are three fundamental kinds of entities in Dart's semantics:
 
 *   A **class** has a set of member declarations and a superclass (which may be
-    Object). You can use a class **construct** new instances (if not abstract)
-    and/or you can **extend** one as a superclass.
+    Object). You can use a class to **construct** new instances (if not
+    abstract) and/or you can **extend** one as a superclass.
 
 *   An **interface** is a set of member signatures with no imperative code.
 
@@ -584,7 +591,7 @@ There are three fundamental kinds of entities in Dart's semantics:
     superclass in order to get a class that you can construct.
 
 Dart's syntax somewhat obscures this. There is no dedicated syntax for declaring
-an interface. Until recently there was also no syntax for declaring a mixin.
+an interface. Until Dart 2.1.0, there was also no syntax for declaring a mixin.
 Instead, a class declaration can, unless prohibited by its own structure, be
 used as an interface, superclass, or mixin.
 
