@@ -26,6 +26,10 @@
 %
 % Significant changes to the specification.
 %
+% 2.15
+% - Allow generic instantiation of expressions with a generic function type
+%   (until now, it was an error unless the expression denoted a declaration).
+%
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
 %   the case where the method is inherited (that case was omitted by mistake).
@@ -12925,24 +12929,17 @@ are canonicalized.%
 
 \LMHash{}%
 Generic function instantiation is a mechanism that yields
-a non-generic function object,
-based on a reference to a generic function.
-
-\commentary{%
-It is a mechanism which is very similar to function closurization
-(\ref{functionClosurization}),
-but it only occurs in situations where
-a compile-time error would otherwise occur.%
-}
+a non-generic function object based on a given generic function.
 
 \rationale{%
 The essence of generic function instantiation
 is to allow for ``curried'' invocations,
 in the sense that a generic function can receive its actual
-type arguments separately during closurization
+type arguments separately
 (it must then receive \emph{all} type arguments, not just some of them),
 and that yields a non-generic function object.
 The type arguments are passed implicitly, based on type inference;
+%% TODO(eernst): Come constructor-tearoffs, revise this.
 a future version of Dart may allow for passing them explicitly.%
 }
 \commentary{Here is an example:}
@@ -12970,16 +12967,19 @@ to the corresponding generic function.%
 }
 
 \LMHash{}%
-Let $f$ of the form
+Let \DefineSymbol{f} of the form
 \syntax{<identifier> (`.'~<identifier>\,(`.'~<identifier>)?)?}~be
-an expression that denotes
-a declaration of a local function, a static method, or a top-level function,
-and let $G$ be the static type of $f$.
-Consider the situation where $G$ is a function type of the form
-\RawFunctionType{T_0}{X}{B}{s}{\metavar{parameters}}
-with $s > 0$
-(\commentary{that is, $G$ is a generic function type}),
-and the context type is a non-generic function type $F$.
+an expression whose static type \DefineSymbol{G} is
+\BlindDefineSymbol{T_0,X_j,B_j,s,p}%
+a generic function type of the form
+
+\noindent
+\RawFunctionType{T_0}{X}{B}{s}{\metavar{p}}
+
+\noindent
+where \code{($p$)} is derived from \synt{formalParameterList}.
+\commentary{Note that $s > 0$ because $G$ is generic.}
+Assume that the context type is a non-generic function type $F$.
 In this situation a compile-time error occurs
 (\ref{variables},
 \ref{functions},
@@ -13000,7 +13000,8 @@ except when the following step succeeds:
 \IndexCustom{Generic function type instantiation}{%
   generic function type instantiation}:
 Type inference is applied to $G$ with context type $F$,
-and it succeeds, yielding the actual type argument list
+and it yields the actual type argument list
+\BlindDefineSymbol{T_j}%
 \List{T}{1}{s}.
 
 \commentary{%
@@ -13013,70 +13014,73 @@ how type inference computes \List{T}{1}{s}
 }
 
 \LMHash{}%
-Otherwise, the generic function type instantiation succeeded.
-Let $F'$ denote the type
-$[T_1/X_1, \ldots, T_s/X_s]%
-(\FunctionTypeSimple{T_0}{\metavar{parameters}})$.
+Assume that the generic function type instantiation succeeded.
+Let \DefineSymbol{F'} denote the type
+$[T_1/X_1, \ldots, T_s/X_s](\FunctionTypeSimple{T_0}{$p$})$.
 \commentary{%
 Note that it is guaranteed that $F'$ is assignable to $F$,
 or inference would have failed.%
 }
+Henceforth in the static analysis,
+this occurrence of $f$ is considered to have static type $F'$.
 
 \LMHash{}%
-\Case{Top-level Functions and Static Methods}
-Consider the situation where $f$ denotes
-a top-level function or a static method.
-%
-In this situation, the program is modified such that $f$ is replaced by
-a reference $f'$ to an implicitly induced non-generic function
-whose signature is $F'$,
-whose dynamic type is $[t_1/T_1, \ldots, t_s/T_s]F'$,
-and whose semantics for each invocation is the same as
-invoking $f$ with \List{t}{1}{s} as the actual type argument list,
-where \List{t}{1}{s} is the actual value of \List{T}{1}{s}
-at the point during execution where $f'$ was evaluated.
-\commentary{Here is an example:}
+For the dynamic semantics,
+assume that $f$ denotes a function with dynamic type
+\BlindDefineSymbol{S_0,Y,B',q}%
+\RawFunctionType{S_0}{Y}{B'}{s}{$q$}.
+$f$ then evaluates to a function object $o$ with dynamic type
+$[t_1/Y_1, \ldots, t_s/Y_s]\FunctionTypeSimple{S_0}{$q$}$,
+where $t_j$ is the actual value of $T_j$, for $j \in 1 .. k$.
 
-\begin{dartCode}
-List<T> foo<T>(T t) => [t];
-List<int> fooOfInt(int i) => [i];
-\\
-String bar(List<int> f(int)) => "\${f(42)}";
-\\
-\VOID{} main() \{
-  print(bar(foo));
-\}
-\end{dartCode}
+\LMHash{}%
+An invocation of $o$ with actual arguments \metavar{args} has the same effect
+as an invocation of the function denoted by $f$
+with actual type arguments \List{t}{1}{s}
+and actual arguments \metavar{args}.
+
+\LMHash{}%
+We need to consider the notion of expressions denoting the
+\Index{same function}
+during program execution.
+Two expressions denote the same function if they both denote
+the same declaration of a library function or a static method,
+or they both denote the same constant variable
+or the same final local variable,
+and that variable evaluates to a function object.
+
+\LMHash{}%
+Let $e_1$ and $e_2$ be two constant expressions that both
+evaluate to a function object
+which is obtained by generic function instantiation
+of the same function declaration or the same function object,
+with the same type arguments.
+In this case \code{identical($e_1$, $e_2$)} shall evaluate to true.
 
 \commentary{%
-In this example,
-\code{foo} as an actual argument to \code{bar} will be modified
-as if the call had been \code{bar(fooOfInt)},
-except for equality, which is specified next.%
+That is, constant expressions whose evaluation is
+a generic function instantiation
+are canonicalized.
+As a consequence, they are also equal according to operator \lit{==}.%
 }
 
 \LMHash{}%
-Consider the situation where the program
-before generic function instantiation contains
-two occurrences of $f$ in the same scope or different scopes,
-but denoting the same function,
-respectively the situation where
-an execution of the program containing $f$ evaluates it twice.
+Consider the situation where the program contains
+two occurrences of $f$ that denote the same function,
+and both are subject to generic function instantiation
+with the same type arguments.
 Let $o_1$ and $o_2$ denote the function objects obtained by
-evaluation of those two expressions,
-respectively the two evaluations of that expression.
-
-\LMHash{}%
-In the case where the actual values of the type arguments
-are the same for both evaluations,
-it is guaranteed that $o_1$ and $o_2$ are equal
+an evaluation of those two expressions.
+It is then guaranteed that $o_1$ and $o_2$ are equal
 according to operator \lit{==}.
-However, it is unspecified whether
-\code{identical($o_1$, $o_2$)} evaluates to \TRUE{} or \FALSE.
+
+\commentary{%
+When the expressions are not constant, it is unspecified whether
+\code{identical($o_1$,\,\,$o_2$)} evaluates to \TRUE{} or \FALSE.%
+}
 
 \rationale{%
-No notion of equality is appropriate
-when different type arguments are provided,
+No notion of equality is appropriate when the type arguments differ,
 even if the resulting function objects
 turn out to have exactly the same type at run time,
 because execution of two function objects that differ in these ways
@@ -13088,24 +13092,9 @@ For instance, there could be a type parameter \code{X}
 that does not occur in the signature of the function,
 and the function could create and return a \code{List<X>}.%
 }
-\EndCase
-
-\LMHash{}%
-\Case{Local Functions}
-Consider the situation where $f$ is an identifier denoting a local function.
-\commentary{For a local function, only an identifier can denote it.}
-%
-In this situation, the program is modified such that $f$ is replaced by
-a reference $f'$ to an implicitly induced non-generic function
-whose signature is $F'$,
-whose dynamic type is $[t_1/T_1, \ldots, t_s/T_s]F'$,
-and whose semantics for each invocation is the same as
-invoking $f$ with \List{t}{1}{s} as the actual type argument list,
-where \List{t}{1}{s} is the actual value of \List{T}{1}{s}
-at the point during execution where $f'$ was evaluated.
 
 \commentary{%
-No guarantees are provided regarding equality
+No guarantees are provided regarding equality or identity
 of non-generic functions obtained from a local function
 by generic function instantiation.%
 }
@@ -13120,21 +13109,6 @@ Those references could denote different entities
 when the two function objects were created.
 In that situation it is unreasonable
 to consider the two function objects to be the same function.%
-}
-\EndCase
-
-\LMHash{}%
-Let $e_1$ and $e_2$ be two constant expressions that both
-evaluate to a function object
-which is obtained by generic function instantiation
-of the same function declaration
-and with the same type arguments.
-In this case \code{identical($e_1$, $e_2$)} shall evaluate to true.
-
-\commentary{%
-That is, constant expressions whose evaluation is
-a generic function instantiation
-are canonicalized.%
 }
 
 
