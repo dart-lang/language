@@ -12967,16 +12967,11 @@ to the corresponding generic function.%
 }
 
 \LMHash{}%
-Let \DefineSymbol{f} of the form
-\syntax{<identifier> (`.'~<identifier>\,(`.'~<identifier>)?)?}~be
-an expression whose static type \DefineSymbol{G} is
+\BlindDefineSymbol{f,G}
+Let $f$ be an expression whose static type $G$ is
 \BlindDefineSymbol{T_0,X_j,B_j,s,p}%
 a generic function type of the form
-
-\noindent
 \RawFunctionType{T_0}{X}{B}{s}{\metavar{p}}
-
-\noindent
 where \code{($p$)} is derived from \synt{formalParameterList}.
 \commentary{Note that $s > 0$ because $G$ is generic.}
 Assume that the context type is a non-generic function type $F$.
