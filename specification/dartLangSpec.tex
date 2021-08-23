@@ -4578,6 +4578,7 @@ an enumerated type (\ref{enums}),
 a deferred type (\ref{staticTypes}), type \DYNAMIC{} (\ref{typeDynamic}),
 or type \code{FutureOr<$T$>} for any $T$ (\ref{typeFutureOr}).
 It is a compile-time error if two elements in the type list of
+%% TODO(eernst): Refer to nnbd notion of 'same type'.
 the \IMPLEMENTS{} clause of a class $C$ specifies the same type $T$.
 It is a compile-time error if the superclass of a class $C$ is
 one of the elements of the type list of the \IMPLEMENTS{} clause of $C$.
@@ -10845,6 +10846,7 @@ respectively
 $o_2$ with contents $o_{21}, \ldots, o_{2n}$ and actual type argument $t_2$
 be the result of evaluating them.
 Then \code{identical($o_1$, $o_2$)} evaluates to \TRUE{} if{}f
+%% TODO(eernst): Refer to nnbd notion of 'same type'.
 \code{$t_1$ == $t_2$} and \code{identical($o_{1i}$, $o_{2i}$)}
 evaluates to \TRUE{} for all $i \in 1 .. n$.
 
@@ -13022,6 +13024,8 @@ this occurrence of $f$ is considered to have static type $F'$.
 \LMHash{}%
 Execution of $f$ proceeds as follows.
 Evaluate $f$ to an object $o$.
+%% TODO(eernst): Come null-safety, remove the next line.
+A dynamic error occurs if $o$ is the null object.
 Let \RawFunctionType{S_0}{Y}{B'}{s}{$q$} be the dynamic type of $o$
 (\commentary{by soundness, this type is a subtype of $G$}).
 $f$ then evaluates to a function object $o'$ with dynamic type
@@ -14348,6 +14352,7 @@ Note that for the static type it is ignored whether a parameter is covariant.%
 
 \LMHash{}%
 If $T$ is a non-generic class then for $j \in 1 .. n+k$,
+%% TODO(eernst): Refer to nnbd notion of 'same type'.
 $T_j$ is a type annotation that denotes the same type as that
 which is denoted by the type annotation on
 the corresponding parameter declaration in $D$.
@@ -14501,6 +14506,7 @@ Note that for the static type it is ignored whether a parameter is covariant.%
 
 \LMHash{}%
 If $S$ is a non-generic class then for $j \in 1 .. n+k$,
+%% TODO(eernst): Refer to nnbd notion of 'same type'.
 $T_j$ is a type annotation that denotes the same type as that
 which is denoted by the type annotation on
 the corresponding parameter declaration in $D$.
@@ -14762,6 +14768,7 @@ as described above.
 Consider the situation where the program evaluates
 two invocations of this method with the same receiver $o$,
 and with actual type arguments whose actual values are
+%% TODO(eernst): Refer to nnbd notion of 'same type'.
 the same types \List{t}{1}{s} for both invocations,
 and assume that the invocations returned
 the instances $o_1$ respectively $o_2$.
