@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2021.07.28
+  - Allow a constant factory constructor in a class with a late final instance
+    variable.
+
 2020.12.30
   - Remove the warning for overrides with different default values.
   - Specify canonicalization of type literals.
@@ -604,8 +608,8 @@ It is an error for the initializer expression of a `late` local variable to use
 a prefix `await` expression that is not nested inside of another function
 expression.
 
-It is an error for a class with a `const` constructor to have a `late final`
-instance variable.
+It is an error for a class with a generative `const` constructor to have a 
+`late final` instance variable.
 
 It is not a compile time error to write to a `final` non-local or instance
 variable if that variable is declared `late` and does not have an initializer.
