@@ -13020,58 +13020,53 @@ Henceforth in the static analysis,
 this occurrence of $f$ is considered to have static type $F'$.
 
 \LMHash{}%
-For the dynamic semantics,
-assume that $f$ denotes a function with dynamic type
-\BlindDefineSymbol{S_0,Y,B',q}%
-\RawFunctionType{S_0}{Y}{B'}{s}{$q$}.
-$f$ then evaluates to a function object $o$ with dynamic type
-$[t_1/Y_1, \ldots, t_s/Y_s]\FunctionTypeSimple{S_0}{$q$}$,
+Execution of $f$ proceeds as follows.
+Evaluate $f$ to an object $o$.
+Let \RawFunctionType{S_0}{Y}{B'}{s}{$q$} be the dynamic type of $o$
+(\commentary{by soundness, this type is a subtype of $G$}).
+$f$ then evaluates to a function object $o'$ with dynamic type
+$[t_1/Y_1, \ldots, t_s/Y_s](\FunctionTypeSimple{S_0}{$q$})$,
 where $t_j$ is the actual value of $T_j$, for $j \in 1 .. k$.
+An invocation of $o'$ with actual arguments \metavar{args} has
+the same effect as an invocation of $o$
+with actual type arguments \List{t}{1}{s} and actual arguments \metavar{args}.
 
 \LMHash{}%
-An invocation of $o$ with actual arguments \metavar{args} has the same effect
-as an invocation of the function denoted by $f$
-with actual type arguments \List{t}{1}{s}
-and actual arguments \metavar{args}.
-
-\LMHash{}%
-We need to consider the notion of expressions denoting the
-\Index{same function}
-during program execution.
-Two expressions denote the same function if they both denote
-the same declaration of a library function or a static method,
-or they both denote the same constant variable
-or the same final local variable,
-and that variable evaluates to a function object.
-
-\LMHash{}%
-Let $e_1$ and $e_2$ be two constant expressions that both
-evaluate to a function object
-which is obtained by generic function instantiation
-of the same function declaration or the same function object,
-with the same type arguments.
-In this case \code{identical($e_1$, $e_2$)} shall evaluate to true.
+Let $f_1$ and $f_2$ be two constant expressions that are subject to
+generic function instantiation.
+Assume that $f_1$ and $f_2$ without a context type evaluate to $o_1$
+respectively $o_2$ such that \code{identical($o_1$, $o_2$)} is true.
+Assume that the given context types give rise to a successful
+generic function type instantiation with
+the same actual type arguments for $f_1$ and $f_2$,
+yielding the non-generic function objects $o'_1$ respectively $o'_2$.
+In this case \code{identical($o'_1$, $o'_2$)} shall evaluate to true.
 
 \commentary{%
 That is, constant expressions whose evaluation is
-a generic function instantiation
-are canonicalized.
+a generic function instantiation are canonicalized,
+based on the underlying function and on the actual type arguments.
 As a consequence, they are also equal according to operator \lit{==}.%
 }
 
 \LMHash{}%
-Consider the situation where the program contains
-two occurrences of $f$ that denote the same function,
-and both are subject to generic function instantiation
-with the same type arguments.
-Let $o_1$ and $o_2$ denote the function objects obtained by
-an evaluation of those two expressions.
-It is then guaranteed that $o_1$ and $o_2$ are equal
-according to operator \lit{==}.
+Let $g_1$ and $g_2$ be two expressions
+(\commentary{which may or may not be constant})
+that are subject to generic function instantiation.
+Assume that $g_1$ and $g_2$ without a context type evaluate to $o_1$
+respectively $o_2$ such that \code{$o_1$ == $o_2$)} is true.
+Assume that the given context types give rise to a successful
+generic function type instantiation with
+the same actual type arguments for $g_1$ and $g_2$,
+yielding the non-generic function objects $o'_1$ respectively $o'_2$.
+In this case \code{$o'_1$ == $o'_2$} shall evaluate to true.
 
 \commentary{%
-When the expressions are not constant, it is unspecified whether
-\code{identical($o_1$,\,\,$o_2$)} evaluates to \TRUE{} or \FALSE.%
+When one or both of the expressions is not constant,
+it is unspecified whether
+\code{identical($o_1$,\,\,$o_2$)} evaluates to \TRUE{} or \FALSE,
+but operator \lit{==} yields true for equal function objects
+instantiated with the same actual type arguments.%
 }
 
 \rationale{%
@@ -13081,29 +13076,6 @@ turn out to have exactly the same type at run time,
 because execution of two function objects that differ in these ways
 can have different side-effects and return different results
 when executed starting from exactly the same state.%
-}
-\commentary{%
-For instance, there could be a type parameter \code{X}
-that does not occur in the signature of the function,
-and the function could create and return a \code{List<X>}.%
-}
-
-\commentary{%
-No guarantees are provided regarding equality or identity
-of non-generic functions obtained from a local function
-by generic function instantiation.%
-}
-
-\rationale{%
-Such a local function could have received exactly
-the same actual type arguments in the two cases,
-and still its body could contain references
-to declarations of types, variables, and other entities
-in the enclosing scopes.
-Those references could denote different entities
-when the two function objects were created.
-In that situation it is unreasonable
-to consider the two function objects to be the same function.%
 }
 
 
