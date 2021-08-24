@@ -29,6 +29,7 @@
 % 2.15
 % - Allow generic instantiation of expressions with a generic function type
 %   (until now, it was an error unless the expression denoted a declaration).
+% - Allow generic instantiation of the `call` method of a function object.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -13602,12 +13603,7 @@ will implement \CALL,
 but there is no method signature
 which can be assumed for \CALL{} in \FUNCTION{}
 because every signature will conflict with
-some potential overriding declarations.
-Note that any use of \CALL{} on
-a subclass of \FUNCTION{} that fails to implement \CALL{}
-will provoke a compile-time error,
-as this exemption is limited to type \FUNCTION,
-and does not apply to its subtypes.%
+some potential overriding declarations.%
 }
 \end{itemize}
 
@@ -14614,8 +14610,7 @@ would have been a compile-time error.%
 Let $i$ be a property extraction expression of the form
 \code{$e$?.\id}, \code{$e$.\id}, or \code{\SUPER.\id}
 (\ref{propertyExtraction}, \ref{superGetterAccessAndMethodClosurization}),
-which is statically resolved to denote an instance method named \id{}
-that is not the \CALL{} method of a function type,
+which is statically resolved to denote an instance method named \id,
 and let $G$ be the static type of $i$.
 Consider the situation where $G$ is a function type of the form
 \RawFunctionType{T_0}{X}{B}{s}{\metavar{parameters}}
