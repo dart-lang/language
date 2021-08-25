@@ -422,6 +422,43 @@ Note, that if the getter were written as `int get y => this.x;`, then a macro
 *would* be allowed to introduce the new getter `x`, because `this.x` could not
 previously be resolved.
 
+## Language and API Evolution
+
+### Language Versioning
+
+Macros generate code directly into existing libraries, and we want to maintain
+the behavior that a library only has one language version. Thus, the language
+version of macro generated code is always that of the library it is generating
+code _into_.
+
+This means that macros need the ability to ask for the language version of a
+given library. This will be allowed through the library introspection class,
+which is available from the introspection apis on all declarations via a
+`library` getter.
+
+TODO: Fully define the library introspection api for each phase. 
+
+### API Versioning
+
+TODO: Finalize the approach here.
+
+It is possible that future language changes would require a breaking change to
+an existing imperative macro API. For instance you could consider what would
+happen if we added multiple return values from functions. That would
+necessitate a change to many apis so that they would support multiple return
+types instead of a single one.
+
+#### Proposal: Ship Macro APIs as a Pub Package
+
+Likely, this package would only export directly an existing `dart:` uri, but
+it would be able to be versioned like a public package, including tight sdk
+constraints (likely on minor version ranges). This would work similar to the
+`dart:_internal` library.
+
+This approach would involve more work on our end (to release this package with
+each dart release). But it would help keep users on the rails, and give us a
+lot of flexibility with the API going forward.
+
 ## Limitations
 
 - Macros cannot be applied from within the same library cycle as they are
