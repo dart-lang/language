@@ -341,7 +341,11 @@ following the normal ordering rules.
 
 Macro applications can be added to existing declarations through the `*Builder`
 APIs. Macros added in this way are always prepended to the list of existing
-macros on the declaration.
+macros on the declaration (which makes them run _last_).
+
+Note that macros can already _immediately_ invoke another macro on a given
+declaration manually, by simply instantiating the macro and then invoking
+it.
 
 TODO: Update the builder apis to allow this.
 
