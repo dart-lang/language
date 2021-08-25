@@ -298,6 +298,80 @@ The introspection capabilites of these objects are limited to the information
 produced by the previous macro phase of macros, similar to the capabilites
 provided for type references on the declaration.
 
+### Metadata Annotations
+
+The ability to introspect on metadata annotations is important for macros, as
+it is expected to be a common way to configure them. For instance a class level
+macro may want some per-declaration configuration, and annotations are an
+intuitive way to provide that.
+
+Allowing access to metadata does present some challenges though.
+
+#### Annotations that Require Macro Expansion
+
+This could happen if the annotation class has macros applied to it, or if
+some argument(s) to the annotation constructor use macros.
+
+Because macros are not allowed to generate code that shadows an identifier
+in the same library, we know that if an annotation class or any arguments to it
+could be resolved to an, then we can safely resolve them as such.
+
+This allows us to provide an api for macro authors to attempt to instantiate an
+annotation in _any phase_. The api may fail (if it requires more macro
+expansion to be done), but that is not expected to be a common situation. In
+the case where it does fail, users should typically be able to move some of
+their code to a separate library (which they import). Then things from that
+library can safely be used in annotations in the current library, and reflected
+on by macros.
+
+Instantiation must fail if there are any macros left to be expanded on the
+annotation class or any arguments to the annotation constructor.
+
+#### Are Macro Applications Introspectable?
+
+Macro applications share the same syntax as annotations, and users may expect
+macros to be able to see the other macros as a result.
+
+For now we are choosing not to expose other macro applications as if they were
+metadata. While they do share a syntax they are conceptually different.
+
+#### Modifying Metadata Annotations
+
+We will not allow modification or removal of existing annotations, in the same
+way that we do not allow modification or removal of existing code.
+
+However, there are potentially situations where it would be useful for a macro
+to be able to add metadata annotations to existing declarations. These would
+then be read in by other macros (or the same macro in a later phase). In
+particular this may be useful when composing multiple macros together into a
+single macro. That macro may have a different configuration annotation that it
+uses, which it then splits up into the specific annotations that the other
+macros it uses expect.
+
+However, if we aren't careful then allowing adding metadata in this way would
+expose the order in which macros are applied. For this reason metadata which is
+added in this way is not visible to any other macros ran in the same phase.
+
+This does have two interesting and possibly unexpected consequences:
+
+- Macros may see different annotations on the same declaration, if they run in
+  different phases.
+- Metadata on entirely new declarations is visible in the same phase, but
+  metadata added to existing declarations is only visible in later phases.
+
+TODO: Define the api for adding metadata to existing declarations.
+
+#### The Annotation Introspection API
+
+We could try to give users access to an actual instance of the annotation, or
+we could give something more like the [DartObject][] class from the analyzer.
+
+Since macros may need to introspect on classes that they do not actually
+import (or are not transitively available to them), we choose to expose a more
+abstract api (similar to [DartObject][]).
+
+TODO: Define the exact api.
+
 ### Code Building API
 
 At the root of the API for generating code, are the [Code][] and `*Builder`
@@ -436,6 +510,7 @@ previously be resolved.
 [ClassDeclaration]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclaration-class.html
 [ClassDeclarationBuilder]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationBuilder-class.html
 [ClassDeclarationMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationMacro-class.html
+[DartObject]: https://pub.dev/documentation/analyzer/latest/dart_constant_value/DartObject-class.html
 [Declaration]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Declaration-class.html
 [DeclarationBuilder]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DeclarationBuilder-class.html
 [DeclarationMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DeclarationMacro-class.html
