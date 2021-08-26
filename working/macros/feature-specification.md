@@ -327,7 +327,7 @@ block macros from reading resources outside the scope of the original program.
 
 In order to distinguish whether a resource is "in scope", we use the package
 config file. Specifically, we allow access to any resource that exists under
-the root uri of any package in the current package config. Note that this may
+the root URI of any package in the current package config. Note that this may
 include resources outside of the `lib` directory of a package - even for
 package dependencies - depending on how the package config file is configured.
 
@@ -337,14 +337,14 @@ is outside the scope of the program. **TODO**: Evaluate whether this
 restriction is problematic for any current compilation strategies, such as in
 bazel, and if so consider alternatives.
 
-Resources are read via a [Uri][]. This may be a `package:` uri, or an absolute
-uri of any other form as long as it exists under the root uri of some package
+Resources are read via a [Uri][]. This may be a `package:` URI, or an absolute
+uri of any other form as long as it exists under the root URI of some package
 listed in the package config.
 
-It is also intuitive for macros to accept a relative uri for resources. In
-order to support this macros should compute the absolute uri from the current
-libraries uri. This uri is accessible by introspecting on the library of the
-declaration that a macro is applied to. **TODO**: Support for relative uris in
+It is also intuitive for macros to accept a relative URI for resources. In
+order to support this macros should compute the absolute URI from the current
+libraries URI. This URI is accessible by introspecting on the library of the
+declaration that a macro is applied to. **TODO**: Support for relative URIs in
 part files?
 
 Lastly, since macros must return synchronously, we only expose a synchronous
@@ -355,7 +355,7 @@ The specific API is as follows, and would only be available at compile time:
 ```dart
 /// A read-only resource API for use in macro implementation code.
 class Resource {
-  /// Either a `package:` uri, or an absolute uri which is under the root of
+  /// Either a `package:` URI, or an absolute URI which is under the root of
   /// one or more packages in the current package config.
   final Uri uri;
 
