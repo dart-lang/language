@@ -390,7 +390,7 @@ This also includes tracking when resources are created or destroyed - so for
 instance calling any method on a `Resource` should add a dependency on the
 `uri` of that resource, whether it exists or not.
 
-##### build_runner implementation
+##### build_runner
 
 In build_runner we run the compiler in a special directory and we only copy
 over the files we know will be read (transitive dart files). How would we
@@ -400,7 +400,7 @@ read by the compiler?
 It is likely that we would need some special configuration from the users here
 to make this work, at least a general glob of available resources for a package.
 
-##### bazel implementation
+##### bazel
 
 No additional complications, resources will need to be provided as data inputs
 to the dart_library targets though.
