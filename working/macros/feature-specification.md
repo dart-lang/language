@@ -350,7 +350,7 @@ part files?
 Lastly, since macros must return synchronously, we only expose a synchronous
 API for reading resources.
 
-The specific API is as follows:
+The specific API is as follows, and would only be available at compile time:
 
 ```dart
 /// A read-only resource API for use in macro implementation code.
