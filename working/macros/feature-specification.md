@@ -319,6 +319,60 @@ be constructed, but where you need to build up something in smaller pieces you
 can use the [Fragment][] subtype. Any arbitrary String can be passed to this
 class, allowing you to build up your code fragments however you like.
 
+### Resource API
+
+Some macros may wish to load resources (such as files). We do want to enable
+this, but because macros are untrusted code that runs at analysis time, we
+block macros from reading resources outside the scope of the original program.
+
+In order to distinguish whether a resource is "in scope", we use the package
+config file. Specifically, we allow access to any resource that exists under
+the root uri of any package in the current package config. Note that this may
+include resources outside of the `lib` directory of a package - even for
+package dependencies - depending on how the package config file is configured.
+
+When determining the location of a resource, symlinks must be followed.
+Otherwise they could be used to circumvent this check and load a resource that
+is outside the scope of the program. **TODO**: Evaluate whether this
+restriction is problematic for any current compilation strategies, such as in
+bazel, and if so consider alternatives.
+
+Resources are read via a [Uri][]. This may be a `package:` uri, or an absolute
+uri of any other form as long as it exists under the root uri of some package
+listed in the package config.
+
+It is also intuitive for macros to accept a relative uri for resources. In
+order to support this macros should compute the absolute uri from the current
+libraries uri. This uri is accessible by introspecting on the library of the
+declaration that a macro is applied to. **TODO**: Support for relative uris in
+part files?
+
+Lastly, since macros must return synchronously, we only expose a synchronous
+API for reading resources.
+
+The specific API is as follows:
+
+```dart
+/// A read-only resource API for use in macro implementation code.
+class Resource {
+  /// Either a `package:` uri, or an absolute uri which is under the root of
+  /// one or more packages in the current package config.
+  final Uri uri;
+
+  /// Throws an [InvalidResourceException] if [uri] is not valid.
+  Resource(this.uri);
+
+  /// Synchronously reads this resource as bytes.
+  Uint8List readAsBytesSync();
+
+  /// Synchronously reads this resource as text using [encoding].
+  String readAsStringSync({Encoding encoding = utf8});
+  
+  /// Synchronously reads the resource as lines of text using [encoding].
+  List<String> readAsLinesSync({Encoding encoding = utf8});
+}
+```
+
 ## Scoping
 
 ### Resolved identifiers
@@ -445,3 +499,4 @@ previously be resolved.
 [Macro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Macro-class.html
 [typeDeclarationOf]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DeclarationBuilder/typeDeclarationOf.html
 [TypeMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/TypeMacro-class.html
+[Uri]: https://api.dart.dev/stable/2.13.4/dart-core/Uri-class.html
