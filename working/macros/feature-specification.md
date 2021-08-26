@@ -292,7 +292,7 @@ The [ClassDeclaration][] instance you get here provides all the
 introspective information to you that is available for classes in the
 `declaration` phase.
 
-The `builder` parameter also provides an api that allows you to retrieve an
+The `builder` parameter also provides an API that allows you to retrieve an
 introspection object for any `Type` object available to the macro at runtime.
 The introspection capabilites of these objects are limited to the information
 produced by the previous macro phase of macros, similar to the capabilites
@@ -314,10 +314,10 @@ some argument(s) to the annotation constructor use macros.
 
 Because macros are not allowed to generate code that shadows an identifier
 in the same library, we know that if an annotation class or any arguments to it
-could be resolved to an, then we can safely resolve them as such.
+could be resolved, then we can assume that resolution is correct.
 
-This allows us to provide an api for macro authors to attempt to instantiate an
-annotation in _any phase_. The api may fail (if it requires more macro
+This allows us to provide an API for macro authors to attempt to instantiate an
+annotation in _any phase_. The API may fail (if it requires more macro
 expansion to be done), but that is not expected to be a common situation. In
 the case where it does fail, users should typically be able to move some of
 their code to a separate library (which they import). Then things from that
@@ -359,7 +359,7 @@ This does have two interesting and possibly unexpected consequences:
 - Metadata on entirely new declarations is visible in the same phase, but
   metadata added to existing declarations is only visible in later phases.
 
-TODO: Define the api for adding metadata to existing declarations.
+TODO: Define the API for adding metadata to existing declarations.
 
 #### The Annotation Introspection API
 
@@ -368,9 +368,9 @@ we could give something more like the [DartObject][] class from the analyzer.
 
 Since macros may need to introspect on classes that they do not actually
 import (or are not transitively available to them), we choose to expose a more
-abstract api (similar to [DartObject][]).
+abstract API (similar to [DartObject][]).
 
-TODO: Define the exact api.
+TODO: Define the exact API.
 
 ### Code Building API
 
@@ -503,8 +503,8 @@ previously be resolved.
   - **TODO**: Explain library cycles, and why they are a problem.
 - Macros cannot write arbitrary files to disk, and read them in later. They
   can only generate code into the library where they are applied.
-  - **TODO**: Full list of available `dart:` apis.
-  - **TODO**: Design a safe api for read-only access to files.
+  - **TODO**: Full list of available `dart:` APIs.
+  - **TODO**: Design a safe API for read-only access to files.
 
 [Code]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Code-class.html
 [ClassDeclaration]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclaration-class.html
