@@ -362,6 +362,9 @@ class Resource {
   /// Throws an [InvalidResourceException] if [uri] is not valid.
   Resource(this.uri);
 
+  /// Whether or not a resource actually exists at [uri].
+  bool get exists;
+
   /// Synchronously reads this resource as bytes.
   Uint8List readAsBytesSync();
 
@@ -372,6 +375,41 @@ class Resource {
   List<String> readAsLinesSync({Encoding encoding = utf8});
 }
 ```
+
+#### Resource Invalidation
+
+When a resource changes on disk, the libraries containing the macros that read
+that resource should be invalidated.
+
+This implies that the compilers will need to be keeping track of which
+resources have been read, and adding a dependency on those resources to the
+library. The compilers (or tools invoking the compilers) will then need to
+watch these resource files in the same way that they watch source files today.
+
+This also includes tracking when resources are created or destroyed - so for
+instance calling any method on a `Resource` should add a dependency on the
+`uri` of that resource, whether it exists or not.
+
+##### build_runner implementation
+
+In build_runner we run the compiler in a special directory and we only copy
+over the files we know will be read (transitive dart files). How would we
+know which resources to copy over, and more specifically which resources were
+read by the compiler?
+
+It is likely that we would need some special configuration from the users here
+to make this work, at least a general glob of available resources for a package.
+
+##### bazel implementation
+
+No additional complications, resources will need to be provided as data inputs
+to the dart_library targets though.
+
+##### frontend_server
+
+The frontend server will need to communicate back the list of resources that
+were depended on. This could likely work similarly to how it reports changes
+to the sources (possibly even just treat them as "sources").
 
 ## Scoping
 
