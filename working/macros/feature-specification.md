@@ -331,21 +331,27 @@ the root URI of any package in the current package config. Note that this may
 include resources outside of the `lib` directory of a package - even for
 package dependencies - depending on how the package config file is configured.
 
-When determining the location of a resource, symlinks must be followed.
-Otherwise they could be used to circumvent this check and load a resource that
-is outside the scope of the program. **TODO**: Evaluate whether this
-restriction is problematic for any current compilation strategies, such as in
-bazel, and if so consider alternatives.
+If the URI points to a symlink it must be followed and the final physical file
+location checked to be a valid path under a package root. Otherwise they could
+be used to circumvent this check and load a resource that is outside the scope
+of the program. **TODO**: Evaluate whether this restriction is problematic for
+any current compilation strategies, such as in bazel, and if so consider
+alternatives.
 
 Resources are read via a [Uri][]. This may be a `package:` URI, or an absolute
-uri of any other form as long as it exists under the root URI of some package
+URI of any other form as long as it exists under the root URI of some package
 listed in the package config.
 
 It is also intuitive for macros to accept a relative URI for resources. In
 order to support this macros should compute the absolute URI from the current
 libraries URI. This URI is accessible by introspecting on the library of the
-declaration that a macro is applied to. **TODO**: Support for relative URIs in
-part files?
+declaration that a macro is applied to.
+
+- **TODO**: Support for relative URIs in part files (requires a part file
+  abstraction)?
+- **TODO**: Should libraries report their fully resolved URI or the URI that
+  was used to import them? The latter would mean that files under `lib` could
+  not read resources outside of `lib`, which has both benefits and drawbacks.
 
 Lastly, since macros must return synchronously, we only expose a synchronous
 API for reading resources.
@@ -359,6 +365,11 @@ class Resource {
   /// one or more packages in the current package config.
   final Uri uri;
 
+  /// Creates a resource reference.
+  ///
+  /// The [uri] must be valid for this compilation, which means that it exists
+  /// under the root URI of one or more packages in the package config file.
+  ///
   /// Throws an [InvalidResourceException] if [uri] is not valid.
   Resource(this.uri);
 
@@ -378,8 +389,16 @@ class Resource {
 
 #### Resource Invalidation
 
-When a resource changes on disk, the libraries containing the macros that read
-that resource should be invalidated.
+When a resource is read during compilation, it should either be cached for
+subsequent reads to use or a hash of its contents stored. No two macros should
+ever see different contents for the same resource, within the same build.
+
+When a resource does change on disk, then all libraries containing macros that
+read that resource should be invalidated on subsequent builds/analysis of the
+app.
+
+Hot reload itself should not need to track resources since it is handed fully
+compiled kernel files (with macros already applied).
 
 This implies that the compilers will need to be keeping track of which
 resources have been read, and adding a dependency on those resources to the
@@ -409,7 +428,7 @@ to the dart_library targets though.
 
 The frontend server will need to communicate back the list of resources that
 were depended on. This could likely work similarly to how it reports changes
-to the sources (possibly even just treat them as "sources").
+to the Dart sources (probably just treat them in the same way as source files).
 
 ## Scoping
 
