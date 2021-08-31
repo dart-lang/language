@@ -393,6 +393,115 @@ be constructed, but where you need to build up something in smaller pieces you
 can use the [Fragment][] subtype. Any arbitrary String can be passed to this
 class, allowing you to build up your code fragments however you like.
 
+### Resource API
+
+Some macros may wish to load resources (such as files). We do want to enable
+this, but because macros are untrusted code that runs at analysis time, we
+block macros from reading resources outside the scope of the original program.
+
+In order to distinguish whether a resource is "in scope", we use the package
+config file. Specifically, we allow access to any resource that exists under
+the root URI of any package in the current package config. Note that this may
+include resources outside of the `lib` directory of a package - even for
+package dependencies - depending on how the package config file is configured.
+
+If the URI points to a symlink it must be followed and the final physical file
+location checked to be a valid path under a package root. Otherwise they could
+be used to circumvent this check and load a resource that is outside the scope
+of the program. **TODO**: Evaluate whether this restriction is problematic for
+any current compilation strategies, such as in bazel, and if so consider
+alternatives.
+
+Resources are read via a [Uri][]. This may be a `package:` URI, or an absolute
+URI of any other form as long as it exists under the root URI of some package
+listed in the package config.
+
+It is also intuitive for macros to accept a relative URI for resources. In
+order to support this macros should compute the absolute URI from the current
+libraries URI. This URI is accessible by introspecting on the library of the
+declaration that a macro is applied to.
+
+- **TODO**: Support for relative URIs in part files (requires a part file
+  abstraction)?
+- **TODO**: Should libraries report their fully resolved URI or the URI that
+  was used to import them? The latter would mean that files under `lib` could
+  not read resources outside of `lib`, which has both benefits and drawbacks.
+
+Lastly, since macros must return synchronously, we only expose a synchronous
+API for reading resources.
+
+The specific API is as follows, and would only be available at compile time:
+
+```dart
+/// A read-only resource API for use in macro implementation code.
+class Resource {
+  /// Either a `package:` URI, or an absolute URI which is under the root of
+  /// one or more packages in the current package config.
+  final Uri uri;
+
+  /// Creates a resource reference.
+  ///
+  /// The [uri] must be valid for this compilation, which means that it exists
+  /// under the root URI of one or more packages in the package config file.
+  ///
+  /// Throws an [InvalidResourceException] if [uri] is not valid.
+  Resource(this.uri);
+
+  /// Whether or not a resource actually exists at [uri].
+  bool get exists;
+
+  /// Synchronously reads this resource as bytes.
+  Uint8List readAsBytesSync();
+
+  /// Synchronously reads this resource as text using [encoding].
+  String readAsStringSync({Encoding encoding = utf8});
+  
+  /// Synchronously reads the resource as lines of text using [encoding].
+  List<String> readAsLinesSync({Encoding encoding = utf8});
+}
+```
+
+#### Resource Invalidation
+
+Resources that are read should be treated as source inputs to the program, and
+should invalidate the parts of the program that depended on them when they
+change.
+
+When a resource is read during compilation, it should either be cached for
+subsequent reads to use or a hash of its contents stored. No two macros should
+ever see different contents for the same resource, within the same build.
+
+This implies that the compilers will need to be keeping track of which
+resources have been read, and adding a dependency on those resources to the
+library. The compilers (or tools invoking the compilers) will then need to
+watch these resource files for changes in the same way that they watch source
+files today.
+
+This also includes tracking when resources are created or destroyed - so for
+instance calling any method on a `Resource` should add a dependency on the
+`uri` of that resource, whether it exists or not.
+
+##### build_runner
+
+In build_runner we run the compiler in a special directory and we only copy
+over the files we know will be read (transitive dart files). How would we
+know which resources to copy over, and more specifically which resources were
+read by the compiler?
+
+It is likely that we would need some special configuration from the users here
+to make this work, at least a general glob of available resources for a package.
+
+##### bazel
+
+No additional complications, resources will need to be provided as data inputs
+to the dart_library targets though.
+
+##### frontend_server
+
+The frontend server will need to communicate back the list of resources that
+were depended on. This could likely work similarly to how it reports changes
+to the Dart sources (probably just treat them in the same way as source files).
+
 ### Adding New Macro Applications
 
 Macros are allowed to add new macro applications in two ways:
@@ -614,3 +723,4 @@ lot of flexibility with the API going forward.
 [Macro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Macro-class.html
 [typeDeclarationOf]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DeclarationBuilder/typeDeclarationOf.html
 [TypeMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/TypeMacro-class.html
+[Uri]: https://api.dart.dev/stable/2.13.4/dart-core/Uri-class.html
