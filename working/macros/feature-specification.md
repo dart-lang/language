@@ -559,6 +559,67 @@ though it violates the normal rules.
 We could instead only allow adding macros from _later_ phases, but that would
 restrict the functionality in unnecessary ways.
 
+## Macro Libraries and Tree Shaking
+
+Macros, and any dependencies of macros, should be guaranteed to be tree shaken
+in their entirety from the final program. At runtime, the macro definition
+libraries should not be available, nor any stubs of them. The imports should
+be entirely removed.
+
+In order to support this, we introduce a new type of library - a "macro"
+library. You can mark your library as a macro library through a `macro`
+modifier on the library directive: `macro library my_macro;`.
+
+- Macro libraries can import and freely use code from other macro libraries
+  or normal libraries as they choose.
+- If a normal library imports a macro library, it can only use symbols from
+  that library within macro application code.
+- Once macros are expanded, all macro applications and imports of macro
+  libraries are removed from the program.
+- Regular libraries _are_ allowed to export macro libraries (for convenience),
+  and that _does not_ make them a macro library. The _export_ is removed from
+  the final program, and its symbols are still only visible within macro
+  applications when the original library is imported.
+- The library containing the Macro interfaces and APIs is itself a macro
+  library. This makes it only useful to import from other macro libraries, and
+  ensures its apis never leak unexpectedly into runtime apps.
+
+In this way, macros (and their imports) have no effect on the final program
+beyond the code that they generate. It also draws a clear distinction between
+macro libraries and normal libraries, without most users having to understand
+the actual distinction between them (they appear similar from the outside).
+
+### Testing Macros
+
+While it may be desirable to write functional unit tests of macros, this
+approach does not generally allow for that, since macro code is not available
+at runtime.
+
+Instead users are expected to write integration style tests, where they use
+their macro directly in their test and then test the behavior of the resulting
+generated code.
+
+TODO: Can we come up with a better testing pattern? Possibly something where the
+tests are actually ran at compile time, as a macro?
+
+TODO: Can we expose some sort of golden tests functionality to match the
+expected output?  
+
+### Modular compilation
+
+During modular compilation, macro libraries should be compiled as their own
+module. These modules should never be provided to compiler backends, and are
+only used during kernel compilation.
+
+When creating a merged dill file, you should simply omit the macro library
+modules entirely from the concatenated dill. The same goes for dill manifest
+files, they should be omitted from the manifest.
+
+### Macros and `dart:mirrors`
+
+Since macros are removed entirely after compilation, we do not allow reflecting
+on them with `dart:mirrors`. 
+
 ## Scoping
 
 ### Resolved identifiers
