@@ -389,21 +389,19 @@ class Resource {
 
 #### Resource Invalidation
 
+Resources that are read should be treated as source inputs to the program, and
+should invalidate the parts of the program that depended on them when they
+change.
+
 When a resource is read during compilation, it should either be cached for
 subsequent reads to use or a hash of its contents stored. No two macros should
 ever see different contents for the same resource, within the same build.
 
-When a resource does change on disk, then all libraries containing macros that
-read that resource should be invalidated on subsequent builds/analysis of the
-app.
-
-Hot reload itself should not need to track resources since it is handed fully
-compiled kernel files (with macros already applied).
-
 This implies that the compilers will need to be keeping track of which
 resources have been read, and adding a dependency on those resources to the
 library. The compilers (or tools invoking the compilers) will then need to
-watch these resource files in the same way that they watch source files today.
+watch these resource files for changes in the same way that they watch source
+files today.
 
 This also includes tracking when resources are created or destroyed - so for
 instance calling any method on a `Resource` should add a dependency on the
