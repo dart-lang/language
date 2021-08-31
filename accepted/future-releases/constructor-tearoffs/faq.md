@@ -1,5 +1,7 @@
 # Dart Constructor Tearoffs Feature FAQ
 
+Author: lrn@google.com<br>Version: 1.0
+
 This is a short summary of the _Constructor Tearoffs_ feature. This document is not intended as a specification, look at the feature specification for that. Instead it hopes to be a brief *introduction* to the feature set that we intend to release, and to answer some of the questions that it is hard to find short answers for in the specification.
 
 ## What are the new features?
@@ -9,7 +11,7 @@ In short:
 * Named constructor tear-off (`C.name` is a valid expression).
 * Named unnamed constructor (`C.new` is a constructor name, refers to the same constructor as "unnamed" `C` constructor).
 * Function value instantiation (you can instantiate function *values*, not just tear-offs).
-* Explicit instantiation (`List<int>` and `Future.then<int>` are valid type- and function-expressions.)
+* Explicit instantiation (`List<int>` and `Future.then<int>` are valid type- and function-expressions).
 
 ## Named constructor tear-off
 
@@ -125,11 +127,11 @@ Everywhere except the tear-offs, you can remove the `.new`  and it means the sam
 
 **Q:** Will `dart:mirrors` be able to see the `.new` on a constructor declaration?
 
-**A:** Most likely not. There are no plans to change the `dart:mirrors`, and it's just different syntax for the same declaration. The constructor name is still going to be just the class name, and that's what `dart:mirrors` expose.
+**A:** Most likely not. There are no plans to change the `dart:mirrors` library, and it's just different syntax for the same declaration. The constructor name is still going to be just the class name, and that's what `dart:mirrors` expose.
 
 ## Function value instantiation
 
-Until now you've could instantiate *tear-offs* of function declarations or instance methods. You could write:
+Until now you could only instantiate *tear-offs* of function declarations or instance methods. You could write:
 
 ```dart
 T id<T>(T value) => value;
@@ -143,9 +145,11 @@ T Function<T>(T) id = <T>(T value) => value;
 int Function(int) intId = id; // INVALID
 ```
 
-There were reasons for this, mainly worries about implementations not being able to be efficient. The implementors have told us that it's not a problem, so we remove that restriction and allow you to instantiate any function-typed expression. The `INVALID` above becomes valid and well-typed.
+There were reasons for this, mainly worries about implementations not being able to be efficient. The implementors have told us that it's not a problem, so we now remove that restriction and allow you to instantiate any function-typed expression. The `INVALID` above becomes valid and well-typed.
 
-This also applies to *callable objects* (objects which has an interface type with a `call` method), which we treat like function values in most places.
+_This is not actually part of the constructor tear-off feature, it's considered a bug-fix because some (but not all) compilers already supported the feature, and it will be available in older language versions too. See language issue [#1812](https://github.com/dart-lang/language/pull/1812) for details. This feature-fix will still very likely ship at the same time as constructor tear-offs, and it's affecting the explicit instantiation feature, so we include it here._
+
+This also applies to *callable objects* (objects that have an interface type with a `call` method), which we treat like function values in most places.
 
 **Q:** Where does that even matter?
 
@@ -159,7 +163,7 @@ Hypothetical example:
 
 **Q:** Couldn't I just instantiate the `call` method using method instantiation anyway?
 
-**A:** Yes and no. You could for callable objects, and we'd even add the `.call` implicitly for you (we do that for any callable object in a function-typed context, before checking whether the types actually work). It just didn't work for *real* function values. Dart2js never implemented tearing off the `call` method because it would be equivalent to instantiating the function value itself, which wasn't a supported feature (until now), so your code would just crash. We recognized this and initially planned to disallow doing a instantiated tear-off of a function's `call` method. Instead it turned out we can just support consistently.
+**A:** Yes and no. You could for callable objects, and we'd even add the `.call` implicitly for you (we do that for any callable object in a function-typed context, before checking whether the types actually work). It just didn't work for *real* function values. Dart2js never implemented instantiated tear-off of the `call` method of function values because that would be equivalent to instantiating the function value itself, which wasn't a supported feature (until now), so your code would just crash. We recognized this and initially planned to disallow doing a instantiated tear-off of a function's `call` method. Instead it turned out we can just support it consistently.
 
 **Q:** Are function value instantiations canonicalized? Or equal?
 
@@ -192,7 +196,7 @@ Whenever such a type argument list is followed by an argument list, it exactly m
 
 **Q:** Doesn't that make the grammar, like, totally ambiguous?
 
-**A:** Yes! *Thank you* for noticing! And that is a problem. With Dart 2.0 we introduced generic function invocations, and had to decide how to parse `f(a<b,c>(d))`. The argument(s) to `f` could be either two comparison operator expressions or a single generic function invocation. We decided on always choosing the latter when `b` and `c` can be parsed as types and the `>` is followed by a `(`. (We have to decide while we parse the program, long before we can even begin to figure out what `b` and `c` actually refer to, so the choice is entirely grammar based). We now have even more similar ambiguous cases. For example `f(a<b,c>-d)` is ambiguous because `-` can both be a prefix operator after a greater-than operator, or an infix operator after an explicit type-instantiation. Our choice is to be very restrictive in when we parse `expr <` as starting a type argument. We only do so the following *can* be parsed as a type argument list, and the only if the *next token* after the final `>` of the type arguments is one of:
+**A:** Yes! *Thank you* for noticing! And that is a problem. With Dart 2.0 we introduced generic function invocations, and had to decide how to parse `f(a<b,c>(d))`. The argument(s) to `f` could be either two comparison operator expressions or a single generic function invocation. We decided on always choosing the latter when `b` and `c` can be parsed as types and the `>` is followed by a `(`. (We have to decide while we parse the program, long before we can even begin to figure out what `b` and `c` actually refer to, so the choice is entirely grammar based.) We now have even more similar ambiguous cases. For example `f(a<b,c>-d)` is ambiguous because `-` can both be a prefix operator after a greater-than operator, or an infix operator after an explicit type-instantiation. Our choice is to be very restrictive in when we parse `expr <` as starting a type argument. We only do so when the following tokens *can* be parsed as a type argument list, and the only if the *next token* after the final `>` of the type arguments is one of:
 
 > `)`, `}`, `]`, `;`, `:`, `,`,`(`, `.`, `==`, or `!=`
 
@@ -200,7 +204,7 @@ If the next token is *any other token*, then the `<` is parsed as a less-than op
 
 **Q:** Can I call a static method from `List` on `List<int>`.
 
-**A:** No. You can write `List.copyRange` but not `List<int>.copyRange`. This is a grammar based restriction. Even if you have a type alias like `typedef Stupid<X> = int;`, where `Stupid<void>` just means `int`, you can't do `Stupid<void>.parseInt`. The only thing you can access trough an instantiated type literal is constructors. (So `Stupid<void>.fromEnvironment` is valid, just please don't do it.)
+**A:** No. You can write `List.copyRange` but not `List<int>.copyRange`. This is a grammar based restriction. Even if you have a type alias like `typedef Stupid<X> = int;`, where `Stupid<void>` just means `int`, you can't do `Stupid<void>.parseInt`. The only thing you can access through an instantiated type literal is constructors. (So `Stupid<void>.fromEnvironment` is valid, just please don't do it.)
 
 **Q:** What if I want to call an extension method defined on `Type` on a `List<int>`?
 
@@ -246,3 +250,7 @@ object..someFuture.then<int>.doWith((f) => f((_) => 42));
 **Q:** Are explicitly instantiated functions and types canonicalized? Are they equal?
 
 **A:** Explicitly instantiated tear-offs work exactly like implicitly instantiated tear-offs, they just don't need to infer the types from the context first. For instantiated type literals, they will be constant and canonicalized if the type arguments are constant (contains no type variables), and otherwise equal if the same type is instantiated with "the same" type arguments.
+
+## Versions
+
+1.0: Initial version
