@@ -582,7 +582,7 @@ modifier on the library directive: `macro library my_macro;`.
   applications when the original library is imported.
 - The library containing the Macro interfaces and APIs is itself a macro
   library. This makes it only useful to import from other macro libraries, and
-  ensures its apis never leak unexpectedly into runtime apps.
+  ensures its APIs never leak unexpectedly into runtime apps.
 
 In this way, macros (and their imports) have no effect on the final program
 beyond the code that they generate. It also draws a clear distinction between
