@@ -292,11 +292,85 @@ The [ClassDeclaration][] instance you get here provides all the
 introspective information to you that is available for classes in the
 `declaration` phase.
 
-The `builder` parameter also provides an api that allows you to retrieve an
+The `builder` parameter also provides an API that allows you to retrieve an
 introspection object for any `Type` object available to the macro at runtime.
 The introspection capabilites of these objects are limited to the information
 produced by the previous macro phase of macros, similar to the capabilites
 provided for type references on the declaration.
+
+### Metadata Annotations
+
+The ability to introspect on metadata annotations is important for macros, as
+it is expected to be a common way to configure them. For instance a class level
+macro may want some per-declaration configuration, and annotations are an
+intuitive way to provide that.
+
+Allowing access to metadata does present some challenges though.
+
+#### Annotations that Require Macro Expansion
+
+This could happen if the annotation class has macros applied to it, or if
+some argument(s) to the annotation constructor use macros.
+
+Because macros are not allowed to generate code that shadows an identifier
+in the same library, we know that if an annotation class or any arguments to it
+could be resolved, then we can assume that resolution is correct.
+
+This allows us to provide an API for macro authors to attempt to instantiate an
+annotation in _any phase_. The API may fail (if it requires more macro
+expansion to be done), but that is not expected to be a common situation. In
+the case where it does fail, users should typically be able to move some of
+their code to a separate library (which they import). Then things from that
+library can safely be used in annotations in the current library, and reflected
+on by macros.
+
+Instantiation must fail if there are any macros left to be expanded on the
+annotation class or any arguments to the annotation constructor.
+
+#### Are Macro Applications Introspectable?
+
+Macro applications share the same syntax as annotations, and users may expect
+macros to be able to see the other macros as a result.
+
+For now we are choosing not to expose other macro applications as if they were
+metadata. While they do share a syntax they are conceptually different.
+
+#### Modifying Metadata Annotations
+
+We will not allow modification or removal of existing annotations, in the same
+way that we do not allow modification or removal of existing code.
+
+However, there are potentially situations where it would be useful for a macro
+to be able to add metadata annotations to existing declarations. These would
+then be read in by other macros (or the same macro in a later phase). In
+particular this may be useful when composing multiple macros together into a
+single macro. That macro may have a different configuration annotation that it
+uses, which it then splits up into the specific annotations that the other
+macros it uses expect.
+
+However, if we aren't careful then allowing adding metadata in this way would
+expose the order in which macros are applied. For this reason metadata which is
+added in this way is not visible to any other macros ran in the same phase.
+
+This does have two interesting and possibly unexpected consequences:
+
+- Macros may see different annotations on the same declaration, if they run in
+  different phases.
+- Metadata on entirely new declarations is visible in the same phase, but
+  metadata added to existing declarations is only visible in later phases.
+
+TODO: Define the API for adding metadata to existing declarations.
+
+#### The Annotation Introspection API
+
+We could try to give users access to an actual instance of the annotation, or
+we could give something more like the [DartObject][] class from the analyzer.
+
+Since macros may need to introspect on classes that they do not actually
+import (or are not transitively available to them), we choose to expose a more
+abstract API (similar to [DartObject][]).
+
+TODO: Define the exact API.
 
 ### Code Building API
 
@@ -428,6 +502,63 @@ The frontend server will need to communicate back the list of resources that
 were depended on. This could likely work similarly to how it reports changes
 to the Dart sources (probably just treat them in the same way as source files).
 
+### Adding New Macro Applications
+
+Macros are allowed to add new macro applications in two ways:
+
+#### Adding Macro Applications to New Declarations
+
+When creating [Code][] instances, a macro may generate code which includes
+macro applications. These macro applications must be from either the current
+phase or a later phase, but cannot be from previous phases.
+
+If a macro application is added which implements an earlier phase, that phase
+is not ran. This should result in a warning if the macro does not also
+implement some phase that will be ran.
+
+If a macro application is added which runs in the same phase as the current
+one, then it is immediately expanded after execution of the current macro,
+following the normal ordering rules.
+
+#### Adding Macro Applications to Existing Declarations
+
+Macro applications can be added to existing declarations through the `*Builder`
+APIs. Macros added in this way are always prepended to the list of existing
+macros on the declaration (which makes them run _last_).
+
+Note that macros can already _immediately_ invoke another macro on a given
+declaration manually, by simply instantiating the macro and then invoking
+it.
+
+TODO: Update the builder apis to allow this.
+
+#### Note About Ordering Violations
+
+Note that both of these mechanisms allow for normal macro ordering to be
+circumvented. Consider the following example, where all macros run in the
+Declaration phase:
+
+```dart
+@macroA
+@macroB
+class X {
+  @macroC // Added by `@macroA`, runs after both `@macroB` and `@macroA`
+  int? a; 
+
+  // Generated by `@macroC`, not visible to `@macroB`.
+  int? b;
+}
+```
+
+Normally, macros always run "inside-out". But in this case `@macroC` runs after
+both `@macroB` and `@macroC` which were applied to the class.
+
+We still allow this because it doesn't cause any ambiguity in ordering, even
+though it violates the normal rules.
+
+We could instead only allow adding macros from _later_ phases, but that would
+restrict the functionality in unnecessary ways.
+
 ## Scoping
 
 ### Resolved identifiers
@@ -531,6 +662,43 @@ Note, that if the getter were written as `int get y => this.x;`, then a macro
 *would* be allowed to introduce the new getter `x`, because `this.x` could not
 previously be resolved.
 
+## Language and API Evolution
+
+### Language Versioning
+
+Macros generate code directly into existing libraries, and we want to maintain
+the behavior that a library only has one language version. Thus, the language
+version of macro generated code is always that of the library it is generating
+code _into_.
+
+This means that macros need the ability to ask for the language version of a
+given library. This will be allowed through the library introspection class,
+which is available from the introspection apis on all declarations via a
+`library` getter.
+
+TODO: Fully define the library introspection api for each phase. 
+
+### API Versioning
+
+TODO: Finalize the approach here.
+
+It is possible that future language changes would require a breaking change to
+an existing imperative macro API. For instance you could consider what would
+happen if we added multiple return values from functions. That would
+necessitate a change to many apis so that they would support multiple return
+types instead of a single one.
+
+#### Proposal: Ship Macro APIs as a Pub Package
+
+Likely, this package would only export directly an existing `dart:` uri, but
+it would be able to be versioned like a public package, including tight sdk
+constraints (likely on minor version ranges). This would work similar to the
+`dart:_internal` library.
+
+This approach would involve more work on our end (to release this package with
+each dart release). But it would help keep users on the rails, and give us a
+lot of flexibility with the API going forward.
+
 ## Limitations
 
 - Macros cannot be applied from within the same library cycle as they are
@@ -538,13 +706,14 @@ previously be resolved.
   - **TODO**: Explain library cycles, and why they are a problem.
 - Macros cannot write arbitrary files to disk, and read them in later. They
   can only generate code into the library where they are applied.
-  - **TODO**: Full list of available `dart:` apis.
-  - **TODO**: Design a safe api for read-only access to files.
+  - **TODO**: Full list of available `dart:` APIs.
+  - **TODO**: Design a safe API for read-only access to files.
 
 [Code]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Code-class.html
 [ClassDeclaration]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclaration-class.html
 [ClassDeclarationBuilder]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationBuilder-class.html
 [ClassDeclarationMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationMacro-class.html
+[DartObject]: https://pub.dev/documentation/analyzer/latest/dart_constant_value/DartObject-class.html
 [Declaration]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Declaration-class.html
 [DeclarationBuilder]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DeclarationBuilder-class.html
 [DeclarationMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DeclarationMacro-class.html
