@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.13
+Author: lrn@google.com<br>Version: 2.14
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
@@ -402,6 +402,24 @@ A compile-time error occurs if a constructor tear-off denotes a generative const
 
 *A generative constructor declared in an abstract class may well be executed as part of the execution of a constructor tear-off, via a superinitializer. It cannot, however, be torn off on its own, because the execution of a constructor tear-off is an instance creation, and abstract classes do not have instances. There is no similar constraint on a factory constructor.*
 
+### Constructors in mixin application classes
+
+Implicitly induced constructors are subject to constructor tearoff in the same way as if they had been declared explicitly, and they are constant expressions according to the same rules.
+
+*For example:*
+
+```dart
+class A<X> { A.named(); A(); }
+mixin M {}
+
+class B<X> = A<X> with M;
+
+void main() {
+  const f = B.named; // OK.
+  var g = B<int>.new; // OK.
+}
+```
+
 ### Grammar changes
 
 The grammar changes necessary for these changes are provided separately (as [changes to the spec grammar](https://dart-review.googlesource.com/c/sdk/+/197161)).
@@ -565,3 +583,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.11: Mention cascades.
 * 2.12: Mention abstract classes.
 * 2.13: Add `is` and `as` disambiguation tokens.
+* 2.14: Add commentary on mixin application constructors.
