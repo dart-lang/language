@@ -491,6 +491,26 @@ A compile-time error occurs if a constructor tear-off denotes a generative const
 
 *A generative constructor declared in an abstract class may well be executed as part of the execution of a constructor tear-off, via a superinitializer. It cannot, however, be torn off on its own, because the execution of a constructor tear-off is an instance creation, and abstract classes do not have instances. There is no similar constraint on a factory constructor.*
 
+### Constructors in mixin application classes
+
+A mixin application introduces *forwarding constructors* for accessible superclass constructors. Those implicitly introduced constructors are subject to constructor tear-off in the same way as if they had been declared explicitly, and they are constant expressions according to the same rules.
+
+Example:
+
+```dart
+class A<X> { 
+  A.named(); 
+  A(); 
+}
+mixin M {}
+class B<X> = A<X> with M;
+
+void main() {
+  const f = B.named; // Uninstantiated tear-off.
+  var g = B<int>.new; // Explicitly instantiated tear-off.
+}
+```
+
 ### Grammar changes
 
 The grammar changes necessary for these changes are provided separately (as [changes to the spec grammar](https://dart-review.googlesource.com/c/sdk/+/197161)). The grammar change examples above are for illustration only.
@@ -537,9 +557,7 @@ We allow *explicit instantiation* of tear-offs and type literals, by allowing ty
 
 ```dart
 typedef ListList<T> = List<List<T>>;
- 
 T top<T>(T value) => value;
- 
 class C {
   static T stat<T>(T value) => value;
   T inst<T>(T value) => value;
@@ -552,7 +570,6 @@ class C {
     var f3TypeName = this.inst<int>.runtimeType.toString();
   }
 }
- 
 mixin M on C {
   static T mstat<T>(T value) => value;
   T minst<T>(T value) => value;
@@ -565,27 +582,24 @@ mixin M on C {
     var f3TypeName = this.minst<int>.runtimeType.toString();
   }
 }
- 
 extension Ext on C {
   static T estat<T>(T value) => value;
   T einst<T>(T value) => value;
   void emethod() {
-    var f1 = estat<int>; // works like (int $) => Ext.estat<int>($)
+    var f1 = estat<int>; // Works like (int $) => Ext.estat<int>($)
     var f1TypeName = estat<int>.runtimeType.toString();
-    var f2 = einst<int>; // works like (int $) => Ext(this).einst<int>($)
+    var f2 = einst<int>; // Works like (int $) => Ext(this).einst<int>($)
     var f2TypeName = einst<int>.runtimeType.toString();
-    var f3 = this.einst<int>; // works like (int $) => Ext(this).einst<int>($)
+    var f3 = this.einst<int>; // Works like (int $) => Ext(this).einst<int>($)
     var f3TypeName = this.einst<int>.runtimeType.toString();
   }
 }
- 
 class D extends C with M {
   void method() {
     var f4 = super.inst<int>; // works like (int $) => super.inst<int>($)    
     var f4TypeName = super.inst<int>.runtimeType.toString();  
   }
 }
- 
 void main() {
   // Type literals.
   var t1 = List<int>; // Type object for `List<int>`.
@@ -698,4 +712,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.11: Mention cascades.
 * 2.12: Mention abstract classes.
 * 2.13: Add `is` and `as` disambiguation tokens.
-* 2.14: Remove many disambiguation tokens. Allow instantiating function *objects* and *callable objects*.
+* 2.14: Remove many disambiguation tokens. Allow instantiating function *objects* and *callable objects*. Mention forwarding constructors from mixin applications.
