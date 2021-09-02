@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.17
+Author: lrn@google.com<br>Version: 2.18
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
@@ -514,6 +514,18 @@ void main() {
 }
 ```
 
+### Compile-time errors
+
+This section lists the compile-time errors associated with this feature. The _italic_ entries are commentary, which indicates that they are stated elsewhere already.
+
+It is compile-time error if an expression of the form `e.new <parameterPart>?` occurs, and `e` is not a type literal.
+
+_It is a compile-time error if an expression of the form `e <typeArguments>` occurs, and the static type of `e` is `Function` or `dynamic`._
+
+_It is a compile-time error occurs if a constructor tear-off denotes a generative constructor declared in an abstract class._
+
+_The basename of a constructor declared with `C.new` is `C`. It is a compile-time error if a class declares more than one constructor with the same basename._
+
 ### Grammar changes
 
 The grammar changes necessary for these changes are provided separately (as [changes to the spec grammar](https://dart-review.googlesource.com/c/sdk/+/197161)). The grammar change examples above are for illustration only.
@@ -739,3 +751,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of the form <code>e\<T<sub>1</sub>..T<sub>k</sub>></code>.
 * 2.16: Add one more kind of potential constant, type parameters.
 * 2.17: Specify that <code>*e*\<*typeArgs*></code> can desugar to <code>*e*.call\<*typeArgs*></code> when `call` is an extension method.
+* 2.18: Add section about errors, containing a new error for `e.new...` where `e` is not a type literal.
