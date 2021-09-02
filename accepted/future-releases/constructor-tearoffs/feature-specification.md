@@ -522,7 +522,7 @@ It is compile-time error if an expression of the form `e.new <parameterPart>?` o
 
 _It is a compile-time error if an expression of the form `e <typeArguments>` occurs, and the static type of `e` is `Function` or `dynamic`._
 
-_It is a compile-time error occurs if a constructor tear-off denotes a generative constructor declared in an abstract class._
+_It is a compile-time error if a constructor tear-off denotes a generative constructor declared in an abstract class._
 
 _The basename of a constructor declared with `C.new` is `C`. It is a compile-time error if a class declares more than one constructor with the same basename._
 
