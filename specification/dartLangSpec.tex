@@ -2294,7 +2294,7 @@ Let $u$ be the run-time type of a function object $o$ obtained by
 function closurization
 (\ref{functionClosurization})
 or instance method closurization
-(\ref{ordinaryMethodClosurization})
+(\ref{instanceMethodClosurization})
 applied to $F$,
 and let $t$ be the actual type corresponding to $T$
 at the occasion where $o$ was created
@@ -2947,7 +2947,7 @@ with the signature taken from the interface of $C$,
 and with the same default value for each optional parameter.
 It can be invoked in an ordinary invocation and in a superinvocation,
 and when $m$ is a method it can be closurized
-(\ref{ordinaryMethodClosurization})
+(\ref{instanceMethodClosurization})
 using a property extraction
 (\ref{propertyExtraction}).
 
@@ -12878,7 +12878,7 @@ respectively to the function literal $f$ considered as a function declaration.
 % identical even if not required, e.g., local functions with no free variables.
 \IndexCustom{Closurization}{closurization}
 denotes instance method closurization
-(\ref{ordinaryMethodClosurization})
+(\ref{instanceMethodClosurization})
 as well as function closurization,
 and it is also used as a shorthand for either of them
 when there is no ambiguity.
@@ -13989,7 +13989,7 @@ A property extraction can be either:
 \begin{enumerate}
 \item An instance method closurization,
   which converts a method into a function object
-  (\ref{ordinaryMethodClosurization}).
+  (\ref{instanceMethodClosurization}).
   Or
 \item A getter invocation, which returns
   the result of invoking of a getter method
@@ -14167,7 +14167,7 @@ Let $f$ be the result of looking up (\ref{lookup}) method
 \id{} in $o$ with respect to the current library $L$.
 If method lookup succeeds then $i$ evaluates to
 the closurization of method $f$ on object $o$
-(\ref{ordinaryMethodClosurization}).
+(\ref{instanceMethodClosurization}).
 
 \commentary{%
 Note that $f$ is never an abstract method,
@@ -14276,12 +14276,11 @@ does not have a concrete member named \id.%
 }
 
 
-\subsubsection{Ordinary Method Closurization}
-\LMLabel{ordinaryMethodClosurization}
+\subsubsection{Instance Method Closurization}
+\LMLabel{instanceMethodClosurization}
 
 \LMHash{}%
-This section specifies the dynamic semantics of
-ordinary member closurizations.
+This section specifies the dynamic semantics of instance method closurizations.
 
 \commentary{%
 Note that the non-generic case is covered implicitly using $s = 0$,
@@ -14490,7 +14489,7 @@ and optional positional parameters
 
 \commentary{%
 Note that a super closurization is an instance method closurization,
-as defined in (\ref{ordinaryMethodClosurization}).%
+as defined in (\ref{instanceMethodClosurization}).%
 }
 
 \LMHash{}%
@@ -14568,7 +14567,7 @@ if and only if $o_1$ and $o_2$ is the same object.
 Generic method instantiation is a mechanism that yields
 a non-generic function object,
 based on a property extraction which denotes an instance method closurization
-(\ref{ordinaryMethodClosurization}, \ref{superClosurization}).
+(\ref{instanceMethodClosurization}, \ref{superClosurization}).
 
 \commentary{%
 It is a mechanism which is very similar to instance method closurization,
