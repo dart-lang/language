@@ -30,6 +30,8 @@
 % - Allow generic instantiation of expressions with a generic function type
 %   (until now, it was an error unless the expression denoted a declaration).
 % - Allow generic instantiation of the `call` method of a function object.
+% - Disallow `TypeLiteral.extensionMethod()`, in line with the error for
+%   `int.toString()`.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -6045,9 +6047,10 @@ An implicit extension member invocation occurs
 for a member invocation $i$
 (\ref{memberInvocations})
 with receiver $r$ and corresponding member name $m$ if{}f
-(1) the interface of the static type of $r$ does not have a member
+(1) $r$ is not a type literal,
+(2) the interface of the static type of $r$ does not have a member
 whose basename is the basename of $m$,
-and (2) there exists a unique most specific
+and (3) there exists a unique most specific
 (\ref{extensionSpecificity})
 extension denoted by $E$ which is accessible
 (\ref{extensionAccessibility})
@@ -13654,16 +13657,30 @@ and the static type of $i$ is as specified there.
 
 \LMHash{}%
 It is a compile-time error to invoke any of the methods of class \code{Object}
-on a constant type literal that is immediately followed by the token `.'\,.
+on a type literal that is immediately followed by the token `.' (a period).
 
 \rationale{%
-The reason for the latter is that this syntax is reserved for
-invocation of static methods.
+The reason for this rule is that this syntax is reserved for
+invocation of static members.
+Invocation of a static member of a class, mixin, or extension
+uses said entity as a \emph{namespace},
+not as an actual class, mixin, or extension.
+In particular, the syntactic receiver is not evaluated
+to an object---that would not even be possible for an extension.%
+}
+
+\commentary{%
 For instance, \code{int.toString()} is similar to
-\code{C.someStaticMethod()}, and
-it would be confusing if just a couple of expressions of this form
-were instance method invocations.
-If needed, \code{(int).toString()} may be used instead.%
+\code{C.someStaticMethod()}, and it would be confusing
+if the former would evaluate the receiver and call an instance method,
+and the latter (which is much more common and useful)
+would use the type literal as a namespace.
+If needed, \code{(int).toString()} may be used instead.
+
+As a natural consequence of this rule,
+a type literal cannot be the receiver in
+an implicit invocation of an extension method
+(\ref{implicitExtensionInvocations}).%
 }
 
 \LMHash{}%
