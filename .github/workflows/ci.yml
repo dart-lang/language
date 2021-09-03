@@ -16,12 +16,19 @@ on:
 jobs:
   specification:
     runs-on: ubuntu-latest
+    if: |
+      (
+        (github.event_name == 'push'
+          && github.ref == 'refs/heads/master'
+          && github.repository == 'dart-lang/repo_manager'
+        ) ||
+        (github.event.pull_request.head.repo.full_name == github.repository)
+      )
+
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-      - name: Install tools
+      - name: Install latex tools
         run: | 
-          npm install -g firebase-tools@7.2.0
           sudo apt-get update -qq
           sudo apt-get install \
             texlive-latex-base \
@@ -34,13 +41,10 @@ jobs:
           make
           mkdir firebase
           cp dartLangSpec.pdf firebase/DartLangSpecDraft.pdf
-      - name: Deploy
-        if: |
-          github.event_name == 'push'
-          && github.ref == 'refs/heads/master'
-          && github.repository == 'dart-lang/language'
-        run: |
-          cd specification
-          firebase deploy --project=dart-specification
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+      - uses: FirebaseExtended/action-hosting-deploy@0e16177d01e10c4560245404f959e75a9c633533
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DART_SPECIFICATION }}'
+          projectId: dart-specification
+          entryPoint: specification/
+          channelId: ${{ github.event_name == 'push' && 'live' || '' }}
