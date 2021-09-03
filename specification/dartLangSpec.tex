@@ -30,8 +30,8 @@
 % - Allow generic instantiation of expressions with a generic function type
 %   (until now, it was an error unless the expression denoted a declaration).
 % - Allow generic instantiation of the `call` method of a function object.
-% - Add support for desugaring `f` as `f.call`, thus enabling "function
-%   closurization for callable objects".
+% - Add support for function closurization for callable objects, in the sense
+%   that `o` is desugared as `o.call` when the context type is a function type.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
