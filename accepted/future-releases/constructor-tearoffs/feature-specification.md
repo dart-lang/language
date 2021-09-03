@@ -57,7 +57,7 @@ just as you can currently invoke the constructor as <code>*C*.*name*(*args*)</co
 
 Expressions of the form <code>*C*\<*typeArgs*>.*name*</code> are potentially compile-time constant expressions and are compile-time constants if the type arguments are constant types (and <code>*C*.*name*</code> actually denotes a constructor).
 
-_The former syntax, without type arguments, is currently allowed by the language grammar, but is rejected by the static semantics as not being a valid expression when denoting a constructor. The latter syntax is not currently grammatically an_ expression_. Both can occur as part of a constructor invocation, but cannot be expressions by themselves because they have no values. We introduce a static and dynamic expression semantic for such a *named constructor tear-off expression*, which makes them valid expressions._
+_The former syntax, without type arguments, is currently allowed by the language grammar, but is rejected by the static semantics as not being a valid expression when denoting a constructor. The latter syntax is not currently grammatically an_ expression_. Both can occur as part of a constructor invocation, but cannot be expressions by themselves because they have no values. We introduce a static and dynamic expression semantics for such a *named constructor tear-off expression*, which makes them valid expressions._
 
 A named constructor tear-off expression of one of the forms above evaluates to a function value which could be created by tearing off a *corresponding constructor function*, which would be a static function defined on the class denoted by *C*, with a fresh name here represented by adding `$tearoff`:
 
@@ -191,8 +191,8 @@ Example:
 
 ```dart
 typedef ListList<T> = List<List<T>>;
-// Corresponding factory 
-functionList<List<T>> ListList$filled$tearoff<T>(int length, List<T> value) => 
+// Corresponding factory function
+List<List<T>> ListList$filled$tearoff<T>(int length, List<T> value) => 
   List<List<T>>.filled(length, value);
 var f = ListList.filled; // Equivalent to `= ListList$filled$tearoff;`
 ```
@@ -305,7 +305,7 @@ Apart from the tear-off, this code will mean exactly the same thing as the same 
 
 We probably want to support `[C.new]` as a constructor link in DartDoc as well. In `dart:mirrors`, the name of the constructor is still just `C`, not `C.new` (we don't want to break existing reflection using code).
 
-The grammar will be changed to allow ``<identifier> |`new'`` anywhere we currently denote a named constructor name, and we make it a *primary* expression to tear-off an unnamed constructor as `classRef.new`.
+The grammar will be changed to allow ``<identifier> |`new'`` anywhere we currently denote a named constructor name, and we make it a `<primary>` expression to tear-off an unnamed constructor as `classRef.new`.
 
 You cannot have both a `C` and a `C.new` constructor declaration in the same class, they denote the same constructor, so we ensure that by adding (in appropriate places):
 
@@ -429,13 +429,13 @@ f(x.a<b,c>-d);  // f((x.a<b, c>)-d) or f((x.a < b), (c > -d]))
 
 The `x.a<b,c>` can be an explicitly instantiated generic function tear-off or an explicitly instantiated type literal named using a prefix, which is new. While neither type objects nor functions declare `operator-` or `operator[]`, such could be added using extension methods.
 
-We will disambiguate such situations *heuristically* based on the token following the `>`. In the existing ambiguity we treat `(` as a sign that it's a generic invocation. We extend the number of tokens which, when following a potential type argument list, makes us choose to parse the previous tokens as that type argument list. 
+We will disambiguate such situations *heuristically* based on the token following the `>` that matches the `<` we are ambiguous about. In the existing ambiguity we treat `(` as a sign that the `<` starts a generic invocation. We extend the number of tokens which, when following a potential type argument list, makes us choose to parse the previous tokens as that type argument list. 
 
 There is a number of tokens which very consistently *end* an expression, and we include all those:
 
 > `)`, `}`, `]`, `;`, `:`, `,`
 
-The we include tokens which we *predict* will continue a generic instantiation:
+Then we include tokens which we *predict* will continue a generic instantiation:
 
 >  `(`  `.`  `==`  `!=` 
 
@@ -640,7 +640,7 @@ That makes a type instantiation expression of the form <code>*e*\<*typeArgs*></c
 
 * a generic type declaration (class, mixin, type alias) and then the result is an instantiated type literal.
 * a generic function declaration (top-level, static or local),
-* a generic instance method of a known interface type, or
+* an instance method whose static type is a generic function type, or
 * any other expression which evaluates to a generic function, in which case the result is a non-generic function value. 
 
 When followed by an argument list, we do instantiated invocation (of the unnamed constructor for types) instead of instantiation.
@@ -659,8 +659,8 @@ If *C* denotes a generic class with a constructor `name` and a static generic me
 * <code>*C*\.staticMethod\<int></code> is valid and denotes a non-generic function.
 * <code>*C*?.name</code> is invalid, we do not allow that syntax to denote a constructor tear-off.
 * <code>*C*?.staticMethod</code> is valid and denotes a generic function.
-* <code>*C*..name</code> is invalid. Cascades on type literals act on the `Type` value instead.
-* <code>*C*..staticMethod</code> is also invalid for the same reason.
+* <code>*C*..name</code> is invalid unless `name` is also a member of `Type`. Cascades on type literals act on the `Type` value.
+* <code>*C*..staticMethod</code> is also invalid since no instance member of `Type` has the same name as a static method. Static methods cannot have the same name as members of `Object`.
 
 if *A* is defined as `typedef A = C<int>;` then <code>*A*.staticMethod</code> is valid, even though <code>*C*\<int>.staticMethod</code> is not. Static invocation through an alias is special in that it actually *ignores* type arguments and treats the alias as also being a "class declaration alias" for the underlying class.
 
