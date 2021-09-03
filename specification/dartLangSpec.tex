@@ -13676,7 +13676,7 @@ to an object---that would not even be possible for an extension.%
 An member access on a type literal 
 (e.g., \code{C.id()}, \code{C.id}, or \code{C?.id()}),
 always treats the declaration denoted by the literal as
-a namespace for accessing static members.
+a namespace for accessing static members or constructors.
 For instance, \code{int.toString()} is an error
 because \code{int} does not declare a static member named \code{toString}.
 It will not evaluate \code{int} to a \code{Type} object
