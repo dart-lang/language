@@ -84,7 +84,7 @@ var makeList = List<String>.filled; // Works!
 
 **Q:** Are tear-offs canonicalized? When are they equal?
 
-**A:** Constants tear-offs are canonicalized. Non-constant tear-offs do try to be equal when they refer to the same constructor, and if type-instantiated, the same constructor with "the same" type arguments. There are complications when going through type aliases, so try to avoid that.
+**A:** Constant tear-offs are canonicalized. Non-constant tear-offs do try to be equal when they refer to the same constructor, and if type-instantiated, the same constructor with "the same" type arguments. There are complications when going through type aliases, so try to avoid that.
 
 ## Named unnamed constructor
 
@@ -115,7 +115,7 @@ Everywhere except the tear-offs, you can remove the `.new`  and it means the sam
 
 **Q:** Should I use `.new` or not. What does the style guide say?
 
-**A:** The style guide says nothing yet. The general rule is to not write something which isn't necessary, so don't write `new` unless you need to. For now, only use it for tear-offs and possibly DartDoc (it will be more Dart-like to write `[C.new]` than the current DartDoc-only `[C.C]` to refer to the unnamed constructor). _Don't ever write `new Foo.new()`._
+**A:** The style guide says nothing yet. As with most language features, we are deliberately avoiding making any style recommendations early on so that we can see what kind of a style the community as a whole prefers, and see the consequences of people's stylistic choices. Once the feature has been in use for a while, we'll settle on some specific stylistic recommendations. _Just don't ever write `new Foo.new()`, please!_
 
 **Q:** Why introduce this everywhere when it's only supposed to be used for tear-offs. Couldn't it just work for tear-offs?
 
@@ -202,6 +202,14 @@ Whenever such a type argument list is followed by an argument list, it exactly m
 
 If the next token is *any other token*, then the `<` is parsed as a less-than operator.
 
+In practice, we believe the parser will just do the right thing without any effort on your part. In the unlikely event that it doesn't, you can force the interpretation you want by adding parentheses:
+
+```dart
+f((a < b), c > -d)
+// or
+f((a<b, c>) - d)
+```
+
 **Q:** Can I call a static method from `List` on `List<int>`.
 
 **A:** No. You can write `List.copyRange` but not `List<int>.copyRange`. This is a grammar based restriction. Even if you have a type alias like `typedef Stupid<X> = int;`, where `Stupid<void>` just means `int`, you can't do `Stupid<void>.parseInt`. The only thing you can access through an instantiated type literal is constructors. (So `Stupid<void>.fromEnvironment` is valid, just please don't do it.)
@@ -216,15 +224,13 @@ If the next token is *any other token*, then the `<` is parsed as a less-than op
 
 **Q:** So where can I write an explicit type argument instantiation.
 
-**A:** In short, after an expression *e*, where the type arguments are not then followed by an argument list (then it's just a generic invocation, not an instantiation), and where *e*:
+**A:** In short, after any expression which can actually use type arguments. The meaning depends on what generic thing is being instantiated.
 
-* Denotes a generic class, mixin or type alias (so it's a plain or qualified identifier resolving to a class, mixin or type alias declaration). If followed by `.name`, that name must denote a constructor, otherwise the result is an instantiated `Type` object.
-* Denotes a generic local, static or top-level function declaration (so it's a plain or qualified identifier resolving to such a function declaration). In that case the result is an instantiated tear-off, like an implicit tear-off now, but without relying on inference to find the types.
-* Denotes a generic instance method (so *e* has the form <code>*e*<sub>2</sub>.name</code>) where *e*<sub>2</sub> has an interface type with generic a `name` method. In that case the result is an instantiated instance method tear-off, like an implicit tear-off now, but without relying on inference to find the types.
-* Has a static type which is a callable object type (the static type of *e* is an interface type with a generic `call` method). In that case, <code>*e*\<typeArgs></code> is equivalent to <code>*e*.call\<typeArgs></code>.
-* Or none of the above and *e* has a static type which is a generic function type. In that case we do an instantiation of the generic function value to create a non-generic function.
+- If the expression denotes a generic class, mixin, or type alias, it just supplies type parameters to the type, e.g., `Type t = List<int>;` If the type is then followed by a constructor name, then it's a constructor tear-off, e.g., `var f = List<int>.filled;`. Otherwise it's a `Type` literal.
+- If the expression is a generic function, it instantiates it, e.g., `var f = [1.0].map<int>;`.
+- If the expression is a callable object with a generic `call` method, it instantiates the `call` method, e.g., if `foo.call` is a generic method, then `var f = foo<int>;` is equivalent to `var f = foo.call<int>;`.
 
-In all other cases, it's an error.
+In all other cases, it's an error. You can only instantiate something which is generic.
 
 **Q:** Can I do an explicit instantiation on a `dynamic` value?
 
@@ -232,7 +238,7 @@ In all other cases, it's an error.
 
 **Q:** If `<typeArgs>` is a selector, can't I write `foo<int><int>`?
 
-**A:** Nice try, but no. Since the token after the first `<int>` is `<`, and not one of the tokens listed above, the first `<` is parsed as a less-than operator, and then parsing will fail glamorously when it reaches the `>`.
+**A:** Nice try, but no. Since the token after the first `<int>` is `<`, and not one of the tokens listed above, the first `<` is parsed as a less-than operator, and then parsing will fail glamorously when it reaches the `>`. You could of course try doing `(foo<int>)<int>` but there's no way that would work in practice, because the result of `foo<int>` would no longer be generic.
 
 **Q:** If `<typeArgs>` is a selector, can I use it in cascades?
 
