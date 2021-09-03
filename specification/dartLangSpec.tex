@@ -12783,7 +12783,7 @@ $i$ is treated as
 the ordinary invocation
 
 \noindent
-\code{$e_f$.call<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{$e_f$.\CALL<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \LMHash{}%
 Otherwise, the static analysis of $i$ is performed as specified
@@ -14088,7 +14088,8 @@ or it is an expression of the form \code{\SUPER.\id}
 \Case{Implicit}
 Let $e$ be an expression whose static type is
 an interface type that has a method named \CALL.
-In the case where the context type for $e$ is a function type,
+In the case where the context type for $e$ is a function type
+or the type \FUNCTION,
 $e$ is treated as \code{$e$.\CALL}.
 
 \commentary{%
@@ -14096,8 +14097,8 @@ This means that a ``callable object'' may be treated as a function
 that supports a mechanism similar to function closurization
 (\ref{functionClosurization})
 by desugaring it to a method closurization on \CALL.
-It is required that it is statically known that it is a callable object,
-and that the context type requires a function.%
+This only occurs when it is statically known that it is a callable object,
+and when the context type requires a function.%
 }
 \EndCase
 
