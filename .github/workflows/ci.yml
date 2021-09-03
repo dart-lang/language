@@ -44,7 +44,7 @@ jobs:
       - uses: FirebaseExtended/action-hosting-deploy@0e16177d01e10c4560245404f959e75a9c633533
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PACKAGE_QUALITY }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DART_SPECIFICATION }}'
           projectId: dart-specification
           entryPoint: specification/
           channelId: ${{ github.event_name == 'push' && 'live' || '' }}
