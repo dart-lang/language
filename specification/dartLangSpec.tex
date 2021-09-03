@@ -14,7 +14,7 @@
 \makeindex
 \title{Dart Programming Language Specification\\
 {6th edition draft}\\
-{\large Version 2.13-dev}}
+{\large Version 2.15-dev}}
 \author{}
 
 % For information about Location Markers (and in particular the
@@ -32,6 +32,8 @@
 % - Allow generic instantiation of the `call` method of a function object.
 % - Clarify that `TypeLiteral.extensionMethod()` is an error, in line with the
 %   error for `int.toString()`.
+% - Add support for function closurization for callable objects, in the sense
+%   that `o` is desugared as `o.call` when the context type is a function type.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -2294,7 +2296,7 @@ Let $u$ be the run-time type of a function object $o$ obtained by
 function closurization
 (\ref{functionClosurization})
 or instance method closurization
-(\ref{ordinaryMemberClosurization})
+(\ref{instanceMethodClosurization})
 applied to $F$,
 and let $t$ be the actual type corresponding to $T$
 at the occasion where $o$ was created
@@ -2947,7 +2949,7 @@ with the signature taken from the interface of $C$,
 and with the same default value for each optional parameter.
 It can be invoked in an ordinary invocation and in a superinvocation,
 and when $m$ is a method it can be closurized
-(\ref{ordinaryMemberClosurization})
+(\ref{instanceMethodClosurization})
 using a property extraction
 (\ref{propertyExtraction}).
 
@@ -12784,7 +12786,7 @@ $i$ is treated as
 the ordinary invocation
 
 \noindent
-\code{$e_f$.call<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{$e_f$.\CALL<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \LMHash{}%
 Otherwise, the static analysis of $i$ is performed as specified
@@ -12879,7 +12881,7 @@ respectively to the function literal $f$ considered as a function declaration.
 % identical even if not required, e.g., local functions with no free variables.
 \IndexCustom{Closurization}{closurization}
 denotes instance method closurization
-(\ref{ordinaryMemberClosurization})
+(\ref{instanceMethodClosurization})
 as well as function closurization,
 and it is also used as a shorthand for either of them
 when there is no ambiguity.
@@ -12928,7 +12930,7 @@ are canonicalized.%
 }
 
 
-\subsubsection{Generic Function Instantiation}
+\subsection{Generic Function Instantiation}
 \LMLabel{genericFunctionInstantiation}
 
 %% TODO(eernst): The specification of generic function instantiation relies
@@ -14012,7 +14014,7 @@ A property extraction can be either:
 \begin{enumerate}
 \item An instance method closurization,
   which converts a method into a function object
-  (\ref{ordinaryMemberClosurization}).
+  (\ref{instanceMethodClosurization}).
   Or
 \item A getter invocation, which returns
   the result of invoking of a getter method
@@ -14024,7 +14026,8 @@ Function objects derived from members via closurization
 are colloquially known as tear-offs.%
 }
 
-Property extraction can be either conditional or unconditional.
+\LMHash{}%
+Property extraction comes in several forms, as described below.
 
 \LMHash{}%
 \Case{Conditional}
@@ -14106,6 +14109,24 @@ or it is an expression of the form \code{\SUPER.\id}
 (\ref{superGetterAccessAndMethodClosurization}).
 \EndCase
 
+\LMHash{}%
+\Case{Implicit}
+Let $e$ be an expression whose static type is
+an interface type that has a method named \CALL.
+In the case where the context type for $e$ is a function type
+or the type \FUNCTION,
+$e$ is treated as \code{$e$.\CALL}.
+
+\commentary{%
+This means that a ``callable object'' may be treated as a function
+that supports a mechanism similar to function closurization
+(\ref{functionClosurization})
+by desugaring it to a method closurization on \CALL.
+This only occurs when it is statically known that it is a callable object,
+and when the context type requires a function.%
+}
+\EndCase
+
 
 \subsubsection{Getter Access and Method Extraction}
 \LMLabel{getterAccessAndMethodExtraction}
@@ -14171,7 +14192,7 @@ Let $f$ be the result of looking up (\ref{lookup}) method
 \id{} in $o$ with respect to the current library $L$.
 If method lookup succeeds then $i$ evaluates to
 the closurization of method $f$ on object $o$
-(\ref{ordinaryMemberClosurization}).
+(\ref{instanceMethodClosurization}).
 
 \commentary{%
 Note that $f$ is never an abstract method,
@@ -14280,12 +14301,11 @@ does not have a concrete member named \id.%
 }
 
 
-\subsubsection{Ordinary Member Closurization}
-\LMLabel{ordinaryMemberClosurization}
+\subsubsection{Instance Method Closurization}
+\LMLabel{instanceMethodClosurization}
 
 \LMHash{}%
-This section specifies the dynamic semantics of
-ordinary member closurizations.
+This section specifies the dynamic semantics of instance method closurizations.
 
 \commentary{%
 Note that the non-generic case is covered implicitly using $s = 0$,
@@ -14494,7 +14514,7 @@ and optional positional parameters
 
 \commentary{%
 Note that a super closurization is an instance method closurization,
-as defined in (\ref{ordinaryMemberClosurization}).%
+as defined in (\ref{instanceMethodClosurization}).%
 }
 
 \LMHash{}%
@@ -14572,7 +14592,7 @@ if and only if $o_1$ and $o_2$ is the same object.
 Generic method instantiation is a mechanism that yields
 a non-generic function object,
 based on a property extraction which denotes an instance method closurization
-(\ref{ordinaryMemberClosurization}, \ref{superClosurization}).
+(\ref{instanceMethodClosurization}, \ref{superClosurization}).
 
 \commentary{%
 It is a mechanism which is very similar to instance method closurization,
