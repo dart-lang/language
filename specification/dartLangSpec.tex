@@ -30,6 +30,8 @@
 % - Allow generic instantiation of expressions with a generic function type
 %   (until now, it was an error unless the expression denoted a declaration).
 % - Allow generic instantiation of the `call` method of a function object.
+% - Clarify that `TypeLiteral.extensionMethod()` is an error, in line with the
+%   error for `int.toString()`.
 % - Add support for function closurization for callable objects, in the sense
 %   that `o` is desugared as `o.call` when the context type is a function type.
 %
@@ -6047,9 +6049,10 @@ An implicit extension member invocation occurs
 for a member invocation $i$
 (\ref{memberInvocations})
 with receiver $r$ and corresponding member name $m$ if{}f
-(1) the interface of the static type of $r$ does not have a member
+(1) $r$ is not a type literal,
+(2) the interface of the static type of $r$ does not have a member
 whose basename is the basename of $m$,
-and (2) there exists a unique most specific
+and (3) there exists a unique most specific
 (\ref{extensionSpecificity})
 extension denoted by $E$ which is accessible
 (\ref{extensionAccessibility})
@@ -13655,17 +13658,39 @@ considering $F$ to be the static type of the function to call,
 and the static type of $i$ is as specified there.
 
 \LMHash{}%
-It is a compile-time error to invoke any of the methods of class \code{Object}
-on a constant type literal that is immediately followed by the token `.'\,.
+It is a compile-time error to invoke an instance method on a type literal
+that is immediately followed by the token `.' (a period).
+\commentary{
+For instance, \code{int.toString()} is an error.%
+}
 
 \rationale{%
-The reason for the latter is that this syntax is reserved for
-invocation of static methods.
-For instance, \code{int.toString()} is similar to
-\code{C.someStaticMethod()}, and
-it would be confusing if just a couple of expressions of this form
-were instance method invocations.
-If needed, \code{(int).toString()} may be used instead.%
+The reason for this rule is that member access on a type literal
+is reserved for invocation of static members.
+Invocation of a static member of a class, mixin, or extension
+uses said entity as a \emph{namespace},
+not as an actual class, mixin, or extension.
+In particular, the syntactic receiver is not evaluated
+to an object---that would not even be possible for an extension.%
+}
+
+\commentary{%
+An member access on a type literal 
+(e.g., \code{C.id()}, \code{C.id}, or \code{C?.id()}),
+always treats the declaration denoted by the literal as
+a namespace for accessing static members or constructors.
+For instance, \code{int.toString()} is an error
+because \code{int} does not declare a static member named \code{toString}.
+It will not evaluate \code{int} to a \code{Type} object
+and then call its \code{toString} instance method.
+To do that, you can use \code{(int).toString()}.
+Note that cascades are different:
+they \emph{always} evaluate their receiver to an object first.
+
+As a natural consequence,
+a type literal cannot be the receiver in
+an implicit invocation of an extension method
+(\ref{implicitExtensionInvocations}).%
 }
 
 \LMHash{}%
