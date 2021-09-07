@@ -562,9 +562,15 @@ that is feasible) which puts some constraints on the environment.
 - No direct access to the host device (except through the `Resource` API).
 - No ability to spawn arbitrary processes or isolates.
 - Can only run synchronous code.
+  - TODO: Evaluate feasibility of this requirement, and the cost/benefit
+    tradeoffs involved.
 - The ordering of macros in the same phase should not be observable.
-- Macros should always generate the same code, regardless of configuration,
-  host environment, or target environment.
+- Macros should always generate the same code, regardless of host environment,
+  target environment, or non-file based configuration.
+  - This means no access to system environment variables, Dart environment
+    variables (-D defines), command line arguments, or other such configuration.
+  - The "host environment" here refers to the environment in which the macro
+    itself is running.
 
 These general principles are what drives the various requirements for the
 execution environment in which macros run.
@@ -577,6 +583,8 @@ full list of _allowed_ core libraries is as follows:
 - `dart:async`
   - Note that this library is allowed because it is essentially unavoidable, but
     actually scheduling async work is prohibited.
+  - Semantically it should be as if the macro runs in a zone where
+    `scheduleMicrotask` throws an `UnsupportedError`.
 - `dart:collection`
 - `dart:convert`
 - `dart:core`
