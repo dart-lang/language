@@ -520,18 +520,19 @@ The grammar changes necessary for these changes are provided separately (as [cha
 We add the following to the set of expressions that are potentially constant and constant:
 
 If `e` is a potentially constant expression, `T1..Tk` is derived from `<typeList>`, and `e<T1..Tk>` can be derived from `<primary> <selector>*`, then `e<T1..Tk>` is a potentially constant expression.
-If moreover `e` is a constant expression whose static type is a function type `F`, and `T1..Tk` is a list of constant type expressions, then `(e)<T1..Tk>` is a constant expression.
+If moreover `e` is a constant expression whose static type is a function type `F`, and `T1..Tk` is a list of constant type expressions, then `e<T1..Tk>` is a constant expression.
 
 *It follows that `F` is a generic function type taking `k` type arguments, and `T1..Tk` satisfy the bounds of `F`, because otherwise the program would have a compile-time error.*
 
 The following cases are specified elsewhere in this document:
 
-*Named constructor tearoffs:
-Expressions of the form <code>*C*\<*typeArgs*>.*name*</code> can be potentially constant and constant expressions.
-The constantness of named constructor tearoffs follows the constantness of the tearoffs of the corresponding static methods.*
+*Section 'Named constructor tearoffs':
+This section says that expressions of the form <code>*C*\<*typeArgs*>.*name*</code> can be potentially constant and constant expressions.
+Also, the constantness of named constructor tearoffs follows the constantness of the tearoffs of the corresponding constructor functions.*
 
-*Tearing off constructors from type aliases:
-Constantness falls in the categories non-generic, generic/instantiated; generic/uninstantiated/proper-rename; generic/uninstantiated/not-proper-rename.*
+*Section 'Tearing off constructors from type aliases':
+This section contains several rules about constant expressions: About non-generic type aliases; about generic type aliases that are applied to some actual type arguments; about generic type aliases that are 'proper renames' and that do not receive any actual type arguments; and about generic type aliases that are not 'proper renames' and do not receive any actual type arguments.
+In general, their constantness follows the constantness of specific corresponding constructor functions.*
 
 ## Summary
 
