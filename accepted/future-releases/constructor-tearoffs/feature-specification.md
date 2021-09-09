@@ -730,4 +730,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.12: Mention abstract classes.
 * 2.13: Add `is` and `as` disambiguation tokens.
 * 2.14: Remove many disambiguation tokens. Allow instantiating function *objects* and *callable objects*. Mention forwarding constructors from mixin applications.
-* 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of he form `e<T1..Tk>`.
+* 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of the form `e<T1..Tk>`.
