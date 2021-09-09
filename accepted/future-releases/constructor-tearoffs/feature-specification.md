@@ -519,10 +519,10 @@ The grammar changes necessary for these changes are provided separately (as [cha
 
 We add the following to the set of expressions that are potentially constant and constant:
 
-If `e` is a potentially constant expression, `T1..Tk` is derived from `<typeList>`, and `e<T1..Tk>` can be derived from `<primary> <selector>*`, then `e<T1..Tk>` is a potentially constant expression.
-If moreover `e` is a constant expression whose static type is a function type `F`, and `T1..Tk` is a list of constant type expressions, then `e<T1..Tk>` is a constant expression.
+If `e` is a potentially constant expression, `T1..Tk` is derived from `<typeList>`, and `e<T1..Tk>` is derived from `<primary> <selector>*`, then `e<T1..Tk>` is a potentially constant expression.
+If moreover `e` is a constant expression whose static type is a function type `F`, or `e` is a type literal, and `T1..Tk` is a list of constant type expressions, then `e<T1..Tk>` is a constant expression.
 
-*It follows that `F` is a generic function type taking `k` type arguments, and `T1..Tk` satisfy the bounds of `F`, because otherwise the program would have a compile-time error.*
+*It follows that `F` is a generic function type taking `k` type arguments, and `T1..Tk` satisfy the bounds of `F`, and similarly for the type literal, because otherwise the program would have a compile-time error.*
 
 The following cases are specified elsewhere in this document:
 
@@ -730,3 +730,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.12: Mention abstract classes.
 * 2.13: Add `is` and `as` disambiguation tokens.
 * 2.14: Remove many disambiguation tokens. Allow instantiating function *objects* and *callable objects*. Mention forwarding constructors from mixin applications.
+* 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of he form `e<T1..Tk>`.
