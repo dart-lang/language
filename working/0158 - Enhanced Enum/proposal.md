@@ -1,0 +1,165 @@
+# Dart Enhanced Enums
+
+Author: lrn@google.com<br>Version: 1.0
+
+## Proposal
+
+Allow `enum` declarations to:
+
+- Declare static methods and variables.
+- Declare instance methods.
+- Declare instance *variables*.
+- Allow type arguments.
+- Declare an unnamed const constructor initializing those fields and type arguments.
+- Allow enums to implement interfaces. 
+- *Stretch Goal*: Allow enums to mix in mixins.
+
+Syntax example:
+
+```dart
+enum MyEnum<T extends num> implements Comparable<MyEnum> {
+  // Elements go first.
+  // Allows trailing comma in list. 
+  // Requires a `;` if followed by *anything* other than `}`.
+  foo<int>("a", 1), 
+  bar<num>("b", 0), 
+  baz<double>("c", 2.5); // Invokes constructor.
+  
+  // Instance fields, must be final since constructor is `const`.
+  // Won't be implicitly added, you have to write the `final`, because it reads like
+  // mutable fields without it.
+  final String _field;
+  final T value;
+  
+  // One unamed constructor *only*. Can use `MyEnum.new` as alias.
+  // Must be generative. Must be non-redirecting. 
+  // Must be constant (can omit `const`, it's implicit.)
+  const MyEnum(this._field, this.value);
+
+  // Any instance members (barring name conflicts).
+  String get field => _field;
+    
+  // If `toString` is not declared, you get default implementation of => "MyEnum.$name".
+  String toString() => "MyEnum.${name}($_field)";
+    
+  // Can refer to [index] declared by [Enum].
+  int compareTo(MyEnum other) => index - other.index;
+    
+  // Any static member (barring name conflicst).
+  static MyEnum byFieldValue(String value) => values.firstWhere((e) => e._field == value);
+}
+```
+
+The argument part after the enum element names is optional, omitting it is equivalent to `()`, and is allowed if the constructor can be called with zero arguments (it can have optional arguments). You can’t write type arguments and omit the argument list, it’s either *nothing* or an argument part with an argument list and optional type arguments.
+
+It’s a compile-time error to attempt to call the constructor of an `enum` declaration from anywhere, ditto for tearing it off. (And a run-time error to try doing it through mirrors, if you can even find the constructor.)
+
+It’s a compile-time error to extend, implement or mix in an enum type.
+
+An `enum` declaration desugars to a _corresponding class declaration_. (Here “desugars” means “has the same behavior as”, including it being a compile-time errror if the corresponding class declaration would have a compile-time error.) A name starting with `_$` represents a guaranteed fresh name.
+
+```dart
+class MyEnum<T extends num> extends Enum implements Comparable<MyEnum> {
+  static const MyEnum foo = MyEnum<int>._$(0, "foo", "a", 1);
+  static const MyEnum bar = MyEnum<num>._$(1, "bar", "b", 0);
+  static const MyEnum baz = MyEnum<double>._$(2, "baz", "c", 2.5);
+
+  static const List<MyEnum> = [foo, bar, baz];  
+    
+  final int index;
+  final String _$name; // Fresh name.
+    
+  final String _field;
+  final T value;
+  
+  const MyEnum._$(this.index, this._$name, this._field, this.value);
+    
+  // Remaining instance and static members as written.
+    
+  // If no `toString` was declared, add:
+  String toString() => "MyEnum.${_$name}";
+}
+```
+
+Default equality is still identity, `hashCode` is the identity hash. You can override those, but then you can’t use the enum values in const maps/sets or as `switch` cases.
+
+We need to allow implementing interfaces, even if for no other reason than to allow `Comparable`. If we don’t allow implementing interfaces, we’ll get requests for it immediately and consistently until we do.
+
+## Stretches
+
+### Mixins
+
+Possibly allow:
+
+```dart
+enum MyEnum with SomeMixin, OtherMixin implements SomeInterface, OtherInterface {
+  ...
+}
+```
+
+which desugars to;
+
+```dart
+class MyEnum extends _Enum with SomeMixin, OtherMixin 
+    implements SomeInterface, OtherInterface {
+  ...
+}
+```
+
+That can allow a default implementation of interfaces, like:
+
+```dart
+mixin EnumComparableByIndex<T extends Enum> on Enum implements Comparable<T> {
+  int compareTo(T other) => this.index - other.index;
+}
+```
+
+We do not allow *extending* a superclass because An `enum` extends `Enum` already (actually it’s because that will prevent our current `extends _Enum` implementation, we could have gotten away with just `implements Enum` since `Enum` has no instance members). We can’t do that with an `_Enum` mixin (not without serious kernel hacking, not something which can otherwise be written in Dart) because we need to initialize the `index` and `_name` fields.
+
+I believe this could be genuinely useful and practical.
+
+### More constructors
+
+We could allow having more/other named constructors, and forwarding generative constructors forwarding between them.
+
+Then you could write:
+
+```dart
+enum Point {
+  origo.carthesian(0, 0),
+  unitEast.polar(0, 1),
+  unitNorth.polar(pi / 2, 1),
+  unitWest.polar(pi, 1),
+  unitSouth.polar(pi * 3 / 2, 1);
+  
+  final double x, y;
+  Point.carthesian(this.x, this.y);
+  Point.polar(th, r) : this.carthesian(sin(th) * r, cos(th) * r);
+}
+```
+
+Might be useful. Might be hard to read too. Clearly speculative until we have more use cases.
+
+(Will then only be a compile-time error to refer to an enum constructor *except* from a redirecting enum constructor, and enum elements need to be able to specify a constructor name too.)
+
+## Grammar:
+
+```ebnf
+<enumDeclaration> ::=
+  `enum` <identifier> <typeParameters>? (`with` <typeList>)? (`implements` <typeList>)? `{` 
+     <enumElements> (`;` <enumMember>*)? 
+  `}`
+
+<enumElements> ::= <enumElement> (`,` <enumElements>)?
+<enumElement> ::= <identifier> <argumentPart>?
+```
+
+where an `<enumMember>` is a normal class member declaration except that it’s a compile-time error if:
+
+- A constructor is declared which is named, is not generative or is redirecting.
+- The unnamed generative non-redirecting constructor is then implicitly `const` even if it’s not declared `const`.
+- We define the “corresponding class declaration” for an `enum` declaration as above, and it’s a compile-time error for the `enum` declaration if there would be a compile-time error for the corresponding class declaration. That includes all name clashes.
+
+## Versions
+
+1.0: Initial version
