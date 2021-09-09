@@ -2,6 +2,64 @@
 
 Author: lrn@google.com<br>Version: 1.0.1
 
+## Background
+
+Dart enums are very simple, and do not support adding values, members, and
+other useful features.
+
+As a consequence, developers often add functionality next to the enum, e.g.:
+
+```dart
+enum Time { 
+  hour,
+  day,
+  week,
+}
+
+_timeToString(Time time){
+  switch (time) {
+    case Time.hour:
+      return "1h";
+    case Time.day:
+      return "1d";
+    case Time.week:
+      return "1w";
+  }
+}
+```
+
+Some use extension methods to bring these closer in scope:
+
+```dart
+extension on Time {
+  String get stringValue => const <@exhaustive Time, String> {
+    hour: "1h",
+    day: "1d",
+    week: "1w",
+  }[this];
+}
+```
+
+The current proposal extends Dart enums to support adding such functionality
+directly on the enum:
+
+```dart
+enum Time2 {
+  hour('1h'), 
+  day('1d'), 
+  week('1w');
+  
+  final String label;
+    
+  const Time2(this.label);
+}
+
+main() {
+  var t = Time2.day;
+  print("I'll see you in $t!");
+}
+```
+
 ## Proposal
 
 Allow `enum` declarations to:
