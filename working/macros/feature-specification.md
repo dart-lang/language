@@ -530,7 +530,7 @@ Note that macros can already _immediately_ invoke another macro on a given
 declaration manually, by simply instantiating the macro and then invoking
 it.
 
-TODO: Update the builder apis to allow this.
+TODO: Update the builder APIs to allow this.
 
 #### Note About Ordering Violations
 
@@ -673,10 +673,10 @@ code _into_.
 
 This means that macros need the ability to ask for the language version of a
 given library. This will be allowed through the library introspection class,
-which is available from the introspection apis on all declarations via a
+which is available from the introspection APIs on all declarations via a
 `library` getter.
 
-TODO: Fully define the library introspection api for each phase. 
+TODO: Fully define the library introspection API for each phase. 
 
 ### API Versioning
 
@@ -685,7 +685,7 @@ TODO: Finalize the approach here.
 It is possible that future language changes would require a breaking change to
 an existing imperative macro API. For instance you could consider what would
 happen if we added multiple return values from functions. That would
-necessitate a change to many apis so that they would support multiple return
+necessitate a change to many APIs so that they would support multiple return
 types instead of a single one.
 
 #### Proposal: Ship Macro APIs as a Pub Package
