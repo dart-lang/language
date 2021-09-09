@@ -1,6 +1,6 @@
 # Dart Enhanced Enums
 
-Author: lrn@google.com<br>Version: 1.0
+Author: lrn@google.com<br>Version: 1.0.1
 
 ## Proposal
 
@@ -40,7 +40,8 @@ enum MyEnum<T extends num> implements Comparable<MyEnum> {
   String get field => _field;
     
   // If `toString` is not declared, you get default implementation of => "MyEnum.$name".
-  String toString() => "MyEnum.${name}($_field)";
+  // You can declare your own instead.
+  String toString() => "MyEnum.$name($_field)"; // (Assumes `.name` extension getter.)
     
   // Can refer to [index] declared by [Enum].
   int compareTo(MyEnum other) => index - other.index;
@@ -81,9 +82,27 @@ class MyEnum<T extends num> extends Enum implements Comparable<MyEnum> {
 }
 ```
 
-Default equality is still identity, `hashCode` is the identity hash. You can override those, but then you can’t use the enum values in const maps/sets or as `switch` cases.
+Default equality is still identity, `hashCode` is the identity hash. You can override those, but then you can’t use that enum’s values in const maps/sets or as `switch` cases.
 
 We need to allow implementing interfaces, even if for no other reason than to allow `Comparable`. If we don’t allow implementing interfaces, we’ll get requests for it immediately and consistently until we do.
+
+You use the enum element values just like you’d use instances of the corresponding class:
+
+```dart
+void somethingWithEnums<T extends Enum>(T value1, T value2) {
+  if (value1 is Comparable<T>) { // Works for `MyEnum`
+    if (value1.compareTo(value2)) print("Correctly ordered!"); // Printed.
+  }
+  print(value1); // Custom toString gives: "MyEnum.foo(a)"
+}
+// Prints:
+// Correctly ordered!
+// MyEnum.foo(a)
+somethingWithEnums(MyEnum.foo, MyEnum.bar);
+int x = MyEnum.foo.value + 1;    // MyEnum.foo.value is an int.
+double y = MyEnum.baz.value + 1; // MyEnum.baz.value is a double.
+var fields = [for (var v in MyEnum.values) v.field]; // ["a", "b", "c"].
+```
 
 ## Stretches
 
@@ -163,3 +182,5 @@ where an `<enumMember>` is a normal class member declaration except that it’s 
 ## Versions
 
 1.0: Initial version
+
+1.0.1: Adds example, no functional change.
