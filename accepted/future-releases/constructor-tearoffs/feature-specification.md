@@ -515,6 +515,25 @@ void main() {
 
 The grammar changes necessary for these changes are provided separately (as [changes to the spec grammar](https://dart-review.googlesource.com/c/sdk/+/197161)). The grammar change examples above are for illustration only.
 
+### Constant expressions
+
+We add the following to the set of expressions that are potentially constant and constant:
+
+If `e` is a potentially constant expression, `T1..Tk` is derived from `<typeList>`, and `e<T1..Tk>` is derived from `<primary> <selector>*`, then `e<T1..Tk>` is a potentially constant expression.
+If moreover `e` is a constant expression whose static type is a function type `F`, or `e` is a type literal, and `T1..Tk` is a list of constant type expressions, then `e<T1..Tk>` is a constant expression.
+
+*It follows that `F` is a generic function type taking `k` type arguments, and `T1..Tk` satisfy the bounds of `F`, and similarly for the type literal, because otherwise the program would have a compile-time error.*
+
+The following cases are specified elsewhere in this document:
+
+*Section 'Named constructor tearoffs':
+This section says that expressions of the form <code>*C*\<*typeArgs*>.*name*</code> can be potentially constant and constant expressions.
+Also, the constantness of named constructor tearoffs follows the constantness of the tearoffs of the corresponding constructor functions.*
+
+*Section 'Tearing off constructors from type aliases':
+This section contains several rules about constant expressions: About non-generic type aliases; about generic type aliases that are applied to some actual type arguments; about generic type aliases that are 'proper renames' and that do not receive any actual type arguments; and about generic type aliases that are not 'proper renames' and do not receive any actual type arguments.
+In general, their constantness follows the constantness of specific corresponding constructor functions.*
+
 ## Summary
 
 We allow `TypeName.name` and `TypeName<typeArgs>.name`, when not followed by a type argument list or function argument list, as expressions which creates tear-offs of the constructor `TypeName.name`.  The `TypeName` can refer to a class declaration or to a type alias declaration which aliases a class.
@@ -694,8 +713,6 @@ class C {
 
 In this case, most of the parameters are *unnecessary*, and a tear-off expression of `() => C()` would likely be sufficient. However, that would prevent canonicalization, and would be inconsistent with what we do for function tear-off. If the implementation is just a tear-off of an implicitly defined `new$tearoff`, which can be tree-shaken if the constructor is never torn off, then the overhead should be *fixed*. It will make it harder to tree-shake unused *parameters*, but no harder than for static functions, which are already torn off.
 
-
-
 ## Versions
 
 * 2.0: Initial version in this iteration. Proposed `new C` as unnamed tear-off syntax.
@@ -713,3 +730,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.12: Mention abstract classes.
 * 2.13: Add `is` and `as` disambiguation tokens.
 * 2.14: Remove many disambiguation tokens. Allow instantiating function *objects* and *callable objects*. Mention forwarding constructors from mixin applications.
+* 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of the form `e<T1..Tk>`.
