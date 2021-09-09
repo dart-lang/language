@@ -56,7 +56,7 @@ enum Time2 {
 
 main() {
   var t = Time2.day;
-  print("I'll see you in $t!");
+  print("I'll see you in ${t.label}!");
 }
 ```
 
