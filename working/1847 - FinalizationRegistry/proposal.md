@@ -1,0 +1,379 @@
+# Proposal for adding `FinalizationRegistry` and `WeakRef` to core libraries.
+
+Author: vegorov@google.com<br>Version: 0.1
+
+## Background
+
+This proposal includes two interconnected pieces of functionality:
+
+- ability to create _weak references_ (`WeakRef`);
+- ability to associate finalization actions with objects
+  (`FinalizationRegistry`).
+
+### Weak references
+
+_Weak reference_ is a object which holds to its _target_ in a manner which does
+not prevent runtime system from reclaiming the referenced object when it becomes
+_weakly reachable_ or, in other words, reachable only through weak references.
+When an object is dimmed _weakly reachable_ all `WeakRef` objects referencing it
+are cleared and the object is eligible for reclamation.
+
+### Finalization
+
+_Finalization_ is a process of invoking a piece of user defined code at some
+point after certain object has been deemed _unreachable_ by a garbage collector.
+_Unreachable_ objects can no longer be interacted with by any programmatic
+means and thus can be safely reclaimed in a manner otherwise unobservable
+to the rest of the program.
+
+Finalization provides a way to observe and react to the event of runtime system
+discovering that some object is unreachable and can be used in a variety of
+ways. Most commonly finalization is used to cleanup some sort of manually
+managed (native) resources associated with a GC managed objects.
+
+For example, finalization can be used to automatically free native resources
+accessed through `dart:ffi` when Dart objects owning these resources become
+unreachable.
+
+```dart
+/// Wrapper for a native resource (accessed through the [_resource] pointer).
+class Wrapper {
+  final ffi.Pointer<ffi.Void> _resource;
+
+  /// Without automatic finalization [Wrapper] user needs to explicitly
+  /// call [destroy] to free the underlying [_resource], when it is no
+  /// longer needed, leading to a possibility of leaks.
+  void destroy() {
+    malloc.free(_resource);
+  }
+}
+```
+
+### Prior art in Dart VM Embedding API
+
+Dart VM exposes an [Embedding API][dart_api.h] which allows the native
+programmer to associate finalization action(s) with a particular object by
+creating a [_weak persistent handle_][weak handle] or
+a [_finalizable handle_][finalizable handle]: after the garbage collector has
+reclaimed the object referenced by such a handle it would clear the handle and
+invoke a callback function associated with it.
+
+There are two important things to highlight about this API:
+
+- callback is invoked post reclamation and can't resurrect the referenced
+object;
+- callback is not allowed to invoke any Dart code or call most of Embedding API
+methods;
+
+### Design constraints and requirements
+
+Here are the main requirements to finalization API:
+
+- finalization callbacks should not interrupt sequential execution of the
+program in a way which is observable by pure Dart code;
+- there should be a way to minimize the possibility of _premature finalization_,
+that is finalization of the wrapper object while native resources owned by it
+are still in use;
+- when using finalization API for managing native resources developer should be
+able to:
+  - rely on them when writing fully synchronous code;
+  - rely on finalization callbacks to be invoked when isolate is shutting down;
+
+The first requirements is self-explanatory: we would like to avoid departures
+from run-to-completion model that Dart currently provides for synchronous code.
+
+Consider now the following code:
+
+```dart
+/// [Wrapper] holds native [resource] and registers its instances for
+/// finalization. When finalization callback is called it will destroy
+/// corresponding [resource].
+class Wrapper {
+  /// Native resource held by the wrapper. Lifetime
+  /// of the wrapper determines lifetime of the [_resource].
+  final ffi.Pointer<ffi.Void> _resource;
+
+  void method() {
+    // [this] might be reclaimed by GC after evaluating
+    // [this.resource] because it is never used again
+    // and not kept live
+    useResource(this._resource, causeGC());
+  }
+}
+```
+
+In this example if finalization can occur synchronously when `causeGC` is called
+`this._resource` might be released prematurely because no references to `this`
+remain alive after `this._resource` is evaluated and saved as an outgoing
+argument. This means that a garbage collection which occurs within `causeGC()`
+might reclaim a `Wrapper` object which was previous pointed by `this` and
+consequently invoke finalization callback associated with it, which in turn
+would release the native resource.
+
+## Proposal
+
+We split the proposed finalization API into two parts:
+
+- `FinalizationRegistry` which:
+  - does not provide strong guarantees around promptness of finalization;
+  - does not impose any restrictions on objects, you could associate a
+    finalization action with;
+  - does not impose any restrictions on finalization actions, but invokes them
+    asynchronously;
+  - is implementable on the Web.
+- `NativeFinalizationRegistry` which:
+  - provides stronger guarantees around promptness of finalization;
+  - guarantees that finalization actions are invoked when isolate is shutting
+  down;
+  - is limited to objects which implement `Finalizable` interface;
+  - imposes restrictions on finalization actions to allow calling these actions
+  outside of Dart universe.
+
+The following classes are added to `dart:core` library
+
+```dart
+/// A register of objects which may invoke a callback when those objects
+/// become inaccessible.
+///
+/// The register allows objects to be registered,
+/// and when those objects become inaccessible to the program.
+/// the callback passed to the register's constructor *may* be called
+/// with the registration token associated with the object.
+///
+/// No promises are made that the callback will ever be called,
+/// only that *if* it is called with a finalization token as argument,
+/// at least one object registered in the registry with that finalization token
+/// is no longer accessible to the program.
+///
+/// If the same object is registered in multiple finalization registries,
+/// or registered multiple times in a single registry,
+/// and the object becomes inaccessible to the program,
+/// then any number of those registrations may trigger their associated
+/// callback. It will not necessarily be all or none of them.
+///
+/// Finalization callbacks will happen as *events*, not during execution of
+/// other code and not as a microtask, but as high-level events similar to
+/// timer events.
+abstract class FinalizationRegistry<F extends Object, FT> {
+  /// Creates a finalization registry with the given finalization callback.
+  external factory FinalizationRegistry(
+    void Function(FT finalizationToken) callback);
+
+  /// Registers [value] for a finalization callback.
+  ///
+  /// When [value] is no longer accessible to the program,
+  /// the registry *may* call its callback function with [finalizationToken]
+  /// as argument.
+  ///
+  /// The [value] and [unregisterToken] arguments do not count towards those
+  /// objects being accessible to the program. Both must be non-[num],
+  /// non-[String], non-[bool], non-[Pointer], non-[Struct] and
+  /// non-[Null] values.
+  ///
+  /// Multiple objects may be registered with the same finalization token,
+  /// and the same object may be registered multiple times with different,
+  /// or the same, finalization token.
+  ///
+  /// The callback may be called at most once per registration, and not
+  /// for registrations which have been unregistered since they were registered.
+  void register(F value, FT finalizationToken, {Object? unregisterToken});
+
+  /// Unregisters any finalization callbacks registered with [unregisterToken]
+  /// as unregister-token.
+  ///
+  /// After unregistering, those callbacks will not happen even if the
+  /// registered object becomes inaccessible.
+  void unregister(Object? unregisterToken);
+}
+
+/// Represents a weak reference to the given [target].
+///
+/// Weak references don't prevent garbage collection from reclaiming an object
+/// which is not reachable through any other (non-[WeakRef]) objects. If
+/// runtime system reclaims such _weakly reachable_ object then all [WeakRef]
+/// objects which reference it will be cleared to contain [null] as their
+/// target.
+abstract class WeakRef {
+  /// Create a [WeakRef] pointing to the given [target].
+  external factory WeakRef(Object? target);
+
+  /// Get the current object pointed by the [WeakRef].
+  external Object? get target;
+
+  /// Set the current object pointed by the [WeakRef].
+  external void set target (Object? newTarget);
+}
+```
+
+The following classes are added to `dart:ffi` library:
+
+```dart
+/// Any variable which has a static type that is a subtype of a [Finalizable]
+/// is guaranteed to be alive for the full duration of a scope in which it is
+/// defined.
+///
+/// In other words if an object is referenced by such a variable it is
+/// guaranteed to *not* be considered unreachable for the duration of the scope.
+abstract class Finalizable {
+  external factory Finalizable._();
+}
+
+typedef NativeFinalizer = Void Function(Pointer<Void>);
+typedef NativeFinalizerPtr = Pointer<NativeFunction<NativeFinalizer>>
+
+/// [FinalizationRegistry] which will execute its finalizers as early as
+/// possible without waiting for control to return to the event loop.
+///
+/// Will also invoke finalization callbacks when the isolate which created
+/// this finalization registry is shutting down.
+abstract class NativeFinalizationRegistry<F extends Finalizable>
+    extends FinalizationRegistry<F, Pointer> {
+  /// Creates a finalization registry with the given finalization
+  /// callback.
+  ///
+  /// Note: [callback] is expected to be a native function which can be
+  /// executed outside of a Dart isolate. This means that passing an FFI
+  /// trampoline (a function pointer obtained via [Pointer.fromFunction]) is
+  /// not supported for arbitrary Dart functions. This constructor will throw
+  /// if an unsupported [callback] is passed to it.
+  ///
+  /// [callback] might be invoked on an arbitrary thread and not necessary
+  /// on the same thread that created [FinalizationRegistry].
+  external factory FinalizationRegistry(NativeFinalizerPtr callback);
+
+  /// Same as [super.register] but allows to specify an [externalSize] to
+  /// guide GC heuristics.
+  void register(F value,
+                Pointer finalizationToken,
+                {Object? unregisterToken, int externalSize});
+}
+```
+
+`FinalizationRegistry` was directly modeled after its
+[JavaScript counterpart][MDN FinalizationRegistry] and only supports
+asynchronous finalization, while `NativeFinalizationRegistry` is added to
+`dart:ffi` to allow eager synchronous finalization.
+
+Note differences in API between `FinalizationRegistry` and
+`NativeFinalizationRegistry`:
+
+- `NativeFinalizationRegistry` requires objects which are registered with it
+to implement `Finalizable` interface, which serves as a marker instructing
+optimizing compiler to provide stronger liveness guarantees for an object. This
+interface is our solution to the problem of _premature finalization_.
+- `NativeFinalizationRegistry` is constructed with a _native function_ as a
+callback rather than a Dart function. This is done to guarantee that eager
+synchronous execution of a finalization callback is not going to produce any
+side-effects observable from the pure Dart code.
+
+### Isolate-independent native functions
+
+`dart:ffi` allows developers to construct a native function pointer to a
+static function defined in Dart via [`Pointer.fromFunction`] constructor.
+This constructor essentially returns a pointer to a _trampoline_ which
+follows C ABI and can be called from native code. When invoked such trampoline
+will perform transition from native code into Dart code, marshal arguments,
+call the target static function, marshaling the result it returns and then
+transition back into native code. There is an implicit expectation baked into
+this process: calling a native-to-Dart trampoline will only succeed if
+there is a Dart isolate associated with the thread on which we perform the call
+and this isolate is in the state which allows reentrancy.
+
+Such isolate-dependent function can't be used as a finalization callback because
+finalization callbacks should be callable in contexts when there is no current
+isolate at all or isolates are not allowing entering into Dart code.
+
+It seems thus reasonable to restrict `NativeFinalizationRegistry` constructor
+in a way that would reject function pointers which are pointing to
+native-to-Dart FFI trampolines.
+
+This restriction however means that users might be required to write native code
+to implement their finalizers. Consider for example [`mmap`/`munmap`][mmap API]
+POSIX APIs.
+
+```cpp
+// mmap -- allocate memory, or map files or devices into memory
+void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);
+
+// munmap -- remove a mapping
+int munmap(void *addr, size_t len);
+```
+
+A Dart developer will be able to call `mmap` and `munmap` through FFI, but they
+will not be able to use `munmap` directly as a finalizer, because it does not
+conform to `Void Function(Pointer<Void>)` signature and expects the size of
+the mapping as well. A developer would have to implement a helper in a native
+language instead:
+
+```cpp
+// C++
+struct Mapping {
+  void* addr;
+  uint64_t size;
+};
+
+void FinalizeMapping(Mapping* mapping) {
+  munmap(mapping->addr, mapping->size);
+  free(mapping);
+}
+```
+
+```dart
+// Dart
+
+final NativeFinalizerPtr finalizeMapping = lib.lookup('FinalizeMapping');
+final mmap = DynamicLibrary.process().lookupFunction<...>('mmap');
+
+class _Mapping extends Struct {
+  external Pointer<Void> addr;
+
+  @Uint64()
+  external int size;
+}
+
+class Mapping extends Finalizable {
+  final Pointer<_Mapping> mapping;
+
+  factory Mapping(int len) {
+    final mapping = malloc.alloc<_Mapping>(sizeOf<_Mapping>());
+    mapping.addr = mmap(len, ...);
+    mapping.len = len;
+    final wrapper = Mapping._(mapping);
+    _registry.register(wrapper, mapping, externalSize: len);
+    return wrapper;
+  }
+
+  static final _registry = NativeFinalizationRegistry(finalizeMapping);
+}
+```
+
+It would be more convenient if Dart developer did not need to write any native
+code to implement this.
+
+It is fathomable that in future releases `dart:ffi` library could allow
+some Dart functions to be invoked outside of Dart isolates, as long as this
+functions can be compiled into an isolate-independent native code.
+
+Consider for example the following piece of Dart code:
+
+```dart
+void FinalizeMapping(Pointer<Mapping> mapping) {
+  munmap(mapping.ref.addr, mapping.ref.size);
+  malloc.free(mapping);
+}
+```
+
+This function does not really need Dart isolate for execution because it only
+interacts with native world through FFI. Thus it could be compiled in a special
+way and consequently used as a finalization callback.
+
+This functionality though is outside of scope for this proposal and can be
+implemented independently at a later date.
+
+[dart_api.h]: https://github.com/dart-lang/sdk/blob/master/runtime/include/dart_api.h
+[weak handle]: https://github.com/dart-lang/sdk/blob/39a165647a7f2cf1ca8e81e696c552d25365c0c5/runtime/include/dart_api.h#L460-L494
+[finalizable handle]: https://github.com/dart-lang/sdk/blob/39a165647a7f2cf1ca8e81e696c552d25365c0c5/runtime/include/dart_api.h#L512-L550
+[MDN FinalizationRegistry]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry
+[`Pointer.fromFunction`]: https://api.dart.dev/dev/2.15.0-95.0.dev/dart-ffi/Pointer/fromFunction.html
+[mmap API]: https://man7.org/linux/man-pages/man2/mmap.2.html
+
