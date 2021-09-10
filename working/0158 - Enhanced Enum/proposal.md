@@ -123,7 +123,7 @@ class MyEnum<T extends num> extends Enum implements Comparable<MyEnum> {
   static const MyEnum bar = MyEnum<num>._$(1, "bar", "b", 0);
   static const MyEnum baz = MyEnum<double>._$(2, "baz", "c", 2.5);
 
-  static const List<MyEnum> = [foo, bar, baz];  
+  static const List<MyEnum> values = [foo, bar, baz];
     
   final int index;
   final String _$name; // Fresh name.
