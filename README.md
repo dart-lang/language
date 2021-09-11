@@ -1,4 +1,4 @@
-# Dart language evolution
+# <img src="https://github.com/dart-lang/site-shared/blob/master/src/_assets/image/dart/logo/64.png" alt="Dart" width="28" height="28"/> Dart language evolution
 
 [![Build Status](https://github.com/dart-lang/language/workflows/CI/badge.svg)](https://github.com/dart-lang/language/actions?query=workflow%3ACI+branch%3Amaster)
 
