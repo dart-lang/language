@@ -201,13 +201,14 @@ abstract class FinalizationRegistry<FT> {
   void unregister(Object? unregisterToken);
 }
 
-/// Represents a weak reference to the given [target].
+/// A weak reference to another object.
 ///
-/// Weak references don't prevent garbage collection from reclaiming an object
-/// which is not reachable through any other (non-[WeakRef]) objects. If
-/// runtime system reclaims such _weakly reachable_ object then all [WeakRef]
-/// objects which reference it will be cleared to contain [null] as their
-/// target.
+/// A _weak_ reference to the [target] object which may be cleared
+/// (set to reference `null` instead) at any time
+/// where there is no other ways for the program to access the target object.
+///
+/// _The referenced object may be garbage collected when the only reachable
+/// references to it are weak._
 ///
 /// Not all objects are supported as targets for weak references. [WeakRef]
 /// constructor and [WeakRef.target] will reject any object that is not
