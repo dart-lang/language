@@ -6,30 +6,30 @@ Author: vegorov@google.com<br>Version: 0.1
 
 This proposal includes two interconnected pieces of functionality:
 
-- ability to create _weak references_ (`WeakRef`);
-- ability to associate finalization actions with objects
+- an ability to create _weak references_ (`WeakRef`);
+- an ability to associate finalization actions with objects
   (`FinalizationRegistry`).
 
 ### Weak references
 
-_Weak reference_ is a object which holds to its _target_ in a manner which does
+_Weak reference_ is an object which holds to its _target_ in a manner that does
 not prevent runtime system from reclaiming the referenced object when it becomes
 _weakly reachable_ or, in other words, reachable only through weak references.
-When an object is dimmed _weakly reachable_ all `WeakRef` objects referencing it
+When an object is deemed _weakly reachable_ all `WeakRef` objects referencing it
 are cleared and the object is eligible for reclamation.
 
 ### Finalization
 
-_Finalization_ is a process of invoking a piece of user defined code at some
-point after certain object has been deemed _unreachable_ by a garbage collector.
-_Unreachable_ objects can no longer be interacted with by any programmatic
-means and thus can be safely reclaimed in a manner otherwise unobservable
-to the rest of the program.
+_Finalization_ is a process of invoking a piece of user-defined code at some
+point after a certain object has been deemed _unreachable_ by a garbage
+collector. _Unreachable_ objects can no longer be interacted with by any
+programmatic means and thus can be safely reclaimed in a manner otherwise
+unobservable to the rest of the program.
 
 Finalization provides a way to observe and react to the event of runtime system
 discovering that some object is unreachable and can be used in a variety of
-ways. Most commonly finalization is used to cleanup some sort of manually
-managed (native) resources associated with a GC managed objects.
+ways. Most commonly, finalization is used to cleanup some sort of manually
+managed (native) resources associated with GC managed objects.
 
 For example, finalization can be used to automatically free native resources
 accessed through `dart:ffi` when Dart objects owning these resources become
@@ -49,7 +49,21 @@ class Wrapper {
 }
 ```
 
-### Prior art in Dart VM Embedding API
+### Prior art
+
+#### ECMA-262 `WeakRef` and `FinalizationRegistry`
+
+APIs proposed below are directly modeled after [`WeakRef`][MDN WeakRef] and
+[`FinalizationRegistry`][MDN FinalizationRegistry] described in ECMA-262
+standard. The choice is made to allow minimum effort effecient implementation
+of these APIs in those implementations of the Dart programming language that
+target JavaScript.
+
+Original TC-39 proposal resides [here][proposal-weakrefs], while normative
+specification for processing model of weak references can be found
+[here][weakref-processing-model].
+
+### Dart VM Embedding API
 
 Dart VM exposes an [Embedding API][dart_api.h] which allows the native
 programmer to associate finalization action(s) with a particular object by
@@ -69,20 +83,22 @@ methods;
 
 Here are the main requirements to finalization API:
 
+- must be effeciently implementable in JavaScript;
 - finalization callbacks should not interrupt sequential execution of the
 program in a way which is observable by pure Dart code;
 - there should be a way to minimize the possibility of _premature finalization_,
 that is finalization of the wrapper object while native resources owned by it
 are still in use;
-- when using finalization API for managing native resources developer should be
-able to:
-  - rely on them when writing fully synchronous code;
-  - rely on finalization callbacks to be invoked when isolate is shutting down;
+- when using finalization API for managing native resources, the developer
+should be able to:
+  - rely on them when writing fully synchronous code,
+  - rely on finalization callbacks to be invoked even if an isolate group is
+  shutting down.
 
 The first requirements is self-explanatory: we would like to avoid departures
 from run-to-completion model that Dart currently provides for synchronous code.
 
-Consider now the following code:
+To explain the problem of premature finalization, consider the following code:
 
 ```dart
 /// [Wrapper] holds native [resource] and registers its instances for
@@ -115,17 +131,17 @@ would release the native resource.
 We split the proposed finalization API into two parts:
 
 - `FinalizationRegistry` which:
-  - does not provide strong guarantees around promptness of finalization;
-  - does not impose any restrictions on objects, you could associate a
-    finalization action with;
-  - does not impose any restrictions on finalization actions, but invokes them
-    asynchronously;
+  - does not provide strong guarantees around promptness of finalization,
+  - does not impose any restrictions on objects you could associate a
+    finalization action with,
+  - does not impose any restrictions on finalization actions and invokes them
+    asynchronously,
   - is implementable on the Web.
 - `NativeFinalizationRegistry` which:
-  - provides stronger guarantees around promptness of finalization;
+  - provides stronger guarantees around promptness of finalization,
   - guarantees that finalization actions are invoked when isolate is shutting
-  down;
-  - is limited to objects which implement `Finalizable` interface;
+  down,
+  - is limited to objects which implement `Finalizable` interface,
   - imposes restrictions on finalization actions to allow calling these actions
   outside of Dart universe.
 
@@ -154,7 +170,7 @@ The following classes are added to `dart:core` library
 /// Finalization callbacks will happen as *events*, not during execution of
 /// other code and not as a microtask, but as high-level events similar to
 /// timer events.
-abstract class FinalizationRegistry<F extends Object, FT> {
+abstract class FinalizationRegistry<FT> {
   /// Creates a finalization registry with the given finalization callback.
   external factory FinalizationRegistry(
     void Function(FT finalizationToken) callback);
@@ -166,9 +182,8 @@ abstract class FinalizationRegistry<F extends Object, FT> {
   /// as argument.
   ///
   /// The [value] and [unregisterToken] arguments do not count towards those
-  /// objects being accessible to the program. Both must be non-[num],
-  /// non-[String], non-[bool], non-[Pointer], non-[Struct] and
-  /// non-[Null] values.
+  /// objects being accessible to the program. Both must be objects supported
+  /// as an [Expando] key.
   ///
   /// Multiple objects may be registered with the same finalization token,
   /// and the same object may be registered multiple times with different,
@@ -176,7 +191,7 @@ abstract class FinalizationRegistry<F extends Object, FT> {
   ///
   /// The callback may be called at most once per registration, and not
   /// for registrations which have been unregistered since they were registered.
-  void register(F value, FT finalizationToken, {Object? unregisterToken});
+  void register(Object value, FT finalizationToken, {Object? unregisterToken});
 
   /// Unregisters any finalization callbacks registered with [unregisterToken]
   /// as unregister-token.
@@ -193,15 +208,18 @@ abstract class FinalizationRegistry<F extends Object, FT> {
 /// runtime system reclaims such _weakly reachable_ object then all [WeakRef]
 /// objects which reference it will be cleared to contain [null] as their
 /// target.
+///
+/// Not all objects are supported as targets for weak references. [WeakRef]
+/// constructor and [WeakRef.target] will reject any object that is not
+/// supported as an [Expando] key.
 abstract class WeakRef {
-  /// Create a [WeakRef] pointing to the given [target].
+  /// Create a [WeakRef] pointing to the given [target], which must be
+  /// an object supported as an [Expando] key.
   external factory WeakRef(Object? target);
 
-  /// Get the current object pointed by the [WeakRef].
-  external Object? get target;
-
-  /// Set the current object pointed by the [WeakRef].
-  external void set target (Object? newTarget);
+  /// The current object weakly referenced by [this]. Is either [null] or
+  /// an object supported as an [Expando] key.
+  abstract Object? target;
 }
 ```
 
@@ -215,7 +233,7 @@ The following classes are added to `dart:ffi` library:
 /// In other words if an object is referenced by such a variable it is
 /// guaranteed to *not* be considered unreachable for the duration of the scope.
 abstract class Finalizable {
-  external factory Finalizable._();
+  factory Finalizable._() => throw UnsupportedError("");
 }
 
 typedef NativeFinalizer = Void Function(Pointer<Void>);
@@ -227,7 +245,7 @@ typedef NativeFinalizerPtr = Pointer<NativeFunction<NativeFinalizer>>
 /// Will also invoke finalization callbacks when the isolate which created
 /// this finalization registry is shutting down.
 abstract class NativeFinalizationRegistry<F extends Finalizable>
-    extends FinalizationRegistry<F, Pointer> {
+    extends FinalizationRegistry<Pointer> {
   /// Creates a finalization registry with the given finalization
   /// callback.
   ///
@@ -239,11 +257,11 @@ abstract class NativeFinalizationRegistry<F extends Finalizable>
   ///
   /// [callback] might be invoked on an arbitrary thread and not necessary
   /// on the same thread that created [FinalizationRegistry].
-  external factory FinalizationRegistry(NativeFinalizerPtr callback);
+  external factory NativeFinalizationRegistry(NativeFinalizerPtr callback);
 
   /// Same as [super.register] but allows to specify an [externalSize] to
   /// guide GC heuristics.
-  void register(F value,
+  void register(covariant F value,
                 Pointer finalizationToken,
                 {Object? unregisterToken, int externalSize});
 }
@@ -265,6 +283,16 @@ interface is our solution to the problem of _premature finalization_.
 callback rather than a Dart function. This is done to guarantee that eager
 synchronous execution of a finalization callback is not going to produce any
 side-effects observable from the pure Dart code.
+
+Unfortunately the second restriction has far reaching implications: in many
+commonly used native APIs destruction method does not adhere to a single
+argument signature that we expect from a finalization callback. This makes
+`NativeFinalizationRegistry` API unusable without writing additional trampoline
+code in native programming language (e.g. C), which we consider highly
+undesirable: as we want `dart:ffi` to be expressive enough to enable developers
+to create bindings in pure Dart, without requiring them to write and compile
+any additional native glue code. We will discuss this limitation more in the
+next section.
 
 ### Isolate-independent native functions
 
@@ -288,8 +316,9 @@ in a way that would reject function pointers which are pointing to
 native-to-Dart FFI trampolines.
 
 This restriction however means that users might be required to write native code
-to implement their finalizers. Consider for example [`mmap`/`munmap`][mmap API]
-POSIX APIs.
+to implement their finalizers, which we consider undesirable.
+
+Consider for example [`mmap`/`munmap`][mmap API] POSIX APIs.
 
 ```cpp
 // mmap -- allocate memory, or map files or devices into memory
@@ -374,6 +403,8 @@ implemented independently at a later date.
 [weak handle]: https://github.com/dart-lang/sdk/blob/39a165647a7f2cf1ca8e81e696c552d25365c0c5/runtime/include/dart_api.h#L460-L494
 [finalizable handle]: https://github.com/dart-lang/sdk/blob/39a165647a7f2cf1ca8e81e696c552d25365c0c5/runtime/include/dart_api.h#L512-L550
 [MDN FinalizationRegistry]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry
+[MDN WeakRef]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakRef
 [`Pointer.fromFunction`]: https://api.dart.dev/dev/2.15.0-95.0.dev/dart-ffi/Pointer/fromFunction.html
 [mmap API]: https://man7.org/linux/man-pages/man2/mmap.2.html
-
+[proposal-weakrefs]: https://github.com/tc39/proposal-weakrefs
+[weakref-processing-model]: https://tc39.es/ecma262/#sec-weakref-processing-model
