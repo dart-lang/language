@@ -608,7 +608,7 @@ There are several possible approaches to this problem that are being considered:
 2. Run each macro application in a completely new isolate.
     - Good from a semantics and flexibility perspective, but may be too slow.
 3. Reset all static state between macro invocations.
-    - Good option if it is feasible on the tooling sie of things and it can be
+    - Good option if it is feasible on the tooling side of things and it can be
       fast.
 4. Document mutating global state as a bad practice, but don't block it. Give no
    guarantees around static state persistance between macro applications.
