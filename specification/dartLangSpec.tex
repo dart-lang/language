@@ -2592,7 +2592,7 @@ unless $C$ has a non-trivial \code{noSuchMethod}
 Each concrete member must have a suitable signature:
 Assume that $C$ has a concrete member with
 the same name as $m$ and accessible to $L$,
-and let $m''$ be its member signature.
+and let \DefineSymbol{m''} be its member signature.
 \commentary{%
 The concrete member may be declared in $C$ or inherited from a superclass.%
 }
@@ -2641,17 +2641,15 @@ a location in the body of \code{C}.%
 
 \LMHash{}%
 With or without a forwarding method,
-the member signature in the interface of $C$ remains unchanged: $m$.
+the member signature in the interface of $C$ is $m$.
 
 \commentary{%
 The forwarding method should not change the interface of \code{C},
 it is an implementation detail.
 In particular, this holds even in the case where
 an explicit declaration of the forwarding method would have
-changed the interface of \code{C}, because $m'$ is a subtype of $m$.%
-}
+changed the interface of \code{C}, because $m'$ is a subtype of $m$.
 
-\commentary{%
 When a class has a non-trivial \code{noSuchMethod},
 the class may leave some members unimplemented,
 and the class is allowed to have a \code{noSuchMethod} forwarder
@@ -2663,18 +2661,18 @@ Here is an example:%
 
 \begin{dartCode}
 \CLASS\ B \{
-  \VOID\ m(int i) \{\} // \comment{Signature $m''$: void m(int).}
+  \VOID\ m(int i) \{\} // \comment{Signature $m''$: \VOID\ m(int).}
 \}
 \\
 \ABSTRACT\ \CLASS\ I \{
-  \VOID\ m(\COVARIANT\ num n); // \comment{Signature: void m(\COVARIANT\ num).}
+  \VOID\ m(\COVARIANT\ num n); // \comment{Signature: \VOID\ m(\COVARIANT\ num).}
 \}
 \\
 \CLASS\ C \EXTENDS\ B \IMPLEMENTS\ I \{
-  // \comment{Signature $m$: void m(\COVARIANT\ num).}
+  // \comment{Signature $m$: \VOID\ m(\COVARIANT\ num).}
   //
   // \comment{To check that this class fully implements its interface,}
-  // \comment{check that $m'$, that is, void m(\COVARIANT\ int),}
+  // \comment{check that $m'$, that is, \VOID\ m(\COVARIANT\ int),}
   // \comment{correctly overrides $m$: OK!}
 \}
 \end{dartCode}
