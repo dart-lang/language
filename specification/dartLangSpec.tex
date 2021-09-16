@@ -2667,13 +2667,15 @@ Here is an example:%
 \}
 \\
 \ABSTRACT\ \CLASS\ I \{
-  \VOID\ m(\COVARIANT\ num n); // \comment{Signature $m$: void m(\COVARIANT\ num).}
+  \VOID\ m(\COVARIANT\ num n); // \comment{Signature: void m(\COVARIANT\ num).}
 \}
 \\
 \CLASS\ C \EXTENDS\ B \IMPLEMENTS\ I \{
-  // \comment{To check that C fully implements its interface,}
-  // \comment{check that `void m(\COVARIANT\ int)`, aka $m'$, correctly}
-  // \comment{overrides `void m(\COVARIANT\ num)`, aka $m$: OK!}
+  // \comment{Signature $m$: void m(\COVARIANT\ num).}
+  //
+  // \comment{To check that this class fully implements its interface,}
+  // \comment{check that $m'$, that is, void m(\COVARIANT\ int),}
+  // \comment{correctly overrides $m$: OK!}
 \}
 \end{dartCode}
 
@@ -2682,10 +2684,10 @@ Parameters that are covariant-by-declaration
 must also satisfy the following constraint:
 Assume that the parameter $p$ of $m'$ has the modifier \COVARIANT.
 Assume that a direct or indirect superinterface of $C$ has
-an accessible method signature $m''$ with the same name as $m'$,
-such that $m''$ has a parameter $p''$ that corresponds to $p$.
+a method signature $m_s$ with the same name as $m'$ and accessible to $L$,
+such that $m_s$ has a parameter $p_s$ that corresponds to $p$.
 In this situation, a compile-time error occurs
-if the type of $p$ is not a subtype and not a supertype of the type of $p''$.
+if the type of $p$ is not a subtype and not a supertype of the type of $p_s$.
 
 \commentary{%
 This ensures that an inherited method satisfies the same constraint
