@@ -2621,23 +2621,38 @@ When the modifier \COVARIANT{} is added to one or more parameters
 an implementation may choose to implicitly induce a forwarding method
 with the same signature as $m'$,
 in order to perform the required dynamic type check,
-and then invoke the inherited method.
+and then invoke the inherited method.%
+}
 
-Note that said forwarding method should not change the interface of \code{C}.
-It should still contain the member signature $m$,
-even in the case where
-an explicit declaration of the forwarding method would have
-changed the interface of \code{C} because $m'$ is a subtype of $m$.
-
-The use of an implicitly induced forwarding method is allowed
+\LMHash{}%
+The use of an implicitly induced forwarding method
+when the modifier \COVARIANT{} is added to
+one or more parameters in $m'$
+is allowed,
 in spite of the fact that this forwarding method can be observed.
+
+\commentary{%
 E.g., we can compare
 the run-time type of a tearoff of the method from
 a receiver of type \code{C}
-to the run-time type of a tearoff of the method from
-a receiver of type \code{B},
-where \code{B} is the class from which the implementation is inherited.
+to the run-time type of a tearoff of the super-method from
+a location in the body of \code{C}.%
+}
 
+\LMHash{}%
+With or without a forwarding method,
+the member signature in the interface of $C$ remains unchanged: $m$.
+
+\commentary{%
+The forwarding method should not change the interface of \code{C},
+it is an implementation detail.
+In particular, the interface of \code{C} still contains $m$,
+even in the case where
+an explicit declaration of the forwarding method would have
+changed the interface of \code{C} because $m'$ is a subtype of $m$.%
+}
+
+\commentary{%
 When a class has a non-trivial \code{noSuchMethod},
 the class may leave some members unimplemented,
 and the class is allowed to have a \code{noSuchMethod} forwarder
@@ -2653,13 +2668,13 @@ Here is an example:%
 \}
 \\
 \ABSTRACT\ \CLASS\ I \{
-  \VOID\ m(covariant num n); // \comment{Signature $m$: void m(covariant num).}
+  \VOID\ m(\COVARIANT\ num n); // \comment{Signature $m$: void m(\COVARIANT\ num).}
 \}
 \\
 \CLASS\ C \EXTENDS\ B \IMPLEMENTS\ I \{
   // \comment{To check that C fully implements its interface,}
-  // \comment{check that `void m(covariant int)`, aka $m'$, correctly}
-  // \comment{overrides `void m(covariant num)`, aka $m$: OK!}
+  // \comment{check that `void m(\COVARIANT\ int)`, aka $m'$, correctly}
+  // \comment{overrides `void m(\COVARIANT\ num)`, aka $m$: OK!}
 \}
 \end{dartCode}
 
