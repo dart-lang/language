@@ -13,10 +13,12 @@ This proposal includes two interconnected pieces of functionality:
 ### Weak references
 
 _Weak reference_ is an object which holds to its _target_ in a manner that does
-not prevent runtime system from reclaiming the referenced object when it becomes
-_weakly reachable_ or, in other words, reachable only through weak references.
-When an object is deemed _weakly reachable_ all `WeakRef` objects referencing it
-are cleared and the object is eligible for reclamation.
+not prevent runtime system from reclaiming the referenced object when no future
+expression evaluation not relying on weak references or `Expando` instances
+can end up evaluating to that object.
+
+When an object referenced by a weak reference is reclaimed, the reference itself
+is cleared.
 
 ### Finalization
 
@@ -198,7 +200,7 @@ abstract class FinalizationRegistry<FT> {
   ///
   /// After unregistering, those callbacks will not happen even if the
   /// registered object becomes inaccessible.
-  void unregister(Object? unregisterToken);
+  void unregister(Object unregisterToken);
 }
 
 /// A weak reference to another object.
@@ -213,14 +215,14 @@ abstract class FinalizationRegistry<FT> {
 /// Not all objects are supported as targets for weak references. [WeakRef]
 /// constructor and [WeakRef.target] will reject any object that is not
 /// supported as an [Expando] key.
-abstract class WeakRef {
+abstract class WeakRef<T extends Object> {
   /// Create a [WeakRef] pointing to the given [target], which must be
   /// an object supported as an [Expando] key.
-  external factory WeakRef(Object? target);
+  external factory WeakRef(T? target);
 
   /// The current object weakly referenced by [this]. Is either [null] or
   /// an object supported as an [Expando] key.
-  abstract Object? target;
+  abstract T? target;
 }
 ```
 
@@ -228,8 +230,8 @@ The following classes are added to `dart:ffi` library:
 
 ```dart
 /// Any variable which has a static type that is a subtype of a [Finalizable]
-/// is guaranteed to be alive for the full duration of a scope in which it is
-/// defined.
+/// is guaranteed to be alive until execution exits the code block where
+/// the variable would be in scope.
 ///
 /// In other words if an object is referenced by such a variable it is
 /// guaranteed to *not* be considered unreachable for the duration of the scope.
