@@ -2646,10 +2646,9 @@ the member signature in the interface of $C$ remains unchanged: $m$.
 \commentary{%
 The forwarding method should not change the interface of \code{C},
 it is an implementation detail.
-In particular, the interface of \code{C} still contains $m$,
-even in the case where
+In particular, this holds even in the case where
 an explicit declaration of the forwarding method would have
-changed the interface of \code{C} because $m'$ is a subtype of $m$.%
+changed the interface of \code{C}, because $m'$ is a subtype of $m$.%
 }
 
 \commentary{%
