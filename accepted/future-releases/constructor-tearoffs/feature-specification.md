@@ -55,9 +55,9 @@ If *C* denotes a class declaration (it's an identifier or qualified identifier w
 
 just as you can currently invoke the constructor as <code>*C*.*name*(*args*)</code>, or <code>*C*\<*typeArgs*>.*name*(*args*)</code>.
 
-Expressions of the form <code>*C*\<*typeArgs*>.*name*</code> are potentially compile-time constant expressions and are compile-time constants if the type arguments are constant types (and <code>*C*.*name*</code> actually denotes a constructor).
+_These expressions can be constant, as specified in the section about constant expressions._
 
-_The former syntax, without type arguments, is currently allowed by the language grammar, but is rejected by the static semantics as not being a valid expression when denoting a constructor. The latter syntax is not currently grammatically an_ expression_. Both can occur as part of a constructor invocation, but cannot be expressions by themselves because they have no values. We introduce a static and dynamic expression semantics for such a *named constructor tear-off expression*, which makes them valid expressions._
+_The syntax without type arguments, is currently allowed by the language grammar, but is rejected by the static semantics as not being a valid expression when denoting a constructor. The syntax with type arguments is not currently grammatically an expression. Both can occur as part of a constructor invocation, but cannot be expressions by themselves because they have no values. We introduce a static and dynamic expression semantics for such a *named constructor tear-off expression*, which makes them valid expressions._
 
 A named constructor tear-off expression of one of the forms above evaluates to a function value which could be created by tearing off a *corresponding constructor function*, which would be a static function defined on the class denoted by *C*, with a fresh name here represented by adding `$tearoff`:
 
@@ -519,20 +519,23 @@ The grammar changes necessary for these changes are provided separately (as [cha
 
 We add the following to the set of expressions that are potentially constant and constant:
 
-If `e` is a potentially constant expression, `T1..Tk` is derived from `<typeList>`, and `e<T1..Tk>` is derived from `<primary> <selector>*`, then `e<T1..Tk>` is a potentially constant expression.
-If moreover `e` is a constant expression whose static type is a function type `F`, or `e` is a type literal, and `T1..Tk` is a list of constant type expressions, then `e<T1..Tk>` is a constant expression.
+If `e` is a potentially constant expression, <code>T<sub>1</sub>..T<sub>k</sub></code> is derived from <code>\<typeList></code>, and <code>e\<T<sub>1</sub>..T<sub>k</sub>></code> is derived from <code>\<primary> \<selector>*</code>, then <code>e\<T<sub>1</sub>..T<sub>k</sub>></code> is a potentially constant expression.
+If moreover `e` is a constant expression whose static type is a function type `F`, or `e` is a type literal, and <code>T<sub>1</sub>..T<sub>k</sub></code> is a list of constant type expressions, then <code>e\<T<sub>1</sub>..T<sub>k</sub>></code> is a constant expression.
 
-*It follows that `F` is a generic function type taking `k` type arguments, and `T1..Tk` satisfy the bounds of `F`, and similarly for the type literal, because otherwise the program would have a compile-time error.*
+*It follows that `F` is a generic function type taking `k` type arguments, and <code>T<sub>1</sub>..T<sub>k</sub></code> satisfy the bounds of `F`, and similarly for the type literal, because otherwise the program would have a compile-time error.*
 
-The following cases are specified elsewhere in this document:
+Assume that <code>*C*.*name*</code> denotes a constructor, and <code>T<sub>1</sub>..T<sub>k</sub></code> is derived from <code>\<typeArguments></code>, for some <code>k >= 0</code>.
+<code>*C*\<T<sub>1</sub>..T<sub>k</sub>>.*name*</code> is then a potentially constant expression if <code>T<sub>j</sub></code> is a potentially constant type expression for each <code>j</code>.
+It is further a constant expression if <code>T<sub>j</sub></code> is a constant type expression for each <code>j</code>.
 
-*Section 'Named constructor tearoffs':
-This section says that expressions of the form <code>*C*\<*typeArgs*>.*name*</code> can be potentially constant and constant expressions.
-Also, the constantness of named constructor tearoffs follows the constantness of the tearoffs of the corresponding constructor functions.*
+_In particular, <code>*C*.*name*</code>, which is the case where <code>k == 0</code>, is always constant when <code>*C*</code> is a non-generic class, and it may or may not be constant if it is generic and the type arguments are inferred._
 
-*Section 'Tearing off constructors from type aliases':
-This section contains several rules about constant expressions: About non-generic type aliases; about generic type aliases that are applied to some actual type arguments; about generic type aliases that are 'proper renames' and that do not receive any actual type arguments; and about generic type aliases that are not 'proper renames' and do not receive any actual type arguments.
-In general, their constantness follows the constantness of specific corresponding constructor functions.*
+If `T` denotes a type variable then `T` is a potentially constant type expression, and a potentially constant expression.
+
+_This is just a simpler way to write something which is already supported: If we wish to use a type variable as an expression in a constant constructor initializer list, we can define <code>typedef F\<X> = X;</code> and express the same thing as <code>F\<T></code>._
+
+*Section 'Tearing off constructors from type aliases' specifies several additional cases, all saying that a tearoff from a type alias is constant if and only if the corresponding constructor function tearoff is constant.
+This is specified about non-generic type aliases; about generic type aliases that are applied to some actual type arguments; about generic type aliases that are 'proper renames' and that do not receive any actual type arguments; and about generic type aliases that are not 'proper renames' and do not receive any actual type arguments.*
 
 ## Summary
 
@@ -730,4 +733,5 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.12: Mention abstract classes.
 * 2.13: Add `is` and `as` disambiguation tokens.
 * 2.14: Remove many disambiguation tokens. Allow instantiating function *objects* and *callable objects*. Mention forwarding constructors from mixin applications.
-* 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of the form `e<T1..Tk>`.
+* 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of the form <code>e\<T<sub>1</sub>..T<sub>k</sub>></code>.
+* 2.16: Add one more kind of potential constant, type parameters, 
