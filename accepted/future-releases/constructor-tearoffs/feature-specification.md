@@ -519,7 +519,7 @@ The grammar changes necessary for these changes are provided separately (as [cha
 
 We add the following to the set of expressions that are potentially constant and constant:
 
-If `e` is a potentially constant expression derived from <code>\<primary> \<selector>*</code>, <code>T<sub>1</sub>..T<sub>k</sub></code> is derived from <code>\<typeList></code>, then <code>e\<T<sub>1</sub>..T<sub>k</sub>></code> is a potentially constant expression.
+If `e` is a potentially constant expression derived from <code>\<primary> \<selector>*</code> and <code>T<sub>1</sub>..T<sub>k</sub></code> is derived from <code>\<typeList></code>, then <code>e\<T<sub>1</sub>..T<sub>k</sub>></code> is a potentially constant expression.
 If moreover `e` is a constant expression whose static type is a function type `F`, or `e` is a type literal, and <code>T<sub>1</sub>..T<sub>k</sub></code> is a list of constant type expressions, then <code>e\<T<sub>1</sub>..T<sub>k</sub>></code> is a constant expression.
 
 *It follows that `F` is a generic function type taking `k` type arguments, and <code>T<sub>1</sub>..T<sub>k</sub></code> satisfy the bounds of `F`, and similarly for the type literal, because otherwise the program would have a compile-time error.*
