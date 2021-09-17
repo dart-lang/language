@@ -516,7 +516,7 @@ void main() {
 
 ### Compile-time errors
 
-This section lists the compile-time errors associated with this feature. The _italic_ entries are commentary, which indicates that they are stated elsewhere already.
+This section summarizes the compile-time errors associated with this feature. The _italic_ entries are commentary, which indicates that they are stated elsewhere already.
 
 It is compile-time error if an expression of the form `e.new <parameterPart>?` occurs, and `e` is not a type literal.
 
