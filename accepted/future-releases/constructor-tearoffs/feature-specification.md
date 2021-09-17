@@ -517,7 +517,7 @@ The grammar changes necessary for these changes are provided separately (as [cha
 
 ### Constant expressions
 
-We add the following to the set of expressions that are potentially constant and constant:
+We add the following to the set of expressions that are potentially constant or constant:
 
 If `e` is a potentially constant expression derived from <code>\<primary> \<selector>*</code> and <code>T<sub>1</sub>..T<sub>k</sub></code> derived from <code>\<typeList></code> is a list of potentially constant type expressions, then <code>e\<T<sub>1</sub>..T<sub>k</sub>></code> is a potentially constant expression.
 If moreover `e` is a constant expression whose static type is a function type `F` or `e` is a type literal, and <code>T<sub>1</sub>..T<sub>k</sub></code> is a list of constant type expressions, then <code>e\<T<sub>1</sub>..T<sub>k</sub>></code> is a constant expression.
