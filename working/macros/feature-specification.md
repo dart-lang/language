@@ -268,6 +268,11 @@ a specific set of allowable types:
 
 ### Macro Constructor Arguments
 
+When any type other than [Code][] is used, arguments are only allowed to be
+object literals. Or in the case of `Uri` and `DateTime` they must be direct
+invocations of one of their constructors, which are only passed literals as
+arguments.
+
 When [Code][] is used as a parameter type, the corresponding arguments in macro
 _applications_ are provided as normal Dart code by the user. This code is then
 parsed and converted to the corresponding [Code][] instance.
