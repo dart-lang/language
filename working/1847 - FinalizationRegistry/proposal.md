@@ -147,7 +147,7 @@ We split the proposed finalization API into two parts:
   - imposes restrictions on finalization actions to allow calling these actions
   outside of Dart universe.
 
-The following classes are added to `dart:core` library
+The following classes are added to the new `dart:weakref` library
 
 ```dart
 /// A register of objects which may invoke a callback when those objects
@@ -224,6 +224,8 @@ abstract class WeakRef<T extends Object> {
   /// an object supported as an [Expando] key.
   abstract T? target;
 }
+
+typedef WeakMap = Expando;
 ```
 
 The following classes are added to `dart:ffi` library:
