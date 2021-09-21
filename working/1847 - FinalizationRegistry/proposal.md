@@ -57,7 +57,7 @@ class Wrapper {
 
 APIs proposed below are directly modeled after [`WeakRef`][MDN WeakRef] and
 [`FinalizationRegistry`][MDN FinalizationRegistry] described in ECMA-262
-standard. The choice is made to allow minimum effort effecient implementation
+standard. The choice is made to allow minimum effort efficient implementation
 of these APIs in those implementations of the Dart programming language that
 target JavaScript.
 
@@ -85,7 +85,7 @@ methods;
 
 Here are the main requirements to finalization API:
 
-- must be effeciently implementable in JavaScript;
+- must be efficiently implementable in JavaScript;
 - finalization callbacks should not interrupt sequential execution of the
 program in a way which is observable by pure Dart code;
 - there should be a way to minimize the possibility of _premature finalization_,
@@ -154,7 +154,7 @@ The following classes are added to the new `dart:weakref` library
 /// become inaccessible.
 ///
 /// The register allows objects to be registered,
-/// and when those objects become inaccessible to the program.
+/// and when those objects become inaccessible to the program,
 /// the callback passed to the register's constructor *may* be called
 /// with the registration token associated with the object.
 ///
