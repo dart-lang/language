@@ -519,7 +519,7 @@ The grammar changes necessary for these changes are provided separately (as [cha
 
 We add the following to the set of expressions that are potentially constant or constant:
 
-If <code>*e*</code> is a potentially constant expression derived from <code>\<primary> \<selector>*</code> and <code>T<sub>1</sub>..T<sub>k</sub></code> derived from <code>\<typeList></code> is a list of potentially constant type expressions, then <code>*e*\<*T*<sub>*1*</sub>..*T*<sub>*k*</sub>></code> is a potentially constant expression.
+If <code>*e*</code> is a potentially constant expression derived from <code>\<primary> \<selector>*</code> and <code>*T*<sub>*1*</sub>..*T*<sub>*k*</sub></code> derived from <code>\<typeList></code> is a list of potentially constant type expressions, then <code>*e*\<*T*<sub>*1*</sub>..*T*<sub>*k*</sub>></code> is a potentially constant expression.
 If moreover <code>*e*</code> is a constant expression whose static type is a function type <code>*F*</code> or <code>*e*</code> is a type literal, and <code>*T*<sub>*1*</sub>..*T*<sub>*k*</sub></code> is a list of constant type expressions, then <code>*e*\<*T*<sub>*1*</sub>..*T*<sub>*k*</sub>></code> is a constant expression.
 
 *It follows that <code>*F*</code> is a generic function type taking <code>*k*</code> type arguments, and <code>*T*<sub>*1*</sub>..*T*<sub>*k*</sub></code> satisfy the bounds of <code>*F*</code>, and similarly for the type literal, because otherwise the program would have a compile-time error.*
@@ -734,4 +734,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.13: Add `is` and `as` disambiguation tokens.
 * 2.14: Remove many disambiguation tokens. Allow instantiating function *objects* and *callable objects*. Mention forwarding constructors from mixin applications.
 * 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of the form <code>e\<T<sub>1</sub>..T<sub>k</sub>></code>.
-* 2.16: Add one more kind of potential constant, type parameters,
+* 2.16: Add one more kind of potential constant, type parameters.
