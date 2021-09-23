@@ -1,6 +1,6 @@
 # Dart Enhanced Enums
 
-Author: lrn@google.com<br>Version: 1.0.1
+Author: lrn@google.com<br>Version: 1.1
 
 ## Background
 
@@ -115,7 +115,7 @@ It’s a compile-time error to attempt to call the constructor of an `enum` decl
 
 It’s a compile-time error to extend, implement or mix in an enum type.
 
-An `enum` declaration desugars to a _corresponding class declaration_. (Here “desugars” means “has the same behavior as”, including it being a compile-time errror if the corresponding class declaration would have a compile-time error.) A name starting with `_$` represents a guaranteed fresh name.
+An `enum` declaration desugars to a _corresponding class declaration_. (Here “desugars” means “has the same behavior as”, including it being a compile-time error if the corresponding class declaration would have a compile-time error.) A name starting with `_$` represents a guaranteed fresh name.
 
 ```dart
 class MyEnum<T extends num> extends Enum implements Comparable<MyEnum> {
@@ -162,6 +162,34 @@ double y = MyEnum.baz.value + 1; // MyEnum.baz.value is a double.
 var fields = [for (var v in MyEnum.values) v.field]; // ["a", "b", "c"].
 ```
 
+### Implementing `Enum`
+
+If an enum can implement an interface, you might also want that interface to itself implement `Enum`. One example is to allow defining extension methods on a *marker interface* on enums:
+
+```dart
+abstract class OrderedEnum implements Enum {}
+extension OrderedEnumOrder<T extends OrderedEnum> on T {
+  bool operator<(T other) => this.index < other.index;
+  // ...
+}
+```
+
+(An alternative is to add `int get index;` on the `OrderedEnum` interface, but that feels unnecessary and suggests it can be used on anything with an `index` integer, not just enums.)
+
+So, to allow this, we *loosen* the restriction on implementing, extending or mixing-in the `Enum` class to:
+
+> It's a compile-time error if a *non-abstract* class implements (directly or transitively) the interface `Enum` declared in `dart:core`, unless the class is declared by an  `enum` declaration.
+>
+> It's a compile-time error if the interface of a `mixin` declaration implements `Enum` (directly or transitively).  _(This covers the types of both the `implements` and `on` clauses of a `mixin` declaration since the mixin's own interface implements all of these.)_
+
+This allows *abstract* classes to implement `Enum` and be used as interfaces implemented by `enum` classes.
+
+If we choose to allow `enum` declarations to have mixin applications, we can also remove the second paragraph and allow mixins `on Enum` or implementing `Enum`. Those mixins can then *only* be applied to the superclass of an  `enum`  declaration. They can use `this.index` (but not `super.index`, because `index` is abstract in `Enum`, so it might be limited how useful such `on Enum` mixins are).
+
+It never makes sense to implement an `enum` declared type, only the `Enum` type itself.
+
+An abstract class implementing `Enum` should not have any non-abstract members. There is no possible way those members will ever occur on a non-abstract class, so they are unreachable.
+
 ## Stretches
 
 ### Mixins
@@ -191,7 +219,7 @@ mixin EnumComparableByIndex<T extends Enum> on Enum implements Comparable<T> {
 }
 ```
 
-We do not allow *extending* a superclass because An `enum` extends `Enum` already (actually it’s because that will prevent our current `extends _Enum` implementation, we could have gotten away with just `implements Enum` since `Enum` has no instance members). We can’t do that with an `_Enum` mixin (not without serious kernel hacking, not something which can otherwise be written in Dart) because we need to initialize the `index` and `_name` fields.
+We do not allow *extending* a superclass because an `enum` extends `Enum` already (actually it’s because that will prevent our current `extends _Enum` implementation, we could have gotten away with just `implements Enum` since `Enum` has no instance members). We can’t do that with an `_Enum` mixin (not without serious kernel hacking, not something which can otherwise be written in Dart) because we need to initialize the `index` and `_name` fields.
 
 I believe this could be genuinely useful and practical.
 
@@ -242,3 +270,5 @@ where an `<enumMember>` is a normal class member declaration except that it’s 
 1.0: Initial version
 
 1.0.1: Adds example, no functional change.
+
+1.1: Suggests allowing interfaces to implement `Enum`.
