@@ -34,6 +34,8 @@
 %   error for `int.toString()`.
 % - Add support for function closurization for callable objects, in the sense
 %   that `o` is desugared as `o.call` when the context type is a function type.
+% - Clarify the treatment of `covariant` parameters in the interface of a class
+%   that inherits an implementation where those parameters are not covariant.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -48,8 +50,6 @@
 % - Change grammar to enable non-function type aliases. Correct rule for
 %   invoking `F.staticMethod()` where `F` is a type alias.
 % - Add missing error for cyclic redirecting generative constructor.
-% - Clarify the treatment of `covariant` parameters in the interface of a class
-%   that inherits an implementation where those parameters are not covariant.
 %
 % 2.8 - 2.10
 % - Change several warnings to compile-time errors, matching the actual
@@ -691,7 +691,7 @@ The syntax of a \LET{} expression is as follows:
 \end{grammar}
 
 \LMHash{}%
-\BlindDefineSymbol{e_{\metavar{let}}, e_j, v_j, k}
+\BlindDefineSymbol{e_{\metavar{let}}, e_j, v_j, k}%
 Let $e_{\metavar{let}}$ be a \LET{} expression of the form
 \LetMany{$v_1$}{$e_1$}{$v_k$}{$e_k$}{$e$}.
 It is tacitly assumed that $v_j$ is a fresh variable, $j \in 1 .. k$,
@@ -2531,62 +2531,20 @@ When a class name appears as a type,
 that name denotes the interface of the class.
 
 \LMHash{}%
-% The use of `concrete member' below may seem redundant, because a class
-% does not inherit abstract members from its superclass, but this
-% underscores the fact that even when an abstract declaration of $m$ is
-% declared in $C$, $C$ does not "have" $m$.
-A concrete class must fully implement its interface:
-\BlindDefineSymbol{C, I, m}%
-Let $C$ be a concrete class with interface $I$.
-Assume that $I$ has an accessible member signature $m$,
-and $C$ does not declare a member with the same name as $m$.
-It is a compile-time error if $C$ does not have
-a concrete accessible member with the same name as $m$,
-unless $C$ has a non-trivial \code{noSuchMethod}
-(\ref{theMethodNoSuchMethod}).
-It is a compile-time error if $C$ has
-a concrete accessible member with the same name as $m$,
-with a method signature $m'$ which is not a correct override of $m$
-(\ref{correctMemberOverrides}),
-unless that concrete member is a \code{noSuchMethod} forwarder
-(\ref{theMethodNoSuchMethod}).
-
-\commentary{%
-In particular, it is an error for a class to be concrete even if it inherits
-a member implementation for every member signature in its interface,
-unless each of them has parameters and types such that they satisfy
-the corresponding member signature.
-But when there is a non-trivial \code{noSuchMethod} it is allowed
-to leave some members unimplemented,
-and it is allowed to have a \code{noSuchMethod} forwarder which does not
-satisfy the class interface
-(in which case it will be overridden by another \code{noSuchMethod} forwarder).%
-}
-
-\LMHash{}%
-Assume that $C$ has a concrete accessible member with the same name as $m$,
-with a method signature $m'$ which is a correct override of $m$.
-For each parameter $p$ of $m'$ where \COVARIANT{} is present,
-it is a compile-time error if there exists
-a direct or indirect superinterface of $C$ which has
-an accessible method signature $m''$ with the same name as $m$,
-such that $m''$ has a parameter $p''$ that corresponds to $p$
-(\ref{covariantParameters}),
-unless the type of $p$ is a subtype or a supertype of the type of $p''$.
-
-\commentary{%
-This ensures that an inherited method satisfies the same constraint
-for each formal parameter which is covariant-by-declaration
-as the constraint which is specified for a declaration in $C$
-(\ref{instanceMethods}).%
-}
+It is a compile-time error if a class named $C$ declares
+a member with basename (\ref{classMemberConflicts}) $C$.
+If a generic class named $G$ declares a type variable named $X$,
+it is a compile-time error
+if $X$ is equal to $G$,
+or if $G$ has a member whose basename is $X$,
+or if $G$ has a constructor named \code{$G$.$X$}.
 
 \commentary{%
 Here are simple examples, that illustrate the difference between
 ``has a member'' and ``declares a member''.
 For example, \code{B} \IndexCustom{declares}{declares member}
- one member named \code{f},
-but \IndexCustom{has}{has member} two such members.
+one member named \code{f},
+but it \IndexCustom{has}{has member} two such members.
 The rules of inheritance determine what members a class has.%
 }
 
@@ -2607,14 +2565,134 @@ The rules of inheritance determine what members a class has.%
 \}
 \end{dartCode}
 
+
+\subsection{Fully Implementing an Interface}
+\LMLabel{fullyImplementingAnInterface}
+
+% Note that rules here and in \ref{instanceMethods} overlap, but they are
+% both needed: This section is concerned with concrete methods, including
+% inherited ones, and \ref{instanceMethods} is concerned with instance
+% members declared in $C$, including both concrete and abstract ones.
+
 \LMHash{}%
-It is a compile-time error if a class named $C$ declares
-a member with basename (\ref{classMemberConflicts}) $C$.
-If a generic class named $G$ declares a type variable named $X$,
-it is a compile-time error
-if $X$ is equal to $G$,
-or if $G$ has a member whose basename is $X$,
-or if $G$ has a constructor named \code{$G$.$X$}.
+% The use of `concrete member' below may seem redundant, because a class
+% does not inherit abstract members from its superclass, but this
+% underscores the fact that even when an abstract declaration of $m$ is
+% declared in $C$, $C$ does not "have" an $m$ which will suffice here.
+A concrete class must fully implement its interface.
+\BlindDefineSymbol{C, I, m}%
+Let $C$ be a concrete class declared in library $L$, with interface $I$.
+Assume that $I$ has a member signature $m$ which is accessible to $L$.
+It is a compile-time error if $C$ does not have
+a concrete member with the same name as $m$ and accessible to $L$,
+unless $C$ has a non-trivial \code{noSuchMethod}
+(\ref{theMethodNoSuchMethod}).
+
+\LMHash{}%
+Each concrete member must have a suitable signature:
+Assume that $C$ has a concrete member with
+the same name as $m$ and accessible to $L$,
+and let \DefineSymbol{m''} be its member signature.
+\commentary{%
+The concrete member may be declared in $C$ or inherited from a superclass.%
+}
+Let \DefineSymbol{m'} be the member signature which is obtained from $m''$
+by adding, if not present already, the modifier \COVARIANT{}
+(\ref{covariantParameters})
+to each parameter $p$ in $m''$ where
+the corresponding parameter in $m$ has the modifier \COVARIANT.
+It is a compile-time error if $m'$ is not a correct override of $m$
+(\ref{correctMemberOverrides}),
+unless that concrete member is a \code{noSuchMethod} forwarder
+(\ref{theMethodNoSuchMethod}).
+
+\commentary{%
+Consider a concrete class \code{C},
+and assume that \code{C} declares or inherits
+a member implementation with the right name
+for every member signature in its interface.
+It is still an error if one or more of them has parameters or types
+such that they do not satisfy
+the corresponding member signature in the interface.
+For this check, any missing \COVARIANT{} modifiers are implicitly added
+to the signature of an inherited member (this is how we get $m'$ from $m''$).
+When the modifier \COVARIANT{} is added to one or more parameters
+(which will only happen when the concrete member is inherited),
+an implementation may choose to implicitly induce a forwarding method
+with the same signature as $m'$,
+in order to perform the required dynamic type check,
+and then invoke the inherited method.%
+}
+
+\LMHash{}%
+The use of an implicitly induced forwarding method
+when the modifier \COVARIANT{} is added to
+one or more parameters in $m'$
+is allowed,
+in spite of the fact that this forwarding method can be observed.
+
+\commentary{%
+E.g., we can compare
+the run-time type of a tearoff of the method from
+a receiver of type \code{C}
+to the run-time type of a tearoff of the super-method from
+a location in the body of \code{C}.%
+}
+
+\LMHash{}%
+With or without a forwarding method,
+the member signature in the interface of $C$ is $m$.
+
+\commentary{%
+The forwarding method should not change the interface of \code{C},
+it is an implementation detail.
+In particular, this holds even in the case where
+an explicit declaration of the forwarding method would have
+changed the interface of \code{C}, because $m'$ is a subtype of $m$.
+
+When a class has a non-trivial \code{noSuchMethod},
+the class may leave some members unimplemented,
+and the class is allowed to have a \code{noSuchMethod} forwarder
+which does not satisfy the class interface
+(in which case it will be overridden by another \code{noSuchMethod} forwarder).
+
+Here is an example:%
+}
+
+\begin{dartCode}
+\CLASS\ B \{
+  \VOID\ m(int i) \{\} // \comment{Signature $m''$: \VOID\ m(int).}
+\}
+\\
+\ABSTRACT\ \CLASS\ I \{
+  \VOID\ m(\COVARIANT\ num n); // \comment{Signature: \VOID\ m(\COVARIANT\ num).}
+\}
+\\
+\CLASS\ C \EXTENDS\ B \IMPLEMENTS\ I \{
+  // \comment{Signature $m$: \VOID\ m(\COVARIANT\ num).}
+  //
+  // \comment{To check that this class fully implements its interface,}
+  // \comment{check that $m'$, that is, \VOID\ m(\COVARIANT\ int),}
+  // \comment{correctly overrides $m$: OK!}
+\}
+\end{dartCode}
+
+\LMHash{}%
+Parameters that are covariant-by-declaration
+must also satisfy the following constraint:
+Assume that the parameter $p$ of $m'$ has the modifier \COVARIANT.
+Assume that a direct or indirect superinterface of $C$ has
+a method signature $m_s$ with the same name as $m'$ and accessible to $L$,
+such that $m_s$ has a parameter $p_s$ that corresponds to $p$.
+In this situation, a compile-time error occurs
+if the type of $p$ is not a subtype and not a supertype of the type of $p_s$.
+
+\commentary{%
+This ensures that an inherited method satisfies the same constraint
+for each formal parameter which is covariant-by-declaration
+as the constraint which is specified for a declaration in $C$
+(\ref{instanceMethods}).%
+}
 
 
 \subsection{Instance Methods}
@@ -2631,7 +2709,7 @@ and the instance methods inherited by $C$ from its superclass
 (\ref{inheritanceAndOverriding}).
 
 \LMHash{}%
-\BlindDefineSymbol{C, D, m}
+\BlindDefineSymbol{C, D, m}%
 Consider a class $C$
 and an instance member declaration $D$ in $C$, with member signature $m$
 (\ref{interfaces}).
@@ -2669,7 +2747,7 @@ a corresponding parameter in a superinterface,
 but the two types cannot be unrelated.
 Note that this requirement must be satisfied
 for each direct or indirect superinterface separately,
-because assignability is not transitive.%
+because that relationship is not transitive.%
 }
 
 \rationale{%
@@ -2677,7 +2755,7 @@ The superinterface may be the statically known type of the receiver,
 so this means that we relax the potential typing relationship
 between the statically known type of a parameter and the
 type which is actually required at run time
-to the assignability relationship,
+to the subtype-or-supertype relationship,
 rather than the strict supertype relationship
 which applies to a parameter which is not covariant.
 It should be noted that it is not statically known
@@ -2685,7 +2763,7 @@ at the call site whether any given parameter is covariant,
 because the covariance could be introduced in
 a proper subtype of the statically known type of the receiver.
 We chose to give priority to flexibility rather than safety here,
-because the whole point covariant parameters is that developers
+because the whole point of covariant parameters is that developers
 can make the choice to increase the flexibility
 in a trade-off where some static type safety is lost.%
 }
@@ -3956,7 +4034,7 @@ respectively
 \code{\SUPER.\id($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}.
 
 \LMHash{}%
-\BlindDefineSymbol{C, S, u_j, p}
+\BlindDefineSymbol{C, S, u_j, p}%
 Let $C$ be the class in which $s$ appears and let $S$ be the superclass of $C$.
 If $S$ is generic (\ref{generics}),
 let $u_1, \ldots, u_p$ be the actual type arguments passed to $S$,
@@ -4855,7 +4933,7 @@ $T$ is considered to have a method named \CALL{} with signature $m$,
 such that the function type of $m$ is $T_0$.
 
 \LMHash{}%
-\BlindDefineSymbol{I, \List{I}{1}{k}}
+\BlindDefineSymbol{I, \List{I}{1}{k}}%
 The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
 is the interface that declares the set of member signatures $M$,
 where $M$ is determined as specified below.
@@ -5240,28 +5318,6 @@ if{}f the following criteria are all satisfied:
     For instance, $m'$ may accept 2 or 3 positional arguments,
     and $m$ may accept 1, 2, 3, or 4 positional arguments, but not vice versa.
     This is a built-in property of the function type subtype rules.
-  }
-
-  If $p'$ is a formal parameter in $m'$ which is covariant-by-declaration,
-  the corresponding parameter $p$ in $m$ must also be covariant-by-declaration
-  unless the type of $p$ is a top type
-  (\ref{superBoundedTypes}).
-
-  \commentary{%
-    This requirement is satisfied in the typical case, but not in all cases:
-    When $m$ is the member signature of a declaration in a class $C$
-    and $m'$ is a member signature from a superinterface of $C$,
-    this requirement will never fail.
-    This is because $p$ is automatically and implicitly covariant-by-declaration
-    whenever $p'$ is covariant-by-declaration.
-
-    However, if $m$ is the signature of a concrete member declaration
-    inherited from a superclass $S$ into a class $C$,
-    a parameter $p$ may not be covariant-by-declaration
-    even though $p'$ is covariant-by-declaration.
-    In this case the inherited member fails to be a correct override
-    of the member in that superinterface
-    (unless $p$ has a top type, where the covariance cannot cause unsoundness).
   }
 \item
   %% TODO(eernst): Come nnbd, this warning is removed.
@@ -13879,7 +13935,6 @@ A \Index{method superinvocation} $i$ has the form
 \BlindDefineSymbol{i, m, A_j, a_j, x_j}%
 
 \noindent
-\BlindDefineSymbol{}%
 \code{\SUPER.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \commentary{%
