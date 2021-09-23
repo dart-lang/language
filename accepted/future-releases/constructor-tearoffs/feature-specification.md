@@ -16,7 +16,7 @@ The goal is that you can always tear off a constructor, then invoke the torn off
 var v1 = C.name(args);
 var v2 = (C.name)(args);
 
-// and 
+// and
 
 var v3 = C<typeArgs>.name(args);
 var v4 = (C<typeArgs>.name)(args);
@@ -25,7 +25,7 @@ var v5 = (C.name)<typeArgs>(args);
 
 should always give equivalent values for `v1` and `v2`, and for `v3`, `v4` and `v5`.
 
-We also want a consistent and useful *identity* and *equality* of the torn off functions, with the tear-off expression being a constant expression where possible. It should match what we already do for static function tear-off where that makes sense. 
+We also want a consistent and useful *identity* and *equality* of the torn off functions, with the tear-off expression being a constant expression where possible. It should match what we already do for static function tear-off where that makes sense.
 
 ## Proposal
 
@@ -57,7 +57,7 @@ just as you can currently invoke the constructor as <code>*C*.*name*(*args*)</co
 
 _These expressions can be constant, as specified in the section about constant expressions._
 
-_The syntax without type arguments, is currently allowed by the language grammar, but is rejected by the static semantics as not being a valid expression when denoting a constructor. The syntax with type arguments is not currently grammatically an expression. Both can occur as part of a constructor invocation, but cannot be expressions by themselves because they have no values. We introduce a static and dynamic expression semantics for such a *named constructor tear-off expression*, which makes them valid expressions._
+_The syntax without type arguments is currently allowed by the language grammar, but is rejected by the static semantics as not being a valid expression when denoting a constructor. The syntax with type arguments is not currently grammatically an expression. Both can occur as part of a constructor invocation, but cannot be expressions by themselves because they have no values. We introduce a static and dynamic expression semantics for such a *named constructor tear-off expression*, which makes them valid expressions._
 
 A named constructor tear-off expression of one of the forms above evaluates to a function value which could be created by tearing off a *corresponding constructor function*, which would be a static function defined on the class denoted by *C*, with a fresh name here represented by adding `$tearoff`:
 
@@ -65,12 +65,12 @@ A named constructor tear-off expression of one of the forms above evaluates to a
 
 If *C* is not generic, then <code>\<*typeParams*\></code> and <code>\<*typeArgs*\></code> are omitted. Otherwise <code>\<*typeParams*\></code> are exactly the same type parameters as those of the class declaration of *C* (including bounds), and <code>\<*typeArgs*></code> applies those type parameter variables directly as type arguments to *C*.
 
-Similarly, <code>*params*</code> is *almost* exactly the same parameter list as the constructor *C*.*name*, with the one exception that *initializing formals* are represented by normal parameters with the same name and type. All remaining properties of the parameters are the same as for the corresponding constructor parameter, including any default values, and *args* is an argument list passing those parameters to `C.name` directly as they are received. 
+Similarly, <code>*params*</code> is *almost* exactly the same parameter list as the constructor *C*.*name*, with the one exception that *initializing formals* are represented by normal parameters with the same name and type. All remaining properties of the parameters are the same as for the corresponding constructor parameter, including any default values, and *args* is an argument list passing those parameters to `C.name` directly as they are received.
 
 For example, `Uri.http` evaluates to an expression which could have been created by tearing off a corresponding static function declaration:
 
 ```dart
-static Uri http$tearoff(String authority, String unencodedPath, [Map<String, dynamic>? queryParameters]) => 
+static Uri http$tearoff(String authority, String unencodedPath, [Map<String, dynamic>? queryParameters]) =>
     Uri.http(authority, unencodedPath, queryParameters);
 ```
 
@@ -118,11 +118,11 @@ where *args* passes the parameters *params* directly to as arguments to *C.name*
 For the example aliases above, the constructor functions corresponding to `List.filled` would be:
 
 ```dart
-List<int> IntList$filled$tearoff(int length, int value) => 
+List<int> IntList$filled$tearoff(int length, int value) =>
     List<int>.filled(length, value);
-List<T> NumList$filled$tearoff<T extends num>(int length, T value) => 
+List<T> NumList$filled$tearoff<T extends num>(int length, T value) =>
     List<T>.filled(length, value);
-List<T> MyList$filled$tearoff<T extends dynamic>(int length, T value) => 
+List<T> MyList$filled$tearoff<T extends dynamic>(int length, T value) =>
     List<T>.filled(length, value);
 ```
 
@@ -157,7 +157,7 @@ Example:
 
 ```dart
 // Equivalent to `List<int>.filled` or `List.filled$tearoff<int>`
-var makeIntList = NumList<int>.filled; 
+var makeIntList = NumList<int>.filled;
 // Same as `List<double>.filled` after inference.
 List<double> Function(int, double) makeDoubleList = NumList.filled;
 ```
@@ -177,7 +177,7 @@ In this example, `Ignore2<int, X>.filled` is treated exactly like `List<Y>.fille
 
 **If the generic alias is not a proper rename for the class it aliases, then tearing off a constructor from the uninstantiated alias is equivalent to tearing off the corresponding constructor function of the alias, which is a generic function. The result always a generic function, and is always a compile-time constant.**
 
-If the generic alias is *not* instantiated before the constructor is torn off, then the tear-off abstracts over the type parameters *of the alias*, and tearing off a constructor works equivalently to tearing off the corresponding constructor function *of the alias* (where the generics match the type alias, not the underlying class). This is where we use the corresponding constructor function of the alias&mdash;except when the alias is a *proper rename*, as defined below. 
+If the generic alias is *not* instantiated before the constructor is torn off, then the tear-off abstracts over the type parameters *of the alias*, and tearing off a constructor works equivalently to tearing off the corresponding constructor function *of the alias* (where the generics match the type alias, not the underlying class). This is where we use the corresponding constructor function of the alias&mdash;except when the alias is a *proper rename*, as defined below.
 
 Example:
 
@@ -192,7 +192,7 @@ Example:
 ```dart
 typedef ListList<T> = List<List<T>>;
 // Corresponding factory function
-List<List<T>> ListList$filled$tearoff<T>(int length, List<T> value) => 
+List<List<T>> ListList$filled$tearoff<T>(int length, List<T> value) =>
   List<List<T>>.filled(length, value);
 var f = ListList.filled; // Equivalent to `= ListList$filled$tearoff;`
 ```
@@ -230,17 +230,17 @@ Example :
 ```dart
 var f = MyList.filled; // Equivalent to `List.filled` or `List.filled$tearoff`
 
-// Instantiated type aliases use the aliased type, 
+// Instantiated type aliases use the aliased type,
 // and are constant and canonicalized when the type is constant.
 print(identical(MyList<int>.filled, NumList<int>.filled)); // true
 print(identical(MyList<int>.filled, List<int>.filled)); // true
-print(identical(NumList<int>.filled, List<int>.filled)); // true  
+print(identical(NumList<int>.filled, List<int>.filled)); // true
 
 // Non-instantiated type aliases have their own generic function.
 print(identical(MyList.filled, MyList.filled)); // true
 print(identical(NumList.filled, NumList.filled)); // true
 print(identical(MyList.filled, NumList.filled)); // false
-print(identical(MyList.filled, List.filled)); // true (proper rename!)  
+print(identical(MyList.filled, List.filled)); // true (proper rename!)
 
 // Implicitly instantiated tear-off.
 List<int> Function(int, int) myList = MyList.filled;
@@ -262,14 +262,14 @@ class C<T extends Object?> {
 // Proper rename, different, but equivalent, bound.
 typedef A<T extends dynamic> = C<T>;
 void main() {
-  // Static type : C<T> Function<T extends Object?>()  
+  // Static type : C<T> Function<T extends Object?>()
   // Runtime type: C<T> Function<T extends Object?>()
   var cf = C.name;
   // Static type : C<T> Function<T extends dynamic>()
   // Runtime type: C<T> Function<T extends Object?>()
   var af = A.name;
   var co = (cf as dynamic)();
-  var ao = (af as dynamic)(); 
+  var ao = (af as dynamic)();
   // Dynamic instantiate to bounds uses actual bounds.
   print(co.runtimeType); // C<Object?>
   print(ao.runtimeType); // C<Object?>
@@ -321,7 +321,7 @@ It's still not allowed to have two constructor declarations with the same name, 
 
 ### Explicitly instantiated classes and functions
 
-The above named constructor tear-off feature allows you to explicitly instantiate a constructor tear-off as `List<int>.filled`. We do not have a similar ability to explicitly instantiate function tear-offs. Currently you have to provide a context type and rely on *implicit instantiation* if you want to tear off an instantiated version of a generic function. 
+The above named constructor tear-off feature allows you to explicitly instantiate a constructor tear-off as `List<int>.filled`. We do not have a similar ability to explicitly instantiate function tear-offs. Currently you have to provide a context type and rely on *implicit instantiation* if you want to tear off an instantiated version of a generic function.
 
 We can also use type aliases to define instantiated interface types, but we cannot do the same thing in-line.
 
@@ -357,14 +357,14 @@ For an expression of the form <code>*e*\<*typeArgs*></code>, which is not follow
 * If *e* denotes a generic instance method (*e* has the form <code>*r*.*name*</code> and *r* has a static type for which *name* is a generic interface method), then <code>*e*\<*typeArgs*></code> performs an explicitly instantiated method tear-off, which works just like the current implicitly instantiated method tear-off except that the types are provided instead of inferred.
 * If *e* has a static type which is a generic callable object type (a non-function type with a generic method named `call`), then <code>*e*\<*typeArgs*></code> is equivalent to the instantiated method-tear off <code>*e*\.call<*typeArgs*></code>.
 * Otherwise, if *e* has a static type which is a generic function type, then <code>*e*\<*typeArgs*></code> is equivalent to the instantiated method-tear off <code>*e*\.call<*typeArgs*></code>.
-* Otherwise the expression is a compile-time error. 
+* Otherwise the expression is a compile-time error.
   * This includes *e* having the static type `dynamic` or `Function`. We do not support implicit or explicit instantiation of functions where we do not know the number and bounds of the type parameters at compile-time.
   * It also includes *e* denoting a constructor. _(We reserve this syntax for denoting instantiation of generic constructors, should the language add [generic constructors](https://github.com/dart-lang/language/issues/647) in the future. Instead just write <code>(*C*.*name*)\<*typeArgs*\></code> or <code>*C*\<typeArgs\>.*name*</code>.)_
 
 Cascades can contain explicitly instantiated tearoffs, because they can contain any selector and instantiation is now a selector, e.g., `receiver..foo()..instanceMethod<int>..bar`. _Note that this example is allowed for consistency, but it will compute a value and discard it. Instantiation without immediate invocation is expected to be primarily used in places where the value of that instantiation will be stored for later use, and using it in a cascade is outside of that usage pattern. One example where it could be useful would be as a receiver for an extension method on function types, like  `receiver..foo()..bar<int>.apply(argList)`. The first selector of a cascade section must still be one of `..identifier` or `..[index]`, it cannot be `..<typeArgs>` any more than it can be `..(argumentList)`._
 
 ```dart
-class A {  
+class A {
   List<X> m<X>(X x) => [x];
 }
 
@@ -373,7 +373,7 @@ extension FunctionApplier on Function {
       print(Function.apply(this, positionalArguments, const {}));
 }
 
-void main() {  
+void main() {
   A()
     ..m<int>.applyAndPrint([2])
     ..m<String>.applyAndPrint(['three']);
@@ -382,7 +382,7 @@ void main() {
 
 The static type of the explicitly instantiated tear-offs are the same as if the type parameter had been inferred, but no longer depends on the context type. Missing type arguments in implicit instantiation expressions can now be considered "filled in" by type inference, as if they had been written explicitly, just as for other inferred type arguments.
 
-The static type of the instantiated type literal is `Type`. This feature also satisfies issue [#123](https://github.com/dart-lang/language/issues/123). 
+The static type of the instantiated type literal is `Type`. This feature also satisfies issue [#123](https://github.com/dart-lang/language/issues/123).
 
 As mentioned above, we **do not allow** *dynamic* explicit instantiation. If an expression `e` has type `dynamic` (or `Never` or `Function` ), then <code>e\<typeArgs></code> is a **compile-time error**. It's not possible to do implicit instantiation without knowing the member signature to some extent, and we also don't allow explicit instantiation. _(Possible alternative: Allow it, and handle it all at run-time, including any errors from having the wrong number or types of arguments, or just not existing at all. We won't do this for now.)_
 
@@ -391,7 +391,7 @@ We **now allow** both implicit and explicit instantiation of *callable objects* 
 Previously, the following code was invalid:
 
 ```dart
-class Id {  
+class Id {
   T call<T>(T value) => value;
 }
 int Function(int) intId = Id();
@@ -413,7 +413,7 @@ Also, we allow explicitly instantiating a callable object:
 var intId = Id()<int>;
 ```
 
-is also type-inferred to the same initialization. 
+is also type-inferred to the same initialization.
 
 **That is**, given an expression of the form <code>*e*\<*typeArgs*></code>, if *e* has a static type which is a callable object, the expression is equivalent to <code>*e*\.call<*typeArgs*></code>. Since no object with an interface type can otherwise support type-instantiation, this coercion turns an error into useful code, and allows a typed callable object to be consistently treated like a function object equivalent to its `call` method.
 
@@ -429,7 +429,7 @@ f(x.a<b,c>-d);  // f((x.a<b, c>)-d) or f((x.a < b), (c > -d]))
 
 The `x.a<b,c>` can be an explicitly instantiated generic function tear-off or an explicitly instantiated type literal named using a prefix, which is new. While neither type objects nor functions declare `operator-` or `operator[]`, such could be added using extension methods.
 
-We will disambiguate such situations *heuristically* based on the token following the `>` that matches the `<` we are ambiguous about. In the existing ambiguity we treat `(` as a sign that the `<` starts a generic invocation. We extend the number of tokens which, when following a potential type argument list, makes us choose to parse the previous tokens as that type argument list. 
+We will disambiguate such situations *heuristically* based on the token following the `>` that matches the `<` we are ambiguous about. In the existing ambiguity we treat `(` as a sign that the `<` starts a generic invocation. We extend the number of tokens which, when following a potential type argument list, makes us choose to parse the previous tokens as that type argument list.
 
 There is a number of tokens which very consistently *end* an expression, and we include all those:
 
@@ -437,7 +437,7 @@ There is a number of tokens which very consistently *end* an expression, and we 
 
 Then we include tokens which we *predict* will continue a generic instantiation:
 
->  `(`  `.`  `==`  `!=` 
+>  `(`  `.`  `==`  `!=`
 
 The first six are tokens which cannot possibly start an expression, and therefore cannot occur after a greater-than infix operator. The last four tokens can continue an expression, and of those only `(` can also start an expression, and we already decided how to disambiguate that).
 
@@ -452,18 +452,18 @@ Grammatically, we restrict the productions for the less-than operator and the ty
 >   | `>'
 >   | `<='
 >   | `<' NEGATIVE_LOOKAHEAD(<typeList> `>' (<continuationToken> | <stopToken>))
->   
+>
 > <selector> ::=
 >       '!'
 >   |   assignableSelector
 >   |   argumentPart
 >   |   typeArguments LOOKAHEAD(<continuationToken> | <stopToken>)
->   
+>
 > <continuationToken> ::= `(' | `.' | `==' | `!='
 > <stopToken> ::= `)' | `]' | `}' | `;' | `:' | `,'
 > ```
 
-That is, if a `<` occurs where it could potentially be either a type arguments list or a less than operator, absent any knowledge of the rest of the program, the parser can first try to parse it as a type argument list, then look at the following token, and if that token is one of the ones listed above, it *must* be a type argument list, because the relational less-than operator cannot possibly match due to its negative lookahead on exactly the thing that was just matched. 
+That is, if a `<` occurs where it could potentially be either a type arguments list or a less than operator, absent any knowledge of the rest of the program, the parser can first try to parse it as a type argument list, then look at the following token, and if that token is one of the ones listed above, it *must* be a type argument list, because the relational less-than operator cannot possibly match due to its negative lookahead on exactly the thing that was just matched.
 
 If the next token is not one of those characters, then the compiler can backtrack and try parsing as a relational less-than operator because the type arguments selector cannot possibly match. (If the compiler can somehow peek at the token following the matching `>` of a type arguments list before parsing the list, then it can potentially skip parsing as a type argument list entirely if the following token is not one of the chosen ones. It will have to try parsing as a type argument list for the cases where *that* part could fail to match, and thereby satisfy the negative lookahead of the relational operator, like `f(2 < 3, 4 > (5))` where the `2` and `3` are not valid type productions.
 
@@ -498,9 +498,9 @@ A mixin application introduces *forwarding constructors* for accessible supercla
 Example:
 
 ```dart
-class A<X> { 
-  A.named(); 
-  A(); 
+class A<X> {
+  A.named();
+  A();
 }
 mixin M {}
 class B<X> = A<X> with M;
@@ -519,18 +519,18 @@ The grammar changes necessary for these changes are provided separately (as [cha
 
 We add the following to the set of expressions that are potentially constant or constant:
 
-If `e` is a potentially constant expression derived from <code>\<primary> \<selector>*</code> and <code>T<sub>1</sub>..T<sub>k</sub></code> derived from <code>\<typeList></code> is a list of potentially constant type expressions, then <code>e\<T<sub>1</sub>..T<sub>k</sub>></code> is a potentially constant expression.
-If moreover `e` is a constant expression whose static type is a function type `F` or `e` is a type literal, and <code>T<sub>1</sub>..T<sub>k</sub></code> is a list of constant type expressions, then <code>e\<T<sub>1</sub>..T<sub>k</sub>></code> is a constant expression.
+If <code>*e*</code> is a potentially constant expression derived from <code>\<primary> \<selector>*</code> and <code>T<sub>1</sub>..T<sub>k</sub></code> derived from <code>\<typeList></code> is a list of potentially constant type expressions, then <code>*e*\<*T*<sub>*1*</sub>..*T*<sub>*k*</sub>></code> is a potentially constant expression.
+If moreover <code>*e*</code> is a constant expression whose static type is a function type <code>*F*</code> or <code>*e*</code> is a type literal, and <code>*T*<sub>*1*</sub>..*T*<sub>*k*</sub></code> is a list of constant type expressions, then <code>*e*\<*T*<sub>*1*</sub>..*T*<sub>*k*</sub>></code> is a constant expression.
 
-*It follows that `F` is a generic function type taking `k` type arguments, and <code>T<sub>1</sub>..T<sub>k</sub></code> satisfy the bounds of `F`, and similarly for the type literal, because otherwise the program would have a compile-time error.*
+*It follows that <code>*F*</code> is a generic function type taking <code>*k*</code> type arguments, and <code>*T*<sub>*1*</sub>..*T*<sub>*k*</sub></code> satisfy the bounds of <code>*F*</code>, and similarly for the type literal, because otherwise the program would have a compile-time error.*
 
-Assume that <code>*C*.*name*</code> denotes a constructor, and <code>T<sub>1</sub>..T<sub>k</sub></code> is derived from <code>\<typeArguments></code>, for some <code>k >= 0</code>.
-<code>*C*\<T<sub>1</sub>..T<sub>k</sub>>.*name*</code> is then a potentially constant expression if <code>T<sub>j</sub></code> is a potentially constant type expression for each <code>j</code>.
-It is further a constant expression if <code>T<sub>j</sub></code> is a constant type expression for each <code>j</code>.
+Assume that <code>*C*.*name*</code> denotes a constructor, and <code>*T*<sub>*1*</sub>..*T*<sub>*k*</sub></code> is derived from <code>\<typeArguments></code>, for some <code>*k* >= 0</code>.
+<code>*C*\<*T*<sub>*1*</sub>..*T*<sub>*k*</sub>>.*name*</code> is then a potentially constant expression if <code>*T*<sub>*j*</sub></code> is a potentially constant type expression for each <code>*j*</code>.
+It is further a constant expression if <code>*T*<sub>*j*</sub></code> is a constant type expression for each <code>*j*</code>.
 
-_In particular, <code>*C*.*name*</code>, which is the case where <code>k == 0</code>, is always constant when <code>*C*</code> is a non-generic class, and it may or may not be constant if it is generic and the type arguments are inferred._
+_In particular, <code>*C*.*name*</code>, which is the case where <code>*k* == 0</code>, is always constant when <code>*C*</code> is a non-generic class, and it may or may not be constant if it is generic and the type arguments are inferred._
 
-If `T` denotes a type variable then `T` is a potentially constant type expression, and a potentially constant expression.
+If <code>*T*</code> denotes a type variable then <code>*T*</code> is a potentially constant type expression, and a potentially constant expression.
 
 _This is just a simpler way to write something which is already supported: If we wish to use a type variable as an expression in a constant constructor initializer list, we can define <code>typedef F\<X> = X;</code> and express the same thing as <code>F\<T></code>._
 
@@ -555,7 +555,7 @@ We allow `TypeName.new` and `TypeName<typeArgs>.new` everywhere we allow a refer
 class C<T> {
   final T x;
   const C.new(this.x); // Same as: `const C(this.x);`
-  C.other(T x) : this.new(x); // Same as: `: this(x)` 
+  C.other(T x) : this.new(x); // Same as: `: this(x)`
   factory C.d(T x) = D<T>.new;  // same as: `= D<T>;`
 }
 
@@ -618,8 +618,8 @@ extension Ext on C {
 }
 class D extends C with M {
   void method() {
-    var f4 = super.inst<int>; // works like (int $) => super.inst<int>($)    
-    var f4TypeName = super.inst<int>.runtimeType.toString();  
+    var f4 = super.inst<int>; // works like (int $) => super.inst<int>($)
+    var f4TypeName = super.inst<int>.runtimeType.toString();
   }
 }
 void main() {
@@ -627,7 +627,7 @@ void main() {
   var t1 = List<int>; // Type object for `List<int>`.
   var t2 = ListList<int>; // Type object for `List<List<int>>`.
 
-  // Instantiated function tear-offs.  
+  // Instantiated function tear-offs.
   T local<T>(T value) => value;
   const f1 = top<int>; // int Function(int), works like (int $) => top<int>($);
   const f2 = C.stat<int>; // int Function(int), works like (int $) => C.stat<int>($);
@@ -635,7 +635,7 @@ void main() {
   var d = D();
   var f4 = d.inst<int>; // int Function(int), works like (int $) => c.inst<int>($);
   var f5 = d.minst<int>; // int Function(int), works like (int $) => c.minst<int>($);
-  var f6 = d.einst<int>; // int Function(int), works like (int $) => Ext(c).einst<int>($); 
+  var f6 = d.einst<int>; // int Function(int), works like (int $) => Ext(c).einst<int>($);
   var typeName = List<int>.toString();
   var functionTypeName = local<int>.runtimeType.toString();
 }
@@ -663,7 +663,7 @@ That makes a type instantiation expression of the form <code>*e*\<*typeArgs*></c
 * a generic type declaration (class, mixin, type alias) and then the result is an instantiated type literal.
 * a generic function declaration (top-level, static or local),
 * an instance method whose static type is a generic function type, or
-* any other expression which evaluates to a generic function, in which case the result is a non-generic function value. 
+* any other expression which evaluates to a generic function, in which case the result is a non-generic function value.
 
 When followed by an argument list, we do instantiated invocation (of the unnamed constructor for types) instead of instantiation.
 
@@ -703,14 +703,14 @@ class C {
   final int? a, b, c, d, e, f, g, h, i, j, k, l, m;
   C({this.a, this.b, this.c, this.d, this.e, this.f, this.g, this.h, this.i, this.j,
      this.k, this.l, this.m});
-  // Has corresponding constructor function:  
+  // Has corresponding constructor function:
   static C new$tearoff({
       int? a, int? b, int? c, int? d, int? e, int? f, int? g, int? h, int? i, int? j,
       int? k, int? l, int? m}) =>
     C(a: a, b: b, c: c, d: d, e: e, f: f, g: g, h: h, j: j, l: l, m: m);
 }
 
-... 
+...
   void Function() f = C.new; // closure of new$tearoff
 ```
 
@@ -734,4 +734,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.13: Add `is` and `as` disambiguation tokens.
 * 2.14: Remove many disambiguation tokens. Allow instantiating function *objects* and *callable objects*. Mention forwarding constructors from mixin applications.
 * 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of the form <code>e\<T<sub>1</sub>..T<sub>k</sub>></code>.
-* 2.16: Add one more kind of potential constant, type parameters, 
+* 2.16: Add one more kind of potential constant, type parameters,
