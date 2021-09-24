@@ -2609,10 +2609,10 @@ unless that concrete member is a \code{noSuchMethod} forwarder
 \commentary{%
 Consider a concrete class \code{C},
 and assume that \code{C} declares or inherits
-a member implementation with the right name
+a member implementation with the same name
 for every member signature in its interface.
-It is still an error if one or more of them has parameters or types
-such that they do not satisfy
+It is still an error if one or more of those member implementations
+has parameters or types such that they do not satisfy
 the corresponding member signature in the interface.
 For this check, any missing \COVARIANT{} modifiers are implicitly added
 to the signature of an inherited member (this is how we get $m'$ from $m''$).
@@ -2625,13 +2625,13 @@ and then invoke the inherited method.%
 }
 
 \LMHash{}%
-The use of an implicitly induced forwarding method
+It is an implementation specific choice whether or not
+an implicitly induced forwarding method is used
 when the modifier \COVARIANT{} is added to
-one or more parameters in $m'$
-is allowed,
-in spite of the fact that this forwarding method can be observed.
+one or more parameters in $m'$.
 
 \commentary{%
+This is true in spite of the fact that such forwarding methods can be observed.
 E.g., we can compare
 the run-time type of a tearoff of the method from
 a receiver of type \code{C}
@@ -2644,7 +2644,7 @@ With or without a forwarding method,
 the member signature in the interface of $C$ is $m$.
 
 \commentary{%
-The forwarding method should not change the interface of \code{C},
+The forwarding method does not change the interface of \code{C},
 it is an implementation detail.
 In particular, this holds even in the case where
 an explicit declaration of the forwarding method would have
