@@ -61,7 +61,7 @@ Since a shorthand URI can only occur where a URI is expected, and a URI is curre
 
 (We can allow spaces between identifiers/keywords and `:`, `.` and `/`, but it will be harder to read and it makes the grammar less extensible).
 
-The shorthand syntax can also be used for `export` and declarations, but no in `part` declarations. The new syntax only denotes *libraries*, not *files*. It also does not work for `part of` declarations because `part of foo.bar.baz;` is already valid syntax. We may want to disallow this existing syntax so that you can use the full shorthand syntax with no exceptions. _(Please do disallow the old part-of format where you use the parent library *name*)._
+The shorthand syntax can also be used for `export` and declarations, but not in `part` declarations. The new syntax only denotes *libraries*, not *files*. It also does not work for `part of` declarations because `part of foo.bar.baz;` is already valid syntax. We may want to disallow this existing syntax so that you can use the full shorthand syntax with no exceptions. _(Please do disallow the old part-of format where you use the parent library *name*)._
 
 ## Semantics
 
