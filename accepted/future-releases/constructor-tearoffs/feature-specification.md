@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.14
+Author: lrn@google.com<br>Version: 2.17
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
