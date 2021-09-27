@@ -248,38 +248,59 @@ they annotate, including introspecting on members of classes, etc.
 
 ## Macro Instantiation
 
-Macros should be able to be able to be instantiated using only the libraries
-that are available to the macro definition library. This allows us to compile an
-app (or spawn an isolate) that can run macro applications for that macro using
-only its own dependencies.
+To apply a macro, a Dart compiler constructs an instance of the applied macro's
+class, and then invokes methods on it that implement the macro API. The
+arguments on the metadata annotation for the macro application get passed to the
+macro as constructor parameters.
 
-### Macro Constructor Parameters
+The macro can choose whether each parameter should be passed by its value, or as
+a [Code][] object (or any subtype of [Code][]). It chooses this based on the
+parameter type that is used - any parameter with a subtype of [Code][] is
+automatically coerced into an instance of that type. The user simply writes
+normal Dart code in their macro application. For arguments that are passed by
+value, only object literals may be used as arguments, which limits the types
+of values that can be passed in this way.
 
-In order to facilitate this, parameters to Macro constructors are limited to
-a specific set of allowable types:
+For example, given a macro definition like this:
 
-- [Code][] or its subtypes
-- String
-- int, double, num
-- bool
-- null (really this just allows nullable types)
-- Uri
-- DateTime
+```dart
+class AddMacro implements FunctionDefinitionMacro {
+  const AddMacro(int a, Expression b);
 
-### Macro Constructor Arguments
+  void visitFunctionDefinition(_, FunctionDefinitionBuilder builder) {
+    // Takes the literal value for `a`, and adds the expression `b` to it.
+    builder.implement(FunctionBody.fromParts(['=> $a + ', b, ';']));
+  }
+}
+```
 
-When any type other than [Code][] is used, arguments are only allowed to be
-object literals. Or in the case of `Uri` and `DateTime` they must be direct
-invocations of one of their constructors, which are only passed literals as
-arguments.
+You could apply the macro like this:
 
-When [Code][] is used as a parameter type, the corresponding arguments in macro
-_applications_ are provided as normal Dart code by the user. This code is then
-parsed and converted to the corresponding [Code][] instance.
+```dart
+int get a => 1;
+const b = 2;
 
-Direct instantiations of macros from code (typically during macro composition)
-must provide the actual [Code][] instance directly, and no automatic conversion
-happens.
+class SomeClass {
+  @AddMacro(1, a + b)
+  int addThem(); // Generates: => 1 + a + b;
+}
+```
+
+The compiler constructs an instance of the `AddMacro` class and passes `1` and
+an Expression object representing the original `a + b` expression, resolved in
+the scope of the original macro application. The macro then uses each of those
+to construct a function body and implement the function.
+
+**Note**: Direct instantiations of macros from code (typically during macro
+composition) must provide the actual [Code][] instance directly, and no
+automatic coercion happens. This coercion only takes place for macro
+applications.
+
+**TODO**: What parser ambiguities does this introduce? Can/should we limit this
+to the `Expression` type, or can we also allow statements?
+
+**TODO**: Should we support const expressions as values, if they can be
+evaluated prior to macro expansion?
 
 ## APIs
 
