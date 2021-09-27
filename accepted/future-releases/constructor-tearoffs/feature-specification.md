@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.14
+Author: lrn@google.com<br>Version: 2.17
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
@@ -352,14 +352,17 @@ Explicit instantiation applies to any function value, whether tear-offs of insta
 
 For an expression of the form <code>*e*\<*typeArgs*></code>, which is not followed by an argument list (that would turn it into a generic function invocation), the meaning of <code>*e*\<typeArgs></code> depends on the expression *e*:
 
-* If *e* denotes a generic class, mixin or type alias declaration (which means that *e* is an identifier, possibly a qualified identifier, which resolves to the class, mixin or type alias declaration), then <code>*e*\<*typeArgs*></code> is a type literal. _If followed by <code>.*id*</code> then that *id* must denote a constructor, which can then be either torn off or invoked. If followed by `==` or `!=` or any "stop-token", the expression evaluates to a `Type` object._
-* If *e* denotes a generic top-level, static or local function declaration (again *e* is an identifier or qualified identifier), that declaration must be a generic function declaration, and then <code>*e*\<*typeArgs*></code> performs an explicitly instantiated function tear-off, which works just like the current implicitly instantiated function tear-off except that the types are provided instead of inferred.
-* If *e* denotes a generic instance method (*e* has the form <code>*r*.*name*</code> and *r* has a static type for which *name* is a generic interface method), then <code>*e*\<*typeArgs*></code> performs an explicitly instantiated method tear-off, which works just like the current implicitly instantiated method tear-off except that the types are provided instead of inferred.
-* If *e* has a static type which is a generic callable object type (a non-function type with a generic method named `call`), then <code>*e*\<*typeArgs*></code> is equivalent to the instantiated method-tear off <code>*e*\.call<*typeArgs*></code>.
-* Otherwise, if *e* has a static type which is a generic function type, then <code>*e*\<*typeArgs*></code> is equivalent to the instantiated method-tear off <code>*e*\.call<*typeArgs*></code>.
+* If *e* denotes a class, mixin or type alias declaration (which means that *e* is an identifier, possibly a qualified identifier, which resolves to the class, mixin or type alias declaration), then <code>*e*\<*typeArgs*></code> is a type literal. _If followed by <code>.*id*</code> then that *id* must denote a constructor, which can then be either torn off or invoked. If followed by `==` or `!=` or any "stop-token", the expression evaluates to a `Type` object._
+* If *e* denotes a top-level, static or local function declaration (again *e* is an identifier or qualified identifier) then <code>*e*\<*typeArgs*></code> performs an explicitly instantiated function tear-off, which works just like the current implicitly instantiated function tear-off except that the types are provided instead of inferred.
+* If *e* denotes an instance method (*e* has the form <code>*r*.*name*</code> and *r* has a static type which is an interface type that has a method named *name*), then <code>*e*\<*typeArgs*></code> performs an explicitly instantiated method tear-off, which works just like the current implicitly instantiated method tear-off, except that the types are provided instead of inferred.
+* If *e* has a static type which is a callable object type (an interface type with a method named `call`), then <code>*e*\<*typeArgs*></code> is equivalent to the instantiated method tear-off <code>*e*.call\<*typeArgs*></code>.
+* If *e* has an accessible and applicable extension method named `call` then <code>*e*\<*typeArgs*></code> is equivalent to the instantiated extension method tearoff <code>*e*.call\<*typeArgs*></code>.
+* If *e* has a static type which is a function type, then <code>*e*\<*typeArgs*></code> is equivalent to the instantiated method-tear off <code>*e*.call\<*typeArgs*></code>.
 * Otherwise the expression is a compile-time error.
   * This includes *e* having the static type `dynamic` or `Function`. We do not support implicit or explicit instantiation of functions where we do not know the number and bounds of the type parameters at compile-time.
   * It also includes *e* denoting a constructor. _(We reserve this syntax for denoting instantiation of generic constructors, should the language add [generic constructors](https://github.com/dart-lang/language/issues/647) in the future. Instead just write <code>(*C*.*name*)\<*typeArgs*\></code> or <code>*C*\<typeArgs\>.*name*</code>.)_
+
+_Note that each of the cases before the last one may also give rise to a compile-time error. For instance, the given function is not generic, or it accepts a different number of type arguments than the ones provided in <code>\<*typeArgs*></code>, or the given type arguments do not satisfy the declared bounds, etc._
 
 Cascades can contain explicitly instantiated tearoffs, because they can contain any selector and instantiation is now a selector, e.g., `receiver..foo()..instanceMethod<int>..bar`. _Note that this example is allowed for consistency, but it will compute a value and discard it. Instantiation without immediate invocation is expected to be primarily used in places where the value of that instantiation will be stored for later use, and using it in a cascade is outside of that usage pattern. One example where it could be useful would be as a receiver for an extension method on function types, like  `receiver..foo()..bar<int>.apply(argList)`. The first selector of a cascade section must still be one of `..identifier` or `..[index]`, it cannot be `..<typeArgs>` any more than it can be `..(argumentList)`._
 
@@ -735,3 +738,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.14: Remove many disambiguation tokens. Allow instantiating function *objects* and *callable objects*. Mention forwarding constructors from mixin applications.
 * 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of the form <code>e\<T<sub>1</sub>..T<sub>k</sub>></code>.
 * 2.16: Add one more kind of potential constant, type parameters.
+* 2.17: Specify that <code>*e*\<*typeArgs*></code> can desugar to <code>*e*.call\<*typeArgs*></code> when `call` is an extension method.
