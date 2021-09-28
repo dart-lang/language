@@ -258,7 +258,7 @@ a [Code][] object (or any subtype of [Code][]). It chooses this based on the
 parameter type that is used - any parameter with a subtype of [Code][] is
 automatically coerced into an instance of that type. The user simply writes
 normal Dart code in their macro application. For arguments that are passed by
-value, only object literals may be used as arguments, which limits the types
+value, only literal expressions may be used as arguments, which limits the types
 of values that can be passed in this way.
 
 For example, given a macro definition like this:
