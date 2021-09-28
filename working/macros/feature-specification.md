@@ -246,6 +246,62 @@ introspection APIs.
 These macros can fully introspect on any type reachable from the declarations
 they annotate, including introspecting on members of classes, etc.
 
+## Macro Instantiation
+
+To apply a macro, a Dart compiler constructs an instance of the applied macro's
+class, and then invokes methods on it that implement the macro API. The
+arguments on the metadata annotation for the macro application get passed to the
+macro as constructor parameters.
+
+The macro can choose whether each parameter should be passed by its value, or as
+a [Code][] object (or any subtype of [Code][]). It chooses this based on the
+parameter type that is used - any parameter with a subtype of [Code][] is
+automatically coerced into an instance of that type. The user simply writes
+normal Dart code in their macro application. For arguments that are passed by
+value, only literal expressions may be used as arguments, which limits the types
+of values that can be passed in this way.
+
+For example, given a macro definition like this:
+
+```dart
+class AddMacro implements FunctionDefinitionMacro {
+  const AddMacro(int a, Expression b);
+
+  void visitFunctionDefinition(_, FunctionDefinitionBuilder builder) {
+    // Takes the literal value for `a`, and adds the expression `b` to it.
+    builder.implement(FunctionBody.fromParts(['=> $a + ', b, ';']));
+  }
+}
+```
+
+You could apply the macro like this:
+
+```dart
+int get a => 1;
+const b = 2;
+
+class SomeClass {
+  @AddMacro(1, a + b)
+  int addThem(); // Generates: => 1 + a + b;
+}
+```
+
+The compiler constructs an instance of the `AddMacro` class and passes `1` and
+an Expression object representing the original `a + b` expression, resolved in
+the scope of the original macro application. The macro then uses each of those
+to construct a function body and implement the function.
+
+**Note**: Direct instantiations of macros from code (typically during macro
+composition) must provide the actual [Code][] instance directly, and no
+automatic coercion happens. This coercion only takes place for macro
+applications.
+
+**TODO**: What parser ambiguities does this introduce? Can/should we limit this
+to the `Expression` type, or can we also allow statements?
+
+**TODO**: Should we support const expressions as values, if they can be
+evaluated prior to macro expansion?
+
 ## APIs
 
 The specific APIs for macros are being prototyped currently, and the docs are
