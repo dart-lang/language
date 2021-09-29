@@ -199,7 +199,7 @@ enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern 
   }
   
   // Named constructor. Redirecting.  
-  Complex.regexp(String regexpPattern) : this("($regexpPattern)", RegExp);
+  Complex.captured(String regexpPattern) : this("($regexpPattern)", RegExp);
   
   // Can expose the implicit name.
   String get name => EnumName(this).name;  
@@ -239,7 +239,7 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
   Complex._$(this.index, this._$name, String pattern, T Function(String) factory) 
       : _patternSource = pattern, _factory = factory;
   
-  Complex.regexp(int _$index, String _$name, String regexpPattern) 
+  Complex.captured(int _$index, String _$name, String regexpPattern) 
       : this(_$index, _$name, "($regexpPattern)", RegExp);
   
   String get name => EnumName(this).name;  
