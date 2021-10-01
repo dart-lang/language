@@ -193,7 +193,6 @@ proposal will work.
       4 (  0.032%): (:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s)
       4 (  0.032%): (s,_,:_)
       4 (  0.032%): (:s,:s,:s,:s,:s,:s,:_,:_,:_)
-# Enter a description of the change.
       4 (  0.032%): (s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s)
       4 (  0.032%): (s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s)
       4 (  0.032%): (:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s,:s)
@@ -285,7 +284,7 @@ arguments.
 These numbers are all so close that I don't have a strong opinion one way or
 the other. I'd lean slightly towards the "do not merge" option because it's the
 most conservative. There is a potential failure mode to worry about. If all of
-the positional parameters in the superclass constructor have the same time, then
+the positional parameters in the superclass constructor have the same type, then
 any merge strategy will not produce a compile error. If the user guesses that
 the language has one strategy but it actually has another, then instead of an
 error, they will get a program that silently runs with the wrong argument
