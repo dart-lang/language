@@ -1,6 +1,6 @@
 # Dart Enhanced Enum Classes
 
-Author: lrn@google.com<br>Version: 1.0
+Author: lrn@google.com<br>Version: 1.0<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
 
 This is a formal proposal for a language feature which allows `enum` declarations to declare classes with fields, methods and const constructors initializing those fields. Further, `enum` declarations can implement interfaces and, as an optional feature, apply mixins.
 
