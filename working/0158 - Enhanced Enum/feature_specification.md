@@ -114,7 +114,7 @@ It’s currently a compile-time error for a class to implement, extend or mix-in
 
 Because we want to allow interfaces and mixins that are intended to be applied to `enum` declarations, and therefore to assume `Enum` to be a superclass, we loosen that restriction to:
 
-> It’s a compile-time error if a *non-abstract* class implements `Enum` unless that class is declared by an `enum` declaration.
+> It’s a compile-time error if a *non-abstract* class implements `Enum` unless it is the implicit class of an `enum` declaration.
 >
 > It is a compile-time error if a class implements, extends or mixes-in a class declared by an `enum` declaration.
 
