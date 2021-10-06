@@ -32,11 +32,11 @@ Some use extension methods to bring these closer in scope:
 
 ```dart
 extension on Time {
-  String get label => const <@exhaustive Time, String> {
-    hour: "1h",
-    day: "1d",
-    week: "1w",
-  }[this];
+  String get label => const <Time, String> {
+    Time.hour: "1h",
+    Time.day: "1d",
+    Time.week: "1w",
+  }[this]!;
 }
 ```
 
