@@ -1,6 +1,6 @@
 # Dart Super-Initializer Parameters
 
-Author: lrn@google.com<br>Version: 1.0
+Author: lrn@google.com<br>Version: 1.1
 
 ## Background and Motivation
 
@@ -46,92 +46,97 @@ _That is, exactly the same grammar as initializing formals, but with `super` ins
 
 ## Semantics
 
-It’s a compile-time error if a super-parameter in any declaration other than a non-redirecting generative constructor.
+It’s a **compile-time error** if a super-parameter in any declaration other than a non-redirecting generative constructor.
 
-It’s a compile-time error if `var` occurs as the first token of a `<superFormalParameter>` production. (It’s generally a compile-time error if `const` or `late` occurs in a parameter declaration, this also applies to super-parameters).
+_All non-redirecting generative constructors have a super-constructor invocation at the end of their initializer list. If none is written (or there is even no initializer list), the default is an invocation of `super()`, targeting the unnamed superclass constructor. It’s a compiler-time error if the superclass does not have the specified constructor, or it’s not a generative constructor._
 
-We then treat each positional super-parameter as if it was an implicit positional argument to the super-constructor invocation at the end of the initializer list (which is `super()` if not explicitly specified), appended to any existing positional arguments in source order, and each named super-parameter as if it was an implicit named argument to the super-constructor invocation with the same name and value. If this would be invalid, the constructor is invalid.
-Further, the super-parameter also introduces a final variable with the same name and value into the initializer-list scope, just like initializing formals do.
+It’s a **compile-time error** if `var` occurs as the first token of a `<superFormalParameter>` production. (It’s generally a compile-time error if `const` or `late` occurs in a parameter declaration, this also applies to super-parameters).
 
-#### More formally
+It’s also a **compile-time** error if a constructor has a positional super-parameter and the super-constructor invocation at the end of its initializer list has a positional argument.
 
-##### Definitions
+We define the *name of a parameter declaration* as the identifier naming it for normal parameters, and the identifier after `this.` or `super.` for initializing formals and super parameters. _(It’s the obvious definition, just stating it.)_ 
 
-We define the *name* of a parameter declaration as the identifier naming it for normal parameters, and the identifier after `this.` or `super.` for initializing formals and super parameters. _The obvious definition, just stating it._ It’s a compile-time error if a function has two parameter declarations with the same name.
+It’s a **compile-time error** if a constructor _(or any function)_ has two parameter declarations with the same name.
 
-Let *C* be a non-redirecting generative constructor with super-constructor invocation *s* at the end of its initializer list (if none is written, it’s implicitly `super()`). Let *D* be the superclass constructor targeted by *s*.
+It’s a **compile-time error** if a constructor has a named super-parameter with name *n* and a super-constructor invocation with a named argument with name *n*.
+
+Let *C* be a non-redirecting generative constructor with, implicit or explicit, super-constructor invocation *s* at the end of its initializer list. Let *D* be the superclass constructor targeted by *s* (which must exist).
 
 We define the _associated super-constructor parameter_ for each super-parameter *p* of *C* as follows:
 
-- If *p* is a positional parameter, let *k* be the number of positional arguments of *s* and let *j* be the number of positional super-parameters of *C* up to and including *p* in source order. The associated super-constructor parameter of *p* is the *k*+*j*‘th positional parameter of *D*, if *D* has that many positional parameters
+- If *p* is a positional parameter, let *j* be the number of positional super-parameters of *C* up to and including *p* in source order. The associated super-constructor parameter of *p* is the *j*th positional parameter of *D* (1-based), if *D* has that many positional parameters.
 - If *p* is a named parameter with name *n*, the associated super-constructor parameter is the named parameter of *D* with name *n*, if *D* has a named parameter with that name.
 
 It’s a **compile-time error** if a non-redirecting generative constructor has a super-parameter with no associated super-constructor parameter.
 
-_All we need to for this definition is the ability to resolve the superclass constructor and see its argument structure._
+_All we need for this definition is the ability to resolve the superclass constructor and see its argument structure._
 
-##### Type inference
+#### Type inference
 
-We define the *type* of a parameter declaration, *p*, of a non-redirecting generative constructor, *C*,  as:
+##### Parameter types and default values
 
-- If the parameter has a type in its `<finalConstVarOrType>`, that’s the type of the parameter.
-- If the parameter is an initializing formal (`this.name`) the type of the parameter is the declared/inferred type of the instance variable named `name` of the surrounding class (which must exist, otherwise it’s a compile-time error.)
-- If the parameter is a positional super parameter (`super.name`), the type of the parameter is the associated super-constructor parameter (which must exist, otherwise it’s a compile-time error).
+We infer the *type* of a parameter declaration, *p*, of a non-redirecting generative constructor, *C*,  as:
 
-Each super-parameter introduces a final variable with the same name and type into the initializer list scope (just like initializing formals).
+- If the *p* has a type in its `<finalConstVarOrType>`, that remains the type of the parameter.
+- Otherwise, if the parameter is an initializing formal (`this.name`) the inferred type of the parameter is the declared/inferred type of the instance variable named `name` of the surrounding class (which must exist, otherwise it’s a compile-time error.)
+- Otherwise, if the parameter is a super parameter (`super.name`) the inferred type of the parameter is the associated super-constructor parameter (which must exist, otherwise we’d have a compile-time error). 
+- Otherwise the inferred type of the parameter is `dynamic`. _(Is it `Object?` now?)_
+
+We also copy the default value of the associated super-constructor if applicable:
+
+- If *p* is optional, does not declare a default value, the associated super-constructor parameter is also optional and has a default value *d*, and *d* is a subtype of the (declared or inferred above) type of *p*, then *p* gets the default value *d.*
+- It’s then a **compile-time error** if *p* is optional, its type is potentially non-nullable and it still does not have a default value.
+
+It’s a **compile-time error** if a super-parameter has a type which is not assignable to the type of its associated super-constructor parameter.
+
+##### Introduced names in initializer list
+
+Each super-parameter, *p<sub>n</sub>* with name *n* and (inferred or declared) type *T<sub>n</sub>*, introduces a final binding with the same name *n* and static type *T<sub>n</sub>* into the initializer list scope (just like initializing formals).
+
+##### Super-constructor invocation
 
 When inferring the super-constructor invocation, *s*, targeting the super constructor *D*, we include the implicit super-parameters from the constructor parameter list:
 
-- Let *k* be the number of positional arguments of *s*.
-- Let *j* be the number of positional super-parameters of *C*.
-- It’s a compile-time error if *D* has fewer than *k*+*j*  positional parameters.  _(Redundant with “all super parameters must have associated super-constructor parameter”.)_
-- It’s a compile-time error if *D* has more than *k*+*j* *required* positional parameters.
-- For 0 &le; *i* < *k*, it’s a compile-time error if the static type of the *k*’th positional argument of *s* is not assignable to the *k*‘th positional parameter of *D*. _(We use *assignable* here, which means that we do allow implicit coercions like downcast or `.call` method tear-off)_.
-- For 1 &le; i &le; j, it’s a compile-time error if the type of the (1-based) *i*‘th positional super-parameter of *C* is not assignable to the *k*+*i*‘th positional parameter of *D*.
-- It’s a compile-time error if *D* has a required named parameter named *n*, *s* does not have a named argument named *n* and *C* does not have a named super-parameter named *n*.
-- It’s a compile-time error *s* has a named argument *a* named *n* and *D* does not have a named parameter named *n* *or* *D* does have a named parameter *q* named *n* and the type of *a* is not assignable to the type of *q*.
-- It’s a compile-time error if *C* has a named super-parameter *p* with name *n* and the type of *p* is not assignable to the type if its corresponding super-constructor parameter of *D*. (We know it exists.)
+The super-constructor invocation *s* infers a super-constructor invocation *s’* such that
 
-##### Invocation
+- The same constructor is targeted by *s’* as by *s* (same leading `super` or <code>super.*id*</code> constructor reference).
+
+- If *s* has positional arguments, *a*<sub>1</sub>..*a<sub>k</sub>*, and *a<sub>i</sub>* infers *m<sub>i</sub>* with a context type *T<sub>i</sub>*, which is the type of the *i*th positional parameter of the targeted super-constructor, then *s’* has positional arguments *m*<sub>1</sub>..*m<sub>k</sub>*.
+
+- For each super parameter *p* in *C*, in source order, where *p* has parameter name *n*, (inferred or declared) type *T*, associated super-constructor parameter *q*, and where *S* is the type of the parameter *q*:
+
+  - Let <Code>*x*<sub>n</sub></code> be an identifier for then name *n*. As an expression, <code>*x*<sub>n</sub></code> denotes the final variable introduced into the initializer list scope by *p*.
+  - If the identifier <Code>*x*<sub>n</sub></code> infers <code>m</code> with context type *S*, then *s’* has an argument following the previously mentioned arguments:
+    - <code>m</code> if *p* is positional, or
+    - <Code>*x<sub>n</sub>*: *m*</code> if *q* is named.
+
+  _Currently named parameters always follow positional parameters, so by keeping the source order, named arguments also follow positional arguments. There can’t be both positional arguments from *s* and from *C*._
+
+- For each named argument <code>*x*: *e*</code> of *s*, in source order:
+  - if *e* infers *m* with context type *S*, where *S* is the type of the parameter named *x* of the targeted super-constructor,
+  - then <code>*x*: *m*</code> is a named argument of *s’* following the previously mentioned arguments.
+
+_Using inference on the implicit arguments means that we also apply implicit coercions, like downcast from `dynamic` or `.call`-tear-off if assignment from the declared type of a super parameter to a super-constructor parameter’s type requires it. For example: `C(dynamic super.x) : super();` may be inferred to be `C(dynamic super.x) : super(x as int);`.
+
+#### Run-time Invocation
 
 When invoking a non-redirecting generative constructor *C*, parameter binding occurs as follows:
 
 - As usual for non-super-parameters.
 - Binding a value *v* to a super-parameter *p* with name *n*:
-  - Binds the final variable *n* to *v* in the run-time initializer list scope.
-  - Binds a fresh variable <code>_$*n*</code> to *v* in the run-time initializer list scope as well.
+  - Binds the final variable named *n* to *v* in the run-time initializer list scope.
 
-When reaching the super-constructor invocation, *s*, targeting the super-constructor *D*, the argument list passed to *D* is:
+## Summary
 
-- The positional arguments of *s*,  
-- followed by the values of each of the positional super-parameters of *C* as positional arguments, in source order (can be referenced without risk of being shadowed as <code>_$*n*</code>),
-- followed by the named arguments of *s*,
-- followed by named arguments corresponding to each named super-parameter of *C* with the same name as the parameter and the value of that parameter (a super-parameter named *n* has the associated argument <Code>*n*: _$*n*</code>).
+Effectively, each super parameters, <code>super.*p*</code>:
 
-##### Desugaring
+- Introduces a final variable <code>*p*</code> with the parameter’s name, just like <code>this.*p*</code> does, only in scope in the initializer list.
 
-This was specified without trying to desugar into existing valid Dart code.
+- Implicitly adds that variable as an implicit argument to the super-constructor invocation.
 
-We *can* desugar the desired behavior into existing Dart code, but that requires some amount of rewriting in the constructor body to enforce the “initializer-only” scope of variables introduced by initializing formals and super parameters. Example:
-
-```dart
-C(super.x, this.y, {required super.z}) : super.foo() {
-  something(x, y, z);
-}
-```
-
-*could* be (re)written as:
-
-```dart
-C(final TypeOfX x, final TypeOfY y, {final required TypeOfZ z}) 
-    : this.y = y, super(x, z: z) {
-  something(this.x, this,y, this.z);
-}
-```
-
-The change of `x, y, z` to `this.x, this.y, this.z` is necessary to ensure the body code still references the instance variables, not the newly-introduced “normal” parameters which are visible in the body unlike the variables introduced by initializing formals and, now, super-parameters.
-
-We so far prefer to avoid doing that kind of non-local rewriting, which means that we will need to treat this as a feature by itself, not something that can easily be “lowered” to existing code.
+- Implicitly infers its type and default value, if not specified, if applicable, from the associated super-constructor parameter that they are forwarded to.
+- Cannot be positional if the super-constructor invocation already has positional arguments.
+- But can always be named.
 
 ## Examples
 
@@ -144,11 +149,29 @@ class B {
 }
 class C extends B {
   C(super.foo, super.bar, [super.baz = 4]);
+  // Same as:
+  // C(super.foo, super.bar, [super.baz = 4]) : super(foo, bar, baz);
 }
 ```
 
 This shows that you still can’t just forward *every* parameter, you have to write each parameter out. You avoid having to write it *again* in the super-invocation, but have to write and look at the `super.` instead.
 
+```dart
+class B {
+  final int? foo;
+  final int? bar;
+  final int? baz;
+  B.named({this.foo, this.bar, this.baz});
+}
+class C extends B {
+  C(int bar, {super.foo}) : super.named(bar: bar, baz: 42);
+  // Same as
+  // C(int bar, {int? foo}) : super.named(foo: foo, bar: bar, baz: 42);  
+}
+```
+
 ## Revisions
 
 1.0: Initial version
+
+1.1: Don’t allow both positional super parameters and explicit positional arguments. Inherit default value.
