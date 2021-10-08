@@ -22,7 +22,7 @@ We propose the following to also be allowed:
 enum Name<T> with Mixin1, Mixin2 implements Interface1, Interface2 {
   id1<int>(args1), id2<String>(args2), id3<bool>(args3);
   memberDeclaration*
-  const Name(params) : initList;   
+  const Name(params) : initList;
 }
 ```
 
@@ -35,15 +35,15 @@ The superclass of the mixin applications is the `Enum` class (which has an *abst
 The grammar of the `enum` declaration becomes:
 
 ```ebnf
-<enumType> ::= 
+<enumType> ::=
   `enum' <identifier> <typeParameters>? <mixins>? <interfaces>? `{'
      <enumEntry> (`,' <enumEntry>)* (`,')? (`;'
-     (<metadata> <classMemberDeclaration>)*
+     (<metadata> <classMemberDefinition>)*
      )?
   `}'
-  
-<enumEntry> ::= <metadata> <identifier> <argumentPart>? |
-              | <metadata> <identifier> <typeArguments>? \.' <identifier> <arguments>
+
+<enumEntry> ::= <metadata> <identifier> <argumentPart>?
+  | <metadata> <identifier> <typeArguments>? `.' <identifier> <arguments>
 ```
 
 It is a compile-time error if the enum declaration contains any generative constructor which is not `const`.
@@ -64,7 +64,7 @@ The semantics of such an enum declaration is defined by *rewriting into a class 
 
 - For each member declaration:
 
-  - If the member declaration is a (necessarily `const`) generative constructor, introduce a similar named constructor on the class with a fresh name, which takes two extra leading positional arguments (`Name.foo(...)` &mapsto; `Name._$foo(int .., String .., ...)`, `Name(...)` &mapsto; `Name._$(int .., String .., ...)`). If the constructor is non-redirecting, make the two arguments `this.index` and `this._$name`. If the constructor is redirecting, make them `int _$index` and `String _$name`, then change the target of the redirection to the corresponding freshly-renamed constructor and pass `_$index` and `_$name` as two extra initial positional arguments. 
+  - If the member declaration is a (necessarily `const`) generative constructor, introduce a similar named constructor on the class with a fresh name, which takes two extra leading positional arguments (`Name.foo(...)` &mapsto; `Name._$foo(int .., String .., ...)`, `Name(...)` &mapsto; `Name._$(int .., String .., ...)`). If the constructor is non-redirecting, make the two arguments `this.index` and `this._$name`. If the constructor is redirecting, make them `int _$index` and `String _$name`, then change the target of the redirection to the corresponding freshly-renamed constructor and pass `_$index` and `_$name` as two extra initial positional arguments.
   - Otherwise include the member as written.
 
 - If no generative constructors were declared, and no unnamed factory constructor was added, a default generative constructor `const Name._$(this.index, this._$name);` is added.
@@ -96,14 +96,14 @@ class Name<T> extends Enum with Mixin1, Mixin2 implements Interface1, Interface2
   static const Name<String> id2 = Name<String>._$(1, "id2", args2);
   static const Name<bool> id3 = Name<bool>._$(2, "id3", args3);
   static const List<Name<Object?>> values = [id1, id2, id3];
-    
+
   final int index;
   final String _name;
-  
+
   Name._$(this.index, this._name, params) : initList
 
   memberDeclarations*
-    
+
   String toString() => "Name.$_name"; // Unless defined by memberDeclarations.
 }
 ```
@@ -155,12 +155,12 @@ class Plain extends Enum {
   static const Plain bar = Plain._$(1, "bar");
   static const Plain baz = Plain._$(2, "baz");
   static const List<Plain> values = [foo, bar, baz];
-  
+
   final int index;
   final String _$name;
-  
+
   const Plain._$(this.index, this._$name);
-    
+
   String toString() => "Plain,${_$name}";
 }
 ```
@@ -174,47 +174,49 @@ mixin EnumComparable<T extends Enum> on Enum implements Comparable<T> {
 
 // With type argument, mixin and interface.
 enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern {
-  whitespace<RegExp>(r"\s+", RegExp),
-  alphanum<RegExp>.captured(r"\w+", RegExp),
-  anychar<Glob>("?", Glob),
+  whitespace<RegExp>(r"\s+", RegExp.new),
+  alphanum<RegExp>.captured(r"\w+", RegExp.new),
+  anychar<Glob>("?", Glob.new),
   ;
-    
+
   // Static variables. (Could use Expando, this is more likely efficient.)
-  static final List<Pattern?> _patterns = List<Pattern?>.filled(3, null); 
-    
-  // Final instance variables.  
-  final String _patternSource;  
+  static final List<Pattern?> _patterns = List<Pattern?>.filled(3, null);
+
+  // Final instance variables.
+  final String _patternSource;
   final T Function(String) _factory;
 
   // Unnamed constructor. Non-redirecting.
-  Complex(String pattern, T Function(String) factory) 
+  Complex(String pattern, T Function(String) factory)
       : _patternSource = pattern, _factory = factory;
-    
-  // Factory construtor.  
+
+  // Factory construtor.
   factory Complex.matching(String text) {
     for (var value in values) {
-      if (value.allMatches(text).isNotEmpty) return value;
+      if (value.allMatches(text).isNotEmpty && value is Complex<T>) {
+        return value;
+      }
     }
     throw UnsupportedError("No pattern matching: $text");
   }
-  
-  // Named constructor. Redirecting.  
+
+  // Named constructor. Redirecting.
   Complex.captured(String regexpPattern) : this("($regexpPattern)", RegExp);
-  
+
   // Can expose the implicit name.
-  String get name => EnumName(this).name;  
-    
+  String get name => EnumName(this).name;
+
   // Instance getter.
   Pattern get pattern => _patterns[this.index] ??= _factory(_pattern);
-    
+
   // Instance methods.
-  Iterable<Match> allMatches(String input, [int start = 0]) => 
+  Iterable<Match> allMatches(String input, [int start = 0]) =>
       pattern.allMatches(input, start);
-    
-  Match? matchAsPrefix(String input, [int start = 0]) => 
+
+  Match? matchAsPrefix(String input, [int start = 0]) =>
       pattern.matchAsPrefix(input, start);
-    
-  // Specifies `toString`.  
+
+  // Specifies `toString`.
   String toString() => "Complex<$T>($_patternSource)";
 }
 ```
@@ -222,36 +224,47 @@ enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern 
 has equivalent class:
 
 ```dart
-class Complex<T extends Pattern> extends Enum with EnumComparable<Complex> 
+class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
     implements Pattern {
-  static const Complex<RegExp> whitespace = Complex<RegExp>(r"\s+", RegExp);
-  static const Complex<RegExp> alphanum = Complex<RegExp>.captured(r"\w+", RegExp);
-  static const Complex<Glob> anychar = Complex<Glob>("?", Glob);
+  static const Complex<RegExp> whitespace =
+      Complex<RegExp>(r"\s+", RegExp.new);
+  static const Complex<RegExp> alphanum =
+      Complex<RegExp>.captured(r"\w+", RegExp.new);
+  static const Complex<Glob> anychar = Complex<Glob>("?", Glob.new);
   static const List<Complex<Pattern>> values = [whitespace, alphanum, anychar];
-    
-  static final List<Pattern?> _patterns = List<Pattern?>.filled(3, null); 
+
+  static final List<Pattern?> _patterns = List<Pattern?>.filled(3, null);
 
   final int index;
   final String _$name;
-  final String _patternSource;  
+  final String _patternSource;
   final T Function(String) _factory;
 
-  Complex._$(this.index, this._$name, String pattern, T Function(String) factory) 
+  Complex._$(this.index, this._$name, String pattern, T Function(String) factory)
       : _patternSource = pattern, _factory = factory;
-  
-  Complex.captured(int _$index, String _$name, String regexpPattern) 
+
+  factory Complex.matching(String text) {
+    for (var value in values) {
+      if (value.allMatches(text).isNotEmpty && value is Complex<T>) {
+        return value;
+      }
+    }
+    throw UnsupportedError("No pattern matching: $text");
+  }
+
+  Complex.captured(int _$index, String _$name, String regexpPattern)
       : this(_$index, _$name, "($regexpPattern)", RegExp);
-  
-  String get name => EnumName(this).name;  
+
+  String get name => EnumName(this).name;
 
   Pattern get pattern => _patterns[this.index] ??= _factory(_pattern);
-    
-  Iterable<Match> allMatches(String input, [int start = 0]) => 
+
+  Iterable<Match> allMatches(String input, [int start = 0]) =>
       pattern.allMatches(input, start);
-    
-  Match? matchAsPrefix(String input, [int start = 0]) => 
+
+  Match? matchAsPrefix(String input, [int start = 0]) =>
       pattern.matchAsPrefix(input, start);
-    
+
   String toString() => "Complex<$T>($_patternSource)";
 }
 ```
@@ -261,9 +274,9 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
 ```dart
 enum MySingleton implements Whatever {
   instance;
- 
+
   const MySingleton(...) : ...;
-  // Normal class declarations.  
+  // Normal class declarations.
 }
 ```
 
@@ -276,7 +289,7 @@ class MySingleton extends Enum implements Whatever {
   final int index;
   final String _$name;
   const MySingleton._$(this.index, this._$name, ...) : ...;
-  // Normal class declarations.  
+  // Normal class declarations.
 }
 ```
 
