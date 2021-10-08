@@ -23248,6 +23248,8 @@ Assignment & \code{=}, \code{*=}, \code{/=}, \code{+=}, \code{-=}, \code{\&=}, \
 
 \section{Null safety} %% !!!TODO!!!
 
+\newcommand{\FlattenName}{\metavar{flatten}}
+\newcommand{\Flatten}[1]{\ensuremath{\FlattenName(\code{#1})}}
 
 \newcommand{\NnbdTopMergeName}{\metavar{topMerge}}
 \newcommand{\NnbdTopMerge}[2]{\ensuremath{\NnbdTopMergeName(\code{{#1},\,\,{#2}})}}
@@ -23262,25 +23264,23 @@ Assignment & \code{=}, \code{*=}, \code{/=}, \code{+=}, \code{-=}, \code{\&=}, \
 \newcommand{\IsObjectType}[1]{\ensuremath{\IsObjectTypeName(\code{#1})}}
 
 \newcommand{\IsBottomTypeName}{\metavar{isBottomType}}
-\newcommand{\IsBottomType}[1]{\ensuremath{\IsObjectTypeName(\code{#1})}}
+\newcommand{\IsBottomType}[1]{\ensuremath{\IsBottomTypeName(\code{#1})}}
 
 \newcommand{\IsNullTypeName}{\metavar{isNullType}}
-\newcommand{\IsNullType}[1]{\ensuremath{\IsObjectTypeName(\code{#1})}}
+\newcommand{\IsNullType}[1]{\ensuremath{\IsNullTypeName(\code{#1})}}
 
 \newcommand{\IsMoreTopTypeName}{\metavar{isMoreTopType}}
-\newcommand{\IsMoreTopType}[2]{\ensuremath{\IsObjectTypeName(\code{{#1},\,\,{#2}})}}
+\newcommand{\IsMoreTopType}[2]{\ensuremath{\IsMoreTopTypeName(\code{{#1},\,\,{#2}})}}
 
 \newcommand{\IsMoreBottomTypeName}{\metavar{isMoreBottomType}}
-\newcommand{\IsMoreBottomType}[2]{\ensuremath{\IsObjectTypeName(\code{{#1},\,\,{#2}})}}
+\newcommand{\IsMoreBottomType}[2]{\ensuremath{\IsMoreBottomTypeName(\code{{#1},\,\,{#2}})}}
 
 \newcommand{\NormalizedTypeOfName}{\metavar{normalizedTypeOf}}
 \newcommand{\NormalizedTypeOf}[1]{\ensuremath{\NormalizedTypeOfName(\code{#1})}}
 
-\newcommand{\LegacyErasureTypeOfName}{\metavar{legacyErasureTypeOf}}
-\newcommand{\LegacyErasureTypeOf}[1]{\ensuremath{\LegacyErasureTypeOfName(\code{#1})}}
+\newcommand{\FutureValueTypeOfName}{\metavar{futureValueTypeOf}}
+\newcommand{\FutureValueTypeOf}[1]{\ensuremath{\FutureValueTypeOfName(\code{#1})}}
 
-\newcommand{\ConstCanonicalTypeOfName}{\metavar{constCanonicalTypeOf}}
-\newcommand{\ConstCanonicalTypeOf}[1]{\ensuremath{\ConstCanonicalTypeOfName(\code{#1})}}
 
 \subsection{Syntax}
 
@@ -23313,11 +23313,6 @@ otherwise evaluates as \code{$e_1$[$e_2$]}.
 The grammar of cascade sequences is extended to allow the first cascade of a
 sequence to be written as \code{?..} indicating that the cascade is null-shorting.
 
-All of the syntax changes for this feature have been incorporated into
-the
-[formal grammar](https://github.com/dart-lang/language/blob/master/specification/dartLangSpec.tex),
-which serves as the canonical reference for the grammatical changes.
-
 \subsubsection{Grammatical ambiguities and clarifications}
 
 \paragraph{Conditional expression ambiguities}
@@ -23344,83 +23339,55 @@ subscript, parsers shall choose to parse as a conditional expression.
 
 \subsection{Static semantics}
 
-\subsubsection{Legacy types}
-
-The internal representation of types is extended with a type \code{$T$*} for every type
-$T$ to represent legacy pre-NNBD types.  This is discussed further in the legacy
-library section below.
-
-\subsubsection{Subtyping}
-
-We modify the subtyping rules to account for nullability and legacy types as
-specified
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
-We write \code{S <: T} to mean that the type $S$ is a subtype of $T$ according to the
-rules specified there.
-
-
-We define \code{LEGACY_SUBTYPE(S, T)} to be true iff $S$ would be a subtype of $T$
-in a modification of the rules above in which all \code{?} on types were ignored, \code{*}
-was added to each type, and \REQUIRED{} parameters were treated as optional.
-This has the effect of treating \code{Never} as equivalent to \code{Null}, restoring
-\code{Null} to the bottom of the type hierarchy, treating \code{Object} as nullable, and
-ignoring \REQUIRED{} on named parameters.  This is intended to provide the same
-subtyping results as pre-nnbd Dart.
-
-Where potentially ambiguous, we sometimes write \code{NNBD_SUBTYPE(S, T)} to mean
-the full subtyping relation without the legacy exceptions defined in the
-previous paragraph.
-
-\subsubsection{Upper and lower bounds}
-
-We modify the upper and lower bound rules to account for nullability and legacy
-types as
-specified
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).
-
 \subsubsection{Type normalization}
 
 We define a normalization procedure on types which defines a canonical
 representation for otherwise equivalent
-types
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/normalization.md).
+types here
+(\ref{sec:typeNormalization}).
 This defines a procedure \NormalizedTypeOfName{} such that \NormalizedTypeOf{$T$} is syntactically
 equal to \NormalizedTypeOf{$S$} modulo replacement of primitive top types iff \code{$S$ <: $T$}
 and \code{$T$ <: $S$}.
 
 \subsubsection{Future flattening}
 
-The **flatten** function is modified as follows:
+The \FlattenName{} function is modified as follows:
 
-**flatten**($T$) is defined by cases on $T$:
-  - if $T$ is \code{S?} then **flatten**($T$) = **flatten**($S$)\code{?}
-  - otherwise if $T$ is \code{S*} then **flatten**($T$) = **flatten**($S$)\code{*}
-  - otherwise if $T$ is \code{FutureOr<S>} then **flatten**($T$) = $S$
-  - otherwise if \code{$T$ <: Future} then let $S$ be a type such that \code{$T$ <: Future<$S$>}
-and for all $R$, if \code{$T$ <: Future<$R$>} then \code{$S$ <: $R$}; then **flatten**($T$) = $S$
-  - otherwise **flatten**($T$) = $T$
+\begin{itemize}
+\item if $T$ is \code{S?} then \Flatten{$T$} = \code{\Flatten{$S$}?}.
+\item otherwise if $T$ is \code{FutureOr<$S$>} then \Flatten{$T$} = $S$.
+\item otherwise if \code{$T$ <: Future} then let $S$ be a type such that
+  \code{$T$ <: Future<$S$>} and for all $R$,
+  if \code{$T$ <: Future<$R$>} then \code{$S$ <: $R$}; then \Flatten{$T$} = $S$.
+\item otherwise \Flatten{$T$} = $T$
+\end{itemize}
 
 \subsubsection{The future value type of an asynchronous non-generator function}
 
-_We specify a concept which corresponds to the static type of objects which may
+\commentary{%
+We specify a concept which corresponds to the static type of objects which may
 be contained in the Future object returned by an async function with a given
-declared return type._
+declared return type.%
+}
 
-Let _f_ be an asynchronous non-generator function with declared return type
-$T$. Then the **future value type** of _f_ is **futureValueType**($T$).
-The function **futureValueType** is defined as follows:
+Let $f$ be an asynchronous non-generator function with declared return type
+$T$. Then the \Index{future value type} of $f$ is \FutureValueTypeOf{$T$}.
+The function \FutureValueTypeOfName{} is defined as follows:
 
-- **futureValueType**(\code{S?}) = **futureValueType**($S$), for all $S$.
-- **futureValueType**(\code{S*}) = **futureValueType**($S$), for all $S$.
-- **futureValueType**(\code{Future<S>}) = $S$, for all $S$.
-- **futureValueType**(\code{FutureOr<S>}) = $S$, for all $S$.
-- **futureValueType**(\VOID) = \VOID.
-- **futureValueType**(\DYNAMIC) = \DYNAMIC.
-- Otherwise, for all $S$, **futureValueType**($S$) = \code{Object?}.
+\begin{itemize}
+\item \FutureValueTypeOf{$S$?} = \FutureValueTypeOf{$S$}, for all $S$.
+\item \FutureValueTypeOf{Future<S>} = $S$, for all $S$.
+\item \FutureValueTypeOf{FutureOr<S>} = $S$, for all $S$.
+\item \FutureValueTypeOf{\VOID} = \VOID.
+\item \FutureValueTypeOf{\DYNAMIC} = \DYNAMIC.
+\item Otherwise, for all $S$, \FutureValueTypeOf{$S$} = \code{Object?}.
+\end{itemize}
 
-_Note that it is a compile-time error unless the return type of an asynchronous
+\commentary{%
+Note that it is a compile-time error unless the return type of an asynchronous
 non-generator function is a supertype of \code{Future<Never>}, which means that
-the last case will only be applied when $S$ is \code{Object} or a top type._
+the last case will only be applied when $S$ is \code{Object} or a top type.%
+}
 
 \subsubsection{Return statements}
 
@@ -23436,9 +23403,11 @@ $T$ is neither \VOID{} nor \DYNAMIC,
 and $S$ is \VOID.
 \EndCase
 
-_Comparing to Dart before null-safety, this means that it is no longer allowed
+\commentary{%
+Comparing to Dart before null-safety, this means that it is no longer allowed
 to return a void expression in a regular function if the return type is
-\code{Null}._
+\code{Null}.%
+}
 
 At line 15507 about an asynchronous non-generator function with future value type $T_v$,
 the text is changed as follows:
@@ -23462,11 +23431,12 @@ $S$ is not assignable to $T_v$,
 and flatten{S} is not a subtype of $T_v$.
 \EndCase
 
-_Comparing to Dart before null-safety, this means that it is no longer allowed
+\commentary{%
+Comparing to Dart before null-safety, this means that it is no longer allowed
 to return an expression whose flattened static type is \VOID{} in an \code{async}
 function with future value type \code{Null}; nor is it allowed, in an \code{async}
 function with future value type \VOID, to return an expression whose flattened
-static type is not \VOID, \code{void*}, \DYNAMIC, or \code{Null}. Conversely, it is
+static type is not \VOID, \DYNAMIC, or \code{Null}. Conversely, it is
 allowed to return a future when the future value type is a suitable future;
 for instance, we can have \code{return Future<int>.value(42)} in an \code{async} function
 with declared return type \code{Future<Future<int>>}. Finally, let $S$ be
@@ -23474,7 +23444,8 @@ with declared return type \code{Future<Future<int>>}. Finally, let $S$ be
 return an expression with static type $S$, unless the future value type is a
 supertype of $S$. This differs from Dart before null-safety in that it was
 allowed to return an expression of these types with a declared return type
-of the form \code{Future<T>} for any $T$._
+of the form \code{Future<T>} for any $T$.%
+}
 
 The dynamic semantics specified at line 15597
 is changed as follows, where $f$ is the enclosing function with declared
@@ -23516,74 +23487,62 @@ because in that case $s$ is a compile-time error.%
 \subsubsection{Static errors}
 \paragraph{Nullability definitions}
 
-We say that a type $T$ is **nullable** if \code{Null <: $T$} and not \code{$T$ <: Object}.
+We say that a type $T$ is \Index{nullable} if \code{Null <: $T$} and not \code{$T$ <: Object}.
 This is equivalent to the syntactic criterion that $T$ is any of:
-  - \code{Null}
-  - \code{$S$?} for some $S$
-  - \code{$S$*} for some $S$ where $S$ is nullable
-  - \code{FutureOr<$S$>} for some $S$ where $S$ is nullable
-  - \DYNAMIC{}
-  - \VOID{}
+
+\begin{itemize}
+\item \code{Null}
+\item \code{$S$?} for some $S$
+\item \code{FutureOr<$S$>} for some $S$ where $S$ is nullable
+\item \DYNAMIC{}
+\item \VOID{}
+\end{itemize}
 
 Nullable types are types which are definitively known to be nullable, regardless
-of instantiation of type variables, and regardless of any choice of replacement
-for the \code{*} positions (with \code{?} or nothing).
+of instantiation of type variables.
 
-We say that a type $T$ is **non-nullable** if \code{$T$ <: Object}.
+We say that a type $T$ is \Index{non-nullable} if \code{$T$ <: Object}.
 This is equivalent to the syntactic criterion that $T$ is any of:
-  - \code{Never}
-  - Any function type (including \FUNCTION)
-  - Any interface type except \code{Null}.
-  - \code{$S$*} for some $S$ where $S$ is non-nullable
-  - \code{FutureOr<$S$>} where $S$ is non-nullable
-  - \code{$X$ \EXTENDS\ $S$} where $S$ is non-nullable
-  - \code{$X$ \& $S$} where $S$ is non-nullable
+
+\begin{itemize}
+\item \code{Never}
+\item Any function type (including \FUNCTION)
+\item Any interface type except \code{Null}.
+\item \code{FutureOr<$S$>} where $S$ is non-nullable
+\item \code{$X$ \EXTENDS\ $S$} where $S$ is non-nullable
+\item \code{$X$ \& $S$} where $S$ is non-nullable
+\end{itemize}
 
 Non-nullable types are types which are either definitively known to be
-non-nullable regardless of instantiation of type variables, or for which
-replacing the \code{*} positions with nothing will result in a non-nullable type.
+non-nullable regardless of instantiation of type variables.
 
 Note that there are types which are neither nullable nor non-nullable.  For
 example \code{X \EXTENDS\ T} where $T$ is nullable is neither nullable nor
 non-nullable.
 
-We say that a type $T$ is **strictly non-nullable** if \code{$T$ <: Object} and not
+We say that a type $T$ is \Index{strictly non-nullable} if \code{$T$ <: Object} and not
 \code{Null <: $T$}.  This is equivalent to the syntactic criterion that $T$ is any of:
-  - \code{Never}
-  - Any function type (including \code{Function})
-  - Any interface type except \code{Null}.
-  - \code{FutureOr<S>} where $S$ is strictly non-nullable
-  - \code{X \EXTENDS\ S} where $S$ is strictly non-nullable
-  - \code{X \& S} where $S$ is strictly non-nullable
 
-We say that a type $T$ is **potentially nullable** if $T$ is not non-nullable.
+\begin{itemize}
+\item \code{Never}
+\item Any function type (including \code{Function})
+\item Any interface type except \code{Null}.
+\item \code{FutureOr<S>} where $S$ is strictly non-nullable
+\item \code{X \EXTENDS\ S} where $S$ is strictly non-nullable
+\item \code{X \& S} where $S$ is strictly non-nullable
+\end{itemize}
+
+We say that a type $T$ is \Index{potentially nullable} if $T$ is not non-nullable.
 Note that this is different from saying that $T$ is nullable.  For example, a
 type variable \code{X \EXTENDS\ Object?} is a type which is potentially nullable but
-not nullable.  Note that \code{$T$*} is potentially nullable by this definition if $T$
-is potentially nullable - so \code{int*} is not potentially nullable, but \code{$X$*} where
-\code{$X$ \EXTENDS\ int?} is.  The potentially nullable types include all of the types
+not nullable. The potentially nullable types include all of the types
 which are either definitely nullable, potentially instantiable to a nullable
-type, or for which any migration results in a potentially nullable type.
+type.
 
-We say that a type $T$ is **potentially non-nullable** if $T$ is not nullable.
+We say that a type $T$ is \Index{potentially non-nullable} if $T$ is not nullable.
 Note that this is different from saying that $T$ is non-nullable.  For example,
 a type variable \code{$X$ \EXTENDS\ Object?} is a type which is potentially non-nullable
-but not non-nullable.  Note that \code{$T$*} is potentially non-nullable by this
-definition if $T$ is potentially non-nullable.
-
-
-\paragraph{Reachability}
-
-A number of errors and warnings are updated to take reachability of statements
-into account.  Computation of code reachability
-is
-[specified separately](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
-
-We say that a statement **may complete normally** if the specified control flow
-analysis determines that any control flow path may reach the end of the
-statement without returning, throwing an exception not caught within the
-statement, breaking to a location outside of the statement, or continuing to a
-location outside of the statement.
+but not non-nullable.
 
 \paragraph{Errors and Warnings}
 
@@ -23618,10 +23577,10 @@ instance variable with a potentially non-nullable type and no initializer
 expression unless the variable is marked with the \LATE{} modifier.
 
 It is an error if the body of a method, function, getter, or function expression
-with a potentially non-nullable return type **may complete normally**.
+with a potentially non-nullable return type may complete normally.
 
 It is an error if an optional parameter (named or otherwise) with no default
-value has a potentially non-nullable type **except** in the parameter list of an
+value has a potentially non-nullable type except in the parameter list of an
 abstract method declaration.
 
 It is an error if a required named parameter has a default value.
@@ -23666,7 +23625,7 @@ It is an error for the initializer expression of a \LATE{} local variable to use
 a prefix \AWAIT{} expression that is not nested inside of another function
 expression.
 
-It is an error for a class with a generative \CONST{} constructor to have a 
+It is an error for a class with a generative \CONST{} constructor to have a
 \code{\LATE\ \FINAL} instance variable.
 
 It is not a compile time error to write to a \FINAL{} non-local or instance
@@ -23682,22 +23641,25 @@ not a subtype of the class type associated with the class in which it is defined
 constructor for any class other than \code{Null}).
 
 It is an error if any case of a switch statement except the last case (the
-default case if present) **may complete normally**.  The previous syntactic
+default case if present) may complete normally.  The previous syntactic
 restriction requiring the last statement of each case to be one of an enumerated
 list of statements (break, continue, return, throw, or rethrow) is removed.
 
 Given a switch statement which switches over an expression $e$ of type $T$,
 where the cases are dispatched based on expressions \List{e}{0}{k}:
-  - It is no longer required that the $e_i$ evaluate to instances of the same
+
+\begin{itemize}
+\item It is no longer required that the $e_i$ evaluate to instances of the same
     class.
-  - It is an error if any of the $e_i$ evaluate to a value whose static type is
+\item It is an error if any of the $e_i$ evaluate to a value whose static type is
     not a subtype of $T$.
-  - It is an error if any of the $e_i$ evaluate to constants for which equality
+\item It is an error if any of the $e_i$ evaluate to constants for which equality
     is not primitive.
-  - If $T$ is an enum type, it is a warning if the switch does not handle all
+\item If $T$ is an enum type, it is a warning if the switch does not handle all
     enum cases, either explicitly or via a default.
-  - If $T$ is \code{$Q$?} where $Q$ is an enum type, it is a warning if the switch does
+\item If $T$ is \code{$Q$?} where $Q$ is an enum type, it is a warning if the switch does
     not handle all enum cases and \code{null}, either explicitly or via a default.
+\end{itemize}
 
 It is an error if a class has a setter and a getter with the same basename where
 the return type of the getter is not a subtype of the argument type of the
@@ -23705,22 +23667,18 @@ setter.  Note that this error specifically requires subtyping and not
 assignability and hence makes no exception for \DYNAMIC.
 
 If the static type of $e$ is \VOID, the expression \code{\AWAIT\,\,$e$} is a compile-time
-error. *This implies that the list item at line 18281
-will be removed from the language specification.*
-
-A compile-time error occurs if an expression has static type \code{\VOID{}*}, and it
-does not occur in any of the ways specified in the list on line 18238.
-*This implies that \code{\VOID{}*} is treated the same as \VOID.*
+error. This implies that the list item at line 18281
+will be removed from the language specification.
 
 Let $C$ be a type literal denoting a class, mixin, or extension. It is a warning
-to use a null aware member access with receiver $C$. *E.g., \code{$C$?.staticMethod()}
-is a warning.*
+to use a null aware member access with receiver $C$.
+\commentary{E.g., \code{$C$?.staticMethod()} is a warning.}
 
 It is a warning to use a null aware operator (\code{?.}, \code{?[]}, \code{?..}, \code{??}, \code{??=}, or
-\code{...?}) on an expression of type $T$ if $T$ is **strictly non-nullable**.
+\code{...?}) on an expression of type $T$ if $T$ is strictly non-nullable.
 
 It is a warning to use the null check operator (\code{!}) on an expression of type
-$T$ if $T$ is **strictly non-nullable** .
+$T$ if $T$ is strictly non-nullable.
 
 It is no longer a warning to override a method which has a default value for a
 parameter with a method with a different default value for the corresponding
@@ -23729,10 +23687,11 @@ parameter.
 \subsubsection{Local variables and definite (un)assignment}
 
 As part of the null safety release, errors for local variables are specified to
-take into account **definite assignment** and **definite unassignment** (see the
-section on Definite Assignment below).  We say that a variable is **potentially
-assigned** if it is not **definitely unassigned**, and that a variable is
-**potentially unassigned** if it is not **definitely assigned**.
+take into account definite assignment and definite unassignment (see the
+section on Definite Assignment below).  We say that a variable is
+\Index{potentially assigned}
+if it is not definitely unassigned, and that a variable is
+\Index{potentially unassigned} if it is not definitely assigned.
 
 In all cases in this section, errors that are described as occurring on reads of
 a variable are intended to apply to all form of reads, including indirectly as
@@ -23741,29 +23700,31 @@ operators.  Similarly, errors that are described as occurring on writes of a
 variable are intended to apply to all form of writes.
 
 It is a compile time error to assign a value to a \FINAL, non-\LATE{} local
-variable which is **potentially assigned**.  Thus, it is *not* a compile time
-error to assign to a **definitely unassigned** \FINAL{} local variable.
+variable which is \Index{potentially assigned}.  Thus, it is not a compile time
+error to assign to a definitely unassigned \FINAL{} local variable.
 
 It is a compile time error to assign a value to a \FINAL, \LATE{} local variable
-if it is **definitely assigned**. Thus, it is *not* a compile time error to
-assign to a **potentially unassigned** \FINAL, \LATE{} local variable.
+if it is definitely assigned. Thus, it is not a compile time error to
+assign to a potentially unassigned \FINAL, \LATE{} local variable.
 
-*Note that a variable is always considered **definitely assigned** and not
-**definitely unassigned** if it has an explicit initializer, or an implicit
+\commentary{%
+Note that a variable is always considered definitely assigned and not
+definitely unassigned if it has an explicit initializer, or an implicit
 initializer as part of a larger construct (e.g. the loop variable in a for-in
-construct).*
+construct).%
+}
 
 It is a compile time error to read a local variable when the variable is
-**definitely unassigned** unless the variable is non-\FINAL, and non-\LATE,
+definitely unassigned, unless the variable is non-\FINAL, and non-\LATE,
 and has nullable type.
 
 It is a compile time error to read a local variable when the variable is
-**potentially unassigned** unless the variable is non-\FINAL{} and has nullable
+potentially unassigned, unless the variable is non-\FINAL{} and has nullable
 type, or is \LATE.
 
 The errors specified above are summarized in the following table, where \code{int} is
-used as an example of an arbitrary **potentially non-nullable** type, \code{int?} is
-used as an example of an arbitrary **nullable** type, and $T$ is used to stand
+used as an example of an arbitrary potentially non-nullable type, \code{int?} is
+used as an example of an arbitrary nullable type, and $T$ is used to stand
 for a type of any nullability.  A variable which has an initializer (explicit or
 implicit) is always considered definitely assigned, and is never considered
 definitely unassigned.
@@ -23808,12 +23769,14 @@ in the sense defined in the flow analysis specification.  If the variable has an
 initializer (explicit or implicit) and is not \FINAL, then the declaration is
 treated as an assignment for the purposes of promotion.
 
-*Treating the declared type of the variable as a "type of interest" implies that
+\commentary{%
+Treating the declared type of the variable as a "type of interest" implies that
 if the variable has a nullable type, then the non-nullable version of that type
 is also a type of interest.  Treating the initialization as an assignment for
 the purposes of promotion means that initializing a mutable variable declared at
 type \code{$T$?} with a value of non-nullable type $T$ immediately promotes the
-variable to the non-nullable type.*
+variable to the non-nullable type.%
+}
 
 \begin{dartCode}
 \VOID test() \{
@@ -23841,10 +23804,14 @@ is defined on \code{Object} on potentially nullable type.  The type used for sta
 analysis of such an invocation or tear-off shall be the type declared on the
 relevant member on \code{Object}.  For example, given a receiver $o$ of type \code{$T$?},
 invoking an \code{Object} member on $o$ shall use the type of the member as declared
-on \code{Object}, regardless of the type of the member as declared on $T$ (note that
+on \code{Object}, regardless of the type of the member as declared on $T$.
+
+\commentary{%
+Note that
 the type as declared on $T$ must be a subtype of the type on \code{Object}, and so
 choosing the \code{Object} type is a sound choice.  The opposite choice is not
-sound).
+sound.%
+}
 
 \commentary{%
 Note that evaluation of an expression $e$ of the form \code{$e_1$\,\,==\,\,$e_2$} is not an
@@ -23882,19 +23849,8 @@ This is again safe, because the instance method will not be invoked when $e_2$
 is null.%
 }
 
-In legacy mode, an override of \code{operator\,\,==} with no explicit parameter type
-inherits the parameter type of the overridden method if any override of
-\code{operator\,\,==} between the overriding method and \code{Object.==} has an explicit
-parameter type.  Otherwise, the parameter type of the overriding method is
-\DYNAMIC.
-
-Top level variable and local function inference is performed
-as specified separately, https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md.
-Method body inference is not yet specified.
-
 If no type is specified in a catch clause, then the default type of the error
-variable is \code{Object}, instead of \DYNAMIC{} as was the case in pre-null safe
-Dart.
+variable is \code{Object}.
 
 \paragraph{Spread element typing}
 
@@ -23931,13 +23887,13 @@ provides a syntactic characterization of the same concept.
 The definition of a super-bounded type is changed such that occurrences of
 \code{Null} are replaced by types involving \code{Never}, and \code{Object} is replaced by
 \code{Object?}. Moreover, top types in invariant positions and in positions that
-have no variance (*unused type parameters in a type alias*) are given the
+have no variance (\commentary{unused type parameters in a type alias}) are given the
 same treatment as top types in covariant positions. This causes one
 sentence to change, with the following result:
 
-Let _T'_ be the result of replacing every occurrence in _T_ of a type _S_
-in a contravariant position where _S <: Never_ by \code{Object?}, and every
-occurrence in _T_ of a top type in a position which is not contravariant by
+Let $T'$ be the result of replacing every occurrence in $T$ of a type $S$
+in a contravariant position where \code{$S$ <: Never} by \code{Object?}, and every
+occurrence in $T$ of a top type in a position which is not contravariant by
 \code{Never}.
 
 \subsubsection{Least and greatest closure}
@@ -23980,7 +23936,7 @@ type \code{Never}.
 
 The definition of assignability is changed as follows.
 
-A type $T$ is **assignable** to a type $S$ if $T$ is \DYNAMIC, or if $T$ is a
+A type $T$ is \Index{assignable} to a type $S$ if $T$ is \DYNAMIC, or if $T$ is a
 subtype of $S$.
 
 \subsubsection{Generics}
@@ -23998,12 +23954,12 @@ is changed such that the all the most specific signatures are merged.
 This is achieved by changing this paragraph, line 4373,
 to the following:
 
-"Let _m<sub>all</sub>_ be the result of applying \code{\NnbdTopMergeName} to
-the elements in _M<sub>all</sub>_, ordered according to the interface
-_I<sub>1</sub> .. I<sub>k</sub>_ that each signature came from."
+"Let $m_{\metavar{all}}$ be the result of applying \NnbdTopMergeName{} to
+the elements in $M_{\metavar{all}}$, ordered according to the interface
+\List{I}{1}{k} that each signature came from."
 
-Moreover, the occurrence of _m<sub>i</sub>_ in the next paragraph is
-changed to _m<sub>all</sub>_.
+Moreover, the occurrence of $m_i$ in the next paragraph is
+changed to $m_{\metavar{all}}$.
 
 \subsubsection{Implicit conversions}
 
@@ -24014,7 +23970,7 @@ The implicit tear-off conversion which converts uses of instances of classes
 with call methods to the tear-off of their \CALL{} method is performed when the
 context type is a function type, or the nullable version of a function type.
 
-Implicit tear-off conversion is *not* performed on objects of nullable type,
+Implicit tear-off conversion is not performed on objects of nullable type,
 regardless of the context type.  For example:
 
 \begin{dartCode}
@@ -24110,22 +24066,23 @@ type \code{$T$?} promotes the type of $e$ to $T$ in the \code{true} continuation
 The static type of an expression \code{$e$!} is \NonNullTypeOf{$T$} where $T$ is the
 static type of $e$.
 
-The **NonNull** function defines the null-promoted version of a type, and is
+The \NonNullTypeOfName{} function defines the null-promoted version of a type, and is
 defined as follows.
 
-- \NonNullTypeOf{Null} = \code{Never}
-- \NonNullTypeOf{$C$<$T_1$, \ldots, $T_n$>} = \code{$C$<$T_1$, \ldots, $T_n$>},
+\begin{itemize}
+\item \NonNullTypeOf{Null} = \code{Never}
+\item \NonNullTypeOf{$C$<$T_1$, \ldots, $T_n$>} = \code{$C$<$T_1$, \ldots, $T_n$>},
   for class $C$ other than \code{Null} (including \code{Object}).
-- \NonNullTypeOf{FutureOr<$T$>} = \code{FutureOr<$T$>}
-- \NonNullTypeOf{$T_0$ \FUNCTION(\ldots)} = \code{$T_0$ \FUNCTION(\ldots)}
-- \NonNullTypeOf{\FUNCTION} = \FUNCTION{}
-- \NonNullTypeOf{Never} = \code{Never}
-- \NonNullTypeOf{\DYNAMIC} = \DYNAMIC{}
-- \NonNullTypeOf{\VOID} = \VOID{}
-- \NonNullTypeOf{$X$} = \code{$X$ \& \NonNullTypeOf{$B$}}, where $B$ is the bound of $X$.
-- \NonNullTypeOf{$X$ \& $T$} = \code{$X$ \& \NonNullTypeOf{$T$}}
-- \NonNullTypeOf{$T$?} = \NonNullTypeOf{$T$}
-- \NonNullTypeOf{$T$*} = \NonNullTypeOf{$T$}
+\item \NonNullTypeOf{FutureOr<$T$>} = \code{FutureOr<$T$>}
+\item \NonNullTypeOf{$T_0$ \FUNCTION(\ldots)} = \code{$T_0$ \FUNCTION(\ldots)}
+\item \NonNullTypeOf{\FUNCTION} = \FUNCTION{}
+\item \NonNullTypeOf{Never} = \code{Never}
+\item \NonNullTypeOf{\DYNAMIC} = \DYNAMIC{}
+\item \NonNullTypeOf{\VOID} = \VOID{}
+\item \NonNullTypeOf{$X$} = \code{$X$ \& \NonNullTypeOf{$B$}}, where $B$ is the bound of $X$.
+\item \NonNullTypeOf{$X$ \& $T$} = \code{$X$ \& \NonNullTypeOf{$T$}}
+\item \NonNullTypeOf{$T$?} = \NonNullTypeOf{$T$}
+\end{itemize}
 
 \paragraph{Extended Type promotion, Definite Assignment, and Reachability}
 
@@ -24141,77 +24098,81 @@ subtyping.
 The \IsTopTypeName{} predicate is true for any type which is in the equivalence class of
 top types.
 
-- \IsTopType{$T$?} is true iff \IsTopType{$T$} or \IsObjectType{$T$}
-- \IsTopType{$T$*} is true iff \IsTopType{$T$} or \IsObjectType{$T$}
-- \IsTopType{\DYNAMIC} is true
-- \IsTopType{\VOID} is true
-- \IsTopType{FutureOr<$T$>} is \IsTopType{$T$}
-- \IsTopType{$T$} is false otherwise
+\begin{itemize}
+\item \IsTopType{$T$?} is true iff \IsTopType{$T$} or \IsObjectType{$T$}
+\item \IsTopType{\DYNAMIC} is true
+\item \IsTopType{\VOID} is true
+\item \IsTopType{FutureOr<$T$>} is \IsTopType{$T$}
+\item \IsTopType{$T$} is false otherwise
+\end{itemize}
 
 \IsTopType{$T$} is true if and only if $T$ is a supertype of \code{Object?}.
 
 The \IsObjectTypeName{} predicate is true for any type which is in the equivalence class
 of \code{Object}.
 
-- \IsObjectType{Object} is true
-- \IsObjectType{FutureOr<$T$>} is \IsObjectType{$T$}
-- \IsObjectType{$T$} is false otherwise
+\begin{itemize}
+\item \IsObjectType{Object} is true
+\item \IsObjectType{FutureOr<$T$>} is \IsObjectType{$T$}
+\item \IsObjectType{$T$} is false otherwise
+\end{itemize}
 
 \IsObjectType{$T$} is true if and only if $T$ is a subtype and a supertype of
 \code{Object}.
 
 The \IsBottomTypeName{} predicate is true for things in the equivalence class of \code{Never}.
 
-- \IsBottomType{Never} is true
-- \IsBottomType{$X$ \& $T$} is true iff \IsBottomType{$T$}
-- \IsBottomType{$X$ \EXTENDS\ $T$} is true iff \IsBottomType{$T$}
-- \IsBottomType{$T$} is false otherwise
+\begin{itemize}
+\item \IsBottomType{Never} is true
+\item \IsBottomType{$X$ \& $T$} is true iff \IsBottomType{$T$}
+\item \IsBottomType{$X$ \EXTENDS\ $T$} is true iff \IsBottomType{$T$}
+\item \IsBottomType{$T$} is false otherwise
+\end{itemize}
 
 \IsBottomType{$T$} is true if and only if $T$ is a subtype of \code{Never}.
 
 The \IsNullTypeName{} predicate is true for things in the equivalence class of \code{Null}.
 
-- \IsNullType{Null} is true
-- \IsNullType{$T$?} is true iff \IsNullType{$T$} or \IsBottomType{$T$}
-- \IsNullType{$T$*} is true iff \IsNullType{$T$} or \IsBottomType{$T$}
-- \IsNullType{$T$} is false otherwise
+\begin{itemize}
+\item \IsNullType{Null} is true
+\item \IsNullType{$T$?} is true iff \IsNullType{$T$} or \IsBottomType{$T$}
+\item \IsNullType{$T$} is false otherwise
+\end{itemize}
 
 \IsNullType{$T$} is true if and only if $T$ is a subtype and a supertype of \code{Null}.
 
 The \IsMoreTopTypeName{} predicate defines a total order on top and \code{Object} types.
 
-- \IsMoreTopType{\VOID}{$T$} = \code{true}
-- \IsMoreTopType{$T$}{\VOID} = \code{false}
-- \IsMoreTopType{\DYNAMIC}{$T$} = \code{true}
-- \IsMoreTopType{$T$}{\DYNAMIC} = \code{false}
-- \IsMoreTopType{Object}{$T$} = \code{true}
-- \IsMoreTopType{$T$}{Object} = \code{false}
-- \IsMoreTopType{$T$*}{$S$*} = \IsMoreTopType{$T$}{$S$}
-- \IsMoreTopType{$T$}{$S$*} = \code{true}
-- \IsMoreTopType{$T$*}{$S$} = \code{false}
-- \IsMoreTopType{$T$?}{$S$?} = \IsMoreTopType{$T$}{$S$}
-- \IsMoreTopType{$T$}{$S$?} = \code{true}
-- \IsMoreTopType{$T$?}{$S$} = \code{false}
-- \IsMoreTopType{FutureOr<$T$>}{FutureOr<$S$>} = \IsMoreTopType{$T$}{$S$}
+\begin{itemize}
+\item \IsMoreTopType{\VOID}{$T$} = \code{true}
+\item \IsMoreTopType{$T$}{\VOID} = \code{false}
+\item \IsMoreTopType{\DYNAMIC}{$T$} = \code{true}
+\item \IsMoreTopType{$T$}{\DYNAMIC} = \code{false}
+\item \IsMoreTopType{Object}{$T$} = \code{true}
+\item \IsMoreTopType{$T$}{Object} = \code{false}
+\item \IsMoreTopType{$T$?}{$S$?} = \IsMoreTopType{$T$}{$S$}
+\item \IsMoreTopType{$T$}{$S$?} = \code{true}
+\item \IsMoreTopType{$T$?}{$S$} = \code{false}
+\item \IsMoreTopType{FutureOr<$T$>}{FutureOr<$S$>} = \IsMoreTopType{$T$}{$S$}
+\end{itemize}
 
 The \IsMoreBottomTypeName{} predicate defines an (almost) total order on bottom and
 \code{Null} types.  This does not currently consistently order two different type
 variables with the same bound.
 
-- \IsMoreBottomType{Never}{$T$} = \code{true}
-- \IsMoreBottomType{$T$}{Never} = \code{false}
-- \IsMoreBottomType{Null}{$T$} = \code{true}
-- \IsMoreBottomType{$T$}{Null} = \code{false}
-- \IsMoreBottomType{$T$?}{$S$?} = \IsMoreBottomType{$T$}{$S$}
-- \IsMoreBottomType{$T$}{$S$?} = \code{true}
-- \IsMoreBottomType{$T$?}{$S$} = \code{false}
-- \IsMoreBottomType{$T$*}{$S$*} = \IsMoreBottomType{$T$}{$S$}
-- \IsMoreBottomType{$T$}{$S$*} = \code{true}
-- \IsMoreBottomType{$T$*}{$S$} = \code{false}
-- \IsMoreBottomType{$X$ \& $T$}{$Y$ \& $S$} = \IsMoreBottomType{$T$}{$S$}
-- \IsMoreBottomType{$X$ \& $T$}{$S$} = \code{true}
-- \IsMoreBottomType{$S$, $X$ \& $T$} = \code{false}
-- \IsMoreBottomType{$X$ \EXTENDS\ $T$}{$Y$ \EXTENDS\ $S$} = \IsMoreBottomType{$T$}{$S$}
+\begin{itemize}
+\item \IsMoreBottomType{Never}{$T$} = \code{true}
+\item \IsMoreBottomType{$T$}{Never} = \code{false}
+\item \IsMoreBottomType{Null}{$T$} = \code{true}
+\item \IsMoreBottomType{$T$}{Null} = \code{false}
+\item \IsMoreBottomType{$T$?}{$S$?} = \IsMoreBottomType{$T$}{$S$}
+\item \IsMoreBottomType{$T$}{$S$?} = \code{true}
+\item \IsMoreBottomType{$T$?}{$S$} = \code{false}
+\item \IsMoreBottomType{$X$ \& $T$}{$Y$ \& $S$} = \IsMoreBottomType{$T$}{$S$}
+\item \IsMoreBottomType{$X$ \& $T$}{$S$} = \code{true}
+\item \IsMoreBottomType{$S$, $X$ \& $T$} = \code{false}
+\item \IsMoreBottomType{$X$ \EXTENDS\ $T$}{$Y$ \EXTENDS\ $S$} = \IsMoreBottomType{$T$}{$S$}
+\end{itemize}
 
 \subsubsection{The main function}
 
@@ -24239,12 +24200,14 @@ in the exported namespace of $L$ is invoked as follows:
 If \code{main} can be called with two positional arguments,
 it is invoked with the following two actual arguments:
 
-- An object whose run-time type implements \code{List<String>}.
-- An object specified when the current isolate $i$ was created,
+\begin{itemize}
+\item An object whose run-time type implements \code{List<String>}.
+\item An object specified when the current isolate $i$ was created,
   for example through the invocation of \code{Isolate.spawnUri} that spawned $i$,
   or the null object if no such object was supplied.
   A dynamic error occurs if the run-time type of this object is not a
   subtype of the declared type of the corresponding parameter of \code{main}.
+\end{itemize}
 
 If \code{main} cannot be called with two positional arguments, but it can be
 called with one positional argument, it is invoked with an object whose
@@ -24254,48 +24217,16 @@ If \code{main} cannot be called with one or two positional arguments, it is
 invoked with no arguments.
 
 In each of the above three cases, an implementation is free to provide
-additional arguments allowed by the signature of \code{main} (*the above rules
-ensure that the corresponding parameters are optional*).  But the
-implementation must ensure that a dynamic error occurs if an actual
-argument does not have a run-time type which is a subtype of the declared
-type of the parameter.
+additional arguments allowed by the signature of \code{main}
+(\commentary{the above rules ensure that the corresponding parameters are optional}).
+But the implementation must ensure that a dynamic error occurs if an
+actual argument does not have a run-time type which is a subtype of
+the declared type of the parameter.
 
 A Dart program will typically be executed by executing a script.  The
 procedure whereby this script is chosen is implementation specific.
 
 \subsection{Runtime semantics}
-
-\subsubsection{Unsound and sound semantics}
-
-To allow the null safety feature to be rolled out incrementally, we define two
-modes of compilation and execution.
-
-**Unsound null checking** mode largely ignores the nullability of types at
-runtime, as defined below.  Unmigrated programs or programs consisting of a
-mix of migrated and unmigrated code are expected to run without encountering
-new nullability related errors at runtime.  **This mode is unsound** in the
-sense that variables marked as non-nullable may still be null at runtime.
-
-**Sound null checking** mode respects the nullability of types at runtime in
-casts and instance checks, as defined below.  Unmigrated programs or programs
-consisting of a mix of migrated and unmigrated code may not be compiled or run
-with sound null checking, and it is a compile time error if unmigrated
-code is attempted to be compiled with sound null checking enabled.
-
-Unsound vs sound null checking can be controlled at runtime via the
-\code{--[no-]sound-null-safety} flag, where the negated version of the flag implies
-unsound null checking and the unnegated version implies sound null checking.
-
-In the absence of an explicit value for the flag, the mode of execution depends
-on migrated status of the program entry point.  If the entry point of the
-program (\code{main}) is in an opted-in library, then the program is compiled and run
-as if \code{--sound-null-safety} were specified on the command line.  Otherwise,
-the program is run as if \code{--no-sound-null-safety} were specified on the
-command line.
-
-Compilers may (and are encouraged to) print a warning indicating that sound null
-checking has been disabled when compiling a program that contains migrated
-libraries with unsound null checking.
 
 \subsubsection{Runtime type equality operator}
 
@@ -24303,49 +24234,32 @@ Two objects $T_1$ and $T_2$ which are instances of \code{Type} (that is, runtime
 objects) are considered equal if and only if the runtime type objects $T_1$ and
 $T_2$ corresponds to the types $S_1$ and $S_2$ respectively, and the normal forms
 \NormalizedTypeOf{$S_1$} and \NormalizedTypeOf{$S_2$} are syntactically equal up to equivalence of
-bound variables and **ignoring \code{*} modifiers on types**.  So for example, the
-run-time type objects corresponding to \code{List<int>} and \code{List<int*>} are
-considered equal.  Note that we do not equate primitive top types.  \code{List<\VOID>}
+bound variables. Note that we do not equate primitive top types.  \code{List<\VOID>}
 and \code{List<\DYNAMIC>} are still considered distinct runtime type objects.  Note
-that we also do not equate \code{Never} and \code{Null}, and we do not equate function
-types which differ in the placement of \REQUIRED{} on parameter types.  Because
-of this, the equality described here is not equivalent to syntactic equality on
-the \LegacyErasureTypeOfName{} of the types.
-
+that we also do not equate function
+types which differ in the placement of \REQUIRED{} on parameter types.
 
 \subsubsection{Constant evaluation and canonicalization}
-
-Constant evaluation is modified so that both type literals and legacy and opted-in
-instances canonicalize more consistently as defined below.
 
 \paragraph{Type literals}
 
 Two constant type literals $T_1$ and $T_2$ compare as identical if they
 are equal using the definition of runtime type equality specified above.
 
-The effect of this definition is to ensure that constant type literals which
-look identical in the source syntax but which may differ by the presence of
-legacy type modifiers are canonicalized consistently in the sense that any two
-type literals which would compare equal via the definition of runtime type
-equality given above will compare as identical.  For runtime implementations
-which implement identity by choosing a canonical representative for the
-equivalence class of equal instances, the choice of what type object to
-canonicalize to is arbitrary in that placement of legacy modifiers in type
-literals is not otherwise observable in the language.
-
-Note that the choice of canonicalization for type literals does not depend
-directly on whether sound or unsound null checking is in use.
+For runtime implementations which implement identity by choosing a
+canonical representative for the equivalence class of equal instances,
+the choice of what type object to canonicalize to is not
+observable in the language.
 
 \paragraph{Constant instances}
 
-In both sound and unsound null checking, and in both opted in and opted out
-code, comparison of constant instances for identity is defined such that any two
+Any two
 instances which are otherwise identical except for their generic type arguments
 shall be considered identical if those generic type arguments compare equal
 using the definition of runtime type object equality defined above.  That is,
 comparison (or canonicalization) of constant instances of generic classes is
-performed relative to the normal forms of their generic type arguments, and
-ignoring legacy type annotations as described above.  Hence, an instance of
+performed relative to the normal forms of their generic type arguments.
+Hence, an instance of
 \code{$C$<$T_0$>} compares identical to \code{C<$T_1$>} if $T_0$ and $T_1$ have the same normal form
 (up to the identity of bound variables), and the objects are otherwise
 identical.
@@ -24354,105 +24268,16 @@ Implementations of the Dart runtime semantics rely on canonicalization of
 constant objects to allow the identity semantics specified above to be
 implemented as fast pointer equality checks on the reference to the canonical
 form.  The definition above defines equivalence classes of constant objects for
-which we must choose the canonical representative.  The choice of this
-representative is observable in mixed mode programs, since instances with
-different degrees of "legacy-ness" in their type arguments are considered
-identical, but may contain operations which perform casts and instance checks
-which will evaluate differently depending on whether a legacy type or a
-non-legacy type is used in the canonical representative.  For example:
+which we must choose the canonical representative.
 
-\begin{dartCode}
-// null safe code.
-\CLASS{} C<T> \{
-  \FINAL\ T x;
-  \VOID\ test(Object? o) \{
-    o \AS\ T;
-  \}
-  \CONST\ C(Object? o) : x = o \AS\ T;
-\}
-
-// If the canonical instance uses `int`, this is a compile time error
-// If the canonical instance uses `int*`, this is not a compile time error
-\CONST\ c1 = C<int>(null);
-
-// If the canonical instance uses `int`, this throws
-// If the canonical instance uses `int*`, this does not throw
-\VOID\ test1() => c1.test(null);
-
-// Opted out code
-
-// If the canonical instance uses `int`, this is a compile time error
-// If the canonical instance uses `int*`, this is not a compile time error
-\CONST\ c2 = C<int>(null);
-
-// If the canonical instance uses `int`, this throws
-// If the canonical instance uses `int*`, this does not throw
-\VOID\ test1() => c2.test(null);
-\end{dartCode}
-
-We therefore define the choice of the canonical instance representing an
+We define the choice of the canonical instance representing an
 equivalence class of constant objects as follows.
 
-With sound null checking, all generic constant constructors and generic constant
+All generic constant constructors and generic constant
 literals are evaluated using the type arguments provided, and canonicalization
 is performed with respect to the normal form of the type arguments.  This
-ensures that with sound null checking, the final consistent semantics are
-obeyed, since it is not observable which instance is chosen as the canonical
-representative in sound mode.
-
-With unsound null checking, all generic constant object expressions are
-additionally treated as if all type arguments passed to them were legacy types
-regardless of whether the constructed class was defined in a legacy library or
-not, and regardless of whether the constructor invocation or literal occured in
-a legacy library or not.  Specifically, a constant object expression with
-generic type parameters $T_i$ is treated as if the parameters were
-\ConstCanonicalTypeOf{$T_i$} as defined below.  This ensures that constant
-objects which appear identical in the syntax continue to canonicalize
-consistently across legacy and opted-in libraries.
-
-The Dart static analysis tool does not distinguish between sound and unsound
-checking mode, and hence it is expected that there will be some small level of
-infidelity in the constant evaluation semantics in the analyzer.  Identity
-semantics for constant objects can be faithfully modeled in the analyzer using
-the existing strategy of implementing identity directly, rather than via
-choosing a canonical representative for each equivalence class.  However, the
-lack of a canonical representative is observable at compile time in rare cases,
-such as the example shown above.  We propose that the analyzer should choose to
-evaluate those constants in opted in libraries using sound mode semantics, and
-to evaluate those in opted out libraries using unsound mode semantics.  Hence in
-the example above, the definition of \code{c1} would be a compile time error, but the
-definition of \code{c2} would not.
-
-The \ConstCanonicalTypeOfName{} erasure operation on types used above is
-defined as follows.
-
-- \ConstCanonicalTypeOf{$T$} = $T$, if $T$ is \DYNAMIC, \VOID, or \code{Null}
-- \ConstCanonicalTypeOf{$T$} = \code{$T$*} if $T$ is \code{Never} or \code{Object}
-- \ConstCanonicalTypeOf{FutureOr<$T$>} = \code{FutureOr<$S$>*}
-  - where $S$ is \ConstCanonicalTypeOf{$T$}
-- \ConstCanonicalTypeOf{$T$?} =
-  - let $S$ be \ConstCanonicalTypeOf{$T$}
-  - if $S$ is \code{$R$*} then \code{$R$?}
-  - else \code{$S$?}
-- \ConstCanonicalTypeOf{$T$*} = \ConstCanonicalTypeOf{$T$}
-- \ConstCanonicalTypeOf{$X$ \EXTENDS\ $T$} = \code{$X$*}
-- \ConstCanonicalTypeOf{$X$ \& $T$} =
-  - This case should not occur, since intersection types are not permitted as
-    generic arguments.
-- \ConstCanonicalTypeOf{$C$<$T_0$, \ldots, $T_n$>} = \code{$C$<$R_0$, \ldots, $R_n$>*}
-  - where $R_i$ is \ConstCanonicalTypeOf{$T_i$}
-  - Note this includes the case of an interface type with no generic parameters
-    (e.g \code{int}.
-- \ConstCanonicalTypeOf{$R$ \FUNCTION<$X$ \EXTENDS\ $B$>($S$)} = \code{$F$*}
-  - where $F$ = \code{$R_1$ \FUNCTION<$X$ \EXTENDS\ $B_1$>($S_1$)}
-  - and $R_1$ = \ConstCanonicalTypeOf{$R$}
-  - and $B_1$ = \ConstCanonicalTypeOf{$B$}
-  - and $S_1$ = \ConstCanonicalTypeOf{$S$}
-  - Note, this generalizes to arbitrary number of type and term parameters.
-
-Note that if $T$ is a normal form type, then \ConstCanonicalTypeOf{$T$} is
-also a normal form type.
-
+ensures a consistent semantics, since it is not observable which instance is
+chosen as the canonical representative.
 
 \subsubsection{Null check operator}
 
@@ -24534,73 +24359,79 @@ short-circuit nor propagate null-shorting behavior.  It is parameterized over
 the translated expression, and simply passes on the expression to its
 continuation.
 
-- A property access \code{$e$?.$f$} translates to:
-  - \code{SHORT[EXP($e$), fn[x] => x.$f$]}
-- If $e$ translates to $F$ then \code{$e$.$f$} translates to:
-  - \code{PASSTHRU[$F$, fn[x] => x.$f$]}
-- A null aware method call \code{$e$?.$m$(\metavar{args})} translates to:
-  - \code{SHORT[EXP($e$), fn[x] => x.$m$(ARGS(\metavar{args}))]}
-- If $e$ translates to $F$ then \code{$e$.$m$(\metavar{args})} translates to:
-  - \code{PASSTHRU[$F$, fn[x] => x.$m$(ARGS(\metavar{args}))]}
-- If $e$ translates to $F$ then \code{$e$(\metavar{args})} translates to:
-  - \code{PASSTHRU[$F$, fn[x] => x(ARGS(\metavar{args}))]}
-- If $e_1$ translates to $F$ then \code{$e_1$?[$e_2$]} translates to:
-  - \code{SHORT[EXP($e_1$), fn[x] => x[EXP($e_2$)]]}
-- If $e_1$ translates to $F$ then \code{$e_1$[$e_2$]} translates to:
-  - \code{PASSTHRU[$F$, fn[x] => x[EXP($e_2$)]]}
-- If $e$ translates to $F$ then \code{$e$!} translates to:
-  - \code{PASSTHRU[$F$, fn[x] => x!]}
-- The assignment \code{$e_1$?.$f$ = $e_2$} translates to:
-  - \code{SHORT[EXP($e_1$), fn[x] => x.f = EXP($e_2$)]}
-- The other assignment operators are handled equivalently.
-- If $e_1$ translates to $F$ then \code{$e_1$.$f$ = $e_2$} translates to:
-  - \code{PASSTHRU[$F$, fn[x] => x.$f$ = EXP($e_2$)]}
-- The other assignment operators are handled equivalently.
-- If $e_1$ translates to $F$ then \code{$e_1$?[$e_2$] = $e_3$} translates to:
-  - \code{SHORT[EXP($e_1$), fn[x] => x[EXP($e_2$)] = EXP($e_3$)]}
-- The other assignment operators are handled equivalently.
-- If $e_1$ translates to $F$ then \code{$e_1$[$e_2$] = $e_3$} translates to:
-  - \code{PASSTHRU[$F$, fn[x] => x[EXP($e_2$)] = EXP($e_3$)]}
-- The other assignment operators are handled equivalently.
-- A cascade expression \code{$e$..$s$} translates as follows, where $F$ is the
-    translation of $e$ and  \code{x} and \code{y} are fresh object level variables:
-    \begin{dartCode}
-        fn[k : Exp -> Exp] : Exp =>
-           $F$[fn[r : Exp] : Exp => let x = r in
-                                  let y = EXP(x.$s$)
-                                  in k[x]
-           ]
-    \end{dartCode}
-- A null-shorting cascade expression \code{$e$?..$s$} translates as follows, where \code{x}
-    and \code{y} are fresh object level variables.
-    \begin{dartCode}
-       fn[k : Exp -> Exp] : Exp =>
-           let x = EXP($e$) in x == null ? null : let y = EXP(x.$s$) in k(x)
-    \end{dartCode}
-- All other expressions are translated compositionally using the \code{TERM}
+\begin{itemize}
+\item A property access \code{$e$?.$f$} translates to:
+  \code{SHORT[EXP($e$), fn[x] => x.$f$]}
+\item If $e$ translates to $F$ then \code{$e$.$f$} translates to:
+  \code{PASSTHRU[$F$, fn[x] => x.$f$]}
+\item A null aware method call \code{$e$?.$m$(\metavar{args})} translates to:
+  \code{SHORT[EXP($e$), fn[x] => x.$m$(ARGS(\metavar{args}))]}
+\item If $e$ translates to $F$ then \code{$e$.$m$(\metavar{args})} translates to:
+  \code{PASSTHRU[$F$, fn[x] => x.$m$(ARGS(\metavar{args}))]}
+\item If $e$ translates to $F$ then \code{$e$(\metavar{args})} translates to:
+  \code{PASSTHRU[$F$, fn[x] => x(ARGS(\metavar{args}))]}
+\item If $e_1$ translates to $F$ then \code{$e_1$?[$e_2$]} translates to:
+  \code{SHORT[EXP($e_1$), fn[x] => x[EXP($e_2$)]]}
+\item If $e_1$ translates to $F$ then \code{$e_1$[$e_2$]} translates to:
+  \code{PASSTHRU[$F$, fn[x] => x[EXP($e_2$)]]}
+\item If $e$ translates to $F$ then \code{$e$!} translates to:
+  \code{PASSTHRU[$F$, fn[x] => x!]}
+\item The assignment \code{$e_1$?.$f$ = $e_2$} translates to:
+  \code{SHORT[EXP($e_1$), fn[x] => x.f = EXP($e_2$)]}
+\item The other assignment operators are handled equivalently.
+\item If $e_1$ translates to $F$ then \code{$e_1$.$f$ = $e_2$} translates to:
+  \code{PASSTHRU[$F$, fn[x] => x.$f$ = EXP($e_2$)]}
+\item The other assignment operators are handled equivalently.
+\item If $e_1$ translates to $F$ then \code{$e_1$?[$e_2$] = $e_3$} translates to:
+  \code{SHORT[EXP($e_1$), fn[x] => x[EXP($e_2$)] = EXP($e_3$)]}
+\item The other assignment operators are handled equivalently.
+\item If $e_1$ translates to $F$ then \code{$e_1$[$e_2$] = $e_3$} translates to:
+  \code{PASSTHRU[$F$, fn[x] => x[EXP($e_2$)] = EXP($e_3$)]}
+\item The other assignment operators are handled equivalently.
+\item A cascade expression \code{$e$..$s$} translates as follows, where $F$ is the
+  translation of $e$ and  \code{x} and \code{y} are fresh object level variables:
+  \begin{dartCode}
+    fn[k : Exp -> Exp] : Exp =>
+       $F$[fn[r : Exp] : Exp => let x = r in
+                              let y = EXP(x.$s$)
+                              in k[x]
+       ]
+  \end{dartCode}
+\item A null-shorting cascade expression \code{$e$?..$s$} translates as follows, where \code{x}
+  and \code{y} are fresh object level variables.
+  \begin{dartCode}
+     fn[k : Exp -> Exp] : Exp =>
+         let x = EXP($e$) in x == null ? null : let y = EXP(x.$s$) in k(x)
+  \end{dartCode}
+\item All other expressions are translated compositionally using the \code{TERM}
   combinator.  Examples:
-  - An identifier \code{x} translates to \code{TERM[x]}
-  - A list literal \code{[$e_1$, \ldots, $e_n$]} translates to \code{TERM[ [EXP($e_1$), \ldots, EXP($e_n$)] ]}
-  - A parenthesized expression \code{($e$)} translates to \code{TERM[(EXP($e$))]}
+  An identifier \code{x} translates to \code{TERM[x]}
+  A list literal \code{[$e_1$, \ldots, $e_n$]} translates to \code{TERM[ [EXP($e_1$), \ldots, EXP($e_n$)] ]}
+  A parenthesized expression \code{($e$)} translates to \code{TERM[(EXP($e$))]}.
+\end{itemize}
 
 The language specification specifies that an invocation of any of several
 operators is considered equivalent to a member access (this applies to
 relational expressions, bitwise expressions, shift expressions, additive
 expressions, multiplicative expressions, and unary expressions).
 
-*For example, \code{$a$ + $b$} is specified as equivalent to \code{$a$.plus($b$)},
+\commentary{%
+For example, \code{$a$ + $b$} is specified as equivalent to \code{$a$.plus($b$)},
 where \code{plus} is assumed to be a method with the same behavior as \code{+}.
-Similarly, \code{-$e$} is equivalent to \code{$e$.unaryMinus()}.*
+Similarly, \code{-$e$} is equivalent to \code{$e$.unaryMinus()}.%
+}
 
 This equivalence is not applicable in the above rules, so operators not
 mentioned specifically in a rule are handled in the case for 'other'
 expressions, not in the case for \code{$e$.m(\metavar{args})}.
 
-*This means that the null-shorting transformation stops at operators. For
+\commentary{%
+This means that the null-shorting transformation stops at operators. For
 instance, \code{$e$?.$f$ + $b$} is a compile-time error because \code{$e$?.$f$} can be null, it is
 not an expression where both \code{.$f$} and \code{+ $b$} will be skipped if \code{$e$} is null.
 Similarly, both \code{-$a$?.$f$} and \code{~$a$?.$f$} are errors, and do not null-short like
-\code{$a$?.$f$.op()}.*
+\code{$a$?.$f$.op()}.%
+}
 
 \subsubsection{Late fields and variables}
 
@@ -24623,24 +24454,27 @@ A read of a field or variable which is marked as \LATE{} which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
 a value, assigned to the variable or field, and returned as the value of the
 read.
-  - If there is no initializer expression, the read causes a runtime error to be
+
+\begin{itemize}
+\item If there is no initializer expression, the read causes a runtime error to be
     thrown.
-  - Evaluating the initializer expression may validly cause a write to the field
+\item Evaluating the initializer expression may validly cause a write to the field
     or variable, assuming that the field or variable is not final.  In this
     case, the variable assumes the written value.  The final value of the
     initializer expression overwrites any intermediate written values.
-  - Evaluating the initializer expression may cause an exception to be thrown.
+\item Evaluating the initializer expression may cause an exception to be thrown.
     If the variable was written to before the exception was thrown, the value of
     the variable on subsequent reads is the last written value.  If the variable
     was not written before the exception was thrown, then the next read attempts
     to evaluate the initializer expression again.
-  - If a variable or field is read from during the process of evaluating its own
+\item If a variable or field is read from during the process of evaluating its own
     initializer expression, and no write to the variable has occurred, the read
     is treated as a first read and the initializer expression is evaluated
     again.
+\end{itemize}
 
 Let $D$ be a \LATE{} and \FINAL{} non-local variable declaration named \code{v}
-without an initializing expression.  
+without an initializing expression.
 It is a run-time error, to invoke the setter \code{v=} which is
 implicitly induced by $D$ if a value has previously been assigned to \code{v}
 (which could be due to an initializing formal or a constructor initializer
@@ -24664,10 +24498,13 @@ int i = 0;
 
 A toplevel or static variable with an initializer is evaluated as if it
 was marked \LATE.  Note that this is a change from pre-NNBD semantics in that:
-  - Throwing an exception during initializer evaluation no longer sets the
-    variable to \code{null}
-  - Reading the variable during initializer evaluation is no longer checked for,
-    and does not cause an error.
+
+\begin{itemize}
+\item Throwing an exception during initializer evaluation no longer sets the
+  variable to \code{null}
+\item Reading the variable during initializer evaluation is no longer checked for,
+  and does not cause an error.
+\end{itemize}
 
 \subsubsection{Boolean conditional evaluation}
 
@@ -24675,514 +24512,102 @@ The requirement that the condition in a boolean conditional control expression
 (e.g. the a conditional statement, conditional element, \code{while} loop, etc) be
 assignable to \code{bool} is unchanged from pre null-safe Dart.  The change in
 assignability means that the static type of the condition may only be \DYNAMIC,
-\code{Never}, or \code{bool}.  In full null-safe Dart, an expression of type \code{Never} will
+\code{Never}, or \code{bool}.  An expression of type \code{Never} will
 always diverge and an expression of type \code{bool} will never evaluate to a value
 other than \code{true} or \code{false}, and hence no conversion is required in these
 cases.  A conditional expression of type \DYNAMIC{} may evaluated to any value,
 and hence must be implicitly downcast to \code{bool}, after which no further check is
 required.
 
-During unsound null checking execution, values of type \code{Never} and \code{bool} may
-evaluate to \code{null}, and so a boolean conversion check must be performed in
-addition to any implicit downcasts implied.  The full semantics then are given
-as follows.
-
 Given a boolean conditional expression $e$ where $e$ has type $S$, it is a
-static error if $S$ is not assignable to \code{bool}.  Otherwise:
+static error if $S$ is not assignable to \code{bool}.
+Otherwise evaluation proceeds as follows:
 
-With sound null checking, evaluation proceeds as follows:
-  - First $e$ is implicitly cast to \code{bool} if required.
-    - This cast may fail, and if so it is a dynamic error.
-  - If the cast does not fail, then the result is known to be a non-null
+\begin{itemize}
+\item First $e$ is implicitly cast to \code{bool} if required.
+  This cast may fail, and if so it is a dynamic error.
+\item If the cast does not fail, then the result is known to be a non-null
     boolean, and evaluation of the enclosing conditional proceeds as usual.
-
-With unsound null checking, evaluation proceeds as follows:
-  - First $e$ is implicitly cast to \code{bool} if required (using
-    \code{LEGACY_SUBTYPE($e$.runtimeType, bool)})
-    - This cast may fail, and if so it is a dynamic error.
-  - If the cast does not fail, then the result may still be \code{null}, and so the
-  result must be checked against \code{null}.
-    - If the \code{null} check fails, it is an \code{AssertionError}, otherwise evaluation
-      of the enclosing conditional proceeds as usual.
-
-
-\subsection{Core library changes}
-
-Certain core libraries APIs will have a change in specified behavior only when
-interacting with opted in code.  These changes are as follows.
-
-Calling the \code{.length} setter on a \code{List} with element type $E$ with an argument
-greater than the current length of the list is a runtime error unless
-\code{Null <: $E$}.
-
-The \code{Iterator.current} getter is given an non-nullable return type, and is
-changed such that the behavior if it is called before calling
-\code{Iterator.moveNext} or after \code{Iterator.moveNext} has returned \code{false} is
-unspecified and implementation defined.  In most core library implementations,
-the implemented behavior will to return \code{null} if the element type is
-\code{nullable}, and otherwise to throw an error.
-
-\subsubsection{Legacy breaking changes}
-
-We will make a small set of minimally breaking changes to the core library APIs
-that apply to legacy code as well.  These changes are as follows.
-
-The \code{String.fromEnvironment} and \code{int.fromEnvironment} contructors have default
-values for their optional parameters.
+\end{itemize}
 
 \subsection{Migration features}
 
-For migration, we support incremental adoption of non-nullability as described
-at a high level in
-https://github.com/dart-lang/language/blob/master/accepted/2.12/nnbd/roadmap.md.
-
-\subsubsection{Opted in libraries}
-
-Libraries and packages must opt into the feature as described elsewhere.  An
-opted-in library may depend on un-opted-in libraries, and vice versa.
-
-\subsubsection{Errors as warnings}
-
-An earlier version of this proposal specified that null safety related static
-errors in opted-in code should be demoted to warnings when running with
-unsound null checking.  This behavior has been eliminated based on early
-feedback.  Null safety related errors in opted-in code behave as usual
-independently of the compilation mode, subject to differences in const
-evaluation and the usual suppression of errors when interacting with legacy
-(opted-out) code (see below).
-
-\subsubsection{Legacy libraries}
-
-Static checking for a library which has not opted into this feature (a *legacy*
-library) is done using the semantics as of the last version of the language
-before this feature ships (or the last version to which it has opted in, if that
-is different).  All opted-in libraries upstream from the legacy library are
-viewed by the legacy library with nullability related features erased from their
-APIs.  In particular:
-  - All types of the form \code{$T$?} in the opted-in API are treated as $T$.
-  - All required named parameters are treated as optional named parameters.
-  - The type \code{Never} is treated as the type \code{Null}.
-
-In a legacy library, none of the new syntax introduced by this proposal is
-available, and it is a static error if it is used.
-
-\subsubsection{Importing legacy libraries from opted-in libraries}
-
-The type system is extended with a notion of a legacy type operator.  For every
-type $T$, there is an additional type \code{$T$*} which is the legacy version of the
-type.  There is no surface syntax for legacy types, and implementations should
-display the legacy type \code{$T$*} in the same way that they would display the type
-$T$, except in so far as it is useful to communicate to programmers for the
-purposes of error messages that the type originates in legacy code.
-
-When static checking is done in an opted-in library, types which are imported
-from legacy libraries are seen as legacy types.  However, type inference in
-the opted-in library "erases" legacy types.  That is, if a missing type
-parameter, local variable type, or closure type is inferred to be a type $T$,
-all occurrences of \code{$S$*} in $T$ shall be replaced with $S$.  As a result, legacy
-types will never appear as type annotations in opted-in libraries, nor will they
-appear in reified positions.
-
-\subsubsection{Typedefs defined in legacy libraries used in opted-in libraries}
-
-A typedef which is define in a legacy library and used in an opted-in library is
-treated as defining a function type, all of the components of which are
-legacy. The function type itself is treated as non-nullable (and not legacy) at
-the top level.  Hence given the following program, it is an error to assign a
-nullable value to a variable of type $F$ in an opted-in library, but any
-function which is compatible with a legacy function of type
-\code{int* Function(int*)} may be assigned to such a variable.
-
-\begin{dartCode}
-// Opted-out library "opted\_out.dart".
-\TYPEDEF\ F = int \FUNCTION(int);
-
-// Opted-in library "main.dart".
-\IMPORT\ "opted\_out.dart";
-
-int? f1(int x) => x;
-
-\VOID\ test() \{
-  F f = null; // Static error
-  f = f1;  // No error
-\}
-\end{dartCode}
-
-\subsubsection{Exports}
-
-If a legacy library re-exports an opted-in library, the re-exported symbols
-retain their opted-in status (that is, downstream migrated libraries will see
-their nnbd-aware types).
-
-It is an error for an opted-in library to re-export symbols which are defined in
-a legacy library (note that a symbol which is defined in an opted-in library and
-then exported from a legacy library is accepted for re-export from a third
-opted-in library since the symbol is not **defined** in the legacy library which
-first exports it).
-
-\subsubsection{Super-interface and member type computation with legacy types}
-
-A class defined in a legacy library may have in its set of super-interfaces both
-legacy and opted-in interfaces, and hence may have members which are derived
-from either, or both.  Similarly, a class defined in an opted-in library may
-have in its set of super-interfaces both legacy and opted-in interfaces, and
-hence may have members which are derived from either, or both.  We define the
-super-interface and member signature computation for such classes as follows.
-
-\paragraph{Classes defined in legacy libraries}
-
-The legacy erasure of a type $T$ denoted \LegacyErasureTypeOf{$T$} is $T$ with all
-occurrences of \code{?} removed, \code{Never} replaced with \code{Null}, \REQUIRED{} removed
-from all parameters, and all types marked as legacy types.
-
-A direct super-interface of a class defined in a legacy library (that is, an
-interface which is listed in the \EXTENDS, \code{implements} or \code{with} clauses of
-the class) has all generic arguments (and all sub-components of the generic
-arguments) marked as legacy types.
-
-If a class \code{C} in a legacy library implements the same generic class \code{I} more
-than once, it is an error if the \LegacyErasureTypeOf{} all such super-interfaces
-are not all syntactically equal.
-
-When \code{C} implements \code{I} once, and also when \code{C} implements \code{I} more than once
-without error, \code{C} is considered to implement the canonical signature given by
-\LegacyErasureTypeOf{} of the super-interfaces in question. This determines the
-outcome of dynamic instance checks applied to instances of \code{C}, as well as
-static subtype checks on expressions of type \code{C}.
-
-A member which is defined in a class in a legacy library (whether concrete or
-abstract), is given a signature in which every type is a legacy type.  It is an
-error if the signature of a member is not a correct override of all members of
-the same name in the direct super-interfaces of the class, using the legacy
-subtyping rules.
-
-Using the legacy erasure for checking super-interfaces accounts for opted-out
-classes which depend on both opted-in and opted-out versions of the same generic
-interface. For example:
-
-\begin{dartCode}
-//opted in
-\CLASS\ I<T> \{\}
-
-// opted in
-\CLASS\ A \IMPLEMENTS\ I<int?> \{\}
-
-// opted out
-\CLASS\ B \IMPLEMENTS\ I<int> \{\}
-
-// opted out
-\CLASS\ C \EXTENDS\ A \IMPLEMENTS\ B \{\}
-\end{dartCode}
-
-The class \code{C} is not considered erroneous, despite implementing both \code{I<int?>}
-and \code{I<int*>}, since legacy erasure makes both of those interfaces equal.  The
-interface which \code{C} is considered to implement is \code{I<int*>}.
-
-
-\paragraph{Classes defined in legacy libraries as seen from opted-in libraries}
-
-Members inherited in a class in an opted-in library, which are inherited via a
-class or mixin defined in a legacy library are viewed with their erased legacy
-signature, even if they were original defined in an opted-in library.  Note that
-if a class which is defined in a legacy library inherits a member with the same
-name from multiple super-interfaces, then error checking is done as usual using
-the legacy typing rules which ignore nullability.  This means that it is valid
-for a legacy class to inherit the same member signature with contradictory
-nullability information. For the purposes of member lookup within a legacy
-library, nullability information is ignored, and so it is valid to simply erase
-the nullability information within the legacy library. When referenced from an
-opted-in library, the same erasure is performed, and the member is seen at its
-legacy type.
-
-We use legacy subtyping when checking inherited member signature coherence in
-classes because opted out libraries may bring together otherwise incompatible
-member signatures without causing an error.
-
-\begin{dartCode}
-// opted\_in.dart
-\CLASS\ A \{
-  int? foo(int? x) \{\}
-\}
-\CLASS\ B \{
-  int foo(int x) \{\}
-\}
-\end{dartCode}
-
-\begin{dartCode}
-// opted\_out.dart
-// @dart = 2.6
-import 'opted\_in.dart';
-
-\CLASS\ C \EXTENDS\ A \IMPLEMENTS\ B \{\}
-\end{dartCode}
-
-The class \code{C} is accepted, since the versions of \code{foo} inherited from \code{A} and
-\code{B} are compatible.
-
-If the class \code{C} is now used within an opted-in library, we must decide what
-signature to ascribe to \code{foo}.  The \LegacyErasureTypeOf{} function computes a legacy
-signature for \code{foo} which drops the nullability information producing a single
-signature, in this case \code{int* Function(int*)}.  Consequently, the following code
-is accepted:
-
-\begin{dartCode}
-//opted in
-\IMPORT\ 'opted\_out.dart';
-\VOID\ test() \{
-  \NEW\ C().foo(null).isEven;
-\}
-\end{dartCode}
-
-\paragraph{Classes defined in opted-in libraries}
-
 The \NnbdTopMergeName{} of two types $T$ and $S$ is the unique type $R$ defined
 as:
- - \NnbdTopMerge{Object?}{Object?} = \code{Object?}
- - \NnbdTopMerge{\DYNAMIC}{\DYNAMIC} = \code{\DYNAMIC}
- - \NnbdTopMerge{\VOID}{\VOID} = \code{\VOID}
- - \NnbdTopMerge{Object?}{\VOID} = \code{Object?}
-   - And the reverse
- - \NnbdTopMerge{\DYNAMIC}{\VOID} = \code{Object?}
-   - And the reverse
- - \NnbdTopMerge{Object?}{\DYNAMIC} = \code{Object?}
-   - And the reverse
- - \NnbdTopMerge{Object*}{\VOID} = \code{Object?}
-   - And the reverse
- - \NnbdTopMerge{Object*}{\DYNAMIC} = \code{Object?}
-   - And the reverse
- - \NnbdTopMerge{Never*}{Null} = \code{Null}
-   - And the reverse
- - \NnbdTopMerge{$T$?}{$S$?} = \code{\NnbdTopMerge{$T$}{$S$}?}
- - \NnbdTopMerge{$T$?}{$S$*} = \code{\NnbdTopMerge{$T$}{$S$}?}
- - \NnbdTopMerge{$T$*}{$S$?} = \code{\NnbdTopMerge{$T$}{$S$}?}
- - \NnbdTopMerge{$T$*}{$S$*} = \code{\NnbdTopMerge{$T$}{$S$}*}
- - \NnbdTopMerge{$T$*}{$S$} = \NnbdTopMerge{$T$}{$S$}
- - \NnbdTopMerge{$T$}{$S$*} = \NnbdTopMerge{$T$}{$S$}
 
- - And for all other types, recursively applying the transformation over the
-   structure of the type
-   - e.g. \NnbdTopMerge{$C$<$T$>}{$C$<$S$>} = \code{$C$<\NnbdTopMerge{$T$}{$S$}>}
+\begin{itemize}
+\item \NnbdTopMerge{Object?}{Object?} = \code{Object?}
+\item \NnbdTopMerge{\DYNAMIC}{\DYNAMIC} = \code{\DYNAMIC}
+\item \NnbdTopMerge{\VOID}{\VOID} = \code{\VOID}
+\item \NnbdTopMerge{Object?}{\VOID} = \code{Object?}
+   - And the reverse
+\item \NnbdTopMerge{\DYNAMIC}{\VOID} = \code{Object?}
+   - And the reverse
+\item \NnbdTopMerge{Object?}{\DYNAMIC} = \code{Object?}
+   - And the reverse
+\item \NnbdTopMerge{$T$?}{$S$?} = \code{\NnbdTopMerge{$T$}{$S$}?}
+\item And for all other types, recursively applying the transformation over the
+  structure of the type
+  - e.g. \NnbdTopMerge{$C$<$T$>}{$C$<$S$>} = \code{$C$<\NnbdTopMerge{$T$}{$S$}>}
+\item When computing the \NnbdTopMergeName{} of two method parameters at least one of
+  which is marked as covariant, the following algorithm is used to compute the
+  canonical parameter type.
 
- - When computing the \NnbdTopMergeName{} of two method parameters at least one of
-   which is marked as covariant, the following algorithm is used to compute the
-   canonical parameter type.
-   - Given two corresponding parameters of type $T_1$ and $T_2$ where at least
-      one of the parameters has a \COVARIANT{} declaration:
-     - if \code{$T_1$ <: $T_2$} and \code{$T_2$ <: $T_1$} then the result is \NnbdTopMerge{$T_1$}{$T_2$},
+  Given two corresponding parameters of type $T_1$ and $T_2$ where at least
+  one of the parameters has a \COVARIANT{} declaration:
+  if \code{$T_1$ <: $T_2$} and \code{$T_2$ <: $T_1$} then the result is \NnbdTopMerge{$T_1$}{$T_2$},
      and it is covariant.
-     - otherwise, if \code{$T_1$ <: $T_2$} then the result is $T_2$ and it is covariant
-     - otherwise the result is $T_1$ and it is covariant
+  Otherwise, if \code{$T_1$ <: $T_2$} then the result is $T_2$ and it is covariant.
+  Otherwise the result is $T_1$ and it is covariant.
+\end{itemize}
 
 In other words, \NnbdTopMergeName{} takes two types which are structurally equal
-except for the placement \code{*} types, and the particular choice of top types, and
-finds a single canonical type to represent them by replacing \code{?} with \code{*} or
-adding \code{*} as required.. The \NnbdTopMergeName{} of two types is not defined for
+except for the particular choice of top types, and
+finds a single canonical type to represent them.
+The \NnbdTopMergeName{} of two types is not defined for
 types which are not otherwise structurally equal.
 
 The \NnbdTopMergeName{} of more than two types is defined by taking the
 \NnbdTopMergeName{} of the first two, and then recursively taking the
 \NnbdTopMergeName{} of the rest.
 
-A direct super-interface of a class defined in an opted-in library (that is, an
-interface which is listed in the \EXTENDS, \IMPLEMENTS, or \WITH{} clauses of
-the class) has all generic arguments (and all sub-components of the generic
-arguments) marked as nullable or non-nullable as written.
-
-If a class $C$ in an opted-in library implements the same generic class $I$ more
+If a class $C$ library implements the same generic class $I$ more
 than once as \code{$I_0$, \ldots, $I_n$}, and at least one of the $I_i$ is not syntactically
 equal to the others, then it is an error if \NnbdTopMerge{$S_0$, \ldots}{$S_n$} is not
 defined where $S_i$ is \NormalizedTypeOf{$I_i$}.  Otherwise, $C$ is considered to
-implement the canonical interface given by \NnbdTopMerge{$S_0$, \ldots}{$S_n$}.  This
+implement the canonical interface given by \NnbdTopMerge{$S_0$, \ldots}{$S_n$}. This
 determines the outcome of dynamic instance checks applied to instances of $C$,
 as well as static subtype checks on expressions of type $C$.
 
-If a class $C$ in an opted-in library overrides a member, it is an error if its
-signature is not a subtype of the types of all overriden members from all
-direct super-interfaces (whether legacy or opted-in).  This implies that
-override checks for a member $m$ may succeed due to a legacy member signature
-for $m$ in a direct super-interface, even in the case where an indirect
-super-interface has a member signature for $m$ where the override would be a
-compile-time error. For example:
-
-\begin{dartCode}
-// opted\_in.dart
-\CLASS\ A \{
-  int foo(int? x) \{\}
-\}
-\end{dartCode}
-
-\begin{dartCode}
-// opted\_out.dart
-// @dart = 2.6
-import 'opted\_in.dart';
-
-\CLASS\ B \EXTENDS\ A \{\}
-\end{dartCode}
-
-\begin{dartCode}
-// opted\_in.dart
-\CLASS\ C \EXTENDS\ B \{
-  // Override checking is done against the legacy signature of B.foo.
-  int? foo(int x) \{\}
-\}
-\end{dartCode}
-
-It is difficult to predict the outcome of migrating \code{B} in such situations, but
-lints or hints may be used by tools to communicate to developers that \code{C} may
-need to be changed again when \code{B} is migrated.
-
 If a class $C$ in an opted-in library inherits a member $m$ with the same name
-from multiple direct super-interfaces (whether legacy or opted-in), let
-\code{$T_0$, \ldots, $T_n$} be the signatures of the inherited members.  If there is exactly one
-$T_i$ such that \code{NNBD_SUBTYPE($T_i$, $T_k$)} for all $k \in 0 .. n$ then the signature
+from multiple direct super-interfaces, let
+\List{T}{0}{n} be the signatures of the inherited members.  If there is exactly one
+$T_i$ such that \code{$T_i$ <: $T_k$} for all $k \in 0 .. n$ then the signature
 of $m$ is considered to be $T_i$.  If there is more than one such $T_i$, then it
-is an error if the \code{\NnbdTopMergeName} of \code{$S_0$, \ldots, $S_n$} does not exist, where $S_i$
+is an error if the \NnbdTopMergeName{} of \List{S}{0}{n} does not exist, where $S_i$
 is \NormalizedTypeOf{$T_i$}.  Otherwise, the signature of $m$ for the purposes of member
-lookup is the \code{\NnbdTopMergeName} of the $S_i$.
+lookup is the \NnbdTopMergeName{} of the $S_i$.
 
-Note that when a member $m$ is inherited from multiple indirect super-interfaces
-**via** a single direct super-interface, override checking is only performed
-against the signature of the direct super-interface which mediates the
-inheritance as described above.  Hence the following example is not an error,
-since the direct super-interface $C$ of $D$ mediates the conflicting inherited
-signatures of \code{foo} as \code{$C$.foo} with signature \code{int* Function(int*)}.
+!!!TODO!!!
 
-\begin{dartCode}
-// opted\_in.dart
-\CLASS\ A \{
-  int? foo(int? x) \{\}
-\}
-\CLASS\ B \{
-  int foo(int x) \{\}
-\}
-\end{dartCode}
+Check that the semantics of \IS{} is as specified here:
+if $e$ evaluates to a value $v$ and $v$ has
+runtime type $S$, an instance check \code{$e$ \IS\ $T$} is evaluated as follows:
+Return \code{$S$ <: $T$}.
 
-\begin{dartCode}
-// opted\_out.dart
-// @dart = 2.6
-\IMPORT\ 'opted\_in.dart';
+Check that the semantics of \AS{} is as specified here:
+if $e$ evaluates to a value $v$ and $v$ has
+runtime type $S$, a cast \code{$e$ \AS\ $T$} is evaluated as follows:
+if \code{$S$ <: $T$} then \code{$e$ as $T$} evaluates to $v$.
+Otherwise a dynamic type error occurs.
 
-\CLASS\ C \EXTENDS\ A \IMPLEMENTS\ B \{\}
+Other documents that need to be integrated, too:
 
-\end{dartCode}
-
-\begin{dartCode}
-//opted in
-\IMPORT\ 'opted\_out.dart';
-\CLASS\ D \EXTENDS\ C \{\}
-\VOID\ test() \{
-  \NEW\ D().foo(null).isEven;
-\}
-\end{dartCode}
-
-\subsubsection{Type reification}
-
-All types reified in legacy libraries are reified as legacy types.  Runtime
-subtyping checks treat them according to the subtyping rules specified
-separately.
-
-\subsubsection{Runtime checks and unsound null checking}
-
-With unsound null checking, runtime type tests (including explicit and
-implicit casts) shall succeed whenever the runtime type test would have
-succeeded if all \code{?} on types were ignored, \code{*} was added to each type, and
-\REQUIRED{} parameters were treated as optional.  This has the effect of treating
-\code{Never} as equivalent to \code{Null}, restoring \code{Null} to the bottom of the type
-hierarchy, treating \code{Object} as nullable, and ignoring \REQUIRED{} on named
-parameters.  This is intended to provide the same subtyping results as pre-nnbd
-Dart.
-
-Instance checks (\code{e \IS\ T}) and casts (\code{e \AS\ T}) behave differently when run
-with sound vs unsound null checking.
-
-We define the instance tests with unsound null checking and sound null
-checking as follows:
-
-**With unsound null checking**: if $e$ evaluates to a value $v$ and $v$ has runtime
-type $S$, an instance check \code{$e$ \IS\ $T$} occurring in a **legacy library** or an
-**opted-in library** is evaluated as follows:
-  - If $v$ is \code{null} and $T$ is a legacy type, return \code{LEGACY_SUBTYPE($T$, Null)
-    || LEGACY_SUBTYPE(Object, $T$)}
-  - If $v$ is \code{null} and $T$ is not a legacy type, return \code{NNBD_SUBTYPE(Null, $T$)}
-  - Otherwise return \code{LEGACY_SUBTYPE($S$, $T$)}
-
-A type is a legacy type if it is of the form \code{$R$*} for some $R$ after normalizing
-away nested nullability annotations - e.g. \code{int*} is a legacy type, but \code{int?*}
-is not, since the normal form of the latter is \code{int?}.
-
-Note that except in the case that $T$ is of the form $X$ or \code{$X$*} for some type
-variable $X$, it is statically decidable which of the first two clauses apply in
-the case that $v$ is \code{null}.
-
-**With sound null checking**: if $e$ evaluates to a value $v$ and $v$ has
-runtime type $S$, an instance check \code{$e$ \IS\ $T$} occurring in an **opted-in
-library** is evaluated as follows:
-  - Return \code{NNBD_SUBTYPE($S$, $T$)}
-
-Note that it is an error to run a program containing legacy libraries with
-sound null checking.
-
-Note that given the definitions above, the result of an instance check may vary
-depending on whether it is run with sound or unsound null checking.  However,
-in the specific case that the value being checked is \code{null}, instance checks
-will always return the same result regardless of mode, and regardless of
-whether the check occurs in an opted in or opted out library.
-
-\begin{verbatim}
-| T            | Any mode |
-| -------- | ------------- |
-| Never     |  false               |
-| Never*     |  true               |
-| Never?     |  true               |
-| Null         | true                |
-| int           | false               |
-| int*         | false                |
-| int?         | true                |
-| Object    | false                 |
-| Object*  | true                 |
-| Object?  | true                 |
-| dynamic | true                 |
-\end{verbatim}
-
-We define casts with unsound null checking and sound null checking as follows:
-
-**With unsound null checking**: if $e$ evaluates to a value $v$ and $v$ has
-runtime type $S$, a cast \code{$e$ \AS\ $T$} **whether textually occurring in a legacy or
-opted-in library** is evaluated as follows:
-  - if \code{LEGACY_SUBTYPE($S$, $T$)} then \code{$e$ \AS\ $T$} evaluates to $v$.  Otherwise a
-    dynamic type error occurs.
-
-**With sound null checking**: if $e$ evaluates to a value $v$ and $v$ has
-runtime type $S$, a cast \code{$e$ \AS\ $T$} **whether textually occurring in a legacy or
-opted-in library** is evaluated as follows:
-  - if \code{NNBD_SUBTYPE($S$, $T$)} then \code{$e$ as $T$} evaluates to $v$. Otherwise a
-    dynamic type error occurs.
-
-With unsound null checking, we ensure that opted-in libraries do not break
-downstream clients by continuing to evaluate instance checks and casts with
-the same semantics as in pre-nnbd Dart.  All runtime subtype checks are done
-using the legacy subtyping, and instance checks maintain the pre-nnbd behavior
-on \code{null} instances.  With sound null checking, we use the specified nnbd
-subtyping for all instance checks and casts.
-
-When developers enable sound null checking in their tests and applications, new
-runtime cast failures may arise.  The process of migrating libraries and
-applications will require users to track down these changes in behavior.
-Development platforms are encouraged to provide facilities to help users
-understand these changes: for example, by providing a debugging option in which
-instance checks or casts which would result in a different outcome if run with
-sound null checking vs unsound null checking are flagged for the developer by
-logging a warning or breaking to the debugger.
-
-\subsubsection{Automatic debug assertion insertion}
-
-When running with unsound null checking, implementations may insert code
-equivalent to \code{\ASSERT(x != null)} in the prelude of every method or function
-defined in an opted-in library for each parameter \code{x} which has a non-nullable
-type.  When compiling a program with sound null checking, these assertions will
-never fire and should be elided, but during the migration when mixed mode code
-is being executed it is possible for opted-out libraries to cause the
-invariants of the null safety checking to be violated.
+https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md
+https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md
+https://github.com/dart-lang/language/blob/master/resources/type-system/normalization.md
+https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md
+https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md
 %% !!!END TODO!!!
 
 \section*{Appendix: Algorithmic Subtyping}
