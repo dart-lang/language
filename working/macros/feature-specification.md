@@ -246,6 +246,62 @@ introspection APIs.
 These macros can fully introspect on any type reachable from the declarations
 they annotate, including introspecting on members of classes, etc.
 
+## Macro Instantiation
+
+To apply a macro, a Dart compiler constructs an instance of the applied macro's
+class, and then invokes methods on it that implement the macro API. The
+arguments on the metadata annotation for the macro application get passed to the
+macro as constructor parameters.
+
+The macro can choose whether each parameter should be passed by its value, or as
+a [Code][] object (or any subtype of [Code][]). It chooses this based on the
+parameter type that is used - any parameter with a subtype of [Code][] is
+automatically coerced into an instance of that type. The user simply writes
+normal Dart code in their macro application. For arguments that are passed by
+value, only literal expressions may be used as arguments, which limits the types
+of values that can be passed in this way.
+
+For example, given a macro definition like this:
+
+```dart
+class AddMacro implements FunctionDefinitionMacro {
+  const AddMacro(int a, Expression b);
+
+  void visitFunctionDefinition(_, FunctionDefinitionBuilder builder) {
+    // Takes the literal value for `a`, and adds the expression `b` to it.
+    builder.implement(FunctionBody.fromParts(['=> $a + ', b, ';']));
+  }
+}
+```
+
+You could apply the macro like this:
+
+```dart
+int get a => 1;
+const b = 2;
+
+class SomeClass {
+  @AddMacro(1, a + b)
+  int addThem(); // Generates: => 1 + a + b;
+}
+```
+
+The compiler constructs an instance of the `AddMacro` class and passes `1` and
+an Expression object representing the original `a + b` expression, resolved in
+the scope of the original macro application. The macro then uses each of those
+to construct a function body and implement the function.
+
+**Note**: Direct instantiations of macros from code (typically during macro
+composition) must provide the actual [Code][] instance directly, and no
+automatic coercion happens. This coercion only takes place for macro
+applications.
+
+**TODO**: What parser ambiguities does this introduce? Can/should we limit this
+to the `Expression` type, or can we also allow statements?
+
+**TODO**: Should we support const expressions as values, if they can be
+evaluated prior to macro expansion?
+
 ## APIs
 
 The specific APIs for macros are being prototyped currently, and the docs are
@@ -300,12 +356,21 @@ provided for type references on the declaration.
 
 ### Metadata Annotations
 
-The ability to introspect on metadata annotations is important for macros, as
-it is expected to be a common way to configure them. For instance a class level
-macro may want some per-declaration configuration, and annotations are an
-intuitive way to provide that.
+Macros may want introspect on metadata annotations on declarations to control
+their behavior. For instance a class level macro may want to expose some
+per-declaration control over their output, and annotations are an intuitive
+way to provide that.
 
-Allowing access to metadata does present some challenges though.
+#### The Annotation Introspection API
+
+We could try to give users access to an actual instance of the annotation, or
+we could give something more like the [DartObject][] class from the analyzer.
+
+Since annotations may contain references to types or identifiers that the macro
+does not import, we choose to expose a more abstract API (similar to
+[DartObject][]).
+
+TODO: Define the exact API.
 
 #### Annotations that Require Macro Expansion
 
@@ -316,15 +381,15 @@ Because macros are not allowed to generate code that shadows an identifier
 in the same library, we know that if an annotation class or any arguments to it
 could be resolved, then we can assume that resolution is correct.
 
-This allows us to provide an API for macro authors to attempt to instantiate an
+This allows us to provide an API for macro authors to attempt to evaluate an
 annotation in _any phase_. The API may fail (if it requires more macro
 expansion to be done), but that is not expected to be a common situation. In
 the case where it does fail, users should typically be able to move some of
 their code to a separate library (which they import). Then things from that
-library can safely be used in annotations in the current library, and reflected
-on by macros.
+library can safely be used in annotations in the current library, and evaluated
+by macros.
 
-Instantiation must fail if there are any macros left to be expanded on the
+Evaluation must fail if there are any macros left to be expanded on the
 annotation class or any arguments to the annotation constructor.
 
 #### Are Macro Applications Introspectable?
@@ -361,17 +426,6 @@ This does have two interesting and possibly unexpected consequences:
 
 TODO: Define the API for adding metadata to existing declarations.
 
-#### The Annotation Introspection API
-
-We could try to give users access to an actual instance of the annotation, or
-we could give something more like the [DartObject][] class from the analyzer.
-
-Since macros may need to introspect on classes that they do not actually
-import (or are not transitively available to them), we choose to expose a more
-abstract API (similar to [DartObject][]).
-
-TODO: Define the exact API.
-
 ### Code Building API
 
 At the root of the API for generating code, are the [Code][] and `*Builder`
@@ -392,6 +446,115 @@ Most subtypes of [Code][] require fully syntactically valid code in order to
 be constructed, but where you need to build up something in smaller pieces you
 can use the [Fragment][] subtype. Any arbitrary String can be passed to this
 class, allowing you to build up your code fragments however you like.
+
+### Resource API
+
+Some macros may wish to load resources (such as files). We do want to enable
+this, but because macros are untrusted code that runs at analysis time, we
+block macros from reading resources outside the scope of the original program.
+
+In order to distinguish whether a resource is "in scope", we use the package
+config file. Specifically, we allow access to any resource that exists under
+the root URI of any package in the current package config. Note that this may
+include resources outside of the `lib` directory of a package - even for
+package dependencies - depending on how the package config file is configured.
+
+If the URI points to a symlink it must be followed and the final physical file
+location checked to be a valid path under a package root. Otherwise they could
+be used to circumvent this check and load a resource that is outside the scope
+of the program. **TODO**: Evaluate whether this restriction is problematic for
+any current compilation strategies, such as in bazel, and if so consider
+alternatives.
+
+Resources are read via a [Uri][]. This may be a `package:` URI, or an absolute
+URI of any other form as long as it exists under the root URI of some package
+listed in the package config.
+
+It is also intuitive for macros to accept a relative URI for resources. In
+order to support this macros should compute the absolute URI from the current
+libraries URI. This URI is accessible by introspecting on the library of the
+declaration that a macro is applied to.
+
+- **TODO**: Support for relative URIs in part files (requires a part file
+  abstraction)?
+- **TODO**: Should libraries report their fully resolved URI or the URI that
+  was used to import them? The latter would mean that files under `lib` could
+  not read resources outside of `lib`, which has both benefits and drawbacks.
+
+Lastly, since macros must return synchronously, we only expose a synchronous
+API for reading resources.
+
+The specific API is as follows, and would only be available at compile time:
+
+```dart
+/// A read-only resource API for use in macro implementation code.
+class Resource {
+  /// Either a `package:` URI, or an absolute URI which is under the root of
+  /// one or more packages in the current package config.
+  final Uri uri;
+
+  /// Creates a resource reference.
+  ///
+  /// The [uri] must be valid for this compilation, which means that it exists
+  /// under the root URI of one or more packages in the package config file.
+  ///
+  /// Throws an [InvalidResourceException] if [uri] is not valid.
+  Resource(this.uri);
+
+  /// Whether or not a resource actually exists at [uri].
+  bool get exists;
+
+  /// Synchronously reads this resource as bytes.
+  Uint8List readAsBytesSync();
+
+  /// Synchronously reads this resource as text using [encoding].
+  String readAsStringSync({Encoding encoding = utf8});
+
+  /// Synchronously reads the resource as lines of text using [encoding].
+  List<String> readAsLinesSync({Encoding encoding = utf8});
+}
+```
+
+#### Resource Invalidation
+
+Resources that are read should be treated as source inputs to the program, and
+should invalidate the parts of the program that depended on them when they
+change.
+
+When a resource is read during compilation, it should either be cached for
+subsequent reads to use or a hash of its contents stored. No two macros should
+ever see different contents for the same resource, within the same build.
+
+This implies that the compilers will need to be keeping track of which
+resources have been read, and adding a dependency on those resources to the
+library. The compilers (or tools invoking the compilers) will then need to
+watch these resource files for changes in the same way that they watch source
+files today.
+
+This also includes tracking when resources are created or destroyed - so for
+instance calling any method on a `Resource` should add a dependency on the
+`uri` of that resource, whether it exists or not.
+
+##### build_runner
+
+In build_runner we run the compiler in a special directory and we only copy
+over the files we know will be read (transitive dart files). How would we
+know which resources to copy over, and more specifically which resources were
+read by the compiler?
+
+It is likely that we would need some special configuration from the users here
+to make this work, at least a general glob of available resources for a package.
+
+##### bazel
+
+No additional complications, resources will need to be provided as data inputs
+to the dart_library targets though.
+
+##### frontend_server
+
+The frontend server will need to communicate back the list of resources that
+were depended on. This could likely work similarly to how it reports changes
+to the Dart sources (probably just treat them in the same way as source files).
 
 ### Adding New Macro Applications
 
@@ -421,7 +584,7 @@ Note that macros can already _immediately_ invoke another macro on a given
 declaration manually, by simply instantiating the macro and then invoking
 it.
 
-TODO: Update the builder apis to allow this.
+TODO: Update the builder APIs to allow this.
 
 #### Note About Ordering Violations
 
@@ -657,10 +820,10 @@ code _into_.
 
 This means that macros need the ability to ask for the language version of a
 given library. This will be allowed through the library introspection class,
-which is available from the introspection apis on all declarations via a
+which is available from the introspection APIs on all declarations via a
 `library` getter.
 
-TODO: Fully define the library introspection api for each phase.
+TODO: Fully define the library introspection API for each phase.
 
 ### API Versioning
 
@@ -669,7 +832,7 @@ TODO: Finalize the approach here.
 It is possible that future language changes would require a breaking change to
 an existing imperative macro API. For instance you could consider what would
 happen if we added multiple return values from functions. That would
-necessitate a change to many apis so that they would support multiple return
+necessitate a change to many APIs so that they would support multiple return
 types instead of a single one.
 
 #### Proposal: Ship Macro APIs as a Pub Package
@@ -707,3 +870,4 @@ lot of flexibility with the API going forward.
 [Macro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Macro-class.html
 [typeDeclarationOf]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DeclarationBuilder/typeDeclarationOf.html
 [TypeMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/TypeMacro-class.html
+[Uri]: https://api.dart.dev/stable/2.13.4/dart-core/Uri-class.html

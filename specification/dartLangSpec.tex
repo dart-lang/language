@@ -14,7 +14,7 @@
 \makeindex
 \title{Dart Programming Language Specification\\
 {6th edition draft}\\
-{\large Version 2.13-dev}}
+{\large Version 2.15-dev}}
 \author{}
 
 % For information about Location Markers (and in particular the
@@ -25,6 +25,17 @@
 % =======
 %
 % Significant changes to the specification.
+%
+% 2.15
+% - Allow generic instantiation of expressions with a generic function type
+%   (until now, it was an error unless the expression denoted a declaration).
+% - Allow generic instantiation of the `call` method of a function object.
+% - Clarify that `TypeLiteral.extensionMethod()` is an error, in line with the
+%   error for `int.toString()`.
+% - Add support for function closurization for callable objects, in the sense
+%   that `o` is desugared as `o.call` when the context type is a function type.
+% - Clarify the treatment of `covariant` parameters in the interface of a class
+%   that inherits an implementation where those parameters are not covariant.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -39,8 +50,6 @@
 % - Change grammar to enable non-function type aliases. Correct rule for
 %   invoking `F.staticMethod()` where `F` is a type alias.
 % - Add missing error for cyclic redirecting generative constructor.
-% - Clarify the treatment of `covariant` parameters in the interface of a class
-%   that inherits an implementation where those parameters are not covariant.
 %
 % 2.8 - 2.10
 % - Change several warnings to compile-time errors, matching the actual
@@ -682,7 +691,7 @@ The syntax of a \LET{} expression is as follows:
 \end{grammar}
 
 \LMHash{}%
-\BlindDefineSymbol{e_{\metavar{let}}, e_j, v_j, k}
+\BlindDefineSymbol{e_{\metavar{let}}, e_j, v_j, k}%
 Let $e_{\metavar{let}}$ be a \LET{} expression of the form
 \LetMany{$v_1$}{$e_1$}{$v_k$}{$e_k$}{$e$}.
 It is tacitly assumed that $v_j$ is a fresh variable, $j \in 1 .. k$,
@@ -2287,7 +2296,7 @@ Let $u$ be the run-time type of a function object $o$ obtained by
 function closurization
 (\ref{functionClosurization})
 or instance method closurization
-(\ref{ordinaryMemberClosurization})
+(\ref{instanceMethodClosurization})
 applied to $F$,
 and let $t$ be the actual type corresponding to $T$
 at the occasion where $o$ was created
@@ -2522,62 +2531,20 @@ When a class name appears as a type,
 that name denotes the interface of the class.
 
 \LMHash{}%
-% The use of `concrete member' below may seem redundant, because a class
-% does not inherit abstract members from its superclass, but this
-% underscores the fact that even when an abstract declaration of $m$ is
-% declared in $C$, $C$ does not "have" $m$.
-A concrete class must fully implement its interface:
-\BlindDefineSymbol{C, I, m}%
-Let $C$ be a concrete class with interface $I$.
-Assume that $I$ has an accessible member signature $m$,
-and $C$ does not declare a member with the same name as $m$.
-It is a compile-time error if $C$ does not have
-a concrete accessible member with the same name as $m$,
-unless $C$ has a non-trivial \code{noSuchMethod}
-(\ref{theMethodNoSuchMethod}).
-It is a compile-time error if $C$ has
-a concrete accessible member with the same name as $m$,
-with a method signature $m'$ which is not a correct override of $m$
-(\ref{correctMemberOverrides}),
-unless that concrete member is a \code{noSuchMethod} forwarder
-(\ref{theMethodNoSuchMethod}).
-
-\commentary{%
-In particular, it is an error for a class to be concrete even if it inherits
-a member implementation for every member signature in its interface,
-unless each of them has parameters and types such that they satisfy
-the corresponding member signature.
-But when there is a non-trivial \code{noSuchMethod} it is allowed
-to leave some members unimplemented,
-and it is allowed to have a \code{noSuchMethod} forwarder which does not
-satisfy the class interface
-(in which case it will be overridden by another \code{noSuchMethod} forwarder).%
-}
-
-\LMHash{}%
-Assume that $C$ has a concrete accessible member with the same name as $m$,
-with a method signature $m'$ which is a correct override of $m$.
-For each parameter $p$ of $m'$ where \COVARIANT{} is present,
-it is a compile-time error if there exists
-a direct or indirect superinterface of $C$ which has
-an accessible method signature $m''$ with the same name as $m$,
-such that $m''$ has a parameter $p''$ that corresponds to $p$
-(\ref{covariantParameters}),
-unless the type of $p$ is a subtype or a supertype of the type of $p''$.
-
-\commentary{%
-This ensures that an inherited method satisfies the same constraint
-for each formal parameter which is covariant-by-declaration
-as the constraint which is specified for a declaration in $C$
-(\ref{instanceMethods}).%
-}
+It is a compile-time error if a class named $C$ declares
+a member with basename (\ref{classMemberConflicts}) $C$.
+If a generic class named $G$ declares a type variable named $X$,
+it is a compile-time error
+if $X$ is equal to $G$,
+or if $G$ has a member whose basename is $X$,
+or if $G$ has a constructor named \code{$G$.$X$}.
 
 \commentary{%
 Here are simple examples, that illustrate the difference between
 ``has a member'' and ``declares a member''.
 For example, \code{B} \IndexCustom{declares}{declares member}
- one member named \code{f},
-but \IndexCustom{has}{has member} two such members.
+one member named \code{f},
+but it \IndexCustom{has}{has member} two such members.
 The rules of inheritance determine what members a class has.%
 }
 
@@ -2598,14 +2565,134 @@ The rules of inheritance determine what members a class has.%
 \}
 \end{dartCode}
 
+
+\subsection{Fully Implementing an Interface}
+\LMLabel{fullyImplementingAnInterface}
+
+% Note that rules here and in \ref{instanceMethods} overlap, but they are
+% both needed: This section is concerned with concrete methods, including
+% inherited ones, and \ref{instanceMethods} is concerned with instance
+% members declared in $C$, including both concrete and abstract ones.
+
 \LMHash{}%
-It is a compile-time error if a class named $C$ declares
-a member with basename (\ref{classMemberConflicts}) $C$.
-If a generic class named $G$ declares a type variable named $X$,
-it is a compile-time error
-if $X$ is equal to $G$,
-or if $G$ has a member whose basename is $X$,
-or if $G$ has a constructor named \code{$G$.$X$}.
+% The use of `concrete member' below may seem redundant, because a class
+% does not inherit abstract members from its superclass, but this
+% underscores the fact that even when an abstract declaration of $m$ is
+% declared in $C$, $C$ does not "have" an $m$ which will suffice here.
+A concrete class must fully implement its interface.
+\BlindDefineSymbol{C, I, m}%
+Let $C$ be a concrete class declared in library $L$, with interface $I$.
+Assume that $I$ has a member signature $m$ which is accessible to $L$.
+It is a compile-time error if $C$ does not have
+a concrete member with the same name as $m$ and accessible to $L$,
+unless $C$ has a non-trivial \code{noSuchMethod}
+(\ref{theMethodNoSuchMethod}).
+
+\LMHash{}%
+Each concrete member must have a suitable signature:
+Assume that $C$ has a concrete member with
+the same name as $m$ and accessible to $L$,
+and let \DefineSymbol{m''} be its member signature.
+\commentary{%
+The concrete member may be declared in $C$ or inherited from a superclass.%
+}
+Let \DefineSymbol{m'} be the member signature which is obtained from $m''$
+by adding, if not present already, the modifier \COVARIANT{}
+(\ref{covariantParameters})
+to each parameter $p$ in $m''$ where
+the corresponding parameter in $m$ has the modifier \COVARIANT.
+It is a compile-time error if $m'$ is not a correct override of $m$
+(\ref{correctMemberOverrides}),
+unless that concrete member is a \code{noSuchMethod} forwarder
+(\ref{theMethodNoSuchMethod}).
+
+\commentary{%
+Consider a concrete class \code{C},
+and assume that \code{C} declares or inherits
+a member implementation with the same name
+for every member signature in its interface.
+It is still an error if one or more of those member implementations
+has parameters or types such that they do not satisfy
+the corresponding member signature in the interface.
+For this check, any missing \COVARIANT{} modifiers are implicitly added
+to the signature of an inherited member (this is how we get $m'$ from $m''$).
+When the modifier \COVARIANT{} is added to one or more parameters
+(which will only happen when the concrete member is inherited),
+an implementation may choose to implicitly induce a forwarding method
+with the same signature as $m'$,
+in order to perform the required dynamic type check,
+and then invoke the inherited method.%
+}
+
+\LMHash{}%
+It is an implementation specific choice whether or not
+an implicitly induced forwarding method is used
+when the modifier \COVARIANT{} is added to
+one or more parameters in $m'$.
+
+\commentary{%
+This is true in spite of the fact that such forwarding methods can be observed.
+E.g., we can compare
+the run-time type of a tearoff of the method from
+a receiver of type \code{C}
+to the run-time type of a tearoff of the super-method from
+a location in the body of \code{C}.%
+}
+
+\LMHash{}%
+With or without a forwarding method,
+the member signature in the interface of $C$ is $m$.
+
+\commentary{%
+The forwarding method does not change the interface of \code{C},
+it is an implementation detail.
+In particular, this holds even in the case where
+an explicit declaration of the forwarding method would have
+changed the interface of \code{C}, because $m'$ is a subtype of $m$.
+
+When a class has a non-trivial \code{noSuchMethod},
+the class may leave some members unimplemented,
+and the class is allowed to have a \code{noSuchMethod} forwarder
+which does not satisfy the class interface
+(in which case it will be overridden by another \code{noSuchMethod} forwarder).
+
+Here is an example:%
+}
+
+\begin{dartCode}
+\CLASS\ B \{
+  \VOID\ m(int i) \{\} // \comment{Signature $m''$: \VOID\ m(int).}
+\}
+\\
+\ABSTRACT\ \CLASS\ I \{
+  \VOID\ m(\COVARIANT\ num n); // \comment{Signature: \VOID\ m(\COVARIANT\ num).}
+\}
+\\
+\CLASS\ C \EXTENDS\ B \IMPLEMENTS\ I \{
+  // \comment{Signature $m$: \VOID\ m(\COVARIANT\ num).}
+  //
+  // \comment{To check that this class fully implements its interface,}
+  // \comment{check that $m'$, that is, \VOID\ m(\COVARIANT\ int),}
+  // \comment{correctly overrides $m$: OK!}
+\}
+\end{dartCode}
+
+\LMHash{}%
+Parameters that are covariant-by-declaration
+must also satisfy the following constraint:
+Assume that the parameter $p$ of $m'$ has the modifier \COVARIANT.
+Assume that a direct or indirect superinterface of $C$ has
+a method signature $m_s$ with the same name as $m'$ and accessible to $L$,
+such that $m_s$ has a parameter $p_s$ that corresponds to $p$.
+In this situation, a compile-time error occurs
+if the type of $p$ is not a subtype and not a supertype of the type of $p_s$.
+
+\commentary{%
+This ensures that an inherited method satisfies the same constraint
+for each formal parameter which is covariant-by-declaration
+as the constraint which is specified for a declaration in $C$
+(\ref{instanceMethods}).%
+}
 
 
 \subsection{Instance Methods}
@@ -2622,7 +2709,7 @@ and the instance methods inherited by $C$ from its superclass
 (\ref{inheritanceAndOverriding}).
 
 \LMHash{}%
-\BlindDefineSymbol{C, D, m}
+\BlindDefineSymbol{C, D, m}%
 Consider a class $C$
 and an instance member declaration $D$ in $C$, with member signature $m$
 (\ref{interfaces}).
@@ -2660,7 +2747,7 @@ a corresponding parameter in a superinterface,
 but the two types cannot be unrelated.
 Note that this requirement must be satisfied
 for each direct or indirect superinterface separately,
-because assignability is not transitive.%
+because that relationship is not transitive.%
 }
 
 \rationale{%
@@ -2668,7 +2755,7 @@ The superinterface may be the statically known type of the receiver,
 so this means that we relax the potential typing relationship
 between the statically known type of a parameter and the
 type which is actually required at run time
-to the assignability relationship,
+to the subtype-or-supertype relationship,
 rather than the strict supertype relationship
 which applies to a parameter which is not covariant.
 It should be noted that it is not statically known
@@ -2676,7 +2763,7 @@ at the call site whether any given parameter is covariant,
 because the covariance could be introduced in
 a proper subtype of the statically known type of the receiver.
 We chose to give priority to flexibility rather than safety here,
-because the whole point covariant parameters is that developers
+because the whole point of covariant parameters is that developers
 can make the choice to increase the flexibility
 in a trade-off where some static type safety is lost.%
 }
@@ -2940,7 +3027,7 @@ with the signature taken from the interface of $C$,
 and with the same default value for each optional parameter.
 It can be invoked in an ordinary invocation and in a superinvocation,
 and when $m$ is a method it can be closurized
-(\ref{ordinaryMemberClosurization})
+(\ref{instanceMethodClosurization})
 using a property extraction
 (\ref{propertyExtraction}).
 
@@ -3947,7 +4034,7 @@ respectively
 \code{\SUPER.\id($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}.
 
 \LMHash{}%
-\BlindDefineSymbol{C, S, u_j, p}
+\BlindDefineSymbol{C, S, u_j, p}%
 Let $C$ be the class in which $s$ appears and let $S$ be the superclass of $C$.
 If $S$ is generic (\ref{generics}),
 let $u_1, \ldots, u_p$ be the actual type arguments passed to $S$,
@@ -4574,6 +4661,7 @@ an enumerated type (\ref{enums}),
 a deferred type (\ref{staticTypes}), type \DYNAMIC{} (\ref{typeDynamic}),
 or type \code{FutureOr<$T$>} for any $T$ (\ref{typeFutureOr}).
 It is a compile-time error if two elements in the type list of
+%% TODO(eernst): Refer to nnbd notion of 'same type'.
 the \IMPLEMENTS{} clause of a class $C$ specifies the same type $T$.
 It is a compile-time error if the superclass of a class $C$ is
 one of the elements of the type list of the \IMPLEMENTS{} clause of $C$.
@@ -4845,7 +4933,7 @@ $T$ is considered to have a method named \CALL{} with signature $m$,
 such that the function type of $m$ is $T_0$.
 
 \LMHash{}%
-\BlindDefineSymbol{I, \List{I}{1}{k}}
+\BlindDefineSymbol{I, \List{I}{1}{k}}%
 The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
 is the interface that declares the set of member signatures $M$,
 where $M$ is determined as specified below.
@@ -5230,28 +5318,6 @@ if{}f the following criteria are all satisfied:
     For instance, $m'$ may accept 2 or 3 positional arguments,
     and $m$ may accept 1, 2, 3, or 4 positional arguments, but not vice versa.
     This is a built-in property of the function type subtype rules.
-  }
-
-  If $p'$ is a formal parameter in $m'$ which is covariant-by-declaration,
-  the corresponding parameter $p$ in $m$ must also be covariant-by-declaration
-  unless the type of $p$ is a top type
-  (\ref{superBoundedTypes}).
-
-  \commentary{%
-    This requirement is satisfied in the typical case, but not in all cases:
-    When $m$ is the member signature of a declaration in a class $C$
-    and $m'$ is a member signature from a superinterface of $C$,
-    this requirement will never fail.
-    This is because $p$ is automatically and implicitly covariant-by-declaration
-    whenever $p'$ is covariant-by-declaration.
-
-    However, if $m$ is the signature of a concrete member declaration
-    inherited from a superclass $S$ into a class $C$,
-    a parameter $p$ may not be covariant-by-declaration
-    even though $p'$ is covariant-by-declaration.
-    In this case the inherited member fails to be a correct override
-    of the member in that superinterface
-    (unless $p$ has a top type, where the covariance cannot cause unsoundness).
   }
 \item
   %% TODO(eernst): Come nnbd, this warning is removed.
@@ -6008,7 +6074,7 @@ which is unlikely to be desirable.%
 \LMLabel{implicitExtensionInvocations}
 
 \LMHash{}%
-Instance members of an extension can be invoked implicitly
+Instance members of an extension can be invoked or closurized implicitly
 (\commentary{without mentioning the name of the extension}),
 as if they were instance members of the receiver of
 the given member invocation.
@@ -6039,9 +6105,10 @@ An implicit extension member invocation occurs
 for a member invocation $i$
 (\ref{memberInvocations})
 with receiver $r$ and corresponding member name $m$ if{}f
-(1) the interface of the static type of $r$ does not have a member
+(1) $r$ is not a type literal,
+(2) the interface of the static type of $r$ does not have a member
 whose basename is the basename of $m$,
-and (2) there exists a unique most specific
+and (3) there exists a unique most specific
 (\ref{extensionSpecificity})
 extension denoted by $E$ which is accessible
 (\ref{extensionAccessibility})
@@ -10847,6 +10914,7 @@ respectively
 $o_2$ with contents $o_{21}, \ldots, o_{2n}$ and actual type argument $t_2$
 be the result of evaluating them.
 Then \code{identical($o_1$, $o_2$)} evaluates to \TRUE{} if{}f
+%% TODO(eernst): Refer to nnbd notion of 'same type'.
 \code{$t_1$ == $t_2$} and \code{identical($o_{1i}$, $o_{2i}$)}
 evaluates to \TRUE{} for all $i \in 1 .. n$.
 
@@ -12774,7 +12842,7 @@ $i$ is treated as
 the ordinary invocation
 
 \noindent
-\code{$e_f$.call<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{$e_f$.\CALL<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \LMHash{}%
 Otherwise, the static analysis of $i$ is performed as specified
@@ -12869,7 +12937,7 @@ respectively to the function literal $f$ considered as a function declaration.
 % identical even if not required, e.g., local functions with no free variables.
 \IndexCustom{Closurization}{closurization}
 denotes instance method closurization
-(\ref{ordinaryMemberClosurization})
+(\ref{instanceMethodClosurization})
 as well as function closurization,
 and it is also used as a shorthand for either of them
 when there is no ambiguity.
@@ -12918,7 +12986,7 @@ are canonicalized.%
 }
 
 
-\subsubsection{Generic Function Instantiation}
+\subsection{Generic Function Instantiation}
 \LMLabel{genericFunctionInstantiation}
 
 %% TODO(eernst): The specification of generic function instantiation relies
@@ -12931,24 +12999,17 @@ are canonicalized.%
 
 \LMHash{}%
 Generic function instantiation is a mechanism that yields
-a non-generic function object,
-based on a reference to a generic function.
-
-\commentary{%
-It is a mechanism which is very similar to function closurization
-(\ref{functionClosurization}),
-but it only occurs in situations where
-a compile-time error would otherwise occur.%
-}
+a non-generic function object based on a given generic function.
 
 \rationale{%
 The essence of generic function instantiation
 is to allow for ``curried'' invocations,
 in the sense that a generic function can receive its actual
-type arguments separately during closurization
+type arguments separately
 (it must then receive \emph{all} type arguments, not just some of them),
 and that yields a non-generic function object.
 The type arguments are passed implicitly, based on type inference;
+%% TODO(eernst): Come constructor-tearoffs, revise this.
 a future version of Dart may allow for passing them explicitly.%
 }
 \commentary{Here is an example:}
@@ -12976,16 +13037,14 @@ to the corresponding generic function.%
 }
 
 \LMHash{}%
-Let $f$ of the form
-\syntax{<identifier> (`.'~<identifier>\,(`.'~<identifier>)?)?}~be
-an expression that denotes
-a declaration of a local function, a static method, or a top-level function,
-and let $G$ be the static type of $f$.
-Consider the situation where $G$ is a function type of the form
-\RawFunctionType{T_0}{X}{B}{s}{\metavar{parameters}}
-with $s > 0$
-(\commentary{that is, $G$ is a generic function type}),
-and the context type is a non-generic function type $F$.
+\BlindDefineSymbol{f,G}
+Let $f$ be an expression whose static type $G$ is
+\BlindDefineSymbol{T_0,X_j,B_j,s,p}%
+a generic function type of the form
+\RawFunctionType{T_0}{X}{B}{s}{\metavar{p}}
+where \code{($p$)} is derived from \synt{formalParameterList}.
+\commentary{Note that $s > 0$ because $G$ is generic.}
+Assume that the context type is a non-generic function type $F$.
 In this situation a compile-time error occurs
 (\ref{variables},
 \ref{functions},
@@ -13006,7 +13065,8 @@ except when the following step succeeds:
 \IndexCustom{Generic function type instantiation}{%
   generic function type instantiation}:
 Type inference is applied to $G$ with context type $F$,
-and it succeeds, yielding the actual type argument list
+and it yields the actual type argument list
+\BlindDefineSymbol{T_j}%
 \List{T}{1}{s}.
 
 \commentary{%
@@ -13019,128 +13079,75 @@ how type inference computes \List{T}{1}{s}
 }
 
 \LMHash{}%
-Otherwise, the generic function type instantiation succeeded.
-Let $F'$ denote the type
-$[T_1/X_1, \ldots, T_s/X_s]%
-(\FunctionTypeSimple{T_0}{\metavar{parameters}})$.
+Assume that the generic function type instantiation succeeded.
+Let \DefineSymbol{F'} denote the type
+$[T_1/X_1, \ldots, T_s/X_s](\FunctionTypeSimple{T_0}{$p$})$.
 \commentary{%
 Note that it is guaranteed that $F'$ is assignable to $F$,
 or inference would have failed.%
 }
+Henceforth in the static analysis,
+this occurrence of $f$ is considered to have static type $F'$.
 
 \LMHash{}%
-\Case{Top-level Functions and Static Methods}
-Consider the situation where $f$ denotes
-a top-level function or a static method.
-%
-In this situation, the program is modified such that $f$ is replaced by
-a reference $f'$ to an implicitly induced non-generic function
-whose signature is $F'$,
-whose dynamic type is $[t_1/T_1, \ldots, t_s/T_s]F'$,
-and whose semantics for each invocation is the same as
-invoking $f$ with \List{t}{1}{s} as the actual type argument list,
-where \List{t}{1}{s} is the actual value of \List{T}{1}{s}
-at the point during execution where $f'$ was evaluated.
-\commentary{Here is an example:}
+Execution of $f$ proceeds as follows.
+Evaluate $f$ to an object $o$.
+%% TODO(eernst): Come null-safety, remove the next line.
+A dynamic error occurs if $o$ is the null object.
+Let \RawFunctionType{S_0}{Y}{B'}{s}{$q$} be the dynamic type of $o$
+(\commentary{by soundness, this type is a subtype of $G$}).
+$f$ then evaluates to a function object $o'$ with dynamic type
+$[t_1/Y_1, \ldots, t_s/Y_s](\FunctionTypeSimple{S_0}{$q$})$,
+where $t_j$ is the actual value of $T_j$, for $j \in 1 .. k$.
+An invocation of $o'$ with actual arguments \metavar{args} has
+the same effect as an invocation of $o$
+with actual type arguments \List{t}{1}{s} and actual arguments \metavar{args}.
 
-\begin{dartCode}
-List<T> foo<T>(T t) => [t];
-List<int> fooOfInt(int i) => [i];
-\\
-String bar(List<int> f(int)) => "\${f(42)}";
-\\
-\VOID{} main() \{
-  print(bar(foo));
-\}
-\end{dartCode}
+\LMHash{}%
+Let $f_1$ and $f_2$ be two constant expressions that are subject to
+generic function instantiation.
+Assume that $f_1$ and $f_2$ without a context type evaluate to $o_1$
+respectively $o_2$ such that \code{identical($o_1$, $o_2$)} is true.
+Assume that the given context types give rise to a successful
+generic function type instantiation with
+the same actual type arguments for $f_1$ and $f_2$,
+yielding the non-generic function objects $o'_1$ respectively $o'_2$.
+In this case \code{identical($o'_1$, $o'_2$)} shall evaluate to true.
 
 \commentary{%
-In this example,
-\code{foo} as an actual argument to \code{bar} will be modified
-as if the call had been \code{bar(fooOfInt)},
-except for equality, which is specified next.%
+That is, constant expressions whose evaluation is
+a generic function instantiation are canonicalized,
+based on the underlying function and on the actual type arguments.
+As a consequence, they are also equal according to operator \lit{==}.%
 }
 
 \LMHash{}%
-Consider the situation where the program
-before generic function instantiation contains
-two occurrences of $f$ in the same scope or different scopes,
-but denoting the same function,
-respectively the situation where
-an execution of the program containing $f$ evaluates it twice.
-Let $o_1$ and $o_2$ denote the function objects obtained by
-evaluation of those two expressions,
-respectively the two evaluations of that expression.
+Let $g_1$ and $g_2$ be two expressions
+(\commentary{which may or may not be constant})
+that are subject to generic function instantiation.
+Assume that $g_1$ and $g_2$ without a context type evaluate to $o_1$
+respectively $o_2$ such that \code{$o_1$ == $o_2$)} is true.
+Assume that the given context types give rise to a successful
+generic function type instantiation with
+the same actual type arguments for $g_1$ and $g_2$,
+yielding the non-generic function objects $o'_1$ respectively $o'_2$.
+In this case \code{$o'_1$ == $o'_2$} shall evaluate to true.
 
-\LMHash{}%
-In the case where the actual values of the type arguments
-are the same for both evaluations,
-it is guaranteed that $o_1$ and $o_2$ are equal
-according to operator \lit{==}.
-However, it is unspecified whether
-\code{identical($o_1$, $o_2$)} evaluates to \TRUE{} or \FALSE.
+\commentary{%
+When one or both of the expressions is not constant,
+it is unspecified whether
+\code{identical($o_1$,\,\,$o_2$)} evaluates to \TRUE{} or \FALSE,
+but operator \lit{==} yields true for equal function objects
+instantiated with the same actual type arguments.%
+}
 
 \rationale{%
-No notion of equality is appropriate
-when different type arguments are provided,
+No notion of equality is appropriate when the type arguments differ,
 even if the resulting function objects
 turn out to have exactly the same type at run time,
 because execution of two function objects that differ in these ways
 can have different side-effects and return different results
 when executed starting from exactly the same state.%
-}
-\commentary{%
-For instance, there could be a type parameter \code{X}
-that does not occur in the signature of the function,
-and the function could create and return a \code{List<X>}.%
-}
-\EndCase
-
-\LMHash{}%
-\Case{Local Functions}
-Consider the situation where $f$ is an identifier denoting a local function.
-\commentary{For a local function, only an identifier can denote it.}
-%
-In this situation, the program is modified such that $f$ is replaced by
-a reference $f'$ to an implicitly induced non-generic function
-whose signature is $F'$,
-whose dynamic type is $[t_1/T_1, \ldots, t_s/T_s]F'$,
-and whose semantics for each invocation is the same as
-invoking $f$ with \List{t}{1}{s} as the actual type argument list,
-where \List{t}{1}{s} is the actual value of \List{T}{1}{s}
-at the point during execution where $f'$ was evaluated.
-
-\commentary{%
-No guarantees are provided regarding equality
-of non-generic functions obtained from a local function
-by generic function instantiation.%
-}
-
-\rationale{%
-Such a local function could have received exactly
-the same actual type arguments in the two cases,
-and still its body could contain references
-to declarations of types, variables, and other entities
-in the enclosing scopes.
-Those references could denote different entities
-when the two function objects were created.
-In that situation it is unreasonable
-to consider the two function objects to be the same function.%
-}
-\EndCase
-
-\LMHash{}%
-Let $e_1$ and $e_2$ be two constant expressions that both
-evaluate to a function object
-which is obtained by generic function instantiation
-of the same function declaration
-and with the same type arguments.
-In this case \code{identical($e_1$, $e_2$)} shall evaluate to true.
-
-\commentary{%
-That is, constant expressions whose evaluation is
-a generic function instantiation
-are canonicalized.%
 }
 
 
@@ -13663,12 +13670,7 @@ will implement \CALL,
 but there is no method signature
 which can be assumed for \CALL{} in \FUNCTION{}
 because every signature will conflict with
-some potential overriding declarations.
-Note that any use of \CALL{} on
-a subclass of \FUNCTION{} that fails to implement \CALL{}
-will provoke a compile-time error,
-as this exemption is limited to type \FUNCTION,
-and does not apply to its subtypes.%
+some potential overriding declarations.%
 }
 \end{itemize}
 
@@ -13712,17 +13714,39 @@ considering $F$ to be the static type of the function to call,
 and the static type of $i$ is as specified there.
 
 \LMHash{}%
-It is a compile-time error to invoke any of the methods of class \code{Object}
-on a constant type literal that is immediately followed by the token `.'\,.
+It is a compile-time error to invoke an instance method on a type literal
+that is immediately followed by the token `.' (a period).
+\commentary{
+For instance, \code{int.toString()} is an error.%
+}
 
 \rationale{%
-The reason for the latter is that this syntax is reserved for
-invocation of static methods.
-For instance, \code{int.toString()} is similar to
-\code{C.someStaticMethod()}, and
-it would be confusing if just a couple of expressions of this form
-were instance method invocations.
-If needed, \code{(int).toString()} may be used instead.%
+The reason for this rule is that member access on a type literal
+is reserved for invocation of static members.
+Invocation of a static member of a class, mixin, or extension
+uses said entity as a \emph{namespace},
+not as an actual class, mixin, or extension.
+In particular, the syntactic receiver is not evaluated
+to an object---that would not even be possible for an extension.%
+}
+
+\commentary{%
+An member access on a type literal 
+(e.g., \code{C.id()}, \code{C.id}, or \code{C?.id()}),
+always treats the declaration denoted by the literal as
+a namespace for accessing static members or constructors.
+For instance, \code{int.toString()} is an error
+because \code{int} does not declare a static member named \code{toString}.
+It will not evaluate \code{int} to a \code{Type} object
+and then call its \code{toString} instance method.
+To do that, you can use \code{(int).toString()}.
+Note that cascades are different:
+they \emph{always} evaluate their receiver to an object first.
+
+As a natural consequence,
+a type literal cannot be the receiver in
+an implicit invocation of an extension method
+(\ref{implicitExtensionInvocations}).%
 }
 
 \LMHash{}%
@@ -13911,7 +13935,6 @@ A \Index{method superinvocation} $i$ has the form
 \BlindDefineSymbol{i, m, A_j, a_j, x_j}%
 
 \noindent
-\BlindDefineSymbol{}%
 \code{\SUPER.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \commentary{%
@@ -14046,7 +14069,7 @@ A property extraction can be either:
 \begin{enumerate}
 \item An instance method closurization,
   which converts a method into a function object
-  (\ref{ordinaryMemberClosurization}).
+  (\ref{instanceMethodClosurization}).
   Or
 \item A getter invocation, which returns
   the result of invoking of a getter method
@@ -14058,7 +14081,8 @@ Function objects derived from members via closurization
 are colloquially known as tear-offs.%
 }
 
-Property extraction can be either conditional or unconditional.
+\LMHash{}%
+Property extraction comes in several forms, as described below.
 
 \LMHash{}%
 \Case{Conditional}
@@ -14140,6 +14164,24 @@ or it is an expression of the form \code{\SUPER.\id}
 (\ref{superGetterAccessAndMethodClosurization}).
 \EndCase
 
+\LMHash{}%
+\Case{Implicit}
+Let $e$ be an expression whose static type is
+an interface type that has a method named \CALL.
+In the case where the context type for $e$ is a function type
+or the type \FUNCTION,
+$e$ is treated as \code{$e$.\CALL}.
+
+\commentary{%
+This means that a ``callable object'' may be treated as a function
+that supports a mechanism similar to function closurization
+(\ref{functionClosurization})
+by desugaring it to a method closurization on \CALL.
+This only occurs when it is statically known that it is a callable object,
+and when the context type requires a function.%
+}
+\EndCase
+
 
 \subsubsection{Getter Access and Method Extraction}
 \LMLabel{getterAccessAndMethodExtraction}
@@ -14205,7 +14247,7 @@ Let $f$ be the result of looking up (\ref{lookup}) method
 \id{} in $o$ with respect to the current library $L$.
 If method lookup succeeds then $i$ evaluates to
 the closurization of method $f$ on object $o$
-(\ref{ordinaryMemberClosurization}).
+(\ref{instanceMethodClosurization}).
 
 \commentary{%
 Note that $f$ is never an abstract method,
@@ -14314,12 +14356,11 @@ does not have a concrete member named \id.%
 }
 
 
-\subsubsection{Ordinary Member Closurization}
-\LMLabel{ordinaryMemberClosurization}
+\subsubsection{Instance Method Closurization}
+\LMLabel{instanceMethodClosurization}
 
 \LMHash{}%
-This section specifies the dynamic semantics of
-ordinary member closurizations.
+This section specifies the dynamic semantics of instance method closurizations.
 
 \commentary{%
 Note that the non-generic case is covered implicitly using $s = 0$,
@@ -14413,6 +14454,7 @@ Note that for the static type it is ignored whether a parameter is covariant.%
 
 \LMHash{}%
 If $T$ is a non-generic class then for $j \in 1 .. n+k$,
+%% TODO(eernst): Refer to nnbd notion of 'same type'.
 $T_j$ is a type annotation that denotes the same type as that
 which is denoted by the type annotation on
 the corresponding parameter declaration in $D$.
@@ -14527,7 +14569,7 @@ and optional positional parameters
 
 \commentary{%
 Note that a super closurization is an instance method closurization,
-as defined in (\ref{ordinaryMemberClosurization}).%
+as defined in (\ref{instanceMethodClosurization}).%
 }
 
 \LMHash{}%
@@ -14566,6 +14608,7 @@ Note that for the static type it is ignored whether a parameter is covariant.%
 
 \LMHash{}%
 If $S$ is a non-generic class then for $j \in 1 .. n+k$,
+%% TODO(eernst): Refer to nnbd notion of 'same type'.
 $T_j$ is a type annotation that denotes the same type as that
 which is denoted by the type annotation on
 the corresponding parameter declaration in $D$.
@@ -14604,7 +14647,7 @@ if and only if $o_1$ and $o_2$ is the same object.
 Generic method instantiation is a mechanism that yields
 a non-generic function object,
 based on a property extraction which denotes an instance method closurization
-(\ref{ordinaryMemberClosurization}, \ref{superClosurization}).
+(\ref{instanceMethodClosurization}, \ref{superClosurization}).
 
 \commentary{%
 It is a mechanism which is very similar to instance method closurization,
@@ -14673,8 +14716,7 @@ would have been a compile-time error.%
 Let $i$ be a property extraction expression of the form
 \code{$e$?.\id}, \code{$e$.\id}, or \code{\SUPER.\id}
 (\ref{propertyExtraction}, \ref{superGetterAccessAndMethodClosurization}),
-which is statically resolved to denote an instance method named \id{}
-that is not the \CALL{} method of a function type,
+which is statically resolved to denote an instance method named \id,
 and let $G$ be the static type of $i$.
 Consider the situation where $G$ is a function type of the form
 \RawFunctionType{T_0}{X}{B}{s}{\metavar{parameters}}
@@ -14827,6 +14869,7 @@ as described above.
 Consider the situation where the program evaluates
 two invocations of this method with the same receiver $o$,
 and with actual type arguments whose actual values are
+%% TODO(eernst): Refer to nnbd notion of 'same type'.
 the same types \List{t}{1}{s} for both invocations,
 and assume that the invocations returned
 the instances $o_1$ respectively $o_2$.
