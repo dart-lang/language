@@ -38,12 +38,12 @@ The grammar of the `enum` declaration becomes:
 <enumType> ::=
   `enum' <identifier> <typeParameters>? <mixins>? <interfaces>? `{'
      <enumEntry> (`,' <enumEntry>)* (`,')? (`;'
-     (<metadata> <classMemberDeclaration>)*
+     (<metadata> <classMemberDefinition>)*
      )?
   `}'
 
-<enumEntry> ::= <metadata> <identifier> <argumentPart>? |
-              | <metadata> <identifier> <typeArguments>? \.' <identifier> <arguments>
+<enumEntry> ::= <metadata> <identifier> <argumentPart>?
+  | <metadata> <identifier> <typeArguments>? `.' <identifier> <arguments>
 ```
 
 It is a compile-time error if the enum declaration contains any generative constructor which is not `const`.
