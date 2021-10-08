@@ -23323,18 +23323,18 @@ which serves as the canonical reference for the grammatical changes.
 \paragraph{Conditional expression ambiguities}
 
 Conditional expressions inside of braces are ambiguous between sets and maps.
-That is, \code{{ a as bool ? - 3 : 3 }} can be parsed as a set literal \code{{ (a as bool)
-? - 3 : 3 }} or as a map literal \code{{ (a as bool ?) - 3 : 3 }}.  Parsers will
+That is, \code{\{ a as bool ? - 3 : 3 \}} can be parsed as a set literal \code{\{ (a as bool)
+? - 3 : 3 \}} or as a map literal \code{\{ (a as bool ?) - 3 : 3 \}}.  Parsers will
 prefer the former parse over the latter.
 
-The same is true for \code{{ a is int ? - 3 : 3 }}.
+The same is true for \code{\{ a is int ? - 3 : 3 \}}.
 
-The same is true for \code{{ int ? - 3 : 3 }} if we allow this.
+The same is true for \code{\{ int ? - 3 : 3 \}} if we allow this.
 
 \paragraph{Null aware subscript}
 
 Certain uses of null aware subscripts in conditional expressions are ambiguous.
-For example, \code{{ a?[b]:c }} can be parsed either as a set literal or a map
+For example, \code{\{ a?[b]:c \}} can be parsed either as a set literal or a map
 literal, depending on whether the \code{?} is interpreted as part of a null aware
 subscript or as part of a conditional expression.  Whenever there is a sequence
 of tokens which may be parsed either as a conditional expression or as two
