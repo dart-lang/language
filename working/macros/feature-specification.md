@@ -716,6 +716,99 @@ Note, that if the getter were written as `int get y => this.x;`, then a macro
 *would* be allowed to introduce the new getter `x`, because `this.x` could not
 previously be resolved.
 
+## Macro Execution Environment
+
+The execution environment for macros is different from that of normal code.
+Specifically, we have some semantics that we want to uphold (to the extent
+that is feasible) which puts some constraints on the environment.
+
+- No direct access to the host device (except through the `Resource` API).
+- No ability to spawn arbitrary processes or isolates.
+- The ordering of macros in the same phase should not be observable.
+- Macros should always generate the same code, regardless of host environment,
+  target environment, or non-file based configuration.
+  - This means no access to system environment variables, Dart environment
+    variables (-D defines), command line arguments, or other such configuration.
+  - The "host environment" here refers to the environment in which the macro
+    itself is running.
+
+These general principles are what drives the various requirements for the
+execution environment in which macros run.
+
+### Access to Core Libraries
+
+Only the core libraries which don't violate the above rules are allowed, the
+full list of _allowed_ core libraries is as follows:
+
+- `dart:async`
+- `dart:collection`
+- `dart:convert`
+- `dart:core`
+- `dart:math`
+- `dart:typed_data`
+
+All other SDK libraries are not available.
+
+### Side Effects
+
+Macros should not be able to observe the order in which they are ran with
+respect to other macros in the same phase. If macros touch shared global state
+then they would be able to observe the ordering, and may rely on that ordering
+in ways that get broken by future changes or are generally unstable.
+
+There are several possible approaches to this problem that are being considered:
+
+1. Don't allow macro code to mutate global state at all.
+    - This is probably overly-restrictive, and may be hard to enforce. There are
+      some legitimate cases in library code (`package:logging` as an example).
+2. Run each macro application in a completely new isolate.
+    - Good from a semantics and flexibility perspective, but may be too slow.
+3. Reset all static state between macro invocations.
+    - Good option if it is feasible on the tooling side of things and it can be
+      fast.
+4. Document mutating global state as a bad practice, but don't block it. Give no
+   guarantees around static state persistance between macro applications.
+    - In practice this would likely be fine, but it isn't ideal. Some authors
+      are likely to exploit this in weird ways, and we could get stuck
+      maintaining behavior that we don't want to.
+    - Would likely be the most performant solution, global objects would be
+      shared across macro applications instead of being re-instantiated for
+      each.
+    - Also the easiest solution, no work required.
+
+**TODO**: Choose a solution.
+
+### Platform Specific Semantics
+
+Macros may execute in different environments which have different semantics than
+than the target environment, for instance in the case of numbers. Macros are
+executed with the normal semantics of the host environment, whatever those are.
+
+- **Note**: This is a violation of the rule that macros should always generate
+  the same code regardless of the host environment.
+
+Macros do not have visibility into the target environment, and they can only
+detect the host environment using existing mechanisms (`0 is double` style
+checks).
+
+This means that code which executes inside a macro may have a different result
+than the same code executed at runtime, if the environments are different.
+
+### Dart Environment Variables
+
+Macros _do not_ have access to the Dart environment variables, and all
+`fromEnvironment` constructors will return the default values.
+
+While it could be useful for macros to read environment variables it would
+be very problematic for development tools to deal with. Having a single,
+consistent version of generated code is more predictable for both tools and
+users.
+
+### System Environment Variables
+
+Macros _do not_ have access to the system environment variables, since they do
+not have access to `dart:io` where they are exposed.
+
 ## Language and API Evolution
 
 ### Language Versioning
