@@ -91,7 +91,7 @@ Most of the time, like here, a macro takes the arguments you pass it and
 interpolates them back into code that it generates, so passing the arguments as
 code is what you want.
 
-### Macro values arguments
+### Macro value arguments
 
 Sometimes, though, the macro wants to receive an actual argument value. For
 example, a macro for defining vector classes might take the dimension as an
