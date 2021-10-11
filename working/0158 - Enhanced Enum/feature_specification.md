@@ -1,6 +1,6 @@
 # Dart Enhanced Enum Classes
 
-Author: lrn@google.com<br>Version: 1.0<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
+Author: lrn@google.com<br>Version: 1.1<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
 
 This is a formal proposal for a language feature which allows `enum` declarations to declare classes with fields, methods and const constructors initializing those fields. Further, `enum` declarations can implement interfaces and, as an optional feature, apply mixins.
 
@@ -187,7 +187,7 @@ enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern 
   final T Function(String) _factory;
 
   // Unnamed constructor. Non-redirecting.
-  Complex(String pattern, T Function(String) factory)
+  const Complex(String pattern, T Function(String) factory)
       : _patternSource = pattern, _factory = factory;
 
   // Factory construtor.
@@ -201,7 +201,8 @@ enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern 
   }
 
   // Named constructor. Redirecting.
-  Complex.captured(String regexpPattern) : this("($regexpPattern)", RegExp);
+  const Complex.captured(String regexpPattern)
+      : this("($regexpPattern)", RegExp);
 
   // Can expose the implicit name.
   String get name => EnumName(this).name;
@@ -240,7 +241,7 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
   final String _patternSource;
   final T Function(String) _factory;
 
-  Complex._$(this.index, this._$name, String pattern, T Function(String) factory)
+  const Complex._$(this.index, this._$name, String pattern, T Function(String) factory)
       : _patternSource = pattern, _factory = factory;
 
   factory Complex.matching(String text) {
@@ -252,7 +253,7 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
     throw UnsupportedError("No pattern matching: $text");
   }
 
-  Complex.captured(int _$index, String _$name, String regexpPattern)
+  const Complex.captured(int _$index, String _$name, String regexpPattern)
       : this(_$index, _$name, "($regexpPattern)", RegExp);
 
   String get name => EnumName(this).name;
@@ -297,4 +298,5 @@ There is a chance that people will start using `enum` declarations to declare si
 
 ## Versions
 
-1.0: Initial version
+1.0: Initial version.
+1.1, Oct 11 2021: Add missing `const` to some constructor declarations.
