@@ -150,7 +150,7 @@ We split the proposed finalization API into two parts:
 The following classes are added to the new `dart:weakref` library
 
 ```dart
-/// A registyr of objects which may invoke a callback when those objects
+/// A registry of objects which may invoke a callback when those objects
 /// become inaccessible.
 ///
 /// The registry allows objects to be registered,
