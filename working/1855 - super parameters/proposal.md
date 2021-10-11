@@ -1,6 +1,6 @@
 # Dart Super-Initializer Parameters
 
-Author: lrn@google.com<br>Version: 1.1
+Author: lrn@google.com<br>Version: 1.2
 
 ## Background and Motivation
 
@@ -87,7 +87,7 @@ We also copy the default value of the associated super-constructor if applicable
 - If *p* is optional, does not declare a default value, the associated super-constructor parameter is also optional and has a default value *d*, and *d* is a subtype of the (declared or inferred above) type of *p*, then *p* gets the default value *d.*
 - It’s then a **compile-time error** if *p* is optional, its type is potentially non-nullable and it still does not have a default value.
 
-It’s a **compile-time error** if a super-parameter has a type which is not assignable to the type of its associated super-constructor parameter.
+It’s a **compile-time error** if a super-parameter has a type which is not a subtype of the type of its associated super-constructor parameter.
 
 ##### Introduced names in initializer list
 
@@ -106,17 +106,18 @@ The super-constructor invocation *s* infers a super-constructor invocation *s’
 - For each super parameter *p* in *C*, in source order, where *p* has parameter name *n*, (inferred or declared) type *T*, associated super-constructor parameter *q*, and where *S* is the type of the parameter *q*:
 
   - Let <Code>*x*<sub>n</sub></code> be an identifier for then name *n*. As an expression, <code>*x*<sub>n</sub></code> denotes the final variable introduced into the initializer list scope by *p*.
-  - If the identifier <Code>*x*<sub>n</sub></code> infers <code>m</code> with context type *S*, then *s’* has an argument following the previously mentioned arguments:
-    - <code>m</code> if *p* is positional, or
-    - <Code>*x<sub>n</sub>*: *m*</code> if *q* is named.
+  - Then *s’* has an argument following the previously mentioned arguments:
+    - <code>x<sub>*n*</sub></code> if *p* is positional, or
+    - <Code>x<sub>n</sub>: *x*<sub>*n*</sub></code> if *q* is named.
 
   _Currently named parameters always follow positional parameters, so by keeping the source order, named arguments also follow positional arguments. There can’t be both positional arguments from *s* and from *C*._
 
 - For each named argument <code>*x*: *e*</code> of *s*, in source order:
+
   - if *e* infers *m* with context type *S*, where *S* is the type of the parameter named *x* of the targeted super-constructor,
   - then <code>*x*: *m*</code> is a named argument of *s’* following the previously mentioned arguments.
 
-_Using inference on the implicit arguments means that we also apply implicit coercions, like downcast from `dynamic` or `.call`-tear-off if assignment from the declared type of a super parameter to a super-constructor parameter’s type requires it. For example: `C(dynamic super.x) : super();` may be inferred to be `C(dynamic super.x) : super(x as int);`.
+_Not using inference on the implicit arguments means that we won’t apply implicit coercions, like downcast from `dynamic` or `.call`-tear-off if assignment from the declared type of a super parameter to a super-constructor parameter’s type requires it. For example: `C(dynamic super.x) : super();` will not be inferred to be `C(dynamic super.x) : super(x as int);`, it’s just a compile-time error that `dynamic` is not a subtype of `int`, just as it is for redirecting factory constructors.
 
 #### Run-time Invocation
 
@@ -131,9 +132,7 @@ When invoking a non-redirecting generative constructor *C*, parameter binding oc
 Effectively, each super parameters, <code>super.*p*</code>:
 
 - Introduces a final variable <code>*p*</code> with the parameter’s name, just like <code>this.*p*</code> does, only in scope in the initializer list.
-
 - Implicitly adds that variable as an implicit argument to the super-constructor invocation.
-
 - Implicitly infers its type and default value, if not specified, if applicable, from the associated super-constructor parameter that they are forwarded to.
 - Cannot be positional if the super-constructor invocation already has positional arguments.
 - But can always be named.
@@ -175,3 +174,5 @@ class C extends B {
 1.0: Initial version
 
 1.1: Don’t allow both positional super parameters and explicit positional arguments. Inherit default value.
+
+1.2: Don’t do inference (and implicit coercion) on the implicit arguments.
