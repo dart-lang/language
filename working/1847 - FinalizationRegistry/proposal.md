@@ -150,10 +150,10 @@ We split the proposed finalization API into two parts:
 The following classes are added to the new `dart:weakref` library
 
 ```dart
-/// A register of objects which may invoke a callback when those objects
+/// A registyr of objects which may invoke a callback when those objects
 /// become inaccessible.
 ///
-/// The register allows objects to be registered,
+/// The registry allows objects to be registered,
 /// and when those objects become inaccessible to the program,
 /// the callback passed to the register's constructor *may* be called
 /// with the registration token associated with the object.
@@ -218,7 +218,7 @@ abstract class FinalizationRegistry<FT> {
 abstract class WeakRef<T extends Object> {
   /// Create a [WeakRef] pointing to the given [target], which must be
   /// an object supported as an [Expando] key.
-  external factory WeakRef(T? target);
+  external factory WeakRef(T target);
 
   /// The current object weakly referenced by [this]. Is either [null] or
   /// an object supported as an [Expando] key.
