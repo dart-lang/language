@@ -87,7 +87,8 @@ We also copy the default value of the associated super-constructor if applicable
 - If *p* is optional, does not declare a default value, the associated super-constructor parameter is also optional and has a default value *d*, and *d* is a subtype of the (declared or inferred above) type of *p*, then *p* gets the default value *d.*
 - It’s then a **compile-time error** if *p* is optional, its type is potentially non-nullable and it still does not have a default value.
 
-It’s a **compile-time error** if a super-parameter has a type which is not assignable to the type of its associated super-constructor parameter.
+It’s a **compile-time error** if a super-parameter has a type which is not a
+subtype of the type of its associated super-constructor parameter.
 
 ##### Introduced names in initializer list
 
@@ -175,3 +176,5 @@ class C extends B {
 1.0: Initial version
 
 1.1: Don’t allow both positional super parameters and explicit positional arguments. Inherit default value.
+
+1.2, Oct 11 2021: 
