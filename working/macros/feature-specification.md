@@ -192,7 +192,7 @@ You want the methods to look like this:
 ```dart
 class Human {
   ...
-  Map<String, Object> toJson() => {
+  Map<String, Object?> toJson() => {
     'name': name,
     'pet': pet?.toJson(),
   };
@@ -200,7 +200,7 @@ class Human {
 
 class Pet {
   ...
-  Map<String, Object> toJson() => {
+  Map<String, Object?> toJson() => {
     'name': name,
     'owner': owner?.toJson(),
   };
