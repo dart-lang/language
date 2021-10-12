@@ -10,7 +10,8 @@ The [motivation][] document explains why we are working on static
 metaprogramming. This proposal introduces macros to Dart. A **macro** is a piece
 of code that can modify other parts of the program at compile time. A **macro
 application** invokes the given macro on the declaration it is applied to. The
-macro can modify the declaration or add new ones.
+macro **introspects** over the declaration it was applied to and based on that
+**generates code** to modify the declaration or add new ones.
 
 A **macro declaration** is a user-defined Dart class that implements one or more
 new built-in macro interfaces. Macros in Dart are written in normal imperative
@@ -22,6 +23,27 @@ You can think of macros as exposing functionality similar to existing [code
 generation tools][codegen], but integrated more fully into the language.
 
 [codegen]: https://dart.dev/tools/build_runner
+
+### Introspection
+
+Most macros don't simply generate new code from scratch. Instead, they add code
+to a library based on existing properties of the program. For example, a macro
+that adds JSON serialization to a class might look at the fields the class
+declares and from that synthesize a `toJson()` method that serializes those
+fields to a JSON object.
+
+This means that when a macro executes, it often **introspects** over some part
+of the program to look at its existing structure. A macro can look at the
+declaration that it is applied to. For example, a macro applied to a class can
+see the class's name, superclasses, members, etc. Some of those properties are
+type annotations, like the superclass or the return type of a method. From that
+type annotation, the macro may be able to traverse to the declaration that the
+annotation refers to. In this way, a macro applied to one part of the program
+may ultimately access information about distant parts of the program.
+
+Allowing deep introspection like this in cases where a macro needs it while
+ensuring that users can understand the system and tools can implement it
+efficiently is a central challenge of this proposal.
 
 ### Ordering in metaprogramming
 
@@ -61,7 +83,7 @@ Here, if `myCoolMacro` resolves to an instance of a class implementing one or
 more of the macro interfaces, then the annotation is treated as an application
 of the `myCoolMacro` macro to the class MyClass.
 
-### Macro arguments
+### Arguments
 
 Macro applications can also be passed arguments. For example:
 
@@ -91,7 +113,7 @@ Most of the time, like here, a macro takes the arguments you pass it and
 interpolates them back into code that it generates, so passing the arguments as
 code is what you want.
 
-### Macro value arguments
+### Value arguments
 
 Sometimes, though, the macro wants to receive an actual argument value. For
 example, a macro for defining vector classes might take the dimension as an
@@ -108,24 +130,13 @@ want to expand this to allow statements or other grammatical constructs?
 **TODO**: Should we support const expressions as values, if they can be
 evaluated prior to macro expansion?
 
-## Macro definitions
-
-**TODO**: Introduce the basic concepts and API for defining a macro. Explain
-that macros introspect and modify.
-
-## Introspection
-
-**TODO**: Explain that a macro can introspect on a type annotation. From there,
-can get to the refered to declaration. Allows introspection to traverse through
-program. That in turn means that ordering is important.
-
-### Macro application order
+### Application order
 
 Multiple macros may be applied to the same declaration, or to declarations that
 contain one another. For example, you may apply two macros to the same class, or
 to a class and a method in the same class. Since those macros may introspect
 over the declaration as well as modify it, the order that those macros are
-applied is potentially user-visible.
+applied can matter.
 
 Fortunately, since they are all applied to the same textual piece of code, the
 user can *control* that order. We use syntactic order to control application
@@ -134,6 +145,8 @@ order of macros:
 *   **Macros are applied to inner declarations before outer ones.** Macros on
     class members are applied before macros on the class, macros on top-level
     declarations are applied before a macro on the entire library, etc.
+
+    **TODO**: Specify this fully.
 
 *   **Macros applied to the same declaration are applied right to left.** For
     example:
@@ -147,114 +160,130 @@ order of macros:
 
     Here, the macros applied to C are run `first`, `second`, then `third`.
 
-Otherwise, macros are constrained so that any other evaluation order is not user
-visible. For example, if two macros applied to two methods in the same class,
-there is no way for those macros to interfere with each other such that the
-application order can be detected.
-
-### Introspection of macro modifications
-
-Imagine you have the following:
-
-```dart
-@serialize class Foo {
-  Bar bar;
-}
-
-class Bar {
-  @memoize int three() => 3;
-}
-```
-
-The `@memoize` macro on Bar adds a field, `_memo`, to the surrounding class to
-store the memoized value. The `@serialize` on Foo generates a `toJson()` method
-that recursively serializes all of the fields on Foo. Since it does so
-recursively, it would end up traversing into and introspecting on the fields of
-Bar. When that happens, does the `@serialize` macro see the `_memo` field added
-by `@memoize`? The answer depends on which macro runs first. But, since these
-are unrelated macros on essentially unrelated declarations, that order shouldn't
-be user visible.
-
-Our solution to this is stratify macro application into phases. The
-introspection API is restricted so that macros within a phase cannot see any
-changes made by other macros in the same phase. The phases are described in
-detail below.
+Aside from these rules, macro introspection is limited so that evaluation order
+is not user visible. For example, if two macros are applied to two methods in
+the same class, there is no way for those macros to interfere with each other
+such that the application order can be detected.
 
 ## Phases
 
-**TODO**: Now that introspection and ordering problems are explained, explain
-how phased application addresses the problem.
+Before we can get into how macro authors create macros, there is another
+ordering problem to discuss. Imagine you have these two classes for tracking
+pets and their humans:
 
-The basic idea is to build the program up in a series of steps. In each phase,
-macros only have access to the parts of the program that are already complete,
-and produce information for later phases. As the program is incrementally
-"pinned down", later phases gain more introspective power, but have less power
-to mutate the program.
+```dart
+@jsonSerializable
+class Human {
+  final String name;
+  final Pet? pet; // Optional, might not have a pet.
+}
 
-A single macro class can participate in multiple phases by implementing more
-than one of the macro phase interfaces. For example, a macro might declare a new
-member in an early phase and then provide its implementation in a later phase.
+@jsonSerializable
+class Pet {
+  final String name;
+  final Owner? owner; // Optional, might be feral.
+}
+```
+
+You want to be able to save these to the cloud, so you use a `@jsonSerializable`
+macro that generates a `toJson()` method on each class the macro is applied to.
+You want the methods to look like this:
+
+```dart
+class Human {
+  ...
+  Map<String, Object> toJson() => {
+    'name': name,
+    'pet': pet?.toJson(),
+  };
+}
+
+class Pet {
+  ...
+  Map<String, Object> toJson() => {
+    'name': name,
+    'owner': owner?.toJson(),
+  };
+}
+```
+
+Note that the `pet` and `owner` fields are serialized by recursively calling
+their `toJson()` methods. To generate that code, the `@jsonSerializable` macro
+needs to look at the type of each field to see if it declares a `toJson()`
+method. The problem is that there is *no* order of macro application that will
+give the right result. If we apply `@jsonSerializable` to Human first, then it
+won't call `toJson()` on `pet` because Pet doesn't have a `toJson()` method yet.
+We get the opposite problem if we apply the macro to Pet first.
+
+To address this, macros execute in **phases.** Earlier phases declare new types
+and declarations while later phases fill them in. This way, we can declare the
+existence of *all* of the `toJson()` methods in the above example before
+generating the *bodies* of any of those `toJson()` methods where we need to
+introspect over the fields.
+
+In each phase, macros only have access to the parts of the program that are
+already complete. This ensures that the evaluation order of unrelated macro
+applications is not user visible. Each phase produces information accessible to
+later phases. As the program is incrementally "pinned down", later phases gain
+more introspective power, but have less power to mutate the program.
 
 There are three phases:
 
-### Phase 1: type macros
+### Phase 1: Types
 
 Here, macros contribute new types to the program&mdash;classes, typedefs, enums,
 etc. This is the only phase where a macro can introduce a new visible name into
 the top level scope.
 
-Very little reflective power is provided in this phase. Since other macros
-running in parallel may be declaring new types, we can't even assume that all
-top-level identifiers can be resolved. You can see the names of types that are
+Very little introspective power is provided in this phase. Since other macros
+may also be declaring new types, we can't even assume that all top-level
+identifiers can be resolved. You can see the *names* of types that are
 referenced in the declaration the macro is applied to, but you can't ask if they
-are a subtype of a known type, type hierarchies have not been resolved yet. Even
+are a subtype of a known type. Type hierarchies have not been resolved yet. Even
 a type which could be resolved to an existing type might not actually resolve to
 that type once macros are done (a new type could be introduced which shadows the
 original one).
 
 After this phase completes, all top-level names are declared. Subsequent phases
 know exactly which type any named reference resolves to, and can ask questions
-about subtype relations, etc.
+about subtype relations.
 
-### Phase 2: declaration macros
+### Phase 2: Declarations
 
 In this phase, macros declare functions, variables, and members. "Declaring"
 here means specifying the name and type signature, but not the body of a
 function or initializer for a variable. In other words, macros in this phase
 specify the declarative structure but no imperative code.
 
-When applied to a class, a macro can introspect on all of the members of that
-class and its superclasses, but they cannot introspect on the members of other
-types.
+When applied to a class, a macro in this phase can introspect on all of the
+members of that class and its superclasses, but it cannot introspect on the
+members of other types.
 
-### Phase 3: definition macros
+### Phase 3: Definitions
 
 In the final phase, macros provide the imperative code to fill in abstract or
-external members.
+external members. Macros in this phase can also wrap existing methods or
+constructors, by injecting some code before and/or after those method bodies.
+These statements share a scope with each other, but not with the original
+function body.
 
-Macros in this phase can also wrap existing methods or constructors, by
-injecting some code before and/or after those method bodies. These statements
-share a scope with each other, but not with the original function body.
+Phase three macros can add new supporting declarations to the surrounding scope,
+but these are private to the macro generated code, and never show up in
+introspection APIs. These macros can fully introspect on any type reachable from
+the declarations they are applied to, including introspecting on members of
+classes, etc.
 
-Phase three macros can add new supporting declarations to the surrounding
-scope, but these are private to the macro generated code, and never show up in
-introspection APIs.
+## Macro definitions
 
-These macros can fully introspect on any type reachable from the declarations
-they annotate, including introspecting on members of classes, etc.
+Macro definitions do not have any unique syntax or language features. They are
+regular Dart class declarations. They are macros by virtue of the fact that they
+implement one or more special "macro" interfaces defined by the Dart core
+libraries.
 
-### Macro API
-
-The specific APIs for macros are being prototyped currently, and the docs are
-hosted [here][docs].
-
-[docs]: https://jakemac53.github.io/macro_prototype/doc/api/definition/definition-library.html
-
-Every macro is a user-defined class that implements one or more special macro
-interfaces. Every macro interface is a subtype of a root [Macro][] type. There
-are interfaces for each kind of declaration macros can be applied to — class,
+Every macro interface is a subtype of a root [Macro][] type. There are
+interfaces for each kind of declaration macros can be applied to: class,
 function, etc. Then, for each of those, there is an interface for each macro
-phase — type, declaration, and definition.
+phase: type, declaration, and definition.
 
 [Macro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Macro-class.html
 
@@ -262,8 +291,10 @@ A single macro class can implement as many of these interfaces as it wants to.
 This can allow a single macro to participate in multiple phases and to support
 being applied to multiple kinds of declarations.
 
-Here are some direct links to the root interfaces for each phase:
+The full API is still being designed, and is documented [here][docs]. Here are
+some direct links to the root interfaces for each phase:
 
+[docs]: https://jakemac53.github.io/macro_prototype/doc/api/definition/definition-library.html
 - [TypeMacro][]
 - [DeclarationMacro][]
 - [DefinitionMacro][]
@@ -272,8 +303,8 @@ Here are some direct links to the root interfaces for each phase:
 [DeclarationMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DeclarationMacro-class.html
 [DefinitionMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DefinitionMacro-class.html
 
-As an example, the interface you should implement for a macro that runs on
-classes in the declaration phase is [ClassDeclarationMacro][].
+For example, the interface you should implement for a macro that runs on classes
+in the declaration phase is [ClassDeclarationMacro][].
 
 [ClassDeclarationMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationMacro-class.html
 
