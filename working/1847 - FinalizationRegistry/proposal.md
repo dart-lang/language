@@ -150,10 +150,10 @@ We split the proposed finalization API into two parts:
 The following classes are added to the new `dart:weakref` library
 
 ```dart
-/// A register of objects which may invoke a callback when those objects
+/// A registry of objects which may invoke a callback when those objects
 /// become inaccessible.
 ///
-/// The register allows objects to be registered,
+/// The registry allows objects to be registered,
 /// and when those objects become inaccessible to the program,
 /// the callback passed to the register's constructor *may* be called
 /// with the registration token associated with the object.
@@ -207,22 +207,25 @@ abstract class FinalizationRegistry<FT> {
 ///
 /// A _weak_ reference to the [target] object which may be cleared
 /// (set to reference `null` instead) at any time
-/// where there is no other ways for the program to access the target object.
+/// when there is no other ways for the program to access the target object.
 ///
 /// _The referenced object may be garbage collected when the only reachable
 /// references to it are weak._
 ///
-/// Not all objects are supported as targets for weak references. [WeakRef]
-/// constructor and [WeakRef.target] will reject any object that is not
+/// Not all objects are supported as targets for weak references. 
+/// The [WeakRef] constructor will reject any object that is not
 /// supported as an [Expando] key.
 abstract class WeakRef<T extends Object> {
-  /// Create a [WeakRef] pointing to the given [target], which must be
-  /// an object supported as an [Expando] key.
-  external factory WeakRef(T? target);
+  /// Create a [WeakRef] pointing to the given [target].
+  /// 
+  /// The [target] must be an object supported as an [Expando] key.
+  external factory WeakRef(T target);
 
-  /// The current object weakly referenced by [this]. Is either [null] or
-  /// an object supported as an [Expando] key.
-  abstract T? target;
+  /// The current object weakly referenced by [this], if any.
+  /// 
+  /// The value os either the object supplied in the constructor,
+  /// or `null` if the weak reference has been cleared.
+  T? get target;
 }
 
 typedef WeakMap = Expando;
