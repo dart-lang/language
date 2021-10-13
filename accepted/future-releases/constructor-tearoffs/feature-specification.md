@@ -319,6 +319,8 @@ The `.new` is entirely *syntax* for denoting an unnamed constructor, it is not a
 
 It's still not allowed to have two constructor declarations with the same name, so declarations of <code>*C*</code> and <code>*C*.new</code> introduce a conflict because both constructors have the same name, *C*.
 
+Finally, it is a compile-time error if an expression of the form <code>*e*\<typeArguments>?.new \<arguments>?</code> occurs, unless <code>*e*</code> is an expression that denotes a class named <code>*C*</code> that declares a constructor named <code>*C*</code>, or <code>*e*</code> is a type alias denoting such a class.
+
 ### Explicitly instantiated classes and functions
 
 The above named constructor tear-off feature allows you to explicitly instantiate a constructor tear-off as `List<int>.filled`. We do not have a similar ability to explicitly instantiate function tear-offs. Currently you have to provide a context type and rely on *implicit instantiation* if you want to tear off an instantiated version of a generic function.
@@ -513,18 +515,6 @@ void main() {
   var g = B<int>.new; // Explicitly instantiated tear-off.
 }
 ```
-
-### Compile-time errors
-
-This section summarizes the compile-time errors associated with this feature. The _italic_ entries are commentary, which indicates that they are stated elsewhere already.
-
-It is compile-time error if an expression of the form `e.new <parameterPart>?` occurs, and `e` is not a type literal.
-
-_It is a compile-time error if an expression of the form `e <typeArguments>` occurs, and the static type of `e` is `Function` or `dynamic`._
-
-_It is a compile-time error if a constructor tear-off denotes a generative constructor declared in an abstract class._
-
-_The basename of a constructor declared with `C.new` is `C`. It is a compile-time error if a class declares more than one constructor with the same basename._
 
 ### Grammar changes
 
