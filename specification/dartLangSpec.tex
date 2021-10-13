@@ -2386,11 +2386,13 @@ a parameter of a function which is not
 an instance method, instance setter, or instance operator.
 
 
-\subsubsection{Optional Formals}
+\subsubsection{Optional and Named Formals}
 \LMLabel{optionalFormals}
 
 \LMHash{}%
-Optional parameters may be specified and provided with default values.
+Optional formal parameters may be specified and provided with default values.
+Named formal parameters can be optional,
+but if the modifier \REQUIRED{} is present then it is required.
 
 \begin{grammar}
 <defaultFormalParameter> ::= <normalFormalParameter> (`=' <expression>)?
@@ -2411,7 +2413,10 @@ a later version of the language specification.
 It is a compile-time error if the default value of an optional parameter is
 not a constant expression (\ref{constants}).
 If no default is explicitly specified for an optional parameter
+whose declared type is nullable,
 an implicit default of \NULL{} is provided.
+Otherwise, when the declared type is not nullable,
+it is a compile-time error if an optional parameter has no default value.
 
 \LMHash{}%
 It is a compile-time error if the name of a named optional parameter
@@ -10735,7 +10740,45 @@ a dynamic type error will occur when $a[i]$ is assigned $o_{i-1}$.%
 \LMLabel{setAndMapLiteralDisambiguation}
 
 \LMHash{}%
-Some terms like \code{\{\}} and \code{\{\,...\id\,\}} are ambiguous:
+Some terms are syntactically ambiguous because they contain a \lit{?}
+which may be considered part of a nullable type
+or part of a \syntax{conditionalExpression}.
+In all such cases,
+the ambiguity is resolved in favor of the set literal
+and not the map literal.
+
+\commentary{%
+In other words, conditional expressions are given preference.
+For example, \code{\{ a as bool ? - 3 : 3 \}} and
+\code{\{ a is int ? - 3 : 3 \}} are syntactically ambiguous
+in this manner.
+The former can be parsed as a set literal or as a map literal,
+depending on whether the \lit{?} is considered to make \code{bool} nullable,
+or it is considered as part of a conditional expression.
+The other expression has a similar ambiguity.
+They are both resolved to be set literals
+containing a conditional expression.%
+}
+
+\LMHash{}%
+Similarly, null aware subscripts in conditional expressions
+can be syntactically ambiguous.
+Whenever there is a sequence of tokens
+which may be parsed either as a conditional expression
+or as two expressions separated by a colon,
+the first of which is a null aware subscript,
+parsers shall choose to parse as a conditional expression.
+
+\commentary{%
+For example, \code{\{ a?[b]:c \}} can be parsed either as a set
+literal or a map literal, depending on whether the \lit{?} is
+interpreted as part of a null aware subscript or as part of a
+conditional expression.
+It is resolved as the latter.%
+}
+
+\LMHash{}%
+Some terms like \code{\{\}} and \code{\{\,...\id\,\}} are still ambiguous:
 they may be either a set literal or a map literal.
 This ambiguity is eliminated in two steps.
 The first step uses only the syntax and context type,
@@ -17057,8 +17100,7 @@ In short, we obtain $t$ by cutting off an assignable selector
 from the end of $e$.
 It is easy to see that only some \synt{assignableExpression}s
 have a receiver term.
-For instance, a plain \synt{identifier} does not.
-%
+For instance, a plain \synt{identifier} does not.%
 }
 
 \LMHash{}%
@@ -19897,7 +19939,7 @@ Their syntax, usage, and effect on namespaces is described elsewhere
 \ref{exports}).
 
 \LMHash{}%
-The dart core library \code{dart:core}
+The Dart core library \code{dart:core}
 is implicitly imported into every dart library other than itself
 via an import clause of the form
 \code{\IMPORT{} 'dart:core';}
@@ -22178,6 +22220,63 @@ may support more strict static checks as an option.%
 }
 
 
+\subsection{Type \code{Never}}
+\LMLabel{typeNever}
+
+\LMHash{}%
+The Dart core library \code{dart:core} exports a type named \code{Never}.
+No object has dynamic type \code{Never}.
+
+\commentary{%
+In other words, \code{Never} is the empty type.
+\code{Never} is a subtype of every other type in Dart
+(\ref{subtypeRules}).%
+}
+
+\rationale{%
+\code{Never} is a useful type for several reasons:
+It can be used to indicate that
+the evaluation of an expression will never complete normally,
+e.g., because it calls a function that always throws.
+This allows for a more precise control flow analysis.
+
+Also, the object \code{\CONST\,\,<Never>[]} can be used
+in any situation where a \code{List<$T$>} is required,
+for any $T$ whatsoever,
+and the value of a variable of type \code{Object?\,\,\FUNCTION(Never)}
+can be any function that accepts a single, positional argument.%
+}
+
+
+\subsection{Type \code{Null}}
+\LMLabel{typeNull}
+
+\LMHash{}%
+The Dart core library \code{dart:core} exports a type named \code{Null},
+There is exactly one object whose dynamic type is \code{Null},
+and that is the null object.
+
+\commentary{%
+In other words, \code{Null} is a singleton type.
+\code{Null} is a subtype of all other types
+other than \code{Never} and any type which is
+a subtype of \code{Never}
+(\ref{subtypeRules}).%
+}
+
+\rationale{%
+\code{Null} is mainly used implicitly in
+a type of the form \code{$T$?} for some $T$.
+If $e$ is an expression of type \code{$T$?} that evaluates to an object $o$,
+then $o$ can be an instance of a subtype of $T$,
+or it could be the null object.
+The latter situation is commonly interpreted to mean that
+the computation did not yield a result.
+In this sense, \code{Null} can be considered to model
+the property of being optional.%
+}
+
+
 \subsection{Function Types}
 \LMLabel{functionTypes}
 
@@ -23248,94 +23347,8 @@ Assignment & \code{=}, \code{*=}, \code{/=}, \code{+=}, \code{-=}, \code{\&=}, \
 
 \section{Null safety} %% !!!TODO!!!
 
-\newcommand{\FlattenName}{\metavar{flatten}}
-\newcommand{\Flatten}[1]{\ensuremath{\FlattenName(\code{#1})}}
-
-\newcommand{\NnbdTopMergeName}{\metavar{topMerge}}
-\newcommand{\NnbdTopMerge}[2]{\ensuremath{\NnbdTopMergeName(\code{{#1},\,\,{#2}})}}
-
-\newcommand{\NonNullTypeOfName}{\metavar{nonNullTypeOf}}
-\newcommand{\NonNullTypeOf}[1]{\ensuremath{\NonNullTypeOfName(\code{#1})}}
-
-\newcommand{\IsTopTypeName}{\metavar{isTopType}}
-\newcommand{\IsTopType}[1]{\ensuremath{\IsTopTypeName(\code{#1})}}
-
-\newcommand{\IsObjectTypeName}{\metavar{isObjectType}}
-\newcommand{\IsObjectType}[1]{\ensuremath{\IsObjectTypeName(\code{#1})}}
-
-\newcommand{\IsBottomTypeName}{\metavar{isBottomType}}
-\newcommand{\IsBottomType}[1]{\ensuremath{\IsBottomTypeName(\code{#1})}}
-
-\newcommand{\IsNullTypeName}{\metavar{isNullType}}
-\newcommand{\IsNullType}[1]{\ensuremath{\IsNullTypeName(\code{#1})}}
-
-\newcommand{\IsMoreTopTypeName}{\metavar{isMoreTopType}}
-\newcommand{\IsMoreTopType}[2]{\ensuremath{\IsMoreTopTypeName(\code{{#1},\,\,{#2}})}}
-
-\newcommand{\IsMoreBottomTypeName}{\metavar{isMoreBottomType}}
-\newcommand{\IsMoreBottomType}[2]{\ensuremath{\IsMoreBottomTypeName(\code{{#1},\,\,{#2}})}}
-
-\newcommand{\NormalizedTypeOfName}{\metavar{normalizedTypeOf}}
-\newcommand{\NormalizedTypeOf}[1]{\ensuremath{\NormalizedTypeOfName(\code{#1})}}
-
-\newcommand{\FutureValueTypeOfName}{\metavar{futureValueTypeOf}}
-\newcommand{\FutureValueTypeOf}[1]{\ensuremath{\FutureValueTypeOfName(\code{#1})}}
-
-
-\subsection{Syntax}
-
-The precise changes to the syntax are given in an accompanying set of
-modifications to the grammar in the formal specification.  This section
-summarizes in prose the grammar changes associated with this feature.
-
-The grammar of types is extended to allow any type to be suffixed with a \code{?}
-(e.g. \code{int?}) indicating the nullable version of that type.
-
-A new primitive type \code{Never}.  This type is denoted by the built-in type
-declaration \code{Never} declared in \code{dart:core}.
-
-The grammar of expressions is extended to allow any expression to be suffixed
-with a \code{!}.
-
-The modifier \LATE{} is added as a built-in identifier.  The grammar of top level
-variables, static fields, instance fields, and local variables is extended to
-allow any declaration to include the modifer \LATE.
-
-The modifier \REQUIRED{} is added as a built-in identifier.  The grammar of
-function types is extended to allow any named parameter declaration to be
-prefixed by the \REQUIRED{} modifier
-(e.g. \code{int \FUNCTION(int, {int?  y, \REQUIRED\ int z})}).
-
-The grammar of selectors is extended to allow null-aware subscripting using the
-syntax \code{$e_1$?[$e_2$]} which evaluates to \code{null} if \code{$e_1$} evaluates to \code{null} and
-otherwise evaluates as \code{$e_1$[$e_2$]}.
-
-The grammar of cascade sequences is extended to allow the first cascade of a
-sequence to be written as \code{?..} indicating that the cascade is null-shorting.
-
-\subsubsection{Grammatical ambiguities and clarifications}
-
-\paragraph{Conditional expression ambiguities}
-
-Conditional expressions inside of braces are ambiguous between sets and maps.
-That is, \code{\{ a as bool ? - 3 : 3 \}} can be parsed as a set literal \code{\{ (a as bool)
-? - 3 : 3 \}} or as a map literal \code{\{ (a as bool ?) - 3 : 3 \}}.  Parsers will
-prefer the former parse over the latter.
-
-The same is true for \code{\{ a is int ? - 3 : 3 \}}.
-
-The same is true for \code{\{ int ? - 3 : 3 \}} if we allow this.
-
-\paragraph{Null aware subscript}
-
-Certain uses of null aware subscripts in conditional expressions are ambiguous.
-For example, \code{\{ a?[b]:c \}} can be parsed either as a set literal or a map
-literal, depending on whether the \code{?} is interpreted as part of a null aware
-subscript or as part of a conditional expression.  Whenever there is a sequence
-of tokens which may be parsed either as a conditional expression or as two
-expressions separated by a colon, the first of which is a null aware
-subscript, parsers shall choose to parse as a conditional expression.
-
+%% !!!At the end: Search Null, change to Never where appropriate
+%% !!!Search all `TODO`.*null
 
 \subsection{Static semantics}
 
