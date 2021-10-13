@@ -319,7 +319,9 @@ The `.new` is entirely *syntax* for denoting an unnamed constructor, it is not a
 
 It's still not allowed to have two constructor declarations with the same name, so declarations of <code>*C*</code> and <code>*C*.new</code> introduce a conflict because both constructors have the same name, *C*.
 
-Finally, it is a compile-time error if an expression of the form <code>*e*\<typeArguments>?.new \<arguments>?</code> occurs, unless <code>*e*</code> is an expression that denotes a class named <code>*C*</code> that declares a constructor named <code>*C*</code>, or <code>*e*</code> is a type alias denoting such a class.
+It is a compile-time error if an expression of the form <code>*e*\<typeArguments>?.new</code> occurs, unless <code>*e*</code> is an expression that denotes a class named <code>*C*</code> that declares a constructor named <code>*C*</code>, or <code>*e*</code> is a type alias denoting such a class. *This expression may be followed by actual arguments and/or other selectors. E.g., `foo.new(42)` is an error if `foo` is, say, a local variable.*
+
+It is a compile-time error if an expression of the form <code>*e*.new \<typeArguments></code> occurs. *This expression may again be followed by zero or more selectors, e.g., `C<int>.new<String>` is an error.*
 
 ### Explicitly instantiated classes and functions
 
