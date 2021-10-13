@@ -743,4 +743,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of the form <code>e\<T<sub>1</sub>..T<sub>k</sub>></code>.
 * 2.16: Add one more kind of potential constant, type parameters.
 * 2.17: Specify that <code>*e*\<*typeArgs*></code> can desugar to <code>*e*.call\<*typeArgs*></code> when `call` is an extension method.
-* 2.18: Add section about errors, containing a new error for `e.new...` where `e` is not a type literal.
+* 2.18: Add new errors for `e.new...` where `e` is not a type literal or `new` is followed by type arguments.
