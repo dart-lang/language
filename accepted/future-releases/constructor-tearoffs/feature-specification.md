@@ -1,6 +1,6 @@
 # Dart Constructor Tear-offs
 
-Author: lrn@google.com<br>Version: 2.17
+Author: lrn@google.com<br>Version: 2.18
 
 Dart allows you to tear off (aka. closurize) methods instead of just calling them. It does not allow you to tear off *constructors*, even though they are just as callable as methods (and for factory methods, the distinction is mainly philosophical).
 
@@ -318,6 +318,10 @@ and
 The `.new` is entirely *syntax* for denoting an unnamed constructor, it is not a new *name* in the program.
 
 It's still not allowed to have two constructor declarations with the same name, so declarations of <code>*C*</code> and <code>*C*.new</code> introduce a conflict because both constructors have the same name, *C*.
+
+It is a compile-time error if an expression of the form <code>*e*.new</code> or <code>*e*\<typeArguments>.new</code> occurs, unless <code>*e*</code> is an expression that denotes a class named <code>*C*</code> that declares a constructor named <code>*C*</code>, or <code>*e*</code> is a type alias denoting such a class. *This expression may be followed by actual arguments and/or other selectors. E.g., `foo.new(42)` is an error if `foo` is, say, a local variable.*
+
+It is a compile-time error if an expression of the form <code>*e*.new \<typeArguments></code> occurs. *This expression may again be followed by zero or more selectors, e.g., `C<int>.new<String>` is an error.*
 
 ### Explicitly instantiated classes and functions
 
@@ -739,3 +743,4 @@ In this case, most of the parameters are *unnecessary*, and a tear-off expressio
 * 2.15: Add section about constants and specify new rules about potentially constant and constant expressions of the form <code>e\<T<sub>1</sub>..T<sub>k</sub>></code>.
 * 2.16: Add one more kind of potential constant, type parameters.
 * 2.17: Specify that <code>*e*\<*typeArgs*></code> can desugar to <code>*e*.call\<*typeArgs*></code> when `call` is an extension method.
+* 2.18: Add new errors for `e.new...` where `e` is not a type literal or `new` is followed by type arguments.
