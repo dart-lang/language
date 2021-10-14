@@ -22225,7 +22225,7 @@ may support more strict static checks as an option.%
 
 \LMHash{}%
 The Dart core library \code{dart:core} exports a type named \code{Never}.
-No object has dynamic type \code{Never}.
+No object has a dynamic type which is \code{Never} or a subtype thereof.
 
 \commentary{%
 In other words, \code{Never} is the empty type.
@@ -22252,16 +22252,32 @@ can be any function that accepts a single, positional argument.%
 \LMLabel{typeNull}
 
 \LMHash{}%
-The Dart core library \code{dart:core} exports a type named \code{Null},
+The Dart core library \code{dart:core} exports a type named \code{Null}.
 There is exactly one object whose dynamic type is \code{Null},
-and that is the null object.
+and that is the null object
+(\ref{null}).
 
 \commentary{%
 In other words, \code{Null} is a singleton type.
-\code{Null} is a subtype of all other types
-other than \code{Never} and any type which is
-a subtype of \code{Never}
+Apart from top types
+(\ref{superBoundedTypes}),
+\code{Null} is a subtype of all types of the form \code{$T$?},
+and of all types $S$ such that \futureOrBase{S} is one of the above.
+The only non-trivial subtypes of \code{Null} are
+\code{Never} and subtypes of \code{Never}
 (\ref{subtypeRules}).%
+}
+
+\LMHash{}%
+Attempting to instantiate \code{Null} causes a compile-time error.
+It is a compile-time error for a class to extend, mix in or implement
+\code{Null}.
+The \code{Null} class declares exactly the same members
+with the same signatures as the class \code{Object}.
+
+\commentary{%
+The \code{Null} class has a primitive \lit{==} operator
+(\ref{theOperatorEqualsEquals}).%
 }
 
 \rationale{%
@@ -22269,7 +22285,7 @@ a subtype of \code{Never}
 a type of the form \code{$T$?} for some $T$.
 If $e$ is an expression of type \code{$T$?} that evaluates to an object $o$,
 then $o$ can be an instance of a subtype of $T$,
-or it could be the null object.
+or it can be the null object.
 The latter situation is commonly interpreted to mean that
 the computation did not yield a result.
 In this sense, \code{Null} can be considered to model
