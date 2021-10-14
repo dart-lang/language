@@ -280,71 +280,74 @@ regular Dart class declarations. They are macros by virtue of the fact that they
 implement one or more special "macro" interfaces defined by the Dart core
 libraries.
 
-Every macro interface is a subtype of a root [Macro][] type. There are
-interfaces for each kind of declaration macros can be applied to: class,
-function, etc. Then, for each of those, there is an interface for each macro
-phase: type, declaration, and definition.
-
-[Macro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Macro-class.html
-
-A single macro class can implement as many of these interfaces as it wants to.
-This can allow a single macro to participate in multiple phases and to support
-being applied to multiple kinds of declarations.
-
-The full API is still being designed, and is documented [here][docs]. Here are
-some direct links to the root interfaces for each phase:
+*Note: The API is still being designed, and is documented [here][docs].*
 
 [docs]: https://jakemac53.github.io/macro_prototype/doc/api/definition/definition-library.html
-- [TypeMacro][]
-- [DeclarationMacro][]
-- [DefinitionMacro][]
 
-[TypeMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/TypeMacro-class.html
-[DeclarationMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DeclarationMacro-class.html
-[DefinitionMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DefinitionMacro-class.html
+Every macro interface is a subtype of a root [Macro][] [marker interface][].
+There are interfaces for each kind of declaration macros can be applied to:
+class, function, etc. Then, for each of those, there is an interface for each
+macro phase: type, declaration, and definition. A single macro class can
+implement as many of these interfaces as it wants to. This allows a single macro
+to participate in multiple phases and to support being applied to multiple kinds
+of declarations.
 
-For example, the interface you should implement for a macro that runs on classes
-in the declaration phase is [ClassDeclarationMacro][].
+[Macro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Macro-class.html
+[marker interface]: https://en.wikipedia.org/wiki/Marker_interface_pattern
+
+Each macro interface declares a single method that the macro class must
+implement in order to apply the macro in a given phase on a given declaration.
+For example, a macro applied to classes in the declaration phase implements
+[ClassDeclarationMacro][] and its [`visitClassDeclaration()`][visit] method.
 
 [ClassDeclarationMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationMacro-class.html
 
-### Introspection API
+[visit]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationMacro/visitClassDeclaration.html
 
-The first argument to any method that you implement in your macro is the
-introspection object. This is a representation of the declaration that the macro
-was applied to.
+When a Dart implementation executes macros, it invokes these visit methods at
+the appropriate phase for the declarations the macro is applied to. Each visit
+method is passed two arguments which give the macro the context and capabilities
+it needs to introspect over the program and generate code:
 
-For example, lets look at the [ClassDeclarationMacro][] API, which has the
-following method that you must override:
+### Introspection argument
 
-```dart
-class ClassDeclarationMacro implements DeclarationMacro {
-  void visitClassDeclaration(
-      ClassDeclaration declaration, ClassDeclarationBuilder builder);
-}
-```
+The first argument to a visit method is an object that lets the macro introspect over the declaration that the macro is applied to. The type of this argument
+varies for each macro interface. Each kind of declaration has unique properties
+and the phases each have different introspective power.
 
-The [ClassDeclaration][] instance you get here provides all the
-introspective information to you that is available for classes in the
-`declaration` phase.
+For example, in [ClassDeclarationMacro][], the introspection object is a
+[ClassDeclaration][]. That object gives you access to the name of the class,
+its supertypes, members, etc.
 
 [ClassDeclaration]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclaration-class.html
 
-The `builder` parameter also provides an API that allows you to retrieve an
-introspection object for any `Type` object available to the macro at runtime.
-The introspection capabilites of these objects are limited to the information
-produced by the previous macro phase of macros, similar to the capabilites
-provided for type references on the declaration.
+### Builder argument
 
-### Metadata annotations
+The second argument is an instance of a "builder" class. It exposes methods
+that let the macro add code to and modify the declaration that the macro is
+applied to. As with the introspection object, each macro class has a different
+builder type whose capabilities vary based on phase.
 
-**TODO**: Introduce this from the perspective of the application, not the
-declaration.
+In [ClassDeclarationMacro][], the builder is a [ClassDeclarationBuilder][]. Its
+primary method is `addToClass()`, which the macro can call to add a new member
+to the class.
 
-Macros may want introspect on metadata annotations on declarations to control
-their behavior. For instance a class level macro may want to expose some
-per-declaration control over their output, and annotations are an intuitive
-way to provide that.
+[ClassDeclarationBuilder]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationBuilder-class.html
+
+### Introspecting on metadata annotations
+
+Prior to macros, most use of metadata annotations in Dart was to guide code
+generation tools or static analysis. The tool would look for certain metadata
+annotations in order to know how to generate code or produce custom diagnosics.
+With macros, many of those metadata annotations would instead either *become*
+macros or be *read* by them. The latter means that macros also need to be able
+to introspect over non-macro metadata annotations applied to declarations.
+
+For example, a `@jsonSerialization` class macro might want to look for an
+`@unseralized` annotation on fields to exclude them from serialization.
+
+**TODO**: The following subsections read more like a design discussion that a
+proposal. Figure out what we want to do here and rewrite.
 
 #### The annotation introspection API
 
