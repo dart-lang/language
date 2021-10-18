@@ -604,13 +604,14 @@ if it happens.
 
 ### Generating macro applications
 
-In most cases a macro should not need to generate code which itself contains a
-macro application. Since macros are regular Dart code and classes, one macro can
-instantiate and run the other macro's code directly as part of the first macro's
-execution.
+Since macros are regular Dart code and classes, one macro can instantiate and
+run the other macro's code directly as part of the first macro's execution. That
+allows macros to be directly composed in some cases. But in cases where a macro
+in one phase wants to invoke a macro in another phase (including itself), a
+macro can generate code containing a macro application. Those in turn expanded
+during compilation. This is allowed in two ways:
 
-If that's not sufficient, a macro may generate macro applications which in turn
-get expanded during compilation. This is allowed in two ways:
+**TODO**: Consider more direct support for macros that declare and then implement their own declarations: https://github.com/dart-lang/language/issues/1908.
 
 #### Adding macro applications to new declarations
 
