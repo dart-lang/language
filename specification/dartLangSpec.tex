@@ -9169,6 +9169,10 @@ The null object has primitive equality
 The static type of \NULL{} is the \code{Null} type.
 
 
+\LMHash{}%
+The dynamic type of the null object is \code{Null}.
+
+
 \subsection{Numbers}
 \LMLabel{numbers}
 
@@ -22220,11 +22224,171 @@ may support more strict static checks as an option.%
 }
 
 
+\subsection{Type Normalization}
+\LMLabel{typeNormalization}
+
+\LMHash{}%
+Some Dart types are mutual subtypes,
+but are not considered to be the same type.
+
+\commentary{%
+For instance, \DYNAMIC{} and \code{Object?} are subtypes of each other,
+but they are not considered to be the same type.
+This is useful because it allows us to treat two expressions very differently
+even though the set of objects that they could evaluate to is exactly the same.
+In particular, a member access on a receiver of type \code{Object?}
+can only call \code{hashCode} and a few other members,
+but a member access on a receiver of type \DYNAMIC{} can invoke
+any member as a method accepting any actual list of arguments,
+and as a getter or as a setter,
+and it will be checked at run time that said invocation is possible.%
+}
+
+\LMHash{}%
+This section defines a normalization procedure on types
+which yields a canonical representation for any given type.
+
+\commentary{%
+In other words, subtyping on Dart types is a preorder,
+but subtyping on normalized Dart types is a total order.%
+}
+
+\LMHash{}%
+An \IndexCustom{atomic type}{type!atomic}
+is a term derived from \synt{typeName}
+that denotes a type.
+
+\commentary{%
+For instance, \DYNAMIC{} is an atomic type,
+and so is \code{prefix.MyClass},
+if it denotes a class.%
+}
+
+\newlength{\FunCr}
+\setlength{\FunCr}{1.5ex}
+
+\begin{figure}[t]
+  \begin{minipage}[c]{\textwidth}
+    \begin{displaymath}
+      \begin{array}{ll}
+        \mbox{\bf Unaliased argument} & \mbox{\bf Result}\\[\FunCr]
+        \hline
+        \mbox{If $T$ is atomic: }T & T\\[\FunCr]
+        %
+        \code{FutureOr<$T$>} &
+        \left\{
+        \begin{array}{l}
+          S\mbox{, if $S$ is a top type or \code{Object}}\\
+          \code{Future<Never>}\mbox{, if $S$ is \code{Never}}\\
+          \code{Future<Null>?}\mbox{, if $S$ is \code{Null}}\\
+          \code{FutureOr<S>}\mbox{, otherwise}
+        \end{array}
+        \right.\\[1ex]
+        \mbox{where $S$ is \NormalizedTypeOf{$T$}}\\[\FunCr]
+        %
+        \code{$T$?} &
+        \left\{
+        \begin{array}{l}
+          S\mbox{, if $S$ is a top type}\\
+          \code{Null}\mbox{, if $S$ is \code{Never} or \code{Null}}\\
+          S\mbox{, if $S$ is \code{FutureOr<$R$>} where $R$ is nullable}\\
+          \code{$R$?}\mbox{, if $S$ is \code{$R$?} for some $R$}\\
+          \code{$S$?}\mbox{, otherwise}
+        \end{array}
+        \right.\\
+        \mbox{where $S$ is \NormalizedTypeOf{$T$}}\\[\FunCr]
+        %
+        \code{$X$\,\,\EXTENDS\,\,$T$} &
+        \left\{
+        \begin{array}{l}
+          \code{Never}\mbox{,if $T$ is \code{Never}}\\
+          \code{Never}\mbox{,
+            if $T$ is a type variable $Y$,
+            and \NormalizedTypeOf{$Y$} is \code{Never}}\\
+          \code{$X$\,\,\EXTENDS\,\,$T$}\mbox{, otherwise}
+        \end{array}
+        \right.\\
+        \mbox{}\\[\FunCr]
+        %
+        \code{$X$\,\,\&\,\,$T$} &
+        \left\{
+        \begin{array}{l}
+          \code{Never}\mbox{, if $S$ is \code{Never}}\\
+          X\mbox{, if $S$` is $X$ or a top type}\\
+          X\mbox{, if \SubtypeStd{\NormalizedTypeOf{$B$}}{S}, where $B$ is the bound of $X$}\\
+          \code{$X$\,\,\&\,\,$S$}\mbox{, otherwise}
+        \end{array}
+        \right.\\
+        \mbox{where $S$ is \NormalizedTypeOf{$T$}}\\[\FunCr]
+        %
+        \code{$C$<\List{T}{1}{k}>} & \code{$C$<\List{R}{1}{k}>}\\
+        \mbox{where $R_i$ is \NormalizedTypeOf{$T_i$},}\\
+        \mbox{\quad{}for $i \in 1 .. k$}\\[\FunCr]
+        %
+        % !!!TODO: Generalize this to handle all parameter list shapes.
+        \code{$R$ \FUNCTION<$X$\,\,\EXTENDS,\,$B$>($S$)} &
+        \code{$R_1$ Function<$X$\,\,\EXTENDS\,\,$B_1$>($S_1$)}\\
+        \mbox{where $R_1$ is \NormalizedTypeOf{$R$},}\\
+        \mbox{\quad{}$B_1$ is \NormalizedTypeOf{$B$},}\\
+        \mbox{\quad{}and $S_1$ is \NormalizedTypeOf{$S$}}
+      \end{array}
+    \end{displaymath}
+  \end{minipage}
+  \caption{Definition of the type function \NormalizedTypeOfName:
+    For a given type $T_0$,
+    let $T$ be the transitive alias expansion of $T_0$
+    (\ref{typedef}),
+    then look up $T$ in the left column of the table in this figure
+    such that the associated condition is satisfied.
+    Then \NormalizedTypeOf{$T$} is as shown in the right hand column.}
+\end{figure}
+
+----------------------------------------------------------------------
+
+
+!!!TODO!!!
+Note that there is currently no place in the type system where normalization can
+apply to intersection types (promoted types). The rule is included here for
+completeness.
+
+We assume that type aliases are fully expanded, and that prefixed types are
+resolved to a canonical name.
+
+The **NORM** relation defines the canonical representative of classes of
+equivalent types.  In the absence of legacy (*) types, it should be the case
+that for any two types which are mutual subtypes, their normal forms are
+syntactically identical up to identification of top types (\DYNAMIC, \VOID,
+\code{Object?}).
+
+This is based on the following equations:
+\begin{itemize}
+\item \code{T?? == T?}
+\item \code{Null? == Null}
+\item \code{Never? == Null}
+\item \code{\DYNAMIC? == \DYNAMIC}
+\item \code{\VOID? == \VOID}
+\item \code{FutureOr<$T$> == $T$}, if \SubtypeStd{\code{Future<$T$>}}{T}
+\item \code{FutureOr<$T$> == Future<$T$>}, if \SubtypeStd{T}{\code{Future<$T$>}}
+\item \code{$X$\,\,\EXTENDS\,\,Never == Never}
+\item \code{$X$\,\,\&\,\,$T$ == $T$}, if \SubtypeStd{T}{X}
+\item \code{$X$\,\,\&\,\,$T$ == $X$}, if \SubtypeStd{X}{T}
+\end{itemize}
+
+----------------------------------------------------------------------
+\LMHash{}%
+This defines a procedure \NormalizedTypeOfName{}
+such that \NormalizedTypeOf{$T$} is syntactically
+equal to \NormalizedTypeOf{$S$} modulo replacement of primitive top types iff
+\SubtypeStd{S}{T} and \SubtypeStd{T}{S}.
+
+
+
+
 \subsection{Type \code{Never}}
 \LMLabel{typeNever}
 
 \LMHash{}%
-The Dart core library \code{dart:core} exports a type named \code{Never}.
+The system library \code{dart:core} exports a type named \code{Never}.
 No object has a dynamic type which is \code{Never} or a subtype thereof.
 
 \commentary{%
@@ -22240,11 +22404,12 @@ the evaluation of an expression will never complete normally,
 e.g., because it calls a function that always throws.
 This allows for a more precise control flow analysis.
 
-Also, the object \code{\CONST\,\,<Never>[]} can be used
+Also, \code{Never} can be used to express some extreme types:
+For instance, the object \code{\CONST\,\,<Never>[]} can be used
 in any situation where a \code{List<$T$>} is required,
-for any $T$ whatsoever,
-and the value of a variable of type \code{Object?\,\,\FUNCTION(Never)}
-can be any function that accepts a single, positional argument.%
+for any $T$ whatsoever.
+Similarly, a variable of type \code{Object?\,\,\FUNCTION(Never)}
+can be used to hold any function that accepts a single, positional argument.%
 }
 
 
@@ -22252,7 +22417,7 @@ can be any function that accepts a single, positional argument.%
 \LMLabel{typeNull}
 
 \LMHash{}%
-The Dart core library \code{dart:core} exports a type named \code{Null}.
+The system library \code{dart:core} exports a type named \code{Null}.
 There is exactly one object whose dynamic type is \code{Null},
 and that is the null object
 (\ref{null}).
@@ -22262,7 +22427,8 @@ In other words, \code{Null} is a singleton type.
 Apart from top types
 (\ref{superBoundedTypes}),
 \code{Null} is a subtype of all types of the form \code{$T$?},
-and of all types $S$ such that \futureOrBase{S} is one of the above.
+and of all types $S$ such that \futureOrBase{S} is
+a top type or a type of the form \code{$T$?}.
 The only non-trivial subtypes of \code{Null} are
 \code{Never} and subtypes of \code{Never}
 (\ref{subtypeRules}).%
@@ -23367,16 +23533,7 @@ Assignment & \code{=}, \code{*=}, \code{/=}, \code{+=}, \code{-=}, \code{\&=}, \
 %% !!!Search all `TODO`.*null
 
 \subsection{Static semantics}
-
 \subsubsection{Type normalization}
-
-We define a normalization procedure on types which defines a canonical
-representation for otherwise equivalent
-types here
-(\ref{sec:typeNormalization}).
-This defines a procedure \NormalizedTypeOfName{} such that \NormalizedTypeOf{$T$} is syntactically
-equal to \NormalizedTypeOf{$S$} modulo replacement of primitive top types iff \code{$S$ <: $T$}
-and \code{$T$ <: $S$}.
 
 \subsubsection{Future flattening}
 
