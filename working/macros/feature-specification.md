@@ -418,35 +418,200 @@ This does have two interesting and possibly unexpected consequences:
 
 ## Generating code
 
-At the root of the API for generating code, are the [Code][] and `*Builder`
-classes.
+Macros attach new code to the declaration the macro is applied to by calling
+methods on the builder object given to the macro. For example, a
+declaration-phase macro applied to a class declaration is given a
+[ClassDeclarationBuilder]. That class exposes an [`addToClass()`][addtoclass]
+method that adds the given code to the class as a new member.
+
+[addtoclass]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationBuilder/addToClass.html
+
+The code itself is an instance of a special [Code][] class (or one of its
+subclasses). This is a first-class object that represents a well-formed piece of
+Dart code. We use this instead of bare strings containing Dart syntax because a
+code object carries more than just the bare Dart code. In particular, it keeps
+track of how identifiers in the code are resolved.
 
 [Code]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Code-class.html
 
-- The [Code][] class and its subtypes are first-class representations of
-  pieces of Dart programs, essentially abstract syntax trees.
-- The `*Builder` instance is always passed as the second argument to the methods
-  you implement in your macro, and is what you use to actually augment the
-  program with [Code][].
+Also, when code objects are creating by combining fragments of other code (for
+example arguments to macros), the resulting code object may keep track of the
+original source locations of each fragment. This way, debuggers and other code
+navigation tools can understand where a given piece of generated code came from.
 
-There is a different type of `*Builder` for each specific type of macro, for
-instance if you look at the [DeclarationBuilder][] class, you will see this
-interface method `void addToLibrary(Declaration declaration)`. The
-[Declaration][] class here is a subtype of [Code][].
+### Code instances
 
-[Declaration]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Declaration-class.html
-[DeclarationBuilder]: https://jakemac53.github.io/macro_prototype/doc/api/definition/DeclarationBuilder-class.html
+There are subclasses of Code for the various major grammatical categories in
+Dart syntax: expression, statement, declaration, etc. These exist mainly to
+make APIs like the builder classes that accept code objects easier to use
+correctly. We do not expose a separate Code subclass for every single grammar
+production in Dart: unary expression, binary expression, etc. An API surface
+area that broad becomes very brittle and hard to evolve. We wouldn't want the
+Code API itself to prevent us from making future language changes.
 
-Most subtypes of [Code][] require fully syntactically valid code in order to
-be constructed, but where you need to build up something in smaller pieces you
-can use the [Fragment][] subtype. Any arbitrary String can be passed to this
-class, allowing you to build up your code fragments however you like.
+**TODO**: Describe the API to create instances of Code classes.
+
+**TODO**: To make it easier to create Code instances, we are considering adding
+something like JavaScript's [tagged template][] syntax to Dart. Then, using
+that, we could define templates for various grammar productions like expression
+and statement. That would make creating code instances almost as simple as
+string literals.
+
+[tagged template]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates
+
+The Code objects themselves are also fairly opaque. They are "write-only".
+Macros create them and compose them, but the API does not give macros the
+ability to tear apart and introspect into the subcomponents and subexpressions
+of a given pieces of syntax.
+
+**TODO**: We are considering exposing more properties on Code objects to allow
+introspection.
+
+### Fragments
+
+Sometimes when building a piece of Dart code for a macro's output, it's
+convenient to work with fragments of Dart code that are not themselves valid
+complete pieces of Dart syntax. For example, imagine a macro that wraps a given
+expression in `{ return ` and `; }`. Those fragments that are prepended and
+appended around the expression are not valid standalone productions in the Dart
+grammar.
+
+To represent those, we also have a [Fragment][] class. Fragments work more like
+unparsed strings. They can be concatenated and composed to produce a Code object
+when the result is valid Dart syntax.
 
 [Fragment]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Fragment-class.html
 
-### Adding new macro applications
+### Identifiers and resolution
 
-Macros are allowed to add new macro applications in two ways:
+The classic problem in macro systems since they were first invented in Lisp and
+Scheme in the 70s how identifiers are resolved. Because this proposal does not
+allow local macros, macros that generate new syntax, or macro applications
+inside local block scopes, the problems around scoping are somewhat reduced.
+But challenges still remain.
+
+#### Referring to generated declarations
+
+A key use of macros is generating new declarations. Since this declarations
+aren't useful if not called, it implies that handwritten code may contain
+references to declarations produced by macros. This means that before macros are
+applied, code may contain identifiers that cannot be resolved.
+
+This is not an error. Any identifier that can't be resolved before the macro is
+applied is allowed to be resolved to a macro-produced identifier after macros
+are applied. (You might imagine that we could simply defer *all* identifier
+resolution until after macro application is done, but we need to resolve at
+least enough identifers to resolve *the macro application annotations
+themselves*, and to enable the introspection API to describe known types and
+members.)
+
+It is a compile-time error if a macro adds a declaration to a library or class
+that collides with an existing declaration (either handwritten or produced by a
+macro). This is analogous to the existing error users get if handwritten code
+has two colliding declarations.
+
+#### Shadowing declarations
+
+All the rules below apply only to the library in which a macro is
+applied&mdash;macro applications in imported libraries are considered to be
+fully expanded already and are treated exactly the same as handwritten code.
+
+Macros may add member declarations that shadow top-level declarations in the
+library. When that happens, we want to ensure that the intent of the
+user-written code is clear. Consider the following example:
+
+```dart
+int get x => 1;
+
+@generateX
+class Bar {
+  // Generated: int get x => 2;
+
+  // Should this return the top level `x`, or the generated instance getter?
+  int get y => x;
+}
+```
+
+There are several potential choices we could make here:
+
+1.  Any identifier that can be resolved before macro application keeps its
+    original resolution. Here, `x` would still resolve to the original,
+    top-level variable.
+
+2.  Re-resolve all identifiers after macros are applied, which may change what
+    they resolve to. In the example here, `x` would re-resolve to the generated
+    instance getter `x`.
+
+3.  Make it a compile-time error for a macro to introduce an identifier that
+    shadows another.
+
+4.  Make it a compile-time error to *use* an identifier shadowed by one produced
+    by a macro.
+
+The first two choices could be very confusing to users, some will expect one
+behavior while others expect the other. The third choice would work but might be
+overly restrictive. The final option still avoids the ambiguity, and is a bit
+more permissive than the third, so we take that approach.
+
+It's also possible that a top-level declaration and an instance declaration that
+shadows it are *both* produced by macros. If we resolved a hand-written
+identifier with the same name at different points during macro expansion, it
+might refer to different macro-generated declarations. That would also be
+confusing, and we don't want to allow that.
+
+These constraints produce this rule: It is a compile-time error if any
+hand-authored identifier in a library containing a macro application would bind
+to a different declaration when resolved before and after macro expansion in
+that library.
+
+This follows from the general principle that macros should not alter the
+meaning of existing code. Adding the getter `x` in the example above shadows the
+top-level `x`, changing the meaning of the original code.
+
+Note, that if the getter were written as `int get y => this.x;`, then a macro
+*would* be allowed to introduce the new getter `x`, because `this.x` could not
+previously be resolved.
+
+**TODO**: Revisit this to see if it aligns with the scoping rules of compiling
+macros to library augmentations.
+
+#### Resolving identifiers in generated code
+
+Macros will likely want to introduce references to identifiers that are not in
+the scope of the library in which they are running, but are in the scope of the
+macro itself, or possibly even references which are not in scope of either the
+macro itself or the library where it is applied.
+
+Even if an identifier is in scope of the library in which the macro is applied
+(let's say its exported by the macro library), that identifier could be shadowed
+by another identifier in the library.
+
+To enable a macro to safely emit a reference to a known identifier, there is
+a `Identifier` subtype of `Code`. This class takes both a simple name for the
+identifier (no prefix allowed), as well as a library URI, where that identifier
+should be looked up.
+
+The generated code should be equivalent to adding a new import to the library,
+with the specified URI and a unique prefix. In the code the identifier will be
+emitted with that unique prefix followed by its simple name.
+
+Note that technically this allows macros to add references to libraries that
+the macro itself does not depend on, and the users application also may not
+depend on. This is discouraged, but not prevented, and should result in an error
+if it happens.
+
+**TODO**: Investigate other approaches, see: https://github.com/dart-lang/language/pull/1779#discussion_r683843130.
+
+### Generating macro applications
+
+Since macros are regular Dart code and classes, one macro can instantiate and
+run the other macro's code directly as part of the first macro's execution. That
+allows macros to be directly composed in some cases. But in cases where a macro
+in one phase wants to invoke a macro in another phase (including itself), a
+macro can generate code containing a macro application. Those in turn expanded
+during compilation. This is allowed in two ways:
+
+**TODO**: Consider more direct support for macros that declare and then implement their own declarations: https://github.com/dart-lang/language/issues/1908.
 
 #### Adding macro applications to new declarations
 
@@ -464,21 +629,16 @@ following the normal ordering rules.
 
 #### Adding macro applications to existing declarations
 
-Macro applications can be added to existing declarations through the `*Builder`
-APIs. Macros added in this way are always prepended to the list of existing
-macros on the declaration (which makes them run _last_).
-
-Note that macros can already _immediately_ invoke another macro on a given
-declaration manually, by simply instantiating the macro and then invoking
-it.
+Macro applications can be added to existing declarations using the builder
+classes. Macros added in this way are always prepended to the list of existing
+macros on the declaration (which makes them run *last*).
 
 **TODO**: Update the builder APIs to allow this.
 
-#### Note about ordering violations
+#### Ordering violations
 
-Note that both of these mechanisms allow for normal macro ordering to be
-circumvented. Consider the following example, where all macros run in the
-Declaration phase:
+Both of these mechanisms allow for normal macro ordering to be circumvented.
+Consider the following example, where all macros run in the Declaration phase:
 
 ```dart
 @macroA
@@ -496,113 +656,9 @@ Normally, macros always run "inside-out". But in this case `@macroC` runs after
 both `@macroB` and `@macroC` which were applied to the class.
 
 We still allow this because it doesn't cause any ambiguity in ordering, even
-though it violates the normal rules.
-
-We could instead only allow adding macros from _later_ phases, but that would
-restrict the functionality in unnecessary ways.
-
-### Scoping
-
-#### Resolved identifiers
-
-Macros will likely want to introduce references to identifiers that are not in
-the scope of the library in which they are running, but are in the scope of the
-macro itself, or possibly even references which are not in scope of either the
-macro itself or the library where it is applied.
-
-Even if an identifier is in scope of the library in which the macro is applied
-(lets say its exported by the macro library), that identifier could be shadowed
-by another identifier in the library.
-
-**TODO**: Investigate other approaches to the proposal below, see discussion
-at https://github.com/dart-lang/language/pull/1779#discussion_r683843130.
-
-To enable a macro to safely emit a reference to a known identifier, there is
-a `Identifier` subtype of `Code`. This class takes both a simple name for the
-identifier (no prefix allowed), as well as a library URI, where that identifier
-should be looked up.
-
-The generated code should be equivalent to adding a new import to the library,
-with the specified URI and a unique prefix. In the code the identifier will be
-emitted with that unique prefix followed by its simple name.
-
-Note that technically this allows macros to add references to libraries that
-the macro itself does not depend on, and the users application also may not
-depend on. This is discouraged, but not prevented, and should result in an error
-if it happens.
-
-#### Generated declarations
-
-A key use of macros is to generate new declarations, and handwritten code may
-refer to them—it may call macro-generated functions, read macro-generated
-fields, construct macro-generated classes, etc. This means that before macros
-are applied, code may contain identifiers that cannot be resolved. This is not
-an error. Any identifier that can't be resolved before the macro is applied is
-allowed to be resolved to a macro-produced identifier after macros are applied.
-
-All the rules below apply only to the library in which a macro is applied—macro
-applications in imported libraries are considered to be fully expanded already
-and are treated exactly the same as handwritten code.
-
-Macros are not permitted to introduce declarations that directly conflict with
-existing declarations in the same library. These rules are the same as if the
-code were handwritten.
-
-Macros may also add declarations which shadow existing symbols in the library,
-but don't directly conflict. In this case we want to ensure that the intent of
-any user written code is always clear. Consider the following example:
-
-```dart
-int get x => 1;
-
-@generateX
-class Bar {
-  // Generated: int get x => 2;
-
-  // Should this return the top level `x`, or the generated instance getter?
-  int get y => x;
-}
-```
-
-There are several potential choices to we could make here:
-
-1.  We could say that any identifier that can be resolved before macro
-    application keeps its original resolution (so `x` would still resolve to the
-    original, top level `x`).
-2.  We could re-resolve all identifiers after the macros are applied, which can
-    possibly change what they resolve to (in this case `x` would resolve to the
-    generated instance getter `x`).
-3.  We could make it some kind of error for a macro to introduce an identifier
-    that shadows another.
-4.  We could make it a compile-time error to *use* an identifier shadowed by one
-    produced by a macro.
-
-The first two choices could be very confusing to users, some will expect one
-behavior while others expect the other. The third choice would work but might be
-overly restrictive. The final option still avoids the ambiguity, and is a bit
-more permissive than the third.
-
-It similarly also is not allowed for one macro to produce a declaration that the
-identifier resolves to and then another macro to produce another declaration
-that then shadows that one. In other words, any hand-authored identifier may be
-resolved at any point during macro application, but it may only be resolved
-once.
-
-These constraints produce this rule:
-
-*   It is a compile-time error if any hand-authored identifier in a library
-    containing a macro application would bind to a different declaration when
-    resolved before and after macro expansion in that library. In other words,
-    it is a compile-time error if a macro introduces an identifier that shadows
-    a handwritten identifier that is used in the same library.
-
-This follows from the general principle that macros should not alter the
-meaning of existing code. Adding the getter `x` in the example above shadows the
-top level `x`, changing the meaning of the original code.
-
-Note, that if the getter were written as `int get y => this.x;`, then a macro
-*would* be allowed to introduce the new getter `x`, because `this.x` could not
-previously be resolved.
+though it violates the normal rules. We could instead only allow adding macros
+from *later* phases, but that would restrict the functionality in unnecessary
+ways.
 
 ## Compiling macros
 
