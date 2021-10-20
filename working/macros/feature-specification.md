@@ -872,7 +872,8 @@ return their default values.
 
 It would be useful for macros to be able to read environment variables so that
 they can generate different code in different build configurations. For example,
-a macro could generate logging code when applied in debug mode but skip it in a release build.
+a macro could generate logging code when applied in debug mode but skip it in a
+release build.
 
 However, configuration-specific macros increase the UX complexity of developer
 tools and IDEs significantly since the user needs to be able to select which
