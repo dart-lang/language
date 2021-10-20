@@ -722,118 +722,163 @@ application of a Dart program looks like this:
 ## Executing macros
 
 To apply a macro, a Dart compiler constructs an instance of the applied macro's
-class and then invokes methods on it that implement the macro API. The arguments
-in the metadata annotation for the macro application are passed to the macro as
-constructor parameters.
+class and then invokes methods that implement macro API interfaces. The macro is
+a full-featured Dart program with complete access to the entire Dart language.
+Macros are Turing-complete.
 
-The macro choose whether an argument is passed by value or as an unevaluated
-expression through the corresponding parameter type. If the parameter's type is
-[Code][] (or any subtype of it), the argument is passed unevaluated. If it is a
-primitive type, the argument is passed by value. It is a compile-time error if a
-macro class's constructor has a parameter type that is not a subtype of Code or
-one of the allowed value types.
+### Macro arguments
 
-**TODO**: Specify the allowed types.
+**TODO**: How are metadata annotations that refer to constant objects handled ([#1890](https://github.com/dart-lang/language/issues/1890))?
 
-**Note**: A Dart implementation implicitly converts the macro argument
-expression to a Code object ("lifts" the expression to a "metaobject")
-implicitly as part of macro application. This only happens when executing actual
-macro applications at compile time. If a Dart program invokes a macro class's
-constructor explicitly&mdash;for example, when writing tests of the
-macro&mdash;then it is up to the caller to explicitly create the Code object.
+Each argument in the metadata annotation for the macro application is converted
+to a form that the corresponding constructor on the macro class expects, which
+it specifies through parameter types:
 
-### Execution environment
+*   If the parameter type is `bool`, `double`, `int`, `Null`, `num`, or `String`
+    (or the nullable forms of any of those), then the argument expression must
+    be a Boolean, number, null, or string literal. Number literals may be
+    negated. String literals may not contain any interpolation, but may be
+    adjacent strings.
 
-The execution environment for macros is different from that of normal code.
-Specifically, we have some semantics that we want to uphold (to the extent
-that is feasible) which puts some constraints on the environment.
+    **TODO**: Do we want to allow more complex expressions? Could we allow
+    constant expressions whose identifiers can be successfully resolved before
+    macro expansion?
 
-- No direct access to the host device (except through the `Resource` API).
-- No ability to spawn arbitrary processes or isolates.
-- The ordering of macros in the same phase should not be observable.
-- Macros should always generate the same code, regardless of host environment,
-  target environment, or non-file based configuration.
-  - This means no access to system environment variables, Dart environment
-    variables (-D defines), command line arguments, or other such configuration.
-  - The "host environment" here refers to the environment in which the macro
-    itself is running.
+*   Else, the argument expression is automatically converted to an object of
+    type [Code][] representing the unevaluated expression.
 
-These general principles are what drives the various requirements for the
-execution environment in which macros run.
+    Note that this implicit lifting of the argument expression only happens when
+    the macro constructor is invoked through a macro application. If a macro
+    class is directly constructed in Dart (for example, in test code for the
+    macro), then the caller is responsible for creating the Code object.
 
-### Access to core libraries
+As usual, it is a compile-time error if the type of any argument value (which
+may be a Code object) is not a subtype of the corresponding parameter type.
 
-Only the core libraries which don't violate the above rules are allowed, the
-full list of _allowed_ core libraries is as follows:
+It is a compile-time error if an macro class constructor invoked by a macro
+application has a parameter whose type is not Code (or any subtype of it) or
+one of the aforementioned primitive types (or a nullable type of any of those).
 
-- `dart:async`
-- `dart:collection`
-- `dart:convert`
-- `dart:core`
-- `dart:math`
-- `dart:typed_data`
+### Runtime environment
 
-All other SDK libraries are not available.
+Since macros are executed at compile time directly inside the compiler, they run
+in a sandbox that tries to minimize the trouble a poorly (or maliciously)
+written macro can cause. A well-behaved macro should not:
 
-### Side effects
+*   Reach out to the network or read arbitrary files on the user's machine.
+    (Some files can be access by going through the Resource API because the
+    user knows those files are permitted.)
 
-Macros should not be able to observe the order in which they are ran with
-respect to other macros in the same phase. If macros touch shared global state
-then they would be able to observe the ordering, and may rely on that ordering
-in ways that get broken by future changes or are generally unstable.
+*   Consume CPU resources or continue executing code after the macro's work is
+    done.
 
-There are several possible approaches to this problem that are being considered:
+*   Produce different results when run multiple times on the same code. A macro
+    should be a [pure function][] from input code to resulting code.
 
-1. Don't allow macro code to mutate global state at all.
-    - This is probably overly-restrictive, and may be hard to enforce. There are
-      some legitimate cases in library code (`package:logging` as an example).
-2. Run each macro application in a completely new isolate.
-    - Good from a semantics and flexibility perspective, but may be too slow.
-3. Reset all static state between macro invocations.
-    - Good option if it is feasible on the tooling side of things and it can be
-      fast.
-4. Document mutating global state as a bad practice, but don't block it. Give no
-   guarantees around static state persistance between macro applications.
-    - In practice this would likely be fine, but it isn't ideal. Some authors
-      are likely to exploit this in weird ways, and we could get stuck
-      maintaining behavior that we don't want to.
-    - Would likely be the most performant solution, global objects would be
-      shared across macro applications instead of being re-instantiated for
-      each.
-    - Also the easiest solution, no work required.
+The macro system is *not* designed to provide hard security guarantees of the
+above properties. Users should consider the macros that they apply to be trusted
+code.
 
-**TODO**: Choose a solution.
+[pure function]: https://en.wikipedia.org/wiki/Pure_function
 
-### Platform specific semantics
+The restrictions in the following sections encourage the above properties as
+much as possible.
 
-Macros may execute in different environments which have different semantics than
-than the target environment, for instance in the case of numbers. Macros are
-executed with the normal semantics of the host environment, whatever those are.
+### Core library restrictions
 
-- **Note**: This is a violation of the rule that macros should always generate
-  the same code regardless of the host environment.
+Dart code touches the outside world through core libraries. We prevent macros
+from interacting with the outside world in unsafe ways by limiting access to
+some `dart:` libraries and some operations inside those libraries. These
+libraries are *allowed*:
+
+* `dart:async`
+* `dart:collection`
+* `dart:convert`
+* `dart:core`
+* `dart:math`
+* `dart:typed_data`
+
+All other `dart:` libraries (`dart:io`, `dart:isolate`, etc.) are completely
+prohibited. This ensures that macros cannot directly access the file system or
+network, spawn processes, access configuration-specific data that would cause it
+to produce different output on the same code, etc.
+
+**TODO**: Define "prohibited" more precisely (#1916).
+
+**TODO**: Specify prohibited APIs inside permitted core libraries (#1915).
+
+### Static mutable state
+
+A user should not be able observe the order in which unrelated macro
+applications are executed. This makes it easier for macro authors to write
+robust macros and for macro users to reason about their macro uses
+independently. That order could become visible if separate macro applications
+accessed the same static mutable state&mdash;top-level variables and static
+fields.
+
+We are still considering how to address this. Options:
+
+1.  Don't allow macro code to mutate static state at all. This is probably
+    overly-restrictive, and may be hard to enforce. There are legitimate use
+    cases for this like using `package:logging`.
+
+2.  Run each macro application in a separate isolate. Each application has its
+    own independent global mutable state. This is permissive in macros while
+    keeping them isolated, but may be slow.
+
+3.  Reset all static state between macro application executions. If this is
+    feasible to implement and fast enough, it could work.
+
+4.  Document that mutating static state is a bad practice, but don't block it.
+    Give no guarantees around static state persistence between macro
+    applications.
+
+    In practice, most macros won't access any static state, so this is harmless.
+    But if macros do exploit this (deliberately or inadvertently) then it could
+    force implementations to be stuck with a specific execution order in order
+    to not break existing code. This is the easiest and fastest solution, but
+    the least safe.
+
+**TODO**: Choose a solution (#1917).
+
+### Platform semantics
+
+Macros execute in an environment which may have different semantics than the
+environment the program being compiled targets. For instance, Dart numbers have
+different semantics on the web than they do when compiled to native code.
+
+The macro execution environment uses the semantics of the compiler or tool's
+host environment, whatever those are. (Since most Dart tools are written in Dart
+and compiled to native code, that means integers are usually 64 bits.)
+
+**Note**: This is violates the rule that macros should always generate the same
+code given the same input code.
+
+This means that code which executes inside a macro may produce a different
+result than the same code executed at runtime if the environments are different.
+A macro that pre-computes some value and stores the result in the generated code
+may need to take care that the computation isn't affected by the host
+environment.
 
 Macros do not have visibility into the target environment, and they can only
-detect the host environment using existing mechanisms (`0 is double` style
-checks).
+detect the host environment using existing mechanisms like `0 is double`.
 
-This means that code which executes inside a macro may have a different result
-than the same code executed at runtime, if the environments are different.
+### Environment variables and configuration
 
-### Dart environment variables
+Macros do not have access to the system environment variables, since they do not
+have access to `dart:io` where they are exposed. Macros also do not have access
+to Dart environment variables (`-D` flags). All`fromEnvironment()` constructors
+return their default values.
 
-Macros _do not_ have access to the Dart environment variables, and all
-`fromEnvironment` constructors will return the default values.
+It would be useful for macros to be able to read environment variables so that
+they can generate different code in different build configurations. For example,
+a macro could generate logging code when applied in debug mode but skip it in a release build.
 
-While it could be useful for macros to read environment variables it would
-be very problematic for development tools to deal with. Having a single,
-consistent version of generated code is more predictable for both tools and
-users.
-
-### System environment variables
-
-Macros _do not_ have access to the system environment variables, since they do
-not have access to `dart:io` where they are exposed.
+However, configuration-specific macros increase the UX complexity of developer
+tools and IDEs significantly since the user needs to be able to select which
+configuration they want to view their program as. Making macros
+configuration-free allows tools to give users a single, consistent version of
+generated code.
 
 ## Language and API evolution
 
