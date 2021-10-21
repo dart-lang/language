@@ -122,13 +122,8 @@ how many fields to define. To support that, macros can also accept arguments as
 values. However, only built-in value types (int, bool, etc.) are allowed and
 arguments must be *simple literal expressions*.
 
-**TODO**: Specify the exact allowed types and expressions.
-
 **TODO**: Metadata annotations currently only allow expression arguments. Do we
-want to expand this to allow statements or other grammatical constructs?
-
-**TODO**: Should we support const expressions as values, if they can be
-evaluated prior to macro expansion?
+want to expand this to allow statements or other grammatical constructs (#1928)?
 
 ### Application order
 
@@ -142,11 +137,10 @@ Fortunately, since they are all applied to the same textual piece of code, the
 user can *control* that order. We use syntactic order to control application
 order of macros:
 
-*   **Macros are applied to inner declarations before outer ones.** Macros on
-    class members are applied before macros on the class, macros on top-level
-    declarations are applied before a macro on the entire library, etc.
-
-    **TODO**: Specify this fully.
+*   **Macros are applied to inner declarations before outer ones.** Macros
+    applied to members are applied before members on the surrounding type.
+    Macros on top-level declarations are applied before macros on the main
+    `library` directive.
 
 *   **Macros applied to the same declaration are applied right to left.** For
     example:
@@ -347,7 +341,7 @@ For example, a `@jsonSerialization` class macro might want to look for an
 `@unseralized` annotation on fields to exclude them from serialization.
 
 **TODO**: The following subsections read more like a design discussion that a
-proposal. Figure out what we want to do here and rewrite.
+proposal. Figure out what we want to do here and rewrite (#1930).
 
 #### The annotation introspection API
 
@@ -414,7 +408,7 @@ This does have two interesting and possibly unexpected consequences:
 - Metadata on entirely new declarations is visible in the same phase, but
   metadata added to existing declarations is only visible in later phases.
 
-**TODO**: Define the API for adding metadata to existing declarations.
+**TODO**: Define the API for adding metadata to existing declarations (#1931).
 
 ## Generating code
 
@@ -449,7 +443,7 @@ production in Dart: unary expression, binary expression, etc. An API surface
 area that broad becomes very brittle and hard to evolve. We wouldn't want the
 Code API itself to prevent us from making future language changes.
 
-**TODO**: Describe the API to create instances of Code classes.
+**TODO**: Describe the API to create instances of Code classes (#1932).
 
 **TODO**: To make it easier to create Code instances, we are considering adding
 something like JavaScript's [tagged template][] syntax to Dart. Then, using
@@ -465,7 +459,7 @@ ability to tear apart and introspect into the subcomponents and subexpressions
 of a given pieces of syntax.
 
 **TODO**: We are considering exposing more properties on Code objects to allow
-introspection.
+introspection (#1933).
 
 ### Fragments
 
@@ -600,7 +594,8 @@ the macro itself does not depend on, and the users application also may not
 depend on. This is discouraged, but not prevented, and should result in an error
 if it happens.
 
-**TODO**: Investigate other approaches, see: https://github.com/dart-lang/language/pull/1779#discussion_r683843130.
+**TODO**: Investigate other approaches, see [this
+comment](https://github.com/dart-lang/language/pull/1779#discussion_r683843130).
 
 ### Generating macro applications
 
@@ -611,7 +606,8 @@ in one phase wants to invoke a macro in another phase (including itself), a
 macro can generate code containing a macro application. Those in turn expanded
 during compilation. This is allowed in two ways:
 
-**TODO**: Consider more direct support for macros that declare and then implement their own declarations: https://github.com/dart-lang/language/issues/1908.
+**TODO**: Consider more direct support for macros that declare and then
+implement their own declarations (#1908).
 
 #### Adding macro applications to new declarations
 
@@ -684,8 +680,8 @@ have the following restrictions:
     compile the library where the macro is defined first because it doesn't
     depend on any of the libraries using the macro.
 
-**TODO: Instead of the above rules, we are considering a more formal notion of
-"[modules]" or "library groups" to enforce this acyclicity.**
+**TODO**: Instead of the above rules, we are considering a more formal notion of
+"[modules]" or "library groups" to enforce this acyclicity.
 
 [modules]: https://github.com/dart-lang/language/tree/master/working/modules
 
@@ -728,7 +724,8 @@ Macros are Turing-complete.
 
 ### Macro arguments
 
-**TODO**: How are metadata annotations that refer to constant objects handled ([#1890](https://github.com/dart-lang/language/issues/1890))?
+**TODO**: How are metadata annotations that refer to constant objects handled
+(#1890)?
 
 Each argument in the metadata annotation for the macro application is converted
 to a form that the corresponding constructor on the macro class expects, which
@@ -742,7 +739,7 @@ it specifies through parameter types:
 
     **TODO**: Do we want to allow more complex expressions? Could we allow
     constant expressions whose identifiers can be successfully resolved before
-    macro expansion?
+    macro expansion (#1929)?
 
 *   Else, the argument expression is automatically converted to an object of
     type [Code][] representing the unevaluated expression.
@@ -899,7 +896,7 @@ which is available from the introspection APIs on all declarations via a
 
 ### API versioning
 
-**TODO**: Finalize the approach here.
+**TODO**: Finalize the approach here (#1934).
 
 It is possible that future language changes would require a breaking change to
 an existing imperative macro API. For instance you could consider what would
