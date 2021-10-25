@@ -159,6 +159,8 @@ is not user visible. For example, if two macros are applied to two methods in
 the same class, there is no way for those macros to interfere with each other
 such that the application order can be detected.
 
+**TODO*: Are superclass macros run before subclasses (#1938)?
+
 ## Phases
 
 Before we can get into how macro authors create macros, there is another
