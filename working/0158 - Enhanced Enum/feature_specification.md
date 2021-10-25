@@ -190,7 +190,7 @@ enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern 
   const Complex(String pattern, T Function(String) factory)
       : _patternSource = pattern, _factory = factory;
 
-  // Factory construtor.
+  // Factory constructor.
   factory Complex.matching(String text) {
     for (var value in values) {
       if (value.allMatches(text).isNotEmpty && value is Complex<T>) {
@@ -258,7 +258,7 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
 
   String get name => EnumName(this).name;
 
-  Pattern get pattern => _patterns[this.index] ??= _factory(_pattern);
+  Pattern get pattern => _patterns[this.index] ??= _factory(_patternSource);
 
   Iterable<Match> allMatches(String input, [int start = 0]) =>
       pattern.allMatches(input, start);
