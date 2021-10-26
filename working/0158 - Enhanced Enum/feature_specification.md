@@ -1,6 +1,6 @@
 # Dart Enhanced Enum Classes
 
-Author: lrn@google.com<br>Version: 1.1<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
+Author: lrn@google.com<br>Version: 1.2<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
 
 This is a formal proposal for a language feature which allows `enum` declarations to declare classes with fields, methods and const constructors initializing those fields. Further, `enum` declarations can implement interfaces and, as an optional feature, apply mixins.
 
@@ -19,7 +19,7 @@ That is: `enum`, a single identifier for the name, and a block containing a comm
 We propose the following to also be allowed:
 
 ```dart
-enum Name<T> with Mixin1, Mixin2 implements Interface1, Interface2 {
+enum Name<T extends Object?> with Mixin1, Mixin2 implements Interface1, Interface2 {
   id1<int>(args1), id2<String>(args2), id3<bool>(args3);
   memberDeclaration*
   const Name(params) : initList;
@@ -30,7 +30,7 @@ where `memberDeclaration*` is any sequence of static and instance member declara
 
 The `;` after the identifier list is optional if there is nothing else in the declaration, required if there is any member declaration after it. The identifier list may have a trailing comma (like now).
 
-The superclass of the mixin applications is the `Enum` class (which has an *abstract* `index` getter, so the only valid `super` invocations are those valid on `Object`).
+The superclass of the mixin applications is the `Enum` class (which has an *abstract* `index` getter, so the only valid `super` invocations are those valid on `Object`, `super.index` must be an error).
 
 The grammar of the `enum` declaration becomes:
 
@@ -50,9 +50,15 @@ It is a compile-time error if the enum declaration contains any generative const
 
 _We_ can _allow omitting the `const` on constructors since it’s required, so we can just assume it’s there. That’s a convenience we can also add at any later point._
 
+It is a compile-time error if the initializer list of a non-redirecting generative constructor includes a `super` constructor invocation.
+
+_We will introduce the necessary super-invocation ourselves, since we do not provide any public constructors on the `Enum` class._
+
 ## Semantics
 
-The semantics of such an enum declaration is defined by *rewriting into a class declaration* as follows:
+First we add a private `const Enum._();` constructor to the `Enum` class, so that it can validly be a superclass of `enum` classes. _(The `Enum` class currently has a non-`const` default constructor that no-one can use because the class is abstract and cannot be extended, and in practice `enum` classes implement it instead. We now need to, at least pretend to, extend it so that mixins `on Enum` can be applied.)_
+
+The semantics of such an enum declaration is defined as being equivalent to *rewriting into a corresponding class declaration* as follows:
 
 - Declare a class with the same name and type parameters as the `enum` declaration.
 
@@ -64,49 +70,54 @@ The semantics of such an enum declaration is defined by *rewriting into a class 
 
 - For each member declaration:
 
-  - If the member declaration is a (necessarily `const`) generative constructor, introduce a similar named constructor on the class with a fresh name, which takes two extra leading positional arguments (`Name.foo(...)` &mapsto; `Name._$foo(int .., String .., ...)`, `Name(...)` &mapsto; `Name._$(int .., String .., ...)`). If the constructor is non-redirecting, make the two arguments `this.index` and `this._$name`. If the constructor is redirecting, make them `int _$index` and `String _$name`, then change the target of the redirection to the corresponding freshly-renamed constructor and pass `_$index` and `_$name` as two extra initial positional arguments.
+  - If the member declaration is a (necessarily `const`) generative constructor, introduce a similar named constructor on the class with a fresh name, which takes two extra leading positional arguments (`Name.foo(...):...;` &mapsto; `Name._$foo(int .., String .., ...):..., super._();`, `Name(...):...;` &mapsto; `Name._$(int .., String .., ...):..., super._()`). If the constructor is non-redirecting, make the two arguments `this.index` and `this._$name`. If the constructor is redirecting, make them `int _$index` and `String _$name`, then change the target of the redirection to the corresponding freshly-renamed constructor and pass `_$index` and `_$name` as two extra initial positional arguments.
   - Otherwise include the member as written.
 
-- If no generative constructors were declared, and no unnamed factory constructor was added, a default generative constructor `const Name._$(this.index, this._$name);` is added.
+- If no generative constructors were declared, and no unnamed factory constructor was added, a default generative constructor `const Name._$(this.index, this._$name) : super._();` is added.
 
-- If no `toString` member was declared, add `String toString() => “Name.${_$name}”;`.
+- If no `toString` member overriding `Object.toString` was declared or inherited _(from mixin applications)_, add `String toString() => “Name.${_$name}”;`.
 
 - For each `<enumEntry>` with name `id` and index *i* in the comma-separated list of enum entries, a static constant is added as follows:
 
-  - `id` &mapsto;  `static const Name id = Name._$(i, "id");` &mdash; equivalent to `id()`.
-  - `id(args)` &mapsto; `static const Name id = Name._$(i, “id”, args);` &mdash; if `Name` is not generic
-  - `id<types>(args)` &mapsto; `static const Name<types> id = Name<types>._$(i, “id”, args);`
-  - `id.named(args)` &mapsto; `static const Name id = Name._$named(i, “id”, args);`  &mdash; if `Name` is not generic
-  - `id<types>.named(args)` &mapsto; `static const Name<types> id = Name<types>._$named(i, “id”, args);`
+  - `id` &mapsto;  `static const id = Name._$(i, "id");` &mdash; equivalent to `id()`.
+  - `id(args)` &mapsto; `static const id = Name._$(i, "id", args);`
+  - `id<types>(args)` &mapsto; `static const id = Name<types>._$(i, "id", args);`
+  - `id.named(args)` &mapsto; `static const id = Name._$named(i, "id", args);`
+  - `id<types>.named(args)` &mapsto; `static const id = Name<types>._$named(i, "id", args);`
 
-  (We expect type inference to have been applied to the generic constructor invocations where necessary, so generic class constructor invocations have their type arguments.)
+  We expect type inference to be applied to the resulting declarations and generic constructor invocations where necessary, and the type of the constant variable is inferred from the static type of the constant object creation expression.
 
-- Also a static constant named `values` is added as:
+- Also, if no member (static or instance) with base-name `values` is declared, a static constant named `values` is added as:
 
   - `static const List<Name> values = [id1, …, idn];`
-    where `id1`…`idn` are the names of the enum entries of the `enum` declaration in source/index order. If `Name` is generic, the `List<Name>` instantiates it to bounds.
+    where `id1`…`idn` are the names of the enum entries of the `enum` declaration in source/index order. If `Name` is generic, the `List<Name>` instantiates it to bounds as usual. (If the author wants a different, more or less precise, type for `values`, they can write it as type parameter bounds for the enum, or they can declare the constant themselves.)
 
-If the resulting class would have any naming conflicts, or other compile-time errors, the `enum` declaration is invalid and a compile-time error occurs. Otherwise the `enum` declaration has an interface and behavior which is equivalent to that class declaration. (We don’t require it to *be* that class declaration, there might be other helper classes involved in the implementation, but the interface and behavior should match.)
+If the resulting class would have any naming conflicts, or other compile-time errors, the `enum` declaration is invalid and a compile-time error occurs. Otherwise the `enum` declaration has an interface and behavior which is equivalent to that class declaration, which we’ll refer to as the *corresponding class declaration* of the `enum` declaration. *(We don’t require the implementation to be that class declaration, there might be other helper classes involved in the implementation, but the publicly visible interface and behavior should match.)*
 
-This `enum` declaration above is therefore defined to be extensionally equivalent to:
+If the corresponding class declaration of an `enum` declaration is valid, the `enum` declaration introduces the same *interface* and *type* that the corresponding class declaration would introduce if declared in the same location. _There are, however, restrictions on how that class and interface can be used, listed in the next section._
+
+This `enum` declaration above is therefore defined to behave equivalently to the corresponding class declaration:
 
 ```dart
-class Name<T> extends Enum with Mixin1, Mixin2 implements Interface1, Interface2 {
-  static const Name<int> id1 = Name<int>._$(0, "id1", args1);
-  static const Name<String> id2 = Name<String>._$(1, "id2", args2);
-  static const Name<bool> id3 = Name<bool>._$(2, "id3", args3);
-  static const List<Name<Object?>> values = [id1, id2, id3];
+class Name<T extends Object?> extends Enum with Mixin1, Mixin2 
+    implements Interface1, Interface2 {
+  static const id1 = Name<int>._$(0, "id1", args1);
+  static const id2 = Name<String>._$(1, "id2", args2);
+  static const id3 = Name<bool>._$(2, "id3", args3);
+  static const List<Name> values = [id1, id2, id3];
 
   final int index;
-  final String _name;
+  final String _$name;
 
-  Name._$(this.index, this._name, params) : initList
+  Name._$(this.index, this._$name, params) : initList, super._();
 
   memberDeclarations*
 
-  String toString() => "Name.$_name"; // Unless defined by memberDeclarations.
+  String toString() => "Name.${_$name}"; // Unless defined by memberDeclarations.
 }
 ```
+
+Further, the `EnumName` extension in `dart:core` will extract the `_$name` value from any enum value.
 
 ### Implementing `Enum`
 
@@ -114,17 +125,19 @@ It’s currently a compile-time error for a class to implement, extend or mix-in
 
 Because we want to allow interfaces and mixins that are intended to be applied to `enum` declarations, and therefore to assume `Enum` to be a superclass, we loosen that restriction to:
 
-> It’s a compile-time error if a *non-abstract* class implements `Enum` unless it is the implicit class of an `enum` declaration.
+> It’s a compile-time error if a *non-abstract* class has `Enum` as a superinterface unless it is the corresponding class declaration of an `enum` declaration.
 >
-> It is a compile-time error if a class implements, extends or mixes-in a class declared by an `enum` declaration.
+> It is a compile-time error if a class implements, extends or mixes-in the class or interface introduced by an `enum` declaration.
 
-That allows abstract classes (interfaces) which implements `Enum` in order to have the `int index;` getter member available, and it allows `mixin` declarations to use `Enum` as an `on` type because `mixin` declarations cannot be instantiated directly.
+Those restrictions allows abstract classes (interfaces) which implements `Enum` in order to have the `int index;` getter member available, and it allows `mixin` declarations to use `Enum` as an `on` type because `mixin` declarations cannot be instantiated directly.
 
 This restriction still ensure  `enum` values are the only object instances which implements `Enum`, while making it valid to declare `abstract class MyInterface implements Enum` and `mixin MyMixin on Enum` for interfaces and mixins intended to be used in declaring `enum` classes.
 
 ## Formatting
 
-The recommended formatting of an `enum` declaration is to format the header (before the first `{`) just like a class declaration. Then, if the enum entries have arguments (if they are anything but single identifiers), then put each entry on a line by its own. If there is no trailing comma, put the semicolon after the last entry. If there is a trailing comma, put the semicolon on the next line, by itself. Then have an empty line before the member declarations, which are formatted just they would be in a class declaration.
+The recommended formatting of an `enum` declaration is to format the header (before the first `{`) just like a class declaration. Then, if the enum entries have arguments (if they are anything but single identifiers), then put each entry on a line by its own. If there is no trailing comma, put the semicolon after the last entry. If there is a trailing comma, put the semicolon on the next line, by itself. Then have an empty line before the member declarations, which are formatted just like they would be in a class declaration.
+
+If the enum entries have no arguments, they can be listed on one line where it fits, like they are today.
 
 ## Summary
 
@@ -132,10 +145,15 @@ We let `enum` declarations be much more like classes, just classes with a fixed 
 
 The enum values can call the declared constructors, or the default unnamed zero-argument `const` constructor which is added if no other constructor is declared. The syntax looks like a constructor invocation except that the enum value name replaces the class name. If no type arguments or value arguments are needed, and the constructor invoked is unnamed, the enum value can still be a plain identifier.
 
-The only differences between an `enum` declared class and a hand-written “equivalent class” is that:
+Enum instances are objects like any other object, and with this change they can implement interfaces and inherit members from mixins. The main difference between an `enum` declaration and a hand-written “equivalent class” using the enum pattern is that:
 
-- `enum` classes support exhaustiveness checks in switch cases.
+- The `enum` types implement `Enum`. The `Enum` type is otherwise sealed against instantiation, so no other objects than enum entries can implement it.
+- The `enum` types themselves are completely sealed. No other class can implement an `enum` type.
+
+- Because of that, `enum` types support exhaustiveness checking in `switch` cases in the language _(meaning that flow-control can see that an exhaustive switch over enum values cannot pass through without executing at least one `case`, which can then affect variable promotion)_.
 - The `EnumName.name` extension member works on `enum` values.
+
+If the *restrictions* (the type is sealed, there is only a finite, enumerable number of instances, and the class  implements `Enum`, so it must have an `int index` getter), are acceptable, there should no longer be any reason to *not* make your enum class a language-based `enum`.
 
 ## Examples:
 
@@ -147,7 +165,7 @@ enum Plain {
 }
 ```
 
-has equivalent class:
+has corresponding class declaration:
 
 ```dart
 class Plain extends Enum {
@@ -159,9 +177,9 @@ class Plain extends Enum {
   final int index;
   final String _$name;
 
-  const Plain._$(this.index, this._$name);
+  const Plain._$(this.index, this._$name) : super._();
 
-  String toString() => "Plain,${_$name}";
+  String toString() => "Plain.${_$name}";
 }
 ```
 
@@ -172,7 +190,7 @@ mixin EnumComparable<T extends Enum> on Enum implements Comparable<T> {
   int compareTo(T other) => this.index - other.index;
 }
 
-// With type argument, mixin and interface.
+// With type parameter, mixin and interface.
 enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern {
   whitespace<RegExp>(r"\s+", RegExp.new),
   alphanum<RegExp>.captured(r"\w+", RegExp.new),
@@ -222,17 +240,17 @@ enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern 
 }
 ```
 
-has equivalent class:
+has corresponding class declaration:
 
 ```dart
 class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
     implements Pattern {
-  static const Complex<RegExp> whitespace =
-      Complex<RegExp>(r"\s+", RegExp.new);
-  static const Complex<RegExp> alphanum =
-      Complex<RegExp>.captured(r"\w+", RegExp.new);
-  static const Complex<Glob> anychar = Complex<Glob>("?", Glob.new);
-  static const List<Complex<Pattern>> values = [whitespace, alphanum, anychar];
+  static const whitespace =
+      Complex<RegExp>._$(0, "whitespace", r"\s+", RegExp.new);
+  static const alphanum =
+      Complex<RegExp>._$captured(1, "alphanum", r"\w+", RegExp.new);
+  static const anychar = Complex<Glob>._$(2, "anychar", "?", Glob.new);
+  static const List<Complex> values = [whitespace, alphanum, anychar];
 
   static final List<Pattern?> _patterns = List<Pattern?>.filled(3, null);
 
@@ -242,7 +260,7 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
   final T Function(String) _factory;
 
   const Complex._$(this.index, this._$name, String pattern, T Function(String) factory)
-      : _patternSource = pattern, _factory = factory;
+      : _patternSource = pattern, _factory = factory, super._();
 
   factory Complex.matching(String text) {
     for (var value in values) {
@@ -289,14 +307,47 @@ class MySingleton extends Enum implements Whatever {
   static const List<MySingleton> values = [instance];
   final int index;
   final String _$name;
-  const MySingleton._$(this.index, this._$name, ...) : ...;
+  const MySingleton._$(this.index, this._$name, ...) : ..., super._();
   // Normal class declarations.
+  // toString if needed.
 }
 ```
 
 There is a chance that people will start using `enum` declarations to declare singleton classes. It has a little overhead, but it’s finite (and the `values` getter can likely be tree-shaken).
 
+## Implementation
+
+The existing enums are implemented as extending a private `_Enum` class which holds the `final int index;` declaration and a `final String _name;` declaration (used by the the `EnumName.name` getter), and both fields are initialized by a constructor.
+
+Since this proposal allows mixin applications which can, potentially, shadow a superclass `index` getter, we likely need to change some parts of the implementation.
+
+- Make the actual implementation class for an `enum` extend `_Enum` instead of `Enum`, and forward the index and name values to the superclass constructor.
+- Not have `index` and `_$name` instance variables in the implementation class.
+
+- Make the `final int index;` field in `_Enum` be private (`final int _index;`).
+- Add an `int get index => this.<dart:core::_index>;` to the actual implementation class for the `enum` to dodge overrides of `index` in mixins. (The `<dart:core::_index>` syntax represents accessing the library private `_index` member from `dart:core` through compiler magic.)
+
+That makes the actual implementation of the `Plain` enum above likely to be something like:
+
+```dart
+class Plain extends _Enum {
+  static const Plain foo = Plain._$(0, "foo");
+  static const Plain bar = Plain._$(1, "bar");
+  static const Plain baz = Plain._$(2, "baz");
+  static const List<Plain> values = [foo, bar, baz];
+
+  const Plain._$(int _$index, String _$name) : super(_$index, _$name);
+
+  int get index => this.<dart:core::_index>;
+
+  String toString() => "Plain.${<date:core::_name>}";
+}
+```
+
+This should allow a reasonable implementation which still supports `EnumName`. We currently implement the `toString` using such compiler-magic to access the `_name` field of `_Enum`, so all we need is to add a similar `index` getter to each enum class.
+
 ## Versions
 
 1.0: Initial version.
-1.1, Oct 11 2021: Add missing `const` to some constructor declarations.
+1.1, 2021-10-11: Add missing `const` to some constructor declarations.
+1.2, 2021-10-25: Tweak some wordings and ambiguities.
