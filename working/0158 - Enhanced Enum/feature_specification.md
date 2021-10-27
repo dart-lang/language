@@ -92,9 +92,20 @@ The semantics of such an enum declaration is defined as being equivalent to *rew
   - `static const List<Name> values = [id1, …, idn];`
     where `id1`…`idn` are the names of the enum entries of the `enum` declaration in source/index order. If `Name` is generic, the `List<Name>` instantiates it to bounds as usual. (If the author wants a different, more or less precise, type for `values`, they can write it as type parameter bounds for the enum, or they can declare the constant themselves.)
 
-If the resulting class would have any naming conflicts, or other compile-time errors, the `enum` declaration is invalid and a compile-time error occurs. Otherwise the `enum` declaration has an interface and behavior which is equivalent to that class declaration, which we’ll refer to as the *corresponding class declaration* of the `enum` declaration. *(We don’t require the implementation to be that class declaration, there might be other helper classes involved in the implementation, but the publicly visible interface and behavior should match.)*
+If the resulting class would have any naming conflicts, or other compile-time errors, the `enum` declaration is invalid and a compile-time error occurs. Such errors include, but are not limited to:
 
-If the corresponding class declaration of an `enum` declaration is valid, the `enum` declaration introduces the same *interface* and *type* that the corresponding class declaration would introduce if declared in the same location. _There are, however, restrictions on how that class and interface can be used, listed in the next section._
+- Declaring any member with the same basename as an enum value.
+
+- Inheriting, from a mixin, any instance member with basename `values` or with the same basename as an enum value.
+
+- Declaring any members or enum values with basename `index` or `values`.
+- Declaring a type parameter on the `enum` which does not have a valid well-bounded or super-bounded instantiate-to-bounds result (because the introduced `static const List<EnumName> values` requires a valid instantiate-to-bounds result which is at least super-bounded).
+
+- The type parameters of the enum not having a well-bounded instantiate-to-bounds result *and* an enum element omitting the type arguments and not having arguments which valid type arguments can be inferred from (because an implicit `EnumName._$(0, "foo", unrelatedArgs)` constructor invocation requires an well-bound inferred type arguments for a generic `EnumName` enum).
+
+Otherwise the `enum` declaration has an interface and behavior which is equivalent to that class declaration, which we’ll refer to as the *corresponding class declaration* of the `enum` declaration. *(We don’t require the implementation to be that class declaration, there might be other helper classes involved in the implementation, and different private members, but the publicly visible interface and behavior should match.)*
+
+That is, if the corresponding class declaration of an `enum` declaration is valid, the `enum` declaration introduces the same *public interface* and *type* that the corresponding class declaration would introduce if declared in the same location. _There are, however, restrictions on how that class and interface can be used, listed in the next section._
 
 This `enum` declaration above is therefore defined to behave equivalently to the corresponding class declaration:
 
@@ -119,15 +130,15 @@ class Name<T extends Object?> extends Enum with Mixin1, Mixin2
 
 Further, the `EnumName` extension in `dart:core` will extract the `_$name` value from any enum value.
 
-### Implementing `Enum`
+### Implementing `Enum` and enum types
 
 It’s currently a compile-time error for a class to implement, extend or mix-in the `Enum` class.
 
 Because we want to allow interfaces and mixins that are intended to be applied to `enum` declarations, and therefore to assume `Enum` to be a superclass, we loosen that restriction to:
 
-> It’s a compile-time error if a *non-abstract* class has `Enum` as a superinterface unless it is the corresponding class declaration of an `enum` declaration.
->
-> It is a compile-time error if a class implements, extends or mixes-in the class or interface introduced by an `enum` declaration.
+- It’s a compile-time error if a *non-abstract* class has `Enum` as a superinterface unless it is the corresponding class declaration of an `enum` declaration.
+
+- It is a compile-time error if a class implements, extends or mixes-in the class or interface introduced by an `enum` declaration.
 
 Those restrictions allows abstract classes (interfaces) which implements `Enum` in order to have the `int index;` getter member available, and it allows `mixin` declarations to use `Enum` as an `on` type because `mixin` declarations cannot be instantiated directly.
 
@@ -351,3 +362,4 @@ This should allow a reasonable implementation which still supports `EnumName`. W
 1.0: Initial version.
 1.1, 2021-10-11: Add missing `const` to some constructor declarations.
 1.2, 2021-10-25: Tweak some wordings and ambiguities.
+1.3, 2021-10-27: Add examples of potential errors in the corresponding class declaration.
