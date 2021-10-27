@@ -26,31 +26,31 @@ class Code {
 }
 
 /// A piece of code representing a syntactically valid declaration.
-class Declaration extends Code {
-  Declaration.fromString(String code, {Scope? scope})
+class DeclarationCode extends Code {
+  DeclarationCode.fromString(String code, {Scope? scope})
       : super.fromString(code, scope: scope);
 
-  Declaration.fromParts(List<Object> parts, {Scope? scope})
+  DeclarationCode.fromParts(List<Object> parts, {Scope? scope})
       : super.fromParts(parts, scope: scope);
 }
 
 /// A piece of code representing a syntactically valid element.
 ///
 /// Should not include any trailing commas,
-class Element extends Code {
-  Element.fromString(String code, {Scope? scope})
+class ElementCode extends Code {
+  ElementCode.fromString(String code, {Scope? scope})
       : super.fromString(code, scope: scope);
 
-  Element.fromParts(List<Object> parts, {Scope? scope})
+  ElementCode.fromParts(List<Object> parts, {Scope? scope})
       : super.fromParts(parts, scope: scope);
 }
 
 /// A piece of code representing a syntactically valid expression.
-class Expression extends Code {
-  Expression.fromString(String code, {Scope? scope})
+class ExpressionCode extends Code {
+  ExpressionCode.fromString(String code, {Scope? scope})
       : super.fromString(code, scope: scope);
 
-  Expression.fromParts(List<Object> parts, {Scope? scope})
+  ExpressionCode.fromParts(List<Object> parts, {Scope? scope})
       : super.fromParts(parts, scope: scope);
 }
 
@@ -60,31 +60,31 @@ class Expression extends Code {
 /// including modifiers like `async`.
 ///
 /// Both arrow and block function bodies are allowed.
-class FunctionBody extends Code {
-  FunctionBody.fromString(String code, {Scope? scope})
+class FunctionBodyCode extends Code {
+  FunctionBodyCode.fromString(String code, {Scope? scope})
       : super.fromString(code, scope: scope);
 
-  FunctionBody.fromParts(List<Object> parts, {Scope? scope})
+  FunctionBodyCode.fromParts(List<Object> parts, {Scope? scope})
       : super.fromParts(parts, scope: scope);
 }
 
 /// A piece of code representing a syntactically valid identifier.
-class Identifier extends Code {
-  Identifier.fromString(String code, {Scope? scope})
+class IdentifierCode extends Code {
+  IdentifierCode.fromString(String code, {Scope? scope})
       : super.fromString(code, scope: scope);
 
-  Identifier.fromParts(List<Object> parts, {Scope? scope})
+  IdentifierCode.fromParts(List<Object> parts, {Scope? scope})
       : super.fromParts(parts, scope: scope);
 }
 
 /// A piece of code identifying a named argument.
 ///
 /// This should not include any trailing commas.
-class NamedArgument extends Code {
-  NamedArgument.fromString(String code, {Scope? scope})
+class NamedArgumentCode extends Code {
+  NamedArgumentCode.fromString(String code, {Scope? scope})
       : super.fromString(code, scope: scope);
 
-  NamedArgument.fromParts(List<Object> parts, {Scope? scope})
+  NamedArgumentCode.fromParts(List<Object> parts, {Scope? scope})
       : super.fromParts(parts, scope: scope);
 }
 
@@ -97,22 +97,22 @@ class NamedArgument extends Code {
 /// nor between optional or required parameters. It is the job of the user to
 /// construct and combine these together in a way that creates valid parameter
 /// lists.
-class Parameter extends Code {
-  Parameter.fromString(String code, {Scope? scope})
+class ParameterCode extends Code {
+  ParameterCode.fromString(String code, {Scope? scope})
       : super.fromString(code, scope: scope);
 
-  Parameter.fromParts(List<Object> parts, {Scope? scope})
+  ParameterCode.fromParts(List<Object> parts, {Scope? scope})
       : super.fromParts(parts, scope: scope);
 }
 
 /// A piece of code representing a syntactically valid statement.
 ///
 /// Should always end with a semicolon.
-class Statement extends Code {
-  Statement.fromString(String code, {Scope? scope})
+class StatementCode extends Code {
+  StatementCode.fromString(String code, {Scope? scope})
       : super.fromString(code, scope: scope);
 
-  Statement.fromParts(List<Object> parts, {Scope? scope})
+  StatementCode.fromParts(List<Object> parts, {Scope? scope})
       : super.fromParts(parts, scope: scope);
 }
 
