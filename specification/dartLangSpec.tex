@@ -11,6 +11,7 @@
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
 \usepackage{makeidx}
+\usepackage{enumitem}
 \makeindex
 \title{Dart Programming Language Specification\\
 {6th edition draft}\\
@@ -603,6 +604,14 @@ considered as a derivation tree.
 A \Index{subterm} of a given term $t$ is $t$,
 or an immediate subterm of $t$,
 or a subterm of an immediate subterm of $t$.
+
+\LMHash{}%
+\BlindDefineSymbol{\stackrel{\triangle}{=}}%
+We use a `$\triangle$' over an equals sign to indicate that
+a mathematical function or value is being defined.
+\commentary{%
+For example, \DefEquals{\metavar{successor}(k)}{k + 1}.%
+}
 
 \LMHash{}%
 A list \DefineSymbol{x_1, \ldots, x_n} denotes any list of
@@ -1428,6 +1437,12 @@ That is, any kind of variable which is not a local variable.%
 }
 
 \LMHash{}%
+A compile-time error occurs if a static variable has a
+non-nullable type and no initializing expression,
+unless the variable declaration has
+the modifier \LATE{} or \EXTERNAL.
+
+\LMHash{}%
 A \IndexCustom{constant variable}{variable!constant}
 is a variable whose declaration includes the modifier \CONST.
 A constant variable must be initialized to a constant expression
@@ -1935,7 +1950,7 @@ the implicitly induced getter of \id{} executes as follows:
 Functions abstract over executable actions.
 
 \begin{grammar}
-<functionSignature> ::= \gnewline{}
+<functionHeader> ::= \gnewline{}
   <type>? <identifier> <formalParameterPart>
 
 <formalParameterPart> ::= <typeParameters>? <formalParameterList>
@@ -1978,7 +1993,8 @@ that produce a single value.%
 }
 
 \LMHash{}%
-Each declaration that introduces a function has a signature that specifies
+Each declaration that introduces a function has
+a function header that specifies
 its return type, name, and formal parameter part,
 except that the return type may be omitted,
 and getters never have a formal parameter part.
@@ -2038,7 +2054,7 @@ OR
   \item The function is synchronous, $T$ is not \VOID,
     and it would have been a compile-time error
     to declare the function with the body
-    \code{\{ \RETURN{} $e$; \}}
+    \code{\{ \RETURN\,\,$e$; \}}
     rather than \code{=> $e$}.
     \commentary{%
     In particular, $e$ can have \emph{any} type when the return type is \VOID.%
@@ -2047,16 +2063,16 @@ OR
     This enables concise declarations of \VOID{} functions.
     It is reasonably easy to understand such a function,
     because the return type is textually near to the returned expression $e$.
-    In contrast, \code{\RETURN{} $e$;} in a block body is only allowed
+    In contrast, \code{\RETURN\,\,$e$;} in a block body is only allowed
     for an $e$ with one of a few specific static types,
     because it is less likely that the developer understands
     that the returned object will not be used
     (\ref{return}).%
     }
-  \item The function is asynchronous, \flatten{T} is not \VOID,
+  \item The function is asynchronous, \Flatten{$T$} is not \VOID,
     and it would have been a compile-time error
     to declare the function with the body
-    \code{\ASYNC{} \{ \RETURN{} $e$; \}}
+    \code{\ASYNC{} \{ \RETURN\,\,$e$; \}}
     rather than \code{\ASYNC{} => $e$}.
     \commentary{%
     In particular, $e$ can have \emph{any} type
@@ -2167,8 +2183,8 @@ Library functions are often referred to simply as top-level functions.
 \LMHash{}%
 A function declaration consists of an identifier indicating the function's name,
 possibly prefaced by a return type.
-The function name is followed by a signature and body.
-For getters, the signature is empty.
+The function name is followed by a function header and body.
+For getters, the function header is empty.
 The body is empty for functions that are external.
 
 \LMHash{}%
@@ -2202,87 +2218,11 @@ Every non-getter function declaration includes a
 \Index{formal parameter list},
 which consists of a list of required positional parameters
 (\ref{requiredFormals}),
-followed by any optional parameters (\ref{optionalFormals}).
-The optional parameters may be specified either as
-a set of named parameters or as a list of positional parameters,
+followed by any optional and/or named parameters (\ref{optionalFormals}).
+The latter may be specified
+either as a list of optional positional parameters,
+or as a set of named parameters,
 but not both.
-
-\LMHash{}%
-Some function declarations include a
-\Index{formal type parameter list} (\ref{functions}),
-in which case we say that it is a
-\IndexCustom{generic function}{function!generic}.
-A \IndexCustom{non-generic function}{function!non-generic}
-is a function which is not generic.
-
-\LMHash{}%
-The \Index{formal parameter part} of a function declaration consists of
-the formal type parameter list, if any, and the formal parameter list.
-
-\commentary{%
-The following kinds of functions cannot be generic:
-Getters, setters, operators, and constructors.%
-}
-
-\LMHash{}%
-The formal type parameter list of a function declaration introduces
-a new scope known as the function's
-\IndexCustom{type parameter scope}{scope!type parameter}.
-The type parameter scope of a generic function $f$ is enclosed in
-the scope where $f$ is declared.
-Every formal type parameter introduces a type into the type parameter scope.
-
-\LMHash{}%
-If it exists, the type parameter scope of a function $f$ is
-the current scope for the signature of $f$,
-and for the formal type parameter list itself;
-otherwise the scope where $f$ is declared is
-the current scope for the signature of $f$.
-
-\commentary{%
-This means that formal type parameters are in scope
-in the bounds of parameter declarations,
-allowing for so-called F-bounded type parameters like
-
-\noindent
-\code{class C<X \EXTENDS{} Comparable<X>{}> \{ \ldots\ \}},
-
-\noindent
-and the formal type parameters are in scope for each other,
-allowing dependencies like
-\code{class D<X \EXTENDS{} Y, Y> \{ \ldots\ \}}.%
-}
-
-\LMHash{}%
-The formal parameter list of a function declaration introduces
-a new scope known as the function's
-\IndexCustom{formal parameter scope}{scope!formal parameter}.
-The formal parameter scope of a non-generic function $f$ is enclosed in
-the scope where $f$ is declared.
-The formal parameter scope of a generic function $f$ is enclosed in
-the type parameter scope of $f$.
-Every formal parameter introduces a local variable into
-the formal parameter scope.
-The current scope for the function's signature is
-the scope that encloses the formal parameter scope.
-
-\commentary{%
-This means that in a generic function declaration,
-the return type and parameter type annotations can use
-the formal type parameters,
-but the formal parameters are not in scope in the signature.%
-}
-
-\LMHash{}%
-The body of a function declaration introduces
-a new scope known as the function's
-\IndexCustom{body scope}{scope!function body}.
-The body scope of a function $f$ is enclosed in the scope introduced by
-the formal parameter scope of $f$.
-
-\LMHash{}%
-It is a compile-time error if a formal parameter
-is declared as a constant variable (\ref{variables}).
 
 \begin{grammar}
 <formalParameterList> ::= `(' `)'
@@ -2312,23 +2252,119 @@ All parameter lists in this specification are shown without a trailing comma,
 but the rules and semantics apply equally to
 the corresponding parameter list with a trailing comma.
 
+\LMHash{}%
+Some function declarations include a
+\Index{formal type parameter list} (\ref{functions}),
+in which case we say that it is a
+\IndexCustom{generic function}{function!generic}.
+A \IndexCustom{non-generic function}{function!non-generic}
+is a function which is not generic.
+
+\LMHash{}%
+The \Index{formal parameter part}
+(\ref{functions})
+of a function declaration consists of
+the formal type parameter list, if any, and the formal parameter list.
+
+\commentary{%
+The following kinds of functions cannot be generic:
+Getters, setters, operators, and constructors.%
+}
+
+\LMHash{}%
+The formal type parameter list of a function declaration introduces
+a new scope known as the function's
+\IndexCustom{type parameter scope}{scope!type parameter}.
+The type parameter scope of a generic function $f$ is enclosed in
+the scope where $f$ is declared.
+Every formal type parameter introduces a type into the type parameter scope.
+
+\LMHash{}%
+If it exists, the type parameter scope of a function $f$ is
+the current scope for the function header of $f$
+(\ref{functions}),
+and for the formal type parameter list itself;
+otherwise the scope where $f$ is declared is
+the current scope for the function header of $f$.
+
+\commentary{%
+This means that formal type parameters are in scope
+in the bounds of parameter declarations,
+allowing for so-called F-bounded type parameters like
+
+\noindent
+\code{class C<X \EXTENDS{} Comparable<X>{}> \{ \ldots\ \}},
+
+\noindent
+and the formal type parameters are in scope for each other,
+allowing dependencies like
+\code{class D<X \EXTENDS{} Y, Y> \{ \ldots\ \}}.%
+}
+
+\LMHash{}%
+The \Index{formal parameter list} of a function declaration introduces
+a new scope known as the function's
+\IndexCustom{formal parameter scope}{scope!formal parameter}.
+The formal parameter scope of a non-generic function $f$ is enclosed in
+the scope where $f$ is declared.
+The formal parameter scope of a generic function $f$ is enclosed in
+the type parameter scope of $f$.
+Every formal parameter introduces a local variable into
+the formal parameter scope.
+The current scope for the function's header is
+the scope that encloses the formal parameter scope.
+
+\commentary{%
+This means that in a generic function declaration,
+the return type and parameter type annotations can use
+the formal type parameters,
+but the formal parameters are not in scope in the function header.%
+}
+
+\LMHash{}%
+The body of a function declaration introduces
+a new scope known as the function's
+\IndexCustom{body scope}{scope!function body}.
+The body scope of a function $f$ is enclosed in the scope introduced by
+the formal parameter scope of $f$.
+
+\LMHash{}%
+It is a compile-time error if a formal parameter
+is declared as a constant variable (\ref{variables}).
+% We put the following error here because it's shared among all kinds of
+% functions except one.
+It is a compile-time error if an optional formal parameter
+(\commentary{named or positional})
+with no default value has a potentially non-nullable type
+(\ref{typeNullability}),
+except if it occurs in the parameter list of an abstract method declaration.
+
 
 \subsubsection{Required Formals}
 \LMLabel{requiredFormals}
 
 \LMHash{}%
-A \Index{required formal parameter} may be specified in one of three ways:
+This section describes some required formal parameters,
+and it also introduces non-terminals
+which are used to derive other formals as well.
+A \Index{required positional formal parameter} is derived from
+\synt{normalFormalParameter},
+and it may be specified in one of three ways:
+
 \begin{itemize}
 \item
-  By means of a function signature that names the parameter and
-  describes its type as a function type (\ref{functionTypes}).
+  Via a declaration which is similar to an ordinary variable declaration
+  (\ref{variables}),
+  derived from \synt{simpleFormalParameter}.
+\item
+  As an initializing formal, derived from \synt{fieldFormalParameter},
+  which is only valid as a parameter to a generative constructor
+  (\ref{generativeConstructors}).
+\item
+  By means of a declaration which is similar to a function type,
+  derived from \synt{functionFormalParameter}.
   It is a compile-time error if any default values are specified
   in the signature of such a function type.
-\item
-  As an initializing formal, which is only valid as a parameter to
-  a generative constructor (\ref{generativeConstructors}).
-\item
-  Via an ordinary variable declaration (\ref{variables}).
 \end{itemize}
 
 \begin{grammar}
@@ -2352,8 +2388,8 @@ A \Index{required formal parameter} may be specified in one of three ways:
 \end{grammar}
 
 \LMHash{}%
-It is a compile-time error if a formal parameter has the modifier \CONST{}
-or the modifier \LATE.
+It is a compile-time error if a formal parameter has
+the modifier \CONST{} or the modifier \LATE.
 It is a compile-time error if \VAR{} occurs as
 the first token of a \synt{fieldFormalParameter}.
 
@@ -2391,7 +2427,7 @@ an instance method, instance setter, or instance operator.
 
 \LMHash{}%
 Optional formal parameters may be specified and provided with default values.
-Named formal parameters can be optional,
+A named formal parameter can be optional,
 but if the modifier \REQUIRED{} is present then it is required.
 
 \begin{grammar}
@@ -2402,6 +2438,7 @@ but if the modifier \REQUIRED{} is present then it is required.
   \gnewline{} ((`=' | `:') <expression>)?
 \end{grammar}
 
+\LMHash{}%
 The form \syntax{<normalFormalParameter> `:' <expression>}
 is equivalent to the form
 \syntax{<normalFormalParameter> `=' <expression>}.
@@ -2410,13 +2447,17 @@ It is deprecated and will be removed in
 a later version of the language specification.
 
 \LMHash{}%
+It is a compile-time error if an optional or named formal parameter has
+the modifier \CONST{} or the modifier \LATE.
 It is a compile-time error if the default value of an optional parameter is
 not a constant expression (\ref{constants}).
-If no default is explicitly specified for an optional parameter
-whose declared type is nullable,
-an implicit default of \NULL{} is provided.
-Otherwise, when the declared type is not nullable,
+If no default is specified for an optional parameter
+whose declared type is nullable
+(\ref{typeNullability}),
+a default value of \NULL{} is implicitly induced.
+Otherwise, when the declared type is potentially non-nullable,
 it is a compile-time error if an optional parameter has no default value.
+It is a compile-time error if a required named parameter has a default value.
 
 \LMHash{}%
 It is a compile-time error if the name of a named optional parameter
@@ -2457,7 +2498,7 @@ which is not an instance method, an instance setter, or an operator.
 \commentary{%
 As specified below, a parameter can also be covariant for other reasons.
 The overall effect of having a covariant parameter $p$
-in the signature of a given method $m$
+in the member signature of a given method $m$
 is to allow the type of $p$ to be overridden covariantly,
 which means that the type required at run time for a given actual argument
 may be a proper subtype of the type which is known at compile time
@@ -2612,7 +2653,8 @@ This means that every function type is of one of the forms
 where $T_0$ is the return type,
 $X_j$ are the formal type parameters with bounds $B_j$, $j \in 1 .. s$,
 $T_j$ are the formal parameter types for $j \in 1 .. n + k$,
-and $x_{n+j}$ are the names of named parameters for $j \in 1 .. k$.
+$x_{n+j}$ are the names of named parameters for $j \in 1 .. k$,
+and $r_{n+j}$ is \REQUIRED{} or empty for  $j \in 1 .. k$.
 Non-generic function types are covered by the case $s = 0$,
 where the type parameter declaration list
 \code{<\ldots{}>}
@@ -2684,8 +2726,9 @@ Let $F$ be a function with
 type parameters \TypeParametersStd,
 required formal parameter types \List{T}{1}{n},
 return type $T_0$,
-and named parameters \PairList{T}{x}{n+1}{n+k},
-where $x_{n+j}$, $j \in 1 .. k$ may or may not have a default value.
+and named parameters \TripleList{r}{T}{x}{n+1}{n+k},
+where $r_{n+j}$ is \REQUIRED{} or empty for $j \in 1 .. k$,
+and each of the named parameters may or may not have a default value.
 Then the static type of $F$ is
 \FunctionTypeNamedStd{T_0}.
 
@@ -2747,7 +2790,7 @@ or a non-redirecting constructor
 (\ref{generativeConstructors}, \ref{factories}).
 External functions are introduced via the built-in identifier \EXTERNAL{}
 (\ref{identifierReference})
-followed by the function signature.
+followed by the function header.
 
 \rationale{%
 External functions allow us to introduce type information for code
@@ -2804,22 +2847,22 @@ or via mixin applications (\ref{mixinApplication}).
 <typeNotVoidList> ::= <typeNotVoid> (`,' <typeNotVoid>)*
 
 <classMemberDeclaration> ::= <declaration> `;'
-  \alt <methodSignature> <functionBody>
+  \alt <methodHeader> <functionBody>
 
-<methodSignature> ::= <constructorSignature> <initializers>?
-  \alt <factoryConstructorSignature>
-  \alt \STATIC? <functionSignature>
-  \alt \STATIC? <getterSignature>
-  \alt \STATIC? <setterSignature>
-  \alt <operatorSignature>
+<methodHeader> ::= <constructorHeader> <initializers>?
+  \alt <factoryConstructorHeader>
+  \alt \STATIC? <functionHeader>
+  \alt \STATIC? <getterHeader>
+  \alt \STATIC? <setterHeader>
+  \alt <operatorHeader>
 
-<declaration> ::= \EXTERNAL{} <factoryConstructorSignature>
-  \alt \EXTERNAL{} <constantConstructorSignature>
-  \alt \EXTERNAL{} <constructorSignature>
-  \alt (\EXTERNAL{} \STATIC?)? <getterSignature>
-  \alt (\EXTERNAL{} \STATIC?)? <setterSignature>
-  \alt (\EXTERNAL{} \STATIC?)? <functionSignature>
-  \alt \EXTERNAL? <operatorSignature>
+<declaration> ::= \EXTERNAL{} <factoryConstructorHeader>
+  \alt \EXTERNAL{} <constantConstructorHeader>
+  \alt \EXTERNAL{} <constructorHeader>
+  \alt (\EXTERNAL{} \STATIC?)? <getterHeader>
+  \alt (\EXTERNAL{} \STATIC?)? <setterHeader>
+  \alt (\EXTERNAL{} \STATIC?)? <functionHeader>
+  \alt \EXTERNAL? <operatorHeader>
   \alt \STATIC{} \CONST{} <type>? <staticFinalDeclarationList>
   \alt \STATIC{} \FINAL{} <type>? <staticFinalDeclarationList>
   \alt \STATIC{} \LATE{} \FINAL{} <type>? <initializedIdentifierList>
@@ -2828,9 +2871,9 @@ or via mixin applications (\ref{mixinApplication}).
   \alt \COVARIANT{} \LATE? <varOrType> <initializedIdentifierList>
   \alt \LATE? \FINAL{} <type>? <initializedIdentifierList>
   \alt \LATE? <varOrType> <initializedIdentifierList>
-  \alt <redirectingFactoryConstructorSignature>
-  \alt <constantConstructorSignature> (<redirection> | <initializers>)?
-  \alt <constructorSignature> (<redirection> | <initializers>)?
+  \alt <redirectingFactoryConstructorHeader>
+  \alt <constantConstructorHeader> (<redirection> | <initializers>)?
+  \alt <constructorHeader> (<redirection> | <initializers>)?
 
 <staticFinalDeclarationList> ::= \gnewline{}
   <staticFinalDeclaration> (`,' <staticFinalDeclaration>)*
@@ -3177,7 +3220,7 @@ except for operator \lit{[]} which is an instance getter
 and operator \lit{[]=} which is an instance setter.
 
 \begin{grammar}
-<operatorSignature> ::= \gnewline{}
+<operatorHeader> ::= \gnewline{}
   <type>? \OPERATOR{} <operator> <formalParameterList>
 
 <operator> ::= `~'
@@ -3699,7 +3742,7 @@ Getters are functions (\ref{functions}) that are used
 to retrieve the values of object properties.
 
 \begin{grammar}
-<getterSignature> ::= <type>? \GET{} <identifier>
+<getterHeader> ::= <type>? \GET{} <identifier>
 \end{grammar}
 
 \LMHash{}%
@@ -3738,7 +3781,7 @@ Setters are functions (\ref{functions}) that are used to set
 the values of object properties.
 
 \begin{grammar}
-<setterSignature> ::= <type>? \SET{} <identifier> <formalParameterList>
+<setterHeader> ::= <type>? \SET{} <identifier> <formalParameterList>
 \end{grammar}
 
 \commentary{%
@@ -3751,7 +3794,7 @@ A setter definition that is prefixed with the \STATIC{} modifier defines
 a static setter.
 Otherwise, it defines an instance setter.
 The name of a setter is obtained by appending the string `=' to
-the identifier given in its signature.
+the identifier given in its function header.
 
 \commentary{%
 Hence, a setter name can never conflict with, override or be overridden by
@@ -3826,7 +3869,7 @@ because lookup (\ref{lookup}) will never yield an abstract member as its result.
 One way to think about this is that
 an abstract member declaration in a subclass
 does not override or shadow an inherited member implementation.
-It only serves to specify the signature of the given member that
+It only serves to specify the member signature of the given member that
 every concrete subtype must have an implementation of;
 that is, it contributes to the interface of the class,
 not to the class itself.%
@@ -3898,6 +3941,21 @@ Given that the value does not depend on the instance,
 it is better to use a static variable.
 An instance getter for it can always be defined manually if desired.%
 }
+
+% Note that the following rule is somewhat artificial: If $C$ does not have
+% a generative constructor (it would then have a factory constructor) then
+% we cannot create an instance and we cannot create a subclass, so there is
+% no soundness issue. It's just "messy" that it _seems_ to be possible to
+% have an instance with an uninitialized $v$. We don't even accept the default
+% value `null` in the case where $v$ is final, again because it's unlikely
+% to be intended (and that's of course artificial in the same sense).
+\LMHash{}%
+Assume that the member declaration $D$ in a class $C$
+does not have any of the modifiers \LATE, \ABSTRACT, or \EXTERNAL,
+and that it declares an instance variable named $v$
+that does not have an initializing expression.
+A compile-time error occurs if $C$ has no generative constructors,
+and $v$ is final or the type of $v$ is potentially non-nullable.
 
 \LMHash{}%
 It is possible for the declaration of an instance variable
@@ -3991,13 +4049,13 @@ declaration consists of a constructor name, a formal parameter list
 and either a redirect clause or an initializer list and an optional body.
 
 \begin{grammar}
-<constructorSignature> ::= <constructorName> <formalParameterList>
+<constructorHeader> ::= <constructorName> <formalParameterList>
 
 <constructorName> ::= <typeIdentifier> (`.' <identifier>)?
 \end{grammar}
 
 \commentary{%
-See \synt{declaration} and \synt{methodSignature} for grammar rules
+See \synt{declaration} and \synt{methodHeader} for grammar rules
 introducing a redirection or an initializer list and a body.%
 }
 
@@ -4345,14 +4403,20 @@ for a final variable $f$ whose declaration includes
 an initialization expression.
 
 \LMHash{}%
-Let \DefineSymbol{f} be a final instance variable declared in
-the immediately enclosing class or enum.
-A compile-time error occurs unless $f$ is initialized
-by one of the following means:
+\BlindDefineSymbol{D, C, v}%
+Assume that the member declaration $D$ in a class $C$
+does not have any of the modifiers \LATE, \ABSTRACT, or \EXTERNAL,
+and that it declares an instance variable named $v$
+that does not have an initializing expression,
+where $v$ is not initialized via an initializing formal of $k$,
+and $v$ is not initialized via an initializer list entry of $k$.
+In this situation,
+a compile-time error occurs if any of the following criteria holds:
+
 \begin{itemize}
-\item $f$ is declared by an initializing variable declaration.
-\item $f$ is initialized by means of an initializing formal of $k$.
-\item $f$ has an initializer in $k$'s initializer list.
+\item The type of $v$ is potentially non-nullable
+  (\ref{typeNullability}).
+\item $v$ is final.  
 \end{itemize}
 
 \LMHash{}%
@@ -4531,14 +4595,14 @@ is a constructor prefaced by the built-in identifier
 \FACTORY.
 
 \begin{grammar}
-<factoryConstructorSignature> ::= \gnewline{}
+<factoryConstructorHeader> ::= \gnewline{}
   \CONST? \FACTORY{} <constructorName> <formalParameterList>
 \end{grammar}
 
 \LMHash{}%
-The return type of a factory whose signature is of
-the form \FACTORY{} $M$ or
-the form \FACTORY{} \code{$M$.\id}
+The return type of a factory whose header is of
+the form \code{\FACTORY\,\,$M$} or
+the form \code{\FACTORY\,\,$M$.\id}
 is $M$ if $M$ is not a generic type;
 otherwise the return type is
 \code{$M$<$T_1, \ldots,\ T_n$>}
@@ -4579,7 +4643,7 @@ specifies a call to a constructor of another class that is to be used
 whenever the redirecting constructor is called.
 
 \begin{grammar}
-<redirectingFactoryConstructorSignature> ::= \gnewline{}
+<redirectingFactoryConstructorHeader> ::= \gnewline{}
   \CONST? \FACTORY{} <constructorName> <formalParameterList> `=' \gnewline{}
   <constructorDesignation>
 
@@ -4764,7 +4828,7 @@ may be used to create compile-time constant (\ref{constants}) objects.
 A constant constructor is prefixed by the reserved word \CONST.
 
 \begin{grammar}
-<constantConstructorSignature> ::= \gnewline{}
+<constantConstructorHeader> ::= \gnewline{}
   \CONST{} <constructorName> <formalParameterList>
 \end{grammar}
 
@@ -4918,20 +4982,10 @@ the type-parameter scope of $C$.
 
 \LMHash{}%
 It is a compile-time error if the type
-in the \EXTENDS{} clause of a class $C$ is
-a type variable (\ref{generics}),
-a type alias that does not denote a class (\ref{typedef}),
-an enumerated type (\ref{enums}),
-a deferred type (\ref{staticTypes}), type \DYNAMIC{} (\ref{typeDynamic}),
-or type \code{FutureOr<$T$>} for any $T$ (\ref{typeFutureOr}).
-
-\commentary{%
-Note that \VOID{} is a reserved word,
-which implies that the same restrictions apply for the type \VOID,
-and similar restrictions are specified for other types like
-\code{Null} (\ref{null}) and
-\code{String} (\ref{strings}).%
-}
+in the \EXTENDS{} clause of a class
+which is declared in a non-system library
+is not a class building type
+(\ref{classBuildingTypes}).
 
 \commentary{%
 The type parameters of a generic class are available in
@@ -5125,15 +5179,13 @@ the type-parameter scope of $C$.
 
 \LMHash{}%
 It is a compile-time error if an element
-in the type list of the \IMPLEMENTS{} clause of a class $C$ is
-a type variable (\ref{generics}),
-a type alias that does not denote a class (\ref{typedef}),
-an enumerated type (\ref{enums}),
-a deferred type (\ref{staticTypes}), type \DYNAMIC{} (\ref{typeDynamic}),
-or type \code{FutureOr<$T$>} for any $T$ (\ref{typeFutureOr}).
-It is a compile-time error if two elements in the type list of
+in the type list of an \IMPLEMENTS{} clause
+that occurs in a non-system library
+is not a class building type
+(\ref{classBuildingTypes}).
+It is a compile-time error if two elements in said type list
 %% TODO(eernst): Refer to nnbd notion of 'same type'.
-the \IMPLEMENTS{} clause of a class $C$ specifies the same type $T$.
+specifies the same type.
 It is a compile-time error if the superclass of a class $C$ is
 one of the elements of the type list of the \IMPLEMENTS{} clause of $C$.
 
@@ -5266,6 +5318,7 @@ except that $s$ omits the body, if any;
 it contains the return type and parameter types
 even if they are implicit in $D$;
 it omits the names of positional parameters;
+it omits the default values of optional parameters, if any;
 it omits the modifier \FINAL{} from each parameter, if any;
 it omits metadata
 (\ref{metadata});
@@ -5309,10 +5362,10 @@ Let \DefineSymbol{m} be a method signature of the form
 \code{$T_0$ \id<\TypeParametersStd>(}
 
 \noindent
-\code{\qquad\qquad\List{\COVARIANT?\ T}{1}{n},}
+\code{\qquad\List{\COVARIANT?\ T}{1}{n},}
 
 \noindent
-\code{\qquad\qquad[\PairList{\COVARIANT?\ T}{= d}{n+1}{n+k}])}.
+\code{\qquad[\List{\COVARIANT?\ T}{n+1}{n+k}])}.
 
 \noindent
 The \IndexCustom{function type of}{method signature!function type}
@@ -5328,12 +5381,13 @@ Let \DefineSymbol{m} be a method signature of the form
 \code{$T_0$ \id<\TypeParametersStd>(}
 
 \noindent
-\code{\qquad\qquad\List{\COVARIANT?\ T}{1}{n},}
+\code{\qquad\List{\COVARIANT?\ T}{1}{n},}
 
 \noindent
-\code{\qquad\qquad\{\TripleList{\COVARIANT?\ T}{x}{= d}{n+1}{n+k}\})}.
+\code{\qquad\{\TripleList{\COVARIANT?\ r}{T}{x}{n+1}{n+k}\})}
 
 \noindent
+where $r_{n+j}$ is \REQUIRED{} or empty for $j \in 1 .. k$.
 The \NoIndex{function type of} $m$ is then
 
 \noindent
@@ -5344,10 +5398,6 @@ Let \DefineSymbol{m} be a setter signature of the form
 \code{\VOID\ \SET\ \id(\COVARIANT?\ $T$ $p$)}.
 The \NoIndex{function type of} $m$ is then
 \FunctionTypeSimple{\VOID}{$T$}.
-
-\LMHash{}%
-The function type of a member signature remains unchanged if
-some or all default values are omitted.
 
 \commentary{%
 We do not specify the function type of a getter signature.
@@ -5396,7 +5446,7 @@ For the purpose of performing static checks on ordinary method invocations
 and property extractions
 (\ref{propertyExtraction}),
 any type $T$ which is $T_0$ bounded
-(\ref{bindingActualsToFormals}),
+(\ref{typesBoundedByTypes}),
 where $T_0$ is a class with interface $I$,
 is also considered to have interface $I$.
 Similarly, when $T$ is $T_0$ bounded where $T_0$ is a function type,
@@ -5450,7 +5500,7 @@ declarations are not accessible to $L_2$,
 because those member signatures are then noSuchMethod forwarded
 (\ref{theMethodNoSuchMethod}),
 and an invocation of \code{\_foo} on an instance of $D$ in $L$
-must return an `int` according to the first member signature,
+must return an \code{int} according to the first member signature,
 and it must return a function object according to the second one,
 and an invocation of \code{\_foo(42)}
 must return a \code{String} with the first member signature, and it must fail
@@ -5466,7 +5516,7 @@ in one library may break existing code in a different library.
 But it should be noted that the conflicts can be detected locally
 in the library where the private declarations exist,
 because they only arise for private members with
-the same name and incompatible signatures.
+the same name and incompatible member signatures.
 Renaming that private member to anything not used in that library
 will eliminate the conflict and will not break any clients.%
 }
@@ -5656,7 +5706,7 @@ When we say that a type $S$
 another type $T$,
 this means that $T$ is a superinterface of $S$,
 or $S$ is $S_0$ bounded for some type $S_0$
-(\ref{bindingActualsToFormals}),
+(\ref{typesBoundedByTypes}),
 and $T$ is a superinterface of $S_0$.
 Assume that $G$ is a raw type
 (\ref{instantiationToBound})
@@ -5843,16 +5893,14 @@ as described in the following section.
 
 \LMHash{}%
 It is a compile-time error if an element in
-the type list of the \WITH{} clause of a mixin application is
-a type variable (\ref{generics}),
-a function type (\ref{functionTypes}),
-a type alias that does not denote a class (\ref{typedef}),
-an enumerated type (\ref{enums}),
-a deferred type (\ref{staticTypes}),
-type \DYNAMIC{} (\ref{typeDynamic}),
-type \VOID{} (\ref{typeVoid}),
-or type \code{FutureOr<$T$>} for any $T$ (\ref{typeFutureOr}).
-If $T$ is a type in a \WITH{} clause, \IndexCustom{the mixin of}{type!mixin of}
+the type list of the \WITH{} clause of a mixin application
+that occurs in a non-system library
+is not a class building type
+(\ref{classBuildingTypes}).
+
+\LMHash{}%
+If $T$ is a type in a \WITH{} clause, the
+\IndexCustom{mixin of}{type!mixin of}
 $T$ is either the mixin derived from $T$ if $T$ denotes a class,
 or the mixin introduced by $T$ if $T$ denotes a mixin declaration.
 
@@ -5915,31 +5963,6 @@ but which is not a correct override of $m$
 \LMLabel{mixinDeclaration}
 
 \LMHash{}%
-A mixin defines zero or more
-\IndexCustom{mixin member declarations}{mixin!member declaration},
-zero or more
-\IndexCustom{required superinterfaces}{mixin!required superinterface},
-one
-\IndexCustom{combined superinterface}{mixin!combined superinterface},
-and zero or more
-\IndexCustom{implemented interfaces}{mixin!implemented interface}.
-
-\LMHash{}%
-The mixin derived from a class declaration:
-
-\begin{normativeDartCode}
-\ABSTRACT? \CLASS{} $X$ \IMPLEMENTS{} $I_1$, \ldots, $I_k$ \{
-  \metavar{members}
-\}
-\end{normativeDartCode}
-
-has \code{Object} as required superinterface
-and combined superinterface,
-$I_1$, \ldots, $I_k$ as implemented interfaces,
-and the instance members of \metavar{members} as mixin member declarations.
-If $X$ is generic, so is the mixin.
-
-\LMHash{}%
 A mixin declaration introduces a mixin and provides a scope
 for static member declarations.
 
@@ -5949,8 +5972,14 @@ for static member declarations.
   \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
 \end{grammar}
 
+%% TODO(eernst): Change this paragraph if we allow factory constructors.
 \LMHash{}%
-It is a compile-time error to declare a constructor in a mixin-declaration.
+It is a compile-time error to declare a constructor in a mixin declaration.
+It is a compile-time error if a mixin declaration declares
+an instance variable without an initializing expression
+which is final or whose type is potentially non-nullable
+(\ref{typeNullability}),
+unless the variable has a \LATE, \ABSTRACT, or \EXTERNAL{} modifier.
 
 \LMHash{}%
 A mixin declaration with no \code{\ON} clause is equivalent
@@ -5967,43 +5996,44 @@ Let $M$ be a \MIXIN{} declaration of the form
 \end{normativeDartCode}
 
 \LMHash{}%
-It is a compile-time error if any of the types $T_1$ through $T_n$
-or $I_1$ through $I_k$ is
-a type variable (\ref{generics}),
-a function type (\ref{functionTypes}),
-a type alias not denoting a class (\ref{typedef}),
-an enumerated type (\ref{enums}),
-a deferred type (\ref{staticTypes}),
-type \DYNAMIC{} (\ref{typeDynamic}),
-type \VOID{} (\ref{typeVoid}),
-or type \code{FutureOr<$T$>} for any $T$ (\ref{typeFutureOr}).
+A compile-time error occurs if
+the declaration of $M$ occurs in a non-system library,
+and any of the types $T_1$ through $T_n$
+or $I_1$ through $I_k$ is not a class building type
+(\ref{classBuildingTypes}).
 
 \LMHash{}%
-Let $M_S$ be the interface declared by the class declaration
+Let $M_S$ be the interface declared by the following class declaration:
 
 \begin{normativeDartCode}
-\ABSTRACT{} \CLASS{} $M_{super}$<$P_1$, \ldots, $P_m$> \IMPLEMENTS{} $T_1$, $\dots{}$, $T_n$ \{\}
+\ABSTRACT{} \CLASS{} $M_{\metavar{super}}$<\TypeParametersStd{}>
+    \IMPLEMENTS{} \List{T}{1}{n} \{\}
 \end{normativeDartCode}
 
-\noindent
-where $M_{super}$ is a fresh name.
+\LMHash{}%
+In this declaration, $M_{\metavar{super}}$ is a fresh name.
 It is a compile-time error for the mixin declaration if the $M_S$
-class declaration would cause a compile-time error,
+class declaration would cause a compile-time error.
+
 \commentary{%
-that is, if any member is declared by more than one declared superinterface,
-and there is not a most specific signature for that member among the super
-interfaces%
-}.
-The interface $M_S$ is called the
-\Index{superinvocation interface} of the mixin declaration $M$.
-\commentary{%
-If the mixin declaration $M$ has only one declared superinterface, $T_1$,
-then the superinvocation interface $M_{super}$ has exactly the same members
-as the interface $T_1$.%
+That is, if any member is declared by more than one declared superinterface,
+and there is no most specific signature for that member among the super
+interfaces.%
 }
 
 \LMHash{}%
-Let $M_I$ be the interface that would be defined by the class declaration
+The interface $M_S$ is called the
+\IndexCustom{superinvocation interface}{mixin!superinvocation interface}
+of the mixin declaration $M$.
+
+\commentary{%
+If the mixin declaration $M$ has only one declared superinterface, $T_1$,
+then the superinvocation interface is the interface of $T_1$.%
+}
+
+\LMHash{}%
+Let $M_I$ be the interface that would be defined by
+the following class declaration:
 
 \begin{normativeDartCode}
 \ABSTRACT{} \CLASS{} $N$<\TypeParametersStd>
@@ -6012,24 +6042,65 @@ Let $M_I$ be the interface that would be defined by the class declaration
 \}
 \end{normativeDartCode}
 
-where $\metavar{members}'$ are the member declarations of
-the mixin declaration $M$ except that all superinvocations are treated
-as if \SUPER{} was a valid expression with static type $M_S$.
-It is a compile-time error for the mixin $M$ if this $N$ class
-declaration would cause a compile-time error, \commentary{that is, if the
-required superinterfaces, the implemented interfaces and the declarations do not
-define a consistent interface, if any member declaration contains a
-compile-time error other than a super-invocation, or if a super-invocation
-is not valid against the interface $M_S$}.
+\LMHash{}%
+In this declaration, \metavar{members'} are
+the member declarations of the mixin declaration $M$,
+except that all superinvocations are treated
+as if \SUPER{} were a valid expression with static type $M_S$.
+
+\LMHash{}%
+It is a compile-time error for the mixin $M$ if this class declaration $N$
+would cause a compile-time error.
+
+\commentary{%
+That is, if the required superinterfaces, the implemented interfaces,
+and the declarations do not define a consistent interface,
+if any member declaration contains a compile-time error
+other than a super-invocation,
+or if a super-invocation is not valid against the interface $M_S$.%
+}
+
+\LMHash{}%
 The interface introduced by the mixin declaration $M$ has the same member
 signatures and superinterfaces as $M_I$.
 
 \LMHash{}%
-The mixin declaration $M$ introduces a mixin
-with the \NoIndex{required superinterface}s $T_1$, \ldots, $T_n$,
-the \NoIndex{combined superinterface} $M_S$,
-\NoIndex{implemented interface}s $I_1$, \ldots, $I_k$
-and the instance members declared in $M$ as \Index{mixin member declarations}.
+The mixin declaration $M$ introduces a mixin with
+\IndexCustom{required superinterfaces}{mixin!required superinterface}
+\List{T}{1}{n},
+\IndexCustom{combined superinterface}{mixin!combined superinterface}
+$M_S$,
+\IndexCustom{implemented interfaces}{mixin!implemented interface}
+\List{I}{1}{k},
+and the instance members declared in $M$ as
+\IndexCustom{mixin member declarations}{mixin!member declaration}.
+
+\LMHash{}%
+It is possible to 
+\IndexCustom{derive a mixin from a class}{%
+  mixin!derived from a class}.
+Consider a class declaration of the following form:
+
+\begin{normativeDartCode}
+\ABSTRACT? \CLASS{} $C$<\TypeParametersStd>
+    \IMPLEMENTS{} \List{I}{1}{k} \{
+  \metavar{members}
+\}
+\end{normativeDartCode}
+
+The mixin derived from $C$ has
+\code{Object} as required superinterface and combined superinterface,
+\List{I}{1}{k} as implemented interfaces,
+and the instance members of \metavar{members} as mixin member declarations.
+
+\LMHash{}%
+Assume that \metavar{members} includes the declaration $D$
+which does not have the modifier \LATE,
+and that $D$ declares an instance variable $v$
+which does not have an initializing expression.
+It is then a compile-time error if
+the type of $v$ is potentially non-nullable
+(\ref{typeNullability}).
 
 
 \subsection{Mixin Application}
@@ -6040,15 +6111,15 @@ A mixin may be applied to a superclass, yielding a new class.
 
 \LMHash{}%
 Let $S$ be a class,
-$M$ be a mixin with \NoIndex{required superinterface}s $T_1$, \ldots, $T_n$,
+$M$ be a mixin with \NoIndex{required superinterface}s \List{T}{1}{n},
 \NoIndex{combined superinterface} $M_S$,
-\NoIndex{implemented interfaces} $I_1$, \ldots, $I_k$ and
+\NoIndex{implemented interfaces} \List{I}{1}{k} and
 \metavar{members} as \NoIndex{mixin member declarations},
 and let $N$ be a name.
 
 \LMHash{}%
 It is a compile-time error to apply $M$ to $S$ if $S$ does not implement,
-directly or indirectly, all of $T_1$, \ldots, $T_n$.
+directly or indirectly, all of \List{T}{1}{n}.
 It is a compile-time error if any of \metavar{members} contains a
 super-invocation of a member $m$ \commentary{(for example \code{super.foo},
 \code{super + 2}, or \code{super[1] = 2})}, and $S$ does not have a concrete
@@ -7703,8 +7774,8 @@ when it is used in any of the following ways:
   or a constant object expression
   (\ref{const}).
 \item $T$ is an immediate subterm of a redirecting factory constructor
-  signature
- (\ref{redirectingFactoryConstructors}).
+  header
+  (\ref{redirectingFactoryConstructors}).
 \item $T$ is an immediate subterm of an \EXTENDS{} clause of a class
   (\ref{superclasses}),
   or it occurs as an element in the type list of an \IMPLEMENTS{} clause
@@ -7877,7 +7948,7 @@ which is used to specify that
 }
 \commentary{%
 For example, assuming the declaration
-\code{\CLASS{} C<X extends num> \{\ldots\}},
+\code{\CLASS{} C<X \EXTENDS\ num> \{\ldots\}},
 instantiation to bound on \code{C} yields \code{C<num>},
 and this means that \code{C x;} can be used to declare a variable \code{x}
 whose value can be a \code{C<$T$>} for \emph{all possible} values of $T$.%
@@ -7926,7 +7997,7 @@ $T$ if one or more of the following conditions hold:
   that is,
   if $S$ receives any type arguments.
   Also note that $S$ cannot be a type variable,
-  because then `$S$ is $T$' cannot hold.
+  because then \code{$S$\,\,\IS\,\,$T$} cannot hold.
   See the discussion below and the reference to~\ref{subtypeRules}
   for more details about why this is so.%
   }
@@ -8250,6 +8321,8 @@ For a function type
 \noindent
 and a function type
 \FunctionTypeNamedStd{T_0}
+
+\noindent
 it is applied to \List{T}{0}{n+k}.
 
 \commentary{%
@@ -9904,6 +9977,14 @@ of the form \synt{spreadElement},
 or it may be a computational element specifying
 how to obtain zero or more entities,
 of the form \synt{ifElement} or \synt{forElement}.
+
+\LMHash{}%
+It is a compile-time error if
+the \synt{forLoopParts} of a \synt{forElement}
+declares an iteration variable that has
+the modifier \CONST{} or the modifier \LATE,
+using the same rules as with a \FOR{} statement
+(\ref{for}).
 
 \commentary{%
 Terms derived from \synt{element},
@@ -11727,8 +11808,15 @@ The \Index{throw expression} is used to throw an exception.
 \end{grammar}
 
 \LMHash{}%
-Evaluation of a throw expression of the form
-\code{\THROW{} $e$;}
+Consider an expression of the form \code{\THROW\,\,$e$}
+where $e$ is an expression with static type $T$.
+It is a compile-time error unless $T$ is assignable to \code{Object}.
+
+\LMHash{}%
+The static type of a throw expression is \code{Never}.
+
+\LMHash{}%
+Evaluation of a throw expression of the form \code{\THROW\,\,$e$;}
 proceeds as follows:
 
 \LMHash{}%
@@ -11737,7 +11825,8 @@ The expression $e$ is evaluated to an object $v$
 
 \commentary{%
 There is no requirement that the expression $e$ must evaluate to
-any special kind of object.%
+any special kind of object,
+except that the null object is given a special treatment.%
 }
 
 \LMHash{}%
@@ -11757,9 +11846,6 @@ If the same \code{Error} object is thrown more than once,
 its \code{stackTrace} getter will return the stack trace from
 the \emph{first} time it was thrown.%
 }
-
-\LMHash{}%
-The static type of a throw expression is $\bot$.
 
 
 \subsection{Function Expressions}
@@ -11911,7 +11997,7 @@ The static type of a function literal of the form
 
 \noindent
 is
-\FunctionTypePositionalStdCr{\code{Future<\flatten{T_0}>}},
+\FunctionTypePositionalStdCr{\code{Future<\Flatten{$T_0$}>}},
 
 \noindent
 where $T_0$ is the static type of $e$.
@@ -11947,7 +12033,7 @@ The static type of a function literal of the form
 
 \noindent
 is
-\FunctionTypeNamedStdCr{\code{Future<\flatten{T_0}>}},
+\FunctionTypeNamedStd{\code{Future<\Flatten{$T_0$}>}},
 
 \noindent
 where $T_0$ is the static type of $e$.
@@ -12045,7 +12131,7 @@ The static type of a function literal of the form
 \noindent
 is
 %% TODO(eernst): Adjust to take type inference into account.
-\FunctionTypeNamedStdCr{\code{Future}}.
+\FunctionTypeNamedStd{\code{Future}}.
 \EndCase
 
 \LMHash{}%
@@ -12061,7 +12147,7 @@ The static type of a function literal of the form
 \noindent
 is
 %% TODO(eernst): Adjust to take type inference into account.
-\FunctionTypeNamedStdCr{\code{Stream}}.
+\FunctionTypeNamedStd{\code{Stream}}.
 \EndCase
 
 \LMHash{}%
@@ -12077,7 +12163,7 @@ The static type of a function literal of the form
 \noindent
 is
 %% TODO(eernst): Adjust to take type inference into account.
-\FunctionTypeNamedStdCr{\code{Iterable}}.
+\FunctionTypeNamedStd{\code{Iterable}}.
 \EndCase
 
 \LMHash{}%
@@ -12325,7 +12411,7 @@ When $q$ is a redirecting factory constructor
 (\ref{factories})
 of the form \code{\CONST? $T$($p_1, \ldots,\ p_{n+k}$) = $c$;} or
 of the form \code{\CONST? $T$.\id($p_1, \ldots,\ p_{n+k}$) = $c$;}
-where \code{\CONST?} indicates that \CONST{} may be present or absent,
+where \code{\CONST?}\ indicates that \CONST{} may be present or absent,
 the remaining evaluation of $e$ is equivalent to
 evaluating
 \code{\NEW{} $c$($v_1, \ldots,\ v_n,\ x_{n+1}$: $v_{n+1}, \ldots,\ x_{n+k}$: $v_{n+k}$)}
@@ -12824,22 +12910,26 @@ the corresponding argument list with a trailing comma.
 
 \LMHash{}%
 Let $L$ be an argument list of the form
-\code{($e_1 \ldots,\ e_m,\ y_{m+1}$: $e_{m+1} \ldots,\ y_{m+p}$: $e_{m+p}$)}
+
+\noindent
+\code{(\List{e}{1}{m},\ \PairList{y}{\!\!:\,\,e}{m+1}{m+p})}
+
+\noindent
 and assume that the static type of $e_i$ is $S_i$, $i \in 1 .. m+p$.
 The \Index{static argument list type} of $L$ is then
-\code{($S_1 \ldots,\ S_m,\ S_{m+1}\ y_{m+1} \ldots,\ S_{m+p}\ y_{m+p}$)}.
+\code{(\List{S}{1}{m},\ \PairList{S}{y}{m+1}{m+p})}.
 
 \LMHash{}%
 Let $\argumentList{S}$ be the static argument list type
 
 \noindent
-\code{($S_1 \ldots,\ S_m,\ S_{m+1}\ y_{m+1} \ldots,\ S_{m+p}\ y_{m+p}$)}
+\code{(\List{S}{1}{m},\ \PairList{S}{y}{m+1}{m+p})}
 
 \noindent
 and let $\parameterList{P}$ be the formal parameter list
 
 \noindent
-\code{($T_1\ x_1 \ldots,\ T_n\ x_n,\ $[$T_{n+1}\ x_{n+1} = d_1, \ldots,\ T_{n+k}\ x_{n+k} = d_k$])}
+\code{(\PairList{T}{x}{1}{n},\ [\TripleList{T}{x}{= d}{n+1}{n+k}])}
 
 \noindent
 where each parameter may be marked \COVARIANT{}
@@ -12859,23 +12949,24 @@ assignable to $T_i$ for all $i \in 1 .. m$.
 Let $\argumentList{S}$ be the static argument list type
 
 \noindent
-\code{($S_1 \ldots,\ S_m,\ S_{m+1}\ y_{m+1} \ldots,\ S_{m+p}\ y_{m+p}$)}
+\code{(\List{S}{1}{m},\ \PairList{S}{y}{m+1}{m+p})}
 
 \noindent
 and let $\parameterList{P}$ be the formal parameter list
 
 \noindent
-\code{($T_1\ x_1 \ldots,\ T_n\ x_n,\ $\{$T_{n+1}\ x_{n+1} = d_1, \ldots,\ T_{n+k}\ x_{n+k} = d_k$\})}
+\code{(\PairList{T}{x}{1}{n},\ \{\TripleList{T}{x}{d}{n+1}{n+k}\})}
 
 \noindent
 where each parameter may be marked \COVARIANT{}
+and each named parameter may be marked \REQUIRED{}
 (\commentary{not shown, but allowed}).
 
 \LMHash{}%
 We say that $\argumentList{S}$ is
 a \Index{subtype match} for $\parameterList{P}$
 if{}f $m = n$,
-$\{y_{m+1}\ldots,\ y_{m+p}\} \subseteq \{x_{n+1}\ldots,\ x_{n+k}\}$,
+$\{\List{y}{m+1}{m+p}\} \subseteq \{\List{x}{n+1}{n+k}\}$,
 $S_i$ is a subtype of $T_i$ for all $i \in 1 .. m$,
 and $S_i$ is a subtype of $T_j$ whenever $y_i = x_j$ and
 $j \in n + 1 .. n + k$, for all
@@ -12883,7 +12974,7 @@ $i \in m + 1 .. m + p$.
 We say that $\argumentList{S}$
 is an \Index{assignable match} for $\parameterList{P}$
 if{}f $m = n$,
-$\{y_{m+1}\ldots,\ y_{m+p}\} \subseteq \{x_{n+1}\ldots,\ x_{n+k}\}$,
+$\{\List{y}{m+1}{m+p}\} \subseteq \{\List{x}{n+1}{n+k}\}$,
 $S_i$ is assignable to $T_i$ for all $i \in 1 .. m$,
 and $S_i$ is assignable to $T_j$ whenever $y_i = x_j$ and
 $j \in n + 1 .. n + k$, for all
@@ -12977,6 +13068,10 @@ Consider an invocation $i$ of a function $f$ with
 an actual argument part of the form
 \code{<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_m,\ q_1$: $a_{m+1}, \ldots,\ q_l$: $a_{m+l}$)}.
 
+\LMHash{}%
+% We cannot pass the same named parameter twice.
+It is a compile-time error if $q_j = q_k$ for any $j \ne k$.
+
 \commentary{%
 Note that $f$ denotes a function in a semantic sense,
 rather than a syntactic construct.
@@ -13010,43 +13105,18 @@ even though there may not be a corresponding entity in the heap at run time.%
 }
 
 \LMHash{}%
-% We cannot pass the same named parameter twice.
-It is a compile-time error if $q_j = q_k$ for any $j \ne k$.
-
-\LMHash{}%
-For a given type $T_0$, we introduce the notion of a
-\IndexCustom{$T_0$ bounded type}{type!T0 bounded}:
-$T_0$ itself is $T_0$ bounded;
-if $B$ is $T_0$ bounded and
-$X$ is a type variable with bound $B$
-then $X$ is $T_0$ bounded;
-finally, if $B$ is $T_0$ bounded and
-$X$ is a type variable
-then $X \& B$ is $T_0$ bounded.
-In particular, a
-\IndexCustom{\DYNAMIC{} bounded type}{type!dynamic bounded}
-is either \DYNAMIC{} itself
-or a type variable whose bound is \DYNAMIC{} bounded,
-or an intersection whose second operand is \DYNAMIC{} bounded.
-Similarly for a
-\IndexCustom{\FUNCTION{} bounded type}{type!function bounded}.
-
-\LMHash{}%
-A
-\IndexCustom{function-type bounded type}{type!function-type bounded}
-is a type $T$ which is $T_0$ bounded where $T_0$ is a function type
-(\ref{functionTypes}).
-A function-type bounded type $T$ has an
-\Index{associated function type}
-which is the unique function type $T_0$ such that $T$ is $T_0$ bounded.
-
-\LMHash{}%
-If the static type of $f$ is \DYNAMIC{} bounded or \FUNCTION{} bounded,
+If the static type of $f$ is \DYNAMIC{} bounded or \FUNCTION{} bounded
+(\ref{typesBoundedByTypes}),
 no further static checks are performed on the invocation $i$
 (\commentary{apart from separate static checks on subterms like arguments}),
 and the static type of $i$ is \DYNAMIC.
 Otherwise, it is a compile-time error if the static type of $f$ is not
 function-type bounded.
+
+\LMHash{}%
+A compile-time error occurs if the static type of $f$ is potentially nullable
+and not \DYNAMIC{}
+(\ref{typeNullability}).
 
 \LMHash{}%
 If no error occurred and the static analysis of $i$ is not complete
@@ -13055,11 +13125,11 @@ let $F$ be the associated function type of $T_f$.
 
 \LMHash{}%
 Let $S_0$ be the return type of $F$,
-let $X_1\ \EXTENDS\ B_1, \ldots, X_s\ \EXTENDS\ B_s$
-be the formal type parameters,
-let $h$ be the number of required parameters,
+let \TypeParametersStd{} be the formal type parameters,
+let $h$ be the number of required positional parameters,
 let $p_1, \ldots, p_n$ be the positional parameters,
-and let $p_{h+1}, \ldots, p_{h+k}$ be the optional parameters of $F$.
+and let $p_{h+1}, \ldots, p_{h+k}$ be
+the optional positional or named parameters of $F$.
 Let $S_i$ be the static type of the formal parameters $p_i, i \in 1 .. h+k$,
 and for each $q$ let $S_q$ be the type of the parameter named $q$,
 where each parameter type is obtained by replacing $X_j$ by $A_j, j \in 1 .. s$,
@@ -13070,7 +13140,8 @@ Finally, let $T_i$ be the static type of $a_i$.
 We have an actual argument list consisting of $r$ type arguments,
 $m$ positional arguments, and $l$ named arguments.
 We have a function with $s$ type parameters,
-$h$ required parameters, and $k$ optional parameters.
+$h$ required positional parameters,
+and $k$ optional positional or named parameters.
 Figure~\ref{fig:argumentsAndParameters} shows how this situation arises.%
 }
 
@@ -13101,20 +13172,6 @@ Figure~\ref{fig:argumentsAndParameters} shows how this situation arises.%
     \end{array}
   \end{displaymath}
   %
-  \flushleft{\commentary{Declaration with named parameters: $n = h$}}
-  \begin{displaymath}
-    \begin{array}{rl}
-      \left<\P{$s$ type}\right>
-      \left(
-      \begin{array}{r@{,\;}l}
-        \P{$h$ required}&\P{$k$ optional}\\
-        \multicolumn{2}{c}{\mbox{\scriptsize\textit{which may also be viewed as}}}\\
-        \P{$n$ positional}&\P{$k$ named}\\
-      \end{array}
-      \right)
-    \end{array}
-  \end{displaymath}
-  %
   \flushleft{\commentary{Declaration with optional positional parameters: $n = h + k$}}
   \begin{displaymath}
     \begin{array}{rl}
@@ -13124,6 +13181,20 @@ Figure~\ref{fig:argumentsAndParameters} shows how this situation arises.%
         \P{$h$ required}&\P{$k$ optional}\\
         \multicolumn{2}{c}{\mbox{\scriptsize\textit{which may also be viewed as}}}\\
         \multicolumn{2}{c}{\P{$n$ positional}}
+      \end{array}
+      \right)
+    \end{array}
+  \end{displaymath}
+  %
+  \flushleft{\commentary{Declaration with named parameters: $n = h$}}
+  \begin{displaymath}
+    \begin{array}{rl}
+      \left<\P{$s$ type}\right>
+      \left(
+      \begin{array}{r@{,\;}l}
+        \P{$h$ required positional}&\P{$k$ named}\\
+        \multicolumn{2}{c}{\mbox{\scriptsize\textit{which may also be viewed as}}}\\
+        \P{$n$ positional}&\P{$k$ named}\\
       \end{array}
       \right)
     \end{array}
@@ -13140,16 +13211,23 @@ It is a compile-time error if $r \not= s$.
 It is a compile-time error if $r = s$ and for some $j \in 1 .. s$,
 $A_j \not<: [A_1/X_1, \ldots, A_r/X_s]B_j$.
 It is a compile-time error unless $h \le m \le n$.
-If $l > 0$,
-it is a compile-time error unless $F$ has named parameters and
-$q_j \in \{p_{h+1}, \ldots, p_{h+k}\}, j \in 1 .. l$.
+It is a compile-time error unless both of the following are satisfied:
+
+\begin{itemize}
+\item If $l > 0$ then $F$ has named parameters and
+  $q_j \in \{\List{p}{h+1}{h+k}\}$, for each $j \in 1 .. l$.
+\item If $F$ has named parameters then for each $p_j$, $j \in h+1 .. h+k$,
+  if $p_j$ is declared with the modifier \REQUIRED{}
+  then $p_j \in \{\List{q}{1}{l}\}$.
+\end{itemize}
 
 \commentary{%
 That is, the number of type arguments must match the number of type parameters,
 and the bounds must be respected.
-We must receive at least the required number of positional arguments,
+We must receive at least the required number of positional parameters,
 and not more than the total number of positional parameters.
-For each named argument there must be a named parameter with the same name.%
+For each named argument there must be a named parameter with the same name,
+and there must be a named argument for each required named parameter.%
 }
 
 \LMHash{}%
@@ -13401,7 +13479,8 @@ Note that the type argument list is omitted when $r = 0$
 \LMHash{}%
 Consider the situation where $e_f$ denotes a class $C$
 that contains a declaration of a constructor named $C$,
-or it is of the form \code{$e'_f$.\id} where
+or it is of the form \code{$e'_f$.\id} 
+or \code{$e'_f$<\metavar{typeArguments}>.\id} where
 $e'_f$ denotes a class $C$ that contains a declaration of
 a constructor named \code{$C$.\id}.
 If $i$ occurs in a constant context
@@ -13436,7 +13515,7 @@ or $i$ would not have been treated as a function expression invocation.
 \LMHash{}%
 If $e_f$ is a property extraction expression
 (\ref{propertyExtraction})
-then $i$ treated as an ordinary method invocation
+then $i$ is treated as an ordinary method invocation
 (\ref{ordinaryInvocation}).
 
 \commentary{%
@@ -13454,7 +13533,7 @@ and a call to a getter \code{$b$} (with no arguments) in the latter.%
 
 \LMHash{}%
 Let $F$ be the static type of $e_f$.
-If $F$ is an interface type that has a method named \CALL,
+If the interface of $F$ has a method named \CALL,
 $i$ is treated as
 (\ref{notation})
 the ordinary invocation
@@ -13566,7 +13645,7 @@ amounts to the creation of a function object $o$
 which is an instance of a class $C$ whose interface is
 a subtype of the actual type $F$
 (\ref{actualTypes})
-corresponding to the signature in the function declaration $f$,
+corresponding to the header in the declaration of $f$,
 using the current bindings of type variables, if any.
 There does not exist a function type $F'$ which is a proper subtype of $F$
 such that $C$ is a subtype of $F'$.
@@ -14095,6 +14174,70 @@ because their evaluation does not involve method invocation.%
 \end{figure}
 
 \LMHash{}%
+A \Index{member invocation} is an expression with a specific syntactic form
+whose dynamic semantics involves invocation of
+one or two instance members of a given receiver,
+or invocation of extension members.
+This section specifies which syntactic forms are member invocations,
+and defines some terminology
+which is needed in order to denote
+specific parts of several syntactic forms collectively.
+
+\LMHash{}%
+The static analysis and dynamic semantics of
+each of the syntactic forms that are member invocations
+is specified separately,
+this section is only concerned with
+the syntactic classification and terminology.
+
+\commentary{%
+For example, one kind of member invocation is an ordinary method invocation
+(\ref{ordinaryInvocation}).%
+}
+
+\LMHash{}%
+A
+\IndexCustom{simple member invocation}{member invocation!simple}
+respectively
+\IndexCustom{composite member invocation}{member invocation!composite}
+on a
+\IndexCustom{syntactic receiver}{member invocation!syntactic receiver}
+expression $r$ is an expression of
+one of the forms shown in Fig.~\ref{fig:memberInvocations}.
+Each member invocation has a
+\IndexCustom{corresponding member name}{
+  member invocation!corresponding member name}
+as shown in the figure.
+
+\LMHash{}%
+Each member invocation in Fig.~\ref{fig:memberInvocations} that contains
+\lit{?} is a
+\IndexCustom{conditional member invocation}{member invocation!conditional}.
+An
+\IndexCustom{unconditional member invocation}{member invocation!unconditional}
+is a member invocation which is not conditional.
+
+\commentary{%
+For a simple member invocation the corresponding member name is
+the name of the member which is invoked
+in the case where the member invocation invokes an instance member.
+For a composite member invocation it is the name of the getter
+and the basename of both the getter and the setter.%
+}
+
+\rationale{%
+Note that $r$ cannot be \SUPER{}
+even though \code{\SUPER.m()} invokes an instance method.
+This is because the semantics of a superinvocation is different from
+that of other invocations.
+Among the binary operators, \lit{==} is not included.
+This is because evaluation of \code{$e_1$ == $e_2$}
+involves more steps than an instance member invocation.
+Similarly, \lit{\&\&}, and \lit{||} are not included
+because their evaluation does not involve method invocation.%
+}
+
+\LMHash{}%
 A composite member invocation is an abbreviated form
 whose meaning is reduced to simple member invocations
 as shown in Fig.~\ref{fig:desugarCompositeMemberInvocations}.
@@ -14152,6 +14295,8 @@ Consider a
 \IndexCustom{conditional ordinary method invocation}{%
   method invocation!conditional ordinary}
 $i$ of the form
+
+\noindent
 \code{$e$?.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \commentary{%
@@ -14162,36 +14307,20 @@ and similarly for formal type parameter lists (\ref{generics}).%
 }
 
 \LMHash{}%
-The static type of $i$ is the same as the static type of
-
-\noindent
-\code{$e$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
-
-\noindent
-Exactly the same compile-time errors that would be caused by
-
-\noindent
-\code{$e$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
-
-\noindent
-are also generated in the case of $i$.
+A warning occurs if the static type of $e$ is non-nullable.
+\commentary{In this case, the \lit{?} is superfluous.}
 
 \LMHash{}%
-Evaluation of $i$ proceeds as follows:
-
-\LMHash{}%
-If $e$ is a type literal or denotes an extension, $i$ is treated as
+Otherwise, $i$ is treated as
 
 \noindent
-\code{$e$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\Let{$v$}{$e$}{$v$\,\,==\,\,\NULL\ ?\ \NULL\ :\ $v$.$m$<$A_1, \ldots,\ A_r$>(}
 
-\LMHash{}%
-Otherwise, evaluate $e$ to an object $o$.
-If $o$ is the null object, $i$ evaluates to the null object (\ref{null}).
-Otherwise let $v$ be a fresh variable bound to $o$ and evaluate
-\code{$v$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
-to an object $r$.
-Then $e$ evaluates to $r$.
+\noindent
+\code{\qquad{}$a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+
+\noindent
+which determines the static analysis and dynamic semantics of $i$.
 \EndCase
 
 \LMHash{}%
@@ -14199,7 +14328,8 @@ Then $e$ evaluates to $r$.
 A \IndexCustom{static member invocation}{member invocation!static}
 $i$ is an invocation of the form
 \code{$C$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)},
-where $C$ is a type literal, or $C$ denotes an extension.
+where $C$ is a term derived from \synt{typeName}
+that denotes a type or an extension.
 
 \commentary{%
 Non-generic invocations arise as the special case
@@ -14207,7 +14337,14 @@ where the number of type arguments is zero (\ref{generics}).%
 }
 
 \LMHash{}%
-A compile-time error occurs
+If $C$ denotes a type alias then $i$ is treated as described in
+the section about type aliases
+(\ref{typedef}).
+
+\LMHash{}%
+Otherwise
+(\commentary{when $C$ does not denote a type alias}),
+a compile-time error occurs
 unless $C$ denotes a class, a mixin, or an extension that declares
 a static member named $m$,
 which we will call the
@@ -14220,8 +14357,8 @@ when the denoted member is neither, a compile-time error occurs.
 \LMHash{}%
 The static analysis of $i$ is then performed
 as specified in Section~\ref{bindingActualsToFormals},
-considering $F$ to be the static type of the function to call,
-and the static type of $i$ is as specified there.
+considering $F$ to be the static type of the function to call.
+The static type of $i$ is as specified there.
 
 \LMHash{}%
 Evaluation of a static method invocation $i$ of the form
@@ -14268,7 +14405,7 @@ Let $T$ be the static type of $e$.
 
 \LMHash{}%
 If $T$ is \DYNAMIC{} bounded
-(\ref{bindingActualsToFormals})
+(\ref{typesBoundedByTypes})
 and $m$ is one of
 \code{hashCode}, \code{noSuchMethod}, \code{runtimeType}, or \code{toString}
 then we say that $i$ is a
@@ -14290,22 +14427,29 @@ instance member named $m$, unless either:
   Or
 \item
   $T$ is \FUNCTION{} bounded
-  (\ref{bindingActualsToFormals})
+  (\ref{typesBoundedByTypes})
   and $m$ is \CALL;
   in this case no further static checks are performed on $i$
   (\commentary{apart from separate static checks on subterms like arguments})
   and the static type of $i$ is \DYNAMIC.
-\rationale{%
-This means that for invocations of an instance method named \CALL,
-a receiver of type \FUNCTION{} is treated like a receiver of type \DYNAMIC.
-The expectation is that any concrete subclass of \FUNCTION{}
-will implement \CALL,
-but there is no method signature
-which can be assumed for \CALL{} in \FUNCTION{}
-because every signature will conflict with
-some potential overriding declarations.%
-}
+  \rationale{%
+  This means that for invocations of an instance method named \CALL,
+  a receiver of type \FUNCTION{} is treated like a receiver of type \DYNAMIC.
+  The expectation is that any concrete subclass of \FUNCTION{}
+  will implement \CALL,
+  but there is no method signature
+  which can be assumed for \CALL{} in \FUNCTION{}
+  because every signature will conflict with
+  some potential overriding declarations.%
+  }
 \end{itemize}
+
+\commentary{%
+Note that if $T$ is potentially nullable then $m$ must be
+a member of \code{Object},
+because those are the only members of the interface of $T$
+(\ref{typeNullability}).%
+}
 
 \LMHash{}%
 If $T$ did not have an accessible member named $m$
@@ -14597,7 +14741,14 @@ so any \lit{?} on a non-innermost \lit{..} would be useless.%
 }
 
 \LMHash{}%
-The static analysis and dynamic semantics of a cascaded member access
+Consider an expression of the form \code{$e$?..$s$} where
+$e$ is a \synt{conditionalExpression} and
+$s$ is a \synt{cascadeSection}.
+A warning occurs unless the static type of $e$ is potentially nullable.
+
+\LMHash{}%
+Otherwise, the static analysis and dynamic semantics of
+a cascaded member access
 is specified in terms of the following desugaring step.
 
 \LMHash{}%
@@ -14611,6 +14762,19 @@ In this case, $e$ is desugared to
 
 \noindent
 \LetThree{$v$}{$e_0$}{$v_1$}{$v$.$c_1$,\ $\cdots$}{$v_k$}{$v$.$c_k$}{$v$}.
+
+\commentary{%
+Note that if the static type of $e_0$ is a potentially nullable type $T_0$
+then the type of $v$ is also $T_0$,
+and then if $T_0$ is not \DYNAMIC{},
+and, for some $j$,
+the first selector in $c_j$ accesses a member $m$ which is not
+a member of \code{Object},
+then a compile-time error occurs.
+In other words, the member accesses at the beginning of each cascade section
+give rise to compile-time errors for a potentially null receiver
+just like an ordinary invocation or property extraction.%
+}
 
 \LMHash{}%
 Let $e$ be a cascaded member access which is initially conditional.
@@ -14778,7 +14942,7 @@ A property extraction can be either:
   (\ref{instanceMethodClosurization}).
   Or
 \item A getter invocation, which returns
-  the result of invoking of a getter method
+  the result of invoking of a getter
   (\ref{getterAccessAndMethodExtraction}).
 \end{enumerate}
 
@@ -14797,31 +14961,18 @@ Consider a \IndexCustom{conditional property extraction expression}{%
 $i$ of the form \code{$e$?.\id}.
 
 \LMHash{}%
+%% TODO(eernst): 'A compile-time error occurs if $e$ is a type literal.'
+%% when we change the rules about type literals as receivers.
 If $e$ is a type literal, $i$ is treated as \code{$e$.\id}.
 
 \LMHash{}%
-Otherwise, the static type of $i$ is the same as
-the static type of \code{$e$.\id}.
-Let $T$ be the static type of $e$,
-and let $y$ be a fresh variable of type $T$.
-Except for errors inside $e$ and references to the name $y$,
-exactly the same compile-time errors that would be caused by \code{$y$.\id}
-are also generated in the case of \code{$e$?.\id}.
+A warning occurs if the static type of $e$ is non-nullable.
+\commentary{In this case, the \lit{?} is superfluous.}
 
 \LMHash{}%
-Evaluation of a conditional property extraction expression $i$
-of the form \code{$e$?.\id} proceeds as follows:
-
-\LMHash{}%
-If $e$ is a type literal or $e$ denotes an extension,
-evaluation of $i$ amounts to evaluation of \code{$e$.\id}.
-
-\LMHash{}%
-Otherwise evaluate $e$ to an object $o$.
-If $o$ is the null object, $i$ evaluates to the null object (\ref{null}).
-Otherwise let $x$ be a fresh variable bound to $o$
-and evaluate \code{$x$.\id} to an object $r$.
-Then $i$ evaluates to $r$.
+Otherwise, $i$ is treated as
+\Let{$v$}{$e$}{$v$\,\,==\,\,\NULL\ ?\ \NULL\ :\ $v$.\id},
+which determines the static analysis and dynamic semantics.
 \EndCase
 
 \LMHash{}%
@@ -14830,7 +14981,13 @@ Let \id{} be an identifier;
 a \IndexCustom{static property extraction}{%
   property extraction!static}
 $i$ is an expression of the form \code{$C$.\id},
-where $C$ is a type literal or $C$ denotes an extension.
+where $C$ is a term derived from \synt{typeName} that denotes
+a type or an extension.
+
+\LMHash{}%
+If $C$ denotes a type alias then $i$ is treated as described
+in the section about type aliases
+(\ref{typedef}).
 
 \LMHash{}%
 A compile-time error occurs
@@ -14865,9 +15022,9 @@ an \IndexCustom{unconditional property extraction}{%
 is an expression of the form \code{$e$.\id}
 where $e$ is an expression that is not a type literal,
 and does not denote an extension
-(\ref{getterAccessAndMethodExtraction});
+(specified in~\ref{getterAccessAndMethodExtraction});
 or it is an expression of the form \code{\SUPER.\id}
-(\ref{superGetterAccessAndMethodClosurization}).
+(specified in~\ref{superGetterAccessAndMethodClosurization}).
 \EndCase
 
 \LMHash{}%
@@ -14889,7 +15046,7 @@ and when the context type requires a function.%
 \EndCase
 
 
-\subsubsection{Getter Access and Method Extraction}
+\subsubsection{Getter Invocation and Method Closurization}
 \LMLabel{getterAccessAndMethodExtraction}
 
 \LMHash{}%
@@ -14922,7 +15079,7 @@ Let $T$ be the static type of $e$.
 
 \LMHash{}%
 If $T$ is \DYNAMIC{} bounded
-(\ref{bindingActualsToFormals})
+(\ref{typesBoundedByTypes})
 and $m$ is one of
 \code{hashCode}, \code{noSuchMethod}, \code{runtimeType}, or \code{toString}
 then we say that $i$ is a
@@ -16599,7 +16756,7 @@ A multiplicative expression of the form \SUPER{} $op$ $e_2$ is equivalent to
 the method invocation \code{\SUPER.$op$($e_2$)}.
 
 \LMHash{}%
-The static type of an multiplicative expression is usually determined
+The static type of a multiplicative expression is usually determined
 by the signature given in the declaration of the operator used.
 However, invocations of the operators \code{*} and \code{\%} of
 class \code{int}, \code{double} and \code{num}
@@ -18155,7 +18312,7 @@ A function declaration statement declares a new local function
 (\ref{functionDeclarations}).
 
 \begin{grammar}
-<localFunctionDeclaration> ::= <metadata> <functionSignature> <functionBody>
+<localFunctionDeclaration> ::= <metadata> <functionHeader> <functionBody>
 \end{grammar}
 
 \LMHash{}%
@@ -18332,6 +18489,39 @@ and two forms of the for-in statement - synchronous and asynchronous.
 \LMLabel{forLoop}
 
 \LMHash{}%
+This section describes a traditional, C-style \FOR{} loop.
+
+\LMHash{}%
+Consider a loop of the form
+\code{\FOR\ ($D$;\,\,$c$;\,\,\List{e}{1}{n})\ $S$},
+where $D$ is a local variable declaration declaring a variable $v$,
+$c$ is an expression or empty
+(\commentary{used to decide whether to run the body one more time}),
+and \List{e}{1}{n} is an expression list or empty
+(\commentary{used to update the iteration state}).
+
+\LMHash{}%
+A compile-time error occurs if $D$ has the modifier \LATE.
+A compile-time error occurs if the static type of $c$ is not
+assignable to \code{bool}.
+
+\LMHash{}%
+Consider a loop of the form
+\code{\FOR\ ($e$;\,\,$c$;\,\,\List{e}{1}{n})\ $S$},
+where $e$ is an expression or empty
+(\commentary{used to perform initialization}),
+$c$ is an expression or empty
+(\commentary{used to decide whether to run the body one more time}),
+and \List{e}{1}{n} is an expression list or empty
+(\commentary{used to update the iteration state}).
+
+\LMHash{}%
+A compile-time error occurs if the static type of $c$ is not
+assignable to \code{bool}.
+
+%% TODO(eernst): The description of the dynamic semantics is highly
+%% incomplete and example driven. Rewrite!
+\LMHash{}%
 Execution of a for statement of the form
 \code{\FOR{} (\VAR{} $v$ = $e_0$; $c$; $e$) $s$} proceeds as follows:
 
@@ -18386,31 +18576,19 @@ bound to the value of the current iteration variable,
 and then modifies $v''$ as required for the next iteration.%
 }
 
-\LMHash{}%
-It is a compile-time error if the static type of $c$
-may not be assigned to \code{bool}.
-
-%A for statement of the form \code{\FOR{} ($d$ ; $c$; $e$) $s$}
-%is equivalent to the following code:
-
-%\code{
-%\{$d$;
-%\WHILE{} ($c$) \{
-%   \{$s$\}
-%   $e$;
-%\}\}
-%}
-
-%If $c$ is empty, it is interpreted as \TRUE.
-
 
 \subsubsection{For-in}
 \LMLabel{for-in}
 
 \LMHash{}%
-Let $D$ be derived from \syntax{<finalConstVarOrType>?}.
-A for statement of the form \code{\FOR{} ($D$ \id{} \IN{} $e$)\,\,$S$}
-is then treated as the following code,
+Let $D$ be derived from \syntax{<finalConstVarOrType>?}\ and
+consider a \FOR{} statement $S_{\metavar{for}}$ of the form
+\code{\FOR\ ($D$\,\,\id\,\,\IN\,\,$e$)\ $S$}.
+A compile-time error occurs if $D$ contains
+the modifier \CONST{} or the modifier \LATE.
+
+\LMHash{}%
+Otherwise, $S_{\metavar{for}}$ is treated as the following code,
 where $\id_1$ and $\id_2$ are fresh identifiers:
 
 \begin{normativeDartCode}
@@ -18423,12 +18601,11 @@ $T$ $\id_1$ = $e$;
 \end{normativeDartCode}
 
 \noindent
-If the static type of $e$ is a top type
-(\ref{superBoundedTypes})
+If the static type of $e$ is \DYNAMIC{}
 then $T$ is \code{Iterable<\DYNAMIC>},
 otherwise $T$ is the static type of $e$.
 It is a compile-time error if $T$ is not assignable to
-\code{Iterable<\DYNAMIC>}.
+\code{Iterable<Object?>}.
 
 \commentary{%
 It follows that it is a compile-time error
@@ -18437,7 +18614,7 @@ It follows that it is a compile-time error
 if $D$ is empty and \id{} is a final variable.
 Also, it is a dynamic error if $e$ has type \DYNAMIC,
 but $e$ evaluates to an instance of a type
-which is not a subtype of \code{Iterable<\DYNAMIC>}.%
+which is not a subtype of \code{Iterable<Object?>}.%
 }
 
 
@@ -18451,10 +18628,26 @@ An asynchronous for loop is distinguished by
 the keyword \AWAIT{} immediately preceding the keyword \FOR.
 
 \LMHash{}%
-Let $D$ be derived from \syntax{<finalConstVarOrType>?}.
-Execution of a for-in statement, $f$, of the form
-\code{\AWAIT{} \FOR{} ($D$ \id{} \IN{} $e$) $s$}
-proceeds as follows:
+Let $D$ be derived from \syntax{<finalConstVarOrType>?}\ and
+consider the asynchronous for-in statement, $f$, of the form
+\code{\AWAIT\,\,\FOR\ ($D$\,\,\id\,\,\IN\,\,$e$)\ $s$}.
+
+\LMHash{}%
+A compile-time error occurs if $D$ contains
+the modifier \CONST{} or the modifier \LATE.
+It is a compile-time error if an asynchronous for-in statement appears
+inside a synchronous function (\ref{functions}).
+It is a compile-time error if a traditional for loop (\ref{forLoop}) is
+prefixed by the \AWAIT{} keyword.
+
+\rationale{%
+An asynchronous loop would make no sense within a synchronous function,
+for the same reasons that an await expression makes no sense
+in a synchronous function.%
+}
+
+\LMHash{}%
+Execution of $f$ proceeds as follows:
 
 \LMHash{}%
 The expression $e$ is evaluated to an object $o$.
@@ -18540,18 +18733,6 @@ with $e$ as exception object and $st$ as stack trace.
 
 \LMHash{}%
 When $u$ is done, execution of $f$ completes normally.
-
-\LMHash{}%
-It is a compile-time error if an asynchronous for-in statement appears
-inside a synchronous function (\ref{functions}).
-It is a compile-time error if a traditional for loop (\ref{forLoop}) is
-prefixed by the \AWAIT{} keyword.
-
-\rationale{%
-An asynchronous loop would make no sense within a synchronous function,
-for the same reasons that an await expression makes no sense
-in a synchronous function.%
-}
 
 
 \subsection{While}
@@ -19157,15 +19338,50 @@ or terminates the stream or iterable associated with a generator
 \end{grammar}
 
 \LMHash{}%
-Consider a return statement $s$ of the form \code{\RETURN{} $e$?;}.
+With an asynchronous non-generator function,
+the returned object will always be a \code{Future<$T$>} for some $T$.
+We need to introduce an auxiliary function
+in order to be able to specify rules about said $T$
+without going into the details of the actual declared return type.
+That function, \FutureValueTypeOfName, is defined as follows:
+
+\begin{itemize}
+\item \DefEquals{\FutureValueTypeOf{$S$?}}{\FutureValueTypeOf{$S$}},
+  for any $S$.
+\item \DefEquals{\FutureValueTypeOf{Future<S>}}{S}, for any $S$.
+\item \DefEquals{\FutureValueTypeOf{FutureOr<S>}}{S}, for any $S$.
+\item \DefEquals{\FutureValueTypeOf{\VOID}}{\VOID}.
+\item \DefEquals{\FutureValueTypeOf{\DYNAMIC}}{\DYNAMIC}.
+\item Otherwise, \DefEquals{\FutureValueTypeOf{$S$}}{\code{Object?}},
+  for any $S$.
+\end{itemize}
+
+\commentary{%
+Note that it is a compile-time error unless
+the return type of an asynchronous non-generator function is
+a supertype of \code{Future<Never>},
+which means that the last case will only be applied
+when $S$ is \code{Object} or a top type.%
+}
+
+\LMHash{}%
+We define the \Index{future value type} of
+an asynchronous non-generator function with declared return type $T$
+to be \FutureValueTypeOf{$T$}.
+
+\LMHash{}%
+\BlindDefineSymbol{s,e,S,f,T}%
+Consider a return statement $s$ of the form \code{\RETURN\,\,$e$?;}.
 Let $S$ be the static type of $e$, if $e$ is present,
 let $f$ be the immediately enclosing function,
 and let $T$ be the declared return type of $f$.
 
 \LMHash{}%
-\Case{Synchronous non-generator functions}
+\Case{Synchronous non-generator functions and factory constructors}
 Consider the case where $f$ is a synchronous non-generator function
-(\ref{functions}).
+(\ref{functions})
+or a generative constructor
+(\ref{generativeConstructors}).
 %
 % Returning without an object is only ok for "voidy" return types.
 It is a compile-time error if $s$ is \code{\RETURN;},
@@ -19173,23 +19389,23 @@ unless $T$ is \VOID, \DYNAMIC, or \code{Null}.
 %
 % Returning with an object in a void function
 % is only ok when the return type "voidy".
-It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
 $T$ is \VOID,
 and $S$ is neither \VOID, \DYNAMIC, nor \code{Null}.
 %
 % Returning void in a "non-voidy" function is an error.
-It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-$T$ is neither \VOID, \DYNAMIC, nor \code{Null},
+It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
+$T$ is neither \VOID{} nor \DYNAMIC,
 and $S$ is \VOID.
 %
 % Otherwise, returning an unassignable value is an error.
-It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
+It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
 $S$ is not \VOID,
 and $S$ is not assignable to $T$.
 
 \commentary{%
-Note that $T$ cannot be \VOID, \DYNAMIC, or \code{Null} in the last case,
-because all types are assignable to those types.
+Note that $T$ cannot be \VOID{} or \DYNAMIC{} in the last case,
+because then every type is assignable to $T$.
 An error will not be raised if $f$ has no declared return type,
 since the return type would be \DYNAMIC, to which every type is assignable.
 However, a synchronous non-generator function
@@ -19205,54 +19421,44 @@ to return an object in a return statement.%
 \LMHash{}%
 \Case{Asynchronous non-generator functions}
 Consider the case where $f$ is an asynchronous non-generator function
-(\ref{functions}).
+(\ref{functions})
+with future value type \DefineSymbol{T_v}.
 %
-% Returning without an object is only ok for async-"voidy" return types.
+% Returning without an object is only ok with a "voidy" future value type.
 It is a compile-time error if $s$ is \code{\RETURN;},
-unless \flatten{T}
-(\ref{functionExpressions})
+unless $T_v$
 is \VOID, \DYNAMIC, or \code{Null}.
-%
+
 \rationale{%
 An asynchronous non-generator always returns a future of some sort.
 If no expression is given, the future will be completed with the null object
 (\ref{null})
 which motivates this rule.%
 }
-% Returning with an object in an void async function only ok
-% when that value is async-"voidy".
-It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-\flatten{T} is \VOID,
-and \flatten{S} is neither \VOID, \DYNAMIC, nor \code{Null}.
+
+% Returning with an object in a void async function is only ok
+% when the returned value has a "voidy" type.
+It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
+$T_v$ is \VOID,
+and \Flatten{$S$} is neither \VOID, \DYNAMIC, nor \code{Null}.
 %
 % Returning async-void in a "non-async-voidy" function is an error.
-It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-\flatten{T} is neither \VOID, \DYNAMIC, nor \code{Null},
-and \flatten{S} is \VOID.
+It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
+$T_v$ is neither \VOID{} nor \DYNAMIC,
+and \Flatten{$S$} is \VOID.
 %
 % Otherwise, returning an un-deasync-assignable value is an error.
-It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-\flatten{S} is not \VOID,
-and \code{Future<\flatten{S}>} is not assignable to $T$.
+It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
+\Flatten{$S$} is not \VOID,
+$S$ is not assignable to $T_v$,
+and \Flatten{$S$} is not a subtype of $T_v$.
 
 \commentary{%
-Note that \flatten{T} cannot be \VOID, \DYNAMIC, or \code{Null}
-in the last case,
-because then \code{Future<$U$>} is assignable to $T$ for \emph{all} $U$.
-In particular, when $T$ is \code{FutureOr<Null>}
-(which is equivalent to \code{Future<Null>}),
-\code{Future<\flatten{S}>} is assignable to $T$ for all $S$.
-This means that no compile-time error is raised,
-but \emph{only} the null object (\ref{null})
-or an instance of \code{Future<Null>} can successfully be returned at run time.
-This is not an anomaly,
-it corresponds to the treatment of a synchronous function
-with return type \code{Null};
-but tools may choose to give a hint that a downcast is unlikely to succeed.
-
+Note that $T_v$ cannot be \VOID{} or \DYNAMIC{} in the last case,
+because then every type is assignable to $T_v$.
 An error will not be raised if $f$ has no declared return type,
-since the return type would be \DYNAMIC,
-and \code{Future<\flatten{S}>} is assignable to \DYNAMIC{} for all $S$.
+since the return type and future value type would be \DYNAMIC,
+and $S$ is assignable to \DYNAMIC{} for all $S$.
 However, an asynchronous non-generator function
 that declares a return type which is not ``voidy''
 must return an expression explicitly.%
@@ -19266,7 +19472,7 @@ to return an object in a return statement of an asynchronous function.%
 \LMHash{}%
 \Case{Generator functions}
 It is a compile-time error if a return statement of
-the form \code{\RETURN{} $e$;} appears in a generator function.
+the form \code{\RETURN\,\,$e$;} appears in a generator function.
 
 \rationale{%
 In the case of a generator function, the object returned by the function is
@@ -19279,7 +19485,7 @@ and so returning an object makes no sense.%
 \LMHash{}%
 \Case{Generative constructors}
 It is a compile-time error if a return statement of
-the form \code{\RETURN{} $e$;} appears in a generative constructor
+the form \code{\RETURN\,\,$e$;} appears in a generative constructor
 (\ref{generativeConstructors}).
 
 \rationale{%
@@ -19295,65 +19501,60 @@ as returning an object from a generative constructor is meaningless.%
 \EndCase
 
 \LMHash{}%
-Executing a return statement \code{\RETURN{} $e$;} proceeds as follows:
+The execution of a return statement proceeds as follows.
 
 \LMHash{}%
-First the expression $e$ is evaluated, producing an object $o$.
-Let $S$ be the run-time type of $o$ and
-let $T$ be the actual return type of $f$
+\Case{Synchronous non-generator functions and factory constructors}
+Let $s$ be a statement of the form \code{\RETURN\,\,$e$;}.
+\BlindDefineSymbol{s,e,f}%
+Let $f$ be the immediately enclosing function,
+and consider the case where $f$ is a synchronous non-generator
+or a factory constructor.
+Execution of $s$ proceeds as follows.
+
+\LMHash{}%
+The expression $e$ is evaluated to an object $o$.
+A dynamic error occurs unless the dynamic type of $o$ is a subtype of
+the actual return type of $f$
 (\ref{actualTypes}).
-If the body of $f$ is marked \ASYNC{} (\ref{functions})
-and $S$ is a subtype of \code{Future<\flatten{T}>}
-then let $r$ be the result of evaluating \code{await $v$}
-where $v$ is a fresh variable bound to $o$.
-Otherwise let $r$ be $o$.
-Then the return statement returns the object $r$
+Then the return statement $s$ completes returning $o$
 (\ref{statementCompletion}).
 
-%% TODO(eernst): We have some special cases with the dynamic semantics
-%% specified above that we may wish to consider:
-%%
-%% Future<int> foo() async {
-%%   return new Future<Object>.value(42);
-%% }
-%%
-%% Statically we will allow this because `Future<flatten(Future<Object>)>`,
-%% i.e., `Future<Object>`, is assignable to `Future<int>`. But at run time
-%% we get an error because `Future<Object>` is is not a subtype of
-%% `Future<flatten(Future<int>)>` = `Future<int>`. We could have awaited
-%% the value just because we're about to return a `Future`, and it would
-%% then have succeeded. Are we doing the right thing? Might be fine, but
-%% it seems surprising that the compiler will sometimes insert `await`,
-%% and here we have to do it explicitly in order to succeed.
-%%
-%% Object /* or dynamic, etc. */ foo() async {
-%%   Object o;
-%%   if (someCondition) o = 42; else o = new Future<S>.value(42);
-%%   return o;
-%% }
-%%
-%% Here we will interject an `await` on the returned value whenever
-%% we return a future (for all `S`). This means that we will `await o`
-%% in some situations and not in others. It may surprise developers
-%% that we can have this dynamic variation at a location in the code
-%% where there is no static justification for expecting a future.
+\commentary{%
+The case where the evaluation of $e$ throws is covered by the general rule
+which propagates the throwing completion from $e$ to $s$ to the function body.%
+}
 
 \LMHash{}%
-Let $U$ be the run-time type of $r$.
-\begin{itemize}
-\item
-  If the body of $f$ is marked \ASYNC{} (\ref{functions})
-  % This error can occur due to implicit casts.
-  it is a dynamic type error if \code{Future<$U$>} is not a subtype of $T$.
-\item
-  % This error can occur due to implicit casts.
-  Otherwise, it is a dynamic type error if $U$ is not a subtype of $T$.
-\end{itemize}
+\Case{Asynchronous non-generator functions}
+Let $s$ be a statement of the form \code{\RETURN\,\,$e$;}.
+\BlindDefineSymbol{s,e,f,T_v}%
+Let $f$ be the immediately enclosing function,
+and consider the case where $f$ is an asynchronous non-generator
+with future value type $T_v$.
+Execution of $s$ proceeds as follows.
 
 \LMHash{}%
-Executing a return statement with no expression,
-\code{\RETURN;}
-returns without an object
+The expression $e$ is evaluated to an object $o$.
+If the run-time type of $o$ is a subtype of \code{Future<$T_v$>},
+let \code{v} be a fresh variable bound to $o$ and
+evaluate \code{\AWAIT{} v} to an object $r$;
+otherwise let $r$ be $o$.
+A dynamic error occurs unless the dynamic type of $r$
+is a subtype of the actual value of $T_v$
+(\ref{actualTypes}).
+Then the return statement $s$ completes returning $r$
+(\ref{statementCompletion}).
+\EndCase
+
+\commentary{%
+The cases where $f$ is a generator or a generative constructor cannot occur,
+because $s$ is then a compile-time error.%
+}
+
+\LMHash{}%
+Execution of a return statement of the form \code{\RETURN;}
+causes no computations and then returns without an object
 (\ref{statementCompletion}).
 
 
@@ -19758,12 +19959,12 @@ The members of a library $L$ are those top level declarations given within $L$.
   \alt <extensionDeclaration>
   \alt <enumType>
   \alt <typeAlias>
-  \alt \EXTERNAL{} <functionSignature> `;'
-  \alt \EXTERNAL{} <getterSignature> `;'
-  \alt \EXTERNAL{} <setterSignature> `;'
-  \alt <functionSignature> <functionBody>
-  \alt <getterSignature> <functionBody>
-  \alt <setterSignature> <functionBody>
+  \alt \EXTERNAL{} <functionHeader> `;'
+  \alt \EXTERNAL{} <getterHeader> `;'
+  \alt \EXTERNAL{} <setterHeader> `;'
+  \alt <functionHeader> <functionBody>
+  \alt <getterHeader> <functionBody>
+  \alt <setterHeader> <functionBody>
   \alt (\FINAL{} | \CONST{}) <type>? <staticFinalDeclarationList> `;'
   \alt \LATE{} \FINAL{} <type>? <initializedIdentifierList> `;'
   \alt \LATE? <varOrType> <initializedIdentifierList> `;'
@@ -20220,7 +20421,7 @@ as defined previously
 \item
   For every top level function $f$ named \id{} in
   \NamespaceName{\metavar{import},i},
-  a corresponding function named \id{} with the same signature as $f$.
+  a corresponding function named \id{} with the same function header as $f$.
   % This error can occur because being-loaded is a dynamic property.
   Calling the function results in a dynamic error that occurs before
   any actual arguments are evaluated.
@@ -20230,13 +20431,14 @@ as defined previously
 \item
   For every top level getter $g$ named \id{} in
   \NamespaceName{\metavar{import},i},
-  a corresponding getter named \id{} with the same signature as $g$.
+  a corresponding getter named \id{} with the same function header as $g$.
   % This error can occur because being-loaded is a dynamic property.
   Calling the getter results in a dynamic error.
 \item
   For every top level setter $s$ named \code{\id=} in
   \NamespaceName{\metavar{import},i},
-  a corresponding setter named \code{\id=} with the same signature as $s$.
+  a corresponding setter named \code{\id=} with
+  the same function header as $s$.
   % This error can occur because being-loaded is a dynamic property.
   Calling the setter results in a dynamic error that occurs before
   the actual argument is evaluated.
@@ -20262,7 +20464,8 @@ the name $p$ is mapped to a non-deferred prefix run-time namespace
 \NamespaceName{\metavar{loaded}},
 with bindings as described below for immediate imports.
 In addition, \NamespaceName{\metavar{loaded}}
-maps \code{loadLibrary} to a function with the same signature as before,
+maps \code{loadLibrary} to a function with
+the same function header as before,
 and so it is possible to invoke \code{$p$.loadLibrary()} again,
 which will always succeed.
 If a call fails, the library has not been loaded,
@@ -21027,7 +21230,7 @@ A type $T$ is \Index{malformed} if{}f:
   and it does not denote a declaration of a type.
 \item
   $T$ denotes a type variable,
-  but it occurs in the signature or body of a static member.
+  but it occurs in the function header or body of a static member.
 \item
   $T$ is a parameterized type of the form \code{$G$<$S_1, \ldots,\ S_n$>},
   and $G$ is malformed,
@@ -21270,8 +21473,8 @@ It is a compile-time error if $U$ is not well-bounded
 \LMHash{}%
 For historic reasons, a type alias can have two more forms,
 derived using \synt{functionTypeAlias}.
-Let \DefineSymbol{S?} be a term which is empty or derived from \synt{type},
-and similarly for \DefineSymbol{T_j?} for any $j$.
+Let \DefineSymbol{S?}\ be a term which is empty or derived from \synt{type},
+and similarly for \DefineSymbol{T_j?}\ for any $j$.
 The two older forms are then defined as follows:
 
 \LMHash{}%
@@ -21543,7 +21746,7 @@ and $T$ is not regular-bounded.
 \commentary{For example:}
 
 \begin{dartCode}
-\CLASS{} C<X extends num> \{\}
+\CLASS{} C<X \EXTENDS\ num> \{\}
 \TYPEDEF{} F<Y extends int> = C<Y>;
 \TYPEDEF{} G<Z> = Z;
 \\
@@ -22224,164 +22427,408 @@ may support more strict static checks as an option.%
 }
 
 
+\subsection{Type Nullability}
+\LMLabel{typeNullability}
+
+\LMHash{}%
+We say that a type $T$ is \IndexCustom{nullable}{type!nullable}
+if{}f \SubtypeNE{\code{Null}}{T},
+and that $T$ is
+\IndexCustom{potentially non-nullable}{type!potentially non-nullable}
+if{}f $T$ is not nullable.
+
+\commentary{%
+Nullable types are types which are
+definitively known to include the null object,
+regardless of the value of any type variables.
+This is equivalent to the syntactic criterion that $T$ is any of:
+
+\begin{itemize}[itemsep=-0.5ex]
+\item \VOID.
+\item \DYNAMIC.
+\item \code{Null}.
+\item \code{$S$?}, for any type $S$.
+\item \code{FutureOr<$S$>}, for any nullable type $S$.
+\end{itemize}%
+}
+
+\LMHash{}%
+We say that a type $T$ is \Index{non-nullable}
+if{}f \SubtypeNE{T}{\code{Object}},
+and that $T$ is
+\IndexCustom{potentially nullable}{type!potentially nullable}
+if{}f $T$ is not non-nullable.
+
+\commentary{%
+Non-nullable types are types which are definitively known to
+\emph{not} include the null object,
+regardless of the value of any type variables.
+This is equivalent to the syntactic criterion that $T$ is any of:
+
+\begin{itemize}[itemsep=-0.5ex]
+\item \code{Never}.
+\item Any function type.
+\item The type \FUNCTION.
+\item Any interface type except \code{Null}.
+\item \code{FutureOr<$S$>}, for any non-nullable type $S$.
+\item Any type variable $X$ whose bound is non-nullable.
+\item Any type of the form \code{$X$\,\&\,$S$}, where
+  $X$ is a type variable and $S$ is non-nullable.
+\end{itemize}%
+}
+
+\commentary{%
+Some types are neither nullable nor non-nullable.
+For example, a type variable $X$ whose bound is nullable, say \code{int?},
+is neither nullable nor non-nullable:
+If the value of $X$ is \code{int} then it does not include the null object,
+and hence $X$ cannot be a nullable type.
+Conversely, if the value of $X$ is \code{int?}\ or \code{Null}
+then it \emph{does} include the null object,
+so it cannot be non-nullable.
+
+It follows that all four concepts are distinct:
+The same type $X$ is potentially nullable, but not nullable,
+and $X$ is also potentially non-nullable, but not non-nullable.%
+}
+
+\LMHash{}%
+We define a function \NonNullTypeName,
+which maps a type $T$ to the corresponding non-nullable type,
+to the extent said non-nullable type is expressible.
+
+\commentary{%
+For example, \code{int?}\ is mapped to \code{int},
+a non-nullable result,
+but \DYNAMIC{} is mapped to \DYNAMIC,
+even though that is still a nullable type.
+If $X$ is a type variable whose bound is nullable,
+\code{FutureOr<$X$>?}\ is mapped to \code{FutureOr<$X$>},
+which is still a potentially nullable type.
+We cannot map it to \code{FutureOr<\NonNullType{$X$}>}
+because that would be unsound:
+An expression of type \code{FutureOr<$X$>?}
+may evaluate to an instance of \code{Future<$X$>} (which is not \NULL),
+but \code{Future<$X$>} might not be a subtype
+of \code{FutureOr<\NonNullType{$X$}>}.
+Also, this could introduce an intersection type which is a type argument,
+and that violates the constraints on intersection types
+(\ref{intersectionTypes}),
+so it is lucky that we don't need it.%
+}
+
+\begin{itemize}
+\item
+  \DefEquals{\NonNullType{Null}}{\code{Never}}.
+\item
+  \DefEquals{\NonNullType{$T$?}}{\NonNullType{$T$}},
+  for any type $T$.
+\item
+  \DefEquals{\NonNullType{$X$}}{\code{$X$\,\&\,\NonNullType{$B$}}},
+  where $X$ is a type variable with bound $B$,
+  such that $\NonNullType{$B$} \not= B$.
+\item
+  \DefEquals{\NonNullType{$X$\,\&\,$T$}}{\code{$X$\,\&\,\NonNullType{$T$}}},
+  for any type $T$.
+\item
+  Otherwise, \DefEquals{\NonNullType{$T$}}{T},
+  for any type $T$.
+\end{itemize}
+
+\LMHash{}%
+Let $T$ be a potentially nullable type such that
+\NormalizedTypeOf{$T$} is neither \DYNAMIC{} nor \VOID.
+The \IndexCustom{interface}{interface!of potentially nullable type}
+of $T$ is the interface of \code{Object}.
+
+\commentary{%
+For example, even though \code{$e_1$.isEven} is allowed
+when the type of $e_1$ is \code{int},
+\code{$e_2$.isEven} is a compile-time error
+when the type of $e_2$ is \code{int?}\ or
+a type variable $X$ whose bound is \code{int?}.%
+}
+
+
 \subsection{Type Normalization}
 \LMLabel{typeNormalization}
 
 \LMHash{}%
-Some Dart types are mutual subtypes,
-but are not considered to be the same type.
-
-\commentary{%
-For instance, \DYNAMIC{} and \code{Object?} are subtypes of each other,
-but they are not considered to be the same type.
-This is useful because it allows us to treat two expressions very differently
-even though the set of objects that they could evaluate to is exactly the same.
-In particular, a member access on a receiver of type \code{Object?}
-can only call \code{hashCode} and a few other members,
-but a member access on a receiver of type \DYNAMIC{} can invoke
-any member as a method accepting any actual list of arguments,
-and as a getter or as a setter,
-and it will be checked at run time that said invocation is possible.%
-}
+This section specifies a function that normalizes Dart types.
+In this section it is assumed that type inference and
+instantiation to bound has taken place,
+and that no type under consideration is a compile-time error.
 
 \LMHash{}%
-This section defines a normalization procedure on types
-which yields a canonical representation for any given type.
-
-\commentary{%
-In other words, subtyping on Dart types is a preorder,
-but subtyping on normalized Dart types is a total order.%
-}
-
-\LMHash{}%
+For the definitions below, we need the following concept:
 An \IndexCustom{atomic type}{type!atomic}
 is a term derived from \synt{typeName}
-that denotes a type.
+that denotes a type which is not a type alias.
 
 \commentary{%
 For instance, \DYNAMIC{} is an atomic type,
 and so is \code{prefix.MyClass},
-if it denotes a class.%
+if it denotes a class,
+but \code{List<int>} and \code{\VOID\,\,\FUNCTION()} are not atomic.%
 }
 
-\newlength{\FunCr}
-\setlength{\FunCr}{1.5ex}
+\LMHash{}%
+Some Dart types are mutual subtypes,
+but are not considered to be the same type.
+Other Dart types are mutual subtypes,
+even though they have a different syntactic structure.
+Type normalization erases the latter distinction.
 
-\begin{figure}[t]
-  \begin{minipage}[c]{\textwidth}
-    \begin{displaymath}
-      \begin{array}{ll}
-        \mbox{\bf Unaliased argument} & \mbox{\bf Result}\\[\FunCr]
-        \hline
-        \mbox{If $T$ is atomic: }T & T\\[\FunCr]
-        %
-        \code{FutureOr<$T$>} &
-        \left\{
-        \begin{array}{l}
-          S\mbox{, if $S$ is a top type or \code{Object}}\\
-          \code{Future<Never>}\mbox{, if $S$ is \code{Never}}\\
-          \code{Future<Null>?}\mbox{, if $S$ is \code{Null}}\\
-          \code{FutureOr<S>}\mbox{, otherwise}
-        \end{array}
-        \right.\\[1ex]
-        \mbox{where $S$ is \NormalizedTypeOf{$T$}}\\[\FunCr]
-        %
-        \code{$T$?} &
-        \left\{
-        \begin{array}{l}
-          S\mbox{, if $S$ is a top type}\\
-          \code{Null}\mbox{, if $S$ is \code{Never} or \code{Null}}\\
-          S\mbox{, if $S$ is \code{FutureOr<$R$>} where $R$ is nullable}\\
-          \code{$R$?}\mbox{, if $S$ is \code{$R$?} for some $R$}\\
-          \code{$S$?}\mbox{, otherwise}
-        \end{array}
-        \right.\\
-        \mbox{where $S$ is \NormalizedTypeOf{$T$}}\\[\FunCr]
-        %
-        \code{$X$\,\,\EXTENDS\,\,$T$} &
-        \left\{
-        \begin{array}{l}
-          \code{Never}\mbox{,if $T$ is \code{Never}}\\
-          \code{Never}\mbox{,
-            if $T$ is a type variable $Y$,
-            and \NormalizedTypeOf{$Y$} is \code{Never}}\\
-          \code{$X$\,\,\EXTENDS\,\,$T$}\mbox{, otherwise}
-        \end{array}
-        \right.\\
-        \mbox{}\\[\FunCr]
-        %
-        \code{$X$\,\,\&\,\,$T$} &
-        \left\{
-        \begin{array}{l}
-          \code{Never}\mbox{, if $S$ is \code{Never}}\\
-          X\mbox{, if $S$` is $X$ or a top type}\\
-          X\mbox{, if \SubtypeStd{\NormalizedTypeOf{$B$}}{S}, where $B$ is the bound of $X$}\\
-          \code{$X$\,\,\&\,\,$S$}\mbox{, otherwise}
-        \end{array}
-        \right.\\
-        \mbox{where $S$ is \NormalizedTypeOf{$T$}}\\[\FunCr]
-        %
-        \code{$C$<\List{T}{1}{k}>} & \code{$C$<\List{R}{1}{k}>}\\
-        \mbox{where $R_i$ is \NormalizedTypeOf{$T_i$},}\\
-        \mbox{\quad{}for $i \in 1 .. k$}\\[\FunCr]
-        %
-        % !!!TODO: Generalize this to handle all parameter list shapes.
-        \code{$R$ \FUNCTION<$X$\,\,\EXTENDS,\,$B$>($S$)} &
-        \code{$R_1$ Function<$X$\,\,\EXTENDS\,\,$B_1$>($S_1$)}\\
-        \mbox{where $R_1$ is \NormalizedTypeOf{$R$},}\\
-        \mbox{\quad{}$B_1$ is \NormalizedTypeOf{$B$},}\\
-        \mbox{\quad{}and $S_1$ is \NormalizedTypeOf{$S$}}
-      \end{array}
-    \end{displaymath}
-  \end{minipage}
-  \caption{Definition of the type function \NormalizedTypeOfName:
-    For a given type $T_0$,
-    let $T$ be the transitive alias expansion of $T_0$
-    (\ref{typedef}),
-    then look up $T$ in the left column of the table in this figure
-    such that the associated condition is satisfied.
-    Then \NormalizedTypeOf{$T$} is as shown in the right hand column.}
-\end{figure}
+\commentary{%
+For instance, \DYNAMIC{} and \code{Object?}\ are subtypes of each other,
+but they are not considered to be the same type.
+This is useful because it allows us to treat two expressions very differently
+even though the set of objects that they could evaluate to
+is exactly the same.
 
-----------------------------------------------------------------------
+Similarly, \code{FutureOr<Object>} and \code{Object} are mutual subtypes,
+and so are \code{Never} and a type variable $X$ whose bound is \code{Never}.
 
+The normalization which is described here will preserve
+distinctions like the former (such as \DYNAMIC{} and \code{Object?}),
+and it will eliminate distinctions like the latter
+(such as \code{Never} and $X$).
 
-!!!TODO!!!
-Note that there is currently no place in the type system where normalization can
-apply to intersection types (promoted types). The rule is included here for
-completeness.
+In particular, \SubtypeNE{S}{T} and \SubtypeNE{T}{S} holds if and only if
+\NormalizedTypeOf{$T$} is syntactically equal to \NormalizedTypeOf{$S$},
+modulo replacement of atomic top types,
+and modulo replacement of terms derived from \synt{typeName}
+denoting the same type
+(such as \code{List<C<\DYNAMIC>{}>} and \code{List<myPrefix.C<\VOID>{}>}).%
+}
 
-We assume that type aliases are fully expanded, and that prefixed types are
-resolved to a canonical name.
+\LMHash{}%
+The function \Index{\NormalizedTypeOfName} is then defined as follows:
+\BlindDefineSymbol{T_a,T_u,T_r}%
+Let $T_a$ be a type
+(\commentary{where `a' stands for `argument'}).
+Let $T_u$ be the transitive alias expansion of $T_a$
+(\commentary{`u' for `unaliased'}, \ref{typedef}).
+Then \DefEquals{\NormalizedTypeOf{$T_a$}}{T_r}
+(\commentary{`r' for result}),
+where $T_r$ is determined as follows:
 
-The **NORM** relation defines the canonical representative of classes of
-equivalent types.  In the absence of legacy (*) types, it should be the case
-that for any two types which are mutual subtypes, their normal forms are
-syntactically identical up to identification of top types (\DYNAMIC, \VOID,
-\code{Object?}).
-
-This is based on the following equations:
 \begin{itemize}
-\item \code{T?? == T?}
-\item \code{Null? == Null}
-\item \code{Never? == Null}
-\item \code{\DYNAMIC? == \DYNAMIC}
-\item \code{\VOID? == \VOID}
-\item \code{FutureOr<$T$> == $T$}, if \SubtypeStd{\code{Future<$T$>}}{T}
-\item \code{FutureOr<$T$> == Future<$T$>}, if \SubtypeStd{T}{\code{Future<$T$>}}
-\item \code{$X$\,\,\EXTENDS\,\,Never == Never}
-\item \code{$X$\,\,\&\,\,$T$ == $T$}, if \SubtypeStd{T}{X}
-\item \code{$X$\,\,\&\,\,$T$ == $X$}, if \SubtypeStd{X}{T}
+\item
+  If $T_u$ is atomic then $T_r$ is $T_u$.
+\item If $T_u$ is of the form \code{FutureOr<$T$>}
+  then let $S$ be \NormalizedTypeOf{$T$} and then:
+  \begin{itemize}
+  \item If $S$ is a top type or \code{Object} then $T_r$ is $S$.
+  \item If $S$ is \code{Never} then $T_r$ is \code{Future<Never>}.
+  \item If $S$ is \code{Null} then $T_r$ is \code{Future<Null>?}.
+  \item Otherwise, $T_r$ is \code{FutureOr<S>}.
+  \end{itemize}
+\item If $T_u$ is of the form \code{$T$?}\ then
+  let $S$ be \NormalizedTypeOf{$T$} and then:
+  \begin{itemize}
+  \item If $S$ is a top type then $T_r$ is $S$.
+  \item If $S$ is \code{Never} or \code{Null} then
+    $T_r$ is \code{Null}.
+  \item If $S$ is \code{FutureOr<$R$>} where $R$ is nullable then
+    $T_r$ is $S$.
+  \item If $S$ is \code{$R$?}\ for some $R$ then $T_r$ is \code{$R$?}.
+  \item Otherwise, $T_r$ is \code{$S$?}.
+  \end{itemize}
+\item If $T_u$ is a type variable $X$ with bound $B$ then:
+  \begin{itemize}
+  \item If $B$ is \code{Never} then $T_r$ is \code{Never}.
+  \item If $B$ is a type variable $Y$
+    and \NormalizedTypeOf{$Y$} is \code{Never}
+    then $T_r$ is \code{Never}.
+  \item Otherwise, $T_r$ is $X$.
+  \end{itemize}
+\item If $T_u$ is of the form \code{$X$\,\&\,$T$}
+  where $X$ is a type variable with bound $B$
+  then let $S$ be \NormalizedTypeOf{$T$} and then:
+  \begin{itemize}
+  \item If $S$ is \code{Never} then $T_r$ is \code{Never}.
+  \item If $S$ is $X$ or a top type then $T_r$ is $X$.
+  \item If \SubtypeNE{\NormalizedTypeOf{$B$}}{S} then $T_r$ is $X$.
+  \item Otherwise, $T_r$ is \code{$X$\,\&\,$S$}.
+  \end{itemize}
+\item If $T_u$ is of the form \code{$C$<\List{T}{1}{k}>}
+  then $T_r$ is \code{$C$<\List{R}{1}{k}>},
+  where $R_i$ is \NormalizedTypeOf{$T_i$}, for $i \in 1 .. k$.
+\item If $T_u$ is of the form
+  \FunctionTypePositionalStd{T_0}
+  
+  \noindent
+  then $T_r$ is
+  \FunctionTypePositional{R_0}{ }{X}{B}{s}{R}{n}{k}
+
+  \noindent
+  where $R_i$ is \NormalizedTypeOf{$T_i$} for $i \in 0 .. n+k$.
+\item If $T_u$ is of the form
+  \FunctionTypeNamedStd{T_0}
+
+  \noindent
+  where $r_j$ is either \REQUIRED{} or empty
+  then $T_r$ is
+  \noindent
+  \FunctionTypeNamed{R_0}{ }{X}{B}{s}{R}{n}{x}{k}
+
+  \noindent
+  where $R_i$ is \NormalizedTypeOf{$T_i$} for $i \in 0 .. n+k$.
 \end{itemize}
 
-----------------------------------------------------------------------
+\commentary{%
+There is currently no place in the type system
+where normalization can apply to intersection types
+(\code{$X$\,\&\,$T$}).
+The rule is included here for completeness.
+Normalization is based on the following reductions:
+
+\begin{displaymath}
+  \begin{array}{l@{\quad\mapsto\quad}l}
+    \code{T??} & \code{T?}\\
+    \code{\VOID?} & \code{\VOID}\\
+    \code{\DYNAMIC?} & \code{\DYNAMIC}\\
+    \code{Null?} & \code{Null}\\
+    \code{Never?} & \code{Null}\\
+    \code{$X$\,\,\EXTENDS\,\,Never} & \code{Never}\\
+    \code{FutureOr<$T$>} & \code{$T$}%
+    \mbox{, if \SubtypeNE{\code{Future<$T$>}}{T}}\\
+    \code{FutureOr<$T$>} & \code{Future<$T$>}%
+    \mbox{, if \SubtypeNE{T}{\code{Future<$T$>}}}\\
+    \code{$X$\,\,\&\,\,$T$} & \code{$T$}\mbox{, if \SubtypeNE{T}{X}}\\
+    \code{$X$\,\,\&\,\,$T$} & \code{$X$}\mbox{, if \SubtypeNE{X}{T}}
+  \end{array}
+\end{displaymath}
+}
+
+
+\subsection{Types Bounded by Types}
+\LMLabel{typesBoundedByTypes}
+
 \LMHash{}%
-This defines a procedure \NormalizedTypeOfName{}
-such that \NormalizedTypeOf{$T$} is syntactically
-equal to \NormalizedTypeOf{$S$} modulo replacement of primitive top types iff
-\SubtypeStd{S}{T} and \SubtypeStd{T}{S}.
+For a given type $T_0$, we introduce the notion of a
+\IndexCustom{$T_0$ bounded type}{type!T0 bounded}:
+$T_0$ itself is $T_0$ bounded;
+if $B$ is $T_0$ bounded and
+$X$ is a type variable with bound $B$
+then $X$ is $T_0$ bounded;
+finally, if $B$ is $T_0$ bounded and
+$X$ is a type variable
+then $X \& B$ is $T_0$ bounded.
+
+\LMHash{}%
+In particular, a
+\IndexCustom{\DYNAMIC{} bounded type}{type!dynamic bounded}
+is either \DYNAMIC{} itself
+or a type variable whose bound is \DYNAMIC{} bounded,
+or an intersection whose second operand is \DYNAMIC{} bounded.
+Similarly for a
+\IndexCustom{\FUNCTION{} bounded type}{type!function bounded}.
+
+\LMHash{}%
+A
+\IndexCustom{function-type bounded type}{type!function-type bounded}
+is a type $T$ which is $T_0$ bounded where $T_0$ is a function type
+(\ref{functionTypes}).
+A function-type bounded type $T$ has an
+\Index{associated function type}
+which is the unique function type $T_0$ such that $T$ is $T_0$ bounded.
 
 
+\subsection{Class Building Types}
+\LMLabel{classBuildingTypes}
+
+\LMHash{}%
+Some types known as
+\IndexCustom{class building types}{type!class building}
+can be used in specific contexts where a class is required
+(\commentary{e.g., when specifying a superinterface of a class}).
+We say that a type $T$ is a class building type
+if none of the following criteria is satisfied:
+
+\begin{itemize}
+\item $T$ is \VOID{} (\ref{typeVoid}).
+\item $T$ is \DYNAMIC{} (\ref{typeDynamic}).
+\item $T$ is \code{FutureOr<$S$>} for some type $S$ (\ref{typeFutureOr}).
+\item
+  % TODO(eernst): If we introduce sealed classes we will have an item
+  % for those, and we may wish to rephrase this.
+  $T$ is \code{Never}, \code{Null}, \code{num}, \code{int}, \code{double},
+  \code{bool}, or \code{String}.
+\item $T$ is \code{$S$?} for some type $S$.
+\item $T$ is a type variable (\ref{generics}).
+\item $T$ is a function type (\ref{functionTypes}).
+\item $T$ is a type alias whose transitive alias expansion
+  (\ref{typedef}) does not denote a class.
+\item $T$ is an enumerated type (\ref{enums}).
+\item $T$ is a deferred type (\ref{staticTypes}).
+\end{itemize}
+
+
+\subsection{Interface Types}
+\LMLabel{interfaceTypes}
+
+\LMHash{}%
+Interface types can be used to access
+a specific set of instance members.
+Let $T$ be a type.
+We say that $T$ is an \Index{interface type} if{}f
+$T$ is of the form \code{$C$<\List{T}{1}{k}>},
+where $C$ denotes a class different from \code{Never} or a mixin,
+and \List{T}{1}{k} are arbitrary types.
+
+\commentary{%
+Non-generic classes are included because we can have $k = 0$.
+
+In particular, the following types are \emph{not} interface types:
+\VOID, \DYNAMIC, \FUNCTION, \code{FutureOr<$T$>} for any $T$, \code{Never},
+any function type, any type variable, any intersection type,
+and any type of the form \code{$T$?}.%
+}
+
+
+\subsection{Intersection Types}
+\LMLabel{intersectionTypes}
+
+\LMHash{}%
+Dart supports a very limited notion of intersection types.
+They only occur at compile-time, i.e., they are not reified at run time.
+They arise during static analysis,
+but cannot be specified directly in source code.
+They only admit a left operand which is a type variable.
+The right operand is required to be a subtype of
+the bound of said type variable.
+
+\commentary{%
+An intersection type will never occur as a nested type, that is,
+it will never occurs as  
+an actual type argument in a parameterized type,
+as a parameter type or a return type in a function type,
+as the right operand of another intersection type,
+or as the operand of the nullable type operator \lit{?}.%
+}
+
+\LMHash{}%
+Assume that $X$ is a type variable with bound $B$,
+and $T$ is a type such that \SubtypeNE{T}{B}.
+We then use the syntax \code{$X$\,\&\,$T$} to designate the intersection type
+that intersects $X$ and $T$.
+
+\commentary{%
+Note again that \code{$X$\,\&\,$T$} cannot occur in source code,
+but it can emerge as the type of an expression.
+Intersection types in Dart are used to hold the information that
+the object which is the value of a specific variable
+has a type which is a type variable $X$ with bound $B$,
+and it is also known to have some other type $T$ which is
+a subtype of $B$.%
+}
+
+\LMHash{}%
+Let $S$ be a type of the form \code{$X$\,\&\,$T$}.
+The \IndexCustom{interface}{interface!of intersection type}
+of $S$ is the interface of $T$.
 
 
 \subsection{Type \code{Never}}
@@ -22410,6 +22857,25 @@ in any situation where a \code{List<$T$>} is required,
 for any $T$ whatsoever.
 Similarly, a variable of type \code{Object?\,\,\FUNCTION(Never)}
 can be used to hold any function that accepts a single, positional argument.%
+}
+
+\commentary{%
+With a receiver whose static type is \code{Never},
+it is not an error to invoke any method, setter, or getter, or to
+tear off any method.
+In other words, \code{Never} is considered to have all members,
+with all signatures.
+
+Implementations that provide feedback about dead or unreachable code
+are encouraged to indicate
+that arguments passed to any such invocation
+will not be evaluated at run time.
+
+It is not an error to apply an expression of type \code{Never}
+in the function position of a function call.
+Implementations that provide feedback about dead or unreachable code
+are encouraged to indicate that any arguments to the call
+will not be evaluated at run time.%
 }
 
 
@@ -22448,8 +22914,8 @@ The \code{Null} class has a primitive \lit{==} operator
 
 \rationale{%
 \code{Null} is mainly used implicitly in
-a type of the form \code{$T$?} for some $T$.
-If $e$ is an expression of type \code{$T$?} that evaluates to an object $o$,
+a type of the form \code{$T$?}\ for some $T$.
+If $e$ is an expression of type \code{$T$?}\ that evaluates to an object $o$,
 then $o$ can be an instance of a subtype of $T$,
 or it can be the null object.
 The latter situation is commonly interpreted to mean that
@@ -22504,7 +22970,7 @@ no subtype relationship exists.%
 A function object is always an instance of some class $C$ that implements
 the class \FUNCTION{} (\ref{functionType}),
 and which has a method named \CALL,
-whose signature is the function type $C$ itself.
+whose header is such that its function type is $C$ itself.
 \commentary{%
 Consequently, all function types are subtypes of \FUNCTION{}
 (\ref{subtypes}).%
@@ -23532,284 +23998,26 @@ Assignment & \code{=}, \code{*=}, \code{/=}, \code{+=}, \code{-=}, \code{\&=}, \
 %% !!!At the end: Search Null, change to Never where appropriate
 %% !!!Search all `TODO`.*null
 
-\subsection{Static semantics}
-\subsubsection{Type normalization}
-
-\subsubsection{Future flattening}
-
-The \FlattenName{} function is modified as follows:
-
-\begin{itemize}
-\item if $T$ is \code{S?} then \Flatten{$T$} = \code{\Flatten{$S$}?}.
-\item otherwise if $T$ is \code{FutureOr<$S$>} then \Flatten{$T$} = $S$.
-\item otherwise if \code{$T$ <: Future} then let $S$ be a type such that
-  \code{$T$ <: Future<$S$>} and for all $R$,
-  if \code{$T$ <: Future<$R$>} then \code{$S$ <: $R$}; then \Flatten{$T$} = $S$.
-\item otherwise \Flatten{$T$} = $T$
-\end{itemize}
-
-\subsubsection{The future value type of an asynchronous non-generator function}
-
-\commentary{%
-We specify a concept which corresponds to the static type of objects which may
-be contained in the Future object returned by an async function with a given
-declared return type.%
-}
-
-Let $f$ be an asynchronous non-generator function with declared return type
-$T$. Then the \Index{future value type} of $f$ is \FutureValueTypeOf{$T$}.
-The function \FutureValueTypeOfName{} is defined as follows:
-
-\begin{itemize}
-\item \FutureValueTypeOf{$S$?} = \FutureValueTypeOf{$S$}, for all $S$.
-\item \FutureValueTypeOf{Future<S>} = $S$, for all $S$.
-\item \FutureValueTypeOf{FutureOr<S>} = $S$, for all $S$.
-\item \FutureValueTypeOf{\VOID} = \VOID.
-\item \FutureValueTypeOf{\DYNAMIC} = \DYNAMIC.
-\item Otherwise, for all $S$, \FutureValueTypeOf{$S$} = \code{Object?}.
-\end{itemize}
-
-\commentary{%
-Note that it is a compile-time error unless the return type of an asynchronous
-non-generator function is a supertype of \code{Future<Never>}, which means that
-the last case will only be applied when $S$ is \code{Object} or a top type.%
-}
-
-\subsubsection{Return statements}
-
-The static analysis of return statements is changed in the following
-way, where $T$ is the declared return type and $S$ is the static type of
-the expression $e$.
-
-At line 15477 about synchronous non-generator functions, the text is changed as follows:
-
-\Case{Spec change}
-It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-$T$ is neither \VOID{} nor \DYNAMIC,
-and $S$ is \VOID.
-\EndCase
-
-\commentary{%
-Comparing to Dart before null-safety, this means that it is no longer allowed
-to return a void expression in a regular function if the return type is
-\code{Null}.%
-}
-
-At line 15507 about an asynchronous non-generator function with future value type $T_v$,
-the text is changed as follows:
-
-\Case{Spec change}
-It is a compile-time error if $s$ is \code{\RETURN;},
-unless $T_v$
-is \VOID, \DYNAMIC, or \code{Null}.
-%
-It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
-$T_v$ is \VOID,
-and \flatten{S} is neither \VOID, \DYNAMIC, \code{Null}.
-%
-It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
-$T_v$ is neither \VOID{} nor \DYNAMIC,
-and \flatten{S} is \VOID.
-%
-It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
-\flatten{S} is not \VOID,
-$S$ is not assignable to $T_v$,
-and flatten{S} is not a subtype of $T_v$.
-\EndCase
-
-\commentary{%
-Comparing to Dart before null-safety, this means that it is no longer allowed
-to return an expression whose flattened static type is \VOID{} in an \code{async}
-function with future value type \code{Null}; nor is it allowed, in an \code{async}
-function with future value type \VOID, to return an expression whose flattened
-static type is not \VOID, \DYNAMIC, or \code{Null}. Conversely, it is
-allowed to return a future when the future value type is a suitable future;
-for instance, we can have \code{return Future<int>.value(42)} in an \code{async} function
-with declared return type \code{Future<Future<int>>}. Finally, let $S$ be
-\code{Future<dynamic>} or \code{FutureOr<dynamic>}; it is then no longer allowed to
-return an expression with static type $S$, unless the future value type is a
-supertype of $S$. This differs from Dart before null-safety in that it was
-allowed to return an expression of these types with a declared return type
-of the form \code{Future<T>} for any $T$.%
-}
-
-The dynamic semantics specified at line 15597
-is changed as follows, where $f$ is the enclosing function with declared
-return type $T$, and $e$ is the returned expression:
-
-\Case{Spec change}
-When $f$ is a synchronous non-generator, evaluation proceeds as follows:
-The expression $e$ is evaluated to an object $o$.
-A dynamic error occurs unless the dynamic type of $o$ is a subtype of
-the actual return type of $f$
-(\ref{actualTypes}).
-Then the return statement $s$ completes returning $o$
-(\ref{statementCompletion}).
-
-\commentary{%
-The case where the evaluation of $e$ throws is covered by the general rule
-which propagates the throwing completion from $e$ to $s$ to the function body.%
-}
-
-When $f$ is an asynchronous non-generator with future value type $T_v$
-(\ref{functions}), evaluation proceeds as follows:
-The expression $e$ is evaluated to an object $o$.
-If the run-time type of $o$ is a subtype of \code{Future<$T_v$>},
-let \code{v} be a fresh variable bound to $o$ and
-evaluate \code{\AWAIT{} v} to an object $r$;
-otherwise let $r$ be $o$.
-A dynamic error occurs unless the dynamic type of $r$
-is a subtype of the actual value of $T_v$
-(\ref{actualTypes}).
-Then the return statement $s$ completes returning $r$
-(\ref{statementCompletion}).
-
-\commentary{%
-The cases where $f$ is a generator cannot occur,
-because in that case $s$ is a compile-time error.%
-}
-\EndCase
-
 \subsubsection{Static errors}
+
 \paragraph{Nullability definitions}
-
-We say that a type $T$ is \Index{nullable} if \code{Null <: $T$} and not \code{$T$ <: Object}.
-This is equivalent to the syntactic criterion that $T$ is any of:
-
-\begin{itemize}
-\item \code{Null}
-\item \code{$S$?} for some $S$
-\item \code{FutureOr<$S$>} for some $S$ where $S$ is nullable
-\item \DYNAMIC{}
-\item \VOID{}
-\end{itemize}
-
-Nullable types are types which are definitively known to be nullable, regardless
-of instantiation of type variables.
-
-We say that a type $T$ is \Index{non-nullable} if \code{$T$ <: Object}.
-This is equivalent to the syntactic criterion that $T$ is any of:
-
-\begin{itemize}
-\item \code{Never}
-\item Any function type (including \FUNCTION)
-\item Any interface type except \code{Null}.
-\item \code{FutureOr<$S$>} where $S$ is non-nullable
-\item \code{$X$ \EXTENDS\ $S$} where $S$ is non-nullable
-\item \code{$X$ \& $S$} where $S$ is non-nullable
-\end{itemize}
-
-Non-nullable types are types which are either definitively known to be
-non-nullable regardless of instantiation of type variables.
-
-Note that there are types which are neither nullable nor non-nullable.  For
-example \code{X \EXTENDS\ T} where $T$ is nullable is neither nullable nor
-non-nullable.
-
-We say that a type $T$ is \Index{strictly non-nullable} if \code{$T$ <: Object} and not
-\code{Null <: $T$}.  This is equivalent to the syntactic criterion that $T$ is any of:
-
-\begin{itemize}
-\item \code{Never}
-\item Any function type (including \code{Function})
-\item Any interface type except \code{Null}.
-\item \code{FutureOr<S>} where $S$ is strictly non-nullable
-\item \code{X \EXTENDS\ S} where $S$ is strictly non-nullable
-\item \code{X \& S} where $S$ is strictly non-nullable
-\end{itemize}
-
-We say that a type $T$ is \Index{potentially nullable} if $T$ is not non-nullable.
-Note that this is different from saying that $T$ is nullable.  For example, a
-type variable \code{X \EXTENDS\ Object?} is a type which is potentially nullable but
-not nullable. The potentially nullable types include all of the types
-which are either definitely nullable, potentially instantiable to a nullable
-type.
-
-We say that a type $T$ is \Index{potentially non-nullable} if $T$ is not nullable.
-Note that this is different from saying that $T$ is non-nullable.  For example,
-a type variable \code{$X$ \EXTENDS\ Object?} is a type which is potentially non-nullable
-but not non-nullable.
 
 \paragraph{Errors and Warnings}
 
-It is an error to call a method, setter, getter or operator on an expression
-whose type is potentially nullable and not \DYNAMIC, except for the methods,
-setters, getters, and operators on \code{Object}.
+[LATER] It is an error if the body of a method, function, getter, or
+function expression with a potentially non-nullable return type may
+complete normally.
 
-It is an error to read a field or tear off a method from an expression whose
-type is potentially nullable and not \DYNAMIC, except for the methods and
-fields on \code{Object}.
+[LATER] For the purposes of errors and warnings, the null aware
+operators \code{?.}, \code{?..}, and \code{?[]} are checked as if the
+receiver of the operator had non-nullable type.  More specifically, if
+the type of the receiver of a null aware operator is $T$, then the
+operator is checked as if the receiver had type \NonNullType{$T$}
+(see definition below).
 
-It is an error to call an expression whose type is potentially nullable and not
-\DYNAMIC.
-
-It is an error if a top level variable or static variable with a non-nullable
-type has no initializer expression unless the variable is marked with a \LATE{}
-or \EXTERNAL{} modifier.
-
-It is an error if a class declaration declares an instance variable with a
-potentially non-nullable type and no initializer expression, and the class has a
-generative constructor where the variable is not initialized via an initializing
-formal or an initializer list entry, unless the variable is marked with a
-\LATE, \ABSTRACT, or \EXTERNAL{} modifier.
-
-It is an error if a mixin declaration or a class declaration with no generative
-constructors declares an instance variable without an initializing expression
-which is final or whose type is potentially non-nullable, unless the variable is
-marked with a \LATE, \ABSTRACT, or \EXTERNAL{} modifier.
-
-It is an error to derive a mixin from a class declaration which contains an
-instance variable with a potentially non-nullable type and no initializer
-expression unless the variable is marked with the \LATE{} modifier.
-
-It is an error if the body of a method, function, getter, or function expression
-with a potentially non-nullable return type may complete normally.
-
-It is an error if an optional parameter (named or otherwise) with no default
-value has a potentially non-nullable type except in the parameter list of an
-abstract method declaration.
-
-It is an error if a required named parameter has a default value.
-
-It is an error if a required named parameter is not bound to an argument at a
-call site.
-
-It is an error to call the default \code{List} constructor.
-
-For the purposes of errors and warnings, the null aware operators \code{?.}, \code{?..},
-and \code{?[]} are checked as if the receiver of the operator had non-nullable type.
-More specifically, if the type of the receiver of a null aware operator is $T$,
-then the operator is checked as if the receiver had type \NonNullTypeOf{$T$} (see
-definition below).
-
-It is an error for a class to extend, implement, or mixin a type of the form
-\code{$T$?} for any $T$.
-
-It is an error for a class to extend, implement, or mixin the type \code{Never}.
-
-It is not an error to call or tear-off a method, setter, or getter, or to read
-or write a field, on a receiver of static type \code{Never}.  Implementations that
-provide feedback about dead or unreachable code are encouraged to indicate that
-any arguments to the invocation are unreachable.
-
-It is not an error to apply an expression of type \code{Never} in the function
-position of a function call. Implementations that provide feedback about dead or
-unreachable code are encouraged to indicate that any arguments to the call are
-unreachable.
-
-It is an error if the static type of $e$ in the expression \code{\THROW\,\,$e$} is not
-assignable to \code{Object}.
-
-It is not an error for the body of a \LATE{} field to reference \THIS.
-
-It is an error for a variable to be declared as \LATE{} in any of the following
-positions: in a formal parameter list of any kind; in a catch clause; in the
-variable binding section of a c-style \FOR{} loop, a for-in loop, an \AWAIT-for
-loop, or a \syntax{forElement} in a collection literal.
-
-It is an error for the initializer expression of a \LATE{} local variable to use
-a prefix \AWAIT{} expression that is not nested inside of another function
-expression.
+It is an error for the initializer expression of a \LATE{} local
+variable to use a prefix \AWAIT{} expression that is not nested inside
+of another function expression.
 
 It is an error for a class with a generative \CONST{} constructor to have a
 \code{\LATE\ \FINAL} instance variable.
@@ -23843,7 +24051,7 @@ where the cases are dispatched based on expressions \List{e}{0}{k}:
     is not primitive.
 \item If $T$ is an enum type, it is a warning if the switch does not handle all
     enum cases, either explicitly or via a default.
-\item If $T$ is \code{$Q$?} where $Q$ is an enum type, it is a warning if the switch does
+\item If $T$ is \code{$Q$?}\ where $Q$ is an enum type, it is a warning if the switch does
     not handle all enum cases and \code{null}, either explicitly or via a default.
 \end{itemize}
 
@@ -23860,7 +24068,7 @@ Let $C$ be a type literal denoting a class, mixin, or extension. It is a warning
 to use a null aware member access with receiver $C$.
 \commentary{E.g., \code{$C$?.staticMethod()} is a warning.}
 
-It is a warning to use a null aware operator (\code{?.}, \code{?[]}, \code{?..}, \code{??}, \code{??=}, or
+[ONGOING] It is a warning to use a null aware operator (\code{?.}, \code{?[]}, \code{?..}, \code{??}, \code{??=}, or
 \code{...?}) on an expression of type $T$ if $T$ is strictly non-nullable.
 
 It is a warning to use the null check operator (\code{!}) on an expression of type
@@ -23909,7 +24117,7 @@ potentially unassigned, unless the variable is non-\FINAL{} and has nullable
 type, or is \LATE.
 
 The errors specified above are summarized in the following table, where \code{int} is
-used as an example of an arbitrary potentially non-nullable type, \code{int?} is
+used as an example of an arbitrary potentially non-nullable type, \code{int?}\ is
 used as an example of an arbitrary nullable type, and $T$ is used to stand
 for a type of any nullability.  A variable which has an initializer (explicit or
 implicit) is always considered definitely assigned, and is never considered
@@ -23960,7 +24168,7 @@ Treating the declared type of the variable as a "type of interest" implies that
 if the variable has a nullable type, then the non-nullable version of that type
 is also a type of interest.  Treating the initialization as an assignment for
 the purposes of promotion means that initializing a mutable variable declared at
-type \code{$T$?} with a value of non-nullable type $T$ immediately promotes the
+type \code{$T$?}\ with a value of non-nullable type $T$ immediately promotes the
 variable to the non-nullable type.%
 }
 
@@ -24015,7 +24223,7 @@ The static type of a \code{\THROW\,\,$e$} expression is \code{Never}.
 
 Consider an expression $e$ of the form \code{$e_1$\,==\,$e_2$} where the static type of
 $e_1$ is $T_1$ and the static type of $e_2$ is $T_2$. Let $S$ be the type of the
-formal parameter of \code{operator\,\,==} in the interface of \NonNullTypeOf{$T_1$}.
+formal parameter of \code{operator\,\,==} in the interface of \NonNullType{$T_1$}.
 It is a compile-time error unless $T_2$ is assignable to \code{$S$?}.
 
 Similarly, consider an expression $e$ of the form \code{\SUPER\,==\,$e_2$} that occurs in a
@@ -24067,7 +24275,7 @@ Null safety requires three changes to the section 'Super-Bounded Types' in
 the language specification.
 
 The definition of a top type is changed: $T$ is a top type if and only if
-\code{Object?} is a subtype of $T$. Note that the helper predicate \IsTopTypeName{}
+\code{Object?}\ is a subtype of $T$. Note that the helper predicate \IsTopTypeName{}
 provides a syntactic characterization of the same concept.
 
 The definition of a super-bounded type is changed such that occurrences of
@@ -24086,7 +24294,7 @@ occurrence in $T$ of a top type in a position which is not contravariant by
 
 The definitions of least and greatest closure are changed in null safe libraries
 to substitute \code{Never} in positions where previously \code{Null} would have been
-substituted, and \code{Object?} in positions where previously \code{Object} or \DYNAMIC{}
+substituted, and \code{Object?}\ in positions where previously \code{Object} or \DYNAMIC{}
 would have been substituted.
 
 \subsubsection{Const type variable elimination}
@@ -24140,7 +24348,7 @@ is changed such that the all the most specific signatures are merged.
 This is achieved by changing this paragraph, line 4373,
 to the following:
 
-"Let $m_{\metavar{all}}$ be the result of applying \NnbdTopMergeName{} to
+"Let $m_{\metavar{all}}$ be the result of applying \TopMergeTypeName{} to
 the elements in $M_{\metavar{all}}$, ordered according to the interface
 \List{I}{1}{k} that each signature came from."
 
@@ -24243,32 +24451,14 @@ are as follows.
 
 A check of the form \code{$e$ == null} or of the form \code{$e$\,\,\IS\,\,Null} where $e$ has static
 type $T$ promotes the type of $e$ to \code{Null} in the \code{true} continuation, and to
-\NonNullTypeOf{$T$} in the \code{false} continuation.
+\NonNullType{$T$} in the \code{false} continuation.
 
 A check of the form \code{$e$ != null} or of the form \code{$e$\,\,\IS\,\,$T$} where $e$ has static
-type \code{$T$?} promotes the type of $e$ to $T$ in the \code{true} continuation, and to
+type \code{$T$?}\ promotes the type of $e$ to $T$ in the \code{true} continuation, and to
 \code{Null} in the \code{false} continuation.
 
-The static type of an expression \code{$e$!} is \NonNullTypeOf{$T$} where $T$ is the
+The static type of an expression \code{$e$!} is \NonNullType{$T$} where $T$ is the
 static type of $e$.
-
-The \NonNullTypeOfName{} function defines the null-promoted version of a type, and is
-defined as follows.
-
-\begin{itemize}
-\item \NonNullTypeOf{Null} = \code{Never}
-\item \NonNullTypeOf{$C$<$T_1$, \ldots, $T_n$>} = \code{$C$<$T_1$, \ldots, $T_n$>},
-  for class $C$ other than \code{Null} (including \code{Object}).
-\item \NonNullTypeOf{FutureOr<$T$>} = \code{FutureOr<$T$>}
-\item \NonNullTypeOf{$T_0$ \FUNCTION(\ldots)} = \code{$T_0$ \FUNCTION(\ldots)}
-\item \NonNullTypeOf{\FUNCTION} = \FUNCTION{}
-\item \NonNullTypeOf{Never} = \code{Never}
-\item \NonNullTypeOf{\DYNAMIC} = \DYNAMIC{}
-\item \NonNullTypeOf{\VOID} = \VOID{}
-\item \NonNullTypeOf{$X$} = \code{$X$ \& \NonNullTypeOf{$B$}}, where $B$ is the bound of $X$.
-\item \NonNullTypeOf{$X$ \& $T$} = \code{$X$ \& \NonNullTypeOf{$T$}}
-\item \NonNullTypeOf{$T$?} = \NonNullTypeOf{$T$}
-\end{itemize}
 
 \paragraph{Extended Type promotion, Definite Assignment, and Reachability}
 
@@ -24285,7 +24475,7 @@ The \IsTopTypeName{} predicate is true for any type which is in the equivalence 
 top types.
 
 \begin{itemize}
-\item \IsTopType{$T$?} is true iff \IsTopType{$T$} or \IsObjectType{$T$}
+\item \IsTopType{$T$?}\ is true iff \IsTopType{$T$} or \IsObjectType{$T$}
 \item \IsTopType{\DYNAMIC} is true
 \item \IsTopType{\VOID} is true
 \item \IsTopType{FutureOr<$T$>} is \IsTopType{$T$}
@@ -24321,7 +24511,7 @@ The \IsNullTypeName{} predicate is true for things in the equivalence class of \
 
 \begin{itemize}
 \item \IsNullType{Null} is true
-\item \IsNullType{$T$?} is true iff \IsNullType{$T$} or \IsBottomType{$T$}
+\item \IsNullType{$T$?}\ is true iff \IsNullType{$T$} or \IsBottomType{$T$}
 \item \IsNullType{$T$} is false otherwise
 \end{itemize}
 
@@ -24718,50 +24908,50 @@ Otherwise evaluation proceeds as follows:
 
 \subsection{Migration features}
 
-The \NnbdTopMergeName{} of two types $T$ and $S$ is the unique type $R$ defined
+The \TopMergeTypeName{} of two types $T$ and $S$ is the unique type $R$ defined
 as:
 
 \begin{itemize}
-\item \NnbdTopMerge{Object?}{Object?} = \code{Object?}
-\item \NnbdTopMerge{\DYNAMIC}{\DYNAMIC} = \code{\DYNAMIC}
-\item \NnbdTopMerge{\VOID}{\VOID} = \code{\VOID}
-\item \NnbdTopMerge{Object?}{\VOID} = \code{Object?}
+\item \TopMergeType{Object?}{Object?} = \code{Object?}
+\item \TopMergeType{\DYNAMIC}{\DYNAMIC} = \code{\DYNAMIC}
+\item \TopMergeType{\VOID}{\VOID} = \code{\VOID}
+\item \TopMergeType{Object?}{\VOID} = \code{Object?}
    - And the reverse
-\item \NnbdTopMerge{\DYNAMIC}{\VOID} = \code{Object?}
+\item \TopMergeType{\DYNAMIC}{\VOID} = \code{Object?}
    - And the reverse
-\item \NnbdTopMerge{Object?}{\DYNAMIC} = \code{Object?}
+\item \TopMergeType{Object?}{\DYNAMIC} = \code{Object?}
    - And the reverse
-\item \NnbdTopMerge{$T$?}{$S$?} = \code{\NnbdTopMerge{$T$}{$S$}?}
+\item \TopMergeType{$T$?}{$S$?} = \code{\TopMergeType{$T$}{$S$}?}
 \item And for all other types, recursively applying the transformation over the
   structure of the type
-  - e.g. \NnbdTopMerge{$C$<$T$>}{$C$<$S$>} = \code{$C$<\NnbdTopMerge{$T$}{$S$}>}
-\item When computing the \NnbdTopMergeName{} of two method parameters at least one of
+  - e.g. \TopMergeType{$C$<$T$>}{$C$<$S$>} = \code{$C$<\TopMergeType{$T$}{$S$}>}
+\item When computing the \TopMergeTypeName{} of two method parameters at least one of
   which is marked as covariant, the following algorithm is used to compute the
   canonical parameter type.
 
   Given two corresponding parameters of type $T_1$ and $T_2$ where at least
   one of the parameters has a \COVARIANT{} declaration:
-  if \code{$T_1$ <: $T_2$} and \code{$T_2$ <: $T_1$} then the result is \NnbdTopMerge{$T_1$}{$T_2$},
+  if \code{$T_1$ <: $T_2$} and \code{$T_2$ <: $T_1$} then the result is \TopMergeType{$T_1$}{$T_2$},
      and it is covariant.
   Otherwise, if \code{$T_1$ <: $T_2$} then the result is $T_2$ and it is covariant.
   Otherwise the result is $T_1$ and it is covariant.
 \end{itemize}
 
-In other words, \NnbdTopMergeName{} takes two types which are structurally equal
+In other words, \TopMergeTypeName{} takes two types which are structurally equal
 except for the particular choice of top types, and
 finds a single canonical type to represent them.
-The \NnbdTopMergeName{} of two types is not defined for
+The \TopMergeTypeName{} of two types is not defined for
 types which are not otherwise structurally equal.
 
-The \NnbdTopMergeName{} of more than two types is defined by taking the
-\NnbdTopMergeName{} of the first two, and then recursively taking the
-\NnbdTopMergeName{} of the rest.
+The \TopMergeTypeName{} of more than two types is defined by taking the
+\TopMergeTypeName{} of the first two, and then recursively taking the
+\TopMergeTypeName{} of the rest.
 
 If a class $C$ library implements the same generic class $I$ more
 than once as \code{$I_0$, \ldots, $I_n$}, and at least one of the $I_i$ is not syntactically
-equal to the others, then it is an error if \NnbdTopMerge{$S_0$, \ldots}{$S_n$} is not
+equal to the others, then it is an error if \TopMergeType{$S_0$, \ldots}{$S_n$} is not
 defined where $S_i$ is \NormalizedTypeOf{$I_i$}.  Otherwise, $C$ is considered to
-implement the canonical interface given by \NnbdTopMerge{$S_0$, \ldots}{$S_n$}. This
+implement the canonical interface given by \TopMergeType{$S_0$, \ldots}{$S_n$}. This
 determines the outcome of dynamic instance checks applied to instances of $C$,
 as well as static subtype checks on expressions of type $C$.
 
@@ -24770,9 +24960,9 @@ from multiple direct super-interfaces, let
 \List{T}{0}{n} be the signatures of the inherited members.  If there is exactly one
 $T_i$ such that \code{$T_i$ <: $T_k$} for all $k \in 0 .. n$ then the signature
 of $m$ is considered to be $T_i$.  If there is more than one such $T_i$, then it
-is an error if the \NnbdTopMergeName{} of \List{S}{0}{n} does not exist, where $S_i$
+is an error if the \TopMergeTypeName{} of \List{S}{0}{n} does not exist, where $S_i$
 is \NormalizedTypeOf{$T_i$}.  Otherwise, the signature of $m$ for the purposes of member
-lookup is the \NnbdTopMergeName{} of the $S_i$.
+lookup is the \TopMergeTypeName{} of the $S_i$.
 
 !!!TODO!!!
 
