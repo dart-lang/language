@@ -1,20 +1,20 @@
 import 'code.dart';
 
-/// Type annotation introspection information.
+/// An unresolved reference to a type.
 ///
-/// These can be resolved using the `builder` classes depending on the phase
-/// a macro is running in.
+/// These can be resolved to a [TypeDeclaration] using the `builder` classes
+/// depending on the phase a macro is running in.
 abstract class TypeAnnotation {
-  /// Whether or not the type reference is explicitly nullable (contains a
+  /// Whether or not the type annotation is explicitly nullable (contains a
   /// trailing `?`)
   bool get isNullable;
 
   /// The name of the type as it exists in the type annotation.
   String get name;
 
-  /// The scope in which the type reference appeared in the program.
+  /// The scope in which the type annotation appeared in the program.
   ///
-  /// This can be used to construct an [Identifier] that refers to this type
+  /// This can be used to construct an [IdentifierCode] that refers to this type
   /// regardless of the context in which it is emitted.
   Scope get scope;
 
@@ -22,33 +22,38 @@ abstract class TypeAnnotation {
   Iterable<TypeAnnotation> get typeArguments;
 }
 
-/// Generic declaration introspection information.
+//// The base class for all declarations.
 abstract class Declaration {
-  /// Whether this declaration has an `abstract` modifier.
-  bool get isAbstract;
-
-  /// Whether this declaration has an `external` modifier.
-  bool get isExternal;
-
-  /// The name of this declaration as it appears in the code.
+  /// The name of this type declaration
   String get name;
 
-  /// Emits a piece of code that concretely refers to the same type that is
-  /// referred to by [this], regardless of where in the program it is placed.
+  /// The scope in which this type declaration is defined.
   ///
-  /// Effectively, this type reference has a custom scope (equal to [scope])
-  /// instead of the standard lexical scope.
-  Code get reference;
-
-  /// The scope in which the type reference appeared in the program.
+  /// This can be used to construct an [IdentifierCode] that refers to this type
+  /// regardless of the context in which it is emitted.
   Scope get scope;
+}
+
+/// A declaration that defines a new type in the program.
+abstract class TypeDeclaration implements Declaration {
+  /// The type parameters defined for this type declaration.
+  Iterable<TypeParameterDeclaration> get typeParameters;
+
+  /// Create a type annotation representing this type with [typeArguments].
+  TypeAnnotation instantiate({List<TypeAnnotation> typeArguments});
 }
 
 /// Class (and enum) introspection information.
 ///
 /// Information about fields, methods, and constructors must be retrieved from
 /// the `builder` objects.
-abstract class ClassDeclaration implements Declaration {
+abstract class ClassDeclaration implements TypeDeclaration {
+  /// Whether this class has an `abstract` modifier.
+  bool get isAbstract;
+
+  /// Whether this class has an `external` modifier.
+  bool get isExternal;
+
   /// The `extends` type annotation, if present.
   TypeAnnotation? get superclass;
 
@@ -59,56 +64,77 @@ abstract class ClassDeclaration implements Declaration {
   Iterable<TypeAnnotation> get mixins;
 
   /// All the type arguments, if applicable.
-  Iterable<TypeParameter> get typeParameters;
+  Iterable<TypeParameterDeclaration> get typeParameters;
 }
-
-/// Enum introspection information.
-abstract class EnumDeclaration implements Declaration {}
 
 /// Function introspection information.
 abstract class FunctionDeclaration implements Declaration {
+  /// Whether this function has an `abstract` modifier.
+  bool get isAbstract;
+
+  /// Whether this function has an `external` modifier.
+  bool get isExternal;
+
+  /// Whether this function is actually a getter.
   bool get isGetter;
 
+  /// Whether this function is actually a setter.
   bool get isSetter;
 
+  /// The return type of this function.
   TypeAnnotation get returnType;
 
-  Iterable<Parameter> get positionalParameters;
+  /// The positional parameters for this function.
+  Iterable<ParameterDeclaration> get positionalParameters;
 
-  Iterable<Parameter> get namedParameters;
+  /// The named parameters for this function.
+  Iterable<ParameterDeclaration> get namedParameters;
 
-  Iterable<TypeParameter> get typeParameters;
+  /// The type parameters for this function.
+  Iterable<TypeParameterDeclaration> get typeParameters;
 }
 
-/// Method introspection information for [TypeMacro]s.
+/// Method introspection information.
 abstract class MethodDeclaration implements FunctionDeclaration {
+  /// The class that defines this method.
   TypeAnnotation get definingClass;
 }
 
-/// Constructor introspection information for [TypeMacro]s.
+/// Constructor introspection information.
 abstract class ConstructorDeclaration implements MethodDeclaration {
+  /// Whether or not this is a factory constructor.
   bool get isFactory;
 }
 
 /// Field introspection information ..
 abstract class FieldDeclaration implements Declaration {
+  /// Whether this function has an `abstract` modifier.
+  bool get isAbstract;
+
+  /// Whether this function has an `external` modifier.
+  bool get isExternal;
+
+  /// Type type of this field.
   TypeAnnotation get type;
 
+  /// The class that defines this method.
   TypeAnnotation get definingClass;
 }
 
 /// Parameter introspection information.
-abstract class Parameter {
-  String get name;
-
+abstract class ParameterDeclaration {
+  /// Whether or not this parameter has the `required` keyword.
   bool get required;
 
+  /// The type of this parameter.
   TypeAnnotation get type;
+
+  /// Whether or not this is a named parameter.
+  bool get isNamed;
 }
 
 /// Type parameter introspection information.
-abstract class TypeParameter {
+abstract class TypeParameterDeclaration {
+  /// The bounds for this type parameter, if it has any.
   TypeAnnotation? get bounds;
-
-  String get name;
 }
