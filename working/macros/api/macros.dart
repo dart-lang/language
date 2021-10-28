@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'builders.dart';
 import 'introspection.dart';
 
@@ -38,82 +40,84 @@ abstract class DefinitionMacro implements Macro {}
 
 /// The interface for [TypeMacro]s that can be applied to classes.
 abstract class ClassTypeMacro implements TypeMacro {
-  void visitClassType(ClassDeclaration type, TypeBuilder builder);
+  FutureOr<void> visitClassType(ClassDeclaration type, TypeBuilder builder);
 }
 
 /// The interface for [DeclarationMacro]s that can be applied to classes.
 abstract class ClassDeclarationMacro implements DeclarationMacro {
-  void visitClassDeclaration(
+  FutureOr<void> visitClassDeclaration(
       ClassDeclaration declaration, ClassDeclarationBuilder builder);
 }
 
 /// The interface for [TypeMacro]s that can be applied to fields.
 abstract class FieldTypeMacro implements TypeMacro {
-  void visitFieldType(FieldDeclaration field, TypeBuilder builder);
+  FutureOr<void> visitFieldType(FieldDeclaration field, TypeBuilder builder);
 }
 
 /// The interface for [DeclarationMacro]s that can be applied to fields.
 abstract class FieldDeclarationMacro implements DeclarationMacro {
-  void visitFieldDeclaration(
+  FutureOr<void> visitFieldDeclaration(
       FieldDeclaration declaration, ClassDeclarationBuilder builder);
 }
 
 /// The interface for [DefinitionMacro]s that can be applied to fields.
 abstract class FieldDefinitionMacro implements DefinitionMacro {
-  void visitFieldDefinition(
+  FutureOr<void> visitFieldDefinition(
       FieldDeclaration definition, FieldDefinitionBuilder builder);
 }
 
 /// The interface for [TypeMacro]s that can be applied to top level functions
 /// or methods.
 abstract class FunctionTypeMacro implements TypeMacro {
-  void visitFunctionType(FunctionDeclaration type, TypeBuilder builder);
+  FutureOr<void> visitFunctionType(
+      FunctionDeclaration type, TypeBuilder builder);
 }
 
 /// The interface for [DeclarationMacro]s that can be applied to top level
 /// functions or methods.
 abstract class FunctionDeclarationMacro implements DeclarationMacro {
-  void visitFunctionDeclaration(
+  FutureOr<void> visitFunctionDeclaration(
       FunctionDeclaration declaration, DeclarationBuilder builder);
 }
 
 /// The interface for [DefinitionMacro]s that can be applied to top level
 /// functions or methods.
 abstract class FunctionDefinitionMacro implements DefinitionMacro {
-  void visitFunctionDefinition(
+  FutureOr<void> visitFunctionDefinition(
       FunctionDeclaration definition, FunctionDefinitionBuilder builder);
 }
 
 /// The interface for [TypeMacro]s that can be applied to methods.
 abstract class MethodTypeMacro implements TypeMacro {
-  void visitMethodType(MethodDeclaration type, TypeBuilder builder);
+  FutureOr<void> visitMethodType(MethodDeclaration type, TypeBuilder builder);
 }
 
 /// The interface for [DeclarationMacro]s that can be applied to methods.
 abstract class MethodDeclarationMacro implements DeclarationMacro {
-  void visitMethodDeclaration(
+  FutureOr<void> visitMethodDeclaration(
       MethodDeclaration declaration, ClassDeclarationBuilder builder);
 }
 
 /// The interface for [DefinitionMacro]s that can be applied to methods.
 abstract class MethodDefinitionMacro implements DefinitionMacro {
-  void visitMethodDefinition(
+  FutureOr<void> visitMethodDefinition(
       MethodDeclaration definition, FunctionDefinitionBuilder builder);
 }
 
 /// The interface for [TypeMacro]s that can be applied to constructors.
 abstract class ConstructorTypeMacro implements TypeMacro {
-  void visitConstructorType(ConstructorDeclaration type, TypeBuilder builder);
+  FutureOr<void> visitConstructorType(
+      ConstructorDeclaration type, TypeBuilder builder);
 }
 
 /// The interface for [DeclarationMacro]s that can be applied to constructors.
 abstract class ConstructorDeclarationMacro implements DefinitionMacro {
-  void visitConstructorDeclaration(
+  FutureOr<void> visitConstructorDeclaration(
       ConstructorDeclaration declaration, ClassDeclarationBuilder builder);
 }
 
 /// The interface for [DefinitionMacro]s that can be applied to constructors.
 abstract class ConstructorDefinitionMacro implements DefinitionMacro {
-  void visitConstructorDefinition(
+  FutureOr<void> visitConstructorDefinition(
       ConstructorDeclaration definition, ConstructorDefinitionBuilder builder);
 }
