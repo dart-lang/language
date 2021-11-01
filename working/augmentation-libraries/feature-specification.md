@@ -157,8 +157,8 @@ may themselves contain `import augment` directives. The entire tree of
 augmentations is recursively applied to the main library. In most cases, the
 order that augmentations are applied doesn't matter, but it is visible in a
 couple of corners where the merge process involves "appending". For those cases,
-merge order is defined as an in-order traversal of the `import augment`
-directives in the main library and its augmentations. So, in:
+merge order is defined as a depth-first pre-order traversal of the `import
+augment` directives in the main library and its augmentations. So, in:
 
 ```
 // main.dart
@@ -201,6 +201,10 @@ syntax inside the bodies of augmenting members. Inside a member marked
 original function, getter, setter, or variable initializer.
 
 **TODO: I'm not sold on `augment super`. Is there a better syntax?**
+
+The same declaration can be augmented multiple times by separate augmentation
+libraries. When that happens, the merge order defined previously determines
+which order the wrapping is applied.
 
 ### Augmenting types
 
@@ -248,8 +252,8 @@ It is a compile-time error if:
     **TODO: We could consider allowing an `extends` clause if the main
     declaration doesn't have one.**
 
-*   The augmenting type is marked `abstract` and the corresponding type is not
-    or vice versa.
+*   The augmenting type is marked `abstract`. The main library determines
+    whether the class is abstract or not.
 
 ### Augmenting functions
 
@@ -291,11 +295,6 @@ It is a compile-time error if:
     **TODO: Instead of making this an error, should we add a syntax that lets
     the augmentation dynamically detect whether there is an original body to
     wrap?**
-
-*   If multiple augmenting libraries augment the same original function.
-
-    **TODO: Should we allow this? The order is defined, so we could let them
-    nest arbitrarily deeply.**
 
 **TODO: Should we allow augmenting functions to add parameters? If so, how does
 this interact with type checking calls to the function?**
@@ -379,10 +378,6 @@ It is a compile-time error if:
 
 *   An augmenting initializer uses `augment super` and the original declaration
     is not a variable with an initializer.
-
-*   Multiple augmenting libraries augment the same variable or getter/setter
-    pair. Of course, one augmenting library may explicitly augment both a getter
-    and setter with the same name.
 
 *   A final variable is augmented with a setter. (Instead, the augmentation
     library can declare a *non-augmenting* setter that goes alongside the
@@ -600,7 +595,7 @@ To apply an augmentation to the main library:
 
 1.  For each public declaration in the augmentation:
 
-    **TODO: If we allow private imports, update this allow merging private
+    **TODO: If we allow private imports, update this allow to merging private
     declarations whose name matches a declaration in the main library.**
 
     1.  Merge the declaration into the main library's top-level namespace using
