@@ -18,7 +18,7 @@ each file is made of separate top-level declarations.
 
 However, sometimes a single *class* declaration is too large to fit comfortably
 in a file. Dart libraries and even part files are no help there. Because of
-this, users have asked for something partial classes in C# ([#252][] 45 👍,
+this, users have asked for something like partial classes in C# ([#252][] 45 👍,
 [#678][] 15 👍). C# also supports splitting [the declaration and implementation
 of methods into separate files][partial].
 
