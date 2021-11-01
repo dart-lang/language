@@ -127,6 +127,8 @@
 % - Correct <partDeclaration> to include metadata.
 % - Clarify the section about assignable expressions.
 % - Integrate the null safety specification into this document.
+% - Rename grammar non-terminals from `...Signature` to `...Header`: They are
+%   syntactic constructs, unlike the semantic concept 'member signature'.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -656,21 +658,21 @@ whose elements are the $o_i$
 \LMHash{}%
 \BlindDefineSymbol{x, op, y}%
 The specifications of operators often involve statements such as
-\code{$x$ \metavar{op} $y$} is equivalent to the method invocation
-\IndexCustom{\rm\code{$x$.\metavar{op}($y$)}}{%
-  x.op(y)@\code{$x$.\metavar{op}($y$)}}.
+\code{$x$\,\,\op\,\,$y$} is equivalent to the method invocation
+\IndexCustom{\rm\code{$x$.\op($y$)}}{x.op(y)@\code{$x$.\op($y$)}}.
 Such specifications should be understood as a shorthand for:
 \begin{itemize}
 \item
-  $x$ $op$ $y$ is equivalent to the method invocation
+  \code{$x$\,\,\op\,\,$y$} is equivalent to the method invocation
   \code{$x$.\metavar{op'}($y$)},
-  assuming the class of $x$ actually declared a non-operator method named $op'$
-  defining the same function as the operator $op$.
+  assuming the class of $x$
+  actually declared a non-operator method named \metavar{op'}
+  defining the same function as the operator \op.
 \end{itemize}
 
 \rationale{%
 This circumlocution is required because
-{\rm\code{$x$.\metavar{op}($y$)}}, where op is an operator, is not legal syntax.
+{\rm\code{$x$.\op($y$)}}, where op is an operator, is not legal syntax.
 However, it is painfully verbose, and we prefer to state this rule once here,
 and use a concise and clear notation across the specification.%
 }
@@ -1025,8 +1027,8 @@ They are resolved lexically rather then being looked up in a namespace.%
 }
 
 \LMHash{}%
-It is a compile-time error if there is more than one entity with the same name
-declared in the same scope.
+It is a \Error{compile-time error} if there is more than one entity
+with the same name declared in the same scope.
 
 \commentary{%
 It is therefore impossible, e.g., to define a class that declares
@@ -1437,12 +1439,6 @@ That is, any kind of variable which is not a local variable.%
 }
 
 \LMHash{}%
-A compile-time error occurs if a static variable has a
-non-nullable type and no initializing expression,
-unless the variable declaration has
-the modifier \LATE{} or \EXTERNAL.
-
-\LMHash{}%
 A \IndexCustom{constant variable}{variable!constant}
 is a variable whose declaration includes the modifier \CONST.
 A constant variable must be initialized to a constant expression
@@ -1651,7 +1647,7 @@ is also initialized by a constructor,
 either by an initializing formal or an initializer list entry.
 
 \commentary{%
-It is a compile-time error if a final instance variable
+It is a \Error{compile-time error} if a final instance variable
 that has been initialized by means of
 an initializing formal of a constructor $k$
 is also initialized in the initializer list of $k$
@@ -2014,7 +2010,7 @@ A function body is either:
   cannot complete normally
   (\commentary{that is, it cannot reach the end and ``fall through''},
   cf.~\ref{statementCompletion}),
-  it is a compile-time error if
+  it is a \Error{compile-time error} if
   the addition of \code{\RETURN;} at the end of the body
   would be a compile-time error.
   \commentary{%
@@ -2049,7 +2045,7 @@ OR
   \YIELD{} or \YIELD*.%
   }
   Let $T$ be the declared return type of the function that has this body.
-  It is a compile-time error if one of the following conditions hold:
+  It is a \Error{compile-time error} if one of the following conditions hold:
   \begin{itemize}
   \item The function is synchronous, $T$ is not \VOID,
     and it would have been a compile-time error
@@ -2085,7 +2081,7 @@ OR
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error
+It is a \Error{compile-time error}
 if an \ASYNC, \code{\ASYNC*} or \code{\SYNC*} modifier is attached to
 the body of a setter or constructor.
 
@@ -2116,16 +2112,16 @@ to the general rule for constructors in order to allow it.%
 }
 
 \LMHash{}%
-It is a compile-time error if the declared return type of
+It is a \Error{compile-time error} if the declared return type of
 a function marked \ASYNC{} is not
 a supertype of \code{Future<$T$>} for some type $T$.
-It is a compile-time error if the declared return type of
+It is a \Error{compile-time error} if the declared return type of
 a function marked \code{\SYNC*} is not
 a supertype of \code{Iterable<$T$>} for some type $T$.
-It is a compile-time error if the declared return type of
+It is a \Error{compile-time error} if the declared return type of
 a function marked \code{\ASYNC*} is not
 a supertype of \code{Stream<$T$>} for some type $T$.
-It is a compile-time error if the declared return type of
+It is a \Error{compile-time error} if the declared return type of
 a function marked \code{\SYNC*} or \code{\ASYNC*} is \VOID.
 
 \LMHash{}%
@@ -2196,7 +2192,7 @@ in its formal parameter scope
 (\ref{formalParameters}).
 
 \LMHash{}%
-It is a compile-time error to preface a function declaration
+It is a \Error{compile-time error} to preface a function declaration
 with the built-in identifier \STATIC.
 
 \LMHash{}%
@@ -2329,11 +2325,11 @@ The body scope of a function $f$ is enclosed in the scope introduced by
 the formal parameter scope of $f$.
 
 \LMHash{}%
-It is a compile-time error if a formal parameter
+It is a \Error{compile-time error} if a formal parameter
 is declared as a constant variable (\ref{variables}).
 % We put the following error here because it's shared among all kinds of
 % functions except one.
-It is a compile-time error if an optional formal parameter
+It is a \Error{compile-time error} if an optional formal parameter
 (\commentary{named or positional})
 with no default value has a potentially non-nullable type
 (\ref{typeNullability}),
@@ -2363,7 +2359,7 @@ and it may be specified in one of three ways:
 \item
   By means of a declaration which is similar to a function type,
   derived from \synt{functionFormalParameter}.
-  It is a compile-time error if any default values are specified
+  It is a \Error{compile-time error} if any default values are specified
   in the signature of such a function type.
 \end{itemize}
 
@@ -2388,13 +2384,13 @@ and it may be specified in one of three ways:
 \end{grammar}
 
 \LMHash{}%
-It is a compile-time error if a formal parameter has
+It is a \Error{compile-time error} if a formal parameter has
 the modifier \CONST{} or the modifier \LATE.
-It is a compile-time error if \VAR{} occurs as
+It is a \Error{compile-time error} if \VAR{} occurs as
 the first token of a \synt{fieldFormalParameter}.
 
 \LMHash{}%
-It is a compile-time error if a parameter derived from
+It is a \Error{compile-time error} if a parameter derived from
 \synt{fieldFormalParameter} occurs as a parameter of a function
 which is not a non-redirecting generative constructor.
 
@@ -2417,7 +2413,7 @@ which means that such parameters can also be covariant.%
 }
 
 \LMHash{}%
-It is a compile-time error if the modifier \COVARIANT{} occurs on
+It is a \Error{compile-time error} if the modifier \COVARIANT{} occurs on
 a parameter of a function which is not
 an instance method, instance setter, or instance operator.
 
@@ -2447,20 +2443,21 @@ It is deprecated and will be removed in
 a later version of the language specification.
 
 \LMHash{}%
-It is a compile-time error if an optional or named formal parameter has
+It is a \Error{compile-time error} if an optional or named formal parameter has
 the modifier \CONST{} or the modifier \LATE.
-It is a compile-time error if the default value of an optional parameter is
-not a constant expression (\ref{constants}).
+It is a \Error{compile-time error} if the default value of an optional parameter
+is not a constant expression (\ref{constants}).
 If no default is specified for an optional parameter
 whose declared type is nullable
 (\ref{typeNullability}),
 a default value of \NULL{} is implicitly induced.
-Otherwise, when the declared type is potentially non-nullable,
-it is a compile-time error if an optional parameter has no default value.
-It is a compile-time error if a required named parameter has a default value.
+Otherwise, when the declared type is potentially non-nullable, it is a
+\Error{compile-time error} if an optional parameter has no default value.
+It is a
+\Error{compile-time error} if a required named parameter has a default value.
 
 \LMHash{}%
-It is a compile-time error if the name of a named optional parameter
+It is a \Error{compile-time error} if the name of a named optional parameter
 begins with an `_' character.
 
 \rationale{%
@@ -2491,7 +2488,7 @@ The syntax for doing this is specified in an earlier section
 }
 
 \LMHash{}%
-It is a compile-time error if the modifier \COVARIANT{} occurs
+It is a \Error{compile-time error} if the modifier \COVARIANT{} occurs
 in the declaration of a formal parameter of a function
 which is not an instance method, an instance setter, or an operator.
 
@@ -2814,7 +2811,7 @@ that has not been connected to its body
 will throw a \code{NoSuchMethodError} or some subclass thereof.
 
 \LMHash{}%
-An implementation specific compile-time error can be raised
+An implementation specific \Error{compile-time error} can be raised
 at an \EXTERNAL{} function declaration.
 
 \commentary{%
@@ -2973,10 +2970,10 @@ When a class name appears as a type,
 that name denotes the interface of the class.
 
 \LMHash{}%
-It is a compile-time error if a class named $C$ declares
+It is a \Error{compile-time error} if a class named $C$ declares
 a member with basename (\ref{classMemberConflicts}) $C$.
 If a generic class named $G$ declares a type variable named $X$,
-it is a compile-time error
+it is a \Error{compile-time error}
 if $X$ is equal to $G$,
 or if $G$ has a member whose basename is $X$,
 or if $G$ has a constructor named \code{$G$.$X$}.
@@ -3025,7 +3022,7 @@ A concrete class must fully implement its interface.
 \BlindDefineSymbol{C, I, m}%
 Let $C$ be a concrete class declared in library $L$, with interface $I$.
 Assume that $I$ has a member signature $m$ which is accessible to $L$.
-It is a compile-time error if $C$ does not have
+It is a \Error{compile-time error} if $C$ does not have
 a concrete member with the same name as $m$ and accessible to $L$,
 unless $C$ has a non-trivial \code{noSuchMethod}
 (\ref{theMethodNoSuchMethod}).
@@ -3043,7 +3040,7 @@ by adding, if not present already, the modifier \COVARIANT{}
 (\ref{covariantParameters})
 to each parameter $p$ in $m''$ where
 the corresponding parameter in $m$ has the modifier \COVARIANT.
-It is a compile-time error if $m'$ is not a correct override of $m$
+It is a \Error{compile-time error} if $m'$ is not a correct override of $m$
 (\ref{correctMemberOverrides}),
 unless that concrete member is a \code{noSuchMethod} forwarder
 (\ref{theMethodNoSuchMethod}).
@@ -3126,7 +3123,7 @@ Assume that the parameter $p$ of $m'$ has the modifier \COVARIANT.
 Assume that a direct or indirect superinterface of $C$ has
 a method signature $m_s$ with the same name as $m'$ and accessible to $L$,
 such that $m_s$ has a parameter $p_s$ that corresponds to $p$.
-In this situation, a compile-time error occurs
+In this situation, a \Error{compile-time error} occurs
 if the type of $p$ is not a subtype and not a supertype of the type of $p_s$.
 
 \commentary{%
@@ -3155,7 +3152,7 @@ and the instance methods inherited by $C$ from its superclass
 Consider a class $C$
 and an instance member declaration $D$ in $C$, with member signature $m$
 (\ref{interfaces}).
-It is a compile-time error if $D$ overrides a declaration
+It is a \Error{compile-time error} if $D$ overrides a declaration
 % Note that $m'$ is accessible, due to the definition of `overrides'.
 with member signature $m'$
 from a direct superinterface of $C$
@@ -3174,7 +3171,7 @@ E.g., $D$ could be an instance getter and $D'$ a static setter
 
 \LMHash{}%
 For each parameter $p$ of $m$ where \COVARIANT{} is present,
-it is a compile-time error if there exists
+it is a \Error{compile-time error} if there exists
 a direct or indirect superinterface of $C$ which has
 an accessible method signature $m''$ with the same name as $m$,
 such that $m''$ has a parameter $p''$ that corresponds to $p$
@@ -3265,9 +3262,9 @@ The following names are allowed for user-defined operators:
 \lit{\gtilde}.
 
 \LMHash{}%
-It is a compile-time error if the arity of the user-declared operator
+It is a \Error{compile-time error} if the arity of the user-declared operator
 \lit{[]=} is not 2.
-It is a compile-time error if the arity of a user-declared operator
+It is a \Error{compile-time error} if the arity of a user-declared operator
 with one of the names:
 \lit{<},
 \lit{>},
@@ -3288,7 +3285,7 @@ with one of the names:
 \lit{\gtgt},
 \lit{[]}
 is not 1.
-It is a compile-time error if the arity of the user-declared operator
+It is a \Error{compile-time error} if the arity of the user-declared operator
 \lit{-}
 is not 0 or 1.
 
@@ -3308,15 +3305,16 @@ for purposes of method lookup, override and reflection.%
 }
 
 \LMHash{}%
-It is a compile-time error if the arity of the user-declared operator
+It is a \Error{compile-time error} if the arity of the user-declared operator
 \lit{\gtilde}
 is not 0.
 
 \LMHash{}%
-It is a compile-time error to declare an optional parameter in an operator.
+It is a
+\Error{compile-time error} to declare an optional parameter in an operator.
 
 \LMHash{}%
-It is a compile-time error if a user-declared operator \lit{[]=}
+It is a \Error{compile-time error} if a user-declared operator \lit{[]=}
 declares a return type other than \VOID.
 
 \commentary{%
@@ -3455,7 +3453,7 @@ is implicitly induced for each member signature
 which is noSuchMethod forwarded.
 
 \LMHash{}%
-It is a compile-time error if the name $m$ is noSuchMethod forwarded
+It is a \Error{compile-time error} if the name $m$ is noSuchMethod forwarded
 in a concrete class $C$,
 and a superclass of $C$ has an accessible concrete declaration of $m$
 which is not a noSuchMethod forwarder.
@@ -3778,7 +3776,7 @@ are given elsewhere
 
 \LMHash{}%
 Setters are functions (\ref{functions}) that are used to set
-the values of object properties.
+the values of properties.
 
 \begin{grammar}
 <setterHeader> ::= <type>? \SET{} <identifier> <formalParameterList>
@@ -3790,15 +3788,20 @@ If no return type is specified, the return type of the setter is \VOID{}
 }
 
 \LMHash{}%
+A \Index{library setter} is a setter that is declared in a library scope
+(\commentary{i.e., it is a top-level declaration}).
+Setters declared in a class come in two variants.
 A setter definition that is prefixed with the \STATIC{} modifier defines
 a static setter.
 Otherwise, it defines an instance setter.
+
+\LMHash{}%
 The name of a setter is obtained by appending the string `=' to
-the identifier given in its function header.
+the identifier given in the setter header.
 
 \commentary{%
-Hence, a setter name can never conflict with, override or be overridden by
-a getter or method.%
+Hence, a setter name can never conflict with, override, or be overridden by
+a getter or a method.%
 }
 
 \LMHash{}%
@@ -3811,7 +3814,7 @@ those static setters declared by $C$,
 either implicitly or explicitly.
 
 \LMHash{}%
-It is a compile-time error if a setter's formal parameter list
+It is a \Error{compile-time error} if a setter's formal parameter list
 does not consist of exactly one required formal parameter $p$.
 \rationale{%
 We could enforce this via the grammar,
@@ -3819,11 +3822,17 @@ but we'd have to specify the evaluation rules in that case.%
 }
 
 \LMHash{}%
-It is a compile-time error if a setter declares a return type other than \VOID.
-It is a compile-time error if a class has
+It is a
+\Error{compile-time error} if a setter declares a return type other than \VOID.
+It is a \Error{compile-time error} if a class has
 a setter named \code{$v$=} with argument type $T$ and
 a getter named $v$ with return type $S$,
-and $S$ may not be assigned to $T$.
+and $S$ is not a subtype of $T$.
+
+\commentary{%
+It is not sufficient that $S$ is assignable to $T$.
+In particular, if $S$ is \DYNAMIC{} then $T$ must be a top type.%
+}
 
 \commentary{%
 The rules for when a setter correctly overrides another member
@@ -3922,7 +3931,8 @@ the instance variables declared by $C$
 and the instance variables inherited by $C$ from its superclass.
 
 \LMHash{}%
-It is a compile-time error if an instance variable is declared to be constant.
+It is a
+\Error{compile-time error} if an instance variable is declared to be constant.
 
 \rationale{%
 The notion of a constant instance variable
@@ -3954,7 +3964,7 @@ Assume that the member declaration $D$ in a class $C$
 does not have any of the modifiers \LATE, \ABSTRACT, or \EXTERNAL,
 and that it declares an instance variable named $v$
 that does not have an initializing expression.
-A compile-time error occurs if $C$ has no generative constructors,
+A \Error{compile-time error} occurs if $C$ has no generative constructors,
 and $v$ is final or the type of $v$ is potentially non-nullable.
 
 \LMHash{}%
@@ -3989,7 +3999,7 @@ or they may be factories (\ref{factories}).
 A \Index{constructor name} always begins with
 the name of its immediately enclosing class,
 and may optionally be followed by a dot and an identifier \id.
-It is a compile-time error if the name of a constructor
+It is a \Error{compile-time error} if the name of a constructor
 is not a constructor name.
 
 \LMHash{}%
@@ -4076,11 +4086,11 @@ If a formal parameter declaration $p$ is derived from
 it declares an \Index{initializing formal parameter}.
 A term of the form \code{\THIS.\id} is contained in $p$,
 and \id{} is the \NoIndex{name} of $p$.
-It is a compile-time error if \id{} is not also the name of
+It is a \Error{compile-time error} if \id{} is not also the name of
 an instance variable of the immediately enclosing class or enum.
 
 \LMHash{}%
-It is a compile-time error for an initializing formal parameter
+It is a \Error{compile-time error} for an initializing formal parameter
 to occur in any function which is not a generative constructor.
 Also, it is a compile-time error for an initializing formal parameter
 to occur in a redirecting or external constructor.
@@ -4092,7 +4102,7 @@ Let $T_{id}$ be the type of the instance variable named \id{} in
 the immediately enclosing class or enum.
 If $p$ has a type annotation $T$ then the declared type of $p$ is $T$.
 Otherwise, the declared type of $p$ is $T_{id}$.
-It is a compile-time error if the declared type of $p$
+It is a \Error{compile-time error} if the declared type of $p$
 is not a subtype of $T_{id}$.
 
 \LMHash{}%
@@ -4224,7 +4234,7 @@ The
 \IndexCustom{redirectee constructor}{constructor!redirectee}
 for this declaration is then the constructor denoted by
 \code{$C$<$X_1 \ldots,\ X_m$>} respectively \code{$C$<$X_1 \ldots,\ X_m$>.\id}.
-It is a compile-time error if the static argument list type
+It is a \Error{compile-time error} if the static argument list type
 (\ref{actualArgumentLists})
 of \code{($e_1 \ldots,\ e_p,\ x_1$:\ $e_{p+1}, \ldots,\ x_q$:\ $e_{p+q}$)}
 is not an assignable match for the formal parameter list of the redirectee.
@@ -4256,12 +4266,13 @@ from a redirecting generative constructor $q$ if{}f
 $q'$ is the redirectee constructor of $q$,
 or $q''$ is the redirectee constructor of $q$
 and $q'$ is redirection-reachable from $q''$.
-It is a compile-time error if a redirecting generative constructor
+It is a \Error{compile-time error} if a redirecting generative constructor
 is redirection-reachable from itself.
 
 \LMHash{}%
 When $\ConstMetavar$ is \CONST,
-it is a compile-time error if the redirectee is not a constant constructor.
+it is a
+\Error{compile-time error} if the redirectee is not a constant constructor.
 Moreover, when $\ConstMetavar$ is \CONST, each
 $e_i,\ i \in 1 .. p+q$,
 must be a potentially constant expression (\ref{constantConstructors}).
@@ -4349,9 +4360,9 @@ a term that contains a function expression as a subterm, e.g.,
 An initializer of the form \code{$v$ = $e$} is equivalent to
 an initializer of the form \code{\THIS.$v$ = $e$},
 and both forms are called \Index{instance variable initializers}.
-It is a compile-time error if the enclosing class
+It is a \Error{compile-time error} if the enclosing class
 does not declare an instance variable named $v$.
-It is a compile-time error unless the static type of $e$
+It is a \Error{compile-time error} unless the static type of $e$
 is assignable to the declared type of $v$.
 
 \LMHash{}%
@@ -4366,7 +4377,7 @@ respectively
 
 \noindent{}%
 Let $S$ be the superclass of the enclosing class of $s$.
-It is a compile-time error if class $S$ does not declare
+It is a \Error{compile-time error} if class $S$ does not declare
 a generative constructor named $S$ (respectively \code{$S$.\id}).
 Otherwise, the static analysis of $s$ is performed
 as specified in Section~\ref{bindingActualsToFormals},
@@ -4383,22 +4394,22 @@ in the header of the current class.
 \LMHash{}%
 Let \DefineSymbol{k} be a generative constructor.
 Then $k$ may include at most one superinitializer in its initializer list
-or a compile-time error occurs.
+or a \Error{compile-time error} occurs.
 If no superinitializer is provided,
 an implicit superinitializer of the form \SUPER{}() is added
 at the end of $k$'s initializer list,
 unless the enclosing class is class \code{Object}.
-It is a compile-time error if a superinitializer appears
+It is a \Error{compile-time error} if a superinitializer appears
 in $k$'s initializer list at any other position than at the end.
-It is a compile-time error if more than one initializer corresponding
+It is a \Error{compile-time error} if more than one initializer corresponding
 to a given instance variable appears in $k$'s initializer list.
-It is a compile-time error if $k$'s initializer list contains
+It is a \Error{compile-time error} if $k$'s initializer list contains
 an initializer for a variable that is initialized by means of
 an initializing formal of $k$.
-It is a compile-time error if $k$'s initializer list contains
+It is a \Error{compile-time error} if $k$'s initializer list contains
 an initializer for a final variable $f$ whose declaration includes
 an initialization expression.
-It is a compile-time error if $k$ includes an initializing formal
+It is a \Error{compile-time error} if $k$ includes an initializing formal
 for a final variable $f$ whose declaration includes
 an initialization expression.
 
@@ -4411,16 +4422,16 @@ that does not have an initializing expression,
 where $v$ is not initialized via an initializing formal of $k$,
 and $v$ is not initialized via an initializer list entry of $k$.
 In this situation,
-a compile-time error occurs if any of the following criteria holds:
+a \Error{compile-time error} occurs if any of the following criteria holds:
 
 \begin{itemize}
 \item The type of $v$ is potentially non-nullable
   (\ref{typeNullability}).
-\item $v$ is final.  
+\item $v$ is final.
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error if $k$'s initializer list contains
+It is a \Error{compile-time error} if $k$'s initializer list contains
 an initializer for a variable that is not
 an instance variable declared in the immediately surrounding class.
 
@@ -4431,7 +4442,7 @@ even if it is not final.%
 }
 
 \LMHash{}%
-It is a compile-time error if a generative constructor of class \code{Object}
+It is a \Error{compile-time error} if a generative constructor of class \code{Object}
 includes a superinitializer.
 
 
@@ -4605,11 +4616,19 @@ the form \code{\FACTORY\,\,$M$} or
 the form \code{\FACTORY\,\,$M$.\id}
 is $M$ if $M$ is not a generic type;
 otherwise the return type is
-\code{$M$<$T_1, \ldots,\ T_n$>}
-where $T_1, \ldots, T_n$ are the type parameters of the enclosing class.
+\code{$M$<\List{X}{1}{s}>}
+where \List{X}{1}{s} are the type parameters of the enclosing class.
+
+\commentary{%
+In particular, it is an error for a factory constructor to return an expression
+whose type is potentially nullable,
+except that a factory constructor in the class \code{Null},
+had it existed,
+could return an expression of type \code{Null}.%
+}
 
 \LMHash{}%
-It is a compile-time error if $M$ is not the name of
+It is a \Error{compile-time error} if $M$ is not the name of
 %% TODO(eernst): Come Dart 3.0, add 'mixin'.
 the immediately enclosing class or enum.
 
@@ -4678,14 +4697,14 @@ where $R$ is of one of the forms
 \code{$T$<$S_1 \ldots,\ S_p$>.\id}.
 
 \LMHash{}%
-It is a compile-time error if $T$ does not denote
+It is a \Error{compile-time error} if $T$ does not denote
 a class accessible in the current scope.
 If $T$ does denote such a class $D$,
-it is a compile-time error if $R$ does not denote a constructor.
+it is a \Error{compile-time error} if $R$ does not denote a constructor.
 % It is by induction sufficient to check for abstractness one level down,
 % because it is an error on the redirectee if this occurs after multiple
 % redirections:
-Otherwise, it is a compile-time error
+Otherwise, it is a \Error{compile-time error}
 if $R$ denotes a generative constructor and $D$ is abstract.
 Otherwise, the
 \IndexCustom{redirectee constructor}{constructor!redirectee}
@@ -4697,7 +4716,7 @@ from a redirecting factory constructor $q$ if{}f
 $q'$ is the redirectee constructor of $q$,
 or $q''$ is the redirectee constructor of $q$
 and $q'$ is redirection-reachable from $q''$.
-It is a compile-time error if a redirecting factory constructor
+It is a \Error{compile-time error} if a redirecting factory constructor
 is redirection-reachable from itself.
 
 \LMHash{}%
@@ -4707,7 +4726,7 @@ Let $\argumentList{T}$ be the static argument list type
 when $k$ takes no named arguments, and
 \code{($T_1 \ldots,\ T_n,\ T_{n+1}\ x_{n+1},\ \ldots,\ T_{n+k}\ x_{n+k}$)}
 when $k$ takes some named arguments.
-It is a compile-time error if $\argumentList{T}$
+It is a \Error{compile-time error} if $\argumentList{T}$
 is not a subtype match for the formal parameter list of the redirectee.
 
 \rationale{%
@@ -4734,7 +4753,7 @@ the redirectee constructor is omitted
 }
 
 \LMHash{}%
-It is a compile-time error if $k$ explicitly specifies
+It is a \Error{compile-time error} if $k$ explicitly specifies
 a default value for an optional parameter.
 
 \rationale{%
@@ -4744,7 +4763,8 @@ Hence, default values are disallowed.%
 }
 
 \LMHash{}%
-It is a compile-time error if a formal parameter of $k'$ has a default value
+It is a
+\Error{compile-time error} if a formal parameter of $k'$ has a default value
 whose type is not a subtype of the type annotation
 on the corresponding formal parameter in $k$.
 
@@ -4769,7 +4789,7 @@ However, redirecting factories have several advantages:
 }
 
 \LMHash{}%
-It is a compile-time error if $k$ is prefixed with the \CONST{} modifier
+It is a \Error{compile-time error} if $k$ is prefixed with the \CONST{} modifier
 but $k'$ is not a constant constructor (\ref{constantConstructors}).
 
 \LMHash{}%
@@ -4778,7 +4798,7 @@ in the declaration of $k$.
 Let \DefineSymbol{\List{X}{1}{m}} be the formal type parameters declared by
 the class that contains the declaration of $k'$.
 Let \DefineSymbol{F'} be the function type of $k'$ (\ref{constructors}).
-It is a compile-time error if $[T_1/X_1, \ldots, T_m/X_m]F'$
+It is a \Error{compile-time error} if $[T_1/X_1, \ldots, T_m/X_m]F'$
 is not a subtype of the function type of $k$.
 
 \commentary{%
@@ -4850,8 +4870,12 @@ This section is henceforth concerned with
 non-redirecting generative constant constructors.
 
 \LMHash{}%
-It is a compile-time error if a non-redirecting generative constant constructor
-is declared by a class that has a instance variable which is not final.
+It is a
+\Error{compile-time error} if a non-redirecting generative constant constructor
+is declared by a class that has an instance variable which is not final.
+It is a
+\Error{compile-time error} if a non-redirecting generative constant constructor
+is declared by a class that has an instance variable which is late and final.
 
 \commentary{%
 The above refers to both locally declared and inherited instance variables.%
@@ -4860,7 +4884,7 @@ The above refers to both locally declared and inherited instance variables.%
 \LMHash{}%
 If a non-redirecting generative constant constructor \DefineSymbol{k}
 is declared by a class $C$,
-it is a compile-time error
+it is a \Error{compile-time error}
 for an instance variable declared in $C$
 to have an initializing expression that is not a constant expression.
 
@@ -4877,21 +4901,21 @@ The superinitializer that appears, explicitly or implicitly,
 in the initializer list of a constant constructor
 must specify a generative constant constructor of
 the superclass of the immediately enclosing class,
-or a compile-time error occurs.
+or a \Error{compile-time error} occurs.
 
 \LMHash{}%
 Any expression that appears within
 the initializer list of a constant constructor
 must be a potentially constant expression
 (\ref{constants}),
-or a compile-time error occurs.
+or a \Error{compile-time error} occurs.
 
 \LMHash{}%
 When a constant constructor \DefineSymbol{k} is invoked from
 a constant object expression,
-it is a compile-time error if
+it is a \Error{compile-time error} if
 the invocation of $k$ at run time would throw an exception,
-and it is a compile-time error if
+and it is a \Error{compile-time error} if
 substitution of the actual arguments for the formal parameters
 yields an initializing expression $e$ in the initializer list of $k$
 which is not a constant expression.
@@ -4966,7 +4990,7 @@ If no \EXTENDS{} clause is specified, then either:
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error to specify an \EXTENDS{} clause
+It is a \Error{compile-time error} to specify an \EXTENDS{} clause
 for class \code{Object}.
 
 \begin{grammar}
@@ -4981,7 +5005,7 @@ The scope of the \EXTENDS{} and \WITH{} clauses of a class $C$ is
 the type-parameter scope of $C$.
 
 \LMHash{}%
-It is a compile-time error if the type
+It is a \Error{compile-time error} if the type
 in the \EXTENDS{} clause of a class
 which is declared in a non-system library
 is not a class building type
@@ -5013,7 +5037,7 @@ A class $S$ is a \Index{superclass} of a class $C$ if{}f either:
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error if a class $C$ is a superclass of itself.
+It is a \Error{compile-time error} if a class $C$ is a superclass of itself.
 
 
 \subsubsection{Inheritance and Overriding}
@@ -5178,15 +5202,15 @@ The scope of the \IMPLEMENTS{} clause of a class $C$ is
 the type-parameter scope of $C$.
 
 \LMHash{}%
-It is a compile-time error if an element
+It is a \Error{compile-time error} if an element
 in the type list of an \IMPLEMENTS{} clause
 that occurs in a non-system library
 is not a class building type
 (\ref{classBuildingTypes}).
-It is a compile-time error if two elements in said type list
+It is a \Error{compile-time error} if two elements in said type list
 %% TODO(eernst): Refer to nnbd notion of 'same type'.
 specifies the same type.
-It is a compile-time error if the superclass of a class $C$ is
+It is a \Error{compile-time error} if the superclass of a class $C$ is
 one of the elements of the type list of the \IMPLEMENTS{} clause of $C$.
 
 \rationale{%
@@ -5200,7 +5224,7 @@ called to her or his attention.%
 }
 
 \LMHash{}%
-It is a compile-time error if a class $C$ has two superinterfaces
+It is a \Error{compile-time error} if a class $C$ has two superinterfaces
 that are different instantiations of the same generic class.
 \commentary{%
 For example, a class can not have
@@ -5210,7 +5234,7 @@ directly or indirectly.%
 
 \LMHash{}%
 When a generic class $C$ declares a type parameter $X$,
-it is a compile-time error if $X$ occurs in a non-covariant position
+it is a \Error{compile-time error} if $X$ occurs in a non-covariant position
 % Could say `a direct superinterface', but it is easy to see that it is
 % enough to check direct superinterfaces, and it is then true
 % for indirect ones as well.
@@ -5222,7 +5246,7 @@ in its \EXTENDS{} or \IMPLEMENTS{} clause.%
 }
 
 \LMHash{}%
-It is a compile-time error if the interface of a class $C$ is
+It is a \Error{compile-time error} if the interface of a class $C$ is
 a superinterface of itself.
 
 \commentary{%
@@ -5248,20 +5272,20 @@ except for operator \code{[]=} whose basename is \code{[]}.
 
 \LMHash{}%
 Let \DefineSymbol{C} be a class.
-It is a compile-time error if $C$
+It is a \Error{compile-time error} if $C$
 declares a constructor named \code{$C$.$n$} and
 a static member with basename $n$.
-It is a compile-time error if $C$
+It is a \Error{compile-time error} if $C$
 declares a static member with basename $n$ and
 the interface of $C$ has an instance member with basename $n$.
-It is a compile-time error if the interface of $C$
+It is a \Error{compile-time error} if the interface of $C$
 has an instance method named $n$ and an instance setter with basename $n$.
-It is a compile-time error if $C$ declares a static method named $n$
+It is a \Error{compile-time error} if $C$ declares a static method named $n$
 and a static setter with basename $n$.
 
 \LMHash{}%
 When \DefineSymbol{C} is a mixin or an extension,
-the compile-time errors occur according to the same rules.
+the \Error{compile-time errors} occur according to the same rules.
 \commentary{%
 This is redundant in some cases.
 For instance, it is already an error for a mixin to declare a constructor.
@@ -5469,7 +5493,7 @@ Let $M_0$ be the set of all member signatures declared by \List{I}{1}{k}.
   a member signature named \id{} which is accessible to $L$,
   let $m$ be the combined member signature named \id{}
   from \List{I}{1}{k} with respect to $L$.
-  It is a compile-time error
+  It is a \Error{compile-time error}
   if the computation of this combined member signature failed.
   Otherwise, $M$ contains $m$.
 \end{itemize}
@@ -5791,7 +5815,8 @@ $I$ \Index{inherits} all members of $\inherited{I, L}$
 and $I$ \Index{overrides} $m'$ if $m' \in \overrides{I, L}$.
 
 \LMHash{}%
-All the compile-time errors pertaining to the overriding of instance members
+All the \Error{compile-time errors} pertaining to
+the overriding of instance members
 given in section~\ref{classes} hold for overriding between interfaces as well.
 
 \LMHash{}%
@@ -5804,7 +5829,7 @@ from the direct superinterfaces
 in the textual order that they are declared,
 with respect to $L$
 (\ref{combinedMemberSignatures}).
-It is a compile-time error
+It is a \Error{compile-time error}
 if the computation of said combined member signature fails.
 
 
@@ -5840,14 +5865,6 @@ if{}f the following criteria are all satisfied:
     and $m$ may accept 1, 2, 3, or 4 positional arguments, but not vice versa.
     This is a built-in property of the function type subtype rules.
   }
-\item
-  %% TODO(eernst): Come nnbd, this warning is removed.
-  If $m$ and $m'$ are both methods,
-  $p$ is an optional parameter of $m$,
-  $p'$ is the parameter of $m'$ corresponding to $p$,
-  $p$ has default value $d$ and $p'$ has default value $d'$,
-  then $d$ and $d'$ must be identical,
-  or a static warning occurs.
 \end{itemize}
 
 \commentary{%
@@ -5869,7 +5886,7 @@ the relation to a single superinterface.%
 A mixin describes the difference between a class and its superclass.
 A mixin is either derived from an existing class declaration
 or introduced by a mixin declaration.
-It is a compile-time error to derive a mixin from
+It is a \Error{compile-time error} to derive a mixin from
 a class that declares a generative constructor,
 or from a class that has a superclass other than \code{Object}.
 
@@ -5892,7 +5909,7 @@ as described in the following section.
 \end{grammar}
 
 \LMHash{}%
-It is a compile-time error if an element in
+It is a \Error{compile-time error} if an element in
 the type list of the \WITH{} clause of a mixin application
 that occurs in a non-system library
 is not a class building type
@@ -5912,8 +5929,9 @@ Let $D$ be a mixin application class declaration of the form
 \end{normativeDartCode}
 
 \LMHash{}%
-It is a compile-time error if $S$ is an enumerated type (\ref{enums}).
-It is a compile-time error if any of $M_1, \ldots, M_k$ is an enumerated type
+It is a \Error{compile-time error} if $S$ is an enumerated type (\ref{enums}).
+It is a
+\Error{compile-time error} if any of $M_1, \ldots, M_k$ is an enumerated type
 (\ref{enums}).
 
 \LMHash{}%
@@ -5946,7 +5964,7 @@ by the mixin application of the mixin of $M_n$ to the class $X$ with name $N$.
 In either case, let $K$ be a class declaration with
 the same constructors, superclass, interfaces and instance members as
 the defined class.
-It is a compile-time error if the declaration of $K$ would cause
+It is a \Error{compile-time error} if the declaration of $K$ would cause
 a compile-time error.
 % TODO(eernst): Not completely!
 % We do not want super-invocations on covariant implementations
@@ -5974,8 +5992,9 @@ for static member declarations.
 
 %% TODO(eernst): Change this paragraph if we allow factory constructors.
 \LMHash{}%
-It is a compile-time error to declare a constructor in a mixin declaration.
-It is a compile-time error if a mixin declaration declares
+It is a
+\Error{compile-time error} to declare a constructor in a mixin declaration.
+It is a \Error{compile-time error} if a mixin declaration declares
 an instance variable without an initializing expression
 which is final or whose type is potentially non-nullable
 (\ref{typeNullability}),
@@ -5996,7 +6015,7 @@ Let $M$ be a \MIXIN{} declaration of the form
 \end{normativeDartCode}
 
 \LMHash{}%
-A compile-time error occurs if
+A \Error{compile-time error} occurs if
 the declaration of $M$ occurs in a non-system library,
 and any of the types $T_1$ through $T_n$
 or $I_1$ through $I_k$ is not a class building type
@@ -6012,7 +6031,7 @@ Let $M_S$ be the interface declared by the following class declaration:
 
 \LMHash{}%
 In this declaration, $M_{\metavar{super}}$ is a fresh name.
-It is a compile-time error for the mixin declaration if the $M_S$
+It is a \Error{compile-time error} for the mixin declaration if the $M_S$
 class declaration would cause a compile-time error.
 
 \commentary{%
@@ -6049,7 +6068,8 @@ except that all superinvocations are treated
 as if \SUPER{} were a valid expression with static type $M_S$.
 
 \LMHash{}%
-It is a compile-time error for the mixin $M$ if this class declaration $N$
+It is a
+\Error{compile-time error} for the mixin $M$ if this class declaration $N$
 would cause a compile-time error.
 
 \commentary{%
@@ -6076,7 +6096,7 @@ and the instance members declared in $M$ as
 \IndexCustom{mixin member declarations}{mixin!member declaration}.
 
 \LMHash{}%
-It is possible to 
+It is possible to
 \IndexCustom{derive a mixin from a class}{%
   mixin!derived from a class}.
 Consider a class declaration of the following form:
@@ -6098,7 +6118,7 @@ Assume that \metavar{members} includes the declaration $D$
 which does not have the modifier \LATE,
 and that $D$ declares an instance variable $v$
 which does not have an initializing expression.
-It is then a compile-time error if
+It is then a \Error{compile-time error} if
 the type of $v$ is potentially non-nullable
 (\ref{typeNullability}).
 
@@ -6118,9 +6138,10 @@ $M$ be a mixin with \NoIndex{required superinterface}s \List{T}{1}{n},
 and let $N$ be a name.
 
 \LMHash{}%
-It is a compile-time error to apply $M$ to $S$ if $S$ does not implement,
+It is a
+\Error{compile-time error} to apply $M$ to $S$ if $S$ does not implement,
 directly or indirectly, all of \List{T}{1}{n}.
-It is a compile-time error if any of \metavar{members} contains a
+It is a \Error{compile-time error} if any of \metavar{members} contains a
 super-invocation of a member $m$ \commentary{(for example \code{super.foo},
 \code{super + 2}, or \code{super[1] = 2})}, and $S$ does not have a concrete
 implementation of $m$ which is a valid override of the member $m$ in
@@ -6279,7 +6300,7 @@ of a given extension, an implicit invocation can use it.%
 }
 
 \LMHash{}%
-It is a compile-time error if the current library has
+It is a \Error{compile-time error} if the current library has
 a deferred import of a library $L'$
 such that the imported namespace from $L'$ contains
 a name denoting an extension.
@@ -6356,7 +6377,7 @@ declaration.
 Member naming conflict errors may occur in $D$
 in situations that also occur in classes and mixins
 (\ref{classMemberConflicts}).
-Moreover, a compile-time error occurs in the following situations:
+Moreover, a \Error{compile-time error} occurs in the following situations:
 
 \begin{itemize}
 \item $D$ declares a member whose basename is \code{E}.
@@ -6476,13 +6497,13 @@ where \List{U}{1}{s} is the result of instantiation to bound
 on the type parameters of $E$
 (\ref{instantiationToBound}).
 %
-A compile-time error occurs unless
+A \Error{compile-time error} occurs unless
 \SubtypeNE{T_j}{[T_1/X_1, \ldots, T_s/X_s]B_j},
 $j \in 1 .. s$
 (\commentary{that is, the bounds cannot be violated}).
 %
-A compile-time error occurs unless the static type of $e$ is assignable to
-the instantiated \ON{} type of $a$.
+A \Error{compile-time error} occurs unless the static type of $e$
+is assignable to the instantiated \ON{} type of $a$.
 \commentary{%
 Note that a compile-time error occurs as well
 if the static type of $e$ is \VOID{}
@@ -6490,7 +6511,7 @@ if the static type of $e$ is \VOID{}
 }
 
 \LMHash{}%
-It is a compile-time error if an extension application occurs
+It is a \Error{compile-time error} if an extension application occurs
 in a location where it is \emph{not} the syntactic receiver of
 a simple or composite member invocation
 (\ref{memberInvocations}).
@@ -6523,7 +6544,7 @@ whose receiver $r$ is an extension application of the form
 (\commentary{which is \code{$E$($e$)} when $k$ is zero})
 whose corresponding member name is \DefineSymbol{n},
 and assume that $r$ has no compile-time errors.
-A compile-time error occurs unless the extension denoted by $E$
+A \Error{compile-time error} occurs unless the extension denoted by $E$
 declares a member named $n$.
 Otherwise let \DefineSymbol{\List{X}{1}{k}} be
 the type parameters of said extension.
@@ -6932,7 +6953,7 @@ of an extension $E$ with \ON{} type $T_{on}$,
 the static type of \THIS{} is $T_{on}$.
 
 \LMHash{}%
-A compile-time error occurs if the body of an extension member
+A \Error{compile-time error} occurs if the body of an extension member
 contains \SUPER.
 
 \commentary{%
@@ -7030,7 +7051,8 @@ An expression $e$ of the form \code{$a$.\id}
 where \id{} is an identifier is then known as an
 \IndexCustom{extension property extraction}{%
   extension!property extraction}.
-It is a compile-time error unless $E$ declares an instance member named \id.
+It is a
+\Error{compile-time error} unless $E$ declares an instance member named \id.
 If said instance member is a method then
 $e$ has the static type $[S_1/Y_1, \ldots, S_m/Y_m]F$,
 where $F$ is the function type of said method declaration.
@@ -7235,7 +7257,7 @@ or the interface of $S$ has a method named \CALL,
 $i$ is specified elsewhere
 (\ref{functionExpressionInvocation}).
 Otherwise, if $S$ has a non-method instance member with basename \CALL{}
-then $i$ is a compile-time error.
+then $i$ is a \Error{compile-time error}.
 Otherwise, $i$ is treated as the expression $i'$ which is
 
 \noindent
@@ -7250,7 +7272,7 @@ not $i'$.%
 }
 
 \LMHash{}%
-It is a compile-time error unless $i'$ is an implicit invocation of
+It is a \Error{compile-time error} unless $i'$ is an implicit invocation of
 an extension instance method named \CALL.
 
 \commentary{%
@@ -7316,7 +7338,7 @@ $m$ \CLASS{} $E$ \{
 \end{normativeDartCode}
 
 \commentary{%
-It is also a compile-time error to subclass, mix-in or implement an enum
+It is also a \Error{compile-time error} to subclass, mix-in or implement an enum
 or to explicitly instantiate an enum.
 These restrictions are given in normative form
 in sections \ref{superclasses}, \ref{superinterfaces}, \ref{mixinApplication}
@@ -7362,8 +7384,8 @@ $X_1\ \EXTENDS\ B_1, \ldots,\ X_m\ \EXTENDS\ B_m$,
 and a parameterized type $T$ of the form \code{$C$<$T_1, \ldots,\ T_l$>}.
 
 \LMHash{}%
-It is a compile-time error if $m \not= l$.
-It is a compile-time error if $T$ is not well-bounded
+It is a \Error{compile-time error} if $m \not= l$.
+It is a \Error{compile-time error} if $T$ is not well-bounded
 (\ref{superBoundedTypes}).
 
 \LMHash{}%
@@ -7400,8 +7422,8 @@ Consider a function invocation expression of the form
 where the static type of \code{f} is a generic function type
 with formal type parameters
 $X_1\ \EXTENDS\ B_1, \ldots,\ X_m\ \EXTENDS\ B_m$.
-It is a compile-time error if $m \not= l$.
-It is a compile-time error if there exists a $j$
+It is a \Error{compile-time error} if $m \not= l$.
+It is a \Error{compile-time error} if there exists a $j$
 such that $T_j$ is not a subtype of $[T_1/X_1, \ldots, T_m/X_m]B_j$.
 
 \commentary{%
@@ -7422,7 +7444,8 @@ the corresponding actual type argument.%
 A type parameter $T$ may be suffixed with an \EXTENDS{} clause
 that specifies the \Index{upper bound} for $T$.
 If no \EXTENDS{} clause is present, the upper bound is \code{Object}.
-It is a compile-time error if a type parameter is a supertype of its upper bound
+It is a
+\Error{compile-time error} if a type parameter is a supertype of its upper bound
 when that upper bound is itself a type variable.
 
 \commentary{%
@@ -7763,10 +7786,10 @@ A type $T$ is \Index{well-bounded} if{}f
 it is either regular-bounded or super-bounded.
 
 \LMHash{}%
-Any use of a type $T$ which is not well-bounded is a compile-time error.
+Any use of a type $T$ which is not well-bounded is a \Error{compile-time error}.
 
 \LMHash{}%
-It is a compile-time error if a parameterized type $T$ is super-bounded
+It is a \Error{compile-time error} if a parameterized type $T$ is super-bounded
 when it is used in any of the following ways:
 \begin{itemize}
 \item $T$ is an immediate subterm of a new expression
@@ -8094,7 +8117,7 @@ because all type parameters may be subject to instantiation to bound.%
 }
 
 \LMHash{}%
-It is a compile-time error
+It is a \Error{compile-time error}
 if a formal type parameter bound $B$ contains a raw type $T$,
 unless $T$ has simple bounds.
 
@@ -8116,7 +8139,7 @@ which denotes a generic class or a generic type alias
 (\commentary{so $T$ is raw}).
 Then $T$ is equivalent to the parameterized type which is
 the result obtained by applying instantiation to bound to $T$.
-It is a compile-time error if the instantiation to bound fails.
+It is a \Error{compile-time error} if the instantiation to bound fails.
 
 \commentary{%
 This rule is applicable for all occurrences of raw types,
@@ -8263,7 +8286,7 @@ because \code{Inv<int>} is not a subtype of \code{Inv<num>}.%
 }
 
 \LMHash{}%
-A raw type $T$ is a compile-time error if instantiation to bound on $T$
+A raw type $T$ is a \Error{compile-time error} if instantiation to bound on $T$
 yields a type which is not well-bounded
 (\ref{superBoundedTypes}).
 
@@ -8374,7 +8397,7 @@ Metadata consists of a series of annotations,
 each of which begin with the character \lit{@},
 followed by a constant expression $e$ derivable from
 \synt{metadatum}.
-It is a compile-time error if $e$ is not one of the following:
+It is a \Error{compile-time error} if $e$ is not one of the following:
 \begin{itemize}
 \item A reference to a constant variable.
 \item A call to a constant constructor.
@@ -8737,7 +8760,7 @@ are the following:
   % \ref{const} requires each actual argument to be a constant expression,
   % but here we also catch errors during evaluation, e.g., `C(1, 0)` where
   % `C(double x, double y): z = x / y;`.
-  It is a compile-time error if a constant object expression is
+  It is a \Error{compile-time error} if a constant object expression is
   not a constant expression (\ref{const}).
 
 \item
@@ -8912,7 +8935,7 @@ are the following:
   and $T$ is a constant type expression,
   and it is further constant if $e$ is constant.
   \commentary{%
-    It is a compile-time error to evaluate the constant expression
+    It is a \Error{compile-time error} to evaluate the constant expression
     if the cast operation would throw, that is,
     if $e$ evaluates to an object which is not the null object
     and not of type $T$.%
@@ -8973,15 +8996,15 @@ is one of:
 % If that happens in a const invociation, it's a compile-time error.
 
 \LMHash{}%
-It is a compile-time error if an expression is required to be
+It is a \Error{compile-time error} if an expression is required to be
 a constant expression,
 but its evaluation would throw an exception.
-It is a compile-time error if an assertion is evaluated as part of
+It is a \Error{compile-time error} if an assertion is evaluated as part of
 a constant object expression evaluation,
 and the assertion would throw an exception.
 
 \LMHash{}%
-It is a compile-time error if the value of a constant expression
+It is a \Error{compile-time error} if the value of a constant expression
 depends on itself.
 
 \commentary{%
@@ -9320,7 +9343,7 @@ then evaluation of $l$ proceeds as follows:
   representing the numeric value $i - 2^{64}$,
   \item{} Otherwise $l$ evaluates to an instance of the \code{int} class
   representing the numeric value $i$.
-  It is a compile-time error if the integer $i$ cannot be represented
+  It is a \Error{compile-time error} if the integer $i$ cannot be represented
   exactly by an instance of \code{int}.
 \end{itemize}
 
@@ -9342,7 +9365,7 @@ as specified by the IEEE 754 standard.
 \LMHash{}%
 An integer literal with static type \code{double} and numeric value $i$
 evaluates to an instance of the \code{double} class representing the value $i$.
-It is a compile-time error if the value $i$
+It is a \Error{compile-time error} if the value $i$
 cannot be represented \emph{precisely} by an instance of \code{double}.
 
 \commentary{%
@@ -9356,11 +9379,11 @@ is the precise value of the \code{double} instance.%
 }
 
 \LMHash{}%
-It is a compile-time error for a class to extend, mix in or implement
+It is a \Error{compile-time error} for a class to extend, mix in or implement
 \code{int}.
-It is a compile-time error for a class to extend, mix in or implement
+It is a \Error{compile-time error} for a class to extend, mix in or implement
 \code{double}.
-It is a compile-time error for any class
+It is a \Error{compile-time error} for any class
 other than \code{int} and \code{double} to extend, mix in or implement
 \code{num}.
 
@@ -9388,7 +9411,7 @@ They are the \IndexCustom{boolean literals}{literal!boolean}.
 Both \NoIndex{true} and \NoIndex{false} are instances of
 the built-in class \code{bool},
 and there are no other objects that implement \code{bool}.
-It is a compile-time error for a class to
+It is a \Error{compile-time error} for a class to
 extend, mix in or implement \code{bool}.
 
 \commentary{%
@@ -9683,9 +9706,9 @@ The escapes are:
 \item
   \syntax{`\\u{' <HEX\_DIGIT\_SEQUENCE> `}'} is
   the Unicode code point represented by the
-  \syntax{<HEX\_DIGIT\_SEQUENCE>}.
-  It is a compile-time error if the value of the
-  \syntax{<HEX\_DIGIT\_SEQUENCE>}
+  \synt{HEX\_DIGIT\_SEQUENCE}.
+  It is a \Error{compile-time error} if the value of the
+  \synt{HEX\_DIGIT\_SEQUENCE}
   is not a valid Unicode code point.
   \commentary{For example,}
   {\color{commentaryColor}{\syntax{`\\u{0A}'}}\color{normativeColor}}
@@ -9712,10 +9735,10 @@ A line break introduces a single newline character (U+000A)
 into the string value.
 
 \LMHash{}%
-It is a compile-time error if a non-raw string literal contains
+It is a \Error{compile-time error} if a non-raw string literal contains
 a character sequence of the form \syntax{`\\x'} that is not followed by
 a sequence of two hexadecimal digits.
-It is a compile-time error if a non-raw string literal contains
+It is a \Error{compile-time error} if a non-raw string literal contains
 a character sequence of the form \syntax{`\\u'} that is not followed by
 either a sequence of four hexadecimal digits,
 or by curly brace delimited sequence of hexadecimal digits.
@@ -9728,7 +9751,7 @@ or by curly brace delimited sequence of hexadecimal digits.
 
 \LMHash{}%
 All string literals evaluate to instances of the built-in class \code{String}.
-It is a compile-time error for a class to
+It is a \Error{compile-time error} for a class to
 extend, mix in or implement \code{String}.
 The \code{String} class overrides the \lit{==} operator inherited from
 the \code{Object} class.
@@ -9823,8 +9846,8 @@ if some of its identifiers begin with an underscore.%
 }
 
 \LMHash{}%
-A symbol literal \code{\#\metavar{op}}
-where \metavar{op} is derived from \synt{operator}
+A symbol literal \code{\#\op}
+where \op{} is derived from \synt{operator}
 evaluates to an instance of \code{Symbol}
 representing that particular operator name.
 
@@ -9979,11 +10002,11 @@ how to obtain zero or more entities,
 of the form \synt{ifElement} or \synt{forElement}.
 
 \LMHash{}%
-It is a compile-time error if
-the \synt{forLoopParts} of a \synt{forElement}
-declares an iteration variable that has
-the modifier \CONST{} or the modifier \LATE,
-using the same rules as with a \FOR{} statement
+Assume that $f$ is a \synt{forElement} whose \synt{forLoopParts}
+declares an iteration variable
+with the modifier \CONST{} or \LATE{}.
+In this situation, a \Error{compile-time error} occurs,
+using the same rules as in a \FOR{} statement
 (\ref{for}).
 
 \commentary{%
@@ -10476,7 +10499,7 @@ If $o_b$ is neither \TRUE{} nor \FALSE{} then a dynamic error occurs.
 
 \LMHash{}%
 \Case{For element}
-Let $P$ be derived from \syntax{<forLoopParts>} and
+Let $P$ be derived from \synt{forLoopParts} and
 let $\ell$ be a \synt{forElement} of the form
 \code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$},
 where `\AWAIT?' indicates that \AWAIT{} may be present or absent.
@@ -10577,7 +10600,7 @@ the inferred type of $e$ in context \code{Iterable<$P$>?}.
   If $S$ is \code{Null} and the spread operator is \lit{...?},
   the inferred element type of $\ell$ is \code{Null}.
 \item
-  Otherwise, a compile-time error occurs.
+  Otherwise, a \Error{compile-time error} occurs.
 \end{itemize}
 \vspace{-5mm}
 \EndCase
@@ -10607,7 +10630,7 @@ In this case $\ell$ is of the form
 where $P$ is derived from \synt{forLoopParts} and
 `\AWAIT?' indicates that \AWAIT{} may be present or absent.
 
-The same compile-time errors occur for $\ell$ as
+The same \Error{compile-time errors} occur for $\ell$ as
 the errors that would occur with the corresponding \FOR{} statement
 \code{\AWAIT?\,\,\FOR\,\,($P$)\,\,\{\}},
 located in the same scope as $\ell$.
@@ -10688,9 +10711,9 @@ is \code{List<$T$>}
 \LMHash{}%
 Let $e$ be a list literal of the form
 \code{<$T$>[\List{\ell}{1}{m}]}.
-It is a compile-time error if a leaf element of $e$ is a
+It is a \Error{compile-time error} if a leaf element of $e$ is a
 \synt{mapElement}.
-It is a compile-time error if, for some $j \in 1 .. m$,
+It is a \Error{compile-time error} if, for some $j \in 1 .. m$,
 $\ell_j$ does not have an element type,
 or the element type of $\ell_j$ may not be assigned to $T$.
 
@@ -10738,9 +10761,9 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 }
 
 \LMHash{}%
-It is a compile-time error
+It is a \Error{compile-time error}
 if an element of a constant list literal is not constant.
-It is a compile-time error if the type argument of a constant list literal
+It is a \Error{compile-time error} if the type argument of a constant list literal
 (\commentary{no matter whether it is explicit or inferred})
 is not a constant type expression
 (\ref{constants}).
@@ -10827,7 +10850,7 @@ a dynamic type error will occur when $a[i]$ is assigned $o_{i-1}$.%
 \LMHash{}%
 Some terms are syntactically ambiguous because they contain a \lit{?}
 which may be considered part of a nullable type
-or part of a \syntax{conditionalExpression}.
+or part of a \synt{conditionalExpression}.
 In all such cases,
 the ambiguity is resolved in favor of the set literal
 and not the map literal.
@@ -10916,7 +10939,7 @@ the first applicable entry in the following list:
   \code{Set<$T_1$>}.
   If $k = 2$ then $e$ is a map literal with static type
   \code{Map<$T_1$,\,\,$T_2$>}.
-  Otherwise a compile-time error occurs.
+  Otherwise a \Error{compile-time error} occurs.
 \item
   When $S$ implements
   (\ref{interfaceSuperinterfaces})
@@ -10928,7 +10951,7 @@ the first applicable entry in the following list:
   When ${\cal L} \not= \emptyset$ (\commentary{that is, $e$ has leaf elements}):
   If $\cal L$ contains a \synt{mapElement}
   as well as an \synt{expressionElement},
-  a compile-time error occurs.
+  a \Error{compile-time error} occurs.
   Otherwise, if $\cal L$ contains an \synt{expressionElement},
   $e$ is a set literal.
   Otherwise $\cal L$ contains a \synt{mapElement}, and $e$ is a map literal.
@@ -11167,7 +11190,7 @@ Then:
   the inferred element type of $\ell$ is \code{Null},
   and the inferred key and value type pair $(\code{Null}, \code{Null})$.
 \item
-  Otherwise, a compile-time error occurs.
+  Otherwise, a \Error{compile-time error} occurs.
 \end{itemize}
 
 \noindent
@@ -11193,7 +11216,7 @@ the inferred type of $e$ in context \code{Iterable<$P_e$>}, and then:
   If $S$ is \code{Null} and the spread operator is \lit{...?},
   the inferred element type of $\ell$ is \code{Null}.
 \item
-  Otherwise, a compile-time error occurs.
+  Otherwise, a \Error{compile-time error} occurs.
 \end{itemize}
 
 \noindent
@@ -11220,7 +11243,7 @@ the inferred type of $e$ in context $P$, and then:
   If $S$ is \code{Null} and the spread operator is \lit{...?},
   the inferred key and value type pair $(\code{Null}, \code{Null})$.
 \item
-  Otherwise, a compile-time error occurs.
+  Otherwise, a \Error{compile-time error} occurs.
 \end{itemize}
 \vspace{-5mm}
 \EndCase
@@ -11280,7 +11303,7 @@ In this case $\ell$ is of the form
 where $P$ is derived from \synt{forLoopParts} and
 `\AWAIT?' indicates that \AWAIT{} may be present or absent.
 
-The same compile-time errors occur for $\ell$ as
+The same \Error{compile-time errors} occur for $\ell$ as
 the errors that would occur with the corresponding \FOR{} statement
 \code{\AWAIT?\,\,\FOR\,\,($P$)\,\,\{\}},
 located in the same scope as $\ell$.
@@ -11391,7 +11414,7 @@ and the context type for \metavar{collection} is $P$.
     the least upper bound of the key types of the elements and $V$ is
     the least upper bound of the value types.
   \item
-    Otherwise, a compile-time error occurs.
+    Otherwise, a \Error{compile-time error} occurs.
     \commentary{In this case the literal cannot be disambiguated.}
   \end{itemize}
 \end{itemize}
@@ -11451,9 +11474,9 @@ is \code{Set<$T$>}
 \LMHash{}%
 Let $e$ be a set literal of the form
 \code{<$T$>\{\List{\ell}{1}{m}\}}.
-It is a compile-time error if a leaf element of $e$ is a
+It is a \Error{compile-time error} if a leaf element of $e$ is a
 \synt{mapElement}.
-It is a compile-time error if, for some $j \in 1 .. m$,
+It is a \Error{compile-time error} if, for some $j \in 1 .. m$,
 $\ell_j$ does not have an element type,
 or the element type of $\ell_j$ may not be assigned to $T$.
 
@@ -11513,17 +11536,18 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 }
 
 \LMHash{}%
-It is a compile-time error if
+It is a \Error{compile-time error} if
 a collection literal element in a constant set literal
 is not a constant expression.
 It is a compile-time error if
 an element in a constant set literal
 does not have primitive equality
 (\ref{theOperatorEqualsEquals}).
-It is a compile-time error if two elements of a constant set literal are equal
+It is a
+\Error{compile-time error} if two elements of a constant set literal are equal
 according to their \lit{==} operator
 (\ref{equality}).
-It is a compile-time error if the type argument of a constant set literal
+It is a \Error{compile-time error} if the type argument of a constant set literal
 (\commentary{no matter whether it is explicit or inferred})
 is not a constant type expression
 (\ref{constants}).
@@ -11636,9 +11660,9 @@ is \code{Map<$K$,\,$V$>}
 \LMHash{}%
 Let $e$ be a map literal of the form
 \code{<$K$,\,$V$>\{\List{\ell}{1}{m}\}}.
-It is a compile-time error if a leaf element of $e$ is an
+It is a \Error{compile-time error} if a leaf element of $e$ is an
 \synt{expressionElement}.
-It is a compile-time error if, for some $j \in 1 .. m$,
+It is a \Error{compile-time error} if, for some $j \in 1 .. m$,
 $\ell_j$ does not have a key and value type pair;
 or the key and value type pair of $\ell_j$ is $(K_j, V_j)$,
 and $K_j$ may not be assigned to $K$ or
@@ -11710,16 +11734,17 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 }
 
 \LMHash{}%
-It is a compile-time error
+It is a \Error{compile-time error}
 if a collection literal element in a constant map literal is not constant.
 It is a compile-time error if
 a key in a constant map literal
 does not have primitive equality
 (\ref{theOperatorEqualsEquals}).
-It is a compile-time error if two keys of a constant map literal are equal
+It is a
+\Error{compile-time error} if two keys of a constant map literal are equal
 according to their \lit{==} operator
 (\ref{equality}).
-It is a compile-time error if a type argument of a constant map literal
+It is a \Error{compile-time error} if a type argument of a constant map literal
 (\commentary{no matter whether it is explicit or inferred})
 is not a constant type expression
 (\ref{constants}).
@@ -11810,7 +11835,7 @@ The \Index{throw expression} is used to throw an exception.
 \LMHash{}%
 Consider an expression of the form \code{\THROW\,\,$e$}
 where $e$ is an expression with static type $T$.
-It is a compile-time error unless $T$ is assignable to \code{Object}.
+It is a \Error{compile-time error} unless $T$ is assignable to \code{Object}.
 
 \LMHash{}%
 The static type of a throw expression is \code{Never}.
@@ -12209,7 +12234,7 @@ an occurrence of \THIS{} is a compile-time error
 }
 
 \LMHash{}%
-It is a compile-time error if \THIS{} appears, implicitly or explicitly,
+It is a \Error{compile-time error} if \THIS{} appears, implicitly or explicitly,
 in a top-level function or variable initializer, in a factory constructor,
 or in a static method or variable initializer,
 or in the initializing expression of a non-late instance variable.
@@ -12232,7 +12257,7 @@ the factory constructor invocation.%
 }
 
 \LMHash{}%
-It is a compile-time error if
+It is a \Error{compile-time error} if
 the type $T$ in an instance creation expression of one of the forms
 
 \noindent
@@ -12272,7 +12297,7 @@ or the form
 \code{\NEW{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \LMHash{}%
-It is a compile-time error if $T$ is not
+It is a \Error{compile-time error} if $T$ is not
 a class or a parameterized type accessible in the current scope,
 or if $T$ is a parameterized type which is not a class.
 \commentary{%
@@ -12293,12 +12318,12 @@ If $T$ is not a parameterized type, let $R$ be $T$.
 \item
   If $e$ is of the form
   \code{\NEW{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
-  it is a compile-time error if \code{$R$.\id} is not the name of
+  it is a \Error{compile-time error} if \code{$R$.\id} is not the name of
   a constructor declared by $R$, or \id{} is not accessible.
 \item
   If $e$ is of the form
   \code{\NEW{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
-  it is a compile-time error if $R$ is not the name of
+  it is a \Error{compile-time error} if $R$ is not the name of
   a constructor declared by $R$.
 \end{itemize}
 
@@ -12306,15 +12331,15 @@ If $T$ is not a parameterized type, let $R$ be $T$.
 Let $q$ be the above-mentioned constructor named \code{$R$.\id} or $R$.
 
 \LMHash{}%
-It is a compile-time error if $R$ is abstract
+It is a \Error{compile-time error} if $R$ is abstract
 and $q$ is not a factory constructor.
-It is a compile-time error if $R$ is a non-generic class
+It is a \Error{compile-time error} if $R$ is a non-generic class
 and $T$ is a parameterized type.
 %% We assume that inference has taken place, so actual type arguments
 %% are always given explicitly.
-It is a compile-time error if $R$ is a generic class
+It is a \Error{compile-time error} if $R$ is a generic class
 and $T$ is not a parameterized type.
-It is a compile-time error if $R$ is a generic class,
+It is a \Error{compile-time error} if $R$ is a generic class,
 $T$ is a parameterized type, and $m \not= p$.
 \commentary{That is, the number of type arguments is incorrect.}
 It is a compile-time error if $R$ is a generic class,
@@ -12324,7 +12349,7 @@ and $T$ is not regular-bounded
 
 \LMHash{}%
 If $q$ is a redirecting factory constructor,
-it is a compile-time error if $q$ in some number of
+it is a \Error{compile-time error} if $q$ in some number of
 redirecting factory redirections redirects to itself.
 \commentary{%
 It is possible and allowed for a redirecting factory $q'$
@@ -12339,7 +12364,7 @@ are detected at compile time.%
 Let $S_i$ be the static type of
 the formal parameter of the constructor \code{$R$.\id} (respectively $R$)
 corresponding to the actual argument $a_i$, $i \in 1 .. n+k$.
-It is a compile-time error if the static type of
+It is a \Error{compile-time error} if the static type of
 $a_i, i \in 1 .. n + k$
 is not assignable to $[U_1/X_1, \ldots, U_m/X_m]S_i$.
 \commentary{%
@@ -12468,17 +12493,17 @@ or the form
 \code{\CONST{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
 
 \LMHash{}%
-It is a compile-time error if $T$ is not
+It is a \Error{compile-time error} if $T$ is not
 a class or a parameterized type accessible in the current scope,
 or if $T$ is a parameterized type which is not a class.
-It is a compile-time error if $T$ is a deferred type
+It is a \Error{compile-time error} if $T$ is a deferred type
 (\ref{staticTypes}).
 \commentary{%
 In particular, $T$ must not be a type variable.%
 }
 
 \LMHash{}%
-It is a compile-time error if $a_i$ is not a constant expression
+It is a \Error{compile-time error} if $a_i$ is not a constant expression
 for some $i \in 1 .. n + k$.
 
 \LMHash{}%
@@ -12492,19 +12517,20 @@ If $T$ is not a parameterized type, let $R$ be $T$.
 
 \LMHash{}%
 If $T$ is a parameterized type,
-it is a compile-time error if $U_j$ is not a constant type expression for any
+it is a
+\Error{compile-time error} if $U_j$ is not a constant type expression for any
 $j \in 1 .. m$.
 
 \begin{itemize}
 \item
   If $e$ is of the form
   \code{\CONST{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
-  it is a compile-time error if \code{$R$.\id} is not the name of
+  it is a \Error{compile-time error} if \code{$R$.\id} is not the name of
   a constant constructor declared by $R$, or \id{} is not accessible.
 \item
   If $e$ is of the form
   \code{\CONST{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
-  it is a compile-time error if $R$ is not the name of
+  it is a \Error{compile-time error} if $R$ is not the name of
   a constant constructor declared by $R$.
 \end{itemize}
 
@@ -12516,18 +12542,18 @@ Let $q$ be the above-mentioned constant constructor named \code{$R$.\id} or $R$.
 %% of text in the previous subsection, or just loosely say "exactly the
 %% same errors"..
 \LMHash{}%
-It is a compile-time error if $R$ is abstract
+It is a \Error{compile-time error} if $R$ is abstract
 and $q$ is not a factory constructor.
-It is a compile-time error if $R$ is a non-generic class
+It is a \Error{compile-time error} if $R$ is a non-generic class
 and $T$ is a parameterized type.
 %% We assume that inference has taken place, so actual type arguments
 %% are always given explicitly.
-It is a compile-time error if $R$ is a generic class
+It is a \Error{compile-time error} if $R$ is a generic class
 and $T$ is not a parameterized type.
-It is a compile-time error if $R$ is a generic class,
+It is a \Error{compile-time error} if $R$ is a generic class,
 $T$ is a parameterized type, and $m \not= p$.
 \commentary{That is, the number of type arguments is incorrect.}
-It is a compile-time error if $R$ is a generic class,
+It is a \Error{compile-time error} if $R$ is a generic class,
 $T$ is a parameterized type,
 and $T$ is not regular-bounded
 (\ref{superBoundedTypes}).
@@ -12536,7 +12562,7 @@ and $T$ is not regular-bounded
 Let $S_i$ be the static type of
 the formal parameter of the constructor \code{$R$.\id} (respectively $R$)
 corresponding to the actual argument $a_i$, $i \in 1 .. n+k$.
-It is a compile-time error if the static type of
+It is a \Error{compile-time error} if the static type of
 $a_i, i \in 1 .. n + k$
 is not assignable to $[U_1/X_1, \ldots, U_m/X_m]S_i$.
 \commentary{%
@@ -12608,7 +12634,7 @@ The constructor need only be executed once per call site, at compile time.%
 }
 
 \LMHash{}%
-It is a compile-time error if evaluation of a constant object
+It is a \Error{compile-time error} if evaluation of a constant object
 results in an uncaught exception being thrown.
 
 \commentary{%
@@ -13070,7 +13096,7 @@ an actual argument part of the form
 
 \LMHash{}%
 % We cannot pass the same named parameter twice.
-It is a compile-time error if $q_j = q_k$ for any $j \ne k$.
+It is a \Error{compile-time error} if $q_j = q_k$ for any $j \ne k$.
 
 \commentary{%
 Note that $f$ denotes a function in a semantic sense,
@@ -13110,11 +13136,11 @@ If the static type of $f$ is \DYNAMIC{} bounded or \FUNCTION{} bounded
 no further static checks are performed on the invocation $i$
 (\commentary{apart from separate static checks on subterms like arguments}),
 and the static type of $i$ is \DYNAMIC.
-Otherwise, it is a compile-time error if the static type of $f$ is not
+Otherwise, it is a \Error{compile-time error} if the static type of $f$ is not
 function-type bounded.
 
 \LMHash{}%
-A compile-time error occurs if the static type of $f$ is potentially nullable
+A \Error{compile-time error} occurs if the static type of $f$ is potentially nullable
 and not \DYNAMIC{}
 (\ref{typeNullability}).
 
@@ -13207,11 +13233,11 @@ Figure~\ref{fig:argumentsAndParameters} shows how this situation arises.%
 \LMHash{}%
 % Type inference is assumed complete, so we must have
 % the correct number of type arguments.
-It is a compile-time error if $r \not= s$.
-It is a compile-time error if $r = s$ and for some $j \in 1 .. s$,
+It is a \Error{compile-time error} if $r \not= s$.
+It is a \Error{compile-time error} if $r = s$ and for some $j \in 1 .. s$,
 $A_j \not<: [A_1/X_1, \ldots, A_r/X_s]B_j$.
-It is a compile-time error unless $h \le m \le n$.
-It is a compile-time error unless both of the following are satisfied:
+It is a \Error{compile-time error} unless $h \le m \le n$.
+It is a \Error{compile-time error} unless both of the following are satisfied:
 
 \begin{itemize}
 \item If $l > 0$ then $F$ has named parameters and
@@ -13234,9 +13260,9 @@ and there must be a named argument for each required named parameter.%
 The static type of $i$ is $[A_1/X_1, \ldots, A_r/X_s]S_0$.
 
 \LMHash{}%
-It is a compile-time error if $T_j$ may not be assigned to
+It is a \Error{compile-time error} if $T_j$ may not be assigned to
 $S_j, j \in 1 .. m$.
-It is a compile-time error if $T_{m+j}$ may not be assigned to
+It is a \Error{compile-time error} if $T_{m+j}$ may not be assigned to
 $S_{q_j}, j \in 1 .. l$.
 
 \commentary{%
@@ -13385,7 +13411,7 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
   then $i$ is treated as \code{\NEW\,\,$i$}.
   If $D$ is not a class declaration,
   or it declares a class named $C$ that has no constructor named $C$,
-  a compile-time error occurs.
+  a \Error{compile-time error} occurs.
 \item
   Otherwise, if $D$ is a declaration of
   a local function,
@@ -13428,7 +13454,7 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
 
 \Case{Lexical lookup yields an import prefix}
 When the lexical lookup of \id{} yields an import prefix,
-a compile-time error occurs.
+a \Error{compile-time error} occurs.
 \EndCase
 
 \Case{Lexical lookup yields nothing}
@@ -13479,7 +13505,7 @@ Note that the type argument list is omitted when $r = 0$
 \LMHash{}%
 Consider the situation where $e_f$ denotes a class $C$
 that contains a declaration of a constructor named $C$,
-or it is of the form \code{$e'_f$.\id} 
+or it is of the form \code{$e'_f$.\id}
 or \code{$e'_f$<\metavar{typeArguments}>.\id} where
 $e'_f$ denotes a class $C$ that contains a declaration of
 a constructor named \code{$C$.\id}.
@@ -13497,7 +13523,7 @@ is specified in the section about $i'$
 }
 
 \LMHash{}%
-Otherwise, it is a compile-time error if $e_f$ is a type literal.
+Otherwise, it is a \Error{compile-time error} if $e_f$ is a type literal.
 
 \commentary{%
 This error was already specified elsewhere
@@ -14297,30 +14323,48 @@ Consider a
 $i$ of the form
 
 \noindent
-\code{$e$?.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{%
+$e$?.$m$<\List{A}{1}{r}>(\List{a}{1}{n},\ \PairList{x}{\!\!:\,\,a}{n+1}{n+k})}.
 
 \commentary{%
 Note that non-generic invocations arise as the special case where
 the number of type arguments is zero,
-in which case the type argument list is omitted,
-and similarly for formal type parameter lists (\ref{generics}).%
+in which case the type argument list is omitted
+(\ref{generics}).%
 }
 
+%% TODO(eernst): We are likely to decide that this is an error.
 \LMHash{}%
-A warning occurs if the static type of $e$ is non-nullable.
+A warning occurs if $e$ is a type literal,
+and $i$ is then treated as
+
+\noindent
+\code{%
+$e$.$m$<\List{A}{1}{r}>(\List{a}{1}{n},\ \PairList{x}{\!\!:\,\,a}{n+1}{n+k})}.
+
+\LMHash{}%
+Let $S$ be the static type of $e$.
+A warning occurs if $S$ is non-nullable.
 \commentary{In this case, the \lit{?} is superfluous.}
+Apart from that,
+the static analysis of $i$ yields
+exactly the \Error{same compile-time errors} and warnings as
+the static analysis of the following expression $i'$,
+where $v$ is a fresh variable whose type is \NonNullType{$S$}:
+
+\noindent
+\code{%
+$v$.$m$<\List{A}{1}{r}>(\List{a}{1}{n},\ \PairList{x}{\!\!:\,\,a}{n+1}{n+k})}.
+
+\noindent
+Let $T$ be the static type of $i'$.
+The static type of $i$ is then \code{$T$?}.
 
 \LMHash{}%
-Otherwise, $i$ is treated as
-
-\noindent
-\Let{$v$}{$e$}{$v$\,\,==\,\,\NULL\ ?\ \NULL\ :\ $v$.$m$<$A_1, \ldots,\ A_r$>(}
-
-\noindent
-\code{\qquad{}$a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
-
-\noindent
-which determines the static analysis and dynamic semantics of $i$.
+The dynamic semantics of $i$ is determined by the semantics of other constructs,
+because all conditional ordinary method invocations are eliminated by the
+null-shortening transformation
+(\ref{nullShorteningTransformation}).
 \EndCase
 
 \LMHash{}%
@@ -14344,7 +14388,7 @@ the section about type aliases
 \LMHash{}%
 Otherwise
 (\commentary{when $C$ does not denote a type alias}),
-a compile-time error occurs
+a \Error{compile-time error} occurs
 unless $C$ denotes a class, a mixin, or an extension that declares
 a static member named $m$,
 which we will call the
@@ -14352,7 +14396,7 @@ which we will call the
 of $i$.
 When the denoted member is a static method, let $F$ be its function type;
 when the denoted member is a static getter, let $F$ be its return type;
-when the denoted member is neither, a compile-time error occurs.
+when the denoted member is neither, a \Error{compile-time error} occurs.
 
 \LMHash{}%
 The static analysis of $i$ is then performed
@@ -14414,7 +14458,7 @@ then we say that $i$ is a
 whose static analysis is specified separately below.
 
 \LMHash{}%
-Otherwise, it is a compile-time error if $T$ does not have an accessible
+Otherwise, it is a \Error{compile-time error} if $T$ does not have an accessible
 (\ref{privacy})
 instance member named $m$, unless either:
 
@@ -14564,7 +14608,7 @@ of $e_3$.
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error to invoke an instance method on a type literal
+It is a \Error{compile-time error} to invoke an instance method on a type literal
 that is immediately followed by the token `.' (a period).
 \commentary{%
 For instance, \code{int.toString()} is an error.%
@@ -14580,6 +14624,7 @@ In particular, the syntactic receiver is not evaluated
 to an object---that would not even be possible for an extension.%
 }
 
+%% TODO(eernst): If we decide that C?.id() is an error, remove it.
 \commentary{%
 A member access on a type literal
 (e.g., \code{C.id()}, \code{C.id}, or \code{C?.id()}),
@@ -14815,7 +14860,7 @@ and similarly for formal type parameter lists (\ref{generics}).%
 }
 
 \LMHash{}%
-It is a compile-time error if a method superinvocation occurs
+It is a \Error{compile-time error} if a method superinvocation occurs
 in a top-level function or variable initializer,
 in an instance variable initializer or initializer list,
 in class \code{Object},
@@ -14841,7 +14886,7 @@ let the declaration $D$ be the result of looking up
 the getter $m$ with respect to $L$ in \SuperClass{}
 (\ref{lookup}),
 and let $F$ be the return type of $D$.
-If both lookups failed, a compile-time error occurs.
+If both lookups failed, a \Error{compile-time error} occurs.
 
 \LMHash{}%
 Otherwise (\commentary{when one of the lookups succeeded}),
@@ -14960,19 +15005,26 @@ Consider a \IndexCustom{conditional property extraction expression}{%
   property extraction!conditional}
 $i$ of the form \code{$e$?.\id}.
 
+%% TODO(eernst): We are likely to decide that this is an error.
 \LMHash{}%
-%% TODO(eernst): 'A compile-time error occurs if $e$ is a type literal.'
-%% when we change the rules about type literals as receivers.
-If $e$ is a type literal, $i$ is treated as \code{$e$.\id}.
+A warning occurs if $e$ is a type literal,
+and $i$ is then treated as \code{$e$.\id}.
 
 \LMHash{}%
-A warning occurs if the static type of $e$ is non-nullable.
+Let $S$ be the static type of $e$.
+A warning occurs if $S$ is non-nullable.
 \commentary{In this case, the \lit{?} is superfluous.}
+Apart from that,
+the static analysis of $i$ yields
+exactly the \Error{same compile-time errors} and warnings as
+the static analysis of the expression \code{$v$.\id},
+where $v$ is a fresh variable whose type is \NonNullType{$S$}.
 
 \LMHash{}%
-Otherwise, $i$ is treated as
-\Let{$v$}{$e$}{$v$\,\,==\,\,\NULL\ ?\ \NULL\ :\ $v$.\id},
-which determines the static analysis and dynamic semantics.
+The dynamic semantics of $i$ is determined by the semantics of other constructs,
+because all conditional property extraction expressions are eliminated by the
+null-shortening transformation
+(\ref{nullShorteningTransformation}).
 \EndCase
 
 \LMHash{}%
@@ -14990,7 +15042,7 @@ in the section about type aliases
 (\ref{typedef}).
 
 \LMHash{}%
-A compile-time error occurs
+A \Error{compile-time error} occurs
 unless $C$ denotes a class, a mixin, or an extension that declares
 a static member named $m$,
 which we will call the
@@ -15000,7 +15052,7 @@ If the denoted member is a static getter,
 the static type of $i$ is the return type of said getter;
 if the denoted member is a static method,
 the static type of $i$ is the function type of said method;
-if the denoted member is neither, a compile-time error occurs.
+if the denoted member is neither, a \Error{compile-time error} occurs.
 
 \LMHash{}%
 Evaluation of a static property extraction $i$ of the form \code{$C$.\id}
@@ -15053,7 +15105,7 @@ and when the context type requires a function.%
 Consider an unconditional property extraction $i$
 (\ref{propertyExtraction})
 of the form \code{$e$.\id}.
-It is a compile-time error if \id{} is the name of
+It is a \Error{compile-time error} if \id{} is the name of
 an instance member of the built-in class \code{Object}
 and $e$ is a type literal.
 
@@ -15088,11 +15140,11 @@ then we say that $i$ is a
 whose static analysis is specified separately below.
 
 \LMHash{}%
-Otherwise, it is a compile-time error if $T$ does not have
+Otherwise, it is a \Error{compile-time error} if $T$ does not have
 a method or getter named \id{}
 unless $T$ is \DYNAMIC{} bounded,
 or $T$ is \FUNCTION{} bounded
-(\ref{bindingActualsToFormals})
+(\ref{typesBoundedByTypes})
 and \id{} is \CALL.
 The static type of $i$ is:
 
@@ -15190,7 +15242,7 @@ Consider a property extraction $i$ of the form \code{\SUPER.\id}.
 
 \LMHash{}%
 Let $S$ be the superclass of the immediately enclosing class.
-It is a compile-time error if $S$ does not have
+It is a \Error{compile-time error} if $S$ does not have
 an accessible instance method or getter named \id.
 The static type of $i$ is:
 
@@ -15810,7 +15862,7 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
 \item
   When the lexical lookup yields a declaration $D$ of a local variable $v$
   (\commentary{which may be a formal parameter}),
-  a compile-time error occurs if $v$ is final
+  a \Error{compile-time error} occurs if $v$ is final
   or if the static type of $e$ is not assignable to the declared type of $v$.
 \item
   When the lexical lookup yields a declaration $D$
@@ -15830,7 +15882,7 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
     proceeds as specified elsewhere.%
   }
 
-  Otherwise, a compile-time error occurs,
+  Otherwise, a \Error{compile-time error} occurs,
   unless the static type of $e$ is assignable to the parameter type of $D$.
 \item
   When the lexical lookup yields nothing,
@@ -15908,7 +15960,7 @@ Consider an assignment $a$ of the form \code{$p$.\id{} = $e$},
 where $p$ is an import prefix and \id{} is an identifier.
 
 \LMHash{}%
-A compile-time error occurs,
+A \Error{compile-time error} occurs,
 unless $p$ has a member which is a setter $s$ named \code{id=}
 (\commentary{which may be implicitly induced by a variable declaration})
 such that the static type of $e$
@@ -15917,7 +15969,6 @@ is assignable to the parameter type of $s$.
 \LMHash{}%
 The static type of $a$ is the static type of $e$.
 
-\LMHash{}%
 \LMHash{}%
 Evaluation of an assignment $a$ of the form \code{$p$.\id{} = $e$}
 proceeds as follows:
@@ -15928,20 +15979,33 @@ Then $a$ evaluates to the object $o$.
 \EndCase
 
 \LMHash{}%
-\Case{\code{$e_1$?.$v$ = $e_2$}}
-Consider an assignment $a$ of the form \code{$e_1$?.$v$ = $e_2$}.
-Exactly the same compile-time errors that would be caused by
-\code{$e_1$.$v$ = $e_2$} are also generated in the case of $a$.
-The static type of $a$ is the static type of $e_2$.
+\Case{\code{$e_1$?.\id{} = $e_2$}}
+Consider an assignment $a$ of the form \code{$e_1$?.\id{} = $e_2$}.
+
+%% TODO(eernst): We are likely to decide that this is an error.
+\LMHash{}%
+A warning occurs if $e_1$ is a type literal,
+and $a$ is then treated as \code{$e_1$.\id{} = $e_2$}.
+
+\LMHash{}%
+Let $S$ be the static type of $e_1$.
+A warning occurs if $S$ is non-nullable.
+\commentary{In this case, the \lit{?} is superfluous.}
+Apart from that,
+the static analysis of $a$ yields
+exactly the \Error{same compile-time errors} and warnings as
+the static analysis of \code{$v$.\id{} = $e_2$},
+where $v$ is a fresh variable whose type is \NonNullType{$S$}.
+Let $T$ be the static type of $e_2$.
+The static type of $a$ is then $T?$.
 
 \LMHash{}%
 Evaluation of an assignment $a$ of the form \code{$e_1$?.$v$ = $e_2$}
 proceeds as follows:
-If $e_1$ is a type literal, $a$ is equivalent to \code{$e_1$.$v$ = $e_2$}.
-Otherwise evaluate $e_1$ to an object $o$.
+Evaluate $e_1$ to an object $o$.
 If $o$ is the null object, $a$ evaluates to the null object (\ref{null}).
-Otherwise let $x$ be a fresh variable bound to $o$
-and evaluate \code{$x$.$v$ = $e_2$} to an object $r$.
+Otherwise let $v$ be a fresh variable bound to $o$
+and evaluate \code{$v$.\id{} = $e_2$} to an object $r$.
 Then $a$ evaluates to $r$.
 \EndCase
 
@@ -15950,9 +16014,9 @@ Then $a$ evaluates to $r$.
 Consider an assignment $a$ of the form \code{$e_1$.$v$ = $e_2$}.
 Let $T$ be the static type of $e_1$.
 If $T$ is \DYNAMIC, no further checks are performed.
-Otherwise, it is a compile-time error unless
+Otherwise, it is a \Error{compile-time error} unless
 $T$ has an accessible instance setter named \code{$v$=}.
-It is a compile-time error unless the static type of $e_2$
+It is a \Error{compile-time error} unless the static type of $e_2$
 may be assigned to the declared type of the formal parameter of said setter.
 Whether or not $T$ is \DYNAMIC,
 the static type of $a$ is the static type of $e_2$.
@@ -16007,9 +16071,9 @@ irrespective of whether setter lookup has failed or succeeded.
 \Case{\code{\SUPER.$v$ = $e$}}
 Consider an assignment $a$ of the form \code{\SUPER.$v$ = $e$}.
 Let $S_{static}$ be the superclass of the immediately enclosing class.
-It is a compile-time error if $S_{static}$ does not have
+It is a \Error{compile-time error} if $S_{static}$ does not have
 a concrete accessible instance setter named \code{$v$=}.
-Otherwise, it is a compile-time error if the static type of $e$
+Otherwise, it is a \Error{compile-time error} if the static type of $e$
 may not be assigned to the static type of the formal parameter of said setter.
 The static type of $a$ is the static type of $e$.
 
@@ -16046,12 +16110,13 @@ not a subtype of the actual type of the formal parameter of \code{$v$=}
 Consider an assignment $a$ of the form \code{$e_1$[$e_2$] = $e_3$}.
 Let $T$ be the static type of $e_1$.
 If $T$ is \DYNAMIC, no further checks are performed.
-Otherwise, it is a compile-time error unless
+Otherwise, it is a \Error{compile-time error} unless
 $T$ has a method named \code{[]=}.
 Let $S_2$ be the static type of the
 first formal parameter of the method \code{[]=},
 and $S_3$ the static type of the second.
-It is a compile-time error unless the static type of $e_2$ respectively $e_3$
+It is a
+\Error{compile-time error} unless the static type of $e_2$ respectively $e_3$
 may be assigned to $S_2$ respectively $S_3$.
 Whether or not $T$ is \DYNAMIC,
 the static type of $a$ is the static type of $e_3$.
@@ -16073,11 +16138,13 @@ Then $a$ evaluates to $v$.
 \Case{\code{\SUPER[$e_1$] = $e_2$}}
 Consider an assignment $a$ of the form \code{\SUPER[$e_1$] = $e_2$}.
 Let $S_{static}$ be the superclass of the immediately enclosing class.
-It is a compile-time error if $S_{static}$ does not have a method \code{[]=}.
+It is a
+\Error{compile-time error} if $S_{static}$ does not have a method \code{[]=}.
 Otherwise, let $S_1$ be the static type of the
 first formal parameter of the method \code{[]=},
 and $S_2$ the static type of the second.
-It is a compile-time error if the static type of $e_1$ respectively $e_2$
+It is a
+\Error{compile-time error} if the static type of $e_1$ respectively $e_2$
 may not be assigned to $S_1$ respectively $S_2$.
 The static type of $a$ is the static type of $e_2$.
 
@@ -16094,9 +16161,15 @@ is equivalent to the expression \code{\SUPER.[$e_1$] = $e_2$}.
 \Case{\code{$v$ ??= $e$}}
 Consider a compound assignment $a$ of the form \code{$v$ ??= $e$}
 where $v$ is an identifier or an identifier qualified by an import prefix.
-Exactly the same compile-time errors that would be caused by
-\code{$v$ = $e$}
-are also generated in the case of $a$.
+
+\LMHash{}%
+Let $S$ be the static type of $v$.
+A warning occurs if $S$ is non-nullable.
+\commentary{In this case, the \lit{??} is superfluous.}
+Apart from that,
+the static analysis of $a$ yields
+exactly the \Error{same compile-time errors} and warnings as
+the static analysis of \code{$v$ = $e$}.
 The static type of $a$ is
 the least upper bound of the static type of $v$ and the static type of $e$.
 
@@ -16110,58 +16183,75 @@ and then $a$ evaluates to $r$.
 \EndCase
 
 \LMHash{}%
-\Case{\code{$C$.$v$ ??= $e$}}
-Consider a compound assignment $a$ of the form \code{$C$.$v$ ??= $e$}
+\Case{\code{$C$.\id{} ??= $e$}}
+Consider a compound assignment $a$ of the form \code{$C$.\id{} ??= $e$}
 where $C$ is a type literal
-that may or may not be qualified by an import prefix.
-Exactly the same compile-time errors that would be caused by
-\code{$C$.$v$ = $e$}
-are also generated in the case of $a$.
-The static type of $a$ is the least upper bound of
-the static type of \code{$C$.$v$} and the static type of $e$.
+that may or may not be qualified by an import prefix,
+and \id{} is an identifier.
 
 \LMHash{}%
-Evaluation of a compound assignment $a$ of the form \code{$C$.$v$ ??= $e$}
+The static analysis of $a$ yields
+the \Error{same compile-time errors} and warnings as
+the static analysis of \code{$C$.\id{} = $e$}.
+Moreover, a warning occurs if
+the static type of \code{$C$.\id} is non-nullable.
+\commentary{In this case, the \lit{??} is superfluous.}
+The static type of $a$ is the least upper bound of
+\NonNullType{$S$} and the static type of $e$.
+
+\LMHash{}%
+Evaluation of a compound assignment $a$ of the form \code{$C$.\id{} ??= $e$}
 where $C$ is a type literal proceeds as follow:
-Evaluate \code{$C$.$v$} to an object $o$.
-If $o$ is not the null object (\ref{null}), $a$ evaluates to $o$.
-Otherwise evaluate \code{$C$.$v$ = $e$} to an object $r$,
+Evaluate \code{$C$.\id} to an object $o$.
+If $o$ is not the null object (\ref{null}) then $a$ evaluates to $o$.
+Otherwise evaluate \code{$C$.\id{} = $e$} to an object $r$,
 and then $a$ evaluates to $r$.
 \EndCase
 
 \LMHash{}%
-\Case{\code{$e_1$.$v$ ??= $e_2$}}
-Consider a compound assignment $a$ of the form \code{$e_1$.$v$ ??= $e_2$}.
-Let $T$ be the static type of $e_1$ and let $x$ be a fresh variable of type $T$.
-Except for errors inside $e_1$ and references to the name $x$,
-exactly the same compile-time errors that would be caused by
-\code{$x$.$v$ = $e_2$}
-are also generated in the case of $a$.
-Moreover, it is a compile-time error if $T$ does not have a getter named $v$.
-The static type of $a$ is the least upper bound of
-the static type of \code{$e_1$.$v$} and the static type of $e_2$.
+\Case{\code{$e_1$.\id{} ??= $e_2$}}
+Consider a compound assignment $a$ of the form \code{$e_1$.\id{} ??= $e_2$},
+where $e_1$ and $e_2$ are expressions and \id{} is an identifier.
 
 \LMHash{}%
-Evaluation of a compound assignment $a$ of the form \code{$e_1$.$v$ ??= $e_2$}
+The static analysis of $a$ yields
+the \Error{same compile-time errors} and warnings as
+the static analysis of \code{$e_1$.\id{} = $e_2$}.
+Moreover, it is a \Error{compile-time error}
+if the static type of $e_1$ does not have a getter named \id.
+Let $S$ be the static type of \code{$e_1$.\id}.
+A warning occurs if $S$ is non-nullable.
+\commentary{In this case, the \lit{??} is superfluous.}
+The static type of $a$ is the least upper bound of
+\NonNullType{$S$} and the static type of $e_2$.
+
+\LMHash{}%
+Evaluation of a compound assignment $a$ of the form \code{$e_1$.\id{} ??= $e_2$}
 proceeds as follows:
 Evaluate $e_1$ to an object $u$.
-Let $x$ be a fresh variable bound to $u$.
-Evaluate \code{$x$.$v$} to an object $o$.
-If $o$ is not the null object (\ref{null}), $a$ evaluates to $o$.
-Otherwise evaluate \code{$x$.$v$ = $e_2$} to an object $r$,
+Let $v$ be a fresh variable bound to $u$.
+Evaluate \code{$v$.\id} to an object $o$.
+If $o$ is not the null object (\ref{null}) then $a$ evaluates to $o$.
+Otherwise evaluate \code{$v$.\id{} = $e_2$} to an object $r$,
 and then $a$ evaluates to $r$.
 \EndCase
 
 \LMHash{}%
 \Case{\code{$e_1$[$e_2$] ??= $e_3$}}
-Consider a compound assignment $a$ of the form \code{$e_1$[$e_2$] ??= $e_3$}.
-Exactly the same compile-time errors that would be caused by
-\code{$e_1$[$e_2$] = $e_3$}
-are also generated in the case of $a$.
-Moreover, it is a compile-time error
+Consider a compound assignment $a$ of the form \code{$e_1$[$e_2$] ??= $e_3$},
+where $e_1$, $e_2$, and $e_3$ are expressions.
+
+\LMHash{}%
+The static analysis of $a$ yields
+the \Error{same compile-time errors} and warnings as
+the static analysis of \code{$e_1$[$e_2$] = $e_3$}.
+Moreover, it is a \Error{compile-time error}
 if the static type of $e_1$ does not have an `\code{operator []}'.
+Let $S$ be the static type of \code{$e_1$[$e_2$]}.
+A warning occurs if $S$ is non-nullable.
+\commentary{In this case, the \lit{??} is superfluous.}
 The static type of $a$ is the least upper bound of
-the static type of \code{$e_1$[$e_2$]} and the static type of $e_3$.
+\NonNullType{$S$} and the static type of $e_3$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form
@@ -16178,140 +16268,166 @@ Then $a$ evaluates to $v$.
 \EndCase
 
 \LMHash{}%
-\Case{\code{\SUPER.$v$ ??= $e$}}
-Consider a compound assignment $a$ of the form \code{\SUPER.$v$ ??= $e$}.
-Exactly the same compile-time errors that would be caused by
-\code{\SUPER.$v$ = $e$}
-are also generated in the case of $a$.
-Moreover, exactly the same compile-time errors that would be caused by
-evaluation of the expression \code{\SUPER.$v$}
-are also generated in the case of $a$.
+\Case{\code{\SUPER.\id{} ??= $e$}}
+Consider a compound assignment $a$ of the form \code{\SUPER.\id{} ??= $e$},
+where $e$ is an expression and \id{} is an identifier.
+
+\LMHash{}%
+The static analysis of $a$ yields
+the \Error{same compile-time errors} and warnings as
+the static analysis of \code{\SUPER.\id{} = $e$}.
+Moreover, it is a \Error{compile-time error}
+if the interface of the superclass of the enclosing class
+does not have a getter named \id.
+Let $S$ be the return type of said getter.
+A warning occurs if $S$ is non-nullable.
+\commentary{In this case, the \lit{??} is superfluous.}
 The static type of $a$ is the least upper bound of
-the static type of \code{\SUPER.$v$} and the static type of $e$.
+\NonNullType{$S$} and the static type of $e$.
 
 \LMHash{}%
-Evaluation of a compound assignment $a$ of the form \code{\SUPER.$v$ ??= $e$}
+Evaluation of a compound assignment $a$ of the form \code{\SUPER.\id{} ??= $e$}
 proceeds as follows:
-Evaluate \code{\SUPER.$v$} to an object $o$.
+Evaluate \code{\SUPER.\id} to an object $o$.
 If $o$ is not the null object (\ref{null}) then $a$ evaluates to $o$.
-Otherwise evaluate \code{\SUPER.$v$ = $e$} to an object $r$,
+Otherwise evaluate \code{\SUPER.\id{} = $e$} to an object $r$,
 and then $a$ evaluates to $r$.
 \EndCase
 
 \LMHash{}%
-\Case{\code{$e_1$?.$v$ ??= $e_2$}}
-Consider a compound assignment $a$ of the form \code{$e_1$?.$v$ ??= $e_2$}.
-Exactly the same compile-time errors that would be caused by
-\code{$e_1$.$v$ ??= $e_2$}
-are also generated in the case of $a$.
-% Note: We use the static type of \code{$e_1$?.$v$} rather than
-% \code{$e_1$.$v$} even though the latter would be simpler. This is because
-% the former will remain correct if NNBD is introduced, and because it reduces
-% the amount of synthetic syntax.
+\Case{\code{$e_1$?.\id{} ??= $e_2$}}
+Consider a compound assignment $a$ of the form \code{$e_1$?.\id{} ??= $e_2$},
+where $e_1$ and $e_2$ are expressions and \id{} is an identifier.
+
+%% TODO(eernst): We are likely to decide that this is an error.
+\LMHash{}%
+A warning occurs if $e_1$ is a type literal,
+and $a$ is then treated as \code{$e_1$.\id{} ??= $e_2$}.
+
+\LMHash{}%
+The static analysis of $a$ yields
+the \Error{same compile-time errors} and warnings as
+the static analysis of \code{$e_1$?.\id{} = $e_2$}.
+Moreover, let $S$ be the static type of $e_1$.
+It is a \Error{compile-time error}
+if \NonNullType{$S$} does not have a getter named \id.
+Let $U$ be the return type of said getter.
+A warning occurs if $U$ is non-nullable.
+\commentary{In this case, the \lit{??} is superfluous.}
 The static type of $a$ is the least upper bound of
-the static type of \code{$e_1$?.$v$} and the static type of $e_2$.
-
-\LMHash{}%
-Evaluation of a compound assignment $a$ of the form \code{$e_1$?.$v$ ??= $e_2$}
-proceeds as follows:
-Evaluate $e_1$ to an object $u$.
-If $u$ is the null object (\ref{null}) then $a$ evaluates to the null object.
-Otherwise, let $x$ be a fresh variable bound to $u$.
-Evaluate \code{$x$.$v$} to an object $o$.
-If $o$ is not the null object (\ref{null}) then $a$ evaluates to $o$.
-Otherwise evaluate \code{$x$.$v$ = $e_2$} to an object $r$,
-and then $a$ evaluates to $r$.
-\EndCase
-
-\LMHash{}%
-\Case{\code{$C$?.$v$ ??= $e_2$}}
-A compound assignment of the form \code{$C$?.$v$ ??= $e_2$}
-where $C$ is a type literal
-that may or may not be qualified by an import prefix
-is equivalent to the expression \code{$C$.$v$ ??= $e$}.
-\EndCase
-
-\LMHash{}%
-\Case{\code{$v$ $op$= $e$}}
-For any other valid operator $op$,
-a compound assignment of the form \code{$v$ $op$= $e$}
-is equivalent to \code{$v$ = $v$ $op$ $e$},
-where $v$ is an identifier or an identifier qualified by an import prefix.
-\EndCase
-
-\LMHash{}%
-\Case{\code{$C$.$v$ $op$= $e$}}
-A compound assignment of the form \code{$C$.$v$ $op$= $e$}
-where $C$ is a type literal
-that may or may not be qualified by an import prefix
-is equivalent to \code{$C$.$v$ = $C$.$v$ $op$ $e$}.
-\EndCase
-
-\LMHash{}%
-\Case{\code{$e_1$.$v$ $op$= $e_2$}}
-Consider a compound assignment $a$ of the form \code{$e_1$.$v$ $op$= $e_2$}.
-Let $x$ be a fresh variable whose static type is the static type of $e_1$.
-Except for errors inside $e_1$ and references to the name $x$,
-exactly the same compile-time errors that would be caused by
-\code{$x$.$v$ = $x$.$v$ $op$ $e_2$}
-are also generated in the case of $a$.
-The static type of $a$ is the static type of \code{$e_1$.$v$ $op$ $e_2$}.
-
-\LMHash{}%
-Evaluation of a compound assignment $a$ of the form \code{$e_1$.$v$ $op$= $e_2$}
-proceeds as follows:
-Evaluate $e_1$ to an object $u$ and let $x$ be a fresh variable bound to $u$.
-Evaluate \code{$x$.$v$ = $x$.$v$ $op$ $e_2$} to an object $r$
-and then $a$ evaluates to $r$.
-\EndCase
-
-\LMHash{}%
-\Case{\code{$e_1$[$e_2$] $op$= $e_3$}}
-Consider a compound assignment $a$ of the form \code{$e_1$[$e_2$] $op$= $e_3$}.
-Let $x$ and $i$ be fresh variables
-where the static type of the former is the static type of $e_1$
-and the static type of the latter is the static type of $e_2$.
-Except for errors inside $e_1$ and $e_2$ and references to
-the names $x$ and $i$,
-exactly the same compile-time errors that would be caused by
-\code{$x$[$i$] = $x$[$i$] $op$ $e_3$}
-are also generated in the case of $a$.
-The static type of $a$ is the static type of \code{$x$[$i$] $op$ $e_3$}.
-
-\LMHash{}%
-Evaluation of s compound assignment $a$ of the form
-\code{$e_1$[$e_2$] $op$= $e_3$}
-proceeds as follows:
-Evaluate $e_1$ to an object $u$ and evaluate $e_2$ to an object $v$.
-Let $x$ and $i$ be fresh variables bound to $u$ and $v$ respectively.
-Evaluate \code{$x$[$i$] = $x$[$i$] $op$ $e_3$} to an object $r$,
-and then $a$ evaluates to $r$.
-\EndCase
-
-\LMHash{}%
-\Case{\code{$e_1$?.$v$ $op$= $e_2$}}
-Consider a compound assignment $a$ of the form \code{$e_1$?.$v$ $op$= $e_2$}.
-Exactly the same compile-time errors that would be caused by
-\code{$e_1$.$v$ $op$= $e_2$}
-are also generated in the case of $a$.
-The static type of $a$ is the static type of \code{$e_1$.$v$ $op$= $e_2$}.
+\NonNullType{$U$} and the static type of $e_2$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form
-\code{$e_1$?.$v$ $op$= $e_2$}
+\code{$e_1$?.\id{} ??= $e_2$}
 proceeds as follows:
 Evaluate $e_1$ to an object $u$.
-If $u$ is the null object, then $a$ evaluates to the null object (\ref{null}).
-Otherwise let $x$ be a fresh variable bound to $u$.
-Evaluate \code{$x$.$v$ $op$= $e_2$} to an object $r$.
+If $u$ is the null object (\ref{null}) then $a$ evaluates to the null object.
+Otherwise, let $v$ be a fresh variable bound to $u$.
+Evaluate \code{$v$.\id} to an object $o$.
+If $o$ is not the null object (\ref{null}) then $a$ evaluates to $o$.
+Otherwise evaluate \code{$v$.\id{} = $e_2$} to an object $r$,
+and then $a$ evaluates to $r$.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$v$ \op= $e$}}
+Let \op{} be any valid operator different from \lit{??}.
+Consider a compound assignment $a$ of the form \code{$v$ \op= $e$},
+where $v$ is an identifier which may be prefixed by an import prefix,
+and $e$ is an expression.
+$a$ is treated as \code{$v$ = $v$ \op{} $e$}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$C$.\id{} \op= $e$}}
+Let \op{} be any valid operator different from \lit{??}.
+Consider a compound assignment $a$
+of the form \code{$C$.\id{} \op= $e$}
+where $C$ is a type literal, $e$ is an expression, and
+\id{} is an identifier that may or may not be qualified by an import prefix.
+$a$ is treated as \code{$C$.\id{} = $C$.\id{} \op{} $e$}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$.\id{} \op= $e_2$}}
+Let \op{} be any valid operator different from \lit{??}.
+Consider a compound assignment $a$
+of the form \code{$e_1$.\id{} \op= $e_2$}.
+Let $v$ be a fresh variable whose static type is the static type of $e_1$.
+The same \Error{compile-time errors} that would be caused by
+\code{$v$.\id{} = $v$.\id{} \op{} $e_2$}
+are also generated in the case of $a$.
+The static type of $a$ is the static type of
+\code{$e_1$.\id{} \op{} $e_2$}.
+
+\LMHash{}%
+Evaluation of a compound assignment $a$
+of the form \code{$e_1$.\id{} \op= $e_2$}
+proceeds as follows:
+Evaluate $e_1$ to an object $u$.
+Let $v$ be a fresh variable bound to $u$.
+Evaluate \code{$v$.\id{} = $v$.\id{} \op{} $e_2$} to an object $r$.
 Then $a$ evaluates to $r$.
 \EndCase
 
 \LMHash{}%
-\Case{\code{$C$?.$v$ $op$ = $e_2$}}
-A compound assignment of the form \code{$C$?.$v$ $op$ = $e_2$}
-where $C$ is a type literal
-is equivalent to the expression \code{$C$.$v$ $op$ = $e_2$}.
+\Case{\code{$e_1$[$e_2$] \op= $e_3$}}
+Let \op{} be any valid operator different from \lit{??}.
+Consider a compound assignment $a$
+of the form \code{$e_1$[$e_2$] \op= $e_3$}.
+Let $v$ and $i$ be fresh variables
+where the static type of the former is the static type of $e_1$
+and the static type of the latter is the static type of $e_2$.
+The same \Error{compile-time errors} that would be caused by
+\code{$v$[$i$] = $v$[$i$] \op{} $e_3$}
+are also generated in the case of $a$.
+The static type of $a$ is the static type of
+\code{$v$[$i$] \op{} $e_3$}.
+
+\LMHash{}%
+Evaluation of a compound assignment $a$ of the form
+\code{$e_1$[$e_2$] \op= $e_3$}
+proceeds as follows:
+Evaluate $e_1$ to an object $u$ and evaluate $e_2$ to an object $o$.
+Let $v$ and $i$ be fresh variables bound to $u$ and $o$ respectively.
+Evaluate \code{$v$[$i$] = $v$[$i$] \op{} $e_3$} to an object $r$.
+Then $a$ evaluates to $r$.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$?.\id{} \op= $e_2$}}
+Let \op{} be any valid operator different from \lit{??}.
+Consider a compound assignment $a$
+of the form \code{$e_1$?.\id{} \op= $e_2$},
+where $e_1$ and $e_2$ are expressions and \id{} is an identifier.
+
+%% TODO(eernst): We are likely to decide that this is an error.
+\LMHash{}%
+A warning occurs if $e_1$ is a type literal,
+and $a$ is then treated as \code{$e_1$.\id{} \op= $e_2$}.
+
+\LMHash{}%
+Let $S$ be the static type of $e_1$.
+A warning occurs if $S$ is non-nullable.
+\commentary{In this case, the \lit{?} is superfluous.}
+Apart from that,
+the static analysis of $a$ yields
+the same \Error{compile-time errors} and warnings as
+the static analysis of $a'$ which is \code{$v$.\id{} \op= $e_2$},
+where $v$ is a fresh variable whose type is \NonNullType{$S$}.
+Let $T$ be the static type of $a'$.
+The static type of $a$ is then $T?$.
+
+\LMHash{}%
+Evaluation of a compound assignment $a$ of the form
+\code{$e_1$?.\id{} \op= $e_2$}
+proceeds as follows:
+Evaluate $e_1$ to an object $o$.
+If $o$ is the null object, then $a$ evaluates to the null object (\ref{null}).
+Otherwise let $v$ be a fresh variable bound to $o$.
+Evaluate \code{$v$.\id{} \op= $e_2$} to an object $r$.
+Then $a$ evaluates to $r$.
 \EndCase
 
 
@@ -16352,7 +16468,7 @@ unless any of the following are true:
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error if
+It is a \Error{compile-time error} if
 the static type of $e_1$ may not be assigned to \code{bool}.
 The static type of $c$ is the least upper bound (\ref{leastUpperBounds}) of
 the static type of $e_2$ and the static type of $e_3$.
@@ -16460,7 +16576,7 @@ unless any of the following are true:
 \end{itemize}
 
 \LMHash{}%
-It is a compile-time error if
+It is a \Error{compile-time error} if
 the static type of $e_1$ may not be assigned to \code{bool}
 or if the static type of $e_2$ may not be assigned to \code{bool}.
 The static type of a logical boolean expression is \code{bool}.
@@ -16568,10 +16684,10 @@ or an invocation of a relational operator on either \SUPER{}
 or an expression $e_1$, with argument $e_2$.
 
 \LMHash{}%
-A relational expression of the form $e_1$ $op$ $e_2$ is equivalent to
-the method invocation \code{$e_1$.$op$($e_2$)}.
-A relational expression of the form \SUPER{} $op$ $e_2$ is equivalent to
-the method invocation \code{\SUPER.$op$($e_2$)}.
+A relational expression of the form \code{$e_1$\,\,\op\,\,$e_2$}
+is equivalent to the method invocation \code{$e_1$.\op($e_2$)}.
+A relational expression of the form \code{\SUPER\,\,\op\,\,$e_2$}
+is equivalent to the method invocation \code{\SUPER.\op($e_2$)}.
 
 
 \subsection{Bitwise Expressions}
@@ -16604,10 +16720,10 @@ on either \SUPER{} or an expression $e_1$,
 with argument $e_2$.
 
 \LMHash{}%
-A bitwise expression of the form \code{$e_1$ $op$ $e_2$} is equivalent to
-the method invocation $e_1.op(e_2)$.
-A bitwise expression of the form \code{\SUPER{} $op$ $e_2$} is equivalent to
-the method invocation \code{\SUPER.$op$($e_2$)}.
+A bitwise expression of the form \code{$e_1$\,\,\op\,\,$e_2$}
+is equivalent to the method invocation \code{$e_1$.\op($e_2$)}.
+A bitwise expression of the form \code{\SUPER\,\,\op\,\,$e_2$}
+is equivalent to the method invocation \code{\SUPER.\op($e_2$)}.
 
 \commentary{%
 It should be obvious that the static type rules for these expressions
@@ -16642,10 +16758,10 @@ on either \SUPER{} or an expression $e_1$,
 with argument $e_2$.
 
 \LMHash{}%
-A shift expression of the form $e_1$ $op$ $e_2$ is equivalent to
-the method invocation \code{$e_1$.$op$($e_2$)}.
-A shift expression of the form \SUPER{} $op$ $e_2$ is equivalent to
-the method invocation \code{\SUPER.$op$($e_2$)}.
+A shift expression of the form \code{$e_1$\,\,\op\,\,$e_2$}
+is equivalent to the method invocation \code{$e_1$.\op($e_2$)}.
+A shift expression of the form \code{\SUPER\,\,\op\,\,$e_2$}
+is equivalent to the method invocation \code{\SUPER.\op($e_2$)}.
 
 \commentary{%
 Note that this definition implies left-to-right evaluation order
@@ -16681,10 +16797,10 @@ on either \SUPER{} or an expression $e_1$,
 with argument $e_2$.
 
 \LMHash{}%
-An additive expression of the form $e_1$ $op$ $e_2$ is equivalent to
-the method invocation \code{$e_1$.$op$($e_2$)}.
-An additive expression of the form \SUPER{} $op$ $e_2$ is equivalent to
-the method invocation \code{\SUPER.$op$($e_2$)}.
+An additive expression of the form \code{$e_1$\,\,\op\,\,$e_2$}
+is equivalent to the method invocation \code{$e_1$.\op($e_2$)}.
+An additive expression of the form \code{\SUPER\,\,\op\,\,$e_2$}
+is equivalent to the method invocation \code{\SUPER.\op($e_2$)}.
 
 \LMHash{}%
 The static type of an additive expression is usually determined
@@ -16750,10 +16866,10 @@ on either \SUPER{} or an expression $e_1$,
 with argument $e_2$.
 
 \LMHash{}%
-A multiplicative expression of the form $e_1$ $op$ $e_2$ is equivalent to
-the method invocation \code{$e_1$.$op$($e_2$)}.
-A multiplicative expression of the form \SUPER{} $op$ $e_2$ is equivalent to
-the method invocation \code{\SUPER.$op$($e_2$)}.
+A multiplicative expression of the form \code{$e_1$\,\,\op\,\,$e_2$}
+is equivalent to the method invocation \code{$e_1$.\op($e_2$)}.
+A multiplicative expression of the form \code{\SUPER\,\,\op\,\,$e_2$}
+is equivalent to the method invocation \code{\SUPER.\op($e_2$)}.
 
 \LMHash{}%
 The static type of a multiplicative expression is usually determined
@@ -16851,7 +16967,7 @@ If the static type of $e$ is \code{int} then $e$ evaluates to
 an instance of the \code{int} class representing the numeric value $-i$.
 If $i$ is zero and the \code{int} class can represent a negative zero value,
 then the resulting instance instead represents that negative zero value.
-It is a compile-time error if the integer $-i$ cannot be represented
+It is a \Error{compile-time error} if the integer $-i$ cannot be represented
 exactly by an instance of \code{int}.
 
 \LMHash{}%
@@ -16859,7 +16975,7 @@ If the static type of $e$ is \code{double} then $e$ evaluates to
 to an instance of the \code{double} class representing the numeric value $-i$.
 If $i$ is zero, the resulting instance instead represents the
 \emph{negative} zero double value, \code{-0.0}.
-It is a compile-time error if the integer $-i$ cannot be represented
+It is a \Error{compile-time error} if the integer $-i$ cannot be represented
 exactly by an instance of \code{double}.
 \commentary{%
 We treat \code{-$l$} \emph{as if} it is a single integer literal
@@ -16869,10 +16985,10 @@ or concern ourselves with its static type.%
 }
 
 \LMHash{}%
-Any other expression of the form \code{$op$ $e$} is equivalent to
-the method invocation \code{$e.op()$}.
-An expression of the form \code{$op$ \SUPER} is equivalent to
-the method invocation (\ref{superInvocations}) \code{\SUPER.$op()$}.
+Any other expression of the form \code{\op\,\,$e$} is equivalent to
+the method invocation \code{$e$.\op()}.
+An expression of the form \code{\op\,\,\SUPER} is equivalent to
+the method invocation (\ref{superInvocations}) \code{\SUPER.\op()}.
 
 
 \subsection{Await Expressions}
@@ -16963,7 +17079,7 @@ it would no longer be synchronous.%
 }
 
 \commentary{%
-It is not a compile-time error if the type of $e$ is not
+It is not a \Error{compile-time error} if the type of $e$ is not
 a supertype or subtype of \code{Future}.
 Tools may choose to give a hint in such cases.%
 }
@@ -16996,19 +17112,37 @@ Postfix expressions invoke the postfix operators on objects.
 \end{grammar}
 
 \LMHash{}%
-A \Index{postfix expression} is either a primary expression;
-a function, method or getter invocation;
+A \Index{postfix expression} is either a primary expression
+(\ref{expressions});
+a function, method or getter invocation
+(\ref{ordinaryInvocation}, \ref{propertyExtraction});
+a null check;
 an invocation of a named constructor;
 or an invocation of a postfix operator on an expression $e$.
-All but the latter two are specified elsewhere.
+All but the latter three are specified elsewhere.
 
 \LMHash{}%
+\Case{Null checks}
+Consider an expression $e$ of the form \code{$e_1$\!!}\ where
+$e_1$ is derived from \syntax{<primary> <selector>*}.
+
+\LMHash{}%
+Let $S$ be the static type of $e_1$.
+A warning occurs if $S$ is non-nullable.
+\commentary{In this case, the null check is redundant.}
+The static type of $e$ is \NonNullType{$S$}.
+
+\LMHash{}%
+$e$ is evaluated as follows: $e_1$ is evaluated to an object $o$.
+If $o$ is the null object then a dynamic error occurs,
+otherwise $e$ evaluates to $o$.
+
 \Case{Constructor Invocations}
 Consider a \synt{constructorInvocation} $e$ of the form
 \code{$n$<\metavar{typeArguments}>.\id(\metavar{arguments})}.
 If $n$ does not denote a class $C$
 that declares a constructor named \code{$C$.\id},
-a compile-time error occurs.
+a \Error{compile-time error} occurs.
 
 \LMHash{}%
 Otherwise, if $e$ occurs in a constant context
@@ -17032,15 +17166,15 @@ nor if $e$ is a static method invocation.%
 \Case{\code{$v$++}, \code{$v$-{}-}}
 Consider a postfix expression $e$ of the form \code{$v$\,\op},
 where $v$ is an identifier and \op{} is either \lit{++} or \lit{-{}-}.
-A compile-time error occurs unless $v$ denotes a variable,
+A \Error{compile-time error} occurs unless $v$ denotes a variable,
 or $v$ denotes a getter and there is an associated setter \code{$v$=}.
 Let $T$ be the static type of the variable $v$ or the return type of the getter.
-A compile-time error occurs if $T$ is not \DYNAMIC{}
+A \Error{compile-time error} occurs if $T$ is not \DYNAMIC{}
 and $T$ does not have an operator \lit{+} (when \op{} is \lit{++})
 or operator \lit{-} (when \op{} is \lit{-{}-}),
 or if the return type of this operator is not assignable to
 the variable respectively the argument type of the setter.
-A compile-time error occurs if \code{int} is not assignable to
+A \Error{compile-time error} occurs if \code{int} is not assignable to
 the parameter type of said operator.
 The static type of $e$ is $T$.
 
@@ -17066,16 +17200,17 @@ Likewise in the cases below.%
 \Case{\code{$C$.$v$++}, \code{$C$.$v$-{}-}}
 Consider a postfix expression $e$ of the form \code{$C$.$v$\,\op},
 where $C$ is a type literal and \op{} is either \lit{++} or \lit{-{}-}.
-A compile-time error occurs unless \code{$C$.$v$} denotes a static getter
+A \Error{compile-time error} occurs
+unless \code{$C$.$v$} denotes a static getter
 and there is an associated static setter \code{$v$=}
 (\commentary{possibly implicitly induced by a static variable}).
 Let $T$ be the return type of said getter.
-A compile-time error occurs if $T$ is not \DYNAMIC{}
+A \Error{compile-time error} occurs if $T$ is not \DYNAMIC{}
 and $T$ does not have an operator \lit{+} (when \op{} is \lit{++})
 or operator \lit{-} (when \op{} is \lit{-{}-}),
 or if the return type of this operator is not assignable to
 the argument type of the setter.
-A compile-time error occurs if \code{int} is not assignable to
+A \Error{compile-time error} occurs if \code{int} is not assignable to
 the parameter type of said operator.
 The static type of $e$ is $T$.
 
@@ -17094,16 +17229,16 @@ Then $e$ evaluates to $r$.
 Consider a postfix expression $e$ of the form \code{$e_1$.$v$\,\op}
 where \op{} is either \lit{++} or \lit{-{}-}.
 Let $S$ be the static type of $e_1$.
-A compile-time error occurs unless $S$ has
+A \Error{compile-time error} occurs unless $S$ has
 a getter named $v$ and a setter named \code{$v$=}
 (\commentary{possibly implicitly induced by an instance variable}).
 Let $T$ be the return type of said getter.
-A compile-time error occurs if $T$ is not \DYNAMIC{}
+A \Error{compile-time error} occurs if $T$ is not \DYNAMIC{}
 and $T$ does not have an operator \lit{+} (when \op{} is \lit{++})
 or operator \lit{-} (when \op{} is \lit{-{}-}),
 or if the return type of this operator is not assignable to
 the argument type of the setter.
-A compile-time error occurs if \code{int} is not assignable to
+A \Error{compile-time error} occurs if \code{int} is not assignable to
 the parameter type of said operator.
 The static type of $e$ is $T$.
 
@@ -17124,19 +17259,19 @@ Consider a postfix expression $e$ of the form \code{$e_1$[$e_2$]\,\op}
 where \op{} is either \lit{++} or \lit{-{}-}.
 Let $S_1$ be the static type of $e_1$
 and $S_2$ be the static type of $e_2$.
-A compile-time error occurs unless $S_1$ has
+A \Error{compile-time error} occurs unless $S_1$ has
 an operator \lit{[]} and an operator \lit{[]=}.
 Let $T$ be the return type of the former.
-A compile-time error occurs unless $S_2$ is assignable to
+A \Error{compile-time error} occurs unless $S_2$ is assignable to
 the first parameter type of said operator \lit{[]=}.
-A compile-time error occurs if $T$ is not \DYNAMIC{}
+A \Error{compile-time error} occurs if $T$ is not \DYNAMIC{}
 and $T$ does not have an operator \lit{+} (when \op{} is \lit{++})
 or operator \lit{-} (when \op{} is \lit{-{}-}),
 or if the return type of this operator is not assignable to
 the second argument type of said operator \lit{[]=}.
 % We allow `e1[e2]++;` also when the entry has static type double,
 % so we can't just say `assignable'.
-A compile-time error occurs if passing the integer literal \code{1}
+A \Error{compile-time error} occurs if passing the integer literal \code{1}
 as an argument to said operator \lit{+} or \lit{-} would be an error.
 The static type of $e$ is $T$.
 
@@ -17153,24 +17288,35 @@ Then $e$ evaluates to $r$.
 \EndCase
 
 \LMHash{}%
-\Case{\code{$e_1$?.$v$++}, \code{$e_1$?.$v$-{}-}}
-Consider a postfix expression $e$ of the form \code{$e_1$?.$v$\,\op}
-where \op{} is either \lit{++} or \lit{-{}-}.
-Exactly the same compile-time errors that would be caused by
-\code{$e_1$.$v$\,\op}
-are also generated in the case of \code{$e_1$?.$v$\,\op}.
-The static type of $e$ is the static type of \code{$e_1$.$v$}.
+\Case{\code{$e_1$?.\id++}, \code{$e_1$?.\id-{}-}}
+Consider a postfix expression $e$ of the form \code{$e_1$?.\id\,\op}
+where \id{} is an identifier and \op{} is either \lit{++} or \lit{-{}-}.
+
+%% TODO(eernst): We are likely to decide that this is an error.
+\LMHash{}%
+Let \DefineSymbol{S} be the static type of $e_1$.
+A warning occurs if $e_1$ is a type literal,
+and $e$ is then treated as \code{$e_1$.\id\,\op}.
 
 \LMHash{}%
-Evaluation of a postfix expression $e$
-of the form \code{$e_1$?.$v$++} respectively \code{$e_1$?.$v$-{}-}
+Otherwise, a warning occurs if $S$ is non-nullable.
+\commentary{In this case the \lit{?} is superfluous.}
+Next, the static analysis of $e$ yields
+the same \Error{compile-time errors} and warnings that would be caused by
+static analysis of \code{$v$.\id\,\op},
+where $v$ is a fresh variable whose type is \NonNullType{$S$}.
+Let $T$ be the static type of \code{$v$.\id\,\op};
+the static type of $e$ is then \code{$T$?}.
+
+\LMHash{}%
+Evaluation of a postfix expression $e$ of the form \code{$e_1$?.\id\,\op}
+where \id{} is an identifier and \op{} is either \lit{++} or \lit{-{}-}
 proceeds as follows:
-If $e_1$ is a type literal, evaluation of $e$ is equivalent to
-evaluation of \code{$e_1$.$v$++} respectively \code{$e_1$.$v$-{}-}.
-Otherwise evaluate $e_1$ to an object $u$.
-if $u$ is the null object, $e$ evaluates to the null object (\ref{null}).
-Otherwise let $x$ be a fresh variable bound to $u$.
-Evaluate \code{$x$.$v$++} respectively \code{$x$.$v$-{}-} to an object $o$.
+Evaluate $e_1$ to an object $o$.
+If $o$ is the null object then $e$ evaluates to the null object
+(\ref{null}).
+Otherwise let $v$ be a fresh variable bound to $o$.
+Evaluate \code{$v$.\id\,\op} to an object $o$.
 Then $e$ evaluates to $o$.
 \EndCase
 
@@ -17381,7 +17527,7 @@ In the first step, we check for several potential errors.
 \Case{$D$ exists}
 In this case, at least one declaration with basename \id{}
 is in scope at the location $\ell$.
-It is a compile-time error if the name of $D$ is not $n$,
+It is a \Error{compile-time error} if the name of $D$ is not $n$,
 unless $D$ is an instance member or a local variable
 (\commentary{which may be a formal parameter}).
 
@@ -17398,12 +17544,12 @@ That is checked after yielding nothing
 
 \LMHash{}%
 If $D$ is an instance member,
-it is a compile-time error if $\ell$ does not have access to \THIS.
+it is a \Error{compile-time error} if $\ell$ does not have access to \THIS.
 \EndCase
 
 \LMHash{}%
 \Case{$D$ does not exist}
-It is a compile-time error if $\ell$ does not have access to \THIS{}
+It is a \Error{compile-time error} if $\ell$ does not have access to \THIS{}
 (\ref{classes}).
 \EndCase
 
@@ -17459,7 +17605,7 @@ proceed as described in the first applicable case from the following list:
 \item
   Consider the case where $D$ is a formal type parameter declaration
   of a class or a mixin.
-  It is a compile-time error if $\ell$ occurs inside
+  It is a \Error{compile-time error} if $\ell$ occurs inside
   a static method, static getter, or static setter,
   or inside a static variable initializer.
   % NB: There is _no_ error when it occurs in an instance variable initializer,
@@ -17580,11 +17726,11 @@ A \Index{built-in identifier} is one of
 the identifiers produced by the production \synt{BUILT\_IN\_IDENTIFIER}.
 
 \commentary{%
-Note that it is a syntax error if a built-in identifier
+Note that it is a \Error{compile-time error} if a built-in identifier
 is used as the declared name of
 %% TODO(eernst): Come extension types, add them.
 a prefix, class, mixin, enum, type parameter, type alias, or extension.
-Similarly, it is a syntax error to use a built-in identifier
+It is a \Error{compile-time error} to use a built-in identifier
 other than \DYNAMIC{} or \FUNCTION{}
 as an identifier in a type annotation or a type parameter bound.%
 }
@@ -17599,9 +17745,10 @@ both for human readers and during parsing.%
 }
 
 \LMHash{}%
-It is a compile-time error if either of the identifiers \AWAIT{} or \YIELD{}
+It is a
+\Error{compile-time error} if either of the identifiers \AWAIT{} or \YIELD{}
 is used as an \synt{identifier} in a function body
-marked with either \ASYNC, \code{\ASYNC*}, or \code{\SYNC*}.
+marked with either \ASYNC, \code{\ASYNC*} or \code{\SYNC*}.
 
 \rationale{%
 This makes the identifiers \AWAIT{} and \YIELD{} behave like reserved words
@@ -17687,7 +17834,7 @@ In this case the lexical lookup
 (\ref{lexicalLookup})
 for \id{} yields an import prefix $p$.
 % A prefix can never be used as a stand-alone expression.
-In this case a compile-time error occurs,
+In this case a \Error{compile-time error} occurs,
 unless the token immediately following $e$ is \lit{.}.
 No static type is associated with $e$ in this case.
 
@@ -18321,7 +18468,8 @@ A function declaration statement of one of the forms
 or
 \code{$T$ \id{} \metavar{signature} \{ \metavar{statements} \}}
 causes a new function named \id{} to be added to the current scope.
-It is a compile-time error to reference a local function before its declaration.
+It is a
+\Error{compile-time error} to reference a local function before its declaration.
 
 \commentary{%
 This implies that local functions can be directly recursive,
@@ -18441,7 +18589,7 @@ If $o$ is \TRUE, then the block statement $s_1$ is executed,
 otherwise the block statement $s_2$ is executed.
 
 \LMHash{}%
-It is a compile-time error if the type of the expression $b$
+It is a \Error{compile-time error} if the type of the expression $b$
 may not be assigned to \code{bool}.
 
 \LMHash{}%
@@ -18501,8 +18649,8 @@ and \List{e}{1}{n} is an expression list or empty
 (\commentary{used to update the iteration state}).
 
 \LMHash{}%
-A compile-time error occurs if $D$ has the modifier \LATE.
-A compile-time error occurs if the static type of $c$ is not
+A \Error{compile-time error} occurs if $D$ has the modifier \LATE.
+A \Error{compile-time error} occurs if the static type of $c$ is not
 assignable to \code{bool}.
 
 \LMHash{}%
@@ -18516,7 +18664,7 @@ and \List{e}{1}{n} is an expression list or empty
 (\commentary{used to update the iteration state}).
 
 \LMHash{}%
-A compile-time error occurs if the static type of $c$ is not
+A \Error{compile-time error} occurs if the static type of $c$ is not
 assignable to \code{bool}.
 
 %% TODO(eernst): The description of the dynamic semantics is highly
@@ -18584,7 +18732,7 @@ and then modifies $v''$ as required for the next iteration.%
 Let $D$ be derived from \syntax{<finalConstVarOrType>?}\ and
 consider a \FOR{} statement $S_{\metavar{for}}$ of the form
 \code{\FOR\ ($D$\,\,\id\,\,\IN\,\,$e$)\ $S$}.
-A compile-time error occurs if $D$ contains
+A \Error{compile-time error} occurs if $D$ contains
 the modifier \CONST{} or the modifier \LATE.
 
 \LMHash{}%
@@ -18604,7 +18752,7 @@ $T$ $\id_1$ = $e$;
 If the static type of $e$ is \DYNAMIC{}
 then $T$ is \code{Iterable<\DYNAMIC>},
 otherwise $T$ is the static type of $e$.
-It is a compile-time error if $T$ is not assignable to
+It is a \Error{compile-time error} if $T$ is not assignable to
 \code{Iterable<Object?>}.
 
 \commentary{%
@@ -18633,11 +18781,11 @@ consider the asynchronous for-in statement, $f$, of the form
 \code{\AWAIT\,\,\FOR\ ($D$\,\,\id\,\,\IN\,\,$e$)\ $s$}.
 
 \LMHash{}%
-A compile-time error occurs if $D$ contains
+A \Error{compile-time error} occurs if $D$ contains
 the modifier \CONST{} or the modifier \LATE.
-It is a compile-time error if an asynchronous for-in statement appears
+It is a \Error{compile-time error} if an asynchronous for-in statement appears
 inside a synchronous function (\ref{functions}).
-It is a compile-time error if a traditional for loop (\ref{forLoop}) is
+It is a \Error{compile-time error} if a traditional for loop (\ref{forLoop}) is
 prefixed by the \AWAIT{} keyword.
 
 \rationale{%
@@ -18654,7 +18802,7 @@ The expression $e$ is evaluated to an object $o$.
 % This error can occur due to implicit casts and null.
 It is a dynamic type error if $o$ is not an instance of
 a class that implements \code{Stream}.
-It is a compile-time error if $D$ is empty
+It is a \Error{compile-time error} if $D$ is empty
 and \id{} is a final or constant variable.
 
 \LMHash{}%
@@ -18775,7 +18923,7 @@ the surrounding labeled statement (\ref{labels}).%
 }
 
 \LMHash{}%
-It is a compile-time error if
+It is a \Error{compile-time error} if
 the static type of $e$ may not be assigned to \code{bool}.
 
 
@@ -18810,7 +18958,7 @@ If $o$ is \FALSE, execution of the do statement completes normally
 If $o$ is \TRUE, then the do statement is re-executed.
 
 \LMHash{}%
-It is a compile-time error if the static type of $e$
+It is a \Error{compile-time error} if the static type of $e$
 may not be assigned to \code{bool}.
 
 
@@ -18898,9 +19046,48 @@ programmers would presumably find it quite surprising
 if equal objects did not match.%
 }
 
+\LMHash{}%
+Let $T$ be the static type of $e$.
+Let $j \in 1 .. n$.
+Assume that the switch statement does not have a \DEFAULT{} clause.
+In this situation,
+a warning occurs if any of the following criteria is satisfied:
+
+\begin{itemize}
+\item $T$ is an enumerated type with values \List{\id}{1}{k}
+  (\ref{enums}),
+  and the set $\{\List{e}{1}{n}\}$ is different from
+  the set $\{\List{\code{$S$.\id}}{1}{k}\}$.
+\item $T$ is \code{$U$?}\ for some $U$ which is an enumerated type
+  with values \List{\id}{1}{k},
+  and the set $\{\List{e}{1}{n}\}$ is different from
+  $\{\List{\code{$U$.\id}}{1}{k},\,\,\NULL\}$.
+\end{itemize}
+
 \commentary{%
-The \SWITCH{} statement should only be used in
-very limited situations (e.g., interpreters or scanners).%
+In short, it is a static warning
+if a switch statement over an enum is not exhaustive.%
+}
+
+\LMHash{}%
+Let $j \in 1 .. n$ if the switch statement has a \DEFAULT{} case,
+and $j \in 1 .. n - 1$, otherwise.
+Assume that $s_j$ is non-empty.
+It is then a \Error{compile-time error} if $s_j$ may complete normally.
+
+%% TODO(eernst): Come flow analysis, replace this by a section ref.
+\commentary{%
+This document does not yet specify the Dart flow analysis,
+but it will be specified in a future version.
+It is determined by the flow analysis whether any
+statement or list of statements may complete normally
+(\ref{statementCompletion}).%
+}
+
+\rationale{%
+The behavior of switch cases intentionally differs from the C tradition.
+Implicit fall through is a known cause of programming errors
+and is therefore disallowed.%
 }
 
 \LMHash{}%
@@ -18915,6 +19102,7 @@ Execution of a switch statement of the form
 \}
 \end{normativeDartCode}
 
+\noindent
 or the form
 
 \begin{normativeDartCode}
@@ -18925,29 +19113,30 @@ or the form
 \}
 \end{normativeDartCode}
 
+\noindent
 proceeds as follows:
 
 \LMHash{}%
 The statement \code{\VAR{} \id{} = $e$;} is evaluated,
 where \id{} is a fresh variable.
-% This error can occur due to implicit casts and standard subsumption.
-%% TODO(eernst): But why couldn't $e$ be an instance of a subtype?!
-It is a dynamic error if the value of $e$ is
-not an instance of the same class as the constants $e_1, \ldots, e_n$.
-
 \commentary{%
 Note that if there are no case clauses ($n = 0$),
 the type of $e$ does not matter.%
 }
 
 \LMHash{}%
-Next, the case clause \CASE{} $e_{1}$: $s_{1}$ is matched against \id,
-if $n > 0$.
-Otherwise if there is a \DEFAULT{} clause,
-the case statements $s_{n+1}$ are executed (\ref{case-execute}).
+Next, if $n > 0$ then the case clause
+\code{\CASE\,\,$e_1$:\,\,$s_1$}
+is matched against \id.
+Otherwise $n = 0$;
+if there is a \DEFAULT{} clause,
+the case statements $s_{n+1}$ are executed (\ref{case-execute}),
+and otherwise the switch statement completes normally.
 
 \LMHash{}%
-Matching of a \CASE{} clause \CASE{} $e_{k}: s_{k}$ of a switch statement
+Matching of a case clause \code{\CASE\,\,$e_j$:\,\,$s_j$},
+$j \in 1 .. n$,
+of a switch statement
 
 \begin{normativeDartCode}
 \SWITCH{} ($e$) \{
@@ -18958,23 +19147,26 @@ Matching of a \CASE{} clause \CASE{} $e_{k}: s_{k}$ of a switch statement
 \}
 \end{normativeDartCode}
 
+\noindent
 against the value of a variable \id{} proceeds as follows:
 
 \LMHash{}%
-The expression \code{$e_k$ == \id} is evaluated to an object $o$.
-% This error can occur due to implicit casts and null.
-It is a dynamic error if the run-time type of $o$ is not \code{bool}.
-If $o$ is \FALSE{} the following case,
-\CASE{} $e_{k+1}: s_{k+1}$ is matched against \id{} if $k < n$,
-and if $k = n$, then the \DEFAULT{} clause's statements are executed
+The expression \code{$e_j$ == \id} is evaluated to an object $o$.
+If $o$ is \FALSE{} then if $j < n$ then the following case,
+\code{\CASE\,\,$e_{j+1}$:\,\,$s_{j+1}$}, is matched against \id{};
+otherwise (\commentary{where $j = n$}),
+the \DEFAULT{} clause's statements are executed
 (\ref{case-execute}).
 If $o$ is \TRUE, let $h$ be the smallest number
-such that $h \ge k$ and $s_h$ is non-empty.
+such that $h \ge j$ and $s_h$ is non-empty.
 If no such $h$ exists, let $h = n + 1$.
-The case statements $s_h$ are then executed (\ref{case-execute}).
+The case statements $s_h$ are then executed
+(\ref{case-execute}).
 
 \LMHash{}%
-Matching of a \CASE{} clause \CASE{} $e_{k}: s_{k}$ of a switch statement
+Matching of a case clause \code{\CASE\,\,$e_j$:\,\,$s_j$},
+$j \in 1 .. n$,
+of a switch statement
 
 \begin{normativeDartCode}
 \SWITCH{} ($e$) \{
@@ -18984,81 +19176,20 @@ Matching of a \CASE{} clause \CASE{} $e_{k}: s_{k}$ of a switch statement
 \}
 \end{normativeDartCode}
 
+\noindent
 against the value of a variable \id{} proceeds as follows:
 
 \LMHash{}%
-The expression \code{$e_k$ == \id} is evaluated to an object $o$.
-% This error can occur due to implicit casts and null.
-It is a dynamic error if the run-time type of $o$ is not \code{bool}.
-If $o$ is \FALSE{} the following case,
-\CASE{} $e_{k+1}: s_{k+1}$ is matched against \id{} if $k < n$.
+The expression \code{$e_j$ == \id} is evaluated to an object $o$.
+If $o$ is \FALSE{} then if $j < n$ then the following case,
+\code{\CASE\,\,$e_{j+1}$:\,\,$s_{j+1}$}, is matched against \id;
+otherwise (\commentary{where $j = n$}),
+the switch statement completes normally.
 If $o$ is \TRUE, let $h$ be the smallest integer
-such that $h \ge k$ and $s_h$ is non-empty.
+such that $h \ge j$ and $s_h$ is non-empty.
 If such a $h$ exists, the case statements $s_h$ are executed
 (\ref{case-execute}).
-Otherwise the switch statement completes normally
-(\ref{statementCompletion}).
-
-\LMHash{}%
-It is a compile-time error if the type of $e$
-may not be assigned to the type of $e_k$.
-Let $s$ be the last statement of the statement sequence $s_k$.
-If $s$ is a non-empty block statement, let $s$ instead be
-the last statement of the block statement.
-It is a compile-time error if $s$ is not
-a \BREAK, \CONTINUE, \RETHROW, or \RETURN{} statement,
-or an expression statement where the expression is a \THROW{} expression.
-
-\rationale{%
-The behavior of switch cases intentionally differs from the C tradition.
-Implicit fall through is a known cause of programming errors
-and therefore disallowed.
-Why not simply break the flow implicitly at the end of every case,
-rather than requiring explicit code to do so?
-This would indeed be cleaner.
-It would also be cleaner to insist that each case have
-a single (possibly compound) statement.
-We have chosen not to do so in order to
-facilitate porting of switch statements from other languages.
-Implicitly breaking the control flow at the end of a case would silently alter
-the meaning of ported code that relied on fall-through,
-potentially forcing the programmer to deal with subtle bugs.
-Our design ensures that the difference is immediately brought to
-the coder's attention.
-The programmer will be notified at compile time if they forget to end a case
-with a statement that terminates the straight-line control flow.
-
-The sophistication of the analysis of fall-through is another issue.
-For now, we have opted for a very straightforward syntactic requirement.
-There are obviously situations where code does not fall through,
-and yet does not conform to these simple rules, e.g.:%
-}
-
-\begin{dartCode}
-\SWITCH{} (x) \{
-  \CASE{} 1: \TRY{} \{ $\ldots$ \RETURN; \} \FINALLY{} \{ $\ldots$ \RETURN; \}
-\}
-\end{dartCode}
-
-\rationale{%
-Very elaborate code in a case clause is probably bad style in any case,
-and such code can always be refactored.%
-}
-
-\LMHash{}%
-It is a static warning if all of the following conditions hold:
-\begin{itemize}
-\item The switch statement does not have a default clause.
-\item The static type of $e$ is an enumerated
-  type with elements $\id_1, \ldots, \id_n$.
-\item The sets $\{e_1, \ldots, e_k\} $ and $\{\id_1, \ldots, \id_n\}$
-  are not the same.
-\end{itemize}
-
-\commentary{%
-In other words, a static warning will be emitted
-if a switch statement over an enum is not exhaustive.%
-}
+Otherwise the switch statement completes normally.
 
 
 \subsubsection{Switch case statements}
@@ -19142,8 +19273,8 @@ Consider a \RETHROW{} statement $S$.
 % occur as a statement or in a statement (e.g., in a <finallyPart>), and this
 % induction can only end in a <functionBody>.
 Let $f$ be the immediately enclosing function of $S$.
-A compile-time error occurs unless $S$ is located in an \ON-\CATCH{} clause
-whose immediately enclosing function is $f$.
+A \Error{compile-time error} occurs unless $S$ is located in
+an \ON-\CATCH{} clause whose immediately enclosing function is $f$.
 
 \LMHash{}%
 Execution of a \code{\RETHROW} statement proceeds as follows:
@@ -19278,7 +19409,7 @@ Otherwise the \TRY{} statement completes in the same way as
 the execution of $b$.
 
 \LMHash{}%
-It is a compile-time error if $T_i$, $1 \le i \le n$ is a deferred type.
+It is a \Error{compile-time error} if $T_i$, $1 \le i \le n$ is a deferred type.
 
 
 \subsubsection{\ON{}-\CATCH{} clauses}
@@ -19384,22 +19515,22 @@ or a generative constructor
 (\ref{generativeConstructors}).
 %
 % Returning without an object is only ok for "voidy" return types.
-It is a compile-time error if $s$ is \code{\RETURN;},
+It is a \Error{compile-time error} if $s$ is \code{\RETURN;},
 unless $T$ is \VOID, \DYNAMIC, or \code{Null}.
 %
 % Returning with an object in a void function
 % is only ok when the return type "voidy".
-It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
+It is a \Error{compile-time error} if $s$ is \code{\RETURN\,\,$e$;},
 $T$ is \VOID,
 and $S$ is neither \VOID, \DYNAMIC, nor \code{Null}.
 %
 % Returning void in a "non-voidy" function is an error.
-It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
+It is a \Error{compile-time error} if $s$ is \code{\RETURN\,\,$e$;},
 $T$ is neither \VOID{} nor \DYNAMIC,
 and $S$ is \VOID.
 %
 % Otherwise, returning an unassignable value is an error.
-It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
+It is a \Error{compile-time error} if $s$ is \code{\RETURN\,\,$e$;},
 $S$ is not \VOID,
 and $S$ is not assignable to $T$.
 
@@ -19425,7 +19556,7 @@ Consider the case where $f$ is an asynchronous non-generator function
 with future value type \DefineSymbol{T_v}.
 %
 % Returning without an object is only ok with a "voidy" future value type.
-It is a compile-time error if $s$ is \code{\RETURN;},
+It is a \Error{compile-time error} if $s$ is \code{\RETURN;},
 unless $T_v$
 is \VOID, \DYNAMIC, or \code{Null}.
 
@@ -19438,17 +19569,17 @@ which motivates this rule.%
 
 % Returning with an object in a void async function is only ok
 % when the returned value has a "voidy" type.
-It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
+It is a \Error{compile-time error} if $s$ is \code{\RETURN\,\,$e$;},
 $T_v$ is \VOID,
 and \Flatten{$S$} is neither \VOID, \DYNAMIC, nor \code{Null}.
 %
 % Returning async-void in a "non-async-voidy" function is an error.
-It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
+It is a \Error{compile-time error} if $s$ is \code{\RETURN\,\,$e$;},
 $T_v$ is neither \VOID{} nor \DYNAMIC,
 and \Flatten{$S$} is \VOID.
 %
 % Otherwise, returning an un-deasync-assignable value is an error.
-It is a compile-time error if $s$ is \code{\RETURN\,\,$e$;},
+It is a \Error{compile-time error} if $s$ is \code{\RETURN\,\,$e$;},
 \Flatten{$S$} is not \VOID,
 $S$ is not assignable to $T_v$,
 and \Flatten{$S$} is not a subtype of $T_v$.
@@ -19471,7 +19602,7 @@ to return an object in a return statement of an asynchronous function.%
 
 \LMHash{}%
 \Case{Generator functions}
-It is a compile-time error if a return statement of
+It is a \Error{compile-time error} if a return statement of
 the form \code{\RETURN\,\,$e$;} appears in a generator function.
 
 \rationale{%
@@ -19484,7 +19615,7 @@ and so returning an object makes no sense.%
 
 \LMHash{}%
 \Case{Generative constructors}
-It is a compile-time error if a return statement of
+It is a \Error{compile-time error} if a return statement of
 the form \code{\RETURN\,\,$e$;} appears in a generative constructor
 (\ref{generativeConstructors}).
 
@@ -19612,10 +19743,11 @@ the reserved word \BREAK{} and an optional label (\ref{labels}).
 \LMHash{}%
 Let $s_b$ be a \BREAK{} statement.
 If $s_b$ is of the form \code{\BREAK{} $L$;},
-then it is a compile-time error if $s_b$ is not enclosed in a labeled statement
+then it is a
+\Error{compile-time error} if $s_b$ is not enclosed in a labeled statement
 with the label $L$ within the innermost function in which $s_b$ occurs.
 If $s_b$ is of the form \code{\BREAK;},
-then it is a compile-time error if $s_b$ is not enclosed in an
+then it is a \Error{compile-time error} if $s_b$ is not enclosed in an
 \code{\AWAIT{} \FOR} (\ref{asynchronousFor-in}),
 \DO{} (\ref{do}), \FOR{} (\ref{for}), \SWITCH{} (\ref{switch})
 or \WHILE{} (\ref{while}) statement within
@@ -19642,13 +19774,13 @@ and an optional label (\ref{labels}).
 \LMHash{}%
 Let $s_c$ be a \CONTINUE{} statement.
 If $s_c$ is of the form \code{\CONTINUE{} $L$;},
-then it is a compile-time error if $s_c$ is not enclosed in either an
+then it is a \Error{compile-time error} if $s_c$ is not enclosed in either an
 \code{\AWAIT{} \FOR} (\ref{asynchronousFor-in}),
 \DO{} (\ref{do}), \FOR{} (\ref{for}), or \WHILE{} (\ref{while})
 statement labeled with $L$, or in a \SWITCH{} statement with a case clause
 labeled with $L$, within the innermost function in which $s_c$ occurs.
 If $s_c$ is of the form \code{\CONTINUE;}
-then it is a compile-time error if $s_c$ is not enclosed in an
+then it is a \Error{compile-time error} if $s_c$ is not enclosed in an
 \code{\AWAIT{} \FOR} (\ref{asynchronousFor-in})
 \DO{} (\ref{do}), \FOR{} (\ref{for}), or \WHILE{} (\ref{while}) statement
 within the innermost function in which $s_c$ occurs.
@@ -19675,9 +19807,9 @@ the result of a generator function
 \LMHash{}%
 Let $s$ be a yield statement of the form \code{\YIELD\,\,$e$;}.
 Let $f$ be the immediately enclosing function of $s$.
-It is a compile-time error if there is no such function,
+It is a \Error{compile-time error} if there is no such function,
 or it is not a generator.
-It is a compile-time error if the static type of $e$
+It is a \Error{compile-time error} if the static type of $e$
 may not be assigned to the element type of $f$
 (\ref{functions}).
 
@@ -19771,7 +19903,7 @@ the result of a generator function
 \LMHash{}%
 Let $s$ be a yield-each statement of the form `\code{\YIELD*\,\,$e$;}'.
 Let $f$ be the immediately enclosing function of $s$.
-It is a compile-time error if there is no such function,
+It is a \Error{compile-time error} if there is no such function,
 or it is not a generator.
 
 \LMHash{}%
@@ -19779,10 +19911,10 @@ Let $T_f$ be the element type of $f$
 (\ref{functions}),
 and let $T$ be the static type of $e$.
 If $f$ is a synchronous generator,
-it is a compile-time error if $T$ may not be assigned to
+it is a \Error{compile-time error} if $T$ may not be assigned to
 \code{Iterable<$T_f$>}.
 Otherwise $f$ is an asynchronous generator,
-and it is a compile-time error if $T$ may not be assigned to
+and it is a \Error{compile-time error} if $T$ may not be assigned to
 \code{Stream<$T_f$>}.
 
 \LMHash{}%
@@ -19921,7 +20053,7 @@ an \code{AssertionError} containing $m$ and with
 a stack trace corresponding to the current execution state at the assertion.
 
 \LMHash{}%
-It is a compile-time error if the type of $c$
+It is a \Error{compile-time error} if the type of $c$
 may not be assigned to \code{bool}.
 
 \rationale{%
@@ -20065,7 +20197,7 @@ and its namespace is the library namespace of $L$
 
 \LMHash{}%
 % A setter can not be paired with a function, class, etc.
-It is a compile-time error if the local namespace of library $L$
+It is a \Error{compile-time error} if the local namespace of library $L$
 has two declarations with the same basename,
 except when they are a getter and a setter.
 
@@ -20098,7 +20230,7 @@ The interpretation of configurable URIs is described elsewhere
 (\ref{uris}).
 An import specifies a URI $s$
 where the declaration of an imported library is to be found.
-It is a compile-time error if the specified URI of an import
+It is a \Error{compile-time error} if the specified URI of an import
 does not refer to a library declaration.
 
 \LMHash{}%
@@ -20131,9 +20263,9 @@ so we can refer to \emph{the} prefix clause of a deferred import.%
 }
 
 \LMHash{}%
-It is a compile-time error if the prefix used in a deferred import
+It is a \Error{compile-time error} if the prefix used in a deferred import
 is also used as the prefix of another import clause.
-It is a compile-time error if \id{} is an import prefix,
+It is a \Error{compile-time error} if \id{} is an import prefix,
 and the current library declares a top-level member with basename \id.
 
 \LMHash{}%
@@ -20578,7 +20710,7 @@ The interpretation of configurable URIs is described elsewhere
 (\ref{uris}).
 An export specifies a URI $s$
 where the declaration of an exported library is to be found.
-It is a compile-time error if the specified URI
+It is a \Error{compile-time error} if the specified URI
 does not refer to a library declaration.
 
 \LMHash{}%
@@ -20621,7 +20753,7 @@ Let \NamespaceName{\metavar{merged}} be the result of applying
 conflict merging
 (\ref{conflictMergingOfNamespaces})
 to \List{\metavar{NS}}{\metavar{exported},1}{\metavar{exported},m}.
-A compile-time error occurs if any name in
+A \Error{compile-time error} occurs if any name in
 \NamespaceName{\metavar{merged}}
 is conflicted
 (\ref{conflictMergingOfNamespaces}).
@@ -20905,13 +21037,13 @@ causes the Dart system to attempt to compile the contents of
 the URI that is the value of $s$.
 The top-level declarations at that URI are then compiled by the Dart compiler
 in the scope of the current library.
-It is a compile-time error if the contents of the URI are not
+It is a \Error{compile-time error} if the contents of the URI are not
 a valid part declaration.
-It is a compile-time error if the referenced part declaration $p$ names
+It is a \Error{compile-time error} if the referenced part declaration $p$ names
 a library other than the current library as the library to which $p$ belongs.
 
 \LMHash{}%
-It is a compile-time error if a library contains
+It is a \Error{compile-time error} if a library contains
 two part directives with the same URI.
 
 \LMHash{}%
@@ -20925,7 +21057,7 @@ any of the following is true (\ref{imports}, \ref{exports}):
 \LMHash{}%
 Let $L$ be a library, let $u$ be a URI,
 and let $L_1$ and $L_2$ be distinct libraries which are reachable from $L$.
-It is a compile-time error if $L_1$ and $L_2$ both contain
+It is a \Error{compile-time error} if $L_1$ and $L_2$ both contain
 a part directive with URI $u$.
 
 \commentary{%
@@ -20979,7 +21111,8 @@ A Dart program will typically be executed by executing a script.%
 }
 
 \LMHash{}%
-It is a compile-time error if a library's export scope contains a declaration
+It is a
+\Error{compile-time error} if a library's export scope contains a declaration
 named \code{main}, and the library is not a script.
 \commentary{This restriction ensures that all top-level \code{main} declarations
 introduce a script main-function, so there cannot be a top-level getter or field
@@ -21007,7 +21140,7 @@ URIs are specified by means of string literals:
 \end{grammar}
 
 \LMHash{}%
-It is a compile-time error if a string literal that describes a URI
+It is a \Error{compile-time error} if a string literal that describes a URI
 or a string literal that is used in a \synt{uriTest}
 contains a string interpolation.
 
@@ -21261,12 +21394,13 @@ A type $T$ is \Index{malformed} if{}f:
 \end{itemize}
 
 \LMHash{}%
-Any occurrence of a malformed type in a library is a compile-time error.
+Any occurrence of a
+malformed type in a library is a \Error{compile-time error}.
 
 \LMHash{}%
 A type $T$ is \IndexCustom{deferred}{type!deferred}
 if{}f it is of the form $p.T$ where $p$ is a deferred prefix.
-It is a compile-time error to use a deferred type
+It is a \Error{compile-time error} to use a deferred type
 in a type annotation, type test, type cast or as a type parameter.
 However, all other compile-time errors must be issued
 under the assumption that all deferred libraries have successfully been loaded.
@@ -21449,8 +21583,9 @@ $[U_1/X_1, \ldots, U_s/X_s]T$.
 \LMHash{}%
 Under the assumption that \List{X}{1}{s} are types such that
 $X_j <: B_j$, for all $j \in 1 .. s$,
-it is a compile-time error if $T$ is not regular-bounded,
-and it is a compile-time error if any type occurring in $T$ is not well-bounded.
+it is a \Error{compile-time error} if $T$ is not regular-bounded,
+and it is a
+\Error{compile-time error} if any type occurring in $T$ is not well-bounded.
 
 \commentary{%
 This means that the bounds declared for
@@ -21466,8 +21601,8 @@ Moreover,
 let $T_1,\ \ldots,\ T_l$ be types
 and let $U$ be the parameterized type \code{\id<$T_1, \ldots,\ T_l$>}
 in a location where \id{} denotes $D$.
-It is a compile-time error if $l \not= s$.
-It is a compile-time error if $U$ is not well-bounded
+It is a \Error{compile-time error} if $l \not= s$.
+It is a \Error{compile-time error} if $U$ is not well-bounded
 (\ref{superBoundedTypes}).
 
 \LMHash{}%
@@ -21534,7 +21669,7 @@ and assume that \code{int} is the parameter type.%
 }
 
 \LMHash{}%
-It is a compile-time error if a default value is specified for
+It is a \Error{compile-time error} if a default value is specified for
 a formal parameter in these older forms,
 or if a formal parameter has the modifier \COVARIANT.
 
@@ -21569,7 +21704,7 @@ then we say that
 Let $D$ be a type alias declaration,
 and let $M$ be the transitive closure of
 the type alias declarations that $D$ depends on.
-A compile-time error occurs if $D \in M$.
+A \Error{compile-time error} occurs if $D \in M$.
 
 \commentary{%
 In other words, it is an error for a type alias declaration
@@ -21739,9 +21874,9 @@ when $T$ occurs in one of the following ways:
 \end{itemize}
 
 \LMHash{}%
-A compile-time error occurs if $D$ expands to a type variable,
+A \Error{compile-time error} occurs if $D$ expands to a type variable,
 and $T$ uses $D$ as a class.
-A compile-time error occurs if $T$ uses $D$ as a class,
+A \Error{compile-time error} occurs if $T$ uses $D$ as a class,
 and $T$ is not regular-bounded.
 \commentary{For example:}
 
@@ -22657,7 +22792,7 @@ where $T_r$ is determined as follows:
   where $R_i$ is \NormalizedTypeOf{$T_i$}, for $i \in 1 .. k$.
 \item If $T_u$ is of the form
   \FunctionTypePositionalStd{T_0}
-  
+
   \noindent
   then $T_r$ is
   \FunctionTypePositional{R_0}{ }{X}{B}{s}{R}{n}{k}
@@ -22802,7 +22937,7 @@ the bound of said type variable.
 
 \commentary{%
 An intersection type will never occur as a nested type, that is,
-it will never occurs as  
+it will never occurs as
 an actual type argument in a parameterized type,
 as a parameter type or a return type in a function type,
 as the right operand of another intersection type,
@@ -22901,8 +23036,8 @@ The only non-trivial subtypes of \code{Null} are
 }
 
 \LMHash{}%
-Attempting to instantiate \code{Null} causes a compile-time error.
-It is a compile-time error for a class to extend, mix in or implement
+Attempting to instantiate \code{Null} causes a \Error{compile-time error}.
+It is a \Error{compile-time error} for a class to extend, mix in or implement
 \code{Null}.
 The \code{Null} class declares exactly the same members
 with the same signatures as the class \code{Object}.
@@ -23154,7 +23289,7 @@ whenever doing so is sound.
   \metavar{typeArguments} is a list of actual
   type arguments derived from \synt{typeArguments}, and
   \metavar{arguments} is an actual argument list derived from \synt{arguments}.
-  It is a compile-time error if \id{} is the name of
+  It is a \Error{compile-time error} if \id{} is the name of
   a non-generic method declared in \code{Object}.
   \commentary{%
     No generic methods are declared in \code{Object}.
@@ -23228,7 +23363,7 @@ Note, however, that they entail certain useful properties:
 That is, \code{FutureOr} is in a sense
 the union of $T$ and the corresponding future type.
 The last point guarantees that
-\code{FutureOr<$T$>} <: \code{Object},
+\code{FutureOr<$T$>} <: \code{Object?},
 and also that \code{FutureOr} is covariant in its type parameter,
 just like class types:
 if $S$ <: $T$ then \code{FutureOr<$S$>} <: \code{FutureOr<$T$>}.%
@@ -23237,7 +23372,7 @@ if $S$ <: $T$ then \code{FutureOr<$S$>} <: \code{FutureOr<$T$>}.%
 \LMHash{}%
 If the type arguments passed to \code{FutureOr} would incur compile-time errors
 if applied to a normal generic class with one type parameter,
-the same compile-time errors are issued for \code{FutureOr}.
+the same \Error{compile-time errors} are issued for \code{FutureOr}.
 The name \code{FutureOr} as an expression
 denotes a \code{Type} object representing the type \code{FutureOr<dynamic>}.
 
@@ -23332,7 +23467,7 @@ which are specified as such in source code.%
 In support of the notion
 that the value of an expression with static type \VOID{} should be discarded,
 such objects can only be used in specific situations:
-The occurrence of an expression of type \VOID{} is a compile-time error
+The occurrence of an expression of type \VOID{} is a \Error{compile-time error}
 unless it is permitted according to one of the following rules.
 
 \begin{itemize}
@@ -23362,6 +23497,7 @@ unless it is permitted according to one of the following rules.
   where it is not an error to have it.%
   }
 \item
+  %% This relies on \IsMoreTopType{\VOID}{$T$} = \VOID.
   In a conditional expression \code{$e$\,?\,$e_1$\,:\,$e_2$},
   $e_1$ and $e_2$ may have type \VOID.
   \rationale{%
@@ -23371,19 +23507,12 @@ unless it is permitted according to one of the following rules.
   in some context where it is not an error to have it.%
   }
 \item
+  %% This relies on \IsMoreTopType{\VOID}{$T$} = \VOID.
   In a null coalescing expression \code{$e_1$\,??\,$e_2$},
   $e_2$ may have type \VOID.
   \rationale{%
   The static type of the null coalescing expression is then \VOID,
   which in turn restricts where it can occur.%
-  }
-\item
-  In an expression of the form \code{\AWAIT\,\,$e$}, $e$ may have type \VOID.
-  \rationale{%
-  This rule was adopted because it was a substantial breaking change
-  to turn this situation into an error
-  at the time where the treatment of \VOID{} was changed.
-  Tools may choose to give a hint in such cases.%
   }
 \item
   \commentary{%
@@ -23452,13 +23581,13 @@ unless it is permitted according to one of the following rules.
 Finally, we need to address situations involving implicit usage of
 an object whose static type can be \VOID.
 %
-It is a compile-time error for a for-in statement to have an iterator
+It is a \Error{compile-time error} for a for-in statement to have an iterator
 expression of type $T$ such that \code{Iterator<\VOID{}>}
 is the most specific instantiation of \code{Iterator}
 that is a superinterface of $T$, unless the
 iteration variable has type \VOID.
 %
-It is a compile-time error for an asynchronous for-in statement
+It is a \Error{compile-time error} for an asynchronous for-in statement
 to have a stream expression of type $T$
 such that \code{Stream<\VOID{}>} is the most specific
 instantiation of \code{Stream} that is a superinterface of $T$,
@@ -23636,7 +23765,7 @@ When using the former, we will often leave the latter implicit.%
 Let $T$ be a parameterized type \code{$G$<$S_1, \ldots,\ S_n$>}.
 
 \LMHash{}%
-It is a compile-time error if $G$ is not a generic type,
+It is a \Error{compile-time error} if $G$ is not a generic type,
 or $G$ is a generic type,
 but the number of formal type parameters in the declaration of $G$ is not $n$.
 Otherwise, let
@@ -23651,7 +23780,7 @@ $S_i$ is malbounded for one or more $i \in 1 .. n$,
 or $T$ is not well-bounded (\ref{superBoundedTypes}).
 
 \LMHash{}%
-It is a compile-time error if $T$ is malbounded.
+It is a \Error{compile-time error} if $T$ is malbounded.
 
 \LMHash{}%
 $T$ is evaluated as follows.
@@ -23855,7 +23984,7 @@ the longest possible token is recognized.
 \LMHash{}%
 A \Index{reserved word} can only be used in the syntactic positions
 specified by the grammar.
-In particular, a compile-time error occurs if a reserved word is used
+In particular, a \Error{compile-time error} occurs if a reserved word is used
 where an identifier is expected.
 
 \commentary{%
@@ -24015,68 +24144,14 @@ the type of the receiver of a null aware operator is $T$, then the
 operator is checked as if the receiver had type \NonNullType{$T$}
 (see definition below).
 
-It is an error for the initializer expression of a \LATE{} local
-variable to use a prefix \AWAIT{} expression that is not nested inside
-of another function expression.
+[LATER] It is not a compile time error to write to a \FINAL{}
+non-local or instance variable if that variable is declared \LATE{}
+and does not have an initializer.  For local variables, see the
+section below.
 
-It is an error for a class with a generative \CONST{} constructor to have a
-\code{\LATE\ \FINAL} instance variable.
-
-It is not a compile time error to write to a \FINAL{} non-local or instance
-variable if that variable is declared \LATE{} and does not have an initializer.
-For local variables, see the section below.
-
-It is an error if the object being iterated over by a \code{for-in} loop has a static
-type which is not \DYNAMIC, and is not a subtype of \code{Iterable<dynamic>}.
-
-It is an error if the type of the value returned from a factory constructor is
-not a subtype of the class type associated with the class in which it is defined
-(specifically, it is an error to return a nullable type from a factory
-constructor for any class other than \code{Null}).
-
-It is an error if any case of a switch statement except the last case (the
-default case if present) may complete normally.  The previous syntactic
-restriction requiring the last statement of each case to be one of an enumerated
-list of statements (break, continue, return, throw, or rethrow) is removed.
-
-Given a switch statement which switches over an expression $e$ of type $T$,
-where the cases are dispatched based on expressions \List{e}{0}{k}:
-
-\begin{itemize}
-\item It is no longer required that the $e_i$ evaluate to instances of the same
-    class.
-\item It is an error if any of the $e_i$ evaluate to a value whose static type is
-    not a subtype of $T$.
-\item It is an error if any of the $e_i$ evaluate to constants for which equality
-    is not primitive.
-\item If $T$ is an enum type, it is a warning if the switch does not handle all
-    enum cases, either explicitly or via a default.
-\item If $T$ is \code{$Q$?}\ where $Q$ is an enum type, it is a warning if the switch does
-    not handle all enum cases and \code{null}, either explicitly or via a default.
-\end{itemize}
-
-It is an error if a class has a setter and a getter with the same basename where
-the return type of the getter is not a subtype of the argument type of the
-setter.  Note that this error specifically requires subtyping and not
-assignability and hence makes no exception for \DYNAMIC.
-
-If the static type of $e$ is \VOID, the expression \code{\AWAIT\,\,$e$} is a compile-time
-error. This implies that the list item at line 18281
-will be removed from the language specification.
-
-Let $C$ be a type literal denoting a class, mixin, or extension. It is a warning
-to use a null aware member access with receiver $C$.
-\commentary{E.g., \code{$C$?.staticMethod()} is a warning.}
-
-[ONGOING] It is a warning to use a null aware operator (\code{?.}, \code{?[]}, \code{?..}, \code{??}, \code{??=}, or
-\code{...?}) on an expression of type $T$ if $T$ is strictly non-nullable.
-
-It is a warning to use the null check operator (\code{!}) on an expression of type
-$T$ if $T$ is strictly non-nullable.
-
-It is no longer a warning to override a method which has a default value for a
-parameter with a method with a different default value for the corresponding
-parameter.
+[ONGOING] It is a warning to use a null aware operator (\code{?.},
+\code{?[]}, \code{?..}, \code{??}, \code{??=}, or \code{...?}) on an
+expression of type $T$ if $T$ is strictly non-nullable.
 
 \subsubsection{Local variables and definite (un)assignment}
 
@@ -24224,20 +24299,20 @@ The static type of a \code{\THROW\,\,$e$} expression is \code{Never}.
 Consider an expression $e$ of the form \code{$e_1$\,==\,$e_2$} where the static type of
 $e_1$ is $T_1$ and the static type of $e_2$ is $T_2$. Let $S$ be the type of the
 formal parameter of \code{operator\,\,==} in the interface of \NonNullType{$T_1$}.
-It is a compile-time error unless $T_2$ is assignable to \code{$S$?}.
+It is a \Error{compile-time error} unless $T_2$ is assignable to \code{$S$?}.
 
 Similarly, consider an expression $e$ of the form \code{\SUPER\,==\,$e_2$} that occurs in a
 class whose superclass is $C$, where the static type of $e_2$ is $T_2$. Let $S$ be
 the formal parameter type of the concrete declaration of \code{operator\,\,==} found by
 method lookup in $C$
 \commentary{(if that search succeeds, otherwise it is a compile-time error)}.
-It is a compile-time error unless $T_2$ is assignable to \code{$S$?}.
+It is a \Error{compile-time error} unless $T_2$ is assignable to \code{$S$?}.
 
 \commentary{%
 Even if the static type of $e_1$ is potentially nullable, the parameter type
 of the \code{operator\,\,==} of the corresponding non-null type is taken into account,
 because that instance method will not be invoked when $e_1$ is null. Similarly,
-it is not a compile-time error for the static type of $e_2$ to be potentially
+it is not a \Error{compile-time error} for the static type of $e_2$ to be potentially
 nullable, even when the parameter type of said \code{operator\,\,==} is non-nullable.
 This is again safe, because the instance method will not be invoked when $e_2$
 is null.%
@@ -24556,11 +24631,11 @@ The section 'Scripts' in the language specification is replaced by the
 following:
 
 Let $L$ be a library that exports a declaration $D$ named \code{main}.  It is a
-compile-time error unless $D$ is a non-getter function declaration.  It is a
-compile-time error if $D$ declares more than two required positional
+\Error{compile-time error} unless $D$ is a non-getter function declaration.  It is a
+\Error{compile-time error} if $D$ declares more than two required positional
 parameters, or if there are any required named parameters.  It is a
-compile-time error if $D$ declares at least one positional parameter, and
-the first positional parameter has a type which is not a supertype of
+\Error{compile-time error} if $D$ declares at least one positional parameter,
+and the first positional parameter has a type which is not a supertype of
 \code{List<String>}.
 
 Implementations are free to impose any additional restrictions on the
@@ -24663,6 +24738,7 @@ a dynamic type error occurs if $v$ is \code{null},
 and otherwise the expression evaluates to $v$.
 
 \subsubsection{Null aware operator}
+\LMLabel{nullShorteningTransformation}
 
 The semantics of the null aware operator \code{?.} are defined via a source to source
 translation of expressions into Dart code extended with a let binding construct.
@@ -24802,8 +24878,8 @@ mentioned specifically in a rule are handled in the case for 'other'
 expressions, not in the case for \code{$e$.m(\metavar{args})}.
 
 \commentary{%
-This means that the null-shorting transformation stops at operators. For
-instance, \code{$e$?.$f$ + $b$} is a compile-time error because \code{$e$?.$f$} can be null, it is
+This means that the null-shorting transformation stops at operators.
+For instance, \code{$e$?.$f$ + $b$} is a compile-time error because \code{$e$?.$f$} can be null, it is
 not an expression where both \code{.$f$} and \code{+ $b$} will be skipped if \code{$e$} is null.
 Similarly, both \code{-$a$?.$f$} and \code{~$a$?.$f$} are errors, and do not null-short like
 \code{$a$?.$f$.op()}.%
