@@ -1,6 +1,6 @@
 # Dart Import Shorthand Syntax
 
-Author: lrn@google.com<br>Version: 2.1
+Author: lrn@google.com<br>Version: 2.2
 
 This is a proposal for a shorter import syntax for Dart. It is defined as a shorthand syntax which expands to, and coexists with, the existing import syntax. It avoids unnecessary repetitions and uses short syntax for the most common imports.
 
@@ -18,48 +18,106 @@ The repetition alone is grating, and Dart imports can typically be split into th
 - Third-party packages, `import "package:built_value/built_value.dart";`.
 - Same package relative import, `import "src/helper.dart";`.
 
-The package imports are the ones with the most overhead. For the rest, the surrounding quotes and trailing `.dart` are still so ubiquitous that they might as well be assumed.
+The package imports are the ones with the most overhead. For the relative imports, the surrounding quotes and trailing `.dart` are still so ubiquitous that they might as well be assumed.
+
+The goal is to allow a very short import of a package’s default library: `import test;` is short for `import “package:test/test.dart”;`. Shorthands are added for the other commonly occurring import URI formats as well.
+
+The commonly occurring import formats include:
+
+```dart
+import "dart:async";                       // Platform library.
+import "package:path/path.dart";           // Default package library
+import "package:collection/equality.dart"; // Alternative package library
+import "package:analyzer/dart/ast.dart";   // Same, with path.
+import "helper.dart";                      // Local relative file.
+import "src/helper.dart";                  // Same, with down-path.
+import "../main.dart";                     // Same, with up-path.
+import "/main.dart";                       // Rooted relative path.
+import "package:my.project.component/component.dart"; // Bazel package-name.
+```
+
+## Design
+
+The new syntax uses no quotes. Each shorthand library reference is provided as a character sequence containing no whitespace, and consisting only of ASCII digit, letter and underscore (`_`)-based “words” separated or prefixed by colons (`:`), dots (`.`), dashes (`-`), and slashes (`/`). That syntax still covers *all commonly used imports*.
+
+The new import URI shorthand can be split into *package* imports and *path* imports. (We say “import” here, because that’s the main use-case, but it also works the same for exports and part files.)
+
+A package import is a shorthand for a `package:` URI. It specifies, implicitly or explicitly, a package *name* and a *file path* inside that package (the two parts of a <code>package:*package_name*/*file_path*.dart</code> URI). You omit the final `.dart` in the file name.
+
+A path import is a shorthand for a relative path-only URI reference, which will be resolved against the current file’s URI. It contains just a path, and is recognizable as a path by starting with one of `/`, `./` or `../`. Again you omit the final `.dart` in the file name.
+
+In both cases, we restrict the characters that can occur in the path and package_name. Since there are no quotes to delimit the shorthand, we instead end it at the first non-allowed character. Grammatically, that’s always going to be whitespace or a `;` in valid programs.
+
+### Package import shorthand syntax
+
+The *general package shorthand* syntax is `import package_name:path`. 
+
+You can omit the path (including the colon) to get a *package default shorthand*. That’s the syntax we want for `import test;`. It means the same as `import test:test;`.
+
+You can omit the package name, and have just the colon and path, to get a *current package shorthand*, which uses the package of the surrounding as the package, so an `import :path` means the same as `import current_package:path`.
+
+The package name `dart` is special-case to mean a *platform library shorthand*, so `import dart:async` does import `dart:async`.
+
+### Path import shorthand syntax
+
+A path import shorthand starts with `/`, `./` or `../`. It is simply a shorthand for appending `.dart` to the path. So `import ./path` is a shorthand for
+
+```
+import "./path.dart"
+```
+
+and similarly for `/path` and `../path`.
+
+As one exception, we actually count the number of leading `../`s in a relative path and makes it a compile-time error if there are more than the containing file’s URI has parent directories. (The URI resolution algorithm is defined as ignoring that situation, but it’s safer to not ignore something which is an error.)
 
 ## Syntax
 
-The new syntax uses no quotes. Each shorthand library reference is provided as a *URI-like* character sequence containing no whitespace, and consisting only of ASCII digit, letter, `$` and `_`-based “words” separated or prefixed by colons (`:`), dots (`.`) and slashes (`/`). 
-
-The allowed formats are:
-
-- A single shorthand Dart package name.
-- A shorthand Dart package name followed by a colon, `:`, and a relative shorthand path.
-- A `:` followed by a relative shorthand path.
-- A `./` or `../` followed by a relative shorthand path.
-
-A *shorthand Dart package name* is a *dotted identifier*: A non-empty `.` separated sequence of shorthand identifiers. Such a sequence can have just a single element and no separator.
-
-A *relative shorthand path* is a non-empty `/` separated sequence of dotted identifiers, which again can have just a single element.
-
-The grammar would be:
+The grammar is:
 
 ```
-# Any sequence of letters, digits, `_` and `$`.
-<SHORTHAND_IDENTIFIER> ::= <IDENTIFIER_PART>+
+# Any sequence of letters, digits, and `_`. (No `$`.)
+<SHORTHAND_NAME_PART> ::= [a-zA-Z0-9_]+
 
-<DOTTED_IDENTIFIER> ::=
-   <SHORTHAND_IDENTIFIER> | <DOTTED_IDENTIFIER> '.' <SHORTHAND_IDENTIFIER>
+<SHORTHAND_NAME> ::= 
+     <SHORTHAND_NAME_PART>
+   | <SHORTHAND_NAME> '-' <SHORTHAND_NAME_PART>
+    
+<DOTTED_NAME> ::=
+    <SHORTHAND_NAME> 
+  | <DOTTED_NAME> '.' <SHORTHAND_NAME>
 
 <SHORTHAND_PATH> ::=
-   <DOTTED_IDENTIFIER> | <SHORTHAND_PATH> '/' <DOTTED_IDENTIFIER>
+    <DOTTED_NAME> 
+  | <SHORTHAND_PATH> '/' <DOTTED_NAME>
    
-<SHORTHAND_URI> ::=  
-    <DOTTED_IDENTIFIER> (':' <SHORTHAND_PATH>)? |
-    ':' <SHORTHAND_PATH>
-    './' <SHORTHAND_PATH>
-    '../' <SUPER_PATH>
+<PACKAGE_REFERENCE> ::=
+    <DOTTED_NAME> ':' <SHORTHAND_PATH>
+  | <DOTTED_NAME>
+  | ':' <SHORTHAND_PATH>
+  
+<PATH_REFERENCE> ::=  
+    '/' <SHORTHAND_PATH>
+  | './' <SHORTHAND_PATH>
+  | '../' <SUPER_PATH>
+  
+<SUPER_PATH> ::= 
+    '../' <SUPER_PATH> 
+  | <SHORTHAND_PATH>
+   
+<SHORTHAND_URI> ::= 
+    <PACKAGE_REFERENCE> 
+  | <PATH_REFERENCE>
 
-<SUPER_PATH> ::= '../' <SUPER_PATH> | <SHORTHAND_PATH>
-   
-<import_uri> ::= <uri> 
-        | <SHORTHAND_URI>
+<part_uri> ::=
+    <uri>
+  | <PATH_REFERENCE>
+
+<import_uri> ::= 
+    <uri> 
+  | <SHORTHAND_URI>
 ```
 
-A shorthand identifier is any sequence of ASCII digits, letters, `$` or `_` characters. Adding this directly to the lexical grammar is ambiguous with, at least, identifiers, number literals and reserved words, so the parser may have to, e.g, first do normal tokenization with the existing grammar, then try to combine adjacent identifiers, number literals, `/`, `:` and `.` tokens into a shorthand URI when the parser knows that it expects an import URI and the next token is not a string literal.
+A shorthand name is any sequence of ASCII digits, letters, `_` or `-` characters, where `-`s, `.`s and `/`s can only be separators (not leading or trailing or having two adjacent ones like  `--` or `..`, except for leading `../`s in the super-path) . Adding this directly to the lexical grammar is ambiguous with, at least, identifiers, number literals and reserved words, so the parser may have to, e.g, first do normal tokenization with the existing grammar, then try to combine adjacent identifiers, number literals, `/`, `:` , `-`, and `.` tokens into a shorthand URI when the parser knows that it expects an import URI and the next token is not a string literal.
 
 Since a shorthand URI can only occur where a URI is expected, and a URI is currently always a string literal, there is no ambiguity in *parsing*, we know when to expect a shorthand URI based on the previous code.
 
@@ -67,32 +125,79 @@ The shorthand syntax can be used for `import`, `export`, `part` declarations. We
 
 ## Semantics
 
-A shorthand single-identifier package name, `name`, is equivalent to an URI of `"package:name/name.dart"`. This is the most common form of package imports, and it gets the shortest syntax.
+### Package references
 
-A shorthand dot-separated package name, `some.prefix.last`, is equivalent to a URI of `"package:some.prefix.last/last.dart"`. _The single-identifier case is just the special case where there is no prefix._
+Let *p* be a `<PACKAGE_REFERENCE>`.
 
-A shorthand package-colon-path sequence, `name:path`, is equivalent to a URI of `"package:name/path.dart"`. (Notice the added `.dart`). This is used for packages which expose more than one library. You can do `analyzer:src/ast.dart` as well, but the majority of other-package non-default-library imports will still be top-level libraries. _(We_ could _allow only a single identifier when the package name is specified, so it’s `name:library`, not `name:path`. That would force other-package deep-linking to use strings, which might highlight that something fishy is going on.)_
+If *p* is a *general package shorthand*, `<DOTTED_IDENTIFIER> ':' <SHORTHAND_PATH>`, of the form <Code>*name*:*path*</code>, and *name* is not `dart`, then *p* is shorthand for an `<uri>` of the form <Code>"package:*name*/*path*.dart"</code>.
 
-A shorthand colon-path sequence, `:path` is equivalent to an import of `"package:name/path.dart"` where `name` is the name of the _current package_. This *only* works for code which is actually inside a package. Being “inside a package” in this regard is defined in the same way as used for language versioning, which means that the `test/` and `bin/` directories of a Pub package are inside the same package as the `lib/` directory, even if they cannot be referenced using a `package:` URI. Effectively `:path` becomes the canonical way for libraries outside of `lib/` to refer to package-URIs, without needing to repeat the package name. Inside `lib/` you can use either `:path` or a relative path like the ones below.
+Otherwise, if *name* is `dart`, then *p* a *platform library shorthand* and is a shorthand for <code>"dart:*path*”</code> (and *path* then needs to be the name of a platform library.)
 
-A shorthand dot-slash-path or dot-dot-slash-path sequence, `./path` or `../super-path`, is equivalent to a relative URI of `"./path.dart"` (aka. `"path.dart"`) or `"../super-path.dart"`.  _The `../` path may start with more than one `../` sequence, but `..` can’t occur as a path segment later._
+If *p* is a *package default shorthand*, a `<DOTTED_NAME>`, <code>*name*</code>, then:
 
-The package name `dart` is special-cased so that an import of `dart:async` will import `"dart:async"`, and an import of just `dart` is not allowed because there is no `dart:dart` library. _This could allow us to generally treat `dart:` URIs as a platform supplied package named `dart` with libraries `core.dart`, `async.dart`, etc., which may actually be an improvement over the current special-casing that we do. It does mean that `dart` is not available as a package name for user packages. (It never was.)_
+```
+* If *name* is a single `<SHORTHAND_NAME>`, then *p* is shorthand for <code>"package:*name*/*name*.dart"</code>.
+* If *name* is a `<DOTTED_NAME> '.’ <SHORTHAND_NAME>` of the form <code>*prefix*.*last*</code> then *p* is shorthand for <Code>"package:*name*/*last*.dart</code>.
+```
 
-Examples:
+If *p* is a *current package shorthand*, `: <SHORTHAND_PATH>`, of the form <Code>:*path*</code>, then let *name* be the package name of the package that the surrounding file belongs to. Then *p* is shorthand for <Code>"package:*name*/*path*.dart"</code>. _(A leading-`:`-reference *only* works for code which is actually inside a package. Being “inside a package” in this regard is defined in the same way as used for language versioning, which means that the `test/` and `bin/` directories of a Pub package are inside the same package as the `lib/` directory, even if they cannot be referenced using a `package:` URI. Effectively `:path` becomes a canonical way for libraries outside of `lib/` to refer to package-URIs of the same package, without needing to repeat the package name.)_
 
-- `import built_value;` means `import "package:built_value/built_value.dart";`
-- `import built_value:serializer;` means `import "package:built_value/serializer.dart";`.
-- `import :src/int_serializer;` means `import "package:built_value/src/int_serializer.dart";` when it occurs in the previous `serializer.dart` library, or anywhere else in the same Pub package.
-- `import ./src/int_serializer;` means `import "./src/int_serializer.dart"`, aka.`import "src/int_serializer.dart"`, when it occurs inside the previous `serializer.dart` library.
-- `import ../serializer;` means `import "../serializer.dart"` when it occurs inside the previous `src/int_serializer.dart` library.
-- `import dart:async;` means `import "dart:async";`.
-- `import hide hide hide;` is valid and means `import "package:hide/hide.dart" hide hide;`.
-- `import pkg1 if (dart.libraries.io) pkg2;` works too, each URI is expanded individually.
+### Path references
+
+A path reference is relative to the URI of the current library. A path reference (`<PATH_REFERENCE>`) *path* is a shorthand for a `<uri>` of the form <code>"*path*.dart"</code>.
+
+It’s a compile-time error if a `'../' <SUPER_PATH>` has more leading `../`s than the surrounding library’s URI has super-directories. _So, if inside `package:foo/src/example.dart` one does an `import ../../foo.dart;`, it is a compile-time error. The library’s URI only has one super-directory (`package:foo/`, the package name is not a directory). This differs from how relative URI resolution works, because it allows having too many leading `../`s, and just ignores the extra ones._
+
+We restrict `part` and `part of`  to only using path references. That way a part and its library *must* be in the same library, which is a reasonable constraint, and it avoids giving new meaning to the existing `part of some.library.name;` syntax, which we will simply disallow.
+
+### Examples
+
+Assume the following shorthands occur inside the package `foo`, either in the `lib/` directory, where the containing file has a `package:foo/…` URI, or in the `test/` directory, where the containing file has a `file:///…` URI.
+
+| Containing file                      | Shorthand     | Shorthand for                            |
+| ------------------------------------ | ------------- | ---------------------------------------- |
+| `package:foo/src/bar.dart`           | `bar`         | `package:bar/bar.dart`                   |
+| (aka `…/foo/lib/src/bar.dart`)       | `bar:baz`     | `package:bar/baz.dart`                   |
+|                                      | `bar:baz/qux` | `package:bar/baz/qux.dart`               |
+|                                      | `:bar`        | `package:foo/bar.dart`                   |
+|                                      | `:src/bar`    | `package:foo/src/bar.dart`               |
+|                                      | `./baz`       | `package:foo/src/baz.dart`               |
+|                                      | `./baz/qux`   | `package:foo/src/baz/qux.dart`           |
+|                                      | `../bar`      | `package:foo/bar.dart`                   |
+|                                      | `../misc/bar` | `package:foo/misc/bar.dart`              |
+|                                      | `../../bar`   | **Invalid** (too many `..`s)             |
+|                                      | `/bar`        | `package:foo/bar.dart`                   |
+|                                      | `/src/bar`    | `package:foo/src/bar.dart`               |
+| `file:///something/foo/bin/run.dart` | `bar`         | `package:bar/bar.dart`                   |
+|                                      | `bar:baz`     | `package:bar/baz.dart`                   |
+|                                      | `bar:baz/qux` | `package:bar/baz/qux.dart`               |
+|                                      | `:bar`        | `package:foo/bar.dart`                   |
+|                                      | `:src/bar`    | `package:foo/src/bar.dart`               |
+|                                      | `./baz`       | `file:///something/foo/bin/baz.dart`     |
+|                                      | `./baz/qux`   | `file:///something/foo/bin/baz/qux.dart` |
+|                                      | `../bar`      | `file:///something/foo/bar.dart`         |
+|                                      | `../misc/bar` | `file:///something/foo/misc/bar.dart`    |
+|                                      | `../../bar`   | `file:///something/bar.dart`             |
+|                                      | `/bar`        | `file:///bar.dart`                       |
+|                                      | `/src/bar`    | `file:///src/bar.dart`                   |
+| `file:///home/me/bin/script.dart`    | `bar`         | `package:bar/bar.dart`                   |
+| (not inside a Pub package,           | `bar:baz`     | `package:bar/baz.dart`                   |
+| but assume some packages available). | `bar:baz/qux` | `package:bar/baz/qux.dart`               |
+|                                      | `:bar`        | **INVALID** (no current package)         |
+|                                      | `:src/bar`    | **INVALID** (no current package)         |
+|                                      | `./baz`       | `file:///home/me/bin/baz.dart`           |
+|                                      | `./baz/qux`   | `file:///home/me/bin/baz/qux.dart`       |
+|                                      | `../bar`      | `file:///home/me/bar.dart`               |
+|                                      | `../misc/bar` | `file:///home/me/misc/bar.dart`          |
+|                                      | `../../bar`   | `file:///home/bar.dart`                  |
+|                                      | `/bar`        | `file:///bar.dart`                       |
+|                                      | `/src/bar`    | `file:///src/bar.dart`                   |
 
 ## Consequences
 
-Programmers can write less code. There will be some paths which cannot be written in the shorthand syntax, perhaps because they contain non-identifier characters. Those will still have to be written the old way, as URIs inside delimited strings.
+Programmers can write less code. There will be some paths which cannot be written in the shorthand syntax, perhaps because they contain non-identifier characters. Those will still have to be written the old way, as URIs inside delimited strings. It’s expected that almost all imports can use the new syntax.
+
+That moves code authors away from writing URIs. That’s a good thing, since confusing URIs and paths have led to a number of problems over the years. URIs are complicated and have their own semantics, not all of which match Dart well. If you have to write the restricted shorthand syntax instead, the ways you can make mistakes is reduced significantly.
 
 #### Parsing
 
@@ -104,17 +209,43 @@ If necessary, we could allow some infix operators in the import name, most likel
 
 The `:path` shorthand introduces the notion of “belonging to a package” to the *language*. Previously, that was only a concern for compilers and tools, but with this, it begins affecting the meaning of *source code*. (Arguably, it did before too, because changing language version affects the meaning of source code too, but that’s more indirect than determining which file gets imported.)
 
-#### Part of legacy syntax
+#### Part-of legacy syntax
 
-We need to remove the existing `part of` syntax based on package names before we can allow shorthand URIs in `part of` declarations. Potentially, we could allow only *relative* `part of ` shorthand URIs and retain the existing name-based `part of` syntax with its current meaning, just deprecated. That’s also potentially very confusing.
-
-If we remove the legacy syntax, that also removes the last non-`dart:mirrors` use of package names, and it might be worth introducing unnamed library declarations at the same time (allowing `library;` as a declaration which you can hang annotations and documentation on, without having to come up with a name).
+We need to remove the existing `part of` syntax based on package names before we can allow shorthand URIs in `part of` declarations. 
 
 Removing the existing `part of foo.bar;` syntax *at the same time* as introducing a new `part of foo.bar;` syntax with a different meaning is *risky*. Much code has already moved to using `part of "uri";`, but there is a significant amount of old-style `part of` declarations in the wild. (Replacing with a URI is also not something which can be done on a file-by-file basis, the conversion needs to find the URI of the library owning the library since the name alone doesn’t describe that, which is also the major short-coming of the name-based `part of` syntax.) 
 
-That means that a proper migration where we also change the meaning of `part of` will likely need a dedicated migration tool, making this feature a larger undertaking than without that change. The alternative is to say that shorthand URI syntax does not work for `part of` declarations *yet*, and the old-style name-based `part of` is now deprecated and causes warning. Potentially allow relative shorthand URIs, which should be sufficient for most cases.
+To avoid the problem, we allow only *path* references as `part of ` shorthand URIs.
+
+We can remove the existing name-based `part of` syntax, making the format simply invalid. That would *require* a migration (making this language change a breaking change, not just an enhancement), meaning that it requires a proper migration with a dedicated migration tool, making this feature a larger undertaking than without that change. 
+
+We can also keep the old syntax with its current meaning, just make it deprecated, and remove it later (Dart 3.0 at the latest). That’s potentially very confusing, if `import foo;` means one thing and `part of foo;` means something else (but hopefully the deprecation warning will help you figure out what to do instead). 
+
+If we do remove the legacy syntax, that also removes the last non-`dart:mirrors` use of package names, and it might be worth introducing unnamed library declarations at the same time (allowing `library;` as a declaration which you can hang annotations and documentation on, without having to come up with a name).
+
+#### Redundancy
+
+Inside the `lib/` directory (in any file with a `package:` URI), shorthands of `:path` and `/path` are equivalent.
+
+The former is an implicit `package:` URI into the current package, the latter is a relative path relative to the root of the current (`package:`) URI. Both end up pointing to the same `package:` URI.
+
+Since using `/` in a file with with a `file:` URI is going to be incredibly rare, we might only need `:`.
+
+On the other hand, since `:` is new functionality, allowing you to omit the current package’s name, but `/path.dart` is already a valid import, we could consider dropping `:` instead.
+
+### Case
+
+Our paths are still case sensitive. Since Dart runs on both Unixes and Windows, where file systems are case-sensitive and non-case-sensitive respectively, it has to assume that a directory can contain both `Foo.dart` and `foo.dart`. In practice, that never happens for someone following the conventions for naming files and directories (they’re all lower case). Not everyone does, though.
+
+We could take a stand, and *only* allow lower-case letters in shorthands, but there are thousands of files containing imports of UpperCamelCased file names (for example code converted or generated from Java classes).
+
+We could make the shorthand *case insensitive*, but then it becomes a new import syntax, not just a shorthand for writing a URI (because URIs are guaranteed to be case sensitive).
+
+It’s not clear that there is something clean we can do here, but if there was, now would be a good time to do it.
 
 ## Version history
 
 1.0: Original version uploaded as language issue [#649](https://github.com/dart-lang/language/issues/649).
-2.0: Remove shorthands for relative imports, just use the URIs, and don't allow shorthand syntax in `part` declarations.<br>2.1 Reinstate shorthands for relative imports, but keep `:` as the marker for same-package paths. Grammar allows multiple leading `../`’s. More discussion on `part of`.
+2.0: Remove shorthands for relative imports, just use the URIs, and don't allow shorthand syntax in `part` declarations.<br>2.1: Reinstate shorthands for relative imports, but keep `:` as the marker for same-package paths. Grammar allows multiple leading `../`’s. More discussion on `part of`.
+
+2.2, 2021-11-02: Use `:` as marker for same-package paths and retain `/` as a path reference. Allow `-` in URI path segments.
