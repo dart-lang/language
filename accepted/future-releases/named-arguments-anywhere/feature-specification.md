@@ -80,13 +80,13 @@ To update the current specification, the section:
 
 becomes:
 
-> Let *L* be an arguments list of the form <code>(*p*<sub>1</sub>, , *p*<sub>*k*</sub>)</code> with *m* positional arguments, *p*<sub>*q*<sub>1</sub></sub>  *p*<sub>*q*<sub>m</sub></sub> (in source order) and *n* named arguments, *p*<sub>*d*<sub>1</sub></sub>  *p*<sub>*d*<sub>n</sub></sub> (also in source order), so that *k = m + n*.
+> Let *L* be an arguments list of the form <code>(*p*<sub>1</sub>, ... , *p*<sub>*k*</sub>)</code> with *m* positional arguments, *p*<sub>*q*<sub>1</sub></sub>, ... , *p*<sub>*q*<sub>m</sub></sub> (in source order) and *n* named arguments, *p*<sub>*d*<sub>1</sub></sub>, ... , *p*<sub>*d*<sub>n</sub></sub> (also in source order), so that *k = m + n*.
 >
 > A positional argument *p*<sub>*i*</sub> has the form <code>*e*<sub>*i*</sub></code> and a named argument *p*<sub>*i*</sub> has the form <code>*y*<sub>i</sub>: *e*<sub>*i*</sub></code>.
 >
-> Assume that the static type of <code>_e_<sub>*i*</sub></code> is *S*<sub>*i*</sub>, *i* &in; 1  k.
+> Assume that the static type of <code>_e_<sub>*i*</sub></code> is *S*<sub>*i*</sub>, *i* &in; {1, ... ,  *k*}.
 >
-> The static argument list type of *L* is then <code>(*S*<sub>*q*<sub>1</sub></sub>, , *S*<sub>*q*<sub>m</sub></sub>, *S*<sub>*d*<sub>1</sub></sub> *y*<sub>*d*<sub>1</sub></sub>, , *S*<sub>*d*<sub>n</sub></sub> *y*<sub>*d*<sub>n</sub></sub> )</code>
+> The static argument list type of *L* is then <code>(*S*<sub>*q*<sub>1</sub></sub>, ... , *S*<sub>*q*<sub>m</sub></sub>, *S*<sub>*d*<sub>1</sub></sub> *y*<sub>*d*<sub>1</sub></sub>, ... , *S*<sub>*d*<sub>n</sub></sub> *y*<sub>*d*<sub>n</sub></sub>)</code>
 
 _That is, we canonicalize the ordering for the type, and then proceed as we previously did._
 
@@ -125,16 +125,22 @@ The section containing:
 
 becomes
 
-> Evaluation of an actual argument part of the form <code>\<*A*<sub>1</sub>, , *A*<sub>*r*</sub>\>(*p*<sub>1</sub>, , *p*<sub>*m+l*</sub></code> with positional arguments *p*<sub>*v*<sub>1</sub></sub>*p*<sub>*v*<sub>*m*</sub></sub> of the form <code>*e*<sub>*v*<sub>*i*</sub></sub></code> and named arguments *p*<sub>*d*<sub>1</sub></sub>*p*<sub>*d*<sub>*l*</sub></sub> of the form <code>*q*<sub>*d*<sub>*i*</sub></sub>: *e*<sub>*d*<sub>*i*</sub></sub></code>, proceeds as follows:
+> Evaluation of an actual argument part of the form <code>\<*A*<sub>1</sub>, ... , *A*<sub>*r*</sub>\>(*p*<sub>1</sub>, ... , *p*<sub>*m+l*</sub>)</code> with positional arguments *p*<sub>*v*<sub>1</sub></sub>, ... , *p*<sub>*v*<sub>*m*</sub></sub> of the form <code>*e*<sub>*v*<sub>*i*</sub></sub></code> and named arguments *p*<sub>*d*<sub>1</sub></sub>, ... , *p*<sub>*d*<sub>*l*</sub></sub> of the form <code>*q*<sub>*d*<sub>*i*</sub></sub>: *e*<sub>*d*<sub>*i*</sub></sub></code>, proceeds as follows:
 >
-> The type arguments *A*<sub>1</sub>, , *A*<sub>*r*</sub> are evaluated in the order they appear in the program, producing types *t*<sub>1</sub>, , *t*<sub>*r*</sub>.
+> The type arguments *A*<sub>1</sub>, ... , *A*<sub>*r*</sub> are evaluated in the order they appear in the program, producing types *t*<sub>1</sub>, ... , *t*<sub>*r*</sub>.
 >
-> The argument expressions *e*<sub>1</sub>, , *e*<sub>*m+l*</sub> are evaluated in the order they appear in the program, producing objects *o*<sub>1</sub>, , *o*<sub>*m+l*</sub>.
+> The argument expressions *e*<sub>1</sub>, ... , *e*<sub>*m+l*</sub> are evaluated in the order they appear in the program, producing objects *o*<sub>1</sub>, ... , *o*<sub>*m+l*</sub>.
 >
 > _Simply stated, an argument part consisting of *r* type arguments, *m* positional arguments, and *l* named arguments (in any order) is evaluated from left to right.
 > Note that the type argument list is omitted when *r* = 0._
 >
-> The evaluated argument list is then \<*t*<sub>1</sub>, , *t*<sub>*r*</sub>>(*o*<sub>*v*<sub>1</sub></sub>, , *o*<sub>*v*<sub>*m*</sub></sub>, *q*<sub>*d*<sub>1</sub></sub>: *o*<sub>*d*<sub>1</sub></sub>, , *q*<sub>*d*<sub>*l*</sub></sub>: *o*<sub>*d*<sub>*l*</sub></sub>).
+> The evaluated argument list is then \<*t*<sub>1</sub>, ... , *t*<sub>*r*</sub>>(*o*<sub>*v*<sub>1</sub></sub>, ... , *o*<sub>*v*<sub>*m*</sub></sub>, *q*<sub>*d*<sub>1</sub></sub>: *o*<sub>*d*<sub>1</sub></sub>, ... , *q*<sub>*d*<sub>*l*</sub></sub>: *o*<sub>*d*<sub>*l*</sub></sub>).
+
+The semantics described above can be implemented entirely in the front-end, and the implementation can be described by the following desugaring step.
+
+Let *e* be an invocation expression of the form <code>*e*<sub>0</sub>.*f*\<*A*<sub>1</sub>, ... , *A*<sub>*r*</sub>>(*p*<sub>1</sub>, ... , *p*<sub>*m*+*l*</sub>)</code> with positional arguments *p*<sub>*v*<sub>1</sub></sub>, ... , *p*<sub>*v*<sub>*m*</sub></sub> of the form <code>*e*<sub>*v*<sub>*i*</sub></sub></code> and named arguments *p*<sub>*d*<sub>1</sub></sub>, ... , *p*<sub>*d*<sub>*l*</sub></sub> of the form <code>*q*<sub>*d*<sub>*i*</sub></sub>: *e*<sub>*d*<sub>*i*</sub></sub></code>, where *e*<sub>0</sub> is the receiver and *f* is the member name. In this case *e* can be desugared to an equivalent of <code>**_let_** *x* = *e*<sub>0</sub>, *x*<sub>1</sub> = *e*<sub>1</sub>, ... , *x*<sub>*m*+*l*</sub> = *e*<sub>*m*+*l*</sub> **_in_** *x*.*f*\<*A*<sub>1</sub>, ... , *A*<sub>*r*</sub>>(*x*<sub>*v*<sub>1</sub></sub>, ... , *x*<sub>*v*<sub>*m*</sub></sub>, *q*<sub>*d*<sub>1</sub></sub> : *x*<sub>*d*<sub>1</sub></sub>, ... , *q*<sub>*d*<sub>*l*</sub></sub> : *x*<sub>*d*<sub>*l*</sub></sub>)</code>. Invocations of other forms can be desugared similarly.
+
+Hoisting of some arguments can be avoided by the implementation if that doesn't change the evaluation order.
 
 ## Summary
 
