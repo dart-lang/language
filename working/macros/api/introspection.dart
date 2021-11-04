@@ -119,18 +119,29 @@ abstract class FieldDeclaration implements Declaration {
 
   /// The class that defines this method.
   TypeAnnotation get definingClass;
+
+  /// A [Code] object representing the initializer for this field, if present.
+  Code? get initializer;
 }
 
 /// Parameter introspection information.
 abstract class ParameterDeclaration {
-  /// Whether or not this parameter has the `required` keyword.
-  bool get required;
+  /// The name of the parameter.
+  String get name;
 
   /// The type of this parameter.
   TypeAnnotation get type;
 
   /// Whether or not this is a named parameter.
   bool get isNamed;
+
+  /// Whether or not this parameter is either a non-optional positional
+  /// parameter or an optional parameter with the `required` keyword.
+  bool get isRequired;
+
+  /// A [Code] object representing the default value for this parameter, if
+  /// present. Can be used to copy default values to other parameters.
+  Code? get defaultValue;
 }
 
 /// Type parameter introspection information.
