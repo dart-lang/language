@@ -47,25 +47,25 @@ abstract class ClassIntrospector {
   ///
   /// This may be incomplete if in the declaration phase and additional macros
   /// are going to run on this class.
-  Stream<FieldDeclaration> fieldsOf(ClassDeclaration clazz);
+  Future<List<FieldDeclaration>> fieldsOf(ClassDeclaration clazz);
 
   /// The methods available so far for the current class.
   ///
   /// This may be incomplete if additional declaration macros are running on
   /// this class.
-  Stream<MethodDeclaration> methodsOf(ClassDeclaration clazz);
+  Future<List<MethodDeclaration>> methodsOf(ClassDeclaration clazz);
 
   /// The constructors available so far for the current class.
   ///
   /// This may be incomplete if additional declaration macros are running on
   /// this class.
-  Stream<ConstructorDeclaration> constructorsOf(ClassDeclaration clazz);
+  Future<List<ConstructorDeclaration>> constructorsOf(ClassDeclaration clazz);
 
   /// The class that is directly extended via an `extends` clause.
   Future<ClassDeclaration?> superclassOf(ClassDeclaration clazz);
 
   /// All of the classes that are mixed in with `with` clauses.
-  Stream<ClassDeclaration> mixinsOf(ClassDeclaration clazz);
+  Future<List<ClassDeclaration>> mixinsOf(ClassDeclaration clazz);
 }
 
 /// The api used by [DeclarationMacro]s to reflect on the currently available
