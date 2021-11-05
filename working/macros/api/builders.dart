@@ -26,7 +26,7 @@ abstract class DeclarationBuilder implements Builder {
   /// Adds a new regular declaration to the surrounding library.
   ///
   /// Note that type declarations are not supported.
-  void addToLibrary(DeclarationCode declaration);
+  Declaration addToLibrary(DeclarationCode declaration);
 
   /// Returns true if [leftType] is a subtype of [rightType].
   bool isSubtypeOf(TypeAnnotation leftType, TypeAnnotation rightType);
@@ -68,12 +68,12 @@ abstract class ClassIntrospector {
   Future<List<ClassDeclaration>> mixinsOf(ClassDeclaration clazz);
 }
 
-/// The api used by [DeclarationMacro]s to reflect on the currently available
+/// The api used by [Macro]s to reflect on the currently available
 /// members, superclass, and mixins for a given [ClassDeclaration]
 abstract class ClassDeclarationBuilder
     implements ClassMemberDeclarationBuilder, ClassIntrospector {}
 
-/// The api used by [DefinitionMacro] to get a [TypeDeclaration] for any given
+/// The api used by [Macro] to get a [TypeDeclaration] for any given
 /// [TypeAnnotation].
 abstract class TypeIntrospector {
   Future<TypeDeclaration> typeDeclarationOf(TypeAnnotation annotation);

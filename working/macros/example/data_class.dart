@@ -5,205 +5,210 @@ import '../api/code.dart';
 
 const dataClass = _DataClass();
 
-class _DataClass implements ClassDeclarationMacro {
+class _DataClass extends ClassMacro {
   const _DataClass();
 
   @override
-  void visitClassDeclaration(
-      ClassDeclaration declaration, ClassDeclarationBuilder builder) {
-    autoConstructor.visitClassDeclaration(declaration, builder);
-    copyWith.visitClassDeclaration(declaration, builder);
-    hashCode.visitClassDeclaration(declaration, builder);
-    equality.visitClassDeclaration(declaration, builder);
-    toString.visitClassDeclaration(declaration, builder);
+  void visitClass(ClassDeclaration clazz) {
+    autoConstructor.visitClass(clazz);
+    copyWith.visitClass(clazz);
+    hashCode.visitClass(clazz);
+    equality.visitClass(clazz);
+    toString.visitClass(clazz);
   }
 }
 
 const autoConstructor = _AutoConstructor();
 
-class _AutoConstructor implements ClassDeclarationMacro {
+class _AutoConstructor extends ClassMacro {
   const _AutoConstructor();
 
   @override
-  void visitClassDeclaration(
-      ClassDeclaration declaration, ClassDeclarationBuilder builder) async {
-    var constructors = await builder.constructorsOf(declaration);
-    if (constructors.any((c) => c.name == '')) {
-      throw ArgumentError(
-          'Cannot generate an unnamed constructor because one already exists');
-    }
-
-    var parts = [Code.fromString('${declaration.name}({')];
-    // Add all the fields of `declaration` as named parameters.
-    var fields = await builder.fieldsOf(declaration);
-    for (var field in fields) {
-      var requiredKeyword = field.type.isNullable ? '' : 'required ';
-      parts.add(Code.fromString('\n${requiredKeyword}this.${field.name},'));
-    }
-
-    // Add all super constructor parameters as named parameters.
-    var superclass = await builder.superclassOf(declaration);
-    MethodDeclaration? superconstructor;
-    if (superclass != null) {
-      var superconstructor = (await builder.constructorsOf(superclass))
-          .firstWhereOrNull((c) => c.name == '');
-      if (superconstructor == null) {
+  void visitClass(ClassDeclaration clazz) {
+    buildDeclarations((builder) async {
+      var constructors = await builder.constructorsOf(clazz);
+      if (constructors.any((c) => c.name == '')) {
         throw ArgumentError(
-            'Super class $superclass of $declaration does not have an unnamed '
-            'constructor');
+            'Cannot generate an unnamed constructor because one already exists');
       }
-      // We convert positional parameters in the super constructor to named
-      // parameters in this constructor.
-      for (var param in superconstructor.positionalParameters) {
-        var requiredKeyword = param.isRequired ? 'required' : '';
-        var defaultValue = param.defaultValue == null
-            ? ''
-            : Code.fromParts([' = ', param.defaultValue!]);
-        parts.add(Code.fromParts([
-          '\n$requiredKeyword${param.type.toCode()} ${param.name}',
-          defaultValue,
-          ',',
-        ]));
+
+      var parts = [Code.fromString('${clazz.name}({')];
+      // Add all the fields of `declaration` as named parameters.
+      var fields = await builder.fieldsOf(clazz);
+      for (var field in fields) {
+        var requiredKeyword = field.type.isNullable ? '' : 'required ';
+        parts.add(Code.fromString('\n${requiredKeyword}this.${field.name},'));
       }
-      for (var param in superconstructor.namedParameters) {
-        var requiredKeyword = param.isRequired ? '' : 'required ';
-        var defaultValue = param.defaultValue == null
-            ? ''
-            : Code.fromParts([' = ', param.defaultValue!]);
-        parts.add(Code.fromParts([
-          '\n$requiredKeyword${param.type.toCode()} ${param.name}',
-          defaultValue,
-          ',',
-        ]));
-      }
-    }
-    parts.add(Code.fromString('\n})'));
-    if (superconstructor != null) {
-      parts.add(Code.fromString(' : super('));
-      for (var param in superconstructor.positionalParameters) {
-        parts.add(Code.fromString('\n${param.name},'));
-      }
-      if (superconstructor.namedParameters.isNotEmpty) {
-        parts.add(Code.fromString('{'));
-        for (var param in superconstructor.namedParameters) {
-          parts.add(Code.fromString('\n${param.name}: ${param.name},'));
+
+      // Add all super constructor parameters as named parameters.
+      var superclass = await builder.superclassOf(clazz);
+      MethodDeclaration? superconstructor;
+      if (superclass != null) {
+        var superconstructor = (await builder.constructorsOf(superclass))
+            .firstWhereOrNull((c) => c.name == '');
+        if (superconstructor == null) {
+          throw ArgumentError(
+              'Super class $superclass of $clazz does not have an unnamed '
+              'constructor');
         }
-        parts.add(Code.fromString('\n}'));
+        // We convert positional parameters in the super constructor to named
+        // parameters in this constructor.
+        for (var param in superconstructor.positionalParameters) {
+          var requiredKeyword = param.isRequired ? 'required' : '';
+          var defaultValue = param.defaultValue == null
+              ? ''
+              : Code.fromParts([' = ', param.defaultValue!]);
+          parts.add(Code.fromParts([
+            '\n$requiredKeyword${param.type.toCode()} ${param.name}',
+            defaultValue,
+            ',',
+          ]));
+        }
+        for (var param in superconstructor.namedParameters) {
+          var requiredKeyword = param.isRequired ? '' : 'required ';
+          var defaultValue = param.defaultValue == null
+              ? ''
+              : Code.fromParts([' = ', param.defaultValue!]);
+          parts.add(Code.fromParts([
+            '\n$requiredKeyword${param.type.toCode()} ${param.name}',
+            defaultValue,
+            ',',
+          ]));
+        }
       }
-      parts.add(Code.fromString(')'));
-    }
-    parts.add(Code.fromString(';'));
-    builder.addToClass(DeclarationCode.fromParts(parts));
+      parts.add(Code.fromString('\n})'));
+      if (superconstructor != null) {
+        parts.add(Code.fromString(' : super('));
+        for (var param in superconstructor.positionalParameters) {
+          parts.add(Code.fromString('\n${param.name},'));
+        }
+        if (superconstructor.namedParameters.isNotEmpty) {
+          parts.add(Code.fromString('{'));
+          for (var param in superconstructor.namedParameters) {
+            parts.add(Code.fromString('\n${param.name}: ${param.name},'));
+          }
+          parts.add(Code.fromString('\n}'));
+        }
+        parts.add(Code.fromString(')'));
+      }
+      parts.add(Code.fromString(';'));
+      builder.addToClass(DeclarationCode.fromParts(parts));
+    });
   }
 }
 
 const copyWith = _CopyWith();
 
 // TODO: How to deal with overriding nullable fields to `null`?
-class _CopyWith implements ClassDeclarationMacro {
+class _CopyWith extends ClassMacro {
   const _CopyWith();
 
   @override
-  void visitClassDeclaration(
-      ClassDeclaration declaration, ClassDeclarationBuilder builder) async {
-    var methods = await builder.methodsOf(declaration);
-    if (methods.any((c) => c.name == 'copyWith')) {
-      throw ArgumentError(
-          'Cannot generate a copyWith method because one already exists');
-    }
-    var allFields = await declaration.allFields(builder).toList();
-    var namedParams = [
-      for (var field in allFields)
-        ParameterCode.fromString(
-            '${field.type.toCode()}${field.type.isNullable ? '' : '?'} '
-            '${field.name}'),
-    ];
-    var args = [
-      for (var field in allFields)
-        NamedArgumentCode.fromString(
-            '${field.name}: ${field.name}?? this.${field.name}'),
-    ];
-    builder.addToClass(DeclarationCode.fromParts([
-      declaration.instantiate().toCode(),
-      ' copyWith({',
-      ...namedParams.joinAsCode(', '),
-      ',})',
-      // TODO: We assume this constructor exists, but should check
-      '=> ', declaration.instantiate().toCode(), '}(',
-      ...args.joinAsCode(', '),
-      ', );',
-    ]));
+  void visitClass(ClassDeclaration clazz) {
+    buildDeclarations((builder) async {
+      var methods = await builder.methodsOf(clazz);
+      if (methods.any((c) => c.name == 'copyWith')) {
+        throw ArgumentError(
+            'Cannot generate a copyWith method because one already exists');
+      }
+      var allFields = await clazz.allFields(builder).toList();
+      var namedParams = [
+        for (var field in allFields)
+          ParameterCode.fromString(
+              '${field.type.toCode()}${field.type.isNullable ? '' : '?'} '
+              '${field.name}'),
+      ];
+      var args = [
+        for (var field in allFields)
+          NamedArgumentCode.fromString(
+              '${field.name}: ${field.name} ?? this.${field.name}'),
+      ];
+      builder.addToClass(DeclarationCode.fromParts([
+        clazz.instantiate().toCode(),
+        ' copyWith({',
+        ...namedParams.joinAsCode(', '),
+        ',})',
+        // TODO: We assume this constructor exists, but should check
+        '=> ', clazz.instantiate().toCode(), '(',
+        ...args.joinAsCode(', '),
+        ', );',
+      ]));
+    });
   }
 }
 
 const hashCode = _HashCode();
 
-class _HashCode implements ClassDeclarationMacro {
+class _HashCode extends ClassMacro {
   const _HashCode();
 
   @override
-  void visitClassDeclaration(
-      ClassDeclaration declaration, ClassDeclarationBuilder builder) async {
-    var hashCodeExprs = [
-      await for (var field in declaration.allFields(builder))
-        ExpressionCode.fromString('${field.name}.hashCode')
-    ].joinAsCode(' ^ ');
+  void visitClass(ClassDeclaration clazz) {
+    buildDeclarations((builder) async {
+      var hashCodeExprs = [
+        await for (var field in clazz.allFields(builder))
+          ExpressionCode.fromString('${field.name}.hashCode')
+      ].joinAsCode(' ^ ');
 
-    builder.addToClass(DeclarationCode.fromParts([
-      '''
+      builder.addToClass(DeclarationCode.fromParts([
+        '''
 @override
 int get hashCode =>''',
-      ...hashCodeExprs,
-      ';',
-    ]));
+        ...hashCodeExprs,
+        ';',
+      ]));
+    });
   }
 }
 
 const equality = _Equality();
 
-class _Equality implements ClassDeclarationMacro {
+class _Equality extends ClassMacro {
   const _Equality();
 
   @override
-  void visitClassDeclaration(
-      ClassDeclaration declaration, ClassDeclarationBuilder builder) async {
-    var equalityExprs = [
-      await for (var field in declaration.allFields(builder))
-        ExpressionCode.fromString('this.${field.name} == other.${field.name}'),
-    ].joinAsCode(' && ');
+  void visitClass(ClassDeclaration clazz) {
+    buildDeclarations((builder) async {
+      var equalityExprs = [
+        await for (var field in clazz.allFields(builder))
+          ExpressionCode.fromString(
+              'this.${field.name} == other.${field.name}'),
+      ].joinAsCode(' && ');
 
-    builder.addToClass(DeclarationCode.fromParts([
-      '''
+      builder.addToClass(DeclarationCode.fromParts([
+        '''
 @override
 bool operator==(Object other) =>
-    other is ${declaration.instantiate().toCode()} && ''',
-      ...equalityExprs,
-      ';',
-    ]));
+    other is ${clazz.instantiate().toCode()} && ''',
+        ...equalityExprs,
+        ';',
+      ]));
+    });
   }
 }
 
 const toString = _ToString();
 
-class _ToString implements ClassDeclarationMacro {
+class _ToString extends ClassMacro {
   const _ToString();
 
   @override
-  void visitClassDeclaration(
-      ClassDeclaration declaration, ClassDeclarationBuilder builder) async {
-    var fieldExprs = [
-      await for (var field in declaration.allFields(builder))
-        Code.fromString('  ${field.name}: \${${field.name}}'),
-    ].joinAsCode('\n');
+  void visitClass(ClassDeclaration clazz) {
+    buildDeclarations((builder) async {
+      var fieldExprs = [
+        await for (var field in clazz.allFields(builder))
+          Code.fromString('  ${field.name}: \${${field.name}}'),
+      ].joinAsCode('\n');
 
-    builder.addToClass(DeclarationCode.fromParts([
-      '''
+      builder.addToClass(DeclarationCode.fromParts([
+        '''
 @override
-String toString() => """\${${declaration.name}} {
+String toString() => """\${${clazz.name}} {
 ''',
-      ...fieldExprs,
-      '}""";',
-    ]));
+        ...fieldExprs,
+        '}""";',
+      ]));
+    });
   }
 }
 
