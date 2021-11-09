@@ -144,19 +144,24 @@ class _HashCode extends ClassMacro {
 
   @override
   void visitClass(ClassDeclaration clazz) {
-    buildDeclarations((builder) async {
-      var hashCodeExprs = [
-        await for (var field in clazz.allFields(builder))
-          ExpressionCode.fromString('${field.name}.hashCode')
-      ].joinAsCode(' ^ ');
-
-      builder.addToClass(DeclarationCode.fromParts([
-        '''
+    buildDeclarations((builder) {
+      builder.addToClass(DeclarationCode.fromString('''
 @override
-int get hashCode =>''',
-        ...hashCodeExprs,
-        ';',
-      ]));
+external int get hashCode;'''));
+    });
+
+    buildDefinitions((builder) async {
+      await builder.buildMethod('hashCode', (builder) async {
+        var hashCodeExprs = [
+          await for (var field in clazz.allFields(builder))
+            ExpressionCode.fromString('${field.name}.hashCode')
+        ].joinAsCode(' ^ ');
+        builder.augment(FunctionBodyCode.fromParts([
+          ' => ',
+          ...hashCodeExprs,
+          ';',
+        ]));
+      });
     });
   }
 }
@@ -169,20 +174,24 @@ class _Equality extends ClassMacro {
   @override
   void visitClass(ClassDeclaration clazz) {
     buildDeclarations((builder) async {
-      var equalityExprs = [
-        await for (var field in clazz.allFields(builder))
-          ExpressionCode.fromString(
-              'this.${field.name} == other.${field.name}'),
-      ].joinAsCode(' && ');
-
-      builder.addToClass(DeclarationCode.fromParts([
-        '''
+      builder.addToClass(DeclarationCode.fromString('''
 @override
-bool operator==(Object other) =>
-    other is ${clazz.instantiate().toCode()} && ''',
-        ...equalityExprs,
-        ';',
-      ]));
+external bool operator==(Object other);'''));
+    });
+
+    buildDefinitions((builder) async {
+      await builder.buildMethod('==', (builder) async {
+        var equalityExprs = [
+          await for (var field in clazz.allFields(builder))
+            ExpressionCode.fromString(
+                'this.${field.name} == other.${field.name}'),
+        ].joinAsCode(' && ');
+        DeclarationCode.fromParts([
+          ' => other is ${clazz.instantiate().toCode()} && ',
+          ...equalityExprs,
+          ';',
+        ]);
+      });
     });
   }
 }
@@ -195,19 +204,26 @@ class _ToString extends ClassMacro {
   @override
   void visitClass(ClassDeclaration clazz) {
     buildDeclarations((builder) async {
-      var fieldExprs = [
-        await for (var field in clazz.allFields(builder))
-          Code.fromString('  ${field.name}: \${${field.name}}'),
-      ].joinAsCode('\n');
-
-      builder.addToClass(DeclarationCode.fromParts([
+      builder.addToClass(DeclarationCode.fromString(
         '''
 @override
-String toString() => """\${${clazz.name}} {
-''',
-        ...fieldExprs,
-        '}""";',
-      ]));
+external String toString();''',
+      ));
+    });
+
+    buildDefinitions((builder) async {
+      await builder.buildMethod('toString', (builder) async {
+        var fieldExprs = [
+          await for (var field in clazz.allFields(builder))
+            Code.fromString('  ${field.name}: \${${field.name}}'),
+        ].joinAsCode('\n');
+
+        builder.augment(FunctionBodyCode.fromParts([
+          ' => """\${${clazz.name}} { ',
+          ...fieldExprs,
+          '}""";',
+        ]));
+      });
     });
   }
 }

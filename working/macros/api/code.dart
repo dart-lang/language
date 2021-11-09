@@ -10,7 +10,7 @@ class Scope {
 }
 
 /// The base class representing an arbitrary chunk of Dart code, which may or
-/// may not be syntacically or semantically valid yet.
+/// may not be syntactically or semantically valid yet.
 class Code {
   /// The scope in which to resolve anything from [parts] that does not have its
   /// own scope already defined.

@@ -37,6 +37,9 @@ abstract class ClassMacro extends Macro {
   @override
   external void buildDeclarations(
       FutureOr<void> Function(ClassDeclarationBuilder) callback);
+
+  external void buildDefinitions(
+      FutureOr<void> Function(ClassDefinitionBuilder) callback);
 }
 
 /// The interface for [Macro]s that can be applied to fields.

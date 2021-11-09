@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'code.dart';
 import 'introspection.dart';
 import 'macros.dart'; // For dart docs :(
@@ -85,7 +87,29 @@ abstract class TypeIntrospector {
 abstract class DefinitionBuilder
     implements Builder, ClassIntrospector, TypeIntrospector {}
 
-/// The apis used by [DefinitionMacro]s to define the body of a constructor
+/// The apis used by [Macro]s that run on classes, to fill in the definitions
+/// of any external declarations within that class.
+abstract class ClassDefinitionBuilder implements DefinitionBuilder {
+  /// Retrieve a [FieldDefinitionBuilder] for a field by [name].
+  ///
+  /// Throws an [ArgumentError] if there is no field by that name.
+  Future<void> buildField(String name,
+      FutureOr<void> Function(FieldDefinitionBuilder builder) callback);
+
+  /// Retrieve a [FunctionDefinitionBuilder] for a method by [name].
+  ///
+  /// Throws an [ArgumentError] if there is no method by that name.
+  Future<void> buildMethod(String name,
+      FutureOr<void> Function(FunctionDefinitionBuilder builder) callback);
+
+  /// Retrieve a [ConstructorDefinitionBuilder] for a constructor by [name].
+  ///
+  /// Throws an [ArgumentError] if there is no constructor by that name.
+  Future<void> buildConstructor(String name,
+      FutureOr<void> Function(ConstructorDefinitionBuilder builder) callback);
+}
+
+/// The apis used by [Macro]s to define the body of a constructor
 /// or wrap the body of an existing constructor with additional statements.
 abstract class ConstructorDefinitionBuilder implements DefinitionBuilder {
   /// Augments an existing constructor body with [body].
@@ -94,7 +118,7 @@ abstract class ConstructorDefinitionBuilder implements DefinitionBuilder {
   void augment({FunctionBodyCode? body, List<Code>? initializers});
 }
 
-/// The apis used by [DefinitionMacro]s to augment functions or methods.
+/// The apis used by [Macro]s to augment functions or methods.
 abstract class FunctionDefinitionBuilder implements DefinitionBuilder {
   /// Augments the function.
   ///
@@ -102,7 +126,7 @@ abstract class FunctionDefinitionBuilder implements DefinitionBuilder {
   void augment(FunctionBodyCode body);
 }
 
-/// The api used by [DefinitionMacro]s to augment a field.
+/// The api used by [Macro]s to augment a field.
 abstract class FieldDefinitionBuilder implements DefinitionBuilder {
   /// Augments the field.
   ///
