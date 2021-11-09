@@ -204,7 +204,7 @@ class _ToString extends ClassMacro {
   @override
   void visitClass(ClassDeclaration clazz) {
     buildDeclarations((builder) async {
-      builder.addToClass(DeclarationCode.fromString(
+      builder.declareInClass(DeclarationCode.fromString(
         '''
 @override
 external String toString();''',
