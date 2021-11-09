@@ -78,7 +78,9 @@ abstract class ClassDeclarationBuilder
 /// The api used by [Macro] to get a [TypeDeclaration] for any given
 /// [TypeAnnotation].
 abstract class TypeIntrospector {
-  Future<TypeDeclaration> typeDeclarationOf(TypeAnnotation annotation);
+  /// TODO: Figure out how to deal with `FutureOr<T>`, function types, and
+  /// other non-nominal types.
+  Future<TypeDeclaration> resolve(TypeAnnotation annotation);
 }
 
 /// The base class for builders in the definition phase. These can convert
