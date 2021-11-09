@@ -13,7 +13,66 @@ abstract class Builder {
   TypeAnnotation typeAnnotationOf<T>();
 }
 
-/// The api used by [TypeMacro]s to contribute new type declarations to the
+/// The interface used by [Macro]s to modify the current library.
+abstract class LibraryBuilder {
+  /// Used to contribute new type declarations to this library.
+  void buildTypes(FutureOr<void> Function(TypeBuilder) callback);
+
+  /// Used to contribute new non-type declarations to this library.
+  void buildDeclarations(FutureOr<void> Function(DeclarationBuilder) callback);
+}
+
+/// The interface used by [FunctionMacro]s to modify the function.
+abstract class FunctionBuilder implements LibraryBuilder {
+  /// Used to augment a function definition.
+  void buildDefinition(
+      FutureOr<void> Function(FunctionDefinitionBuilder) callback);
+}
+
+/// The interface used by [ClassMacro]s to modify the class.
+abstract class ClassBuilder implements LibraryBuilder {
+  /// Used to contribute new non-type declarations to this library or class.
+  @override
+  void buildDeclarations(
+      FutureOr<void> Function(ClassDeclarationBuilder) callback);
+
+  /// Used to augment any members in this class.
+  void buildDefinitions(
+      FutureOr<void> Function(ClassDefinitionBuilder) callback);
+}
+
+/// The interface used by all [Macro]s that run on a member of a class, to add
+/// declarations to that class or the surrounding library.
+abstract class ClassMemberBuilder implements LibraryBuilder {
+  /// Used to contribute new non-type declarations to the surrounding library
+  /// or class.
+  @override
+  void buildDeclarations(
+      FutureOr<void> Function(ClassMemberDeclarationBuilder) callback);
+}
+
+/// The interface used by [FieldMacro]s to modify the field.
+abstract class FieldBuilder implements ClassMemberBuilder {
+  /// Used to augment a field definition.
+  void buildDefinition(
+      FutureOr<void> Function(FieldDefinitionBuilder) callback);
+}
+
+/// The interface used by [MethodMacro]s to modify the method.
+abstract class MethodBuilder implements ClassMemberBuilder {
+  /// Used to augment a method definition.
+  void buildDefinition(
+      FutureOr<void> Function(FunctionDefinitionBuilder) callback);
+}
+
+/// The interface used by [ConstructorMacro]s to modify the constructor.
+abstract class ConstructorBuilder implements ClassMemberBuilder {
+  /// Used to augment a constructor definition.
+  void buildDefinition(
+      FutureOr<void> Function(ConstructorDefinitionBuilder) callback);
+}
+
+/// The api used by [Macro]s to contribute new type declarations to the
 /// current library, and get [TypeAnnotation]s from runtime [Type] objects.
 abstract class TypeBuilder implements Builder {
   /// Adds a new type declaration to the surrounding library.

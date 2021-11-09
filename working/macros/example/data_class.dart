@@ -5,27 +5,27 @@ import '../api/code.dart';
 
 const dataClass = _DataClass();
 
-class _DataClass extends ClassMacro {
+class _DataClass implements ClassMacro {
   const _DataClass();
 
   @override
-  void visitClass(ClassDeclaration clazz) {
-    autoConstructor.visitClass(clazz);
-    copyWith.visitClass(clazz);
-    hashCode.visitClass(clazz);
-    equality.visitClass(clazz);
-    toString.visitClass(clazz);
+  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
+    autoConstructor.visitClass(clazz, builder);
+    copyWith.visitClass(clazz, builder);
+    hashCode.visitClass(clazz, builder);
+    equality.visitClass(clazz, builder);
+    toString.visitClass(clazz, builder);
   }
 }
 
 const autoConstructor = _AutoConstructor();
 
-class _AutoConstructor extends ClassMacro {
+class _AutoConstructor implements ClassMacro {
   const _AutoConstructor();
 
   @override
-  void visitClass(ClassDeclaration clazz) {
-    buildDeclarations((builder) async {
+  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
+    builder.buildDeclarations((builder) async {
       var constructors = await builder.constructorsOf(clazz);
       if (constructors.any((c) => c.name == '')) {
         throw ArgumentError(
@@ -100,12 +100,12 @@ class _AutoConstructor extends ClassMacro {
 const copyWith = _CopyWith();
 
 // TODO: How to deal with overriding nullable fields to `null`?
-class _CopyWith extends ClassMacro {
+class _CopyWith implements ClassMacro {
   const _CopyWith();
 
   @override
-  void visitClass(ClassDeclaration clazz) {
-    buildDeclarations((builder) async {
+  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
+    builder.buildDeclarations((builder) async {
       var methods = await builder.methodsOf(clazz);
       if (methods.any((c) => c.name == 'copyWith')) {
         throw ArgumentError(
@@ -139,18 +139,18 @@ class _CopyWith extends ClassMacro {
 
 const hashCode = _HashCode();
 
-class _HashCode extends ClassMacro {
+class _HashCode implements ClassMacro {
   const _HashCode();
 
   @override
-  void visitClass(ClassDeclaration clazz) {
-    buildDeclarations((builder) {
+  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
+    builder.buildDeclarations((builder) {
       builder.declareInClass(DeclarationCode.fromString('''
 @override
 external int get hashCode;'''));
     });
 
-    buildDefinitions((builder) async {
+    builder.buildDefinitions((builder) async {
       await builder.buildMethod('hashCode', (builder) async {
         var hashCodeExprs = [
           await for (var field in clazz.allFields(builder))
@@ -168,18 +168,18 @@ external int get hashCode;'''));
 
 const equality = _Equality();
 
-class _Equality extends ClassMacro {
+class _Equality implements ClassMacro {
   const _Equality();
 
   @override
-  void visitClass(ClassDeclaration clazz) {
-    buildDeclarations((builder) async {
+  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
+    builder.buildDeclarations((builder) async {
       builder.declareInClass(DeclarationCode.fromString('''
 @override
 external bool operator==(Object other);'''));
     });
 
-    buildDefinitions((builder) async {
+    builder.buildDefinitions((builder) async {
       await builder.buildMethod('==', (builder) async {
         var equalityExprs = [
           await for (var field in clazz.allFields(builder))
@@ -198,12 +198,12 @@ external bool operator==(Object other);'''));
 
 const toString = _ToString();
 
-class _ToString extends ClassMacro {
+class _ToString implements ClassMacro {
   const _ToString();
 
   @override
-  void visitClass(ClassDeclaration clazz) {
-    buildDeclarations((builder) async {
+  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
+    builder.buildDeclarations((builder) async {
       builder.declareInClass(DeclarationCode.fromString(
         '''
 @override
@@ -211,7 +211,7 @@ external String toString();''',
       ));
     });
 
-    buildDefinitions((builder) async {
+    builder.buildDefinitions((builder) async {
       await builder.buildMethod('toString', (builder) async {
         var fieldExprs = [
           await for (var field in clazz.allFields(builder))
