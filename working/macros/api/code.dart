@@ -1,13 +1,7 @@
 /// A scope in which to resolve a chunk of code.
 ///
-/// TODO: Handle more deeply nested scopes (such as a scope specific to a class
-/// or method body).
-class Scope {
-  /// Identifiers should be resolved as if they existed in this library.
-  final Uri libraryUri;
-
-  Scope(this.libraryUri);
-}
+/// TODO: Specify more what these mean, what fields are available (if any), etc.
+abstract class Scope {}
 
 /// The base class representing an arbitrary chunk of Dart code, which may or
 /// may not be syntactically or semantically valid yet.
