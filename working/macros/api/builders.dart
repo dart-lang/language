@@ -17,7 +17,7 @@ abstract class Builder {
 /// current library, and get [TypeAnnotation]s from runtime [Type] objects.
 abstract class TypeBuilder implements Builder {
   /// Adds a new type declaration to the surrounding library.
-  void addTypeToLibary(DeclarationCode typeDeclaration);
+  void declareType(DeclarationCode typeDeclaration);
 }
 
 /// The api used by [DeclarationMacro]s to contribute new (non-type)
@@ -28,7 +28,7 @@ abstract class DeclarationBuilder implements Builder {
   /// Adds a new regular declaration to the surrounding library.
   ///
   /// Note that type declarations are not supported.
-  Declaration addToLibrary(DeclarationCode declaration);
+  Declaration declareInLibrary(DeclarationCode declaration);
 
   /// Returns true if [leftType] is a subtype of [rightType].
   bool isSubtypeOf(TypeAnnotation leftType, TypeAnnotation rightType);
@@ -40,7 +40,7 @@ abstract class DeclarationBuilder implements Builder {
 /// The api used by [DeclarationMacro]s to contribute new members to a class.
 abstract class ClassMemberDeclarationBuilder implements DeclarationBuilder {
   /// Adds a new declaration to the surrounding class.
-  void addToClass(DeclarationCode declaration);
+  void declareInClass(DeclarationCode declaration);
 }
 
 /// The api used to introspect on a [ClassDeclaration].

@@ -92,7 +92,7 @@ class _AutoConstructor extends ClassMacro {
         parts.add(Code.fromString(')'));
       }
       parts.add(Code.fromString(';'));
-      builder.addToClass(DeclarationCode.fromParts(parts));
+      builder.declareInClass(DeclarationCode.fromParts(parts));
     });
   }
 }
@@ -123,7 +123,7 @@ class _CopyWith extends ClassMacro {
           NamedArgumentCode.fromString(
               '${field.name}: ${field.name} ?? this.${field.name}'),
       ];
-      builder.addToClass(DeclarationCode.fromParts([
+      builder.declareInClass(DeclarationCode.fromParts([
         clazz.instantiate().toCode(),
         ' copyWith({',
         ...namedParams.joinAsCode(', '),
@@ -145,7 +145,7 @@ class _HashCode extends ClassMacro {
   @override
   void visitClass(ClassDeclaration clazz) {
     buildDeclarations((builder) {
-      builder.addToClass(DeclarationCode.fromString('''
+      builder.declareInClass(DeclarationCode.fromString('''
 @override
 external int get hashCode;'''));
     });
@@ -174,7 +174,7 @@ class _Equality extends ClassMacro {
   @override
   void visitClass(ClassDeclaration clazz) {
     buildDeclarations((builder) async {
-      builder.addToClass(DeclarationCode.fromString('''
+      builder.declareInClass(DeclarationCode.fromString('''
 @override
 external bool operator==(Object other);'''));
     });
