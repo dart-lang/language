@@ -1446,10 +1446,12 @@ A constant variable must be initialized to a constant expression
 or a \Error{compile-time error} occurs.
 
 \commentary{%
-An initializing expression $e$ of a constant variable declaration
-occurs in a constant context
-(\ref{constantContexts}).
-This means that \CONST{} modifiers in $e$ need not be specified explicitly.%
+An initializing expression of a constant variable occurs in a constant context
+(\ref{constantContexts}),
+which means that \CONST{} modifiers need not be specified explicitly.
+We need not specify that it is a compile-time error for a constant variable
+to have the modifier \LATE,
+because such declarations are not derivable syntactically.%
 }
 
 \rationale{%
@@ -1463,6 +1465,10 @@ with being computed late.
 Similarly, an instance variable cannot be constant
 (\ref{instanceVariables}).%
 }
+
+\LMHash{}%
+A \IndexCustom{final variable}{variable!final}
+is a variable whose declaration includes the modifier \FINAL.
 
 
 \subsection{Implicitly Induced Getters and Setters}
@@ -1531,6 +1537,17 @@ The invocation of this getter evaluates as described below
 (\ref{evaluationOfImplicitVariableGetters}).
 In these cases, the declared type of \id{} is $T$.
 \EndCase
+
+\commentary{%
+A future version of this specification will specify type inference,
+but currently it is unspecified and assumed to have taken place already.
+For example, an instance variable declaration of the form
+\code{\VAR\,\,x;} could have been transformed into
+\code{$T$\,\,x;} based on member signatures named \code{x} in superinterfaces
+of the enclosing class.
+Hence, the type \DYNAMIC{} is only used as mentioned above when
+type inference fails to provide a different type.%
+}
 
 \LMHash{}%
 \Case{Setter: Mutable variable with declared type}
@@ -1647,7 +1664,7 @@ is also initialized by a constructor,
 either by an initializing formal or an initializer list entry.
 
 \commentary{%
-It is a \Error{compile-time error} if a final instance variable
+It is a compile-time error if a final instance variable
 that has been initialized by means of
 an initializing formal of a constructor $k$
 is also initialized in the initializer list of $k$
@@ -10354,10 +10371,7 @@ The element $\ell$ is of the form `\code{...$e$}' or `\code{...?$e$}'.
 Evaluate $e$ to an object $o_{\metavar{spread}}$.
 \begin{enumerate}
 \item
-  When $\ell$ is `\code{...$e$}':
-  %% TODO(eernst): Come NNBD, this error cannot occur any more: delete.
-  If $o_{\metavar{spread}}$ is the null object then a dynamic error occurs.
-  Otherwise evaluation proceeds with step 2.
+  When $\ell$ is `\code{...$e$}': Evaluation proceeds with step 2.
 
   When $\ell$ is `\code{...?$e$}':
   If $o_{\metavar{spread}}$ is the null object then
@@ -10578,15 +10592,13 @@ If $\ell$ is `\code{...$e$}',
 let $S$ be the inferred type of $e$ in context \code{Iterable<$P$>}.
 Otherwise
 (\commentary{when $\ell$ is `\code{...?$e$}'}),
-%% TODO(eernst): Come NNBD, add a \ref{} to the specification of
-%% 'the non-nullable type of'.
-let $S$ be the non-nullable type of
 %% TODO(eernst): Clarify whether inference will indeed have that context;
-%% it is clear that we need to eliminate `Null` from $S$, and also that $e$
+%% it is clear that we need to eliminate `Null` from $S'$, and also that $e$
 %% is allowed to have a potentially nullable type, and it seems inconvenient
 %% if we use `Iterable<$P$>` as context type and fail in the case where $e$,
 %% say, has type `List<$U$>?` for some $U$.
-the inferred type of $e$ in context \code{Iterable<$P$>?}.
+let $S'$ be the inferred type of $e$ in context \code{Iterable<$P$>?}
+and $S$ be \NonNullTypeOf{$S'$}.
 
 \begin{itemize}
 \item
@@ -14003,11 +14015,9 @@ The static type of $i$ is the declared return type of $m$.
         \code{\gtilde{}$r$}                              & \gtilde{} \\
         \code{$r$ $\oplus$ $e$}                          & \oplus \\
         \code{$r$[$e$]}                                  & \code{[]} \\
-        %% TODO(eernst): Come nnbd, uncomment this.
-        % \code{$r$?[$e$]}                                 & \code{[]} \\
+        \code{$r$?[$e$]}                                 & \code{[]} \\
         \code{$r$[$e_1$] = $e_2$}                        & \code{[]=} \\
-        %% TODO(eernst): Come nnbd, uncomment this.
-        % \code{$r$?[$e_1$] = $e_2$}                       & \code{[]=} \\
+        \code{$r$?[$e_1$] = $e_2$}                       & \code{[]=} \\
         \code{$r$(\metavar{args})}                       & \CALL{} \\
         \code{$r$<\metavar{types}>(\metavar{args})}      & \CALL{} \\
       \end{array}
@@ -14019,8 +14029,7 @@ The static type of $i$ is the declared return type of $m$.
         \code{$r$.\id{} $\otimes$= $e$}      & \id \\
         \code{$r$?.\id{} $\otimes$= $e$}     & \id \\
         \code{$r$[$e_1$] $\otimes$= $e_2$}  & \code{[]} \\
-        %% TODO(eernst): Come nnbd, uncomment this.
-        % \code{$r$?[$e_1$] $\otimes$= $e_2$} & \code{[]} \\
+        \code{$r$?[$e_1$] $\otimes$= $e_2$} & \code{[]} \\
         \code{++$r$.\id, -{}-$r$.\id}       & \id \\
         \code{$r$.\id++, $r$.\id-{}-}       & \id \\
         \code{++$r$[$e$], -{}-$r$[$e$]}     & \code{[]} \\
@@ -14128,11 +14137,9 @@ because their evaluation does not involve method invocation.%
         \code{$r$?.\id<\metavar{types}>(\metavar{args})} &
         \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r$.\id<\metavar{types}>(\metavar{args})}
         \\
-        %% TODO(eernst): Come nnbd, uncomment this.
         \code{$r$?[$e$]} &
         \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r'$[$e$]}
         \\
-        %% TODO(eernst): Come nnbd, uncomment this.
         \code{$r$?[$e_1$] = $e_2$} &
         \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r'$[$e_1$] = $e_2$}
         \\
@@ -14153,11 +14160,9 @@ because their evaluation does not involve method invocation.%
         \code{$r$[$e_1$] $\otimes$= $e_2$} &
         \Let{$v$}{$e_1$}{$r'$[$v$] = $r'$[$v$]\,$\otimes$\,$e_2$}
         \\
-        %% TODO(eernst): Come nnbd, un-comment this. 4 similar cases below.
-        %% \code{$r$?[$e_1$] $\otimes$= $e_2$} &
-        %% \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ %
-        %%   $r'$[$e_1$]\,\,$\otimes$=\,\,$e_2$}
-        %% \\
+        \code{$r$?[$e_1$] $\otimes$= $e_2$} &
+        \code{$r'$\,==\,\NULL\ ?\ \NULL\ :\ $r'$[$e_1$]\,\,$\otimes$=\,\,$e_2$}
+        \\
         \code{++$r$.\id} &
         \code{$r$.\id{} += 1}
         \\
@@ -16486,6 +16491,15 @@ if the result is the null object (\ref{null}), evaluates another.
 \end{grammar}
 
 \LMHash{}%
+Consider an if-null expression $e$ of the form \code{$e_1$ ?? $e_2$}.
+Let $S$ be the static type of $e_1$.
+A warning occurs if $S$ is non-nullable.
+\commentary{In this case, the \lit{??} is superfluous.}
+The static type of $e$ is the least upper bound
+(\ref{leastUpperBounds})
+of \NonNullTypeOf{$S$} and the static type of $e_2$.
+
+\LMHash{}%
 Evaluation of an if-null expression $e$ of the form \code{$e_1$ ?? $e_2$}
 proceeds as follows:
 
@@ -16494,10 +16508,6 @@ Evaluate $e_1$ to an object $o$.
 If $o$ is not the null object (\ref{null}), then $e$ evaluates to $o$.
 Otherwise evaluate $e_2$ to an object $r$,
 and then $e$ evaluates to $r$.
-
-\LMHash{}%
-The static type of $e$ is the least upper bound (\ref{leastUpperBounds}) of
-the static type of $e_1$ and the static type of $e_2$.
 
 
 \subsection{Logical Boolean Expressions}
@@ -18649,7 +18659,8 @@ and \List{e}{1}{n} is an expression list or empty
 (\commentary{used to update the iteration state}).
 
 \LMHash{}%
-A \Error{compile-time error} occurs if $D$ has the modifier \LATE.
+A \Error{compile-time error} occurs if $D$ has
+the modifier \CONST{} or the modifier \LATE.
 A \Error{compile-time error} occurs if the static type of $c$ is not
 assignable to \code{bool}.
 
@@ -24148,10 +24159,6 @@ operator is checked as if the receiver had type \NonNullType{$T$}
 non-local or instance variable if that variable is declared \LATE{}
 and does not have an initializer.  For local variables, see the
 section below.
-
-[ONGOING] It is a warning to use a null aware operator (\code{?.},
-\code{?[]}, \code{?..}, \code{??}, \code{??=}, or \code{...?}) on an
-expression of type $T$ if $T$ is strictly non-nullable.
 
 \subsubsection{Local variables and definite (un)assignment}
 
