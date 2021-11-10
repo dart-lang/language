@@ -2,19 +2,10 @@ import 'dart:async';
 
 import 'code.dart';
 import 'introspection.dart';
-import 'macros.dart'; // For dart docs :(
-
-abstract class Builder {
-  /// Used to construct a [TypeAnnotation] to a runtime type available to the
-  /// the macro implementation code.
-  ///
-  /// This can be used to emit a reference to it in generated code, or do
-  /// subtype checks (depending on support in the current phase).
-  TypeAnnotation typeAnnotationOf<T>();
-}
+import 'macros.dart'; // For dart docs.
 
 /// The interface used by [Macro]s to modify the current library.
-abstract class LibraryBuilder {
+abstract class LibraryContext {
   /// Used to contribute new type declarations to this library.
   void buildTypes(FutureOr<void> Function(TypeBuilder) callback);
 
@@ -23,14 +14,14 @@ abstract class LibraryBuilder {
 }
 
 /// The interface used by [FunctionMacro]s to modify the function.
-abstract class FunctionBuilder implements LibraryBuilder {
+abstract class FunctionContext implements LibraryContext {
   /// Used to augment a function definition.
   void buildDefinition(
       FutureOr<void> Function(FunctionDefinitionBuilder) callback);
 }
 
 /// The interface used by [ClassMacro]s to modify the class.
-abstract class ClassBuilder implements LibraryBuilder {
+abstract class ClassContext implements LibraryContext {
   /// Used to contribute new non-type declarations to this library or class.
   @override
   void buildDeclarations(
@@ -43,7 +34,7 @@ abstract class ClassBuilder implements LibraryBuilder {
 
 /// The interface used by all [Macro]s that run on a member of a class, to add
 /// declarations to that class or the surrounding library.
-abstract class ClassMemberBuilder implements LibraryBuilder {
+abstract class ClassMemberContext implements LibraryContext {
   /// Used to contribute new non-type declarations to the surrounding library
   /// or class.
   @override
@@ -52,24 +43,35 @@ abstract class ClassMemberBuilder implements LibraryBuilder {
 }
 
 /// The interface used by [FieldMacro]s to modify the field.
-abstract class FieldBuilder implements ClassMemberBuilder {
+abstract class FieldContext implements ClassMemberContext {
   /// Used to augment a field definition.
   void buildDefinition(
       FutureOr<void> Function(FieldDefinitionBuilder) callback);
 }
 
 /// The interface used by [MethodMacro]s to modify the method.
-abstract class MethodBuilder implements ClassMemberBuilder {
+abstract class MethodContext implements ClassMemberContext {
   /// Used to augment a method definition.
   void buildDefinition(
       FutureOr<void> Function(FunctionDefinitionBuilder) callback);
 }
 
 /// The interface used by [ConstructorMacro]s to modify the constructor.
-abstract class ConstructorBuilder implements ClassMemberBuilder {
+abstract class ConstructorContext implements ClassMemberContext {
   /// Used to augment a constructor definition.
   void buildDefinition(
       FutureOr<void> Function(ConstructorDefinitionBuilder) callback);
+}
+
+/// The base interface used to add declarations to the program as well
+/// as augment existing ones.
+abstract class Builder {
+  /// Used to construct a [TypeAnnotation] to a runtime type available to the
+  /// the macro implementation code.
+  ///
+  /// This can be used to emit a reference to it in generated code, or do
+  /// subtype checks (depending on support in the current phase).
+  TypeAnnotation typeAnnotationOf<T>();
 }
 
 /// The api used by [Macro]s to contribute new type declarations to the
@@ -79,7 +81,7 @@ abstract class TypeBuilder implements Builder {
   void declareType(DeclarationCode typeDeclaration);
 }
 
-/// The api used by [DeclarationMacro]s to contribute new (non-type)
+/// The api used by [Macro]s to contribute new (non-type)
 /// declarations to the current library.
 ///
 /// Can also be used to do subtype checks on types.
@@ -96,7 +98,7 @@ abstract class DeclarationBuilder implements Builder {
   bool isExactly(TypeAnnotation leftType, TypeAnnotation rightType);
 }
 
-/// The api used by [DeclarationMacro]s to contribute new members to a class.
+/// The api used by [Macro]s to contribute new members to a class.
 abstract class ClassMemberDeclarationBuilder implements DeclarationBuilder {
   /// Adds a new declaration to the surrounding class.
   void declareInClass(DeclarationCode declaration);

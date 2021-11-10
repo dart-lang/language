@@ -9,12 +9,12 @@ class _DataClass implements ClassMacro {
   const _DataClass();
 
   @override
-  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
-    autoConstructor.visitClass(clazz, builder);
-    copyWith.visitClass(clazz, builder);
-    hashCode.visitClass(clazz, builder);
-    equality.visitClass(clazz, builder);
-    toString.visitClass(clazz, builder);
+  void visitClass(ClassDeclaration clazz, ClassContext context) {
+    autoConstructor.visitClass(clazz, context);
+    copyWith.visitClass(clazz, context);
+    hashCode.visitClass(clazz, context);
+    equality.visitClass(clazz, context);
+    toString.visitClass(clazz, context);
   }
 }
 
@@ -24,8 +24,8 @@ class _AutoConstructor implements ClassMacro {
   const _AutoConstructor();
 
   @override
-  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
-    builder.buildDeclarations((builder) async {
+  void visitClass(ClassDeclaration clazz, ClassContext context) {
+    context.buildDeclarations((builder) async {
       var constructors = await builder.constructorsOf(clazz);
       if (constructors.any((c) => c.name == '')) {
         throw ArgumentError(
@@ -104,8 +104,8 @@ class _CopyWith implements ClassMacro {
   const _CopyWith();
 
   @override
-  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
-    builder.buildDeclarations((builder) async {
+  void visitClass(ClassDeclaration clazz, ClassContext context) {
+    context.buildDeclarations((builder) async {
       var methods = await builder.methodsOf(clazz);
       if (methods.any((c) => c.name == 'copyWith')) {
         throw ArgumentError(
@@ -143,14 +143,14 @@ class _HashCode implements ClassMacro {
   const _HashCode();
 
   @override
-  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
-    builder.buildDeclarations((builder) {
+  void visitClass(ClassDeclaration clazz, ClassContext context) {
+    context.buildDeclarations((builder) {
       builder.declareInClass(DeclarationCode.fromString('''
 @override
 external int get hashCode;'''));
     });
 
-    builder.buildDefinitions((builder) async {
+    context.buildDefinitions((builder) async {
       await builder.buildMethod('hashCode', (builder) async {
         var hashCodeExprs = [
           await for (var field in clazz.allFields(builder))
@@ -172,14 +172,14 @@ class _Equality implements ClassMacro {
   const _Equality();
 
   @override
-  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
-    builder.buildDeclarations((builder) async {
+  void visitClass(ClassDeclaration clazz, ClassContext context) {
+    context.buildDeclarations((builder) async {
       builder.declareInClass(DeclarationCode.fromString('''
 @override
 external bool operator==(Object other);'''));
     });
 
-    builder.buildDefinitions((builder) async {
+    context.buildDefinitions((builder) async {
       await builder.buildMethod('==', (builder) async {
         var equalityExprs = [
           await for (var field in clazz.allFields(builder))
@@ -202,8 +202,8 @@ class _ToString implements ClassMacro {
   const _ToString();
 
   @override
-  void visitClass(ClassDeclaration clazz, ClassBuilder builder) {
-    builder.buildDeclarations((builder) async {
+  void visitClass(ClassDeclaration clazz, ClassContext context) {
+    context.buildDeclarations((builder) async {
       builder.declareInClass(DeclarationCode.fromString(
         '''
 @override
@@ -211,7 +211,7 @@ external String toString();''',
       ));
     });
 
-    builder.buildDefinitions((builder) async {
+    context.buildDefinitions((builder) async {
       await builder.buildMethod('toString', (builder) async {
         var fieldExprs = [
           await for (var field in clazz.allFields(builder))
