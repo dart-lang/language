@@ -8175,6 +8175,7 @@ etc.%
 We now specify how the
 \Index{instantiation to bound}
 algorithm proceeds.
+\BlindDefineSymbol{T,X_j,k,B_j,S_j}%
 Let $T$ be a raw type.
 Let \List{X}{1}{k} be the formal type parameters in the declaration of $G$,
 and let \List{B}{1}{k} be their bounds.
@@ -8192,6 +8193,7 @@ in order to compute the instantiation to bound for $G$.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{U_{i,j}}%
 Let $U_{i,0}$ be $S_i$, for all $i \in 1 .. k$.
 \commentary{%
 This is the "current value" of the bound for type variable $i$, at step 0;
@@ -8205,6 +8207,7 @@ e.g., the bound $U_{i,m}$, to compute the data for step $m + 1$.%
 \def\TransitivelyDepends{\ensuremath{\rightarrow^{+}_m}}
 
 \LMHash{}%
+\BlindDefineSymbol{\Depends}%
 Let \Depends{} be a relation among the type variables
 \List{X}{1}{k} such that
 $X_p \Depends X_q$ iff $X_q$ occurs in $U_{p,m}$.
@@ -8212,10 +8215,12 @@ $X_p \Depends X_q$ iff $X_q$ occurs in $U_{p,m}$.
 So each type variable is related to, that is, depends on,
 every type variable in its bound, which might include itself.%
 }
+\BlindDefineSymbol{\TransitivelyDepends}%
 Let \TransitivelyDepends{} be the transitive
 (\commentary{but not reflexive})
 closure of \Depends.
 For each $m$, let $U_{i,m+1}$, for $i \in 1 .. k$,
+\BlindDefineSymbol{V_m}%
 be determined by the following iterative process, where $V_m$ denotes
 \code{$G$<$U_{1,m},\ \ldots,\ U_{k,m}$>}:
 
@@ -8242,7 +8247,7 @@ be determined by the following iterative process, where $V_m$ denotes
   $U_{i,m+1}$ is then obtained from $U_{i,m}$
   by substituting \DYNAMIC{} for every occurrence of a variable in $M_q$
   that is in a position in $V_m$ which is not contravariant,
-  and substituting \code{Null} for every occurrence of a variable in $M_q$
+  and substituting \code{Never} for every occurrence of a variable in $M_q$
   which is in a contravariant position in $V_m$.
 
 \item[2.]
@@ -8257,7 +8262,7 @@ be determined by the following iterative process, where $V_m$ denotes
   $U_{i,m+1}$ is obtained from $U_{i,m}$
   by substituting $U_{j,m}$ for every occurrence of $X_j$
   that is in a position in $V_m$ which  is not contravariant,
-  and substituting \code{Null} for every occurrence of $X_j$
+  and substituting \code{Never} for every occurrence of $X_j$
   which is in a contravariant position in $V_m$.
 
 \item[3.]
@@ -8312,8 +8317,8 @@ This kind of error can occur, as demonstrated by the following example:%
 }
 
 \begin{dartCode}
-\CLASS{} C<X \EXTENDS{} C<X>{}> \{\}
-\TYPEDEF{} F<X \EXTENDS{} C<X>{}> = X \FUNCTION(X);
+\CLASS{} C<X> \{\}
+\TYPEDEF{} F<X \EXTENDS{} C<X>, Y \EXTENDS{} C<Y>{}> = X \FUNCTION(Y);
 \\
 F f; // \comment{Compile-time error.}
 \end{dartCode}
@@ -8321,34 +8326,8 @@ F f; // \comment{Compile-time error.}
 \commentary{%
 With these declarations,
 the raw \code{F} which is used as a type annotation is a compile-time error:
-The algorithm yields \code{F<C<\DYNAMIC{}>{}>},
-and that is neither a regular-bounded nor a super-bounded type.
-%
-The resulting type can be specified explicitly as
-\code{C<\DYNAMIC{}> \FUNCTION(C<\DYNAMIC{}>)}.
-That type exists,
-we just cannot express it by passing a type argument to \code{F},
-so we make it an error rather than allowing it implicitly.%
-}
-
-\rationale{%
-The core reason why it makes sense to make such a raw type an error
-is that there is no subtype relationship
-between the relevant parameterized types.%
-}
-\commentary{%
-For instance, \code{F<T1>} and \code{F<T2>} are unrelated,
-even when \SubtypeNE{\code{T1}}{\code{T2}} or vice versa.
-In fact, there is no type \code{T} whatsoever
-such that a variable with declared type \code{F<T>}
-could be assigned to a variable of type
-\code{C<\DYNAMIC{}> \FUNCTION(C<\DYNAMIC{}>)}.
-%
-So the raw \code{F}, if permitted,
-would not be ``a supertype of \code{F<T>} for all possible \code{T}'',
-it would be a type which is unrelated to \code{F<T>}
-for \emph{every single} \code{T} that satisfies the bound of \code{F}.
-This is so useless that we made it an error.%
+The algorithm yields \code{F<C<\DYNAMIC{}>,\,\,C<Never>{}>},
+and that is neither a regular-bounded nor a super-bounded type.%
 }
 
 \LMHash{}%
@@ -10537,7 +10516,8 @@ $\EvaluateElement{\ell} := s$;
 \LMLabel{listLiteralInference}
 
 \LMHash{}%
-This section specifies how a list literal \metavar{list} is traversed and an
+This section specifies how a list literal
+\DefineSymbol{\metavar{list}} is traversed, and an
 \IndexCustom{inferred element type}{list literal!element type}
 for \metavar{list} is determined.
 We specify first how to infer the element type of a single element,
@@ -10545,6 +10525,7 @@ then how to use that result to infer
 the element type of \metavar{list} as a whole.
 
 \LMHash{}%
+\BlindDefineSymbol{P, P_e}
 The context type $P$
 (\ref{setAndMapLiteralDisambiguation})
 for each element of \metavar{list} is
@@ -10556,7 +10537,7 @@ Otherwise, $P$ is \FreeContext{}
 (\ref{setAndMapLiteralDisambiguation}).
 
 \LMHash{}%
-Let $\ell$ be a term derived from \synt{element}.
+Let \DefineSymbol{\ell} be a term derived from \synt{element}.
 Inference of the element type of $\ell$ with context type $P$
 proceeds as follows,
 where the context type for inference of an element type is always $P$,
@@ -10587,16 +10568,12 @@ when a leaf element of a list literal is a map element
 
 \LMHash{}%
 \Case{Spread element}
+\BlindDefineSymbol{S}%
 Let $e$ be the expression of $\ell$.
 If $\ell$ is `\code{...$e$}',
 let $S$ be the inferred type of $e$ in context \code{Iterable<$P$>}.
 Otherwise
 (\commentary{when $\ell$ is `\code{...?$e$}'}),
-%% TODO(eernst): Clarify whether inference will indeed have that context;
-%% it is clear that we need to eliminate `Null` from $S'$, and also that $e$
-%% is allowed to have a potentially nullable type, and it seems inconvenient
-%% if we use `Iterable<$P$>` as context type and fail in the case where $e$,
-%% say, has type `List<$U$>?` for some $U$.
 let $S'$ be the inferred type of $e$ in context \code{Iterable<$P$>?}
 and $S$ be \NonNullTypeOf{$S'$}.
 
@@ -10609,8 +10586,9 @@ and $S$ be \NonNullTypeOf{$S'$}.
   If $S$ is \DYNAMIC,
   the inferred element type of $\ell$ is \DYNAMIC.
 \item
-  If $S$ is \code{Null} and the spread operator is \lit{...?},
-  the inferred element type of $\ell$ is \code{Null}.
+  If $S$ is a subtype of \code{Never},
+  or if $S$ is a subtype of \code{Null} and the spread operator is \lit{...?},
+  the inferred element type of $\ell$ is \code{Never}.
 \item
   Otherwise, a \Error{compile-time error} occurs.
 \end{itemize}
@@ -10637,19 +10615,20 @@ the least upper bound of $S_1$ and $S_2$.
 
 \LMHash{}%
 \Case{For element}
+\BlindDefineSymbol{p}%
 In this case $\ell$ is of the form
-\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$}
-where $P$ is derived from \synt{forLoopParts} and
+\code{\AWAIT?\,\,\FOR\,\,($p$)\,\,$\ell_1$}
+where $p$ is derived from \synt{forLoopParts} and
 `\AWAIT?' indicates that \AWAIT{} may be present or absent.
 
 The same \Error{compile-time errors} occur for $\ell$ as
 the errors that would occur with the corresponding \FOR{} statement
-\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,\{\}},
+\code{\AWAIT?\,\,\FOR\,\,($p$)\,\,\{\}},
 located in the same scope as $\ell$.
 Moreover, the errors and type analysis of $\ell$ is performed
 as if it occurred in the body scope of said \FOR{} statement.
 \commentary{%
-For instance, if $P$ is of the form
+For instance, if $p$ is of the form
 \code{\VAR\,\,v\,\,\IN\,\,$e_1$}
 then the variable \code{v} is in scope for $\ell$.%
 }
@@ -10675,6 +10654,7 @@ Finally, we define
 \IndexCustom{type inference on a list literal}{%
   type inference!list literal}
 as a whole.
+\BlindDefineSymbol{\metavar{list},\ell_j,P}%
 Assume that \metavar{list} is derived from \synt{listLiteral}
 and contains the elements \List{\ell}{1}{n},
 and the context type for \metavar{list} is $P$.
@@ -10909,9 +10889,11 @@ The second step uses expression types and is described next
 (\ref{setAndMapLiteralInference}).
 
 \LMHash{}%
+\BlindDefineSymbol{e,{\cal L},C}%
 Let $e$ be a \synt{setOrMapLiteral}
 with leaf elements $\cal L$ and context type $C$.
 If $C$ is \FreeContext{} then let $S$ be undefined.
+\BlindDefineSymbol{S}%
 %% TODO(eernst): Define `greatest closure' of a context type
 %% when we define `context type'.
 Otherwise let $S$ be the greatest closure of \futureOrBase{C}
@@ -11005,6 +10987,7 @@ as appropriate.
 \LMLabel{setAndMapLiteralInference}
 
 \LMHash{}%
+\BlindDefineSymbol{e}%
 This section specifies how a \synt{setOrMapLiteral} $e$ is traversed
 and an associated
 \IndexCustom{inferred element type}{set or map literal!element type}
@@ -11048,6 +11031,7 @@ Map m = \{\};
 \end{dartCode}
 
 \LMHash{}%
+\BlindDefineSymbol{\metavar{collection},P}%
 Let \metavar{collection} be a collection literal
 derived from \synt{setOrMapLiteral}.
 The inferred type of an \synt{element} is an element type $T$,
@@ -11058,6 +11042,7 @@ which is determined as follows:
 
 \begin{itemize}
 \item
+  \BlindDefineSymbol{P_e}%
   If \metavar{collection} is unambiguously a set
   (\ref{setAndMapLiteralDisambiguation})
   then $P$ is \code{Set<$P_e$>},
@@ -11087,6 +11072,7 @@ which is determined as follows:
     provides a partial constraint on the inferred type.%
   }
 \item
+  \BlindDefineSymbol{P_k,P_v}%
   If \metavar{collection} is unambiguously a map
   then $P$ is \code{Map<$P_k$,\,\,$P_v$>}
   where $P_k$ and $P_v$ are determined by downwards inference,
@@ -11113,6 +11099,7 @@ and it
 if can be a map and has no element type.
 
 \LMHash{}%
+\BlindDefineSymbol{\ell}%
 Let $\ell$ be a term derived from \synt{element}.
 \IndexCustom{Inference of the type of}{%
   type inference!collection literal element}
@@ -11152,6 +11139,7 @@ the inferred type of $e_v$ in context $P_v$.
 
 \LMHash{}%
 \Case{Spread element}
+\BlindDefineSymbol{S}%
 In this case $\ell$ is of the form
 `\code{...$e$}' or `\code{...?$e$}'.
 If $P$ is \FreeContext{} then let $S$ be
@@ -11198,19 +11186,23 @@ Then:
     and rely on other elements to disambiguate.%
   }
 \item
-  If $S$ is \code{Null} and the spread operator is \lit{...?} then
-  the inferred element type of $\ell$ is \code{Null},
-  and the inferred key and value type pair $(\code{Null}, \code{Null})$.
+  If $S$ is a subtype of \code{Never},
+  or if $S$ is a subtype of \code{Null} and the spread operator is \lit{...?},
+  then the inferred element type of $\ell$ is \code{Never},
+  and the inferred key and value type pair $(\code{Never}, \code{Never})$.
 \item
   Otherwise, a \Error{compile-time error} occurs.
 \end{itemize}
 
 \noindent
-%% TODO(eernst): Clarify why we shouldn't be able to use a context type of
-%% `Iterable<$P_e$>` in the same way: infer $e$ in context `Iterable<$P_e$>`
-%% as well.
-Otherwise, if $P$ is \code{Set<$P_e$>} then let $S$ be
-the inferred type of $e$ in context \code{Iterable<$P_e$>}, and then:
+\BlindDefineSymbol{S}%
+Otherwise $P$ is not \FreeContext.
+If $\ell$ is `\code{...$e$}' and $P$ is \code{Set<$P_e$>}
+then let $S$ be the inferred type of $e$ in context \code{Iterable<$P_e$>};
+and if $\ell$ is \code{...?$e$} and $P$ is \code{Set<$P_e$>}
+then let $S'$ be the inferred type of $e$ in context \code{Iterable<$P_e$>?}
+and let $S$ be \NonNullTypeOf{$S'$}.
+Next:
 
 \begin{itemize}
 \item
@@ -11225,15 +11217,23 @@ the inferred type of $e$ in context \code{Iterable<$P_e$>}, and then:
   If $S$ is \DYNAMIC,
   the inferred element type of $\ell$ is \DYNAMIC.
 \item
-  If $S$ is \code{Null} and the spread operator is \lit{...?},
-  the inferred element type of $\ell$ is \code{Null}.
+  If $S$ is a subtype of \code{Never},
+  or if $S$ is a subtype of \code{Null} and the spread operator is \lit{...?},
+  the inferred element type of $\ell$ is \code{Never}.
 \item
   Otherwise, a \Error{compile-time error} occurs.
 \end{itemize}
 
 \noindent
-Otherwise, if $P$ is \code{Map<$P_k$,\,\,$P_v$>} then let $S$ be
-the inferred type of $e$ in context $P$, and then:
+\BlindDefineSymbol{S}%
+Otherwise $P$ is \code{Map<$P_k$,\,\,$P_v$>}
+(\commentary{because $P$ was created such that it only has those three forms}).
+If $\ell$ is `\code{...$e$}' then let $S$ be
+the inferred type of $e$ in context $P$;
+if $\ell$ is `\code{...?$e$}' then let $S'$ be
+the inferred type of $e$ in context \code{$P$?},
+and let $S$ be \NonNullTypeOf{$S'$}.
+Next:
 
 \begin{itemize}
 \item
@@ -11252,8 +11252,9 @@ the inferred type of $e$ in context $P$, and then:
   \noindent
   $(\DYNAMIC, \DYNAMIC)$.
 \item
-  If $S$ is \code{Null} and the spread operator is \lit{...?},
-  the inferred key and value type pair $(\code{Null}, \code{Null})$.
+  If $S$ is a subtype of \code{Never},
+  or if $S$ is a subtype of \code{Null} and the spread operator is \lit{...?},
+  the inferred key and value type pair is $(\code{Never}, \code{Never})$.
 \item
   Otherwise, a \Error{compile-time error} occurs.
 \end{itemize}
@@ -11262,11 +11263,13 @@ the inferred type of $e$ in context $P$, and then:
 
 \LMHash{}%
 \Case{If element}
+\BlindDefineSymbol{b,\ell_1,\ell_2}%
 In this case $\ell$ is of the form
 \code{\IF\,\,($b$)\,\,$\ell_1$} or
 \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
 The condition $b$ is always inferred with a context type of \code{bool}.
 
+\LMHash{}%
 Assume that `\code{\ELSE\,\,$\ell_2$}' is not present. Then:
 \begin{itemize}
 \item
@@ -11277,6 +11280,7 @@ Assume that `\code{\ELSE\,\,$\ell_2$}' is not present. Then:
   the inferred key and value type pair of $\ell$ is $(K, V)$.
 \end{itemize}
 
+\LMHash{}%
 Otherwise, `\code{\ELSE\,\,$\ell_2$}' is present.
 It is a compile error if $\ell_1$ must be a set and $\ell_2$ must be a map,
 or vice versa.
@@ -11287,6 +11291,7 @@ Since \DYNAMIC{} provides both an element type and a key and value type pair,
 a \DYNAMIC{} spread in either branch does not cause the error to occur.%
 }
 
+\LMHash{}%
 Then:
 
 \begin{itemize}
@@ -11310,24 +11315,27 @@ Then:
 
 \LMHash{}%
 \Case{For element}
+\BlindDefineSymbol{p,\ell_1}%
 In this case $\ell$ is of the form
-\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,$\ell_1$}
-where $P$ is derived from \synt{forLoopParts} and
+\code{\AWAIT?\,\,\FOR\,\,($p$)\,\,$\ell_1$}
+where $p$ is derived from \synt{forLoopParts} and
 `\AWAIT?' indicates that \AWAIT{} may be present or absent.
 
+\LMHash{}%
 The same \Error{compile-time errors} occur for $\ell$ as
 the errors that would occur with the corresponding \FOR{} statement
-\code{\AWAIT?\,\,\FOR\,\,($P$)\,\,\{\}},
+\code{\AWAIT?\,\,\FOR\,\,($p$)\,\,\{\}},
 located in the same scope as $\ell$.
-Moreover, the errors and type analysis of $\ell$ is performed
+Moreover, the errors and type analysis of $\ell_1$ is performed
 as if it occurred in the body scope of said \FOR{} statement.
 
 \commentary{%
-For instance, if $P$ is of the form
+For instance, if $p$ is of the form
 \code{\VAR\,\,v\,\,\IN\,\,$e_1$}
-then the variable \code{v} is in scope for $\ell$.%
+then the variable \code{v} is in scope for $\ell_1$.%
 }
 
+\LMHash{}%
 Inference for the parts
 (\commentary{%
 such as the iterable expression of a for-in,
@@ -11356,6 +11364,7 @@ Finally, we define
 \IndexCustom{type inference on a set or map literal}{%
   type inference!set or map literal}
 as a whole.
+\BlindDefineSymbol{\metavar{collection},P}%
 Assume that \metavar{collection} is derived from \synt{setOrMapLiteral},
 and the context type for \metavar{collection} is $P$.
 
@@ -13981,8 +13990,8 @@ where $m$ is an identifier,
 proceeds as follows:
 
 \LMHash{}%
-The getter function $m$ is invoked.
-The value of $i$ is the result returned by the call to the getter function.
+The getter $m$ is invoked.
+The value of $i$ is the result returned by the call to the getter.
 \commentary{%
 Note that the invocation is always defined.
 Per the rules for identifier references,
@@ -15208,7 +15217,7 @@ Let $f$ be the result of looking up (\ref{lookup}) getter
 (\ref{getters})
 \id{} in $o$ with respect to $L$.
 Otherwise, the body of $f$ is executed with \THIS{} bound to $o$.
-The value of $i$ is the result returned by the call to the getter function.
+The value of $i$ is the result returned by the call to the getter.
 
 \LMHash{}%
 If the getter lookup has failed,
@@ -15287,7 +15296,7 @@ Otherwise, $i$ is a getter invocation.
 Let $f$ be the result of looking up
 getter \id{} in $S$ with respect to $L$.
 The body of $f$ is executed with \THIS{} bound to the current value of \THIS.
-The value of $i$ is the result returned by the call to the getter function.
+The value of $i$ is the result returned by the call to the getter.
 
 \commentary{%
 The getter lookup will not fail, because it is a compile-time error to have
@@ -16614,31 +16623,71 @@ or an invocation of an equality operator on either \SUPER{}
 or an expression $e_1$, with argument $e_2$.
 
 \LMHash{}%
-Evaluation of an equality expression $ee$ of the form \code{$e_1$ == $e_2$}
+An equality expression of the form \code{$e_1$ != $e_2$} is equivalent to
+the expression \code{!($e_1$ == $e_2$)}.
+An equality expression of the form \code{\SUPER{} != $e$} is equivalent to
+the expression \code{!(\SUPER{} == $e$)}.
+
+\LMHash{}%
+Consider an expression $e$ of the form \code{$e_1$\,==\,$e_2$}
+where the static type of $e_1$ is $T_1$
+and the static type of $e_2$ is $T_2$.
+Let $S$ be the type of the formal parameter of
+\code{operator\,\,==} in the interface of \NonNullTypeOf{$T_1$},
+using \code{Object} if \NonNullTypeOf{$T_1$} is \code{Never}.
+It is a \Error{compile-time error} unless $T_2$ is assignable to \code{$S$?}.
+
+\LMHash{}%
+Similarly, consider an expression $e$ of the form
+\code{\SUPER\,==\,$e_2$} that occurs in a class whose superclass is
+$C$, where the static type of $e_2$ is $T_2$. Let $S$ be the formal
+parameter type of the concrete declaration of \code{operator\,\,==}
+found by method lookup in $C$
+(\commentary{if that search succeeds, otherwise it is a compile-time error}).
+It is a \Error{compile-time error} unless $T_2$ is assignable to
+\code{$S$?}.
+
+\commentary{%
+Even if the static type of $e_1$ is potentially nullable, the
+parameter type of the \code{operator\,\,==} of the corresponding
+non-null type is taken into account, because that instance method will
+not be invoked when $e_1$ is null. Similarly, it is not a
+\Error{compile-time error} for the static type of $e_2$ to be
+potentially nullable, even when the parameter type of said
+\code{operator\,\,==} is non-nullable.  This is again safe, because
+the instance method will not be invoked when $e_2$ is null.%
+}
+
+\LMHash{}%
+The static type of an equality expression is \code{bool}.
+\commentary{Even when the left operand has type \code{Never}.}
+
+\LMHash{}%
+Evaluation of an equality expression $e$ of the form \code{$e_1$ == $e_2$}
 proceeds as follows:
 \begin{itemize}
 \item The expression $e_1$ is evaluated to an object $o_1$.
 \item The expression $e_2$ is evaluated to an object $o_2$.
 \item If either $o_1$ or $o_2$ is the null object (\ref{null}),
-  then $ee$ evaluates to \TRUE{} if both $o_1$ and $o_2$ are the null object
+  then $e$ evaluates to \TRUE{} if both $o_1$ and $o_2$ are the null object
   and to \FALSE{} otherwise.
 Otherwise,
-\item evaluation of $ee$ is equivalent to the method invocation
+\item evaluation of $e$ is equivalent to the method invocation
   \code{$o_1$.==($o_2$)}.
 \end{itemize}
 
 \LMHash{}%
-Evaluation of an equality expression $ee$ of the form
-\code{\SUPER{} == $e$}
+Evaluation of an equality expression $e$ of the form
+\code{\SUPER{} == $e_2$}
 proceeds as follows:
 \begin{itemize}
-\item The expression $e$ is evaluated to an object $o$.
+\item The expression $e_2$ is evaluated to an object $o$.
 \item If either \THIS{} or $o$ is the null object (\ref{null}),
-  then $ee$ evaluates to evaluates to \TRUE{}
+  then $e$ evaluates to evaluates to \TRUE{}
   if both \THIS{} and $o$ are the null object
   and to \FALSE{} otherwise.
 Otherwise,
-\item evaluation of $ee$ is equivalent to the method invocation
+\item evaluation of $e$ is equivalent to the method invocation
   \code{\SUPER.==($o$)}.
 \end{itemize}
 
@@ -16654,20 +16703,6 @@ to use \code{identical()} to test against \NULL,
 nor should anyone ever worry about whether to write
 \NULL{} == $e$ or $e$ == \NULL.%
 }
-
-\LMHash{}%
-An equality expression of the form \code{$e_1$ != $e_2$} is equivalent to
-the expression \code{!($e_1$ == $e_2$)}.
-An equality expression of the form \code{\SUPER{} != $e$} is equivalent to
-the expression \code{!(\SUPER{} == $e$)}.
-
-%The expression $e_1$ is evaluated to an object $o_1$;
-% then the expression $e_2$ is evaluated to an object $o_2$.
-% Next, if $o_1$ and $o_2$ are the same object,
-% then $ee$ evaluates to \TRUE, otherwise $ee$ evaluates to \FALSE.
-
-\LMHash{}%
-The static type of an equality expression is \code{bool}.
 
 
 \subsection{Relational Expressions}
@@ -19331,137 +19366,135 @@ in a structured way.
 A try statement consists of a block statement, followed by at least one of:
 \begin{enumerate}
 \item
-  A set of \ON{}-\CATCH{} clauses, each of which specifies
+  A sequence of \ON-\CATCH{} clauses derived from \synt{onPart},
+  each of which specifies
   (either explicitly or implicitly)
   the type of exception object to be handled,
   one or two exception parameters,
   and a block statement.
 \item
-A \FINALLY{} clause, which consists of a block statement.
+  A \FINALLY{} clause, which consists of a block statement.
 \end{enumerate}
-
-\rationale{%
-The syntax is designed to be upward compatible with
-existing Javascript programs.
-The \ON{} clause can be omitted,
-leaving what looks like a Javascript catch clause.%
-}
 
 \LMHash{}%
 A try statement of the form
-\code{\TRY{} $s_1$ $on-catch_1 \ldots on-catch_n$;}
+\code{\TRY\,\,$B_1$\,\,$on-catch_1\,\,\ldots\,\,on-catch_n$;}
 is equivalent to the statement
-\code{\TRY{} $s_1$ $on-catch_1 \ldots on-catch_n$ \FINALLY{} $\{\}$}.
+\code{%
+  \TRY\,\,$B_1$\,\,$on-catch_1\,\,\ldots\,\,on-catch_n$\,\,\FINALLY\,\,$\{\}$}.
 
 \LMHash{}%
-An \ON{}-\CATCH{} clause of the form
-\code{\ON{} $T$ \CATCH{} ($p_1$) $s$}
-is equivalent to an \ON{}-\CATCH{} clause
-\code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$) $s$}
+An \ON-\CATCH{} clause of the form
+\code{\ON\,\,$T$\,\,\CATCH\,\,($p_1$)\,\,$B$}
+is equivalent to the \ON-\CATCH{} clause
+\code{\ON\,\,$T$\,\,\CATCH\,\,($p_1$,\,\,$p_2$)\,\,$B$}
 where $p_2$ is a fresh identifier.
-
-\LMHash{}%
-An \ON{}-\CATCH{} clause of the form
-\code{\ON{} $T$ $s$}
-is equivalent to an \ON{}-\CATCH{} clause
-\code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$) $s$}
+%
+An \ON-\CATCH{} clause of the form
+\code{\ON\,\,$T$\,\,$B$}
+is equivalent to the \ON-\CATCH{} clause
+% We have to break the line here, hence `{}`.
+\code{\ON\,\,$T$\,\,\CATCH{} ($p_1$,\,\,$p_2$)\,\,$B$}
 where $p_1$ and $p_2$ are fresh identifiers.
-
-\LMHash{}%
-An \ON{}-\CATCH{} clause of the form
-\code{\CATCH{} ($p$) $s$}
-is equivalent to an \ON{}-\CATCH{} clause
-\code{\ON{} \DYNAMIC{} \CATCH{} ($p$, $p_2$) $s$}
+%
+An \ON-\CATCH{} clause of the form
+\code{\CATCH\,\,($p$)\,\,$B$}
+is equivalent to the \ON-\CATCH{} clause
+\code{\ON\,\,Object\,\,\CATCH\,\,($p$,\,\,$p_2$)\,\,$B$}
 where $p_2$ is a fresh identifier.
-
-An \ON{}-\CATCH{} clause of the form
-\code{\CATCH{} ($p_1$, $p_2$) $s$}
-is equivalent to an \ON{}-\CATCH{} clause
-\code{\ON{} \DYNAMIC{} \CATCH{} ($p_1$, $p_2$) $s$}.
+%
+An \ON-\CATCH{} clause of the form
+\code{\CATCH\,\,($p_1$,\,\,$p_2$)\,\,$B$}
+is equivalent to the \ON-\CATCH{} clause
+\code{\ON\,\,Object\,\,\CATCH\,\,($p_1$,\,\,$p_2$)\,\,$B$}.
 
 \LMHash{}%
-An \ON{}-\CATCH{} clause of the form
-\code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$) $s$}
-introduces a new scope $CS$ in which final local variables
-specified by $p_1$ and $p_2$ are defined.
-The statement $s$ is enclosed within $CS$.
-The static type of $p_1$ is $T$
+An \ON-\CATCH{} clause of the form
+\code{\ON\,\,$T$\,\,\CATCH\,\,($p_1$,\,\,$p_2$)\,\,$B$}
+introduces a new scope $CS$ into which final local variables
+with the names $p_1$ and $p_2$ are introduced.
+The current scope for the immediately enclosing \TRY{} statement
+is the enclosing scope for $CS$,
+and $CS$ is the current scope for the block $B$.
+The static type of $p_1$ is $T$,
 and the static type of $p_2$ is \code{StackTrace}.
+It is a \Error{compile-time error} if $T$ is a deferred type.
 
 \LMHash{}%
-Execution of a \TRY{} statement $s$ of the form:
+Consider a \TRY{} statement $S$ of the following form:
 
 \begin{normativeDartCode}
-\TRY{} $b$
-\ON{} $T_1$ \CATCH{} ($e_1$, $t_1$) $c_1$
+\TRY{} $B$
+\ON{} $T_1$ \CATCH{} ($e_1$, $t_1$) $B_1$
 \ldots{}
-\ON{} $T_n$ \CATCH{} ($e_n$, $t_n$) $c_n$
-\FINALLY{} $f$
+\ON{} $T_n$ \CATCH{} ($e_n$, $t_n$) $B_n$
+\FINALLY{} $B_f$
 \end{normativeDartCode}
-proceeds as follows:
 
 \LMHash{}%
-First $b$ is executed.
-If execution of $b$ throws (\ref{statementCompletion})
+Execution of $S$ proceeds as follows.
+First $B$ is executed.
+If execution of $B$ throws (\ref{statementCompletion})
 with exception object $e$ and stack trace $t$,
-then $e$ and $t$ are matched against the \ON{}-\CATCH{} clauses
-to yield a new completion (\ref{on-catch}).
+then $e$ and $t$ are matched against the \ON-\CATCH{} clauses
+to yield a new completion
+(\ref{matchingOfOnCatchClauses}).
 
-Then, even if execution of $b$ did not complete normally
-or matching against the \ON{}-\CATCH{} clauses did not complete normally,
-the $f$ block is executed.
+\LMHash{}%
+Then, even if execution of $B$ did not complete normally
+or matching against the \ON-\CATCH{} clauses did not complete normally,
+the $B_f$ block is executed.
 
-If execution of $f$ does not complete normally,
+\LMHash{}%
+If execution of $B_f$ does not complete normally,
 execution of the \TRY{} statement completes in the same way.
-Otherwise if execution of $b$ threw (\ref{statementCompletion}),
+Otherwise, if execution of $B$ threw (\ref{statementCompletion}),
 the \TRY{} statement completes in the same way as
-the matching against the \ON{}-\CATCH{} clauses.
+the matching against the \ON-\CATCH{} clauses.
 Otherwise the \TRY{} statement completes in the same way as
-the execution of $b$.
+the execution of $B$.
+
+
+\subsubsection{Matching of \ON-\CATCH{} Clauses}
+\LMLabel{matchingOfOnCatchClauses}
 
 \LMHash{}%
-It is a \Error{compile-time error} if $T_i$, $1 \le i \le n$ is a deferred type.
-
-
-\subsubsection{\ON{}-\CATCH{} clauses}
-\LMLabel{on-catch}
-
-\LMHash{}%
-Matching an exception object $e$ and stack trace $t$ against
-a (potentially empty) sequence of \ON{}-\CATCH{} clauses of the form
+Consider a (potentially empty) sequence $s$ of
+\ON-\CATCH{} clauses of the following form:
 
 \begin{normativeDartCode}
-\ON{} $T_1$ \CATCH{} ($e_1$, $st_1$) \{ $s_1$ \}
+\ON{} $T_1$ \CATCH{} ($p_1$, $q_1$) $B_1$
 \ldots
-\ON{} $T_n$ \CATCH{} ($e_n$, $st_n$) \{ $s_n$ \}
+\ON{} $T_n$ \CATCH{} ($p_n$, $q_n$) $B_n$
 \end{normativeDartCode}
-proceeds as follows:
 
 \LMHash{}%
-If there are no \ON{}-\CATCH{} clauses ($n = 0$), matching throws
-the exception object $e$ and stack trace $t$
+Matching of an exception object $e$ and stack trace $t$ against $s$
+proceeds as follows.
+If there are no \ON-\CATCH{} clauses ($n = 0$),
+matching throws the exception object $e$ and stack trace $t$
 (\ref{statementCompletion}).
 
 \LMHash{}%
-Otherwise the exception is matched against the first clause.
+Otherwise, when $n > 0$,
+the exception is matched against the first clause.
 
 \LMHash{}%
-Otherwise, if the type of $e$ is a subtype of $T_1$,
-then the first clause matches,
-and then $e_1$ is bound to the exception object $e$
-and $t_1$ is bound to the stack trace $t$,
-and $s_1$ is executed in this scope.
+If the type of $e$ is a subtype of $T_1$ then the first clause matches.
+In this case $p_1$ is bound to the exception object $e$
+and $q_1$ is bound to the stack trace $t$,
+and $B_1$ is executed in this scope.
 The matching completes in the same way as this execution.
 
 \LMHash{}%
 Otherwise, if the first clause did not match $e$,
-$e$ and $t$ are recursively matched against
-the remaining \ON{}-\CATCH{} clauses:
+then $e$ and $t$ are recursively matched against
+the second to $n$th \ON-\CATCH{} clauses of $s$:
 
 \begin{normativeDartCode}
-\ON{} $T_2$ \CATCH{} ($e_2$, $t_2$) \{ $s_2$ \}
+\ON{} $T_2$ \CATCH{} ($p_2$, $q_2$) $B_2$
 \ldots
-\ON{} $T_n$ \CATCH{} ($e_n$, $t_n$) \{ $s_n$ \}
+\ON{} $T_n$ \CATCH{} ($p_n$, $q_n$) $B_n$
 \end{normativeDartCode}
 
 
@@ -22977,7 +23010,7 @@ The \IndexCustom{interface}{interface!of intersection type}
 of $S$ is the interface of $T$.
 
 
-\subsection{Type \code{Never}}
+\subsection{Type Never}
 \LMLabel{typeNever}
 
 \LMHash{}%
@@ -23005,8 +23038,25 @@ Similarly, a variable of type \code{Object?\,\,\FUNCTION(Never)}
 can be used to hold any function that accepts a single, positional argument.%
 }
 
+\LMHash{}%
+% Note that we are not even checking invocations of members of `Object`
+% statically, so `(throw 0).noSuchMethod(1);` is OK. The analyzer will
+% actually hint that `(1)` is dead code, so it isn't accepted silently.
+Every member access
+(\commentary{%
+such as calling a method, operator, or getter, or tearing off a method%
+})
+on a receiver whose static type is \code{Never}
+is treated by the static analysis as producing a result of type \code{Never}.
+Invoking an expression of type \code{Never} as a function
+is treated by the static analysis as producing a result of type \code{Never}.
+In both cases, no syntactically correct list of actual arguments is an error
+(\commentary{%
+except of course that individual expressions in that list could have errors%
+}).
+
 \commentary{%
-With a receiver whose static type is \code{Never},
+Hence, with a receiver whose static type is \code{Never},
 it is not an error to invoke any method, setter, or getter, or to
 tear off any method.
 In other words, \code{Never} is considered to have all members,
@@ -23015,13 +23065,9 @@ with all signatures.
 Implementations that provide feedback about dead or unreachable code
 are encouraged to indicate
 that arguments passed to any such invocation
-will not be evaluated at run time.
-
-It is not an error to apply an expression of type \code{Never}
-in the function position of a function call.
-Implementations that provide feedback about dead or unreachable code
-are encouraged to indicate that any arguments to the call
-will not be evaluated at run time.%
+will not be evaluated at run time,
+and similarly for any arguments passed to an expression of type \code{Never}
+which is invoked as a function.%
 }
 
 
@@ -24274,6 +24320,7 @@ Consequently, such a variable shall be treated as immediately promoted to \code{
 T}.
 
 \subsubsection{Expression typing}
+\subsubsection{Super-bounded types}
 
 !!!TODO!!!
 
