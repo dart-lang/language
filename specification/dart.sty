@@ -471,12 +471,6 @@
 \newcommand{\Supertype}[3]{\ensuremath{{#1}\vdash{#2}\,:>\,{#3}}}
 \newcommand{\SupertypeStd}[2]{\Supertype{\Delta}{#1}{#2}}
 
-% Judgment expressing that an assignability relation exists.
-\newcommand{\AssignableRelationSymbol}{\ensuremath{\Longleftrightarrow}}
-\newcommand{\Assignable}[3]{%
-  \ensuremath{{#1}\vdash{#2}\,\AssignableRelationSymbol\,{#3}}}
-\newcommand{\AssignableStd}[2]{\Assignable{\Gamma}{#1}{#2}}
-
 % Semantic function delivering the superinterfaces of a class.
 \newcommand{\Superinterfaces}[1]{\ensuremath{\metavar{Superinterfaces}({#1})}}
 \newcommand{\Superinterface}[2]{{#1}\in\Superinterfaces{#2}}
