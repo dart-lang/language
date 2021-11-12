@@ -7732,10 +7732,10 @@ the declared upper bounds of formal type parameters are enforced,
 including some cases where a limited form of violation is allowed.
 
 \LMHash{}%
-A \Index{top type} is a type $T$ such that \code{Object} is a subtype of $T$.
+A \Index{top type} is a type $T$ such that \code{Object?} is a subtype of $T$.
 \commentary{%
-For instance, \code{Object}, \DYNAMIC, and \VOID{} are top types,
-and so are \code{FutureOr<\VOID>} and \code{FutureOr<FutureOr<\DYNAMIC>{}>}.%
+For instance, \code{Object?}, \DYNAMIC, \VOID, and
+\code{FutureOr<FutureOr<\DYNAMIC>{}>} are top types.%
 }
 
 % We define the property of being regular-bounded for all types,
@@ -7746,8 +7746,8 @@ and so are \code{FutureOr<\VOID>} and \code{FutureOr<FutureOr<\DYNAMIC>{}>}.%
 % situations.
 
 \LMHash{}%
-Every type which is not a parameterized type is \Index{regular-bounded}.
-
+Every type which is not a parameterized type is
+\IndexCustom{regular-bounded}{type!regular-bounded}.
 \commentary{%
 In particular, every non-generic class and every function type
 is a regular-bounded type.%
@@ -7755,15 +7755,14 @@ is a regular-bounded type.%
 
 \LMHash{}%
 Let $T$ be a parameterized type of the form
-\code{$G$<$S_1, \ldots,\ S_n$>}
+\code{$G$<\List{T}{1}{s}>}
 where $G$ denotes a generic class or a generic type alias.
-Let
-\code{$X_1\ \EXTENDS\ B_1, \ldots,\ X_n\ \EXTENDS\ B_n$}
+Let \TypeParametersStd{}
 be the formal type parameter declarations of $G$.
 $T$ is \Index{regular-bounded} if{}f
-$S_j$ is a subtype of
-$[S_1/X_1, \ldots,\ S_n/X_n]B_j$,
-for all $j \in 1 .. n$.
+$T_j$ is a subtype of
+$[T_1/X_1, \ldots,\ T_s/X_s]B_j$,
+for all $j \in 1 .. s$.
 
 \commentary{%
 This means that regular-bounded types are those types
@@ -7771,8 +7770,8 @@ that do not violate their type parameter bounds.%
 }
 
 \LMHash{}%
-Let $T$ be a parameterized type of the form
-\code{$G$<$S_1, \ldots,\ S_n$>}
+\BlindDefineSymbol{T,T_j,s}%
+Let $T$ be a parameterized type of the form \code{$G$<\List{T}{1}{s}>}
 where $G$ denotes a generic class or a generic type alias.
 $T$ is \Index{super-bounded} if{}f the following conditions are both true:
 
@@ -7780,15 +7779,17 @@ $T$ is \Index{super-bounded} if{}f the following conditions are both true:
 \item
   $T$ is not regular-bounded.
 \item
-  Let $T'$ be the result of replacing every occurrence in $T$
-  of a top type in a covariant position by \code{Null},
-  and every occurrence in $T$
-  of \code{Null} in a contravariant position by \code{Object}.
+  Let $T'$ be the result of replacing every occurrence in $T$ of
+  a type $S$ in a contravariant position where \SubtypeNE{S}{\code{Never}}
+  by \code{Object?},
+  and every occurrence in $T$ of a top type in
+  a position which is not contravariant
+  by \code{Never}.
   It is then required that $T'$ is regular-bounded.
   %
   Moreover, if $G$ denotes a generic type alias with body $U$,
   it is required that every type that occurs as a subterm of
-  $[S_1/X_1, \ldots,\ S_n/X_n]U$
+  $[T_1/X_1, \ldots,\ T_s/X_s]U$
   is well-bounded (defined below).
 \end{itemize}
 
@@ -7799,24 +7800,30 @@ opposite extreme type, depending on their variance.%
 }
 
 \LMHash{}%
-A type $T$ is \Index{well-bounded} if{}f
+A type is \Index{well-bounded} if{}f
 it is either regular-bounded or super-bounded.
-
-\LMHash{}%
-Any use of a type $T$ which is not well-bounded is a \Error{compile-time error}.
+Any use of a type which is not well-bounded is a \Error{compile-time error}.
 
 \LMHash{}%
 It is a \Error{compile-time error} if a parameterized type $T$ is super-bounded
+\BlindDefineSymbol{T}%
 when it is used in any of the following ways:
 \begin{itemize}
-\item $T$ is an immediate subterm of a new expression
+\item $T$ occurs in an instance creation
   (\ref{new})
-  or a constant object expression
+  of the form \code{\NEW?\,\,$T$(\metavar{parameters})} or
+  \code{\NEW?\,\,$T$.\id(\metavar{parameters})},
+  or it occurs in the corresponding location in a constant object expression
   (\ref{const}).
-\item $T$ is an immediate subterm of a redirecting factory constructor
-  header
+  \commentary{%
+  This includes the case where the actual type arguments have been provided
+  by type inference, which is assumed to have taken place already.%
+  }
+\item $T$ occurs in the \synt{constructorDesignation} of
+  a redirecting factory constructor header
   (\ref{redirectingFactoryConstructors}).
-\item $T$ is an immediate subterm of an \EXTENDS{} clause of a class
+\item $T$ occurs in an extends clause of a class of the form
+  \code{\EXTENDS\,\,$T$}
   (\ref{superclasses}),
   or it occurs as an element in the type list of an \IMPLEMENTS{} clause
   %% TODO(eernst): Come extension types, add ref. Maybe mixin class?
@@ -10894,12 +10901,10 @@ Let $e$ be a \synt{setOrMapLiteral}
 with leaf elements $\cal L$ and context type $C$.
 If $C$ is \FreeContext{} then let $S$ be undefined.
 \BlindDefineSymbol{S}%
-%% TODO(eernst): Define `greatest closure' of a context type
-%% when we define `context type'.
 Otherwise let $S$ be the greatest closure of \futureOrBase{C}
-(\ref{typeFutureOr}).
+(\ref{leastAndGreatestClosureOfTypes}, \ref{typeFutureOr}).
 
-%% TODO(eernst): Delete when `context type', `greatest closure' are defined.
+%% TODO(eernst): Delete when `context type' is defined.
 \commentary{%
 A future version of this document will specify context types.
 The basic intuition is that a
@@ -10915,12 +10920,7 @@ e.g., when a variable is declared with \VAR{} rather than a type annotation.
 This gives rise to an
 \IndexCustom{unconstrained context type}{context type!unconstrained},
 \IndexCustom{\rm\FreeContext}{[]@\FreeContext},
-which may also occur in a composite term, e.g., \code{List<\FreeContext>}.
-%% TODO(eernst): Clarify why we do not just use i2b, rather than
-%% introducing the notion of a greatest (and least) closure.
-The greatest closure of a context type $C$ is
-approximately the least common supertype of all types
-obtainable by replacing \FreeContext{} by a type.%
+which may also occur in a composite term, e.g., \code{List<\FreeContext>}.%
 }
 
 \LMHash{}%
@@ -22882,6 +22882,230 @@ Normalization is based on the following reductions:
 }
 
 
+\subsection{Least and Greatest Closure of Types}
+\LMLabel{leastAndGreatestClosureOfTypes}
+
+\LMHash{}%
+This section specifies how type variables can be
+eliminated from a given type $T$
+by computing an upper respectively lower bound of $T$ known as the
+least respectively the greatest closure of $T$.
+
+\commentary{%
+The greatest closure $T_G$ of a type $T$ differs from
+instantiation to bound
+(\ref{instantiationToBound})
+in several ways.
+First, instantiation to bound yields a type based on
+a generic class or type alias $G$,
+whereas the greatest closure takes a parameterized type,
+so $T$ has received some actual type arguments
+and is of the form \code{$G$<\List{T}{1}{s}>}.
+Next, the greatest closure is an upper bound, i.e.,
+\SubtypeNE{T}{T_G} is guaranteed.
+Instantiation to bound on a generic class $G$ will yield a type $T_I$
+such that \SubtypeNE{\code{$G$<\List{U}{1}{s}>}}{T_I}
+for all \List{U}{1}{s} such that
+\code{$G$<\List{U}{1}{s}>} is a regular-bounded type;
+but in some cases that subtype relationship does not hold,
+especially with type aliases involving invariance.
+Also, instantiation to bound uses the declared bounds whenever possible,
+but the greatest closure uses \code{Object?}\ immediately.
+For instance, with \code{\CLASS\,\,C<X\,\,\EXTENDS\,\,num> \{\}},
+the greatest closure of \code{C<$Y$>} with respect to $\{Y\}$ is
+the super-bounded type \code{C<Object?>},
+but the instantiation to bound on \code{C} is \code{C<num>}.%
+}
+
+\LMHash{}%
+\BlindDefineSymbol{S,L,X_j,n}%
+Let $S$ be a type and $L$ a set of type variables of the form
+$\{\List{X}{1}{n}\}$.
+
+\LMHash{}%
+We define the
+\IndexCustom{least closure}{type!least closure}
+of $S$ with respect to $L$ to be $S$
+with every covariant occurrence of $X_j$ replaced with \code{Never},
+and every contravariant occurrence of $X_j$ replaced with \code{Object?},
+for each $j \in 1 .. n$.
+The invariant occurrences are treated as described explicitly below.
+
+\LMHash{}%
+Similarly, we define the
+\IndexCustom{greatest closure}{type!greatest closure}
+of $S$ with respect to $L$ to be $S$
+with every covariant occurrence of $X_j$ replaced with \code{Object?},
+and every contravariant occurrence of $X_j$ replaced with \code{Never},
+for each $j \in 1 .. n$.
+The invariant occurrences are treated as described explicitly below.
+
+\begin{itemize}
+\item
+  If $S$ is $X$, where $X$ is a type variable in $L$, then
+  the least closure of $S$ with respect to $L$ is \code{Never},
+  and the greatest closure of $S$ with respect to $L$ is \code{Object?}.
+\item
+  If $S$ does not contain any type variables from $L$
+  (\commentary{%
+    for instance, if $S$ is an atomic type, \ref{typeNormalization}})
+  then the least and greatest closure of $S$ is $S$.
+\item
+  If $S$ is a type of the form $T?$ then
+  \begin{itemize}
+  \item
+    the least closure of $S$ with respect to $L$ is $U?$,
+    where $U$ is the least closure of $T$ with respect to $L$.
+  \item
+    the greatest closure of $S$ with respect to $L$ is $U?$,
+    where $U$ is the greatest closure of $T$ with respect to $L$.
+  \end{itemize}
+\item
+  If $S$ is a type of the form \code{FutureOr<$T$>} then
+  \begin{itemize}
+  \item
+    the least closure of $S$ with respect to $L$ is \code{FutureOr<$U$>},
+    where $U$ is the least closure of $T$ with respect to $L$.
+  \item
+    the greatest closure of $S$ with respect to $L$ is \code{FutureOr<$U$>},
+    where $U$ is the greatest closure of $T$ with respect to $L$.
+  \end{itemize}
+\item
+  If $S$ is an interface type of the type \code{$C$<\List{T}{1}{k}>} then
+  \begin{itemize}
+  \item
+    the least closure of $S$ with respect to $L$ is \code{$C$<\List{U}{1}{k}>},
+    where $U_i$ is the least closure of $T_i$ with respect to $L$,
+    for each $i \in 1 .. k$.
+  \item
+    the greatest closure of $S$ with respect to $L$
+    is \code{$C$<\List{U}{1}{k}>},
+    where $U_i$ is the greatest closure of $T_i$ with respect to $L$,
+    for each $i \in 1 .. k$.
+  \end{itemize}
+\item
+  If $S$ is a type of the form
+
+  \noindent
+  \FunctionTypePositionalStd{T_0}
+
+  \noindent
+  and no type variable in $L$ occurs in any of the $B_j$, $j \in 1 .. s$,
+  then
+  \begin{itemize}
+  \item
+    the least closure of $S$ with respect to $L$ is
+
+    \noindent
+    \FunctionTypePositional{U_0}{\\}{X}{B}{s}{U}{n}{k}
+
+    \noindent
+    where
+    $U_0$ is the least closure of $T_0$ with respect to $L$,
+    $U_j$ is the greatest closure of $T_j$ with respect to $L$
+    for each $j \in 1 .. n + k$.
+    It is assumed that type variables have been consistently renamed
+    if necessary,
+    such that no $X_j$ appears in $L$,
+    for each $j \in 1 .. s$.
+  \item
+    the greatest closure of $S$ with respect to $L$ is
+
+    \noindent
+    \FunctionTypePositional{U_0}{\\}{X}{B}{s}{U}{n}{k}
+
+    \noindent
+    where $U_0$ is the greatest closure of $T_0$ with respect to $L$,
+    $U_j$ is the least closure of $T_j$ with respect to $L$
+    for each $j \in 1 .. n + k$.
+    It is assumed that type variables have been consistently renamed
+    if necessary,
+    such that no $X_j$ appears in $L$,
+    for each $j \in 1 .. s$.
+  \end{itemize}
+\item
+  If $S$ is a type of the form
+
+  \noindent
+  \FunctionTypeNamedStd{T_0}
+
+  \noindent
+  where $r_j$ is derived from \code{\REQUIRED?}, $j \in n + 1 .. n + k$,
+  and no type variable in $L$ occurs in any of the $B_j$, $j \in 1 .. s$,
+  then
+  \begin{itemize}
+  \item
+    the least closure of $S$ with respect to $L$ is
+
+    \noindent
+    \FunctionTypeNamed{U_0}{ }{X}{B}{s}{U}{n}{x}{k}
+
+    \noindent
+    where
+    $U_0$ is the least closure of $T_0$ with respect to $L$,
+    $U_j$ is the greatest closure of $T_j$ with respect to $L$
+    for each $j \in 1 .. n + k$.
+    It is assumed that type variables have been consistently renamed
+    if necessary,
+    such that no $X_j$ appears in $L$,
+    for each $j \in 1 .. s$.
+  \item
+    the greatest closure of $S$ with respect to $L$ is
+
+    \noindent
+    \FunctionTypeNamed{U_0}{ }{X}{B}{s}{U}{n}{x}{k}
+
+    \noindent
+    where $U_0$ is the greatest closure of $T_0$ with respect to $L$,
+    $U_j$ is the least closure of $T_j$ with respect to $L$
+    for each $j \in 1 .. n + k$.
+    It is assumed that type variables have been consistently renamed
+    if necessary,
+    such that no $X_j$ appears in $L$,
+    for each $j \in 1 .. s$.
+  \end{itemize}
+\item
+  If $S$ is a type of one of the forms
+
+  \noindent
+  \FunctionTypePositionalStd{T_0}
+
+  \noindent
+  \FunctionTypeNamedStd{T_0}
+
+  \noindent
+  where $L$ contains one or more free type variables that occur in $B_j$
+  for some $j \in 1 .. s$,
+  then the least closure of $S$ with respect to $L$ is \code{Never},
+  and the greatest closure of $S$ with respect to $L$ is \FUNCTION.
+\end{itemize}
+
+\LMHash{}%
+A \Index{type schema} is a type where
+\FreeContext{} may occur as if it were a type variable.
+
+\commentary{%
+For example, \code{List<\FreeContext>} and \code{int} are type schemas.
+Type schemas are used to express and propagate constraints on types
+during type inference.
+Type inference is not yet specified in this document,
+but it will be specified in the future.%
+}
+
+\LMHash{}%
+Let $P$ be a type schema.
+We define the least and greatest closure of $P$
+with respect to \FreeContext{} and a set of type variables $L$ as
+the least and greatest closure with respect to $L \cup \{\FreeContext\}$,
+where \FreeContext{} is treated as a type variable.
+
+\commentary{%
+Note that the least closure of a type schema is always a subtype of
+any type which matches the schema, and the greatest closure of a type
+schema is always a supertype of any type which matches the schema.%
+}
+
+
 \subsection{Types Bounded by Types}
 \LMLabel{typesBoundedByTypes}
 
@@ -24447,6 +24671,8 @@ type arguments in constant generic instances are still considered erroneous.
 \end{dartCode}
 
 \subsubsection{Extension method resolution}
+
+!!!TODO!!!
 
 For the purposes of extension method resolution, there is no special treatment
 of nullable types with respect to what members are considered accessible.  That
