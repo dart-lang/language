@@ -5568,8 +5568,8 @@ will eliminate the conflict and will not break any clients.%
 
 \LMHash{}%
 This section specifies how to compute a member signature which will
-appropriately stand for a prioritized set of several member signatures,
-taken from a given list of interfaces.
+appropriately stand for a set of several member signatures,
+taken from a given set of interfaces.
 
 \commentary{%
 In general, a combined member signature has a type which is
@@ -5580,12 +5580,7 @@ even in the case where $C$ inherits
 several different declarations of \id{}
 and does not override \id.
 In case of failure, it serves to specify the situations
-where a developer must add a declaration in order to resolve an ambiguity.
-The member signatures are prioritized in the sense that we will select
-a member signature from the interface with the lowest possible index
-in the case where several member signatures are equally suitable
-to be chosen as the combined member signature.
-That is, ``the first interface wins''.%
+where a developer must add a declaration in order to resolve an ambiguity.%
 }
 
 \LMHash{}%
@@ -5604,23 +5599,25 @@ or the same function type and the same occurrences of \COVARIANT{}
 In particular, private methods from different libraries are never equal.
 Top types differ as well.
 For instance,
-\FunctionTypeSimple{\DYNAMIC}{} and \FunctionTypeSimple{\code{Object}}{}
+\FunctionTypeSimple{\DYNAMIC}{} and \FunctionTypeSimple{\code{Object?}}{}
 are not equal, even though they are subtypes of each other.
 We need this distinction because management of top type discrepancies is
 one of the purposes of computing a combined interface.%
 }
 
 \LMHash{}%
-\BlindDefineSymbol{\id, L, I_j, k}%
+\BlindDefineSymbol{n, L, I_j, k}%
 Now we define combined member signatures.
-Let \id{} be an identifier, $L$ a library,
-\List{I}{1}{k} a list of interfaces,
+Let $n$ be a name
+(an identifier optionally followed by \lit{=}),
+$L$ a library,
+\List{I}{1}{k} a set of interfaces,
 and \DefineSymbol{M_0} the set of
-all member signatures from \List{I}{1}{k} named \id{}
+all member signatures from \List{I}{1}{k} named $n$
 and accessible to $L$.
 The
 \IndexCustom{combined member signature
-  named \id{} from \List{I}{1}{k} with respect to $L$}{%
+  named $n$ from \List{I}{1}{k} with respect to $L$}{%
   combined member signature}
 is the member signature which is obtained as follows:
 
@@ -5632,8 +5629,9 @@ If $M_0$ contains exactly one member signature $m'$,
 the combined member signature is $m'$.
 
 \LMHash{}%
-Otherwise, $M_0$ contains more than one member signature
-\DefineSymbol{\List{m}{1}{q}}.
+\BlindDefineSymbol{m_j,q}
+Otherwise, $M_0$ contains more than one member signature named $n$.
+Let \List{m}{1}{q} be those member signatures.
 
 \LMHash{}%
 \Case{Failing mixtures}
@@ -5655,7 +5653,7 @@ where methods and setters use the function type of the member signature.
 \Case{Methods and setters}
 In this case $M_0$ consists of setter signatures only,
 or method signatures only,
-because the name \id{} in the former case always ends in \lit{=},
+because the name $n$ in the former case always ends in \lit{=},
 which is never true in the latter case.
 
 \LMHash{}%
@@ -5669,7 +5667,7 @@ If no such set exists, the computation of the combined member signature failed.
 \commentary{%
 A useful intuition about this situation is that
 the given member signatures do not agree on
-which type is suitable for the member named \id.
+which type is suitable for the member named $n$.
 Otherwise we have a set of member signatures which are ``most specific''
 in the sense that their function types are subtypes of them all.%
 }
@@ -5678,7 +5676,7 @@ in the sense that their function types are subtypes of them all.%
 
 \def\Nall{\ensuremath{N_{\mbox{\scriptsize{}all}}}}
 \def\Mall{\ensuremath{M_{\mbox{\scriptsize{}all}}}}
-\def\MallFirst{\ensuremath{M_{\mbox{\scriptsize{}first}}}}
+\def\mall{\ensuremath{m_{\metavar{all}}}}
 
 \LMHash{}%
 Otherwise, when a set $N$ as specified above exists,
@@ -5686,7 +5684,7 @@ let \Nall{} be the greatest set satisfying the requirement on $N$,
 \BlindDefineSymbol{\Mall}%
 and let $\Mall{} = \{ m_i\;|\;i \in \Nall\}$.
 \commentary{%
-That is, \Mall{} contains all member signatures named \id{}
+That is, \Mall{} contains all member signatures named $n$
 with the most specific type.
 Dart subtyping is a partial pre-order,
 which ensures that such a greatest set of least elements exists,
@@ -5694,39 +5692,29 @@ if any non-empty set of least elements exist.
 We can have several such signatures because member signatures
 can be such that they are not equal,
 and yet their function types are subtypes of each other.
-We need to compute one member signature from \Mall,
-and we do that by using the ordering of the given interfaces.%
+We need to compute one member signature from \Mall.%
 }
 
 \LMHash{}%
-\BlindDefineSymbol{\MallFirst}%
-Let $j \in 1 .. k$ be the smallest number such that
-$\MallFirst{} = \Mall{} \cap I_j$ is non-empty.
-Let $m_i$ be the single element that \MallFirst{} contains.
-\commentary{%
-This set contains exactly one element because it is non-empty
-and no interface contains more than one member signature named \id.
-In other words, we choose $m_i$ as the member signature from
-the first possible interface
-among the most specific member signatures \Mall.%
-}
-}
-
-\LMHash{}%
+Let \mall{} be the result of applying \TopMergeTypeName{} to
+the elements in \Mall.
 The combined member signature is then $m'$,
-which is obtained from $m_i$ by adding the modifier \COVARIANT{}
+which is obtained from \mall{} by adding the modifier \COVARIANT{}
 to each parameter $p$ (if it is not already present)
 when there exists a $j \in 1 .. q$
 such that the parameter corresponding to $p$
 (\ref{covariantParameters})
 has the modifier \COVARIANT.
+}
+
 \commentary{%
 In other words,
 each parameter in the combined member signature is marked covariant
 if any of the corresponding parameters are marked covariant,
 not just among the most specific signatures,
-but among \emph{all} signatures named \id{} (which are accessible to $L$)
-in the given list of interfaces.%
+but among \emph{all} signatures named $n$
+which are accessible to $L$
+in the given set of interfaces.%
 }
 \EndCase
 
@@ -10582,7 +10570,7 @@ let $S$ be the inferred type of $e$ in context \code{Iterable<$P$>}.
 Otherwise
 (\commentary{when $\ell$ is `\code{...?$e$}'}),
 let $S'$ be the inferred type of $e$ in context \code{Iterable<$P$>?}
-and $S$ be \NonNullTypeOf{$S'$}.
+and $S$ be \NonNullType{$S'$}.
 
 \begin{itemize}
 \item
@@ -11201,7 +11189,7 @@ If $\ell$ is `\code{...$e$}' and $P$ is \code{Set<$P_e$>}
 then let $S$ be the inferred type of $e$ in context \code{Iterable<$P_e$>};
 and if $\ell$ is \code{...?$e$} and $P$ is \code{Set<$P_e$>}
 then let $S'$ be the inferred type of $e$ in context \code{Iterable<$P_e$>?}
-and let $S$ be \NonNullTypeOf{$S'$}.
+and let $S$ be \NonNullType{$S'$}.
 Next:
 
 \begin{itemize}
@@ -11232,7 +11220,7 @@ If $\ell$ is `\code{...$e$}' then let $S$ be
 the inferred type of $e$ in context $P$;
 if $\ell$ is `\code{...?$e$}' then let $S'$ be
 the inferred type of $e$ in context \code{$P$?},
-and let $S$ be \NonNullTypeOf{$S'$}.
+and let $S$ be \NonNullType{$S'$}.
 Next:
 
 \begin{itemize}
@@ -16506,7 +16494,7 @@ A warning occurs if $S$ is non-nullable.
 \commentary{In this case, the \lit{??} is superfluous.}
 The static type of $e$ is the least upper bound
 (\ref{leastUpperBounds})
-of \NonNullTypeOf{$S$} and the static type of $e_2$.
+of \NonNullType{$S$} and the static type of $e_2$.
 
 \LMHash{}%
 Evaluation of an if-null expression $e$ of the form \code{$e_1$ ?? $e_2$}
@@ -16633,8 +16621,8 @@ Consider an expression $e$ of the form \code{$e_1$\,==\,$e_2$}
 where the static type of $e_1$ is $T_1$
 and the static type of $e_2$ is $T_2$.
 Let $S$ be the type of the formal parameter of
-\code{operator\,\,==} in the interface of \NonNullTypeOf{$T_1$},
-using \code{Object} if \NonNullTypeOf{$T_1$} is \code{Never}.
+\code{operator\,\,==} in the interface of \NonNullType{$T_1$},
+using \code{Object} if \NonNullType{$T_1$} is \code{Never}.
 It is a \Error{compile-time error} unless $T_2$ is assignable to \code{$S$?}.
 
 \LMHash{}%
@@ -22723,6 +22711,167 @@ a type variable $X$ whose bound is \code{int?}.%
 }
 
 
+\subsection{Functions Dealing with Extreme Types}
+\LMLabel{functionsDealingWithExtremeTypes}
+
+\LMHash{}%
+This section defines several helper functions that are concerned with
+the characterization and computation of types near the top or the bottom
+of the subtype graph.
+
+\LMHash{}%
+The functions are syntactic in nature such that termination is obvious.
+In particular, they do not rely on subtyping.
+
+\LMHash{}%
+The \Index{\TopMergeTypeName} of two types computes
+a canonical type which represents both of them,
+in the case where they are structurally identical
+modulo the choice among top types.
+It is defined as follows:
+
+\begin{itemize}
+\item \DefEquals{\TopMergeType{Object?}{Object?}}{\code{Object?}}.
+\item \DefEquals{\TopMergeType{\DYNAMIC}{\DYNAMIC}}{\code{\DYNAMIC}}.
+\item \DefEquals{\TopMergeType{\VOID}{\VOID}}{\code{\VOID}}.
+\item \DefEquals{\TopMergeType{Object?}{\VOID}}{\code{Object?}}, and\\
+  \DefEquals{\TopMergeType{\VOID}{Object?}}{\code{Object?}}.
+\item \DefEquals{\TopMergeType{\DYNAMIC}{\VOID}}{\code{Object?}}, and\\
+  \DefEquals{\TopMergeType{\VOID}{\DYNAMIC}}{\code{Object?}}
+\item \DefEquals{\TopMergeType{Object?}{\DYNAMIC}}{\code{Object?}}, and\\
+  \DefEquals{\TopMergeType{\DYNAMIC}{Object?}}{\code{Object?}}.
+\item \DefEquals{\TopMergeType{$T$?}{$S$?}}{\code{\TopMergeType{$T$}{$S$}?}}.
+\item For all other types, the function is applied recursively.
+
+  \commentary{%
+    E.g.
+    $\TopMergeType{$C$<$T$>}{$C$<$S$>} = \code{$C$<\TopMergeType{$T$}{$S$}>}$,
+    and\\
+    $\TopMergeType{\FUNCTION($T$)}{\FUNCTION($S$)} =\\
+    \code{\FUNCTION(\TopMergeType{$T$}{$S$})}$.%
+  }
+\end{itemize}
+
+\commentary{%
+Note that \TopMergeTypeName{} is not defined for
+types which are structurally different,
+apart from being or containing different top types.
+}
+
+\rationale{%
+\TopMergeTypeName{} yields \code{Object?}\ in the case where
+the arguments differ in the choice of top types.
+This reflects the intention that the resulting type should yield
+a high degree of static type safety.%
+}
+
+\commentary{%
+For instance, if a class $C$ inherits a method $m$ that accepts
+an argument of type \code{List<\DYNAMIC>} from one superinterface,
+and another method $m$ that accepts
+an argument of type \code{List<\VOID>}
+from another superinterface,
+the parameter will have type \code{List<Object?>} in $C$,
+and this will ensure a more strict static typing by default than, say,
+\code{List<\DYNAMIC>}.%
+}
+
+\LMHash{}%
+\TopMergeTypeName{} of more than two types is defined by taking
+\TopMergeTypeName{} of the first two,
+and then recursively taking \TopMergeTypeName{} of the rest.
+
+\LMHash{}%
+The \Index{\IsTopTypeName} predicate is true for any type which is in
+the equivalence class of top types.
+It is a syntactic characterization of top types
+(\ref{superBoundedTypes}).
+
+\begin{itemize}
+\item \DefEquals{\IsTopType{$T$?}}{\IsTopType{$T$} \vee \IsObjectType{$T$}}.
+\item \DefEquals{\IsTopType{\DYNAMIC}}{\metavar{true}}.
+\item \DefEquals{\IsTopType{\VOID}}{\metavar{true}}.
+\item \DefEquals{\IsTopType{FutureOr<$T$>}}{\IsTopType{$T$}}.
+\item \DefEquals{\IsTopType{$T$}}{\metavar{false}}, otherwise.
+\end{itemize}
+
+\LMHash{}%
+The \Index{\IsObjectTypeName} predicate is true if{}f 
+the argument is a subtype and a supertype of \code{Object}.
+
+\begin{itemize}
+\item \DefEquals{\IsObjectType{Object}}{\metavar{true}}.
+\item \DefEquals{\IsObjectType{FutureOr<$T$>}}{\IsObjectType{$T$}}.
+\item \DefEquals{\IsObjectType{$T$}}{\metavar{false}}, otherwise.
+\end{itemize}
+
+\LMHash{}%
+The \Index{\IsBottomTypeName} predicate is true if{}f
+the argument is a subtype of \code{Never}.
+
+\begin{itemize}
+\item \DefEquals{\IsBottomType{Never}}{\metavar{true}}.
+\item \DefEquals{\IsBottomType{$X$\,\,\&\,\,$T$}}{\IsBottomType{$T$}}.
+\item \DefEquals{\IsBottomType{$X$\,\,\EXTENDS\,\,$T$}}{\IsBottomType{$T$}}.
+\item \DefEquals{\IsBottomType{$T$}}{\metavar{false}}, otherwise.
+\end{itemize}
+
+\LMHash{}%
+The \Index{\IsNullTypeName} predicate is true if{}f
+the argument is a subtype and a supertype of \code{Null}.
+
+\begin{itemize}
+\item \DefEquals{\IsNullType{Null}}{\metavar{true}}.
+\item \DefEquals{\IsNullType{$T$?}}{\IsNullType{$T$} \vee \IsBottomType{$T$}}.
+\item \DefEquals{\IsNullType{$T$}}{\metavar{false}}, otherwise.
+\end{itemize}
+
+\LMHash{}%
+The \Index{\IsMoreTopTypeName} predicate defines a total order on
+top and \code{Object} types.
+
+\begin{itemize}
+\item \DefEquals{\IsMoreTopType{\VOID}{$T$}}{\metavar{true}}.
+\item \DefEquals{\IsMoreTopType{$T$}{\VOID}}{\metavar{false}}.
+\item \DefEquals{\IsMoreTopType{\DYNAMIC}{$T$}}{\metavar{true}}.
+\item \DefEquals{\IsMoreTopType{$T$}{\DYNAMIC}}{\metavar{false}}.
+\item \DefEquals{\IsMoreTopType{Object}{$T$}}{\metavar{true}}.
+\item \DefEquals{\IsMoreTopType{$T$}{Object}}{\metavar{false}}.
+\item \DefEquals{\IsMoreTopType{$T$?}{$S$?}}{\IsMoreTopType{$T$}{$S$}}.
+\item \DefEquals{\IsMoreTopType{$T$}{$S$?}}{\metavar{true}}.
+\item \DefEquals{\IsMoreTopType{$T$?}{$S$}}{\metavar{false}}.
+\item \DefEquals{\IsMoreTopType{FutureOr<$T$>}{FutureOr<$S$>}}{%
+  \IsMoreTopType{$T$}{$S$}}.
+\end{itemize}
+
+\LMHash{}%
+The \Index{\IsMoreBottomTypeName} predicate defines an almost total order on
+bottom and \code{Null} types.
+\commentary{%
+This does not consistently order
+two different type variables with the same bound.%
+}
+
+\begin{itemize}
+\item \DefEquals{\IsMoreBottomType{Never}{$T$}}{\metavar{true}}.
+\item \DefEquals{\IsMoreBottomType{$T$}{Never}}{\metavar{false}}.
+\item \DefEquals{\IsMoreBottomType{Null}{$T$}}{\metavar{true}}.
+\item \DefEquals{\IsMoreBottomType{$T$}{Null}}{\metavar{false}}.
+\item \DefEquals{\IsMoreBottomType{$T$?}{$S$?}}{\IsMoreBottomType{$T$}{$S$}}.
+\item \DefEquals{\IsMoreBottomType{$T$}{$S$?}}{\metavar{true}}.
+\item \DefEquals{\IsMoreBottomType{$T$?}{$S$}}{\metavar{false}}.
+\item \DefEquals{\IsMoreBottomType{$X$\,\,\&\,\,$T$}{$Y$\,\,\&\,\,$S$}}{%
+  \IsMoreBottomType{$T$}{$S$}}.
+\item \DefEquals{\IsMoreBottomType{$X$\,\,\&\,\,$T$}{$S$}}{\metavar{true}}.
+\item \DefEquals{\IsMoreBottomType{$S$}{$X$\,\,\&\,\,$T$}}{\metavar{false}}.
+\item \DefEquals{%
+  \IsMoreBottomType{$X$\,\,\EXTENDS\,\,$T$}{$Y$\,\,\EXTENDS\,\,$S$}}{%
+  \IsMoreBottomType{$T$}{$S$}}.
+\end{itemize}
+
+!!!TODO!!! Clean up this section: We should say that these definitions are used in order (first applicable case must be used). We should specify the acceptable arguments is each case, and argue that we're never calling them on anything which is not acceptable.
+
+
 \subsection{Type Normalization}
 \LMLabel{typeNormalization}
 
@@ -24664,7 +24813,7 @@ type arguments in constant generic instances are still considered erroneous.
 \}
 \end{dartCode}
 
-\subsubsection{Combined member signatures}
+\subsubsection{Implicit conversions}
 
 !!!TODO!!!
 
@@ -24793,91 +24942,6 @@ static type of $e$.
 
 These are extended as per
 [separate proposal](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
-
-\subsection{Helper predicates}
-
-The following helper predicates are used to classify types. They are syntactic
-in nature such that termination is obvious. In particular, they do not rely on
-subtyping.
-
-The \IsTopTypeName{} predicate is true for any type which is in the equivalence class of
-top types.
-
-\begin{itemize}
-\item \IsTopType{$T$?}\ is true iff \IsTopType{$T$} or \IsObjectType{$T$}
-\item \IsTopType{\DYNAMIC} is true
-\item \IsTopType{\VOID} is true
-\item \IsTopType{FutureOr<$T$>} is \IsTopType{$T$}
-\item \IsTopType{$T$} is false otherwise
-\end{itemize}
-
-\IsTopType{$T$} is true if and only if $T$ is a supertype of \code{Object?}.
-
-The \IsObjectTypeName{} predicate is true for any type which is in the equivalence class
-of \code{Object}.
-
-\begin{itemize}
-\item \IsObjectType{Object} is true
-\item \IsObjectType{FutureOr<$T$>} is \IsObjectType{$T$}
-\item \IsObjectType{$T$} is false otherwise
-\end{itemize}
-
-\IsObjectType{$T$} is true if and only if $T$ is a subtype and a supertype of
-\code{Object}.
-
-The \IsBottomTypeName{} predicate is true for things in the equivalence class of \code{Never}.
-
-\begin{itemize}
-\item \IsBottomType{Never} is true
-\item \IsBottomType{$X$ \& $T$} is true iff \IsBottomType{$T$}
-\item \IsBottomType{$X$ \EXTENDS\ $T$} is true iff \IsBottomType{$T$}
-\item \IsBottomType{$T$} is false otherwise
-\end{itemize}
-
-\IsBottomType{$T$} is true if and only if $T$ is a subtype of \code{Never}.
-
-The \IsNullTypeName{} predicate is true for things in the equivalence class of \code{Null}.
-
-\begin{itemize}
-\item \IsNullType{Null} is true
-\item \IsNullType{$T$?}\ is true iff \IsNullType{$T$} or \IsBottomType{$T$}
-\item \IsNullType{$T$} is false otherwise
-\end{itemize}
-
-\IsNullType{$T$} is true if and only if $T$ is a subtype and a supertype of \code{Null}.
-
-The \IsMoreTopTypeName{} predicate defines a total order on top and \code{Object} types.
-
-\begin{itemize}
-\item \IsMoreTopType{\VOID}{$T$} = \code{true}
-\item \IsMoreTopType{$T$}{\VOID} = \code{false}
-\item \IsMoreTopType{\DYNAMIC}{$T$} = \code{true}
-\item \IsMoreTopType{$T$}{\DYNAMIC} = \code{false}
-\item \IsMoreTopType{Object}{$T$} = \code{true}
-\item \IsMoreTopType{$T$}{Object} = \code{false}
-\item \IsMoreTopType{$T$?}{$S$?} = \IsMoreTopType{$T$}{$S$}
-\item \IsMoreTopType{$T$}{$S$?} = \code{true}
-\item \IsMoreTopType{$T$?}{$S$} = \code{false}
-\item \IsMoreTopType{FutureOr<$T$>}{FutureOr<$S$>} = \IsMoreTopType{$T$}{$S$}
-\end{itemize}
-
-The \IsMoreBottomTypeName{} predicate defines an (almost) total order on bottom and
-\code{Null} types.  This does not currently consistently order two different type
-variables with the same bound.
-
-\begin{itemize}
-\item \IsMoreBottomType{Never}{$T$} = \code{true}
-\item \IsMoreBottomType{$T$}{Never} = \code{false}
-\item \IsMoreBottomType{Null}{$T$} = \code{true}
-\item \IsMoreBottomType{$T$}{Null} = \code{false}
-\item \IsMoreBottomType{$T$?}{$S$?} = \IsMoreBottomType{$T$}{$S$}
-\item \IsMoreBottomType{$T$}{$S$?} = \code{true}
-\item \IsMoreBottomType{$T$?}{$S$} = \code{false}
-\item \IsMoreBottomType{$X$ \& $T$}{$Y$ \& $S$} = \IsMoreBottomType{$T$}{$S$}
-\item \IsMoreBottomType{$X$ \& $T$}{$S$} = \code{true}
-\item \IsMoreBottomType{$S$, $X$ \& $T$} = \code{false}
-\item \IsMoreBottomType{$X$ \EXTENDS\ $T$}{$Y$ \EXTENDS\ $S$} = \IsMoreBottomType{$T$}{$S$}
-\end{itemize}
 
 \subsubsection{The main function}
 
