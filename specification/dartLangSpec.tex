@@ -7460,7 +7460,7 @@ the corresponding actual type argument.%
 \LMHash{}%
 A type parameter $T$ may be suffixed with an \EXTENDS{} clause
 that specifies the \Index{upper bound} for $T$.
-If no \EXTENDS{} clause is present, the upper bound is \code{Object}.
+If no \EXTENDS{} clause is present, the upper bound is \code{Object?}.
 It is a
 \Error{compile-time error} if a type parameter is a supertype of its upper bound
 when that upper bound is itself a type variable.
@@ -22589,20 +22589,14 @@ In this case we say that the types $S$ and $T$ are
 \Index{assignable}.
 
 \rationale{%
-This rule may surprise readers accustomed to conventional typechecking.
-The intent of the \AssignableRelationSymbol{} relation
-is not to ensure that an assignment is guaranteed to succeed dynamically.
-Instead, it aims to only flag assignments
-that are almost certain to be erroneous,
-without precluding assignments that may work.
-
-For example, assigning an object of static type \code{Object}
-to a variable with static type \code{String},
-while not guaranteed to be correct,
-might be fine if the run-time value happens to be a string.
-
-A static analyzer or compiler
-may support more strict static checks as an option.%
+The use of the type \DYNAMIC{} is intended to shift type checks from
+compile time to run time,
+thus allowing operations that are not statically safe,
+but which may succeed or fail at run time.
+This treatment of \DYNAMIC{} ensures that
+expressions of type \DYNAMIC{} are treated
+as if the compiler would implicitly insert a downcast whenever needed,
+in order to make the program type correct.%
 }
 
 
@@ -24670,31 +24664,9 @@ type arguments in constant generic instances are still considered erroneous.
 \}
 \end{dartCode}
 
-\subsubsection{Extension method resolution}
+\subsubsection{Combined member signatures}
 
 !!!TODO!!!
-
-For the purposes of extension method resolution, there is no special treatment
-of nullable types with respect to what members are considered accessible.  That
-is, the only members of a nullable type that are considered accessible
-(and hence which take precedence over extensions) are the members on \code{Object}.
-
-For the purposes of extension method resolution, the type \code{Never} is considered
-to implement all members, and hence no extension may apply to an expression of
-type \code{Never}.
-
-\subsubsection{Assignability}
-
-The definition of assignability is changed as follows.
-
-A type $T$ is \Index{assignable} to a type $S$ if $T$ is \DYNAMIC, or if $T$ is a
-subtype of $S$.
-
-\subsubsection{Generics}
-
-The default bound of generic type parameters is treated as \code{Object?}.
-
-\subsubsection{Combined member signatures}
 
 This section, line 4241
 in the language specification defines the notion of a _combined member
