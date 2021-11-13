@@ -662,7 +662,7 @@ ways.
 
 **TODO**: Explain library cycles and compiling to library augmentations.
 
-### Macro compilation order
+### Library cycles
 
 Applying a macro involves executing the Dart code inside the body of the macro.
 Obviously, that code must be type-checked and compiled before it can be run. To
@@ -687,35 +687,134 @@ have the following restrictions:
 
 [modules]: https://github.com/dart-lang/language/tree/master/working/modules
 
-### Complete macro application order
+A Dart implementation can enforce this restriction by organizing a program into
+**library cycles**. The build package [already does this][build lib cycle]. A
+library cycle is a set of libraries containing import cycles. If two libraries
+are not in the same cycle, it is guaranteed that there is no cyclic import
+between them.
 
-When all of these are put together, an idealized compilation and macro
-application of a Dart program looks like this:
+### Ideal compilation process
 
-**TODO**: Update to use library cycles.
+Here's a (non-normative) illustration of how a Dart implementation could compile
+a Dart program containing macro applications:
 
-1.  For each library, ordered topologically by imports:
+#### 1. Break the program into library cycles
 
-    1.  For each declaration, with nested declarations ordered first:
+Starting at the entrypoint library, traverse all imports and exports to collect
+the full graph of libraries to be compiled. Calculate the [strongly connected
+components][] of this graph. Each component is a library cycle, and the edges
+between them determine how the cycles depend on each other. Sort the library
+cycles in topological order based on the connected component graph.
 
-        1.  Apply each phase 1 macro to the declaration, from right to left.
+Report an error if macro application and its definition occur in the same
+library cycle.
 
-    1.  At this point, all top level identifiers can be resolved.
+Each library cycle can now be fully compiled separately. When compiling a
+library cycle, it is guaranteed that all macros used by the cycle have already
+been compiled. Also, any types or other declarations used by that cycle have
+either already been compiled, or are defined in that cycle.
 
-    1.  For each declaration, with nested declarations ordered first:
+[strongly connected components]: https://en.wikipedia.org/wiki/Strongly_connected_component
 
-        1.  Apply each phase 2 macro to the declaration, from right to left.
+#### 2. Compile each cycle
 
-    1.  At this point, all declarations and their signatures exist. The library
-        can be type checked.
+Go through the library cycles in topological order. For each cycle, compile all
+of its libraries. First, merge in any hand-authored library augmentations into
+their libraries. At this point, you have a set of mutually interdependent
+libraries. They may contain references to declarations that don't exist because
+macros have yet produce them.
 
-    1.  For each declaration, with nested declarations ordered first:
+Collect all the metadata annotations whose names can be resolved and that
+resolve to macro classes. Report an error if any application refers to a macro
+declared in this cycle.
 
-        1.  Apply each phase 3 macro to the declaration, from right to left.
+**TODO**: The above resolution rules may change based on
+https://github.com/dart-lang/language/issues/1890.
 
-    1.  Now all macros have been applied, all imperative code exists, and the
-        library can be completely compiled. Any macros defined in this library
-        are ready to be used by later libraries.
+#### 3. Apply macros
+
+In a sandbox environment or isolate, create an instance of the corresponding
+macro class for each macro application. Pass in any macro application arguments
+to the macro's constructor. If a parameter's type is `Code` or a subclass,
+convert the argument expression to a `Code` object.
+
+Run all of the macros in phase order:
+
+1.  Invoke the corresponding visit method for all macros that implement phase 1
+    APIs.
+
+1.  Invoke the corresponding visit method for all macros that implement phase 2
+    APIs.
+
+1.  Invoke the corresponding visit method for all macros that implement phase 3
+    APIs.
+
+While these are running, the macro will likely call back into the host
+environment to introspect over code in the current library cycle or previously
+compiled cycles. The introspection API is mostly syntactic and structural: a
+macro can walk the members on a class declaration or look at the *name* of a
+type annotation without the compiler having to do any resolution or type
+checking.
+
+When a macro wants to resolve an identifier in a type annotation, there is an
+explicit API for that. When that happens, the implementation attempts to resolve
+the identifier and return a reference to the resolved declaration. Macros do not
+have introspection access to the imperative code of a library, so that code
+doesn't need to be resolved or type-checked at this point.
+
+Meanwhile, the macro is also producing new declarations and definitions. These
+are collected and held by the macro processor. When introspecting over code, the
+implementation needs to show not just the state of the code on disk, but any of
+these new declarations produced previously by macros.
+
+#### 4. Generate an augmentation library
+
+Once all macro applications have finished running, the implementation creates a
+new empty augmentation library for each library containing macro applications.
+All of the declarations created by macros and held by the processor are now
+added to the augmentation.
+
+Entirely new declarations are simply added to the augmentation library as
+declarations. Declarations that wrap the original declaration's code are added
+as augmenting declarations. If a macro adds members to a type, then the type is
+added to the augmentation library as an augmenting type, and the members are
+added into that.
+
+**TODO**: How are name collisions from private declarations handled?
+
+The `Code` objects representing the signature and body of the declaration is
+serialized to Dart source. `Code` objects created from strings are inserted
+verbatim into the augmentation library. It's up to the macro author to take
+care when using unqualified identifiers in string-based `Code` objects.
+
+**TODO**: Do we want to find identifiers in string-based `Code` objects and
+implicitly scope them somehow?
+
+Instances of the `Identifier` class have special serialization. An import for
+library that the identifier resolves to is added to the augmentation with a new
+unique prefix identifier. The `Identifier` name is then serialized as a prefixed
+identifier for that prefix. (A more sophisticated implementation could reuse
+imports when multiple identifiers resolve to the same library, and may choose to
+omit the prefix entirely if the resulting identifier will still resolve
+correctly.)
+
+This augmentation library is written on disk in some implementation-defined
+location. It should be accessible to users so that it's possible to step into
+and debug macro-generated code. It should probably *not* be stored directly next
+to their source code. We don't expect users to commit these generated files to
+source control.
+
+#### 5. Apply augmentation and compile
+
+Finally, the implementation implicitly applies these macro-generated
+augmentation libraries onto their corresponding main libraries. After that, all
+of the libraries are fully complete. They should contain no unresolvable
+identifiers, even in imperative code, and every declared member should have a
+definition. Report an error if that's not true.
+
+Otherwise, all of the libraries in the cycle can be fully compiled and the
+implementation can move on to the next cycle. Any macros declared in this cycle
+are ready to be loaded and executed when applied in libraries in later cycles.
 
 ## Executing macros
 
