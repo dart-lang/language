@@ -5697,7 +5697,12 @@ We need to compute one member signature from \Mall.%
 
 \LMHash{}%
 Let \mall{} be the result of applying \TopMergeTypeName{} to
-the elements in \Mall.
+\NormalizedTypeOfName{} of the elements in \Mall.
+\commentary{%
+Note that these types are mutual subtypes,
+and hence the normalized forms are structurally identical,
+modulo different choices of top type in some locations.%
+}
 The combined member signature is then $m'$,
 which is obtained from \mall{} by adding the modifier \COVARIANT{}
 to each parameter $p$ (if it is not already present)
@@ -22722,6 +22727,8 @@ of the subtype graph.
 \LMHash{}%
 The functions are syntactic in nature such that termination is obvious.
 In particular, they do not rely on subtyping.
+In each of these function definitions,
+the first applicable case must be used.
 
 \LMHash{}%
 The \Index{\TopMergeTypeName} of two types computes
@@ -22736,10 +22743,10 @@ It is defined as follows:
 \item \DefEquals{\TopMergeType{\VOID}{\VOID}}{\code{\VOID}}.
 \item \DefEquals{\TopMergeType{Object?}{\VOID}}{\code{Object?}}, and\\
   \DefEquals{\TopMergeType{\VOID}{Object?}}{\code{Object?}}.
-\item \DefEquals{\TopMergeType{\DYNAMIC}{\VOID}}{\code{Object?}}, and\\
-  \DefEquals{\TopMergeType{\VOID}{\DYNAMIC}}{\code{Object?}}
 \item \DefEquals{\TopMergeType{Object?}{\DYNAMIC}}{\code{Object?}}, and\\
   \DefEquals{\TopMergeType{\DYNAMIC}{Object?}}{\code{Object?}}.
+\item \DefEquals{\TopMergeType{\DYNAMIC}{\VOID}}{\code{Object?}}, and\\
+  \DefEquals{\TopMergeType{\VOID}{\DYNAMIC}}{\code{Object?}}
 \item \DefEquals{\TopMergeType{$T$?}{$S$?}}{\code{\TopMergeType{$T$}{$S$}?}}.
 \item For all other types, the function is applied recursively.
 
@@ -22756,6 +22763,9 @@ It is defined as follows:
 Note that \TopMergeTypeName{} is not defined for
 types which are structurally different,
 apart from being or containing different top types.
+When \TopMergeTypeName{} is used in this specification,
+each case where \TopMergeTypeName{} is undefined
+is handled explicitly.%
 }
 
 \rationale{%
@@ -22766,7 +22776,10 @@ a high degree of static type safety.%
 }
 
 \commentary{%
-For instance, if a class $C$ inherits a method $m$ that accepts
+For instance, \TopMergeTypeName{} is used during the computation of
+the interface of a class member which is declared
+in multiple superinterfaces.
+If a class $C$ inherits a method $m$ that accepts
 an argument of type \code{List<\DYNAMIC>} from one superinterface,
 and another method $m$ that accepts
 an argument of type \code{List<\VOID>}
@@ -22780,7 +22793,8 @@ and this will ensure a more strict static typing by default than, say,
 \TopMergeTypeName{} of more than two types is defined by taking
 \TopMergeTypeName{} of the first two,
 and then recursively taking \TopMergeTypeName{} of the rest.
-
+\commentary{The ordering of the arguments makes no difference.}
+  
 \LMHash{}%
 The \Index{\IsTopTypeName} predicate is true for any type which is in
 the equivalence class of top types.
@@ -22795,7 +22809,7 @@ It is a syntactic characterization of top types
 \item \DefEquals{\IsTopType{$T$}}{\metavar{false}}, otherwise.
 \end{itemize}
 
-\LMHash{}%
+\noindent
 The \Index{\IsObjectTypeName} predicate is true if{}f 
 the argument is a subtype and a supertype of \code{Object}.
 
@@ -22805,7 +22819,7 @@ the argument is a subtype and a supertype of \code{Object}.
 \item \DefEquals{\IsObjectType{$T$}}{\metavar{false}}, otherwise.
 \end{itemize}
 
-\LMHash{}%
+\noindent
 The \Index{\IsBottomTypeName} predicate is true if{}f
 the argument is a subtype of \code{Never}.
 
@@ -22816,7 +22830,7 @@ the argument is a subtype of \code{Never}.
 \item \DefEquals{\IsBottomType{$T$}}{\metavar{false}}, otherwise.
 \end{itemize}
 
-\LMHash{}%
+\noindent
 The \Index{\IsNullTypeName} predicate is true if{}f
 the argument is a subtype and a supertype of \code{Null}.
 
@@ -22826,7 +22840,7 @@ the argument is a subtype and a supertype of \code{Null}.
 \item \DefEquals{\IsNullType{$T$}}{\metavar{false}}, otherwise.
 \end{itemize}
 
-\LMHash{}%
+\noindent
 The \Index{\IsMoreTopTypeName} predicate defines a total order on
 top and \code{Object} types.
 
@@ -22844,7 +22858,7 @@ top and \code{Object} types.
   \IsMoreTopType{$T$}{$S$}}.
 \end{itemize}
 
-\LMHash{}%
+\noindent
 The \Index{\IsMoreBottomTypeName} predicate defines an almost total order on
 bottom and \code{Null} types.
 \commentary{%
@@ -22868,8 +22882,6 @@ two different type variables with the same bound.%
   \IsMoreBottomType{$X$\,\,\EXTENDS\,\,$T$}{$Y$\,\,\EXTENDS\,\,$S$}}{%
   \IsMoreBottomType{$T$}{$S$}}.
 \end{itemize}
-
-!!!TODO!!! Clean up this section: We should say that these definitions are used in order (first applicable case must be used). We should specify the acceptable arguments is each case, and argue that we're never calling them on anything which is not acceptable.
 
 
 \subsection{Type Normalization}
