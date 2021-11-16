@@ -8948,12 +8948,10 @@ as follows:
   if{}f $T$ is a potentially constant type expression
   respectively a constant type expression.
 \item
-  A type variable is a potentially constant type expression.
-\item
   %% TODO(eernst): This does not allow for type variables introduced by
   %% the type itself. `Function<X>(X)` could be a constant type expression,
   %% but that is not covered by the current rules: `X` is a type variable,
-  %% and they are never allowed.
+  %% and they are never constant type expressions.
   A function type
   \code{$R$ Function<\metavar{typeParameters}>(\metavar{parameterTypes})}
   (where $R$ and \code{<\metavar{typeParameters}>} may be omitted)
@@ -8963,9 +8961,11 @@ as follows:
   (if present) contain only potentially constant type expressions
   respectively constant type expressions.
 \item
-  The type \VOID is a potentially constant and a constant type expression.
+  The type \VOID{} is a potentially constant and a constant type expression.
 \item
-  The type \DYNAMIC is a potentially constant and a constant type expression.
+  The type \DYNAMIC{} is a potentially constant and a constant type expression.
+\item
+  A type variable is a potentially constant type expression.
 \end{itemize}
 
 % Being potentially constant is entirely structural, not type based,
@@ -21126,6 +21126,76 @@ URI unless $L_1$ and $L_2$ have the same location.%
 \LMLabel{scripts}
 
 \LMHash{}%
+Let $L$ be a library that exports a declaration $D$ named \code{main}.
+It is a \Error{compile-time error} unless $D$ is
+a non-getter function declaration.
+It is a \Error{compile-time error} if $D$ declares
+more than two required positional parameters,
+or if there are any required named parameters.
+It is a \Error{compile-time error} if $D$ declares
+at least one positional parameter,
+and the first positional parameter has a type which is
+not a supertype of \code{List<String>}.
+
+\LMHash{}%
+Implementations are free to impose any additional restrictions on
+the signature of \code{main}.
+
+\LMHash{}%
+A \Index{script} is a library that exports a declaration named \code{main}.
+A script $L$ is executed as follows:
+
+\LMHash{}%
+First, $L$ is compiled as a library as specified above.
+Then, the top-level function defined by \code{main}
+in the exported namespace of $L$ is invoked as follows:
+
+\LMHash{}%
+If \code{main} can be called with two positional arguments,
+it is invoked with the following two actual arguments:
+
+\begin{itemize}
+\item
+  An object whose run-time type implements \code{List<String>}.
+\item
+  An object specified when the current isolate $i$ was created,
+  (\commentary{%
+  for example through the invocation of \code{Isolate.spawnUri}
+  that spawned $i$%
+  }),
+  or the null object if no such object was supplied.
+  A dynamic error occurs if
+  the run-time type of this object is not a subtype of
+  the declared type of the corresponding parameter of \code{main}.
+\end{itemize}
+
+\LMHash{}%
+If \code{main} cannot be called with two positional arguments,
+but it can be called with one positional argument,
+it is invoked with an object whose run-time type implements \code{List<String>}
+as the only argument.
+
+\LMHash{}%
+If \code{main} cannot be called with one or two positional arguments,
+it is invoked with no arguments.
+
+\LMHash{}%
+In each of the above three cases,
+an implementation is free to provide additional arguments
+allowed by the signature of \code{main}
+(\commentary{%
+the above rules ensure that the corresponding parameters are optional%
+}).
+But the implementation must ensure that a dynamic error occurs
+if an actual argument does not have a run-time type which is
+a subtype of the declared type of the parameter.
+
+\LMHash{}%
+A Dart program will typically be executed by executing a script.
+The procedure whereby this script is chosen is implementation specific.
+
+----------------------------------------------------------------------
+\LMHash{}%
 A \Index{script} is a library whose exported namespace (\ref{exports}) includes
 a top-level function declaration named \code{main}
 that has either zero, one or two required arguments.
@@ -24976,72 +25046,20 @@ where $T$ is the static type of $e$.
 These are extended as per
 [separate proposal](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
 
-\subsubsection{The main function}
+\subsubsection{Runtime type equality operator}
 
 !!!TODO!!!
 
-The section 'Scripts' in the language specification is replaced by the
-following:
-
-Let $L$ be a library that exports a declaration $D$ named \code{main}.
-It is a \Error{compile-time error} unless $D$ is a non-getter function
-declaration.  It is a \Error{compile-time error} if $D$ declares more
-than two required positional parameters, or if there are any required
-named parameters.  It is a \Error{compile-time error} if $D$ declares
-at least one positional parameter, and the first positional parameter
-has a type which is not a supertype of \code{List<String>}.
-
-Implementations are free to impose any additional restrictions on the
-signature of \code{main}.
-
-A _script_ is a library that exports a declaration named \code{main}.
-A script $L$ is executed as follows:
-
-First, $L$ is compiled as a library as specified above.
-Then, the top-level function defined by \code{main}
-in the exported namespace of $L$ is invoked as follows:
-
-If \code{main} can be called with two positional arguments,
-it is invoked with the following two actual arguments:
-
-\begin{itemize}
-\item An object whose run-time type implements \code{List<String>}.
-\item An object specified when the current isolate $i$ was created,
-  for example through the invocation of \code{Isolate.spawnUri} that spawned $i$,
-  or the null object if no such object was supplied.
-  A dynamic error occurs if the run-time type of this object is not a
-  subtype of the declared type of the corresponding parameter of \code{main}.
-\end{itemize}
-
-If \code{main} cannot be called with two positional arguments, but it can be
-called with one positional argument, it is invoked with an object whose
-run-time type implements \code{List<String>} as the only argument.
-
-If \code{main} cannot be called with one or two positional arguments, it is
-invoked with no arguments.
-
-In each of the above three cases, an implementation is free to provide
-additional arguments allowed by the signature of \code{main}
-(\commentary{the above rules ensure that the corresponding parameters are optional}).
-But the implementation must ensure that a dynamic error occurs if an
-actual argument does not have a run-time type which is a subtype of
-the declared type of the parameter.
-
-A Dart program will typically be executed by executing a script.  The
-procedure whereby this script is chosen is implementation specific.
-
-\subsection{Runtime semantics}
-
-\subsubsection{Runtime type equality operator}
-
-Two objects $T_1$ and $T_2$ which are instances of \code{Type} (that is, runtime type
-objects) are considered equal if and only if the runtime type objects $T_1$ and
-$T_2$ corresponds to the types $S_1$ and $S_2$ respectively, and the normal forms
-\NormalizedTypeOf{$S_1$} and \NormalizedTypeOf{$S_2$} are syntactically equal up to equivalence of
-bound variables. Note that we do not equate primitive top types.  \code{List<\VOID>}
-and \code{List<\DYNAMIC>} are still considered distinct runtime type objects.  Note
-that we also do not equate function
-types which differ in the placement of \REQUIRED{} on parameter types.
+Two objects $T_1$ and $T_2$ which are instances of \code{Type} (that
+is, runtime type objects) are considered equal if and only if the
+runtime type objects $T_1$ and $T_2$ corresponds to the types $S_1$
+and $S_2$ respectively, and the normal forms \NormalizedTypeOf{$S_1$}
+and \NormalizedTypeOf{$S_2$} are syntactically equal up to equivalence
+of bound variables. Note that we do not equate primitive top types.
+\code{List<\VOID>} and \code{List<\DYNAMIC>} are still considered
+distinct runtime type objects.  Note that we also do not equate
+function types which differ in the placement of \REQUIRED{} on
+parameter types.
 
 \subsubsection{Constant evaluation and canonicalization}
 
