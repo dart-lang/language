@@ -8661,14 +8661,13 @@ are the following:
 \item
   A literal boolean, \TRUE{} or \FALSE{} (\ref{booleans}),
   is a potentially constant and constant expression.
-
 \item
   A literal number (\ref{numbers}) is
   a potentially constant and constant expression
   if it evaluates to an instance of type \code{int} or \code{double}.
   % A too-large integer literal does not evaluate to an object.
-
-\item A literal string (\ref{strings}) with string interpolations
+\item
+  A literal string (\ref{strings}) with string interpolations
   (\ref{stringInterpolation})
   with expressions $e_1$, \ldots, $e_n$ is a potentially constant expression
   if $e_1$, \ldots, $e_n$ are potentially constant expressions.
@@ -8687,19 +8686,15 @@ are the following:
     for constant objects,
     which could contain arbitrary code.%
   }
-
 \item
   A literal symbol (\ref{symbols}) is
   a potentially constant and constant expression.
-
 \item
   The literal \NULL{} (\ref{null}) is
   a potentially constant and constant expression.
-
 \item
   An identifier that denotes a constant variable is
   a potentially constant and constant expression.
-
 \item
   A qualified reference to a static constant variable
   (\ref{variables})
@@ -8711,7 +8706,6 @@ are the following:
     The same is true if $C$ is accessed via a prefix $p$;
     \code{$p$.$C$.$v$} is a constant unless $p$ is a deferred prefix.%
   }
-
 \item
   A simple or qualified identifier denoting a class,
   a mixin or a type alias that is not qualified by a deferred prefix,
@@ -8724,7 +8718,6 @@ are the following:
     a constant \code{Type} instance representing the type of $C$
     unless $p$ is a deferred prefix.%
   }
-
 \item
   Let $e$ be a simple or qualified identifier denoting
   a top-level function (\ref{functions})
@@ -8738,13 +8731,11 @@ are the following:
   then $e$ is a potentially constant and constant expression
   if{}f each $T_j, j \in 1 .. s$, is a constant type expression
   (\ref{constants}).
-
 \item
   An identifier expression denoting a parameter of a constant constructor
   (\ref{constantConstructors})
   that occurs in the initializer list of the constructor,
   is a potentially constant expression.
-
 \item
   A constant object expression (\ref{const}),
   \code{\CONST{} $C$<$T_1,\ \ldots,\ T_k$>(\metavar{arguments})} or
@@ -8758,7 +8749,6 @@ are the following:
   % `C(double x, double y): z = x / y;`.
   It is a \Error{compile-time error} if a constant object expression is
   not a constant expression (\ref{const}).
-
 \item
   A constant list literal (\ref{lists}),
   \code{\CONST{} <$T$>[$e_1$, \ldots, $e_n$]}, or
@@ -8768,7 +8758,6 @@ are the following:
   and $e_1$, \ldots{} , $e_n$ are constant expressions.
   It is further a constant expression
   if the list literal evaluates to an object.
-
 \item
   A constant set literal (\ref{sets}),
   \code{\CONST{} <$T$>\{$e_1$, \ldots, $e_n$\}}, or
@@ -8779,7 +8768,6 @@ are the following:
   and $e_1$, \ldots{} , $e_n$ are constant expressions.
   It is further a constant expression
   if the set literal evaluates to an object.
-
 \item
   A constant map literal (\ref{maps}),
   \code{\CONST{} <$K$, $V$>\{$k_1$: $v_1$, \ldots, $k_n$: $v_n$\}}, or
@@ -8788,13 +8776,11 @@ are the following:
   is a potentially constant expression.
   It is further a constant expression
   if the map literal evaluates to an object.
-
 \item
   A parenthesized expression \code{($e$)} is
   a potentially constant expression
   if $e$ is a potentially constant expression.
   It is further a constant expression if $e$ is a constant expression.
-
 \item
   An expression of the form \code{identical($e_1$, $e_2$)} is
   a potentially constant expression
@@ -8804,12 +8790,10 @@ are the following:
   (\ref{objectIdentity}).
   It is further a constant expression
   if $e_1$ and $e_2$ are constant expressions.
-
 \item
   An expression of the form \code{$e_1$\,!=\,$e_2$} is
   equivalent to \code{!($e_1$\,==\,$e_2$)} in every way,
   including whether it is potentially constant or constant.
-
 \item
   An expression of the form \code{$e_1$\,==\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
@@ -8819,13 +8803,11 @@ are the following:
   (\ref{theOperatorEqualsEquals}),
   or $e_2$ evaluates to the null object
   (\ref{null}).
-
 \item
   An expression of the form \code{!$e_1$} is potentially constant
   if $e_1$ is potentially constant.
   It is further constant if $e_1$ is a constant expression that evaluates to
   an instance of type \code{bool}.
-
 \item
   An expression of the form \code{$e_1$\,\&\&\,$e_2$} is
   potentially constant if $e_1$ and $e_2$
@@ -8836,7 +8818,6 @@ are the following:
   \item $e_1$ evaluates to \TRUE{} and $e_2$ is a constant expression
     that evaluates to an instance of type \code{bool}.
   \end{enumerate}
-
 \item
   An expression of the form \code{$e_1$\,||\,$e_2$} is
   potentially constant if $e_1$ and $e_2$
@@ -8847,7 +8828,6 @@ are the following:
   \item $e_1$ evaluates to \FALSE{} and $e_2$ is a constant expression
     that evaluates to an instance of type \code{bool}.
   \end{enumerate}
-
 \item
   An expression of the form \code{\gtilde$e_1$} is
   a potentially constant expression
@@ -8855,8 +8835,8 @@ are the following:
   It is further a constant expression if $e_1$ is
   a constant expression that evaluates to an instance of type \code{int}
   such that \gtilde{} denotes an instance operator invocation.
-
-\item An expression of one of the forms \code{$e_1$\,\&\,$e_2$},
+\item
+  An expression of one of the forms \code{$e_1$\,\&\,$e_2$},
   \code{$e_1$\,|\,$e_2$}, or \code{$e_1$\,\^\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
   It is further constant if both $e_1$ and $e_2$ are constant expressions that
@@ -8865,8 +8845,8 @@ are the following:
   such that the operator symbol
   \lit{\&}, \lit{|}, respectively \lit{\^}
   denotes an instance operator invocation.
-
-\item An expression of one of the forms
+\item
+  An expression of one of the forms
   \code{$e_1$\,\gtgt\,$e_2$}, \code{$e_1$\,\gtgtgt\,$e_2$},
   or \code{$e_1$\,\ltlt\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
@@ -8875,8 +8855,8 @@ are the following:
   such that the operator symbol
   \lit{\gtgt}, \lit{\gtgtgt}, respectively \lit{\ltlt}
   denotes an instance operator invocation.
-
-\item An expression of the form \code{$e_1$\,+\,$e_2$} is
+\item
+  An expression of the form \code{$e_1$\,+\,$e_2$} is
   a potentially constant expression if $e_1$ and $e_2$
   are both potentially constant expressions.
   It is further a constant expression
@@ -8884,15 +8864,14 @@ are the following:
   and either both evaluate to an instance of \code{int} or \code{double},
   or both evaluate to an instance of \code{String},
   such that \lit{+} denotes an instance operator invocation.
-
 \item
   An expression of the form \code{-$e_1$} is a potentially constant expression
   if $e_1$ is a potentially constant expression.
   It is further a constant expression if $e_1$ is a constant expression that
   evaluates to an instance of type \code{int} or \code{double},
   such that \lit{-} denotes an instance operator invocation.
-
-\item An expression of the form \code{$e_1$\,-\,$e_2$}, \code{$e_1$\,*\,$e_2$},
+\item
+  An expression of the form \code{$e_1$\,-\,$e_2$}, \code{$e_1$\,*\,$e_2$},
   \code{$e_1$\,/\,$e_2$},\code{$e_1$\,\gtilde/\,$e_2$}, \code{$e_1$\,\%\,$e_2$},
   \code{$e_1$\,<\,$e_2$}, \code{$e_1$\,<=\,$e_2$}, \code{$e_1$\,>\,$e_2$}, or
   \code{$e_1$\,>=\,$e_2$}
@@ -8902,8 +8881,8 @@ are the following:
   evaluate to instances of \code{int} or \code{double},
   such that the given operator symbol denotes
   an invocation of an instance operator.
-
-\item An expression of the form \code{$e_1$\,?\,$e_2$\,:\,$e_3$}
+\item
+  An expression of the form \code{$e_1$\,?\,$e_2$\,:\,$e_3$}
   is potentially constant if $e_1$, $e_2$, and $e_3$
   are all potentially constant expressions.
   It is constant if $e_1$ is a constant expression and either
@@ -8911,37 +8890,35 @@ are the following:
   \item $e_1$ evaluates to \TRUE{} and $e_2$ is a constant expression, or
   \item $e_1$ evaluates to \FALSE{} and $e_3$ is a constant expression.
   \end{enumerate}
-
-\item An expression of the form \code{$e_1$\,??\,$e_2$} is potentially constant
+\item
+  An expression of the form \code{$e_1$\,??\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
   It is further constant if $e_1$ is a constant expression and either
   \begin{enumerate}
   \item $e_1$ evaluates to an object which is not the null object, or
   \item $e_1$ evaluates to the null object, and $e_2$ is a constant expression.
   \end{enumerate}
-
-\item An expression of the form \code{$e$.length} is potentially constant
+\item
+  An expression of the form \code{$e$.length} is potentially constant
   if $e$ is a potentially constant expression.
   It is further constant if $e$ is a constant expression that
   evaluates to an instance of \code{String},
   such that \code{length} denotes an instance getter invocation.
-
-\item An expression of the form \code{$e$\,\,as\,\,$T$} is potentially constant
+\item
+  An expression of the form \code{$e$\,\,\AS\,\,$T$} is potentially constant
   if $e$ is a potentially constant expression
-  and $T$ is a constant type expression,
+  and $T$ is a potentially constant type expression,
   and it is further constant if $e$ is constant.
   \commentary{%
-    It is a \Error{compile-time error} to evaluate the constant expression
+    It is a \Error{compile-time error} to evaluate this constant expression
     if the cast operation would throw, that is,
-    if $e$ evaluates to an object which is not the null object
-    and not of type $T$.%
+    if $e$ evaluates to an object which is not of type $T$.%
   }
-
-\item An expression of the form \code{$e$\,\,is\,\,$T$} is potentially constant
+\item
+  An expression of the form \code{$e$\,\,\IS\,\,$T$} is potentially constant
   if $e$ is a potentially constant expression
   and $T$ is a constant type expression,
   and it is further constant if $e$ is constant.
-
 \item
   An expression of the form \code{$e$\,\,is!\,\,$T$}
   is equivalent to \code{!($e$\,\,is\,\,$T$)} in every way,
@@ -8949,34 +8926,46 @@ are the following:
 \end{itemize}
 
 \LMHash{}%
-A
-\Index{constant type expression}
-is one of:
+We introduce \Index{constant type expressions} and
+\Index{potentially constant type expressions}
+as follows:
 \begin{itemize}
 \item
-  An simple or qualified identifier
-  denoting a type declaration (a type alias, class or mixin declaration)
-  that is not qualified by a deferred prefix,
-  optionally followed by type arguments of the form
-  \code{<$T_1$,\ \ldots,\ $T_n$>}
-  where $T_1$, \ldots, $T_n$ are constant type expressions.
+  Consider a type $T$
+  which is designated by a simple or qualified identifier
+  denoting a declaration of a class, mixin, or type alias,
+  which is not qualified by a deferred prefix,
+  and which is optionally followed by
+  type arguments of the form \code{<\List{T}{1}{r}>}.
+  $T$ is a potentially constant type expression
+  respectively a constant type expression
+  if{}f $T_j$ is a potentially constant respectively constant type expression
+  for each $j \in 1 .. r$.
 \item
   A type of the form \code{FutureOr<$T$>}
-  where $T$ is a constant type expression.
+  is a potentially constant type expression
+  respectively a constant type expression
+  if{}f $T$ is a potentially constant type expression
+  respectively a constant type expression.
+\item
+  A type variable is a potentially constant type expression.
 \item
   %% TODO(eernst): This does not allow for type variables introduced by
   %% the type itself. `Function<X>(X)` could be a constant type expression,
   %% but that is not covered by the current rules: `X` is a type variable,
   %% and they are never allowed.
   A function type
-  \code{$R$ Function<\metavar{typeParameters}>(\metavar{argumentTypes})}
+  \code{$R$ Function<\metavar{typeParameters}>(\metavar{parameterTypes})}
   (where $R$ and \code{<\metavar{typeParameters}>} may be omitted)
-  and where $R$, \metavar{typeParameters} and \metavar{argumentTypes}
-  (if present) contain only constant type expressions.
+  is a is a potentially constant type expression
+  respectively a constant type expression
+  if $R$, \metavar{typeParameters}, and \metavar{parameterTypes}
+  (if present) contain only potentially constant type expressions
+  respectively constant type expressions.
 \item
-  The type \VOID.
+  The type \VOID is a potentially constant and a constant type expression.
 \item
-  The type \DYNAMIC.
+  The type \DYNAMIC is a potentially constant and a constant type expression.
 \end{itemize}
 
 % Being potentially constant is entirely structural, not type based,
@@ -8987,9 +8976,6 @@ is one of:
 % Potentially constant expressions that are not constant only
 % allow simple operations on basic types (num, String, bool, Null). These can
 % be computed statically without running user code.
-
-% A validly typed potentially constant expression can still fail when evaluated.
-% If that happens in a const invociation, it's a compile-time error.
 
 \LMHash{}%
 It is a \Error{compile-time error} if an expression is required to be
@@ -23590,26 +23576,29 @@ it instead uses \code{Object} as superclass.
 
 \LMHash{}%
 If a class or mixin declaration implements \FUNCTION, it has no effect.
-It is as if the \FUNCTION{} was removed from the \code{implements} clause
-(and if it's the only implemented interface, the entire clause is removed).
+It works as if \FUNCTION{} were removed from the \code{implements} clause
+(and if it is the only implemented interface, the entire clause is removed).
 The resulting class or mixin interface
 does not have \FUNCTION{} as a superinterface.
 
 \LMHash{}%
 If a mixin application mixes \FUNCTION{} onto a superclass, it follows the
 normal rules for mixin-application, but since the result of that mixin
-application is equivalent to a class with \code{implements Function}, and
+application is equivalent to a class with \code{implements \FUNCTION}, and
 that clause has no effect, the resulting class also does not
-implement \FUNCTION. \commentary{The \FUNCTION{} class declares no
-concrete instance members, so the mixin application creates a sub-class
-of the superclass with no new members and no new interfaces.}
+implement \FUNCTION.
+\commentary{%
+The \FUNCTION{} class declares no concrete instance members,
+so the mixin application creates a sub-class
+of the superclass with no new members and no new interfaces.%
+}
 
 \rationale{%
 Since using \FUNCTION{} in these ways has no effect, it would be
 reasonable to disallow it completely, like we do extending, implementing or
 mixing in types like \code{int} or \code{String}.
-For backwards compatibility with Dart 1 programs,
-the syntax is allowed to remain, even if it has no effect.
+The syntax is allowed to remain for now for backwards compatibility,
+even though it has no effect.
 Tools may choose to warn users that their code has no effect.%
 }
 
@@ -24964,21 +24953,23 @@ With this change, the following is a valid migration of this code:
 
 \subsubsection{Null promotion}
 
-The machinery of type promotion is extended to promote the type of variables
-based on nullability checks subject to the same set of restrictions as normal
-promotion.  The relevant checks and the types they are considered to promote to
-are as follows.
+The machinery of type promotion is extended to promote the type of
+variables based on nullability checks subject to the same set of
+restrictions as normal promotion.  The relevant checks and the types
+they are considered to promote to are as follows.
 
-A check of the form \code{$e$ == null} or of the form \code{$e$\,\,\IS\,\,Null} where $e$ has static
-type $T$ promotes the type of $e$ to \code{Null} in the \code{true} continuation, and to
+A check of the form \code{$e$ == null} or of the form
+\code{$e$\,\,\IS\,\,Null} where $e$ has static type $T$ promotes the
+type of $e$ to \code{Null} in the \code{true} continuation, and to
 \NonNullType{$T$} in the \code{false} continuation.
 
-A check of the form \code{$e$ != null} or of the form \code{$e$\,\,\IS\,\,$T$} where $e$ has static
-type \code{$T$?}\ promotes the type of $e$ to $T$ in the \code{true} continuation, and to
-\code{Null} in the \code{false} continuation.
+A check of the form \code{$e$ != null} or of the form
+\code{$e$\,\,\IS\,\,$T$} where $e$ has static type
+\code{$T$?}\ promotes the type of $e$ to $T$ in the \code{true}
+continuation, and to \code{Null} in the \code{false} continuation.
 
-The static type of an expression \code{$e$!} is \NonNullType{$T$} where $T$ is the
-static type of $e$.
+The static type of an expression \code{$e$!} is \NonNullType{$T$}
+where $T$ is the static type of $e$.
 
 \paragraph{Extended Type promotion, Definite Assignment, and Reachability}
 
@@ -24987,16 +24978,18 @@ These are extended as per
 
 \subsubsection{The main function}
 
+!!!TODO!!!
+
 The section 'Scripts' in the language specification is replaced by the
 following:
 
-Let $L$ be a library that exports a declaration $D$ named \code{main}.  It is a
-\Error{compile-time error} unless $D$ is a non-getter function declaration.  It is a
-\Error{compile-time error} if $D$ declares more than two required positional
-parameters, or if there are any required named parameters.  It is a
-\Error{compile-time error} if $D$ declares at least one positional parameter,
-and the first positional parameter has a type which is not a supertype of
-\code{List<String>}.
+Let $L$ be a library that exports a declaration $D$ named \code{main}.
+It is a \Error{compile-time error} unless $D$ is a non-getter function
+declaration.  It is a \Error{compile-time error} if $D$ declares more
+than two required positional parameters, or if there are any required
+named parameters.  It is a \Error{compile-time error} if $D$ declares
+at least one positional parameter, and the first positional parameter
+has a type which is not a supertype of \code{List<String>}.
 
 Implementations are free to impose any additional restrictions on the
 signature of \code{main}.
