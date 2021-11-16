@@ -5629,7 +5629,7 @@ If $M_0$ contains exactly one member signature $m'$,
 the combined member signature is $m'$.
 
 \LMHash{}%
-\BlindDefineSymbol{m_j,q}
+\BlindDefineSymbol{m_j, q}%
 Otherwise, $M_0$ contains more than one member signature named $n$.
 Let \List{m}{1}{q} be those member signatures.
 
@@ -7763,7 +7763,7 @@ that do not violate their type parameter bounds.%
 }
 
 \LMHash{}%
-\BlindDefineSymbol{T,T_j,s}%
+\BlindDefineSymbol{T, T_j, s}%
 Let $T$ be a parameterized type of the form \code{$G$<\List{T}{1}{s}>}
 where $G$ denotes a generic class or a generic type alias.
 $T$ is \Index{super-bounded} if{}f the following conditions are both true:
@@ -8175,7 +8175,7 @@ etc.%
 We now specify how the
 \Index{instantiation to bound}
 algorithm proceeds.
-\BlindDefineSymbol{T,X_j,k,B_j,S_j}%
+\BlindDefineSymbol{T, X_j, k, B_j, S_j}%
 Let $T$ be a raw type.
 Let \List{X}{1}{k} be the formal type parameters in the declaration of $G$,
 and let \List{B}{1}{k} be their bounds.
@@ -10534,7 +10534,7 @@ then how to use that result to infer
 the element type of \metavar{list} as a whole.
 
 \LMHash{}%
-\BlindDefineSymbol{P, P_e}
+\BlindDefineSymbol{P, P_e}%
 The context type $P$
 (\ref{setAndMapLiteralDisambiguation})
 for each element of \metavar{list} is
@@ -10663,7 +10663,7 @@ Finally, we define
 \IndexCustom{type inference on a list literal}{%
   type inference!list literal}
 as a whole.
-\BlindDefineSymbol{\metavar{list},\ell_j,P}%
+\BlindDefineSymbol{\metavar{list}, \ell_j, P}%
 Assume that \metavar{list} is derived from \synt{listLiteral}
 and contains the elements \List{\ell}{1}{n},
 and the context type for \metavar{list} is $P$.
@@ -10898,7 +10898,7 @@ The second step uses expression types and is described next
 (\ref{setAndMapLiteralInference}).
 
 \LMHash{}%
-\BlindDefineSymbol{e,{\cal L},C}%
+\BlindDefineSymbol{e, {\cal L}, C}%
 Let $e$ be a \synt{setOrMapLiteral}
 with leaf elements $\cal L$ and context type $C$.
 If $C$ is \FreeContext{} then let $S$ be undefined.
@@ -11033,7 +11033,7 @@ Map m = \{\};
 \end{dartCode}
 
 \LMHash{}%
-\BlindDefineSymbol{\metavar{collection},P}%
+\BlindDefineSymbol{\metavar{collection}, P}%
 Let \metavar{collection} be a collection literal
 derived from \synt{setOrMapLiteral}.
 The inferred type of an \synt{element} is an element type $T$,
@@ -11074,7 +11074,7 @@ which is determined as follows:
     provides a partial constraint on the inferred type.%
   }
 \item
-  \BlindDefineSymbol{P_k,P_v}%
+  \BlindDefineSymbol{P_k, P_v}%
   If \metavar{collection} is unambiguously a map
   then $P$ is \code{Map<$P_k$,\,\,$P_v$>}
   where $P_k$ and $P_v$ are determined by downwards inference,
@@ -11265,7 +11265,7 @@ Next:
 
 \LMHash{}%
 \Case{If element}
-\BlindDefineSymbol{b,\ell_1,\ell_2}%
+\BlindDefineSymbol{b, \ell_1, \ell_2}%
 In this case $\ell$ is of the form
 \code{\IF\,\,($b$)\,\,$\ell_1$} or
 \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
@@ -11317,7 +11317,7 @@ Then:
 
 \LMHash{}%
 \Case{For element}
-\BlindDefineSymbol{p,\ell_1}%
+\BlindDefineSymbol{p, \ell_1}%
 In this case $\ell$ is of the form
 \code{\AWAIT?\,\,\FOR\,\,($p$)\,\,$\ell_1$}
 where $p$ is derived from \synt{forLoopParts} and
@@ -11366,7 +11366,7 @@ Finally, we define
 \IndexCustom{type inference on a set or map literal}{%
   type inference!set or map literal}
 as a whole.
-\BlindDefineSymbol{\metavar{collection},P}%
+\BlindDefineSymbol{\metavar{collection}, P}%
 Assume that \metavar{collection} is derived from \synt{setOrMapLiteral},
 and the context type for \metavar{collection} is $P$.
 
@@ -13786,9 +13786,9 @@ to the corresponding generic function.%
 }
 
 \LMHash{}%
-\BlindDefineSymbol{f,G}
+\BlindDefineSymbol{f, G}
 Let $f$ be an expression whose static type $G$ is
-\BlindDefineSymbol{T_0,X_j,B_j,s,p}%
+\BlindDefineSymbol{T_0, X_j, B_j, s, p}%
 a generic function type of the form
 \RawFunctionType{T_0}{X}{B}{s}{\metavar{p}}
 where \code{($p$)} is derived from \synt{formalParameterList}.
@@ -14336,7 +14336,7 @@ An ordinary method invocation can be conditional or unconditional.
 Consider a
 \IndexCustom{conditional ordinary method invocation}{%
   method invocation!conditional ordinary}
-\BlindDefineSymbol{i,e,m,A_j,r,a_j,n,x_j,k}%
+\BlindDefineSymbol{i, e, m, A_j, r, a_j, n, x_j, k}%
 $i$ of the form
 
 \noindent
@@ -14387,7 +14387,7 @@ null-shortening transformation
 \Case{\code{$C$.$m$<$\cdots$>($\cdots$)}}
 A \IndexCustom{static member invocation}{member invocation!static}
 $i$ is an invocation of the form
-\BlindDefineSymbol{i,C,m,A_j,r,a_j,n,x_j,k}%
+\BlindDefineSymbol{i, C, m, A_j, r, a_j, n, x_j, k}%
 \code{%
 $C$.$m$<\TypeArgumentListStd>(\ArgumentListStd)},
 where $C$ is a term derived from \synt{typeName}
@@ -14424,7 +14424,7 @@ considering $F$ to be the static type of the function to call.
 The static type of $i$ is as specified there.
 
 \LMHash{}%
-\BlindDefineSymbol{i,C,m,A_j,r,a_j,n,x_j,k}%
+\BlindDefineSymbol{i, C, m, A_j, r, a_j, n, x_j, k}%
 Evaluation of a static method invocation $i$ of the form
 
 \noindent
@@ -14456,7 +14456,7 @@ $v_f$<\TypeArgumentListStd>(\ArgumentListStd)}.
 \Case{\code{$e$.$m$<$\cdots$>($\cdots$)}}
 An \IndexCustom{unconditional ordinary method invocation}{%
   method invocation!unconditional ordinary}
-\BlindDefineSymbol{i,e,m,A_j,r,a_j,n,x_j,k}%
+\BlindDefineSymbol{i, e, m, A_j, r, a_j, n, x_j, k}%
 $i$ is of the form
 \code{%
 $e$.$m$<\TypeArgumentListStd>(\ArgumentListStd)},
@@ -14543,7 +14543,7 @@ is \code{hashCode} or \code{runtimeType}.%
 }
 
 \LMHash{}%
-\BlindDefineSymbol{L,d,F}%
+\BlindDefineSymbol{L, d, F}%
 Otherwise, \code{$T$.$m$} denotes an instance member.
 Let $L$ be the library that contains $i$.
 Let $d$ be the result of method lookup for $m$ in $T$ with respect to $L$,
@@ -14671,13 +14671,13 @@ an implicit invocation of an extension method
 
 \LMHash{}%
 Evaluation of an unconditional ordinary method invocation $i$ of the form
-\BlindDefineSymbol{i,e,m,A_j,r,a_j,n,x_j,k}%
+\BlindDefineSymbol{i, e, m, A_j, r, a_j, n, x_j, k}%
 \code{%
 $e$.$m$<\TypeArgumentListStd>(\ArgumentListStd)}
 proceeds as follows:
 
 \LMHash{}%
-\BlindDefineSymbol{o,f}%
+\BlindDefineSymbol{o, f}%
 First, the expression $e$ is evaluated to an object $o$.
 Let $f$ be the result of looking up
 (\ref{lookup})
@@ -15034,7 +15034,7 @@ Property extraction comes in several forms, as described below.
 \Case{Conditional}
 Consider a \IndexCustom{conditional property extraction expression}{%
   property extraction!conditional}
-\BlindDefineSymbol{i,e,\id}%
+\BlindDefineSymbol{i, e, \id}%
 $i$ of the form \code{$e$?.\id}.
 
 %% TODO(eernst): We are likely to decide that this is an error.
@@ -15061,7 +15061,7 @@ null-shortening transformation
 
 \LMHash{}%
 \Case{Static}
-\BlindDefineSymbol{i,C,\id}%
+\BlindDefineSymbol{i, C, \id}%
 Let \id{} be an identifier;
 a \IndexCustom{static property extraction}{%
   property extraction!static}
@@ -15126,7 +15126,9 @@ that supports a mechanism similar to function closurization
 (\ref{functionClosurization})
 by desugaring it to a method closurization on \CALL.
 This only occurs when it is statically known that it is a callable object,
-and when the context type requires a function.%
+and when the context type requires a function.
+Note that the static type of $e$ can not be potentially nullable,
+because no such types have a method named \CALL.%
 }
 \EndCase
 
@@ -17531,7 +17533,7 @@ as detailed below.%
 }
 
 \LMHash{}%
-\BlindDefineSymbol{n, id}%
+\BlindDefineSymbol{n, \id}%
 Consider the situation where a name $n$
 has basename \id{}
 (\ref{classMemberConflicts})
@@ -19564,7 +19566,7 @@ an asynchronous non-generator function with declared return type $T$
 to be \FutureValueTypeOf{$T$}.
 
 \LMHash{}%
-\BlindDefineSymbol{s,e,S,f,T}%
+\BlindDefineSymbol{s, e, S, f, T}%
 Consider a return statement $s$ of the form \code{\RETURN\,\,$e$?;}.
 Let $S$ be the static type of $e$, if $e$ is present,
 let $f$ be the immediately enclosing function,
@@ -19700,7 +19702,7 @@ The execution of a return statement proceeds as follows.
 \LMHash{}%
 \Case{Synchronous non-generator functions and factory constructors}
 Let $s$ be a statement of the form \code{\RETURN\,\,$e$;}.
-\BlindDefineSymbol{s,e,f}%
+\BlindDefineSymbol{s, e, f}%
 Let $f$ be the immediately enclosing function,
 and consider the case where $f$ is a synchronous non-generator
 or a factory constructor.
@@ -19722,7 +19724,7 @@ which propagates the throwing completion from $e$ to $s$ to the function body.%
 \LMHash{}%
 \Case{Asynchronous non-generator functions}
 Let $s$ be a statement of the form \code{\RETURN\,\,$e$;}.
-\BlindDefineSymbol{s,e,f,T_v}%
+\BlindDefineSymbol{s, e, f, T_v}%
 Let $f$ be the immediately enclosing function,
 and consider the case where $f$ is an asynchronous non-generator
 with future value type $T_v$.
@@ -22964,7 +22966,7 @@ denoting the same type
 
 \LMHash{}%
 The function \Index{\NormalizedTypeOfName} is then defined as follows:
-\BlindDefineSymbol{T_a,T_u,T_r}%
+\BlindDefineSymbol{T_a, T_u, T_r}%
 Let $T_a$ be a type
 (\commentary{where `a' stands for `argument'}).
 Let $T_u$ be the transitive alias expansion of $T_a$
@@ -23099,7 +23101,7 @@ but the instantiation to bound on \code{C} is \code{C<num>}.%
 }
 
 \LMHash{}%
-\BlindDefineSymbol{S,L,X_j,n}%
+\BlindDefineSymbol{S, L, X_j, n}%
 Let $S$ be a type and $L$ a set of type variables of the form
 $\{\List{X}{1}{n}\}$.
 
@@ -24895,6 +24897,8 @@ regardless of the context type.  For example:
 \end{dartCode}
 
 \subsubsection{Constant Objects}
+
+!!!TODO!!!
 
 The definition of potentially constant expressions is extended to include type
 casts and instance checks on potentially constant types, as follows.
