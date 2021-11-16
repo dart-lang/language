@@ -3616,11 +3616,11 @@ such that:
   whose dynamic type implements \code{Map<Symbol, Object>},
   with the same keys and values as the map resulting from evaluation of
 
-  \code{<Symbol, Object>\{$\#x_1$: $x_1, \ldots,\ \#x_m$: $x_m$\}}.
+  \code{<Symbol, Object>\{\NamedArgumentList{\#x}{x}{1}{m}\}}.
 \item \code{$im$.typeArguments} evaluates to an unmodifiable list
   whose dynamic type implements \code{List<Type>},
   containing the same objects as the list resulting from evaluation of
-  \code{<Type>[$X_1, \ldots,\ X_r$]}.
+  \code{<Type>[\List{X}{1}{r}]}.
 \end{itemize}
 
 \LMHash{}%
@@ -4241,19 +4241,19 @@ of one of the forms
 where $R$ is of one of the forms
 
 \noindent
-\code{$\THIS{}$($e_1 \ldots,\ e_p,\ x_1$:\ $e_{p+1}, \ldots,\ x_q$:\ $e_{p+q}$)}
+\code{\THIS(\ArgumentList{e}{p}{x}{q})}
 
 \noindent
-\code{$\THIS.\id$($e_1 \ldots,\ e_p,\ x_1$:\ $e_{p+1}, \ldots,\ x_q$:\ $e_{p+q}$)}.
+\code{\THIS.\id(\ArgumentList{e}{p}{x}{q})}.
 
 \LMHash{}%
 The
 \IndexCustom{redirectee constructor}{constructor!redirectee}
 for this declaration is then the constructor denoted by
-\code{$C$<$X_1 \ldots,\ X_m$>} respectively \code{$C$<$X_1 \ldots,\ X_m$>.\id}.
+\code{$C$<\List{X}{1}{m}>} respectively \code{$C$<\List{X}{1}{m}>.\id}.
 It is a \Error{compile-time error} if the static argument list type
 (\ref{actualArgumentLists})
-of \code{($e_1 \ldots,\ e_p,\ x_1$:\ $e_{p+1}, \ldots,\ x_q$:\ $e_{p+q}$)}
+of the actual argument list \code{(\ArgumentList{e}{p}{x}{q})}
 is not an assignable match for the formal parameter list of the redirectee.
 
 \commentary{%
@@ -4386,11 +4386,11 @@ is assignable to the declared type of $v$.
 Consider a \Index{superinitializer} $s$ of the form
 
 \noindent
-\code{\SUPER($a_1, \ldots,\ a_n,\ x_{n+1}:\ a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
+\code{\SUPER(\ArgumentListStd)}
 respectively
 
 \noindent
-\code{\SUPER.\id($a_1, \ldots,\ a_n,\ x_{n+1}:\ a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}.
+\code{\SUPER.\id(\ArgumentListStd)}.
 
 \noindent{}%
 Let $S$ be the superclass of the enclosing class of $s$.
@@ -4484,18 +4484,18 @@ However, they may also be determined by a reflective call.%
 If $k$ is redirecting then its redirect clause has the form
 
 \noindent
-\code{\THIS.$g$($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
+\code{\THIS.$g$(\ArgumentListStd)}
 
 where \DefineSymbol{g} identifies another generative constructor
 of the immediately surrounding class.
 Then execution of $k$ to initialize $i$ proceeds by
 evaluating the argument list
-\code{($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
+\code{(\ArgumentListStd)}
 to an actual argument list $a$ of the form
-\code{($o_1, \ldots,\ o_n,\ x_{n+1}$:\ $o_{n+1}, \ldots,\ x_{n+k}$:\ $o_{n+k}$)}
+\code{(\ArgumentList{o}{n}{x}{k})}
 in an environment where the
 type parameters of the enclosing class are bound to
-$t_1, \ldots, t_m$.
+\List{t}{1}{m}.
 
 \LMHash{}%
 Next, the body of $g$ is executed to initialize $i$
@@ -4584,17 +4584,17 @@ executing the assertion (\ref{assert}).
 Consider a superinitializer \DefineSymbol{s} of the form
 
 \noindent
-\code{\SUPER($a_1, \ldots,\ a_n,\ x_{n+1}:\ a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
+\code{\SUPER(\ArgumentListStd)}
 respectively
 
 \noindent
-\code{\SUPER.\id($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}.
+\code{\SUPER.\id(\ArgumentListStd)}.
 
 \LMHash{}%
 \BlindDefineSymbol{C, S, u_j, p}%
 Let $C$ be the class in which $s$ appears and let $S$ be the superclass of $C$.
 If $S$ is generic (\ref{generics}),
-let $u_1, \ldots, u_p$ be the actual type arguments passed to $S$,
+let \List{u}{1}{p} be the actual type arguments passed to $S$,
 obtained by substituting the actual bindings \List{t}{1}{m}
 of the formal type parameters of $C$
 in the superclass as specified in the header of $C$.
@@ -4604,9 +4604,9 @@ $S$ respectively \code{$S$.\id}.
 \LMHash{}%
 Execution of $s$ proceeds as follows:
 The argument list
-\code{($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\code{(\ArgumentListStd)}
 is evaluated to an actual argument list $a$ of the form
-\code{($o_1, \ldots,\ o_n,\ x_{n+1}$: $o_{n+1}, \ldots,\ x_{n+k}$: $o_{n+k}$)}.
+\code{(\ArgumentList{o}{n}{x}{k})}.
 Then the body of the superconstructor $k$ is executed
 in an environment where the formal parameters of $k$ are bound to
 the corresponding actual arguments from $a$,
@@ -7235,7 +7235,7 @@ Let $a$ be an extension application
 and $i$ an expression of the form
 
 \noindent
-\code{$a$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
+\code{$a$<\TypeArgumentListStd>(\ArgumentListStd)}
 
 \noindent
 (\commentary{where the type argument list is omitted when $r$ is zero}).
@@ -7243,7 +7243,7 @@ $i$ is then treated as
 (\ref{notation})
 
 \noindent
-\code{$a$.\CALL<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}.
+\code{$a$.\CALL<\TypeArgumentListStd>(\ArgumentListStd)}.
 
 \commentary{%
 In other words, an invocation of an extension application
@@ -7258,7 +7258,7 @@ which is not a property extraction expression
 and let $i$ be an expression of the form
 
 \noindent
-\code{$e$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
+\code{$e$<\TypeArgumentListStd>(\ArgumentListStd)}
 
 \noindent
 (\commentary{where the type argument list is again omitted when $r$ is zero}).
@@ -7271,7 +7271,7 @@ then $i$ is a \Error{compile-time error}.
 Otherwise, $i$ is treated as the expression $i'$ which is
 
 \noindent
-\code{$e$.\CALL<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}.
+\code{$e$.\CALL<\TypeArgumentListStd>(\ArgumentListStd)}.
 
 \commentary{%
 Note that $i'$ can be an implicit invocation of
@@ -9306,9 +9306,15 @@ An \IndexCustom{integer literal}{literal!integer}
 is either a hexadecimal integer literal or a decimal integer literal.
 
 \LMHash{}%
+%% TODO(eernst): Clarify during review: The null safety spec had this: "The
+%% implicit conversion of integer literals to double literals is performed
+%% when the context type is \code{double} or \code{double?}", which is
+%% included with the rules below. However, using that rule directly would
+%% rule out `FutureOr<num> x = 1;`, which is allowed by the rule below, and
+%% by current implementations.
 Let $l$ be an integer literal that is not the operand
-of by a unary minus operator,
-and let $T$ be the static context type of $l$.
+of a unary minus operator,
+and let $T$ be the context type of $l$.
 If \code{double} is assignable to $T$ and \code{int} is not assignable to $T$,
 then the static type of $l$ is \code{double};
 otherwise the static type of $l$ is \code{int}.
@@ -9332,12 +9338,14 @@ If $l$ is an integer literal with numeric value $i$ and static type \code{int},
 and $l$ is not the operand of a unary minus operator,
 then evaluation of $l$ proceeds as follows:
 \begin{itemize}
-  \item{} If $l$ is a hexadecimal integer literal,
+\item
+  If $l$ is a hexadecimal integer literal,
   $2^{63} \le i < 2^{64}$ and the \code{int} class is implemented as
   signed 64-bit two's complement integers,
   then $l$ evaluates to an instance of the \code{int} class
   representing the numeric value $i - 2^{64}$,
-  \item{} Otherwise $l$ evaluates to an instance of the \code{int} class
+\item
+  Otherwise $l$ evaluates to an instance of the \code{int} class
   representing the numeric value $i$.
   It is a \Error{compile-time error} if the integer $i$ cannot be represented
   exactly by an instance of \code{int}.
@@ -9350,7 +9358,8 @@ In practice, implementations may be limited by other considerations.
 For example, Dart compiled to JavaScript may use the JavaScript number type,
 equivalent to Dart \code{double}, to represent integers, and if so,
 integer literals with more than 53 bits of precision cannot be represented
-exactly.%
+exactly.
+See~\ref{integerImplementations} for more details.%
 }
 
 \LMHash{}%
@@ -12275,16 +12284,16 @@ It is a \Error{compile-time error} if
 the type $T$ in an instance creation expression of one of the forms
 
 \noindent
-\code{\NEW{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+\code{\NEW{} $T$.\id(\ArgumentListStd)},
 
 \noindent
-\code{\NEW{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+\code{\NEW{} $T$(\ArgumentListStd)},
 
 \noindent
-\code{\CONST{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+\code{\CONST{} $T$.\id(\ArgumentListStd)},
 
 \noindent
-\code{\CONST{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\code{\CONST{} $T$(\ArgumentListStd)}
 
 \noindent
 is an enumerated type (\ref{enums}).
@@ -12304,11 +12313,11 @@ The \Index{new expression} invokes a constructor (\ref{constructors}).
 Let $e$ be a new expression of the form
 
 \noindent
-\code{\NEW{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\code{\NEW{} $T$.\id(\ArgumentListStd)}
 or the form
 
 \noindent
-\code{\NEW{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{\NEW{} $T$(\ArgumentListStd)}.
 
 \LMHash{}%
 It is a \Error{compile-time error} if $T$ is not
@@ -12331,12 +12340,12 @@ If $T$ is not a parameterized type, let $R$ be $T$.
 \begin{itemize}
 \item
   If $e$ is of the form
-  \code{\NEW{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+  \code{\NEW{} $T$.\id(\ArgumentListStd)}
   it is a \Error{compile-time error} if \code{$R$.\id} is not the name of
   a constructor declared by $R$, or \id{} is not accessible.
 \item
   If $e$ is of the form
-  \code{\NEW{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+  \code{\NEW{} $T$(\ArgumentListStd)}
   it is a \Error{compile-time error} if $R$ is not the name of
   a constructor declared by $R$.
 \end{itemize}
@@ -12395,13 +12404,13 @@ Evaluation of $e$ proceeds as follows:
 First, the argument part
 
 \noindent
-\code{<$U_1, \ldots,\ U_m$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\code{<\List{U}{1}{m}>(\ArgumentListStd)}
 
 \noindent
 is evaluated, yielding the evaluated actual argument part
 
 \noindent
-\code{<$u_1, \ldots,\ u_m$>($o_1, \ldots,\ o_n,\ x_{n+1}$: $o_{n+1},\ \ldots,\ x_{n+k}$: $o_{n+k}$)}.
+\code{<\List{u}{1}{m}>(\ArgumentList{o}{n}{x}{k})}.
 
 \noindent
 \commentary{Note that the non-generic case is covered by letting $m = 0$.}
@@ -12453,7 +12462,7 @@ of the form \code{\CONST? $T$.\id($p_1, \ldots,\ p_{n+k}$) = $c$;}
 where \code{\CONST?}\ indicates that \CONST{} may be present or absent,
 the remaining evaluation of $e$ is equivalent to
 evaluating
-\code{\NEW{} $c$($v_1, \ldots,\ v_n,\ x_{n+1}$: $v_{n+1}, \ldots,\ x_{n+k}$: $v_{n+k}$)}
+\code{\NEW{} $c$(\ArgumentList{v}{n}{x}{k})}
 in an environment where
 $v_j$ is a fresh variable bound to $o_j$ for $j \in 1 .. n + k$, and
 $X_j$ is bound to $u_j$ for $j \in 1 .. m$.
@@ -12500,11 +12509,11 @@ A \Index{constant object expression} invokes a constant constructor
 Let $e$ be a constant object expression of the form
 
 \noindent
-\code{\CONST{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\code{\CONST{} $T$.\id(\ArgumentListStd)}
 or the form
 
 \noindent
-\code{\CONST{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{\CONST{} $T$(\ArgumentListStd)}.
 
 \LMHash{}%
 It is a \Error{compile-time error} if $T$ is not
@@ -12538,12 +12547,12 @@ $j \in 1 .. m$.
 \begin{itemize}
 \item
   If $e$ is of the form
-  \code{\CONST{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+  \code{\CONST{} $T$.\id(\ArgumentListStd)}
   it is a \Error{compile-time error} if \code{$R$.\id} is not the name of
   a constant constructor declared by $R$, or \id{} is not accessible.
 \item
   If $e$ is of the form
-  \code{\CONST{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+  \code{\CONST{} $T$(\ArgumentListStd)}
   it is a \Error{compile-time error} if $R$ is not the name of
   a constant constructor declared by $R$.
 \end{itemize}
@@ -12591,11 +12600,11 @@ Evaluation of $e$ proceeds as follows:
 
 \LMHash{}%
 If $e$ is of the form
-\code{\CONST{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\code{\CONST{} $T$.\id(\ArgumentListStd)}
 let $i$ be the value of the expression $e'$:
 
 \noindent
-\code{\NEW{} $T$.\id($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{\NEW{} $T$.\id(\ArgumentListStd)}.
 
 \commentary{%
 Let $o$ be the result of an evaluation of $e'$,
@@ -12610,9 +12619,9 @@ This means that the value is well-defined.%
 
 \LMHash{}%
 If $e$ is of the form
-\code{\CONST{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+\code{\CONST{} $T$(\ArgumentListStd)},
 let $i$ be the value of
-\code{\NEW{} $T$($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{\NEW{} $T$(\ArgumentListStd)}.
 \commentary{%
 Which is well-defined for the same reason.%
 }
@@ -13073,7 +13082,7 @@ and have parentheses at the end, such that the ambiguity arises.%
 Evaluation of an actual argument part of the form
 
 \noindent
-\code{<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_m,\ q_1$: $a_{m+1}, \ldots,\ q_l$: $a_{m+l}$)}
+\code{<\TypeArgumentListStd>(\ArgumentList{a}{m}{q}{l})}
 proceeds as follows:
 
 \LMHash{}%
@@ -13106,7 +13115,7 @@ and similarly for empty type parameter lists (\ref{generics}).%
 \LMHash{}%
 Consider an invocation $i$ of a function $f$ with
 an actual argument part of the form
-\code{<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_m,\ q_1$: $a_{m+1}, \ldots,\ q_l$: $a_{m+l}$)}.
+\code{<\TypeArgumentListStd>(\ArgumentList{a}{m}{q}{l})}.
 
 \LMHash{}%
 % We cannot pass the same named parameter twice.
@@ -13315,13 +13324,13 @@ and let $p_{h+1}, \ldots, p_{h+k}$ be the optional parameters declared by $f$.
 An evaluated actual argument part
 
 \noindent
-\code{<$t_1, \ldots,\ t_r$>($o_1, \ldots,\ o_m,\ q_1$: $o_{m+1},\ \ldots,\ q_l$: $o_{m+l}$)}
+\code{<\List{t}{1}{r}>(\ArgumentList{o}{m}{q}{l})}
 
 \noindent
 derived from an actual argument part of the form
 
 \noindent
-\code{<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_m,\ q_1$: $a_{m+1}, \ldots,\ q_l$: $a_{m+l}$)}
+\code{<\TypeArgumentListStd>(\ArgumentList{a}{m}{q}{l})}
 
 \noindent
 is bound to the formal type parameters and formal parameters of $f$ as follows:
@@ -13348,14 +13357,14 @@ If $l > 0$ and $n \not= h$, a \code{NoSuchMethodError} is thrown.
 If $m < h$, or $m > n$, a \code{NoSuchMethodError} is thrown.
 % When l>0, h=n and there are k named parameters p_{h+1}..p_{h+k}.
 Furthermore, each
-$q_i, i \in 1 .. l$,
+$q_i, i \in m + 1 .. m + l$,
 must have a corresponding named parameter in the set
 $\{p_{h+1}, \ldots, p_{h+k}\}$,
 or a \code{NoSuchMethodError} is thrown.
 % Finally, bindings!
 Then $p_i$ is bound to
 $o_i, i \in 1 .. m$,
-and $q_j$ is bound to $o_{m+j}, j \in 1 .. l$.
+and $q_j$ is bound to $o_j, j \in m + 1 .. m + l$.
 All remaining formal parameters of $f$ are bound to their default values.
 
 \commentary{%
@@ -13377,10 +13386,10 @@ and the actual type
 of $p_i$ is not a supertype of the dynamic type of $o_i, i \in 1 .. m$.
 % Check the types of named arguments.
 % This error can occur due to implicit casts, covariance, and dynamic calls.
-It is a dynamic type error if $o_{m+j}$ is
+It is a dynamic type error if $o_j$ is
 not the null object and the actual type
 (\ref{actualTypes})
-of $q_j$ is not a supertype of the dynamic type of $o_{m+j}, j \in 1 .. l$.
+of $q_j$ is not a supertype of the dynamic type of $o_j, j \in m + 1 .. m + l$.
 
 
 \subsubsection{Unqualified Invocation}
@@ -13390,7 +13399,7 @@ of $q_j$ is not a supertype of the dynamic type of $o_{m+j}, j \in 1 .. l$.
 An unqualified function invocation $i$ has the form
 
 \noindent
-\code{\id<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+\code{\id<\TypeArgumentListStd>(\ArgumentListStd)},
 
 \noindent
 where \id{} is an identifier.
@@ -13506,7 +13515,7 @@ which is specified elsewhere.%
 A function expression invocation $i$ has the form
 
 \noindent
-\code{$e_f$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+\code{$e_f$<\TypeArgumentListStd>(\ArgumentListStd)},
 
 \noindent
 where $e_f$ is an expression.
@@ -13579,7 +13588,7 @@ $i$ is treated as
 the ordinary invocation
 
 \noindent
-\code{$e_f$.\CALL<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{$e_f$.\CALL<\TypeArgumentListStd>(\ArgumentListStd)}.
 
 \LMHash{}%
 Otherwise, the static analysis of $i$ is performed as specified
@@ -13591,7 +13600,7 @@ and the static type of $i$ is as specified there.
 Evaluation of a function expression invocation
 
 \noindent
-\code{$e_f$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\code{$e_f$<\TypeArgumentListStd>(\ArgumentListStd)}
 
 \noindent
 proceeds to evaluate $e_f$, yielding an object $o$.
@@ -13599,7 +13608,7 @@ Let $f$ be a fresh variable bound to $o$.
 If $o$ is a function object then the function invocation
 
 \noindent
-\code{$f$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\code{$f$<\TypeArgumentListStd>(\ArgumentListStd)}
 
 \noindent
 is evaluated by binding actuals to formals
@@ -13614,7 +13623,7 @@ the following ordinary method invocation is evaluated,
 and its result is then the result of evaluating $i$:
 
 \noindent
-\code{$f$.call<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{$f$.\CALL<\TypeArgumentListStd>(\ArgumentListStd)}.
 
 \LMHash{}%
 Otherwise $o$ has no method named \CALL.
@@ -13631,12 +13640,12 @@ such that:
   whose dynamic type implements \code{Map<Symbol, Object>},
   with the keys and values resulting from evaluation of
 
-  \code{<Symbol, Object>\{$\#x_{n+1}$: $a_{n+1}, \ldots,\ \#x_{n+k}$: $a_{n+k}$\}}.
+  \code{<Symbol, Object>\{\NamedArgumentList{\#x}{a}{n+1}{n+k}\}}.
 \item \code{$im$.typeArguments} evaluates to an unmodifiable list
   whose dynamic type implements \code{List<Type>},
   with the values resulting from evaluation of
 
-  \code{<Type>[$A_1, \ldots,\ A_r$]}.
+  \code{<Type>[\TypeArgumentListStd]}.
 \end{itemize}
 
 \LMHash{}%
@@ -14327,11 +14336,11 @@ An ordinary method invocation can be conditional or unconditional.
 Consider a
 \IndexCustom{conditional ordinary method invocation}{%
   method invocation!conditional ordinary}
+\BlindDefineSymbol{i,e,m,A_j,r,a_j,n,x_j,k}%
 $i$ of the form
 
 \noindent
-\code{%
-$e$?.$m$<\List{A}{1}{r}>(\List{a}{1}{n},\ \PairList{x}{\!\!:\,\,a}{n+1}{n+k})}.
+\code{$e$?.$m$<\TypeArgumentListStd>(\ArgumentListStd)}.
 
 \commentary{%
 Note that non-generic invocations arise as the special case where
@@ -14347,7 +14356,7 @@ and $i$ is then treated as
 
 \noindent
 \code{%
-$e$.$m$<\List{A}{1}{r}>(\List{a}{1}{n},\ \PairList{x}{\!\!:\,\,a}{n+1}{n+k})}.
+$e$.$m$<\TypeArgumentListStd>(\ArgumentListStd)}.
 
 \LMHash{}%
 Let $S$ be the static type of $e$.
@@ -14361,7 +14370,7 @@ where $v$ is a fresh variable whose type is \NonNullType{$S$}:
 
 \noindent
 \code{%
-$v$.$m$<\List{A}{1}{r}>(\List{a}{1}{n},\ \PairList{x}{\!\!:\,\,a}{n+1}{n+k})}.
+$v$.$m$<\TypeArgumentListStd>(\ArgumentListStd)}.
 
 \noindent
 Let $T$ be the static type of $i'$.
@@ -14378,7 +14387,9 @@ null-shortening transformation
 \Case{\code{$C$.$m$<$\cdots$>($\cdots$)}}
 A \IndexCustom{static member invocation}{member invocation!static}
 $i$ is an invocation of the form
-\code{$C$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)},
+\BlindDefineSymbol{i,C,m,A_j,r,a_j,n,x_j,k}%
+\code{%
+$C$.$m$<\TypeArgumentListStd>(\ArgumentListStd)},
 where $C$ is a term derived from \synt{typeName}
 that denotes a type or an extension.
 
@@ -14401,6 +14412,7 @@ a static member named $m$,
 which we will call the
 \IndexCustom{denoted member}{static member invocation!denoted member}
 of $i$.
+\BlindDefineSymbol{F}%
 When the denoted member is a static method, let $F$ be its function type;
 when the denoted member is a static getter, let $F$ be its return type;
 when the denoted member is neither, a \Error{compile-time error} occurs.
@@ -14412,10 +14424,12 @@ considering $F$ to be the static type of the function to call.
 The static type of $i$ is as specified there.
 
 \LMHash{}%
+\BlindDefineSymbol{i,C,m,A_j,r,a_j,n,x_j,k}%
 Evaluation of a static method invocation $i$ of the form
 
 \noindent
-\code{$C$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\code{%
+$C$.$m$<\TypeArgumentListStd>(\ArgumentListStd)}
 
 \noindent
 proceeds as follows:
@@ -14434,15 +14448,18 @@ If the denoted member of $i$ is a static getter,
 invoke said getter and let $v_f$ be
 a fresh variable bound to the returned object.
 Then the value of $i$ is the value of
-\code{$v_f$<$A_1, \ldots,\ A_r$>($a_1,\ \ldots,\ a_n,\ x_{n+1}$: $a_{n+1},\ \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{%
+$v_f$<\TypeArgumentListStd>(\ArgumentListStd)}.
 \EndCase
 
 \LMHash{}%
 \Case{\code{$e$.$m$<$\cdots$>($\cdots$)}}
 An \IndexCustom{unconditional ordinary method invocation}{%
   method invocation!unconditional ordinary}
-$i$ has the form
-\code{$e$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+\BlindDefineSymbol{i,e,m,A_j,r,a_j,n,x_j,k}%
+$i$ is of the form
+\code{%
+$e$.$m$<\TypeArgumentListStd>(\ArgumentListStd)},
 where $e$ is an expression that is not a type literal,
 and does not denote an extension.
 
@@ -14452,7 +14469,7 @@ where the number of type arguments is zero (\ref{generics}).%
 }
 
 \LMHash{}%
-Let $T$ be the static type of $e$.
+Let \DefineSymbol{T} be the static type of $e$.
 
 \LMHash{}%
 If $T$ is \DYNAMIC{} bounded
@@ -14526,6 +14543,7 @@ is \code{hashCode} or \code{runtimeType}.%
 }
 
 \LMHash{}%
+\BlindDefineSymbol{L,d,F}%
 Otherwise, \code{$T$.$m$} denotes an instance member.
 Let $L$ be the library that contains $i$.
 Let $d$ be the result of method lookup for $m$ in $T$ with respect to $L$,
@@ -14545,7 +14563,7 @@ $i$ is treated as
 the ordinary invocation
 
 \noindent
-\code{$e$.$m$.call<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+\code{$e$.$m$.\CALL<\TypeArgumentListStd>(\ArgumentListStd)},
 
 \noindent
 which determines any further static analysis.
@@ -14615,8 +14633,8 @@ of $e_3$.
 \end{itemize}
 
 \LMHash{}%
-It is a \Error{compile-time error} to invoke an instance method on a type literal
-that is immediately followed by the token `.' (a period).
+It is a \Error{compile-time error} to invoke an instance method on
+a type literal that is immediately followed by the token `.' (a period).
 \commentary{%
 For instance, \code{int.toString()} is an error.%
 }
@@ -14653,10 +14671,13 @@ an implicit invocation of an extension method
 
 \LMHash{}%
 Evaluation of an unconditional ordinary method invocation $i$ of the form
-\code{$e$.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\BlindDefineSymbol{i,e,m,A_j,r,a_j,n,x_j,k}%
+\code{%
+$e$.$m$<\TypeArgumentListStd>(\ArgumentListStd)}
 proceeds as follows:
 
 \LMHash{}%
+\BlindDefineSymbol{o,f}%
 First, the expression $e$ is evaluated to an object $o$.
 Let $f$ be the result of looking up
 (\ref{lookup})
@@ -14683,9 +14704,11 @@ and let $v_g$ be the returned object.
 Then the value of $i$ is the value of
 
 \noindent
-\code{$v_g$<$A_1, \ldots,\ A_r$>($a_1,\ \ldots,\ a_n,\ x_{n+1}$: $a_{n+1},\ \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{%
+$v_g$<\TypeArgumentListStd>(\ArgumentListStd)}.
 
 \LMHash{}%
+\BlindDefineSymbol{im}%
 If getter lookup has also failed,
 then a new instance $im$ of the predefined class \code{Invocation} is created,
 such that:
@@ -14700,11 +14723,12 @@ such that:
   whose dynamic type implements \code{Map<Symbol, Object>},
   with the keys and values resulting from the evaluation of
 
-  \code{<Symbol, Object>\{$\#x_{n+1}$: $a_{n+1}, \ldots,\ \#x_{n+k}$: $a_{n+k}$\}}.
+  \code{%
+  <Symbol, Object>\{\NamedArgumentList{\#x}{a}{n+1}{n+k}\}}.
 \item \code{$im$.typeArguments} evaluates to an unmodifiable list
   whose dynamic type implements \code{List<Type>},
   containing the objects resulting from the evaluation of
-  \code{<Type>[$A_1, \ldots,\ A_r$]}.
+  \code{<Type>[\TypeArgumentListStd]}.
 \end{itemize}
 
 \LMHash{}%
@@ -14857,7 +14881,7 @@ A \Index{method superinvocation} $i$ has the form
 \BlindDefineSymbol{i, m, A_j, a_j, x_j}%
 
 \noindent
-\code{\SUPER.$m$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{\SUPER.$m$<\TypeArgumentListStd>(\ArgumentListStd)}.
 
 \commentary{%
 Note that non-generic invocations arise as
@@ -14916,13 +14940,13 @@ An
 has the form
 
 \noindent
-\code{\SUPER<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)},
+\code{\SUPER<\TypeArgumentListStd>(\ArgumentListStd)},
 
 \noindent
 and it is treated as
 
 \noindent
-\code{\SUPER.\CALL<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{\SUPER.\CALL<\TypeArgumentListStd>(\ArgumentListStd)}.
 
 \commentary{%
 The type argument list is again omitted when $r = 0$.%
@@ -14958,7 +14982,7 @@ in which case the program has a compile-time error.%
 
 \LMHash{}%
 Otherwise perform the binding of actual arguments to formal parameters for
-\code{$f$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$: $a_{n+1}, \ldots,\ x_{n+k}$: $a_{n+k}$)}
+\code{$f$<\TypeArgumentListStd>(\ArgumentListStd)}
 as specified in Section~\ref{bindingActualsToFormals},
 and execute the body of $f$ with said bindings
 plus a binding of \THIS{} to $o$.
@@ -15010,6 +15034,7 @@ Property extraction comes in several forms, as described below.
 \Case{Conditional}
 Consider a \IndexCustom{conditional property extraction expression}{%
   property extraction!conditional}
+\BlindDefineSymbol{i,e,\id}%
 $i$ of the form \code{$e$?.\id}.
 
 %% TODO(eernst): We are likely to decide that this is an error.
@@ -15036,6 +15061,7 @@ null-shortening transformation
 
 \LMHash{}%
 \Case{Static}
+\BlindDefineSymbol{i,C,\id}%
 Let \id{} be an identifier;
 a \IndexCustom{static property extraction}{%
   property extraction!static}
@@ -15090,8 +15116,8 @@ or it is an expression of the form \code{\SUPER.\id}
 \Case{Implicit}
 Let $e$ be an expression whose static type is
 an interface type that has a method named \CALL.
-In the case where the context type for $e$ is a function type
-or the type \FUNCTION,
+Let $S$ be the context type for $e$.
+In the case where \NonNullType{S} is a function type or the type \FUNCTION,
 $e$ is treated as \code{$e$.\CALL}.
 
 \commentary{%
@@ -15166,8 +15192,8 @@ The static type of $i$ is:
   if $T$ has an accessible instance getter named \id.
 \item The function type of the method signature \code{$T$.\id},
   if $T$ has an accessible instance method named \id.
-\item \FUNCTION{} if $T$ is \FUNCTION{} bounded and \id{} is \CALL.
-\item The type \DYNAMIC{} otherwise.
+\item \FUNCTION, if $T$ is \FUNCTION{} bounded and \id{} is \CALL.
+\item The type \DYNAMIC, otherwise.
   \commentary{This only occurs when $T$ is \DYNAMIC{} bounded.}
 \end{itemize}
 
@@ -15332,7 +15358,7 @@ is defined to be equivalent
 \begin{normativeDartCode}
 <\TypeParameters{X}{B'}{s}>
 ($\PairList{T}{p}{1}{n},\ $\{$T_{n+1}\ p_{n+1} = d_1, \ldots,\ T_{n+k}\ p_{n+k} = d_k$\}) =>
-\quad$u$.$m$<\List{X}{1}{s}>($\List{p}{1}{n},\ p_{n+1}$: $p_{n+1}, \ldots,\ p_{n+k}$: $p_{n+k}$);
+\quad$u$.$m$<\List{X}{1}{s}>(\ArgumentList{p}{n}{p}{k});
 \end{normativeDartCode}
 where $f$ is an instance method named $m$
 which has type parameter declarations
@@ -15488,7 +15514,7 @@ is defined to be equivalent
 \begin{normativeDartCode}
 <\TypeParameters{X}{B'}{s}>
 ($\PairList{T}{p}{1}{n},\ $\{$T_{n+1}\ p_{n+1} = d_1, \ldots,\ T_{n+k}\ p_{n+k} = d_k$\}) =>
-\quad\SUPER$.m$<\List{X}{1}{s}>($\List{p}{1}{n},\ p_{n+1}$: $p_{n+1}, \ldots,\ p_{n+k}$: $p_{n+k}$);
+\quad\SUPER$.m$<\List{X}{1}{s}>(\ArgumentList{p}{n}{p}{k});
 \end{normativeDartCode}
 where $f$ is an instance method named $m$
 which has type parameter declarations
@@ -15776,7 +15802,7 @@ For instance, \metavar{parameters} could be
 
 \noindent
 in which case \metavar{arguments} would be
-\code{\List{p}{1}{n},\ $p_{n+1}$:\ $p_{n+1}$,\ $p_{n+k}$:\ $p_{n+k}$}.%
+\code{\ArgumentList{p}{n}{p}{k}}.%
 }
 
 \LMHash{}%
