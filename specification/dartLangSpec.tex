@@ -5278,9 +5278,11 @@ that occurs in a non-system library
 is not a class building type
 (\ref{classBuildingTypes}).
 It is a \Error{compile-time error} if two elements in said type list
-specifies the same type.
-It is a \Error{compile-time error} if the superclass of a class $C$ is
-one of the elements of the type list of the \IMPLEMENTS{} clause of $C$.
+denotes the same type
+(\ref{typeType}).
+It is a \Error{compile-time error} if the superclass of a class $C$ denotes
+the same type as one of the elements of
+the type list of the \IMPLEMENTS{} clause of $C$.
 
 \rationale{%
   One might argue that it is harmless
@@ -8142,15 +8144,9 @@ $T$ if one or more of the following conditions hold:
   Meta-variables
   (\ref{metaVariables})
   like $S$ and $T$ are understood to denote types,
-  and they are considered to be equal (as in `$S$ is $T$')
-  in the same sense as in the section about subtype rules
-  (\ref{subtypeRules}).
-  %
-  In particular,
-  even though two identical pieces of syntax may denote two distinct types,
-  and two different pieces of syntax may denote the same type,
-  the property of interest here is whether they denote the same type
-  and not whether they are spelled identically.
+  and they are considered to be or not be the same type
+  in the same sense as in the section about the type \code{Type}
+  (\ref{typeType}).
 
   The intuition behind the situation where a type raw-depends on another type is
   that we need to compute any missing type arguments for the latter
@@ -11681,9 +11677,10 @@ respectively
 $o_2$ with contents $o_{21}, \ldots, o_{2n}$ and actual type argument $t_2$
 be the result of evaluating them.
 Then \code{identical($o_1$, $o_2$)} evaluates to \TRUE{} if{}f
-%% TODO(eernst): Refer to nnbd notion of 'same type'.
-\code{$t_1$ == $t_2$} and \code{identical($o_{1i}$, $o_{2i}$)}
-evaluates to \TRUE{} for all $i \in 1 .. n$.
+\code{identical($T_1$, $T_2$)} evaluates to \TRUE{}
+(\ref{typeType}),
+and \code{identical($o_{1i}$, $o_{2i}$)} evaluates to \TRUE{}
+for all $i \in 1 .. n$.
 
 \commentary{%
   In other words, constant set literals are canonicalized if they have
@@ -15597,9 +15594,9 @@ then $T_j$ is the built-in class \code{Object}.
 
 \LMHash{}%
 If $T$ is a non-generic class then for $j \in 1 .. n+k$,
-%% TODO(eernst): Refer to nnbd notion of 'same type'.
-$T_j$ is a type annotation that denotes the same type as that
-which is denoted by the type annotation on
+$T_j$ is a type annotation that denotes the same type
+(\ref{typeType})
+as that which is denoted by the type annotation on
 the corresponding parameter declaration in $D$.
 If that parameter declaration has no type annotation then $T_j$ is \DYNAMIC.
 
@@ -15754,9 +15751,9 @@ then $T_j$ is the built-in class \code{Object}.
 
 \LMHash{}%
 If $S$ is a non-generic class then for $j \in 1 .. n+k$,
-%% TODO(eernst): Refer to nnbd notion of 'same type'.
-$T_j$ is a type annotation that denotes the same type as that
-which is denoted by the type annotation on
+$T_j$ is a type annotation that denotes the same type
+(\ref{typeType})
+as that which is denoted by the type annotation on
 the corresponding parameter declaration in $D$.
 If that parameter declaration has no type annotation then $T_j$ is \DYNAMIC.
 
@@ -16016,8 +16013,7 @@ as described above.
 Consider the situation where the program evaluates
 two invocations of this method with the same receiver $o$,
 and with actual type arguments whose actual values are
-%% TODO(eernst): Refer to nnbd notion of 'same type'.
-the same types \List{t}{1}{s} for both invocations,
+the same types (\ref{typeType}) \List{t}{1}{s} for both invocations,
 and assume that the invocations returned
 the instances $o_1$ respectively $o_2$.
 %
@@ -22546,7 +22542,8 @@ that rule can be used by
 \IndexCustom{instantiating}{instantiation!subtype rule}
 it, that is, by consistently replacing
 each occurrence of a given meta-variable by
-concrete syntax denoting the same type.
+concrete syntax denoting the same type
+(\ref{typeType}).
 
 \commentary{%
   In general, this means that two or more occurrences of
@@ -23051,7 +23048,7 @@ then it \emph{does} include the null object,
 so it cannot be non-nullable.
 
 It follows that all four concepts are distinct:
-The same type $X$ is potentially nullable, but not nullable,
+The given type $X$ is potentially nullable, but not nullable,
 and $X$ is also potentially non-nullable, but not non-nullable.%
 }
 
@@ -23191,7 +23188,7 @@ and this will ensure a more strict static typing by default than, say,
 \TopMergeTypeName{} of the first two,
 and then recursively taking \TopMergeTypeName{} of the rest.
 \commentary{The ordering of the arguments makes no difference.}
-  
+
 \LMHash{}%
 The \Index{\IsTopTypeName} predicate is true for any type which is in
 the equivalence class of top types.
@@ -23207,7 +23204,7 @@ It is a syntactic characterization of top types
 \end{itemize}
 
 \noindent
-The \Index{\IsObjectTypeName} predicate is true if{}f 
+The \Index{\IsObjectTypeName} predicate is true if{}f
 the argument is a subtype and a supertype of \code{Object}.
 
 \begin{itemize}
@@ -23916,17 +23913,27 @@ and we say that $o$ \IndexCustom{reifies}{type!reifies} $T$.
 We define what it means for two types to be the same as follows:
 Let $T_1$ and $T_2$ be types.
 Let $U_j$ be the transitive alias expansion
-(\ref{typedef}) of $T_j$, for $j \in 1 .. 2$.
-We say that $T_1$ and $T_2$ are the \Index{same type}
-if{}f \NormalizedTypeOf{$U_1$} and \NormalizedTypeOf{$U_2$}
-(\ref{typeNormalization})
-are syntactically equal,
+(\ref{typedef}) of $T_j$, for $j \in 1 .. 2$,
+and let $S_j$ be \NormalizedTypeOf{$U_j$}, for $j \in 1 .. 2$
+(\ref{typeNormalization}).
+We then say that $T_1$ and $T_2$ are the \Index{same type}
+if{}f $S_1$ and $S_2$ are syntactically equal,
 up to equivalence of bound variables,
 and up to replacement of identifiers or qualified identifiers
 resolving to the same type declaration
 (\commentary{%
 e.g., \code{C} and \code{prefix.C} could resolve to
 the same class declaration%
+}),
+and excluding the case where two identifiers or qualified identifiers
+occurring at corresponding positions in $S_1$ and $S_2$
+are syntactically identical,
+but resolve to different declarations
+(\commentary{%
+e.g., one occurrence of \code{C} could resolve to a
+class declaration imported from a library $L_1$,
+and another occurrence of \code{C} could resolve to a
+class declaration imported from a different library $L_2$%
 }).
 
 \LMHash{}%
@@ -23974,9 +23981,9 @@ Let $e_1$ and $e_2$ be constant expressions
 (\ref{constants})
 evaluating to $o_1$ respectively $o_2$,
 which are reified types reifying the types $T_1$ respecively $T_2$.
-Let $v_1$ and $v_2$ be fresh variables bound to $o_1$ respectively $o_2$
+Let $v_1$ and $v_2$ be fresh variables bound to $o_1$ respectively $o_2$.
 We then have \code{identical($v_1$, $v_2$)} if{}f
-\code{$T_1$\,\,==\,\,$T_2$}.
+\code{$v_1$\,\,==\,\,$v_2$}.
 
 \commentary{%
 In other words, constant reified types are canonicalized.
@@ -24613,22 +24620,22 @@ are not strictly enforced.
 \ABSTRACT{} \CLASS A<X> \{
   final X x;
   A(this.x);
-  Object foo(X x);
+  Object? foo(X x);
 \}
 \\
 \CLASS{} B<X> \EXTENDS{} A<X> \{
   B(X x): super(x);
-  Object foo(Object x) => x;
+  Object? foo(Object? x) => x;
 \}
 \\
-Object f<X>(X x) => x;
+Object? f<X>(X x) => x;
 \\
 \VOID{} main() \{
   \VOID x = 42;
   print(f(x)); // \comment{(1)}
   \\
   A<\VOID{}> a = B<\VOID{}>(x);
-  A<Object> aObject = a;
+  A<Object?> aObject = a;
   print(aObject.x); // \comment{(2)}
   print(a.foo(x)); // \comment{(3)}
 \}
@@ -24645,25 +24652,25 @@ Object f<X>(X x) => x;
   which is or contains a type variable whose value could be \VOID,
   so we are allowed to return \code{x} in the body of \code{f},
   even though this means that we indirectly get access to the value
-  of an expression of type \VOID, under the static type \code{Object}.
+  of an expression of type \VOID, under the static type \code{Object?}.
 
   At (2), we indirectly obtain access to the value of
   the variable \code{x} with type \VOID,
   because we use an assignment to get access to the instance of \code{B}
   which was created with type argument \VOID{} under the type
-  \code{A<Object>}.
-  Note that \code{A<Object>} and \code{A<\VOID{}>} are subtypes of each other,
+  \code{A<Object?>}.
+  Note that \code{A<Object?>} and \code{A<\VOID{}>} are subtypes of each other,
   that is, they are equivalent according to the subtype rules,
   so neither static nor dynamic type checks will fail.
 
   At (3), we indirectly obtain access to the value of
   the variable \code{x} with type \VOID{}
-  under the static type \code{Object},
+  under the static type \code{Object?},
   because the statically known method signature of \code{foo}
   has parameter type \VOID,
   but the actual implementation of \code{foo} which is invoked
-  is an override whose parameter type is \code{Object},
-  which is allowed because \code{Object} and \VOID{} are both top types.%
+  is an override whose parameter type is \code{Object?},
+  which is allowed because \code{Object?} and \VOID{} are both top types.%
 }
 
 \rationale{%
@@ -24684,7 +24691,7 @@ Object f<X>(X x) => x;
   from one variable or parameter to the next one, all with type \VOID,
   explicitly, or as the value of a type parameter.
   In particular, we could require that method overrides should
-  never override return type \code{Object} by return type \VOID,
+  never override return type \code{Object?} by return type \VOID,
   or parameter types in the opposite direction;
   parameterized types with type argument \VOID{} could not be assigned
   to variables where the corresponding type argument is anything other than
