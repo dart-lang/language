@@ -2712,7 +2712,7 @@ because they are needed in order to express such things as relations among
 different type parameters, F-bounds, and the types of formal parameters.
 However, we do not wish to distinguish between two function types if they have
 the same structure and only differ in the choice of names.
-This treatment of names is also known as alpha-equivalence.%
+This treatment of names is also known as alpha equivalence.%
 }
 
 \LMHash{}%
@@ -5228,7 +5228,6 @@ that occurs in a non-system library
 is not a class building type
 (\ref{classBuildingTypes}).
 It is a \Error{compile-time error} if two elements in said type list
-%% TODO(eernst): Refer to nnbd notion of 'same type'.
 specifies the same type.
 It is a \Error{compile-time error} if the superclass of a class $C$ is
 one of the elements of the type list of the \IMPLEMENTS{} clause of $C$.
@@ -23552,35 +23551,45 @@ the property of being optional.%
 \LMHash{}%
 The Dart runtime supports a very limited kind of introspective reflection
 for all programs
-(\commentary{%
-that is, without including any reflection support mechanisms,
-e.g., importing \code{dart:mirrors},
-or using reflection related code generation%
-}).
+(\commentary{that is, without including any reflection support mechanisms}).
 In particular, evaluation of a type literal as an expression yields
 an object whose run-time type is a subtype of the built-in type \code{Type}.
-System libraries may deliver such objects as well
-(\commentary{e.g., the method \code{runtimeType} on \code{Object}}).
+System libraries may deliver such objects as well.
+In particular, the getter \code{runtimeType} on \code{Object}
+returns a reified type for the run-time type of the receiver.
+
+\LMHash{}%
 If an object $o$ is obtained in this manner
-as a reification of the Dart type $T$,
+as a reification of the type $T$,
 we say that $o$ is a \Index{reified type},
 and we say that $o$ \IndexCustom{reifies}{type!reifies} $T$.
 
-%% TODO(eernst): Define "same type" in one location in this spec, use it here.
 \LMHash{}%
-A reified type identifies the underlying Dart type in the sense that
-it supports equality tests with other reified types as follows.
-Let $o_1$ and $o_2$ be reified types that reify $S_1$ respectively $S_2$,
-and let $o_3$ be an object which is not a reified type.
-Let $U_j$ be the transitive alias expansion of $S_j$, for $j \in 1 .. 3$,
-and let $v_j$ be a fresh variable whose value is $o_j$, for $j \in 1 .. 3$.
-It is then guaranteed that \code{$v_1$ == $v_2$} if{}f
-\NormalizedTypeOf{$U_1$} and \NormalizedTypeOf{$U_2$}
+We define what it means for two types to be the same as follows:
+Let $T_1$ and $T_2$ be types.
+Let $U_j$ be the transitive alias expansion
+(\ref{typedef}) of $T_j$, for $j \in 1 .. 2$.
+We say that $T_1$ and $T_2$ are the \Index{same type}
+if{}f \NormalizedTypeOf{$U_1$} and \NormalizedTypeOf{$U_2$}
+(\ref{typeNormalization})
 are syntactically equal,
-up to equivalence of bound variables
-and up to designations of the same type using different syntax
-(\commentary{e.g., \code{C} and \code{prefix.C} may denote the same type}).
-Conversely, \code{$v_1$ == $v_3$} will yield false.
+up to equivalence of bound variables,
+and up to replacement of identifiers or qualified identifiers
+resolving to the same type declaration
+(\commentary{%
+e.g., \code{C} and \code{prefix.C} could resolve to
+the same class declaration%
+}).
+
+\LMHash{}%
+A reified type identifies the underlying type in the sense that
+it supports equality tests with other reified types as follows.
+Let $o_1$ and $o_2$ be reified types that reify $T_1$ respectively $T_2$,
+and let $o_3$ be an object which is not a reified type.
+Let $v_j$ be a fresh variable bound to $o_j$, for $j \in 1 .. 3$.
+It is then guaranteed that \code{$v_1$ == $v_2$} evaluates to \TRUE{}
+if{}f $T_1$ and $T_2$ are the same type as defined above.
+Conversely, \code{$v_1$ == $v_3$} evaluates to \FALSE.
 
 \commentary{%
 Note that we do not equate primitive top types.
@@ -23616,10 +23625,10 @@ and override operator \lit{==}.%
 Let $e_1$ and $e_2$ be constant expressions
 (\ref{constants})
 evaluating to $o_1$ respectively $o_2$,
-which are reified types reifying the Dart types $S_1$ respecively $S_2$.
+which are reified types reifying the types $T_1$ respecively $T_2$.
 Let $v_1$ and $v_2$ be fresh variables bound to $o_1$ respectively $o_2$
 We then have \code{identical($v_1$, $v_2$)} if{}f
-\code{$S_1$\,\,==\,\,$S_2$}.
+\code{$T_1$\,\,==\,\,$T_2$}.
 
 \commentary{%
 In other words, constant reified types are canonicalized.
@@ -23641,6 +23650,7 @@ we cannot determine whether one is a subtype of the other.
 It is also impossible to deconstruct a reified type.
 E.g., we cannot obtain the reified type for \code{$T$}
 by performing operations on a given reified type for \code{List<$T$>}.
+
 This design was chosen in order to ensure that Dart programs
 do not incur the substantial implications in terms of
 program size and run-time performance
