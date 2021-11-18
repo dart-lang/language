@@ -10789,6 +10789,13 @@ the result of evaluating a constant expression.%
 }
 
 \LMHash{}%
+The canonical instance of a constant list literal has a type argument
+which is transitively alias expanded
+(\ref{typedef})
+and normalized
+(\ref{typeNormalization}).
+
+\LMHash{}%
 A run-time list literal
 \code{<$T$>[\List{\ell}{1}{m}]}
 is evaluated as follows:
@@ -11603,6 +11610,13 @@ the result of evaluating a constant expression.%
 }
 
 \LMHash{}%
+The canonical instance of a constant set literal has a type argument
+which is transitively alias expanded
+(\ref{typedef})
+and normalized
+(\ref{typeNormalization}).
+
+\LMHash{}%
 A run-time set literal \code{<$T$>\{\List{\ell}{1}{n}\}}
 is evaluated as follows:
 \begin{itemize}
@@ -11796,6 +11810,13 @@ for other instances of type \code{Map},
 because such instances cannot be
 the result of evaluating a constant expression.%
 }
+
+\LMHash{}%
+The canonical instance of a constant map literal has type arguments
+which are transitively alias expanded
+(\ref{typedef})
+and normalized
+(\ref{typeNormalization}).
 
 \LMHash{}%
 A run-time map literal
@@ -12637,6 +12658,14 @@ Since the constructor cannot induce any side effects,
 the execution of the constructor is unobservable.
 The constructor need only be executed once per call site, at compile time.%
 }
+
+\LMHash{}%
+For instances of a generic class,
+the canonical instance of a constant object expression has type arguments
+which are transitively alias expanded
+(\ref{typedef})
+and normalized
+(\ref{typeNormalization}).
 
 \LMHash{}%
 It is a \Error{compile-time error} if evaluation of a constant object
@@ -13715,6 +13744,14 @@ In this case \code{identical($e_1$, $e_2$)} shall evaluate to true.
 That is, constant expressions whose evaluation is a function closurization
 are canonicalized.%
 }
+
+\LMHash{}%
+The canonical instance of a constant function closurization has
+parameter types and a return type
+which are transitively alias expanded
+(\ref{typedef})
+and normalized
+(\ref{typeNormalization}).
 
 
 \subsection{Generic Function Instantiation}
@@ -25132,36 +25169,10 @@ where $T$ is the static type of $e$.
 These are extended as per
 [separate proposal](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
 
-
 \paragraph{Constant instances}
 
 !!!TODO!!!
 
-Any two instances which are otherwise identical except for their
-generic type arguments shall be considered identical if those generic
-type arguments compare equal using the definition of runtime type
-object equality defined above.  That is, comparison (or
-canonicalization) of constant instances of generic classes is
-performed relative to the normal forms of their generic type
-arguments.  Hence, an instance of \code{$C$<$T_0$>} compares identical
-to \code{C<$T_1$>} if $T_0$ and $T_1$ have the same normal form (up to
-the identity of bound variables), and the objects are otherwise
-identical.
-
-Implementations of the Dart runtime semantics rely on canonicalization of
-constant objects to allow the identity semantics specified above to be
-implemented as fast pointer equality checks on the reference to the canonical
-form.  The definition above defines equivalence classes of constant objects for
-which we must choose the canonical representative.
-
-We define the choice of the canonical instance representing an
-equivalence class of constant objects as follows.
-
-All generic constant constructors and generic constant
-literals are evaluated using the type arguments provided, and canonicalization
-is performed with respect to the normal form of the type arguments.  This
-ensures a consistent semantics, since it is not observable which instance is
-chosen as the canonical representative.
 
 \subsubsection{Null check operator}
 
