@@ -1442,6 +1442,13 @@ That is, any kind of variable which is not a local variable.%
 }
 
 \LMHash{}%
+A \IndexCustom{non-local variable}{variable!non-local}
+is a library variable, a class variable, or an instance variable.
+\commentary{%
+That is, any kind of variable which is not a local variable.%
+}
+
+\LMHash{}%
 A \IndexCustom{constant variable}{variable!constant}
 is a variable whose declaration includes the modifier \CONST.
 A constant variable must be initialized to a constant expression
@@ -1571,13 +1578,10 @@ whose execution sets the value of \id{} to the incoming argument $x$.
 A variable declaration of the form
 \code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id{} = $e$;}
 implicitly induces a setter with the header
-\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)},
+\code{\VOID\,\,\SET\,\,\id($T$\,\,$x$)},
 whose execution sets the value of \id{} to the incoming argument $x$.
-
-\commentary{%
-Type inference could have provided a type different from \DYNAMIC{}
-(\ref{overview}).%
-}
+The type $T$ is obtained from type inference
+(\ref{overview}).
 \EndCase
 
 \LMHash{}%
@@ -1602,7 +1606,7 @@ which would take us to an earlier case.%
 A variable declaration of the form
 \code{\STATIC?\,\,\LATE\,\,\FINAL\,\,$T$\,\,\id;}
 implicitly induces a setter (\ref{setters}) with the header
-\code{\VOID\,\,\SET\,\,\id($T$\,\,$x$)}.
+\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)}.
 If this setter is executed
 in a situation where the variable \id{} has not been bound,
 it will bind \id{} to the object that $x$ is bound to.
@@ -1926,7 +1930,39 @@ the implicitly induced getter of \id{} executes as follows:
   \commentary{%
     Note that these static or library variables can be \emph{implicitly}
     late-initialized, in the sense that they do not have
-    the modifier \LATE.%
+    the modifier \LATE.
+
+    An initializing expression can have side effects
+    that are significant during initialization.
+    For example:%
+  }
+
+\begin{dartCode}
+bool b = \TRUE;
+int i = (() => (b = !b) ? (i = 10) : i + 1 )();
+\\
+\VOID{} main() \{
+  print(i); // '11'.
+\}
+\end{dartCode}
+
+  \commentary{%
+  In this example, \code{main} invokes
+  the implicitly induced getter named \code{i},
+  and no value has been stored in the variable \code{i} at this point.
+  Hence, evaluation of the initializing expression proceeds.
+  This causes \code{b} to be toggled to \FALSE,
+  which again causes \code{i + 1} to be evaluated.
+  This causes the getter \code{i} to be invoked again,
+  and it is still true that no value has been stored in the variable,
+  so the initializing expression is evaluated again.
+  This toggles \code{b} to \TRUE,
+  which causes \code{i = 10} to be evaluated,
+  which causes the implicitly induced setter named \code{i=} to be invoked,
+  and the most recent invocation of the getter \code{i}
+  returns 10.
+  This makes \code{i + 1} evaluate to 11,
+  which is stored in the variable.%
   }
 \item \emph{Constant variable.}
   If $d$ declares a constant variable with the initializing expression $e$,
@@ -1954,6 +1990,7 @@ the implicitly induced getter of \id{} executes as follows:
   the implicitly induced getter is a late-uninitialized getter.
   This determines the semantics of an invocation.
 \end{itemize}
+\EndCase
 
 % Reduce whitespace after itemized list: This is just an end symbol.
 \vspace{-\baselineskip}\EndCase
@@ -3995,6 +4032,11 @@ The effect of this is that the formal parameter of
 the corresponding implicitly induced setter
 is considered to be covariant-by-declaration
 (\ref{covariantParameters}).
+
+\LMHash{}%
+A \Error{compile-time error} occurs if an instance variable declaration
+includes the modifier \COVARIANT,
+but it does not implicitly induce a setter.
 
 \commentary{%
 The modifier \COVARIANT{} on an instance variable has no other effects.
@@ -8694,7 +8736,7 @@ are the following:
   that is not qualified by a deferred prefix,
   is a potentially constant and constant expression.
   \commentary{%
-    For example, if class $C$ declares a constant static variable $v$,
+    For example, if class $C$ declares a constant class variable $v$,
     \code{$C$.$v$} is a constant.
     The same is true if $C$ is accessed via a prefix $p$;
     \code{$p$.$C$.$v$} is a constant unless $p$ is a deferred prefix.%
@@ -13486,11 +13528,13 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
 \vspace{-2ex}
 \EndCase
 
+\LMHash{}%
 \Case{Lexical lookup yields an import prefix}
 When the lexical lookup of \id{} yields an import prefix,
 a \Error{compile-time error} occurs.
 \EndCase
 
+\LMHash{}%
 \Case{Lexical lookup yields nothing}
 When the lexical lookup of \id{} yields nothing,
 $i$ is treated as
@@ -17206,21 +17250,23 @@ or an invocation of a postfix operator on an expression $e$.
 All but the latter three are specified elsewhere.
 
 \LMHash{}%
-\Case{Null checks}
+\Case{Non-null assertions}
 Consider an expression $e$ of the form \code{$e_1$\!!}\ where
 $e_1$ is derived from \syntax{<primary> <selector>*}.
 
 \LMHash{}%
 Let $S$ be the static type of $e_1$.
 A warning occurs if $S$ is non-nullable.
-\commentary{In this case, the null check is redundant.}
+\commentary{In this case, the non-null assertion is redundant.}
 The static type of $e$ is \NonNullType{$S$}.
 
 \LMHash{}%
 $e$ is evaluated as follows: $e_1$ is evaluated to an object $o$.
 If $o$ is the null object then a dynamic error occurs,
 otherwise $e$ evaluates to $o$.
+\EndCase
 
+\LMHash{}%
 \Case{Constructor Invocations}
 Consider a \synt{constructorInvocation} $e$ of the form
 \code{$n$<\metavar{typeArguments}>.\id(\metavar{arguments})}.
@@ -18100,7 +18146,7 @@ It would be upwardly compatible to refine these rules in the future;
 such a refinement would accept more code without errors,
 but not reject any code now error-free.
 
-The rule only applies to locals and parameters,
+The rule only applies to local variables (including formal parameters),
 as non-local variables could be modified
 via side-effecting functions or methods that are not accessible
 to a local analysis.
@@ -19739,6 +19785,7 @@ Then the return statement $s$ completes returning $o$
 The case where the evaluation of $e$ throws is covered by the general rule
 which propagates the throwing completion from $e$ to $s$ to the function body.%
 }
+\EndCase
 
 \LMHash{}%
 \Case{Asynchronous non-generator functions}
@@ -25169,18 +25216,6 @@ where $T$ is the static type of $e$.
 These are extended as per
 [separate proposal](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
 
-\paragraph{Constant instances}
-
-!!!TODO!!!
-
-
-\subsubsection{Null check operator}
-
-When evaluating an expression of the form \code{$e$!},
-where $e$ evaluates to a value $v$,
-a dynamic type error occurs if $v$ is \code{null},
-and otherwise the expression evaluates to $v$.
-
 \subsubsection{Null aware operator}
 \LMLabel{nullShorteningTransformation}
 
@@ -25331,20 +25366,9 @@ Similarly, both \code{-$a$?.$f$} and \code{~$a$?.$f$} are errors, and do not nul
 
 \subsubsection{Late fields and variables}
 
-A non-local \LATE{} variable declaration $D$ implicitly induces a getter
-into the enclosing scope.  It also induces an implicit setter iff one of the
-following conditions is satisfied:
+!!!TODO!!!
 
-  - $D$ is non-final.
-  - $D$ is late, final, and has no initializing expression.
-
-The late final variable declaration with no initializer is permitted, and
-introduces a variable which may be assigned to so long as the variable is not
-known to be definitely assigned.  The property that the variable is never
-mutated after initialization is enforced dynamically rather than statically.
-
-An instance variable declaration may be declared \COVARIANT{} iff it introduces
-an implicit setter.
+A variable which is marked as \LATE{} ...
 
 A read of a field or variable which is marked as \LATE{} which has not yet been
 written to causes the initializer expression of the variable to be evaluated to
@@ -25392,7 +25416,7 @@ int i = 0;
 \}
 \end{dartCode}
 
-A toplevel or static variable with an initializer is evaluated as if it
+A toplevel or class variable with an initializer is evaluated as if it
 was marked \LATE.  Note that this is a change from pre-NNBD semantics in that:
 
 \begin{itemize}
