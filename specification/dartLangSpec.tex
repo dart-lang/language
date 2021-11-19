@@ -1962,7 +1962,17 @@ int i = (() => (b = !b) ? (i = 10) : i + 1 )();
   and the most recent invocation of the getter \code{i}
   returns 10.
   This makes \code{i + 1} evaluate to 11,
-  which is stored in the variable.%
+  which is stored in the variable.
+  Finally, the invocation of the getter \code{i} in \code{main}
+  completes returning 11.%
+  }
+
+  \commentary{%
+  Note that this is a change from the semantics older versions of Dart:
+  Throwing an exception during initializer evaluation no longer sets the
+  variable to \code{null},
+  and reading the variable during initializer evaluation
+  no longer causes a dynamic error.%
   }
 \item \emph{Constant variable.}
   If $d$ declares a constant variable with the initializing expression $e$,
@@ -1990,7 +2000,9 @@ int i = (() => (b = !b) ? (i = 10) : i + 1 )();
   the implicitly induced getter is a late-uninitialized getter.
   This determines the semantics of an invocation.
 \end{itemize}
-\EndCase
+
+% Reduce whitespace after itemized list: This is just an end symbol.
+\vspace{-\baselineskip}\EndCase
 
 % Reduce whitespace after itemized list: This is just an end symbol.
 \vspace{-\baselineskip}\EndCase
@@ -25368,41 +25380,9 @@ Similarly, both \code{-$a$?.$f$} and \code{~$a$?.$f$} are errors, and do not nul
 
 !!!TODO!!!
 
-A variable which is marked as \LATE{} ...
-
-A read of a field or variable which is marked as \LATE{} which has not yet been
-written to causes the initializer expression of the variable to be evaluated to
-a value, assigned to the variable or field, and returned as the value of the
-read.
-
-\begin{itemize}
-\item If there is no initializer expression, the read causes a runtime error to be
-    thrown.
-\item Evaluating the initializer expression may validly cause a write to the field
-    or variable, assuming that the field or variable is not final.  In this
-    case, the variable assumes the written value.  The final value of the
-    initializer expression overwrites any intermediate written values.
-\item Evaluating the initializer expression may cause an exception to be thrown.
-    If the variable was written to before the exception was thrown, the value of
-    the variable on subsequent reads is the last written value.  If the variable
-    was not written before the exception was thrown, then the next read attempts
-    to evaluate the initializer expression again.
-\item If a variable or field is read from during the process of evaluating its own
-    initializer expression, and no write to the variable has occurred, the read
-    is treated as a first read and the initializer expression is evaluated
-    again.
-\end{itemize}
-
-Let $D$ be a \LATE{} and \FINAL{} non-local variable declaration named \code{v}
-without an initializing expression.
-It is a run-time error, to invoke the setter \code{v=} which is
-implicitly induced by $D$ if a value has previously been assigned to \code{v}
-(which could be due to an initializing formal or a constructor initializer
-list, or due to an invocation of the setter).
-
-Let $D$ be a \LATE{} and \FINAL{} local variable declaration named \code{v}.  It is a
-run-time error, to assign a value to \code{v} if a value has previously
-been assigned to \code{v}.
+Let $D$ be a \LATE{} and \FINAL{} local variable declaration named \code{v}.
+It is a run-time error, to assign a value to \code{v}
+if a value has previously been assigned to \code{v}.
 
 Note that this includes the implicit initializing writes induced by
 evaluating the initializer during a read.  Hence, the following program
@@ -25415,16 +25395,6 @@ int i = 0;
   print(x);
 \}
 \end{dartCode}
-
-A toplevel or class variable with an initializer is evaluated as if it
-was marked \LATE.  Note that this is a change from pre-NNBD semantics in that:
-
-\begin{itemize}
-\item Throwing an exception during initializer evaluation no longer sets the
-  variable to \code{null}
-\item Reading the variable during initializer evaluation is no longer checked for,
-  and does not cause an error.
-\end{itemize}
 
 \subsubsection{Boolean conditional evaluation}
 
