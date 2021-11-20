@@ -700,11 +700,12 @@ a Dart program containing macro applications:
 
 #### 1. Break the program into library cycles
 
-Starting at the entrypoint library, traverse all imports and exports to collect
-the full graph of libraries to be compiled. Calculate the [strongly connected
-components][] of this graph. Each component is a library cycle, and the edges
-between them determine how the cycles depend on each other. Sort the library
-cycles in topological order based on the connected component graph.
+Starting at the entrypoint library, traverse all imports, exports, and
+augmentation imports to collect the full graph of libraries to be compiled.
+Calculate the [strongly connected components][] of this graph. Each component is
+a library cycle, and the edges between them determine how the cycles depend on
+each other. Sort the library cycles in topological order based on the connected
+component graph.
 
 Report an error if macro application and its definition occur in the same
 library cycle.
@@ -722,7 +723,7 @@ Go through the library cycles in topological order. For each cycle, compile all
 of its libraries. First, merge in any hand-authored library augmentations into
 their libraries. At this point, you have a set of mutually interdependent
 libraries. They may contain references to declarations that don't exist because
-macros have yet produce them.
+macros have yet to produce them.
 
 Collect all the metadata annotations whose names can be resolved and that
 resolve to macro classes. Report an error if any application refers to a macro
@@ -736,7 +737,9 @@ https://github.com/dart-lang/language/issues/1890.
 In a sandbox environment or isolate, create an instance of the corresponding
 macro class for each macro application. Pass in any macro application arguments
 to the macro's constructor. If a parameter's type is `Code` or a subclass,
-convert the argument expression to a `Code` object.
+convert the argument expression to a `Code` object. Any bare identifiers in the
+argument expression are converted to `Identifier` instances whose scope is the
+library of the macro application.
 
 Run all of the macros in phase order:
 
@@ -798,7 +801,7 @@ imports when multiple identifiers resolve to the same library, and may choose to
 omit the prefix entirely if the resulting identifier will still resolve
 correctly.)
 
-This augmentation library is written on disk in some implementation-defined
+This augmentation library may be written on disk in some implementation-defined
 location. It should be accessible to users so that it's possible to step into
 and debug macro-generated code. It should probably *not* be stored directly next
 to their source code. We don't expect users to commit these generated files to
