@@ -969,7 +969,7 @@ The static type of a pattern `p` being matched against a value of type `M` is:
         var <int, Object>{1: String s} = {1: false}; // Compile-time error.
         ```
 *   **Record binder and matcher:**
-    1.  If `p` has any position fields, then the static type of `p` is
+    1.  If `p` has any positional fields, then the static type of `p` is
         `Destructure_n_<args...>` where `_n_` is the number of positional
         fields and `args...` is a type argument list built from the static
         types of the positional field subpatterns, in order.
@@ -1279,25 +1279,25 @@ To match a pattern `p` against a value `v`:
     1.  If the pattern has positional fields:
 
         1.  If `v` does not implement the appropriate `Destructure_n_<...>`
-            interface instantiaged with type arguments based on the positional
+            interface instantiated with type arguments based on the positional
             fields' static types, then the match fails.
 
-        2.  For each field `f` in `p`:
+    2.  For each positional and named field `f` in `p`:
 
-            1.  Call the corresponding getter on `v` to get result `r`. If `f`
-                is a positional field, then the getter is named `field_n_` where
-                `_n_` is the zero-based index of the positional field, ignoring
-                other named fields. If `f` is named, then the getter has the
-                same name as `f`.
+        1.  Call the corresponding getter on `v` to get result `r`. If `f`
+            is a positional field, then the getter is named `field_n_` where
+            `_n_` is the zero-based index of the positional field, ignoring
+            other named fields. If `f` is named, then the getter has the
+            same name as `f`.
 
-                *If `v` has type `dynamic`, this getter call may throw a
-                NoSuchMethodError, which we allow to propagate instead of
-                treating that as a match failure.*
+            *If `v` has type `dynamic`, this getter call may throw a
+            NoSuchMethodError, which we allow to propagate instead of
+            treating that as a match failure.*
 
-            2.  Match the subpattern of `f` against `r`. If the match fails,
-                the record match fails.
+        2.  Match the subpattern of `f` against `r`. If the match fails,
+            the record match fails.
 
-        3.  If all field subpatterns match, the record pattern matches.
+    3.  If all field subpatterns match, the record pattern matches.
 
 *   **Variable binder**, and **variable matcher:**
 
