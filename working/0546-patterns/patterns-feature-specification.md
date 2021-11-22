@@ -749,7 +749,7 @@ destructure fields on the value as that type. This pattern is particularly
 useful for writing code in an algebraic datatype style.
 
 ```
-extractMatcher ::= typeName typeArgumentsOrBinders? "(" matchers ")"
+extractMatcher ::= typeName typeArgumentsOrBinders? "(" recordFieldMatchers ")"
 ```
 
 It requires the type to be a named type. If you want to use an extractor with a
