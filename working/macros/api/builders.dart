@@ -4,65 +4,6 @@ import 'code.dart';
 import 'introspection.dart';
 import 'macros.dart'; // For dart docs.
 
-/// The interface used by [Macro]s to modify the current library.
-abstract class LibraryContext {
-  /// Used to contribute new type declarations to this library.
-  void buildTypes(FutureOr<void> Function(TypeBuilder) callback);
-
-  /// Used to contribute new non-type declarations to this library.
-  void buildDeclarations(FutureOr<void> Function(DeclarationBuilder) callback);
-}
-
-/// The interface used by [FunctionMacro]s to modify the function.
-abstract class FunctionContext implements LibraryContext {
-  /// Used to augment a function definition.
-  void buildDefinition(
-      FutureOr<void> Function(FunctionDefinitionBuilder) callback);
-}
-
-/// The interface used by [ClassMacro]s to modify the class.
-abstract class ClassContext implements LibraryContext {
-  /// Used to contribute new non-type declarations to this library or class.
-  @override
-  void buildDeclarations(
-      FutureOr<void> Function(ClassDeclarationBuilder) callback);
-
-  /// Used to augment any members in this class.
-  void buildDefinitions(
-      FutureOr<void> Function(ClassDefinitionBuilder) callback);
-}
-
-/// The interface used by all [Macro]s that run on a member of a class, to add
-/// declarations to that class or the surrounding library.
-abstract class ClassMemberContext implements LibraryContext {
-  /// Used to contribute new non-type declarations to the surrounding library
-  /// or class.
-  @override
-  void buildDeclarations(
-      FutureOr<void> Function(ClassMemberDeclarationBuilder) callback);
-}
-
-/// The interface used by [FieldMacro]s to modify the field.
-abstract class FieldContext implements ClassMemberContext {
-  /// Used to augment a field definition.
-  void buildDefinition(
-      FutureOr<void> Function(FieldDefinitionBuilder) callback);
-}
-
-/// The interface used by [MethodMacro]s to modify the method.
-abstract class MethodContext implements ClassMemberContext {
-  /// Used to augment a method definition.
-  void buildDefinition(
-      FutureOr<void> Function(FunctionDefinitionBuilder) callback);
-}
-
-/// The interface used by [ConstructorMacro]s to modify the constructor.
-abstract class ConstructorContext implements ClassMemberContext {
-  /// Used to augment a constructor definition.
-  void buildDefinition(
-      FutureOr<void> Function(ConstructorDefinitionBuilder) callback);
-}
-
 /// The base interface used to add declarations to the program as well
 /// as augment existing ones.
 abstract class Builder {
@@ -153,11 +94,11 @@ abstract class DefinitionBuilder
 /// The apis used by [Macro]s that run on classes, to fill in the definitions
 /// of any external declarations within that class.
 abstract class ClassDefinitionBuilder implements DefinitionBuilder {
-  /// Retrieve a [FieldDefinitionBuilder] for a field by [name].
+  /// Retrieve a [VariableDefinitionBuilder] for a field by [name].
   ///
   /// Throws an [ArgumentError] if there is no field by that name.
   Future<void> buildField(String name,
-      FutureOr<void> Function(FieldDefinitionBuilder builder) callback);
+      FutureOr<void> Function(VariableDefinitionBuilder builder) callback);
 
   /// Retrieve a [FunctionDefinitionBuilder] for a method by [name].
   ///
@@ -189,8 +130,8 @@ abstract class FunctionDefinitionBuilder implements DefinitionBuilder {
   void augment(FunctionBodyCode body);
 }
 
-/// The api used by [Macro]s to augment a field.
-abstract class FieldDefinitionBuilder implements DefinitionBuilder {
+/// The api used by [Macro]s to augment a top level variable or instance field.
+abstract class VariableDefinitionBuilder implements DefinitionBuilder {
   /// Augments the field.
   ///
   /// TODO: Link the library augmentations proposal to describe the semantics.

@@ -106,22 +106,25 @@ abstract class ConstructorDeclaration implements MethodDeclaration {
   bool get isFactory;
 }
 
-/// Field introspection information ..
-abstract class FieldDeclaration implements Declaration {
+/// Cariable introspection information.
+abstract class VariableDeclaration implements Declaration {
   /// Whether this function has an `abstract` modifier.
   bool get isAbstract;
 
   /// Whether this function has an `external` modifier.
   bool get isExternal;
 
-  /// Type type of this field.
+  /// The type of this field.
   TypeAnnotation get type;
-
-  /// The class that defines this method.
-  TypeAnnotation get definingClass;
 
   /// A [Code] object representing the initializer for this field, if present.
   Code? get initializer;
+}
+
+/// Field introspection information ..
+abstract class FieldDeclaration implements VariableDeclaration {
+  /// The class that defines this method.
+  TypeAnnotation get definingClass;
 }
 
 /// Parameter introspection information.
