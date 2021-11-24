@@ -106,7 +106,7 @@ abstract class ConstructorDeclaration implements MethodDeclaration {
   bool get isFactory;
 }
 
-/// Cariable introspection information.
+/// Variable introspection information.
 abstract class VariableDeclaration implements Declaration {
   /// Whether this function has an `abstract` modifier.
   bool get isAbstract;

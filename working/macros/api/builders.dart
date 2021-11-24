@@ -97,20 +97,17 @@ abstract class ClassDefinitionBuilder implements DefinitionBuilder {
   /// Retrieve a [VariableDefinitionBuilder] for a field by [name].
   ///
   /// Throws an [ArgumentError] if there is no field by that name.
-  Future<void> buildField(String name,
-      FutureOr<void> Function(VariableDefinitionBuilder builder) callback);
+  VariableDefinitionBuilder buildField(String name);
 
   /// Retrieve a [FunctionDefinitionBuilder] for a method by [name].
   ///
   /// Throws an [ArgumentError] if there is no method by that name.
-  Future<void> buildMethod(String name,
-      FutureOr<void> Function(FunctionDefinitionBuilder builder) callback);
+  FunctionDefinitionBuilder buildMethod(String name);
 
   /// Retrieve a [ConstructorDefinitionBuilder] for a constructor by [name].
   ///
   /// Throws an [ArgumentError] if there is no constructor by that name.
-  Future<void> buildConstructor(String name,
-      FutureOr<void> Function(ConstructorDefinitionBuilder builder) callback);
+  ConstructorDefinitionBuilder buildConstructor(String name);
 }
 
 /// The apis used by [Macro]s to define the body of a constructor

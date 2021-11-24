@@ -160,17 +160,16 @@ external int get hashCode;'''));
   @override
   Future<void> buildDefinitionForClass(
       ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
-    await builder.buildMethod('hashCode', (builder) async {
-      var hashCodeExprs = [
-        await for (var field in clazz.allFields(builder))
-          ExpressionCode.fromString('${field.name}.hashCode')
-      ].joinAsCode(' ^ ');
-      builder.augment(FunctionBodyCode.fromParts([
-        ' => ',
-        ...hashCodeExprs,
-        ';',
-      ]));
-    });
+    var hashCodeBuilder = builder.buildMethod('hashCode');
+    var hashCodeExprs = [
+      await for (var field in clazz.allFields(builder))
+        ExpressionCode.fromString('${field.name}.hashCode')
+    ].joinAsCode(' ^ ');
+    hashCodeBuilder.augment(FunctionBodyCode.fromParts([
+      ' => ',
+      ...hashCodeExprs,
+      ';',
+    ]));
   }
 }
 
@@ -190,18 +189,16 @@ external bool operator==(Object other);'''));
   @override
   Future<void> buildDefinitionForClass(
       ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
-    await builder.buildMethod('==', (builder) async {
-      var equalityExprs = [
-        await for (var field in clazz.allFields(builder))
-          ExpressionCode.fromString(
-              'this.${field.name} == other.${field.name}'),
-      ].joinAsCode(' && ');
-      DeclarationCode.fromParts([
-        ' => other is ${clazz.instantiate().toCode()} && ',
-        ...equalityExprs,
-        ';',
-      ]);
-    });
+    var equalsBuilder = builder.buildMethod('==');
+    var equalityExprs = [
+      await for (var field in clazz.allFields(builder))
+        ExpressionCode.fromString('this.${field.name} == other.${field.name}'),
+    ].joinAsCode(' && ');
+    equalsBuilder.augment(FunctionBodyCode.fromParts([
+      ' => other is ${clazz.instantiate().toCode()} && ',
+      ...equalityExprs,
+      ';',
+    ]));
   }
 }
 
@@ -223,18 +220,17 @@ external String toString();''',
   @override
   Future<void> buildDefinitionForClass(
       ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
-    await builder.buildMethod('toString', (builder) async {
-      var fieldExprs = [
-        await for (var field in clazz.allFields(builder))
-          Code.fromString('  ${field.name}: \${${field.name}}'),
-      ].joinAsCode('\n');
+    var toStringBuilder = builder.buildMethod('toString');
+    var fieldExprs = [
+      await for (var field in clazz.allFields(builder))
+        Code.fromString('  ${field.name}: \${${field.name}}'),
+    ].joinAsCode('\n');
 
-      builder.augment(FunctionBodyCode.fromParts([
-        ' => """\${${clazz.name}} { ',
-        ...fieldExprs,
-        '}""";',
-      ]));
-    });
+    toStringBuilder.augment(FunctionBodyCode.fromParts([
+      ' => """\${${clazz.name}} { ',
+      ...fieldExprs,
+      '}""";',
+    ]));
   }
 }
 
