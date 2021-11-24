@@ -149,8 +149,10 @@ We split the proposed finalization API into two parts:
 The following classes are added to the `dart:core` library
 
 ```dart
-/// [Finalizer] *may* call the given callback when objects it is attached to
-/// become inaccessible.
+/// A finalizer which can be attached to Dart objects.
+///
+/// When [attach]ed to a Dart object, this finalizer's callback *may* be called
+/// some time after the Dart object becomes inaccessible to the program.
 ///
 /// No promises are made that the callback will ever be called,
 /// only that *if* it is called with a finalization token as argument,
@@ -166,8 +168,13 @@ The following classes are added to the `dart:core` library
 /// Finalization callbacks will happen as *events*, not during execution of
 /// other code and not as a microtask, but as high-level events similar to
 /// timer events.
+///
+/// Finalization callbacks should not throw.
 abstract class Finalizer<T> {
   /// Creates a finalizer with the given finalization callback.
+  ///
+  /// The [callback] is bound to the [current zone](Zone.current)
+  /// when the [Finalizer] is created, and will run in that zone when called.
   external factory Finalizer(void Function(T) callback);
 
   /// Attaches this finalizer to the given [value].
@@ -188,11 +195,15 @@ abstract class Finalizer<T> {
   /// for registrations which have been detached since they were attached.
   void attach(Object value, T token, {Object? detachKey});
 
-  /// Detaches the finalizer from any objects which used [detachKey] when
+  /// Detaches the finalizer from any objects that used [detachKey] when
   /// attaching the finalizer to them.
   ///
-  /// After detaching, callbacks will not happen even if those objects become
-  /// inaccessible.
+  /// If the finalizer was attached multiple times to the same object with different
+  /// detachment keys, only those attachments which used [detachKey] are
+  /// removed.
+  ///
+  /// After detaching, an attachment won't cause any callbacks to happen if the
+  /// object become inaccessible.
   void detach(Object detachKey);
 }
 
@@ -212,6 +223,8 @@ abstract class WeakReference<T extends Object> {
   /// Create a [WeakReference] pointing to the given [target].
   ///
   /// The [target] must be an object supported as an [Expando] key.
+  /// Which means [target] can not be a number, a string, a boolean, or
+  /// the `null` value.
   external factory WeakReference(T target);
 
   /// The current object weakly referenced by [this], if any.
@@ -238,42 +251,40 @@ abstract class Finalizable {
 typedef NativeFinalizer = Void Function(Pointer<Void>);
 typedef NativeFinalizerPtr = Pointer<NativeFunction<NativeFinalizer>>
 
-/// [Finalizer] *may* call the given callback when objects it is attached to
-/// become inaccessible.
+/// A native finalizer which can be attached to Dart objects.
 ///
-/// This callback is guaranteed to be called: when isolate group is shutting
-/// down for each object to which the finalizer is still attached.
+/// When [attach]ed to a Dart object, this finalizer's native callback is called
+/// after the Dart object is garbage collected or becomes inaccessible for other
+/// reasons.
 ///
-/// No other promises are made that the callback will ever be called,
-/// only that *if* it is called with a finalization token as argument,
-/// at least one object registered in the registry with that finalization token
-/// is no longer accessible to the program.
+/// Callbacks will happen as early as possible, when the object becomes
+/// inaccessible to the program, and may happen at any moment during execution
+/// of the program. At the latest, when an isolate group shuts down,
+/// this callback is guaranteed to be called for each object in that isolate
+/// group that the finalizer is still attached to.
 ///
-/// If multiple finalizers has been attached to an object or the same
-/// finalizer has been attached multiple times to an object and that object
-/// becomes inaccessible to the program, then any number of those finalizers
-/// may trigger their associated callback. It will not necessarily be all or
-/// none of them.
-///
-/// Finalization callbacks will happen as early as possible, without waiting
-/// for control to return to the event loop.
+/// Compared to the [Finalizer] from `dart:core`, which makes no promises to
+/// ever call an attached callback, this native finalizer promises that all
+/// attached finalizers are definitely called at least once before the program
+/// ends, and the callbacks are called as soon as possible after an object
+/// is recognized as inaccessible.
 abstract class NativeFinalizer<T> {
   /// Creates a finalizer with the given finalization callback.
   ///
-  /// Note: [callback] is expected to be a native function which can be
+  /// Note: the [callback] is expected to be a native function which can be
   /// executed outside of a Dart isolate. This means that passing an FFI
   /// trampoline (a function pointer obtained via [Pointer.fromFunction]) is
   /// not supported for arbitrary Dart functions. This constructor will throw
   /// if an unsupported [callback] is passed to it.
   ///
-  /// [callback] might be invoked on an arbitrary thread and not necessary
+  /// The [callback] might be invoked on an arbitrary thread and not necessary
   /// on the same thread that created [FinalizationRegistry].
   external factory NativeFinalizer(NativeFinalizerPtr callback);
 
   /// Attaches this finalizer to the given [value].
   ///
   /// When [value] is no longer accessible to the program,
-  /// the registry *may* call its callback function with [finalizationToken]
+  /// the registry will call its callback function with [finalizationToken]
   /// as argument.
   ///
   /// The [value] and [detachKey] arguments do not count towards those
@@ -292,11 +303,15 @@ abstract class NativeFinalizer<T> {
   /// scheduling heuristics.
   void attach(Object value, T token, {Object? detachKey, int externalSize}});
 
-  /// Detaches the finalizer from any objects which used [detachKey] when
+  /// Detaches the finalizer from any objects that used [detachKey] when
   /// attaching the finalizer to them.
   ///
-  /// After detaching, callbacks will not happen even if those objects become
-  /// inaccessible.
+  /// If the finalizer was attached multiple times to the same object with different
+  /// detachment keys, only those attachments which used [detachKey] are
+  /// removed.
+  ///
+  /// After detaching, an attachment won't cause any callbacks to happen if the
+  /// object become inaccessible.
   void detach(Object detachKey);
 }
 ```
