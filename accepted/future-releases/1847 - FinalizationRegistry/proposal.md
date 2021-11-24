@@ -1,4 +1,4 @@
-# Proposal for adding `FinalizationRegistry` and `WeakRef` to core libraries.
+# Proposal for adding `Finalizer` and `WeakReference` to core libraries.
 
 Author: vegorov@google.com<br>Version: 0.1
 
@@ -6,9 +6,8 @@ Author: vegorov@google.com<br>Version: 0.1
 
 This proposal includes two interconnected pieces of functionality:
 
-- an ability to create _weak references_ (`WeakRef`);
-- an ability to associate finalization actions with objects
-  (`FinalizationRegistry`).
+- an ability to create _weak references_ (`WeakReference`);
+- an ability to associate finalization actions with objects (`Finalizer`).
 
 ### Weak references
 
@@ -132,14 +131,14 @@ would release the native resource.
 
 We split the proposed finalization API into two parts:
 
-- `FinalizationRegistry` which:
+- `Finalizer` which:
   - does not provide strong guarantees around promptness of finalization,
   - does not impose any restrictions on objects you could associate a
     finalization action with,
   - does not impose any restrictions on finalization actions and invokes them
     asynchronously,
   - is implementable on the Web.
-- `NativeFinalizationRegistry` which:
+- `NativeFinalizer` which:
   - provides stronger guarantees around promptness of finalization,
   - guarantees that finalization actions are invoked when isolate is shutting
   down,
@@ -147,60 +146,65 @@ We split the proposed finalization API into two parts:
   - imposes restrictions on finalization actions to allow calling these actions
   outside of Dart universe.
 
-The following classes are added to the new `dart:weakref` library
+The following classes are added to the `dart:core` library
 
 ```dart
-/// A registry of objects which may invoke a callback when those objects
-/// become inaccessible.
+/// A finalizer which can be attached to Dart objects.
 ///
-/// The registry allows objects to be registered,
-/// and when those objects become inaccessible to the program,
-/// the callback passed to the register's constructor *may* be called
-/// with the registration token associated with the object.
+/// When [attach]ed to a Dart object, this finalizer's callback *may* be called
+/// some time after the Dart object becomes inaccessible to the program.
 ///
 /// No promises are made that the callback will ever be called,
 /// only that *if* it is called with a finalization token as argument,
 /// at least one object registered in the registry with that finalization token
 /// is no longer accessible to the program.
 ///
-/// If the same object is registered in multiple finalization registries,
-/// or registered multiple times in a single registry,
-/// and the object becomes inaccessible to the program,
-/// then any number of those registrations may trigger their associated
-/// callback. It will not necessarily be all or none of them.
+/// If multiple finalizers has been attached to an object or the same
+/// finalizer has been attached multiple times to an object and that object
+/// becomes inaccessible to the program, then any number of those finalizers
+/// may trigger their associated callback. It will not necessarily be all or
+/// none of them.
 ///
 /// Finalization callbacks will happen as *events*, not during execution of
 /// other code and not as a microtask, but as high-level events similar to
 /// timer events.
-abstract class FinalizationRegistry<FT> {
-  /// Creates a finalization registry with the given finalization callback.
-  external factory FinalizationRegistry(
-    void Function(FT finalizationToken) callback);
+///
+/// Finalization callbacks should not throw.
+abstract class Finalizer<T> {
+  /// Creates a finalizer with the given finalization callback.
+  ///
+  /// The [callback] is bound to the [current zone](Zone.current)
+  /// when the [Finalizer] is created, and will run in that zone when called.
+  external factory Finalizer(void Function(T) callback);
 
-  /// Registers [value] for a finalization callback.
+  /// Attaches this finalizer to the given [value].
   ///
   /// When [value] is no longer accessible to the program,
   /// the registry *may* call its callback function with [finalizationToken]
   /// as argument.
   ///
-  /// The [value] and [unregisterToken] arguments do not count towards those
+  /// The [value] and [detachKey] arguments do not count towards those
   /// objects being accessible to the program. Both must be objects supported
   /// as an [Expando] key.
   ///
-  /// Multiple objects may be registered with the same finalization token,
-  /// and the same object may be registered multiple times with different,
-  /// or the same, finalization token.
+  /// Multiple objects may be using the same finalization token,
+  /// and the finalizer can be attached multiple times to the same object
+  /// with different, or the same, finalization token.
   ///
-  /// The callback may be called at most once per registration, and not
-  /// for registrations which have been unregistered since they were registered.
-  void register(Object value, FT finalizationToken, {Object? unregisterToken});
+  /// The callback may be called at most once per attachment, and not
+  /// for registrations which have been detached since they were attached.
+  void attach(Object value, T token, {Object? detachKey});
 
-  /// Unregisters any finalization callbacks registered with [unregisterToken]
-  /// as unregister-token.
+  /// Detaches the finalizer from any objects that used [detachKey] when
+  /// attaching the finalizer to them.
   ///
-  /// After unregistering, those callbacks will not happen even if the
-  /// registered object becomes inaccessible.
-  void unregister(Object unregisterToken);
+  /// If the finalizer was attached multiple times to the same object with different
+  /// detachment keys, only those attachments which used [detachKey] are
+  /// removed.
+  ///
+  /// After detaching, an attachment won't cause any callbacks to happen if the
+  /// object become inaccessible.
+  void detach(Object detachKey);
 }
 
 /// A weak reference to another object.
@@ -212,23 +216,23 @@ abstract class FinalizationRegistry<FT> {
 /// _The referenced object may be garbage collected when the only reachable
 /// references to it are weak._
 ///
-/// Not all objects are supported as targets for weak references. 
-/// The [WeakRef] constructor will reject any object that is not
+/// Not all objects are supported as targets for weak references.
+/// The [WeakReference] constructor will reject any object that is not
 /// supported as an [Expando] key.
-abstract class WeakRef<T extends Object> {
-  /// Create a [WeakRef] pointing to the given [target].
-  /// 
+abstract class WeakReference<T extends Object> {
+  /// Create a [WeakReference] pointing to the given [target].
+  ///
   /// The [target] must be an object supported as an [Expando] key.
-  external factory WeakRef(T target);
+  /// Which means [target] can not be a number, a string, a boolean, or
+  /// the `null` value.
+  external factory WeakReference(T target);
 
   /// The current object weakly referenced by [this], if any.
-  /// 
+  ///
   /// The value os either the object supplied in the constructor,
   /// or `null` if the weak reference has been cleared.
   T? get target;
 }
-
-typedef WeakMap = Expando;
 ```
 
 The following classes are added to `dart:ffi` library:
@@ -247,47 +251,84 @@ abstract class Finalizable {
 typedef NativeFinalizer = Void Function(Pointer<Void>);
 typedef NativeFinalizerPtr = Pointer<NativeFunction<NativeFinalizer>>
 
-/// [FinalizationRegistry] which will execute its finalizers as early as
-/// possible without waiting for control to return to the event loop.
+/// A native finalizer which can be attached to Dart objects.
 ///
-/// Will also invoke finalization callbacks when the isolate which created
-/// this finalization registry is shutting down.
-abstract class NativeFinalizationRegistry<F extends Finalizable>
-    extends FinalizationRegistry<Pointer> {
-  /// Creates a finalization registry with the given finalization
-  /// callback.
+/// When [attach]ed to a Dart object, this finalizer's native callback is called
+/// after the Dart object is garbage collected or becomes inaccessible for other
+/// reasons.
+///
+/// Callbacks will happen as early as possible, when the object becomes
+/// inaccessible to the program, and may happen at any moment during execution
+/// of the program. At the latest, when an isolate group shuts down,
+/// this callback is guaranteed to be called for each object in that isolate
+/// group that the finalizer is still attached to.
+///
+/// Compared to the [Finalizer] from `dart:core`, which makes no promises to
+/// ever call an attached callback, this native finalizer promises that all
+/// attached finalizers are definitely called at least once before the program
+/// ends, and the callbacks are called as soon as possible after an object
+/// is recognized as inaccessible.
+abstract class NativeFinalizer<T> {
+  /// Creates a finalizer with the given finalization callback.
   ///
-  /// Note: [callback] is expected to be a native function which can be
+  /// Note: the [callback] is expected to be a native function which can be
   /// executed outside of a Dart isolate. This means that passing an FFI
   /// trampoline (a function pointer obtained via [Pointer.fromFunction]) is
   /// not supported for arbitrary Dart functions. This constructor will throw
   /// if an unsupported [callback] is passed to it.
   ///
-  /// [callback] might be invoked on an arbitrary thread and not necessary
+  /// The [callback] might be invoked on an arbitrary thread and not necessary
   /// on the same thread that created [FinalizationRegistry].
-  external factory NativeFinalizationRegistry(NativeFinalizerPtr callback);
+  external factory NativeFinalizer(NativeFinalizerPtr callback);
 
-  /// Same as [super.register] but allows to specify an [externalSize] to
-  /// guide GC heuristics.
-  void register(covariant F value,
-                Pointer finalizationToken,
-                {Object? unregisterToken, int externalSize});
+  /// Attaches this finalizer to the given [value].
+  ///
+  /// When [value] is no longer accessible to the program,
+  /// the registry will call its callback function with [finalizationToken]
+  /// as argument.
+  ///
+  /// The [value] and [detachKey] arguments do not count towards those
+  /// objects being accessible to the program. Both must be objects supported
+  /// as an [Expando] key.
+  ///
+  /// Multiple objects may be using the same finalization token,
+  /// and the finalizer can be attached multiple times to the same object
+  /// with different, or the same, finalization token.
+  ///
+  /// The callback may be called at most once per attachment, and not
+  /// for registrations which have been detached since they were attached.
+  ///
+  /// [externalSize] is an amount of native (non-Dart) memory owned by the
+  /// given [value]. This information is used to drive garbage collection
+  /// scheduling heuristics.
+  void attach(Object value, T token, {Object? detachKey, int externalSize}});
+
+  /// Detaches the finalizer from any objects that used [detachKey] when
+  /// attaching the finalizer to them.
+  ///
+  /// If the finalizer was attached multiple times to the same object with different
+  /// detachment keys, only those attachments which used [detachKey] are
+  /// removed.
+  ///
+  /// After detaching, an attachment won't cause any callbacks to happen if the
+  /// object become inaccessible.
+  void detach(Object detachKey);
 }
 ```
 
-`FinalizationRegistry` was directly modeled after its
+`Finalizer` was directly modeled after its
 [JavaScript counterpart][MDN FinalizationRegistry] and only supports
-asynchronous finalization, while `NativeFinalizationRegistry` is added to
+asynchronous finalization, while `NativeFinalizer` is added to
 `dart:ffi` to allow eager synchronous finalization.
 
-Note differences in API between `FinalizationRegistry` and
-`NativeFinalizationRegistry`:
+Note differences in API between `Finalizer` and
+`NativeFinalizer`:
 
-- `NativeFinalizationRegistry` requires objects which are registered with it
+- `NativeFinalizer` requires objects which are registered with it
 to implement `Finalizable` interface, which serves as a marker instructing
 optimizing compiler to provide stronger liveness guarantees for an object. This
 interface is our solution to the problem of _premature finalization_.
-- `NativeFinalizationRegistry` is constructed with a _native function_ as a
+- `NativeFinalizer` is constructed with a _native function_ as a
 callback rather than a Dart function. This is done to guarantee that eager
 synchronous execution of a finalization callback is not going to produce any
 side-effects observable from the pure Dart code.
@@ -295,7 +336,7 @@ side-effects observable from the pure Dart code.
 Unfortunately the second restriction has far reaching implications: in many
 commonly used native APIs destruction method does not adhere to a single
 argument signature that we expect from a finalization callback. This makes
-`NativeFinalizationRegistry` API unusable without writing additional trampoline
+`NativeFinalizer` API unusable without writing additional trampoline
 code in native programming language (e.g. C), which we consider highly
 undesirable: as we want `dart:ffi` to be expressive enough to enable developers
 to create bindings in pure Dart, without requiring them to write and compile
@@ -319,7 +360,7 @@ Such isolate-dependent function can't be used as a finalization callback because
 finalization callbacks should be callable in contexts when there is no current
 isolate at all or isolates are not allowing entering into Dart code.
 
-It seems thus reasonable to restrict `NativeFinalizationRegistry` constructor
+It seems thus reasonable to restrict `NativeFinalizer` constructor
 in a way that would reject function pointers which are pointing to
 native-to-Dart FFI trampolines.
 
@@ -380,7 +421,7 @@ class Mapping extends Finalizable {
     return wrapper;
   }
 
-  static final _registry = NativeFinalizationRegistry(finalizeMapping);
+  static final _registry = NativeFinalizer(finalizeMapping);
 }
 ```
 
