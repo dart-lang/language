@@ -278,7 +278,7 @@ enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern 
   String get name => EnumName(this).name;
 
   // Instance getter.
-  Pattern get pattern => _patterns[this.index] ??= _factory(_pattern);
+  Pattern get pattern => _patterns[this.index] ??= _factory(_patternSource);
 
   // Instance methods.
   Iterable<Match> allMatches(String input, [int start = 0]) =>
