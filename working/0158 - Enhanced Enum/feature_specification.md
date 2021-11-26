@@ -1,3 +1,7 @@
+# MOVED TO ACCEPTED
+
+Further development happens in [../../accepted/future-releases/enhanced-enums/feature_specification.md].
+
 # Dart Enhanced Enum Classes
 
 Author: lrn@google.com<br>Version: 1.4<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
