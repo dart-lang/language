@@ -539,7 +539,7 @@ and may include illustrative examples or clarifications.%
 
 \LMHash{}%
 Reserved words and built-in identifiers
-(\ref{identifierReference})
+(\ref{identifierExpression})
 appear in {\bf bold}.
 
 \commentary{%
@@ -919,24 +919,11 @@ is based on the following:
   variables and functions (including methods and constructors).
 \item
   Type annotations may be omitted, in which case they are generally
-  filled in using type inference, or using the type \DYNAMIC{}
+  filled in using type inference
+  (\ref{typeInference}),
+  or using the type \DYNAMIC{}
   (\ref{typeDynamic}).
-  \commentary{%
-  Type inference will be specified in a future version of this document
-  (\ref{overview}).%
-  }
 \end{enumerate}%
-}
-
-%% TODO(eernst): Update when we add inference.
-\commentary{%
-Dart as implemented includes extensive support for inference of omitted types.
-This specification makes the assumption that inference has taken place,
-and hence inferred types are considered to be present in the program already.
-However, in some cases no information is available
-to infer an omitted type annotation,
-and hence this specification still needs to specify how to deal with that.
-A future version of this specification will also specify type inference.%
 }
 
 \LMHash{}%
@@ -1481,6 +1468,7 @@ A \IndexCustom{final variable}{variable!final}
 is a variable whose declaration includes the modifier \FINAL.
 
 
+
 \subsection{Implicitly Induced Getters and Setters}
 \LMLabel{implicitlyInducedGettersAndSetters}
 
@@ -1549,8 +1537,8 @@ In these cases, the declared type of \id{} is $T$.
 \EndCase
 
 \commentary{%
-A future version of this specification will specify type inference,
-but currently it is unspecified and assumed to have taken place already.
+Type inference is assumed to have taken place already
+(\ref{typeInference}).
 For example, an instance variable declaration of the form
 \code{\VAR\,\,x;} could have been transformed into
 \code{$T$\,\,x;} based on member signatures named \code{x} in superinterfaces
@@ -1949,12 +1937,12 @@ int i = (() => (b = !b) ? (i = 10) : i + 1 )();
   \commentary{%
   In this example, \code{main} invokes
   the implicitly induced getter named \code{i},
-  and no value has been stored in the variable \code{i} at this point.
+  and the variable \code{i} has not been bound at this point.
   Hence, evaluation of the initializing expression proceeds.
   This causes \code{b} to be toggled to \FALSE,
   which again causes \code{i + 1} to be evaluated.
   This causes the getter \code{i} to be invoked again,
-  and it is still true that no value has been stored in the variable,
+  and it is still true that the variable has not been bound,
   so the initializing expression is evaluated again.
   This toggles \code{b} to \TRUE,
   which causes \code{i = 10} to be evaluated,
@@ -1962,7 +1950,7 @@ int i = (() => (b = !b) ? (i = 10) : i + 1 )();
   and the most recent invocation of the getter \code{i}
   returns 10.
   This makes \code{i + 1} evaluate to 11,
-  which is stored in the variable.
+  and the variable is then bound to 11.
   Finally, the invocation of the getter \code{i} in \code{main}
   completes returning 11.%
   }
@@ -2855,7 +2843,7 @@ a setter (\ref{setters}),
 or a non-redirecting constructor
 (\ref{generativeConstructors}, \ref{factories}).
 External functions are introduced via the built-in identifier \EXTERNAL{}
-(\ref{identifierReference})
+(\ref{identifierExpression})
 followed by the function header.
 
 \rationale{%
@@ -3304,7 +3292,7 @@ and operator \lit{[]=} which is an instance setter.
 
 \LMHash{}%
 An operator declaration is identified using the built-in identifier
-(\ref{identifierReference})
+(\ref{identifierExpression})
 \OPERATOR.
 
 \LMHash{}%
@@ -4676,7 +4664,7 @@ and the formal type parameters of $S$ are bound to $u_1, \ldots, u_p$.
 \LMHash{}%
 A \IndexCustom{factory}{constructor!factory}
 is a constructor prefaced by the built-in identifier
-(\ref{identifierReference})
+(\ref{identifierExpression})
 \FACTORY.
 
 \begin{grammar}
@@ -6503,7 +6491,7 @@ where the receiver is an extension application.
 \commentary{%
 Type inference is not yet specified in this document,
 and is assumed to have taken place already
-(\ref{overview}),
+(\ref{typeInference}),
 but the following describes the intended treatment.
 This section and its subsections have similar commentary about type inference
 below, marked 'With type inference: \ldots'.
@@ -7868,7 +7856,8 @@ when it is used in any of the following ways:
   (\ref{const}).
   \commentary{%
   This includes the case where the actual type arguments have been provided
-  by type inference, which is assumed to have taken place already.%
+  by type inference, which is assumed to have taken place already
+  (\ref{typeInference}).%
   }
 \item $T$ occurs in the \synt{constructorDesignation} of
   a redirecting factory constructor header
@@ -7984,16 +7973,8 @@ that are omitted from a type,
 or from an invocation of a generic function.
 
 \commentary{%
-%% TODO(eernst): When we add a specification of type inference, we will adjust
-%% the specification of i2b such that it allows for taking initial values for
-%% the actual type arguments (that is, $U_{j,0}$ is given "from the caller" for
-%% some $j$; probably "the caller" will always be type inference), and all other
-%% parts of the algorithm remain unchanged.
-%% I think it will be more confusing than helpful to start writing this now,
-%% and it will be a small adjustment when we add a spec of type inference. So
-%% at this point we just specify i2b as a stand-alone algorithm.
 Note that type inference is assumed to have taken place already
-(\ref{overview}),
+(\ref{typeInference}),
 so type arguments are not considered to be omitted if they are inferred.
 This means that instantiation to bound is a backup mechanism,
 which will be used when no information is available for inference.%
@@ -11942,7 +11923,7 @@ and $t$ as stack trace (\ref{expressionEvaluation}).
 
 \LMHash{}%
 If $v$ is an instance of class \code{Error} or a subclass thereof,
-and it is the first time that \code{Error} object is thrown,
+and it is the first time where this \code{Error} object is thrown,
 the stack trace $t$ is stored on $v$ so that it will be returned
 by the \code{stackTrace} getter inherited from \code{Error}.
 
@@ -11980,16 +11961,10 @@ that encapsulates an executable unit of code.
 The grammar does not allow a function literal to declare a return type,
 but it is possible for a function literal to have a
 \IndexCustom{declared return type}{literal!function!declared return type},
-because it can be obtained by means of type inference.
+because it can be obtained by means of type inference
+(\ref{typeInference}).
 Such a return type is included
 when we refer to the declared return type of a function.
-
-\commentary{%
-Type inference will be specified in a future version of this document.
-Currently we consider type inference to be a phase that has completed,
-and this document specifies the meaning of Dart programs
-where inferred types have already been added.%
-}
 
 \LMHash{}%
 We say that a type $T$
@@ -13738,7 +13713,7 @@ is not itself a subtype of any function type
 Let $f$ be an expression denoting
 a declaration of a top-level function, a local function,
 a static method of a class, of a mixin, or of an extension
-(\ref{identifierReference});
+(\ref{identifierExpression});
 or let $f$ be a function literal
 (\ref{functionExpressions}).
 Evaluation of $f$ yields a function object
@@ -13832,7 +13807,8 @@ in the sense that a generic function can receive its actual
 type arguments separately
 (it must then receive \emph{all} type arguments, not just some of them),
 and that yields a non-generic function object.
-The type arguments are passed implicitly, based on type inference;
+The type arguments are passed implicitly, based on type inference
+(\ref{typeInference});
 %% TODO(eernst): Come constructor-tearoffs, revise this.
 a future version of Dart may allow for passing them explicitly.%
 }
@@ -13853,7 +13829,7 @@ X fg<X \EXTENDS{} num>(X x) => x;
 
 \commentary{%
 \noindent
-Each function object stored in \code{functions}
+Each function object in \code{functions}
 has dynamic type \code{int\,\,\FUNCTION(int)},
 and it is obtained by implicitly
 ``passing the actual type argument \code{int}''
@@ -13888,7 +13864,9 @@ except when the following step succeeds:
 \LMHash{}%
 \IndexCustom{Generic function type instantiation}{%
   generic function type instantiation}:
-Type inference is applied to $G$ with context type $F$,
+Type inference
+(\ref{typeInference})
+is applied to $G$ with context type $F$,
 and it yields the actual type argument list
 \BlindDefineSymbol{T_j}%
 \List{T}{1}{s}.
@@ -13899,7 +13877,7 @@ in the case where type inference fails,
 in which case the above mentioned compile-time error occurs.
 It will be specified in a future version of this document
 how type inference computes \List{T}{1}{s}
-(\ref{overview}).%
+(\ref{typeInference}).%
 }
 
 \LMHash{}%
@@ -14071,7 +14049,7 @@ The getter $m$ is invoked.
 The value of $i$ is the result returned by the call to the getter.
 \commentary{%
 Note that the invocation is always defined.
-Per the rules for identifier references,
+Per the rules for identifier expressions,
 an identifier will not be treated as a top-level getter invocation
 unless the getter $i$ is defined.%
 }
@@ -15707,7 +15685,9 @@ in the sense that a generic instance method can receive its actual
 type arguments separately during closurization
 (it must then receive \emph{all} type arguments, not just some of them),
 and that yields a non-generic function object.
-The type arguments are passed implicitly, based on type inference;
+The type arguments are passed implicitly, based on type inference
+(\ref{typeInference});
+%% TODO(eernst): Come constructor tearoffs, revise this.
 a future version of Dart may allow for passing them explicitly.%
 }
 \commentary{Here is an example:}
@@ -15729,7 +15709,7 @@ a future version of Dart may allow for passing them explicitly.%
 
 \commentary{%
 \noindent
-The function object which is stored in \code{f} at the end of \code{main}
+The function object that \code{f} is bound to at the end of \code{main}
 has dynamic type \code{int\,\,\FUNCTION(int,\,[List<int>])},
 and it is obtained by implicitly
 ``passing the actual type argument \code{int}''
@@ -15787,7 +15767,9 @@ except when generic function type instantiation
 succeeds, that is:
 
 \LMHash{}%
-Type inference is applied to $G$ with context type $F$,
+Type inference
+(\ref{typeInference})
+is applied to $G$ with context type $F$,
 and it succeeds, yielding the actual type argument list
 \List{T}{1}{s}.
 
@@ -15971,17 +15953,43 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
 \item
   When the lexical lookup yields a declaration $D$ of a local variable $v$
   (\commentary{which may be a formal parameter}),
-  a \Error{compile-time error} occurs if $v$ is final
-  or if the static type of $e$ is not assignable to the declared type of $v$.
+  a \Error{compile-time error} occurs in each of the following situations:
+  \begin{itemize}
+  \item
+    $D$ has the modifier \CONST.
+  \item
+    % We could rephrase the next item to include this case: Change the next
+    % item to not say anything about an initializing expression. This case is
+    % then covered because the variable in this case is 'definitely assigned'
+    % everywhere. However, it seems more readable to have a simple and direct
+    % rule about !late & final & init.
+    $D$ has the modifier \FINAL, but not \LATE,
+    and $v$ has an initializing expression.
+  \item
+    $D$ has the modifier \FINAL, but not \LATE,
+    $v$ does not have an initializing expression,
+    and $v$ is potentially assigned
+    (\ref{flowAnalysis}).
+  \item
+    $D$ has the modifiers \LATE{} and \FINAL,
+    and $v$ has an initializing expression.
+  \item
+    $D$ has the modifiers \LATE{} and \FINAL,
+    $v$ does not have an initializing expression,
+    and $v$ is definitely assigned.
+  \item
+    The static type of $e$ is not assignable to the declared type of $v$.
+  \end{itemize}
 \item
   When the lexical lookup yields a declaration $D$
   which is not a local variable,
   it is guaranteed to be a setter
-  (\commentary{that may be explicit or induced implicitly by a variable})
+  (\commentary{that may be implicitly induced by a variable})
   because other declarations do not have a name
   of the form \code{\id=}.
 
-  If $D$ is the declaration of a static setter in class or mixin $C$
+  If $D$ is the declaration of a static setter
+  in a class, mixin, or extension $C$
   then $a$ is treated as
   (\ref{notation})
   the assignment \code{$C$.\id{} = $e$}.
@@ -15991,8 +15999,8 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
     proceeds as specified elsewhere.%
   }
 
-  Otherwise, a \Error{compile-time error} occurs,
-  unless the static type of $e$ is assignable to the parameter type of $D$.
+  A \Error{compile-time error} occurs
+  if the static type of $e$ is not assignable to the parameter type of $D$.
 \item
   When the lexical lookup yields nothing,
   $a$ is treated as
@@ -16021,37 +16029,58 @@ In all cases
 the static type of $a$ is the static type of $e$.
 
 \LMHash{}%
+\BlindDefineSymbol{a, \id, e}%
 Evaluation of an assignment $a$ of the form \code{\id{} = $e$}
 proceeds as follows.
 Perform a lexical lookup of \code{\id=} from the location of \id.
 
 \begin{itemize}
 \item
-  In the case where the lexical lookup yields
-  a declaration $D$ of a local variable $v$,
-  (\commentary{which may be a formal parameter}),
-  the expression $e$ is evaluated to an object $o$,
-  and the variable $v$ is bound to $o$.
-  Then $a$ evaluates to the object $o$
-  (\ref{expressionEvaluation}).
+  Consider the case where the lexical lookup yields
+  a declaration $D$ of a local variable $v$
+  (\commentary{which may be a formal parameter}).
+  The expression $e$ is evaluated to an object \DefineSymbol{o}.
+  Then:
+
+  \begin{itemize}
+  \item
+    Consider the case where $D$ has the modifiers \LATE{} and \FINAL{}
+    (\commentary{%
+      in which case $v$ has no initializer and is not definitely assigned,
+      or a compile-time error would have occurred%
+    }).
+    If $v$ has previously been bound to an object then a dynamic error occurs.
+    Otherwise, $v$ is bound to $o$, and then $a$ evaluates to $o$
+    (\ref{expressionEvaluation}).
+  \item
+    Consider the case where $D$ does not have the modifiers \LATE{} and \FINAL{}
+    (\commentary{it could have one of them, just not both}).
+    In this case the variable $v$ is bound to $o$,
+    and then $a$ evaluates to $o$.
+
+    \commentary{%
+      If $D$ has the modifier \FINAL{} then $v$ is definitely unassigned,
+      or a compile-time error would have occurred.%
+    }
+  \end{itemize}
 \item
   In the case where the lexical lookup of \code{\id=}
   from the location of \id{}
-  yields a declaration $D$,
+  yields a declaration $D$ which is not a local variable,
   $D$ is necessarily a top level setter $s$
   (\commentary{possibly implicitly induced by a variable}).
+
+  \commentary{%
+    $D$ cannot be a static setter in a class, mixin, or extension $C$,
+    because $a$ is then treated as
+    \code{$C$.\id{} = $e$},
+    which is specified elsewhere.%
+  }
 
   The expression $e$ is evaluated to an object $o$.
   Then the setter $s$ is invoked
   with its formal parameter bound to $o$.
   Then $a$ evaluates to the object $o$.
-
-  \commentary{%
-    $D$ cannot be a static setter in a class $C$,
-    because $a$ is then treated as
-    \code{$C$.\id{} = $e$},
-    which is specified elsewhere.%
-  }
 \item
   \commentary{%
     The case where the lexical lookup of \code{\id=}
@@ -17789,8 +17818,8 @@ which implies that \THIS{} should be added.%
 }
 
 
-\subsection{Identifier Reference}
-\LMLabel{identifierReference}
+\subsection{Identifier Expression}
+\LMLabel{identifierExpression}
 
 \LMHash{}%
 An \Index{identifier expression} consists of a single identifier;
@@ -17901,10 +17930,12 @@ at the time where these features were added to the language.%
 }
 
 \LMHash{}%
-A \Index{qualified name} is two or three identifiers separated by \lit{.}.
-All but the last one must be a \synt{typeIdentifier}.
-It is used to denote a declaration which is imported with a prefix,
-or a \STATIC{} declaration in a class, mixin, enum, or extension, or both.
+A \Index{qualified name} is an identifier preceded by
+one or two terms derived from \syntax{<typeIdentifier> `.'}.
+It is used to denote an entity whose declaration is accessible
+via an import prefix,
+or via the name of a class, mixin, or extension declaration,
+or both.
 
 \LMHash{}%
 The static type of an identifier expression $e$ which is an identifier \id{}
@@ -17919,15 +17950,14 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
 
 \begin{itemize}
 \item
-  If $D$ declares a class, mixin, enum, type alias, an enumerated type,
+  If $D$ declares a class, a mixin, a type alias, an enumerated type,
   or a type parameter,
   the static type of $e$ is \code{Type}.
 \item
   If $D$ is the declaration of a library getter
   (\commentary{which may be implicitly induced by a library variable}),
-  the static type of $e$ is the static type of the
-  library getter invocation \id{}
-  (\ref{topLevelGetterInvocation}).
+  the static type of $e$ is the return type of said
+  library getter.
 \item
   If $D$ is a static method, library function, or local function,
   the static type of $e$ is the function type of $D$.
@@ -17944,13 +17974,36 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
   the static type of $e$ is the return type of the getter
   \code{$C$.\id}.
 \item
-  If $D$ is a local variable declaration
-  (\commentary{which can be a formal parameter})
-  the static type of $e$ is the type of the variable $v$ declared by $D$,
-  unless $v$ is known to have some type $T$,
-  where $T$ is a subtype of any other type $S$
-  such that $v$ is known to have type $S$,
-  in which case the static type of $e$ is $T$.
+  Consider the case where $D$ is a local variable declaration
+  (\commentary{which can be a formal parameter}).
+  A \Error{compile-time error} occurs if both of the following hold:
+  \begin{itemize}
+  \item $D$ has the modifier \LATE, or it has the modifier \FINAL{}
+    (\commentary{it can have both}),
+    or the variable \id{} has a type which is potentially non-nullable
+    (\ref{typeNullability}).
+  \item The variable \id{} is definitely unassigned.
+  \end{itemize}
+
+  \commentary{%
+    When the variable is non-\LATE, non-\FINAL, and has a nullable type,
+    there is no error.
+    In this case the run-time value will be the null object,
+    because we know that the variable is unassigned.%
+  }
+
+  A \Error{compile-time error} occurs if all of the following hold:
+  \begin{itemize}
+  \item $D$ does not have the modifier \LATE.
+  \item $D$ has the modifier \FINAL, or
+    the variable \id{} has a potentially non-nullable type.
+  \item The variable \id{} is potentially unassigned.
+  \end{itemize}
+
+  The static type of $e$ is the type $T$ of the variable \id{} declared by $D$,
+  except that this variable may have been promoted to a subtype $S$ of $T$
+  (\ref{flowAnalysis}),
+  in which case the static type of $e$ is $S$.
 \item
   % Extension getter invocation by scope.
   If $D$ is a declaration of an instance getter
@@ -17967,8 +18020,8 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
     which is an instance member of a class.%
   }
 \end{itemize}
-\vspace{-1ex}
-\EndCase
+% Reduce whitespace after itemized list: This is just an end symbol.
+\vspace{-\baselineskip}\EndCase
 
 \LMHash{}%
 \Case{Lexical lookup yields an import prefix}
@@ -18573,15 +18626,6 @@ if the dynamic type of $o$ is not a subtype of the actual declared type
 of $v$.
 Otherwise, the variable $v$ is bound to $o$.
 
-\commentary{%
-Note that $e$ could have been transformed due to implicit coercions.
-For example, \code{myFunction} could be transformed into
-\code{myFunction<int>} due to generic function instantiation
-(\ref{genericFunctionInstantiation}).
-Such transformations are assumed to have taken place already
-in the declarations above.%
-}
-
 \LMHash{}%
 Let $D$ be a \LATE{} and \FINAL{} local variable declaration
 that declares a variable $v$.
@@ -18592,6 +18636,22 @@ If an object $o$ is assigned to $v$
 in a situation where $v$ is bound to an object $o'$
 then a dynamic error occurs
 (\commentary{it does not matter whether $o$ is the same object as $o'$}).
+
+\commentary{%
+Note that this includes the implicit initializing writes induced by
+evaluating the variable.
+Hence, the following program encounters a dynamic error
+when it evaluates \code{x},
+just before it would call \code{print}.%
+}
+
+\begin{dartCode}
+\VOID\ main() \{
+  int i = 0;
+  \LATE\ \FINAL\ int x = i++ == 0 ? x + 1 : 0;
+  print(x);
+\}
+\end{dartCode}
 
 
 \subsection{Local Function Declaration}
@@ -21894,9 +21954,8 @@ This kind of error may also arise when type arguments have been
 omitted in the program, but are added during static analysis
 via instantiation to bound
 (\ref{instantiationToBound})
-or via type inference,
-which will be specified later
-(\ref{overview}).%
+or via type inference
+(\ref{typeInference}).%
 }
 
 \LMHash{}%
@@ -23031,8 +23090,11 @@ two different type variables with the same bound.%
 
 \LMHash{}%
 This section specifies a function that normalizes Dart types.
-In this section it is assumed that type inference and
-instantiation to bound has taken place,
+In this section it is assumed that type inference
+(\ref{typeInference})
+and instantiation to bound
+(\ref{instantiationToBound})
+have taken place,
 and that no type under consideration is a compile-time error.
 
 \LMHash{}%
@@ -23384,9 +23446,8 @@ A \Index{type schema} is a type where
 \commentary{%
 For example, \code{List<\FreeContext>} and \code{int} are type schemas.
 Type schemas are used to express and propagate constraints on types
-during type inference.
-Type inference is not yet specified in this document,
-but it will be specified in the future.%
+during type inference
+(\ref{typeInference}).%
 }
 
 \LMHash{}%
@@ -24668,6 +24729,251 @@ in which case the type parameter declarations are omitted (\ref{generics}).%
 }
 
 
+\section{Type Inference}
+\LMLabel{typeInference}
+
+\LMHash{}%
+This specification does not yet specify type inference in Dart.
+A future version of this specification will include that topic.
+
+\LMHash{}%
+In other parts of this specification,
+type inference is generally assumed to have taken place already.
+However, commentary is used in several locations to give some informal
+information about the effects of type inference.
+
+
+\section{Flow Analysis}
+\LMLabel{flowAnalysis}
+
+%% TODO(eernst): Come flow analysis, rewrite this section entirely.
+\LMHash{}%
+This specification does not fully specify the flow analysis in Dart,
+but a future version of it will do so.\!\footnote{%
+A preliminary specification of the flow analysis is available at
+\url{https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md}.%
+}
+In this section we specify a few concepts and special cases
+in the flow analysis
+that do not depend on the detailed control flow,
+so as to enable the rest of the specification to refer to information
+obtained during this analysis.
+
+\LMHash{}%
+The flow analysis provides information about reachability of code,
+about the definite assignment status of each local variable,
+and about type test related events in the control flow
+that determine type promotion of local variables.
+
+
+\subsection{Definite Assignment}
+\LMLabel{definiteAssignment}
+
+\LMHash{}%
+At each location where a local variable can be referred
+(\commentary{%
+e.g., as an expression, or as the left hand side of an assignment%
+}),
+the variable has a status as being
+\IndexCustom{definitely assigned}{local variable!definitely assigned} or
+\IndexCustom{definitely unassigned}{local variable!definitely unassigned}.
+
+\commentary{%
+The precise flow analysis which determines this status at each location
+will be specified in a future version of this specification.
+The intuition is that
+when a local variable $v$ is definitely assigned at a given location $\ell$
+then it is guaranteed that $v$ is bound to an object
+if and when the execution reaches $\ell$.
+Similarly, if $v$ is definitely unassigned at location $\ell$
+then it is guaranteed that $v$ is unbound
+if and when the execution reaches $\ell$.
+It is possible for a local variable to be
+both not definitely assigned and not definitely unassigned,
+namely, in the situation where
+it is not statically known whether the variable is bound or unbound.%
+}
+
+\LMHash{}%
+A local variable $v$ is definitely assigned and not definitely unassigned
+at any location where $v$ is in scope,
+in the following cases:
+
+\begin{itemize}
+\item $v$ is a formal parameter.
+\item $v$ has an initializing expression.
+  \commentary{%
+    In this case $v$ may or may not be \LATE, that makes no difference.%
+  }
+\item $v$ occurs in a \synt{forStatement} of the form
+  \code{\FOR\,\,($D$\,\,\IN\,\,$e$)\,\,$S$} where $D$ declares $v$.
+  (\ref{for-in}).
+\end{itemize}
+
+\LMHash{}%
+Moreover, if $v$ is a local variable that occurs in
+a \synt{forStatement} of the form
+\code{\FOR\,\,($v$\,\,\IN\,\,$e$)\,\,$S$},
+then $v$ is definitely assigned and not definitely unassigned
+at the beginning of $S$.
+
+\LMHash{}%
+We say that a local variable is
+\IndexCustom{potentially assigned}{local variable!potentially assigned}
+if it is not definitely unassigned,
+and that a local variable is
+\IndexCustom{potentially unassigned}{local variable!potentially unassigned}
+if it is not definitely assigned.
+
+
+\subsection{Type Promotion}
+\LMLabel{typePromotion}
+
+\LMHash{}%
+Each local variable $v$ has a declared type $T$
+(\ref{localVariableDeclaration}),
+and it has a type $S$, defined below, which is a subtype of $T$.
+Type promotion refers to the situation where $S$ is different from $T$.
+
+\commentary{%
+Intuitively, this is the kind of situation where
+knowledge about the code which has been executed
+justifies giving the local variable a ``better'' type
+than the declared type.
+Type promotion is also sometimes known as `occurrence typing'.
+
+For example, if \code{x} is declared as \code{int?\,\,x;} and we know
+that it was updated by the assignment \code{x\,=\,1} most recently,
+or we know that \code{x\,\,\IS\,\,int} evaluated to \TRUE,
+then we can give \code{x} the type \code{int} rather than \code{int?}.%
+}
+
+\LMHash{}%
+Type promotion relies on information from flow analysis.
+Flow analysis yields various kinds of information,
+including a non-empty
+\IndexCustom{stack of types of interest}{%
+  local variable!stack of types of interest}
+for each local variable $v$,
+and for each location $\ell$ where $v$ is in scope.
+The top of the stack of types of interest for $v$ at $\ell$ is the
+\IndexCustom{type}{local variable!type}
+of $v$ at $\ell$.
+We say that the type of $v$ has been
+\IndexCustom{promoted}{type!promoted}
+to $S$ at a location $\ell$,
+when the type of $v$ at $\ell$ is $S$,
+and $S$ is a proper subtype of the declared type of $v$.
+
+\rationale{%
+We use the term `the type of $v$' to denote the complex typing property
+which is associated with a control flow analysis and
+a location dependent notion of type promotion,
+and we use `the declared type of $v$' to denote the much simpler concept of
+the type associated with $v$ based on its declaration alone.
+It might seem much more natural to use `the type of $v$' to denote the latter,
+and something like `the promoted type of $v$' to denote the former.
+
+However, we would then have a terminology where
+`the static type of an expression $e$'
+should be defined to mean `the promoted type of $e$'
+in the case where $e$ is a local variable,
+and `the static type of $e$' in all other cases,
+and we would need to talk about `the promoted type of $v$'
+in a large number of locations where we currently
+use `the type of $v$'.
+
+So the chosen terminology allows us to confine the explicit reference to
+the special typing properties of local variables:
+they are the only expressions that may have different
+types at different locations in the same scope,
+except that other expressions may of course contain local variables
+and hence get different types at different locations.
+This yields a simpler and more consistent terminology
+concerning the static type of an expression in general.%
+}
+
+\LMHash{}%
+Let $M$ be the set of types that occur in
+the stack of types of interest for $v$ at a location $\ell$.
+A \Index{type of interest} for $v$ at $\ell$
+is a type which is a member of $M$,
+or the type \NonNullType{$U$},
+where the type $U$ is a member of $M$.
+
+\commentary{%
+In particular, if $T?$ is a type of interest
+then $T$ is also a type of interest.%
+}
+
+\LMHash{}%
+The initial stack of types of interest for $v$ has exactly one element,
+namely the declared type.
+This is the stack of types of interest
+for the declaring occurrence of the name of $v$
+(\commentary{%
+that is, the very first time the variable is mentioned, \ref{variables}%
+}).
+
+\commentary{%
+The flow analysis will be specified in
+a future version of this specification.
+Among other things, the flow analysis determines how to compute
+the stack of types of interest for each local variable $v$
+at a given location $\ell$,
+based on the same properties of locations
+that are immediate predecessors of $\ell$
+in the control flow graph,
+ending in the declaration of $v$.%
+}
+
+\LMHash{}%
+If a local variable $v$ has an initializing expression
+and does not have the modifier \FINAL,
+%% As per the null safety feature spec we should have the following,
+%% (because variables with 'implicit initializers' are exactly for-in
+%% iteration variables), but the implementations do _not_ promote in
+%% this case, so we might need a breaking change process:
+%
+% or if the variable is declared by $D$ in a \synt{forStatement}
+% of the form \code{\FOR\,\,($D$\,\,\IN\,\,$e$)\,\,$S$},
+then the declaration of $v$ is treated as an assignment
+for the purposes of promotion.
+
+\commentary{%
+This has no effect in the case where $v$
+does not have an explicit declared type,
+e.g., \code{\VAR\,\,x\,\,=\,\,$e$;},
+because the declared type will then
+already be exactly the static type of the initializing expression.
+However, it does promote the type of \code{x}
+in a situation like the following:%
+}
+
+\begin{dartCode}
+\VOID test() \{
+  int? x = 3; // \comment{\code{x} has declared type \code{int?}}.
+  x.isEven; // \comment{Valid, \code{x} has been promoted to \code{int}}.
+  x = null; // \comment{Valid, demotes \code{x} to the declared type.}
+\}
+\end{dartCode}
+
+\LMHash{}%
+There is one special case,
+arising from the fact that intersection types
+are subject to many restrictions
+(\ref{intersectionTypes}).
+Consider the situation
+where the declaration of a local variable $v$ is of the form
+\code{\LATE?\,\,\VAR\,\,$v$ = $e$;}
+where the static type of $e$ is of the form \code{$X$\,\&\,$T$}
+where $X$ is a type variable.
+In this situation, the declared type of $v$ is \code{X}
+(\ref{localVariableDeclaration}),
+but the type \code{$X$\,\&\,$T$} is added to the stack of types of interest,
+and the type of $v$ is immediately promoted to \code{$X$\,\&\,$T$}.
+
+
 \section{Reference}
 \LMLabel{reference}
 
@@ -24828,6 +25134,7 @@ Assignment & \code{=}, \code{*=}, \code{/=}, \code{+=}, \code{-=}, \code{\&=}, \
 
 
 \section{Null safety} %% !!!TODO!!!
+\LMLabel{}
 
 %% !!!At the end: Search Null, change to Never where appropriate
 %% !!!Search all `TODO`.*null
@@ -25077,6 +25384,7 @@ substituted, and \code{Object?}\ in positions where previously \code{Object} or 
 would have been substituted.
 
 \subsubsection{Const type variable elimination}
+\LMLabel{}
 
 If performing inference on a constant value of a generic class results in
 inferred type arguments to the generic class which contain free type variables
@@ -25204,6 +25512,7 @@ With this change, the following is a valid migration of this code:
 \end{dartCode}
 
 \subsubsection{Null promotion}
+\LMLabel{}
 
 The machinery of type promotion is extended to promote the type of
 variables based on nullability checks subject to the same set of
@@ -25222,11 +25531,6 @@ continuation, and to \code{Null} in the \code{false} continuation.
 
 The static type of an expression \code{$e$!} is \NonNullType{$T$}
 where $T$ is the static type of $e$.
-
-\paragraph{Extended Type promotion, Definite Assignment, and Reachability}
-
-These are extended as per
-[separate proposal](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
 
 \subsubsection{Null aware operator}
 \LMLabel{nullShorteningTransformation}
@@ -25376,27 +25680,10 @@ Similarly, both \code{-$a$?.$f$} and \code{~$a$?.$f$} are errors, and do not nul
 \code{$a$?.$f$.op()}.%
 }
 
-\subsubsection{Late fields and variables}
+\subsubsection{Boolean conditional evaluation}
+\LMLabel{}
 
 !!!TODO!!!
-
-Let $D$ be a \LATE{} and \FINAL{} local variable declaration named \code{v}.
-It is a run-time error, to assign a value to \code{v}
-if a value has previously been assigned to \code{v}.
-
-Note that this includes the implicit initializing writes induced by
-evaluating the initializer during a read.  Hence, the following program
-terminates with an error.
-
-\begin{dartCode}
-int i = 0;
-\LATE\ \FINAL\ int x = i++ == 0 ? x + 1 : 0;
-\VOID\ main() \{
-  print(x);
-\}
-\end{dartCode}
-
-\subsubsection{Boolean conditional evaluation}
 
 The requirement that the condition in a boolean conditional control expression
 (e.g. the a conditional statement, conditional element, \code{while} loop, etc) be
