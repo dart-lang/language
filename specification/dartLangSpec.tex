@@ -8759,8 +8759,8 @@ are the following:
   If generic function instantiation does apply to $e$
   and the provided actual type arguments are \List{T}{1}{s}
   then $e$ is a potentially constant and constant expression
-  if{}f each $T_j, j \in 1 .. s$, is a constant type expression
-  (\ref{constants}).
+  if{}f each $T_j, j \in 1 .. s$, is a constant type
+  (\ref{constantTypes}).
 \item
   An identifier expression denoting a parameter of a constant constructor
   (\ref{constantConstructors})
@@ -8784,7 +8784,8 @@ are the following:
   \code{\CONST{} <$T$>[$e_1$, \ldots, $e_n$]}, or
   \code{<$T$>[$e_1$, \ldots, $e_n$]}
   that occurs in a constant context,
-  is a potentially constant expression if $T$ is a constant type expression,
+  is a potentially constant expression if $T$ is a constant type
+  (\ref{constantTypes}),
   and $e_1$, \ldots{} , $e_n$ are constant expressions.
   It is further a constant expression
   if the list literal evaluates to an object.
@@ -8794,7 +8795,8 @@ are the following:
   \code{<$T$>\{$e_1$, \ldots, $e_n$\}}
   that occurs in a constant context,
   is a potentially constant expression
-  if $T$ is a constant type expression,
+  if $T$ is a constant type
+  (\ref{constantTypes}),
   and $e_1$, \ldots{} , $e_n$ are constant expressions.
   It is further a constant expression
   if the set literal evaluates to an object.
@@ -8937,7 +8939,8 @@ are the following:
 \item
   An expression of the form \code{$e$\,\,\AS\,\,$T$} is potentially constant
   if $e$ is a potentially constant expression
-  and $T$ is a potentially constant type expression,
+  and $T$ is a potentially constant type
+  (\ref{constantTypes}),
   and it is further constant if $e$ is constant.
   \commentary{%
     It is a \Error{compile-time error} to evaluate this constant expression
@@ -8947,55 +8950,13 @@ are the following:
 \item
   An expression of the form \code{$e$\,\,\IS\,\,$T$} is potentially constant
   if $e$ is a potentially constant expression
-  and $T$ is a constant type expression,
+  and $T$ is a constant type
+  (\ref{constantTypes}),
   and it is further constant if $e$ is constant.
 \item
   An expression of the form \code{$e$\,\,is!\,\,$T$}
   is equivalent to \code{!($e$\,\,is\,\,$T$)} in every way,
   including whether it's potentially constant or constant.
-\end{itemize}
-
-\LMHash{}%
-We introduce \Index{constant type expressions} and
-\Index{potentially constant type expressions}
-as follows:
-\begin{itemize}
-\item
-  Consider a type $T$
-  which is designated by a simple or qualified identifier
-  denoting a declaration of a class, mixin, or type alias,
-  which is not qualified by a deferred prefix,
-  and which is optionally followed by
-  type arguments of the form \code{<\List{T}{1}{r}>}.
-  $T$ is a potentially constant type expression
-  respectively a constant type expression
-  if{}f $T_j$ is a potentially constant respectively constant type expression
-  for each $j \in 1 .. r$.
-\item
-  A type of the form \code{FutureOr<$T$>}
-  is a potentially constant type expression
-  respectively a constant type expression
-  if{}f $T$ is a potentially constant type expression
-  respectively a constant type expression.
-\item
-  %% TODO(eernst): This does not allow for type variables introduced by
-  %% the type itself. `Function<X>(X)` could be a constant type expression,
-  %% but that is not covered by the current rules: `X` is a type variable,
-  %% and they are never constant type expressions.
-  A function type
-  \code{$R$ Function<\metavar{typeParameters}>(\metavar{parameterTypes})}
-  (where $R$ and \code{<\metavar{typeParameters}>} may be omitted)
-  is a is a potentially constant type expression
-  respectively a constant type expression
-  if $R$, \metavar{typeParameters}, and \metavar{parameterTypes}
-  (if present) contain only potentially constant type expressions
-  respectively constant type expressions.
-\item
-  The type \VOID{} is a potentially constant and a constant type expression.
-\item
-  The type \DYNAMIC{} is a potentially constant and a constant type expression.
-\item
-  A type variable is a potentially constant type expression.
 \end{itemize}
 
 % Being potentially constant is entirely structural, not type based,
@@ -9030,6 +8991,122 @@ As an example, consider:%
   \STATIC{} \CONST{} j = i; // \comment{a compile-time constant}
 \}
 \end{dartCode}
+
+
+\subsubsection{Constant Types}
+\LMLabel{constantTypes}
+
+\LMHash{}%
+A \Index{potentially constant type} respectively \Index{constant type}
+is a term derived from \synt{type} which is used as a type
+(\commentary{not as an expression that yields an instance of \code{Type}})
+that satisfy the following criteria:
+\begin{itemize}
+\item
+  Consider a type $T$
+  which is designated by a simple or qualified identifier
+  denoting a declaration of a class, mixin, or type alias,
+  which is not qualified by a deferred prefix,
+  and which is optionally followed by
+  type arguments of the form \code{<\List{T}{1}{r}>}.
+  $T$ is a potentially constant type respectively a constant type
+  if{}f $T_j$ is a potentially constant respectively constant type
+  for each $j \in 1 .. r$.
+\item
+  A type of the form \code{FutureOr<$T$>}
+  is a potentially constant type
+  respectively a constant type
+  if{}f $T$ is a potentially constant type
+  respectively a constant type.
+\item
+  %% TODO(eernst): This does not allow for type variables introduced by
+  %% the type itself. `Function<X>(X)` could be a constant type,
+  %% but that is not covered by the current rules: `X` is a type variable,
+  %% and they are never constant type.
+  A function type
+  \code{$R$ Function<\metavar{typeParameters}>(\metavar{parameterTypes})}
+  (where $R$ and \code{<\metavar{typeParameters}>} may be omitted)
+  is a is a potentially constant type
+  respectively a constant type
+  if $R$, \metavar{typeParameters}, and \metavar{parameterTypes}
+  (if present) contain only potentially constant types
+  respectively constant types.
+\item
+  The type \VOID{} is a potentially constant and constant type.
+\item
+  The type \DYNAMIC{} is a potentially constant and constant type.
+\item
+  A type variable is a potentially constant type.
+\end{itemize}
+
+
+\subsubsection{Type Variable Elimination in Constants}
+\LMLabel{typeVariableEliminationInConstants}
+
+\LMHash{}%
+\BlindDefineSymbol{e, e'}%
+Let $e$ be an expression that occurs in a constant context
+or whose first token is \CONST,
+and $e'$ be the expression yielded by type inference
+(\ref{typeInference})
+applied to $e$.
+In this case an additional transformation is applied:
+
+\LMHash{}%
+Let \List{X}{1}{r} be the free type variables declared by
+a class, mixin, extension, or method that contains $e$,
+such that for each $j \in 1 .. r$, each $X_j$
+occurs in a list of actual type arguments
+which was added by type inference
+(\commentary{%
+so $X_j$ has one or more occurrences in $e'$,
+but not all of those occurrences exist in $e$%
+}).
+For each $j \in 1 .. r$,
+if a specific occurrence of $X_j$ in $e'$ was added by type inference,
+the outermost enclosing type argument which was added by type inference
+and which contains this occurrence
+is replaced by its least closure with respect to \List{X}{1}{r}
+(\ref{leastAndGreatestClosureOfTypes}).
+
+\commentary{%
+Note that a free type variable which is explicitly used
+as or in a type argument in a constant expression
+is still a compile-time error.
+For example:%
+}
+
+\begin{dartCode}
+\CLASS\ G<X> \{
+  \VOID\ foo() \{
+    \CONST\ List<X> c = <X>[]; // \comment{Compile-time error.}
+    \CONST\ List<X> d = []; // \comment{Infers \code{<X>[]}, then becomes \code{<Never>[]}.}
+  \}
+\}
+\end{dartCode}
+
+\rationale{%
+The type variable is not a constant type
+(\ref{constantTypes}),
+which implies that the inferred expression $e'$ is a compile-time error.
+The additional transformation yields a subtype of the inferred type.
+It typically replaces the type variable by \code{Never},
+but it may also replace the type variable by a top type
+(if the type variable occurs contravariantly),
+or the type may be changed more radically
+(e.g., a generic function type using $X_j$ as a type parameter bound
+may be changed to \FUNCTION{} or \code{Never}).
+In any case, the chosen subtype often yields
+a constant which has no errors and is useful.%
+}
+
+\commentary{%
+For example, \code{\CONST\,\,<Never>[]} is actually usable as
+a list of any type,
+and it is not a problem that every invocation of \code{add}
+on this list will fail (statically or dynamically),
+because that is already true for every constant list.%
+}
 
 
 \subsubsection{Further Remarks on Constants and Potential Constants}
@@ -10791,8 +10868,8 @@ It is a \Error{compile-time error}
 if an element of a constant list literal is not constant.
 It is a \Error{compile-time error} if the type argument of a constant list literal
 (\commentary{no matter whether it is explicit or inferred})
-is not a constant type expression
-(\ref{constants}).
+is not a constant type
+(\ref{constantTypes}).
 
 \rationale{%
 The binding of a formal type parameter of an enclosing class or function
@@ -11604,8 +11681,8 @@ according to their \lit{==} operator
 (\ref{equality}).
 It is a \Error{compile-time error} if the type argument of a constant set literal
 (\commentary{no matter whether it is explicit or inferred})
-is not a constant type expression
-(\ref{constants}).
+is not a constant type
+(\ref{constantTypes}).
 
 \rationale{%
 The binding of a formal type parameter of an enclosing class or function
@@ -11809,8 +11886,8 @@ according to their \lit{==} operator
 (\ref{equality}).
 It is a \Error{compile-time error} if a type argument of a constant map literal
 (\commentary{no matter whether it is explicit or inferred})
-is not a constant type expression
-(\ref{constants}).
+is not a constant type
+(\ref{constantTypes}).
 
 \rationale{%
 The binding of a formal type parameter of an enclosing class or function
@@ -12582,7 +12659,7 @@ If $T$ is not a parameterized type, let $R$ be $T$.
 \LMHash{}%
 If $T$ is a parameterized type,
 it is a
-\Error{compile-time error} if $U_j$ is not a constant type expression for any
+\Error{compile-time error} if $U_j$ is not a constant type for any
 $j \in 1 .. m$.
 
 \begin{itemize}
@@ -25547,6 +25624,8 @@ With this change, the following is a valid migration of this code:
 
 \subsubsection{Null promotion}
 \LMLabel{}
+
+!!!
 
 The machinery of type promotion is extended to promote the type of
 variables based on nullability checks subject to the same set of
