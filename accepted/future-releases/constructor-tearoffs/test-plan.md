@@ -29,6 +29,8 @@ The possible constructors tear-offs
 * Check that constructors of non-generic classes can be torn off.
 * Check that constructors of instantiated generic classes can be torn off.
 * Check that constructors of uninstantiated generic classes can be torn off, and that type inference infers the correct type arguments.
+   * Instantiate to bounds if not context type, or not relevant context type.
+   * Based on context type if relevant.
 * Check that the resulting function has the correct static type and runtime type.
 
 The possible constructor types (all combinations except "const factory non-redirecting" exist):
