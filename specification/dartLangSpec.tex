@@ -641,7 +641,7 @@ or a subterm of an immediate subterm of $t$.
 We use a `$\triangle$' over an equals sign to indicate that
 a mathematical function or value is being defined.
 \commentary{%
-For example, \DefEquals{\metavar{successor}(k)}{k + 1}.%
+  For example, \DefEquals{\metavar{successor}(k)}{k + 1}.%
 }
 
 \LMHash{}%
@@ -1464,7 +1464,7 @@ is a library variable, a static variable, or an instance variable.
 A \IndexCustom{non-local variable}{variable!non-local}
 is a library variable, a class variable, or an instance variable.
 \commentary{%
-That is, any kind of variable which is not a local variable.%
+  That is, any kind of variable which is not a local variable.%
 }
 
 \LMHash{}%
@@ -1567,14 +1567,14 @@ In these cases, the declared type of \id{} is $T$.
 \EndCase
 
 \commentary{%
-Type inference is assumed to have taken place already
-(\ref{typeInference}).
-For example, an instance variable declaration of the form
-\code{\VAR\,\,x;} could have been transformed into
-\code{$T$\,\,x;} based on member signatures named \code{x} in superinterfaces
-of the enclosing class.
-Hence, the type \DYNAMIC{} is only used as mentioned above when
-type inference fails to provide a different type.%
+  Type inference is assumed to have taken place already
+  (\ref{typeInference}).
+  For example, an instance variable declaration of the form
+  \code{\VAR\,\,x;} could have been transformed into
+  \code{$T$\,\,x;} based on member signatures named \code{x} in superinterfaces
+  of the enclosing class.
+  Hence, the type \DYNAMIC{} is only used as mentioned above when
+  type inference fails to provide a different type.%
 }
 
 \LMHash{}%
@@ -1966,32 +1966,32 @@ int i = (() => (b = !b) ? (i = 10) : i + 1 )();
 \end{dartCode}
 
   \commentary{%
-  In this example, \code{main} invokes
-  the implicitly induced getter named \code{i},
-  and the variable \code{i} has not been bound at this point.
-  Hence, evaluation of the initializing expression proceeds.
-  This causes \code{b} to be toggled to \FALSE,
-  which again causes \code{i + 1} to be evaluated.
-  This causes the getter \code{i} to be invoked again,
-  and it is still true that the variable has not been bound,
-  so the initializing expression is evaluated again.
-  This toggles \code{b} to \TRUE,
-  which causes \code{i = 10} to be evaluated,
-  which causes the implicitly induced setter named \code{i=} to be invoked,
-  and the most recent invocation of the getter \code{i}
-  returns 10.
-  This makes \code{i + 1} evaluate to 11,
-  and the variable is then bound to 11.
-  Finally, the invocation of the getter \code{i} in \code{main}
-  completes returning 11.%
+    In this example, \code{main} invokes
+    the implicitly induced getter named \code{i},
+    and the variable \code{i} has not been bound at this point.
+    Hence, evaluation of the initializing expression proceeds.
+    This causes \code{b} to be toggled to \FALSE,
+    which again causes \code{i + 1} to be evaluated.
+    This causes the getter \code{i} to be invoked again,
+    and it is still true that the variable has not been bound,
+    so the initializing expression is evaluated again.
+    This toggles \code{b} to \TRUE,
+    which causes \code{i = 10} to be evaluated,
+    which causes the implicitly induced setter named \code{i=} to be invoked,
+    and the most recent invocation of the getter \code{i}
+    returns 10.
+    This makes \code{i + 1} evaluate to 11,
+    and the variable is then bound to 11.
+    Finally, the invocation of the getter \code{i} in \code{main}
+    completes returning 11.%
   }
 
   \commentary{%
-  Note that this is a change from the semantics older versions of Dart:
-  Throwing an exception during initializer evaluation no longer sets the
-  variable to \code{null},
-  and reading the variable during initializer evaluation
-  no longer causes a dynamic error.%
+    Note that this is a change from the semantics older versions of Dart:
+    Throwing an exception during initializer evaluation no longer sets the
+    variable to \code{null},
+    and reading the variable during initializer evaluation
+    no longer causes a dynamic error.%
   }
 \item \emph{Constant variable.}
   If $d$ declares a constant variable with the initializing expression $e$,
@@ -2097,8 +2097,7 @@ A function body is either:
   %
   Unless it is statically known that the body of the function
   cannot complete normally
-  (\commentary{that is, it cannot reach the end and ``fall through''},
-  cf.~\ref{statementCompletion}),
+  \commentary{(that is, it cannot reach the end and ``fall through'')}
   it is a \Error{compile-time error} if
   the addition of \code{\RETURN;} at the end of the body
   would be a compile-time error.
@@ -2177,29 +2176,29 @@ if an \ASYNC, \code{\ASYNC*} or \code{\SYNC*} modifier is attached to
 the body of a setter or constructor.
 
 \rationale{%
-An asynchronous setter would be of little use,
-since setters can only be used in the context of an assignment
-(\ref{assignment}),
-and an assignment expression always evaluates to
-the value of the assignment's right hand side.
-If the setter actually did its work asynchronously,
-one might imagine that one would return a future that resolved to
-the assignment's right hand side after the setter did its work.
+  An asynchronous setter would be of little use,
+  since setters can only be used in the context of an assignment
+  (\ref{assignment}),
+  and an assignment expression always evaluates to
+  the value of the assignment's right hand side.
+  If the setter actually did its work asynchronously,
+  one might imagine that one would return a future that resolved to
+  the assignment's right hand side after the setter did its work.
 
-An asynchronous constructor would, by definition, never return
-an instance of the class it purports to construct,
-but instead return a future.
-Calling such a beast via \NEW{} would be very confusing.
-If you need to produce an object asynchronously, use a method.
+  An asynchronous constructor would, by definition, never return
+  an instance of the class it purports to construct,
+  but instead return a future.
+  Calling such a beast via \NEW{} would be very confusing.
+  If you need to produce an object asynchronously, use a method.
 
-One could allow modifiers for factories.
-A factory for \code{Future} could be modified by \ASYNC,
-a factory for \code{Stream} could be modified by \code{\ASYNC*},
-and a factory for \code{Iterable} could be modified by \code{\SYNC*}.
-No other scenario makes sense because
-the object returned by the factory would be of the wrong type.
-This situation is very unusual so it is not worth making an exception
-to the general rule for constructors in order to allow it.%
+  One could allow modifiers for factories.
+  A factory for \code{Future} could be modified by \ASYNC,
+  a factory for \code{Stream} could be modified by \code{\ASYNC*},
+  and a factory for \code{Iterable} could be modified by \code{\SYNC*}.
+  No other scenario makes sense because
+  the object returned by the factory would be of the wrong type.
+  This situation is very unusual so it is not worth making an exception
+  to the general rule for constructors in order to allow it.%
 }
 
 \LMHash{}%
@@ -3890,7 +3889,7 @@ the values of properties.
 
 \LMHash{}%
 A \Index{library setter} is a setter that is declared in a library scope
-(\commentary{i.e., it is a top-level declaration}).
+\commentary{(i.e., it is a top-level declaration)}.
 Setters declared in a class come in two variants.
 A setter definition that is prefixed with the \STATIC{} modifier defines
 a static setter.
@@ -3931,8 +3930,8 @@ a getter named $v$ with return type $S$,
 and $S$ is not a subtype of $T$.
 
 \commentary{%
-It is not sufficient that $S$ is assignable to $T$.
-In particular, if $S$ is \DYNAMIC{} then $T$ must be a top type.%
+  It is not sufficient that $S$ is assignable to $T$.
+  In particular, if $S$ is \DYNAMIC{} then $T$ must be a top type.%
 }
 
 \commentary{%
@@ -4729,11 +4728,12 @@ otherwise the return type is
 where \List{X}{1}{s} are the type parameters of the enclosing class.
 
 \commentary{%
-In particular, it is an error for a factory constructor to return an expression
-whose type is potentially nullable,
-except that a factory constructor in the class \code{Null},
-had it existed,
-could return an expression of type \code{Null}.%
+  In particular, it is an error for a factory constructor
+  to return an expression
+  whose type is potentially nullable,
+  except that a factory constructor in the class \code{Null},
+  had it existed,
+  could return an expression of type \code{Null}.%
 }
 
 \LMHash{}%
@@ -5796,9 +5796,9 @@ and let $\Mall{} = \{ m_i\;|\;i \in \Nall\}$.
 Let \mall{} be the result of applying \TopMergeTypeName{} to
 \NormalizedTypeOfName{} of the elements in \Mall.
 \commentary{%
-Note that these types are mutual subtypes,
-and hence the normalized forms are structurally identical,
-modulo different choices of top type in some locations.%
+  Note that these types are mutual subtypes,
+  and hence the normalized forms are structurally identical,
+  modulo different choices of top type in some locations.%
 }
 The combined member signature is then $m'$,
 which is obtained from \mall{} by adding the modifier \COVARIANT{}
@@ -6155,8 +6155,8 @@ The interface $M_S$ is called the
 of the mixin declaration $M$.
 
 \commentary{%
-If the mixin declaration $M$ has only one declared superinterface, $T_1$,
-then the superinvocation interface is the interface of $T_1$.%
+  If the mixin declaration $M$ has only one declared superinterface, $T_1$,
+  then the superinvocation interface is the interface of $T_1$.%
 }
 
 \LMHash{}%
@@ -7938,9 +7938,9 @@ when it is used in any of the following ways:
   or it occurs in the corresponding location in a constant object expression
   (\ref{const}).
   \commentary{%
-  This includes the case where the actual type arguments have been provided
-  by type inference, which is assumed to have taken place already
-  (\ref{typeInference}).%
+    This includes the case where the actual type arguments have been provided
+    by type inference, which is assumed to have taken place already
+    (\ref{typeInference}).%
   }
 \item $T$ occurs in the \synt{constructorDesignation} of
   a redirecting factory constructor header
@@ -8851,8 +8851,8 @@ are the following:
   If generic function instantiation does apply to $e$
   and the provided actual type arguments are \List{T}{1}{s}
   then $e$ is a potentially constant and constant expression
-  if{}f each $T_j, j \in 1 .. s$, is a constant type expression
-  (\ref{constants}).
+  if{}f each $T_j, j \in 1 .. s$, is a constant type
+  (\ref{constantTypes}).
 \item
   An identifier expression denoting a parameter of a constant constructor
   (\ref{constantConstructors})
@@ -9010,7 +9010,8 @@ are the following:
 
 \item An expression of the form \code{$e$\,\,\AS\,\,$T$} is potentially constant
   if $e$ is a potentially constant expression
-  and $T$ is a potentially constant type expression,
+  and $T$ is a potentially constant type
+  (\ref{constantTypes}),
   and it is further constant if $e$ is constant.
   \commentary{%
     It is a \Error{compile-time error} to evaluate this constant expression
@@ -9020,55 +9021,13 @@ are the following:
 \item
   An expression of the form \code{$e$\,\,\IS\,\,$T$} is potentially constant
   if $e$ is a potentially constant expression
-  and $T$ is a constant type expression,
+  and $T$ is a constant type
+  (\ref{constantTypes}),
   and it is further constant if $e$ is constant.
 \item
   An expression of the form \code{$e$\,\,is!\,\,$T$}
   is equivalent to \code{!($e$\,\,is\,\,$T$)} in every way,
   including whether it's potentially constant or constant.
-\end{itemize}
-
-\LMHash{}%
-We introduce \Index{constant type expressions} and
-\Index{potentially constant type expressions}
-as follows:
-\begin{itemize}
-\item
-  Consider a type $T$
-  which is designated by a simple or qualified identifier
-  denoting a declaration of a class, mixin, or type alias,
-  which is not qualified by a deferred prefix,
-  and which is optionally followed by
-  type arguments of the form \code{<\List{T}{1}{r}>}.
-  $T$ is a potentially constant type expression
-  respectively a constant type expression
-  if{}f $T_j$ is a potentially constant respectively constant type expression
-  for each $j \in 1 .. r$.
-\item
-  A type of the form \code{FutureOr<$T$>}
-  is a potentially constant type expression
-  respectively a constant type expression
-  if{}f $T$ is a potentially constant type expression
-  respectively a constant type expression.
-\item
-  %% TODO(eernst): This does not allow for type variables introduced by
-  %% the type itself. `Function<X>(X)` could be a constant type expression,
-  %% but that is not covered by the current rules: `X` is a type variable,
-  %% and they are never constant type expressions.
-  A function type
-  \code{$R$ Function<\metavar{typeParameters}>(\metavar{parameterTypes})}
-  (where $R$ and \code{<\metavar{typeParameters}>} may be omitted)
-  is a is a potentially constant type expression
-  respectively a constant type expression
-  if $R$, \metavar{typeParameters}, and \metavar{parameterTypes}
-  (if present) contain only potentially constant type expressions
-  respectively constant type expressions.
-\item
-  The type \VOID{} is a potentially constant and a constant type expression.
-\item
-  The type \DYNAMIC{} is a potentially constant and a constant type expression.
-\item
-  A type variable is a potentially constant type expression.
 \end{itemize}
 
 % Being potentially constant is entirely structural, not type based,
@@ -9103,6 +9062,122 @@ depends on itself.
   \STATIC{} \CONST{} j = i; // \comment{a compile-time constant}
 \}
 \end{dartCode}
+
+
+\subsubsection{Constant Types}
+\LMLabel{constantTypes}
+
+\LMHash{}%
+A \Index{potentially constant type} respectively \Index{constant type}
+is a term derived from \synt{type} which is used as a type
+\commentary{(not as an expression that yields an instance of \code{Type})}
+that satisfy the following criteria:
+\begin{itemize}
+\item
+  Consider a type $T$
+  which is designated by a simple or qualified identifier
+  denoting a declaration of a class, mixin, or type alias,
+  which is not qualified by a deferred prefix,
+  and which is optionally followed by
+  type arguments of the form \code{<\List{T}{1}{r}>}.
+  $T$ is a potentially constant type respectively a constant type
+  if{}f $T_j$ is a potentially constant respectively constant type
+  for each $j \in 1 .. r$.
+\item
+  A type of the form \code{FutureOr<$T$>}
+  is a potentially constant type
+  respectively a constant type
+  if{}f $T$ is a potentially constant type
+  respectively a constant type.
+\item
+  %% TODO(eernst): This does not allow for type variables introduced by
+  %% the type itself. `Function<X>(X)` could be a constant type,
+  %% but that is not covered by the current rules: `X` is a type variable,
+  %% and they are never constant type.
+  A function type
+  \code{$R$ Function<\metavar{typeParameters}>(\metavar{parameterTypes})}
+  (where $R$ and \code{<\metavar{typeParameters}>} may be omitted)
+  is a is a potentially constant type
+  respectively a constant type
+  if $R$, \metavar{typeParameters}, and \metavar{parameterTypes}
+  (if present) contain only potentially constant types
+  respectively constant types.
+\item
+  The type \VOID{} is a potentially constant and constant type.
+\item
+  The type \DYNAMIC{} is a potentially constant and constant type.
+\item
+  A type variable is a potentially constant type.
+\end{itemize}
+
+
+\subsubsection{Type Variable Elimination in Constants}
+\LMLabel{typeVariableEliminationInConstants}
+
+\LMHash{}%
+\BlindDefineSymbol{e, e'}%
+Let $e$ be an expression that occurs in a constant context
+or whose first token is \CONST,
+and $e'$ be the expression yielded by type inference
+(\ref{typeInference})
+applied to $e$.
+In this case an additional transformation is applied:
+
+\LMHash{}%
+Let \List{X}{1}{r} be the free type variables declared by
+a class, mixin, extension, or method that contains $e$,
+such that for each $j \in 1 .. r$, each $X_j$
+occurs in a list of actual type arguments
+which was added by type inference
+\commentary{%
+  (so $X_j$ has one or more occurrences in $e'$,
+  but not all of those occurrences exist in $e$)%
+}.
+For each $j \in 1 .. r$,
+if a specific occurrence of $X_j$ in $e'$ was added by type inference,
+the outermost enclosing type argument which was added by type inference
+and which contains this occurrence
+is replaced by its least closure with respect to \List{X}{1}{r}
+(\ref{leastAndGreatestClosureOfTypes}).
+
+\commentary{%
+  Note that a free type variable which is explicitly used
+  as or in a type argument in a constant expression
+  is still a compile-time error.
+  For example:%
+}
+
+\begin{dartCode}
+\CLASS\ G<X> \{
+  \VOID\ foo() \{
+    \CONST\ List<X> c = <X>[]; // \comment{Compile-time error.}
+    \CONST\ List<X> d = []; // \comment{Infers \code{<X>[]}, then becomes \code{<Never>[]}.}
+  \}
+\}
+\end{dartCode}
+
+\rationale{%
+  The type variable is not a constant type
+  (\ref{constantTypes}),
+  which implies that the inferred expression $e'$ is a compile-time error.
+  The additional transformation yields a subtype of the inferred type.
+  It typically replaces the type variable by \code{Never},
+  but it may also replace the type variable by a top type
+  (if the type variable occurs contravariantly),
+  or the type may be changed more radically
+  (e.g., a generic function type using $X_j$ as a type parameter bound
+  may be changed to \FUNCTION{} or \code{Never}).
+  In any case, the chosen subtype often yields
+  a constant which has no errors and is useful.%
+}
+
+\commentary{%
+  For example, \code{\CONST\,\,<Never>[]} is actually usable as
+  a list of any type,
+  and it is not a problem that every invocation of \code{add}
+  on this list will fail (statically or dynamically),
+  because that is already true for every constant list.%
+}
 
 
 \subsubsection{Further Remarks on Constants and Potential Constants}
@@ -9499,11 +9574,11 @@ that represent the boolean values true and false respectively.
 They are the \IndexCustom{boolean literals}{literal!boolean}.
 
 \commentary{%
-We use the notation `the \TRUE{} object' and `the \FALSE{} object'
-rather than a plain `the true object` and `the false object`
-(as opposed to \NULL{} which evaluates to `the null object',
-not `the \NULL{} object')
-because phrases like `the false object' are too easy to misunderstand.%
+  We use the notation `the \TRUE{} object' and `the \FALSE{} object'
+  rather than a plain `the true object` and `the false object`
+  (as opposed to \NULL{} which evaluates to `the null object',
+  not `the \NULL{} object')
+  because phrases like `the false object' are too easy to misunderstand.%
 }
 
 \begin{grammar}
@@ -10873,8 +10948,8 @@ if an element of a constant list literal is not constant.
 It is a \Error{compile-time error} if
 the type argument of a constant list literal
 \commentary{(no matter whether it is explicit or inferred)}
-is not a constant type expression
-(\ref{constants}).
+is not a constant type
+(\ref{constantTypes}).
 
 \rationale{%
   The binding of a formal type parameter of an enclosing class or function
@@ -10972,16 +11047,16 @@ the ambiguity is resolved in favor of the set literal
 and not the map literal.
 
 \commentary{%
-In other words, conditional expressions are given preference.
-For example, \code{\{ a as bool ? - 3 : 3 \}} and
-\code{\{ a is int ? - 3 : 3 \}} are syntactically ambiguous
-in this manner.
-The former can be parsed as a set literal or as a map literal,
-depending on whether the \lit{?} is considered to make \code{bool} nullable,
-or it is considered as part of a conditional expression.
-The other expression has a similar ambiguity.
-They are both resolved to be set literals
-containing a conditional expression.%
+  In other words, conditional expressions are given preference.
+  For example, \code{\{ a as bool ? - 3 : 3 \}} and
+  \code{\{ a is int ? - 3 : 3 \}} are syntactically ambiguous
+  in this manner.
+  The former can be parsed as a set literal or as a map literal,
+  depending on whether the \lit{?} is considered to make \code{bool} nullable,
+  or it is considered as part of a conditional expression.
+  The other expression has a similar ambiguity.
+  They are both resolved to be set literals
+  containing a conditional expression.%
 }
 
 \LMHash{}%
@@ -10994,11 +11069,11 @@ the first of which is a null aware subscript,
 parsers shall choose to parse as a conditional expression.
 
 \commentary{%
-For example, \code{\{ a?[b]:c \}} can be parsed either as a set
-literal or a map literal, depending on whether the \lit{?} is
-interpreted as part of a null aware subscript or as part of a
-conditional expression.
-It is resolved as the latter.%
+  For example, \code{\{ a?[b]:c \}} can be parsed either as a set
+  literal or a map literal, depending on whether the \lit{?} is
+  interpreted as part of a null aware subscript or as part of a
+  conditional expression.
+  It is resolved as the latter.%
 }
 
 \LMHash{}%
@@ -11350,7 +11425,7 @@ Next:
 \noindent
 \BlindDefineSymbol{S}%
 Otherwise $P$ is \code{Map<$P_k$,\,\,$P_v$>}
-(\commentary{because $P$ was created such that it only has those three forms}).
+\commentary{(because $P$ was created such that it only has those three forms)}.
 If $\ell$ is `\code{...$e$}' then let $S$ be
 the inferred type of $e$ in context $P$;
 if $\ell$ is `\code{...?$e$}' then let $S'$ be
@@ -11695,8 +11770,8 @@ according to their \lit{==} operator
 It is a \Error{compile-time error} if the type argument of
 a constant set literal
 \commentary{(no matter whether it is explicit or inferred)}
-is not a constant type expression
-(\ref{constants}).
+is not a constant type
+(\ref{constantTypes}).
 
 \rationale{%
   The binding of a formal type parameter of an enclosing class or function
@@ -11901,9 +11976,9 @@ according to their \lit{==} operator
 (\ref{equality}).
 It is a \Error{compile-time error} if a type argument of
 a constant map literal
-(\commentary{no matter whether it is explicit or inferred})
-is not a constant type expression
-(\ref{constants}).
+\commentary{(no matter whether it is explicit or inferred)}
+is not a constant type
+(\ref{constantTypes}).
 
 \rationale{%
   The binding of a formal type parameter of an enclosing class or function
@@ -12749,7 +12824,7 @@ If $T$ is not a parameterized type, let $R$ be $T$.
 \LMHash{}%
 If $T$ is a parameterized type,
 it is a
-\Error{compile-time error} if $U_j$ is not a constant type expression for any
+\Error{compile-time error} if $U_j$ is not a constant type for any
 $j \in 1 .. m$.
 
 \begin{itemize}
@@ -13227,7 +13302,7 @@ and let $\parameterList{P}$ be the formal parameter list
 \noindent
 where each parameter may be marked \COVARIANT{}
 and each named parameter may be marked \REQUIRED{}
-(\commentary{not shown, but allowed}).
+\commentary{(not shown, but allowed)}.
 
 \LMHash{}%
 We say that $\argumentList{S}$ is
@@ -14471,8 +14546,8 @@ this section is only concerned with
 the syntactic classification and terminology.
 
 \commentary{%
-For example, one kind of member invocation is an ordinary method invocation
-(\ref{ordinaryInvocation}).%
+  For example, one kind of member invocation is an ordinary method invocation
+  (\ref{ordinaryInvocation}).%
 }
 
 \LMHash{}%
@@ -14498,23 +14573,23 @@ An
 is a member invocation which is not conditional.
 
 \commentary{%
-For a simple member invocation the corresponding member name is
-the name of the member which is invoked
-in the case where the member invocation invokes an instance member.
-For a composite member invocation it is the name of the getter
-and the basename of both the getter and the setter.%
+  For a simple member invocation the corresponding member name is
+  the name of the member which is invoked
+  in the case where the member invocation invokes an instance member.
+  For a composite member invocation it is the name of the getter
+  and the basename of both the getter and the setter.%
 }
 
 \rationale{%
-Note that $r$ cannot be \SUPER{}
-even though \code{\SUPER.m()} invokes an instance method.
-This is because the semantics of a superinvocation is different from
-that of other invocations.
-Among the binary operators, \lit{==} is not included.
-This is because evaluation of \code{$e_1$ == $e_2$}
-involves more steps than an instance member invocation.
-Similarly, \lit{\&\&}, and \lit{||} are not included
-because their evaluation does not involve method invocation.%
+  Note that $r$ cannot be \SUPER{}
+  even though \code{\SUPER.m()} invokes an instance method.
+  This is because the semantics of a superinvocation is different from
+  that of other invocations.
+  Among the binary operators, \lit{==} is not included.
+  This is because evaluation of \code{$e_1$ == $e_2$}
+  involves more steps than an instance member invocation.
+  Similarly, \lit{\&\&}, and \lit{||} are not included
+  because their evaluation does not involve method invocation.%
 }
 
 \LMHash{}%
@@ -14643,7 +14718,7 @@ the section about type aliases
 
 \LMHash{}%
 Otherwise
-(\commentary{when $C$ does not denote a type alias}),
+\commentary{(when $C$ does not denote a type alias)},
 a \Error{compile-time error} occurs
 unless $C$ denotes a class, a mixin, or an extension that declares
 a static member named $m$,
@@ -14751,10 +14826,10 @@ instance member named $m$, unless either:
 \end{itemize}
 
 \commentary{%
-Note that if $T$ is potentially nullable then $m$ must be
-a member of \code{Object},
-because those are the only members of the interface of $T$
-(\ref{typeNullability}).%
+  Note that if $T$ is potentially nullable then $m$ must be
+  a member of \code{Object},
+  because those are the only members of the interface of $T$
+  (\ref{typeNullability}).%
 }
 
 \LMHash{}%
@@ -15087,16 +15162,16 @@ In this case, $e$ is desugared to
 \LetThree{$v$}{$e_0$}{$v_1$}{$v$.$c_1$,\ $\cdots$}{$v_k$}{$v$.$c_k$}{$v$}.
 
 \commentary{%
-Note that if the static type of $e_0$ is a potentially nullable type $T_0$
-then the type of $v$ is also $T_0$,
-and then if $T_0$ is not \DYNAMIC{},
-and, for some $j$,
-the first selector in $c_j$ accesses a member $m$ which is not
-a member of \code{Object},
-then a compile-time error occurs.
-In other words, the member accesses at the beginning of each cascade section
-give rise to compile-time errors for a potentially null receiver
-just like an ordinary invocation or property extraction.%
+  Note that if the static type of $e_0$ is a potentially nullable type $T_0$
+  then the type of $v$ is also $T_0$,
+  and then if $T_0$ is not \DYNAMIC{},
+  and, for some $j$,
+  the first selector in $c_j$ accesses a member $m$ which is not
+  a member of \code{Object},
+  then a compile-time error occurs.
+  In other words, the member accesses at the beginning of each cascade section
+  give rise to compile-time errors for a potentially null receiver
+  just like an ordinary invocation or property extraction.%
 }
 
 \LMHash{}%
@@ -15375,11 +15450,7 @@ $e$ is treated as \code{$e$.\CALL}.
   by desugaring it to a method closurization on \CALL.
   This only occurs when it is statically known that it is a callable object,
   and when the context type requires a function.
-\end{document}
-
-\begin{document}
-
-Note that the static type of $e$ can not be potentially nullable,
+  Note that the static type of $e$ can not be potentially nullable,
   because no such types have a method named \CALL.%
 }
 \EndCase
@@ -16251,16 +16322,16 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
   \begin{itemize}
   \item
     Consider the case where $D$ has the modifiers \LATE{} and \FINAL{}
-    (\commentary{%
-      in which case $v$ has no initializer and is not definitely assigned,
-      or a compile-time error would have occurred%
-    }).
+    \commentary{%
+      (in which case $v$ has no initializer and is not definitely assigned,
+      or a compile-time error would have occurred)%
+    }.
     If $v$ has previously been bound to an object then a dynamic error occurs.
     Otherwise, $v$ is bound to $o$, and then $a$ evaluates to $o$
     (\ref{expressionEvaluation}).
   \item
     Consider the case where $D$ does not have the modifiers \LATE{} and \FINAL{}
-    (\commentary{it could have one of them, just not both}).
+    \commentary{(it could have one of them, just not both)}.
     In this case the variable $v$ is bound to $o$,
     and then $a$ evaluates to $o$.
 
@@ -16977,19 +17048,19 @@ Similarly, consider an expression $e$ of the form
 $C$, where the static type of $e_2$ is $T_2$. Let $S$ be the formal
 parameter type of the concrete declaration of \code{operator\,\,==}
 found by method lookup in $C$
-(\commentary{if that search succeeds, otherwise it is a compile-time error}).
+\commentary{(if that search succeeds, otherwise it is a compile-time error)}.
 It is a \Error{compile-time error} unless $T_2$ is assignable to
 \code{$S$?}.
 
 \commentary{%
-Even if the static type of $e_1$ is potentially nullable, the
-parameter type of the \code{operator\,\,==} of the corresponding
-non-null type is taken into account, because that instance method will
-not be invoked when $e_1$ is null. Similarly, it is not a
-\Error{compile-time error} for the static type of $e_2$ to be
-potentially nullable, even when the parameter type of said
-\code{operator\,\,==} is non-nullable.  This is again safe, because
-the instance method will not be invoked when $e_2$ is null.%
+  Even if the static type of $e_1$ is potentially nullable, the
+  parameter type of the \code{operator\,\,==} of the corresponding
+  non-null type is taken into account, because that instance method will
+  not be invoked when $e_1$ is null. Similarly, it is not a
+  \Error{compile-time error} for the static type of $e_2$ to be
+  potentially nullable, even when the parameter type of said
+  \code{operator\,\,==} is non-nullable.  This is again safe, because
+  the instance method will not be invoked when $e_2$ is null.%
 }
 
 \LMHash{}%
@@ -18050,10 +18121,11 @@ A \synt{typeIdentifier} is an identifier which can be used
 as the name of a type declaration.
 
 \commentary{%
-A \synt{qualifiedName} is not an identifier expression,
-but we specify its syntax here because it is used in several different contexts,
-and it is more closely related to the plain identifier
-than it is to any single one of those grammar rules where it is used.%
+  A \synt{qualifiedName} is not an identifier expression,
+  but we specify its syntax here because it is used
+  in several different contexts,
+  and it is more closely related to the plain identifier
+  than it is to any single one of those grammar rules where it is used.%
 }
 
 \begin{grammar}
@@ -18201,7 +18273,7 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
   A \Error{compile-time error} occurs if both of the following hold:
   \begin{itemize}
   \item $D$ has the modifier \LATE, or it has the modifier \FINAL{}
-    (\commentary{it can have both}),
+    \commentary{(it can have both)},
     or the variable \id{} has a type which is potentially non-nullable
     (\ref{typeNullability}).
   \item The variable \id{} is definitely unassigned.
@@ -18879,11 +18951,11 @@ then a dynamic error occurs
 \commentary{(it does not matter whether $o$ is the same object as $o'$)}.
 
 \commentary{%
-Note that this includes the implicit initializing writes induced by
-evaluating the variable.
-Hence, the following program encounters a dynamic error
-when it evaluates \code{x},
-just before it would call \code{print}.%
+  Note that this includes the implicit initializing writes induced by
+  evaluating the variable.
+  Hence, the following program encounters a dynamic error
+  when it evaluates \code{x},
+  just before it would call \code{print}.%
 }
 
 \begin{dartCode}
@@ -19089,9 +19161,9 @@ Consider a loop of the form
 \code{\FOR\ ($D$;\,\,$c$;\,\,\List{e}{1}{n})\ $S$},
 where $D$ is a local variable declaration declaring a variable $v$,
 $c$ is an expression or empty
-(\commentary{used to decide whether to run the body one more time}),
+\commentary{(used to decide whether to run the body one more time)},
 and \List{e}{1}{n} is an expression list or empty
-(\commentary{used to update the iteration state}).
+\commentary{(used to update the iteration state)}.
 
 \LMHash{}%
 A \Error{compile-time error} occurs if $D$ has
@@ -19103,11 +19175,11 @@ assignable to \code{bool}.
 Consider a loop of the form
 \code{\FOR\ ($e$;\,\,$c$;\,\,\List{e}{1}{n})\ $S$},
 where $e$ is an expression or empty
-(\commentary{used to perform initialization}),
+\commentary{(used to perform initialization)},
 $c$ is an expression or empty
-(\commentary{used to decide whether to run the body one more time}),
+\commentary{(used to decide whether to run the body one more time)},
 and \List{e}{1}{n} is an expression list or empty
-(\commentary{used to update the iteration state}).
+\commentary{(used to update the iteration state)}.
 
 \LMHash{}%
 A \Error{compile-time error} occurs if the static type of $c$ is not
@@ -19236,9 +19308,9 @@ It is a \Error{compile-time error} if a traditional for loop (\ref{forLoop}) is
 prefixed by the \AWAIT{} keyword.
 
 \rationale{%
-An asynchronous loop would make no sense within a synchronous function,
-for the same reasons that an await expression makes no sense
-in a synchronous function.%
+  An asynchronous loop would make no sense within a synchronous function,
+  for the same reasons that an await expression makes no sense
+  in a synchronous function.%
 }
 
 \LMHash{}%
@@ -19602,7 +19674,7 @@ against the value of a variable \id{} proceeds as follows:
 The expression \code{$e_j$ == \id} is evaluated to an object $o$.
 If $o$ is \FALSE{} then if $j < n$ then the following case,
 \code{\CASE\,\,$e_{j+1}$:\,\,$s_{j+1}$}, is matched against \id{};
-otherwise (\commentary{where $j = n$}),
+otherwise \commentary{(where $j = n$)},
 the \DEFAULT{} clause's statements are executed
 (\ref{case-execute}).
 If $o$ is \TRUE, let $h$ be the smallest number
@@ -19631,7 +19703,7 @@ against the value of a variable \id{} proceeds as follows:
 The expression \code{$e_j$ == \id} is evaluated to an object $o$.
 If $o$ is \FALSE{} then if $j < n$ then the following case,
 \code{\CASE\,\,$e_{j+1}$:\,\,$s_{j+1}$}, is matched against \id;
-otherwise (\commentary{where $j = n$}),
+otherwise \commentary{(where $j = n$)},
 the switch statement completes normally.
 If $o$ is \TRUE, let $h$ be the smallest integer
 such that $h \ge j$ and $s_h$ is non-empty.
@@ -20000,11 +20072,11 @@ That function, \FutureValueTypeOfName, is defined as follows:
 \end{itemize}
 
 \commentary{%
-Note that it is a compile-time error unless
-the return type of an asynchronous non-generator function is
-a supertype of \code{Future<Never>},
-which means that the last case will only be applied
-when $S$ is \code{Object} or a top type.%
+  Note that it is a compile-time error unless
+  the return type of an asynchronous non-generator function is
+  a supertype of \code{Future<Never>},
+  which means that the last case will only be applied
+  when $S$ is \code{Object} or a top type.%
 }
 
 \LMHash{}%
@@ -20164,8 +20236,9 @@ Then the return statement $s$ completes returning $o$
 (\ref{statementCompletion}).
 
 \commentary{%
-The case where the evaluation of $e$ throws is covered by the general rule
-which propagates the throwing completion from $e$ to $s$ to the function body.%
+  The case where the evaluation of $e$ throws is covered by the general rule
+  which propagates the throwing completion
+  from $e$ to $s$ to the function body.%
 }
 \EndCase
 
@@ -20192,8 +20265,8 @@ Then the return statement $s$ completes returning $r$
 \EndCase
 
 \commentary{%
-The cases where $f$ is a generator or a generative constructor cannot occur,
-because $s$ is then a compile-time error.%
+  The cases where $f$ is a generator or a generative constructor cannot occur,
+  because $s$ is then a compile-time error.%
 }
 
 \LMHash{}%
@@ -21679,10 +21752,10 @@ it is invoked with the following two actual arguments:
   An object whose run-time type implements \code{List<String>}.
 \item
   An object specified when the current isolate $i$ was created,
-  (\commentary{%
-  for example through the invocation of \code{Isolate.spawnUri}
-  that spawned $i$%
-  }),
+  \commentary{%
+    (for example through the invocation of \code{Isolate.spawnUri}
+    that spawned $i$)%
+  },
   or the null object if no such object was supplied.
   A dynamic error occurs if
   the run-time type of this object is not a subtype of
@@ -21703,9 +21776,9 @@ it is invoked with no arguments.
 In each of the above three cases,
 an implementation is free to provide additional arguments
 allowed by the signature of \code{main}
-(\commentary{%
-the above rules ensure that the corresponding parameters are optional%
-}).
+\commentary{%
+  (the above rules ensure that the corresponding parameters are optional)%
+}.
 But the implementation must ensure that a dynamic error occurs
 if an actual argument does not have a run-time type which is
 a subtype of the declared type of the parameter.
@@ -22357,7 +22430,9 @@ $[U_1/X_1, \ldots, U_s/X_s]T$.
 If $U$ is a type we may repeatedly replace each subterm of $U$
 which is a parameterized type applying a type alias to some type arguments
 by its alias expansion in one step
-\commentary{(including the non-generic case where there are no type arguments)}.
+\commentary{%
+  (including the non-generic case where there are no type arguments)%
+}.
 When no further steps are possible we say that the resulting type is the
 \IndexCustom{transitive alias expansion}{%
   type alias!transitive alias expansion}
@@ -23184,18 +23259,18 @@ and that $T$ is
 if{}f $T$ is not nullable.
 
 \commentary{%
-Nullable types are types which are
-definitively known to include the null object,
-regardless of the value of any type variables.
-This is equivalent to the syntactic criterion that $T$ is any of:
-
-\begin{itemize}[itemsep=-0.5ex]
-\item \VOID.
-\item \DYNAMIC.
-\item \code{Null}.
-\item \code{$S$?}, for any type $S$.
-\item \code{FutureOr<$S$>}, for any nullable type $S$.
-\end{itemize}%
+  Nullable types are types which are
+  definitively known to include the null object,
+  regardless of the value of any type variables.
+  This is equivalent to the syntactic criterion that $T$ is any of:
+  
+  \begin{itemize}[itemsep=-0.5ex]
+  \item \VOID.
+  \item \DYNAMIC.
+  \item \code{Null}.
+  \item \code{$S$?}, for any type $S$.
+  \item \code{FutureOr<$S$>}, for any nullable type $S$.
+  \end{itemize}%
 }
 
 \LMHash{}%
@@ -23206,36 +23281,36 @@ and that $T$ is
 if{}f $T$ is not non-nullable.
 
 \commentary{%
-Non-nullable types are types which are definitively known to
-\emph{not} include the null object,
-regardless of the value of any type variables.
-This is equivalent to the syntactic criterion that $T$ is any of:
-
-\begin{itemize}[itemsep=-0.5ex]
-\item \code{Never}.
-\item Any function type.
-\item The type \FUNCTION.
-\item Any interface type except \code{Null}.
-\item \code{FutureOr<$S$>}, for any non-nullable type $S$.
-\item Any type variable $X$ whose bound is non-nullable.
-\item Any type of the form \code{$X$\,\&\,$S$}, where
-  $X$ is a type variable and $S$ is non-nullable.
-\end{itemize}%
+  Non-nullable types are types which are definitively known to
+  \emph{not} include the null object,
+  regardless of the value of any type variables.
+  This is equivalent to the syntactic criterion that $T$ is any of:
+  
+  \begin{itemize}[itemsep=-0.5ex]
+  \item \code{Never}.
+  \item Any function type.
+  \item The type \FUNCTION.
+  \item Any interface type except \code{Null}.
+  \item \code{FutureOr<$S$>}, for any non-nullable type $S$.
+  \item Any type variable $X$ whose bound is non-nullable.
+  \item Any type of the form \code{$X$\,\&\,$S$}, where
+    $X$ is a type variable and $S$ is non-nullable.
+  \end{itemize}%
 }
 
 \commentary{%
-Some types are neither nullable nor non-nullable.
-For example, a type variable $X$ whose bound is nullable, say \code{int?},
-is neither nullable nor non-nullable:
-If the value of $X$ is \code{int} then it does not include the null object,
-and hence $X$ cannot be a nullable type.
-Conversely, if the value of $X$ is \code{int?}\ or \code{Null}
-then it \emph{does} include the null object,
-so it cannot be non-nullable.
-
-It follows that all four concepts are distinct:
-The given type $X$ is potentially nullable, but not nullable,
-and $X$ is also potentially non-nullable, but not non-nullable.%
+  Some types are neither nullable nor non-nullable.
+  For example, a type variable $X$ whose bound is nullable, say \code{int?},
+  is neither nullable nor non-nullable:
+  If the value of $X$ is \code{int} then it does not include the null object,
+  and hence $X$ cannot be a nullable type.
+  Conversely, if the value of $X$ is \code{int?}\ or \code{Null}
+  then it \emph{does} include the null object,
+  so it cannot be non-nullable.
+  
+  It follows that all four concepts are distinct:
+  The given type $X$ is potentially nullable, but not nullable,
+  and $X$ is also potentially non-nullable, but not non-nullable.%
 }
 
 \LMHash{}%
@@ -23244,23 +23319,23 @@ which maps a type $T$ to the corresponding non-nullable type,
 to the extent said non-nullable type is expressible.
 
 \commentary{%
-For example, \code{int?}\ is mapped to \code{int},
-a non-nullable result,
-but \DYNAMIC{} is mapped to \DYNAMIC,
-even though that is still a nullable type.
-If $X$ is a type variable whose bound is nullable,
-\code{FutureOr<$X$>?}\ is mapped to \code{FutureOr<$X$>},
-which is still a potentially nullable type.
-We cannot map it to \code{FutureOr<\NonNullType{$X$}>}
-because that would be unsound:
-An expression of type \code{FutureOr<$X$>?}
-may evaluate to an instance of \code{Future<$X$>} (which is not \NULL),
-but \code{Future<$X$>} might not be a subtype
-of \code{FutureOr<\NonNullType{$X$}>}.
-Also, this could introduce an intersection type which is a type argument,
-and that violates the constraints on intersection types
-(\ref{intersectionTypes}),
-so it is lucky that we don't need it.%
+  For example, \code{int?}\ is mapped to \code{int},
+  a non-nullable result,
+  but \DYNAMIC{} is mapped to \DYNAMIC,
+  even though that is still a nullable type.
+  If $X$ is a type variable whose bound is nullable,
+  \code{FutureOr<$X$>?}\ is mapped to \code{FutureOr<$X$>},
+  which is still a potentially nullable type.
+  We cannot map it to \code{FutureOr<\NonNullType{$X$}>}
+  because that would be unsound:
+  An expression of type \code{FutureOr<$X$>?}
+  may evaluate to an instance of \code{Future<$X$>} (which is not \NULL),
+  but \code{Future<$X$>} might not be a subtype
+  of \code{FutureOr<\NonNullType{$X$}>}.
+  Also, this could introduce an intersection type which is a type argument,
+  and that violates the constraints on intersection types
+  (\ref{intersectionTypes}),
+  so it is lucky that we don't need it.%
 }
 
 \begin{itemize}
@@ -23288,11 +23363,11 @@ The \IndexCustom{interface}{interface!of potentially nullable type}
 of $T$ is the interface of \code{Object}.
 
 \commentary{%
-For example, even though \code{$e_1$.isEven} is allowed
-when the type of $e_1$ is \code{int},
-\code{$e_2$.isEven} is a compile-time error
-when the type of $e_2$ is \code{int?}\ or
-a type variable $X$ whose bound is \code{int?}.%
+  For example, even though \code{$e_1$.isEven} is allowed
+  when the type of $e_1$ is \code{int},
+  \code{$e_2$.isEven} is a compile-time error
+  when the type of $e_2$ is \code{int?}\ or
+  a type variable $X$ whose bound is \code{int?}.%
 }
 
 
@@ -23340,33 +23415,33 @@ It is defined as follows:
 \end{itemize}
 
 \commentary{%
-Note that \TopMergeTypeName{} is not defined for
-types which are structurally different,
-apart from being or containing different top types.
-When \TopMergeTypeName{} is used in this specification,
-each case where \TopMergeTypeName{} is undefined
-is handled explicitly.%
+  Note that \TopMergeTypeName{} is not defined for
+  types which are structurally different,
+  apart from being or containing different top types.
+  When \TopMergeTypeName{} is used in this specification,
+  each case where \TopMergeTypeName{} is undefined
+  is handled explicitly.%
 }
 
 \rationale{%
-\TopMergeTypeName{} yields \code{Object?}\ in the case where
-the arguments differ in the choice of top types.
-This reflects the intention that the resulting type should yield
-a high degree of static type safety.%
+  \TopMergeTypeName{} yields \code{Object?}\ in the case where
+  the arguments differ in the choice of top types.
+  This reflects the intention that the resulting type should yield
+  a high degree of static type safety.%
 }
 
 \commentary{%
-For instance, \TopMergeTypeName{} is used during the computation of
-the interface of a class member which is declared
-in multiple superinterfaces.
-If a class $C$ inherits a method $m$ that accepts
-an argument of type \code{List<\DYNAMIC>} from one superinterface,
-and another method $m$ that accepts
-an argument of type \code{List<\VOID>}
-from another superinterface,
-the parameter will have type \code{List<Object?>} in $C$,
-and this will ensure a more strict static typing by default than, say,
-\code{List<\DYNAMIC>}.%
+  For instance, \TopMergeTypeName{} is used during the computation of
+  the interface of a class member which is declared
+  in multiple superinterfaces.
+  If a class $C$ inherits a method $m$ that accepts
+  an argument of type \code{List<\DYNAMIC>} from one superinterface,
+  and another method $m$ that accepts
+  an argument of type \code{List<\VOID>}
+  from another superinterface,
+  the parameter will have type \code{List<Object?>} in $C$,
+  and this will ensure a more strict static typing by default than, say,
+  \code{List<\DYNAMIC>}.%
 }
 
 \LMHash{}%
@@ -23442,8 +23517,8 @@ top and \code{Object} types.
 The \Index{\IsMoreBottomTypeName} predicate defines an almost total order on
 bottom and \code{Null} types.
 \commentary{%
-This does not consistently order
-two different type variables with the same bound.%
+  This does not consistently order
+  two different type variables with the same bound.%
 }
 
 \begin{itemize}
@@ -23483,10 +23558,10 @@ is a term derived from \synt{typeName}
 that denotes a type which is not a type alias.
 
 \commentary{%
-For instance, \DYNAMIC{} is an atomic type,
-and so is \code{prefix.MyClass},
-if it denotes a class,
-but \code{List<int>} and \code{\VOID\,\,\FUNCTION()} are not atomic.%
+  For instance, \DYNAMIC{} is an atomic type,
+  and so is \code{prefix.MyClass},
+  if it denotes a class,
+  but \code{List<int>} and \code{\VOID\,\,\FUNCTION()} are not atomic.%
 }
 
 \LMHash{}%
@@ -23497,37 +23572,37 @@ even though they have a different syntactic structure.
 Type normalization erases the latter distinction.
 
 \commentary{%
-For instance, \DYNAMIC{} and \code{Object?}\ are subtypes of each other,
-but they are not considered to be the same type.
-This is useful because it allows us to treat two expressions very differently
-even though the set of objects that they could evaluate to
-is exactly the same.
-
-Similarly, \code{FutureOr<Object>} and \code{Object} are mutual subtypes,
-and so are \code{Never} and a type variable $X$ whose bound is \code{Never}.
-
-The normalization which is described here will preserve
-distinctions like the former (such as \DYNAMIC{} and \code{Object?}),
-and it will eliminate distinctions like the latter
-(such as \code{Never} and $X$).
-
-In particular, \SubtypeNE{S}{T} and \SubtypeNE{T}{S} holds if and only if
-\NormalizedTypeOf{$T$} is syntactically equal to \NormalizedTypeOf{$S$},
-modulo replacement of atomic top types,
-and modulo replacement of terms derived from \synt{typeName}
-denoting the same type
-(such as \code{List<C<\DYNAMIC>{}>} and \code{List<myPrefix.C<\VOID>{}>}).%
+  For instance, \DYNAMIC{} and \code{Object?}\ are subtypes of each other,
+  but they are not considered to be the same type.
+  This is useful because it allows us to treat two expressions very differently
+  even though the set of objects that they could evaluate to
+  is exactly the same.
+  
+  Similarly, \code{FutureOr<Object>} and \code{Object} are mutual subtypes,
+  and so are \code{Never} and a type variable $X$ whose bound is \code{Never}.
+  
+  The normalization which is described here will preserve
+  distinctions like the former (such as \DYNAMIC{} and \code{Object?}),
+  and it will eliminate distinctions like the latter
+  (such as \code{Never} and $X$).
+  
+  In particular, \SubtypeNE{S}{T} and \SubtypeNE{T}{S} holds if and only if
+  \NormalizedTypeOf{$T$} is syntactically equal to \NormalizedTypeOf{$S$},
+  modulo replacement of atomic top types,
+  and modulo replacement of terms derived from \synt{typeName}
+  denoting the same type
+  (such as \code{List<C<\DYNAMIC>{}>} and \code{List<myPrefix.C<\VOID>{}>}).%
 }
 
 \LMHash{}%
 The function \Index{\NormalizedTypeOfName} is then defined as follows:
 \BlindDefineSymbol{T_a, T_u, T_r}%
 Let $T_a$ be a type
-(\commentary{where `a' stands for `argument'}).
+\commentary{(where `a' stands for `argument')}.
 Let $T_u$ be the transitive alias expansion of $T_a$
-(\commentary{`u' for `unaliased'}, \ref{typedef}).
+\commentary{(`u' for `unaliased')}.
 Then \DefEquals{\NormalizedTypeOf{$T_a$}}{T_r}
-(\commentary{`r' for result}),
+\commentary{(`r' for result)},
 where $T_r$ is determined as follows:
 
 \begin{itemize}
@@ -23595,28 +23670,28 @@ where $T_r$ is determined as follows:
 \end{itemize}
 
 \commentary{%
-There is currently no place in the type system
-where normalization can apply to intersection types
-(\code{$X$\,\&\,$T$}).
-The rule is included here for completeness.
-Normalization is based on the following reductions:
-
-\begin{displaymath}
-  \begin{array}{l@{\quad\mapsto\quad}l}
-    \code{T??} & \code{T?}\\
-    \code{\VOID?} & \code{\VOID}\\
-    \code{\DYNAMIC?} & \code{\DYNAMIC}\\
-    \code{Null?} & \code{Null}\\
-    \code{Never?} & \code{Null}\\
-    \code{$X$\,\,\EXTENDS\,\,Never} & \code{Never}\\
-    \code{FutureOr<$T$>} & \code{$T$}%
-    \mbox{, if \SubtypeNE{\code{Future<$T$>}}{T}}\\
-    \code{FutureOr<$T$>} & \code{Future<$T$>}%
-    \mbox{, if \SubtypeNE{T}{\code{Future<$T$>}}}\\
-    \code{$X$\,\,\&\,\,$T$} & \code{$T$}\mbox{, if \SubtypeNE{T}{X}}\\
-    \code{$X$\,\,\&\,\,$T$} & \code{$X$}\mbox{, if \SubtypeNE{X}{T}}
-  \end{array}
-\end{displaymath}
+  There is currently no place in the type system
+  where normalization can apply to intersection types
+  (\code{$X$\,\&\,$T$}).
+  The rule is included here for completeness.
+  Normalization is based on the following reductions:
+  
+  \begin{displaymath}
+    \begin{array}{l@{\quad\mapsto\quad}l}
+      \code{T??} & \code{T?}\\
+      \code{\VOID?} & \code{\VOID}\\
+      \code{\DYNAMIC?} & \code{\DYNAMIC}\\
+      \code{Null?} & \code{Null}\\
+      \code{Never?} & \code{Null}\\
+      \code{$X$\,\,\EXTENDS\,\,Never} & \code{Never}\\
+      \code{FutureOr<$T$>} & \code{$T$}%
+      \mbox{, if \SubtypeNE{\code{Future<$T$>}}{T}}\\
+      \code{FutureOr<$T$>} & \code{Future<$T$>}%
+      \mbox{, if \SubtypeNE{T}{\code{Future<$T$>}}}\\
+      \code{$X$\,\,\&\,\,$T$} & \code{$T$}\mbox{, if \SubtypeNE{T}{X}}\\
+      \code{$X$\,\,\&\,\,$T$} & \code{$X$}\mbox{, if \SubtypeNE{X}{T}}
+    \end{array}
+  \end{displaymath}
 }
 
 
@@ -23630,29 +23705,29 @@ by computing an upper respectively lower bound of $T$ known as the
 least respectively the greatest closure of $T$.
 
 \commentary{%
-The greatest closure $T_G$ of a type $T$ differs from
-instantiation to bound
-(\ref{instantiationToBound})
-in several ways.
-First, instantiation to bound yields a type based on
-a generic class or type alias $G$,
-whereas the greatest closure takes a parameterized type,
-so $T$ has received some actual type arguments
-and is of the form \code{$G$<\List{T}{1}{s}>}.
-Next, the greatest closure is an upper bound, i.e.,
-\SubtypeNE{T}{T_G} is guaranteed.
-Instantiation to bound on a generic class $G$ will yield a type $T_I$
-such that \SubtypeNE{\code{$G$<\List{U}{1}{s}>}}{T_I}
-for all \List{U}{1}{s} such that
-\code{$G$<\List{U}{1}{s}>} is a regular-bounded type;
-but in some cases that subtype relationship does not hold,
-especially with type aliases involving invariance.
-Also, instantiation to bound uses the declared bounds whenever possible,
-but the greatest closure uses \code{Object?}\ immediately.
-For instance, with \code{\CLASS\,\,C<X\,\,\EXTENDS\,\,num> \{\}},
-the greatest closure of \code{C<$Y$>} with respect to $\{Y\}$ is
-the super-bounded type \code{C<Object?>},
-but the instantiation to bound on \code{C} is \code{C<num>}.%
+  The greatest closure $T_G$ of a type $T$ differs from
+  instantiation to bound
+  (\ref{instantiationToBound})
+  in several ways.
+  First, instantiation to bound yields a type based on
+  a generic class or type alias $G$,
+  whereas the greatest closure takes a parameterized type,
+  so $T$ has received some actual type arguments
+  and is of the form \code{$G$<\List{T}{1}{s}>}.
+  Next, the greatest closure is an upper bound, i.e.,
+  \SubtypeNE{T}{T_G} is guaranteed.
+  Instantiation to bound on a generic class $G$ will yield a type $T_I$
+  such that \SubtypeNE{\code{$G$<\List{U}{1}{s}>}}{T_I}
+  for all \List{U}{1}{s} such that
+  \code{$G$<\List{U}{1}{s}>} is a regular-bounded type;
+  but in some cases that subtype relationship does not hold,
+  especially with type aliases involving invariance.
+  Also, instantiation to bound uses the declared bounds whenever possible,
+  but the greatest closure uses \code{Object?}\ immediately.
+  For instance, with \code{\CLASS\,\,C<X\,\,\EXTENDS\,\,num> \{\}},
+  the greatest closure of \code{C<$Y$>} with respect to $\{Y\}$ is
+  the super-bounded type \code{C<Object?>},
+  but the instantiation to bound on \code{C} is \code{C<num>}.%
 }
 
 \LMHash{}%
@@ -23685,8 +23760,9 @@ The invariant occurrences are treated as described explicitly below.
   and the greatest closure of $S$ with respect to $L$ is \code{Object?}.
 \item
   If $S$ does not contain any type variables from $L$
-  (\commentary{%
-    for instance, if $S$ is an atomic type, \ref{typeNormalization}})
+  \commentary{%
+    (for instance, if $S$ is an atomic type, \ref{typeNormalization})%
+  }
   then the least and greatest closure of $S$ is $S$.
 \item
   If $S$ is a type of the form $T?$ then
@@ -23823,10 +23899,10 @@ A \Index{type schema} is a type where
 \FreeContext{} may occur as if it were a type variable.
 
 \commentary{%
-For example, \code{List<\FreeContext>} and \code{int} are type schemas.
-Type schemas are used to express and propagate constraints on types
-during type inference
-(\ref{typeInference}).%
+  For example, \code{List<\FreeContext>} and \code{int} are type schemas.
+  Type schemas are used to express and propagate constraints on types
+  during type inference
+  (\ref{typeInference}).%
 }
 
 \LMHash{}%
@@ -23837,9 +23913,9 @@ the least and greatest closure with respect to $L \cup \{\FreeContext\}$,
 where \FreeContext{} is treated as a type variable.
 
 \commentary{%
-Note that the least closure of a type schema is always a subtype of
-any type which matches the schema, and the greatest closure of a type
-schema is always a supertype of any type which matches the schema.%
+  Note that the least closure of a type schema is always a subtype of
+  any type which matches the schema, and the greatest closure of a type
+  schema is always a supertype of any type which matches the schema.%
 }
 
 
@@ -23883,7 +23959,7 @@ which is the unique function type $T_0$ such that $T$ is $T_0$ bounded.
 Some types known as
 \IndexCustom{class building types}{type!class building}
 can be used in specific contexts where a class is required
-(\commentary{e.g., when specifying a superinterface of a class}).
+\commentary{(e.g., when specifying a superinterface of a class)}.
 We say that a type $T$ is a class building type
 if none of the following criteria is satisfied:
 
@@ -23919,12 +23995,12 @@ where $C$ denotes a class different from \code{Never} or a mixin,
 and \List{T}{1}{k} are arbitrary types.
 
 \commentary{%
-Non-generic classes are included because we can have $k = 0$.
-
-In particular, the following types are \emph{not} interface types:
-\VOID, \DYNAMIC, \FUNCTION, \code{FutureOr<$T$>} for any $T$, \code{Never},
-any function type, any type variable, any intersection type,
-and any type of the form \code{$T$?}.%
+  Non-generic classes are included because we can have $k = 0$.
+  
+  In particular, the following types are \emph{not} interface types:
+  \VOID, \DYNAMIC, \FUNCTION, \code{FutureOr<$T$>} for any $T$, \code{Never},
+  any function type, any type variable, any intersection type,
+  and any type of the form \code{$T$?}.%
 }
 
 
@@ -23941,12 +24017,12 @@ The right operand is required to be a subtype of
 the bound of said type variable.
 
 \commentary{%
-An intersection type will never occur as a nested type, that is,
-it will never occurs as
-an actual type argument in a parameterized type,
-as a parameter type or a return type in a function type,
-as the right operand of another intersection type,
-or as the operand of the nullable type operator \lit{?}.%
+  An intersection type will never occur as a nested type, that is,
+  it will never occurs as
+  an actual type argument in a parameterized type,
+  as a parameter type or a return type in a function type,
+  as the right operand of another intersection type,
+  or as the operand of the nullable type operator \lit{?}.%
 }
 
 \LMHash{}%
@@ -23956,13 +24032,13 @@ We then use the syntax \code{$X$\,\&\,$T$} to designate the intersection type
 that intersects $X$ and $T$.
 
 \commentary{%
-Note again that \code{$X$\,\&\,$T$} cannot occur in source code,
-but it can emerge as the type of an expression.
-Intersection types in Dart are used to hold the information that
-the object which is the value of a specific variable
-has a type which is a type variable $X$ with bound $B$,
-and it is also known to have some other type $T$ which is
-a subtype of $B$.%
+  Note again that \code{$X$\,\&\,$T$} cannot occur in source code,
+  but it can emerge as the type of an expression.
+  Intersection types in Dart are used to hold the information that
+  the object which is the value of a specific variable
+  has a type which is a type variable $X$ with bound $B$,
+  and it is also known to have some other type $T$ which is
+  a subtype of $B$.%
 }
 
 \LMHash{}%
@@ -23979,24 +24055,24 @@ The system library \code{dart:core} exports a type named \code{Never}.
 No object has a dynamic type which is \code{Never} or a subtype thereof.
 
 \commentary{%
-In other words, \code{Never} is the empty type.
-\code{Never} is a subtype of every other type in Dart
-(\ref{subtypeRules}).%
+  In other words, \code{Never} is the empty type.
+  \code{Never} is a subtype of every other type in Dart
+  (\ref{subtypeRules}).%
 }
 
 \rationale{%
-\code{Never} is a useful type for several reasons:
-It can be used to indicate that
-the evaluation of an expression will never complete normally,
-e.g., because it calls a function that always throws.
-This allows for a more precise control flow analysis.
+  \code{Never} is a useful type for several reasons:
+  It can be used to indicate that
+  the evaluation of an expression will never complete normally,
+  e.g., because it calls a function that always throws.
+  This allows for a more precise control flow analysis.
 
-Also, \code{Never} can be used to express some extreme types:
-For instance, the object \code{\CONST\,\,<Never>[]} can be used
-in any situation where a \code{List<$T$>} is required,
-for any $T$ whatsoever.
-Similarly, a variable of type \code{Object?\,\,\FUNCTION(Never)}
-can be used to hold any function that accepts a single, positional argument.%
+  Also, \code{Never} can be used to express some extreme types:
+  For instance, the object \code{\CONST\,\,<Never>[]} can be used
+  in any situation where a \code{List<$T$>} is required,
+  for any $T$ whatsoever.
+  Similarly, a variable of type \code{Object?\,\,\FUNCTION(Never)}
+  can be used to hold any function that accepts a single, positional argument.%
 }
 
 \LMHash{}%
@@ -24004,31 +24080,31 @@ can be used to hold any function that accepts a single, positional argument.%
 % statically, so `(throw 0).noSuchMethod(1);` is OK. The analyzer will
 % actually hint that `(1)` is dead code, so it isn't accepted silently.
 Every member access
-(\commentary{%
-such as calling a method, operator, or getter, or tearing off a method%
-})
+\commentary{%
+  (such as calling a method, operator, or getter, or tearing off a method)%
+}
 on a receiver whose static type is \code{Never}
 is treated by the static analysis as producing a result of type \code{Never}.
 Invoking an expression of type \code{Never} as a function
 is treated by the static analysis as producing a result of type \code{Never}.
 In both cases, no syntactically correct list of actual arguments is an error
-(\commentary{%
-except of course that individual expressions in that list could have errors%
-}).
+\commentary{%
+  (except of course that individual expressions in that list could have errors)%
+}.
 
 \commentary{%
-Hence, with a receiver whose static type is \code{Never},
-it is not an error to invoke any method, setter, or getter, or to
-tear off any method.
-In other words, \code{Never} is considered to have all members,
-with all signatures.
-
-Implementations that provide feedback about dead or unreachable code
-are encouraged to indicate
-that arguments passed to any such invocation
-will not be evaluated at run time,
-and similarly for any arguments passed to an expression of type \code{Never}
-which is invoked as a function.%
+  Hence, with a receiver whose static type is \code{Never},
+  it is not an error to invoke any method, setter, or getter, or to
+  tear off any method.
+  In other words, \code{Never} is considered to have all members,
+  with all signatures.
+  
+  Implementations that provide feedback about dead or unreachable code
+  are encouraged to indicate
+  that arguments passed to any such invocation
+  will not be evaluated at run time,
+  and similarly for any arguments passed to an expression of type \code{Never}
+  which is invoked as a function.%
 }
 
 
@@ -24042,15 +24118,15 @@ and that is the null object
 (\ref{null}).
 
 \commentary{%
-In other words, \code{Null} is a singleton type.
-Apart from top types
-(\ref{superBoundedTypes}),
-\code{Null} is a subtype of all types of the form \code{$T$?},
-and of all types $S$ such that \futureOrBase{S} is
-a top type or a type of the form \code{$T$?}.
-The only non-trivial subtypes of \code{Null} are
-\code{Never} and subtypes of \code{Never}
-(\ref{subtypeRules}).%
+  In other words, \code{Null} is a singleton type.
+  Apart from top types
+  (\ref{superBoundedTypes}),
+  \code{Null} is a subtype of all types of the form \code{$T$?},
+  and of all types $S$ such that \futureOrBase{S} is
+  a top type or a type of the form \code{$T$?}.
+  The only non-trivial subtypes of \code{Null} are
+  \code{Never} and subtypes of \code{Never}
+  (\ref{subtypeRules}).%
 }
 
 \LMHash{}%
@@ -24061,20 +24137,20 @@ The \code{Null} class declares exactly the same members
 with the same signatures as the class \code{Object}.
 
 \commentary{%
-The \code{Null} class has a primitive \lit{==} operator
-(\ref{theOperatorEqualsEquals}).%
+  The \code{Null} class has a primitive \lit{==} operator
+  (\ref{theOperatorEqualsEquals}).%
 }
 
 \rationale{%
-\code{Null} is mainly used implicitly in
-a type of the form \code{$T$?}\ for some $T$.
-If $e$ is an expression of type \code{$T$?}\ that evaluates to an object $o$,
-then $o$ can be an instance of a subtype of $T$,
-or it can be the null object.
-The latter situation is commonly interpreted to mean that
-the computation did not yield a result.
-In this sense, \code{Null} can be considered to model
-the property of being optional.%
+  \code{Null} is mainly used implicitly in
+  a type of the form \code{$T$?}\ for some $T$.
+  If $e$ is an expression of type \code{$T$?}\ that evaluates to an object $o$,
+  then $o$ can be an instance of a subtype of $T$,
+  or it can be the null object.
+  The latter situation is commonly interpreted to mean that
+  the computation did not yield a result.
+  In this sense, \code{Null} can be considered to model
+  the property of being optional.%
 }
 
 
@@ -24084,7 +24160,7 @@ the property of being optional.%
 \LMHash{}%
 The Dart runtime supports a very limited kind of introspective reflection
 for all programs
-(\commentary{that is, without including any reflection support mechanisms}).
+\commentary{(that is, without including any reflection support mechanisms)}.
 In particular, evaluation of a type literal as an expression yields
 an object whose run-time type is a subtype of the built-in type \code{Type}.
 System libraries may deliver such objects as well.
@@ -24109,20 +24185,20 @@ if{}f $S_1$ and $S_2$ are syntactically equal,
 up to equivalence of bound variables,
 and up to replacement of identifiers or qualified identifiers
 resolving to the same type declaration
-(\commentary{%
-e.g., \code{C} and \code{prefix.C} could resolve to
-the same class declaration%
-}),
+\commentary{%
+  (e.g., \code{C} and \code{prefix.C} could resolve to
+  the same class declaration)%
+},
 and excluding the case where two identifiers or qualified identifiers
 occurring at corresponding positions in $S_1$ and $S_2$
 are syntactically identical,
 but resolve to different declarations
-(\commentary{%
-e.g., one occurrence of \code{C} could resolve to a
-class declaration imported from a library $L_1$,
-and another occurrence of \code{C} could resolve to a
-class declaration imported from a different library $L_2$%
-}).
+\commentary{%
+  (e.g., one occurrence of \code{C} could resolve to a
+  class declaration imported from a library $L_1$,
+  and another occurrence of \code{C} could resolve to a
+  class declaration imported from a different library $L_2$)%
+}.
 
 \LMHash{}%
 A reified type identifies the underlying type in the sense that
@@ -24135,15 +24211,15 @@ if{}f $T_1$ and $T_2$ are the same type as defined above.
 Conversely, \code{$v_1$ == $v_3$} evaluates to \FALSE.
 
 \commentary{%
-Note that we do not equate primitive top types.
-For example,
-reified types reifying \code{List<\VOID>} and \code{List<\DYNAMIC>}
-are not equal.
-However, a type variable which is declared by a function type
-is treated as if it were consistently renamed to a fresh name,
-thus making types identical if possible
-(also known as alpha equivalence).
-For example:%
+  Note that we do not equate primitive top types.
+  For example,
+  reified types reifying \code{List<\VOID>} and \code{List<\DYNAMIC>}
+  are not equal.
+  However, a type variable which is declared by a function type
+  is treated as if it were consistently renamed to a fresh name,
+  thus making types identical if possible
+  (also known as alpha equivalence).
+  For example:%
 }
 
 \begin{dartCode}
@@ -24156,12 +24232,12 @@ For example:%
 \end{dartCode}
 
 \commentary{%
-Note that reified types have a primitive operator \lit{==}
-(\ref{theOperatorEqualsEquals}).
-This property cannot be assumed for arbitrary expressions of type \code{Type}.
-For instance, we can declare
-\code{\CLASS\,\,MyType\,\,\EXTENDS\,\,Type \{\ldots\}}
-and override operator \lit{==}.%
+  Note that reified types have a primitive operator \lit{==}
+  (\ref{theOperatorEqualsEquals}).
+  This property cannot be assumed for arbitrary expressions of type \code{Type}.
+  For instance, we can declare
+  \code{\CLASS\,\,MyType\,\,\EXTENDS\,\,Type \{\ldots\}}
+  and override operator \lit{==}.%
 }
 
 \LMHash{}%
@@ -24174,31 +24250,31 @@ We then have \code{identical($v_1$, $v_2$)} if{}f
 \code{$v_1$\,\,==\,\,$v_2$}.
 
 \commentary{%
-In other words, constant reified types are canonicalized.
-For runtime implementations which implement identity by choosing a
-canonical representative for the equivalence class of equal instances,
-the choice of what type object to canonicalize to is not
-observable in the language.
+  In other words, constant reified types are canonicalized.
+  For runtime implementations which implement identity by choosing a
+  canonical representative for the equivalence class of equal instances,
+  the choice of what type object to canonicalize to is not
+  observable in the language.
 }
 
 \rationale{%
-As mentioned at the beginning of this section,
-reified types support a very limited kind of introspective reflection.
-In particular, we can compare reified types for equality,
-and in the case where two reified types are equal
-it is known that they reify types which are subtypes of each other
-(that is, they are ``the same type'' with respect to subtyping).
-But we cannot compare reified types for any inequality, that is,
-we cannot determine whether one is a subtype of the other.
-It is also impossible to deconstruct a reified type.
-E.g., we cannot obtain the reified type for \code{$T$}
-by performing operations on a given reified type for \code{List<$T$>}.
+  As mentioned at the beginning of this section,
+  reified types support a very limited kind of introspective reflection.
+  In particular, we can compare reified types for equality,
+  and in the case where two reified types are equal
+  it is known that they reify types which are subtypes of each other
+  (that is, they are ``the same type'' with respect to subtyping).
+  But we cannot compare reified types for any inequality, that is,
+  we cannot determine whether one is a subtype of the other.
+  It is also impossible to deconstruct a reified type.
+  E.g., we cannot obtain the reified type for \code{$T$}
+  by performing operations on a given reified type for \code{List<$T$>}.
 
-This design was chosen in order to ensure that Dart programs
-do not incur the substantial implications in terms of
-program size and run-time performance
-that are very difficult to avoid
-when a more powerful form of reflection is supported.%
+  This design was chosen in order to ensure that Dart programs
+  do not incur the substantial implications in terms of
+  program size and run-time performance
+  that are very difficult to avoid
+  when a more powerful form of reflection is supported.%
 }
 
 
@@ -25169,27 +25245,27 @@ that determine type promotion of local variables.
 
 \LMHash{}%
 At each location where a local variable can be referred
-(\commentary{%
-e.g., as an expression, or as the left hand side of an assignment%
-}),
+\commentary{%
+  (e.g., as an expression, or as the left hand side of an assignment)%
+},
 the variable has a status as being
 \IndexCustom{definitely assigned}{local variable!definitely assigned} or
 \IndexCustom{definitely unassigned}{local variable!definitely unassigned}.
 
 \commentary{%
-The precise flow analysis which determines this status at each location
-will be specified in a future version of this specification.
-The intuition is that
-when a local variable $v$ is definitely assigned at a given location $\ell$
-then it is guaranteed that $v$ is bound to an object
-if and when the execution reaches $\ell$.
-Similarly, if $v$ is definitely unassigned at location $\ell$
-then it is guaranteed that $v$ is unbound
-if and when the execution reaches $\ell$.
-It is possible for a local variable to be
-both not definitely assigned and not definitely unassigned,
-namely, in the situation where
-it is not statically known whether the variable is bound or unbound.%
+  The precise flow analysis which determines this status at each location
+  will be specified in a future version of this specification.
+  The intuition is that
+  when a local variable $v$ is definitely assigned at a given location $\ell$
+  then it is guaranteed that $v$ is bound to an object
+  if and when the execution reaches $\ell$.
+  Similarly, if $v$ is definitely unassigned at location $\ell$
+  then it is guaranteed that $v$ is unbound
+  if and when the execution reaches $\ell$.
+  It is possible for a local variable to be
+  both not definitely assigned and not definitely unassigned,
+  namely, in the situation where
+  it is not statically known whether the variable is bound or unbound.%
 }
 
 \LMHash{}%
@@ -25234,16 +25310,16 @@ and it has a type $S$, defined below, which is a subtype of $T$.
 Type promotion refers to the situation where $S$ is different from $T$.
 
 \commentary{%
-Intuitively, this is the kind of situation where
-knowledge about the code which has been executed
-justifies giving the local variable a ``better'' type
-than the declared type.
-Type promotion is also sometimes known as `occurrence typing'.
-
-For example, if \code{x} is declared as \code{int?\,\,x;} and we know
-that it was updated by the assignment \code{x\,=\,1} most recently,
-or we know that \code{x\,\,\IS\,\,int} evaluated to \TRUE,
-then we can give \code{x} the type \code{int} rather than \code{int?}.%
+  Intuitively, this is the kind of situation where
+  knowledge about the code which has been executed
+  justifies giving the local variable a ``better'' type
+  than the declared type.
+  Type promotion is also sometimes known as `occurrence typing'.
+  
+  For example, if \code{x} is declared as \code{int?\,\,x;} and we know
+  that it was updated by the assignment \code{x\,=\,1} most recently,
+  or we know that \code{x\,\,\IS\,\,int} evaluated to \TRUE,
+  then we can give \code{x} the type \code{int} rather than \code{int?}.%
 }
 
 \LMHash{}%
@@ -25264,31 +25340,31 @@ when the type of $v$ at $\ell$ is $S$,
 and $S$ is a proper subtype of the declared type of $v$.
 
 \rationale{%
-We use the term `the type of $v$' to denote the complex typing property
-which is associated with a control flow analysis and
-a location dependent notion of type promotion,
-and we use `the declared type of $v$' to denote the much simpler concept of
-the type associated with $v$ based on its declaration alone.
-It might seem much more natural to use `the type of $v$' to denote the latter,
-and something like `the promoted type of $v$' to denote the former.
+  We use the term `the type of $v$' to denote the complex typing property
+  which is associated with a control flow analysis and
+  a location dependent notion of type promotion,
+  and we use `the declared type of $v$' to denote the much simpler concept of
+  the type associated with $v$ based on its declaration alone.
+  It might seem much more natural to use `the type of $v$' to denote the latter,
+  and something like `the promoted type of $v$' to denote the former.
 
-However, we would then have a terminology where
-`the static type of an expression $e$'
-should be defined to mean `the promoted type of $e$'
-in the case where $e$ is a local variable,
-and `the static type of $e$' in all other cases,
-and we would need to talk about `the promoted type of $v$'
-in a large number of locations where we currently
-use `the type of $v$'.
+  However, we would then have a terminology where
+  `the static type of an expression $e$'
+  should be defined to mean `the promoted type of $e$'
+  in the case where $e$ is a local variable,
+  and `the static type of $e$' in all other cases,
+  and we would need to talk about `the promoted type of $v$'
+  in a large number of locations where we currently
+  use `the type of $v$'.
 
-So the chosen terminology allows us to confine the explicit reference to
-the special typing properties of local variables:
-they are the only expressions that may have different
-types at different locations in the same scope,
-except that other expressions may of course contain local variables
-and hence get different types at different locations.
-This yields a simpler and more consistent terminology
-concerning the static type of an expression in general.%
+  So the chosen terminology allows us to confine the explicit reference to
+  the special typing properties of local variables:
+  they are the only expressions that may have different
+  types at different locations in the same scope,
+  except that other expressions may of course contain local variables
+  and hence get different types at different locations.
+  This yields a simpler and more consistent terminology
+  concerning the static type of an expression in general.%
 }
 
 \LMHash{}%
@@ -25300,8 +25376,8 @@ or the type \NonNullType{$U$},
 where the type $U$ is a member of $M$.
 
 \commentary{%
-In particular, if $T?$ is a type of interest
-then $T$ is also a type of interest.%
+  In particular, if $T?$ is a type of interest
+  then $T$ is also a type of interest.%
 }
 
 \LMHash{}%
@@ -25309,20 +25385,20 @@ The initial stack of types of interest for $v$ has exactly one element,
 namely the declared type.
 This is the stack of types of interest
 for the declaring occurrence of the name of $v$
-(\commentary{%
-that is, the very first time the variable is mentioned, \ref{variables}%
-}).
+\commentary{%
+  (that is, the very first time the variable is mentioned, \ref{variables})%
+}.
 
 \commentary{%
-The flow analysis will be specified in
-a future version of this specification.
-Among other things, the flow analysis determines how to compute
-the stack of types of interest for each local variable $v$
-at a given location $\ell$,
-based on the same properties of locations
-that are immediate predecessors of $\ell$
-in the control flow graph,
-ending in the declaration of $v$.%
+  The flow analysis will be specified in
+  a future version of this specification.
+  Among other things, the flow analysis determines how to compute
+  the stack of types of interest for each local variable $v$
+  at a given location $\ell$,
+  based on the same properties of locations
+  that are immediate predecessors of $\ell$
+  in the control flow graph,
+  ending in the declaration of $v$.%
 }
 
 \LMHash{}%
@@ -25339,13 +25415,13 @@ then the declaration of $v$ is treated as an assignment
 for the purposes of promotion.
 
 \commentary{%
-This has no effect in the case where $v$
-does not have an explicit declared type,
-e.g., \code{\VAR\,\,x\,\,=\,\,$e$;},
-because the declared type will then
-already be exactly the static type of the initializing expression.
-However, it does promote the type of \code{x}
-in a situation like the following:%
+  This has no effect in the case where $v$
+  does not have an explicit declared type,
+  e.g., \code{\VAR\,\,x\,\,=\,\,$e$;},
+  because the declared type will then
+  already be exactly the static type of the initializing expression.
+  However, it does promote the type of \code{x}
+  in a situation like the following:%
 }
 
 \begin{dartCode}
@@ -25372,12 +25448,12 @@ but the type \code{$X$\,\&\,$T$} is added to the stack of types of interest,
 and the type of $v$ is immediately promoted to \code{$X$\,\&\,$T$}.
 
 \commentary{%
-Note that \code{$X$\,\&\,$T$} is not otherwise automatically a
-type of interest just because $X$ is a type of interest.
-In particular, if $w$ is declared as
-\code{\LATE?\,\,$X$\,\,$w$ = $e$;}
-where the static type of $e$ is \code{$X$\,\&\,$T$},
-the type of $w$ is \emph{not} immediately promoted to \code{$X$\,\&\,$T$}.%
+  Note that \code{$X$\,\&\,$T$} is not otherwise automatically a
+  type of interest just because $X$ is a type of interest.
+  In particular, if $w$ is declared as
+  \code{\LATE?\,\,$X$\,\,$w$ = $e$;}
+  where the static type of $e$ is \code{$X$\,\&\,$T$},
+  the type of $w$ is \emph{not} immediately promoted to \code{$X$\,\&\,$T$}.%
 }
 
 
@@ -25567,10 +25643,10 @@ if it is definitely assigned. Thus, it is not a compile time error to
 assign to a potentially unassigned \FINAL, \LATE{} local variable.
 
 \commentary{%
-Note that a variable is always considered definitely assigned and not
-definitely unassigned if it has an explicit initializer, or an implicit
-initializer as part of a larger construct (e.g. the loop variable in a for-in
-construct).%
+  Note that a variable is always considered definitely assigned and not
+  definitely unassigned if it has an explicit initializer, or an implicit
+  initializer as part of a larger construct
+  (e.g. the loop variable in a for-in construct).%
 }
 
 It is a compile time error to read a local variable when the variable is
@@ -25629,12 +25705,15 @@ initializer (explicit or implicit) and is not \FINAL, then the declaration is
 treated as an assignment for the purposes of promotion.
 
 \commentary{%
-Treating the declared type of the variable as a "type of interest" implies that
-if the variable has a nullable type, then the non-nullable version of that type
-is also a type of interest.  Treating the initialization as an assignment for
-the purposes of promotion means that initializing a mutable variable declared at
-type \code{$T$?}\ with a value of non-nullable type $T$ immediately promotes the
-variable to the non-nullable type.%
+  Treating the declared type of the variable as a "type of interest"
+  implies that if the variable has a nullable type,
+  then the non-nullable version of that type
+  is also a type of interest.
+  Treating the initialization as an assignment for
+  the purposes of promotion means that
+  initializing a mutable variable declared at type \code{$T$?}\ with
+  a value of non-nullable type $T$ immediately promotes the
+  variable to the non-nullable type.%
 }
 
 \begin{dartCode}
@@ -25669,46 +25748,56 @@ invoking an \code{Object} member on $o$ shall use the type of the member as decl
 on \code{Object}, regardless of the type of the member as declared on $T$.
 
 \commentary{%
-Note that
-the type as declared on $T$ must be a subtype of the type on \code{Object}, and so
-choosing the \code{Object} type is a sound choice.  The opposite choice is not
-sound.%
+  Note that
+  the type as declared on $T$ must be
+  a subtype of the type on \code{Object}, and so
+  choosing the \code{Object} type is a sound choice.
+  The opposite choice is not sound.%
 }
 
 \commentary{%
-Note that evaluation of an expression $e$ of the form \code{$e_1$\,\,==\,\,$e_2$} is not an
-invocation of \code{operator\,\,==}, it includes special treatment of null. The
-precise rules are specified later in this section.%
+  Note that evaluation of an expression $e$ of the form
+  \code{$e_1$\,\,==\,\,$e_2$} is not an invocation of \code{operator\,\,==},
+  it includes special treatment of null.
+  The precise rules are specified later in this section.%
 }
 
-Calling a method (including an operator) or getter on a receiver of static type
-\code{Never} is treated by static analysis as producing a result of type \code{Never}.
-Tearing off a method from a receiver of static type \code{Never} produces a value of
-type \code{Never}.  Applying an expression of type \code{Never} in the function position
+Calling a method (including an operator) or getter on a receiver
+of static type \code{Never} is treated by static analysis as producing
+a result of type \code{Never}.
+Tearing off a method from a receiver of static type \code{Never}
+produces a value of type \code{Never}.
+Applying an expression of type \code{Never} in the function position
 of a function call produces a result of type \code{Never}.
 
 The static type of a \code{\THROW\,\,$e$} expression is \code{Never}.
 
-Consider an expression $e$ of the form \code{$e_1$\,==\,$e_2$} where the static type of
-$e_1$ is $T_1$ and the static type of $e_2$ is $T_2$. Let $S$ be the type of the
-formal parameter of \code{operator\,\,==} in the interface of \NonNullType{$T_1$}.
+Consider an expression $e$ of the form \code{$e_1$\,==\,$e_2$}
+where the static type of $e_1$ is $T_1$
+and the static type of $e_2$ is $T_2$.
+Let $S$ be the type of the formal parameter of \code{operator\,\,==}
+in the interface of \NonNullType{$T_1$}.
 It is a \Error{compile-time error} unless $T_2$ is assignable to \code{$S$?}.
 
-Similarly, consider an expression $e$ of the form \code{\SUPER\,==\,$e_2$} that occurs in a
-class whose superclass is $C$, where the static type of $e_2$ is $T_2$. Let $S$ be
-the formal parameter type of the concrete declaration of \code{operator\,\,==} found by
-method lookup in $C$
+Similarly, consider an expression $e$ of the form \code{\SUPER\,==\,$e_2$}
+that occurs in a class whose superclass is $C$,
+where the static type of $e_2$ is $T_2$.
+Let $S$ be the formal parameter type of the concrete declaration of
+\code{operator\,\,==} found by method lookup in $C$
 \commentary{(if that search succeeds, otherwise it is a compile-time error)}.
 It is a \Error{compile-time error} unless $T_2$ is assignable to \code{$S$?}.
 
 \commentary{%
-Even if the static type of $e_1$ is potentially nullable, the parameter type
-of the \code{operator\,\,==} of the corresponding non-null type is taken into account,
-because that instance method will not be invoked when $e_1$ is null. Similarly,
-it is not a \Error{compile-time error} for the static type of $e_2$ to be potentially
-nullable, even when the parameter type of said \code{operator\,\,==} is non-nullable.
-This is again safe, because the instance method will not be invoked when $e_2$
-is null.%
+  Even if the static type of $e_1$ is potentially nullable,
+  the parameter type of the \code{operator\,\,==} of
+  the corresponding non-null type is taken into account,
+  because that instance method will not be invoked when $e_1$ is null.
+  Similarly, it is not a \Error{compile-time error} for
+  the static type of $e_2$ to be potentially nullable,
+  even when the parameter type
+  of said \code{operator\,\,==} is non-nullable.
+  This is again safe, because the instance method will not be invoked
+  when $e_2$ is null.%
 }
 
 If no type is specified in a catch clause, then the default type of the error
@@ -25728,8 +25817,8 @@ Similarly, when the static type of $e$ is a subtype of \code{Never},
 the element, key, and value type of \code{...$e$} and \code{...?$e$} is \code{Never}.
 
 \commentary{%
-When the static type $S$ of $e$ is strictly non-nullable, such as when $S$
-is \code{Never}, \code{...?$e$} is a warning, but it may still occur.%
+  When the static type $S$ of $e$ is strictly non-nullable, such as when $S$
+  is \code{Never}, \code{...?$e$} is a warning, but it may still occur.%
 }
 
 \subsubsection{Instantiation to bound}
@@ -25742,27 +25831,32 @@ type variables appearing in contravariant positions instead of \code{Null}.
 Null safety requires three changes to the section 'Super-Bounded Types' in
 the language specification.
 
-The definition of a top type is changed: $T$ is a top type if and only if
-\code{Object?}\ is a subtype of $T$. Note that the helper predicate \IsTopTypeName{}
+The definition of a top type is changed: $T$ is a top type
+if and only if \code{Object?}\ is a subtype of $T$.
+Note that the helper predicate \IsTopTypeName{}
 provides a syntactic characterization of the same concept.
 
-The definition of a super-bounded type is changed such that occurrences of
-\code{Null} are replaced by types involving \code{Never}, and \code{Object} is replaced by
-\code{Object?}. Moreover, top types in invariant positions and in positions that
-have no variance (\commentary{unused type parameters in a type alias}) are given the
-same treatment as top types in covariant positions. This causes one
-sentence to change, with the following result:
+The definition of a super-bounded type is changed such that
+occurrences of \code{Null} are replaced by types involving \code{Never},
+and \code{Object} is replaced by \code{Object?}.
+Moreover, top types in invariant positions and in positions that
+have no variance
+\commentary{(unused type parameters in a type alias)}
+are given the same treatment as top types in covariant positions.
+This causes one sentence to change, with the following result:
 
 Let $T'$ be the result of replacing every occurrence in $T$ of a type $S$
-in a contravariant position where \code{$S$ <: Never} by \code{Object?}, and every
-occurrence in $T$ of a top type in a position which is not contravariant by
-\code{Never}.
+in a contravariant position where \code{$S$ <: Never} by \code{Object?},
+and every occurrence in $T$ of a top type
+in a position which is not contravariant
+by \code{Never}.
 
 \subsubsection{Least and greatest closure}
 
-The definitions of least and greatest closure are changed in null safe libraries
-to substitute \code{Never} in positions where previously \code{Null} would have been
-substituted, and \code{Object?}\ in positions where previously \code{Object} or \DYNAMIC{}
+The definitions of least and greatest closure are changed in
+null safe libraries to substitute \code{Never} in positions
+where previously \code{Null} would have been substituted,
+and \code{Object?}\ in positions where previously \code{Object} or \DYNAMIC{}
 would have been substituted.
 
 \subsubsection{Const type variable elimination}
@@ -25896,6 +25990,8 @@ With this change, the following is a valid migration of this code:
 \subsubsection{Null promotion}
 \LMLabel{}
 
+!!!
+
 The machinery of type promotion is extended to promote the type of
 variables based on nullability checks subject to the same set of
 restrictions as normal promotion.  The relevant checks and the types
@@ -25917,33 +26013,42 @@ where $T$ is the static type of $e$.
 \subsubsection{Null aware operator}
 \LMLabel{nullShorteningTransformation}
 
-The semantics of the null aware operator \code{?.} are defined via a source to source
-translation of expressions into Dart code extended with a let binding construct.
-The translation is defined using meta-level functions over syntax.  We use the
-notation \code{fn[x : Exp] : Exp => E} to define a meta-level function of type \code{Exp
--> Exp} (that is, a function from expressions to expressions), and similarly
-\code{fn[k : Exp -> Exp] : Exp => E} to define a meta-level function of type \code{Exp ->
-Exp -> Exp}.  Where obvious from context, we elide the parameter and return
-types on the meta-level functions.  The meta-variables \code{F} and \code{G} are used to
+The semantics of the null aware operator \code{?.} are defined via
+a source to source translation of expressions into
+Dart code extended with a let binding construct.
+The translation is defined using meta-level functions over syntax.
+We use the notation \code{fn[x : Exp] : Exp => E} to define
+a meta-level function of type \code{Exp -> Exp}
+(that is, a function from expressions to expressions),
+and similarly \code{fn[k : Exp -> Exp] : Exp => E}
+to define a meta-level function of type \code{Exp -> Exp -> Exp}.
+Where obvious from context, we elide the parameter and return
+types on the meta-level functions.
+The meta-variables \code{F} and \code{G} are used to
 range over meta-level functions.  Application of a meta-level function is
 written as \code{F[p]} where \code{p} is the argument.
 
-The null-shorting translation of an expression \code{e} is meta-level function \code{F} of
-type \code{(Exp -> Exp) -> Exp} which takes as an argument the continuation of \code{e} and
-produces an expression semantically equivalent to \code{e} with all occurrences of
-\code{?.} eliminated in favor of explicit sequencing using a \code{let} construct.
+The null-shorting translation of an expression \code{e} is
+meta-level function \code{F} of type \code{(Exp -> Exp) -> Exp}
+which takes as an argument the continuation of \code{e} and
+produces an expression semantically equivalent to \code{e} with
+all occurrences of \code{?.} eliminated in favor of
+explicit sequencing using a \code{let} construct.
 
 Let \code{ID} be the identity function \code{fn[x : Exp] : Exp => x}.
 
-The expression translation of an expression \code{e} is the result of applying the
-null-shorting translation of \code{e} to \code{ID}.  That is, if \code{e} translates to \code{F},
-then \code{F[ID]} is the expression translation of \code{e}.
+The expression translation of an expression \code{e} is
+the result of applying the null-shorting translation of \code{e} to \code{ID}.
+That is, if \code{e} translates to \code{F}, then
+\code{F[ID]} is the expression translation of \code{e}.
 
-We use \code{EXP(e)} as a shorthand for the expression translation of \code{e}.  That is,
-if the null-shorting translation of \code{e} is \code{F}, then \code{EXP(e)} is \code{F[ID]}.
+We use \code{EXP(e)} as a shorthand for the expression translation of \code{e}.
+That is, if the null-shorting translation of \code{e} is \code{F},
+then \code{EXP(e)} is \code{F[ID]}.
 
-We extend the expression translation to argument lists in the obvious way, using
-\code{ARGS(args)} to denote the result of applying the expression translation
+We extend the expression translation to argument lists in the obvious way,
+using \code{ARGS(args)} to denote the result of applying
+the expression translation
 pointwise to the arguments in the argument list \code{args}.
 
 We use three combinators to express the translation.
@@ -25955,14 +26060,17 @@ The null-aware shorting combinator \code{SHORT} is defined as:
                 let x = r in x == null ? null : k[c[x]]
 \end{dartCode}
 
-where \code{x} is a fresh object level variable.  The \code{SHORT} combinator is used to
-give semantics to uses of the \code{?.} operator.  It is parameterized over the
-receiver of the conditional property access (\code{r}) and a meta-level function
-(\code{c}) which given an object-level variable (\code{x}) bound to the result of
-evaluating the receiver, produces the final expression.  The result is
-parameterized over the continuation of the expression being translated.  The
-continuation is only called in the case that the result of evaluating the
-receiver is non-null.
+where \code{x} is a fresh object level variable.
+The \code{SHORT} combinator is used to
+give semantics to uses of the \code{?.} operator.
+It is parameterized over the receiver of the conditional property access
+(\code{r}) and a meta-level function (\code{c}) which
+given an object-level variable (\code{x}) bound to
+the result of evaluating the receiver, produces the final expression.
+The result is parameterized over the continuation of the expression
+being translated.
+The continuation is only called in the case that
+the result of evaluating the receiver is non-null.
 
 The shorting propagation combinator \code{PASSTHRU} is defined as:
 \begin{dartCode}
@@ -25970,12 +26078,14 @@ The shorting propagation combinator \code{PASSTHRU} is defined as:
                fn[k : Exp -> Exp] : Exp => F[fn[x] => k[c[x]]]
 \end{dartCode}
 
-The \code{PASSTHRU} combinator is used to give semantics to expression forms which
-propagate null-shorting behavior.  It is parameterized over the translation \code{F}
-of the potentially null-shorting expression, and over a meta-level function \code{c}
+The \code{PASSTHRU} combinator is used to give semantics to expression forms
+which propagate null-shorting behavior.
+It is parameterized over the translation \code{F}
+of the potentially null-shorting expression,
+and over a meta-level function \code{c}
 which given an expression which denotes the value of the translated
-null-shorting expression produces the final expression being translated.  The
-result is parameterized over the continuation of the expression being
+null-shorting expression produces the final expression being translated.
+The result is parameterized over the continuation of the expression being
 translated, which is called unconditionally.
 
 The null-shorting termination combinator TERM is defined as:
@@ -25983,10 +26093,10 @@ The null-shorting termination combinator TERM is defined as:
   TERM = fn[r : Exp] => fn[k : Exp -> Exp] : Exp => k[r]
 \end{dartCode}
 
-The \code{TERM} combinator is used to give semantics to expressions which neither
-short-circuit nor propagate null-shorting behavior.  It is parameterized over
-the translated expression, and simply passes on the expression to its
-continuation.
+The \code{TERM} combinator is used to give semantics to
+expressions which neither short-circuit nor propagate null-shorting behavior.
+It is parameterized over the translated expression,
+and simply passes on the expression to its continuation.
 
 \begin{itemize}
 \item A property access \code{$e$?.$f$} translates to:
@@ -26045,9 +26155,11 @@ relational expressions, bitwise expressions, shift expressions, additive
 expressions, multiplicative expressions, and unary expressions).
 
 \commentary{%
-For example, \code{$a$ + $b$} is specified as equivalent to \code{$a$.plus($b$)},
-where \code{plus} is assumed to be a method with the same behavior as \code{+}.
-Similarly, \code{-$e$} is equivalent to \code{$e$.unaryMinus()}.%
+  For example, \code{$a$ + $b$} is specified as
+  equivalent to \code{$a$.plus($b$)},
+  where \code{plus} is assumed to be a method with
+  the same behavior as \code{+}.
+  Similarly, \code{-$e$} is equivalent to \code{$e$.unaryMinus()}.%
 }
 
 This equivalence is not applicable in the above rules, so operators not
@@ -26055,11 +26167,13 @@ mentioned specifically in a rule are handled in the case for 'other'
 expressions, not in the case for \code{$e$.m(\metavar{args})}.
 
 \commentary{%
-This means that the null-shorting transformation stops at operators.
-For instance, \code{$e$?.$f$ + $b$} is a compile-time error because \code{$e$?.$f$} can be null, it is
-not an expression where both \code{.$f$} and \code{+ $b$} will be skipped if \code{$e$} is null.
-Similarly, both \code{-$a$?.$f$} and \code{~$a$?.$f$} are errors, and do not null-short like
-\code{$a$?.$f$.op()}.%
+  This means that the null-shorting transformation stops at operators.
+  For instance, \code{$e$?.$f$ + $b$} is a compile-time error
+  because \code{$e$?.$f$} can be null,
+  it is not an expression where both \code{.$f$} and \code{+ $b$}
+  will be skipped if \code{$e$} is null.
+  Similarly, both \code{-$a$?.$f$} and \code{~$a$?.$f$} are errors,
+  and do not null-short like \code{$a$?.$f$.op()}.%
 }
 
 \subsection{Other documents that need to be integrated}
