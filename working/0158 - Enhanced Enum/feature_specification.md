@@ -1,6 +1,6 @@
 # MOVED TO ACCEPTED
 
-Further development happens in [../../accepted/future-releases/enhanced-enums/feature_specification.md].
+Further development happens in the [accepted] folder(../../accepted/future-releases/enhanced-enums/feature_specification.md).
 
 # Dart Enhanced Enum Classes
 
