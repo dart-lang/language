@@ -8,7 +8,7 @@ The features can be summarized as:
   * Expressions of the for <code>*C*.*name*</code>. or <code>*C*\<*typeArgs*>.*name*</code>, with type arguments potentially being inferred, evaluate to functions.
   * Preserves identity as specified.
 * Unnamed constructor syntax alternative
-  * Everywhere you can currently reference an unnamed constructor, you can also refer to it as <code>*C*.new</code>.
+  * Everywhere you can currently reference or declare an unnamed constructor, you can also refer to it or declare it as <code>*C*.new</code>.
   * The unnamed and `new`-named constructors are two ways to refer to the *same* thing. (Can't declare both).
 * Unnamed constructor tear-offs
   * Expressions of the for <code>*C*.new</code>. or <code>*C*\<*typeArgs*>.new</code>, with type arguments potentially being inferred, evaluate to functions.
@@ -122,6 +122,7 @@ The possible sources of tear-offs:
 * Does not work for `call` methods of function values.
 * Does not work for *constructors* (`class C<T> { C.name();}` does not allow `C.name<int>`).
 * Non-constant instantiation in constant context.
+* Type bounds must not be violated.
 
 #### Covered by tests
 
@@ -132,6 +133,7 @@ The possible sources of tear-offs:
 ### Correct usage
 
 * Can instantiate any generic type (class, mixin, type alias).
+* Allows super-bounded types.
 * Result is `Type` object.
 * `Type` objects for same generic type are equal if created using equal type arguments.
 * Identical if passed equal and constant type arguments.
@@ -151,6 +153,7 @@ The possible sources of tear-offs:
   * <code>*C*\<*typeArgs*>.anything</code> does not create a type literal.
   * <code>*C*\<*typeArgs*>..anything</code> *probably does* (<code>*C*..toString()</code> works today, invokes `toString` of `Type` object).
   * <code>*C*\<*typeArgs*>?.anything</code> also works (possibly with a warning about the `?` being unnecessary).
+  * Does not allow malbounded types.
 
 #### Covered by tests
 
