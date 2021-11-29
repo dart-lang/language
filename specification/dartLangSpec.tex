@@ -4340,12 +4340,12 @@ $e_i,\ i \in 1 .. p+q$,
 must be a potentially constant expression (\ref{constantConstructors}).
 
 \LMHash{}%
-% This error can occur due to a failed implicit cast.
+% This error can occur due to a failed implicit cast from \DYNAMIC.
 It is a dynamic type error if an actual argument passed
 in an invocation of a redirecting generative constructor $k$
 is not a subtype of the actual type (\ref{actualTypes})
 of the corresponding formal parameter in the declaration of $k$.
-% This error can occur due to a failed implicit cast.
+% This error can occur due to a failed implicit cast from \DYNAMIC.
 It is a dynamic type error if an actual argument passed
 to the redirectee $k'$ of a redirecting generative constructor
 is not a subtype of the actual type
@@ -7237,7 +7237,7 @@ In this example \code{\{\}} is printed,
 because the function object obtained by extension method closurization
 was subject to a generic function instantiation
 which gave \code{T} the value \code{double},
-which makes `\code{\THIS\,\,\IS\,\,T}' evaluate to false.%
+which makes `\code{\THIS\,\,\IS\,\,T}' evaluate to the \FALSE{} object.%
 }
 
 
@@ -9417,11 +9417,19 @@ the \lit{==} operator inherited from the \code{Object} class.
 \LMLabel{booleans}
 
 \LMHash{}%
-The reserved words \TRUE{} and \FALSE{} evaluate to objects
-\IndexCustom{true}{true, the object} and
-\IndexCustom{false}{false, the object}
+The reserved words \TRUE{} and \FALSE{} evaluate to
+\IndexCustom{the \TRUE{} object}{true, the object} and
+\IndexCustom{the \FALSE{} object}{false, the object}
 that represent the boolean values true and false respectively.
 They are the \IndexCustom{boolean literals}{literal!boolean}.
+
+\commentary{%
+We use the notation `the \TRUE{} object' and `the \FALSE{} object'
+rather than a plain `the true object` and `the false object`
+(as opposed to \NULL{} which evaluates to `the null object',
+not `the \NULL{} object')
+because phrases like `the false object' are too easy to misunderstand.%
+}
 
 \begin{grammar}
 <booleanLiteral> ::= \TRUE{}
@@ -9429,9 +9437,10 @@ They are the \IndexCustom{boolean literals}{literal!boolean}.
 \end{grammar}
 
 \LMHash{}%
-Both \NoIndex{true} and \NoIndex{false} are instances of
+Both the true object and the false object are instances of
 the built-in class \code{bool},
-and there are no other objects that implement \code{bool}.
+and there are no other objects whose dynamic type is \code{bool}
+or a subtype thereof.
 It is a \Error{compile-time error} for a class to
 extend, mix in or implement \code{bool}.
 
@@ -10206,7 +10215,7 @@ A \synt{forElement} can never occur in a constant collection literal.%
 %%   Same text again.
 
 
-\subsubsection{Type Promotion}
+\subsubsection{Collection Literal Type Promotion}
 \LMLabel{collectionLiteralTypePromotion}
 
 \LMHash{}%
@@ -10627,7 +10636,7 @@ In this case $\ell$ is of the form
 \code{\IF\,\,($b$)\,\,$\ell_1$\,\,\ELSE\,\,$\ell_2$}.
 The condition $b$ is always inferred with a context type of \code{bool}.
 
-Assume that `\code{\ELSE\,\,$\ell_2$}' is not present.
+Consider the situation where `\code{\ELSE\,\,$\ell_2$}' is not present.
 Then, if the inferred element type of $\ell_1$ is $S$,
 the inferred element type of $\ell$ is $S$.
 
@@ -12718,7 +12727,7 @@ To see how such situations might arise, consider the following examples:%
   \OPERATOR *(v) => \NEW{} IntPair(x*v, y*v);
 \}
 \\
-\CONST a1 = \CONST{} A(true); // \comment{compile-time error}
+\CONST a1 = \CONST{} A(\TRUE); // \comment{compile-time error}
 \CONST a2 = \CONST{} A(5); // \comment{legal}
 \CONST a3 = \CONST{} A(\CONST{} IntPair(1,2)); // \comment{compile-time error}
 \end{dartCode}
@@ -12863,13 +12872,13 @@ When execution of the body of $f$ completes (\ref{statementCompletion}),
   $j$ is positioned after its last element,
   so that its current value is the null object
   (\ref{null})
-  and the current call to \code{moveNext()} on $j$ returns false,
+  and the current call to \code{moveNext()} on $j$ returns the \FALSE{} object,
   as must all further calls.
 \item If it throws an exception object $e$ and stack trace $t$
   then the current value of $j$ is the null object
   (\ref{null})
   and the current call to \code{moveNext()} throws $e$ and $t$ as well.
-  Further calls to \code{moveNext()} must return false.
+  Further calls to \code{moveNext()} must return the \FALSE{} object.
 \end{itemize}
 
 \LMHash{}%
@@ -13769,7 +13778,8 @@ as the invocation of $f$ would have yielded.
 Let $e_1$ and $e_2$ be two constant expressions that both
 evaluate to a function object which is obtained by function closurization
 of the same function declaration.
-In this case \code{identical($e_1$, $e_2$)} shall evaluate to true.
+In this case \code{identical($e_1$, $e_2$)}
+shall evaluate to the \TRUE{} object.
 
 \commentary{%
 That is, constant expressions whose evaluation is a function closurization
@@ -13909,12 +13919,14 @@ with actual type arguments \List{t}{1}{s} and actual arguments \metavar{args}.
 Let $f_1$ and $f_2$ be two constant expressions that are subject to
 generic function instantiation.
 Assume that $f_1$ and $f_2$ without a context type evaluate to $o_1$
-respectively $o_2$ such that \code{identical($o_1$, $o_2$)} is true.
+respectively $o_2$ such that \code{identical($o_1$, $o_2$)}
+evaluates to the \TRUE{} object.
 Assume that the given context types give rise to a successful
 generic function type instantiation with
 the same actual type arguments for $f_1$ and $f_2$,
 yielding the non-generic function objects $o'_1$ respectively $o'_2$.
-In this case \code{identical($o'_1$, $o'_2$)} shall evaluate to true.
+In this case \code{identical($o'_1$, $o'_2$)}
+shall evaluate to the \TRUE{} object.
 
 \commentary{%
 That is, constant expressions whose evaluation is
@@ -13928,18 +13940,21 @@ Let $g_1$ and $g_2$ be two expressions
 (\commentary{which may or may not be constant})
 that are subject to generic function instantiation.
 Assume that $g_1$ and $g_2$ without a context type evaluate to $o_1$
-respectively $o_2$ such that \code{$o_1$ == $o_2$)} is true.
+respectively $o_2$ such that \code{$o_1$ == $o_2$)}
+evaluates to the \TRUE{} object.
 Assume that the given context types give rise to a successful
 generic function type instantiation with
 the same actual type arguments for $g_1$ and $g_2$,
 yielding the non-generic function objects $o'_1$ respectively $o'_2$.
-In this case \code{$o'_1$ == $o'_2$} shall evaluate to true.
+In this case \code{$o'_1$ == $o'_2$}
+shall evaluate to the \TRUE{} object.
 
 \commentary{%
 When one or both of the expressions is not constant,
 it is unspecified whether
-\code{identical($o_1$,\,\,$o_2$)} evaluates to \TRUE{} or \FALSE,
-but operator \lit{==} yields true for equal function objects
+\code{identical($o_1$,\,\,$o_2$)} evaluates to
+the \TRUE{} object or the \FALSE{} object,
+but operator \lit{==} returns the \TRUE{} object for equal function objects
 instantiated with the same actual type arguments.%
 }
 
@@ -15500,7 +15515,7 @@ the above mentioned function literal:
 Assume that $o_1$ and $o_2$ are objects, $m$ is an identifier,
 and $c_1$ and $c_2$ are function objects
 obtained by closurization of $m$ on $o_1$ respectively $o_2$.
-Then \code{$c_1$ == $c_2$} evaluates to true
+Then \code{$c_1$ == $c_2$} evaluates to the \TRUE{} object
 if and only if $o_1$ and $o_2$ is the same object.
 
 \commentary{%
@@ -15511,10 +15526,12 @@ from the same object are equal,
 and two closurizations of a method $m$
 from non-identical objects are not equal.
 Assuming that $v_i$ is a fresh variable bound to an object, $i \in 1 .. 2$,
-it also follows that \code{identical($v_1.m, v_2.m$)} must be false
+it also follows that \code{identical($v_1.m, v_2.m$)} must
+evaluate to the \FALSE{} objce
 when $v_1$ and $v_2$ are not bound to the same object.
 However, Dart implementations are not required to canonicalize function objects,
-which means that \code{identical($v_1.m, v_2.m$)} is not guaranteed to be true,
+which means that \code{identical($v_1.m, v_2.m$)}
+is not guaranteed to evaluate to the \TRUE{} object,
 even when it is known that $v_1$ and $v_2$ are bound to the same object.%
 }
 
@@ -15655,7 +15672,7 @@ Assume that an occurrence of the expression \SUPER.$m$ in a given class
 is evaluated on two occasions where \THIS{}
 is bound to $o_1$ respectively $o_2$,
 and the resulting function objects are $c_1$ respectively $c_2$:
-\code{$c_1$ == $c_2$} is then true
+\code{$c_1$ == $c_2$} will then evaluate to the \TRUE{} object
 if and only if $o_1$ and $o_2$ is the same object.
 
 
@@ -16587,7 +16604,7 @@ proceeds as follows:
 
 \LMHash{}%
 First, $e_1$ is evaluated to an object $o_1$.
-% This error can occur due to implicit casts and null.
+% This error can occur due to an implicit cast from \DYNAMIC.
 It is a dynamic error if the run-time type of $o_1$ is not \code{bool}.
 If $r$ is \TRUE, then the value of $c$ is
 the result of evaluating the expression $e_2$.
@@ -16666,22 +16683,22 @@ an expression $e_1$ with argument $e_2$.
 \LMHash{}%
 Evaluation of a logical boolean expression $b$ of the form $e_1 || e_2$ causes
 the evaluation of $e_1$ to an object $o_1$.
-% This error can occur due to implicit casts and null.
+% This error can occur due to an implicit downcast from \DYNAMIC.
 It is a dynamic error if the run-time type of $o_1$ is not \code{bool}.
 If $o_1$ is \TRUE, the result of evaluating $b$ is \TRUE,
 otherwise $e_2$ is evaluated to an object $o_2$.
-% This error can occur due to implicit casts and null.
+% This error can occur due to an implicit downcast from \DYNAMIC.
 It is a dynamic error if the run-time type of $o_2$ is not \code{bool}.
 Otherwise the result of evaluating $b$ is $o_2$.
 
 \LMHash{}%
 Evaluation of a logical boolean expression $b$ of the form $e_1 \&\& e_2$
 causes the evaluation of $e_1$ producing an object $o_1$.
-% This error can occur due to implicit casts and null.
+% This error can occur due to an implicit downcast from \DYNAMIC.
 It is a dynamic error if the run-time type of $o_1$ is not \code{bool}.
 If $o_1$ is \FALSE, the result of evaluating $b$ is \FALSE,
 otherwise $e_2$ is evaluated to an object $o_2$.
-% This error can occur due to implicit casts and null.
+% This error can occur due to an implicit downcast from \DYNAMIC.
 It is a dynamic error if the run-time type of $o_2$ is not \code{bool}.
 Otherwise the result of evaluating $b$ is $o_2$.
 
@@ -18156,7 +18173,7 @@ whose evaluation is specified elsewhere
 \LMLabel{typeTest}
 
 \LMHash{}%
-The \Index{is-expression} tests if an object is a member of a type.
+An \Index{\IS{} expression} tests if an object is a member of a type.
 
 \begin{grammar}
 <typeTest> ::= <isOperator> <typeNotVoid>
@@ -18165,33 +18182,44 @@ The \Index{is-expression} tests if an object is a member of a type.
 \end{grammar}
 
 \LMHash{}%
-Evaluation of the is-expression \code{$e$ \IS{} $T$} proceeds as follows:
+The static type of an \IS{} expression is \code{bool}.
+
+\LMHash{}%
+Evaluation of an \IS{} expression of the form \code{$e$\,\,\IS\,\,$T$}
+proceeds as follows:
 
 \LMHash{}%
 The expression $e$ is evaluated to an object $v$.
 If the dynamic type of $v$ is a subtype of $T$,
-the is-expression evaluates to \TRUE.
-Otherwise it evaluates to \FALSE.
+the \IS{} expression evaluates to the \TRUE{} object.
+Otherwise it evaluates to the \FALSE{} object.
 
 \commentary{%
-It follows that \code{$e$ \IS{} Object} is always true.
+It follows that \code{$e$\,\,\IS\,\,Object?} will always evaluate
+to the \TRUE{} object,
+and \code{$e$\,\,\IS\,\,Object} evaluates to the \TRUE{} object wheneven
+$e$ evaluates to an object which is not the null object.
 This makes sense in a language where everything is an object.
 
-Also note that \code{\NULL{} \IS{} $T$} is false
-unless $T = \code{Object}$, $T = \code{\DYNAMIC}$ or $T = \code{Null}$.
-The former two are useless, as is anything
-of the form \code{$e$ \IS{} Object} or \code{$e$ \IS{} \DYNAMIC}.
-Users should test for the null object (\ref{null}) directly
-rather than via type tests.%
+Also note that \code{\NULL\,\,\IS\,\,$T$} will evaluate to the \FALSE{} object
+unless $T$ is a a nullable type (which includes all top types and \code{Null}).
+The test on top types is useless,
+because \code{$e$ \IS{} $T$} \emph{always} evaluates to the \TRUE{} object
+when $T$ is a top type.
+As a matter of style, a test for the null object (\ref{null})
+should be expressed directly as \code{$e$\,\,==\,\,\NULL},
+rather than via a type test \code{$e$\,\,\IS\,\,Null}.%
 }
 
 \LMHash{}%
-The is-expression \code{$e$ \IS{}! $T$} is equivalent to
-\code{!($e$ \IS{} $T$)}.
+The \IS{} expression \code{$e$\,\,\IS!\,\,$T$} is equivalent to
+\code{!($e$\,\,\IS\,\,$T$)}.
 
+%% TODO(eernst): Come flow analysis, delete material about "shows .. type".
 \LMHash{}%
-Let $v$ be a local variable (\commentary{which can be a formal parameter}).
-An is-expression of the form \code{$v$ \IS{} $T$}
+Let $v$ be a local variable
+(\commentary{which can be a formal parameter}).
+An \IS{} expression of the form \code{$v$\,\,\IS\,\,$T$}
 shows that $v$ has type $T$
 if $T$ is a subtype of the type of the expression $v$.
 %
@@ -18228,9 +18256,6 @@ but tools may choose to give a hint in such cases,
 if suitable heuristics indicate that a promotion is likely to be intended.%
 }
 
-\LMHash{}%
-The static type of an is-expression is \code{bool}.
-
 
 \subsection{Type Cast}
 \LMLabel{typeCast}
@@ -18245,17 +18270,16 @@ The \Index{cast expression} ensures that an object is a member of a type.
 \end{grammar}
 
 \LMHash{}%
- Evaluation of the cast expression \code{$e$ \AS{} $T$} proceeds as follows:
+The static type of a cast expression \code{$e$\,\,\AS\,\,$T$} is $T$.
+
+\LMHash{}%
+Evaluation of the cast expression \code{$e$\,\,\AS\,\,$T$} proceeds as follows:
 
 \LMHash{}%
 The expression $e$ is evaluated to an object $v$.
 % This error can occur, by design of `as`.
-It is a dynamic type error if $o$ is not the null object (\ref{null}),
-and the dynamic type of $o$ is not a subtype of $T$.
+It is a dynamic type error if the dynamic type of $o$ is not a subtype of $T$.
 Otherwise $e$ evaluates to $v$.
-
-\LMHash{}%
-The static type of a cast expression \code{$e$ \AS{} $T$} is $T$.
 
 
 \section{Statements}
@@ -18762,7 +18786,7 @@ The reason for this equivalence is to catch errors such as%
 Under reasonable scope rules such code is problematic.
 If we assume that \code{v} is declared
 in the scope of the method \code{main()},
-then when \code{somePredicate} is false,
+then when \code{somePredicate} evaluates to the \FALSE{} object,
 \code{v} will be uninitialized when accessed.
 The cleanest approach would be to require a block following the test,
 rather than an arbitrary statement.
@@ -18786,7 +18810,7 @@ proceeds as follows:
 
 \LMHash{}%
 First, the expression $b$ is evaluated to an object $o$.
-% This error can occur due to implicit casts and null.
+% This error can occur due to an implicit downcast from \DYNAMIC.
 It is a dynamic error if the run-time type of $o$ is not \code{bool}.
 If $o$ is \TRUE, then the block statement $s_1$ is executed,
 otherwise the block statement $s_2$ is executed.
@@ -18891,7 +18915,7 @@ Then:
   the previous execution of step \ref{allocateFreshVar}.
 \item
   The expression $[v'/v]c$ is evaluated to an object $o$.
-  % This error can occur due to implicit casts and null.
+  % This error can occur due to an implicit downcast from \DYNAMIC.
   It is a dynamic error if the run-time type of $o$ is not \code{bool}.
   If $o$ is \FALSE, the for loop completes normally.
   Otherwise, execution continues at step \ref{beginIteration}.
@@ -19003,7 +19027,7 @@ Execution of $f$ proceeds as follows:
 
 \LMHash{}%
 The expression $e$ is evaluated to an object $o$.
-% This error can occur due to implicit casts and null.
+% This error can occur due to an implicit downcast from \DYNAMIC.
 It is a dynamic type error if $o$ is not an instance of
 a class that implements \code{Stream}.
 It is a \Error{compile-time error} if $D$ is empty
@@ -19104,7 +19128,7 @@ proceeds as follows:
 
 \LMHash{}%
 The expression $e$ is evaluated to an object $o$.
-% This error can occur due to implicit casts and null.
+% This error can occur due to an implicit downcast from \DYNAMIC.
 It is a dynamic error if the run-time type of $o$ is not \code{bool}.
 
 \LMHash{}%
@@ -19155,7 +19179,7 @@ then the execution of $s$ is treated as if it had completed normally.
 
 \LMHash{}%
 Then, the expression $e$ is evaluated to an object $o$.
-% This error can occur due to implicit casts and null.
+% This error can occur due to an implicit downcast from \DYNAMIC.
 It is a dynamic error if the run-time type of $o$ is not \code{bool}.
 If $o$ is \FALSE, execution of the do statement completes normally
 (\ref{statementCompletion}).
@@ -20133,7 +20157,7 @@ If the immediately enclosing function $m$ is marked \code{\SYNC*}
 then:
 \begin{enumerate}
 \item
-  % This error can occur due to implicit casts.
+  % This error can occur due to an implicit downcast from \DYNAMIC.
   It is a dynamic type error
   if the class of $o$ is not a subtype of \code{Iterable<$T_f$>}.
   Otherwise
@@ -20168,7 +20192,7 @@ The current call to \code{moveNext()} returns \TRUE.
 If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
 \begin{itemize}
 \item
-  % This error can occur due to implicit casts.
+  % This error can occur due to an implicit downcast from \DYNAMIC.
   It is a dynamic type error if the class of $o$
   is not a subtype of \code{Stream<$T_f$>}.
   Otherwise
@@ -20241,7 +20265,7 @@ execution of an assertion \code{\ASSERT{}($c$, $e$)} proceeds as follows:
 
 \LMHash{}%
 The expression $c$ is evaluated to an object $r$.
-% This error can occur due to implicit casts and null.
+% This error can occur due to an implicit downcast from \DYNAMIC.
 It is a dynamic type error if $r$ is not of type \code{bool}.
 \commentary{%
 Hence it is a compile-time error if that situation arises
@@ -21686,7 +21710,7 @@ under the assumption that all deferred libraries have successfully been loaded.
 % objects in constructor args - these cannot represent parameterized types.
 
 
-\subsubsection{Type Promotion}
+\subsubsection{Local Variable Type Promotion}
 \LMLabel{typePromotion}
 
 \LMHash{}%
@@ -24221,7 +24245,8 @@ Consequently, any instance of type \code{Type} which reifies the type \VOID{}
 must compare equal (according to the \lit{==} operator \ref{equality})
 to any instance of \code{Type} which reifies the type \code{Object}
 (\ref{dynamicTypeSystem}).
-It is not guaranteed that \code{identical(\VOID, Object)} evaluates to true.
+It is not guaranteed that \code{identical(\VOID, Object)} evaluates to
+the \TRUE{} object.
 In fact, it is not recommended that implementations strive to achieve this,
 because it may be more important to ensure that diagnostic messages
 (including stack traces and dynamic error messages)
@@ -24973,6 +24998,15 @@ In this situation, the declared type of $v$ is \code{X}
 but the type \code{$X$\,\&\,$T$} is added to the stack of types of interest,
 and the type of $v$ is immediately promoted to \code{$X$\,\&\,$T$}.
 
+\commentary{%
+Note that \code{$X$\,\&\,$T$} is not otherwise automatically a
+type of interest just because $X$ is a type of interest.
+In particular, if $w$ is declared as
+\code{\LATE?\,\,$X$\,\,$w$ = $e$;}
+where the static type of $e$ is \code{$X$\,\&\,$T$},
+the type of $w$ is \emph{not} immediately promoted to \code{$X$\,\&\,$T$}.%
+}
+
 
 \section{Reference}
 \LMLabel{reference}
@@ -25680,7 +25714,7 @@ Similarly, both \code{-$a$?.$f$} and \code{~$a$?.$f$} are errors, and do not nul
 \code{$a$?.$f$.op()}.%
 }
 
-\subsubsection{Boolean conditional evaluation}
+\subsection{Other documents that need to be integrated}
 \LMLabel{}
 
 !!!TODO!!!
@@ -25782,7 +25816,6 @@ Other documents that need to be integrated, too:
 
 https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md
 https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md
-https://github.com/dart-lang/language/blob/master/resources/type-system/normalization.md
 https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md
 https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md
 %% !!!END TODO!!!
