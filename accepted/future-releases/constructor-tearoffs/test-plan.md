@@ -26,11 +26,12 @@ Each feature should be tested, both for correct and incorrect usage. Further, we
 
 The possible constructors tear-offs
 
-* Check that constructors of non-generic classes can be torn off.
-* Check that constructors of instantiated generic classes can be torn off.
+* Check that constructors of non-generic classes can be torn off (`C.foo`).
+* Check that constructors of instantiated generic classes can be torn off (`G<int>.foo`).
 * Check that constructors of uninstantiated generic classes can be torn off, and that type inference infers the correct type arguments.
-   * Instantiate to bounds if not context type, or not relevant context type.
-   * Based on context type if relevant.
+   * Instantiate to bounds if not context type, or not relevant context type (`var x = G.foo`).
+   * Based on context type if relevant (`G<int> Function() f = G.foo1`).
+   * Check that the inferred cannot be super-bounded or malbounded.
 * Check that the resulting function has the correct static type and runtime type.
 
 The possible constructor types (all combinations except "const factory non-redirecting" exist):
