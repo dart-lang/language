@@ -8,6 +8,11 @@ Summary: Use Dart's string literal syntax to create values of user-defined types
 by allowing an identifier before a string to identify a "tag processor" that
 controls how the string literal and its interpolated expressions are evaluted.
 
+See also: [#1479][], [#1987][]
+
+[#1479]: https://github.com/dart-lang/language/issues/1479
+[#1987]: https://github.com/dart-lang/language/issues/1987
+
 ## Motivation
 
 JavaScript has a feature called [tagged template literals][]. This proposal
@@ -96,15 +101,12 @@ The above code is essentially seen by the compiler as:
 ```dart
 var add = exprStringLiteral(['2 + 3'], []);
 var subtract = exprStringLiteral(['7 - 5'], []);
-var multiply = exprStringLiteral(['4 * ', ' / '],
-    [() => add, () => subtract]);
+var multiply = exprStringLiteral(['4 * ', ' / '], [add, subtract]);
 ```
 
 The literal text parts are pulled out into one list. The interpolated
-expressions are each wrapped in closures and put into a second list. Then these
-are passed to a function whose name is based on the tag identifier. Wrapping
-the interpolated expressions in closures gives the tag processor control over
-when or if the expressions are evaluated.
+expressions are put into a second list. Then these are passed to a function
+whose name is based on the tag identifier.
 
 Since the intent of this feature is brevity, we expect users to choose short tag
 names like `expr` here, `html`, `css`, etc. Since those names are likely to
@@ -118,11 +120,11 @@ that looks something like:
 ```dart
 Code exprStringLiteral(
     List<String> strings,
-    List<Object? Function()) values) {
+    List<Object> values) {
   var buffer = StringBuffer();
   for (var i = 0; i < values.length; i++) {
     buffer.write(strings[i]);
-    var value = values[i]();
+    var value = values[i];
     if (value is Expression) {
       buffer.write('(' + value.toSource() + ')');
     } else {
@@ -135,7 +137,10 @@ Code exprStringLiteral(
 }
 ```
 
-Note that this toy implementation implicitly wraps values that are subexpressions in parentheses to avoid precedence errors. The interpolated expressions passed to a tag processor do not need to evaluate to strings. It's up to the processor to define which kinds of values are allowed.
+Note that this toy implementation implicitly wraps values that are
+subexpressions in parentheses to avoid precedence errors. The interpolated
+expressions passed to a tag processor do not need to evaluate to strings. It's
+up to the processor to define which kinds of values are allowed.
 
 Note also that the tag handler does not have to *return* a string either. Here
 it returns `Code`. While tag strings are based on Dart string literal syntax,
@@ -228,10 +233,55 @@ A tagged string is an identifier followed by a series of adjacent string
 literals which may contain interpolated expressions. This is treated as
 syntactic sugar for a function call with two list arguments.
 
-### Desugaring
-
 The tag identifier is suffixed with `StringLiteral` to determine the tag
 processor name.
+
+### Static typing
+
+It is a compile-time error if:
+
+*   The tag processor name does not resolve to a function that can be called
+    with two positional arguments and no named arguments.
+*   `List<String>` cannot be assigned to the first parameter's type.
+*   `List<T>` cannot be assigned to the first parameter's type for some `T`.
+    This inferred `T` is called the *interpolated expression type*.
+*   Any interpolated expression in the string literal cannot be assigned to the
+    interpolated expression type.
+
+The latter two rules mean that a tag processor can restrict the types of
+expressions that are allowed in interpolation by specifying an element type on
+the second parameter to the function. For example:
+
+```dart
+Expression exprStringLiteral(
+    List<String> strings,
+    List<Expression> values) {
+  var buffer = StringBuffer();
+  for (var i = 0; i < values.length; i++) {
+    buffer.write(strings[i]);
+    buffer.write('(' + values[i].toSource() + ')');
+  }
+
+  buffer.write(strings.last);
+  return Expression.parse(buffer.toString());
+}
+
+main() {
+  var identifier = expr "foo";
+  var add = expr "$identifier + $identifier"; // OK.
+
+  var notExpr = 123;
+  var subtract = expr "$identifier - $notExpr"; // <-- Error.
+}
+```
+
+The marked line has a compile error because `notExpr` has type `int`, which
+cannot be assigned to the expected interpolated expression type `Code.`
+
+The type of a tagged string literal expression is the return type of the
+corresponding tagged string literal function.
+
+### Desugaring
 
 Adjacent strings are implicitly concatenated into a single string as in current
 Dart.
@@ -240,14 +290,8 @@ The string is split into string parts and interpolation expressions. All of the
 string literal parts from the `SINGLE_LINE_*` and `MULTI_LINE_*` rules are
 collected in order and put in an object that implements `List<String>`.
 
-Each `expression` is wrapped in a closure of type `Object? Function()` that
-evaluates and returns the expression when invoked. These closures are collected
-in order into an object that implements `List<Object? Function()>`.
-
-**TODO: What if an interpolated expression uses `await`? We could implicitly
-make the function `async` in that case and require the template function to
-handle a future result. Or we could make it a compile-time error like we do
-when using `await` in the initializer of a `late` variable.**
+Every `expression` from those rules is collected in order into an object that
+implements `List<T>` where `T` is the interpolated expression type.
 
 The structure of the grammar is such that the list of string parts will always
 be one element longer than the list of expressions. If there are no expressions,
@@ -271,18 +315,6 @@ tag '@$e#$f!'   // '@', '#', '!'    e, f
 The tagged string literal is replaced with a call to the tag processor function.
 The list of string parts and expressions (which may be empty) are passed to that
 function as positional arguments.
-
-### Static typing
-
-It is a compile-time error if:
-
-*   The tag named suffixed with `StringLiteral` does not resolve to a function
-    that can be called with two positional arguments.
-*   `List<String>` cannot be assigned to the first parameter's type.
-*   `List<Object? Function()>` cannot be assigned to the first parameter's type.
-
-The type of a tagged string literal expression is the return type of the
-corresponding tagged string literal function.
 
 ## Runtime semantics
 
