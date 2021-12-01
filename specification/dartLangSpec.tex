@@ -16011,6 +16011,403 @@ when executed starting from exactly the same state.%
 }
 
 
+%% TODO(eernst), for review: The null safety spec uses 'shortening' and
+%% 'shorting'; checking some dictionaries, it seems fine to use 'shorting'.
+\subsection{Null Shorting}
+\LMLabel{nullShorting}
+
+\LMHash{}%
+The semantics of the null aware member access operator \lit{?.}
+is defined in terms of a program transformation known as
+\Index{null shorting}.
+This program transformation eliminates all occurrences of \lit{?.}
+by introducing \LET{} expressions
+(\ref{notation})
+and equality comparisons with \NULL.
+Null shorting is performed after the static analysis,
+and after the transformation that eliminates cascades
+(\ref{cascades}).
+
+\LMHash{}%
+We use the phrase null-shorting as an adjective in order to
+indicate the connections between null shorting and other concepts
+(\commentary{
+e.g., the null-shorting translation plays an important role in null shorting%
+}).
+
+\commentary{%
+Let $e$ be an expression of the form
+\code{$e_0\,\,s_1\,\,\ldots\,\,s_i\,\,s_{i+1}\,\,\ldots\,\,s_k$}
+where $e_0$ is an expression derived from
+\syntax{<primary> <selector>*},
+$s_j$ is derived from \synt{selector} for $j \in 1 .. k$,
+and the first token in $s_{i+1}$ is \lit{?.}.
+The intuition is that null shorting ensures that
+the execution of $e$ will skip $s_{i+1}\,\,\ldots\,\,s_k$
+in the case where $e_0\,\,s_1\,\,\ldots\,\,s_i$ evaluates to
+the \NULL{} object.
+
+Note that cascades
+(\ref{cascades})
+are included in this treatment,
+because they are transformed into \LET{} expressions
+containing expressions derived from \syntax{<primary> <selector>*}.%
+}
+
+\LMHash{}%
+Null shorting is defined using meta-level functions over syntax.
+We use the notation
+\IndexCustom{\metaCode{Exp}}{Exp@\metaCode{Exp}}
+to denote the meta-level type of terms derived from \synt{expression}, and
+\IndexCustom{\metaCode{$T \rightarrow S$}}{S -> T@\metaCode{$T \rightarrow S$}}
+to denote the meta-level type of functions mapping
+terms of meta-level type \metaCode{$T$} to
+terms of meta-level type \metaCode{$S$}.
+
+\LMHash{}%
+We use the phrase
+\IndexCustom{base-level}{null shorting!base-level}
+to indicate that a term is Dart syntax,
+as opposed to meta-level syntax.
+\commentary{For example, \code{x\,\,+\,\,1}.}
+
+\LMHash{}%
+\metaCode{fn[x:\,\,Exp]:\,\,Exp\,\,=>\,\,E}
+defines a meta-level function of type
+\metaCode{Exp\,\,$\rightarrow$\,\,Exp}
+(\commentary{that is, a function from expressions to expressions}),
+and
+\metaCode{fn[k:\,\,Exp\,\,$\rightarrow$\,\,Exp]:\,\,Exp\,\,=>\,\,E}
+defines a meta-level function of type
+\metaCode{Exp\,\,$\rightarrow$\,\,Exp\,\,$\rightarrow$\,\,Exp}.
+Where obvious from context,
+we elide the parameter and return types on the meta-level functions.
+The meta-variables \metaCode{F} and \metaCode{G}
+range over meta-level functions.
+Application of a meta-level function \metaCode{F} to an argument \metaCode{p}
+is written as \metaCode{F[p]}.
+
+\LMHash{}%
+Null shorting transforms an expression \metaCode{e}
+(\commentary{whose meta-level type is \code{Exp}})
+into a meta-level function \metaCode{F} of type
+\metaCode{(Exp\,\,$\rightarrow$\,\,Exp)\,\,$\rightarrow$\,\,Exp},
+which takes as an argument the continuation of \metaCode{e},
+and produces an expression semantically equivalent to \metaCode{e}
+with all occurrences of \metaCode{?.} eliminated
+in favor of explicit sequencing using \LET{} expressions.
+
+\LMHash{}%
+Let
+\IndexCustom{\metaCode{ID}}{null shorting!\metaCode{ID}}
+be the identity function
+\metaCode{fn[x:\,\,Exp]:\,\,Exp\,\,=>\,\,x}.
+
+\LMHash{}%
+The
+\IndexCustom{expression translation}{null shorting!expression translation}
+of an expression \metaCode{e} is
+the result of applying the null-shorting translation
+of \metaCode{e} to \metaCode{ID}.
+That is, if \metaCode{e} translates to \metaCode{F},
+then \metaCode{F[ID]} is the expression translation of \metaCode{e}.
+
+\LMHash{}%
+We use
+\IndexCustom{\metaCode{EXP(e)}}{null shorting!\metaCode{EXP(e)}}
+as a shorthand for
+the expression translation of \metaCode{e}.
+That is, if the null-shorting translation of \metaCode{e} is \metaCode{F},
+then \metaCode{EXP(e)} is \metaCode{F[ID]}.
+
+\LMHash{}%
+We extend the expression translation to argument lists in the obvious way,
+using
+\IndexCustom{\metaCode{ARGS(args)}}{null shorting!\metaCode{ARGS(args)}}
+to denote the result of applying the expression translation pointwise
+to the arguments in the argument list \metaCode{args}.
+
+\LMHash{}%
+We use three combinators to express the translation.
+
+\LMHash{}%
+The null-shorting combinator
+\IndexCustom{\metaCode{SHORT}}{null shorting!\metaCode{SHORT}}
+is defined as follows:
+
+{
+\def\Base#1{\textcolor{normativeColor}{#1}}
+\def\Meta#1{\textcolor{metaColor}{#1}}
+\begin{metaLevelCode}
+SHORT = fn[r: Exp, c: Exp $\rightarrow$ Exp] =>
+          fn[k: Exp $\rightarrow$ Exp]: Exp =>
+            \Base{\LET\,\,$v$\,\,=\,\,\Meta{r}\,\,\IN\,\,%
+$v$\,\,==\,\,\NULL\,\,?\,\,\NULL\,\,:}\,\,k[c[\Base{$v$}]]
+\end{metaLevelCode}
+}
+
+\noindent
+where $v$ is a fresh base-level variable.
+The \metaCode{SHORT} combinator is used
+to give semantics to uses of the \code{?.}\ operator.
+It is parameterized over the receiver of the conditional property access
+(\metaCode{r})
+and a meta-level function
+(\metaCode{c})
+which given a fresh base-level variable ($v$)
+bound to the result of evaluating the receiver,
+produces the final expression.
+The result is parameterized over the continuation of
+the expression being translated.
+The continuation is only called in the case that
+the result of evaluating the receiver is non-null.
+
+\LMHash{}%
+The null-shorting combinator
+\IndexCustom{\metaCode{PASSTHRU}}{null shorting!\metaCode{PASSTHRU}}
+is defined as follows:
+
+\begin{metaLevelCode}
+PASSTHRU = fn[F: (Exp $\rightarrow$ Exp) $\rightarrow$ Exp, %
+c: Exp $\rightarrow$ Exp] =>
+             fn[k: Exp $\rightarrow$ Exp]: Exp =>
+               F[fn[x] => k[c[x]]]
+\end{metaLevelCode}
+
+\LMHash{}%
+The \metaCode{PASSTHRU} combinator is used to give semantics to
+expression forms which propagate null-shorting behavior.
+It is parameterized
+over the translation \metaCode{F} of
+the potentially null-shorting expression,
+and over a meta-level function \metaCode{c}
+which given an expression which denotes the value of the translated
+null-shorting expression produces the final expression being translated.
+The result is parameterized over the continuation of
+the expression being translated,
+which is called unconditionally.
+
+\LMHash{}%
+The null-shorting termination combinator
+\IndexCustom{\metaCode{TERM}}{null shorting!\metaCode{TERM}}
+is defined as follows:
+
+\begin{metaLevelCode}
+TERM = fn[r: Exp] => fn[k: Exp $\rightarrow$ Exp]: Exp => k[r]
+\end{metaLevelCode}
+
+\LMHash{}%
+The \metaCode{TERM} combinator is used to give semantics to
+expressions which neither short-circuit nor propagate null-shorting behavior.
+It is parameterized over the translated expression,
+and simply passes on the expression to its continuation.
+
+\LMHash{}%
+The program transformation \Index{null shorting} is defined as follows,
+where \metavar{typeArgs} and \metavar{args} are derived from
+\synt{typeArguments} respectively \synt{arguments}.
+
+{ %% Create a local scope and define commands to control text color.
+\def\Base#1{\textcolor{normativeColor}{#1}}
+\def\Meta#1{\textcolor{metaColor}{#1}}
+%
+\LMHash{}%
+\Case{\id}
+An identifier \id{} translates to \metaCode{TERM[\Base{\id}]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e$?.\id}}
+Assume that $e$ is derived from \syntax{<primary> <selector>*}.
+The conditional property access \code{$e$?.\id} then translates to\\
+\metaCode{SHORT[EXP(\Base{$e$}), fn[x] => x\Base{.\id}]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e$.\id}}
+Assume that $e$ is derived from \syntax{<primary> <selector>*}.
+If $e$ translates to \Meta{$F$} then \code{$e$.\id} translates to
+\metaCode{PASSTHRU[$F$, fn[x] => x\Base{.\id}]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e$?.$m$<\ldots>(\ldots)}}
+Assume that $e$ is derived from \syntax{<primary> <selector>*}.
+The null aware method invocation
+\code{$e$?.$m$<\metavar{typeArgs}>(\metavar{args})} then translates to
+\metaCode{SHORT[EXP(\Base{$e$}), fn[x] => %
+    x\Base{.$m$<\metavar{typeArgs}>(\Meta{ARGS(\Base{\metavar{args}})})}]}.
+\commentary{%
+A non-generic invocation is included as
+the case where \metavar{typeArgs} is empty (and \code{<>} is omitted),
+which is also true for the cases below.%
+}
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e$.$m$<\ldots>(\ldots)}}
+Assume that $e$ is derived from \syntax{<primary> <selector>*}.
+If $e$ translates to \Meta{$F$} then
+\code{$e$.$m$<\metavar{typeArgs}>(\metavar{args})}
+translates to\\
+\metaCode{PASSTHRU[$F$, fn[x] => %
+    x\Base{.$m$<\metavar{typeArgs}>(\Meta{ARGS(\Base{\metavar{args}})})}]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e$<\ldots>(\ldots)}}
+Assume that $e$ is derived from \syntax{<primary> <selector>*}.
+If $e$ translates to \Meta{$F$} then
+\code{$e$<\metavar{typeArgs}>(\metavar{args})}
+translates to\\
+\metaCode{PASSTHRU[$F$, fn[x] => %
+    x\Base{<\metavar{typeArgs}>(\Meta{ARGS(\Base{\metavar{args}})})}]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$?[$e_2$]}}
+Assume that $e$ is derived from \syntax{<primary> <selector>*},
+and $e_2$ is an expression.
+If $e_1$ translates to \Meta{$F$} then \code{$e_1$?[$e_2$]}
+translates to\\
+\metaCode{SHORT[EXP(\Base{$e_1$}), fn[x] => %
+    x\Base{[\Meta{EXP(\Base{$e_2$})}]}]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$[$e_2$]}}
+Assume that $e_1$ is derived from \syntax{<primary> <selector>*},
+and $e_2$ is an expression.
+If $e_1$ translates to \Meta{$F$} then \code{$e_1$[$e_2$]}
+translates to\\
+\metaCode{PASSTHRU[$F$, fn[x] => x\Base{[\Meta{EXP(\Base{$e_2$})}]}]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e$!}}
+Assume that $e$ is derived from \syntax{<primary> <selector>*}.
+If $e$ translates to \Meta{$F$} then \code{$e$!}
+translates to
+\metaCode{PASSTHRU[$F$, fn[x] => x\Base{!}]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$?.\id\,\,=\,\,$e_2$}}
+Assume that $e_1$ is derived from \syntax{<primary> <selector>*},
+and $e_2$ is an expression.
+The assignment \code{$e_1$?.\id\,\,=\,\,$e_2$}
+translates to\\
+\metaCode{SHORT[EXP(\Base{$e_1$}), fn[x] => %
+    x\Base{.\id\,\,=\,\,\Meta{EXP(\Base{$e_2$})}}]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$?.\id\,\,$\diamond$=\,\,$e_2$}}
+The other assignment operators are handled equivalently.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$.\id\,\,=\,\,$e_2$}}
+Assume that $e_1$ is derived from \syntax{<primary> <selector>*},
+and $e_2$ is an expression.
+If $e_1$ translates to \Base{$F$} then \code{$e_1$.\id\,\,=\,\,$e_2$}
+translates to\\
+\metaCode{PASSTHRU[$F$, fn[x] => x\Base{.\id\,\,= \Meta{EXP(\Base{$e_2$})}}]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$.\id\,\,$\diamond$=\,\,$e_2$}}
+The other assignment operators are handled equivalently.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$?[$e_2$] = $e_3$}}
+Assume that $e_1$ is derived from \syntax{<primary> <selector>*},
+and $e_2$ and $e_3$ are expressions.
+If $e_1$ translates to \Meta{$F$} then \code{$e_1$?[$e_2$] = $e_3$}
+translates to
+\metaCode{SHORT[EXP(\Base{$e_1$}), fn[x] => %
+    x\Base{[}EXP(\Base{$e_2$})\Base{] =} EXP(\Base{$e_3$})]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$?[$e_2$] $\diamond$= $e_3$}}
+The other assignment operators are handled equivalently.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$[$e_2$] = $e_3$}}
+Assume that $e_1$ is derived from \syntax{<primary> <selector>*},
+and $e_2$ and $e_3$ are expressions.
+If $e_1$ translates to \Meta{$F$} then \code{$e_1$[$e_2$] = $e_3$}
+translates to
+\metaCode{PASSTHRU[$F$, fn[x] => x\Base{[\Meta{EXP(\Base{$e_2$})}] %
+=} EXP(\Base{$e_3$})]}.
+\EndCase
+
+\LMHash{}%
+\Case{\code{$e_1$[$e_2$] $\diamond$= $e_3$}}
+The other assignment operators are handled equivalently.
+\EndCase
+
+\LMHash{}%
+\Case{Other}
+All other expressions are translated compositionally using
+the \metaCode{TERM} combinator. \commentary{For example:}
+
+\commentary{%
+  \begin{itemize}
+  \item
+    A list literal \Base{\code{[\,$e_1$, \ldots, $e_n$\,]}}
+    translates to\\
+    \metaCode{TERM[\Base{[\,%
+            \Meta{EXP(\Base{$e_1$}), \ldots, EXP(\Base{$e_n$})}\,]}]}.
+  \item
+    A parenthesized expression \Base{\code{($e$)}} translates to
+    \metaCode{TERM[\Base{(\Meta{EXP(\Base{$e$})})}]}.
+  \end{itemize}%
+}
+% Reduce whitespace after itemized list: This is just an end symbol.
+\vspace{-\baselineskip}\EndCase
+%
+} %% End of local scope defining \Base and \Meta.
+
+\LMHash{}%
+An invocation of any of several operators is considered equivalent to
+a member access
+(\ref{notation}).
+This applies to relational expressions, bitwise expressions,
+shift expressions, additive expressions, multiplicative expressions,
+and unary expressions.
+}
+
+\commentary{%
+For example, \code{$a$ + $b$} is specified as equivalent to
+\code{$a$.plus($b$)},
+where \code{plus} is assumed to be
+a method with the same behavior as \code{+}.
+Similarly, \code{-$e$} is equivalent to \code{$e$.unaryMinus()}.%
+}
+
+\LMHash{}%
+This equivalence is \emph{not} applicable in the above rules.
+Hence, operators not mentioned specifically in a rule are handled
+in the case for 'other' expressions,
+not in the case for \code{$e$.$m$<\metavar{typeArgs}>(\metavar{args})}.
+
+\commentary{%
+This means that null shorting stops at operators.
+For instance, \code{$e$?.\id\,\,+\,\,$b$} is
+not an expression where \code{.\id} and \code{+\,\,$b$} will be skipped
+if \code{$e$} is null\,---\,it is
+a compile-time error, because \code{$e$?.\id} can be null,
+and operator \lit{+} is not a member of
+the interface of a potentially nullable type.
+Similarly, both \code{-$e$?.\id} and \code{\gtilde{}$e$?.\id} are errors,
+because \code{$e$?.\id} can be null.%
+}
+
+
 \subsection{Assignment}
 \LMLabel{assignment}
 
