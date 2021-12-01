@@ -16020,8 +16020,9 @@ when executed starting from exactly the same state.%
 The semantics of the null aware member access operator \lit{?.}
 is defined in terms of a program transformation known as
 \Index{null shorting}.
-This program transformation eliminates all occurrences of \lit{?.}
-by introducing \LET{} expressions
+This program transformation transforms expressions
+and leaves other program elements unchanged.
+It eliminates all occurrences of \lit{?.} by introducing \LET{} expressions
 (\ref{notation})
 and equality comparisons with \NULL.
 Null shorting is performed after the static analysis,
@@ -16031,8 +16032,8 @@ and after the transformation that eliminates cascades
 \LMHash{}%
 We use the phrase null-shorting as an adjective in order to
 indicate the connections between null shorting and other concepts
-(\commentary{
-e.g., the null-shorting translation plays an important role in null shorting%
+(\commentary{%
+e.g., ``the null-shorting translation is used during null shorting''%
 }).
 
 \commentary{%
@@ -16069,7 +16070,7 @@ We use the phrase
 \IndexCustom{base-level}{null shorting!base-level}
 to indicate that a term is Dart syntax,
 as opposed to meta-level syntax.
-\commentary{For example, \code{x\,\,+\,\,1}.}
+\commentary{For example, \code{x\,\,+\,\,1} is a base-level expression.}
 
 \LMHash{}%
 \metaCode{fn[x:\,\,Exp]:\,\,Exp\,\,=>\,\,E}
@@ -16079,7 +16080,7 @@ defines a meta-level function of type
 and
 \metaCode{fn[k:\,\,Exp\,\,$\rightarrow$\,\,Exp]:\,\,Exp\,\,=>\,\,E}
 defines a meta-level function of type
-\metaCode{Exp\,\,$\rightarrow$\,\,Exp\,\,$\rightarrow$\,\,Exp}.
+\metaCode{(Exp\,\,$\rightarrow$\,\,Exp)\,\,$\rightarrow$\,\,Exp}.
 Where obvious from context,
 we elide the parameter and return types on the meta-level functions.
 The meta-variables \metaCode{F} and \metaCode{G}
@@ -16088,12 +16089,11 @@ Application of a meta-level function \metaCode{F} to an argument \metaCode{p}
 is written as \metaCode{F[p]}.
 
 \LMHash{}%
-Null shorting transforms an expression \metaCode{e}
-(\commentary{whose meta-level type is \code{Exp}})
+Null shorting transforms an expression $e$
 into a meta-level function \metaCode{F} of type
 \metaCode{(Exp\,\,$\rightarrow$\,\,Exp)\,\,$\rightarrow$\,\,Exp},
-which takes as an argument the continuation of \metaCode{e},
-and produces an expression semantically equivalent to \metaCode{e}
+which takes as an argument the continuation of $e$,
+and produces an expression semantically equivalent to $e$
 with all occurrences of \metaCode{?.} eliminated
 in favor of explicit sequencing using \LET{} expressions.
 
@@ -16105,27 +16105,31 @@ be the identity function
 
 \LMHash{}%
 The
-\IndexCustom{expression translation}{null shorting!expression translation}
-of an expression \metaCode{e} is
-the result of applying the null-shorting translation
-of \metaCode{e} to \metaCode{ID}.
-That is, if \metaCode{e} translates to \metaCode{F},
-then \metaCode{F[ID]} is the expression translation of \metaCode{e}.
+\IndexCustom{null-shorting expression translation}{%
+  null shorting!expression translation}
+of an expression $e$
+(in this section abbreviated as the \NoIndex{expression translation} of $e$)
+is the result of applying the null-shorting translation (defined below)
+of $e$ to \metaCode{ID}.
+That is, if $e$ translates to \metaCode{F},
+then \metaCode{F[ID]} is the expression translation of $e$.
 
 \LMHash{}%
 We use
-\IndexCustom{\metaCode{EXP(e)}}{null shorting!\metaCode{EXP(e)}}
+\IndexCustom{\metaCode{EXP(\textcolor{normativeColor}{$e$})}}{%
+  null shorting!\metaCode{EXP(\textcolor{normativeColor}{$e$})}}
 as a shorthand for
-the expression translation of \metaCode{e}.
-That is, if the null-shorting translation of \metaCode{e} is \metaCode{F},
-then \metaCode{EXP(e)} is \metaCode{F[ID]}.
+the expression translation of $e$.
+That is, if the null-shorting translation of $e$ is \metaCode{F},
+then \metaCode{EXP(\textcolor{normativeColor}{$e$})} is \metaCode{F[ID]}.
 
 \LMHash{}%
 We extend the expression translation to argument lists in the obvious way,
 using
-\IndexCustom{\metaCode{ARGS(args)}}{null shorting!\metaCode{ARGS(args)}}
+\IndexCustom{\metaCode{ARGS(\textcolor{normativeColor}{\metavar{args}})}}{%
+  null shorting!\metaCode{ARGS(\textcolor{normativeColor}{\metavar{args}})}}
 to denote the result of applying the expression translation pointwise
-to the arguments in the argument list \metaCode{args}.
+to the arguments in the argument list \metavar{args}.
 
 \LMHash{}%
 We use three combinators to express the translation.
@@ -16158,7 +16162,7 @@ which given a fresh base-level variable ($v$)
 bound to the result of evaluating the receiver,
 produces the final expression.
 The result is parameterized over the continuation of
-the expression being translated.
+the expression being translated (\metaCode{k}).
 The continuation is only called in the case that
 the result of evaluating the receiver is non-null.
 
@@ -16358,8 +16362,8 @@ the \metaCode{TERM} combinator. \commentary{For example:}
 \commentary{%
   \begin{itemize}
   \item
-    A list literal \Base{\code{[\,$e_1$, \ldots, $e_n$\,]}}
-    translates to\\
+    A list literal \Base{\code{[\List{e}{1}{n}]}}
+    translates to
     \metaCode{TERM[\Base{[\,%
             \Meta{EXP(\Base{$e_1$}), \ldots, EXP(\Base{$e_n$})}\,]}]}.
   \item
