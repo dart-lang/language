@@ -24926,15 +24926,6 @@ In particular, if $T?$ is a type of interest
 then $T$ is also a type of interest.%
 }
 
-\LMHash{}%
-The initial stack of types of interest for $v$ has exactly one element,
-namely the declared type.
-This is the stack of types of interest
-for the declaring occurrence of the name of $v$
-(\commentary{%
-that is, the very first time the variable is mentioned, \ref{variables}%
-}).
-
 \commentary{%
 The flow analysis will be specified in
 a future version of this specification.
@@ -24944,8 +24935,20 @@ at a given location $\ell$,
 based on the same properties of locations
 that are immediate predecessors of $\ell$
 in the control flow graph,
-ending in the declaration of $v$.%
+ending in the declaration of $v$.
+At this point we just specify the initial step,
+and the situations where promotion may occur.%
 }
+
+\LMHash{}%
+The initial stack of types of interest for $v$ has exactly one element,
+namely the declared type
+(\ref{localVariableDeclaration}).
+This is the stack of types of interest
+for the declaring occurrence of the name of $v$
+(\commentary{%
+i.e., the very first time the variable is mentioned, \ref{variables}%
+}).
 
 \LMHash{}%
 If a local variable $v$ has an initializing expression
@@ -24986,20 +24989,91 @@ are subject to many restrictions
 Consider the situation
 where the declaration of a local variable $v$ is of the form
 \code{\LATE?\,\,\VAR\,\,$v$ = $e$;}
-where the static type of $e$ is of the form \code{$X$\,\&\,$T$}
+where the static type of $e$ is of the form \code{$X$\,\&\,\,$T$}
 where $X$ is a type variable.
 In this situation, the declared type of $v$ is \code{X}
 (\ref{localVariableDeclaration}),
-but the type \code{$X$\,\&\,$T$} is added to the stack of types of interest,
-and the type of $v$ is immediately promoted to \code{$X$\,\&\,$T$}.
+but the type \code{$X$\,\&\,\,$T$} is added to the stack of types of interest,
+and the type of $v$ is immediately promoted to \code{$X$\,\&\,\,$T$}.
 
 \commentary{%
-Note that \code{$X$\,\&\,$T$} is not otherwise automatically a
+Note that \code{$X$\,\&\,\,$T$} is not otherwise automatically a
 type of interest just because $X$ is a type of interest.
 In particular, if $w$ is declared as
 \code{\LATE?\,\,$X$\,\,$w$ = $e$;}
-where the static type of $e$ is \code{$X$\,\&\,$T$},
-the type of $w$ is \emph{not} immediately promoted to \code{$X$\,\&\,$T$}.%
+where the static type of $e$ is \code{$X$\,\&\,\,$T$},
+the type of $w$ is \emph{not} promoted to \code{$X$\,\&\,\,$T$}.%
+}
+
+\LMHash{}%
+We now mention the locations where promotion may occur
+independently of the control flow.
+
+\commentary{%
+We might say that these promotions are ``atomic'',
+and all other promotions are derived from these,
+and from the control flow.%
+}
+
+\LMHash{}%
+Let $\ell$ be a location,
+and let $v$ be a local variable which is in scope at $\ell$.
+Assume that $\ell$ occurs after the declaration of $v$.
+The expressions that give rise to promotion or demotion
+of the type of $v$ at $\ell$
+are the following:
+
+\begin{itemize}
+\item A type test of the form \code{$v$\,\,\IS\,\,$T$}.
+\item A type check of the form \code{$v$\,\,\AS\,\,$T$}.
+\item An assignment of the form \code{$v$\,\,=\,\,$e$}
+  where the static type of $e$ is a type of interest for $v$ at $\ell$,
+  and similarly for compound assignments
+  (\ref{compoundAssignment})
+  including \lit{??=}.
+\item An equality test of the form \code{$v$\,\,==\,\,$e$} or
+  \code{$e$\,\,==\,\,$v$}, where $e$ is \NULL,
+  optionally wrapped in one or more parentheses,
+  and similarly for \lit{!=}.
+\end{itemize}
+
+\LMHash{}%
+In particular,
+a check of the form \code{$v$\,\,==\,\,\NULL},
+\code{\NULL\,\,==\,\,$v$},
+or \code{$v$\,\,\IS\,\,Null}
+where $v$ has type $T$ at $\ell$
+promotes the type of $v$
+to \code{Null} in the \TRUE{} continuation,
+and to \NonNullType{$T$} in the \FALSE{} continuation.
+
+\LMHash{}%
+%% TODO(eernst), for review: The null safety spec says that `T?` is
+%% promoted to `T`, but implementations _do_ promote `X extends int?` to
+%% `X & int`. So I specify that.
+A check of the form \code{$v$\,\,!=\,\,\NULL},
+\code{\NULL\,\,!=\,\,$v$},
+or \code{$v$\,\,\IS\,\,$T$}
+where $v$ has type $T$ at $\ell$
+promotes the type of $v$
+to \NonNullType{$T$} in the \TRUE{} continuation,
+and to \code{Null} in the \FALSE{} continuation.
+
+\commentary{%
+The resulting type of $v$ may be the obvious one, e.g.,
+\code{$v$\,\,=\,\,1} may promote $v$ to \code{int},
+but it may also give rise to a demotion
+(changing the type of $v$ to a supertype of the type of $v$ at $\ell$),
+and it may have no effect on the type of $v$
+(e.g., when the static type of $e$ is not a type of interest).
+These details will be specified in a future version of this specification.
+
+Every non-trivial type of control flow determines the control flow graph,
+and the control flow graph determines which of the above
+may or must have occurred at $\ell$,
+and hence gives rise to the stack of types of interest of $v$ at $\ell$,
+which in turn determines the type of $v$ at $\ell$.
+This part of the flow analysis will also be specified in the future.%
 }
 
 
@@ -25565,6 +25639,8 @@ where $T$ is the static type of $e$.
 
 \subsubsection{Null aware operator}
 \LMLabel{nullShorteningTransformation}
+
+!!!
 
 The semantics of the null aware operator \code{?.} are defined via a source to source
 translation of expressions into Dart code extended with a let binding construct.
