@@ -70,6 +70,9 @@ abstract class ClassIntrospector {
 
   /// All of the classes that are mixed in with `with` clauses.
   Future<List<ClassDeclaration>> mixinsOf(ClassDeclaration clazz);
+
+  /// All of the classes that are implemented with an `implements` clause.
+  Future<List<ClassDeclaration>> interfacesOf(ClassDeclaration clazz);
 }
 
 /// The api used by [Macro]s to reflect on the currently available
