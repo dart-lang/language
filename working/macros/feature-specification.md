@@ -300,9 +300,9 @@ regular Dart class declarations. They are macros by virtue of the fact that they
 implement one or more special "macro" interfaces defined by the Dart core
 libraries.
 
-*Note: The API is still being designed, and is documented [here][docs].*
+*Note: The API is still being designed, and lives [here][api].*
 
-[docs]: https://jakemac53.github.io/macro_prototype/doc/api/definition/definition-library.html
+[api]: https://github.com/dart-lang/language/blob/master/working/macros/api
 
 Every macro interface is a subtype of a root [Macro][] [marker interface][].
 There are interfaces for each kind of declaration macros can be applied to:
@@ -312,47 +312,42 @@ implement as many of these interfaces as it wants to. This allows a single macro
 to participate in multiple phases and to support being applied to multiple kinds
 of declarations.
 
-[Macro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Macro-class.html
+[Macro]: https://github.com/dart-lang/language/blob/master/working/macros/api/macros.dart
 [marker interface]: https://en.wikipedia.org/wiki/Marker_interface_pattern
 
 Each macro interface declares a single method that the macro class must
 implement in order to apply the macro in a given phase on a given declaration.
 For example, a macro applied to classes in the declaration phase implements
-[ClassDeclarationMacro][] and its [`visitClassDeclaration()`][visit] method.
+`ClassDeclarationsMacro` and its `buildDeclarationsForClass` method.
 
-[ClassDeclarationMacro]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationMacro-class.html
-
-[visit]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationMacro/visitClassDeclaration.html
-
-When a Dart implementation executes macros, it invokes these visit methods at
-the appropriate phase for the declarations the macro is applied to. Each visit
+When a Dart implementation executes macros, it invokes these builder methods at
+the appropriate phase for the declarations the macro is applied to. Each builder
 method is passed two arguments which give the macro the context and capabilities
-it needs to introspect over the program and generate code:
+it needs to introspect over the program and generate code.
 
-### Introspection argument
+### Declaration argument
 
-The first argument to a visit method is an object that lets the macro introspect over the declaration that the macro is applied to. The type of this argument
-varies for each macro interface. Each kind of declaration has unique properties
-and the phases each have different introspective power.
+The first argument to a builder method is an object describing the
+declaration it is applied to. This argument contains only essentially the parsed
+AST for the declaration itself, and does not include nested declarations.
 
-For example, in [ClassDeclarationMacro][], the introspection object is a
-[ClassDeclaration][]. That object gives you access to the name of the class,
-its supertypes, members, etc.
-
-[ClassDeclaration]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclaration-class.html
+For example, in `ClassDeclarationsMacro`, the introspection object is a
+`ClassDeclaration`. This gives you access to the name of the class and access
+to the immediate superclass, as well as any immediate mixins or interfaces,
+but _not_ its members or entire class hierarchy.
 
 ### Builder argument
 
-The second argument is an instance of a "builder" class. It exposes methods
-that let the macro add code to and modify the declaration that the macro is
-applied to. As with the introspection object, each macro class has a different
-builder type whose capabilities vary based on phase.
+The second argument is an instance of a [builder][] class. It exposes both
+methods to contribute new code to the program, as well as phase specific
+introspection capabilities.
 
-In [ClassDeclarationMacro][], the builder is a [ClassDeclarationBuilder][]. Its
-primary method is `addToClass()`, which the macro can call to add a new member
-to the class.
+In `ClassDeclarationsMacro`, the builder is a `ClassDeclarationBuilder`. Its
+primary method is `declareInClass`, which the macro can call to add a new member
+to the class. It also implements the `ClassIntrospector` interface, which allows
+you to get the members of the class, as well as its entire class hierarchy.
 
-[ClassDeclarationBuilder]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationBuilder-class.html
+[builder]: https://github.com/dart-lang/language/blob/master/working/macros/api/builders.dart
 
 ### Introspecting on metadata annotations
 
