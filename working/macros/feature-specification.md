@@ -625,14 +625,6 @@ If a macro application is added which runs in the same phase as the current
 one, then it is immediately expanded after execution of the current macro,
 following the normal ordering rules.
 
-#### Adding macro applications to existing declarations
-
-Macro applications can be added to existing declarations using the builder
-classes. Macros added in this way are always prepended to the list of existing
-macros on the declaration (which makes them run *last*).
-
-**TODO**: Update the builder APIs to allow this.
-
 #### Ordering violations
 
 Both of these mechanisms allow for normal macro ordering to be circumvented.
