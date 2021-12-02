@@ -154,12 +154,36 @@ order of macros:
 
     Here, the macros applied to C are run `first`, `second`, then `third`.
 
+*   **Macros are applied to superclasses, mixins, and interfaces first, in**
+    **Phase 2** For example:
+
+    ```dart
+    @third
+    class B extends A with C implements D {}
+
+    @second
+    class A implements C {}
+
+    @first
+    class C {}
+
+    @first
+    class D {}
+    ```
+
+    Here, the macros on `A`, `C` and `D` run before the macros on `B`, and `C`
+    also runs before `A`. But otherwise the ordering is not defined (it is not
+    observable).
+
+    This only applies to Phase 2, because it is the only phase where the order
+    would be observable. In particular this allows macros running on `B` to see
+    any members added to its super classes, mixins, or interfaces, by other
+    macros running in phase 2.
+
 Aside from these rules, macro introspection is limited so that evaluation order
 is not user visible. For example, if two macros are applied to two methods in
 the same class, there is no way for those macros to interfere with each other
 such that the application order can be detected.
-
-**TODO*: Are superclass macros run before subclasses (#1938)?
 
 ## Phases
 
