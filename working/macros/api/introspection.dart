@@ -58,7 +58,7 @@ abstract class ClassDeclaration implements TypeDeclaration {
   TypeAnnotation? get superclass;
 
   /// All the `implements` type annotations.
-  Iterable<TypeAnnotation> get implements;
+  Iterable<TypeAnnotation> get interfaces;
 
   /// All the `with` type annotations.
   Iterable<TypeAnnotation> get mixins;
