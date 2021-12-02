@@ -4104,11 +4104,13 @@ It is not possible for an identifier to directly refer to a constructor,
 since the constructor is not in any scope used for resolving identifiers.%
 }
 
+%% TODO(eernst), for review: With null safety, do not have a name for the
+%% class that induces the top type. We could introduce \code{Any} and say
+%% that both \code{Object} and \code{Null} are subclasses thereof.
 \LMHash{}%
 If{}f no constructor is specified for a class $C$,
 it implicitly has a default constructor \code{C():\ \SUPER()\ \{\}},
-unless $C$ is the built-in class \code{Object}.
-%% TODO(eernst): With null safety, add `or \code{Null}`.
+unless $C$ is one of the built-in classes \code{Object} or \code{Null}.
 
 
 \subsubsection{Generative Constructors}
@@ -4578,10 +4580,16 @@ So we need to specify the order.%
 }
 
 \LMHash{}%
-Then if any instance variable of $i$ declared
-by the immediately enclosing class or enum
+Then if any non-\LATE{} instance variable of $i$
+declared by the immediately enclosing class
 is not yet bound to an object,
 all such variables are initialized with the null object (\ref{null}).
+
+\commentary{%
+Note that compile-time errors enforce the property that
+any such variable has a nullable type,
+and hence it can be bound to the null object.%
+}
 
 \LMHash{}%
 Then, unless the enclosing class is \code{Object}, the explicitly specified or
@@ -4696,15 +4704,10 @@ the immediately enclosing class or enum.
 
 \LMHash{}%
 % This error can occur due to an implicit cast.
-It is a dynamic type error if a factory returns a non-null object
+It is a dynamic type error if a factory returns an object
 whose type is not a subtype of its actual
 (\ref{actualTypes})
 return type.
-
-\rationale{%
-It seems useless to allow a factory to return the null object (\ref{null}).
-But it is more uniform to allow it, as the rules currently do.%
-}
 
 \rationale{%
 Factories address classic weaknesses associated with constructors
@@ -7132,6 +7135,7 @@ proceeds as follows:
 Evaluate $e_1$ to an object $o$.
 Let $u$ be a fresh final variable bound to $o$.
 Then $e$ evaluates to a function object which is equivalent to:
+
 \begin{itemize}
 \item
 \begin{normativeDartCode}
@@ -7140,23 +7144,24 @@ Then $e$ evaluates to a function object which is equivalent to:
 \quad$E$<\List{S}{1}{m}>($u$)
 \quad.\id<\List{X}{1}{s}>($\List{p}{1}{n},\ p_{n+1}$: $p_{n+1}, \ldots,\ p_{n+k}$: $p_{n+k}$);
 \end{normativeDartCode}
-where \id{} declares type parameters
-\TypeParametersStd,
-required parameters \List{p}{1}{n},
-and named parameters \List{p}{n+1}{n+k} with defaults \List{d}{1}{k},
-using \code{null} for parameters whose default value is not specified.
+  where \id{} declares type parameters
+  \TypeParametersStd,
+  required parameters \List{p}{1}{n},
+  and named parameters \List{p}{n+1}{n+k} with defaults \List{d}{1}{k},
+  using \NULL{} for parameters whose default value is not specified.
+
 \item
 \begin{normativeDartCode}
 <\TypeParameters{X}{B'}{s}>
 ($\PairList{T}{p}{1}{n},\ $[$T_{n+1}\ p_{n+1} = d_1, \ldots,\ T_{n+k}\ p_{n+k} = d_k$]) =>
 \quad$E$<\List{S}{1}{m}>($u$).\id<\List{X}{1}{s}>(\List{p}{1}{n+k});
 \end{normativeDartCode}
-where \id{} declares type parameters
-\TypeParametersStd,
-required parameters \List{p}{1}{n},
-and optional positional parameters
-\List{p}{n+1}{n+k} with defaults \List{d}{1}{k},
-using \code{null} for parameters whose default value is not specified.
+  where \id{} declares type parameters
+  \TypeParametersStd,
+  required parameters \List{p}{1}{n},
+  and optional positional parameters
+  \List{p}{n+1}{n+k} with defaults \List{d}{1}{k},
+  using \NULL{} for parameters whose default value is not specified.
 \end{itemize}
 
 \LMHash{}%
@@ -8612,12 +8617,17 @@ and throws the same exception object and stack trace.
 \LMHash{}%
 The predefined Dart function \code{identical()}
 is defined such that \code{identical($c_1$, $c_2$)} if{}f:
+
 \begin{itemize}
-\item $c_1$ evaluates to either the null object (\ref{null})
+\item
+  $c_1$ evaluates to either the null object (\ref{null})
   or an instance of \code{bool} and \code{$c_1$ == $c_2$}, OR
-\item $c_1$ and $c_2$ are instances of \code{int} and \code{$c_1$ == $c_2$}, OR
-\item $c_1$ and $c_2$ are constant strings and \code{$c_1$ == $c_2$}, OR
-\item $c_1$ and $c_2$ are instances of \code{double}
+\item
+  $c_1$ and $c_2$ are instances of \code{int} and \code{$c_1$ == $c_2$}, OR
+\item
+  $c_1$ and $c_2$ are constant strings and \code{$c_1$ == $c_2$}, OR
+\item
+  $c_1$ and $c_2$ are instances of \code{double}
   and one of the following holds:
   \begin{itemize}
   \item $c_1$ and $c_2$ are non-zero and \code{$c_1$ == $c_2$}.
@@ -8627,14 +8637,18 @@ is defined such that \code{identical($c_1$, $c_2$)} if{}f:
     with the same underlying bit pattern.
   \end{itemize}
  OR
-\item $c_1$ and $c_2$ are constant lists that are defined to be identical
+\item
+  $c_1$ and $c_2$ are constant lists that are defined to be identical
   in the specification of literal list expressions (\ref{lists}), OR
-\item $c_1$ and $c_2$ are constant maps that are defined to be identical
+\item
+  $c_1$ and $c_2$ are constant maps that are defined to be identical
   in the specification of literal map expressions (\ref{maps}), OR
-\item $c_1$ and $c_2$ are constant objects of the same class $C$
+\item
+  $c_1$ and $c_2$ are constant objects of the same class $C$
   and the value of each instance variable of $c_1$ is identical to
   the value of the corresponding instance variable of $c_2$. OR
-\item $c_1$ and $c_2$ are the same object.
+\item
+  $c_1$ and $c_2$ are the same object.
 \end{itemize}
 
 \commentary{%
@@ -9399,12 +9413,13 @@ An \IndexCustom{integer literal}{literal!integer}
 is either a hexadecimal integer literal or a decimal integer literal.
 
 \LMHash{}%
-%% TODO(eernst): Clarify during review: The null safety spec had this: "The
+%% TODO(eernst), for review: The null safety spec had this: "The
 %% implicit conversion of integer literals to double literals is performed
 %% when the context type is \code{double} or \code{double?}", which is
 %% included with the rules below. However, using that rule directly would
-%% rule out `FutureOr<num> x = 1;`, which is allowed by the rule below, and
-%% by current implementations.
+%% rule out `FutureOr<double> x = 1;`, which is allowed by the rule below,
+%% and by current implementations, so we may need a breaking change process
+%% if we insist that `FutureOr<double> x = 1;` must be a compile-time error.
 Let $l$ be an integer literal that is not the operand
 of a unary minus operator,
 and let $T$ be the context type of $l$.
@@ -9502,7 +9517,7 @@ They are the \IndexCustom{boolean literals}{literal!boolean}.
 
 \commentary{%
 We use the notation `the \TRUE{} object' and `the \FALSE{} object'
-rather than a plain `the true object` and `the false object`
+rather than a plain `the true object' and `the false object'
 (as opposed to \NULL{} which evaluates to `the null object',
 not `the \NULL{} object')
 because phrases like `the false object' are too easy to misunderstand.%
@@ -9907,12 +9922,14 @@ An interpolated string, $s$, with content
 (where any of $s_0, \ldots, s_n$ can be empty)
 is evaluated by evaluating each expression $e_i$ ($1 \le i \le n$)
 into a string $r_i$ in the order they occur in the source text, as follows:
+
 \begin{itemize}
 \item Evaluate $e_i$ to an object $o_i$.
 \item Invoke the \code{toString} method on $o_i$ with no arguments,
   and let $r_i$ be the returned object.
-\item If $r_i$ is the null object, a dynamic error occurs.
 \end{itemize}
+
+\LMHash{}%
 Finally, the result of the evaluation of $s$ is
 the concatenation of the strings $s_0$, $r_1$, \ldots, $r_n$, and $s_n$.
 
@@ -11263,6 +11280,7 @@ Then:
   the inferred element type of $\ell$ is
   the type argument of $S$ at \code{Iterable}.
 
+  %% TODO(eernst): Come inference, update terminology/notation.
   \commentary{%
     This is the result of constraint matching for $X$
     using the constraint $S\,\,<:\,\,\code{Iterable<$X$>}$.
@@ -12002,7 +12020,7 @@ except that the null object is given a special treatment.%
 }
 
 \LMHash{}%
-If $v$ is the null object (\ref{null}), then a \code{NullThrownError} is thrown.
+If $v$ is the null object (\ref{null}), then a dynamic error occurs.
 Otherwise let $t$ be a stack trace corresponding to the current execution state,
 and the \THROW{} statement throws with $v$ as exception object
 and $t$ as stack trace (\ref{expressionEvaluation}).
@@ -12596,14 +12614,17 @@ the body of $q$ is executed with respect to
 the bindings that resulted from the evaluation of the argument list,
 and with the type parameters, if any, of $q$ bound to
 the actual type arguments $u_1, \ldots, u_m$.
-If this execution returns an object
+If this execution returns with an object $o$
 (\ref{statementCompletion})
-then $e$ evaluates to the returned object.
-Otherwise, if the execution completes normally or returns with no object,
-then $e$ evaluates to the null object (\ref{null}).
-Otherwise the execution throws an exception $x$ and stack trace $t$,
+then $e$ evaluates to $o$.
+Otherwise, the execution throws an exception $x$ and stack trace $t$,
 and then evaluation of $e$ also throws $x$ and $t$
 (\ref{expressionEvaluation}).
+
+\commentary{%
+Note that the execution cannot complete normally or return without an object,
+because that would give rise to a compile-time error.%
+}
 
 \rationale{%
 A factory constructor can be declared in an abstract class and used safely,
@@ -12943,19 +12964,22 @@ When iteration over the iterable is started, by getting
 an iterator $j$ from the iterable and calling \code{moveNext()},
 execution of the body of $f$ will begin.
 When execution of the body of $f$ completes (\ref{statementCompletion}),
+
 \begin{itemize}
-\item If it returns without an object or it completes normally
+\item
+  If it returns without an object or it completes normally
   (\ref{statementCompletion}),
-  $j$ is positioned after its last element,
-  so that its current value is the null object
-  (\ref{null})
-  and the current call to \code{moveNext()} on $j$ returns the \FALSE{} object,
+  $j$ is positioned after its last element.
+  The current invocation of \code{moveNext()} on $j$
+  returns the \FALSE{} object,
   as must all further calls.
-\item If it throws an exception object $e$ and stack trace $t$
-  then the current value of $j$ is the null object
-  (\ref{null})
-  and the current call to \code{moveNext()} throws $e$ and $t$ as well.
-  Further calls to \code{moveNext()} must return the \FALSE{} object.
+  In this situation, the outcome of invoking \code{current} is undefined
+  (\commentary{e.g., it could throw or return a default value}).
+\item
+  If it throws an exception object $e$ and stack trace $t$ then
+  the current invocation of \code{moveNext()} throws $e$ and $t$ as well.
+  In this situation the outcome of invoking \code{current} on $j$ is undefined.
+  Subsequent calls to \code{moveNext()} must return the \FALSE{} object.
 \end{itemize}
 
 \LMHash{}%
@@ -13012,6 +13036,7 @@ and if it throws an exception $e$ and stack trace $t$,
 $o$ is completed with the error $e$ and stack trace $t$.
 If execution of the body throws before the body suspends the first time,
 completion of $o$ happens at some future time after the invocation has returned.
+
 \rationale{%
 The caller needs time to set up error handling for the returned future,
 so the future is not completed with an error
@@ -13506,16 +13531,12 @@ It is a dynamic type error if $t_i$ is not a subtype of the actual bound
 of the $i$th type argument of $f$, for actual type arguments $t_1, \ldots, t_r$.
 % Check the types of positional arguments.
 % This error can occur due to implicit casts, covariance, and dynamic calls.
-It is a dynamic type error if $o_i$ is not the null object (\ref{null})
-and the actual type
-(\ref{actualTypes})
-of $p_i$ is not a supertype of the dynamic type of $o_i, i \in 1 .. m$.
+It is a dynamic type error if the actual type of $p_i$ is not
+a supertype of the dynamic type of $o_i, i \in 1 .. m$.
 % Check the types of named arguments.
 % This error can occur due to implicit casts, covariance, and dynamic calls.
-It is a dynamic type error if $o_j$ is
-not the null object and the actual type
-(\ref{actualTypes})
-of $q_j$ is not a supertype of the dynamic type of $o_j, j \in m + 1 .. m + l$.
+It is a dynamic type error if the actual type of $q_j$ is not
+a supertype of the dynamic type of $o_j, j \in m + 1 .. m + l$.
 
 
 \subsubsection{Unqualified Invocation}
@@ -13838,7 +13859,7 @@ In other words, $C$ has the freedom to be a proper subtype of
 the function type that we can read off of the declaration of $f$
 because it may need to be a specific internal platform defined class,
 but $C$ does not have the freedom to be a subtype of
-a different and more special function type, and it cannot be \code{Null}.%
+a different and more special function type.%
 }
 
 \LMHash{}%
@@ -13981,8 +14002,6 @@ this occurrence of $f$ is considered to have static type $F'$.
 \LMHash{}%
 Execution of $f$ proceeds as follows.
 Evaluate $f$ to an object $o$.
-%% TODO(eernst): Come null-safety, remove the next line.
-A dynamic error occurs if $o$ is the null object.
 Let \RawFunctionType{S_0}{Y}{B'}{s}{$q$} be the dynamic type of $o$
 (\commentary{by soundness, this type is a subtype of $G$}).
 $f$ then evaluates to a function object $o'$ with dynamic type
@@ -14523,9 +14542,9 @@ The static type of $i$ is then \code{$T$?}.
 
 \LMHash{}%
 The dynamic semantics of $i$ is determined by the semantics of other constructs,
-because all conditional ordinary method invocations are eliminated by the
-null-shortening transformation
-(\ref{nullShorteningTransformation}).
+because all conditional ordinary method invocations are eliminated during
+the null-shorting transformation
+(\ref{nullShorting}).
 \EndCase
 
 \LMHash{}%
@@ -15199,9 +15218,9 @@ where $v$ is a fresh variable whose type is \NonNullType{$S$}.
 
 \LMHash{}%
 The dynamic semantics of $i$ is determined by the semantics of other constructs,
-because all conditional property extraction expressions are eliminated by the
-null-shortening transformation
-(\ref{nullShorteningTransformation}).
+because all conditional property extraction expressions are eliminated during
+the null shorting transformation
+(\ref{nullShorting}).
 \EndCase
 
 \LMHash{}%
@@ -15494,38 +15513,33 @@ Let $o$ be an object, and let $u$ be a fresh final variable bound to $o$.
 The \Index{closurization of method} $f$ on object $o$
 is defined to be equivalent
 (\commentary{except for equality, as noted below}) to:
+
 \begin{itemize}
-%\item $(a) \{\RETURN{}$ $u$ $op$ $a;$\} if $f$ is named $op$
-%  and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde/, *, \%, $|$,
-%  \^{}, \&, $<<$, $>>$} (this precludes closurization of unary -).
-%\item $() \{\RETURN{}$ \gtilde{} $u;$\} if $f$ is named \gtilde.
-%\item $(a) \{\RETURN{}$ $u[a];$\} if $f$ is named \code{[]}.
-%\item $(a, b) \{\RETURN{}$ $u[a] = b;$\} if $f$ is named \code{[]=}.
 \item
 \begin{normativeDartCode}
 <\TypeParameters{X}{B'}{s}>
 ($\PairList{T}{p}{1}{n},\ $\{$T_{n+1}\ p_{n+1} = d_1, \ldots,\ T_{n+k}\ p_{n+k} = d_k$\}) =>
 \quad$u$.$m$<\List{X}{1}{s}>(\ArgumentList{p}{n}{p}{k});
 \end{normativeDartCode}
-where $f$ is an instance method named $m$
-which has type parameter declarations
-\TypeParametersStd,
-required parameters \List{p}{1}{n},
-and named parameters \List{p}{n+1}{n+k} with defaults \List{d}{1}{k},
-using \code{null} for parameters whose default value is not specified.
+  where $f$ is an instance method named $m$
+  which has type parameter declarations
+  \TypeParametersStd,
+  required parameters \List{p}{1}{n},
+  and named parameters \List{p}{n+1}{n+k} with defaults \List{d}{1}{k},
+  using \NULL{} for parameters whose default value is not specified.
 \item
 \begin{normativeDartCode}
 <\TypeParameters{X}{B'}{s}>
 ($\PairList{T}{p}{1}{n},\ $[$T_{n+1}\ p_{n+1} = d_1, \ldots,\ T_{n+k}\ p_{n+k} = d_k$]) =>
 \quad$u$.$m$<\List{X}{1}{s}>(\List{p}{1}{n+k});
 \end{normativeDartCode}
-where $f$ is an instance method named $m$
-which has type parameter declarations
-\TypeParametersStd,
-required parameters \List{p}{1}{n},
-and optional positional parameters
-\List{p}{n+1}{n+k} with defaults \List{d}{1}{k},
-using \code{null} for parameters whose default value is not specified.
+  where $f$ is an instance method named $m$
+  which has type parameter declarations
+  \TypeParametersStd,
+  required parameters \List{p}{1}{n},
+  and optional positional parameters
+  \List{p}{n+1}{n+k} with defaults \List{d}{1}{k},
+  using \NULL{} for parameters whose default value is not specified.
 \end{itemize}
 
 \LMHash{}%
@@ -16011,10 +16025,14 @@ when executed starting from exactly the same state.%
 }
 
 
-%% TODO(eernst), for review: The null safety spec uses 'shortening' and
-%% 'shorting'; checking some dictionaries, it seems fine to use 'shorting'.
 \subsection{Null Shorting}
 \LMLabel{nullShorting}
+
+%% TODO(eernst), for review: The null safety spec uses both of the words
+%% 'shortening' and 'shorting'; checking some dictionaries, it seems best
+%% to use 'shorting', because it has "using a shortcut" among its meanings,
+%% whereas 'shortening' means "making shorter" more literally. So I used
+%% 'shorting' everywhere.
 
 \LMHash{}%
 The semantics of the null aware member access operator \lit{?.}
@@ -16216,11 +16234,6 @@ where \metavar{typeArgs} and \metavar{args} are derived from
 \def\Meta#1{\textcolor{metaColor}{#1}}
 %
 \LMHash{}%
-\Case{\id}
-An identifier \id{} translates to \metaCode{TERM[\Base{\id}]}.
-\EndCase
-
-\LMHash{}%
 \Case{\code{$e$?.\id}}
 Assume that $e$ is derived from \syntax{<primary> <selector>*}.
 The conditional property access \code{$e$?.\id} then translates to\\
@@ -16357,10 +16370,12 @@ The other assignment operators are handled equivalently.
 \LMHash{}%
 \Case{Other}
 All other expressions are translated compositionally using
-the \metaCode{TERM} combinator. \commentary{For example:}
+\metaCode{TERM} and \metaCode{EXP}. \commentary{For example:}
 
 \commentary{%
   \begin{itemize}
+  \item
+    An identifier \id{} translates to \metaCode{TERM[\Base{\id}]}.
   \item
     A list literal \Base{\code{[\List{e}{1}{n}]}}
     translates to
@@ -16732,9 +16747,8 @@ The value of the assignment expression is $o$.
 
 \LMHash{}%
 % This error can occur due to implicit casts and mixin+covariance.
-It is a dynamic type error if $o$ is not the null object (\ref{null})
-and the dynamic type of $o$ is
-not a subtype of the actual type of the formal parameter of \code{$v$=}
+It is a dynamic type error if the dynamic type of $o$ is not
+a subtype of the actual type of the formal parameter of \code{$v$=}
 (\ref{actualTypes}) in $S_{static}$.
 \EndCase
 
@@ -17258,13 +17272,16 @@ Evaluation of an equality expression $e$ of the form
 \code{\SUPER{} == $e_2$}
 proceeds as follows:
 \begin{itemize}
-\item The expression $e_2$ is evaluated to an object $o$.
-\item If either \THIS{} or $o$ is the null object (\ref{null}),
-  then $e$ evaluates to evaluates to \TRUE{}
-  if both \THIS{} and $o$ are the null object
-  and to \FALSE{} otherwise.
-Otherwise,
-\item evaluation of $e$ is equivalent to the method invocation
+\item
+  The expression $e_2$ is evaluated to an object $o$.
+\item
+  If either \THIS{} or $o$ is the null object (\ref{null}),
+  then $e$ evaluates to the \TRUE{} object
+  if both \THIS{} and $o$ are the null object,
+  and to the \FALSE{} object otherwise.
+  Otherwise,
+\item
+  evaluation of $e$ is equivalent to the method invocation
   \code{\SUPER.==($o$)}.
 \end{itemize}
 
@@ -17738,7 +17755,7 @@ A \Index{postfix expression} is either a primary expression
 (\ref{expressions});
 a function, method or getter invocation
 (\ref{ordinaryInvocation}, \ref{propertyExtraction});
-a null check;
+a non-null assertion;
 an invocation of a named constructor;
 or an invocation of a postfix operator on an expression $e$.
 All but the latter three are specified elsewhere.
@@ -18441,8 +18458,8 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
   \commentary{%
     When the variable is non-\LATE, non-\FINAL, and has a nullable type,
     there is no error.
-    In this case the run-time value will be the null object,
-    because we know that the variable is unassigned.%
+    In this case it is known that the run-time value will be the null object,
+    because the variable is unassigned.%
   }
 
   A \Error{compile-time error} occurs if all of the following hold:
@@ -18633,7 +18650,7 @@ Otherwise it evaluates to the \FALSE{} object.
 \commentary{%
 It follows that \code{$e$\,\,\IS\,\,Object?} will always evaluate
 to the \TRUE{} object,
-and \code{$e$\,\,\IS\,\,Object} evaluates to the \TRUE{} object wheneven
+and \code{$e$\,\,\IS\,\,Object} evaluates to the \TRUE{} object whenever
 $e$ evaluates to an object which is not the null object.
 This makes sense in a language where everything is an object.
 
@@ -21756,7 +21773,7 @@ it is invoked with the following two actual arguments:
 
 \begin{itemize}
 \item
-  An object whose run-time type implements \code{List<String>}.
+  An object whose run-time type is a subtype of \code{List<String>}.
 \item
   An object specified when the current isolate $i$ was created,
   (\commentary{%
@@ -21772,7 +21789,8 @@ it is invoked with the following two actual arguments:
 \LMHash{}%
 If \code{main} cannot be called with two positional arguments,
 but it can be called with one positional argument,
-it is invoked with an object whose run-time type implements \code{List<String>}
+it is invoked with an object whose run-time type is
+a subtype of \code{List<String>}
 as the only argument.
 
 \LMHash{}%
@@ -21793,55 +21811,6 @@ a subtype of the declared type of the parameter.
 \LMHash{}%
 A Dart program will typically be executed by executing a script.
 The procedure whereby this script is chosen is implementation specific.
-
-----------------------------------------------------------------------
-\LMHash{}%
-A \Index{script} is a library whose exported namespace (\ref{exports}) includes
-a top-level function declaration named \code{main}
-that has either zero, one or two required arguments.
-
-A script $S$ is executed as follows:
-
-\LMHash{}%
-First, $S$ is compiled as a library as specified above.
-Then, the top-level function defined by \code{main}
-in the exported namespace of $S$ is invoked (\ref{functionInvocation})
-as follows:
-If \code{main} can be called with with two positional arguments,
-it is invoked with the following two actual arguments:
-\begin{enumerate}
-\item An object whose run-time type implements \code{List<String>}.
-\item An object specified when the current isolate $i$ was created,
-for example through the invocation of \code{Isolate.spawnUri} that spawned $i$,
-or the null object (\ref{null}) if no such object was supplied.
-\end{enumerate}
-If \code{main} cannot be called with two positional arguments,
-but it can be called with one positional argument,
-it is invoked with an object whose run-time type implements \code{List<String>}
-as the only argument.
-If \code{main} cannot be called with one or two positional arguments,
-it is invoked with no arguments.
-
-\commentary{%
-Note that if \code{main} requires more than two positional arguments,
-the library is not considered a script.%
-}
-
-\commentary{%
-A Dart program will typically be executed by executing a script.%
-}
-
-\LMHash{}%
-It is a
-\Error{compile-time error} if a library's export scope contains a declaration
-named \code{main}, and the library is not a script.
-\commentary{This restriction ensures that all top-level \code{main} declarations
-introduce a script main-function, so there cannot be a top-level getter or field
-named \code{main}, nor can it be a function that requires more than two
-arguments. The restriction allows tools to fail early on invalid \code{main}
-methods, without needing to know whether a library will be used as the entry
-point of a Dart program. It is possible that this restriction will be removed
-in the future.}
 
 
 \subsection{URIs}
@@ -22919,14 +22888,6 @@ an instantiation of a rule $R$ whose conclusion is
 along with rule instantiations showing
 each of the premises of $R$,
 continuing until a rule with no premises is reached.
-
-\commentary{%
-For rule \SrnNull, note that the \code{Null} type
-is a subtype of all non-$\bot$ types,
-even though it doesn't actually extend or implement those types.
-The other types are effectively treated as if they were nullable,
-which makes the null object (\ref{null}) assignable to them.%
-}
 
 \LMHash{}%
 The first premise in the
@@ -24991,7 +24952,8 @@ where $X_1, \ldots, X_n$ are the formal type parameters of $G$.
 %% replaced by the bottom type (`Null`, for now) in locations of the member
 %% type where it occurs contravariantly. For instance, `c.f` should have
 %% static type `void Function(Null)` when `c` has static type `C<T>` for any
-%% `T`, and we have `class C<X> { void Function(X) f; }`.
+%% `T`, and we have `class C<X> { void Function(X) f; }`. Cf. issue
+%% https://github.com/dart-lang/language/issues/297.
 
 
 \subsubsection{Actual Types}
@@ -25154,7 +25116,10 @@ in which case the type parameter declarations are omitted (\ref{generics}).%
 \LMLabel{typeInference}
 
 \LMHash{}%
-This specification does not yet specify type inference in Dart.
+This specification does not yet specify type inference in Dart.\!\footnote{%
+A preliminary specification is available at
+\url{https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md}.%
+}
 A future version of this specification will include that topic.
 
 \LMHash{}%
@@ -25171,7 +25136,7 @@ information about the effects of type inference.
 \LMHash{}%
 This specification does not fully specify the flow analysis in Dart,
 but a future version of it will do so.\!\footnote{%
-A preliminary specification of the flow analysis is available at
+A preliminary specification is available at
 \url{https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md}.%
 }
 In this section we specify a few concepts and special cases
@@ -25448,10 +25413,11 @@ promotes the type of $v$
 to \code{Null} in the \TRUE{} continuation,
 and to \NonNullType{$T$} in the \FALSE{} continuation.
 
-\LMHash{}%
 %% TODO(eernst), for review: The null safety spec says that `T?` is
 %% promoted to `T`, but implementations _do_ promote `X extends int?` to
-%% `X & int`. So I specify that.
+%% `X & int`. So I've specified the latter. This is also more consistent
+%% with the approach used with `==`.
+\LMHash{}%
 A check of the form \code{$v$\,\,!=\,\,\NULL},
 \code{\NULL\,\,!=\,\,$v$},
 or \code{$v$\,\,\IS\,\,$T$}
@@ -26290,8 +26256,6 @@ Other documents that need to be integrated, too:
 
 https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md
 https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md
-https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md
-https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md
 %% !!!END TODO!!!
 
 \section*{Appendix: Algorithmic Subtyping}
