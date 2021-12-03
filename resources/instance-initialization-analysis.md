@@ -181,3 +181,5 @@ number of classes if we aimed for:
 *   Some ability to call the superclass constructor is necessary, though I think
     [`super.`](https://github.com/dart-lang/language/issues/1855) would mostly
     solve this.
+
+Script: https://gist.github.com/munificent/58a73182ca3aee6ed37a06ca2f33fc63
