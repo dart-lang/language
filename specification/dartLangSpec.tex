@@ -10738,7 +10738,8 @@ Otherwise, `\code{\ELSE\,\,$\ell_2$}' is present.
 If the inferred element type of $\ell_1$ is $S_1$ and
 the inferred element type of $\ell_2$ is $S_2$,
 the inferred element type of $\ell$ is
-the least upper bound of $S_1$ and $S_2$.
+the standard upper bound of $S_1$ and $S_2$
+(\ref{standardUpperBoundsAndStandardLowerBounds}).
 \EndCase
 
 \LMHash{}%
@@ -10791,8 +10792,9 @@ and the context type for \metavar{list} is $P$.
 \item
   If $P$ is \FreeContext{} then
   the inferred element type for \metavar{list} is $T$,
-  where $T$ is the least upper bound of
-  the inferred element types of \List{\ell}{1}{n}.
+  where $T$ is the standard upper bound
+  (\ref{standardUpperBoundsAndStandardLowerBounds})
+  of the inferred element types of \List{\ell}{1}{n}.
 
 \item
   %% TODO(eernst): Feature spec says $P$, but how do we know $P$ is a type?
@@ -11428,7 +11430,8 @@ Then:
   If the inferred element type of $\ell_1$ is $S_1$ and
   the inferred element type of $\ell_2$ is $S_2$,
   the inferred element type of $\ell$ is
-  the least upper bound of $S_1$ and $S_2$.
+  the standard upper bound of $S_1$ and $S_2$
+  (\ref{standardUpperBoundsAndStandardLowerBounds}).
 \item
   If the inferred key and value type pair of $e_1$ is
   $(K_1, V_1)$
@@ -11436,8 +11439,8 @@ Then:
   $(K_2, V_2)$,
   the inferred key and value type pair of $\ell$ is
   $(K, V)$,
-  where $K$ is the least upper bound of $K_1$ and $K_2$, and
-  and $V$ is the least upper bound of $V_1$ and $V_2$.
+  where $K$ is the standard upper bound of $K_1$ and $K_2$, and
+  and $V$ is the standard upper bound of $V_1$ and $V_2$.
 \end{itemize}
 \vspace{-5mm}
 \EndCase
@@ -11505,8 +11508,9 @@ and the context type for \metavar{collection} is $P$.
   \item
     If $P$ is \FreeContext{} then
     the static type of \metavar{collection} is \code{Set<$T$>}
-    where $T$ is the least upper bound of
-    the inferred element types of the elements.
+    where $T$ is the standard upper bound
+    (\ref{standardUpperBoundsAndStandardLowerBounds})
+    of the inferred element types of the elements.
   \item
     %% TODO(eernst): Feature spec says $P$, but how do we know $P$ is a type?
     Otherwise, the static type of \metavar{collection} is $T$
@@ -11527,13 +11531,14 @@ and the context type for \metavar{collection} is $P$.
 
   If $P_k$ is \FreeContext{} or $P$ is \FreeContext,
   the static key type of \metavar{collection} is $K$
-  where $K$ is the least upper bound of \List{K}{1}{n}.
+  where $K$ is the standard upper bound of \List{K}{1}{n}
+  (\ref{standardUpperBoundsAndStandardLowerBounds}).
   Otherwise the static key type of \metavar{collection} is $K$
   where $K$ is determined by downwards inference.
 
   If $P_v$ is \FreeContext{} or $P$ is \FreeContext,
   the static value type of \metavar{collection} is $V$
-  where $V$ is the least upper bound of \List{V}{1}{n}.
+  where $V$ is the standard upper bound of \List{V}{1}{n}.
   Otherwise the static value type of \metavar{collection} is $V$
   where $V$ is determined by downwards inference.
 
@@ -11556,13 +11561,14 @@ and the context type for \metavar{collection} is $P$.
     and at least one element must be a set,
     then \metavar{collection} is a set literal with
     static type \code{Set<$T$>} where $T$ is
-    the least upper bound of the element types of the elements.
+    the standard upper bound of the element types of the elements
+    (\ref{standardUpperBoundsAndStandardLowerBounds}).
   \item
     If all elements can be a map,
     and at least one element must be a map, then $e$ is
     a map literal with static type \code{Map<$K$,\,\,$V$>} where $K$ is
-    the least upper bound of the key types of the elements and $V$ is
-    the least upper bound of the value types.
+    the standard upper bound of the key types of the elements and $V$ is
+    the standard upper bound of the value types.
   \item
     Otherwise, a \Error{compile-time error} occurs.
     \commentary{In this case the literal cannot be disambiguated.}
@@ -16818,7 +16824,8 @@ the static analysis of $a$ yields
 exactly the \Error{same compile-time errors} and warnings as
 the static analysis of \code{$v$ = $e$}.
 The static type of $a$ is
-the least upper bound of the static type of $v$ and the static type of $e$.
+the standard upper bound of the static type of $v$ and the static type of $e$
+(\ref{standardUpperBoundsAndStandardLowerBounds}).
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{$v$ ??= $e$}
@@ -16843,8 +16850,9 @@ the static analysis of \code{$C$.\id{} = $e$}.
 Moreover, a warning occurs if
 the static type of \code{$C$.\id} is non-nullable.
 \commentary{In this case, the \lit{??} is superfluous.}
-The static type of $a$ is the least upper bound of
-\NonNullType{$S$} and the static type of $e$.
+The static type of $a$ is the standard upper bound
+(\ref{standardUpperBoundsAndStandardLowerBounds})
+of \NonNullType{$S$} and the static type of $e$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{$C$.\id{} ??= $e$}
@@ -16869,8 +16877,9 @@ if the static type of $e_1$ does not have a getter named \id.
 Let $S$ be the static type of \code{$e_1$.\id}.
 A warning occurs if $S$ is non-nullable.
 \commentary{In this case, the \lit{??} is superfluous.}
-The static type of $a$ is the least upper bound of
-\NonNullType{$S$} and the static type of $e_2$.
+The static type of $a$ is the standard upper bound
+(\ref{standardUpperBoundsAndStandardLowerBounds})
+of \NonNullType{$S$} and the static type of $e_2$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{$e_1$.\id{} ??= $e_2$}
@@ -16897,8 +16906,9 @@ if the static type of $e_1$ does not have an `\code{operator []}'.
 Let $S$ be the static type of \code{$e_1$[$e_2$]}.
 A warning occurs if $S$ is non-nullable.
 \commentary{In this case, the \lit{??} is superfluous.}
-The static type of $a$ is the least upper bound of
-\NonNullType{$S$} and the static type of $e_3$.
+The static type of $a$ is the standard upper bound
+(\ref{standardUpperBoundsAndStandardLowerBounds})
+of \NonNullType{$S$} and the static type of $e_3$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form
@@ -16929,8 +16939,9 @@ does not have a getter named \id.
 Let $S$ be the return type of said getter.
 A warning occurs if $S$ is non-nullable.
 \commentary{In this case, the \lit{??} is superfluous.}
-The static type of $a$ is the least upper bound of
-\NonNullType{$S$} and the static type of $e$.
+The static type of $a$ is the standard upper bound
+(\ref{standardUpperBoundsAndStandardLowerBounds})
+of \NonNullType{$S$} and the static type of $e$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form \code{\SUPER.\id{} ??= $e$}
@@ -16961,8 +16972,9 @@ if \NonNullType{$S$} does not have a getter named \id.
 Let $U$ be the return type of said getter.
 A warning occurs if $U$ is non-nullable.
 \commentary{In this case, the \lit{??} is superfluous.}
-The static type of $a$ is the least upper bound of
-\NonNullType{$U$} and the static type of $e_2$.
+The static type of $a$ is the standard upper bound
+(\ref{standardUpperBoundsAndStandardLowerBounds})
+of \NonNullType{$U$} and the static type of $e_2$.
 
 \LMHash{}%
 Evaluation of a compound assignment $a$ of the form
@@ -17095,8 +17107,9 @@ Consider a conditional expression $c$ of the form
 \code{$e_1$\,\,?\,\,$e_2$\,\,:\,\,$e_3$}.
 It is a \Error{compile-time error} if
 the static type of $e_1$ may not be assigned to \code{bool}.
-The static type of $c$ is the least upper bound (\ref{leastUpperBounds}) of
-the static type of $e_2$ and the static type of $e_3$.
+The static type of $c$ is the standard upper bound
+(\ref{standardUpperBoundsAndStandardLowerBounds})
+of the static type of $e_2$ and the static type of $e_3$.
 
 \LMHash{}%
 Evaluation of a conditional expression $c$ of the form
@@ -17126,8 +17139,8 @@ Consider an if-null expression $e$ of the form \code{$e_1$ ?? $e_2$}.
 Let $S$ be the static type of $e_1$.
 A warning occurs if $S$ is non-nullable.
 \commentary{In this case, the \lit{??} is superfluous.}
-The static type of $e$ is the least upper bound
-(\ref{leastUpperBounds})
+The static type of $e$ is the standard upper bound
+(\ref{standardUpperBoundsAndStandardLowerBounds})
 of \NonNullType{$S$} and the static type of $e_2$.
 
 \LMHash{}%
@@ -23622,6 +23635,623 @@ Normalization is based on the following reductions:
 }
 
 
+\subsubsection{Standard Upper Bounds and Standard Lower Bounds}
+\LMLabel{standardUpperBoundsAndStandardLowerBounds}
+
+\LMHash{}%
+This section specifies how to compute the
+\IndexCustom{standard upper bound}{type!standard upper bound}
+as well as the
+\IndexCustom{standard lower bound}{type!standard lower bound}
+of two or more types.
+
+\rationale{%
+If the least upper bound $U$ exists,
+then the standard upper bound is guaranteed to be a supertype of $U$,
+and the standard upper bound is in any case guaranteed to be
+a supertype of both operands.
+
+If the greatest lower bound $L$ exists,
+then the standard lower bound is guaranteed to be a subtype of $L$,
+and the standard lower bound is in any case guaranteed to be
+a subtype of both operands.%
+
+The standard upper and lower bounds are intended to compute
+the least upper bound respectively the greatest lower bound whenever possible,
+and otherwise to deliver an approximation thereof.
+}
+
+\commentary{%
+It is easy to see that some pairs of types do not have a least upper bound,
+because the set of types which are supertypes of both of them
+does not have a least element.
+For example:%
+}
+
+\begin{dartCode}
+\CLASS{} I \{\}
+\CLASS{} J \{\}
+\CLASS{} A \IMPLEMENTS{} I, J \{\}
+\CLASS{} B \IMPLEMENTS{} I, J \{\}
+\end{dartCode}
+
+\commentary{%
+No \emph{least} upper bound exists for \code{A} and \code{B},
+because \code{I} and \code{J} are incomparable,
+and no other supertypes of \code{A} and \code{B}
+are subtypes of both \code{I} and \code{J}.%
+}
+
+\commentary{%
+For backward compatibility,
+the standard upper and lower bounds are computed
+in the same way as in earlier versions of Dart,
+in the case where the operands are
+interface types based on distinct classes.
+E.g., \code{List<Comparable<String>{}>} and \code{Iterable<String>}
+are handled in this manner,
+because \code{List} and \code{Iterable} are not the same class.%
+}
+
+\rationale{%
+Consequently, the standard upper and lower bound algorithms may yield
+results which are suboptimal in the sense that
+we can rather easily find a better approximation of the
+least upper bound or the greatest lower bound.
+
+In all other cases,
+the standard upper and lower bound are computed recursively,
+based on the structure of the type,
+which ensures that if the results for all subterms yield an actual
+least upper bound respectively greatest lower bound,
+then the overall result will preserve that property.%
+}
+
+\LMHash{}%
+The following general assumptions and rules apply in this section:
+The set of clauses defining each function in this section are ordered,
+i.e., the first clause that matches is the one that must be used.
+If a rule is dealing with type variables,
+then it is assumed that the type variables have been renamed to fresh names,
+such that no type variables are captured due to accidental name clashes.
+Finally, it is assumed that type aliases,
+including actual type arguments if any,
+have been replaced by their transitive alias expansion
+(\ref{typedef}),
+and that all types are denoted by a canonical name.
+
+
+\commentary{%
+That is, we do not encounter the same type under the names
+\code{$C$} and \code{\metavar{myPrefix}.$C$},
+and we do not encounter different types with the same name.%
+}
+
+\LMHash{}%
+Let $T_1$ and $T_2$ be two types.
+We define the
+\Index{standard upper bound}
+of $T_1$ and $T_2$ to be
+\UpperBoundType{$T_1$}{$T_2$},
+where \UpperBoundTypeName{} is defined below.
+We define the standard upper bound of \List{T}{1}{n} where $n > 2$
+to be \UpperBoundType{$T_1$}{$T'$},
+where $T'$ is the standard upper bound of \List{T}{2}{n}.
+
+\begin{itemize}
+\item
+  \DefEquals{\UpperBoundType{$T$}{$T$}}{T}.
+\item
+  If \IsTopType{$T_1$} and \IsTopType{$T_2$} then\\[1mm]
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{%
+    \left\{%
+    \begin{array}{l}
+      T_1\mbox{, if \IsMoreTopType{$T_1$}{$T_2$}.}\\
+      T_2\mbox{, otherwise.}
+    \end{array}
+    \right.%
+  }
+\item
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{T_1}, if \IsTopType{$T_1$}.
+\item
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{T_2}, if \IsTopType{$T_2$}.
+\item
+  If \IsBottomType{$T_1$} and \IsBottomType{$T_2$} then\\[1mm]
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{%
+    \left\{%
+    \begin{array}{l}
+      T_2\mbox{, if \IsMoreBottomType{$T_1$}{$T_2$}.}\\
+      T_1\mbox{, otherwise.}
+    \end{array}
+    \right.%
+  }
+\item
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{T_2}, if \IsBottomType{$T_1$}.
+\item
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{T_1}, if \IsBottomType{$T_2$}.
+\item
+  If \IsNullType{$T_1$} and \IsNullType{$T_2$} then\\[1mm]
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{%
+    \left\{%
+    \begin{array}{l}
+      T_2\mbox{, if \IsMoreBottomType{$T_1$}{$T_2$}.}\\
+      T_1\mbox{, otherwise.}
+    \end{array}
+    \right.%
+  }
+\item
+  If \IsNullType{$T_1$} then\\[1mm]
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{%
+    \left\{%
+    \begin{array}{l}
+      T_2\mbox{, if $T_2$ is nullable.}\\
+      \code{$T_2$?}\mbox{, otherwise.}
+    \end{array}
+    \right.%
+  }
+\item
+  If \IsNullType{$T_2$} then\\[1mm]
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{%
+    \left\{%
+    \begin{array}{l}
+      T_1\mbox{, if $T_1$ is nullable.}\\
+      \code{$T_1$?}\mbox{, otherwise.}
+    \end{array}
+    \right.%
+  }
+\item
+  If \IsObjectType{$T_1$} and \IsObjectType{$T_2$} then\\[1mm]
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{%
+    \left\{%
+    \begin{array}{l}
+      T_1\mbox{, if \IsMoreTopType{$T_1$}{$T_2$}.}\\
+      T_2\mbox{, otherwise.}
+    \end{array}
+    \right.%
+  }
+\item
+  If \IsObjectType{$T_1$} then\\
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{%
+    \left\{
+    \begin{array}{l}
+      T_1\mbox{, if $T_2$ is non-nullable.}\\
+      \code{$T_1$?}\mbox{, otherwise.}
+    \end{array}
+    \right.%
+  }
+\item
+  If \IsObjectType{$T_2$} then\\[1mm]
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{%
+    \left\{%
+    \begin{array}{l}
+      T_2\mbox{, if $T_1$ is non-nullable.}\\
+      \code{$T_2$?}\mbox{, otherwise}
+    \end{array}
+    \right.%
+  }
+\item
+  \DefEquals{\UpperBoundType{$T_1$?}{$T_2$?}}{\code{$S$?}},\\
+  where $S$ is \UpperBoundType{$T_1$}{$T_2$}.
+\item
+  \DefEquals{\UpperBoundType{$T_1$?}{$T_2$}}{\code{$S$?}},\\
+  where $S$ is \UpperBoundType{$T_1$}{$T_2$}.
+\item
+  \DefEquals{\UpperBoundType{$T_1$}{$T_2$?}}{\code{$S$?}},\\
+  where $S$ is \UpperBoundType{$T_1$}{$T_2$}.
+\item
+  Let $X_1$ be a type variable with bound $B_1$.\\[1mm]
+  \DefEquals{\UpperBoundType{$X_1$}{$T_2$}}{%
+    \left\{%
+    \begin{array}{l}
+      T_2\mbox{, if \SubtypeNE{X_1}{T_2}.}\\
+      X_1\mbox{, otherwise and if \SubtypeNE{T_2}{X_1}.}\\
+      \UpperBoundType{$B_{1a}$}{$T_2$}\mbox{,}\\
+      \mbox{\quad{}otherwise.}
+    \end{array}
+    \right.%
+  }\\[1mm]
+  where $B_{1a}$ is the greatest closure of $B_1$ with respect to $X_1$
+  (\ref{leastAndGreatestClosureOfTypes}).
+\item
+  Let $X_1$ be a type variable with bound $B_1$,
+  and $S_1$ a subtype of $B_1$.\\[1mm]
+  \DefEquals{\UpperBoundType{$X_1$\,\&\,$S_1$}{$T_2$}}{%
+    \left\{%
+    \begin{array}{l}
+      %% TODO(eernst), for review: Why do we not have the following instead?
+      % T_2\mbox{, if \SubtypeNE{\code{$X_1$\,\&\,$S_1$}}{T_2}.}\\
+      T_2\mbox{, if \SubtypeNE{X_1}{T_2}.}\\
+      %% TODO(eernst), for review: Why do we not have the following as well?
+      % X_1 \& S_1\mbox{, otherwise and if \SubtypeNE{T_2}{X_1 \& S_1}.}\\
+      X_1\mbox{, otherwise and if \SubtypeNE{T_2}{X_1}.}\\
+      \UpperBoundType{$S_{1a}$}{$T_2$}\mbox{,}\\
+      \mbox{\quad{}otherwise.}
+    \end{array}
+    \right.%
+  }\\[1mm]
+  where $S_{1a}$ is the greatest closure of $S_1$ with respect to $X_1$.
+\item
+  Let $X_2$ be a type variable with bound $B_2$.\\[1mm]
+  \DefEquals{\UpperBoundType{$T_1$}{$X_2$}}{%
+    \left\{%
+    \begin{array}{l}
+      X_2\mbox{, if \SubtypeNE{T_1}{X_2}.}\\
+      T_1\mbox{, otherwise and if \SubtypeNE{X_2}{T_1}.}\\
+      \UpperBoundType{$T_1$}{$B_{2a}$}\mbox{,}\\
+      \mbox{\quad{}otherwise.}
+    \end{array}
+    \right.%
+  }\\[1mm]
+  where $B_{2a}$ is the greatest closure of $B_2$ with respect to $X_2$.
+\item
+  %% TODO(eernst), for review: Consider the same changes as in the converse.
+  Let $X_2$ be a type variable with bound $B_2$,
+  and $S_2$ a subtype of $B_2$.\\[1mm]
+  \DefEquals{\UpperBoundType{$T_1$}{$X_2$\,\&\,$S_2$}}{%
+    \left\{%
+    \begin{array}{l}
+      X_2\mbox{, if \SubtypeNE{T_1}{X_2}.}\\
+      T_1\mbox{, otherwise and if \SubtypeNE{X_2}{T_1}.}\\
+      \UpperBoundType{$T_1$}{$B_{2a}$}\mbox{,}\\
+      \mbox{\quad{}otherwise.}
+    \end{array}
+    \right.%
+  }\\[1mm]
+  where $S_{2a}$ is the greatest closure of $S_2$ with respect to $X_2$.
+\item
+  \DefEquals{\UpperBoundType{$T$ \FUNCTION<\ldots>(\ldots)}{\FUNCTION}}{%
+    \FUNCTION}.
+\item
+  \DefEquals{\UpperBoundType{\FUNCTION}{$T$ \FUNCTION<\ldots>(\ldots)}}{%
+    \FUNCTION}.
+\item
+  Let $U_1$ and $U_2$ be, respectively,
+  
+  \noindent
+  \code{$T_1$\,\FUNCTION<$X_1$\,\EXTENDS\,$B_{11}$,\,\ldots,\,$X_m$\,%
+    \EXTENDS\,$B_{1m}$>($P_{11}$,\,\ldots,\,$P_{1k}$)}
+
+  \noindent
+  \code{$T_2$\,\FUNCTION<$X_1$\,\EXTENDS\,$B_{21}$,\,\ldots,\,$X_m$\,%
+    \EXTENDS\,$B_{2m}$>($P_{21}$,\,\ldots,\,$P_{2l}$)}
+
+  \noindent
+  such that each $B_{1i}$ and $B_{2i}$ are syntactically equal types,
+  and both have the same number of required positional parameters.
+  Let $q$ be $\metavar{min}(k, l)$,
+  let $T_3$ be \UpperBoundType{$T_1$}{$T_2$},
+  let $B_{3i}$ be $B_{1i}$, and
+  let $P_{3i}$ be \LowerBoundType{$P_{1i}$}{$P_{2i}$}.
+  Then \DefEquals{\UpperBoundType{$U_1$}{$U_2$}}{%
+    \code{$T_3$\,\FUNCTION<$X_1$\,\EXTENDS\,$B_{31}$,\,\ldots,\,$X_m$\,\EXTENDS\,$B_{3m}$>($P_{31}$,\,\ldots,\,$P_{3q}$)}}.
+\item
+  Let $U_1$ and $U_2$ be, respectively,
+
+  \noindent
+  \code{$T_1$\,\FUNCTION<$X_1$\,\EXTENDS\,$B_{11}$,\,\ldots,\,$X_m$\,%
+    \EXTENDS\,$B_{1m}$>($P_{11}$,\,\ldots,\,$P_{1k}$,\,$\metavar{Named}_1$)}
+
+  \noindent
+  \code{$T_2$\,\FUNCTION<$X_1$\,\EXTENDS\,$B_{21}$,\,\ldots,\,$X_m$\,%
+    \EXTENDS\,$B_{2m}$>($P_{21}$,\,\ldots,\,$P_{2k}$,\,$\metavar{Named}_2$)}
+  
+  \noindent
+  where $\metavar{Named}_1$ and $\metavar{Named}_2$ declare some named parameters,
+  and consider the case where the following is satisfied:
+
+  \begin{itemize}
+  \item Each $B_{1i}$ and $B_{2i}$ are syntactically equal types.
+  \item All positional parameters are required.
+  \item $\metavar{Named}_1$ contains an entry (optional or required) of the form \code{$R_{1i}$ $x_i$}
+    for every required named parameter \code{$R_{2i}$ $x_i$} in $\metavar{Named}_2$.
+  \item $\metavar{Named}_2$ contains an entry (optional or required) of the form \code{$R_{2i}$ $x_i$}
+    for every required named parameter \code{$R_{1i}$ $x_i$} in $\metavar{Named}_1$.
+  \end{itemize}  
+
+  Then \DefEquals{\UpperBoundType{$U_1$}{$U_2$}}{U_3}, where $U_3$ is
+
+  \noindent
+  \code{$T_3$\,\FUNCTION<$X_1$\,\EXTENDS\,$B_{31}$,\,\ldots,\,$X_m$\,\EXTENDS\,$B_{3m}$>($P_{31}$,\,\ldots,\,$P_{3k}$,\,$\metavar{Named}_3$)},
+
+  \noindent
+  where:
+
+  \begin{itemize}
+  \item $T_3$ is \UpperBoundType{$T_1$}{$T_2$}.
+  \item $B_{3i}$ is $B_{1i}$.
+  \item $P_{3i}$ is \LowerBoundType{$P_{1i}$}{$P_{2i}$}.
+  \item $\metavar{Named}_3$ contains exactly \code{$R_{3i}$ $x_i$} for each $x_i$ in both $\metavar{Named}_1$ and
+    $\metavar{Named}_2$.
+    \begin{itemize}
+    \item where \code{$R_{1i}$ $x_i$} is in $\metavar{Named}_1$,
+    \item where \code{$R_{2i}$ $x_i$} is in $\metavar{Named}_2$,
+    \item and $R_{3i}$ is \LowerBoundType{$R_{1i}$}{$R_{2i}$},
+    \item and \code{$R_{3i}$ $x_i$} is required if $x_i$ is required in either $\metavar{Named}_1$ or
+      $\metavar{Named}_2$.
+    \end{itemize}
+  \end{itemize}
+\item
+  \UpperBoundType{$T$ \FUNCTION<\ldots>(\ldots)}{$S$ \FUNCTION<\ldots>(\ldots)} = \FUNCTION{} otherwise
+\item
+  \UpperBoundType{$T$ \FUNCTION<\ldots>(\ldots)}{$T_2$} = \UpperBoundType{Object}{$T_2$}
+\item
+  \UpperBoundType{$T_1$}{$T$ \FUNCTION<\ldots>(\ldots)} = \UpperBoundType{$T_1$}{Object}
+\item 
+  \UpperBoundType{FutureOr<$T_1$>}{FutureOr<$T_2$>} = \code{FutureOr<$T_3$>} where $T_3$ = \UpperBoundType{$T_1$}{$T_2$}
+\item
+  \UpperBoundType{Future<$T_1$>}{FutureOr<$T_2$>} = \code{FutureOr<$T_3$>} where $T_3$ = \UpperBoundType{$T_1$}{$T_2$}
+\item
+  \UpperBoundType{FutureOr<$T_1$>}{Future<$T_2$>} = \code{FutureOr<$T_3$>} where $T_3$ = \UpperBoundType{$T_1$}{$T_2$}
+\item
+  \UpperBoundType{$T_1$}{FutureOr<$T_2$>} = \code{FutureOr<$T_3$>} where $T_3$ = \UpperBoundType{$T_1$}{$T_2$}
+\item 
+  \UpperBoundType{FutureOr<$T_1$>}{$T_2$} = \code{FutureOr<$T_3$>} where $T_3$ = \UpperBoundType{$T_1$}{$T_2$}
+\item \UpperBoundType{$T_1$}{$T_2$} = $T_2$ if \SubtypeNE{T_1}{T_2}
+  - Note that both types must be class types at this point
+\item
+  \UpperBoundType{$T_1$}{$T_2$} = $T_1$ if \SubtypeNE{T_2}{T_1}
+  - Note that both types must be class types at this point
+- \UpperBoundType{$C$<$T_0$, \ldots, $T_n$>}{$C$<$S_0$, \ldots, $S_n$>} = \code{$C$<$R_0$, \ldots, $R_f$n>} where $R_i$ is \UpperBoundType{$T_i$}{$S_i$}
+- \UpperBoundType{$C_0$<$T_0$, \ldots, $T_n$>}{$C_1$<$S_0$, \ldots, $S_k$>} = least upper bound of two
+  interfaces as in Dart 1, with modifications for handling mixed null safe and
+  legacy code as follows:
+  - For an upper bound computation in a legacy library, the set of
+    super-interfaces used consists of the `LEGACY_ERASURE` of the
+    super-interfaces of the two types.
+  - For an upper bound computation in an opted in library, no modification of
+    the set of super-interfaces is performed.
+\end{itemize}
+
+\paragraph{Lower bounds}
+
+\LMHash{}%
+We define the lower bound of two types $T_1$ and $T_2$ to be \LowerBoundType{$T_1$}{$T_2$} as
+follows.
+
+\begin{itemize}
+\item \LowerBoundType{$T$}{$T$} = $T$
+
+\item \LowerBoundType{$T_1$}{$T_2$} where \IsTopType{$T_1$} and \IsTopType{$T_2$} =
+  - $T_1$ if \IsMoreTopType{$T_2$}{$T_1$}
+  - $T_2$ otherwise
+\item \LowerBoundType{$T_1$}{$T_2$} = $T_2$ if \IsTopType{$T_1$}
+\item \LowerBoundType{$T_1$}{$T_2$} = $T_1$ if \IsTopType{$T_2$}
+
+\item \LowerBoundType{$T_1$}{$T_2$} where \IsBottomType{$T_1$} and \IsBottomType{$T_2$} =
+  - $T_1$ if \IsMoreBottomType{$T_1$}{$T_2$}
+  - $T_2$ otherwise
+\item \LowerBoundType{$T_1$}{$T_2$} = $T_2$ if \IsBottomType{$T_2$}
+\item \LowerBoundType{$T_1$}{$T_2$} = $T_1$ if \IsBottomType{$T_1$}
+\item \LowerBoundType{$T_1$}{$T_2$} where \IsNullType{$T_1$} and \IsNullType{$T_2$} =
+  - $T_1$ if \IsMoreBottomType{$T_1$}{$T_2$}
+  - $T_2$ otherwise
+\item \LowerBoundType{Null}{$T_2$} =
+  - \code{Null} if \SubtypeNE{\code{Null}}{T_2}
+  - \code{Never} otherwise
+\item \LowerBoundType{$T_1$}{Null} =
+  - \code{Null} if \SubtypeNE{\code{Null}}{T_1}
+  - \code{Never} otherwise
+\item \LowerBoundType{$T_1$}{$T_2$} where \IsObjectType{$T_1$} and \IsObjectType{$T_2$} =
+  - $T_1$ if \IsMoreTopType{$T_2$}{$T_1$}
+  - $T_2$ otherwise
+\item \LowerBoundType{$T_1$}{$T_2$} where \IsObjectType{$T_1$} =
+  - $T_2$ if $T_2$ is non-nullable
+  - \NonNullType{$T_2$} if \NonNullType{$T_2$} is non-nullable
+  - \code{Never} otherwise
+\item \LowerBoundType{$T_1$}{$T_2$} where \IsObjectType{$T_2$} =
+  - $T_1$ if $T_1$ is non-nullable
+  - \NonNullType{$T_1$} if \NonNullType{$T_1$} is non-nullable
+  - \code{Never} otherwise
+\item \LowerBoundType{$T_1$?}{$T_2$?} = \code{$S$?} where $S$ is \LowerBoundType{$T_1$}{$T_2$}
+\item \LowerBoundType{$T_1$?}{$T_2$} = $S$ where $S$ is \LowerBoundType{$T_1$}{$T_2$}
+\item \LowerBoundType{$T_1$}{$T_2$?} = $S$ where $S$ is \LowerBoundType{$T_1$}{$T_2$}
+\item \LowerBoundType{$T_0$ \FUNCTION<$X_0$ \EXTENDS{} $B_{00}$, \ldots, $X_m$ \EXTENDS{} $B_{0m}$>($P_{00}$, \ldots, $P_{0k}$)}{%
+         $T_1$ \FUNCTION<$X_0$ \EXTENDS{} $B_{10}$, \ldots, $X_m$ \EXTENDS{} $B_{1m}$>($P_{10}$, \ldots, $P_{1l}$)} =
+   \code{$R_0$ \FUNCTION<$X_0$ \EXTENDS{} $B_{20}$, \ldots, $X_m$ \EXTENDS{} $B_{2m}$>($P_{20}$, \ldots, $P_{2q}$)} if:
+     - each $B_{0i}$ and $B_{1i}$ are equal types (syntactically)
+     - $q$ is max($k$, $l$)
+     - $R_0$ is \LowerBoundType{$T_0$}{$T_1$}
+     - $B_{2i}$ is $B_{0i}$
+     - $P_{2i}$ is \UpperBoundType{$P_{0i}$}{$P_{1i}$} for $i \leq \metavar{min}(k, l)$
+     - $P_{2i}$ is $P_{0i}$ for $k < i \leq q$
+     - $P_{2i}$ is $P_{1i}$ for $l < i \leq q$
+     - $P_{2i}$ is optional if $P_{0i}$ or $P_{1i}$ is optional, or if $\metavar{min}(k, l) < i \leq q$
+\item \LowerBoundType{$T_0$ \FUNCTION<$X_0$ \EXTENDS{} $B_{00}$, \ldots, $X_m$ \EXTENDS{} $B_{0m}$>($P_{00}$, \ldots, $P_{0k}$, $\metavar{Named}_0$)}{%
+         $T_1$ \FUNCTION<$X_0$ \EXTENDS{} $B_{10}$, \ldots, $X_m$ \EXTENDS{} $B_{1m}$>($P_{10}$, \ldots, $P_{1k}$, $\metavar{Named}_1$)} =
+   \code{$R_0$ \FUNCTION<$X_0$ \EXTENDS{} $B_{20}$, \ldots, $X_m$ \EXTENDS{} $B_{2m}$>($P_{20}$, \ldots, $P_{2k}$, $\metavar{Named}_2$)} if:
+     - each $B_{0i}$ and $B_{1i}$ are equal types (syntactically)
+     - $R_0$ is \LowerBoundType{$T_0$}{$T_1$}
+     - $B_{2i}$ is $B_{0i}$
+     - $P_{2i}$ is \UpperBoundType{$P_{0i}$}{$P_{1i}$}
+     - $\metavar{Named}_2$ contains \code{$R_{2i}$ $x_i$} for each $x_i$ in both $\metavar{Named}_0$ and $\metavar{Named}_1$
+        - where \code{$R_{0i}$ $x_i$} is in $\metavar{Named}_0$
+        - where \code{$R_{1i}$ $x_i$} is in $\metavar{Named}_1$
+        - and $R_{2i}$ is \UpperBoundType{$R_{0i}$}{$R_{1i}$}
+        - and \code{$R_{2i}$ $x_i$} is required if $x_i$ is required in both $\metavar{Named}_0$ and $\metavar{Named}_1$
+     - $\metavar{Named}_2$ contains \code{$R_{0i}$ $x_i$} for each $x_i$ in $\metavar{Named}_0$ and not $\metavar{Named}_1$
+       - where $x_i$ is optional in $\metavar{Named}_2$
+     - $\metavar{Named}_2$ contains \code{$R_{1i}$ $x_i$} for each $x_i$ in $\metavar{Named}_1$ and not $\metavar{Named}_0$
+       - where $x_i$ is optional in $\metavar{Named}_2$
+\item \LowerBoundType{$T$ \FUNCTION<\ldots>(\ldots)}{$S$ \FUNCTION<\ldots>(\ldots)} = \code{Never} otherwise
+\item \LowerBoundType{$T_1$}{$T_2$} = $T_1$ if \SubtypeNE{T_1}{T_2}
+\item \LowerBoundType{$T_1$}{$T_2$} = $T_2$ if \SubtypeNE{T_2}{T_1}
+\item \LowerBoundType{FutureOr<$T_1$>}{FutureOr<$T_2$>} = \code{FutureOr<$S$>}
+  - where $S$ is \LowerBoundType{$T_1$}{$T_2$}
+\item \LowerBoundType{FutureOr<$T_1$>}{Future<$T_2$>} = \code{Future<$S$>}
+  - where $S$ is \LowerBoundType{$T_1$}{$T_2$}
+\item \LowerBoundType{Future<$T_1$>}{FutureOr<$T_2$>} = \code{Future<$S$>}
+  - where $S$ is \LowerBoundType{$T_1$}{$T_2$}
+\item \LowerBoundType{FutureOr<$T_1$>}{$T_2$} = $S$
+  - where $S$ is \LowerBoundType{$T_1$}{$T_2$}
+\item \LowerBoundType{$T_1$}{FutureOr<$T_2$>} = $S$
+  - where $S$ is \LowerBoundType{$T_1$}{$T_2$}
+\item \LowerBoundType{$T_1$}{$T_2$} = \code{Never} otherwise
+\end{itemize}
+
+\paragraph{Issues and Interesting examples}
+
+The definition of upper bound for type variables does not guarantee termination.
+Counterexample:
+
+\begin{dartCode}
+\VOID{} foo<T \EXTENDS{} List<S>, S \EXTENDS{} List<T>>() \{
+  T x;
+  S y;
+  \VAR{} a = (x == y) ? x : y;
+\}
+\end{dartCode}
+
+It should be changed to close the bound with respect to all of the type
+variables declared in the same scope, using the greatest closure definition.
+
+\paragraph{Asymmetry}
+
+The current algorithm is asymmetric.  There is an equivalence class of top
+types, and we correctly choose a canonical representative for bare top types
+using the \IsMoreTopTypeName{} predicate.  However, when two different top types are
+embedded in two mutual subtypes, we don't correctly choose a canonical
+representative.
+
+\begin{dartCode}
+\IMPORT{} 'dart:async';
+
+\VOID{} main() \{
+  List<FutureOr<Object>> x;
+  List<\DYNAMIC> y;
+  String s;
+  // List<\DYNAMIC>
+  var a = (x == y) ? x : y;
+  // List<FutureOr<Object>>
+  var b = (x == y) ? y : x;
+\end{dartCode}
+
+The best solution for this is probably to normalize the types.  This is fairly
+straightforward: we just normalize `FutureOr<T>` to the normal form of $T$ when
+$T$ is a top type.  We can then inductively apply this across the rest of the
+types.  Then, whenever we have mutual subtypes, we just return the normal form.
+This would be breaking, albeit hopefully only in a minor way.
+
+An alternative would be to try to define an ordering on mutual subtypes.  This
+can probably be done, but is a bit ugly.  For example, consider `Map<dynamic,
+FutureOr<dynamic>>` vs `Map<FutureOr<dynamic>, dynamic>`.  The obvious way to
+proceed is to define the total order by defining a traversal order on types, and
+then defining the ordering lexicographically.  That is, saying that $T$ is
+greater than $S$ if the first pair of top types encountered in the traversal
+that are not identical are `T0` and `S0` respectively, and \IsMoreTopType{$T_0$}{$S_0$}.
+
+A similar treatment would need to be done for the bottom types as well, since
+there are two equivalences there.
+  - `X extends T` is equivalent to \code{Null} if $T$ is equivalent to \code{Null}.
+  - `FutureOr<Null>` is equivalent `Future<Null>`.
+
+A possible variant of the previous approach would be to define a finer grained
+variant of the subtyping relation which is a total order on mutual subtypes.
+That is, if `<::` is the extended relation, we would want that `T <:: S` implies
+that `T <: S`, but also that `T <:: S` and `S <:: T` implies that $S$ and $T$
+are syntactically (rather than just semantically) equal.
+
+
+---------------------------------------------------------------------- !!!End
+
+\LMHash{}%
+% does this diverge in some cases?
+Given two interfaces $I$ and $J$,
+let $S_I$ be the set of superinterfaces of $I$,
+let $S_J$ be the set of superinterfaces of $J$
+and let $S = (\{I\} \cup S_I) \cap (\{J\} \cup S_J)$.
+Furthermore,
+we define $S_n = \{T | T \in S \wedge depth(T) = n\}$ for any finite $n$
+where $depth(T)$ is the number of steps in the longest inheritance path
+from $T$ to \code{Object}.
+%TODO(lrn): Specify: "inheritance path" is a path in the superinterface graph.
+Let $q$ be the largest number such that $S_q$ has cardinality one,
+which must exist because $S_0$ is $\{\code{Object}\}$.
+The least upper bound of $I$ and $J$ is the sole element of $S_q$.
+
+\LMHash{}%
+The least upper bound of \DYNAMIC{} and any type $T$ is \DYNAMIC.
+The least upper bound of \VOID{} and any type $T \ne \DYNAMIC{}$ is \VOID.
+The least upper bound of $\bot$ and any type $T$ is $T$.
+Let $U$ be a type variable with upper bound $B$.
+The least upper bound of $U$ and a type $T \ne \bot$ is
+the least upper bound of $B$ and $T$.
+
+\LMHash{}%
+The least upper bound operation is commutative and idempotent,
+but it is not associative.
+
+% Function types
+
+%% TODO(eernst): This section should use the new syntax for function types
+%% (\FunctionTypePositionalStd{} etc.); these updates are made by CL 84908.
+
+\LMHash{}%
+The least upper bound of a function type and an interface type $T$ is
+the least upper bound of \FUNCTION{} and $T$.
+Let $F$ and $G$ be function types.
+If $F$ and $G$ differ in their number of required parameters,
+then the least upper bound of $F$ and $G$ is \FUNCTION.
+Otherwise:
+\begin{itemize}
+\item If
+
+\noindent
+\code{$F = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($T_1, \ldots,\ T_r,\ $[$T_{r+1}, \ldots,\ T_n$]) $ \rightarrow T_0$} and
+
+\noindent
+\code{$G = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($S_1, \ldots,\ S_r,\ $[$S_{r+1}, \ldots,\ S_k$]) $ \rightarrow S_0$}
+
+\noindent
+where $k \le n$ then the least upper bound of $F$ and $G$ is
+
+\noindent
+\code{<$X_1\ B_1, \ldots,\ X_s\ B_s$>($L_1, \ldots,\ L_r,\ $[$L_{r+1}, \ldots,\ L_k$]) $ \rightarrow L_0$}
+
+\noindent
+where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. k$.
+\item If
+
+\noindent
+\code{$F = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($T_1, \ldots,\ T_r,\ $[$T_{r+1}, \ldots,\ T_n$]) $ \rightarrow T_0$},
+
+\noindent
+\code{$G = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($S_1, \ldots,\ S_r,\ $\{ \ldots{} \}) $ \rightarrow S_0$}
+
+\noindent
+then the least upper bound of $F$ and $G$ is
+
+\noindent
+\code{<$X_1\ B_1, \ldots,\ X_s\ B_s$>($L_1, \ldots,\ L_r$) $ \rightarrow L_0$}
+
+\noindent
+where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. r$.
+\item If
+
+\noindent
+\code{$F = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($T_1, \ldots,\ T_r,\ $\{$T_{r+1}\ p_{r+1}, \ldots,\ T_f\ p_f$\}) $ \rightarrow T_0$},
+
+\noindent
+\code{$G = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($S_1, \ldots,\ S_r,\ $\{$S_{r+1}\ q_{r+1}, \ldots,\ S_g\ q_g$\}) $ \rightarrow S_0$}
+
+then let
+$\{x_m, \ldots, x_n\} = \{p_{r+1}, \ldots, p_f\} \cap \{q_{r+1}, \ldots, q_g\}$
+and let $X_j$ be the least upper bound of the types of $x_j$ in $F$ and
+$G, j \in m .. n$.
+Then the least upper bound of $F$ and $G$ is
+
+\noindent
+\code{<$X_1\ B_1, \ldots,\ X_s\ B_s$>($L_1, \ldots,\ L_r,\ $\{$X_m\ x_m, \ldots,\ X_n\ x_n$\}) $ \rightarrow L_0$}
+
+where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. r$
+\end{itemize}
+
+\commentary{%
+Note that the non-generic case is covered by using $s = 0$,
+in which case the type parameter declarations are omitted (\ref{generics}).%
+}
+----------------------------------------------------------------------!!!End
+
+
 \subsection{Least and Greatest Closure of Types}
 \LMLabel{leastAndGreatestClosureOfTypes}
 
@@ -23917,7 +24547,8 @@ a specific set of instance members.
 Let $T$ be a type.
 We say that $T$ is an \Index{interface type} if{}f
 $T$ is of the form \code{$C$<\List{T}{1}{k}>},
-where $C$ denotes a class different from \code{Never} or a mixin,
+where $C$ denotes a class different from \code{Never},
+or $C$ denotes a mixin,
 and \List{T}{1}{k} are arbitrary types.
 
 \commentary{%
@@ -25004,111 +25635,6 @@ the actual value of $B$ in that context.
 Note that even though $X$ may occur in $B$
 it does not occur in the actual value of $B$,
 because no type has an actual value that includes a type variable.%
-}
-
-
-\subsubsection{Least Upper Bounds}
-\LMLabel{leastUpperBounds}
-
-% TODO(eernst): This section has been updated to take generic functions
-% into account, but no other changes have been performed. Hence, we still
-% need to update this section to use Dart 2 rules for LUB.
-
-\LMHash{}%
-% does this diverge in some cases?
-Given two interfaces $I$ and $J$,
-let $S_I$ be the set of superinterfaces of $I$,
-let $S_J$ be the set of superinterfaces of $J$
-and let $S = (\{I\} \cup S_I) \cap (\{J\} \cup S_J)$.
-Furthermore,
-we define $S_n = \{T | T \in S \wedge depth(T) = n\}$ for any finite $n$
-where $depth(T)$ is the number of steps in the longest inheritance path
-from $T$ to \code{Object}.
-%TODO(lrn): Specify: "inheritance path" is a path in the superinterface graph.
-Let $q$ be the largest number such that $S_q$ has cardinality one,
-which must exist because $S_0$ is $\{\code{Object}\}$.
-The least upper bound of $I$ and $J$ is the sole element of $S_q$.
-
-\LMHash{}%
-The least upper bound of \DYNAMIC{} and any type $T$ is \DYNAMIC.
-The least upper bound of \VOID{} and any type $T \ne \DYNAMIC{}$ is \VOID.
-The least upper bound of $\bot$ and any type $T$ is $T$.
-Let $U$ be a type variable with upper bound $B$.
-The least upper bound of $U$ and a type $T \ne \bot$ is
-the least upper bound of $B$ and $T$.
-
-\LMHash{}%
-The least upper bound operation is commutative and idempotent,
-but it is not associative.
-
-% Function types
-
-%% TODO(eernst): This section should use the new syntax for function types
-%% (\FunctionTypePositionalStd{} etc.); these updates are made by CL 84908.
-
-\LMHash{}%
-The least upper bound of a function type and an interface type $T$ is
-the least upper bound of \FUNCTION{} and $T$.
-Let $F$ and $G$ be function types.
-If $F$ and $G$ differ in their number of required parameters,
-then the least upper bound of $F$ and $G$ is \FUNCTION.
-Otherwise:
-\begin{itemize}
-\item If
-
-\noindent
-\code{$F = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($T_1, \ldots,\ T_r,\ $[$T_{r+1}, \ldots,\ T_n$]) $ \rightarrow T_0$} and
-
-\noindent
-\code{$G = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($S_1, \ldots,\ S_r,\ $[$S_{r+1}, \ldots,\ S_k$]) $ \rightarrow S_0$}
-
-\noindent
-where $k \le n$ then the least upper bound of $F$ and $G$ is
-
-\noindent
-\code{<$X_1\ B_1, \ldots,\ X_s\ B_s$>($L_1, \ldots,\ L_r,\ $[$L_{r+1}, \ldots,\ L_k$]) $ \rightarrow L_0$}
-
-\noindent
-where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. k$.
-\item If
-
-\noindent
-\code{$F = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($T_1, \ldots,\ T_r,\ $[$T_{r+1}, \ldots,\ T_n$]) $ \rightarrow T_0$},
-
-\noindent
-\code{$G = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($S_1, \ldots,\ S_r,\ $\{ \ldots{} \}) $ \rightarrow S_0$}
-
-\noindent
-then the least upper bound of $F$ and $G$ is
-
-\noindent
-\code{<$X_1\ B_1, \ldots,\ X_s\ B_s$>($L_1, \ldots,\ L_r$) $ \rightarrow L_0$}
-
-\noindent
-where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. r$.
-\item If
-
-\noindent
-\code{$F = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($T_1, \ldots,\ T_r,\ $\{$T_{r+1}\ p_{r+1}, \ldots,\ T_f\ p_f$\}) $ \rightarrow T_0$},
-
-\noindent
-\code{$G = $ <$X_1\ B_1, \ldots,\ X_s\ B_s$>($S_1, \ldots,\ S_r,\ $\{$S_{r+1}\ q_{r+1}, \ldots,\ S_g\ q_g$\}) $ \rightarrow S_0$}
-
-then let
-$\{x_m, \ldots, x_n\} = \{p_{r+1}, \ldots, p_f\} \cap \{q_{r+1}, \ldots, q_g\}$
-and let $X_j$ be the least upper bound of the types of $x_j$ in $F$ and
-$G, j \in m .. n$.
-Then the least upper bound of $F$ and $G$ is
-
-\noindent
-\code{<$X_1\ B_1, \ldots,\ X_s\ B_s$>($L_1, \ldots,\ L_r,\ $\{$X_m\ x_m, \ldots,\ X_n\ x_n$\}) $ \rightarrow L_0$}
-
-where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. r$
-\end{itemize}
-
-\commentary{%
-Note that the non-generic case is covered by using $s = 0$,
-in which case the type parameter declarations are omitted (\ref{generics}).%
 }
 
 
