@@ -96,7 +96,7 @@ should be able to:
   - rely on finalization callbacks to be invoked even if an isolate group is
   shutting down.
 
-The first requirements is self-explanatory: we would like to avoid departures
+The second requirement is self-explanatory: we would like to avoid departures
 from run-to-completion model that Dart currently provides for synchronous code.
 
 To explain the problem of premature finalization, consider the following code:
@@ -301,7 +301,7 @@ abstract class NativeFinalizer<T> {
   /// [externalSize] is an amount of native (non-Dart) memory owned by the
   /// given [value]. This information is used to drive garbage collection
   /// scheduling heuristics.
-  void attach(Object value, T token, {Object? detachKey, int externalSize}});
+  void attach(Finalizable value, T token, {Object? detachKey, int externalSize}});
 
   /// Detaches the finalizer from any objects that used [detachKey] when
   /// attaching the finalizer to them.
