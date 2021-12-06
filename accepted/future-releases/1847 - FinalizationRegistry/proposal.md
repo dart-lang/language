@@ -268,7 +268,7 @@ typedef NativeFinalizerPtr = Pointer<NativeFunction<NativeFinalizer>>
 /// attached finalizers are definitely called at least once before the program
 /// ends, and the callbacks are called as soon as possible after an object
 /// is recognized as inaccessible.
-abstract class NativeFinalizer<T> {
+abstract class NativeFinalizer {
   /// Creates a finalizer with the given finalization callback.
   ///
   /// Note: the [callback] is expected to be a native function which can be
@@ -301,7 +301,7 @@ abstract class NativeFinalizer<T> {
   /// [externalSize] is an amount of native (non-Dart) memory owned by the
   /// given [value]. This information is used to drive garbage collection
   /// scheduling heuristics.
-  void attach(Finalizable value, T token, {Object? detachKey, int externalSize}});
+  void attach(Finalizable value, Pointer<Void> token, {Object? detachKey, int externalSize}});
 
   /// Detaches the finalizer from any objects that used [detachKey] when
   /// attaching the finalizer to them.
