@@ -293,16 +293,31 @@ introspection APIs. These macros can fully introspect on any type reachable from
 the declarations they are applied to, including introspecting on members of
 classes, etc.
 
-## Macro definitions
+## Macro declarations
 
-Macro definitions do not have any unique syntax or language features. They are
-regular Dart class declarations. They are macros by virtue of the fact that they
-implement one or more special "macro" interfaces defined by the Dart core
-libraries.
+Macros are a special type of class, which are preceded by the `macro` keyword,
+and have some additional limitations that classes don't have.
 
-*Note: The API is still being designed, and lives [here][api].*
+This keyword allows compilers (and users) to identify macros at a glance,
+without having to check the type hierarchy to see if they implement `Macro`.
+
+See some example macros [here][examples].
+
+[examples]: https://github.com/dart-lang/language/tree/master/working/macros/example
+
+### Macro limitations/requirements
+
+-  All macro constructors must be marked as const.
+-  See the [Macro Arguments](#Macro-arguments) section to understand how macro
+constructors are invoked, and their limitations.
+-  All macros must implement at least one of the `Macro` interfaces.
+-  Macros cannot be abstract.
+
+*Note: The Macro API is still being designed, and lives [here][api].*
 
 [api]: https://github.com/dart-lang/language/blob/master/working/macros/api
+
+### Writing a Macro
 
 Every macro interface is a subtype of a root [Macro][] [marker interface][].
 There are interfaces for each kind of declaration macros can be applied to:

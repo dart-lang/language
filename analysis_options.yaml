@@ -1,3 +1,5 @@
 analyzer:
   exclude:
     - accepted/2.3/spread-collections/examples/**
+    # Uses not-yet-existing language features
+    - working/macros/example/**
