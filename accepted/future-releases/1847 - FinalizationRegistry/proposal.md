@@ -180,7 +180,7 @@ abstract class Finalizer<T> {
   /// Attaches this finalizer to the given [value].
   ///
   /// When [value] is no longer accessible to the program,
-  /// the registry *may* call its callback function with [finalizationToken]
+  /// the registry *may* call its callback function with [token]
   /// as argument.
   ///
   /// The [value] and [detachKey] arguments do not count towards those
@@ -284,7 +284,7 @@ abstract class NativeFinalizer<T> {
   /// Attaches this finalizer to the given [value].
   ///
   /// When [value] is no longer accessible to the program,
-  /// the registry will call its callback function with [finalizationToken]
+  /// the registry will call its callback function with [token]
   /// as argument.
   ///
   /// The [value] and [detachKey] arguments do not count towards those
