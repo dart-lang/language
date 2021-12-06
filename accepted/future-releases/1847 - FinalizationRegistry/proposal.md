@@ -96,7 +96,7 @@ should be able to:
   - rely on finalization callbacks to be invoked even if an isolate group is
   shutting down.
 
-The first requirements is self-explanatory: we would like to avoid departures
+The second requirement is self-explanatory: we would like to avoid departures
 from run-to-completion model that Dart currently provides for synchronous code.
 
 To explain the problem of premature finalization, consider the following code:
@@ -180,7 +180,7 @@ abstract class Finalizer<T> {
   /// Attaches this finalizer to the given [value].
   ///
   /// When [value] is no longer accessible to the program,
-  /// the registry *may* call its callback function with [finalizationToken]
+  /// the registry *may* call its callback function with [token]
   /// as argument.
   ///
   /// The [value] and [detachKey] arguments do not count towards those
@@ -268,7 +268,7 @@ typedef NativeFinalizerPtr = Pointer<NativeFunction<NativeFinalizer>>
 /// attached finalizers are definitely called at least once before the program
 /// ends, and the callbacks are called as soon as possible after an object
 /// is recognized as inaccessible.
-abstract class NativeFinalizer<T> {
+abstract class NativeFinalizer {
   /// Creates a finalizer with the given finalization callback.
   ///
   /// Note: the [callback] is expected to be a native function which can be
@@ -284,7 +284,7 @@ abstract class NativeFinalizer<T> {
   /// Attaches this finalizer to the given [value].
   ///
   /// When [value] is no longer accessible to the program,
-  /// the registry will call its callback function with [finalizationToken]
+  /// the registry will call its callback function with [token]
   /// as argument.
   ///
   /// The [value] and [detachKey] arguments do not count towards those
@@ -301,7 +301,7 @@ abstract class NativeFinalizer<T> {
   /// [externalSize] is an amount of native (non-Dart) memory owned by the
   /// given [value]. This information is used to drive garbage collection
   /// scheduling heuristics.
-  void attach(Object value, T token, {Object? detachKey, int externalSize}});
+  void attach(Finalizable value, Pointer<Void> token, {Object? detachKey, int externalSize}});
 
   /// Detaches the finalizer from any objects that used [detachKey] when
   /// attaching the finalizer to them.
