@@ -1,37 +1,48 @@
 import 'code.dart';
 
-/// An unresolved reference to a type.
+/// The base class for an unresolved reference to a type.
 ///
-/// These can be resolved to a [TypeDeclaration] using the `builder` classes
-/// depending on the phase a macro is running in.
+/// See the subtypes [FunctionTypeAnnotation] and [NamedTypeAnnotation].
 abstract class TypeAnnotation {
   /// Whether or not the type annotation is explicitly nullable (contains a
   /// trailing `?`)
   bool get isNullable;
 
+  /// A [Code] object representation of this type annotation.
+  Code get code;
+}
+
+/// The base class for function type declarations.
+abstract class FunctionTypeAnnotation implements TypeAnnotation {
+  /// The return type of this function.
+  TypeAnnotation get returnType;
+
+  /// The positional parameters for this function.
+  Iterable<ParameterDeclaration> get positionalParameters;
+
+  /// The named parameters for this function.
+  Iterable<ParameterDeclaration> get namedParameters;
+
+  /// The type parameters for this function.
+  Iterable<TypeParameterDeclaration> get typeParameters;
+}
+
+/// An unresolved reference to a type.
+///
+/// These can be resolved to a [TypeDeclaration] using the `builder` classes
+/// depending on the phase a macro is running in.
+abstract class NamedTypeAnnotation implements TypeAnnotation {
   /// The name of the type as it exists in the type annotation.
   String get name;
-
-  /// The scope in which the type annotation appeared in the program.
-  ///
-  /// This can be used to construct an [IdentifierCode] that refers to this type
-  /// regardless of the context in which it is emitted.
-  Scope get scope;
 
   /// The type arguments, if applicable.
   Iterable<TypeAnnotation> get typeArguments;
 }
 
-//// The base class for all declarations.
+/// The base class for all declarations.
 abstract class Declaration {
-  /// The name of this type declaration
+  /// The name of this declaration.
   String get name;
-
-  /// The scope in which this type declaration is defined.
-  ///
-  /// This can be used to construct an [IdentifierCode] that refers to this type
-  /// regardless of the context in which it is emitted.
-  Scope get scope;
 }
 
 /// A declaration that defines a new type in the program.
@@ -128,10 +139,7 @@ abstract class FieldDeclaration implements VariableDeclaration {
 }
 
 /// Parameter introspection information.
-abstract class ParameterDeclaration {
-  /// The name of the parameter.
-  String get name;
-
+abstract class ParameterDeclaration implements Declaration {
   /// The type of this parameter.
   TypeAnnotation get type;
 
@@ -148,7 +156,7 @@ abstract class ParameterDeclaration {
 }
 
 /// Type parameter introspection information.
-abstract class TypeParameterDeclaration {
+abstract class TypeParameterDeclaration implements Declaration {
   /// The bounds for this type parameter, if it has any.
   TypeAnnotation? get bounds;
 }
