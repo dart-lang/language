@@ -5,7 +5,7 @@ import '../api/code.dart';
 
 const dataClass = _DataClass();
 
-macro _DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class _DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _DataClass();
 
   @override
@@ -29,7 +29,7 @@ macro _DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
 
 const autoConstructor = _AutoConstructor();
 
-macro _AutoConstructor implements ClassDeclarationsMacro {
+macro class _AutoConstructor implements ClassDeclarationsMacro {
   const _AutoConstructor();
 
   @override
@@ -108,7 +108,7 @@ macro _AutoConstructor implements ClassDeclarationsMacro {
 const copyWith = _CopyWith();
 
 // TODO: How to deal with overriding nullable fields to `null`?
-macro _CopyWith implements ClassDeclarationsMacro {
+macro class _CopyWith implements ClassDeclarationsMacro {
   const _CopyWith();
 
   @override
@@ -146,7 +146,7 @@ macro _CopyWith implements ClassDeclarationsMacro {
 
 const hashCode = _HashCode();
 
-macro _HashCode implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class _HashCode implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _HashCode();
 
   @override
@@ -175,7 +175,7 @@ external int get hashCode;'''));
 
 const equality = _Equality();
 
-macro _Equality implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class _Equality implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _Equality();
 
   @override
@@ -204,7 +204,7 @@ external bool operator==(Object other);'''));
 
 const toString = _ToString();
 
-macro _ToString implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class _ToString implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _ToString();
 
   @override

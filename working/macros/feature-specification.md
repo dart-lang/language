@@ -295,9 +295,8 @@ classes, etc.
 
 ## Macro declarations
 
-Macros are a special type of class, which use the `macro` keyword in place of
-the `class` keyword, and have some additional limitations that classes don't
-have.
+Macros are a special type of class, which are preceded by the `macro` keyword,
+and have some additional limitations that classes don't have.
 
 This keyword allows compilers (and users) to identify macros at a glance,
 without having to check the type hierarchy to see if they implement `Macro`.
