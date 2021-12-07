@@ -123,7 +123,7 @@ macro class _CopyWith implements ClassDeclarationsMacro {
     var namedParams = [
       for (var field in allFields)
         ParameterCode.fromString(
-            '${field.type.toCode()}${field.type.isNullable ? '' : '?'} '
+            '${field.type.toCode()}${field.type.isNullable ? '?' : ''} '
             '${field.name}'),
     ];
     var args = [
