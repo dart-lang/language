@@ -68,7 +68,7 @@ macro class _AutoConstructor implements ClassDeclarationsMacro {
             ? ''
             : Code.fromParts([' = ', param.defaultValue!]);
         parts.add(Code.fromParts([
-          '\n$requiredKeyword${param.type.toCode()} ${param.name}',
+          '\n$requiredKeyword${param.type.code} ${param.name}',
           defaultValue,
           ',',
         ]));
@@ -79,7 +79,7 @@ macro class _AutoConstructor implements ClassDeclarationsMacro {
             ? ''
             : Code.fromParts([' = ', param.defaultValue!]);
         parts.add(Code.fromParts([
-          '\n$requiredKeyword${param.type.toCode()} ${param.name}',
+          '\n$requiredKeyword${param.type.code} ${param.name}',
           defaultValue,
           ',',
         ]));
@@ -122,9 +122,7 @@ macro class _CopyWith implements ClassDeclarationsMacro {
     var allFields = await clazz.allFields(builder).toList();
     var namedParams = [
       for (var field in allFields)
-        ParameterCode.fromString(
-            '${field.type.toCode()}${field.type.isNullable ? '?' : ''} '
-            '${field.name}'),
+        ParameterCode.fromString('${field.type.code} ${field.name}'),
     ];
     var args = [
       for (var field in allFields)
@@ -132,12 +130,12 @@ macro class _CopyWith implements ClassDeclarationsMacro {
             '${field.name}: ${field.name} ?? this.${field.name}'),
     ];
     builder.declareInClass(DeclarationCode.fromParts([
-      clazz.instantiate().toCode(),
+      clazz.instantiate().code,
       ' copyWith({',
       ...namedParams.joinAsCode(', '),
       ',})',
       // TODO: We assume this constructor exists, but should check
-      '=> ', clazz.instantiate().toCode(), '(',
+      '=> ', clazz.instantiate().code, '(',
       ...args.joinAsCode(', '),
       ', );',
     ]));
@@ -195,7 +193,7 @@ external bool operator==(Object other);'''));
         ExpressionCode.fromString('this.${field.name} == other.${field.name}'),
     ].joinAsCode(' && ');
     equalsBuilder.augment(FunctionBodyCode.fromParts([
-      ' => other is ${clazz.instantiate().toCode()} && ',
+      ' => other is ${clazz.instantiate().code} && ',
       ...equalityExprs,
       ';',
     ]));
@@ -256,8 +254,4 @@ extension _<T> on Iterable<T> {
       if (test(item)) return item;
     }
   }
-}
-
-extension _ToCode on TypeAnnotation {
-  Code toCode() => Code.fromString(this.name, scope: this.scope);
 }
