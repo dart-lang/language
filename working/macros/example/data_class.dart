@@ -5,7 +5,7 @@ import '../api/code.dart';
 
 const dataClass = _DataClass();
 
-class _DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class _DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _DataClass();
 
   @override
@@ -29,7 +29,7 @@ class _DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
 
 const autoConstructor = _AutoConstructor();
 
-class _AutoConstructor implements ClassDeclarationsMacro {
+macro class _AutoConstructor implements ClassDeclarationsMacro {
   const _AutoConstructor();
 
   @override
@@ -108,7 +108,7 @@ class _AutoConstructor implements ClassDeclarationsMacro {
 const copyWith = _CopyWith();
 
 // TODO: How to deal with overriding nullable fields to `null`?
-class _CopyWith implements ClassDeclarationsMacro {
+macro class _CopyWith implements ClassDeclarationsMacro {
   const _CopyWith();
 
   @override
@@ -122,9 +122,7 @@ class _CopyWith implements ClassDeclarationsMacro {
     var allFields = await clazz.allFields(builder).toList();
     var namedParams = [
       for (var field in allFields)
-        ParameterCode.fromString(
-            '${field.type.code}${field.type.isNullable ? '' : '?'} '
-            '${field.name}'),
+        ParameterCode.fromString('${field.type.code} ${field.name}'),
     ];
     var args = [
       for (var field in allFields)
@@ -146,7 +144,7 @@ class _CopyWith implements ClassDeclarationsMacro {
 
 const hashCode = _HashCode();
 
-class _HashCode implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class _HashCode implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _HashCode();
 
   @override
@@ -175,7 +173,7 @@ external int get hashCode;'''));
 
 const equality = _Equality();
 
-class _Equality implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class _Equality implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _Equality();
 
   @override
@@ -204,7 +202,7 @@ external bool operator==(Object other);'''));
 
 const toString = _ToString();
 
-class _ToString implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class _ToString implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _ToString();
 
   @override
