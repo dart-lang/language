@@ -195,10 +195,10 @@ abstract class Finalizer<T> {
   /// for registrations which have been detached since they were attached.
   void attach(Object value, T token, {Object? detachKey});
 
-  /// Detaches the finalizer from any objects that used [detachKey] when
-  /// attaching the finalizer to them.
+  /// Detaches this finalizer from any objects that used the identical [detachKey] when
+  /// attaching this finalizer to them.
   ///
-  /// If the finalizer was attached multiple times to the same object with different
+  /// If this finalizer was attached multiple times to the same object with different
   /// detachment keys, only those attachments which used [detachKey] are
   /// removed.
   ///
@@ -248,8 +248,8 @@ abstract class Finalizable {
   factory Finalizable._() => throw UnsupportedError("");
 }
 
-typedef NativeFinalizer = Void Function(Pointer<Void>);
-typedef NativeFinalizerPtr = Pointer<NativeFunction<NativeFinalizer>>
+typedef NativeFinalizerSignature = Void Function(Pointer<Void> token);
+typedef NativeFinalizerPtr = Pointer<NativeFunction<NativeFinalizerSignature>>;
 
 /// A native finalizer which can be attached to Dart objects.
 ///
@@ -301,14 +301,15 @@ abstract class NativeFinalizer {
   /// [externalSize] is an amount of native (non-Dart) memory owned by the
   /// given [value]. This information is used to drive garbage collection
   /// scheduling heuristics.
-  void attach(Finalizable value, Pointer<Void> token, {Object? detachKey, int externalSize}});
+  void attach(Finalizable value, Pointer<Void> token,
+      {Object? detachKey, int externalSize});
 
-  /// Detaches the finalizer from any objects that used [detachKey] when
-  /// attaching the finalizer to them.
+  /// Detaches this finalizer from any objects that used the identical
+  /// [detachKey] when attaching this finalizer to them.
   ///
-  /// If the finalizer was attached multiple times to the same object with different
-  /// detachment keys, only those attachments which used [detachKey] are
-  /// removed.
+  /// If this finalizer was attached multiple times to the same object with
+  /// different detachment keys, only those attachments which used [detachKey]
+  /// are removed.
   ///
   /// After detaching, an attachment won't cause any callbacks to happen if the
   /// object become inaccessible.
