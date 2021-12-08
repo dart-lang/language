@@ -23166,7 +23166,7 @@ concrete syntax denoting $T$.
   can be used to conclude
   \Subtype{\emptyset}{\code{int}}{\code{int}},
   where $\emptyset$ denotes the empty environment
-  (any environment would suffice because no type variables occur).%
+  (any environment would suffice because no type variables occur).
 
   However, we must eliminate the difficulties associated with
   different syntax denoting the same type,
@@ -23878,11 +23878,10 @@ Type normalization erases the latter distinction.
   (such as \code{Never} and $X$).
 
   In particular, \SubtypeNE{S}{T} and \SubtypeNE{T}{S} holds if and only if
-  \NormalizedTypeOf{$T$} is syntactically equal to \NormalizedTypeOf{$S$},
-  modulo replacement of atomic top types,
-  and modulo replacement of terms derived from \synt{typeName}
-  denoting the same type
-  (such as \code{List<C<\DYNAMIC>{}>} and \code{List<myPrefix.C<\VOID>{}>}).%
+  \NormalizedTypeOf{$T$} has the same canonical syntax as \NormalizedTypeOf{$S$}
+  (\ref{standardUpperBoundsAndStandardLowerBounds}),
+  modulo replacement of atomic top types
+  (e.g., \code{List<C<\DYNAMIC>{}>} and \code{List<myPrefix.C<\VOID>{}>}).%
 }
 
 \LMHash{}%
@@ -24090,8 +24089,8 @@ This means that $C$ is \emph{always} accessed as, say,
 }
 
 \LMHash{}%
-Consequently, when we say that two types $T_1$ and $T_2$ are
-\IndexCustom{syntactically equal}{type!syntactically equal},
+Consequently, when we say that two types $T_1$ and $T_2$ have the
+\IndexCustom{same canonical syntax}{type!same canonical syntax},
 it refers to the situation where both $T_1$ and $T_2$ have been
 transformed in the above sense
 (\commentary{by alpha-renaming, alias expansion, and canonical naming}).
@@ -24325,7 +24324,7 @@ The function \UpperBoundTypeName{} is defined as follows.
     \EXTENDS\,$B_{2m}$>($P_{21}$,\,\ldots,\,$P_{2l}$)}
 
   \noindent
-  such that each $B_{1i}$ and $B_{2i}$ are syntactically equal types,
+  such that each $B_{1i}$ and $B_{2i}$ are types with the same canonical syntax,
   and both have the same number of required positional parameters.
   Let $q$ be $\metavar{min}(k, l)$,
   let $T_3$ be \UpperBoundType{$T_1$}{$T_2$},
@@ -24355,7 +24354,7 @@ The function \UpperBoundTypeName{} is defined as follows.
   and consider the case where the following is satisfied:
 
   \begin{itemize}
-  \item Each $B_{1i}$ and $B_{2i}$ are syntactically equal types.
+  \item Each $B_{1i}$ and $B_{2i}$ are types with the same canonical syntax.
   \item For each required entry named $n$ in $\metavar{Named}_1$,
     $\metavar{Named}_2$ contains an entry named $n$
     (\commentary{which may or may not be required}).
@@ -24580,7 +24579,7 @@ The function \LowerBoundType{$T_1$}{$T_2$} is defined as follows.
     \EXTENDS\,$B_{2m}$>($P_{21}$,\,\ldots,\,$P_{2l}$)}
 
   \noindent
-  such that each $B_{1i}$ and $B_{2i}$ are syntactically equal types.
+  such that each $B_{1i}$ and $B_{2i}$ are types with the same canonical syntax.
   Let $q$ be $\metavar{max}(k, l)$,
   let $T_3$ be \LowerBoundType{$T_1$}{$T_2$},
   let $B_{3i}$ be $B_{1i}$, and
@@ -24617,7 +24616,7 @@ The function \LowerBoundType{$T_1$}{$T_2$} is defined as follows.
   where $\metavar{Named}_j$ declares a non-empty set of named parameters
   with names $\metavar{NamesOfNamed}_j$, $j \in 1 .. 2$,
   and consider the case where
-  each $B_{1i}$ and $B_{2i}$ are syntactically equal types.
+  each $B_{1i}$ and $B_{2i}$ are types with the same canonical syntax.
   Then \DefEqualsNewline{\LowerBoundType{$U_1$}{$U_2$}}{%U_3}, where $U_3$ is
   \code{$T_3$\,\FUNCTION<$X_1$\,\EXTENDS\,$B_{31}$,\,\ldots,\,$X_m$\,%
     \EXTENDS\,$B_{3m}$>($P_{31}$,\,\ldots,\,$P_{3k}$,\,$\metavar{Named}_3$)}},
@@ -25162,9 +25161,10 @@ the bound of said type variable.
 
 \commentary{%
   An intersection type will never occur as a nested type, that is,
-  it will never occurs as
+  it never occurs as or in
   an actual type argument in a parameterized type,
-  as a parameter type or a return type in a function type,
+  a parameter type or a return type in a function type,
+  a type parameter bound,
   as the right operand of another intersection type,
   or as the operand of the nullable type operator \lit{?}.%
 }
@@ -25325,24 +25325,8 @@ Let $U_j$ be the transitive alias expansion
 and let $S_j$ be \NormalizedTypeOf{$U_j$}, for $j \in 1 .. 2$
 (\ref{typeNormalization}).
 We then say that $T_1$ and $T_2$ are the \Index{same type}
-if{}f $S_1$ and $S_2$ are syntactically equal,
-up to equivalence of bound variables,
-and up to replacement of identifiers or qualified identifiers
-resolving to the same type declaration
-\commentary{%
-  (e.g., \code{C} and \code{prefix.C} could resolve to
-  the same class declaration)%
-},
-and excluding the case where two identifiers or qualified identifiers
-occurring at corresponding positions in $S_1$ and $S_2$
-are syntactically identical,
-but resolve to different declarations
-\commentary{%
-  (e.g., one occurrence of \code{C} could resolve to a
-  class declaration imported from a library $L_1$,
-  and another occurrence of \code{C} could resolve to a
-  class declaration imported from a different library $L_2$)%
-}.
+if{}f $S_1$ and $S_2$ are have the same canonical syntax
+(\ref{standardUpperBoundsAndStandardLowerBounds}).
 
 \LMHash{}%
 A reified type identifies the underlying type in the sense that
