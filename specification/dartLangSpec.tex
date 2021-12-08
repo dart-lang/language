@@ -22625,13 +22625,15 @@ in their full generality.%
 \begin{figure}[p]
   \def\VSP{\vspace{4mm}}
   \def\ExtraVSP{\vspace{2mm}}
-  \def\Axiom#1#2#3#4{\centerline{\inference[#1]{}{\SubtypeStd{#3}{#4}}}\VSP}
-  \def\Rule#1#2#3#4#5#6{\centerline{\inference[#1]{\SubtypeStd{#3}{#4}}{\SubtypeStd{#5}{#6}}}\VSP}
-  \def\RuleTwo#1#2#3#4#5#6#7#8{%
-    \centerline{\inference[#1]{\SubtypeStd{#3}{#4} & \SubtypeStd{#5}{#6}}{\SubtypeStd{#7}{#8}}}\VSP}
-  \def\RuleRaw#1#2#3#4#5{%
-    \centerline{\inference[#1]{#3}{\SubtypeStd{#4}{#5}}}\VSP}
-  \def\RuleRawRaw#1#2#3#4{\centerline{\inference[#1]{#3}{#4}}\VSP}
+  \def\Axiom#1#2#3{\centerline{\inference[#1]{}{\SubtypeStd{#2}{#3}}}\VSP}
+  \def\Rule#1#2#3#4#5{%
+    \centerline{\inference[#1]{\SubtypeStd{#2}{#3}}{\SubtypeStd{#4}{#5}}}\VSP}
+  \def\RuleTwo#1#2#3#4#5#6#7{%
+    \centerline{\inference[#1]{\SubtypeStd{#2}{#3} & %
+        \SubtypeStd{#4}{#5}}{\SubtypeStd{#6}{#7}}}\VSP}
+  \def\RuleRaw#1#2#3#4{%
+    \centerline{\inference[#1]{#2}{\SubtypeStd{#3}{#4}}}\VSP}
+  \def\RuleRawRaw#1#2#3{\centerline{\inference[#1]{#2}{#3}}\VSP}
   %
   % ----------------------------------------------------------------------
   % Omitted rules stated here, with justification for
@@ -22639,90 +22641,92 @@ in their full generality.%
   % ------------------------------------------------ Right Object 1
   % Not needed unless algorithmic: Instance of
   % \SrnLeftVariableBound.
-  %   \RuleRaw{\SrnRightObjectOne}{Right Object 1}{%
+  %   \RuleRaw{\SrnRightObjectOne}{%
   %     \code{$X$\,\EXTENDS\,$B$} & \SubtypeStd{B}{\code{Object}}%
   %   }{X}{\code{Object}}
   % ------------------------------------------------ Right Object 2
   % Not needed unless algorithmic: Instance of
   % \SrnLeftPromotedVariable.
-  %   \RuleRaw{\SrnRightObjectTwo}{}{%
-  %     \SubtypeStd{S}{\code{Object}}}{\code{$X$\,\&\,$S$}}{\code{Object}}
+  %   \RuleRaw{\SrnRightObjectTwo}{%
+  %     \SubtypeStd{S}{\code{Object}}}{%
+  %       \code{$X$\,\&\,$S$}}{\code{Object}}
   % ------------------------------------------------ Right Object 3
   % Not needed unless algorithmic: Derivable from
   % \SrnLeftFutureOr{} and \SrnRightObjectFour{} (to get
   % Future<S> <: Object).
-  %   \RuleRaw{\SrnRightObjectThree}{}{%
-  %     \SubtypeStd{S}{\code{Object}}}{\code{FutureOr<$S$>}}{\code{Object}}
+  %   \RuleRaw{\SrnRightObjectThree}{%
+  %     \SubtypeStd{S}{\code{Object}}}{%
+  %       \code{FutureOr<$S$>}}{\code{Object}}
   % ----------------------------------------------------------------------
   \begin{minipage}[c]{0.49\textwidth}
     % ------------------------------------------------ Reflexivity
-    \Axiom{\SrnReflexivity}{}{T}{T}
+    \Axiom{\SrnReflexivity}{T}{T}
     \ExtraVSP
     % ------------------------------------------------ Left Top
     % Non-algorithmic justification for this rule: Needed
     % to prove dynamic/void <: FutureOr<Object>?.
-    \RuleRaw{\SrnLeftTop}{}{%
+    \RuleRaw{\SrnLeftTop}{%
       S \in \{\DYNAMIC, \VOID\}\\
       \SubtypeStd{\code{Object?}}{T}}{S}{T}
     % ------------------------------------------------ Left Bottom
-    \Axiom{\SrnBottom}{}{\code{Never}}{T}
+    \Axiom{\SrnBottom}{\code{Never}}{T}
     % ------------------------------------------------ Left Null 1
-    \Axiom{\SrnNullOne}{}{\code{Null}}{\code{$T$?}}
+    \Axiom{\SrnNullOne}{\code{Null}}{\code{$T$?}}
   \end{minipage}
   \begin{minipage}[c]{0.49\textwidth}
     % ------------------------------------------------ Right Top
-    \RuleRaw{\SrnRightTop}{}{%
+    \RuleRaw{\SrnRightTop}{%
       T \in \{\code{Object?}, \DYNAMIC, \VOID\}}{S}{T}
     % ------------------------------------------------ Right Object 4
-    \RuleRaw{\SrnRightObjectFour}{}{%
+    \RuleRaw{\SrnRightObjectFour}{%
       $S$\,\not\in \{\code{Null}, \DYNAMIC, \VOID\}\\
       \mbox{$S$ is not of the form \code{$U$?}, $X$,}\\
       \mbox{\code{$X$\,\&\,$U$}, %
         or \code{FutureOr<$U$>}}}{S}{\code{Object}}
     % ------------------------------------------------ Left Null 2
-    \Rule{\SrnNullTwo}{}{\code{Null}}{T}{%
+    \Rule{\SrnNullTwo}{\code{Null}}{T}{%
       \code{Null}}{\code{FutureOr<$T$>}}
   \end{minipage}
 
   \begin{minipage}[c]{0.49\textwidth}
     % ------------------------------------------------ Left FutureOr
-    \RuleTwo{\SrnLeftFutureOr}{}{%
+    \RuleTwo{\SrnLeftFutureOr}{%
       \code{Future<$S$>}}{T}{S}{T}{%
       \code{FutureOr<$S$>}}{T}
     % ------------------------------------------------ Right Promoted Variable
-    \RuleTwo{\SrnRightPromotedVariable}{}{S}{X}{S}{T}{%
+    \RuleTwo{\SrnRightPromotedVariable}{S}{X}{S}{T}{%
       S}{X \& T}
     % ------------------------------------------------ Right FutureOr B
-    \Rule{\SrnRightFutureOrB}{}{S}{T}{S}{%
+    \Rule{\SrnRightFutureOrB}{S}{T}{S}{%
       \code{FutureOr<$T$>}}
     % ------------------------------------------------ Right Nullable 2
-    \Rule{\SrnRightNullableTwo}{}{S}{\code{Null}}{S}{%
+    \Rule{\SrnRightNullableTwo}{S}{\code{Null}}{S}{%
       \code{$T$?}}
     % ------------------------------------------------ Left Variable Bound
     \Rule{\SrnLeftVariableBound}{}{\Delta(X)}{T}{X}{T}
   \end{minipage}
   \begin{minipage}[c]{0.49\textwidth}
     % ------------------------------------------------ Left Nullable
-    \RuleTwo{\SrnLeftNullable}{}{S}{T}{\code{Null}}{T}{%
+    \RuleTwo{\SrnLeftNullable}{S}{T}{\code{Null}}{T}{%
       \code{$S$?}}{T}
     % ------------------------------------------------ Left Promoted Variable A
-    \Axiom{\SrnTypeVariableReflexivityA}{}{X \& S}{X}
+    \Axiom{\SrnTypeVariableReflexivityA}{X \& S}{X}
     % ------------------------------------------------ Right FutureOr A
-    \Rule{\SrnRightFutureOrA}{}{S}{%
+    \Rule{\SrnRightFutureOrA}{S}{%
       \code{Future<$T$>}}{S}{\code{FutureOr<$T$>}}
     % ------------------------------------------------ Right Nullable 1
-    \Rule{\SrnRightNullableOne}{}{S}{T}{S}{\code{$T$?}}
+    \Rule{\SrnRightNullableOne}{S}{T}{S}{\code{$T$?}}
     % ------------------------------------------------ Left Promoted Variable B
-    \Rule{\SrnLeftPromotedVariable}{}{S}{T}{X \& S}{T}
+    \Rule{\SrnLeftPromotedVariable}{S}{T}{X \& S}{T}
     % ------------------------------------------------ Right Function
-    \RuleRaw{\SrnRightFunction}{}{%
+    \RuleRaw{\SrnRightFunction}{%
       T\mbox{ is a function type}}{T}{\FUNCTION}
   \end{minipage}
   %
   \ExtraVSP
   % ------------------------------------------------ Positional Function Type
   \RuleRawRaw{\SrnPositionalFunctionType}{}{%
-    \Gamma' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
+    \Delta' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
     \Subtype{\Delta'}{S_0}{T_0} \\
     n_1 \leq n_2 &
     n_1 + k_1 \geq n_2 + k_2 &
@@ -22734,7 +22738,7 @@ in their full generality.%
   \ExtraVSP\ExtraVSP
   % ------------------------------------------------ Named Function Type
   \RuleRawRaw{\SrnNamedFunctionType}{}{%
-    \Gamma' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
+    \Delta' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
     \Subtype{\Delta'}{S_0}{T_0} &
     \forall j \in 1 .. n\!:\;\Subtype{\Gamma'}{T_j}{S_j} \\
     \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\} \\
@@ -22747,13 +22751,13 @@ in their full generality.%
   %
   \ExtraVSP
   % ------------------------------------------------ Covariance
-  \RuleRaw{\SrnCovariance}{}{%
+  \RuleRaw{\SrnCovariance}{%
     \mbox{$C$ is an interface type with $s$ type parameters} &
     \SubtypeStd{S_j}{T_j}\mbox{, for each $j \in 1..s$}}{%
     \code{$C$<\List{S}{1}{s}>}}{\code{$C$<\List{T}{1}{s}>}}
   \ExtraVSP
   % ------------------------------------------------ Superinterface
-  \RuleRaw{\SrnSuperinterface}{}{%
+  \RuleRaw{\SrnSuperinterface}{%
     \mbox{$C$ is an interface type with type parameters \List{X}{1}{s}}\\
     \Superinterface{\code{$D$<\List{T}{1}{m}>}}{C} &
     \SubtypeStd{[S_1/X_1,\ldots,S_s/X_s]\code{$D$<\List{T}{1}{m}>}}{T}}{%
