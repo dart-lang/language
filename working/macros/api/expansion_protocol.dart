@@ -10,7 +10,7 @@ import 'introspection.dart';
 ///
 /// This class more clearly defines the role of a Dart language implementation
 /// during macro discovery and expansion, and unifies how augmentation libraries
-/// are produced, as well as how (and where) they are written to disk.
+/// are produced.
 abstract class MacroExecutor {
   /// Creating an executor will require at least a package config, in order to
   /// resolve macros by URI.
