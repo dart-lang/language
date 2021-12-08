@@ -27,7 +27,7 @@ abstract class TypeComparator {
   /// Returns true if [leftType] is a subtype of [rightType].
   bool isSubtypeOf(TypeAnnotation leftType, TypeAnnotation rightType);
 
-  /// Retruns true if [leftType] is an identical type to [rightType].
+  /// Returns true if [leftType] is an identical type to [rightType].
   bool isExactly(TypeAnnotation leftType, TypeAnnotation rightType);
 }
 

@@ -46,7 +46,8 @@ abstract class MacroExecutor {
   Future<MacroExecutionResult> executeDeclarationsPhase(
       MacroInstanceIdentifier macro,
       Declaration declaration,
-      TypeComparator typeComparator);
+      TypeComparator typeComparator,
+      ClassIntrospector classIntrospector);
 
   /// Runs the definitions phase for [macro] on a given [declaration].
   ///
@@ -69,11 +70,11 @@ abstract class MacroExecutor {
 /// All argument instances must be of type [Code] or a built-in value type that
 /// is serializable (num, bool, String, null, etc).
 class Arguments {
-  final List<Object?> positionalArgs;
+  final List<Object?> positional;
 
-  final Map<String, Object?> namedArgs;
+  final Map<String, Object?> named;
 
-  Arguments(this.positionalArgs, this.namedArgs);
+  Arguments(this.positional, this.named);
 }
 
 /// An opaque identifier for a macro class, retrieved by
