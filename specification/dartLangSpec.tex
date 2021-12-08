@@ -22581,43 +22581,41 @@ demonstrating that Dart subtyping can be decided efficiently.%
 }
 
 \LMHash{}%
-%% TODO(eernst): Introduce these specialized intersection types
-%% in a suitable location where type promotion is specified.
-Types of the form
-\IndexCustom{$X \& S$}{type!of the form $X \& S$}%
-\IndexExtraEntry{\&@$X \& S$}
-arise during static analysis due to type promotion
+Intersection types
+(\commentary{types of the form \code{$X$\,\&\,$S$}}),
+may arise during static analysis due to type promotion
 (\ref{typePromotion}).
 They never occur during execution,
-they are never a type argument of another type,
-nor a return type or a formal parameter type,
-and it is always the case that $S$ is a subtype of the bound of $X$.
+and there are many other restrictions on where they can occur
+(\ref{intersectionTypes}).
+However, their subtype relations are specified without restrictions.
 \commentary{%
-The motivation for $X \& S$ is that it represents
-the type of a local variable $v$
-whose type is declared to be the type variable $X$,
-and which is known to have type $S$ due to promotion.
-Similarly, $X \& S$ may be seen as an intersection type,
-which is a subtype of $X$ and also a subtype of $S$.
-Intersection types are \emph{not} supported in general,
-only in this special case.%
+It causes no problems that these rules will not be used
+in their full generality.%
 }
-Every other form of type may occur during static analysis
-as well as during execution,
-and the subtype relationship is always determined in the same way.
 
+!!! Renumber!
 % Subtype Rule Numbering
 \newcommand{\SrnReflexivity}{1}
-\newcommand{\SrnTop}{2}
-\newcommand{\SrnBottom}{3}
-\newcommand{\SrnNull}{4}
-\newcommand{\SrnLeftTypeAlias}{5}
-\newcommand{\SrnRightTypeAlias}{6}
+\newcommand{\SrnRightTop}{2}
+\newcommand{\SrnLeftTop}{3}
+\newcommand{\SrnBottom}{4}
+\newcommand{\SrnRightObjectOne}{5.1}
+\newcommand{\SrnRightObjectTwo}{5.2}
+\newcommand{\SrnRightObjectThree}{5.3}
+\newcommand{\SrnRightObjectFour}{5.4}
+\newcommand{\SrnNullOne}{6.1}
+\newcommand{\SrnNullTwo}{6.2}
 \newcommand{\SrnLeftFutureOr}{7}
+\newcommand{\SrnLeftNullable}{7b}
 \newcommand{\SrnTypeVariableReflexivityA}{8}
 \newcommand{\SrnRightPromotedVariable}{9}
 \newcommand{\SrnRightFutureOrA}{10}
 \newcommand{\SrnRightFutureOrB}{11}
+\newcommand{\SrnRightNullableOne}{11b.1}
+\newcommand{\SrnRightNullableTwo}{11b.2}
+\newcommand{\SrnRightNullableThree}{11b.3}
+\newcommand{\SrnRightNullableFour}{11b.4}
 \newcommand{\SrnLeftPromotedVariable}{12}
 \newcommand{\SrnLeftVariableBound}{13}
 \newcommand{\SrnRightFunction}{14}
@@ -22638,21 +22636,29 @@ and the subtype relationship is always determined in the same way.
   \def\RuleRawRaw#1#2#3#4{\centerline{\inference[#1]{#3}{#4}}\VSP}
   %
   \begin{minipage}[c]{0.49\textwidth}
-    \Axiom{\SrnReflexivity}{Reflexivity}{S}{S}
-    \Axiom{\SrnBottom}{Left Bottom}{\bot}{T}
+    \Axiom{\SrnReflexivity}{Reflexivity}{T}{T}
+    \Axiom{\SrnBottom}{Left Bottom}{\code{Never}}{T}
+    \RuleRaw{\SrnRightObjectTwo}{Right Object 2}{%
+      \SubtypeStd{S}{\code{Object}}}{\code{$X$\,\&\,$S$}}{\code{Object}}
+    \RuleRaw{\SrnRightObjectThree}{Right Object 3}{%
+      \SubtypeStd{S}{\code{Object}}}{\code{FutureOr<$S$>}}{\code{Object}}
+    \Axiom{\SrnNullOne}{Left Null One}{\code{Null}}{\code{$T$?}}
   \end{minipage}
   \begin{minipage}[c]{0.49\textwidth}
-    \RuleRaw{\SrnTop}{Right Top}{T \in \{\code{Object}, \DYNAMIC, \VOID\}}{S}{T}
-    \RuleRaw{\SrnNull}{Left Null}{T \not= \bot}{\code{Null}}{T}
+    \RuleRaw{\SrnRightTop}{Right Top}{%
+      T \in \{\code{Object?}, \DYNAMIC, \VOID\}}{S}{T}
+    \RuleRaw{\SrnLeftTop}{Left Top}{%
+      S \in \{\DYNAMIC, \VOID\} & \SubtypeStd{\code{Object?}}{T}}{S}{T}
+    \RuleRaw{\SrnRightObjectOne}{Right Object 1}{%
+      \code{$X$\,\EXTENDS\,$B$} & \SubtypeStd{B}{\code{Object}}%
+    }{X}{\code{Object}}
+    \RuleRaw{\SrnRightObjectFour}{Right Object 4}{%
+      $S$\,\not\in \{\code{Null}, \DYNAMIC, \VOID\}\\
+      \mbox{$S$ is not of the form \code{$U$?}, $X$, %
+        \code{$X$\,\&\,$U$}, \code{FutureOr<$U$>}}}{S}{\code{Object}}
+    \Rule{\SrnNullTwo}{Left Null Two}{\code{Null}}{T}{%
+      \code{Null}}{\code{FutureOr<$T$>}}
   \end{minipage}
-
-  \ExtraVSP
-  \RuleRaw{\SrnLeftTypeAlias}{Type Alias Left}{%
-    \code{\TYPEDEF{} $F$<\TypeParametersNoBounds{X}{s}> = U} &
-    \SubtypeStd{[S_1/X_1,\ldots,S_s/X_s]U}{T}}{\code{$F$<\List{S}{1}{s}>}}{T}
-  \RuleRaw{\SrnRightTypeAlias}{Type Alias Right}{%
-    \code{\TYPEDEF{} $F$<\TypeParametersNoBounds{X}{s}> = U} &
-    \SubtypeStd{S}{[T_1/X_1,\ldots,T_s/X_s]U}}{S}{\code{$F$<\List{T}{1}{s}>}}
 
   \begin{minipage}[c]{0.49\textwidth}
     \RuleTwo{\SrnLeftFutureOr}{Left FutureOr}{S}{T}{%
@@ -22660,12 +22666,17 @@ and the subtype relationship is always determined in the same way.
     \RuleTwo{\SrnRightPromotedVariable}{Right Promoted Variable}{S}{X}{S}{T}{%
       S}{X \& T}
     \Rule{\SrnRightFutureOrB}{Right FutureOr B}{S}{T}{S}{\code{FutureOr<$T$>}}
+    \Rule{\SrnRightNullableTwo}{Right Nullable 2}{S}{\code{Null}}{S}{%
+      \code{$T$?}}
     \Rule{\SrnLeftVariableBound}{Left Variable Bound}{\Delta(X)}{T}{X}{T}
   \end{minipage}
   \begin{minipage}[c]{0.49\textwidth}
+    \RuleTwo{\SrnLeftNullable}{Left Nullable}{S}{T}{\code{Null}}{T}{
+      \code{$S$?}}{T}
     \Axiom{\SrnTypeVariableReflexivityA}{Left Promoted Variable A}{X \& S}{X}
     \Rule{\SrnRightFutureOrA}{Right FutureOr A}{S}{\code{Future<$T$>}}{%
       S}{\code{FutureOr<$T$>}}
+    \Rule{\SrnRightNullableOne}{Right Nullable 1}{S}{T}{S}{\code{$T$?}}
     \Rule{\SrnLeftPromotedVariable}{Left Promoted Variable B}{S}{T}{X \& S}{T}
     \RuleRaw{\SrnRightFunction}{Right Function}{T\mbox{ is a function type}}{%
       T}{\FUNCTION}
@@ -22701,6 +22712,7 @@ and the subtype relationship is always determined in the same way.
     \forall j \in 1 .. s\!:\;\SubtypeStd{S_j}{T_j}}{%
     \code{$C$<\List{S}{1}{s}>}}{\code{$C$<\List{T}{1}{s}>}}
   \ExtraVSP
+  %% !!! Should include mixins (and other non-class interface types, if any).
   \RuleRaw{\SrnSuperinterface}{Superinterface}{%
     \code{\CLASS{} $C$<\TypeParametersNoBounds{X}{s}>\,\ldots\,\{\}}\\
     \Superinterface{\code{$D$<\List{T}{1}{m}>}}{C} &
@@ -22752,10 +22764,9 @@ We define several rules about subtyping in this section.
 Whenever a rule contains one or more meta-variables,
 that rule can be used by
 \IndexCustom{instantiating}{instantiation!subtype rule}
-it, that is, by consistently replacing
-each occurrence of a given meta-variable by
-concrete syntax denoting the same type
-(\ref{typeType}).
+it, that is, by choosing a specific type $T$ and metavariable $\cal V$,
+and then consistently replacing all occurrences of $\cal V$ by
+concrete syntax denoting $T$.
 
 \commentary{%
 In general, this means that two or more occurrences of
@@ -22768,11 +22779,12 @@ rule~\SrnReflexivity{} in Figure~\ref{fig:subtypeRules}
 can be used to conclude
 \Subtype{\emptyset}{\code{int}}{\code{int}},
 where $\emptyset$ denotes the empty environment
-(any environment would suffice because no type variables occur).
+(any environment would suffice because no type variables occur).%
+}
 
-However, the wording `denoting the same type' above covers
-additional situations as well:
-For instance, we may use rule~\SrnReflexivity{}
+\commentary{%
+The phrases `same type' and `identical syntax' deserves some extra scrutiny:
+We may, e.g., use rule~\SrnReflexivity{}
 to show that \code{p1.C} is a subtype of
 \code{p2.C} when \code{C} is a class declared in a
 library $L$ which is imported by libraries $L_1$ and $L_2$ and
@@ -22801,8 +22813,27 @@ because the two occurrences of \code{C} do not denote the same type.%
 }
 
 \LMHash{}%
-Every \synt{typeName} used in a type mentioned in this section is assumed to
-have no compile-time error and denote a type.
+In this section,
+the notion of two types $T_1$ and $T_2$ being the same type
+is taken to mean that $T_1$ and $T_2$ have the same canonical syntax
+(\ref{standardUpperBoundsAndStandardLowerBounds}).
+
+\commentary{%
+In other words, we eliminate the difficulties associated with
+different syntax denoting the same type,
+and different types denoted by the same syntax,
+by assuming that every type in the program has been expressed
+in a manner where those situations never occur,
+because each type is denoted by the same globally unique syntax everywhere.
+Note that `same canonical syntax' also requires
+transitive expansion of all type aliases
+(\ref{typedef}).%
+}
+
+\LMHash{}%
+Every \synt{typeName} used in a type mentioned in this section
+is assumed to have no compile-time error,
+and it is assumed to denote a type.
 
 \commentary{%
 That is, no subtyping relationship can be proven for
@@ -22850,9 +22881,11 @@ and gives priority to the right hand operand in case of conflicts.
 So
 $\{ \code{X} \mapsto \code{int}, \code{Y} \mapsto \code{double} \} \uplus
 \{ \code{Z} \mapsto \code{Object} \} =
-\{ \code{X} \mapsto \code{int}, \code{Y} \mapsto \code{double}, \code{Z} \mapsto \code{Object} \}$
+\{ \code{X} \mapsto \code{int}, \code{Y} \mapsto \code{double}, %
+\code{Z} \mapsto \code{Object} \}$
 and
-$\{ \code{X} \mapsto \code{int}, \code{Y} \mapsto \code{FutureOr<List<double>{}>} \} \uplus
+$\{ \code{X} \mapsto \code{int}, \code{Y} \mapsto %
+\code{FutureOr<List<double>{}>} \} \uplus
 \{ \code{Y} \mapsto \code{int} \} =
 \{ \code{X} \mapsto \code{int}, \code{Y} \mapsto \code{int} \}$.
 Note that operator $\uplus$ is concerned with scopes and shadowing,
@@ -22901,28 +22934,6 @@ an instantiation of a rule $R$ whose conclusion is
 along with rule instantiations showing
 each of the premises of $R$,
 continuing until a rule with no premises is reached.
-
-\LMHash{}%
-The first premise in the
-rules~\SrnLeftTypeAlias{} and~\SrnRightTypeAlias{}
-is a type alias declaration.
-This premise is satisfied in each of the following situations:
-
-\begin{itemize}
-\item A non-generic type alias named $F$ is declared.
-  In this case $s$ is zero,
-  no assumptions are made about the existence
-  of any formal type parameters,
-  and actual type argument lists are omitted everywhere in the rule.
-\item We may choose $s$ and \List{X}{1}{s} such that the following holds:
-  A generic type alias named $F$ is declared,
-  with formal type parameters \List{X}{1}{s}.
-  \commentary{%
-    Each formal type parameter $X_j$ may have a bound,
-    but the bounds are never used in this context,
-    so we do not introduce metavariables for them.%
-  }
-\end{itemize}
 
 \LMHash{}%
 Rule~\SrnRightFunction{} has as a premise that `$T$ is a function type'.
@@ -23032,7 +23043,7 @@ include the application of a rule where the environment is used.
   the rule is also valid in any environment
   and the environment is never used explicitly,
   so we will not repeat that.
-\Item{\SrnTop}{Top}
+\Item{\SrnRightTop}{Top}
   Every type is a subtype of \code{Object},
   every type is a subtype of \DYNAMIC,
   and every type is a subtype of \VOID.
@@ -23044,19 +23055,11 @@ include the application of a rule where the environment is used.
   (\ref{superBoundedTypes}).
 \Item{\SrnBottom}{Bottom}
   Every type is a supertype of $\bot$.
-\Item{\SrnNull}{Null}
-  Every type other than $\bot$ is a supertype of \code{Null}.
-\Item{\SrnLeftTypeAlias}{Type Alias Left}
-  An application of a type alias to some actual type arguments is
-  a subtype of another type $T$
-  if the expansion of the type alias to the type that it denotes
-  is a subtype of $T$.
-  Note that a non-generic type alias is handled by letting $s = 0$.
-\Item{\SrnRightTypeAlias}{Type Alias Right}
-  A type $S$ is a subtype of an application of a type alias
-  if $S$ is a subtype of
-  the expansion of the type alias to the type that it denotes.
-  Note that a non-generic type alias is handled by letting $s = 0$.
+\Item{\SrnNullOne}{Null 1}
+  \code{Null} is a subtype of every type of the form \code{$T$?}.
+\Item{\SrnNullTwo}{Null 2}
+  \code{Null} is a subtype of \code{FutureOr<$T$>}
+  if \code{Null} is a subtype of $T$.
 \Item{\SrnLeftFutureOr}{Left FutureOr}
   The type \code{FutureOr<$S$>} is a subtype of a given type $T$
   if $S$ is a subtype of $T$ and \code{Future<$S$>} is a subtype of $T$,
@@ -23527,11 +23530,10 @@ and it will eliminate distinctions like the latter
 (such as \code{Never} and $X$).
 
 In particular, \SubtypeNE{S}{T} and \SubtypeNE{T}{S} holds if and only if
-\NormalizedTypeOf{$T$} is syntactically equal to \NormalizedTypeOf{$S$},
-modulo replacement of atomic top types,
-and modulo replacement of terms derived from \synt{typeName}
-denoting the same type
-(such as \code{List<C<\DYNAMIC>{}>} and \code{List<myPrefix.C<\VOID>{}>}).%
+\NormalizedTypeOf{$T$} has the same canonical syntax as \NormalizedTypeOf{$S$}
+(\ref{standardUpperBoundsAndStandardLowerBounds}),
+modulo replacement of atomic top types
+(e.g., \code{List<C<\DYNAMIC>{}>} and \code{List<myPrefix.C<\VOID>{}>}).%
 }
 
 \LMHash{}%
@@ -23739,8 +23741,8 @@ This means that $C$ is \emph{always} accessed as, say,
 }
 
 \LMHash{}%
-Consequently, when we say that two types $T_1$ and $T_2$ are
-\IndexCustom{syntactically equal}{type!syntactically equal},
+Consequently, when we say that two types $T_1$ and $T_2$ have the
+\IndexCustom{same canonical syntax}{type!same canonical syntax},
 it refers to the situation where both $T_1$ and $T_2$ have been
 transformed in the above sense
 (\commentary{by alpha-renaming, alias expansion, and canonical naming}).
@@ -23974,7 +23976,7 @@ The function \UpperBoundTypeName{} is defined as follows.
     \EXTENDS\,$B_{2m}$>($P_{21}$,\,\ldots,\,$P_{2l}$)}
 
   \noindent
-  such that each $B_{1i}$ and $B_{2i}$ are syntactically equal types,
+  such that each $B_{1i}$ and $B_{2i}$ are types with the same canonical syntax,
   and both have the same number of required positional parameters.
   Let $q$ be $\metavar{min}(k, l)$,
   let $T_3$ be \UpperBoundType{$T_1$}{$T_2$},
@@ -24004,7 +24006,7 @@ The function \UpperBoundTypeName{} is defined as follows.
   and consider the case where the following is satisfied:
 
   \begin{itemize}
-  \item Each $B_{1i}$ and $B_{2i}$ are syntactically equal types.
+  \item Each $B_{1i}$ and $B_{2i}$ are types with the same canonical syntax.
   \item For each required entry named $n$ in $\metavar{Named}_1$,
     $\metavar{Named}_2$ contains an entry named $n$
     (\commentary{which may or may not be required}).
@@ -24229,7 +24231,7 @@ The function \LowerBoundType{$T_1$}{$T_2$} is defined as follows.
     \EXTENDS\,$B_{2m}$>($P_{21}$,\,\ldots,\,$P_{2l}$)}
 
   \noindent
-  such that each $B_{1i}$ and $B_{2i}$ are syntactically equal types.
+  such that each $B_{1i}$ and $B_{2i}$ are types with the same canonical syntax.
   Let $q$ be $\metavar{max}(k, l)$,
   let $T_3$ be \LowerBoundType{$T_1$}{$T_2$},
   let $B_{3i}$ be $B_{1i}$, and
@@ -24266,7 +24268,7 @@ The function \LowerBoundType{$T_1$}{$T_2$} is defined as follows.
   where $\metavar{Named}_j$ declares a non-empty set of named parameters
   with names $\metavar{NamesOfNamed}_j$, $j \in 1 .. 2$,
   and consider the case where
-  each $B_{1i}$ and $B_{2i}$ are syntactically equal types.
+  each $B_{1i}$ and $B_{2i}$ are types with the same canonical syntax.
   Then \DefEqualsNewline{\LowerBoundType{$U_1$}{$U_2$}}{%U_3}, where $U_3$ is
   \code{$T_3$\,\FUNCTION<$X_1$\,\EXTENDS\,$B_{31}$,\,\ldots,\,$X_m$\,%
     \EXTENDS\,$B_{3m}$>($P_{31}$,\,\ldots,\,$P_{3k}$,\,$\metavar{Named}_3$)}},
@@ -24810,9 +24812,10 @@ the bound of said type variable.
 
 \commentary{%
 An intersection type will never occur as a nested type, that is,
-it will never occurs as
+it never occurs as or in
 an actual type argument in a parameterized type,
-as a parameter type or a return type in a function type,
+a parameter type or a return type in a function type,
+a type parameter bound,
 as the right operand of another intersection type,
 or as the operand of the nullable type operator \lit{?}.%
 }
@@ -24973,24 +24976,8 @@ Let $U_j$ be the transitive alias expansion
 and let $S_j$ be \NormalizedTypeOf{$U_j$}, for $j \in 1 .. 2$
 (\ref{typeNormalization}).
 We then say that $T_1$ and $T_2$ are the \Index{same type}
-if{}f $S_1$ and $S_2$ are syntactically equal,
-up to equivalence of bound variables,
-and up to replacement of identifiers or qualified identifiers
-resolving to the same type declaration
-(\commentary{%
-e.g., \code{C} and \code{prefix.C} could resolve to
-the same class declaration%
-}),
-and excluding the case where two identifiers or qualified identifiers
-occurring at corresponding positions in $S_1$ and $S_2$
-are syntactically identical,
-but resolve to different declarations
-(\commentary{%
-e.g., one occurrence of \code{C} could resolve to a
-class declaration imported from a library $L_1$,
-and another occurrence of \code{C} could resolve to a
-class declaration imported from a different library $L_2$%
-}).
+if{}f $S_1$ and $S_2$ are have the same canonical syntax
+(\ref{standardUpperBoundsAndStandardLowerBounds}).
 
 \LMHash{}%
 A reified type identifies the underlying type in the sense that
@@ -27053,7 +27040,7 @@ https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lo
   \end{minipage}
   %
   \caption{Algorithmic subtype rules.
-    Rules \SrnTop--\SrnSuperinterface{} are unchanged and hence omitted here.}
+    Rules \SrnRightTop--\SrnSuperinterface{} are unchanged and hence omitted here.}
   \label{fig:algorithmicSubtypeRules}
 \end{figure}
 
@@ -27114,7 +27101,7 @@ followed by rule $N.2$, and so on,
 followed by the rule whose number is $N+1$.
 \commentary{%
 So the order is
-\AppSrnReflexivity, \SrnTop--\SrnTypeVariableReflexivityA,
+\AppSrnReflexivity, \SrnRightTop--\SrnTypeVariableReflexivityA,
 \AppSrnTypeVariableReflexivityB, \AppSrnTypeVariableReflexivityC,
 \AppSrnTypeVariableReflexivityD,
 \SrnRightPromotedVariable, and so on.%
