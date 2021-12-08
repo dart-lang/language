@@ -22,21 +22,24 @@ abstract class TypeBuilder implements Builder {
   void declareType(DeclarationCode typeDeclaration);
 }
 
-/// The api used by [Macro]s to contribute new (non-type)
-/// declarations to the current library.
-///
-/// Can also be used to do subtype checks on types.
-abstract class DeclarationBuilder implements Builder {
-  /// Adds a new regular declaration to the surrounding library.
-  ///
-  /// Note that type declarations are not supported.
-  Declaration declareInLibrary(DeclarationCode declaration);
-
+/// The interface for checking if a type implements another type.
+abstract class TypeComparator {
   /// Returns true if [leftType] is a subtype of [rightType].
   bool isSubtypeOf(TypeAnnotation leftType, TypeAnnotation rightType);
 
   /// Retruns true if [leftType] is an identical type to [rightType].
   bool isExactly(TypeAnnotation leftType, TypeAnnotation rightType);
+}
+
+/// The api used by [Macro]s to contribute new (non-type)
+/// declarations to the current library.
+///
+/// Can also be used to do subtype checks on types.
+abstract class DeclarationBuilder implements Builder, TypeComparator {
+  /// Adds a new regular declaration to the surrounding library.
+  ///
+  /// Note that type declarations are not supported.
+  void declareInLibrary(DeclarationCode declaration);
 }
 
 /// The api used by [Macro]s to contribute new members to a class.
