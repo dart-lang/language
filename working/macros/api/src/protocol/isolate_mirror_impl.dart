@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:isolate';
 import 'dart:mirrors';
 
+import '../../code.dart';
 import 'protocol.dart';
 import '../../builders.dart';
 import '../../expansion_protocol.dart';
@@ -18,6 +19,9 @@ void spawn(SendPort sendPort) {
       sendPort.send(response);
     } else if (message is InstantiateMacroRequest) {
       var response = await _instantiateMacro(message);
+      sendPort.send(response);
+    } else if (message is ExecuteDefinitionsPhaseRequest) {
+      var response = await _executeDefinitionsPhase(message);
       sendPort.send(response);
     } else {
       throw StateError('Unrecognized event type $message');
@@ -72,6 +76,33 @@ Future<GenericResponse<MacroInstanceIdentifier>> _instantiateMacro(
   }
 }
 
+Future<GenericResponse<MacroExecutionResult>> _executeDefinitionsPhase(
+    ExecuteDefinitionsPhaseRequest request) async {
+  try {
+    var instance = _macroInstances[request.macro];
+    if (instance == null) {
+      print(_macroInstances);
+      throw StateError('Unrecognized macro instance ${request.macro}');
+    }
+    var declaration = request.declaration;
+    if (instance is FunctionDefinitionMacro &&
+        declaration is FunctionDeclaration) {
+      var builder = _FunctionDefinitionBuilder(
+          declaration,
+          request.typeComparator,
+          request.typeIntrospector,
+          request.classIntrospector);
+      await instance.buildDefinitionForFunction(declaration, builder);
+      return GenericResponse(response: builder.result);
+    } else {
+      throw UnsupportedError(
+          ('Only FunctionDefinitionMacros are supported currently'));
+    }
+  } catch (e) {
+    return GenericResponse(error: e);
+  }
+}
+
 /// Our implementation of [MacroClassIdentifier].
 class _MacroClassIdentifier implements MacroClassIdentifier {
   final String id;
@@ -84,4 +115,133 @@ class _MacroClassIdentifier implements MacroClassIdentifier {
 }
 
 /// Our implementation of [MacroInstanceIdentifier].
-class _MacroInstanceIdentifier implements MacroInstanceIdentifier {}
+class _MacroInstanceIdentifier implements MacroInstanceIdentifier {
+  static int _next = 0;
+
+  final int id;
+
+  _MacroInstanceIdentifier() : id = _next++;
+
+  operator ==(other) => other is _MacroInstanceIdentifier && id == other.id;
+
+  int get hashCode => id;
+}
+
+/// Our implementation of [MacroExecutionResult].
+class _MacroExecutionResult implements MacroExecutionResult {
+  @override
+  final List<DeclarationCode> agumentations = <DeclarationCode>[];
+
+  @override
+  final List<DeclarationCode> imports = <DeclarationCode>[];
+}
+
+/// Custom implementation of [FunctionDefinitionBuilder].
+class _FunctionDefinitionBuilder implements FunctionDefinitionBuilder {
+  final TypeComparator typeComparator;
+  final TypeIntrospector typeIntrospector;
+  final ClassIntrospector classIntrospector;
+
+  /// The declaration this is a builder for.
+  final FunctionDeclaration declaration;
+
+  /// The final result, will be built up over `augment` calls.
+  final result = _MacroExecutionResult();
+
+  _FunctionDefinitionBuilder(this.declaration, this.typeComparator,
+      this.typeIntrospector, this.classIntrospector);
+
+  @override
+  void augment(FunctionBodyCode body) {
+    result.agumentations.add(DeclarationCode.fromParts([
+      'augment ',
+      declaration.returnType.code,
+      ' ',
+      declaration.name,
+      if (declaration.typeParameters.isNotEmpty) ...[
+        '<',
+        for (var typeParam in declaration.typeParameters) ...[
+          typeParam.name,
+          if (typeParam.bounds != null) ...['extends ', typeParam.bounds!.code],
+          if (typeParam != declaration.typeParameters.last) ', ',
+        ],
+        '>',
+      ],
+      '(',
+      for (var positionalRequired
+          in declaration.positionalParameters.where((p) => p.isRequired)) ...[
+        ParameterCode.fromParts([
+          positionalRequired.type.code,
+          ' ',
+          positionalRequired.name,
+        ]),
+        ', '
+      ],
+      if (declaration.positionalParameters.any((p) => !p.isRequired)) ...[
+        '[',
+        for (var positionalOptional
+            in declaration.positionalParameters.where((p) => p.isRequired)) ...[
+          ParameterCode.fromParts([
+            positionalOptional.type.code,
+            ' ',
+            positionalOptional.name,
+          ]),
+          ', ',
+        ],
+        ']',
+      ],
+      if (declaration.namedParameters.isNotEmpty) ...[
+        '{',
+        for (var named in declaration.namedParameters) ...[
+          ParameterCode.fromParts([
+            named.type.code,
+            ' ',
+            named.name,
+            if (named.defaultValue != null) ...[
+              ' = ',
+              named.defaultValue!,
+            ],
+          ]),
+          ', ',
+        ],
+        '}',
+      ],
+      ') ',
+      body,
+    ]));
+  }
+
+  @override
+  Future<List<ConstructorDeclaration>> constructorsOf(ClassDeclaration clazz) =>
+      classIntrospector.constructorsOf(clazz);
+
+  @override
+  Future<List<FieldDeclaration>> fieldsOf(ClassDeclaration clazz) =>
+      classIntrospector.fieldsOf(clazz);
+
+  @override
+  Future<List<ClassDeclaration>> interfacesOf(ClassDeclaration clazz) =>
+      classIntrospector.interfacesOf(clazz);
+
+  @override
+  Future<List<MethodDeclaration>> methodsOf(ClassDeclaration clazz) =>
+      classIntrospector.methodsOf(clazz);
+
+  @override
+  Future<List<ClassDeclaration>> mixinsOf(ClassDeclaration clazz) =>
+      classIntrospector.mixinsOf(clazz);
+
+  @override
+  Future<TypeDeclaration> resolve(NamedTypeAnnotation annotation) =>
+      typeIntrospector.resolve(annotation);
+
+  @override
+  Future<ClassDeclaration?> superclassOf(ClassDeclaration clazz) =>
+      classIntrospector.superclassOf(clazz);
+
+  @override
+  TypeAnnotation typeAnnotationOf<T>() {
+    // TODO: How do we want to actually implement this?
+    throw UnimplementedError();
+  }
+}

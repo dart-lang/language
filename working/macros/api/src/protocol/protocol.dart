@@ -3,6 +3,8 @@
 library protocol;
 
 import '../../expansion_protocol.dart';
+import '../../introspection.dart';
+import '../../builders.dart';
 
 /// A generic response object that is either an instance of [T] or an error.
 class GenericResponse<T> {
@@ -30,4 +32,17 @@ class InstantiateMacroRequest {
 
   InstantiateMacroRequest(
       this.macroClass, this.constructorName, this.arguments);
+}
+
+/// A request to execute a macro on a particular declaration in the definition
+/// phase.
+class ExecuteDefinitionsPhaseRequest {
+  final MacroInstanceIdentifier macro;
+  final Declaration declaration;
+  final TypeComparator typeComparator;
+  final ClassIntrospector classIntrospector;
+  final TypeIntrospector typeIntrospector;
+
+  ExecuteDefinitionsPhaseRequest(this.macro, this.declaration,
+      this.typeComparator, this.classIntrospector, this.typeIntrospector);
 }

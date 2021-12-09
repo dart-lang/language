@@ -88,14 +88,13 @@ class IsolateMirrorMacroExecutor implements MacroExecutor {
 
   @override
   Future<MacroExecutionResult> executeDefinitionsPhase(
-      MacroInstanceIdentifier macro,
-      Declaration declaration,
-      TypeComparator typeComparator,
-      ClassIntrospector classIntrospector,
-      TypeIntrospector typeIntrospector) {
-    // TODO: implement executeDefinitionsPhase
-    throw UnimplementedError();
-  }
+          MacroInstanceIdentifier macro,
+          Declaration declaration,
+          TypeComparator typeComparator,
+          ClassIntrospector classIntrospector,
+          TypeIntrospector typeIntrospector) =>
+      _sendRequest(ExecuteDefinitionsPhaseRequest(macro, declaration,
+          typeComparator, classIntrospector, typeIntrospector));
 
   @override
   Future<MacroExecutionResult> executeTypesPhase(
