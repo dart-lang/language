@@ -7,7 +7,6 @@ import 'protocol.dart';
 import '../../builders.dart';
 import '../../expansion_protocol.dart';
 import '../../introspection.dart';
-import '../../macros.dart';
 
 /// A [MacroExecutor] implementation which relies on [IsolateMirror.loadUri]
 /// in order to load macros libraries.
