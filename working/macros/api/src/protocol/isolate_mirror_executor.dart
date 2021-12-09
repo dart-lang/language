@@ -25,13 +25,14 @@ class IsolateMirrorMacroExecutor implements MacroExecutor {
   final Stream<GenericResponse> _responseStream;
 
   /// The completer for the next response to come along the stream.
-  var _nextResponseCompleter = Completer<GenericResponse>();
+  Completer<GenericResponse>? _nextResponseCompleter;
 
   IsolateMirrorMacroExecutor._(
       this._macroIsolate, this._sendPort, this._responseStream) {
     _responseStream.listen((event) {
-      _nextResponseCompleter.complete(event);
-      _nextResponseCompleter = Completer<GenericResponse>();
+      assert(_nextResponseCompleter != null);
+      _nextResponseCompleter!.complete(event);
+      _nextResponseCompleter = null;
     });
   }
 
@@ -113,6 +114,8 @@ class IsolateMirrorMacroExecutor implements MacroExecutor {
   }
 
   /// Gets a future for the next response, and casts it to a GenericResponse<T>.
-  Future<GenericResponse<T>> _nextResponse<T>() =>
-      _nextResponseCompleter.future as Future<GenericResponse<T>>;
+  Future<GenericResponse<T>> _nextResponse<T>() {
+    var next = _nextResponseCompleter = Completer<GenericResponse<T>>();
+    return next.future;
+  }
 }
