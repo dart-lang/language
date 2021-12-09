@@ -14,7 +14,7 @@ import 'introspection.dart';
 abstract class MacroExecutor {
   /// Creating an executor will require at least a package config, in order to
   /// resolve macros by URI.
-  MacroExpander(PackageConfig packageConfig);
+  MacroExecutor(PackageConfig packageConfig);
 
   /// Invoked when an implementation discovers a new macro definition in a
   /// library, and prepares this executor to run the macro.
