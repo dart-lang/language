@@ -1,5 +1,3 @@
-import 'package:package_config/package_config.dart';
-
 import 'builders.dart';
 import 'code.dart';
 import 'introspection.dart';
@@ -12,10 +10,6 @@ import 'introspection.dart';
 /// during macro discovery and expansion, and unifies how augmentation libraries
 /// are produced.
 abstract class MacroExecutor {
-  /// Creating an executor will require at least a package config, in order to
-  /// resolve macros by URI.
-  MacroExecutor(PackageConfig packageConfig);
-
   /// Invoked when an implementation discovers a new macro definition in a
   /// library, and prepares this executor to run the macro.
   ///

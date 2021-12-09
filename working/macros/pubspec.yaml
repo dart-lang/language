@@ -1,7 +1,6 @@
 name: macro_proposal
 publish_to: none
 dev_dependencies:
-  package_config: ^2.0.0
   test: ^1.19.0
 environment:
   sdk: ">=2.12.0 <3.0.0"
