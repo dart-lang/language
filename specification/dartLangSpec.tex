@@ -23953,7 +23953,7 @@ where $T_r$ is determined as follows:
   where $r_j$ is either \REQUIRED{} or empty
   then $T_r$ is
   \noindent
-  \FunctionTypeNamed{R_0}{ }{X}{B}{s}{R}{n}{x}{k}
+  \FunctionTypeNamed{R_0}{ }{X}{B}{s}{R}{n}{x}{k}{r}
 
   \noindent
   where $R_i$ is \NormalizedTypeOf{$T_i$} for $i \in 0 .. n+k$.
@@ -23983,6 +23983,113 @@ where $T_r$ is determined as follows:
     \end{array}
   \end{displaymath}
 }
+
+
+\subsubsection{The Canonical Syntax of Types}
+\LMLabel{theCanonicalSyntaxOfTypes}
+
+\LMHash{}%
+Concrete syntax denoting types gives rise to several difficulties
+when used to determine static semantic properties,
+like subtyping relationships
+(\ref{subtypes})
+or standard bounds
+(\ref{standardUpperBoundsAndStandardLowerBounds}).
+This section describes how to overcome those difficulties
+by means of a canonical syntactic form for types.
+
+\commentary{%
+In particular, the phrases `same type' and `identical syntax'
+deserves some extra scrutiny.
+If a library $L$ imports the libraries $L_1$ and $L_2$
+(where $L_1$ and $L_2$ are not the same library),
+and both $L_1$ and $L_2$ declare a class \code{C},
+then the syntax \code{C} may occur as a type during static analysis of $L$
+in situations where it refers to two distinct types.
+
+For instance, $L_1$ could declare a variable \code{v}
+of type \code{C}-in-$L_1$,
+and $L_2$ could declare a function
+\code{\VOID\,foo(C\,\,c)\,\,\{\}}
+which uses the type \code{C}-in-$L_2$,
+and $L$ could contain the expression \code{foo(v)}.%
+}
+
+\rationale{%
+This shows that concrete syntax behaves in such a manner that it is
+unsafe to consider two types as the same type,
+based on the fact that they are denoted by the same syntax.
+
+Similarly, it is incorrect to consider two terms derived from \synt{type}
+as different types based on the fact that they are syntactically different,
+as they could in fact be the same type,
+e.g., imported with different import prefixes.%
+
+Consequently, we introduce the notion of the canonical syntax for a type,
+which has the property that each type has a unique syntactic form.
+We may then consider this canonical syntactic form
+as a static semantic value,
+rather than just a syntactic form which is dependent on
+its location in the program.%
+}
+
+\LMHash{}%
+To determine the
+\IndexCustom{canonical syntax}{type!canonical syntax of}
+of the types in a given library $L_1$
+and all libraries \List{L}{2}{n} reachable from $L_1$ via
+one or more import links,
+first choose a set of distinct fresh identifiers
+\List{\metavar{prefix}}{1}{n}.
+Then transform each library $L_i$, $i \in 1 .. n$,
+such that $L_i$ imports itself with the prefix $\metavar{prefix}_i$,
+and $L_i$ imports \code{dart:core} explicitly
+with the suitable prefix $\metavar{prefix}_j$ for some $j$,
+and change all existing imports to use the prefix
+corresponding to the library which is being imported.
+
+\LMHash{}%
+Next, transform every identifier expression and every \synt{typeName}
+that refers to an imported declaration or a library declaration
+such that it uses the prefix $\metavar{prefix}_j$ with the relevant $j$,
+and such that every name resolves to the same declaration
+as it did in the original program.
+
+\commentary{%
+Note that this transformation does not change any occurrence of \VOID;
+\VOID{} is a reserved word
+and \code{$\metavar{prefix}_j$.\VOID} is a syntax error.%
+}
+
+%% TODO(eernst), for review: Rename private names to fresh public names?
+%% Otherwise the type alias could turn into a term containing private names
+%% from different libraries.
+\LMHash{}%
+Finally, replace every type that denotes a type alias
+by its transitive alias expansion
+(\ref{typedef}).
+\commentary{%
+Note that the bodies of type alias declarations already use the new prefixes,
+so the results of the alias expansion will also use
+the new prefixes consistently.%
+}
+
+\LMHash{}%
+Every \synt{type} and type literal in the resulting program
+is now expressed in a globally unique syntactic form.
+
+\rationale{%
+This means that two terms denoting a type will have the same syntactic form
+if and only if they denote the same type.
+}
+
+\LMHash{}%
+When we say that two types $T_1$ and $T_2$ have the
+\IndexCustom{same canonical syntax}{type!same canonical syntax},
+it refers to the situation where the current library
+and all libraries which are reachable via one or more imports
+have been transformed as described above,
+and the resulting canonical syntaxes are identical.
 
 
 \subsubsection{Standard Upper Bounds and Standard Lower Bounds}
@@ -24069,31 +24176,8 @@ If a rule is dealing with type variables,
 then it is assumed that the type variables have been
 consistently renamed to fresh names whenever necessary,
 such that no type variables are captured due to accidental name clashes.
-Finally, it is assumed that type aliases,
-including actual type arguments if any,
-have been replaced by their transitive alias expansion
-(\ref{typedef}),
-and that all types are denoted by a canonical name.
-
-\commentary{%
-That is, we do not encounter the same type under the names
-\code{$C$} and \code{\metavar{myPrefix}.$C$},
-and we do not encounter different types with the same name.
-This can be achieved for any given program by making sure that
-every top-level name reference is accessed using
-an import prefix which is unique for the library that contains
-the given declaration,
-even when it is accessed from the same library.
-This means that $C$ is \emph{always} accessed as, say,
-\code{\metavar{library87381}.$C$}.%
-}
-
-\LMHash{}%
-Consequently, when we say that two types $T_1$ and $T_2$ have the
-\IndexCustom{same canonical syntax}{type!same canonical syntax},
-it refers to the situation where both $T_1$ and $T_2$ have been
-transformed in the above sense
-(\commentary{by alpha-renaming, alias expansion, and canonical naming}).
+Finally, it is assumed that all types are denoted by their canonical syntax
+(\ref{theCanonicalSyntaxOfTypes}).
 
 %% TODO(eernst), for review: Is this the correct associativity of SUB/SLB?
 \LMHash{}%
@@ -24994,7 +25078,7 @@ The invariant occurrences are treated as described explicitly below.
     the least closure of $S$ with respect to $L$ is
 
     \noindent
-    \FunctionTypeNamed{U_0}{ }{X}{B}{s}{U}{n}{x}{k}
+    \FunctionTypeNamed{U_0}{ }{X}{B}{s}{U}{n}{x}{k}{r}
 
     \noindent
     where
@@ -25009,7 +25093,7 @@ The invariant occurrences are treated as described explicitly below.
     the greatest closure of $S$ with respect to $L$ is
 
     \noindent
-    \FunctionTypeNamed{U_0}{ }{X}{B}{s}{U}{n}{x}{k}
+    \FunctionTypeNamed{U_0}{ }{X}{B}{s}{U}{n}{x}{k}{r}
 
     \noindent
     where $U_0$ is the greatest closure of $T_0$ with respect to $L$,
@@ -25130,20 +25214,29 @@ if none of the following criteria is satisfied:
 \LMHash{}%
 Interface types can be used to access
 a specific set of instance members.
-Let $T$ be a type.
+Let $T$ be a type, and let $T'$ be the transitive alias expansion of $T$
+(\ref{typedef}).
 We say that $T$ is an \Index{interface type} if{}f
-$T$ is of the form \code{$C$<\List{T}{1}{k}>},
+$T'$ is of the form \code{$C$<\List{T}{1}{k}>},
 where $C$ denotes a class different from \code{Never},
-or $C$ denotes a mixin,
-and \List{T}{1}{k} are arbitrary types.
+or $C$ denotes a mixin.
 
 \commentary{%
+  Note that \List{T}{1}{k} can be arbitrary types.
   Non-generic classes are included because we can have $k = 0$.
 
   In particular, the following types are \emph{not} interface types:
   \VOID, \DYNAMIC, \FUNCTION, \code{FutureOr<$T$>} for any $T$, \code{Never},
   any function type, any type variable, any intersection type,
-  and any type of the form \code{$T$?}.%
+  and any type of the form \code{$T$?}.
+
+  Conversely, built-in classes
+  like \code{Object}, \code{Null}, \code{num}, \code{int},
+  \code{String}, and \code{Exception} are interface types,
+  and so are
+  \code{Future<$T$>}, \code{Stream<$T$>}, \code{Iterable<$T$>},
+  \code{List<$T$>}, \code{Map<$S$,\,\,$T$}, and \code{Set<$T$>},
+  for any $S$ and $T$.%
 }
 
 
