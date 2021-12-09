@@ -8,6 +8,13 @@ import '../../api/macros.dart';
 /// A very simple macro that annotates functions (or getters) with no arguments
 /// and adds a print statement to the top of them.
 class SimpleMacro implements FunctionDefinitionMacro {
+  final int? x;
+  final int? y;
+
+  SimpleMacro([this.x, this.y]);
+
+  SimpleMacro.named({this.x, this.y});
+
   @override
   FutureOr<void> buildDefinitionForFunction(
       FunctionDeclaration method, FunctionDefinitionBuilder builder) {
@@ -18,7 +25,7 @@ class SimpleMacro implements FunctionDefinitionMacro {
           'This macro can only be ran on functions with no arguments!');
     }
     builder.augment(FunctionBodyCode.fromString('''{
-      print('Running ${method.name}!');
+      print('x: $x, y: $y');
       return augment super();
     }'''));
   }

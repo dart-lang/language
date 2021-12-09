@@ -27,8 +27,12 @@ class IsolateMirrorMacroExecutor implements MacroExecutor {
   /// The completer for the next response to come along the stream.
   Completer<GenericResponse>? _nextResponseCompleter;
 
+  /// A function that should be invoked when shutting down this executor
+  /// to perform any necessary cleanup.
+  final void Function() _onClose;
+
   IsolateMirrorMacroExecutor._(
-      this._macroIsolate, this._sendPort, this._responseStream) {
+      this._macroIsolate, this._sendPort, this._responseStream, this._onClose) {
     _responseStream.listen((event) {
       assert(_nextResponseCompleter != null);
       _nextResponseCompleter!.complete(event);
@@ -53,8 +57,11 @@ class IsolateMirrorMacroExecutor implements MacroExecutor {
     }).onDone(responseStreamController.close);
     var macroIsolate = await Isolate.spawn(spawn, receivePort.sendPort);
 
-    return IsolateMirrorMacroExecutor._(macroIsolate,
-        await sendPortCompleter.future, responseStreamController.stream);
+    return IsolateMirrorMacroExecutor._(
+        macroIsolate,
+        await sendPortCompleter.future,
+        responseStreamController.stream,
+        receivePort.close);
   }
 
   @override
@@ -62,6 +69,11 @@ class IsolateMirrorMacroExecutor implements MacroExecutor {
       Iterable<MacroExecutionResult> macroResults) {
     // TODO: implement buildAugmentationLibrary
     throw UnimplementedError();
+  }
+
+  @override
+  void close() {
+    _macroIsolate.kill();
   }
 
   @override
@@ -94,28 +106,23 @@ class IsolateMirrorMacroExecutor implements MacroExecutor {
 
   @override
   Future<MacroInstanceIdentifier> instantiateMacro(
-      MacroClassIdentifier macroClass,
-      String constructor,
-      Arguments arguments) {
-    // TODO: implement instantiateMacro
-    throw UnimplementedError();
-  }
+          MacroClassIdentifier macroClass,
+          String constructor,
+          Arguments arguments) =>
+      _sendRequest(InstantiateMacroRequest(macroClass, constructor, arguments));
 
   @override
-  Future<MacroClassIdentifier> loadMacro(Uri library, String name) async {
-    _sendPort.send(LoadMacroRequest(library, name));
-    return _handleResponse(await _nextResponse());
-  }
+  Future<MacroClassIdentifier> loadMacro(Uri library, String name) =>
+      _sendRequest(LoadMacroRequest(library, name));
 
-  T _handleResponse<T>(GenericResponse<T> response) {
+  /// Sends a request and returns the response, casting it to the expected
+  /// type.
+  Future<T> _sendRequest<T>(Object request) async {
+    _sendPort.send(request);
+    var next = _nextResponseCompleter = Completer<GenericResponse<T>>();
+    var response = await next.future;
     var result = response.response;
     if (result != null) return result;
     throw response.error!;
-  }
-
-  /// Gets a future for the next response, and casts it to a GenericResponse<T>.
-  Future<GenericResponse<T>> _nextResponse<T>() {
-    var next = _nextResponseCompleter = Completer<GenericResponse<T>>();
-    return next.future;
   }
 }

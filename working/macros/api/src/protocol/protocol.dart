@@ -2,6 +2,8 @@
 /// the isolate doing the work of macro loading and execution.
 library protocol;
 
+import '../../expansion_protocol.dart';
+
 /// A generic response object that is either an instance of [T] or an error.
 class GenericResponse<T> {
   final T? response;
@@ -18,4 +20,14 @@ class LoadMacroRequest {
   final String name;
 
   LoadMacroRequest(this.library, this.name);
+}
+
+/// A request to instantiate a macro instance.
+class InstantiateMacroRequest {
+  final MacroClassIdentifier macroClass;
+  final String constructorName;
+  final Arguments arguments;
+
+  InstantiateMacroRequest(
+      this.macroClass, this.constructorName, this.arguments);
 }

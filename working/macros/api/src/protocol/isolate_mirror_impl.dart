@@ -16,6 +16,9 @@ void spawn(SendPort sendPort) {
     if (message is LoadMacroRequest) {
       var response = await _loadMacro(message);
       sendPort.send(response);
+    } else if (message is InstantiateMacroRequest) {
+      var response = await _instantiateMacro(message);
+      sendPort.send(response);
     } else {
       throw StateError('Unrecognized event type $message');
     }
@@ -31,9 +34,8 @@ Future<GenericResponse<MacroClassIdentifier>> _loadMacro(
   try {
     var identifier = _MacroClassIdentifier(request.library, request.name);
     if (_macroClasses.containsKey(identifier)) {
-      return GenericResponse(
-          error: UnsupportedError(
-              'Reloading macros is not supported by this implementation'));
+      throw UnsupportedError(
+          'Reloading macros is not supported by this implementation');
     }
     var libMirror =
         await currentMirrorSystem().isolate.loadUri(request.library);
@@ -41,10 +43,32 @@ Future<GenericResponse<MacroClassIdentifier>> _loadMacro(
         libMirror.declarations[Symbol(request.name)] as ClassMirror;
     _macroClasses[identifier] = macroClass;
     return GenericResponse(response: identifier);
-  } catch (e, s) {
-    return GenericResponse(
-        error: StateError(
-            'Failed to load macro ${request.library}#${request.name}\n$e\n$s'));
+  } catch (e) {
+    return GenericResponse(error: e);
+  }
+}
+
+/// Maps macro instance identifiers to instances.
+final _macroInstances = <_MacroInstanceIdentifier, Macro>{};
+
+/// Handles [InstantiateMacroRequest]s.
+Future<GenericResponse<MacroInstanceIdentifier>> _instantiateMacro(
+    InstantiateMacroRequest request) async {
+  try {
+    var clazz = _macroClasses[request.macroClass];
+    if (clazz == null) {
+      throw ArgumentError('Unrecognized macro class ${request.macroClass}');
+    }
+    var instance = clazz.newInstance(
+        Symbol(request.constructorName), request.arguments.positional, {
+      for (var entry in request.arguments.named.entries)
+        Symbol(entry.key): entry.value,
+    }).reflectee as Macro;
+    var identifier = _MacroInstanceIdentifier();
+    _macroInstances[identifier] = instance;
+    return GenericResponse<MacroInstanceIdentifier>(response: identifier);
+  } catch (e) {
+    return GenericResponse(error: e);
   }
 }
 
@@ -58,3 +82,6 @@ class _MacroClassIdentifier implements MacroClassIdentifier {
 
   int get hashCode => id.hashCode;
 }
+
+/// Our implementation of [MacroInstanceIdentifier].
+class _MacroInstanceIdentifier implements MacroInstanceIdentifier {}

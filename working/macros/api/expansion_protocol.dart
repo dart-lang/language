@@ -63,6 +63,10 @@ abstract class MacroExecutor {
   /// augmentation file, and returns a [String] representing that file.
   Future<String> buildAugmentationLibrary(
       Iterable<MacroExecutionResult> macroResults);
+
+  /// Tell the executor to shut down and clean up any resources it may have
+  /// allocated.
+  void close();
 }
 
 /// The arguments passed to a macro constructor.
