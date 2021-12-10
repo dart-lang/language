@@ -23,8 +23,8 @@ class IsolateMirrorMacroExecutor implements MacroExecutor {
   /// The stream of responses from the [_macroIsolate].
   final Stream<GenericResponse> _responseStream;
 
-  /// The completer for the next response to come along the stream.
-  Completer<GenericResponse>? _nextResponseCompleter;
+  /// A map of response completers by request id.
+  final _responseCompleters = <int, Completer<GenericResponse>>{};
 
   /// A function that should be invoked when shutting down this executor
   /// to perform any necessary cleanup.
@@ -33,9 +33,12 @@ class IsolateMirrorMacroExecutor implements MacroExecutor {
   IsolateMirrorMacroExecutor._(
       this._macroIsolate, this._sendPort, this._responseStream, this._onClose) {
     _responseStream.listen((event) {
-      assert(_nextResponseCompleter != null);
-      _nextResponseCompleter!.complete(event);
-      _nextResponseCompleter = null;
+      var completer = _responseCompleters.remove(event.requestId);
+      if (completer == null) {
+        throw StateError(
+            'Got a response for an unrecognized request id ${event.requestId}');
+      }
+      completer.complete(event);
     });
   }
 
@@ -116,10 +119,11 @@ class IsolateMirrorMacroExecutor implements MacroExecutor {
 
   /// Sends a request and returns the response, casting it to the expected
   /// type.
-  Future<T> _sendRequest<T>(Object request) async {
+  Future<T> _sendRequest<T>(Request request) async {
     _sendPort.send(request);
-    var next = _nextResponseCompleter = Completer<GenericResponse<T>>();
-    var response = await next.future;
+    var completer = Completer<GenericResponse<T>>();
+    _responseCompleters[request.id] = completer;
+    var response = await completer.future;
     var result = response.response;
     if (result != null) return result;
     throw response.error!;

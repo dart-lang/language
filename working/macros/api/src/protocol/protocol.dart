@@ -6,18 +6,28 @@ import '../../expansion_protocol.dart';
 import '../../introspection.dart';
 import '../../builders.dart';
 
+/// Base class all requests extend, provides a unique id for each request.
+class Request {
+  final int id;
+
+  Request() : id = _next++;
+
+  static int _next = 0;
+}
+
 /// A generic response object that is either an instance of [T] or an error.
 class GenericResponse<T> {
   final T? response;
   final Object? error;
+  final int requestId;
 
-  GenericResponse({this.response, this.error})
+  GenericResponse({this.response, this.error, required this.requestId})
       : assert(response != null || error != null),
         assert(response == null || error == null);
 }
 
 /// A request to load a macro in this isolate.
-class LoadMacroRequest {
+class LoadMacroRequest extends Request {
   final Uri library;
   final String name;
 
@@ -25,7 +35,7 @@ class LoadMacroRequest {
 }
 
 /// A request to instantiate a macro instance.
-class InstantiateMacroRequest {
+class InstantiateMacroRequest extends Request {
   final MacroClassIdentifier macroClass;
   final String constructorName;
   final Arguments arguments;
@@ -36,7 +46,7 @@ class InstantiateMacroRequest {
 
 /// A request to execute a macro on a particular declaration in the definition
 /// phase.
-class ExecuteDefinitionsPhaseRequest {
+class ExecuteDefinitionsPhaseRequest extends Request {
   final MacroInstanceIdentifier macro;
   final Declaration declaration;
   final TypeComparator typeComparator;

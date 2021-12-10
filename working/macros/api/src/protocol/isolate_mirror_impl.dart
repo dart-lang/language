@@ -46,9 +46,9 @@ Future<GenericResponse<MacroClassIdentifier>> _loadMacro(
     var macroClass =
         libMirror.declarations[Symbol(request.name)] as ClassMirror;
     _macroClasses[identifier] = macroClass;
-    return GenericResponse(response: identifier);
+    return GenericResponse(response: identifier, requestId: request.id);
   } catch (e) {
-    return GenericResponse(error: e);
+    return GenericResponse(error: e, requestId: request.id);
   }
 }
 
@@ -70,9 +70,10 @@ Future<GenericResponse<MacroInstanceIdentifier>> _instantiateMacro(
     }).reflectee as Macro;
     var identifier = _MacroInstanceIdentifier();
     _macroInstances[identifier] = instance;
-    return GenericResponse<MacroInstanceIdentifier>(response: identifier);
+    return GenericResponse<MacroInstanceIdentifier>(
+        response: identifier, requestId: request.id);
   } catch (e) {
-    return GenericResponse(error: e);
+    return GenericResponse(error: e, requestId: request.id);
   }
 }
 
@@ -93,13 +94,13 @@ Future<GenericResponse<MacroExecutionResult>> _executeDefinitionsPhase(
           request.typeIntrospector,
           request.classIntrospector);
       await instance.buildDefinitionForFunction(declaration, builder);
-      return GenericResponse(response: builder.result);
+      return GenericResponse(response: builder.result, requestId: request.id);
     } else {
       throw UnsupportedError(
           ('Only FunctionDefinitionMacros are supported currently'));
     }
   } catch (e) {
-    return GenericResponse(error: e);
+    return GenericResponse(error: e, requestId: request.id);
   }
 }
 
