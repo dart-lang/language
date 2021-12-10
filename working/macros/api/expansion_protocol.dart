@@ -11,7 +11,7 @@ import 'introspection.dart';
 /// are produced.
 abstract class MacroExecutor {
   /// Invoked when an implementation discovers a new macro definition in a
-  /// library, and prepares this executor to run the macro.
+  /// [library] with [name], and prepares this executor to run the macro.
   ///
   /// May be invoked more than once for the same macro, which will cause the
   /// macro to be re-loaded. Previous [MacroClassIdentifier]s and
@@ -102,7 +102,12 @@ abstract class MacroExecutionResult {
 
 /// Each of the different macro execution phases.
 enum Phase {
-  types, // Only new types are added in this phase
-  declarations, // New non-type declarations are added in this phase
-  defintions, // This phase allows augmenting existing declarations
+  /// Only new types are added in this phase.
+  types,
+
+  /// New non-type declarations are added in this phase.
+  declarations,
+
+  /// This phase allows augmenting existing declarations.
+  defintions,
 }
