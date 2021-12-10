@@ -22836,7 +22836,8 @@ because each type is denoted by the same globally unique syntax everywhere.%
 
 \LMHash{}%
 In section~\ref{subtypes} and its subsections,
-all types are considered to be denoted by their canonical syntax
+all designations of types are considered to be the same
+if{}f they have the same canonical syntax
 (\ref{theCanonicalSyntaxOfTypes}).
 
 \commentary{%
@@ -23673,7 +23674,12 @@ of type \code{C}-in-$L_1$,
 and $L_2$ could declare a function
 \code{\VOID\,foo(C\,\,c)\,\,\{\}}
 which uses the type \code{C}-in-$L_2$,
-and $L$ could contain the expression \code{foo(v)}.%
+and $L$ could contain the expression \code{foo(v)}.
+
+Note that even though it would be a compile-time error to use \code{C} in $L$
+(because it is ambiguous),
+it is not an error to have an expression like \code{foo(v)},
+and the static analysis of this expression must handle the name clash.%
 }
 
 \rationale{%
@@ -23696,16 +23702,28 @@ its location in the program.%
 }
 
 \LMHash{}%
-To determine the
+The
 \IndexCustom{canonical syntax}{type!canonical syntax of}
 of the types in a given library $L_1$
 and all libraries \List{L}{2}{n} reachable from $L_1$ via
-one or more import links,
-first choose a set of distinct, globally fresh identifiers
+one or more import links
+is determined as follows.
+First, choose a set of distinct, globally fresh identifiers
 \List{\metavar{prefix}}{1}{n}.
 Then transform each library $L_i$, $i \in 1 .. n$ as follows:
 
 \begin{enumerate}
+\item
+  If $D_T$ is a declaration of a class, mixin, or type alias in $L_i$
+  whose name $n$ is private,
+  and an occurrence of $n$ that resolves to $D$
+  exists in a type alias declaration $D_A$ whose name is non-private,
+  then perform a consistent renaming of
+  all occurrences of $n$ in $L_i$ that resolve to $D_T$
+  to a fresh, non-private identifier.
+  \commentary{%
+    So we make $D_T$ public, because it is being leaked anyway.%
+  }
 \item
   Add a set of import directives to $L_i$ that imports
   each of the libraries \List{L}{1}{n} with
@@ -23718,18 +23736,20 @@ Then transform each library $L_i$, $i \in 1 .. n$ as follows:
     even itself and system libraries like \code{dart:core}.%
   }
 \item
-  Let \id{} be a non-private identifier that resolves to
-  a library declaration in the library $L_j$ in the original program;
-  \id{} is transformed to \code{$\metavar{prefix}_j$.\id}.
-  Let \code{$p$.\id} be a qualified identifier where $p$ is
-  an import prefix in the original program,
-  \id{} is a non-private identifier,
-  and \code{$p$.\id} resolves to
-  a library declaration in the library $L_j$ in the original program;
-  \code{$p$.\id} is transformed to \code{$\metavar{prefix}_j$.\id}.
+  Let \id{} be a non-private type identifier derived from \synt{typeName}
+  that resolves to a library declaration in the library $L_j$
+  in the original program;
+  \id{} is then transformed to \code{$\metavar{prefix}_j$.\id}.
+  Let \code{$p$.\id} be derived from \synt{typeName} such that $p$ is
+  an import prefix in the original program
+  and \id{} is a non-private identifier,
+  and consider the case where \code{$p$.\id} resolves to
+  a library declaration in the library $L_j$ in the original program,
+  for some $j$;
+  \code{$p$.\id} is then transformed to \code{$\metavar{prefix}_j$.\id}.
 \item
-  %% TODO(eernst): We should rename private names to fresh public names.
-  Replace every type that denotes a type alias
+  Replace every type in $L_i$ that denotes a type alias
+  along with its actual type arguments, if any,
   by its transitive alias expansion
   (\ref{typedef}).
   \commentary{%
@@ -23741,15 +23761,32 @@ Then transform each library $L_i$, $i \in 1 .. n$ as follows:
 \end{enumerate}
 
 \commentary{%
-Note that this transformation does not change any occurrence of \VOID;
-\VOID{} is a reserved word, not an identifier.
+This transformation does not change any occurrence of \VOID;
+\VOID{} is a reserved word, not a type identifier.
 Also, \code{$\metavar{prefix}_j$.\VOID} would be a syntax error.
 
+Note that the transformation changes terms derived from \synt{type},
+but it does not change expressions, or any other program element
+(except that a \synt{type} can occur in an expression, e.g., \code{<int>[]}).
+In particular, it does not change type literals
+(that is, expressions denoting types).
+
 The transformation also does not change identifiers denoting type variables,
+because they are never resolved to a library declaration,
+they are always introduced by a scope which is nested inside the library scope.
 There is no need to change those identifiers, because
-no occurrence of such an identifier resolves to a declaration in a
-different library.%
-%% TODO(eernst): Sort out the treatment of private identifiers, too.
+no occurrence of such an identifier in the type of an expression
+denotes a declaration in a different library.%
+}
+
+\rationale{%
+The only purpose of this transformation is to obtain a
+location-independent designation of all types,
+in such a way that each \synt{typeName} resolves to the same declaration
+before and after the transformation.
+The program behavior may change due to different values returned from
+\code{toString()} on reified types,
+but the transformation is otherwise semantics preserving.%
 }
 
 \LMHash{}%
@@ -23786,15 +23823,21 @@ However, that approach would be somewhat inconvenient in a specification,
 because we would need to re-build all the structures that the
 syntax offers.
 For instance, we would need to support the construction of
-a semantic type entity for \code{Map<int, String>},
-based on the semantic type entity for \code{int}, \code{String}, and \code{Map},
+a semantic type entity for \code{Map<int,\,String>},
+based on the semantic type entities for
+\code{int}, \code{String}, and \code{Map},
 and we would need to support deconstruction of those entities
-in order to prove things like \SubtypeNE{Never}{\code{Map<int, String>}}.
+in order to prove things like
+\SubtypeNE{\code{Map<Never,\,Never>}}{\code{Map<int,\,String>}}.
 This would give rise to a lot of mechanism that will simply duplicate
 the structure of the syntax.
 So we prefer to show that the syntax \emph{can} be location independent,
 and that's sufficient to make syntax usable as our representation of
-static semantic types.%
+static semantic types.
+
+We are basically taking the approach that a static semantic type is
+an equivalence class of all syntactic elements derived from \synt{type}
+that have the same canonical syntax.%
 }
 
 
@@ -23884,6 +23927,11 @@ consistently renamed to fresh names whenever necessary,
 such that no type variables are captured due to accidental name clashes.
 Finally, it is assumed that all types are denoted by their canonical syntax
 (\ref{theCanonicalSyntaxOfTypes}).
+
+\commentary{%
+This implies that type aliases have already been fully expanded,
+and two types are the same if and only if they have the same syntax.%
+}
 
 %% TODO(eernst), for review: Is this the correct associativity of SUB/SLB?
 \LMHash{}%
