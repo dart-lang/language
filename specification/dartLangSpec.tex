@@ -23679,12 +23679,13 @@ and $L$ could contain the expression \code{foo(v)}.%
 \rationale{%
 This shows that concrete syntax behaves in such a manner that it is
 unsafe to consider two types as the same type,
-based on the fact that they are denoted by the same syntax.
+based on the fact that they are denoted by the same syntax,
+even during the static analysis of a single expression.
 
 Similarly, it is incorrect to consider two terms derived from \synt{type}
-as different types based on the fact that they are syntactically different,
-as they could in fact be the same type,
-e.g., imported with different import prefixes.%
+as different types based on the fact that they are syntactically different.
+They could in fact be the same type,
+e.g., imported with different import prefixes.
 
 Consequently, we introduce the notion of the canonical syntax for a type,
 which has the property that each type has a unique syntactic form.
@@ -23700,49 +23701,63 @@ To determine the
 of the types in a given library $L_1$
 and all libraries \List{L}{2}{n} reachable from $L_1$ via
 one or more import links,
-first choose a set of distinct fresh identifiers
+first choose a set of distinct, globally fresh identifiers
 \List{\metavar{prefix}}{1}{n}.
-Then transform each library $L_i$, $i \in 1 .. n$,
-such that $L_i$ imports itself with the prefix $\metavar{prefix}_i$,
-and $L_i$ imports \code{dart:core} explicitly
-with the suitable prefix $\metavar{prefix}_j$ for some $j$,
-and change all existing imports to use the prefix
-corresponding to the library which is being imported.
+Then transform each library $L_i$, $i \in 1 .. n$ as follows:
 
-\LMHash{}%
-Next, transform every identifier expression and every \synt{typeName}
-that refers to an imported declaration or a library declaration
-such that it uses the prefix $\metavar{prefix}_j$ with the relevant $j$,
-and such that every name resolves to the same declaration
-as it did in the original program.
+\begin{enumerate}
+\item
+  Add a set of import directives to $L_i$ that imports
+  each of the libraries \List{L}{1}{n} with
+  the corresponding prefix $\metavar{prefix}_j$, $j \in 1 .. n$.
+
+  \commentary{%
+    This means that every library in the set
+    $\{\,\List{L}{1}{n}\,\}$
+    imports every other library in that set,
+    even itself and system libraries like \code{dart:core}.%
+  }
+\item
+  Let \id{} be a non-private identifier that resolves to
+  a library declaration in the library $L_j$ in the original program;
+  \id{} is transformed to \code{$\metavar{prefix}_j$.\id}.
+  Let \code{$p$.\id} be a qualified identifier where $p$ is
+  an import prefix in the original program,
+  \id{} is a non-private identifier,
+  and \code{$p$.\id} resolves to
+  a library declaration in the library $L_j$ in the original program;
+  \code{$p$.\id} is transformed to \code{$\metavar{prefix}_j$.\id}.
+\item
+  %% TODO(eernst): We should rename private names to fresh public names.
+  Replace every type that denotes a type alias
+  by its transitive alias expansion
+  (\ref{typedef}).
+  \commentary{%
+    Note that the bodies of type alias declarations
+    already use the new prefixes,
+    so the results of the alias expansion will also use
+    the new prefixes consistently.%
+  }
+\end{enumerate}
 
 \commentary{%
 Note that this transformation does not change any occurrence of \VOID;
-\VOID{} is a reserved word
-and \code{$\metavar{prefix}_j$.\VOID} is a syntax error.%
-}
+\VOID{} is a reserved word, not an identifier.
+Also, \code{$\metavar{prefix}_j$.\VOID} would be a syntax error.
 
-%% TODO(eernst), for review: Rename private names to fresh public names?
-%% Otherwise the type alias could turn into a term containing private names
-%% from different libraries.
-\LMHash{}%
-Finally, replace every type that denotes a type alias
-by its transitive alias expansion
-(\ref{typedef}).
-\commentary{%
-Note that the bodies of type alias declarations already use the new prefixes,
-so the results of the alias expansion will also use
-the new prefixes consistently.%
+The transformation also does not change identifiers denoting type variables,
+There is no need to change those identifiers, because
+no occurrence of such an identifier resolves to a declaration in a
+different library.%
+%% TODO(eernst): Sort out the treatment of private identifiers, too.
 }
 
 \LMHash{}%
-Every \synt{type} and type literal in the resulting program
-is now expressed in a globally unique syntactic form.
-
-\rationale{%
-This means that two terms denoting a type will have the same syntactic form
-if and only if they denote the same type.
-}
+Every \synt{type} and type literal in the resulting set of libraries
+is now expressed in a globally unique syntactic form,
+which is the form that we call the
+\IndexCustom{canonical syntax of}{type!canonical syntax of}
+said types.
 
 \LMHash{}%
 When we say that two types $T_1$ and $T_2$ have the
@@ -23751,6 +23766,36 @@ it refers to the situation where the current library
 and all libraries which are reachable via one or more imports
 have been transformed as described above,
 and the resulting canonical syntaxes are identical.
+
+\rationale{%
+The transformation described here would not be useful in practice
+(or even possible---we can't edit \code{dart:core}).
+It only serves to show that we can express types using a syntactic form
+which is independent of the location.
+This is in turn needed in order to ensure that operations are well-defined
+even when they bring syntactic elements from different locations together,
+such as computations of subtype relationships,
+and construction of standard upper or lower bounds.
+
+We could just as well have replaced the concrete syntax by a semantic
+notion of types,
+where each entity that denotes a type would be, in some sense,
+a reference to a specific declaration
+(this is likely to be the approach used by tool implementations).
+However, that approach would be somewhat inconvenient in a specification,
+because we would need to re-build all the structures that the
+syntax offers.
+For instance, we would need to support the construction of
+a semantic type entity for \code{Map<int, String>},
+based on the semantic type entity for \code{int}, \code{String}, and \code{Map},
+and we would need to support deconstruction of those entities
+in order to prove things like \SubtypeNE{Never}{\code{Map<int, String>}}.
+This would give rise to a lot of mechanism that will simply duplicate
+the structure of the syntax.
+So we prefer to show that the syntax \emph{can} be location independent,
+and that's sufficient to make syntax usable as our representation of
+static semantic types.%
+}
 
 
 \subsubsection{Standard Upper Bounds and Standard Lower Bounds}
@@ -27137,7 +27182,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
 \item
   \textbf{Reflexivity:}
   if $T_0$ and $T_1$ are the same type then \SubtypeNE{T_0}{T_1}
-  
+
   \commentary{%
     Note that this check is necessary as the base case for primitive types,
     and type variables, but not for composite types.
@@ -27153,7 +27198,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
 \item
   \textbf{Left Top:}
   if $T_0$ is \DYNAMIC{} or \VOID{}
-  then \SubtypeNE{T_0}{T_1} if \SubtypeNE{\code{Object?}}{T_1}.
+  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{\code{Object?}}{T_1}.
 \item
   \textbf{Left Bottom:}
   if $T_0$ is \code{Never} then \SubtypeNE{T_0}{T_1}.
@@ -27189,8 +27234,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
     if $T_1$ is \code{FutureOr<$S$>} for some $S$,
     then the query is true if{}f \SubtypeNE{\code{Null}}{S}.
   \item
-    if $T_1$ is \code{Null} or \code{$S$?} for some $S$,
-    then the query is true.
+    if $T_1$ is \code{$S$?} for some $S$ then the query is true.
   \item
     Otherwise, the query is false.
   \end{itemize}
@@ -27233,7 +27277,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   \begin{itemize}
   \item either \SubtypeNE{T_0}{\code{Future<$S_1$>}}.
   \item or \SubtypeNE{T_0}{S_1}.
-  \item or $T_0$ is $X_0$ and $X_0$ has bound $S_0$ and \SubtypeNE{S_0}{T_1}.
+  \item or $T_0$ is $X_0$ and $X_0$ has bound $B_0$ and \SubtypeNE{B_0}{T_1}.
   \item or $T_0$ is \code{$X_0$\,\&\,$S_0$} and \SubtypeNE{S_0}{T_1}.
   \end{itemize}
 \item
@@ -27243,7 +27287,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   \begin{itemize}
   \item either \SubtypeNE{T_0}{S_1}.
   \item or \SubtypeNE{T_0}{\code{Null}}.
-  \item or $T_0$ is $X_0$ and $X_0$ has bound $S_0$ and \SubtypeNE{S_0}{T_1}.
+  \item or $T_0$ is $X_0$ and $X_0$ has bound $B_0$ and \SubtypeNE{B_0}{T_1}.
   \item or $T_0$ is \code{$X_0$\,\&\,$S_0$} and \SubtypeNE{S_0}{T_1}.
   \end{itemize}
 \item
@@ -27281,7 +27325,10 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
     $S_0$\,$y_0$, \ldots, $S_p$\,$y_p$, %
     [$S_{p+1}$\,$y_{p+1}$, \ldots, $S_q$\,$y_q$])}
 
-  where each of the following hold:
+  such that each of the following criteria is satisfied,
+  where the $Z_i$ are fresh type variables with bounds
+  $B_{0i}[Z_0/X_0, \ldots, Z_k/X_k]$:
+
   \begin{itemize}
   \item $p \geq n$.
   \item $m \geq q$.
@@ -27290,8 +27337,6 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   \item \SubtypeNE{U_0[Z_0/X_0, \ldots, Z_k/X_k]}{U_1[Z_0/Y_0, \ldots, Z_k/Y_k]}.
   \item $B_{0i}[Z_0/X_0, \ldots, Z_k/X_k]$ and $B_{1i}[Z_0/Y_0, \ldots, Z_k/Y_k]$
     have the same canonical syntax, for $i \in 0 .. k$.
-  \item where the $Z_i$ are fresh type variables with bounds
-    $B_{0i}[Z_0/X_0, \ldots, Z_k/X_k]$.
   \end{itemize}
 \item
   \textbf{Named Function Types:}
@@ -27301,7 +27346,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
     $U_0$ \FUNCTION<$X_0$\,\EXTENDS\,$B_{00}$, \ldots, %
       $X_k$\,\EXTENDS\,$B_{0k}$>(%
         $V_0$\,$x_0$, \ldots, $V_n$\,$x_n$, %
-          \{ $r_{0,n+1}$\,$V_{n+1}$\,$x_{n+1}$, \ldots, $r_{0m}$\,$V_m$\,$x_m$\})}
+          \{$r_{0,n+1}$\,$V_{n+1}$\,$x_{n+1}$, \ldots, $r_{0m}$\,$V_m$\,$x_m$\})}
 
   where $r_{0j}$ is empty or \REQUIRED{} for $j \in n+1 .. m$
   and $T_1$ is
@@ -27310,7 +27355,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
     $U_1$ \FUNCTION<$Y_0$\,\EXTENDS\,$B_{10}$, \ldots, %
       $Y_k$\,\EXTENDS\,$B_{1k}$>(%
         $S_0$\,$y_0$, \ldots, $S_n$\,$y_n$, %
-          \{ $r_{1,n+1}$\,$S_{n+1}$\,$y_{n+1}$, \ldots, $r_{1q}$\,$S_q$\,$y_q$\})}
+          \{$r_{1,n+1}$\,$S_{n+1}$\,$y_{n+1}$, \ldots, $r_{1q}$\,$S_q$\,$y_q$\})}
 
   where $r_{1j}$ is empty or \REQUIRED{} for $j \in n+1 .. q$
   and the following criteria are all satisfied,
