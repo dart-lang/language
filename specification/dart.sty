@@ -394,6 +394,16 @@
 \newcommand{\FunctionTypePositionalStdCr}[1]{%
   \FunctionTypePositional{#1}{\\}{X}{B}{s}{T}{n}{k}}
 
+% Used to specify function type parameter lists with named optionals.
+% Arguments: Parameter type, number of required parameters,
+% name of optional parameters, number of optional parameters,
+% name of `required` symbol.
+\newcommand{\FunctionTypeNamedArguments}[5]{%
+  \List{#1}{1}{#2},\ \{\TripleList{#5}{#1}{#3}{{#2}+1}{{#2}+{#4}}\}}
+  
+\newcommand{\FunctionTypeNamedArgumentsStd}{%
+  \FunctionTypeNamedArguments{T}{n}{x}{k}{r}}
+
 % Used to specify function types with named parameters:
 % Arguments: Return type, spacer, type parameter name, bound name,
 %   number of type parameters, parameter type, number of required parameters,
@@ -454,6 +464,9 @@
 % "R Function<X1 extends B1, .. Xs extends Bs>(T1, T2, .. Tn)".
 \newcommand{\FunctionTypeAllRequiredStd}[1]{%
   \FunctionTypeAllRequired{#1}{ }{X}{B}{s}{T}{n}}
+
+\newcommand{\FunctionTypeNamedStdArgCr}[1]{%
+  \FunctionTypeNamedArgCr{#1}{ }{X}{B}{s}{T}{n}{x}{k}{r}}
 
 % Same as \FunctionTypeAllRequiredStd except that it includes a newline, hence
 % suitable for function types that are too long to fit in one line.
