@@ -83,9 +83,14 @@ Here, if `myCoolMacro` resolves to an instance of a class implementing one or
 more of the macro interfaces, then the annotation is treated as an application
 of the `myCoolMacro` macro to the class MyClass.
 
-### Arguments
+Macro applications can also be passed arguments, either in the form of
+[Code][] expressions or certain types of literal values. See
+[Macro Arguments](#Macro-arguments) for more information on how these arguments
+are handled when executing macros.
 
-Macro applications can also be passed arguments. For example:
+### Code Arguments
+
+Consider this example macro application:
 
 ```dart
 int get a => 1;
@@ -97,11 +102,11 @@ class SomeClass {
 }
 ```
 
-Here, `Add` is a macro that takes its arguments and produces a function body
-that adds them using `+` and returns the result.
+Here, `Add` is a macro that takes its arguments as expressions and produces a
+function body that adds them using `+` and returns the result.
 
 Because macros are applied at compile time, the arguments are passed to the
-macro as objects representing unevaluated pieces of code. Here, the `Add` macro
+macro as objects representing unevaluated expressions. Here, the `Add` macro
 receives objects that represent the *literal* `1` and *the expression* `a + b`.
 It takes those and composes them into a function body like:
 
