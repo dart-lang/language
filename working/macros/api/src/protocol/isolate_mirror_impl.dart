@@ -81,8 +81,8 @@ Future<GenericResponse<MacroExecutionResult>> _executeDefinitionsPhase(
   try {
     var instance = _macroInstances[request.macro];
     if (instance == null) {
-      print(_macroInstances);
-      throw StateError('Unrecognized macro instance ${request.macro}');
+      throw StateError('Unrecognized macro instance ${request.macro}\n'
+          'Known instances: $_macroInstances)');
     }
     var declaration = request.declaration;
     if (instance is FunctionDefinitionMacro &&
@@ -130,7 +130,7 @@ class _MacroInstanceIdentifier implements MacroInstanceIdentifier {
 /// Our implementation of [MacroExecutionResult].
 class _MacroExecutionResult implements MacroExecutionResult {
   @override
-  final List<DeclarationCode> agumentations = <DeclarationCode>[];
+  final List<DeclarationCode> augmentations = <DeclarationCode>[];
 
   @override
   final List<DeclarationCode> imports = <DeclarationCode>[];
@@ -153,7 +153,7 @@ class _FunctionDefinitionBuilder implements FunctionDefinitionBuilder {
 
   @override
   void augment(FunctionBodyCode body) {
-    result.agumentations.add(DeclarationCode.fromParts([
+    result.augmentations.add(DeclarationCode.fromParts([
       'augment ',
       declaration.returnType.code,
       ' ',
@@ -194,6 +194,7 @@ class _FunctionDefinitionBuilder implements FunctionDefinitionBuilder {
         '{',
         for (var named in declaration.namedParameters) ...[
           ParameterCode.fromParts([
+            if (named.isRequired) 'required ',
             named.type.code,
             ' ',
             named.name,

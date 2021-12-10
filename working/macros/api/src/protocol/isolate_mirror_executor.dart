@@ -72,6 +72,7 @@ class IsolateMirrorMacroExecutor implements MacroExecutor {
 
   @override
   void close() {
+    _onClose();
     _macroIsolate.kill();
   }
 

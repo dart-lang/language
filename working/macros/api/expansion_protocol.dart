@@ -97,7 +97,7 @@ abstract class MacroExecutionResult {
   Iterable<DeclarationCode> get imports;
 
   /// Any augmentations that should be applied as a result of executing a macro.
-  Iterable<DeclarationCode> get agumentations;
+  Iterable<DeclarationCode> get augmentations;
 }
 
 /// Each of the different macro execution phases.

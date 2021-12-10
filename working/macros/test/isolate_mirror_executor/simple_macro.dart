@@ -22,7 +22,7 @@ class SimpleMacro implements FunctionDefinitionMacro {
         .followedBy(method.positionalParameters)
         .isNotEmpty) {
       throw ArgumentError(
-          'This macro can only be ran on functions with no arguments!');
+          'This macro can only be run on functions with no arguments!');
     }
     builder.augment(FunctionBodyCode.fromString('''{
       print('x: $x, y: $y');

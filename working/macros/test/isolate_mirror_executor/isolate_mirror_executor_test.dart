@@ -54,8 +54,8 @@ void main() {
         _FakeTypeComparator(),
         _FakeClassIntrospector(),
         _FakeTypeIntrospector());
-    expect(definitionResult.agumentations, hasLength(1));
-    expect(definitionResult.agumentations.first.debugString().toString(),
+    expect(definitionResult.augmentations, hasLength(1));
+    expect(definitionResult.augmentations.first.debugString().toString(),
         equalsIgnoringWhitespace('''
             augment String foo() {
               print('x: 1, y: 2');
