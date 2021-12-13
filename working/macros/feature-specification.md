@@ -525,10 +525,10 @@ when the result is valid Dart syntax.
 ### Identifiers and resolution
 
 The classic problem in macro systems since they were first invented in Lisp and
-Scheme in the 70s how identifiers are resolved. Because this proposal does not
-allow local macros, macros that generate new syntax, or macro applications
-inside local block scopes, the problems around scoping are somewhat reduced.
-But challenges still remain.
+Scheme in the 70s is how identifiers are resolved. Because this proposal does
+not allow local macros, macros that generate new syntax, or macro applications
+inside local block scopes, the problems around scoping are somewhat reduced. But
+challenges still remain.
 
 #### Referring to generated declarations
 
