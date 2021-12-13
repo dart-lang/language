@@ -180,8 +180,8 @@ class _FunctionDefinitionBuilder implements FunctionDefinitionBuilder {
       ],
       if (declaration.positionalParameters.any((p) => !p.isRequired)) ...[
         '[',
-        for (var positionalOptional
-            in declaration.positionalParameters.where((p) => p.isRequired)) ...[
+        for (var positionalOptional in declaration.positionalParameters
+            .where((p) => !p.isRequired)) ...[
           ParameterCode.fromParts([
             positionalOptional.type.code,
             ' ',
