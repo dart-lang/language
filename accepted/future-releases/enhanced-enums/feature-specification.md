@@ -66,11 +66,11 @@ must redirect to a generative constructor._
 
 ## Semantics
 
-We change the publicly visible API of the  `Enum` class to be declared as:
+The `Enum` class behaves as if it was declared as:
 
 ```dart
 class Enum {
-  // No default constructor (however we enforce that).
+  // No default constructor.
   external int get index;
   external String toString();
 }
@@ -84,14 +84,15 @@ The semantics of such an enum declaration, *E*, is defined as introducing a (sem
 
 * **Name**: The name of the class *C* and its implicit interface is the name of the `enum` declaration.
 
-* **Superclass**: The superclass of *C* is (seemingly) the `Enum` class, with the mixins declared by *E* applied. _(In practice, the superclass may be another system provided class with implements `Enum`.)_
+* **Superclass**: The superclass of *C* is an implementation-specific built-in class *`EnumImpl`*, with the mixins declared by *E* applied. _(The `EnumImpl` class may be the `Enum` class itself or it may be another class which extends or implements `Enum`, but as seen from a non-platform library the interface of *`EnumImpl`* is the same as that of `Enum`, and its methods work as specified for `Enum` )_
 
-  * If *E* is declared as `enum Name with Mixin1, Mixin2 …` then the superclass of *C* is the mixin application `Enum with Mixin1, Mixin2`.
+  * If *E* is declared as `enum Name with Mixin1, Mixin2 …` then the superclass of *C* is the mixin application <Code>*EnumImpl* with Mixin1, Mixin2</code>.
 
   It’s a **compile-time error** if such a mixin application introduces any instance variables. _We need to be able to call an implementation specific superclass `const` constructor of `Enum`, and a mixin application of a mixin with a field does not make its forwarding constructor `const`. Currently that’s the only restriction, but if we add further restrictions on mixin applications having `const` forwarding constructors, those should also apply here._
 
 * **Superinterfaces**: The immediate superinterfaces of *C* are the interface of the superclass and the interfaces declared by *E*.
-  * If `E` is declares as `enum Name with Mixin1, Mixin2 implements Type1, Type2 { … }` then the immediate superinterfaces of *C* are the interfaces of `Name with Mixin1, Mixin2`, `Type1` and `Type2`.
+  
+  * If `E` is declared as `enum Name with Mixin1, Mixin2 implements Type1, Type2 { … }` then the immediate superinterfaces of *C* are the interfaces of `Name with Mixin1, Mixin2`, `Type1` and `Type2`.
 
 - **Declared members**: For each member declaration of the `enum` declaration *E*, the same member is added to the class *C*. This includes constructors (which must be `const` generative or non-`const` factory constructors.)
 
@@ -142,7 +143,7 @@ If the resulting class would have any naming conflicts, or other compile-time er
 
 If not invalid, the semantics denoted by the `enum` declaration is that class, which we’ll refer to as the *corresponding class* of the `enum` declaration. *(We don’t require the implementation to be exactly such a class declaration, there might be other helper classes involved in the implementation, and different private members, but the publicly visible interface and behavior should match.)*
 
-That is, if the corresponding class of an `enum` declaration is valid, the `enum` declaration introduces the public interface* and *type* of the corresponding class. _There are, however, restrictions on how that class and interface can be used, listed in the next section._
+That is, if the corresponding class of an `enum` declaration is valid, the `enum` declaration introduces the *public interface* and *type* of the corresponding class. _There are, however, restrictions on how that class and interface can be used, listed in the next section._
 
 ### Implementing `Enum` and enum types
 
@@ -258,7 +259,7 @@ enum Plain {
 }
 ```
 
-has corresponding class desugaring similar to:
+would have a corresponding class desugaring of:
 
 ```dart
 class Plain extends Enum {
@@ -288,7 +289,7 @@ mixin EnumIndexOrdering<T extends Enum> on Enum implements Comparable<T> {
 }
 ```
 
-has corresponding class desugaring of:
+would have a  corresponding class desugaring of:
 
 ```dart
 class Ordering extends Enum with EnumIndexOrdering<Ordering> {
@@ -304,8 +305,6 @@ class Ordering extends Enum with EnumIndexOrdering<Ordering> {
   String _$enumToString() => "Ordering.${_$name}";
 }
 ```
-
-
 
 ### Complex, one with everything
 
@@ -364,7 +363,7 @@ enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern 
 }
 ```
 
-has corresponding class desugaring of:
+would have a corresponding class desugaring of:
 
 ```dart
 class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
@@ -424,7 +423,7 @@ enum MySingleton implements Whatever {
 }
 ```
 
-has a corresponding class desugaring of:
+would have a corresponding class desugaring of:
 
 ```dart
 class MySingleton extends Enum implements Whatever {
