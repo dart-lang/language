@@ -90,8 +90,8 @@ Future<GenericResponse<MacroExecutionResult>> _executeDefinitionsPhase(
         declaration is FunctionDeclaration) {
       var builder = _FunctionDefinitionBuilder(
           declaration,
-          request.typeComparator,
-          request.typeIntrospector,
+          request.typeResolver,
+          request.typeDeclarationResolver,
           request.classIntrospector);
       await instance.buildDefinitionForFunction(declaration, builder);
       return GenericResponse(response: builder.result, requestId: request.id);
@@ -139,8 +139,8 @@ class _MacroExecutionResult implements MacroExecutionResult {
 
 /// Custom implementation of [FunctionDefinitionBuilder].
 class _FunctionDefinitionBuilder implements FunctionDefinitionBuilder {
-  final TypeComparator typeComparator;
-  final TypeIntrospector typeIntrospector;
+  final TypeResolver typeResolver;
+  final TypeDeclarationResolver typeDeclarationResolver;
   final ClassIntrospector classIntrospector;
 
   /// The declaration this is a builder for.
@@ -149,8 +149,8 @@ class _FunctionDefinitionBuilder implements FunctionDefinitionBuilder {
   /// The final result, will be built up over `augment` calls.
   final result = _MacroExecutionResult();
 
-  _FunctionDefinitionBuilder(this.declaration, this.typeComparator,
-      this.typeIntrospector, this.classIntrospector);
+  _FunctionDefinitionBuilder(this.declaration, this.typeResolver,
+      this.typeDeclarationResolver, this.classIntrospector);
 
   @override
   void augment(FunctionBodyCode body) {
@@ -234,16 +234,14 @@ class _FunctionDefinitionBuilder implements FunctionDefinitionBuilder {
       classIntrospector.mixinsOf(clazz);
 
   @override
-  Future<TypeDeclaration> resolve(NamedTypeAnnotation annotation) =>
-      typeIntrospector.resolve(annotation);
+  Future<TypeDeclaration> declarationOf(NamedStaticType annotation) =>
+      typeDeclarationResolver.declarationOf(annotation);
 
   @override
   Future<ClassDeclaration?> superclassOf(ClassDeclaration clazz) =>
       classIntrospector.superclassOf(clazz);
 
   @override
-  TypeAnnotation typeAnnotationOf<T>() {
-    // TODO: How do we want to actually implement this?
-    throw UnimplementedError();
-  }
+  StaticType resolve(TypeAnnotation typeAnnotation) =>
+      typeResolver.resolve(typeAnnotation);
 }

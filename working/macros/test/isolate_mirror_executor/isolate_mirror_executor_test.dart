@@ -51,9 +51,9 @@ void main() {
               _TypeAnnotation(Code.fromString('String'), isNullable: false),
           typeParameters: [],
         ),
-        _FakeTypeComparator(),
+        _FakeTypeResolver(),
         _FakeClassIntrospector(),
-        _FakeTypeIntrospector());
+        _FakeTypeDeclarationResolver());
     expect(definitionResult.augmentations, hasLength(1));
     expect(definitionResult.augmentations.first.debugString().toString(),
         equalsIgnoringWhitespace('''
@@ -66,9 +66,11 @@ void main() {
 
 class _FakeClassIntrospector with Fake implements ClassIntrospector {}
 
-class _FakeTypeComparator with Fake implements TypeComparator {}
+class _FakeTypeResolver with Fake implements TypeResolver {}
 
-class _FakeTypeIntrospector with Fake implements TypeIntrospector {}
+class _FakeTypeDeclarationResolver
+    with Fake
+    implements TypeDeclarationResolver {}
 
 class _FunctionDeclaration implements FunctionDeclaration {
   @override

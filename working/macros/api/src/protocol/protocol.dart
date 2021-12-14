@@ -49,10 +49,10 @@ class InstantiateMacroRequest extends Request {
 class ExecuteDefinitionsPhaseRequest extends Request {
   final MacroInstanceIdentifier macro;
   final Declaration declaration;
-  final TypeComparator typeComparator;
+  final TypeResolver typeResolver;
   final ClassIntrospector classIntrospector;
-  final TypeIntrospector typeIntrospector;
+  final TypeDeclarationResolver typeDeclarationResolver;
 
   ExecuteDefinitionsPhaseRequest(this.macro, this.declaration,
-      this.typeComparator, this.classIntrospector, this.typeIntrospector);
+      this.typeResolver, this.classIntrospector, this.typeDeclarationResolver);
 }
