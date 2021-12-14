@@ -242,6 +242,6 @@ class _FunctionDefinitionBuilder implements FunctionDefinitionBuilder {
       classIntrospector.superclassOf(clazz);
 
   @override
-  StaticType resolve(TypeAnnotation typeAnnotation) =>
+  Future<StaticType> resolve(TypeAnnotation typeAnnotation) =>
       typeResolver.resolve(typeAnnotation);
 }
