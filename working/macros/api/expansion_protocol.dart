@@ -40,7 +40,7 @@ abstract class MacroExecutor {
   Future<MacroExecutionResult> executeDeclarationsPhase(
       MacroInstanceIdentifier macro,
       Declaration declaration,
-      TypeComparator typeComparator,
+      TypeResolver typeResolver,
       ClassIntrospector classIntrospector);
 
   /// Runs the definitions phase for [macro] on a given [declaration].
@@ -49,9 +49,9 @@ abstract class MacroExecutor {
   Future<MacroExecutionResult> executeDefinitionsPhase(
       MacroInstanceIdentifier macro,
       Declaration declaration,
-      TypeComparator typeComparator,
+      TypeResolver typeResolver,
       ClassIntrospector classIntrospector,
-      TypeIntrospector typeIntrospector);
+      TypeDeclarationResolver typeDeclarationResolver);
 
   /// Combines multiple [MacroExecutionResult]s into a single library
   /// augmentation file, and returns a [String] representing that file.
