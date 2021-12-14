@@ -45,10 +45,10 @@ abstract class NamedTypeAnnotation implements TypeAnnotation {
 /// compared to other static types.
 abstract class StaticType {
   /// Returns true if this is a subtype of [other].
-  bool isSubtypeOf(StaticType other);
+  Future<bool> isSubtypeOf(StaticType other);
 
   /// Returns true if this is an identical type to [other].
-  bool isExactly(StaticType other);
+  Future<bool> isExactly(StaticType other);
 }
 
 /// A subtype of [StaticType] representing types that can be resolved by name
@@ -69,7 +69,11 @@ abstract class TypeDeclaration implements Declaration {
   Iterable<TypeParameterDeclaration> get typeParameters;
 
   /// Create a static type representing this type with [typeArguments].
-  StaticType instantiate({List<StaticType> typeArguments});
+  ///
+  /// If [isNullable] is `true`, then this type will behave as if it has a
+  /// trailing `?`.
+  Future<StaticType> instantiate(
+      {List<StaticType> typeArguments, bool isNullable = false});
 }
 
 /// Class (and enum) introspection information.
