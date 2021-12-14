@@ -39,6 +39,24 @@ abstract class NamedTypeAnnotation implements TypeAnnotation {
   Iterable<TypeAnnotation> get typeArguments;
 }
 
+/// The interface representing a resolved type.
+///
+/// Resolved types understand exactly what type they represent, and can be
+/// compared to other static types.
+abstract class StaticType {
+  /// Returns true if this is a subtype of [other].
+  bool isSubtypeOf(StaticType other);
+
+  /// Returns true if this is an identical type to [other].
+  bool isExactly(StaticType other);
+}
+
+/// A subtype of [StaticType] representing types that can be resolved by name
+/// to a concrete declaration.
+abstract class NamedStaticType implements StaticType {
+  String get name;
+}
+
 /// The base class for all declarations.
 abstract class Declaration {
   /// The name of this declaration.
@@ -50,8 +68,8 @@ abstract class TypeDeclaration implements Declaration {
   /// The type parameters defined for this type declaration.
   Iterable<TypeParameterDeclaration> get typeParameters;
 
-  /// Create a type annotation representing this type with [typeArguments].
-  TypeAnnotation instantiate({List<TypeAnnotation> typeArguments});
+  /// Create a static type representing this type with [typeArguments].
+  StaticType instantiate({List<StaticType> typeArguments});
 }
 
 /// Class (and enum) introspection information.

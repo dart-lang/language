@@ -6,14 +6,7 @@ import 'macros.dart'; // For dart docs.
 
 /// The base interface used to add declarations to the program as well
 /// as augment existing ones.
-abstract class Builder {
-  /// Used to construct a [TypeAnnotation] to a runtime type available to the
-  /// the macro implementation code.
-  ///
-  /// This can be used to emit a reference to it in generated code, or do
-  /// subtype checks (depending on support in the current phase).
-  TypeAnnotation typeAnnotationOf<T>();
-}
+abstract class Builder {}
 
 /// The api used by [Macro]s to contribute new type declarations to the
 /// current library, and get [TypeAnnotation]s from runtime [Type] objects.
@@ -22,33 +15,24 @@ abstract class TypeBuilder implements Builder {
   void declareType(DeclarationCode typeDeclaration);
 }
 
-/// The interface for checking if a type implements another type.
-abstract class TypeComparator {
-  /// Returns true if [leftType] is a subtype of [rightType].
-  bool isSubtypeOf(TypeAnnotation leftType, TypeAnnotation rightType);
-
-  /// Returns true if [leftType] is an identical type to [rightType].
-  bool isExactly(TypeAnnotation leftType, TypeAnnotation rightType);
-}
-
-/// The api used by [Macro]s to contribute new (non-type)
-/// declarations to the current library.
+/// The interface to resolve a [TypeAnnotation] to a [StaticType].
 ///
-/// Can also be used to do subtype checks on types.
-abstract class DeclarationBuilder implements Builder, TypeComparator {
-  /// Adds a new regular declaration to the surrounding library.
-  ///
-  /// Note that type declarations are not supported.
-  void declareInLibrary(DeclarationCode declaration);
-}
-
-/// The api used by [Macro]s to contribute new members to a class.
-abstract class ClassMemberDeclarationBuilder implements DeclarationBuilder {
-  /// Adds a new declaration to the surrounding class.
-  void declareInClass(DeclarationCode declaration);
+/// The [StaticType]s can be compared against other [StaticType]s to see how
+/// they relate to each other.
+///
+/// This api is only available to the declaration and definition phases of
+/// macro expansion.
+abstract class TypeResolver {
+  /// Resolves [typeAnnotation] to a [StaticType].
+  StaticType resolve(TypeAnnotation typeAnnotation);
 }
 
 /// The api used to introspect on a [ClassDeclaration].
+///
+/// Available in the declaration and definition phases, but limited in the
+/// declaration phase to immediately annotated [ClassDeclaration]s. This is
+/// done by limiting the access to the [TypeDeclarationResolver] to the
+/// definition phase.
 abstract class ClassIntrospector {
   /// The fields available for [clazz].
   ///
@@ -78,23 +62,47 @@ abstract class ClassIntrospector {
   Future<List<ClassDeclaration>> interfacesOf(ClassDeclaration clazz);
 }
 
+/// The api used by [Macro]s to contribute new (non-type)
+/// declarations to the current library.
+///
+/// Can also be used to do subtype checks on types.
+abstract class DeclarationBuilder
+    implements Builder, TypeResolver, ClassIntrospector {
+  /// Adds a new regular declaration to the surrounding library.
+  ///
+  /// Note that type declarations are not supported.
+  void declareInLibrary(DeclarationCode declaration);
+}
+
+/// The api used by [Macro]s to contribute new members to a class.
+abstract class ClassMemberDeclarationBuilder implements DeclarationBuilder {
+  /// Adds a new declaration to the surrounding class.
+  void declareInClass(DeclarationCode declaration);
+}
+
 /// The api used by [Macro]s to reflect on the currently available
 /// members, superclass, and mixins for a given [ClassDeclaration]
 abstract class ClassDeclarationBuilder
     implements ClassMemberDeclarationBuilder, ClassIntrospector {}
 
-/// The api used by [Macro] to get a [TypeDeclaration] for any given
-/// [TypeAnnotation].
-abstract class TypeIntrospector {
-  /// Resolves a [NamedTypeAnnotation] to its declaration.
-  Future<TypeDeclaration> resolve(NamedTypeAnnotation annotation);
+/// The interface used by [Macro]s to resolve any [NamedStaticType] to its
+/// declaration.
+///
+/// Only available in the definition phase of macro expansion.
+abstract class TypeDeclarationResolver {
+  /// Resolves a [NamedStaticType] to its [TypeDeclaration].
+  Future<TypeDeclaration> declarationOf(NamedStaticType annotation);
 }
 
 /// The base class for builders in the definition phase. These can convert
 /// any [TypeAnnotation] into its corresponding [TypeDeclaration], and also
 /// reflect more deeply on those.
 abstract class DefinitionBuilder
-    implements Builder, ClassIntrospector, TypeIntrospector {}
+    implements
+        Builder,
+        TypeResolver,
+        ClassIntrospector,
+        TypeDeclarationResolver {}
 
 /// The apis used by [Macro]s that run on classes, to fill in the definitions
 /// of any external declarations within that class.
