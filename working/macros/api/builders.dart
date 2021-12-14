@@ -24,7 +24,13 @@ abstract class TypeBuilder implements Builder {
 /// macro expansion.
 abstract class TypeResolver {
   /// Resolves [typeAnnotation] to a [StaticType].
-  StaticType resolve(TypeAnnotation typeAnnotation);
+  ///
+  /// Throws an error if the type annotation cannot be resolved. This should
+  /// only happen in the case of incomplete or invalid programs, but macros
+  /// may be asked to run in this state during the development cycle. It is
+  /// helpful for users if macros provide a best effort implementation in that
+  /// case or handle the error in a useful way.
+  Future<StaticType> resolve(TypeAnnotation typeAnnotation);
 }
 
 /// The api used to introspect on a [ClassDeclaration].
