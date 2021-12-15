@@ -72,8 +72,12 @@ abstract class TypeDeclaration implements Declaration {
   ///
   /// If [isNullable] is `true`, then this type will behave as if it has a
   /// trailing `?`.
+  ///
+  /// Throws an exception if the type could not be instantiated, typically due
+  /// to one of the type arguments not matching the bounds of the corresponding
+  /// type parameter.
   Future<StaticType> instantiate(
-      {List<StaticType> typeArguments, bool isNullable = false});
+      {required List<StaticType> typeArguments, required bool isNullable});
 }
 
 /// Class (and enum) introspection information.
