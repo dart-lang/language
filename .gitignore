@@ -22,6 +22,8 @@
 *.vcxproj.filters
 /*.vcxproj.user
 *.stamp
+.dart_tool
+.packages
 
 # Gyp generated files
 *.xcodeproj
