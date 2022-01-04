@@ -8985,7 +8985,7 @@ and the marker is then popped.
 <RAW\_MULTI\_LINE\_STRING> ::= `r' `\sqsqsq' .*? `\sqsqsq'
   \alt `r' `"""' .*? `"""'
 
-<QUOTES\_SQ> ::= | `\sq' | `\sqsq'
+<QUOTES\_SQ> ::= `\sq' | `\sqsq'
 
 <STRING\_CONTENT\_TSQ> ::= \gnewline{}
   <QUOTES\_SQ> (<STRING\_CONTENT\_COMMON> | `"' | `\\r' | `\\n')
@@ -9002,7 +9002,7 @@ and the marker is then popped.
 <MULTI\_LINE\_STRING\_SQ\_MID\_END> ::= \gnewline{}
   `}' <STRING\_CONTENT\_TSQ>* `\sqsqsq'
 
-<QUOTES\_DQ> ::= | `"' | `""'
+<QUOTES\_DQ> ::= `"' | `""'
 
 <STRING\_CONTENT\_TDQ> ::= \gnewline{}
   <QUOTES\_DQ> (<STRING\_CONTENT\_COMMON> | `\sq' | `\\r' | `\\n')
