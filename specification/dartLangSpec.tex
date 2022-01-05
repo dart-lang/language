@@ -14990,7 +14990,8 @@ so any \lit{?} on a non-innermost \lit{..} would be useless.%
 Consider an expression of the form \code{$e$?..$s$} where
 $e$ is a \synt{conditionalExpression} and
 $s$ is a \synt{cascadeSection}.
-A warning occurs unless the static type of $e$ is potentially nullable.
+A warning occurs if the static type of $e$ is non-nullable
+(\ref{typeNullability}).
 
 \LMHash{}%
 Otherwise, the static analysis and dynamic semantics of
@@ -20692,7 +20693,7 @@ if a given boolean condition does not hold.
 \begin{grammar}
 <assertStatement> ::= <assertion> `;'
 
-<assertion> ::= \ASSERT{} `(' <expression> (`,' <expression> )? `,'? `)'
+<assertion> ::= \ASSERT{} `(' <expression> (`,' <expression>)? `,'? `)'
 \end{grammar}
 
 \LMHash{}%
@@ -20798,6 +20799,9 @@ The members of a library $L$ are those top level declarations given within $L$.
 
 \LMHash{}%
 A library contains a string which is derived from \synt{libraryDeclaration}.
+It ends in the pseudo-token
+\IndexCustom{\synt{EOF}}{<EOF>@\synt{EOF}},
+which denotes the end of the input.
 
 \commentary{%
 We could say that \synt{libraryDeclaration} is a
