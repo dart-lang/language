@@ -21936,7 +21936,8 @@ This means it is dependent on the runtime.%
 \LMLabel{types}
 
 \LMHash{}%
-Dart supports static typing based on interface types.
+Dart supports static typing based on interface types
+(\ref{interfaceTypes}).
 
 \rationale{%
 The type system is sound in the sense that
@@ -22681,8 +22682,7 @@ in their full generality.%
       T \in \{\code{Object?}, \DYNAMIC, \VOID\}}{S}{T}
     % ------------------------------------------------ Right Object
     \RuleRaw{\SrnRightObjectFour}{%
-      \mbox{$S$ is an interface type,}\\
-      \mbox{a function type, or \FUNCTION}}{S}{\code{Object}}
+      \mbox{$S$ is an interface type or \FUNCTION}}{S}{\code{Object}}
     % ------------------------------------------------ Left Null 2
     \Rule{\SrnNullTwo}{\code{Null}}{T}{%
       \code{Null}}{\code{FutureOr<$T$>}}
@@ -23057,8 +23057,7 @@ include the application of a rule where the environment is used.
 \Item{\SrnBottom}{Bottom}
   \code{Never} is a subtype of every type.
 \Item{\SrnRightObjectFour}{Right Object}
-  Interface types, function types, and \FUNCTION{}
-  are subtypes of \code{Object}.
+  Interface types and \FUNCTION{} are subtypes of \code{Object}.
 \Item{\SrnNullOne}{Null Nullable}
   \code{Null} is a subtype of every type of the form \code{$T$?}.
 \Item{\SrnNullTwo}{Null FutureOr}
@@ -23247,7 +23246,7 @@ This is equivalent to the syntactic criterion that $T$ is any of:
 \item \code{Never}.
 \item Any function type.
 \item The type \FUNCTION.
-\item Any interface type except \code{Null}.
+\item Any interface type.
 \item \code{FutureOr<$S$>}, for any non-nullable type $S$.
 \item Any type variable $X$ whose bound is non-nullable.
 \item Any type of the form \code{$X$\,\&\,$S$}, where
@@ -24574,18 +24573,12 @@ on interface types and \code{Object?} as follows:
 \item
   \DefEquals{\NominalTypeDepth{Object}}{1}.
 \item
-  \DefEquals{\NominalTypeDepth{Null}}{1}.
-\item
   Let $T$ be a class or a mixin,
   and let $M$ be the set of immediate superinterfaces of $T$.
   Then \DefEquals{\NominalTypeDepth{$T$}}{d + 1},
   where $d$ is
   $\metavar{max}\,\{\;\NominalTypeDepth{$S$}\;|\;S\;\in M\;\}$.
 \end{itemize}
-
-\commentary{%
-
-}
 
 \LMHash{}%
 \BlindDefineSymbol{I, J, M}%
@@ -24975,7 +24968,7 @@ Let $T$ be a type, and let $T'$ be the transitive alias expansion of $T$
 (\ref{typedef}).
 We say that $T$ is an \Index{interface type} if{}f
 $T'$ is of the form \code{$C$<\List{T}{1}{k}>},
-where $C$ denotes a class different from \code{Never},
+where $C$ denotes a class different from \code{Never} and \code{Null},
 or $C$ denotes a mixin.
 
 \commentary{%
@@ -24983,13 +24976,14 @@ Note that \List{T}{1}{k} can be arbitrary types.
 Non-generic classes are included because we can have $k = 0$.
 
 In particular, the following types are \emph{not} interface types:
-\VOID, \DYNAMIC, \FUNCTION, \code{FutureOr<$T$>} for any $T$, \code{Never},
+\VOID, \DYNAMIC, \FUNCTION, \code{FutureOr<$T$>} for any $T$,
+\code{Never}, \code{Null},
 any function type, any type variable, any intersection type,
 and any type of the form \code{$T$?}.
 
-Conversely, built-in classes
-like \code{Object}, \code{Null}, \code{num}, \code{int},
-\code{String}, and \code{Exception} are interface types,
+Conversely, built-in classes like
+\code{Object}, \code{num}, \code{int}, \code{String}, and \code{Exception}
+are interface types,
 and so are
 \code{Future<$T$>}, \code{Stream<$T$>}, \code{Iterable<$T$>},
 \code{List<$T$>}, \code{Map<$S$,\,\,$T$}, and \code{Set<$T$>},
