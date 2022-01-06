@@ -21133,7 +21133,8 @@ All further interpretation of URIs is implementation dependent.
 \LMLabel{types}
 
 \LMHash{}%
-Dart supports static typing based on interface types.
+Dart supports static typing based on interface types
+(\ref{interfaceTypes}).
 
 \rationale{%
   The type system is sound in the sense that
@@ -23830,15 +23831,13 @@ because the alternatives are ambiguous or complex.%
 
 \LMHash{}%
 We define the auxiliary function \NominalTypeDepthName{}
-on interface types and \code{Object?} as follows:
+on interface types as follows:
 
 \begin{itemize}
 \item
-  \DefEquals{\NominalTypeDepth{Object?}}{0}.
-\item
-  \DefEquals{\NominalTypeDepth{Object}}{1}.
-\item
-  \DefEquals{\NominalTypeDepth{Null}}{1}.
+  % We could make it 1 rather than 0, to "reserve space" for `Object?`,
+  % but this function is never used with `Object?` anyway.
+  \DefEquals{\NominalTypeDepth{Object}}{0}.
 \item
   Let $T$ be a class or a mixin,
   and let $M$ be the set of immediate superinterfaces of $T$.
@@ -23846,10 +23845,6 @@ on interface types and \code{Object?} as follows:
   where $d$ is
   $\metavar{max}\,\{\;\NominalTypeDepth{$S$}\;|\;S\;\in M\;\}$.
 \end{itemize}
-
-\commentary{%
-
-}
 
 \LMHash{}%
 \BlindDefineSymbol{I, J, M}%
@@ -24239,7 +24234,7 @@ Let $T$ be a type, and let $T'$ be the transitive alias expansion of $T$
 (\ref{typedef}).
 We say that $T$ is an \Index{interface type} if{}f
 $T'$ is of the form \code{$C$<\List{T}{1}{k}>},
-where $C$ denotes a class different from \code{Never},
+where $C$ denotes a class different from \code{Never} and \code{Null},
 or $C$ denotes a mixin.
 
 \commentary{%
@@ -24247,13 +24242,14 @@ or $C$ denotes a mixin.
   Non-generic classes are included because we can have $k = 0$.
 
   In particular, the following types are \emph{not} interface types:
-  \VOID, \DYNAMIC, \FUNCTION, \code{FutureOr<$T$>} for any $T$, \code{Never},
+  \VOID, \DYNAMIC, \FUNCTION, \code{FutureOr<$T$>} for any $T$,
+  \code{Never}, \code{Null},
   any function type, any type variable, any intersection type,
   and any type of the form \code{$T$?}.
 
-  Conversely, built-in classes
-  like \code{Object}, \code{Null}, \code{num}, \code{int},
-  \code{String}, and \code{Exception} are interface types,
+  Conversely, built-in classes like, e.g.,
+  \code{Object}, \code{num}, \code{int}, \code{String}, and \code{Exception}
+  are interface types,
   and so are
   \code{Future<$T$>}, \code{Stream<$T$>}, \code{Iterable<$T$>},
   \code{List<$T$>}, \code{Map<$S$,\,\,$T$}, and \code{Set<$T$>},
