@@ -1927,7 +1927,7 @@ the implicitly induced getter of \id{} executes as follows:
 
 \begin{dartCode}
 bool b = \TRUE;
-int i = (() => (b = !b) ? (i = 10) : i + 1 )();
+int i = (() => (b = !b) ? (i = 10) : i + 1)();
 \\
 \VOID{} main() \{
   print(i); // '11'.
@@ -17136,7 +17136,7 @@ if the result is the null object (\ref{null}), evaluates another.
 \end{grammar}
 
 \LMHash{}%
-Consider an if-null expression $e$ of the form \code{$e_1$ ?? $e_2$}.
+Consider an if-null expression $e$ of the form \code{$e_1$\,\,??\,\,$e_2$}.
 Let $S$ be the static type of $e_1$.
 A warning occurs if $S$ is non-nullable.
 \commentary{In this case, the \lit{??} is superfluous.}
@@ -17145,7 +17145,7 @@ The static type of $e$ is the standard upper bound
 of \NonNullType{$S$} and the static type of $e_2$.
 
 \LMHash{}%
-Evaluation of an if-null expression $e$ of the form \code{$e_1$ ?? $e_2$}
+Evaluation of an if-null expression $e$ of the form \code{$e_1$\,\,??\,\,$e_2$}
 proceeds as follows:
 
 \LMHash{}%
