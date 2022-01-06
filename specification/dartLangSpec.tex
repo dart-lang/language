@@ -21130,7 +21130,8 @@ All further interpretation of URIs is implementation dependent.
 \LMLabel{types}
 
 \LMHash{}%
-Dart supports static typing based on interface types.
+Dart supports static typing based on interface types
+(\ref{interfaceTypes}).
 
 \rationale{%
   The type system is sound in the sense that
@@ -21944,8 +21945,7 @@ However, their subtype relations are specified without restrictions.
       T \in \{\code{Object?}, \DYNAMIC, \VOID\}}{S}{T}
     % ------------------------------------------------ Right Object
     \RuleRaw{\SrnRightObjectFour}{%
-      \mbox{$S$ is an interface type,}\\
-      \mbox{a function type, or \FUNCTION}}{S}{\code{Object}}
+      \mbox{$S$ is an interface type or \FUNCTION}}{S}{\code{Object}}
     % ------------------------------------------------ Left Null 2
     \Rule{\SrnNullTwo}{\code{Null}}{T}{%
       \code{Null}}{\code{FutureOr<$T$>}}
@@ -22359,6 +22359,7 @@ the set of direct superinterfaces of $C$
   because the proof of those premises could, directly or indirectly,
   include the application of a rule where the environment is used.
 
+<<<<<<< HEAD
   \def\Item#1#2{\item[#1]{\textbf{#2:}}}
   \begin{itemize}
   \Item{\SrnReflexivity}{Reflexivity}
@@ -22502,6 +22503,292 @@ the set of direct superinterfaces of $C$
     and this means that there may be multiple subtype steps from
     a given class declaration to the class specified in an \EXTENDS{} clause.
   \end{itemize}%
+||||||| parent of c90c5650 (Interface type and subtype rule fixes)
+\def\Item#1#2{\item[#1]{\textbf{#2:}}}
+\begin{itemize}
+\Item{\SrnReflexivity}{Reflexivity}
+  Every type is a subtype of itself, in any environment $\Delta$.
+  In the following rules except for a few,
+  the rule is also valid in any environment
+  and the environment is never used explicitly,
+  so we will not repeat that.
+\Item{\SrnRightTop}{Right Top}
+  Every type is a subtype of \code{Object?},
+  every type is a subtype of \DYNAMIC,
+  and every type is a subtype of \VOID.
+  Note that this implies that these types are equivalent
+  according to the subtype relation.
+  We denote these types,
+  and others with the same property (such as \code{FutureOr<Object>}),
+  as top types
+  (\ref{superBoundedTypes}).
+\Item{\SrnLeftTop}{Left Top}
+  If \code{Object?} is a subtype of any given type $T$,
+  then \DYNAMIC{} and \VOID{} are subtypes of $T$, too.
+\Item{\SrnBottom}{Bottom}
+  \code{Never} is a subtype of every type.
+\Item{\SrnRightObjectFour}{Right Object}
+  Interface types, function types, and \FUNCTION{}
+  are subtypes of \code{Object}.
+\Item{\SrnNullOne}{Null Nullable}
+  \code{Null} is a subtype of every type of the form \code{$T$?}.
+\Item{\SrnNullTwo}{Null FutureOr}
+  \code{Null} is a subtype of \code{FutureOr<$T$>}
+  if \code{Null} is a subtype of $T$.
+\Item{\SrnLeftFutureOr}{Left FutureOr}
+  The type \code{FutureOr<$S$>} is a subtype of a given type $T$
+  if \code{Future<$S$>} is a subtype of $T$ and $S$ is a subtype of $T$,
+  for every type $S$ and $T$.
+\Item{\SrnLeftNullable}{Left Nullable}
+  A nullable type \code{$S$?} is a subtype of a given type $T$
+  if \code{$S$} is a subtype of $T$ and \code{Null} is a subtype of $T$.
+\Item{\SrnLeftPromotedVariableOne}{Left Promoted Variable A}
+  The type \code{$X$\,\&\,$S$} is a subtype of $X$.
+\Item{\SrnRightPromotedVariable}{Right Promoted Variable}
+  The type $S$ is a subtype of \code{$X$\,\&\,$T$}
+  if $S$ is a subtype of both $X$ and $T$.
+\Item{\SrnRightFutureOrA}{Right FutureOr A}
+  The type $S$ is a subtype of \code{FutureOr<$T$>}
+  if $S$ is a subtype of \code{Future<$T$>}.
+\Item{\SrnRightFutureOrB}{Right FutureOr B}
+  The type $S$ is a subtype of \code{FutureOr<$T$>}
+  if $S$ is a subtype of $T$.
+\Item{\SrnRightNullableOne}{Right Nullable A}
+  The type $S$ is a subtype of \code{$T$?}
+  if $S$ is a subtype of $T$.
+\Item{\SrnRightNullableTwo}{Right Nullable B}
+  The type $S$ is a subtype of \code{$T$?}
+  if $S$ is a subtype of \code{Null}.
+\Item{\SrnLeftPromotedVariableTwo}{Left Promoted Variable B}
+  The type \code{$X$\,\&\,$S$} is a subtype of $T$
+  if $S$ is a subtype of $T$.
+\Item{\SrnLeftVariableBound}{Left Variable Bound}
+  The type variable $X$ is a subtype of a type $T$
+  if the bound of $X$
+  (as specified in the current environment $\Delta$)
+  is a subtype of $T$.
+\Item{\SrnRightFunction}{Right Function}
+  Every function type is a subtype of the type \FUNCTION.
+\Item{\SrnPositionalFunctionType}{Positional Function Type}
+  A function type $F_1$ with positional optional parameters
+  is a subtype of
+  another function type $F_2$ with positional optional parameters
+  if the former has at most
+  the same number of required parameters as the latter,
+  and the latter has at least
+  the same total number of parameters as the former;
+  the return type of $F_1$ is a subtype of that of $F_2$;
+  and each parameter type of $F_1$ is a \emph{supertype} of
+  the corresponding parameter type of $F_2$, if any.
+  Note that the relationship to function types with no optional parameters,
+  and the relationship between function types with no optional parameters,
+  is covered by letting $k_2 = 0$ respectively $k_1 = k_2 = 0$.
+  For every subtype relation considered in this rule,
+  the formal type parameters of $F_1$ and $F_2$ must be taken into account
+  (as reflected in the use of the extended environment $\Delta'$).
+  We can assume without loss of generality
+  that the names of type variables are pairwise identical,
+  because we consider types of generic functions to be equivalent under
+  consistent renaming
+  (\ref{typeOfAFunction}).
+  In short, ``during the proof, we will rename them as needed''.
+  Finally, note that the relationship between non-generic function types
+  is covered by letting $s = 0$.
+\Item{\SrnNamedFunctionType}{Named Function Type}
+  A function type $F_1$ with named optional parameters is a subtype of
+  another function type $F_2$ with named optional parameters
+  if they have the same number of required parameters,
+  and the set of names of named parameters for the latter is a subset
+  of that for the former;
+  the return type of $F_1$ is a subtype of that of $F_2$;
+  each parameter type of $F_1$ is a \emph{supertype} of
+  the corresponding parameter type of $F_2$, if any;
+  and each required named parameter in $F_1$ is also required in $F_2$.
+  Note that the relationship to function types with no optional parameters,
+  and the relationship between function types with no optional parameters,
+  is covered by letting $k_2 = 0$ respectively $k_1 = k_2 = 0$,
+  and also that the latter case is identical to the rule obtained from
+  rule~\SrnPositionalFunctionType{}
+  concerning subtyping among function types with no optional parameters.
+  As in rule~\SrnPositionalFunctionType,
+  we can assume without loss of generality
+  that the names of type variables are pairwise identical.
+  Similarly, non-generic functions are covered by letting $s = 0$.
+\Item{\SrnCovariance}{Class Covariance}
+  A parameterized type based on a generic class $C$ is a subtype of
+  a parameterized type based on the same class $C$ if
+  each actual type argument of the former is a subtype of
+  the corresponding actual type argument of the latter.
+  This rule may have $s = 0$ and cover a non-generic class as well,
+  but that is redundant because this is already covered by
+  rule~\SrnReflexivity.
+\Item{\SrnNominal}{Nominal Subtyping}
+  Considering the case where $s = 0$ and $m = 0$ first,
+  a parameterized type based on a non-generic class $C$ is a subtype of
+  a parameterized type based on a different non-generic class $D$ if
+  $D$ is a direct superinterface of $C$.
+  Subtyping relations with indirect superinterfaces are shown by
+  using this rule repeatedly.
+  When $s > 0$ or $m > 0$, this rule describes a subtype relationship
+  which includes one or more generic classes,
+  in which case we need to give names to the formal type parameters of $C$,
+  and specify how they are used in the specification of the superinterface
+  based on $D$.
+  With those pieces in place, we can specify the subtype relationship
+  that exists between two parameterized types based on $C$ and $D$.
+  %
+  %% TODO(eernst): Note that the specification of how to pass type arguments in
+  %% \ref{mixinApplication} is incorrect, and also that it will need to be
+  %% rewritten completely for the integration of the new mixin construct.
+  The case where the superclass is a mixin application is covered via
+  the equivalence with a declaration of a regular (possibly generic) superclass
+  (\ref{mixinApplication}),
+  and this means that there may be multiple subtype steps from
+  a given class declaration to the class specified in an \EXTENDS{} clause.
+\end{itemize}%
+=======
+\def\Item#1#2{\item[#1]{\textbf{#2:}}}
+\begin{itemize}
+\Item{\SrnReflexivity}{Reflexivity}
+  Every type is a subtype of itself, in any environment $\Delta$.
+  In the following rules except for a few,
+  the rule is also valid in any environment
+  and the environment is never used explicitly,
+  so we will not repeat that.
+\Item{\SrnRightTop}{Right Top}
+  Every type is a subtype of \code{Object?},
+  every type is a subtype of \DYNAMIC,
+  and every type is a subtype of \VOID.
+  Note that this implies that these types are equivalent
+  according to the subtype relation.
+  We denote these types,
+  and others with the same property (such as \code{FutureOr<Object>}),
+  as top types
+  (\ref{superBoundedTypes}).
+\Item{\SrnLeftTop}{Left Top}
+  If \code{Object?} is a subtype of any given type $T$,
+  then \DYNAMIC{} and \VOID{} are subtypes of $T$, too.
+\Item{\SrnBottom}{Bottom}
+  \code{Never} is a subtype of every type.
+\Item{\SrnRightObjectFour}{Right Object}
+  Interface types and \FUNCTION{} are subtypes of \code{Object}.
+\Item{\SrnNullOne}{Null Nullable}
+  \code{Null} is a subtype of every type of the form \code{$T$?}.
+\Item{\SrnNullTwo}{Null FutureOr}
+  \code{Null} is a subtype of \code{FutureOr<$T$>}
+  if \code{Null} is a subtype of $T$.
+\Item{\SrnLeftFutureOr}{Left FutureOr}
+  The type \code{FutureOr<$S$>} is a subtype of a given type $T$
+  if \code{Future<$S$>} is a subtype of $T$ and $S$ is a subtype of $T$,
+  for every type $S$ and $T$.
+\Item{\SrnLeftNullable}{Left Nullable}
+  A nullable type \code{$S$?} is a subtype of a given type $T$
+  if \code{$S$} is a subtype of $T$ and \code{Null} is a subtype of $T$.
+\Item{\SrnLeftPromotedVariableOne}{Left Promoted Variable A}
+  The type \code{$X$\,\&\,$S$} is a subtype of $X$.
+\Item{\SrnRightPromotedVariable}{Right Promoted Variable}
+  The type $S$ is a subtype of \code{$X$\,\&\,$T$}
+  if $S$ is a subtype of both $X$ and $T$.
+\Item{\SrnRightFutureOrA}{Right FutureOr A}
+  The type $S$ is a subtype of \code{FutureOr<$T$>}
+  if $S$ is a subtype of \code{Future<$T$>}.
+\Item{\SrnRightFutureOrB}{Right FutureOr B}
+  The type $S$ is a subtype of \code{FutureOr<$T$>}
+  if $S$ is a subtype of $T$.
+\Item{\SrnRightNullableOne}{Right Nullable A}
+  The type $S$ is a subtype of \code{$T$?}
+  if $S$ is a subtype of $T$.
+\Item{\SrnRightNullableTwo}{Right Nullable B}
+  The type $S$ is a subtype of \code{$T$?}
+  if $S$ is a subtype of \code{Null}.
+\Item{\SrnLeftPromotedVariableTwo}{Left Promoted Variable B}
+  The type \code{$X$\,\&\,$S$} is a subtype of $T$
+  if $S$ is a subtype of $T$.
+\Item{\SrnLeftVariableBound}{Left Variable Bound}
+  The type variable $X$ is a subtype of a type $T$
+  if the bound of $X$
+  (as specified in the current environment $\Delta$)
+  is a subtype of $T$.
+\Item{\SrnRightFunction}{Right Function}
+  Every function type is a subtype of the type \FUNCTION.
+\Item{\SrnPositionalFunctionType}{Positional Function Type}
+  A function type $F_1$ with positional optional parameters
+  is a subtype of
+  another function type $F_2$ with positional optional parameters
+  if the former has at most
+  the same number of required parameters as the latter,
+  and the latter has at least
+  the same total number of parameters as the former;
+  the return type of $F_1$ is a subtype of that of $F_2$;
+  and each parameter type of $F_1$ is a \emph{supertype} of
+  the corresponding parameter type of $F_2$, if any.
+  Note that the relationship to function types with no optional parameters,
+  and the relationship between function types with no optional parameters,
+  is covered by letting $k_2 = 0$ respectively $k_1 = k_2 = 0$.
+  For every subtype relation considered in this rule,
+  the formal type parameters of $F_1$ and $F_2$ must be taken into account
+  (as reflected in the use of the extended environment $\Delta'$).
+  We can assume without loss of generality
+  that the names of type variables are pairwise identical,
+  because we consider types of generic functions to be equivalent under
+  consistent renaming
+  (\ref{typeOfAFunction}).
+  In short, ``during the proof, we will rename them as needed''.
+  Finally, note that the relationship between non-generic function types
+  is covered by letting $s = 0$.
+\Item{\SrnNamedFunctionType}{Named Function Type}
+  A function type $F_1$ with named optional parameters is a subtype of
+  another function type $F_2$ with named optional parameters
+  if they have the same number of required parameters,
+  and the set of names of named parameters for the latter is a subset
+  of that for the former;
+  the return type of $F_1$ is a subtype of that of $F_2$;
+  each parameter type of $F_1$ is a \emph{supertype} of
+  the corresponding parameter type of $F_2$, if any;
+  and each required named parameter in $F_1$ is also required in $F_2$.
+  Note that the relationship to function types with no optional parameters,
+  and the relationship between function types with no optional parameters,
+  is covered by letting $k_2 = 0$ respectively $k_1 = k_2 = 0$,
+  and also that the latter case is identical to the rule obtained from
+  rule~\SrnPositionalFunctionType{}
+  concerning subtyping among function types with no optional parameters.
+  As in rule~\SrnPositionalFunctionType,
+  we can assume without loss of generality
+  that the names of type variables are pairwise identical.
+  Similarly, non-generic functions are covered by letting $s = 0$.
+\Item{\SrnCovariance}{Class Covariance}
+  A parameterized type based on a generic class $C$ is a subtype of
+  a parameterized type based on the same class $C$ if
+  each actual type argument of the former is a subtype of
+  the corresponding actual type argument of the latter.
+  This rule may have $s = 0$ and cover a non-generic class as well,
+  but that is redundant because this is already covered by
+  rule~\SrnReflexivity.
+\Item{\SrnNominal}{Nominal Subtyping}
+  Considering the case where $s = 0$ and $m = 0$ first,
+  a parameterized type based on a non-generic class $C$ is a subtype of
+  a parameterized type based on a different non-generic class $D$ if
+  $D$ is a direct superinterface of $C$.
+  Subtyping relations with indirect superinterfaces are shown by
+  using this rule repeatedly.
+  When $s > 0$ or $m > 0$, this rule describes a subtype relationship
+  which includes one or more generic classes,
+  in which case we need to give names to the formal type parameters of $C$,
+  and specify how they are used in the specification of the superinterface
+  based on $D$.
+  With those pieces in place, we can specify the subtype relationship
+  that exists between two parameterized types based on $C$ and $D$.
+  %
+  %% TODO(eernst): Note that the specification of how to pass type arguments in
+  %% \ref{mixinApplication} is incorrect, and also that it will need to be
+  %% rewritten completely for the integration of the new mixin construct.
+  The case where the superclass is a mixin application is covered via
+  the equivalence with a declaration of a regular (possibly generic) superclass
+  (\ref{mixinApplication}),
+  and this means that there may be multiple subtype steps from
+  a given class declaration to the class specified in an \EXTENDS{} clause.
+\end{itemize}%
+>>>>>>> c90c5650 (Interface type and subtype rule fixes)
 }
 
 \subsubsection{Additional Subtyping Concepts}
@@ -22569,6 +22856,7 @@ if{}f $T$ is not non-nullable.
   regardless of the value of any type variables.
   This is equivalent to the syntactic criterion that $T$ is any of:
 
+<<<<<<< HEAD
   \begin{itemize}[itemsep=-0.5ex]
   \item \code{Never}.
   \item Any function type.
@@ -22579,6 +22867,29 @@ if{}f $T$ is not non-nullable.
   \item Any type of the form \code{$X$\,\&\,$S$}, where
     $X$ is a type variable and $S$ is non-nullable.
   \end{itemize}%
+||||||| parent of c90c5650 (Interface type and subtype rule fixes)
+\begin{itemize}[itemsep=-0.5ex]
+\item \code{Never}.
+\item Any function type.
+\item The type \FUNCTION.
+\item Any interface type except \code{Null}.
+\item \code{FutureOr<$S$>}, for any non-nullable type $S$.
+\item Any type variable $X$ whose bound is non-nullable.
+\item Any type of the form \code{$X$\,\&\,$S$}, where
+  $X$ is a type variable and $S$ is non-nullable.
+\end{itemize}%
+=======
+\begin{itemize}[itemsep=-0.5ex]
+\item \code{Never}.
+\item Any function type.
+\item The type \FUNCTION.
+\item Any interface type.
+\item \code{FutureOr<$S$>}, for any non-nullable type $S$.
+\item Any type variable $X$ whose bound is non-nullable.
+\item Any type of the form \code{$X$\,\&\,$S$}, where
+  $X$ is a type variable and $S$ is non-nullable.
+\end{itemize}%
+>>>>>>> c90c5650 (Interface type and subtype rule fixes)
 }
 
 \commentary{%
@@ -23895,15 +24206,13 @@ because the alternatives are ambiguous or complex.%
 
 \LMHash{}%
 We define the auxiliary function \NominalTypeDepthName{}
-on interface types and \code{Object?} as follows:
+on interface types as follows:
 
 \begin{itemize}
 \item
-  \DefEquals{\NominalTypeDepth{Object?}}{0}.
-\item
-  \DefEquals{\NominalTypeDepth{Object}}{1}.
-\item
-  \DefEquals{\NominalTypeDepth{Null}}{1}.
+  % We could make it 1 rather than 0, to "reserve space" for `Object?`,
+  % but this function is never used with `Object?` anyway.
+  \DefEquals{\NominalTypeDepth{Object}}{0}.
 \item
   Let $T$ be a class or a mixin,
   and let $M$ be the set of immediate superinterfaces of $T$.
@@ -23911,10 +24220,6 @@ on interface types and \code{Object?} as follows:
   where $d$ is
   $\metavar{max}\,\{\;\NominalTypeDepth{$S$}\;|\;S\;\in M\;\}$.
 \end{itemize}
-
-\commentary{%
-
-}
 
 \LMHash{}%
 \BlindDefineSymbol{I, J, M}%
@@ -24304,7 +24609,7 @@ Let $T$ be a type, and let $T'$ be the transitive alias expansion of $T$
 (\ref{typedef}).
 We say that $T$ is an \Index{interface type} if{}f
 $T'$ is of the form \code{$C$<\List{T}{1}{k}>},
-where $C$ denotes a class different from \code{Never},
+where $C$ denotes a class different from \code{Never} and \code{Null},
 or $C$ denotes a mixin.
 
 \commentary{%
@@ -24312,13 +24617,14 @@ or $C$ denotes a mixin.
   Non-generic classes are included because we can have $k = 0$.
 
   In particular, the following types are \emph{not} interface types:
-  \VOID, \DYNAMIC, \FUNCTION, \code{FutureOr<$T$>} for any $T$, \code{Never},
+  \VOID, \DYNAMIC, \FUNCTION, \code{FutureOr<$T$>} for any $T$,
+  \code{Never}, \code{Null},
   any function type, any type variable, any intersection type,
   and any type of the form \code{$T$?}.
 
-  Conversely, built-in classes
-  like \code{Object}, \code{Null}, \code{num}, \code{int},
-  \code{String}, and \code{Exception} are interface types,
+  Conversely, built-in classes like, e.g.,
+  \code{Object}, \code{num}, \code{int}, \code{String}, and \code{Exception}
+  are interface types,
   and so are
   \code{Future<$T$>}, \code{Stream<$T$>}, \code{Iterable<$T$>},
   \code{List<$T$>}, \code{Map<$S$,\,\,$T$}, and \code{Set<$T$>},
