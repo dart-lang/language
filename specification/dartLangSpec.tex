@@ -1276,36 +1276,53 @@ For example,
 is equivalent to
 \code{\VAR{} x; \VAR{} y;}
 and
-\code{\STATIC{} \FINAL{} String s1, s2 = "foo";}
-is equivalent to
-\code{\STATIC{} \FINAL{} String s1; \STATIC{} \FINAL{} String s2 = "foo";}.%
+\code{\STATIC\,\,\LATE\,\,\FINAL{} String s1, s2 = "foo";}
+is equivalent to having both
+\code{\STATIC\,\,\LATE\,\,\FINAL{} String s1;}
+and
+\code{\STATIC\,\,\LATE\,\,\FINAL{} String s2 = "foo";}.%
 }
 
 \LMHash{}%
 It is possible for a variable declaration to include the modifier \COVARIANT.
 The effect of doing this with an instance variable is described elsewhere
 (\ref{instanceVariables}).
-It is a compile-time error for the declaration of
+It is a \Error{compile-time error} for the declaration of
 a variable which is not an instance variable
 to include the modifier \COVARIANT.
 
 \LMHash{}%
 In a variable declaration of one of the forms
-\code{$N$ $v$;}
-\code{$N$ $v$ = $e$;}
+\code{$N$\,\,\id;}
+or
+\code{$N$\,\,\id{} = $e$;}
 where $N$ is derived from
-\syntax{<metadata> <finalConstVarOrType>},
-we say that $v$ is the \Index{declaring occurrence} of the identifier.
+\syntax{<metadata> <finalConstVarOrType>} and \id{} is an identifier,
+we say that \id{} is the \Index{declaring occurrence} of the identifier.
 For every identifier which is not a declaring occurrence,
 we say that it is an \Index{referencing occurrence}.
 We also abbreviate that to say that an identifier is
 a \Index{declaring identifier} respectively an \Index{referencing identifier}.
 
 \commentary{%
-In an expression of the form \code{$e$.\id} it is possible that
-$e$ has static type \DYNAMIC{} and \id{} cannot be associated with
-any specific declaration named \id{} at compile-time,
-but in this situation \id{} is still a referencing identifier.%
+In an expression of the form \code{$e$.$\id'$} it is possible that
+$e$ has static type \DYNAMIC{} and $\id'$ cannot be associated with
+any specific declaration named $\id'$ at compile-time,
+but in this situation $\id'$ is still a referencing identifier.%
+}
+
+\LMHash{}%
+For brevity, we will refer to a variable using its name,
+even though the name of a variable and the variable itself
+are very different concepts.
+
+\commentary{%
+So we will talk about ``the variable \id{}'',
+rather than introducing ``the variable $v$ named \id{}''\!,
+in order to be able to say ``the variable $v$'' later on.
+This should not create any ambiguities,
+\emph{because} the concept of a name and the concept of a variable
+are so different.%
 }
 
 \LMHash{}%
@@ -1317,100 +1334,184 @@ immediately followed by `\code{=}' and an \Index{initializing expression}.
 A variable declared at the top-level of a library is referred to as either a
 \IndexCustom{library variable}{variable!library} or a
 \IndexCustom{top-level variable}{variable!top-level}.
+It is a \Error{compile-time error} if a library variable declaration
+has the modifier \STATIC.
+
+\LMHash{}%
+A \IndexCustom{class variable}{variable!class}
+is a variable whose declaration is
+immediately nested inside a class declaration and
+includes the modifier \STATIC.
 
 \LMHash{}%
 A \IndexCustom{static variable}{variable!static}
 is a variable that is not associated with a particular instance,
 but rather with an entire library or class.
 Static variables include library variables and class variables.
-Class variables are variables whose declaration is
-immediately nested inside a class declaration and
-includes the modifier \STATIC.
-A library variable is implicitly static.
-It is a compile-time error to preface a top-level variable declaration
-with the built-in identifier (\ref{identifierReference}) \STATIC.
+
+\LMHash{}%
+A \Error{compile-time error} occurs if a static variable has a
+no initializing expression and a type which is not nullable
+(\ref{typeNullability}),
+unless the variable declaration has
+the modifier \LATE{} or \EXTERNAL.
+
+\LMHash{}%
+A \IndexCustom{non-local variable}{variable!non-local}
+is a library variable, a class variable, or an instance variable.
+\commentary{%
+That is, any kind of variable which is not a local variable.%
+}
 
 \LMHash{}%
 A \IndexCustom{constant variable}{variable!constant}
 is a variable whose declaration includes the modifier \CONST.
 A constant variable must be initialized to a constant expression
-(\ref{constants})
-or a compile-time error occurs.
+(\ref{constants}),
+or a \Error{compile-time error} occurs.
 
 \commentary{%
 An initializing expression of a constant variable occurs in a constant context
 (\ref{constantContexts}),
-which means that \CONST{} modifiers need not be specified explicitly.%
+which means that \CONST{} modifiers need not be specified explicitly.
+We need not specify that it is a compile-time error for a constant variable
+to have the modifier \LATE,
+because such declarations are not derivable syntactically.%
 }
 
 \LMHash{}%
 A \IndexCustom{final variable}{variable!final}
 is a variable whose binding is fixed upon initialization;
-a final variable $v$ will always refer to the same object
-after $v$ has been initialized.
+a final variable \id{} will always refer to the same object
+after \id{} has been initialized.
 A variable is final if{}f its declaration includes
 the modifier \FINAL{} or the modifier \CONST.
-
-\LMHash{}%
 A \IndexCustom{mutable variable}{variable!mutable}
 is a variable which is not final.
 
-%% Note that the following relies on the assumption that inference has
-%% already taken place, including member signature inference. For instance,
-%% if `var x;` is an instance variable declaration that overrides `T get x;`
-%% then we treat `var x;` as if it had been `T x;`.
+
+\subsection{Implicitly Induced Getters and Setters}
+\LMLabel{implicitlyInducedGettersAndSetters}
 
 \LMHash{}%
 The following rules on implicitly induced getters and setters
-apply to all static and instance variables.
+apply to all non-local variable declarations.
+\commentary{%
+Local variable declarations
+(\ref{localVariableDeclaration})
+do not induce getters or setters.%
+}
+For each form of declaration mentioned,
+the modifier \STATIC{} may be present or absent.
 
 \LMHash{}%
 A variable declaration of one of the forms
-\code{$T$ $v$;}
-\code{$T$ $v$ = $e$;}
-\code{\CONST{} $T$ $v$ = $e$;}
-\code{\FINAL{} $T$ $v$;}
-or \code{\FINAL{} $T$ $v$ = $e$;}
-induces an implicit getter function (\ref{getters}) with signature
-\code{$T$ \GET{} $v$}
+\code{\LATE?\,\,$T$\,\,\id;}
+\code{\LATE?\,\,$T$\,\,\id{} = $e$;}
+\code{\CONST\,\,$T$\,\,\id{} = $e$;}
+\code{\LATE?\,\,\FINAL\,\,$T$\,\,\id;} or
+\code{\LATE?\,\,\FINAL\,\,$T$\,\,\id{} = $e$;}
+where $T$ is a type
+implicitly induces a getter (\ref{getters}) with header
+\code{$T$\,\,\GET\,\,\id},
 whose invocation evaluates as described below
 (\ref{evaluationOfImplicitVariableGetters}).
-In these cases the static type of $v$ is $T$.
+In these cases the static type of \id{} is $T$.
 
 \LMHash{}%
 A variable declaration of one of the forms
-\code{\VAR{} $v$;}
-\code{\VAR{} $v$ = $e$;}
-\code{\CONST{} $v$ = $e$;}
-\code{\FINAL{} $v$;}
-or \code{\FINAL{} $v$ = $e$;}
-induces an implicit getter function with signature
-\code{\DYNAMIC{} \GET{} $v$}
+\code{\LATE?\,\,\VAR\,\,\id;} or
+\code{\LATE?\,\,\FINAL\,\,\id;}
+implicitly induces a getter with header
+\code{\DYNAMIC\,\,\GET\,\,\id},
 whose invocation evaluates as described below
 (\ref{evaluationOfImplicitVariableGetters}).
-%% TODO[inference]: We assume inference has taken place, i.e., inferred types
-%% are written explicitly. Does this mean that the initialized variants
-%% cannot exist (not even for `$e$` of type `dynamic`?). We probably don't
-%% want to start talking about a grammar before inference and another one
-%% after inference.
-In these cases, the static type of $v$ is \DYNAMIC{}
+In these cases, the static type of \id{} is \DYNAMIC{}
 (\ref{typeDynamic}).
 
+\commentary{%
+Type inference is assumed to have taken place already
+(\ref{typeInference}).
+For example, an instance variable declaration of the form
+\code{\VAR\,\,x;} could have been transformed into
+\code{$T$\,\,x;} based on member signatures named \code{x} in superinterfaces
+of the enclosing class.
+Hence, the type \DYNAMIC{} is only used as mentioned above when
+type inference fails to provide a different type.%
+}
+
 \LMHash{}%
-A mutable variable declaration of the form
-\code{{} $T$ $v$;}
-or \code{$T$ $v$ = $e$;}
-induces an implicit setter function (\ref{setters}) with signature
-\code{\VOID{} \SET{} $v$=($T$ $x$)}
-whose execution sets the value of $v$ to the incoming argument $x$.
+A variable declaration of one of the forms
+\code{\LATE?\,\,\VAR\,\,\id{} = $e$;}
+\code{\CONST\,\,\id{} = $e$;}
+or \code{\LATE?\,\,\FINAL\,\,\id{} = $e$;}
+implicitly induces a getter with header
+\code{$T$\,\,\GET\,\,\id}
+where $T$ is the static type of $e$.
+The semantics of an invocation of such getters is described below
+(\ref{evaluationOfImplicitVariableGetters}).
+In these cases, the static type of \id{} is $T$.
 
 \LMHash{}%
 A mutable variable declaration of the form
-\code{\VAR{} $v$;}
-or \code{\VAR{} $v$ = $e$;}
-induces an implicit setter function with signature
-\code{\VOID{} \SET{} $v$=(\DYNAMIC{} $x$)}
-whose execution sets the value of $v$ to the incoming argument $x$.
+\code{\LATE?\,\,$T$\,\,\id;} or
+\code{\LATE?\,\,$T$\,\,\id{} = $e$;}
+implicitly induces a setter (\ref{setters}) with header
+\code{\VOID\,\,\SET\,\,\id($T$\,\,$x$)},
+whose execution sets the value of \id{} to the incoming argument $x$.
+
+\LMHash{}%
+A variable declaration of the form
+\code{\LATE\,\,\FINAL\,\,$T$\,\,\id;}
+implicitly induces a setter (\ref{setters}) with header
+\code{\VOID\,\,\SET\,\,\id($T$\,\,$x$)}.
+If this setter is executed
+in a situation where the variable \id{} has not been bound,
+it will bind \id{} to the object that $x$ is bound to.
+If this setter is executed
+in a situation where the variable \id{} has been bound to an object,
+a dynamic error occurs.
+
+\commentary{%
+A late final variable declaration with no initializer is permitted.
+It introduces a variable which may be assigned to
+so long as the variable is not known to be definitely assigned.
+The property that the variable is never mutated after initialization
+is enforced dynamically rather than statically.%
+}
+
+\LMHash{}%
+A mutable variable declaration of the form
+\code{\LATE?\,\,\VAR\,\,\id;}
+implicitly induces a setter with header
+\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)},
+whose execution sets the value of \id{} to the incoming argument $x$.
+
+\commentary{%
+It is again assumed that type inference has taken place already,
+which could change \code{\VAR\,\,x;} to \code{$T$\,\,x;}
+and hence take us to an earlier case.%
+}
+
+\LMHash{}%
+A mutable variable declaration of the form
+\code{\LATE?\,\,\VAR\,\,\id{} = $e$;}
+implicitly induces a setter with header
+\code{\VOID\,\,\SET\,\,\id($T$\,\,$x$)}
+where $T$ is the static type of $e$,
+whose execution sets the value of \id{} to the incoming argument $x$.
+
+\LMHash{}%
+A variable declaration of the form
+\code{\LATE\,\,\FINAL\,\,\id;}
+implicitly induces a setter with header
+\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)}.
+An execution of said setter
+in a situation where the variable \id{} has not been bound
+will bind \id{} to the object that the argument $x$ is bound to.
+An execution of the setter
+in a situation where the variable \id{} has been bound to an object
+will incur a dynamic error.
 
 \LMHash{}%
 The scope into which the implicit getters and setters are introduced
@@ -1418,26 +1519,28 @@ depends on the kind of variable declaration involved.
 
 \LMHash{}%
 A library variable introduces a getter into
-the top level scope of the enclosing library.
+the library scope of the enclosing library.
 A class variable introduces a static getter into
-the immediately enclosing class.
+the body scope of the immediately enclosing class.
 An instance variable introduces an instance getter into
-the immediately enclosing class.
+the body scope of the immediately enclosing class.
 
 \LMHash{}%
 A mutable library variable introduces a setter into
-the top level scope of the enclosing library.
+the library scope of the enclosing library.
 A mutable class variable introduces a static setter into
-the immediately enclosing class.
-A mutable instance variable introduces an instance setter into
-the immediately enclosing class.
+the body scope of the immediately enclosing class.
+An instance variable that introduces a setter
+(\commentary{it can be non-final, or late and final})
+introduces an instance setter into
+the body scope of the immediately enclosing class.
 
 \LMHash{}%
-Let $v$ be variable declared in an initializing variable declaration,
+Let \id{} be variable declared in an initializing variable declaration,
 and let $e$ be the associated initializing expression.
-It is a compile-time error if the static type of $e$
-is not assignable to the declared type of $v$.
-It is a compile-time error if a final instance variable
+It is a \Error{compile-time error} if the static type of $e$
+is not assignable to the declared type of \id.
+It is a \Error{compile-time error} if a final instance variable
 whose declaration has an initializer expression
 is also initialized by a constructor,
 either by an initializing formal or an initializer list entry.
@@ -1446,34 +1549,39 @@ either by an initializing formal or an initializer list entry.
 It is a compile-time error if a final instance variable
 that has been initialized by means of
 an initializing formal of a constructor $k$
-is also initialized in the initializer list of $k$ (\ref{initializerLists}).
+is also initialized in the initializer list of $k$
+(\ref{initializerLists}).
 
-%% TODO(eernst): Not quite true, because of special lookup for assignment!
-A static final variable $v$ does not induce a setter,
-so unless a setter named \code{$v$=} is in scope
-it is a compile-time error to assign to $v$.
+A non-late static final variable \id{} does not induce a setter,
+so unless a setter named \code{\id=} can be found by lexical lookup
+(\ref{lexicalLookup}),
+it is a compile-time error to assign to \id.
 
-Similarly, assignment to a final instance variable $v$
+Similarly, assignment to a non-late final instance variable \id{}
 is a compile-time error,
-unless a setter named \code{$v$=} is in scope,
+unless a setter named \code{\id=} can be found by lexical lookup,
 or the receiver has type \DYNAMIC.
-$v$ can be initialized in its declaration or in initializer lists,
+\id{} can be initialized in its declaration or in initializer lists,
 but initialization and assignment is not the same thing.
 When the receiver has type \DYNAMIC{}
 such an assignment is not a compile-time error,
-% This error can occur because the receiver is dynamic.
-but if there is no setter it will cause a dynamic error.%
+but if there is no such setter it will cause a dynamic error.%
 }
 
 \LMHash{}%
-A variable that has no initializing expression has the null object
+Consider a variable \id{} with no initializing expression
+whose declaration does not have the modifier \LATE.
+If this is not a compile-time error then \id{} has the null object
 (\ref{null})
 as its initial value.
+
+\LMHash{}%
 Otherwise, variable initialization proceeds as follows:
 
 \LMHash{}%
-Static variable declarations with an initializing expression
-are initialized lazily
+A static variable declaration
+(\commentary{that is, a declaration of a library variable or a class variable})
+with an initializing expression is initialized lazily
 (\ref{evaluationOfImplicitVariableGetters}).
 
 \rationale{%
@@ -1491,11 +1599,11 @@ takes place during constructor execution
 }
 
 \LMHash{}%
-Initialization of an instance variable $v$
+Initialization of an instance variable \id{}
 with an initializing expression $e$
 proceeds as follows:
 $e$ is evaluated to an object $o$
-and the variable $v$ is bound to $o$.
+and the variable \id{} is bound to $o$.
 
 \commentary{%
 It is specified elsewhere when this initialization occurs,
@@ -1514,10 +1622,9 @@ will throw.%
 }
 
 \LMHash{}%
-% This error can occur due to implicit casts, and
-% for instance variables also when a setter is called dynamically.
+% This error can occur due to an implicit downcast from \DYNAMIC.
 It is a dynamic type error if the dynamic type of $o$ is not
-a subtype of the actual type of the variable $v$
+a subtype of the actual type of the variable \id{}
 (\ref{actualTypes}).
 
 
@@ -1525,53 +1632,173 @@ a subtype of the actual type of the variable $v$
 \LMLabel{evaluationOfImplicitVariableGetters}
 
 \LMHash{}%
-\BlindDefineSymbol{d, v}%
-Let $d$ be the declaration of a static or instance variable $v$.
-If $d$ is an instance variable,
-then the invocation of the implicit getter of $v$ evaluates to
-the object stored in $v$.
-If $d$ is a static variable
-(\commentary{which can be a library variable})
-then the implicit getter method of $v$ executes as follows:
+\BlindDefineSymbol{d, \id}%
+Let $d$ be the declaration of a non-local variable named \id.
+For brevity, we will refer to it below as
+`the variable \id' or `the variable $d$', or just as `\id' or `$d$'.
+
+\LMHash{}%
+\Case{Non-late instance variable}
+If $d$ declares an instance variable which does not have the modifier \LATE,
+then the invocation of the implicit getter of \id{} evaluates to
+the object that \id{} is bound to.
+\EndCase
+
+\LMHash{}%
+\Case{Late, initialized instance variable}
+If $d$ declares an instance variable which has the modifier \LATE{}
+and an initializing expression $e$,
+then an invocation of the implicit getter of \id{}
+in a situation where the variable \id{} has not been bound
+will evaluate $e$ to an object $o$,
+bind \id{} to $o$,
+and complete returning $o$;
+if the evaluation of $e$ throws then
+the invocation of the getter throws the same object and stack trace.
+An invocation of the implicit getter of \id{}
+in a situation where the variable \id{} has been bound to an object $o'$
+evaluates to $o'$.
+
+\commentary{%
+Consider an instance variable declaration of the form
+\code{\LATE\,\,\VAR\,\,x = $e$;}.
+Perhaps surprisingly,
+if the variable \code{x} has been bound to an object
+when its getter is invoked for the first time,
+$e$ will never be executed.
+Another example worth noting
+is given below in the text about
+a non-constant static variable with an initializer.
+That example (i.e., the one with \code{bool\,\,b;} and \code{int\,\,i = ...;})
+works in the same manner when \code{i} is an instance variable.%
+}
+\EndCase
+
+\LMHash{}%
+\Case{Late, uninitialized instance variable}
+Consider the case where $d$ declares an instance variable
+which has the modifier \LATE{} and no initializing expression.
+Assume that the object denoted by \THIS{} was created with
+a constructor invocation where said instance variable was initialized
+by an initializing formal or by an initializer list element,
+or that the corresponding setter named \code{\id=} has been executed
+and completed without throwing.
+In this case, an invocation of the implicit getter of \id{}
+will evaluate to the object that \id{} is bound to.
+Otherwise
+(\commentary{when this variable has never been bound}),
+the getter invocation incurs a dynamic error.
+\EndCase
+
+\LMHash{}%
+\Case{Static variable}
+If $d$ declares a static variable
+(\commentary{that is, a library variable or a class variable}),
+the implicitly induced getter of \id{} executes as follows:
+
 \begin{itemize}
-\item {\bf Non-constant variable declaration with initializer}.
+\item \emph{Non-constant variable with an initializer.}
+  Consider the case where $d$ has one of the forms
+  \code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id{} = $e$;},
+  \code{\STATIC?\,\,\LATE?\,\,\FINAL\,\,\id{} = $e$;}, or
+  \code{\STATIC?\,\,\LATE?\,\,\FINAL?\,\,$T$\,\,\id{} = $e$;}.
+
+  The invocation of the implicitly induced getter of \id{}
+  in a situation where the variable \id{} has not been bound
+  will evaluate $e$ to an object $o$, bind \id{} to $o$,
+  and complete returning $o$;
+  if the evaluation of $e$ throws,
+  the invocation of the getter throws the same object and stack trace.
+  An invocation of the getter of \id{}
+  in a situation where the variable \id{} has been bound to an object $o'$
+  completes returning $o'$.
+
+  \commentary{%
+  Note that an initializing expression can have side effects
+  that are significant during initialization.
+  For example:%
+  }
+
+\begin{dartCode}
+bool b = \TRUE;
+int i = (() => (b = !b) ? (i = 10) : i + 1)();
+\\
+\VOID{} main() \{
+  print(i); // '11'.
+\}
+\end{dartCode}
+
+  \commentary{%
+  In this example, \code{main} invokes
+  the implicitly induced getter named \code{i},
+  and the variable \code{i} has not been bound at this point.
+  Hence, evaluation of the initializing expression proceeds.
+  This causes \code{b} to be toggled to \FALSE,
+  which again causes \code{i + 1} to be evaluated.
+  This causes the getter \code{i} to be invoked again,
+  and it is still true that the variable has not been bound,
+  so the initializing expression is evaluated again.
+  This toggles \code{b} to \TRUE,
+  which causes \code{i = 10} to be evaluated,
+  which causes the implicitly induced setter named \code{i=} to be invoked,
+  and the most recent invocation of the getter \code{i}
+  returns 10.
+  This makes \code{i + 1} evaluate to 11,
+  and the variable is then bound to 11.
+  Finally, the invocation of the getter \code{i} in \code{main}
+  completes returning 11.%
+  }
+
+  \commentary{%
+  Note that this is a change from the semantics older versions of Dart:
+  Throwing an exception during initializer evaluation no longer sets the
+  variable to \code{null},
+  and reading the variable during initializer evaluation
+  no longer causes a dynamic error.%
+  }
+\item \emph{Constant variable.}
   If $d$ is of one of the forms
-  \code{\VAR{} $v$ = $e$;},
-  \code{$T$ $v$ = $e$;},
-  \code{\FINAL{} $v$ = $e$;},
-  \code{\FINAL{} $T$ $v$ = $e$;},
-  \code{\STATIC{} $v$ = $e$;},
-  \code{\STATIC{} $T$ $v$ = $e$; },
-  \code{\STATIC{} \FINAL{} $v$ = $e$; } or
-  \code{\STATIC{} \FINAL{} $T$ $v$ = $e$;}
-  and no object has yet been stored into $v$
-  then the initializing expression $e$ is evaluated.
-  If, during the evaluation of $e$, the getter for $v$ is invoked,
-  a \code{CyclicInitializationError} is thrown.
-  If the evaluation of $e$ throws an exception $e$ and stack trace $s$,
-  the null object (\ref{null}) is stored into $v$;
-  the execution of the getter then throws $e$ and stack trace $s$.
-  Otherwise, the evaluation of $e$ succeeded yielding an object $o$;
-  then $o$ is stored into $v$ and
-  the execution of the getter completes by returning $o$.
-  Otherwise,
-  (\commentary{when an object $o$ has been stored in $v$})
-  execution of the getter completes by returning $o$.
-\item {\bf Constant variable declaration}.
-  If $d$ is of one of the forms
-  \code{\CONST{} $v$ = $e$;},
-  \code{\CONST{} $T$ $v$ = $e$;},
-  \code{\STATIC{} \CONST{} $v$ = $e$;} or
-  \code{\STATIC{} \CONST{} $T$ $v$ = $e$;}
-  the result of the getter is the value of the constant expression $e$.
+  \code{\STATIC?\,\,\LATE?\,\,\CONST{} $v$ = $e$;} or
+  \code{\STATIC?\,\,\LATE?\,\,\CONST{} $T$ $v$ = $e$;}.
+  the result of the executing the implicitly induced getter is
+  the value of the constant expression $e$.
   \commentary{%
   Note that a constant expression cannot depend on itself,
   so no cyclic references can occur.%
   }
-\item {\bf Variable declaration without initializer}.
-  The result of executing the getter method is the object stored in $v$.
-  \commentary{This may be the initial value, that is, the null object.}
+\item \emph{Variable without an initializer.}
+  Consider the case where $d$ has one of the forms
+  \code{\STATIC?\,\,\VAR\,\,\id;} or
+  \code{\STATIC?\,\,$T$\,\,\id;}.
+  The result of executing the implicitly induced getter of \id{} is
+  the object that \id{} is bound to.
+
+  \commentary{%
+  This may be the initial value, that is, the null object
+  (the typed variant is an error unless $T$ is nullable).
+  Note that forms like \code{\FINAL\,\,\id;} and
+  \code{\FINAL\,\,$T$\,\,\id;} are irrelevant here:
+  They are syntax errors at the top level,
+  and instance variables were specified earlier in this section.
+  The forms \code{\STATIC\,\,\FINAL\,\,\id;} and
+  \code{\STATIC\,\,\FINAL\,\,$T$\,\,\id;}
+  are syntax errors as well.%
+  }
+
+  Consider the situation where $d$ has one of the forms
+  \code{\STATIC?\,\,\LATE\,\,\VAR\,\,\id;},
+  \code{\STATIC?\,\,\LATE\,\,\FINAL\,\,\id;}, or
+  \code{\STATIC?\,\,\LATE\,\,\FINAL?\,\,$T$\,\,\id;}.
+  An execution of the implicitly induced getter of \id{}
+  in a situation where the variable \id{} is bound to an object $o$
+  will complete returning $o$.
+  An execution of the implicitly induced getter of \id{}
+  in a situation where the variable \id{} is unbound
+  will incur a dynamic error.
 \end{itemize}
+
+% Reduce whitespace after itemized list: This is just an end symbol.
+\vspace{-\baselineskip}\EndCase
 
 
 \section{Functions}
