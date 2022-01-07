@@ -17582,6 +17582,7 @@ The properties of being
 apply to local variables with the same definitions as for other variables
 (\ref{variables}).
 
+%% TODO(eernst): May need updates/deletion when flow analysis is integrated.
 \LMHash{}%
 We say that a local variable $v$ is \Index{potentially mutated}
 in some scope $s$
@@ -17590,41 +17591,108 @@ if $v$ is mutable, and an assignment to $v$ occurs in $s$.
 \LMHash{}%
 A local variable declaration of the form \code{\VAR{} $v$;} is equivalent to
 \code{\VAR{} $v$ = \NULL;}.
-A local variable declaration of the form \code{$T$ $v$;} is equivalent to
-\code{$T$ $v$ = \NULL;}.
+If $T$ is a nullable type
+(\ref{typeNullability})
+then a local variable declaration of the form \code{$T$ $v$;}
+is equivalent to \code{$T$ $v$ = \NULL;}.
 
+%% TODO(eernst): Revise when flow analysis is added.
 \commentary{%
-This holds regardless of the type $T$.
-E.g., \code{int i;} is equivalent to \code{int i = null;}.%
+If $T$ is a potentially non-nullable type
+then a local variable declaration of the form \code{$T$ $v$;} is allowed,
+but an expression that gives rise to evaluation of $v$
+is a compile-time error unless flow analysis
+(\ref{flowAnalysis})
+shows that the variable is guaranteed to have been initialized.%
 }
 
 \LMHash{}%
-The type of a local variable with a declaration of one of the forms
-\code{$T$ $v$ = $e$;}
-\code{\CONST{} $T$ $v$ = $e$;}
-\code{\FINAL{} $T$ $v$ = $e$;}
+A local variable has an associated
+\IndexCustom{declared type}{local variable!declared type}
+which is determined from its declaration.
+A local variable also has an associated
+\IndexCustom{type}{local variable!type}
+which is determined by flow analysis
+(\ref{flowAnalysis})
+via a process known as type promotion
+(\ref{typePromotion}).
+
+\LMHash{}%
+The declared type of a local variable with a declaration of one of the forms
+\code{\LATE?\,\,$T$\,\,$v$ = $e$;}
+\code{\LATE?\,\,\FINAL\,\,$T$\,\,$v$ = $e$;}
+\code{\CONST\,\,$T$\,\,$v$ = $e$;}
 is $T$.
-The type of a local variable with a declaration of one of the forms
-\code{\VAR{} $v$ = $e$;}
-\code{\CONST{} $v$ = $e$;}
-\code{\FINAL{} $v$ = $e$;}
-is \DYNAMIC.
+
+\LMHash{}%
+The declared type of a local variable with a declaration of one of the forms
+\code{\LATE?\,\,\VAR\,\,$v$ = $e$;}
+\code{\LATE?\,\,\FINAL\,\,$v$ = $e$;}
+\code{\CONST\,\,$v$ = $e$;}
+is determined as follows:
+
+\begin{itemize}
+\item
+  If the static type of $e$ is \code{Null} then
+  the declared type of $v$ is \DYNAMIC.
+\item
+  If the static type of $e$ is of the form \code{$X$\,\&\,$T$}
+  where $X$ is a type variable
+  (\ref{intersectionTypes}),
+  the declared type of $v$ is \code{X}.
+  \commentary{%
+    In this case $v$ is immediately promoted
+    (\ref{typePromotion}).%
+  }
+\item
+  Otherwise, the declared type of $v$ is the static type of $e$.
+\end{itemize}
 
 \LMHash{}%
 Let $v$ be a local variable declared by an initializing variable declaration,
 and let $e$ be the associated initializing expression.
-It is a compile-time error if the static type of $e$ is not assignable to
-the type of $v$.
-It is a compile-time error if a local variable $v$ is final,
-and the declaration of $v$ is not an initializing variable declaration.
+It is a
+\Error{compile-time error} if the static type of $e$ is not assignable to
+the declared type of $v$.
+
+%% TODO(eernst): Revise when flow analysis is added.
+\commentary{%
+If a local variable $v$ is \FINAL{} and not \LATE,
+it is not a compile-time error if the declaration of $v$ is
+not an initializing variable declaration,
+but an expression that gives rise to evaluation of $v$
+is a compile-time error unless flow analysis shows that
+the variable is guaranteed to have been initialized.
+Similarly, an expression that gives rise to an assignment to $v$
+is a compile-time error unless flow analysis shows that
+it is guaranteed that the variable has \emph{not} been initialized.%
+}
 
 \commentary{%
-It is also a compile-time error to assign to a final local variable
+It is a compile-time error to assign to a local variable
+which is \FINAL{} and not \LATE{}
 (\ref{assignment}).%
 }
 
 \LMHash{}%
-It is a compile-time error if
+Assume that $D$ is a local variable declaration with the modifier \LATE{}
+that declares a variable $v$,
+which has an initializing expression $e$.
+It is a \Error{compile-time error} if $e$ contains an \AWAIT{} expression $a$
+(\ref{awaitExpressions}),
+unless there is a function $f$ which is
+the immediately enclosing function for $a$,
+and $f$ is not the immediately enclosing function for $D$.
+
+\commentary{%
+In other words,
+the initializing expression cannot await an expression directly,
+any await expressions must be nested inside some other function,
+that is, a function literal.%
+}
+
+\LMHash{}%
+It is a \Error{compile-time error} if
 a local variable is referenced at a source code location that is before
 the end of its initializing expression, if any,
 and otherwise before the declaring occurrence of
@@ -17712,15 +17780,39 @@ proceeds as follows:
 
 \LMHash{}%
 The expression $e$ is evaluated to an object $o$.
-Then, the variable $v$ is set to $o$.
-% This error can occur due to implicit casts.
+% The following error can occur due to implicit casts.
 A dynamic type error occurs
-if the dynamic type of $o$ is not a subtype of the actual type
+if the dynamic type of $o$ is not a subtype of the actual declared type
 (\ref{actualTypes})
 of $v$.
+Otherwise, the variable $v$ is bound to $o$.
 
-% The local variable discussion does not mention how to read/write locals.
-% Consider spelling this out, in terms of storage.
+\LMHash{}%
+Let $D$ be a \LATE{} and \FINAL{} local variable declaration
+that declares a variable $v$.
+If an object $o$ is assigned to $v$
+in a situation where $v$ is unbound
+then $v$ is bound to $o$.
+If an object $o$ is assigned to $v$
+in a situation where $v$ is bound to an object $o'$
+then a dynamic error occurs
+(\commentary{it does not matter whether $o$ is the same object as $o'$}).
+
+\commentary{%
+Note that this includes the implicit initializing writes induced by
+evaluating the variable.
+Hence, the following program encounters a dynamic error
+when it evaluates \code{x},
+just before it would call \code{print}.%
+}
+
+\begin{dartCode}
+\VOID\ main() \{
+  int i = 0;
+  \LATE\ \FINAL\ int x = i++ == 0 ? x + 1 : 0;
+  print(x);
+\}
+\end{dartCode}
 
 
 \subsection{Local Function Declaration}
@@ -21151,7 +21243,7 @@ A reader who has read many research papers about object-oriented type systems
 may find the meaning of the given notation obvious,
 but we still need to clarify a few details about how to handle
 syntactically different denotations of the same type,
-and how to choose the right initial environment, $\Gamma$.
+and how to choose the right initial environment, $\Delta$.
 %
 For a reader who is not familiar with the notation used in this section,
 the explanations given here should suffice to clarify what it means,
@@ -21254,7 +21346,7 @@ and the subtype relationship is always determined in the same way.
     \RuleTwo{\SrnRightPromotedVariable}{Right Promoted Variable}{S}{X}{S}{T}{%
       S}{X \& T}
     \Rule{\SrnRightFutureOrB}{Right FutureOr B}{S}{T}{S}{\code{FutureOr<$T$>}}
-    \Rule{\SrnLeftVariableBound}{Left Variable Bound}{\Gamma(X)}{T}{X}{T}
+    \Rule{\SrnLeftVariableBound}{Left Variable Bound}{\Delta(X)}{T}{X}{T}
   \end{minipage}
   \begin{minipage}[c]{0.49\textwidth}
     \Axiom{\SrnTypeVariableReflexivityA}{Left Promoted Variable A}{X \& S}{X}
@@ -21267,26 +21359,26 @@ and the subtype relationship is always determined in the same way.
   %
   \ExtraVSP
   \RuleRawRaw{\SrnPositionalFunctionType}{Positional Function Types}{%
-    \Gamma' = \Gamma\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
-    \Subtype{\Gamma'}{S_0}{T_0} \\
+    \Delta' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
+    \Subtype{\Delta'}{S_0}{T_0} \\
     n_1 \leq n_2 &
     n_1 + k_1 \geq n_2 + k_2 &
-    \forall j \in 1 .. n_2 + k_2\!:\;\Subtype{\Gamma'}{T_j}{S_j}}{%
+    \forall j \in 1 .. n_2 + k_2\!:\;\Subtype{\Delta'}{T_j}{S_j}}{%
     \begin{array}{c}
-      \Gamma\vdash\RawFunctionTypePositional{S_0}{X}{B}{s}{S}{n_1}{k_1}\;<:\;\\
+      \Delta\vdash\RawFunctionTypePositional{S_0}{X}{B}{s}{S}{n_1}{k_1}\;<:\;\\
       \RawFunctionTypePositional{T_0}{X}{B}{s}{T}{n_2}{k_2}
     \end{array}}
   \ExtraVSP\ExtraVSP
   \RuleRawRaw{\SrnNamedFunctionType}{Named Function Types}{%
-    \Gamma' = \Gamma\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
-    \Subtype{\Gamma'}{S_0}{T_0} &
-    \forall j \in 1 .. n\!:\;\Subtype{\Gamma'}{T_j}{S_j} \\
+    \Delta' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
+    \Subtype{\Delta'}{S_0}{T_0} &
+    \forall j \in 1 .. n\!:\;\Subtype{\Delta'}{T_j}{S_j} \\
     \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\} \\
     \forall p \in 1 .. k_2, q \in 1 .. k_1:\quad
-    y_{n+p} = x_{n+q}\quad\Rightarrow\quad\Subtype{\Gamma'}{T_{n+p}}{S_{n+q}}}{%
+    y_{n+p} = x_{n+q}\quad\Rightarrow\quad\Subtype{\Delta'}{T_{n+p}}{S_{n+q}}}{%
     \begin{array}{c}
-      \Gamma\vdash\RawFunctionTypeNamed{S_0}{X}{B}{s}{S}{n}{x}{k_1}\;<:\;\\
-      \RawFunctionTypeNamed{T_0}{X}{B}{s}{T}{n}{y}{k_2}
+      \Delta\vdash\RawFunctionTypeNamed{S_0}{X}{B}{s}{S}{n}{x}{k_1}{r}\;<:\;\\
+      \RawFunctionTypeNamed{T_0}{X}{B}{s}{T}{n}{y}{k_2}{r}
     \end{array}}
   %
   \ExtraVSP
@@ -21414,24 +21506,24 @@ then the attempt to prove the relationship simply fails.%
 
 \LMHash{}%
 The rules in Figure~\ref{fig:subtypeRules} use
-the symbol \Index{$\Gamma$} to denote the given knowledge about the
+the symbol \Index{$\Delta$} to denote the given knowledge about the
 bounds of type variables.
-$\Gamma$ is a partial function that maps type variables to types.
+$\Delta$ is a partial function that maps type variables to types.
 At a given location where the type variables in scope are
 \TypeParametersStd{}
 (\commentary{as declared by enclosing classes and/or functions}),
 we define the environment as follows:
-$\Gamma = \{\,X_1 \mapsto B_1,\ \ldots\ X_s \mapsto B_s\,\}$.
+$\Delta = \{\,X_1 \mapsto B_1,\ \ldots\ X_s \mapsto B_s\,\}$.
 \commentary{%
-That is, $\Gamma(X_1) = B_1$, and so on,
-and $\Gamma$ is undefined when applied to a type variable $Y$
+That is, $\Delta(X_1) = B_1$, and so on,
+and $\Delta$ is undefined when applied to a type variable $Y$
 which is not in $\{\,\List{X}{1}{s}\,\}$.%
 }
 When the rules are used to show that a given subtype relationship exists,
-this is the initial value of $\Gamma$.
+this is the initial value of $\Delta$.
 
 \LMHash{}%
-If a generic function type is encountered, an extension of $\Gamma$ is used,
+If a generic function type is encountered, an extension of $\Delta$ is used,
 as shown in the rules~\SrnPositionalFunctionType{}
 and~\SrnNamedFunctionType{}
 of Figure~\ref{fig:subtypeRules}.
@@ -21488,9 +21580,9 @@ that is, in the premises as well as in the conclusion, simultaneously.%
 
 \LMHash{}%
 A type $S$ is shown to be a \Index{subtype} of another type $T$
-in an environment $\Gamma$ by providing
+in an environment $\Delta$ by providing
 an instantiation of a rule $R$ whose conclusion is
-\IndexCustom{\SubtypeStd{S}{T}}{$\Gamma$@\SubtypeStd{S}{T}},
+\IndexCustom{\SubtypeStd{S}{T}}{$\Delta$@\SubtypeStd{S}{T}},
 along with rule instantiations showing
 each of the premises of $R$,
 continuing until a rule with no premises is reached.
@@ -21616,11 +21708,11 @@ showing that $S$ is a subtype of $T$ is sufficient to show that $S$ is
 a subtype of \code{FutureOr<$T$>}.
 
 Another example is the wording in rule~\SrnReflexivity{}:
-``\ldots{} in any environment $\Gamma$'',
+``\ldots{} in any environment $\Delta$'',
 which indicates that the rule can be applied no matter which bindings
 of type variables to bounds there exist in the environment.
 It should be noted that the environment matters even with rules
-where it is simply stated as a plain $\Gamma$ in the conclusion
+where it is simply stated as a plain $\Delta$ in the conclusion
 and in one or more premises,
 because the proof of those premises could, directly or indirectly,
 include the application of a rule where the environment is used.
@@ -21628,7 +21720,7 @@ include the application of a rule where the environment is used.
 \def\Item#1#2{\item[#1]{\textbf{#2:}}}
 \begin{itemize}
 \Item{\SrnReflexivity}{Reflexivity}
-  Every type is a subtype of itself, in any environment $\Gamma$.
+  Every type is a subtype of itself, in any environment $\Delta$.
   In the following rules except for a few,
   the rule is also valid in any environment
   and the environment is never used explicitly,
@@ -21679,7 +21771,7 @@ include the application of a rule where the environment is used.
 \Item{\SrnLeftVariableBound}{Left Variable Bound}
   The type variable $X$ is a subtype of a type $T$ if
   the bound of $X$
-  (as specified in the current environment $\Gamma$)
+  (as specified in the current environment $\Delta$)
   is a subtype of $T$.
 \Item{\SrnRightFunction}{Right Function}
   Every function type is a subtype of the type \FUNCTION.
@@ -21699,7 +21791,7 @@ include the application of a rule where the environment is used.
   is covered by letting $k_2 = 0$ respectively $k_1 = k_2 = 0$.
   For every subtype relation considered in this rule,
   the formal type parameters of $F_1$ and $F_2$ must be taken into account
-  (as reflected in the use of the extended environment $\Gamma'$).
+  (as reflected in the use of the extended environment $\Delta'$).
   We can assume without loss of generality
   that the names of type variables are pairwise identical,
   because we consider types of generic functions to be equivalent under
@@ -21764,14 +21856,14 @@ include the application of a rule where the environment is used.
 \LMLabel{additionalSubtypingConcepts}
 
 \LMHash{}%
-$S$ is a \Index{supertype} of $T$ in a given environment $\Gamma$,
+$S$ is a \Index{supertype} of $T$ in a given environment $\Delta$,
 written \SupertypeStd{S}{T},
 if{}f \SubtypeStd{T}{S}.
 
 \LMHash{}%
 A type $T$
 \Index{may be assigned}
-to a type $S$ in an environment $\Gamma$,
+to a type $S$ in an environment $\Delta$,
 written \AssignableStd{S}{T},
 if{}f either \SubtypeStd{S}{T} or \SubtypeStd{T}{S}.
 In this case we say that the types $S$ and $T$ are
@@ -22881,7 +22973,7 @@ Assignment & \code{=}, \code{*=}, \code{/=}, \code{+=}, \code{-=}, \code{\&=}, \
   \begin{minipage}[c]{0.49\textwidth}
     \RuleRaw{\AppSrnReflexivity}{Reflexivity}{S\mbox{ not composite}}{S}{S}
     \Rule{\AppSrnTypeVariableReflexivityC}{Type Variable Reflexivity B}{X}{T}{X}{X \& T}
-    \Rule{\AppSrnRightFutureOrC}{Right FutureOr C}{\Gamma(X)}{\code{FutureOr<$T$>}}{X}{\code{FutureOr<$T$>}}
+    \Rule{\AppSrnRightFutureOrC}{Right FutureOr C}{\Delta(X)}{\code{FutureOr<$T$>}}{X}{\code{FutureOr<$T$>}}
   \end{minipage}
   \begin{minipage}[c]{0.49\textwidth}
     \Axiom{\AppSrnTypeVariableReflexivityB}{Type Variable Reflexivity}{X}{X}
