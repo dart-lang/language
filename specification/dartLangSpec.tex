@@ -24565,13 +24565,13 @@ but it is easy to see that a tighter upper bound exists, e.g.,
 
 \LMHash{}%
 We define the auxiliary function \NominalTypeDepthName{}
-on interface types and \code{Object?} as follows:
+on interface types as follows:
 
 \begin{itemize}
 \item
-  \DefEquals{\NominalTypeDepth{Object?}}{0}.
-\item
-  \DefEquals{\NominalTypeDepth{Object}}{1}.
+  % We could make it 1 rather than 0, to "reserve space" for `Object?`,
+  % but this function is never used with `Object?` anyway.
+  \DefEquals{\NominalTypeDepth{Object}}{0}.
 \item
   Let $T$ be a class or a mixin,
   and let $M$ be the set of immediate superinterfaces of $T$.
@@ -24981,7 +24981,7 @@ In particular, the following types are \emph{not} interface types:
 any function type, any type variable, any intersection type,
 and any type of the form \code{$T$?}.
 
-Conversely, built-in classes like
+Conversely, built-in classes like, e.g.,
 \code{Object}, \code{num}, \code{int}, \code{String}, and \code{Exception}
 are interface types,
 and so are
