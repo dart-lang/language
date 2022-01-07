@@ -68,6 +68,9 @@
 \def\WITH{\keyword{with}}
 \def\YIELD{\keyword{yield}}
 
+% Used for inline code snippets.
+\newcommand{\code}[1]{\texttt{#1}}
+
 % Used to specify syntactic sugar.
 \def\LET{\keyword{let}}
 \newcommand{\Let}[3]{\code{\LET\,\,{#1}\,=\,{#2}\ \IN\ {#3}}}
@@ -78,8 +81,8 @@
 \newcommand{\LetMany}[5]{%
   \code{\LET\,\,{#1}\,=\,{#2},\ $\cdots$,\ {#3}\,=\,{#4}\ \IN\ {#5}}}
 
-% Used for inline code snippets.
-\def\code#1{\texttt{#1}}
+% Used for inline meta-code snippets
+\newcommand{\metaCode}[1]{{\color{metaColor}\texttt{#1}}}
 
 % `call` has no special lexical status, so we just use \code{}.
 \def\CALL{\code{call}}
@@ -112,6 +115,7 @@
 \definecolor{normativeColor}{rgb}{0,0,0}
 \definecolor{commentaryColor}{rgb}{0.5,0.5,0.5}
 \definecolor{rationaleColor}{rgb}{0.5,0.5,0.5}
+\definecolor{metaColor}{rgb}{0,0,1}
 
 % Environments for different kinds of text.
 \newenvironment{Q}[1]{{\bf{}Upcoming: {#1}}}{}
@@ -132,7 +136,7 @@
 \newcommand{\Case}[1]{\textbf{Case }$\langle\hspace{0.1em}${#1}$\hspace{0.1em}\rangle$\textbf{.}}
 \newcommand{\EndCase}{\mbox{}\hfill$\scriptscriptstyle\Box$\xspace}
 
-\newenvironment{dartCode}[1][!ht] {%
+\newenvironment{dartCode}[1][!ht]{%
   \def\@programcr{\@addfield\strut}%
   \let\\=\@programcr%
   \relax\@vobeyspaces\obeylines%
@@ -140,11 +144,19 @@
   \vspace{1em}%
 }{\normalcolor\vspace{1em}}
 
-\newenvironment{normativeDartCode}[1][!ht] {%
+\newenvironment{normativeDartCode}[1][!ht]{%
   \def\@programcr{\@addfield\strut}%
   \let\\=\@programcr%
   \relax\@vobeyspaces\obeylines%
   \ttfamily\color{normativeColor}%
+  \vspace{1em}%
+}{\normalcolor\vspace{1em}}
+
+\newenvironment{metaLevelCode}[1][!ht]{%
+  \def\@programcr{\@addfield\strut}%
+  \let\\=\@programcr%
+  \relax\@vobeyspaces\obeylines%
+  \ttfamily\color{metaColor}%
   \vspace{1em}%
 }{\normalcolor\vspace{1em}}
 
@@ -157,7 +169,7 @@
 
 % Used for defining occurrence of phrase, with customized index entry.
 \newcommand{\IndexCustom}[2]{%
-  \leavevmode\marginpar{\ensuremath{\diamond}}\emph{#1}\index{#2}}
+  \leavevmode\marginpar{\ensuremath{_{^\vartriangle}}}\emph{#1}\index{#2}}
 
 % Used for the defining occurrence of a local symbol.
 \newcommand{\DefineSymbol}[1]{%
@@ -178,7 +190,11 @@
 
 % Same appearance, but not adding an entry to the index.
 \newcommand{\NoIndex}[1]{%
-  \leavevmode\marginpar{\quad\ensuremath{\diamond}}\emph{#1}}
+  \leavevmode\marginpar{\ensuremath{_{^\vartriangle}}}\emph{#1}}
+
+% Mark a compile-time error in the margin.
+\newcommand{\Error}[1]{%
+  \leavevmode\marginpar{\ensuremath{_{^\ominus}}}{#1}}
 
 % Used to specify comma separated lists of similar symbols.
 \newcommand{\List}[3]{\ensuremath{{#1}_{#2},\,\ldots,\ {#1}_{#3}}}
@@ -189,6 +205,22 @@
 % index at start, index at end.
 \newcommand{\PairList}[4]{\ensuremath{%
   {#1}_{#3}\ {#2}_{#3},\,\ldots,\ {#1}_{#4}\ {#2}_{#4}}}
+
+% Used to specify named arguments.
+% Parameters: Parameter name, argument name, index at start, index at end.
+\newcommand{\NamedArgumentList}[4]{\PairList{#1}{\!\!:\,\,{#2}}{#3}{#4}}
+
+% Used to specify an argument list including positional and named arguments.
+% Parameters: Argument name, number of positional arguments, named parameter
+% name, number of named arguments.
+\newcommand{\ArgumentList}[4]{%
+  \List{#1}{1}{#2},\ \NamedArgumentList{#3}{#1}{{#2}+1}{{#2}+{#4}}}
+
+% Used to specify a standard argument list.
+\newcommand{\ArgumentListStd}{\ArgumentList{a}{n}{x}{k}}
+
+% Used to specify a standard type argument list.
+\newcommand{\TypeArgumentListStd}{\List{A}{1}{r}}
 
 % Used to specify a list of tuples of the form $(K_j, V_j)$ which are
 % used with collection literals.
@@ -279,26 +311,28 @@
 
 % Used to specify function type parameter lists with named optionals.
 % Arguments: Parameter type, number of required parameters,
-% name of optional parameters, number of optional parameters.
-\newcommand{\FunctionTypeNamedArguments}[4]{%
-  \List{#1}{1}{#2},\ \{\PairList{#1}{#3}{{#2}+1}{{#2}+{#4}}\}}
-
+% name of optional parameters, number of optional parameters,
+% name of `required` symbol.
+\newcommand{\FunctionTypeNamedArguments}[5]{%
+  \List{#1}{1}{#2},\ \{\TripleList{#5}{#1}{#3}{{#2}+1}{{#2}+{#4}}\}}
+  
 \newcommand{\FunctionTypeNamedArgumentsStd}{%
-  \FunctionTypeNamedArguments{T}{n}{x}{k}}
+  \FunctionTypeNamedArguments{T}{n}{x}{k}{r}}
 
 % Used to specify function types with named parameters:
 % Arguments: Return type, spacer, type parameter name, bound name,
 %   number of type parameters, parameter type, number of required parameters,
-%   name of optional parameters, number of optional parameters.
+%   name of optional parameters, number of optional parameters,
+%   name of `required` symbol.
 \newcommand{\FunctionTypeNamed}[9]{%
-  \FunctionType{#1}{#2}{#3}{#4}{#5}{%
-    \FunctionTypeNamedArguments{#6}{#7}{#8}{#9}}}
+  \FunctionType{#1}{#2}{#3}{#4}{#5}{\\
+    \mbox{}\qquad\FunctionTypeNamedArguments{#6}{#7}{#8}{#9}{#10}}}
 
 % Same as \FunctionType except suitable for inline usage, hence omitting
 % the spacer argument.
-\newcommand{\RawFunctionTypeNamed}[8]{%
+\newcommand{\RawFunctionTypeNamed}[9]{%
   \RawFunctionType{#1}{#2}{#3}{#4}{%
-    \FunctionTypeNamedArguments{#5}{#6}{#7}{#8}}}
+    \FunctionTypeNamedArguments{#5}{#6}{#7}{#8}{#9}}}
 
 % Used to specify function types with no optional parameters:
 % Arguments: Return type, spacer, type parameter name, bound name,
@@ -314,10 +348,10 @@
   \RawFunctionTypePositional{#1}{X}{B}{s}{T}{n}{k}}
 
 \newcommand{\FunctionTypeNamedStd}[1]{%
-  \FunctionTypeNamed{#1}{ }{X}{B}{s}{T}{n}{x}{k}}
+  \FunctionTypeNamed{#1}{ }{X}{B}{s}{T}{n}{x}{k}{r}}
 
 \newcommand{\RawFunctionTypeNamedStd}[1]{%
-  \RawFunctionTypeNamed{#1}{X}{B}{s}{T}{n}{x}{k}}
+  \RawFunctionTypeNamed{#1}{X}{B}{s}{T}{n}{x}{k}{r}}
 
 \newcommand{\FunctionTypeAllRequiredStd}[1]{%
   \FunctionTypeAllRequired{#1}{ }{X}{B}{s}{T}{n}}
@@ -326,7 +360,10 @@
   \FunctionTypePositional{#1}{\\}{X}{B}{s}{T}{n}{k}}
 
 \newcommand{\FunctionTypeNamedStdCr}[1]{%
-  \FunctionTypeNamed{#1}{\\}{X}{B}{s}{T}{n}{x}{k}}
+  \FunctionTypeNamed{#1}{\\}{X}{B}{s}{T}{n}{x}{k}{r}}
+
+\newcommand{\FunctionTypeNamedStdArgCr}[1]{%
+  \FunctionTypeNamedArgCr{#1}{ }{X}{B}{s}{T}{n}{x}{k}{r}}
 
 \newcommand{\FunctionTypeAllRequiredStdCr}[1]{%
   \FunctionTypeAllRequired{#1}{\\}{X}{B}{s}{T}{n}}
@@ -342,13 +379,13 @@
 
 % Judgment expressing that a subtype relation exists.
 \newcommand{\Subtype}[3]{\ensuremath{{#1}\vdash{#2}\,<:\,{#3}}}
-\newcommand{\SubtypeStd}[2]{\Subtype{\Gamma}{#1}{#2}}
+\newcommand{\SubtypeStd}[2]{\Subtype{\Delta}{#1}{#2}}
 % Subtype judgment where the environment is omitted (NE: "no environment").
 \newcommand{\SubtypeNE}[2]{\ensuremath{{#1}\,<:\,{#2}}}
 
 % Judgment expressing that a supertype relation exists.
 \newcommand{\Supertype}[3]{\ensuremath{{#1}\vdash{#2}\,:>\,{#3}}}
-\newcommand{\SupertypeStd}[2]{\Supertype{\Gamma}{#1}{#2}}
+\newcommand{\SupertypeStd}[2]{\Supertype{\Delta}{#1}{#2}}
 
 % Judgment expressing that an assignability relation exists.
 \newcommand{\AssignableRelationSymbol}{\ensuremath{\Longleftrightarrow}}
@@ -387,6 +424,62 @@
 \newcommand{\LiteralSequence}[1]{\ensuremath{[\![{#1}]\!]}}
 \newcommand{\EvaluateElementName}{\metavar{evaluateElement}}
 \newcommand{\EvaluateElement}[1]{\ensuremath{\EvaluateElementName({#1})}}
+
+\newcommand{\DefEquals}[2]{\ensuremath{{#1}\stackrel{\vartriangle}{=}{#2}}}
+\newcommand{\DefEqualsNewline}[2]{
+  \ensuremath{{#1}\stackrel{\vartriangle}{=}}\\
+  \ensuremath{{#2}}%
+}
+
+\newcommand{\FlattenName}{\metavar{flatten}}
+\newcommand{\Flatten}[1]{\ensuremath{\FlattenName(\code{#1})}}
+
+\newcommand{\NominalTypeDepthName}{\metavar{nominalTypeDepth}}
+\newcommand{\NominalTypeDepth}[1]{%
+  \ensuremath{\NominalTypeDepthName(\code{#1})}}
+
+\newcommand{\TopMergeTypeName}{\metavar{topMergeType}}
+\newcommand{\TopMergeType}[2]{%
+  \ensuremath{\TopMergeTypeName(\code{{#1},\,\,{#2}})}}
+
+\newcommand{\NonNullTypeName}{\metavar{nonNullType}}
+\newcommand{\NonNullType}[1]{\ensuremath{\NonNullTypeName(\code{#1})}}
+
+\newcommand{\IsTopTypeName}{\metavar{isTopType}}
+\newcommand{\IsTopType}[1]{\ensuremath{\IsTopTypeName(\code{#1})}}
+
+\newcommand{\IsObjectTypeName}{\metavar{isObjectType}}
+\newcommand{\IsObjectType}[1]{\ensuremath{\IsObjectTypeName(\code{#1})}}
+
+\newcommand{\IsBottomTypeName}{\metavar{isBottomType}}
+\newcommand{\IsBottomType}[1]{\ensuremath{\IsBottomTypeName(\code{#1})}}
+
+\newcommand{\IsNullTypeName}{\metavar{isNullType}}
+\newcommand{\IsNullType}[1]{\ensuremath{\IsNullTypeName(\code{#1})}}
+
+\newcommand{\IsMoreTopTypeName}{\metavar{isMoreTopType}}
+\newcommand{\IsMoreTopType}[2]{%
+  \ensuremath{\IsMoreTopTypeName(\code{{#1},\,\,{#2}})}}
+
+\newcommand{\IsMoreBottomTypeName}{\metavar{isMoreBottomType}}
+\newcommand{\IsMoreBottomType}[2]{%
+  \ensuremath{\IsMoreBottomTypeName(\code{{#1},\,\,{#2}})}}
+
+\newcommand{\NormalizedTypeOfName}{\metavar{normalizedType}}
+\newcommand{\NormalizedTypeOf}[1]{%
+  \ensuremath{\NormalizedTypeOfName(\code{#1})}}
+
+\newcommand{\FutureValueTypeOfName}{\metavar{futureValueType}}
+\newcommand{\FutureValueTypeOf}[1]{%
+  \ensuremath{\FutureValueTypeOfName(\code{#1})}}
+
+\newcommand{\UpperBoundTypeName}{\metavar{standardUpperBound}}
+\newcommand{\UpperBoundType}[2]{%
+  \ensuremath{\UpperBoundTypeName(\code{{#1},\,\,{#2}})}}
+
+\newcommand{\LowerBoundTypeName}{\metavar{standardLowerBound}}
+\newcommand{\LowerBoundType}[2]{%
+  \ensuremath{\LowerBoundTypeName(\code{{#1},\,\,{#2}})}}
 
 \newcommand{\DefEquals}[2]{\ensuremath{{#1}\stackrel{\vartriangle}{=}{#2}}}
 \newcommand{\DefEqualsNewline}[2]{
