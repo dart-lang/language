@@ -198,8 +198,8 @@ enum LogPriority with LogPriorityMixin implements Comparable<LogPriority> {
   log.unknown("Log"),
   ;
  
-  MyEnum(this.priority, this.prefix);
-  MyEnum.unknown(String prefix) : this(-1, prefix);
+  LogPriority(this.priority, this.prefix);
+  LogPriority.unknown(String prefix) : this(-1, prefix);
     
   final String prefix;
   final int priorty;
@@ -211,13 +211,13 @@ would then desugar to something like:
 
 ```dart
 class LogPriority extends Enum with LogriorityMixin implements Comparable<LogPriority> {
-  static const warning = MyEnum._$(0, "warning", 2, "Warning");
-  static const error = MyEnum._$(1, "error", 1, "Error");
-  static const log = MyEnum._$unknown(2, "log", "Log");
+  static const warning = LogPriority._$(0, "warning", 2, "Warning");
+  static const error = LogPriority._$(1, "error", 1, "Error");
+  static const log = LogPriority._$unknown(2, "log", "Log");
   
-  MyEnum._$(int _$index, String _$name, this.priority, this.prefix) 
+  LogPriority._$(int _$index, String _$name, this.priority, this.prefix) 
         : super(_$index, _$name);
-  MyEnum._$unknown(int _$index, String _$name, String prefix) : 
+  LogPriority._$unknown(int _$index, String _$name, String prefix) : 
         : this._$(_$index, _$name, prefix, -1);
     
   final String prefix;
