@@ -211,14 +211,14 @@ would then desugar to something like:
 
 ```dart
 class LogPriority extends Enum with LogriorityMixin implements Comparable<LogPriority> {
-  static const warning = LogPriority._$(0, "warning", 2, "Warning");
-  static const error = LogPriority._$(1, "error", 1, "Error");
+  static const warning = LogPriority(0, "warning", 2, "Warning");
+  static const error = LogPriority(1, "error", 1, "Error");
   static const log = LogPriority._$unknown(2, "log", "Log");
   
-  LogPriority._$(int _$index, String _$name, this.priority, this.prefix) 
-        : super(_$index, _$name);
+  LogPriority(int _$index, String _$name, this.priority, this.prefix) 
+        : super._(_$index, _$name);
   LogPriority._$unknown(int _$index, String _$name, String prefix) : 
-        : this._$(_$index, _$name, prefix, -1);
+        : this(_$index, _$name, prefix, -1);
     
   final String prefix;
   final int priorty;
@@ -263,12 +263,12 @@ would have a corresponding class desugaring of:
 
 ```dart
 class Plain extends Enum {
-  static const Plain foo = Plain._$(0, "foo");
-  static const Plain bar = Plain._$(1, "bar");
-  static const Plain baz = Plain._$(2, "baz");
+  static const Plain foo = Plain(0, "foo");
+  static const Plain bar = Plain(1, "bar");
+  static const Plain baz = Plain(2, "baz");
   static const List<Plain> values = [foo, bar, baz];
 
-  const Plain._$(int _$index, String_ $name) : super._(_$index, $_name);
+  const Plain(int _$index, String_ $name) : super._(_$index, $_name);
 
   // Private names from `dart:core`.
   String _$enumToString() => "Plain.${_$name}";
@@ -293,13 +293,13 @@ would have a  corresponding class desugaring of:
 
 ```dart
 class Ordering extends Enum with EnumIndexOrdering<Ordering> {
-  static const zero = Ordering._$(0, "zero");
-  static const few = Ordering._$(1, "few");
-  static const many = Ordering._$(2, "many");
+  static const zero = Ordering(0, "zero");
+  static const few = Ordering(1, "few");
+  static const many = Ordering(2, "many");
   static const List<Ordering> values = [zero, few, many];
   
   // Default constructor desugared:
-  Ordering._$(int _$index, String _$name): super(_$index, _$name);
+  Ordering(int _$index, String _$name): super._(_$index, _$name);
   
   // Private names from `dart:core`.
   String _$enumToString() => "Ordering.${_$name}";
@@ -369,7 +369,7 @@ would have a corresponding class desugaring of:
 class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
     implements Pattern {
   static const whitespace =
-      Complex<RegExp>._$(0, "whitespace", r"\s+", RegExp.new);
+      Complex<RegExp>(0, "whitespace", r"\s+", RegExp.new);
   static const alphanum =
       Complex<RegExp>._$captured(1, "alphanum", r"\w+", RegExp.new);
   static const anychar = Complex<Glob>._$(2, "anychar", "?", Glob.new);
@@ -380,7 +380,7 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
   final String _patternSource;
   final T Function(String) _factory;
 
-  const Complex._$(int _$index, String _$name, String pattern, T Function(String) factory)
+  const Complex(int _$index, String _$name, String pattern, T Function(String) factory)
       : _patternSource = pattern, _factory = factory, super._(_$index, _$name);
 
   factory Complex.matching(String text) {
@@ -392,7 +392,7 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
     throw UnsupportedError("No pattern matching: $text");
   }
 
-  const Complex.captured(int _$index, String _$name, String regexpPattern)
+  const Complex._$captured(int _$index, String _$name, String regexpPattern)
       : this(_$index, _$name, "($regexpPattern)", RegExp);
 
   String get name => EnumName(this).name;
@@ -427,9 +427,9 @@ would have a corresponding class desugaring of:
 
 ```dart
 class MySingleton extends Enum implements Whatever {
-  static const MySingleton instance = MySingleton._$(0, "instance");
+  static const MySingleton instance = MySingleton(0, "instance");
   static const List<MySingleton> values = [instance];
-  const MySingleton._$(int _$index, String _$name, ...) : ..., super._(_$index, _$name);
+  const MySingleton(int _$index, String _$name, ...) : ..., super._(_$index, _$name);
   // Normal class declarations.
   
   // Private names from `dart:core`.
