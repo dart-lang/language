@@ -1,6 +1,6 @@
 # Augmentation Libraries
 
-Author: rnystrom@google.com, Version: 1.0
+Author: rnystrom@google.com, Version: 1.1 (see Changelog at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -148,6 +148,10 @@ merge its declarations into this library. It is a compile-time error if:
 *   The library referenced in a `library augment` directive does not have an
     `import augment` directive pointing back to this augmentation.
 
+*   The same augmentation library is applied more than once. *In other words,
+    you can't have redundant `import augment` directives that point to the same
+    library.*
+
 Since the main library and its augmentation both point to each other, these
 rules imply that a given augmentation file can only be used to augment a single
 library.
@@ -286,8 +290,10 @@ It is a compile-time error if:
 *   The signature of the function augmentation does not exactly match the
     original function. This means the return types must be the same; there must
     be the same number of positional, optional, and named parameters; the types
-    of corresponding positional and optional parameters must be the same; and
-    the names and types of named parameters must be the same.
+    of corresponding positional and optional parameters must be the same; the
+    names and types of named parameters must be the same; any type parameters
+    and bounds must be the same; and any `required` or `covariant` modifiers
+    must match.
 
 *   The original function is declared `external` and the augmenting function
     uses `augment super()`.
@@ -671,3 +677,15 @@ part files can do. At that point, we can more strongly recommend the few users
 using them migrate to augmentations. In Dart 3.0, we can consider removing
 support for part files entirely, which would simplify the language and our
 tools.
+
+## Changelog
+
+### 1.1
+
+*   Make it an error to apply the same augmentation multiple times (#1957).
+*   Clarify type parameters and parameter modifiers in function signature
+    matching (#2059).
+
+### 1.0
+
+Initial version.
