@@ -4,6 +4,11 @@ Authors: Jacob MacDonald, Bob Nystrom
 
 Status: **Work In Progress**
 
+### Changelog
+
+- *2022/01/25:* Specify that identifiers in strings can only refer to local
+  declarations.
+
 ## Introduction
 
 The [motivation][] document explains why we are working on static
@@ -532,7 +537,7 @@ challenges still remain.
 
 #### Referring to generated declarations
 
-A key use of macros is generating new declarations. Since this declarations
+A key use of macros is generating new declarations. Since these declarations
 aren't useful if not called, it implies that handwritten code may contain
 references to declarations produced by macros. This means that before macros are
 applied, code may contain identifiers that cannot be resolved.
@@ -617,31 +622,35 @@ macros to library augmentations.
 
 #### Resolving identifiers in generated code
 
-Macros will likely want to introduce references to identifiers that are not in
-the scope of the library in which they are running, but are in the scope of the
-macro itself, or possibly even references which are not in scope of either the
-macro itself or the library where it is applied.
+When a macro generates code containing an identifier, the identifier must be
+resolved in the context of some namespace to determine what declaration it
+refers to. It's not enough to simply resolve generated code in the same
+namespace where the macro is applied. The macro author may want to, for example,
+generate a call to a utility function that the macro author knows about but that
+the library applying the macro is unaware of. Or a macro may want to generate
+code that creates an instance of some class that is an implementation detail of
+the macro and not in scope where the macro is applied.
 
-Even if an identifier is in scope of the library in which the macro is applied
-(let's say its exported by the macro library), that identifier could be shadowed
-by another identifier in the library.
+To support this, there is an `Identifier` subtype of `Code`. An instance of this
+class represents an identifier resolved in the context of a known library's
+namespace. When the identifier object is inserted into other generated code,
+it retains its original resolution.
 
-To enable a macro to safely emit a reference to a known identifier, there is
-a `Identifier` subtype of `Code`. This class takes both a simple name for the
-identifier (no prefix allowed), as well as a library URI, where that identifier
-should be looked up.
+*A compiler could implement this by generating an import of the library
+containing the declaration that the identifier refers to. The compiler adds a
+unique prefix to the import and then the identifier emitted as a prefixed
+identifier followed by the identifier's simple name.*
 
-The generated code should be equivalent to adding a new import to the library,
-with the specified URI and a unique prefix. In the code the identifier will be
-emitted with that unique prefix followed by its simple name.
+Macros can also generate code from strings. When a `Code` object is created, if
+any identifiers appear inside strings or `Fragment`s used to build the code,
+they must resolve to local declarations inside that same `Code` object. Code
+generated from strings or fragments may not refer to free variables declared
+outside of the same `Code` object. To refer to non-local declarations, macro
+authors must get an `Identifier` for the declaration.
 
-Note that technically this allows macros to add references to libraries that
-the macro itself does not depend on, and the users application also may not
-depend on. This is discouraged, but not prevented, and should result in an error
-if it happens.
+Macros can get or create `Identifiers` using the introspection API.
 
-**TODO**: Investigate other approaches, see [this
-comment](https://github.com/dart-lang/language/pull/1779#discussion_r683843130).
+**TODO: Define this API. See [here](https://github.com/dart-lang/language/pull/1779#discussion_r683843130).**
 
 ### Generating macro applications
 
