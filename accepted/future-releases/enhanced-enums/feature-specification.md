@@ -152,7 +152,7 @@ It’s currently a compile-time error for a class to implement, extend or mix-in
 
 Because we want to allow interfaces and mixins that are intended to be applied to `enum` declarations, and therefore to assume `Enum` to be a superclass, we loosen that restriction to:
 
-- It’s a compile-time error if a *non-abstract* class has `Enum` as a superinterface (directly or transitively) unless it is the corresponding class of an `enum` declaration.
+- It's a compile-time error if a *non-abstract* class has `Enum` as a superinterface (directly or transitively) unless it is the corresponding class of an `enum` declaration.
 - It is a compile-time error if a class implements, extends or mixes-in the class or interface introduced by an `enum` declaration. _(An enum class can’t be used as a mixin since it is not a `mixin` declaration and the class has a superclass other than `Object`, but we include “mixes-in” for completeness.)_
 - It's a compile-time error if an interface has  `Enum`  as a superinterface and the interface contains an instance member with the name `values`. _If any concrete class implements this interface, it will be an `enum` declaration class, and then the `values` member would conflict with the static `values` constant getter that is automatically added to `enum` declaration classes. Such an instance `values` declaration is either useless or wrong, so we disallow it entirely._
 - It's a compile-time error if a `class`, `mixin` or `enum` declaration has `Enum` as a superinterface, and it declares a non-abstract instance member named `index`. _That member would override the `index` getter inherited from `Enum`, and we currently do not allow that._
