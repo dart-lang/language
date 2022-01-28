@@ -95,81 +95,74 @@ as follows:
 
 ### Variance Rules
 
-The rules for determining the variance of a position are updated as follows:
+We say that a type parameter of a generic class, mixin, or enum is
+_covariant_ if it has no variance modifier or it has the modifier `out`; we
+say that it is _contravariant_ if it has the modifier `in`; and we say that
+it is _invariant_ if it has the modifier `inout`.
 
-We say that a type parameter of a generic class is _covariant_ if it has no
-variance modifier or it has the modifier `out`; we say that it is
-_contravariant_ if it has the modifier `in`; and we say that it is
-_invariant_ if it has the modifier `inout`.
+The language specification defines what it means for a type to occur
+covariantly, contravariantly, or invariantly in another type. No
+changes are needed in these definitions.
 
-The covariant occurrences of a type (schema) `T` in another type (schema)
-`S` are:
+However, these definitions rely on the notion that each _position_ in
+a type has a specific variance, and those definitions are replaced by
+the ones that are given in this section.
 
-  - if `S` and `T` are the same type,
-    - `S` is a covariant occurrence of `T`.
-  - if `S` is `Future<U>`
-    - the covariant occurrences of `T` in `U`
-  - if `S` is `FutureOr<U>`
-    - the covariant occurrencs of `T` in `U`
-  - if `S` is an interface type `C<T0, ..., Tk>`
-    - the union of the covariant occurrences of `T` in `Ti`
-      for `i` in `0, ..., k` where the `i`th type parameter of `C` is
-      covariant, and
-      the contravariant occurrences of `T` in `Ti`
-      for `i` in `0, ..., k` where the `i`th type parameter of `C` is
-      contravariant.
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
-      the union of:
-    - the covariant occurrences of `T` in `U`
-    - the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, {Tn+1 xn+1, ..., Tm xm})`
-      the union of:
-    - the covariant occurrences of `T` in `U`
-    - the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
+*The position of a type in another type is a property of each occurrence of
+the former. For example, the first occurrence of `X` in the type `X
+Function(X)` is in a covariant position, and the second occurrence is in a
+contravariant position.*
 
-The contravariant occurrences of a type `T` in another type `S` are:
-  - if `S` is `Future<U>`
-    - the contravariant occurrences of `T` in `U`
-  - if `S` is `FutureOr<U>`
-    - the contravariant occurrencs of `T` in `U`
-  - if `S` is an interface type `C<T0, ..., Tk>`
-    - the union of the contravariant occurrences of `T` in `Ti`
-      for `i` in `0, ..., k` where the `i`th type parameter of `C` is
-      covariant, and
-      the covariant occurrences of `T` in `Ti`
-      for `i` in `0, ..., k` where the `i`th type parameter of `C` is
-      contravariant,
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
-      the union of:
-    - the contravariant occurrences of `T` in `U`
-    - the covariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, {Tn+1 xn+1, ..., Tm xm})`
-      the union of:
-    - the contravariant occurrences of `T` in `U`
-    - the covariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
+We say that a type `S` occurs in a covariant position in a type `T` if at
+least one of the following conditions is true:
+  - `T` is `S`.
+  - `T` is an interface type `C<T1, ..., Tk>`, `j` is in `1..k`, and:
+    - the `j`th type parameter of `C` is covariant
+      and `S` occurs in a covariant position in `Tj`, or
+    - the `j`th type parameter of `C` is contravariant
+      and `S` occurs in a contravariant position in `Tj`.
+  - `T` is `FutureOr<U>` and `S` occurs in a covariant position in `U`.
+  - `T` is `U Function<X1 extends B1, ...., Xk extends Bk>(T1 x1, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])` and:
+    - `S` occurs in a covariant position in `U`, or
+    - `S` occurs in a contravariant position in `Tj` for some `j` in `1..m`.
+  - `T` is `U Function<X1 extends B1, ...., Xk extends Bk>(T1 x1, ...., Tn xn, {Tn+1 xn+1, ..., Tm xm})` and:
+    - `S` occurs in a covariant position in `U`, or
+    - `S` occurs in a contravariant position in `Tj` for some `j` in `1..m`.
+  - `T` is `U?` and `S` occurs in a covariant position in `U`.
+  - `T` is `X &amp; U` and `S` occurs in a covariant position in `U`.
 
-The invariant occurrences of a type `T` in another type `S` are:
-  - if `S` is `Future<U>`
-    - the invariant occurrences of `T` in `U`
-  - if `S` is `FutureOr<U>`
-    - the invariant occurrencs of `T` in `U`
-  - if `S` is an interface type `C<T0, ..., Tk>`
-    - the union of the invariant occurrences of `T` in `Ti`
-      for `i` in `0, ..., k` where the `i`th type parameter of `C` is
-      covariant or contravariant, and
-      all occurrences of `T` in `Ti`
-      for `i` in `0, ..., k` where the `i`th type parameter of `C` is
-      invariant,
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
-      the union of:
-    - the invariant occurrences of `T` in `U`
-    - the invariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
-    - all occurrences of `T` in `Bi` for `i` in `0, ..., k`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, {Tn+1 xn+1, ..., Tm xm})`
-      the union of:
-    - the invariant occurrences of `T` in `U`
-    - the invariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
-    - all occurrences of `T` in `Bi` for `i` in `0, ..., k`
+`S` occurs in a contravariant position in a type `T` if at least one of the
+following conditions is true:
+  - `T` is an interface type `C<T1, ..., Tk>`, `j` is in `1..k`, and:
+    - the `j`th type parameter of `C` is covariant
+      and `S` occurs in a contravariant position in `Tj`, or
+    - the `j`th type parameter of `C` is contravariant
+      and `S` occurs in a covariant position in `Tj`.
+  - `T` is `FutureOr<U>` and `S` occurs in a contravariant position in `U`.
+  - `T` is `U Function<X1 extends B1, ...., Xk extends Bk>(T1 x1, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])` and:
+    - `S` occurs in a contravariant position in `U`, or
+    - `S` occurs in a covariant position in `Tj` for some `j` in `1..m`.
+  - `T` is `U Function<X1 extends B1, ...., Xk extends Bk>(T1 x1, ...., Tn xn, {Tn+1 xn+1, ..., Tm xm})` and:
+    - `S` occurs in a contravariant position in `U`, or
+    - `S` occurs in a covariant position in `Tj` for some `j` in `1..m`.
+  - `T` is `U?` and `S` occurs in a contravariant position in `U`.
+  - `T` is `X &amp; U` and `S` occurs in a contravariant position in `U`.
+
+`S` occurs in an invariant position in a type `T` if at least one of the
+following conditions is true:
+  - `T` is an interface type `C<T1, ..., Tk>` and
+    `S` occurs in an invariant position in `Tj` for some `j` in `1..k`.
+  - `T` is `FutureOr<U>` and `S` occurs in an invariant position in `U`.
+  - `T` is `U Function<X1 extends B1, ...., Xk extends Bk>(T1 x1, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])` and:
+    - `S` occurs in a invariant position in `U`, or
+    - `S` occurs in a invariant position in `Tj` for some `j` in `1..m`, or
+    - `S` occurs in `Bj` (*at any position*) for some `j` in `1..k`.
+  - `T` is `U Function<X1 extends B1, ...., Xk extends Bk>(T1 x1, ...., Tn xn, {Tn+1 xn+1, ..., Tm xm})` and:
+    - `S` occurs in a invariant position in `U`, or
+    - `S` occurs in a invariant position in `Tj` for some `j` in `1..m`, or
+    - `S` occurs in `Bj` (*at any position*) for some `j` in `1..k`.
+  - `T` is `U?` and `S` occurs in an invariant position in `U`.
+  - `T` is `X &amp; U` and `S` occurs in an invariant position in `U`.
 
 It is a compile-time error if a variance modifier is specified for a type
 parameter declared by a static extension, a generic function type, a
@@ -183,14 +176,17 @@ function types. Finally, the variance of a type parameter declared by a
 type alias is determined by the usage of that type parameter in the body of
 the type alias.*
 
-We say that a type parameter _X_ of a type alias _F_ _is covariant_ if it
-only occurs covariantly in the body of _F_; that it _is contravariant_ if
-it occurs contravariantly in the body of _F_ and does not occur covariantly
-or invariantly; that it _is invariant_ if it occurs invariantly in the body
-of _F_ (*with no constraints on other occurrences*), or if it occurs both
-covariantly and contravariantly.
+*Variance _can_ be used with a generic enum declaration.*
 
-*In particular, an unused type parameter is considered covariant.*
+The definition of the variance of a type parameter of a type alias remains
+unchanged.
+
+*In particular, a type parameter _X_ of a type alias _F_ is covariant if it
+occurs in covariant positions in the body of _F_, but not in contravariant
+nor invariant positions; it is contravariant if it occurs in contravariant
+positions in the body of _F_, but in covariant or invariant positions; and 
+it _is invariant_ if it occurs in invariant positions and/or it occurs
+in covariant as well as in contravariant positions.*
 
 Let _D_ be the declaration of a class or mixin, and let _X_ be a type
 parameter declared by _D_.
@@ -198,19 +194,19 @@ parameter declared by _D_.
 If _X_ has the variance modifier `out` then it is a compile-time error for
 _X_ to occur in a non-covariant position in a member signature in the body
 of _D_, except that it is not an error if it occurs in a covariant position
-in the type annotation of a covariant formal parameter (*this is a
+in the type annotation of a formal parameter which is covariant (*this is a
 contravariant position in the member signature as a whole*).
 
 *In particular, _X_ can not be the type of a method parameter (unless
-covariant), and it can not be the bound of a type parameter of a generic
-method.*
+it is covariant). It can never be the bound of a type parameter of a
+generic method.*
 
 If _X_ has the variance modifier `in` then it is a compile-time error for
 _X_ to occur in a non-contravariant position in a member signature in the
 body of _D_, except that it is not an error if it occurs in a contravariant
-position in the type of a covariant formal parameter. *For instance, _X_
-can not be the return type of a method or getter, and it can not be the
-bound of a type parameter of a generic method.*
+position in the type of a formal parameter which is covariant. *For
+instance, _X_ can never be the return type of a method or getter, and it can
+never be the bound of a type parameter of a generic method.*
 
 *If _X_ has the variance modifier `inout` then there are no variance
 related restrictions on the positions where it can occur in member
@@ -218,7 +214,7 @@ signatures.*
 
 Let _D_ be a class or mixin declaration, let _S_ be a direct superinterface
 of _D_, and let _X_ be a type parameter declared by _D_.  It is a
-compile-time error if _X_ is covariant and _X_ occurs in a non-covariant
+compile-time error if _X_ is covariant, and _X_ occurs in a non-covariant
 position in _S_. It is a compile-time error if _X_ is contravariant, and
 _X_ occurs in a non-contravariant position in _S_.  In these rules, type
 inference of _S_ is assumed to have taken place already.
@@ -301,6 +297,7 @@ class SafeD<in X> extends C<void Function(X)> {
   set x(void Function(Never) value) { 
     if (value is void Function(X)) super.x = value;
   }
+  SafeD(): super((X x) {});
 }
 ```
 
@@ -309,7 +306,8 @@ error for the member signature:*
 
 ```dart
 class ExplicitlyUnsafeD<in X> extends C<void Function(X)> {
-  set x(covariant void Function(X) value) => super.x = value;
+  set x(covariant void Function(X) value);
+  ExplicitlyUnsafeD(): super((X x) {});
 }
 ```
 
@@ -338,6 +336,122 @@ is different from the subtype relationship without this feature, and the
 updated rules are used during run-time type tests and type checks.
 
 
+### Dynamic Type Checks by Example
+
+This section is not normative, it explores some consequences of the design
+specified in the previous sections. Consider the following declarations:
+
+```dart
+class L<X> {
+  X m(X x) {}
+}
+
+class Co<out X> extends L<X> {}
+class Contra<in X> extends L<X> {} // Error.
+class In<inout X> extends L<X> {}
+```
+
+`Co` is allowed, but the implementation of `m` in an instance of `Co` must
+perform a dynamic type check on the actual argument, because we could have
+a `Co<int>` with static type `Co<num>`. It would be an error to declare `m`
+in `Co` with the same signature as in `L`; it is allowed when the method is
+inherited from a class where the declaration is not an error, but this also
+means that there must be a dynamic type check, just like there must be a
+dynamic type check in the implementation of `m` in an instance of `L`.
+
+`Contra` is an error, because a contravariant type parameter occurs in a
+non-contravariant position in a superinterface.
+
+`In` is allowed, and the implementation of `m` in an instance of `In` must
+again perform the dynamic type check. However, this is _also_ true if the
+implementation of `m` is copied to `In` (which is not an error) and the
+declaration in `L` is made abstract.
+
+The situation is similar if we use `implements` rather than `extends`,
+and write an implementation of `m` in the subtype, adding `covariant` as
+needed (including: `Contra` is still an error, no matter how it declares
+`m`).
+
+```dart
+class Co2<out X> {
+  final X x;
+  Co2(this.x);
+  X m2() => x;
+}
+
+class Contra2<in X> {
+  void m2(X x) {}
+}
+
+class In2<inout X> {
+  X m2(X x) => x;
+}
+
+class Lco2<X> extends Co2<X> {
+  Lco2(super.x);
+}
+
+class Lcontra2<X> extends Contra2<X> { // Error.
+  ... // Doesn't matter, it's an error anyway.
+}
+
+class Lin2<X> extends In2<X> {}
+```
+
+`Lco2.m2` does not need any dynamic type checks, it can just be inherited
+as is from `Co2`.
+
+`Lcontra2` is again an error, no matter what's in the body.
+
+`Lin2` cannot directly inherit `In2.m2`, it needs to have an implicitly
+induced stub method which will check the type of the actual argument `x`
+and then `return super.m2(x)`. This is necessary because an instance of
+`Lin2<int>` could be the value of an expression whose static type is
+`Lin2<num>`, and we could then pass `1.5` without any compile-time errors.
+
+Note also that it is _not_ safe to assign an expression of type `Lin2<num>`
+to a variable of type `In2<num>`, because the assigned object could have
+dynamic type `Lin2<int>`, which is not a subtype of `In2<num>`. In other
+words, with this type of hierarchy, some static superinterfaces may not be
+dynamic superinterfaces (which is new).
+
+If we use `implements` rather than `extends`, we get the following:
+
+```dart
+abstract class Co3<out X> {
+  X m3();
+}
+
+class Contra3<in X> {
+  void m3(X x);
+}
+
+class In3<inout X> {
+  X m3(X x);
+}
+
+class Lco3<X> implements Co3<X> {
+  X x;
+  Lco3(this.x);
+  X m3() => x;
+}
+
+class Lcontra3<X> implements Contra3<X> { // Error.
+  ...
+}
+
+class Lin3<X> extends In3<X> {
+  X m3(X x) => x;
+}
+```
+
+`Lco3` needs the usual dynamic type check on the setter `x=`, but no checks
+on `m3`. `Lcontra3` is an error. `Lin3.m3` needs a dynamic argument check
+because it can be a `Lin3<int>` with static type `Lin3<num>`. Again,
+assignment of an expression of type `Lin3<num>` to a variable of type
+`In3<num>` requires a dynamic type check.
+
+
 ## Migration
 
 This proposal supports migration of code using dynamically checked
@@ -361,13 +475,8 @@ available, but it is simply not using them.*
 ### Soundly variant libraries seen from a legacy library
 
 When a legacy library _L_ imports a library _L2_ with sound variance, the
-declarations imported from _L2_ are _legacy erased_. This means that all
-variance modifiers in type parameter declarations are ignored.
+subtype relationships will take declaration-site variance into account.
 
-*To maintain a sound heap in a mixed program execution (that is, when both
-legacy libraries and libraries with sound variance exist), it is then
-necessary to perform some type checks at run time.  In particular, a
-dynamic type check is performed on method calls, on the actual argument for
-each instance method parameter whose declared type contains a contravariant
-type variable. Moreover, a caller-side check is performed on each
-expression whose static type contains a contravariant type variable.*
+*In other words, a library that uses an older version of the language
+can use declaration-site variance, it just cannot declare types with
+declaration-site variance.*
