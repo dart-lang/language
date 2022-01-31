@@ -633,7 +633,7 @@ the macro and not in scope where the macro is applied.
 
 To support this, there is an `Identifier` subtype of `Code`. An instance of this
 class represents an identifier resolved in the context of a known library's
-namespace. When the identifier object is inserted into other generated code,
+namespace. When the `Identifier` object is inserted into other generated code,
 it retains its original resolution.
 
 *A compiler could implement this by generating an import of the library
@@ -641,14 +641,21 @@ containing the declaration that the identifier refers to. The compiler adds a
 unique prefix to the import and then the identifier emitted as a prefixed
 identifier followed by the identifier's simple name.*
 
-Macros can also generate code from strings. When a `Code` object is created, if
-any identifiers appear inside strings or `Fragment`s used to build the code,
-they must resolve to local declarations inside that same `Code` object. Code
-generated from strings or fragments may not refer to free variables declared
-outside of the same `Code` object. To refer to non-local declarations, macro
-authors must get an `Identifier` for the declaration.
+Macros also build up generated code using strings. Bare identifiers in strings
+may must resolve to local declarations inside the declaration being defined by
+the macro. For example, if a macro is generating a method body, any bare
+identifiers that appear in strings used to build the `Code` object must resolve
+to local variables or local functions declared inside the body of that same
+method. To refer to non-local declarations, macro authors must use an
+`Identifier` object. Macros can get or create `Identifiers` using the
+introspection API.
 
-Macros can get or create `Identifiers` using the introspection API.
+An identifier in a string used to create a `Code` object does not necessarily
+need to resolve to a local declaration *in that same `Code` object*. Macros can
+compose `Code` objects out of other `Code` objects and strings. It is only when
+the final `Code` object is returned by the macro and used to produce a
+declaration that all identifiers inside strings must be resolvable to locals
+in the generated declaration.
 
 **TODO: Define this API. See [here](https://github.com/dart-lang/language/pull/1779#discussion_r683843130).**
 
