@@ -1093,8 +1093,9 @@ declaration that a macro is applied to.
 used to import them? The latter would mean that files under `lib` could not read
 resources outside of `lib`, which has both benefits and drawbacks.
 
-Lastly, since macros must return synchronously, we only expose a synchronous
-API for reading resources.
+**TODO**: Evaluate APIs for listing files and directories.
+
+**TODO**: Consider adding `RandomAccessResource` api.
 
 The specific API is as follows, and would only be available at compile time:
 
@@ -1116,11 +1117,23 @@ class Resource {
   /// Whether or not a resource actually exists at [uri].
   bool get exists;
 
+  /// Read this resource as a stream of bytes.
+  Stream<Uint8List> openRead([int? start, int? end]);
+
+  /// Asynchronously reads this resource as bytes.
+  Future<Uint8List> readAsBytes();
+
   /// Synchronously reads this resource as bytes.
   Uint8List readAsBytesSync();
 
+  /// Asynchronously reads this resource as text using [encoding].
+  Future<String> readAsString({Encoding encoding = utf8});
+
   /// Synchronously reads this resource as text using [encoding].
   String readAsStringSync({Encoding encoding = utf8});
+
+  /// Asynchronously reads the resource as lines of text using [encoding].
+  Future<List<String>> readAsLines({Encoding encoding = utf8});
 
   /// Synchronously reads the resource as lines of text using [encoding].
   List<String> readAsLinesSync({Encoding encoding = utf8});
