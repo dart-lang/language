@@ -1095,7 +1095,7 @@ resources outside of `lib`, which has both benefits and drawbacks.
 
 **TODO**: Evaluate APIs for listing files and directories.
 
-**TODO**: Consider adding `RandomeAccessResource` api.
+**TODO**: Consider adding `RandomAccessResource` api.
 
 The specific API is as follows, and would only be available at compile time:
 
