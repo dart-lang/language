@@ -120,16 +120,9 @@ void main() async {
     _log('Formatting augmentation library');
     var formatted = DartFormatter()
         .format(library
-            // comment out the `augment` keywords since dart style doesn't allow
-            // them.
-            .replaceAll('augment', '/*augment*/')
-            // comment out import prefixes, these are added where they really
-            // shouldn't be today.
-            .replaceAll('i0.', '/*i0.*/')
-            // need to patch in the `operator` keyword for ==.
-            .replaceAll('/*i0.*/==(', '/*i0.*/operator==('))
-        .replaceAll('/*augment*/', 'augment')
-        .replaceAll('/*i0.*/ ', 'i0.');
+            // comment out the `augment` keywords temporarily
+            .replaceAll('augment', '/*augment*/'))
+        .replaceAll('/*augment*/', 'augment');
 
     _log('Macro augmentation library:\n\n$formatted');
   } finally {
@@ -217,6 +210,7 @@ final myClassMethods = [
     isAbstract: false,
     isExternal: false,
     isGetter: false,
+    isOperator: true,
     isSetter: false,
     namedParameters: [],
     positionalParameters: [
@@ -242,6 +236,7 @@ final myClassMethods = [
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'hashCode'),
     isAbstract: false,
     isExternal: false,
+    isOperator: false,
     isGetter: true,
     isSetter: false,
     namedParameters: [],
@@ -256,6 +251,7 @@ final myClassMethods = [
     isAbstract: false,
     isExternal: false,
     isGetter: false,
+    isOperator: false,
     isSetter: false,
     namedParameters: [],
     positionalParameters: [],

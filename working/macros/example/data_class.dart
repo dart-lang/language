@@ -45,12 +45,12 @@ const autoConstructor = _AutoConstructor();
           'Cannot generate an unnamed constructor because one already exists');
     }
 
-    var parts = [clazz.identifier, '({'];
+    var parts = <Object>[clazz.identifier.name, '({'];
     // Add all the fields of `declaration` as named parameters.
     var fields = await builder.fieldsOf(clazz);
     for (var field in fields) {
       var requiredKeyword = field.type.isNullable ? '' : 'required ';
-      parts.addAll(['\n${requiredKeyword}this.', field.identifier, ',']);
+      parts.addAll(['\n${requiredKeyword}this.', field.identifier.name, ',']);
     }
 
     // Add all super constructor parameters as named parameters.
