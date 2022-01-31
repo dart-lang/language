@@ -325,7 +325,7 @@ constructors are invoked, and their limitations.
 
 *Note: The Macro API is still being designed, and lives [here][api].*
 
-[api]: https://github.com/dart-lang/language/blob/master/working/macros/api
+[api]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api.dart
 
 ### Writing a Macro
 
@@ -337,7 +337,7 @@ implement as many of these interfaces as it wants to. This allows a single macro
 to participate in multiple phases and to support being applied to multiple kinds
 of declarations.
 
-[Macro]: https://github.com/dart-lang/language/blob/master/working/macros/api/macros.dart
+[Macro]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/macros.dart
 [marker interface]: https://en.wikipedia.org/wiki/Marker_interface_pattern
 
 Each macro interface declares a single method that the macro class must
@@ -372,7 +372,7 @@ primary method is `declareInClass`, which the macro can call to add a new member
 to the class. It also implements the `ClassIntrospector` interface, which allows
 you to get the members of the class, as well as its entire class hierarchy.
 
-[builder]: https://github.com/dart-lang/language/blob/master/working/macros/api/builders.dart
+[builder]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/builders.dart
 
 ### Introspecting on metadata annotations
 
