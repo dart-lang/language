@@ -1,6 +1,6 @@
 # Augmentation Libraries
 
-Author: rnystrom@google.com, Version: 1.1 (see Changelog at end)
+Author: rnystrom@google.com, Version: 1.2 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -247,11 +247,20 @@ declaration according to the rules in the following subsections.
 
 It is a compile-time error if:
 
+*   The type parameters of the type augmentation do not exactly match the
+    original type's type parameters. This means there must be the same number of
+    type parameters with the same names and same bounds.
+
+    *Since repeating the type parameters is, by definition, redundant, this
+    doesn't accomplish anything semantically. But it ensures that anyone reading
+    the augmenting type can see the declarations of any type parameters that it
+    uses in its body.*
+
 *   The augmenting type and corresponding type are not the same kind: class,
     mixin, extension. You can't augment a class with a mixin, etc.
 
-*   The augmenting type declares any type parameters or an `extends` clause.
-    Only the main declaration can specify those.
+*   The augmenting type declares an `extends` clause. Only the main declaration
+    can specify those.
 
     **TODO: We could consider allowing an `extends` clause if the main
     declaration doesn't have one.**
@@ -294,6 +303,11 @@ It is a compile-time error if:
     names and types of named parameters must be the same; any type parameters
     and bounds must be the same; and any `required` or `covariant` modifiers
     must match.
+
+    *Since repeating the signature is, by definition, redundant, this doesn't
+    accomplish anything semantically. But it ensures that anyone reading the
+    augmenting function can see the declarations of any parameters that it
+    uses in its body.*
 
 *   The original function is declared `external` and the augmenting function
     uses `augment super()`.
@@ -396,18 +410,23 @@ It is a compile-time error if:
 
 Constructors are (as always) more complex. A constructor marked `augment`
 replaces the body of the corresponding constructor in the main library with its
-body. It appends its initializer list to the original constructor's. In the
-augmenting constructor's body, an `augment super()` call invokes the original
-constructor's body.
+body. If the augmenting constructor has any initializers, they are appended to
+the original constructor's initializers, but before any original super
+initializer or original redirecting initializer if there is one.
+
+In the augmenting constructor's body, an `augment super()` call invokes the
+original constructor's body.
 
 It is a compile-time error if:
 
 *   The signature of the constructor augmentation does not exactly match the
-    original constructor. This means there must be the same number of
-    positional, optional, and named parameters; the types of corresponding
-    positional and optional parameters must be the same; and the names and types
-    of named parameters must be the same. Any initializing formals must be the
-    same in both constructors.
+    original constructor. This means the return types must be the same; there
+    must be the same number of positional, optional, and named parameters; the
+    types of corresponding positional and optional parameters must be the same;
+    the names and types of named parameters must be the same; any type
+    parameters and bounds must be the same; and any `required` or `covariant`
+    modifiers must match. Any initializing formals must be the same in both
+    constructors.
 
     **TODO: Is this the right way to handle initializing formals?**
 
@@ -417,7 +436,16 @@ It is a compile-time error if:
 *   The original constructor is a factory constructor and the augmenting
     constructor has an initializer list.
 
+*   The original constructor has a super initializer or redirecting initializer
+    and the augmenting constructor does too.
+
 **TODO: What about redirecting constructors?**
+
+### Metadata annotations and macro applications
+
+An augmentation declaration may have metadata annotations or macros
+applications. These are appended to the list of metadata annotations and macro
+applications on the original declaration.
 
 ## Scoping
 
@@ -679,6 +707,15 @@ support for part files entirely, which would simplify the language and our
 tools.
 
 ## Changelog
+
+### 1.2
+
+*   Specify that augmenting constructor initializers are inserted before the
+    original constructor's super or redirecting initializer if present (#2062).
+*   Specify that an augmenting type must replicate the original type's type
+    parameters (#2058).
+*   Allow augmenting declarations to add metadata annotations and macro
+    applications (#2061).
 
 ### 1.1
 
