@@ -1,6 +1,6 @@
 # Augmentation Libraries
 
-Author: rnystrom@google.com, Version: 1.2 (see [Changelog](#Changelog) at end)
+Author: rnystrom@google.com, Version: 1.3 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -309,6 +309,9 @@ It is a compile-time error if:
     augmenting function can see the declarations of any parameters that it
     uses in its body.*
 
+*   The function augmentation specifies any default values. *Default values are
+    defined solely by the original function.*
+
 *   The original function is declared `external` and the augmenting function
     uses `augment super()`.
 
@@ -419,16 +422,18 @@ original constructor's body.
 
 It is a compile-time error if:
 
-*   The signature of the constructor augmentation does not exactly match the
-    original constructor. This means the return types must be the same; there
-    must be the same number of positional, optional, and named parameters; the
-    types of corresponding positional and optional parameters must be the same;
-    the names and types of named parameters must be the same; any type
-    parameters and bounds must be the same; and any `required` or `covariant`
-    modifiers must match. Any initializing formals must be the same in both
-    constructors.
+*   The signature of the constructor augmentation does not match the original
+    constructor. This means the return types must be the same; there must be the
+    same number of positional, optional, and named parameters; the types of
+    corresponding positional and optional parameters must be the same; the names
+    and types of named parameters must be the same; any type parameters and
+    bounds must be the same; and any `required` or `covariant` modifiers must
+    match. Any initializing formals must be the same in both constructors.
 
     **TODO: Is this the right way to handle initializing formals?**
+
+*   The constructor augmentation specifies any default values. *Default values
+    defined solely by the original constructor.*
 
 *   The original constructor is `const` and the augmenting constructor is not
     or vice versa.
@@ -707,6 +712,10 @@ support for part files entirely, which would simplify the language and our
 tools.
 
 ## Changelog
+
+### 1.3
+
+*   Constructor and function augmentations can't define default values.
 
 ### 1.2
 
