@@ -1,16 +1,20 @@
-import '../api/macros.dart';
-import '../api/introspection.dart';
-import '../api/builders.dart';
-import '../api/code.dart';
+// Copyright (c) 2022, the Dart project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
 
-const dataClass = _DataClass();
+// There is no public API exposed yet, the in progress api lives here.
+import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
-macro class _DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
-  const _DataClass();
+// TODO: support loading macros by const instance reference.
+const dataClass = DataClass();
+
+/*macro*/ class DataClass
+    implements ClassDeclarationsMacro, ClassDefinitionMacro {
+  const DataClass();
 
   @override
   Future<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassDeclarationBuilder context) async {
+      ClassDeclaration clazz, ClassMemberDeclarationBuilder context) async {
     await autoConstructor.buildDeclarationsForClass(clazz, context);
     await copyWith.buildDeclarationsForClass(clazz, context);
     hashCode.buildDeclarationsForClass(clazz, context);
@@ -29,32 +33,33 @@ macro class _DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
 
 const autoConstructor = _AutoConstructor();
 
-macro class _AutoConstructor implements ClassDeclarationsMacro {
+/*macro*/ class _AutoConstructor implements ClassDeclarationsMacro {
   const _AutoConstructor();
 
   @override
   Future<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassDeclarationBuilder builder) async {
+      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
     var constructors = await builder.constructorsOf(clazz);
-    if (constructors.any((c) => c.name == '')) {
+    if (constructors.any((c) => c.identifier.name == '')) {
       throw ArgumentError(
           'Cannot generate an unnamed constructor because one already exists');
     }
 
-    var parts = [Code.fromString('${clazz.name}({')];
+    var parts = <Object>[clazz.identifier.name, '({'];
     // Add all the fields of `declaration` as named parameters.
     var fields = await builder.fieldsOf(clazz);
     for (var field in fields) {
       var requiredKeyword = field.type.isNullable ? '' : 'required ';
-      parts.add(Code.fromString('\n${requiredKeyword}this.${field.name},'));
+      parts.addAll(['\n${requiredKeyword}this.', field.identifier.name, ',']);
     }
 
     // Add all super constructor parameters as named parameters.
-    var superclass = await builder.superclassOf(clazz);
+    var superclass = (await builder.superclassOf(clazz))!;
     MethodDeclaration? superconstructor;
-    if (superclass != null) {
+    // TODO: Compare against Object identifier once we can get it.
+    if (superclass.identifier.name != 'Object') {
       var superconstructor = (await builder.constructorsOf(superclass))
-          .firstWhereOrNull((c) => c.name == '');
+          .firstWhereOrNull((c) => c.identifier.name == '');
       if (superconstructor == null) {
         throw ArgumentError(
             'Super class $superclass of $clazz does not have an unnamed '
@@ -67,40 +72,44 @@ macro class _AutoConstructor implements ClassDeclarationsMacro {
         var defaultValue = param.defaultValue == null
             ? ''
             : Code.fromParts([' = ', param.defaultValue!]);
-        parts.add(Code.fromParts([
-          '\n$requiredKeyword${param.type.code} ${param.name}',
+        parts.addAll([
+          '\n$requiredKeyword',
+          param.type.code,
+          ' ${param.identifier.name},',
           defaultValue,
           ',',
-        ]));
+        ]);
       }
       for (var param in superconstructor.namedParameters) {
         var requiredKeyword = param.isRequired ? '' : 'required ';
         var defaultValue = param.defaultValue == null
             ? ''
             : Code.fromParts([' = ', param.defaultValue!]);
-        parts.add(Code.fromParts([
-          '\n$requiredKeyword${param.type.code} ${param.name}',
+        parts.addAll([
+          '\n$requiredKeyword',
+          param.type.code,
+          ' ${param.identifier.name}',
           defaultValue,
           ',',
-        ]));
+        ]);
       }
     }
-    parts.add(Code.fromString('\n})'));
+    parts.add('\n})');
     if (superconstructor != null) {
-      parts.add(Code.fromString(' : super('));
+      parts.add(' : super(');
       for (var param in superconstructor.positionalParameters) {
-        parts.add(Code.fromString('\n${param.name},'));
+        parts.add('\n${param.identifier.name},');
       }
       if (superconstructor.namedParameters.isNotEmpty) {
-        parts.add(Code.fromString('{'));
+        parts.add('{');
         for (var param in superconstructor.namedParameters) {
-          parts.add(Code.fromString('\n${param.name}: ${param.name},'));
+          parts.add('\n${param.identifier.name}: ${param.identifier.name},');
         }
-        parts.add(Code.fromString('\n}'));
+        parts.add('\n}');
       }
-      parts.add(Code.fromString(')'));
+      parts.add(')');
     }
-    parts.add(Code.fromString(';'));
+    parts.add(';');
     builder.declareInClass(DeclarationCode.fromParts(parts));
   }
 }
@@ -108,34 +117,36 @@ macro class _AutoConstructor implements ClassDeclarationsMacro {
 const copyWith = _CopyWith();
 
 // TODO: How to deal with overriding nullable fields to `null`?
-macro class _CopyWith implements ClassDeclarationsMacro {
+/*macro*/ class _CopyWith implements ClassDeclarationsMacro {
   const _CopyWith();
 
   @override
   Future<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassDeclarationBuilder builder) async {
+      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
     var methods = await builder.methodsOf(clazz);
-    if (methods.any((c) => c.name == 'copyWith')) {
+    if (methods.any((c) => c.identifier.name == 'copyWith')) {
       throw ArgumentError(
           'Cannot generate a copyWith method because one already exists');
     }
     var allFields = await clazz.allFields(builder).toList();
     var namedParams = [
       for (var field in allFields)
-        ParameterCode.fromString('${field.type.code} ${field.name}'),
+        ParameterCode.fromParts(
+            [field.type.code, '? ${field.identifier.name}']),
     ];
     var args = [
       for (var field in allFields)
         NamedArgumentCode.fromString(
-            '${field.name}: ${field.name} ?? this.${field.name}'),
+            '${field.identifier.name}: ${field.identifier.name} '
+            '?? this.${field.identifier.name}'),
     ];
     builder.declareInClass(DeclarationCode.fromParts([
-      clazz.instantiate().code,
+      clazz.identifier,
       ' copyWith({',
       ...namedParams.joinAsCode(', '),
       ',})',
       // TODO: We assume this constructor exists, but should check
-      '=> ', clazz.instantiate().code, '(',
+      '=> ', clazz.identifier, '(',
       ...args.joinAsCode(', '),
       ', );',
     ]));
@@ -144,12 +155,13 @@ macro class _CopyWith implements ClassDeclarationsMacro {
 
 const hashCode = _HashCode();
 
-macro class _HashCode implements ClassDeclarationsMacro, ClassDefinitionMacro {
+/*macro*/ class _HashCode
+    implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _HashCode();
 
   @override
   void buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassDeclarationBuilder builder) {
+      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) {
     builder.declareInClass(DeclarationCode.fromString('''
 @override
 external int get hashCode;'''));
@@ -158,10 +170,12 @@ external int get hashCode;'''));
   @override
   Future<void> buildDefinitionForClass(
       ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
-    var hashCodeBuilder = builder.buildMethod('hashCode');
+    var methods = await builder.methodsOf(clazz);
+    var hashCodeBuilder = await builder.buildMethod(
+        methods.firstWhere((m) => m.identifier.name == 'hashCode').identifier);
     var hashCodeExprs = [
       await for (var field in clazz.allFields(builder))
-        ExpressionCode.fromString('${field.name}.hashCode')
+        ExpressionCode.fromString('${field.identifier.name}.hashCode')
     ].joinAsCode(' ^ ');
     hashCodeBuilder.augment(FunctionBodyCode.fromParts([
       ' => ',
@@ -173,12 +187,13 @@ external int get hashCode;'''));
 
 const equality = _Equality();
 
-macro class _Equality implements ClassDeclarationsMacro, ClassDefinitionMacro {
+/*macro*/ class _Equality
+    implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _Equality();
 
   @override
   void buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassDeclarationBuilder builder) {
+      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) {
     builder.declareInClass(DeclarationCode.fromString('''
 @override
 external bool operator==(Object other);'''));
@@ -187,13 +202,18 @@ external bool operator==(Object other);'''));
   @override
   Future<void> buildDefinitionForClass(
       ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
-    var equalsBuilder = builder.buildMethod('==');
+    var methods = await builder.methodsOf(clazz);
+    var equalsBuilder = await builder.buildMethod(
+        methods.firstWhere((m) => m.identifier.name == '==').identifier);
     var equalityExprs = [
       await for (var field in clazz.allFields(builder))
-        ExpressionCode.fromString('this.${field.name} == other.${field.name}'),
+        ExpressionCode.fromString(
+            'this.${field.identifier.name} == other.${field.identifier.name}'),
     ].joinAsCode(' && ');
     equalsBuilder.augment(FunctionBodyCode.fromParts([
-      ' => other is ${clazz.instantiate().code} && ',
+      ' => other is ',
+      clazz.identifier,
+      ' && ',
       ...equalityExprs,
       ';',
     ]));
@@ -202,12 +222,13 @@ external bool operator==(Object other);'''));
 
 const toString = _ToString();
 
-macro class _ToString implements ClassDeclarationsMacro, ClassDefinitionMacro {
+/*macro*/ class _ToString
+    implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _ToString();
 
   @override
   void buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassDeclarationBuilder builder) {
+      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) {
     builder.declareInClass(DeclarationCode.fromString(
       '''
 @override
@@ -218,14 +239,17 @@ external String toString();''',
   @override
   Future<void> buildDefinitionForClass(
       ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
-    var toStringBuilder = builder.buildMethod('toString');
+    var methods = await builder.methodsOf(clazz);
+    var toStringBuilder = await builder.buildMethod(
+        methods.firstWhere((m) => m.identifier.name == 'toString').identifier);
     var fieldExprs = [
       await for (var field in clazz.allFields(builder))
-        Code.fromString('  ${field.name}: \${${field.name}}'),
+        Code.fromString(
+            '  ${field.identifier.name}: \${${field.identifier.name}}'),
     ].joinAsCode('\n');
 
     toStringBuilder.augment(FunctionBodyCode.fromParts([
-      ' => """\${${clazz.name}} { ',
+      ' => """\${${clazz.identifier.name}} { ',
       ...fieldExprs,
       '}""";',
     ]));
@@ -239,7 +263,9 @@ extension _AllFields on ClassDeclaration {
       yield field;
     }
     var next = await introspector.superclassOf(this);
-    while (next is ClassDeclaration && next.name != 'Object') {
+    // TODO: Compare against actual Object identifer once we provide a way to
+    // get it.
+    while (next is ClassDeclaration && next.identifier.name != 'Object') {
       for (var field in await introspector.fieldsOf(next)) {
         yield field;
       }
@@ -253,5 +279,6 @@ extension _<T> on Iterable<T> {
     for (var item in this) {
       if (test(item)) return item;
     }
+    return null;
   }
 }
