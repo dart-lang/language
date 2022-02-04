@@ -130,7 +130,7 @@ The semantics of such an enum declaration, *E*, is defined as introducing a (sem
 
 - **Static `values` list**: A static constant variable named `values` is added as by the declaration  `static const List<Name> values = [id1, …, idn];`
   where `id1`…`idn` are the names of the enum entries of the `enum` declaration in source/index order.
-  If `Name` is generic, the `List<Name>` instantiates `Name` to its bounds.
+  _If `Name` is generic, the `List<Name>` instantiates `Name` to its bounds._
 
 If the resulting class would have any naming conflicts, or other compile-time errors, the `enum` declaration is invalid and a compile-time error occurs. Such errors include, but are not limited to:
 
