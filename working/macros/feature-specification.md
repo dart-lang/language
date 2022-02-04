@@ -641,21 +641,19 @@ containing the declaration that the identifier refers to. The compiler adds a
 unique prefix to the import and then the identifier emitted as a prefixed
 identifier followed by the identifier's simple name.*
 
-Macros also build up generated code using strings. Bare identifiers in strings
-may must resolve to local declarations inside the declaration being defined by
-the macro. For example, if a macro is generating a method body, any bare
-identifiers that appear in strings used to build the `Code` object must resolve
-to local variables or local functions declared inside the body of that same
-method. To refer to non-local declarations, macro authors must use an
-`Identifier` object. Macros can get or create `Identifiers` using the
-introspection API.
+Macros also build generated code using strings. Identifiers that appear in bare
+strings are resolved where they appear in the generated code, and where that
+generated code appears in the library, after all macros in the library have
+finished executing. For example, if a macro is generating the body of an
+instance method, an identifier in a string used to build that body might resolve
+to a local variable declared inside that method, to an instance member on the
+surrounding class (which may or may not have been produced by some macro), to a
+static method, or to a top level identifier.
 
-An identifier in a string used to create a `Code` object does not necessarily
-need to resolve to a local declaration *in that same `Code` object*. Macros can
-compose `Code` objects out of other `Code` objects and strings. It is only when
-the final `Code` object is returned by the macro and used to produce a
-declaration that all identifiers inside strings must be resolvable to locals
-in the generated declaration.
+If a macro wants to generate code containing an identifier that unambigiously
+refers to a top level declaration and can't inadvertently capture a local
+variable in surrounding generated code, the macro can create an `Identifier` for
+that top level declaration and insert that into the generated code.
 
 **TODO: Define this API. See [here](https://github.com/dart-lang/language/pull/1779#discussion_r683843130).**
 
