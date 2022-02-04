@@ -84,7 +84,7 @@ more of the macro interfaces, then the annotation is treated as an application
 of the `myCoolMacro` macro to the class MyClass.
 
 Macro applications can also be passed arguments, either in the form of
-[Code][] expressions or certain types of literal values. See
+[Code][] expressions, [Identifier][]s, or certain types of literal values. See
 [Macro Arguments](#Macro-arguments) for more information on how these arguments
 are handled when executing macros.
 
@@ -117,6 +117,28 @@ It takes those and composes them into a function body like:
 Most of the time, like here, a macro takes the arguments you pass it and
 interpolates them back into code that it generates, so passing the arguments as
 code is what you want.
+
+### Identifier arguments
+
+If you want to be able to introspect on an identifier passed in to you, you can
+do that as well, consider the following:
+
+```dart
+@GenerateSerializers(MyType)
+library my.library;
+
+// Generated
+class MyTypeSerializer implements Serializer<MyType> {
+  // ....
+}
+
+class MyTypeDeserializer implements Deserializer<MyType> {
+  // ....
+}
+```
+
+Here the macro takes an `Identifier` argument, and introspects on it to know
+how to generate the desired serialization and deserialization classes.
 
 ### Value arguments
 
@@ -461,10 +483,12 @@ This does have two interesting and possibly unexpected consequences:
 Macros attach new code to the declaration the macro is applied to by calling
 methods on the builder object given to the macro. For example, a
 declaration-phase macro applied to a class declaration is given a
-[ClassDeclarationBuilder]. That class exposes an [`addToClass()`][addtoclass]
-method that adds the given code to the class as a new member.
+[ClassMemberDeclarationBuilder]. That class exposes a
+[`declareInClass()`][declareInClass] method that adds the given code to the
+class as a new member.
 
-[addtoclass]: https://jakemac53.github.io/macro_prototype/doc/api/definition/ClassDeclarationBuilder/addToClass.html
+[ClassMemberDeclarationBuilder]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/builders.dart#L93
+[declareInClass]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/builders.dart#L95
 
 The code itself is an instance of a special [Code][] class (or one of its
 subclasses). This is a first-class object that represents a well-formed piece of
@@ -472,7 +496,7 @@ Dart code. We use this instead of bare strings containing Dart syntax because a
 code object carries more than just the bare Dart code. In particular, it keeps
 track of how identifiers in the code are resolved.
 
-[Code]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Code-class.html
+[Code]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/code.dart#L9
 
 Also, when code objects are creating by combining fragments of other code (for
 example arguments to macros), the resulting code object may keep track of the
@@ -506,21 +530,6 @@ of a given pieces of syntax.
 
 **TODO**: We are considering exposing more properties on Code objects to allow
 introspection (#1933).
-
-### Fragments
-
-Sometimes when building a piece of Dart code for a macro's output, it's
-convenient to work with fragments of Dart code that are not themselves valid
-complete pieces of Dart syntax. For example, imagine a macro that wraps a given
-expression in `{ return ` and `; }`. Those fragments that are prepended and
-appended around the expression are not valid standalone productions in the Dart
-grammar.
-
-To represent those, we also have a [Fragment][] class. Fragments work more like
-unparsed strings. They can be concatenated and composed to produce a Code object
-when the result is valid Dart syntax.
-
-[Fragment]: https://jakemac53.github.io/macro_prototype/doc/api/definition/Fragment-class.html
 
 ### Identifiers and resolution
 
@@ -642,6 +651,8 @@ if it happens.
 
 **TODO**: Investigate other approaches, see [this
 comment](https://github.com/dart-lang/language/pull/1779#discussion_r683843130).
+
+[Identifier]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/introspection.dart#L15
 
 ### Generating macro applications
 
@@ -774,8 +785,8 @@ In a sandbox environment or isolate, create an instance of the corresponding
 macro class for each macro application. Pass in any macro application arguments
 to the macro's constructor. If a parameter's type is `Code` or a subclass,
 convert the argument expression to a `Code` object. Any bare identifiers in the
-argument expression are converted to `Identifier` instances whose scope is the
-library of the macro application.
+argument expression are converted to `Identifier` (see
+[Identifier Scope](#Identifier-Scope) for scoping information).
 
 Run all of the macros in phase order:
 
@@ -871,23 +882,32 @@ Each argument in the metadata annotation for the macro application is converted
 to a form that the corresponding constructor on the macro class expects, which
 it specifies through parameter types:
 
-*   If the parameter type is `bool`, `double`, `int`, `Null`, `num`, or `String`
-    (or the nullable forms of any of those), then the argument expression must
-    be a Boolean, number, null, or string literal. Number literals may be
-    negated. String literals may not contain any interpolation, but may be
-    adjacent strings.
+*   If the parameter type is `bool`, `double`, `int`, `Null`, `num`, `String`,
+    `List`, or `Map`, (or the nullable forms of any of those), then the argument
+    expression must be a Boolean, number, null, string, list, or map literal.
+
+    * Number literals may be negated.
+    * String literals may not contain any interpolation, but may be adjacent
+      strings.
+    * List and Map literals may only contain any of the supported parameter
+      types. If the parameter type specifies a generic type argument, it must
+      be one of the allowed parameter types.
 
     **TODO**: Do we want to allow more complex expressions? Could we allow
     constant expressions whose identifiers can be successfully resolved before
     macro expansion (#1929)?
 
-*   Else, the argument expression is automatically converted to an object of
-    type [Code][] representing the unevaluated expression.
+*   If the parameter type is `Code` (or a subtype of `Code`), the argument
+    expression is automatically converted to a corresponding `Code` instance.
+    These provided code expressions may contain identifiers.
 
-    Note that this implicit lifting of the argument expression only happens when
-    the macro constructor is invoked through a macro application. If a macro
-    class is directly constructed in Dart (for example, in test code for the
-    macro), then the caller is responsible for creating the Code object.
+*   If the parameter type is `Identifier` then a single identifier must be
+    passed, and it will be converted to a corresponding `Identifier` instance.
+
+Note that this implicit lifting of the argument expression only happens when
+the macro constructor is invoked through a macro application. If a macro
+class is directly constructed in Dart (for example, in test code for the
+macro), then the caller is responsible for creating the Code object.
 
 As usual, it is a compile-time error if the type of any argument value (which
 may be a Code object) is not a subtype of the corresponding parameter type.
@@ -895,6 +915,28 @@ may be a Code object) is not a subtype of the corresponding parameter type.
 It is a compile-time error if an macro class constructor invoked by a macro
 application has a parameter whose type is not Code (or any subtype of it) or
 one of the aforementioned primitive types (or a nullable type of any of those).
+
+#### Identifier Scope
+
+The following rules apply to any `Identifier` passed as an argument to a macro
+application, whether as a part of a `Code` expression or directly as an
+`Identifier` instance.
+
+The scope of any `Identifier` argument is the same as the scope in which the
+identifier appears in the source code, which is the same as the scope for any
+other type of annotation on a declaration. This means:
+
+* Identifiers in macro application arguments may only refer to static and top
+  level members.
+* They cannot refer to local or instance variables, as those can never be in scope
+  where a macro application appears.
+* Identifiers referring to static class members may be unqualified if the
+  annotation appears on a member of that class.
+
+All identifiers passed to macro constructors must resolve to a real declaration
+by the time macro expansion has completed. They may resolve to generated
+identifiers, including ones generated by the macro they were passed to,
+although that design may be inadvisable.
 
 ### Runtime environment
 
