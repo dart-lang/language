@@ -186,7 +186,6 @@ final myClassFields = [
       definingClass: myClassIdentifier,
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myString'),
-      initializer: null,
       isExternal: false,
       isFinal: true,
       isLate: false,
@@ -195,7 +194,6 @@ final myClassFields = [
       definingClass: myClassIdentifier,
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myBool'),
-      initializer: null,
       isExternal: false,
       isFinal: true,
       isLate: false,
@@ -215,7 +213,6 @@ final myClassMethods = [
     namedParameters: [],
     positionalParameters: [
       ParameterDeclarationImpl(
-        defaultValue: null,
         id: RemoteInstance.uniqueId,
         identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'other'),
         isNamed: false,

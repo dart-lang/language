@@ -69,28 +69,18 @@ const autoConstructor = _AutoConstructor();
       // parameters in this constructor.
       for (var param in superconstructor.positionalParameters) {
         var requiredKeyword = param.isRequired ? 'required' : '';
-        var defaultValue = param.defaultValue == null
-            ? ''
-            : Code.fromParts([' = ', param.defaultValue!]);
         parts.addAll([
           '\n$requiredKeyword',
           param.type.code,
           ' ${param.identifier.name},',
-          defaultValue,
-          ',',
         ]);
       }
       for (var param in superconstructor.namedParameters) {
         var requiredKeyword = param.isRequired ? '' : 'required ';
-        var defaultValue = param.defaultValue == null
-            ? ''
-            : Code.fromParts([' = ', param.defaultValue!]);
         parts.addAll([
           '\n$requiredKeyword',
           param.type.code,
-          ' ${param.identifier.name}',
-          defaultValue,
-          ',',
+          ' ${param.identifier.name},',
         ]);
       }
     }
@@ -131,14 +121,16 @@ const copyWith = _CopyWith();
     var allFields = await clazz.allFields(builder).toList();
     var namedParams = [
       for (var field in allFields)
-        ParameterCode.fromParts(
-            [field.type.code, '? ${field.identifier.name}']),
+        ParameterCode(
+            name: field.identifier.name,
+            type: field.type.code.asNullable,
+            keywords: const [],
+            defaultValue: null),
     ];
     var args = [
       for (var field in allFields)
-        NamedArgumentCode.fromString(
-            '${field.identifier.name}: ${field.identifier.name} '
-            '?? this.${field.identifier.name}'),
+        '${field.identifier.name}: ${field.identifier.name} '
+            '?? this.${field.identifier.name}',
     ];
     builder.declareInClass(DeclarationCode.fromParts([
       clazz.identifier,
