@@ -6,7 +6,7 @@ issue][546] also helps frame things.
 
 [546]: https://github.com/dart-lang/language/issues/546
 
-Before I get into details of the design, I wanted to walk through our specific
+Before I get into details of the design, I want to walk through our specific
 goals and constraints. It's not enough to just yank pattern matching out of,
 say, Haskell, and cram it into Dart. We need to define what a *good* pattern
 matching feature looks like *in the context of Dart.*
@@ -58,7 +58,7 @@ possible strings, so this code isn't useful.
 
 Patterns are also often used in places like variable declarations where users
 don't expect a runtime failure to occur. In that case, if a pattern *might* fail
-to match, it should probably be compile-time error:
+to match, it should probably be a compile-time error:
 
 ```dart
 num n = ...
@@ -84,6 +84,12 @@ patterns is a useful, powerful feature, because it means that when users add new
 cases to some enum or enum-like type, the compiler will tell them all of the
 places in code that may need to be extended to handle that case.
 
+In object-oriented languages, you get a compile error if a subclass fails to
+implement some abstract method. This ensures that all calls to that polymorphic
+method definitely reach a defined method. In functional languages exhaustiveness
+checks, on pattern matches is the corresponding way to ensure an operation
+supports all types it can be applied to.
+
 ### Follow familiar pattern syntax and semantics
 
 Pattern matching exists in some form or another in a number of languages today:
@@ -96,7 +102,7 @@ other languages.
 
 ### Mirror the syntax used to construct values
 
-Pattern matching, especially destructuring patterns, are basically the dual to
+Patterns, especially destructuring patterns, are basically the dual to
 expressions. An expression like a list literal or constructor call takes a
 series of subexpressions (the list elements or constructor arguments) and
 bundles them together into a new composite object. A list or instance
@@ -230,9 +236,8 @@ match (value) {
 
 This introduces significant complexity. We'll also want variable binding
 patterns, which are also naturally represented as an identifier. If we allow
-constant patterns to also be simple bare identifiers, it means we need to do
-lexical scope resolution to determine if a pattern is a constant pattern or a
-variable pattern.
+constant patterns to also be simple bare identifiers, it means we need way to
+distinguish constant patterns from variable patterns.
 
 We'll presumably want to support dotted identifiers for enum cases. I imagine
 users will expect that to also work for named constants imported from libraries
@@ -290,10 +295,12 @@ For example, something like this:
 
 ```dart
 abstract class Shape {}
+
 class Rect extends Shape {
   final num left, top, right, bottom;
   Rect(this.left, this.top, this.right, this.bottom);
 }
+
 class Circle extends Shape {
   final num x, y, radius;
   Circle(this.x, this.y, this.radius);

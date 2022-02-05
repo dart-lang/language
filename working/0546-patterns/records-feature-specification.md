@@ -1,7 +1,10 @@
 # Records Feature Specification
 
 Author: Bob Nystrom
-Status: Draft
+
+Status: In progress
+
+Version 1.1 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -11,12 +14,12 @@ well when you also have meaningful behavior to attach to the data. But it's
 quite verbose and it means any other code using this bundle of data is now also
 coupled to that particular class definition.
 
-Instead, you could wrap them up in a collection like a list, map, or set. This
-is lightweight and avoids bringing in any coupling other than the Dart core
-library. But it does not work well with the static type system. If you want to
-bundle a number and a string together, the best you can do is a `List<Object>`
-and then the type system has lost track of how many elements there are and what
-their individual types are.
+You can wrap them in a collection like a list, map, or set. This is lightweight
+and avoids bringing in any coupling other than the Dart core library. But it
+does not work well with the static type system. If you want to bundle a number
+and a string together, the best you can do is a `List<Object>` and then the type
+system has lost track of how many elements there are and what their individual
+types are.
 
 You've probably noticed this if you've ever used `Future.wait()` to wait on a
 couple of futures of different types. You end up having to cast the results back
@@ -130,22 +133,19 @@ grammar is:
 
 ```
 // Existing rule:
-literal           ::= record
-                    | // Existing literal productions...
-
-record            ::= '(' recordField ( ',' recordField )* ','? ')'
-
-recordField       ::= (identifier ':' )? expression
+literal      ::= record
+                 | // Existing literal productions...
+record       ::= '(' recordField ( ',' recordField )* ','? ')'
+recordField  ::= (identifier ':' )? expression
 ```
 
-This is somewhat like the grammar for a function call argument list, except that
-positional and named fields are allowed to intermix. (There's no real reason
-argument lists don't also allow that, and it's a long-standing feature request.)
-There are a couple of syntactic restrictions not captured by the grammar. It is
-a compile-time error if a record has any of:
+This is identical to the grammar for a function call argument list. There are a
+couple of syntactic restrictions not captured by the grammar. A parenthesized
+expression without a trailing comma is ambiguously either a record or grouping
+expression. To resolve the ambiguity, it is always treated as a grouping
+expression.
 
-*   only a single positional field with no trailing comma. This avoids ambiguity
-    with parenthesized expressions. Python has a similar rule.
+It is a compile-time error if a record has any of:
 
 *   the same field name more than once.
 
@@ -153,6 +153,8 @@ a compile-time error if a record has any of:
     positional field (see below).
 
 *   a field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
+
+**TODO: Can field names be private? If so, are they actually private?**
 
 ### Record type annotations
 
@@ -197,7 +199,7 @@ A record type can have both positional and named fields:
 (bool, num, {int n, String s}) quad;
 ```
 
-If there are only named fields, you are also allowed to omit the surrounding
+If there are only named fields, you are allowed to omit the surrounding
 parentheses:
 
 ```dart
@@ -252,10 +254,10 @@ The class `Record` is a subtype of `Object` and `dynamic` and a supertype of
 `Never`. All record types are subtypes of `Record`, and supertypes of `Never`.
 
 A record type `A` is a subtype of record type `B` iff they have same shape and
-types of all fields of `A` are subtypes of corresponding field types of `B`. In
-type system lingo, this means record types are "covariant" or have "depth
-subtyping. Record types with different shapes are not subtypes. There is no "row
-polymorphism" or "width subtyping".
+the types of all fields of `A` are subtypes of the corresponding field types of
+`B`. In type system lingo, this means record types are "covariant" or have
+"depth subtyping". Record types with different shapes are not subtypes. There is
+no "row polymorphism" or "width subtyping".
 
 If a record type has positional fields, then it is a subtype of the
 `Destructure` interface with the same number of fields and with type arguments
@@ -406,3 +408,9 @@ print(pair is (int, double)); // "true".
 The runtime type of `pair` is `(int, double)`, not `(num, Object)`, However, the
 variable declaration is still valid and sound because records are naturally
 covariant in their field types.
+
+## CHANGELOG
+
+### 1.1
+
+- Minor copy editing and clean up.
