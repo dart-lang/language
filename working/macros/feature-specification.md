@@ -892,13 +892,14 @@ to a form that the corresponding constructor on the macro class expects, which
 it specifies through parameter types:
 
 *   If the parameter type is `bool`, `double`, `int`, `Null`, `num`, `String`,
-    `List`, or `Map`, (or the nullable forms of any of those), then the argument
-    expression must be a Boolean, number, null, string, list, or map literal.
+    `List`, `Set`, or `Map`, (or the nullable forms of any of those), then the
+    argument expression must be a boolean, number, null, string, list, set, or
+    map literal.
 
     * Number literals may be negated.
     * String literals may not contain any interpolation, but may be adjacent
       strings, and may be raw strings.
-    * List and Map literals may only contain entries matching any of the
+    * List, Set and Map literals may only contain entries matching any of the
       supported argument types. If the parameter type specifies a generic type
       argument, it must be one of the allowed parameter types or `Object`,
       recursively. Note that `Object` is allowed in order to exclude null items,
