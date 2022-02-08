@@ -897,7 +897,7 @@ it specifies through parameter types:
 
     * Number literals may be negated.
     * String literals may not contain any interpolation, but may be adjacent
-      strings.
+      strings, and may be raw strings.
     * List and Map literals may only contain entries matching any of the
       supported argument types. If the parameter type specifies a generic type
       argument, it must be one of the allowed parameter types or `Object`,
