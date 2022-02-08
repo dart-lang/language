@@ -898,9 +898,11 @@ it specifies through parameter types:
     * Number literals may be negated.
     * String literals may not contain any interpolation, but may be adjacent
       strings.
-    * List and Map literals may only contain any of the supported parameter
-      types. If the parameter type specifies a generic type argument, it must
-      be one of the allowed parameter types, recursively.
+    * List and Map literals may only contain entries matching any of the
+      supported argument types. If the parameter type specifies a generic type
+      argument, it must be one of the allowed parameter types or `Object`,
+      recursively. Note that `Object` is allowed in order to exclude null items,
+      but all the actual entries must be of one of the supported types.
 
     **TODO**: Do we want to allow more complex expressions? Could we allow
     constant expressions whose identifiers can be successfully resolved before
@@ -944,7 +946,12 @@ for a metadata annotation on a declaration. This means:
   * For qualified references, only the unqualified name is visible to the macro.
     When the identifier is interpolated into an augmentation library, it may be
     converted back into a fully qualified reference if needed (although the
-    prefix may change, or a prefix may be added).
+    prefix may change, or a prefix may be added). This means all of the
+    following examples are supported, and for each you would only see `myMember`
+    as the `name` of the identifier:
+    - `@MyMacro(some_prefix.myMember)`
+    - `@MyMacro(SomeClass.myMember)`
+    - `@MyMacro(some_prefix.SomeClass.myMember)`
 
 All identifiers passed to macro constructors must resolve to a real declaration
 by the time macro expansion has completed. They may resolve to generated
