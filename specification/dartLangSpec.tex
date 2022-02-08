@@ -3500,8 +3500,8 @@ which is distinct from the one declared in the built-in class \code{Object}.
   rather than a repeated attempt to invoke \code{noSuchMethod}
   (\ref{bindingActualsToFormals}).
   Here is an example where a dynamic type error occurs because
-  an attempt is made to pass an \code{Invocation}
-  where only the null object is accepted:%
+  an attempt is made to pass an \code{Invocation},
+  and the type of the parameter is \code{Never}:%
 }
 
 \begin{dartCode}
