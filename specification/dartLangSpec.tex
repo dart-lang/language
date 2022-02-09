@@ -38,6 +38,8 @@
 % Dec 2022
 % - Change the definition of the type function 'flatten' to resolve soundness
 %   issue, cf. SDK issue #49396.
+% - Change 'primitive operator ==' to 'primitive equality', and include
+%   constraints on `hashCode` corresponding to the ones we have on `==`.
 %
 % 2.15
 % - Allow generic instantiation of expressions with a generic function type
@@ -3233,39 +3235,40 @@ because this is an invocation of a function object
 \end{dartCode}
 
 
-\subsubsection{The Operator `=='}
+\subsubsection{The Operator `==' and Primitive Equality}
 \LMLabel{theOperatorEqualsEquals}
 
 \LMHash{}%
 The operator \lit{==} is used implicitly in certain situations,
 and in particular constant expressions
 (\ref{constants})
-give rise to constraints on that operator.
-In order to specify these constraints just once we introduce the notion of a
-% Neither \syntax nor \lit works, so we fall back to `\code{==}'.
-\IndexCustom{primitive operator `\code{==}'}{%
-  operator `\code{==}'!primitive}:
+give rise to constraints on that operator,
+as well as on the getter \code{hashCode}.
+In order to specify these constraints just once we introduce the notion of
+\Index{primitive equality}:
 
 \begin{itemize}
 \item Every instance of type \code{int} and \code{String}
-  has a primitive operator \lit{==}.
+  has primitive equality.
 \item Every instance of type \code{Symbol}
   which was originally obtained by evaluation of a literal symbol or
   a constant invocation of a constructor of the \code{Symbol} class
-  has a primitive operator \lit{==}.
+  has primitive equality.
 \item Every instance of type \code{Type}
   which was originally obtained by evaluating a constant type literal
   (\ref{dynamicTypeSystem})
-  has a primitive operator \lit{==}.
-\item An instance $o$ has a primitive operator \lit{==}
+  has primitive equality.
+\item An instance $o$ has primitive equality
   if the dynamic type of $o$ is a class $C$,
-  and $C$ has a primitive operator \lit{==}.
-\item The class \code{Object} has a primitive operator \lit{==}.
-\item A class $C$ has a primitive operator \lit{==}
+  and $C$ has primitive equality.
+\item The class \code{Object} has primitive equality.
+\item A class $C$ has primitive equality
   if it does not have an implementation of the operator \lit{==}
+  that overrides the one inherited from \code{Object},
+  and it does not have an implementation of the getter \code{hashCode}
   that overrides the one inherited from \code{Object}.
   \commentary{%
-  In particular, the following have a primitive operator \lit{==}:
+  In particular, the following have primitive equality:
   The null object (\ref{null}),
   function objects obtained by function closurization of
   a static method or a top-level function
@@ -3282,10 +3285,11 @@ In order to specify these constraints just once we introduce the notion of a
 \end{itemize}
 
 \LMHash{}%
-When we say that the operator \lit{==} of a given instance or class
-\IndexCustom{is not primitive}{operator `\code{==}'!is not primitive},
+When we say that a given instance or class
+\IndexCustom{does not have primitive equality}{%
+  primitive equality!does not have},
 it means that it is not true that said instance or class
-has a primitive operator \lit{==}.
+has primitive equality.
 
 
 \subsection{Getters}
@@ -10911,8 +10915,8 @@ It is a compile-time error if
 a collection literal element in a constant set literal
 is not a constant expression.
 It is a compile-time error if
-the operator \lit{==} of an element expression in a constant set literal
-is not primitive
+an element in a constant set literal
+does not have primitive equality
 (\ref{theOperatorEqualsEquals}).
 It is a compile-time error if two elements of a constant set literal are equal
 according to their \lit{==} operator
@@ -11107,8 +11111,8 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 It is a compile-time error
 if a collection literal element in a constant map literal is not constant.
 It is a compile-time error if
-the operator \lit{==} of a key in a constant map literal
-is not primitive
+a key in a constant map literal
+does not have primitive equality
 (\ref{theOperatorEqualsEquals}).
 It is a compile-time error if two keys of a constant map literal are equal
 according to their \lit{==} operator
@@ -17893,8 +17897,8 @@ and are independent of any type annotations.%
 }
 
 \LMHash{}%
-It is a compile-time error if the operator \lit{==} of class $C$
-is not primitive
+It is a compile-time error if the class $C$
+does not have primitive equality
 (\ref{theOperatorEqualsEquals}).
 
 \rationale{%
