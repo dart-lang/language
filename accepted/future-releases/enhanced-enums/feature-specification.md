@@ -136,7 +136,7 @@ If the resulting class would have any naming conflicts, or other compile-time er
 
 - Declaring or inheriting (from `Enum` or from a declared mixin or interface) any member with the same basename as an enum value which is not a static setter. _(The introduced static declarations would have a conflict.)_
 - Declaring or mixing in a member which is not a valid override of a super-interface member declaration, including, but not limited to, the `index` and `toString` members of `Enum`.
-- Declaring or inheriting an member signature with no corresponding implementation. _(For example declaring an abstract `Never get index` or `String toString([int optional])`, but not providing an implementation.)
+- Declaring or inheriting a member signature with no corresponding implementation. _(For example declaring an abstract `Never get index` or `String toString([int optional])`, but not providing an implementation.)_
 - Declaring a type parameter on the `enum` which does not have a valid well-bounded or super-bounded instantiate-to-bounds result *and* not declaring or inheriting a member with base-name `values` _(because the then automatically introduced `static const List<EnumName> values` requires a valid instantiate-to-bounds result which is at least super-bounded, and a value declaration may require a well-bounded instantiation)_.
 - The type parameters of the enum not having a well-bounded instantiate-to-bounds result *and* an enum element omitting the type arguments and not having arguments which valid type arguments can be inferred from (because an implicit `EnumName(0, "foo", unrelatedArgs)`  constructor invocation requires a well-bound inferred type arguments for a generic `EnumName` enum).
 - Using a non-constant expression as argument of an enum value.
@@ -220,7 +220,7 @@ class LogPriority extends Enum with LogriorityMixin implements Comparable<LogPri
   LogPriority._$(int _$index, String _$name, this.priority, this.prefix) 
         : super(_$index, _$name);
   LogPriority._$unknown(int _$index, String _$name, String prefix) : 
-        : this._$(_$index, _$name, prefix, -1);
+        : this._$(_$index, _$name, -1, prefix);
     
   final String prefix;
   final int priorty;
@@ -272,7 +272,7 @@ class Plain extends Enum {
   static const Plain baz = Plain._$(2, "baz");
   static const List<Plain> values = [foo, bar, baz];
 
-  const Plain._$(int _$index, String_ $name) : super._(_$index, $_name);
+  const Plain._$(int _$index, String _$name) : super._(_$index, _$name);
 
   // Private names from `dart:core`.
   String _$enumToString() => "Plain.${_$name}";
@@ -346,8 +346,8 @@ enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern 
   }
 
   // Named constructor. Redirecting.
-  const Complex.captured(String regexpPattern)
-      : this("($regexpPattern)", RegExp);
+  const Complex.captured(String regexpPattern, T Function(String) factory)
+      : this("($regexpPattern)", factory);
 
   // Can expose the implicit name.
   String get name => EnumName(this).name;
@@ -396,8 +396,8 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
     throw UnsupportedError("No pattern matching: $text");
   }
 
-  const Complex.captured(int _$index, String _$name, String regexpPattern)
-      : this(_$index, _$name, "($regexpPattern)", RegExp);
+  const Complex.captured(int _$index, String _$name, String regexpPattern, T Function(String) factory)
+      : this(_$index, _$name, "($regexpPattern)", factory);
 
   String get name => EnumName(this).name;
 
