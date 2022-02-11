@@ -197,7 +197,7 @@ The `enum` declaration:
 enum LogPriority with LogPriorityMixin implements Comparable<LogPriority> {
   warning(2, "Warning"),
   error(1, "Error"),
-  LogPriority.unknown("Log"),
+  log.unknown("Log"),
   ;
  
   LogPriority(this.priority, this.prefix);
