@@ -2,8 +2,8 @@
 
 [![Build Status](https://github.com/dart-lang/language/workflows/CI/badge.svg)](https://github.com/dart-lang/language/actions?query=workflow%3ACI+branch%3Amaster)
 
-This repository is a place for the [Dart][website] language team to work on
-language changes and features, and to solicit and accept feedback and requests.
+This repository is Dedicated to [Dart][website] language team to work on
+language changes and features, and to seek and accept feedback and requests.
 
 Issues and feature requests relevant to the language and the specification may
 be filed [here](https://github.com/dart-lang/language/issues).
@@ -37,7 +37,7 @@ by participating on the dart language mailing list,
 by replying to issues in this repository,
 and by uploading documents, tests or other resources.
 
-When commenting on issues in this repository, keep in mind:
+Rukes for commenting on issues in this repository:
 
 -   :+1: reactions are more useful than comments to show support.
 -   Motivating examples help us understand why you want new features more than
