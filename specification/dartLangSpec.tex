@@ -3578,6 +3578,17 @@ See \synt{declaration} and \synt{methodSignature} for grammar rules
 introducing a redirection or an initializer list and a body.%
 }
 
+%% TODO(eernst): Add `\Error{...}` below when that command is added.
+\LMHash{}%
+A compile-time error occurs if a generative constructor declaration
+has a body of the form `\code{=>\,\,$e$;}'.
+
+\commentary{%
+In other function declarations,
+this kind of body is taken to imply that the value of $e$ is returned,
+but generative constructors do not return anything.%
+}
+
 \LMHash{}%
 If a formal parameter declaration $p$ is derived from
 \synt{fieldFormalParameter},

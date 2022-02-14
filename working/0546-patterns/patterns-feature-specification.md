@@ -1,7 +1,10 @@
 # Patterns Feature Specification
 
 Author: Bob Nystrom
-Status: Draft
+
+Status: In progress
+
+Version 1.1 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Summary
 
@@ -11,18 +14,18 @@ highly-voted user requests. It directly addresses:
 
 [records proposal]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/records-feature-specification.md
 
-*   [Multiple return values](https://github.com/dart-lang/language/issues/68) (281 👍, 6th highest)
-*   [Algebraic datatypes](https://github.com/dart-lang/language/issues/349) (249 👍, 7th highest)
-*   [Patterns and related features](https://github.com/dart-lang/language/issues/546) (241 👍, 8th highest)
-*   [Destructuring](https://github.com/dart-lang/language/issues/207) (201 👍, 9th highest)
-*   [Sum types and pattern matching](https://github.com/dart-lang/language/issues/83) (98 👍, 13th highest)
-*   [Extensible pattern matching](https://github.com/dart-lang/language/issues/1047) (49 👍, 19th highest)
-*   [JDK 12-like switch statement](https://github.com/dart-lang/language/issues/27) (44 👍, 22nd highest)
-*   [Switch expression](https://github.com/dart-lang/language/issues/307) (6 👍)
-*   [Type patterns](https://github.com/dart-lang/language/issues/170) (4 👍)
+*   [Multiple return values](https://github.com/dart-lang/language/issues/68) (495 👍, 4th highest)
+*   [Algebraic datatypes](https://github.com/dart-lang/language/issues/349) (362 👍, 10th highest)
+*   [Patterns and related features](https://github.com/dart-lang/language/issues/546) (379 👍, 9th highest)
+*   [Destructuring](https://github.com/dart-lang/language/issues/207) (394 👍, 7th highest)
+*   [Sum types and pattern matching](https://github.com/dart-lang/language/issues/83) (201 👍, 11th highest)
+*   [Extensible pattern matching](https://github.com/dart-lang/language/issues/1047) (69 👍, 23rd highest)
+*   [JDK 12-like switch statement](https://github.com/dart-lang/language/issues/27) (79 👍, 19th highest)
+*   [Switch expression](https://github.com/dart-lang/language/issues/307) (28 👍)
+*   [Type patterns](https://github.com/dart-lang/language/issues/170) (9 👍)
 *   [Type decomposition](https://github.com/dart-lang/language/issues/169)
 
-(For comparison, the current #1 issue, [Data classes](https://github.com/dart-lang/language/issues/314) has 489 👍.)
+(For comparison, the current #1 issue, [Data classes](https://github.com/dart-lang/language/issues/314) has 824 👍.)
 
 In particular, this proposal covers several coding styles and idioms users
 would like to express:
@@ -191,14 +194,17 @@ Here, `a` and `b` are references to constants and the pattern checks to see if
 the value being switched on is equivalent to a list containing those two
 elements.
 
-This proposal follows Swift and addresses the ambiguity by dividing patterns
-into two general categories *binding patterns* or *binders* and *matching
-patterns* or *matchers*. (Binding patterns don't always necessarily bind a
-variable, but "binder" is easier to say than "irrefutable pattern".) Binders
-appear in irrefutable contexts like variable declarations where the intent is to
-destructure and bind variables. Matchers appear in contexts like switch cases
-where the intent is also to see if the value matches the pattern or not and
-where control flow can occur when the pattern doesn't match.
+This proposal [follows Swift][swift pattern] and addresses the ambiguity by
+dividing patterns into two general categories *binding patterns* or *binders*
+and *matching patterns* or *matchers*. (Binding patterns don't always
+necessarily bind a variable, but "binder" is easier to say than "irrefutable
+pattern".) Binders appear in irrefutable contexts like variable declarations
+where the intent is to destructure and bind variables. Matchers appear in
+contexts like switch cases where the intent is first to see if the value matches
+the pattern or not and where control flow can occur when the pattern doesn't
+match.
+
+[swift pattern]: https://docs.swift.org/swift-book/ReferenceManual/Patterns.html
 
 ## Syntax
 
@@ -214,26 +220,28 @@ allow a pattern, like:
 var (a, [b, c]) = ("str", [1, 2]);
 ```
 
-Dart's existing C-style variable declaration syntax where the name of a type
-itself indicates a variable declaration without any leading keyword makes it
-harder to incorporate patterns. We don't want to allow confusing syntax like:
+Dart's existing C-style variable declaration syntax makes it harder to
+incorporate patterns. Variables can be declared just by writing their type, and
+a single declaration might declare multiple variables. Fully incorporating
+patterns into that could lead to confusing syntax like:
 
 ```dart
 (int, String) (n, s) = (1, "str");
 final (a, b) = (1, 2), c = 3, (d, e);
 ```
 
-To avoid that, patterns only occur in variable declarations that have a `var`
-or `final` keyword. Also, a variable declaration using a pattern can only have
-a single declaration "section". No comma-separated multiple declarations like:
+To avoid this weirdness, patterns only occur in variable declarations that begin
+with a `var` or `final` keyword. Also, a variable declaration using a pattern
+can only have a single declaration "section". No comma-separated multiple
+declarations like:
 
 ```dart
 var a = 1, b = 2;
 ```
 
-Also, declarations with patterns must have an initializer. This is not
-restriction since the reason to use patterns in variable declarations is to
-destructure values.
+Also, declarations with patterns must have an initializer. This is not a
+limitation since the point of using a pattern in a variable declaration is to
+immediately destructure the initialized value.
 
 Add these new rules:
 
@@ -250,22 +258,22 @@ And incorporate the new rules into these existing rules:
 
 ```
 topLevelDeclaration ::=
-  | // existing productions...
-  | patternDeclaration ';' // new
+  | // Existing productions...
+  | patternDeclaration ';' // New.
 
 localVariableDeclaration ::=
-  | initializedVariableDeclaration ';' // existing
-  | patternDeclaration ';' // new
+  | initializedVariableDeclaration ';' // Existing.
+  | patternDeclaration ';' // New.
 
 forLoopParts ::=
-  | // existing productions...
-  | ( 'final' | 'var' ) declarationBinder 'in' expression // new
+  | // Existing productions...
+  | ( 'final' | 'var' ) declarationBinder 'in' expression // New.
 
-// Static and instance fields.
+// Static and instance fields:
 declaration ::=
-  | // existing productions...
-  | 'static' patternDeclaration // new
-  | 'covariant'? patternDeclaration // new
+  | // Existing productions...
+  | 'static' patternDeclaration // New.
+  | 'covariant'? patternDeclaration // New.
 ```
 
 ### Switch statement
@@ -296,6 +304,10 @@ switch (obj) {
 }
 ```
 
+This is useful because if the guard evaluates to false then execution proceeds
+to the next case, instead of exiting the entire switch like it would if you
+had nested an `if` statement inside the switch case.
+
 #### Implicit break
 
 A long-running annoyance with switch statements is the mandatory `break`
@@ -319,15 +331,26 @@ of the block statement. It is a compile-time error if *s* is not a `break`,
 `continue`, `rethrow` or `return` statement or an expression statement where the
 expression is a `throw` expression.
 
+*This is now valid code that prints "one":*
+
+```dart
+switch (1) {
+  case 1:
+    print("one");
+  case 2:
+    print("two");
+}
+```
+
 Empty cases continue to fallthrough to the next case as before:
 
-*This prints "1 or 2":*
+*This prints "one or two":*
 
 ```dart
 switch (1) {
   case 1:
   case 2:
-    print("1 or 2");
+    print("one or two");
 }
 ```
 
@@ -375,7 +398,7 @@ The grammar is:
 
 ```
 primary ::= thisExpression
-  | // existing productions...
+  | // Existing productions...
   | switchExpression
 
 switchExpression      ::= 'switch' '(' expression ')' '{'
@@ -385,7 +408,7 @@ defaultExpressionCase ::= 'default' '=>' expression ';'
 ```
 
 **TODO: This does not allow multiple cases to share an expression like empty
-cases in a switch statement can share a set of statements. Should we support
+cases in a switch statement can share a set of statements. Can we support
 that?**
 
 Slotting into `primary` means it can be used anywhere any expression can appear
@@ -431,6 +454,9 @@ declarationBinder ::=
 | recordBinder
 ```
 
+**TODO: Allow extractBinder patterns here if we support irrefutable user-defined
+extractors.**
+
 This means that the outer pattern is always some sort of destructuring pattern
 that contains subpatterns. Once nested inside a surrounding binder pattern, you
 have access to all of the binders:
@@ -438,6 +464,7 @@ have access to all of the binders:
 ```
 binder
 | declarationBinder
+| wildcardBinder
 | variableBinder
 | castBinder
 
@@ -499,7 +526,7 @@ first-class generic function types?**
 
 #### List binder
 
-Destructures elements from lists.
+A list binder extracts elements by position from objects that implement `List`.
 
 ```
 listBinder ::= ('<' typeOrBinder '>' )? '[' binders ']'
@@ -510,7 +537,7 @@ elements. Allow capturing the rest in a variable.**
 
 #### Map binder
 
-Destructures values from maps.
+A map binder access values by key from objects that implement `Map`.
 
 ```
 mapBinder ::= mapTypeArguments? '{' mapBinderEntries '}'
@@ -527,7 +554,7 @@ expressions evaluate to equivalent values.
 
 #### Record binder
 
-Record patterns destructure fields from records.
+A record pattern destructures fields from a record.
 
 ```
 recordBinder ::= '(' recordFieldBinders ')'
@@ -538,6 +565,22 @@ recordFieldBinder ::= ( identifier ':' )? binder
 
 **TODO: Allow a `...` element in order to ignore some positional fields while
 capturing the suffix.**
+
+#### Wildcard binder
+
+A wildcard binder pattern does nothing.
+
+```
+wildcardBinder ::= "_"
+```
+
+It's useful in places where you need a subpattern in order to destructure later
+positional values:
+
+```
+var list = [1, 2, 3];
+var [_, two, _] = list;
+```
 
 #### Variable binder
 
@@ -557,10 +600,11 @@ A cast pattern explicitly casts the matched value to the expected type.
 castBinder ::= identifier "as" type
 ```
 
-This is not a type *test* that causes a match failure. This pattern can be used
-in irrefutable contexts to assert the expected type of some destructured value.
-You rarely need this pattern as the outermost pattern in a declaration because
-you can always move the `as` to the initializer expression:
+This is not a type *test* that causes a match failure if the value isn't of the
+tested type. This pattern can be used in irrefutable contexts to forcibly assert
+the expected type of some destructured value. This isn't useful as the outermost
+pattern in a declaration since you can always move the `as` to the initializer
+expression:
 
 ```dart
 num n = 1;
@@ -568,8 +612,9 @@ var i as int = n; // Instead of this...
 var i = n as int; // ...do this.
 ```
 
-But with destructuring, there is no place in the initializer to insert the cast,
-so it's useful to do so inside the pattern:
+But when destructuring, there is no place in the initializer to insert the cast.
+This pattern lets you insert the cast as values are being pulled out by the
+pattern:
 
 ```dart
 (num, Object) record = (1, "s");
@@ -604,15 +649,18 @@ value.
 ```
 literalMatcher ::=
   | booleanLiteral
+  | nullLiteral
   | numericLiteral
   | stringLiteral
 ```
 
 Note that list and map literals are not in here. Instead there are list and map
-*patterns*. This is technically a breaking change. It means that a list or map
-literal in a switch case is now interpreted as a list or map pattern which
-destructures its elements at runtime. Before, it was simply treated as value
-equality.
+*patterns*.
+
+**Breaking change**: Using matcher patterns in switch cases means that a list or
+map literal in a switch case is now interpreted as a list or map pattern which
+destructures its elements at runtime. Before, it was simply treated as identity
+comparison.
 
 ```dart
 const a = 1;
@@ -663,13 +711,17 @@ A wildcard pattern always matches.
 wildcardMatcher ::= "_"
 ```
 
-This is useful in places where a subpattern is required but you always want to
-succeed. It can function as a "default" pattern for the last case in a pattern
-matching statement.
+**TODO: Consider giving this an optional type annotation to enable matching a
+value of a specific type without binding it to a variable.**
+
+This is useful in places where a subpattern is required but you always want it
+to succeed. It can function as a "default" pattern for the last case in a
+pattern matching statement.
 
 #### List matcher
 
-Matches lists and destructures their elements.
+Matches objects of type `List` with the right length and destructures their
+elements.
 
 ```
 listMatcher ::= ('<' typeOrBinder '>' )? '[' matchers ']'
@@ -680,7 +732,7 @@ elements. Allow capturing the rest in a variable.**
 
 #### Map matcher
 
-Matches maps and destructures their entries.
+Matches objects of type `Map` and destructures their entries.
 
 ```
 mapMatcher ::= mapTypeArguments? '{' mapMatcherEntries '}'
@@ -720,7 +772,7 @@ variables only when that condition holds.
 
 #### Declaration matcher
 
-A declaration matchers enables embedding an entire declaration binding pattern
+A declaration matcher enables embedding an entire declaration binding pattern
 inside a matcher.
 
 ```
@@ -749,7 +801,25 @@ destructure fields on the value as that type. This pattern is particularly
 useful for writing code in an algebraic datatype style.
 
 ```
-extractMatcher ::= typeName typeArgumentsOrBinders? "(" matchers ")"
+extractMatcher ::= typeName typeArgumentsOrBinders? "(" recordFieldMatchers ")"
+```
+
+For example:
+
+```dart
+class Rect {
+  final double width, height;
+  Rect(this.width, this.height);
+}
+
+display(Object obj) {
+  switch (obj) {
+    case Rect(var width, var height):
+      print('Rect $width x $height');
+    case _:
+      print(obj);
+  }
+}
 ```
 
 It requires the type to be a named type. If you want to use an extractor with a
@@ -795,8 +865,8 @@ Patterns extend this behavior:
 var (List<int> list, <num>[a]) = ([], [1]); // Infer (<int>[], <num>[]).
 ```
 
-To support this, every pattern has a context type schema. This is a type schema
-because there may be holes in the type:
+To support this, every pattern has a context type schema. This is a type
+*schema* because there may be holes in the type:
 
 ```dart
 var (a, int b) = ... // Schema is `(?, int)`.
@@ -813,11 +883,12 @@ class C<T> {
 var (a: int i) = C();
 ```
 
-Here, we would ideally infer `C<int>()` for the initializer based on the
-type of named field `a` in the destructuring record pattern on the left.
-However, there isn't an obvious nominal type we can use for the type schema
-that declares `a` without looking at the initializer, which we aren't ready to
-infer yet.
+Here, the pattern is destructuring field `a` on the matched value. Since it
+binds that to a variable of type `int`, ideally, that would fact would flow
+through inference to the right and infer `C<int>()` for the initializer.
+However, there isn't an obvious nominal type we can use for the type schema that
+declares `a` without looking at the initializer, which we aren't ready to infer
+yet.
 
 We model this by extending the notion of a type schema to also include a
 potentially empty set of named getters and their expected type schemas. So,
@@ -826,20 +897,24 @@ type schema `int`. When inferring a type from a given schema, any getters in the
 schema become additional constraints placed on the inferred type's corresponding
 getters.
 
+**TODO: Type inference doesn't currently look at getter return types to infer
+the type arguments of a generic class's constructor, so more work is needed
+here.**
+
 The context type schema for a pattern `p` is:
 
-*   **List binder and matcher:** A type schema `List<E>` where:
+*   **List binder or matcher**: A type schema `List<E>` where:
     *   If `p` has a type argument, then `E` is the type argument.
     *   Else `E` is the greatest lower bound of the type schemas of all element
         subpatterns.
 
-*   **Map binder and matcher:** A type schema `Map<K, V>` where:
+*   **Map binder or matcher**: A type schema `Map<K, V>` where:
     *   If `p` has type arguments then `K`, and `V` are those type arguments.
     *   Else `K` is the least upper bound of the types of all key expressions
         and `V` is the greatest lower bound of the context type schemas of all
         value subpatterns.
 
-*   **Record binder and matcher:**
+*   **Record binder or matcher**:
     *   If the pattern has any positional fields, then the base type schema is
         `Destructure_n_<F...>` where `_n_` is the number of fields and `F...` is
         the context type schema of all of the positional fields.
@@ -848,25 +923,26 @@ The context type schema for a pattern `p` is:
         subpattern in `p` where each getter's type schema is the type schema of
         the corresponding subpattern.
 
-*   **Variable binder:**
+*   **Variable binder**:
     *   If `p` has a type annotation, the context type schema is that type.
     *   Else it is `?`.
 
-*   **Variable matcher:**
+*   **Variable matcher**:
     *   If `p` has a type annotation, the context type schema is `Object?`.
         *It is not the annotated type because a variable matching pattern can
         be used to downcast from any other type.*
     *   Else it is `?`.
 
-*   **Cast binder**, **wildcard matcher**, and **extractor matcher:** The
+*   **Cast binder**, **wildcard matcher**, or **extractor matcher**: The
     context type schema is `Object?`.
 
-    **todo: should type arguments on an extractor create a type arg constraint?**
+    **TODO: Should type arguments on an extractor create a type argument
+    constraint?**
 
-*   **Literal matcher** and **constant matcher:** The context type schema is the
+*   **Literal matcher** or **constant matcher**: The context type schema is the
     static type of the pattern's value expression.
 
-*   **Declaration matcher:** The context type schema is the same as the context
+*   **Declaration matcher**: The context type schema is the same as the context
     type schema of the inner binder.
 
 *We use the greatest lower bound for list elements and map values to ensure that
@@ -892,12 +968,12 @@ may be used for "downwards" ("inwards"?) inference of a pattern's subpatterns
 in the same way that a collection literal's type argument is used for inference
 on the collection's elements.
 
-For example:
+Some examples and the corresponding pattern static types:
 
 ```dart
-var <int>[a, b] = <num>[1, 2]; // List<int> (and compile error)
-var [a, b] = <num>[1, 2]; // List<num>, a is num, b is num
-var [int a, b] = <num>[1, 2]; // List<int>
+var <int>[a, b] = <num>[1, 2];  // List<int> (and compile error).
+var [a, b] = <num>[1, 2];       // List<num>, a is num, b is num.
+var [int a, b] = <num>[1, 2];   // List<int>.
 ```
 
 Putting this together, it means the process of completely inferring the types of
@@ -909,12 +985,14 @@ a construct using patterns works like:
 
 The static type of a pattern `p` being matched against a value of type `M` is:
 
-*   **List binder and matcher:**
+*   **List binder or matcher**:
+
     1.  Calculate the value's element type `E`:
         1.  If `M` implements `List<T>` for some `T` then `E` is `T`.
         2.  Else if `M` is `dynamic` then `E` is `dynamic`.
         3.  Else compile-time error. *It is an error to destructure a non-list
             value with a list pattern.*
+
     2.  Calculate the static types of each element subpattern using `E` as the
         matched value type. *Note that we calculate a single element type and
         use it for all subpatterns. In:*
@@ -932,20 +1010,24 @@ The static type of a pattern `p` being matched against a value of type `M` is:
             subpatterns is not `?`, then `S` is that type. *Otherwise, if we
             can infer a type bottom-up from the from the subpatterns, use that.*
         3.  Else `S` is `E`. *Otherwise, infer the type from the matched value.*
-    4.  It is a compile-time error if any element subpattern's type is not a
-        supertype of `S`. *This ensures an element does not need to downcast
-        an element from the matched value. For example:*
+
+    4.  It is a compile-time error if the list pattern is a binder and any
+        element subpattern's type is not a supertype of `S`. *This ensures an
+        element binder subpattern does not need to downcast an element from the
+        matched value. For example:*
 
         ```dart
-        var <num>[int i] = 1.2; // Compile-time error.
+        var <num>[int i] = [1.2]; // Compile-time error.
         ```
 
-*   **Map binder and matcher:**
+*   **Map binder or matcher**:
+
     1.  Calculate the value's entry key type `K` and value type `V`:
         1.  If `M` implements `Map<K, V>` for some `K` and `V` then use those.
         2.  Else if `M` is `dynamic` then `K` and `V` are `dynamic`.
         3.  Else compile-time error. *It is an error to destructure a non-map
             value with a map pattern.*
+
     2.  Calculate the static types of each value subpattern using `V` as the
         matched value type. *Like lists, we calculate a single value type and
         use it for all value subpatterns:*
@@ -955,37 +1037,46 @@ The static type of a pattern `p` being matched against a value of type `M` is:
         ```
 
         *Here, both `a` and `b` use `Object` as the matched value type.*
+
     3.  The static type of `p` is `Map<L, W>` where:
         1.  If `p` has type arguments, `L` and `W` are those type arguments.
             *If the map pattern is explicitly typed, that wins.*
         2.  Else `L` is the least upper bound of the types of all key
             expressions. If the greatest lower bound of all value subpattern
             types is not `?` then `W` is that type. Otherwise `W` is `V`.
-    4.  It is a compile-time error if any value subpattern's type is not a
-        supertype of `W`. *This ensures a value subpattern does not need to
-        downcast an entry from the matched value. For example:*
+
+    4.  It is a compile-time error if the map pattern is a binder and any value
+        subpattern's type is not a supertype of `W`. *This ensures a value
+        binder subpattern does not need to downcast an entry from the matched
+        value. For example:*
 
         ```dart
         var <int, Object>{1: String s} = {1: false}; // Compile-time error.
         ```
-*   **Record binder and matcher:**
-    1.  If `p` has any position fields, then the static type of `p` is
+
+*   **Record binder or matcher**:
+
+    1.  If `p` has any positional fields, then the static type of `p` is
         `Destructure_n_<args...>` where `_n_` is the number of positional
         fields and `args...` is a type argument list built from the static
         types of the positional field subpatterns, in order.
+
     2.  Else the static type of `p` is `Object?`. *You can destructure named
         fields on an object of any type by calling its getters.*
+
     3.  If `M` is not `dynamic`:
         *   It is a compile-time error if `p` has a field with name `n` and `M`
             does not define a getter named `n`.
         *   It is a compile-time error if `p` has a field named `n` and the type
             of getter `n` in `M` is not a subtype of the subpattern `n`'s type.
 
-*   **Variable binder:**
+*   **Variable binder**:
+
     1.  If the variable has a type annotation, the type of `p` is that type.
-    2.  Else the type of `p` is `M`. *This indirectly means that an untyped
-        variable pattern can have its type inferred from the type of a
-        superpattern:
+
+    2.  Else the type of `p` is `M`. *This means that an untyped variable
+        pattern can have its type indirectly inferred from the type of a
+        superpattern:*
 
         ```dart
         var <(num, Object)>[(a, b)] = [(1, true)]; // a is num, b is Object.
@@ -996,17 +1087,20 @@ The static type of a pattern `p` being matched against a value of type `M` is:
         That inferred type is then destructured and used to infer `num` for `a`
         and `Object` for `b`.*
 
-*   **Cast binder**, **wildcard matcher**, and **extractor matcher:** The
-    static type of `p` is `Object?`. *Wildcards accept all types. Casts and
+*   **Cast binder**, **wildcard binder or matcher**, or **extractor matcher**:
+    The static type of `p` is `Object?`. *Wildcards accept all types. Casts and
     extractors exist to check types at runtime, so statically accept all types.*
 
-*   **Literal matcher** and **constant matcher:** The static type of `p` is the
+*   **Literal matcher** or **constant matcher**: The static type of `p` is the
     static type of the pattern's value expression.
 
-*   **Declaration matcher:** The static type of `p` is the static type of the
+*   **Declaration matcher**: The static type of `p` is the static type of the
     inner binder.
 
 It is a compile-time error if `M` is not a subtype of `p`.
+
+It is a compile-time error if the type of an expression in a guard clause is not
+`bool` or `dynamic`.
 
 ### Variables and scope
 
@@ -1014,64 +1108,62 @@ Patterns often exist to introduce new bindings. Type patterns introduce type
 variables and other patterns introduce normal variables. The variables a
 patterns binds depend on what kind of pattern it is:
 
-*   **Type pattern:** Type argument patterns (i.e. `typePattern` in the grammar)
+*   **Type pattern**: Type argument patterns (i.e. `typePattern` in the grammar)
     that appear anywhere in some other pattern introduce new *type* variables
     whose name is the type pattern's identifier. Type variables are always
     final.
 
-*   **List binder**, **list matcher**, **map binder**, **map matcher**, **record
-    binder**, **record matcher:** These do not introduce variables themselves
-    but may contain type patterns and subpatterns that do.
+*   **List binder or matcher**, **map binder or matcher**, or **record binder or
+    matcher**: These do not introduce variables themselves but may contain type
+    patterns and subpatterns that do.
 
-*   **Literal matcher**, **constant matcher**, **wildcard matcher:** These do
-    not introduce any variables.
+*   **Literal matcher**, **constant matcher**, or **wildcard binder or
+    matcher**: These do not introduce any variables.
 
-*   **Variable binder:** May contain type argument patterns. Introduces a
-    variable whose name is the pattern's identifier unless the identifier is
-    `_`. *We always treat `_` as non-binding in patterns.*
+*   **Variable binder**: May contain type argument patterns. Introduces a
+    variable whose name is the pattern's identifier. The variable is final if
+    the surrounding pattern variable declaration or declaration matcher has a
+    `final` modifier. The variable is late if it is inside a pattern variable
+    declaration marked `late`.
 
-    The variable is final if the surrounding pattern variable declaration or
-    declaration matcher has a `final` modifier. The variable is late if it is
-    inside a pattern variable declaration marked `late`.
-
-*   **Variable matcher:** May contain type argument patterns. Introduces a
+*   **Variable matcher**: May contain type argument patterns. Introduces a
     variable whose name is the pattern's identifier. The variable is final if
     the pattern has a `final` modifier, otherwise it is assignable *(annotated
     with `var` or just a type annotation)*. The variable is never late.
 
-*   **Cast binder:** Introduces a variable whose name is the pattern's
+*   **Cast binder**: Introduces a variable whose name is the pattern's
     identifier. The variable is final if the surrounding pattern variable
     declaration or declaration matcher has a `final` modifier. The variable is
     late if it is inside a pattern variable declaration marked `late`.
 
-*   **Declaration matcher:** The `final` or `var` keyword establishes whether
+*   **Declaration matcher**: The `final` or `var` keyword establishes whether
     the binders nested inside this create final or assignable variables and
     then introduces those variables.
 
-*   **Extractor matcher:** May contain type argument patterns and introduces
+*   **Extractor matcher**: May contain type argument patterns and introduces
     all of the variables of its subpatterns.
 
 All variables (except for type variables) declared in an instance field pattern
 variable declaration are covariant if the pattern variable declaration is marked
-`covariant`. Variables declared in an field pattern declaration define getters
+`covariant`. Variables declared in a field pattern declaration define getters
 on the surrounding class and setters if the field pattern declaration is not
 `final`.
 
 The scope where a pattern's variables are declared depends on the construct
 that contains the pattern:
 
-*   **Top-level pattern variable declaration:** The top-level library scope.
-*   **Local pattern variable declaration:** The rest of the block following
+*   **Top-level pattern variable declaration**: The top-level library scope.
+*   **Local pattern variable declaration**: The rest of the block following
     the declaration.
-*   **For loop pattern variable declaration:** The body of the loop and the
+*   **For loop pattern variable declaration**: The body of the loop and the
     condition and increment clauses in a C-style for loop.
-*   **Static field pattern variable declaration:** The static scope of the
+*   **Static field pattern variable declaration**: The static scope of the
     enclosing class.
-*   **Instance field pattern variable declaration:** The instance scope of the
+*   **Instance field pattern variable declaration**: The instance scope of the
     enclosing class.
-*   **Switch statement case:** The guard clause and the statements of the
+*   **Switch statement case**: The guard clause and the statements of the
     subsequent non-empty case body.
-*   **Switch expression case:** The guard clause and the case expression.
+*   **Switch expression case**: The guard clause and the case expression.
 
 Multiple switch case patterns may share the same variable scope if their case
 bodies are empty:
@@ -1240,10 +1332,10 @@ variable of type `dynamic`.)*
 
 To match a pattern `p` against a value `v`:
 
-*   **Type pattern:** Always matches. Binds the corresponding type argument of
+*   **Type pattern**: Always matches. Binds the corresponding type argument of
     the runtime type of `v` to the pattern's type variable.
 
-*   **List binder** and **list matcher:**
+*   **List binder or matcher**:
 
     1.  If `v` does not implement `List<T>` for some `T`, then the match fails.
         *This may happen at runtime if `v` has static type `dynamic`.*
@@ -1255,7 +1347,7 @@ To match a pattern `p` against a value `v`:
         them against the corresponding subpatterns. The match succeeds if all
         subpatterns match.
 
-*   **Map binder** and **map matcher:**
+*   **Map binder or matcher**:
 
     1.  If the value's type does not implement `Map<K,V>` for some `K` and `V`,
         then the match fails. Otherwise, tests the entry patterns:
@@ -1274,32 +1366,32 @@ To match a pattern `p` against a value `v`:
     *Note that, unlike with lists, a matched map may have additional entries
     that are not checked by the pattern.*
 
-*   **Record matcher** and **record binder:**
+*   **Record matcher or binder**:
 
     1.  If the pattern has positional fields:
 
         1.  If `v` does not implement the appropriate `Destructure_n_<...>`
-            interface instantiaged with type arguments based on the positional
+            interface instantiated with type arguments based on the positional
             fields' static types, then the match fails.
 
-        2.  For each field `f` in `p`:
+    2.  For each positional and named field `f` in `p`:
 
-            1.  Call the corresponding getter on `v` to get result `r`. If `f`
-                is a positional field, then the getter is named `field_n_` where
-                `_n_` is the zero-based index of the positional field, ignoring
-                other named fields. If `f` is named, then the getter has the
-                same name as `f`.
+        1.  Call the corresponding getter on `v` to get result `r`. If `f`
+            is a positional field, then the getter is named `field_n_` where
+            `_n_` is the zero-based index of the positional field, ignoring
+            other named fields. If `f` is named, then the getter has the
+            same name as `f`.
 
-                *If `v` has type `dynamic`, this getter call may throw a
-                NoSuchMethodError, which we allow to propagate instead of
-                treating that as a match failure.*
+            *If `v` has type `dynamic`, this getter call may throw a
+            NoSuchMethodError, which we allow to propagate instead of
+            treating that as a match failure.*
 
-            2.  Match the subpattern of `f` against `r`. If the match fails,
-                the record match fails.
+        2.  Match the subpattern of `f` against `r`. If the match fails,
+            the record match fails.
 
-        3.  If all field subpatterns match, the record pattern matches.
+    3.  If all field subpatterns match, the record pattern matches.
 
-*   **Variable binder**, and **variable matcher:**
+*   **Variable binder or matcher**:
 
     1.  If `v` is not a subtype of `p` then the match fails. *This is a
         deliberate failure when using a typed variable pattern in a switch in
@@ -1308,7 +1400,7 @@ To match a pattern `p` against a value `v`:
 
     2.  Otherwise, bind the variable's identifier to `v` and the match succeeds.
 
-*   **Cast binder:**
+*   **Cast binder**:
 
     1.  If `v` is not a subtype of `p` then throw a runtime exception. *Note
         that we throw even if this appears in a refutable context. The intent
@@ -1317,17 +1409,17 @@ To match a pattern `p` against a value `v`:
     2.  Otherwise, bind the variable's identifier to `v`. The match always
         succeeds (if it didn't throw).
 
-*   **Literal matcher**, **constant matcher:** The pattern matches if `o == v`
+*   **Literal matcher** or **constant matcher**: The pattern matches if `o == v`
     evaluates to `true` where `o` is the pattern's value.
 
     **TODO: Should this be `v == o`?**
 
-*   **Wildcard matcher:** Always succeeds.
+*   **Wildcard binder or matcher**: Always succeeds.
 
-*   **Declaration matcher:** Match `v` against the binder subpattern. Always
+*   **Declaration matcher**: Match `v` against the binder subpattern. Always
     succeeds.
 
-*   **Extractor matcher:**
+*   **Extractor matcher**:
 
     1.  If `v` is not a subtype of the extractor pattern's type, then the
         match fails.
@@ -1364,3 +1456,14 @@ main() {
 ```
 
 *This prints "1", "2", "here".*
+
+## Changelog
+
+### 1.1
+
+-   Copy editing and clean up.
+
+-   Add `nullLiteral` to literal patterns.
+
+-   Add wildcard binder patterns. Remove exception that variable patterns named
+    `_` don't bind.

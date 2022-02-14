@@ -303,3 +303,82 @@ there is merging, there is then a piece of syntax to make it clear what order
 it happens. This would cover almost every single use case and be explicit in
 cases where doing so is beneficial. The only real downside is the complexity of
 an insert syntax and users having to know that it can be elided in most cases.
+
+## Super parameter scope
+
+In #2056, we have discussed what scope `super.` parameters should have. Are they
+available to other initializers in the initializer list? Are they available in
+the body?
+
+To help answer, I again analyzed a bunch of code. I looked for constructor
+parameters that are passed directly as superclass constructor arguments (which
+makes them candidates for using `super.` instead). Then, for those, I looked to
+see if that constructor parameter is also referenced elsewhere in the subclass's
+constructor initializers or body.
+
+The results are:
+
+```
+-- Use (69140 total) --
+  66661 ( 96.415%): not used outside of super()  ==============================
+   1426 (  2.062%): other initializer            =
+   1023 (  1.480%): body                         =
+     30 (  0.043%): other initializer and body   =
+```
+
+This is analyzing 19,827,488 lines of code in 118,720 files. It includes the
+Dart SDK, Flutter SDK, 2,000 pub packages, a corpus of open source Flutter
+applications, and the code on itsallwidgets.com.
+
+Analyzed separately:
+
+```
+apps
+
+-- Use (2966 total) --
+   2949 ( 99.427%): not used outside of super()  ===============================
+     15 (  0.506%): other initializer            =
+      2 (  0.067%): body                         =
+Took 8.207s to scrape 1028560 lines in 7238 files. (2 files could not be parsed.)
+
+widgets
+
+-- Use (17589 total) --
+  17256 ( 98.107%): not used outside of super()  ===============================
+    281 (  1.598%): other initializer            =
+     47 (  0.267%): body                         =
+      5 (  0.028%): other initializer and body   =
+Took 27.360s to scrape 4579270 lines in 27884 files. (4 files could not be parsed.)
+
+pub
+
+-- Use (30728 total) --
+  29626 ( 96.414%): not used outside of super()  ==============================
+    657 (  2.138%): body                         =
+    438 (  1.425%): other initializer            =
+      7 (  0.023%): other initializer and body   =
+Took 42.157s to scrape 7116622 lines in 51038 files. (14 files could not be parsed.)
+
+flutter
+
+-- Use (6603 total) --
+   6326 ( 95.805%): not used outside of super()  ==============================
+    245 (  3.710%): other initializer            ==
+     29 (  0.439%): body                         =
+      3 (  0.045%): other initializer and body   =
+Took 7.777s to scrape 1315510 lines in 3276 files. (2 files could not be parsed.)
+
+dart
+
+-- Use (6685 total) --
+   6233 ( 93.239%): not used outside of super()  =============================
+    281 (  4.203%): other initializer            ==
+    161 (  2.408%): body                         =
+     10 (  0.150%): other initializer and body   =
+Took 27.066s to scrape 4243076 lines in 23011 files. (485 files could not be parsed.)
+```
+
+From this, it looks like parameters that could use `super.` are rarely used
+elsewhere in the constructor. They are very rarely used in the body of the
+subclass constructor, so it should be feasible to *not* have the `super.`
+parameter in scope there.

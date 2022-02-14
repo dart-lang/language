@@ -1,7 +1,7 @@
 This is a quick write-up of the investigation I did around optional semicolons
 after writing the [Terminating Tokens][] proposal.
 
-[terminating tokens]: https://github.com/dart-lang/language/tree/master/working/terminating-tokens
+[terminating tokens]: https://github.com/dart-lang/language/tree/master/inactive/terminating-tokens.md
 
 That proposal was a thorough experiment to see if it's possible to make
 semicolons optional with a minimum of breakage to existing code. I think the
