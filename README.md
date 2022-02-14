@@ -37,7 +37,7 @@ by participating on the dart language mailing list,
 by replying to issues in this repository,
 and by uploading documents, tests or other resources.
 
-Rukes for commenting on issues in this repository:
+Rules for commenting on issues in this repository:
 
 -   :+1: reactions are more useful than comments to show support.
 -   Motivating examples help us understand why you want new features more than
