@@ -137,8 +137,8 @@ If the resulting class would have any naming conflicts, or other compile-time er
 - Declaring or inheriting (from `Enum` or from a declared mixin or interface) any member with the same basename as an enum value which is not a static setter. _(The introduced static declarations would have a conflict.)_
 - Declaring or mixing in a member which is not a valid override of a super-interface member declaration, including, but not limited to, the `index` and `toString` members of `Enum`.
 - Declaring or inheriting an member signature with no corresponding implementation. _(For example declaring an abstract `Never get index` or `String toString([int optional])`, but not providing an implementation.)
-- Declaring a generic  `enum` which does not have a valid well-bounded instantiate-to-bounds result. _(The automatically introduced `static const List<EnumName> values` requires a well-bounded instantiate-to-bounds result)_.
-- The type parameters of the enum not having a regular-bounded instantiate-to-bounds result *and* an enum value declaration omitting the type arguments and not having arguments from which type arguments can be inferred. _(For example `enum EnumName<F extends C<F>> { foo; }` would introduce an implicit `static const foo = EnumName(0, "foo");` declaration where the constructor invocation requires a regular-bounded instantiate-to-bounds result)_.
+- Declaring a generic `enum` which does not have a valid well-bounded instantiate-to-bounds result. _(The automatically introduced `static const List<EnumName> values` requires a well-bounded instantiate-to-bounds result)_.
+- Declaring a generic `enum` which does not have a regular-bounded instantiate-to-bounds result *and* that has an enum value declaration omitting the type arguments and not having arguments from which type arguments can be inferred. _(For example `enum EnumName<F extends C<F>> { foo; }` would introduce an implicit `static const foo = EnumName(0, "foo");` declaration where the constructor invocation requires a regular-bounded instantiate-to-bounds result)_.
 - Using a non-constant expression as an argument of an enum value declaration.
 - Declaring a static member and inheriting an instance member with the same base-name.
 
@@ -220,7 +220,7 @@ class LogPriority extends Enum with LogriorityMixin implements Comparable<LogPri
   LogPriority._$(int _$index, String _$name, this.priority, this.prefix) 
         : super(_$index, _$name);
   LogPriority._$unknown(int _$index, String _$name, String prefix) : 
-        : this._$(_$index, _$name, prefix, -1);
+        : this._$(_$index, _$name, -1, prefix);
     
   final String prefix;
   final int priorty;
@@ -266,7 +266,16 @@ enum Plain {
 would have a corresponding class desugaring of:
 
 ```dart
-class Plain extends Enum {  static const Plain foo = Plain._$(0, "foo");  static const Plain bar = Plain._$(1, "bar");  static const Plain baz = Plain._$(2, "baz");  static const List<Plain> values = [foo, bar, baz];  const Plain._$(int _$index, String_ $name) : super._(_$index, $_name);  // Private names from `dart:core`.  String _$enumToString() => "Plain.${_$name}";}
+class Plain extends Enum {  
+  static const Plain foo = Plain._$(0, "foo");  
+  static const Plain bar = Plain._$(1, "bar");  
+  static const Plain baz = Plain._$(2, "baz");  
+  static const List<Plain> values = [foo, bar, baz];  
+  const Plain._$(int _$index, String_ $name) : super._(_$index, $_name);  
+  
+  // Private names from `dart:core`.  
+  String _$enumToString() => "Plain.${_$name}";
+}
 ```
 
 ### Simple but comparable
@@ -336,8 +345,8 @@ enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern 
   }
 
   // Named constructor. Redirecting.
-  const Complex.captured(String regexpPattern)
-      : this("($regexpPattern)", RegExp);
+  const Complex.captured(String regexpPattern, T Function(String) factory)
+      : this("($regexpPattern)", factory);
 
   // Can expose the implicit name.
   String get name => EnumName(this).name;
@@ -386,8 +395,8 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
     throw UnsupportedError("No pattern matching: $text");
   }
 
-  const Complex.captured(int _$index, String _$name, String regexpPattern)
-      : this(_$index, _$name, "($regexpPattern)", RegExp);
+  const Complex.captured(int _$index, String _$name, String regexpPattern, T Function(String) factory)
+      : this(_$index, _$name, "($regexpPattern)", factory);
 
   String get name => EnumName(this).name;
 
