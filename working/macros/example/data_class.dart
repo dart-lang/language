@@ -5,9 +5,6 @@
 // There is no public API exposed yet, the in progress api lives here.
 import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
-// TODO: support loading macros by const instance reference.
-const dataClass = DataClass();
-
 /*macro*/ class DataClass
     implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const DataClass();
@@ -15,8 +12,10 @@ const dataClass = DataClass();
   @override
   Future<void> buildDeclarationsForClass(
       ClassDeclaration clazz, ClassMemberDeclarationBuilder context) async {
-    await autoConstructor.buildDeclarationsForClass(clazz, context);
-    await copyWith.buildDeclarationsForClass(clazz, context);
+    await Future.wait([
+      autoConstructor.buildDeclarationsForClass(clazz, context),
+      copyWith.buildDeclarationsForClass(clazz, context),
+    ]);
     hashCode.buildDeclarationsForClass(clazz, context);
     equality.buildDeclarationsForClass(clazz, context);
     toString.buildDeclarationsForClass(clazz, context);
@@ -25,9 +24,11 @@ const dataClass = DataClass();
   @override
   Future<void> buildDefinitionForClass(
       ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
-    await hashCode.buildDefinitionForClass(clazz, builder);
-    await equality.buildDefinitionForClass(clazz, builder);
-    await toString.buildDefinitionForClass(clazz, builder);
+    await Future.wait([
+      hashCode.buildDefinitionForClass(clazz, builder),
+      equality.buildDefinitionForClass(clazz, builder),
+      toString.buildDefinitionForClass(clazz, builder),
+    ]);
   }
 }
 
@@ -45,12 +46,13 @@ const autoConstructor = _AutoConstructor();
           'Cannot generate an unnamed constructor because one already exists');
     }
 
+    // Don't use the identifier here because it should just be the raw name.
     var parts = <Object>[clazz.identifier.name, '({'];
     // Add all the fields of `declaration` as named parameters.
     var fields = await builder.fieldsOf(clazz);
     for (var field in fields) {
       var requiredKeyword = field.type.isNullable ? '' : 'required ';
-      parts.addAll(['\n${requiredKeyword}this.', field.identifier.name, ',']);
+      parts.addAll(['\n${requiredKeyword}', field.identifier, ',']);
     }
 
     // Add all super constructor parameters as named parameters.
@@ -129,8 +131,10 @@ const copyWith = _CopyWith();
     ];
     var args = [
       for (var field in allFields)
-        '${field.identifier.name}: ${field.identifier.name} '
-            '?? this.${field.identifier.name}',
+        Code.fromParts([
+          '${field.identifier.name}: ${field.identifier.name} ?? ',
+          field.identifier,
+        ]),
     ];
     builder.declareInClass(DeclarationCode.fromParts([
       clazz.identifier,
@@ -167,7 +171,7 @@ external int get hashCode;'''));
         methods.firstWhere((m) => m.identifier.name == 'hashCode').identifier);
     var hashCodeExprs = [
       await for (var field in clazz.allFields(builder))
-        ExpressionCode.fromString('${field.identifier.name}.hashCode')
+        ExpressionCode.fromParts([field.identifier, '.hashCode']),
     ].joinAsCode(' ^ ');
     hashCodeBuilder.augment(FunctionBodyCode.fromParts([
       ' => ',
@@ -199,8 +203,12 @@ external bool operator==(Object other);'''));
         methods.firstWhere((m) => m.identifier.name == '==').identifier);
     var equalityExprs = [
       await for (var field in clazz.allFields(builder))
-        ExpressionCode.fromString(
-            'this.${field.identifier.name} == other.${field.identifier.name}'),
+        ExpressionCode.fromParts([
+          field.identifier,
+          ' == other.',
+          // Shouldn't be prefixed with `this.` due to having a receiver.
+          field.identifier,
+        ]),
     ].joinAsCode(' && ');
     equalsBuilder.augment(FunctionBodyCode.fromParts([
       ' => other is ',
@@ -236,14 +244,17 @@ external String toString();''',
         methods.firstWhere((m) => m.identifier.name == 'toString').identifier);
     var fieldExprs = [
       await for (var field in clazz.allFields(builder))
-        Code.fromString(
-            '  ${field.identifier.name}: \${${field.identifier.name}}'),
+        Code.fromParts([
+          '  ${field.identifier.name}: \${',
+          field.identifier,
+          '}',
+        ]),
     ].joinAsCode('\n');
 
     toStringBuilder.augment(FunctionBodyCode.fromParts([
-      ' => """\${${clazz.identifier.name}} { ',
+      ' => """\${${clazz.identifier.name}} {\n',
       ...fieldExprs,
-      '}""";',
+      '\n}""";',
     ]));
   }
 }

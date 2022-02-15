@@ -22,6 +22,7 @@ import 'package:_fe_analyzer_shared/src/macros/bootstrap.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor_shared/introspection_impls.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor_shared/remote_instance.dart';
+import 'package:_fe_analyzer_shared/src/macros/executor_shared/serialization.dart';
 import 'package:_fe_analyzer_shared/src/macros/isolated_executor/isolated_executor.dart'
     as isolatedExecutor;
 
@@ -29,6 +30,9 @@ final _watch = Stopwatch()..start();
 void _log(String message) {
   print('${_watch.elapsed}: $message');
 }
+
+var clientSerializationMode = SerializationMode.jsonClient;
+var serverSerializationMode = SerializationMode.jsonServer;
 
 // Run this script to print out the generated augmentation library for an example class.
 void main() async {
@@ -39,7 +43,7 @@ void main() async {
     print('This script must be ran from the `macros` directory.');
     exit(1);
   }
-  var executor = await isolatedExecutor.start();
+  var executor = await isolatedExecutor.start(serverSerializationMode);
   var tmpDir = Directory.systemTemp.createTempSync('data_class_macro_example');
   try {
     var macroUri = thisFile.absolute.uri;
@@ -49,7 +53,7 @@ void main() async {
       macroUri.toString(): {
         macroName: [''],
       }
-    });
+    }, clientSerializationMode);
 
     var bootstrapFile = File(tmpDir.uri.resolve('main.dart').toFilePath())
       ..writeAsStringSync(bootstrapContent);
@@ -73,12 +77,16 @@ void main() async {
     _log('Loading DataClass macro');
     var clazzId = await executor.loadMacro(macroUri, macroName,
         precompiledKernelUri: kernelOutputFile.uri);
+    _log('Instantiating macro');
     var instanceId =
         await executor.instantiateMacro(clazzId, '', Arguments([], {}));
 
     _log('Running DataClass macro 100 times...');
     var results = <MacroExecutionResult>[];
-    for (var i = 1; i < 101; i++) {
+    var macroExecutionStart = _watch.elapsed;
+    late Duration firstRunEnd;
+    late Duration first11RunsEnd;
+    for (var i = 1; i <= 111; i++) {
       var _shouldLog = i == 1 || i == 10 || i == 100;
       if (_shouldLog) _log('Running DataClass macro for the ${i}th time');
       if (instanceId.shouldExecute(DeclarationKind.clazz, Phase.types)) {
@@ -103,7 +111,14 @@ void main() async {
         if (i == 1) results.add(result);
       }
       if (_shouldLog) _log('Done running DataClass macro for the ${i}th time.');
+
+      if (i == 1) {
+        firstRunEnd = _watch.elapsed;
+      } else if (i == 11) {
+        first11RunsEnd = _watch.elapsed;
+      }
     }
+    var first111RunsEnd = _watch.elapsed;
 
     _log('Building augmentation library');
     var library = executor.buildAugmentationLibrary(results, (identifier) {
@@ -111,9 +126,19 @@ void main() async {
           identifier == objectIdentifier ||
           identifier == stringIdentifier ||
           identifier == intIdentifier) {
-        return Uri(scheme: 'dart', path: 'core');
+        return ResolvedIdentifier(
+            kind: IdentifierKind.topLevelMember,
+            name: identifier.name,
+            staticScope: null,
+            uri: null);
       } else {
-        return File('example/data_class.dart').absolute.uri;
+        return ResolvedIdentifier(
+            kind: identifier.name == 'MyClass'
+                ? IdentifierKind.topLevelMember
+                : IdentifierKind.instanceMember,
+            name: identifier.name,
+            staticScope: null,
+            uri: Platform.script.resolve('data_class.dart'));
       }
     });
     executor.close();
@@ -125,6 +150,11 @@ void main() async {
         .replaceAll('/*augment*/', 'augment');
 
     _log('Macro augmentation library:\n\n$formatted');
+    _log('Time for the first run: ${macroExecutionStart - firstRunEnd}');
+    _log('Average time for the next 10 runs: '
+        '${(first11RunsEnd - firstRunEnd).dividedBy(10)}');
+    _log('Average time for the next 100 runs: '
+        '${(first111RunsEnd - first11RunsEnd).dividedBy(100)}');
   } finally {
     tmpDir.deleteSync(recursive: true);
   }
@@ -136,7 +166,7 @@ final intIdentifier = IdentifierImpl(id: RemoteInstance.uniqueId, name: 'int');
 final objectIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'Object');
 final stringIdentifier =
-    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'bool');
+    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'String');
 
 final boolType = NamedTypeAnnotationImpl(
     id: RemoteInstance.uniqueId,
@@ -189,6 +219,7 @@ final myClassFields = [
       isExternal: false,
       isFinal: true,
       isLate: false,
+      isStatic: false,
       type: stringType),
   FieldDeclarationImpl(
       definingClass: myClassIdentifier,
@@ -197,6 +228,7 @@ final myClassFields = [
       isExternal: false,
       isFinal: true,
       isLate: false,
+      isStatic: false,
       type: boolType),
 ];
 
@@ -210,6 +242,7 @@ final myClassMethods = [
     isGetter: false,
     isOperator: true,
     isSetter: false,
+    isStatic: false,
     namedParameters: [],
     positionalParameters: [
       ParameterDeclarationImpl(
@@ -236,6 +269,7 @@ final myClassMethods = [
     isOperator: false,
     isGetter: true,
     isSetter: false,
+    isStatic: false,
     namedParameters: [],
     positionalParameters: [],
     returnType: intType,
@@ -250,6 +284,7 @@ final myClassMethods = [
     isGetter: false,
     isOperator: false,
     isSetter: false,
+    isStatic: false,
     namedParameters: [],
     positionalParameters: [],
     returnType: stringType,
@@ -289,3 +324,8 @@ class FakeTypeDeclarationResolver extends Fake
     implements TypeDeclarationResolver {}
 
 class FakeTypeResolver extends Fake implements TypeResolver {}
+
+extension _ on Duration {
+  Duration dividedBy(int amount) =>
+      Duration(microseconds: (this.inMicroseconds / amount).round());
+}
