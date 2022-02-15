@@ -137,9 +137,9 @@ If the resulting class would have any naming conflicts, or other compile-time er
 - Declaring or inheriting (from `Enum` or from a declared mixin or interface) any member with the same basename as an enum value which is not a static setter. _(The introduced static declarations would have a conflict.)_
 - Declaring or mixing in a member which is not a valid override of a super-interface member declaration, including, but not limited to, the `index` and `toString` members of `Enum`.
 - Declaring or inheriting an member signature with no corresponding implementation. _(For example declaring an abstract `Never get index` or `String toString([int optional])`, but not providing an implementation.)
-- Declaring a type parameter on the `enum` which does not have a valid well-bounded or super-bounded instantiate-to-bounds result when such a result is needed _(the automatically introduced `static const List<EnumName> values` requires a valid instantiate-to-bounds result which is at least super-bounded, and a value declaration may require a well-bounded instantiation)_.
-- The type parameters of the enum not having a well-bounded instantiate-to-bounds result *and* an enum element omitting the type arguments and not having arguments which valid type arguments can be inferred from (because an implicit `EnumName(0, "foo", unrelatedArgs)`  constructor invocation requires a well-bound inferred type arguments for a generic `EnumName` enum).
-- Using a non-constant expression as argument of an enum value.
+- Declaring a generic  `enum` which does not have a valid well-bounded instantiate-to-bounds result. _(The automatically introduced `static const List<EnumName> values` requires a well-bounded instantiate-to-bounds result)_.
+- The type parameters of the enum not having a regular-bounded instantiate-to-bounds result *and* an enum value declaration omitting the type arguments and not having arguments from which type arguments can be inferred. _(For example `enum EnumName<F extends C<F>> { foo; }` would introduce an implicit `static const foo = EnumName(0, "foo");` declaration where the constructor invocation requires a regular-bounded instantiate-to-bounds result)_.
+- Using a non-constant expression as an argument of an enum value declaration.
 - Declaring a static member and inheriting an instance member with the same base-name.
 
 If not invalid, the semantics denoted by the `enum` declaration is that class, which we’ll refer to as the *corresponding class* of the `enum` declaration. *(We don’t require the implementation to be exactly such a class declaration, there might be other helper classes involved in the implementation, and different private members, but the publicly visible interface and behavior should match.)*
@@ -154,7 +154,7 @@ Because we want to allow interfaces and mixins that are intended to be applied t
 
 - It's a compile-time error if a *non-abstract* class has `Enum` as a superinterface (directly or transitively) unless it is the corresponding class of an `enum` declaration.
 - It is a compile-time error if a class implements, extends or mixes-in the class or interface introduced by an `enum` declaration. _(An enum class can’t be used as a mixin since it is not a `mixin` declaration and the class has a superclass other than `Object`, but we include “mixes-in” for completeness.)_
--  It's a **compile-time error** if a `class` or `mixin` declaration has `Enum` as a superinterface and the interface of the declarations contains an instance member with the name `values`, whether declared or inherited. _If any concrete class implements this interface, it will be an `enum` declaration class, and then the `values` member would conflict with the static `values` constant getter that is automatically added to `enum` declaration classes. Such an instance `values` declaration is either useless or wrong, so we disallow it entirely._
+- It's a **compile-time error** if a `class` or `mixin` declaration has `Enum` as a superinterface and the interface of the declarations contains an instance member with the name `values`, whether declared or inherited. _If any concrete class implements this interface, it will be an `enum` declaration class, and then the `values` member would conflict with the static `values` constant getter that is automatically added to `enum` declaration classes. Such an instance `values` declaration is either useless or wrong, so we disallow it entirely._
 - It's a compile-time error if a `class`, `mixin` or `enum` declaration has `Enum` as a superinterface, and it declares a non-abstract instance member named `index`. _That member would override the `index` getter inherited from `Enum`, and we currently do not allow that._
 
 Those restrictions allows abstract classes (interfaces) which implements `Enum` in order to have the `int index;` getter member available, and it allows `mixin` declarations to use `Enum` as an `on` type because `mixin` declarations cannot be instantiated directly.
@@ -266,17 +266,7 @@ enum Plain {
 would have a corresponding class desugaring of:
 
 ```dart
-class Plain extends Enum {
-  static const Plain foo = Plain._$(0, "foo");
-  static const Plain bar = Plain._$(1, "bar");
-  static const Plain baz = Plain._$(2, "baz");
-  static const List<Plain> values = [foo, bar, baz];
-
-  const Plain._$(int _$index, String_ $name) : super._(_$index, $_name);
-
-  // Private names from `dart:core`.
-  String _$enumToString() => "Plain.${_$name}";
-}
+class Plain extends Enum {  static const Plain foo = Plain._$(0, "foo");  static const Plain bar = Plain._$(1, "bar");  static const Plain baz = Plain._$(2, "baz");  static const List<Plain> values = [foo, bar, baz];  const Plain._$(int _$index, String_ $name) : super._(_$index, $_name);  // Private names from `dart:core`.  String _$enumToString() => "Plain.${_$name}";}
 ```
 
 ### Simple but comparable
