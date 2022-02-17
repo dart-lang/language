@@ -16,7 +16,7 @@ enum Name {
 
 That is: `enum`, a single identifier for the name, and a block containing a comma separated list of identifiers.
 
-The new enhanced enums will also allow a declaration like the following:
+With the enhanced enums feature, a declaration like the following is also allowed:
 
 ```dart
 enum Name<T extends Object?> with Mixin1, Mixin2 implements Interface1, Interface2 {
