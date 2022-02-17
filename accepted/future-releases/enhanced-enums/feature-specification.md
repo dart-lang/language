@@ -29,7 +29,7 @@ enum Name<T extends Object?> with Mixin1, Mixin2 implements Interface1, Interfac
 where `memberDeclaration*` is almost any sequence of static and instance member declarations, or constructors, 
 with some necessary restrictions specified below.
 
-The `;` after the value list is optional if there is nothing else in the declaration (for backwards compatibility), and required if there is any member declaration after it. The identifier list may have a trailing comma in either case (like now).
+The `;` after the value list is optional if there is nothing else in the declaration (for backwards compatibility), and required if there is any member declaration after it. The value list may have a trailing comma in either case (like now).
 
 The superclass of the mixin applications is the `Enum` class (which has a concrete `index` getter and otherwise only the members of `Object`, so the only valid `super` invocations on that superclass are those valid on `Object` and `super.index`).
 
