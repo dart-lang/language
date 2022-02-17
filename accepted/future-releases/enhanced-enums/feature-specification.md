@@ -123,7 +123,7 @@ The semantics of such an enum declaration, *E*, is defined as introducing a (sem
 
   where `args` are considered as occurring in a `const` context, and it’s a **compile-time error** if they are then not compile-time constants.
 
-  The resulting constructor invocations are subject to type inference, using the empty context type. *This implies that inferred type arguments to the constructor invocation itself may depend on the types of the argument expressions of `args`.* The type of the constant variable is the static type of the resulting constant object creation expression.
+The resulting constructor invocations are subject to type inference, using the empty context type. *This implies that inferred type arguments to the constructor invocation itself may depend on the types of the argument expressions of `args`.* The type of the constant variable is the static type of the resulting constant object creation expression.
 
    The objects created here are *not canonicalized* like other constant object creations. _(In practice, the index value is considered part of the object, so no two objects will have the same state.)_
 
