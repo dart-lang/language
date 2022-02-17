@@ -252,7 +252,7 @@ Enum instances are objects like any other object, and with this change they can 
 - Because of that, `enum` types support exhaustiveness checking in `switch` cases in the language _(meaning that flow-control can see that an exhaustive switch over enum values cannot pass through without executing at least one `case`, which can then affect variable promotion)_.
 - The `EnumName.name` extension member works on `enum` values.
 
-If the *restrictions* (the type is sealed, there is only a finite, enumerable number of instances, and the class  implements `Enum`, so it must have an `int index` getter and no `values` member, and it cannot override `index`, `hashCode` or `operator==`), are acceptable, there should no longer be any reason to *not* make your enum-like class a language-based `enum`.
+If the *restrictions* are acceptable (the type is sealed; there is only a finite, statically known set of instances; the class  implements `Enum`; it cannot override `index`, `hashCode` or operator `==`; and it cannot have a user-written member named `values`), there should no longer be any reason to *not* make your enum-like class a language-based `enum`.
 
 ## Examples:
 
