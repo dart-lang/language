@@ -6,7 +6,7 @@ This is a formal specification for a language feature which allows `enum` declar
 
 ## Grammar
 
-Dart existing enum declarations are currently restricted to:
+Without the enhanced enums feature specified in this document, enum declarations are restricted to:
 
 ```dart
 enum Name {
