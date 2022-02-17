@@ -10,7 +10,6 @@
 library language.working.macros.example.run;
 
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:dart_style/dart_style.dart';
 
@@ -20,19 +19,19 @@ import 'package:_fe_analyzer_shared/src/macros/api.dart';
 // Private impls used actually execute the macro
 import 'package:_fe_analyzer_shared/src/macros/bootstrap.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor_shared/introspection_impls.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor_shared/remote_instance.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor_shared/serialization.dart';
-import 'package:_fe_analyzer_shared/src/macros/isolated_executor/isolated_executor.dart'
-    as isolatedExecutor;
+import 'package:_fe_analyzer_shared/src/macros/executor/introspection_impls.dart';
+import 'package:_fe_analyzer_shared/src/macros/executor/remote_instance.dart';
+import 'package:_fe_analyzer_shared/src/macros/executor/serialization.dart';
+import 'package:_fe_analyzer_shared/src/macros/executor/process_executor.dart'
+    as processExecutor;
 
 final _watch = Stopwatch()..start();
 void _log(String message) {
   print('${_watch.elapsed}: $message');
 }
 
-var clientSerializationMode = SerializationMode.jsonClient;
-var serverSerializationMode = SerializationMode.jsonServer;
+const clientSerializationMode = SerializationMode.byteDataClient;
+const serverSerializationMode = SerializationMode.byteDataServer;
 
 // Run this script to print out the generated augmentation library for an example class.
 void main() async {
@@ -43,7 +42,7 @@ void main() async {
     print('This script must be ran from the `macros` directory.');
     exit(1);
   }
-  var executor = await isolatedExecutor.start(serverSerializationMode);
+  var executor = await processExecutor.start(serverSerializationMode);
   var tmpDir = Directory.systemTemp.createTempSync('data_class_macro_example');
   try {
     var macroUri = thisFile.absolute.uri;
@@ -60,11 +59,13 @@ void main() async {
     var kernelOutputFile =
         File(tmpDir.uri.resolve('main.dart.dill').toFilePath());
     _log('Compiling DataClass macro');
-    var buildSnapshotResult = await Process.run(Platform.resolvedExecutable, [
-      '--snapshot=${kernelOutputFile.uri.toFilePath()}',
-      '--snapshot-kind=kernel',
-      '--packages=${(await Isolate.packageConfig)!}',
+    var buildSnapshotResult = await Process.run('dart', [
+      'compile',
+      'exe',
+      '--packages=.dart_tool/package_config.json',
       bootstrapFile.uri.toFilePath(),
+      '-o',
+      kernelOutputFile.uri.toFilePath(),
     ]);
 
     if (buildSnapshotResult.exitCode != 0) {
