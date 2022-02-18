@@ -91,7 +91,7 @@ The semantics of such an enum declaration, *E*, is defined as introducing a (sem
 
   It’s a **compile-time error** if such a mixin application introduces any instance variables. _We need to be able to call an implementation specific superclass `const` constructor of `Enum`, and a mixin application of a mixin with a field does not make its forwarding constructor `const`. Currently that’s the only restriction, but if we add further restrictions on mixin applications having `const` forwarding constructors, those should also apply here._
 
-* **Superinterfaces**: The immediate superinterfaces of *C* are the interface of the superclass and the interfaces declared bu `implements` in *E*.
+* **Superinterfaces**: The immediate superinterfaces of *C* are the interface of the superclass and the interfaces declared by `implements` in *E*.
 
   * If `E` is declared as `enum Name with Mixin1, Mixin2 implements Type1, Type2 { … }` then the immediate superinterfaces of *C* are the interfaces of `Name with Mixin1, Mixin2`, `Type1` and `Type2`.
 
