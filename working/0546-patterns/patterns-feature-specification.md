@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.1 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.2 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Summary
 
@@ -557,10 +557,24 @@ expressions evaluate to equivalent values.
 A record pattern destructures fields from a record.
 
 ```
-recordBinder ::= '(' recordFieldBinders ')'
+recordBinder        ::= '(' recordFieldBinders ')'
 
-recordFieldBinders ::= recordFieldBinder ( ',' recordFieldBinder )* ','?
-recordFieldBinder ::= ( identifier ':' )? binder
+recordFieldBinders  ::= recordFieldBinder ( ',' recordFieldBinder )* ','?
+recordFieldBinder   ::= ( identifier ':' )? binder
+                      | identifier ':'
+```
+
+Each field is either a binder which destructures a positional field, or a binder
+prefixed with an identifier and `:` which destructures a named field.
+
+When destructuring named fields, it's common to want to bind the resulting value
+to a variable with the same name. As a convenience, the binder can be omitted on
+a named field. In that case, the field implicitly contains a variable binder
+subpattern with the same name. These are equivalent:
+
+```dart
+var (first: first, second: second) = (first: 1, second: 2);
+var (first:, second:) = (first: 1, second: 2);
 ```
 
 **TODO: Allow a `...` element in order to ignore some positional fields while
@@ -753,7 +767,23 @@ Destructures fields from records and objects.
 recordMatcher ::= '(' recordFieldMatchers ')'
 
 recordFieldMatchers ::= recordFieldMatcher ( ',' recordFieldMatcher )* ','?
-recordFieldMatcher ::= ( identifier ':' )? matcher
+recordFieldMatcher  ::= ( identifier ':' )? matcher
+                      | identifier ':'
+```
+
+Each field is either a positional matcher which destructures a positional field,
+or a matcher prefixed with an identifier and `:` which destructures a named
+field.
+
+As with record binders, a named field without a matcher is implicitly treated as
+containing a variable matcher with the same name as the field. The variable is
+always `final`. These cases are equivalent:
+
+```dart
+switch (obj) {
+  case (first: final first, second: final second): ...
+  case (first:, second:): ...
+}
 ```
 
 **TODO: Add a `...` syntax to allow ignoring positional fields?**
@@ -843,9 +873,9 @@ var (a, b) = (1, 2);
 ```
 
 Here, the `(a, b)` pattern is being matched against the expression `(1, 2)`.
-When a pattern contains subpatterns, those subpatterns are matched against
-values destructured from the value the outer pattern is matched against. Here,
-`a` is matched against `1` and `b` is matched against `2`.
+When a pattern contains subpatterns, each subpattern is matched against a value
+destructured from the value that the outer pattern is matched against. Here, `a`
+is matched against `1` and `b` is matched against `2`.
 
 When calculating the context type schema or static type of a pattern, any
 occurrence of `typePattern` in a type is treated as `Object?`.
@@ -899,7 +929,7 @@ getters.
 
 **TODO: Type inference doesn't currently look at getter return types to infer
 the type arguments of a generic class's constructor, so more work is needed
-here.**
+here if we want this to actually infer type arguments.**
 
 The context type schema for a pattern `p` is:
 
@@ -917,11 +947,12 @@ The context type schema for a pattern `p` is:
 *   **Record binder or matcher**:
     *   If the pattern has any positional fields, then the base type schema is
         `Destructure_n_<F...>` where `_n_` is the number of fields and `F...` is
-        the context type schema of all of the positional fields.
+        the context type schemas of all of the positional fields.
     *   Else the base type schema is `Object?`.
     *   The base type schema is extended with getters for each named field
         subpattern in `p` where each getter's type schema is the type schema of
-        the corresponding subpattern.
+        the corresponding subpattern. (If there is no subpattern because it's
+        an implicit variable pattern like `(field:)`, the type schema is `?`.)
 
 *   **Variable binder**:
     *   If `p` has a type annotation, the context type schema is that type.
@@ -940,7 +971,7 @@ The context type schema for a pattern `p` is:
     constraint?**
 
 *   **Literal matcher** or **constant matcher**: The context type schema is the
-    static type of the pattern's value expression.
+    static type of the pattern's constant value expression.
 
 *   **Declaration matcher**: The context type schema is the same as the context
     type schema of the inner binder.
@@ -980,8 +1011,8 @@ Putting this together, it means the process of completely inferring the types of
 a construct using patterns works like:
 
 1. Calculate the context type schema of the pattern.
-2. Use that in downwards inference to calculate the type of the value.
-3. Use that to calculate the static type of a pattern.
+2. Use that in downwards inference to calculate the type of the matched value.
+3. Use that to calculate the static type of the pattern.
 
 The static type of a pattern `p` being matched against a value of type `M` is:
 
@@ -1056,13 +1087,37 @@ The static type of a pattern `p` being matched against a value of type `M` is:
 
 *   **Record binder or matcher**:
 
+    1.  Calculate the static types of the field subpatterns:
+
+        1.  It is a compile-time error if there are positional fields, `M` is
+            not `dynamic`, and `M` does not implement `Destructure_n_` with as
+            many type arguments as there are positional fields.
+
+        1.  Calculate the type of each of `f`'s positional field subpatterns
+            using the corresponding type argument in `M`'s implementation of
+            `Destructure_n_` as the matched value type.
+
+        1.  Calculate the type of `f`'s named field subpatterns using the
+            return type of the getter on `M` with the same name as the field
+            as the matched value type. If `M` is `dynamic`, then use `dynamic`
+            as the matched value type. It is a compile-time error if `M` is
+            not `dynamic` and does not have a getter whose name matches the
+            subpattern's field name.
+
+            (If the named field has no subpattern like `(field:)`, treat it as
+            if it has a variable subpattern with the same name as the field and
+            calculate the static type of that subpattern like a normal variable
+            pattern.)
+
     1.  If `p` has any positional fields, then the static type of `p` is
         `Destructure_n_<args...>` where `_n_` is the number of positional
         fields and `args...` is a type argument list built from the static
         types of the positional field subpatterns, in order.
 
     2.  Else the static type of `p` is `Object?`. *You can destructure named
-        fields on an object of any type by calling its getters.*
+        fields on an object of any type by calling its getters. In other words,
+        named fields are treated structurally and don't form part of the record
+        pattern's overall static type.*
 
     3.  If `M` is not `dynamic`:
         *   It is a compile-time error if `p` has a field with name `n` and `M`
@@ -1115,7 +1170,9 @@ patterns binds depend on what kind of pattern it is:
 
 *   **List binder or matcher**, **map binder or matcher**, or **record binder or
     matcher**: These do not introduce variables themselves but may contain type
-    patterns and subpatterns that do.
+    patterns and subpatterns that do. A named record field with no subpattern
+    implicitly defines a variable with the same name as the field. If the
+    pattern is a matcher, the variable is `final`.
 
 *   **Literal matcher**, **constant matcher**, or **wildcard binder or
     matcher**: These do not introduce any variables.
@@ -1387,7 +1444,9 @@ To match a pattern `p` against a value `v`:
             treating that as a match failure.*
 
         2.  Match the subpattern of `f` against `r`. If the match fails,
-            the record match fails.
+            the record match fails. (If `f` has no subpattern because it's an
+            implicit field pattern like `(field:)`, treat it like a the
+            subpattern is a variable pattern with the same name.)
 
     3.  If all field subpatterns match, the record pattern matches.
 
@@ -1458,6 +1517,11 @@ main() {
 *This prints "1", "2", "here".*
 
 ## Changelog
+
+### 1.2
+
+-   Add a shorthand for destructuring a named record field to a variable with
+    the same name.
 
 ### 1.1
 
