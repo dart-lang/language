@@ -1,12 +1,12 @@
 # Dart Enhanced Enum Classes
 
-Author: lrn@google.com<br>Version: 1.6<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
+Author: lrn@google.com<br>Version: 1.7<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
 
-This is a formal proposal for a language feature which allows `enum` declarations to declare classes with fields, methods and const constructors initializing those fields. Further, `enum` declarations can implement interfaces and, as an optional feature, apply mixins.
+This is a formal specification for a language feature which allows `enum` declarations to declare classes with fields, methods and `const` constructors initializing those fields. Further, `enum` declarations can implement interfaces and apply mixins.
 
 ## Grammar
 
-Dart enum declarations are currently restricted to:
+Without the enhanced enums feature specified in this document, enum declarations are restricted to:
 
 ```dart
 enum Name {
@@ -16,7 +16,7 @@ enum Name {
 
 That is: `enum`, a single identifier for the name, and a block containing a comma separated list of identifiers.
 
-We propose the following to also be allowed:
+With the enhanced enums feature, a declaration like the following is also allowed:
 
 ```dart
 enum Name<T extends Object?> with Mixin1, Mixin2 implements Interface1, Interface2 {
@@ -26,10 +26,9 @@ enum Name<T extends Object?> with Mixin1, Mixin2 implements Interface1, Interfac
 }
 ```
 
-where `memberDeclaration*` is almost any sequence of static and instance member declarations, or constructors, 
-with some necessary restrictions specified below.
+where `memberDeclaration*` is almost any sequence of static and instance member declarations, or constructors, with some necessary restrictions specified below.
 
-The `;` after the identifier list is optional if there is nothing else in the declaration (for backwards compatibility), and required if there is any member declaration after it. The identifier list may have a trailing comma in either case (like now).
+The `;` after the value list is optional if there is nothing else in the declaration (for backwards compatibility), and required if there is any member declaration after it. The value list may have a trailing comma in either case (like now).
 
 The superclass of the mixin applications is the `Enum` class (which has a concrete `index` getter and otherwise only the members of `Object`, so the only valid `super` invocations on that superclass are those valid on `Object` and `super.index`).
 
@@ -57,19 +56,18 @@ _We will introduce the necessary super-invocation ourselves as an implementation
 
 It is a **compile-time error** to refer to a declared or default generative constructor of an `enum` declaration in any way, other than:
 
-* As the target of a redirecting generative constructor of the same `enum`, or
+* As the target of a redirecting generative constructor of the same `enum` declaration, or
 * Implicitly in the enum value declarations of the same `enum`.
 
 _No-one is allowed to invoke a generative constructor and create another instance of the `enum`. 
 That also means that a redirecting *factory* constructor cannot redirect to a generative constructor of an `enum`,
-and therefore no factory constructor of an `enum` declaration can be `const`, because a `const` factory constructor 
-must redirect to a generative constructor._
+and therefore no factory constructor of an `enum` declaration can be `const`, because a `const` factory constructor must redirect to a generative constructor._
 
 It's a **compile-time error** if the enum declaration contains a static or instance member declaration with the name `values`, or if the superclass or any superinterface of the enum declaration has an interface member named `values`. _A `values` static constant member will be provided for the class, this restriction ensures that there is no conflict with that declaration._
 
 ## Semantics
 
-The `Enum` class behaves as if it was declared as:
+The `Enum` class from the `dart:core` library behaves as if it was declared as:
 
 ```dart
 class Enum {
@@ -79,7 +77,7 @@ class Enum {
 }
 ```
 
-We intend to (at least pretend to) let `enum` classes extend `Enum`, and let mixins and members access the default `index` and `toString()` through `super.`. _(In practice, we may use a different class implementing `Enum` as the superclass, but for checking the validity of `super.index`/`super.toString()`, we analyze against `Enum` itself, so it must have non-abstract implementations.)_
+We intend to (at least pretend to) let `enum` classes extend `Enum`, and let mixins and members access the default `index` and `toString()` through `super.`. _(In practice, we may use a different class implementing `Enum` as the superclass, but for checking the validity of `super.index`/`super.toString()`, we analyze against `Enum` itself, so it must have concrete implementations.)_
 
 This all makes it look as if `Enum` would be a valid superclass for the mixin applications and methods of the enhanced `enum` class.
 
@@ -93,7 +91,7 @@ The semantics of such an enum declaration, *E*, is defined as introducing a (sem
 
   It’s a **compile-time error** if such a mixin application introduces any instance variables. _We need to be able to call an implementation specific superclass `const` constructor of `Enum`, and a mixin application of a mixin with a field does not make its forwarding constructor `const`. Currently that’s the only restriction, but if we add further restrictions on mixin applications having `const` forwarding constructors, those should also apply here._
 
-* **Superinterfaces**: The immediate superinterfaces of *C* are the interface of the superclass and the interfaces declared by *E*.
+* **Superinterfaces**: The immediate superinterfaces of *C* are the interface of the superclass and the interfaces declared by `implements` in *E*.
 
   * If `E` is declared as `enum Name with Mixin1, Mixin2 implements Type1, Type2 { … }` then the immediate superinterfaces of *C* are the interfaces of `Name with Mixin1, Mixin2`, `Type1` and `Type2`.
 
@@ -126,17 +124,21 @@ The semantics of such an enum declaration, *E*, is defined as introducing a (sem
 
 The resulting constructor invocations are subject to type inference, using the empty context type. *This implies that inferred type arguments to the constructor invocation itself may depend on the types of the argument expressions of `args`.* The type of the constant variable is the static type of the resulting constant object creation expression.
 
-  The objects created here are *not canonicalized* like other constant object creations. _(In practice, the index value is considered part of the object, so no two objects will have the same state.)_
+The objects created here are *not canonicalized* like other constant object creations. _(In practice, the index value is considered part of the object, so no two objects will have the same state.)_
 
 - **Static `values` list**: A static constant variable named `values` is added as by the declaration  `static const List<Name> values = [id1, …, idn];`
   where `id1`…`idn` are the names of the enum entries of the `enum` declaration in source/index order.
   _If `Name` is generic, the `List<Name>` instantiates `Name` to its bounds._
 
+It's a **compile-time error** if an `enum` declaration declares or inherits a concrete member named  `index` which overrides the `index` getter of the `Enum` class. _Such an inherited `index` member would necessarily have been introduced by a mixin application of the `enum` declaration._
+
+It's a **compile-time error** if an `enum` declaration declares or inherits a concrete member named  `hashCode` or `==` *(an `operator ==` declaration)* which overrides the `hashCode` getter or `==` operator of the `Object` class. (The `Enum` class does not override `hashCode` or `operator==` from `Object`). _This ensures that enum values can be used as switch statement case values, which is the main advantage of using an enum over just writing a normal class._
+
 If the resulting class would have any naming conflicts, or other compile-time errors, the `enum` declaration is invalid and a compile-time error occurs. Such errors include, but are not limited to:
 
 - Declaring or inheriting (from `Enum` or from a declared mixin or interface) any member with the same basename as an enum value which is not a static setter. _(The introduced static declarations would have a conflict.)_
-- Declaring or mixing in a member which is not a valid override of a super-interface member declaration, including, but not limited to, the `index` and `toString` members of `Enum`.
-- Declaring or inheriting an member signature with no corresponding implementation. _(For example declaring an abstract `Never get index` or `String toString([int optional])`, but not providing an implementation.)
+- Declaring or mixing in a member which is not a valid override of a super-interface member declaration, including the `runtimeType`,  `noSuchMethod` and `toString` members of `Object`, or any members introduced by mixin applications.
+- Declaring or inheriting an member signature with no corresponding implementation. _(For example declaring an abstract `String toString([int optional])`, but not providing an implementation.)_
 - Declaring a generic `enum` which does not have a valid well-bounded instantiate-to-bounds result. _(The automatically introduced `static const List<EnumName> values` requires a well-bounded instantiate-to-bounds result)_.
 - Declaring a generic `enum` which does not have a regular-bounded instantiate-to-bounds result *and* that has an enum value declaration omitting the type arguments and not having arguments from which type arguments can be inferred. _(For example `enum EnumName<F extends C<F>> { foo; }` would introduce an implicit `static const foo = EnumName(0, "foo");` declaration where the constructor invocation requires a regular-bounded instantiate-to-bounds result)_.
 - Using a non-constant expression as an argument of an enum value declaration.
@@ -152,20 +154,18 @@ It’s currently a compile-time error for a class to implement, extend or mix-in
 
 Because we want to allow interfaces and mixins that are intended to be applied to `enum` declarations, and therefore to assume `Enum` to be a superclass, we loosen that restriction to:
 
-- It's a compile-time error if a *non-abstract* class has `Enum` as a superinterface (directly or transitively) unless it is the corresponding class of an `enum` declaration.
-- It is a compile-time error if a class implements, extends or mixes-in the class or interface introduced by an `enum` declaration. _(An enum class can’t be used as a mixin since it is not a `mixin` declaration and the class has a superclass other than `Object`, but we include “mixes-in” for completeness.)_
+- It's a **compile-time error** if a *concrete* class has `Enum` as a superinterface (directly or transitively) unless it is the corresponding class of an `enum` declaration. _(Abstract interfaces and mixins implementing `Enum` are allowed, but only so that they can be used by `enum` declarations, they can never be used to create an instance which implements `Enum`, but which is not an enum value.)_
+- It is a **compile-time error** if a class implements, extends or mixes-in the class or interface introduced by an `enum` declaration. _(An enum class can’t be used as a mixin since it is not a `mixin` declaration and the class has a superclass other than `Object`, but we include “mixes-in” for completeness.)_
 - It's a **compile-time error** if a `class` or `mixin` declaration has `Enum` as a superinterface and the interface of the declarations contains an instance member with the name `values`, whether declared or inherited. _If any concrete class implements this interface, it will be an `enum` declaration class, and then the `values` member would conflict with the static `values` constant getter that is automatically added to `enum` declaration classes. Such an instance `values` declaration is either useless or wrong, so we disallow it entirely._
-- It's a compile-time error if a `class`, `mixin` or `enum` declaration has `Enum` as a superinterface, and it declares a non-abstract instance member named `index`. _That member would override the `index` getter inherited from `Enum`, and we currently do not allow that._
+- It's a **compile-time error** if a `class` or `mixin` declaration has `Enum` as a superinterface, and that class or mixin declares or inherits a concrete instance member named `index`, `hashCode` or `==` *(an `operator ==` declaration)*. _That `index` member could override the `index` getter inherited from `Enum`, and we currently do not allow that. The `hashCode` and `operator==` declarations would prevent the enum class from having "primitive equality", and we want to ensure that enums can be used in switches._
 
-Those restrictions allows abstract classes (interfaces) which implements `Enum` in order to have the `int index;` getter member available, and it allows `mixin` declarations to use `Enum` as an `on` type because `mixin` declarations cannot be instantiated directly.
+Those restrictions allow abstract classes (interfaces) which *implement* `Enum` in order to have the `int index;` getter member available, and also allow `mixin` declarations to use `Enum` as an `on` type because `mixin` declarations cannot be instantiated directly.
 
-The restrictions still ensure  `enum` values are the only object instances which implements `Enum`, while making it valid to declare `abstract class MyInterface implements Enum` and `mixin MyMixin on Enum` for interfaces and mixins intended to be used in declaring `enum` classes. It's also impossible to override or prevent the instance `index` and static  `values` members without causing a compile-time error. _Say implementing an interface with `Never get index;` as a member, then because it's not possible to override `int get index;` from `Enum`, the resulting class does not implement its interface and is a compile-time error._
+_The restrictions still ensure that `enum` values are the only objects whose run-time type implements `Enum`, while making it valid to declare `abstract class MyInterface implements Enum` and `mixin MyMixin on Enum` for interfaces and mixins intended to be used in `enum` declarations. It's also impossible to override the instance getters `index` and `hashCode`, or the operator `==`, and impossible to interfere with the static  `values` getter, without causing a compile-time error. For example, if an enum declaration implements an interface containing the signature `Never get index;`, then because it's not possible to override `int get index;` from `Enum`, the resulting class will not implement its interface, and that is a compile-time error._
 
 ## Formatting
 
-The recommended formatting of an `enum` declaration is to format the header (before the first `{`) just like a class declaration. Then, if the enum entries have arguments (if they are anything but single identifiers), then put each entry on a line by its own. If there is no trailing comma, put the semicolon after the last entry. If there is a trailing comma, put the semicolon on the next line, by itself. Then have an empty line before the member declarations, which are formatted just like they would be in a class declaration.
-
-If the enum entries have no arguments, they can be listed on one line where it fits, like they are today.
+The recommended formatting of an `enum` declaration is to format the header (before the first `{`) just like a `class` declaration. Then, if the enum value declarations are all single identifiers, and there is no trailing comma, try to fit the identifiers (and any following semicolon) on one line. If any of the value declarations have arguments, if the values have a trailing comma, or if the identifiers do not fit on one line, put each value declaration on a new line. If there is no trailing comma, put any semicolon after the last entry. If there is a trailing comma, put any semicolon on the next line, by itself. Then, if there are member declarations, have an empty line before the member declarations, which are formatted just like they would be in a class declaration.
 
 ## Implementation
 
@@ -245,13 +245,13 @@ The enum values can call the declared constructors, or the default unnamed zero-
 
 Enum instances are objects like any other object, and with this change they can implement interfaces and inherit members from mixins. The main difference between an `enum` declaration and a hand-written “equivalent class” using the enum pattern is that:
 
-- The `enum` types implement `Enum`. The `Enum` type is otherwise sealed against instantiation, so no other *objects* than enum entries can implement it. Abstract classes and mixins can implement or extend `Enum`, but unless they are implemented or mixed into an `enum` declaration, no objects can implement that type.
+- The `enum` types implement `Enum`. The `Enum` type is otherwise sealed against instantiation, so no other *objects* than enum entries can implement it. Abstract classes and mixins can implement or extend `Enum`, but unless they are then implemented by or mixed into an `enum` declaration, no objects can actually implement the type of that class or mixin.
 - The `enum` types themselves are completely sealed. No other class can implement an `enum` type.
 
 - Because of that, `enum` types support exhaustiveness checking in `switch` cases in the language _(meaning that flow-control can see that an exhaustive switch over enum values cannot pass through without executing at least one `case`, which can then affect variable promotion)_.
 - The `EnumName.name` extension member works on `enum` values.
 
-If the *restrictions* (the type is sealed, there is only a finite, enumerable number of instances, and the class  implements `Enum`, so it must have an `int index` getter and no `values` member), are acceptable, there should no longer be any reason to *not* make your enum-like class a language-based `enum`.
+If the *restrictions* are acceptable (the type is sealed; there is only a finite, statically known set of instances; the class  implements `Enum`; it cannot override `index`, `hashCode` or operator `==`; and it cannot have a user-written member named `values`), there should no longer be any reason to *not* make your enum-like class a language-based `enum`.
 
 ## Examples:
 
@@ -323,7 +323,7 @@ enum Complex<T extends Pattern> with EnumComparable<Complex> implements Pattern 
   anychar<Glob>("?", Glob.new),
   ;
 
-  // Static variables. (Could use Expando, this is more likely efficient.)
+  // Static variables. (Could use Expando, this is likely more efficient.)
   static final List<Pattern?> _patterns = List<Pattern?>.filled(3, null);
 
   // Final instance variables.
@@ -395,7 +395,8 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
     throw UnsupportedError("No pattern matching: $text");
   }
 
-  const Complex.captured(int _$index, String _$name, String regexpPattern, T Function(String) factory)
+  const Complex.captured(
+      int _$index, String _$name, String regexpPattern, T Function(String) factory)
       : this(_$index, _$name, "($regexpPattern)", factory);
 
   String get name => EnumName(this).name;
@@ -451,3 +452,4 @@ There is a chance that people will start using `enum` declarations to declare si
 1.4, 2021-10-28: Say that it's an error to refer to generative constructors, and make the `Enum` constructor public.
 1.5, 2021-12-07: Say that `index` and `toString` are inherited from the superclass, `values` is omitted if it would conflict. Rephrase specification in terms of defining a semantic class, not a syntactic one.
 1.6, 2022-01-27: Disallow overriding `index` or conflicting with `values`.
+1.7, 2022-02-16: Disallow overriding `operator==` and `hashCode` too.
