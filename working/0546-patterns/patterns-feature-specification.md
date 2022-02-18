@@ -434,11 +434,57 @@ Over half of the switch cases in a large corpus of packages contain either a
 single return statement or an assignment followed by a break so there is some
 evidence this will be useful.
 
-**TODO: Something like an if statement that matches a single pattern and binds
-its variables in the then branch.**
+### If-case statement
 
-**TODO: Something like a Swift guard-let that matches a single pattern and binds
-in the rest of the block or exits if the pattern does not match.**
+Often you want to conditionally match and destructure some data, but you only
+want to test a value against a single pattern. You can use a `switch` statement
+for that, but it's pretty verbose:
+
+```dart
+switch (json) {
+  case [int x, int y]:
+    return Point(x, y);
+}
+```
+
+We can make simple uses like this a little cleaner by introducing an if-like
+form similar to [if-case in Swift][]:
+
+[if-case in swift]: https://useyourloaf.com/blog/swift-if-case-let/
+
+```dart
+if (case [int x, int y] = json) return Point(x, y);
+```
+
+It may have an else branch as well:
+
+```dart
+if (case [int x, int y] = json) {
+  print('Was coordinate array $x,$y');
+} else {
+  throw FormatException('Invalid JSON.');
+}
+```
+
+The grammar is:
+
+```
+ifCaseStatement ::= 'if' '(' 'case' matcher '=' expression ')'
+                         statement ('else' statement)?
+```
+
+The `expression` is evaluated and matched against `matcher`. If the pattern
+matches, then the then branch is executed with any variables the pattern
+defines in scope. Otherwise, the else branch is executed if there is one.
+
+Unlike `switch`, this form doesn't allow a guard clause. Guards are important in
+switch cases because, unlike nesting an if statement *inside* the switch case, a
+failed guard will continue to try later cases in the switch. That is less
+important here since the only other case is the else branch.
+
+**TODO: Consider allowing guard clauses here. That probably necessitates
+changing guard clauses to use a keyword other than `if` since `if` nested inside
+an `if` condition looks pretty strange.**
 
 ### Irrefutable patterns ("binders")
 
@@ -865,8 +911,9 @@ arity of the type of `typeName`.
 
 A pattern always appears in the context of some value expression that it is
 being matched against. In a switch statement or expression, the value expression
-is the value being switched on. In a variable declaration, the value is the
-initializer:
+is the value being switched on. In an if-case statement, the value is the result
+of the expression to the right of the `=`. In a variable declaration, the value
+is the initializer:
 
 ```dart
 var (a, b) = (1, 2);
@@ -1221,6 +1268,7 @@ that contains the pattern:
 *   **Switch statement case**: The guard clause and the statements of the
     subsequent non-empty case body.
 *   **Switch expression case**: The guard clause and the case expression.
+*   **If-case statement**: The then statement.
 
 Multiple switch case patterns may share the same variable scope if their case
 bodies are empty:
@@ -1370,6 +1418,15 @@ behavior.
 3.  If no case pattern matched and there is a default clause, execute the
     expression after it and yield that as the result of the entire switch
     expression.
+
+#### If-case statement
+
+1.  Evaluate the `expression` producing `v`.
+
+2.  Match the `matcher` pattern against `v`.
+
+3.  If the match succeeds, evaluate the then `statement`. Otherwise, if there
+    is an `else` clause, evaluate the else `statement`.
 
 ### Matching (refuting and destructuring)
 
@@ -1522,6 +1579,8 @@ main() {
 
 -   Add a shorthand for destructuring a named record field to a variable with
     the same name.
+
+-   Add if-case statement.
 
 ### 1.1
 
