@@ -874,13 +874,7 @@ switch (obj) {
 An extractor combines a type test and record destructuring. It matches if the
 object has the named type. If so, it then uses the following record pattern to
 destructure fields on the value as that type. This pattern is particularly
-useful for writing code in an algebraic datatype style.
-
-```
-extractMatcher ::= typeName typeArgumentsOrBinders? "(" recordFieldMatchers ")"
-```
-
-For example:
+useful for writing code in an algebraic datatype style. For example:
 
 ```dart
 class Rect {
@@ -898,12 +892,43 @@ display(Object obj) {
 }
 ```
 
+You can also use an extractor to both match an enum value and destructure
+fields from it:
+
+```dart
+enum Severity  {
+  error(1, "Error"),
+  warning(2, "Warning");
+
+  Severity(this.level, this.prefix);
+
+  final int level;
+  final String prefix;
+}
+
+log(Severity severity, String message) {
+  switch (severity) {
+    case Severity.error(_, prefix):
+      print('!! $prefix !! $message'.toUppercase());
+    case Severity.warning(_, prefix):
+      print('$prefix: $message');
+  }
+}
+```
+
+The grammar is:
+
+```
+extractMatcher ::= extractName typeArgumentsOrBinders? "(" recordFieldMatchers ")"
+extractName    ::= typeIdentifier | qualifiedName
+```
+
 It requires the type to be a named type. If you want to use an extractor with a
 function type, you can use a typedef.
 
-It is a compile-time error if `typeName` does not refer to a type. It is a
-compile-time error if a type argument list is present and does not match the
-arity of the type of `typeName`.
+It is a compile-time error if `extractName` does not refer to a type or enum
+value. It is a compile-time error if a type argument list is present and does
+not match the arity of the type of `extractName`.
 
 **TODO: Some kind of terse null-check pattern that matches a non-null value?**
 
@@ -1540,12 +1565,14 @@ To match a pattern `p` against a value `v`:
     1.  If `v` is not a subtype of the extractor pattern's type, then the
         match fails.
 
-    2.  Otherwise, match `v` against the subpatterns of `p` as if it were a
+    2.  If the extractor pattern refers to an enum value and `v` is not that
+        value, then the match fails.
+
+    3.  Otherwise, match `v` against the subpatterns of `p` as if it were a
         record pattern.
 
-**TODO: Define order of evaluation and specify how much freedom compilers have
-to reorder or skip tests. What happens if the various desugared operations have
-side effects?**
+**TODO: Update to specify that the result of operations can be cached across
+cases. See: https://github.com/dart-lang/language/issues/2107**
 
 ### Late and static variables in pattern declaration
 
@@ -1581,6 +1608,8 @@ main() {
     the same name.
 
 -   Add if-case statement.
+
+-   Allow extractor patterns to match enum values.
 
 ### 1.1
 
