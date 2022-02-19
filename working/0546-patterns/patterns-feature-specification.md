@@ -513,6 +513,7 @@ binder
 | wildcardBinder
 | variableBinder
 | castBinder
+| nullAssertBinder
 
 binders ::= binder ( ',' binder )* ','?
 ```
@@ -681,6 +682,30 @@ pattern:
 var (i as int, s as String) = record;
 ```
 
+#### Null-assert binder
+
+```
+nullAssertBinder ::= binder '!'
+```
+
+When the type being matched or destructured is nullable and you want to assert
+that the value shouldn't be null, you can use a cast pattern, but that can be
+verbose if the underlying type name is long:
+
+```dart
+(String, Map<String, List<DateTime>?>) data = ...
+var (name, timeStamps as Map<String, List<DateTime>>) = data;
+```
+
+To make that easier, similar to the null-assert expression, a null-assert binder
+pattern forcibly casts the matched value to its non-nullable type. If the value
+is null, a runtime exception is thrown:
+
+```dart
+(String, Map<String, List<DateTime>?>) data = ...
+var (name, timeStamps!) = data;
+```
+
 ### Refutable patterns ("matchers")
 
 Refutable patterns determine if the value in question matches or meets some
@@ -699,6 +724,7 @@ matcher ::=
   | variableMatcher
   | declarationMatcher
   | extractMatcher
+  | nullCheckMatcher
 ```
 
 #### Literal matcher
@@ -846,6 +872,9 @@ By using variable matchers as subpatterns of a larger matched pattern, a single
 composite pattern can validate some condition and then bind one or more
 variables only when that condition holds.
 
+A variable pattern can also have a type annotation in order to only match values
+of the specified type.
+
 #### Declaration matcher
 
 A declaration matcher enables embedding an entire declaration binding pattern
@@ -930,7 +959,31 @@ It is a compile-time error if `extractName` does not refer to a type or enum
 value. It is a compile-time error if a type argument list is present and does
 not match the arity of the type of `extractName`.
 
-**TODO: Some kind of terse null-check pattern that matches a non-null value?**
+#### Null-check matcher
+
+Similar to the null-assert binder, a null-check matcher provides a nicer syntax
+for working with nullable values. Where a null-assert binder *throws* if the
+matched value is null, a null-check matcher simply fails the match. To highlight
+the difference, it uses a gentler `?` syntax, like the [similar feature in
+Swift][swift null check]:
+
+[swift null check]: https://docs.swift.org/swift-book/ReferenceManual/Patterns.html#ID520
+
+```
+nullCheckMatcher ::= matcher '?'
+```
+
+A null-check pattern matches if the value is not null, and then matches the
+inner pattern against that same value. Because of how type inference flows
+through patterns, this also provides a terse way to bind a variable whose type
+is the non-nullable base type of the nullable value being matched:
+
+```dart
+String? maybeString = ...
+if (case var s? = maybeString) {
+  // s has type String here.
+}
+```
 
 ## Static semantics
 
@@ -1036,11 +1089,18 @@ The context type schema for a pattern `p` is:
         be used to downcast from any other type.*
     *   Else it is `?`.
 
-*   **Cast binder**, **wildcard matcher**, or **extractor matcher**: The
-    context type schema is `Object?`.
+*   **Cast binder**, **wildcard matcher**, or **extractor matcher**: The context
+    type schema is `Object?`.
 
     **TODO: Should type arguments on an extractor create a type argument
     constraint?**
+
+*   **Null-assert binder** or **null-check matcher**: A type schema `E?` where
+    `E` is the type schema of the inner pattern. *For example:*
+
+    ```dart
+    var [[int x]!] = [[]]; // Infers List<List<int>?> for the list literal.
+    ```
 
 *   **Literal matcher** or **constant matcher**: The context type schema is the
     static type of the pattern's constant value expression.
@@ -1218,6 +1278,22 @@ The static type of a pattern `p` being matched against a value of type `M` is:
     The static type of `p` is `Object?`. *Wildcards accept all types. Casts and
     extractors exist to check types at runtime, so statically accept all types.*
 
+*   **Null-assert binder** or **null-check matcher**:
+
+    1.  If `M` is `N?` for some type `N` then calculate the static type `q` of
+        the inner pattern using `N` as the matched value type. Otherwise,
+        calculate `q` using `M` as the matched value type. *A null-assert or
+        null-check pattern removes the nullability of the type it matches
+        against.*
+
+        ```dart
+        var [x!] = <int?>[]; // x is int.
+        ```
+
+    2.  The static type of `p` is `q?`. *The intent of `!` and `?` is only to
+        remove nullability and not cast from an arbitrary type, so they accept a
+        value of its nullable base type, and not simply `Object?`.*
+
 *   **Literal matcher** or **constant matcher**: The static type of `p` is the
     static type of the pattern's value expression.
 
@@ -1264,6 +1340,9 @@ patterns binds depend on what kind of pattern it is:
     identifier. The variable is final if the surrounding pattern variable
     declaration or declaration matcher has a `final` modifier. The variable is
     late if it is inside a pattern variable declaration marked `late`.
+
+*   **Null-assert binder** or **null-check matcher**: Introduces all of the
+    variables of its subpattern.
 
 *   **Declaration matcher**: The `final` or `var` keyword establishes whether
     the binders nested inside this create final or assignable variables and
@@ -1550,6 +1629,14 @@ To match a pattern `p` against a value `v`:
     2.  Otherwise, bind the variable's identifier to `v`. The match always
         succeeds (if it didn't throw).
 
+*   **Null-assert binder**:
+
+    1.  If `v` is null then throw a runtime exception. *Note that we throw even
+        if this appears in a refutable context. The intent of this pattern is to
+        assert that a value *must* not be null.*
+
+    2.  Otherwise, match the inner pattern against `v`.
+
 *   **Literal matcher** or **constant matcher**: The pattern matches if `o == v`
     evaluates to `true` where `o` is the pattern's value.
 
@@ -1570,6 +1657,12 @@ To match a pattern `p` against a value `v`:
 
     3.  Otherwise, match `v` against the subpatterns of `p` as if it were a
         record pattern.
+
+*   **Null-check matcher**:
+
+    1.  If `v` is null then the match fails.
+
+    2.  Otherwise, match the inner pattern against `v`.
 
 **TODO: Update to specify that the result of operations can be cached across
 cases. See: https://github.com/dart-lang/language/issues/2107**
@@ -1610,6 +1703,8 @@ main() {
 -   Add if-case statement.
 
 -   Allow extractor patterns to match enum values.
+
+-   Add null-assert binder `!` and null-check `?` matcher patterns.
 
 ### 1.1
 
