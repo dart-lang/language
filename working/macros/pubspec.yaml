@@ -8,6 +8,10 @@ dev_dependencies:
 
 # Override to the latest version of the in progress api.
 dependency_overrides:
+  analyzer:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/analyzer
   _fe_analyzer_shared:
     git:
       url: https://github.com/dart-lang/sdk.git
