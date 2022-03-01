@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.1 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.2 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -79,17 +79,10 @@ These primitive types are added to `dart:core`:
 
 ### The `Record` class
 
-A built-in class whose signature is:
-
-```dart
-abstract class Record {
-  static Iterable<Object?> positionalFields(Record record);
-  static Map<Symbol, Object?> namedFields(Record record);
-}
-```
-
+A built-in class `Record` with no members except those inherited from `Object`.
 This type cannot be constructed, extended, mixed in, or implemented by
-user-defined classes.
+user-defined classes. *It's similar to how the `Function` class is the
+superclass for function types.*
 
 ### The `Destructure<n>` types
 
@@ -229,7 +222,7 @@ handle function typedefs.)
 
 ### Members
 
-A record type declares all of the members defined on Object. It also exposes
+A record type declares all of the members defined on `Object`. It also exposes
 getters for each named field where the name of the getter is the field's name
 and the getter's type is the field's type.
 
@@ -255,9 +248,9 @@ The class `Record` is a subtype of `Object` and `dynamic` and a supertype of
 
 A record type `A` is a subtype of record type `B` iff they have same shape and
 the types of all fields of `A` are subtypes of the corresponding field types of
-`B`. In type system lingo, this means record types are "covariant" or have
+`B`. *In type system lingo, this means record types are "covariant" or have
 "depth subtyping". Record types with different shapes are not subtypes. There is
-no "row polymorphism" or "width subtyping".
+no "row polymorphism" or "width subtyping".*
 
 If a record type has positional fields, then it is a subtype of the
 `Destructure` interface with the same number of fields and with type arguments
@@ -410,6 +403,10 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.2
+
+- Remove the static methods on `Record` (#2127).
 
 ### 1.1
 
