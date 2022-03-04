@@ -206,7 +206,100 @@ match.
 
 [swift pattern]: https://docs.swift.org/swift-book/ReferenceManual/Patterns.html
 
+### Grammar summary
+
+Before walking through them in detail, here is a short summary of the kinds of
+patterns and where they can appear. There are three basic entrypoints into the
+pattern grammar:
+
+*   [`matcher`][matcher] is the refutable patterns.
+*   [`binder`][binder] is the irrefutable patterns.
+*   [`declarationBinder`][declarationBinder] is a subset of the irrefutable
+    patterns that make sense as the outermost pattern in a variable declaration.
+    Subsetting allows reasonable code like:
+
+    ```dart
+    var [a, b] = [1, 2]; // List.
+    var (a, b) = (1, 2); // Record.
+    var {1: a} = {1: 2}; // Map.
+    ```
+
+    While avoiding strange uses like:
+
+    ```dart
+    var String str = 'redundant'; // Variable.
+    var str as String = 'weird';  // Cast.
+    var definitely! = maybe;      // Null-assert.
+    ```
+
+[matcher]: #refutable-patterns-matchers
+[binder]: #irrefutable-patterns-binders
+[declarationBinder]: #irrefutable-patterns-binders
+
+These entrypoints are wired into the rest of the language like so:
+
+*   A [pattern variable declaration][] contains a
+    [`declarationBinder`][declarationBinder].
+*   A [switch case][] contains a [`matcher`][matcher].
+*   A [`declarationMatcher`][declarationMatcher] pattern embeds a
+    [`declarationBinder`][declarationBinder] inside a refutable pattern. This is
+    a convenience to let you avoid repeating `var` or `final` several times
+    inside a matching pattern, as in:
+
+    ```dart
+    // List matcher containing three variable matchers:
+    case [var a, var b, var c]:
+    // Declaration matcher containing list binder
+    // containing three variable binders:
+    case var [a, b, c]:
+    ```
+
+    These two cases both do the same thing.
+
+[pattern variable declaration]: #pattern-variable-declaration
+[switch case]: #switch-statement
+[declarationMatcher]: #declaration-matcher
+
+Many kinds of patterns have both matcher (refutable) and binder (irrefutable)
+forms. The table below shows examples of every specific pattern type and which
+categories it appears in:
+
+| Type | Decl Binder? | Binder? | Matcher? | Examples |
+| ---- | ------------ | ------- | -------- | -------- |
+| Record | Yes | [Yes][recordBinder] | [Yes][recordMatcher] | `(subpattern1, subpattern2)`<br>`(x: subpattern1, y: subpattern2)` |
+| List | Yes | [Yes][listBinder] | [Yes][listMatcher] | `[subpattern1, subpattern2]` |
+| Map | Yes | [Yes][mapBinder] | [Yes][mapMatcher] | `{"key": subpattern}` |
+| Wildcard | No | [Yes][wildcardBinder] | [Yes][wildcardMatcher] | `_` |
+| Variable | No | [Yes][variableBinder] | [Yes][variableMatcher] | `foo        // Binder syntax.`<br>`var foo    // Matcher syntax.`<br>`String str // Works in either.` |
+| Cast | No | [Yes][castBinder] | No | `foo as String` |
+| Null assert | No | [Yes][nullAssertBinder] | No | `subpattern!` |
+| Literal | No | No | [Yes][literalMatcher] | `123`, `null`, `'string'` |
+| Constant | No | No | [Yes][constantMatcher] | `foo`, `math.pi` |
+| Null check | No | No | [Yes][nullCheckMatcher] | `subpattern?` |
+| Extractor | No | No | [Yes][extractMatcher] | `SomeClass(subpattern1, x: subpattern2)` |
+| Declaration | N/A | No | [Yes][declarationMatcher] | `var [foo, bar] // == [var foo, var bar]`<br>`var (a, b)     // == (var a, var b)` |
+
+[recordBinder]: #record-binder
+[recordMatcher]: #record-matcher
+[listBinder]: #list-binder
+[listMatcher]: #list-matcher
+[mapBinder]: #map-binder
+[mapMatcher]: #map-matcher
+[wildcardBinder]: #wildcard-binder
+[wildcardMatcher]: #wildcard-matcher
+[variableBinder]: #variable-binder
+[variableMatcher]: #variable-matcher
+[castBinder]: #cast-binder
+[nullAssertBinder]: #null-assert-binder
+[literalMatcher]: #literal-matcher
+[constantMatcher]: #constant-matcher
+[nullCheckMatcher]: #null-check-matcher
+[extractMatcher]: #extractor-matcher
+
 ## Syntax
+
+This proposal introduces a number different pattern forms and several places in
+the language where they can be used.
 
 Going top-down through the grammar, we start with the constructs where patterns
 are allowed and then get to the patterns themselves.
