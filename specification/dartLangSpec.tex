@@ -18032,28 +18032,35 @@ re-throw an exception and its associated stack trace.
 \end{grammar}
 
 \LMHash{}%
+Consider a \RETHROW{} statement $S$.
+% $f$ as defined below is guaranteed to exist: Every statement occurs in
+% a <block> (a statement may be part of another statement $S_2$, but by
+% induction hypothesis $S_2$ occurs in a <block>), and a <block> can only
+% occur as a statement or in a statement (e.g., in a <finallyPart>), and this
+% induction can only end in a <functionBody>.
+Let $f$ be the immediately enclosing function of $S$.
+A compile-time error occurs unless $S$ is located in an \ON-\CATCH{} clause
+whose immediately enclosing function is $f$.
+
+\LMHash{}%
 Execution of a \code{\RETHROW} statement proceeds as follows:
 
 \LMHash{}%
 Let $f$ be the immediately enclosing function,
-and let \code{\ON{} $T$ \CATCH{} ($p_1$, $p_2$)}
+and let \code{\ON\,\,$T$\,\,\CATCH\,\,($p_1$,\,\,$p_2$)}
 be the immediately enclosing catch clause (\ref{try}).
 
 \rationale{%
 A \RETHROW{} statement always appears inside a \CATCH{} clause,
-and any \CATCH{} clause is semantically equivalent to
-some \CATCH{} clause of the form \code{\ON{} $T$ \CATCH{} (p1, p2)}.
-So we can assume that the \RETHROW{} is enclosed in
+and every \CATCH{} clause is treated as some \CATCH{} clause of the form
+\code{\ON\,\,$T$\,\,\CATCH\,\,(p1,\,\,p2)}.
+So we can consider the \RETHROW{} statement to be enclosed in
 a \CATCH{} clause of that form.%
 }
 
 \LMHash{}%
-The \RETHROW{} statement throws (\ref{statementCompletion})
+The \RETHROW{} statement then throws (\ref{statementCompletion})
 with $p_1$ as the exception object and $p_2$ as the stack trace.
-
-\LMHash{}%
-It is a compile-time error if a \code{\RETHROW} statement is not
-enclosed within an \ON-\CATCH{} clause.
 
 
 \subsection{Try}
