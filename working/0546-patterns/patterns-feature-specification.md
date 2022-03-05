@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.2 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.3 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Summary
 
@@ -526,6 +526,35 @@ var x = switch (n) {
 Over half of the switch cases in a large corpus of packages contain either a
 single return statement or an assignment followed by a break so there is some
 evidence this will be useful.
+
+#### Expression statement ambiguity
+
+Thanks to expression statements, a switch expression could appear in the same
+position as a switch statement. This isn't technically ambiguous, but requires
+unbounded lookahead to tell if a switch in statement position is a statement or
+expression.
+
+```dart
+main() {
+  switch (some(extremely, long, expression, here)) {
+    case Some(Quite(var long, var pattern)) => expression();
+  };
+
+  switch (some(extremely, long, expression, here)) {
+    case Some(Quite(var long, var pattern)) : statement();
+  }
+}
+```
+
+To avoid that, we disallow a switch expression from appearing at the beginning
+of an expression statement. This is similar to existing restrictions on map
+literals appearing in expression statements. In the rare case where a user
+really wants one there, they can parenthesize it.
+
+**TODO: If we change switch expressions [to use `:` instead of `=>`][2126] then
+there will be an actual ambiguity. In that case, reword the above section.**
+
+[2126]: https://github.com/dart-lang/language/issues/2126
 
 ### If-case statement
 
@@ -1401,8 +1430,17 @@ It is a compile-time error if the type of an expression in a guard clause is not
 ### Variables and scope
 
 Patterns often exist to introduce new bindings. Type patterns introduce type
-variables and other patterns introduce normal variables. The variables a
-patterns binds depend on what kind of pattern it is:
+variables and other patterns introduce normal variables.
+
+Consistent with wildcard patterns, any time a pattern contains an identifier
+that would introduce a binding, no binding is created if the identifier is `_`.
+
+*We always treat `_` as non-binding in patterns. It's sometimes useful to have
+patterns that aren't wildcards but still don't want to bind. For example, a
+variable matcher with a type annotation and `_` as its name is a useful pattern
+for testing the type of a value.*
+
+The variables a patterns binds depend on what kind of pattern it is:
 
 *   **Type pattern**: Type argument patterns (i.e. `typePattern` in the grammar)
     that appear anywhere in some other pattern introduce new *type* variables
@@ -1787,6 +1825,16 @@ main() {
 *This prints "1", "2", "here".*
 
 ## Changelog
+
+### 1.3
+
+-   Avoid unbounded lookahead with switch expression in an expression statement
+    ([#2138][]).
+
+-   Re-introduce rule that `_` is non-binding in all patterns, not just
+    wildcards.
+
+[#2138]: https://github.com/dart-lang/language/issues/2138
 
 ### 1.2
 
