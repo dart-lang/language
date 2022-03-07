@@ -319,7 +319,7 @@ constant pattern. Otherwise, it's a variable:
 ```scala
 val Two = 2 // Capitalized.
 3 match {
-  case Two => println(" abd")
+  case Two => println("was two")
   case _ => println("some other value")
 }
 
