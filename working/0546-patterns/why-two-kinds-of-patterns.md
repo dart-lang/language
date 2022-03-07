@@ -319,7 +319,7 @@ constant pattern. Otherwise, it's a variable:
 ```scala
 val Two = 2 // Capitalized.
 3 match {
-  case Two => println("was two")
+  case Two => println(" abd")
   case _ => println("some other value")
 }
 
@@ -380,7 +380,7 @@ case _:            print("other value")
 ```
 
 Here, the `let x` subpattern binds a new variable `x` to the second element of
-the matched tuple. This program prints "was two and 2".
+the matched tuple. This program prints "was one and 2".
 
 ## Evaluating an approach for Dart
 
