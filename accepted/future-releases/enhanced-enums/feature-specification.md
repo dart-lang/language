@@ -1,6 +1,6 @@
 # Dart Enhanced Enum Classes
 
-Author: lrn@google.com<br>Version: 1.7<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
+Author: lrn@google.com<br>Version: 1.8<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
 
 This is a formal specification for a language feature which allows `enum` declarations to declare classes with fields, methods and `const` constructors initializing those fields. Further, `enum` declarations can implement interfaces and apply mixins.
 
@@ -54,12 +54,16 @@ It is a **compile-time error** if the initializer list of a non-redirecting gene
 
 _We will introduce the necessary super-invocation ourselves as an implementation detail. From the user’s perspective, they extend `Enum` which has no public constructors. We could allow `super()`, which would then be a constructor of `Enum`, but it's simpler to just disallow super invocations entirely._
 
+It is a **compile-time error** if the argument list of a non-redirecting generative constructor includes a `super` parameter.
+
+_Super parameters (a feature introduced in the same release as enhanced enums) implicitly adds arguments to the `super` constructor invocation of a non-redirecting generative constructor, and such enum constructors do have a known superclass constructor expecting such arguments._
+
 It is a **compile-time error** to refer to a declared or default generative constructor of an `enum` declaration in any way, other than:
 
-* As the target of a redirecting generative constructor of the same `enum` declaration, or
-* Implicitly in the enum value declarations of the same `enum`.
+* As the target of a redirecting generative constructor of the same `enum` declaration (`: this(...);`/`: this.targetName(...);`), or
+* Implicitly in the enum value declarations of the same `enum` (`enumValueName(args)`/`enumValueName.targetName(args)`).
 
-_No-one is allowed to invoke a generative constructor and create another instance of the `enum`. 
+_No-one is allowed to invoke a generative constructor and create an instance of the `enum` other than the enumerated enum values. 
 That also means that a redirecting *factory* constructor cannot redirect to a generative constructor of an `enum`,
 and therefore no factory constructor of an `enum` declaration can be `const`, because a `const` factory constructor must redirect to a generative constructor._
 
@@ -97,14 +101,14 @@ The semantics of such an enum declaration, *E*, is defined as introducing a (sem
 
 - **Declared members**: For each member declaration of the `enum` declaration *E*, the same member is added to the class *C*. This includes constructors (which must be `const` generative or non-`const` factory constructors.)
 
-- **Default constructor**: If no generative constructors were declared, and no unnamed factory constructor was added,
+- **Default constructor**: If no generative constructors were declared, and also no unnamed factory constructor was declared,
   a default generative constructor is added:
 
   ```dart
   const Name();
   ```
 
-  _(This differs from the default constructor of a normal `class` declaration by being constant, and by being added even if a factory constructor is present. If no generative constructor is declared, and the unnamed constructor is taken by a factory constructor, there is no way for the enum declaration to compile successfully, since the declaration must contain at least one enum value, and that enum value must refer to a generative constructor.)_
+  _(This differs from the default constructor of a normal `class` declaration by being constant, and by being added even if a factory constructor is present. If no generative constructor is declared, and the unnamed constructor name is taken by a factory constructor, there is no way for the enum declaration to compile successfully, since the declaration must contain at least one enum value, and that enum value must refer to a generative constructor.)_
 
 - **Enum values**: For each `<enumEntry>` with name `id` and index *i* in the comma-separated list of enum entries, a constant value is created, and a static constant variable named `id` is created in *C* with that value. All the constant values are associated, in some implementation dependent way, with 
 
@@ -453,3 +457,4 @@ There is a chance that people will start using `enum` declarations to declare si
 1.5, 2021-12-07: Say that `index` and `toString` are inherited from the superclass, `values` is omitted if it would conflict. Rephrase specification in terms of defining a semantic class, not a syntactic one.
 1.6, 2022-01-27: Disallow overriding `index` or conflicting with `values`.
 1.7, 2022-02-16: Disallow overriding `operator==` and `hashCode` too.
+1.8, 2022-03-08: Make it explicit that an enum constructor cannot use the new super-parameters.
