@@ -56,7 +56,7 @@ _We will introduce the necessary super-invocation ourselves as an implementation
 
 It is a **compile-time error** if the argument list of a non-redirecting generative constructor includes a `super` parameter.
 
-_Super parameters (a feature introduced in the same release as enhanced enums) implicitly adds arguments to the `super` constructor invocation of a non-redirecting generative constructor, and such enum constructors do have a known superclass constructor expecting such arguments._
+_Super parameters (a feature introduced in the same release as enhanced enums) implicitly adds arguments to the `super` constructor invocation of a non-redirecting generative constructor, and such enum constructors do not have a known superclass constructor expecting such arguments._
 
 It is a **compile-time error** to refer to a declared or default generative constructor of an `enum` declaration in any way, other than:
 
