@@ -46,7 +46,7 @@ _That is, exactly the same grammar as initializing formals, but with `super` ins
 
 ## Semantics
 
-It’s a **compile-time error** if a super-parameter in any declaration other than a non-redirecting generative constructor of a `class` declaration.
+It’s a **compile-time error** if a super-parameter declaration occurs in any declaration other than a non-redirecting generative constructor of a class declaration.
 
 _All non-redirecting generative constructors of `class` declarations have a super-constructor invocation at the end of their initializer list. If none is written (or there is even no initializer list), the default is an invocation of `super()`, targeting the unnamed superclass constructor. It’s a compiler-time error if the superclass does not have the specified constructor, or it’s not a generative constructor. The new enhanced `enum` declarations, on the other hand, do have non-redirecting generative constructors, but those cannot not have any super-invocations, and they also have no known superclass constructor to forward parameters to._
 
