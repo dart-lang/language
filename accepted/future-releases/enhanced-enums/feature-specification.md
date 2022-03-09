@@ -1,6 +1,6 @@
 # Dart Enhanced Enum Classes
 
-Author: lrn@google.com<br>Version: 1.7<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
+Author: lrn@google.com<br>Version: 1.8<br>Tracking issue [#158](https://github.com/dart-lang/language/issues/158)
 
 This is a formal specification for a language feature which allows `enum` declarations to declare classes with fields, methods and `const` constructors initializing those fields. Further, `enum` declarations can implement interfaces and apply mixins.
 
@@ -54,12 +54,16 @@ It is a **compile-time error** if the initializer list of a non-redirecting gene
 
 _We will introduce the necessary super-invocation ourselves as an implementation detail. From the user’s perspective, they extend `Enum` which has no public constructors. We could allow `super()`, which would then be a constructor of `Enum`, but it's simpler to just disallow super invocations entirely._
 
+It is a **compile-time error** if the argument list of a non-redirecting generative constructor includes a `super` parameter.
+
+_Super parameters (a feature introduced in the same release as enhanced enums) implicitly adds arguments to the `super` constructor invocation of a non-redirecting generative constructor, and such enum constructors do not have a known superclass constructor expecting such arguments._
+
 It is a **compile-time error** to refer to a declared or default generative constructor of an `enum` declaration in any way, other than:
 
-* As the target of a redirecting generative constructor of the same `enum` declaration, or
-* Implicitly in the enum value declarations of the same `enum`.
+* As the target of a redirecting generative constructor of the same `enum` declaration (`: this(...);`/`: this.targetName(...);`), or
+* Implicitly in the enum value declarations of the same `enum` (`enumValueName(args)`/`enumValueName.targetName(args)`).
 
-_No-one is allowed to invoke a generative constructor and create another instance of the `enum`. 
+_No-one is allowed to invoke a generative constructor and create an instance of the `enum` other than the enumerated enum values. 
 That also means that a redirecting *factory* constructor cannot redirect to a generative constructor of an `enum`,
 and therefore no factory constructor of an `enum` declaration can be `const`, because a `const` factory constructor must redirect to a generative constructor._
 
@@ -81,13 +85,13 @@ We intend to (at least pretend to) let `enum` classes extend `Enum`, and let mix
 
 This all makes it look as if `Enum` would be a valid superclass for the mixin applications and methods of the enhanced `enum` class.
 
-The semantics of such an enum declaration, *E*, is defined as introducing a (semantic) *class*, *C*, just like a similar `class` declaration.
+The semantics of such an enum declaration, *E* with name *N*, is defined as introducing a (semantic) *class*, *C*, just like a similar `class` declaration.
 
-* **Name**: The name of the class *C* and its implicit interface is the name of the `enum` declaration.
+* **Name**: The name of the class *C* and its implicit interface is the name *N* of the `enum` declaration.
 
 * **Superclass**: The superclass of *C* is an implementation-specific built-in class *`EnumImpl`*, with the mixins declared by *E* applied. _(The `EnumImpl` class may be the `Enum` class itself or it may be another class which extends or implements `Enum`, but as seen from a non-platform library the interface of *`EnumImpl`* is the same as that of `Enum`, and its methods work as specified for `Enum` )_
 
-  * If *E* is declared as `enum Name with Mixin1, Mixin2 …` then the superclass of *C* is the mixin application <Code>*EnumImpl* with Mixin1, Mixin2</code>.
+  * If *E* is declared as <code>enum *N* with *Mixin1*, *Mixin2* …</code> then the superclass of *C* is the mixin application <Code>*EnumImpl* with *Mixin1*, *Mixin2*</code>.
 
   It’s a **compile-time error** if such a mixin application introduces any instance variables. _We need to be able to call an implementation specific superclass `const` constructor of `Enum`, and a mixin application of a mixin with a field does not make its forwarding constructor `const`. Currently that’s the only restriction, but if we add further restrictions on mixin applications having `const` forwarding constructors, those should also apply here._
 
@@ -97,49 +101,49 @@ The semantics of such an enum declaration, *E*, is defined as introducing a (sem
 
 - **Declared members**: For each member declaration of the `enum` declaration *E*, the same member is added to the class *C*. This includes constructors (which must be `const` generative or non-`const` factory constructors.)
 
-- **Default constructor**: If no generative constructors were declared, and no unnamed factory constructor was added,
+- **Default constructor**: If no generative constructors were declared, and also no factory constructor with name *N* was declared,
   a default generative constructor is added:
 
   ```dart
   const Name();
   ```
 
-  _(This differs from the default constructor of a normal `class` declaration by being constant, and by being added even if a factory constructor is present. If no generative constructor is declared, and the unnamed constructor is taken by a factory constructor, there is no way for the enum declaration to compile successfully, since the declaration must contain at least one enum value, and that enum value must refer to a generative constructor.)_
+  _(This differs from the default constructor of a normal `class` declaration by being constant, and by being added even if a factory constructor is present. If no generative constructor is declared, and the unnamed constructor name is taken by a factory constructor, there is no way for the enum declaration to compile successfully, since the declaration must contain at least one enum value, and that enum value must refer to a generative constructor.)_
 
-- **Enum values**: For each `<enumEntry>` with name `id` and index *i* in the comma-separated list of enum entries, a constant value is created, and a static constant variable named `id` is created in *C* with that value. All the constant values are associated, in some implementation dependent way, with 
+- **Enum values**: For each `<enumEntry>` with name *id* and index *i* in the comma-separated list of enum entries, a constant value is created, and a static constant variable named *id* is created in *C* with that value. All the constant values are associated, in some implementation dependent way, with 
 
-  - their name `id` as a string `"id"`, 
+  - their name *id* as a string `"id"`, 
   - their index *i* as an `int`, and
-  - their `enum` class’s name as a string, `"Name"`,
+  - their `enum` class’s name as a string, <code>"*N*"</code>,
 
   all of which are accessible to the `toString` and `index` member of `Enum`, and to the `EnumName.name` extension getter. The values are computed as by the following constant constructor invocations.
 
-  - `id` &mapsto; `const Name()` (no arguments, equivalent to empty argument list)
-  - `id(args)` &mapsto; `const Name(args)`
-  - `id<types>(args)` &mapsto; `const Name<types>(args)`
-  - `id.named(args)` &mapsto; `const Name.named(args)`
-  - `id<types>.named(args)` &mapsto; `const Name<types>.named(args)`
+  - <code>*id*</code> &mapsto; <code>const *N*()</code> (no arguments, equivalent to empty argument list)
+  - <code>*id*(*args*)</cide> &mapsto; <code>const *N*(*args*)</code>
+  - <code>*id*<*types*>(*args*)</code> &mapsto; <code>const *N*<*types*>(*args*)</code>
+  - <code>*id*.*named*(*args*)</code> &mapsto; <Code>const *N*.*named*(*args*)</code>
+  - <code>*id*<*types*>.*named*(*args*)</code> &mapsto; <code>const *N*<*types*>.*named*(*args*)</code>
 
-  where `args` are considered as occurring in a `const` context, and it’s a **compile-time error** if they are then not compile-time constants.
+  where *args* are considered as occurring in a `const` context, and it’s a **compile-time error** if they are then not compile-time constants.
 
 The resulting constructor invocations are subject to type inference, using the empty context type. *This implies that inferred type arguments to the constructor invocation itself may depend on the types of the argument expressions of `args`.* The type of the constant variable is the static type of the resulting constant object creation expression.
 
 The objects created here are *not canonicalized* like other constant object creations. _(In practice, the index value is considered part of the object, so no two objects will have the same state.)_
 
-- **Static `values` list**: A static constant variable named `values` is added as by the declaration  `static const List<Name> values = [id1, …, idn];`
-  where `id1`…`idn` are the names of the enum entries of the `enum` declaration in source/index order.
-  _If `Name` is generic, the `List<Name>` instantiates `Name` to its bounds._
+- **Static `values` list**: A static constant variable named `values` is added as by the declaration <code>static const List<*N*> values = [*id*<sub>1</sub>, …, *id*<sub>*n*</sub>];</code>
+  where <code>*id*<sub>1<sub></code>…<code>*id*<sub>*n*</sub></code> are the names of the enum entries of the `enum` declaration in source/index order.
+  _If *C* is a generic class (*E* is a generic enum), the <code>List<N></code> instantiates <code>*N*</code> to its bounds._
 
-It's a **compile-time error** if an `enum` declaration declares or inherits a concrete member named  `index` which overrides the `index` getter of the `Enum` class. _Such an inherited `index` member would necessarily have been introduced by a mixin application of the `enum` declaration._
+It's a **compile-time error** if an `enum` declaration declares or inherits a concrete member named `index` which overrides the `index` getter of the `Enum` class. _Such an inherited `index` member would necessarily have been introduced by a mixin application of the `enum` declaration._
 
-It's a **compile-time error** if an `enum` declaration declares or inherits a concrete member named  `hashCode` or `==` *(an `operator ==` declaration)* which overrides the `hashCode` getter or `==` operator of the `Object` class. (The `Enum` class does not override `hashCode` or `operator==` from `Object`). _This ensures that enum values can be used as switch statement case values, which is the main advantage of using an enum over just writing a normal class._
+It's a **compile-time error** if an `enum` declaration declares or inherits a concrete member named `hashCode` or `==` *(an `operator ==` declaration)* which overrides the `hashCode` getter or `==` operator of the `Object` class. (The `Enum` class does not override `hashCode` or `operator==` from `Object`). _This ensures that enum values can be used as switch statement case values, which is the main advantage of using an enum over just writing a normal class._
 
 If the resulting class would have any naming conflicts, or other compile-time errors, the `enum` declaration is invalid and a compile-time error occurs. Such errors include, but are not limited to:
 
 - Declaring or inheriting (from `Enum` or from a declared mixin or interface) any member with the same basename as an enum value which is not a static setter. _(The introduced static declarations would have a conflict.)_
 - Declaring or mixing in a member which is not a valid override of a super-interface member declaration, including the `runtimeType`,  `noSuchMethod` and `toString` members of `Object`, or any members introduced by mixin applications.
 - Declaring or inheriting an member signature with no corresponding implementation. _(For example declaring an abstract `String toString([int optional])`, but not providing an implementation.)_
-- Declaring a generic `enum` which does not have a valid well-bounded instantiate-to-bounds result. _(The automatically introduced `static const List<EnumName> values` requires a well-bounded instantiate-to-bounds result)_.
+- Declaring a generic `enum` which does not have a valid well-bounded instantiate-to-bounds result. _(The automatically introduced <code>static const List<*N*> values</code> requires a well-bounded instantiate-to-bounds result)_.
 - Declaring a generic `enum` which does not have a regular-bounded instantiate-to-bounds result *and* that has an enum value declaration omitting the type arguments and not having arguments from which type arguments can be inferred. _(For example `enum EnumName<F extends C<F>> { foo; }` would introduce an implicit `static const foo = EnumName(0, "foo");` declaration where the constructor invocation requires a regular-bounded instantiate-to-bounds result)_.
 - Using a non-constant expression as an argument of an enum value declaration.
 - Declaring a static member and inheriting an instance member with the same base-name.
@@ -453,3 +457,4 @@ There is a chance that people will start using `enum` declarations to declare si
 1.5, 2021-12-07: Say that `index` and `toString` are inherited from the superclass, `values` is omitted if it would conflict. Rephrase specification in terms of defining a semantic class, not a syntactic one.
 1.6, 2022-01-27: Disallow overriding `index` or conflicting with `values`.
 1.7, 2022-02-16: Disallow overriding `operator==` and `hashCode` too.
+1.8, 2022-03-08: Make it explicit that an enum constructor cannot use the new super-parameters.
