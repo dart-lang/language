@@ -85,13 +85,13 @@ We intend to (at least pretend to) let `enum` classes extend `Enum`, and let mix
 
 This all makes it look as if `Enum` would be a valid superclass for the mixin applications and methods of the enhanced `enum` class.
 
-The semantics of such an enum declaration, *E*, is defined as introducing a (semantic) *class*, *C*, just like a similar `class` declaration.
+The semantics of such an enum declaration, *E* with name *N*, is defined as introducing a (semantic) *class*, *C*, just like a similar `class` declaration.
 
-* **Name**: The name of the class *C* and its implicit interface is the name of the `enum` declaration.
+* **Name**: The name of the class *C* and its implicit interface is the name *N* of the `enum` declaration.
 
 * **Superclass**: The superclass of *C* is an implementation-specific built-in class *`EnumImpl`*, with the mixins declared by *E* applied. _(The `EnumImpl` class may be the `Enum` class itself or it may be another class which extends or implements `Enum`, but as seen from a non-platform library the interface of *`EnumImpl`* is the same as that of `Enum`, and its methods work as specified for `Enum` )_
 
-  * If *E* is declared as `enum Name with Mixin1, Mixin2 …` then the superclass of *C* is the mixin application <Code>*EnumImpl* with Mixin1, Mixin2</code>.
+  * If *E* is declared as <code>enum *Name* with *Mixin1*, *Mixin2* …</code> then the superclass of *C* is the mixin application <Code>*EnumImpl* with *Mixin1*, *Mixin2*</code>.
 
   It’s a **compile-time error** if such a mixin application introduces any instance variables. _We need to be able to call an implementation specific superclass `const` constructor of `Enum`, and a mixin application of a mixin with a field does not make its forwarding constructor `const`. Currently that’s the only restriction, but if we add further restrictions on mixin applications having `const` forwarding constructors, those should also apply here._
 
@@ -101,7 +101,7 @@ The semantics of such an enum declaration, *E*, is defined as introducing a (sem
 
 - **Declared members**: For each member declaration of the `enum` declaration *E*, the same member is added to the class *C*. This includes constructors (which must be `const` generative or non-`const` factory constructors.)
 
-- **Default constructor**: If no generative constructors were declared, and also no unnamed factory constructor was declared,
+- **Default constructor**: If no generative constructors were declared, and also no factory constructor with name *N* was declared,
   a default generative constructor is added:
 
   ```dart
@@ -110,21 +110,21 @@ The semantics of such an enum declaration, *E*, is defined as introducing a (sem
 
   _(This differs from the default constructor of a normal `class` declaration by being constant, and by being added even if a factory constructor is present. If no generative constructor is declared, and the unnamed constructor name is taken by a factory constructor, there is no way for the enum declaration to compile successfully, since the declaration must contain at least one enum value, and that enum value must refer to a generative constructor.)_
 
-- **Enum values**: For each `<enumEntry>` with name `id` and index *i* in the comma-separated list of enum entries, a constant value is created, and a static constant variable named `id` is created in *C* with that value. All the constant values are associated, in some implementation dependent way, with 
+- **Enum values**: For each `<enumEntry>` with name *id* and index *i* in the comma-separated list of enum entries, a constant value is created, and a static constant variable named *id* is created in *C* with that value. All the constant values are associated, in some implementation dependent way, with 
 
-  - their name `id` as a string `"id"`, 
+  - their name *id* as a string `"id"`, 
   - their index *i* as an `int`, and
-  - their `enum` class’s name as a string, `"Name"`,
+  - their `enum` class’s name as a string, <code>"*Name*"</code>,
 
   all of which are accessible to the `toString` and `index` member of `Enum`, and to the `EnumName.name` extension getter. The values are computed as by the following constant constructor invocations.
 
-  - `id` &mapsto; `const Name()` (no arguments, equivalent to empty argument list)
-  - `id(args)` &mapsto; `const Name(args)`
-  - `id<types>(args)` &mapsto; `const Name<types>(args)`
-  - `id.named(args)` &mapsto; `const Name.named(args)`
-  - `id<types>.named(args)` &mapsto; `const Name<types>.named(args)`
+  - <code>*id*</code> &mapsto; <code>const *Name*()</code> (no arguments, equivalent to empty argument list)
+  - <code>*id*(*args*)</cide> &mapsto; <code>const *Name*(*args*)</code>
+  - <code>*id*<*types*>(*args*)</code> &mapsto; <code>const *Name*<*types*>(*args*)</code>
+  - <code>*id*.*named*(*args*)</code> &mapsto; <Code>const *Name*.*named*(*args*)</code>
+  - <code>*id*<*types*>.*named*(*args*)</code> &mapsto; <code>const *Name*<*types*>.*named*(*args*)</code>
 
-  where `args` are considered as occurring in a `const` context, and it’s a **compile-time error** if they are then not compile-time constants.
+  where *args* are considered as occurring in a `const` context, and it’s a **compile-time error** if they are then not compile-time constants.
 
 The resulting constructor invocations are subject to type inference, using the empty context type. *This implies that inferred type arguments to the constructor invocation itself may depend on the types of the argument expressions of `args`.* The type of the constant variable is the static type of the resulting constant object creation expression.
 
