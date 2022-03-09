@@ -119,7 +119,7 @@ The semantics of such an enum declaration, *E* with name *N*, is defined as intr
   all of which are accessible to the `toString` and `index` member of `Enum`, and to the `EnumName.name` extension getter. The values are computed as by the following constant constructor invocations.
 
   - <code>*id*</code> &mapsto; <code>const *N*()</code> (no arguments, equivalent to empty argument list)
-  - <code>*id*(*args*)</cide> &mapsto; <code>const *N*(*args*)</code>
+  - <code>*id*(*args*)</code> &mapsto; <code>const *N*(*args*)</code>
   - <code>*id*<*types*>(*args*)</code> &mapsto; <code>const *N*<*types*>(*args*)</code>
   - <code>*id*.*named*(*args*)</code> &mapsto; <Code>const *N*.*named*(*args*)</code>
   - <code>*id*<*types*>.*named*(*args*)</code> &mapsto; <code>const *N*<*types*>.*named*(*args*)</code>
