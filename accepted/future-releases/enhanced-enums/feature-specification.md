@@ -91,7 +91,7 @@ The semantics of such an enum declaration, *E* with name *N*, is defined as intr
 
 * **Superclass**: The superclass of *C* is an implementation-specific built-in class *`EnumImpl`*, with the mixins declared by *E* applied. _(The `EnumImpl` class may be the `Enum` class itself or it may be another class which extends or implements `Enum`, but as seen from a non-platform library the interface of *`EnumImpl`* is the same as that of `Enum`, and its methods work as specified for `Enum` )_
 
-  * If *E* is declared as <code>enum *Name* with *Mixin1*, *Mixin2* …</code> then the superclass of *C* is the mixin application <Code>*EnumImpl* with *Mixin1*, *Mixin2*</code>.
+  * If *E* is declared as <code>enum *N* with *Mixin1*, *Mixin2* …</code> then the superclass of *C* is the mixin application <Code>*EnumImpl* with *Mixin1*, *Mixin2*</code>.
 
   It’s a **compile-time error** if such a mixin application introduces any instance variables. _We need to be able to call an implementation specific superclass `const` constructor of `Enum`, and a mixin application of a mixin with a field does not make its forwarding constructor `const`. Currently that’s the only restriction, but if we add further restrictions on mixin applications having `const` forwarding constructors, those should also apply here._
 
@@ -114,15 +114,15 @@ The semantics of such an enum declaration, *E* with name *N*, is defined as intr
 
   - their name *id* as a string `"id"`, 
   - their index *i* as an `int`, and
-  - their `enum` class’s name as a string, <code>"*Name*"</code>,
+  - their `enum` class’s name as a string, <code>"*N*"</code>,
 
   all of which are accessible to the `toString` and `index` member of `Enum`, and to the `EnumName.name` extension getter. The values are computed as by the following constant constructor invocations.
 
-  - <code>*id*</code> &mapsto; <code>const *Name*()</code> (no arguments, equivalent to empty argument list)
-  - <code>*id*(*args*)</cide> &mapsto; <code>const *Name*(*args*)</code>
-  - <code>*id*<*types*>(*args*)</code> &mapsto; <code>const *Name*<*types*>(*args*)</code>
-  - <code>*id*.*named*(*args*)</code> &mapsto; <Code>const *Name*.*named*(*args*)</code>
-  - <code>*id*<*types*>.*named*(*args*)</code> &mapsto; <code>const *Name*<*types*>.*named*(*args*)</code>
+  - <code>*id*</code> &mapsto; <code>const *N*()</code> (no arguments, equivalent to empty argument list)
+  - <code>*id*(*args*)</cide> &mapsto; <code>const *N*(*args*)</code>
+  - <code>*id*<*types*>(*args*)</code> &mapsto; <code>const *N*<*types*>(*args*)</code>
+  - <code>*id*.*named*(*args*)</code> &mapsto; <Code>const *N*.*named*(*args*)</code>
+  - <code>*id*<*types*>.*named*(*args*)</code> &mapsto; <code>const *N*<*types*>.*named*(*args*)</code>
 
   where *args* are considered as occurring in a `const` context, and it’s a **compile-time error** if they are then not compile-time constants.
 
@@ -130,20 +130,20 @@ The resulting constructor invocations are subject to type inference, using the e
 
 The objects created here are *not canonicalized* like other constant object creations. _(In practice, the index value is considered part of the object, so no two objects will have the same state.)_
 
-- **Static `values` list**: A static constant variable named `values` is added as by the declaration  `static const List<Name> values = [id1, …, idn];`
-  where `id1`…`idn` are the names of the enum entries of the `enum` declaration in source/index order.
-  _If `Name` is generic, the `List<Name>` instantiates `Name` to its bounds._
+- **Static `values` list**: A static constant variable named `values` is added as by the declaration <code>static const List<*N*> values = [*id*<sub>1</sub>, …, *id*<sub>*n*</sub>];</code>
+  where <code>*id*<sub>1<sub></code>…<code>*id*<sub>*n*</sub></code> are the names of the enum entries of the `enum` declaration in source/index order.
+  _If *C* is a generic class (*E* is a generic enum), the <code>List<N></code> instantiates <code>*N*</code> to its bounds._
 
-It's a **compile-time error** if an `enum` declaration declares or inherits a concrete member named  `index` which overrides the `index` getter of the `Enum` class. _Such an inherited `index` member would necessarily have been introduced by a mixin application of the `enum` declaration._
+It's a **compile-time error** if an `enum` declaration declares or inherits a concrete member named `index` which overrides the `index` getter of the `Enum` class. _Such an inherited `index` member would necessarily have been introduced by a mixin application of the `enum` declaration._
 
-It's a **compile-time error** if an `enum` declaration declares or inherits a concrete member named  `hashCode` or `==` *(an `operator ==` declaration)* which overrides the `hashCode` getter or `==` operator of the `Object` class. (The `Enum` class does not override `hashCode` or `operator==` from `Object`). _This ensures that enum values can be used as switch statement case values, which is the main advantage of using an enum over just writing a normal class._
+It's a **compile-time error** if an `enum` declaration declares or inherits a concrete member named `hashCode` or `==` *(an `operator ==` declaration)* which overrides the `hashCode` getter or `==` operator of the `Object` class. (The `Enum` class does not override `hashCode` or `operator==` from `Object`). _This ensures that enum values can be used as switch statement case values, which is the main advantage of using an enum over just writing a normal class._
 
 If the resulting class would have any naming conflicts, or other compile-time errors, the `enum` declaration is invalid and a compile-time error occurs. Such errors include, but are not limited to:
 
 - Declaring or inheriting (from `Enum` or from a declared mixin or interface) any member with the same basename as an enum value which is not a static setter. _(The introduced static declarations would have a conflict.)_
 - Declaring or mixing in a member which is not a valid override of a super-interface member declaration, including the `runtimeType`,  `noSuchMethod` and `toString` members of `Object`, or any members introduced by mixin applications.
 - Declaring or inheriting an member signature with no corresponding implementation. _(For example declaring an abstract `String toString([int optional])`, but not providing an implementation.)_
-- Declaring a generic `enum` which does not have a valid well-bounded instantiate-to-bounds result. _(The automatically introduced `static const List<EnumName> values` requires a well-bounded instantiate-to-bounds result)_.
+- Declaring a generic `enum` which does not have a valid well-bounded instantiate-to-bounds result. _(The automatically introduced <code>static const List<*N*> values</code> requires a well-bounded instantiate-to-bounds result)_.
 - Declaring a generic `enum` which does not have a regular-bounded instantiate-to-bounds result *and* that has an enum value declaration omitting the type arguments and not having arguments from which type arguments can be inferred. _(For example `enum EnumName<F extends C<F>> { foo; }` would introduce an implicit `static const foo = EnumName(0, "foo");` declaration where the constructor invocation requires a regular-bounded instantiate-to-bounds result)_.
 - Using a non-constant expression as an argument of an enum value declaration.
 - Declaring a static member and inheriting an instance member with the same base-name.
