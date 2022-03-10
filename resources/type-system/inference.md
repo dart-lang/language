@@ -814,10 +814,20 @@ clauses need be tried.
     - Note that we have already eliminated the case that `X` is a variable in
       `L`.
 
-- If `P` is `C<M0, ..., Mk>` and `Q` is `C<N0, ..., Nk>`, then the match holds
-  under constraints `C0 + ... + Ck`:
-  - If `Mi` is a subtype match for `Ni` with respect to `L` under constraints
-    `Ci`.
+- If `P` is `C<M0, ..., Mk>` and `Q` is `C<N0, ..., Nk>`, and the corresponding
+  type parameters declared by the class `C` are `T0, ..., Tk`, then the match
+  holds under constraints `C0 + ... + Ck`, if for each `i`:
+  - If `Ti` is a **covariant** type variable, and `Mi` is a subtype match for
+    `Ni` with respect to `L` under constraints `Ci`,
+  - Or `Ti` is a **contravariant** type variable, `Ni` is a subtype match for
+    `Mi` with respect to `L` under constraints `Ci`,
+  - Or `Ti` is an **invariant** type variable, and:
+    - `Mi` is a subtype match for `Ni` with respect to `L` under constraints
+      `Ci0`,
+    - And `Ni` is a subtype match for `Mi` with respect to `L` under constraints
+      `Ci1`,
+    - And `Ci` is `Ci0 + Ci1`.
+
 - If `P` is `C0<M0, ..., Mk>` and `Q` is `C1<N0, ..., Nj>` then the match holds
 with respect to `L` under constraints `C`:
   - If `C1<B0, ..., Bj>` is a superinterface of `C0<M0, ..., Mk>` and `C1<B0,
