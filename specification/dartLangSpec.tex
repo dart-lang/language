@@ -15946,7 +15946,8 @@ class \code{int}, \code{double} and \code{num}
 are treated specially by the typechecker.
 
 \LMHash{}%
-Let $e$ be a multiplicative expression of the form \code{$e_1$ $op$ $e_2$},
+Let $e$ be a multiplicative expression of the form \code{$e_1$ $op$ $e_2$}
+where $op$ is one of \code{*} or \code{\%},
 let $T$ be the static type of $e_1$,
 and let $C$ be the context type of $e$.
 
@@ -15960,7 +15961,7 @@ If $T\,\,<:\,\,\code{num}$ and not $T\,\,<:\,\,\code{Never}$, then:
      then the context type of $e_2$ is \code{double}.
   \item{} Otherwise the context type of $e_2$ is \code{num}.
 \end{itemize}
-Let further $S$ is the static type of $e_2$.
+Let further $S$ be the static type of $e_2$.
 If $T\,\,<:\,\,\code{num}$ and not $T\,\,<:\,\,\code{Never}$
 and $S$ is assignable to \code{num},
 then the static type of $e$ is determined as follows:
