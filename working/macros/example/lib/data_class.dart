@@ -5,7 +5,7 @@
 // There is no public API exposed yet, the in progress api lives here.
 import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
-/*macro*/ class DataClass
+macro class DataClass
     implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const DataClass();
 
@@ -15,10 +15,10 @@ import 'package:_fe_analyzer_shared/src/macros/api.dart';
     await Future.wait([
       autoConstructor.buildDeclarationsForClass(clazz, context),
       copyWith.buildDeclarationsForClass(clazz, context),
+      hashCode.buildDeclarationsForClass(clazz, context),
+      equality.buildDeclarationsForClass(clazz, context),
+      toString.buildDeclarationsForClass(clazz, context),
     ]);
-    hashCode.buildDeclarationsForClass(clazz, context);
-    equality.buildDeclarationsForClass(clazz, context);
-    toString.buildDeclarationsForClass(clazz, context);
   }
 
   @override
@@ -34,20 +34,20 @@ import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
 const autoConstructor = _AutoConstructor();
 
-/*macro*/ class _AutoConstructor implements ClassDeclarationsMacro {
+macro class _AutoConstructor implements ClassDeclarationsMacro {
   const _AutoConstructor();
 
   @override
   Future<void> buildDeclarationsForClass(
       ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
     var constructors = await builder.constructorsOf(clazz);
-    if (constructors.any((c) => c.identifier.name == '')) {
+    if (constructors.any((c) => c.identifier.name == 'gen')) {
       throw ArgumentError(
           'Cannot generate an unnamed constructor because one already exists');
     }
 
     // Don't use the identifier here because it should just be the raw name.
-    var parts = <Object>[clazz.identifier.name, '({'];
+    var parts = <Object>[clazz.identifier.name, '.gen({'];
     // Add all the fields of `declaration` as named parameters.
     var fields = await builder.fieldsOf(clazz);
     for (var field in fields) {
@@ -55,13 +55,20 @@ const autoConstructor = _AutoConstructor();
       parts.addAll(['\n${requiredKeyword}', field.identifier, ',']);
     }
 
+    // The object type from dart:core.
+    var objectType = await builder.resolve(NamedTypeAnnotationCode(
+        name:
+            // ignore: deprecated_member_use
+            await builder.resolveIdentifier(Uri.parse('dart:core'), 'Object')));
+
     // Add all super constructor parameters as named parameters.
     var superclass = (await builder.superclassOf(clazz))!;
+    var superType = await builder
+        .resolve(NamedTypeAnnotationCode(name: superclass.identifier));
     MethodDeclaration? superconstructor;
-    // TODO: Compare against Object identifier once we can get it.
-    if (superclass.identifier.name != 'Object') {
-      var superconstructor = (await builder.constructorsOf(superclass))
-          .firstWhereOrNull((c) => c.identifier.name == '');
+    if ((await superType.isExactly(objectType)) == false) {
+      superconstructor = (await builder.constructorsOf(superclass))
+          .firstWhereOrNull((c) => c.identifier.name == 'gen');
       if (superconstructor == null) {
         throw ArgumentError(
             'Super class $superclass of $clazz does not have an unnamed '
@@ -88,16 +95,14 @@ const autoConstructor = _AutoConstructor();
     }
     parts.add('\n})');
     if (superconstructor != null) {
-      parts.add(' : super(');
+      parts.addAll([' : super.', superconstructor.identifier.name, '(']);
       for (var param in superconstructor.positionalParameters) {
         parts.add('\n${param.identifier.name},');
       }
       if (superconstructor.namedParameters.isNotEmpty) {
-        parts.add('{');
         for (var param in superconstructor.namedParameters) {
           parts.add('\n${param.identifier.name}: ${param.identifier.name},');
         }
-        parts.add('\n}');
       }
       parts.add(')');
     }
@@ -109,7 +114,7 @@ const autoConstructor = _AutoConstructor();
 const copyWith = _CopyWith();
 
 // TODO: How to deal with overriding nullable fields to `null`?
-/*macro*/ class _CopyWith implements ClassDeclarationsMacro {
+macro class _CopyWith implements ClassDeclarationsMacro {
   const _CopyWith();
 
   @override
@@ -142,7 +147,7 @@ const copyWith = _CopyWith();
       ...namedParams.joinAsCode(', '),
       ',})',
       // TODO: We assume this constructor exists, but should check
-      '=> ', clazz.identifier, '(',
+      '=> ', clazz.identifier, '.gen(',
       ...args.joinAsCode(', '),
       ', );',
     ]));
@@ -151,16 +156,19 @@ const copyWith = _CopyWith();
 
 const hashCode = _HashCode();
 
-/*macro*/ class _HashCode
+macro class _HashCode
     implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _HashCode();
 
   @override
-  void buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) {
-    builder.declareInClass(DeclarationCode.fromString('''
-@override
-external int get hashCode;'''));
+  Future<void> buildDeclarationsForClass(
+      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
+    builder.declareInClass(DeclarationCode.fromParts([
+      'external ',
+      // ignore: deprecated_member_use
+      await builder.resolveIdentifier(Uri.parse('dart:core'), 'int'),
+      ' get hashCode;',
+    ]));
   }
 
   @override
@@ -183,16 +191,22 @@ external int get hashCode;'''));
 
 const equality = _Equality();
 
-/*macro*/ class _Equality
+macro class _Equality
     implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _Equality();
 
   @override
-  void buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) {
-    builder.declareInClass(DeclarationCode.fromString('''
-@override
-external bool operator==(Object other);'''));
+  Future<void> buildDeclarationsForClass(
+      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
+    builder.declareInClass(DeclarationCode.fromParts([
+      'external ',
+      // ignore: deprecated_member_use
+      await builder.resolveIdentifier(Uri.parse('dart:core'), 'bool'),
+      ' operator==(',
+      // ignore: deprecated_member_use
+      await builder.resolveIdentifier(Uri.parse('dart:core'), 'Object'),
+      ' other);',
+    ]));
   }
 
   @override
@@ -222,18 +236,19 @@ external bool operator==(Object other);'''));
 
 const toString = _ToString();
 
-/*macro*/ class _ToString
+macro class _ToString
     implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const _ToString();
 
   @override
-  void buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) {
-    builder.declareInClass(DeclarationCode.fromString(
-      '''
-@override
-external String toString();''',
-    ));
+  Future<void> buildDeclarationsForClass(
+      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
+    builder.declareInClass(DeclarationCode.fromParts([
+      'external ',
+      // ignore: deprecated_member_use
+      await builder.resolveIdentifier(Uri.parse('dart:core'), 'String'),
+      ' toString();',
+    ]));
   }
 
   @override

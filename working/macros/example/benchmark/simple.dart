@@ -3,14 +3,20 @@
 // BSD-style license that can be found in the LICENSE file.
 
 // Run this script to print out the generated augmentation library for an
-// example class.
+// example class, created with fake data, and get some basic timing info:
 //
-// This is primarily for illustration purposes, so we can get an idea of how
-// things would work on a real-ish example.
-library language.working.macros.example.run;
+//   dart benchmark/simple.dart
+//
+// You can also compile this benchmark to exe and run it as follows:
+//
+//   dart compile exe benchmark/simple.dart && ./benchmark/simple.exe
+//
+// Pass `--help` for usage and configuration options.
+library language.working.macros.benchmark.simple;
 
 import 'dart:io';
 
+import 'package:args/args.dart';
 import 'package:dart_style/dart_style.dart';
 
 // There is no public API exposed yet, the in progress api lives here.
@@ -22,6 +28,8 @@ import 'package:_fe_analyzer_shared/src/macros/executor.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor/introspection_impls.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor/remote_instance.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor/serialization.dart';
+import 'package:_fe_analyzer_shared/src/macros/executor/isolated_executor.dart'
+    as isolatedExecutor;
 import 'package:_fe_analyzer_shared/src/macros/executor/process_executor.dart'
     as processExecutor;
 
@@ -30,22 +38,71 @@ void _log(String message) {
   print('${_watch.elapsed}: $message');
 }
 
-const clientSerializationMode = SerializationMode.byteDataClient;
-const serverSerializationMode = SerializationMode.byteDataServer;
+final argParser = ArgParser()
+  ..addOption('serialization-strategy',
+      allowed: ['bytedata', 'json'],
+      defaultsTo: 'bytedata',
+      help: 'The serialization strategy to use when talking to macro programs.')
+  ..addOption('macro-execution-strategy',
+      allowed: ['aot', 'isolate'],
+      defaultsTo: 'aot',
+      help: 'The execution strategy for precompiled macros.')
+  ..addFlag('help', negatable: false, hide: true);
 
 // Run this script to print out the generated augmentation library for an example class.
-void main() async {
-  _log('Preparing to run macros.');
+void main(List<String> args) async {
+  var parsedArgs = argParser.parse(args);
+
+  if (parsedArgs['help'] == true) {
+    print(argParser.usage);
+    return;
+  }
+
+  // Set up all of our options
+  var parsedSerializationStrategy =
+      parsedArgs['serialization-strategy'] as String;
+  SerializationMode clientSerializationMode;
+  SerializationMode serverSerializationMode;
+  switch (parsedSerializationStrategy) {
+    case 'bytedata':
+      clientSerializationMode = SerializationMode.byteDataClient;
+      serverSerializationMode = SerializationMode.byteDataServer;
+      break;
+    case 'json':
+      clientSerializationMode = SerializationMode.jsonClient;
+      serverSerializationMode = SerializationMode.jsonServer;
+      break;
+    default:
+      throw ArgumentError(
+          'Unrecognized serialization mode $parsedSerializationStrategy');
+  }
+
+  var macroExecutionStrategy = parsedArgs['macro-execution-strategy'] as String;
+  var hostMode = Platform.script.path.endsWith('.dart') ||
+          Platform.script.path.endsWith('.dill')
+      ? 'jit'
+      : 'aot';
+  _log('''
+Running with the following options:
+
+Serialization strategy: $parsedSerializationStrategy
+Macro execution strategy: $macroExecutionStrategy
+Host app mode: $hostMode
+''');
+
   // You must run from the `macros` directory, paths are relative to that.
-  var thisFile = File('example/data_class.dart');
-  if (!thisFile.existsSync()) {
+  var dataClassFile = File('lib/data_class.dart');
+  if (!dataClassFile.existsSync()) {
     print('This script must be ran from the `macros` directory.');
     exit(1);
   }
-  var executor = await processExecutor.start(serverSerializationMode);
+  _log('Preparing to run macros');
+  var executor = macroExecutionStrategy == 'aot'
+      ? await processExecutor.start(serverSerializationMode)
+      : await isolatedExecutor.start(serverSerializationMode);
   var tmpDir = Directory.systemTemp.createTempSync('data_class_macro_example');
   try {
-    var macroUri = thisFile.absolute.uri;
+    var macroUri = Uri.parse('package:macro_proposal/data_class.dart');
     var macroName = 'DataClass';
 
     var bootstrapContent = bootstrapMacroIsolate({
@@ -61,8 +118,9 @@ void main() async {
     _log('Compiling DataClass macro');
     var buildSnapshotResult = await Process.run('dart', [
       'compile',
-      'exe',
+      macroExecutionStrategy == 'aot' ? 'exe' : 'jit-snapshot',
       '--packages=.dart_tool/package_config.json',
+      '--enable-experiment=macros',
       bootstrapFile.uri.toFilePath(),
       '-o',
       kernelOutputFile.uri.toFilePath(),
@@ -88,17 +146,22 @@ void main() async {
     late Duration firstRunEnd;
     late Duration first11RunsEnd;
     for (var i = 1; i <= 111; i++) {
-      var _shouldLog = i == 1 || i == 10 || i == 100;
+      var _shouldLog = i == 1 || i == 11 || i == 111;
       if (_shouldLog) _log('Running DataClass macro for the ${i}th time');
       if (instanceId.shouldExecute(DeclarationKind.clazz, Phase.types)) {
         if (_shouldLog) _log('Running types phase');
-        var result = await executor.executeTypesPhase(instanceId, myClass);
+        var result = await executor.executeTypesPhase(
+            instanceId, myClass, SimpleIdentifierResolver());
         if (i == 1) results.add(result);
       }
       if (instanceId.shouldExecute(DeclarationKind.clazz, Phase.declarations)) {
         if (_shouldLog) _log('Running declarations phase');
         var result = await executor.executeDeclarationsPhase(
-            instanceId, myClass, FakeTypeResolver(), FakeClassIntrospector());
+            instanceId,
+            myClass,
+            SimpleIdentifierResolver(),
+            SimpleTypeResolver(),
+            SimpleClassIntrospector());
         if (i == 1) results.add(result);
       }
       if (instanceId.shouldExecute(DeclarationKind.clazz, Phase.definitions)) {
@@ -106,8 +169,9 @@ void main() async {
         var result = await executor.executeDefinitionsPhase(
             instanceId,
             myClass,
-            FakeTypeResolver(),
-            FakeClassIntrospector(),
+            SimpleIdentifierResolver(),
+            SimpleTypeResolver(),
+            SimpleClassIntrospector(),
             FakeTypeDeclarationResolver());
         if (i == 1) results.add(result);
       }
@@ -123,10 +187,7 @@ void main() async {
 
     _log('Building augmentation library');
     var library = executor.buildAugmentationLibrary(results, (identifier) {
-      if (identifier == boolIdentifier ||
-          identifier == objectIdentifier ||
-          identifier == stringIdentifier ||
-          identifier == intIdentifier) {
+      if (['bool', 'Object', 'String', 'int'].contains(identifier.name)) {
         return ResolvedIdentifier(
             kind: IdentifierKind.topLevelMember,
             name: identifier.name,
@@ -139,7 +200,7 @@ void main() async {
                 : IdentifierKind.instanceMember,
             name: identifier.name,
             staticScope: null,
-            uri: Platform.script.resolve('data_class.dart'));
+            uri: Uri.parse('package:app/main.dart'));
       }
     });
     executor.close();
@@ -299,7 +360,8 @@ abstract class Fake {
       throw UnimplementedError(invocation.memberName.toString());
 }
 
-class FakeClassIntrospector extends Fake implements ClassIntrospector {
+/// Returns data as if everything was [myClass].
+class SimpleClassIntrospector extends Fake implements ClassIntrospector {
   @override
   Future<List<ConstructorDeclaration>> constructorsOf(
           covariant ClassDeclaration clazz) async =>
@@ -308,12 +370,12 @@ class FakeClassIntrospector extends Fake implements ClassIntrospector {
   @override
   Future<List<FieldDeclaration>> fieldsOf(
           covariant ClassDeclaration clazz) async =>
-      myClassFields;
+      clazz == myClass ? myClassFields : [];
 
   @override
   Future<List<MethodDeclaration>> methodsOf(
           covariant ClassDeclaration clazz) async =>
-      myClassMethods;
+      clazz == myClass ? myClassMethods : [];
 
   @override
   Future<ClassDeclaration?> superclassOf(
@@ -321,10 +383,46 @@ class FakeClassIntrospector extends Fake implements ClassIntrospector {
       clazz == myClass ? objectClass : null;
 }
 
+/// This is a very basic identifier resolver, it does no actual resolution.
+class SimpleIdentifierResolver implements IdentifierResolver {
+  /// Just returns a new [Identifier] whose name is [name].
+  @override
+  Future<Identifier> resolveIdentifier(Uri library, String name) async =>
+      IdentifierImpl(id: RemoteInstance.uniqueId, name: name);
+}
+
 class FakeTypeDeclarationResolver extends Fake
     implements TypeDeclarationResolver {}
 
-class FakeTypeResolver extends Fake implements TypeResolver {}
+/// Only supports named types with no type arguments.
+class SimpleTypeResolver implements TypeResolver {
+  @override
+  Future<StaticType> resolve(TypeAnnotationCode type) async {
+    if (type is! NamedTypeAnnotationCode) {
+      throw UnsupportedError('Only named type annotations are supported');
+    }
+    if (type.typeArguments.isNotEmpty) {
+      throw UnsupportedError('Type arguments are not supported');
+    }
+    return SimpleNamedStaticType(type.name.name, isNullable: type.isNullable);
+  }
+}
+
+/// Only supports exact matching, and only goes off of the name and nullability.
+class SimpleNamedStaticType implements NamedStaticType {
+  final bool isNullable;
+  final String name;
+
+  SimpleNamedStaticType(this.name, {this.isNullable = false});
+
+  @override
+  Future<bool> isExactly(covariant SimpleNamedStaticType other) async =>
+      isNullable == other.isNullable && name == other.name;
+
+  @override
+  Future<bool> isSubtypeOf(covariant StaticType other) =>
+      throw UnimplementedError();
+}
 
 extension _ on Duration {
   Duration dividedBy(int amount) =>

@@ -1,3 +1,6 @@
 analyzer:
   exclude:
     - accepted/2.3/spread-collections/examples/**
+    # TODO: remove these when the analyzer supports macros
+    - working/macros/example/lib/data_class.dart
+    - working/macros/example/bin/user_main.dart
