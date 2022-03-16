@@ -96,7 +96,7 @@ This allows you to generate correct signatures for any declarations you need to
 create in Phase 1 or 2, without actually performing inference in those phases.
 At the same time it allows you to get the inferred type in phase 3, where you
 are creating the bodies of functions and may need to know the actual inferred
-type (for instance you might want to do somethign for all fields that implement
+type (for instance you might want to do something for all fields that implement
 a given interface).
 
 The primary limitation of this approach is that you will not be able to inspect
