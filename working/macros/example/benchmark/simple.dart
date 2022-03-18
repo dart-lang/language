@@ -202,7 +202,9 @@ Host app mode: $hostMode
             staticScope: null,
             uri: Uri.parse('package:app/main.dart'));
       }
-    });
+    },
+        (annotation) =>
+            throw UnsupportedError('Omitted types are not supported!'));
     executor.close();
     _log('Formatting augmentation library');
     var formatted = DartFormatter()
