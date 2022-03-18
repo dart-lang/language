@@ -50,6 +50,59 @@ Allowing deep introspection like this in cases where a macro needs it while
 ensuring that users can understand the system and tools can implement it
 efficiently is a central challenge of this proposal.
 
+#### Omitted Type Annotations and Inference
+
+In general, the introspection APIs will only provide exactly what the user has
+written for the types of declarations. However, this presents problems when the
+type is omitted, and in particular when the type is omitted but a useful type
+would be inferred. For example, see this class:
+
+```dart
+class Foo extends Bar {
+  final inferred = someFunction();
+
+  final String name;
+
+  Foo(this.name, {super.baz});
+}
+
+class Bar {
+  final String? baz;
+
+  Bar({this.baz});
+}
+```
+
+When introspecting on the `inferred` field, the `this.name` parameter, or the
+`super.baz` parameter, there is no hand written type to use. However, a macro
+may need to know the actual inferred type, in order to emit an equivalent type
+annotation in generated code elsewhere in the program.
+
+In order to resolve this, there will be a special `OmittedTypeAnnotation`
+subtype of `TypeAnnotation`. It will have no fields, and is just a pointer to
+the place where the type annotation was omitted.
+
+There are two things you can do with an `OmittedTypeAnnotation`:
+
+- Pass it directly as a part of a `Code` object.
+  - When the final augmentation library is created, the actual type that was
+    inferred will be used (or `dynamic` if no type was inferred).
+- Explicitly ask to infer the type of it through the builder apis (only
+  available in phase 3).
+  - We don't allow augmentations of existing declarations to contribute to
+    inference, so in phase 3 type inference can be performed.
+
+This allows you to generate correct signatures for any declarations you need to
+create in Phase 1 or 2, without actually performing inference in those phases.
+At the same time it allows you to get the inferred type in phase 3, where you
+are creating the bodies of functions and may need to know the actual inferred
+type (for instance you might want to do something for all fields that implement
+a given interface).
+
+The primary limitation of this approach is that you will not be able to inspect
+the actual types of declarations where the type was omitted prior to phase 3,
+but this situation will also be made very explicit to macro authors.
+
 ### Ordering in metaprogramming
 
 Macros can read the user's Dart program and modify it. They are also written in
