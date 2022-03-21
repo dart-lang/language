@@ -172,7 +172,8 @@ Host app mode: $hostMode
             SimpleIdentifierResolver(),
             SimpleTypeResolver(),
             SimpleClassIntrospector(),
-            FakeTypeDeclarationResolver());
+            FakeTypeDeclarationResolver(),
+            FakeTypeInferrer());
         if (i == 1) results.add(result);
       }
       if (_shouldLog) _log('Done running DataClass macro for the ${i}th time.');
@@ -395,6 +396,8 @@ class SimpleIdentifierResolver implements IdentifierResolver {
 
 class FakeTypeDeclarationResolver extends Fake
     implements TypeDeclarationResolver {}
+
+class FakeTypeInferrer extends Fake implements TypeInferrer {}
 
 /// Only supports named types with no type arguments.
 class SimpleTypeResolver implements TypeResolver {
