@@ -1862,13 +1862,16 @@ the declared type is considered to be the type \DYNAMIC.
 Type inference is not yet specified in this document,
 and is assumed to have taken place already
 (\ref{overview}).
-In particular, some or all formal parameters of an instance method declaration
-may have received a declared type based on override inference,
-in which case it is not considered to be omitted.
+In particular, a formal parameter that has no type annotation in the source
+may have received a type by inference,
+and in this situation the type is not considered to be omitted.
 %% TODO(eernst): Change to \ref{} when inference spec is added.
-Briefly, override inference yields a type computed from the declared types of
-the corresponding parameter of member signatures in superinterfaces,
-or it causes a compile-time error if said types can not be reconciled.%
+One such case is override inference,
+where the type of a formal parameter of an instance method
+is obtained from overridden declarations;
+another case is initializing formal parameters
+(\ref{generativeConstructors}),
+where the type is obtained from the associated instance variable.%
 }
 
 \LMHash{}%
@@ -2272,13 +2275,16 @@ it is considered to be the type \DYNAMIC.
 Type inference is not yet specified in this document,
 and is assumed to have taken place already
 (\ref{overview}).
-In particular, some or all formal parameters of an instance method declaration
-may have received a declared type based on override inference,
-in which case it is not considered to be omitted.
+In particular, a formal parameter that has no type annotation in the source
+may have received a type by inference,
+and in this situation the type is not considered to be omitted.
 %% TODO(eernst): Change to \ref{} when inference spec is added.
-Briefly, override inference yields a type computed from the declared types of
-the corresponding parameter of member signatures in superinterfaces,
-or it causes a compile-time error if said types can not be reconciled.%
+One such case is override inference,
+where the type of a formal parameter of an instance method
+is obtained from overridden declarations;
+another case is initializing formal parameters
+(\ref{generativeConstructors}),
+where the type is obtained from the associated instance variable.%
 }
 
 \LMHash{}%
