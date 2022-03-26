@@ -9,6 +9,7 @@ import 'static_type.dart';
 
 abstract class Space {
   static final empty = _EmptySpace._();
+  static final top = Space(StaticType.top);
 
   factory Space.union(List<Space> arms) {
     // Simplify the arms if possible.
@@ -100,7 +101,7 @@ class ExtractSpace extends Space {
 
   @override
   String toString() {
-    if (fields.isEmpty && type == StaticType.top) return '()';
+    if (isTop) return '()';
 
     // If there are no fields, just show the type.
     if (fields.isEmpty) return type.name;
