@@ -604,9 +604,9 @@ declaration ::= 'external' factoryConstructorSignature
   | 'augment'? 'covariant' 'late'? varOrType initializedIdentifierList
   | 'augment'? 'late'? 'final' type? initializedIdentifierList
   | 'augment'? 'late'? varOrType initializedIdentifierList
-  | redirectingFactoryConstructorSignature
-  | constantConstructorSignature (redirection | initializers)?
-  | constructorSignature (redirection | initializers)?
+  | 'augment'? redirectingFactoryConstructorSignature
+  | 'augment'? constantConstructorSignature (redirection | initializers)?
+  | 'augment'? constructorSignature (redirection | initializers)?
 ```
 
 **TODO: Define the grammar for the various `augment super` expressions.**
