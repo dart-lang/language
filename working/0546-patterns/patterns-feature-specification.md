@@ -4,15 +4,17 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.3 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.4 (see [CHANGELOG](#CHANGELOG) at end)
+
+Note: This proposal is broken into a couple of separate documents. See also
+[records][] and [exhaustiveness][].
+
+[records]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/records-feature-specification.md
 
 ## Summary
 
-This proposal (along with its smaller sister [records proposal][]) covers a
-family of closely-related features that address a number of some of the most
-highly-voted user requests. It directly addresses:
-
-[records proposal]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/records-feature-specification.md
+This proposal covers a family of closely-related features that address a number
+of some of the most highly-voted user requests. It directly addresses:
 
 *   [Multiple return values](https://github.com/dart-lang/language/issues/68) (495 👍, 4th highest)
 *   [Algebraic datatypes](https://github.com/dart-lang/language/issues/349) (362 👍, 10th highest)
@@ -1549,52 +1551,11 @@ is a key part of maintaining code written in an algebraic datatype style. It's
 the functional equivalent of the error reported when a concrete class fails to
 implement an abstract method.
 
-Exhaustiveness checking is *critical* for switch *expressions:*
+Exhaustiveness checking over arbitrarily deeply nested record and extractor
+patterns can be complex, so the proposal for that is in a [separate
+document][exhaustiveness].
 
-```dart
-int i = switch ("str") {
-  case "a" => 1;
-  case "oops" => 2;
-};
-```
-
-An expression must reliably evaluate to *some* value, unlike statements where
-you can simply do nothing if no case matches. We could throw a runtime error if
-no case matches, but that's generally not useful for users.
-
-Exhaustiveness checking is more complex in the presence of pattern matching and
-destructuring:
-
-```dart
-bool xor(bool a, bool b) =>
-    switch ((a, b)) {
-      case (true, true) => false;
-      case (true, false) => true;
-      case (false, true) => true;
-      case (false, false) => false;
-    };
-```
-
-This is exhaustive, but it's not obvious how this would be determined. A
-related problem is unreachable patterns:
-
-```dart
-switch (obj) {
-  case num n: print("number");
-  case int i: print("integer");
-}
-```
-
-Here, the second case will never match because any value that could match it
-will be caught by the first case. It's not necessary to detect unreachable
-patterns for correctness, but it helps users if we can since the case is dead
-code.
-
-A trivial way to ensure all switches are exhaustive is to require a default
-case or case containing only a wildcard pattern (with no guard).
-
-**TODO: See if we can detect exhaustive and unreachable cases more precisely.
-See: http://moscova.inria.fr/~maranget/papers/warn/index.html**
+[exhaustiveness]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/exhaustiveness.md
 
 ## Runtime semantics
 
@@ -1825,6 +1786,10 @@ main() {
 *This prints "1", "2", "here".*
 
 ## Changelog
+
+### 1.4
+
+-   Link to [exhaustiveness][] proposal.
 
 ### 1.3
 
