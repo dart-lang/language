@@ -66,6 +66,18 @@ StaticType? intersectTypes(StaticType left, StaticType right) {
   if (left.isSubtypeOf(right)) return left;
   if (right.isSubtypeOf(left)) return right;
 
+  if (left.isNullable) {
+    if (right.isNullable) {
+      var intersection = intersectTypes(left.underlying, right.underlying);
+      if (intersection == null) return null;
+      return intersection.nullable;
+    } else {
+      return intersectTypes(left.underlying, right);
+    }
+  } else if (right.isNullable) {
+    return intersectTypes(left, right.underlying);
+  }
+
   // If we allow sealed types to share subtypes, then this will need to be more
   // sophisticated. Here:
   //

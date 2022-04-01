@@ -156,6 +156,17 @@ bool _isLeftSubspace(StaticType leftType, List<String> fieldNames,
 /// Recursively replaces [left] with a union of its sealed subtypes as long as
 /// doing so enables it to more precisely match against [right].
 List<StaticType> expandType(StaticType left, StaticType right) {
+  // If [left] is nullable and right is null or non-nullable, then expand the
+  // nullable type.
+  if (left.isNullable && (right == StaticType.nullType || !right.isNullable)) {
+    return [...expandType(left.underlying, right), StaticType.nullType];
+  }
+
+  // If [right] is nullable, then expand using its underlying type.
+  if (right.isNullable) {
+    return expandType(left, right.underlying);
+  }
+
   // If [left] is a sealed supertype and [right] is in its subtype hierarchy,
   // then expand out the subtypes (recursively) to more precisely match [right].
   if (left.isSealed && left != right && right.isSubtypeOf(left)) {

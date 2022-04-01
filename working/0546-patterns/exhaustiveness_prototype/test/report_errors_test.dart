@@ -81,6 +81,45 @@ void main() {
         ],
         'Case #2 (x: B) is covered by (x: A).');
   });
+
+  test('nullable sealed', () {
+    //     (A)
+    //     / \
+    //    B  (C)
+    //       / \
+    //      D   E
+    var a = StaticType('A', isSealed: true);
+    var b = StaticType('B', inherits: [a]);
+    var c = StaticType('C', isSealed: true, inherits: [a]);
+    var d = StaticType('D', inherits: [c]);
+    var e = StaticType('E', inherits: [c]);
+
+    // Must cover null.
+    expectReportErrors(
+        a.nullable, [b, d, e], 'A? is not exhaustively matched by B|D|E.');
+
+    // Can cover null with any nullable subtype.
+    expectReportErrors(a.nullable, [b.nullable, c]);
+    expectReportErrors(a.nullable, [b, c.nullable]);
+    expectReportErrors(a.nullable, [b, d.nullable, e]);
+    expectReportErrors(a.nullable, [b, d, e.nullable]);
+
+    // Can cover null with a null space.
+    expectReportErrors(a.nullable, [b, c, StaticType.nullType]);
+    expectReportErrors(a.nullable, [b, d, e, StaticType.nullType]);
+
+    // Nullable covers the non-null.
+    expectReportErrors(
+        a.nullable, [a.nullable, a], 'Case #2 A is covered by A?.');
+    expectReportErrors(
+        b.nullable, [a.nullable, b], 'Case #2 B is covered by A?.');
+
+    // Nullable covers null.
+    expectReportErrors(a.nullable, [a.nullable, StaticType.nullType],
+        'Case #2 Null is covered by A?.');
+    expectReportErrors(b.nullable, [a.nullable, StaticType.nullType],
+        'Case #2 Null is covered by A?.');
+  });
 }
 
 void expectReportErrors(StaticType valueType, List<Object> cases,

@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.0
+Version 1.1 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Summary
 
@@ -386,8 +386,8 @@ into spaces:
 *   **Variable pattern:** An extract space whose type is the variable's type
     (which might be inferred).
 
-*   **Literal and constant patterns:** These are handled a little specially
-    depending on the constant value's type:
+*   **Literal or constant matcher:** These are handled specially depending on
+    the constant's type:
 
     *   We treat `bool` like a sealed supertype with subtypes `true` and
         `false`. The Boolean constants `true` and `false` are lifted to extract
@@ -405,19 +405,59 @@ into spaces:
         Dart language. This is just a way to model enums for exhaustiveness
         checking.)
 
-    *   We lift other constants to an extract pattern of that constant's type.
-        This means there is effectively no exhaustiveness checking for constants
-        of other types.
+    *   We lift other constants to an extract pattern whose type is a
+        synthesized subtype of the constant's type based on the constant's
+        identity. Each unique value of the constant's type is a singleton
+        instance of its own type, and the constant's type behaves like an
+        *unsealed* supertype. Two constants have the same synthesized subtype if
+        they are identical values.
 
-*   **Extractor patterns:** An extract space whose type is the extractor
+        This means you don't get exhaustiveness checking for constants, but do
+        get reachability checking:
+
+        ```dart
+        String s = ...
+        switch (s) {
+          case 'a string': ...
+          case 'a string': ...
+        }
+        ```
+
+        Here, there is an unreachable error on the second case since it matches
+        the same string constant. Also the switch has a non-exhaustive error
+        since it doesn't match the entire `String` type.
+
+*   **Null-check matcher:** An extract space whose type is the underlying
+    non-nullable type of the pattern. It contains a single field, `this` that
+    returns the same value it is called on. That field's space is the lifted
+    subpattern of the null-check pattern. For example:
+
+    ```dart
+    Card? card;
+    switch (card) {
+      case Jack(oneEyed: true)?: ...
+    }
+    ```
+
+    The case pattern is lifted to:
+
+    ```
+    Card(this: Jack(oneEyed: true))
+    ```
+
+*   **Extractor pattern:** An extract space whose type is the extractor
     pattern's type and whose fields are the lifted fields of the extractor
     pattern. Positional fields in the extractor pattern get implicit names like
     `field0`, `field1`, etc.
 
-**TODO: Specify how null-check patterns are lifted.**
+*   **Declaration matcher:** The lifted space of the inner subpattern.
 
-**TODO: Specify lifting binder patterns too (cast, null assert, declaration)
-since they can appear in matcher patterns through declaration matchers.**
+*   **Null-assert or cast binder:** An extract space of type `top`. These binder
+    patterns don't often appear in the matcher patterns used in switches where
+    exhaustiveness checking applies, but can occur nested inside a [declaration
+    matcher][] pattern.
+
+    [declaration matcher]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/patterns-feature-specification.md#declaration-matcher
 
 **TODO: Once generics are supported, describe how type patterns are lifted to
 spaces here.**
@@ -653,7 +693,7 @@ result of that subtraction is obvious:
 Jack|Queen|King - Jack = Queen|King
 ```
 
-**Expanding** a type replaces a sealed supertype with its list of subtypes. We
+**Expanding a type** replaces a sealed supertype with its list of subtypes. We
 only do this when the left type is sealed and the right type is a subtype.
 Expanding is recursive:
 
@@ -689,6 +729,24 @@ And now it's easier to see that `Jack` subtracts the first arm leaving:
 
 ```
 Queen(suit: heart)|King(suit: heart)
+```
+
+If the left type is nullable and the right type is `Null` or non-nullable, then
+expanding expands the nullable type to `Null` and the underlying type, as if the
+nullable type was a sealed supertype of the underlying type and `Null`:
+
+```
+Face? - Face  expands to:  Face|Null - Face = Null
+Jack? - Null  expands to:  Jack|Null - Null = Jack
+```
+
+Likewise, if the left type is `FutureOr<T>` for some type `T` and the right type
+is a subtype of `Future` or `T`, then expanding expands the `FutureOr<T>` to
+`Future<T>|T`.
+
+```
+FutureOr<int> - int     expands to:  Future<int>|int - int = Future<int>
+FutureOr<int> - Future  expands to:  Future<int>|int - Future = int
 ```
 
 ### Subtraction
@@ -953,3 +1011,16 @@ separately.
 Type promotion can safely assume any switch is exhaustive and promote
 accordingly. If that turns out to not be a case, a compile error will be
 reported anyway, so promotion doesn't matter.
+
+
+## Changelog
+
+### 1.1
+
+-   Specify that constants are treated as subtypes based on identity. This way,
+    we can get reachability errors on duplicate constant cases.
+
+-   Specify how null-check, null-assert, cast, and declaration matcher patterns
+    are lifted.
+
+-   Handle nullable and `FutureOr` types in expand type.

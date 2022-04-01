@@ -73,6 +73,22 @@ void main() {
     expectIntersect(d, e, null);
     expectIntersect(e, e, e);
   });
+
+  test('nullable', () {
+    // A
+    // |
+    // B
+    var a = StaticType('A');
+    var b = StaticType('B', inherits: [a]);
+
+    expectIntersect(a, a.nullable, a);
+    expectIntersect(a, StaticType.nullType, null);
+    expectIntersect(a.nullable, StaticType.nullType, StaticType.nullType);
+
+    expectIntersect(a, b.nullable, b);
+    expectIntersect(a.nullable, b, b);
+    expectIntersect(a.nullable, b.nullable, b.nullable);
+  });
 }
 
 void expectIntersect(StaticType left, StaticType right, StaticType? expected) {

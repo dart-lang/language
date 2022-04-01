@@ -26,10 +26,8 @@ void main() {
   test('records', () {
     expectIntersectEmpty(rec(x: a, y: a), rec(x: a, y: a), isFalse);
     expectIntersectEmpty(rec(x: a, y: a), rec(x: a), isFalse);
-    expectIntersectEmpty(
-        rec(w: a, x: a), rec(y: a, z: a), isFalse);
-    expectIntersectEmpty(rec(w: a, x: a, y: a), rec(x: a, y: a, z: a),
-        isFalse);
+    expectIntersectEmpty(rec(w: a, x: a), rec(y: a, z: a), isFalse);
+    expectIntersectEmpty(rec(w: a, x: a, y: a), rec(x: a, y: a, z: a), isFalse);
   });
 
   test('types', () {

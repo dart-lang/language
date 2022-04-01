@@ -15,11 +15,11 @@ Space ty(StaticType type, Map<String, Object> fields) =>
 
 /// Make a record space with the given fields.
 Space rec({Object? w, Object? x, Object? y, Object? z}) => Space.record({
-  if (w != null) 'w': parseSpace(w),
-  if (x != null) 'x': parseSpace(x),
-  if (y != null) 'y': parseSpace(y),
-  if (z != null) 'z': parseSpace(z)
-});
+      if (w != null) 'w': parseSpace(w),
+      if (x != null) 'x': parseSpace(x),
+      if (y != null) 'y': parseSpace(y),
+      if (z != null) 'z': parseSpace(z)
+    });
 
 /// Parse a list of spaces using [parseSpace].
 List<Space> parseSpaces(List<Object> objects) =>

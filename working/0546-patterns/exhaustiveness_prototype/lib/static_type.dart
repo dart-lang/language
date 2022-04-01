@@ -9,7 +9,20 @@ class StaticType {
   /// Built-in top type that all types are a subtype of.
   static final top = StaticType('top', inherits: []);
 
+  static final nullType = StaticType('Null');
+
   final String name;
+
+  late final StaticType nullable = StaticType._nullable(this);
+
+  /// If this type is a nullable type, then this is the underlying type.
+  ///
+  /// Otherwise `null`.
+  final StaticType? _underlying;
+
+  /// The underlying type of this nullable type. It's an error to call this on
+  /// a non-nullable type.
+  StaticType get underlying => _underlying!;
 
   /// Whether this type is sealed. A sealed type is implicitly abstract and has
   /// a closed set of known subtypes. This means that every instance of the
@@ -31,44 +44,40 @@ class StaticType {
   /// one of those two types*.
   final bool isSealed;
 
+  bool get isNullable => _underlying != null;
+
   /// The static types of the fields this type exposes for record destructuring.
   ///
   /// Includes inherited fields.
   Map<String, StaticType> get fields {
-    return {for (var supertype in supertypes) ...supertype.fields, ..._fields};
+    return {for (var supertype in _supertypes) ...supertype.fields, ..._fields};
   }
 
   final Map<String, StaticType> _fields;
 
-  final List<StaticType> supertypes = [];
+  final List<StaticType> _supertypes = [];
 
   /// The immediate subtypes of this type.
   Iterable<StaticType> get subtypes => _subtypes;
   final List<StaticType> _subtypes = [];
 
-  Iterable<StaticType> get allSupertypes sync* {
-    for (var supertype in supertypes) {
-      yield supertype;
-      yield* supertype.allSupertypes;
-    }
-  }
-
   StaticType(this.name,
       {this.isSealed = false,
       List<StaticType>? inherits,
       Map<String, StaticType> fields = const {}})
-      : _fields = fields {
+      : _underlying = null,
+        _fields = fields {
     if (inherits != null) {
       for (var type in inherits) {
-        supertypes.add(type);
+        _supertypes.add(type);
         type._subtypes.add(this);
       }
     } else {
-      supertypes.add(top);
+      _supertypes.add(top);
     }
 
     var sealed = 0;
-    for (var supertype in supertypes) {
+    for (var supertype in _supertypes) {
       if (supertype.isSealed) sealed++;
     }
 
@@ -86,9 +95,37 @@ class StaticType {
     if (sealed > 1) throw ArgumentError('Can only have one sealed supertype.');
   }
 
-  bool isSubtypeOf(StaticType supertype) {
-    if (this == supertype) return true;
-    return allSupertypes.contains(supertype);
+  StaticType._nullable(StaticType underlying)
+      : name = '${underlying.name}?',
+        _underlying = underlying,
+        isSealed = true,
+        // No fields because it may match null which doesn't have them.
+        _fields = {} {}
+
+  bool isSubtypeOf(StaticType other) {
+    if (this == other) return true;
+
+    // Null is a subtype of all nullable types.
+    if (this == nullType && other._underlying != null) return true;
+
+    // A nullable type is a subtype if the underlying type and Null both are.
+    var underlying = _underlying;
+    if (underlying != null) {
+      return underlying.isSubtypeOf(other) && nullType.isSubtypeOf(other);
+    }
+
+    // A non-nullable type is a subtype of the underlying type of a nullable
+    // type.
+    var otherUnderlying = other._underlying;
+    if (otherUnderlying != null) {
+      return isSubtypeOf(otherUnderlying);
+    }
+
+    for (var supertype in _supertypes) {
+      if (supertype.isSubtypeOf(other)) return true;
+    }
+
+    return false;
   }
 
   @override

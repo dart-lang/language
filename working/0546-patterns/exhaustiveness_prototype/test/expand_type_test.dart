@@ -198,6 +198,33 @@ void main() {
     expectExpand(e, d, 'E');
     expectExpand(e, e, 'E');
   });
+
+  test('nullable', () {
+    //   (A)
+    //   / \
+    //  B   C
+    //     / \
+    //    D   E
+    var a = StaticType('A', isSealed: true);
+    var b = StaticType('B', inherits: [a]);
+    var c = StaticType('C', inherits: [a]);
+    var d = StaticType('D', inherits: [c]);
+    var e = StaticType('E', inherits: [c]);
+
+    expectExpand(a.nullable, a, 'A|Null');
+    expectExpand(a, a.nullable, 'A');
+    expectExpand(a.nullable, a.nullable, 'A|Null');
+
+    // Sealed subtype.
+    expectExpand(a.nullable, b, 'B|C|Null');
+    expectExpand(a, b.nullable, 'B|C');
+    expectExpand(a.nullable, b.nullable, 'B|C|Null');
+
+    // Unsealed subtype.
+    expectExpand(c.nullable, d, 'C|Null');
+    expectExpand(c, d.nullable, 'C');
+    expectExpand(c.nullable, d.nullable, 'C|Null');
+  });
 }
 
 void expectExpand(StaticType left, StaticType right, String expected) {

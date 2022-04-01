@@ -97,6 +97,33 @@ void main() {
       expect(i23.isSubtypeOf(i123), isFalse);
       expect(i123.isSubtypeOf(i23), isTrue);
     });
+
+    test('nullable', () {
+      var a = StaticType('A');
+      var b = StaticType('B', inherits: [a]);
+
+      expect(StaticType.nullType.isSubtypeOf(a), isFalse);
+      expect(StaticType.nullType.isSubtypeOf(b), isFalse);
+      expect(StaticType.nullType.isSubtypeOf(a.nullable), isTrue);
+      expect(StaticType.nullType.isSubtypeOf(b.nullable), isTrue);
+
+      expect(a.isSubtypeOf(StaticType.nullType), isFalse);
+      expect(b.isSubtypeOf(StaticType.nullType), isFalse);
+      expect(a.nullable.isSubtypeOf(StaticType.nullType), isFalse);
+      expect(b.nullable.isSubtypeOf(StaticType.nullType), isFalse);
+
+      expect(a.isSubtypeOf(a.nullable), isTrue);
+      expect(a.nullable.isSubtypeOf(a), isFalse);
+      expect(a.nullable.isSubtypeOf(a.nullable), isTrue);
+
+      expect(a.isSubtypeOf(b.nullable), isFalse);
+      expect(a.nullable.isSubtypeOf(b), isFalse);
+      expect(a.nullable.isSubtypeOf(b.nullable), isFalse);
+
+      expect(b.isSubtypeOf(a.nullable), isTrue);
+      expect(b.nullable.isSubtypeOf(a), isFalse);
+      expect(b.nullable.isSubtypeOf(a.nullable), isTrue);
+    });
   });
 
   test('fields', () {
