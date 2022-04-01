@@ -74,7 +74,7 @@ the `yield` statement acts like a `return;` statement.
 
 A `yield* e;` statement listens on the stream that `e` evaluates to
 and forwards all events to this function's subscription.
-If the subscription is paused, the pause is forwarded to the yielded stream
+If the subscription is paused, the pause is forwarded to the yielded stream.
 If the subscription is canceled, the cancel is forwarded to the yielded stream,
 then the `yield*` statement waits for any cancellation future, and finally
 it acts like a `return;` statement.
@@ -101,7 +101,7 @@ implementation, and it's possible that performance may improve due to this.
 
 ### Consequences
 Implementations currently do not block at a `yield` when the delivery of
-the event causes a pause. They simply does not allow a `yield` statement
+the event causes a pause. They simply do not allow a `yield` statement
 to act asynchronously. They can *cancel* at a yield if the cancel happened
 prior to the `yield`, and can easily be made to respect a cancel happening
 during the `yield` event delivery, but they only check for pause *before*
