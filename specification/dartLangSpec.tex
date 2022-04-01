@@ -36,6 +36,9 @@
 %   that `o` is desugared as `o.call` when the context type is a function type.
 % - Clarify the treatment of `covariant` parameters in the interface of a class
 %   that inherits an implementation where those parameters are not covariant.
+% - Change the specified evaluation order for class instance methods such that
+%   `x.m(a)` will evaluate `a` before calling `x.m`, which is observable in
+%   the case where `x.m` is a getter with side effects.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -13703,7 +13706,7 @@ and if the method lookup succeeded then let $F$ be the static type of $d$.
 Otherwise, let $d$ be the result of getter lookup
 for $m$ in $T$ with respect to $L$,
 and let $F$ be the return type of $d$.
-(\commentary{
+(\commentary{%
 Since \code{$T$.$m$} exists we cannot have a failure in both lookups.%
 })
 If the getter return type $F$ is an interface type
@@ -13787,12 +13790,34 @@ then let $g$ be the result of looking up getter
 $m$ in $o$ with respect to $L$.
 
 \LMHash{}%
-If the getter lookup succeeded then invoke the getter $o.m$
-and let $v_g$ be the returned object.
-Then the value of $i$ is the value of
+If the getter lookup succeeded then evaluate the actual argument list
 
 \noindent
-\code{$v_g$<$A_1, \ldots,\ A_r$>($a_1,\ \ldots,\ a_n,\ x_{n+1}$: $a_{n+1},\ \ldots,\ x_{n+k}$: $a_{n+k}$)}.
+\code{($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
+
+\noindent
+in textual order to a sequence of objects $o_1, \ldots,\ o_{n+k}$,
+and let \List{v}{1}{n+k} be fresh variables
+such that $v_j$ is bound to $o_j$ for each $j \in 1 .. n+k$.
+Then invoke the getter $o.m$ and let $v_g$ be the returned object.
+The value of $i$ is then the value of
+
+\noindent
+\code{$v_g$<$A_1, \ldots,\ A_r$>($v_1,\ \ldots,\ v_n,\ x_{n+1}$:\ $v_{n+1},\ \ldots,\ x_{n+k}$:\ $v_{n+k}$)}.
+
+\rationale{%
+Note that this evaluation order is inconsistent with the general rule that
+expressions are evaluated left-to-right
+(unless the expression has a non-trivial control flow, e.g.,
+\code{$e_1$\,?\,$e_2$\,:\,$e_3$}).
+In particular all other function invocations use left-to-right evaluation,
+including extension instance method invocations.
+The reason for this inconsistency is mainly historical:
+This evaluation order has been used for instance methods since the beginning of
+the development of the language,
+and it was not considered worthwhile to handle the breakage.
+Another reason is that it allows for improved performance in some situations.%
+}
 
 \LMHash{}%
 If getter lookup has also failed,
