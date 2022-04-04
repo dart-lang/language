@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.4 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.5 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -1111,25 +1111,117 @@ if (case var s? = maybeString) {
 
 ## Static semantics
 
-A pattern always appears in the context of some value expression that it is
-being matched against. In a switch statement or expression, the value expression
-is the value being switched on. In an if-case statement, the value is the result
-of the expression to the right of the `=`. In a variable declaration, the value
-is the initializer:
+### Type inference
+
+Type inference in Dart allows type information in one part of the program to
+flow over and fill in missing pieces in another part. Inference can flow
+"upwards" from a subexpression to the surrounding expression:
 
 ```dart
-var (a, b) = (1, 2);
+[1]
 ```
 
-Here, the `(a, b)` pattern is being matched against the expression `(1, 2)`.
-When a pattern contains subpatterns, each subpattern is matched against a value
-destructured from the value that the outer pattern is matched against. Here, `a`
-is matched against `1` and `b` is matched against `2`.
+Here, we infer `List<int>` for the type of the list literal based on type of its
+element. Inference can flow "downwards" from an expression into its
+subexpressions too:
+
+```dart
+<List<int>>[[]]
+```
+
+Here, the inner empty list literal `[]` gets type `List<int>` because the type
+argument on the outer list literal is pushed into it.
+
+Type information can flow through patterns in the same way. From subpatterns
+upwards to the surrounding pattern:
+
+```dart
+var [int x] = ...
+```
+
+Here, we infer `List<int>` for the list pattern based on the type of the element
+subpattern. Or downwards:
+
+```dart
+var <int>[x] = ...
+```
+
+Here, we infer `int` for the inner `x` subpattern based on the type of the
+surrounding list pattern.
+
+In variable declarations, type information can also flow between the variable
+and its initializer. "Upwards" from initializer to variable:
+
+```dart
+var x = 1;
+```
+
+Here we infer `int` for `x` based on the initializer expression's type. That
+upwards flow extends to patterns:
+
+```dart
+var [x] = <int>[1];
+```
+
+Here, we infer `List<int>` for the list pattern (and thus `int` for the `x`
+subpattern) based on type of the initializer expression `<int>[1]`.
+
+Types can also flow "downwards" from variable to initializer:
+
+```dart
+List<int> x = [];
+```
+
+Here, the empty list is instantiated as `List<int>` because the type annotation
+on `x` gets pushed over to the initializer. That extends to patterns:
+
+```dart
+var <num>[x] = [1];
+```
+
+Here, we infer the list literal in the initializer to have type `List<num>` (and
+not `List<int>`) based on the type of list pattern. All of this type flow can be
+combined:
+
+```dart
+var (a, b, <double>[c], [int d]) = ([1], <List<int>>[[]], [2], [3]);
+```
+
+To orchestrate this, type inference on patterns proceeds in three phases:
+
+1.  **Calculate the pattern type schema.** Start at the top of the pattern and
+    recurse downwards into subpatterns using the surrounding pattern as context.
+    When we reach the leaves, work back upwards filling in missing pieces where
+    possible. When this completes, we have a type schema for the pattern. It's
+    a type *schema* and not a *type* because there may be holes where types
+    aren't known yet.
+
+2.  **Calculate the static type of the matched value.** A pattern always occurs
+    in the context of some matched value. For pattern variable declarations,
+    this is the initializer. For switches and if-case statements, it's the value
+    being matched.
+
+    Using the pattern's type schema as a context type, infer missing types on
+    the value expression. This is the existing type inference rules on
+    expressions. It yields a complete static type for the matched value.
+
+3.  **Calculate the static type of the pattern.** Using that value type, recurse
+    through the pattern again downwards to the leaf subpatterns filling in any
+    holes in the type schema. When that completes, we now have a full static
+    type for the pattern and all of its subpatterns.
+
+The full process only comes into play for pattern variable declarations. For
+switch case, and if-case statements, there is no downwards inference from
+pattern to value and the first step is skipped. Instead, the type of the matched
+value is inferred and we jump straight to inferring the types of the case
+patterns from that context type. *The intent of a matcher pattern is to query
+the type of the matched value, so it would be strange if that query affected the
+value expression.*
 
 When calculating the context type schema or static type of a pattern, any
 occurrence of `typePattern` in a type is treated as `Object?`.
 
-### Pattern context type schema
+#### Pattern context type schema
 
 In a non-pattern variable declaration, the variable's type annotation is used
 for downwards inference of the initializer:
@@ -1150,8 +1242,6 @@ To support this, every pattern has a context type schema. This is a type
 ```dart
 var (a, int b) = ... // Schema is `(?, int)`.
 ```
-
-#### Named fields in type schemas
 
 Named record fields add complexity to type inference:
 
@@ -1203,18 +1293,14 @@ The context type schema for a pattern `p` is:
         the corresponding subpattern. (If there is no subpattern because it's
         an implicit variable pattern like `(field:)`, the type schema is `?`.)
 
-*   **Variable binder**:
-    *   If `p` has a type annotation, the context type schema is that type.
-    *   Else it is `?`.
-
 *   **Variable matcher**:
     *   If `p` has a type annotation, the context type schema is `Object?`.
         *It is not the annotated type because a variable matching pattern can
         be used to downcast from any other type.*
     *   Else it is `?`.
 
-*   **Cast binder**, **wildcard matcher**, or **extractor matcher**: The context
-    type schema is `Object?`.
+*   **Cast binder**, **variable binder**, **wildcard matcher**, or **extractor
+    matcher**: The context type schema is `Object?`.
 
     **TODO: Should type arguments on an extractor create a type argument
     constraint?**
@@ -1243,7 +1329,7 @@ var [int a, num b] = [1, 2];
 *Here, the GLB of `int` and `num` is `int`, which ensures that neither `int a`
 nor `num b` need to downcast their respective fields.*
 
-### Pattern static type
+#### Pattern static type
 
 Once the value a pattern is matched against has a static type (which means
 downwards inference on it using the pattern's context type schema is complete),
@@ -1786,6 +1872,14 @@ main() {
 *This prints "1", "2", "here".*
 
 ## Changelog
+
+### 1.5
+
+-   Introduce and clarify type inference.
+
+-   The context type schema for a variable matcher is always `Object?`, since
+    it's intent is to *match* a type and *cause* the expression to have some
+    type.
 
 ### 1.4
 
