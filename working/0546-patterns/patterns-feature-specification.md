@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.5 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.6 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -577,13 +577,13 @@ form similar to [if-case in Swift][]:
 [if-case in swift]: https://useyourloaf.com/blog/swift-if-case-let/
 
 ```dart
-if (case [int x, int y] = json) return Point(x, y);
+if (json case [int x, int y]) return Point(x, y);
 ```
 
 It may have an else branch as well:
 
 ```dart
-if (case [int x, int y] = json) {
+if (json case [int x, int y]) {
   print('Was coordinate array $x,$y');
 } else {
   throw FormatException('Invalid JSON.');
@@ -593,7 +593,7 @@ if (case [int x, int y] = json) {
 The grammar is:
 
 ```
-ifCaseStatement ::= 'if' '(' 'case' matcher '=' expression ')'
+ifCaseStatement ::= 'if' '(' expression 'case' matcher ')'
                          statement ('else' statement)?
 ```
 
@@ -1104,7 +1104,7 @@ is the non-nullable base type of the nullable value being matched:
 
 ```dart
 String? maybeString = ...
-if (case var s? = maybeString) {
+if (maybeString case var s?) {
   // s has type String here.
 }
 ```
@@ -1872,6 +1872,12 @@ main() {
 *This prints "1", "2", "here".*
 
 ## Changelog
+
+### 1.6
+
+-   Change syntax of if-case statement ([#2181][]).
+
+[#2181]: https://github.com/dart-lang/language/issues/2181
 
 ### 1.5
 
