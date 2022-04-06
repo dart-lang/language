@@ -96,10 +96,6 @@ Host app mode: $hostMode
     print('This script must be ran from the `macros` directory.');
     exit(1);
   }
-  _log('Preparing to run macros');
-  var executor = macroExecutionStrategy == 'aot'
-      ? await processExecutor.start(serverSerializationMode)
-      : await isolatedExecutor.start(serverSerializationMode);
   var tmpDir = Directory.systemTemp.createTempSync('data_class_macro_example');
   try {
     var macroUri = Uri.parse('package:macro_proposal/data_class.dart');
@@ -133,12 +129,18 @@ Host app mode: $hostMode
       exit(1);
     }
 
-    _log('Loading DataClass macro');
-    var clazzId = await executor.loadMacro(macroUri, macroName,
-        precompiledKernelUri: kernelOutputFile.uri);
+    _log('Loading the macro executor');
+    var executor = macroExecutionStrategy == 'aot'
+        ? await processExecutor.start(
+            serverSerializationMode,
+            processExecutor.CommunicationChannel.socket,
+            kernelOutputFile.uri.toFilePath())
+        : await isolatedExecutor.start(
+            serverSerializationMode, kernelOutputFile.uri);
+
     _log('Instantiating macro');
-    var instanceId =
-        await executor.instantiateMacro(clazzId, '', Arguments([], {}));
+    var instanceId = await executor.instantiateMacro(
+        macroUri, macroName, '', Arguments([], {}));
 
     _log('Running DataClass macro 100 times...');
     var results = <MacroExecutionResult>[];
