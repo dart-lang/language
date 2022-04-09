@@ -36,6 +36,8 @@
 %   that `o` is desugared as `o.call` when the context type is a function type.
 % - Clarify the treatment of `covariant` parameters in the interface of a class
 %   that inherits an implementation where those parameters are not covariant.
+% - Clarify the order of evaluation of object sequences (which are used with
+%   collection literals).
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -9683,7 +9685,8 @@ a sequence of collection literal elements.
 The sequence of objects $s_{\metavar{object}}$
 obtained by evaluating $s_{\metavar{syntax}}$
 is the concatenation of the sequences of objects
-obtained by evaluating each element $\ell_j$, $j \in 1 .. k$:
+obtained by evaluating each element $\ell_j$, $j \in 1 .. k$,
+in that order:
 $s_{\metavar{object}}=\EvaluateElement{\ell_1}+\ldots+\EvaluateElement{\ell_k}$,
 where \EvaluateElement{\ell_j} denotes the object sequence yielded by
 evaluation of a single collection literal element $\ell_j$.
@@ -9773,7 +9776,7 @@ Evaluate $e$ to an object $o_{\metavar{spread}}$.
     \vspace{-2ex}\begin{minipage}[t]{\textwidth}
 \begin{normativeDartCode}
 $S_{\metavar{spread}}$ spread = $o_{\metavar{spread}}$;
-\VAR{} $s$ = \LiteralSequence;
+\VAR{} $s$ = \LiteralSequence{};
 \FOR{} (\VAR{} v \IN{} spread) \{
   Value value = v;
   $s := s + \LiteralSequence{\code{value}}$;
@@ -9805,7 +9808,7 @@ $\EvaluateElement{\ell} := s$;
     \vspace{-2ex}\begin{minipage}[t]{\textwidth}
 \begin{normativeDartCode}
 $S_{\metavar{spread}}$ spread = $o_{\metavar{spread}}$;
-\VAR{} $s$ = \LiteralSequence;
+\VAR{} $s$ = \LiteralSequence{};
 \FOR{} (\VAR{} v \IN{} spread) \{
   Key key = v.key;
   Value value = v.value;
@@ -9891,7 +9894,7 @@ where \AWAIT{} is present if and only if it is present in $\ell$:
 
 \vspace{-2ex}\begin{minipage}[t]{\textwidth}
 \begin{normativeDartCode}
-\VAR{} $s$ = \LiteralSequence;
+\VAR{} $s$ = \LiteralSequence{};
 \AWAIT? \FOR{} ($P$) \{
   $s := s + \EvaluateElement{\ell_1}$;
 \}
@@ -10016,12 +10019,12 @@ The same compile-time errors occur for $\ell$ as
 the errors that would occur with the corresponding \FOR{} statement
 \code{\AWAIT?\,\,\FOR\,\,($P$)\,\,\{\}},
 located in the same scope as $\ell$.
-Moreover, the errors and type analysis of $\ell$ is performed
+Moreover, the errors and type analysis of $\ell_1$ is performed
 as if it occurred in the body scope of said \FOR{} statement.
 \commentary{%
 For instance, if $P$ is of the form
 \code{\VAR\,\,v\,\,\IN\,\,$e_1$}
-then the variable \code{v} is in scope for $\ell$.%
+then the variable \code{v} is in scope for $\ell_1$.%
 }
 
 Inference for the parts
@@ -10651,13 +10654,13 @@ The same compile-time errors occur for $\ell$ as
 the errors that would occur with the corresponding \FOR{} statement
 \code{\AWAIT?\,\,\FOR\,\,($P$)\,\,\{\}},
 located in the same scope as $\ell$.
-Moreover, the errors and type analysis of $\ell$ is performed
+Moreover, the errors and type analysis of $\ell_1$ is performed
 as if it occurred in the body scope of said \FOR{} statement.
 
 \commentary{%
 For instance, if $P$ is of the form
 \code{\VAR\,\,v\,\,\IN\,\,$e_1$}
-then the variable \code{v} is in scope for $\ell$.%
+then the variable \code{v} is in scope for $\ell_1$.%
 }
 
 Inference for the parts
