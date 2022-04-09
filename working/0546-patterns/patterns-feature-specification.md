@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.6 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.7 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -1030,9 +1030,13 @@ destructure fields on the value as that type. This pattern is particularly
 useful for writing code in an algebraic datatype style. For example:
 
 ```dart
-class Rect {
+class Rect implements Destructure2<double, double> {
   final double width, height;
+
   Rect(this.width, this.height);
+
+  double get field0 => width;
+  double get field1 => height;
 }
 
 display(Object obj) {
@@ -1061,9 +1065,9 @@ enum Severity  {
 
 log(Severity severity, String message) {
   switch (severity) {
-    case Severity.error(_, prefix):
+    case Severity.error(prefix: final prefix):
       print('!! $prefix !! $message'.toUppercase());
-    case Severity.warning(_, prefix):
+    case Severity.warning(prefix: final prefix):
       print('$prefix: $message');
   }
 }
@@ -1082,6 +1086,21 @@ function type, you can use a typedef.
 It is a compile-time error if `extractName` does not refer to a type or enum
 value. It is a compile-time error if a type argument list is present and does
 not match the arity of the type of `extractName`.
+
+As with record matchers, a named field without a matcher is implicitly treated
+as containing a variable matcher with the same name as the field. The variable
+is always `final`. The previous example could be written like:
+
+```dart
+log(Severity severity, String message) {
+  switch (severity) {
+    case Severity.error(prefix:):
+      print('!! $prefix !! $message'.toUppercase());
+    case Severity.warning(prefix:):
+      print('$prefix: $message');
+  }
+}
+```
 
 #### Null-check matcher
 
@@ -1567,8 +1586,9 @@ The variables a patterns binds depend on what kind of pattern it is:
     the binders nested inside this create final or assignable variables and
     then introduces those variables.
 
-*   **Extractor matcher**: May contain type argument patterns and introduces
-    all of the variables of its subpatterns.
+*   **Extractor matcher**: May contain type argument patterns and introduces all
+    of the variables of its subpatterns. A named field with no subpattern
+    implicitly defines a `final` variable with the same name as the field.
 
 All variables (except for type variables) declared in an instance field pattern
 variable declaration are covariant if the pattern variable declaration is marked
@@ -1872,6 +1892,13 @@ main() {
 *This prints "1", "2", "here".*
 
 ## Changelog
+
+### 1.7
+
+-   Fix object destructuring examples and clarify that extract matchers support
+    the named field destructuring shorthand too ([#2193][]).
+
+[#2193]: https://github.com/dart-lang/language/issues/2193
 
 ### 1.6
 
