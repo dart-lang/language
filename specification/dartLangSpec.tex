@@ -36,6 +36,8 @@
 %   that `o` is desugared as `o.call` when the context type is a function type.
 % - Clarify the treatment of `covariant` parameters in the interface of a class
 %   that inherits an implementation where those parameters are not covariant.
+% - Adjust and clarify simple string interpolation (to allow `'$this'`, which
+%   is already implemented and useful).
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -9165,7 +9167,7 @@ This process is known as \Index{string interpolation}.
   \alt `${' <expression> `}'
 
 <SIMPLE\_STRING\_INTERPOLATION> ::= \gnewline{}
-  `$' <IDENTIFIER\_NO\_DOLLAR>
+  `$' ( <IDENTIFIER\_NO\_DOLLAR> | \THIS{} )
 \end{grammar}
 
 \commentary{%
@@ -9179,7 +9181,8 @@ An unescaped \lit{\$} character in a string signifies
 the beginning of an interpolated expression.
 The \lit{\$} sign may be followed by either:
 \begin{itemize}
-\item A single identifier \id{} that does not contain the \lit{\$} character.
+\item A single identifier \id{} that does not contain the \lit{\$} character,
+  or the reserved word \THIS.
 \item An expression $e$ delimited by curly braces.
 \end{itemize}
 
@@ -16538,13 +16541,18 @@ which implies that \THIS{} should be added.%
 An \Index{identifier expression} consists of a single identifier;
 it provides access to an object via an unqualified name.
 
+\commentary{%
+A \synt{qualifiedName} is not an identifier expression,
+but we specify its syntax here because it is used in several different contexts,
+and it is more closely related to the plain identifier
+than it is to any single one of those grammar rules where it is used.%
+}
+
 \begin{grammar}
 <identifier> ::= <IDENTIFIER>
 
-<IDENTIFIER\_NO\_DOLLAR> ::= <IDENTIFIER\_START\_NO\_DOLLAR>
-  \gnewline{} <IDENTIFIER\_PART\_NO\_DOLLAR>*
-
-<IDENTIFIER> ::= <IDENTIFIER\_START> <IDENTIFIER\_PART>*
+<qualifiedName> ::= <typeIdentifier> `.' <identifier>
+  \alt <typeIdentifier> `.' <typeIdentifier> `.' <identifier>
 
 <BUILT\_IN\_IDENTIFIER> ::= \ABSTRACT{}
   \alt \AS{}
@@ -16570,17 +16578,19 @@ it provides access to an object via an unqualified name.
   \alt \STATIC{}
   \alt \TYPEDEF{}
 
-<IDENTIFIER\_START> ::= <IDENTIFIER\_START\_NO\_DOLLAR> | `$'
+<IDENTIFIER\_NO\_DOLLAR> ::= <IDENTIFIER\_START\_NO\_DOLLAR>
+  \gnewline{} <IDENTIFIER\_PART\_NO\_DOLLAR>*
 
 <IDENTIFIER\_START\_NO\_DOLLAR> ::= <LETTER> | `_'
 
 <IDENTIFIER\_PART\_NO\_DOLLAR> ::= \gnewline{}
   <IDENTIFIER\_START\_NO\_DOLLAR> | <DIGIT>
 
-<IDENTIFIER\_PART> ::= <IDENTIFIER\_START> | <DIGIT>
+<IDENTIFIER> ::= <IDENTIFIER\_START> <IDENTIFIER\_PART>*
 
-<qualifiedName> ::= <typeIdentifier> `.' <identifier>
-  \alt <typeIdentifier> `.' <typeIdentifier> `.' <identifier>
+<IDENTIFIER\_START> ::= <IDENTIFIER\_START\_NO\_DOLLAR> | `$'
+
+<IDENTIFIER\_PART> ::= <IDENTIFIER\_START> | <DIGIT>
 
 <LETTER> ::= `a' .. `z'
   \alt `A' .. `Z'
@@ -16607,6 +16617,14 @@ In other words, they are treated as reserved words when used as types.
 This eliminates many confusing situations,
 both for human readers and during parsing.%
 }
+
+\LMHash{}%
+The ordering of the lexical rules above ensure that \synt{IDENTIFIER}
+and \synt{IDENTIFIER\_NO\_DOLLAR} do not derive any built-in identifiers.
+Similarly, the lexical rule for reserved words (\ref{reservedWords})
+must be considered to come before the rule for \synt{BUILT\_IN\_IDENTIFIER},
+such that \synt{IDENTIFIER} and \synt{IDENTIFIER\_NO\_DOLLAR}
+also do not derive any reserved words.
 
 \LMHash{}%
 It is a compile-time error if either of the identifiers \AWAIT{} or \YIELD{}
@@ -22232,14 +22250,24 @@ it makes the grammar rules more readable.%
 }
 
 \begin{grammar}
-<reservedWord> ::= \ASSERT{} | \BREAK{} | \CASE{} | \CATCH{} |
-    \CLASS{} | \CONST{} | \CONTINUE{}
-  \alt\hspace{-3mm} \DEFAULT{} | \DO{} | \ELSE{} | \ENUM{} | \EXTENDS{} |
-    \FALSE{} | \FINAL{} | \FINALLY{} | \FOR{} | \IF{} | \IN{} | \IS{}
-  \alt\hspace{-3mm} \NEW{} | \NULL{} | \RETHROW{} | \RETURN{} | \SUPER{} |
-    \SWITCH{} | \THIS{} | \THROW{} | \TRUE{} | \TRY{}
-  \alt\hspace{-3mm} \VAR{} | \VOID{} | \WHILE{} | \WITH{}
+<RESERVED\_WORD> ::= \ASSERT{} | \BREAK{} | \CASE{} | \CATCH{} |
+    \CLASS{} | \CONST{}
+  \alt\hspace{-3mm} \CONTINUE{} | \DEFAULT{} | \DO{} | \ELSE{} | \ENUM{} |
+    \EXTENDS{} | \FALSE{} | \FINAL{} | \FINALLY{} | \FOR{}
+  \alt\hspace{-3mm} \IF{} | \IN{} | \IS{} | \NEW{} | \NULL{} | \RETHROW{} |
+    \RETURN{} | \SUPER{} | \SWITCH{} | \THIS{} | \THROW{}
+  \alt\hspace{-3mm} \TRUE{} | \TRY{} | \VAR{} | \VOID{} | \WHILE{} | \WITH{}
 \end{grammar}
+
+\LMHash{}%
+In the grammar, the rule for reserved words above must occur
+before the rule for \synt{BUILT\_IN\_IDENTIFIER}
+(\ref{identifierReference}).
+
+\commentary{%
+This ensures that \synt{IDENTIFIER} and \synt{IDENTIFIER\_NO\_DOLLAR} do not
+derive any reserved words, and they do not derive any built-in identifiers.
+}
 
 
 \subsubsection{Comments}
