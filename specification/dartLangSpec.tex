@@ -36,6 +36,9 @@
 %   that `o` is desugared as `o.call` when the context type is a function type.
 % - Clarify the treatment of `covariant` parameters in the interface of a class
 %   that inherits an implementation where those parameters are not covariant.
+% - Adjust and clarify simple string interpolation (to allow `'$this'`, which
+%   is already implemented and useful).
+% - Add several lexical rules about identifiers, clarifying different kinds.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -2397,7 +2400,7 @@ or via mixin applications (\ref{mixinApplication}).
 
 \begin{grammar}
 <classDeclaration> ::=
-  \ABSTRACT? \CLASS{} <identifier> <typeParameters>?
+  \ABSTRACT? \CLASS{} <typeIdentifier> <typeParameters>?
   \gnewline{} <superclass>? <interfaces>?
   \gnewline{} `{' (<metadata> <classMemberDeclaration>)* `}'
   \alt \ABSTRACT? \CLASS{} <mixinApplicationClass>
@@ -5484,7 +5487,7 @@ A mixin declaration introduces a mixin and provides a scope
 for static member declarations.
 
 \begin{grammar}
-<mixinDeclaration> ::= \MIXIN{} <identifier> <typeParameters>?
+<mixinDeclaration> ::= \MIXIN{} <typeIdentifier> <typeParameters>?
   \gnewline{} (\ON{} <typeNotVoidList>)? <interfaces>?
   \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
 \end{grammar}
@@ -9165,7 +9168,7 @@ This process is known as \Index{string interpolation}.
   \alt `${' <expression> `}'
 
 <SIMPLE\_STRING\_INTERPOLATION> ::= \gnewline{}
-  `$' <IDENTIFIER\_NO\_DOLLAR>
+  `$' (<IDENTIFIER\_NO\_DOLLAR> | <BUILT\_IN\_IDENTIFIER> | \THIS)
 \end{grammar}
 
 \commentary{%
@@ -9179,7 +9182,9 @@ An unescaped \lit{\$} character in a string signifies
 the beginning of an interpolated expression.
 The \lit{\$} sign may be followed by either:
 \begin{itemize}
-\item A single identifier \id{} that does not contain the \lit{\$} character.
+\item A single identifier \id{} that does not contain the \lit{\$} character
+  (but it can be a built-in identifier),
+  or the reserved word \THIS.
 \item An expression $e$ delimited by curly braces.
 \end{itemize}
 
@@ -16537,53 +16542,53 @@ which implies that \THIS{} should be added.%
 \LMHash{}%
 An \Index{identifier expression} consists of a single identifier;
 it provides access to an object via an unqualified name.
+A \synt{typeIdentifier} is an identifier which can be used
+as the name of a type declaration.
+
+\commentary{%
+A \synt{qualifiedName} is not an identifier expression,
+but we specify its syntax here because it is used in several different contexts,
+and it is more closely related to the plain identifier
+than it is to any single one of those grammar rules where it is used.%
+}
 
 \begin{grammar}
 <identifier> ::= <IDENTIFIER>
+  \alt <BUILT\_IN\_IDENTIFIER>
+  \alt <OTHER\_IDENTIFIER>
+
+<typeIdentifier> ::= <IDENTIFIER>
+  \alt <OTHER\_IDENTIFIER>
+
+<qualifiedName> ::= <typeIdentifier> `.' <identifier>
+  \alt <typeIdentifier> `.' <typeIdentifier> `.' <identifier>
+
+<BUILT\_IN\_IDENTIFIER> ::= \ABSTRACT{} | \AS{} | \COVARIANT{} | \DEFERRED{}
+  \alt\hspace{-3mm} \DYNAMIC{} | \EXPORT{} | \EXTERNAL{} | \EXTENSION{} |
+    \FACTORY{} | \FUNCTION{} | \GET{}
+  \alt\hspace{-3mm} \IMPLEMENTS{} | \IMPORT{} | \INTERFACE{} | \LATE{} |
+    \LIBRARY{} | \MIXIN{} | \OPERATOR{}
+  \alt\hspace{-3mm} \PART{} | \REQUIRED{} | \SET{} | \STATIC{} | \TYPEDEF{}
+
+<OTHER\_IDENTIFIER> ::= \gnewline{}
+  \ASYNC{} | \HIDE{} | \OF{} | \ON{} | \SHOW{} | \SYNC{} |
+  \AWAIT{} | \YIELD{}
 
 <IDENTIFIER\_NO\_DOLLAR> ::= <IDENTIFIER\_START\_NO\_DOLLAR>
   \gnewline{} <IDENTIFIER\_PART\_NO\_DOLLAR>*
-
-<IDENTIFIER> ::= <IDENTIFIER\_START> <IDENTIFIER\_PART>*
-
-<BUILT\_IN\_IDENTIFIER> ::= \ABSTRACT{}
-  \alt \AS{}
-  \alt \COVARIANT{}
-  \alt \DEFERRED{}
-  \alt \DYNAMIC{}
-  \alt \EXPORT{}
-  \alt \EXTERNAL{}
-  \alt \EXTENSION{}
-  \alt \FACTORY{}
-  \alt \FUNCTION{}
-  \alt \GET{}
-  \alt \IMPLEMENTS{}
-  \alt \IMPORT{}
-  \alt \INTERFACE{}
-  \alt \LATE{}
-  \alt \LIBRARY{}
-  \alt \MIXIN{}
-  \alt \OPERATOR{}
-  \alt \PART{}
-  \alt \REQUIRED{}
-  \alt \SET{}
-  \alt \STATIC{}
-  \alt \TYPEDEF{}
-
-<IDENTIFIER\_START> ::= <IDENTIFIER\_START\_NO\_DOLLAR> | `$'
 
 <IDENTIFIER\_START\_NO\_DOLLAR> ::= <LETTER> | `_'
 
 <IDENTIFIER\_PART\_NO\_DOLLAR> ::= \gnewline{}
   <IDENTIFIER\_START\_NO\_DOLLAR> | <DIGIT>
 
+<IDENTIFIER> ::= <IDENTIFIER\_START> <IDENTIFIER\_PART>*
+
+<IDENTIFIER\_START> ::= <IDENTIFIER\_START\_NO\_DOLLAR> | `$'
+
 <IDENTIFIER\_PART> ::= <IDENTIFIER\_START> | <DIGIT>
 
-<qualifiedName> ::= <typeIdentifier> `.' <identifier>
-  \alt <typeIdentifier> `.' <typeIdentifier> `.' <identifier>
-
-<LETTER> ::= `a' .. `z'
-  \alt `A' .. `Z'
+<LETTER> ::= `a' .. `z' | `A' .. `Z'
 
 <DIGIT> ::= `0' .. `9'
 
@@ -16591,8 +16596,16 @@ it provides access to an object via an unqualified name.
 \end{grammar}
 
 \LMHash{}%
-A built-in identifier is one of the identifiers produced by the production
-\synt{BUILT\_IN\_IDENTIFIER}.
+The ordering of the lexical rules above ensure that \synt{IDENTIFIER}
+and \synt{IDENTIFIER\_NO\_DOLLAR} do not derive any built-in identifiers.
+Similarly, the lexical rule for reserved words (\ref{reservedWords})
+must be considered to come before the rule for \synt{BUILT\_IN\_IDENTIFIER},
+such that \synt{IDENTIFIER} and \synt{IDENTIFIER\_NO\_DOLLAR}
+also do not derive any reserved words.
+
+\LMHash{}%
+A \Index{built-in identifier} is one of
+the identifiers produced by the production \synt{BUILT\_IN\_IDENTIFIER}.
 It is a compile-time error if a built-in identifier is used as
 the declared name of a prefix, class, mixin, type parameter, or type alias.
 It is a compile-time error to use a built-in identifier
@@ -16610,8 +16623,8 @@ both for human readers and during parsing.%
 
 \LMHash{}%
 It is a compile-time error if either of the identifiers \AWAIT{} or \YIELD{}
-is used as an identifier in a function body
-marked with either \ASYNC, \code{\ASYNC*} or \code{\SYNC*}.
+is used as an \synt{identifier} in a function body
+marked with either \ASYNC, \code{\ASYNC*}, or \code{\SYNC*}.
 
 \rationale{%
 This makes the identifiers \AWAIT{} and \YIELD{} behave like reserved words
@@ -16622,8 +16635,10 @@ at the time where these features were added to the language.%
 }
 
 \LMHash{}%
-A \Index{qualified identifier} is an identifier preceded by
-\syntax{<identifier> `.'}.
+A \Index{qualified name} is two or three identifiers separated by \lit{.}.
+All but the last one must be a \synt{typeIdentifier}.
+It is used to denote a declaration which is imported with a prefix,
+or a \STATIC{} declaration in a class, mixin, or extension, or both.
 
 \LMHash{}%
 The static type of an identifier expression $e$ which is an identifier \id{}
@@ -19988,16 +20003,12 @@ and in the bounds of type variables (\ref{generics}).
 Type annotations are used during static checking and when running programs.
 Types are specified using the following grammar rules.
 
-%% TODO(eernst): The following non-terminal is currently undefined (it will
-%% be defined when more rules are transferred from Dart.g): <typeIdentifier>.
-%% The precise rules are slightly different than the following sentence, but
-%% we should be able to make do with that for now.
-\LMHash{}%
-In the grammar rules below, \synt{typeIdentifier} denotes
-an identifier which can be
-the name of a type, that is, it denotes an \synt{IDENTIFIER} which is not a
-\synt{BUILT\_IN\_IDENTIFIER}.
-
+\commentary{%
+A \synt{typeIdentifier} is an identifier which can be the name of a type,
+that is,
+it denotes an \synt{IDENTIFIER} which is not a \synt{BUILT\_IN\_IDENTIFIER}
+(\ref{identifierReference}).%
+}
 %% TODO(eernst): The following non-terminals are currently unused (they will
 %% be used when we transfer more grammar rules from Dart.g): <typeNotVoid>
 %% and <typeNotVoidNotFunctionList>. They are used in the syntax for
@@ -22232,14 +22243,24 @@ it makes the grammar rules more readable.%
 }
 
 \begin{grammar}
-<reservedWord> ::= \ASSERT{} | \BREAK{} | \CASE{} | \CATCH{} |
-    \CLASS{} | \CONST{} | \CONTINUE{}
-  \alt\hspace{-3mm} \DEFAULT{} | \DO{} | \ELSE{} | \ENUM{} | \EXTENDS{} |
-    \FALSE{} | \FINAL{} | \FINALLY{} | \FOR{} | \IF{} | \IN{} | \IS{}
-  \alt\hspace{-3mm} \NEW{} | \NULL{} | \RETHROW{} | \RETURN{} | \SUPER{} |
-    \SWITCH{} | \THIS{} | \THROW{} | \TRUE{} | \TRY{}
-  \alt\hspace{-3mm} \VAR{} | \VOID{} | \WHILE{} | \WITH{}
+<RESERVED\_WORD> ::= \ASSERT{} | \BREAK{} | \CASE{} | \CATCH{} |
+    \CLASS{} | \CONST{}
+  \alt\hspace{-3mm} \CONTINUE{} | \DEFAULT{} | \DO{} | \ELSE{} | \ENUM{} |
+    \EXTENDS{} | \FALSE{} | \FINAL{} | \FINALLY{} | \FOR{}
+  \alt\hspace{-3mm} \IF{} | \IN{} | \IS{} | \NEW{} | \NULL{} | \RETHROW{} |
+    \RETURN{} | \SUPER{} | \SWITCH{} | \THIS{} | \THROW{}
+  \alt\hspace{-3mm} \TRUE{} | \TRY{} | \VAR{} | \VOID{} | \WHILE{} | \WITH{}
 \end{grammar}
+
+\LMHash{}%
+In the grammar, the rule for reserved words above must occur
+before the rule for \synt{BUILT\_IN\_IDENTIFIER}
+(\ref{identifierReference}).
+
+\commentary{%
+This ensures that \synt{IDENTIFIER} and \synt{IDENTIFIER\_NO\_DOLLAR} do not
+derive any reserved words, and they do not derive any built-in identifiers.
+}
 
 
 \subsubsection{Comments}
