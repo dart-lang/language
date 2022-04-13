@@ -9168,7 +9168,7 @@ This process is known as \Index{string interpolation}.
   \alt `${' <expression> `}'
 
 <SIMPLE\_STRING\_INTERPOLATION> ::= \gnewline{}
-  `$' (<IDENTIFIER\_NO\_DOLLAR> | <BUILT\_IN\_IDENTIFIER> | \THIS{})
+  `$' (<IDENTIFIER\_NO\_DOLLAR> | <BUILT\_IN\_IDENTIFIER> | \THIS)
 \end{grammar}
 
 \commentary{%
@@ -16542,7 +16542,8 @@ which implies that \THIS{} should be added.%
 \LMHash{}%
 An \Index{identifier expression} consists of a single identifier;
 it provides access to an object via an unqualified name.
-A \synt{typeIdentifier}
+A \synt{typeIdentifier} is an identifier which can be used
+as the name of a type declaration.
 
 \commentary{%
 A \synt{qualifiedName} is not an identifier expression,
@@ -16622,7 +16623,7 @@ both for human readers and during parsing.%
 
 \LMHash{}%
 It is a compile-time error if either of the identifiers \AWAIT{} or \YIELD{}
-is used as an identifier in a function body
+is used as an \synt{identifier} in a function body
 marked with either \ASYNC, \code{\ASYNC*}, or \code{\SYNC*}.
 
 \rationale{%
