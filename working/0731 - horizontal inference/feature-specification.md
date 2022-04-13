@@ -108,7 +108,7 @@ in Dart today, and it only takes effect if the experiment flag
 
 ### Topological sort
 
-In the algorithm above, the "topological sort" in step 3 works as follows.
+In the algorithm above, the "topological sort" in step 4 works as follows.
 First there is a _dependency analysis_ phase, in which type inference decides
 which invocation arguments might benefit from being type inferred before other
 arguments, and then a _stage selection_ phase, in which type inference groups
