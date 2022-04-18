@@ -774,7 +774,7 @@ class X {
 ```
 
 Normally, macros always run "inside-out". But in this case `@macroC` runs after
-both `@macroB` and `@macroC` which were applied to the class.
+both `@macroB` and `@macroA` which were applied to the class.
 
 We still allow this because it doesn't cause any ambiguity in ordering, even
 though it violates the normal rules. We could instead only allow adding macros
