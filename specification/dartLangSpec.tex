@@ -5839,8 +5839,13 @@ Moreover, a compile-time error occurs in the following situations:
 \item $D$ declares a type parameter named \code{E}.
 \item $D$ declares a member whose basename is the name of a type parameter
   of $D$.
-\item $D$ declares a member (static or not) with the same basename as an
-  instance member declared by the built-in class \code{Object}.
+\item $D$ declares an instance member or a static member whose basename is
+  \code{hashCode}, \code{noSuchMethod}, \code{runtimeType}, or \code{toString}.
+  Or $D$ declares an operator named \lit{==}.
+  \commentary{%
+    That is, a member whose basename is also the name of
+    an instance member that every object has.%
+  }
 \item $D$ declares a constructor.
 \item $D$ declares an instance variable.
 \item $D$ declares an abstract member.
