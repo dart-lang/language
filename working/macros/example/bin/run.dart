@@ -20,12 +20,20 @@ void main() async {
   log('Bootstrapping macro program (${bootstrapFile.path}).');
   var dataClassUri = Uri.parse('package:macro_proposal/data_class.dart');
   var observableUri = Uri.parse('package:macro_proposal/observable.dart');
+  var autoDisposableUri = Uri.parse('package:macro_proposal/auto_dispose.dart');
   var bootstrapContent = bootstrapMacroIsolate({
     dataClassUri.toString(): {
+      'AutoConstructor': [''],
+      'CopyWith': [''],
       'DataClass': [''],
+      'HashCode': [''],
+      'ToString': [''],
     },
     observableUri.toString(): {
       'Observable': [''],
+    },
+    autoDisposableUri.toString(): {
+      'AutoDispose': [''],
     },
   }, SerializationMode.byteDataClient);
   bootstrapFile.writeAsStringSync(bootstrapContent);
@@ -85,6 +93,8 @@ void main() async {
     '$dataClassUri;${bootstrapKernelFile.path}',
     '--precompiled-macro',
     '$observableUri;${bootstrapKernelFile.path}',
+    '--precompiled-macro',
+    '$autoDisposableUri;${bootstrapKernelFile.path}',
     '--macro-serialization-mode=bytedata',
     '--input-linked',
     bootstrapKernelFile.path,

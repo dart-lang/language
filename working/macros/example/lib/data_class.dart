@@ -13,11 +13,11 @@ macro class DataClass
   Future<void> buildDeclarationsForClass(
       ClassDeclaration clazz, ClassMemberDeclarationBuilder context) async {
     await Future.wait([
-      autoConstructor.buildDeclarationsForClass(clazz, context),
-      copyWith.buildDeclarationsForClass(clazz, context),
-      hashCode.buildDeclarationsForClass(clazz, context),
-      equality.buildDeclarationsForClass(clazz, context),
-      toString.buildDeclarationsForClass(clazz, context),
+      AutoConstructor().buildDeclarationsForClass(clazz, context),
+      CopyWith().buildDeclarationsForClass(clazz, context),
+      HashCode().buildDeclarationsForClass(clazz, context),
+      Equality().buildDeclarationsForClass(clazz, context),
+      ToString().buildDeclarationsForClass(clazz, context),
     ]);
   }
 
@@ -25,17 +25,15 @@ macro class DataClass
   Future<void> buildDefinitionForClass(
       ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
     await Future.wait([
-      hashCode.buildDefinitionForClass(clazz, builder),
-      equality.buildDefinitionForClass(clazz, builder),
-      toString.buildDefinitionForClass(clazz, builder),
+      HashCode().buildDefinitionForClass(clazz, builder),
+      Equality().buildDefinitionForClass(clazz, builder),
+      ToString().buildDefinitionForClass(clazz, builder),
     ]);
   }
 }
 
-const autoConstructor = _AutoConstructor();
-
-macro class _AutoConstructor implements ClassDeclarationsMacro {
-  const _AutoConstructor();
+macro class AutoConstructor implements ClassDeclarationsMacro {
+  const AutoConstructor();
 
   @override
   Future<void> buildDeclarationsForClass(
@@ -46,13 +44,14 @@ macro class _AutoConstructor implements ClassDeclarationsMacro {
           'Cannot generate an unnamed constructor because one already exists');
     }
 
-    // Don't use the identifier here because it should just be the raw name.
-    var parts = <Object>[clazz.identifier.name, '.gen({'];
+    var params = <Object>[];
     // Add all the fields of `declaration` as named parameters.
     var fields = await builder.fieldsOf(clazz);
-    for (var field in fields) {
-      var requiredKeyword = field.type.isNullable ? '' : 'required ';
-      parts.addAll(['\n${requiredKeyword}', field.identifier, ',']);
+    if (fields.isNotEmpty) {
+      for (var field in fields) {
+        var requiredKeyword = field.type.isNullable ? '' : 'required ';
+        params.addAll(['\n${requiredKeyword}', field.identifier, ',']);
+      }
     }
 
     // The object type from dart:core.
@@ -78,7 +77,7 @@ macro class _AutoConstructor implements ClassDeclarationsMacro {
       // parameters in this constructor.
       for (var param in superconstructor.positionalParameters) {
         var requiredKeyword = param.isRequired ? 'required' : '';
-        parts.addAll([
+        params.addAll([
           '\n$requiredKeyword',
           param.type.code,
           ' ${param.identifier.name},',
@@ -86,14 +85,24 @@ macro class _AutoConstructor implements ClassDeclarationsMacro {
       }
       for (var param in superconstructor.namedParameters) {
         var requiredKeyword = param.isRequired ? '' : 'required ';
-        parts.addAll([
+        params.addAll([
           '\n$requiredKeyword',
           param.type.code,
           ' ${param.identifier.name},',
         ]);
       }
     }
-    parts.add('\n})');
+
+    bool hasParams = params.isNotEmpty;
+    List<Object> parts = [
+    // Don't use the identifier here because it should just be the raw name.
+      clazz.identifier.name,
+      '.gen(',
+      if (hasParams) '{',
+      ...params,
+      if (hasParams) '}',
+      ')',
+    ];
     if (superconstructor != null) {
       parts.addAll([' : super.', superconstructor.identifier.name, '(']);
       for (var param in superconstructor.positionalParameters) {
@@ -111,11 +120,9 @@ macro class _AutoConstructor implements ClassDeclarationsMacro {
   }
 }
 
-const copyWith = _CopyWith();
-
 // TODO: How to deal with overriding nullable fields to `null`?
-macro class _CopyWith implements ClassDeclarationsMacro {
-  const _CopyWith();
+macro class CopyWith implements ClassDeclarationsMacro {
+  const CopyWith();
 
   @override
   Future<void> buildDeclarationsForClass(
@@ -141,24 +148,25 @@ macro class _CopyWith implements ClassDeclarationsMacro {
           field.identifier,
         ]),
     ];
+    var hasParams = namedParams.isNotEmpty;
     builder.declareInClass(DeclarationCode.fromParts([
       clazz.identifier,
-      ' copyWith({',
+      ' copyWith(',
+      if (hasParams) '{',
       ...namedParams.joinAsCode(', '),
-      ',})',
+      if (hasParams) '}',
+      ')',
       // TODO: We assume this constructor exists, but should check
       '=> ', clazz.identifier, '.gen(',
       ...args.joinAsCode(', '),
-      ', );',
+      ');',
     ]));
   }
 }
 
-const hashCode = _HashCode();
-
-macro class _HashCode
+macro class HashCode
     implements ClassDeclarationsMacro, ClassDefinitionMacro {
-  const _HashCode();
+  const HashCode();
 
   @override
   Future<void> buildDeclarationsForClass(
@@ -189,11 +197,9 @@ macro class _HashCode
   }
 }
 
-const equality = _Equality();
-
-macro class _Equality
+macro class Equality
     implements ClassDeclarationsMacro, ClassDefinitionMacro {
-  const _Equality();
+  const Equality();
 
   @override
   Future<void> buildDeclarationsForClass(
@@ -234,11 +240,10 @@ macro class _Equality
   }
 }
 
-const toString = _ToString();
 
-macro class _ToString
+macro class ToString
     implements ClassDeclarationsMacro, ClassDefinitionMacro {
-  const _ToString();
+  const ToString();
 
   @override
   Future<void> buildDeclarationsForClass(
