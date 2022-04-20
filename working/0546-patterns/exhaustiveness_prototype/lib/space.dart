@@ -28,7 +28,7 @@ abstract class Space {
       // implementation would likely define hash code too and then simply
       // create a hash set to merge duplicates in O(n) time.
       for (var existing in allArms) {
-        if (equal(existing, space)) return;
+        if (equal(existing, space, 'dedupe union')) return;
       }
 
       allArms.add(space);

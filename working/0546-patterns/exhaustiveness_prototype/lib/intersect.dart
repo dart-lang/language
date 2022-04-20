@@ -1,15 +1,17 @@
 // Copyright (c) 2022, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-import 'package:exhaustiveness_prototype/static_type.dart';
-
+import 'profile.dart' as profile;
 import 'space.dart';
+import 'static_type.dart';
 
 /// Calculates the intersection of [left] and [right].
 ///
 /// This is used to tell if two field spaces on a pair of spaces being
 /// subtracted have no common values.
 Space intersect(Space left, Space right) {
+  profile.count('intersect');
+
   // The intersection with an empty space is always empty.
   if (left == Space.empty) return Space.empty;
   if (right == Space.empty) return Space.empty;

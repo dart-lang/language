@@ -1,14 +1,17 @@
 // Copyright (c) 2022, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-import 'package:exhaustiveness_prototype/intersect_empty.dart';
-import 'package:exhaustiveness_prototype/static_type.dart';
+import 'intersect_empty.dart';
+import 'profile.dart' as profile;
+import 'static_type.dart';
 
 import 'space.dart';
 
 /// Returns a new [Space] that contains all of the values of [left] that are
 /// not also in [right].
 Space subtract(Space left, Space right) {
+  profile.count('subtract');
+
   // Subtracting from empty is still empty.
   if (left == Space.empty) return Space.empty;
 
@@ -96,7 +99,6 @@ List<Space> _subtractExtractAtType(StaticType type, ExtractSpace left,
 
   // Walk the fields and see which ones are modified by the right-hand fields.
   var fixed = <String, Space>{};
-  var changedLeft = <String, Space>{};
   var changedDifference = <String, Space>{};
   for (var name in fieldNames) {
     var difference = subtract(leftFields[name]!, rightFields[name]!);
@@ -108,18 +110,17 @@ List<Space> _subtractExtractAtType(StaticType type, ExtractSpace left,
       // If the resulting field matches everything, simply discard it since
       // it's equivalent to omitting the field.
     } else {
-      changedLeft[name] = leftFields[name]!;
       changedDifference[name] = difference;
     }
   }
 
   // If no fields are affected by the subtraction, just return a single arm
   // with all of the fields.
-  if (changedLeft.isEmpty) return [Space(type, fixed)];
+  if (changedDifference.isEmpty) return [Space(type, fixed)];
 
   // For each field whose `left - right` is different, include an arm that
   // includes that one difference.
-  var changedFields = changedLeft.keys.toList();
+  var changedFields = changedDifference.keys.toList();
   var spaces = <Space>[];
   for (var i = 0; i < changedFields.length; i++) {
     var fields = {...fixed};
@@ -129,7 +130,7 @@ List<Space> _subtractExtractAtType(StaticType type, ExtractSpace left,
       if (i == j) {
         fields[name] = changedDifference[name]!;
       } else {
-        fields[name] = changedLeft[name]!;
+        fields[name] = leftFields[name]!;
       }
     }
 

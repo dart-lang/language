@@ -1,13 +1,16 @@
 // Copyright (c) 2022, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
+import 'profile.dart' as profile;
 import 'space.dart';
 
 /// Returns `true` if [left] and [right] are equivalent spaces.
 ///
 /// Equality is defined purely structurally/syntactically.
-bool equal(Space left, Space right) {
-  if (left == right) return true;
+bool equal(Space left, Space right, String reason) {
+  profile.count('equal', reason);
+
+  if (identical(left, right)) return true;
 
   // Empty is only equal to itself (and will get caught by the previous check).
   if (left == Space.empty) return false;
@@ -35,7 +38,7 @@ bool _equalUnions(UnionSpace left, UnionSpace right) {
   for (var leftArm in left.arms) {
     var found = false;
     for (var rightArm in right.arms) {
-      if (equal(leftArm, rightArm)) {
+      if (equal(leftArm, rightArm, 'recurse union')) {
         found = true;
         break;
       }
@@ -58,7 +61,9 @@ bool _equalExtracts(ExtractSpace left, ExtractSpace right) {
   if (right.fields.length != fields.length) return false;
 
   for (var field in fields) {
-    if (!equal(left.fields[field]!, right.fields[field]!)) return false;
+    if (!equal(left.fields[field]!, right.fields[field]!, 'recurse extract')) {
+      return false;
+    }
   }
 
   return true;
