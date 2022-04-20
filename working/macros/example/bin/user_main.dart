@@ -5,6 +5,7 @@
 import 'dart:math';
 
 import 'package:macro_proposal/data_class.dart';
+import 'package:macro_proposal/observable.dart';
 
 void main() {
   var rand = Random();
@@ -21,6 +22,11 @@ void main() {
   var phoenix =
       joe.copyWith(name: 'Phoenix', age: rand.nextInt(100), reports: [joe]);
   print(phoenix);
+
+  var observableUser = ObservableUser(age: 10, name: 'Georgio');
+  observableUser
+    ..age = 11
+    ..name = 'Greg';
 }
 
 @DataClass()
@@ -33,4 +39,18 @@ class User {
 @DataClass()
 class Manager extends User {
   final List<User> reports;
+}
+
+class ObservableUser {
+  @Observable()
+  int _age;
+
+  @Observable()
+  String _name;
+
+  ObservableUser({
+    required int age,
+    required String name,
+  })  : _age = age,
+        _name = name;
 }

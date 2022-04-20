@@ -19,10 +19,14 @@ void main() async {
       File(dartToolDir.uri.resolve('bootstrap.dart').toFilePath());
   log('Bootstrapping macro program (${bootstrapFile.path}).');
   var dataClassUri = Uri.parse('package:macro_proposal/data_class.dart');
+  var observableUri = Uri.parse('package:macro_proposal/observable.dart');
   var bootstrapContent = bootstrapMacroIsolate({
     dataClassUri.toString(): {
       'DataClass': [''],
-    }
+    },
+    observableUri.toString(): {
+      'Observable': [''],
+    },
   }, SerializationMode.byteDataClient);
   bootstrapFile.writeAsStringSync(bootstrapContent);
   var bootstrapKernelFile =
@@ -75,9 +79,12 @@ void main() async {
     '--source',
     Platform.script.resolve('user_main.dart').toFilePath(),
     '--packages-file=.dart_tool/package_config.json',
+    '--enable-experiment=macros',
     '--precompiled-macro-format=kernel',
     '--precompiled-macro',
     '$dataClassUri;${bootstrapKernelFile.path}',
+    '--precompiled-macro',
+    '$observableUri;${bootstrapKernelFile.path}',
     '--macro-serialization-mode=bytedata',
     '--input-linked',
     bootstrapKernelFile.path,
