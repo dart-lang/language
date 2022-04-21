@@ -4,6 +4,7 @@
 
 import 'dart:math';
 
+import 'package:macro_proposal/auto_dispose.dart';
 import 'package:macro_proposal/data_class.dart';
 import 'package:macro_proposal/observable.dart';
 
@@ -27,6 +28,9 @@ void main() {
   observableUser
     ..age = 11
     ..name = 'Greg';
+
+  var state = MyState.gen(a: ADisposable(), b: BDisposable(), c: 'hello world');
+  state.dispose();
 }
 
 @DataClass()
@@ -53,4 +57,33 @@ class ObservableUser {
     required String name,
   })  : _age = age,
         _name = name;
+}
+
+// TODO: remove @AutoConstructor once we can, today it is required.
+@AutoConstructor()
+class State {
+  void dispose() {
+    print('disposing of State $this');
+  }
+}
+
+@AutoDispose()
+@AutoConstructor()
+class MyState extends State {
+  final ADisposable a;
+  final ADisposable? a2;
+  final BDisposable b;
+  final String c;
+}
+
+class ADisposable implements Disposable {
+  void dispose() {
+    print('disposing of ADisposable');
+  }
+}
+
+class BDisposable implements Disposable {
+  void dispose() {
+    print('disposing of BDisposable');
+  }
 }
