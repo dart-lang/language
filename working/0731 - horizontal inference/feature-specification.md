@@ -6,10 +6,13 @@ Horizontal inference allows certain arguments of an invocation (specifically
 function literals) to be type inferred in a context derived from the type of
 other arguments.
 
+This functionality will initially be guarded by the experimental flag
+`inference-update-1`.
+
 ## Motivation
 
-The key motivating example is the Iterable.fold method, which has the following
-signature:
+The key motivating example is the `Iterable.fold` method, which has the
+following signature:
 
 ```dart
 abstract class Iterable<E> {
@@ -45,74 +48,236 @@ Then, when it proceeds to perform type inference on the function literal, the
 type context is `int Function(int, int)`.  This results in `a` being assigned a
 static type of `int`, which is what the user intends.
 
+## Terminology
+
+In this document we make use of the following terms:
+
+- An "invocation" is any of the following syntactic constructs, as defined in
+  the [language specification][].  Note that all of these syntactic constructs
+  end in a list of arguments (_\<arguments\>_):
+
+  - A constructor _\<redirection\>_.
+
+  - An _\<initializerListEntry\>_ of the form **super** _\<arguments\>_ or
+    **super** `.` _\<identifier\>_ _\<arguments\>_.
+
+  - A _\<metadatum\>_ of the form _\<constructorDesignation\>_ _\<arguments\>_.
+
+  - A _\<newExpression\>_, _\<constObjectExpression\>_, or
+    _\<constructorInvocation\>_.
+
+  - A _\<primary\>_ of the form **super** _\<argumentPart\>_.
+
+  - An _\<expression\>_ followed by a _\<selector\>_ of the form
+    _\<argumentPart\>_.
+
+- The "target" of an invocation is the syntactic construct immediately to the
+  left of the invocation's _\<arguments\>_.
+
+- A "constructor invocation" is an invocation whose target refers to a
+  constructor.  This corresponds to the syntactic forms _\<redirection\>_,
+  _\<initializerListEntry\>_, _\<metadatum\>_, _\<newExpression\>_,
+  _\<constObjectExpression\>_, and _\<constructorInvocation\>_.
+
+- A "non-constructor invocation" is any other invocation.  For non-constructor
+  invocations, the target always takes the syntactic form of an expression,
+  though it may not actually have expression semantics (e.g. in the case where
+  the target refers to a top level function or static method).
+
+- The "target function type" of an invocation is the type of the invocation's
+  target, if it is a function type.  For constructor invocations, this is the
+  function type of the corresponding constructor.  For non-constructor
+  invocations, the target function type is determined as part of type inference,
+  as specified below.
+
+- A "dynamic invocation" is a non-constructor invocation that has no target
+  function type.
+
+- "Type inference" is a phase of compilation in which a static type is assigned
+  to each expression in a Dart program.  It is defined in the [Top-level and
+  local type inference][inference] document.
+
+- The "type inference algorithm" is a recursive process of visiting all the
+  statements and expressions in the program in a well-defined order, with the
+  nesting structure of the recursion reflecting the nesting structure of
+  statements and expressions in the program's syntax tree.  The precise order in
+  which statements and expressions are visited is defined in the [flow
+  analysis][] document.  Note that this document is unfinished; one particular
+  piece of information missing from it is the precise order in which arguments
+  to an invocation are visited.  This proposal supplies that information.
+
+- To "perform inference" on a given expression or statement means to execute the
+  portion of the type inference algorithm that visits that expression or
+  statement.
+
+- A "type schema" (defined [here][type schemas]) is a generalization of the
+  normal Dart type syntax, extended with a type known as "the unknown type"
+  (denoted `_`), which allows representation of incomplete type information.
+
+- An expression's "type context" is a type schema representing what is known
+  about the probable type of the expression just before the portion of the type
+  inference algorithm that visits it.  This, together with other information
+  defined in [flow analysis][], constitutes the _input_ to the corresponding
+  type inference step.
+
+- An "implicit type argument" is a type argument to a generic invocation whose
+  precise value is not directly specified in code, but is instead determined
+  automatically by the compiler during type inference.
+
+- A "type constraint" (defined [here][type constraints]) is a limitation on the
+  possible values that may be assigned to an implicit type argument.
+
+- "Subtype constraint generation" (defined [here][subtype constraint
+  generation]) is an operation on two type schemas that produces a set of type
+  constraints by attempting to make one type schema a subtype of another.  The
+  rules for subtype constraint generation all take the form "`P` is a subtype
+  match for `Q` with respect to the type variables `L` under constraints `C`".
+  In this document, we invoke subtype constraint generation through the phrase
+  "try to match `P` as a subtype of `Q`" (implicitly the set of type variables
+  `L` is the set of generic type parameters of the target function type).
+
+- The "constraint solution for a type variable" (defined [here][constraint
+  solution for a type variable]) is a preliminary assignment of a type schema to
+  a type variable based on a set of constraints.  It may contain occurrences of
+  the unknown type.
+
+- The "grounded constraint solution for a type variable" (defined
+  [here][grounded constraint solution for a type variable]) is a final
+  assignment of a type to a type schema based on a set of constraints.  It is a
+  type, not a type schema, so it may not contain occurrences of the unknown
+  type.
+
+- The "(possibly grounded) constraint solution for a set of type variables,
+  considering bounds" is a mapping from type variables to type schemas (or, in
+  the grounded case, types), formed from a set of constraints.  Each type
+  variable is mapped to the result of solving the constraints that apply to it
+  (according to one of the two bullets above), plus an additional constraint
+  based on the bound of the type variable.  Since the bounds of some type
+  variables may depend on the values of others, the exact algorithm for this is
+  subtle, and depends on the order in which the type variables are considered.
+  The exact algorithm is outside the scope of this document; unfortunately I
+  haven't found an exact specification for it.
+
+- A "function literal expression" is a syntactic construct that consists of a
+  _\<functionExpression\>_, possibly enclosed in parentheses, and possibly
+  associated with an argument name.  Precisely, a syntactic construct is a
+  direct function literal iff it takes one of the following syntactic forms:
+
+  - A _\<functionExpression\>_.
+
+  - A _\<namedArgument\>_, where the _\<expression\>_ part is a direct function
+    literal.
+
+  - `(` _\<expression\>_ `)`, where the _\<expression\>_ part is a direct
+    function literal.
+
+[language specification]: https://dart.dev/guides/language/spec
+[inference]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md
+[flow analysis]: https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md#flow-analysis
+[type schemas]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#type-schemas
+[type constraints]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#type-constraints
+[subtype constraint generation]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#subtype-constraint-generation
+[constraint solution for a type variable]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#constraint-solution-for-a-type-variable
+[grounded constraint solution for a type variable]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#grounded-constraint-solution-for-a-type-variable
+
 ## Type inference algorithm for invocations
 
-The full algorithm for type inference of invocations is expanded as follows.
-This algorithm is used for constructor invocations (including those in
-annotations, super-constructor calls, and constructor redirects), method
-invocations (including super calls), and invocations of function-typed
-expressions.
+_Since the full algorithm for type inference of invocation has not been
+previously specified, this section specifies it in its entirety.  Afterwards
+I'll make a note of the differences from language version 2.18._
 
-1. Initial constraints: Create some constraints on type parameters by trying to
-   match the return type of the invocation target as a subtype of the incoming
-   type context.  (For a constructor invocation, the return type of the
-   invocation target is considered the raw uninstantiated type of the class
-   enclosing the constructor declaration.)
+Performing type inference on an invocation consists of the following steps:
 
-2. Downwards inference: partially solve the set of type constraints accumulated
-   in step 1, to produce a preliminary mapping of type parameters to type
-   schemas.
-   
-3. Visit arguments (legacy): If experiment flag `inference-update-1` is not
-   enabled, recursively perform inference on all arguments to the invocation in
-   source order.  Obtain the type contexts for the recursive inference by
-   substituting the preliminary mapping (from step 2) into the corresponding
-   parameter types of the invocation target.  For each argument that is
-   recursively inferred, create additional constraints on type parameters using
-   the resulting static type.  Then proceed to step 5.
+1. If the invocation is a non-constructor invocation, perform type inference on
+   its target, supplying a type context of `_`.  If the resulting type is a
+   function type, this becomes the target function type.  Otherwise, the
+   invocation is a dynamic invocation and has no target function type.  _Note
+   that barring compilation errors, dynamic invocations can only occur if the
+   target has a type of `dynamic` or `Function`._
 
-4. Visit arguments (new): If experiment flag `inference-update-1` is enabled,
-   topologically sort the arguments into stages (see [topological
-   sort](#Topological-sort) below), and then for each stage, do the following:
+2. Determine if generic inference is needed.  Generic inference is needed iff
+   the following conditions are all met:
 
-   * Recursively infer all arguments selected for this stage that are not
-     function literals (see [what constitutes a function
-     literal?](#what-constitutes-a-function-literal), in source order.  (Note
-     that an invariant of the topological sort is that non-function literals are
-     always placed in the first stage).  The logic for obtaining type contexts
-     and for creating additional constraints is the same as in step 3.
+   - There is a target function type.
 
-   * Recursively infer all arguments selected for this stage that are function
-     literals, in source order.
+   - The target function type is generic.
 
-   * Horizontal inference: if this is not the last stage, partially solve the
-     set of type constraints accumulated so far, to produce an updated
-     preliminary mapping of type parameters to type schemas.  Otherwise proceed
-     to step 5.
+   - The invocation does not explicitly specify type arguments using the
+     _\<typeArguments\>_ syntax.
 
-5. Upwards inference: solve the set of type constraints accumulated so far, to
-   produce a final mapping of type parameters to types.  Check that each type is
-   a subtype of the bound of its corresponding type parameter.
+3. Initial constraints and downwards inference: if generic inference is needed,
+   try to match the return type of the target function type as a subtype of the
+   invocation's type context.  This produces an initial set of type constraints.
+   Then, using those constraints, find the constraint solution for the target
+   function type's type variables, considering bounds.  This produces a
+   preliminary mapping of type variables to type schemas.
+
+4. Visit arguments: Partition the arguments into stages (see [argument
+   partitioning](#Argument-partitioning) below), and then for each stage _k_, do
+   the following:
+
+   * Compute the type context for all invocation arguments in stage _k_.  If
+     generic inference is needed, these contexts are obtained by substituting
+     the preliminary mapping (from the most recent "downwards inference" or
+     "horizontal inference" step) into the corresponding parameter type from the
+     target function type.  Otherwise, if there is a target function type and
+     there are explicit type arguments, they are obtained by substituting the
+     explicit type arguments into the parameter type.  Otherwise, if there is a
+     target function type and no explicit type arguments _(this case can only
+     happen if the target function type is non-generic)_, the parameter type is
+     used directly.  Finally, in the case where this is a dynamic invocation,
+     each type context is `_`.
+
+   * Perform type inference on all invocation arguments in stage _k_ that are
+     not function literal expressions, in source order.  _Note that an invariant
+     of the partitioning is that arguments that are not function literal
+     expressions are always placed in stage zero._
+
+   * Perform type inference on all arguments selected for stage _k_ that are
+     function literal expressions, in source order.  _Note that we do not
+     believe the order of performing type inference on function literal
+     expressions to be user-visible, but we specify source order anyway, to
+     reduce the risk of unpredictable behavior._
+
+   * Constraint generation: if generic inference is needed, try to match the
+     static type of each of the arguments selected for stage _k_ with the
+     corresponding parameter type from the target function type.  This produces
+     additional type constraints beyond those gathered in step 3.
+
+   * Horizontal inference: if generic inference is needed, and this is not the
+     last stage, use all the type constraints gathered so far to find the
+     constraint solution for the target function's type variables, considering
+     bounds.  This produces an updated preliminary mapping of type parameters to
+     type schemas.
+
+5. Upwards inference: if generic inference is needed, use all the type
+   constraints gathered so far to find the **grounded** constraint solution for
+   the target function's type variables, considering bounds.  This produces the
+   final mapping of type parameters to type schemas.  Check that each type is a
+   subtype of the bound of its corresponding type parameter.
 
 6. Type checking: Check that the static type of each argument is assignable to
    the type obtained by substituting the final mapping (from step 5) into the
    corresponding parameter type of the invocation target.
 
-7. Assign static type: Finally, obtain the static type of the invocation by
-   substituting the final mapping (from step 5) into the return type of the
-   invocation target.
+7. Compute static type: Finally, the static type of the invocation expression is
+   computed as follows.  If generic inference was needed, the static type is
+   obtained by substituting the final mapping (from step 5) into the return type
+   of the target function type.  Otherwise, if there is a target function type
+   and there are explicit type arguments, it is obtained by substituting the
+   explicit type arguments into the parameter type.  Otherwise, if there is a
+   target function type and no explicit type arguments _(this can only happen if
+   the target function type is non-generic)_, the static type is the return type
+   of the target function type.  Finally, in the case where this is a dynamic
+   invocation, the static type is `dynamic`.
 
-(Note that step 4 is the only step that differs from the inference implemented
-in Dart today, and it only takes effect if the experiment flag
-`inference-update-1` is enabled, hence this feature is backward compatible.)
+### Argument partitioning
 
-### Topological sort
-
-In the algorithm above, the "topological sort" in step 4 works as follows.
+In the algorithm above, the argument partitioning in step 4 works as follows.
 First there is a _dependency analysis_ phase, in which type inference decides
 which invocation arguments might benefit from being type inferred before other
-arguments, and then a _stage selection_ phase, in which type inference groups
-the arguments into stages.
+arguments, and then a _stage selection_ phase, in which type inference
+partitions the arguments into stages.
 
 #### Dependency analysis
 
@@ -120,18 +285,17 @@ First, we form a dependency graph among the invocation arguments based on the
 following rule: there is a dependency edge from argument _A_ to argument _B_ if
 and only if the type of the invocation target is generic, and the following
 relationship exists among _A_, _B_, and at least one of the invocation target’s
-type formals _T_:
+type parameters _T_:
 
-1. _A_ is a function literal (see [what constitutes a function
-   literal?](#what-constitutes-a-function-literal))
+1. _A_ is a function literal expression,
 
 2. AND the parameter in the invocation target corresponding to _A_ is function
    typed,
 
-3. AND _T_ is a free variable in at least one of the parameters of that function
-   type,
+3. AND _T_ is a free variable in the type of at least one of the parameters of
+   that function type,
 
-4. AND the corresponding parameter in _A_ is implicitly typed,
+4. AND the corresponding parameter in _A_ does not have a type annotation,
 
 5. AND EITHER:
 
@@ -141,21 +305,21 @@ type formals _T_:
    * OR the parameter in the invocation target corresponding to _B_ is _not_
      function typed, and _T_ is a free variable in its type.
 
-(The idea here is that we're trying to draw a dependency edge from _A_ to _B_ in
+_The idea here is that we're trying to draw a dependency edge from A to B in
 precisely those cirumstances in which there is likely to be a benefit to
-performing a round of horizontal inference between type inferring _A_ and type
-inferring _B_).
+performing a round of horizontal inference after type inferring A and before
+type inferring B._
 
 If the type of the invocation target is `dynamic` or the `Function` class, or
 some non-generic function type, then the resulting graph has no edges.
 
-So, for example, if the invocation in question is this:
+_So, for example, if the invocation in question is this:_
 
 ```dart
 f((t, u) { ... } /* A */, () { ... } /* B */, (v) { ... } /* C */, (u) { ... } /* D */)
 ```
 
-And the target of the invocation is declared like this:
+_And the target of the invocation is declared like this:_
 
 ```dart
 void f<T, U, V>(
@@ -165,60 +329,76 @@ void f<T, U, V>(
     V Function(U) d) => ...;
 ```
 
-then the resulting dependency graph looks like this:
+_then the resulting dependency graph looks like this:_
 
 &emsp;B &lArr; A &rArr; C &hArr; D
 
-(That is, there are four edges, one from A to B, one from A to C, one from C to D, and one from D to C).
+_(That is, there are four edges, one from A to B, one from A to C, one from C to D, and one from D to C)._
 
 #### Stage selection
 
 After building the dependency graph, we condense it into its strongly connected
 components (a.k.a. "dependency cycles").  The resulting condensation is
-[guaranteed to be acyclic] (that is, the nodes in each strongly connected
-component depend transitively on each other and possibly on the nodes in other
-strongly connected components, but no cycle exists among multiple strongly
-connected components).  For the example above, C and D are condensed into a
-single strongly connected component, so the graph now looks like this:
+[guaranteed to be acyclic] (that is, considering the nodes of the condensed
+graph, the arguments in each node depend transitively on each other, and
+possibly on the arguments in other nodes, but no dependency cycle exists between
+one node and another).
 
 [guaranteed to be acyclic]: https://en.wikipedia.org/wiki/Strongly_connected_component#Definitions
 
-&emsp;(B) &lArr; (A) &rArr; (C &hArr; D)
+_For the example above, C and D are condensed into a single node, so the graph
+now looks like this:_
 
-Then, for each stage of inference, we find all the strongly connected components
-with no graph edges pointing to them, and remove them from the graph.  We repeat
-the process for successive stages, until no strongly connected components remain
-in the graph.  The set of arguments we will recursively infer during each stage
-is the union of the arguments in all the strongly connected components removed
-from the graph during that stage.
+&emsp;{B} &lArr; {A} &rArr; {C, D}
 
-In this example, that means that there will be two stages.  The first stage will
+Now, the nodes are grouped into stages as follows.  Stage zero consists of the
+arguments from all nodes that have no incoming edges.  Then, those nodes are
+removed from the graph, along with all their outgoing edges.  For each of the
+following stages, we follow the same procedure: from the graph produced by stage
+_k_, let stage _k+1_ be the set of arguments from all nodes that have no
+incoming edges, then delete those nodes and their outcoming edges to produce a
+newly reduced graph.  We repeat this until the graph is empty.
+
+_In this example, that means that there will be two stages.  The first stage will
 consist of argument A, and the second stage will consist of arguments B, C, and
-D.
+D._
 
-(Note that the invariant mentioned earlier, that non-function literals are
+_The intuitive justification for this algorithm is that by condensing the
+dependency graph into strongly connected components, we ensure that, in the
+absence of dependency cycles, dependency arcs always go from earlier stages to
+later stages; in other words we obtain each bit of information before it is
+needed, if possible.  In the event that it's not possible due to a dependency
+cycle, we group all arguments in the dependency cycle into the same stage, which
+reproduces the previous behavior of the Dart language._
+
+_(Note that the invariant mentioned earlier, that non-function literals are
 always placed in the first stage, is guaranteed by the fact that dependency
-analysis only draws an edge from _A_ to _B_ if _A_ is a function literal.)
+analysis only draws an edge from A to B if A is a function literal.)_
 
-### What constitutes a function literal?
+## Additional information
 
-The determination of whether an argument is a function literal is made
-syntactically.  An argument is a function literal if it is produced by one of
-the following grammar productions (as described in the language specification):
+_The remaining sections are intended to give context and additional information;
+they are non-normative._
 
-* _\<functionExpression\>_
+### Differences from language version 2.18
 
-* _\<namedArgument\>_, where the _\<expression\>_ part is a function literal.
-
-* `(` _\<expression\>_ `)`, where the _\<expression\>_ part is a function
-  literal.
+_The behavior of language version 2.18 may be recovered by modifying step 4
+[Type inference algorithm for
+invocations](#type-inference-algorithm-for-invocations) ("visit arguments") as
+follows: perform type inference on all invocation arguments in source order,
+regardless of whether they are function literal expressions, and do not do any
+horizontal inference.  Today, since the feature is not yet enabled, the
+implementations behave in this way when the experiment flag `inference-update-1`
+is not enabled.  Once the experiment flag has been enabled by default, the
+implementations will behave in this way when the Dart language version is less
+than the version number in which that flag was turned on._
 
 ### Why is it safe to alter the visit order?
 
-Note that in most cases, flow analysis depends critically on the fact that type
+_Note that in most cases, flow analysis depends critically on the fact that type
 inference visits subexpressions in the same order they are evaluated.  For
 example, in the following code, the first argument to `f` requires a null check,
-because `int?` does not support `operator +`.
+because `int?` does not support `operator +`._
 
 ```dart
 void f(int i, int j) { ... }
@@ -227,36 +407,37 @@ void g(int? i) {
 }
 ```
 
-If type inference instead visited the `i = 0` argument first, the `!` would be
+_If type inference instead visited the `i = 0` argument first, the `!` would be
 considered unnecessary (because `i = 0` promotes the type of `i` to non-nullable
 `int`), so we would be permitted to write `f(i + 1, i = 0)`.  However, this
 would fail at runtime, because arguments are evaluated in source order, so `i +
-1` is evaluated before `i = 0`.
+1` is evaluated before `i = 0`._
 
-In general, we risk these sorts of breakages any time we change the order in
+_In general, we risk these sorts of breakages any time we change the order in
 which we perform type inference on invocation arguments.  However, there's an
 exception for arguments that are function literals: they may be safely
-re-ordered within the invocation, because the act of _evaluating_ a function
+re-ordered within the invocation, because the act of **evaluating** a function
 literal doesn't actually have any runtime effect.  The runtime effect doesn't
-happen until the function literal is _called_, and the earliest this can
-possibly happen until after all the invocation arguments have been evaluated.
+happen until the function literal is **called**, and the earliest this can
+possibly happen until after all the invocation arguments have been evaluated._
 
-This is why the invariant mentioned above (that non-function literals are always
+_This is why the invariant mentioned above (that non-function literals are always
 placed in the first stage) is critically important&mdash;it guarantees that the
-only arguments that will be type inferred out of order are function literals.
+only arguments that will be type inferred out of order are function literals._
 
 ### Why do we defer all function literals?
 
-In step 4 of [Type inference algorithm for
-invocations](#type-inference-algorithm-for-invocations), non-function literals
-are always visited before function literals, even within a single stage.  The
-reason for this is that it guarantees that regardless of the dependencies among
-the arguments, type inference will always visit all non-function literal
-arguments before all function literal arguments.
+_In step 4 of [Type inference algorithm for
+invocations](#type-inference-algorithm-for-invocations), arguments that are not
+function literal expressions are always visited before arguments that are
+function literal expressions, even within a single stage.  The reason for this
+is that it guarantees that regardless of the dependencies among the arguments,
+type inference will always visit all non-(function literal) arguments before all
+function literal arguments._
 
-This guarantee leads to a modest improvement in flow analysis: if a function
+_This guarantee leads to a modest improvement in flow analysis: if a function
 literal captures a write to a variable, causing the variable to be demoted, the
-demotion won’t take effect until after all invocation arguments.  For example:
+demotion won’t take effect until after all invocation arguments.  For example:_
 
 ```dart
 void f(void Function() callback, int i) { ... }
@@ -272,18 +453,32 @@ void test(int? i) {
 }
 ```
 
-This is sound for the same reason that altering the visit order of function
-literals is safe: because the function literal can't actually be _called_ until
+_This is sound for the same reason that altering the visit order of function
+literals is safe: because the function literal can't actually be **called** until
 after all the invocation arguments have been evaluated.  So when `i + 1` is
-evaluated, `i` is guaranteed to still be non-null.
+evaluated, `i` is guaranteed to still be non-null._
 
-To avoid inconsistent behavior between generic and non-generic invocations, we
+_To avoid inconsistent behavior between generic and non-generic invocations, we
 defer type inference of function literals in all invocations, even if the
-invocation target isn’t generic.
-
-
+invocation target isn’t generic._
 
 ## Changelog
+
+### 1.1
+
+- Add "terminology" section, with references to other docs, and improve
+  nomenclature consistency elsewhere in the document.
+
+- Do not attempt to specify both the new and old algorithms; instead just
+  specify the new algorithm and note how the old algorithm differs in
+  non-normative text.
+
+- Clarify that the type inference stages constitute a _partition_ of the
+  arguments.
+
+- Ensure that all non-normative text is italicized.
+
+- Minor additional clean-ups.
 
 ### 1.0
 
