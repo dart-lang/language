@@ -307,8 +307,8 @@ type parameters _T_:
 
 _The idea here is that we're trying to draw a dependency edge from A to B in
 precisely those cirumstances in which there is likely to be a benefit to
-performing a round of horizontal inference after type inferring A and before
-type inferring B._
+performing a round of horizontal inference after type inferring B and before
+type inferring A._
 
 If the type of the invocation target is `dynamic` or the `Function` class, or
 some non-generic function type, then the resulting graph has no edges.
@@ -352,16 +352,16 @@ now looks like this:_
 &emsp;{B} &lArr; {A} &rArr; {C, D}
 
 Now, the nodes are grouped into stages as follows.  Stage zero consists of the
-arguments from all nodes that have no incoming edges.  Then, those nodes are
-removed from the graph, along with all their outgoing edges.  For each of the
+arguments from all nodes that have no outgoing edges.  Then, those nodes are
+removed from the graph, along with all their incoming edges.  For each of the
 following stages, we follow the same procedure: from the graph produced by stage
 _k_, let stage _k+1_ be the set of arguments from all nodes that have no
-incoming edges, then delete those nodes and their outcoming edges to produce a
+outgoing edges, then delete those nodes and their incoming edges to produce a
 newly reduced graph.  We repeat this until the graph is empty.
 
-_In this example, that means that there will be two stages.  The first stage will
-consist of argument A, and the second stage will consist of arguments B, C, and
-D._
+_In this example, that means that there will be two stages.  The first stage
+will consist of arguments B, C, and D, and the second stage will consist of
+argument A._
 
 _The intuitive justification for this algorithm is that by condensing the
 dependency graph into strongly connected components, we ensure that, in the
