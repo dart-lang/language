@@ -466,6 +466,9 @@
 \newcommand{\SubtypeStd}[2]{\Subtype{\Delta}{#1}{#2}}
 % Subtype judgment where the environment is omitted (NE: "no environment").
 \newcommand{\SubtypeNE}[2]{\ensuremath{{#1}\,<:\,{#2}}}
+\newcommand{\MutualSubtype}[3]{\ensuremath{{#1}\vdash{#2}\,<:>\,{#3}}}
+\newcommand{\MutualSubtypeStd}[2]{\MutualSubtype{\Delta}{#1}{#2}}
+\newcommand{\MutualSubtypeNE}[2]{\ensuremath{{#1}\,<:>\,{#2}}}
 
 % Judgment expressing that a supertype relation exists.
 \newcommand{\Supertype}[3]{\ensuremath{{#1}\vdash{#2}\,:>\,{#3}}}
