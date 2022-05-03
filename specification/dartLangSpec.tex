@@ -23682,7 +23682,8 @@ In each of these function definitions,
 the first applicable case must be used.
 
 \LMHash{}%
-The \Index{\TopMergeTypeName} of two types computes
+The \IndexCustom{\TopMergeTypeName}{topMergeType@\TopMergeTypeName}
+of two types computes
 a canonical type which represents both of them,
 in the case where they are structurally identical
 modulo the choice among top types.
@@ -23747,7 +23748,8 @@ and then recursively taking \TopMergeTypeName{} of the rest.
 \commentary{The ordering of the arguments makes no difference.}
 
 \LMHash{}%
-The \Index{\IsTopTypeName} predicate is true for any type which is in
+The \IndexCustom{\IsTopTypeName}{isTopType@\IsTopTypeName}
+predicate is true for any type which is in
 the equivalence class of top types.
 It is a syntactic characterization of top types
 (\ref{superBoundedTypes}).
@@ -23761,8 +23763,9 @@ It is a syntactic characterization of top types
 \end{itemize}
 
 \noindent
-The \Index{\IsObjectTypeName} predicate is true if{}f
-the argument is a subtype and a supertype of \code{Object}.
+The \IndexCustom{\IsObjectTypeName}{isObjectType@\IsObjectTypeName}
+predicate is true if{}f the argument is
+a subtype and a supertype of \code{Object}.
 
 \begin{itemize}
 \item \DefEquals{\IsObjectType{Object}}{\metavar{true}}.
@@ -23771,8 +23774,8 @@ the argument is a subtype and a supertype of \code{Object}.
 \end{itemize}
 
 \noindent
-The \Index{\IsBottomTypeName} predicate is true if{}f
-the argument is a subtype of \code{Never}.
+The \IndexCustom{\IsBottomTypeName}{isBottomType@\IsBottomTypeName}
+predicate is true if{}f the argument is a subtype of \code{Never}.
 
 \begin{itemize}
 \item \DefEquals{\IsBottomType{Never}}{\metavar{true}}.
@@ -23782,8 +23785,9 @@ the argument is a subtype of \code{Never}.
 \end{itemize}
 
 \noindent
-The \Index{\IsNullTypeName} predicate is true if{}f
-the argument is a subtype and a supertype of \code{Null}.
+The \IndexCustom{\IsNullTypeName}{isNullType@\IsNullTypeName}
+predicate is true if{}f the argument is
+a subtype and a supertype of \code{Null}.
 
 \begin{itemize}
 \item \DefEquals{\IsNullType{Null}}{\metavar{true}}.
@@ -23792,8 +23796,8 @@ the argument is a subtype and a supertype of \code{Null}.
 \end{itemize}
 
 \noindent
-The \Index{\IsMoreTopTypeName} predicate defines a total order on
-top and \code{Object} types.
+The \IndexCustom{\IsMoreTopTypeName}{isMoreTopType@\IsMoreTopTypeName}
+predicate defines a total order on top and \code{Object} types.
 
 \begin{itemize}
 \item \DefEquals{\IsMoreTopType{\VOID}{$T$}}{\metavar{true}}.
@@ -23810,8 +23814,8 @@ top and \code{Object} types.
 \end{itemize}
 
 \noindent
-The \Index{\IsMoreBottomTypeName} predicate defines an almost total order on
-bottom and \code{Null} types.
+The \IndexCustom{\IsMoreBottomTypeName}{isMoreBottomType@\IsMoreBottomTypeName}
+predicate defines an almost total order on bottom and \code{Null} types.
 \commentary{%
   This does not consistently order
   two different type variables with the same bound.%
@@ -23890,7 +23894,9 @@ Type normalization erases the latter distinction.
 }
 
 \LMHash{}%
-The function \Index{\NormalizedTypeOfName} is then defined as follows:
+The function
+\IndexCustom{\NormalizedTypeOfName}{normalizedType@\NormalizedTypeOfName}
+is then defined as follows:
 \BlindDefineSymbol{T_a, T_u, T_r}%
 Let $T_a$ be a type
 \commentary{(where `a' stands for `argument')}.
