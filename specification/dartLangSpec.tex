@@ -22729,18 +22729,20 @@ in their full generality.%
   % ------------------------------------------------ Positional Function Type
   \RuleRawRaw{\SrnPositionalFunctionType}{%
     \Delta' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
+    \forall i \in 1..s\!:\;\MutualSubtype{\Delta'}{B_i}{B'\!_i} &
     \Subtype{\Delta'}{S_0}{T_0} \\
     n_1 \leq n_2 &
     n_1 + k_1 \geq n_2 + k_2 &
     \forall j \in 1 .. n_2 + k_2\!:\;\Subtype{\Delta'}{T_j}{S_j}}{%
     \begin{array}{c}
       \Delta\vdash\RawFunctionTypePositional{S_0}{X}{B}{s}{S}{n_1}{k_1}\;<:\;\\
-      \RawFunctionTypePositional{T_0}{X}{B}{s}{T}{n_2}{k_2}
+      \RawFunctionTypePositional{T_0}{X}{B'\!}{s}{T}{n_2}{k_2}
     \end{array}}
   \ExtraVSP\ExtraVSP
   % ------------------------------------------------ Named Function Type
   \RuleRawRaw{\SrnNamedFunctionType}{%
     \Delta' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
+    \forall i \in 1..s\!:\;\MutualSubtype{\Delta'}{B_i}{B'\!_i} &
     \Subtype{\Delta'}{S_0}{T_0} &
     \forall j \in 1 .. n\!:\;\Subtype{\Delta'}{T_j}{S_j}\\
     \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\}\\
@@ -22750,13 +22752,16 @@ in their full generality.%
     (r_{n+q} = \REQUIRED{} \Rightarrow r'_{n+p} = \REQUIRED)}{%
     \begin{array}{c}
       \Delta\vdash\RawFunctionTypeNamed{S_0}{X}{B}{s}{S}{n}{x}{k_1}{r}\;<:\;\\
-      \RawFunctionTypeNamed{T_0}{X}{B}{s}{T}{n}{y}{k_2}{r'}
+      \RawFunctionTypeNamed{T_0}{X}{B'\!}{s}{T}{n}{y}{k_2}{r'}
     \end{array}}
   %
   \ExtraVSP
   % ------------------------------------------------ Covariance
+  %% TODO(eernst): Type aliases have been expanded so there is no other
+  %% variance than covariance, but there will be in/out/inout in classes,
+  %% and then we'll need to handle variance here.
   \RuleRaw{\SrnCovariance}{%
-    \mbox{$C$ is an interface type with $s$ type parameters} &
+    \mbox{$C$ is an interface type with $s$ type parameters.} &
     \SubtypeStd{S_j}{T_j}\mbox{, for each $j \in 1..s$}}{%
     \code{$C$<\List{S}{1}{s}>}}{\code{$C$<\List{T}{1}{s}>}}
   \ExtraVSP
@@ -22921,7 +22926,8 @@ with no connection to, e.g., subtypes or instance method overriding.%
 In this specification we frequently refer to
 subtype relationships and assignability
 without mentioning the environment explicitly,
-as in \Index{\SubtypeNE{S}{T}}.
+as in
+\IndexCustom{\SubtypeNE{S}{T}}{$<:$@\SubtypeNE{S}{T}}.
 This is only done when a specific location in code is in focus,
 and it means that the environment is that which is obtained
 by mapping each type variable in scope at that location
@@ -22955,7 +22961,7 @@ that is, in the premises as well as in the conclusion, simultaneously.%
 A type $S$ is shown to be a \Index{subtype} of another type $T$
 in an environment $\Delta$ by providing
 an instantiation of a rule $R$ whose conclusion is
-\IndexCustom{\SubtypeStd{S}{T}}{$\Delta$@\SubtypeStd{S}{T}},
+\IndexCustom{\SubtypeStd{S}{T}}{$\Delta<:$@\SubtypeStd{S}{T}},
 along with rule instantiations showing
 each of the premises of $R$,
 continuing until a rule with no premises is reached.
@@ -23184,8 +23190,16 @@ include the application of a rule where the environment is used.
 
 \LMHash{}%
 $S$ is a \Index{supertype} of $T$ in a given environment $\Delta$,
-written \SupertypeStd{S}{T},
+written
+\IndexCustom{\SupertypeStd{S}{T}}{$\Delta:>$@\SupertypeStd{S}{T}},
 if{}f \SubtypeStd{T}{S}.
+
+\LMHash{}%
+$S$ and $T$ are \Index{mutual subtypes} of each other
+in a given environment $\Delta$,
+written
+\IndexCustom{\MutualSubtypeStd{S}{T}}{$\Delta<:>$@\MutualSubtypeStd{S}{T}},
+if{}f both \SubtypeStd{T}{S} and \SubtypeStd{S}{T}.
 
 \LMHash{}%
 A type $T$
@@ -23344,7 +23358,8 @@ In each of these function definitions,
 the first applicable case must be used.
 
 \LMHash{}%
-The \Index{\TopMergeTypeName} of two types computes
+The \IndexCustom{\TopMergeTypeName}{topMergeType@\TopMergeTypeName}
+of two types computes
 a canonical type which represents both of them,
 in the case where they are structurally identical
 modulo the choice among top types.
@@ -23409,7 +23424,8 @@ and then recursively taking \TopMergeTypeName{} of the rest.
 \commentary{The ordering of the arguments makes no difference.}
 
 \LMHash{}%
-The \Index{\IsTopTypeName} predicate is true for any type which is in
+The \IndexCustom{\IsTopTypeName}{isTopType@\IsTopTypeName}
+predicate is true for any type which is in
 the equivalence class of top types.
 It is a syntactic characterization of top types
 (\ref{superBoundedTypes}).
@@ -23423,8 +23439,9 @@ It is a syntactic characterization of top types
 \end{itemize}
 
 \noindent
-The \Index{\IsObjectTypeName} predicate is true if{}f
-the argument is a subtype and a supertype of \code{Object}.
+The \IndexCustom{\IsObjectTypeName}{isObjectType@\IsObjectTypeName}
+predicate is true if{}f the argument is
+a subtype and a supertype of \code{Object}.
 
 \begin{itemize}
 \item \DefEquals{\IsObjectType{Object}}{\metavar{true}}.
@@ -23433,8 +23450,8 @@ the argument is a subtype and a supertype of \code{Object}.
 \end{itemize}
 
 \noindent
-The \Index{\IsBottomTypeName} predicate is true if{}f
-the argument is a subtype of \code{Never}.
+The \IndexCustom{\IsBottomTypeName}{isBottomType@\IsBottomTypeName}
+predicate is true if{}f the argument is a subtype of \code{Never}.
 
 \begin{itemize}
 \item \DefEquals{\IsBottomType{Never}}{\metavar{true}}.
@@ -23444,8 +23461,9 @@ the argument is a subtype of \code{Never}.
 \end{itemize}
 
 \noindent
-The \Index{\IsNullTypeName} predicate is true if{}f
-the argument is a subtype and a supertype of \code{Null}.
+The \IndexCustom{\IsNullTypeName}{isNullType@\IsNullTypeName}
+predicate is true if{}f the argument is
+a subtype and a supertype of \code{Null}.
 
 \begin{itemize}
 \item \DefEquals{\IsNullType{Null}}{\metavar{true}}.
@@ -23454,8 +23472,8 @@ the argument is a subtype and a supertype of \code{Null}.
 \end{itemize}
 
 \noindent
-The \Index{\IsMoreTopTypeName} predicate defines a total order on
-top and \code{Object} types.
+The \IndexCustom{\IsMoreTopTypeName}{isMoreTopType@\IsMoreTopTypeName}
+predicate defines a total order on top and \code{Object} types.
 
 \begin{itemize}
 \item \DefEquals{\IsMoreTopType{\VOID}{$T$}}{\metavar{true}}.
@@ -23472,8 +23490,8 @@ top and \code{Object} types.
 \end{itemize}
 
 \noindent
-The \Index{\IsMoreBottomTypeName} predicate defines an almost total order on
-bottom and \code{Null} types.
+The \IndexCustom{\IsMoreBottomTypeName}{isMoreBottomType@\IsMoreBottomTypeName}
+predicate defines an almost total order on bottom and \code{Null} types.
 \commentary{%
 This does not consistently order
 two different type variables with the same bound.%
@@ -23552,7 +23570,9 @@ modulo replacement of atomic top types
 }
 
 \LMHash{}%
-The function \Index{\NormalizedTypeOfName} is then defined as follows:
+The function
+\IndexCustom{\NormalizedTypeOfName}{normalizedType@\NormalizedTypeOfName}
+is then defined as follows:
 \BlindDefineSymbol{T_a, T_u, T_r}%
 Let $T_a$ be a type
 (\commentary{where `a' stands for `argument'}).
