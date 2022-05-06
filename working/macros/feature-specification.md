@@ -85,6 +85,11 @@ the place where the type annotation was omitted.
 There are two things you can do with an `OmittedTypeAnnotation`:
 
 - Pass it directly as a part of a `Code` object.
+  - This is only allowed after phase one (the types phase). Using an omitted
+    type in phase one is not allowed and will cause an exception.
+    - Users should be instructed to add a type to the location where the
+      omitted type came from in this case. It is guaranteed to be in the same
+      file as the macro annotation, so they can always do this.
   - When the final augmentation library is created, the actual type that was
     inferred will be used (or `dynamic` if no type was inferred).
 - Explicitly ask to infer the type of it through the builder apis (only
