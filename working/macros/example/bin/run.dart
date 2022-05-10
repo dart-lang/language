@@ -21,6 +21,8 @@ void main() async {
   var dataClassUri = Uri.parse('package:macro_proposal/data_class.dart');
   var observableUri = Uri.parse('package:macro_proposal/observable.dart');
   var autoDisposableUri = Uri.parse('package:macro_proposal/auto_dispose.dart');
+  var jsonSerializableUri =
+      Uri.parse('package:macro_proposal/json_serializable.dart');
   var bootstrapContent = bootstrapMacroIsolate({
     dataClassUri.toString(): {
       'AutoConstructor': [''],
@@ -35,6 +37,9 @@ void main() async {
     autoDisposableUri.toString(): {
       'AutoDispose': [''],
     },
+    jsonSerializableUri.toString(): {
+      'JsonSerializable': [''],
+    }
   }, SerializationMode.byteDataClient);
   bootstrapFile.writeAsStringSync(bootstrapContent);
   var bootstrapKernelFile =
@@ -95,6 +100,8 @@ void main() async {
     '$observableUri;${bootstrapKernelFile.path}',
     '--precompiled-macro',
     '$autoDisposableUri;${bootstrapKernelFile.path}',
+    '--precompiled-macro',
+    '$jsonSerializableUri;${bootstrapKernelFile.path}',
     '--macro-serialization-mode=bytedata',
     '--input-linked',
     bootstrapKernelFile.path,

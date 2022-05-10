@@ -7,11 +7,16 @@ import 'dart:math';
 import 'package:macro_proposal/auto_dispose.dart';
 import 'package:macro_proposal/data_class.dart';
 import 'package:macro_proposal/observable.dart';
+import 'package:macro_proposal/json_serializable.dart';
 
 void main() {
   var rand = Random();
-  var roger =
-      User.gen(age: rand.nextInt(100), name: 'Roger', username: 'roger1337');
+  var rogerJson = {
+    'age': rand.nextInt(100),
+    'name': 'Roger',
+    'username': 'roger1337'
+  };
+  var roger = User.fromJson(rogerJson);
   print(roger);
   var joe = Manager.gen(
       age: rand.nextInt(100),
@@ -31,9 +36,18 @@ void main() {
 
   var state = MyState.gen(a: ADisposable(), b: BDisposable(), c: 'hello world');
   state.dispose();
+
+  var father = Father.fromJson({
+    'age': roger.age + 25,
+    'name': 'Rogers Dad',
+    'username': 'dadJokesAreCool123',
+    'child': rogerJson,
+  });
+  print(father);
 }
 
 @DataClass()
+@JsonSerializable()
 class User {
   final int age;
   final String name;
@@ -86,4 +100,13 @@ class BDisposable implements Disposable {
   void dispose() {
     print('disposing of BDisposable');
   }
+}
+
+@DataClass()
+@JsonSerializable()
+class Father implements User {
+  final int age;
+  final String name;
+  final String username;
+  final User child;
 }
