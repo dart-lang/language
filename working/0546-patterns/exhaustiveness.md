@@ -367,11 +367,10 @@ into spaces:
 
 *   **Static type:** An extract space with that type and no fields.
 
-*   **Record pattern:** If it has positional fields, then an extract space
-    whose type is the corresponding `Destructure_n` type. Otherwise, an extract
-    space with type "top". Then lift the record fields to spaces on the extract
-    space. Since extract spaces only have named fields, lift positional fields
-    to implicit names like `field0`, `field1`, etc.
+*   **Record pattern:** An extract space with type "top". Then lift the record
+    fields to spaces on the extract space. Since extract spaces only have named
+    fields, lift positional fields to implicit names like `field0`, `field1`,
+    etc.
 
 *   **List pattern:** An extract space whose type is the corresponding list
     type. Element subpatterns lift to fields on the extract with names like
