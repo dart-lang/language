@@ -722,11 +722,11 @@ recordFieldBinder   ::= ( identifier ':' )? binder
 Each field is either a binder which destructures a positional field, or a binder
 prefixed with an identifier and `:` which destructures a named field.
 
-Record destructuring is structural: Each named field in the record pattern calls
-a corresponding getter on the matched object. A record pattern can be applied
-to an object of any type with any set of named field patterns as long as the
-object being matched has getters with those names. (Positional fields, however,
-can only be matched by record values.)
+Each named field in the record pattern is matched by calling a corresponding
+getter on the matched object. A record pattern can be applied to an object of
+any type with any set of named field patterns as long as the object being
+matched has getters with those names. (Positional fields, however, can only be
+matched by record values.)
 
 When destructuring named fields, it's common to want to bind the resulting value
 to a variable with the same name. As a convenience, the binder can be omitted on
@@ -1240,8 +1240,9 @@ The context type schema for a pattern `p` is:
 
 *   **Record binder or matcher**: A record type scheme with positional and named
     fields corresponding to the type schemas of the corresponding field
-    subpatterns. (For implicit variable named field subpatterns like `(field:)`,
-    the type schema is `?` for that field.)
+    subpatterns. If a named field uses the shorthand syntax to infer a variable
+    subpattern with the same name as the field, then the type schema is `?` for
+    that field.
 
     *Note that the type schema will be a record type even when the matched value
     type isn't a record, as in:*
@@ -1405,10 +1406,9 @@ The static type of a pattern `p` being matched against a value of type `M` is:
             `dynamic` and does not have a getter whose name matches the
             subpattern's field name.
 
-            (If the named field has no subpattern like `(field:)`, treat it as
-            if it has a variable subpattern with the same name as the field and
-            calculate the static type of that subpattern like a normal variable
-            pattern.)
+            If a named field uses the shorthand syntax to infer a variable
+            subpattern with the same name as the field, then calculate the
+            static type using that inferred variable pattern.
 
     1.  If `M` is a record type (of any shape) or `dynamic`, then the static
         type of `p` is a record type whose fields are the fields of `p` with the
@@ -1740,23 +1740,20 @@ To match a pattern `p` against a value `v`:
         patterns with only named fields to be used to call arbitrary getters on
         values of type `dynamic`.*
 
-    2.  For each positional field `f` in `p`:
+    2.  For each field `f` in `p`, in source order:
 
-        1.  Destructure the corresponding positional field from `v` to get
-            result `r`. Match the subpattern of `f` against `r`. If the match
-            fails, the record match fails.
+        1.  If `f` is positional, then destructure the corresponding positional
+            field from record `v` to get result `r`.
 
-    2.  For each named field `f` in `p`:
+        2.  Otherwise (`f` is named), call the getter with the same name as `f`
+            on `v` to get result `r`. *If `v` has type `dynamic`, this getter
+            call may throw a NoSuchMethodError, which we allow to propagate
+            instead of treating that as a match failure.*
 
-        1.  Call the getter with the same name as `f` on `v` to get result `r`.
-            *If `v` has type `dynamic`, this getter call may throw a
-            NoSuchMethodError, which we allow to propagate instead of
-            treating that as a match failure.*
-
-        2.  Match the subpattern of `f` against `r`. If the match fails,
-            the record match fails. (If `f` has no subpattern because it's an
-            implicit field pattern like `(field:)`, treat it like a the
-            subpattern is a variable pattern with the same name.)
+        3.  Match the subpattern of `f` against `r`. If the match fails, the
+            record match fails. If `f` is a named field using the shorthand
+            syntax that that infers an implicit variable subpattern from the
+            field's name, match `r` against that inferred variable subpattern.
 
     3.  If all field subpatterns match, the record pattern matches.
 
