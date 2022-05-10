@@ -61,7 +61,7 @@ macro class JsonSerializable
           ' = ',
           await _convertField(field, jsonParam, builder),
         ]),
-    ]);
+    ], body: FunctionBodyCode.fromString('{}'));
   }
 
   // TODO: Support nested List, Map, etc conversion, including deep casting.
