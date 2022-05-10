@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.7 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.8 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -243,24 +243,9 @@ These entrypoints are wired into the rest of the language like so:
 *   A [pattern variable declaration][] contains a
     [`declarationBinder`][declarationBinder].
 *   A [switch case][] contains a [`matcher`][matcher].
-*   A [`declarationMatcher`][declarationMatcher] pattern embeds a
-    [`declarationBinder`][declarationBinder] inside a refutable pattern. This is
-    a convenience to let you avoid repeating `var` or `final` several times
-    inside a matching pattern, as in:
-
-    ```dart
-    // List matcher containing three variable matchers:
-    case [var a, var b, var c]:
-    // Declaration matcher containing list binder
-    // containing three variable binders:
-    case var [a, b, c]:
-    ```
-
-    These two cases both do the same thing.
 
 [pattern variable declaration]: #pattern-variable-declaration
 [switch case]: #switch-statement
-[declarationMatcher]: #declaration-matcher
 
 Many kinds of patterns have both matcher (refutable) and binder (irrefutable)
 forms. The table below shows examples of every specific pattern type and which
@@ -279,7 +264,6 @@ categories it appears in:
 | Constant | No | No | [Yes][constantMatcher] | `foo`, `math.pi` |
 | Null check | No | No | [Yes][nullCheckMatcher] | `subpattern?` |
 | Extractor | No | No | [Yes][extractMatcher] | `SomeClass(subpattern1, x: subpattern2)` |
-| Declaration | N/A | No | [Yes][declarationMatcher] | `var [foo, bar] // == [var foo, var bar]`<br>`var (a, b)     // == (var a, var b)` |
 
 [recordBinder]: #record-binder
 [recordMatcher]: #record-matcher
@@ -725,7 +709,7 @@ expressions evaluate to equivalent values.
 
 #### Record binder
 
-A record pattern destructures fields from a record.
+A record pattern destructures fields from records and objects.
 
 ```
 recordBinder        ::= '(' recordFieldBinders ')'
@@ -737,6 +721,12 @@ recordFieldBinder   ::= ( identifier ':' )? binder
 
 Each field is either a binder which destructures a positional field, or a binder
 prefixed with an identifier and `:` which destructures a named field.
+
+Record destructuring is structural: Each named field in the record pattern calls
+a corresponding getter on the matched object. A record pattern can be applied
+to an object of any type with any set of named field patterns as long as the
+object being matched has getters with those names. (Positional fields, however,
+can only be matched by record values.)
 
 When destructuring named fields, it's common to want to bind the resulting value
 to a variable with the same name. As a convenience, the binder can be omitted on
@@ -846,7 +836,6 @@ matcher ::=
   | mapMatcher
   | recordMatcher
   | variableMatcher
-  | declarationMatcher
   | extractMatcher
   | nullCheckMatcher
 ```
@@ -999,29 +988,6 @@ variables only when that condition holds.
 A variable pattern can also have a type annotation in order to only match values
 of the specified type.
 
-#### Declaration matcher
-
-A declaration matcher enables embedding an entire declaration binding pattern
-inside a matcher.
-
-```
-declarationMatcher ::= ( "var" | "final" ) declarationBinder
-```
-
-This is essentially a convenience over using multiple variable matchers. It
-spares you from having to write `var` or `final` before every destructured
-variable:
-
-```dart
-switch (obj) {
-  // Instead of:
-  case [var a, var b, var c]: ...
-
-  // Can use:
-  case var [a, b, c]: ...
-}
-```
-
 #### Extractor matcher
 
 An extractor combines a type test and record destructuring. It matches if the
@@ -1030,18 +996,15 @@ destructure fields on the value as that type. This pattern is particularly
 useful for writing code in an algebraic datatype style. For example:
 
 ```dart
-class Rect implements Destructure2<double, double> {
+class Rect {
   final double width, height;
 
   Rect(this.width, this.height);
-
-  double get field0 => width;
-  double get field1 => height;
 }
 
 display(Object obj) {
   switch (obj) {
-    case Rect(var width, var height):
+    case Rect(width:, height:):
       print('Rect $width x $height');
     case _:
       print(obj);
@@ -1232,10 +1195,10 @@ To orchestrate this, type inference on patterns proceeds in three phases:
 The full process only comes into play for pattern variable declarations. For
 switch case, and if-case statements, there is no downwards inference from
 pattern to value and the first step is skipped. Instead, the type of the matched
-value is inferred and we jump straight to inferring the types of the case
-patterns from that context type. *The intent of a matcher pattern is to query
-the type of the matched value, so it would be strange if that query affected the
-value expression.*
+value is inferred with no downwards context type and we jump straight to
+inferring the types of the case patterns from that context type. *The intent of
+a matcher pattern is to query the type of the matched value, so it would be
+strange if that query affected the value expression.*
 
 When calculating the context type schema or static type of a pattern, any
 occurrence of `typePattern` in a type is treated as `Object?`.
@@ -1262,33 +1225,6 @@ To support this, every pattern has a context type schema. This is a type
 var (a, int b) = ... // Schema is `(?, int)`.
 ```
 
-Named record fields add complexity to type inference:
-
-```dart
-class C<T> {
-  T get a => ...
-}
-var (a: int i) = C();
-```
-
-Here, the pattern is destructuring field `a` on the matched value. Since it
-binds that to a variable of type `int`, ideally, that would fact would flow
-through inference to the right and infer `C<int>()` for the initializer.
-However, there isn't an obvious nominal type we can use for the type schema that
-declares `a` without looking at the initializer, which we aren't ready to infer
-yet.
-
-We model this by extending the notion of a type schema to also include a
-potentially empty set of named getters and their expected type schemas. So,
-here, the type schema of the pattern is `Object` augmented with a getter `a` of
-type schema `int`. When inferring a type from a given schema, any getters in the
-schema become additional constraints placed on the inferred type's corresponding
-getters.
-
-**TODO: Type inference doesn't currently look at getter return types to infer
-the type arguments of a generic class's constructor, so more work is needed
-here if we want this to actually infer type arguments.**
-
 The context type schema for a pattern `p` is:
 
 *   **List binder or matcher**: A type schema `List<E>` where:
@@ -1302,15 +1238,24 @@ The context type schema for a pattern `p` is:
         and `V` is the greatest lower bound of the context type schemas of all
         value subpatterns.
 
-*   **Record binder or matcher**:
-    *   If the pattern has any positional fields, then the base type schema is
-        `Destructure_n_<F...>` where `_n_` is the number of fields and `F...` is
-        the context type schemas of all of the positional fields.
-    *   Else the base type schema is `Object?`.
-    *   The base type schema is extended with getters for each named field
-        subpattern in `p` where each getter's type schema is the type schema of
-        the corresponding subpattern. (If there is no subpattern because it's
-        an implicit variable pattern like `(field:)`, the type schema is `?`.)
+*   **Record binder or matcher**: A record type scheme with positional and named
+    fields corresponding to the type schemas of the corresponding field
+    subpatterns. (For implicit variable named field subpatterns like `(field:)`,
+    the type schema is `?` for that field.)
+
+    *Note that the type schema will be a record type even when the matched value
+    type isn't a record, as in:*
+
+    ```dart
+    var p = Point(x: 1, y: 2);
+    var (x: x, y: y) = p;
+    ```
+
+    *The record type schema inferred from the pattern may be used to infer
+    record field types on the initialized value if the value is a record
+    literal, and may otherwise be captured. But if the initializer type isn't a
+    record, then the record type context schema inferred from the pattern ends
+    up being ignored.*
 
 *   **Variable matcher**:
     *   If `p` has a type annotation, the context type schema is `Object?`.
@@ -1333,9 +1278,6 @@ The context type schema for a pattern `p` is:
 
 *   **Literal matcher** or **constant matcher**: The context type schema is the
     static type of the pattern's constant value expression.
-
-*   **Declaration matcher**: The context type schema is the same as the context
-    type schema of the inner binder.
 
 *We use the greatest lower bound for list elements and map values to ensure that
 the outer collection type has a precise enough type to ensure that any typed
@@ -1450,19 +1392,17 @@ The static type of a pattern `p` being matched against a value of type `M` is:
 
     1.  Calculate the static types of the field subpatterns:
 
-        1.  It is a compile-time error if there are positional fields, `M` is
-            not `dynamic`, and `M` does not implement `Destructure_n_` with as
-            many type arguments as there are positional fields.
-
         1.  Calculate the type of each of `f`'s positional field subpatterns
-            using the corresponding type argument in `M`'s implementation of
-            `Destructure_n_` as the matched value type.
+            using the corresponding positional field type on `M` as the matched
+            value type. It is a compile-time error if there are positional
+            fields, `M` is not `dynamic`, and `M` is not a record with the same
+            number of positional fields.
 
-        1.  Calculate the type of `f`'s named field subpatterns using the
-            return type of the getter on `M` with the same name as the field
+        1.  Calculate the type of each of `f`'s named field subpatterns using
+            the return type of the getter on `M` with the same name as the field
             as the matched value type. If `M` is `dynamic`, then use `dynamic`
-            as the matched value type. It is a compile-time error if `M` is
-            not `dynamic` and does not have a getter whose name matches the
+            as the matched value type. It is a compile-time error if `M` is not
+            `dynamic` and does not have a getter whose name matches the
             subpattern's field name.
 
             (If the named field has no subpattern like `(field:)`, treat it as
@@ -1470,21 +1410,21 @@ The static type of a pattern `p` being matched against a value of type `M` is:
             calculate the static type of that subpattern like a normal variable
             pattern.)
 
-    1.  If `p` has any positional fields, then the static type of `p` is
-        `Destructure_n_<args...>` where `_n_` is the number of positional
-        fields and `args...` is a type argument list built from the static
-        types of the positional field subpatterns, in order.
+    1.  If `M` is a record type (of any shape) or `dynamic`, then the static
+        type of `p` is a record type whose fields are the fields of `p` with the
+        types of the corresponding subpatterns of `p`. *If the matched value is
+        a record, then we want to ensure that the record pattern has the same
+        shape. We infer a record type from the pattern's fields, then it will be
+        a compile-time error if that inferred record type is not a subtype of
+        the matched value's record type.*
 
-    2.  Else the static type of `p` is `Object?`. *You can destructure named
-        fields on an object of any type by calling its getters. In other words,
-        named fields are treated structurally and don't form part of the record
-        pattern's overall static type.*
+    2.  Otherwise, the static type of `p` is `Object?`. *Record patterns are
+        structural and can be applied to values of types that aren't records as
+        long as the type has the right getters.*
 
-    3.  If `M` is not `dynamic`:
-        *   It is a compile-time error if `p` has a field with name `n` and `M`
-            does not define a getter named `n`.
-        *   It is a compile-time error if `p` has a field named `n` and the type
-            of getter `n` in `M` is not a subtype of the subpattern `n`'s type.
+    3.  It is a compile-time error if `p` has positional fields and `M` is not
+        a record type or `dynamic`. *Only records support positional field
+        destructuring.*
 
 *   **Variable binder**:
 
@@ -1503,9 +1443,9 @@ The static type of a pattern `p` being matched against a value of type `M` is:
         That inferred type is then destructured and used to infer `num` for `a`
         and `Object` for `b`.*
 
-*   **Cast binder**, **wildcard binder or matcher**, or **extractor matcher**:
-    The static type of `p` is `Object?`. *Wildcards accept all types. Casts and
-    extractors exist to check types at runtime, so statically accept all types.*
+*   **Cast binder**, **wildcard binder**, or **wildcard matcher**: The static
+    type of `p` is `Object?`. *Wildcards accept all types. Casts exist to check
+    types at runtime, so statically accept all types.*
 
 *   **Null-assert binder** or **null-check matcher**:
 
@@ -1526,8 +1466,18 @@ The static type of a pattern `p` being matched against a value of type `M` is:
 *   **Literal matcher** or **constant matcher**: The static type of `p` is the
     static type of the pattern's value expression.
 
-*   **Declaration matcher**: The static type of `p` is the static type of the
-    inner binder.
+*   **Extractor matcher**:
+
+    1.  Resolve the extractor name to declaration `X`. It is a compile-time
+        error if `X` does not refer to a type.
+
+    2.  Calculate the static types of each field subpattern as if `p` were a
+        record pattern using `X` as `M`. *An extractor pattern matches a type
+        then recurses into it, so we infer the fields of the subpatterns using
+        that matched type.*
+
+    2.  The static type of `p` is `Object?`. *Extractors exist to check types at
+        runtime, so statically accept all types.*
 
 It is a compile-time error if `M` is not a subtype of `p`.
 
@@ -1581,10 +1531,6 @@ The variables a patterns binds depend on what kind of pattern it is:
 
 *   **Null-assert binder** or **null-check matcher**: Introduces all of the
     variables of its subpattern.
-
-*   **Declaration matcher**: The `final` or `var` keyword establishes whether
-    the binders nested inside this create final or assignable variables and
-    then introduces those variables.
 
 *   **Extractor matcher**: May contain type argument patterns and introduces all
     of the variables of its subpatterns. A named field with no subpattern
@@ -1784,20 +1730,25 @@ To match a pattern `p` against a value `v`:
 
 *   **Record matcher or binder**:
 
-    1.  If the pattern has positional fields:
+    1.  If `p` has positional fields and `v` has type `dynamic`, then throw a
+        runtime exception if `v` is not an instance of the inferred record type
+        of `p`. *Edge case: Record patterns with positional fields can only
+        match record objects. Normally we statically ensure that a record
+        pattern with positional fields can only match a value known to be a
+        record type. But `dynamic` evades that check, so check here. We only do
+        this if the pattern has positional fields in order to allow record
+        patterns with only named fields to be used to call arbitrary getters on
+        values of type `dynamic`.*
 
-        1.  If `v` does not implement the appropriate `Destructure_n_<...>`
-            interface instantiated with type arguments based on the positional
-            fields' static types, then the match fails.
+    2.  For each positional field `f` in `p`:
 
-    2.  For each positional and named field `f` in `p`:
+        1.  Destructure the corresponding positional field from `v` to get
+            result `r`. Match the subpattern of `f` against `r`. If the match
+            fails, the record match fails.
 
-        1.  Call the corresponding getter on `v` to get result `r`. If `f`
-            is a positional field, then the getter is named `field_n_` where
-            `_n_` is the zero-based index of the positional field, ignoring
-            other named fields. If `f` is named, then the getter has the
-            same name as `f`.
+    2.  For each named field `f` in `p`:
 
+        1.  Call the getter with the same name as `f` on `v` to get result `r`.
             *If `v` has type `dynamic`, this getter call may throw a
             NoSuchMethodError, which we allow to propagate instead of
             treating that as a match failure.*
@@ -1841,9 +1792,6 @@ To match a pattern `p` against a value `v`:
     **TODO: Should this be `v == o`?**
 
 *   **Wildcard binder or matcher**: Always succeeds.
-
-*   **Declaration matcher**: Match `v` against the binder subpattern. Always
-    succeeds.
 
 *   **Extractor matcher**:
 
@@ -1892,6 +1840,19 @@ main() {
 *This prints "1", "2", "here".*
 
 ## Changelog
+
+### 1.8
+
+-   Remove declaration matcher from the proposal. It's only a syntactic sugar
+    convenience and seems to cause enough confusion that it's not clear if it
+    carries its weight. Removing it simplifies the feature some and we can
+    always add it in a future version.
+
+-   Remove the `Destructure_n_` interface. Positional record fields can only be
+    used to destructure positional fields from actual record objects. (We may
+    extend this later.)
+
+-   Revise and clarify how types work in record and extractor patterns.
 
 ### 1.7
 

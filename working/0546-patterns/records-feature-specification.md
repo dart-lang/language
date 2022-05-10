@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.2 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.3 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -83,39 +83,6 @@ A built-in class `Record` with no members except those inherited from `Object`.
 This type cannot be constructed, extended, mixed in, or implemented by
 user-defined classes. *It's similar to how the `Function` class is the
 superclass for function types.*
-
-### The `Destructure<n>` types
-
-A number of destructuring interfaces are added, whose definitions look like:
-
-```dart
-abstract class Destructure1<T0> {
-  T0 get field0;
-}
-
-abstract class Destructure2<T0, T1> {
-  T0 get field0;
-  T1 get field1;
-}
-
-abstract class Destructure3<T0, T1, T2> {
-  T0 get field0;
-  T1 get field1;
-  T2 get field2;
-}
-
-...
-
-abstract class Destructure16<T0, T1, T2, ..., T15> {
-  T0 get field0;
-  T1 get field1;
-  T2 get field2;
-  ...
-  T15 get field15;
-}
-```
-
-These classes cannot be extended or mixed in, but can be implemented.
 
 ## Syntax
 
@@ -252,11 +219,6 @@ the types of all fields of `A` are subtypes of the corresponding field types of
 "depth subtyping". Record types with different shapes are not subtypes. There is
 no "row polymorphism" or "width subtyping".*
 
-If a record type has positional fields, then it is a subtype of the
-`Destructure` interface with the same number of fields and with type arguments
-that match the type of each field. If the record type has more than 16 fields,
-it does not implement `Destructure`.
-
 ### Upper and lower bounds
 
 If two record types have the same shape, their least upper bound is a new
@@ -307,10 +269,6 @@ The `namedFields()` method takes a record and returns a Map with entries for
 each named field in the record where each key is the field's name and the
 corresponding value is the value of that field. (The methods are static to avoid
 colliding with fields in an actual record object.)
-
-### The `Destructure<n>` types
-
-These are pure interfaces and have no runtime behavior.
 
 ### Records
 
@@ -403,6 +361,10 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.3
+
+- Remove the `Destructure_n_` interfaces.
 
 ### 1.2
 
