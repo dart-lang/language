@@ -390,6 +390,14 @@ More specifically:
     `augment super` expression which executes the original initializer
     expression when evaluated.
 
+    If the variable declaration in the original library does not have a type
+    annotation, then the type is inferred only using the original library's
+    initializer. (If there is no initializer in the original library, then the
+    variable is inferred to have type `dynamic` like any non-augmented variable.
+    *This ensures that augmenting a variable doesn't change its type. This is
+    necessary to ensure that macros running after signatures are known can't
+    change the signature of a declaration.*
+
     **TODO: What if the augmenting variable doesn't have an initializer?**
 
 It is a compile-time error if:
