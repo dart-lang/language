@@ -13,11 +13,11 @@ macro class DataClass
   Future<void> buildDeclarationsForClass(
       ClassDeclaration clazz, ClassMemberDeclarationBuilder context) async {
     await Future.wait([
-      AutoConstructor().buildDeclarationsForClass(clazz, context),
-      CopyWith().buildDeclarationsForClass(clazz, context),
-      HashCode().buildDeclarationsForClass(clazz, context),
-      Equality().buildDeclarationsForClass(clazz, context),
-      ToString().buildDeclarationsForClass(clazz, context),
+      const AutoConstructor().buildDeclarationsForClass(clazz, context),
+      const CopyWith().buildDeclarationsForClass(clazz, context),
+      const HashCode().buildDeclarationsForClass(clazz, context),
+      const Equality().buildDeclarationsForClass(clazz, context),
+      const ToString().buildDeclarationsForClass(clazz, context),
     ]);
   }
 
@@ -25,9 +25,9 @@ macro class DataClass
   Future<void> buildDefinitionForClass(
       ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
     await Future.wait([
-      HashCode().buildDefinitionForClass(clazz, builder),
-      Equality().buildDefinitionForClass(clazz, builder),
-      ToString().buildDefinitionForClass(clazz, builder),
+      const HashCode().buildDefinitionForClass(clazz, builder),
+      const Equality().buildDefinitionForClass(clazz, builder),
+      const ToString().buildDefinitionForClass(clazz, builder),
     ]);
   }
 }
