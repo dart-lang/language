@@ -550,6 +550,116 @@ This does have two interesting and possibly unexpected consequences:
 
 **TODO**: Define the API for adding metadata to existing declarations (#1931).
 
+## Aspect Macros
+
+**NOTE**: This feature is a work in progress, and has many TODOs.
+
+An AspectMacro is used by another macros, to generate shared helper code which
+will not be duplicated across every library where that helper was needed.
+
+Concretely, let's consider the following example:
+
+```dart
+@fromJsonExtension
+class A {}
+
+@fromJsonExtension
+class B {
+  final A a;
+
+  B(this.a);
+}
+
+// Generated extension from the macro on A
+extension AFromJson on Map<String, Object?> {
+  A toA();
+}
+
+// Generated extension from the macro on B
+extension BFromJson on Map<String, Object?> {
+  A toA(); // This also needs to generate a helper for converting `A`!
+
+  B toB();
+}
+```
+
+Both of these macro applications needs to generate the same shared code for
+converting a Map into an instance of `A` (since `B` has a field of that type),
+but they can't actually _see_ what each other has generated.
+
+In the worst case, this would result in them both outputting conflicting
+members, and in the best case they would end up generating duplicate code,
+causing unnecessary code bloat.
+
+Aspect Macros exist to solve this problem, by allowing macros to share these
+implementations. This is done by associating a single, canonical declaration
+with an Aspect Macro Instance + Declaration pair, and giving back an opaque
+identifier for the resulting declaration.
+
+### Applying an Aspect Macro
+
+Aspect Macros can only be applied by other macros (including aspect macros),
+while the macro is running. They do this through the following api:
+
+```dart
+Future<Identifier> applyAspect(AspectMacro macro, Declaration declaration);
+```
+
+This API does not promise to immediately invoke `macro` on `declaration`, it
+only returns an opaque `Identifier`, which refers to the declaration that will
+be produced by running `macro` on `declaration`. It returns a `Future` because
+all `Identifier` objects must come from the host compiler, so there is some
+async communication that has to happen.
+
+When a macro implementation receives a call to `applyAspect`, it must register
+that `macro` should be _eventually_ applied to `declaration`. Any two identical
+calls to `applyAspect` must always return an "equal" `Identifier` object,
+regardless of if they are compiled in separate modules.
+
+**TODO**: You may need to be able to navigate to the declaration of an
+`Identifier`, for instance in order to get a reference to one of its members or
+inspect the shape of the generated declaration. How do we want to expose this?
+See the sectin below on ordering and invocation for possible constraints.
+
+### Declaring an Aspect Macro
+
+Aspect Macros are declared similarly to regular macros. They are classes with
+the `macro` keyword, but implement one of the subtypes of `AspectMacro` instead
+of `Macro`.
+
+An example AspectMacro could be something like the following:
+
+**TODO**: Fully flesh out all these APISs.
+
+```dart
+macro class FromJson extends ClassDeclarationsAspectMacro {
+  FutureOr<Declaration> buildDeclarationForClass(
+      ClassDeclaration clazz, MacroAspectBuilder builder) {
+    // Implementation that returns a Declaration.
+  }
+}
+```
+
+### Ordering of Aspect Macros
+
+Aspect Macros are conceptually applied in a 4th macro phase. All non-aspect
+macros must be invoked on a library prior to aspect macros being invoked on any
+declaration in that library.
+
+### Modular compilation
+
+Aspect Macros may be ran modularly, which may require merging of generated
+declarations at link time. Esssentially, the result of each module should have
+a table of all the outputs of the Aspect Macros it had to run, and if multiple
+dependency modules ran on the same Aspect Module + Declaration pair, the results
+should be deduplicated when reading them in.
+
+### Location of Aspect Macro generated code
+
+TODO: Figure this out. A special library "next" to each library which has aspect
+macros applied to its declarations? A single "special" library with all aspects
+merged in? A library per aspect macro application?
+
 ## Generating code
 
 Macros attach new code to the declaration the macro is applied to by calling
