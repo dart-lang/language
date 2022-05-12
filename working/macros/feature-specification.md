@@ -554,7 +554,7 @@ This does have two interesting and possibly unexpected consequences:
 
 **NOTE**: This feature is a work in progress, and has many TODOs.
 
-An AspectMacro is used by another macros, to generate shared helper code which
+An AspectMacro is used by another macro, to generate shared helper code which
 will not be duplicated across every library where that helper was needed.
 
 Concretely, let's consider the following example:
@@ -583,7 +583,7 @@ extension BFromJson on Map<String, Object?> {
 }
 ```
 
-Both of these macro applications needs to generate the same shared code for
+Both of these macro applications need to generate the same shared code for
 converting a Map into an instance of `A` (since `B` has a field of that type),
 but they can't actually _see_ what each other has generated.
 
@@ -616,10 +616,10 @@ that `macro` should be _eventually_ applied to `declaration`. Any two identical
 calls to `applyAspect` must always return an "equal" `Identifier` object,
 regardless of if they are compiled in separate modules.
 
-**TODO**: You may need to be able to navigate to the declaration of an
-`Identifier`, for instance in order to get a reference to one of its members or
+**TODO**: You may need to be able to navigate to the declaration of one of these
+`Identifier`s, for instance in order to get a reference to one of its members or
 inspect the shape of the generated declaration. How do we want to expose this?
-See the sectin below on ordering and invocation for possible constraints.
+See the section below on ordering and invocation for possible constraints.
 
 ### Declaring an Aspect Macro
 
