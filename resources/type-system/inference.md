@@ -6,6 +6,12 @@ Status: Draft
 
 ## CHANGELOG
 
+2022.05.12
+  - Define the notions of "constraint solution for a set of type variables" and
+    "Grounded constraint solution for a set of type variables".  These
+    definitions capture how type inference handles type variable bounds, as well
+    as how inferred types become "frozen" once they are fully known.
+
 2019.09.01
   - Fix incorrect placement of left top rule in constraint solving.
 
@@ -680,6 +686,38 @@ The constraint solution for a type variable `X` with respect to a constraint set
 Note that the constraint solution is a type schema, and hence may contain
 occurences of the unknown type.
 
+#### Constraint solution for a set of type variables
+
+The constraint solution for a set of type variables `{X0, ..., Xn}` with respect
+to a constraint set `C`, with previous solution `{T0, ..., Tn}`, is defined to
+be the set of type schemas `{U0, ..., Un}` such that:
+  - If `Ti` is known (that is, does not contain `_`), then `Ui = Ti`.  _(Note
+    that the upcoming "variance" feature will relax this rule so that it only
+    applies to type variables without an explicitly declared variance.)_
+  - Otherwise, let `Vi` be the constraint solution for the type variable `Xi`
+    with respect to the constraint set `C`.
+  - If `Vi` is not known (that is, it contains `_`), then `Ui = Vi`.
+  - Otherwise, if `Xi` does not have an explicit bound, then `Ui = Vi`.
+  - Otherwise, let `Bi` be the bound of `Xi`.  Then, let `Bi'` be the type
+    formed by substituting type schemas `{U0, ..., Ui-1, Ti, ..., Tn}` in place
+    of the type variables `{X0, ..., Xn}` in `Bi`.  _(That is, we substitute
+    `Uj` for `Xj` when `j < i` and `Tj` for `Xj` when `j >= i`)._ Then `Ui` is
+    the constraint solution for the type variable `Xi` with respect to the
+    constraint set `C + (X <: Bi')`.
+
+_This definition can perhaps be better understood in terms of the practical
+consequences it has on type inference:_
+  - _Once type inference has determined a known type for a type variable (that
+    is, a type that does not contain `_`), that choice is frozen and is not
+    affected by later type inference steps._
+  - _The bound of a type variable is only included as a constraint when the
+    choice of type for that type variable is about to be frozen._
+  - _During each round of type inference, type variables are inferred left to
+    right.  If the bound of one type variable refers to one or more type
+    variables, then at the time the bound is included as a constraint, the type
+    variables it refers to are assumed to take on the type schemas most recently
+    assigned to them by type inference._
+
 #### Grounded constraint solution for a type variable
 
 The grounded constraint solution for a type variable `X` with respect to a
@@ -696,6 +734,26 @@ constraint set `C` is define as follows:
 Note that the grounded constraint solution is a type, and hence may not contain
 occurences of the unknown type.
 
+#### Grounded constraint solution for a set of type variables
+
+The grounded constraint solution for a set of type variables `{X0, ..., Xn}`
+with respect to a constraint set `C`, with previous solution `{T0, ..., Tn}`, is
+defined to be the set of types `{U0, ..., Un}` such that:
+  - If `Ti` is known (that is, does not contain `_`), then `Ui = Ti`.  _(Note
+    that the upcoming "variance" feature will relax this rule so that it only
+    applies to type variables without an explicitly declared variance.)_
+  - Otherwise, if `Xi` does not have an explicit bound, then `Ui` is the
+    grounded constraint solution for the type variable `Xi` with respect to the
+    constraint set `C`.
+  - Otherwise, let `Bi` be the bound of `Xi`.  Then, let `Bi'` be the type
+    formed by substituting type schemas `{U0, ..., Ui-1, Ti, ..., Tn}` in place
+    of the type variables `{X0, ..., Xn}` in `Bi`.  _(That is, we substitute
+    `Uj` for `Xj` when `j < i` and `Tj` for `Xj` when `j >= i`)._ Then `Ui` is
+    the grounded constraint solution for the type variable `Xi` with respect to
+    the constraint set `C + (X <: Bi')`.
+
+_This definition parallels the definition of the (non-grounded) constraint
+solution for a set of type variables._
 
 #### Constrained type variables
 

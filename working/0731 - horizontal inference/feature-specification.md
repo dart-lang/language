@@ -1,6 +1,6 @@
 # Horizontal inference
 
-Author: paulberry@google.com, Version: 1.0 (See [Changelog](#Changelog) at end)
+Author: paulberry@google.com, Version: 1.2 (See [Changelog](#Changelog) at end)
 
 Horizontal inference allows certain arguments of an invocation (specifically
 function literals) to be type inferred in a context derived from the type of
@@ -38,7 +38,7 @@ var largestValue = values.fold(0, (a, b) => a < b ? b : a);
 Today this doesn't work, because without the leading `int`, the downwards
 inference phase of type inference has no information with which to choose a
 preliminary type for the type parameter `T`, so the type context used for
-inference of the function literal `(a, b) => a < b ? b : a` is `? Function(?,
+inference of the function literal `(a, b) => a < b ? b : a` is `_ Function(_,
 int)`.  Hence, `a` gets assigned a static type of `Object?`, and this leads to a
 compile error at `a < b`.
 
@@ -114,11 +114,15 @@ In this document we make use of the following terms:
   normal Dart type syntax, extended with a type known as "the unknown type"
   (denoted `_`), which allows representation of incomplete type information.
 
-- An expression's "type context" is a type schema representing what is known
-  about the probable type of the expression just before the portion of the type
-  inference algorithm that visits it.  This, together with other information
-  defined in [flow analysis][], constitutes the _input_ to the corresponding
-  type inference step.
+- An expression's "type context" is a type schema representing information
+  captured by the type inference algorithm from the context surrounding it.  In
+  most circumstances, it represents the set of static types that the expression
+  could have without provoking a static error.  _(There are a few exceptions;
+  for example the context of the RHS of an assignment to a promoted variable is
+  the set of types that the expression could have without causing the variable
+  to be demoted)._ The type context of an expression, together with other
+  information defined in [flow analysis][], constitutes the **input** to the
+  corresponding type inference step.
 
 - An "implicit type argument" is a type argument to a generic invocation whose
   precise value is not directly specified in code, but is instead determined
@@ -141,22 +145,27 @@ In this document we make use of the following terms:
   a type variable based on a set of constraints.  It may contain occurrences of
   the unknown type.
 
+- The "constraint solution for a set of type variables" (defined
+  [here][constraint solution for a set of type variables]) is a mapping from
+  type variables to type schemas, formed from a set of constraints and a
+  previous mapping.  Typically, each type variable is mapped to the result of
+  solving the constraints that apply to it (according to the bullet above), plus
+  an additional constraint based on the bound of the type variable.  The
+  previous mapping is used to break loops when the bound of one type variable
+  refers to others, and to effectively "freeze" the solution of each variable at
+  the time it becomes fully known (that is, it does not contain `_`).
+
 - The "grounded constraint solution for a type variable" (defined
   [here][grounded constraint solution for a type variable]) is a final
-  assignment of a type to a type schema based on a set of constraints.  It is a
-  type, not a type schema, so it may not contain occurrences of the unknown
+  assignment of a type to a type variable based on a set of constraints.  It is
+  a type, not a type schema, so it may not contain occurrences of the unknown
   type.
 
-- The "(possibly grounded) constraint solution for a set of type variables,
-  considering bounds" is a mapping from type variables to type schemas (or, in
-  the grounded case, types), formed from a set of constraints.  Each type
-  variable is mapped to the result of solving the constraints that apply to it
-  (according to one of the two bullets above), plus an additional constraint
-  based on the bound of the type variable.  Since the bounds of some type
-  variables may depend on the values of others, the exact algorithm for this is
-  subtle, and depends on the order in which the type variables are considered.
-  The exact algorithm is outside the scope of this document; unfortunately I
-  haven't found an exact specification for it.
+- The "grounded constraint solution for a set of type variables" (defined
+  [here][grounded constraint solution for a set of type variables]) is a final
+  mapping from type variables to types, formed from a set of constraints and a
+  previous mapping.  It parallels the corresponding definition for the
+  non-grounded constraint solution.
 
 - A "function literal expression" is a syntactic construct that consists of a
   _\<functionExpression\>_, possibly enclosed in parentheses, and possibly
@@ -178,7 +187,9 @@ In this document we make use of the following terms:
 [type constraints]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#type-constraints
 [subtype constraint generation]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#subtype-constraint-generation
 [constraint solution for a type variable]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#constraint-solution-for-a-type-variable
+[constraint solution for a set of type variables]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#constraint-solution-for-a-set-of-type-variables
 [grounded constraint solution for a type variable]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#grounded-constraint-solution-for-a-type-variable
+[grounded constraint solution for a set of type variables]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#grounded-constraint-solution-for-a-set-of-type-variables
 
 ## Type inference algorithm for invocations
 
@@ -209,8 +220,9 @@ Performing type inference on an invocation consists of the following steps:
    try to match the return type of the target function type as a subtype of the
    invocation's type context.  This produces an initial set of type constraints.
    Then, using those constraints, find the constraint solution for the target
-   function type's type variables, considering bounds.  This produces a
-   preliminary mapping of type variables to type schemas.
+   function type's type variables, using a previous mapping that maps all type
+   variables to the unknown type.  This produces a preliminary mapping of type
+   variables to type schemas.
 
 4. Visit arguments: Partition the arguments into stages (see [argument
    partitioning](#Argument-partitioning) below), and then for each stage _k_, do
@@ -246,14 +258,16 @@ Performing type inference on an invocation consists of the following steps:
 
    * Horizontal inference: if generic inference is needed, and this is not the
      last stage, use all the type constraints gathered so far to find the
-     constraint solution for the target function's type variables, considering
-     bounds.  This produces an updated preliminary mapping of type parameters to
-     type schemas.
+     constraint solution for the target function's type variables, using the
+     mapping from the most recent previous execution of either this step or step
+     3 as the "previous mapping".  This produces an updated preliminary mapping
+     of type parameters to type schemas.
 
 5. Upwards inference: if generic inference is needed, use all the type
    constraints gathered so far to find the **grounded** constraint solution for
-   the target function's type variables, considering bounds.  This produces the
-   final mapping of type parameters to type schemas.  Check that each type is a
+   the target function's type variables, using the mapping from the most recent
+   execution of step 4 as the "previous mapping".  This produces the final
+   mapping of type parameters to type schemas.  Check that each type is a
    subtype of the bound of its corresponding type parameter.
 
 6. Type checking: Check that the static type of each argument is assignable to
@@ -463,6 +477,17 @@ defer type inference of function literals in all invocations, even if the
 invocation target isn’t generic._
 
 ## Changelog
+
+### 1.2
+
+- Use `_` consistently to refer to the "unknown" type schema.
+
+- Clarify what is meant by the term "type schema".
+
+- Clarify the notions of "constraint solution for a set of type variables" and
+  "grounded constraint solution for a set of type variables".  These are now
+  defined in `resources/type-system/inference.md`, so we include links to their
+  definitions.
 
 ### 1.1
 
