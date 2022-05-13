@@ -183,20 +183,16 @@ solely to be extended: an [abstract base class][].
 [abstract base class]: https://en.wikipedia.org/wiki/Class_(computer_programming)#Abstract_and_concrete
 
 If the class isn't abstract and can be both constructed and extended, you might
-think of it as a "base class".
+think of it as a "base class". Given that, I suggest we use `base` to mean "no
+interface". In other words, this class defines a *base* that all subtypes of
+this class (if there are any) must inherit from.
 
-Given that, I suggest we use `base` to mean "no interface". In other words, this
-class defines a *base* that all subtypes of this class (if there are any) must
-inherit from.
-
-It's short. I think it reads very naturally in `abstract base class` and
-`base class`. It works OK in `base mixin` to define a mixin with no implicit
-interface.
-
-If you want a class that can't be implemented *or* extended (in other words, a
-fully "final" or "sealed" leaf class), it would be a `closed base class`. I
-admit that reads a little like an oxymoron. It's not *great*, but maybe that's
-acceptable?
+It's short. I think it reads very naturally in `abstract base class` and `base
+class`. It works OK in `base mixin` to define a mixin with no implicit
+interface. If you want a class that can't be implemented *or* extended (in other
+words, a fully "final" or "sealed" leaf class), it would be a `closed base
+class`. I admit that reads a little like an oxymoron. It's not *great*, but
+maybe that's acceptable?
 
 ## Exhaustiveness checking
 
