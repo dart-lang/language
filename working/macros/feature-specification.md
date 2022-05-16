@@ -1055,8 +1055,6 @@ The macro system is *not* designed to provide hard security guarantees of the
 above properties. Users should consider the macros that they apply to be trusted
 code.
 
-[pure function]: https://en.wikipedia.org/wiki/Pure_function
-
 The restrictions in the following sections encourage the above properties as
 much as possible.
 
