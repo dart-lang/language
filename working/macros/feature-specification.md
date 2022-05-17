@@ -1045,8 +1045,8 @@ written macro can cause. A well-behaved macro should not:
     done.
 
 *   Produce different results when run multiple times on the same code. A macro
-    should be a idempotent, and should always generate the same declarations
-    from the same inputs.
+    should be idempotent, and should always generate the same declarations from
+    the same inputs.
 
 *   Use mutable global state to pass objects or information derived from one
     phase to a macro (even itself) running in a later phase.
