@@ -616,10 +616,15 @@ that `macro` should be _eventually_ applied to `declaration`. Any two identical
 calls to `applyAspect` must always return an "equal" `Identifier` object,
 regardless of if they are compiled in separate modules.
 
+  - Identical is defined by the concrete type of the Aspect Macro and the
+    specific declaration it is attached to. Aspect Macros are not allowed to
+    have fields so we do not need to do more than look at the type.
+
 **TODO**: You may need to be able to navigate to the declaration of one of these
 `Identifier`s, for instance in order to get a reference to one of its members or
 inspect the shape of the generated declaration. How do we want to expose this?
-See the section below on ordering and invocation for possible constraints.
+Is it an ok restriction to just say you can't? See the section below on ordering
+and invocation for possible constraints.
 
 ### Declaring an Aspect Macro
 
@@ -640,11 +645,27 @@ macro class FromJson extends ClassDeclarationsAspectMacro {
 }
 ```
 
+#### Restrictions on Aspect Macros
+
+- Aspect Macros must be serializable.
+- The serializable aspect is enforced by not permitting Aspect Macros to have
+  any fields, and they only have a single const constructor with no arguments.
+  - **TODO**: Should we make this constructor explicit?
+  - **TODO**: Should the api only take the Type of the aspect instead of an
+    instance?
+
 ### Ordering of Aspect Macros
 
 Aspect Macros are conceptually applied in a 4th macro phase. All non-aspect
 macros must be invoked on a library prior to aspect macros being invoked on any
 declaration in that library.
+
+Aspect Macros are allowed to invoke other aspect macros, so this 4th phase is
+iterative.
+
+- This is only safe because we don't allow introspection of Aspect Macro
+  generated identifiers today. If we did then we would need to figure out how
+  that should work and how cycles should be handled.
 
 ### Modular compilation
 
@@ -659,6 +680,22 @@ should be deduplicated when reading them in.
 TODO: Figure this out. A special library "next" to each library which has aspect
 macros applied to its declarations? A single "special" library with all aspects
 merged in? A library per aspect macro application?
+
+### Possible extra feature: Data Collection
+
+**TODO**: Fully explore this use case.
+
+Another possible use case for something like an Aspect Macro, would be to
+generate a declaration at the top level of the program, which is based on only
+information collected from the rest of the program.
+
+In particular for dependency injection this would be useful, but also
+potentially for other use cases such as generating an automatic route handler
+for a server side framework, or possibly ORM applications as well.
+
+Instead of generating declarations, these Aspect Macros would generate Data,
+which would be merged/deduplicated in a similar fashion, and could be retreived
+_at compile time_ by another macro.
 
 ## Generating code
 
