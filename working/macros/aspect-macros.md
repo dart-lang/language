@@ -155,3 +155,28 @@ for a server side framework, or possibly ORM applications as well.
 Instead of generating declarations, these Aspect Macros would generate Data,
 which would be merged/deduplicated in a similar fashion, and could be retreived
 _at compile time_ by another macro.
+
+## Other features under consideration
+
+### Allow adding private declarations in phase 3, with an optional key
+
+Instead of having another type of macro, we could possibly just allow any macro
+to emit new, private declarations in Phase 3. You would not be able to control
+the names of these declarations, and could not guess them in earlier phases.
+
+This new API would have an optional `String? key` argument, or possibly a
+`OpaqueKey? key` argument, which would allow you to create deduplicated helpers.
+
+This gives the user control over the key used for deduplication, which has both
+advantages and disadvantages.
+
+### Make Aspect Macros run in phase 3
+
+We could allow phase 3 macros to call an API similar to the one described above,
+to generate deduplicated helpers. They would not pass a user computed key, but
+instead rely on deduplication in the same manner as above.
+
+We could likely still allow cyclic aspect macros, as we would not synchronously
+be invoking them.
+
+We could also possibly not allow aspect macros to call other aspect macros.
