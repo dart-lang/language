@@ -129,7 +129,7 @@ iterative.
 ### Modular compilation
 
 Aspect Macros may be ran modularly, which may require merging of generated
-declarations at link time. Esssentially, the result of each module should have
+declarations at link time. Essentially, the result of each module should have
 a table of all the outputs of the Aspect Macros it had to run, and if multiple
 dependency modules ran on the same Aspect Module + Declaration pair, the results
 should be deduplicated when reading them in.
