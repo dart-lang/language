@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.8 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.9 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -709,18 +709,18 @@ expressions evaluate to equivalent values.
 
 #### Record binder
 
-A record pattern destructures fields from records and objects.
+A record pattern destructures fields from records and calls getters on objects.
 
 ```
 recordBinder        ::= '(' recordFieldBinders ')'
 
 recordFieldBinders  ::= recordFieldBinder ( ',' recordFieldBinder )* ','?
-recordFieldBinder   ::= ( identifier ':' )? binder
-                      | identifier ':'
+recordFieldBinder   ::= ( identifier? ':' )? binder
 ```
 
-Each field is either a binder which destructures a positional field, or a binder
-prefixed with an identifier and `:` which destructures a named field.
+If the field has a `:`, then it is named and destructures a named record field
+or calls a getter. Otherwise, it is positional and destructures a positional
+field on a record.
 
 Each named field in the record pattern is matched by calling a corresponding
 getter on the matched object. A record pattern can be applied to an object of
@@ -729,13 +729,15 @@ matched has getters with those names. (Positional fields, however, can only be
 matched by record values.)
 
 When destructuring named fields, it's common to want to bind the resulting value
-to a variable with the same name. As a convenience, the binder can be omitted on
-a named field. In that case, the field implicitly contains a variable binder
-subpattern with the same name. These are equivalent:
+to a variable with the same name. As a convenience, the field name can be
+omitted. The field must have a subpattern that contains a single variable or
+cast pattern (which may be nested inside null assert or null check patterns,
+recursively). The field name is then inferred from that variable or cast
+pattern's identifier. These are equivalent:
 
 ```dart
-var (first: first, second: second) = (first: 1, second: 2);
-var (first:, second:) = (first: 1, second: 2);
+var (first: first!, second: second as int) = (first: 1, second: 2);
+var (:first!, :second as int) = (first: 1, second: 2);
 ```
 
 **TODO: Allow a `...` element in order to ignore some positional fields while
@@ -952,22 +954,21 @@ Destructures fields from records and objects.
 recordMatcher ::= '(' recordFieldMatchers ')'
 
 recordFieldMatchers ::= recordFieldMatcher ( ',' recordFieldMatcher )* ','?
-recordFieldMatcher  ::= ( identifier ':' )? matcher
-                      | identifier ':'
+recordFieldMatcher  ::= ( identifier? ':' )? matcher
 ```
 
 Each field is either a positional matcher which destructures a positional field,
 or a matcher prefixed with an identifier and `:` which destructures a named
 field.
 
-As with record binders, a named field without a matcher is implicitly treated as
-containing a variable matcher with the same name as the field. The variable is
-always `final`. These cases are equivalent:
+As with record binders, a named field without an identifier has its field name
+inferred from the variable pattern inside the field's subpattern. These cases
+are equivalent:
 
 ```dart
 switch (obj) {
-  case (first: final first, second: final second): ...
-  case (first:, second:): ...
+  case (first: int first, second: var second?): ...
+  case (:int first, :var second?): ...
 }
 ```
 
@@ -1050,16 +1051,16 @@ It is a compile-time error if `extractName` does not refer to a type or enum
 value. It is a compile-time error if a type argument list is present and does
 not match the arity of the type of `extractName`.
 
-As with record matchers, a named field without a matcher is implicitly treated
-as containing a variable matcher with the same name as the field. The variable
-is always `final`. The previous example could be written like:
+As with record matchers, a named field without an identifier infers the field
+name from the variable pattern inside the field's subpattern. These cases are
+equivalent:
 
 ```dart
 log(Severity severity, String message) {
   switch (severity) {
     case Severity.error(prefix:):
       print('!! $prefix !! $message'.toUppercase());
-    case Severity.warning(prefix:):
+    case Severity.warning(:var prefix):
       print('$prefix: $message');
   }
 }
@@ -1240,12 +1241,8 @@ The context type schema for a pattern `p` is:
 
 *   **Record binder or matcher**: A record type scheme with positional and named
     fields corresponding to the type schemas of the corresponding field
-    subpatterns. If a named field uses the shorthand syntax to infer a variable
-    subpattern with the same name as the field, then the type schema is `?` for
-    that field.
-
-    *Note that the type schema will be a record type even when the matched value
-    type isn't a record, as in:*
+    subpatterns. *Note that the type schema will be a record type even when the
+    matched value type isn't a record, as in:*
 
     ```dart
     var p = Point(x: 1, y: 2);
@@ -1406,10 +1403,6 @@ The static type of a pattern `p` being matched against a value of type `M` is:
             `dynamic` and does not have a getter whose name matches the
             subpattern's field name.
 
-            If a named field uses the shorthand syntax to infer a variable
-            subpattern with the same name as the field, then calculate the
-            static type using that inferred variable pattern.
-
     1.  If `M` is a record type (of any shape) or `dynamic`, then the static
         type of `p` is a record type whose fields are the fields of `p` with the
         types of the corresponding subpatterns of `p`. *If the matched value is
@@ -1506,9 +1499,7 @@ The variables a patterns binds depend on what kind of pattern it is:
 
 *   **List binder or matcher**, **map binder or matcher**, or **record binder or
     matcher**: These do not introduce variables themselves but may contain type
-    patterns and subpatterns that do. A named record field with no subpattern
-    implicitly defines a variable with the same name as the field. If the
-    pattern is a matcher, the variable is `final`.
+    patterns and subpatterns that do.
 
 *   **Literal matcher**, **constant matcher**, or **wildcard binder or
     matcher**: These do not introduce any variables.
@@ -1533,8 +1524,7 @@ The variables a patterns binds depend on what kind of pattern it is:
     variables of its subpattern.
 
 *   **Extractor matcher**: May contain type argument patterns and introduces all
-    of the variables of its subpatterns. A named field with no subpattern
-    implicitly defines a `final` variable with the same name as the field.
+    of the variables of its subpatterns.
 
 All variables (except for type variables) declared in an instance field pattern
 variable declaration are covariant if the pattern variable declaration is marked
@@ -1751,9 +1741,7 @@ To match a pattern `p` against a value `v`:
             instead of treating that as a match failure.*
 
         3.  Match the subpattern of `f` against `r`. If the match fails, the
-            record match fails. If `f` is a named field using the shorthand
-            syntax that that infers an implicit variable subpattern from the
-            field's name, match `r` against that inferred variable subpattern.
+            record match fails.
 
     3.  If all field subpatterns match, the record pattern matches.
 
@@ -1837,6 +1825,15 @@ main() {
 *This prints "1", "2", "here".*
 
 ## Changelog
+
+### 1.9
+
+-   Change the named field shorthand syntax to infer the field name instead of
+    inferring the variable subpattern. This lets it work with typed variable
+    patterns, variable patterns using `var` or `final`, and be composed with
+    null-check, null-assert, and cast patterns ([#2231][]).
+
+[#2231]: https://github.com/dart-lang/language/issues/2231
 
 ### 1.8
 
