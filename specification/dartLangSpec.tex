@@ -23607,7 +23607,7 @@ The function \UpperBoundTypeName{} is defined as follows.
   \DefEquals{\UpperBoundType{$T_1$}{$T_2$}}{T_2},
   if \SubtypeNE{T_1}{T_2}.
 
-  \commentary{
+  \commentary{%
     In this and in the following cases, both types must be interface types.%
   }
 \item
@@ -23864,7 +23864,7 @@ The function \LowerBoundType{$T_1$}{$T_2$} is defined as follows.
   \DefEquals{\LowerBoundType{$T_1$}{$T_2$}}{\code{Never}}, otherwise.
 \end{itemize}
 
-\rationale{
+\rationale{%
 The rules defining \UpperBoundTypeName{} and \LowerBoundTypeName{}
 are somewhat redundant in that they explicitly specify
 a lot of pairs of symmetric cases.
@@ -25682,6 +25682,7 @@ independently of the control flow.
 }
 
 \LMHash{}%
+\BlindDefineSymbol{\ell, v}%
 Let $\ell$ be a location,
 and let $v$ be a local variable which is in scope at $\ell$.
 Assume that $\ell$ occurs after the declaration of $v$.
@@ -25705,34 +25706,33 @@ are the following:
 
 \LMHash{}%
 In particular,
-a check of the form \code{$v$\,\,==\,\,\NULL},
-\code{\NULL\,\,==\,\,$v$},
-or \code{$v$\,\,\IS\,\,Null}
+an expression of the form \code{$v$\,\,==\,\,\NULL} or
+\code{\NULL\,\,==\,\,$v$}
 where $v$ has type $T$ at $\ell$
 promotes the type of $v$
-to \code{Null} in the \TRUE{} continuation,
-and to \NonNullType{$T$} in the \FALSE{} continuation.
+to \NonNullType{$T$} in the \FALSE{} continuation;
+and an expression of the form \code{$v$\,\,!=\,\,\NULL} or
+\code{\NULL\,\,!=\,\,$v$}
+where $v$ has static type $T$ at $\ell$
+promotes the type of $v$
+to \NonNullType{$T$} in the \TRUE{} continuation.
 
-%% TODO(eernst), for review: The null safety spec says that `T?` is
-%% promoted to `T`, but implementations _do_ promote `X extends int?` to
-%% `X & int`. So we may be able to specify something which will yield
-%% slightly more precise types, and which is more precisely the implemented
-%% behavior.
 \LMHash{}%
-A check of the form \code{$v$\,\,!=\,\,\NULL},
-\code{\NULL\,\,!=\,\,$v$},
-or \code{$v$\,\,\IS\,\,$T$}
-where $v$ has static type $T?$ at $\ell$
+Similarly, a type test of the form \code{$v$\,\,\IS\,\,$T$}
 promotes the type of $v$
 to $T$ in the \TRUE{} continuation,
-and to \code{Null} in the \FALSE{} continuation.
+and a type check of the form \code{$v$\,\,\AS\,\,$T$}
+promotes the type of $v$
+to $T$ in the continuation where the expression evaluated to an object
+(\commentary{that is, it did not throw}).
 
 \commentary{%
   The resulting type of $v$ may be the obvious one, e.g.,
   \code{$v$\,\,=\,\,1} may promote $v$ to \code{int},
   but it may also give rise to a demotion
-  (changing the type of $v$ to a supertype of the type of $v$ at $\ell$),
-  and it may have no effect on the type of $v$
+  (changing the type of $v$ to a supertype of the type of $v$ at $\ell$
+  and potentially promoting it to some other type of interest).
+  It may also have no effect on the type of $v$
   (e.g., when the static type of $e$ is not a type of interest).
   These details will be specified in a future version of this specification.
 
@@ -25887,15 +25887,20 @@ The following algorithm computes the same relation as
 the one which is specified in Fig.~\ref{fig:subtypeRules}.
 It shows that Dart subtyping relationships can be decided
 with good performance.
+This section is not normative.
 
 \LMHash{}%
 In this algorithm, types are considered to be the same when they have
 the same canonical syntax
 (\ref{theCanonicalSyntaxOfTypes}).
+\commentary{%
+For example, \SubtypeStd{\code{C}}{\code{C}} does not hold if
+the two occurrences of \code{C} refer to declarations in different libraries.%
+}
 The algorithm must be performed such that the first case that matches
 is always the case which is performed.
 The algorithm produces results which are both positive and negative
-(\commentary{
+(\commentary{%
   that is, in some situations the subtype relation is determined to be false%
 }),
 which is important for performance because
@@ -25907,16 +25912,18 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
 \begin{itemize}
 \item
   \textbf{Reflexivity:}
-  if $T_0$ and $T_1$ are the same type then \SubtypeNE{T_0}{T_1}
+  if $T_0$ and $T_1$ are the same atomic type then \SubtypeNE{T_0}{T_1}.
 
   \commentary{%
-    Note that this check is necessary as the base case for primitive types,
+    This check is necessary as the base case for primitive types,
     and type variables, but not for composite types.
     In particular, a structural equality check is admissible,
     but not required here.
-    Pragmatically, non-constant time identity checks here are
-    counter-productive.
-    So this rule should only be used when $T$ is atomic.%
+    Non-constant time identity checks here are counter-productive
+    because the following rules will yield the same result anyway,
+    so we may just perform a full traversal of a large structure twice
+    for no reason.
+    Hence, this rule is only used when the given type is atomic.%
   }
 \item
   \textbf{Right Top:}
@@ -25926,7 +25933,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   if $T_0$ is \DYNAMIC{} or \VOID{}
   then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{\code{Object?}}{T_1}.
 \item
-  \textbf{Left Bottom:}
+  \textbf{Bottom:}
   if $T_0$ is \code{Never} then \SubtypeNE{T_0}{T_1}.
 \item
   \textbf{Right Object:}
@@ -25979,7 +25986,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   or a promoted type variables \code{$X_0$\,\&\,$S_0$} and $T_1$ is $X_0$
   then \SubtypeNE{T_0}{T_1}.
 
-  \commentary{
+  \commentary{%
     Note that this rule is admissible, and can be safely elided if desired.%
   }
 \item
@@ -26062,7 +26069,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
     for $i \in 0 .. q$.
   \item \SubtypeNE{U_0[Z_0/X_0, \ldots, Z_k/X_k]}{U_1[Z_0/Y_0, \ldots, Z_k/Y_k]}.
   \item $B_{0i}[Z_0/X_0, \ldots, Z_k/X_k]$ and $B_{1i}[Z_0/Y_0, \ldots, Z_k/Y_k]$
-    have the same canonical syntax, for $i \in 0 .. k$.
+    are subtypes of each other, for $i \in 0 .. k$.
   \end{itemize}
 \item
   \textbf{Named Function Types:}
@@ -26103,8 +26110,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
     \SubtypeNE{U_0[Z_0/X_0, \ldots, Z_k/X_k]}{U_1[Z_0/Y_0, \ldots, Z_k/Y_k]}.
   \item
     $B_{0i}[Z_0/X_0, \ldots, Z_k/X_k]$ and $B_{1i}[Z_0/Y_0, \ldots, Z_k/Y_k]$
-    have the same canonical syntax,
-    for each $i \in 0 .. k$.
+    are subtypes of each other, for each $i \in 0 .. k$.
   \end{itemize}
 
   \commentary{%
