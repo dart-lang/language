@@ -2518,11 +2518,13 @@ whose declaration is concrete.
 \rationale{%
 We want different behavior for concrete classes and abstract classes.
 If $A$ is intended to be abstract,
-we want the static checker to warn about any attempt to instantiate $A$,
+the static checker should report an error
+if an attempt is made to instantiate $A$,
 and we do not want the checker to complain about unimplemented methods in $A$.
 In contrast, if $A$ is intended to be concrete,
-the checker should warn about all unimplemented methods,
-but allow clients to instantiate it freely.%
+the checker should raise an error for all unimplemented methods,
+but clients should be allowed to instantiate it.
+This motivates the use of an explicit modifier to identify abstract classes.%
 }
 
 \commentary{%
@@ -2533,6 +2535,12 @@ and whose direct superinterfaces are
 the direct superinterfaces of $C$
 (\ref{interfaces}, \ref{superinterfaces}).%
 }
+
+\LMHash{}%
+It is a compile-time error if a class $C$ has the interface $I$,
+and $I$ has a member signature conflict
+with respect to any name and library
+(\ref{interfaceInheritanceAndOverriding}).
 
 \LMHash{}%
 When a class name appears as a type,
@@ -2637,10 +2645,10 @@ in a trade-off where some static type safety is lost.%
 \subsection{Fully Implementing an Interface}
 \LMLabel{fullyImplementingAnInterface}
 
-% Note that rules here and in \ref{instanceMethods} overlap, but they are
+% Note that rules here and in \ref{classes} overlap, but they are
 % both needed: This section is concerned with concrete methods, including
-% inherited ones, and \ref{instanceMethods} is concerned with instance
-% members declared in $C$, including both concrete and abstract ones.
+% inherited ones, and \ref{classes} is concerned with instance members
+% declared in $C$, including both concrete and abstract ones.
 
 \LMHash{}%
 % The use of `concrete member' below may seem redundant, because a class
@@ -2759,7 +2767,7 @@ if the type of $p$ is not a subtype and not a supertype of the type of $p_s$.
 This ensures that an inherited method satisfies the same constraint
 for each formal parameter which is covariant-by-declaration
 as the constraint which is specified for a declaration in $C$
-(\ref{instanceMethods}).%
+(\ref{classes}).%
 }
 
 
@@ -4566,7 +4574,7 @@ but fails to account for library privacy.%
 Whether an override is legal or not is specified relative to
 all direct superinterfaces, not just the interface of the superclass,
 and that is described elsewhere
-(\ref{instanceMethods}).
+(\ref{classes}).
 Static members never override anything,
 but they may participate in some conflicts
 involving declarations in superinterfaces
@@ -4910,6 +4918,7 @@ and a set of superinterfaces,
 which are again interfaces.
 
 \LMHash{}%
+\BlindDefineSymbol{C, I}%
 Let $C$ be a class.
 The
 \IndexCustom{class interface}{interface!class}
@@ -5212,26 +5221,44 @@ such that all of the following hold:
 \end{itemize}
 
 \LMHash{}%
-Let $I$ be the interface of a class $C$ declared in library $L$.
-$I$ \Index{inherits} all members of $\inherited{I, L}$
-and $I$ \Index{overrides} $m'$ if $m' \in \overrides{I, L}$.
+Let $I$ be the interface of a class $C$ declared in a library $L$,
+and let $K$ be a library.
+We say that the set of members that $I$
+\IndexCustom{inherits with respect to $K$}{interface!inherits}
+is $\inherited{I, K}$,
+and the set of members that $I$
+\IndexCustom{overrides}{interface!overrides}
+is $\overrides{I, L}$.
+
+\commentary{%
+Note that an interface can inherit members that are inaccessible
+(because they are private to a different library),
+but it can only override members that are accessible.%
+}
 
 \LMHash{}%
-All the compile-time errors pertaining to the overriding of instance members
-given in section~\ref{classes} hold for overriding between interfaces as well.
+We say that $I$
+\IndexCustom{has a member}{interface!has a member}
+$m$ if $I$ inherits $m$ with respect to any library,
+or $I$ overrides $m$.
 
 \LMHash{}%
-If the above rule would cause multiple member signatures
-with the same name \id{} to be inherited then
-exactly one member is inherited, namely
-the combined member signature named \id,
-from the direct superinterfaces
-% This is well-defined because $I$ is a class interface.
-in the textual order that they are declared,
-with respect to $L$
-(\ref{combinedMemberSignatures}).
-It is a compile-time error
-if the computation of said combined member signature fails.
+\BlindDefineSymbol{I, K, n, m}%
+Let $I$ be an interface, $K$ a library, and
+$n$ a name such that a member $m$ with the name $n$
+is inherited by $I$ with respect to $K$.
+\commentary{%
+Note that there may be more than one such member.%
+}
+The
+\IndexCustom{member signature}{interface!member signature}
+of $I$ for $n$ with respect to $K$ is
+the combined member signature for $n$
+of the direct superinterfaces of $I$ with respect to $K$.
+In the case where the computation of the combined member signature fails,
+we say that $I$ has a
+\IndexCustom{member signature conflict}{interface!member signature conflict}
+with respect to $n$ and $K$.
 
 
 \subsubsection{Correct Member Overrides}
@@ -5281,7 +5308,7 @@ Note that a parameter which is covariant-by-declaration
 must have a type which satisfies one more requirement,
 relative to the corresponding parameters in all superinterfaces,
 both direct and indirect
-(\ref{instanceMethods}).
+(\ref{classes}).
 We cannot make that requirement a part of the notion of correct overrides,
 because correct overrides are only concerned with
 the relation to a single superinterface.%
