@@ -41,6 +41,7 @@
 % - Add several lexical rules about identifiers, clarifying different kinds.
 % - Clarify the conflicts between extension members and `Object` instance
 %   members.
+% - Correct <partDeclaration> to include metadata.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -19772,7 +19773,8 @@ may be found.
 
 <partHeader> ::= <metadata> \PART{} \OF{} (<dottedIdentifierList> | <uri>) `;'
 
-<partDeclaration> ::= <partHeader> <topLevelDeclaration>* <EOF>
+<partDeclaration> ::=
+  <partHeader> (<metadata> <topLevelDeclaration>)* <EOF>
 \end{grammar}
 
 \LMHash{}%
