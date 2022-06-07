@@ -4947,74 +4947,6 @@ Similarly, when $T$ is $T_0$ bounded where $T_0$ is a function type,
 $T$ is considered to have a method named \CALL{} with signature $m$,
 such that the function type of $m$ is $T_0$.
 
-\LMHash{}%
-\BlindDefineSymbol{I, \List{I}{1}{k}}%
-The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
-is the interface that declares the set of member signatures $M$,
-where $M$ is determined as specified below.
-The \Index{direct superinterfaces} of $I$ is the set \List{I}{1}{k}.
-
-\LMHash{}%
-Let $M_0$ be the set of all member signatures declared by \List{I}{1}{k}.
-\DefineSymbol{M} is then the smallest set satisfying the following:
-
-\begin{itemize}
-\item For each name \id{} and library $L$ such that $M_0$ contains
-  a member signature named \id{} which is accessible to $L$,
-  let $m$ be the combined member signature named \id{}
-  from \List{I}{1}{k} with respect to $L$.
-  It is a compile-time error
-  if the computation of this combined member signature failed.
-  Otherwise, $M$ contains $m$.
-\end{itemize}
-
-\rationale{%
-Interfaces must be able to contain inaccessible member signatures,
-because they may be accessible from the interfaces associated with
-declarations of subtypes.%
-}
-
-\commentary{%
-For instance, class $C$ in library $L$ may declare a private member named
-\code{\_foo},
-a class $D$ in a different library $L_2$ may extend $C$,
-and a class $E$ in library $L$ may extend $D$;
-$E$ may then declare a member that overrides \code{\_foo} from $C$,
-and that override relation must be checked based on the interface of $D$.
-So we cannot allow the interface of $D$
-to ``forget'' inaccessible members like \code{\_foo}.
-
-For conflicts the situation is even more demanding:
-Classes $C_1$ and $C_2$ in library $L$ may declare private members
-\code{String \_foo(int i)} and \code{int get \_foo},
-and a subtype $D_{12}$ in a different library $L_2$ may have
-an \IMPLEMENTS{} clause listing both $C_1$ and $C_2$.
-In that case we must report a conflict even though the conflicting
-declarations are not accessible to $L_2$,
-because those member signatures are then noSuchMethod forwarded
-(\ref{theMethodNoSuchMethod}),
-and an invocation of \code{\_foo} on an instance of $D$ in $L$
-must return an `int` according to the first member signature,
-and it must return a function object according to the second one,
-and an invocation of \code{\_foo(42)}
-must return a \code{String} with the first member signature, and it must fail
-(at compile time or, for a dynamic invocation, run time) with the second.%
-}
-
-\rationale{%
-It may not be possible to satisfy such constraints simultaneously,
-and it will inevitably be a complex semantics,
-so we have chosen to make it an error.
-It is unfortunate that the addition of a private declaration
-in one library may break existing code in a different library.
-But it should be noted that the conflicts can be detected locally
-in the library where the private declarations exist,
-because they only arise for private members with
-the same name and incompatible signatures.
-Renaming that private member to anything not used in that library
-will eliminate the conflict and will not break any clients.%
-}
-
 
 \subsection{Combined Member Signatures}
 \LMLabel{combinedMemberSignatures}
@@ -5060,7 +4992,7 @@ For instance,
 \FunctionTypeSimple{\DYNAMIC}{} and \FunctionTypeSimple{\code{Object}}{}
 are not equal, even though they are subtypes of each other.
 We need this distinction because management of top type discrepancies is
-one of the purposes of computing a combined interface.%
+one of the purposes of computing combined member signatures.%
 }
 
 \LMHash{}%
