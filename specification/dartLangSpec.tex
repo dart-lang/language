@@ -2573,6 +2573,66 @@ The rules of inheritance determine what members a class has.%
 \}
 \end{dartCode}
 
+\LMHash{}%
+\BlindDefineSymbol{C, D, m}%
+Consider a class $C$
+and an instance member declaration $D$ in $C$, with member signature $m$
+(\ref{interfaces}).
+It is a compile-time error if $D$ overrides a declaration
+% Note that $m'$ is accessible, due to the definition of `overrides'.
+with member signature $m'$
+from a direct superinterface of $C$
+(\ref{interfaceInheritanceAndOverriding}),
+unless $m$ is a correct member override of $m'$
+(\ref{correctMemberOverrides}).
+
+\commentary{%
+This is not the only kind of conflict that may exist:
+An instance member declaration $D$ may conflict with another declaration $D'$,
+even in the case where they do not have the same name
+or they are not the same kind of declaration.
+E.g., $D$ could be an instance getter and $D'$ a static setter
+(\ref{classMemberConflicts}).%
+}
+
+\LMHash{}%
+For each parameter $p$ of $m$ where \COVARIANT{} is present,
+it is a compile-time error if there exists
+a direct or indirect superinterface of $C$ which has
+an accessible method signature $m''$ with the same name as $m$,
+such that $m''$ has a parameter $p''$ that corresponds to $p$
+(\ref{covariantParameters}),
+unless the type of $p$ is a subtype or a supertype of the type of $p''$.
+
+\commentary{%
+This means that
+a parameter which is covariant-by-declaration can have a type
+which is a supertype or a subtype of the type of
+a corresponding parameter in a superinterface,
+but the two types cannot be unrelated.
+Note that this requirement must be satisfied
+for each direct or indirect superinterface separately,
+because that relationship is not transitive.%
+}
+
+\rationale{%
+The superinterface may be the statically known type of the receiver,
+so this means that we relax the potential typing relationship
+between the statically known type of a parameter and the
+type which is actually required at run time
+to the subtype-or-supertype relationship,
+rather than the strict supertype relationship
+which applies to a parameter which is not covariant.
+It should be noted that it is not statically known
+at the call site whether any given parameter is covariant,
+because the covariance could be introduced in
+a proper subtype of the statically known type of the receiver.
+We chose to give priority to flexibility rather than safety here,
+because the whole point of covariant parameters is that developers
+can make the choice to increase the flexibility
+in a trade-off where some static type safety is lost.%
+}
+
 
 \subsection{Fully Implementing an Interface}
 \LMLabel{fullyImplementingAnInterface}
@@ -2715,66 +2775,6 @@ The \Index{instance methods of a class} $C$ are
 the instance methods declared by $C$
 and the instance methods inherited by $C$ from its superclass
 (\ref{inheritanceAndOverriding}).
-
-\LMHash{}%
-\BlindDefineSymbol{C, D, m}%
-Consider a class $C$
-and an instance member declaration $D$ in $C$, with member signature $m$
-(\ref{interfaces}).
-It is a compile-time error if $D$ overrides a declaration
-% Note that $m'$ is accessible, due to the definition of `overrides'.
-with member signature $m'$
-from a direct superinterface of $C$
-(\ref{interfaceInheritanceAndOverriding}),
-unless $m$ is a correct member override of $m'$
-(\ref{correctMemberOverrides}).
-
-\commentary{%
-This is not the only kind of conflict that may exist:
-An instance member declaration $D$ may conflict with another declaration $D'$,
-even in the case where they do not have the same name
-or they are not the same kind of declaration.
-E.g., $D$ could be an instance getter and $D'$ a static setter
-(\ref{classMemberConflicts}).%
-}
-
-\LMHash{}%
-For each parameter $p$ of $m$ where \COVARIANT{} is present,
-it is a compile-time error if there exists
-a direct or indirect superinterface of $C$ which has
-an accessible method signature $m''$ with the same name as $m$,
-such that $m''$ has a parameter $p''$ that corresponds to $p$
-(\ref{covariantParameters}),
-unless the type of $p$ is a subtype or a supertype of the type of $p''$.
-
-\commentary{%
-This means that
-a parameter which is covariant-by-declaration can have a type
-which is a supertype or a subtype of the type of
-a corresponding parameter in a superinterface,
-but the two types cannot be unrelated.
-Note that this requirement must be satisfied
-for each direct or indirect superinterface separately,
-because that relationship is not transitive.%
-}
-
-\rationale{%
-The superinterface may be the statically known type of the receiver,
-so this means that we relax the potential typing relationship
-between the statically known type of a parameter and the
-type which is actually required at run time
-to the subtype-or-supertype relationship,
-rather than the strict supertype relationship
-which applies to a parameter which is not covariant.
-It should be noted that it is not statically known
-at the call site whether any given parameter is covariant,
-because the covariance could be introduced in
-a proper subtype of the statically known type of the receiver.
-We chose to give priority to flexibility rather than safety here,
-because the whole point of covariant parameters is that developers
-can make the choice to increase the flexibility
-in a trade-off where some static type safety is lost.%
-}
 
 
 \subsubsection{Operators}
