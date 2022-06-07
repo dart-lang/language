@@ -42,6 +42,8 @@
 % - Clarify the conflicts between extension members and `Object` instance
 %   members.
 % - Correct <partDeclaration> to include metadata.
+% - Clarify errors involving overrides of private members in a library where
+%   they are not accessible.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -4906,16 +4908,12 @@ how one may interact with an object.
 An interface has method, getter and setter signatures,
 and a set of superinterfaces,
 which are again interfaces.
-Each interface is the implicit interface of a class,
-in which case we call it a
-\IndexCustom{class interface}{interface!class},
-or a combination of several other interfaces,
-in which case we call it a
-\IndexCustom{combined interface}{interface!combined}.
 
 \LMHash{}%
 Let $C$ be a class.
-The \Index{class interface} $I$ of $C$ is the interface that declares
+The
+\IndexCustom{class interface}{interface!class}
+$I$ of $C$ is the interface that declares
 a member signature derived from
 each instance member declared by $C$.
 The \Index{direct superinterfaces} of $I$ are the direct superinterfaces of $C$
