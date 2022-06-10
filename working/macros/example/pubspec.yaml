@@ -11,32 +11,72 @@ dev_dependencies:
 # Override to the latest version of the in progress api.
 dependency_overrides:
   _fe_analyzer_shared:
-    # git:
-    #   url: https://github.com/dart-lang/sdk.git
-    #   path: pkg/_fe_analyzer_shared
-    path: ../../../../dart-lang-sdk/sdk/pkg/_fe_analyzer_shared
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/_fe_analyzer_shared
+      ref: b878294e06958ceb679c11161329f410f8cc4656
+  _js_interop_checks:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/_js_interop_checks
+      ref: b878294e06958ceb679c11161329f410f8cc4656
   analyzer:
-    # git:
-    #   url: https://github.com/dart-lang/sdk.git
-    #   path: pkg/analyzer
-    path: ../../../../dart-lang-sdk/sdk/pkg/analyzer
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/analyzer
+      ref: b878294e06958ceb679c11161329f410f8cc4656
   build_integration:
-    # git:
-    #   url: https://github.com/dart-lang/sdk.git
-    #   path: pkg/build_integration
-    path: ../../../../dart-lang-sdk/sdk/pkg/build_integration
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/build_integration
+      ref: b878294e06958ceb679c11161329f410f8cc4656
+  compiler:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/compiler
+      ref: b878294e06958ceb679c11161329f410f8cc4656
+  dart2js_info:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/dart2js_info
+      ref: b878294e06958ceb679c11161329f410f8cc4656
+  dev_compiler:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/dev_compiler
+      ref: b878294e06958ceb679c11161329f410f8cc4656
   front_end:
-    # git:
-    #   url: https://github.com/dart-lang/sdk.git
-    #   path: pkg/front_end
-    path: ../../../../dart-lang-sdk/sdk/pkg/front_end
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/front_end
+      ref: b878294e06958ceb679c11161329f410f8cc4656
   frontend_server:
-    # git:
-    #   url: https://github.com/dart-lang/sdk.git
-    #   path: pkg/frontend_server
-    path: ../../../../dart-lang-sdk/sdk/pkg/frontend_server
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/frontend_server
+      ref: b878294e06958ceb679c11161329f410f8cc4656
+  js_ast:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/js_ast
+      ref: b878294e06958ceb679c11161329f410f8cc4656
+  js_runtime:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/js_runtime
+      ref: b878294e06958ceb679c11161329f410f8cc4656
+  js_shared:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/js_shared
+      ref: b878294e06958ceb679c11161329f410f8cc4656
   kernel:
-    # git:
-    #   url: https://github.com/dart-lang/sdk.git
-    #   path: pkg/kernel
-    path: ../../../../dart-lang-sdk/sdk/pkg/kernel
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/kernel
+      ref: b878294e06958ceb679c11161329f410f8cc4656
+  vm:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/vm
+      ref: b878294e06958ceb679c11161329f410f8cc4656
