@@ -2595,11 +2595,7 @@ and $m$ is not a correct member override of $m'$
 (\ref{correctMemberOverrides}).
 
 \commentary{%
-Other kinds of compile-time errors may exist as well:
-An instance member declaration $D$ may conflict with another declaration $D'$,
-even in the case where they do not have the same name
-or they are not the same kind of declaration.
-E.g., $D$ could be an instance getter and $D'$ a static setter
+Note that other, somewhat similar kinds of compile-time errors may exist as well
 (\ref{classMemberConflicts}).%
 }
 
@@ -3314,7 +3310,7 @@ The \Index{static getters of a class} $C$ are
 those static getters declared by $C$.
 
 \commentary{%
-A getter declaration may conflict with other declarations
+A getter declaration may conflict with other declarations as well
 (\ref{classMemberConflicts}).
 In particular, a getter can never override a method,
 and a method can never override a getter or an instance variable.
@@ -3548,7 +3544,7 @@ the body scope of $C$, where $X_1, \ldots, X_m$ are in scope.%
 }
 
 \commentary{%
-A constructor declaration may conflict with static member declarations
+A constructor declaration may conflict with static member declarations as well
 (\ref{classMemberConflicts}).%
 }
 
@@ -4428,7 +4424,7 @@ Dart static methods may be seen as functions of the enclosing library.%
 }
 
 \commentary{%
-Static method declarations may conflict with other declarations
+Static method declarations may conflict with other declarations as well
 (\ref{classMemberConflicts}).%
 }
 
