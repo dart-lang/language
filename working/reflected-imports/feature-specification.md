@@ -150,7 +150,7 @@ Summarizing the above, the requirements are:
 *   Let macros introspect over declarations in known libraries for things like
     subtype tests.
 *   Enable the Dart compiler to statically understand the library dependency
-    graph of the program, before executing any macros.
+    graph of the program before executing any macros.
 *   Allow macros to refer to declarations even in libraries that can't be run
     in the macro execution environment.
 
