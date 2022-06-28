@@ -150,7 +150,7 @@ Summarizing the above, the requirements are:
 *   Let macros introspect over declarations in known libraries for things like
     subtype tests.
 *   Enable the Dart compiler to statically understand the library dependency
-    graph of the program.
+    graph of the program before executing any macros.
 *   Allow macros to refer to declarations even in libraries that can't be run
     in the macro execution environment.
 
@@ -232,10 +232,11 @@ In order to introspect over a declaration from a reflected import, the
 `Identifier` must first be resolved to a declaration. The [macro introspection
 API exposes][api] methods to do that.
 
-**TODO: Are these only available in certain phases? Can reflected imports be
-resolved in any phase? Once resolved, can they be deeply reflected over (i.e.
-walking the members of a class, etc.) or only used for things like subtype
-tests?**
+The rules for introspection on identifiers from reflected imports are the same
+as other identifiers a macro might encounter. This means you cannot navigate
+to type declarations until after the types phase, and you cannot navigate to
+other declarations until after the declarations phase. All type declarations
+will also not be introspectable until the definitions phase.
 
 **TODO: Would be good to show a concrete example of a macro using a reflected
 import and introspecting over it in a subtype test.**
@@ -270,8 +271,13 @@ a distinct Dart "platform" and only it supports reflected imports. When
 targeting any other execution environment, a Dart compiler reports a
 compile-time error if it encounters a reflected import.
 
-**TODO: What about unit tests for macros? They presumably run in the normal
-command line VM execution environment. Can they use reflected imports?**
+**TODO: How can we enforce this compile time restriction when macros
+themselves are imported via normal imports? Do we need something like
+https://github.com/dart-lang/language/pull/1831?**
+
+This also means that macros cannot be _unit tested_. That is, you cannot
+import, instantiate, and execute them as at runtime in the normal VM
+environment (or any other normal runtime environment).
 
 ### Config-specific imports
 
@@ -289,7 +295,9 @@ configuration either.)
 
 Thus, when determining what declarations are available for a reflected import,
 **the compiler always uses the default URI for any config-specific imports or
-exports that it encounters.**
+exports that it encounters.**. This may result in generating code which is not
+actually compatible with all platforms, if the API differs across the
+configuration specific imports.
 
 **TODO: Consider making it a compile-time error for a reflected import to
 having any config-specific imports, directly or transitively?**
