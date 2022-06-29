@@ -33,7 +33,7 @@ subset of the members, but using an extension type allows us to _replace_
 the set of members.
 
 The functionality is entirely static. Extension types is an enhancement of
-the extension methods feature which was added to Dart in version 2.6. In
+the extension methods feature which was added to Dart in version 2.7. In
 particular, the semantics of extension method invocation is also the
 semantics of invocations of a member of an extension type. By allowing a
 developer to work with objects where an extension type is the static type,
