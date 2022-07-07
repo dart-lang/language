@@ -281,7 +281,7 @@
 % name of optional parameters, number of optional parameters.
 \newcommand{\FunctionTypeNamedArguments}[4]{%
   \List{#1}{1}{#2},\ \{\PairList{#1}{#3}{{#2}+1}{{#2}+{#4}}\}}
-  
+
 \newcommand{\FunctionTypeNamedArgumentsStd}{%
   \FunctionTypeNamedArguments{T}{n}{x}{k}}
 
@@ -386,6 +386,12 @@
 \newcommand{\LiteralSequence}[1]{\ensuremath{[\![{#1}]\!]}}
 \newcommand{\EvaluateElementName}{\metavar{evaluateElement}}
 \newcommand{\EvaluateElement}[1]{\ensuremath{\EvaluateElementName({#1})}}
+
+\newcommand{\DefEquals}[2]{\ensuremath{{#1}\stackrel{\vartriangle}{=}{#2}}}
+\newcommand{\DefEqualsNewline}[2]{
+  \ensuremath{{#1}\stackrel{\vartriangle}{=}}\\
+  \ensuremath{{#2}}%
+}
 
 % ----------------------------------------------------------------------
 % Support for hash valued Location Markers
