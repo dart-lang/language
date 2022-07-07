@@ -11271,15 +11271,18 @@ which is used below and in other sections, as follows:
   or $T$ is an intersection type
   (\ref{intersectionTypes})
   \code{$X$\,\,\&\,\,$B$},
-  then $\flatten{T} = \flatten{B}$.
+  then \DefEquals{\flatten{$T$}}{\code{\flatten{$B$}}}.
 
-\item Otherwise if $T$ is \code{FutureOr<$S$>} for some $S$
-    then $\flatten{T} = S$.
+\item If $T$ is \code{$S$?}\ for some $S$
+  then \DefEquals{\flatten{$T$}}{\code{\flatten{$S$}?}}.
 
-\item Otherwise if $T$ implements \code{Future<$S$>} for some $S$
-    (\ref{interfaceSuperinterfaces}) then $\flatten{T} = S$.
+\item If $T$ is \code{FutureOr<$S$>} then \DefEquals{\flatten{$T$}}{S}.
 
-\item In any other circumstance, $\flatten{T} = T$.
+\item If $T$ implements \code{Future<$S$>}
+  (\ref{interfaceSuperinterfaces})
+  then \DefEquals{\flatten{$T$}}{S}.
+
+\item Otherwise, \DefEquals{\flatten{$T$}}{T}.
 \end{itemize}
 
 \commentary{%
