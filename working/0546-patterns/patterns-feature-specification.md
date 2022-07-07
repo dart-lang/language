@@ -227,7 +227,7 @@ Before introducing each pattern in detail, here is a summary with some examples:
 
 | Kind | Examples |
 | ---- |-------- |
-| [Or][orPattern] | `subpattern1 | subpattern2` |
+| [Or][orPattern] | `subpattern1 \| subpattern2` |
 | [And][andPattern] | `subpattern1 & subpattern2` |
 | [Relational][relationalPattern] | `== expression`<br>`< expression` |
 | [Null-check][nullCheckPattern] | `subpattern?` |
