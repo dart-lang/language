@@ -15988,7 +15988,9 @@ Let $R$ be the run-time type of $o$.
 If $R$ implements \code{Future<$S$>} for some $S$
 (\ref{interfaceSuperinterfaces}) then
 it is a dynamic type error if $S$ is not a subtype of $T$.
-If $S$ is a subtype of $T$, let $f$ be $o$.
+Otherwise
+(\commentary{if no run-time error occurred}),
+let $f$ be $o$.
 
 Otherwise (when $R$ does not implement \code{Future}),
 let $f$ be a future object, implementing \code{Future<$T$>},
