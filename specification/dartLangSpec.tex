@@ -15994,7 +15994,8 @@ Otherwise
 (\commentary{if no run-time error occurred}),
 let $f$ be $o$.
 
-Otherwise (when $R$ does not implement \code{Future}),
+Otherwise
+(\commentary{when $R$ does not implement \code{Future}}),
 let $f$ be a future object, implementing \code{Future<$T$>},
 which is completed with the value $o$.
 
