@@ -11267,32 +11267,23 @@ We define the auxiliary function
 which is used below and in other sections, as follows:
 
 \begin{itemize}
-\item If $T$ is \code{FutureOr<$S$>} for some $S$ then $\flatten{T} = S$.
+\item If $T$ is a type variable $X$ with bound $B$,
+  or $T$ is a promoted type variable $X & B$,
+  then $\flatten{T} = \flatten{B}$.
 
-\item Otherwise if
-  \code{$T <:$ Future}
-  then let $S$ be a type such that
-  \code{$T <:$ Future<$S$>}
-  and for all $R$, if
-  \code{$T <:$ Future<$R$>}
-  then $S <: R$.
+\item Otherwise if $T$ is \code{FutureOr<$S$>} for some $S$
+    then $\flatten{T} = S$.
 
-  \rationale{%
-    This ensures that
-    \code{Future<$S$>}
-    is the most specific generic instantiation of \code{Future} that is
-    a supertype of $T$.
-    %% TODO[class-interfaces]: When we have finished the specification of class
-    %% interface computations we may have the following property, but it is not
-    %% true at this point. Adjust the following by then!
-    Note that $S$ is well-defined because of
-    the requirements on superinterfaces.%
-  }
-
-  Then $\flatten{T} = S$.
+\item Otherwise if $T$ implements \code{Future<$S$>} for some $S$
+    (\ref{interfaceSuperinterfaces}) then $\flatten{T} = S$.
 
 \item In any other circumstance, $\flatten{T} = T$.
 \end{itemize}
+
+\commentary{%
+This definition guarantees that for any type $T$,
+\code{$T <:$ FutureOr<$\flatten{T}$>}.%
+}
 
 \LMHash{}%
 \Case{Positional, arrow}
@@ -13755,7 +13746,7 @@ to an object---that would not even be possible for an extension.%
 }
 
 \commentary{%
-An member access on a type literal 
+An member access on a type literal
 (e.g., \code{C.id()}, \code{C.id}, or \code{C?.id()}),
 always treats the declaration denoted by the literal as
 a namespace for accessing static members or constructors.
@@ -15993,11 +15984,15 @@ of $T$ nor of \code{Future<$T$>})}.
 % NOTICE: Removed the requirement that an error thrown by $e$ is caught in a
 % future. There is no reason $var x = e; await x;$ and $await e$ should behave
 % differently, and no implementation actually implemented it.
-If the run-time type of $o$ is a subtype of \code{Future<$T$>},
-then let $f$ be $o$;
-otherwise let $f$ be the result of creating
-a new object using the constructor \code{Future<$T$>.value()}
-with $o$ as its argument.
+Let $R$ be the run-time type of $o$.
+If $R$ implements \code{Future<$S$>} for some $S$
+(\ref{interfaceSuperinterfaces}) then
+it is a dynamic type error if $S$ is not a subtype of $T$.
+If $S$ is a subtype of $T$, let $f$ be $o$.
+
+Otherwise (when $R$ does not implement \code{Future}),
+let $f$ be a future object, implementing \code{Future<$T$>},
+which is completed with the value $o$.
 
 \LMHash{}%
 Next, the stream associated with the innermost enclosing asynchronous for loop
