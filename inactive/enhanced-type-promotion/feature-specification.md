@@ -4,7 +4,12 @@ Author: Brian Wilkerson
 
 Language team shepherd: Bob Nystrom
 
-Status: Strawman
+Status: Inactive
+
+**This proposal has been superceded by the more sophisticated [flow analysis][]
+that shipped with null safety.**
+
+[flow analysis]: https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md
 
 The Dart language features type promotion. This lets you avoid pointless
 explicit casts in some cases where it's obvious that a variable has a more
