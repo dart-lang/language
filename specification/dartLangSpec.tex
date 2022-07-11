@@ -5230,7 +5230,11 @@ is $\overrides{I, L}$.
 \commentary{%
 Note that an interface can inherit members that are inaccessible
 (because they are private to a different library),
-but it can only override members that are accessible.%
+but it can only override members that are accessible.
+This is the reason why it is called ``with respect to $K$''
+when the topic is inheritance,
+but no library is mentioned when the topic is overriding:
+only one library is relevant, namely the one that declares $C$.%
 }
 
 \LMHash{}%
@@ -5240,12 +5244,15 @@ $m$ if $I$ inherits $m$ with respect to any library,
 or $I$ overrides $m$.
 
 \LMHash{}%
-\BlindDefineSymbol{I, K, n, m}%
-Let $I$ be an interface, $K$ a library, and
-$n$ a name such that a member $m$ with the name $n$
+\BlindDefineSymbol{I, C, K, n, m}%
+Let $I$ be the interface of the class $C$ declared by the library $L$,
+$K$ a library
+(\commentary{which may or may not be the same as $L$}),
+and $n$ a name such that a member $m$ with the name $n$
 is inherited by $I$ with respect to $K$.
 \commentary{%
-Note that there may be more than one such member.%
+Note that there may be more than one such member,
+and also that $C$ does not override $m$.%
 }
 The
 \IndexCustom{member signature}{interface!member signature}
@@ -5256,6 +5263,21 @@ In the case where the computation of the combined member signature fails,
 we say that $I$ has a
 \IndexCustom{member signature conflict}{interface!member signature conflict}
 with respect to $n$ and $K$.
+
+\commentary{%
+When $n$ is a public name, $K$ can be $L$
+or any other library where $C$ is in scope.
+In other words, $K$ does not matter.
+But when $n$ is a private name then
+$K$ must be the library that declares $m$,
+such that $m$ is accessible to $K$.
+This covers the case where the interface $I$
+(as well as the underlying class $C$) has
+a member signature conflict on
+a member which is private to another library.
+This can be a compile-time error
+(\ref{classes}).%
+}
 
 
 \subsubsection{Correct Member Overrides}
