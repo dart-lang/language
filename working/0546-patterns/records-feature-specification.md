@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.3 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.4 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -50,7 +50,8 @@ var tuple = ("first", 2, true);
 ```
 
 A tuple is an ordered list of unnamed positional fields. These languages also
-often have **record** types. In a record, the fields are unordered, but named:
+often have **record** types. In a record, the fields are unordered and
+identified by name instead:
 
 ```dart
 var record = (number: 123, name: "Main", type: "Street");
@@ -63,15 +64,18 @@ record has a series of positional fields, and a collection of named fields:
 var record = (1, 2, a: 3, b: 4);
 ```
 
-Very much like an argument list to a function call both in syntax and semantics.
-A given record may have no positional fields or no named fields, but cannot be
-totally empty. (There is no "unit type".)
-
-A record expression like the above examples produces a record value. This is a
+The expression syntax looks much like an argument list to a function call. A
+record expression like the above examples produces a record value. This is a
 first-class object, literally a subtype of Object. Its fields cannot be
 modified, but may contain references to mutable objects. It implements
 `hashCode` and `==` structurally based on its fields to provide value-type
 semantics.
+
+A record may have only positional fields or only named fields, but cannot be
+totally empty. *There is no "unit type".* A record with no named fields must
+have at least two positional fields. *This prevents confusion around whether a
+single positional element record is equivalent to its underlying value, and
+avoids a syntactic ambiguity with parenthesized expressions.*
 
 ## Core library
 
@@ -80,9 +84,9 @@ These primitive types are added to `dart:core`:
 ### The `Record` class
 
 A built-in class `Record` with no members except those inherited from `Object`.
-This type cannot be constructed, extended, mixed in, or implemented by
-user-defined classes. *It's similar to how the `Function` class is the
-superclass for function types.*
+All record types are a subtype of this class. This type cannot be constructed,
+extended, mixed in, or implemented by user-defined classes. *This is similar to
+how the `Function` class is the superclass for all function types.*
 
 ## Syntax
 
@@ -92,29 +96,28 @@ A record is created using a record expression, like the examples above. The
 grammar is:
 
 ```
-// Existing rule:
 literal      ::= record
-                 | // Existing literal productions...
+               | // Existing literal productions...
 record       ::= '(' recordField ( ',' recordField )* ','? ')'
 recordField  ::= (identifier ':' )? expression
 ```
 
 This is identical to the grammar for a function call argument list. There are a
-couple of syntactic restrictions not captured by the grammar. A parenthesized
-expression without a trailing comma is ambiguously either a record or grouping
-expression. To resolve the ambiguity, it is always treated as a grouping
-expression.
+couple of syntactic restrictions not captured by the grammar. It is a
+compile-time error if a record has any of:
 
-It is a compile-time error if a record has any of:
+*   The same field name more than once.
 
-*   the same field name more than once.
+*   No named fields and only one positional field. *This avoids ambiguity with
+    parenthesized expressions.*
 
-*   a field name that collides with the implicit name defined for a
-    positional field (see below).
+*   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
-*   a field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
-
-**TODO: Can field names be private? If so, are they actually private?**
+*   A field name that starts with an underscore. *If we allow a record to have
+    private field names, then those fields would not be visible outside of the
+    library where the record was declared. That would lead to a record that has
+    hidden state. Two such records might unexpectedly compare unequal even
+    though all of the fields the user can see are equal.*
 
 ### Record type annotations
 
@@ -123,9 +126,8 @@ record type annotations is:
 
 ```
 // Existing rule:
-typeNotVoidNotFunction ::= typeName typeArguments? '?'?
-                         | 'Function' '?'?
-                         | recordType // New production.
+typeNotVoidNotFunction ::= recordType
+                         | // Existing typeNotVoidNotFunction productions...
 
 recordType             ::= '(' recordTypeFields ','? ')'
                          | '(' ( recordTypeFields ',' )?
@@ -139,15 +141,28 @@ recordTypeNamedFields  ::= '{' recordTypeNamedField
 recordTypeNamedField   ::= type identifier
 ```
 
-This is somewhat similar to a parameter list. You have zero or more positional
-fields where each field is a type annotation:
+It is a compile-time error if a record type has any of:
+
+*   The same field name more than once.
+
+*   No named fields and only one positional field. *This isn't ambiguous, since
+    there are no parenthesized type expressions in Dart. But there is no reason
+    to allow single positional element record types when the corresponding
+    record values are prohibited.*
+
+*   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
+
+*   A field name that starts with an underscore.
+
+The syntax is similar to a function type's parameter list. You have zero or more
+positional fields where each field is a type annotation:
 
 ```dart
 (int, String, bool) triple;
 ```
 
-Then an optional brace-delimited section for named fields. Each named field is
-a type and name pair:
+Then a brace-delimited section for named fields. Each named field is a type and
+name pair:
 
 ```dart
 ({int n, String s}) pair;
@@ -168,12 +183,6 @@ parentheses:
 
 Like record expressions, a record type must have at least one field.
 
-Unlike expressions, a trailing comma is not required in the single positional
-field case. `(int)` is a valid record type and is distinct from the type `int`.
-
-It is a compile-time error if two record type fields have the same name or if
-a named field collides with the implicit name of a positional field.
-
 ## Static semantics
 
 We define **shape** to mean the number of positional fields (the record's
@@ -193,18 +202,16 @@ A record type declares all of the members defined on `Object`. It also exposes
 getters for each named field where the name of the getter is the field's name
 and the getter's type is the field's type.
 
-In addition, for each positional field, the record type declares a getter named
-`field<n>` where `<n>` is the number of preceding positional fields and where
-the getter's type is the field's type.
+Positional fields are not exposed as getters. *Record patterns in pattern
+matching can be used to access a record's positional fields.*
 
-For example, the record expression `(1, s: "string", true)` has a record type
-whose signature is like:
+For example, the record expression `(1.2, name: 's', true, count: 3)` has a
+record type whose signature is like:
 
 ```dart
-class {
-  int get field0;
-  String get s;
-  bool get field1;
+class extends Record {
+  String get name;
+  int get count;
 }
 ```
 
@@ -228,7 +235,7 @@ of the corresponding field in the original types.
 ```dart
 (num, String) a = (1.2, "s");
 (int, Object) b = (2, true);
-var c = cond ? a : b; // (num, Object)
+var c = cond ? a : b; // c has type `(num, Object)`.
 ```
 
 Likewise, the greatest lower bound of two record types with the same shape is
@@ -237,7 +244,7 @@ the greatest lower bound of their component fields:
 ```dart
 a((num, String)) {}
 b((int, Object)) {}
-var c = cond ? a : b; // Function((int, String))
+var c = cond ? a : b; // c has type `Function((int, String))`.
 ```
 
 The least upper bound of two record types with different shapes is `Record`.
@@ -245,7 +252,7 @@ The least upper bound of two record types with different shapes is `Record`.
 ```dart
 (num, String) a = (1.2, "s");
 (num, String, bool) b = (2, "s", true);
-var c = cond ? a : b; // Record
+var c = cond ? a : b; // c has type `Record`.
 ```
 
 The greatest lower bound of records with different shapes is `Never`.
@@ -259,16 +266,6 @@ fields are) and collection literals.
 **TODO: Specify this more precisely.**
 
 ## Runtime semantics
-
-### The `Record` type
-
-The `positionalFields()` method takes a record and returns an `Iterable` of all
-of the record's positional fields in order.
-
-The `namedFields()` method takes a record and returns a Map with entries for
-each named field in the record where each key is the field's name and the
-corresponding value is the value of that field. (The methods are static to avoid
-colliding with fields in an actual record object.)
 
 ### Records
 
@@ -284,17 +281,18 @@ The `toString()` method's behavior is unspecified.
 
 Records behave similar to other primitive types in Dart with regards to
 equality. They implement `==` such that two records are equal iff they have the
-same shape and all corresponding pairs of fields are equal (determined using
-`==`).
+same shape and all corresponding pairs of fields are equal. Fields are compared
+for equality by calling `==` on the corresponding field values in the same
+order that `==` was called on the records.
 
 ```dart
-var a = (1, 2);
-var b = (1, 2);
+var a = (x: 1, 2);
+var b = (2, x: 1);
 print(a == b); // true.
 ```
 
-The implementation of `hashCode` follows this. Two records that are equal have
-the same hash code.
+The implementation of `hashCode` follows this. Two records that are equal must
+have the same hash code.
 
 #### Identity
 
@@ -361,6 +359,21 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.4
+
+- Remove the reflective static members on `Record`. Like other reflective
+  features, supporting these operations may incur a global cost in generated
+  code size for unknown benefit (#1275, #1277).
+
+- Remove support for single positional element records. They don't have any
+  current use and are a syntactic wart. If we later add support for spreading
+  argument lists and single element positional records become useful, we can
+  re-add them then.
+
+- Remove synthesized getters for positional fields. This avoids problems if a
+  positional field's synthesized getter collides with an explicit named field
+  (#1291).
 
 ### 1.3
 

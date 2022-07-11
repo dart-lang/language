@@ -6,14 +6,9 @@ actually running those examples.
 
 ## Setup
 
-You may need to edit the `pubspec.yaml` file to run these examples. It requires
-a path dependency on the SDK packages to work (until
-https://github.com/dart-lang/pub/issues/3336 is resolved). The current paths
-assume the dart sdk is in a sibling directory to the language repo, in a
-directory called `dart-lang-sdk`.
-
-Your SDK will also need to be very recent, in particular it must include
-commit 54e773.
+Your SDK will need to match roughly the commit pinned in the pubspec.yaml file
+of this package (see the `ref` lines). Otherwise you will get a kernel version
+mismatch.
 
 ## Benchmarks
 

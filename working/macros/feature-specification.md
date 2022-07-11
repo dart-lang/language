@@ -1045,13 +1045,15 @@ written macro can cause. A well-behaved macro should not:
     done.
 
 *   Produce different results when run multiple times on the same code. A macro
-    should be a [pure function][] from input code to resulting code.
+    should be idempotent, and should always generate the same declarations from
+    the same inputs.
+
+*   Use mutable global state to pass objects or information derived from one
+    phase to a macro (even itself) running in a later phase.
 
 The macro system is *not* designed to provide hard security guarantees of the
 above properties. Users should consider the macros that they apply to be trusted
 code.
-
-[pure function]: https://en.wikipedia.org/wiki/Pure_function
 
 The restrictions in the following sections encourage the above properties as
 much as possible.

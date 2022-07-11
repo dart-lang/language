@@ -1,8 +1,6 @@
 // Copyright (c) 2022, the Dart project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-//
-// @dart=2.9
 
 import 'dart:io';
 import 'dart:isolate';
@@ -46,7 +44,7 @@ void main() async {
       File(bootstrapFile.uri.resolve('bootstrap.dart.dill').toFilePath());
 
   var feAnalyzerSharedRoot = (await Isolate.resolvePackageUri(
-          Uri.parse('package:_fe_analyzer_shared/fake.dart')))
+          Uri.parse('package:_fe_analyzer_shared/fake.dart')))!
       .resolve('./');
 
   log('Compiling macro program to kernel (${bootstrapKernelFile.path})');
@@ -90,7 +88,7 @@ void main() async {
     '--output',
     output.path,
     '--source',
-    Platform.script.resolve('user_main.dart').toFilePath(),
+    Uri.base.resolve('bin/user_main.dart').toFilePath(),
     '--packages-file=.dart_tool/package_config.json',
     '--enable-experiment=macros',
     '--precompiled-macro-format=kernel',
