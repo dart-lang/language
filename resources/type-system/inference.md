@@ -747,11 +747,11 @@ defined to be the set of types `{U0, ..., Un}` such that:
     grounded constraint solution for the type variable `Xi` with respect to the
     constraint set `C`.
   - Otherwise, let `Bi` be the bound of `Xi`.  Then, let `Bi'` be the type
-    formed by substituting type schemas `{U0, ..., Ui-1, Ti, ..., Tn}` in place
-    of the type variables `{X0, ..., Xn}` in `Bi`.  _(That is, we substitute
-    `Uj` for `Xj` when `j < i` and `Tj` for `Xj` when `j >= i`)._ Then `Ui` is
-    the grounded constraint solution for the type variable `Xi` with respect to
-    the constraint set `C + (X <: Bi')`.
+    schema formed by substituting type schemas `{U0, ..., Ui-1, Ti, ..., Tn}` in
+    place of the type variables `{X0, ..., Xn}` in `Bi`.  _(That is, we
+    substitute `Uj` for `Xj` when `j < i` and `Tj` for `Xj` when `j >= i`)._
+    Then `Ui` is the grounded constraint solution for the type variable `Xi`
+    with respect to the constraint set `C + (X <: Bi')`.
 
 _This definition parallels the definition of the (non-grounded) constraint
 solution for a set of type variables._
