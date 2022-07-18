@@ -689,8 +689,8 @@ occurences of the unknown type.
 #### Constraint solution for a set of type variables
 
 The constraint solution for a set of type variables `{X0, ..., Xn}` with respect
-to a constraint set `C`, with previous solution `{T0, ..., Tn}`, is defined to
-be the set of type schemas `{U0, ..., Un}` such that:
+to a constraint set `C` and partial solution `{T0, ..., Tn}`, is defined to be
+the set of type schemas `{U0, ..., Un}` such that:
   - If `Ti` is known (that is, does not contain `_`), then `Ui = Ti`.  _(Note
     that the upcoming "variance" feature will relax this rule so that it only
     applies to type variables without an explicitly declared variance.)_
@@ -699,17 +699,18 @@ be the set of type schemas `{U0, ..., Un}` such that:
   - If `Vi` is not known (that is, it contains `_`), then `Ui = Vi`.
   - Otherwise, if `Xi` does not have an explicit bound, then `Ui = Vi`.
   - Otherwise, let `Bi` be the bound of `Xi`.  Then, let `Bi'` be the type
-    formed by substituting type schemas `{U0, ..., Ui-1, Ti, ..., Tn}` in place
-    of the type variables `{X0, ..., Xn}` in `Bi`.  _(That is, we substitute
-    `Uj` for `Xj` when `j < i` and `Tj` for `Xj` when `j >= i`)._ Then `Ui` is
-    the constraint solution for the type variable `Xi` with respect to the
-    constraint set `C + (X <: Bi')`.
+    schema formed by substituting type schemas `{U0, ..., Ui-1, Ti, ..., Tn}` in
+    place of the type variables `{X0, ..., Xn}` in `Bi`.  _(That is, we
+    substitute `Uj` for `Xj` when `j < i` and `Tj` for `Xj` when `j >= i`)._
+    Then `Ui` is the constraint solution for the type variable `Xi` with respect
+    to the constraint set `C + (X <: Bi')`.
 
 _This definition can perhaps be better understood in terms of the practical
 consequences it has on type inference:_
   - _Once type inference has determined a known type for a type variable (that
     is, a type that does not contain `_`), that choice is frozen and is not
-    affected by later type inference steps._
+    affected by later type inference steps.  (Type inference accomplishes this
+    by passing in any frozen choices as part of the partial solution)._
   - _The bound of a type variable is only included as a constraint when the
     choice of type for that type variable is about to be frozen._
   - _During each round of type inference, type variables are inferred left to
@@ -737,7 +738,7 @@ occurences of the unknown type.
 #### Grounded constraint solution for a set of type variables
 
 The grounded constraint solution for a set of type variables `{X0, ..., Xn}`
-with respect to a constraint set `C`, with previous solution `{T0, ..., Tn}`, is
+with respect to a constraint set `C`, with partial solution `{T0, ..., Tn}`, is
 defined to be the set of types `{U0, ..., Un}` such that:
   - If `Ti` is known (that is, does not contain `_`), then `Ui = Ti`.  _(Note
     that the upcoming "variance" feature will relax this rule so that it only

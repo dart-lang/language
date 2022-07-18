@@ -147,13 +147,13 @@ In this document we make use of the following terms:
 
 - The "constraint solution for a set of type variables" (defined
   [here][constraint solution for a set of type variables]) is a mapping from
-  type variables to type schemas, formed from a set of constraints and a
-  previous mapping.  Typically, each type variable is mapped to the result of
-  solving the constraints that apply to it (according to the bullet above), plus
-  an additional constraint based on the bound of the type variable.  The
-  previous mapping is used to break loops when the bound of one type variable
-  refers to others, and to effectively "freeze" the solution of each variable at
-  the time it becomes fully known (that is, it does not contain `_`).
+  type variables to type schemas, formed from a set of constraints and a partial
+  solution.  Typically, each type variable is mapped to the result of solving
+  the constraints that apply to it (according to the bullet above), plus an
+  additional constraint based on the bound of the type variable.  The partial
+  solution is used to break loops when the bound of one type variable refers to
+  others, and to effectively "freeze" the solution of each variable at the time
+  it becomes fully known (that is, it does not contain `_`).
 
 - The "grounded constraint solution for a type variable" (defined
   [here][grounded constraint solution for a type variable]) is a final
@@ -164,7 +164,7 @@ In this document we make use of the following terms:
 - The "grounded constraint solution for a set of type variables" (defined
   [here][grounded constraint solution for a set of type variables]) is a final
   mapping from type variables to types, formed from a set of constraints and a
-  previous mapping.  It parallels the corresponding definition for the
+  partial solution.  It parallels the corresponding definition for the
   non-grounded constraint solution.
 
 - A "function literal expression" is a syntactic construct that consists of a
@@ -220,9 +220,10 @@ Performing type inference on an invocation consists of the following steps:
    try to match the return type of the target function type as a subtype of the
    invocation's type context.  This produces an initial set of type constraints.
    Then, using those constraints, find the constraint solution for the target
-   function type's type variables, using a previous mapping that maps all type
-   variables to the unknown type.  This produces a preliminary mapping of type
-   variables to type schemas.
+   function type's type variables, using an initial partial solution that maps
+   all type variables to the unknown type.  This produces a preliminary partial
+   solution for the inferred types, which will be updated in later type
+   inference steps.
 
 4. Visit arguments: Partition the arguments into stages (see [argument
    partitioning](#Argument-partitioning) below), and then for each stage _k_, do
@@ -259,16 +260,16 @@ Performing type inference on an invocation consists of the following steps:
    * Horizontal inference: if generic inference is needed, and this is not the
      last stage, use all the type constraints gathered so far to find the
      constraint solution for the target function's type variables, using the
-     mapping from the most recent previous execution of either this step or step
-     3 as the "previous mapping".  This produces an updated preliminary mapping
-     of type parameters to type schemas.
+     preliminary partial solution from the most recent previous execution of
+     either this step or step 3.  This produces an updated partial solution for
+     the inferred types.
 
 5. Upwards inference: if generic inference is needed, use all the type
    constraints gathered so far to find the **grounded** constraint solution for
-   the target function's type variables, using the mapping from the most recent
-   execution of step 4 as the "previous mapping".  This produces the final
-   mapping of type parameters to type schemas.  Check that each type is a
-   subtype of the bound of its corresponding type parameter.
+   the target function's type variables, using the preliminary partial solution
+   from the most recent execution of step 4.  This produces the final solution
+   for the inferred types.  Check that each inferred type is a subtype of the
+   bound of its corresponding type parameter.
 
 6. Type checking: Check that the static type of each argument is assignable to
    the type obtained by substituting the final mapping (from step 5) into the
