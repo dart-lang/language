@@ -1,6 +1,6 @@
 # Augmentation Libraries
 
-Author: rnystrom@google.com, Version: 1.5 (see [Changelog](#Changelog) at end)
+Author: rnystrom@google.com, Version: 1.6 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -130,10 +130,14 @@ However, augmentations do *not* share an import scope with the main library or
 each other. The libraries one augmentation imports are visible only to that
 file.
 
-It is a compile-time error if a top-level declaration in an augmentation has the
-same name as a declaration in the main library or another of its augmentations
-(unless it is an *augmenting* declaration, described below). This is the same
-error conceptually as having a name collision in one file.
+It is a compile-time error if:
+
+*   A top-level declaration in an augmentation has the same name as a
+    declaration in the main library or another of its augmentations (unless it
+    is an *augmenting* declaration, described below). *This is the same error
+    conceptually as having a name collision in one file.*
+
+*   An augmentation library contains any `part` directives.
 
 ### Applying an augmentation library
 
@@ -161,32 +165,81 @@ Since the main library and its augmentation both point to each other, these
 rules imply that a given augmentation file can only be used to augment a single
 library.
 
+### Merge order
+
 A library may apply multiple augmentations to itself. Also, augmentation files
 may themselves contain `import augment` directives. The entire tree of
-augmentations is recursively applied to the main library. In most cases, the
-order that augmentations are applied doesn't matter, but it is visible in a
-couple of corners where the merge process involves "appending". For those cases,
-merge order is defined as a depth-first pre-order traversal of the `import
-augment` directives in the main library and its augmentations. So, in:
+augmentations is recursively applied to the main library. The merge order is
+defined as a depth-first pre-order traversal of the `import augment` directives
+starting at the main library.
+
+For example:
 
 ```
 // main.dart
 import augment 'a.dart';
 import augment 'c.dart';
 
+class C {}
+
+void trace() {
+  print('main');
+}
+
 // a.dart
 library augment 'main.dart';
 
 import augment 'b.dart';
 
+augment class C {}
+
+augment void trace() {
+  augment super.trace();
+  print('a');
+}
+
 // b.dart
 library augment 'a.dart';
 
+class D {}
+
+augment void trace() {
+  augment super.trace();
+  print('b');
+}
+
 // c.dart
 library augment 'main.dart';
+
+augment class D {}
+
+augment void trace() {
+  augment super.trace();
+  print('c');
+}
 ```
 
-The merge order is `a.dart`, `b.dart`, then `c.dart`.
+The merge order is `main.dart`, `a.dart`, `b.dart`, then `c.dart`. The
+declarations in those libraries&mdash;new declarations or augmentations&mdash;
+are processed in that order.
+
+This order is user-visible in two ways:
+
+*   A non-augmenting declaration must appear first before it can be augmented.
+    For example, `C` in `main.dart` is augmented by `C` in `a.dart`. Likewise,
+    `D` in `b.dart` is augmented by `D` in `c.dart`. Note that the latter is
+    allowed even though `b.dart` does not itself import `c.dart`.
+
+*   When the same declaration is augmented multiple times, merge order
+    determines the order that those wrappers are applied. When the `trace()`
+    function is called, it prints:
+
+    ```
+    main
+    a
+    b
+    c
+    ```
 
 **TODO: Should it be a compile-time error if the main library and augmentation
 are in different packages?**
@@ -215,6 +268,15 @@ The same declaration can be augmented multiple times by separate augmentation
 libraries. When that happens, the merge order defined previously determines
 which order the wrapping is applied.
 
+It is a compile-time error if:
+
+*   An augmenting declaration has no corresponding original declaration to
+    apply to.
+
+*   An augmenting declaration appears in a library before the library where the
+    original declaration occurs, according to merge order. *An augmentation
+    library can both declare a new declaration and augment it in the same file.*
+
 ### Augmenting types
 
 A class, mixin, enum, or extension declaration can be marked with an `augment`
@@ -230,8 +292,8 @@ This means that instead of creating a new type declaration, the augmentation
 modifies a corresponding declaration in the main library or one of its other
 augmentations.
 
-A class augmentation may specify `implements` and `with` clauses. When those
-appear, the specified superinterfaces and mixins are appended to the main
+A class or enum augmentation may specify `implements` and `with` clauses. When
+those appear, the specified superinterfaces and mixins are appended to the main
 class's superinterface and mixin lists, respectively.
 
 **TODO: Is appending the right order for mixins?**
@@ -260,14 +322,15 @@ It is a compile-time error if:
 *   The augmenting type is marked `abstract`. The main library determines
     whether the class is abstract or not.
 
-*   The type parameters of the type augmentation do not exactly match the
-    original type's type parameters. This means there must be the same number of
-    type parameters with the same names and same bounds.
+*   The type parameters of the type augmentation do not match the original
+    type's type parameters. This means there must be the same number of type
+    parameters with the same bounds.
 
     *Since repeating the type parameters is, by definition, redundant, this
     doesn't accomplish anything semantically. But it ensures that anyone reading
     the augmenting type can see the declarations of any type parameters that it
-    uses in its body.*
+    uses in its body and avoids potential confusion with other top-level
+    variables that might be in scope in the augmentation library.*
 
 ### Augmenting functions
 
@@ -656,22 +719,28 @@ process a theoretical Dart implementation could take.
 
 To apply an augmentation to the main library:
 
+1.  Merge the augmentation's declarations into the main library's top-level
+    namespace using the following procedure.
+
 1.  For each `import augment` directive in the augmentation library, in
     syntactic order:
 
     1.  Apply the imported augmentation to the main library using this
         procedure, recursively.
 
-1.  For each declaration in the augmentation:
+To merge a set of declarations `D` into a namespace:
 
-    1.  Merge the declaration into the main library's top-level namespace using
-        the following procedure.
+1.  For each non-augmenting declaration in `D`:
 
-To merge a declaration into a namespace:
+    1.  If a declaration with that name already exists in the namespace, error.
+        (Exception: setters do not collide with getters and final variables.)
 
-1.  If the declaration is marked `augment`:
+    1.  Else, add the declaration to the namespace.
+
+1.  For each augmenting declaration in `D`:
 
     1.  If the namespace does not have a declaration with that name, error.
+        *A non-augmenting declaration must occur before it can be augmented.*
 
     1.  If the corresponding declaration in the namespace is not the same kind,
         error. "Kind" means class, mixin, function, etc. Getters, setters, and
@@ -706,19 +775,12 @@ To merge a declaration into a namespace:
             **TODO: What is the syntax for calling a prefix operator's original
             code?**
 
-    1.  Else, if the declaration is a variable:
+    1.  Else, the declaration is a variable:
 
         1.  Replace a matching variable, getter, and/or setter in the namespace
             with the declaration. Inside the augmenting variable's initializer
             expression, an `augment super` expression invokes the original
             variable initializer.
-
-1.  Else, it is a new declaration in the augmentation library:
-
-    1.  If a declaration with that name already exists in the namespace, error.
-        (Exception: setters do not collide with getters and final variables.)
-
-    1.  Else, add the declaration to the namespace.
 
 ## Deprecating part files
 
@@ -734,6 +796,17 @@ consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+### 1.6
+
+*   Allow class augmentations to use different names for type parameters. This
+    isn't particular valuable, but is consistent with functions augmentations
+    which are allowed to change the names of positional parameters.
+
+*   Specify that a non-augmenting declaration must occur before any
+    augmentations of it, in merge order.
+
+*   Specify that augmentations can't have parts (#2057).
 
 ### 1.5
 
