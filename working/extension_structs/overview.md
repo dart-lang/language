@@ -41,7 +41,8 @@ them into an existing proposal, or add a new feature specification.
 ## Design principles
 
 We aim to minimize the differences between structs and classes.  As much as
-possible, structs should behave as restrictions of classes.  We specifically aim
+possible, structs should behave as restrictions of classes, and extension
+structs should behave as further restrictions of structs.  We specifically aim
 to avoid as much as possible having different behaviors for the same concept
 (e.g. differences in scoping).
 
@@ -59,6 +60,76 @@ describes the restriction of the full struct to support static wrappers.
 This section describes how structs look and behave, largely by example.  In many
 cases, alternatives or extensions to the core proposal are described in line.
 Larger extensions are postponed to a later section.
+
+## Structs by example
+
+Structs allow you to define simple classes very compactly.  For example, we
+might model a component vector as follows:
+
+```
+struct Component(int x, int y, int z, int w = 1);
+```
+
+This short definition essentially defines a class `Component`, with four fields,
+and provides a number of convenient methods.
+
+```dart
+void test() {
+  // Call the default constructor, using the default value for w
+  var c1 = Component(0, 0, 0);
+  // Call the default constructor, explicitly passing w
+  var c2 = Component(1, 1, 1, 1);
+
+  assert(c1 == c2); // Equality is defined to be structural
+  assert(c1.hashCode == c2.hashCode); // With correspondind hashCode
+
+  print(c1.debutToString()); // Prints "Component(0, 0, 0, 1)"
+
+  print(c1.toString()); // Prints "struct"
+
+  // Generated copy method
+  var c2 = c1.copyWith(x : 2);
+  assert(c2.x == 2);
+}
+```
+
+Structs may explicitly define constructors, static members, and normal class
+members (except fields), and may implement interfaces.
+
+```dart
+struct Component(int _x, int _y, int _z, int _w = 1)
+  implements Comparable<Component> {
+
+  double get x => _x/_w;
+  double get y => _x/_w;
+  double get z => _z/_w;
+
+  int compareTo(Component other) => throw "TODO: Unimplemented";
+
+  Component.zero() : _x = 0, _y = 0, _z = 0;
+}
+```
+
+With the addition of pattern matching and switches, structs will support closed
+families (algebraic datatypes).
+
+```dart
+abstract struct Operand;
+
+struct ConstantOperand(Value c) extends Operand;
+
+struct IdentifierOperand(Identifier i) extends Operand;
+
+Operand replaceIn(Operand oper, Identifier t, Value c) {
+  return switch (oper) {
+    case ConstantOperand(_) : oper;
+    case IdentifierOperand(var i) where i == t: ConstantOperand(c);
+    case IdentifierOperand(_) : oper;
+  }
+}
+```
+
+## Structs in more detail
 
 ### Introduction form
 
@@ -110,7 +181,8 @@ view GenericData<T>();
 
 ##### Use a modifier on classes
 
-We could, for example, use "data class":
+
+We could use "data class":
 
 ```dart
 data class Data();
@@ -138,9 +210,17 @@ final.  They may not be late, and a type must be provided.
 If an initializer is provided for an entry, all subsequent entries must also
 have an initializer provided (see generated members below).
 
+**COMMENTARY(leafp):** *This is to allow initializers to double as default
+  values for the generated constructor.  This may be too cute.  Alternatively we
+  could forbid initializers, or just make fields with initializers not available
+  to the constructor (as with a normal class)*
+
 It is an error if two entries have the same name, and it is an error if one
 entry consists of the name of another entry except prefixed with `_`.  That is,
 all entries must be uniquely named after ignoring privacy.
+
+**COMMENTARY(leafp):** *This is to allow us to use the non-private version of
+  the name as a named parameter in methods*
 
 Examples:
 
@@ -188,6 +268,12 @@ provided.  This is supported to allow families of structs sharing a common
 super-interface which provides clean support for algebraic data types (see the
 section on extension below).
 
+**COMMENTARY(leafp):** *We could possibly allow hierarchies of abstract
+  super-structs.  We could also potentially allow super-structs to define
+  fields, which would be treated as abstract fields which the sub-structs must
+  provide*
+
+
 ### Extending structs
 
 A struct may extend another struct from the same library.  It is an error if the
@@ -228,11 +314,12 @@ semantically exactly as if they were de-sugared into classes in the obvious way.
 
 ### Identity of structs
 
-The identity operator on structs *may* return `true` for structs which:
-  - Have the same runtime type
-  - Are pointwise identical on the fields in the primary constructor.
+The identity operator on structs *may* return `true` for structs such that:
+  - Both have the same runtime type
+  - For every pair of corresponding fields, identical could validly return true
+    on that pair.
 
-The identiity operator on structs may always return false.
+The identity operator on structs may always return false.
 
 In other words, the identity operator may be used as a "fast" cut-off for
 equality, but compilers are free to box and unbox structs at will without
@@ -269,6 +356,12 @@ as a de-sugaring.
 If no default constructor is defined in the class, a default constructor is
 generated which forwards to the generated primary constructor.
 
+**COMMENTARY(leafp):** *The treatment of initializers as default values here is
+  appealing, but it may be too cute.  It essentially adds non-const default
+  values only for this specific use case.  There's also a question of whether we
+  allow user defined constructors on the struct to also override the default
+  initializer, and if so via what syntax*.
+
 
 ##### Alternative: named parameters
 
@@ -304,6 +397,15 @@ runtime type of the receiver, and the `fi` are the result of calling
 "debugToString" on the `i`th field if that field is (dynamically) a struct, and
 otherwise the result of calling "toString".
 
+**COMMENTARY(leafp):** *This needs a bit of work.  If we keep the dynamic check
+  for "struct-ness", then we need do deal with the case that the user defines a
+  debutToString thing with the wrong type*.
+
+**COMMENTARY(leafp):** *If we keep this, we may wish to specify that compilers
+  may choose to make it a link time error to have an invocation of debugToString
+  in the program outside of asserts, and other debutToString methods*.
+
+
 #### copyWith
 
 If no copyWith method is defined in or inherited by the struct, then a copyWith
@@ -320,6 +422,12 @@ passed to the copyWith method invocation, the value of the corresponding field
 from the current instance is passed on as the argument to the corresponding
 parameter of the generated primary constructor.
 
+**COMMENTARY(leafp):** *As with constructors, this method cannot be generated as
+  a strict de-sugaring, since the ability to detect whether or not an argument
+  has been passed is not available in Dart.  Implementations already support
+  this for default values, so it is likely not problematic to implement*.
+
+
 #### Additional generated members
 
 We may wish to also define additional generated members.  For example, we may
@@ -333,6 +441,9 @@ It is an error to override the "runtimeType" method of a struct.
 
 It is an error to override the "noSuchMethod" method of a struct.
 
+### Const structs
+
+TODO(leafp): This should work, write out the details.
 
 ## Extension Structs
 
@@ -340,6 +451,118 @@ Extension structs are restrictions of the core struct feature, designed to
 support wrapper-less views on an object.  This section describes how extension
 structs look and behave, largely by example.  In many cases, alternatives or
 extensions to the core proposal are described in line.
+
+## Extension structs by example
+
+Extension structs are targeted at relatively niche uses where you wish to define
+a set of statically dispatched methods layered on top of an underlying
+representation, without introducing a wrapper object.  A canonical use case
+driving this design is to be able define a Dart typed interface for methods on a
+Javascript object, providing a wrapperless interoperation capability.
+
+
+```dart
+extension struct Window(JSObject o) {
+  // Signatures provided here for methods to be delegated to the underlying
+  // JSObject
+  external bool get closed;
+  // etc
+}
+
+void test(Window w) {
+  // Window methods can be called using Dart syntax
+  if (w.closed) {...}
+
+  // Windows are represented as the underlying object
+  assert(w is JSObject);
+
+  // Windows can be cast to the underlying object
+  JSObject o = w as JSObject;
+
+  // Extension struct types are reified as the underlying representation type.
+  List<Window> l = [w];
+  assert(l is List<JSObject>);
+}
+```
+
+Extension structs are also useful for providing a lightweight facade over an
+existing type.
+
+```dart
+// Natural numbers
+extension struct Nat(int _x) {
+  Nat(int x) : assert(x >= 0), _x = x;
+  Nat.zero() : _x = 0;
+
+  Nat get succ => Nat(_x+1);
+  Nat plus(Nat other) => Nat._x + other._x;
+
+  // Override the underlying isNegative operation (incorrectly)
+  bool get isNegative => true;
+}
+
+void test() {
+  var n1 = Nat(3);
+  var n2 = Nat.zero();
+  assert(n2.succ.succ.succ == n2);
+
+  //The underlying representation is still as an int
+  assert(n1 is int);
+
+  // The static type is used to dispatch the method calls
+  assert(n1.isNegative);
+
+  // If the static type is lost, dispatch goes to the underlying object.
+  dynamic d = n1;
+  assert(!d.isNegative);
+}
+```
+
+Extension structs may delegate members to the underlying field.  They may also
+implement interfaces, but only if the underlying field implements the interface.
+
+```dart
+// Natural numbers
+extension struct Nat(int _x) implements Comparable<num> {
+  // Constructors etc as above
+
+
+  bool get isEven;  // Abstract definition delegates to _x.isEven
+}
+
+void test() {
+  var n = Nat(2);
+  // Same as 2.isEven
+  assert(n.isEven);
+  // Comparable interface allows access to the Comparable methods on int
+  assert(n.compareTo(2) == 0);
+
+  // Since Nat implements Comparable<num>, it may be assigned to it
+  Comparable<num> c = n;
+  // The representation is still as an integer
+  assert(c is int);
+}
+```
+
+Extension structs have no inheritance.
+
+```dart
+// Static error
+extension struct PositiveNumber(int _x) extends Nat {...}
+```
+
+Extension structs do not define a signature, and hence cannot be implemented.
+
+```dart
+// Static error
+extension struct AlternativeNat(int _x) implements Nat { ...}
+
+// Static error
+class MockNat implements Nat {...}
+```
+
+
+## Extension structs in more detail
 
 
 ### Introduction form
@@ -408,6 +631,11 @@ extension struct Data(int x);
 extension struct GenericData<T>(T y);
 ```
 
+**COMMENTARY(leafp):** *The point here is that the actual runtime representation
+  of the extension struct will simply be the value of the single unique field,
+  with no wrapper object*.
+
+
 ### Members of extension structs
 
 An extension struct may contain static and instance member definitions in the
@@ -424,6 +652,10 @@ member of the same name and kind is available on the unique field of the
 extension struct, and the type of the abstract member is a supertype of the type
 of the corresponding member in the unique field.
 
+**COMMENTARY(leafp):** *Abstract members here allow delegation of methods
+  without having to write an explicit forward.  We could elide this*.
+
+
 ### Abstract extension structs
 
 Extension structs may not be be marked abstract.
@@ -431,6 +663,12 @@ Extension structs may not be be marked abstract.
 ### Extending extension structs
 
 An extension struct may not be extended.
+
+**COMMENTARY(leafp):** *This may be contentious.  If we end up needing some form
+  of inheritance, either to build up a subtype hierarchy or to allow code
+  re-use, there are probably paths we can take here, but it will be important
+  for the purposes of this design to keep this consistent with the behavior of
+  general structs*.
 
 ### Implementing extension structs
 
@@ -442,22 +680,46 @@ define interfaces.
 It is an error to use the type defined by an extension struct as a bound on a
 generic type parameter.
 
+**COMMENTARY(leafp):** *This is probably harmless, maybe we should allow it*.
+
 ### Extension structs implementing interfaces
 
 Extension structs may implement interfaces if and only if each implemented
-interface type is a subtype of the type of the unique field in the primary
+interface type is a supertype of the type of the unique field in the primary
 constructor list.  That is, implemented interfaces must be implemented *by the
 field*, which will serve as the underlying object representation.
+
+**COMMENTARY(leafp):** *The driving motivation for this design choice is keep
+  the behavior of extension structs consistent with general structs.  For
+  general structs and classes, implementing an interface means that the newly
+  defined type is both a subtype of that interface, and supports all of the
+  methods of that interface.  If we wish to preserve the former for extension
+  structs, then we must ensure that the underlying representation object also
+  implements the same interface, so that when we assign it, we do not break
+  soundness.  We could give up on fully subtyping and instead only allow
+  assignability, with conversion to the implemented interface requiring boxing,
+  but I have chosen not to do that, since it still makes subtyping unavailable.
+  That is, under this proposal, for an extension struct Foo that implements Bar,
+  `Foo` is assignable to `Bar` with no boxing, and `List<Foo>` is assignable to
+  `List<Bar>`.  If we auto-boxed on assignment to `Bar`, we could preserve the
+  former, but not the latter*.
 
 An extension struct is a subtype of each of its implemented super-interfaces.
 
 An extension struct implements Object.
 
 It is an error if any member of an implemented interface has a non-abstract
-definition in the body of the extension struct.  (This is to avoid the confusing
-behavior that would result from different dispatch behavior depending on whether
-the member is accessed via the extension struct interface, or via the
-implemented super-interface).
+definition in the body of the extension struct.
+
+**COMMENTARY(leafp):** *This restriction is to avoid the confusing behavior that
+  would result from different dispatch behavior depending on whether the member
+  is accessed via the extension struct interface, or via the implemented
+  super-interface.  That is `Foo` is an extension struct that implements
+  `Comparable<Foo>` and defines its own `compareTo` method, then accessing the
+  compareTo method on a value of type `Foo` will call a different method than
+  first assigning the value to a variable of type `Comparable<Foo>` and then
+  calling the method.  It may be that it is too important to support
+  "overriding" here though, and so we may need to relax this restriction.*
 
 
 
@@ -471,7 +733,7 @@ representation" of the extension struct.
 ### Identity of extension structs
 
 The identity operator on an instance of an extension struct is defined to return
-the same value as applying the identity operator to the underlying
+the same result as applying the identity operator to the underlying
 representation of the extension struct.
 
 ### Semantics of members of extension structs
@@ -536,7 +798,16 @@ No copyWith method is generated for an extension struct.
 
 It is an error to define any of the object members in the extension struct.
 
+**COMMENTARY(leafp):** *This restriction is to avoid the same confusing behavior
+  described above in the section on implementing interfaces.  Almost all uses of
+  `hashCode` will be done via the `Object` interface, and it seems dangerous to
+  allow users to define a `hashCode` getter that will be ignored when the value
+  is used as (e.g.) a key in a map.*
 
+
+### Const extension structs
+
+TODO(leafp): This should work, write out the details.
 
 
 
