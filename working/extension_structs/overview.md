@@ -30,6 +30,7 @@ entirely static).
 This proposal builds on previous proposals in this space, including:
   - [Views](https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md)
   - [Extension types](https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification.md)
+  - [Protected extension types](https://github.com/dart-lang/language/issues/1467)
 
 
 This overview is not intended to be a feature specification: it is designed to
