@@ -18,20 +18,21 @@ types", discussed among other places
   - The desire to have an accounting for data structures without identity as
     described [here](https://github.com/dart-lang/language/issues/2246).
 
-The proposal here takes two steps.  The first is to add a restricted kind of
-class (provisionally describe as a "struct" here), which gives up some of the
-affordances of general Dart classes in exchange for compact syntax and automatic
-generation of useful methods.  These restricted classes provide data class like
-functionality.  The second step is to support a further restriction on structs
-with a single field which eliminates the wrapper object, representing the struct
-entirely as the underlying object (at the cost of making the abstraction
-entirely static).
+The proposal here takes two steps.
+  - The first is to add a restricted kind of class (provisionally describe as a
+"struct" here), which gives up some of the affordances of general Dart classes
+in exchange for compact syntax and automatic generation of useful methods.
+These restricted classes provide data class like functionality: they are
+immutable, they have structural identity, and they get a number of conveniently
+auto-generated methods.
+  - The second is to support a further restriction on structs with a single
+field which eliminates the wrapper object, representing the struct entirely as
+the underlying object (at the cost of making the abstraction entirely static).
 
 This proposal builds on previous proposals in this space, including:
   - [Views](https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md)
   - [Extension types](https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification.md)
   - [Protected extension types](https://github.com/dart-lang/language/issues/1467)
-
 
 This overview is not intended to be a feature specification: it is designed to
 give a brief overview of the core proposal and set out some design points for
@@ -64,8 +65,8 @@ Larger extensions are postponed to a later section.
 
 ## Structs by example
 
-Structs allow you to define simple classes very compactly.  For example, we
-might model a component vector as follows:
+Structs allow you to define simple classes containing immutable data very
+compactly.  For example, we might model a component vector as follows:
 
 ```
 struct Component(int x, int y, int z, int w = 1);
@@ -84,7 +85,7 @@ void test() {
   assert(c1 == c2); // Equality is defined to be structural
   assert(c1.hashCode == c2.hashCode); // With correspondind hashCode
 
-  print(c1.debutToString()); // Prints "Component(0, 0, 0, 1)"
+  print(c1.debugToString()); // Prints "Component(0, 0, 0, 1)"
 
   print(c1.toString()); // Prints "struct"
 
@@ -95,7 +96,10 @@ void test() {
 ```
 
 Structs may explicitly define constructors, static members, and normal class
-members (except fields), and may implement interfaces.
+members (except fields), and may implement interfaces.  All fields must be
+declared in the header (the "primary constructor"), and are implicitly final
+(making all structs shallowly immutable).  Fields may be marked as private as
+usual by naming them with a leading `_` in their name.
 
 ```dart
 struct Component(int _x, int _y, int _z, int _w = 1)
@@ -180,6 +184,13 @@ view Data();
 view GenericData<T>();
 ```
 
+Perhaps record:
+
+```dart
+record Data();
+record GenericData<T>();
+```
+
 ##### Use a modifier on classes
 
 
@@ -208,6 +219,12 @@ initializer values.
 Each entry in the list is a field in the struct.  Every field is implicitly
 final.  They may not be late, and a type must be provided.
 
+**COMMENTARY(leafp):** *The restriction to final fields is both because that's
+  the common use case, and because structural identity doesn't make much sense
+  if we allow them to be mutable.  We could potentially box each mutable field
+  into heap allocated ref cell but that feels very unpleasant, and has perf
+  implications that don't match the intended use cases. *
+
 If an initializer is provided for an entry, all subsequent entries must also
 have an initializer provided (see generated members below).
 
@@ -235,12 +252,12 @@ following classes:
 
 ```dart
 class Data {
-  int x;
-  List<int> l = [3]
+  final int x;
+  final List<int> l = [3]
  }
 class GenericData<T> {
- T x;
- T y;
+ final T x;
+ final T y;
  }
 
 ```
@@ -249,7 +266,42 @@ class GenericData<T> {
 
 We could choose to make this look more directly like a constructor argument list
 by allowing "named" parameters inside of a brace delimited set.  These could
-then become named parameters in the default constructor.
+then become named parameters in the default constructor.  Example:
+
+```
+struct Component(int x, int y, int z, {int w = 1});
+
+void test() {
+  // Call the default constructor, using the default value for w
+  var c1 = Component(0, 0, 0);
+  // Call the default constructor, explicitly passing w
+  var c2 = Component(1, 1, 1, w: 1);
+...
+}
+```
+
+#### Alternative: no primary constructors
+
+We could choose to make the field declarations look exactly like classes instead
+of using a primary constructor syntax.
+
+
+```
+struct Component {
+  int x;
+  int y;
+  int z;
+  int w = 1;
+}
+```
+
+**COMMENTARY(leafp):** *Given the constraint that structs are immutable, I don't
+  like that `int x` here means a different thing than it does in a class (since
+  it is implicitly final).  We could therefore require each one to be written as
+  `final int x` and make it an error to have a non-final variable.  This feels
+  very boilerplate-heavy to me relative to the compact one line form.*
+
+
 
 ### Members of structs
 
@@ -353,6 +405,9 @@ parameter, the initializer value is assigned to that parameter in the
 initializer list of the constructor.  Note that this requires the ability to
 detect whether or not a parameter was passed, which is not expressible strictly
 as a de-sugaring.
+
+**Note that initializers are not required to be constant, so this de facto adds
+  non-const default values in a very limited case.**
 
 If no default constructor is defined in the class, a default constructor is
 generated which forwards to the generated primary constructor.
