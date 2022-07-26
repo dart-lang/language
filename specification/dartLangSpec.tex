@@ -3442,7 +3442,7 @@ Note that it must be a method that accepts one positional argument,
 in order to correctly override \code{noSuchMethod} in \code{Object}.
 For instance, it can have signature
 \code{noSuchMethod(Invocation i)} or
-\code{noSuchMethod(Object i, [String s = ''])},
+\code{noSuchMethod(Object i, [String? s])},
 but not
 \code{noSuchMethod(Invocation i, String s)}.
 This implies that the situation where \code{noSuchMethod} is invoked
@@ -4213,7 +4213,7 @@ The above rule allows initializing formals to be used as optional parameters:%
 
 \begin{dartCode}
 class A \{
-  int x;
+  int? x;
   A([this.x]);
 \}
 \end{dartCode}
@@ -4224,8 +4224,8 @@ is legal, and has the same effect as%
 
 \begin{dartCode}
 class A \{
-  int x;
-  A([int x]): this.x = x;
+  int? x;
+  A([int? x]): this.x = x;
 \}
 \end{dartCode}
 
@@ -15813,7 +15813,7 @@ a future version of Dart may allow for passing them explicitly.%
 \}
 \\
 \CLASS{} B \EXTENDS{} /*\,or\,\,\IMPLEMENTS\,*/ A \{
-  X fi<X \EXTENDS{} num>(X x, [List<X> xs]) => x;
+  X fi<X \EXTENDS{} num>(X x, [List<X>? xs]) => x;
 \}
 \\
 \VOID{} main() \{
@@ -15825,7 +15825,7 @@ a future version of Dart may allow for passing them explicitly.%
 \commentary{%
 \noindent
 The function object that \code{f} is bound to at the end of \code{main}
-has dynamic type \code{int\,\,\FUNCTION(int,\,[List<int>])},
+has dynamic type \code{int\,\,\FUNCTION(int,\,[List<int>?])},
 and it is obtained by implicitly
 ``passing the actual type argument \code{int}''
 to the denoted generic instance method,
