@@ -342,9 +342,11 @@ struct GenericData<T>(T x, T y) extends Foo;
 
 Members are inherited from super-structs as usual.
 
-It is an error for a struct to extend a class.
+It is an error for a struct to extend a class, except Object.
 
 It is an error for a struct to be extended outside of the defining library.
+
+It is an error for a struct to be extended by a class.
 
 Extension is supported primarily to allow compact definition of algebraic
 datatypes.  We expect that structs would be incorporated into switches with
@@ -455,11 +457,11 @@ otherwise the result of calling "toString".
 
 **COMMENTARY(leafp):** *This needs a bit of work.  If we keep the dynamic check
   for "struct-ness", then we need do deal with the case that the user defines a
-  debutToString thing with the wrong type*.
+  debugToString thing with the wrong type*.
 
 **COMMENTARY(leafp):** *If we keep this, we may wish to specify that compilers
   may choose to make it a link time error to have an invocation of debugToString
-  in the program outside of asserts, and other debutToString methods*.
+  in the program outside of asserts, and other debugToString methods*.
 
 
 #### copyWith
@@ -617,6 +619,14 @@ extension struct AlternativeNat(int _x) implements Nat { ...}
 class MockNat implements Nat {...}
 ```
 
+Extension structs can define their own constructors as usual, replacing or
+adding to the generated constructors.
+
+```dart
+extension struct Window(JSObject o) {
+  Window.cons() : o = Window(js_util.callConstructor(...));
+}
+```
 
 ## Extension structs in more detail
 
@@ -841,10 +851,10 @@ The toString method delegates to the underlying representation.
 
 If no debugToString method is defined in the extension struct, then a
 debugToString method will be defined which returns a formatted description of
-the receiver, of the form `<type>(<f0>, ..., <f1>)` where `<type>` is the
-extension struct type via which the receiver is called, and the `fi` are the
-result of calling "debugToString" on the `i`th field if that field is
-(dynamically) a struct, and otherwise the result of calling "toString".
+the receiver, of the form `<type>(<f0>)` where `<type>` is the extension struct
+type via which the receiver is called, and `<f0>` is the result of calling
+"debugToString" on the unique field if that field is (dynamically) a struct, and
+otherwise the result of calling "toString".
 
 #### copyWith
 
@@ -865,6 +875,175 @@ It is an error to define any of the object members in the extension struct.
 
 TODO(leafp): This should work, write out the details.
 
+## Extensions to the core proposal
+
+### Allow abstract fields in abstract super-structs
+
+We could choose to allow abstract structs to define a subset of the fields in a
+primary constructor, interpreting them as abstract fields.  e.g.
+
+```dart
+abstract struct ColorPoint(int color);
+struct ColorPoint2D(int color, int x, int y) extends ColorPoint;
+```
+
+would be roughly equivalent to:
+
+```dart
+abstract class ColorPoint {
+  abstract int color;
+}
+
+class ColorPoint2D extends ColorPoint{
+  final int color;
+  final int x;
+  final int y;
+  ColorPoint2D(this.color, this.x, this.y);
+  // More generated methods here
+}
+```
+
+### Allow concrete super-structs
+
+We could allow extending concrete structs. 
+
+```dart
+abstract struct ColorPoint(int color);
+struct ColorPoint2D(int color, int x, int y) extends ColorPoint;
+struct ColorPoint3D(int z) extends ColorPoint2D;
+```
+
+which would be roughly equivalent to:
+
+```dart
+abstract class ColorPoint {
+  abstract int color;
+}
+
+class ColorPoint2D extends ColorPoint{
+  final int color;
+  final int x;
+  final int y;
+  ColorPoint2D(this.color, this.x, this.y);
+  // More generated methods here
+}
+
+class ColorPoint3D extends ColorPoint2D {
+  final int z;
+  ColorPoint3D(super.color, super.x, super.y, this.z);
+  // More generated methods here
+}
+```
+
+**COMMENTARY(leafp):** *I would prefer, at least as a starting point, to forbid
+  overriding of the fields in sub-structs, to make it easier to compile structs
+  to something with a predictable memory layout.  For the same reason, I would
+  propose to continue to treat these as non-extensible outside of the defining
+  library*
+
+### Allow extension structs to extend other extension structs
+
+To support non-trivial subtyping hierarchies using extension structs, we could
+choose to allow extension structs to extend other extension structs, subject to
+the requirement that the field type remains the same.
+
+```dart
+extension struct Nat(int _x) {
+  Nat(int x) : assert(x >= 0), _x = x;
+  Nat.zero() : _x = 0;
+
+  Nat get succ => Nat(_x+1);
+  Nat plus(Nat other) => Nat._x + other._x;
+
+}
+
+extension struct Pos extends Nat {
+  Pos(int x) : assert(x >= 1), super(x);
+}
+```
+
+The semantics of extension would be, as with `implements`, that all methods on
+the super-struct type are statically available on the sub-struct, but no
+overriding is allowed.
+
+### Allow extension structs to extend other extension structs and refine the
+    type.
+
+We could choose to allow extension structs to require a more specific type for
+the unique field.
+
+```dart
+extension struct Number(num _x);
+extension struct Integer(int _x) extends Number;
+```
+
+### Allow extension structs to provide overriding implementations of implemented
+    or extended members
+
+The core proposal forbids overriding, to avoid the surprising behavior where the
+same object resolves methods differently depending on the static type.  We could
+choose to relax this, at the cost of some surprising behavior.
+
+```dart
+extension struct EvenInteger(int x) {
+    bool get isEven => true;
+}
+// Truly odd integers.
+extension struct OddInteger(int x) extends EvenInteger {
+    bool get isEven => false;
+}
+
+void test() {
+  OddInteger i = OddInteger(2);
+  assert(!i.isEven); // Dispatch goes to OddInteger.isEven
+  EvenInteger e = i; // Ok
+  assert(i.isEven); // Dispatch goes to EvenInteger.isEven
+}
+```
+
+**COMMENTARY(leafp):** *We could in principle not enforce the usual subtyping
+  constraints on overriding, but in practice I think this should be done.*
+
+### Define an implicit boxed version of extension structs
+
+The close correspondence between structs and extension structs suggests the
+possibility of saying that every `extension struct` declaration implicitly
+defines a corresponding `struct` declaration, which behaves exactly as if the
+same declaration had been made except with the `extension` prefix removed.  For
+an extension struct `Foo`, we might choose to name these implicit types as
+`Foo.struct`.
+
+```dart
+extension struct Nat(int _x) {
+  Nat(int x) : assert(x >= 0), _x = x;
+  Nat.zero() : _x = 0;
+
+  Nat get succ => Nat(_x+1);
+  Nat plus(Nat other) => Nat._x + other._x;
+
+  // Override the underlying isNegative operation (incorrectly)
+  bool get isNegative => true;
+}
+
+void test() {
+  Nat n = Nat(2);
+  n.succ(); // Returns Nat(3)
+  // (n as dynamic).succ(); // noSuchMethod
+  assert(n.isNegative);
+
+  int i = n as int; // Succeeds
+  assert(!i.isNegative); // Dispatch goes to the integer method
+
+  // Nat.struct is the type which would be defined by the same struct
+  // definition above, with the extension prefix removed.
+  Nat.struct b = n.struct;
+  b.succ(); // Returns Nat(3)
+  (b as dynamic).succ(); // Returns Nat(3)
+  assert(b.isNegative);
+
+  // int i = n as int; // Case fails
+}
+```
 
 
 ## Changelog
