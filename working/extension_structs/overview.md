@@ -98,7 +98,7 @@ void test() {
   // Call the default constructor, using the default value for w
   var c1 = Component(0, 0, 0);
   // Call the default constructor, explicitly passing w
-  var c2 = Component(1, 1, 1, 1);
+  var c2 = Component(0, 0, 0, 1);
 
   assert(c1 == c2); // Equality is defined to be structural
   assert(c1.hashCode == c2.hashCode); // With correspondind hashCode
