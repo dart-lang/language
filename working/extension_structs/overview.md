@@ -52,6 +52,24 @@ We also aim to minimize the amount of new syntax required, and to maximize the
 amount of new functionality that we can provide relative to the syntactic real
 estate consumed, and the new cognitive load imposed on users.
 
+Concretely for the purposes of this proposal, we have started with the following
+goals:
+  - If a struct or an extension struct `B` says that it `implements` or
+    `extends` `A`, then:
+    - It should be the case that `B` is a subtype of `A`
+    - It should be the case that `B` has a superset of the method
+      names/signatures of `A`
+    - It should be the case that assigning an instance of `B` to a location of
+      type `A`, while it may change the set of members available, should not
+      change the dispatch of any members (that is, if `f` is available on `B`,
+      then calling `f` through either interface reaches the same code).
+
+
+It is not clear that all of these goals can be met while meeting requirements.
+In particular, the last goal is incompatible with overriding methods, given our
+intended semantics, and it is likely that allowing some form of overriding is a
+requirement.
+
 ## Roadmap
 
 The first section describes the full struct feature.  The second section
