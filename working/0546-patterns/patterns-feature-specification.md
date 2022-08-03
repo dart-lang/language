@@ -24,7 +24,6 @@ of some of the most highly-voted user requests. It directly addresses:
 *   [Extensible pattern matching](https://github.com/dart-lang/language/issues/1047) (69 👍, 23rd highest)
 *   [JDK 12-like switch statement](https://github.com/dart-lang/language/issues/27) (79 👍, 19th highest)
 *   [Switch expression](https://github.com/dart-lang/language/issues/307) (28 👍)
-*   [Type patterns](https://github.com/dart-lang/language/issues/170) (9 👍)
 *   [Type decomposition](https://github.com/dart-lang/language/issues/169)
 
 (For comparison, the current #1 issue, [Data classes](https://github.com/dart-lang/language/issues/314) has 824 👍.)
@@ -144,60 +143,6 @@ double calculateArea(Shape shape) =>
 
 As you can see, it also adds an expression form for `switch`.
 
-### Extracting runtime type arguments
-
-Dart reifies instances of generic types and keeps their type arguments at
-runtime, but there is no good way for a user to extract that runtime type
-argument. For example, let's say you want to write a function that takes a
-`List` of some element type and converts it to a `Set` of the same type. (In
-practice, you would use `Iterable.toSet()`, but imagine that didn't exist.) You
-might write:
-
-```dart
-Set<T> listToSet<T>(List<T> items) {
-  return <T>{...items};
-}
-```
-
-This mostly works:
-
-```dart
-main() {
-  var ints = <int>[1, 2, 3];
-  var intSet = listToSet(ints);
-  print(intSet.runtimeType); // Prints "Set<int>".
-}
-```
-
-But that function returns a `Set` whose type argument is the *static* type of
-the given `List`, not its *runtime* type:
-
-```dart
-main() {
-  // Upcast:
-  List<Object> ints = <int>[1, 2, 3];
-  var intSet = listToSet(ints);
-  print(intSet.runtimeType); // Prints "Set<Object>".
-}
-```
-
-Here, even though the actual `List` object passed to `listToSet()` is still a
-`List<int>`, the returned `Set` is reified with `Object` because the
-`listToSet()` sees only the static type of the argument.
-
-We can use patterns to let you extract the *runtime* type arguments of an
-instance of a generic type, like so:
-
-```dart
-Set<T> listToSet<T>(List<T> items) {
-  List<final E> _ = items;
-  return <E>{...items};
-}
-```
-
-Here, the `final E` in the local variable's type annotation is a *type pattern*
-that matches and destructures the runtime type argument from `items`.
-
 ## Patterns
 
 The core of this proposal is a new category of language construct called a
@@ -241,7 +186,6 @@ Before introducing each pattern in detail, here is a summary with some examples:
 | [Map][mapPattern] | `{"key": subpattern1, someConst: subpattern2}` |
 | [Record][recordPattern] | `(subpattern1, subpattern2)`<br>`(x: subpattern1, y: subpattern2)` |
 | [Extractor][extractorPattern] | `SomeClass(x: subpattern1, y: subpattern2)` |
-| [Type][typePattern] | `List<final T>` |
 
 [logicalOrPattern]: #logical-or-pattern
 [logicalAndPattern]: #logical-and-pattern
@@ -257,7 +201,6 @@ Before introducing each pattern in detail, here is a summary with some examples:
 [mapPattern]: #map-pattern
 [recordPattern]: #record-pattern
 [extractorPattern]: #extractor-pattern
-[typePattern]: #type-pattern
 
 Here is the overall grammar for the different kinds of patterns:
 
@@ -354,8 +297,9 @@ logicalAndPattern ::= relationalPattern ( '&' logicalAndPattern )?
 ```
 
 A pair of patterns separated by `&` matches only if *both* subpatterns match.
-Unlike logical-or patterns, each branch may define different variables, since
-the logical-and pattern only matches if both branches do.
+Unlike logical-or patterns, the variables defined in each branch must *not*
+overlap, since the logical-and pattern only matches if both branches do and
+the variables in both branches will be bound.
 
 If the left branch does not match, the right branch is not evaluated. *This only
 matters because patterns may invoke user-defined methods with visible side
@@ -688,7 +632,7 @@ from it.
 
 It is a compile-time error if:
 
-*   `typeArguments` is present and there are more or less than two type
+*   `typeArguments` is present and there are more or fewer than two type
     arguments.
 
 *   Any of the entry key expressions are not constant expressions.
@@ -799,47 +743,6 @@ display(Object obj) {
 }
 ```
 
-### Type pattern
-
-Type patterns allow extracting the runtime type arguments from objects. Extend
-the `type` grammar like so:
-
-```
-type ::= functionType '?'?
-  | typeNotFunction
-  | typePattern // New.
-
-typePattern ::= 'final' identifier ( 'extends' typeNotVoid )?
-```
-
-Type patterns can only be used in certain contexts. It would be pretty confusing
-to allow:
-
-```dart
-print(<final E>[]);
-```
-
-It is a compile-time error if a `typePattern` appears anywhere except inside
-the `typeArguments` in:
-
-*   A `variablePattern`.
-*   A `listPattern`.
-*   A `mapPattern`.
-*   A `extractorPattern`.
-*   The type annotation in a `localVariableDeclaration` or `forLoopParts`.
-
-The type pattern may be nested inside the allowed type argument list or record
-type. For example:
-
-```dart
-var List<final E> = ...
-var Map<String, List<final V>> = ...
-var (final A, b: final B) = ...
-```
-
-**TODO: Do we want to support function types? If so, how do we handle
-first-class generic function types?**
-
 ## Pattern uses
 
 Patterns are woven into the larger language in a few ways:
@@ -874,9 +777,9 @@ declarations like:
 var [a] = [1], (b, c) = (2, 3);
 ```
 
-Also, declarations with patterns must have an initializer. This is not a
-limitation since the point of using a pattern in a variable declaration is to
-match it against the initializer's value.
+Declarations with patterns must have an initializer. This is not a limitation
+since the point of using a pattern in a variable declaration is to match it
+against the initializer's value.
 
 Add this new rule:
 
@@ -967,16 +870,20 @@ var pair = (1, 2);
 switch (pair) {
   case (a, b):
     if (a > b) print('First element greater');
+    break;
   case (a, b):
     print('Other order');
+    break;
 }
 
 // This prints "Other order":
 switch (pair) {
   case (a, b) when a > b:
     print('First element greater');
+    break;
   case (a, b):
     print('Other order');
+    break;
 }
 ```
 
@@ -994,8 +901,8 @@ do allow it. That is a high syntactic tax for limited benefit.
 I inspected the 25,014 switch cases in the most recent 1,000 packages on pub
 (10,599,303 LOC). 26.40% of the statements in them are `break`. 28.960% of the
 cases contain only a *single* statement followed by a `break`. This means
-`break` is a fairly large fraction of the statements in all switches for
-marginal benefit.
+`break` is a fairly large fraction of the statements in all switches even though
+it does nothing.
 
 Therefore, this proposal removes the requirement that each non-empty case body
 definitely exit. Instead, a non-empty case body implicitly jumps to the end of
@@ -1306,9 +1213,6 @@ helpful for users. Instead, for switch statements and expressions, the type of
 the matched value is inferred with no downwards context type and we jump
 straight to inferring the types of the case patterns from that context type.
 
-When calculating the context type schema or static type of a pattern, any
-occurrence of `typePattern` in a type is treated as `Object?`.
-
 #### Pattern context type schema
 
 In a non-pattern variable declaration, the variable's type annotation is used
@@ -1612,10 +1516,9 @@ main() {
 }
 ```
 
-We define an *irrefutable context* as the pattern in a `topLevelDeclaration`,
-`localVariableDeclaration`, `forLoopParts`, or `declaration` or its subpatterns.
-A *refutable context* is the pattern in a `caseHead` or `ifCondition` or its
-subpatterns.
+We define an *irrefutable context* as the pattern in a
+`localVariableDeclaration`, `forLoopParts` or its subpatterns. A *refutable
+context* is the pattern in a `caseHead` or `ifCondition` or its subpatterns.
 
 Refutability is not just a property of the pattern itself. It also depends on
 the static type of the value being matched. Consider:
@@ -1658,9 +1561,8 @@ supertype of the value type. In other words, any pattern that needs to
 
 ### Variables and scope
 
-Patterns often exist to introduce new bindings. Type patterns introduce type
-variables and other patterns introduce normal variables. A "wildcard" identifier
-named `_` in a pattern never introduces a binding.
+Patterns often exist to introduce new variable bindings. A "wildcard" identifier
+named `_` in a variable or cast pattern never introduces a binding.
 
 The variables a patterns binds depend on what kind of pattern it is:
 
@@ -1670,7 +1572,7 @@ The variables a patterns binds depend on what kind of pattern it is:
 
 *   **Logical-and**, **null-check**, **null-assert**, **grouping**, **list**,
     **map**, **record**, or **extractor**: These do not introduce variables
-    themselves but may contain type patterns and subpatterns that do.
+    themselves but may contain subpatterns that do.
 
 *   **Relational**, **literal**, or **constant**: These do not introduce any
     variables.
@@ -1678,9 +1580,6 @@ The variables a patterns binds depend on what kind of pattern it is:
 *   **Variable** or **cast**: May contain type argument patterns. Introduces a
     variable whose name is the pattern's identifier. The variable is final if
     the surrounding pattern variable declaration has a `final` modifier.
-
-*   **Type pattern**: Type patterns new *type* variables whose name is the type
-    pattern's identifier. Type variables are always final.
 
 The scope where a pattern's variables are declared depends on the construct
 that contains the pattern:
@@ -1724,14 +1623,12 @@ type.**
 
 ### Exhaustiveness and reachability
 
-A switch is *exhaustive* if all possible values of the matched value's type
-will definitely match at least one case, or there is a default case. Dart
-currently shows a warning if a switch statement on an enum type does not have
-cases for all enum values (or a default).
-
-This is helpful for code maintainance: when you add a new value to an enum
-type, the language shows you every switch statement that may need a new case
-to handle it.
+A switch is *exhaustive* if all possible values of the matched value's type will
+definitely match at least one case, or there is a default case. Dart currently
+shows a warning if a switch statement on an enum type does not have cases for
+all enum values (or a default). This is helpful for code maintainance: when you
+add a new value to an enum type, the language shows you every switch statement
+that may need a new case to handle it.
 
 This checking is even more important with this proposal. Exhaustiveness checking
 is a key part of maintaining code written in an algebraic datatype style. It's
@@ -1821,7 +1718,8 @@ Refutable patterns usually occur in a context where match refutation causes
 execution to skip over the body of code where any variables bound by the pattern
 are in scope. If a pattern match failure occurs in irrefutable context, a
 runtime exception is thrown. *This can happen when matching against a value of
-type `dynamic`.*
+type `dynamic`, or when a list pattern in a variable declaration is matched
+against a list of a different length.*
 
 To match a pattern `p` against a value `v`:
 
@@ -1898,7 +1796,9 @@ To match a pattern `p` against a value `v`:
         explicit type argument or inferred from the matched value type.*
 
     2.  If the length of the list determined by calling `length` is not equal to
-        the number of subpatterns, then the match fails.
+        the number of subpatterns, then the match fails. *This match failure
+        becomes a runtime exception if the list pattern is in a variable
+        declaration.*
 
     3.  Otherwise, for each element subpattern, in source order:
 
@@ -1955,9 +1855,6 @@ To match a pattern `p` against a value `v`:
             extractor match fails.
 
     3.  The match succeeds if all field subpatterns match.
-
-*   **Type pattern**: Always matches. Binds the corresponding type argument of
-    the runtime type of `v` to the pattern's type variable.
 
 **TODO: Update to specify that the result of operations can be cached across
 cases. See: https://github.com/dart-lang/language/issues/2107**
@@ -2041,11 +1938,6 @@ Here is one way it could be broken down into separate pieces:
     *   Logical-and patterns
     *   Grouping patterns
 
-*   **Type patterns.** This is a mostly orthogonal feature, though a useful one
-    that would let us get rid of the hacky "dart_internal" package.
-
-    *   Type patterns.
-
 ## Changelog
 
 ### 2.0
@@ -2083,6 +1975,9 @@ Major redesign of the syntax and minor redesign of the semantics.
     and it's not clear that they're worth it.
 
 -   Change the static typing rules significantly in a number of ways.
+
+-   Remove type patterns. They aren't fully baked, are pretty complex, and don't
+    seem critical right now. We can always add them as a later extension.
 
 ### 1.8
 
