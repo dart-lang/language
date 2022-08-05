@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.4 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.5 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -121,25 +121,60 @@ compile-time error if a record has any of:
 
 ### Record type annotations
 
-In the type system, each record has a corresponding record type. The grammar for
-record type annotations is:
+In the type system, each record has a corresponding record type. A record type
+looks similar to a function type's parameter list. The type is surrounded by
+parentheses and may contain comma-separated positional fields:
+
+```dart
+(int, String name, bool) triple;
+```
+
+Each field is a type annotation and an optional name which isn't meaningful but
+is useful for documentation purposes.
+
+Named fields go inside a brace-delimited section of type and name pairs:
+
+```dart
+({int n, String s}) pair;
+```
+
+A record type may have both positional and named fields:
+
+```dart
+(bool, num, {int n, String s}) quad;
+```
+
+The grammar is:
 
 ```
-// Existing rule:
-typeNotVoidNotFunction ::= recordType
-                         | // Existing typeNotVoidNotFunction productions...
+// Existing rules:
+type                   ::= functionType '?'?      // Existing production.
+                         | recordType             // New production.
+                         | typeNotFunction        // Existing production.
 
-recordType             ::= '(' recordTypeFields ','? ')'
-                         | '(' ( recordTypeFields ',' )?
-                               recordTypeNamedFields ')'
-                         | recordTypeNamedFields
+typeNotFunction        ::= 'void'                 // Existing production.
+                         | recordType             // New production.
+                         | typeNotVoidNotFunction // Existing production.
 
-recordTypeFields       ::= type ( ',' type )*
+// New rules:
+recordType             ::= '(' recordTypeFields ',' recordTypeNamedFields ')'
+                         | '(' recordTypeFields ','? ')'
+                         | '(' recordTypeNamedFields ')'
+
+recordTypeFields       ::= recordTypeField ( ',' recordTypeField )*
+recordTypeField        ::= metadata type identifier?
 
 recordTypeNamedFields  ::= '{' recordTypeNamedField
                            ( ',' recordTypeNamedField )* ','? '}'
 recordTypeNamedField   ::= type identifier
+recordTypeNamedField   ::= metadata typedIdentifier
 ```
+
+*The grammar is exactly the same as `parameterTypeList` in function types but
+without `()`, `required`, and optional positional parameters since those don't
+apply to record types. A record type can't appear in an `extends`, `implements`,
+`with`, or mixin `on` clause, which is enforced by being a production in `type`
+and not `typeNotVoid`.*
 
 It is a compile-time error if a record type has any of:
 
@@ -154,34 +189,17 @@ It is a compile-time error if a record type has any of:
 
 *   A field name that starts with an underscore.
 
-The syntax is similar to a function type's parameter list. You have zero or more
-positional fields where each field is a type annotation:
+### No record type literals
+
+There is no record type literal syntax that can be used as an expression, since
+it would be ambiguous with other existing syntax:
 
 ```dart
-(int, String, bool) triple;
+var t = (int, String);
 ```
 
-Then a brace-delimited section for named fields. Each named field is a type and
-name pair:
-
-```dart
-({int n, String s}) pair;
-```
-
-A record type can have both positional and named fields:
-
-```dart
-(bool, num, {int n, String s}) quad;
-```
-
-If there are only named fields, you are allowed to omit the surrounding
-parentheses:
-
-```dart
-{int n, String s} pair;
-```
-
-Like record expressions, a record type must have at least one field.
+This is a record expression containing two type literals, `int` and `String`,
+not a type literal for a record type.
 
 ## Static semantics
 
@@ -359,6 +377,19 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.5
+
+- Make the grammar for record types closer to function type parameter lists.
+  Allow metadata before fields and optional names for positional fields.
+
+- Weave `recordType` into the grammar better. Don't allow it in inheritance
+  clauses, but do allow it as the return type of function types.
+
+- Remove shorthand syntax that elides parentheses when there are no positional
+  fields since that's ambiguous inside a function type (#2302).
+
+- Clarify that there is no record type literal syntax (#2304).
 
 ### 1.4
 
