@@ -1335,9 +1335,9 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 *   **Relational**: If the operator is a comparison (`<`, `<=`, `>`, or `>=`),
     then it is a compile-time error if `M` does not define that operator, if the
-    type of the constant in the relational pattern is not a subtype of the
-    operator's parameter type, or if the operator's return type is not `bool`.
-    *The `==` and `!=` operators are valid for all pairs of types.*
+    type of the constant in the relational pattern is not assignable to the
+    operator's parameter type, or if the operator's return type is not `bool` or
+    `dynamic`. *The `==` and `!=` operators are valid for all pairs of types.*
 
 *   **Null-check** or **null-assert**:
 
@@ -1473,6 +1473,11 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 It is a compile-time error if the type of an expression in a guard clause is not
 `bool` or `dynamic`.
+
+### Switch expression type
+
+The static type of a switch expression is the least upper bound of the static
+types of all of the case expressions.
 
 ## Refutable and irrefutable patterns
 
@@ -1665,9 +1670,10 @@ behavior.
         to the next case (or default clause or exit the switch if there are no
         other cases).
 
-    2.  If there is a guard clause, evaluate it. If it does not evaluate to
-        a Boolean, throw a runtime exception. If it evaluates to `false`,
-        continue to the next case (or default or exit).
+    2.  If there is a guard clause, evaluate it. If it does not evaluate to a
+        Boolean, throw a runtime exception. *This can happen if the guard
+        expression's type is `dynamic`.* If it evaluates to `false`, continue to
+        the next case (or default or exit).
 
     3.  Execute the nearest non-empty case body at or following this case.
         *You're allowed to have multiple empty cases where all preceding
@@ -1775,15 +1781,17 @@ To match a pattern `p` against a value `v`:
 
 *   **Variable**:
 
-    1.  If `v` is not a subtype of `p` then the match fails.
+    1.  If the runtime type of `v` is not a subtype of the static type of `p`
+        then the match fails.
 
     2.  Otherwise, bind the variable's identifier to `v` and the match succeeds.
 
 *   **Cast**:
 
-    1.  If `v` is not a subtype of `p` then throw a runtime exception. *Note
-        that we throw even if this appears in a refutable context. The intent
-        of this pattern is to assert that a value *must* have some type.*
+    1.  If the runtime type of `v` is not a subtype of the static type of `p`
+        then throw a runtime exception. *Note that we throw even if this appears
+        in a refutable context. The intent of this pattern is to assert that a
+        value *must* have some type.*
 
     2.  Otherwise, bind the variable's identifier to `v` and the match succeeds.
 
@@ -1791,9 +1799,10 @@ To match a pattern `p` against a value `v`:
 
 *   **List**:
 
-    1.  If `v` is not a subtype of `p` then the match fails. *The list pattern's
-        type will be `List<T>` for some `T` determined either by the pattern's
-        explicit type argument or inferred from the matched value type.*
+    1.  If the runtime type of `v` is not a subtype of the static type of `p`
+        then the match fails. *The list pattern's type will be `List<T>` for
+        some `T` determined either by the pattern's explicit type argument or
+        inferred from the matched value type.*
 
     2.  If the length of the list determined by calling `length` is not equal to
         the number of subpatterns, then the match fails. *This match failure
@@ -1811,10 +1820,10 @@ To match a pattern `p` against a value `v`:
 
 *   **Map**:
 
-    1.  If `v` is not a subtype of `p` then the match fails. *The map pattern's
-        type will be `Map<K, V>` for some `K` and `V` determined either by the
-        pattern's explicit type arguments or inferred from the matched value
-        type.*
+    1.  If the runtime type of `v` is not a subtype of the static type of `p`
+        then the match fails. *The map pattern's type will be `Map<K, V>` for
+        some `K` and `V` determined either by the pattern's explicit type
+        arguments or inferred from the matched value type.*
 
     2.  Otherwise, for each entry in `p`:
 
@@ -1832,7 +1841,8 @@ To match a pattern `p` against a value `v`:
 
 *   **Record**:
 
-    1.  If `v` is not a record with the same type as `p`, then the match fails.
+    1.  If the runtime type of `v` is not a record type with the same type as
+        the static type of `p`, then the match fails.
 
     2.  For each field `f` in `p`, in source order:
 
@@ -1845,7 +1855,8 @@ To match a pattern `p` against a value `v`:
 
 *   **Extractor**:
 
-    1.  If `v` is not a subtype of `p` then the match fails.
+    1.  If the runtime type of `v` is not a subtype of the static type of `p`
+        then the match fails.
 
     3.  Otherwise, for each field `f` in `p`:
 
@@ -1939,6 +1950,16 @@ Here is one way it could be broken down into separate pieces:
     *   Grouping patterns
 
 ## Changelog
+
+### 2.1
+
+Minor tweaks:
+
+-   Define the static type of switch expressions (#2380).
+
+-   Clarify semantics of runtime type tests (#2385).
+
+-   Allow relational operators whose return type is `dynamic`.
 
 ### 2.0
 
