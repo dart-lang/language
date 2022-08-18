@@ -322,38 +322,39 @@ through calls to `identical()`, then optimizing away the creation of these
 objects is harder.
 
 Semantically, we do not want records to have unique identities distinct from
-their contents. A record *is* its contents in the same way that every value 3
-in a program is the "same" 3 whether it came from the number literal `3` or the
-result of `1 + 2`.
+their contents. A record *is* its contents in the same way that every value 3 in
+a program is the "same" 3 whether it came from the number literal `3` or the
+result of `1 + 2`. This is why `==` for records is defined in terms of their
+shape and fields. Two records with the same shape and equal fields are equal
+values.
 
-This is why `==` for records is defined in terms of their shape and fields. Two
-records with the same shape and fields are equivalent. Identity follows similar
-rules. Calling `identical()` with a record argument returns:
+At the same time, we want `identical()` to be fast because one of its primary
+uses is as a fast-path check for equality. An `identical()` that is obliged to
+iterate over the record's fields (transitively in the case where some fields
+are themselves records) might nullify the benefits of using `identical()` as a
+fast-path check before calling `==`.
+
+To balance those opposing goals, `identical()` on records is defined to only
+offer loose guarantees. Calling `identical()` with a record argument returns:
 
 *   `false`, if the other argument is not a record.
 *   `false`, if the records do not have the same shape. *Since named field
     order is not part of a record's shape, this implies that named field order
-    does not affect identity either. `(a: 1, b: 2)` and `(b: 2, a: 1)` are
-    identical.*
+    does not affect identity either. `identical((a: 1, b: 2), (b: 2, a: 1))` is
+    not required to return false.*
 *   `false`, if any pair of corresponding fields are not identical.
-*   Otherwise `true`.
+*   Otherwise it *may* return `true`, but is not required to.
 
-This means `identical()` on records is structural and recursive. However, since
-records are immutable and `identical()` on other aggregate types does not
-recurse into fields, it cannot be *cyclic.*
+*If an implementation can easily determine that two record arguments to
+`identical()` have the same shape and identical fields, then it should return
+`true`. Typically, this is because the two arguments to `identical()` are
+pointers with the same address to the same heap-allocated record object. But if
+an implementation would have to do a slower field-wise comparison to determine
+identity, it's probably better to return `false` quickly.*
 
-An important use case for `identical()` is as a fast path check for equality.
-It's common to use `identical()` to quickly see if two objects are "the same",
-and if so avoid the potentially slower call to `==`. We have some concern that
-structural rules for `identical()` of records could be slow.
-
-We will coordinate with the implementation teams and if they are not confident
-that they can get reasonable performance out of it, we may change these rules
-before accepting the proposal. "Reasonable" here means fast enough that users
-won't find themselves wishing for some other specialized `reallyIdentical()`
-function that avoids the cost of structural `identical()` checks on records.
-
-**TODO: Discuss with implementation teams.**
+*In other words, if `identical()` returns `true`, then the records are
+definitely indistinguishable. But if it returns `false`, they may or may not
+be.*
 
 #### Expandos
 
