@@ -283,6 +283,41 @@ fields are) and collection literals.
 
 **TODO: Specify this more precisely.**
 
+### Constants
+
+A record expression is a compile-time constant expression
+if all its record field expressions are compile-time constant expressions. 
+
+_This is true whether the expression occurs in a constant context or not,
+which means that a record expression can be used directly as a parameter default value 
+if its record field expressions are constant expressions.
+Example: `f({(int, int) x = (1, 2)}) => ...`._
+
+A record expression is a potentially constant expression 
+if all its record field expressions are potentially constant or constant expressions.
+
+_This means that a record expression can be used in the initializer list
+of a constant non-redirecting generative constructor._
+
+Constant *object* instantiations create deeply immutable and canonicalied objects.
+Records are always unmodifiable, and if their field values are deeply immutable,
+like constants values, the records are also deeply immutable.
+It's meaningless to consider whether record constants are canonicalized,
+since records do not have a persistent identity.
+
+Because of that, there is no need for a `const (1, 2)` syntax to force a record 
+to be a constant, like there is for object creation expressions. 
+A record expression with field values that are constant-created values, 
+will be indistinguishable from a similar expression created in a constant 
+context, since identity cannot be used as a distinguishing trait.
+
+_(We could choose to promise that a compile-time constant `identical(c1, c2)`,
+where the expression occurs in a constant context and `c1` and `c2` are records, 
+will evaluate to `true` iff a runtime evaluation of `identical` 
+*can* return `true` for the same values. 
+That is, records would be canonicalized during compile-time constant evealuation,
+but may lose their identity at runtime. We will not make such a promise.)_
+
 ## Runtime semantics
 
 ### Records
