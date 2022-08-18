@@ -340,8 +340,8 @@ offer loose guarantees. Calling `identical()` with a record argument returns:
 *   `false`, if the other argument is not a record.
 *   `false`, if the records do not have the same shape. *Since named field
     order is not part of a record's shape, this implies that named field order
-    does not affect identity either. `(a: 1, b: 2)` and `(b: 2, a: 1)` are
-    identical.*
+    does not affect identity either. `identical((a: 1, b: 2), (b: 2, a: 1))` is
+    not required to return false.*
 *   `false`, if any pair of corresponding fields are not identical.
 *   Otherwise it *may* return `true`, but is not required to.
 
