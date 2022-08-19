@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.5 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.6 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -71,11 +71,8 @@ modified, but may contain references to mutable objects. It implements
 `hashCode` and `==` structurally based on its fields to provide value-type
 semantics.
 
-A record may have only positional fields or only named fields, but cannot be
-totally empty. *There is no "unit type".* A record with no named fields must
-have at least two positional fields. *This prevents confusion around whether a
-single positional element record is equivalent to its underlying value, and
-avoids a syntactic ambiguity with parenthesized expressions.*
+A record may have only positional fields, only named fields, both, or none at
+all.
 
 ## Core library
 
@@ -98,18 +95,17 @@ grammar is:
 ```
 literal      ::= record
                | // Existing literal productions...
-record       ::= '(' recordField ( ',' recordField )* ','? ')'
+record       ::= 'const'? '(' recordField ( ',' recordField )* ','? ')'
 recordField  ::= (identifier ':' )? expression
 ```
 
-This is identical to the grammar for a function call argument list. There are a
-couple of syntactic restrictions not captured by the grammar. It is a
-compile-time error if a record has any of:
+This is identical to the grammar for a function call argument list (with an
+optional `const` at the beginning). There are a couple of syntactic restrictions
+not captured by the grammar. It is a compile-time error if a record has any of:
 
 *   The same field name more than once.
 
-*   No named fields and only one positional field. *This avoids ambiguity with
-    parenthesized expressions.*
+*   Only one positional field and no trailing comma.
 
 *   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
@@ -118,6 +114,21 @@ compile-time error if a record has any of:
     library where the record was declared. That would lead to a record that has
     hidden state. Two such records might unexpectedly compare unequal even
     though all of the fields the user can see are equal.*
+
+*   A field name that collides with the synthesized getter name of a positional
+    field. *For example: `('pos', $0: 'named')` since the named field '$0'
+    collides with the getter for the first positional field.*
+
+In order to avoid ambiguity with parenthesized expressions, a record with
+only a single positional field must have a trailing comma:
+
+```dart
+var number = (1);  // The number 1.
+var record = (1,); // A record containing the number 1.
+```
+
+There is no syntax for a zero-field record expression. Instead, there is a
+static constant `empty` on `Record` that returns the empty record.
 
 ### Record type annotations
 
@@ -159,7 +170,7 @@ typeNotFunction        ::= 'void'                 // Existing production.
 // New rules:
 recordType             ::= '(' recordTypeFields ',' recordTypeNamedFields ')'
                          | '(' recordTypeFields ','? ')'
-                         | '(' recordTypeNamedFields ')'
+                         | '(' recordTypeNamedFields? ')'
 
 recordTypeFields       ::= recordTypeField ( ',' recordTypeField )*
 recordTypeField        ::= metadata type identifier?
@@ -171,23 +182,29 @@ recordTypeNamedField   ::= metadata typedIdentifier
 ```
 
 *The grammar is exactly the same as `parameterTypeList` in function types but
-without `()`, `required`, and optional positional parameters since those don't
-apply to record types. A record type can't appear in an `extends`, `implements`,
+without `required`, and optional positional parameters since those don't apply
+to record types. A record type can't appear in an `extends`, `implements`,
 `with`, or mixin `on` clause, which is enforced by being a production in `type`
 and not `typeNotVoid`.*
+
+The type `()` is the type of an empty record with no fields.
 
 It is a compile-time error if a record type has any of:
 
 *   The same field name more than once.
 
-*   No named fields and only one positional field. *This isn't ambiguous, since
-    there are no parenthesized type expressions in Dart. But there is no reason
-    to allow single positional element record types when the corresponding
-    record values are prohibited.*
+*   Only one positional field and no trailing comma. *This isn't ambiguous,
+    since there are no parenthesized type expressions in Dart. But prohibiting
+    this is symmetric with record expressions and leaves the potential for
+    later support for parentheses for grouping in type expressions.*
 
 *   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
 *   A field name that starts with an underscore.
+
+*   A field name that collides with the synthesized getter name of a positional
+    field. *For example: `(int, $0: int)` since the named field '$0' collides
+    with the getter for the first positional field.*
 
 ### No record type literals
 
@@ -200,6 +217,28 @@ var t = (int, String);
 
 This is a record expression containing two type literals, `int` and `String`,
 not a type literal for a record type.
+
+### Ambiguity with `on` clauses
+
+Consider:
+
+```dart
+void foo() {
+  try {
+    ;
+  } on Bar {
+    ;
+  }
+  on(a, b) {;} // <--
+}
+```
+
+Before, the marked line could only be declaring a local function named `on`.
+With record types, it could be a second `on` clause for the `try` statement
+whose matched type is the record type `(a, b)`. When presented with this
+ambiguity, we disambiguate by treating `on` as a clause for `try` and not a
+local function. This is technically a breaking change, but is unlikely to affect
+any code in the wild.
 
 ## Static semantics
 
@@ -218,17 +257,18 @@ handle function typedefs.)
 
 A record type declares all of the members defined on `Object`. It also exposes
 getters for each named field where the name of the getter is the field's name
-and the getter's type is the field's type.
-
-Positional fields are not exposed as getters. *Record patterns in pattern
-matching can be used to access a record's positional fields.*
+and the getter's type is the field's type. For each positional field, it exposes
+a getter whose name is `$` followed by the number of preceding positional fields
+and whose type is the type of the field.
 
 For example, the record expression `(1.2, name: 's', true, count: 3)` has a
 record type whose signature is like:
 
 ```dart
 class extends Record {
+  double get $0;
   String get name;
+  bool get $1;
   int get count;
 }
 ```
@@ -283,17 +323,54 @@ fields are) and collection literals.
 
 **TODO: Specify this more precisely.**
 
+### Constants
+
+A record expression in a constant context or beginning with `const` defines a
+constant record. A record expression starting with `const` establishes a const
+context for its fields. It is a compile-time error if a field of a constant
+record is not constant.
+
+Since identity is definely loosely for records, an implementation is not
+required to canonicalize equivalent constant records.
+
+```dart
+print(identical(const (1, 2), const (1, 2)));
+```
+
+This may print `true` or `false`.
+
 ## Runtime semantics
 
 ### Records
 
-#### Members
+#### Field getters
 
 Each field in the record's shape exposes a corresponding getter. Invoking that
 getter returns the value provided for that field when the record was created.
 Record fields are immutable and do not have setters.
 
-The `toString()` method's behavior is unspecified.
+#### `toString()`
+
+In debug builds, the `toString()` method converts each field to a string by
+calling `toString()` on its value and prepending it with the field name followed
+by `: ` if the field is named. It concatenates these with `, ` as a separator
+and returns the resulted surrounded by parentheses. For example:
+
+```dart
+print((1, 2, 3).toString()); // "(1, 2, 3)".
+print((a: 'str', 'ing').toString()); // "(a: str, int)".
+```
+
+The order that named fields appear and how they are interleaved with positional
+fields is unspecified. Positional fields must appear in position order. *This
+gives implementations freedom to choose a canonical order for named fields
+independent of the order that the record was created with.*
+
+In a release or optimized build, the behavior of `toString()` is unspecified.
+*This gives implementations freedom to discard the full names of named fields in
+order to reduce code size.* Users should only use `toString()` on records for
+debugging purposes. They are strongly discouraged from parsing the results of
+calling `toString()` or relying on it for end-user visible output.
 
 #### Equality
 
@@ -378,6 +455,18 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.6
+
+- Support constant records (#2337).
+
+- Support empty and one-positional-field records (#2386).
+
+- Re-add support for positional field getters (#2388).
+
+- Specify the behavior of `toString()` (#2389).
+
+- Disambiguate record types in `on` clauses (#2406).
 
 ### 1.5
 
