@@ -374,11 +374,27 @@ calling `toString()` or relying on it for end-user visible output.
 
 #### Equality
 
-Records behave similar to other primitive types in Dart with regards to
-equality. They implement `==` such that two records are equal iff they have the
-same shape and all corresponding pairs of fields are equal. Fields are compared
-for equality by calling `==` on the corresponding field values in the same
-order that `==` was called on the records.
+The `==` method on record `r` with right operand `o` is defined as:
+
+1.  If `o` is not a record with the same shape as `r` then return `false`.
+
+1.  For each pair of corresponding positional fields `rf` and `of` in position
+    order:
+
+    1.  If `rf == of` is `false` then return `false`.
+
+1.  For each pair of corresponding named fields `rf` and `of`, in unspecified
+    order:
+
+    1.  If `rf == of` is `false` then `false`.
+
+1.  Else, `true`.
+
+*The order that fields are iterated is potentially user-visible since
+user-defined `==` methods can have side effects. Most well-behaved `==`
+implementations are pure. The order that named fields are visited is
+deliberately left unspecified so that implementations are free to canonicalize
+their order.*
 
 ```dart
 var a = (x: 1, 2);
@@ -386,8 +402,9 @@ var b = (2, x: 1);
 print(a == b); // true.
 ```
 
-The implementation of `hashCode` follows this. Two records that are equal must
-have the same hash code.
+The implementation of `hashCode` follows this. The hash code returned should
+depend on the field values such that two records that compare equal must have
+the same hash code.
 
 #### Identity
 
@@ -467,6 +484,8 @@ covariant in their field types.
 - Specify the behavior of `toString()` (#2389).
 
 - Disambiguate record types in `on` clauses (#2406).
+
+- Clarify the iteration order of fields in `==`.
 
 ### 1.5
 
