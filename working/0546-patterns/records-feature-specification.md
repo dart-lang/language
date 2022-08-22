@@ -285,8 +285,10 @@ fields are) and collection literals.
 
 ### Constants
 
+_Record expressions can be constant and potentially constant expressions._
+
 A record expression is a compile-time constant expression
-if all its record field expressions are compile-time constant expressions. 
+if and only if all its record field expressions are compile-time constant expressions. 
 
 _This is true whether the expression occurs in a constant context or not,
 which means that a record expression can be used directly as a parameter default value 
@@ -294,22 +296,23 @@ if its record field expressions are constant expressions.
 Example: `f({(int, int) x = (1, 2)}) => ...`._
 
 A record expression is a potentially constant expression 
-if all its record field expressions are potentially constant or constant expressions.
+if and only iff all its record field expressions are potentially constant or constant expressions.
 
 _This means that a record expression can be used in the initializer list
-of a constant non-redirecting generative constructor._
+of a constant non-redirecting generative constructor, 
+and can depend on constructor parameters._
 
-Constant *object* instantiations create deeply immutable and canonicalied objects.
+_Constant *object* instantiations create deeply immutable and canonicalied objects.
 Records are always unmodifiable, and if their field values are deeply immutable,
 like constants values, the records are also deeply immutable.
 It's meaningless to consider whether record constants are canonicalized,
-since records do not have a persistent identity.
+since records do not have a persistent identity._
 
-Because of that, there is no need for a `const (1, 2)` syntax to force a record 
+_Because of that, there is no need for a `const (1, 2)` syntax to force a record 
 to be a constant, like there is for object creation expressions. 
 A record expression with field values that are constant-created values, 
 will be indistinguishable from a similar expression created in a constant 
-context, since identity cannot be used as a distinguishing trait.
+context, since identity cannot be used as a distinguishing trait._
 
 _(We could choose to promise that a compile-time constant `identical(c1, c2)`,
 where the expression occurs in a constant context and `c1` and `c2` are records, 
@@ -317,6 +320,39 @@ will evaluate to `true` iff a runtime evaluation of `identical`
 *can* return `true` for the same values. 
 That is, records would be canonicalized during compile-time constant evealuation,
 but may lose their identity at runtime. We will not make such a promise.)_
+
+For canonoicalization purposes, we update the definition of when to canonicalize
+the result of a constant object creation expression to not be dependent on 
+the `identical` function, since it does not behave predictably (or usefully)
+for records.
+
+We define two Dart values, *a* and *b*, to be _structurally equivalent_ as follows:
+* If *a* and *b* are both records, and they have the same shape, 
+  and for each field *f* of that shape, the records' values of that field, 
+  *a*<sub>*f*</sub> and *b*<sub>*f*</sub> are structurally equivalent, 
+  then *a* and *b* are structurally equivalent.
+* If *a* and *b* are non-record object references, 
+  and they refer to the same object, then *a* and *b* are structurally equivalent.
+  _So structural equivalence agrees with `identical` for non-records._
+* Otherwise *a* and *b* are not structurally equivalent.
+
+With that definition, the rules for object and collection canonicalization is changed
+from requiring that instance variable, list/set element and map key/value values are
+`identical` between the instances, to them being _structurally equivalent_.
+
+_This change allows a class like_
+```dart
+class C {
+  final (int, int) pair;
+  const C(int x, int y) : pair = (x, y);
+}
+```
+_to be properly canonicalized for objects with the same effective state, 
+independentlty of whether `identical` returns `true` or `false` on the `pair` value._
+
+_Notice that if the `identical`returns `true` on two records, they must be structurally equivalent,
+but unlike for non-records, the `identical` function can also return `false`
+for structurally equivalent records._
 
 ## Runtime semantics
 
