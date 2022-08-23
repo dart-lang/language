@@ -429,17 +429,23 @@ calling `toString()` or relying on it for end-user visible output.
 
 #### Equality
 
-The `==` method on record `r` with right operand `o` is defined as:
+Records have value equality, which means two records are equal if they have the
+same shape and the corresponding fields are equal. Since named field order is
+*not* part of a record's shape, that implies that the order of named fields
+does not affect equality:
 
-1.  If `o` is not a record with the same shape as `r` then return `false`.
+```dart
+var a = (x: 1, 2);
+var b = (2, x: 1);
+print(a == b); // true.
+```
 
-1.  For each pair of corresponding positional fields `rf` and `of` in position
-    order:
+More precisely, the `==` method on record `r` with right operand `o` is defined
+as:
 
-    1.  If `rf == of` is `false` then return `false`.
+1.  If `o` is not a record with the same shape as `r` then `false`.
 
-1.  For each pair of corresponding named fields `rf` and `of`, in unspecified
-    order:
+1.  For each pair of corresponding fields `rf` and `of` in unspecified order:
 
     1.  If `rf == of` is `false` then `false`.
 
@@ -447,15 +453,9 @@ The `==` method on record `r` with right operand `o` is defined as:
 
 *The order that fields are iterated is potentially user-visible since
 user-defined `==` methods can have side effects. Most well-behaved `==`
-implementations are pure. The order that named fields are visited is
-deliberately left unspecified so that implementations are free to canonicalize
-their order.*
-
-```dart
-var a = (x: 1, 2);
-var b = (2, x: 1);
-print(a == b); // true.
-```
+implementations are pure. The order that fields are visited is deliberately left
+unspecified so that implementations are free to reorder the field comparisons
+for performance.*
 
 The implementation of `hashCode` follows this. The hash code returned should
 depend on the field values such that two records that compare equal must have
