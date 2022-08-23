@@ -1150,6 +1150,12 @@ variables with the same bound.
 - **MOREBOTTOM**(`S`, `X&T`) = false
 - **MOREBOTTOM**(`X extends T`, `Y extends S`) = **MOREBOTTOM**(`T`, `S`)
 
+The **ERASEINTERSECTION** function maps `X&T` to `X` and every other type to
+itself.
+
+- **ERASEINTERSECTION**(`X&T`) = `X`
+- **ERASEINTERSECTION**(`T`) = `T`
+
 ### The main function
 
 The section 'Scripts' in the language specification is replaced by the
