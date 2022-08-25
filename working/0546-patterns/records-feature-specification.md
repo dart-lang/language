@@ -203,7 +203,10 @@ The type `()` is the type of an empty record with no fields.
 
 It is a compile-time error if a record type has any of:
 
-*   The same field name more than once.
+*   The same field name more than once. *This is true even if one or both of the
+    colliding fields is positional. We could permit collisions with positional
+    field names since they are only used for documentation, but we disallow it
+    because it's confusing and not useful.*
 
 *   Only one positional field and no trailing comma. *This isn't ambiguous,
     since there are no parenthesized type expressions in Dart. But prohibiting
