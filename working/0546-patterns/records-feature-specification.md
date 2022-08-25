@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.5 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.6 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -58,10 +58,10 @@ var record = (number: 123, name: "Main", type: "Street");
 ```
 
 In Dart, we merge both of these into a single construct, called a **record**. A
-record has a series of positional fields, and a collection of named fields:
+record has a series of fields, which may be named or positional.
 
 ```dart
-var record = (1, 2, a: 3, b: 4);
+var record = (1, a: 2, 3, b: 4);
 ```
 
 The expression syntax looks much like an argument list to a function call. A
@@ -71,11 +71,20 @@ modified, but may contain references to mutable objects. It implements
 `hashCode` and `==` structurally based on its fields to provide value-type
 semantics.
 
-A record may have only positional fields or only named fields, but cannot be
-totally empty. *There is no "unit type".* A record with no named fields must
-have at least two positional fields. *This prevents confusion around whether a
-single positional element record is equivalent to its underlying value, and
-avoids a syntactic ambiguity with parenthesized expressions.*
+A record may have only positional fields, only named fields, both, or none at
+all.
+
+Once a record has been created, its fields can be accessed using getters.
+Every named field exposes a getter with the same name, and positional fields
+expose getters named `$0`, `$1`, etc.:
+
+```dart
+var record = (1, a: 2, 3, b: 4);
+print(record.$0); // Prints "1".
+print(record.a);  // Prints "2".
+print(record.$1); // Prints "3".
+print(record.b);  // Prints "4".
+```
 
 ## Core library
 
@@ -98,18 +107,17 @@ grammar is:
 ```
 literal      ::= record
                | // Existing literal productions...
-record       ::= '(' recordField ( ',' recordField )* ','? ')'
+record       ::= 'const'? '(' recordField ( ',' recordField )* ','? ')'
 recordField  ::= (identifier ':' )? expression
 ```
 
-This is identical to the grammar for a function call argument list. There are a
-couple of syntactic restrictions not captured by the grammar. It is a
-compile-time error if a record has any of:
+This is identical to the grammar for a function call argument list (with an
+optional `const` at the beginning). There are a couple of syntactic restrictions
+not captured by the grammar. It is a compile-time error if a record has any of:
 
 *   The same field name more than once.
 
-*   No named fields and only one positional field. *This avoids ambiguity with
-    parenthesized expressions.*
+*   Only one positional field and no trailing comma.
 
 *   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
@@ -118,6 +126,21 @@ compile-time error if a record has any of:
     library where the record was declared. That would lead to a record that has
     hidden state. Two such records might unexpectedly compare unequal even
     though all of the fields the user can see are equal.*
+
+*   A field name that collides with the synthesized getter name of a positional
+    field. *For example: `('pos', $0: 'named')` since the named field '$0'
+    collides with the getter for the first positional field.*
+
+In order to avoid ambiguity with parenthesized expressions, a record with
+only a single positional field must have a trailing comma:
+
+```dart
+var number = (1);  // The number 1.
+var record = (1,); // A record containing the number 1.
+```
+
+There is no syntax for a zero-field record expression. Instead, there is a
+static constant `empty` on `Record` that returns the empty record.
 
 ### Record type annotations
 
@@ -159,7 +182,7 @@ typeNotFunction        ::= 'void'                 // Existing production.
 // New rules:
 recordType             ::= '(' recordTypeFields ',' recordTypeNamedFields ')'
                          | '(' recordTypeFields ','? ')'
-                         | '(' recordTypeNamedFields ')'
+                         | '(' recordTypeNamedFields? ')'
 
 recordTypeFields       ::= recordTypeField ( ',' recordTypeField )*
 recordTypeField        ::= metadata type identifier?
@@ -171,23 +194,29 @@ recordTypeNamedField   ::= metadata typedIdentifier
 ```
 
 *The grammar is exactly the same as `parameterTypeList` in function types but
-without `()`, `required`, and optional positional parameters since those don't
-apply to record types. A record type can't appear in an `extends`, `implements`,
+without `required`, and optional positional parameters since those don't apply
+to record types. A record type can't appear in an `extends`, `implements`,
 `with`, or mixin `on` clause, which is enforced by being a production in `type`
 and not `typeNotVoid`.*
+
+The type `()` is the type of an empty record with no fields.
 
 It is a compile-time error if a record type has any of:
 
 *   The same field name more than once.
 
-*   No named fields and only one positional field. *This isn't ambiguous, since
-    there are no parenthesized type expressions in Dart. But there is no reason
-    to allow single positional element record types when the corresponding
-    record values are prohibited.*
+*   Only one positional field and no trailing comma. *This isn't ambiguous,
+    since there are no parenthesized type expressions in Dart. But prohibiting
+    this is symmetric with record expressions and leaves the potential for
+    later support for parentheses for grouping in type expressions.*
 
 *   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
 *   A field name that starts with an underscore.
+
+*   A field name that collides with the synthesized getter name of a positional
+    field. *For example: `(int, $0: int)` since the named field '$0' collides
+    with the getter for the first positional field.*
 
 ### No record type literals
 
@@ -200,6 +229,28 @@ var t = (int, String);
 
 This is a record expression containing two type literals, `int` and `String`,
 not a type literal for a record type.
+
+### Ambiguity with `on` clauses
+
+Consider:
+
+```dart
+void foo() {
+  try {
+    ;
+  } on Bar {
+    ;
+  }
+  on(a, b) {;} // <--
+}
+```
+
+Before, the marked line could only be declaring a local function named `on`.
+With record types, it could be a second `on` clause for the `try` statement
+whose matched type is the record type `(a, b)`. When presented with this
+ambiguity, we disambiguate by treating `on` as a clause for `try` and not a
+local function. This is technically a breaking change, but is unlikely to affect
+any code in the wild.
 
 ## Static semantics
 
@@ -214,21 +265,26 @@ and `{int b, int a}` are identical to the type system and the runtime. (Tools
 may or may not display them to users in a canonical form similar to how they
 handle function typedefs.)
 
+*Positional fields are not merely syntactic sugar for fields named `$0`, `$1`,
+etc. The records `(1, 2)` and `($0: 1, $1: 2)` expose the same *members*, but
+have different shapes according to the type system.*
+
 ### Members
 
 A record type declares all of the members defined on `Object`. It also exposes
 getters for each named field where the name of the getter is the field's name
-and the getter's type is the field's type.
-
-Positional fields are not exposed as getters. *Record patterns in pattern
-matching can be used to access a record's positional fields.*
+and the getter's type is the field's type. For each positional field, it exposes
+a getter whose name is `$` followed by the number of preceding positional fields
+and whose type is the type of the field.
 
 For example, the record expression `(1.2, name: 's', true, count: 3)` has a
 record type whose signature is like:
 
 ```dart
 class extends Record {
+  double get $0;
   String get name;
+  bool get $1;
   int get count;
 }
 ```
@@ -285,94 +341,129 @@ fields are) and collection literals.
 
 ### Constants
 
-_Record expressions can be constant and potentially constant expressions._
+Record expressions can be constant and potentially constant expressions. A
+record expression is a compile-time constant expression if and only if all its
+field expressions are compile-time constant expressions.
 
-A record expression is a compile-time constant expression
-if and only if all its record field expressions are compile-time constant expressions. 
+*This is true whether the expression occurs in a constant context or not, which
+means that a record expression can be used directly as a parameter default value
+if its record field expressions are constant expressions, as in:
 
-_This is true whether the expression occurs in a constant context or not,
-which means that a record expression can be used directly as a parameter default value 
-if its record field expressions are constant expressions.
-Example: `f({(int, int) x = (1, 2)}) => ...`._
+```dart
+void someFunction({(int, int) x = (1, 2)}) => ...`
+```
 
-A record expression is a potentially constant expression 
-if and only iff all its record field expressions are potentially constant or constant expressions.
+A record expression is a potentially constant expression if and only if all its
+field expressions are potentially constant or constant expressions. *This means
+that a record expression can be used in the initializer list of a constant
+non-redirecting generative constructor, and can depend on constructor
+parameters.*
 
-_This means that a record expression can be used in the initializer list
-of a constant non-redirecting generative constructor, 
-and can depend on constructor parameters._
+*Constant object instantiations (i.e. const constructor calls and const
+collection literals) create deeply immutable and canonicalized objects. Records
+are always unmodifiable. If a record's field values are also deeply immutable
+(which all constant values are), then the record is also deeply immutable. It's
+meaningless to consider whether record constants are canonicalized, since
+records do not have a persistent identity.*
 
-_Constant *object* instantiations create deeply immutable and canonicalied objects.
-Records are always unmodifiable, and if their field values are deeply immutable,
-like constants values, the records are also deeply immutable.
-It's meaningless to consider whether record constants are canonicalized,
-since records do not have a persistent identity._
+*Therefore, there is no need for a `const (1, 2)` syntax to force a record to be
+a constant like there is for constructor calls. Any record expression with field
+values that are constant is indistinguishable from a similar expression created
+in a constant context, since identity cannot be used as a distinguishing trait.*
 
-_Because of that, there is no need for a `const (1, 2)` syntax to force a record 
-to be a constant, like there is for object creation expressions. 
-A record expression with field values that are constant-created values, 
-will be indistinguishable from a similar expression created in a constant 
-context, since identity cannot be used as a distinguishing trait._
+#### Canonicalization
 
-_(We could choose to promise that a compile-time constant `identical(c1, c2)`,
-where the expression occurs in a constant context and `c1` and `c2` are records, 
-will evaluate to `true` iff a runtime evaluation of `identical` 
-*can* return `true` for the same values. 
-That is, records would be canonicalized during compile-time constant evealuation,
-but may lose their identity at runtime. We will not make such a promise.)_
+The current specification relies on `identical()` to decide when to canonicalize
+constant object creation expressions. Since `identical()` is not useful for
+records (see below), we update that:
 
-For canonoicalization purposes, we update the definition of when to canonicalize
-the result of a constant object creation expression to not be dependent on 
-the `identical` function, since it does not behave predictably (or usefully)
-for records.
+Define two Dart values, *a* and *b*, to be *structurally equivalent* as follows:
 
-We define two Dart values, *a* and *b*, to be _structurally equivalent_ as follows:
-* If *a* and *b* are both records, and they have the same shape, 
-  and for each field *f* of that shape, the records' values of that field, 
-  *a*<sub>*f*</sub> and *b*<sub>*f*</sub> are structurally equivalent, 
-  then *a* and *b* are structurally equivalent.
-* If *a* and *b* are non-record object references, 
-  and they refer to the same object, then *a* and *b* are structurally equivalent.
-  _So structural equivalence agrees with `identical` for non-records._
+*   If *a* and *b* are both records, and they have the same shape, and for each
+    field *f* of that shape, the records' values of that field,
+    *a*<sub>*f*</sub> and *b*<sub>*f*</sub> are structurally equivalent, then
+    *a* and *b* are structurally equivalent.
+
+*   If *a* and *b* are non-record object references, and they refer to the same
+    object, then *a* and *b* are structurally equivalent. *So structural
+    equivalence agrees with `identical()` for non-records.*
+
 * Otherwise *a* and *b* are not structurally equivalent.
 
-With that definition, the rules for object and collection canonicalization is changed
-from requiring that instance variable, list/set element and map key/value values are
-`identical` between the instances, to them being _structurally equivalent_.
+With that definition, the rules for object and collection canonicalization is
+changed from requiring that instance variable, list/set element and map
+key/value values are `identical()` between the instances, to them being
+*structurally equivalent*.
 
-_This change allows a class like_
+*This change allows a class like:*
+
 ```dart
 class C {
   final (int, int) pair;
   const C(int x, int y) : pair = (x, y);
 }
 ```
-_to be properly canonicalized for objects with the same effective state, 
-independentlty of whether `identical` returns `true` or `false` on the `pair` value._
 
-_Notice that if the `identical`returns `true` on two records, they must be structurally equivalent,
-but unlike for non-records, the `identical` function can also return `false`
-for structurally equivalent records._
+*to be properly canonicalized for objects with the same effective state,
+independently of whether `identical()` returns `true` or `false` on the `pair`
+value. Notice that if the `identical()` returns `true` on two records, they must
+be structurally equivalent, but unlike for non-records, the `identical()`
+function can also return `false` for structurally equivalent records.*
 
 ## Runtime semantics
 
-### Records
+The fields in a record expression are evaluated left to right. *This is true
+even if an implementation chooses to reorder the named fields in order to
+canonicalize records with the same set of named fields. For example:*
 
-#### Members
+```dart
+int say(int i) {
+  print(i);
+  return i;
+}
+
+var x = (a: say(1), b: say(2));
+var y = (b: say(3), a: say(4));
+```
+
+*This program *must* print "1", "2", "3", "4", even though `x` and `y` are
+records with the same shape.*
+
+### Field getters
 
 Each field in the record's shape exposes a corresponding getter. Invoking that
 getter returns the value provided for that field when the record was created.
 Record fields are immutable and do not have setters.
 
-The `toString()` method's behavior is unspecified.
+### `toString()`
 
-#### Equality
+In debug builds, the `toString()` method converts each field to a string by
+calling `toString()` on its value and prepending it with the field name followed
+by `: ` if the field is named. It concatenates these with `, ` as a separator
+and returns the resulted surrounded by parentheses. For example:
 
-Records behave similar to other primitive types in Dart with regards to
-equality. They implement `==` such that two records are equal iff they have the
-same shape and all corresponding pairs of fields are equal. Fields are compared
-for equality by calling `==` on the corresponding field values in the same
-order that `==` was called on the records.
+```dart
+print((1, 2, 3).toString()); // "(1, 2, 3)".
+print((a: 'str', 'ing').toString()); // "(a: str, int)".
+```
+
+The order that named fields appear and how they are interleaved with positional
+fields is unspecified. Positional fields must appear in position order. *This
+gives implementations freedom to choose a canonical order for named fields
+independent of the order that the record was created with.*
+
+In a release or optimized build, the behavior of `toString()` is unspecified.
+*This gives implementations freedom to discard the full names of named fields in
+order to reduce code size.* Users should only use `toString()` on records for
+debugging purposes. They are strongly discouraged from parsing the results of
+calling `toString()` or relying on it for end-user visible output.
+
+### Equality
+
+Records have value equality, which means two records are equal if they have the
+same shape and the corresponding fields are equal. Since named field order is
+*not* part of a record's shape, that implies that the order of named fields
+does not affect equality:
 
 ```dart
 var a = (x: 1, 2);
@@ -380,10 +471,28 @@ var b = (2, x: 1);
 print(a == b); // true.
 ```
 
-The implementation of `hashCode` follows this. Two records that are equal must
-have the same hash code.
+More precisely, the `==` method on record `r` with right operand `o` is defined
+as:
 
-#### Identity
+1.  If `o` is not a record with the same shape as `r` then `false`.
+
+1.  For each pair of corresponding fields `rf` and `of` in unspecified order:
+
+    1.  If `rf == of` is `false` then `false`.
+
+1.  Else, `true`.
+
+*The order that fields are iterated is potentially user-visible since
+user-defined `==` methods can have side effects. Most well-behaved `==`
+implementations are pure. The order that fields are visited is deliberately left
+unspecified so that implementations are free to reorder the field comparisons
+for performance.*
+
+The implementation of `hashCode` follows this. The hash code returned should
+depend on the field values such that two records that compare equal must have
+the same hash code.
+
+### Identity
 
 We expect records to often be used for multiple return values. In that case, and
 in others, we would like compilers to be able to easily optimize away the heap
@@ -427,14 +536,14 @@ identity, it's probably better to return `false` quickly.*
 definitely indistinguishable. But if it returns `false`, they may or may not
 be.*
 
-#### Expandos
+### Expandos
 
 Like numbers, records do not have a well-defined persistent identity. That means
 [Expandos][] can not be attached to them.
 
 [expandos]: https://api.dart.dev/stable/2.10.4/dart-core/Expando-class.html
 
-#### Runtime type
+### Runtime type
 
 The runtime type of a record is determined from the runtime types of
 its fields. There is no notion of a separate, explicitly reified type. So, here:
@@ -449,6 +558,22 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.6
+
+- Support constant records (#2337).
+
+- Support empty and one-positional-field records (#2386).
+
+- Re-add support for positional field getters (#2388).
+
+- Specify the behavior of `toString()` (#2389).
+
+- Disambiguate record types in `on` clauses (#2406).
+
+- Clarify the order that fields are evaluated in record expressions.
+
+- Clarify the iteration order of fields in `==`.
 
 ### 1.5
 
