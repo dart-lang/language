@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 2.0 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.2 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -1584,7 +1584,9 @@ The variables a patterns binds depend on what kind of pattern it is:
 
 *   **Variable** or **cast**: May contain type argument patterns. Introduces a
     variable whose name is the pattern's identifier. The variable is final if
-    the surrounding pattern variable declaration has a `final` modifier.
+    the surrounding `patternDeclaration` has a `final` modifier. *Variables in
+    switch cases don't occur inside pattern variable declarations and thus are
+    not final.*
 
 The scope where a pattern's variables are declared depends on the construct
 that contains the pattern:
@@ -1825,7 +1827,12 @@ To match a pattern `p` against a value `v`:
         some `K` and `V` determined either by the pattern's explicit type
         arguments or inferred from the matched value type.*
 
-    2.  Otherwise, for each entry in `p`:
+    2.  If the length of the map determined by calling `length` is not equal to
+        the number of subpatterns, then the match fails. *This match failure
+        becomes a runtime exception if the map pattern is in a variable
+        declaration.*
+
+    3.  Otherwise, for each entry in `p`:
 
         1.  Evaluate the key `expression` to `k` and call `containsKey()` on the
             value. If this returns `false`, the map does not match.
@@ -1834,7 +1841,7 @@ To match a pattern `p` against a value `v`:
             this entry's value subpattern. If it does not match, the map does
             not match.
 
-    3.  The match succeeds if all entry subpatterns match.
+    4.  The match succeeds if all entry subpatterns match.
 
     *Note that, unlike with lists, a matched map may have additional entries
     that are not checked by the pattern.*
@@ -1950,6 +1957,12 @@ Here is one way it could be broken down into separate pieces:
     *   Grouping patterns
 
 ## Changelog
+
+### 2.2
+
+-   Make map patterns check length like list patterns do (#2415).
+
+-   Clarify that variables in cases are not final (#2416).
 
 ### 2.1
 
