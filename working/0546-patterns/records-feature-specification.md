@@ -58,10 +58,10 @@ var record = (number: 123, name: "Main", type: "Street");
 ```
 
 In Dart, we merge both of these into a single construct, called a **record**. A
-record has a series of positional fields, and a collection of named fields:
+record has a series of fields, which may be named or positional.
 
 ```dart
-var record = (1, 2, a: 3, b: 4);
+var record = (1, a: 2, 3, b: 4);
 ```
 
 The expression syntax looks much like an argument list to a function call. A
@@ -73,6 +73,18 @@ semantics.
 
 A record may have only positional fields, only named fields, both, or none at
 all.
+
+Once a record has been created, its fields can be accessed using getters.
+Every named field exposes a getter with the same name, and positional fields
+expose getters named `$0`, `$1`, etc.:
+
+```dart
+var record = (1, a: 2, 3, b: 4);
+print(record.$0); // Prints "1".
+print(record.a);  // Prints "2".
+print(record.$1); // Prints "3".
+print(record.b);  // Prints "4".
+```
 
 ## Core library
 
@@ -253,6 +265,10 @@ and `{int b, int a}` are identical to the type system and the runtime. (Tools
 may or may not display them to users in a canonical form similar to how they
 handle function typedefs.)
 
+*Positional fields are not merely syntactic sugar for fields named `$0`, `$1`,
+etc. The records `(1, 2)` and `($0: 1, $1: 2)` expose the same *members*, but
+have different shapes according to the type system.*
+
 ### Members
 
 A record type declares all of the members defined on `Object`. It also exposes
@@ -396,15 +412,30 @@ function can also return `false` for structurally equivalent records.*
 
 ## Runtime semantics
 
-### Records
+The fields in a record expression are evaluated left to right. *This is true
+even if an implementation chooses to reorder the named fields in order to
+canonicalize records with the same set of named fields. For example:*
 
-#### Field getters
+```dart
+int say(int i) {
+  print(i);
+  return i;
+}
+
+var x = (a: say(1), b: say(2));
+var y = (b: say(3), a: say(4));
+```
+
+*This program *must* print "1", "2", "3", "4", even though `x` and `y` are
+records with the same shape.*
+
+### Field getters
 
 Each field in the record's shape exposes a corresponding getter. Invoking that
 getter returns the value provided for that field when the record was created.
 Record fields are immutable and do not have setters.
 
-#### `toString()`
+### `toString()`
 
 In debug builds, the `toString()` method converts each field to a string by
 calling `toString()` on its value and prepending it with the field name followed
@@ -427,7 +458,7 @@ order to reduce code size.* Users should only use `toString()` on records for
 debugging purposes. They are strongly discouraged from parsing the results of
 calling `toString()` or relying on it for end-user visible output.
 
-#### Equality
+### Equality
 
 Records have value equality, which means two records are equal if they have the
 same shape and the corresponding fields are equal. Since named field order is
@@ -461,7 +492,7 @@ The implementation of `hashCode` follows this. The hash code returned should
 depend on the field values such that two records that compare equal must have
 the same hash code.
 
-#### Identity
+### Identity
 
 We expect records to often be used for multiple return values. In that case, and
 in others, we would like compilers to be able to easily optimize away the heap
@@ -505,14 +536,14 @@ identity, it's probably better to return `false` quickly.*
 definitely indistinguishable. But if it returns `false`, they may or may not
 be.*
 
-#### Expandos
+### Expandos
 
 Like numbers, records do not have a well-defined persistent identity. That means
 [Expandos][] can not be attached to them.
 
 [expandos]: https://api.dart.dev/stable/2.10.4/dart-core/Expando-class.html
 
-#### Runtime type
+### Runtime type
 
 The runtime type of a record is determined from the runtime types of
 its fields. There is no notion of a separate, explicitly reified type. So, here:
@@ -539,6 +570,8 @@ covariant in their field types.
 - Specify the behavior of `toString()` (#2389).
 
 - Disambiguate record types in `on` clauses (#2406).
+
+- Clarify the order that fields are evaluated in record expressions.
 
 - Clarify the iteration order of fields in `==`.
 
