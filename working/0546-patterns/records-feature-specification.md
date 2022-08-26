@@ -92,10 +92,12 @@ These primitive types are added to `dart:core`:
 
 ### The `Record` class
 
-A built-in class `Record` with no members except those inherited from `Object`.
+A built-in class `Record` with no instance members except those inherited 
+from `Object`, and which exposes no constructors.
 All record types are a subtype of this class. This type cannot be constructed,
-extended, mixed in, or implemented by user-defined classes. *This is similar to
-how the `Function` class is the superclass for all function types.*
+extended, mixed in, or implemented by user-defined classes.
+*This is similar to how the `Function` class is the superclass 
+for all function types.*
 
 ## Syntax
 
