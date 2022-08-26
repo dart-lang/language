@@ -447,7 +447,7 @@ and returns the resulted surrounded by parentheses. For example:
 
 ```dart
 print((1, 2, 3).toString()); // "(1, 2, 3)".
-print((a: 'str', 'ing').toString()); // "(a: str, int)".
+print((a: 'str', 'int').toString()); // "(a: str, int)".
 ```
 
 The order that named fields appear and how they are interleaved with positional
