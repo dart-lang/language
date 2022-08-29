@@ -8,13 +8,13 @@ Status: Draft
 ## Change Log
 
 2022.08.30
-  - Used inspiration from the [extension struct][] proposal to simplify and
+  - Used inspiration from the [extension struct][1] proposal to simplify and
     improve this proposal.
 
 2021.05.12
   - Initial version.
 
-[extension struct](https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md)
+[1](https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md)
 
 
 ## Summary
