@@ -14,7 +14,7 @@ Status: Draft
 2021.05.12
   - Initial version.
 
-[1](https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md)
+[1]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
 
 ## Summary
