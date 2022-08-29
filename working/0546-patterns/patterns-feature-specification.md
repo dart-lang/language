@@ -607,7 +607,7 @@ is expected.
 ### List pattern
 
 ```
-listPattern ::= typeArguments? '[' patterns ']'
+listPattern ::= typeArguments? '[' patterns? ']'
 ```
 
 A list pattern matches an object that implements `List` and extracts elements by
@@ -622,7 +622,7 @@ elements. Allow capturing the rest in a variable.**
 ### Map pattern
 
 ```
-mapPattern        ::= typeArguments? '{' mapPatternEntries '}'
+mapPattern        ::= typeArguments? '{' mapPatternEntries? '}'
 mapPatternEntries ::= mapPatternEntry ( ',' mapPatternEntry )* ','?
 mapPatternEntry   ::= expression ':' pattern
 ```
@@ -648,7 +648,7 @@ It is a compile-time error if:
 ### Record pattern
 
 ```
-recordPattern         ::= '(' patternFields ')'
+recordPattern         ::= '(' patternFields? ')'
 patternFields         ::= patternField ( ',' patternField )* ','?
 patternField          ::= ( identifier? ':' )? pattern
 ```
@@ -689,6 +689,11 @@ Field subpatterns can be in one of three forms:
     (field: field as int)
     (:field as int)
     ```
+
+A record pattern with a single unnamed field and no trailing comma is ambiguous
+with a grouping pattern. In that case, it is treated as a grouping pattern. To
+write a record pattern that matches a single unnamed field, add a trailing
+comma, as you would with the corresponding record expression.
 
 ### Extractor pattern
 
@@ -1687,6 +1692,14 @@ behavior.
 3.  If no case pattern matched and there is a default clause, execute the
     statements after it.
 
+4.  If no case matches and there is no default clause, throw a runtime
+    exception. *This can only occur when `null` or a legacy typed value flows
+    into this switch statement from another library that hasn't migrated to
+    [null safety][]. In fully migrated programs, exhaustiveness checking is
+    sound and it isn't possible to reach this runtime error.*
+
+[null safety]: https://dart.dev/null-safety
+
 #### Switch expression
 
 1.  Evaluate the switch value producing `v`.
@@ -1706,6 +1719,12 @@ behavior.
 3.  If no case pattern matched and there is a default clause, execute the
     expression after it and yield that as the result of the entire switch
     expression.
+
+4.  If no case matches and there is no default clause, throw a runtime
+    exception. *This can only occur when `null` or a legacy typed value flows
+    into this switch expression from another library that hasn't migrated to
+    [null safety][]. In fully migrated programs, exhaustiveness checking is
+    sound and it isn't possible to reach this runtime error.*
 
 #### Pattern-if statement
 
@@ -1957,6 +1976,15 @@ Here is one way it could be broken down into separate pieces:
     *   Grouping patterns
 
 ## Changelog
+
+### 2.3
+
+-   Specify that switches throw a runtime error if values from legacy libraries
+    flow in and break exhaustiveness checking (#2123).
+
+-   Allow empty list, map, and record patterns (#2441).
+
+-   Clarify ambiguity between grouping and record patterns.
 
 ### 2.2
 
