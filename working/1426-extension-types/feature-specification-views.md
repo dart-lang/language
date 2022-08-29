@@ -8,7 +8,7 @@ Status: Draft
 ## Change Log
 
 2022.08.30
-  - Used inspiration from the [extension struct] proposal to simplify and
+  - Used inspiration from the [extension struct][] proposal to simplify and
     improve this proposal.
 
 2021.05.12
