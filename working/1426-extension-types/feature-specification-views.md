@@ -55,13 +55,13 @@ object will never exist at run time, and a reference whose type is the
 view will actually refer directly to the underlying wrapped
 object. Every member access (e.g., an invocation of a method or a
 getter) on an expression whose static type is a view will invoke a
-member of the view (with a few exceptions, as explained below), but
+member of the view (with some exceptions, as explained below), but
 this occurs because those member accesses are resolved statically,
 which means that the wrapper object is not actually needed.
 
-In this document, given that there is no wrapper object, we will refer
-to the "wrapped" object as the _representation object_ of the view, or
-just the _representation_.
+Given that there is no wrapper object, we will refer to the "wrapped"
+object as the _representation object_ of the view, or just the
+_representation_.
 
 Inside the view declaration, the keyword `this` is a reference to the
 representation whose static type is the enclosing view. A member
@@ -73,14 +73,21 @@ is, typed by a "normal" type for the representation) is available as a
 declared name, which is introduced by a new syntax similar to a
 parameter list declaration (for example `(int i)`) which follows the
 name of the view. (This syntax is intended to be a special case of an
-upcoming mechanism known as _primary constructors_.)
+upcoming mechanism known as _primary constructors_.) The
+representation type of the view (with `(int i)` that's `int`) is
+similar to the on-type of an extension declaration.
 
 All in all, a view allows us to replace the interface of a given
 representation object and specify how to implement the new interface
-in terms of the interface of the representation object itself. This is
-something that we could obviously do with a wrapper, but when it is
-done with a view there is no wrapper object, and hence there is no
-run-time performance cost.
+in terms of the interface of the representation object.
+
+This is something that we could obviously do with a wrapper, but when
+it is done with a view there is no wrapper object, and hence there is
+no run-time performance cost. In particular, in the case where we have
+a view `V` with representation type `T` we may be able to refer to a
+`List<T>` using the type `List<V>`, and this corresponds to "wrapping
+every element in the list", but it only takes time _O(1)_ and no
+space, no matter how many elements the list contains.
 
 
 ## Motivation
@@ -92,7 +99,9 @@ operations (the members declared by the given view type).
 
 It is zero-cost in the sense that the value denoted by an expression whose
 type is a view type is an object of a different type (known as the
-_representation type_ of the view type), and there is no wrapper object.
+_representation type_ of the view type), and there is no wrapper
+object, in spite of the fact that the view behaves similarly to a
+wrapping.
 
 The point is that the view type allows for a convenient and safe treatment
 of a given object `o` (and objects reachable from `o`) for a specialized
@@ -101,7 +110,48 @@ requires a certain discipline in the use of `o`'s instance methods: We may
 call certain methods, but only in specific ways, and other methods should
 not be called at all. This kind of added discipline can be enforced by
 accessing `o` typed as a view type, rather than typed as its run-time
-type `R` or some supertype of `R` (which is what we normally do).
+type `R` or some supertype of `R` (which is what we normally do). For
+example:
+
+```dart
+view IdNumber(int i) {
+  // Declare a few members.
+
+  // Assume that it makes sense to compare ID numbers
+  // because they are allocated with increasing values,
+  // so "smaller" means "older".
+  operator <(IdNumber other) => i < (other as int);
+
+  // Assume that we can verify an ID number relative to
+  // `Some parameters`, filtering out some fake ID numbers.
+  bool verify(Some parameters) => ...;
+
+  ... // Some other members, whatever is needed.
+
+  // We do not declare, e.g., an operator +, because addition
+  // does not make sense for ID numbers.
+}
+
+void main() {
+  int myUnsafeId = 42424242;
+  int myBogusId = myUnsafeId + 10; // No complaints.
+
+  var safeId = IdNumber(42424242);
+
+  safeId.verify; // OK, could be true.
+  safeId + 10; // Compile-time error, no operator `+`.
+  10 + safeId; // Compile-time error, wrong argument type.
+  myUnsafeId = safeId; // Compile-time error, wrong type.
+
+  myBogusId = safeId as int; // OK, we can force it.
+}
+```
+
+In short, we want an `int` representation, but we want to make sure
+that we don't accidentally add ID numbers or multiply them, and we
+don't want to silently pass an ID number (e.g., as actual arguments or
+in assignments) where an `int` is expected. The view `IdNumber` will
+do all these things.
 
 (We can actually cast away the view type and hence get access to the
 interface of the representation, but we assume that the developer
@@ -125,16 +175,19 @@ functions like `js_util.getProperty`, but a client who uses the view
 will have a full implementation of the `Button` interface, and will
 hence never need to call `js_util.getProperty`.
 
-(Again, we can just call `js_util.getProperty` anyway, because it
-accepts two arguments of type `Object`, but we assume that the
-developer will be happy about sticking to the rule that the low-level
-functions aren't invoked in application code, and they can do that by
-using views like `Button`.)
+(We _can_ just call `js_util.getProperty` anyway, because it accepts
+two arguments of type `Object`. But we assume that the developer will
+be happy about sticking to the rule that the low-level functions
+aren't invoked in application code, and they can do that by using
+views like `Button`. It is then easy to `grep` your application code
+and verify that it never calls `js_util.getProperty`.)
 
-Another potential application would be generated view declarations
-handling the navigation of dynamic object trees. For instance, they
-could be JSON values, modeled using `num`, `bool`, `String`,
-`List<dynamic>`, and `Map<String, dynamic>`.
+Another potential application would be to generate view declarations
+handling the navigation of dynamic object trees that are known to
+satisfy some sort of schema outside the Dart type system. For
+instance, they could be JSON values, modeled using `num`, `bool`,
+`String`, `List<dynamic>`, and `Map<String, dynamic>`, and those JSON
+values might again be structured according to some schema.
 
 Without view types, the JSON value would most likely be handled with
 static type `dynamic`, and all operations on it would be unsafe. If the
@@ -229,7 +282,7 @@ working on a wrapper object rather than accessing `o` and its methods
 directly:
 
 ```dart
-// Attempt to emulate the view using a class.
+// Emulate the view using a class.
 
 class TinyJson {
   // `representation` is assumed to be a nested list of numbers.
@@ -287,7 +340,7 @@ supertype of `T`, in the case where the view has the modifier
 `implicit`.
 
 This makes it possible to assign an expression of type `T` to a
-variable of type `V` (in order words, we do not need to call the
+variable of type `V` (in other words, we do not need to call the
 constructor). This corresponds to "entering" the view type (accepting
 the specific discipline associated with `V`). Conversely, a cast from
 `V` to `T` is a downcast, and hence it must be written explicitly.
@@ -360,12 +413,12 @@ rules for elements used in view declarations:
   'operator' <operator> |
   ('get'|'set') <identifier>
 
-<viewMemberDeclaration> ::= 
+<viewMemberDeclaration> ::=
   <classMemberDefinition> |
   <memberExportDeclaration>
 
 <memberExportDeclaration> ::=
-  'export' <identifier> <viewShowHidePart>
+  'export' <identifier> <viewShowHidePart> ';'
 
 <viewExtensionDeclaration> ::=
   'view' 'extension' (<typeIdentifier> '.')? <typeIdentifier> <typeParameters>?
@@ -383,21 +436,32 @@ The token `view` is made a built-in identifier.
 be the name of a type but can be the basename of a member, e.g., the
 built-in identifiers.*
 
-If a view declaration named `V` includes a `<viewPrimaryConstructor>`
-then it is a compile-time error if the declaration includes a
-constructor declaration named `V`. (*But it can still contain other
-constructors.*)
+A few errors can be detected immediately from the syntax:
 
-If a view declaration named `V` does not include a
+If a view declaration named `View` includes a
+`<viewPrimaryConstructor>` then it is a compile-time error if the
+declaration includes a constructor declaration named `View`. (*But it
+can still contain other constructors.*)
+
+A compile-time error occurs if a view declaration declares a
+constructor which is redirecting, or a constructor which is
+generative. *So all view constructors are non-redirecting factories.*
+
+If a view declaration named `View` does not include a
 `<viewPrimaryConstructor>` then an error occurs unless it declares a
-factory constructor named `V`, that declares one required, positional
+factory constructor named `View`, that declares one required, positional
 formal parameter, and does not declare any other parameters.
 
 The _name of the representation_ in a view declaration that includes a
 `<viewPrimaryConstructor>` is the identifier specified in there. In a
-view declaration named `V` that does not include a
+view declaration named `View` that does not include a
 `<viewPrimaryConstructor>`, the name of the representation is the name
-of the unique formal parameter of the factory constructor named `V`.
+of the unique formal parameter of the factory constructor named `View`.
+
+A compile-time error occurs if a view declaration declares an abstract
+member or an instance variable.
+
+*There are no special exceptions for static members.*
 
 
 ## Primitives
@@ -438,15 +502,19 @@ used in an actual program.*
 
 The static analysis of `invokeViewMethod` is that it takes exactly
 three positional arguments and must be the receiver in a member
-access. The first argument must be a type name that denotes a view
-declaration, the next argument must be a type argument list, together
-yielding a view type _V_. The third argument must be an expression
+access. The first argument must be a type name `View` that denotes a
+view declaration, the next argument must be a type argument list, together
+yielding a view type _V_ (*the type argument list may be empty, to
+handle the non-generic case*). The third argument must be an expression
 whose static type is _V_ or the corresponding instantiated
-representation type (defined below). The member access must be a
-member of `V` or an associated member of a superview of `V`.
+representation type (defined below). The member access must access a
+member of the declaration denoted by `View`, or an associated member
+of a superview of that view declaration, or a member added by a view
+extension.
 
 *Superviews and associated members are specified in the section 'Composing
-view types'.*
+view types'. View extensions are specified in the section 'View
+extensions'.*
 
 If the member access is a method invocation (including an invocation of an
 operator that takes at least one argument), it is allowed to pass an actual
@@ -522,16 +590,17 @@ class or mixin, or if a view type is used to derive a mixin.
 
 If `e` is an expression whose static type `V` is the view type
 <code>View<S<sub>1</sub>, .. S<sub>k</sub>></code>
-and the basename of `m` is the basename of a member declared by `V`,
+and the name of `m` is the name of a member declared by `V`,
 then a member access like `e.m(args)` is treated as
 <code>invokeViewMethod(View, <S<sub>1</sub>, .. S<sub>k</sub>>, e).m(args)</code>,
 and similarly for instance getters and operators.
 
-In the body of a view declaration `V` with name `View` and type parameters
+*In the body of a view declaration _DV_ with name `View` and type parameters
 <code>X<sub>1</sub>, .. X<sub>k</sub></code>, for an invocation like
-`m(args)`, if a declaration named `m` is found in the body of `V`
+`m(args)`, if a declaration named `m` is found in the body of _DV_
 then that invocation is treated as
 <code>invokeViewMethod(View, <X<sub>1</sub>, .. X<sub>k</sub>>, this).m(args)</code>.
+This is just the same treatment of `this` as in the body of a class.*
 
 *For example:*
 
@@ -568,10 +637,10 @@ similarly for other member accesses (or it is an extension method
 invocation on some extension `E1` with representation type `T1` such
 that `V` matches `T1`). In particular, we cannot invoke an instance
 member of the representation type when the receiver type is a view
-type (unless the view type enables them explicitly, cf. the show/hide
-part specified in a later section).*
+type (unless the view type enables them explicitly, cf. the member
+export declaration specified in a later section).*
 
-Let `D` be a view declaration named `View` with type parameters
+Let _DV_ be a view declaration named `View` with type parameters
 <code>X<sub>1</sub> extends B<sub>1</sub>, .. X<sub>k</sub> extends B<sub>k</sub></code>
 and primary constructor `(T id)`. Then we say that the _declared
 representation type_ of `View` is `T`, and the _instantiated
@@ -584,11 +653,11 @@ clear from the context whether we are talking about the view itself or
 a particular instantiation of a generic view. For non-generic views,
 the representation type is the same in either case.
 
-We say that `D` is _implicit_ respectively _plain_ if its declaration
+We say that _DV_ is _implicit_ respectively _plain_ if its declaration
 does respectively does not start with the keyword `implicit`.
 Similarly, we say that a view type
 <code>View<S<sub>1</sub>, .. S<sub>k</sub>></code>
-where `View` denotes `D` is _implicit_ respectively _plain_.
+where `View` denotes _DV_ is _implicit_ respectively _plain_.
 
 Let `V` be a view type of the form
 <code>View<S<sub>1</sub>, .. S<sub>k</sub>></code>,
@@ -607,9 +676,13 @@ the representation type can freely be assigned to a variable of the
 view type, but in the opposite direction there must be an explicit
 cast.*
 
-In the body of a member of a view `V`, the static type of `this` is
-`V` and the static type of the name of the representation is the
-representation type.
+In the body of a member of a view declaration _DV_ named `View`, the
+static type of `this` is `View<X1 .. Xk>`, where `X1 .. Xk` are the
+type parameters declared by _DV_. The static type of the name of the
+representation is the representation type.
+
+*For example, in `view V(T id) {...}`, `id` has type `T` and `this`
+has type `V`.*
 
 A view declaration may declare one or more non-redirecting
 factory constructors. A factory constructor which is declared in a
@@ -617,13 +690,14 @@ view declaration is also known as a _view constructor_.
 
 *The purpose of having a view constructor is that it bundles an
 approach for building an instance of the representation type of a view
-type `V` with `V` itself, which makes it easy to recognize that this
-is a way to obtain a value of type `V`. It can also be used to verify
-that an existing object (provided as an actual argument to the
-constructor) satisfies the requirements for having the type `V`.*
+declaration _DV_ with _DV_ itself, which makes it easy to recognize
+that this is a way to obtain a value of that view type. It can also be
+used to verify that an existing object (provided as an actual argument
+to the constructor) satisfies the requirements for having that view
+type.*
 
 A primary constructor is a concise notation that gives rise to a
-factory constructor named `V` (that is, it is not "named") that does
+factory constructor named `View` (that is, it is not "named") that does
 nothing other than returning its unique argument, applying a cast to
 the view type if the view is not implicit.
 
@@ -647,19 +721,13 @@ view constructor without returning anything. *Even in the case where
 the representation type is nullable and the intended representation is
 the null object, an explicit `return null;` is required.*
 
-Let `V` be a view declaration. It is an error to declare a member in
-`V` which is also a member of `Object`.
-
-*This is because the members of `Object` are by default exported, as
-specified below in the section about the export declaration. It is
-possible to use `hide` to omit some or all of these members, in which
-case it is possible to declare members in `V` with those names.*
-
 
 ### Allow instance member access using `export`
 
 This section specifies the effect of including a
-`<memberExportDeclaration>` in a view declaration.
+`<memberExportDeclaration>` in a view declaration, and it specifies the
+member export declaration which is implicitly induced if none are
+given explicitly.
 
 *A member export declaration is used to provide access to the members
 of the interface of the representation type (or a subset thereof). For
@@ -670,10 +738,6 @@ any methods that do not change the state. We could write forwarding
 members in the view body to enable those methods, but using an export
 declaration can have the same effect, and it is much more concise and
 convenient.*
-
-*A member export delaration can also be used to provide access to
-members of other objects reachable from the representation object,
-by exporting any getter of the view. An example is shown below.*
 
 A term derived from `<viewShowHideElement>` may occur in several
 locations in a member export declaration. We define the set of member
@@ -689,32 +753,34 @@ member names specified by _SH_. Then:
   except the member names in the interface of `Object`
   (*but including both `g` and `g=` in the case where said
   interface contains both a setter and a getter with basename `g`*).
-- If _SH_ is of the form `operator <operator>` then _M<sub>SH</sub>_ 
+- If _SH_ is of the form `operator <operator>` then _M<sub>SH</sub>_
   is the singleton set containing that operator.
 - If _SH_ is of the form `get <identifier>` then _M<sub>SH</sub>_ is the
   singleton set containing that identifier.
 - If _SH_ is of the form `set <identifier>` then _M<sub>SH</sub>_ is the
   singleton set containing that identifier concatenated with `=`.
 
-*If _SH_ is an identifier that denotes a type, and it is intended to
-denote a member name, it will denote the type. In order to avoid this
-conflict it may be necessary to import said type with a prefix, such
-that the identifier will denote a member name. However, this kind of
-conflict is very unlikely to occur in practice, because member names
-usually start with a lowercase letter, and type names usually start
-with an uppercase letter, and the few expections (like `int` and
-`dynamic`) are unlikely to be used as names of members.*
-
 We use the notation <code>members(_SH_)</code> to denote the set of
 member names specified by _SH_.
+*That is, <code>members(_SH_) = _M<sub>SH</sub>_</code>.*
 
-Consider a view declaration _D_ named `V` whose representation object
-has the name `n` and the declared type `T`. Assume that _D_ contains a member
-export declaration _DX_ of the form `export n S H;` where `S` is
+*If _SH_ is an identifier that denotes a type in scope, it will denote
+that type. This is a conflict if the identifier is intended to denote
+a member name. In order to avoid this conflict it may be necessary to
+import said type with a prefix, such that the identifier will denote a
+member name. However, this kind of conflict is very unlikely to occur
+in practice, because member names usually start with a lowercase
+letter, and type names usually start with an uppercase letter, and the
+few expections (like `int` and `dynamic`) are unlikely to be used as
+names of members.*
+
+Consider a view declaration _DV_ named `View` whose representation object
+has the name `n` and the declared type `T`. Assume that _DV_ contains
+a member export declaration _DX_ of the form `export n S H;` where `S` is
 derived from `<viewShowClause>?` and `H` is derived from
 `<viewHideClause>?`.
 
-The set of _member names exported_ by _DX_ is computed as follows. 
+The set of _member names exported_ by _DX_ is computed as follows.
 
 If `S` and `H` are empty then the set of member names exported by _DX_
 is the set of member names in the interface of `T`.
@@ -724,7 +790,7 @@ If `S` is empty and `H` is
 then let _M<sub>0</sub>_
 be the set of member names in the interface of `T`.
 For _j_ in _0 .. k-1_, let _M<sub>j+1</sub>_ be
-_M<sub>j</sub> \ members(H<sub>j+1</sub>)_.
+_M<sub>j</sub> &setminus; members(H<sub>j+1</sub>)_.
 The set of member names exported by _DX_ is then _M<sub>k</sub>_.
 
 If `H` is empty and `S` is
@@ -736,21 +802,22 @@ _M<sub>j</sub> &cup; members(S<sub>j+1</sub>)_.
 The set of member names exported by _DX_ is then _M<sub>k</sub>_.
 
 If both `H` and `S` are non-empty then let
-_M<sub>0</sub>_ be the set of member names exported by 
+_M<sub>0</sub>_ be the set of member names exported by
 `export n S`.
 For _j_ in _0 .. k-1_, let _M<sub>j+1</sub>_ be
-_M<sub>j</sub> \ members(H<sub>j+1</sub>)_.
+_M<sub>j</sub> &setminus; members(H<sub>j+1</sub>)_.
 The set of member names exported by _DX_ is then _M<sub>k</sub>_.
 
 *Note that each member name in the interface of `Object` is included
 except if they are explicitly and individually hidden.*
 
 Assume that _DX_ exports a member name _m_.
-A compile-time error occurs unless the representation type of _D_
+
+A compile-time error occurs unless the representation type of _DV_
 has a member named _m_.
 
-A compile-time error occurs if _D_ contains a declaration named _m_,
-or _D_ extends a view _W_, and _W_ has a declaration named _m_.
+A compile-time error occurs if _DV_ contains a declaration named _m_,
+or _DV_ extends a view _W_, and _W_ has a declaration named _m_.
 
 A compile-time error occurs if `H` is of the form `hide H1, .. Hk` and
 `Hj` denotes a type `S`, and `S` is not a
@@ -772,12 +839,12 @@ _hide clause_.
 
 Consider a member access (*e.g., a method call or tear-off, or a
 getter/setter/operator invocation*) with receiver type `W` which is a
-parameterized type of the form `V<T1, .. Tk>` where `V` is the name of
-_D_. Assume that the member access invokes or tears off a member
-named `m`, where `m` is exported by an export clause of the form
-`export n S H` in _D_, where `n` is the representation name of _D_. In
-this case, the member access is treated as if the receiver had had the
-representation type `T`.
+parameterized type of the form `View<T1, .. Tk>` where `View` is the
+name of _DV_. Assume that the member access invokes or tears off a
+member named `m`, where `m` is exported by an export clause of the
+form `export n S H` in _DV_, where `n` is the representation name of
+_DV_. In this case, the member access is treated as if the receiver had
+had the representation type `T`.
 
 *For example:*
 
@@ -798,7 +865,7 @@ void main() {
 }
 ```
 
-If _D_ does not include any member export declarations exporting the
+If _DV_ does not include any member export declarations exporting the
 representation name `n`, it is treated as if it had declared
 `export n show Object;`.
 
@@ -810,7 +877,7 @@ invocation where the receiver type is the representation type,
 including OO dispatch and the treatment of default values of optional
 parameters.*
 
-It is a compile time error if _D_ contains a member export declaration
+It is a compile time error if _DV_ contains a member export declaration
 of the form `export m S H` where `m` is not the representation name.
 
 *We may wish to generalize the export mechanism to allow such cases
@@ -833,47 +900,61 @@ thus "inheriting" the members of `V0` into all of
 <code>V<sub>1</sub> .. V<sub>k</sub></code>
 without code duplication.*
 
-Assume that _D_ is a view declaration named `V`, and `V0` occurs as
+Assume that _DV_ is a view declaration named `View`, and `V0` occurs as
 the `<type>` in a `<viewExtendsElement>` in the extends clause of
-`V`. In this case we say that `V0` is a superview of `V`.
+_DV_. In this case we say that `V0` is a superview of _DV_.
 
 A compile-time error occurs if `V0` is a type name or a parameterized type
-which occurs as a superview in a view declaration `V`, but `V0` does not
+which occurs as a superview in a view declaration _DV_, but `V0` does not
 denote a view type.
 
-Assume that a view declaration `V` has representation type `T`, and
-that the view type `V0` is a superview of `V` (*note that `V0` may
-have some actual type arguments*).  Assume that `S` is the
-instantiated representation type corresponding to `V0`. A compile-time
-error occurs unless `T` is a subtype of `S`.
+Assume that a view declaration _DV_ named `View` has representation
+type `T`, and that the view type `V0` with declaration _DV2_ is a
+superview of _DV_ (*note that `V0` may have some actual type
+arguments*).  Assume that `S` is the instantiated representation type
+corresponding to `V0`. A compile-time error occurs unless `T` is a
+subtype of `S`.
 
-*This ensures that it is sound to bind the value of `this` in `V` to `this`
-in `V0` when invoking members of `V0`.*
+*This ensures that it is sound to bind the value of `n` in _DV_ to `n0`
+in `V0` when invoking members of `V0`, where `n` is the representation
+name of _DV_ and `n0` is the representation name of _DV2_.*
 
-If `V0` is a superview of `V` then `V` is a subtype of `V0`.
+Assume that _DV_ declares a view named `View` with type parameters
+<code>X<sub>1</sub> .. X<sub>k</sub></code> and `V0` is a superview of
+_DV_. Then
+<code>View&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt</code> is a subtype of
+<code>[S<sub>1</sub>/X<sub>1</sub> .. S<sub>k</sub>/X<sub>k</sub>]V0</code>
+for all <code>S<sub>1</sub>, .. S<sub>k</sub></code>
+where these types are regular-bounded. 
+
+*If they aren't regular-bounded then the type is a compile-time error
+in itself. In short, if `V0` is a superview of `V` then `V0` is also
+a supertype of `V`.*
 
 Consider a `<viewExtendsElement>` of the form `V0 <viewShowHidePart>`.  The
 _associated members_ of said extends element are computed from the instance
 members of `V0` in the same way as we compute the included instance members
 of the representation type based on a member export declaration.
 
-Assume that `V` is a view declaration and that the view type `V0` is a
-superview of `V`. Let `m` be the name of an associated member of `V0`. A
-compile-time error occurs if `V` also declares a member named `m`.
+Assume that _DV_ is a view declaration and that the view type `V0` is
+a superview of `V`. Let `m` be the name of an associated member of
+`V0`. A compile-time error occurs if _DV_ also declares a member named
+`m`.
 
-Assume that `V` is a view declaration and that the view types `V0a` and
-`V0b` are superviews of `V`. Let `Ma` be the associated members of `V0a`,
+Assume that _DV_ is a view declaration and that the view types `V0a` and
+`V0b` are superviews of _DV_. Let `Ma` be the associated members of `V0a`,
 and `Mb` the associated members of `V0b`. A compile-time error occurs
 unless the member names of `Ma` and the member names of `Mb` are disjoint
 sets.
 
-*It is allowed for `V` to select a getter from `V0a` and the corresponding
-setter from `V0b`, even though Dart generally treats a getter/setter pair
-as a unit. However, a show/hide part explicitly supports the separation of
-a getter/setter pair using `get m` respectively `set m`. The rationale is
-that a view type may well be used to provide a read-only interface for an
-object whose members do otherwise allow for mutation, and this requires
-that the getter is included and the setter is not.*
+*It is allowed for _DV_ to select a getter from `V0a` and the
+corresponding setter from `V0b`, even though Dart generally treats a
+getter/setter pair as a single unit. However, a show/hide part
+explicitly supports the separation of a getter/setter pair using 
+`get m` respectively `set m`. The rationale is that a view type may
+well be used to provide a read-only interface for an object whose
+members do otherwise allow for mutation, and this requires that the
+getter is included and the setter is not.*
 
 *Conflicts between superviews are not allowed, they must be resolved
 explicitly (using show/hide). The rationale is that the extends clause of
@@ -881,11 +962,12 @@ a view is concerned with code reuse, not modeling, and there is no
 reason to believe that any implicit conflict resolution will consistently
 do the right thing.*
 
-The effect of having a view type `V` with superviews `V1, .. Vk` is that
-the union of the members declared by `V` and associated members of `V1,
-.. Vk` can be invoked on a receiver of type `V`.
+The effect of having a view declaration _DV_ with superviews
+`V1, .. Vk` is that the union of the members declared by _DV_ and
+associated members of `V1, .. Vk` can be invoked on a receiver of the
+type introduced by _DV_.
 
-In the body of `V`, a superinvocation syntax similar to an explicit
+In the body of _DV_, a superinvocation syntax similar to an explicit
 extension method invocation can be used to invoke a member of a superview
 which is hidden: The invocation starts with `super.` followed by the name
 of the given superview, followed by the member access. The superview may be
@@ -900,57 +982,60 @@ also possible to call it using `super.foo()`.*
 ## View Extensions
 
 A _view extension_ is a declaration that adds members to an existing
-view which is in scope.
+view, which is in scope.
 
-*The quick intuitive perspective on this mechanism is that it is
-similar to extension methods, but they are 'sticky' in the sense that
-they are associated with a given view type and they do not require the
+*The rule of thumb about this mechanism is that it is similar to
+extension methods, but they are 'sticky' in the sense that they are
+associated with a given view type, and they do not require the
 declaration of the view extension to be imported directly.*
 
 A view extension declaration is derived from
 `<viewExtensionDeclaration>`. A compile-time error occurs if a view
 extension declaration contains a member export declaration.
 
-Assume that _DX_ is a view extension declaration named `prefix.V`.
+Assume that _DX_ is a view extension declaration named `prefix.View`.
 A compile-time error occurs unless there is a unique view declaration
-named `V` which is imported into the current library with the import
-prefix `prefix`.
+named `View` which is imported into the current library with the
+import prefix `prefix`.
 
-Assume that _DX_ is a view extension declaration named `V`.
-A compile-time error occurs unless there is a unique view declaration
-named `V` which is imported into the current library without an import
-prefix.
+Assume that _DX_ is a view extension declaration named `View`.  A
+compile-time error occurs unless there is a unique view declaration
+named `View` which is imported into the current library without an
+import prefix.
 
-Whether or not `V` is imported with a prefix, let _DV_ be that unique
-view declaration.
+Let _DV_ denote the above mentioned unique view declaration, whether
+or not it is imported with a prefix (so _DX_ may or may not have that
+prefix in the following paragraphs).
 
 We say that _DX_ provides an _extension of the view_ declared by _DV_,
 and we say that _DX_ _belongs to_ _DV_.
 
 A compile-time error occurs unless _DX_ and _DV_ have exactly the same
-type parameters with exactly the same bounds up to consistent
+type parameters with exactly the same bounds, up to consistent
 renaming. A compile-time error occurs unless the representation type of
-_DX_ is equal to the representation type of _DV_.
-
-Consider a member access _a_ (*e.g., `v.foo()`*), in a library _L_,
-where the receiver type is `V<T1, .. Tk>` where `V` denotes _DV_.
-
-Let _VX<sub>1</sub> .. VX<sub>n</sub>_ be the set of view extensions
-specifying extensions of _DV_ which are declared in libraries
-_L<sub>1</sub> .. L<sub>n</sub>_ (*not necessarily distinct*).
+_DX_ and the representation type of _DV_ are mutual subtypes.
 
 We say that a library _L1_ is _dominated by_ a library _L0_ iff _L1_
 is in the transitive closure of imports from _L0_. *In other words,
-each library dominates every library to which it has an import path.*
+each library dominates every library to which it has a non-empty
+import path (so we can't have _L0 == L1_).*
 
 Similarly, a view extension declaration _DX1_ in a library _L1_ is
 dominated by a view extension declaration _DX0_ in a library _L0_ iff
 _L1_ is dominated by _L0_.
 
+Consider a member access _a_ (*e.g., `v.foo()`*), in a library _L_,
+where the receiver type is `View<T1, .. Tk>` where `View` denotes _DV_.
+
+Let _VX<sub>1</sub> .. VX<sub>n</sub>_ be the set of view extensions
+belonging to _DV_ which are declared in libraries
+_L<sub>1</sub> .. L<sub>n</sub>_ (*not necessarily distinct*)
+that are imported directly or indirectly by _L_.
+
 For the given member name (*in the example: `foo`*), let
 _VX<sub>1</sub> .. VX<sub>m</sub>_ be the subset of view extension
 declarations belonging to _DV_ that declare a member with that name
-(*we're just lucky to have chosen a numbering that makes this
+(*we can assume that we have chosen a numbering that makes this
 possible*) and let _VX<sub>1</sub> .. VX<sub>p</sub>_ be the subset of
 _VX<sub>1</sub> .. VX<sub>m</sub>_ which are not dominated by any
 other member of _VX<sub>1</sub> .. VX<sub>m</sub>_.
@@ -959,8 +1044,37 @@ A compile-time error occurs if _p_ is zero or larger than 1.
 Otherwise, the member access _a_ is resolved to denote the declaration
 with that name in _VX<sub>1</sub>_.
 
-*This means that it is possible to extend the set of members available
-for a given view `V` in different ways, depending on the import
+*In other words, when we are invoking an extension view member, we
+only consider the declarations that aren't "behind" some other
+declaration with the same name in the import graph. This means that
+you can "override" a given extension view member by declaring a new
+extension view member in a library _L<sub>new</</sub>_ and import the
+library _L<sub>old</sub>_ that contains the member which should be
+overridden. In particular, you can always override all other extension
+view declarations of a specific member by writing an extension view in
+the current library and declare a member with that name.*
+
+The treatment described above is also used in order to determine the
+set of members in the interface of each view that is used as
+superviews, directly or indirectly, of the target view _DV_. 
+
+*In other words, view extensions can add new members to the target
+view as well as any of its superviews, and "inheritance" proceeds as
+usual as if the added members were written in those views directly,
+rather than being added by view extensions.*
+
+View members that are added to a view by view extensions are subject
+to the same name clash checks as views that are declared in the view.
+
+*In particular, a view extension cannot add a member named `m` to a
+view `V` that inherits a member named `m` from a superview, `V` must
+already have a `hide m` clause (or something similar), ensuring that
+the name `m` is "available". As a rule of thumb, view extensions can
+be used to add members with fresh names, they can't interfere with the
+treatment of member names that are already in use in the target view.*
+
+*These rules ensure that it is possible to extend the set of members
+available for a given view in different ways, depending on the import
 graph. For example:*
 
 ```dart
@@ -979,7 +1093,7 @@ view extension V(int it) {
 
 // Library 'extension2.dart'.
 view Extension V(int it) {
-  int get foo => 3;
+  int get foo => 3; // Unrelated to `foo` in extension1.
   set baz(String s) {}
 }
 
@@ -993,7 +1107,7 @@ void main() {
   v.isThree; // OK, available from view.
   v.bar(); // OK, from extension 1.
   v.baz = 'Hello'; // OK, from extension 2.
-  v.foo; // Compile-time error, conflict.
+  v.foo; // Compile-time error, ambiguous.
 }
 
 // Library 'main2.dart'.
@@ -1005,7 +1119,7 @@ void main() {
   v.isThree; // OK, from view.
   v.foo(); // OK, from extension 1.
   v.bar(); // OK, from extension 1.
-  v.baz; // Compile-time error, no such member.
+  v.baz = 'Hello'; // Compile-time error, no such member.
 }
 ```
 
@@ -1066,19 +1180,6 @@ This section mentions a few topics that have given rise to
 discussions.
 
 
-### Non-object types
-
-If we introduce any non-object entities in Dart (that is, entities
-that cannot be assigned to a variable of type `Object?`, e.g.,
-external C / JavaScript / ... entities, or non-boxed tuples, etc),
-then we may wish to allow for view types whose representation type is
-a non-object type.
-
-In this case we may be able to consider a view type `V` on a
-non-object type `T` to be a supertype of `T`, but unrelated to all
-subtypes of `Object?`.
-
-
 ### Exporting other things than the representation
 
 As stated, this proposal only allows member export statements where
@@ -1112,4 +1213,53 @@ void main() {
 }
 ```
 
-Obviously, a generalized member export feature would need to handle 
+Obviously, a generalized member export feature would need to handle
+
+
+### Suport member export declarations in view extensions?
+
+This would presumably be possible, and might be worthwhile. It would
+be used to add more members from the representation type to the
+interface of the view, and it would cause a compile-time error in the
+case where there is a name clash with a declaration in the target
+view.
+
+The proposal currently does not allow this, but the fact that it is an
+comile-time error to have `export` in a view extension now means that
+we can add it later on, and it will not be a breaking change.
+
+
+### Allow view extensions to override members?
+
+The current proposal insists that name clashes must be handled
+explicitly, by way of show/hide clauses in a member export declaration
+or in an extends clause.
+
+The rationale for this choice is that it will be explicit whenever
+there is an "override-ish" relation between a view member and an
+inherited/exported member. This is important semantically, because a
+change from one to the other type (e.g., `V0 v0 = v1;` where the
+static type of `v1` is o subview of `V0`) will then invoke a different
+implementation when we invoke the same member name, which may give
+rise to subtle bugs.
+
+Presumably we could even have lints on assignments where this kind of
+"change of semantics" based on the _static type_ used to access an
+object will occur, and some developers might want to avoid them
+entirely. We could also have lints to flag that kind of override-ish
+relationship between view members in the first place.
+
+Members added to a view by a view extension are subject to the same
+name clash checks, and this means that they can introduce fresh member
+names (members with names that are different from the declared names
+in the target view, different from the names of members exported from
+the representation type, and different from the names of members
+inherited from superviews), but they can't introduce any declarations
+with the same name as any member of the interface of the target view.
+
+It would also be possible to allow such name clashes, e.g., by
+allowing a view extension to add a member named `m` to a target view
+`V` even though `V` inherits a member named `m`, possibly by adding a
+hide/show clause on the view extension (so we're adding new members to
+the target view, and also editing it's show/hide clauses).
+
