@@ -92,12 +92,13 @@ These primitive types are added to `dart:core`:
 
 ### The `Record` class
 
-A built-in class `Record` with no instance members except those inherited 
-from `Object`, and which exposes no constructors.
-All record types are a subtype of this class. This type cannot be constructed,
-extended, mixed in, or implemented by user-defined classes.
-*This is similar to how the `Function` class is the superclass 
-for all function types.*
+The type `Record` refers to a built-in class defined in `dart:core`. It has no
+instance members except those inherited from `Object` and exposes no
+constructors. It can't be constructed, extended, mixed in, or implemented by
+user-defined classes.
+
+All record types are a subtype of this class. *This is similar to how the
+`Function` class is the superclass for all function types.*
 
 ## Syntax
 
@@ -563,6 +564,10 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.7
+
+- Clarify what kind of type `Record` is and where it's defined (#2442).
 
 ### 1.6
 
