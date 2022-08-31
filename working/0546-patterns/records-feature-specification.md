@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.6 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.7 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
