@@ -134,7 +134,7 @@ view IdNumber(int i) {
 
 void main() {
   int myUnsafeId = 42424242;
-  int myBogusId = myUnsafeId + 10; // No complaints.
+  myUnsafeId = myUnsafeId + 10; // No complaints.
 
   var safeId = IdNumber(42424242);
 
@@ -142,8 +142,7 @@ void main() {
   safeId + 10; // Compile-time error, no operator `+`.
   10 + safeId; // Compile-time error, wrong argument type.
   myUnsafeId = safeId; // Compile-time error, wrong type.
-
-  myBogusId = safeId as int; // OK, we can force it.
+  myUnsafeId = safeId as int; // OK, we can force it.
 }
 ```
 
@@ -235,8 +234,9 @@ view to have a constructor, and it can be used to obtain a value of
 the view type from a given instance of the representation type.
 
 The constructor is a factory that actually just returns its argument,
-but typed as the view type. A constructor body may be declared if we
-wish to verify that the given object satisfies some constraints.
+but typed as the view type. A normal constructor with a body may be
+declared if we wish to verify that the given object satisfies some
+constraints.
 
 The name `TinyJson` can be used as a type, and a reference with that
 type can refer to an instance of the underlying representation type
@@ -631,14 +631,11 @@ view V2(V1 it) {
 ```
 
 *That is, when the static type of an expression is a view type `V`
-with representation type `T`, all method invocations on that
-expression will invoke an instance method declared by `V`, and
-similarly for other member accesses (or it is an extension method
-invocation on some extension `E1` with representation type `T1` such
-that `V` matches `T1`). In particular, we cannot invoke an instance
-member of the representation type when the receiver type is a view
-type (unless the view type enables them explicitly, cf. the member
-export declaration specified in a later section).*
+with representation type `T`, each method invocation on that
+expression will invoke an instance method declared by `V` or exported
+by `V` or inherited from a superview or added by an extension view (or
+it could be an extension method with on-type `V`). Similarly for other
+member accesses.*
 
 Let _DV_ be a view declaration named `View` with type parameters
 <code>X<sub>1</sub> extends B<sub>1</sub>, .. X<sub>k</sub> extends B<sub>k</sub></code>
@@ -840,11 +837,12 @@ _hide clause_.
 Consider a member access (*e.g., a method call or tear-off, or a
 getter/setter/operator invocation*) with receiver type `W` which is a
 parameterized type of the form `View<T1, .. Tk>` where `View` is the
-name of _DV_. Assume that the member access invokes or tears off a
-member named `m`, where `m` is exported by an export clause of the
-form `export n S H` in _DV_, where `n` is the representation name of
-_DV_. In this case, the member access is treated as if the receiver had
-had the representation type `T`.
+name of _DV_ (where the non-generic case is covered by _k =0_).
+Assume that the member access invokes or tears off a member named `m`,
+where `m` is exported by an export clause of the form `export n S H`
+in _DV_, where `n` is the representation name of _DV_. In this case,
+the member access is treated as if the receiver had had the
+representation type `T`.
 
 *For example:*
 
@@ -922,7 +920,7 @@ name of _DV_ and `n0` is the representation name of _DV2_.*
 Assume that _DV_ declares a view named `View` with type parameters
 <code>X<sub>1</sub> .. X<sub>k</sub></code> and `V0` is a superview of
 _DV_. Then
-<code>View&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt</code> is a subtype of
+<code>View&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code> is a subtype of
 <code>[S<sub>1</sub>/X<sub>1</sub> .. S<sub>k</sub>/X<sub>k</sub>]V0</code>
 for all <code>S<sub>1</sub>, .. S<sub>k</sub></code>
 where these types are regular-bounded. 
@@ -931,10 +929,11 @@ where these types are regular-bounded.
 in itself. In short, if `V0` is a superview of `V` then `V0` is also
 a supertype of `V`.*
 
-Consider a `<viewExtendsElement>` of the form `V0 <viewShowHidePart>`.  The
-_associated members_ of said extends element are computed from the instance
-members of `V0` in the same way as we compute the included instance members
-of the representation type based on a member export declaration.
+Consider a `<viewExtendsElement>` of the form `V0 <viewShowHidePart>`.
+The _associated members_ of said extends element are computed from the
+members that `V0` has in the same way as we compute the included
+instance members of the representation type based on a member export
+declaration.
 
 Assume that _DV_ is a view declaration and that the view type `V0` is
 a superview of `V`. Let `m` be the name of an associated member of
@@ -982,7 +981,7 @@ also possible to call it using `super.foo()`.*
 ## View Extensions
 
 A _view extension_ is a declaration that adds members to an existing
-view, which is in scope.
+view which is in scope.
 
 *The rule of thumb about this mechanism is that it is similar to
 extension methods, but they are 'sticky' in the sense that they are
@@ -1021,8 +1020,8 @@ each library dominates every library to which it has a non-empty
 import path (so we can't have _L0 == L1_).*
 
 Similarly, a view extension declaration _DX1_ in a library _L1_ is
-dominated by a view extension declaration _DX0_ in a library _L0_ iff
-_L1_ is dominated by _L0_.
+_dominated by_ a view extension declaration _DX0_ in a library _L0_
+iff _L1_ is dominated by _L0_.
 
 Consider a member access _a_ (*e.g., `v.foo()`*), in a library _L_,
 where the receiver type is `View<T1, .. Tk>` where `View` denotes _DV_.
@@ -1048,7 +1047,7 @@ with that name in _VX<sub>1</sub>_.
 only consider the declarations that aren't "behind" some other
 declaration with the same name in the import graph. This means that
 you can "override" a given extension view member by declaring a new
-extension view member in a library _L<sub>new</</sub>_ and import the
+extension view member in a library _L<sub>new</sub>_ and import the
 library _L<sub>old</sub>_ that contains the member which should be
 overridden. In particular, you can always override all other extension
 view declarations of a specific member by writing an extension view in
@@ -1072,6 +1071,12 @@ already have a `hide m` clause (or something similar), ensuring that
 the name `m` is "available". As a rule of thumb, view extensions can
 be used to add members with fresh names, they can't interfere with the
 treatment of member names that are already in use in the target view.*
+
+*In short, a view extension cannot redefine an existing view
+member, declared in the view or inherited by the view, but it may
+conflict with a member declared by another view extension if none of
+them dominates the other one (and hence make both of them
+unavailable).*
 
 *These rules ensure that it is possible to extend the set of members
 available for a given view in different ways, depending on the import
@@ -1117,9 +1122,9 @@ import 'extension1.dart';
 void main() {
   var v = V(3);
   v.isThree; // OK, from view.
-  v.foo(); // OK, from extension 1.
   v.bar(); // OK, from extension 1.
   v.baz = 'Hello'; // Compile-time error, no such member.
+  v.foo(); // OK, from extension 1.
 }
 ```
 
@@ -1180,6 +1185,21 @@ This section mentions a few topics that have given rise to
 discussions.
 
 
+### Should a bare name denote both the getter and setter?
+
+In the current proposal we may hide or show a specific member using
+its name, except that the syntax doesn't allow for specifying a name
+that ends in `=`. So we can include a getter named `g` by means of
+`show g`. However, we can specify that the setter is included by using
+the special construct `set g`, that is `show set g` will show the
+setter. We may show both by specifying `get` and `set` as in 
+`show get g, set g`. But `get` makes no difference, we might just as
+well use `show g, set g`, except that this looks funny.
+
+So maybe the lone `g` should denote both the getter and the setter,
+and the only way to show/hide just the getter would be to use `get g`?
+
+
 ### Exporting other things than the representation
 
 As stated, this proposal only allows member export statements where
@@ -1216,7 +1236,7 @@ void main() {
 Obviously, a generalized member export feature would need to handle
 
 
-### Suport member export declarations in view extensions?
+### Support member export declarations in view extensions?
 
 This would presumably be possible, and might be worthwhile. It would
 be used to add more members from the representation type to the
@@ -1239,7 +1259,7 @@ The rationale for this choice is that it will be explicit whenever
 there is an "override-ish" relation between a view member and an
 inherited/exported member. This is important semantically, because a
 change from one to the other type (e.g., `V0 v0 = v1;` where the
-static type of `v1` is o subview of `V0`) will then invoke a different
+static type of `v1` is a subview of `V0`) will then invoke a different
 implementation when we invoke the same member name, which may give
 rise to subtle bugs.
 
