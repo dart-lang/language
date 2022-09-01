@@ -1592,7 +1592,7 @@ main() {
 
 We define an *irrefutable context* as the pattern in a
 `localVariableDeclaration`, `forLoopParts`, or `patternAssignment`. A *refutable
-context* is the pattern in a `caseHead` or `ifCondition` or its subpatterns.
+context* is the pattern in a `caseHead` or `ifCondition`.
 
 Refutability is not just a property of the pattern itself. It also depends on
 the static type of the value being matched. Consider:
@@ -1613,30 +1613,30 @@ the second function, `obj` may fail to match because the value may not be a
 record. *This implies that we can't determine whether a pattern in a variable
 declaration is incorrectly refutable until after type checking.*
 
-Refutability of a pattern `p` matching a value of type `v` is:
+Refutability of a pattern `p` matching a value of type `V` is:
 
-*   **Logical-and**, **parenthesized**, **null-assert**, or **cast**: Always
-    irrefutable (though may contain refutable subpatterns).
+*   **Logical-and**, **parenthesized**, **null-assert**, or **cast**:
+    Irrefutable if and only if all subpatterns are irrefutable.
 
 *   **Logical-or**, **relational**, **null-check**, **literal**, or
     **constant**: Always refutable. *Logical-or patterns are refutable because
     there is no point in using one with an irrefutable left operand. We could
-    make null-check patterns irrefutable if `v` is assignable to its static
+    make null-check patterns irrefutable if `V` is assignable to its static
     type, but whenever that is true the pattern does nothing useful since its
     only behavior is a type test.*
 
 *   **variable**, **list**, **map**, **record**, or **extractor**: Irrefutable
-    if `v` is assignable to the static type of `p`. *If `p` is a variable
-    pattern with no type annotation, the type is inferred from `v`, so it is
-    never refutable.*
+    if and only if `V` is assignable to the static type of `p` and all
+    subpatterns are irrefutable. *If `p` is a variable pattern with no type
+    annotation, the type is inferred from `V`, so it is never refutable.*
 
 It is a compile-time error if a refutable pattern appears in an irrefutable
-context, either as the outermost pattern or a subpattern. *This means that the
-explicit predicate patterns like constants and literals can never appear in
-pattern variable declarations or pattern assignments. The patterns that do type
-tests directly or implicitly can appear in variable declarations or assignments
-only if the tested type is a supertype of the value type. In other words, any
-pattern that needs to "downcast" to match is refutable.*
+context. *This means that the explicit predicate patterns like constants and
+literals can never appear in pattern variable declarations or pattern
+assignments. The patterns that do type tests directly or implicitly can appear
+in variable declarations or assignments only if the tested type is assignable
+from the value type. In other words, any pattern that needs to "downcast" to
+match is refutable.*
 
 ### Variables and scope
 
@@ -1859,17 +1859,31 @@ A statement of the form:
 for (<keyword> <pattern> in <expression>) <statement>
 ```
 
-Where `<keyword>` is `var` or `final` is interpreted as the following code,
-where `id1` and `id2` are fresh identifiers:
+Where `<keyword>` is `var` or `final` is treated like so:
 
-```
-var id1 = <expression>;
-var id2 = id1.iterator;
-while (id2.moveNext()) {
-  <keyword> <pattern> = id2.current;
-  { <statement> }
-}
-```
+1.  Let `I` be the type of `<expression>`.
+
+2.  Calculate the element type of `I`:
+
+    1.  If `I` implements `Iterable<T>` for some `T` then `E` is `T`.
+
+    2.  Else if `I` is `dynamic` then `E` is `dynamic`.
+
+    3.  Else it is a compile-time error.
+
+3.  Type check `<pattern>` with matched value type `E`.
+
+4.  If there are no compile-time errors, then execution proceeds as the
+    following code, where `id1` and `id2` are fresh identifiers:
+
+    ```
+    var id1 = <expression>;
+    var id2 = id1.iterator;
+    while (id2.moveNext()) {
+      <keyword> <pattern> = id2.current;
+      { <statement> }
+    }
+    ```
 
 #### Pattern-if statement
 
