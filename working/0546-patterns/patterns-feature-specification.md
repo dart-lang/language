@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 2.2 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.4 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -76,6 +76,14 @@ print(a + b + c); // 6.
 var map = {'first': 1, 'second': 2};
 var {'first': a, 'second': b} = map;
 print(a + b); // 3.
+```
+
+You can also destructure and assign to existing variables:
+
+```dart
+var (a, b) = ('left', right');
+(b, a) = (a, b); // Swap!
+print('$a $b'); // Prints "right left".
 ```
 
 ### Algebraic datatypes
@@ -181,7 +189,7 @@ Before introducing each pattern in detail, here is a summary with some examples:
 | [Constant][constantPattern] | `math.pi`, `SomeClass.constant` |
 | [Variable][variablePattern] | `foo`, `String str`, `_`, `int _` |
 | [Cast][castPattern] | `foo as String` |
-| [Grouping][groupingPattern] | `(subpattern)` |
+| [Parenthesized][parenthesizedPattern] | `(subpattern)` |
 | [List][listPattern] | `[subpattern1, subpattern2]` |
 | [Map][mapPattern] | `{"key": subpattern1, someConst: subpattern2}` |
 | [Record][recordPattern] | `(subpattern1, subpattern2)`<br>`(x: subpattern1, y: subpattern2)` |
@@ -196,7 +204,7 @@ Before introducing each pattern in detail, here is a summary with some examples:
 [constantPattern]: #constant-pattern
 [variablePattern]: #variable-pattern
 [castPattern]: #cast-pattern
-[groupingPattern]: #grouping-pattern
+[parenthesizedPattern]: #parenthesized-pattern
 [listPattern]: #list-pattern
 [mapPattern]: #map-pattern
 [recordPattern]: #record-pattern
@@ -221,7 +229,7 @@ primaryPattern        ::= literalPattern
                         | constantPattern
                         | variablePattern
                         | castPattern
-                        | groupingPattern
+                        | parenthesizedPattern
                         | listPattern
                         | mapPattern
                         | recordPattern
@@ -594,10 +602,10 @@ pattern:
 var (i as int, s as String) = record;
 ```
 
-### Grouping pattern
+### Parenthesized pattern
 
 ```
-groupingPattern ::= '(' pattern ')'
+parenthesizedPattern ::= '(' pattern ')'
 ```
 
 Like parenthesized expressions, parentheses in a pattern let you control pattern
@@ -691,9 +699,9 @@ Field subpatterns can be in one of three forms:
     ```
 
 A record pattern with a single unnamed field and no trailing comma is ambiguous
-with a grouping pattern. In that case, it is treated as a grouping pattern. To
-write a record pattern that matches a single unnamed field, add a trailing
-comma, as you would with the corresponding record expression.
+with a parenthesized pattern. In that case, it is treated as a parenthesized
+pattern. To write a record pattern that matches a single unnamed field, add a
+trailing comma, as you would with the corresponding record expression.
 
 ### Extractor pattern
 
@@ -789,20 +797,18 @@ against the initializer's value.
 Add this new rule:
 
 ```
-patternDeclaration ::= ( 'final' | 'var' ) pattern '=' expression
+patternDeclaration  ::= ( 'final' | 'var' ) outerPattern '=' expression
+
+outerPattern        ::= nullCheckPattern
+                      | parenthesizedPattern
+                      | listPattern
+                      | mapPattern
+                      | recordPattern
+                      | extractorPattern
 ```
 
-It is a compile-time error if the outermost pattern in a `patternDeclaration`
-is not one of:
-
-*   [`groupingPattern`][groupingPattern]
-*   [`listPattern`][listPattern]
-*   [`mapPattern`][mapPattern]
-*   [`recordPattern`][recordPattern]
-*   [`extractorPattern`][extractorPattern]
-*   [`nullCheckPattern`][nullCheckPattern]
-
-This allows useful code like:
+The `outerPattern` rule defines a subset of the patterns that are allowed as the
+outermost pattern in a declaration. Subsetting allows useful code like:
 
 ```dart
 var [a, b] = [1, 2];                  // List.
@@ -819,13 +825,15 @@ But excludes other kinds of patterns to prohibit weird code like:
 var String str = 'redundant';     // Variable.
 var str as String = 'weird';      // Cast.
 var definitely! = maybe;          // Null-assert.
-var (pointless) = 'parentheses';  // Grouping.
 ```
+
+Allowing parentheses gives users an escape hatch if they really want to use an
+unusual pattern there.
 
 **TODO: Should we support destructuring in `const` declarations?**
 
-This new rule is incorporated into the existing rules for declaring variables
-like so:
+The new rules are incorporated into the existing productions for declaring
+variables like so:
 
 ```
 localVariableDeclaration ::=
@@ -834,8 +842,11 @@ localVariableDeclaration ::=
 
 forLoopParts ::=
   | // Existing productions...
-  | patternDeclaration 'in' expression // New.
+  | ( 'final' | 'var' ) outerPattern 'in' expression // New.
 ```
+
+As with regular for-in loops, it is a compile-time error if the type of
+`expression` in a pattern-for-in loop is not assignable to `Iterable<dynamic>`.
 
 *This could potentially be extended to allow patterns in top-level variables and
 static fields but laziness makes that more complex. We could support patterns in
@@ -844,6 +855,49 @@ Parameter lists are a natural place to allow patterns, but the existing grammar
 complexity of parameter lists&mdash;optional parameters, named parameters,
 required parameters, default values, etc.&mdash;make that very hard. For the
 initial proposal, we focus on patterns only in variables with local scope.*
+
+### Pattern assignment
+
+A pattern on the left side of an assignment expression is used to destructure
+the assigned value. We extend `expression`:
+
+```
+expression        ::= patternAssignment
+                    | // Existing productions...
+
+patternAssignment ::= outerPattern '=' expression
+```
+
+*This syntax allows chaining pattern assignments and mixing them with other
+assignments, but does not allow patterns to the left of a compound assignment
+operator.*
+
+In a pattern assignment, all variable and cast patterns are interpreted as
+referring to existing variables or setters. You can't declare any new variables.
+*Disallowing new variables allows pattern assignment expressions to appear
+anywhere expressions are allowed while avoiding confusion about the scope of new
+variables.*
+
+It is a compile-time error if:
+
+*   A variable pattern has a type annotation. *Only simple identifiers are
+    allowed since you aren't declaring a new variable.*
+
+*   An identifier in a variable or cast pattern does not resolve to a non-final
+    variable or setter.
+
+*   The matched value type for a variable or cast pattern is not assignable to
+    the corresponding variable or setter's type.
+
+*   The same variable is assigned more than once. *In other words, a pattern
+    assignment can't have multiple variable or cast subpatterns with the same
+    name. This prohibits code like:*
+
+    ```dart
+    var a = 1;
+    (a & a) = 2;
+    [a, a, a] = [1, 2, 3];
+    ```
 
 ### Switch statement
 
@@ -1210,13 +1264,14 @@ To orchestrate this, type inference on patterns proceeds in three phases:
     holes in the type schema. When that completes, we now have a full static
     type for the pattern and all of its subpatterns.
 
-The full process only comes into play for pattern variable declarations and
-pattern-if statements. For switch cases, there is a separate pattern for each
-case and deciding how to unify those into a single downwards inference context
-for the value could be challenging. It's not clear that doing that would even be
-helpful for users. Instead, for switch statements and expressions, the type of
-the matched value is inferred with no downwards context type and we jump
-straight to inferring the types of the case patterns from that context type.
+The full process only comes into play for pattern variable declarations, pattern
+assignment, and pattern-if statements. For switch cases, there is a separate
+pattern for each case and deciding how to unify those into a single downwards
+inference context for the value could be challenging. It's not clear that doing
+that would even be helpful for users. Instead, for switch statements and
+expressions, the type of the matched value is inferred with no downwards context
+type and we jump straight to inferring the types of the case patterns from that
+context type.
 
 #### Pattern context type schema
 
@@ -1279,13 +1334,17 @@ The context type schema for a pattern `p` is:
 
 *   **Relational** or **cast**: The context type schema is `Object?`.
 
-*   **Grouping**: The context type schema of the inner subpattern.
+*   **Parenthesized**: The context type schema of the inner subpattern.
 
 *   **List**: A context type schema `List<E>` where:
 
     1.  If `p` has a type argument, then `E` is the type argument.
 
-    2.  Else `E` is the greatest lower bound of the type schemas of all element
+    2.  Else if `p` has no elements then `E` is `Object?`. *If the pattern
+        doesn't destructure anything, it matches any list, so it is permissive
+        with the context type.*
+
+    3.  Else `E` is the greatest lower bound of the type schemas of all element
         subpatterns. *We use the greatest lower bound to ensure that the outer
         collection type has a precise enough type to ensure that any typed field
         subpatterns do not need to downcast:*
@@ -1301,7 +1360,11 @@ The context type schema for a pattern `p` is:
 
     1.  If `p` has type arguments then `K`, and `V` are those type arguments.
 
-    2.  Else `K` is the least upper bound of the types of all key expressions
+    2.  Else if `p` has no entries, then `K` and `V` are `Object?`. *If the
+        pattern doesn't destructure anything, it matches any map, so it is
+        permissive with the context type.*
+
+    3.  Else `K` is the least upper bound of the types of all key expressions
         and `V` is the greatest lower bound of the context type schemas of all
         value subpatterns.
 
@@ -1387,8 +1450,8 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 *   **Cast**: Nothing to do.
 
-*   **Grouping**: Type-check the inner subpattern using `M` as the matched value
-    type.
+*   **Parenthesized**: Type-check the inner subpattern using `M` as the matched
+    value type.
 
 *   **List**:
 
@@ -1491,6 +1554,7 @@ proposal extends Dart to allow patterns in:
 
 * Local variable declarations.
 * For loop variable declarations.
+* Assignment expressions.
 * Switch statement cases.
 * A new switch expression form's cases.
 * A new pattern-if statement.
@@ -1527,8 +1591,8 @@ main() {
 ```
 
 We define an *irrefutable context* as the pattern in a
-`localVariableDeclaration`, `forLoopParts` or its subpatterns. A *refutable
-context* is the pattern in a `caseHead` or `ifCondition` or its subpatterns.
+`localVariableDeclaration`, `forLoopParts`, or `patternAssignment`. A *refutable
+context* is the pattern in a `caseHead` or `ifCondition`.
 
 Refutability is not just a property of the pattern itself. It also depends on
 the static type of the value being matched. Consider:
@@ -1549,25 +1613,30 @@ the second function, `obj` may fail to match because the value may not be a
 record. *This implies that we can't determine whether a pattern in a variable
 declaration is incorrectly refutable until after type checking.*
 
-Refutability of a pattern `p` matching a value of type `v` is:
+Refutability of a pattern `p` matching a value of type `V` is:
 
-*   **Logical-or**, **logical-and**, **grouping**, **null-assert**, or **cast**:
-    Always irrefutable (though may contain refutable subpatterns).
+*   **Logical-and**, **parenthesized**, **null-assert**, or **cast**:
+    Irrefutable if and only if all subpatterns are irrefutable.
 
-*   **Relational**, **literal**, or **constant**: Always refutable.
+*   **Logical-or**, **relational**, **null-check**, **literal**, or
+    **constant**: Always refutable. *Logical-or patterns are refutable because
+    there is no point in using one with an irrefutable left operand. We could
+    make null-check patterns irrefutable if `V` is assignable to its static
+    type, but whenever that is true the pattern does nothing useful since its
+    only behavior is a type test.*
 
-*   **Null-check**, **variable**, **list**, **map**, **record**, or
-    **extractor**: Irrefutable if `v` is assignable to the static type of `p`.
-    *If `p` is a variable pattern with no type annotation, the type is inferred
-    from `v`, so it is never refutable.*
+*   **variable**, **list**, **map**, **record**, or **extractor**: Irrefutable
+    if and only if `V` is assignable to the static type of `p` and all
+    subpatterns are irrefutable. *If `p` is a variable pattern with no type
+    annotation, the type is inferred from `V`, so it is never refutable.*
 
 It is a compile-time error if a refutable pattern appears in an irrefutable
-context, either as the outermost pattern or a subpattern. *This means that the
-explicit predicate patterns like constants and literals can never appear in
-pattern variable declarations. The patterns that do type tests directly or
-implicitly can appear in variable declarations only if the tested type is a
-supertype of the value type. In other words, any pattern that needs to
-"downcast" to match is refutable.*
+context. *This means that the explicit predicate patterns like constants and
+literals can never appear in pattern variable declarations or pattern
+assignments. The patterns that do type tests directly or implicitly can appear
+in variable declarations or assignments only if the tested type is assignable
+from the value type. In other words, any pattern that needs to "downcast" to
+match is refutable.*
 
 ### Variables and scope
 
@@ -1580,9 +1649,9 @@ The variables a patterns binds depend on what kind of pattern it is:
     that do. If it a compile-time error if the two subpatterns do not introduce
     the same variables with the same names and types.
 
-*   **Logical-and**, **null-check**, **null-assert**, **grouping**, **list**,
-    **map**, **record**, or **extractor**: These do not introduce variables
-    themselves but may contain subpatterns that do.
+*   **Logical-and**, **null-check**, **null-assert**, **parenthesized**,
+    **list**, **map**, **record**, or **extractor**: These do not introduce
+    variables themselves but may contain subpatterns that do.
 
 *   **Relational**, **literal**, or **constant**: These do not introduce any
     variables.
@@ -1667,6 +1736,27 @@ behavior.
 
 2.  Match `v` against the declaration's pattern.
 
+#### Pattern assignment
+
+1.  Evaluate the right-hand side expression to a value `v`.
+
+2.  Match `v` against the pattern on the left. When matching a variable or cast
+    pattern against a value `o`, record that `o` will be the new value for the
+    corresponding variable/setter, but do not store the variable or invoke the
+    setter.
+
+3.  Once all destructuring and matching is done, store all of the assigned
+    variables and invoke the setters with their corresponding values. Invoke
+    setters in the order that the corresponding patterns appear, from left to
+    right.
+
+*In other words, it's as if every variable or cast pattern in an assignment
+expression is a new variable declaration with a hidden name. Then after the
+assignment expression and matching completes, those temporary variables are all
+written to the corresponding real variables and setters. We defer the storage
+until matching has completed so that users never see a partial assignment if
+matching happens to fail in some way.*
+
 #### Switch statement
 
 1.  Evaluate the switch value producing `v`.
@@ -1725,6 +1815,75 @@ behavior.
     into this switch expression from another library that hasn't migrated to
     [null safety][]. In fully migrated programs, exhaustiveness checking is
     sound and it isn't possible to reach this runtime error.*
+
+#### Pattern-for statement
+
+A statement of the form:
+
+```dart
+for (<patternDeclaration>; <condition>; <increment>) <statement>
+```
+
+Is executed similar to a traditional for loop except that multiple variables may
+be declared by the pattern instead of just one. As with a normal for loop, those
+variables are freshly bound to new values at each iteration so that if a
+function closes over a variable, it captures the value at the current iteration
+and is not affected by later iteration.
+
+The increment clause is evaluated in a scope where all variables declared in the
+pattern are freshly bound to new variables holding the current iteration's
+values. If the increment clause assigns to any of the variables declared by the
+pattern, those become the values bound to those variables in the next iteration.
+For example:
+
+```dart
+var fns = <Function()>[];
+for (var (a, b) = (0, 1); a <= 13; (a, b) = (b, a + b)) {
+  fns.add(() {
+    print(a);
+  });
+}
+
+for (var fn in fns) {
+  fn();
+}
+```
+
+This prints `0`, `1`, `1`, `2`, `3`, `5`, `8`, `13`.
+
+#### Pattern-for-in statement
+
+A statement of the form:
+
+```dart
+for (<keyword> <pattern> in <expression>) <statement>
+```
+
+Where `<keyword>` is `var` or `final` is treated like so:
+
+1.  Let `I` be the type of `<expression>`.
+
+2.  Calculate the element type of `I`:
+
+    1.  If `I` implements `Iterable<T>` for some `T` then `E` is `T`.
+
+    2.  Else if `I` is `dynamic` then `E` is `dynamic`.
+
+    3.  Else it is a compile-time error.
+
+3.  Type check `<pattern>` with matched value type `E`.
+
+4.  If there are no compile-time errors, then execution proceeds as the
+    following code, where `id1` and `id2` are fresh identifiers:
+
+    ```
+    var id1 = <expression>;
+    var id2 = id1.iterator;
+    while (id2.moveNext()) {
+      <keyword> <pattern> = id2.current;
+      { <statement> }
+    }
+    ```
 
 #### Pattern-if statement
 
@@ -1816,7 +1975,8 @@ To match a pattern `p` against a value `v`:
 
     2.  Otherwise, bind the variable's identifier to `v` and the match succeeds.
 
-*   **Grouping**: Match the subpattern against `v` and succeed if it matches.
+*   **Parenthesized**: Match the subpattern against `v` and succeed if it
+    matches.
 
 *   **List**:
 
@@ -1973,9 +2133,23 @@ Here is one way it could be broken down into separate pieces:
     *   Relational patterns (other than `==`)
     *   Logical-or patterns
     *   Logical-and patterns
-    *   Grouping patterns
+    *   Parenthesized patterns
 
 ## Changelog
+
+### 2.4
+
+-   Add destructuring assignment (#2438).
+
+-   Specify the context type for empty list and map patterns (#2441).
+
+-   Define a grammar rule for the outermost patterns in a declaration (#2446).
+
+-   Rename "grouping" patterns to "parenthesized" patterns (#2447).
+
+-   Specify behavior of patterns in for loops (#2448).
+
+-   Make logical-or and null-check patterns always refutable.
 
 ### 2.3
 
