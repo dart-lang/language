@@ -880,14 +880,24 @@ variables.*
 
 It is a compile-time error if:
 
-*   A variable or cast pattern has a type annotation. *Only simple identifiers
-    are allowed since you aren't declaring a new variable.*
+*   A variable pattern has a type annotation. *Only simple identifiers are
+    allowed since you aren't declaring a new variable.*
 
 *   An identifier in a variable or cast pattern does not resolve to a non-final
     variable or setter.
 
 *   The matched value type for a variable or cast pattern is not assignable to
     the corresponding variable or setter's type.
+
+*   The same variable is assigned more than once. *In other words, a pattern
+    assignment can't have multiple variable or cast subpatterns with the same
+    name. This prohibits code like:*
+
+    ```dart
+    var a = 1;
+    (a & a) = 2;
+    [a, a, a] = [1, 2, 3];
+    ```
 
 ### Switch statement
 
@@ -1605,15 +1615,20 @@ declaration is incorrectly refutable until after type checking.*
 
 Refutability of a pattern `p` matching a value of type `v` is:
 
-*   **Logical-or**, **logical-and**, **parenthesized**, **null-assert**, or
-    **cast**: Always irrefutable (though may contain refutable subpatterns).
+*   **Logical-and**, **parenthesized**, **null-assert**, or **cast**: Always
+    irrefutable (though may contain refutable subpatterns).
 
-*   **Relational**, **literal**, or **constant**: Always refutable.
+*   **Logical-or**, **relational**, **null-check**, **literal**, or
+    **constant**: Always refutable. *Logical-or patterns are refutable because
+    there is no point in using one with an irrefutable left operand. We could
+    make null-check patterns irrefutable if `v` is assignable to its static
+    type, but whenever that is true the pattern does nothing useful since its
+    only behavior is a type test.*
 
-*   **Null-check**, **variable**, **list**, **map**, **record**, or
-    **extractor**: Irrefutable if `v` is assignable to the static type of `p`.
-    *If `p` is a variable pattern with no type annotation, the type is inferred
-    from `v`, so it is never refutable.*
+*   **variable**, **list**, **map**, **record**, or **extractor**: Irrefutable
+    if `v` is assignable to the static type of `p`. *If `p` is a variable
+    pattern with no type annotation, the type is inferred from `v`, so it is
+    never refutable.*
 
 It is a compile-time error if a refutable pattern appears in an irrefutable
 context, either as the outermost pattern or a subpattern. *This means that the
@@ -2119,6 +2134,8 @@ Here is one way it could be broken down into separate pieces:
 -   Rename "grouping" patterns to "parenthesized" patterns (#2447).
 
 -   Specify behavior of patterns in for loops (#2448).
+
+-   Make logical-or and null-check patterns always refutable.
 
 ### 2.3
 
