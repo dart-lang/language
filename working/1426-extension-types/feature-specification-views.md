@@ -422,10 +422,29 @@ rules for elements used in view declarations:
 
 <viewExtensionDeclaration> ::=
   'view' 'extension' (<typeIdentifier> '.')? <typeIdentifier> <typeParameters>?
+      <viewNamespaceClause>
       <viewPrimaryConstructor>?
   '{'
     (<metadata> <viewMemberDeclaration>)*
   '}'
+
+<viewNamespaceClause> ::=
+  'namespace' <identifierList>
+
+<viewNamespaceDirective> ::=
+  'view' 'namespace' <viewShowClause>? <viewHideClause>? ';'
+
+<viewShowClause> ::=
+  'show' <viewNamespaceList>
+  
+<viewHideClause> ::=
+  'hide' <viewNamespaceList>
+
+<viewNamespaceList> ::=
+  <viewNamespaceElement> (',' <viewNamespaceElement>)*
+
+<viewNamespaceElement> ::=
+  ((<typeIdentifier> '.')? <typeIdentifier> '.')? <identifier>
 ```
 
 The token `view` is made a built-in identifier.
@@ -988,6 +1007,11 @@ extension methods, but they are 'sticky' in the sense that they are
 associated with a given view type, and they do not require the
 declaration of the view extension to be imported directly.*
 
+*Name clashes are handled by associating each view extension with a
+particular set of namespaces, which is named by an identifier list in
+the view extension declaration. Clients may then enable or disable
+each namespace using show and hide clauses.*
+
 A view extension declaration is derived from
 `<viewExtensionDeclaration>`. A compile-time error occurs if a view
 extension declaration contains a member export declaration.
@@ -1014,44 +1038,43 @@ type parameters with exactly the same bounds, up to consistent
 renaming. A compile-time error occurs unless the representation type of
 _DX_ and the representation type of _DV_ are mutual subtypes.
 
-We say that a library _L1_ is _dominated by_ a library _L0_ iff _L1_
-is in the transitive closure of imports from _L0_. *In other words,
-each library dominates every library to which it has a non-empty
-import path (so we can't have _L0 == L1_).*
-
-Similarly, a view extension declaration _DX1_ in a library _L1_ is
-_dominated by_ a view extension declaration _DX0_ in a library _L0_
-iff _L1_ is dominated by _L0_.
-
 Consider a member access _a_ (*e.g., `v.foo()`*), in a library _L_,
 where the receiver type is `View<T1, .. Tk>` where `View` denotes _DV_.
 
-Let _VX<sub>1</sub> .. VX<sub>n</sub>_ be the set of view extensions
-belonging to _DV_ which are declared in libraries
+Assume that _L_ contains a view namespace directive derived from
+`<viewNamespaceDirective>` of the form `view namespace S H`.
+
+Assume that _E_ is a `<viewNamespaceElement>` of the form
+`<identifier>`. _E_ then denotes the set of all view extensions whose
+`<viewNamespaceClause>` includes said identifier. If _E_ is of the
+form `<typeIdentifier> '.' <identifier>` where the type identifier is
+an import prefix then _E_ denotes the set of view extensions exported
+by the library which is imported with said prefix, where each view
+extension has said identifier in its view namespace clause.
+
+The set of _enabled_ view extensions in _L_ is the set of view
+extensions exported by a library which is directly or indirectly
+imported by _L_, and which is denoted by an element in `S`, and not
+denoted by any element in `H`.
+
+Let _VX<sub>1</sub> .. VX<sub>n</sub>_ be the set of enabled view
+extensions belonging to _DV_ which are declared in libraries
 _L<sub>1</sub> .. L<sub>n</sub>_ (*not necessarily distinct*)
 that are imported directly or indirectly by _L_.
 
 For the given member name (*in the example: `foo`*), let
-_VX<sub>1</sub> .. VX<sub>m</sub>_ be the subset of view extension
-declarations belonging to _DV_ that declare a member with that name
-(*we can assume that we have chosen a numbering that makes this
-possible*) and let _VX<sub>1</sub> .. VX<sub>p</sub>_ be the subset of
-_VX<sub>1</sub> .. VX<sub>m</sub>_ which are not dominated by any
-other member of _VX<sub>1</sub> .. VX<sub>m</sub>_.
+_VX<sub>1</sub> .. VX<sub>m</sub>_ be the subset of 
+_VX<sub>1</sub> .. VX<sub>n</sub>_ that declare a member with that
+name (*we can assume that we have chosen a numbering that makes this
+possible*).
 
-A compile-time error occurs if _p_ is zero or larger than 1.
+A compile-time error occurs if _m_ is zero, or _m_ is larger than 1.
 Otherwise, the member access _a_ is resolved to denote the declaration
 with that name in _VX<sub>1</sub>_.
 
 *In other words, when we are invoking an extension view member, we
-only consider the declarations that aren't "behind" some other
-declaration with the same name in the import graph. This means that
-you can "override" a given extension view member by declaring a new
-extension view member in a library _L<sub>new</sub>_ and import the
-library _L<sub>old</sub>_ that contains the member which should be
-overridden. In particular, you can always override all other extension
-view declarations of a specific member by writing an extension view in
-the current library and declare a member with that name.*
+only consider the declarations that are enabled by the view namespace
+directive of the current library.*
 
 The treatment described above is also used in order to determine the
 set of members in the interface of each view that is used as
@@ -1074,9 +1097,8 @@ treatment of member names that are already in use in the target view.*
 
 *In short, a view extension cannot redefine an existing view
 member, declared in the view or inherited by the view, but it may
-conflict with a member declared by another view extension if none of
-them dominates the other one (and hence make both of them
-unavailable).*
+conflict with a member declared by another view extension. View
+namespaces are used to enable specific view extensions.*
 
 *These rules ensure that it is possible to extend the set of members
 available for a given view in different ways, depending on the import
@@ -1089,7 +1111,7 @@ view V(int it) {
 }
 
 // Library 'extension1.dart'.
-view extension V(int it) {
+view extension V(int it) namespace One {
   void foo() {
     print('Whether I am three: $isThree!');
   }
@@ -1097,7 +1119,7 @@ view extension V(int it) {
 }
 
 // Library 'extension2.dart'.
-view Extension V(int it) {
+view Extension V(int it) namespace Two, AlternativeTwo {
   int get foo => 3; // Unrelated to `foo` in extension1.
   set baz(String s) {}
 }
@@ -1106,25 +1128,28 @@ view Extension V(int it) {
 import 'base.dart';
 import 'extension1.dart';
 import 'extension2.dart';
+view namespace show One, Two;
 
 void main() {
   var v = V(3);
   v.isThree; // OK, available from view.
-  v.bar(); // OK, from extension 1.
-  v.baz = 'Hello'; // OK, from extension 2.
+  v.bar(); // OK, from One.
+  v.baz = 'Hello'; // OK, from Two.
   v.foo; // Compile-time error, ambiguous.
 }
 
 // Library 'main2.dart'.
 import 'base.dart';
 import 'extension1.dart';
+import 'extension2.dart'; // Imported or not, makes no difference.
+view namespace show One;
 
 void main() {
   var v = V(3);
   v.isThree; // OK, from view.
-  v.bar(); // OK, from extension 1.
+  v.bar(); // OK, from One.
   v.baz = 'Hello'; // Compile-time error, no such member.
-  v.foo(); // OK, from extension 1.
+  v.foo(); // OK, from One.
 }
 ```
 
