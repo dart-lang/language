@@ -142,7 +142,7 @@ opt out. Swift and Scala default to disallowing and use `open` to allow
 subclassing.
 
 We could use `sealed` for Dart, but that keyword is used for exhaustiveness
-checking in Swift and Kotling, which could be confusin. We could use `final`,
+checking in Swift and Kotlin, which could be confusing. We could use `final`,
 but I think it would be confusing if a class marked `final` could still be
 implemented. "Final" sounds, well, *final* to me.
 
