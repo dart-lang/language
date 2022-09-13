@@ -1165,6 +1165,66 @@ That is less important here since the only other case is the else branch.
 
 ## Static semantics
 
+### Refutable and irrefutable patterns and contexts
+
+Patterns appear inside a number of other constructs in the language. This
+proposal extends Dart to allow patterns in:
+
+* Local variable declarations.
+* For loop variable declarations.
+* Assignment expressions.
+* Switch statement cases.
+* A new switch expression form's cases.
+* A new pattern-if statement.
+
+When a pattern appears in a switch case, any variables bound by the pattern are
+only in scope in that case's body. If the pattern fails to match, the case body
+is skipped. This ensures that the variables can't be used when the pattern
+failed to match and they have no defined value. Likewise, the variables bound by
+a pattern-if statement's pattern are only in scope in the then branch. That
+branch is skipped if the pattern fails to match.
+
+When patterns appear in variable declarations and assignments, there is no
+natural control flow that can skip over uses of the variables if the pattern
+fails to match. For example:
+
+```dart
+main() {
+  var (a, 5) = (1, 2);
+  print(a + b);
+}
+```
+
+What happens when `a` is printed in the example above?
+
+To avoid that, we restrict which patterns can be used in variable declarations
+and pattern assignments. Only *irrefutable* patterns that never fail to match
+are allowed in contexts where match failure can't be handled. Since a literal
+pattern like `5` in the above example might fail to match, it's prohibited and
+the above example has a compile error.
+
+We define an *irrefutable context* as the pattern in a
+`localVariableDeclaration`, `forLoopParts`, or `patternAssignment` or any of its
+subpatterns. It is a compile-time error if any of these patterns appear in an
+irrefutable context:
+
+*   Logical-or
+*   Relational
+*   Null-check
+*   Literal
+*   Constant
+
+*Logical-or patterns are refutable because there is no point in using one with
+an irrefutable left operand. We could make null-check patterns irrefutable if
+`V` is assignable to its static type, but whenever that is true the pattern does
+nothing useful since its only behavior is a type test.*
+
+*The remaining patterns are allowed syntactically to appear in a refutable
+context. Patterns that do type tests like variables and lists produce a
+compile-time error when used in an irrefutable context if the matched value
+isn't assignable to their required type. This error is specified under type
+checking.*
+
 ### Type inference
 
 Type inference in Dart allows type information in one part of the program to
@@ -1380,15 +1440,16 @@ The context type schema for a pattern `p` is:
     //                  ^-- Infer Foo<num>.
     ```
 
-#### Type checking and pattern static type
+#### Type checking and pattern required type
 
 Once the value a pattern is matched against has a static type (which means
 downwards inference on it using the pattern's context type schema is complete),
-we can type check the pattern. We also calculate a static type for the patterns
-that only match certain types: null-check, variable, list, map, record, and
-extractor.
+we can type check the pattern.
 
-Some examples and the corresponding pattern static types:
+Also variable, list, map, record, and extractor patterns only match a value of a
+certain *required type*. These patterns are prohibited in an irrefutable context
+if the matched value isn't assignable to that type. We define the required type
+for those patterns here. Some examples and the corresponding required types:
 
 ```dart
 var <int>[a, b] = <num>[1, 2];  // List<int> (and compile error).
@@ -1412,8 +1473,6 @@ To type check a pattern `p` being matched against a value of type `M`:
     1.  Let `N` be [**NonNull**][nonnull](`M`).
 
     2.  Type-check the subpattern using `N` as the matched value type.
-
-    3.  If `p` is a null-check pattern, then the static type of `p` is `N`.
 
     [nonnull]: https://github.com/dart-lang/language/blob/master/accepted/2.12/nnbd/feature-specification.md#null-promotion
 
@@ -1473,7 +1532,7 @@ To type check a pattern `p` being matched against a value of type `M`:
 
         *both `a` and `b` use `num` as their matched value type.*
 
-    3.  The static type of `p` is `List<S>` where:
+    3.  The required type of `p` is `List<S>` where:
 
         1.  If `p` has a type argument, `S` is that type. *If the list pattern
             has an explicit type argument, that wins.*
@@ -1500,7 +1559,7 @@ To type check a pattern `p` being matched against a value of type `M`:
 
         *Here, both `a` and `b` use `Object` as the matched value type.*
 
-    3.  The static type of `p` is `Map<L, W>` where:
+    3.  The required type of `p` is `Map<L, W>` where:
 
         1.  If `p` has type arguments, `L` and `W` are those type arguments.
             *If the map pattern is explicitly typed, that wins.*
@@ -1520,7 +1579,7 @@ To type check a pattern `p` being matched against a value of type `M`:
         corresponding named field on `M` as the matched value type or `Object?`
         if `M` is not a record type with the corresponding field.
 
-    3.  The static type of `p` is a record type with the same shape as `p` and
+    3.  The required type of `p` is a record type with the same shape as `p` and
         `Object?` for all fields. *If the matched value's type is `dynamic` or
         some record supertype like `Object`, then the record pattern should
         match any record with the right shape and then delegate to its field
@@ -1537,106 +1596,21 @@ To type check a pattern `p` being matched against a value of type `M`:
         a compile-time error if `X` does not have a getter whose name matches
         the subpattern's field name.
 
-    2.  The static type of `p` is `X`.
+    2.  The required type of `p` is `X`.
 
-It is a compile-time error if the type of an expression in a guard clause is not
-`bool` or `dynamic`.
+It is a compile-time error if:
+
+*   The type of an expression in a guard clause is not `bool` or `dynamic`.
+
+*   `p` is in an irrefutable context, it has a required type `T`, and `M` is not
+    assignable to `T`. *Destructuring and variable patterns can only be used in
+    declarations and assignments if we can statically tell that the
+    destructuring and variable binding won't fail.*
 
 ### Switch expression type
 
 The static type of a switch expression is the least upper bound of the static
 types of all of the case expressions.
-
-## Refutable and irrefutable patterns
-
-Patterns appear inside a number of other constructs in the language. This
-proposal extends Dart to allow patterns in:
-
-* Local variable declarations.
-* For loop variable declarations.
-* Assignment expressions.
-* Switch statement cases.
-* A new switch expression form's cases.
-* A new pattern-if statement.
-
-When a pattern appears in a switch case, any variables bound by the pattern are
-only in scope in that case's body. If the pattern fails to match, the case body
-is skipped. This ensures that the variables can't be used when the pattern
-failed to match and they have no defined value. Likewise, the variables bound by
-a pattern-if statement's pattern are only in scope in the then branch. That
-branch is skipped if the pattern fails to match.
-
-The other places patterns can appear are various kinds of variable declarations,
-like:
-
-```dart
-main() {
-  var (a, b) = (1, 2);
-  print(a + b);
-}
-```
-
-Variable declarations have no natural control flow attached to them, so what
-happens if the pattern fails to match? What happens when `a` is printed in the
-example above?
-
-To avoid that, we restrict which patterns can be used in variable declarations.
-Only *irrefutable* patterns that never fail to match are allowed in contexts
-where match failure can't be handled. For example, this is an error:
-
-```dart
-main() {
-  var (== 2, == 3) = (1, 2);
-}
-```
-
-We define an *irrefutable context* as the pattern in a
-`localVariableDeclaration`, `forLoopParts`, or `patternAssignment`. A *refutable
-context* is the pattern in a `caseHead` or `ifCondition`.
-
-Refutability is not just a property of the pattern itself. It also depends on
-the static type of the value being matched. Consider:
-
-```dart
-irrefutable((int, int) obj) {
-  var (a, b) = obj;
-}
-
-refutable(Object obj) {
-  var (a, b) = obj;
-}
-```
-
-In the first function, the `(a, b)` pattern will always successfully destructure
-the record because `obj` is known to be a record type of the right shape. But in
-the second function, `obj` may fail to match because the value may not be a
-record. *This implies that we can't determine whether a pattern in a variable
-declaration is incorrectly refutable until after type checking.*
-
-Refutability of a pattern `p` matching a value of type `V` is:
-
-*   **Logical-and**, **parenthesized**, **null-assert**, or **cast**:
-    Irrefutable if and only if all subpatterns are irrefutable.
-
-*   **Logical-or**, **relational**, **null-check**, **literal**, or
-    **constant**: Always refutable. *Logical-or patterns are refutable because
-    there is no point in using one with an irrefutable left operand. We could
-    make null-check patterns irrefutable if `V` is assignable to its static
-    type, but whenever that is true the pattern does nothing useful since its
-    only behavior is a type test.*
-
-*   **variable**, **list**, **map**, **record**, or **extractor**: Irrefutable
-    if and only if `V` is assignable to the static type of `p` and all
-    subpatterns are irrefutable. *If `p` is a variable pattern with no type
-    annotation, the type is inferred from `V`, so it is never refutable.*
-
-It is a compile-time error if a refutable pattern appears in an irrefutable
-context. *This means that the explicit predicate patterns like constants and
-literals can never appear in pattern variable declarations or pattern
-assignments. The patterns that do type tests directly or implicitly can appear
-in variable declarations or assignments only if the tested type is assignable
-from the value type. In other words, any pattern that needs to "downcast" to
-match is refutable.*
 
 ### Variables and scope
 
@@ -1949,8 +1923,8 @@ To match a pattern `p` against a value `v`:
 *   **Null-assert**:
 
     1.  If `v` is null then throw a runtime exception. *Note that we throw even
-        if this appears in a refutable context. The intent of this pattern is to
-        assert that a value *must* not be null.*
+        if this appears outside of a refutable context. The intent of this
+        pattern is to assert that a value *must* not be null.*
 
     2.  Otherwise, match the inner pattern against `v`.
 
@@ -1970,8 +1944,8 @@ To match a pattern `p` against a value `v`:
 
     1.  If the runtime type of `v` is not a subtype of the static type of `p`
         then throw a runtime exception. *Note that we throw even if this appears
-        in a refutable context. The intent of this pattern is to assert that a
-        value *must* have some type.*
+        outside of a refutable context. The intent of this pattern is to assert
+        that a value *must* have some type.*
 
     2.  Otherwise, bind the variable's identifier to `v` and the match succeeds.
 
