@@ -1190,7 +1190,7 @@ fails to match. For example:
 
 ```dart
 main() {
-  var (a, b) = (1, 2);
+  var (a, 5) = (1, 2);
   print(a + b);
 }
 ```
@@ -1199,14 +1199,9 @@ What happens when `a` is printed in the example above?
 
 To avoid that, we restrict which patterns can be used in variable declarations
 and pattern assignments. Only *irrefutable* patterns that never fail to match
-are allowed in contexts where match failure can't be handled. For example, this
-is an error:
-
-```dart
-main() {
-  var (== 2, == 3) = (1, 2);
-}
-```
+are allowed in contexts where match failure can't be handled. Since a literal
+pattern like `5` in the above example might fail to match, it's prohibited and
+the above example has a compile error.
 
 We define an *irrefutable context* as the pattern in a
 `localVariableDeclaration`, `forLoopParts`, or `patternAssignment` or any of its
