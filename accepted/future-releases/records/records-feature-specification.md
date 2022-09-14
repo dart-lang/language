@@ -2,9 +2,9 @@
 
 Author: Bob Nystrom
 
-Status: In progress
+Status: Accepted
 
-Version 1.7 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.8 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -564,6 +564,10 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.8
+
+- Move to accepted
 
 ### 1.7
 
