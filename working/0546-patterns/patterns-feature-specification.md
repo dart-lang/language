@@ -1834,7 +1834,7 @@ or expression are exhaustive or not. Given that:
     mistakes at compile time.*
 
 *   It is a compile-time error if the static type of the matched value in a
-    switch statement is an *enxhaustive type* and the cases are not exhaustive.
+    switch statement is an *exhaustive type* and the cases are not exhaustive.
     An exhaustive type is:
 
     *   `bool`
@@ -1842,6 +1842,7 @@ or expression are exhaustive or not. Given that:
     *   A type whose declaration is marked sealed
     *   `T?` where `T` is exhaustive
     *   `FutureOr<T>` for some type `T` that is exhaustive
+    *   A record type whose fields are all exhaustive types
 
     **TODO: Finalize the syntax for marking a class as a sealed family.**
 
