@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 2.6 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.7 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -483,7 +483,7 @@ expression.
 ### Variable pattern
 
 ```
-variablePattern ::= ( 'var' | 'final' | type )? identifier
+variablePattern ::= ( 'var' | 'final' | 'final'? type )? identifier
 ```
 
 A variable pattern binds the matched value to a new variable. These usually
@@ -732,13 +732,13 @@ against the initializer's value.
 Add this new rule:
 
 ```
-patternDeclaration  ::= ( 'final' | 'var' ) outerPattern '=' expression
+patternVariableDeclaration  ::= ( 'final' | 'var' ) outerPattern '=' expression
 
-outerPattern        ::= parenthesizedPattern
-                      | listPattern
-                      | mapPattern
-                      | recordPattern
-                      | extractorPattern
+outerPattern                ::= parenthesizedPattern
+                              | listPattern
+                              | mapPattern
+                              | recordPattern
+                              | extractorPattern
 ```
 
 The `outerPattern` rule defines a subset of the patterns that are allowed as the
@@ -772,7 +772,7 @@ variables like so:
 ```
 localVariableDeclaration ::=
   | initializedVariableDeclaration ';' // Existing.
-  | patternDeclaration ';' // New.
+  | patternVariableDeclaration ';' // New.
 
 forLoopParts ::=
   | // Existing productions...
@@ -840,9 +840,11 @@ It is a compile-time error if:
 We extend switch statements to allow patterns in cases:
 
 ```
-switchStatement ::= 'switch' '(' expression ')' '{' switchCase* defaultCase? '}'
-switchCase      ::= label* caseHead ':' statements
-caseHead        ::= 'case' pattern ( 'when' expression )?
+switchStatement         ::= 'switch' '(' expression ')'
+                            '{' switchStatementCase* switchStatementDefault? '}'
+switchStatementCase     ::= label* caseHead ':' statements
+caseHead                ::= 'case' pattern ( 'when' expression )?
+switchStatementDefault  ::= label* 'default' ':' statements
 ```
 
 Allowing patterns in cases significantly increases the expressiveness of what
@@ -1070,13 +1072,13 @@ Color shiftHue(Color color) {
 The grammar is:
 
 ```
-primary               ::= // Existing productions...
-                        | switchExpression
+primary                 ::= // Existing productions...
+                          | switchExpression
 
-switchExpression      ::= 'switch' '(' expression ')' '{'
-                          switchExpressionCase* defaultExpressionCase? '}'
-switchExpressionCase  ::= caseHead '=>' expression ';'
-defaultExpressionCase ::= 'default' '=>' expression ';'
+switchExpression        ::= 'switch' '(' expression ')' '{'
+                            switchExpressionCase* switchExpressionDefault? '}'
+switchExpressionCase    ::= caseHead '=>' expression ';'
+switchExpressionDefault ::= 'default' '=>' expression ';'
 ```
 
 Slotting into `primary` means it can be used anywhere any expression can appear,
@@ -1606,6 +1608,12 @@ To type check a pattern `p` being matched against a value of type `M`:
     *Here, the `1` constant pattern in the case is inferred in a context type of
     `double` to be `1.0` and so does match.*
 
+    *Note that the pattern's value must be a constant, but there is no
+    restriction that it must have a primitive operator `==`. Unlike switch cases
+    in current Dart, you can have a constant with a user-defined operator `==`
+    method. This lets you use constant patterns for user-defined types with
+    custom value semantics.*
+
 *   **Variable**:
 
     1.  In an assignment context, the required type of `p` is the (unpromoted)
@@ -1755,9 +1763,9 @@ The variables a patterns binds depend on what kind of pattern it is:
 
 *   **Variable**: When not in an assignment context, introduces a variable whose
     name is the pattern's identifier. In a declaration context, the variable is
-    final if the surrounding `patternDeclaration` has a `final` modifier. In a
-    matching context, the variable is final if the variable pattern is marked
-    `final` and is not otherwise.
+    final if the surrounding `patternVariableDeclaration` has a `final`
+    modifier. In a matching context, the variable is final if the variable
+    pattern is marked `final` and is not otherwise.
 
 [2473]: https://github.com/dart-lang/language/issues/2473
 
@@ -1803,12 +1811,12 @@ type.**
 
 ### Exhaustiveness and reachability
 
-A switch is *exhaustive* if all possible values of the matched value's type will
-definitely match at least one case, or there is a default case. Dart currently
-shows a warning if a switch statement on an enum type does not have cases for
-all enum values (or a default). This is helpful for code maintainance: when you
-add a new value to an enum type, the language shows you every switch statement
-that may need a new case to handle it.
+A switch is *exhaustive* if all possible values of the matched value's static
+type will definitely match at least one case, or there is a default case. Dart
+currently shows a warning if a switch statement on an enum type does not have
+cases for all enum values (or a default). This is helpful for code maintainance:
+when you add a new value to an enum type, the language shows you every switch
+statement that may need a new case to handle it.
 
 This checking is even more important with this proposal. Exhaustiveness checking
 is a key part of maintaining code written in an algebraic datatype style. It's
@@ -1816,8 +1824,30 @@ the functional equivalent of the error reported when a concrete class fails to
 implement an abstract method.
 
 Exhaustiveness checking over arbitrarily deeply nested record and extractor
-patterns can be complex, so the proposal for that is in a [separate
-document][exhaustiveness].
+patterns is complex, so the proposal to define how it works is in a [separate
+document][exhaustiveness]. That tells us if the cases in a switch statement
+or expression are exhaustive or not. Given that:
+
+*   It is a compile-time error if the cases in a switch expression are not
+    exhaustive. *Since an expression must yield a value, the only other option
+    is to throw an error and most Dart users prefer to catch those kinds of
+    mistakes at compile time.*
+
+*   It is a compile-time error if the static type of the matched value in a
+    switch statement is an *enxhaustive type* and the cases are not exhaustive.
+    An exhaustive type is:
+
+    *   `bool`
+    *   `Null`
+    *   A type whose declaration is marked sealed
+    *   `T?` where `T` is exhaustive
+    *   `FutureOr<T>` for some type `T` that is exhaustive
+
+    **TODO: Finalize the syntax for marking a class as a sealed family.**
+
+*   It is a compile-time warning if the static type of the matched value in a
+    switch statement is an enum type or a nullable enum type and the cases are
+    not exhaustive.
 
 [exhaustiveness]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/exhaustiveness.md
 
@@ -1917,7 +1947,7 @@ fail in some way.*
 A statement of the form:
 
 ```dart
-for (<patternDeclaration>; <condition>; <increment>) <statement>
+for (<patternVariableDeclaration>; <condition>; <increment>) <statement>
 ```
 
 Is executed similar to a traditional for loop except that multiple variables may
@@ -2038,16 +2068,38 @@ To match a pattern `p` against a value `v`:
 
     1.  Evaluate the right-hand constant expression to `c`.
 
-    2.  A `== c` pattern matches if `v == c` evaluates to true. *This takes into
-        account the built-in semantics that `null` is only equal to `null`.*
+    2.  If the operator is `==`:
 
-    3.  A `!= c` pattern matches if `v == e` evaluates to false. *This takes
-        into account the built-in semantics that `null` is not equal to anything
-        but `null`.*
+        1.  Let `r` be the result of `v == c`.
 
-    4.  For any other operator, the pattern matches if calling the operator
-        method of the same name on the matched value, with `c` as the argument
-        returns true.
+        2.  If `r` is not a Boolean then throw a runtime error. *This can
+            happen if operator `==` on `v`'s type returns `dynamic`.*
+
+        3.  The pattern matches if `r` is true and fails otherwise. *This takes
+            into account the built-in semantics that `null` is only equal to
+            `null`.*
+
+    2.  Else if the operator is `!=`:
+
+        1.  Let `r` be the result of `v == c`.
+
+        2.  If `r` is not a Boolean then throw a runtime error. *This can
+            happen if operator `==` on `v`'s type returns `dynamic`.*
+
+        3.  The pattern matches if `r` is false and fails otherwise. *This takes
+            into account the built-in semantics that `null` is only equal to
+            `null`.*
+
+    3.  Else the operator is a comparison operator `op`:
+
+        1.  Let `r` be the result of calling `op` on `v` with argument `c`.
+
+        2.  If `r` is not a Boolean then throw a runtime error. *This can happen
+            if the operator on `v`'s type returns `dynamic`.*
+
+        3.  The pattern matches if `r` is true and fails otherwise. *This takes
+            into account the built-in semantics that `null` is only equal to
+            `null`.*
 
 *   **Cast**:
 
@@ -2126,7 +2178,7 @@ To match a pattern `p` against a value `v`:
         becomes a runtime exception if the map pattern is in a variable
         declaration.*
 
-    3.  Otherwise, for each entry in `p`:
+    3.  Otherwise, for each entry in `p`, in source order:
 
         1.  Evaluate the key `expression` to `k` and call `containsKey()` on the
             value. If this returns `false`, the map does not match.
@@ -2159,9 +2211,10 @@ To match a pattern `p` against a value `v`:
     1.  If the runtime type of `v` is not a subtype of the static type of `p`
         then the match fails.
 
-    3.  Otherwise, for each field `f` in `p`:
+    3.  Otherwise, for each field `f` in `p`, in source order:
 
         1.  Call the getter with the same name as `f` on `v` to a result `r`.
+            The getter may be an in-scope extension member.
 
         2.  Match the subpattern of `f` against `r`. If the match fails, the
             extractor match fails.
@@ -2250,6 +2303,23 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.7
+
+-   Clarify that relational and extractor patterns can call extension members
+    (#2457).
+
+-   Non-boolean results throw in relational patterns instead of failing the
+    match (#2461).
+
+-   Specify that map and extractor subpatterns are evaluated in source order
+    (#2466).
+
+-   Specify non-exhaustive switch errors and warnings (#2474).
+
+-   Allow `final` before type annotated variable patterns (#2486).
+
+-   Rename some grammars to align with Analyzer AST names (#2491).
 
 ### 2.6
 
