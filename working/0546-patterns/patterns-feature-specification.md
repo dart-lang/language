@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 2.5 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.6 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -214,8 +214,8 @@ Here is the overall grammar for the different kinds of patterns:
 pattern               ::= logicalOrPattern
 patterns              ::= pattern ( ',' pattern )* ','?
 
-logicalOrPattern      ::= logicalAndPattern ( '|' logicalOrPattern )?
-logicalAndPattern     ::= relationalPattern ( '&' logicalAndPattern )?
+logicalOrPattern      ::= ( logicalOrPattern '|' )? logicalAndPattern
+logicalAndPattern     ::= ( logicalAndPattern '&' )? relationalPattern
 relationalPattern     ::= ( equalityOperator | relationalOperator) relationalExpression
                         | unaryPattern
 
@@ -243,7 +243,7 @@ The individual patterns are:
 ### Logical-or pattern
 
 ```
-logicalOrPattern ::= logicalAndPattern ( '|' logicalOrPattern )?
+logicalOrPattern ::= ( logicalOrPattern '|' )? logicalAndPattern
 ```
 
 A pair of patterns separated by `|` matches if either of the branches match.
@@ -300,7 +300,7 @@ problems stemming from that, the following restrictions apply:
 ### Logical-and pattern
 
 ```
-logicalAndPattern ::= relationalPattern ( '&' logicalAndPattern )?
+logicalAndPattern ::= ( logicalAndPattern '&' )? relationalPattern
 ```
 
 A pair of patterns separated by `&` matches only if *both* subpatterns match.
@@ -2250,6 +2250,10 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.6
+
+-   Change logical-or and logical-and patterns to be left-associative.
 
 ### 2.5
 
