@@ -57,13 +57,13 @@ becomes:
 ### Parts
 
 A library part specifies the library to which it belongs using the part-of
-directive, which accepts two ways of refering to a library. A part-of directive
-can specify a library by URI, which is the more common way, and does not
-require the library to be explicitly named. In an older style, a part-of
+directive, which accepts two ways of referring to a library. A part-of
+directive can specify a library by URI, which is the more common way, and does
+not require the library to be explicitly named. In an older style, a part-of
 directive can instead specify a library by its name. A part-of directive cannot
 refer by name to an implicitly named library.  Therefore, with this feature, a
-part-of directive cannot refer to a library with a library directive without a
-name.
+part-of directive using a library name cannot refer to a library with a library
+directive without a name.
 
 ### `dart:mirrors`
 
