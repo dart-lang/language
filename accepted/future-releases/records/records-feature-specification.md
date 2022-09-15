@@ -297,6 +297,11 @@ class extends Record {
 
 ### Subtyping
 
+Subtyping for record types has been incorporated into the main subtyping
+specification
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
+Briefly:
+
 The class `Record` is a subtype of `Object` and `dynamic` and a supertype of
 `Never`. All record types are subtypes of `Record`, and supertypes of `Never`.
 
@@ -307,6 +312,11 @@ the types of all fields of `A` are subtypes of the corresponding field types of
 no "row polymorphism" or "width subtyping".*
 
 ### Upper and lower bounds
+
+Bounds computatinos for record types has been incorporated into the main
+specification
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).
+Briefly:
 
 If two record types have the same shape, their least upper bound is a new
 record type of the same shape where each field's type is the least upper bound
@@ -337,13 +347,42 @@ var c = cond ? a : b; // c has type `Record`.
 
 The greatest lower bound of records with different shapes is `Never`.
 
-### Type inference and promotion
+### Type inference
 
-Type inference and promotion flows through records in much the same way it does
-for instances of generic classes (which are covariant in Dart just like record
-fields are) and collection literals.
+As usual, we define type inference for records expressions with respect to a
+context type schema which is determined by the surrounding context of the
+inferred expression.  Given a type schema `K` and a record expression `E` of the
+general form `(e0, ..., en, d0 : t0, ..., dm : tm)`, then inference proceeds as
+follows.
 
-**TODO: Specify this more precisely.**
+If `K` is a record type schema of the form `(K0, ..., Kn, {d0 : P0, ...., dm :
+Pm})`, then:
+  - Each `ei` is inferred with context type schema `Ki` to have type `Ti`
+  - Each `ti` is inferred with context type schema `Pi` to have type `Si`
+  - The type of `E` is `(T0, ..., Tn, {d0 : S0, ...., dm : Sm})`
+
+If `K` is any other type schema:
+  - Each `ei` is inferred with context type schema `_` to have type `Ti`
+  - Each `ti` is inferred with context type schema `_` to have type `Si`
+  - The type of `E` is `(T0, ..., Tn, {d0 : S0, ...., dm : Sm})`
+
+Note that contrary to the practice for runtime checked covariant nominal types,
+we do not prefer the context type over the more precise upwards type.  The
+following example illustrates this:
+
+```dart
+  // No error, inferred type of the record is (int, double)
+  (num, num) r = (3, 3.5)..$0.isEven;
+```
+
+Note that implicit casts are not considered to be applied as part of inference,
+hence:
+
+```dart
+  // Static error, inferred type of the record is (dynamic, double)
+  (num, num) r = (3 as dynamic, 3.5);
+```
+
 
 ### Constants
 
@@ -564,6 +603,10 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.9
+
+- Specify type inference, add static semantics to resources/type-system
 
 ### 1.8
 

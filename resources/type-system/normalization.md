@@ -93,6 +93,9 @@ equations apply gives us something like the following:
   - where `R1` = **NORM**(`R`)
   - and `B1` = **NORM**(`B`)
   - and `S1` = **NORM**(`S`)
+- **NORM**(`(S0, ..., Sn, {T0 d0, ..., Tm dm})`) = `(S0', ..., Sn', {T0' d0, ..., Tm' dm})`
+  - where `Si'` = **NORM**(`Si`)
+  - and `Ti'` = **NORM**(`Ti`)
 
 Note that there is currently no place in the type system where normalization can
 apply to intersection types (promoted types). The rule is included here for

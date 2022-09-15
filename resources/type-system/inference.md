@@ -452,6 +452,8 @@ The covariant occurrences of a type (schema) `T` in another type (schema) `S` ar
       the union of:
     - the covariant occurrences of `T` in `U`
     - the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
+  - if `S` is `(T0, ...., Tn, {Tn+1 xn+1, ..., Tm xm})`,
+    - the covariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
 
 The contravariant occurrences of a type `T` in another type `S` are:
   - if `S` is `Future<U>`
@@ -468,6 +470,8 @@ The contravariant occurrences of a type `T` in another type `S` are:
       the union of:
     - the contravariant occurrences of `T` in `U`
     - the covariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
+  - if `S` is `(T0, ...., Tn, {Tn+1 xn+1, ..., Tm xm})`,
+    - the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
 
 The invariant occurrences of a type `T` in another type `S` are:
   - if `S` is `Future<U>`
@@ -486,6 +490,8 @@ The invariant occurrences of a type `T` in another type `S` are:
     - the invariant occurrences of `T` in `U`
     - the invariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
     - all occurrences of `T` in `Bi` for `i` in `0, ..., k`
+  - if `S` is `(T0, ...., Tn, {Tn+1 xn+1, ..., Tm xm})`,
+    - the invariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
 
 ### Type variable elimination (least and greatest closure of a type)
 
@@ -564,6 +570,13 @@ replaced with `Never`, and every covariant occurrence of `Xi` replaced with
   from any of the `Bi`:
   - The least closure of `S` with respect to `L` is `Never`
   - The greatest closure of `S` with respect to `L` is `Function`
+- if `S` is `(T0 x0, ...., Tn xn,  {Tn+1 xn+1, ..., Tm xm})`:
+  - The least closure of `S` with respect to `L` is `(U0 x0, ...., Un1 xn, {Un+1
+    xn+1, ..., Um xm})` where:
+    - `Ui` is the least closure of `Ti` with respect to `L`
+  - The greatest closure of `S` with respect to `L` is `(U0 x0, ...., Un1 xn,
+    {Un+1 xn+1, ..., Um xm})` where:
+    - `Ui` is the greatest closure of `Ti` with respect to `L`
 
 
 ### Type schema elimination (least and greatest closure of a type schema)
@@ -934,6 +947,15 @@ with respect to `L` under constraints `C0`
   - And `C1` is  `C02 + ... + Cn2 + C0`
   - And `C2` is `C1` with each constraint replaced with its closure with respect
     to `[Z0, ..., Zn]`.
+
+- A type `P` is a subtype match for `Record` with respect to `L` under no constraints:
+  - If `P` is a record type (including `Record`).
+
+- A record type `(M0,..., Mk, {M{k+1} d{k+1}, ..., Mm d{m}])` is a subtype match
+  for a record type `(N0,..., Nk, {N{k+1} d{k+1}, ..., Nm d{m}])` with respect
+  to `L` under constraints `C0 + ... + Cm`
+  - If for `i` in `0...m`, `Mi` is a subtype match for `Ni` with respect to `L`
+  under constraints `Ci`.
 
 
 <!--

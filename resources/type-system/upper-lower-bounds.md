@@ -173,6 +173,20 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`T Function<...>(...)`, `S Function<...>(...)`) = `Function` otherwise
 - **UP**(`T Function<...>(...)`, `T2`) = **UP**(`Object`, `T2`)
 - **UP**(`T1`, `T Function<...>(...)`) = **UP**(`T1`, `Object`)
+
+- **UP**(`(...)`, `Record`) = `Record`
+- **UP**(`Record`, `(...)`) = `Record`
+
+- **UP**(`(S0, ... Sk, {T0 d0, ..., Tn dn})`,
+         `(S0', ... Sk', {T0' d0, ..., Tn' dn})`) =
+   `(Q0, ...,Qk, {R0, ..., Rn})` if:
+     - `Qi` is **UP**(`Si`, `Si'`)
+     - `Ri` is **UP**(`Ti`, `Ti'`)
+
+- **UP**(`(...)`, `(...)`) = `Record` otherwise
+- **UP**(`(...)`, `T2`) = **UP**(`Object`, `T2`)
+- **UP**(`T1`, `(...)`) = **UP**(`T1`, `Object`)
+
 - **UP**(`FutureOr<T1>`, `FutureOr<T2>`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
 - **UP**(`Future<T1>`, `FutureOr<T2>`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
 - **UP**(`FutureOr<T1>`, `Future<T2>`) = `FutureOr<T3>` where `T3` = **UP**(`T1`, `T2`)
@@ -280,6 +294,16 @@ follows.
 
 - **DOWN**(`T Function<...>(...)`, `S Function<...>(...)`) = `Never` otherwise
 
+- **DOWN**(`(...)`, `Record`) = `(...)`
+- **DOWN**(`Record`, `(...)`) = `(...)`
+
+- **DOWN**(`(S0, ... Sk, {T0 d0, ..., Tn dn})`,
+         `(S0', ... Sk', {T0' d0, ..., Tn' dn})`) =
+   `(Q0, ...,Qk, {R0, ..., Rn})` if:
+     - `Qi` is **DOWN**(`Si`, `Si'`)
+     - `Ri` is **DOWN**(`Ti`, `Ti'`)
+
+- **DOWN**(`(...)`, `(...)`) = `Never` otherwise
 
 - **DOWN**(`T1`, `T2`) = `T1` if `T1` <: `T2`
 - **DOWN**(`T1`, `T2`) = `T2` if `T2` <: `T1`
