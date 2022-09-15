@@ -951,8 +951,8 @@ with respect to `L` under constraints `C0`
 - A type `P` is a subtype match for `Record` with respect to `L` under no constraints:
   - If `P` is a record type (including `Record`).
 
-- A record type `(M0,..., Mk, {M{k+1} d{k+1}, ..., Mm d{m}])` is a subtype match
-  for a record type `(N0,..., Nk, {N{k+1} d{k+1}, ..., Nm d{m}])` with respect
+- A record type `(M0,..., Mk, {M{k+1} d{k+1}, ..., Mm dm])` is a subtype match
+  for a record type `(N0,..., Nk, {N{k+1} d{k+1}, ..., Nm dm])` with respect
   to `L` under constraints `C0 + ... + Cm`
   - If for `i` in `0...m`, `Mi` is a subtype match for `Ni` with respect to `L`
   under constraints `Ci`.

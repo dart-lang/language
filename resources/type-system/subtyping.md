@@ -35,7 +35,7 @@ The set of types under consideration are as follows:
 - `Null`
 - `Never`
 - `Function`
-- `Record'
+- `Record`
 - `Future<T>`
 - `FutureOr<T>`
 - `T?`

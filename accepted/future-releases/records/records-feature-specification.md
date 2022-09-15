@@ -349,7 +349,7 @@ The greatest lower bound of records with different shapes is `Never`.
 
 ### Type inference
 
-As usual, we define type inference for records expressions with respect to a
+As usual, we define type inference for record expressions with respect to a
 context type schema which is determined by the surrounding context of the
 inferred expression.  Given a type schema `K` and a record expression `E` of the
 general form `(e0, ..., en, d0 : t0, ..., dm : tm)`, then inference proceeds as
