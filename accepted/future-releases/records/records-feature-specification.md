@@ -313,7 +313,7 @@ no "row polymorphism" or "width subtyping".*
 
 ### Upper and lower bounds
 
-Bounds computatinos for record types has been incorporated into the main
+Bounds computations for record types have been incorporated into the main
 specification
 [here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).
 Briefly:
