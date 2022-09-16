@@ -407,6 +407,18 @@ The meta-variable `C` ranges over classes.
 
 The meta-variable `B` ranges over types used as bounds for type variables.
 
+For convenience, we generally write function types with all named parameters in
+an unspecified canonical order, and similarly for the named fields of record
+types.  In all cases unless otherwise specifically called out, order of named
+parameters and fields is semantically irrelevant: any two types with the same
+named parameters (named fields, respectively) are considered the same type.
+
+Similarly, function and method invocations with named arguments and records with
+named field entries are written with their named entries in an unspecified
+canonical order and position.  Unless otherwise called out, position of named
+entries is semantically irrelevant, and all invocations and record literals with
+the same named entries (possibly in different orders or locations) and the same
+positional entries are considered equivalent.
 
 ### Type schemas
 

@@ -30,6 +30,12 @@ full Dart types, as described in the subtyping
 document
 [here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md)
 
+For convenience, we generally write function types with all named parameters in
+an unspecified canonical order, and similarly for the named fields of record
+types.  In all cases unless otherwise specifically called out, order of named
+parameters and fields is semantically irrelevant: any two types with the same
+named parameters (named fields, respectively) are considered the same type.
+
 ## Syntactic conventions
 
 The predicates here are defined as algorithms and should be read from top to

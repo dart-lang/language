@@ -21,6 +21,13 @@ document
 We assume that type aliases are fully expanded, and that prefixed types are
 resolved to a canonical name.
 
+For convenience, we generally write function types with all named parameters in
+an unspecified canonical order, and similarly for the named fields of record
+types.  In all cases unless otherwise specifically called out, order of named
+parameters and fields is semantically irrelevant: any two types with the same
+named parameters (named fields, respectively) are considered the same type.
+
+
 ## Normalization
 
 The **NORM** relation defines the canonical representative of classes of

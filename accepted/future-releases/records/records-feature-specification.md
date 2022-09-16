@@ -351,9 +351,24 @@ The greatest lower bound of records with different shapes is `Never`.
 
 As usual, we define type inference for record expressions with respect to a
 context type schema which is determined by the surrounding context of the
-inferred expression.  Given a type schema `K` and a record expression `E` of the
-general form `(e0, ..., en, d0 : t0, ..., dm : tm)`, then inference proceeds as
-follows.
+inferred expression.
+
+For convenience, we generally write function types with all named parameters in
+an unspecified canonical order, and similarly for the named fields of record
+types.  In all cases unless otherwise specifically called out, order of named
+parameters and fields is semantically irrelevant: any two types with the same
+named parameters (named fields, respectively) are considered the same type.
+
+Similarly, function and method invocations with named arguments and records with
+named field entries are written with their named entries in an unspecified
+canonical order and position.  Unless otherwise called out, position of named
+entries is semantically irrelevant, and all invocations and record literals with
+the same named entries (possibly in different orders or locations) and the same
+positional entries are considered equivalent.
+
+Given a type schema `K` and a
+record expression `E` of the general form `(e0, ..., en, d0 : t0, ..., dm :
+tm)`, then inference proceeds as follows.
 
 If `K` is a record type schema of the form `(K0, ..., Kn, {d0 : P0, ...., dm :
 Pm})`, then:
