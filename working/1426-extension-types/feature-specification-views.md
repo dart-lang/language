@@ -1205,6 +1205,34 @@ void main() {
 ```
 
 
+### View namespace usage
+
+*This section is a non-normative discussion about some ways that view
+namespaces could be managed.*
+
+*If view extensions are used to handle an API migration then a useful
+approach could be to have a view namespace indicating the topic (e.g.,
+`html`) and a namespace indicating the version (e.g., `legacy` and
+`v3_0_0`). Developers would then enable the particular version of a
+set of views by means of `view namespace show <topic>, <version>`, for
+example: `view namespace show html, v3_0_0;`.*
+
+*Namespaces used as "topics" in this sense could be managed by the
+community. For instance, a convention could be applied where large
+companies or organizations could use specific suffixes (for example,
+view namespaces managed by the Dart team could have the form
+`..._core`, e.g., `html_core`; a company ACME could use `..._acme`,
+and so on).*
+
+*It would then typically be the case that `..._acme` view namespaces
+would contain view extensions on views provided by ACME, and ACME
+would take responsibility for avoiding (or eliminating) name clashes
+among members added by view extensions, for any given version. So
+you're never supposed to enable multiple versions of the same topic in
+the same library, and when exactly one version of a given topic is
+enabled then it can be expected that there are no name clashes.*
+
+
 ## Dynamic Semantics of Views
 
 The dynamic semantics of view member invocation follows from the code
