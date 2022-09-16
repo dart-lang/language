@@ -2190,9 +2190,6 @@ To match a pattern `p` against a value `v`:
 
     4.  The match succeeds if all entry subpatterns match.
 
-    *Note that, unlike with lists, a matched map may have additional entries
-    that are not checked by the pattern.*
-
 *   **Record**:
 
     1.  If the runtime type of `v` is not a record type with the same type as
