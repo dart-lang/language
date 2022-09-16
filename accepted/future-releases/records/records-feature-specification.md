@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.8 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.9 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -498,6 +498,18 @@ The implementation of `hashCode` follows this. The hash code returned should
 depend on the field values such that two records that compare equal must have
 the same hash code.
 
+### Primitive equality
+
+A record object has a primitive `==` operator if all of its field have primitive
+`==` operators.
+
+*Note that this is a dynamic property of a record object, not a static property
+of its type. Since primitive equality only comes into play in constants, the
+compiler can see the actual field values for a relevant record at compile time
+because it has the actual constant record value with all of its constant fields.
+This means records can be used in constant sets and maps keys, but only when the
+records' fields could be as well.*
+
 ### Identity
 
 We expect records to often be used for multiple return values. In that case, and
@@ -565,9 +577,13 @@ covariant in their field types.
 
 ## CHANGELOG
 
+### 1.9
+
+- Specify that a record has a primitive `==` when its fields all do.
+
 ### 1.8
 
-- Move to accepted
+- Move to `accepted/`.
 
 ### 1.7
 
