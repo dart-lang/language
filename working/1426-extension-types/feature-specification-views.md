@@ -986,9 +986,9 @@ arguments*).  Assume that `S` is the instantiated representation type
 corresponding to `V0`. A compile-time error occurs unless `T` is a
 subtype of `S`.
 
-*This ensures that it is sound to bind the value of `n` in _DV_ to `n0`
-in `V0` when invoking members of `V0`, where `n` is the representation
-name of _DV_ and `n0` is the representation name of _DV2_.*
+*This ensures that it is sound to bind the value of `id` in _DV_ to `id0`
+in `V0` when invoking members of `V0`, where `id` is the representation
+name of _DV_ and `id0` is the representation name of _DV2_.*
 
 Assume that _DV_ declares a view named `View` with type parameters
 <code>X<sub>1</sub> .. X<sub>k</sub></code> and `V0` is a superview of
@@ -1008,16 +1008,24 @@ members that `V0` has in the same way as we compute the included
 instance members of the representation type based on a member export
 declaration.
 
-Assume that _DV_ is a view declaration and that the view type `V0` is
-a superview of `V`. Let `m` be the name of an associated member of
-`V0`. A compile-time error occurs if _DV_ also declares a member named
-`m`.
+*Assume that _DV_ is a view declaration named `View` and that the view
+type `V0`, declared by _DV0_, is a superview of _DV_. Let `m` be the
+name of an associated member of `V0`. If _DV_ also declares a member
+named `m` then the latter may be considered similar to a declaration
+that "overrides" the former.  However, it should be noted that view
+method invocation is resolved statically, and hence there is no
+override relationship among the two (that is, it will never occur that
+the statically known declaration is the member of `V0`, and the member
+invoked at run time is the one in _DV_). Still, a receiver with static
+type `V0` will invoke the declaration in _DV0_, and a receiver with
+static type `View` will invoke the one in _DV_.*
 
 Assume that _DV_ is a view declaration and that the view types `V0a` and
 `V0b` are superviews of _DV_. Let `Ma` be the associated members of `V0a`,
 and `Mb` the associated members of `V0b`. A compile-time error occurs
-unless the member names of `Ma` and the member names of `Mb` are disjoint
-sets.
+if there is a member name `m` such that `V0a` as well as `V0b` has a
+member named `m`, and _DV_ does not declare a member named `m`.
+*In other words, a name clash among "inherited" members is an error.*
 
 *It is allowed for _DV_ to select a getter from `V0a` and the
 corresponding setter from `V0b`, even though Dart generally treats a
@@ -1116,7 +1124,7 @@ extensions belonging to _DV_ which are declared in libraries
 _L<sub>1</sub> .. L<sub>n</sub>_ (*not necessarily distinct*)
 that are imported directly or indirectly by _L_.
 
-For the given member name (*in the example: `foo`*), let
+For the given member name (*in the example above: `foo`*), let
 _VX<sub>1</sub> .. VX<sub>m</sub>_ be the subset of
 _VX<sub>1</sub> .. VX<sub>n</sub>_ that declare a member with that
 name (*we can assume that we have chosen a numbering that makes this
@@ -1139,20 +1147,9 @@ view as well as any of its superviews, and "inheritance" proceeds as
 usual as if the added members were written in those views directly,
 rather than being added by view extensions.*
 
-View members that are added to a view by view extensions are subject
-to the same name clash checks as views that are declared in the view.
-
-*In particular, a view extension cannot add a member named `m` to a
-view `V` that inherits a member named `m` from a superview, `V` must
-already have a `hide m` clause (or something similar), ensuring that
-the name `m` is "available". As a rule of thumb, view extensions can
-be used to add members with fresh names, they can't interfere with the
-treatment of member names that are already in use in the target view.*
-
-*In short, a view extension cannot redefine an existing view
-member, declared in the view or inherited by the view, but it may
-conflict with a member declared by another view extension. View
-namespaces are used to enable specific view extensions.*
+An error occurs if two enabled view extensions both add a member named
+`m` to the same view, or if an enabled view extension adds a member
+named `m` to a view that already declares a member named `m`.
 
 *These rules ensure that it is possible to extend the set of members
 available for a given view in different ways, depending on the import
