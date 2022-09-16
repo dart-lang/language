@@ -806,23 +806,22 @@ certain set of invariants about the state of the underlying
 representation type instance, it is no problem to let clients invoke
 any methods that do not change the state. We could write forwarding
 members in the view body to enable those methods, but using an export
-declaration can have the same effect, and it is much more concise and
-convenient.*
+declaration can have the same effect, and it is much more concise.*
 
 A term derived from `<viewShowHideElement>` may occur in several
 locations in a member export declaration. We define the set of member
-names specified by this construct as follows: Let _SH_ be a term derived
-from `<viewShowHideElement>`. Let _M<sub>SH</sub>_ be the set of
-member names specified by _SH_. Then:
+names specified by this construct relative to a given representation
+type `T` as follows: Let _SH_ be a term derived from
+`<viewShowHideElement>`. Let _M<sub>SH</sub>_ be the set of member
+names specified by _SH_ relative to `T`. Then:
 
-- If _SH_ is of the form `<identifier>` and it does not denote a type
-  then _M<sub>SH</sub>_ is the set containing the single member name
-  which is that identifier.
-- Otherwise, if _SH_ is of the form `<type>` and denotes a type `T` then
-  _M<sub>SH</sub>_ is the set of member names in the interface of `T`
-  except the member names in the interface of `Object`
-  (*but including both `g` and `g=` in the case where said
-  interface contains both a setter and a getter with basename `g`*).
+- If _SH_ is of the form `id` which is an `<identifier>` and `id` does
+  not denote a type then _M<sub>SH</sub>_ is the set containing the
+  member name `id` if `T` has a member named `id`, and the member name
+  `id=` if `T` has a setter named `id=` (*and both if `T` has both*).
+- Otherwise, if _SH_ is of the form `<type>` and denotes a type `S` then
+  _M<sub>SH</sub>_ is the set of member names in the interface of `S`
+  except the member names in the interface of `Object`.
 - If _SH_ is of the form `operator <operator>` then _M<sub>SH</sub>_
   is the singleton set containing that operator.
 - If _SH_ is of the form `get <identifier>` then _M<sub>SH</sub>_ is the
@@ -830,9 +829,9 @@ member names specified by _SH_. Then:
 - If _SH_ is of the form `set <identifier>` then _M<sub>SH</sub>_ is the
   singleton set containing that identifier concatenated with `=`.
 
-We use the notation <code>members(_SH_)</code> to denote the set of
-member names specified by _SH_.
-*That is, <code>members(_SH_) = _M<sub>SH</sub>_</code>.*
+We use the notation <code>members(_SH_, T)</code> to denote the set of
+member names specified by _SH_ relative to `T`.
+*That is, <code>members(_SH_, T) = _M<sub>SH</sub>_</code>.*
 
 *If _SH_ is an identifier that denotes a type in scope, it will denote
 that type. This is a conflict if the identifier is intended to denote
@@ -844,10 +843,10 @@ letter, and type names usually start with an uppercase letter, and the
 few expections (like `int` and `dynamic`) are unlikely to be used as
 names of members.*
 
-Consider a view declaration _DV_ named `View` whose representation object
-has the name `n` and the declared type `T`. Assume that _DV_ contains
-a member export declaration _DX_ of the form `export n S H;` where `S` is
-derived from `<viewShowClause>?` and `H` is derived from
+Consider a view declaration _DV_ named `View` whose representation
+name is `id` and representation type is `T`. Assume that _DV_ contains
+a member export declaration _DX_ of the form `export id S H;` where `S`
+is derived from `<viewShowClause>?` and `H` is derived from
 `<viewHideClause>?`.
 
 The set of _member names exported_ by _DX_ is computed as follows.
@@ -860,22 +859,21 @@ If `S` is empty and `H` is
 then let _M<sub>0</sub>_
 be the set of member names in the interface of `T`.
 For _j_ in _0 .. k-1_, let _M<sub>j+1</sub>_ be
-_M<sub>j</sub> &setminus; members(H<sub>j+1</sub>)_.
+_M<sub>j</sub> &setminus; members(H<sub>j+1</sub>, T)_.
 The set of member names exported by _DX_ is then _M<sub>k</sub>_.
 
 If `H` is empty and `S` is
-<code>show S<sub>1</sub>, .. S<sub>k</sub></code>
-then let _M<sub>0</sub>_ be the set of member names in the interface
-of `Object`.
-For _j_ in _0 .. k-1_, let _M<sub>j+1</sub>_ be
-_M<sub>j</sub> &cup; members(S<sub>j+1</sub>)_.
+<code>show S<sub>1</sub>, .. S<sub>k</sub></code> then let
+_M<sub>0</sub>_ be the set of member names in the interface of
+`Object`. For _j_ in _0 .. k-1_, let _M<sub>j+1</sub>_ be
+_M<sub>j</sub> &cup; members(S<sub>j+1</sub>, T)_.
 The set of member names exported by _DX_ is then _M<sub>k</sub>_.
 
 If both `H` and `S` are non-empty then let
 _M<sub>0</sub>_ be the set of member names exported by
-`export n S`.
+`export id S`.
 For _j_ in _0 .. k-1_, let _M<sub>j+1</sub>_ be
-_M<sub>j</sub> &setminus; members(H<sub>j+1</sub>)_.
+_M<sub>j</sub> &setminus; members(H<sub>j+1</sub>, T)_.
 The set of member names exported by _DX_ is then _M<sub>k</sub>_.
 
 *Note that each member name in the interface of `Object` is included
@@ -887,7 +885,9 @@ A compile-time error occurs unless the representation type of _DV_
 has a member named _m_.
 
 A compile-time error occurs if _DV_ contains a declaration named _m_,
-or _DV_ extends a view _W_, and _W_ has a declaration named _m_.
+or _DV_ extends a view type _W_, and _W_ has a declaration named _m_
+that is present after processing of any `show` or `hide` clauses on
+_W_.
 
 A compile-time error occurs if `H` is of the form `hide H1, .. Hk` and
 `Hj` denotes a type `S`, and `S` is not a
@@ -910,18 +910,18 @@ _hide clause_.
 Consider a member access (*e.g., a method call or tear-off, or a
 getter/setter/operator invocation*) with receiver type `W` which is a
 parameterized type of the form `View<T1, .. Tk>` where `View` is the
-name of _DV_ (where the non-generic case is covered by _k =0_).
+name of _DV_ (where the non-generic case is covered by _k = 0_).
 Assume that the member access invokes or tears off a member named `m`,
-where `m` is exported by an export clause of the form `export n S H`
-in _DV_, where `n` is the representation name of _DV_. In this case,
-the member access is treated as if the receiver had had the
+where `m` is exported by an export clause of the form `export id S H`
+in _DV_, where `id` is the representation name of _DV_. In this case,
+the member access is treated as if the receiver has the
 representation type `T`.
 
 *For example:*
 
 ```dart
 view V(int it) {
-  export n show num, isEven hide hashCode;
+  export it show num, isEven hide hashCode;
   int get twice => it * 2;
   void hashCode(String silly) {} // OK.
 }
@@ -937,8 +937,8 @@ void main() {
 ```
 
 If _DV_ does not include any member export declarations exporting the
-representation name `n`, it is treated as if it had declared
-`export n show Object;`.
+representation name `id`, it is treated as if it had declared
+`export id show Object;`.
 
 *In short, if a view on a type `T` is like a veil hiding `T` and
 showing something else, then the exported members of the
@@ -1276,19 +1276,35 @@ This section mentions a few topics that have given rise to
 discussions.
 
 
-### Should a bare name denote both the getter and setter?
+### Support "private inheritance"?
 
-In the current proposal we may hide or show a specific member using
-its name, except that the syntax doesn't allow for specifying a name
-that ends in `=`. So we can include a getter named `g` by means of
-`show g`. However, we can specify that the setter is included by using
-the special construct `set g`, that is `show set g` will show the
-setter. We may show both by specifying `get` and `set` as in
-`show get g, set g`. But `get` makes no difference, we might just as
-well use `show g, set g`, except that this looks funny.
+In the current proposal there is a subtype relationship between every
+view and each of its superviews. So if we have 
+`view V(...) extends V1, V2 ...` then `V <: V1` and `V <: V2`. This is
+true even in the case where the superviews use `show` or `hide` to
+inherit just some of the members that the given superview has.
 
-So maybe the lone `g` should denote both the getter and the setter,
-and the only way to show/hide just the getter would be to use `get g`?
+In some cases it might be preferable to omit the subtype relationship,
+even though there is a code reuse element (because `V1` is a superview
+of `V`, we just don't need or want `V <: V1`).
+
+A possible workaround would be to write forwarding methods manually:
+
+```dart
+view V1(T it) {
+  void foo() {...}
+}
+
+// `V` can reuse code from `V1` by using `extends`. Note that
+// `S <: T`, because otherwise it is a compile-time error.
+view V(S it) extends V1 {}
+
+// Alternatively, we can write a forwarder, in order to avoid
+// having the subtype relationship `V <: V1`.
+view V(S it) {
+  void foo() => V1(it).foo();
+}
+```
 
 
 ### Exporting other things than the representation
