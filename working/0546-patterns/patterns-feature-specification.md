@@ -2209,7 +2209,7 @@ To match a pattern `p` against a value `v`:
     1.  If the runtime type of `v` is not a subtype of the static type of `p`
         then the match fails.
 
-    3.  Otherwise, for each field `f` in `p`, in source order:
+    2.  Otherwise, for each field `f` in `p`, in source order:
 
         1.  Call the getter with the same name as `f` on `v` to a result `r`.
             The getter may be an in-scope extension member.
