@@ -503,12 +503,12 @@ the same hash code.
 A record object has a primitive `==` operator if all of its field have primitive
 `==` operators.
 
-*Note that this is a dynamic property of a record object, not a static property
-of its type. Since primitive equality only comes into play in constants, the
+*Note that this is a dynamic property of a record object, not a property of its
+static type. Since primitive equality only comes into play in constants, the
 compiler can see the actual field values for a relevant record at compile time
 because it has the actual constant record value with all of its constant fields.
-This means records can be used in constant sets and maps keys, but only when the
-records' fields could be as well.*
+This means a record can be used in a constant set or as a constant map key, but
+only when its field values could be as well.*
 
 ### Identity
 

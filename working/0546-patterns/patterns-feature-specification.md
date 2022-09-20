@@ -1241,7 +1241,7 @@ allowed and what their syntax is. The rules are:
     specified under type checking.*
 
 *   It is a compile-time error if a variable pattern in a declaration context is
-    marked `var` or `final`. *A pattern declaration statement is already
+    marked with `var` or `final`. *A pattern declaration statement is already
     preceded by `var` or `final`, so allowing those on the variable patterns
     inside would lead to unnecessary or confusing code like:*
 
@@ -1260,8 +1260,9 @@ allowed and what their syntax is. The rules are:
     ```
 
 *   It is a compile-time error if a variable pattern in an assignment context is
-    marked `var`, `final`, or with a type annotation. *Patterns in assignments
-    can only assign to existing variables, not declare new ones.*
+    marked with `var`, `final`, or a type annotation (or both `final` and a type
+    annotation). *Patterns in assignments can only assign to existing variables,
+    not declare new ones.*
 
     ```dart
     var a = 1;
@@ -1694,16 +1695,19 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 *   **Record**:
 
-    1.  Type-check each of `f`'s positional field subpatterns using the
-        corresponding positional field type on `M` as the matched value type or
-        `Object?` if `M` is not a record type with the corresponding field. *The
-        field subpattern will only be matched at runtime if the value does turn
-        out to be a record with the right shape where the field is present, so
-        it's safe to just assume the field exists when type checking here.*
+    1.  For each field subpattern `f` of `p`:
 
-    2.  Type check each of `f`'s named field subpatterns using the type of the
-        corresponding named field on `M` as the matched value type or `Object?`
-        if `M` is not a record type with the corresponding field.
+        1.  If `M` is a record type with a corresponding field, then let `F`
+            be that field's type.
+
+        2.  Else if `M` is `dynamic`, then let `F` be `dynamic`.
+
+        3.  Else let `F` be `Object?`. *The field subpattern will only be
+            matched at runtime if the value does turn out to be a record with
+            the right shape where the field is present, so it's safe to just
+            assume the field exists when type checking here.*
+
+        4.  Type-check `f` using `F` as the matched value type.
 
     3.  The required type of `p` is a record type with the same shape as `p` and
         `Object?` for all fields. *If the matched value's type is `dynamic` or
@@ -1826,29 +1830,45 @@ implement an abstract method.
 Exhaustiveness checking over arbitrarily deeply nested record and extractor
 patterns is complex, so the proposal to define how it works is in a [separate
 document][exhaustiveness]. That tells us if the cases in a switch statement
-or expression are exhaustive or not. Given that:
+or expression are exhaustive or not.
+
+We don't want to require *all* switches to be exhaustive. The language currently
+does not require switch statements on, say, strings to be exhaustive, and
+requiring that would likely lead to many pointless empty default cases for
+little value. We define an *exhaustive type* to be:
+
+*   `bool`
+*   `Null`
+*   A enum type
+*   A type whose declaration is marked sealed
+*   `T?` where `T` is exhaustive
+*   `FutureOr<T>` for some type `T` that is exhaustive
+*   A record type whose fields are all exhaustive types
+
+**TODO: Finalize the syntax for marking a class as a sealed family.**
+
+All other types are not exhaustive. Then:
 
 *   It is a compile-time error if the cases in a switch expression are not
     exhaustive. *Since an expression must yield a value, the only other option
     is to throw an error and most Dart users prefer to catch those kinds of
     mistakes at compile time.*
 
-*   It is a compile-time error if the static type of the matched value in a
-    switch statement is an *exhaustive type* and the cases are not exhaustive.
-    An exhaustive type is:
+*   If the static type of the matched value in a switch statement is an
+    exhaustive type and the cases are not exhaustive then:
 
-    *   `bool`
-    *   `Null`
-    *   A type whose declaration is marked sealed
-    *   `T?` where `T` is exhaustive
-    *   `FutureOr<T>` for some type `T` that is exhaustive
-    *   A record type whose fields are all exhaustive types
+    *   It is a compile-time warning if the type is an enum type or nullable
+        enum type. *This is for backwards compatibility.*
 
-    **TODO: Finalize the syntax for marking a class as a sealed family.**
+        *Since enum types are handled specially, why define them as exhaustive?
+        This is so that they don't prevent a record type containing them as
+        being considered exhaustive. We want it to be a compile-time error if a
+        switch on a record type with a sealed type field and an enum type field
+        is not exhaustive. We even treat it as an error for switching on a
+        record containing only enum types. Since there are no records in the
+        wild, this is not a breaking change.*
 
-*   It is a compile-time warning if the static type of the matched value in a
-    switch statement is an enum type or a nullable enum type and the cases are
-    not exhaustive.
+    *   Else it is a compile-time error.
 
 [exhaustiveness]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/exhaustiveness.md
 
@@ -2073,12 +2093,10 @@ To match a pattern `p` against a value `v`:
 
         1.  Let `r` be the result of `v == c`.
 
-        2.  If `r` is not a Boolean then throw a runtime error. *This can
-            happen if operator `==` on `v`'s type returns `dynamic`.*
-
-        3.  The pattern matches if `r` is true and fails otherwise. *This takes
+        2.  The pattern matches if `r` is true and fails otherwise. *This takes
             into account the built-in semantics that `null` is only equal to
-            `null`.*
+            `null`. The result will always be a Boolean since operator `==` on
+            Object is declared to return `bool`.*
 
     2.  Else if the operator is `!=`:
 
@@ -2098,9 +2116,7 @@ To match a pattern `p` against a value `v`:
         2.  If `r` is not a Boolean then throw a runtime error. *This can happen
             if the operator on `v`'s type returns `dynamic`.*
 
-        3.  The pattern matches if `r` is true and fails otherwise. *This takes
-            into account the built-in semantics that `null` is only equal to
-            `null`.*
+        3.  The pattern matches if `r` is true and fails otherwise.
 
 *   **Cast**:
 
@@ -2148,15 +2164,15 @@ To match a pattern `p` against a value `v`:
 
 *   **List**:
 
-    1.  If the runtime type of `v` is not a subtype of the static type of `p`
+    1.  If the runtime type of `v` is not a subtype of the required type of `p`
         then the match fails. *The list pattern's type will be `List<T>` for
         some `T` determined either by the pattern's explicit type argument or
         inferred from the matched value type.*
 
     2.  If the length of the list determined by calling `length` is not equal to
         the number of subpatterns, then the match fails. *This match failure
-        becomes a runtime exception if the list pattern is in a variable
-        declaration.*
+        becomes a runtime exception if the list pattern is in an irrefutable
+        context.*
 
     3.  Otherwise, for each element subpattern, in source order:
 
@@ -2169,15 +2185,15 @@ To match a pattern `p` against a value `v`:
 
 *   **Map**:
 
-    1.  If the runtime type of `v` is not a subtype of the static type of `p`
+    1.  If the runtime type of `v` is not a subtype of the required type of `p`
         then the match fails. *The map pattern's type will be `Map<K, V>` for
         some `K` and `V` determined either by the pattern's explicit type
         arguments or inferred from the matched value type.*
 
     2.  If the length of the map determined by calling `length` is not equal to
         the number of subpatterns, then the match fails. *This match failure
-        becomes a runtime exception if the map pattern is in a variable
-        declaration.*
+        becomes a runtime exception if the map pattern is in an irrefutable
+        context.*
 
     3.  Otherwise, for each entry in `p`, in source order:
 
@@ -2192,8 +2208,8 @@ To match a pattern `p` against a value `v`:
 
 *   **Record**:
 
-    1.  If the runtime type of `v` is not a record type with the same type as
-        the static type of `p`, then the match fails.
+    1.  If the runtime type of `v` is not a subtype of the required type of `p`,
+        then the match fails.
 
     2.  For each field `f` in `p`, in source order:
 
@@ -2206,13 +2222,13 @@ To match a pattern `p` against a value `v`:
 
 *   **Extractor**:
 
-    1.  If the runtime type of `v` is not a subtype of the static type of `p`
+    1.  If the runtime type of `v` is not a subtype of the required type of `p`
         then the match fails.
 
     2.  Otherwise, for each field `f` in `p`, in source order:
 
-        1.  Call the getter with the same name as `f` on `v` to a result `r`.
-            The getter may be an in-scope extension member.
+        1.  Call the getter with the same name as `f` on `v`, and let the result
+            be `r`. The getter may be an in-scope extension member.
 
         2.  Match the subpattern of `f` against `r`. If the match fails, the
             extractor match fails.
@@ -2316,8 +2332,9 @@ It works like this:
 Let an *invocation key* comprise:
 
 *   A possibly absent parent invocation key.
-*   A possibly absent extension type. If the invocation represents an extension
-    member call, this tracks the type the call was resolved to.
+*   A possibly absent extension and list of type arguments. If the invocation
+    represents an extension member call, this tracks the extension declaration
+    the call was resolved to, and the type arguments for it.
 *   A member name.
 *   A possibly empty list of argument constant values.
 
@@ -2326,7 +2343,7 @@ Two invocation keys are equivalent if and only if all of these are true:
 *   They both have parent invocation keys and the keys are equivalent or
     neither of them have parent invocation keys.
 *   The extension types refer to the same type or are both absent.
-*   The member names are equivalent.
+*   The member names are the same.
 *   The argument lists have the same length and all corresponding pairs of
     argument constant values are identical.
 
@@ -2334,10 +2351,10 @@ Two invocation keys are equivalent if and only if all of these are true:
 ways.*
 
 The notation `parent : (name, args)` creates an invocation key with parent
-`parent`, no extension type `type`, member name `name`, and argument list
-`args`. The notation `parent : type(name, args)` creates an invocation key with
-parent `parent`, extension type `type`, member name `name`, and argument list
-`args`.
+`parent`, no extension, member name `name`, and argument list `args`. The
+notation `parent : extension(name, args)` creates an invocation key with parent
+`parent`, extension `extension` (with its type arguments), member name `name`,
+and argument list `args`.
 
 Given a set of patterns `s` matching a value expression `v`, we bind an
 invocation key to each member invocation and record field access in `s` like so:
@@ -2353,29 +2370,32 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
 *   **Logical-or** or **logical-and**:
 
-    1.  Bind invocations in the left and right subpatterns using target `i`.
+    1.  Bind invocations in the left and right subpatterns using parent `i`.
 
 *   **Relational**:
 
-    1.  Resolve the relational operator to a member.
+    1.  If the matched value type is `dynamic`, is `Never`, or declares the
+        operator, then bind `i : (op, [arg])` to the operator method invocation
+        where `op` is the name of the operator and `arg` is the right operand
+        value.
 
-    2.  If it resolves to an instance method, then bind `i : (op, [arg])` to
-        the operator method invocation where `op` is the name of the operator
-        and `arg` is the right operand value.
-
-    3.  Else it resolves to an extension method. Bind `i : type(op, [arg])` to
-        the operator method invocation where `type` is the type the extension
-        method resolved to, `op` is the name of the operator and `arg` is the
-        right operand value.
+    2.  Else perform extension method resolution and infer the extension's type
+        arguments. Bind `i : extension(op, [arg])` to the operator method
+        invocation where `extension` is the resolved extension and its type
+        arguments, `op` is the name of the operator and `arg` is the right
+        operand value.
 
 *   **Cast**, **null-check**, **null-assert**, or **parenthesized**:
 
-    1.  Bind invocations in the subpattern using target `i`.
+    1.  Bind invocations in the subpattern using parent `i`.
 
 *   **Constant**:
 
-    1.  Bind `i : ("==", [arg])` to the `==` method invocation where`arg` is the
-        right operand value.
+    1.  Bind `i : ("constant==", [arg])` to the `==` method invocation where
+        `arg` is the constant value. *The odd `constant==` name is because
+        constant patterns call `constant == value` while relational `==`
+        patterns call `value == constant`. Those can be different methods so we
+        need to cache them separately.*
 
 *   **Variable**:
 
@@ -2392,7 +2412,7 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
         2.  Bind `e` to the `[]` invocation for this element.
 
-        3.  Bind invocations in the element subpattern using target `e`.
+        3.  Bind invocations in the element subpattern using parent `e`.
 
 *   **Map**:
 
@@ -2408,7 +2428,7 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
         3.  Bind `e` to the `[]` invocation for this entry.
 
-        4.  Bind invocations in the entry value subpattern using target `e`.
+        4.  Bind invocations in the entry value subpattern using parent `e`.
 
 *   **Record**:
 
@@ -2419,23 +2439,24 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
         2.  Bind `e` to the field accessor for this field.
 
-        3.  Bind invocations in the field subpattern using target `e`.
+        3.  Bind invocations in the field subpattern using parent `e`.
 
 *   **Extractor**:
 
-    1.  For each field `f` in `p`:
+    1.  For each field in `p`:
 
-        1.  Resolve the getter name to a member.
-
-        2.  If it resolves to an instance method, then let `f` be `i : (field,
+        1.  If the matched value type is `dynamic`, is `Never`, or declares a
+            getter with the same name as the field, then let `f` be `i : (field,
             [])` where `field` is the name of the getter.
 
-        3.  Else it resolves to an extension method. Let `f` be `i : type(field,
-            [])` where `field` is the name of the getter.
+        2.  Else perform extension method resolution and infer the extension's
+            type arguments. Let `f` be `i : extension(field, [])` where
+            `extension` is the resolved extension and its type arguments and
+            `field` is the name of the getter.
 
-        4.  Bind `e` to the getter for this field.
+        3.  Bind `f` to the getter for this field.
 
-        5.  Bind invocations in the field subpattern using target `e`.
+        4.  Bind invocations in the field subpattern using parent `f`.
 
 ## Severability
 
@@ -2533,6 +2554,9 @@ Here is one way it could be broken down into separate pieces:
 -   Allow `final` before type annotated variable patterns (#2486).
 
 -   Rename some grammars to align with Analyzer AST names (#2491).
+
+-   Propagate `dynamic` into fields when type checking a record pattern against
+    a matched value of type `dynamic`.
 
 ### 2.6
 
