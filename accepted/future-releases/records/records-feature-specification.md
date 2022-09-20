@@ -124,12 +124,6 @@ not captured by the grammar. It is a compile-time error if a record has any of:
 
 *   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
-*   A field name that starts with an underscore. *If we allow a record to have
-    private field names, then those fields would not be visible outside of the
-    library where the record was declared. That would lead to a record that has
-    hidden state. Two such records might unexpectedly compare unequal even
-    though all of the fields the user can see are equal.*
-
 *   A field name that collides with the synthesized getter name of a positional
     field. *For example: `('pos', $0: 'named')` since the named field '$0'
     collides with the getter for the first positional field.*
@@ -216,9 +210,8 @@ It is a compile-time error if a record type has any of:
     this is symmetric with record expressions and leaves the potential for
     later support for parentheses for grouping in type expressions.*
 
-*   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
-
-*   A field name that starts with an underscore.
+*   A positional field named `hashCode`, `runtimeType`, `noSuchMethod`, or
+    `toString`.
 
 *   A field name that collides with the synthesized getter name of a positional
     field. *For example: `(int, $0: int)` since the named field '$0' collides
@@ -258,6 +251,11 @@ ambiguity, we disambiguate by treating `on` as a clause for `try` and not a
 local function. This is technically a breaking change, but is unlikely to affect
 any code in the wild.
 
+**TODO: This section should be removed if we change the record type syntax to
+avoid this ambiguity ([#2469][]).**
+
+[#2469]: https://github.com/dart-lang/language/issues/2469
+
 ## Static semantics
 
 We define **shape** to mean the number of positional fields (the record's
@@ -266,8 +264,15 @@ structural, not nominal. Records produced in unrelated libraries have the exact
 same static type if they have the same shape and their corresponding fields have
 the same types.
 
-The order of named fields is not significant. The record types `{int a, int b}`
-and `{int b, int a}` are identical to the type system and the runtime. (Tools
+If a field name starts with an underscore, it is private and is only accessible
+in the library where it appears. The records `(_foo: 1)` and `(_foo: 1)`
+appearing in different libraries do *not* have the same shape because each
+`_foo` is considered a distinct name. Likewise, the record types `({int _foo})`
+and `({int _foo})` are not the same type if those annotations appear in
+different libraries.
+
+The order of named fields is not significant. The record types `({int a, int b})`
+and `({int b, int a})` are identical to the type system and the runtime. (Tools
 may or may not display them to users in a canonical form similar to how they
 handle function typedefs.)
 
@@ -322,8 +327,8 @@ Likewise, the greatest lower bound of two record types with the same shape is
 the greatest lower bound of their component fields:
 
 ```dart
-a((num, String)) {}
-b((int, Object)) {}
+a((num, String) record) {}
+b((int, Object) record) {}
 var c = cond ? a : b; // c has type `Function((int, String))`.
 ```
 
@@ -576,6 +581,13 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.10
+
+- Allow private named fields in records (#2387).
+
+- Allow positional fields in record types named `hashCode`, `runtimeType`,
+  `noSuchMethod`, or `toString`.
 
 ### 1.9
 
