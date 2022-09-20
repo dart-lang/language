@@ -7,6 +7,10 @@ Status: Draft
 
 ## Change Log
 
+2022.09.20
+  - Updated the inheritance mechanism to fit in with a potential non-virtual
+    method mechanism for classes: Use `implements`, remove show/hide.
+
 2022.08.30
   - Used inspiration from the [extension struct][1] proposal and
     various discussions to simplify and improve this proposal.
@@ -399,21 +403,13 @@ rules for elements used in view declarations:
 <viewDeclaration> ::=
   'implicit'? 'view' <typeIdentifier> <typeParameters>?
       <viewPrimaryConstructor>?
-      <viewExtendsPart>?
+      <interfaces>?
   '{'
     (<metadata> <viewMemberDeclaration>)*
   '}'
 
 <viewPrimaryConstructor> ::=
   '(' <type> <identifier> ')'
-
-<viewExtendsPart> ::=
-  'extends' <viewExtendsList>
-
-<viewExtendsList> ::=
-  <viewExtendsElement> (',' <viewExtendsElement>)*
-
-<viewExtendsElement> ::= <type> <viewShowHidePart>
 
 <viewShowHidePart> ::=
   <viewShowClause>? <viewHideClause>?
@@ -566,13 +562,14 @@ yielding a view type _V_ (*the type argument list may be empty, to
 handle the non-generic case*). The third argument must be an expression
 whose static type is _V_ or the corresponding instantiated
 representation type (defined below). The member access must access a
-member of the declaration denoted by `View`, or an associated member
-of a superview of that view declaration, or a member added by a view
-extension.
+member of the declaration denoted by `View`, or a member of a
+superview of that view declaration, or a member exported by an export
+declaration of that view, or a member added by a view extension.
 
-*Superviews and associated members are specified in the section 'Composing
-view types'. View extensions are specified in the section 'View
-extensions'.*
+*Export declarations are specified in the section 'Allow instance
+member access using export'. Superviews are specified in the section
+'Composing view types'. View extensions are specified in the section
+'View extensions'.*
 
 If the member access is a method invocation (including an invocation of an
 operator that takes at least one argument), it is allowed to pass an actual
@@ -884,10 +881,11 @@ Assume that _DX_ exports a member name _m_.
 A compile-time error occurs unless the representation type of _DV_
 has a member named _m_.
 
-A compile-time error occurs if _DV_ contains a declaration named _m_,
-or _DV_ extends a view type _W_, and _W_ has a declaration named _m_
-that is present after processing of any `show` or `hide` clauses on
-_W_.
+*If _DV_ implements a view _V1_ and _V1_ has a member named _m_
+then the member _m_ exported by _DX_ will shadow the one from _V1_.
+In other words, `export` takes precedence over `implements`. If
+a different outcode is desired then the export declaration can use
+`hide` as described below.*
 
 A compile-time error occurs if `H` is of the form `hide H1, .. Hk` and
 `Hj` denotes a type `S`, and `S` is not a
@@ -958,77 +956,92 @@ later on. See the discussion section for further details.*
 ### Composing view types
 
 This section describes the effect of including a clause derived from
-`<viewExtendsPart>` in a view declaration. We use the phrase
-_the view extends clause_ to refer to this clause, or just
-_the extends clause_ when no ambiguity can arise.
+`<interfaces>` in a view declaration. We use the phrase
+_the view implements clause_ to refer to this clause, or just
+_the implements clause_ when no ambiguity can arise.
 
-*The rationale is that the set of members and member implementations of a
-given view may need to overlap with that of other views. The extends clause
-allows for implementation reuse by putting shared members in a "super-view"
-`V0` and putting `V0` in the extends clause of several view declarations
-<code>V<sub>1</sub> .. V<sub>k</sub></code>,
-thus "inheriting" the members of `V0` into all of
-<code>V<sub>1</sub> .. V<sub>k</sub></code>
-without code duplication.*
+*The rationale is that the set of members and member implementations
+of a given view may need to overlap with that of other views. The
+implements clause allows for implementation reuse by putting shared
+members in a "super-view" `V1` and putting `V1` in the implements
+clause of several view declarations <code>V<sub>1</sub>
+.. V<sub>k</sub></code>, thus "inheriting" the members of `V1` into
+all of <code>V<sub>1</sub> .. V<sub>k</sub></code> without code
+duplication.*
 
-Assume that _DV_ is a view declaration named `View`, and `V0` occurs as
-the `<type>` in a `<viewExtendsElement>` in the extends clause of
-_DV_. In this case we say that `V0` is a superview of _DV_.
+*The reason why this mechanism uses the keyword `implements` rather
+than `extends` to declare a relation that involves inheritance is that
+it has the same semantics as that of non-virtual members in classes,
+and view members are similar to non-virtual members in that they are
+both statically resolved.*
 
-A compile-time error occurs if `V0` is a type name or a parameterized type
-which occurs as a superview in a view declaration _DV_, but `V0` does not
+Assume that _DV_ is a view declaration named `View`, and `V1` occurs as
+one of the `<type>`s in the `<interfaces>` of _DV_. In this case we
+say that `V1` is a superview of _DV_.
+
+A compile-time error occurs if `V1` is a type name or a parameterized type
+which occurs as a superview in a view declaration _DV_, but `V1` does not
 denote a view type.
 
 Assume that a view declaration _DV_ named `View` has representation
-type `T`, and that the view type `V0` with declaration _DV2_ is a
-superview of _DV_ (*note that `V0` may have some actual type
+type `T`, and that the view type `V1` with declaration _DV1_ is a
+superview of _DV_ (*note that `V1` may have some actual type
 arguments*).  Assume that `S` is the instantiated representation type
-corresponding to `V0`. A compile-time error occurs unless `T` is a
+corresponding to `V1`. A compile-time error occurs unless `T` is a
 subtype of `S`.
 
-*This ensures that it is sound to bind the value of `id` in _DV_ to `id0`
-in `V0` when invoking members of `V0`, where `id` is the representation
-name of _DV_ and `id0` is the representation name of _DV2_.*
+*This ensures that it is sound to bind the value of `id` in _DV_ to `id1`
+in `V1` when invoking members of `V1`, where `id` is the representation
+name of _DV_ and `id1` is the representation name of _DV1_.*
 
 Assume that _DV_ declares a view named `View` with type parameters
-<code>X<sub>1</sub> .. X<sub>k</sub></code> and `V0` is a superview of
+<code>X<sub>1</sub> .. X<sub>k</sub></code> and `V1` is a superview of
 _DV_. Then
 <code>View&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code> is a subtype of
-<code>[S<sub>1</sub>/X<sub>1</sub> .. S<sub>k</sub>/X<sub>k</sub>]V0</code>
+<code>[S<sub>1</sub>/X<sub>1</sub> .. S<sub>k</sub>/X<sub>k</sub>]V1</code>
 for all <code>S<sub>1</sub>, .. S<sub>k</sub></code>
 where these types are regular-bounded.
 
 *If they aren't regular-bounded then the type is a compile-time error
-in itself. In short, if `V0` is a superview of `V` then `V0` is also
+in itself. In short, if `V1` is a superview of `V` then `V1` is also
 a supertype of `V`.*
 
-Consider a `<viewExtendsElement>` of the form `V0 <viewShowHidePart>`.
-The _associated members_ of said extends element are computed from the
-members that `V0` has in the same way as we compute the included
-instance members of the representation type based on a member export
-declaration.
+A compile-time error occurs if a view _DV_ has two superviews `V1` and
+`V2`, where both `V1` and `V2` has a member named _m_, and _DV_ does
+not declare a member named _m_ and does not have an export declaration
+that exports a member named _m_.
+
+*In other words, if _m_ is inherited from two superviews then the
+subview must override _m_, either explicitly or via an export
+declaration.*
 
 *Assume that _DV_ is a view declaration named `View` and that the view
-type `V0`, declared by _DV0_, is a superview of _DV_. Let `m` be the
-name of an associated member of `V0`. If _DV_ also declares a member
-named `m` then the latter may be considered similar to a declaration
-that "overrides" the former.  However, it should be noted that view
-method invocation is resolved statically, and hence there is no
-override relationship among the two (that is, it will never occur that
-the statically known declaration is the member of `V0`, and the member
-invoked at run time is the one in _DV_). Still, a receiver with static
-type `V0` will invoke the declaration in _DV0_, and a receiver with
-static type `View` will invoke the one in _DV_.*
+type `V1`, declared by _DV1_, is a superview of _DV_. Let `m` be the
+name of a member of `V1`. If _DV_ also declares a member named `m`
+then the latter may be considered similar to a declaration that
+"overrides" the former.  However, it should be noted that view method
+invocation is resolved statically, and hence there is no override
+relationship among the two in the traditional object-oriented sense
+(that is, it will never occur that the statically known declaration is
+the member of `V1`, and the member invoked at run time is the one in
+_DV_). Still, a receiver with static type `V1` will invoke the
+declaration in _DV1_, and a receiver with static type `View` will
+invoke the one in _DV_.*
 
-Assume that _DV_ is a view declaration and that the view types `V0a` and
-`V0b` are superviews of _DV_. Let `Ma` be the associated members of `V0a`,
-and `Mb` the associated members of `V0b`. A compile-time error occurs
-if there is a member name `m` such that `V0a` as well as `V0b` has a
-member named `m`, and _DV_ does not declare a member named `m`.
-*In other words, a name clash among "inherited" members is an error.*
+Nevertheless, we use the word _override_ to describe the relationship
+between a member named _m_ of a superview, and a member declared or
+exported by the subview and also named _m_.
 
-*It is allowed for _DV_ to select a getter from `V0a` and the
-corresponding setter from `V0b`, even though Dart generally treats a
+Assume that _DV_ is a view declaration and that the view types `V1`
+and `V2` are superviews of _DV_. Let `M1` be the members of `V1`, and
+`M2` the members of `V2`. A compile-time error occurs if there is a
+member name `m` such that `V1` as well as `V2` has a member named `m`,
+and _DV_ does not declare a member named `m`.  *In other words, a name
+clash among "inherited" members is an error, but it can be eliminated
+by overriding the clashing name.*
+
+*It is allowed for _DV_ to select a getter from `V1` and the
+corresponding setter from `V2`, even though Dart generally treats a
 getter/setter pair as a single unit. However, a show/hide part
 explicitly supports the separation of a getter/setter pair using
 `get m` respectively `set m`. The rationale is that a view type may
@@ -1037,21 +1050,22 @@ members do otherwise allow for mutation, and this requires that the
 getter is included and the setter is not.*
 
 *Conflicts between superviews are not allowed, they must be resolved
-explicitly (using show/hide). The rationale is that the extends clause of
-a view is concerned with code reuse, not modeling, and there is no
-reason to believe that any implicit conflict resolution will consistently
-do the right thing.*
+explicitly (using an "override"). The rationale is that the extends
+clause of a view is concerned with code reuse, not modeling, and there
+is no reason to believe that any implicit conflict resolution will
+consistently do the right thing.*
 
 The effect of having a view declaration _DV_ with superviews
-`V1, .. Vk` is that the union of the members declared by _DV_ and
-associated members of `V1, .. Vk` can be invoked on a receiver of the
-type introduced by _DV_.
+`V1, .. Vk` is that the members declared by _DV_ as well as all
+members of `V1, .. Vk` that are not overridden by a declaration in
+_DV_ can be invoked on a receiver of the type introduced by _DV_.
 
 In the body of _DV_, a superinvocation syntax similar to an explicit
-extension method invocation can be used to invoke a member of a superview
-which is hidden: The invocation starts with `super.` followed by the name
-of the given superview, followed by the member access. The superview may be
-omitted in the case where there is no ambiguity.
+extension method invocation can be used to invoke a member of a
+superview which is overridden: The invocation starts with `super.`
+followed by the name of the given superview, followed by the member
+access. The superview may be omitted in the case where there is no
+ambiguity.
 
 *For instance, `super.V3.foo()` can be used to call the `foo` of `V3`
 in the case where the extends clause has `extends ... V3 hide foo, ...`.
