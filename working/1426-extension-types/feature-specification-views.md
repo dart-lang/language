@@ -26,15 +26,15 @@ Status: Draft
 
 ## Summary
 
-This document specifies a language feature that we call "views".
+This document specifies a language feature that we call "view classes".
 
 The feature introduces _view types_, which are a new kind of type
-declared by a new `view` declaration. A view type provides a
-replacement or modification of the members available on instances of
-existing types: when the static type of the instance is a view type
-_V_, the available instance members are exactly the ones provided by
-_V_ (noting that there may of course also be some accessible and
-applicable extension members).
+declared by a new `view class` declaration. A view type provides a
+replacement of the members available on instances of existing types:
+when the static type of the instance is a view type _V_, the available
+instance members are exactly the ones provided by _V_ (noting that
+there may of course also be some accessible and applicable extension
+members).
 
 In contrast, when the static type of an instance is not a view type,
 it is (by soundness) always the run-time type of the instance, or a
@@ -49,66 +49,68 @@ set of members, with subsetting as a special case.
 This functionality is entirely static. Invocation of a view member is
 resolved at compile-time, based on the static type of the receiver.
 
-A view may be considered to be a zero-cost abstraction in the sense
-that it works similarly to a wrapper object that holds the wrapped
-object in a final instance variable. The view thus provides an
-interface which is chosen independently of the interface of the
-wrapped object, and it provides implementations of the members of the
-interface of the view, and those implementations can use the members
-of the wrapped object as needed.
+A view class may be considered to be a zero-cost abstraction in the
+sense that it works similarly to a wrapper object that holds the
+wrapped object in a final instance variable. The view class thus
+provides an interface which is chosen independently of the interface
+of the wrapped object, and it provides implementations of the members
+of the interface of the view class, and those implementations can use
+the members of the wrapped object as needed.
 
-However, even though a view behaves like a wrapping, the wrapper
+However, even though a view class behaves like a wrapping, the wrapper
 object will never exist at run time, and a reference whose type is the
-view will actually refer directly to the underlying wrapped
+view class will actually refer directly to the underlying wrapped
 object. Every member access (e.g., an invocation of a method or a
-getter) on an expression whose static type is a view will invoke a
-member of the view (with some exceptions, as explained below), but
-this occurs because those member accesses are resolved statically,
+getter) on an expression whose static type is a view type will invoke
+a member of the view class (with some exceptions, as explained below),
+but this occurs because those member accesses are resolved statically,
 which means that the wrapper object is not actually needed.
 
 Given that there is no wrapper object, we will refer to the "wrapped"
-object as the _representation object_ of the view, or just the
+object as the _representation object_ of the view class, or just the
 _representation_.
 
-Inside the view declaration, the keyword `this` is a reference to the
-representation whose static type is the enclosing view. A member
-access to a member of the enclosing view may rely on `this` being
-induced implicitly (for example, `foo()` means `this.foo()` if the
-view contains a method declaration named `foo`). A reference to the
-representation typed by its run-time type or a supertype thereof (that
-is, typed by a "normal" type for the representation) is available as a
-declared name, which is introduced by a new syntax similar to a
-parameter list declaration (for example `(int i)`) which follows the
-name of the view. (This syntax is intended to be a special case of an
-upcoming mechanism known as _primary constructors_.) The
-representation type of the view (with `(int i)` that's `int`) is
-similar to the on-type of an extension declaration.
+Inside the view class declaration, the keyword `this` is a reference
+to the representation whose static type is the enclosing view class. A
+member access to a member of the enclosing view class may rely on
+`this` being induced implicitly (for example, `foo()` means
+`this.foo()` if the view class contains a method declaration named
+`foo`). A reference to the representation typed by its run-time type
+or a supertype thereof (that is, typed by a "normal" type for the
+representation) is available as a declared name, which is introduced
+by a new syntax similar to a parameter list declaration (for example
+`(int i)`) which follows the name of the view class. (This syntax is
+intended to be a special case of an upcoming mechanism known as
+_primary constructors_.) The representation type of the view class
+(with `(int i)` that's `int`) is similar to the on-type of an
+extension declaration.
 
-All in all, a view allows us to replace the interface of a given
+All in all, a view class allows us to replace the interface of a given
 representation object and specify how to implement the new interface
 in terms of the interface of the representation object.
 
 This is something that we could obviously do with a wrapper, but when
-it is done with a view there is no wrapper object, and hence there is
-no run-time performance cost. In particular, in the case where we have
-a view `V` with representation type `T` we may be able to refer to a
-`List<T>` using the type `List<V>`, and this corresponds to "wrapping
-every element in the list", but it only takes time _O(1)_ and no
-space, no matter how many elements the list contains.
+it is done with a view class there is no wrapper object, and hence
+there is no run-time performance cost. In particular, in the case
+where we have a view type `V` with representation type `T` we may be
+able to refer to a `List<T>` using the type `List<V>`, and this
+corresponds to "wrapping every element in the list", but it only takes
+time _O(1)_ and no space, no matter how many elements the list
+contains.
 
 
 ## Motivation
 
-A _view_ is a zero-cost abstraction mechanism that allows
+A _view class_ is a zero-cost abstraction mechanism that allows
 developers to replace the set of available operations on a given object
 (that is, the instance members of its type) by a different set of
 operations (the members declared by the given view type).
 
-It is zero-cost in the sense that the value denoted by an expression whose
-type is a view type is an object of a different type (known as the
-_representation type_ of the view type), and there is no wrapper
-object, in spite of the fact that the view behaves similarly to a
-wrapping.
+It is zero-cost in the sense that the value denoted by an expression
+whose type is a view type is an object of a different type (known as
+the _representation type_ of the view type), and there is no wrapper
+object, in spite of the fact that the view class behaves similarly to
+a wrapping.
 
 The point is that the view type allows for a convenient and safe treatment
 of a given object `o` (and objects reachable from `o`) for a specialized
@@ -157,18 +159,18 @@ void main() {
 In short, we want an `int` representation, but we want to make sure
 that we don't accidentally add ID numbers or multiply them, and we
 don't want to silently pass an ID number (e.g., as actual arguments or
-in assignments) where an `int` is expected. The view `IdNumber` will
-do all these things.
+in assignments) where an `int` is expected. The view class `IdNumber`
+will do all these things.
 
 We can actually cast away the view type and hence get access to the
 interface of the representation, but we assume that the developer
-wishes to maintain this extra discipline, and won't cast away the
-view type onless there is a good reason to do so. Similarly, we can
-access the representation using the representation name as a getter.
-There is no reason to consider the latter to be a violation of any
-kind of encapsulation or protection barrier, it's just like any other
-getter invocation. If desired, the author of the view can choose to
-use a private representation name, to obtain a small amount of extra
+wishes to maintain this extra discipline, and won't cast away the view
+type onless there is a good reason to do so. Similarly, we can access
+the representation using the representation name as a getter.  There
+is no reason to consider the latter to be a violation of any kind of
+encapsulation or protection barrier, it's just like any other getter
+invocation. If desired, the author of the view class can choose to use
+a private representation name, to obtain a small amount of extra
 encapsulation.
 
 The extra discipline is enforced because the view member
@@ -176,28 +178,28 @@ implementations will only treat the representation object in ways that
 are written with the purpose of conforming to this particular
 discipline (and thereby defines what this discipline is). For example,
 if the discipline includes the rule that you should never call a
-method `foo` on the representation, then the author of the view will
-simply need to make sure that none of the view member declarations
-ever calls `foo`.
+method `foo` on the representation, then the author of the view class
+will simply need to make sure that none of the view member
+declarations ever calls `foo`.
 
 Another example would be that we're using interop with JavaScript, and
 we wish to work on a given `JSObject` representing a button, using a
 `Button` interface which is meaningful for buttons. In this case the
 implementation of the members of `Button` will call some low-level
 functions like `js_util.getProperty`, but a client who uses the view
-will have a full implementation of the `Button` interface, and will
-hence never need to call `js_util.getProperty`.
+class will have a full implementation of the `Button` interface, and
+will hence never need to call `js_util.getProperty`.
 
 (We _can_ just call `js_util.getProperty` anyway, because it accepts
 two arguments of type `Object`. But we assume that the developer will
 be happy about sticking to the rule that the low-level functions
-aren't invoked in application code, and they can do that by using
-views like `Button`. It is then easy to `grep` your application code
+aren't invoked in application code, and they can do that by using view
+classes like `Button`. It is then easy to `grep` your application code
 and verify that it never calls `js_util.getProperty`.)
 
-Another potential application would be to generate view declarations
-handling the navigation of dynamic object trees that are known to
-satisfy some sort of schema outside the Dart type system. For
+Another potential application would be to generate view class
+declarations handling the navigation of dynamic object trees that are
+known to satisfy some sort of schema outside the Dart type system. For
 instance, they could be JSON values, modeled using `num`, `bool`,
 `String`, `List<dynamic>`, and `Map<String, dynamic>`, and those JSON
 values might again be structured according to some schema.
@@ -211,11 +213,11 @@ reasoning is required may be fragmented into many different locations, and
 there is no help detecting that some of those locations are treating the
 tree incorrectly according to the schema.
 
-If views are available then we can declare a set of view types with
-operations that are tailored to work correctly with the given schema
-and its subschemas. This is less error-prone and more maintainable
-than the approach where the tree is handled with static type `dynamic`
-everywhere.
+If view classes are available then we can declare a set of view types
+with operations that are tailored to work correctly with the given
+schema and its subschemas. This is less error-prone and more
+maintainable than the approach where the tree is handled with static
+type `dynamic` everywhere.
 
 Here's an example that shows the core of that scenario. The schema that
 we're assuming allows for nested `List<dynamic>` with numbers at the
@@ -246,11 +248,11 @@ void main() {
 Note that `it` is subject to promotion in the above example. This is safe
 because there is no way to override this would-be final instance variable.
 
-The syntax `(Object it)` in the declaration of the view causes the
-view to have a constructor and a final instance variable `it` of type
-`Object`, and it can be used to obtain a value of the view type from a
-given instance of the representation type. This syntax is known as a
-_primary constructor_.
+The syntax `(Object it)` in the declaration of the view class causes
+the view class to have a constructor and a final instance variable
+`it` of type `Object`, and it can be used to obtain a value of the
+view type from a given instance of the representation type. This
+syntax is known as a _primary constructor_.
 
 It is possible to declare other constructors as well; details are
 given in the proposal. A constructor body may be declared. It could be
@@ -258,18 +260,18 @@ used, e.g., to verify that the given representation object satisfies
 some constraints.
 
 In any case, an instance creation of a view type, `View<T>(o)`, will
-evaluate to a reference to the value of the final instance variable
-of the view, with the static type `View<T>` (and there is no object
-at run time that represents the view itself).
+evaluate to a reference to the value of the final instance variable of
+the view class, with the static type `View<T>` (and there is no object
+at run time that represents the view class itself).
 
 The name `TinyJson` can be used as a type, and a reference with that
 type can refer to an instance of the underlying representation type
 `Object`. In the example, the inferred type of `tiny` is `TinyJson`.
 
 We can now impose an enhanced discipline on the use of `tiny`, because
-the view type allows for invocations of the members of the view, which
-enables a specific treatment of the underlying instance of `Object`,
-consistent with the assumed schema.
+the view type allows for invocations of the members of the view class,
+which enables a specific treatment of the underlying instance of
+`Object`, consistent with the assumed schema.
 
 The getter `leaves` is an example of a disciplined use of the given object
 structure. The run-time type may be a `List<dynamic>`, but the schema which
@@ -306,7 +308,7 @@ working on a wrapper object rather than accessing `o` and its methods
 directly:
 
 ```dart
-// Emulate the view using a class.
+// Emulate the view class using a class.
 
 class TinyJson {
   // `representation` is assumed to be a nested list of numbers.
@@ -344,57 +346,20 @@ wish to work on an entire data structure we'd need to wrap each object as
 we navigate the data structure. For instance, we need to create a wrapper
 `TinyJson(element)` in order to invoke `leaves` recursively.
 
-In contrast, the view is zero-cost, in the sense that it does _not_ use a
-wrapper object, it enforces the desired discipline statically. In the
-view, the invocation of `TinyJson(element)` in the body of `leaves`
-can be eliminated entirely by inlining.
+In contrast, the view class is zero-cost, in the sense that it does
+_not_ use a wrapper object, it enforces the desired discipline
+statically. In the view class, the invocation of `TinyJson(element)`
+in the body of `leaves` can be eliminated entirely by inlining.
 
-Views are static in nature, like extension methods: A view declaration may
-declare some type parameters. The type parameters will be bound to types
-which are determined by the static type of the receiver. Similarly, members
-of a view type are resolved statically, i.e., if `tiny.leaves` is an
-invocation of a view getter `leaves`, then the declaration named `leaves`
-whose body is executed is determined at compile-time. There is no support
-for late binding of a view member, and hence there is no notion of
-overriding. In return for this lack of expressive power, we get improved
-performance.
-
-Here is another example. It illustrates the fact that a view with
-representation type `T` may introduce a view type `V` which is a
-supertype of `T`, in the case where the view has the modifier
-`implicit`.
-
-This makes it possible to assign an expression of type `T` to a
-variable of type `V` (in other words, we do not need to call the
-constructor). This corresponds to "entering" the view type (accepting
-the specific discipline associated with `V`). Conversely, a cast from
-`V` to `T` is a downcast, and hence it must be written explicitly.
-This cast corresponds to "exiting" the view type (allowing for
-violations of the discipline associated with `V`), and the fact that
-the cast must be written explicitly helps developers maintaining the
-discipline as intended, rather than dropping out of the view type by
-accident.
-
-```dart
-implicit view ListSize<X>(List<X> it) {
-  int get size => it.length;
-  X front() => it[0];
-}
-
-void main() {
-  ListSize<String> xs = <String>['Hello']; // OK, upcast.
-  print(xs); // OK, `toString()` available on `Object`.
-  print("Size: ${xs.size}. Front: ${xs.front()}"); // OK.
-  xs[0]; // Error, `operator []` is not a member of `ListSize`.
-
-  List<ListSize<String>> ys = [xs]; // OK.
-  List<List<String>> ys2 = ys; // Error, downcast.
-  ListSize<ListSize<Object>> ys3 = ys; // OK.
-  ys[0].front(); // OK.
-  ys3.front().front(); // OK.
-  ys as List<List<String>>; // `ys` is promoted, succeeds at run time.
-}
-```
+View classes are static in nature, like extension methods: A view
+class declaration may declare some type parameters. The type
+parameters will be bound to types which are determined by the static
+type of the receiver. Similarly, members of a view type are resolved
+statically, i.e., if `tiny.leaves` is an invocation of a view getter
+`leaves`, then the declaration named `leaves` whose body is executed
+is determined at compile-time. There is no support for late binding of
+a view member, and hence there is no notion of overriding. In return
+for this lack of expressive power, we get improved performance.
 
 
 ## Syntax
