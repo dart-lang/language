@@ -7,6 +7,9 @@ Status: Draft
 
 ## Change Log
 
+2022.09.21
+  - Removed support for `export`, changed `view` to `view class`
+
 2022.09.20
   - Updated the inheritance mechanism to fit in with a potential non-virtual
     method mechanism for classes: Use `implements`, remove show/hide.
@@ -118,7 +121,7 @@ type `R` or some supertype of `R` (which is what we normally do). For
 example:
 
 ```dart
-view IdNumber(int i) {
+view class IdNumber(int i) {
   // Declare a few members.
 
   // Assume that it makes sense to compare ID numbers
@@ -219,7 +222,7 @@ we're assuming allows for nested `List<dynamic>` with numbers at the
 leaves, and nothing else.
 
 ```dart
-view TinyJson(Object it) {
+view class TinyJson(Object it) {
   Iterable<num> get leaves sync* {
     if (it is num) {
       yield it;
@@ -401,7 +404,7 @@ rules for elements used in view declarations:
 
 ```ebnf
 <viewDeclaration> ::=
-  'implicit'? 'view' <typeIdentifier> <typeParameters>?
+  'view' 'class' <typeIdentifier> <typeParameters>?
       <viewPrimaryConstructor>?
       <interfaces>?
   '{'
@@ -411,63 +414,11 @@ rules for elements used in view declarations:
 <viewPrimaryConstructor> ::=
   '(' <type> <identifier> ')'
 
-<viewShowHidePart> ::=
-  <viewShowClause>? <viewHideClause>?
-
-<viewShowClause> ::= 'show' <viewShowHideList>
-
-<viewHideClause> ::= 'hide' <viewShowHideList>
-
-<viewShowHideList> ::=
-  <viewShowHideElement> (',' <viewShowHideElement>)*
-
-<viewShowHideElement> ::=
-  <type> |
-  <identifier> |
-  'operator' <operator> |
-  ('get'|'set') <identifier>
-
 <viewMemberDeclaration> ::=
-  <classMemberDefinition> |
-  <memberExportDeclaration>
-
-<memberExportDeclaration> ::=
-  'export' <identifier> <viewShowHidePart> ';'
-
-<viewExtensionDeclaration> ::=
-  'view' 'extension' (<typeIdentifier> '.')? <typeIdentifier> <typeParameters>?
-      <viewNamespaceClause>
-      <viewPrimaryConstructor>?
-  '{'
-    (<metadata> <viewMemberDeclaration>)*
-  '}'
-
-<viewNamespaceClause> ::=
-  'namespace' <identifierList>
-
-<viewNamespaceDirective> ::=
-  'view' 'namespace' <viewShowClause>? <viewHideClause>? ';'
-
-<viewShowClause> ::=
-  'show' <viewNamespaceList>
-
-<viewHideClause> ::=
-  'hide' <viewNamespaceList>
-
-<viewNamespaceList> ::=
-  <viewNamespaceElement> (',' <viewNamespaceElement>)*
-
-<viewNamespaceElement> ::=
-  ((<typeIdentifier> '.')? <typeIdentifier> '.')? <identifier>
+  <classMemberDefinition>
 ```
 
 The token `view` is made a built-in identifier.
-
-*In the rule `<viewShowHideElement>`, note that `<type>` derives
-`<typeIdentifier>`, which makes `<identifier>` nearly redundant. However,
-`<identifier>` is still needed because it includes some strings that cannot
-be the name of a type but can be the basename of a member, e.g., the
-built-in identifiers.*
 
 A few errors can be detected immediately from the syntax:
 
@@ -504,10 +455,10 @@ one final instance variable.*
 
 ```dart
 // Using a primary constructor.
-view V1(T it) {}
+view class V1(T it) {}
 
 // Same thing, using a normal constructor.
-view V2 {
+view class V2 {
   final T it;
   V2(this.it);
 }
@@ -610,7 +561,7 @@ obvious small adjustments.*
 Assume that _V_ is a view declaration of the following form:
 
 ```dart
-view V<X1 extends B1, .. Xk extends Bk>(T id) ... {
+view class V<X1 extends B1, .. Xk extends Bk>(T id) ... {
   ... // Members
 }
 ```
@@ -667,7 +618,7 @@ extension E1 on int {
   void foo() { print('E1.foo'); }
 }
 
-view V1(int it) {
+view class V1(int it) {
   void foo() { print('V1.foo'); }
   void baz() { print('V1.baz'); }
   void qux() { print('V1.qux'); }
@@ -675,7 +626,7 @@ view V1(int it) {
 
 void qux() { print('qux'); }
 
-view V2(V1 it) {
+view class V2(V1 it) {
   void foo() { print('V2.foo); }
   void bar() {
     foo(); // Prints 'V2.foo'.
@@ -789,170 +740,6 @@ according to the normal rules for constructors (in particular, it must
 occur by means of `this.id` or in an initializer list).*
 
 
-### Allow instance member access using `export`
-
-This section specifies the effect of including a
-`<memberExportDeclaration>` in a view declaration, and it specifies the
-member export declaration which is implicitly induced if none are
-given explicitly.
-
-*A member export declaration is used to provide access to the members
-of the interface of the representation type (or a subset thereof). For
-instance, if the intended purpose of the view type is to maintain a
-certain set of invariants about the state of the underlying
-representation type instance, it is no problem to let clients invoke
-any methods that do not change the state. We could write forwarding
-members in the view body to enable those methods, but using an export
-declaration can have the same effect, and it is much more concise.*
-
-A term derived from `<viewShowHideElement>` may occur in several
-locations in a member export declaration. We define the set of member
-names specified by this construct relative to a given representation
-type `T` as follows: Let _SH_ be a term derived from
-`<viewShowHideElement>`. Let _M<sub>SH</sub>_ be the set of member
-names specified by _SH_ relative to `T`. Then:
-
-- If _SH_ is of the form `id` which is an `<identifier>` and `id` does
-  not denote a type then _M<sub>SH</sub>_ is the set containing the
-  member name `id` if `T` has a member named `id`, and the member name
-  `id=` if `T` has a setter named `id=` (*and both if `T` has both*).
-- Otherwise, if _SH_ is of the form `<type>` and denotes a type `S` then
-  _M<sub>SH</sub>_ is the set of member names in the interface of `S`
-  except the member names in the interface of `Object`.
-- If _SH_ is of the form `operator <operator>` then _M<sub>SH</sub>_
-  is the singleton set containing that operator.
-- If _SH_ is of the form `get <identifier>` then _M<sub>SH</sub>_ is the
-  singleton set containing that identifier.
-- If _SH_ is of the form `set <identifier>` then _M<sub>SH</sub>_ is the
-  singleton set containing that identifier concatenated with `=`.
-
-We use the notation <code>members(_SH_, T)</code> to denote the set of
-member names specified by _SH_ relative to `T`.
-*That is, <code>members(_SH_, T) = _M<sub>SH</sub>_</code>.*
-
-*If _SH_ is an identifier that denotes a type in scope, it will denote
-that type. This is a conflict if the identifier is intended to denote
-a member name. In order to avoid this conflict it may be necessary to
-import said type with a prefix, such that the identifier will denote a
-member name. However, this kind of conflict is very unlikely to occur
-in practice, because member names usually start with a lowercase
-letter, and type names usually start with an uppercase letter, and the
-few expections (like `int` and `dynamic`) are unlikely to be used as
-names of members.*
-
-Consider a view declaration _DV_ named `View` whose representation
-name is `id` and representation type is `T`. Assume that _DV_ contains
-a member export declaration _DX_ of the form `export id S H;` where `S`
-is derived from `<viewShowClause>?` and `H` is derived from
-`<viewHideClause>?`.
-
-The set of _member names exported_ by _DX_ is computed as follows.
-
-If `S` and `H` are empty then the set of member names exported by _DX_
-is the set of member names in the interface of `T`.
-
-If `S` is empty and `H` is
-<code>hide H<sub>1</sub>, .. H<sub>k</sub></code>
-then let _M<sub>0</sub>_
-be the set of member names in the interface of `T`.
-For _j_ in _0 .. k-1_, let _M<sub>j+1</sub>_ be
-_M<sub>j</sub> &setminus; members(H<sub>j+1</sub>, T)_.
-The set of member names exported by _DX_ is then _M<sub>k</sub>_.
-
-If `H` is empty and `S` is
-<code>show S<sub>1</sub>, .. S<sub>k</sub></code> then let
-_M<sub>0</sub>_ be the set of member names in the interface of
-`Object`. For _j_ in _0 .. k-1_, let _M<sub>j+1</sub>_ be
-_M<sub>j</sub> &cup; members(S<sub>j+1</sub>, T)_.
-The set of member names exported by _DX_ is then _M<sub>k</sub>_.
-
-If both `H` and `S` are non-empty then let
-_M<sub>0</sub>_ be the set of member names exported by
-`export id S`.
-For _j_ in _0 .. k-1_, let _M<sub>j+1</sub>_ be
-_M<sub>j</sub> &setminus; members(H<sub>j+1</sub>, T)_.
-The set of member names exported by _DX_ is then _M<sub>k</sub>_.
-
-*Note that each member name in the interface of `Object` is included
-except if they are explicitly and individually hidden.*
-
-Assume that _DX_ exports a member name _m_.
-
-A compile-time error occurs unless the representation type of _DV_
-has a member named _m_.
-
-*If _DV_ implements a view _V1_ and _V1_ has a member named _m_
-then the member _m_ exported by _DX_ will shadow the one from _V1_.
-In other words, `export` takes precedence over `implements`. If
-a different outcode is desired then the export declaration can use
-`hide` as described below.*
-
-A compile-time error occurs if `H` is of the form `hide H1, .. Hk` and
-`Hj` denotes a type `S`, and `S` is not a
-superinterface of `T`, and not a denotation of a generic class `G`
-such that there exist types `U1 .. Un` such that `G<U1, .. Un>` is a
-superinterface of `T`. Similarly for `S` of the form `show S1, .. Sk`.
-
-*That is, an exported name cannot clash with a declared or inherited
-name, such conflicts must be resolved using show/hide. Also, we can
-only show or hide a type if it is a superinterface of the
-representation type, or the raw version of such a type.*
-
-We use the phrase _view show/hide part_, or just _show/hide part_ when
-no doubt can arise, to denote a phrase derived from
-`<viewShowHidePart>`. Similarly, a `<viewShowClause>` is known
-as a _view show clause_, and a `<viewHideClause>` is known as
-a _view hide clause_, similarly abbreviated to _show clause_ and
-_hide clause_.
-
-Consider a member access (*e.g., a method call or tear-off, or a
-getter/setter/operator invocation*) with receiver type `W` which is a
-parameterized type of the form `View<T1, .. Tk>` where `View` is the
-name of _DV_ (where the non-generic case is covered by _k = 0_).
-Assume that the member access invokes or tears off a member named `m`,
-where `m` is exported by an export clause of the form `export id S H`
-in _DV_, where `id` is the representation name of _DV_. In this case,
-the member access is treated as if the receiver has the
-representation type `T`.
-
-*For example:*
-
-```dart
-view V(int it) {
-  export it show num, isEven hide hashCode;
-  int get twice => it * 2;
-  void hashCode(String silly) {} // OK.
-}
-
-void main() {
-  var v = V(42);
-  v.isEven; // OK, `v` is treated as having type `int`.
-  v.isOdd; // Compile-time error, not exported.
-  v.twice; // OK, declared by `V`.
-  v.toString(); // OK, `Object` is exported by default.
-  v.hashCode('Silly indeed!'); // OK.
-}
-```
-
-If _DV_ does not include any member export declarations exporting the
-representation name `id`, it is treated as if it had declared
-`export id show Object;`.
-
-*In short, if a view on a type `T` is like a veil hiding `T` and
-showing something else, then the exported members of the
-representation are like a hole in the veil: We get to see the
-underlying representation type, with exactly the same semantics as an
-invocation where the receiver type is the representation type,
-including OO dispatch and the treatment of default values of optional
-parameters.*
-
-It is a compile time error if _DV_ contains a member export declaration
-of the form `export m S H` where `m` is not the representation name.
-
-*We may wish to generalize the export mechanism to allow such cases
-later on. See the discussion section for further details.*
-
-
 ### Composing view types
 
 This section describes the effect of including a clause derived from
@@ -971,9 +758,10 @@ duplication.*
 
 *The reason why this mechanism uses the keyword `implements` rather
 than `extends` to declare a relation that involves inheritance is that
-it has the same semantics as that of non-virtual members in classes,
-and view members are similar to non-virtual members in that they are
-both statically resolved.*
+it has the same semantics as that of class extension members (a
+mechanism which is currently being considered), and view members are
+similar to class extension members in that they are statically
+resolved.*
 
 Assume that _DV_ is a view declaration named `View`, and `V1` occurs as
 one of the `<type>`s in the `<interfaces>` of _DV_. In this case we
@@ -1040,21 +828,6 @@ and _DV_ does not declare a member named `m`.  *In other words, a name
 clash among "inherited" members is an error, but it can be eliminated
 by overriding the clashing name.*
 
-*It is allowed for _DV_ to select a getter from `V1` and the
-corresponding setter from `V2`, even though Dart generally treats a
-getter/setter pair as a single unit. However, a show/hide part
-explicitly supports the separation of a getter/setter pair using
-`get m` respectively `set m`. The rationale is that a view type may
-well be used to provide a read-only interface for an object whose
-members do otherwise allow for mutation, and this requires that the
-getter is included and the setter is not.*
-
-*Conflicts between superviews are not allowed, they must be resolved
-explicitly (using an "override"). The rationale is that the extends
-clause of a view is concerned with code reuse, not modeling, and there
-is no reason to believe that any implicit conflict resolution will
-consistently do the right thing.*
-
 The effect of having a view declaration _DV_ with superviews
 `V1, .. Vk` is that the members declared by _DV_ as well as all
 members of `V1, .. Vk` that are not overridden by a declaration in
@@ -1071,180 +844,6 @@ ambiguity.
 in the case where the extends clause has `extends ... V3 hide foo, ...`.
 If no other superview has a member with basename `foo`, it is
 also possible to call it using `super.foo()`.*
-
-
-## View Extensions
-
-A _view extension_ is a declaration that adds members to an existing
-view which is in scope.
-
-*The rule of thumb about this mechanism is that it is similar to
-extension methods, but they are 'sticky' in the sense that they are
-associated with a given view type, and they do not require the
-declaration of the view extension to be imported directly.*
-
-*Name clashes are handled by associating each view extension with a
-particular set of namespaces, which is named by an identifier list in
-the view extension declaration. Clients may then enable or disable
-each namespace using show and hide clauses.*
-
-A view extension declaration is derived from
-`<viewExtensionDeclaration>`. A compile-time error occurs if a view
-extension declaration contains a member export declaration.
-
-Assume that _DX_ is a view extension declaration named `prefix.View`.
-A compile-time error occurs unless there is a unique view declaration
-named `View` which is imported into the current library with the
-import prefix `prefix`.
-
-Assume that _DX_ is a view extension declaration named `View`.  A
-compile-time error occurs unless there is a unique view declaration
-named `View` which is imported into the current library without an
-import prefix.
-
-Let _DV_ denote the above mentioned unique view declaration, whether
-or not it is imported with a prefix (so _DX_ may or may not have that
-prefix in the following paragraphs).
-
-We say that _DX_ provides an _extension of the view_ declared by _DV_,
-and we say that _DX_ _belongs to_ _DV_.
-
-A compile-time error occurs unless _DX_ and _DV_ have exactly the same
-type parameters with exactly the same bounds, up to consistent
-renaming. A compile-time error occurs unless the representation type of
-_DX_ and the representation type of _DV_ are mutual subtypes.
-
-Consider a member access _a_ (*e.g., `v.foo()`*), in a library _L_,
-where the receiver type is `View<T1, .. Tk>` where `View` denotes _DV_.
-
-Assume that _L_ contains a view namespace directive derived from
-`<viewNamespaceDirective>` of the form `view namespace S H`.
-
-Assume that _E_ is a `<viewNamespaceElement>` of the form
-`<identifier>`. _E_ then denotes the set of all view extensions whose
-`<viewNamespaceClause>` includes said identifier. If _E_ is of the
-form `<typeIdentifier> '.' <identifier>` where the type identifier is
-an import prefix then _E_ denotes the set of view extensions exported
-by the library which is imported with said prefix, where each view
-extension has said identifier in its view namespace clause.
-
-The set of _enabled_ view extensions in _L_ is the set of view
-extensions exported by a library which is directly or indirectly
-imported by _L_, and which is denoted by an element in `S`, and not
-denoted by any element in `H`.
-
-Let _VX<sub>1</sub> .. VX<sub>n</sub>_ be the set of enabled view
-extensions belonging to _DV_ which are declared in libraries
-_L<sub>1</sub> .. L<sub>n</sub>_ (*not necessarily distinct*)
-that are imported directly or indirectly by _L_.
-
-For the given member name (*in the example above: `foo`*), let
-_VX<sub>1</sub> .. VX<sub>m</sub>_ be the subset of
-_VX<sub>1</sub> .. VX<sub>n</sub>_ that declare a member with that
-name (*we can assume that we have chosen a numbering that makes this
-possible*).
-
-A compile-time error occurs if _m_ is zero, or _m_ is larger than 1.
-Otherwise, the member access _a_ is resolved to denote the declaration
-with that name in _VX<sub>1</sub>_.
-
-*In other words, when we are invoking an extension view member, we
-only consider the declarations that are enabled by the view namespace
-directive of the current library.*
-
-The treatment described above is also used in order to determine the
-set of members in the interface of each view that is used as
-superviews, directly or indirectly, of the target view _DV_.
-
-*In other words, view extensions can add new members to the target
-view as well as any of its superviews, and "inheritance" proceeds as
-usual as if the added members were written in those views directly,
-rather than being added by view extensions.*
-
-An error occurs if two enabled view extensions both add a member named
-`m` to the same view, or if an enabled view extension adds a member
-named `m` to a view that already declares a member named `m`.
-
-*These rules ensure that it is possible to extend the set of members
-available for a given view in different ways, depending on the import
-graph. For example:*
-
-```dart
-// Library 'base.dart'.
-view V(int it) {
-  bool isThree => it == 3;
-}
-
-// Library 'extension1.dart'.
-view extension V(int it) namespace One {
-  void foo() {
-    print('Whether I am three: $isThree!');
-  }
-  void bar() {}
-}
-
-// Library 'extension2.dart'.
-view Extension V(int it) namespace Two, AlternativeTwo {
-  int get foo => 3; // Unrelated to `foo` in extension1.
-  set baz(String s) {}
-}
-
-// Library 'main1.dart'.
-import 'base.dart';
-import 'extension1.dart';
-import 'extension2.dart';
-view namespace show One, Two;
-
-void main() {
-  var v = V(3);
-  v.isThree; // OK, available from view.
-  v.bar(); // OK, from One.
-  v.baz = 'Hello'; // OK, from Two.
-  v.foo; // Compile-time error, ambiguous.
-}
-
-// Library 'main2.dart'.
-import 'base.dart';
-import 'extension1.dart';
-import 'extension2.dart'; // Imported or not, makes no difference.
-view namespace show One;
-
-void main() {
-  var v = V(3);
-  v.isThree; // OK, from view.
-  v.bar(); // OK, from One.
-  v.baz = 'Hello'; // Compile-time error, no such member.
-  v.foo(); // OK, from One.
-}
-```
-
-
-### View namespace usage
-
-*This section is a non-normative discussion about some ways that view
-namespaces could be managed.*
-
-*If view extensions are used to handle an API migration then a useful
-approach could be to have a view namespace indicating the topic (e.g.,
-`html`) and a namespace indicating the version (e.g., `legacy` and
-`v3_0_0`). Developers would then enable the particular version of a
-set of views by means of `view namespace show <topic>, <version>`, for
-example: `view namespace show html, v3_0_0;`.*
-
-*Namespaces used as "topics" in this sense could be managed by the
-community. For instance, a convention could be applied where large
-companies or organizations could use specific suffixes (for example,
-view namespaces managed by the Dart team could have the form
-`..._core`, e.g., `html_core`; a company ACME could use `..._acme`,
-and so on).*
-
-*It would then typically be the case that `..._acme` view namespaces
-would contain view extensions on views provided by ACME, and ACME
-would take responsibility for avoiding (or eliminating) name clashes
-among members added by view extensions, for any given version. So
-you're never supposed to enable multiple versions of the same topic in
-the same library, and when exactly one version of a given topic is
-enabled then it can be expected that there are no name clashes.*
 
 
 ## Dynamic Semantics of Views
@@ -1330,17 +929,17 @@ of `V`, we just don't need or want `V <: V1`).
 A possible workaround would be to write forwarding methods manually:
 
 ```dart
-view V1(T it) {
+view class V1(T it) {
   void foo() {...}
 }
 
 // `V` can reuse code from `V1` by using `extends`. Note that
 // `S <: T`, because otherwise it is a compile-time error.
-view V(S it) extends V1 {}
+view class V(S it) implements V1 {}
 
 // Alternatively, we can write a forwarder, in order to avoid
 // having the subtype relationship `V <: V1`.
-view V(S it) {
+view class V(S it) {
   void foo() => V1(it).foo();
 }
 ```
@@ -1363,7 +962,7 @@ as the set of exported member names of the representation object,
 based on the interface of the return type of `g`. For example:
 
 ```dart
-view V2(int it) {
+view class V2(int it) {
   export it hide int, runtimeType, noSuchMethod;
   export predecessor hide num, toString, hashCode, operator ==;
   int get predecessor => it - 1;
