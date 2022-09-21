@@ -9,7 +9,7 @@ Version 2.7 (see [CHANGELOG](#CHANGELOG) at end)
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
 
-[records]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/records-feature-specification.md
+[records]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/records/records-feature-specification.md
 
 ## Summary
 
