@@ -1854,23 +1854,16 @@ All other types are not exhaustive. Then:
     is to throw an error and most Dart users prefer to catch those kinds of
     mistakes at compile time.*
 
-*   If the static type of the matched value in a switch statement is an
-    exhaustive type and the cases are not exhaustive then:
-
-    *   It is a compile-time warning if the type is an enum type or nullable
-        enum type. *This is for backwards compatibility.*
-
-        *Since enum types are handled specially, why define them as exhaustive?
-        This is so that they don't prevent a record type containing them as
-        being considered exhaustive. We want it to be a compile-time error if a
-        switch on a record type with a sealed type field and an enum type field
-        is not exhaustive. We even treat it as an error for switching on a
-        record containing only enum types. Since there are no records in the
-        wild, this is not a breaking change.*
-
-    *   Else it is a compile-time error.
+*   It is a compile-time error if the cases in a switch statement are not
+    exhaustive and the static type of the matched value is an exhaustive type.
 
 [exhaustiveness]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/exhaustiveness.md
+
+**Breaking change:** Currently, a non-exhaustive switch on an enum type is only
+a warning. This promotes it to an error. Also, switches on `bool` do not have to
+be exhaustive. In practice, many users already treat warnings as errors, and
+switches on `bool` are rare and unidiomatic. This breaking change would only
+apply to code that has opted into the language version where this ships.
 
 ## Runtime semantics
 
@@ -2537,6 +2530,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.8
+
+-   Upgrade non-exhaustive switch statements on enums from a warning to an
+    error (#2474).
 
 ### 2.7
 
