@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.9 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.11 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -124,6 +124,8 @@ not captured by the grammar. It is a compile-time error if a record has any of:
 
 *   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
+*   A field name that starts with an underscore.
+
 *   A field name that collides with the synthesized getter name of a positional
     field. *For example: `('pos', $0: 'named')` since the named field '$0'
     collides with the getter for the first positional field.*
@@ -213,6 +215,8 @@ It is a compile-time error if a record type has any of:
 *   A named field named `hashCode`, `runtimeType`, `noSuchMethod`, or
     `toString`.
 
+*   A field name that starts with an underscore.
+
 *   A field name that collides with the synthesized getter name of a positional
     field. *For example: `(int, $0: int)` since the named field '$0' collides
     with the getter for the first positional field.*
@@ -264,15 +268,8 @@ structural, not nominal. Records produced in unrelated libraries have the exact
 same static type if they have the same shape and their corresponding fields have
 the same types.
 
-If a field name starts with an underscore, it is private and is only accessible
-in the library where it appears. The records `(_foo: 1)` and `(_foo: 1)`
-appearing in different libraries do *not* have the same shape because each
-`_foo` is considered a distinct name. Likewise, the record types `({int _foo})`
-and `({int _foo})` are not the same type if those annotations appear in
-different libraries.
-
-The order of named fields is not significant. The record types `({int a, int b})`
-and `({int b, int a})` are identical to the type system and the runtime. (Tools
+The order of named fields is not significant. The record types `{int a, int b}`
+and `{int b, int a}` are identical to the type system and the runtime. (Tools
 may or may not display them to users in a canonical form similar to how they
 handle function typedefs.)
 
@@ -581,6 +578,10 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.11
+
+- Revert back to disallowing private field names in records.
 
 ### 1.10
 
