@@ -210,7 +210,7 @@ It is a compile-time error if a record type has any of:
     this is symmetric with record expressions and leaves the potential for
     later support for parentheses for grouping in type expressions.*
 
-*   A positional field named `hashCode`, `runtimeType`, `noSuchMethod`, or
+*   A named field named `hashCode`, `runtimeType`, `noSuchMethod`, or
     `toString`.
 
 *   A field name that collides with the synthesized getter name of a positional
