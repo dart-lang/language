@@ -170,12 +170,8 @@ The grammar is:
 
 ```
 // Existing rules:
-type                   ::= functionType '?'?      // Existing production.
-                         | recordType             // New production.
-                         | typeNotFunction        // Existing production.
-
 typeNotFunction        ::= 'void'                 // Existing production.
-                         | recordType             // New production.
+                         | recordType '?'?        // New production.
                          | typeNotVoidNotFunction // Existing production.
 
 // New rules:
@@ -188,8 +184,7 @@ recordTypeField        ::= metadata type identifier?
 
 recordTypeNamedFields  ::= '{' recordTypeNamedField
                            ( ',' recordTypeNamedField )* ','? '}'
-recordTypeNamedField   ::= type identifier
-recordTypeNamedField   ::= metadata typedIdentifier
+recordTypeNamedField   ::= metadata type identifier
 ```
 
 *The grammar is exactly the same as `parameterTypeList` in function types but
