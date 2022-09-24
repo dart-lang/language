@@ -202,13 +202,6 @@ view Data();
 view GenericData<T>();
 ```
 
-Perhaps record:
-
-```dart
-record Data();
-record GenericData<T>();
-```
-
 ##### Use a modifier on classes
 
 
