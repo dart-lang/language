@@ -984,8 +984,7 @@ The semantics of extension would be, as with `implements`, that all methods on
 the super-struct type are statically available on the sub-struct, but no
 overriding is allowed.
 
-### Allow extension structs to extend other extension structs and refine the
-    type.
+### Allow extension structs to extend other extension structs and refine the type.
 
 We could choose to allow extension structs to require a more specific type for
 the unique field.
@@ -995,8 +994,7 @@ extension struct Number(num _x);
 extension struct Integer(int _x) extends Number;
 ```
 
-### Allow extension structs to provide overriding implementations of implemented
-    or extended members
+### Allow extension structs to provide overriding implementations of implemented or extended members
 
 The core proposal forbids overriding, to avoid the surprising behavior where the
 same object resolves methods differently depending on the static type.  We could
