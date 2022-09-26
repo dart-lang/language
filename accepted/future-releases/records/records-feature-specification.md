@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.11 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.12 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -174,6 +174,10 @@ typeNotFunction        ::= 'void'                 // Existing production.
                          | recordType '?'?        // New production.
                          | typeNotVoidNotFunction // Existing production.
 
+typeNotVoid            ::= functionType '?'?      // Existing production.
+                         | recordType '?'?        // New production.
+                         | typeNotVoidNotFunction // Existing production.
+
 // New rules:
 recordType             ::= '(' recordTypeFields ',' recordTypeNamedFields ')'
                          | '(' recordTypeFields ','? ')'
@@ -189,9 +193,7 @@ recordTypeNamedField   ::= metadata type identifier
 
 *The grammar is exactly the same as `parameterTypeList` in function types but
 without `required`, and optional positional parameters since those don't apply
-to record types. A record type can't appear in an `extends`, `implements`,
-`with`, or mixin `on` clause, which is enforced by being a production in `type`
-and not `typeNotVoid`.*
+to record types.*
 
 The type `()` is the type of an empty record with no fields.
 
@@ -413,6 +415,17 @@ value. Notice that if the `identical()` returns `true` on two records, they must
 be structurally equivalent, but unlike for non-records, the `identical()`
 function can also return `false` for structurally equivalent records.*
 
+### Uses
+
+It is a compile-time error if a record type or a type alias that resolves to a
+record type is used in:
+
+*   An `extends` clause.
+*   An `implements` clause.
+*   A `with` clause.
+*   An `on` clause on a mixin declaration. *A record type can be used as the
+    `on` type in an extension declaration.*
+
 ## Runtime semantics
 
 The fields in a record expression are evaluated left to right. *This is true
@@ -573,6 +586,13 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.12
+
+- Include record types in `typeNotVoid`. This allows them to appear in `is` and
+  `as` expressions (which was always intended).
+
+- Clarify that record types cannot be used as supertypes or superinterfaces.
 
 ### 1.11
 
