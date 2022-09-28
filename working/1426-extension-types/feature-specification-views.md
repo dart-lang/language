@@ -451,7 +451,7 @@ We use
 <code>invokeViewMethod(V, &lt;T<sub>1</sub>, .. T<sub>k</sub>&gt;, o).m(args)</code>
 where `V` is a type name denoting a view to denote the invocation of
 the view method `m` on `o` with arguments `args` and view type
-arguments 
+arguments
 <code>T<sub>1</sub>, .. T<sub>k</sub></code>.
 Similar constructs exist for invocation of getters, setters, and
 operators.
@@ -560,6 +560,10 @@ view type_ `V<S1, .. Sk>`, and that its static type _is a view type_.
 A compile-time error occurs if a view type is used as a superinterface of a
 class or a mixin, or if a view type is used to derive a mixin.
 
+*In other words, a view type cannot occur as a superinterface in an `extends`,
+`with`, `implements`, or `on` clause of a class or mixin. On the other hand,
+it can occur in other ways, e.g., as a type argument of a superinterface.*
+
 If `e` is an expression whose static type `V` is the view type
 <code>View&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code>
 and `m` is the name of a member declared by `V`, then a member access
@@ -646,6 +650,16 @@ representation name is the representation type.
 *For example, in `view V(T id) {...}`, `id` has type `T` and `this`
 has type `V`.*
 
+Again, let `V` be a view type of the form
+<code>View&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code>,
+and let `T` be the corresponding instantiated representation type.
+If `T` is not a view type then we say that `V` is a view type
+at level zero. If `T` is a view type at level _k_ then we say that
+`V` is a view type at level _k + 1_.
+A compile-time error occurs if the level of `V` is undefined.
+
+*In other words, cycles are not allowed.*
+
 A view declaration _DV_ named `View` may declare one or more
 constructors. A constructor which is declared in a view declaration is
 also known as a _view constructor_.
@@ -717,6 +731,9 @@ say that `V1` is a superview of _DV_.
 A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superview in a view declaration _DV_, but `V1` does not
 denote a view type.
+
+A compile-time error occurs if `V1` is a superview of `V1`, directly or
+indirectly. *As usual, subtype cycles are not allowed.*
 
 Assume that a view declaration _DV_ named `View` has representation
 type `T`, and that the view type `V1` with declaration _DV1_ is a
@@ -822,7 +839,7 @@ Consider a view declaration _DV_ named `View` with representation name
 generative view constructor proceeds as follows: A fresh, non-late,
 final variable `v` is created. An initializing formal `this.id`
 has the side-effect that it initializes `v` to the actual argument
-passed to this formal. An initializer list element of the form 
+passed to this formal. An initializer list element of the form
 `id = e` or `this.id = e` is evaluated by evaluating `e` to an object
 `o` and binding `v` to `o`.  During the execution of the constructor
 body, `this` and `id` are bound to the value of `v`.  The value of the
@@ -850,6 +867,28 @@ or contains a view type, is performed at run time as a type test and type
 cast on the run-time representation of the view type as described above.
 
 
+### Summary of Typing Relationships
+
+*Here is an overview of the subtype relationships of a view type
+`V0` with representation type `T` and superviews `V1 .. Vk`, as well
+as other typing relationships involving `V0`:*
+
+- *`V0` is a subtype of `Object?`.*
+- *`V0` is a supertype of `Never`.*
+- *If `T` is a top type then `V0` is a top type,
+  otherwise `V0` is a proper subtype of `Object?`.*
+- *If `T` is a non-nullable type then `V0` is a non-nullable type.*
+- `V0` is a subtype of each of `V1 .. Vk` (and a proper subtype
+  unless `V0` is a top type).*
+- *At run time, the type `V0` is identical to the type `T`. In
+  particular, `o is V0` and `o as V0` have the same dynamic
+  semantics as `o is T` respectively `o as T`, and
+  `t1 == t2` evaluates to true if `t1` is a `Type` that reifies
+  `V0` and `t2` reifies `T`, and the equality also holds if
+  `t1` and `t2` reify types where `V0` and `T` occur as subterms
+  (e.g., `List<V0>` is equal to `List<T>`).*
+
+
 ## Discussion
 
 This section mentions a few topics that have given rise to
@@ -859,7 +898,7 @@ discussions.
 ### Support "private inheritance"?
 
 In the current proposal there is a subtype relationship between every
-view and each of its superviews. So if we have 
+view and each of its superviews. So if we have
 `view V(...) extends V1, V2 ...` then `V <: V1` and `V <: V2`.
 
 In some cases it might be preferable to omit the subtype relationship,
