@@ -81,7 +81,7 @@ print(a + b); // 3.
 You can also destructure and assign to existing variables:
 
 ```dart
-var (a, b) = ('left', right');
+var (a, b) = ('left', 'right');
 (b, a) = (a, b); // Swap!
 print('$a $b'); // Prints "right left".
 ```
