@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.12 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.13 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -256,6 +256,80 @@ any code in the wild.
 avoid this ambiguity ([#2469][]).**
 
 [#2469]: https://github.com/dart-lang/language/issues/2469
+
+### Ambiguity with metadata annotations
+
+A metadata annotation may or may not have an argument list following it. A
+variable declaration may omit a preceding type annotation. Likewise, a function
+declaration may omit a preceding return type. This combination of syntax where
+an optional trailing element is followed by syntax with an optional preceding
+element can lead to ambiguity. In particular:
+
+```dart
+@metadata (a, b) function() {}
+```
+
+This could be a metadata annotation `@metadata(a, b)` associated with a function
+declaration with no return type. Or it could be a metadata annotation
+`@metadata` associated with a function whose return type is the record type `(a,
+b)`.
+
+In practice, idiomatically written code is clear thanks to whitespace:
+
+```dart
+@metadata(a, b) function() {}
+
+@metadata (a, b) function() {}
+```
+
+The former applies `(a, b)` to the metadata annotation and the latter is a
+return type. We disambiguate in the same way, by making whitespace after a
+metadata annotation name significant. Change the grammar to:
+
+```
+metadatum ::= identifier                                    // Existing rule.
+            | qualifiedName                                 // Existing rule.
+            | constructorDesignation ~WHITESPACE arguments  // Changed.
+```
+
+The `~WHITESPACE` lexical rule matches when there are no whitespace characters
+(according to the existing `WHITESPACE` lexical rule) between the
+`constructorDesignation` and `arguments`. Comments do not count as whitespace,
+nor do whitespace characters in comments. The newline at the end of a line
+comment *does* count as whitespace.
+
+```dart
+// These are argument lists to the annotation:
+@metadata(x,) a;
+@metadata/* a comment */(x,) a;
+@metadata/* a
+multi
+line
+comment */(x,) a;
+
+// These are record variable types:
+@metadata (x,) a;
+
+@metadata
+(x,) a;
+
+@metadata // Comment.
+(x,) a;
+
+@metadata/* Comment with newline after. */
+(x,) a;
+```
+
+Note that the no whitespace rule is applied unconditionally, even when the
+metadata annotation appears in a context where no ambiguity with record types
+is possible.
+
+**Breaking change:** Existing metadata annotations with whitespace before their
+argument lists will no longer parse correctly. In a corpus of 18,672,247 lines
+of code containing 409,825 metadata annotations, 46,245 had argument lists and
+none of those had whitespace before the argument list. Note that this analysis
+only captures code that has been committed. Code being written may be less well
+formatted, but we expect problems from this to be rare.
 
 ## Static semantics
 
@@ -586,6 +660,10 @@ variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
 ## CHANGELOG
+
+### 1.13
+
+- Disambiguate record types following metadata annotations (#2469).
 
 ### 1.12
 
