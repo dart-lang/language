@@ -33,14 +33,13 @@ declared by a new `view class` declaration. A view type provides a
 replacement of the members available on instances of existing types:
 when the static type of the instance is a view type _V_, the available
 instance members are exactly the ones provided by _V_ (noting that
-there may of course also be some accessible and applicable extension
-members).
+there may also be some accessible and applicable extension members).
 
 In contrast, when the static type of an instance is not a view type,
 it is (by soundness) always the run-time type of the instance, or a
 supertype thereof. This means that the available instance members are
 the members of the run-time type of the instance, or a subset thereof
-(again: there may also be some extension methods).
+(again: there may also be some extension members).
 
 Hence, using a supertype as the static type allows us to see only a
 subset of the members. Using a view type allows us to _replace_ the
@@ -92,9 +91,9 @@ in terms of the interface of the representation object.
 This is something that we could obviously do with a wrapper, but when
 it is done with a view class there is no wrapper object, and hence
 there is no run-time performance cost. In particular, in the case
-where we have a view type `V` with representation type `T` we may be
-able to refer to a `List<T>` using the type `List<V>`
-(using `theTList as List<V>`), and this corresponds to "wrapping every
+where we have a view type `V` with representation type `R` we may be
+able to refer to a `List<R>` using the type `List<V>`
+(using `theRList as List<V>`), and this corresponds to "wrapping every
 element in the list", but it only takes time _O(1)_ and no space, no
 matter how many elements the list contains.
 
@@ -351,7 +350,7 @@ _not_ use a wrapper object, it enforces the desired discipline
 statically. In the view class, the invocation of `TinyJson(element)`
 in the body of `leaves` can be eliminated entirely by inlining.
 
-View classes are static in nature, like extension methods: A view
+View classes are static in nature, like extension members: A view
 class declaration may declare some type parameters. The type
 parameters will be bound to types which are determined by the static
 type of the receiver. Similarly, members of a view type are resolved
@@ -420,11 +419,11 @@ one final instance variable.*
 
 ```dart
 // Using a primary constructor.
-view class V1(T it) {}
+view class V1(R it) {}
 
 // Same thing, using a normal constructor.
 view class V2 {
-  final T it;
+  final R it;
   V2(this.it);
 }
 ```
@@ -448,11 +447,11 @@ derivable in the Dart grammar.*)
 ### Static Analysis of invokeViewMethod
 
 We use
-<code>invokeViewMethod(V, &lt;T<sub>1</sub>, .. T<sub>k</sub>&gt;, o).m(args)</code>
+<code>invokeViewMethod(V, &lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;, o).m(args)</code>
 where `V` is a type name denoting a view to denote the invocation of
 the view method `m` on `o` with arguments `args` and view type
-arguments 
-<code>T<sub>1</sub>, .. T<sub>k</sub></code>.
+arguments
+<code>T<sub>1</sub>, .. T<sub>s</sub></code>.
 Similar constructs exist for invocation of getters, setters, and
 operators.
 
@@ -462,11 +461,11 @@ operators.
 *We need special syntax because there is no syntax which will unambiguously
 denote a view member invocation. We could consider the syntax of explicit
 extension member invocations, e.g.,
-<code>V&lt;T<sub>1</sub>, .. T<sub>k</sub>&gt;(o).m(args)</code>,
+<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;(o).m(args)</code>,
 but this is ambiguous since
-<code>V&lt;T<sub>1</sub>, .. T<sub>k</sub>&gt;(o)</code>
+<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;(o)</code>
 can be a view constructor invocation.  Similarly,
-<code>V&lt;T<sub>1</sub>, .. T<sub>k</sub>&gt;.m(o, args)</code>
+<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;.m(o, args)</code>
 is similar to a named constructor invocation, but that is also
 confusing because it looks like actual source code, but it couldn't be
 used in an actual program.*
@@ -480,8 +479,7 @@ handle the non-generic case*). The third argument must be an expression
 whose static type is _V_ or the corresponding instantiated
 representation type (defined below). The member access must access a
 member of the declaration denoted by `View`, or a member of a
-superview of that view declaration, or a member added by a view
-extension.
+superview of that view declaration.
 
 *Superviews are specified in the section 'Composing view types'.*
 
@@ -490,25 +488,25 @@ operator that takes at least one argument), it is allowed to pass an actual
 argument list, and the static analysis of the actual arguments proceeds as
 with other function calls, using a signature where the formal type
 parameters of `V` are replaced by
-<code>T<sub>1</sub>, .. T<sub>k</sub></code>.
+<code>T<sub>1</sub>, .. T<sub>s</sub></code>.
 The type of the entire member access is the return type of said member if
 it is a member invocation, and the function type of the method if it is a
 view member tear-off, again substituting
-<code>T<sub>1</sub>, .. T<sub>k</sub></code>
+<code>T<sub>1</sub>, .. T<sub>s</sub></code>
 for the formal type parameters.
 
 
 ### Dynamic Semantics of invokeViewMethod
 
 Let `e0` be an expression of the form
-<code>invokeViewMethod(View, &lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;, e).m(args)</code>.
+<code>invokeViewMethod(View, &lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;, e).m(args)</code>.
 
 Evaluation of `e0` proceeds by evaluating `e` to an object `o` and
 evaluating `args` to an actual argument list `args1`, and then
 executing the body of `View.m` in an environment where `this` and the
 name of the representation are bound to `o`, the type variables of
 `View` are bound to the actual values of
-<code>S<sub>1</sub>, .. S<sub>k</sub></code>,
+<code>T<sub>1</sub>, .. T<sub>s</sub></code>,
 and the formal parameters of `m` are bound to `args1` in the same way
 that they would be bound for a normal function call. If the body completes
 returning an object `o2`, then `e0` completes with the object `o2`; if the
@@ -521,26 +519,32 @@ obvious small adjustments.*
 
 ## Static Analysis of Views
 
-Assume that _V_ is a view declaration of the following form:
+Assume that
+<code>T<sub>1</sub>, .. T<sub>s</sub></code>
+are types and `V` resolves to a view declaration of the
+following form:
 
 ```dart
-view class V<X1 extends B1, .. Xk extends Bk>(T id) ... {
+view class V<X1 extends B1, .. Xs extends Bs>(T id) ... {
   ... // Members
 }
 ```
 
-It is then allowed to use `V<S1, .. Sk>` as a type.
+It is then allowed to use
+<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
+as a type.
 
 *For example, it can occur as the declared type of a variable or
 parameter, as the return type of a function or getter, as a type
 argument in a type, as the representation type of a view, as the
 on-type of an extension, as the type in the `onPart` of a try/catch
-statement, in a type test `o is V`, in a type cast `o as V`, or as
-the body of a type alias. It is also allowed to create a new instance
-where one or more view types occur as type arguments.*
+statement, in a type test `o is V<...>`, in a type cast `o as V<...>`,
+or as the body of a type alias. It is also allowed to create a new
+instance where one or more view types occur as type arguments.*
 
-A compile-time error occurs if the type `V<S1, .. Sk>` is not
-regular-bounded.
+A compile-time error occurs if the type
+<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
+is not regular-bounded.
 
 *In other words, such types can not be super-bounded. The reason for this
 restriction is that it is unsound to execute code in the body of `V` in
@@ -548,30 +552,38 @@ the case where the values of the type variables do not satisfy their
 declared bounds, and those values will be obtained directly from the static
 type of the receiver in each member invocation on `V`.*
 
-When `k` is zero, `V<S1, .. Sk>` simply stands for `V`, a non-generic view.
-When `k` is greater than zero, a raw occurrence `V` is treated like a raw
+When `s` is zero,
+<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
+simply stands for `V`, a non-generic view.
+When `s` is greater than zero, a raw occurrence `V` is treated like a raw
 type: Instantiation to bound is used to obtain the omitted type arguments.
 *Note that this may yield a super-bounded type, which is then a
 compile-time error.*
 
 We say that the static type of said variable, parameter, etc. _is the
-view type_ `V<S1, .. Sk>`, and that its static type _is a view type_.
+view type_
+<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
+and that its static type _is a view type_.
 
 A compile-time error occurs if a view type is used as a superinterface of a
 class or a mixin, or if a view type is used to derive a mixin.
 
+*In other words, a view type cannot occur as a superinterface in an `extends`,
+`with`, `implements`, or `on` clause of a class or mixin. On the other hand,
+it can occur in other ways, e.g., as a type argument of a superinterface.*
+
 If `e` is an expression whose static type `V` is the view type
-<code>View&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code>
+<code>View&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
 and `m` is the name of a member declared by `V`, then a member access
 like `e.m(args)` is treated as
-<code>invokeViewMethod(View, &lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;, e).m(args)</code>,
+<code>invokeViewMethod(View, &lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;, e).m(args)</code>,
 and similarly for instance getters, setters, and operators.
 
 *In the body of a view declaration _DV_ with name `View` and type parameters
-<code>X<sub>1</sub>, .. X<sub>k</sub></code>, for an invocation like
+<code>X<sub>1</sub>, .. X<sub>s</sub></code>, for an invocation like
 `m(args)`, if a declaration named `m` is found in the body of _DV_
 then that invocation is treated as
-<code>invokeViewMethod(View, &lt;X<sub>1</sub>, .. X<sub>k</sub>&gt;, this).m(args)</code>.
+<code>invokeViewMethod(View, &lt;X<sub>1</sub>, .. X<sub>s</sub>&gt;, this).m(args)</code>.
 This is just the same treatment of `this` as in the body of a class.*
 
 *For example:*
@@ -603,22 +615,22 @@ view class V2(V1 it) {
 ```
 
 *That is, when the static type of an expression is a view type `V`
-with representation type `T`, each method invocation on that
+with representation type `R`, each method invocation on that
 expression will invoke an instance method declared by `V` or inherited
 from a superview (or it could be an extension method with on-type `V`).
 Similarly for other member accesses.*
 
 Let _DV_ be a view declaration named `View` with type parameters
-<code>X<sub>1</sub> extends B<sub>1</sub>, .. X<sub>k</sub> extends B<sub>k</sub></code>
-and primary constructor `(T id)`.
+<code>X<sub>1</sub> extends B<sub>1</sub>, .. X<sub>s</sub> extends B<sub>s</sub></code>
+and primary constructor `(R id)`.
 Alternatively, assume that _DV_ does not declare a primary
 constructor, but _DV_ declares a unique, final instance variable named
-`id` with declared type `T`.
+`id` with declared type `R`.
 
 In both cases we say that the _declared representation type_ of `View`
-is `T`, and the _instantiated representation type_ corresponding to
-<code>View&lt;S<sub>1</sub>,.. S<sub>k</sub>&gt;</code> is
-<code>[S<sub>1</sub>/X<sub>1</sub>, .. S<sub>k</sub>/X<sub>k</sub>]T</code>.
+is `R`, and the _instantiated representation type_ corresponding to
+<code>View&lt;T<sub>1</sub>,.. T<sub>s</sub>&gt;</code> is
+<code>[T<sub>1</sub>/X<sub>1</sub>, .. T<sub>s</sub>/X<sub>s</sub>]R</code>.
 
 We will omit 'declared' and 'instantiated' from the phrase when it is
 clear from the context whether we are talking about the view itself or
@@ -626,12 +638,12 @@ a particular instantiation of a generic view. *For non-generic views,
 the representation type is the same in either case.*
 
 Let `V` be a view type of the form
-<code>View&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code>,
-and let `T` be the corresponding instantiated representation type.
-When `T` is a top type, `V` is also a top type.
+<code>View&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
+and let `R` be the corresponding instantiated representation type.
+When `R` is a top type, `V` is also a top type.
 Otherwise the following applies:
 
-`V` is a proper subtype of `Object?`. If `T` is non-nullable then `V`
+`V` is a proper subtype of `Object?`. If `R` is non-nullable then `V`
 is a proper subtype of `Object` as well.
 
 *That is, an expression of a view type can be assigned to a top type
@@ -639,12 +651,25 @@ is a proper subtype of `Object` as well.
 non-nullable then it can also be assigned to `Object`.*
 
 In the body of a member of a view declaration _DV_ named `View`
-and declaring the type parameters `X1 .. Xk`, the static type of
-`this` is `View<X1 .. Xk>`. The static type of the name of the
-representation name is the representation type.
+and declaring the type parameters
+<code>X<sub>1</sub>, .. X<sub>s</sub></code>,
+the static type of `this` is
+<code>View&lt;X<sub>1</sub> .. X<sub>s</sub>&gt;</code>.
+The static type of the name of the representation name is the
+representation type.
 
-*For example, in `view V(T id) {...}`, `id` has type `T` and `this`
-has type `V`.*
+*For example, in `view class V(R id) {...}`, `id` has type `R`, and
+`this` has type `V`.*
+
+Again, let `V` be a view type of the form
+<code>View&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
+and let `R` be the corresponding instantiated representation type.
+If `R` is not a view type then we say that `V` is a view type
+at level zero. If `R` is a view type at level _k_ then we say that
+`V` is a view type at level _k + 1_.
+A compile-time error occurs if the level of `V` is undefined.
+
+*In other words, cycles are not allowed.*
 
 A view declaration _DV_ named `View` may declare one or more
 constructors. A constructor which is declared in a view declaration is
@@ -658,11 +683,11 @@ used to verify that an existing object (provided as an actual argument
 to the constructor) satisfies the requirements for having that view
 type.*
 
-A primary constructor `(T id)` in _DV_ is a concise notation that
+A primary constructor `(R id)` in _DV_ is a concise notation that
 gives rise to a constructor named `View` (that is, it is not "named")
 that accepts one parameter of the form `this.id` and has no body.
 Moreover, the primary constructor induces an instance variable
-declaration of the form `final T id;`.
+declaration of the form `final R id;`.
 
 A compile-time error occurs if a view constructor includes a
 superinitializer. *That is, a term of the form `super(...)` or
@@ -674,11 +699,11 @@ is, `View<X1 .. Xk>`, where `X1 .. Xk` are the type parameters
 declared by `View`.*
 
 An instance creation expression of the form
-<code>View&lt;T<sub>1</sub>, .. T<sub>k</sub>&gt;(...)</code>
+<code>View&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;(...)</code>
 or
-<code>View&lt;T<sub>1</sub>, .. T<sub>k</sub>&gt;.name(...)</code>
+<code>View&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;.name(...)</code>
 is used to invoke these constructors, and the type of such an expression is
-<code>View&lt;T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>.
+<code>View&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>.
 
 *In short, view constructors appear to be very similar to constructors
 in classes, and they correspond to the situation where the enclosing
@@ -718,11 +743,27 @@ A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superview in a view declaration _DV_, but `V1` does not
 denote a view type.
 
+A compile-time error occurs if any direct or indirect superview of _DV_
+is the type `View` or a type of the form `View<...>`. *As usual,
+subtype cycles are not allowed.*
+
+Assume that _DV_ has two direct or indirect superviews of the form
+<code>W&lt;T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
+respectively
+<code>W&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code>.
+A compile-time error
+occurs unless
+<code>T<sub>j</sub></code>
+is equal to
+<code>S<sub>j</sub></code>
+for each _j_ in _1 .. k_. The notion of equality used here is the same
+as with the corresponding rule about superinterfaces of classes.
+
 Assume that a view declaration _DV_ named `View` has representation
-type `T`, and that the view type `V1` with declaration _DV1_ is a
+type `R`, and that the view type `V1` with declaration _DV1_ is a
 superview of _DV_ (*note that `V1` may have some actual type
 arguments*).  Assume that `S` is the instantiated representation type
-corresponding to `V1`. A compile-time error occurs unless `T` is a
+corresponding to `V1`. A compile-time error occurs unless `R` is a
 subtype of `S`.
 
 *This ensures that it is sound to bind the value of `id` in _DV_ to `id1`
@@ -730,11 +771,11 @@ in `V1` when invoking members of `V1`, where `id` is the representation
 name of _DV_ and `id1` is the representation name of _DV1_.*
 
 Assume that _DV_ declares a view named `View` with type parameters
-<code>X<sub>1</sub> .. X<sub>k</sub></code> and `V1` is a superview of
+<code>X<sub>1</sub> .. X<sub>s</sub></code> and `V1` is a superview of
 _DV_. Then
-<code>View&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code> is a subtype of
-<code>[S<sub>1</sub>/X<sub>1</sub> .. S<sub>k</sub>/X<sub>k</sub>]V1</code>
-for all <code>S<sub>1</sub>, .. S<sub>k</sub></code>
+<code>View&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code> is a subtype of
+<code>[T<sub>1</sub>/X<sub>1</sub> .. T<sub>s</sub>/X<sub>s</sub>]V1</code>
+for all <code>T<sub>1</sub>, .. T<sub>s</sub></code>
 where these types are regular-bounded.
 
 *If they aren't regular-bounded then the type is a compile-time error
@@ -746,12 +787,12 @@ A compile-time error occurs if a view _DV_ has two superviews `V1` and
 declarations, and _DV_ does not declare a member named _m_.
 
 *In other words, if two different declarations of _m_ is inherited
-from two superviews then the subview must override _m_, either
-explicitly or via an export declaration. The so-called diamond
-inheritance pattern can create the case where two superviews have an
-_m_, but they are both declared by the same declaration (so `V` is a
-subview of `V1` and `V2`, and both `V1` and `V2` are subviews of `V3`,
-and `V3` declares _m_, in which case there is no conflict in `V`).*
+from two superviews then the subview must resolve the conflict. The
+so-called diamond inheritance pattern can create the case where two
+superviews have an _m_, but they are both declared by the same
+declaration (so `V` is a subview of `V1` and `V2`, and both `V1` and
+`V2` are subviews of `V3`, and `V3` declares _m_, in which case there
+is no conflict in `V`).*
 
 *Assume that _DV_ is a view declaration named `View` and that the view
 type `V1`, declared by _DV1_, is a superview of _DV_. Let `m` be the
@@ -766,18 +807,23 @@ _DV_). Still, a receiver with static type `V1` will invoke the
 declaration in _DV1_, and a receiver with static type `View` (or
 `View<...>`) will invoke the one in _DV_.*
 
-Nevertheless, we use the word _override_ to describe the relationship
-between a member named _m_ of a superview, and a member declared or
-exported by the subview and also named _m_.
+Hence, we use a different word to describe the relationship between a
+member named _m_ of a superview, and a member named _m_ which is
+declared by the subview: We say that the latter _redeclares_ the
+former.
+
+*In particular, if two different declarations of _m_ is inherited
+from two superviews then the subview can resolve the conflict by
+redeclaring _m_.*
 
 *Note that there is no notion of having a 'correct override relation'
-here. With views, any member signature can override any other member
+here. With views, any member signature can redeclare any other member
 signature with the same name, including the case where a method is
 overridden by a getter or vice versa. The reason for this is that no
 call site will resolve to one of several declarations at run time,
-each invocation will statically resolve to one particular
-declaration, and this makes it possible to ensure that the invocation
-is type correct.*
+each invocation will statically resolve to one particular declaration,
+and this makes it possible to ensure that the invocation is type
+correct.*
 
 Assume that _DV_ is a view declaration and that the view types `V1`
 and `V2` are superviews of _DV_. Let `M1` be the members of `V1`, and
@@ -812,17 +858,17 @@ The dynamic semantics of view member invocation follows from the code
 transformation specified in the section about the static analysis.
 
 *In short, with `e` of type
-<code>View&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code>,
+<code>View&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 `e.m(args)` is treated as
-<code>invokeViewMethod(View, &lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;, e).m(args)</code>.
+<code>invokeViewMethod(View, &lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;, e).m(args)</code>.
 Similarly for getters, setters, and operators.*
 
 Consider a view declaration _DV_ named `View` with representation name
-`id` and representation type `T`.  Invocation of a non-redirecting
+`id` and representation type `R`.  Invocation of a non-redirecting
 generative view constructor proceeds as follows: A fresh, non-late,
 final variable `v` is created. An initializing formal `this.id`
 has the side-effect that it initializes `v` to the actual argument
-passed to this formal. An initializer list element of the form 
+passed to this formal. An initializer list element of the form
 `id = e` or `this.id = e` is evaluated by evaluating `e` to an object
 `o` and binding `v` to `o`.  During the execution of the constructor
 body, `this` and `id` are bound to the value of `v`.  The value of the
@@ -850,6 +896,28 @@ or contains a view type, is performed at run time as a type test and type
 cast on the run-time representation of the view type as described above.
 
 
+### Summary of Typing Relationships
+
+*Here is an overview of the subtype relationships of a view type
+`V0` with representation type `R` and superviews `V1 .. Vk`, as well
+as other typing relationships involving `V0`:*
+
+- *`V0` is a subtype of `Object?`.*
+- *`V0` is a supertype of `Never`.*
+- *If `R` is a top type then `V0` is a top type,
+  otherwise `V0` is a proper subtype of `Object?`.*
+- *If `R` is a non-nullable type then `V0` is a non-nullable type.*
+- `V0` is a subtype of each of `V1 .. Vk` (and a proper subtype
+  unless `V0` is a top type).*
+- *At run time, the type `V0` is identical to the type `R`. In
+  particular, `o is V0` and `o as V0` have the same dynamic
+  semantics as `o is R` respectively `o as R`, and
+  `t1 == t2` evaluates to true if `t1` is a `Type` that reifies
+  `V0` and `t2` reifies `R`, and the equality also holds if
+  `t1` and `t2` reify types where `V0` and `R` occur as subterms
+  (e.g., `List<V0>` is equal to `List<R>`).*
+
+
 ## Discussion
 
 This section mentions a few topics that have given rise to
@@ -859,7 +927,7 @@ discussions.
 ### Support "private inheritance"?
 
 In the current proposal there is a subtype relationship between every
-view and each of its superviews. So if we have 
+view and each of its superviews. So if we have
 `view V(...) extends V1, V2 ...` then `V <: V1` and `V <: V2`.
 
 In some cases it might be preferable to omit the subtype relationship,
@@ -869,12 +937,12 @@ of `V`, we just don't need or want `V <: V1`).
 A possible workaround would be to write forwarding methods manually:
 
 ```dart
-view class V1(T it) {
+view class V1(R it) {
   void foo() {...}
 }
 
 // `V` can reuse code from `V1` by using `implements`. Note that
-// `S <: T`, because otherwise it is a compile-time error.
+// `S <: R`, because otherwise it is a compile-time error.
 view class V(S it) implements V1 {}
 
 // Alternatively, we can write a forwarder, in order to avoid
