@@ -580,7 +580,7 @@ extension struct Nat(int _x) {
 void test() {
   var n1 = Nat(3);
   var n2 = Nat.zero();
-  assert(n2.succ.succ.succ == n2);
+  assert(n2.succ.succ.succ == n1);
 
   //The underlying representation is still as an int
   assert(n1 is int);
