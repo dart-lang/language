@@ -252,11 +252,6 @@ ambiguity, we disambiguate by treating `on` as a clause for `try` and not a
 local function. This is technically a breaking change, but is unlikely to affect
 any code in the wild.
 
-**TODO: This section should be removed if we change the record type syntax to
-avoid this ambiguity ([#2469][]).**
-
-[#2469]: https://github.com/dart-lang/language/issues/2469
-
 ### Ambiguity with metadata annotations
 
 A metadata annotation may or may not have an argument list following it. A
@@ -289,40 +284,61 @@ metadata annotation name significant. Change the grammar to:
 ```
 metadatum ::= identifier                                    // Existing rule.
             | qualifiedName                                 // Existing rule.
-            | constructorDesignation ~WHITESPACE arguments  // Changed.
+            | constructorDesignation NO_SPACE arguments  // Changed.
 ```
 
-The `~WHITESPACE` lexical rule matches when there are no whitespace characters
-(according to the existing `WHITESPACE` lexical rule) between the
-`constructorDesignation` and `arguments`. Comments do not count as whitespace,
-nor do whitespace characters in comments. The newline at the end of a line
-comment *does* count as whitespace.
+The `NO_SPACE` lexical rule matches when there are no whitespace characters or
+comments (according to the existing `WHITESPACE` and `COMMENT` lexical rules)
+between the `constructorDesignation` and `arguments`. In other words, for an
+argument list to be part of the metadata annotation, the `(` must occur
+immediately after the last character in the `constructorDesignation`. The last
+character in `constructorDesignation` may be an identifier or the `>` in a
+type argument list.
 
 ```dart
-// These are argument lists to the annotation:
-@metadata(x,) a;
-@metadata/* a comment */(x,) a;
-@metadata/* a
-multi
-line
-comment */(x,) a;
+// These are parsed as argument lists to the annotation:
+@metadata(x, y) a;
 
-// These are record variable types:
-@metadata (x,) a;
+@metadata<T>(x, y) a;
+
+@metadata <T>(x, y) a;
+
+// These are parsed as record variable types:
+@metadata (x, y) a;
 
 @metadata
-(x,) a;
+(x, y) a;
+
+@metadata/* comment */(x, y) a;
 
 @metadata // Comment.
 (x,) a;
-
-@metadata/* Comment with newline after. */
-(x,) a;
 ```
 
-Note that the no whitespace rule is applied unconditionally, even when the
-metadata annotation appears in a context where no ambiguity with record types
-is possible.
+Note that the `NO_SPACE` rule is applied unconditionally, even when the metadata
+annotation appears in a context where no ambiguity with record types is
+possible, as in:
+
+```dart
+@metadata (x, y)
+class C {}
+```
+
+This example has a syntax error because the `(x, y)` is not parsed as arguments
+to the metadata and can't be parsed as anything else either.
+
+Another interesting case is:
+
+```dart
+@metadata<T> (x, y) a;
+```
+
+This is a syntax error because the `<T>` means there *must* be an argument list
+after it, but the `NO_SPACE` in `metadatum` prevents it from being parsed as
+such and the result is an error. *We could ignore whitespace after the `>` by
+tweaking the grammar, but we choose to require `NO_SPACE` even here since
+`@metadata<T>` appears to be a generic instantiation and could potentially be
+valid syntax in the future.*
 
 **Breaking change:** Existing metadata annotations with whitespace before their
 argument lists will no longer parse correctly. In a corpus of 18,672,247 lines
