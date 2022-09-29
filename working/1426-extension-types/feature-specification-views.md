@@ -651,9 +651,9 @@ is a proper subtype of `Object` as well.
 non-nullable then it can also be assigned to `Object`.*
 
 In the body of a member of a view declaration _DV_ named `View`
-and declaring the type parameters 
-<code>X<sub>1</sub>, .. X<sub>s</sub></code>, 
-the static type of `this` is 
+and declaring the type parameters
+<code>X<sub>1</sub>, .. X<sub>s</sub></code>,
+the static type of `this` is
 <code>View&lt;X<sub>1</sub> .. X<sub>s</sub>&gt;</code>.
 The static type of the name of the representation name is the
 representation type.
@@ -743,8 +743,21 @@ A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superview in a view declaration _DV_, but `V1` does not
 denote a view type.
 
-A compile-time error occurs if `V1` is a superview of `V1`, directly or
-indirectly. *As usual, subtype cycles are not allowed.*
+A compile-time error occurs if any direct or indirect superview of _DV_
+is the type `View` or a type of the form `View<...>`. *As usual,
+subtype cycles are not allowed.*
+
+Assume that _DV_ has two direct or indirect superviews of the form
+<code>W&lt;T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
+respectively
+<code>W&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code>.
+A compile-time error
+occurs unless
+<code>T<sub>j</sub></code>
+is equal to
+<code>S<sub>j</sub></code>
+for each _j_ in _1 .. k_. The notion of equality used here is the same
+as with the corresponding rule about superinterfaces of classes.
 
 Assume that a view declaration _DV_ named `View` has representation
 type `R`, and that the view type `V1` with declaration _DV1_ is a
