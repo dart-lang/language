@@ -122,6 +122,8 @@ not captured by the grammar. It is a compile-time error if a record has any of:
 
 *   Only one positional field and no trailing comma.
 
+*   No fields and a trailing comma. *The expression `(,)` isn't allowed.*
+
 *   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
 *   A field name that starts with an underscore.
@@ -138,8 +140,7 @@ var number = (1);  // The number 1.
 var record = (1,); // A record containing the number 1.
 ```
 
-There is no syntax for a zero-field record expression. Instead, there is a
-static constant `empty` on `Record` that returns the empty record.
+The expression `()` refers to the constant empty record with no fields.
 
 ### Record type annotations
 
@@ -347,8 +348,8 @@ fields are) and collection literals.
 ### Constants
 
 Record expressions can be constant and potentially constant expressions. A
-record expression is a compile-time constant expression if and only if all its
-field expressions are compile-time constant expressions.
+record expression is a compile-time constant expression if and only if all of
+its field expressions are compile-time constant expressions.
 
 *This is true whether the expression occurs in a constant context or not, which
 means that a record expression can be used directly as a parameter default value
