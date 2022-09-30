@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.9 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.13 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -122,13 +122,11 @@ not captured by the grammar. It is a compile-time error if a record has any of:
 
 *   Only one positional field and no trailing comma.
 
+*   No fields and a trailing comma. *The expression `(,)` isn't allowed.*
+
 *   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
-*   A field name that starts with an underscore. *If we allow a record to have
-    private field names, then those fields would not be visible outside of the
-    library where the record was declared. That would lead to a record that has
-    hidden state. Two such records might unexpectedly compare unequal even
-    though all of the fields the user can see are equal.*
+*   A field name that starts with an underscore.
 
 *   A field name that collides with the synthesized getter name of a positional
     field. *For example: `('pos', $0: 'named')` since the named field '$0'
@@ -142,8 +140,7 @@ var number = (1);  // The number 1.
 var record = (1,); // A record containing the number 1.
 ```
 
-There is no syntax for a zero-field record expression. Instead, there is a
-static constant `empty` on `Record` that returns the empty record.
+The expression `()` refers to the constant empty record with no fields.
 
 ### Record type annotations
 
@@ -174,12 +171,12 @@ The grammar is:
 
 ```
 // Existing rules:
-type                   ::= functionType '?'?      // Existing production.
-                         | recordType             // New production.
-                         | typeNotFunction        // Existing production.
-
 typeNotFunction        ::= 'void'                 // Existing production.
-                         | recordType             // New production.
+                         | recordType '?'?        // New production.
+                         | typeNotVoidNotFunction // Existing production.
+
+typeNotVoid            ::= functionType '?'?      // Existing production.
+                         | recordType '?'?        // New production.
                          | typeNotVoidNotFunction // Existing production.
 
 // New rules:
@@ -192,15 +189,12 @@ recordTypeField        ::= metadata type identifier?
 
 recordTypeNamedFields  ::= '{' recordTypeNamedField
                            ( ',' recordTypeNamedField )* ','? '}'
-recordTypeNamedField   ::= type identifier
-recordTypeNamedField   ::= metadata typedIdentifier
+recordTypeNamedField   ::= metadata type identifier
 ```
 
 *The grammar is exactly the same as `parameterTypeList` in function types but
 without `required`, and optional positional parameters since those don't apply
-to record types. A record type can't appear in an `extends`, `implements`,
-`with`, or mixin `on` clause, which is enforced by being a production in `type`
-and not `typeNotVoid`.*
+to record types.*
 
 The type `()` is the type of an empty record with no fields.
 
@@ -216,7 +210,8 @@ It is a compile-time error if a record type has any of:
     this is symmetric with record expressions and leaves the potential for
     later support for parentheses for grouping in type expressions.*
 
-*   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
+*   A named field named `hashCode`, `runtimeType`, `noSuchMethod`, or
+    `toString`.
 
 *   A field name that starts with an underscore.
 
@@ -257,6 +252,11 @@ whose matched type is the record type `(a, b)`. When presented with this
 ambiguity, we disambiguate by treating `on` as a clause for `try` and not a
 local function. This is technically a breaking change, but is unlikely to affect
 any code in the wild.
+
+**TODO: This section should be removed if we change the record type syntax to
+avoid this ambiguity ([#2469][]).**
+
+[#2469]: https://github.com/dart-lang/language/issues/2469
 
 ## Static semantics
 
@@ -332,8 +332,8 @@ Likewise, the greatest lower bound of two record types with the same shape is
 the greatest lower bound of their component fields:
 
 ```dart
-a((num, String)) {}
-b((int, Object)) {}
+a((num, String) record) {}
+b((int, Object) record) {}
 var c = cond ? a : b; // c has type `Function((int, String))`.
 ```
 
@@ -402,8 +402,8 @@ hence:
 ### Constants
 
 Record expressions can be constant and potentially constant expressions. A
-record expression is a compile-time constant expression if and only if all its
-field expressions are compile-time constant expressions.
+record expression is a compile-time constant expression if and only if all of
+its field expressions are compile-time constant expressions.
 
 *This is true whether the expression occurs in a constant context or not, which
 means that a record expression can be used directly as a parameter default value
@@ -469,6 +469,17 @@ independently of whether `identical()` returns `true` or `false` on the `pair`
 value. Notice that if the `identical()` returns `true` on two records, they must
 be structurally equivalent, but unlike for non-records, the `identical()`
 function can also return `false` for structurally equivalent records.*
+
+### Uses
+
+It is a compile-time error if a record type or a type alias that resolves to a
+record type is used in:
+
+*   An `extends` clause.
+*   An `implements` clause.
+*   A `with` clause.
+*   An `on` clause on a mixin declaration. *A record type can be used as the
+    `on` type in an extension declaration.*
 
 ## Runtime semantics
 
@@ -557,12 +568,12 @@ the same hash code.
 A record object has a primitive `==` operator if all of its field have primitive
 `==` operators.
 
-*Note that this is a dynamic property of a record object, not a static property
-of its type. Since primitive equality only comes into play in constants, the
+*Note that this is a dynamic property of a record object, not a property of its
+static type. Since primitive equality only comes into play in constants, the
 compiler can see the actual field values for a relevant record at compile time
 because it has the actual constant record value with all of its constant fields.
-This means records can be used in constant sets and maps keys, but only when the
-records' fields could be as well.*
+This means a record can be used in a constant set or as a constant map key, but
+only when its field values could be as well.*
 
 ### Identity
 
@@ -631,9 +642,32 @@ covariant in their field types.
 
 ## CHANGELOG
 
+
 ### 1.10
 
 - Specify type inference, add static semantics to resources/type-system
+
+### 1.13
+
+- Introduce `()` syntax for empty record expressions and remove `Record.empty`.
+
+### 1.12
+
+- Include record types in `typeNotVoid`. This allows them to appear in `is` and
+  `as` expressions (which was always intended).
+
+- Clarify that record types cannot be used as supertypes or superinterfaces.
+
+### 1.11
+
+- Revert back to disallowing private field names in records.
+
+### 1.10
+
+- Allow private named fields in records (#2387).
+
+- Allow positional fields in record types named `hashCode`, `runtimeType`,
+  `noSuchMethod`, or `toString`.
 
 ### 1.9
 
