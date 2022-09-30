@@ -586,7 +586,51 @@ The runtime type of `pair` is `(int, double)`, not `(num, Object)`, However, the
 variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
+### Interactions with libraries using older language versions
+
+The records feature is language versioned, as usual with new Dart features.
+This means that it will be an error to use the syntax for records in libraries
+which do not have a language version greater than or equal to the language
+version in which records are released.  More specifically, assuming that `v` is
+the language version in which records are released, the following errors apply.
+
+It is an error to reference the SDK class `Record` in a library whose language
+version is less than `v`.
+
+It is an error for the record literal syntax (e.g. `(3, 4)`) to be used
+syntactically in a library whose language version is less than `v`.
+
+It is an error for the record type syntax (e.g. `(int, int)`) to be used
+syntactically in a library whose language version is less than `v`.
+
+*It is not an error for a library whose language version is less than `v` (a
+"legacy library") to include or reference the `Record` class, record types or
+record expressions directly or indirectly from another library whose language
+version is greater than or equal to `v`.  Such a legacy library may reference a
+typedef name which is bound to a record type in another library, and the
+semantic interpretation of the typedef is as the underlying record type, just as
+it would be for any other type.  Similarly, type inference may introduce record
+types into a legacy library, and such types will be interpreted by the compiler
+as record types as usual (that is, there is no erasure implied to remove these
+inferred types).  Record values may flow into a legacy library via a reference
+to a member from another libraries, and a legacy library may freely call getters
+on record values (since there is no new syntax for calling a record getter).
+
+The reason for this choice is that the intent of language versioning (for an
+additive feature such as records) is to ensure that users do not accidentally
+use new features in a package without specifying an sdk constraint which ensures
+that their code will always be run on an sdk which supports the feature.  But in
+the case of a legacy library which references record values or types indirectly
+via another library, the sdk constraint on the referenced library is sufficient
+to enforce this.*
+
+
 ## CHANGELOG
+
+### 1.14
+
+- Specify the interaction between libraries with a language version that
+  supports records and libraries with older language versions.
 
 ### 1.13
 
