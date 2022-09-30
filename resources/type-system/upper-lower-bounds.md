@@ -300,9 +300,6 @@ follows.
 
 - **DOWN**(`T Function<...>(...)`, `S Function<...>(...)`) = `Never` otherwise
 
-- **DOWN**(`(...)`, `Record`) = `(...)`
-- **DOWN**(`Record`, `(...)`) = `(...)`
-
 - **DOWN**(`(S0, ... Sk, {T0 d0, ..., Tn dn})`,
          `(S0', ... Sk', {T0' d0, ..., Tn' dn})`) =
    `(Q0, ...,Qk, {R0, ..., Rn})` if:

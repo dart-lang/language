@@ -373,26 +373,27 @@ entries is semantically irrelevant, and all invocations and record literals with
 the same named entries (possibly in different orders or locations) and the same
 positional entries are considered equivalent.
 
-Given a type schema `K` and a record expression `E` of the general form `(e0,
-..., en, d0 : e{n+1}, ..., dm : e{m+n+1})` inference proceeds as follows.
+Given a type schema `K` and a record expression `E` of the general form `(e1,
+..., en, d1 : e{n+1}, ..., dm : e{n+m})` inference proceeds as follows.
 
-If `K` is a record type schema of the form `(K0, ..., Kn, {d0 : K{n+1}, ....,
-dm : K{m+n+1})` then:
-  - Each `ei` is inferred with context type schema `Ki` to have type `Ti`
+If `K` is a record type schema of the form `(K1, ..., Kn, {d1 : K{n+1}, ....,
+dm : K{n+m}})` then:
+  - Each `ei` is inferred with context type schema `Ki` to have type `Si`
     - Let `Ri` be the greatest closure of `Ki`
-    - If `Ti` is a subtype of `Ri` then let `Ti'` be `Ti`
-    - Otherwise, if `Ti` is `dynamic`, then we insert an implicit cast on `ei`
-      to `Ri`, and let `Ti'` be `Ri`
-    - Otherwise, if `Ti` is coercible to `Ri` (via int-to-double conversion,
+    - If `Si` is a subtype of `Ri` then let `Ti` be `Si`
+    - Otherwise, if `Si` is `dynamic`, then we insert an implicit cast on `ei`
+      to `Ri`, and let `Ti` be `Ri`
+    - Otherwise, if `Si` is coercible to `Ri` (via int-to-double conversion,
       call method tearoff, or implicit generic instantiation), then we insert
-      the appropriate implicit coercion on `ei` to coerce it to `Ri`, and let
-      `Ti'` be `Ri`
+      the appropriate implicit coercion on `ei`.  Let `Ti` be the type of the
+      resulting coerced value (which must be a subtype of `Ri`, possibly
+      proper).
     - Otherwise, it is a static error.
-  - The type of `E` is `(T0', ..., Tn', {d0 : T{n+1}', ...., dm : T{m+n+1}'})`
+  - The type of `E` is `(T1, ..., Tn, {d1 : T{n+1}, ...., dm : T{n+m}})`
 
 If `K` is any other type schema:
   - Each `ei` is inferred with context type schema `_` to have type `Ti`
-  - The type of `E` is `(T0, ..., Tn, {d0 : T{n+1}, ...., dm : T{m+n+1}})`
+  - The type of `E` is `(T1, ..., Tn, {d1 : T{n+1}, ...., dm : T{n+m}})`
 
 As noted above, contrary to the practice for runtime checked covariant nominal
 types, we do not prefer the context type over the more precise upwards type.
@@ -407,14 +408,15 @@ Also note that implicit casts and other coercions are considered to be applied
 as part of inference, hence:
 ```dart
   class Callable {
-    void call() {}
+    void call(num x) {}
   }
   T id<T>(T x) => x;
   // No static error.
-  // Inferred type of the record is (int, double, int Function(int))
+  // Inferred type of the record is:
+  //    (int, double, int Function(int), void Function(num))
   var c = Callable();
   dynamic d = 3;
-  (num, double, int Function(int), void Function()) r = (d, 3, id, c);
+  (num, double, int Function(int), void Function(int)) r = (d, 3, id, c);
 ```
 and the record initialization in the last line above is implicitly coerced to be
 the equivalent of:
