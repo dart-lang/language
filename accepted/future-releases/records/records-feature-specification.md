@@ -615,7 +615,6 @@ as record types as usual (that is, there is no erasure implied to remove these
 inferred types).  Record values may flow into a legacy library via a reference
 to a member from another libraries, and a legacy library may freely call getters
 on record values (since there is no new syntax for calling a record getter).
-
 The reason for this choice is that the intent of language versioning (for an
 additive feature such as records) is to ensure that users do not accidentally
 use new features in a package without specifying an sdk constraint which ensures
