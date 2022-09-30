@@ -617,10 +617,10 @@ to a member from another libraries, and a legacy library may freely call getters
 on record values (since there is no new syntax for calling a record getter).
 The reason for this choice is that the intent of language versioning (for an
 additive feature such as records) is to ensure that users do not accidentally
-use new features in a package without specifying an sdk constraint which ensures
-that their code will always be run on an sdk which supports the feature.  But in
+use new features in a package without specifying an SDK constraint which ensures
+that their code will always be run on an SDK which supports the feature.  But in
 the case of a legacy library which references record values or types indirectly
-via another library, the sdk constraint on the referenced library is sufficient
+via another library, the SDK constraint on the referenced library is sufficient
 to enforce this.*
 
 
