@@ -349,9 +349,16 @@ The greatest lower bound of records with different shapes is `Never`.
 
 ### Type inference
 
-As usual, we define type inference for record expressions with respect to a
-context type schema which is determined by the surrounding context of the
-inferred expression.
+Every record literal has a static type, which is associated with it via
+inference (there is no syntax for explicitly associating a specific static type
+with a record literal).  As with other constructs, we define type inference for
+record expressions with respect to a context type schema which is determined by
+the surrounding context of the inferred expression.  Unlike nominal classes (but
+like function literals) we choose to infer the most specific possible type for
+record literals, even if that type is more precise than the type specified by
+the context type schema.  This choice (as with function literals) reflects the
+fact that record types (like function types in Dart) are soundly variant: that
+is, the subtyping is properly covariant and requires no runtime checking.
 
 For convenience, we generally write function types with all named parameters in
 an unspecified canonical order, and similarly for the named fields of record
@@ -366,38 +373,58 @@ entries is semantically irrelevant, and all invocations and record literals with
 the same named entries (possibly in different orders or locations) and the same
 positional entries are considered equivalent.
 
-Given a type schema `K` and a
-record expression `E` of the general form `(e0, ..., en, d0 : t0, ..., dm :
-tm)`, then inference proceeds as follows.
+Given a type schema `K` and a record expression `E` of the general form `(e0,
+..., en, d0 : e{n+1}, ..., dm : e{m+n+1})` inference proceeds as follows.
 
-If `K` is a record type schema of the form `(K0, ..., Kn, {d0 : P0, ...., dm :
-Pm})`, then:
+If `K` is a record type schema of the form `(K0, ..., Kn, {d0 : K{n+1}, ....,
+dm : K{m+n+1})` then:
   - Each `ei` is inferred with context type schema `Ki` to have type `Ti`
-  - Each `ti` is inferred with context type schema `Pi` to have type `Si`
-  - The type of `E` is `(T0, ..., Tn, {d0 : S0, ...., dm : Sm})`
+    - Let `Ri` be the greatest closure of `Ki`
+    - If `Ti` is a subtype of `Ri` then let `Ti'` be `Ti`
+    - Otherwise, if `Ti` is `dynamic`, then we insert an implicit cast on `ei`
+      to `Ri`, and let `Ti'` be `Ri`
+    - Otherwise, if `Ti` is coercible to `Ri` (via int-to-double conversion,
+      call method tearoff, or implicit generic instantiation), then we insert
+      the appropriate implicit coercion on `ei` to coerce it to `Ri`, and let
+      `Ti'` be `Ri`
+    - Otherwise, it is a static error.
+  - The type of `E` is `(T0', ..., Tn', {d0 : T{n+1}', ...., dm : T{m+n+1}'})`
 
 If `K` is any other type schema:
   - Each `ei` is inferred with context type schema `_` to have type `Ti`
-  - Each `ti` is inferred with context type schema `_` to have type `Si`
-  - The type of `E` is `(T0, ..., Tn, {d0 : S0, ...., dm : Sm})`
+  - The type of `E` is `(T0, ..., Tn, {d0 : T{n+1}, ...., dm : T{m+n+1}})`
 
-Note that contrary to the practice for runtime checked covariant nominal types,
-we do not prefer the context type over the more precise upwards type.  The
-following example illustrates this:
-
+As noted above, contrary to the practice for runtime checked covariant nominal
+types, we do not prefer the context type over the more precise upwards type.
+The following example illustrates this:
 ```dart
-  // No error, inferred type of the record is (int, double)
+  // No static error.
+  // Inferred type of the record is (int, double)
   (num, num) r = (3, 3.5)..$0.isEven;
 ```
 
-Note that implicit casts are not considered to be applied as part of inference,
-hence:
-
+Also note that implicit casts and other coercions are considered to be applied
+as part of inference, hence:
 ```dart
-  // Static error, inferred type of the record is (dynamic, double)
-  (num, num) r = (3 as dynamic, 3.5);
+  class Callable {
+    void call() {}
+  }
+  T id<T>(T x) => x;
+  // No static error.
+  // Inferred type of the record is (int, double, int Function(int))
+  var c = Callable();
+  dynamic d = 3;
+  (num, double, int Function(int), void Function()) r = (d, 3, id, c);
+```
+and the record initialization in the last line above is implicitly coerced to be
+the equivalent of:
+```dart
+  (num, double, int Function(int), void Function()) r =
+     (d as num, 3.0, id<int>, c.call);
 ```
 
+See issue [2488](https://github.com/dart-lang/language/issues/2488) for some of
+the background discussion on the choices specified in this section.
 
 ### Constants
 
@@ -642,8 +669,7 @@ covariant in their field types.
 
 ## CHANGELOG
 
-
-### 1.10
+### 1.15
 
 - Specify type inference, add static semantics to resources/type-system
 
