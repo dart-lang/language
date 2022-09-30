@@ -1393,18 +1393,24 @@ with being computed late.%
 }
 
 \LMHash{}%
-A \IndexCustom{final variable}{variable!final}
+An \IndexCustom{immutable variable}{variable!immutable}
 is a variable whose binding is fixed upon initialization;
-a final variable \id{} will always refer to the same object
+an immutable variable \id{} will always refer to the same object
 after \id{} has been initialized.
-A variable is final if{}f its declaration includes
+A variable is immutable if{}f its declaration includes
 the modifier \FINAL{} or the modifier \CONST.
 A \IndexCustom{mutable variable}{variable!mutable}
-is a variable which is not final.
+is a variable which is not immutable.
 
 
 \subsection{Implicitly Induced Getters and Setters}
 \LMLabel{implicitlyInducedGettersAndSetters}
+
+%% TODO(eernst): When inference is specified, we should be able to conclude
+%% that the cases with no declared type do not exist after type inference
+%% (for instance `var x;` or `var x = e;`), and then we can replace all rules
+%% about such cases by commentary saying that they may exist in the input,
+%% but they are gone after type inference.
 
 \LMHash{}%
 The following rules on implicitly induced getters and setters
@@ -1416,6 +1422,7 @@ do not induce getters or setters.%
 }
 
 \LMHash{}%
+\Case{Getter: Variable with declared type}
 Consider a variable declaration of one of the forms
 
 \begin{itemize}
@@ -1433,8 +1440,10 @@ with the header \code{$T$\,\,\GET\,\,\id},
 whose invocation evaluates as described below
 (\ref{evaluationOfImplicitVariableGetters}).
 In these cases the declared type of \id{} is $T$.
+\EndCase
 
 \LMHash{}%
+\Case{Getter: Variable with no declared type}
 A variable declaration of one of the forms
 
 \begin{itemize}
@@ -1459,12 +1468,15 @@ Type inference is assumed to have taken place already
 For example, an instance variable declaration of the form
 \code{\VAR\,\,x;} could have been transformed into
 \code{$T$\,\,x;} based on member signatures named \code{x} in superinterfaces
-of the enclosing class.
-Hence, the type \DYNAMIC{} is only used as mentioned above when
-type inference fails to provide a different type.%
+of the enclosing class, and
+\code{\VAR\,x\,\,=\,\,$e$;} could have been transformed into
+\code{$T$\,x\,\,=\,\,$e$;}
+where $T$ is the static type of $e$.%
 }
+\EndCase
 
 \LMHash{}%
+\Case{Setter: Mutable variable with declared type}
 A mutable variable declaration of one of the forms
 
 \begin{itemize}
@@ -1478,6 +1490,31 @@ implicitly induces a setter (\ref{setters}) with the header
 whose execution sets the value of \id{} to the incoming argument $x$.
 
 \LMHash{}%
+\Case{Setter: Mutable variable with no declared type, with initialization}
+A mutable variable declaration of the form
+\code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id{} = $e$;}
+implicitly induces a setter with the header
+\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)},
+whose execution sets the value of \id{} to the incoming argument $x$.
+\EndCase
+
+\LMHash{}%
+\Case{Setter: Mutable variable with no declared type, no initialization}
+A mutable variable declaration of the form
+\code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id;}
+implicitly induces a setter with the header
+\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)},
+whose execution sets the value of \id{} to the incoming argument $x$.
+
+\commentary{%
+It is again assumed that type inference has taken place already,
+which could change \code{\VAR\,\,x;} to \code{$T$\,\,x;}
+and hence take us to an earlier case.%
+}
+\EndCase
+
+\LMHash{}%
+\Case{Setter: Late-final variable with declared type}
 A variable declaration of the form
 \code{\STATIC?\,\,\LATE\,\,\FINAL\,\,$T$\,\,\id;}
 implicitly induces a setter (\ref{setters}) with the header
@@ -1496,28 +1533,10 @@ so long as the variable is not known to be definitely assigned.
 The property that the variable is never mutated after initialization
 is enforced dynamically rather than statically.%
 }
+\EndCase
 
 \LMHash{}%
-A mutable variable declaration of the form
-\code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id;}
-implicitly induces a setter with the header
-\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)},
-whose execution sets the value of \id{} to the incoming argument $x$.
-
-\commentary{%
-It is again assumed that type inference has taken place already,
-which could change \code{\VAR\,\,x;} to \code{$T$\,\,x;}
-and hence take us to an earlier case.%
-}
-
-\LMHash{}%
-A mutable variable declaration of the form
-\code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id{} = $e$;}
-implicitly induces a setter with the header
-\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)},
-whose execution sets the value of \id{} to the incoming argument $x$.
-
-\LMHash{}%
+\Case{Setter: Late-final variable with no declared type, no initialization}
 A variable declaration of the form
 \code{\STATIC?\,\,\LATE\,\,\FINAL\,\,\id;}
 implicitly induces a setter with the header
@@ -1528,6 +1547,7 @@ will bind \id{} to the object that the argument $x$ is bound to.
 An execution of the setter
 in a situation where the variable \id{} has been bound to an object
 will incur a dynamic error.
+\EndCase
 
 \LMHash{}%
 The scope into which the implicit getters and setters are introduced
@@ -1542,14 +1562,13 @@ An instance variable introduces an instance getter into
 the body scope of the immediately enclosing class.
 
 \LMHash{}%
-A mutable library variable introduces a setter into
-the library scope of the enclosing library.
-A mutable class variable introduces a static setter into
-the body scope of the immediately enclosing class.
-An instance variable that introduces a setter
-(\commentary{it can be non-final, or late and final})
-introduces an instance setter into
-the body scope of the immediately enclosing class.
+A non-local variable introduces a setter if{}f it is mutable or late and final.
+A library variable which introduces a setter will introduce
+a library setter into the enclosing library scope.
+A class variable which introduces a setter will introduce 
+a static setter into the body scope of the immediately enclosing class.
+An instance variable that introduces a setter will introduce
+an instance setter into the body scope of the immediately enclosing class.
 
 \LMHash{}%
 Let \id{} be a variable declared by a variable declaration
@@ -1568,11 +1587,12 @@ an initializing formal of a constructor $k$
 is also initialized in the initializer list of $k$
 (\ref{initializerLists}).
 
-A non-late static final variable \id{} does not induce a setter,
+A non-late static immutable variable \id{} does not induce a setter,
 so unless a setter named \code{\id=} can be found by lexical lookup
 (\ref{lexicalLookup}),
 or lexical lookup yields nothing, and the location has access to \THIS,
-and the enclosing class or mixin has a setter named \code{\id=},
+and the interface of the enclosing class or mixin has
+a setter named \code{\id=},
 it is a compile-time error to assign to \id.
 
 Similarly, assignment to a non-late final instance variable \id{}
@@ -1599,10 +1619,10 @@ The initial value of \id{} is then the null object
 
 \commentary{%
 Note that there are many situations where such a variable declaration
-is a compile-time error
-in which case we do not specify any of its properties,
+is a compile-time error.
+In this case we do not specify any of its properties,
 and in particular it makes no sense to say
-that it has a particular initial value.
+that it has a specific initial value.
 For example, it is an error if a final instance variable
 is not initialized by one of the above mechanisms.%
 }
@@ -1631,6 +1651,7 @@ takes place during constructor execution
 }
 
 \LMHash{}%
+\BlindDefineSymbol{\id, o}%
 Initialization of an instance variable \id{}
 with an initializing expression $e$
 proceeds as follows:
@@ -1697,7 +1718,7 @@ Perhaps surprisingly,
 if the variable \code{x} has been bound to an object
 when its getter is invoked for the first time,
 $e$ will never be executed.
-In other words, the initializing expression can be pre-empted.%
+In other words, the initializing expression can be pre-empted by an assignment.%
 }
 
 \commentary{%
@@ -1820,7 +1841,8 @@ the implicitly induced getter of \id{} executes as follows:
   the implicitly induced getter of \id{} is a late-initialized getter.
   This determines the semantics of an invocation.
   \commentary{%
-    Note that these static variables can be \emph{implicitly} late-initialized.%
+    Note that these static variables can be \emph{implicitly} late-initialized,
+    in the sense that they do not have the modifier \LATE.%
   }
 \item \emph{Constant variable.}
   If $d$ declares a constant variable with the initializing expression $e$,
@@ -18150,10 +18172,10 @@ It is a compile-time error if $T$ is not assignable to
 
 \commentary{%
 It follows that it is a compile-time error
-if $D$ is empty and \id{} is a final variable;
-and it is a dynamic error if $e$ has a top type,
+if $D$ is empty and \id{} is an immutable variable;
+and it is a dynamic error if $e$ has type \DYNAMIC,
 but $e$ evaluates to an instance of a type
-which is not a subtype of \code{Iterable<dynamic>}.%
+which is not a subtype of \code{Iterable<\DYNAMIC>}.%
 }
 
 
@@ -18177,7 +18199,7 @@ The expression $e$ is evaluated to an object $o$.
 % This error can occur due to implicit casts and null.
 It is a dynamic type error if $o$ is not an instance of
 a class that implements \code{Stream}.
-It is a compile-time error if $D$ is empty and \id{} is a final variable.
+It is a compile-time error if $D$ is empty and \id{} is an immutable variable.
 
 \LMHash{}%
 The stream associated with the innermost enclosing asynchronous for loop,
