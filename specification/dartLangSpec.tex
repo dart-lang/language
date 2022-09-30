@@ -17651,7 +17651,7 @@ a local variable into the associated formal parameter scope
 The properties of being
 \IndexCustom{initialized}{variable!initialized},
 \IndexCustom{constant}{variable!constant},
-\IndexCustom{final}{variable!final}, and
+\IndexCustom{immutable}{variable!immutable}, and
 \IndexCustom{mutable}{variable!mutable}
 apply to local variables with the same definitions as for other variables
 (\ref{variables}).
@@ -17740,10 +17740,9 @@ the variable is guaranteed to have been initialized.
 Similarly, an expression that gives rise to an assignment to $v$
 is a compile-time error unless flow analysis shows that
 it is guaranteed that the variable has \emph{not} been initialized.%
-}
 
-\commentary{%
-It is a compile-time error to assign to a local variable
+In every situation which is not covered by the previous paragraph,
+it is a compile-time error to assign to a local variable
 which is \FINAL{} and not \LATE{}
 (\ref{assignment}).%
 }
