@@ -786,7 +786,7 @@ A compile-time error occurs if a view _DV_ has two superviews `V1` and
 `V2`, where both `V1` and `V2` has a member named _m_ with distinct
 declarations, and _DV_ does not declare a member named _m_.
 
-*In other words, if two different declarations of _m_ is inherited
+*In other words, if two different declarations of _m_ are inherited
 from two superviews then the subview must resolve the conflict. The
 so-called diamond inheritance pattern can create the case where two
 superviews have an _m_, but they are both declared by the same
@@ -831,25 +831,38 @@ and `V2` are superviews of _DV_. Let `M1` be the members of `V1`, and
 member name `m` such that `V1` as well as `V2` has a member named `m`,
 and they are distinct declarations, and _DV_ does not declare a member
 named `m`.  *In other words, a name clash among distinct "inherited"
-members is an error, but it can be eliminated by overriding the
+members is an error, but it can be eliminated by redeclaring the
 clashing name.*
 
 The effect of having a view declaration _DV_ with superviews
 `V1, .. Vk` is that the members declared by _DV_ as well as all
-members of `V1, .. Vk` that are not overridden by a declaration in
+members of `V1, .. Vk` that are not redeclared by a declaration in
 _DV_ can be invoked on a receiver of the type introduced by _DV_.
 
 In the body of _DV_, a superinvocation syntax similar to an explicit
 extension method invocation can be used to invoke a member of a
-superview which is overridden: The invocation starts with `super.`
+superview which is redeclared: The invocation starts with `super.`
 followed by the name of the given superview, followed by the member
 access. The superview may be omitted in the case where there is no
 ambiguity.
 
-*For instance, `super.V3.foo()` can be used to call the `foo` of `V3`
-in the case where the extends clause has `extends ... V3 hide foo, ...`.
-If no other superview has a member with basename `foo`, it is
-also possible to call it using `super.foo()`.*
+*For example:*
+
+```dart
+view class V2 {
+  void foo() { print('V2.foo()'); }
+}
+
+view class V3 {
+  void foo() { print('V2.foo()'); }
+}
+
+view class V1 implements V2, V3 {
+  void bar() {
+    super.V3.foo(); // Prints "V2.foo()".
+  }
+}
+```
 
 
 ## Dynamic Semantics of Views
