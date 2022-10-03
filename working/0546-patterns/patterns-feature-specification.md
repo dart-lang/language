@@ -286,12 +286,8 @@ A logical-or pattern may match even if one of its branches does not. That means
 that any variables in the non-matching branch would not be initialized. To avoid
 problems stemming from that, the following restrictions apply:
 
-*   It is a compile-time error if one branch contains a variable pattern whose
-    name or type does not exactly match a corresponding variable pattern in the
-    other branch. These variable patterns can appear as subpatterns anywhere in
-    each branch, but in total both branches must contain the same variables with
-    the same types. This way, variables used inside the body covered by the
-    pattern will always be initialized to a known type.
+*   The two branches must define the same set of variables. This is specified
+    more precisely under "Variables and scope".
 
 *   If the left branch matches, the right branch is not evaluated. This
     determines *which* value the variable gets if both branches would have
@@ -1171,7 +1167,9 @@ We replace the existing `ifStatement` rule with:
 ifStatement ::= 'if' '(' expression caseHead? ')' statement ('else' statement)?
 ```
 
-**TODO: Allow patterns in if elements too.**
+**TODO: Allow patterns in if elements too ([#2542][]).**
+
+[#2542]: https://github.com/dart-lang/language/issues/2542
 
 When the `condition` has no `caseHead`, it behaves as it does today. If there is
 a `caseHead`, then the expression is evaluated and matched against the
@@ -1748,65 +1746,207 @@ types of all of the case expressions.
 
 ### Variables and scope
 
-Patterns often exist to introduce new variable bindings. A "wildcard" identifier
-named `_` in a variable pattern never introduces a binding.
-The variables a patterns binds depend on what kind of pattern it is:
+Patterns often exist to bind new variables. The language must ensure that the
+variables bound by a pattern can only be used when the pattern has matched,
+which means variables bound by refutable patterns must only be in scope in code
+that can't be reached when the match fails.
 
-*   **Logical-or**: Does not introduce variables but may contain subpatterns
-    that do. It is a compile-time error if the two subpatterns do not introduce
-    the same variables with the same names and types.
+Also, logical-or patterns and switch case fallthrough add some complexity.
 
-    **TODO: "Same name" is underspecified and also probably
-    [too conservative][2473].**
+#### Pattern variable sets
+
+A *pattern variable set* specifies the set of variables declared by a pattern
+and its subpatterns when not in an assignment context. Each variable in the set
+has a unique name, a static type (the declared or inferred type, but not its
+promoted type), and whether it is final or not. The pattern variable set for a
+pattern is:
+
+*   **Logical-or**: The pattern variable set of either branch. It is a
+    compile-time error if the two branches do not have equal pattern variable
+    sets. Two pattern variable sets are equal if they have the same set of names
+    and each corresponding pair of variables have the same finality and their
+    types are structurally equivalent after `NORM()`.
+
+    *Since only one branch will match and we don't know which, for the pattern
+    to have a stable set of variables with known types, the two branches must
+    define the same variables. This way, uses of the variables later will have
+    a known type and finality regardless of which branch matched.*
 
 *   **Logical-and**, **cast**, **null-check**, **null-assert**,
-    **parenthesized**, **list**, **map**, **record**, or **extractor**: These do
-    not introduce variables themselves but may contain subpatterns that do.
+    **parenthesized**, **list**, **map**, **record**, or **extractor**: The
+    union of the pattern variable sets of all of the subpatterns.
 
-*   **Relational** or **constant**: These do not introduce any variables.
+    The union of a series of pattern variable sets is the union of their
+    corresponding sets of variable names. Each variable in the resulting set is
+    mapped to the corresponding variable's type and finality.
 
-*   **Variable**: When not in an assignment context, introduces a variable whose
-    name is the pattern's identifier. In a declaration context, the variable is
-    final if the surrounding `patternVariableDeclaration` has a `final`
-    modifier. In a matching context, the variable is final if the variable
-    pattern is marked `final` and is not otherwise.
+    It is a compile-time error if any two sets being unioned have a variable
+    with the same name. *A pattern can't declare the same variable more than
+    once.*
 
-[2473]: https://github.com/dart-lang/language/issues/2473
+*   **Relational** or **constant**: The empty set.
 
-The scope where a pattern's variables are declared and available for use depends
-on the construct that contains the pattern:
+*   **Variable**:
 
-*   **Local pattern variable declaration**: The rest of the block following
-    the declaration.
-*   **For loop pattern variable declaration**: The body of the loop and the
-    condition and increment clauses in a C-style for loop.
-*   **Switch statement case**: The guard clause and the statements of the
-    subsequent non-empty case body.
-*   **Switch expression case**: The guard clause and the case expression.
-*   **If-case statement**: The guard clause and then statement.
+    1.  If the variable's identifier is `_` then the empty set.
 
-Multiple switch case patterns may share the same variable scope if their case
-bodies are empty:
+    2.  Else a set containing a single variable whose name is the pattern's
+        identifier and whose type is the pattern's required type (which may have
+        been inferred). In a declaration context, the variable is final if the
+        surrounding `patternVariableDeclaration` has a `final` modifier. In a
+        matching context, the variable is final if the variable pattern is
+        marked `final` and is not otherwise.
+
+#### Scope
+
+The variables defined by a pattern and its subpatterns (its pattern variable
+set, defined above), are introduced into a scope based on where the pattern
+appears:
+
+*   **Pattern variable declaration**: The scope enclosing the variable
+    declaration statement. *This will be either a function body scope or a block
+    scope.*
+
+    The *initializing expression* for every variable in the pattern is the
+    pattern variable declaration's initializer. *This means all variables
+    defined by a pattern are in scope beginning at the top of the surrounding
+    block or function body, but it is a compile-time error to refer to them
+    until after the pattern variable declaration's initializer:*
+
+    ```dart
+    const c = 1;
+
+    f() {
+      print(c);
+      //    ^ Error: Refers to C declared below:
+
+      var [c] = c;
+      //        ^ Error: Not initialized yet.
+
+      print(c);
+      //    ^ OK.
+    }
+    ```
+
+*   **Pattern-for statement**: Scoping follows the normal for and for-in
+    statement scoping rules where the variable (now variables) are bound in a
+    new scope for each loop iteration. All pattern variables are in the same
+    scope. They are considered initialized after the for loop initializer
+    expression.
+
+*   **Pattern assignment**: An assignment only assigns to existing variables
+    and does not bind any new ones.
+
+*   **Switch statement**, **switch expression**, **if-case statement**: Each
+    `caseHead` introduces a new *case scope* which is where the variables
+    defined by that case's pattern are bound.
+
+    There is no *initializing expression* for the variables in a case pattern,
+    but they are considered initialized after the entire case pattern, before
+    the guard expression if there is one. *However, all pattern variables are
+    in scope in the entire pattern:*
+
+    ```dart
+    const c = 1;
+    switch (1) {
+      case [var c, == c]
+        //            ^ Error: In scope but not initialized.
+        //              (Also an error because `c` is not a constant.)
+            when c == 2:
+        //       ^ OK.
+        print(c);
+        //    ^ OK.
+    }
+    ```
+
+    The guard expression is evaluated in its case's case scope.
+
+    The then statement of an if-case statement is executed in the case's case
+    scope.
+
+#### Switch case fallthrough
+
+In a switch statement or expression, multiple cases may share the same body:
 
 ```dart
 switch (obj) {
   case [int a, int b]:
   case {"a": int a, "b": int b}:
     print(a + b); // OK.
-
-  case [int a]:
-  case (String a): // Error.
-    break;
 }
 ```
 
-This would normally be a name collision, but we make an exception to allow this.
-However, it is a compile-time error if all switch case patterns that share a
-body do not all define the exact same variables with the exact same types.
+This would normally be a name collision, but we make an exception to allow it
+when it doesn't cause any problems.
 
-*Aside from this special case, note that since all variables declared by a
-pattern and its subpatterns go into the same scope, it is an error if two
-subpatterns declare a variable with the same name, unless the name is `_`.*
+When compiling the body shared by a set of cases with pattern variable sets `vs`
+(where default cases and labels have empty pattern variable sets), the enclosing
+scope is a synthesized scope `s` defined as:
+
+1.  For each name in `n` appearing as a variable name in any of the pattern
+    variable sets in `vs`:
+
+    1.  If `n` is defined in every pattern variable set in `vs` and has the same
+        type and finality, then introduce `n` into `s` with that type and
+        finality.
+
+        If any of the corresponding variables in `vs` are promoted, calculate
+        the promoted type of the variable in `s` based on all of the promoted
+        types of `n` in the cases in the same way that promotions are merged at
+        join points.
+
+    2.  Else `n` is inconsistently defined by the cases. Introduce a variable
+        `n` into `s` (with arbitrary type and finality) and note that `n` is
+        an inconsistent variable.
+
+Compile the body using static scope `s`. It is a compile-time error if any
+identifier in the body resolves to an inconsistent variable in `s`. *In other
+words, a inconsistently defined variable in in scope such that it shadows a
+valid variable with the same name in an outer scope, but it is an error to refer
+to it.*
+
+*Note that it is not a compile-time error for there to be inconsistently
+defined variables between cases. It's only an error to use them in the body.
+This enables patterns to define inconsistent variables that are only used by
+their respective guards:*
+
+```dart
+switch (obj) {
+  case [var a, int n] when n > 1:
+  case [var a, double n] when n > 1.0:
+  case [var a, String s] when s.isNotEmpty:
+    print(a);
+}
+```
+
+*This example has no errors because the only variable used in the body, `a`, is
+defined consistently by all cases.*
+
+At runtime, the enclosing scope is *only* the case scope of the case that
+matched. (If the body is reached from a `default` clause or by continuing to a
+label, the case scope is an empty scope whose enclosing scope is the scope
+surrounding the switch statement or expression.)
+
+*The runtime scope determines which specific variables in which case are
+actually bound at runtime. We can't use a single synthesized scope that is
+shared by all cases because closures in guard clauses should see each case as
+having its own variables:*
+
+```dart
+bool capture(void Function() callback, bool result) {
+  callback();
+  return result;
+}
+
+switch ([1]) {
+  case [int a] when capture(() => a++, false):
+  case [int a] when capture(() => a += 10, true):
+    print(n);
+}
+```
+
+*This program should print `11` and not `12` because the `a` in each guard
+clause is a separate variable.*
 
 ### Type promotion
 
@@ -2530,6 +2670,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.9
+
+-   Clarify scoping rules and loosen restrictions on variables in cases with a
+    shared body (#2473, #2485, #2533).
 
 ### 2.8
 
