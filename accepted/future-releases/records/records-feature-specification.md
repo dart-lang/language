@@ -383,9 +383,9 @@ dm : K{n+m}})` then:
     - If `Si` is a subtype of `Ri` then let `Ti` be `Si`
     - Otherwise, if `Si` is `dynamic`, then we insert an implicit cast on `ei`
       to `Ri`, and let `Ti` be `Ri`
-    - Otherwise, if `Si` is coercible to `Ri` (via int-to-double conversion,
-      call method tearoff, or implicit generic instantiation), then we insert
-      the appropriate implicit coercion on `ei`.  Let `Ti` be the type of the
+    - Otherwise, if `Si` is coercible to `Ri` (via some sequence of call method
+      tearoff or implicit generic instantiation coercions), then we insert the
+      appropriate implicit coercion(s) on `ei`.  Let `Ti` be the type of the
       resulting coerced value (which must be a subtype of `Ri`, possibly
       proper).
     - Otherwise, it is a static error.
