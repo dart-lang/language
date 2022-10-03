@@ -722,7 +722,6 @@ this.*
 ### 1.14
 
 - Specify type inference, add static semantics to resources/type-system
->>>>>>> origin/master
 
 ### 1.13
 
