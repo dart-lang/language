@@ -594,8 +594,9 @@ which do not have a language version greater than or equal to the language
 version in which records are released.  More specifically, assuming that `v` is
 the language version in which records are released, the following errors apply.
 
-It is an error for the identifier `Record`, resolving to the SDK class `Record`,
-to appear syntactically in a library whose language version is less than `v`.
+It is an error for the identifier `Record`, denoting the `Record` class from
+`dart:core`, where that import scope name is only imported from platform
+libraries, to appear in a library whose language version is less than `v`.
 
 It is an error for the record literal syntax (e.g. `(3, 4)`) to be used
 syntactically in a library whose language version is less than `v`.
@@ -614,21 +615,23 @@ another library, and the semantic interpretation of the typedef is as the
 underlying record type, just as it would be for any other type.  Similarly, type
 inference may introduce record types into a legacy library, and such types will
 be interpreted by the compiler as record types as usual (that is, there is no
-erasure implied to remove these inferred types).  Record values may flow into a
-legacy library via a reference to a member from another library, and a legacy
-library may freely call getters on record values (since there is no new syntax
-for calling a record getter).  The rationale for the choices described in this
-section is that the intent of language versioning (for an additive feature such
-as records) is to ensure that users do not accidentally use new features in a
-package without specifying an SDK constraint which ensures that their code will
-always be run on an SDK which supports the feature.  But in the case of a legacy
-library which references record values or types indirectly via another library,
-the SDK constraint on the referenced library is sufficient to enforce this.*
+erasure implied to remove these inferred types).  A legacy library may refer to
+the `Record` class via a library which has re-exported it.  Record values may
+flow into a legacy library via a reference to a member from another library, and
+a legacy library may freely call getters on record values (since there is no new
+syntax for calling a record getter).  The rationale for the choices described in
+this section is that the intent of language versioning (for an additive feature
+such as records) is to ensure that users do not accidentally use new features in
+a package without specifying an SDK constraint which ensures that their code
+will always be run on an SDK which supports the feature.  But in the case of a
+legacy library which references record values or types indirectly via another
+library, the SDK constraint on the referenced library is sufficient to enforce
+this.*
 
 
 ## CHANGELOG
 
-### 1.14
+### 1.15
 
 - Specify the interaction between libraries with a language version that
   supports records and libraries with older language versions.
