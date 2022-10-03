@@ -253,6 +253,14 @@ ambiguity, we disambiguate by treating `on` as a clause for `try` and not a
 local function. This is technically a breaking change, but is unlikely to affect
 any code in the wild.
 
+Because this change does not seem to break a significant fraction of code in the
+wild and our parser is currently not aware of language versioning, we make this
+grammar change unconditionally when parsing a Dart library targeting any
+language version. In a Dart library whose language version is prior to the
+version that records ship in, an `on` clause followed by a parenthesized type
+will be parsed as a record type, which will then be reported as an error since
+record types are not supported in that language version.
+
 ### Ambiguity with metadata annotations
 
 A metadata annotation may or may not have an argument list following it. A
@@ -347,6 +355,11 @@ of code containing 409,825 metadata annotations, 46,245 had argument lists and
 none of those had whitespace before the argument list. Note that this analysis
 only captures code that has been committed. Code being written may be less well
 formatted, but we expect problems from this to be rare.
+
+Because this change does not seem to break a significant fraction of code in the
+wild and our parser is currently not aware of language versioning, we make this
+grammar change unconditionally when parsing a Dart library targeting any
+language version.
 
 ## Static semantics
 
