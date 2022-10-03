@@ -671,7 +671,7 @@ covariant in their field types.
 
 ## CHANGELOG
 
-### 1.15
+### 1.14
 
 - Specify type inference, add static semantics to resources/type-system
 
