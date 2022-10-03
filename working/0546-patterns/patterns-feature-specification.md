@@ -1941,7 +1941,7 @@ bool capture(void Function() callback, bool result) {
 switch ([1]) {
   case [int a] when capture(() => a++, false):
   case [int a] when capture(() => a += 10, true):
-    print(n);
+    print(a);
 }
 ```
 
