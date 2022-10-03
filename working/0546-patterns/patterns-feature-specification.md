@@ -1751,19 +1751,21 @@ variables bound by a pattern can only be used when the pattern has matched,
 which means variables bound by refutable patterns must only be in scope in code
 that can't be reached when the match fails.
 
-Also, logical-or patterns and switch case fallthrough adds some complexity.
+Also, logical-or patterns and switch case fallthrough add some complexity.
 
 #### Pattern variable sets
 
 A *pattern variable set* specifies the set of variables declared by a pattern
 and its subpatterns when not in an assignment context. Each variable in the set
-has a unique name, a static type, and whether it is final or not. The pattern
-variable set for a pattern is:
+has a unique name, a static type (the declared or inferred type, but not its
+promoted type), and whether it is final or not. The pattern variable set for a
+pattern is:
 
 *   **Logical-or**: The pattern variable set of either branch. It is a
     compile-time error if the two branches do not have equal pattern variable
     sets. Two pattern variable sets are equal if they have the same set of names
-    and each corresponding pair of variables have the same type and finality.
+    and each corresponding pair of variables have the same finality and their
+    types are structurally equivalent after `NORM()`.
 
     *Since only one branch will match and we don't know which, for the pattern
     to have a stable set of variables with known types, the two branches must
@@ -1782,11 +1784,11 @@ variable set for a pattern is:
     with the same name. *A pattern can't declare the same variable more than
     once.*
 
-*   **Relational** or **constant**: An empty set.
+*   **Relational** or **constant**: The empty set.
 
 *   **Variable**:
 
-    1.  If the variable's identifier is `_` then an empty set.
+    1.  If the variable's identifier is `_` then the empty set.
 
     2.  Else a set containing a single variable whose name is the pattern's
         identifier and whose type is the pattern's required type (which may have
@@ -1859,6 +1861,9 @@ appears:
 
     The guard expression is evaluated in its case's case scope.
 
+    The then statement of an if-case statement is executed in the case's case
+    scope.
+
 #### Switch case fallthrough
 
 In a switch statement or expression, multiple cases may share the same body:
@@ -1875,13 +1880,11 @@ This would normally be a name collision, but we make an exception to allow it
 when it doesn't cause any problems.
 
 When compiling the body shared by a set of cases with pattern variable sets `vs`
-(where a default case has an empty pattern variable set), the enclosing scope is
-a synthesized scope `s` defined as:
+(where default cases and labels have empty pattern variable sets), the enclosing
+scope is a synthesized scope `s` defined as:
 
-1.  Let `n` be the union of the sets of names of all of the pattern variable
-    sets in `vs`.
-
-2.  For each name in `n`:
+1.  For each name in `n` appearing as a variable name in any of the pattern
+    variable sets in `vs`:
 
     1.  If `n` is defined in every pattern variable set in `vs` and has the same
         type and finality, then introduce `n` into `s` with that type and
@@ -1892,11 +1895,15 @@ a synthesized scope `s` defined as:
         types of `n` in the cases in the same way that promotions are merged at
         join points.
 
-    2.  Else `n` is inconsistently defined by the cases. Introduce `n` into `s`
-        with a sentinel type `Bad`.
+    2.  Else `n` is inconsistently defined by the cases. Introduce a variable
+        `n` into `s` (with arbitrary type and finality) and note that `n` is
+        an inconsistent variable.
 
-Compile the body using that scope. It is a compile-time error if any identifier
-in the body resolves to a variable in `s` whose type is `Bad`.
+Compile the body using static scope `s`. It is a compile-time error if any
+identifier in the body resolves to an inconsistent variable in `s`. *In other
+words, a inconsistently defined variable in in scope such that it shadows a
+valid variable with the same name in an outer scope, but it is an error to refer
+to it.*
 
 *Note that it is not a compile-time error for there to be inconsistently
 defined variables between cases. It's only an error to use them in the body.
@@ -1916,10 +1923,14 @@ switch (obj) {
 defined consistently by all cases.*
 
 At runtime, the enclosing scope is *only* the case scope of the case that
-matched. *This determines which specific variables in which case are actually
-bound at runtime. We can't use a single synthesized scope that is shared by all
-cases because closures in guard clauses should see each case as having its own
-variables:*
+matched. (If the body is reached from a `default` clause or by continuing to a
+label, the case scope is an empty scope whose enclosing scope is the scope
+surrounding the switch statement or expression.)
+
+*The runtime scope determines which specific variables in which case are
+actually bound at runtime. We can't use a single synthesized scope that is
+shared by all cases because closures in guard clauses should see each case as
+having its own variables:*
 
 ```dart
 bool capture(void Function() callback, bool result) {
