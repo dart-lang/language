@@ -849,17 +849,17 @@ ambiguity.
 *For example:*
 
 ```dart
-view class V2 {
+view class V2(Object id) {
   void foo() { print('V2.foo()'); }
 }
 
-view class V3 {
-  void foo() { print('V2.foo()'); }
+view class V3(Object id) {
+  void foo() { print('V3.foo()'); }
 }
 
-view class V1 implements V2, V3 {
+view class V1(Object id) implements V2, V3 {
   void bar() {
-    super.V3.foo(); // Prints "V2.foo()".
+    super.V3.foo(); // Prints "V3.foo()".
   }
 }
 ```
