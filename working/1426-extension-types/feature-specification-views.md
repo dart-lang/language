@@ -640,15 +640,13 @@ the representation type is the same in either case.*
 Let `V` be a view type of the form
 <code>View&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and let `R` be the corresponding instantiated representation type.
-When `R` is a top type, `V` is also a top type.
-Otherwise the following applies:
-
 `V` is a proper subtype of `Object?`. If `R` is non-nullable then `V`
 is a proper subtype of `Object` as well.
 
 *That is, an expression of a view type can be assigned to a top type
 (like all other expressions), and if the representation type is
-non-nullable then it can also be assigned to `Object`.*
+non-nullable then it can also be assigned to `Object`. Non-view types
+(except bottom types) cannot be assigned to view types without a cast.*
 
 In the body of a member of a view declaration _DV_ named `View`
 and declaring the type parameters
