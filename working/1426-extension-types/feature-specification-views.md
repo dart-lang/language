@@ -7,6 +7,12 @@ Status: Draft
 
 ## Change Log
 
+2022.10.07
+  - Made a view class whose representation type is a top type a proper
+    subtype of `Object?`.
+  - Changed subtyping inside a view class `V` such that the
+    representation type is a subtype of the enclosing view type.
+
 2022.09.22
   - Removed support for `export`, changed `view` to `view class`.
 
@@ -641,17 +647,30 @@ Let `V` be a view type of the form
 <code>View&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and let `R` be the corresponding instantiated representation type.
 `V` is a proper subtype of `Object?`. If `R` is non-nullable then `V`
-is a proper subtype of `Object` as well.
+is a proper subtype of `Object` as well. 
 
 *That is, an expression of a view type can be assigned to a top type
 (like all other expressions), and if the representation type is
 non-nullable then it can also be assigned to `Object`. Non-view types
-(except bottom types) cannot be assigned to view types without a cast.*
+(except bottom types) cannot be assigned to view types without a cast,
+except in the case mentioned below.*
 
-In the body of a member of a view declaration _DV_ named `View`
-and declaring the type parameters
-<code>X<sub>1</sub>, .. X<sub>s</sub></code>,
-the static type of `this` is
+Let _DV_ be a view class declaration named `View` with type parameters
+<code>X<sub>1</sub>, .. X<sub>s</sub></code>.
+In the body of _DV_, the representation type is a subtype of the view type
+<code>View&lt;X<sub>1</sub>, .. X<sub>s</sub>&gt;</code>.
+
+*This means that the body of the view class itself has an extra power,
+compared to code outside the view class: It can assign values of the
+representation type `R` to a variable of the view type `V` without a
+cast. "Lifted" versions of this power follow from the normal subtype
+rules, e.g., it can also assign a value whose type is `List<R>` to a
+variable of type `List<V>`. In other words, the body of the view class
+declaration has the ability to "wrap the entire list in the view" in
+time O(1) and without a cast. It is up to the maintainers of the view
+class to make sure that this is an appropriate thing to do.*
+
+In the body of a member of _DV_, the static type of `this` is
 <code>View&lt;X<sub>1</sub> .. X<sub>s</sub>&gt;</code>.
 The static type of the name of the representation name is the
 representation type.
