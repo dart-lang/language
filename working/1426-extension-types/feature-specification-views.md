@@ -647,7 +647,7 @@ Let `V` be a view type of the form
 <code>View&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and let `R` be the corresponding instantiated representation type.
 `V` is a proper subtype of `Object?`. If `R` is non-nullable then `V`
-is a proper subtype of `Object` as well. 
+is a proper subtype of `Object` as well.
 
 *That is, an expression of a view type can be assigned to a top type
 (like all other expressions), and if the representation type is
