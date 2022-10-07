@@ -657,7 +657,8 @@ except in the case mentioned below.*
 
 Let _DV_ be a view class declaration named `View` with type parameters
 <code>X<sub>1</sub>, .. X<sub>s</sub></code>.
-In the body of _DV_, the representation type is a subtype of the view type
+In the body of each view member declaration in _DV_, the
+representation type is a subtype of the view type
 <code>View&lt;X<sub>1</sub>, .. X<sub>s</sub>&gt;</code>.
 
 *This means that the body of the view class itself has an extra power,
