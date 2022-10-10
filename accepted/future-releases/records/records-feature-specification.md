@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.13 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.15 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
