@@ -45,7 +45,12 @@ Records are sort of like "first class argument lists" and give you a natural
 way to return multiple values:
 
 ```dart
-(double, double) geoCode(String city) {  var lat = // Calculate...  var long = // Calculate...  return (lat, long); // Wrap in record and return.}
+(double, double) geoCode(String city) {
+  var lat = // Calculate...
+  var long = // Calculate...
+
+  return (lat, long); // Wrap in record and return.
+}
 ```
 
 ### Destructuring
@@ -56,20 +61,29 @@ record value by accessing fields and binding the resulting values to new
 variables:
 
 ```dart
-var (lat, long) = geoCode('Aarhus');print('Location lat:$lat, long:$long');
+var (lat, long) = geoCode('Aarhus');
+print('Location lat:$lat, long:$long');
 ```
 
 List and map patterns let you likewise destructure those respective collection
 types (or any other class that implements `List` or `Map`):
 
 ```dart
-var list = [1, 2, 3];var [a, b, c] = list;print(a + b + c); // 6.var map = {'first': 1, 'second': 2};var {'first': a, 'second': b} = map;print(a + b); // 3.
+var list = [1, 2, 3];
+var [a, b, c] = list;
+print(a + b + c); // 6.
+
+var map = {'first': 1, 'second': 2};
+var {'first': a, 'second': b} = map;
+print(a + b); // 3.
 ```
 
 You can also destructure and assign to existing variables:
 
 ```dart
-var (a, b) = ('left', 'right');(b, a) = (a, b); // Swap!print('$a $b'); // Prints "right left".
+var (a, b) = ('left', 'right');
+(b, a) = (a, b); // Swap!
+print('$a $b'); // Prints "right left".
 ```
 
 ### Algebraic datatypes
@@ -80,7 +94,23 @@ that is by implementing each operation as an instance method on its respective
 type:
 
 ```dart
-abstract class Shape {  double calculateArea();}class Square implements Shape {  final double length;  Square(this.length);  double calculateArea() => length * length;}class Circle implements Shape {  final double radius;  Circle(this.radius);  double calculateArea() => math.pi * radius * radius;}
+abstract class Shape {
+  double calculateArea();
+}
+
+class Square implements Shape {
+  final double length;
+  Square(this.length);
+
+  double calculateArea() => length * length;
+}
+
+class Circle implements Shape {
+  final double radius;
+  Circle(this.radius);
+
+  double calculateArea() => math.pi * radius * radius;
+}
 ```
 
 Here, the `calculateArea()` operation is supported by all shapes by implementing
@@ -94,7 +124,15 @@ together in a single function. Today, you can accomplish that using manual type
 tests:
 
 ```dart
-double calculateArea(Shape shape) {  if (shape is Square) {    return shape.length + shape.length;  } else if (shape is Circle) {    return math.pi * shape.radius * shape.radius;  } else {    throw ArgumentError("Unexpected shape.");  }}
+double calculateArea(Shape shape) {
+  if (shape is Square) {
+    return shape.length + shape.length;
+  } else if (shape is Circle) {
+    return math.pi * shape.radius * shape.radius;
+  } else {
+    throw ArgumentError("Unexpected shape.");
+  }
+}
 ```
 
 This works, but is verbose and cumbersome. Functional languages like SML
@@ -104,7 +142,11 @@ essentially model an algebraic datatype. This proposal provides the pattern
 matching constructs to make working with that style enjoyable:
 
 ```dart
-double calculateArea(Shape shape) =>  switch (shape) {    case Square(length: var l) => l * l;    case Circle(radius: var r) => math.pi * r * r;  };
+double calculateArea(Shape shape) =>
+  switch (shape) {
+    case Square(length: var l) => l * l;
+    case Circle(radius: var r) => math.pi * r * r;
+  };
 ```
 
 As you can see, it also adds an expression form for `switch`.
@@ -136,21 +178,21 @@ when all of that is true.
 
 Before introducing each pattern in detail, here is a summary with some examples:
 
-| Kind                                  | Examples                                                     |
-| ------------------------------------- | ------------------------------------------------------------ |
-| [Logical-or][logicalOrPattern]        | `subpattern1 \| subpattern2`                                 |
-| [Logical-and][logicalAndPattern]      | `subpattern1 & subpattern2`                                  |
-| [Relational][relationalPattern]       | `== expression`<br>`< expression`                            |
-| [Cast][castPattern]                   | `foo as String`                                              |
-| [Null-check][nullCheckPattern]        | `subpattern?`                                                |
-| [Null-assert][nullAssertPattern]      | `subpattern!`                                                |
-| [Constant][constantPattern]           | `123`, `null`, `'string'`<br>`math.pi`, `SomeClass.constant`<br>`const Thing(1, 2)`, `const (1 + 2)` |
-| [Variable][variablePattern]           | `foo`, `var bar`, `String str`, `_`, `int _`                 |
-| [Parenthesized][parenthesizedPattern] | `(subpattern)`                                               |
-| [List][listPattern]                   | `[subpattern1, subpattern2]`                                 |
-| [Map][mapPattern]                     | `{"key": subpattern1, someConst: subpattern2}`               |
-| [Record][recordPattern]               | `(subpattern1, subpattern2)`<br>`(x: subpattern1, y: subpattern2)` |
-| [Extractor][extractorPattern]         | `SomeClass(x: subpattern1, y: subpattern2)`                  |
+| Kind | Examples |
+| ---- |-------- |
+| [Logical-or][logicalOrPattern] | `subpattern1 \| subpattern2` |
+| [Logical-and][logicalAndPattern] | `subpattern1 & subpattern2` |
+| [Relational][relationalPattern] | `== expression`<br>`< expression` |
+| [Cast][castPattern] | `foo as String` |
+| [Null-check][nullCheckPattern] | `subpattern?` |
+| [Null-assert][nullAssertPattern] | `subpattern!` |
+| [Constant][constantPattern] | `123`, `null`, `'string'`<br>`math.pi`, `SomeClass.constant`<br>`const Thing(1, 2)`, `const (1 + 2)` |
+| [Variable][variablePattern] | `foo`, `var bar`, `String str`, `_`, `int _` |
+| [Parenthesized][parenthesizedPattern] | `(subpattern)` |
+| [List][listPattern] | `[subpattern1, subpattern2]` |
+| [Map][mapPattern] | `{"key": subpattern1, someConst: subpattern2}` |
+| [Record][recordPattern] | `(subpattern1, subpattern2)`<br>`(x: subpattern1, y: subpattern2)` |
+| [Extractor][extractorPattern] | `SomeClass(x: subpattern1, y: subpattern2)` |
 
 [logicalOrPattern]: #logical-or-pattern
 [logicalAndPattern]: #logical-and-pattern
@@ -169,7 +211,26 @@ Before introducing each pattern in detail, here is a summary with some examples:
 Here is the overall grammar for the different kinds of patterns:
 
 ```
-pattern               ::= logicalOrPatternpatterns              ::= pattern ( ',' pattern )* ','?logicalOrPattern      ::= ( logicalOrPattern '|' )? logicalAndPatternlogicalAndPattern     ::= ( logicalAndPattern '&' )? relationalPatternrelationalPattern     ::= ( equalityOperator | relationalOperator) relationalExpression                        | unaryPatternunaryPattern          ::= castPattern                        | nullCheckPattern                        | nullAssertPattern                        | primaryPatternprimaryPattern        ::= constantPattern                        | variablePattern                        | parenthesizedPattern                        | listPattern                        | mapPattern                        | recordPattern                        | extractorPattern
+pattern               ::= logicalOrPattern
+patterns              ::= pattern ( ',' pattern )* ','?
+
+logicalOrPattern      ::= ( logicalOrPattern '|' )? logicalAndPattern
+logicalAndPattern     ::= ( logicalAndPattern '&' )? relationalPattern
+relationalPattern     ::= ( equalityOperator | relationalOperator) relationalExpression
+                        | unaryPattern
+
+unaryPattern          ::= castPattern
+                        | nullCheckPattern
+                        | nullAssertPattern
+                        | primaryPattern
+
+primaryPattern        ::= constantPattern
+                        | variablePattern
+                        | parenthesizedPattern
+                        | listPattern
+                        | mapPattern
+                        | recordPattern
+                        | extractorPattern
 ```
 
 As you can see, logical-or patterns (`|`) have the lowest precedence; then
@@ -190,7 +251,10 @@ This can be used in a switch expression or statement to have multiple cases
 share a body:
 
 ```dart
-var isPrimary = switch (color) {  case Color.red | Color.yellow | Color.blue => true;  default => false;};
+var isPrimary = switch (color) {
+  case Color.red | Color.yellow | Color.blue => true;
+  default => false;
+};
 ```
 
 Even in switch statements, which allow multiple empty cases to share a single
@@ -198,14 +262,24 @@ body, a logical-or pattern can be useful when you want multiple patterns to
 share a guard:
 
 ```dart
-switch (shape) {  case Square(size: var s) | Circle(size: var s) when s > 0:    print('Non-empty symmetric shape');  case Square() | Circle():    print('Empty symmetric shape');  default:    print('Asymmetric shape');}
+switch (shape) {
+  case Square(size: var s) | Circle(size: var s) when s > 0:
+    print('Non-empty symmetric shape');
+  case Square() | Circle():
+    print('Empty symmetric shape');
+  default:
+    print('Asymmetric shape');
+}
 ```
 
 A logical-or pattern does not have to appear at the top level of a pattern. It
 can be nested inside a destructuring pattern:
 
 ```dart
-switch (list) {  // Matches a two-element list whose first element is 'a' or 'b':  case ['a' | 'b', var c]):}
+switch (list) {
+  // Matches a two-element list whose first element is 'a' or 'b':
+  case ['a' | 'b', var c]):
+}
 ```
 
 A logical-or pattern may match even if one of its branches does not. That means
@@ -250,7 +324,19 @@ The comparison operators are useful for matching on numeric ranges, especially
 when combined with `&`:
 
 ```dart
-String asciiCharType(int char) {  const space = 32;  const zero = 48;  const nine = 57;  return switch (char) {    case < space => 'control';    case == space => 'space';    case > space & < zero => 'punctuation';    case >= zero & <= nine => 'digit';    // Etc...  }}
+String asciiCharType(int char) {
+  const space = 32;
+  const zero = 48;
+  const nine = 57;
+
+  return switch (char) {
+    case < space => 'control';
+    case == space => 'space';
+    case > space & < zero => 'punctuation';
+    case >= zero & <= nine => 'digit';
+    // Etc...
+  }
+}
 ```
 
 ### Cast pattern
@@ -271,7 +357,8 @@ place in the initializer to insert the cast. This pattern lets you insert the
 cast as values are being pulled out by the pattern:
 
 ```dart
-(num, Object) record = (1, "s");var (i as int, s as String) = record;
+(num, Object) record = (1, "s");
+var (i as int, s as String) = record;
 ```
 
 ### Null-check pattern
@@ -286,7 +373,11 @@ through patterns, this also provides a terse way to bind a variable whose type
 is the non-nullable base type of the nullable value being matched:
 
 ```dart
-String? maybeString = ...switch (maybeString) {  case var s?:    // s has type non-nullable String here.}
+String? maybeString = ...
+switch (maybeString) {
+  case var s?:
+    // s has type non-nullable String here.
+}
 ```
 
 Using `?` to match a value that is *not* null seems counterintuitive. In truth,
@@ -315,19 +406,37 @@ This lets you eliminate null in variable declarations where a refutable pattern
 isn't allowed:
 
 ```dart
-(int?, int?) position = ...// We know if we get here that the coordinates should be present:var (x!, y!) = position;
+(int?, int?) position = ...
+
+// We know if we get here that the coordinates should be present:
+var (x!, y!) = position;
 ```
 
 Or where you don't want null to be silently treated as a match failure, as in:
 
 ```dart
-List<String?> row = ...// If the first column is 'user', we expect to have a name after it.switch (row) {  case ['user', var name!]:    // name is a non-nullable string here.}
+List<String?> row = ...
+
+// If the first column is 'user', we expect to have a name after it.
+switch (row) {
+  case ['user', var name!]:
+    // name is a non-nullable string here.
+}
 ```
 
 ### Constant pattern
 
 ```
-constantPattern ::= booleanLiteral                  | nullLiteral                  | numericLiteral                  | stringLiteral                  | identifier                  | qualifiedName                  | constObjectExpression                  | 'const' typeArguments? '[' elements? ']'                  | 'const' typeArguments? '{' elements? '}'                  | 'const' '(' expression ')'
+constantPattern ::= booleanLiteral
+                  | nullLiteral
+                  | numericLiteral
+                  | stringLiteral
+                  | identifier
+                  | qualifiedName
+                  | constObjectExpression
+                  | 'const' typeArguments? '[' elements? ']'
+                  | 'const' typeArguments? '{' elements? '}'
+                  | 'const' '(' expression ')'
 ```
 
 A constant pattern determines if the matched value is equal to the constant's
@@ -389,7 +498,10 @@ specified type. If the type annotation is omitted, the variable's type is
 inferred and the pattern matches all values.
 
 ```dart
-switch (record) {  case (int x, String s):    print('First field is int $x and second is String $s.');}
+switch (record) {
+  case (int x, String s):
+    print('First field is int $x and second is String $s.');
+}
 ```
 
 *There are some restrictions on when `var` and `final` can and can't be used.
@@ -402,14 +514,18 @@ name is useful as a placeholder in places where you need a subpattern in order
 to destructure later positional values:
 
 ```dart
-var list = [1, 2, 3];var [_, two, _] = list;
+var list = [1, 2, 3];
+var [_, two, _] = list;
 ```
 
 The `_` identifier can also be used with a type annotation when you want to test
 a value's type but not bind the value to a name:
 
 ```dart
-switch (record) {  case (int _, String _):    print('First field is int and second is String.');}
+switch (record) {
+  case (int _, String _):
+    print('First field is int and second is String.');
+}
 ```
 
 ### Parenthesized pattern
@@ -440,7 +556,9 @@ elements. Allow capturing the rest in a variable.**
 ### Map pattern
 
 ```
-mapPattern        ::= typeArguments? '{' mapPatternEntries? '}'mapPatternEntries ::= mapPatternEntry ( ',' mapPatternEntry )* ','?mapPatternEntry   ::= expression ':' pattern
+mapPattern        ::= typeArguments? '{' mapPatternEntries? '}'
+mapPatternEntries ::= mapPatternEntry ( ',' mapPatternEntry )* ','?
+mapPatternEntry   ::= expression ':' pattern
 ```
 
 A map pattern matches values that implement `Map` and accesses values by key
@@ -464,7 +582,9 @@ It is a compile-time error if:
 ### Record pattern
 
 ```
-recordPattern         ::= '(' patternFields? ')'patternFields         ::= patternField ( ',' patternField )* ','?patternField          ::= ( identifier? ':' )? pattern
+recordPattern         ::= '(' patternFields? ')'
+patternFields         ::= patternField ( ',' patternField )* ','?
+patternField          ::= ( identifier? ':' )? pattern
 ```
 
 A record pattern matches a record object and destructures its fields. If the
@@ -474,24 +594,41 @@ the record.
 
 Field subpatterns can be in one of three forms:
 
-* A bare `pattern` destructures the corresponding positional field from the
-  record and matches it against `pattern`.
+*   A bare `pattern` destructures the corresponding positional field from the
+    record and matches it against `pattern`.
 
-* An `identifier: pattern` destructures the named field with the name
-  `identifier` and matches it against `pattern`.
+*   An `identifier: pattern` destructures the named field with the name
+    `identifier` and matches it against `pattern`.
 
-* A `: pattern` is a named field with the name omitted. When destructuring
-  named fields, it's very common to want to bind the resulting value to a
-  variable with the same name.
+*   A `: pattern` is a named field with the name omitted. When destructuring
+    named fields, it's very common to want to bind the resulting value to a
+    variable with the same name.
 
-  As a convenience, the identifier can be omitted and inferred from `pattern`.
-  The subpattern must be a variable pattern which may be wrapped in a unary
-  pattern. The field name is then inferred from the name in the variable
-  pattern. These pairs of patterns are each equivalent:
+    As a convenience, the identifier can be omitted and inferred from `pattern`.
+    The subpattern must be a variable pattern which may be wrapped in a unary
+    pattern. The field name is then inferred from the name in the variable
+    pattern. These pairs of patterns are each equivalent:
 
-  ```dart
-  // Variable:var (untyped: untyped, typed: int typed) = ...var (:untyped, :int typed) = ...switch (obj) {  case (untyped: var untyped, typed: int typed): ...  case (:var untyped, :int typed): ...}// Null-check and null-assert:switch (obj) {  case (checked: var checked?, asserted: var asserted!): ...  case (:var checked?, :var asserted!): ...}// Cast:var (field: field as int) = ...var (:field as int) = ...
-  ```
+    ```dart
+    // Variable:
+    var (untyped: untyped, typed: int typed) = ...
+    var (:untyped, :int typed) = ...
+    
+    switch (obj) {
+      case (untyped: var untyped, typed: int typed): ...
+      case (:var untyped, :int typed): ...
+    }
+    
+    // Null-check and null-assert:
+    switch (obj) {
+      case (checked: var checked?, asserted: var asserted!): ...
+      case (:var checked?, :var asserted!): ...
+    }
+    
+    // Cast:
+    var (field: field as int) = ...
+    var (:field as int) = ...
+    ```
 
 A record pattern with a single unnamed field and no trailing comma is ambiguous
 with a parenthesized pattern. In that case, it is treated as a parenthesized
@@ -501,7 +638,8 @@ trailing comma, as you would with the corresponding record expression.
 ### Extractor pattern
 
 ```
-extractorPattern ::= extractorName typeArguments? '(' patternFields? ')'extractorName    ::= typeIdentifier | qualifiedName
+extractorPattern ::= extractorName typeArguments? '(' patternFields? ')'
+extractorName    ::= typeIdentifier | qualifiedName
 ```
 
 An extractor matches values of a given named type and then extracts values from
@@ -513,7 +651,18 @@ This pattern is particularly useful for writing code in an algebraic datatype
 style. For example:
 
 ```dart
-class Rect {  final double width, height;  Rect(this.width, this.height);}display(Object obj) {  switch (obj) {    case Rect(width: var w, height: var h): print('Rect $w x $h');    default: print(obj);  }}
+class Rect {
+  final double width, height;
+
+  Rect(this.width, this.height);
+}
+
+display(Object obj) {
+  switch (obj) {
+    case Rect(width: var w, height: var h): print('Rect $w x $h');
+    default: print(obj);
+  }
+}
 ```
 
 It is a compile-time error if:
@@ -530,7 +679,12 @@ variable pattern in the field subpattern which may be wrapped in a unary
 pattern. The previous example could be written like:
 
 ```dart
-display(Object obj) {  switch (obj) {    case Rect(:var width, :var height): print('Rect $width x $height');    default: print(obj);  }}
+display(Object obj) {
+  switch (obj) {
+    case Rect(:var width, :var height): print('Rect $width x $height');
+    default: print(obj);
+  }
+}
 ```
 
 ## Pattern uses
@@ -552,7 +706,9 @@ a single declaration might declare multiple variables. Fully incorporating
 patterns into that could lead to confusing syntax like:
 
 ```dart
-// Not allowed:(int, String) (n, s) = (1, "str");final (a, b) = (1, 2), c = 3, (d, e);
+// Not allowed:
+(int, String) (n, s) = (1, "str");
+final (a, b) = (1, 2), c = 3, (d, e);
 ```
 
 To avoid this weirdness, patterns only occur in variable declarations that begin
@@ -561,7 +717,8 @@ can only have a single declaration "section". No comma-separated multiple
 declarations like:
 
 ```dart
-// Not allowed:var [a] = [1], (b, c) = (2, 3);
+// Not allowed:
+var [a] = [1], (b, c) = (2, 3);
 ```
 
 Declarations with patterns must have an initializer. This is not a limitation
@@ -571,20 +728,33 @@ against the initializer's value.
 Add this new rule:
 
 ```
-patternVariableDeclaration  ::= ( 'final' | 'var' ) outerPattern '=' expressionouterPattern                ::= parenthesizedPattern                              | listPattern                              | mapPattern                              | recordPattern                              | extractorPattern
+patternVariableDeclaration  ::= ( 'final' | 'var' ) outerPattern '=' expression
+
+outerPattern                ::= parenthesizedPattern
+                              | listPattern
+                              | mapPattern
+                              | recordPattern
+                              | extractorPattern
 ```
 
 The `outerPattern` rule defines a subset of the patterns that are allowed as the
 outermost pattern in a declaration. Subsetting allows useful code like:
 
 ```dart
-var ((a, b) & record) = (1, 2);           // Parentheses.var [a, b] = [1, 2];                      // List.var {1: a} = {1: 2};                      // Map.var (a, b, x: x) = (1, 2, x: 3);          // Record.var Point(x: x, y: y) = Point(1, 2);      // Extractor.
+var ((a, b) & record) = (1, 2);           // Parentheses.
+var [a, b] = [1, 2];                      // List.
+var {1: a} = {1: 2};                      // Map.
+var (a, b, x: x) = (1, 2, x: 3);          // Record.
+var Point(x: x, y: y) = Point(1, 2);      // Extractor.
 ```
 
 But excludes other kinds of patterns to prohibit weird code like:
 
 ```dart
-// Not allowed:var String str = 'redundant';     // Variable.var str as String = 'weird';      // Cast.var definitely! = maybe;          // Null-assert.
+// Not allowed:
+var String str = 'redundant';     // Variable.
+var str as String = 'weird';      // Cast.
+var definitely! = maybe;          // Null-assert.
 ```
 
 Allowing parentheses gives users an escape hatch if they really want to use an
@@ -596,7 +766,13 @@ The new rules are incorporated into the existing productions for declaring
 variables like so:
 
 ```
-localVariableDeclaration ::=  | initializedVariableDeclaration ';' // Existing.  | patternVariableDeclaration ';' // New.forLoopParts ::=  | // Existing productions...  | ( 'final' | 'var' ) outerPattern 'in' expression // New.
+localVariableDeclaration ::=
+  | initializedVariableDeclaration ';' // Existing.
+  | patternVariableDeclaration ';' // New.
+
+forLoopParts ::=
+  | // Existing productions...
+  | ( 'final' | 'var' ) outerPattern 'in' expression // New.
 ```
 
 As with regular for-in loops, it is a compile-time error if the type of
@@ -616,7 +792,10 @@ A pattern on the left side of an assignment expression is used to destructure
 the assigned value. We extend `expression`:
 
 ```
-expression        ::= patternAssignment                    | // Existing productions...patternAssignment ::= outerPattern '=' expression
+expression        ::= patternAssignment
+                    | // Existing productions...
+
+patternAssignment ::= outerPattern '=' expression
 ```
 
 *This syntax allows chaining pattern assignments and mixing them with other
@@ -630,32 +809,38 @@ are allowed while avoiding confusion about the scope of new variables.*
 
 It is a compile-time error if:
 
-* An identifier in a variable pattern does not resolve to a non-final local
-  variable. *We could allow assigning to other variables or setters, but it
-  seems strange to allow assigning to `foo` when `foo` is an instance field on
-  the surrounding class with an implicit `this.`, but not allowing to assign
-  to `this.foo` explicitly. In the future, we may expand pattern assignment
-  syntax to allow other selector expressions. For now, we restrict assignment
-  to local variables, which are also the only kind of variables that can be
-  declared by patterns.*
+*   An identifier in a variable pattern does not resolve to a non-final local
+    variable. *We could allow assigning to other variables or setters, but it
+    seems strange to allow assigning to `foo` when `foo` is an instance field on
+    the surrounding class with an implicit `this.`, but not allowing to assign
+    to `this.foo` explicitly. In the future, we may expand pattern assignment
+    syntax to allow other selector expressions. For now, we restrict assignment
+    to local variables, which are also the only kind of variables that can be
+    declared by patterns.*
 
-* The matched value type for a variable or cast pattern is not assignable to
-  the corresponding variable's type.
+*   The matched value type for a variable or cast pattern is not assignable to
+    the corresponding variable's type.
 
-* The same variable is assigned more than once. *In other words, a pattern
-  assignment can't have multiple variable subpatterns with the same name. This
-  prohibits code like:*
+*   The same variable is assigned more than once. *In other words, a pattern
+    assignment can't have multiple variable subpatterns with the same name. This
+    prohibits code like:*
 
-  ```dart
-  var a = 1;(a & a) = 2;[a, a, a] = [1, 2, 3];
-  ```
+    ```dart
+    var a = 1;
+    (a & a) = 2;
+    [a, a, a] = [1, 2, 3];
+    ```
 
 ### Switch statement
 
 We extend switch statements to allow patterns in cases:
 
 ```
-switchStatement         ::= 'switch' '(' expression ')'                            '{' switchStatementCase* switchStatementDefault? '}'switchStatementCase     ::= label* caseHead ':' statementscaseHead                ::= 'case' pattern ( 'when' expression )?switchStatementDefault  ::= label* 'default' ':' statements
+switchStatement         ::= 'switch' '(' expression ')'
+                            '{' switchStatementCase* switchStatementDefault? '}'
+switchStatementCase     ::= label* caseHead ':' statements
+caseHead                ::= 'case' pattern ( 'when' expression )?
+switchStatementDefault  ::= label* 'default' ':' statements
 ```
 
 Allowing patterns in cases significantly increases the expressiveness of what
@@ -677,53 +862,83 @@ Flutter applications, and the Dart and Flutter repositories. I found a total of
 
 The specific kinds of switches whose behavior changes are:
 
-* **List and map patterns.** A list or map constant literal in a switch case
-  is now interpreted as a list or map *pattern* which destructures its
-  elements at runtime. Before, it was simply treated as identity comparison.
+*   **List and map patterns.** A list or map constant literal in a switch case
+    is now interpreted as a list or map *pattern* which destructures its
+    elements at runtime. Before, it was simply treated as identity comparison.
 
-  ```dart
-  const a = 1;const b = 2;var obj = [1, 2]; // Not const.switch (obj) {  case [a, b]: print("match"); break;  default: print("no match");}
-  ```
+    ```dart
+    const a = 1;
+    const b = 2;
+    var obj = [1, 2]; // Not const.
+    
+    switch (obj) {
+      case [a, b]: print("match"); break;
+      default: print("no match");
+    }
+    ```
 
-  In Dart today, this prints "no match". With this proposal, it changes to
-  "match". I did not find any switch cases whose expression is a list or map
-  literal.
+    In Dart today, this prints "no match". With this proposal, it changes to
+    "match". I did not find any switch cases whose expression is a list or map
+    literal.
 
-* **Wildcards.** A switch case containing the identifier `_` currently matches
-  if the matched value is equal to the constant named `_`. With this proposal,
-  it becomes a wildcard that always matches. I did not find any switch cases
-  whose expression is `_`.
+*   **Wildcards.** A switch case containing the identifier `_` currently matches
+    if the matched value is equal to the constant named `_`. With this proposal,
+    it becomes a wildcard that always matches. I did not find any switch cases
+    whose expression is `_`.
 
-* **Constant constructors.** A switch case can be a constant constructor call
-  with implicit `const`, like:
+*   **Constant constructors.** A switch case can be a constant constructor call
+    with implicit `const`, like:
 
-  ```dart
-  case SomeClass(1, 2):
-  ```
+    ```dart
+    case SomeClass(1, 2):
+    ```
 
-  With this proposal, that is interpreted as an extractor pattern whose
-  arguments are subpatterns. In cases where the matched value is also a
-  constant, this will *likely* behave the same but may not. I found 8 switch
-  cases of this form (0.008%).
+    With this proposal, that is interpreted as an extractor pattern whose
+    arguments are subpatterns. In cases where the matched value is also a
+    constant, this will *likely* behave the same but may not. I found 8 switch
+    cases of this form (0.008%).
 
-* **Other constant expressions.** Constant patterns allow simple literals and
-  references to named constants to be used directly as patterns, which covers
-  the majority of all existing switch cases. Also a constant constructor
-  explicitly prefixed with `const` is a valid constant expression pattern. But
-  some more complex expressions are valid constant expressions but not valid
-  constant patterns. In the switch cases I analyzed, the exceptions are:
+*   **Other constant expressions.** Constant patterns allow simple literals and
+    references to named constants to be used directly as patterns, which covers
+    the majority of all existing switch cases. Also a constant constructor
+    explicitly prefixed with `const` is a valid constant expression pattern. But
+    some more complex expressions are valid constant expressions but not valid
+    constant patterns. In the switch cases I analyzed, the exceptions are:
 
-  ```
-  case A + A:                                         // Infix "+".case A + 'b':                                       // Infix "+".case -ERR_LDS_ICAO_SIGNED_DATA_SIGNER_INFOS_EMPTY:  // Unary "-".case -sigkill:                                      // Unary "-".case List<RPChoice>:                                // Generic type literal.case 720 * 1280:                                    // Infix "*".case 1080 * 1920:                                   // Infix "*".case 1440 * 2560:                                   // Infix "*".case 2160 * 3840:                                   // Infix "*".
-  ```
+    ```
+    case A + A:                                         // Infix "+".
+    case A + 'b':                                       // Infix "+".
+    case -ERR_LDS_ICAO_SIGNED_DATA_SIGNER_INFOS_EMPTY:  // Unary "-".
+    case -sigkill:                                      // Unary "-".
+    case List<RPChoice>:                                // Generic type literal.
+    case 720 * 1280:                                    // Infix "*".
+    case 1080 * 1920:                                   // Infix "*".
+    case 1440 * 2560:                                   // Infix "*".
+    case 2160 * 3840:                                   // Infix "*".
+    ```
 
-  These nine cases represent 0.009% of the cases found.
+    These nine cases represent 0.009% of the cases found.
 
 For any switch case that is broken by this proposal, you can revert back to the
 original behavior by prefixing the case expression (now pattern) with `const`:
 
 ```dart
-// List or map literal:case const [a, b]:// Const constructor call:case const SomeClass(1, 2):// Other constant expression:case const A + A:case const A + 'b':case const -ERR_LDS_ICAO_SIGNED_DATA_SIGNER_INFOS_EMPTY:case const -sigkill:case const List<RPChoice>:case const 720 * 1280:case const 1080 * 1920:case const 1440 * 2560:case const 2160 * 3840:
+// List or map literal:
+case const [a, b]:
+
+// Const constructor call:
+case const SomeClass(1, 2):
+
+// Other constant expression:
+case const A + A:
+case const A + 'b':
+case const -ERR_LDS_ICAO_SIGNED_DATA_SIGNER_INFOS_EMPTY:
+case const -sigkill:
+case const List<RPChoice>:
+case const 720 * 1280:
+case const 1080 * 1920:
+case const 1440 * 2560:
+case const 2160 * 3840:
 ```
 
 We can determine syntactically whether an existing switch case's behavior will
@@ -739,7 +954,27 @@ case instead of exiting the entire switch like it would if you nested an `if`
 statement inside the switch case's body:
 
 ```dart
-var pair = (1, 2);// This prints nothing:switch (pair) {  case (a, b):    if (a > b) print('First element greater');    break;  case (a, b):    print('Other order');    break;}// This prints "Other order":switch (pair) {  case (a, b) when a > b:    print('First element greater');    break;  case (a, b):    print('Other order');    break;}
+var pair = (1, 2);
+
+// This prints nothing:
+switch (pair) {
+  case (a, b):
+    if (a > b) print('First element greater');
+    break;
+  case (a, b):
+    print('Other order');
+    break;
+}
+
+// This prints "Other order":
+switch (pair) {
+  case (a, b) when a > b:
+    print('First element greater');
+    break;
+  case (a, b):
+    print('Other order');
+    break;
+}
 ```
 
 #### Implicit break
@@ -768,14 +1003,23 @@ the switch after completion. From the spec, remove:
 This is now valid code that prints "one":
 
 ```dart
-switch (1) {  case 1:    print("one");  case 2:    print("two");}
+switch (1) {
+  case 1:
+    print("one");
+  case 2:
+    print("two");
+}
 ```
 
 Empty cases continue to fallthrough to the next case as before. This prints "one
 or two":
 
 ```dart
-switch (1) {  case 1:  case 2:    print("one or two");}
+switch (1) {
+  case 1:
+  case 2:
+    print("one or two");
+}
 ```
 
 To have an empty case that does *not* fallthrough, use `break;` for its body as
@@ -788,19 +1032,49 @@ conditional expression (`?:`). There is no expression form for multi-way
 branching, so we define a new switch expression. It takes code like this:
 
 ```dart
-Color shiftHue(Color color) {  switch (color) {    case Color.red:      return Color.orange;    case Color.orange:      return Color.yellow;    case Color.yellow:      return Color.green;    case Color.green:      return Color.blue;    case Color.blue:      return Color.purple;    case Color.purple:      return Color.red;  }}
+Color shiftHue(Color color) {
+  switch (color) {
+    case Color.red:
+      return Color.orange;
+    case Color.orange:
+      return Color.yellow;
+    case Color.yellow:
+      return Color.green;
+    case Color.green:
+      return Color.blue;
+    case Color.blue:
+      return Color.purple;
+    case Color.purple:
+      return Color.red;
+  }
+}
 ```
 
 And turns it into:
 
 ```dart
-Color shiftHue(Color color) {  return switch (color) {    case Color.red => Color.orange;    case Color.orange => Color.yellow;    case Color.yellow => Color.green;    case Color.green => Color.blue;    case Color.blue => Color.purple;    case Color.purple => Color.red;  };}
+Color shiftHue(Color color) {
+  return switch (color) {
+    case Color.red => Color.orange;
+    case Color.orange => Color.yellow;
+    case Color.yellow => Color.green;
+    case Color.green => Color.blue;
+    case Color.blue => Color.purple;
+    case Color.purple => Color.red;
+  };
+}
 ```
 
 The grammar is:
 
 ```
-primary                 ::= // Existing productions...                          | switchExpressionswitchExpression        ::= 'switch' '(' expression ')' '{'                            switchExpressionCase* switchExpressionDefault? '}'switchExpressionCase    ::= caseHead '=>' expression ';'switchExpressionDefault ::= 'default' '=>' expression ';'
+primary                 ::= // Existing productions...
+                          | switchExpression
+
+switchExpression        ::= 'switch' '(' expression ')' '{'
+                            switchExpressionCase* switchExpressionDefault? '}'
+switchExpressionCase    ::= caseHead '=>' expression ';'
+switchExpressionDefault ::= 'default' '=>' expression ';'
 ```
 
 Slotting into `primary` means it can be used anywhere any expression can appear,
@@ -811,7 +1085,17 @@ since a `switch` expression is always delimited by a `switch` and `}`.
 Making it high precedence allows useful patterns like:
 
 ```dart
-await switch (n) {  case 1 => aFuture;  case 2 => anotherFuture;  default => otherwiseFuture;};var x = switch (n) {  case 1 => obj;  case 2 => another;  default => otherwise;}.someMethod();
+await switch (n) {
+  case 1 => aFuture;
+  case 2 => anotherFuture;
+  default => otherwiseFuture;
+};
+
+var x = switch (n) {
+  case 1 => obj;
+  case 2 => another;
+  default => otherwise;
+}.someMethod();
 ```
 
 Over half of the switch cases in a large corpus of packages contain either a
@@ -826,7 +1110,15 @@ unbounded lookahead to tell if a switch in statement position is a statement or
 expression.
 
 ```dart
-main() {  switch (some(extremely, long, expression, here)) {    case Some(Quite(:var long, :var pattern)) => expression();  };  switch (some(extremely, long, expression, here)) {    case Some(Quite(:var long, :var pattern)): statement();  }}
+main() {
+  switch (some(extremely, long, expression, here)) {
+    case Some(Quite(:var long, :var pattern)) => expression();
+  };
+
+  switch (some(extremely, long, expression, here)) {
+    case Some(Quite(:var long, :var pattern)): statement();
+  }
+}
 ```
 
 To avoid that, we disallow a switch expression from appearing at the beginning
@@ -846,7 +1138,10 @@ want to test a value against a single pattern. A `switch` statement works but is
 verbose:
 
 ```dart
-switch (json) {  case [int x, int y]:    return Point(x, y);}
+switch (json) {
+  case [int x, int y]:
+    return Point(x, y);
+}
 ```
 
 We can make simple uses like this better by extending if statements to allow
@@ -859,7 +1154,11 @@ if (json case [int x, int y]) return Point(x, y);
 It may have an else branch as well:
 
 ```dart
-if (json case [int x, int y]) {  print('Was coordinate array $x,$y');} else {  throw FormatException('Invalid JSON.');}
+if (json case [int x, int y]) {
+  print('Was coordinate array $x,$y');
+} else {
+  throw FormatException('Invalid JSON.');
+}
 ```
 
 We replace the existing `ifStatement` rule with:
@@ -881,7 +1180,11 @@ if there is one.
 A guard is also allowed:
 
 ```
-if (json case [int x, int y] when x == y) {  print('Was on coordinate x-y intercept');} else {  throw FormatException('Invalid JSON.');}
+if (json case [int x, int y] when x == y) {
+  print('Was on coordinate x-y intercept');
+} else {
+  throw FormatException('Invalid JSON.');
+}
 ```
 
 ### Pattern context
@@ -909,84 +1212,102 @@ While most patterns look and act the same regardless of where they appear in the
 language, context places some restrictions on which kinds of patterns are
 allowed and what their syntax is. The rules are:
 
-* It is a compile-time error if any of the following *refutable patterns*
-  appear in an irrefutable context:
+*   It is a compile-time error if any of the following *refutable patterns*
+    appear in an irrefutable context:
 
-  *   Logical-or
-  *   Relational
-  *   Null-check
-  *   Constant
+    *   Logical-or
+    *   Relational
+    *   Null-check
+    *   Constant
 
-  *All of these patterns are refutable and may fail to match. In a matching
-  context like a switch case, if a pattern fails to match, execution skips
-  over the case body to ensure that variables bound by the pattern can only
-  be used when the pattern matches. Declaration and assignment contexts have
-  no control flow, so they can only use patterns that will always match.*
+    *All of these patterns are refutable and may fail to match. In a matching
+    context like a switch case, if a pattern fails to match, execution skips
+    over the case body to ensure that variables bound by the pattern can only
+    be used when the pattern matches. Declaration and assignment contexts have
+    no control flow, so they can only use patterns that will always match.*
 
-  *Logical-or patterns are refutable because there is no point in using one
-  with an irrefutable left operand. We could make null-check patterns
-  irrefutable if `V` is assignable to its static type, but whenever that is
-  true the pattern does nothing useful since its only behavior is a type
-  test.*
+    *Logical-or patterns are refutable because there is no point in using one
+    with an irrefutable left operand. We could make null-check patterns
+    irrefutable if `V` is assignable to its static type, but whenever that is
+    true the pattern does nothing useful since its only behavior is a type
+    test.*
 
-  *The remaining patterns are allowed syntactically to appear in a refutable
-  context. Patterns that do type tests like variables and lists produce a
-  compile-time error when used in an irrefutable context if the static type of
-  the matched value isn't assignable to their required type. This error is
-  specified under type checking.*
+    *The remaining patterns are allowed syntactically to appear in a refutable
+    context. Patterns that do type tests like variables and lists produce a
+    compile-time error when used in an irrefutable context if the static type of
+    the matched value isn't assignable to their required type. This error is
+    specified under type checking.*
 
-* It is a compile-time error if a variable pattern in a declaration context is
-  marked with `var` or `final`. *A pattern declaration statement is already
-  preceded by `var` or `final`, so allowing those on the variable patterns
-  inside would lead to unnecessary or confusing code like:*
+*   It is a compile-time error if a variable pattern in a declaration context is
+    marked with `var` or `final`. *A pattern declaration statement is already
+    preceded by `var` or `final`, so allowing those on the variable patterns
+    inside would lead to unnecessary or confusing code like:*
 
-  ```dart
-  // Disallowed:var [var x] = [1];final [var y] = [2];
-  ```
+    ```dart
+    // Disallowed:
+    var [var x] = [1];
+    final [var y] = [2];
+    ```
 
-  *To declare variables in a declaration context, use a simple identifer:*
+    *To declare variables in a declaration context, use a simple identifer:*
 
-  ```dart
-  // OK:var [x] = [1];final [y] = [2];
-  ```
+    ```dart
+    // OK:
+    var [x] = [1];
+    final [y] = [2];
+    ```
 
-* It is a compile-time error if a variable pattern in an assignment context is
-  marked with `var`, `final`, or a type annotation (or both `final` and a type
-  annotation). *Patterns in assignments can only assign to existing variables,
-  not declare new ones.*
+*   It is a compile-time error if a variable pattern in an assignment context is
+    marked with `var`, `final`, or a type annotation (or both `final` and a type
+    annotation). *Patterns in assignments can only assign to existing variables,
+    not declare new ones.*
 
-  ```dart
-  var a = 1;var b = 2;// Disallowed:(var a, int b) = (3, 4);// OK:(a, b) = (3, 4);
-  ```
+    ```dart
+    var a = 1;
+    var b = 2;
+    
+    // Disallowed:
+    (var a, int b) = (3, 4);
+    
+    // OK:
+    (a, b) = (3, 4);
+    ```
 
-* A simple identifier in a matching context is treated as a named constant
-  pattern unless its name is `_`. *A bare identifier is ambiguous and could
-  be either a named constant or a variable pattern without any `var`, `final`,
-  or type annotation marker. We prefer the constant interpretation for
-  backwards compatibility and to make variable declarations more explicit in
-  cases. To declare variables in a matching context, use `var`, `final`, or a
-  type before the name.*
+*   A simple identifier in a matching context is treated as a named constant
+    pattern unless its name is `_`. *A bare identifier is ambiguous and could
+    be either a named constant or a variable pattern without any `var`, `final`,
+    or type annotation marker. We prefer the constant interpretation for
+    backwards compatibility and to make variable declarations more explicit in
+    cases. To declare variables in a matching context, use `var`, `final`, or a
+    type before the name.*
 
-  *There is no ambiguity with bare identifiers in irrefutable contexts since
-  constant patterns are disallowed there.*
+    *There is no ambiguity with bare identifiers in irrefutable contexts since
+    constant patterns are disallowed there.*
 
-  ```dart
-  const c = 1;switch (2) {  case c: print('match $c');  default: print('no match');}
-  ```
+    ```dart
+    const c = 1;
+    switch (2) {
+      case c: print('match $c');
+      default: print('no match');
+    }
+    ```
 
-  *This program prints "no match" and not "match 2".*
+    *This program prints "no match" and not "match 2".*
 
-* A simple identifier in a matching context named `_` is treated as a wildcard
-  variable pattern. *A bare `_` is always treated as a wildcard regardless of
-  context, even though other variables in matching contexts require a marker.*
+*   A simple identifier in a matching context named `_` is treated as a wildcard
+    variable pattern. *A bare `_` is always treated as a wildcard regardless of
+    context, even though other variables in matching contexts require a marker.*
 
-  ```dart
-  // OK:switch (triple) {  case [_, var y, _]: print('The middle element is $y');}
-  ```
+    ```dart
+    // OK:
+    switch (triple) {
+      case [_, var y, _]: print('The middle element is $y');
+    }
+    ```
 
-  *You can also use `var _` or `final _` to write a wildcard in a matching
-  context because it would require additional specification to explicitly
-  forbid it, but doing so is discouraged.*
+    *You can also use `var _` or `final _` to write a wildcard in a matching
+    context because it would require additional specification to explicitly
+    forbid it, but doing so is discouraged.*
 
 *In short, you can't use refutable patterns in places that don't do control
 flow. Use simple identifiers (optionally with type annotations) to declare
@@ -1074,26 +1395,26 @@ var (a, b, <double>[c], [int d]) = ([1], <List<int>>[[]], [2], [3]);
 
 To orchestrate this, type inference on patterns proceeds in three phases:
 
-1. **Calculate the pattern type schema.** Start at the top of the pattern and
-   recurse downwards into subpatterns using the surrounding pattern as context.
-   When we reach the leaves, work back upwards filling in missing pieces where
-   possible. When this completes, we have a type schema for the pattern. It's
-   a type *schema* and not a *type* because there may be holes where types
-   aren't known yet.
+1.  **Calculate the pattern type schema.** Start at the top of the pattern and
+    recurse downwards into subpatterns using the surrounding pattern as context.
+    When we reach the leaves, work back upwards filling in missing pieces where
+    possible. When this completes, we have a type schema for the pattern. It's
+    a type *schema* and not a *type* because there may be holes where types
+    aren't known yet.
 
-2. **Calculate the static type of the matched value.** A pattern always occurs
-   in the context of some matched value. For pattern variable declarations,
-   this is the initializer. For switches and if-case statements, it's the value
-   being matched.
+2.  **Calculate the static type of the matched value.** A pattern always occurs
+    in the context of some matched value. For pattern variable declarations,
+    this is the initializer. For switches and if-case statements, it's the value
+    being matched.
 
-   Using the pattern's type schema as a context type, infer missing types on
-   the value expression. This is the existing type inference rules on
-   expressions. It yields a complete static type for the matched value.
+    Using the pattern's type schema as a context type, infer missing types on
+    the value expression. This is the existing type inference rules on
+    expressions. It yields a complete static type for the matched value.
 
-3. **Calculate the static type of the pattern.** Using that value type, recurse
-   through the pattern again downwards to the leaf subpatterns filling in any
-   holes in the type schema. When that completes, we now have a full static
-   type for the pattern and all of its subpatterns.
+3.  **Calculate the static type of the pattern.** Using that value type, recurse
+    through the pattern again downwards to the leaf subpatterns filling in any
+    holes in the type schema. When that completes, we now have a full static
+    type for the pattern and all of its subpatterns.
 
 The full process only comes into play for pattern variable declarations and
 pattern assignment. For switch cases and if-case statements, the pattern context
@@ -1132,87 +1453,89 @@ var (a, int b) = ... // Schema is `(?, int)`.
 
 The context type schema for a pattern `p` is:
 
-* **Logical-or**: The least upper bound of the context type schemas of the
-  branches.
+*   **Logical-or**: The least upper bound of the context type schemas of the
+    branches.
 
-* **Logical-and**: The greatest lower bound of the context type schemas of the
-  branches.
+*   **Logical-and**: The greatest lower bound of the context type schemas of the
+    branches.
 
-  **TODO: Figure out if LUB and GLB are defined for type schemas.**
+    **TODO: Figure out if LUB and GLB are defined for type schemas.**
 
-* **Null-check** or **null-assert**: A context type schema `E?` where `E` is
-  the context type schema of the inner pattern. *For example:*
+*   **Null-check** or **null-assert**: A context type schema `E?` where `E` is
+    the context type schema of the inner pattern. *For example:*
 
-  ```dart
-  var [[int x]!] = [[]]; // Infers List<List<int>?> for the list literal.
-  ```
+    ```dart
+    var [[int x]!] = [[]]; // Infers List<List<int>?> for the list literal.
+    ```
 
-* **Constant**: The context type schema is the static type of the pattern's
-  value.
+*   **Constant**: The context type schema is the static type of the pattern's
+    value.
 
-* **Variable**:
+*   **Variable**:
 
-  1. In an assignment context, the context type schema is the static type of
-     the variable that `p` resolves to.
+    1.  In an assignment context, the context type schema is the static type of
+        the variable that `p` resolves to.
 
-  2. Else if `p` has no type annotation, the context type schema is `?`.
-     *This lets us potentially infer the variable's type from the matched
-     value.*
+    1.  Else if `p` has no type annotation, the context type schema is `?`.
+        *This lets us potentially infer the variable's type from the matched
+        value.*
 
-  3. Else the context type schema is the annotated type. *When a typed
-     variable pattern is used in a destructuring variable declaration, we
-     do push the type over to the value for inference, as in:*
+    2.  Else the context type schema is the annotated type. *When a typed
+        variable pattern is used in a destructuring variable declaration, we
+        do push the type over to the value for inference, as in:*
 
-     ```dart
-     var (items: List<int> x) = (items: []);//                                 ^- Infers List<int>.
-     ```
+        ```dart
+        var (items: List<int> x) = (items: []);
+        //                                 ^- Infers List<int>.
+        ```
 
-* **Relational** or **cast**: The context type schema is `Object?`.
+*   **Relational** or **cast**: The context type schema is `Object?`.
 
-* **Parenthesized**: The context type schema of the inner subpattern.
+*   **Parenthesized**: The context type schema of the inner subpattern.
 
-* **List**: A context type schema `List<E>` where:
+*   **List**: A context type schema `List<E>` where:
 
-  1. If `p` has a type argument, then `E` is the type argument.
+    1.  If `p` has a type argument, then `E` is the type argument.
 
-  2. Else if `p` has no elements then `E` is `Object?`. *If the pattern
-     doesn't destructure anything, it matches any list, so it is permissive
-     with the context type.*
+    2.  Else if `p` has no elements then `E` is `Object?`. *If the pattern
+        doesn't destructure anything, it matches any list, so it is permissive
+        with the context type.*
 
-  3. Else `E` is the greatest lower bound of the type schemas of all element
-     subpatterns. *We use the greatest lower bound to ensure that the outer
-     collection type has a precise enough type to ensure that any typed field
-     subpatterns do not need to downcast:*
+    3.  Else `E` is the greatest lower bound of the type schemas of all element
+        subpatterns. *We use the greatest lower bound to ensure that the outer
+        collection type has a precise enough type to ensure that any typed field
+        subpatterns do not need to downcast:*
 
-     ```dart
-     var [int a, num b] = [1, 2];
-     ```
+        ```dart
+        var [int a, num b] = [1, 2];
+        ```
 
-     *Here, the GLB of `int` and `num` is `int`, which ensures that neither
-     `int a` nor `num b` need to downcast their respective fields.*
+        *Here, the GLB of `int` and `num` is `int`, which ensures that neither
+        `int a` nor `num b` need to downcast their respective fields.*
 
-* **Map**: A type schema `Map<K, V>` where:
+*   **Map**: A type schema `Map<K, V>` where:
 
-  1.  If `p` has type arguments then `K`, and `V` are those type arguments.
+    1.  If `p` has type arguments then `K`, and `V` are those type arguments.
 
-  2.  Else if `p` has no entries, then `K` and `V` are `Object?`. *If the
-      pattern doesn't destructure anything, it matches any map, so it is
-      permissive with the context type.*
+    2.  Else if `p` has no entries, then `K` and `V` are `Object?`. *If the
+        pattern doesn't destructure anything, it matches any map, so it is
+        permissive with the context type.*
 
-  3.  Else `K` is the least upper bound of the types of all key expressions
-      and `V` is the greatest lower bound of the context type schemas of all
-      value subpatterns.
+    3.  Else `K` is the least upper bound of the types of all key expressions
+        and `V` is the greatest lower bound of the context type schemas of all
+        value subpatterns.
 
-* **Record**: A record type schema with positional and named fields
-  corresponding to the type schemas of the corresponding field subpatterns.
+*   **Record**: A record type schema with positional and named fields
+    corresponding to the type schemas of the corresponding field subpatterns.
 
-* **Extractor**: The type the extractor name resolves to. *This lets inference
-  fill in type arguments in the value based on the extractor's type arguments,
-  as in:*
+*   **Extractor**: The type the extractor name resolves to. *This lets inference
+    fill in type arguments in the value based on the extractor's type arguments,
+    as in:*
 
-  ```dart
-  var Foo<num>() = Foo();//                  ^-- Infer Foo<num>.
-  ```
+    ```dart
+    var Foo<num>() = Foo();
+    //                  ^-- Infer Foo<num>.
+    ```
 
 #### Type checking and pattern required type
 
@@ -1226,69 +1549,74 @@ if the matched value isn't assignable to that type. We define the required type
 for those patterns here. Some examples and the corresponding required types:
 
 ```dart
-var <int>[a, b] = <num>[1, 2];  // List<int> (and compile error).var [a, b] = <num>[1, 2];       // List<num>, a is num, b is num.var [int a, b] = <num>[1, 2];   // List<num>.
+var <int>[a, b] = <num>[1, 2];  // List<int> (and compile error).
+var [a, b] = <num>[1, 2];       // List<num>, a is num, b is num.
+var [int a, b] = <num>[1, 2];   // List<num>.
 ```
 
 To type check a pattern `p` being matched against a value of type `M`:
 
-* **Logical-or** and **logical-and**: Type check each branch using `M` as the
-  matched value type.
+*   **Logical-or** and **logical-and**: Type check each branch using `M` as the
+    matched value type.
 
-* **Relational**:
+*   **Relational**:
 
-  1.  Let `C` be the static type of the right operand constant expression.
+    1.  Let `C` be the static type of the right operand constant expression.
 
-  2.  If the operator is a comparison (`<`, `<=`, `>`, or `>=`), then it is a
-      compile-time error if:
+    2.  If the operator is a comparison (`<`, `<=`, `>`, or `>=`), then it is a
+        compile-time error if:
 
-      *   `M` does not define that operator,
-      *   `C` is not assignable to the operator's parameter type,
-      *   or if the operator's return type is not assignable to `bool`.
+        *   `M` does not define that operator,
+        *   `C` is not assignable to the operator's parameter type,
+        *   or if the operator's return type is not assignable to `bool`.
 
-  3.  Else the operator is `==` or `!=`. It is a compile-time error if `C?` is
-      not assignable to `M`'s `==` method parameter type. *The language
-      screens out `null` before calling the underlying `==` method, which is
-      why `C?` is the allowed type. Since Object declares `==` to accept
-      `Object` on the right, this compile-time error can only happen if a
-      user-defined class has an override of `==` with a `covariant`
-      parameter.*
+    3.  Else the operator is `==` or `!=`. It is a compile-time error if `C?` is
+        not assignable to `M`'s `==` method parameter type. *The language
+        screens out `null` before calling the underlying `==` method, which is
+        why `C?` is the allowed type. Since Object declares `==` to accept
+        `Object` on the right, this compile-time error can only happen if a
+        user-defined class has an override of `==` with a `covariant`
+        parameter.*
 
-* **Cast**:
+*   **Cast**:
 
-  1.  Resolve the type name to a type `X`. It is a compile-time error if
-      the name does not refer to a type.
+    1.  Resolve the type name to a type `X`. It is a compile-time error if
+        the name does not refer to a type.
 
-  2.  Type-check the subpattern using `X` as the matched value type.
+    2.  Type-check the subpattern using `X` as the matched value type.
 
-* **Null-check** or **null-assert**:
+*   **Null-check** or **null-assert**:
 
-  1.  Let `N` be [**NonNull**][nonnull](`M`).
+    1.  Let `N` be [**NonNull**][nonnull](`M`).
 
-  2.  Type-check the subpattern using `N` as the matched value type.
+    2.  Type-check the subpattern using `N` as the matched value type.
 
-  [nonnull]: https://github.com/dart-lang/language/blob/master/accepted/2.12/nnbd/feature-specification.md#null-promotion
+    [nonnull]: https://github.com/dart-lang/language/blob/master/accepted/2.12/nnbd/feature-specification.md#null-promotion
 
-* **Constant**: Type check the pattern's value in context type `M`. *The
-  context type comes into play for things like type arguments and
-  int-to-double:*
+*   **Constant**: Type check the pattern's value in context type `M`. *The
+    context type comes into play for things like type arguments and
+    int-to-double:*
 
-  ```dart
-  double d = 1.0;switch (d) {  case 1: ...}
-  ```
+    ```dart
+    double d = 1.0;
+    switch (d) {
+      case 1: ...
+    }
+    ```
 
-  *Here, the `1` constant pattern in the case is inferred in a context type of
-  `double` to be `1.0` and so does match.*
+    *Here, the `1` constant pattern in the case is inferred in a context type of
+    `double` to be `1.0` and so does match.*
 
-  *Note that the pattern's value must be a constant, but there is no
-  restriction that it must have a primitive operator `==`. Unlike switch cases
-  in current Dart, you can have a constant with a user-defined operator `==`
-  method. This lets you use constant patterns for user-defined types with
-  custom value semantics.*
+    *Note that the pattern's value must be a constant, but there is no
+    restriction that it must have a primitive operator `==`. Unlike switch cases
+    in current Dart, you can have a constant with a user-defined operator `==`
+    method. This lets you use constant patterns for user-defined types with
+    custom value semantics.*
 
 * **Variable**:
 
-  1. In an assignment context, the required type of `p` is the declared 
-     (unpromoted) type of the variable that `p` resolves to.
+  1.  In an assignment context, the required type of `p` is the declared 
+      (unpromoted) type of the variable that `p` resolves to.
 
   2. Else if the variable has a type annotation, the required type of `p` is
      that type, as is the declared type of the variable introduced by `p`.
@@ -1306,51 +1634,51 @@ To type check a pattern `p` being matched against a value of type `M`:
      That inferred type is then destructured and used to infer `num` for `a`
      and `Object` for `b`.*
 
-* **Parenthesized**: Type-check the inner subpattern using `M` as the matched
-  value type.
+*   **Parenthesized**: Type-check the inner subpattern using `M` as the matched
+    value type.
 
-* **List**:
+*   **List**:
 
-  1. Calculate the value's element type `E`:
+    1.  Calculate the value's element type `E`:
 
-     1.  If `p` has a type argument `T`, then `E`  is the type`T`.
-     2.  Else if `M` implements `List<T>` for some `T` then `E` is `T`.
-     3.  Else if `M` is `dynamic` then `E` is `dynamic`.
-     4.  Else `E` is `Object?`.
+        1.  If `p` has a type argument `T`, then `E`  is the type`T`.
+        2.  Else if `M` implements `List<T>` for some `T` then `E` is `T`.
+        3.  Else if `M` is `dynamic` then `E` is `dynamic`.
+        4.  Else `E` is `Object?`.
+        
+    2.  Type-check each element subpattern using `E` as the matched value type.
+        *Note that we calculate a single element type and use it for all
+        subpatterns. In:*
+    
+        ```dart
+        var [a, b] = [1, 2.3];
+        ```
+    
+        *both `a` and `b` use `num` as their matched value type.*
+    
+    3.  The required type of `p` is `List<E>`.
+    
+*   **Map**:
 
-  2. Type-check each element subpattern using `E` as the matched value type.
-     *Note that we calculate a single element type and use it for all
-     subpatterns. In:*
+    1.  Calculate the value's entry key type `K` and value type `V`:
 
-     ```dart
-     var [a, b] = [1, 2.3];
-     ```
-
-     *both `a` and `b` use `num` as their matched value type.*
-
-  3. The required type of `p` is `List<E>`.
-
-* **Map**:
-
-  1. Calculate the value's entry key type `K` and value type `V`:
-
-     1.  If `p` has type arguments `<K, V>` for some `K` and `V` then use those.
-     2.  Else if `M` implements `Map<K, V>` for some `K` and `V` then use those.
-     3.  Else if `M` is `dynamic` then `K` and `V` are `dynamic`.
-     4.  Else `K` and `V` are `Object?`.
-
-  2. Type-check each value subpattern using `V` as the matched value type.
-     *Like lists, we calculate a single value type and use it for all value
-     subpatterns:*
-
-     ```dart
-     var {1: a, 2: b} = {1: "str", 2: bool};
-     ```
-
-     *Here, both `a` and `b` use `Object` as the matched value type.*
-
-  3. The required type of `p` is `Map<K, V>`.
-
+        1.  If `p` has type arguments `<K, V>` for some `K` and `V` then use those.
+        2.  Else if `M` implements `Map<K, V>` for some `K` and `V` then use those.
+        3.  Else if `M` is `dynamic` then `K` and `V` are `dynamic`.
+        4.  Else `K` and `V` are `Object?`.
+        
+    2.  Type-check each value subpattern using `V` as the matched value type.
+        *Like lists, we calculate a single value type and use it for all value
+        subpatterns:*
+    
+        ```dart
+        var {1: a, 2: b} = {1: "str", 2: bool};
+        ```
+    
+        *Here, both `a` and `b` use `Object` as the matched value type.*
+    
+    3.  The required type of `p` is `Map<K, V>`.
+    
 * **Record**:
 
   1.  For each field `f` with subpattern `s` of `p`:
@@ -1367,18 +1695,17 @@ To type check a pattern `p` being matched against a value of type `M`:
 
       4.  Type-check `s` using `F` as the matched value type, and find its required type.
 
-  2.  The required type of `p` is a record type with the same shape as `p` and
-      `Object?` for all fields. *If the matched value's type is `dynamic` or
-      some record supertype like `Object`, then the record pattern should
-      match any record with the right shape and then delegate to its field
-      subpatterns to ensure that the fields match.*
+  2.           The required type of `p` is a record type with the same shape as `p` and
+        `Object?` for all fields. *If the matched value's type is `dynamic` or
+        some record supertype like `Object`, then the record pattern should
+        match any record with the right shape and then delegate to its field
+        subpatterns to ensure that the fields match.*
 
-* **Extractor**:
+*   **Extractor**:
 
-  1.  Resolve the extractor name to a type `X`. It is a compile-time error if
-      the name does not refer to a type. Apply downwards inference from `M`
-      to infer type arguments for `X` if needed.
-
+    1.  Resolve the extractor name to a type `X`. It is a compile-time error if
+        the name does not refer to a type. Apply downwards inference from `M`
+        to infer type arguments for `X` if needed.
 2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
         1.  Let `G` be the the type of the getter on `X` with the name `n`. 
             It is a **compile-time error** if `X` does not have a *getter* with name `n`.
@@ -1421,41 +1748,41 @@ has a unique name, a static type (the declared or inferred type, but not its
 promoted type), and whether it is final or not. The pattern variable set for a
 pattern is:
 
-* **Logical-or**: The pattern variable set of either branch. It is a
-  compile-time error if the two branches do not have equal pattern variable
-  sets. Two pattern variable sets are equal if they have the same set of names
-  and each corresponding pair of variables have the same finality and their
-  types are structurally equivalent after `NORM()`.
+*   **Logical-or**: The pattern variable set of either branch. It is a
+    compile-time error if the two branches do not have equal pattern variable
+    sets. Two pattern variable sets are equal if they have the same set of names
+    and each corresponding pair of variables have the same finality and their
+    types are structurally equivalent after `NORM()`.
 
-  *Since only one branch will match and we don't know which, for the pattern
-  to have a stable set of variables with known types, the two branches must
-  define the same variables. This way, uses of the variables later will have
-  a known type and finality regardless of which branch matched.*
+    *Since only one branch will match and we don't know which, for the pattern
+    to have a stable set of variables with known types, the two branches must
+    define the same variables. This way, uses of the variables later will have
+    a known type and finality regardless of which branch matched.*
 
-* **Logical-and**, **cast**, **null-check**, **null-assert**,
-  **parenthesized**, **list**, **map**, **record**, or **extractor**: The
-  union of the pattern variable sets of all of the subpatterns.
+*   **Logical-and**, **cast**, **null-check**, **null-assert**,
+    **parenthesized**, **list**, **map**, **record**, or **extractor**: The
+    union of the pattern variable sets of all of the subpatterns.
 
-  The union of a series of pattern variable sets is the union of their
-  corresponding sets of variable names. Each variable in the resulting set is
-  mapped to the corresponding variable's type and finality.
+    The union of a series of pattern variable sets is the union of their
+    corresponding sets of variable names. Each variable in the resulting set is
+    mapped to the corresponding variable's type and finality.
 
-  It is a compile-time error if any two sets being unioned have a variable
-  with the same name. *A pattern can't declare the same variable more than
-  once.*
+    It is a compile-time error if any two sets being unioned have a variable
+    with the same name. *A pattern can't declare the same variable more than
+    once.*
 
-* **Relational** or **constant**: The empty set.
+*   **Relational** or **constant**: The empty set.
 
-* **Variable**:
+*   **Variable**:
 
-  1.  If the variable's identifier is `_` then the empty set.
+    1.  If the variable's identifier is `_` then the empty set.
 
-  2.  Else a set containing a single variable whose name is the pattern's
-      identifier and whose type is the pattern's required type (which may have
-      been inferred). In a declaration context, the variable is final if the
-      surrounding `patternVariableDeclaration` has a `final` modifier. In a
-      matching context, the variable is final if the variable pattern is
-      marked `final` and is not otherwise.
+    2.  Else a set containing a single variable whose name is the pattern's
+        identifier and whose type is the pattern's required type (which may have
+        been inferred). In a declaration context, the variable is final if the
+        surrounding `patternVariableDeclaration` has a `final` modifier. In a
+        matching context, the variable is final if the variable pattern is
+        marked `final` and is not otherwise.
 
 #### Scope
 
@@ -1463,53 +1790,77 @@ The variables defined by a pattern and its subpatterns (its pattern variable
 set, defined above), are introduced into a scope based on where the pattern
 appears:
 
-* **Pattern variable declaration**: The scope enclosing the variable
-  declaration statement. *This will be either a function body scope or a block
-  scope.*
+*   **Pattern variable declaration**: The scope enclosing the variable
+    declaration statement. *This will be either a function body scope or a block
+    scope.*
 
-  The *initializing expression* for every variable in the pattern is the
-  pattern variable declaration's initializer. *This means all variables
-  defined by a pattern are in scope beginning at the top of the surrounding
-  block or function body, but it is a compile-time error to refer to them
-  until after the pattern variable declaration's initializer:*
+    The *initializing expression* for every variable in the pattern is the
+    pattern variable declaration's initializer. *This means all variables
+    defined by a pattern are in scope beginning at the top of the surrounding
+    block or function body, but it is a compile-time error to refer to them
+    until after the pattern variable declaration's initializer:*
 
-  ```dart
-  const c = 1;f() {  print(c);  //    ^ Error: Refers to C declared below:  var [c] = c;  //        ^ Error: Not initialized yet.  print(c);  //    ^ OK.}
-  ```
+    ```dart
+    const c = 1;
+    
+    f() {
+      print(c);
+      //    ^ Error: Refers to C declared below:
+    
+      var [c] = c;
+      //        ^ Error: Not initialized yet.
+    
+      print(c);
+      //    ^ OK.
+    }
+    ```
 
-* **Pattern-for statement**: Scoping follows the normal for and for-in
-  statement scoping rules where the variable (now variables) are bound in a
-  new scope for each loop iteration. All pattern variables are in the same
-  scope. They are considered initialized after the for loop initializer
-  expression.
+*   **Pattern-for statement**: Scoping follows the normal for and for-in
+    statement scoping rules where the variable (now variables) are bound in a
+    new scope for each loop iteration. All pattern variables are in the same
+    scope. They are considered initialized after the for loop initializer
+    expression.
 
-* **Pattern assignment**: An assignment only assigns to existing variables
-  and does not bind any new ones.
+*   **Pattern assignment**: An assignment only assigns to existing variables
+    and does not bind any new ones.
 
-* **Switch statement**, **switch expression**, **if-case statement**: Each
-  `caseHead` introduces a new *case scope* which is where the variables
-  defined by that case's pattern are bound.
+*   **Switch statement**, **switch expression**, **if-case statement**: Each
+    `caseHead` introduces a new *case scope* which is where the variables
+    defined by that case's pattern are bound.
 
-  There is no *initializing expression* for the variables in a case pattern,
-  but they are considered initialized after the entire case pattern, before
-  the guard expression if there is one. *However, all pattern variables are
-  in scope in the entire pattern:*
+    There is no *initializing expression* for the variables in a case pattern,
+    but they are considered initialized after the entire case pattern, before
+    the guard expression if there is one. *However, all pattern variables are
+    in scope in the entire pattern:*
 
-  ```dart
-  const c = 1;switch (1) {  case [var c, == c]    //            ^ Error: In scope but not initialized.    //              (Also an error because `c` is not a constant.)        when c == 2:    //       ^ OK.    print(c);    //    ^ OK.}
-  ```
+    ```dart
+    const c = 1;
+    switch (1) {
+      case [var c, == c]
+        //            ^ Error: In scope but not initialized.
+        //              (Also an error because `c` is not a constant.)
+            when c == 2:
+        //       ^ OK.
+        print(c);
+        //    ^ OK.
+    }
+    ```
 
-  The guard expression is evaluated in its case's case scope.
+    The guard expression is evaluated in its case's case scope.
 
-  The then statement of an if-case statement is executed in the case's case
-  scope.
+    The then statement of an if-case statement is executed in the case's case
+    scope.
 
 #### Switch case fallthrough
 
 In a switch statement or expression, multiple cases may share the same body:
 
 ```dart
-switch (obj) {  case [int a, int b]:  case {"a": int a, "b": int b}:    print(a + b); // OK.}
+switch (obj) {
+  case [int a, int b]:
+  case {"a": int a, "b": int b}:
+    print(a + b); // OK.
+}
 ```
 
 This would normally be a name collision, but we make an exception to allow it
@@ -1519,21 +1870,21 @@ When compiling the body shared by a set of cases with pattern variable sets `vs`
 (where default cases and labels have empty pattern variable sets), the enclosing
 scope is a synthesized scope `s` defined as:
 
-1. For each name in `n` appearing as a variable name in any of the pattern
-   variable sets in `vs`:
+1.  For each name in `n` appearing as a variable name in any of the pattern
+    variable sets in `vs`:
 
-   1. If `n` is defined in every pattern variable set in `vs` and has the same
-      type and finality, then introduce `n` into `s` with that type and
-      finality.
+    1.  If `n` is defined in every pattern variable set in `vs` and has the same
+        type and finality, then introduce `n` into `s` with that type and
+        finality.
 
-      If any of the corresponding variables in `vs` are promoted, calculate
-      the promoted type of the variable in `s` based on all of the promoted
-      types of `n` in the cases in the same way that promotions are merged at
-      join points.
+        If any of the corresponding variables in `vs` are promoted, calculate
+        the promoted type of the variable in `s` based on all of the promoted
+        types of `n` in the cases in the same way that promotions are merged at
+        join points.
 
-   2. Else `n` is inconsistently defined by the cases. Introduce a variable
-      `n` into `s` (with arbitrary type and finality) and note that `n` is
-      an inconsistent variable.
+    2.  Else `n` is inconsistently defined by the cases. Introduce a variable
+        `n` into `s` (with arbitrary type and finality) and note that `n` is
+        an inconsistent variable.
 
 Compile the body using static scope `s`. It is a compile-time error if any
 identifier in the body resolves to an inconsistent variable in `s`. *In other
@@ -1547,7 +1898,12 @@ This enables patterns to define inconsistent variables that are only used by
 their respective guards:*
 
 ```dart
-switch (obj) {  case [var a, int n] when n > 1:  case [var a, double n] when n > 1.0:  case [var a, String s] when s.isNotEmpty:    print(a);}
+switch (obj) {
+  case [var a, int n] when n > 1:
+  case [var a, double n] when n > 1.0:
+  case [var a, String s] when s.isNotEmpty:
+    print(a);
+}
 ```
 
 *This example has no errors because the only variable used in the body, `a`, is
@@ -1564,7 +1920,16 @@ shared by all cases because closures in guard clauses should see each case as
 having its own variables:*
 
 ```dart
-bool capture(void Function() callback, bool result) {  callback();  return result;}switch ([1]) {  case [int a] when capture(() => a++, false):  case [int a] when capture(() => a += 10, true):    print(a);}
+bool capture(void Function() callback, bool result) {
+  callback();
+  return result;
+}
+
+switch ([1]) {
+  case [int a] when capture(() => a++, false):
+  case [int a] when capture(() => a += 10, true):
+    print(a);
+}
 ```
 
 *This program should print `11` and not `12` because the `a` in each guard
@@ -1739,7 +2104,16 @@ pattern, those become the values bound to those variables in the next iteration.
 For example:
 
 ```dart
-var fns = <Function()>[];for (var (a, b) = (0, 1); a <= 13; (a, b) = (b, a + b)) {  fns.add(() {    print(a);  });}for (var fn in fns) {  fn();}
+var fns = <Function()>[];
+for (var (a, b) = (0, 1); a <= 13; (a, b) = (b, a + b)) {
+  fns.add(() {
+    print(a);
+  });
+}
+
+for (var fn in fns) {
+  fn();
+}
 ```
 
 This prints `0`, `1`, `1`, `2`, `3`, `5`, `8`, `13`.
@@ -1754,24 +2128,29 @@ for (<keyword> <pattern> in <expression>) <statement>
 
 Where `<keyword>` is `var` or `final` is treated like so:
 
-1. Let `I` be the type of `<expression>`.
+1.  Let `I` be the type of `<expression>`.
 
-2. Calculate the element type of `I`:
+2.  Calculate the element type of `I`:
 
-   1.  If `I` implements `Iterable<T>` for some `T` then `E` is `T`.
+    1.  If `I` implements `Iterable<T>` for some `T` then `E` is `T`.
 
-   2.  Else if `I` is `dynamic` then `E` is `dynamic`.
+    2.  Else if `I` is `dynamic` then `E` is `dynamic`.
 
-   3.  Else it is a compile-time error.
+    3.  Else it is a compile-time error.
 
-3. Type check `<pattern>` with matched value type `E`.
+3.  Type check `<pattern>` with matched value type `E`.
 
-4. If there are no compile-time errors, then execution proceeds as the
-   following code, where `id1` and `id2` are fresh identifiers:
+4.  If there are no compile-time errors, then execution proceeds as the
+    following code, where `id1` and `id2` are fresh identifiers:
 
-   ```
-   var id1 = <expression>;var id2 = id1.iterator;while (id2.moveNext()) {  <keyword> <pattern> = id2.current;  { <statement> }}
-   ```
+    ```
+    var id1 = <expression>;
+    var id2 = id1.iterator;
+    while (id2.moveNext()) {
+      <keyword> <pattern> = id2.current;
+      { <statement> }
+    }
+    ```
 
 #### If-case statement
 
@@ -1787,9 +2166,9 @@ Where `<keyword>` is `var` or `final` is treated like so:
             error. *This can happen if the guard expression's type is
             `dynamic`.*
 
-        2.  If the guard evaluates to `true`, execute the then `statement`.
+        1.  If the guard evaluates to `true`, execute the then `statement`.
 
-        3.  Else, execute the else `statement` if there is one.
+        2.  Else, execute the else `statement` if there is one.
 
     2.  Else there is no guard clause. Execute the then `statement`.
 
@@ -1839,7 +2218,7 @@ To match a pattern `p` against a value `v`:
             `null`. The result will always be a Boolean since operator `==` on
             Object is declared to return `bool`.*
 
-    3.  Else if the operator is `!=`:
+    2.  Else if the operator is `!=`:
 
         1.  Let `r` be the result of `v == c`.
 
@@ -1850,7 +2229,7 @@ To match a pattern `p` against a value `v`:
             into account the built-in semantics that `null` is only equal to
             `null`.*
 
-    4.  Else the operator is a comparison operator `op`:
+    3.  Else the operator is a comparison operator `op`:
 
         1.  Let `r` be the result of calling `op` on `v` with argument `c`.
 
@@ -1981,13 +2360,18 @@ To match a pattern `p` against a value `v`:
 You might expect this to be soundly exhaustive:
 
 ```dart
-var n = switch (something) {  case Bitbox(b: true): 1;  case Bitbox(b: false): 2;}
+var n = switch (something) {
+  case Bitbox(b: true): 1;
+  case Bitbox(b: false): 2;
+}
 ```
 
 However, Bitbox could be defined like:
 
 ```dart
-class Bitbox {  bool get b => Random().nextBool();}
+class Bitbox {
+  bool get b => Random().nextBool();
+}
 ```
 
 Pattern matching in other languages is often restricted to values that are known
@@ -2010,14 +2394,43 @@ statement or other construct, the object appears to be immutable.
 For example, consider:
 
 ```dart
-main() {  var list = [1, 2];  switch (list) {    case [1, _] & [_, < 4]: print('first');    case [int(isEven: true), var a]: print('second $a');  }}
+main() {
+  var list = [1, 2];
+  switch (list) {
+    case [1, _] & [_, < 4]: print('first');
+    case [int(isEven: true), var a]: print('second $a');
+  }
+}
 ```
 
 As written, there appear to be multiple redundant method calls on `list` and the
 elements extracted from it. But the actual execution semantics are roughly like:
 
 ```dart
-main() {  var list = [1, 2];  late final $match = list;  late final $match_length = $match.length;  late final $match_length_eq2 = $match_length == 2;  late final $match_0 = $match[0];  late final $match_1 = $match[1];  late final $match_0_eq1 = $match_0 == 1;  late final $match_1_lt4 = $match_1 < 4;  late final $match_0_isEven = $match_1.isEven;  late final $match_0_isEven_eqtrue = $match_0_isEven == true;  if ($match_length_eq2 &&      $match_0_eq1 &&      $match_length_eq2 &&      $match_1_lt4) {    print('first');  } else if ($match_length_eq2 &&      $match_0_isEven_eqtrue) {    var a = $match_1;    print('second $a');  }}
+main() {
+  var list = [1, 2];
+
+  late final $match = list;
+  late final $match_length = $match.length;
+  late final $match_length_eq2 = $match_length == 2;
+  late final $match_0 = $match[0];
+  late final $match_1 = $match[1];
+  late final $match_0_eq1 = $match_0 == 1;
+  late final $match_1_lt4 = $match_1 < 4;
+  late final $match_0_isEven = $match_1.isEven;
+  late final $match_0_isEven_eqtrue = $match_0_isEven == true;
+
+  if ($match_length_eq2 &&
+      $match_0_eq1 &&
+      $match_length_eq2 &&
+      $match_1_lt4) {
+    print('first');
+  } else if ($match_length_eq2 &&
+      $match_0_isEven_eqtrue) {
+    var a = $match_1;
+    print('second $a');
+  }
+}
 ```
 
 Note that every method call is encapsulated in a `late` variable ensuring that
@@ -2179,69 +2592,69 @@ scheduling reasons, we could stage it across several releases.
 
 Here is one way it could be broken down into separate pieces:
 
-* **Records and destructuring.** Record expressions and record types are one
-  of the most-desired aspects of this proposal. Currently, there is no
-  expression syntax for accessing positional fields from a record. That means
-  we need destructuring. So, at a minimum:
+*   **Records and destructuring.** Record expressions and record types are one
+    of the most-desired aspects of this proposal. Currently, there is no
+    expression syntax for accessing positional fields from a record. That means
+    we need destructuring. So, at a minimum:
 
-  *   Record expressions and types
-  *   Pattern variable declarations
-  *   Record patterns
-  *   Variable patterns
+    *   Record expressions and types
+    *   Pattern variable declarations
+    *   Record patterns
+    *   Variable patterns
 
-  This would not include any refutable patterns, so doesn't need the changes
-  to allow patterns in switches.
+    This would not include any refutable patterns, so doesn't need the changes
+    to allow patterns in switches.
 
-* **Collection destructuring.** A minor extension of the above is to also
-  allow destructuring the other built-in aggregate types:
+*   **Collection destructuring.** A minor extension of the above is to also
+    allow destructuring the other built-in aggregate types:
 
-  *   List patterns
-  *   Map patterns
+    *   List patterns
+    *   Map patterns
 
-* **Extractors.** I don't want patterns to feel like we're duct taping a
-  functional feature onto an object-oriented language. To integrate it more
-  gracefully means destructuring user-defined types too, so adding:
+*   **Extractors.** I don't want patterns to feel like we're duct taping a
+    functional feature onto an object-oriented language. To integrate it more
+    gracefully means destructuring user-defined types too, so adding:
 
-  *   Extractor patterns
+    *   Extractor patterns
 
-* **Refutable patterns.** The next big step is patterns that don't just
-  destructure but *match*. The bare minimum refutable patterns and features
-  are:
+*   **Refutable patterns.** The next big step is patterns that don't just
+    destructure but *match*. The bare minimum refutable patterns and features
+    are:
 
-  *   Patterns in switch statement cases
-  *   Switch case guards
-  *   Exhaustiveness checking
-  *   Constant patterns
-  *   Relational patterns (at least `==`)
+    *   Patterns in switch statement cases
+    *   Switch case guards
+    *   Exhaustiveness checking
+    *   Constant patterns
+    *   Relational patterns (at least `==`)
 
-  The only critical relational pattern is `==` because once we allow patterns
-  in switch cases, we lose the ability to have a bare identifier constant in
-  a switch case.
+    The only critical relational pattern is `==` because once we allow patterns
+    in switch cases, we lose the ability to have a bare identifier constant in
+    a switch case.
 
-* **Type testing patterns.** The other type-based patterns aren't critical but
-  do make patterns more convenient and useful:
+*   **Type testing patterns.** The other type-based patterns aren't critical but
+    do make patterns more convenient and useful:
 
-  *   Null-check patterns
-  *   Null-assert patterns
-  *   Cast patterns
+    *   Null-check patterns
+    *   Null-assert patterns
+    *   Cast patterns
 
-* **Control flow.** Switch statements are heavyweight. If we want to make
-  refutable patterns more useful, we eventually want:
+*   **Control flow.** Switch statements are heavyweight. If we want to make
+    refutable patterns more useful, we eventually want:
 
-  *   Switch expressions
-  *   Pattern-if statements
+    *   Switch expressions
+    *   Pattern-if statements
 
-* **Logical patterns.** If we're going to add `==` patterns, we may as well
-  support other Boolean infix operators. And if we're going to support the
-  comparison operators, then `&` is useful for numeric ranges. It's weird to
-  have `&` without `|` so we may as well do that too (and it's useful for
-  switch expressions). Once we have infix patterns precedence comes into play,
-  so we need parentheses to control it:
+*   **Logical patterns.** If we're going to add `==` patterns, we may as well
+    support other Boolean infix operators. And if we're going to support the
+    comparison operators, then `&` is useful for numeric ranges. It's weird to
+    have `&` without `|` so we may as well do that too (and it's useful for
+    switch expressions). Once we have infix patterns precedence comes into play,
+    so we need parentheses to control it:
 
-  *   Relational patterns (other than `==`)
-  *   Logical-or patterns
-  *   Logical-and patterns
-  *   Parenthesized patterns
+    *   Relational patterns (other than `==`)
+    *   Logical-or patterns
+    *   Logical-and patterns
+    *   Parenthesized patterns
 
 ## Changelog
 
