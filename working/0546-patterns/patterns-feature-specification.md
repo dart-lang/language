@@ -613,18 +613,18 @@ Field subpatterns can be in one of three forms:
     // Variable:
     var (untyped: untyped, typed: int typed) = ...
     var (:untyped, :int typed) = ...
-    
+
     switch (obj) {
       case (untyped: var untyped, typed: int typed): ...
       case (:var untyped, :int typed): ...
     }
-    
+
     // Null-check and null-assert:
     switch (obj) {
       case (checked: var checked?, asserted: var asserted!): ...
       case (:var checked?, :var asserted!): ...
     }
-    
+
     // Cast:
     var (field: field as int) = ...
     var (:field as int) = ...
@@ -870,7 +870,7 @@ The specific kinds of switches whose behavior changes are:
     const a = 1;
     const b = 2;
     var obj = [1, 2]; // Not const.
-    
+
     switch (obj) {
       case [a, b]: print("match"); break;
       default: print("no match");
@@ -1265,10 +1265,10 @@ allowed and what their syntax is. The rules are:
     ```dart
     var a = 1;
     var b = 2;
-    
+
     // Disallowed:
     (var a, int b) = (3, 4);
-    
+
     // OK:
     (a, b) = (3, 4);
     ```
@@ -1649,15 +1649,15 @@ To type check a pattern `p` being matched against a value of type `M`:
     2.  Type-check each element subpattern using `E` as the matched value type.
         *Note that we calculate a single element type and use it for all
         subpatterns. In:*
-    
+
         ```dart
         var [a, b] = [1, 2.3];
         ```
-    
+
         *both `a` and `b` use `num` as their matched value type.*
-    
+
     3.  The required type of `p` is `List<E>`.
-    
+
 *   **Map**:
 
     1.  Calculate the value's entry key type `K` and value type `V`:
@@ -1670,15 +1670,15 @@ To type check a pattern `p` being matched against a value of type `M`:
     2.  Type-check each value subpattern using `V` as the matched value type.
         *Like lists, we calculate a single value type and use it for all value
         subpatterns:*
-    
+
         ```dart
         var {1: a, 2: b} = {1: "str", 2: bool};
         ```
-    
+
         *Here, both `a` and `b` use `Object` as the matched value type.*
-    
+
     3.  The required type of `p` is `Map<K, V>`.
-    
+
 * **Record**:
 
   1.  For each field `f` with subpattern `s` of `p`:
@@ -1802,14 +1802,14 @@ appears:
 
     ```dart
     const c = 1;
-    
+
     f() {
       print(c);
       //    ^ Error: Refers to C declared below:
-    
+
       var [c] = c;
       //        ^ Error: Not initialized yet.
-    
+
       print(c);
       //    ^ OK.
     }
