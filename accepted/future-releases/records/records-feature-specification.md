@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.13 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.15 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -416,12 +416,12 @@ as part of inference, hence:
   //    (int, double, int Function(int), void Function(num))
   var c = Callable();
   dynamic d = 3;
-  (num, double, int Function(int), void Function(int)) r = (d, 3, id, c);
+  (num, double, int Function(int), void Function(num)) r = (d, 3, id, c);
 ```
 and the record initialization in the last line above is implicitly coerced to be
 the equivalent of:
 ```dart
-  (num, double, int Function(int), void Function()) r =
+  (num, double, int Function(int), void Function(num)) r =
      (d as num, 3.0, id<int>, c.call);
 ```
 
