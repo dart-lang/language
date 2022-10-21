@@ -35,6 +35,7 @@ The set of types under consideration are as follows:
 - `Null`
 - `Never`
 - `Function`
+- `Record`
 - `Future<T>`
 - `FutureOr<T>`
 - `T?`
@@ -43,6 +44,8 @@ The set of types under consideration are as follows:
 - Function types
   - `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`
   - `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, {Tn+1 xn+1, ..., Tm xm})`
+- Record types
+  - `(T0, ...., Tn, {Tn+1 xn+1, ..., Tm xm})`
 
 We leave the set of interface types unspecified, but assume a class hierarchy
 which provides a mapping from interfaces types `T` to the set of direct
@@ -81,6 +84,11 @@ Given the current promotion semantics the following properties are also true:
      they can never appear as sub-components of other types, in bounds, or as
      part of other promoted type variables.
 
+For convenience, we generally write function types with all named parameters in
+an unspecified canonical order, and similarly for the named fields of record
+types.  In all cases unless otherwise specifically called out, order of named
+parameters and fields is semantically irrelevant: any two types with the same
+named parameters (named fields, respectively) are considered the same type.
 
 ## Notation
 
@@ -208,6 +216,8 @@ promoted type variables `X0 & S0` and `T1` is `X0 & S1` then:
 
 - **Function Type/Function**: `T0` is a function type and `T1` is `Function`
 
+- **Record Type/Record**: `T0` is a record type and `T1` is `Record`
+
 - **Interface Compositionality**: `T0` is an interface type `C0<S0, ..., Sk>`
   and `T1` is `C0<U0, ..., Uk>`
   - and each `Si <: Ui`
@@ -240,6 +250,10 @@ promoted type variables `X0 & S0` and `T1` is `X0 & S1` then:
   - and `U0[Z0/X0, ..., Zk/Xk] <: U1[Z0/Y0, ..., Zk/Yk]`
   - and `B0i[Z0/X0, ..., Zk/Xk] === B1i[Z0/Y0, ..., Zk/Yk]` for `i` in `0...k`
   - where the `Zi` are fresh type variables with bounds `B0i[Z0/X0, ..., Zk/Xk]`
+
+- **Record Types**: `T0` is `(V0, ..., Vn, {Vn+1 dn+1, ..., Vm dm})`
+  - and `T1` is `(S0, ..., Sn, {Sn+1 dn+1, ..., Sm dm})`
+  - and `Vi <: Si` for `i` in `0...m`
 
 *Note: the requirement that `Zi` are fresh is as usual strictly a requirement
 that the choice of common variable names avoid capture.  It is valid to choose

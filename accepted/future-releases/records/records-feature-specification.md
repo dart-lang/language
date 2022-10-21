@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.14 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.16 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -400,6 +400,11 @@ class extends Record {
 
 ### Subtyping
 
+Subtyping for record types has been incorporated into the main subtyping
+specification
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
+Briefly:
+
 The class `Record` is a subtype of `Object` and `dynamic` and a supertype of
 `Never`. All record types are subtypes of `Record`, and supertypes of `Never`.
 
@@ -410,6 +415,11 @@ the types of all fields of `A` are subtypes of the corresponding field types of
 no "row polymorphism" or "width subtyping".*
 
 ### Upper and lower bounds
+
+Bounds computations for record types have been incorporated into the main
+specification
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).
+Briefly:
 
 If two record types have the same shape, their least upper bound is a new
 record type of the same shape where each field's type is the least upper bound
@@ -440,13 +450,86 @@ var c = cond ? a : b; // c has type `Record`.
 
 The greatest lower bound of records with different shapes is `Never`.
 
-### Type inference and promotion
+### Type inference
 
-Type inference and promotion flows through records in much the same way it does
-for instances of generic classes (which are covariant in Dart just like record
-fields are) and collection literals.
+Every record literal has a static type, which is associated with it via
+inference (there is no syntax for explicitly associating a specific static type
+with a record literal).  As with other constructs, we define type inference for
+record expressions with respect to a context type schema which is determined by
+the surrounding context of the inferred expression.  Unlike nominal classes (but
+like function literals) we choose to infer the most specific possible type for
+record literals, even if that type is more precise than the type specified by
+the context type schema.  This choice (as with function literals) reflects the
+fact that record types (like function types in Dart) are soundly variant: that
+is, the subtyping is properly covariant and requires no runtime checking.
 
-**TODO: Specify this more precisely.**
+For convenience, we generally write function types with all named parameters in
+an unspecified canonical order, and similarly for the named fields of record
+types.  In all cases unless otherwise specifically called out, order of named
+parameters and fields is semantically irrelevant: any two types with the same
+named parameters (named fields, respectively) are considered the same type.
+
+Similarly, function and method invocations with named arguments and records with
+named field entries are written with their named entries in an unspecified
+canonical order and position.  Unless otherwise called out, position of named
+entries is semantically irrelevant, and all invocations and record literals with
+the same named entries (possibly in different orders or locations) and the same
+positional entries are considered equivalent.
+
+Given a type schema `K` and a record expression `E` of the general form `(e1,
+..., en, d1 : e{n+1}, ..., dm : e{n+m})` inference proceeds as follows.
+
+If `K` is a record type schema of the form `(K1, ..., Kn, {d1 : K{n+1}, ....,
+dm : K{n+m}})` then:
+  - Each `ei` is inferred with context type schema `Ki` to have type `Si`
+    - Let `Ri` be the greatest closure of `Ki`
+    - If `Si` is a subtype of `Ri` then let `Ti` be `Si`
+    - Otherwise, if `Si` is `dynamic`, then we insert an implicit cast on `ei`
+      to `Ri`, and let `Ti` be `Ri`
+    - Otherwise, if `Si` is coercible to `Ri` (via some sequence of call method
+      tearoff or implicit generic instantiation coercions), then we insert the
+      appropriate implicit coercion(s) on `ei`.  Let `Ti` be the type of the
+      resulting coerced value (which must be a subtype of `Ri`, possibly
+      proper).
+    - Otherwise, it is a static error.
+  - The type of `E` is `(T1, ..., Tn, {d1 : T{n+1}, ...., dm : T{n+m}})`
+
+If `K` is any other type schema:
+  - Each `ei` is inferred with context type schema `_` to have type `Ti`
+  - The type of `E` is `(T1, ..., Tn, {d1 : T{n+1}, ...., dm : T{n+m}})`
+
+As noted above, contrary to the practice for runtime checked covariant nominal
+types, we do not prefer the context type over the more precise upwards type.
+The following example illustrates this:
+```dart
+  // No static error.
+  // Inferred type of the record is (int, double)
+  (num, num) r = (3, 3.5)..$0.isEven;
+```
+
+Also note that implicit casts and other coercions are considered to be applied
+as part of inference, hence:
+```dart
+  class Callable {
+    void call(num x) {}
+  }
+  T id<T>(T x) => x;
+  // No static error.
+  // Inferred type of the record is:
+  //    (int, double, int Function(int), void Function(num))
+  var c = Callable();
+  dynamic d = 3;
+  (num, double, int Function(int), void Function(num)) r = (d, 3, id, c);
+```
+and the record initialization in the last line above is implicitly coerced to be
+the equivalent of:
+```dart
+  (num, double, int Function(int), void Function(num)) r =
+     (d as num, 3.0, id<int>, c.call);
+```
+
+See issue [2488](https://github.com/dart-lang/language/issues/2488) for some of
+the background discussion on the choices specified in this section.
 
 ### Constants
 
@@ -689,11 +772,63 @@ The runtime type of `pair` is `(int, double)`, not `(num, Object)`, However, the
 variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
+### Interactions with libraries using older language versions
+
+The records feature is language versioned, as usual with new Dart features.
+This means that it will be an error to use the syntax for records in libraries
+which do not have a language version greater than or equal to the language
+version in which records are released.  More specifically, assuming that `v` is
+the language version in which records are released, the following errors apply.
+
+It is an error for the identifier `Record`, denoting the `Record` class from
+`dart:core`, where that import scope name is only imported from platform
+libraries, to appear in a library whose language version is less than `v`.
+
+It is an error for the record literal syntax (e.g. `(3, 4)`) to be used
+syntactically in a library whose language version is less than `v`.
+
+It is an error for the record type syntax (e.g. `(int, int)`) to be used
+syntactically in a library whose language version is less than `v`.
+
+*Note that the above errors only apply to direct syntactic uses of the new
+record syntax in legacy libraries.  It is not an error for a library whose
+language version is less than `v` (a "legacy library") to include types which
+denote or include the `Record` class, record types or record expressions when
+these terms arise directly or indirectly from references to another library
+whose language version is greater than or equal to `v`.  For example, such a
+legacy library may reference a typedef name which is bound to a record type in
+another library, and the semantic interpretation of the typedef is as the
+underlying record type, just as it would be for any other type.  Similarly, type
+inference may introduce record types into a legacy library, and such types will
+be interpreted by the compiler as record types as usual (that is, there is no
+erasure implied to remove these inferred types).  A legacy library may refer to
+the `Record` class via a library which has re-exported it.  Record values may
+flow into a legacy library via a reference to a member from another library, and
+a legacy library may freely call getters on record values (since there is no new
+syntax for calling a record getter).  The rationale for the choices described in
+this section is that the intent of language versioning (for an additive feature
+such as records) is to ensure that users do not accidentally use new features in
+a package without specifying an SDK constraint which ensures that their code
+will always be run on an SDK which supports the feature.  But in the case of a
+legacy library which references record values or types indirectly via another
+library, the SDK constraint on the referenced library is sufficient to enforce
+this.*
+
+
 ## CHANGELOG
+
+### 1.16
+
+- Disambiguate record types following metadata annotations (#2469).
+
+### 1.15
+
+- Specify the interaction between libraries with a language version that
+  supports records and libraries with older language versions.
 
 ### 1.14
 
-- Disambiguate record types following metadata annotations (#2469).
+- Specify type inference, add static semantics to resources/type-system.
 
 ### 1.13
 

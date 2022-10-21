@@ -407,6 +407,18 @@ The meta-variable `C` ranges over classes.
 
 The meta-variable `B` ranges over types used as bounds for type variables.
 
+For convenience, we generally write function types with all named parameters in
+an unspecified canonical order, and similarly for the named fields of record
+types.  In all cases unless otherwise specifically called out, order of named
+parameters and fields is semantically irrelevant: any two types with the same
+named parameters (named fields, respectively) are considered the same type.
+
+Similarly, function and method invocations with named arguments and records with
+named field entries are written with their named entries in an unspecified
+canonical order and position.  Unless otherwise called out, position of named
+entries is semantically irrelevant, and all invocations and record literals with
+the same named entries (possibly in different orders or locations) and the same
+positional entries are considered equivalent.
 
 ### Type schemas
 
@@ -444,14 +456,16 @@ The covariant occurrences of a type (schema) `T` in another type (schema) `S` ar
     - the covariant occurrencs of `T` in `U`
   - if `S` is an interface type `C<T0, ..., Tk>`
     - the union of the covariant occurrences of `T` in `Ti` for `i` in `0, ..., k`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
+  - if `S` is `U Function<X0 extends B0, ..., Xk extends Bk>(T0 x0, ..., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
       the union of:
     - the covariant occurrences of `T` in `U`
     - the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, {Tn+1 xn+1, ..., Tm xm})`
+  - if `S` is `U Function<X0 extends B0, ..., Xk extends Bk>(T0 x0, ..., Tn xn, {Tn+1 xn+1, ..., Tm xm})`
       the union of:
     - the covariant occurrences of `T` in `U`
     - the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
+  - if `S` is `(T0, ..., Tn, {Tn+1 xn+1, ..., Tm xm})`,
+    - the covariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
 
 The contravariant occurrences of a type `T` in another type `S` are:
   - if `S` is `Future<U>`
@@ -460,14 +474,16 @@ The contravariant occurrences of a type `T` in another type `S` are:
     - the contravariant occurrencs of `T` in `U`
   - if `S` is an interface type `C<T0, ..., Tk>`
     - the union of the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., k`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
+  - if `S` is `U Function<X0 extends B0, ..., Xk extends Bk>(T0 x0, ..., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
       the union of:
     - the contravariant occurrences of `T` in `U`
     - the covariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, {Tn+1 xn+1, ..., Tm xm})`
+  - if `S` is `U Function<X0 extends B0, ..., Xk extends Bk>(T0 x0, ..., Tn xn, {Tn+1 xn+1, ..., Tm xm})`
       the union of:
     - the contravariant occurrences of `T` in `U`
     - the covariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
+  - if `S` is `(T0, ..., Tn, {Tn+1 xn+1, ..., Tm xm})`,
+    - the contravariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
 
 The invariant occurrences of a type `T` in another type `S` are:
   - if `S` is `Future<U>`
@@ -476,16 +492,18 @@ The invariant occurrences of a type `T` in another type `S` are:
     - the invariant occurrencs of `T` in `U`
   - if `S` is an interface type `C<T0, ..., Tk>`
     - the union of the invariant occurrences of `T` in `Ti` for `i` in `0, ..., k`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
+  - if `S` is `U Function<X0 extends B0, ..., Xk extends Bk>(T0 x0, ..., Tn xn, [Tn+1 xn+1, ..., Tm xm])`,
       the union of:
     - the invariant occurrences of `T` in `U`
     - the invariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
     - all occurrences of `T` in `Bi` for `i` in `0, ..., k`
-  - if `S` is `U Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn, {Tn+1 xn+1, ..., Tm xm})`
+  - if `S` is `U Function<X0 extends B0, ..., Xk extends Bk>(T0 x0, ..., Tn xn, {Tn+1 xn+1, ..., Tm xm})`
       the union of:
     - the invariant occurrences of `T` in `U`
     - the invariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
     - all occurrences of `T` in `Bi` for `i` in `0, ..., k`
+  - if `S` is `(T0, ..., Tn, {Tn+1 xn+1, ..., Tm xm})`,
+    - the invariant occurrences of `T` in `Ti` for `i` in `0, ..., m`
 
 ### Type variable elimination (least and greatest closure of a type)
 
@@ -530,40 +548,47 @@ replaced with `Never`, and every covariant occurrence of `Xi` replaced with
     is the least closure of `Ti` with respect to `L`
   - The greatest closure of `S` with respect to `L` is `C<U0, ..., Uk>` where
     `Ui` is the greatest closure of `Ti` with respect to `L`
-- if `S` is `T Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
+- if `S` is `T Function<X0 extends B0, ..., Xk extends Bk>(T0 x0, ..., Tn xn,
   [Tn+1 xn+1, ..., Tm xm])` and no type variable in `L` occurs in any of the `Bi`:
   - The least closure of `S` with respect to `L` is `U Function<X0 extends B0,
-  ...., Xk extends Bk>(U0 x0, ...., Un1 xn, [Un+1 xn+1, ..., Um xm])` where:
+  ..., Xk extends Bk>(U0 x0, ..., Un1 xn, [Un+1 xn+1, ..., Um xm])` where:
     - `U` is the least closure of `T` with respect to `L`
     - `Ui` is the greatest closure of `Ti` with respect to `L`
     - with the usual capture avoiding requirement that the `Xi` do not appear in
   `L`.
   - The greatest closure of `S` with respect to `L` is `U Function<X0 extends B0,
-  ...., Xk extends Bk>(U0 x0, ...., Un1 xn, [Un+1 xn+1, ..., Um xm])` where:
+  ..., Xk extends Bk>(U0 x0, ..., Un1 xn, [Un+1 xn+1, ..., Um xm])` where:
     - `U` is the greatest closure of `T` with respect to `L`
     - `Ui` is the least closure of `Ti` with respect to `L`
     - with the usual capture avoiding requirement that the `Xi` do not appear in
   `L`.
-- if `S` is `T Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
+- if `S` is `T Function<X0 extends B0, ..., Xk extends Bk>(T0 x0, ..., Tn xn,
   {Tn+1 xn+1, ..., Tm xm})` and no type variable in `L` occurs in any of the `Bi`:
   - The least closure of `S` with respect to `L` is `U Function<X0 extends B0,
-  ...., Xk extends Bk>(U0 x0, ...., Un1 xn, {Un+1 xn+1, ..., Um xm})` where:
+  ..., Xk extends Bk>(U0 x0, ..., Un1 xn, {Un+1 xn+1, ..., Um xm})` where:
     - `U` is the least closure of `T` with respect to `L`
     - `Ui` is the greatest closure of `Ti` with respect to `L`
     - with the usual capture avoiding requirement that the `Xi` do not appear in
   `L`.
   - The greatest closure of `S` with respect to `L` is `U Function<X0 extends B0,
-  ...., Xk extends Bk>(U0 x0, ...., Un1 xn, {Un+1 xn+1, ..., Um xm})` where:
+  ..., Xk extends Bk>(U0 x0, ..., Un1 xn, {Un+1 xn+1, ..., Um xm})` where:
     - `U` is the greatest closure of `T` with respect to `L`
     - `Ui` is the least closure of `Ti` with respect to `L`
     - with the usual capture avoiding requirement that the `Xi` do not appear in
   `L`.
-- if `S` is `T Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
-    [Tn+1 xn+1, ..., Tm xm])` or `T Function<X0 extends B0, ...., Xk extends Bk>(T0 x0, ...., Tn xn,
+- if `S` is `T Function<X0 extends B0, ..., Xk extends Bk>(T0 x0, ..., Tn xn,
+    [Tn+1 xn+1, ..., Tm xm])` or `T Function<X0 extends B0, ..., Xk extends Bk>(T0 x0, ..., Tn xn,
 {Tn+1 xn+1, ..., Tm xm})`and `L` contains any free type variables
   from any of the `Bi`:
   - The least closure of `S` with respect to `L` is `Never`
   - The greatest closure of `S` with respect to `L` is `Function`
+- if `S` is `(T0 x0, ..., Tn xn,  {Tn+1 xn+1, ..., Tm xm})`:
+  - The least closure of `S` with respect to `L` is `(U0 x0, ..., Un1 xn, {Un+1
+    xn+1, ..., Um xm})` where:
+    - `Ui` is the least closure of `Ti` with respect to `L`
+  - The greatest closure of `S` with respect to `L` is `(U0 x0, ..., Un1 xn,
+    {Un+1 xn+1, ..., Um xm})` where:
+    - `Ui` is the greatest closure of `Ti` with respect to `L`
 
 
 ### Type schema elimination (least and greatest closure of a type schema)
@@ -934,6 +959,15 @@ with respect to `L` under constraints `C0`
   - And `C1` is  `C02 + ... + Cn2 + C0`
   - And `C2` is `C1` with each constraint replaced with its closure with respect
     to `[Z0, ..., Zn]`.
+
+- A type `P` is a subtype match for `Record` with respect to `L` under no constraints:
+  - If `P` is a record type or `Record`.
+
+- A record type `(M0,..., Mk, {M{k+1} d{k+1}, ..., Mm dm])` is a subtype match
+  for a record type `(N0,..., Nk, {N{k+1} d{k+1}, ..., Nm dm])` with respect
+  to `L` under constraints `C0 + ... + Cm`
+  - If for `i` in `0...m`, `Mi` is a subtype match for `Ni` with respect to `L`
+  under constraints `Ci`.
 
 
 <!--
