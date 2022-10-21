@@ -1405,7 +1405,7 @@ To orchestrate this, type inference on patterns proceeds in three phases:
     aren't known yet.
 
     We only calculate a pattern type schema for pattern variable declarations
-    and pattern assignment. In matching contexts (switch cases and if-case
+    and pattern assignments. In matching contexts (switch cases and if-case
     statements), the pattern context type schema is not used, no downwards
     inference is performed from the pattern to the matched value expression, and
     no coercions or casts from `dynamic` are inserted in the matched value
@@ -1797,10 +1797,10 @@ It is a compile-time error if:
     throw a runtime exception from implicit downcasts from `dynamic`).*
 
 If `p` has required type `T` and `M` is not a subtype of `T` but is assignable,
-then an implicit coercion or cast is inserted immediately before the pattern
-first accesses the value. *Each pattern that requires a certain type can be
-thought of as an "assignment point" where an implicit coercion may happen when a
-value flows in during matching. Examples:*
+then an implicit coercion or cast is inserted before the pattern accesses the
+value. *Each pattern that requires a certain type can be thought of as an
+"assignment point" where an implicit coercion may happen when a value flows in
+during matching. Examples:*
 
 ```dart
 var record = (x: 1 as dynamic);
