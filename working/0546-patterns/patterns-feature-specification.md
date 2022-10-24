@@ -1459,11 +1459,14 @@ To orchestrate this, type inference on patterns proceeds in three phases:
 
     *Since the right-hand is not a record literal, we can't use the pattern's
     context type schema to insert coercions when the record is being created.
-    However, `(T Function<T>(T), dynamic)` is assignable to `(int Function(int),
-    String)`, so the declaration is valid. Instead, coercions are inserted after
-    destructuring each record field before passing them to the field
-    subpatterns. At runtime, when the record is destructured during matching,
-    the coercions are applied. This is specified below.*
+    However, the matched value type `(T Function<T>(T), dynamic)` is allowed by
+    the record pattern's required type `(Object?, Object?)`, the field matched
+    value type `T Function<T>(T)` is allowed by the field required type `int
+    Function(int)`, and the field matched value type `dynamic` is allowed by the
+    field required type `String)`. So the declaration is valid. Coercions are
+    inserted after destructuring each record field before passing them to the
+    field subpatterns. At runtime, when the record is destructured during
+    matching, the coercions are applied. This is specified below.*
 
 #### Pattern context type schema
 
