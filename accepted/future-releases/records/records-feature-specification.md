@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.16 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.17 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -210,8 +210,7 @@ It is a compile-time error if a record type has any of:
     this is symmetric with record expressions and leaves the potential for
     later support for parentheses for grouping in type expressions.*
 
-*   A named field named `hashCode`, `runtimeType`, `noSuchMethod`, or
-    `toString`.
+*   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
 *   A field name that starts with an underscore.
 
@@ -817,9 +816,14 @@ this.*
 
 ## CHANGELOG
 
-### 1.16
+### 1.17
 
 - Disambiguate record types following metadata annotations (#2469).
+
+### 1.16
+
+- Consistently disallow private and Object member names as positional and named
+  field names in record expressions and types (#2575).
 
 ### 1.15
 
