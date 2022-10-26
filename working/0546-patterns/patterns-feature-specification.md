@@ -1716,7 +1716,7 @@ To type check a pattern `p` being matched against a value of type `M`:
 It is a compile-time error if:
 
 *   The type of an expression in a guard clause is not assignable to `bool`.
-*   A pattern `p` is in an irrefutable context (directly or nested as a subpattern), 
+*   A pattern `p` is in an irrefutable context, 
     it is type checked against a matched value type `M` to have a required type `T`, 
     and `M` is not assignable to `T`. *Destructuring and variable patterns can only be used in
     declarations and assignments if we can statically tell that the
