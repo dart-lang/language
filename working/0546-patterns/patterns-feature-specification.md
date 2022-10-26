@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 2.7 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.10 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -1613,26 +1613,26 @@ To type check a pattern `p` being matched against a value of type `M`:
     method. This lets you use constant patterns for user-defined types with
     custom value semantics.*
 
-*   **Variable**:
+* **Variable**:
 
-    1.  In an assignment context, the required type of `p` is the (unpromoted)
-        static type of the variable that `p` resolves to.
+  1.  In an assignment context, the required type of `p` is the declared 
+      (unpromoted) type of the variable that `p` resolves to.
 
-    2.  Else if the variable has a type annotation, the required type of `p` is
-        that type, as is the static type of the variable introduced by `p`.
+  2. Else if the variable has a type annotation, the required type of `p` is
+     that type, as is the declared type of the variable introduced by `p`.
 
-    3.  Else the required type of `p` is `M`, as is the static type of the
-        variable introduced by `p`. *This means that an untyped variable pattern
-        can have its type indirectly inferred from the type of a superpattern:*
+  3. Else the required type of `p` is `M`, as is the declared type of the
+     variable introduced by `p`. *This means that an untyped variable pattern
+     can have its type indirectly inferred from the type of a superpattern:*
 
-        ```dart
-        var <(num, Object)>[(a, b)] = [(1, true)]; // a is num, b is Object.
-        ```
+     ```dart
+     var <(num, Object)>[(a, b)] = [(1, true)]; // a is num, b is Object.
+     ```
 
-        *The pattern's context type schema is `List<(num, Object>)`. Downwards
-        inference uses that to infer `List<(num, Object>)` for the initializer.
-        That inferred type is then destructured and used to infer `num` for `a`
-        and `Object` for `b`.*
+     *The pattern's context type schema is `List<(num, Object>)`. Downwards
+     inference uses that to infer `List<(num, Object>)` for the initializer.
+     That inferred type is then destructured and used to infer `num` for `a`
+     and `Object` for `b`.*
 
 *   **Parenthesized**: Type-check the inner subpattern using `M` as the matched
     value type.
@@ -1641,12 +1641,11 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     1.  Calculate the value's element type `E`:
 
-        1.  If `M` implements `List<T>` for some `T` then `E` is `T`.
-
-        2.  Else if `M` is `dynamic` then `E` is `dynamic`.
-
-        3.  Else `E` is `Object?`.
-
+        1.  If `p` has a type argument `T`, then `E`  is the type`T`.
+        2.  Else if `M` implements `List<T>` for some `T` then `E` is `T`.
+        3.  Else if `M` is `dynamic` then `E` is `dynamic`.
+        4.  Else `E` is `Object?`.
+        
     2.  Type-check each element subpattern using `E` as the matched value type.
         *Note that we calculate a single element type and use it for all
         subpatterns. In:*
@@ -1657,23 +1656,17 @@ To type check a pattern `p` being matched against a value of type `M`:
 
         *both `a` and `b` use `num` as their matched value type.*
 
-    3.  The required type of `p` is `List<S>` where:
-
-        1.  If `p` has a type argument, `S` is that type. *If the list pattern
-            has an explicit type argument, that wins.*
-
-        2.  Else `S` is `E`. *Otherwise, infer the type from the matched value.*
+    3.  The required type of `p` is `List<E>`.
 
 *   **Map**:
 
     1.  Calculate the value's entry key type `K` and value type `V`:
 
-        1.  If `M` implements `Map<K, V>` for some `K` and `V` then use those.
-
-        2.  Else if `M` is `dynamic` then `K` and `V` are `dynamic`.
-
-        3.  Else `K` and `V` are `Object?`.
-
+        1.  If `p` has type arguments `<K, V>` for some `K` and `V` then use those.
+        2.  Else if `M` implements `Map<K, V>` for some `K` and `V` then use those.
+        3.  Else if `M` is `dynamic` then `K` and `V` are `dynamic`.
+        4.  Else `K` and `V` are `Object?`.
+        
     2.  Type-check each value subpattern using `V` as the matched value type.
         *Like lists, we calculate a single value type and use it for all value
         subpatterns:*
@@ -1684,30 +1677,25 @@ To type check a pattern `p` being matched against a value of type `M`:
 
         *Here, both `a` and `b` use `Object` as the matched value type.*
 
-    3.  The required type of `p` is `Map<L, W>` where:
+    3.  The required type of `p` is `Map<K, V>`.
 
-        1.  If `p` has type arguments, `L` and `W` are those type arguments.
-            *If the map pattern is explicitly typed, that wins.*
+* **Record**:
 
-        2.  Else `L` is `K` and `W` is `V`.
+  1.  For each field `f` with subpattern `s` of `p`:
 
-*   **Record**:
+      1.  If `M` is a record type with the same shape as `p`, then let `F`
+          be that field's type in `M`.
 
-    1.  For each field subpattern `f` of `p`:
+      2.  Else if `M` is `dynamic`, then let `F` be `dynamic`.
 
-        1.  If `M` is a record type with a corresponding field, then let `F`
-            be that field's type.
+      3.  Else let `F` be `Object?`. *The field subpattern will only be
+          matched at runtime if the value does turn out to be a record with
+          the right shape where the field is present, so it's safe to just
+          assume the field exists when type checking here.*
 
-        2.  Else if `M` is `dynamic`, then let `F` be `dynamic`.
+      4.  Type-check `s` using `F` as the matched value type, and find its required type.
 
-        3.  Else let `F` be `Object?`. *The field subpattern will only be
-            matched at runtime if the value does turn out to be a record with
-            the right shape where the field is present, so it's safe to just
-            assume the field exists when type checking here.*
-
-        4.  Type-check `f` using `F` as the matched value type.
-
-    3.  The required type of `p` is a record type with the same shape as `p` and
+  2.    The required type of `p` is a record type with the same shape as `p` and
         `Object?` for all fields. *If the matched value's type is `dynamic` or
         some record supertype like `Object`, then the record pattern should
         match any record with the right shape and then delegate to its field
@@ -1715,23 +1703,22 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 *   **Extractor**:
 
-    1.  Resolve the extractor name to a type `X`. It is a compile-time error if
-        the name does not refer to a type. Apply downwards inference from `M`
-        to infer type arguments for `X` if needed.
-
-    1.  Type-check each of `f`'s field subpatterns using the type of the getter
-        on `X` with the same name as the field as the matched value type. It is
-        a compile-time error if `X` does not have a getter whose name matches
-        the subpattern's field name.
-
-    2.  The required type of `p` is `X`.
+  1.  Resolve the extractor name to a type `X`. It is a compile-time error if
+      the name does not refer to a type. Apply downwards inference from `M`
+      to infer type arguments for `X` if needed.
+  2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
+      1.  Let `G` be the the type of the getter on `X` with the name `n`. 
+          It is a **compile-time error** if `X` does not have a *getter* with name `n`.
+          _If `X` is `dynamic` or `Never`, it is considered as having every getter with the same type._
+      2.  Type check `f` with `G` as the matched value type, to find its required type.
+  3.  The required type of `p` is `X`.
 
 It is a compile-time error if:
 
 *   The type of an expression in a guard clause is not assignable to `bool`.
-
-*   `p` is in an irrefutable context, it has a required type `T`, and `M` is not
-    assignable to `T`. *Destructuring and variable patterns can only be used in
+*   A pattern `p` is in an irrefutable context, 
+    it is type checked against a matched value type `M` to have a required type `T`, 
+    and `M` is not assignable to `T`. *Destructuring and variable patterns can only be used in
     declarations and assignments if we can statically tell that the
     destructuring and variable binding won't fail to match (though it might
     throw a runtime exception from implicit downcasts from `dynamic`).*
@@ -2670,6 +2657,12 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.10
+
+-   Tweak the rules for type checking List/Map patterns, so that explicit
+    type arguments in the pattern are used as the type the elements are
+    type checked against.
 
 ### 2.9
 
