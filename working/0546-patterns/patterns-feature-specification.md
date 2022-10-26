@@ -1695,7 +1695,7 @@ To type check a pattern `p` being matched against a value of type `M`:
 
       4.  Type-check `s` using `F` as the matched value type, and find its required type.
 
-  2.           The required type of `p` is a record type with the same shape as `p` and
+  2.    The required type of `p` is a record type with the same shape as `p` and
         `Object?` for all fields. *If the matched value's type is `dynamic` or
         some record supertype like `Object`, then the record pattern should
         match any record with the right shape and then delegate to its field
@@ -1703,15 +1703,15 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 *   **Extractor**:
 
-    1.  Resolve the extractor name to a type `X`. It is a compile-time error if
-        the name does not refer to a type. Apply downwards inference from `M`
-        to infer type arguments for `X` if needed.
-2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
-        1.  Let `G` be the the type of the getter on `X` with the name `n`. 
-            It is a **compile-time error** if `X` does not have a *getter* with name `n`.
-            _If `X` is `dynamic` or `Never`, it is considered as having every getter with the same type._
-        2.  Type check `f` with `G` as the matched value type, to find its required type.
-3.  The required type of `p` is `X`.
+  1.  Resolve the extractor name to a type `X`. It is a compile-time error if
+      the name does not refer to a type. Apply downwards inference from `M`
+      to infer type arguments for `X` if needed.
+  2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
+      1.  Let `G` be the the type of the getter on `X` with the name `n`. 
+          It is a **compile-time error** if `X` does not have a *getter* with name `n`.
+          _If `X` is `dynamic` or `Never`, it is considered as having every getter with the same type._
+      2.  Type check `f` with `G` as the matched value type, to find its required type.
+  3.  The required type of `p` is `X`.
 
 It is a compile-time error if:
 
