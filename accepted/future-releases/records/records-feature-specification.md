@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.16 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.17 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -252,10 +252,113 @@ ambiguity, we disambiguate by treating `on` as a clause for `try` and not a
 local function. This is technically a breaking change, but is unlikely to affect
 any code in the wild.
 
-**TODO: This section should be removed if we change the record type syntax to
-avoid this ambiguity ([#2469][]).**
+Because this change does not seem to break a significant fraction of code in the
+wild and our parser is currently not aware of language versioning, we make this
+grammar change unconditionally when parsing a Dart library targeting any
+language version. In a Dart library whose language version is prior to the
+version that records ship in, an `on` clause followed by a parenthesized type
+will be parsed as a record type, which will then be reported as an error since
+record types are not supported in that language version.
 
-[#2469]: https://github.com/dart-lang/language/issues/2469
+### Ambiguity with metadata annotations
+
+A metadata annotation may or may not have an argument list following it. A
+variable declaration may omit a preceding type annotation. Likewise, a function
+declaration may omit a preceding return type. This combination of syntax where
+an optional trailing element is followed by syntax with an optional preceding
+element can lead to ambiguity. In particular:
+
+```dart
+@metadata (a, b) function() {}
+```
+
+This could be a metadata annotation `@metadata(a, b)` associated with a function
+declaration with no return type. Or it could be a metadata annotation
+`@metadata` associated with a function whose return type is the record type `(a,
+b)`.
+
+In practice, idiomatically written code is clear thanks to whitespace:
+
+```dart
+@metadata(a, b) function() {}
+
+@metadata (a, b) function() {}
+```
+
+The former applies `(a, b)` to the metadata annotation and the latter is a
+return type. We disambiguate in the same way, by making whitespace after a
+metadata annotation name significant. Change the grammar to:
+
+```
+metadatum ::= identifier                                    // Existing rule.
+            | qualifiedName                                 // Existing rule.
+            | constructorDesignation NO_SPACE arguments  // Changed.
+```
+
+The `NO_SPACE` lexical rule matches when there are no whitespace characters or
+comments (according to the existing `WHITESPACE` and `COMMENT` lexical rules)
+between the `constructorDesignation` and `arguments`. In other words, for an
+argument list to be part of the metadata annotation, the `(` must occur
+immediately after the last character in the `constructorDesignation`. The last
+character in `constructorDesignation` may be an identifier or the `>` in a
+type argument list.
+
+```dart
+// These are parsed as argument lists to the annotation:
+@metadata(x, y) a;
+
+@metadata<T>(x, y) a;
+
+@metadata <T>(x, y) a;
+
+// These are parsed as record variable types:
+@metadata (x, y) a;
+
+@metadata
+(x, y) a;
+
+@metadata/* comment */(x, y) a;
+
+@metadata // Comment.
+(x,) a;
+```
+
+Note that the `NO_SPACE` rule is applied unconditionally, even when the metadata
+annotation appears in a context where no ambiguity with record types is
+possible, as in:
+
+```dart
+@metadata (x, y)
+class C {}
+```
+
+This example has a syntax error because the `(x, y)` is not parsed as arguments
+to the metadata and can't be parsed as anything else either.
+
+Another interesting case is:
+
+```dart
+@metadata<T> (x, y) a;
+```
+
+This is a syntax error because the `<T>` means there *must* be an argument list
+after it, but the `NO_SPACE` in `metadatum` prevents it from being parsed as
+such and the result is an error. *We could ignore whitespace after the `>` by
+tweaking the grammar, but we choose to require `NO_SPACE` even here since
+`@metadata<T>` appears to be a generic instantiation and could potentially be
+valid syntax in the future.*
+
+**Breaking change:** Existing metadata annotations with whitespace before their
+argument lists will no longer parse correctly. In a corpus of 18,672,247 lines
+of code containing 409,825 metadata annotations, 46,245 had argument lists and
+none of those had whitespace before the argument list. Note that this analysis
+only captures code that has been committed. Code being written may be less well
+formatted, but we expect problems from this to be rare.
+
+Because this change does not seem to break a significant fraction of code in the
+wild and our parser is currently not aware of language versioning, we make this
+grammar change unconditionally when parsing a Dart library targeting any
+language version.
 
 ## Static semantics
 
@@ -713,6 +816,10 @@ this.*
 
 ## CHANGELOG
 
+### 1.17
+
+- Disambiguate record types following metadata annotations (#2469).
+
 ### 1.16
 
 - Consistently disallow private and Object member names as positional and named
@@ -725,7 +832,7 @@ this.*
 
 ### 1.14
 
-- Specify type inference, add static semantics to resources/type-system
+- Specify type inference, add static semantics to resources/type-system.
 
 ### 1.13
 
