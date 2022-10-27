@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 2.10 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.11 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -212,7 +212,6 @@ Here is the overall grammar for the different kinds of patterns:
 
 ```
 pattern               ::= logicalOrPattern
-patterns              ::= pattern ( ',' pattern )* ','?
 
 logicalOrPattern      ::= ( logicalOrPattern '|' )? logicalAndPattern
 logicalAndPattern     ::= ( logicalAndPattern '&' )? relationalPattern
@@ -541,24 +540,40 @@ is expected.
 ### List pattern
 
 ```
-listPattern ::= typeArguments? '[' patterns? ']'
+listPattern         ::= typeArguments? '[' listPatternElements? ']'
+listPatternElements ::= listPatternElement ( ',' listPatternElement )* ','?
+listPatternElement  ::= pattern | restPattern
+restPattern         ::= '...' pattern?
 ```
 
 A list pattern matches an object that implements `List` and extracts elements by
 position from it.
 
-It is a compile-time error if `typeArguments` is present and has more than one
-type argument.
+It is a compile-time error if:
 
-**TODO: Allow a `...` element in order to match suffixes or ignore extra
-elements. Allow capturing the rest in a variable.**
+*   `typeArguments` is present and has more than one type argument.
+
+*   There is more than one `restPattern` element in the list pattern. *It can
+    appear anywhere in the list, but there can only be zero or one.*
+
+#### Rest patterns
+
+A list pattern may contain a *rest element* which allows matching lists of
+arbitrary lengths. If a rest element is present and has a subpattern, all of the
+elements not matched by other subpatterns are collected into a new list and that
+list is matched against the rest subpattern.
+
+```dart
+var [a, b, ...rest, c, d] = [1, 2, 3, 4, 5, 6, 7];
+print('$a $b $rest $c $d'); // Prints "1 2 [3, 4, 5] 6 7".
+```
 
 ### Map pattern
 
 ```
 mapPattern        ::= typeArguments? '{' mapPatternEntries? '}'
 mapPatternEntries ::= mapPatternEntry ( ',' mapPatternEntry )* ','?
-mapPatternEntry   ::= expression ':' pattern
+mapPatternEntry   ::= expression ':' pattern | '...'
 ```
 
 A map pattern matches values that implement `Map` and accesses values by key
@@ -578,6 +593,28 @@ It is a compile-time error if:
     to have primitive equality for flexibility. In map patterns where the keys
     don't have primitive equality, it is possible to have redundant keys and the
     compiler won't detect it.*
+
+*   There is more than one `...` element in the map pattern. *It can
+    appear anywhere in the map, but there can only be zero or one.*
+
+*   The `...` element is not the last element in the map pattern.
+
+### Rest patterns
+
+Like lists, map patterns can also have a rest pattern. However, there's no
+well-defined notion of a map "minus" some set of matched entries. Thus, the
+rest pattern doesn't allow a subpattern to capture the "remaining" entries.
+
+Also, there is no ordering to entries in a map, so we only allow the `...` to
+appear as the last element. Appearing anywhere else would send a confusing,
+meaningless signal.
+
+In practice, this means that the only purpose of `...` in a map pattern is to
+allow matching a map that contains extra entries, while ignoring those entries.
+By default, a map pattern only matches if the map's length is exactly the same
+as the number of entry subpatterns. Adding a `...` element allows the map
+pattern to match if the map's length is *at least* the number of (non-rest)
+entry subpatterns (and all of those subpatterns match).
 
 ### Record pattern
 
@@ -1501,17 +1538,44 @@ The context type schema for a pattern `p` is:
         doesn't destructure anything, it matches any list, so it is permissive
         with the context type.*
 
-    3.  Else `E` is the greatest lower bound of the type schemas of all element
-        subpatterns. *We use the greatest lower bound to ensure that the outer
-        collection type has a precise enough type to ensure that any typed field
-        subpatterns do not need to downcast:*
+    3.  Else, infer the type schema from the subpatterns:
 
-        ```dart
-        var [int a, num b] = [1, 2];
-        ```
+        1.  Let `es` be an empty list of types.
 
-        *Here, the GLB of `int` and `num` is `int`, which ensures that neither
-        `int a` nor `num b` need to downcast their respective fields.*
+        2.  For each subpattern `e` in `p`:
+
+            1.  If `e` is a rest element pattern with a subpattern `s` and the
+                context type schema of `s` is a `List<T>` for some type `T`,
+                then add `T` to `es`.
+
+            2.  Else if `e` is not a rest element pattern, add the context
+                type schema of `e` to `es`.
+
+            *Else, `e` is a rest element with no subpattern, so it doesn't
+            contribute to inference.*
+
+        3.  If `es` is empty, then `E` is `Object?`. *This can happen if the
+            list pattern contains only a rest element which doesn't have a
+            context type schema that is known to be a `List<T>` for some `T`,
+            like:*
+
+            ```dart
+            var [...] = [1, 2];
+            var [...x] = [1, 2];
+            ```
+
+        4.  Else `E` is the greatest lower bound of the types in `es`. *We use
+            the greatest lower bound to ensure that the outer collection type
+            has a precise enough type to ensure that any typed field subpatterns
+            do not need to downcast:*
+
+            ```dart
+            var [int a, num b] = [1, 2];
+            ```
+
+            *Here, the GLB of `int` and `num` is `int`, which ensures that
+            neither `int a` nor `num b` need to downcast their respective
+            fields.*
 
 *   **Map**: A type schema `Map<K, V>` where:
 
@@ -1523,7 +1587,8 @@ The context type schema for a pattern `p` is:
 
     3.  Else `K` is the least upper bound of the types of all key expressions
         and `V` is the greatest lower bound of the context type schemas of all
-        value subpatterns.
+        value subpatterns. *The rest pattern, if present, doesn't contribute to
+        the context type schema.*
 
 *   **Record**: A record type schema with positional and named fields
     corresponding to the type schemas of the corresponding field subpatterns.
@@ -1649,9 +1714,9 @@ To type check a pattern `p` being matched against a value of type `M`:
 
         4.  Else `E` is `Object?`.
 
-    2.  Type-check each element subpattern using `E` as the matched value type.
-        *Note that we calculate a single element type and use it for all
-        subpatterns. In:*
+    2.  Type-check each non-rest element subpattern using `E` as the matched
+        value type. *Note that we calculate a single element type and use it for
+        all subpatterns. In:*
 
         ```dart
         var [a, b] = [1, 2.3];
@@ -1659,7 +1724,10 @@ To type check a pattern `p` being matched against a value of type `M`:
 
         *both `a` and `b` use `num` as their matched value type.*
 
-    3.  The required type of `p` is `List<E>`.
+    3.  If there is a rest element subpattern with a subpattern, type-check its
+        subpattern using `List<E>` as the matched value type.
+
+    4.  The required type of `p` is `List<E>`.
 
 *   **Map**:
 
@@ -2304,19 +2372,47 @@ To match a pattern `p` against a value `v`:
         some `T` determined either by the pattern's explicit type argument or
         inferred from the matched value type.*
 
-    2.  If the length of the list determined by calling `length` is not equal to
-        the number of subpatterns, then the match fails. *This match failure
-        becomes a runtime exception if the list pattern is in an irrefutable
-        context.*
+    2.  Let `l` be the length of the list determined by calling `length` on `v`.
 
-    3.  Otherwise, for each element subpattern, in source order:
+    3.  Let `h` be the number of non-rest element subpatterns preceding the rest
+        element if there is one, or the number of subpatterns if there is no
+        rest element.
 
-        1.  Extract the element value `e` by calling `[]` on `v` with an
-            appropriate integer index.
+    4.  Let `t` be the number of non-rest element subpatterns following the rest
+        element if there is one, or zero otherwise.
 
-        2.  Match `e` against the element subpattern.
+    3.  If `p` has no rest element and `l` is not equal to `h` then the match
+        fails. If `p` has a rest element and `l` is less than `h + t` then the
+        match fails. *These match failures become runtime exceptions if the list
+        pattern is in an irrefutable context.*
 
-    4.  The match succeeds if all subpatterns match.
+    4.  Match the head elements. For `i` from `0` to `h - 1`, inclusive:
+
+        1.  Extract the element value `e` by calling `[]` on `v` with index `i`.
+
+        2.  Match the `i`th element subpattern against `e`.
+
+    5.  If there is a rest element and it has a subpattern:
+
+        1.  Let `r` be the result of calling `sublist()` on `v` with arguments
+            `h`, and `l - t`.
+
+        2.  Match the rest element subpattern against `r`.
+
+        *If there is a rest element but it has no subpattern, the unneeded list
+        elements are completely skipped and we don't even call `sublist()` to
+        access them.*
+
+    6.  Match the tail elements. If `t` is greater than zero, then for `i` from
+        `0` to `t - 1`, inclusive:
+
+        1.  Extract the element value `e` by calling `[]` on `v` with index
+            `l - t + i`.
+
+        2.  Match the subpattern `i` elements after the rest element against
+            `e`.
+
+    7.  The match succeeds if all subpatterns match.
 
 *   **Map**:
 
@@ -2325,12 +2421,15 @@ To match a pattern `p` against a value `v`:
         some `K` and `V` determined either by the pattern's explicit type
         arguments or inferred from the matched value type.*
 
-    2.  If the length of the map determined by calling `length` is not equal to
-        the number of subpatterns, then the match fails. *This match failure
-        becomes a runtime exception if the map pattern is in an irrefutable
-        context.*
+    2.  Let `l` be the length of the map determined by calling `length` on `v`.
 
-    3.  Otherwise, for each entry in `p`, in source order:
+    3.  If `p` has no rest element and `l` is not equal to the number of
+        subpatterns then the match fails. If `p` has a rest element and `l` is
+        less than the number of non-rest entry subpatterns, then the match
+        fails. *These match failures become runtime exceptions if the map
+        pattern is in an irrefutable context.*
+
+    4.  Otherwise, for each (non-rest) entry in `p`, in source order:
 
         1.  Evaluate the key `expression` to `k` and call `containsKey()` on the
             value. If this returns `false`, the map does not match.
@@ -2339,7 +2438,7 @@ To match a pattern `p` against a value `v`:
             this entry's value subpattern. If it does not match, the map does
             not match.
 
-    4.  The match succeeds if all entry subpatterns match.
+    5.  The match succeeds if all entry subpatterns match.
 
 *   **Record**:
 
@@ -2540,12 +2639,54 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
     1.  Bind `i : ("length", [])` to the `length` getter invocation.
 
-    2.  For each element subpattern:
+    2.  For each element subpattern `s`:
 
-        1.  Let `e` be `i : ("[]", [index])` where `index` is the zero-based
-            index of this element subpattern.
+        1.  If `s` is a rest element:
 
-        2.  Bind `e` to the `[]` invocation for this element.
+            1.  Let `e` be `i : ("sublist()", [h, t])` where `h` is the number
+                of elements preceding `s` and `t` is the number of elements
+                following it.
+
+                *Note that the actual end argument passed to `sublist()` is
+                `length - t`, but we just use `t` for the invocation key here
+                since the length of the list isn't a syntactically known
+                property. Since the list and its length are cached too, using
+                `t` is sufficient to distinguish calls to `sublist()` that are
+                different, like `[...] & [..., a]` while caching calls that are
+                the same as in `[..., a] & [..., b]`.*
+
+            2.  Bind `e` to the `sublist()` invocation for `s`.
+
+        2.  Else if `s` precedes a rest element (or there is no rest element):
+
+            1.  Let `e` be `i : ("[]", [index])` where `index` is the zero-based
+                index of this element subpattern.
+
+            2.  Bind `e` to the `[]` invocation for `s`.
+
+        3.  Else `s` is a non-rest element after the rest element:
+
+            1.  Let `e` be `i : ("tail[]", [index])` where `index` is the
+                zero-based index of this element subpattern.
+
+                *Note the "tail" in the invocation key name. This is to
+                distinguish elements after a rest element at some position from
+                elements at the same position but not following a rest element,
+                as in:*
+
+                ```dart
+                switch (list) {
+                  case [var a, ..., var c]: ...
+                  case [var a, _,   var d]: ...
+                }
+                ```
+
+                *Here, `c` and `d` may have different values and `d` should not
+                use the previously cached value of `c` even though they are both
+                the third element of the same list. So we use an invocation key
+                of "[]" for `c` and "tail[]" for `d`.*
+
+            2.  Bind `e` to the `[]` invocation for `s`.
 
         3.  Bind invocations in the element subpattern using parent `e`.
 
@@ -2672,6 +2813,10 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.11
+
+-   Add `...` rest patterns in list and map patterns (#2453).
 
 ### 2.10
 
