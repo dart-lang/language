@@ -1641,11 +1641,14 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     1.  Calculate the value's element type `E`:
 
-        1.  If `p` has a type argument `T`, then `E`  is the type`T`.
+        1.  If `p` has a type argument `T`, then `E` is the type `T`.
+
         2.  Else if `M` implements `List<T>` for some `T` then `E` is `T`.
+
         3.  Else if `M` is `dynamic` then `E` is `dynamic`.
+
         4.  Else `E` is `Object?`.
-        
+
     2.  Type-check each element subpattern using `E` as the matched value type.
         *Note that we calculate a single element type and use it for all
         subpatterns. In:*
@@ -1662,9 +1665,14 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     1.  Calculate the value's entry key type `K` and value type `V`:
 
-        1.  If `p` has type arguments `<K, V>` for some `K` and `V` then use those.
-        2.  Else if `M` implements `Map<K, V>` for some `K` and `V` then use those.
+        1.  If `p` has type arguments `<K, V>` for some `K` and `V` then use
+            those.
+
+        2.  Else if `M` implements `Map<K, V>` for some `K` and `V` then use
+            those.
+
         3.  Else if `M` is `dynamic` then `K` and `V` are `dynamic`.
+
         4.  Else `K` and `V` are `Object?`.
         
     2.  Type-check each value subpattern using `V` as the matched value type.
@@ -1693,7 +1701,8 @@ To type check a pattern `p` being matched against a value of type `M`:
           the right shape where the field is present, so it's safe to just
           assume the field exists when type checking here.*
 
-      4.  Type-check `s` using `F` as the matched value type, and find its required type.
+      4.  Type-check `s` using `F` as the matched value type, and find its
+          required type.
 
   2.    The required type of `p` is a record type with the same shape as `p` and
         `Object?` for all fields. *If the matched value's type is `dynamic` or
@@ -1703,22 +1712,28 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 *   **Extractor**:
 
-  1.  Resolve the extractor name to a type `X`. It is a compile-time error if
-      the name does not refer to a type. Apply downwards inference from `M`
-      to infer type arguments for `X` if needed.
-  2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
-      1.  Let `G` be the the type of the getter on `X` with the name `n`. 
+    1.  Resolve the extractor name to a type `X`. It is a compile-time error if
+        the name does not refer to a type. Apply downwards inference from `M` to
+        infer type arguments for `X` if needed.
+
+    2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
+
+        1.  Let `G` be the the type of the getter on `X` with the name `n`.
           It is a **compile-time error** if `X` does not have a *getter* with name `n`.
           _If `X` is `dynamic` or `Never`, it is considered as having every getter with the same type._
-      2.  Type check `f` with `G` as the matched value type, to find its required type.
-  3.  The required type of `p` is `X`.
+
+        2.  Type check `f` with `G` as the matched value type, to find its
+            required type.
+
+    3.  The required type of `p` is `X`.
 
 It is a compile-time error if:
 
 *   The type of an expression in a guard clause is not assignable to `bool`.
-*   A pattern `p` is in an irrefutable context, 
-    it is type checked against a matched value type `M` to have a required type `T`, 
-    and `M` is not assignable to `T`. *Destructuring and variable patterns can only be used in
+
+*   A pattern `p` is in an irrefutable context, it is type checked against a
+    matched value type `M` to have a required type `T`, and `M` is not
+    assignable to `T`. *Destructuring and variable patterns can only be used in
     declarations and assignments if we can statically tell that the
     destructuring and variable binding won't fail to match (though it might
     throw a runtime exception from implicit downcasts from `dynamic`).*
