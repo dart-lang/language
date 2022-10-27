@@ -1611,13 +1611,13 @@ To type check a pattern `p` being matched against a value of type `M`:
         *   `C` is not assignable to the operator's parameter type,
         *   or if the operator's return type is not assignable to `bool`.
 
-    3.  Else the operator is `==` or `!=`. It is a compile-time error if `C?` is
-        not assignable to `M`'s `==` method parameter type. *The language
-        screens out `null` before calling the underlying `==` method, which is
-        why `C?` is the allowed type. Since Object declares `==` to accept
-        `Object` on the right, this compile-time error can only happen if a
-        user-defined class has an override of `==` with a `covariant`
-        parameter.*
+    3.  Else the operator is `==` or `!=`. It is a compile-time error if `C` is
+        not assignable to `T?` where `T` is `M`'s `==` method parameter type.
+        *The language screens out `null` before calling the underlying `==`
+        method, which is why `T?` is the allowed type. Since Object declares
+        `==` to accept `Object` on the right, this compile-time error can only
+        happen if a user-defined class has an override of `==` with a
+        `covariant` parameter.*
 
 *   **Cast**:
 
@@ -1643,14 +1643,14 @@ To type check a pattern `p` being matched against a value of type `M`:
     that value, not to _make_ it so. In other words, this does not match:*
 
     ```dart
-    double d = 1.0;
-    switch (d) {
-      case 1: ...
+    switch (const Set<int>()) {
+      case const Set(): ...
     }
     ```
 
-    *We don't do any int-to-double conversion on the case constant here and `1`
-    is not equal to `1.0` (outside of the web), so this doesn't match.*
+    *We don't use `Set<int>` as the context type to infer a type argument for
+    the set in `const Set()`, so it ends up as `const Set<dynamic>()`, which is
+    not the same as `const Set<int>` and the case doesn't match.*
 
     *Note that the pattern's value must be a constant, but there is no longer a
     restriction that it must have a primitive operator `==`. Unlike switch cases
