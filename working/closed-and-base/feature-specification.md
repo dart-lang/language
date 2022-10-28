@@ -38,27 +38,57 @@ mixinDeclaration ::= 'base'? 'mixin' identifier typeParameters?
   '{' (metadata classMemberDeclaration)* '}'
 ```
 
-This proposal will likely build on top of the [sealed types][] proposal, in
-which case the full grammar is:
-
-```
-classDeclaration ::=
-  'closed'? ('sealed' | 'abstract')? 'base'? 'class' identifier typeParameters?
-  superclass? interfaces?
-  '{' (metadata classMemberDeclaration)* '}'
-  | 'closed'? ('sealed' | 'abstract')? 'base'? 'class' mixinApplicationClass
-
-mixinDeclaration ::= sealed? 'base'? 'mixin' identifier typeParameters?
-  ('on' typeNotVoidList)? interfaces?
-  '{' (metadata classMemberDeclaration)* '}'
-```
-
-[sealed types]: https://github.com/dart-lang/language/blob/master/working/type-modifiers/feature-specification.md
-
 **Breaking change:** Treating `closed` and `base` as built-in identifiers means
 that existing code that uses those the names of type will no longer compile.
 Since almost all types have capitalized names in Dart, this is unlikely to be
 break much code.
+
+### With sealed types
+
+This proposal will likely build on top of the [sealed types][] proposal, in
+which case the full grammar is:
+
+[sealed types]: https://github.com/dart-lang/language/blob/master/working/type-modifiers/feature-specification.md
+
+```
+classDeclaration ::=
+  classModifiers 'class' identifier typeParameters?
+  superclass? interfaces?
+  '{' (metadata classMemberDeclaration)* '}'
+  | classModifiers 'class' mixinApplicationClass
+
+classModifiers ::= 'sealed' | 'closed'? 'abstract'? 'base'?
+
+mixinDeclaration ::= ('sealed' | 'base')? 'mixin' identifier typeParameters?
+  ('on' typeNotVoidList)? interfaces?
+  '{' (metadata classMemberDeclaration)* '}'
+```
+
+Note that the grammar disallows combining `sealed` with `closed` or `base` since
+a sealed type is already prohibited from being extended or implemented outside
+of the current library. We *do* allow a class to be marked `closed abstract
+base` instead of treating `sealed` as a synonym for that because there are
+subtle differences if the class has subtypes in the same library:
+
+```dart
+// lib.dart
+sealed class A {}
+class B extends A {}
+class C extends A {}
+
+closed abstract base class D {}
+class E extends D {}
+class F extends D {}
+```
+
+Here, pattern matching on `B` and `C` exhaustively covers `A`, but matching on
+`E` and `F` does not cover `D`. Marking `D` as `closed abstract base` means that
+users are prevented from extending, implementing, or constructing it, but the
+maintainer of `lib.dart` can freely add new subtypes of `D` without breaking
+users by causing what were exhaustive pattern matches to no longer be
+exhaustive. In other words, it gives the supertype author the ability to opt
+out of exhaustiveness checks while still defining a type that is otherwise as
+restricted as `sealed`.
 
 ### Static semantics
 
