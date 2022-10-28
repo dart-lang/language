@@ -77,7 +77,9 @@ class Ambidextrous implements Left, Right {}
 ```
 
 The only property we need for exhaustiveness is that *all instances of the
-sealed type must have one of the direct subtypes in their inheritance chain.*
+sealed type must also be an instance of a direct subtype.* More precisely, any
+instance of the sealed supertype must have at least one of the direct subtypes
+in its superinterface graph.
 
 ### Sealed subtypes
 
