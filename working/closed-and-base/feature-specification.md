@@ -48,7 +48,7 @@ break much code.
 This proposal will likely build on top of the [sealed types][] proposal, in
 which case the full grammar is:
 
-[sealed types]: https://github.com/dart-lang/language/blob/master/working/type-modifiers/feature-specification.md
+[sealed types]: https://github.com/dart-lang/language/blob/master/working/sealed-types/feature-specification.md
 
 ```
 classDeclaration ::=
