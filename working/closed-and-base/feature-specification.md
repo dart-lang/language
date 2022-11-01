@@ -210,11 +210,11 @@ It is a compile-time error to:
 
 *   Implement a type marked `base` outside of the library where it is defined.
 
-*   Extend or mix in a type marked `base` without also being marked `base`.
-    *This ensures that a subtype can't escape the `base` restriction of its
-    supertype by offering its _own_ interface that could then be implemented
-    without inheriting the concrete implementation from the supertype. Note that
-    this restriction applies even when both types are in the same library.*
+*   Extend or mix in a type marked `base` outside of the library where it is
+    defined without also being marked `base`. *This ensures that a subtype can't
+    escape the `base` restriction of its supertype by offering its _own_
+    interface that could then be implemented without inheriting the concrete
+    implementation from the supertype.*
 
 *   Mix in a class marked `closed` or `base`. *We want to eventually move away
     from classes as mixins. We don't want to break existing uses of classes as
