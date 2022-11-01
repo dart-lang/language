@@ -137,8 +137,7 @@ defined on it and has gone through the constructors you defined.
 
 ## Syntax
 
-A class declaration may be preceded with the built-in identifiers
-`closed` and/or `base`:
+A class declaration may be preceded with the identifiers `closed` and/or `base`:
 
 ```
 classDeclaration ::=
@@ -148,18 +147,13 @@ classDeclaration ::=
   | 'closed'? 'abstract'? 'base'? 'class' mixinApplicationClass
 ```
 
-A mixin declaration may be preceded with the built-in identifier `base`:
+A mixin declaration may be preceded with the identifier `base`:
 
 ```
 mixinDeclaration ::= 'base'? 'mixin' identifier typeParameters?
   ('on' typeNotVoidList)? interfaces?
   '{' (metadata classMemberDeclaration)* '}'
 ```
-
-**Breaking change:** Treating `closed` and `base` as built-in identifiers means
-that existing code that uses those the names of type will no longer compile.
-Since almost all types have capitalized names in Dart, this is unlikely to be
-break much code.
 
 ### With sealed types
 
@@ -175,7 +169,7 @@ classDeclaration ::=
   '{' (metadata classMemberDeclaration)* '}'
   | classModifiers 'class' mixinApplicationClass
 
-classModifiers ::= 'sealed' | 'closed'? 'abstract'? 'base'?
+classModifiers ::= 'sealed' | 'abstract'? 'closed'? 'base'?
 
 mixinDeclaration ::= ('sealed' | 'base')? 'mixin' identifier typeParameters?
   ('on' typeNotVoidList)? interfaces?
@@ -216,11 +210,16 @@ It is a compile-time error to:
 
 *   Implement a type marked `base` outside of the library where it is defined.
 
-Any type that extends or mixes in a type marked `base` is implicitly treated as
-if it was also marked `base` (even when the subtype is within the same library).
-*This ensures that a subtype can't escape the `base` restriction of its
-supertype by offering its _own_ interface that could then be implemented
-without inheriting the concrete implementation from the supertype.*
+*   Extend or mix in a type marked `base` without also being marked `base`.
+    *This ensures that a subtype can't escape the `base` restriction of its
+    supertype by offering its _own_ interface that could then be implemented
+    without inheriting the concrete implementation from the supertype. Note that
+    this restriction applies even when both types are in the same library.*
+
+*   Mix in a class marked `closed` or `base`. *We want to eventually move away
+    from classes as mixins. We don't want to break existing uses of classes as
+    mixins but since no existing code is using these modifiers, we can prevent
+    classes using those modifiers from also being used as mixins.*
 
 A typedef can't be used to subvert these restrictions. When extending,
 implementing, or mixing in a typedef, we look at the library where type the
