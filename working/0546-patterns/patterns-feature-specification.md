@@ -594,8 +594,7 @@ It is a compile-time error if:
     don't have primitive equality, it is possible to have redundant keys and the
     compiler won't detect it.*
 
-*   There is more than one `...` element in the map pattern. *It can
-    appear anywhere in the map, but there can only be zero or one.*
+*   There is more than one `...` element in the map pattern.
 
 *   The `...` element is not the last element in the map pattern.
 
@@ -1565,7 +1564,7 @@ The context type schema for a pattern `p` is:
         //                                 ^- Infers List<int>.
         ```
 
-*   **Relational** or **cast**: The context type schema is `Object?`.
+*   **Relational** or **cast**: The context type schema is `?`.
 
 *   **Parenthesized**: The context type schema of the inner subpattern.
 
@@ -1573,9 +1572,7 @@ The context type schema for a pattern `p` is:
 
     1.  If `p` has a type argument, then `E` is the type argument.
 
-    2.  Else if `p` has no elements then `E` is `Object?`. *If the pattern
-        doesn't destructure anything, it matches any list, so it is permissive
-        with the context type.*
+    2.  Else if `p` has no elements then `E` is `?`.
 
     3.  Else, infer the type schema from the subpatterns:
 
@@ -1584,18 +1581,18 @@ The context type schema for a pattern `p` is:
         2.  For each subpattern `e` in `p`:
 
             1.  If `e` is a rest element pattern with a subpattern `s` and the
-                context type schema of `s` is a `List<T>` for some type `T`,
-                then add `T` to `es`.
+                context type schema of `s` is an `Iterable<T>` for some type
+                `T`, then add `T` to `es`.
 
             2.  Else if `e` is not a rest element pattern, add the context
                 type schema of `e` to `es`.
 
-            *Else, `e` is a rest element with no subpattern, so it doesn't
-            contribute to inference.*
+            *Else, `e` is a rest element without an iterable element type, so it
+            doesn't contribute to inference.*
 
-        3.  If `es` is empty, then `E` is `Object?`. *This can happen if the
-            list pattern contains only a rest element which doesn't have a
-            context type schema that is known to be a `List<T>` for some `T`,
+        3.  If `es` is empty, then `E` is `?`. *This can happen if the list
+            pattern contains only a rest element which doesn't have a context
+            type schema that is known to be an `Iterable<T>` for some `T`,
             like:*
 
             ```dart
@@ -1620,9 +1617,7 @@ The context type schema for a pattern `p` is:
 
     1.  If `p` has type arguments then `K`, and `V` are those type arguments.
 
-    2.  Else if `p` has no entries, then `K` and `V` are `Object?`. *If the
-        pattern doesn't destructure anything, it matches any map, so it is
-        permissive with the context type.*
+    2.  Else if `p` has no entries, then `K` and `V` are `?`.
 
     3.  Else `K` is the least upper bound of the types of all key expressions
         and `V` is the greatest lower bound of the context type schemas of all
@@ -2906,6 +2901,10 @@ Here is one way it could be broken down into separate pieces:
 ### 2.12
 
 -   Add `...` rest patterns in list and map patterns (#2453).
+
+-   Change context type schema to consistently use `?` in patterns where the
+    type isn't known instead of `?` for unannotated variable patterns and
+    `Object?` for other patterns.
 
 ### 2.11
 
