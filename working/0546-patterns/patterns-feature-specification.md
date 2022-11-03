@@ -1863,13 +1863,15 @@ appears:
 
     The guard expression is evaluated in its case's case scope.
 
-    The body of a switch statement or expression case is executed in the case
-    body scope, defined below.
+    If the body of a switch statement or expression is reached through only a
+    single case, then it is executed in a new scope whose enclosing scope is the
+    case scope of that case. Otherwise, the body is executed in a new scope
+    whose enclosing scope is the shared case scope, defined below.
 
-    The then statement of an if-case statement is executed in the case's case
-    scope.
+    The then statement of an if-case statement is executed in a new scope whose
+    enclosing scope is the case's case scope.
 
-#### Case body scope and shared case bodies
+#### Shared case scope
 
 In a switch statement, multiple cases may share the same body. This introduces
 complexity when those cases declare variables which may or may not overlap and
@@ -1888,29 +1890,22 @@ Somehow, in the body, `a` refers to *both* of those pattern variables.
 Conversely, only the first case declares `n` which is used in that case's guard
 but not the body.
 
-We specify how this behaves by defining the *case body scope* for the body. If
-there is only a single case, then the case body scope is that case's case scope
-and we're done. *If there is only a single case for the body, then any pattern
-variables used in the body have a single declaration in that case's pattern and
-need no other special handling.*
-
-Otherwise, the case body scope `s` of a body used by a set of cases with pattern
+We specify how this behaves by creating a new *shared case scope* that contains
+all variables from all of the cases and then report errors from invalid uses of
+them. The shared case scope `s` of a body used by a set of cases with pattern
 variable sets `vs` (where default cases and labels have empty pattern variable
 sets) is:
 
 1.  Create a new empty scope `s` whose enclosing scope is the scope surrounding
-    the switch statement or expression. *Note that the body scope doesn't
-    include any of the case scopes as its enclosing scope. Instead, we
-    synthesize a scope that has new variables derived from the union of all of
-    the cases' variables.*
+    the switch statement or expression.
 
 2.  For each name `n` appearing as a variable name in any of the pattern
     variable sets in `vs`:
 
     1.  If `n` is defined in every pattern variable set in `vs` and has the same
-        type and finality, then introduce `n` into `s` with that type and
-        finality. This is a *consistent variable* and is available for use in
-        the body.
+        type and finality, then introduce `n` into `s` with the same type and
+        finality. This is a *shared variable* and is available for use in the
+        body.
 
         If any of the corresponding variables in `vs` are promoted, calculate
         the promoted type of the variable in `s` based on all of the promoted
@@ -1943,13 +1938,19 @@ sets) is:
         introduces a variable in the initializer list distinct from the
         initialized field.*
 
-    2.  Else `n` is inconsistently defined by the cases. Introduce a new
-        variable `n` into `s` with arbitrary type and finality.
+        *Note that we only create a shared case scope with its own variables
+        when there are multiple cases sharing a body. If there is only a single
+        case, the body uses that case's scope as the enclosing scope directly.
+        If you delete the second case in the above example, it prints "after".*
+
+    2.  Else `n` is not consistently defined by all cases and thus isn't safe to
+        use in the body. Introduce a new variable `n` into `s` with unspecified
+        type and finality.
 
 3.  Compile the body in `s`. It is a compile-time error if any identifier in the
-    body resolves to a variable in `s` that isn't consistent. *In other words,
-    all variables declared by any of the case patterns shadow outer variables,
-    but only the consistent ones can actually be used:*
+    body resolves to a variable in `s` that isn't shared. *In other words, a
+    variable declared by any of the case patterns shadows an outer variable, but
+    only the shared ones can actually be used:*
 
     ```dart
     var c = 'outer';
@@ -1961,12 +1962,12 @@ sets) is:
     ```
 
     *This has a compile-time error instead of printing "outer" because `c` in
-    the body resolves to an inconsistent variable declared by one of the cases.*
+    the body resolves to a non-shared variable declared by one of the cases.*
 
-*Note that it is not a compile-time error for there to _be_ inconsistently
-defined variables between cases. It's only an error to _use_ them in the body.
-This enables patterns to define inconsistent variables that are only used by
-their respective guards:*
+*Note that it is not a compile-time error for there to _be_ non-shared defined
+variables between cases. It's only an error to _use_ them in the body. This
+enables patterns to define non-shared variables that are only used by their
+respective guards:*
 
 ```dart
 switch (obj) {
@@ -1980,8 +1981,16 @@ switch (obj) {
 *This example has no errors because the only variable used in the body, `a`, is
 defined consistently by all cases.*
 
-At runtime, we initialize all of the consistent variables in the body of the
-case with the values of the corresponding case variables from the matched case.
+It is a compile-time error to assign to a variable declared by a case in that
+case's guard expression. *This helps avoid users running into the confusing
+behavior where the body sees a different variable than the guard when cases
+share a body. We make this an error even when the body only has a single case to
+keep the rule simpler for users to understand. This is similar to the
+restriction that you can't assign to the variable introduced by an initializing
+formal inside the initializer list.*
+
+At runtime, we initialize all of the shared variables in the body of the case
+with the values of the corresponding case variables from the matched case.
 
 ### Type promotion
 
@@ -2091,15 +2100,19 @@ fail in some way.*
         allowed to have multiple empty cases where all preceding ones share the
         same body with the last case.*
 
-    4.  Initialize any consistent variables declared in the body scope with the
-        values of the corresponding variables from the case scope. *There will
-        be no consistent variables and the body scope will be the case scope if
-        the body is only used by a single case.*
+    4.  If the enclosing scope for the body is a shared case scope, then
+        initialize all shared variables the values of the corresponding
+        variables from the case scope. *There will be no shared case scope and
+        nothing to copy if the body is only used by a single case.*
 
     5.  Execute the body statement.
 
-    6.  Exit the switch statement. *An explicit `break` is no longer
-        required.*
+    6.  If execution of the body statement continues with a label, and that
+        label is labeling a switch case of this switch, go to step 3 and
+        continue from that label.
+
+    7.  Otherwise the switch statement completes normally. *An explicit `break`
+        is no longer required.*
 
 3.  If no case pattern matched and there is a default clause, execute the
     statements after it.
