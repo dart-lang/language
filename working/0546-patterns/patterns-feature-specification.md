@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 2.11 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.13 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -212,7 +212,6 @@ Here is the overall grammar for the different kinds of patterns:
 
 ```
 pattern               ::= logicalOrPattern
-patterns              ::= pattern ( ',' pattern )* ','?
 
 logicalOrPattern      ::= ( logicalOrPattern '|' )? logicalAndPattern
 logicalAndPattern     ::= ( logicalAndPattern '&' )? relationalPattern
@@ -541,24 +540,40 @@ is expected.
 ### List pattern
 
 ```
-listPattern ::= typeArguments? '[' patterns? ']'
+listPattern         ::= typeArguments? '[' listPatternElements? ']'
+listPatternElements ::= listPatternElement ( ',' listPatternElement )* ','?
+listPatternElement  ::= pattern | restPattern
+restPattern         ::= '...' pattern?
 ```
 
 A list pattern matches an object that implements `List` and extracts elements by
 position from it.
 
-It is a compile-time error if `typeArguments` is present and has more than one
-type argument.
+It is a compile-time error if:
 
-**TODO: Allow a `...` element in order to match suffixes or ignore extra
-elements. Allow capturing the rest in a variable.**
+*   `typeArguments` is present and has more than one type argument.
+
+*   There is more than one `restPattern` element in the list pattern. *It can
+    appear anywhere in the list, but there can only be zero or one.*
+
+#### Rest patterns
+
+A list pattern may contain a *rest element* which allows matching lists of
+arbitrary lengths. If a rest element is present and has a subpattern, all of the
+elements not matched by other subpatterns are collected into a new list and that
+list is matched against the rest subpattern.
+
+```dart
+var [a, b, ...rest, c, d] = [1, 2, 3, 4, 5, 6, 7];
+print('$a $b $rest $c $d'); // Prints "1 2 [3, 4, 5] 6 7".
+```
 
 ### Map pattern
 
 ```
 mapPattern        ::= typeArguments? '{' mapPatternEntries? '}'
 mapPatternEntries ::= mapPatternEntry ( ',' mapPatternEntry )* ','?
-mapPatternEntry   ::= expression ':' pattern
+mapPatternEntry   ::= expression ':' pattern | '...'
 ```
 
 A map pattern matches values that implement `Map` and accesses values by key
@@ -578,6 +593,27 @@ It is a compile-time error if:
     to have primitive equality for flexibility. In map patterns where the keys
     don't have primitive equality, it is possible to have redundant keys and the
     compiler won't detect it.*
+
+*   There is more than one `...` element in the map pattern.
+
+*   The `...` element is not the last element in the map pattern.
+
+### Rest patterns
+
+Like lists, map patterns can also have a rest pattern. However, there's no
+well-defined notion of a map "minus" some set of matched entries. Thus, the
+rest pattern doesn't allow a subpattern to capture the "remaining" entries.
+
+Also, there is no ordering to entries in a map, so we only allow the `...` to
+appear as the last element. Appearing anywhere else would send a confusing,
+meaningless signal.
+
+In practice, this means that the only purpose of `...` in a map pattern is to
+allow matching a map that contains extra entries, while ignoring those entries.
+By default, a map pattern only matches if the map's length is exactly the same
+as the number of entry subpatterns. Adding a `...` element allows the map
+pattern to match if the map's length is *at least* the number of (non-rest)
+entry subpatterns (and all of those subpatterns match).
 
 ### Record pattern
 
@@ -1345,8 +1381,8 @@ upwards to the surrounding pattern:
 var [int x] = ...
 ```
 
-Here, we infer `List<int>` for the list pattern based on the type of the element
-subpattern. Or downwards:
+Here, we infer `List<int>` for the list pattern's context type schema based on
+the type of the element subpattern. Or downwards:
 
 ```dart
 var <int>[x] = ...
@@ -1402,30 +1438,69 @@ To orchestrate this, type inference on patterns proceeds in three phases:
     a type *schema* and not a *type* because there may be holes where types
     aren't known yet.
 
+    We only calculate a pattern type schema for pattern variable declarations
+    and pattern assignments. In matching contexts (switch cases and if-case
+    statements), the pattern context type schema is not used, no downwards
+    inference is performed from the pattern to the matched value expression, and
+    no coercions or casts from `dynamic` are inserted in the matched value
+    expression.
+
+    *It would be hard to apply inference from cases in a switch to the value
+    since there are multiple cases and it's not clear how to unify that. Even in
+    if-case statements, it's not clear that downwards inference is desirable,
+    since the intent of the pattern is to ask a question about the matched
+    object, and not necessarily to try to force a certain answer.*
+
 2.  **Calculate the static type of the matched value.** A pattern always occurs
     in the context of some matched value. For pattern variable declarations,
     this is the initializer. For switches and if-case statements, it's the value
     being matched.
 
-    Using the pattern's type schema as a context type, infer missing types on
-    the value expression. This is the existing type inference rules on
-    expressions. It yields a complete static type for the matched value.
+    Using the pattern's type schema as a context type (if not in a matching
+    context), infer missing types on the value expression. This is the existing
+    type inference rules on expressions. It yields a complete static type for
+    the matched value. This process may also insert implicit coercions and casts
+    from `dynamic` in the matched value expression.
+
+    *For example:*
+
+    ```dart
+    T id<T>(T t) => t;
+    dynamic d = 'str';
+    var (double n, int Function(int) f, String s) = (1, id, d);
+    ```
+
+    *This generates a type schema of `(double, int Function(int), String)` from
+    the pattern. That type schema is applied to the initializer, which inserts
+    coercions and casts to become:*
+
+    ```dart
+    var (double n, int Function(int) f, String s) = (1.0, id<int>, d as String);
+    ```
 
 3.  **Calculate the static type of the pattern.** Using that value type, recurse
     through the pattern again downwards to the leaf subpatterns filling in any
-    holes in the type schema. When that completes, we now have a full static
-    type for the pattern and all of its subpatterns.
+    holes in the type schema. This process may also insert implicit coercions
+    and casts from `dynamic` when values flow into a pattern during matching.
 
-The full process only comes into play for pattern variable declarations and
-pattern assignment. For switch cases and if-case statements, the pattern context
-type schema is not used and no downwards inference is performed from the pattern
-to the matched value expression.
+    *For example:*
 
-*It would be hard to apply inference from cases in a switch to the value since
-there are multiple cases and it's not clear how to unify that. Even in case-if
-statements, it's not clear that downwards inference is desirable, since the
-intent of the pattern is to ask a question about the matched object, and not
-necessarily to try to force a certain answer.*
+    ```dart
+    T id<T>(T t) => t;
+    (T Function<T>(T), dynamic) record = (t, 'str');
+    var (int Function(int) f, String s) = record;
+    ```
+
+    *Since the right-hand is not a record literal, we can't use the pattern's
+    context type schema to insert coercions when the record is being created.
+    However, the matched value type `(T Function<T>(T), dynamic)` is allowed by
+    the record pattern's required type `(Object?, Object?)`, the field matched
+    value type `T Function<T>(T)` is allowed by the field required type `int
+    Function(int)`, and the field matched value type `dynamic` is allowed by the
+    field required type `String)`. So the declaration is valid. Coercions are
+    inserted after destructuring each record field before passing them to the
+    field subpatterns. At runtime, when the record is destructured during
+    matching, the coercions are applied. This is specified below.*
 
 #### Pattern context type schema
 
@@ -1489,7 +1564,7 @@ The context type schema for a pattern `p` is:
         //                                 ^- Infers List<int>.
         ```
 
-*   **Relational** or **cast**: The context type schema is `Object?`.
+*   **Relational** or **cast**: The context type schema is `?`.
 
 *   **Parenthesized**: The context type schema of the inner subpattern.
 
@@ -1497,33 +1572,57 @@ The context type schema for a pattern `p` is:
 
     1.  If `p` has a type argument, then `E` is the type argument.
 
-    2.  Else if `p` has no elements then `E` is `Object?`. *If the pattern
-        doesn't destructure anything, it matches any list, so it is permissive
-        with the context type.*
+    2.  Else if `p` has no elements then `E` is `?`.
 
-    3.  Else `E` is the greatest lower bound of the type schemas of all element
-        subpatterns. *We use the greatest lower bound to ensure that the outer
-        collection type has a precise enough type to ensure that any typed field
-        subpatterns do not need to downcast:*
+    3.  Else, infer the type schema from the subpatterns:
 
-        ```dart
-        var [int a, num b] = [1, 2];
-        ```
+        1.  Let `es` be an empty list of types.
 
-        *Here, the GLB of `int` and `num` is `int`, which ensures that neither
-        `int a` nor `num b` need to downcast their respective fields.*
+        2.  For each subpattern `e` in `p`:
+
+            1.  If `e` is a rest element pattern with a subpattern `s` and the
+                context type schema of `s` is an `Iterable<T>` for some type
+                `T`, then add `T` to `es`.
+
+            2.  Else if `e` is not a rest element pattern, add the context
+                type schema of `e` to `es`.
+
+            *Else, `e` is a rest element without an iterable element type, so it
+            doesn't contribute to inference.*
+
+        3.  If `es` is empty, then `E` is `?`. *This can happen if the list
+            pattern contains only a rest element which doesn't have a context
+            type schema that is known to be an `Iterable<T>` for some `T`,
+            like:*
+
+            ```dart
+            var [...] = [1, 2];
+            var [...x] = [1, 2];
+            ```
+
+        4.  Else `E` is the greatest lower bound of the types in `es`. *We use
+            the greatest lower bound to ensure that the outer collection type
+            has a precise enough type to ensure that any typed field subpatterns
+            do not need to downcast:*
+
+            ```dart
+            var [int a, num b] = [1, 2];
+            ```
+
+            *Here, the GLB of `int` and `num` is `int`, which ensures that
+            neither `int a` nor `num b` need to downcast their respective
+            fields.*
 
 *   **Map**: A type schema `Map<K, V>` where:
 
     1.  If `p` has type arguments then `K`, and `V` are those type arguments.
 
-    2.  Else if `p` has no entries, then `K` and `V` are `Object?`. *If the
-        pattern doesn't destructure anything, it matches any map, so it is
-        permissive with the context type.*
+    2.  Else if `p` has no entries, then `K` and `V` are `?`.
 
     3.  Else `K` is the least upper bound of the types of all key expressions
         and `V` is the greatest lower bound of the context type schemas of all
-        value subpatterns.
+        value subpatterns. *The rest pattern, if present, doesn't contribute to
+        the context type schema.*
 
 *   **Record**: A record type schema with positional and named fields
     corresponding to the type schemas of the corresponding field subpatterns.
@@ -1570,13 +1669,13 @@ To type check a pattern `p` being matched against a value of type `M`:
         *   `C` is not assignable to the operator's parameter type,
         *   or if the operator's return type is not assignable to `bool`.
 
-    3.  Else the operator is `==` or `!=`. It is a compile-time error if `C?` is
-        not assignable to `M`'s `==` method parameter type. *The language
-        screens out `null` before calling the underlying `==` method, which is
-        why `C?` is the allowed type. Since Object declares `==` to accept
-        `Object` on the right, this compile-time error can only happen if a
-        user-defined class has an override of `==` with a `covariant`
-        parameter.*
+    3.  Else the operator is `==` or `!=`. It is a compile-time error if `C` is
+        not assignable to `T?` where `T` is `M`'s `==` method parameter type.
+        *The language screens out `null` before calling the underlying `==`
+        method, which is why `T?` is the allowed type. Since Object declares
+        `==` to accept `Object` on the right, this compile-time error can only
+        happen if a user-defined class has an override of `==` with a
+        `covariant` parameter.*
 
 *   **Cast**:
 
@@ -1594,45 +1693,53 @@ To type check a pattern `p` being matched against a value of type `M`:
     [nonnull]: https://github.com/dart-lang/language/blob/master/accepted/2.12/nnbd/feature-specification.md#null-promotion
 
 *   **Constant**: Type check the pattern's value in context type `M`. *The
-    context type comes into play for things like type arguments and
-    int-to-double:*
+    context type comes into play for things like type argument inference,
+    int-to-double, and implicit generic function instantiation.*
 
-    ```dart
-    double d = 1.0;
-    switch (d) {
-      case 1: ...
-    }
-    ```
-
-    *Here, the `1` constant pattern in the case is inferred in a context type of
-    `double` to be `1.0` and so does match.*
-
-    *Note that the pattern's value must be a constant, but there is no
+    *Note that the pattern's value must be a constant, but there is no longer a
     restriction that it must have a primitive operator `==`. Unlike switch cases
     in current Dart, you can have a constant with a user-defined operator `==`
     method. This lets you use constant patterns for user-defined types with
     custom value semantics.*
 
-* **Variable**:
+    *Note also that the restriction that constants must be a subtype of the
+    matched value's static type is removed. This is a currently an error in
+    Dart:*
 
-  1.  In an assignment context, the required type of `p` is the declared 
-      (unpromoted) type of the variable that `p` resolves to.
+    ```dart
+    class A {}
+    class B { const B(); }
 
-  2. Else if the variable has a type annotation, the required type of `p` is
-     that type, as is the declared type of the variable introduced by `p`.
+    test(A a) {
+      switch (A()) {
+        case const B(): ...
+      }
+    }
+    ```
 
-  3. Else the required type of `p` is `M`, as is the declared type of the
-     variable introduced by `p`. *This means that an untyped variable pattern
-     can have its type indirectly inferred from the type of a superpattern:*
+    *There is no error under this proposal because it's possible for the
+    constant to have a user-defined `==` method such that this could match.*
 
-     ```dart
-     var <(num, Object)>[(a, b)] = [(1, true)]; // a is num, b is Object.
-     ```
+*   **Variable**:
 
-     *The pattern's context type schema is `List<(num, Object>)`. Downwards
-     inference uses that to infer `List<(num, Object>)` for the initializer.
-     That inferred type is then destructured and used to infer `num` for `a`
-     and `Object` for `b`.*
+    1.  In an assignment context, the required type of `p` is the declared
+        (unpromoted) type of the variable that `p` resolves to.
+
+    2.  Else if the variable has a type annotation, the required type of `p` is
+        that type, as is the declared type of the variable introduced by `p`.
+
+    3.  Else the required type of `p` is `M`, as is the declared type of the
+        variable introduced by `p`. *This means that an untyped variable pattern
+        can have its type indirectly inferred from the type of a superpattern:*
+
+        ```dart
+        var <(num, Object)>[(a, b)] = [(1, true)]; // a is num, b is Object.
+        ```
+
+        *The pattern's context type schema is `List<(num, Object>)`. Downwards
+        inference uses that to infer `List<(num, Object>)` for the initializer.
+        That inferred type is then destructured and used to infer `num` for `a`
+        and `Object` for `b`.*
 
 *   **Parenthesized**: Type-check the inner subpattern using `M` as the matched
     value type.
@@ -1649,9 +1756,9 @@ To type check a pattern `p` being matched against a value of type `M`:
 
         4.  Else `E` is `Object?`.
 
-    2.  Type-check each element subpattern using `E` as the matched value type.
-        *Note that we calculate a single element type and use it for all
-        subpatterns. In:*
+    2.  Type-check each non-rest element subpattern using `E` as the matched
+        value type. *Note that we calculate a single element type and use it for
+        all subpatterns. In:*
 
         ```dart
         var [a, b] = [1, 2.3];
@@ -1659,7 +1766,10 @@ To type check a pattern `p` being matched against a value of type `M`:
 
         *both `a` and `b` use `num` as their matched value type.*
 
-    3.  The required type of `p` is `List<E>`.
+    3.  If there is a rest element subpattern with a subpattern, type-check its
+        subpattern using `List<E>` as the matched value type.
+
+    4.  The required type of `p` is `List<E>`.
 
 *   **Map**:
 
@@ -1727,16 +1837,58 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     3.  The required type of `p` is `X`.
 
-It is a compile-time error if:
+If `p` with required type `T` is in an irrefutable context:
 
-*   The type of an expression in a guard clause is not assignable to `bool`.
+    *   It is a compile-time error if `M` is not assignable to `T`.
+        *Destructuring and variable patterns can only be used in declarations
+        and assignments if we can statically tell that the destructuring and
+        variable binding won't fail to match.*
 
-*   A pattern `p` is in an irrefutable context, it is type checked against a
-    matched value type `M` to have a required type `T`, and `M` is not
-    assignable to `T`. *Destructuring and variable patterns can only be used in
-    declarations and assignments if we can statically tell that the
-    destructuring and variable binding won't fail to match (though it might
-    throw a runtime exception from implicit downcasts from `dynamic`).*
+    *   Else if `M` is not a subtype of `T` then an implicit coercion or cast is
+        inserted before the pattern binds the value, tests the value's type,
+        destructures the value, or invokes a function with the value as a target
+        or argument.
+
+        *Each pattern that requires a certain type can be thought of as an
+        "assignment point" where an implicit coercion may happen when a value
+        flows in during matching. Examples:*
+
+        ```dart
+        var record = (x: 1 as dynamic);
+        var (x: String _) = record;
+        ```
+
+        *Here no coercion is performed on the record pattern since `(x:
+        dynamic)` is a subtype of `(x: Object?)` (the record pattern's required
+        type). But an implicit cast from `dynamic` is inserted when the
+        destructured `x` field flows into the inner `String _` pattern since
+        `dynamic` is not a subtype of `String`. In this example, the cast will
+        fail and throw an exception.*
+
+        ```dart
+        T id<T>(T t) => t;
+        var record = (x: id);
+        var (x: int Function(int) _) = record;
+        ```
+
+        *Here, again no coercion is applied to the record flowing in to the
+        record pattern, but a generic instantiation is inserted when the
+        destructured field `x` field flows into the inner `int Function(int) _`
+        pattern.*
+
+        *We only insert coercions in irrefutable contexts:*
+
+        ```dart
+        dynamic d = 1;
+        if (d case String s) print('then') else print('else');
+        ```
+
+        *This prints "else" instead of throwing an exception because we don't
+        insert a _cast_ from `dynamic` to `String` and instead let the `String
+        s` pattern _test_ the value's type, which then fails to match.*
+
+It is a compile-time error if the type of an expression in a guard clause is not
+assignable to `bool`.
 
 ### Pattern uses
 
@@ -2357,19 +2509,47 @@ To match a pattern `p` against a value `v`:
         some `T` determined either by the pattern's explicit type argument or
         inferred from the matched value type.*
 
-    2.  If the length of the list determined by calling `length` is not equal to
-        the number of subpatterns, then the match fails. *This match failure
-        becomes a runtime exception if the list pattern is in an irrefutable
-        context.*
+    2.  Let `l` be the length of the list determined by calling `length` on `v`.
 
-    3.  Otherwise, for each element subpattern, in source order:
+    3.  Let `h` be the number of non-rest element subpatterns preceding the rest
+        element if there is one, or the number of subpatterns if there is no
+        rest element.
 
-        1.  Extract the element value `e` by calling `[]` on `v` with an
-            appropriate integer index.
+    4.  Let `t` be the number of non-rest element subpatterns following the rest
+        element if there is one, or zero otherwise.
 
-        2.  Match `e` against the element subpattern.
+    3.  If `p` has no rest element and `l` is not equal to `h` then the match
+        fails. If `p` has a rest element and `l` is less than `h + t` then the
+        match fails. *These match failures become runtime exceptions if the list
+        pattern is in an irrefutable context.*
 
-    4.  The match succeeds if all subpatterns match.
+    4.  Match the head elements. For `i` from `0` to `h - 1`, inclusive:
+
+        1.  Extract the element value `e` by calling `[]` on `v` with index `i`.
+
+        2.  Match the `i`th element subpattern against `e`.
+
+    5.  If there is a rest element and it has a subpattern:
+
+        1.  Let `r` be the result of calling `sublist()` on `v` with arguments
+            `h`, and `l - t`.
+
+        2.  Match the rest element subpattern against `r`.
+
+        *If there is a rest element but it has no subpattern, the unneeded list
+        elements are completely skipped and we don't even call `sublist()` to
+        access them.*
+
+    6.  Match the tail elements. If `t` is greater than zero, then for `i` from
+        `0` to `t - 1`, inclusive:
+
+        1.  Extract the element value `e` by calling `[]` on `v` with index
+            `l - t + i`.
+
+        2.  Match the subpattern `i` elements after the rest element against
+            `e`.
+
+    7.  The match succeeds if all subpatterns match.
 
 *   **Map**:
 
@@ -2378,12 +2558,15 @@ To match a pattern `p` against a value `v`:
         some `K` and `V` determined either by the pattern's explicit type
         arguments or inferred from the matched value type.*
 
-    2.  If the length of the map determined by calling `length` is not equal to
-        the number of subpatterns, then the match fails. *This match failure
-        becomes a runtime exception if the map pattern is in an irrefutable
-        context.*
+    2.  Let `l` be the length of the map determined by calling `length` on `v`.
 
-    3.  Otherwise, for each entry in `p`, in source order:
+    3.  If `p` has no rest element and `l` is not equal to the number of
+        subpatterns then the match fails. If `p` has a rest element and `l` is
+        less than the number of non-rest entry subpatterns, then the match
+        fails. *These match failures become runtime exceptions if the map
+        pattern is in an irrefutable context.*
+
+    4.  Otherwise, for each (non-rest) entry in `p`, in source order:
 
         1.  Evaluate the key `expression` to `k` and call `containsKey()` on the
             value. If this returns `false`, the map does not match.
@@ -2392,7 +2575,7 @@ To match a pattern `p` against a value `v`:
             this entry's value subpattern. If it does not match, the map does
             not match.
 
-    4.  The match succeeds if all entry subpatterns match.
+    5.  The match succeeds if all entry subpatterns match.
 
 *   **Record**:
 
@@ -2593,12 +2776,54 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
     1.  Bind `i : ("length", [])` to the `length` getter invocation.
 
-    2.  For each element subpattern:
+    2.  For each element subpattern `s`:
 
-        1.  Let `e` be `i : ("[]", [index])` where `index` is the zero-based
-            index of this element subpattern.
+        1.  If `s` is a rest element:
 
-        2.  Bind `e` to the `[]` invocation for this element.
+            1.  Let `e` be `i : ("sublist()", [h, t])` where `h` is the number
+                of elements preceding `s` and `t` is the number of elements
+                following it.
+
+                *Note that the actual end argument passed to `sublist()` is
+                `length - t`, but we just use `t` for the invocation key here
+                since the length of the list isn't a syntactically known
+                property. Since the list and its length are cached too, using
+                `t` is sufficient to distinguish calls to `sublist()` that are
+                different, like `[...] & [..., a]` while caching calls that are
+                the same as in `[..., a] & [..., b]`.*
+
+            2.  Bind `e` to the `sublist()` invocation for `s`.
+
+        2.  Else if `s` precedes a rest element (or there is no rest element):
+
+            1.  Let `e` be `i : ("[]", [index])` where `index` is the zero-based
+                index of this element subpattern.
+
+            2.  Bind `e` to the `[]` invocation for `s`.
+
+        3.  Else `s` is a non-rest element after the rest element:
+
+            1.  Let `e` be `i : ("tail[]", [index])` where `index` is the
+                zero-based index of this element subpattern.
+
+                *Note the "tail" in the invocation key name. This is to
+                distinguish elements after a rest element at some position from
+                elements at the same position but not following a rest element,
+                as in:*
+
+                ```dart
+                switch (list) {
+                  case [var a, ..., var c]: ...
+                  case [var a, _,   var d]: ...
+                }
+                ```
+
+                *Here, `c` and `d` may have different values and `d` should not
+                use the previously cached value of `c` even though they are both
+                the third element of the same list. So we use an invocation key
+                of "[]" for `c` and "tail[]" for `d`.*
+
+            2.  Bind `e` to the `[]` invocation for `s`.
 
         3.  Bind invocations in the element subpattern using parent `e`.
 
@@ -2726,9 +2951,21 @@ Here is one way it could be broken down into separate pieces:
 
 ## Changelog
 
-### 2.11
+### 2.13
 
 -   Refine variable and scoping rules in cases that share a body (#2553).
+
+### 2.12
+
+-   Add `...` rest patterns in list and map patterns (#2453).
+
+-   Change context type schema to consistently use `?` in patterns where the
+    type isn't known instead of `?` for unannotated variable patterns and
+    `Object?` for other patterns.
+
+### 2.11
+
+-   Clarify implicit coercions and casts (#2488).
 
 ### 2.10
 
