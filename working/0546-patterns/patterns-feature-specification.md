@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 2.10 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.11 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -1345,8 +1345,8 @@ upwards to the surrounding pattern:
 var [int x] = ...
 ```
 
-Here, we infer `List<int>` for the list pattern based on the type of the element
-subpattern. Or downwards:
+Here, we infer `List<int>` for the list pattern's context type schema based on
+the type of the element subpattern. Or downwards:
 
 ```dart
 var <int>[x] = ...
@@ -1402,30 +1402,69 @@ To orchestrate this, type inference on patterns proceeds in three phases:
     a type *schema* and not a *type* because there may be holes where types
     aren't known yet.
 
+    We only calculate a pattern type schema for pattern variable declarations
+    and pattern assignments. In matching contexts (switch cases and if-case
+    statements), the pattern context type schema is not used, no downwards
+    inference is performed from the pattern to the matched value expression, and
+    no coercions or casts from `dynamic` are inserted in the matched value
+    expression.
+
+    *It would be hard to apply inference from cases in a switch to the value
+    since there are multiple cases and it's not clear how to unify that. Even in
+    if-case statements, it's not clear that downwards inference is desirable,
+    since the intent of the pattern is to ask a question about the matched
+    object, and not necessarily to try to force a certain answer.*
+
 2.  **Calculate the static type of the matched value.** A pattern always occurs
     in the context of some matched value. For pattern variable declarations,
     this is the initializer. For switches and if-case statements, it's the value
     being matched.
 
-    Using the pattern's type schema as a context type, infer missing types on
-    the value expression. This is the existing type inference rules on
-    expressions. It yields a complete static type for the matched value.
+    Using the pattern's type schema as a context type (if not in a matching
+    context), infer missing types on the value expression. This is the existing
+    type inference rules on expressions. It yields a complete static type for
+    the matched value. This process may also insert implicit coercions and casts
+    from `dynamic` in the matched value expression.
+
+    *For example:*
+
+    ```dart
+    T id<T>(T t) => t;
+    dynamic d = 'str';
+    var (double n, int Function(int) f, String s) = (1, id, d);
+    ```
+
+    *This generates a type schema of `(double, int Function(int), String)` from
+    the pattern. That type schema is applied to the initializer, which inserts
+    coercions and casts to become:*
+
+    ```dart
+    var (double n, int Function(int) f, String s) = (1.0, id<int>, d as String);
+    ```
 
 3.  **Calculate the static type of the pattern.** Using that value type, recurse
     through the pattern again downwards to the leaf subpatterns filling in any
-    holes in the type schema. When that completes, we now have a full static
-    type for the pattern and all of its subpatterns.
+    holes in the type schema. This process may also insert implicit coercions
+    and casts from `dynamic` when values flow into a pattern during matching.
 
-The full process only comes into play for pattern variable declarations and
-pattern assignment. For switch cases and if-case statements, the pattern context
-type schema is not used and no downwards inference is performed from the pattern
-to the matched value expression.
+    *For example:*
 
-*It would be hard to apply inference from cases in a switch to the value since
-there are multiple cases and it's not clear how to unify that. Even in case-if
-statements, it's not clear that downwards inference is desirable, since the
-intent of the pattern is to ask a question about the matched object, and not
-necessarily to try to force a certain answer.*
+    ```dart
+    T id<T>(T t) => t;
+    (T Function<T>(T), dynamic) record = (t, 'str');
+    var (int Function(int) f, String s) = record;
+    ```
+
+    *Since the right-hand is not a record literal, we can't use the pattern's
+    context type schema to insert coercions when the record is being created.
+    However, the matched value type `(T Function<T>(T), dynamic)` is allowed by
+    the record pattern's required type `(Object?, Object?)`, the field matched
+    value type `T Function<T>(T)` is allowed by the field required type `int
+    Function(int)`, and the field matched value type `dynamic` is allowed by the
+    field required type `String)`. So the declaration is valid. Coercions are
+    inserted after destructuring each record field before passing them to the
+    field subpatterns. At runtime, when the record is destructured during
+    matching, the coercions are applied. This is specified below.*
 
 #### Pattern context type schema
 
@@ -1570,13 +1609,13 @@ To type check a pattern `p` being matched against a value of type `M`:
         *   `C` is not assignable to the operator's parameter type,
         *   or if the operator's return type is not assignable to `bool`.
 
-    3.  Else the operator is `==` or `!=`. It is a compile-time error if `C?` is
-        not assignable to `M`'s `==` method parameter type. *The language
-        screens out `null` before calling the underlying `==` method, which is
-        why `C?` is the allowed type. Since Object declares `==` to accept
-        `Object` on the right, this compile-time error can only happen if a
-        user-defined class has an override of `==` with a `covariant`
-        parameter.*
+    3.  Else the operator is `==` or `!=`. It is a compile-time error if `C` is
+        not assignable to `T?` where `T` is `M`'s `==` method parameter type.
+        *The language screens out `null` before calling the underlying `==`
+        method, which is why `T?` is the allowed type. Since Object declares
+        `==` to accept `Object` on the right, this compile-time error can only
+        happen if a user-defined class has an override of `==` with a
+        `covariant` parameter.*
 
 *   **Cast**:
 
@@ -1594,45 +1633,53 @@ To type check a pattern `p` being matched against a value of type `M`:
     [nonnull]: https://github.com/dart-lang/language/blob/master/accepted/2.12/nnbd/feature-specification.md#null-promotion
 
 *   **Constant**: Type check the pattern's value in context type `M`. *The
-    context type comes into play for things like type arguments and
-    int-to-double:*
+    context type comes into play for things like type argument inference,
+    int-to-double, and implicit generic function instantiation.*
 
-    ```dart
-    double d = 1.0;
-    switch (d) {
-      case 1: ...
-    }
-    ```
-
-    *Here, the `1` constant pattern in the case is inferred in a context type of
-    `double` to be `1.0` and so does match.*
-
-    *Note that the pattern's value must be a constant, but there is no
+    *Note that the pattern's value must be a constant, but there is no longer a
     restriction that it must have a primitive operator `==`. Unlike switch cases
     in current Dart, you can have a constant with a user-defined operator `==`
     method. This lets you use constant patterns for user-defined types with
     custom value semantics.*
 
-* **Variable**:
+    *Note also that the restriction that constants must be a subtype of the
+    matched value's static type is removed. This is a currently an error in
+    Dart:*
 
-  1.  In an assignment context, the required type of `p` is the declared 
-      (unpromoted) type of the variable that `p` resolves to.
+    ```dart
+    class A {}
+    class B { const B(); }
 
-  2. Else if the variable has a type annotation, the required type of `p` is
-     that type, as is the declared type of the variable introduced by `p`.
+    test(A a) {
+      switch (A()) {
+        case const B(): ...
+      }
+    }
+    ```
 
-  3. Else the required type of `p` is `M`, as is the declared type of the
-     variable introduced by `p`. *This means that an untyped variable pattern
-     can have its type indirectly inferred from the type of a superpattern:*
+    *There is no error under this proposal because it's possible for the
+    constant to have a user-defined `==` method such that this could match.*
 
-     ```dart
-     var <(num, Object)>[(a, b)] = [(1, true)]; // a is num, b is Object.
-     ```
+*   **Variable**:
 
-     *The pattern's context type schema is `List<(num, Object>)`. Downwards
-     inference uses that to infer `List<(num, Object>)` for the initializer.
-     That inferred type is then destructured and used to infer `num` for `a`
-     and `Object` for `b`.*
+    1.  In an assignment context, the required type of `p` is the declared
+        (unpromoted) type of the variable that `p` resolves to.
+
+    2.  Else if the variable has a type annotation, the required type of `p` is
+        that type, as is the declared type of the variable introduced by `p`.
+
+    3.  Else the required type of `p` is `M`, as is the declared type of the
+        variable introduced by `p`. *This means that an untyped variable pattern
+        can have its type indirectly inferred from the type of a superpattern:*
+
+        ```dart
+        var <(num, Object)>[(a, b)] = [(1, true)]; // a is num, b is Object.
+        ```
+
+        *The pattern's context type schema is `List<(num, Object>)`. Downwards
+        inference uses that to infer `List<(num, Object>)` for the initializer.
+        That inferred type is then destructured and used to infer `num` for `a`
+        and `Object` for `b`.*
 
 *   **Parenthesized**: Type-check the inner subpattern using `M` as the matched
     value type.
@@ -1727,16 +1774,58 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     3.  The required type of `p` is `X`.
 
-It is a compile-time error if:
+If `p` with required type `T` is in an irrefutable context:
 
-*   The type of an expression in a guard clause is not assignable to `bool`.
+    *   It is a compile-time error if `M` is not assignable to `T`.
+        *Destructuring and variable patterns can only be used in declarations
+        and assignments if we can statically tell that the destructuring and
+        variable binding won't fail to match.*
 
-*   A pattern `p` is in an irrefutable context, it is type checked against a
-    matched value type `M` to have a required type `T`, and `M` is not
-    assignable to `T`. *Destructuring and variable patterns can only be used in
-    declarations and assignments if we can statically tell that the
-    destructuring and variable binding won't fail to match (though it might
-    throw a runtime exception from implicit downcasts from `dynamic`).*
+    *   Else if `M` is not a subtype of `T` then an implicit coercion or cast is
+        inserted before the pattern binds the value, tests the value's type,
+        destructures the value, or invokes a function with the value as a target
+        or argument.
+
+        *Each pattern that requires a certain type can be thought of as an
+        "assignment point" where an implicit coercion may happen when a value
+        flows in during matching. Examples:*
+
+        ```dart
+        var record = (x: 1 as dynamic);
+        var (x: String _) = record;
+        ```
+
+        *Here no coercion is performed on the record pattern since `(x:
+        dynamic)` is a subtype of `(x: Object?)` (the record pattern's required
+        type). But an implicit cast from `dynamic` is inserted when the
+        destructured `x` field flows into the inner `String _` pattern since
+        `dynamic` is not a subtype of `String`. In this example, the cast will
+        fail and throw an exception.*
+
+        ```dart
+        T id<T>(T t) => t;
+        var record = (x: id);
+        var (x: int Function(int) _) = record;
+        ```
+
+        *Here, again no coercion is applied to the record flowing in to the
+        record pattern, but a generic instantiation is inserted when the
+        destructured field `x` field flows into the inner `int Function(int) _`
+        pattern.*
+
+        *We only insert coercions in irrefutable contexts:*
+
+        ```dart
+        dynamic d = 1;
+        if (d case String s) print('then') else print('else');
+        ```
+
+        *This prints "else" instead of throwing an exception because we don't
+        insert a _cast_ from `dynamic` to `String` and instead let the `String
+        s` pattern _test_ the value's type, which then fails to match.*
+
+It is a compile-time error if the type of an expression in a guard clause is not
+assignable to `bool`.
 
 ### Pattern uses
 
@@ -2672,6 +2761,10 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.11
+
+-   Clarify implicit coercions and casts (#2488).
 
 ### 2.10
 
