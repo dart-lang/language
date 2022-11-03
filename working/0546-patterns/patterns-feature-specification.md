@@ -1634,23 +1634,9 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     [nonnull]: https://github.com/dart-lang/language/blob/master/accepted/2.12/nnbd/feature-specification.md#null-promotion
 
-*   **Constant**: Nothing to do. When type-checking the constant expression,
-    use no context type.
-
-    *Constant patterns can only appear in refutable contexts, and we don't want
-    the matched value type to cause a coercion that would change the constant
-    value when the intent of the pattern is to see if the matched value _is_
-    that value, not to _make_ it so. In other words, this does not match:*
-
-    ```dart
-    switch (const Set<int>()) {
-      case const Set(): ...
-    }
-    ```
-
-    *We don't use `Set<int>` as the context type to infer a type argument for
-    the set in `const Set()`, so it ends up as `const Set<dynamic>()`, which is
-    not the same as `const Set<int>` and the case doesn't match.*
+*   **Constant**: Type check the pattern's value in context type `M`. *The
+    context type comes into play for things like type argument inference,
+    int-to-double, and implicit generic function instantiation.*
 
     *Note that the pattern's value must be a constant, but there is no longer a
     restriction that it must have a primitive operator `==`. Unlike switch cases
@@ -1789,41 +1775,58 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     2.  The required type of `p` is `X`.
 
-It is a compile-time error if:
+If `p` with required type `T` is in an irrefutable context:
 
-*   The type of an expression in a guard clause is not assignable to `bool`.
+    *   It is a compile-time error if `M` is not assignable to `T`.
+        *Destructuring and variable patterns can only be used in declarations
+        and assignments if we can statically tell that the destructuring and
+        variable binding won't fail to match.*
 
-*   `p` is in an irrefutable context, it has a required type `T`, and `M` is not
-    assignable to `T`. *Destructuring and variable patterns can only be used in
-    declarations and assignments if we can statically tell that the
-    destructuring and variable binding won't fail to match (though it might
-    throw a runtime exception from implicit downcasts from `dynamic`).*
+    *   Else if `M` is not a subtype of `T` then an implicit coercion or cast is
+        inserted before the pattern binds the value, tests the value's type,
+        destructures the value, or invokes a function with the value as a target
+        or argument.
 
-If `p` has required type `T` and `M` is not a subtype of `T` but is assignable,
-then an implicit coercion or cast is inserted before the pattern accesses the
-value. *Each pattern that requires a certain type can be thought of as an
-"assignment point" where an implicit coercion may happen when a value flows in
-during matching. Examples:*
+        *Each pattern that requires a certain type can be thought of as an
+        "assignment point" where an implicit coercion may happen when a value
+        flows in during matching. Examples:*
 
-```dart
-var record = (x: 1 as dynamic);
-var (x: int _) = record;
-```
+        ```dart
+        var record = (x: 1 as dynamic);
+        var (x: String _) = record;
+        ```
 
-*Here no coercion is performed on the record pattern since `(x: dynamic)` is a
-subtype of `(x: Object?)` (the record pattern's required type). But an implicit
-cast from `dynamic` is inserted when the destructured `x` field flows into the
-inner `int _` pattern since `dynamic` is not a subtype of `int`.*
+        *Here no coercion is performed on the record pattern since `(x:
+        dynamic)` is a subtype of `(x: Object?)` (the record pattern's required
+        type). But an implicit cast from `dynamic` is inserted when the
+        destructured `x` field flows into the inner `String _` pattern since
+        `dynamic` is not a subtype of `String`. In this example, the cast will
+        fail and throw an exception.*
 
-```dart
-T id<T>(T t) => t;
-var record = (x: id);
-var (x: int Function(int) _) = record;
-```
+        ```dart
+        T id<T>(T t) => t;
+        var record = (x: id);
+        var (x: int Function(int) _) = record;
+        ```
 
-*Here, again no coercion is applied to the record flowing in to the record
-pattern, but a generic instantiation is inserted when the destructured field `x`
-field flows into the inner `int Function(int) _` pattern.*
+        *Here, again no coercion is applied to the record flowing in to the
+        record pattern, but a generic instantiation is inserted when the
+        destructured field `x` field flows into the inner `int Function(int) _`
+        pattern.*
+
+        *We only insert coercions in irrefutable contexts:*
+
+        ```dart
+        dynamic d = 1;
+        if (d case String s) print('then') else print('else');
+        ```
+
+        *This prints "else" instead of throwing an exception because we don't
+        insert a _cast_ from `dynamic` to `String` and instead let the `String
+        s` pattern _test_ the value's type, which then fails to match.*
+
+It is a compile-time error if the type of an expression in a guard clause is not
+assignable to `bool`.
 
 ### Pattern uses
 
