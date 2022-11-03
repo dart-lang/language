@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.17 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.18 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -247,18 +247,30 @@ void foo() {
 
 Before, the marked line could only be declaring a local function named `on`.
 With record types, it could be a second `on` clause for the `try` statement
-whose matched type is the record type `(a, b)`. When presented with this
-ambiguity, we disambiguate by treating `on` as a clause for `try` and not a
-local function. This is technically a breaking change, but is unlikely to affect
-any code in the wild.
+whose matched type is the record type `(a, b)`.
 
-Because this change does not seem to break a significant fraction of code in the
-wild and our parser is currently not aware of language versioning, we make this
-grammar change unconditionally when parsing a Dart library targeting any
-language version. In a Dart library whose language version is prior to the
-version that records ship in, an `on` clause followed by a parenthesized type
-will be parsed as a record type, which will then be reported as an error since
-record types are not supported in that language version.
+*We could disambiguate this by saying we treat the code as an `on` clause only
+if it _could_ be successfully parsed as one. In other words, if the thing after
+`on` could only be a parameter list and not a record type, we would continue to
+parse it as a local function declaration. But that adds significant complexity
+and lookahead to the parser. Even when _not_ ambiguous, it is certainly
+confusing to have a local function named `on` immediately following a `try`
+block.
+
+Whenever `on` appears after a `try` block or after a preceding `on` clause on a
+try block, we unconditionally parse it as an `on` clause and not a local
+function. *This may yield a syntax error if the code after `on` is not a `on`
+clause (but would be a valid function declaration). In other words, you can't
+have a local function named `on` with no return type immediately following a
+`try` block.*
+
+This is technically a breaking change, but is unlikely to affect any code in the
+wild. Given that, and that our parser is currently not aware of language
+versioning, we make this grammar change unconditionally when parsing a Dart
+library targeting any language version. In a Dart library whose language version
+is prior to the version that records ship in, an `on` keyword followed by a
+parenthesized type will be parsed as a record type, which will then be reported
+as an error since record types are not supported in that language version.
 
 ### Ambiguity with metadata annotations
 
@@ -815,6 +827,11 @@ this.*
 
 
 ## CHANGELOG
+
+### 1.18
+
+- Unconditionally treat `on` after a `try` block as an on clause even when not
+  ambiguous (#2599).
 
 ### 1.17
 
