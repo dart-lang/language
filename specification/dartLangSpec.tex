@@ -7898,9 +7898,10 @@ function applications involving other types. Here is an example:%
 \begin{dartCode}
 \CLASS{} A<X \EXTENDS{} num> \{
   X x;
+  A(this.x);
 \}
 \\
-A<Object> a;
+A<Object?> a;
 \end{dartCode}
 
 \commentary{%
