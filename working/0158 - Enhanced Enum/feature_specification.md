@@ -1,6 +1,7 @@
 # MOVED TO ACCEPTED
 
-Further development happens in the [accepted folder](../../accepted/future-releases/enhanced-enums/feature_specification.md).
+This is a stale, older version. For the accepted version, which launched in Dart 2.17, please see 
+[the feature specification](https://github.com/dart-lang/language/blob/master/accepted/2.17/enhanced-enums/feature-specification.md).
 
 # Dart Enhanced Enum Classes
 

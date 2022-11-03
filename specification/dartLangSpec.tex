@@ -15989,18 +15989,11 @@ of $T$ nor of \code{Future<$T$>})}.
 % NOTICE: Removed the requirement that an error thrown by $e$ is caught in a
 % future. There is no reason $var x = e; await x;$ and $await e$ should behave
 % differently, and no implementation actually implemented it.
-Let $R$ be the run-time type of $o$.
-If $R$ implements \code{Future<$S$>} for some $S$
-(\ref{interfaceSuperinterfaces}) then
-it is a dynamic type error if $S$ is not a subtype of $T$.
-Otherwise
-(\commentary{if no run-time error occurred}),
-let $f$ be $o$.
-
-Otherwise
-(\commentary{when $R$ does not implement \code{Future}}),
-let $f$ be an object whose run-time type implements \code{Future<$T$>},
-which is completed with the value $o$.
+If the run-time type of $o$ is a subtype of \code{Future<$T$>},
+then let $f$ be $o$;
+otherwise let $f$ be the result of creating
+a new object using the constructor \code{Future<$T$>.value()}
+with $o$ as its argument.
 
 \LMHash{}%
 Next, the stream associated with the innermost enclosing asynchronous for loop

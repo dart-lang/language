@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.13 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.18 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -210,8 +210,7 @@ It is a compile-time error if a record type has any of:
     this is symmetric with record expressions and leaves the potential for
     later support for parentheses for grouping in type expressions.*
 
-*   A named field named `hashCode`, `runtimeType`, `noSuchMethod`, or
-    `toString`.
+*   A field named `hashCode`, `runtimeType`, `noSuchMethod`, or `toString`.
 
 *   A field name that starts with an underscore.
 
@@ -248,15 +247,130 @@ void foo() {
 
 Before, the marked line could only be declaring a local function named `on`.
 With record types, it could be a second `on` clause for the `try` statement
-whose matched type is the record type `(a, b)`. When presented with this
-ambiguity, we disambiguate by treating `on` as a clause for `try` and not a
-local function. This is technically a breaking change, but is unlikely to affect
-any code in the wild.
+whose matched type is the record type `(a, b)`.
 
-**TODO: This section should be removed if we change the record type syntax to
-avoid this ambiguity ([#2469][]).**
+*We could disambiguate this by saying we treat the code as an `on` clause only
+if it _could_ be successfully parsed as one. In other words, if the thing after
+`on` could only be a parameter list and not a record type, we would continue to
+parse it as a local function declaration. But that adds significant complexity
+and lookahead to the parser. Even when _not_ ambiguous, it is certainly
+confusing to have a local function named `on` immediately following a `try`
+block.
 
-[#2469]: https://github.com/dart-lang/language/issues/2469
+Whenever `on` appears after a `try` block or after a preceding `on` clause on a
+try block, we unconditionally parse it as an `on` clause and not a local
+function. *This may yield a syntax error if the code after `on` is not a `on`
+clause (but would be a valid function declaration). In other words, you can't
+have a local function named `on` with no return type immediately following a
+`try` block.*
+
+This is technically a breaking change, but is unlikely to affect any code in the
+wild. Given that, and that our parser is currently not aware of language
+versioning, we make this grammar change unconditionally when parsing a Dart
+library targeting any language version. In a Dart library whose language version
+is prior to the version that records ship in, an `on` keyword followed by a
+parenthesized type will be parsed as a record type, which will then be reported
+as an error since record types are not supported in that language version.
+
+### Ambiguity with metadata annotations
+
+A metadata annotation may or may not have an argument list following it. A
+variable declaration may omit a preceding type annotation. Likewise, a function
+declaration may omit a preceding return type. This combination of syntax where
+an optional trailing element is followed by syntax with an optional preceding
+element can lead to ambiguity. In particular:
+
+```dart
+@metadata (a, b) function() {}
+```
+
+This could be a metadata annotation `@metadata(a, b)` associated with a function
+declaration with no return type. Or it could be a metadata annotation
+`@metadata` associated with a function whose return type is the record type `(a,
+b)`.
+
+In practice, idiomatically written code is clear thanks to whitespace:
+
+```dart
+@metadata(a, b) function() {}
+
+@metadata (a, b) function() {}
+```
+
+The former applies `(a, b)` to the metadata annotation and the latter is a
+return type. We disambiguate in the same way, by making whitespace after a
+metadata annotation name significant. Change the grammar to:
+
+```
+metadatum ::= identifier                                    // Existing rule.
+            | qualifiedName                                 // Existing rule.
+            | constructorDesignation NO_SPACE arguments  // Changed.
+```
+
+The `NO_SPACE` lexical rule matches when there are no whitespace characters or
+comments (according to the existing `WHITESPACE` and `COMMENT` lexical rules)
+between the `constructorDesignation` and `arguments`. In other words, for an
+argument list to be part of the metadata annotation, the `(` must occur
+immediately after the last character in the `constructorDesignation`. The last
+character in `constructorDesignation` may be an identifier or the `>` in a
+type argument list.
+
+```dart
+// These are parsed as argument lists to the annotation:
+@metadata(x, y) a;
+
+@metadata<T>(x, y) a;
+
+@metadata <T>(x, y) a;
+
+// These are parsed as record variable types:
+@metadata (x, y) a;
+
+@metadata
+(x, y) a;
+
+@metadata/* comment */(x, y) a;
+
+@metadata // Comment.
+(x,) a;
+```
+
+Note that the `NO_SPACE` rule is applied unconditionally, even when the metadata
+annotation appears in a context where no ambiguity with record types is
+possible, as in:
+
+```dart
+@metadata (x, y)
+class C {}
+```
+
+This example has a syntax error because the `(x, y)` is not parsed as arguments
+to the metadata and can't be parsed as anything else either.
+
+Another interesting case is:
+
+```dart
+@metadata<T> (x, y) a;
+```
+
+This is a syntax error because the `<T>` means there *must* be an argument list
+after it, but the `NO_SPACE` in `metadatum` prevents it from being parsed as
+such and the result is an error. *We could ignore whitespace after the `>` by
+tweaking the grammar, but we choose to require `NO_SPACE` even here since
+`@metadata<T>` appears to be a generic instantiation and could potentially be
+valid syntax in the future.*
+
+**Breaking change:** Existing metadata annotations with whitespace before their
+argument lists will no longer parse correctly. In a corpus of 18,672,247 lines
+of code containing 409,825 metadata annotations, 46,245 had argument lists and
+none of those had whitespace before the argument list. Note that this analysis
+only captures code that has been committed. Code being written may be less well
+formatted, but we expect problems from this to be rare.
+
+Because this change does not seem to break a significant fraction of code in the
+wild and our parser is currently not aware of language versioning, we make this
+grammar change unconditionally when parsing a Dart library targeting any
+language version.
 
 ## Static semantics
 
@@ -297,6 +411,11 @@ class extends Record {
 
 ### Subtyping
 
+Subtyping for record types has been incorporated into the main subtyping
+specification
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
+Briefly:
+
 The class `Record` is a subtype of `Object` and `dynamic` and a supertype of
 `Never`. All record types are subtypes of `Record`, and supertypes of `Never`.
 
@@ -307,6 +426,11 @@ the types of all fields of `A` are subtypes of the corresponding field types of
 no "row polymorphism" or "width subtyping".*
 
 ### Upper and lower bounds
+
+Bounds computations for record types have been incorporated into the main
+specification
+[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).
+Briefly:
 
 If two record types have the same shape, their least upper bound is a new
 record type of the same shape where each field's type is the least upper bound
@@ -337,13 +461,86 @@ var c = cond ? a : b; // c has type `Record`.
 
 The greatest lower bound of records with different shapes is `Never`.
 
-### Type inference and promotion
+### Type inference
 
-Type inference and promotion flows through records in much the same way it does
-for instances of generic classes (which are covariant in Dart just like record
-fields are) and collection literals.
+Every record literal has a static type, which is associated with it via
+inference (there is no syntax for explicitly associating a specific static type
+with a record literal).  As with other constructs, we define type inference for
+record expressions with respect to a context type schema which is determined by
+the surrounding context of the inferred expression.  Unlike nominal classes (but
+like function literals) we choose to infer the most specific possible type for
+record literals, even if that type is more precise than the type specified by
+the context type schema.  This choice (as with function literals) reflects the
+fact that record types (like function types in Dart) are soundly variant: that
+is, the subtyping is properly covariant and requires no runtime checking.
 
-**TODO: Specify this more precisely.**
+For convenience, we generally write function types with all named parameters in
+an unspecified canonical order, and similarly for the named fields of record
+types.  In all cases unless otherwise specifically called out, order of named
+parameters and fields is semantically irrelevant: any two types with the same
+named parameters (named fields, respectively) are considered the same type.
+
+Similarly, function and method invocations with named arguments and records with
+named field entries are written with their named entries in an unspecified
+canonical order and position.  Unless otherwise called out, position of named
+entries is semantically irrelevant, and all invocations and record literals with
+the same named entries (possibly in different orders or locations) and the same
+positional entries are considered equivalent.
+
+Given a type schema `K` and a record expression `E` of the general form `(e1,
+..., en, d1 : e{n+1}, ..., dm : e{n+m})` inference proceeds as follows.
+
+If `K` is a record type schema of the form `(K1, ..., Kn, {d1 : K{n+1}, ....,
+dm : K{n+m}})` then:
+  - Each `ei` is inferred with context type schema `Ki` to have type `Si`
+    - Let `Ri` be the greatest closure of `Ki`
+    - If `Si` is a subtype of `Ri` then let `Ti` be `Si`
+    - Otherwise, if `Si` is `dynamic`, then we insert an implicit cast on `ei`
+      to `Ri`, and let `Ti` be `Ri`
+    - Otherwise, if `Si` is coercible to `Ri` (via some sequence of call method
+      tearoff or implicit generic instantiation coercions), then we insert the
+      appropriate implicit coercion(s) on `ei`.  Let `Ti` be the type of the
+      resulting coerced value (which must be a subtype of `Ri`, possibly
+      proper).
+    - Otherwise, it is a static error.
+  - The type of `E` is `(T1, ..., Tn, {d1 : T{n+1}, ...., dm : T{n+m}})`
+
+If `K` is any other type schema:
+  - Each `ei` is inferred with context type schema `_` to have type `Ti`
+  - The type of `E` is `(T1, ..., Tn, {d1 : T{n+1}, ...., dm : T{n+m}})`
+
+As noted above, contrary to the practice for runtime checked covariant nominal
+types, we do not prefer the context type over the more precise upwards type.
+The following example illustrates this:
+```dart
+  // No static error.
+  // Inferred type of the record is (int, double)
+  (num, num) r = (3, 3.5)..$0.isEven;
+```
+
+Also note that implicit casts and other coercions are considered to be applied
+as part of inference, hence:
+```dart
+  class Callable {
+    void call(num x) {}
+  }
+  T id<T>(T x) => x;
+  // No static error.
+  // Inferred type of the record is:
+  //    (int, double, int Function(int), void Function(num))
+  var c = Callable();
+  dynamic d = 3;
+  (num, double, int Function(int), void Function(num)) r = (d, 3, id, c);
+```
+and the record initialization in the last line above is implicitly coerced to be
+the equivalent of:
+```dart
+  (num, double, int Function(int), void Function(num)) r =
+     (d as num, 3.0, id<int>, c.call);
+```
+
+See issue [2488](https://github.com/dart-lang/language/issues/2488) for some of
+the background discussion on the choices specified in this section.
 
 ### Constants
 
@@ -586,7 +783,73 @@ The runtime type of `pair` is `(int, double)`, not `(num, Object)`, However, the
 variable declaration is still valid and sound because records are naturally
 covariant in their field types.
 
+### Interactions with libraries using older language versions
+
+The records feature is language versioned, as usual with new Dart features.
+This means that it will be an error to use the syntax for records in libraries
+which do not have a language version greater than or equal to the language
+version in which records are released.  More specifically, assuming that `v` is
+the language version in which records are released, the following errors apply.
+
+It is an error for the identifier `Record`, denoting the `Record` class from
+`dart:core`, where that import scope name is only imported from platform
+libraries, to appear in a library whose language version is less than `v`.
+
+It is an error for the record literal syntax (e.g. `(3, 4)`) to be used
+syntactically in a library whose language version is less than `v`.
+
+It is an error for the record type syntax (e.g. `(int, int)`) to be used
+syntactically in a library whose language version is less than `v`.
+
+*Note that the above errors only apply to direct syntactic uses of the new
+record syntax in legacy libraries.  It is not an error for a library whose
+language version is less than `v` (a "legacy library") to include types which
+denote or include the `Record` class, record types or record expressions when
+these terms arise directly or indirectly from references to another library
+whose language version is greater than or equal to `v`.  For example, such a
+legacy library may reference a typedef name which is bound to a record type in
+another library, and the semantic interpretation of the typedef is as the
+underlying record type, just as it would be for any other type.  Similarly, type
+inference may introduce record types into a legacy library, and such types will
+be interpreted by the compiler as record types as usual (that is, there is no
+erasure implied to remove these inferred types).  A legacy library may refer to
+the `Record` class via a library which has re-exported it.  Record values may
+flow into a legacy library via a reference to a member from another library, and
+a legacy library may freely call getters on record values (since there is no new
+syntax for calling a record getter).  The rationale for the choices described in
+this section is that the intent of language versioning (for an additive feature
+such as records) is to ensure that users do not accidentally use new features in
+a package without specifying an SDK constraint which ensures that their code
+will always be run on an SDK which supports the feature.  But in the case of a
+legacy library which references record values or types indirectly via another
+library, the SDK constraint on the referenced library is sufficient to enforce
+this.*
+
+
 ## CHANGELOG
+
+### 1.18
+
+- Unconditionally treat `on` after a `try` block as an on clause even when not
+  ambiguous (#2599).
+
+### 1.17
+
+- Disambiguate record types following metadata annotations (#2469).
+
+### 1.16
+
+- Consistently disallow private and Object member names as positional and named
+  field names in record expressions and types (#2575).
+
+### 1.15
+
+- Specify the interaction between libraries with a language version that
+  supports records and libraries with older language versions.
+
+### 1.14
+
+- Specify type inference, add static semantics to resources/type-system.
 
 ### 1.13
 

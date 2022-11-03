@@ -21,6 +21,13 @@ document
 We assume that type aliases are fully expanded, and that prefixed types are
 resolved to a canonical name.
 
+For convenience, we generally write function types with all named parameters in
+an unspecified canonical order, and similarly for the named fields of record
+types.  In all cases unless otherwise specifically called out, order of named
+parameters and fields is semantically irrelevant: any two types with the same
+named parameters (named fields, respectively) are considered the same type.
+
+
 ## Normalization
 
 The **NORM** relation defines the canonical representative of classes of
@@ -93,6 +100,9 @@ equations apply gives us something like the following:
   - where `R1` = **NORM**(`R`)
   - and `B1` = **NORM**(`B`)
   - and `S1` = **NORM**(`S`)
+- **NORM**(`(S0, ..., Sn, {T0 d0, ..., Tm dm})`) = `(S0', ..., Sn', {T0' d0, ..., Tm' dm})`
+  - where `Si'` = **NORM**(`Si`)
+  - and `Ti'` = **NORM**(`Ti`)
 
 Note that there is currently no place in the type system where normalization can
 apply to intersection types (promoted types). The rule is included here for
