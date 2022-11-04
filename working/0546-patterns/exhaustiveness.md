@@ -306,7 +306,7 @@ are like patterns, but there are only a couple of kinds:
 
 *   An **empty space** contains no values. We'll write it as just "empty".
 
-*   An **extract space** is similar to an [extractor pattern][]. It has a static
+*   An **object space** is similar to an [object pattern][]. It has a static
     type and a set of "named" fields. "Name" is in quotes because it's usually a
     simple string name but we can generalize slightly to allow names like `[2]`
     or `[someConstant]` in order to model list and map element access as named
@@ -314,19 +314,19 @@ are like patterns, but there are only a couple of kinds:
     computable at compile time and can be compared for equality to other keys.
     The value for each field is a space, and spaces can nest arbitrarily deeply.
 
-    An extract space contains all values of the extractor's type (or any
-    subtype) whose field values are contained by the corresponding field spaces.
+    An object space contains all values of the object's type (or any subtype)
+    whose field values are contained by the corresponding field spaces.
 
-    If an extract space has no fields, then it simply contains all values of
-    some type. When the type is "top" (some presumed top type), it is similar to
-    a record pattern in that it contains all values whose fields match. If the
-    extract space has type "top" and no fields, it contains all values.
+    If an object space has no fields, then it simply contains all values of some
+    type. When the type is "top" (some presumed top type), it is similar to a
+    record pattern in that it contains all values whose fields match. If the
+    object space has type "top" and no fields, it contains all values.
 
-    In this document, if an extract space has no fields, we write it just as
-    a type name like `Card`. If its type is "top", we omit the type and write
-    it like `(pips: 3)`.
+    In this document, if an object space has no fields, we write it just as a
+    type name like `Card`. If its type is "top", we omit the type and write it
+    like `(pips: 3)`.
 
-[extractor pattern]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/patterns-feature-specification.md#extractor-matcher
+[object pattern]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/patterns-feature-specification.md#object-pattern
 
 *   A **union space** is a series of two or more spaces. It contains all values
     that are contained by any of its arms. Whenever a union space is created, we
@@ -349,8 +349,8 @@ are like patterns, but there are only a couple of kinds:
 
 ### Types in spaces
 
-Extract spaces have a static type and the algorithm needs to work with those.
-For our purposes, the only thing we need to be able to ask about a type is:
+Object spaces have a static type and the algorithm needs to work with those. For
+our purposes, the only thing we need to be able to ask about a type is:
 
 *   Is it a subtype of some other type? And, conversely, is one type a supertype
     of another? Note that "subtype" and "supertype" aren't "strict". A type is
@@ -365,36 +365,36 @@ An algorithm that works on spaces isn't very useful unless we can plug it in to
 the rest of the system. We need to be able to take Dart constructs and lift them
 into spaces:
 
-*   **Static type:** An extract space with that type and no fields.
+*   **Static type:** An object space with that type and no fields.
 
-*   **Record pattern:** An extract space with type "top". Then lift the record
-    fields to spaces on the extract space. Since extract spaces only have named
+*   **Record pattern:** An object space with type "top". Then lift the record
+    fields to spaces on the object space. Since object spaces only have named
     fields, lift positional fields to implicit names like `field0`, `field1`,
     etc.
 
-*   **List pattern:** An extract space whose type is the corresponding list
-    type. Element subpatterns lift to fields on the extract with names like
-    `[0]`, `[1]`, etc.
+*   **List pattern:** An object space whose type is the corresponding list type.
+    Element subpatterns lift to fields on the object with names like `[0]`,
+    `[1]`, etc.
 
-*   **Map pattern:** Similar to lists, an extract space whose type is the
-    corresponding map type. Element subpatterns are lifted to extract fields
+*   **Map pattern:** Similar to lists, an object space whose type is the
+    corresponding map type. Element subpatterns are lifted to object fields
     whose "names" are based on the map key constant, like `[someConstant]`.
 
-*   **Wildcard pattern:** An extract of type "top" with no fields.
+*   **Wildcard pattern:** An object space of type "top" with no fields.
 
-*   **Variable pattern:** An extract space whose type is the variable's type
+*   **Variable pattern:** An object space whose type is the variable's type
     (which might be inferred).
 
 *   **Literal or constant matcher:** These are handled specially depending on
     the constant's type:
 
     *   We treat `bool` like a sealed supertype with subtypes `true` and
-        `false`. The Boolean constants `true` and `false` are lifted to extract
+        `false`. The Boolean constants `true` and `false` are lifted to object
         patterns of those subtypes.
 
     *   Likewise, we treat enum types as if the enum type was a sealed supertype
         and each value was a singleton instance of a unique subtype for that
-        value. Then an enum constant is lifted to an extract pattern of the
+        value. Then an enum constant is lifted to an object pattern of the
         appropriate subtype.
 
         In the previous card example, we treat `Suit` as a sealed supertype with
@@ -404,12 +404,12 @@ into spaces:
         Dart language. This is just a way to model enums for exhaustiveness
         checking.)
 
-    *   We lift other constants to an extract pattern whose type is a
-        synthesized subtype of the constant's type based on the constant's
-        identity. Each unique value of the constant's type is a singleton
-        instance of its own type, and the constant's type behaves like an
-        *unsealed* supertype. Two constants have the same synthesized subtype if
-        they are identical values.
+    *   We lift other constants to an object pattern whose type is a synthesized
+        subtype of the constant's type based on the constant's identity. Each
+        unique value of the constant's type is a singleton instance of its own
+        type, and the constant's type behaves like an *unsealed* supertype. Two
+        constants have the same synthesized subtype if they are identical
+        values.
 
         This means you don't get exhaustiveness checking for constants, but do
         get reachability checking:
@@ -426,7 +426,7 @@ into spaces:
         the same string constant. Also the switch has a non-exhaustive error
         since it doesn't match the entire `String` type.
 
-*   **Null-check matcher:** An extract space whose type is the underlying
+*   **Null-check matcher:** An object space whose type is the underlying
     non-nullable type of the pattern. It contains a single field, `this` that
     returns the same value it is called on. That field's space is the lifted
     subpattern of the null-check pattern. For example:
@@ -444,14 +444,14 @@ into spaces:
     Card(this: Jack(oneEyed: true))
     ```
 
-*   **Extractor pattern:** An extract space whose type is the extractor
-    pattern's type and whose fields are the lifted fields of the extractor
-    pattern. Positional fields in the extractor pattern get implicit names like
-    `field0`, `field1`, etc.
+*   **Object pattern:** An object space whose type is the object pattern's type
+    and whose fields are the lifted fields of the object pattern. Positional
+    fields in the object pattern get implicit names like `field0`, `field1`,
+    etc.
 
 *   **Declaration matcher:** The lifted space of the inner subpattern.
 
-*   **Null-assert or cast binder:** An extract space of type `top`. These binder
+*   **Null-assert or cast binder:** An object space of type `top`. These binder
     patterns don't often appear in the matcher patterns used in switches where
     exhaustiveness checking applies, but can occur nested inside a [declaration
     matcher][] pattern.
@@ -530,17 +530,17 @@ To calculate `C = A - B`:
     Subtracting a union is equivalent to removing all of the values from all of
     its arms.
 
-*   Otherwise, `A` and `B` must both be extract unions, handled in the next
+*   Otherwise, `A` and `B` must both be object unions, handled in the next
     section.
 
-## Extract subtraction
+## Object subtraction
 
 Before we get into the algorithm, let's try to build an intuition about why it's
-complex and how we might tackle that complexity. Extract spaces are rich data
+complex and how we might tackle that complexity. Object spaces are rich data
 structures: they have a type and an open-ended set of fields which may nest
 spaces arbitrarily deeply.
 
-When subtracting two extracts, they may have different types, or the same. They
+When subtracting two objects, they may have different types, or the same. They
 may have fields that overlap, or a field name may appear in one and not the
 other. All of those interact in interesting ways. For example:
 
@@ -555,7 +555,7 @@ spaces in the obvious way. Here's a similar example:
 Jack(suit: heart|club) - Card(suit: club) = Jack(suit: heart)
 ```
 
-The extracts have different types now, but it still works out. Now consider:
+The objects have different types now, but it still works out. Now consider:
 
 ```
 Card(suit: heart|club) - Jack(suit: club)
@@ -606,12 +606,12 @@ y:    club  (x: ♣︎, y: ♣︎)  (x: ♦︎, y: ♣︎)  (x: ♥︎, y: ♣�
 ```
 
 We don't have a kind of space that naturally represents a "negative" or hole.
-Extract spaces model a rectangular region of contiguous cells. They can easily
+Object spaces model a rectangular region of contiguous cells. They can easily
 represent an entire table, row, column, or cell here. But they can't do a more
 complex shape.
 
 But we do have unions. We can represent an arbitrarily complex shape using a
-union of simple extract shapes that cover everything except the missing parts:
+union of simple object shapes that cover everything except the missing parts:
 
 ```
          x: club          diamond       heart         spade
@@ -636,39 +636,39 @@ spade|heart|diamond, y: Suit)`. The result the algorithm produces is similar:
 (It uses `Suit` instead of `club` for `x` in the first arm because overlapping
 arms are harmless.)
 
-Note that there are multiple ways we could tile a set of extracts around a hole.
+Note that there are multiple ways we could tile a set of objects around a hole.
 There are multiple ways to represent a given space. We just need an algorithm
-that produces *one*. The process of using a union of extracts to represent
+that produces *one*. The process of using a union of objects to represent
 removed spaces harder to visualize with more fields because each fields adds a
 dimension, but the process still works out.
 
-When subtracting extracts with fields, the algorithm's job is to figure out the
-union of extracts that tile the remaining space and do so efficiently to avoid a
+When subtracting objects with fields, the algorithm's job is to figure out the
+union of objects that tile the remaining space and do so efficiently to avoid a
 combinatorial explosion of giant unions.
 
 ### Mismatched fields
 
 Another problem unique to Dart's approach to pattern matching is that when
-subtracting two extract spaces, they may not have the same set of fields:
+subtracting two object spaces, they may not have the same set of fields:
 
 `Jack(suit: heart) - Face(oneEyed: bool)`
 
 To handle this, when calculating `L - R`, we align the two sets of fields
 according to these rules:
 
-*   If a field in `R` is not in `L` then infer a field in `L` with an extract
+*   If a field in `R` is not in `L` then infer a field in `L` with an object
     whose type is the static type of the field in `L`'s type. In the above
     example, we would infer `oneEyed: bool` for the left space.
 
-    Since an extract only contains values of the matched type, we can assume
+    Since an object only contains values of the matched type, we can assume
     that the field will be present and that every value of that field will be of
     the field's type. Therefore, a field space matching the field's static type
     is equivalent to not matching on the field at all.
 
-*   If a field in `L` is not in `R` then infer a field in `R` with an extract of
+*   If a field in `L` is not in `R` then infer a field in `R` with an object of
     type `top`.
 
-    An extract with no field allows all values of that field, so inferring "top"
+    An object with no field allows all values of that field, so inferring "top"
     when subtracting is equivalent to not having the field. (We can't infer
     using the type of the corresponding field in `R`'s type because `R`'s type
     might be a supertype of `L` or even "top" and the field might not exist.)
@@ -678,7 +678,7 @@ it, then it is inferred using these rules.
 
 ### Expanding types
 
-Even without fields, subtraction of extract spaces can be interesting. Consider:
+Even without fields, subtraction of object spaces can be interesting. Consider:
 
 ```
 Face - Jack
@@ -711,7 +711,7 @@ We only expand a sealed supertype if doing so gets closer to a sealed subtype
 on the right. If `Pip` was sealed in the above example, we wouldn't expand it.
 This way, we minimize the size of the unions we're working with.
 
-We can also expand *extract spaces* and not just types, even when the space has
+We can also expand *object spaces* and not just types, even when the space has
 fields. In that case, we copy the fields and produce a union of the results. So:
 
 ```
@@ -750,8 +750,8 @@ FutureOr<int> - Future  expands to:  Future<int>|int - Future = int
 
 ### Subtraction
 
-OK, that's enough preliminaries. Here's the algorithm. To subtract two
-extract spaces `L - R`:
+OK, that's enough preliminaries. Here's the algorithm. To subtract two object
+spaces `L - R`:
 
 1.  If `L`'s type is sealed and `R`'s type is in its sealed subtype hierarchy,
     then expand `L` to the union of subtypes and start the whole subtraction
@@ -812,7 +812,7 @@ extract spaces `L - R`:
 
 ### Field set subtraction
 
-We're finally at a point where have two extracts `L` and `R` whose types allow
+We're finally at a point where have two objects `L` and `R` whose types allow
 them to be subtracted in such a way that their fields come into play. We also
 know there's no early out where the result is just `L` or empty.
 
@@ -836,11 +836,11 @@ know there's no early out where the result is just `L` or empty.
     If `changed` is empty, then no fields come into play and the result is
     simply `L`.
 
-3.  Otherwise, the result is a union of extracts where each extract includes
-    one of the changed fields and leaves the others alone. This is how we tile
-    over the holes created by subtracting `R`.
+3.  Otherwise, the result is a union of objects where each object includes one
+    of the changed fields and leaves the others alone. This is how we tile over
+    the holes created by subtracting `R`.
 
-    1.  For each field in `changed`, create an extract with the same type as `L`
+    1.  For each field in `changed`, create an object with the same type as `L`
         with all fields from `fixed`, this field from `changed` and all other
         field names in `changed` set to their original space in `L`.
 
@@ -874,15 +874,15 @@ To calculate if the intersection `I` of spaces `L` and `R` is empty:
 2.  If `L` or `R` is a union, then `I` is empty if the intersection of every
     arm of the union with the other operand is empty.
 
-3.  Otherwise, we're intersecting two extract spaces.
+3.  Otherwise, we're intersecting two object spaces.
 
-    1.  If neither extract's type is a subtype of the other then `I` is empty.
+    1.  If neither object's type is a subtype of the other then `I` is empty.
         They are unrelated types with no (known) intersection.
 
     2.  Otherwise, go through the fields. If the intersection of any
         corresponding pair of fields is empty, then `I` is empty.
 
-    3.  Otherwise, `I` is not empty. We found two extracts where one is a
+    3.  Otherwise, `I` is not empty. We found two objects where one is a
         subtype of the other and the fields (if any) have at least some overlap.
 
 ## Conclusion
@@ -898,7 +898,7 @@ The basic summary is:
     of subtractions over the spaces for a switch's value type and case patterns.
 
 The [prototype][] has a number of tests that try to cover all of the interesting
-cases, though there are so many ways that extract spaces can vary and compose
+cases, though there are so many ways that object spaces can vary and compose
 that it's hard to be sure everything is tested.
 
 ## Next steps
@@ -913,7 +913,7 @@ There are a couple of missing pieces that need to be done:
 ### Generics
 
 The patterns proposal supports type arguments and even [type patterns][] on
-extractors:
+objects:
 
 [type patterns]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/patterns-feature-specification.md#type-argument-binder
 
@@ -924,7 +924,7 @@ switch (obj) {
 }
 ```
 
-Extract spaces currently only support simple types and subtypes. We'll need to
+Object spaces currently only support simple types and subtypes. We'll need to
 extend that to handle generics, variance, and bounds. We might be able to model
 type arguments sort of like additional fields.
 
@@ -940,7 +940,7 @@ is particularly helpful for lists.
 
 ### List length
 
-We lift list element accesses to named fields in extract spaces. We can also
+We lift list element accesses to named fields in object spaces. We can also
 model the list length as a named field of type `int`. But without smarter
 handling for integers that won't handle cases like:
 

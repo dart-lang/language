@@ -192,7 +192,7 @@ Before introducing each pattern in detail, here is a summary with some examples:
 | [List][listPattern] | `[subpattern1, subpattern2]` |
 | [Map][mapPattern] | `{"key": subpattern1, someConst: subpattern2}` |
 | [Record][recordPattern] | `(subpattern1, subpattern2)`<br>`(x: subpattern1, y: subpattern2)` |
-| [Extractor][extractorPattern] | `SomeClass(x: subpattern1, y: subpattern2)` |
+| [Object][objectPattern] | `SomeClass(x: subpattern1, y: subpattern2)` |
 
 [logicalOrPattern]: #logical-or-pattern
 [logicalAndPattern]: #logical-and-pattern
@@ -206,7 +206,7 @@ Before introducing each pattern in detail, here is a summary with some examples:
 [listPattern]: #list-pattern
 [mapPattern]: #map-pattern
 [recordPattern]: #record-pattern
-[extractorPattern]: #extractor-pattern
+[objectPattern]: #object-pattern
 
 Here is the overall grammar for the different kinds of patterns:
 
@@ -229,7 +229,7 @@ primaryPattern        ::= constantPattern
                         | listPattern
                         | mapPattern
                         | recordPattern
-                        | extractorPattern
+                        | objectPattern
 ```
 
 As you can see, logical-or patterns (`|`) have the lowest precedence; then
@@ -344,8 +344,8 @@ String asciiCharType(int char) {
 castPattern ::= primaryPattern 'as' type
 ```
 
-A cast pattern is similar to an extractor pattern in that it checks the matched
-value against a given type. But where an extractor pattern is *refuted* if the
+A cast pattern is similar to an object pattern in that it checks the matched
+value against a given type. But where an object pattern is *refuted* if the
 value doesn't have that type, a cast pattern *throws*. Like the null-assert
 pattern, this lets you forcibly assert the expected type of some destructured
 value.
@@ -459,8 +459,8 @@ supporting terse forms of the most common constant expressions like so:
     literals explicitly marked `const`. Likewise with set and map literals
     versus map patterns.
 
-*   Constructor calls are ambiguous with extractor patterns, so we require
-    const constructor calls to be explicitly marked `const`.
+*   Constructor calls are ambiguous with object patterns, so we require const
+    constructor calls to be explicitly marked `const`.
 
 *   Other constant expressions must be marked `const` and surrounded by
     parentheses. This avoids ambiguity with null-assert, logical-or, and
@@ -671,15 +671,15 @@ with a parenthesized pattern. In that case, it is treated as a parenthesized
 pattern. To write a record pattern that matches a single unnamed field, add a
 trailing comma, as you would with the corresponding record expression.
 
-### Extractor pattern
+### Object pattern
 
 ```
-extractorPattern ::= extractorName typeArguments? '(' patternFields? ')'
-extractorName    ::= typeIdentifier | qualifiedName
+objectPattern ::= objectName typeArguments? '(' patternFields? ')'
+objectName    ::= typeIdentifier | qualifiedName
 ```
 
-An extractor matches values of a given named type and then extracts values from
-it by calling getters on the value. Extractor patterns let users destructure
+An object pattern matches values of a given named type and then extracts values
+from it by calling getters on the value. Object patterns let users destructure
 data from arbitrary objects using the getters the object's class already
 exposes.
 
@@ -703,10 +703,10 @@ display(Object obj) {
 
 It is a compile-time error if:
 
-*   `extractorName` does not refer to a type.
+*   `objectName` does not refer to a type.
 
 *   A type argument list is present and does not match the arity of the type of
-    `extractorName`.
+    `objectName`.
 
 *   A `patternField` is of the form `pattern`. Positional fields aren't allowed.
 
@@ -770,7 +770,7 @@ outerPattern                ::= parenthesizedPattern
                               | listPattern
                               | mapPattern
                               | recordPattern
-                              | extractorPattern
+                              | objectPattern
 ```
 
 The `outerPattern` rule defines a subset of the patterns that are allowed as the
@@ -781,7 +781,7 @@ var ((a, b) & record) = (1, 2);           // Parentheses.
 var [a, b] = [1, 2];                      // List.
 var {1: a} = {1: 2};                      // Map.
 var (a, b, x: x) = (1, 2, x: 3);          // Record.
-var Point(x: x, y: y) = Point(1, 2);      // Extractor.
+var Point(x: x, y: y) = Point(1, 2);      // Object.
 ```
 
 But excludes other kinds of patterns to prohibit weird code like:
@@ -929,10 +929,10 @@ The specific kinds of switches whose behavior changes are:
     case SomeClass(1, 2):
     ```
 
-    With this proposal, that is interpreted as an extractor pattern whose
-    arguments are subpatterns. In cases where the matched value is also a
-    constant, this will *likely* behave the same but may not. I found 8 switch
-    cases of this form (0.008%).
+    With this proposal, that is interpreted as an object pattern whose arguments
+    are subpatterns. In cases where the matched value is also a constant, this
+    will *likely* behave the same but may not. I found 8 switch cases of this
+    form (0.008%).
 
 *   **Other constant expressions.** Constant patterns allow simple literals and
     references to named constants to be used directly as patterns, which covers
@@ -1627,9 +1627,8 @@ The context type schema for a pattern `p` is:
 *   **Record**: A record type schema with positional and named fields
     corresponding to the type schemas of the corresponding field subpatterns.
 
-*   **Extractor**: The type the extractor name resolves to. *This lets inference
-    fill in type arguments in the value based on the extractor's type arguments,
-    as in:*
+*   **Object**: The type the object name resolves to. *This lets inference fill
+    in type arguments in the value based on the object's type arguments, as in:*
 
     ```dart
     var Foo<num>() = Foo();
@@ -1642,7 +1641,7 @@ Once the value a pattern is matched against has a static type (which means
 downwards inference on it using the pattern's context type schema is complete),
 we can type check the pattern.
 
-Also variable, list, map, record, and extractor patterns only match a value of a
+Also variable, list, map, record, and object patterns only match a value of a
 certain *required type*. These patterns are prohibited in an irrefutable context
 if the matched value isn't assignable to that type. We define the required type
 for those patterns here. Some examples and the corresponding required types:
@@ -1820,10 +1819,10 @@ To type check a pattern `p` being matched against a value of type `M`:
         match any record with the right shape and then delegate to its field
         subpatterns to ensure that the fields match.*
 
-*   **Extractor**:
+*   **Object**:
 
-    1.  Resolve the extractor name to a type `X`. It is a compile-time error if
-        the name does not refer to a type. Apply downwards inference from `M` to
+    1.  Resolve the object name to a type `X`. It is a compile-time error if the
+        name does not refer to a type. Apply downwards inference from `M` to
         infer type arguments for `X` if needed.
 
     2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
@@ -1927,8 +1926,8 @@ pattern is:
     a known type and finality regardless of which branch matched.*
 
 *   **Logical-and**, **cast**, **null-check**, **null-assert**,
-    **parenthesized**, **list**, **map**, **record**, or **extractor**: The
-    union of the pattern variable sets of all of the subpatterns.
+    **parenthesized**, **list**, **map**, **record**, or **object**: The union
+    of the pattern variable sets of all of the subpatterns.
 
     The union of a series of pattern variable sets is the union of their
     corresponding sets of variable names. Each variable in the resulting set is
@@ -2163,10 +2162,10 @@ is a key part of maintaining code written in an algebraic datatype style. It's
 the functional equivalent of the error reported when a concrete class fails to
 implement an abstract method.
 
-Exhaustiveness checking over arbitrarily deeply nested record and extractor
+Exhaustiveness checking over arbitrarily deeply nested record and object
 patterns is complex, so the proposal to define how it works is in a [separate
-document][exhaustiveness]. That tells us if the cases in a switch statement
-or expression are exhaustive or not.
+document][exhaustiveness]. That tells us if the cases in a switch statement or
+expression are exhaustive or not.
 
 We don't want to require *all* switches to be exhaustive. The language currently
 does not require switch statements on, say, strings to be exhaustive, and
@@ -2591,7 +2590,7 @@ To match a pattern `p` against a value `v`:
 
     3.  The match succeeds if all field subpatterns match.
 
-*   **Extractor**:
+*   **Object**:
 
     1.  If the runtime type of `v` is not a subtype of the required type of `p`
         then the match fails.
@@ -2602,7 +2601,7 @@ To match a pattern `p` against a value `v`:
             be `r`. The getter may be an in-scope extension member.
 
         2.  Match the subpattern of `f` against `r`. If the match fails, the
-            extractor match fails.
+            object match fails.
 
     3.  The match succeeds if all field subpatterns match.
 
@@ -2854,7 +2853,7 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
         3.  Bind invocations in the field subpattern using parent `e`.
 
-*   **Extractor**:
+*   **Object**:
 
     1.  For each field in `p`:
 
@@ -2904,11 +2903,11 @@ Here is one way it could be broken down into separate pieces:
     *   List patterns
     *   Map patterns
 
-*   **Extractors.** I don't want patterns to feel like we're duct taping a
+*   **Objects.** I don't want patterns to feel like we're duct taping a
     functional feature onto an object-oriented language. To integrate it more
     gracefully means destructuring user-defined types too, so adding:
 
-    *   Extractor patterns
+    *   Object patterns
 
 *   **Refutable patterns.** The next big step is patterns that don't just
     destructure but *match*. The bare minimum refutable patterns and features
@@ -2950,6 +2949,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.14
+
+-   Rename "extractor" patterns to "object" patterns (#2562). There are no
+    semantic changes.
 
 ### 2.13
 
