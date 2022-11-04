@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 2.13 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.15 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -671,6 +671,19 @@ with a parenthesized pattern. In that case, it is treated as a parenthesized
 pattern. To write a record pattern that matches a single unnamed field, add a
 trailing comma, as you would with the corresponding record expression.
 
+It is a compile-time error if any pair of named fields have the same name. This
+applies to both explicit and inferred field names. *For example, this is an
+error:*
+
+```dart
+var (:x, x: y) = (x: 1);
+```
+
+*Destructuring the same field multiple times is never necessary because you can
+always just destructure it once with an `|` subpattern. If a user does it, it's
+mostly like a copy/paste mistake and it's more helpful to draw their attention
+to the error than silently accept it.*
+
 ### Object pattern
 
 ```
@@ -701,15 +714,6 @@ display(Object obj) {
 }
 ```
 
-It is a compile-time error if:
-
-*   `objectName` does not refer to a type.
-
-*   A type argument list is present and does not match the arity of the type of
-    `objectName`.
-
-*   A `patternField` is of the form `pattern`. Positional fields aren't allowed.
-
 As with record patterns, the getter name can be omitted and inferred from the
 variable pattern in the field subpattern which may be wrapped in a unary
 pattern. The previous example could be written like:
@@ -722,6 +726,22 @@ display(Object obj) {
   }
 }
 ```
+
+It is a compile-time error if:
+
+*   `objectName` does not refer to a type.
+
+*   A type argument list is present and does not match the arity of the type of
+    `objectName`.
+
+*   A `patternField` is of the form `pattern`. Positional fields aren't allowed.
+
+*   Any two named fields have the same name. This applies to both explicit and
+    inferred field names. *For example, this is an error:*
+
+    ```dart
+    var Point(:x, x: y) = Point(1, 2);
+    ```
 
 ## Pattern uses
 
@@ -2949,6 +2969,10 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.15
+
+-   Error if named fields in record or object patterns collide (#2610).
 
 ### 2.14
 
