@@ -5947,7 +5947,7 @@ We define the
 \IndexCustom{instantiated \ON{} type}{extension!instantiated \ON{} type}
 of $a$ as $[T_1/X_1, \ldots, T_s/X_s]T$.
 We define the
-\IndexCustom{instantiation-to-bound \ON{} type}{
+\IndexCustom{instantiation-to-bound \ON{} type}{%
   extension!instantiation-to-bound \ON{} type}
 of $a$ as $[U_1/X_1, \ldots, U_s/X_s]T$,
 where \List{U}{1}{s} is the result of instantiation to bound
@@ -6022,7 +6022,7 @@ $s_1 = [T_1/X_1, \ldots, T_k/X_k]s$:
 
 \LMHash{}%
 The member signature $s_1$ is called the
-\IndexCustom{invocation member signature}{
+\IndexCustom{invocation member signature}{%
   extension!invocation member signature}
 of $i$.
 The static type of $i$ is the return type of
@@ -13372,7 +13372,7 @@ on a
 expression $r$ is an expression of
 one of the forms shown in Fig.~\ref{fig:memberInvocations}.
 Each member invocation has a
-\IndexCustom{corresponding member name}{
+\IndexCustom{corresponding member name}{%
   member invocation!corresponding member name}
 as shown in the figure.
 
@@ -13713,7 +13713,7 @@ and if the method lookup succeeded then let $F$ be the static type of $d$.
 Otherwise, let $d$ be the result of getter lookup
 for $m$ in $T$ with respect to $L$,
 and let $F$ be the return type of $d$.
-(\commentary{
+(\commentary{%
 Since \code{$T$.$m$} exists we cannot have a failure in both lookups.%
 })
 If the getter return type $F$ is an interface type
@@ -13737,7 +13737,7 @@ and the static type of $i$ is as specified there.
 \LMHash{}%
 It is a compile-time error to invoke an instance method on a type literal
 that is immediately followed by the token `.' (a period).
-\commentary{
+\commentary{%
 For instance, \code{int.toString()} is an error.%
 }
 
@@ -14010,7 +14010,7 @@ as well as when it does not exist at all.%
 
 \LMHash{}%
 An
-\IndexCustom{implicit \CALL{} superinvocation}{
+\IndexCustom{implicit \CALL{} superinvocation}{%
   method superinvocation!implicit \CALL}
 has the form
 
@@ -20325,13 +20325,13 @@ $X_j <: B_j$, for all $j \in 1 .. s$,
 it is a compile-time error if $T$ is not regular-bounded,
 and it is a compile-time error if any type occurring in $T$ is not well-bounded.
 
-\commentary{
+\commentary{%
 This means that the bounds declared for
 the formal type parameters of a generic type alias
 must be such that when they are satisfied,
 the bounds that pertain to the body are also satisfied,
 and a type occurring as a subterm of the body can violate its bounds,
-but only if it is a correct super-bounded type.
+but only if it is a correct super-bounded type.%
 }
 
 \LMHash{}%
@@ -20469,7 +20469,7 @@ When $D$ is a type alias declaration of the form
 we say that the parameterized type $U$ of the form
 \code{$F$<\List{U}{1}{s}>}
 in a scope where $F$ resolves to $D$
-\IndexCustom{alias expands in one step to}{
+\IndexCustom{alias expands in one step to}{%
   type alias!alias expands in one step}
 $[U_1/X_1, \ldots, U_s/X_s]T$.
 
@@ -20484,7 +20484,7 @@ which is a parameterized type applying a type alias to some type arguments
 by its alias expansion in one step
 (\commentary{including the non-generic case where there are no type arguments}).
 When no further steps are possible we say that the resulting type is the
-\IndexCustom{transitive alias expansion}{
+\IndexCustom{transitive alias expansion}{%
   type alias!transitive alias expansion}
 of $U$.
 
@@ -20756,7 +20756,7 @@ and the subtype relationship is always determined in the same way.
   \begin{minipage}[c]{0.49\textwidth}
     \RuleTwo{\SrnLeftFutureOr}{Left FutureOr}{S}{T}{%
       \code{Future<$S$>}}{T}{\code{FutureOr<$S$>}}{T}
-    \RuleTwo{\SrnRightPromotedVariable}{Right Promoted Variable}{S}{X}{S}{T}{
+    \RuleTwo{\SrnRightPromotedVariable}{Right Promoted Variable}{S}{X}{S}{T}{%
       S}{X \& T}
     \Rule{\SrnRightFutureOrB}{Right FutureOr B}{S}{T}{S}{\code{FutureOr<$T$>}}
     \Rule{\SrnLeftVariableBound}{Left Variable Bound}{\Gamma(X)}{T}{X}{T}
@@ -20766,7 +20766,7 @@ and the subtype relationship is always determined in the same way.
     \Rule{\SrnRightFutureOrA}{Right FutureOr A}{S}{\code{Future<$T$>}}{%
       S}{\code{FutureOr<$T$>}}
     \Rule{\SrnLeftPromotedVariable}{Left Promoted Variable B}{S}{T}{X \& S}{T}
-    \RuleRaw{\SrnRightFunction}{Right Function}{T\mbox{ is a function type}}{
+    \RuleRaw{\SrnRightFunction}{Right Function}{T\mbox{ is a function type}}{%
       T}{\FUNCTION}
   \end{minipage}
   %
@@ -20782,7 +20782,7 @@ and the subtype relationship is always determined in the same way.
       \RawFunctionTypePositional{T_0}{X}{B}{s}{T}{n_2}{k_2}
     \end{array}}
   \ExtraVSP\ExtraVSP
-  \RuleRawRaw{\SrnNamedFunctionType}{Named Function Types}{
+  \RuleRawRaw{\SrnNamedFunctionType}{Named Function Types}{%
     \Gamma' = \Gamma\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
     \Subtype{\Gamma'}{S_0}{T_0} &
     \forall j \in 1 .. n\!:\;\Subtype{\Gamma'}{T_j}{S_j} \\
