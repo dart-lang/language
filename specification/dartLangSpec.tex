@@ -16254,12 +16254,12 @@ The semantics of an assignment as a whole is described elsewhere
 (\ref{assignment}).
 
 \commentary{%
-Assignable expressions can be subexpressions of other expressions,
-in which case they need to be evaluated.
+An assignable expression can be a subterm of another term,
+in which case it may need to be evaluated to an object.
 For example, if we are assigning a value to an instance variable \code{x}
-of a receiver $e$ by means of the expression \code{$e$.x\,\,=\,\,42},
-we need to evaluate $e$,
-such that we can update \code{x} in the correct object.%
+of a receiver expression $e$ by means of the expression \code{$e$.x\,\,=\,\,42},
+we need to evaluate $e$
+such that we can update the \code{x} of the correct object.%
 }
 
 \begin{grammar}
@@ -16284,24 +16284,35 @@ Let $e$ be an \synt{assignableExpression}.
 Let $t$ be a term such that $e$ can be derived from
 \syntax{$t$ <assignableSelector>}.
 We say that $t$ is the
+\IndexCustom{receiver term}{assignable expression!receiver term}
+of $e$.
+When $t$ is an expression, we say that $t$ is the
 \IndexCustom{receiver expression}{assignable expression!receiver expression}
-of the assignable expression $e$.
+of $e$.
 
 \commentary{%
 In short, we obtain $t$ by cutting off an assignable selector
 from the end of $e$.
 It is easy to see that every \synt{assignableExpression}
-except the ones that are simply an \synt{identifier}
+except one which is simply an \synt{identifier}
 ends in an \synt{assignableSelector}
 (an \synt{unconditionalAssignableSelector}
 is also an \synt{assignableSelector}).
-Note that $t$ is an \synt{expression}:
-Every possible value for $t$ can also be derived from \synt{expression}.%
+In other words, every assignable expression except \synt{identifier}
+has a receiver term.
+
+Note that the receiver term $t$ may or may not be an \synt{expression}.
+For example, if $t$ is \SUPER{} then $e$ does not have a receiver expression.
+The semantics of assignments without a receiver expression
+is specified explicitly for each case
+(\ref{assignment}).%
 }
 
 \LMHash{}%
-Evaluation of the receiver expression $t$ of a given assignable expression $e$
-proceeds in the same way as evaluation of any other expression.
+Let $e$ be an assignable expression.
+Assume that $e$ has a receiver expression $t$.
+Evaluation of $t$ proceeds in the same way as
+evaluation of any other expression.
 
 
 \subsection{Lexical Lookup}
