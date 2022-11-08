@@ -2034,6 +2034,15 @@ appears:
 
     The guard expression is evaluated in its case's case scope.
 
+    It is a compile-time error for a guard to contain an assignment to a
+    variable defined in the case that owns that guard. *This helps avoid users
+    running into confusing behavior where the body sees a different variable
+    than the guard when cases share a body (see next section). We make this an
+    error even when the body only has a single case to keep the rule simpler for
+    users to understand. This is similar to the restriction that you can't
+    assign to the variable introduced by an initializing formal inside the
+    initializer list.*
+
     If the body of a switch statement or expression is reached through only a
     single case, then it is executed in a new scope whose enclosing scope is the
     case scope of that case. Otherwise, the body is executed in a new scope
@@ -2151,14 +2160,6 @@ switch (obj) {
 
 *This example has no errors because the only variable used in the body, `a`, is
 defined consistently by all cases.*
-
-It is a compile-time error to assign to a variable declared by a case in that
-case's guard expression. *This helps avoid users running into the confusing
-behavior where the body sees a different variable than the guard when cases
-share a body. We make this an error even when the body only has a single case to
-keep the rule simpler for users to understand. This is similar to the
-restriction that you can't assign to the variable introduced by an initializing
-formal inside the initializer list.*
 
 At runtime, we initialize all of the shared variables in the body of the case
 with the values of the corresponding case variables from the matched case.
