@@ -120,7 +120,7 @@ The ***read*** function on partial results is defined as:
 and on scopes and names as:
 
 * ***read***(**INSTANCE**(*object*, *type*), *identifier*):
-  * Let *d* be the concrete instance member declared or inherited by *type*.
+  * Let *d* be the concrete instance member declared or inherited by *type* with name *identifier*.
   * If no such *d* exists, invoke the `noSuchMethod` method of *object* with an invocation object representing a "get" operation with a member-name being the `Symbol` representing *identifier*. The result of that call is the result of ***read***. (This can only happen for dynamic invocations, otherwise static checks would have prevented us from reaching here).
   * If *d* is a method declaration, let *v* be the *tear-off* of that method with `this` bound to *object*.
   * If *d* is a getter, invoke *d* with `this` bound to *object*, and let *v* be the return value of that invocation.
@@ -494,16 +494,18 @@ With that we can define ***evalPartial*** on a multiplicative expression *e*:
 Evaluation of an`<expression>` *e* of the form `<assignableExpression>  <assignmentOperator> <expression>, with assignable expression *a*, assignment operator *aop* and assigned expression *r*, proceeds as follows:
 
 * Let *p* be ***evalPartial***(*a*)
+* If *p* is **PROPAGATING_NULL**, the result of evaluation of *e* is **OBJECT**(`null`).
+* Otherwise:
 * If *aop* is `=`:
   * Evaluate *r* to a value *v*.
 * If *aop* is `??=`:
   * Let *u* be ***read***(*p*).
-  * If *u* is `null`, let *v* be `null`.
-  * Otherwise evaluate *r* to a value *o* and let *v* be *o*.
+  * If *u* is the value `null`, evaluate *r* to a value *o* and let *v* be *o*,
+  * Otherwise let *v* be *u*.
 * Otherwise, *aop* is *op*= for some user-definable operator *op*.
   * Let *u* be ***read***(*p*).
   * Evaluate *r* to a value *o*.
   * Invoke the operator *op* on *u* with *o* as a single positional parameter. Let *v* be the return value of this invocation.
 * Then do ***write***(*p*, *v*).
-* The ***evalPartial*** returns *v*.
+* The result of evaluation of *e* is **OBJECT**(*v*).
 
