@@ -1596,13 +1596,13 @@ The context type schema for a pattern `p` is:
 
     3.  Else, infer the type schema from the subpatterns:
 
-        1.  Let `es` be an empty list of types.
+        1.  Let `es` be an empty list of type schemas.
 
         2.  For each subpattern `e` in `p`:
 
             1.  If `e` is a rest element pattern with a subpattern `s` and the
                 context type schema of `s` is an `Iterable<T>` for some type
-                `T`, then add `T` to `es`.
+                schema `T`, then add `T` to `es`.
 
             2.  Else if `e` is not a rest element pattern, add the context
                 type schema of `e` to `es`.
@@ -1620,10 +1620,10 @@ The context type schema for a pattern `p` is:
             var [...x] = [1, 2];
             ```
 
-        4.  Else `E` is the greatest lower bound of the types in `es`. *We use
-            the greatest lower bound to ensure that the outer collection type
-            has a precise enough type to ensure that any typed field subpatterns
-            do not need to downcast:*
+        4.  Else `E` is the greatest lower bound of the type schemas in `es`.
+            *We use the greatest lower bound to ensure that the outer collection
+            type has a precise enough type to ensure that any typed field
+            subpatterns do not need to downcast:*
 
             ```dart
             var [int a, num b] = [1, 2];
