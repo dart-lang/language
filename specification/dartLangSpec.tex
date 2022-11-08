@@ -16245,18 +16245,20 @@ Then $e$ evaluates to $o$.
 \LMLabel{assignableExpressions}
 
 \LMHash{}%
-Assignable expressions are expressions
+\IndexCustom{Assignable expressions}{assignable expression} are terms
 that can appear on the left hand side of an assignment.
-This section describes how to evaluate these expressions
+This section describes how to evaluate these terms
 when they do not constitute the complete left hand side of an assignment.
+The semantics of an assignment as a whole is described elsewhere
+(\ref{assignment}).
 
-\rationale{%
-Of course, if assignable expressions
-always appeared \emph{as} the left hand side,
-one would have no need for their value,
-and the rules for evaluating them would be unnecessary.
-However, assignable expressions can be subexpressions of other expressions
-and therefore must be evaluated.%
+\commentary{%
+Assignable expressions can be subexpressions of other expressions,
+in which case they need to be evaluated.
+For example, if we are assigning a value to an instance variable \code{x}
+of a receiver $e$ by means of the expression \code{$e$.x\,\,=\,\,42},
+we need to evaluate $e$,
+such that we can update \code{x} in the correct object.%
 }
 
 \begin{grammar}
@@ -16276,38 +16278,29 @@ and therefore must be evaluated.%
 \end{grammar}
 
 \LMHash{}%
-An \Index{assignable expression} is either:
-\begin{itemize}
-\item An identifier.
-\item An invocation (possibly conditional) of a getter (\ref{getters})
-  or list access operator on an expression $e$.
-\item An invocation of a getter or list access operator on \SUPER.
-\end{itemize}
+\BlindDefineSymbol{e, t}%
+Let $e$ be an \synt{assignableExpression}.
+Let $t$ be a term such that $e$ can be derived from
+\syntax{$t$ <assignableSelector>}.
+We say that $t$ is the
+\IndexCustom{receiver expression}{assignable expression!receiver expression}
+of the assignable expression $e$.
+
+\commentary{%
+In short, we obtain $t$ by cutting off an assignable selector
+from the end of $e$.
+It is easy to see that every \synt{assignableExpression}
+except the ones that are simply an \synt{identifier}
+ends in an \synt{assignableSelector}
+(an \synt{unconditionalAssignableSelector}
+is also an \synt{assignableSelector}).
+Note that $t$ is an \synt{<expression>}:
+Every possible value for $t$ can also be derived from \synt{expression}.%
+}
 
 \LMHash{}%
-An assignable expression of the form \id{} is evaluated as
-an identifier expression (\ref{identifierReference}).
-
-%An assignable expression of the form \code{$e$.\id($a_1, \ldots,\ a_n$)}
-% is evaluated as a method invocation (\ref{methodInvocation}).
-
-\LMHash{}%
-An assignable expression of the form \code{$e$.\id} or \code{$e$?.\id}
-is evaluated as a property extraction (\ref{propertyExtraction}).
-
-\LMHash{}%
-An assignable expression of the form \code{$e_1$[$e_2$]}
-is evaluated as a method invocation of
-the operator method \code{[]} on $e_1$ with argument $e_2$.
-
-\LMHash{}%
-An assignable expression of the form \code{\SUPER.\id} is evaluated as
-a property extraction.
-
-\LMHash{}%
-Evaluation of an assignable expression of the form \code{\SUPER{}[$e_2$]}
-is equivalent to
-evaluation of the method invocation \code{\SUPER.[]($e_2$)}.
+Evaluation of the receiver expression $t$ of a given assignable expression $e$
+proceeds in the same way as evaluation of any other expression.
 
 
 \subsection{Lexical Lookup}
