@@ -19,9 +19,9 @@ a way to define a supertype with a fixed, closed set of subtypes. That way, if
 you match on all of the subtypes, you know the supertype is exhaustively
 covered.
 
-[pattern matching]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/patterns-feature-specification.md
+[pattern matching]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md
 
-[exhaustiveness checking]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/exhaustiveness.md
+[exhaustiveness checking]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
 
 We don't necessarily need to express that using a modifier, but that's what
 most other languages do and it seems to work well. If we're going to add one
@@ -202,7 +202,7 @@ to allowing exhaustiveness checks on all classes, that would require us to
 default to *prohibiting* extending and implementing the class outside of its
 library.
 
-[global]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/exhaustiveness.md#global-analysis
+[global]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md#global-analysis
 
 So we want to default exhaustiveness checks *off* and provide a way to opt in.
 We *could* say that any abstract class that disables extension and

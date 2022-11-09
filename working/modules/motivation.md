@@ -163,8 +163,8 @@ no way to tell if a pattern match has covered all types.
 
 [83]: https://github.com/dart-lang/language/issues/83
 [349]: https://github.com/dart-lang/language/issues/349
-[pattern matching]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/patterns-feature-specification.md
-[ex]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/patterns-feature-specification.md#exhaustiveness-and-reachability
+[pattern matching]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md
+[ex]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md#exhaustiveness-and-reachability
 
 ## Clearbox testing
 
