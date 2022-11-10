@@ -622,7 +622,7 @@ flexibility. But it comes at a cost:
     some notion of a sealed family of types. Otherwise, there's no way to tell
     if a switch case has covered all types.
 
-[ex]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/patterns-feature-specification.md#exhaustiveness-and-reachability
+[ex]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md#exhaustiveness-and-reachability
 
 Likewise, allowing any class to be subclassed (unless the author carefully hides
 all generative constructors on the class) comes with some consequences:

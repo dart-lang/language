@@ -13,9 +13,9 @@ of the rest of that proposal, but they aren't needed for pattern matching, so
 this proposal separates them out.) For motivation, see the previously linked
 documents.
 
-[exhaustiveness checking]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/exhaustiveness.md
+[exhaustiveness checking]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
 
-[pattern matching]: https://github.com/dart-lang/language/blob/master/working/0546-patterns/patterns-feature-specification.md
+[pattern matching]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md
 
 [type modifiers]: https://github.com/dart-lang/language/blob/master/working/type-modifiers/feature-specification.md
 
