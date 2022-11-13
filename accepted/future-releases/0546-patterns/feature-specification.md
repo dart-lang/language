@@ -1741,13 +1741,13 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 *   **Variable**:
 
-    1.  In an assignment context, the required type of `p` is the declared
-        (unpromoted) type of the variable that `p` resolves to.
+    1.  In an assignment context, the required type of `p` is the (unpromoted)
+        static type of the variable that `p` resolves to.
 
     2.  Else if the variable has a type annotation, the required type of `p` is
-        that type, as is the declared type of the variable introduced by `p`.
+        that type, as is the static type of the variable introduced by `p`.
 
-    3.  Else the required type of `p` is `M`, as is the declared type of the
+    3.  Else the required type of `p` is `M`, as is the static type of the
         variable introduced by `p`. *This means that an untyped variable pattern
         can have its type indirectly inferred from the type of a superpattern:*
 
