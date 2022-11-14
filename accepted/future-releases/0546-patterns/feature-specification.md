@@ -1255,7 +1255,7 @@ ifElement ::= 'if' '(' expression caseHead? ')' element ('else' element)?
 The semantics follow the statement form. If there is no `caseHead`, then it
 behaves as before. When there is a `caseHead`, if the `expression` matches the
 pattern (and the guard returns `true`) then we evaluate and yield the then
-element into the surrounding collection. Otherwies, we evaluate and yield the
+element into the surrounding collection. Otherwise, we evaluate and yield the
 else element if there is one.
 
 ### Pattern context
@@ -2455,8 +2455,8 @@ Where `<keyword>` is `var` or `final` is treated like so:
     2.  Else there is no guard clause. Evaluate the then `element` and yield the
         result into the collection.
 
-4.  Else the match failed. Else, evaluate the else `element` if there is one and
-    yield the result into the collection.
+4.  Else the match failed. Evaluate the else `element` if there is one and yield
+    the result into the collection.
 
 ### Matching (refuting and destructuring)
 
