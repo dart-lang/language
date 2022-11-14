@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 1.0
+Version 1.1 (see [Changelog](#changelog) at end)
 
 This proposal specifies *sealed types*, which is core capability needed for
 [exhaustiveness checking][] of subtypes in [pattern matching][]. This proposal
@@ -27,10 +27,10 @@ Marking a type `sealed` applies two restrictions:
     implicitly `abstract`.
 
 *   All direct subtypes of the type must be defined in the same library. Any
-    types that directly implement, extend, or mixin the sealed type must be
+    types that directly implement, extend, or mix in the sealed type must be
     defined in the library where the sealed type is defined.
 
-In return for those restrictions, sealed provides two useful properties for
+In return for those restrictions, sealing provides two useful properties for
 exhaustiveness checking:
 
 *   All of the direct subtypes of the sealed type can be easily found and
@@ -104,7 +104,7 @@ class Scotland extends GreatBritain {}
 class Wales extends GreatBritain {}
 ```
 
-By marking not just `UnitedKingdom` `sealed`, but also `GreatBritain` means that
+Marking not just `UnitedKingdom` `sealed`, but also `GreatBritain` means that
 all of these switches are exhaustive:
 
 ```dart
@@ -142,8 +142,7 @@ sealed type, except that they must be defined in the same library.
 
 ## Syntax
 
-A class or mixin declaration may be preceded with the built-in identifier
-`sealed`:
+A class or mixin declaration may be preceded with the identifier `sealed`:
 
 ```
 classDeclaration ::=
@@ -160,11 +159,6 @@ mixinDeclaration ::= 'sealed'? 'mixin' identifier typeParameters?
 *Note that the grammar disallows `sealed` on a class marked `abstract`. All
 sealed types are abstract, so it's redundant to allow both modifiers.*
 
-**Breaking change:** Treating `sealed` as a built-in identifier means that
-existing code that uses `sealed` as the name of a type will no longer compile.
-Since almost all types have capitalized names in Dart, this is unlikely to be
-break much code.
-
 ### Static semantics
 
 It is a compile-time error to extend, implement, or mix in a type marked
@@ -176,7 +170,7 @@ library][] within the same library.*
 
 A typedef can't be used to subvert this restriction. If a typedef refers to a
 sealed type, it is also a compile-time error to extend, implement or mix in that
-typedef outside of the library where the sealed the typedef refers to is
+typedef outside of the library where the sealed type the typedef refers to is
 defined. *Note that the library where the _typedef_ is defined does not come
 into play.*
 
@@ -196,3 +190,10 @@ all marked `sealed`. *These types have always behaved like sealed types by
 relying on special case restrictions in the language specification. That
 existing behavior can now be expressed in terms of this general-purpose
 feature.*
+
+## Changelog
+
+### 1.1
+
+- Don't make `sealed` a built-in identifier. It's just a normal identifier that
+  is only treated specially when preceding `class` or `mixin`.
