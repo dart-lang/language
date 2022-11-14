@@ -2,9 +2,9 @@
 
 Author: Bob Nystrom
 
-Status: In progress
+Status: Accepted
 
-Version 2.15 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.16 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -144,12 +144,13 @@ matching constructs to make working with that style enjoyable:
 ```dart
 double calculateArea(Shape shape) =>
   switch (shape) {
-    case Square(length: var l) => l * l;
-    case Circle(radius: var r) => math.pi * r * r;
+    Square(length: var l) => l * l,
+    Circle(radius: var r) => math.pi * r * r
   };
 ```
 
-As you can see, it also adds an expression form for `switch`.
+As you can see, it also adds an expression form for `switch` that doesn't
+require `case`.
 
 ## Patterns
 
@@ -251,8 +252,8 @@ share a body:
 
 ```dart
 var isPrimary = switch (color) {
-  case Color.red | Color.yellow | Color.blue => true;
-  default => false;
+  Color.red | Color.yellow | Color.blue => true,
+  _ => false
 };
 ```
 
@@ -329,10 +330,10 @@ String asciiCharType(int char) {
   const nine = 57;
 
   return switch (char) {
-    case < space => 'control';
-    case == space => 'space';
-    case > space & < zero => 'punctuation';
-    case >= zero & <= nine => 'digit';
+    < space => 'control',
+    == space => 'space',
+    > space & < zero => 'punctuation',
+    >= zero & <= nine => 'digit'
     // Etc...
   }
 }
@@ -894,8 +895,8 @@ We extend switch statements to allow patterns in cases:
 ```
 switchStatement         ::= 'switch' '(' expression ')'
                             '{' switchStatementCase* switchStatementDefault? '}'
-switchStatementCase     ::= label* caseHead ':' statements
-caseHead                ::= 'case' pattern ( 'when' expression )?
+switchStatementCase     ::= label* 'case' guardedPattern ':' statements
+guardedPattern          ::= pattern ( 'when' expression )?
 switchStatementDefault  ::= label* 'default' ':' statements
 ```
 
@@ -1111,12 +1112,12 @@ And turns it into:
 ```dart
 Color shiftHue(Color color) {
   return switch (color) {
-    case Color.red => Color.orange;
-    case Color.orange => Color.yellow;
-    case Color.yellow => Color.green;
-    case Color.green => Color.blue;
-    case Color.blue => Color.purple;
-    case Color.purple => Color.red;
+    Color.red => Color.orange,
+    Color.orange => Color.yellow,
+    Color.yellow => Color.green,
+    Color.green => Color.blue,
+    Color.blue => Color.purple,
+    Color.purple => Color.red
   };
 }
 ```
@@ -1128,10 +1129,21 @@ primary                 ::= // Existing productions...
                           | switchExpression
 
 switchExpression        ::= 'switch' '(' expression ')' '{'
-                            switchExpressionCase* switchExpressionDefault? '}'
-switchExpressionCase    ::= caseHead '=>' expression ';'
-switchExpressionDefault ::= 'default' '=>' expression ';'
+                            switchExpressionCase ( ',' switchExpressionCase )*
+                            ','? '}'
+switchExpressionCase    ::= guardedPattern '=>' expression
 ```
+
+The body is a series of cases. Each case has a pattern, optional guard, and a
+single expression body. As with other expression forms containing a list of
+subelements (argument lists, collection literals), the cases are separated by
+commas with an optional trailing comma. Since the body of each case is a single
+expression with a known terminator, it's easy to tell when one case ends and the
+next begins. That lets us do away with the `case` keyword.
+
+To keep the syntax small and light, we also disallow a `default` clause.
+Instead, you can use a shorter `_` wildcard pattern to catch any remaining
+values.
 
 Slotting into `primary` means it can be used anywhere any expression can appear,
 even as operands to unary and binary operators. Many of these uses are ugly, but
@@ -1142,15 +1154,15 @@ Making it high precedence allows useful patterns like:
 
 ```dart
 await switch (n) {
-  case 1 => aFuture;
-  case 2 => anotherFuture;
-  default => otherwiseFuture;
+  1 => aFuture,
+  2 => anotherFuture,
+  _ => otherwiseFuture
 };
 
 var x = switch (n) {
-  case 1 => obj;
-  case 2 => another;
-  default => otherwise;
+  1 => obj,
+  2 => another,
+  _ => otherwise
 }.someMethod();
 ```
 
@@ -1162,17 +1174,17 @@ evidence this will be useful.
 
 Thanks to expression statements, a switch expression could appear in the same
 position as a switch statement. This isn't technically ambiguous, but requires
-unbounded lookahead to tell if a switch in statement position is a statement or
-expression.
+unbounded lookahead to read past the value expression to the first `case` in
+order to tell if a switch in statement position is a statement or expression.
 
 ```dart
 main() {
   switch (some(extremely, long, expression, here)) {
-    case Some(Quite(:var long, :var pattern)) => expression();
+    _ => expression()
   };
 
   switch (some(extremely, long, expression, here)) {
-    case Some(Quite(:var long, :var pattern)): statement();
+    case _: statement();
   }
 }
 ```
@@ -1181,11 +1193,6 @@ To avoid that, we disallow a switch expression from appearing at the beginning
 of an expression statement. This is similar to existing restrictions on map
 literals appearing in expression statements. In the rare case where a user
 really wants one there, they can parenthesize it.
-
-**TODO: If we change switch expressions [to use `:` instead of `=>`][2126] then
-there will be an actual ambiguity. In that case, reword the above section.**
-
-[2126]: https://github.com/dart-lang/language/issues/2126
 
 ### If-case statement
 
@@ -1220,18 +1227,19 @@ if (json case [int x, int y]) {
 We replace the existing `ifStatement` rule with:
 
 ```
-ifStatement ::= 'if' '(' expression caseHead? ')' statement ('else' statement)?
+ifStatement ::= 'if' '(' expression ( 'case' guardedPattern )? ')'
+                statement ('else' statement)?
 ```
 
 **TODO: Allow patterns in if elements too ([#2542][]).**
 
 [#2542]: https://github.com/dart-lang/language/issues/2542
 
-When the `condition` has no `caseHead`, it behaves as it does today. If there is
-a `caseHead`, then the expression is evaluated and matched against the
-subsequent pattern. If it matches, the then branch is executed with any
-variables the pattern defines in scope. Otherwise, the else branch is executed
-if there is one.
+When the `condition` has no `guardedPattern`, it behaves as it does today. If
+there is a `guardedPattern`, then the expression is evaluated and matched
+against the subsequent pattern. If it matches, the then branch is executed with
+any variables the pattern defines in scope. Otherwise, the else branch is
+executed if there is one.
 
 A guard is also allowed:
 
@@ -1256,11 +1264,11 @@ categorize into three contexts:
     subpatterns. The innermost subpatterns are again identifiers, but they refer
     to existing variables that are being assigned.
 
-*   **Matching context.** The pattern in a `caseHead` or any of its subpatterns.
-    The innermost subpatterns are often constant expressions that the value is
-    compared against to see if the case matches. They may also be variable
-    declarations to extract parts of the value for later processing when the
-    case matches.
+*   **Matching context.** The pattern in a `guardedPattern` or any of its
+    subpatterns. The innermost subpatterns are often constant expressions that
+    the value is compared against to see if the case matches. They may also be
+    variable declarations to extract parts of the value for later processing
+    when the case matches.
 
 We refer to declaration and assignment contexts as *irrefutable contexts*.
 
@@ -1553,8 +1561,6 @@ The context type schema for a pattern `p` is:
 
 *   **Logical-and**: The greatest lower bound of the context type schemas of the
     branches.
-
-    **TODO: Figure out if LUB and GLB are defined for type schemas.**
 
 *   **Null-check** or **null-assert**: A context type schema `E?` where `E` is
     the context type schema of the inner pattern. *For example:*
@@ -2011,7 +2017,7 @@ appears:
     and does not bind any new ones.
 
 *   **Switch statement**, **switch expression**, **if-case statement**: Each
-    `caseHead` introduces a new *case scope* which is where the variables
+    `guardedPattern` introduces a new *case scope* which is where the variables
     defined by that case's pattern are bound.
 
     There is no *initializing expression* for the variables in a case pattern,
@@ -2304,24 +2310,20 @@ fail in some way.*
 2.  For each case:
 
     1.  Match the case's pattern against `v`. If the match fails then continue
-        to the next case (or default clause if there are no other cases).
+        to the next case.
 
     2.  If there is a guard clause, evaluate it. If it does not evaluate to a
         Boolean, throw a runtime error. If it evaluates to `false`, continue to
-        the next case (or default clause).
+        the next case.
 
     3.  Evaluate the expression after the case and yield that as the result of
         the entire switch expression.
 
-3.  If no case pattern matched and there is a default clause, execute the
-    expression after it and yield that as the result of the entire switch
-    expression.
-
-4.  If no case matches and there is no default clause, throw a runtime error.
-    *This can only occur when `null` or a legacy typed value flows into this
-    switch expression from another library that hasn't migrated to [null
-    safety][]. In fully migrated programs, exhaustiveness checking is sound and
-    it isn't possible to reach this runtime error.*
+3.  If no case matches, throw a runtime error. *This can only occur when `null`
+    or a legacy typed value flows into this switch expression from another
+    library that hasn't migrated to [null safety][]. In fully migrated programs,
+    exhaustiveness checking is sound and it isn't possible to reach this runtime
+    error.*
 
 #### Pattern-for statement
 
@@ -2396,7 +2398,7 @@ Where `<keyword>` is `var` or `final` is treated like so:
 
 1.  Evaluate the `expression` producing `v`.
 
-2.  Match the `pattern` in the `caseHead` against `v`.
+2.  Match the `pattern` in the `guardedPattern` against `v`.
 
 3.  If the match succeeds:
 
@@ -2970,6 +2972,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.16
+
+-   Eliminate `case` and `default` from switch expressions and use `,` as the
+    case separator (#2126).
 
 ### 2.15
 
