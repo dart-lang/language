@@ -145,7 +145,7 @@ matching constructs to make working with that style enjoyable:
 double calculateArea(Shape shape) =>
   switch (shape) {
     Square(length: var l) => l * l,
-    Circle(radius: var r) => math.pi * r * r,
+    Circle(radius: var r) => math.pi * r * r
   };
 ```
 
@@ -253,7 +253,7 @@ share a body:
 ```dart
 var isPrimary = switch (color) {
   Color.red | Color.yellow | Color.blue => true,
-  _ => false,
+  _ => false
 };
 ```
 
@@ -333,7 +333,7 @@ String asciiCharType(int char) {
     < space => 'control',
     == space => 'space',
     > space & < zero => 'punctuation',
-    >= zero & <= nine => 'digit',
+    >= zero & <= nine => 'digit'
     // Etc...
   }
 }
@@ -1117,7 +1117,7 @@ Color shiftHue(Color color) {
     Color.yellow => Color.green,
     Color.green => Color.blue,
     Color.blue => Color.purple,
-    Color.purple => Color.red,
+    Color.purple => Color.red
   };
 }
 ```
@@ -1156,13 +1156,13 @@ Making it high precedence allows useful patterns like:
 await switch (n) {
   1 => aFuture,
   2 => anotherFuture,
-  _ => otherwiseFuture,
+  _ => otherwiseFuture
 };
 
 var x = switch (n) {
   1 => obj,
   2 => another,
-  _ => otherwise,
+  _ => otherwise
 }.someMethod();
 ```
 
