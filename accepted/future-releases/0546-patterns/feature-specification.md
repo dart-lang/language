@@ -1194,7 +1194,7 @@ of an expression statement. This is similar to existing restrictions on map
 literals appearing in expression statements. In the rare case where a user
 really wants one there, they can parenthesize it.
 
-### If-case statement
+### If-case statement and element
 
 Often you want to conditionally match and destructure some data, but you only
 want to test a value against a single pattern. A `switch` statement works but is
@@ -1227,8 +1227,8 @@ if (json case [int x, int y]) {
 We replace the existing `ifStatement` rule with:
 
 ```
-ifStatement ::= 'if' '(' expression ( 'case' guardedPattern )? ')'
-                statement ('else' statement)?
+ifStatement ::= ifCondition statement ('else' statement)?
+ifCondition :== 'if' '(' expression ( 'case' guardedPattern )? ')'
 ```
 
 **TODO: Allow patterns in if elements too ([#2542][]).**
@@ -1250,6 +1250,21 @@ if (json case [int x, int y] when x == y) {
   throw FormatException('Invalid JSON.');
 }
 ```
+
+#### If-case element
+
+Since Dart allows `if` elements inside collection literals, we also support
+if-case elements. We replace the existing `ifElement` rule with:
+
+```
+ifElement ::= ifCondition element ('else' element)?
+```
+
+The semantics follow the statement form. If there is no `guardedPattern`, then
+it behaves as before. When there is a `guardedPattern`, if the `expression`
+matches the pattern (and the guard returns `true`) then we evaluate and yield
+the then element into the surrounding collection. Otherwise, we evaluate and
+yield the else element if there is one.
 
 ### Pattern context
 
@@ -1467,21 +1482,21 @@ To orchestrate this, type inference on patterns proceeds in three phases:
     aren't known yet.
 
     We only calculate a pattern type schema for pattern variable declarations
-    and pattern assignments. In matching contexts (switch cases and if-case
-    statements), the pattern context type schema is not used, no downwards
+    and pattern assignments. In matching contexts (switch cases, if-case
+    constructs), the pattern context type schema is not used, no downwards
     inference is performed from the pattern to the matched value expression, and
     no coercions or casts from `dynamic` are inserted in the matched value
     expression.
 
     *It would be hard to apply inference from cases in a switch to the value
     since there are multiple cases and it's not clear how to unify that. Even in
-    if-case statements, it's not clear that downwards inference is desirable,
+    if-case constructs, it's not clear that downwards inference is desirable,
     since the intent of the pattern is to ask a question about the matched
     object, and not necessarily to try to force a certain answer.*
 
 2.  **Calculate the static type of the matched value.** A pattern always occurs
     in the context of some matched value. For pattern variable declarations,
-    this is the initializer. For switches and if-case statements, it's the value
+    this is the initializer. For switches and if-case constructs, it's the value
     being matched.
 
     Using the pattern's type schema as a context type (if not in a matching
@@ -1918,7 +1933,7 @@ assignable to `bool`.
 ### Pattern uses
 
 It is a compile-time error if the expression in a guard clause in a switch case
-or if-case statement is not assignable to `bool`.
+or if-case construct is not assignable to `bool`.
 
 The static type of a switch expression is the least upper bound of the static
 types of all of the case expressions.
@@ -2016,9 +2031,9 @@ appears:
 *   **Pattern assignment**: An assignment only assigns to existing variables
     and does not bind any new ones.
 
-*   **Switch statement**, **switch expression**, **if-case statement**: Each
-    `guardedPattern` introduces a new *case scope* which is where the variables
-    defined by that case's pattern are bound.
+*   **Switch statement**, **switch expression**, **if-case statement**,
+    **if-case-element**: Each `guardedPattern` introduces a new *case scope*
+    which is where the variables defined by that case's pattern are bound.
 
     There is no *initializing expression* for the variables in a case pattern,
     but they are considered initialized after the entire case pattern, before
@@ -2055,6 +2070,9 @@ appears:
     whose enclosing scope is the shared case scope, defined below.
 
     The then statement of an if-case statement is executed in a new scope whose
+    enclosing scope is the case's case scope.
+
+    The then element of an if-case element is evaluated in a new scope whose
     enclosing scope is the case's case scope.
 
 #### Shared case scope
@@ -2415,6 +2433,32 @@ Where `<keyword>` is `var` or `final` is treated like so:
     2.  Else there is no guard clause. Execute the then `statement`.
 
 4.  Else the match failed. Execute the else `statement` if there is one.
+
+#### If-case element
+
+1.  Evaluate the `expression` producing `v`.
+
+2.  Match the `pattern` in the `guardedPattern` against `v`.
+
+3.  If the match succeeds:
+
+    1.  If there is a guard clause:
+
+        1.  Evaluate it. If it does not evaluate to a Boolean, throw a runtime
+            error. *This can happen if the guard expression's type is
+            `dynamic`.*
+
+        1.  If the guard evaluates to `true`, evaluate the then `element` and
+            yield the result into the collection.
+
+        2.  Else, evaluate the else `element` if there is one and yield the
+            result into the collection.
+
+    2.  Else there is no guard clause. Evaluate the then `element` and yield the
+        result into the collection.
+
+4.  Else the match failed. Evaluate the else `element` if there is one and yield
+    the result into the collection.
 
 ### Matching (refuting and destructuring)
 
@@ -2977,6 +3021,8 @@ Here is one way it could be broken down into separate pieces:
 
 -   Eliminate `case` and `default` from switch expressions and use `,` as the
     case separator (#2126).
+
+-   Add if-case elements (#2542).
 
 ### 2.15
 
