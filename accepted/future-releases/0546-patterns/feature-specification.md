@@ -1853,7 +1853,7 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
 
-        1.  Let `G` be the the type of the getter on `X` with the name `n`.
+        1.  Let `G` be the type of the getter on `X` with the name `n`.
           It is a **compile-time error** if `X` does not have a *getter* with name `n`.
           _If `X` is `dynamic` or `Never`, it is considered as having every getter with the same type._
 
