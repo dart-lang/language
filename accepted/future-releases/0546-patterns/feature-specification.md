@@ -1851,8 +1851,7 @@ To type check a pattern `p` being matched against a value of type `M`:
           the right shape where the field is present, so it's safe to just
           assume the field exists when type checking here.*
 
-      4.  Type-check `s` using `F` as the matched value type, and find its
-          required type.
+      4.  Type-check `s` using `F` as the matched value type.
 
   2.    The required type of `p` is a record type with the same shape as `p` and
         `Object?` for all fields. *If the matched value's type is `dynamic` or
