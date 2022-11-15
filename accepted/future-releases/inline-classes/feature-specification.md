@@ -56,11 +56,14 @@ the members of the wrapped object as needed.
 However, even though an inline class behaves like a wrapping, the wrapper
 object will never exist at run time, and a reference whose type is the
 inline class will actually refer directly to the underlying wrapped
-object. Every member access (e.g., an invocation of a method or a
-getter) on an expression whose static type is an inline type will invoke
-a member of the inline class (with some exceptions, as explained below),
-but this occurs because those member accesses are resolved statically,
-which means that the wrapper object is not actually needed.
+object.
+
+Consider a member access (e.g., a method call like `e.m(2)`)
+where the static type of the receiver (`e`) is an inline class `V`.
+In general, the member (`m`) will be a member of `V`, not a member of
+the static type of the wrapped object, and the invocation of that
+member will be resolved statically (just like extension methods).
+This means that the wrapper object is not actually needed.
 
 Given that there is no wrapper object, we will refer to the "wrapped"
 object as the _representation object_ of the inline class, or just the
@@ -71,7 +74,9 @@ to the representation whose static type is the enclosing inline
 class. A member access to a member of the enclosing inline class may
 rely on `this` being induced implicitly (for example, `foo()` means
 `this.foo()` if the inline class contains a method declaration named
-`foo`).
+`foo`, or it has a superinterface that has a `foo`, and no `foo`
+exists in the enclosing top-level scope). In other words, scopes and
+`this` have exactly the same interaction as in regular classes.
 
 A reference to the representation typed by its run-time type or a
 supertype thereof (that is, typed by a "normal" type for the
@@ -79,8 +84,9 @@ representation) is available as a declared name: The inline class must
 have exactly one instance variable whose type is the representation
 type, and it must be `final`.
 
-The representation type of the inline class (with `final int i` that's
-`int`) is similar to the on-type of an extension declaration.
+The representation type of the inline class (when the unique field of
+the inline class is `final int i;`, that's `int`) is similar to the
+on-type of an extension declaration.
 
 All in all, an inline class allows us to replace the interface of a given
 representation object and specify how to implement the new interface
@@ -90,10 +96,11 @@ This is something that we could obviously do with a regular class used
 as a wrapper, but when it is done with an inline class there is no
 wrapper object, and hence there is no run-time performance cost. In
 particular, in the case where we have an inline type `V` with
-representation type `R` we may be able to refer to a `List<R>` using
-the type `List<V>` (using `theRList as List<V>`), and this corresponds
-to "wrapping every element in the list", but it only takes time _O(1)_
-and no space, no matter how many elements the list contains.
+representation type `R`, we can refer to an object `theRList` of type
+`List<R>` using the type `List<V>` (e.g., we could use the cast
+`theRList as List<V>`), and this corresponds to "wrapping every
+element in the list", but it only takes time _O(1)_ and no space, no
+matter how many elements the list contains.
 
 
 ## Motivation
@@ -382,8 +389,9 @@ A few errors can be detected immediately from the syntax:
 
 A compile-time error occurs unless the inline class declares exactly
 one instance variable. Let `v` be the name of said instance
-variable. A compile-time error occurs unless the declaration of `v`
-has the modifier `final` or the modifier `late`.
+variable. The declaration of `v` must have the modifier `final`
+and it must not have the modifier `late`; otherwise a compile-time
+error occurs.
 
 The _name of the representation_ in an inline class declaration is the
 name `id` of the unique final instance variable that it declares, and
@@ -645,6 +653,18 @@ at level zero. If `R` is an inline type at level _k_ then we say that
 A compile-time error occurs if the level of `V` is undefined.
 
 *In other words, cycles are not allowed.*
+
+For every inline class declaration _DV_ named `V`, it is a
+compile-time error if the inline type level of the raw type `V`
+is undefined.
+
+*In other words, we check for this kind of cycles on every non-generic
+inline class declaration using the type directly (even in the case
+where nobody uses that type), and we check for this kind of cycles on
+the instantiation-to-bound of every generic inline class declaration
+(again, even when nobody uses it). Finally, we check for this kind of
+cycles with every parameterized type `V<T1..Tk>` that actually
+occurs in the code which is being analyzed/compiled.*
 
 An inline class declaration _DV_ named `Inline` may declare one or
 more constructors. A constructor which is declared in an inline class
