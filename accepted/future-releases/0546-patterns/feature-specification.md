@@ -1570,21 +1570,15 @@ var (a, int b) = ... // Schema is `(?, int)`.
 
 The context type schema for a pattern `p` is:
 
-*   **Logical-or**: The least upper bound of the context type schemas of the
-    branches.
-
 *   **Logical-and**: The greatest lower bound of the context type schemas of the
     branches.
 
-*   **Null-check** or **null-assert**: A context type schema `E?` where `E` is
-    the context type schema of the inner pattern. *For example:*
+*   **Null-assert**: A context type schema `E?` where `E` is the context type
+    schema of the inner pattern. *For example:*
 
     ```dart
     var [[int x]!] = [[]]; // Infers List<List<int>?> for the list literal.
     ```
-
-*   **Constant**: The context type schema is the static type of the pattern's
-    value.
 
 *   **Variable**:
 
@@ -1604,7 +1598,7 @@ The context type schema for a pattern `p` is:
         //                                 ^- Infers List<int>.
         ```
 
-*   **Relational** or **cast**: The context type schema is `?`.
+*   **Cast**: The context type schema is `?`.
 
 *   **Parenthesized**: The context type schema of the inner subpattern.
 
@@ -1674,6 +1668,11 @@ The context type schema for a pattern `p` is:
     var Foo<num>() = Foo();
     //                  ^-- Infer Foo<num>.
     ```
+
+The pattern type schema for logical-or, null-check, constant, and relational
+patterns is not defined, because logical-or patterns are only allowed in
+refutable contexts, and the pattern type schema is only used in irrefutable
+contexts.
 
 #### Type checking and pattern required type
 
