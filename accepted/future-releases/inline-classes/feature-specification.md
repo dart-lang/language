@@ -387,11 +387,12 @@ the inline class declaration with a fixed lookahead.*
 
 A few errors can be detected immediately from the syntax:
 
-A compile-time error occurs unless the inline class declares exactly
-one instance variable. Let `v` be the name of said instance
-variable. The declaration of `v` must have the modifier `final`
-and it must not have the modifier `late`; otherwise a compile-time
-error occurs.
+A compile-time error occurs if the inline class does not declare any
+instance variables, and if it declares two or more instance
+variables. Let `v` be the name of unique instance variable that it
+declares. The declaration of `v` must have the modifier `final`, and it
+can not have the modifier `late`; otherwise a compile-time error
+occurs.
 
 The _name of the representation_ in an inline class declaration is the
 name `id` of the unique final instance variable that it declares, and
@@ -739,11 +740,11 @@ Assume that _DV_ has two direct or indirect superinterface of the form
 respectively
 <code>W&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code>.
 A compile-time error
-occurs unless
+occurs if
 <code>T<sub>j</sub></code>
-is equal to
+is not equal to
 <code>S<sub>j</sub></code>
-for each _j_ in _1 .. k_. The notion of equality used here is the same
+for any _j_ in _1 .. k_. The notion of equality used here is the same
 as with the corresponding rule about superinterfaces of classes.
 
 Assume that an inline class declaration _DV_ named `Inline` has
@@ -751,7 +752,7 @@ representation type `R`, and that the inline type `V1` with
 declaration _DV1_ is a superinterface of _DV_ (*note that `V1` may
 have some actual type arguments*).  Assume that `S` is the
 instantiated representation type corresponding to `V1`. A compile-time
-error occurs unless `R` is a subtype of `S`.
+error occurs if `R` is not a subtype of `S`.
 
 *This ensures that it is sound to bind the value of `id` in _DV_ to `id1`
 in `V1` when invoking members of `V1`, where `id` is the representation
