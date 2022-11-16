@@ -688,8 +688,7 @@ to the error than silently accept it.*
 ### Object pattern
 
 ```
-objectPattern ::= objectName typeArguments? '(' patternFields? ')'
-objectName    ::= typeIdentifier | qualifiedName
+objectPattern ::= typeName typeArguments? '(' patternFields? ')'
 ```
 
 An object pattern matches values of a given named type and then extracts values
@@ -824,12 +823,12 @@ variables like so:
 
 ```
 localVariableDeclaration ::=
-  | initializedVariableDeclaration ';' // Existing.
-  | patternVariableDeclaration ';' // New.
+  | metadata initializedVariableDeclaration ';' // Existing.
+  | metadata patternVariableDeclaration ';' // New.
 
 forLoopParts ::=
   | // Existing productions...
-  | ( 'final' | 'var' ) outerPattern 'in' expression // New.
+  | metadata ( 'final' | 'var' ) outerPattern 'in' expression // New.
 ```
 
 As with regular for-in loops, it is a compile-time error if the type of
