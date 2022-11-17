@@ -1670,9 +1670,8 @@ The context type schema for a pattern `p` is:
     ```
 
 The pattern type schema for logical-or, null-check, constant, and relational
-patterns is not defined, because logical-or patterns are only allowed in
-refutable contexts, and the pattern type schema is only used in irrefutable
-contexts.
+patterns is not defined, because those patterns are only allowed in refutable
+contexts, and the pattern type schema is only used in irrefutable contexts.
 
 #### Type checking and pattern required type
 
