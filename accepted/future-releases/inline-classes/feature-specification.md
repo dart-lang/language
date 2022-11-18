@@ -590,6 +590,9 @@ the case where the values of the type variables do not satisfy their
 declared bounds, and those values will be obtained directly from the static
 type of the receiver in each member invocation on `V`.*
 
+A compile-time error occurs if a type parameter of an inline class
+occurs in a non-covariant position in the representation type.
+
 When `s` is zero,
 <code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
 simply stands for `V`, a non-generic inline type.
@@ -641,6 +644,13 @@ and no actual argument part.
 
 *Setter invocations are treated as invocations of methods with a
 single argument.*
+
+If `e` is an expression whose static type `V` is the inline type
+<code>Inline&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
+and `V` has no member whose basename is the basename of `m`, a member
+access like `e.m(args)` may be an extension member access, following
+the normal rules about applicability and accessibility of extensions,
+in particular that `V` must match the on-type of the extension.
 
 *In the body of an inline class declaration _DV_ with name `Inline`
 and type parameters
@@ -704,15 +714,15 @@ is `R`, and the _instantiated representation type_ corresponding to
 
 We will omit 'declared' and 'instantiated' from the phrase when it is
 clear from the context whether we are talking about the inline class
-itself, or we're talking a particular instantiation of a generic
-inline. *For non-generic inline classes, the representation type is
-the same in either case.*
+itself, or we're talking about a particular instantiation of a generic
+inline class. *For non-generic inline classes, the representation type
+is the same in either case.*
 
 Let `V` be an inline type of the form
 <code>Inline&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and let `R` be the corresponding instantiated representation type.
 `V` is a proper subtype of `Object?`. If `R` is non-nullable then `V`
-is a proper subtype of `Object` as well.
+is a proper subtype of `Object` as well, and non-nullable.
 
 *That is, an expression of an inline type can be assigned to a top type
 (like all other expressions), and if the representation type is
@@ -768,10 +778,13 @@ A compile-time error occurs if an inline class constructor includes a
 superinitializer. *That is, a term of the form `super(...)` or
 `super.id(...)` as the last element of the initializer list.*
 
+A compile-time error occurs if an inline class constructor declares a
+super parameter. *For instance, `Inline(super.x);`.*
+
 *In the body of a generative inline class constructor, the static type
-of `this` is the same as it is in any instance member of the inline,
-that is, `Inline<X1 .. Xk>`, where `X1 .. Xk` are the type parameters
-declared by `Inline`.*
+of `this` is the same as it is in any instance member of the inline
+class, that is, `Inline<X1 .. Xk>`, where `X1 .. Xk` are the type
+parameters declared by `Inline`.*
 
 An instance creation expression of the form
 <code>Inline&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;(...)</code>
@@ -787,6 +800,9 @@ variable, which is initialized according to the normal rules for
 constructors (in particular, it can occur by means of `this.id`, or in
 an initializer list, or by an initializing expression in the
 declaration itself, but it is an error if it does not occur at all).*
+
+An inline type `V` used as an expression (*a type literal*) is allowed
+and has static type `Type`.
 
 
 ### Composing Inline Classes
@@ -987,9 +1003,14 @@ use a cast to introduce or discard the inline type, as the static type
 of an instance, or as a type argument in the static type of a data
 structure or function involving the inline type.*
 
-A type test, `o is U` or `o is! U`, and a type cast, `o as U`, where `U` is
-or contains an inline type, is performed at run time as a type test and type
-cast on the run-time representation of the inline type as described above.
+A type test, `o is U` or `o is! U`, and a type cast, `o as U`, where
+`U` is or contains an inline type, is performed at run time as a type
+test and type cast on the run-time representation of the inline type
+as described above.
+
+An inline type `V` used as an expression (*a type literal*) evaluates
+to the value of the corresponding instantiated representation type
+used as an expression.
 
 
 ### Summary of Typing Relationships
