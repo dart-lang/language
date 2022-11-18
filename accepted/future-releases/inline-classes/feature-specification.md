@@ -84,10 +84,6 @@ representation) is available as a declared name: The inline class must
 have exactly one instance variable whose type is the representation
 type, and it must be `final`.
 
-The representation type of the inline class (when the unique field of
-the inline class is `final int i;`, that's `int`) is similar to the
-on-type of an extension declaration.
-
 All in all, an inline class allows us to replace the interface of a given
 representation object and specify how to implement the new interface
 in terms of the interface of the representation object.
@@ -389,8 +385,8 @@ A few errors can be detected immediately from the syntax:
 
 A compile-time error occurs if the inline class does not declare any
 instance variables, and if it declares two or more instance
-variables. Let `v` be the name of unique instance variable that it
-declares. The declaration of `v` must have the modifier `final`, and it
+variables. Let `id` be the name of unique instance variable that it
+declares. The declaration of `id` must have the modifier `final`, and it
 can not have the modifier `late`; otherwise a compile-time error
 occurs.
 
@@ -406,93 +402,156 @@ can be declared and called or torn off as usual, e.g.,
 `Inline.myStaticMethod(42)`.*
 
 
-## Primitives
+## Inline method invocations
 
-This document needs to refer to explicit inline method invocations, so we
-will add a special primitive, `invokeInlineMethod`, to denote invocations of
-inline methods.
+This document needs to refer to inline method invocations including
+each part that determines the static analysis and semantics of this
+invocation, so we will use a standardized phrase and talk about:
+An invocation of the inline member `m` on the receiver `e`
+according to the inline type `V` and with the actual type arguments
+<code>T<sub>1</sub>, ..., T<sub>s</sub></code>.
 
-`invokeInlineMethod` is used as a specification device and it cannot occur in
-Dart source code. (*As a reminder of this fact, it uses syntax which is not
-derivable in the Dart grammar.*)
+In the case where `m` is a method, the invocation could be an inline
+member property extraction (*a tear-off*) or a method invocation,
+and in the latter case there will also be an `<argumentPart>`,
+optionally passing some actual type arguments, and (non-optionally)
+passing an actual argument list.
+
+The case where `m` is a setter is syntactically different, but the
+treatment is the same as with a method accepting a single argument
+(*so we will not specify that case explicitly*).
+
+*We need to mention all these elements together, because each of them
+plays a role in the static analysis and the dynamic semantics of the
+invocation.  There is no syntactic representation in the language for
+this concept, because the same inline method invocation can have many
+different syntactic forms, and both `V` and <code>T<sub>1</sub>, ...,
+T<sub>s</sub></code> are implicit in the actual syntax.*
 
 
-### Static Analysis of invokeInlineMethod
+### Static Analysis of an Inline Member Invocation
 
-We use
-<code>invokeInlineMethod(V, &lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;, o).m(args)</code>
-where `V` is a type name denoting an inline class to denote the
-invocation of the inline method `m` on `o` with arguments `args` and
-inline type arguments
+We need to introduce a concept that is similar to existing concepts
+for regular classes.
+
+We say that an inline class `V` _has_ a member named `n` in the case
+where `V` declares a member named `n`, and in the case where `V` has
+no such declaration, but `V` has a superinterface `Vs` that has a
+member named `n`. In both cases,
+_the member declaration named `n` that `V` has_ is said declaration.
+
+*This definition is unambiguous for an inline class that has no
+compile-time errors, because name clashes must be resolved by `V`.*
+
+Consider an invocation of the inline member `m` on the receiver `e`
+according to the inline type `V` and with the actual type arguments
+<code>T<sub>1</sub>, ..., T<sub>s</sub></code>. If the invocation
+includes an actual argument part (possibly including some actual type
+arguments) then call it `args`. Finally, assume that `V` declares the
+type variables <code>X<sub>1</sub>, ..., X<sub>s</sub></code>.
+
+*Note that it is known that
+<code>V&lt;T<sub>1</sub>, ..., T<sub>s</sub>&gt;</code>
+has no compile-time errors. In particular, the number of actual type
+arguments is correct, and it is a regular-bounded type,
+and the static type of `e` is a subtype of 
+<code>V&lt;T<sub>1</sub>, ..., T<sub>s</sub>&gt;</code>,
+or a subtype of the corresponding instantiated representation type
+(defined below). This is required when we decide that a given
+expression is an inline member invocation.*
+
+If the name of `m` is a name in the interface of `Object` (*that is,
+`toString`, `==`, etc.*), the static analysis of the invocation is
+treated as an ordinary instance member invocation on a receiver of
+type `Object` and with the same `args`, if any.
+
+Otherwise, a compile-time error occurs if `V` does not have a member
+named `m`.
+
+Otherwise, let _Dm_ be the declaration of `m` that `V` has.
+
+If _Dm_ is a getter declaration with return type `R` then the static
+type of the invocation is
+<code>[T<sub>1</sub>/X<sub>1</sub> .. T<sub>s</sub>/X<sub>s</sub>]R</code>.
+
+If _Dm_is a method with function type `F`, and `args` is omitted, the
+invocation has static type
+<code>[T<sub>1</sub>/X<sub>1</sub> .. T<sub>s</sub>/X<sub>s</sub>]F</code>.
+*This is an inline method tear-off.*
+
+If _Dm_ is a method with function type `F`, and `args` exists, the
+static analysis of the inline member invocation is the same as that of
+an invocation with argument part `args` of a function with type
+<code>[T<sub>1</sub>/X<sub>1</sub> .. T<sub>s</sub>/X<sub>s</sub>]F</code>.
+*This determines the compile-time errors, if any, and it determines
+the type of the invocation as a whole.*
+
+
+### Dynamic Semantics of an Inline Member Invocation
+
+Consider an invocation of the inline member `m` on the receiver `e`
+according to the inline type `V` and with actual type arguments
+<code>T<sub>1</sub>, ..., T<sub>s</sub></code>. If the invocation
+includes an actual argument part (possibly including some actual type
+arguments) then call it `args`. Assume that `V` declares the
+type variables <code>X<sub>1</sub>, ..., X<sub>s</sub></code>.
+
+Let _Dm_ be the declaration named `m` thath `V` has.
+
+Evaluation of this invocation proceeds by evaluating `e` to an object
+`o`.
+
+Then, if `args` is omitted and _Dm_ is a getter, execute the body of
+said getter in an environment where `this` and the name of the
+representation are bound to `o`, and the type variables of `V` are
+bound to the actual values of
 <code>T<sub>1</sub>, .. T<sub>s</sub></code>.
-Similar constructs exist for invocation of getters, setters, and
-operators.
+If the body completes returning an object `o2` then the invocation
+evaluates to `o2`. If the body throws an object and a stack trace
+then the invocation completes throwing the same object and stack
+trace.
 
-*For instance, `invokeInlineMethod(V, <int>, o).myGetter` and
-`invokeInlineMethod(V, <int>, o) + rightOperand`.*
+Otherwise, if `args` is omitted and _Dm_ is a method, the invocation
+evaluates to a closurization of _Dm_ where
+`this` and the name of the representation are bound to `o`, and the
+type variables of `V` are bound to the actual values of
+<code>T<sub>1</sub>, .. T<sub>s</sub></code>. 
+The operator `==` of the closurization returns true if and only if the
+operand is the same object. 
 
-*We need special syntax because there is no syntax which will unambiguously
-denote an inline member invocation. We could consider using the syntax
-of explicit extension member invocations, e.g.,
-<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;(o).m(args)</code>,
-but this is ambiguous since
-<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;(o)</code>
-can be an inline class constructor invocation.  Similarly,
-<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;.m(o, args)</code>
-is similar to a named constructor invocation, but that is also
-confusing because it looks like actual source code, but it couldn't be
-used in an actual program.*
+*Loosely said, these function objects simply use the equality
+inherited from `Object`, there are no special exceptions. Note that
+we can tear off the same method from the same inline class with the
+same representation object twice, and still get different behavior,
+because the inline type had different actual type arguments. Hence,
+we can not consider two inline method tear-offs equal just because
+they have the same receiver.*
 
-The static analysis of `invokeInlineMethod` is that it takes exactly
-three positional arguments and must be the receiver in a member
-access. The first argument must be a type name, say, `Inline`, that
-denotes an inline class declaration. The next argument must be a type
-argument list. The first and second argumnt together yield an inline
-type _V_ (*the type argument list can be empty, which enables the
-non-generic case*). The third argument must be an expression whose
-static type is _V_ or the corresponding instantiated representation
-type (defined below). The member access must access a member of the
-declaration denoted by `Inline`, or a member of a superinterface of that
-inline class declaration.
-
-*Superinterfaces of inline classes are specified in the section
-'Composing inline classes.*
-
-If the member access is a method invocation (including an invocation of an
-operator that takes at least one argument), it is allowed to pass an actual
-argument list, and the static analysis of the actual arguments proceeds as
-with other function calls, using a signature where the formal type
-parameters of `V` are replaced by
-<code>T<sub>1</sub>, .. T<sub>s</sub></code>.
-The type of the entire member access is the return type of said member if
-it is a member invocation, and the function type of the method if it is a
-inline member tear-off, again substituting
-<code>T<sub>1</sub>, .. T<sub>s</sub></code>
-for the formal type parameters.
-
-
-### Dynamic Semantics of invokeInlineMethod
-
-Let `e0` be an expression of the form
-<code>invokeInlineMethod(Inline, &lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;, e).m(args)</code>.
-
-Evaluation of `e0` proceeds by evaluating `e` to an object `o` and
-evaluating `args` to an actual argument list `args1`, and then
-executing the body of `Inline.m` in an environment where `this` and the
-name of the representation are bound to `o`, the type variables of
-`Inline` are bound to the actual values of
+Otherwise, the following is known: `args` is included, and _Dm_ is a
+method. The invocation proceeds to evaluate `args` to an actual
+argument list `args1`. Then it executes the body of _Dm_ in an
+environment where `this` and the name of the representation are bound
+to `o`, the type variables of `V` are bound to the actual values of
 <code>T<sub>1</sub>, .. T<sub>s</sub></code>,
 and the formal parameters of `m` are bound to `args1` in the same way
-that they would be bound for a normal function call. If the body completes
-returning an object `o2`, then `e0` completes with the object `o2`; if the
-body throws then the evaluation of `e0` throws the same object and the
-same stack trace.
-
-*Getters, setters, and operators behave in the same way, with the
-obvious small adjustments.*
+that they would be bound for a normal function call.
+If the body completes returning an object `o2` then the invocation
+evaluates to `o2`. If the body throws an object and a stack trace
+then the invocation completes throwing the same object and stack
+trace.
 
 
 ## Static Analysis of Inline Classes
+
+The unique instance variable declared by an inline class must have a
+type annotation.
+
+*In particular, the type of this variable cannot be obtained by
+inference. An important part of the rationale for this rule is that
+the representation type of an inline class plays a role in the
+semantics of the class which is broader and more significant than that
+of an instance variable in a normal class or mixin, and hence it
+should be documented explicitly.*
 
 Assume that
 <code>T<sub>1</sub>, .. T<sub>s</sub></code>
@@ -544,6 +603,18 @@ _is the inline type_
 <code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and that its static type _is an inline type_.
 
+A compile-time error occurs if an inline type declares a member whose
+name is declared by `Object` as well.
+
+*For example, an inline class cannot define an operator `==` or a
+member named `noSuchMethod` or `toString`. The rationale is that these
+inline methods would be highly confusing and error prone. For example,
+collections would still call the instance operator `==`, not the inline
+class operator, and string interpolation would call the instance
+method `toString`, not the inline class method. Also, when we make
+this an error for now, we have the option to allow it, perhaps with
+some restrictions, in a future version of Dart.*
+
 A compile-time error occurs if an inline type is used as a
 superinterface of a class or a mixin, or if an inline type is used to
 derive a mixin.
@@ -551,21 +622,35 @@ derive a mixin.
 *In other words, an inline type cannot occur as a superinterface in an
 `extends`, `with`, `implements`, or `on` clause of a class or mixin.
 On the other hand, it can occur in other ways, e.g., as a type
-argument of a superinterface of a class etc.*
+argument of a superinterface of a class.*
 
 If `e` is an expression whose static type `V` is the inline type
 <code>Inline&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
-and `m` is the name of a member declared by `V`, then a member access
+and `m` is the name of a member that `V` has, a member access
 like `e.m(args)` is treated as
-<code>invokeInlineMethod(Inline, &lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;, e).m(args)</code>,
-and similarly for instance getters, setters, and operators.
+an invocation of the inline member `m` on the receiver `e`
+according to the inline type `Inline` and with the actual type arguments
+<code>T<sub>1</sub>, ..., T<sub>s</sub></code>, with the actual
+argument part `args`.
+
+Similarly, `e.m` is treated an invocation of the inline member `m` on
+the receiver `e` according to the inline type `Inline` and with the
+actual type arguments
+<code>T<sub>1</sub>, ..., T<sub>s</sub></code>
+and no actual argument part.
+
+*Setter invocations are treated as invocations of methods with a
+single argument.*
 
 *In the body of an inline class declaration _DV_ with name `Inline`
 and type parameters
 <code>X<sub>1</sub>, .. X<sub>s</sub></code>, for an invocation like
 `m(args)`, if a declaration named `m` is found in the body of _DV_
 then that invocation is treated as
-<code>invokeInlineMethod(Inline, &lt;X<sub>1</sub>, .. X<sub>s</sub>&gt;, this).m(args)</code>.
+an invocation of the inline member `m` on the receiver `this`
+according to the inline type `Inline` and with the actual type arguments
+<code>T<sub>1</sub>, ..., T<sub>s</sub></code>, with the actual
+argument part `args`.
 This is just the same treatment of `this` as in the body of a class.*
 
 *For example:*
@@ -699,8 +784,9 @@ is used to invoke these constructors, and the type of such an expression is
 constructors in regular classes, and they correspond to the situation
 where the enclosing class has a single, non-late, final instance
 variable, which is initialized according to the normal rules for
-constructors (in particular, it must occur by means of `this.id` or in
-an initializer list).*
+constructors (in particular, it can occur by means of `this.id`, or in
+an initializer list, or by an initializing expression in the
+declaration itself, but it is an error if it does not occur at all).*
 
 
 ### Composing Inline Classes
@@ -726,6 +812,9 @@ they are statically resolved).*
 Assume that _DV_ is an inline class declaration named `Inline`, and
 `V1` occurs as one of the `<type>`s in the `<interfaces>` of _DV_. In
 this case we say that `V1` is a _superinterface_ of _DV_.
+
+If _DV_ does not include an `<interfaces>` clause then _DV_ has no
+superinterfaces.
 
 A compile-time error occurs if `V1` is a type name or a parameterized
 type which occurs as a superinterface in an inline class declaration
@@ -762,7 +851,7 @@ Assume that _DV_ declares an inline class named `Inline` with type
 parameters
 <code>X<sub>1</sub> .. X<sub>s</sub></code>,
 and `V1` is a superinterface of _DV_. Then
-<code>Inline&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code> 
+<code>Inline&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
 is a subtype of
 <code>[T<sub>1</sub>/X<sub>1</sub> .. T<sub>s</sub>/X<sub>s</sub>]V1</code>
 for all <code>T<sub>1</sub>, .. T<sub>s</sub></code>.
@@ -829,12 +918,9 @@ well as all members of `V1, .. Vk` that are not redeclared by a
 declaration in _DV_ can be invoked on a receiver of the type
 introduced by _DV_.
 
-In the body of _DV_, a superinvocation syntax similar to an explicit
-extension method invocation can be used to invoke a member of a
-superinterface which is redeclared: The invocation starts with `super.`
-followed by the name of the given superinterface, followed by the
-member access. The superinterface may be omitted in the case where
-there is no ambiguity.
+In the body of _DV_, a superinvocation syntax can be used to invoke a
+member of a superinterface which is redeclared: The invocation starts
+with `super.` followed by the member access.
 
 *For example:*
 
@@ -843,19 +929,24 @@ inline class V2 {
   final Object id;
   V2(this.id);
   void foo() { print('V2.foo()'); }
+  void bar() { print('V2.bar()'); }
 }
 
 inline class V3 {
   final Object id;
   V3(this.id);
   void foo() { print('V3.foo()'); }
+  void baz() { print('V3.baz()'); }
 }
 
 inline class V1 implements V2, V3 {
   final Object id;
   V1(this.id);
-  void bar() {
-    super.V3.foo(); // Prints "V3.foo()".
+  void qux() {
+    super.bar(); // 'V2.bar()'.
+    super.baz(); // 'V3.baz()'.
+    // super.foo(); // Compile-time error, use this:
+    (this as V2).foo();
   }
 }
 ```
@@ -863,14 +954,10 @@ inline class V1 implements V2, V3 {
 
 ## Dynamic Semantics of Inline Classes
 
-The dynamic semantics of inline member invocation follows from the code
-transformation specified in the section about the static analysis.
-
-*In short, with `e` of type
-<code>Inline&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
-`e.m(args)` is treated as
-<code>invokeInlineMethod(Inline, &lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;, e).m(args)</code>.
-Similarly for getters, setters, and operators.*
+For any given syntactic construct which has been characterized as an
+inline member invocation during the static analysis, the dynamic
+semantics of the construct is the dynamic semantics of said
+inline member invocation.
 
 Consider an inline class declaration _DV_ named `Inline` with
 representation name `id` and representation type `R`.  Invocation of a
@@ -908,16 +995,14 @@ cast on the run-time representation of the inline type as described above.
 ### Summary of Typing Relationships
 
 *Here is an overview of the subtype relationships of an inline type
-`V0` with representation type `R` and superinterfaces `V1 .. Vk`, as
-well as other typing relationships involving `V0`:*
+`V0` with instantiated representation type `R` and superinterfaces 
+`V1 .. Vk`, as well as other typing relationships involving `V0`:*
 
-- *`V0` is a subtype of `Object?`.*
+- *`V0` is a proper subtype of `Object?`.*
 - *`V0` is a supertype of `Never`.*
-- *If `R` is a top type then `V0` is a top type,
-  otherwise `V0` is a proper subtype of `Object?`.*
-- *If `R` is a non-nullable type then `V0` is a non-nullable type.*
-- `V0` is a subtype of each of `V1 .. Vk` (and a proper subtype
-  unless `V0` is a top type).*
+- *If `R` is a non-nullable type then `V0` is a proper subtype of
+  `Object`, and a non-nullable type.*
+- *`V0` is a proper subtype of each of `V1 .. Vk`.*
 - *At run time, the type `V0` is identical to the type `R`. In
   particular, `o is V0` and `o as V0` have the same dynamic
   semantics as `o is R` respectively `o as R`, and
