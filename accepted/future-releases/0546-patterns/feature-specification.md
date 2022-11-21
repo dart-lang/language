@@ -1653,10 +1653,9 @@ The context type schema for a pattern `p` is:
 
     2.  Else if `p` has no entries, then `K` and `V` are `?`.
 
-    3.  Else `K` is the least upper bound of the types of all key expressions
-        and `V` is the greatest lower bound of the context type schemas of all
-        value subpatterns. *The rest pattern, if present, doesn't contribute to
-        the context type schema.*
+    3.  Else `K` is `?` and `V` is the greatest lower bound of the context type
+        schemas of all value subpatterns. *The rest pattern, if present, doesn't
+        contribute to the context type schema.*
 
 *   **Record**: A record type schema with positional and named fields
     corresponding to the type schemas of the corresponding field subpatterns.
@@ -1810,19 +1809,23 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 *   **Map**:
 
-    1.  Calculate the value's entry key type `K` and value type `V`:
+    1.  Calculate the value's entry key type `K` and value type `V`, and key
+        context `C`:
 
         1.  If `p` has type arguments `<K, V>` for some `K` and `V` then use
-            those.
+            those, and `C` is `K`.
 
         2.  Else if `M` implements `Map<K, V>` for some `K` and `V` then use
-            those.
+            those, and `C` is `K`.
 
-        3.  Else if `M` is `dynamic` then `K` and `V` are `dynamic`.
+        3.  Else if `M` is `dynamic` then `K` and `V` are `dynamic` and `C` is
+            `?`.
 
-        4.  Else `K` and `V` are `Object?`.
+        4.  Else `K` and `V` are `Object?` and `C` is `?`.
         
-    2.  Type-check each value subpattern using `V` as the matched value type.
+    2.  Type-check each key expression using `C` as the context type.
+
+    3.  Type-check each value subpattern using `V` as the matched value type.
         *Like lists, we calculate a single value type and use it for all value
         subpatterns:*
 
@@ -1832,7 +1835,7 @@ To type check a pattern `p` being matched against a value of type `M`:
 
         *Here, both `a` and `b` use `Object` as the matched value type.*
 
-    3.  The required type of `p` is `Map<K, V>`.
+    4.  The required type of `p` is `Map<K, V>`.
 
 * **Record**:
 
@@ -3019,6 +3022,9 @@ Here is one way it could be broken down into separate pieces:
 
 -   Change precedence of constant expression on right-hand side of relational
     pattern from `relationalExpression` to `bitwiseOrExpression` (#2501).
+
+-   Use a context type when type checking map pattern key constant expressions
+    (#2645).
 
 ### 2.16
 
