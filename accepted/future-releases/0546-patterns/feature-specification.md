@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.16 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.17 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -181,8 +181,8 @@ Before introducing each pattern in detail, here is a summary with some examples:
 
 | Kind | Examples |
 | ---- |-------- |
-| [Logical-or][logicalOrPattern] | `subpattern1 \| subpattern2` |
-| [Logical-and][logicalAndPattern] | `subpattern1 & subpattern2` |
+| [Logical-or][logicalOrPattern] | `subpattern1 \|\| subpattern2` |
+| [Logical-and][logicalAndPattern] | `subpattern1 && subpattern2` |
 | [Relational][relationalPattern] | `== expression`<br>`< expression` |
 | [Cast][castPattern] | `foo as String` |
 | [Null-check][nullCheckPattern] | `subpattern?` |
@@ -212,29 +212,29 @@ Before introducing each pattern in detail, here is a summary with some examples:
 Here is the overall grammar for the different kinds of patterns:
 
 ```
-pattern               ::= logicalOrPattern
+pattern           ::= logicalOrPattern
 
-logicalOrPattern      ::= ( logicalOrPattern '|' )? logicalAndPattern
-logicalAndPattern     ::= ( logicalAndPattern '&' )? relationalPattern
-relationalPattern     ::= ( equalityOperator | relationalOperator) relationalExpression
-                        | unaryPattern
+logicalOrPattern  ::= ( logicalOrPattern '||' )? logicalAndPattern
+logicalAndPattern ::= ( logicalAndPattern '&&' )? relationalPattern
+relationalPattern ::= ( equalityOperator | relationalOperator) bitwiseOrExpression
+                    | unaryPattern
 
-unaryPattern          ::= castPattern
-                        | nullCheckPattern
-                        | nullAssertPattern
-                        | primaryPattern
+unaryPattern      ::= castPattern
+                    | nullCheckPattern
+                    | nullAssertPattern
+                    | primaryPattern
 
-primaryPattern        ::= constantPattern
-                        | variablePattern
-                        | parenthesizedPattern
-                        | listPattern
-                        | mapPattern
-                        | recordPattern
-                        | objectPattern
+primaryPattern    ::= constantPattern
+                    | variablePattern
+                    | parenthesizedPattern
+                    | listPattern
+                    | mapPattern
+                    | recordPattern
+                    | objectPattern
 ```
 
-As you can see, logical-or patterns (`|`) have the lowest precedence; then
-logical-and patterns (`&`), then the postfix *unary patterns* cast (`as`),
+As you can see, logical-or patterns (`||`) have the lowest precedence; then
+logical-and patterns (`&&`), then the postfix *unary patterns* cast (`as`),
 null-check (`?`), and null-assert (`!`) patterns; followed by the remaining
 highest precedence primary patterns.
 
@@ -243,16 +243,16 @@ The individual patterns are:
 ### Logical-or pattern
 
 ```
-logicalOrPattern ::= ( logicalOrPattern '|' )? logicalAndPattern
+logicalOrPattern ::= ( logicalOrPattern '||' )? logicalAndPattern
 ```
 
-A pair of patterns separated by `|` matches if either of the branches match.
+A pair of patterns separated by `||` matches if either of the branches match.
 This can be used in a switch expression or statement to have multiple cases
 share a body:
 
 ```dart
 var isPrimary = switch (color) {
-  Color.red | Color.yellow | Color.blue => true,
+  Color.red || Color.yellow || Color.blue => true,
   _ => false
 };
 ```
@@ -263,9 +263,9 @@ share a guard:
 
 ```dart
 switch (shape) {
-  case Square(size: var s) | Circle(size: var s) when s > 0:
+  case Square(size: var s) || Circle(size: var s) when s > 0:
     print('Non-empty symmetric shape');
-  case Square() | Circle():
+  case Square() || Circle():
     print('Empty symmetric shape');
   default:
     print('Asymmetric shape');
@@ -278,7 +278,7 @@ can be nested inside a destructuring pattern:
 ```dart
 switch (list) {
   // Matches a two-element list whose first element is 'a' or 'b':
-  case ['a' | 'b', var c]):
+  case ['a' || 'b', var c]):
 }
 ```
 
@@ -296,13 +296,13 @@ problems stemming from that, the following restrictions apply:
 ### Logical-and pattern
 
 ```
-logicalAndPattern ::= ( logicalAndPattern '&' )? relationalPattern
+logicalAndPattern ::= ( logicalAndPattern '&&' )? relationalPattern
 ```
 
-A pair of patterns separated by `&` matches only if *both* subpatterns match.
+A pair of patterns separated by `&&` matches only if *both* subpatterns match.
 Unlike logical-or patterns, the variables defined in each branch must *not*
-overlap, since the logical-and pattern only matches if both branches do and
-the variables in both branches will be bound.
+overlap, since the logical-and pattern only matches if both branches do and the
+variables in both branches will be bound.
 
 If the left branch does not match, the right branch is not evaluated. *This only
 matters because patterns may invoke user-defined methods with visible side
@@ -311,17 +311,17 @@ effects.*
 ### Relational pattern
 
 ```
-relationalPattern ::= ( equalityOperator | relationalOperator) relationalExpression
+relationalPattern ::= ( equalityOperator | relationalOperator) bitwiseOrExpression
 ```
 
 A relational pattern lets you compare the matched value to a given constant
 using any of the equality or relational operators: `==`, `!=`, `<`, `>`, `<=`,
 and `>=`. The pattern matches when calling the appropriate operator on the
 matched value with the constant as an argument returns `true`. It is a
-compile-time error if `relationalExpression` is not a valid constant expression.
+compile-time error if `bitwiseOrExpression` is not a valid constant expression.
 
 The comparison operators are useful for matching on numeric ranges, especially
-when combined with `&`:
+when combined with `&&`:
 
 ```dart
 String asciiCharType(int char) {
@@ -332,8 +332,8 @@ String asciiCharType(int char) {
   return switch (char) {
     < space => 'control',
     == space => 'space',
-    > space & < zero => 'punctuation',
-    >= zero & <= nine => 'digit'
+    > space && < zero => 'punctuation',
+    >= zero && <= nine => 'digit'
     // Etc...
   }
 }
@@ -681,7 +681,7 @@ var (:x, x: y) = (x: 1);
 ```
 
 *Destructuring the same field multiple times is never necessary because you can
-always just destructure it once with an `|` subpattern. If a user does it, it's
+always just destructure it once with an `||` subpattern. If a user does it, it's
 mostly like a copy/paste mistake and it's more helpful to draw their attention
 to the error than silently accept it.*
 
@@ -797,7 +797,7 @@ The `outerPattern` rule defines a subset of the patterns that are allowed as the
 outermost pattern in a declaration. Subsetting allows useful code like:
 
 ```dart
-var ((a, b) & record) = (1, 2);           // Parentheses.
+var ((a, b) && record) = (1, 2);          // Parentheses.
 var [a, b] = [1, 2];                      // List.
 var {1: a} = {1: 2};                      // Map.
 var (a, b, x: x) = (1, 2, x: 3);          // Record.
@@ -883,7 +883,7 @@ It is a compile-time error if:
 
     ```dart
     var a = 1;
-    (a & a) = 2;
+    (a && a) = 2;
     [a, a, a] = [1, 2, 3];
     ```
 
@@ -2710,7 +2710,7 @@ For example, consider:
 main() {
   var list = [1, 2];
   switch (list) {
-    case [1, _] & [_, < 4]: print('first');
+    case [1, _] && [_, < 4]: print('first');
     case [int(isEven: true), var a]: print('second $a');
   }
 }
@@ -2851,8 +2851,8 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
                 since the length of the list isn't a syntactically known
                 property. Since the list and its length are cached too, using
                 `t` is sufficient to distinguish calls to `sublist()` that are
-                different, like `[...] & [..., a]` while caching calls that are
-                the same as in `[..., a] & [..., b]`.*
+                different, like `[...] && [..., a]` while caching calls that are
+                the same as in `[..., a] && [..., b]`.*
 
             2.  Bind `e` to the `sublist()` invocation for `s`.
 
@@ -3001,8 +3001,8 @@ Here is one way it could be broken down into separate pieces:
 
 *   **Logical patterns.** If we're going to add `==` patterns, we may as well
     support other Boolean infix operators. And if we're going to support the
-    comparison operators, then `&` is useful for numeric ranges. It's weird to
-    have `&` without `|` so we may as well do that too (and it's useful for
+    comparison operators, then `&&` is useful for numeric ranges. It's weird to
+    have `&&` without `||` so we may as well do that too (and it's useful for
     switch expressions). Once we have infix patterns precedence comes into play,
     so we need parentheses to control it:
 
@@ -3012,6 +3012,13 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.17
+
+-   Change logical pattern syntax to `||` and `&&` (#2501).
+
+-   Change precedence of constant expression on right-hand side of relational
+    pattern from `relationalExpression` to `bitwiseOrExpression` (#2501).
 
 ### 2.16
 
