@@ -51,7 +51,7 @@ We assume that type aliases have been expanded, and that all types are named
 
 This document relies on several type classification helper predicates
 which are specified in the
-[null safety specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/nnbd/feature-specification.md):
+[null safety specification](https://github.com/dart-lang/language/blob/master/accepted/2.12/nnbd/feature-specification.md):
 **TOP**, which is true for all top types;
 **OBJECT**, which is true for types equivalent to `Object`;
 **BOTTOM**, which is true for types equivalent to `Never`;
