@@ -11,7 +11,8 @@ allow an author to control whether the type allows being implemented, extended,
 both, or neither. The proposed modifiers are:
 
 *   No modifier: As today, the type has no restrictions.
-*   `base`: The type can be extended or mixed in but not implemented.
+*   `base`: The type can be extended (if a class) or mixed in (if a mixin) but
+    not implemented.
 *   `interface`: The type can be implemented but not extended or mixed in.
 *   `final`: The type can't be extended, mixed in, or implemented.
 
@@ -55,8 +56,8 @@ is actually defined and will succeed. It helps you in case you forget to
 implement something.
 
 But it also means that if a *new* member is added to a class then every single
-class implementing that class's interface now has a new compile error since none
-of them have that member.
+class implementing that class's interface now has a new compile-time error since
+none of them have that member.
 
 This makes it hard to add new members to existing public types in packages.
 Since anyone could be implementing that type's interface, any new member is
@@ -84,7 +85,9 @@ class Account {
   bool canWithdraw(int amount) => amount <= _balance;
 
   bool tryWithdraw(int amount) {
-    if (amount <= 0) throw ArgumentError("Amount must be positive.");
+    if (amount <= 0) {
+      throw ArgumentError.value(amount, "amount", "Must be positive");
+    }
 
     if (!canWithdraw(amount)) return false;
     _balance -= amount;
@@ -236,11 +239,11 @@ programming style][fp] in Dart.
 
 [fp]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md#algebraic-datatypes
 
-The `sealed` modifier prevents subtyping from outside of the library where the
-sealed type is defined. But it doesn't prevent you from subtyping within the
-same library. In fact, the *whole point* of `sealed` is to define subtypes
-within the same library so that you can pattern match on those to cover the
-supertype.
+The `sealed` modifier prevents direct subtyping from outside of the library
+where the sealed type is defined. But it doesn't prevent you from subtyping
+within the same library. In fact, the *whole point* of `sealed` is to define
+subtypes within the same library so that you can pattern match on those to cover
+the supertype.
 
 ### Extending non-extensible classes in the same library
 
@@ -268,7 +271,7 @@ can define `Square` and `Circle`, but disallow others from doing so.
 A key invariant you get by preventing a type from being implemented is that it
 becomes safe to access private members defined on that type without risking a
 runtime exception. You are ensured that any instance of the type is an instance
-of a type from your library that inclines all of its private members.
+of a type from your library that includes all of its private members.
 
 This invariant is still preserved if we allow you to implement the type from
 within the same library. When you implement a type inside its library, the
@@ -321,7 +324,45 @@ does `MySubclass` now expose externally? We have a few options:
     its own public one. That subclass is now externally extensible and the
     language quietly lets you do that.
 
-*   **Trust but verify.** In the above example, it's not clear what the author
+*   **Disallow removing restrictions.** We could say that you can ignore a
+    type's restrictions within the same library, but any types that do that
+    *must* have the same restrictions as the type they extend or implement. So
+    if you implement a class marked `base` in the same library, that
+    implementing class must also be marked `base` or `final`.
+
+    This avoids any confusion about whether a subtype removes a restriction. But
+    it comes at the expense of flexiblity. If a user *wants* to remove a
+    restriction, they have no ability to.
+
+    This would constrast with `sealed` where you can have subtypes of a sealed
+    type that are not themselves sealed. This is a deliberate choice because
+    there's no *need* for the direct subtypes of a sealed to be sealed in order
+    for exhaustiveness checking to be sound. Since exhaustiveness is the goal
+    and Dart is permissive by default, we allow subtypes of sealed types to be
+    unsealed.
+
+    It also prevents API designs that seem reasonable and useful to me. Imagine
+    a library for transportion with classes like:
+
+    ```dart
+    abstract final class Vehicle {}
+
+    class LandVehicle extends Vehicle {}
+    class AquaticVehicle extends Vehicle {}
+    class FlyingVehicle extends Vehicle {}
+    ```
+
+    It allows you to define new subclasses of the various modalities. You can
+    add cars, bikes, canoes, and gliders to it. But it deliberately does not
+    want to support adding entire new modalities by extending `Vehicle`
+    directly. You can't add vehicles that, say, fly through space because the
+    library isn't designed to support that.
+
+    If we require subclasses to have the same restrictions, then there's no way
+    to make `Vehicle` `final` while allowing `LandVehicle` and friends to be
+    extended.
+
+*   **Trust but verify.** In the earlier example, it's not clear what the author
     *intends*. Maybe they deliberately didn't put any modifiers on `MySubclass`
     because they *want* to re-add the capability that its superclass removed.
     But maybe they just didn't notice that `NoExtend` removed them, or they
@@ -359,7 +400,9 @@ does `MySubclass` now expose externally? We have a few options:
     @reopen class MySubclass extends NoExtend {}
     ```
 
-    This proposal takes that option.
+This proposal takes the last option where types have exactly the restrictions
+they declare but a lint can be turned on for users who want to be reminded if
+they re-add a capability in a subtype.
 
 Finally, to the actual proposal...
 
@@ -397,8 +440,6 @@ abstract final class
 mixin
 sealed mixin
 base mixin
-interface mixin
-final mixin
 ```
 
 The grammar is:
@@ -410,13 +451,13 @@ classDeclaration ::=
   '{' (metadata classMemberDeclaration)* '}'
   | classModifiers 'class' mixinApplicationClass
 
-mixinDeclaration ::= mixinModifiers 'mixin' identifier typeParameters?
+classModifiers ::= 'sealed' | 'abstract'? ('base' | 'interface' | 'final')?
+
+mixinDeclaration ::= mixinModifiers? 'mixin' identifier typeParameters?
   ('on' typeNotVoidList)? interfaces?
   '{' (metadata classMemberDeclaration)* '}'
 
-classModifiers ::= 'sealed' | 'abstract'? typeModifiers?
-mixinModifiers ::= 'sealed' | typeModifiers?
-typeModifiers  ::= 'base' | 'interface' | 'final'
+mixinModifiers ::= 'sealed' | 'base'
 ```
 
 ### Static semantics
@@ -460,7 +501,7 @@ warning is reported if a class or mixin is not annotated `@reopen` and it:
     marked `interface` or `final`.
 
 *   Extends, implements, or mixes in a type marked `base` or `final` and is
-    not itself marked `base` or `final`.
+    not itself marked `base`, `final`, or `sealed`.
 
 [meta]: https://pub.dev/packages/meta
 [linter]: https://dart.dev/guides/language/analysis-options#enabling-linter-rules
