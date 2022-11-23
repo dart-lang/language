@@ -61,6 +61,10 @@ which are specified in the
 
 ## Upper bounds
 
+*Note that this algorithm is defined for types, not type schemas.  For the upper
+bound of two type schemas, see the [inference
+specification](https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#upper-bound).*
+
 We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as follows.
 
 
@@ -215,6 +219,10 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 [inference.md]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md
 
 ## Lower bounds
+
+*Note that this algorithm is defined for types, not type schemas.  For the upper
+bound of two type schemas, see the [inference
+specification](https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#upper-bound).*
 
 We define the lower bound of two types T1 and T2 to be **DOWN**(T1,T2) as
 follows.
