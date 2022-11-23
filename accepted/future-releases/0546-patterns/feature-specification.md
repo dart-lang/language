@@ -1230,10 +1230,6 @@ ifStatement ::= ifCondition statement ('else' statement)?
 ifCondition :== 'if' '(' expression ( 'case' guardedPattern )? ')'
 ```
 
-**TODO: Allow patterns in if elements too ([#2542][]).**
-
-[#2542]: https://github.com/dart-lang/language/issues/2542
-
 When the `condition` has no `guardedPattern`, it behaves as it does today. If
 there is a `guardedPattern`, then the expression is evaluated and matched
 against the subsequent pattern. If it matches, the then branch is executed with
@@ -2219,12 +2215,10 @@ little value. We define an *exhaustive type* to be:
 *   `bool`
 *   `Null`
 *   A enum type
-*   A type whose declaration is marked sealed
+*   A type whose declaration is marked `sealed`
 *   `T?` where `T` is exhaustive
 *   `FutureOr<T>` for some type `T` that is exhaustive
 *   A record type whose fields are all exhaustive types
-
-**TODO: Finalize the syntax for marking a class as a sealed family.**
 
 All other types are not exhaustive. Then:
 
@@ -2239,10 +2233,11 @@ All other types are not exhaustive. Then:
 [exhaustiveness]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
 
 **Breaking change:** Currently, a non-exhaustive switch on an enum type is only
-a warning. This promotes it to an error. Also, switches on `bool` do not have to
-be exhaustive. In practice, many users already treat warnings as errors, and
-switches on `bool` are rare and unidiomatic. This breaking change would only
-apply to code that has opted into the language version where this ships.
+a warning. This promotes it to an error. Also, switches on `bool` do not
+currently have to be exhaustive. In practice, many users already treat warnings
+as errors, and switches on `bool` are rare and unidiomatic. This breaking change
+would only apply to code that has opted into the language version where this
+ships.
 
 ## Runtime semantics
 
