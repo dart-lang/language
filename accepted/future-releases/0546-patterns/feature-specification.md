@@ -642,9 +642,9 @@ Field subpatterns can be in one of three forms:
     variable with the same name.
 
     As a convenience, the identifier can be omitted and inferred from `pattern`.
-    The subpattern must be a variable pattern which may be wrapped in a unary
-    pattern. The field name is then inferred from the name in the variable
-    pattern. These pairs of patterns are each equivalent:
+    In this case the subpattern must be a variable pattern which may be wrapped 
+    in a unary pattern. The field name is then inferred from the name in the 
+    variable pattern. These pairs of patterns are each equivalent:
 
     ```dart
     // Variable:
