@@ -6,9 +6,9 @@ Status: In-progress
 
 Version 1.0
 
-This proposal specifies three modifiers that can be placed on classes and mixins to
-allow an author to control whether the type allows being implemented, extended,
-both, or neither. The proposed modifiers are:
+This proposal specifies three modifiers that can be placed on classes and mixins
+to allow an author to control whether the type allows being implemented,
+extended, both, or neither. The proposed modifiers are:
 
 *   No modifier: As today, the type has no restrictions.
 *   `base`: The type can be extended (if a class) or mixed in (if a mixin) but
@@ -49,15 +49,15 @@ software:
 
 ### Adding methods
 
-It's a compile-time error to have an `implements` clause and not contain
-definitions of every member in the type that you claim to implement. This is a
-*useful* error because it ensures that any member someone can access on a type
-is actually defined and will succeed. It helps you in case you forget to
-implement something.
+It's a compile-time error to have an `implements` clause on a non-`abstract`
+class unless it contains definitions of every member in the type that you claim
+to implement. This is a *useful* error because it ensures that any member
+someone can access on a type is actually defined and will succeed. It helps you
+in case you forget to implement something.
 
 But it also means that if a *new* member is added to a class then every single
 class implementing that class's interface now has a new compile-time error since
-none of them have that member.
+they are very unlikely to coincidentally already have that member.
 
 This makes it hard to add new members to existing public types in packages.
 Since anyone could be implementing that type's interface, any new member is
@@ -248,10 +248,10 @@ the supertype.
 ### Extending non-extensible classes in the same library
 
 Preventing a class from being extended gives you an important invariant: Calls
-to members on that class won't end up in overrides you don't control. This
-invariant remains even if we let you extend the class in the same library. Calls
-to those members may end up in overrides, but they will be overrides you
-yourself wrote in that same library.
+to members on `this` from within that class won't end up in overrides you don't
+control. This invariant remains even if we let you extend the class in the same
+library. Calls to those members may end up in overrides, but they will be
+overrides you yourself wrote in that same library.
 
 Extending non-extensible classes is also really *useful* in API design. It lets
 you offer a class *hierarchy* to users that is closed to further extension.
@@ -264,7 +264,9 @@ and circle. That means it would be hard to correctly support users adding their
 own new subclasses of `Shape` and passing them to the library.
 
 As the shape library author, you want to subclass `Shape` yourself so that you
-can define `Square` and `Circle`, but disallow others from doing so.
+can define `Square` and `Circle`, but disallow others from doing so. (In this
+specific example, you probably also want to prohibit `Shape` from being
+implemented too.)
 
 ### Implementing non-implementable types in the same library
 
@@ -420,9 +422,6 @@ combinations don't make sense:
     `final`.
 *   `base`, `interface`, and `final` all control the same two capabilities so
     are mutually exclusive.
-*   `final` and `interface` imply that the type can't be used as a superclass,
-    but the reason for defining a mixin is so that it can be mixed in and become
-    a superclass, so we don't allow those on mixins.
 
 The remaining valid combinations are:
 
@@ -440,6 +439,8 @@ abstract final class
 mixin
 sealed mixin
 base mixin
+interface mixin
+final mixin
 ```
 
 The grammar is:
@@ -457,7 +458,7 @@ mixinDeclaration ::= mixinModifiers? 'mixin' identifier typeParameters?
   ('on' typeNotVoidList)? interfaces?
   '{' (metadata classMemberDeclaration)* '}'
 
-mixinModifiers ::= 'sealed' | 'base'
+mixinModifiers ::= 'sealed' | 'base' | 'interface' | 'final'
 ```
 
 ### Static semantics
