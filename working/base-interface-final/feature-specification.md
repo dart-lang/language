@@ -6,7 +6,7 @@ Status: In-progress
 
 Version 1.0
 
-This proposal specifies three modifiers that can be placed classes and mixins to
+This proposal specifies three modifiers that can be placed on classes and mixins to
 allow an author to control whether the type allows being implemented, extended,
 both, or neither. The proposed modifiers are:
 
