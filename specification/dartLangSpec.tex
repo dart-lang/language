@@ -42,6 +42,8 @@
 % - Clarify the conflicts between extension members and `Object` instance
 %   members.
 % - Correct <partDeclaration> to include metadata.
+% - Clarify errors involving private members that are brought together in a
+%   library where they are not accessible.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -2516,11 +2518,13 @@ whose declaration is concrete.
 \rationale{%
 We want different behavior for concrete classes and abstract classes.
 If $A$ is intended to be abstract,
-we want the static checker to warn about any attempt to instantiate $A$,
+the static checker should report an error
+if an attempt is made to instantiate $A$ (such as \code{new A(42)}),
 and we do not want the checker to complain about unimplemented methods in $A$.
 In contrast, if $A$ is intended to be concrete,
-the checker should warn about all unimplemented methods,
-but allow clients to instantiate it freely.%
+the checker should raise an error for each member which is unimplemented,
+but clients should be allowed to create instances.
+This motivates the use of an explicit modifier to identify abstract classes.%
 }
 
 \commentary{%
@@ -2531,6 +2535,12 @@ and whose direct superinterfaces are
 the direct superinterfaces of $C$
 (\ref{interfaces}, \ref{superinterfaces}).%
 }
+
+\LMHash{}%
+It is a compile-time error if a class $C$ has the interface $I$,
+and $I$ has a member signature conflict
+with respect to any name and library
+(\ref{interfaceInheritanceAndOverriding}).
 
 \LMHash{}%
 When a class name appears as a type,
@@ -2571,14 +2581,71 @@ The rules of inheritance determine what members a class has.%
 \}
 \end{dartCode}
 
+\LMHash{}%
+\BlindDefineSymbol{C, D, m}%
+Consider a class $C$
+and an instance member declaration $D$ in $C$, with member signature $m$
+(\ref{interfaces}).
+It is a compile-time error if $D$ overrides a declaration
+% Note that $m'$ is accessible, due to the definition of `overrides'.
+with member signature $m'$
+from a direct superinterface of $C$
+(\ref{interfaceInheritanceAndOverriding}),
+and $m$ is not a correct member override of $m'$
+(\ref{correctMemberOverrides}).
+
+\commentary{%
+Note that other, somewhat similar kinds of compile-time errors may exist as well
+(\ref{classMemberConflicts}).%
+}
+
+\LMHash{}%
+For each parameter $p$ of $m$ where \COVARIANT{} is present,
+it is a compile-time error if there exists
+a direct or indirect superinterface of $C$ which has
+an accessible member signature $m''$ with the same name as $m$,
+such that $m''$ has a parameter $p''$ that corresponds to $p$
+(\ref{covariantParameters}),
+and the type of $p$ is not a subtype and not a supertype
+of the type of $p''$.
+
+\commentary{%
+This means that
+a parameter which is covariant-by-declaration can have a type
+which is a supertype or a subtype of the type of
+a corresponding parameter in a superinterface,
+but the two types cannot be unrelated.
+Note that this requirement must be satisfied
+for each direct or indirect superinterface separately,
+because that relationship is not transitive.%
+}
+
+\rationale{%
+The superinterface may be the statically known type of the receiver,
+so this means that we relax the potential typing relationship
+between the statically known type of a parameter and the
+type which is actually required at run time
+to the subtype-or-supertype relationship,
+rather than the strict supertype relationship
+which applies to a parameter which is not covariant.
+It should be noted that it is not statically known
+at the call site whether any given parameter is covariant,
+because the covariance could be introduced in
+a proper subtype of the statically known type of the receiver.
+We chose to give priority to flexibility rather than safety here,
+because the whole point of covariant parameters is that developers
+can make the choice to increase the flexibility
+in a trade-off where some static type safety is lost.%
+}
+
 
 \subsection{Fully Implementing an Interface}
 \LMLabel{fullyImplementingAnInterface}
 
-% Note that rules here and in \ref{instanceMethods} overlap, but they are
+% Note that rules here and in \ref{classes} overlap, but they are
 % both needed: This section is concerned with concrete methods, including
-% inherited ones, and \ref{instanceMethods} is concerned with instance
-% members declared in $C$, including both concrete and abstract ones.
+% inherited ones, and \ref{classes} is concerned with instance members
+% declared in $C$, including both concrete and abstract ones.
 
 \LMHash{}%
 % The use of `concrete member' below may seem redundant, because a class
@@ -2697,7 +2764,7 @@ if the type of $p$ is not a subtype and not a supertype of the type of $p_s$.
 This ensures that an inherited method satisfies the same constraint
 for each formal parameter which is covariant-by-declaration
 as the constraint which is specified for a declaration in $C$
-(\ref{instanceMethods}).%
+(\ref{classes}).%
 }
 
 
@@ -2713,66 +2780,6 @@ The \Index{instance methods of a class} $C$ are
 the instance methods declared by $C$
 and the instance methods inherited by $C$ from its superclass
 (\ref{inheritanceAndOverriding}).
-
-\LMHash{}%
-\BlindDefineSymbol{C, D, m}%
-Consider a class $C$
-and an instance member declaration $D$ in $C$, with member signature $m$
-(\ref{interfaces}).
-It is a compile-time error if $D$ overrides a declaration
-% Note that $m'$ is accessible, due to the definition of `overrides'.
-with member signature $m'$
-from a direct superinterface of $C$
-(\ref{interfaceInheritanceAndOverriding}),
-unless $m$ is a correct member override of $m'$
-(\ref{correctMemberOverrides}).
-
-\commentary{%
-This is not the only kind of conflict that may exist:
-An instance member declaration $D$ may conflict with another declaration $D'$,
-even in the case where they do not have the same name
-or they are not the same kind of declaration.
-E.g., $D$ could be an instance getter and $D'$ a static setter
-(\ref{classMemberConflicts}).%
-}
-
-\LMHash{}%
-For each parameter $p$ of $m$ where \COVARIANT{} is present,
-it is a compile-time error if there exists
-a direct or indirect superinterface of $C$ which has
-an accessible method signature $m''$ with the same name as $m$,
-such that $m''$ has a parameter $p''$ that corresponds to $p$
-(\ref{covariantParameters}),
-unless the type of $p$ is a subtype or a supertype of the type of $p''$.
-
-\commentary{%
-This means that
-a parameter which is covariant-by-declaration can have a type
-which is a supertype or a subtype of the type of
-a corresponding parameter in a superinterface,
-but the two types cannot be unrelated.
-Note that this requirement must be satisfied
-for each direct or indirect superinterface separately,
-because that relationship is not transitive.%
-}
-
-\rationale{%
-The superinterface may be the statically known type of the receiver,
-so this means that we relax the potential typing relationship
-between the statically known type of a parameter and the
-type which is actually required at run time
-to the subtype-or-supertype relationship,
-rather than the strict supertype relationship
-which applies to a parameter which is not covariant.
-It should be noted that it is not statically known
-at the call site whether any given parameter is covariant,
-because the covariance could be introduced in
-a proper subtype of the statically known type of the receiver.
-We chose to give priority to flexibility rather than safety here,
-because the whole point of covariant parameters is that developers
-can make the choice to increase the flexibility
-in a trade-off where some static type safety is lost.%
-}
 
 
 \subsubsection{Operators}
@@ -3303,7 +3310,7 @@ The \Index{static getters of a class} $C$ are
 those static getters declared by $C$.
 
 \commentary{%
-A getter declaration may conflict with other declarations
+A getter declaration may conflict with other declarations as well
 (\ref{classMemberConflicts}).
 In particular, a getter can never override a method,
 and a method can never override a getter or an instance variable.
@@ -3537,7 +3544,7 @@ the body scope of $C$, where $X_1, \ldots, X_m$ are in scope.%
 }
 
 \commentary{%
-A constructor declaration may conflict with static member declarations
+A constructor declaration may conflict with static member declarations as well
 (\ref{classMemberConflicts}).%
 }
 
@@ -4417,7 +4424,7 @@ Dart static methods may be seen as functions of the enclosing library.%
 }
 
 \commentary{%
-Static method declarations may conflict with other declarations
+Static method declarations may conflict with other declarations as well
 (\ref{classMemberConflicts}).%
 }
 
@@ -4564,7 +4571,7 @@ but fails to account for library privacy.%
 Whether an override is legal or not is specified relative to
 all direct superinterfaces, not just the interface of the superclass,
 and that is described elsewhere
-(\ref{instanceMethods}).
+(\ref{classes}).
 Static members never override anything,
 but they may participate in some conflicts
 involving declarations in superinterfaces
@@ -4906,16 +4913,13 @@ how one may interact with an object.
 An interface has method, getter and setter signatures,
 and a set of superinterfaces,
 which are again interfaces.
-Each interface is the implicit interface of a class,
-in which case we call it a
-\IndexCustom{class interface}{interface!class},
-or a combination of several other interfaces,
-in which case we call it a
-\IndexCustom{combined interface}{interface!combined}.
 
 \LMHash{}%
+\BlindDefineSymbol{C, I}%
 Let $C$ be a class.
-The \Index{class interface} $I$ of $C$ is the interface that declares
+The
+\IndexCustom{class interface}{interface!class}
+$I$ of $C$ is the interface that declares
 a member signature derived from
 each instance member declared by $C$.
 The \Index{direct superinterfaces} of $I$ are the direct superinterfaces of $C$
@@ -4948,74 +4952,6 @@ is also considered to have interface $I$.
 Similarly, when $T$ is $T_0$ bounded where $T_0$ is a function type,
 $T$ is considered to have a method named \CALL{} with signature $m$,
 such that the function type of $m$ is $T_0$.
-
-\LMHash{}%
-\BlindDefineSymbol{I, \List{I}{1}{k}}%
-The \Index{combined interface} $I$ of a list of interfaces \List{I}{1}{k}
-is the interface that declares the set of member signatures $M$,
-where $M$ is determined as specified below.
-The \Index{direct superinterfaces} of $I$ is the set \List{I}{1}{k}.
-
-\LMHash{}%
-Let $M_0$ be the set of all member signatures declared by \List{I}{1}{k}.
-\DefineSymbol{M} is then the smallest set satisfying the following:
-
-\begin{itemize}
-\item For each name \id{} and library $L$ such that $M_0$ contains
-  a member signature named \id{} which is accessible to $L$,
-  let $m$ be the combined member signature named \id{}
-  from \List{I}{1}{k} with respect to $L$.
-  It is a compile-time error
-  if the computation of this combined member signature failed.
-  Otherwise, $M$ contains $m$.
-\end{itemize}
-
-\rationale{%
-Interfaces must be able to contain inaccessible member signatures,
-because they may be accessible from the interfaces associated with
-declarations of subtypes.%
-}
-
-\commentary{%
-For instance, class $C$ in library $L$ may declare a private member named
-\code{\_foo},
-a class $D$ in a different library $L_2$ may extend $C$,
-and a class $E$ in library $L$ may extend $D$;
-$E$ may then declare a member that overrides \code{\_foo} from $C$,
-and that override relation must be checked based on the interface of $D$.
-So we cannot allow the interface of $D$
-to ``forget'' inaccessible members like \code{\_foo}.
-
-For conflicts the situation is even more demanding:
-Classes $C_1$ and $C_2$ in library $L$ may declare private members
-\code{String \_foo(int i)} and \code{int get \_foo},
-and a subtype $D_{12}$ in a different library $L_2$ may have
-an \IMPLEMENTS{} clause listing both $C_1$ and $C_2$.
-In that case we must report a conflict even though the conflicting
-declarations are not accessible to $L_2$,
-because those member signatures are then noSuchMethod forwarded
-(\ref{theMethodNoSuchMethod}),
-and an invocation of \code{\_foo} on an instance of $D$ in $L$
-must return an `int` according to the first member signature,
-and it must return a function object according to the second one,
-and an invocation of \code{\_foo(42)}
-must return a \code{String} with the first member signature, and it must fail
-(at compile time or, for a dynamic invocation, run time) with the second.%
-}
-
-\rationale{%
-It may not be possible to satisfy such constraints simultaneously,
-and it will inevitably be a complex semantics,
-so we have chosen to make it an error.
-It is unfortunate that the addition of a private declaration
-in one library may break existing code in a different library.
-But it should be noted that the conflicts can be detected locally
-in the library where the private declarations exist,
-because they only arise for private members with
-the same name and incompatible signatures.
-Renaming that private member to anything not used in that library
-will eliminate the conflict and will not break any clients.%
-}
 
 
 \subsection{Combined Member Signatures}
@@ -5062,7 +4998,7 @@ For instance,
 \FunctionTypeSimple{\DYNAMIC}{} and \FunctionTypeSimple{\code{Object}}{}
 are not equal, even though they are subtypes of each other.
 We need this distinction because management of top type discrepancies is
-one of the purposes of computing a combined interface.%
+one of the purposes of computing combined member signatures.%
 }
 
 \LMHash{}%
@@ -5282,26 +5218,66 @@ such that all of the following hold:
 \end{itemize}
 
 \LMHash{}%
-Let $I$ be the interface of a class $C$ declared in library $L$.
-$I$ \Index{inherits} all members of $\inherited{I, L}$
-and $I$ \Index{overrides} $m'$ if $m' \in \overrides{I, L}$.
+Let $I$ be the interface of a class $C$ declared in a library $L$,
+and let $K$ be a library.
+We say that the set of members that $I$
+\IndexCustom{inherits with respect to $K$}{interface!inherits}
+is $\inherited{I, K}$,
+and the set of members that $I$
+\IndexCustom{overrides}{interface!overrides}
+is $\overrides{I, L}$.
+
+\commentary{%
+Note that an interface can inherit members that are inaccessible
+(because they are private to a different library),
+but it can only override members that are accessible.
+This is the reason why it is called ``with respect to $K$''
+when the topic is inheritance,
+but no library is mentioned when the topic is overriding:
+only one library is relevant, namely the one that declares $C$.%
+}
 
 \LMHash{}%
-All the compile-time errors pertaining to the overriding of instance members
-given in section~\ref{classes} hold for overriding between interfaces as well.
+We say that $I$
+\IndexCustom{has a member}{interface!has a member}
+$m$ if $I$ inherits $m$ with respect to any library,
+or $I$ overrides $m$.
 
 \LMHash{}%
-If the above rule would cause multiple member signatures
-with the same name \id{} to be inherited then
-exactly one member is inherited, namely
-the combined member signature named \id,
-from the direct superinterfaces
-% This is well-defined because $I$ is a class interface.
-in the textual order that they are declared,
-with respect to $L$
-(\ref{combinedMemberSignatures}).
-It is a compile-time error
-if the computation of said combined member signature fails.
+\BlindDefineSymbol{I, C, K, n, m}%
+Let $I$ be the interface of the class $C$ declared by the library $L$,
+$K$ a library
+(\commentary{which may or may not be the same as $L$}),
+and $n$ a name such that a member $m$ with the name $n$
+is inherited by $I$ with respect to $K$.
+\commentary{%
+Note that there may be more than one such member,
+and also that $C$ does not override $m$.%
+}
+The
+\IndexCustom{member signature}{interface!member signature}
+of $I$ for $n$ with respect to $K$ is
+the combined member signature for $n$
+of the direct superinterfaces of $I$ with respect to $K$.
+In the case where the computation of the combined member signature fails,
+we say that $I$ has a
+\IndexCustom{member signature conflict}{interface!member signature conflict}
+with respect to $n$ and $K$.
+
+\commentary{%
+When $n$ is a public name, $K$ can be $L$
+or any other library where $C$ is in scope.
+In other words, $K$ does not matter.
+But when $n$ is a private name then
+$K$ must be the library that declares $m$,
+such that $m$ is accessible to $K$.
+This covers the case where the interface $I$
+(as well as the underlying class $C$) has
+a member signature conflict on
+a member which is private to another library.
+This can be a compile-time error
+(\ref{classes}).%
+}
 
 
 \subsubsection{Correct Member Overrides}
@@ -5351,7 +5327,7 @@ Note that a parameter which is covariant-by-declaration
 must have a type which satisfies one more requirement,
 relative to the corresponding parameters in all superinterfaces,
 both direct and indirect
-(\ref{instanceMethods}).
+(\ref{classes}).
 We cannot make that requirement a part of the notion of correct overrides,
 because correct overrides are only concerned with
 the relation to a single superinterface.%
