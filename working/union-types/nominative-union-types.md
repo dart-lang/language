@@ -35,7 +35,7 @@ It’s a subtype of `Object` if all the elements types are subtypes of `Object`.
 
 If `F` is nullable, then `F?` is equivalent to `F` (mutual subtypes), otherwise `F?` is a proper supertype of `F`.
 
-The type is a supertype of each of its union element types (`Foo` is a supertype of `A` and `B` here.).
+The type is a supertype of each of its union element types (`F` is a supertype of `T1` .. `Tn` here.).
 
 If the union type is generic, different instantiations can be subtypes of each other. The type parameters vary by their occurrences, like for a type alias. For example `typedef Foo<T> = T Function(int) | int Function(T);` is invariant in `T` because `T` occurs both covariantly and contravariantly in the union element types. _(This might need us to introduce variance first.)_. For `typedef G<X> = List<X> | Set<X>;`, `G<int>` is a subtype of `G<num>`, because `X` occurs only covariantly, so `G` varies covariantly with `X`. _A direct use of the type variable, like `typedef U<S, T> = S | T;` counts as covariant._
 
@@ -126,6 +126,22 @@ When a subtype check is needed, whether for `e is Foo`, `e as Foo`, `try { … }
 In every other way, the union type is just a normal type, with the subtype relationships defined above. The union type has no other purpose than allow multiple types being treated as one.
 
 ## Limitations and discussions
+
+### The subtying rules don't actually *work*
+
+if you have `abstract class C implements List<C> {}` and want to check whether `C` is a subtype of `Json`, as defined above, 
+then you eventually have to try checking whether `C` is a subtype of `List<Json>`. Since `C` is a `List<C>`, all you need to 
+check is whether `C` is a subtype of `Json`. Whoops.
+
+Which means that we probably need to prevent *any* cyclic references in the union types, which again makes them much less 
+useful for actual recursive types like `Json`. 
+
+We can declare classes for such a structure, for example sealed classes like `sealed class Json {}`, `class JsonValue<T> extends Json { T get value; }`, `class JsonList extends Json implements List<Json>` and `class JsonMap extends Json implements Map<String, Json>`.
+That's not the same. Checking whether something is a `Json` is simple, the object itself knows that. Whether it's a `JsonList` too.
+For the union `Json` type, there really is an infinite number of different subtypes that we need to potentially check for in order to determine whether a value belongs to the set of accepted values.
+The new type introduced is not a type that any object *inherently* implements.
+
+(Should we drop the subtyping, and only have assignability into the union type? No type relations between union types and non-union types other than `Never`, `Object` or `Object?`? Then a `List<C>` is-not-a `List<Json>` and vice-versa. And a `List<int>` is not a `List<Json>` either, only `List<Json>` itself is. Much more restricted, definitely.)
 
 ### Incompatible with existing `dynamic`-using types
 
