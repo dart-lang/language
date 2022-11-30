@@ -741,16 +741,18 @@ type.
 `R`, and `this` has type `V`.*
 
 Let _DV_ be an inline class declaration named `V` with representation
-type `R`. Assuming that all types have been fully alias expanded,
-we say that _DV_ is raw-dependent on an inline class declaration
-_DV2_ if `R` contains an identifier `id` (possibly qualified) that
-resolves to _DV2_, or `id` resolves to an inline class declaration
-_DV3_ and _DV3_ is raw-dependent on _DV2_.
+type `R`. Assuming that all types have been fully alias expanded, we
+say that _DV_ has a representation dependcy on an inline class
+declaration _DV2_ if `R` contains an identifier `id` (possibly
+qualified) that resolves to _DV2_, or `id` resolves to an inline class
+declaration _DV3_ and _DV3_ has a representation dependency on _DV2_.
 
-It is a compile-time error if an inline class declaration is
-raw-dependent on itself.
+It is a compile-time error if an inline class declaration has a
+representation dependency on itself.
 
-*In other words, cycles are not allowed.*
+*In other words, cycles are not allowed. This ensures that it is
+always possible to find a non-inline type which is the ultimate
+representation type of any given inline type.*
 
 An inline class declaration _DV_ named `Inline` may declare one or
 more constructors. A constructor which is declared in an inline class
