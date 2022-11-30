@@ -29,7 +29,7 @@ When used with multiple types, it introduces a new nominal type (which is why th
 
 A declaration `typedef F<X1 extend B1, Xn extends Bn> = T1 | .. | Tn;` introduces a new nominal type `F`.
 
-The type `F` is, trivially, a supertype of `Never` and a subtype of `Object?`, and a super/sub-type of itself (subtying is reflexive).
+The type `F` is, trivially, a supertype of `Never` and a subtype of `Object?`, and a super/sub-type of itself (subtyping is reflexive).
 
 It’s a subtype of `Object` if all the elements types are subtypes of `Object`. _(We say that the union types itself is nullable or non-nullable in those cases.)_
 
