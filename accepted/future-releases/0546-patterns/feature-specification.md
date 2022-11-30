@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.17 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.18 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -214,8 +214,8 @@ Here is the overall grammar for the different kinds of patterns:
 ```
 pattern           ::= logicalOrPattern
 
-logicalOrPattern  ::= ( logicalOrPattern '||' )? logicalAndPattern
-logicalAndPattern ::= ( logicalAndPattern '&&' )? relationalPattern
+logicalOrPattern  ::= logicalOrPattern ( '||' logicalAndPattern )*
+logicalAndPattern ::= logicalAndPattern ( '&&' relationalPattern )*
 relationalPattern ::= ( equalityOperator | relationalOperator) bitwiseOrExpression
                     | unaryPattern
 
@@ -429,8 +429,9 @@ switch (row) {
 ```
 constantPattern ::= booleanLiteral
                   | nullLiteral
-                  | numericLiteral
+                  | '-'? numericLiteral
                   | stringLiteral
+                  | symbolLiteral
                   | identifier
                   | qualifiedName
                   | constObjectExpression
@@ -445,7 +446,10 @@ syntactically overlap other kinds of patterns. We avoid ambiguity while
 supporting terse forms of the most common constant expressions like so:
 
 *   Simple "primitive" literals like Booleans and numbers are valid patterns
-    since they aren't ambiguous.
+    since they aren't ambiguous. We also allow unary `-` expressions on
+    numeric literals since users think of `-2` as a single literal and not the
+    literal `2` with a unary `-` applied to it (which is how the language
+    views it).
 
 *   Named constants are also allowed because they aren't ambiguous. That
     includes simple identifiers like `someConstant`, prefixed constants like
@@ -887,6 +891,34 @@ It is a compile-time error if:
     [a, a, a] = [1, 2, 3];
     ```
 
+#### Map patterns in pattern assignments
+
+The language specifies:
+
+> An expression statement consists of an expression that does not begin with a
+> '{' character.
+
+This avoids an ambiguity between blocks and map literals. But with map patterns
+in assignments, it is useful to have an expression statement that begins with
+`{`:
+
+```dart
+var map = {'a': 1, 'b': 2};
+int a, b;
+// more code...
+
+// later...
+{'a': a, 'b': b} = map;
+```
+
+To support this while still avoiding the ambiguity between blocks and map
+literals, we change the above rule to:
+
+The expression of a statement expression cannot start with a `{` token which
+starts a set or map literal. It may start with a `{` only if that starts a map
+pattern of a pattern assignment expression, in which case the corresponding
+closing `}` must be immediately followed by a `=`.
+
 ### Switch statement
 
 We extend switch statements to allow patterns in cases:
@@ -976,7 +1008,9 @@ The specific kinds of switches whose behavior changes are:
     These nine cases represent 0.009% of the cases found.
 
 For any switch case that is broken by this proposal, you can revert back to the
-original behavior by prefixing the case expression (now pattern) with `const`:
+original behavior by prefixing the case expression (now pattern) with `const`
+and wrapping it in parentheses if the expression is not a collection literal
+or const constructor call:
 
 ```dart
 // List or map literal:
@@ -986,15 +1020,15 @@ case const [a, b]:
 case const SomeClass(1, 2):
 
 // Other constant expression:
-case const A + A:
-case const A + 'b':
-case const -ERR_LDS_ICAO_SIGNED_DATA_SIGNER_INFOS_EMPTY:
-case const -sigkill:
-case const List<RPChoice>:
-case const 720 * 1280:
-case const 1080 * 1920:
-case const 1440 * 2560:
-case const 2160 * 3840:
+case const (A + A):
+case const (A + 'b'):
+case const (-ERR_LDS_ICAO_SIGNED_DATA_SIGNER_INFOS_EMPTY):
+case const (-sigkill):
+case const (List<RPChoice>):
+case const (720 * 1280):
+case const (1080 * 1920):
+case const (1440 * 2560):
+case const (2160 * 3840):
 ```
 
 We can determine syntactically whether an existing switch case's behavior will
@@ -2462,10 +2496,11 @@ the pattern may also *destructure* data from the object or *bind* variables.
 
 Refutable patterns usually occur in a context where match refutation causes
 execution to skip over the body of code where any variables bound by the pattern
-are in scope. If a pattern match failure occurs in irrefutable context, a
+are in scope. If a pattern match failure occurs in an irrefutable context, a
 runtime error is thrown. *This can happen when matching against a value of type
-`dynamic`, or when a list pattern in a variable declaration is matched against a
-list of a different length.*
+`dynamic`, when a list pattern in a variable declaration is matched against a
+list of a different length, when a map pattern in a pattern assignment is
+matched against a map that lacks some of the destructured keys, etc.*
 
 To match a pattern `p` against a value `v`:
 
@@ -2557,6 +2592,9 @@ To match a pattern `p` against a value `v`:
 
     2.  If the runtime type of `v` is not a subtype of `T` then the match fails.
 
+        *This type test may get elided. See "Pointless type tests and legacy
+        types" below.*
+
     3.  Otherwise, store `v` in `p`'s variable and the match succeeds.
 
 *   **Parenthesized**: Match the subpattern against `v` and succeed if it
@@ -2568,6 +2606,9 @@ To match a pattern `p` against a value `v`:
         then the match fails. *The list pattern's type will be `List<T>` for
         some `T` determined either by the pattern's explicit type argument or
         inferred from the matched value type.*
+
+        *This type test may get elided. See "Pointless type tests and legacy
+        types" below.*
 
     2.  Let `l` be the length of the list determined by calling `length` on `v`.
 
@@ -2618,6 +2659,9 @@ To match a pattern `p` against a value `v`:
         some `K` and `V` determined either by the pattern's explicit type
         arguments or inferred from the matched value type.*
 
+        *This type test may get elided. See "Pointless type tests and legacy
+        types" below.*
+
     2.  Let `l` be the length of the map determined by calling `length` on `v`.
 
     3.  If `p` has no rest element and `l` is not equal to the number of
@@ -2628,12 +2672,27 @@ To match a pattern `p` against a value `v`:
 
     4.  Otherwise, for each (non-rest) entry in `p`, in source order:
 
-        1.  Evaluate the key `expression` to `k` and call `containsKey()` on the
-            value. If this returns `false`, the map does not match.
+        1.  Evaluate the key `expression` to `k` and call `containsKey(k)` on
+            the value. If this returns `false`, the map does not match.
 
         2.  Otherwise, evaluate `v[k]` and match the resulting value against
             this entry's value subpattern. If it does not match, the map does
             not match.
+
+        A compiler is free to call `v[k]` and `containsKey()` in either order,
+        or to elide calling one or both if it determines that doing so will
+        produce the same result. It may assume that the map adheres to the
+        following protocol:
+
+        *   If `containsKey(k)` returns `false` for some key, then `v[k]` will
+            return `null`.
+
+        *   If `containsKey(k)` returns `true` for some key, then `v[k]` returns
+            an instance of the map's value type.
+
+        *In particular, if the map's value type is non-nullable, then when
+        `v[k]` returns `null`, the compiler can assume that the key is absent
+        and `containsKey(k)` would return `false` too.*
 
     5.  The match succeeds if all entry subpatterns match.
 
@@ -2641,6 +2700,9 @@ To match a pattern `p` against a value `v`:
 
     1.  If the runtime type of `v` is not a subtype of the required type of `p`,
         then the match fails.
+
+        *This type test may get elided. See "Pointless type tests and legacy
+        types" below.*
 
     2.  For each field `f` in `p`, in source order:
 
@@ -2656,6 +2718,9 @@ To match a pattern `p` against a value `v`:
     1.  If the runtime type of `v` is not a subtype of the required type of `p`
         then the match fails.
 
+        *This type test may get elided. See "Pointless type tests and legacy
+        types" below.*
+
     2.  Otherwise, for each field `f` in `p`, in source order:
 
         1.  Call the getter with the same name as `f` on `v`, and let the result
@@ -2665,6 +2730,50 @@ To match a pattern `p` against a value `v`:
             object match fails.
 
     3.  The match succeeds if all field subpatterns match.
+
+### Pointless type tests and legacy types
+
+Variable, map, list, record, and object patterns all do a runtime type test on
+the matched object against the pattern's static type (variables and wildcards)
+or required type (maps, lists, records, and objects). If the matched value's
+static type is a subtype of the pattern's static or required type, then no
+runtime type test is performed.
+
+*When the pattern's type is a supertype of the matched value's static type, then
+it seems like the runtime type test is guaranteed to pass. That implies there's
+no need to _specify_ that the check is elided. But these otherwise pointless
+runtime type tests _can_ fail in a mixed-mode program if a legacy typed value
+flows into a pattern. For example:*
+
+```dart
+// legacy.dart
+int legacyInt = null;
+
+// current.dart
+import 'legacy.dart';
+
+f(int i) {
+  if (i case _) { // Wildcard has inferred static type non-legacy int.
+    print('matched');
+  } else {
+    print('unreachable');
+  }
+}
+
+main() {
+  f(legacyInt);
+}
+```
+
+*If we always require the type test, then this would print "unreachable". But
+that would require inserting type tests which are especially confusing in
+wildcard patterns which users expect should always match. Instead, we allow the
+value to flow through instead of forcing the compiler to insert runtime checks
+that are otherwise pointless and costly in terms of code size. This program
+should print "matched".*
+
+*In a fully null-safe program, these type tests can never fail and it is not
+user-visible whether or not an implementation elides them.*
 
 ### Side effects and exhaustiveness
 
@@ -3010,6 +3119,21 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.18
+
+-   Support negative number literals in patterns (#2663).
+
+-   Allow map patterns in pattern assignments in expression statements (#2662).
+
+-   Remove left recursion in grammar for `||` and `&&` (#2636). (The syntax and
+    semantics are unchanged, it's just specified differently.)
+
+-   Allow symbol literals in patterns (#2636).
+
+-   Give compilers more leeway on the runtime semantics of map patterns (#2634).
+
+-   Elide type tests that can only fail on legacy types (#2619).
 
 ### 2.17
 
