@@ -740,27 +740,17 @@ type.
 *For example, in `inline class V { final R id; ...}`, `id` has type
 `R`, and `this` has type `V`.*
 
-Again, let `V` be an inline type of the form
-<code>Inline&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
-and let `R` be the corresponding instantiated representation type.
-If `R` is not an inline type then we say that `V` is an inline type
-at level zero. If `R` is an inline type at level _k_ then we say that
-`V` is an inline type at level _k + 1_.
-A compile-time error occurs if the level of `V` is undefined.
+Let _DV_ be an inline class declaration named `V` with representation
+type `R`. Assuming that all types have been fully alias expanded,
+we say that _DV_ is raw-dependent on an inline class declaration
+_DV2_ if `R` contains an identifier `id` (possibly qualified) that
+resolves to _DV2_, or `id` resolves to an inline class declaration
+_DV3_ and _DV3_ is raw-dependent on _DV2_.
+
+It is a compile-time error if an inline class declaration is
+raw-dependent on itself.
 
 *In other words, cycles are not allowed.*
-
-For every inline class declaration _DV_ named `V`, it is a
-compile-time error if the inline type level of the raw type `V`
-is undefined.
-
-*In other words, we check for this kind of cycles on every non-generic
-inline class declaration using the type directly (even in the case
-where nobody uses that type), and we check for this kind of cycles on
-the instantiation-to-bound of every generic inline class declaration
-(again, even when nobody uses it). Finally, we check for this kind of
-cycles with every parameterized type `V<T1..Tk>` that actually
-occurs in the code which is being analyzed/compiled.*
 
 An inline class declaration _DV_ named `Inline` may declare one or
 more constructors. A constructor which is declared in an inline class
