@@ -16248,18 +16248,25 @@ Then $e$ evaluates to $o$.
 \LMHash{}%
 \IndexCustom{Assignable expressions}{assignable expression} are terms
 that can appear on the left hand side of an assignment.
-This section describes how to evaluate these terms
-when they do not constitute the complete left hand side of an assignment.
+This section describes how to evaluate subterms of these terms when needed.
 The semantics of an assignment as a whole is described elsewhere
 (\ref{assignment}).
 
 \commentary{%
-An assignable expression can be a subterm of another term,
-in which case it may need to be evaluated to an object.
-For example, if we are assigning a value to an instance variable \code{x}
-of a receiver expression $e$ by means of the expression \code{$e$.x\,\,=\,\,42},
-we need to evaluate $e$
-such that we can update the \code{x} of the correct object.%
+The grammar of assignable expressions includes very general forms
+like an identifier \id{} or a qualified identifier \code{$\id_1$.$\id_2$}.
+Hence, an assignable expression can have many different meanings,
+depending on the binding of those identifiers in the context.
+
+For example, an expression \code{x.y.z} is an assignable expression.
+\code{x.y} may refer to a getter \code{y} on
+an object referenced by a variable \code{x},
+in which case \code{x.y} will be evaluated to an object
+before accessing the \code{z} member of that object.
+The term \code{x.y} could also denote a class \code{y} referenced through
+an import prefix \code{x},
+with \code{z} denoting a static variable of that class.
+In this case \code{x.y} will not be evaluated to a value.%
 }
 
 \begin{grammar}
@@ -16279,11 +16286,37 @@ such that we can update the \code{x} of the correct object.%
 \end{grammar}
 
 \LMHash{}%
+The section about assignments
+(\ref{assignment})
+specifies the static analysis and dynamic semantics of
+various forms of assignment.
+Each of those cases is applicable when the specified subterms satisfy
+the given side conditions
+(\commentary{%
+e.g., one case of the form \code{$e_1$.$v$\,\,??=\,\,$e_2$} requires $e_1$
+to be an expression, whereas \code{$C$.$v$\,\,??=\,\,$e$}
+requires $C$ to be a type literal%
+}).
+The cases requiring subterms to be expressions are considered least specific,
+that is, they are only used if no other case matches
+(\commentary{%
+so the case containing $C$ is used if the corresponding term is a type literal%
+}).
+
+\commentary{%
+Syntactically, these expressions are not derived from \synt{expression},
+but they are derivable from \synt{expression}, e.g., because
+an \synt{assignableExpression} may contain a \synt{primary}
+which is derivable from \synt{expression}.
+We use the following rule to find such expressions:%
+}
+
+\LMHash{}%
 \BlindDefineSymbol{e, t}%
 Let $e$ be an \synt{assignableExpression}.
-Let $t$ be a term such that $e$ can be derived from
+Assume that $t$ is a term such that $e$ can be derived from
 \syntax{$t$ <assignableSelector>}.
-We say that $t$ is the
+In this case we say that $t$ is the
 \IndexCustom{receiver term}{assignable expression!receiver term}
 of $e$.
 When $t$ is an expression, we say that $t$ is the
@@ -16293,19 +16326,10 @@ of $e$.
 \commentary{%
 In short, we obtain $t$ by cutting off an assignable selector
 from the end of $e$.
-It is easy to see that every \synt{assignableExpression}
-except one which is simply an \synt{identifier}
-ends in an \synt{assignableSelector}
-(an \synt{unconditionalAssignableSelector}
-is also an \synt{assignableSelector}).
-In other words, every assignable expression except \synt{identifier}
-has a receiver term.
-
-Note that the receiver term $t$ may or may not be an \synt{expression}.
-For example, if $t$ is \SUPER{} then $e$ does not have a receiver expression.
-The semantics of assignments without a receiver expression
-is specified explicitly for each case
-(\ref{assignment}).%
+It is easy to see that only some \synt{assignableExpression}s
+have a receiver term.
+For instance, a plain \synt{identifier} does not.
+%
 }
 
 \LMHash{}%
