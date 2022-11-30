@@ -934,39 +934,6 @@ well as all members of `V1, .. Vk` that are not redeclared by a
 declaration in _DV_ can be invoked on a receiver of the type
 introduced by _DV_.
 
-In the body of _DV_, a superinvocation syntax can be used to invoke a
-member of a superinterface which is redeclared: The invocation starts
-with `super.` followed by the member access.
-
-*For example:*
-
-```dart
-inline class V2 {
-  final Object id;
-  V2(this.id);
-  void foo() { print('V2.foo()'); }
-  void bar() { print('V2.bar()'); }
-}
-
-inline class V3 {
-  final Object id;
-  V3(this.id);
-  void foo() { print('V3.foo()'); }
-  void baz() { print('V3.baz()'); }
-}
-
-inline class V1 implements V2, V3 {
-  final Object id;
-  V1(this.id);
-  void qux() {
-    super.bar(); // 'V2.bar()'.
-    super.baz(); // 'V3.baz()'.
-    // super.foo(); // Compile-time error, use this:
-    (this as V2).foo();
-  }
-}
-```
-
 
 ## Dynamic Semantics of Inline Classes
 
