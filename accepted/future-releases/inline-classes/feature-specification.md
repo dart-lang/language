@@ -731,7 +731,10 @@ non-nullable then it can also be assigned to `Object`. Non-inline
 types (except bottom types) cannot be assigned to inline types without
 a cast. Similarly, null cannot be assigned to an inline type without a
 cast, even in the case where the representation type is nullable (even
-better: don't use a cast, call a constructor instead).*
+better: don't use a cast, call a constructor instead). Another consequence of
+the fact that the inline type is potentially non-nullable is that it 
+is an error to have an instance variable whose type is an inline type,
+and then relying on implicit initialization to null.*
 
 In the body of a member of an inline class declaration _DV_ named
 `Inline` and declaring the type parameters
