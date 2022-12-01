@@ -721,13 +721,17 @@ is the same in either case.*
 Let `V` be an inline type of the form
 <code>Inline&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and let `R` be the corresponding instantiated representation type.
-`V` is a proper subtype of `Object?`. If `R` is non-nullable then `V`
-is a proper subtype of `Object` as well, and non-nullable.
+`V` is a proper subtype of `Object?`, and potentially non-nullable. If
+`R` is non-nullable then `V` is a proper subtype of `Object` as well,
+and non-nullable.
 
-*That is, an expression of an inline type can be assigned to a top type
-(like all other expressions), and if the representation type is
-non-nullable then it can also be assigned to `Object`. Non-inline types
-(except bottom types) cannot be assigned to inline types without a cast.*
+*That is, an expression of an inline type can be assigned to a top
+type (like all other expressions), and if the representation type is
+non-nullable then it can also be assigned to `Object`. Non-inline
+types (except bottom types) cannot be assigned to inline types without
+a cast. Similarly, null cannot be assigned to an inline type without a
+cast, even in the case where the representation type is nullable (even
+better: don't use a cast, call a constructor instead).*
 
 In the body of a member of an inline class declaration _DV_ named
 `Inline` and declaring the type parameters
