@@ -42,6 +42,7 @@
 % - Clarify the conflicts between extension members and `Object` instance
 %   members.
 % - Correct <partDeclaration> to include metadata.
+% - Clarify the section about assignable expressions.
 %
 % 2.14
 % - Add constraint on type of parameter which is covariant-by-declaration in
@@ -5946,7 +5947,7 @@ We define the
 \IndexCustom{instantiated \ON{} type}{extension!instantiated \ON{} type}
 of $a$ as $[T_1/X_1, \ldots, T_s/X_s]T$.
 We define the
-\IndexCustom{instantiation-to-bound \ON{} type}{
+\IndexCustom{instantiation-to-bound \ON{} type}{%
   extension!instantiation-to-bound \ON{} type}
 of $a$ as $[U_1/X_1, \ldots, U_s/X_s]T$,
 where \List{U}{1}{s} is the result of instantiation to bound
@@ -6021,7 +6022,7 @@ $s_1 = [T_1/X_1, \ldots, T_k/X_k]s$:
 
 \LMHash{}%
 The member signature $s_1$ is called the
-\IndexCustom{invocation member signature}{
+\IndexCustom{invocation member signature}{%
   extension!invocation member signature}
 of $i$.
 The static type of $i$ is the return type of
@@ -13371,7 +13372,7 @@ on a
 expression $r$ is an expression of
 one of the forms shown in Fig.~\ref{fig:memberInvocations}.
 Each member invocation has a
-\IndexCustom{corresponding member name}{
+\IndexCustom{corresponding member name}{%
   member invocation!corresponding member name}
 as shown in the figure.
 
@@ -13712,7 +13713,7 @@ and if the method lookup succeeded then let $F$ be the static type of $d$.
 Otherwise, let $d$ be the result of getter lookup
 for $m$ in $T$ with respect to $L$,
 and let $F$ be the return type of $d$.
-(\commentary{
+(\commentary{%
 Since \code{$T$.$m$} exists we cannot have a failure in both lookups.%
 })
 If the getter return type $F$ is an interface type
@@ -13736,7 +13737,7 @@ and the static type of $i$ is as specified there.
 \LMHash{}%
 It is a compile-time error to invoke an instance method on a type literal
 that is immediately followed by the token `.' (a period).
-\commentary{
+\commentary{%
 For instance, \code{int.toString()} is an error.%
 }
 
@@ -14009,7 +14010,7 @@ as well as when it does not exist at all.%
 
 \LMHash{}%
 An
-\IndexCustom{implicit \CALL{} superinvocation}{
+\IndexCustom{implicit \CALL{} superinvocation}{%
   method superinvocation!implicit \CALL}
 has the form
 
@@ -16245,18 +16246,27 @@ Then $e$ evaluates to $o$.
 \LMLabel{assignableExpressions}
 
 \LMHash{}%
-Assignable expressions are expressions
+\IndexCustom{Assignable expressions}{assignable expression} are terms
 that can appear on the left hand side of an assignment.
-This section describes how to evaluate these expressions
-when they do not constitute the complete left hand side of an assignment.
+This section describes how to evaluate subterms of these terms when needed.
+The semantics of an assignment as a whole is described elsewhere
+(\ref{assignment}).
 
-\rationale{%
-Of course, if assignable expressions
-always appeared \emph{as} the left hand side,
-one would have no need for their value,
-and the rules for evaluating them would be unnecessary.
-However, assignable expressions can be subexpressions of other expressions
-and therefore must be evaluated.%
+\commentary{%
+The grammar of assignable expressions includes very general forms
+like an identifier \id{} or a qualified identifier \code{$\id_1$.$\id_2$}.
+Hence, an assignable expression can have many different meanings,
+depending on the binding of those identifiers in the context.
+
+For example, the term \code{x.y.z} is an assignable expression.
+\code{x.y} may refer to a getter \code{y} on
+an object referenced by a variable \code{x},
+in which case \code{x.y} will be evaluated to an object
+before accessing the \code{z} member of that object.
+The term \code{x.y} could also denote a class \code{y} referenced through
+an import prefix \code{x},
+with \code{z} denoting a static variable of that class.
+In this case \code{x.y} will not be evaluated to a value.%
 }
 
 \begin{grammar}
@@ -16276,38 +16286,57 @@ and therefore must be evaluated.%
 \end{grammar}
 
 \LMHash{}%
-An \Index{assignable expression} is either:
-\begin{itemize}
-\item An identifier.
-\item An invocation (possibly conditional) of a getter (\ref{getters})
-  or list access operator on an expression $e$.
-\item An invocation of a getter or list access operator on \SUPER.
-\end{itemize}
+The section about assignments
+(\ref{assignment})
+specifies the static analysis and dynamic semantics of
+various forms of assignment.
+Each of those cases is applicable when the specified subterms satisfy
+the given side conditions
+(\commentary{%
+e.g., one case of the form \code{$e_1$.$v$\,\,??=\,\,$e_2$} requires $e_1$
+to be an expression, whereas \code{$C$.$v$\,\,??=\,\,$e$}
+requires $C$ to be a type literal%
+}).
+The cases requiring subterms to be expressions are considered least specific,
+that is, they are only used if no other case matches
+(\commentary{%
+so the case containing $C$ is used if the corresponding term is a type literal%
+}).
+
+\commentary{%
+Syntactically, these expressions are not derived from \synt{expression},
+but they are derivable from \synt{expression}, e.g., because
+an \synt{assignableExpression} may contain a \synt{primary}
+which is derivable from \synt{expression}.
+We use the following rule to find such expressions:%
+}
 
 \LMHash{}%
-An assignable expression of the form \id{} is evaluated as
-an identifier expression (\ref{identifierReference}).
+\BlindDefineSymbol{e, t}%
+Let $e$ be an \synt{assignableExpression}.
+Assume that $t$ is a term such that $e$ can be derived from
+\syntax{$t$ <assignableSelector>}.
+In this case we say that $t$ is the
+\IndexCustom{receiver term}{assignable expression!receiver term}
+of $e$.
+When $t$ is an expression, we say that $t$ is the
+\IndexCustom{receiver expression}{assignable expression!receiver expression}
+of $e$.
 
-%An assignable expression of the form \code{$e$.\id($a_1, \ldots,\ a_n$)}
-% is evaluated as a method invocation (\ref{methodInvocation}).
+\commentary{%
+In short, we obtain $t$ by cutting off an assignable selector
+from the end of $e$.
+It is easy to see that only some \synt{assignableExpression}s
+have a receiver term.
+For instance, a plain \synt{identifier} does not.
+%
+}
 
 \LMHash{}%
-An assignable expression of the form \code{$e$.\id} or \code{$e$?.\id}
-is evaluated as a property extraction (\ref{propertyExtraction}).
-
-\LMHash{}%
-An assignable expression of the form \code{$e_1$[$e_2$]}
-is evaluated as a method invocation of
-the operator method \code{[]} on $e_1$ with argument $e_2$.
-
-\LMHash{}%
-An assignable expression of the form \code{\SUPER.\id} is evaluated as
-a property extraction.
-
-\LMHash{}%
-Evaluation of an assignable expression of the form \code{\SUPER{}[$e_2$]}
-is equivalent to
-evaluation of the method invocation \code{\SUPER.[]($e_2$)}.
+Let $e$ be an assignable expression.
+Assume that $e$ has a receiver expression $t$.
+Evaluation of $t$ proceeds in the same way as
+evaluation of any other expression.
 
 
 \subsection{Lexical Lookup}
@@ -20331,13 +20360,13 @@ $X_j <: B_j$, for all $j \in 1 .. s$,
 it is a compile-time error if $T$ is not regular-bounded,
 and it is a compile-time error if any type occurring in $T$ is not well-bounded.
 
-\commentary{
+\commentary{%
 This means that the bounds declared for
 the formal type parameters of a generic type alias
 must be such that when they are satisfied,
 the bounds that pertain to the body are also satisfied,
 and a type occurring as a subterm of the body can violate its bounds,
-but only if it is a correct super-bounded type.
+but only if it is a correct super-bounded type.%
 }
 
 \LMHash{}%
@@ -20475,7 +20504,7 @@ When $D$ is a type alias declaration of the form
 we say that the parameterized type $U$ of the form
 \code{$F$<\List{U}{1}{s}>}
 in a scope where $F$ resolves to $D$
-\IndexCustom{alias expands in one step to}{
+\IndexCustom{alias expands in one step to}{%
   type alias!alias expands in one step}
 $[U_1/X_1, \ldots, U_s/X_s]T$.
 
@@ -20490,7 +20519,7 @@ which is a parameterized type applying a type alias to some type arguments
 by its alias expansion in one step
 (\commentary{including the non-generic case where there are no type arguments}).
 When no further steps are possible we say that the resulting type is the
-\IndexCustom{transitive alias expansion}{
+\IndexCustom{transitive alias expansion}{%
   type alias!transitive alias expansion}
 of $U$.
 
@@ -20762,7 +20791,7 @@ and the subtype relationship is always determined in the same way.
   \begin{minipage}[c]{0.49\textwidth}
     \RuleTwo{\SrnLeftFutureOr}{Left FutureOr}{S}{T}{%
       \code{Future<$S$>}}{T}{\code{FutureOr<$S$>}}{T}
-    \RuleTwo{\SrnRightPromotedVariable}{Right Promoted Variable}{S}{X}{S}{T}{
+    \RuleTwo{\SrnRightPromotedVariable}{Right Promoted Variable}{S}{X}{S}{T}{%
       S}{X \& T}
     \Rule{\SrnRightFutureOrB}{Right FutureOr B}{S}{T}{S}{\code{FutureOr<$T$>}}
     \Rule{\SrnLeftVariableBound}{Left Variable Bound}{\Gamma(X)}{T}{X}{T}
@@ -20772,7 +20801,7 @@ and the subtype relationship is always determined in the same way.
     \Rule{\SrnRightFutureOrA}{Right FutureOr A}{S}{\code{Future<$T$>}}{%
       S}{\code{FutureOr<$T$>}}
     \Rule{\SrnLeftPromotedVariable}{Left Promoted Variable B}{S}{T}{X \& S}{T}
-    \RuleRaw{\SrnRightFunction}{Right Function}{T\mbox{ is a function type}}{
+    \RuleRaw{\SrnRightFunction}{Right Function}{T\mbox{ is a function type}}{%
       T}{\FUNCTION}
   \end{minipage}
   %
@@ -20788,7 +20817,7 @@ and the subtype relationship is always determined in the same way.
       \RawFunctionTypePositional{T_0}{X}{B}{s}{T}{n_2}{k_2}
     \end{array}}
   \ExtraVSP\ExtraVSP
-  \RuleRawRaw{\SrnNamedFunctionType}{Named Function Types}{
+  \RuleRawRaw{\SrnNamedFunctionType}{Named Function Types}{%
     \Gamma' = \Gamma\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
     \Subtype{\Gamma'}{S_0}{T_0} &
     \forall j \in 1 .. n\!:\;\Subtype{\Gamma'}{T_j}{S_j} \\
