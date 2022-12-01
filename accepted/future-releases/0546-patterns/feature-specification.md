@@ -561,17 +561,21 @@ It is a compile-time error if:
 *   There is more than one `restPattern` element in the list pattern. *It can
     appear anywhere in the list, but there can only be zero or one.*
 
-#### Rest patterns
+#### Rest elements
 
 A list pattern may contain a *rest element* which allows matching lists of
-arbitrary lengths. If a rest element is present and has a subpattern, all of the
-elements not matched by other subpatterns are collected into a new list and that
-list is matched against the rest subpattern.
+arbitrary lengths. The rest element may also have a subpattern. If a rest
+element is present and has a subpattern, all of the elements not matched by
+other subpatterns are collected into a new list and that list is matched against
+the rest subpattern.
 
 ```dart
 var [a, b, ...rest, c, d] = [1, 2, 3, 4, 5, 6, 7];
 print('$a $b $rest $c $d'); // Prints "1 2 [3, 4, 5] 6 7".
 ```
+
+We refer to a rest element with a subpattern as a *matching rest element*, and a
+rest element with no subpattern as a *non-matching rest element*.
 
 ### Map pattern
 
@@ -603,14 +607,14 @@ It is a compile-time error if:
 
 *   The `...` element is not the last element in the map pattern.
 
-### Rest patterns
+### Rest elements
 
-Like lists, map patterns can also have a rest pattern. However, there's no
-well-defined notion of a map "minus" some set of matched entries. Thus, the
-rest pattern doesn't allow a subpattern to capture the "remaining" entries.
+Like lists, map patterns can also have a rest element. However, there's no
+well-defined notion of a map "minus" some set of matched entries. Thus, only a
+non-matching rest element is allowed.
 
 Also, there is no ordering to entries in a map, so we only allow the `...` to
-appear as the last element. Appearing anywhere else would send a confusing,
+appear as the last entry. Appearing anywhere else would send a confusing,
 meaningless signal.
 
 In practice, this means that the only purpose of `...` in a map pattern is to
@@ -1638,18 +1642,18 @@ The context type schema for a pattern `p` is:
 
     2.  Else if `p` has no elements then `E` is `?`.
 
-    3.  Else, infer the type schema from the subpatterns:
+    3.  Else, infer the type schema from the elements:
 
         1.  Let `es` be an empty list of type schemas.
 
-        2.  For each subpattern `e` in `p`:
+        2.  For each element `e` in `p`:
 
-            1.  If `e` is a rest element pattern with a subpattern `s` and the
+            1.  If `e` is a matching rest element with subpattern `s` and the
                 context type schema of `s` is an `Iterable<T>` for some type
                 schema `T`, then add `T` to `es`.
 
-            2.  Else if `e` is not a rest element pattern, add the context
-                type schema of `e` to `es`.
+            2.  Else if `e` is not a rest element, add the context type schema
+                of `e` to `es`.
 
             *Else, `e` is a rest element without an iterable element type, so it
             doesn't contribute to inference.*
@@ -1684,7 +1688,7 @@ The context type schema for a pattern `p` is:
     2.  Else if `p` has no entries, then `K` and `V` are `?`.
 
     3.  Else `K` is `?` and `V` is the greatest lower bound of the context type
-        schemas of all value subpatterns. *The rest pattern, if present, doesn't
+        schemas of all value subpatterns. *The rest element, if present, doesn't
         contribute to the context type schema.*
 
 *   **Record**: A record type schema with positional and named fields
@@ -1832,8 +1836,8 @@ To type check a pattern `p` being matched against a value of type `M`:
 
         *both `a` and `b` use `num` as their matched value type.*
 
-    3.  If there is a rest element subpattern with a subpattern, type-check its
-        subpattern using `List<E>` as the matched value type.
+    3.  If there is a matching rest element, type-check its subpattern using
+        `List<E>` as the matched value type.
 
     4.  The required type of `p` is `List<E>`.
 
@@ -2612,12 +2616,11 @@ To match a pattern `p` against a value `v`:
 
     2.  Let `l` be the length of the list determined by calling `length` on `v`.
 
-    3.  Let `h` be the number of non-rest element subpatterns preceding the rest
-        element if there is one, or the number of subpatterns if there is no
-        rest element.
+    3.  Let `h` be the number of non-rest elements preceding the rest element if
+        there is one, or the number of elements if there is no rest element.
 
-    4.  Let `t` be the number of non-rest element subpatterns following the rest
-        element if there is one, or zero otherwise.
+    4.  Let `t` be the number of non-rest elements following the rest element if
+        there is one, or zero otherwise.
 
     3.  If `p` has no rest element and `l` is not equal to `h` then the match
         fails. If `p` has a rest element and `l` is less than `h + t` then the
@@ -2630,16 +2633,15 @@ To match a pattern `p` against a value `v`:
 
         2.  Match the `i`th element subpattern against `e`.
 
-    5.  If there is a rest element and it has a subpattern:
+    5.  If there is a matching rest element:
 
         1.  Let `r` be the result of calling `sublist()` on `v` with arguments
             `h`, and `l - t`.
 
         2.  Match the rest element subpattern against `r`.
 
-        *If there is a rest element but it has no subpattern, the unneeded list
-        elements are completely skipped and we don't even call `sublist()` to
-        access them.*
+        *If there is a non-matching rest element, the unneeded list elements are
+        completely skipped and we don't even call `sublist()` to access them.*
 
     6.  Match the tail elements. If `t` is greater than zero, then for `i` from
         `0` to `t - 1`, inclusive:
