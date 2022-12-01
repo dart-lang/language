@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.18 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.19 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -590,6 +590,15 @@ It is a compile-time error if:
     arguments.
 
 *   Any of the entry key expressions are not constant expressions.
+
+*   If any two keys in the map are identical. *Map patterns that don't have a
+    rest element only match if the `length` of the map is equal to the number of
+    map entries. If a map pattern has multiple identical key entries, they will
+    increase the required length for the pattern to match but in all but the
+    most perverse `Map` implementations will represent the same key. Thus, it's
+    very unlikely that any map pattern containing identical keys (and no rest
+    element) will ever match. Duplicate keys are most likely a typo in the
+    code.*
 
 *   If any two keys in the map both have primitive `==` methods, then it is a
     compile-time error if they are equal according to their `==` operator. *In
@@ -1226,6 +1235,59 @@ To avoid that, we disallow a switch expression from appearing at the beginning
 of an expression statement. This is similar to existing restrictions on map
 literals appearing in expression statements. In the rare case where a user
 really wants one there, they can parenthesize it.
+
+#### Function expression in guard ambiguity
+
+Function expressions also use `=>`, which leads to a potential ambiguity:
+
+```dart
+switch (obj) {
+  _ when a + (b) => (c) => body
+};
+```
+
+This could be interpreted as either:
+
+```dart
+switch (obj) {
+  _ when (a + (b)) => ((c) => body)
+  //     ---------    -------------
+};
+
+switch (obj) {
+  _ when (a + (b) => (c)) => (body)
+  //     ----------------    ------
+};
+```
+
+A similar ambiguity exists with function expressions in initializer lists, if
+the constructor happens to be a factory constructor with `=>` for its body. We
+resolve the ambiguity similarly here:  When `=>` is encountered after `when`, if
+the code between forms a valid expression, then it is interpreted as such and
+the `=>` is treated as the separator between the guard and case body. *In the
+above example, we take the first interpretation.*
+
+We do this unconditionally even if the code after `=>` is not a valid body
+expression, as in:
+
+```dart
+switch (obj) {
+  _ when (a) => b => c
+};
+```
+
+Here, we treat the guard expression as `(a)`, which leads the body to be `b =>
+c` which isn't a valid expression and produces a compile-time error.
+
+If you want a guard expression that ends in a function expression (which is
+quite unlikely), you can avoid the `=>` being captured as the case separator by
+parenthesizing the function:
+
+```dart
+switch (obj) {
+  _ when ((a) => b) => c
+};
+```
 
 ### If-case statement and element
 
@@ -2261,8 +2323,9 @@ All other types are not exhaustive. Then:
     is to throw an error and most Dart users prefer to catch those kinds of
     mistakes at compile time.*
 
-*   It is a compile-time error if the cases in a switch statement are not
-    exhaustive and the static type of the matched value is an exhaustive type.
+*   It is a compile-time error if the cases in a switch statement or switch
+    collection element are not exhaustive and the static type of the matched
+    value is an exhaustive type.
 
 [exhaustiveness]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
 
@@ -3119,6 +3182,14 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.19
+
+-   Specify exhaustiveness checking of switch elements.
+
+-   Resolve ambiguity with `=>` in switch expression guards (#2672).
+
+-   Compile error if map pattern has identical keys (#2657).
 
 ### 2.18
 
