@@ -1241,7 +1241,7 @@ really wants one there, they can parenthesize it.
 Function expressions also use `=>`, which leads to a potential ambiguity:
 
 ```dart
-switch (obj) {
+var x = switch (obj) {
   _ when a + (b) => (c) => body
 };
 ```
@@ -1249,12 +1249,12 @@ switch (obj) {
 This could be interpreted as either:
 
 ```dart
-switch (obj) {
+var x = switch (obj) {
   _ when (a + (b)) => ((c) => body)
   //     ---------    -------------
 };
 
-switch (obj) {
+var x = switch (obj) {
   _ when (a + (b) => (c)) => (body)
   //     ----------------    ------
 };
@@ -1262,16 +1262,24 @@ switch (obj) {
 
 A similar ambiguity exists with function expressions in initializer lists, if
 the constructor happens to be a factory constructor with `=>` for its body. We
-resolve the ambiguity similarly here:  When `=>` is encountered after `when`, if
-the code between forms a valid expression, then it is interpreted as such and
-the `=>` is treated as the separator between the guard and case body. *In the
-above example, we take the first interpretation.*
+resolve the ambiguity similarly here:  When `=>` is encountered after `when` in
+a guard, if the code between forms a valid expression, then it is interpreted as
+such and the `=>` is treated as the separator between the guard and case body.
+*In the above example, we take the first interpretation.*
 
-We do this unconditionally even if the code after `=>` is not a valid body
-expression, as in:
+This rules applies in all contexts where a guard can appear: switch statements,
+switch elements, switch expressions, and if-case statements. *We could restrict
+this rule to guards only in switch expressions where the ambiguity arises, but
+that leads to a syntactic restriction that is context-sensitive and harder to
+learn. Since the rule is unusual enough as it is, we apply it as consistently as
+possible. Note that the related restriction on `=>` in constructor initializers
+applies even though generative constructors can't use `=>` for their body.*
+
+The rule is applied unconditionally even if the code after `=>` is not a valid
+body expression, as in:
 
 ```dart
-switch (obj) {
+var x = switch (obj) {
   _ when (a) => b => c
 };
 ```
@@ -1284,7 +1292,7 @@ quite unlikely), you can avoid the `=>` being captured as the case separator by
 parenthesizing the function:
 
 ```dart
-switch (obj) {
+var x = switch (obj) {
   _ when ((a) => b) => c
 };
 ```
