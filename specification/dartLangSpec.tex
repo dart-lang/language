@@ -8330,7 +8330,7 @@ and we decided that it is not helpful to outlaw such cases.%
 \TYPEDEF{} Inv<X> = X \FUNCTION(X);
 \CLASS{} B<Y \EXTENDS{} num, Z \EXTENDS{} Inv<Y>{}> \{\}
 \\
-B b; // \comment{The raw B means} B<num, Inv<num>{}>.
+\LATE{} B b; // \comment{The raw B means} B<num, Inv<num>{}>.
 \end{dartCode}
 
 \commentary{%
