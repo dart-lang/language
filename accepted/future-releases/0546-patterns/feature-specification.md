@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.19 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.20 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -2748,20 +2748,30 @@ To match a pattern `p` against a value `v`:
         1.  Evaluate the key `expression` to `k` and call `containsKey(k)` on
             the value. If this returns `false`, the map does not match.
 
-        2.  Otherwise, evaluate `v[k]` and match the resulting value against
-            this entry's value subpattern. If it does not match, the map does
-            not match.
+        2.  Otherwise, evaluate `v[k]` to `r`.
+
+        3.  If `V` is non-nullable and `r` is `null` then the map does not
+            match.
+
+            *The `[]` operator on `Map` is always nullable. If we don't
+            explicitly check for `null` here, then a bad `Map` implementation
+            that returns `true` from `containsKey()` and then `null` from `v[k]`
+            for the same key would lead to a soundness hole when `V` is a
+            non-nullable type.*
+
+        4.  Else, match `r` against this entry's value subpattern. If it does
+            not match, the map does not match.
 
         A compiler is free to call `v[k]` and `containsKey()` in either order,
         or to elide calling one or both if it determines that doing so will
         produce the same result. It may assume that the map adheres to the
         following protocol:
 
-        *   If `containsKey(k)` returns `false` for some key, then `v[k]` will
+        *   When `containsKey(k)` returns `false` for some key, then `v[k]` will
             return `null`.
 
-        *   If `containsKey(k)` returns `true` for some key, then `v[k]` returns
-            an instance of the map's value type.
+        *   When `containsKey(k)` returns `true` for some key, then `v[k]`
+            returns an instance of the map's value type.
 
         *In particular, if the map's value type is non-nullable, then when
         `v[k]` returns `null`, the compiler can assume that the key is absent
@@ -3192,6 +3202,10 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.20
+
+-   Fix soundness hole in map patterns with badly behaved maps (#2685).
 
 ### 2.19
 
