@@ -884,11 +884,35 @@ are allowed while avoiding confusion about the scope of new variables.*
 
 It is a compile-time error if:
 
-*   An identifier in a variable pattern does not resolve to a non-final local
-    variable. *We could allow assigning to other variables or setters, but it
-    seems strange to allow assigning to `foo` when `foo` is an instance field on
-    the surrounding class with an implicit `this.`, but not allowing to assign
-    to `this.foo` explicitly. In the future, we may expand pattern assignment
+*   An identifier in a variable pattern does not resolve to an assignable local
+    variable or formal parameter. A variable is assignable if it is any of:
+
+    *   Non-final
+    *   Final and definitely unassigned
+    *   Late final and not definitely assigned
+
+    *For example, these are all valid:*
+
+    ```dart
+    test(int parameter) {
+      var notFinal;
+      final unassignedFinal;
+      late final lateFinal;
+
+      if (c) lateFinal = 'maybe assigned';
+
+      (notFinal, unassignedFinal, lateFinal) = ('a', 'b', 'c');
+    }
+    ```
+
+    *In other words, if the name resolves to a local variable or parameter and
+    could be assigned using a normal assignment expression, it can be used in a
+    pattern assignment.*
+
+    *We could allow assigning to other variables or setters, but it seems
+    strange to allow assigning to `foo` when `foo` is an instance field on the
+    surrounding class with an implicit `this.`, but not allowing to assign to
+    `this.foo` explicitly. In the future, we may expand pattern assignment
     syntax to allow other selector expressions. For now, we restrict assignment
     to local variables, which are also the only kind of variables that can be
     declared by patterns.*
@@ -3196,6 +3220,8 @@ Here is one way it could be broken down into separate pieces:
 ## Changelog
 
 ### 2.20
+
+-   Clarify which variables are valid in pattern assignments.
 
 -   Clarify when primitive `==` for map pattern keys comes into play (#2690).
 
