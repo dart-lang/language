@@ -614,7 +614,7 @@ It is a compile-time error if:
 *   The `...` element is not the last element in the map pattern.
 
 *Note that we don't require map keys to have primitive `==` methods to enable
-more flexibility in key typed. If the keys have user-defined `==` methods, then
+more flexibility in key types. If the keys have user-defined `==` methods, then
 it's possible to have keys that are equal according to those `==` methods, but
 the compiler won't detect it.*
 
