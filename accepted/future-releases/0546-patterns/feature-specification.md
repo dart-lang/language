@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.19 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.20 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -595,26 +595,28 @@ It is a compile-time error if:
 
 *   Any of the entry key expressions are not constant expressions.
 
-*   If any two keys in the map are identical. *Map patterns that don't have a
-    rest element only match if the `length` of the map is equal to the number of
-    map entries. If a map pattern has multiple identical key entries, they will
+*   Any two keys in the map are identical. *Map patterns that don't have a rest
+    element only match if the `length` of the map is equal to the number of map
+    entries. If a map pattern has multiple identical key entries, they will
     increase the required length for the pattern to match but in all but the
     most perverse `Map` implementations will represent the same key. Thus, it's
     very unlikely that any map pattern containing identical keys (and no rest
     element) will ever match. Duplicate keys are most likely a typo in the
     code.*
 
-*   If any two keys in the map both have primitive `==` methods, then it is a
-    compile-time error if they are equal according to their `==` operator. *In
-    cases where keys have types whose equality can be checked at compile time,
-    we report errors if there are redundant keys. But we don't require the keys
-    to have primitive equality for flexibility. In map patterns where the keys
-    don't have primitive equality, it is possible to have redundant keys and the
-    compiler won't detect it.*
+*   Any two record keys which both have primitive `==` are equal. *Since
+    records don't have defined identity, we can't use the previous rule to
+    detect identical records. But records do support an equality test known at
+    compile time if all of their fields do, so we use that.*
 
 *   There is more than one `...` element in the map pattern.
 
 *   The `...` element is not the last element in the map pattern.
+
+*Note that we don't require map keys to have primitive `==` methods to enable
+more flexibility in key typed. If the keys have user-defined `==` methods, then
+it's possible to have keys that are equal according to those `==` methods, but
+the compiler won't detect it.*
 
 ### Rest elements
 
@@ -3192,6 +3194,10 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.20
+
+-   Clarify when primitive `==` for map pattern keys comes into play (#2690).
 
 ### 2.19
 
