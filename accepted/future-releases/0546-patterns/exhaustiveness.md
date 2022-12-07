@@ -449,14 +449,8 @@ into spaces:
     fields in the object pattern get implicit names like `field0`, `field1`,
     etc.
 
-*   **Declaration matcher:** The lifted space of the inner subpattern.
+*   **Null-assert or cast binder:** An object space of type `top`.
 
-*   **Null-assert or cast binder:** An object space of type `top`. These binder
-    patterns don't often appear in the matcher patterns used in switches where
-    exhaustiveness checking applies, but can occur nested inside a [declaration
-    matcher][] pattern.
-
-    [declaration matcher]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md#declaration-matcher
 
 **TODO: Once generics are supported, describe how type patterns are lifted to
 spaces here.**
@@ -530,7 +524,7 @@ To calculate `C = A - B`:
     Subtracting a union is equivalent to removing all of the values from all of
     its arms.
 
-*   Otherwise, `A` and `B` must both be object unions, handled in the next
+*   Otherwise, `A` and `B` must both be object spaces, handled in the next
     section.
 
 ## Object subtraction
@@ -758,7 +752,7 @@ spaces `L - R`:
     process over. (That will then distribute the `- R` into all of the resulting
     arms, process each subtype independently, and union the result.)
 
-2.  Else, if `R`'s type is not a supertype of `L`'s type (even after expanding)
+2.  Else, if `R`'s type is not a subtype of `L`'s type (even after expanding)
     then it can't meaningfully subtract anything. The result is just `L`. This
     comes into play when when matching on unsealed subtypes:
 

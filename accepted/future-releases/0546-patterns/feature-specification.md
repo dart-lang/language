@@ -304,9 +304,10 @@ Unlike logical-or patterns, the variables defined in each branch must *not*
 overlap, since the logical-and pattern only matches if both branches do and the
 variables in both branches will be bound.
 
-If the left branch does not match, the right branch is not evaluated. *This only
-matters because patterns may invoke user-defined methods with visible side
-effects.*
+If the left branch does not match, the right branch is not evaluated. *This
+matters both because patterns may invoke user-defined methods with visible side
+effects, and because certain patterns may cause exceptions to be thrown if they
+are not matched (e.g. cast patterns).*
 
 ### Relational pattern
 
@@ -704,6 +705,9 @@ always just destructure it once with an `||` subpattern. If a user does it, it's
 mostly like a copy/paste mistake and it's more helpful to draw their attention
 to the error than silently accept it.*
 
+It is a compile-time error if a name cannot be inferred for a named field
+pattern with the field name omitted (see name inference below).
+
 ### Object pattern
 
 ```
@@ -761,6 +765,26 @@ It is a compile-time error if:
     ```dart
     var Point(:x, x: y) = Point(1, 2);
     ```
+
+*   It is a compile-time error if a name cannot be inferred for a named getter
+    pattern with the getter name omitted (see name inference below).
+
+### Named field/getter inference
+
+In both record patterns and object patterns, the field or getter name may be
+elided when it can be inferred from the pattern.  The inferred field or getter
+name for a pattern `p` is defined as follows.
+  - If `p` is a variable pattern which binds a variable `v`, and `v` is not `_`,
+    then the inferred name is `v`.
+  - If `p` is `q?` then the inferred name of `p` (if any) is the inferred name
+    of `q`.
+  - If `p` is `q!` then the inferred name of `p` (if any) is the inferred name
+    of `q`.
+  - If `p` is `q as T` then the inferred name of `p` (if any) is the inferred
+    name of `q`.
+  - If `p` is `(q)` then the inferred name of `p` (if any) is the inferred
+    name of `q`.
+  - Otherwise, `p` has no inferred name.
 
 ## Pattern uses
 
@@ -1502,7 +1526,7 @@ allowed and what their syntax is. The rules are:
 
     *This program prints "no match" and not "match 2".*
 
-*   A simple identifier in a matching context named `_` is treated as a wildcard
+*   A simple identifier in any context named `_` is treated as a wildcard
     variable pattern. *A bare `_` is always treated as a wildcard regardless of
     context, even though other variables in matching contexts require a marker.*
 
@@ -1624,9 +1648,9 @@ To orchestrate this, type inference on patterns proceeds in three phases:
     object, and not necessarily to try to force a certain answer.*
 
 2.  **Calculate the static type of the matched value.** A pattern always occurs
-    in the context of some matched value. For pattern variable declarations,
-    this is the initializer. For switches and if-case constructs, it's the value
-    being matched.
+    in the context of some matched value. For pattern variable declarations and
+    assignments, this is the initializer. For switches and if-case constructs,
+    it's the value being matched.
 
     Using the pattern's type schema as a context type (if not in a matching
     context), infer missing types on the value expression. This is the existing
@@ -1652,8 +1676,9 @@ To orchestrate this, type inference on patterns proceeds in three phases:
 
 3.  **Calculate the static type of the pattern.** Using that value type, recurse
     through the pattern again downwards to the leaf subpatterns filling in any
-    holes in the type schema. This process may also insert implicit coercions
-    and casts from `dynamic` when values flow into a pattern during matching.
+    missing types in the pattern. This process may also insert implicit
+    coercions and casts from `dynamic` when values flow into a pattern during
+    matching.
 
     *For example:*
 
@@ -1695,8 +1720,10 @@ declarations and pattern assignments. This is a type *schema* because there may
 be holes in the type:
 
 ```dart
-var (a, int b) = ... // Schema is `(?, int)`.
+var (a, int b) = ... // Schema is `(_, int)`.
 ```
+
+A missing type (or "hole") in the type schema is written as `_`.
 
 The context type schema for a pattern `p` is:
 
@@ -1715,7 +1742,7 @@ The context type schema for a pattern `p` is:
     1.  In an assignment context, the context type schema is the static type of
         the variable that `p` resolves to.
 
-    1.  Else if `p` has no type annotation, the context type schema is `?`.
+    1.  Else if `p` has no type annotation, the context type schema is `_`.
         *This lets us potentially infer the variable's type from the matched
         value.*
 
@@ -1728,7 +1755,7 @@ The context type schema for a pattern `p` is:
         //                                 ^- Infers List<int>.
         ```
 
-*   **Cast**: The context type schema is `?`.
+*   **Cast**: The context type schema is `_`.
 
 *   **Parenthesized**: The context type schema of the inner subpattern.
 
@@ -1736,7 +1763,7 @@ The context type schema for a pattern `p` is:
 
     1.  If `p` has a type argument, then `E` is the type argument.
 
-    2.  Else if `p` has no elements then `E` is `?`.
+    2.  Else if `p` has no elements then `E` is `_`.
 
     3.  Else, infer the type schema from the elements:
 
@@ -1754,7 +1781,7 @@ The context type schema for a pattern `p` is:
             *Else, `e` is a rest element without an iterable element type, so it
             doesn't contribute to inference.*
 
-        3.  If `es` is empty, then `E` is `?`. *This can happen if the list
+        3.  If `es` is empty, then `E` is `_`. *This can happen if the list
             pattern contains only a rest element which doesn't have a context
             type schema that is known to be an `Iterable<T>` for some `T`,
             like:*
@@ -1781,9 +1808,9 @@ The context type schema for a pattern `p` is:
 
     1.  If `p` has type arguments then `K`, and `V` are those type arguments.
 
-    2.  Else if `p` has no entries, then `K` and `V` are `?`.
+    2.  Else if `p` has no entries, then `K` and `V` are `_`.
 
-    3.  Else `K` is `?` and `V` is the greatest lower bound of the context type
+    3.  Else `K` is `_` and `V` is the greatest lower bound of the context type
         schemas of all value subpatterns. *The rest element, if present, doesn't
         contribute to the context type schema.*
 
@@ -1949,10 +1976,10 @@ To type check a pattern `p` being matched against a value of type `M`:
             those, and `C` is `K`.
 
         3.  Else if `M` is `dynamic` then `K` and `V` are `dynamic` and `C` is
-            `?`.
+            `_`.
 
-        4.  Else `K` and `V` are `Object?` and `C` is `?`.
-        
+        4.  Else `K` and `V` are `Object?` and `C` is `_`.
+
     2.  Type-check each key expression using `C` as the context type.
 
     3.  Type-check each value subpattern using `V` as the matched value type.
@@ -2097,7 +2124,7 @@ pattern is:
 
 *   **Logical-and**, **cast**, **null-check**, **null-assert**,
     **parenthesized**, **list**, **map**, **record**, or **object**: The union
-    of the pattern variable sets of all of the subpatterns.
+    of the pattern variable sets of all of the immediate subpatterns.
 
     The union of a series of pattern variable sets is the union of their
     corresponding sets of variable names. Each variable in the resulting set is
