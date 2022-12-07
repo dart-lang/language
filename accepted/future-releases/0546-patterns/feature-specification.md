@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.18 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.20 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -596,17 +596,28 @@ It is a compile-time error if:
 
 *   Any of the entry key expressions are not constant expressions.
 
-*   If any two keys in the map both have primitive `==` methods, then it is a
-    compile-time error if they are equal according to their `==` operator. *In
-    cases where keys have types whose equality can be checked at compile time,
-    we report errors if there are redundant keys. But we don't require the keys
-    to have primitive equality for flexibility. In map patterns where the keys
-    don't have primitive equality, it is possible to have redundant keys and the
-    compiler won't detect it.*
+*   Any two keys in the map are identical. *Map patterns that don't have a rest
+    element only match if the `length` of the map is equal to the number of map
+    entries. If a map pattern has multiple identical key entries, they will
+    increase the required length for the pattern to match but in all but the
+    most perverse `Map` implementations will represent the same key. Thus, it's
+    very unlikely that any map pattern containing identical keys (and no rest
+    element) will ever match. Duplicate keys are most likely a typo in the
+    code.*
+
+*   Any two record keys which both have primitive `==` are equal. *Since
+    records don't have defined identity, we can't use the previous rule to
+    detect identical records. But records do support an equality test known at
+    compile time if all of their fields do, so we use that.*
 
 *   There is more than one `...` element in the map pattern.
 
 *   The `...` element is not the last element in the map pattern.
+
+*Note that we don't require map keys to have primitive `==` methods to enable
+more flexibility in key types. If the keys have user-defined `==` methods, then
+it's possible to have keys that are equal according to those `==` methods, but
+the compiler won't detect it.*
 
 ### Rest elements
 
@@ -897,11 +908,36 @@ are allowed while avoiding confusion about the scope of new variables.*
 
 It is a compile-time error if:
 
-*   An identifier in a variable pattern does not resolve to a local
-    variable. *We could allow assigning to other variables or setters, but it
-    seems strange to allow assigning to `foo` when `foo` is an instance field on
-    the surrounding class with an implicit `this.`, but not allowing to assign
-    to `this.foo` explicitly. In the future, we may expand pattern assignment
+*   An identifier in a variable pattern does not resolve to an assignable local
+    variable or formal parameter. A variable is assignable if it is any of:
+
+    *   Non-final
+    *   Final and definitely unassigned
+    *   Late final and not definitely assigned
+
+    *For example, these are all valid:*
+
+    ```dart
+    test(int parameter) {
+      var notFinal;
+      final unassignedFinal;
+      late final lateFinal;
+
+      if (c) lateFinal = 'maybe assigned';
+
+      (notFinal, unassignedFinal, lateFinal) = ('a', 'b', 'c');
+    }
+    ```
+
+    *In other words, if the name resolves to a local variable or parameter and
+    could be assigned using a normal assignment expression, it can be used in a
+    pattern assignment.*
+
+    *We could allow assigning to other variables or setters, but it seems
+    strange to allow assigning to `foo` when `foo` is an instance field on the
+    surrounding class with an implicit `this.`, but not allowing to assign to
+    `this.foo` explicitly. In the future, we may expand pattern assignment
+>>>>>>> origin/master
     syntax to allow other selector expressions. For now, we restrict assignment
     to local variables, which are also the only kind of variables that can be
     declared by patterns.*
@@ -1254,6 +1290,67 @@ To avoid that, we disallow a switch expression from appearing at the beginning
 of an expression statement. This is similar to existing restrictions on map
 literals appearing in expression statements. In the rare case where a user
 really wants one there, they can parenthesize it.
+
+#### Function expression in guard ambiguity
+
+Function expressions also use `=>`, which leads to a potential ambiguity:
+
+```dart
+var x = switch (obj) {
+  _ when a + (b) => (c) => body
+};
+```
+
+This could be interpreted as either:
+
+```dart
+var x = switch (obj) {
+  _ when (a + (b)) => ((c) => body)
+  //     ---------    -------------
+};
+
+var x = switch (obj) {
+  _ when (a + (b) => (c)) => (body)
+  //     ----------------    ------
+};
+```
+
+A similar ambiguity exists with function expressions in initializer lists, if
+the constructor happens to be a factory constructor with `=>` for its body. We
+resolve the ambiguity similarly here:  When `=>` is encountered after `when` in
+a guard, if the code between forms a valid expression, then it is interpreted as
+such and the `=>` is treated as the separator between the guard and case body.
+*In the above example, we take the first interpretation.*
+
+This rules applies in all contexts where a guard can appear: switch statements,
+switch elements, switch expressions, and if-case statements. *We could restrict
+this rule to guards only in switch expressions where the ambiguity arises, but
+that leads to a syntactic restriction that is context-sensitive and harder to
+learn. Since the rule is unusual enough as it is, we apply it as consistently as
+possible. Note that the related restriction on `=>` in constructor initializers
+applies even though generative constructors can't use `=>` for their body.*
+
+The rule is applied unconditionally even if the code after `=>` is not a valid
+body expression, as in:
+
+```dart
+var x = switch (obj) {
+  _ when (a) => b => c
+};
+```
+
+Here, we treat the guard expression as `(a)`, which leads the body to be `b =>
+c` which isn't a valid expression and produces a compile-time error.
+
+If you want a guard expression that ends in a function expression (which is
+quite unlikely), you can avoid the `=>` being captured as the case separator by
+parenthesizing the function:
+
+```dart
+var x = switch (obj) {
+  _ when ((a) => b) => c
+};
+```
 
 ### If-case statement and element
 
@@ -2292,8 +2389,9 @@ All other types are not exhaustive. Then:
     is to throw an error and most Dart users prefer to catch those kinds of
     mistakes at compile time.*
 
-*   It is a compile-time error if the cases in a switch statement are not
-    exhaustive and the static type of the matched value is an exhaustive type.
+*   It is a compile-time error if the cases in a switch statement or switch
+    collection element are not exhaustive and the static type of the matched
+    value is an exhaustive type.
 
 [exhaustiveness]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
 
@@ -3148,6 +3246,20 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.20
+
+-   Clarify which variables are valid in pattern assignments.
+
+-   Clarify when primitive `==` for map pattern keys comes into play (#2690).
+
+### 2.19
+
+-   Specify exhaustiveness checking of switch elements.
+
+-   Resolve ambiguity with `=>` in switch expression guards (#2672).
+
+-   Compile error if map pattern has identical keys (#2657).
 
 ### 2.18
 

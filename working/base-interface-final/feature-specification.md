@@ -31,6 +31,10 @@ proposal, this proposal is non-breaking.
 https://github.com/dart-lang/language/issues/2595
 [leaf proposal]: https://github.com/dart-lang/language/issues/2595
 
+This proposal also allows `mixin` to be used as a modifier on `class` to
+indicate that a type is explicitly intended to be used as both a class and a
+mixin.
+
 ## Motivation
 
 Dart's ethos is to be permissive by default. When you declare a class, it can be
@@ -406,14 +410,59 @@ This proposal takes the last option where types have exactly the restrictions
 they declare but a lint can be turned on for users who want to be reminded if
 they re-add a capability in a subtype.
 
-Finally, to the actual proposal...
+## Mixin classes
+
+In line with Dart's permissive default nature, Dart allows any class declaration
+to also be used as a mixin (in spec parlance, it allows a mixin to be "derived
+from a class declaration"), provided the class meets the restrictions that
+mixins require: Its immediate superclass must be `Object` and it must not
+declare any generative constructors.
+
+In practice, mixins are quite different from classes and it's uncommon for users
+to deliberately define a type that is used as both. It's easy to define a class
+without *intending* it to be used as a mixin and then accidentally forbid that
+usage by adding a generative constructor or superclass to the class. That is a
+breaking change to any downstream user that had that class in a `with` clause.
+
+Eventually, we would like classes to not be usable as a mixin by default. Being
+extensible and implementable seems to be the right default for classes based on
+Dart's history and talking to users. But being usable as a mixin by default is
+rarely (but not *never*) useful and often confusing. It makes classes brittle
+for little upside.
+
+Instead, under this proposal we require authors to explicitly opt in to allowing
+the class to be used as a mixin by adding a `mixin` modifier to the class:
+
+```dart
+class OnlyClass {}
+
+class FailUseAsMixin extends OtherSuperclass with OnlyClass {} // Error.
+
+mixin class Both {}
+
+class UsesAsSuperclass extends Both {}
+
+class UsesAsMixin extends OtherSuperclass with Both {} // OK.
+```
+
+This change is guarded by a language version. Any class declaration in a library
+whose language version is before the one this feature ships in can be used as a
+mixin as long as the class meets the mixin restrictions. Classes in libraries
+whose version is later than that must be explicitly marked `mixin class` to
+allow the class to be used in a `with` clause.
+
+When upgrading your library to the new language version, you can preserve the
+existing behavior by adding `mixin` to every class declaration that can be used
+as a mixin. If the class defines a generative constructor or extends anything
+other than `Object`, then it already can't be used as a mixin and no change is
+needed.
 
 ## Syntax
 
 This proposal builds on the existing sealed types proposal so the grammar
 includes those changes. The full set of modifiers that can appear before a class
-or mixin are `abstract`, `sealed`, `base`, `interface`, and `final`. Some
-combinations don't make sense:
+or mixin are `abstract`, `sealed`, `base`, `interface`, `final`, and `mixin`.
+Some combinations don't make sense:
 
 *   `sealed` implies `abstract`, so they can't be combined.
 *   `sealed` implies non-extensibility, so can't be combined with `interface`
@@ -422,8 +471,12 @@ combinations don't make sense:
     `final`.
 *   `base`, `interface`, and `final` all control the same two capabilities so
     are mutually exclusive.
+*   `mixin` as a modifier can obviously only be applied to a class. It can be
+    combined with any other modifiers that can be applied to a class.
 
 The remaining valid combinations are:
+
+<table><tr><td>
 
 ```
 class
@@ -435,13 +488,33 @@ abstract class
 abstract base class
 abstract interface class
 abstract final class
+```
 
+</td><td>
+
+```
+mixin class
+sealed mixin class
+base mixin class
+interface mixin class
+final mixin class
+abstract mixin class
+abstract base mixin class
+abstract interface mixin class
+abstract final mixin class
+```
+
+</td><td>
+
+```
 mixin
 sealed mixin
 base mixin
 interface mixin
 final mixin
 ```
+
+</td></tr></table>
 
 The grammar is:
 
@@ -452,13 +525,13 @@ classDeclaration ::=
   '{' (metadata classMemberDeclaration)* '}'
   | classModifiers 'class' mixinApplicationClass
 
-classModifiers ::= 'sealed' | 'abstract'? ('base' | 'interface' | 'final')?
-
-mixinDeclaration ::= mixinModifiers? 'mixin' identifier typeParameters?
+mixinDeclaration ::= mixinModifier? 'mixin' identifier typeParameters?
   ('on' typeNotVoidList)? interfaces?
   '{' (metadata classMemberDeclaration)* '}'
 
-mixinModifiers ::= 'sealed' | 'base' | 'interface' | 'final'
+classModifiers ::= ( 'sealed' | 'abstract'? typeModifier? ) 'mixin'?
+mixinModifier ::= 'sealed' | typeModifier
+typeModifier ::= 'base' | 'interface' | 'final'
 ```
 
 ### Static semantics
@@ -466,22 +539,33 @@ mixinModifiers ::= 'sealed' | 'base' | 'interface' | 'final'
 It is a compile-time error to:
 
 *   Extend a class marked `interface` or `final` outside of the library where it
-    is defined.
+    is declared.
 
 *   Implement a type marked `base` or `final` outside of the library where it is
-    defined.
+    declared.
 
 *   Extend or mix in a type marked `base` outside of the library where it is
-    defined without also being marked `base` or `final`. *This ensures that a
+    declared without also being marked `base` or `final`. *This ensures that a
     subtype can't escape the `base` restriction of its supertype by offering its
     _own_ interface that could then be implemented without inheriting the
     concrete implementation from the supertype.*
 
-*   Mix in a class marked `sealed`, `base`, `interface`, or `final`. *We want to
-    eventually move away from classes as mixins. We don't want to break existing
-    uses of classes as mixins but since no existing code is using these
-    modifiers, we can prevent classes using those modifiers from also being used
-    as mixins.*
+*   Mix in a class not marked `mixin` outside of the library where it is
+    declared, unless the class declaration is in a library whose language
+    version is older than the version this feature ships in.
+
+*   Apply the `mixin` modifier to a class whose superclass is not `Object` or
+    that declares a generative constructor. *The `mixin` modifier states that
+    you intend the class to be mixed in, which is inconsistent with defining a
+    class that can't be used as a mixin. Note that this means that the `mixin`
+    modifier becomes a helpful reminder to ensure that you don't inadvertently
+    break your class's ability to be used as a mixin.*
+
+*   Mix in a class whose superclass is not `Object` or that declares a
+    generative constructor. *Because of the previous rule, this rule only comes
+    into play when you use a class not marked `mixin` as a mixin within the
+    library where it's declared. When you do that, the existing restriction
+    still applies that the class being used as a mixin must be valid to do so.*
 
 A typedef can't be used to subvert these restrictions. When extending,
 implementing, or mixing in a typedef, we look at the library where type the
