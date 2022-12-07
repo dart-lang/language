@@ -937,7 +937,6 @@ It is a compile-time error if:
     strange to allow assigning to `foo` when `foo` is an instance field on the
     surrounding class with an implicit `this.`, but not allowing to assign to
     `this.foo` explicitly. In the future, we may expand pattern assignment
->>>>>>> origin/master
     syntax to allow other selector expressions. For now, we restrict assignment
     to local variables, which are also the only kind of variables that can be
     declared by patterns.*
