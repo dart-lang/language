@@ -214,8 +214,8 @@ Here is the overall grammar for the different kinds of patterns:
 ```
 pattern           ::= logicalOrPattern
 
-logicalOrPattern  ::= logicalOrPattern ( '||' logicalAndPattern )*
-logicalAndPattern ::= logicalAndPattern ( '&&' relationalPattern )*
+logicalOrPattern  ::= logicalAndPattern ( '||' logicalAndPattern )*
+logicalAndPattern ::= relationalPattern ( '&&' relationalPattern )*
 relationalPattern ::= ( equalityOperator | relationalOperator) bitwiseOrExpression
                     | unaryPattern
 
@@ -243,7 +243,7 @@ The individual patterns are:
 ### Logical-or pattern
 
 ```
-logicalOrPattern ::= ( logicalOrPattern '||' )? logicalAndPattern
+logicalOrPattern ::= logicalAndPattern ( '||' logicalAndPattern )*
 ```
 
 A pair of patterns separated by `||` matches if either of the branches match.
@@ -296,7 +296,7 @@ problems stemming from that, the following restrictions apply:
 ### Logical-and pattern
 
 ```
-logicalAndPattern ::= ( logicalAndPattern '&&' )? relationalPattern
+logicalAndPattern ::= relationalPattern ( '&&' relationalPattern )*
 ```
 
 A pair of patterns separated by `&&` matches only if *both* subpatterns match.
