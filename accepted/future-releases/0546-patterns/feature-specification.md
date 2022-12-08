@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.19 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.20 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -214,8 +214,8 @@ Here is the overall grammar for the different kinds of patterns:
 ```
 pattern           ::= logicalOrPattern
 
-logicalOrPattern  ::= logicalOrPattern ( '||' logicalAndPattern )*
-logicalAndPattern ::= logicalAndPattern ( '&&' relationalPattern )*
+logicalOrPattern  ::= logicalAndPattern ( '||' logicalAndPattern )*
+logicalAndPattern ::= relationalPattern ( '&&' relationalPattern )*
 relationalPattern ::= ( equalityOperator | relationalOperator) bitwiseOrExpression
                     | unaryPattern
 
@@ -243,7 +243,7 @@ The individual patterns are:
 ### Logical-or pattern
 
 ```
-logicalOrPattern ::= ( logicalOrPattern '||' )? logicalAndPattern
+logicalOrPattern ::= logicalAndPattern ( '||' logicalAndPattern )*
 ```
 
 A pair of patterns separated by `||` matches if either of the branches match.
@@ -296,7 +296,7 @@ problems stemming from that, the following restrictions apply:
 ### Logical-and pattern
 
 ```
-logicalAndPattern ::= ( logicalAndPattern '&&' )? relationalPattern
+logicalAndPattern ::= relationalPattern ( '&&' relationalPattern )*
 ```
 
 A pair of patterns separated by `&&` matches only if *both* subpatterns match.
@@ -304,9 +304,10 @@ Unlike logical-or patterns, the variables defined in each branch must *not*
 overlap, since the logical-and pattern only matches if both branches do and the
 variables in both branches will be bound.
 
-If the left branch does not match, the right branch is not evaluated. *This only
-matters because patterns may invoke user-defined methods with visible side
-effects.*
+If the left branch does not match, the right branch is not evaluated. *This
+matters both because patterns may invoke user-defined methods with visible side
+effects, and because certain patterns may cause exceptions to be thrown if they
+are not matched (e.g. cast patterns).*
 
 ### Relational pattern
 
@@ -595,26 +596,28 @@ It is a compile-time error if:
 
 *   Any of the entry key expressions are not constant expressions.
 
-*   If any two keys in the map are identical. *Map patterns that don't have a
-    rest element only match if the `length` of the map is equal to the number of
-    map entries. If a map pattern has multiple identical key entries, they will
+*   Any two keys in the map are identical. *Map patterns that don't have a rest
+    element only match if the `length` of the map is equal to the number of map
+    entries. If a map pattern has multiple identical key entries, they will
     increase the required length for the pattern to match but in all but the
     most perverse `Map` implementations will represent the same key. Thus, it's
     very unlikely that any map pattern containing identical keys (and no rest
     element) will ever match. Duplicate keys are most likely a typo in the
     code.*
 
-*   If any two keys in the map both have primitive `==` methods, then it is a
-    compile-time error if they are equal according to their `==` operator. *In
-    cases where keys have types whose equality can be checked at compile time,
-    we report errors if there are redundant keys. But we don't require the keys
-    to have primitive equality for flexibility. In map patterns where the keys
-    don't have primitive equality, it is possible to have redundant keys and the
-    compiler won't detect it.*
+*   Any two record keys which both have primitive `==` are equal. *Since
+    records don't have defined identity, we can't use the previous rule to
+    detect identical records. But records do support an equality test known at
+    compile time if all of their fields do, so we use that.*
 
 *   There is more than one `...` element in the map pattern.
 
 *   The `...` element is not the last element in the map pattern.
+
+*Note that we don't require map keys to have primitive `==` methods to enable
+more flexibility in key types. If the keys have user-defined `==` methods, then
+it's possible to have keys that are equal according to those `==` methods, but
+the compiler won't detect it.*
 
 ### Rest elements
 
@@ -702,6 +705,9 @@ always just destructure it once with an `||` subpattern. If a user does it, it's
 mostly like a copy/paste mistake and it's more helpful to draw their attention
 to the error than silently accept it.*
 
+It is a compile-time error if a name cannot be inferred for a named field
+pattern with the field name omitted (see name inference below).
+
 ### Object pattern
 
 ```
@@ -759,6 +765,26 @@ It is a compile-time error if:
     ```dart
     var Point(:x, x: y) = Point(1, 2);
     ```
+
+*   It is a compile-time error if a name cannot be inferred for a named getter
+    pattern with the getter name omitted (see name inference below).
+
+### Named field/getter inference
+
+In both record patterns and object patterns, the field or getter name may be
+elided when it can be inferred from the pattern.  The inferred field or getter
+name for a pattern `p` is defined as follows.
+  - If `p` is a variable pattern which binds a variable `v`, and `v` is not `_`,
+    then the inferred name is `v`.
+  - If `p` is `q?` then the inferred name of `p` (if any) is the inferred name
+    of `q`.
+  - If `p` is `q!` then the inferred name of `p` (if any) is the inferred name
+    of `q`.
+  - If `p` is `q as T` then the inferred name of `p` (if any) is the inferred
+    name of `q`.
+  - If `p` is `(q)` then the inferred name of `p` (if any) is the inferred
+    name of `q`.
+  - Otherwise, `p` has no inferred name.
 
 ## Pattern uses
 
@@ -882,11 +908,35 @@ are allowed while avoiding confusion about the scope of new variables.*
 
 It is a compile-time error if:
 
-*   An identifier in a variable pattern does not resolve to a non-final local
-    variable. *We could allow assigning to other variables or setters, but it
-    seems strange to allow assigning to `foo` when `foo` is an instance field on
-    the surrounding class with an implicit `this.`, but not allowing to assign
-    to `this.foo` explicitly. In the future, we may expand pattern assignment
+*   An identifier in a variable pattern does not resolve to an assignable local
+    variable or formal parameter. A variable is assignable if it is any of:
+
+    *   Non-final
+    *   Final and definitely unassigned
+    *   Late final and not definitely assigned
+
+    *For example, these are all valid:*
+
+    ```dart
+    test(int parameter) {
+      var notFinal;
+      final unassignedFinal;
+      late final lateFinal;
+
+      if (c) lateFinal = 'maybe assigned';
+
+      (notFinal, unassignedFinal, lateFinal) = ('a', 'b', 'c');
+    }
+    ```
+
+    *In other words, if the name resolves to a local variable or parameter and
+    could be assigned using a normal assignment expression, it can be used in a
+    pattern assignment.*
+
+    *We could allow assigning to other variables or setters, but it seems
+    strange to allow assigning to `foo` when `foo` is an instance field on the
+    surrounding class with an implicit `this.`, but not allowing to assign to
+    `this.foo` explicitly. In the future, we may expand pattern assignment
     syntax to allow other selector expressions. For now, we restrict assignment
     to local variables, which are also the only kind of variables that can be
     declared by patterns.*
@@ -1476,7 +1526,7 @@ allowed and what their syntax is. The rules are:
 
     *This program prints "no match" and not "match 2".*
 
-*   A simple identifier in a matching context named `_` is treated as a wildcard
+*   A simple identifier in any context named `_` is treated as a wildcard
     variable pattern. *A bare `_` is always treated as a wildcard regardless of
     context, even though other variables in matching contexts require a marker.*
 
@@ -1598,9 +1648,9 @@ To orchestrate this, type inference on patterns proceeds in three phases:
     object, and not necessarily to try to force a certain answer.*
 
 2.  **Calculate the static type of the matched value.** A pattern always occurs
-    in the context of some matched value. For pattern variable declarations,
-    this is the initializer. For switches and if-case constructs, it's the value
-    being matched.
+    in the context of some matched value. For pattern variable declarations and
+    assignments, this is the initializer. For switches and if-case constructs,
+    it's the value being matched.
 
     Using the pattern's type schema as a context type (if not in a matching
     context), infer missing types on the value expression. This is the existing
@@ -1626,8 +1676,9 @@ To orchestrate this, type inference on patterns proceeds in three phases:
 
 3.  **Calculate the static type of the pattern.** Using that value type, recurse
     through the pattern again downwards to the leaf subpatterns filling in any
-    holes in the type schema. This process may also insert implicit coercions
-    and casts from `dynamic` when values flow into a pattern during matching.
+    missing types in the pattern. This process may also insert implicit
+    coercions and casts from `dynamic` when values flow into a pattern during
+    matching.
 
     *For example:*
 
@@ -1669,8 +1720,10 @@ declarations and pattern assignments. This is a type *schema* because there may
 be holes in the type:
 
 ```dart
-var (a, int b) = ... // Schema is `(?, int)`.
+var (a, int b) = ... // Schema is `(_, int)`.
 ```
+
+A missing type (or "hole") in the type schema is written as `_`.
 
 The context type schema for a pattern `p` is:
 
@@ -1689,7 +1742,7 @@ The context type schema for a pattern `p` is:
     1.  In an assignment context, the context type schema is the static type of
         the variable that `p` resolves to.
 
-    1.  Else if `p` has no type annotation, the context type schema is `?`.
+    1.  Else if `p` has no type annotation, the context type schema is `_`.
         *This lets us potentially infer the variable's type from the matched
         value.*
 
@@ -1702,7 +1755,7 @@ The context type schema for a pattern `p` is:
         //                                 ^- Infers List<int>.
         ```
 
-*   **Cast**: The context type schema is `?`.
+*   **Cast**: The context type schema is `_`.
 
 *   **Parenthesized**: The context type schema of the inner subpattern.
 
@@ -1710,7 +1763,7 @@ The context type schema for a pattern `p` is:
 
     1.  If `p` has a type argument, then `E` is the type argument.
 
-    2.  Else if `p` has no elements then `E` is `?`.
+    2.  Else if `p` has no elements then `E` is `_`.
 
     3.  Else, infer the type schema from the elements:
 
@@ -1728,7 +1781,7 @@ The context type schema for a pattern `p` is:
             *Else, `e` is a rest element without an iterable element type, so it
             doesn't contribute to inference.*
 
-        3.  If `es` is empty, then `E` is `?`. *This can happen if the list
+        3.  If `es` is empty, then `E` is `_`. *This can happen if the list
             pattern contains only a rest element which doesn't have a context
             type schema that is known to be an `Iterable<T>` for some `T`,
             like:*
@@ -1755,9 +1808,9 @@ The context type schema for a pattern `p` is:
 
     1.  If `p` has type arguments then `K`, and `V` are those type arguments.
 
-    2.  Else if `p` has no entries, then `K` and `V` are `?`.
+    2.  Else if `p` has no entries, then `K` and `V` are `_`.
 
-    3.  Else `K` is `?` and `V` is the greatest lower bound of the context type
+    3.  Else `K` is `_` and `V` is the greatest lower bound of the context type
         schemas of all value subpatterns. *The rest element, if present, doesn't
         contribute to the context type schema.*
 
@@ -1923,10 +1976,10 @@ To type check a pattern `p` being matched against a value of type `M`:
             those, and `C` is `K`.
 
         3.  Else if `M` is `dynamic` then `K` and `V` are `dynamic` and `C` is
-            `?`.
+            `_`.
 
-        4.  Else `K` and `V` are `Object?` and `C` is `?`.
-        
+        4.  Else `K` and `V` are `Object?` and `C` is `_`.
+
     2.  Type-check each key expression using `C` as the context type.
 
     3.  Type-check each value subpattern using `V` as the matched value type.
@@ -2071,7 +2124,7 @@ pattern is:
 
 *   **Logical-and**, **cast**, **null-check**, **null-assert**,
     **parenthesized**, **list**, **map**, **record**, or **object**: The union
-    of the pattern variable sets of all of the subpatterns.
+    of the pattern variable sets of all of the immediate subpatterns.
 
     The union of a series of pattern variable sets is the union of their
     corresponding sets of variable names. Each variable in the resulting set is
@@ -3192,6 +3245,12 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.20
+
+-   Clarify which variables are valid in pattern assignments.
+
+-   Clarify when primitive `==` for map pattern keys comes into play (#2690).
 
 ### 2.19
 

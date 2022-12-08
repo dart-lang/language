@@ -528,7 +528,7 @@ To calculate `C = A - B`:
     Subtracting a union is equivalent to removing all of the values from all of
     its arms.
 
-*   Otherwise, `A` and `B` must both be object unions, handled in the next
+*   Otherwise, `A` and `B` must both be object spaces, handled in the next
     section.
 
 ## Object subtraction
@@ -756,7 +756,7 @@ spaces `L - R`:
     process over. (That will then distribute the `- R` into all of the resulting
     arms, process each subtype independently, and union the result.)
 
-2.  Else, if `R`'s type is not a supertype of `L`'s type (even after expanding)
+2.  Else, if `R`'s type is not a subtype of `L`'s type (even after expanding)
     then it can't meaningfully subtract anything. The result is just `L`. This
     comes into play when when matching on unsealed subtypes:
 
