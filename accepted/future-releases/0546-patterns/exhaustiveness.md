@@ -385,7 +385,7 @@ into spaces:
 *   **Variable pattern:** An object space whose type is the variable's type
     (which might be inferred).
 
-*   **Literal or constant matcher:** These are handled specially depending on
+*   **Literal or constant pattern:** These are handled specially depending on
     the constant's type:
 
     *   We treat `bool` like a sealed supertype with subtypes `true` and
@@ -426,10 +426,15 @@ into spaces:
         the same string constant. Also the switch has a non-exhaustive error
         since it doesn't match the entire `String` type.
 
-*   **Null-check matcher:** An object space whose type is the underlying
-    non-nullable type of the pattern. It contains a single field, `this` that
-    returns the same value it is called on. That field's space is the lifted
-    subpattern of the null-check pattern. For example:
+*   **Object pattern:** An object space whose type is the object pattern's type
+    and whose fields are the lifted fields of the object pattern. Positional
+    fields in the object pattern get implicit names like `field0`, `field1`,
+    etc.
+
+*   **Null-check pattern:** An object space whose type is the non-nullable
+    underlying type of the pattern's matched value type. It contains a single
+    field, `this` that returns the same value it is called on. That field's
+    space is the lifted subpattern of the null-check pattern. For example:
 
     ```dart
     Card? card;
@@ -444,16 +449,15 @@ into spaces:
     Card(this: Jack(oneEyed: true))
     ```
 
-*   **Object pattern:** An object space whose type is the object pattern's type
-    and whose fields are the lifted fields of the object pattern. Positional
-    fields in the object pattern get implicit names like `field0`, `field1`,
-    etc.
+*   **Null-assert pattern:** The union of the lifted space of `null` and the
+    lifted space of the subpattern.
 
-*   **Null-assert or cast binder:** An object space of type `top`.
+*   **Cast pattern:** The space `(matched - cast) | subpattern` where `matched`
+    is the lifted space of the matched value type for this pattern, `cast` is
+    the lifted space for the type being cast to, and `subpattern` is the lifted
+    space for the subpattern.
 
-
-**TODO: Once generics are supported, describe how type patterns are lifted to
-spaces here.**
+**TODO: Once generics are supported, describe how type arguments work.**
 
 ## The algorithm
 
