@@ -2371,26 +2371,34 @@ expression are exhaustive or not.
 We don't want to require *all* switches to be exhaustive. The language currently
 does not require switch statements on, say, strings to be exhaustive, and
 requiring that would likely lead to many pointless empty default cases for
-little value. We define an *exhaustive type* to be:
+little value.
+
+Exhaustiveness is defined and works for all Dart types, and switch expressions
+must always be exhaustive. But switch statements and switch elements must only
+be exhaustive when the matched value is an *always-exhaustive* type, defined
+as:
 
 *   `bool`
 *   `Null`
 *   A enum type
 *   A type whose declaration is marked `sealed`
-*   `T?` where `T` is exhaustive
-*   `FutureOr<T>` for some type `T` that is exhaustive
-*   A record type whose fields are all exhaustive types
+*   `T?` where `T` is always-exhaustive
+*   `FutureOr<T>` for some type `T` that is always-exhaustive
+*   A record type whose fields are all always-exhaustive types
 
-All other types are not exhaustive. Then:
-
-*   It is a compile-time error if the cases in a switch expression are not
-    exhaustive. *Since an expression must yield a value, the only other option
-    is to throw an error and most Dart users prefer to catch those kinds of
-    mistakes at compile time.*
+All other types are not always-exhaustive. Then:
 
 *   It is a compile-time error if the cases in a switch statement or switch
     collection element are not exhaustive and the static type of the matched
-    value is an exhaustive type.
+    value is an always-exhaustive type. *There is no error if a switch statement
+    or switch element is not exhaustive when the type is not an
+    always-exhaustive type.*
+
+*   It is a compile-time error if the cases in a switch expression are not
+    exhaustive. *This is an error even if the matched value type is not an
+    always-exhaustive type. Since an expression must yield a value, the only
+    other option is to throw an error and most Dart users prefer to catch those
+    kinds of mistakes at compile time.*
 
 [exhaustiveness]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
 
