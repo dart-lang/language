@@ -2750,32 +2750,42 @@ To match a pattern `p` against a value `v`:
 
         2.  Otherwise, evaluate `v[k]` to `r`.
 
-        3.  If `V` is non-nullable and `r` is `null` then the map does not
-            match.
+        3.  If `r != null || (null is V) && v.containsKey(k)` evaluates to
+            `false` then the map does not match.
 
-            *The `[]` operator on `Map` is always nullable. If we don't
-            explicitly check for `null` here, then a bad `Map` implementation
-            that returns `true` from `containsKey()` and then `null` from `v[k]`
-            for the same key would lead to a soundness hole when `V` is a
-            non-nullable type.*
+            *Note:*
+
+            *   *When `v[k]` returns a non-null value, we know the key is
+                present and we short-circuit the `containsKey()` call.*
+
+            *   *If `V` is known to be a non-nullable type, then `null is V` is
+                always `false` and the expression simplifies to:*
+
+                ```dart
+                r != null
+                ```
+
+            *   *Conversely, if `V` is known to be a nullable type, then `null
+                is V` is always `true` and the expression simplifies to:*
+
+                ```dart
+                r != null || v.containsKey(k)
+                ```
+
+            *   *When `V` is a potentially nullable type, the `null is V` test
+                must be performed but can be hoisted out and shared across all
+                entries since it doesn't depend on `k`.*
+
+            *   *If `v` is a poorly-behaved `Map` whose `v[k]` and
+                `containsKey(k)` results don't agree (i.e. a non-`null` `v[k]`
+                and `false` `containsKey(k)` or vice versa) we do not detect
+                that mismatch. Since badly behaved maps are rare, this is
+                allowed. Even if `v` is poorly-behaved, a `null` value won't be
+                passed to the subpattern unless `V` is a nullable or potentially
+                nullable type, so soundness is preserved.*
 
         4.  Else, match `r` against this entry's value subpattern. If it does
             not match, the map does not match.
-
-        A compiler is free to call `v[k]` and `containsKey()` in either order,
-        or to elide calling one or both if it determines that doing so will
-        produce the same result. It may assume that the map adheres to the
-        following protocol:
-
-        *   When `containsKey(k)` returns `false` for some key, then `v[k]` will
-            return `null`.
-
-        *   When `containsKey(k)` returns `true` for some key, then `v[k]`
-            returns an instance of the map's value type.
-
-        *In particular, if the map's value type is non-nullable, then when
-        `v[k]` returns `null`, the compiler can assume that the key is absent
-        and `containsKey(k)` would return `false` too.*
 
     5.  The match succeeds if all entry subpatterns match.
 
