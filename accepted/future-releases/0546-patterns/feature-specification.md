@@ -2746,26 +2746,31 @@ To match a pattern `p` against a value `v`:
         *This type test may get elided. See "Pointless type tests and legacy
         types" below.*
 
-    2.  Let `l` be the length of the list determined by calling `length` on `v`.
+    2.  Let `l` be the length of the list determined by calling `length` on `v`
+        or `0` if `length` returns a negative number. *We treat misbehaving
+        `List` implementations that yield negative lengths as equivalent to
+        empty lists. That way, a set of list patterns that covers all
+        non-negative lengths is soundly exhaustive even when the list
+        misbehaves.*
 
     3.  Let `h` be the number of non-rest elements preceding the rest element if
         there is one, or the number of elements if there is no rest element.
 
     4.  Let `t` be the number of non-rest elements following the rest element if
-        there is one, or zero otherwise.
+        there is one, or `0` otherwise.
 
-    3.  If `p` has no rest element and `l` is not equal to `h` then the match
+    5.  If `p` has no rest element and `l` is not equal to `h` then the match
         fails. If `p` has a rest element and `l` is less than `h + t` then the
         match fails. *These match failures become runtime exceptions if the list
         pattern is in an irrefutable context.*
 
-    4.  Match the head elements. For `i` from `0` to `h - 1`, inclusive:
+    6.  Match the head elements. For `i` from `0` to `h - 1`, inclusive:
 
         1.  Extract the element value `e` by calling `[]` on `v` with index `i`.
 
         2.  Match the `i`th element subpattern against `e`.
 
-    5.  If there is a matching rest element:
+    7.  If there is a matching rest element:
 
         1.  Let `r` be the result of calling `sublist()` on `v` with arguments
             `h`, and `l - t`.
@@ -2775,7 +2780,7 @@ To match a pattern `p` against a value `v`:
         *If there is a non-matching rest element, the unneeded list elements are
         completely skipped and we don't even call `sublist()` to access them.*
 
-    6.  Match the tail elements. If `t` is greater than zero, then for `i` from
+    8.  Match the tail elements. If `t` is greater than zero, then for `i` from
         `0` to `t - 1`, inclusive:
 
         1.  Extract the element value `e` by calling `[]` on `v` with index
@@ -2784,7 +2789,7 @@ To match a pattern `p` against a value `v`:
         2.  Match the subpattern `i` elements after the rest element against
             `e`.
 
-    7.  The match succeeds if all subpatterns match.
+    9.  The match succeeds if all subpatterns match.
 
 *   **Map**:
 
@@ -3124,7 +3129,7 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
                 *Here, `c` and `d` may have different values and `d` should not
                 use the previously cached value of `c` even though they are both
                 the third element of the same list. So we use an invocation key
-                of "[]" for `c` and "tail[]" for `d`.*
+                of "tail[]" for `c` and "[]" for `d`.*
 
             2.  Bind `e` to the `[]` invocation for `s`.
 
@@ -3253,6 +3258,10 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.21
+
+-   Handle negative length lists (#2701).
 
 ### 2.20
 
