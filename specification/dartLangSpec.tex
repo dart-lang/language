@@ -14,7 +14,7 @@
 \makeindex
 \title{Dart Programming Language Specification\\
 {6th edition draft}\\
-{\large Version 2.15-dev}}
+{\large Version 2.13-dev}}
 \author{}
 
 % For information about Location Markers (and in particular the
@@ -25,6 +25,19 @@
 % =======
 %
 % Significant changes to the specification.
+%
+% Note that the version numbers used below (up to 2.15) were associated with
+% the currently released language and tools at the time of the spec change,
+% they were not aligned with the actual version of the language which is being
+% specified in that version of this document. This is highly misleading, so we
+% changed the subtitles to be a month rather than a version number. Similarly,
+% the 'Version' specified on the front page has been changed to indicate the
+% version of the language which will actually be specified by the next stable
+% release of this document.
+%
+% Dec 2022
+% - Change the definition of the type function 'flatten' to resolve soundness
+%   issue, cf. SDK issue #49396.
 %
 % 2.15
 % - Allow generic instantiation of expressions with a generic function type
