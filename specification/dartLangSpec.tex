@@ -11268,11 +11268,11 @@ We define the auxiliary function
 which is used below and in other sections, as follows:
 
 \begin{itemize}
-\item{} If $T$ is \code{$S$?}\ for some $S$
-  then \DefEquals{\flatten{T}}{\code{\flatten{S}?}}.
+\item{} If $T$ is \code{$S$?}\ bounded
+  (\ref{bindingActualsToFormals})
+  for some $S$ then \DefEquals{\flatten{T}}{\code{\flatten{S}?}}.
 
 \item{} If $T$ is \code{FutureOr<$S$>} bounded
-  (\ref{bindingActualsToFormals})
   then \DefEquals{\flatten{T}}{S}.
 
 \item{} If $T$ implements \code{Future<$S$>}
