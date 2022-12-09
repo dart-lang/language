@@ -4,8 +4,17 @@ Author: eernst@google.com
 
 Status: Draft
 
+**This proposal is now obsolete. The mechanism has been renamed to _inline
+classes_. Please see the [inline class PR][2] for the most recent proposed
+specification.**
+
+[2]: https://github.com/dart-lang/language/pull/2626
+
 
 ## Change Log
+
+2022.12.09
+  - Added notification about renaming to inline classes.
 
 2022.09.22
   - Removed support for `export`, changed `view` to `view class`.
