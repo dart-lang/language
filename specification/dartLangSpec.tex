@@ -11276,34 +11276,55 @@ where inferred types have already been added.%
 }
 
 \LMHash{}%
+We define the
+\IndexCustom{future type of a type}{type!future type of}
+$T$ as follows:
+
+\begin{itemize}
+\item If $T$ implements \code{Future<$S$>}
+  (\ref{interfaceSuperinterfaces})
+  then the future type of $T$ is \code{Future<$S$>}.
+\item Otherwise, if $T$ is \code{FutureOr<$S$>} bounded
+  (\ref{bindingActualsToFormals})
+  then the future type of $T$ is \code{FutureOr<$S$>}.
+\item Otherwise, if $T$ is \code{Future<$S$>?} bounded
+  or \code{FutureOr<$S$>?} bounded
+  then the future type of $T$ is \code{Future<$S$>?}
+  respectively \code{FutureOr<$S$>?}.
+\item Otherwise, $T$ has no future type.
+\end{itemize}
+
+\LMHash{}%
 We define the auxiliary function
 \IndexCustom{\flatten{T}}{flatten(t)@\emph{flatten}$(T)$},
 which is used below and in other sections, as follows:
 
 \begin{itemize}
-\item{} If $T$ is \code{$S$?}\ bounded
-  (\ref{bindingActualsToFormals})
-  for some $S$ then \DefEquals{\flatten{T}}{\code{\flatten{S}?}}.
+\item If $T$ is \code{$S$?}\ for some $S$
+  then \DefEquals{\flatten{T}}{\code{\flatten{S}?}}.
 
-\item{} If $T$ is \code{FutureOr<$S$>} bounded
+\item Otherwise, if $T$ is \code{$X$\,\,\&\,\,$S$}
+  for some type variable $X$ and type $S$ then
+  \begin{itemize}
+  \item if $S$ has future type $U$
+    then \DefEquals{\flatten{T}}{\code{\flatten{U}}}.
+  \item otherwise,
+    \DefEquals{\flatten{T}}{\code{\flatten{X}}}.
+  \end{itemize}
+
+\item Otherwise, if $T$ has future type \code{Future<$S$>}
+  or \code{FutureOr<$S$>}
   then \DefEquals{\flatten{T}}{S}.
 
-\item{} If $T$ implements \code{Future<$S$>}
-  (\ref{interfaceSuperinterfaces})
-  then \DefEquals{\flatten{T}}{S}.
+\item Otherwise, if $T$ has future type \code{Future<$S$>?}\ or
+  \code{FutureOr<$S$>?}\ then \DefEquals{\flatten{T}}{\code{$S$?}}.
 
-\item{} Otherwise, \DefEquals{\flatten{T}}{T}.
+\item Otherwise, \DefEquals{\flatten{T}}{T}.
 \end{itemize}
 
 \commentary{%
 This definition guarantees that for any type $T$,
-\code{$T <:$ FutureOr<$\flatten{T}$>}.
-Note that when $X$ is a type variable with bound $B$,
-it is possible that \flatten{X} is different from $X$:
-$B$ could, for some $S$, be \code{FutureOr<$S$>},
-or a type variable $Y$ with bound \code{FutureOr<$S$>},
-or a class $C$ that implements \code{Future<$S$>},
-or a type variable $X$ with bound $C$.%
+\code{$T <:$ FutureOr<$\flatten{T}$>}.%
 }
 
 \LMHash{}%
