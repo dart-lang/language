@@ -752,10 +752,10 @@ display(Object obj) {
 
 It is a compile-time error if:
 
-*   `objectName` does not refer to a type.
+*   `typeName` does not refer to a type.
 
 *   A type argument list is present and does not match the arity of the type of
-    `objectName`.
+    `typeName`.
 
 *   A `patternField` is of the form `pattern`. Positional fields aren't allowed.
 
