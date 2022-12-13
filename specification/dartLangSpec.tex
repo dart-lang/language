@@ -11293,12 +11293,17 @@ $T$ in the following cases, using the first applicable case:
 \LMHash{}%
 When none of these cases are applicable,
 we say that $T$ does not have a future type.
-\commentary{Note that if $T$ has a future type $F$ then \SubtypeNE{T}{F}.}
+
+\commentary{%
+Note that if $T$ has a future type $F$ then \SubtypeNE{T}{F},
+and $F$ is always of the form \code{$G$<...>} or \code{$G$<...>?},
+where $G$ is \code{Future} or \code{FutureOr}.%
+}
 
 \LMHash{}%
 We define the auxiliary function
-\IndexCustom{\flatten{T}}{flatten(t)@\emph{flatten}$(T)$},
-as follows, again using the first applicable case:
+\IndexCustom{\flatten{T}}{flatten(t)@\emph{flatten}$(T)$}
+as follows, using the first applicable case:
 
 \begin{itemize}
 \item If $T$ is \code{$S$?}\ for some $S$
