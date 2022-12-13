@@ -16043,8 +16043,8 @@ $a$ throws $x$ and $t$
 If $f$ completes with an object $v$, $a$ evaluates to $v$.
 
 \rationale{%
-This use of \flattenName{} implies that we await a future
-in every case where this choice is sound.%
+The use of \flattenName{} to find $T$ and hence determine the dynamic type test
+implies that we await a future in every case where this choice is sound.%
 }
 
 \commentary{%
@@ -16067,7 +16067,8 @@ and also because it allows for a simple rule:
 The type of \code{\AWAIT\,\,$e$} is used to decide whether or not
 the future (if any) is awaited, and there are no exceptions---even
 in cases like this example, where the type seems to imply that
-a \code{Future<Object?>} should not be awaited.%
+a \code{Future<Object?>} should not be awaited.
+In summary, we await every future that we can soundly await.%
 }
 
 \commentary{%
