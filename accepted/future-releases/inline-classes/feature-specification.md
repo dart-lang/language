@@ -434,11 +434,11 @@ T<sub>s</sub></code> are implicit in the actual syntax.*
 We need to introduce a concept that is similar to existing concepts
 for regular classes.
 
-We say that an inline class `V` _has_ a member named `n` in the case
-where `V` declares a member named `n`, and in the case where `V` has
-no such declaration, but `V` has a superinterface `Vs` that has a
-member named `n`. In both cases,
-_the member declaration named `n` that `V` has_ is said declaration.
+We say that an inline class declaration _DV_ _has_ a member named `n`
+in the case where _DV_ declares a member named `n`, and in the case
+where _DV_ has no such declaration, but _DV_ has a direct
+superinterface `V` that has a member named `n`. In both cases,
+_the member declaration named `n` that DV has_ is said declaration.
 
 *This definition is unambiguous for an inline class that has no
 compile-time errors, because name clashes must be resolved by `V`.*
@@ -719,11 +719,11 @@ inline class. *For non-generic inline classes, the representation type
 is the same in either case.*
 
 Let `V` be an inline type of the form
-<code>Inline&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
-and let `R` be the corresponding instantiated representation type.
-`V` is a proper subtype of `Object?`, and potentially non-nullable. If
-`R` is non-nullable then `V` is a proper subtype of `Object` as well,
-and non-nullable.
+<code>Inline&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>, and let
+`R` be the corresponding instantiated representation type.  If `R` is
+non-nullable then `V` is a proper subtype of `Object`, and `V` is
+non-nullable.  Otherwise, `V` is a proper subtype of `Object?`, and
+`V` is potentially nullable.
 
 *That is, an expression of an inline type can be assigned to a top
 type (like all other expressions), and if the representation type is
@@ -749,7 +749,7 @@ type.
 
 Let _DV_ be an inline class declaration named `V` with representation
 type `R`. Assuming that all types have been fully alias expanded, we
-say that _DV_ has a representation dependcy on an inline class
+say that _DV_ has a representation dependency on an inline class
 declaration _DV2_ if `R` contains an identifier `id` (possibly
 qualified) that resolves to _DV2_, or `id` resolves to an inline class
 declaration _DV3_ and _DV3_ has a representation dependency on _DV2_.
