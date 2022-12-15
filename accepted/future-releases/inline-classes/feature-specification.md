@@ -761,18 +761,24 @@ representation dependency on itself.
 always possible to find a non-inline type which is the ultimate
 representation type of any given inline type.*
 
+The *inline erasure* of an inline type `V` is obtained by recursively
+replacing every subterm of `V` which is an inline type by the
+corresponding representation type.
+
+*Note that this inline erasure exists, because it is a compile-time
+error to have a dependency cycle among inline types.*
+
 Let
 <code>X<sub>1</sub> extends B<sub>1</sub>, .. X<sub>s</sub> extends B<sub>s</sub></code>
 be a declaration of the type parameters of a generic entity (*it could
 be a generic class, inline or not, or mixin, or typedef, or function*).
-Let <code>BB<sub>j</sub></code> be the result of recursively
-replacing every inline type that occurs in <code>B<sub>j</sub></code>,
-for _j_ in _1 .. s_.
+Let <code>BB<sub>j</sub></code> be the inline erasure of
+<code>B<sub>j</sub></code>, for _j_ in _1 .. s_.
 It is a compile-time error if 
 <code>X<sub>1</sub> extends BB<sub>1</sub>, .. X<sub>s</sub> extends BB<sub>s</sub></code>
 has any compile-time errors.
 
-*For example, this erasure step could map
+*For example, the inline erasure could map
 <code>X extends C<Y>, Y extends X</code> to
 <code>X extends Y, Y extends X</code>,
 which is an error.*
