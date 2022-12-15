@@ -1,10 +1,12 @@
-# "Base", "interface", and "final" types
+# Type modifiers
 
 Author: Bob Nystrom
 
 Status: Accepted
 
 Version 1.0
+
+Experiment flag: type-modifiers
 
 This proposal specifies three modifiers that can be placed on classes and mixins
 to allow an author to control whether the type allows being implemented,
@@ -18,15 +20,15 @@ extended, both, or neither. The proposed modifiers are:
 
 This proposal is a blend of three earlier proposals:
 
-* [Type modifiers][]
+* An earlier proposal also called "[type modifiers][]"
 * ["Closed" and "base"][]
 * [Access modifiers using closed, sealed, open and interface][leaf proposal]
 
-The [type modifiers][] document has some motivation and discussion around
+The older [type modifiers][] document has some motivation and discussion around
 defaults and keyword choice which may be a useful reference. Unlike that
-proposal, this proposal is non-breaking.
+proposal, this proposal is mostly non-breaking.
 
-[type modifiers]: https://github.com/dart-lang/language/blob/master/working/type-modifiers/feature-specification.md
+[type modifiers]: https://github.com/dart-lang/language/blob/master/inactive/type-modifiers/feature-specification.md
 ["closed" and "base"]: https://github.com/dart-lang/language/issues/2595
 https://github.com/dart-lang/language/issues/2595
 [leaf proposal]: https://github.com/dart-lang/language/issues/2595
