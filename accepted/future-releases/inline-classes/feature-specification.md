@@ -606,6 +606,13 @@ _is the inline type_
 <code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and that its static type _is an inline type_.
 
+It is a compile-time error if `await e` occurs, and the static type of
+`e` is an inline type.
+
+*We may loosen this restriction in the future, especially if we
+introduce a way for an inline type to be a subtype of a type of the
+form `Future<T>` or `FutureOr<T>`.*
+
 A compile-time error occurs if an inline type declares a member whose
 name is declared by `Object` as well.
 
