@@ -761,6 +761,22 @@ representation dependency on itself.
 always possible to find a non-inline type which is the ultimate
 representation type of any given inline type.*
 
+Let
+<code>X<sub>1</sub> extends B<sub>1</sub>, .. X<sub>s</sub> extends B<sub>s</sub></code>
+be a declaration of the type parameters of a generic entity (*it could
+be a generic class, inline or not, or mixin, or typedef, or function*).
+Let <code>BB<sub>j</sub></code> be the result of recursively
+replacing every inline type that occurs in <code>B<sub>j</sub></code>,
+for _j_ in _1 .. s_.
+It is a compile-time error if 
+<code>X<sub>1</sub> extends BB<sub>1</sub>, .. X<sub>s</sub> extends BB<sub>s</sub></code>
+has any compile-time errors.
+
+*For example, this erasure step could map
+<code>X extends C<Y>, Y extends X</code> to
+<code>X extends Y, Y extends X</code>,
+which is an error.*
+
 An inline class declaration _DV_ named `Inline` may declare one or
 more constructors. A constructor which is declared in an inline class
 declaration is also known as an _inline class constructor_.
