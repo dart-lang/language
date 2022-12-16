@@ -17,7 +17,7 @@ documents.
 
 [pattern matching]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md
 
-[type modifiers]: https://github.com/dart-lang/language/blob/master/working/type-modifiers/feature-specification.md
+[type modifiers]: https://github.com/dart-lang/language/blob/master/inactive/type-modifiers/feature-specification.md
 
 ## Introduction
 

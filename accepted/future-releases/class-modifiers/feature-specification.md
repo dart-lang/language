@@ -1,46 +1,48 @@
-# Type modifiers
+# Class modifiers
 
 Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.0
+Version 1.1
 
-Experiment flag: type-modifiers
+Experiment flag: class-modifiers
 
 This proposal specifies four modifiers that can be placed on classes and mixins
 to allow an author to control whether the type allows being implemented,
 extended, and/or mixed in from outside of the library where it's defined.
 
-Informally, the modifiers are:
+Informally, the new syntax is:
 
 *   No modifier: Mostly as today where the class or mixin has no restrictions,
     except that we no longer allow a class to be used as a mixin by default.
 
-*   `base`: On a class, the class can be extended but not implemented. On a
-    mixin, the mixin can be mixed in but not implemented. In other words, it
-    takes away implementation.
+*   `base`: As a modifier on a class, allows the class to be extended but not
+    implemented. As a modifier on a mixin, allows it to be mixed in but not
+    implemented. In other words, it takes away implementation.
 
-*   `interface`: The class or mixin can be used as an interface but not extended
-    or mixed in. In other words, it takes away being used as a subclass through
-    extension or mixing in.
+*   `interface`: As a modifier on a class or mixin, allows the type to be
+    implemented but not extended or mixed in. In other words, it takes away
+    being used as a subclass through extension or mixing in.
 
-*   `final`: The class or mixin can't be used as a superclass, mixin, or an
-    interface.
+*   `final`: As a modifier on a class or mixin, prohibits extending,
+    implementing, or mixing in.
 
-*   `mixin`: As a modifier on a class, allows the class to be used as a mixin.
+*   `mixin class`: A declaration that defines both a class and a mixin.
 
-This proposal is a blend of two earlier proposals and some other discussion:
+This proposal is a blend of a few earlier proposals:
 
-* An earlier proposal also called "[type modifiers][]"
+* [Class capabilities][]
+* [Type modifiers][]
 * [Access modifiers using closed, sealed, open and interface][leaf proposal]
 
-The older [type modifiers][] document has some motivation and discussion around
-defaults and keyword choice which may be a useful reference. Unlike that
-proposal, this proposal is mostly non-breaking.
-
+[class capabilities]: https://github.com/dart-lang/language/blob/master/resources/class-capabilities/class-capabilities.md
 [type modifiers]: https://github.com/dart-lang/language/blob/master/inactive/type-modifiers/feature-specification.md
 [leaf proposal]: https://github.com/dart-lang/language/issues/2595
+
+The [type modifiers][] document has some motivation and discussion around
+defaults and keyword choice which may be a useful reference. Unlike that
+proposal, this proposal is mostly non-breaking.
 
 ## Motivation
 
@@ -431,8 +433,8 @@ without *intending* it to be used as a mixin and then accidentally forbid that
 usage by adding a generative constructor or superclass to the class. That is a
 breaking change to any downstream user that had that class in a `with` clause.
 
-Using a class as a mixin rarely useful, but it is sometimes, so we don't want to
-prohibit it entirely. We just want to flip the default since allowing all
+Using a class as a mixin is rarely useful, but it is sometimes, so we don't want
+to prohibit it entirely. We just want to flip the default since allowing all
 classes to be used as mixins makes them more brittle with relatively little
 upside. Under this proposal we require authors to explicitly opt in to allowing
 the class to be used as a mixin by adding a `mixin` modifier to the class:
@@ -628,3 +630,8 @@ needed.
 1.1
 
 - Clarify that all modifiers are gated behind a language version.
+
+- Rationalize which modifiers can be combined with `mixin class` and specify
+  behavior of `mixin class`.
+
+- Rename to "Class modifiers" with the corresponding experiment flag name.
