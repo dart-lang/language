@@ -1684,7 +1684,7 @@ To orchestrate this, type inference on patterns proceeds in three phases:
 
     ```dart
     T id<T>(T t) => t;
-    (T Function<T>(T), dynamic) record = (t, 'str');
+    (T Function<T>(T), dynamic) record = (id, 'str');
     var (int Function(int) f, String s) = record;
     ```
 
