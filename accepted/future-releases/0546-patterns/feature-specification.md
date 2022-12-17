@@ -701,7 +701,7 @@ var (:x, x: y) = (x: 1);
 ```
 
 *Destructuring the same field multiple times is never necessary because you can
-always just destructure it once with an `||` subpattern. If a user does it, it's
+always just destructure it once with an `&&` subpattern. If a user does it, it's
 mostly like a copy/paste mistake and it's more helpful to draw their attention
 to the error than silently accept it.*
 
