@@ -540,26 +540,21 @@ It is a compile-time error to:
     _own_ interface that could then be implemented without inheriting the
     concrete implementation from the supertype.*
 
-*   Mix in a mixin marked `base` or `final` outside of the library where it is
-    declared unless the class mixing it in is marked `base` or `final`. *As with
-    the previous rule, ensures you can't get a backdoor interface on a mixin
-    that doesn't want to expose one.*
-
-*   Mix in a mixin class marked `base` outside of the library where it is
-    declared unless the class mixing it in is marked `base` or `final`. *As with
-    the previous rule, ensures you can't get a backdoor interface on a mixin
-    that doesn't want to expose one.*
+*   Mix in a mixin or mixin class marked `base` outside of the library where it
+    is declared unless the class mixing it in is marked `base` or `final`. *As
+    with the previous rule, ensures you can't get a backdoor interface on a
+    mixin that doesn't want to expose one.*
 
 *   Mix in a class not marked `mixin` outside of the library where it is
     declared, unless the class declaration being used as a mixin is in a library
     whose language version is older than the version this feature ships in.
 
-*   Apply the `mixin` modifier to a class whose superclass is not `Object` or
-    that declares a generative constructor. *The `mixin` modifier states that
-    you intend the class to be mixed in, which is inconsistent with defining a
-    class that can't be used as a mixin. Note that this means that the `mixin`
-    modifier becomes a helpful reminder to ensure that you don't inadvertently
-    break your class's ability to be used as a mixin.*
+*   Apply `mixin` to a class whose superclass is not `Object` or that declares a
+    generative constructor. *A `mixin class` states that you intend the class to
+    be mixed in, which is inconsistent with defining a class that can't be used
+    as a mixin. Note that this means that `mixin` on a class becomes a helpful
+    reminder to ensure that you don't inadvertently break your class's ability
+    to be used as a mixin.*
 
 *   Mix in a class whose superclass is not `Object` or that declares a
     generative constructor. *Because of the previous rule, this rule only comes
