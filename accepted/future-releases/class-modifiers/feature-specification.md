@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.1
+Version 1.2
 
 Experiment flag: class-modifiers
 
@@ -599,18 +599,40 @@ non-breaking.
 
 Let `n` be the language version this proposal ships in. Then:
 
+*   `base`, `interface`, `final`, and `mixin` can only be applied to classes and
+    mixins in libraries whose language version is `>= n`.
+
+*   When the `base`, `interface`, `final`, `mixin`, or `sealed` modifiers are
+    placed on a class or mixin, the resulting restrictions apply to all other
+    libraries, even libraries whose version is `< n`.
+
+    *In other words, we gate being able to _author_ the restrictions to
+    libraries on version `n`. But once a type has those restrictions, they apply
+    to all other libraries, regardless of the versions of those libraries.
+    "Ignorance of the law is no defense."*
+
+    **TODO:** Decide if we want to carve out an exception to this rule for the
+    SDK core libraries.
+
 *   A class declaration in a library whose language version is `< n` can be used
-    as a mixin as long as the class meets the mixin restrictions. *This is is
+    as a mixin as long as the class meets the mixin restrictions. This is is
     true even if the library where the class is being used as a mixin is `>=
-    n`.*
+    n`.
+
+    *For libraries whose version is `< n`, we can't tell if the intent of
+    `class` was "just a class" or "both a class and a mixin". For compatibility,
+    we assume the latter, even if the class is being used as a mixin in a
+    library whose version is `>= n` and where it does happen to be possible to
+    distinguish those two intents.*
 
 *   A class declaration in a library whose version is `>= n` must be explicitly
-    marked `mixin class` to allow the class to be used in a `with` clause. *This
-    is true even if the library where the class is being used as a mixin is `<
-    n`.*
+    marked `mixin class` to allow the class to be used as a mixin. This is true
+    even if the library where the class is being used as a mixin is `< n`.
 
-*   The `base`, `interface`, and `final` modifiers on classes and mixins can
-    only be used in libraries whose language version is `>= n`.
+    *When a class is in a library where it possible to distinguish between
+    whether the class is intended to use it as a mixin or not, the author is
+    obliged to, and that intent applies to all other libraries regardless of
+    their version.*
 
 ### Compatibility
 
@@ -621,6 +643,10 @@ other than `Object`, then it already can't be used as a mixin and no change is
 needed.
 
 ## Changelog
+
+1.2
+
+- Specify how all modifiers interact with language versioning (#2725).
 
 1.1
 
