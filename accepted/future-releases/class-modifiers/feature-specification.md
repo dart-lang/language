@@ -611,6 +611,9 @@ Let `n` be the language version this proposal ships in. Then:
     to all other libraries, regardless of the versions of those libraries.
     "Ignorance of the law is no defense."*
 
+    **TODO:** Decide if we want to carve out an exception to this rule for the
+    SDK core libraries.
+
 *   A class declaration in a library whose language version is `< n` can be used
     as a mixin as long as the class meets the mixin restrictions. This is is
     true even if the library where the class is being used as a mixin is `>=
