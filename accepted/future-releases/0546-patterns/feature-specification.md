@@ -2837,13 +2837,13 @@ To match a pattern `p` against a value `v`:
                 must be performed but can be hoisted out and shared across all
                 entries since it doesn't depend on `k`.*
 
-            *   *If `v` is a poorly-behaved `Map` whose `v[k]` and
+            *   *If `v` is a poorly behaved `Map` whose `v[k]` and
                 `containsKey(k)` results don't agree (i.e. a non-`null` `v[k]`
                 and `false` `containsKey(k)` or vice versa) we do not detect
                 that mismatch. Since badly behaved maps are rare, this is
-                allowed. Even if `v` is poorly-behaved, a `null` value won't be
-                passed to the subpattern unless `V` is a nullable or potentially
-                nullable type, so soundness is preserved.*
+                allowed. Even if `v` is poorly behaved, a `null` value will only
+                be passed to the subpattern if `null is V`, so soundness is
+                preserved.*
 
         4.  Else, match `r` against this entry's value subpattern. If it does
             not match, the map does not match.
