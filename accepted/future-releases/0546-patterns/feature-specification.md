@@ -2806,10 +2806,9 @@ To match a pattern `p` against a value `v`:
 
     4.  Otherwise, for each (non-rest) entry in `p`, in source order:
 
-        1.  Evaluate the key `expression` to `k` and call `containsKey(k)` on
-            the value. If this returns `false`, the map does not match.
+        1.  Evaluate the key `expression` to `k`.
 
-        2.  Otherwise, evaluate `v[k]` to `r`.
+        2.  Evaluate `v[k]` to `r`.
 
         3.  If `r != null || (null is V) && v.containsKey(k)` evaluates to
             `false` then the map does not match.
