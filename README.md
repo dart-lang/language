@@ -3,10 +3,8 @@
 [![Build Status](https://github.com/dart-lang/language/workflows/CI/badge.svg)](https://github.com/dart-lang/language/actions?query=workflow%3ACI+branch%3Amaster)
 
 This repository is a place for the [Dart][website] language team to work on
-language changes and features, and to solicit and accept feedback and requests.
-
-Issues and feature requests relevant to the language and the specification may
-be filed [here](https://github.com/dart-lang/language/issues).
+[language changes and features][language funnel], and to solicit and accept
+[feedback and requests](https://github.com/dart-lang/language/issues).
 
 # Dart language team
 
@@ -27,8 +25,7 @@ As of June 2020, the Dart language team consists of:
 We follow [this process](https://github.com/dart-lang/language/blob/master/doc/life_of_a_language_feature.md)
 for planning and rolling out language changes.
 
-Features currently being worked on are listed in the
-[language funnel](https://github.com/dart-lang/language/projects/1).
+Features currently being worked on are listed in the [language funnel][].
 
 ## Contributing
 
@@ -53,3 +50,4 @@ See [LICENSE][license] and [PATENTS][patents].
 [license]: https://github.com/dart-lang/language/blob/master/LICENSE
 [patents]: https://github.com/dart-lang/language/blob/master/PATENTS
 [specification]: https://dart.dev/guides/language/spec
+[language funnel]: https://github.com/dart-lang/language/projects/1
