@@ -38,6 +38,8 @@
 % Dec 2022
 % - Change the definition of the type function 'flatten' to resolve soundness
 %   issue, cf. SDK issue #49396.
+% - Add alternative `<typeArguments>` to grammar rule about `<selector>`.
+%   This enables expressions like `List<int>` and `myFunction<int>`.
 %
 % 2.15
 % - Allow generic instantiation of expressions with a generic function type
@@ -16117,6 +16119,7 @@ Postfix expressions invoke the postfix operators on objects.
 <selector> ::= `!'
   \alt <assignableSelector>
   \alt <argumentPart>
+  \alt <typeArguments>
 
 <argumentPart> ::=
   <typeArguments>? <arguments>
