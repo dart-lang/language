@@ -3278,17 +3278,19 @@ and all keys in a constant map are distinct.%
   (\ref{dynamicTypeSystem})
   has primitive equality.
 \item
-  Let $o$ be an object obtained by evaluation of a list literal
+  Let $o$ be an object obtained by evaluation of a constant list literal
   (\ref{lists}),
-  a map literal
+  a constant map literal
   (\ref{maps}), or
-  a set literal
+  a constant set literal
   (\ref{sets}),
   then $o$ has primitive equality.
 \item
+  %% TODO(eernst): With Dart 2.15, consider `f<int>`.
   A function object obtained by function closurization of
   a static method or a top-level function
   (\ref{functionClosurization})
+  as the value of a constant expression
   has primitive equality.
 \item
   An instance $o$ has primitive equality
