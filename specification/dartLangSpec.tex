@@ -3242,46 +3242,66 @@ because this is an invocation of a function object
 The operator \lit{==} is used implicitly in certain situations,
 and in particular constant expressions
 (\ref{constants})
-give rise to constraints on that operator,
-as well as on the getter \code{hashCode}.
+give rise to constraints on that operator.
+The situation is similar with the getter \code{hashCode}.
 In order to specify these constraints just once we introduce the notion of
-\Index{primitive equality}:
+\Index{primitive equality}.
+
+\rationale{%
+Certain constant expressions are known to have a value
+whose equality is primitive.
+This is useful to know because it allows
+the value of equality expressions
+and the value of invocations of \code{hashCode}
+to be computed at compile-time.
+In particular, this can be used to build
+constant collections at compile-time,
+and it can be used to check that
+all elements in a constant set are distinct,
+and all keys in a constant map are distinct.%
+}
 
 \begin{itemize}
-\item Every instance of type \code{int} and \code{String}
+\item The null object has primitive equality
+  (\ref{null}).
+\item Every instance of type \code{bool}, \code{int}, and \code{String}
   has primitive equality.
 \item Every instance of type \code{Symbol}
   which was originally obtained by evaluation of a literal symbol or
   a constant invocation of a constructor of the \code{Symbol} class
   has primitive equality.
-\item Every instance of type \code{Type}
+\item
+  %% TODO(eernst): With Dart 2.15, we need to mention `List<int>` here,
+  %% unless 'constant type literal' includes that case.
+  Every instance of type \code{Type}
   which was originally obtained by evaluating a constant type literal
   (\ref{dynamicTypeSystem})
   has primitive equality.
-\item An instance $o$ has primitive equality
-  if the dynamic type of $o$ is a class $C$,
-  and $C$ has primitive equality.
-\item The class \code{Object} has primitive equality.
-\item A class $C$ has primitive equality
-  if it does not have an implementation of the operator \lit{==}
-  that overrides the one inherited from \code{Object},
-  and it does not have an implementation of the getter \code{hashCode}
-  that overrides the one inherited from \code{Object}.
-  \commentary{%
-  In particular, the following have primitive equality:
-  The null object (\ref{null}),
-  function objects obtained by function closurization of
-  a static method or a top-level function
-  (\ref{functionClosurization}),
-  instances of type \code{bool}
-  (\ref{booleans}),
-  and instances obtained by evaluation of a list literal
+\item
+  Let $o$ be an object obtained by evaluation of a list literal
   (\ref{lists}),
   a map literal
   (\ref{maps}), or
   a set literal
-  (\ref{sets}).%
-  }
+  (\ref{sets}),
+  then $o$ has primitive equality.
+\item
+  A function object obtained by function closurization of
+  a static method or a top-level function
+  (\ref{functionClosurization})
+  has primitive equality.
+\item
+  An instance $o$ has primitive equality
+  if the dynamic type of $o$ is a class $C$,
+  and $C$ has primitive equality.
+\item
+  The class \code{Object} has primitive equality.
+\item
+  A class $C$ has primitive equality
+  if it does not have an implementation of the operator \lit{==}
+  that overrides the one inherited from \code{Object},
+  and it does not have an implementation of the getter \code{hashCode}
+  that overrides the one inherited from \code{Object}.
 \end{itemize}
 
 \LMHash{}%
@@ -8688,8 +8708,11 @@ It is a compile-time error for a class to extend, mix in or implement
 \code{Null}.
 The \code{Null} class extends the \code{Object} class
 and declares no methods except those also declared by \code{Object}.
-In particular, the \code{Null} class does not override the \lit{==} operator
-inherited from the \code{Object} class.
+
+\commentary{%
+The null object has primitive equality
+(\ref{theOperatorEqualsEquals}).%
+}
 
 \LMHash{}%
 The static type of \NULL{} is the \code{Null} type.
@@ -8840,9 +8863,10 @@ and there are no other objects that implement \code{bool}.
 It is a compile-time error for a class to
 extend, mix in or implement \code{bool}.
 
-\LMHash{}%
-The \code{bool} class does not override the \lit{==} operator inherited from
-the \code{Object} class.
+\commentary{%
+The \TRUE{} and \FALSE{} objects have primitive equality
+(\ref{theOperatorEqualsEquals}).%
+}
 
 \LMHash{}%
 Invoking the getter \code{runtimeType} on a boolean value returns
@@ -13019,9 +13043,12 @@ corresponding to the signature in the function declaration $f$,
 using the current bindings of type variables, if any.
 There does not exist a function type $F'$ which is a proper subtype of $F$
 such that $C$ is a subtype of $F'$.
-If $f$ denotes a static method or top-level function,
-class $C$ does not override the \lit{==} operator
-inherited from the \code{Object} class.
+
+\commentary{%
+If $f$ is a static method or a top-level function
+then $o$ has primitive equality
+(\ref{theOperatorEqualsEquals}).%
+}
 
 \commentary{%
 In other words, $C$ has the freedom to be a proper subtype of
