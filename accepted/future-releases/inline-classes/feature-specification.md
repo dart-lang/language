@@ -15,6 +15,9 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1462-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2022.12.20
+  - Add rule about type modifiers.
+
 2022.11.11
   - Initial version, which is a copy of the views proposal, renaming 'view'
     to 'inline', and adjusting the text accordingly. Also remove support for
@@ -369,7 +372,7 @@ with some rules for elements used in inline class declarations:
 
 ```ebnf
 <inlineClassDeclaration> ::=
-  'inline' 'class' <typeIdentifier> <typeParameters>? <interfaces>?
+  'final'? 'inline' 'class' <typeIdentifier> <typeParameters>? <interfaces>?
   '{'
     (<metadata> <inlineMemberDeclaration>)*
   '}'
@@ -402,7 +405,7 @@ can be declared and called or torn off as usual, e.g.,
 `Inline.myStaticMethod(42)`.*
 
 
-## Inline method invocations
+## Inline Method Invocations
 
 This document needs to refer to inline method invocations including
 each part that determines the static analysis and semantics of this
@@ -454,7 +457,7 @@ type variables <code>X<sub>1</sub>, ..., X<sub>s</sub></code>.
 <code>V&lt;T<sub>1</sub>, ..., T<sub>s</sub>&gt;</code>
 has no compile-time errors. In particular, the number of actual type
 arguments is correct, and it is a regular-bounded type,
-and the static type of `e` is a subtype of 
+and the static type of `e` is a subtype of
 <code>V&lt;T<sub>1</sub>, ..., T<sub>s</sub>&gt;</code>,
 or a subtype of the corresponding instantiated representation type
 (defined below). This is required when we decide that a given
@@ -515,9 +518,9 @@ Otherwise, if `args` is omitted and _Dm_ is a method, the invocation
 evaluates to a closurization of _Dm_ where
 `this` and the name of the representation are bound to `o`, and the
 type variables of `V` are bound to the actual values of
-<code>T<sub>1</sub>, .. T<sub>s</sub></code>. 
+<code>T<sub>1</sub>, .. T<sub>s</sub></code>.
 The operator `==` of the closurization returns true if and only if the
-operand is the same object. 
+operand is the same object.
 
 *Loosely said, these function objects simply use the equality
 inherited from `Object`, there are no special exceptions. Note that
@@ -739,7 +742,7 @@ types (except bottom types) cannot be assigned to inline types without
 a cast. Similarly, null cannot be assigned to an inline type without a
 cast, even in the case where the representation type is nullable (even
 better: don't use a cast, call a constructor instead). Another consequence of
-the fact that the inline type is potentially non-nullable is that it 
+the fact that the inline type is potentially non-nullable is that it
 is an error to have an instance variable whose type is an inline type,
 and then relying on implicit initialization to null.*
 
@@ -781,7 +784,7 @@ be a declaration of the type parameters of a generic entity (*it could
 be a generic class, inline or not, or mixin, or typedef, or function*).
 Let <code>BB<sub>j</sub></code> be the inline erasure of
 <code>B<sub>j</sub></code>, for _j_ in _1 .. s_.
-It is a compile-time error if 
+It is a compile-time error if
 <code>X<sub>1</sub> extends BB<sub>1</sub>, .. X<sub>s</sub> extends BB<sub>s</sub></code>
 has any compile-time errors.
 
@@ -831,6 +834,15 @@ declaration itself, but it is an error if it does not occur at all).*
 
 An inline type `V` used as an expression (*a type literal*) is allowed
 and has static type `Type`.
+
+An inline class declaration _DV_ can have the type modifier
+`final`. In this case it is a compile-time error for another inline
+class declaration _DV2_ to have a superinterface which is a reference
+to _DV_.
+
+*As the grammar shows, any occurrence of the keywords `abstract`,
+`base`, `interface`, `sealed`, or `mixin` in an inline class
+declaration is a syntax error.*
 
 
 ### Composing Inline Classes
@@ -1011,7 +1023,7 @@ used as an expression.
 ### Summary of Typing Relationships
 
 *Here is an overview of the subtype relationships of an inline type
-`V0` with instantiated representation type `R` and superinterfaces 
+`V0` with instantiated representation type `R` and superinterfaces
 `V1 .. Vk`, as well as other typing relationships involving `V0`:*
 
 - *`V0` is a proper subtype of `Object?`.*
