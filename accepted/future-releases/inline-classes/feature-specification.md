@@ -841,8 +841,8 @@ class declaration _DV2_ to have a superinterface which is a reference
 to _DV_.
 
 *As the grammar shows, any occurrence of the keywords `abstract`,
-`base`, `interface`, or `mixin` in an inline class declaration is a
-syntax error.*
+`base`, `interface`, `sealed`, or `mixin` in an inline class
+declaration is a syntax error.*
 
 
 ### Composing Inline Classes
