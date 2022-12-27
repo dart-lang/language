@@ -1111,20 +1111,20 @@ var pair = (1, 2);
 
 // This prints nothing:
 switch (pair) {
-  case (a, b):
+  case (int a, int b):
     if (a > b) print('First element greater');
     break;
-  case (a, b):
+  case (int a, int b):
     print('Other order');
     break;
 }
 
 // This prints "Other order":
 switch (pair) {
-  case (a, b) when a > b:
+  case (int a, int b) when a > b:
     print('First element greater');
     break;
-  case (a, b):
+  case (int a, int b):
     print('Other order');
     break;
 }
