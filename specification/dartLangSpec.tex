@@ -11344,8 +11344,10 @@ as follows, using the first applicable case:
   \begin{itemize}
   \item if $S$ has future type $U$
     then \DefEquals{\flatten{T}}{\code{\flatten{U}}}.
+  \item otherwise, if $X$ has future type $U$
+    then \DefEquals{\flatten{T}}{\code{\flatten{U}}}.
   \item otherwise,
-    \DefEquals{\flatten{T}}{\code{\flatten{X}}}.
+    \DefEquals{\flatten{T}}{T}.
   \end{itemize}
 
 \item If $T$ has future type \code{Future<$S$>}
