@@ -2757,14 +2757,14 @@ To match a pattern `p` against a value `v`:
         1.  Let `l` be the length of the list determined by calling `length` on
             `v`. *We only call `length` on the list if needed.*
 
-        2.  If `p` has a rest element and `h + t > 0`:
+        2.  If `p` has both a rest element and `h + t > 0`:
 
             1.  If `l < h + t` then the match fails.
 
             *When there are non-rest elements and a rest element, the list must
             be at least long enough to match the non-rest elements.*
 
-        3.  Else if `h + v > 0` *(and `p` has no rest element)*:
+        3.  Else if `h + t > 0` *(and `p` has no rest element)*:
 
             1.  If `l != h + t` then the match fails.
 
@@ -2776,7 +2776,7 @@ To match a pattern `p` against a value `v`:
             1.  If `l > 0` then the match fails.
 
             *An empty list pattern can match only empty lists. Note that this
-            treats misbehaving a list whose `length` is negative as an empty
+            treats a misbehaving list whose `length` is negative as an empty
             list. This is important so that a set of list patterns that is
             clearly exhaustive over well-behaving lists will also cover a
             misbehaving one.*
@@ -2826,15 +2826,41 @@ To match a pattern `p` against a value `v`:
         *This type test may get elided. See "Pointless type tests and legacy
         types" below.*
 
-    2.  Let `l` be the length of the map determined by calling `length` on `v`.
+    2.  Let `n` be the number of non-rest elements.
 
-    3.  If `p` has no rest element and `l` is not equal to the number of
-        subpatterns then the match fails. If `p` has a rest element and `l` is
-        less than the number of non-rest entry subpatterns, then the match
-        fails. *These match failures become runtime exceptions if the map
-        pattern is in an irrefutable context.*
+    3.  Check the length. If `p` is empty or has any non-rest elements:
 
-    4.  Otherwise, for each (non-rest) entry in `p`, in source order:
+        1.  Let `l` be the length of the map determined by calling `length` on
+            `v`. *We only call `length` on the map if needed.*
+
+        2.  If `p` has both a rest element and `n > 0`:
+
+            1.  If `l < n` then the match fails.
+
+            *When there are non-rest elements and a rest element, the map must
+            be at least long enough to match the non-rest elements.*
+
+        3.  Else if `n > 0` *(and `p` has no rest element)*:
+
+            1.  If `l != n` then the match fails.
+
+            *If there are only non-rest elements, then the map must have exactly
+            the same number of elements.*
+
+        4.  Else `p` is empty:
+
+            1.  If `l > 0` then the match fails.
+
+            *An empty map pattern can match only empty maps. Note that this
+            treats a misbehaving map whose `length` is negative as an empty map.
+            This is important so that a set of map patterns that is clearly
+            exhaustive over well-behaving maps will also cover a misbehaving
+            one.*
+
+        *These match failures become runtime exceptions if the map pattern is
+        in an irrefutable context.*
+
+    4.  For each non-rest entry in `p`, in source order:
 
         1.  Evaluate the key `expression` to `k` and call `containsKey(k)` on
             the value. If this returns `false`, the map does not match.
@@ -3286,7 +3312,7 @@ Here is one way it could be broken down into separate pieces:
 
 ### 2.21
 
--   Handle negative length lists (#2701).
+-   Handle negative length lists and maps (#2701).
 
 ### 2.20
 
