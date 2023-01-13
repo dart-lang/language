@@ -43,7 +43,8 @@ The grammar of the `enum` declaration becomes:
   `}'
 
 <enumEntry> ::= <metadata> <identifier> <argumentPart>?
-  | <metadata> <identifier> <typeArguments>? `.' <identifier> <arguments>
+  | <metadata> <identifier> <typeArguments>? `.' (<identifier> | `new')
+    <arguments>
 ```
 
 It is a **compile-time error** if the enum declaration contains any generative constructor which is not `const`.
@@ -458,3 +459,4 @@ There is a chance that people will start using `enum` declarations to declare si
 1.6, 2022-01-27: Disallow overriding `index` or conflicting with `values`.
 1.7, 2022-02-16: Disallow overriding `operator==` and `hashCode` too.
 1.8, 2022-03-08: Make it explicit that an enum constructor cannot use the new super-parameters.
+1.9, 2023-01-13: Adjust the grammar to allow enum entry using `new` to specify a constructor.
