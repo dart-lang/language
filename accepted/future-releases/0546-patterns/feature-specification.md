@@ -1322,7 +1322,7 @@ such and the `=>` is treated as the separator between the guard and case body.
 *In the above example, we take the first interpretation.*
 
 This rules applies in all contexts where a guard can appear: switch statements,
-switch elements, switch expressions, and if-case statements. *We could restrict
+switch expressions, if-case statements, and if-case elements. *We could restrict
 this rule to guards only in switch expressions where the ambiguity arises, but
 that leads to a syntactic restriction that is context-sensitive and harder to
 learn. Since the rule is unusual enough as it is, we apply it as consistently as
@@ -2374,9 +2374,8 @@ requiring that would likely lead to many pointless empty default cases for
 little value.
 
 Exhaustiveness is defined and works for all Dart types, and switch expressions
-must always be exhaustive. But switch statements and switch elements must only
-be exhaustive when the matched value is an *always-exhaustive* type, defined
-as:
+must always be exhaustive. But switch statements must only be exhaustive when
+the matched value is an *always-exhaustive* type, defined as:
 
 *   `bool`
 *   `Null`
@@ -2391,8 +2390,7 @@ All other types are not always-exhaustive. Then:
 *   It is a compile-time error if the cases in a switch statement or switch
     collection element are not exhaustive and the static type of the matched
     value is an always-exhaustive type. *There is no error if a switch statement
-    or switch element is not exhaustive when the type is not an
-    always-exhaustive type.*
+    is not exhaustive when the type is not an always-exhaustive type.*
 
 *   It is a compile-time error if the cases in a switch expression are not
     exhaustive. *This is an error even if the matched value type is not an
