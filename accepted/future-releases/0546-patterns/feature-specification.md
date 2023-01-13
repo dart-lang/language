@@ -2754,10 +2754,13 @@ To match a pattern `p` against a value `v`:
 
     4.  Check the length. If `p` is empty or has any non-rest elements:
 
-        1.  Let `l` be the length of the list determined by calling `length` on
-            `v`. *We only call `length` on the list if needed.*
+        *We only call `length` on the list if needed. If the pattern is `[...]`,
+        then any length is allowed, so we don't even check it..*
 
-        2.  If `p` has both a rest element and `h + t > 0`:
+        1.  Let `l` be the length of the list determined by calling `length` on
+            `v`.
+
+        2.  If `p` has a rest element and `h + t > 0`:
 
             1.  If `l < h + t` then the match fails.
 
@@ -2830,10 +2833,13 @@ To match a pattern `p` against a value `v`:
 
     3.  Check the length. If `p` is empty or has any non-rest elements:
 
-        1.  Let `l` be the length of the map determined by calling `length` on
-            `v`. *We only call `length` on the map if needed.*
+        *We only call `length` on the map if needed. If the pattern is `{...}`,
+        then any length is allowed, so we don't even check it..*
 
-        2.  If `p` has both a rest element and `n > 0`:
+        1.  Let `l` be the length of the map determined by calling `length` on
+            `v`.
+
+        2.  If `p` has a rest element and `n > 0`:
 
             1.  If `l < n` then the match fails.
 
