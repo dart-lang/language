@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.18 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.20 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -76,14 +76,14 @@ all.
 
 Once a record has been created, its fields can be accessed using getters.
 Every named field exposes a getter with the same name, and positional fields
-expose getters named `$0`, `$1`, etc.:
+expose getters named `$1`, `$2`, etc.:
 
 ```dart
-var record = (1, a: 2, 3, b: 4);
-print(record.$0); // Prints "1".
-print(record.a);  // Prints "2".
-print(record.$1); // Prints "3".
-print(record.b);  // Prints "4".
+var record = ("ape", a: "bat", "cat", b: "dog");
+print(record.$1); // Prints "ape".
+print(record.a);  // Prints "bat".
+print(record.$2); // Prints "cat".
+print(record.b);  // Prints "dog".
 ```
 
 ## Core library
@@ -129,15 +129,15 @@ not captured by the grammar. It is a compile-time error if a record has any of:
 *   A field name that starts with an underscore.
 
 *   A field name that collides with the synthesized getter name of a positional
-    field. *For example: `('pos', $0: 'named')` since the named field '$0'
+    field. *For example: `('pos', $1: 'named')` since the named field "$1"
     collides with the getter for the first positional field.*
 
 In order to avoid ambiguity with parenthesized expressions, a record with
 only a single positional field must have a trailing comma:
 
 ```dart
-var number = (1);  // The number 1.
-var record = (1,); // A record containing the number 1.
+var number = (123);  // The number 123.
+var record = (123,); // A record containing the number 123.
 ```
 
 The expression `()` refers to the constant empty record with no fields.
@@ -215,7 +215,7 @@ It is a compile-time error if a record type has any of:
 *   A field name that starts with an underscore.
 
 *   A field name that collides with the synthesized getter name of a positional
-    field. *For example: `(int, $0: int)` since the named field '$0' collides
+    field. *For example: `(int, $1: int)` since the named field "$1" collides
     with the getter for the first positional field.*
 
 ### No record type literals
@@ -385,26 +385,26 @@ and `{int b, int a}` are identical to the type system and the runtime. (Tools
 may or may not display them to users in a canonical form similar to how they
 handle function typedefs.)
 
-*Positional fields are not merely syntactic sugar for fields named `$0`, `$1`,
-etc. The records `(1, 2)` and `($0: 1, $1: 2)` expose the same *members*, but
-have different shapes according to the type system.*
+*Positional fields are not merely syntactic sugar for fields named `$1`, `$2`,
+etc. The records `('a', 'b')` and `($1: 'a', $2: 'b')` expose the same
+_members_, but have different shapes according to the type system.*
 
 ### Members
 
 A record type declares all of the members defined on `Object`. It also exposes
 getters for each named field where the name of the getter is the field's name
 and the getter's type is the field's type. For each positional field, it exposes
-a getter whose name is `$` followed by the number of preceding positional fields
-and whose type is the type of the field.
+a getter whose whose type is the type of the field and whose name is `$n` where
+`n` is the field's `1`-based index in the positional fields.
 
 For example, the record expression `(1.2, name: 's', true, count: 3)` has a
 record type whose signature is like:
 
 ```dart
 class extends Record {
-  double get $0;
+  double get $1;
   String get name;
-  bool get $1;
+  bool get $2;
   int get count;
 }
 ```
@@ -516,7 +516,7 @@ The following example illustrates this:
 ```dart
 // No static error.
 // Inferred type of the record is (int, double)
-(num, num) r = (3, 3.5)..$0.isEven;
+(num, num) r = (3, 3.5)..$1.isEven;
 ```
 
 Also note that implicit casts and other coercions are considered to be applied
@@ -644,7 +644,7 @@ var x = (a: say(1), b: say(2));
 var y = (b: say(3), a: say(4));
 ```
 
-*This program *must* print "1", "2", "3", "4", even though `x` and `y` are
+*This program _must_ print "1", "2", "3", "4", even though `x` and `y` are
 records with the same shape.*
 
 ### Field getters
@@ -694,11 +694,11 @@ as:
 
 1.  If `o` is not a record with the same shape as `r` then `false`.
 
-1.  For each pair of corresponding fields `rf` and `of` in unspecified order:
+2.  For each pair of corresponding fields `rf` and `of` in unspecified order:
 
     1.  If `rf == of` is `false` then `false`.
 
-1.  Else, `true`.
+3.  Else, `true`.
 
 *The order that fields are iterated is potentially user-visible since
 user-defined `==` methods can have side effects. Most well-behaved `==`
@@ -827,6 +827,10 @@ types indirectly via another library, the SDK constraint on the referenced
 library is sufficient to enforce this.*
 
 ## CHANGELOG
+
+### 1.20
+
+- Start positional record field getters at `$1`, not `$0` (#2638).
 
 ### 1.19
 
