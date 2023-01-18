@@ -535,47 +535,51 @@ It is a compile-time error to:
 
 *   Extend a class marked `interface`, `final` or `sealed` outside of the library
     where it is declared.
+    
 *   Implement the interface of a class or mixin marked `base`, `final` or `sealed`
     outside of the library where it is declared.
+    
 *   Mix in a mixin or mixin class marked `interface`, `final` or `sealed` outside 
     of the library where it is declared.
+    
 *   Extend a class marked `base` outside of the library where it is declared
     unless the extending class is marked `base` or `final`. *This ensures that a
     subtype can't escape the `base` restriction of its supertype by offering its
     _own_ interface that could then be implemented without inheriting the
     concrete implementation from the supertype.* <!-- Needs to account for `sealed` -->
+    
 *   Mix in a mixin or mixin class marked `base` outside of the library where it
     is declared unless the class mixing it in is marked `base` or `final`. *As
     with the previous rule, ensures you can't get a backdoor interface on a
     mixin that doesn't want to expose one.*
-*   Mix in a class not marked `mixin` outside of the library where it is
-    declared, unless the class declaration being used as a mixin is in a library
-    whose language version is older than the version this feature ships in.
-*   Mix in a class not marked `mixin` inside the library where it is declared,
-    if the class has a superclass other than `Object` or the class declares a 
-    non-trivial generative constructor. If the library has a language version
-    older than the version this feature ships int, the class must not declare
-    any generative constructor.
-*   Apply `mixin` to a class whose superclass is not `Object` or that declares a
-    _non-trivial generative constructor_. 
-    *A `mixin class` states that you intend the class to
-    be mixed in, which is inconsistent with defining a class that cannot be used
-    as a mixin. Note that this means that `mixin` on a class becomes a helpful
-    reminder to ensure that you don't inadvertently break your class's ability
-    to be used as a mixin.*
-    *Such a class can have an `extends` clause of the form `extends Object`,
-    or no `extends` clause. It cannot have a `with` clause. It can be used as a `mixin`
-    declaration, but also cannot have an `on` clause.* 
-    A trivial generative constructor is a non-redirecting generative constructor 
-    with an empty parameter list, no initializer list (no `: ...`) and no body (only `;`). 
-    Any other generative constructor is non-trivial.
-    A trivial generative constructor *may* be `const` and may be a named constructor.
-    *A default constructor is always a trivial constructor.*
-*   Mix in a class whose superclass is not `Object` or that declares a
-    generative constructor. *Because of the previous rule, this rule only comes
-    into play when you use a class not marked `mixin` as a mixin within the
-    library where it's declared. When you do that, the existing restriction
-    still applies that the class being used as a mixin must be valid to do so.*
+    
+* Apply `mixin` to a class whose superclass is not `Object` or that declares a
+  _non-trivial generative constructor_.
+  *Such a class can have an `extends` clause of the form `extends Object`,
+  or no `extends` clause. It cannot have any `with` clause.*
+
+  A _trivial generative constructor_ is a non-redirecting generative constructor 
+  with
+
+  *   an empty parameter list,
+  *   no initializer list (no `: ...`), and 
+  *   no constructor body (only `;`).
+
+  Any other generative constructor is non-trivial.
+  A trivial generative constructor may be `const` and may be a named constructor.
+
+  *Declaring a trivial generative constructor allows the class to be used as
+  both a mixin and as a superclass, even if it also declares other factory constructors
+  which suppress the default constructor.*
+
+*   Mix in a class not marked `mixin` which has a superclass other than `Object`.
+
+*   Mix in a class not marked `mixin` declared in a library with a language version including
+    this feature, if the mixin application is not in the same library, 
+    or if the class has any non-trivial generative constructor.
+
+*   Mix in a class not marked `mixin` from a library with a language version older than
+    the version this feature ships in, if the class declares any generative constructor.
 
 A typedef can't be used to subvert these restrictions. When extending,
 implementing, or mixing in a typedef, we look at the library where class or
