@@ -2744,45 +2744,78 @@ To match a pattern `p` against a value `v`:
         *This type test may get elided. See "Pointless type tests and legacy
         types" below.*
 
-    2.  Let `l` be the length of the list determined by calling `length` on `v`.
-
-    3.  Let `h` be the number of non-rest elements preceding the rest element if
+    2.  Let `h` be the number of non-rest elements preceding the rest element if
         there is one, or the number of elements if there is no rest element.
 
-    4.  Let `t` be the number of non-rest elements following the rest element if
-        there is one, or zero otherwise.
+    3.  Let `t` be the number of non-rest elements following the rest element if
+        there is one, or `0` otherwise.
 
-    3.  If `p` has no rest element and `l` is not equal to `h` then the match
-        fails. If `p` has a rest element and `l` is less than `h + t` then the
-        match fails. *These match failures become runtime exceptions if the list
-        pattern is in an irrefutable context.*
+    4.  Check the length. If `p` is empty or has any non-rest elements:
 
-    4.  Match the head elements. For `i` from `0` to `h - 1`, inclusive:
+        *We only call `length` on the list if needed. If the pattern is `[...]`,
+        then any length is allowed, so we don't even check it..*
 
-        1.  Extract the element value `e` by calling `[]` on `v` with index `i`.
+        1.  Let `l` be the length of the list determined by calling `length` on
+            `v`.
+
+        2.  If `p` has a rest element and `h + t > 0`:
+
+            1.  If `l < h + t` then the match fails.
+
+            *When there are non-rest elements and a rest element, the list must
+            be at least long enough to match the non-rest elements.*
+
+        3.  Else if `h + t > 0` *(and `p` has no rest element)*:
+
+            1.  If `l != h + t` then the match fails.
+
+            *If there are only non-rest elements, then the list must have
+            exactly the same number of elements.*
+
+        4.  Else `p` is empty:
+
+            1.  If `l > 0` then the match fails.
+
+            *An empty list pattern can match only empty lists. Note that this
+            treats a misbehaving list whose `length` is negative as an empty
+            list. This is important so that a set of list patterns that is
+            clearly exhaustive over well-behaving lists will also cover a
+            misbehaving one.*
+
+        *These match failures become runtime exceptions if the list pattern is
+        in an irrefutable context.*
+
+    5.  Match the head elements. For `i` from `0` to `h - 1`, inclusive:
+
+        1.  Extract the element value `e` by calling `v[i]`.
 
         2.  Match the `i`th element subpattern against `e`.
 
-    5.  If there is a matching rest element:
+    6.  If there is a matching rest element:
 
-        1.  Let `r` be the result of calling `sublist()` on `v` with arguments
-            `h`, and `l - t`.
+        1.  If `t > 0` then let `r` be the result of `v.sublist(h, l - t)`.
 
-        2.  Match the rest element subpattern against `r`.
+        2.  Else let `r` be the result of `v.sublist(h)`.
+
+            *If the rest element is trailing and we don't need to truncate the
+            sublist, then we use `sublist(start)`. This is important because if
+            `p` contains only a rest element, then we skip calling `length` and
+            thus don't know `l`.*
+
+        3.  Match the rest element subpattern against `r`.
 
         *If there is a non-matching rest element, the unneeded list elements are
         completely skipped and we don't even call `sublist()` to access them.*
 
-    6.  Match the tail elements. If `t` is greater than zero, then for `i` from
-        `0` to `t - 1`, inclusive:
+    7.  Match the tail elements. If `t > 0`, then for `i` from `0` to `t - 1`,
+        inclusive:
 
-        1.  Extract the element value `e` by calling `[]` on `v` with index
-            `l - t + i`.
+        1.  Extract the element value `e` by calling `v[l - t + i]`.
 
         2.  Match the subpattern `i` elements after the rest element against
             `e`.
 
-    7.  The match succeeds if all subpatterns match.
+    8.  The match succeeds if all subpatterns match.
 
 *   **Map**:
 
@@ -2794,15 +2827,44 @@ To match a pattern `p` against a value `v`:
         *This type test may get elided. See "Pointless type tests and legacy
         types" below.*
 
-    2.  Let `l` be the length of the map determined by calling `length` on `v`.
+    2.  Let `n` be the number of non-rest elements.
 
-    3.  If `p` has no rest element and `l` is not equal to the number of
-        subpatterns then the match fails. If `p` has a rest element and `l` is
-        less than the number of non-rest entry subpatterns, then the match
-        fails. *These match failures become runtime exceptions if the map
-        pattern is in an irrefutable context.*
+    3.  Check the length. If `p` is empty or has any non-rest elements:
 
-    4.  Otherwise, for each (non-rest) entry in `p`, in source order:
+        *We only call `length` on the map if needed. If the pattern is `{...}`,
+        then any length is allowed, so we don't even check it..*
+
+        1.  Let `l` be the length of the map determined by calling `length` on
+            `v`.
+
+        2.  If `p` has a rest element and `n > 0`:
+
+            1.  If `l < n` then the match fails.
+
+            *When there are non-rest elements and a rest element, the map must
+            be at least long enough to match the non-rest elements.*
+
+        3.  Else if `n > 0` *(and `p` has no rest element)*:
+
+            1.  If `l != n` then the match fails.
+
+            *If there are only non-rest elements, then the map must have exactly
+            the same number of elements.*
+
+        4.  Else `p` is empty:
+
+            1.  If `l > 0` then the match fails.
+
+            *An empty map pattern can match only empty maps. Note that this
+            treats a misbehaving map whose `length` is negative as an empty map.
+            This is important so that a set of map patterns that is clearly
+            exhaustive over well-behaving maps will also cover a misbehaving
+            one.*
+
+        *These match failures become runtime exceptions if the map pattern is
+        in an irrefutable context.*
+
+    4.  For each non-rest entry in `p`, in source order:
 
         1.  Evaluate the key `expression` to `k`.
 
@@ -3141,7 +3203,7 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
                 *Here, `c` and `d` may have different values and `d` should not
                 use the previously cached value of `c` even though they are both
                 the third element of the same list. So we use an invocation key
-                of "[]" for `c` and "tail[]" for `d`.*
+                of "tail[]" for `c` and "[]" for `d`.*
 
             2.  Bind `e` to the `[]` invocation for `s`.
 
@@ -3270,6 +3332,10 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.21
+
+-   Handle negative length lists and maps (#2701).
 
 ### 2.20
 
