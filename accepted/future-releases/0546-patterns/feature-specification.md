@@ -3334,6 +3334,9 @@ Here is one way it could be broken down into separate pieces:
 
 -   Specify the runtime behavior of pattern-for collection elements (#2769).
 
+-   Clarify the inference context for the iterator expression in pattern for-in
+    statements (#2775).
+
 ### 2.20
 
 -   Fix soundness hole in map patterns with badly behaved maps (#2685).
