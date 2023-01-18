@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.20 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.21 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -874,8 +874,8 @@ forLoopParts ::=
   | metadata ( 'final' | 'var' ) outerPattern 'in' expression // New.
 ```
 
-As with regular for-in loops, it is a compile-time error if the type of
-`expression` in a pattern-for-in loop is not assignable to `Iterable<dynamic>`.
+This allows patterns inside local variable declarations, for statements, for-in
+statements, for collection elements, and for-in collection elements.
 
 *We could potentially allow patterns in top-level variables and static fields
 but lazy initialization makes that more complex. We could support patterns in
@@ -1648,8 +1648,9 @@ To orchestrate this, type inference on patterns proceeds in three phases:
     object, and not necessarily to try to force a certain answer.*
 
 2.  **Calculate the static type of the matched value.** A pattern always occurs
-    in the context of some matched value. For pattern variable declarations and
-    assignments, this is the initializer. For switches and if-case constructs,
+    in the context of some matched value. For pattern variable declarations
+    including inside for and for-in loops, this is the initializer. For pattern
+    assignments, it's the assigned value. For switches and if-case constructs,
     it's the value being matched.
 
     Using the pattern's type schema as a context type (if not in a matching
@@ -2153,13 +2154,13 @@ The variables defined by a pattern and its subpatterns (its pattern variable
 set, defined above), are introduced into a scope based on where the pattern
 appears:
 
-*   **Pattern variable declaration**: The scope enclosing the variable
+*   **Pattern variable declaration statement**: The scope enclosing the variable
     declaration statement. *This will be either a function body scope or a block
     scope.*
 
     The *initializing expression* for every variable in the pattern is the
     pattern variable declaration's initializer. *This means all variables
-    defined by a pattern are in scope beginning at the top of the surrounding
+    defined by the pattern are in scope beginning at the top of the surrounding
     block or function body, but it is a compile-time error to refer to them
     until after the pattern variable declaration's initializer:*
 
@@ -2178,11 +2179,15 @@ appears:
     }
     ```
 
-*   **Pattern-for statement**: Scoping follows the normal for and for-in
-    statement scoping rules where the variable (now variables) are bound in a
-    new scope for each loop iteration. All pattern variables are in the same
-    scope. They are considered initialized after the for loop initializer
-    expression.
+*   **Pattern-for statement**, **pattern-for-in element**, **pattern-for
+    statement**, **pattern-for element**: Scoping follows the normal for and
+    for-in statement and elements scoping rules where the variable (now
+    variables) are bound in a new scope for each loop iteration. All pattern
+    variables are in the same scope. They are considered initialized after the
+    for loop initializer expression.
+
+    The body statement or element of a pattern-for is executed in a new scope
+    whose enclosing scope is the pattern variables' scope.
 
 *   **Pattern assignment**: An assignment only assigns to existing variables
     and does not bind any new ones.
@@ -2516,8 +2521,8 @@ for (<patternVariableDeclaration>; <condition>; <increment>) <statement>
 Is executed similar to a traditional for loop except that multiple variables may
 be declared by the pattern instead of just one. As with a normal for loop, those
 variables are freshly bound to new values at each iteration so that if a
-function closes over a variable, it captures the value at the current iteration
-and is not affected by later iteration.
+function in the body closes over a variable, it captures the value at the
+current iteration and is not affected by later iteration.
 
 The increment clause is evaluated in a scope where all variables declared in the
 pattern are freshly bound to new variables holding the current iteration's
@@ -2540,6 +2545,23 @@ for (var fn in fns) {
 
 This prints `0`, `1`, `1`, `2`, `3`, `5`, `8`, `13`.
 
+#### Pattern-for element
+
+Likewise, a collection element of the form:
+
+```dart
+for (<patternVariableDeclaration>; <condition>; <increment>) <element>
+```
+
+Is executed similar to a non-pattern for element except that the pattern may
+declare multiple variables. As with pattern for statements, all of the variables
+are declared fresh every iteration. Inside the `<increment>` expression, reads
+of those variables reflect their current values. Writes to them write to the
+values the newly bound variables will have on the next iteration.
+
+The `<element>` is evaluated in a new scope whose enclosing scope is the scope
+where the pattern's variables are bound.
+
 #### Pattern-for-in statement
 
 A statement of the form:
@@ -2550,7 +2572,8 @@ for (<keyword> <pattern> in <expression>) <statement>
 
 Where `<keyword>` is `var` or `final` is treated like so:
 
-1.  Let `I` be the type of `<expression>`.
+1.  Let `I` be the type of `<expression>`, inferred using the context type
+    schema of `<pattern>`.
 
 2.  Calculate the element type of `I`:
 
@@ -2571,6 +2594,42 @@ Where `<keyword>` is `var` or `final` is treated like so:
     while (id2.moveNext()) {
       <keyword> <pattern> = id2.current;
       { <statement> }
+    }
+    ```
+
+#### Pattern-for-in element
+
+A collection element of the form:
+
+```dart
+for (<keyword> <pattern> in <expression>) <element>
+```
+
+Where `<keyword>` is `var` or `final` is treated like so:
+
+1.  Let `I` be the type of `<expression>`, inferred using the context type
+    schema of `<pattern>`.
+
+2.  Calculate the element type of `I`:
+
+    1.  If `I` implements `Iterable<T>` for some `T` then `E` is `T`.
+
+    2.  Else if `I` is `dynamic` then `E` is `dynamic`.
+
+    3.  Else it is a compile-time error.
+
+3.  Type check `<pattern>` with matched value type `E`.
+
+4.  If there are no compile-time errors, then execution proceeds as the
+    following code, where `id1` and `id2` are fresh identifiers and `append()`
+    is an operation to add an element to the surrounding collection being built:
+
+    ```
+    var id1 = <expression>;
+    var id2 = id1.iterator;
+    while (id2.moveNext()) {
+      <keyword> <pattern> = id2.current;
+      append(<element>);
     }
     ```
 
@@ -3270,6 +3329,10 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.21
+
+-   Specify the runtime behavior of pattern-for collection elements (#2769).
 
 ### 2.20
 
