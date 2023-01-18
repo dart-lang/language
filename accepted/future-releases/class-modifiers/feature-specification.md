@@ -553,24 +553,24 @@ It is a compile-time error to:
     with the previous rule, ensures you can't get a backdoor interface on a
     mixin that doesn't want to expose one.*
     
-* Apply `mixin` to a class whose superclass is not `Object` or that declares a
-  _non-trivial generative constructor_.
-  *Such a class can have an `extends` clause of the form `extends Object`,
-  or no `extends` clause. It cannot have any `with` clause.*
+*   Apply `mixin` to a class whose superclass is not `Object` or that declares a
+    _non-trivial generative constructor_.
+    *Such a class can have an `extends` clause of the form `extends Object`,
+    or no `extends` clause. It cannot have any `with` clause.*
 
-  A _trivial generative constructor_ is a non-redirecting generative constructor 
-  with
+    A _trivial generative constructor_ is a non-redirecting generative constructor 
+    with
 
-  *   an empty parameter list,
-  *   no initializer list (no `: ...`), and 
-  *   no constructor body (only `;`).
+    *   an empty parameter list,
+    *   no initializer list (no `: ...`), and 
+    *   no constructor body (only `;`).
 
-  Any other generative constructor is non-trivial.
-  A trivial generative constructor may be `const` and may be a named constructor.
+    Any other generative constructor is non-trivial.
+    A trivial generative constructor may be `const` and may be a named   constructor.
 
-  *Declaring a trivial generative constructor allows the class to be used as
-  both a mixin and as a superclass, even if it also declares other factory constructors
-  which suppress the default constructor.*
+    *Declaring a trivial generative constructor allows the class to be used as
+    both a mixin and as a superclass, even if it also declares other factory constructors
+    which suppress the default constructor.*
 
 *   Mix in a class not marked `mixin` which has a superclass other than `Object`.
 
