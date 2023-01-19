@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.20 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.21 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -318,8 +318,13 @@ relationalPattern ::= ( equalityOperator | relationalOperator) bitwiseOrExpressi
 A relational pattern lets you compare the matched value to a given constant
 using any of the equality or relational operators: `==`, `!=`, `<`, `>`, `<=`,
 and `>=`. The pattern matches when calling the appropriate operator on the
-matched value with the constant as an argument returns `true`. It is a
-compile-time error if `bitwiseOrExpression` is not a valid constant expression.
+matched value with the constant as an argument returns `true`.
+
+It is a compile-time error if `bitwiseOrExpression` is not a valid constant
+expression. *Even though the operand must be a constant expression, a relational
+pattern does not establish a const context for the operand. This allows us to
+potentially support non-const expressions in a future release without it being a
+breaking change, similar to default values in parameter lists.*
 
 The comparison operators are useful for matching on numeric ranges, especially
 when combined with `&&`:
@@ -382,11 +387,9 @@ switch (maybeString) {
 ```
 
 Using `?` to match a value that is *not* null seems counterintuitive. In truth,
-I have not found an ideal syntax for this. The way I think about `?` is that it
-describes the test it performs. Where a list pattern tests whether the value is
-a list, a `?` tests whether the value is null. However, unlike other patterns,
-it matches when the value is *not* null, because matching on null isn't
-useful&mdash;you could always just use a `null` constant pattern for that.
+we have not found an ideal syntax. You may think of it as analogous to `?.`,
+`?..`, and `?...` where the `?` means "check the value for `null` and if it's
+not then do the resultant operation".
 
 Swift [uses the same syntax for a similar feature][swift null check].
 
@@ -594,7 +597,11 @@ It is a compile-time error if:
 *   `typeArguments` is present and there are more or fewer than two type
     arguments.
 
-*   Any of the entry key expressions are not constant expressions.
+*   Any of the entry key expressions are not constant expressions. *Even though
+    the key expression must be constant, a map pattern key expression doesn't
+    establish a const context. This allows us to potentially support non-const
+    expressions in a future release without it being a breaking change, similar
+    to default values in parameter lists.*
 
 *   Any two keys in the map are identical. *Map patterns that don't have a rest
     element only match if the `length` of the map is equal to the number of map
@@ -766,25 +773,31 @@ It is a compile-time error if:
     var Point(:x, x: y) = Point(1, 2);
     ```
 
-*   It is a compile-time error if a name cannot be inferred for a named getter
-    pattern with the getter name omitted (see name inference below).
+*   The getter name is omitted and the subpattern has no inferred name using
+    the process described below.
 
 ### Named field/getter inference
 
 In both record patterns and object patterns, the field or getter name may be
-elided when it can be inferred from the pattern.  The inferred field or getter
-name for a pattern `p` is defined as follows.
-  - If `p` is a variable pattern which binds a variable `v`, and `v` is not `_`,
+elided when it can be inferred from the pattern. The inferred field or getter
+name for a pattern `p` is defined as follows:
+
+*   If `p` is a variable pattern which binds a variable `v`, and `v` is not `_`,
     then the inferred name is `v`.
-  - If `p` is `q?` then the inferred name of `p` (if any) is the inferred name
+
+*   If `p` is `q?` then the inferred name of `p` (if any) is the inferred name
     of `q`.
-  - If `p` is `q!` then the inferred name of `p` (if any) is the inferred name
+
+*   If `p` is `q!` then the inferred name of `p` (if any) is the inferred name
     of `q`.
-  - If `p` is `q as T` then the inferred name of `p` (if any) is the inferred
+
+*   If `p` is `q as T` then the inferred name of `p` (if any) is the inferred
     name of `q`.
-  - If `p` is `(q)` then the inferred name of `p` (if any) is the inferred
-    name of `q`.
-  - Otherwise, `p` has no inferred name.
+
+*   If `p` is `(q)` then the inferred name of `p` (if any) is the inferred name
+    of `q`.
+
+*   Otherwise, `p` has no inferred name.
 
 ## Pattern uses
 
@@ -858,8 +871,6 @@ var definitely! = maybe;          // Null-assert.
 
 Allowing parentheses gives users an escape hatch if they really want to use an
 unusual pattern there.
-
-**TODO: Should we support destructuring in `const` declarations?**
 
 The new rules are incorporated into the existing productions for declaring
 variables like so:
@@ -941,8 +952,8 @@ It is a compile-time error if:
     to local variables, which are also the only kind of variables that can be
     declared by patterns.*
 
-*   The matched value type for a variable or cast pattern is not assignable to
-    the corresponding variable's type.
+*   The matched value type for a variable pattern is not assignable to the
+    corresponding variable's type.
 
 *   The same variable is assigned more than once. *In other words, a pattern
     assignment can't have multiple variable subpatterns with the same name. This
@@ -2024,11 +2035,12 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
 
-        1.  Let `G` be the type of the getter on `X` with the name `n`.
-          It is a **compile-time error** if `X` does not have a *getter* with name `n`.
-          _If `X` is `dynamic` or `Never`, it is considered as having every getter with the same type._
+        1.  Let `G` be the type of the member on `X` with the name `n`. It is a
+            compile-time error if `X` does not have an extractable property (a
+            getter or method) with name `n`. *If `X` is `dynamic` or `Never`, it
+            is considered as having every property with the same type.*
 
-        2.  Type check `f` with `G` as the matched value type, to find its
+        2.  Type check `f` using `G` as the matched value type to find its
             required type.
 
     3.  The required type of `p` is `X`.
@@ -2384,6 +2396,8 @@ the matched value is an *always-exhaustive* type, defined as:
 *   `T?` where `T` is always-exhaustive
 *   `FutureOr<T>` for some type `T` that is always-exhaustive
 *   A record type whose fields are all always-exhaustive types
+*   A type variable `X` with bound `T` where `T` is always-exhaustive
+*   A promoted type variable `X & T` where `T` is always-exhaustive.
 
 All other types are not always-exhaustive. Then:
 
@@ -2475,11 +2489,12 @@ fail in some way.*
 3.  If no case pattern matched and there is a default clause, execute the
     statements after it.
 
-4.  If no case matches and there is no default clause, throw a runtime
-    error. *This can only occur when `null` or a legacy typed value flows
-    into this switch statement from another library that hasn't migrated to
-    [null safety][]. In fully migrated programs, exhaustiveness checking is
-    sound and it isn't possible to reach this runtime error.*
+4.  If the static type of `v` is an always-exhaustive type, no case matches, and
+    there is no default clause, then throw a runtime error. *This can only occur
+    when `null` or a legacy typed value flows into this switch statement from
+    another library that hasn't migrated to [null safety][]. In fully migrated
+    programs, exhaustiveness checking is sound and it isn't possible to reach
+    this runtime error.*
 
 [null safety]: https://dart.dev/null-safety
 
@@ -2671,10 +2686,7 @@ To match a pattern `p` against a value `v`:
 
         1.  Let `r` be the result of `v == c`.
 
-        2.  If `r` is not a Boolean then throw a runtime error. *This can
-            happen if operator `==` on `v`'s type returns `dynamic`.*
-
-        3.  The pattern matches if `r` is false and fails otherwise. *This takes
+        2.  The pattern matches if `r` is false and fails otherwise. *This takes
             into account the built-in semantics that `null` is only equal to
             `null`.*
 
@@ -2832,7 +2844,7 @@ To match a pattern `p` against a value `v`:
     3.  Check the length. If `p` is empty or has any non-rest elements:
 
         *We only call `length` on the map if needed. If the pattern is `{...}`,
-        then any length is allowed, so we don't even check it..*
+        then any length is allowed, so we don't even check it.*
 
         1.  Let `l` be the length of the map determined by calling `length` on
             `v`.
@@ -3335,7 +3347,23 @@ Here is one way it could be broken down into separate pieces:
 
 ### 2.21
 
+-   Allow object pattern fields to tear off methods (#2561).
+
+-   No runtime exception for non-exhaustive switch statements that don't need
+    to be exhaustive (#2698).
+
 -   Handle negative length lists and maps (#2701).
+
+-   Allow promoted types and type variables with bounds to be always-exhaustive
+    (#2765).
+
+-   Fix incorrect static error with cast patterns in assignments ([co19
+    #1686][]).
+
+-   Clarify that map pattern keys and relational pattern right operands are not
+    const contexts (#2758).
+
+[co19 #1686]: https://github.com/dart-lang/co19/issues/1686#issuecomment-1386192988
 
 ### 2.20
 
