@@ -2035,53 +2035,51 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 If `p` with required type `T` is in an irrefutable context:
 
-    *   It is a compile-time error if `M` is not assignable to `T`.
-        *Destructuring and variable patterns can only be used in declarations
-        and assignments if we can statically tell that the destructuring and
-        variable binding won't fail to match.*
+*   It is a compile-time error if `M` is not assignable to `T`. *Destructuring
+    and variable patterns can only be used in declarations and assignments if we
+    can statically tell that the destructuring and variable binding won't fail
+    to match.*
 
-    *   Else if `M` is not a subtype of `T` then an implicit coercion or cast is
-        inserted before the pattern binds the value, tests the value's type,
-        destructures the value, or invokes a function with the value as a target
-        or argument.
+*   Else if `M` is not a subtype of `T` then an implicit coercion or cast is
+    inserted before the pattern binds the value, tests the value's type,
+    destructures the value, or invokes a function with the value as a target or
+    argument.
 
-        *Each pattern that requires a certain type can be thought of as an
-        "assignment point" where an implicit coercion may happen when a value
-        flows in during matching. Examples:*
+    *Each pattern that requires a certain type can be thought of as an
+    "assignment point" where an implicit coercion may happen when a value flows
+    in during matching. Examples:*
 
-        ```dart
-        var record = (x: 1 as dynamic);
-        var (x: String _) = record;
-        ```
+    ```dart
+    var record = (x: 1 as dynamic);
+    var (x: String _) = record;
+    ```
 
-        *Here no coercion is performed on the record pattern since `(x:
-        dynamic)` is a subtype of `(x: Object?)` (the record pattern's required
-        type). But an implicit cast from `dynamic` is inserted when the
-        destructured `x` field flows into the inner `String _` pattern since
-        `dynamic` is not a subtype of `String`. In this example, the cast will
-        fail and throw an exception.*
+    *Here no coercion is performed on the record pattern since `(x: dynamic)` is
+    a subtype of `(x: Object?)` (the record pattern's required type). But an
+    implicit cast from `dynamic` is inserted when the destructured `x` field
+    flows into the inner `String _` pattern since `dynamic` is not a subtype of
+    `String`. In this example, the cast will fail and throw an exception.*
 
-        ```dart
-        T id<T>(T t) => t;
-        var record = (x: id);
-        var (x: int Function(int) _) = record;
-        ```
+    ```dart
+    T id<T>(T t) => t;
+    var record = (x: id);
+    var (x: int Function(int) _) = record;
+    ```
 
-        *Here, again no coercion is applied to the record flowing in to the
-        record pattern, but a generic instantiation is inserted when the
-        destructured field `x` field flows into the inner `int Function(int) _`
-        pattern.*
+    *Here, again no coercion is applied to the record flowing in to the record
+    pattern, but a generic instantiation is inserted when the destructured field
+    `x` field flows into the inner `int Function(int) _` pattern.*
 
-        *We only insert coercions in irrefutable contexts:*
+    *We only insert coercions in irrefutable contexts:*
 
-        ```dart
-        dynamic d = 1;
-        if (d case String s) print('then') else print('else');
-        ```
+    ```dart
+    dynamic d = 1;
+    if (d case String s) print('then') else print('else');
+    ```
 
-        *This prints "else" instead of throwing an exception because we don't
-        insert a _cast_ from `dynamic` to `String` and instead let the `String
-        s` pattern _test_ the value's type, which then fails to match.*
+    *This prints "else" instead of throwing an exception because we don't insert
+    a _cast_ from `dynamic` to `String` and instead let the `String s` pattern
+    _test_ the value's type, which then fails to match.*
 
 It is a compile-time error if the type of an expression in a guard clause is not
 assignable to `bool`.
