@@ -318,8 +318,13 @@ relationalPattern ::= ( equalityOperator | relationalOperator) bitwiseOrExpressi
 A relational pattern lets you compare the matched value to a given constant
 using any of the equality or relational operators: `==`, `!=`, `<`, `>`, `<=`,
 and `>=`. The pattern matches when calling the appropriate operator on the
-matched value with the constant as an argument returns `true`. It is a
-compile-time error if `bitwiseOrExpression` is not a valid constant expression.
+matched value with the constant as an argument returns `true`.
+
+It is a compile-time error if `bitwiseOrExpression` is not a valid constant
+expression. *Even though the operand must be a constant expression, a relational
+pattern does not establish a const context for the operand. This allows us to
+potentially support non-const expressions in a future release without it being a
+breaking change, similar to default values in parameter lists.*
 
 The comparison operators are useful for matching on numeric ranges, especially
 when combined with `&&`:
@@ -382,11 +387,9 @@ switch (maybeString) {
 ```
 
 Using `?` to match a value that is *not* null seems counterintuitive. In truth,
-I have not found an ideal syntax for this. The way I think about `?` is that it
-describes the test it performs. Where a list pattern tests whether the value is
-a list, a `?` tests whether the value is null. However, unlike other patterns,
-it matches when the value is *not* null, because matching on null isn't
-useful&mdash;you could always just use a `null` constant pattern for that.
+we have not found an ideal syntax. You may think of it as analogous to `?.`,
+`?..`, and `?...` where the `?` means "check the value for `null` and if it's
+not then do the resultant operation".
 
 Swift [uses the same syntax for a similar feature][swift null check].
 
@@ -594,7 +597,11 @@ It is a compile-time error if:
 *   `typeArguments` is present and there are more or fewer than two type
     arguments.
 
-*   Any of the entry key expressions are not constant expressions.
+*   Any of the entry key expressions are not constant expressions. *Even though
+    the key expression must be constant, a map pattern key expression doesn't
+    establish a const context. This allows us to potentially support non-const
+    expressions in a future release without it being a breaking change, similar
+    to default values in parameter lists.*
 
 *   Any two keys in the map are identical. *Map patterns that don't have a rest
     element only match if the `length` of the map is equal to the number of map
@@ -766,25 +773,31 @@ It is a compile-time error if:
     var Point(:x, x: y) = Point(1, 2);
     ```
 
-*   It is a compile-time error if a name cannot be inferred for a named getter
-    pattern with the getter name omitted (see name inference below).
+*   The getter name is omitted and the subpattern has no inferred name using
+    the process described below.
 
 ### Named field/getter inference
 
-In both record patterns and object patterns, the field or getter name may be
-elided when it can be inferred from the pattern.  The inferred field or getter
-name for a pattern `p` is defined as follows.
-  - If `p` is a variable pattern which binds a variable `v`, and `v` is not `_`,
+In both record patterns and object patterns, a field subpattern's name may be
+elided when it can be inferred from the field's value subpattern. The inferred
+field name for a pattern `p`, if one exists, is defined as:
+
+*   If `p` is a variable pattern which binds a variable `v`, and `v` is not `_`,
     then the inferred name is `v`.
-  - If `p` is `q?` then the inferred name of `p` (if any) is the inferred name
+
+*   If `p` is `q?` then the inferred name of `p` (if any) is the inferred name
     of `q`.
-  - If `p` is `q!` then the inferred name of `p` (if any) is the inferred name
+
+*   If `p` is `q!` then the inferred name of `p` (if any) is the inferred name
     of `q`.
-  - If `p` is `q as T` then the inferred name of `p` (if any) is the inferred
+
+*   If `p` is `q as T` then the inferred name of `p` (if any) is the inferred
     name of `q`.
-  - If `p` is `(q)` then the inferred name of `p` (if any) is the inferred
-    name of `q`.
-  - Otherwise, `p` has no inferred name.
+
+*   If `p` is `(q)` then the inferred name of `p` (if any) is the inferred name
+    of `q`.
+
+*   Otherwise, `p` has no inferred name.
 
 ## Pattern uses
 
@@ -858,8 +871,6 @@ var definitely! = maybe;          // Null-assert.
 
 Allowing parentheses gives users an escape hatch if they really want to use an
 unusual pattern there.
-
-**TODO: Should we support destructuring in `const` declarations?**
 
 The new rules are incorporated into the existing productions for declaring
 variables like so:
@@ -941,8 +952,8 @@ It is a compile-time error if:
     to local variables, which are also the only kind of variables that can be
     declared by patterns.*
 
-*   The matched value type for a variable or cast pattern is not assignable to
-    the corresponding variable's type.
+*   The matched value type for a variable pattern is not assignable to the
+    corresponding variable's type.
 
 *   The same variable is assigned more than once. *In other words, a pattern
     assignment can't have multiple variable subpatterns with the same name. This
@@ -2025,64 +2036,67 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
 
-        1.  Let `G` be the type of the getter on `X` with the name `n`.
-          It is a **compile-time error** if `X` does not have a *getter* with name `n`.
-          _If `X` is `dynamic` or `Never`, it is considered as having every getter with the same type._
+        1.  Look up the member with name `n` on `X` using normal property
+            extraction rules. Let `G` be the type of the resulting property.
 
-        2.  Type check `f` with `G` as the matched value type, to find its
+            *Property extraction allows an object pattern to invoke a getter or
+            tear-off a method. When `X` is `dynamic` or `Never` then `X` has all
+            properties and their types are likewise `dynamic` or `Never` unless
+            the property is defined on `Object`, in which case it has its usual
+            type.*
+
+        2.  Type check `f` using `G` as the matched value type to find its
             required type.
 
     3.  The required type of `p` is `X`.
 
 If `p` with required type `T` is in an irrefutable context:
 
-    *   It is a compile-time error if `M` is not assignable to `T`.
-        *Destructuring and variable patterns can only be used in declarations
-        and assignments if we can statically tell that the destructuring and
-        variable binding won't fail to match.*
+*   It is a compile-time error if `M` is not assignable to `T`. *Destructuring
+    and variable patterns can only be used in declarations and assignments if we
+    can statically tell that the destructuring and variable binding won't fail
+    to match.*
 
-    *   Else if `M` is not a subtype of `T` then an implicit coercion or cast is
-        inserted before the pattern binds the value, tests the value's type,
-        destructures the value, or invokes a function with the value as a target
-        or argument.
+*   Else if `M` is not a subtype of `T` then an implicit coercion or cast is
+    inserted before the pattern binds the value, tests the value's type,
+    destructures the value, or invokes a function with the value as a target or
+    argument.
 
-        *Each pattern that requires a certain type can be thought of as an
-        "assignment point" where an implicit coercion may happen when a value
-        flows in during matching. Examples:*
+    *Each pattern that requires a certain type can be thought of as an
+    "assignment point" where an implicit coercion may happen when a value flows
+    in during matching. Examples:*
 
-        ```dart
-        var record = (x: 1 as dynamic);
-        var (x: String _) = record;
-        ```
+    ```dart
+    var record = (x: 1 as dynamic);
+    var (x: String _) = record;
+    ```
 
-        *Here no coercion is performed on the record pattern since `(x:
-        dynamic)` is a subtype of `(x: Object?)` (the record pattern's required
-        type). But an implicit cast from `dynamic` is inserted when the
-        destructured `x` field flows into the inner `String _` pattern since
-        `dynamic` is not a subtype of `String`. In this example, the cast will
-        fail and throw an exception.*
+    *Here no coercion is performed on the record pattern since `(x: dynamic)` is
+    a subtype of `(x: Object?)` (the record pattern's required type). But an
+    implicit cast from `dynamic` is inserted when the destructured `x` field
+    flows into the inner `String _` pattern since `dynamic` is not a subtype of
+    `String`. In this example, the cast will fail and throw an exception.*
 
-        ```dart
-        T id<T>(T t) => t;
-        var record = (x: id);
-        var (x: int Function(int) _) = record;
-        ```
+    ```dart
+    T id<T>(T t) => t;
+    var record = (x: id);
+    var (x: int Function(int) _) = record;
+    ```
 
-        *Here, again no coercion is applied to the record flowing in to the
-        record pattern, but a generic instantiation is inserted when the
-        destructured field `x` field flows into the inner `int Function(int) _`
-        pattern.*
+    *Here, again no coercion is applied to the record flowing in to the record
+    pattern, but a generic instantiation is inserted when the destructured field
+    `x` field flows into the inner `int Function(int) _` pattern.*
 
-        *We only insert coercions in irrefutable contexts:*
+    *We only insert coercions in irrefutable contexts:*
 
-        ```dart
-        dynamic d = 1;
-        if (d case String s) print('then') else print('else');
-        ```
+    ```dart
+    dynamic d = 1;
+    if (d case String s) print('then') else print('else');
+    ```
 
-        *This prints "else" instead of throwing an exception because we don't
-        insert a _cast_ from `dynamic` to `String` and instead let the `String
-        s` pattern _test_ the value's type, which then fails to match.*
+    *This prints "else" instead of throwing an exception because we don't insert
+    a _cast_ from `dynamic` to `String` and instead let the `String s` pattern
+    _test_ the value's type, which then fails to match.*
 
 It is a compile-time error if the type of an expression in a guard clause is not
 assignable to `bool`.
@@ -2388,7 +2402,9 @@ the matched value is an *always-exhaustive* type, defined as:
 *   A type whose declaration is marked `sealed`
 *   `T?` where `T` is always-exhaustive
 *   `FutureOr<T>` for some type `T` that is always-exhaustive
-*   A record type whose fields are all always-exhaustive types
+*   A record type whose fields all have always-exhaustive types
+*   A type variable `X` with bound `T` where `T` is always-exhaustive
+*   A promoted type variable `X & T` where `T` is always-exhaustive
 
 All other types are not always-exhaustive. Then:
 
@@ -2480,11 +2496,12 @@ fail in some way.*
 3.  If no case pattern matched and there is a default clause, execute the
     statements after it.
 
-4.  If no case matches and there is no default clause, throw a runtime
-    error. *This can only occur when `null` or a legacy typed value flows
-    into this switch statement from another library that hasn't migrated to
-    [null safety][]. In fully migrated programs, exhaustiveness checking is
-    sound and it isn't possible to reach this runtime error.*
+4.  If the static type of `v` is an always-exhaustive type, no case matches, and
+    there is no default clause, then throw a runtime error. *This can only occur
+    when `null` or a legacy typed value flows into this switch statement from
+    another library that hasn't migrated to [null safety][]. In fully migrated
+    programs, exhaustiveness checking is sound and it isn't possible to reach
+    this runtime error.*
 
 [null safety]: https://dart.dev/null-safety
 
@@ -2730,10 +2747,7 @@ To match a pattern `p` against a value `v`:
 
         1.  Let `r` be the result of `v == c`.
 
-        2.  If `r` is not a Boolean then throw a runtime error. *This can
-            happen if operator `==` on `v`'s type returns `dynamic`.*
-
-        3.  The pattern matches if `r` is false and fails otherwise. *This takes
+        2.  The pattern matches if `r` is false and fails otherwise. *This takes
             into account the built-in semantics that `null` is only equal to
             `null`.*
 
@@ -2803,45 +2817,78 @@ To match a pattern `p` against a value `v`:
         *This type test may get elided. See "Pointless type tests and legacy
         types" below.*
 
-    2.  Let `l` be the length of the list determined by calling `length` on `v`.
-
-    3.  Let `h` be the number of non-rest elements preceding the rest element if
+    2.  Let `h` be the number of non-rest elements preceding the rest element if
         there is one, or the number of elements if there is no rest element.
 
-    4.  Let `t` be the number of non-rest elements following the rest element if
-        there is one, or zero otherwise.
+    3.  Let `t` be the number of non-rest elements following the rest element if
+        there is one, or `0` otherwise.
 
-    3.  If `p` has no rest element and `l` is not equal to `h` then the match
-        fails. If `p` has a rest element and `l` is less than `h + t` then the
-        match fails. *These match failures become runtime exceptions if the list
-        pattern is in an irrefutable context.*
+    4.  Check the length. If `p` is empty or has any non-rest elements:
 
-    4.  Match the head elements. For `i` from `0` to `h - 1`, inclusive:
+        *We only call `length` on the list if needed. If the pattern is `[...]`,
+        then any length is allowed, so we don't even check it..*
 
-        1.  Extract the element value `e` by calling `[]` on `v` with index `i`.
+        1.  Let `l` be the length of the list determined by calling `length` on
+            `v`.
+
+        2.  If `p` has a rest element and `h + t > 0`:
+
+            1.  If `l < h + t` then the match fails.
+
+            *When there are non-rest elements and a rest element, the list must
+            be at least long enough to match the non-rest elements.*
+
+        3.  Else if `h + t > 0` *(and `p` has no rest element)*:
+
+            1.  If `l != h + t` then the match fails.
+
+            *If there are only non-rest elements, then the list must have
+            exactly the same number of elements.*
+
+        4.  Else `p` is empty:
+
+            1.  If `l > 0` then the match fails.
+
+            *An empty list pattern can match only empty lists. Note that this
+            treats a misbehaving list whose `length` is negative as an empty
+            list. This is important so that a set of list patterns that is
+            clearly exhaustive over well-behaving lists will also cover a
+            misbehaving one.*
+
+        *These match failures become runtime exceptions if the list pattern is
+        in an irrefutable context.*
+
+    5.  Match the head elements. For `i` from `0` to `h - 1`, inclusive:
+
+        1.  Extract the element value `e` by calling `v[i]`.
 
         2.  Match the `i`th element subpattern against `e`.
 
-    5.  If there is a matching rest element:
+    6.  If there is a matching rest element:
 
-        1.  Let `r` be the result of calling `sublist()` on `v` with arguments
-            `h`, and `l - t`.
+        1.  If `t > 0` then let `r` be the result of `v.sublist(h, l - t)`.
 
-        2.  Match the rest element subpattern against `r`.
+        2.  Else let `r` be the result of `v.sublist(h)`.
+
+            *If the rest element is trailing and we don't need to truncate the
+            sublist, then we use `sublist(start)`. This is important because if
+            `p` contains only a rest element, then we skip calling `length` and
+            thus don't know `l`.*
+
+        3.  Match the rest element subpattern against `r`.
 
         *If there is a non-matching rest element, the unneeded list elements are
         completely skipped and we don't even call `sublist()` to access them.*
 
-    6.  Match the tail elements. If `t` is greater than zero, then for `i` from
-        `0` to `t - 1`, inclusive:
+    7.  Match the tail elements. If `t > 0`, then for `i` from `0` to `t - 1`,
+        inclusive:
 
-        1.  Extract the element value `e` by calling `[]` on `v` with index
-            `l - t + i`.
+        1.  Extract the element value `e` by calling `v[l - t + i]`.
 
         2.  Match the subpattern `i` elements after the rest element against
             `e`.
 
-    7.  The match succeeds if all subpatterns match.
+    8.  The match succeeds if all subpatterns match.
 
 *   **Map**:
 
@@ -2853,15 +2900,44 @@ To match a pattern `p` against a value `v`:
         *This type test may get elided. See "Pointless type tests and legacy
         types" below.*
 
-    2.  Let `l` be the length of the map determined by calling `length` on `v`.
+    2.  Let `n` be the number of non-rest elements.
 
-    3.  If `p` has no rest element and `l` is not equal to the number of
-        subpatterns then the match fails. If `p` has a rest element and `l` is
-        less than the number of non-rest entry subpatterns, then the match
-        fails. *These match failures become runtime exceptions if the map
-        pattern is in an irrefutable context.*
+    3.  Check the length. If `p` is empty or has any non-rest elements:
 
-    4.  Otherwise, for each (non-rest) entry in `p`, in source order:
+        *We only call `length` on the map if needed. If the pattern is `{...}`,
+        then any length is allowed, so we don't even check it.*
+
+        1.  Let `l` be the length of the map determined by calling `length` on
+            `v`.
+
+        2.  If `p` has a rest element and `n > 0`:
+
+            1.  If `l < n` then the match fails.
+
+            *When there are non-rest elements and a rest element, the map must
+            be at least long enough to match the non-rest elements.*
+
+        3.  Else if `n > 0` *(and `p` has no rest element)*:
+
+            1.  If `l != n` then the match fails.
+
+            *If there are only non-rest elements, then the map must have exactly
+            the same number of elements.*
+
+        4.  Else `p` is empty:
+
+            1.  If `l > 0` then the match fails.
+
+            *An empty map pattern can match only empty maps. Note that this
+            treats a misbehaving map whose `length` is negative as an empty map.
+            This is important so that a set of map patterns that is clearly
+            exhaustive over well-behaving maps will also cover a misbehaving
+            one.*
+
+        *These match failures become runtime exceptions if the map pattern is
+        in an irrefutable context.*
+
+    4.  For each non-rest entry in `p`, in source order:
 
         1.  Evaluate the key `expression` to `k`.
 
@@ -3200,7 +3276,7 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
                 *Here, `c` and `d` may have different values and `d` should not
                 use the previously cached value of `c` even though they are both
                 the third element of the same list. So we use an invocation key
-                of "[]" for `c` and "tail[]" for `d`.*
+                of "tail[]" for `c` and "[]" for `d`.*
 
             2.  Bind `e` to the `[]` invocation for `s`.
 
@@ -3332,10 +3408,28 @@ Here is one way it could be broken down into separate pieces:
 
 ### 2.21
 
+-   Allow object pattern fields to tear off methods (#2561).
+
+-   No runtime exception for non-exhaustive switch statements that don't need
+    to be exhaustive (#2698).
+
+-   Handle negative length lists and maps (#2701).
+
+-   Allow promoted types and type variables with bounds to be always-exhaustive
+    (#2765).
+
+-   Fix incorrect static error with cast patterns in assignments ([co19
+    #1686][]).
+
+-   Clarify that map pattern keys and relational pattern right operands are not
+    const contexts (#2758).
+
 -   Specify the runtime behavior of pattern-for collection elements (#2769).
 
 -   Clarify the inference context for the iterator expression in pattern for-in
     statements (#2775).
+
+[co19 #1686]: https://github.com/dart-lang/co19/issues/1686#issuecomment-1386192988
 
 ### 2.20
 
