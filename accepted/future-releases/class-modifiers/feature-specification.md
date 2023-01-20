@@ -558,14 +558,15 @@ It is a compile-time error to:
     or no `extends` clause. It cannot have any `with` clause.*
 
     A _trivial generative constructor_ is a non-redirecting generative constructor 
-    with
+    which has
 
     *   an empty parameter list,
-    *   no initializer list (no `: ...`), and 
-    *   no constructor body (only `;`).
+    *   no initializer list (no `: ...`),  
+    *   no constructor body (only `;`),
+    *   and is not marker `external`.
 
     Any other generative constructor is non-trivial.
-    A trivial generative constructor may be `const` and may be a named   constructor.
+    A trivial generative constructor may be `const` and may be a named constructor.
 
     *Declaring a trivial generative constructor allows the class to be used as
     both a mixin and as a superclass, even if it also declares other factory constructors
