@@ -459,7 +459,6 @@ includes those changes. The full set of modifiers that can appear before a class
 or mixin declaration are `abstract`, `sealed`, `base`, `interface`, `final`, and `mixin`.
 
 *The modifiers do not apply to other declarations. This includes `enum` declarations.
-**TODO**: Do they apply to inline class declarations?*
 
 Many combinations don't make sense:
 
