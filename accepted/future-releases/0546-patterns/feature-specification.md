@@ -11,6 +11,48 @@ Note: This proposal is broken into a couple of separate documents. See also
 
 [records]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/records/records-feature-specification.md
 
+## Table of Contents
+
+*   [Summary](#summary)
+    *   [Multiple returns](#multiple-returns)
+    *   [Destructuring](#destructuring)
+    *   [Algebraic datatypes](#algebraic-datatypes)
+*   [Patterns](#patterns)
+    *   [Logical-or pattern](#logical-or-pattern)
+    *   [Logical-and pattern](#logical-and-pattern)
+    *   [Relational pattern](#relational-pattern)
+    *   [Cast pattern](#cast-pattern)
+    *   [Null-check pattern](#null-check-pattern)
+    *   [Null-assert pattern](#null-assert-pattern)
+    *   [Constant pattern](#constant-pattern)
+    *   [Variable pattern](#variable-pattern)
+    *   [Parenthesized pattern](#parenthesized-pattern)
+    *   [List pattern](#list-pattern)
+    *   [Map pattern](#map-pattern)
+    *   [Record pattern](#record-pattern)
+    *   [Object pattern](#object-pattern)
+    *   [Named field/getter inference](#named-fieldgetter-inference)
+*   [Pattern uses](#pattern-uses)
+    *   [Pattern variable declaration](#pattern-variable-declaration)
+    *   [Pattern assignment](#pattern-assignment)
+    *   [Switch statement](#switch-statement)
+    *   [Switch expression](#switch-expression)
+    *   [If-case statement and element](#if-case-statement-and-element)
+    *   [Pattern context](#pattern-context)
+*   [Static semantics](#static-semantics)
+    *   [Type inference](#type-inference)
+    *   [Pattern uses (static semantics)](#pattern-uses-static-semantics)
+    *   [Variables and scope](#variables-and-scope)
+    *   [Type promotion](#type-promotion)
+    *   [Exhaustiveness and reachability](#exhaustiveness-and-reachability)
+*   [Runtime semantics](#runtime-semantics)
+    *   [Execution](#execution)
+    *   [Matching (refuting and destructuring)](#matching-refuting-and-destructuring)
+    *   [Pointless type tests and legacy types](#pointless-type-tests-and-legacy-types)
+    *   [Side effects and exhaustiveness](#side-effects-and-exhaustiveness)
+*   [Severability](#severability)
+*   [Changelog](#changelog)
+
 ## Summary
 
 This proposal covers a family of closely-related features that address a number
@@ -619,7 +661,7 @@ more flexibility in key types. If the keys have user-defined `==` methods, then
 it's possible to have keys that are equal according to those `==` methods, but
 the compiler won't detect it.*
 
-### Rest elements
+#### Rest elements
 
 Like lists, map patterns can also have a rest element. However, there's no
 well-defined notion of a map "minus" some set of matched entries. Thus, only a
@@ -2086,7 +2128,7 @@ If `p` with required type `T` is in an irrefutable context:
 It is a compile-time error if the type of an expression in a guard clause is not
 assignable to `bool`.
 
-### Pattern uses
+### Pattern uses (static semantics)
 
 It is a compile-time error if the expression in a guard clause in a switch case
 or if-case construct is not assignable to `bool`.
