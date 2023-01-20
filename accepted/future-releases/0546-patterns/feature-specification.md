@@ -188,7 +188,8 @@ Before introducing each pattern in detail, here is a summary with some examples:
 | [Null-check][nullCheckPattern] | `subpattern?` |
 | [Null-assert][nullAssertPattern] | `subpattern!` |
 | [Constant][constantPattern] | `123`, `null`, `'string'`<br>`math.pi`, `SomeClass.constant`<br>`const Thing(1, 2)`, `const (1 + 2)` |
-| [Variable][variablePattern] | `foo`, `var bar`, `String str`, `_`, `int _` |
+| [Variable][variablePattern] | `var bar`, `String str`, `final int _` |
+| [Identifier][identifierPattern] | `foo`, `_` |
 | [Parenthesized][parenthesizedPattern] | `(subpattern)` |
 | [List][listPattern] | `[subpattern1, subpattern2]` |
 | [Map][mapPattern] | `{"key": subpattern1, someConst: subpattern2}` |
@@ -203,6 +204,7 @@ Before introducing each pattern in detail, here is a summary with some examples:
 [nullAssertPattern]: #null-assert-pattern
 [constantPattern]: #constant-pattern
 [variablePattern]: #variable-pattern
+[identifierPattern]: #identifier-pattern
 [parenthesizedPattern]: #parenthesized-pattern
 [listPattern]: #list-pattern
 [mapPattern]: #map-pattern
@@ -226,6 +228,7 @@ unaryPattern      ::= castPattern
 
 primaryPattern    ::= constantPattern
                     | variablePattern
+                    | identifierPattern
                     | parenthesizedPattern
                     | listPattern
                     | mapPattern
@@ -436,7 +439,6 @@ constantPattern ::= booleanLiteral
                   | '-'? numericLiteral
                   | stringLiteral
                   | symbolLiteral
-                  | identifier
                   | qualifiedName
                   | constObjectExpression
                   | 'const' typeArguments? '[' elements? ']'
@@ -455,14 +457,10 @@ supporting terse forms of the most common constant expressions like so:
     literal `2` with a unary `-` applied to it (which is how the language
     views it).
 
-*   Named constants are also allowed because they aren't ambiguous. That
-    includes simple identifiers like `someConstant`, prefixed constants like
-    `some_library.aConstant`, static constants on classes like
-    `SomeClass.aConstant`, and prefixed static constants like
-    `some_library.SomeClass.aConstant`. *Simple identifiers would be ambiguous
-    with variable patterns that aren't marked with `var`, `final`, or a type,
-    but unmarked variable patterns are only allowed in irrefutable contexts
-    where constant patterns are prohibited.*
+*   Qualified named constants are also allowed because they aren't ambiguous.
+    That includes prefixed constants like `some_library.aConstant`, static
+    constants on classes like `SomeClass.aConstant`, and prefixed static
+    constants like `some_library.SomeClass.aConstant`.
 
 *   List literals are ambiguous with list patterns, so we only allow list
     literals explicitly marked `const`. Likewise with set and map literals
@@ -487,7 +485,7 @@ expression.
 ### Variable pattern
 
 ```
-variablePattern ::= ( 'var' | 'final' | 'final'? type )? identifier
+variablePattern ::= ( 'var' | 'final' | 'final'? type ) identifier
 ```
 
 A variable pattern binds the matched value to a new variable. These usually
@@ -502,8 +500,8 @@ Here, `a` and `b` are variable patterns and end up bound to `1` and `2`,
 respectively.
 
 The pattern may have a type annotation in order to only match values of the
-specified type. If the type annotation is omitted, the variable's type is
-inferred and the pattern matches all values.
+specified type. Otherwise, it is declared using `var` or `final` and the
+variable's type is inferred such that it matches all values.
 
 ```dart
 switch (record) {
@@ -517,23 +515,41 @@ They are specified later in the "Pattern context" section.*
 
 #### Wildcards
 
-If the variable's name is `_`, it doesn't bind any variable. This "wildcard"
-name is useful as a placeholder in places where you need a subpattern in order
-to destructure later positional values:
-
-```dart
-var list = [1, 2, 3];
-var [_, two, _] = list;
-```
-
-The `_` identifier can also be used with a type annotation when you want to test
-a value's type but not bind the value to a name:
+If the variable's name is `_`, it doesn't bind any variable. A "wildcard" name
+with a type annotation is useful when you want to test a value's type but not
+bind the value to a name:
 
 ```dart
 switch (record) {
   case (int _, String _):
     print('First field is int and second is String.');
 }
+```
+
+### Identifier pattern
+
+```
+identifierPattern ::= identifier
+```
+
+A bare identifier in a pattern is semantically ambiguous. A user might expect it
+to match if the value is equal to a constant with that name (as it currently
+does in switches). Or the user could expect it to bind or assign to a variable
+with that name.
+
+The answer is it's both. Depending on the context where it appears, a bare
+identifier pattern may behave like a constant pattern or like a variable
+pattern. The section on pattern context below lays out the precise rules.
+
+#### Wildcards
+
+As with variable patterns, an identifier pattern named `_` is a wildcard that
+doesn't bind or assign to any variable. It's useful as a placeholder in places
+where you need a subpattern in order to destructure later positional values:
+
+```dart
+var list = [1, 2, 3];
+var [_, two, _] = list;
 ```
 
 ### Parenthesized pattern
@@ -782,8 +798,8 @@ In both record patterns and object patterns, a field subpattern's name may be
 elided when it can be inferred from the field's value subpattern. The inferred
 field name for a pattern `p`, if one exists, is defined as:
 
-*   If `p` is a variable pattern which binds a variable `v`, and `v` is not `_`,
-    then the inferred name is `v`.
+*   If `p` is a variable or identifier pattern which binds or assigns a variable
+    `v`, and `v` is not `_`, then the inferred name is `v`.
 
 *   If `p` is `q?` then the inferred name of `p` (if any) is the inferred name
     of `q`.
@@ -912,15 +928,15 @@ patternAssignment ::= outerPattern '=' expression
 assignments, but does not allow patterns to the left of a compound assignment
 operator.*
 
-In a pattern assignment, all variable patterns are interpreted as referring to
+In a pattern assignment, all identifier patterns are interpreted as referring to
 existing variables. You can't declare any new variables. *Disallowing new
 variables allows pattern assignment expressions to appear anywhere expressions
 are allowed while avoiding confusion about the scope of new variables.*
 
 It is a compile-time error if:
 
-*   An identifier in a variable pattern does not resolve to an assignable local
-    variable or formal parameter. A variable is assignable if it is any of:
+*   An identifier pattern does not resolve to an assignable local variable or
+    formal parameter. A variable is assignable if it is any of:
 
     *   Non-final
     *   Final and definitely unassigned
@@ -952,12 +968,12 @@ It is a compile-time error if:
     to local variables, which are also the only kind of variables that can be
     declared by patterns.*
 
-*   The matched value type for a variable pattern is not assignable to the
+*   The matched value type for an identifier pattern is not assignable to the
     corresponding variable's type.
 
 *   The same variable is assigned more than once. *In other words, a pattern
-    assignment can't have multiple variable subpatterns with the same name. This
-    prohibits code like:*
+    assignment can't have multiple identifier subpatterns with the same name.
+    This prohibits code like:*
 
     ```dart
     var a = 1;
@@ -1452,8 +1468,8 @@ categorize into three contexts:
 We refer to declaration and assignment contexts as *irrefutable contexts*.
 
 While most patterns look and act the same regardless of where they appear in the
-language, context places some restrictions on which kinds of patterns are
-allowed and what their syntax is. The rules are:
+language, context determines what identifier patterns mean, and places some
+restrictions on which other kinds of patterns are allowed. The rules are:
 
 *   It is a compile-time error if any of the following *refutable patterns*
     appear in an irrefutable context:
@@ -1481,6 +1497,14 @@ allowed and what their syntax is. The rules are:
     the matched value isn't assignable to their required type. This error is
     specified under type checking.*
 
+*   In a declaration context, an identifier pattern declares a new variable with
+    that name. *A pattern declaration statement begins with `var` or `final`, so
+    within that, new variables can be introduced just using simple identifiers:*
+
+    ```dart
+    var (a, b) = (1, 2);
+    ```
+
 *   It is a compile-time error if a variable pattern in a declaration context is
     marked with `var` or `final`. *A pattern declaration statement is already
     preceded by `var` or `final`, so allowing those on the variable patterns
@@ -1492,18 +1516,12 @@ allowed and what their syntax is. The rules are:
     final [var y] = [2];
     ```
 
-    *To declare variables in a declaration context, use a simple identifer:*
+    *Variable patterns are allowed in declaration contexts but must have type
+    annotations. This can be useful to upcast the declared variable.*
 
-    ```dart
-    // OK:
-    var [x] = [1];
-    final [y] = [2];
-    ```
-
-*   It is a compile-time error if a variable pattern in an assignment context is
-    marked with `var`, `final`, or a type annotation (or both `final` and a type
-    annotation). *Patterns in assignments can only assign to existing variables,
-    not declare new ones.*
+*   It is a compile-time error if a variable pattern appears in an assignment
+    context. *Patterns in assignments can only assign to existing variables
+    using identifier patterns, not declare new ones.*
 
     ```dart
     var a = 1;
@@ -1516,16 +1534,13 @@ allowed and what their syntax is. The rules are:
     (a, b) = (3, 4);
     ```
 
-*   A simple identifier in a matching context is treated as a named constant
-    pattern unless its name is `_`. *A bare identifier is ambiguous and could
-    be either a named constant or a variable pattern without any `var`, `final`,
-    or type annotation marker. We prefer the constant interpretation for
-    backwards compatibility and to make variable declarations more explicit in
-    cases. To declare variables in a matching context, use `var`, `final`, or a
-    type before the name.*
-
-    *There is no ambiguity with bare identifiers in irrefutable contexts since
-    constant patterns are disallowed there.*
+*   An identifier pattern in a matching context is treated as a named constant
+    pattern unless its name is `_`. *A bare identifier is ambiguous and could be
+    either a named constant or a variable pattern without any `var`, `final`, or
+    type annotation marker. We prefer the constant interpretation for backwards
+    compatibility and to make variable declarations more explicit in cases. To
+    declare variables in a matching context, use a variable pattern with `var`,
+    `final`, or a type before the name.*
 
     ```dart
     const c = 1;
@@ -1537,9 +1552,13 @@ allowed and what their syntax is. The rules are:
 
     *This program prints "no match" and not "match 2".*
 
-*   A simple identifier in any context named `_` is treated as a wildcard
-    variable pattern. *A bare `_` is always treated as a wildcard regardless of
-    context, even though other variables in matching contexts require a marker.*
+    *There is no ambiguity with bare identifiers in irrefutable contexts since
+    constant patterns are disallowed there.*
+
+*   An identifier pattern named `_` in any context is treated as a wildcard that
+    matches all values and does nothing. *A bare `_` is always treated as a
+    wildcard regardless of context, even though other variables in matching
+    contexts require a marker.*
 
     ```dart
     // OK:
@@ -1553,10 +1572,10 @@ allowed and what their syntax is. The rules are:
     forbid it, but doing so is discouraged.*
 
 *In short, you can't use refutable patterns in places that don't do control
-flow. Use simple identifiers (optionally with type annotations) to declare
-variables in pattern declarations. Use simple identifiers to assign to variables
-in pattern assignments. Use explicitly marked identifiers to declare variables
-in `case` patterns. Use `_` anywhere for a wildcard.*
+flow. Use identifier patterns or type annotated variable patterns to declare
+variables in pattern declarations. Use identifier patterns to assign to
+variables in pattern assignments. Use variable patterns to declare variables in
+`case` patterns. Use `_` anywhere for a wildcard.*
 
 ## Static semantics
 
@@ -1766,6 +1785,10 @@ The context type schema for a pattern `p` is:
         //                                 ^- Infers List<int>.
         ```
 
+*   **Identifier**: Context type schemas are only used in irrefutable contexts,
+    so an identifier pattern is always a variable and is handled like a
+    variable pattern, as above.
+
 *   **Cast**: The context type schema is `_`.
 
 *   **Parenthesized**: The context type schema of the inner subpattern.
@@ -1926,13 +1949,10 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 *   **Variable**:
 
-    1.  In an assignment context, the required type of `p` is the (unpromoted)
-        static type of the variable that `p` resolves to.
+    1.  If the variable has a type annotation, the required type of `p` is that
+        type, as is the static type of the variable introduced by `p`.
 
-    2.  Else if the variable has a type annotation, the required type of `p` is
-        that type, as is the static type of the variable introduced by `p`.
-
-    3.  Else the required type of `p` is `M`, as is the static type of the
+    2.  Else the required type of `p` is `M`, as is the static type of the
         variable introduced by `p`. *This means that an untyped variable pattern
         can have its type indirectly inferred from the type of a superpattern:*
 
@@ -1944,6 +1964,17 @@ To type check a pattern `p` being matched against a value of type `M`:
         inference uses that to infer `List<(num, Object>)` for the initializer.
         That inferred type is then destructured and used to infer `num` for `a`
         and `Object` for `b`.*
+
+*   **Identifier**:
+
+    1.  In an assignment context, the required type of `p` is the (unpromoted)
+        static type of the variable that `p` resolves to.
+
+    2.  In a matching context, the name refers to a constant. Type check
+        the constant identifier expression in context type `M`.
+
+    3.  In a declaration context, the required type of `p` is `M`, as is the
+        static type of the variable introduced by `p`.
 
 *   **Parenthesized**: Type-check the inner subpattern using `M` as the matched
     value type.
@@ -2051,10 +2082,10 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 If `p` with required type `T` is in an irrefutable context:
 
-*   It is a compile-time error if `M` is not assignable to `T`. *Destructuring
-    and variable patterns can only be used in declarations and assignments if we
-    can statically tell that the destructuring and variable binding won't fail
-    to match.*
+*   It is a compile-time error if `M` is not assignable to `T`. *Destructuring,
+    variable, and identifier patterns can only be used in declarations and
+    assignments if we can statically tell that the destructuring and variable
+    binding won't fail to match.*
 
 *   Else if `M` is not a subtype of `T` then an implicit coercion or cast is
     inserted before the pattern binds the value, tests the value's type,
@@ -2148,7 +2179,7 @@ pattern is:
     with the same name. *A pattern can't declare the same variable more than
     once.*
 
-*   **Relational** or **constant**: The empty set.
+*   **Relational** **constant**: The empty set.
 
 *   **Variable**:
 
@@ -2160,6 +2191,16 @@ pattern is:
         surrounding `patternVariableDeclaration` has a `final` modifier. In a
         matching context, the variable is final if the variable pattern is
         marked `final` and is not otherwise.
+
+*   **Identifier**:
+
+    1.  In a matching context, the empty set. *The identifier is a constant
+        reference.*
+
+    2.  Else a set containing a single variable whose name is the identifier and
+        whose type is the pattern's required type (which may have been
+        inferred). The variable is final if the surrounding
+        `patternVariableDeclaration` has a `final` modifier.
 
 #### Scope
 
@@ -2745,6 +2786,13 @@ To match a pattern `p` against a value `v`:
 
     3.  Otherwise, store `v` in `p`'s variable and the match succeeds.
 
+*   **Identifier**:
+
+    1.  In a matching context, the same as a constant pattern whose constant
+        expression is the identifier.
+
+    2.  Else, the same as a variable pattern with the same identifier.
+
 *   **Parenthesized**: Match the subpattern against `v` and succeed if it
     matches.
 
@@ -3168,6 +3216,13 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
     1.  Nothing to do.
 
+*   **Identifier**:
+
+    1.  In a matching context, the same as a constant pattern whose constant
+        expression is the identifier.
+
+    2.  Else, nothing to do.
+
 *   **List**:
 
     1.  Bind `i : ("length", [])` to the `length` getter invocation.
@@ -3355,6 +3410,10 @@ Here is one way it could be broken down into separate pieces:
     to be exhaustive (#2698).
 
 -   Handle negative length lists and maps (#2701).
+
+-   Disambiguate the grammar around bare identifiers (#2714). The overall
+    syntax and semantics are unchanged, but the grammar itself is now
+    unambiguous.
 
 -   Allow promoted types and type variables with bounds to be always-exhaustive
     (#2765).
