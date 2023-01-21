@@ -626,7 +626,7 @@ more flexibility in key types. If the keys have user-defined `==` methods, then
 it's possible to have keys that are equal according to those `==` methods, but
 the compiler won't detect it.*
 
-### Rest elements
+#### Rest elements
 
 Like lists, map patterns can also have a rest element. However, there's no
 well-defined notion of a map "minus" some set of matched entries. Thus, only a
@@ -2100,7 +2100,7 @@ If `p` with required type `T` is in an irrefutable context:
 It is a compile-time error if the type of an expression in a guard clause is not
 assignable to `bool`.
 
-### Pattern uses
+### Pattern uses (static semantics)
 
 It is a compile-time error if the expression in a guard clause in a switch case
 or if-case construct is not assignable to `bool`.
