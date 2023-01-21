@@ -11,48 +11,6 @@ Note: This proposal is broken into a couple of separate documents. See also
 
 [records]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/records/records-feature-specification.md
 
-## Table of Contents
-
-*   [Summary](#summary)
-    *   [Multiple returns](#multiple-returns)
-    *   [Destructuring](#destructuring)
-    *   [Algebraic datatypes](#algebraic-datatypes)
-*   [Patterns](#patterns)
-    *   [Logical-or pattern](#logical-or-pattern)
-    *   [Logical-and pattern](#logical-and-pattern)
-    *   [Relational pattern](#relational-pattern)
-    *   [Cast pattern](#cast-pattern)
-    *   [Null-check pattern](#null-check-pattern)
-    *   [Null-assert pattern](#null-assert-pattern)
-    *   [Constant pattern](#constant-pattern)
-    *   [Variable pattern](#variable-pattern)
-    *   [Parenthesized pattern](#parenthesized-pattern)
-    *   [List pattern](#list-pattern)
-    *   [Map pattern](#map-pattern)
-    *   [Record pattern](#record-pattern)
-    *   [Object pattern](#object-pattern)
-    *   [Named field/getter inference](#named-fieldgetter-inference)
-*   [Pattern uses](#pattern-uses)
-    *   [Pattern variable declaration](#pattern-variable-declaration)
-    *   [Pattern assignment](#pattern-assignment)
-    *   [Switch statement](#switch-statement)
-    *   [Switch expression](#switch-expression)
-    *   [If-case statement and element](#if-case-statement-and-element)
-    *   [Pattern context](#pattern-context)
-*   [Static semantics](#static-semantics)
-    *   [Type inference](#type-inference)
-    *   [Pattern uses (static semantics)](#pattern-uses-static-semantics)
-    *   [Variables and scope](#variables-and-scope)
-    *   [Type promotion](#type-promotion)
-    *   [Exhaustiveness and reachability](#exhaustiveness-and-reachability)
-*   [Runtime semantics](#runtime-semantics)
-    *   [Execution](#execution)
-    *   [Matching (refuting and destructuring)](#matching-refuting-and-destructuring)
-    *   [Pointless type tests and legacy types](#pointless-type-tests-and-legacy-types)
-    *   [Side effects and exhaustiveness](#side-effects-and-exhaustiveness)
-*   [Severability](#severability)
-*   [Changelog](#changelog)
-
 ## Summary
 
 This proposal covers a family of closely-related features that address a number
