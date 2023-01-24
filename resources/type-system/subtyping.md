@@ -169,10 +169,10 @@ We say that a type `T0` is a subtype of a type `T1` (written `T0 <: T1`) when:
   - If `T1` is `Null`, `S?` or `S*` for some `S`, then the query is true.
   - Otherwise, the query is false
 
-- **Left Legacy** if `T0` is `S0*` then:
+- **Left Legacy**: if `T0` is `S0*` then:
   - `T0 <: T1` iff `S0 <: T1`.
 
-- **Right Legacy** `T1` is `S1*` then:
+- **Right Legacy**: if `T1` is `S1*` then:
   - `T0 <: T1` iff `T0 <: S1?`.
 
 - **Left FutureOr**: if `T0` is `FutureOr<S0>` then:
