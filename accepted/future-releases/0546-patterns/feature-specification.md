@@ -798,8 +798,8 @@ In both record patterns and object patterns, a field subpattern's name may be
 elided when it can be inferred from the field's value subpattern. The inferred
 field name for a pattern `p`, if one exists, is defined as:
 
-*   If `p` is a variable or identifier pattern which binds or assigns a variable
-    `v`, and `v` is not `_`, then the inferred name is `v`.
+*   If `p` is a variable or identifier pattern with identifier `v`, and `v` is
+    not `_`, then the inferred name is `v`.
 
 *   If `p` is `q?` then the inferred name of `p` (if any) is the inferred name
     of `q`.
@@ -1556,7 +1556,7 @@ restrictions on which other kinds of patterns are allowed. The rules are:
     constant patterns are disallowed there.*
 
 *   An identifier pattern named `_` in any context is treated as a wildcard that
-    matches all values and does nothing. *A bare `_` is always treated as a
+    matches any value and discards it. *A bare `_` is always treated as a
     wildcard regardless of context, even though other variables in matching
     contexts require a marker.*
 
@@ -2085,7 +2085,8 @@ If `p` with required type `T` is in an irrefutable context:
 *   It is a compile-time error if `M` is not assignable to `T`. *Destructuring,
     variable, and identifier patterns can only be used in declarations and
     assignments if we can statically tell that the destructuring and variable
-    binding won't fail to match.*
+    binding won't fail to match (though it may still throw at runtime if the
+    matched value type is `dynamic`).*
 
 *   Else if `M` is not a subtype of `T` then an implicit coercion or cast is
     inserted before the pattern binds the value, tests the value's type,
@@ -2179,7 +2180,7 @@ pattern is:
     with the same name. *A pattern can't declare the same variable more than
     once.*
 
-*   **Relational** **constant**: The empty set.
+*   **Relational** or **constant**: The empty set.
 
 *   **Variable**:
 
@@ -2199,7 +2200,7 @@ pattern is:
 
     2.  Else a set containing a single variable whose name is the identifier and
         whose type is the pattern's required type (which may have been
-        inferred). The variable is final if the surrounding
+        inferred). The variable is final if and only if the surrounding
         `patternVariableDeclaration` has a `final` modifier.
 
 #### Scope
@@ -3411,9 +3412,8 @@ Here is one way it could be broken down into separate pieces:
 
 -   Handle negative length lists and maps (#2701).
 
--   Disambiguate the grammar around bare identifiers (#2714). The overall
-    syntax and semantics are unchanged, but the grammar itself is now
-    unambiguous.
+-   Disambiguate the grammar around bare identifiers (#2714). The overall syntax
+    and semantics are unchanged, but the pattern grammar is now unambiguous.
 
 -   Allow promoted types and type variables with bounds to be always-exhaustive
     (#2765).
