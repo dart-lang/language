@@ -1769,25 +1769,25 @@ The context type schema for a pattern `p` is:
 
 *   **Variable**:
 
-    1.  In an assignment context, the context type schema is the static type of
-        the variable that `p` resolves to.
-
-    1.  Else if `p` has no type annotation, the context type schema is `_`.
-        *This lets us potentially infer the variable's type from the matched
-        value.*
-
-    2.  Else the context type schema is the annotated type. *When a typed
-        variable pattern is used in a destructuring variable declaration, we
-        do push the type over to the value for inference, as in:*
+    1.  If `p` has a type annotation, the context type schema is the annotated
+        type. *When a typed variable pattern is used in a destructuring variable
+        declaration, we push the type over to the value for inference, as in:*
 
         ```dart
         var (items: List<int> x) = (items: []);
         //                                 ^- Infers List<int>.
         ```
 
-*   **Identifier**: Context type schemas are only used in irrefutable contexts,
-    so an identifier pattern is always a variable and is handled like a
-    variable pattern, as above.
+    2.  Else the context type schema is `_`. *This lets us potentially infer the
+        variable's type from the matched value.*
+
+*   **Identifier**:
+
+    1.  In an assignment context, the context type schema is the static type of
+        the variable that `p` resolves to.
+
+    2.  Else the context type schema is `_`. *This lets us potentially infer the
+        variable's type from the matched value.*
 
 *   **Cast**: The context type schema is `_`.
 
