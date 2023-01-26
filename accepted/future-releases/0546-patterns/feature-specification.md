@@ -2228,8 +2228,8 @@ appears:
       print(c);
       //    ^ Error: Refers to C declared below:
 
-      var [c] = c;
-      //        ^ Error: Not initialized yet.
+      var [c] = [c];
+      //         ^ Error: Not initialized yet.
 
       print(c);
       //    ^ OK.
