@@ -493,10 +493,12 @@ occur as subpatterns of a destructuring pattern in order to capture a
 destructured value.
 
 ```dart
-var (a, b) = (1, 2);
+switch ((1, 2)) {
+  case (var a, var b): ...
+}
 ```
 
-Here, `a` and `b` are variable patterns and end up bound to `1` and `2`,
+Here, `var a` and `var b` are variable patterns and end up bound to `1` and `2`,
 respectively.
 
 The pattern may have a type annotation in order to only match values of the
