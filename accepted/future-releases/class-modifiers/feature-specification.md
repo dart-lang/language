@@ -776,7 +776,7 @@ needed.
 1.4
 
 - Update rules to close loopholes on classes that don't want to expose
-  interfaces.
+  interfaces (#2755, #2757).
 
 1.3
 
