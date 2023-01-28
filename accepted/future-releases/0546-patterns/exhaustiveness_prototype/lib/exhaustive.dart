@@ -11,7 +11,7 @@ import 'subtract.dart';
 /// This is defined simply in terms of subtraction and unions: [cases] is a
 /// union space, and it's exhaustive if subtracting it from [value] leaves
 /// nothing.
-bool isExhaustive(Space value, List<Space> cases) {
+bool isExhaustiveOld(Space value, List<Space> cases) {
   return subtract(value, Space.union(cases)) == Space.empty;
 }
 

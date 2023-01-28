@@ -1,7 +1,7 @@
 // Copyright (c) 2022, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-import 'package:exhaustiveness_prototype/exhaustive.dart';
+import 'package:exhaustiveness_prototype/witness.dart';
 import 'package:exhaustiveness_prototype/space.dart';
 import 'package:exhaustiveness_prototype/static_type.dart';
 import 'package:test/test.dart';
@@ -90,7 +90,7 @@ void _testCases(StaticType type, List<Object> cases, bool expectation) {
 }
 
 void _checkExhaustive(Space value, List<Space> spaces, bool expectation) {
-  var actual = isExhaustive(value, spaces);
+  var actual = isExhaustiveNew(value, spaces);
   if (expectation != actual) {
     if (expectation) {
       fail('Expected $spaces to cover $value but did not.');

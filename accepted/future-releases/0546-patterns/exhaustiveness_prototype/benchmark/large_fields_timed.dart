@@ -3,9 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 import 'dart:math';
 
-import 'package:exhaustiveness_prototype/exhaustive.dart';
+// import 'package:exhaustiveness_prototype/exhaustive.dart';
 import 'package:exhaustiveness_prototype/space.dart';
 import 'package:exhaustiveness_prototype/static_type.dart';
+import 'package:exhaustiveness_prototype/witness.dart';
 
 import '../test/utils.dart';
 
@@ -114,7 +115,7 @@ void expectExhaustiveOnlyAll(StaticType type, List<Object> cases) {
     var watch = Stopwatch()..start();
     for (var i = 0; i < trials; i++) {
       var spaces = parseSpaces(cases);
-      var actual = isExhaustive(Space(type), spaces);
+      var actual = isExhaustiveNew(Space(type), spaces);
       if (!actual) {
         throw 'Expected exhaustive';
       }

@@ -110,6 +110,6 @@ void main() {
 void expectExhaustiveOnlyAll(StaticType type, List<Object> cases) {
   var spaces = parseSpaces(cases);
   profile.reset();
-  print(isExhaustive(Space(type), spaces));
+  print(isExhaustiveOld(Space(type), spaces));
   profile.log();
 }
