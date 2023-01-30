@@ -23,7 +23,7 @@ bool isExhaustiveOld(Space value, List<Space> cases) {
 /// Returns a string containing any unreachable case or non-exhaustive match
 /// errors. Returns an empty string if all cases are reachable and the cases
 /// are exhaustive.
-String reportErrors(StaticType valueType, List<Space> cases) {
+String reportErrorsOld(StaticType valueType, List<Space> cases) {
   var errors = <String>[];
 
   var remaining = Space(valueType);

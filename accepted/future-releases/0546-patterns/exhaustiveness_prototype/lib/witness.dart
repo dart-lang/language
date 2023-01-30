@@ -10,6 +10,36 @@ bool isExhaustiveNew(Space valueSpace, List<Space> caseSpaces) {
   return checkExhaustiveness(valueSpace, caseSpaces) == null;
 }
 
+/// Checks the [cases] representing a series of switch cases to see if they
+/// exhaustively cover all possible values of the matched [valueType]. Also
+/// checks to see if any case can't be matched because it's covered by previous
+/// cases.
+///
+/// Returns a string containing any unreachable case or non-exhaustive match
+/// errors. Returns an empty string if all cases are reachable and the cases
+/// are exhaustive.
+String reportErrorsNew(StaticType valueType, List<Space> caseSpaces) {
+  var errors = <String>[];
+
+  var valuePattern = Pattern(valueType, {}, []);
+  var cases = caseSpaces.map((space) => [_spaceToPattern(space)]).toList();
+
+  for (var i = 1; i < cases.length; i++) {
+    // See if this case is covered by previous ones.
+    if (_unmatched(cases.sublist(0, i), cases[i]) == null) {
+      errors.add('Case #${i + 1} ${caseSpaces[i]} is unreachable.');
+    }
+  }
+
+  var witness = _unmatched(cases, [valuePattern]);
+  if (witness != null) {
+    errors.add(
+        '$valueType is not exhaustively matched by ${Space.union(caseSpaces)}.');
+  }
+
+  return errors.join('\n');
+}
+
 /// Determines if [caseSpaces] is exhaustive over all values contained by
 /// [valueSpace]. If so, returns `null`. Otherwise, returns a string describing
 /// an example of one value that isn't matched by anything in [caseSpaces].
