@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.21 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.22 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -2852,9 +2852,20 @@ To match a pattern `p` against a value `v`:
 
     5.  Match the head elements. For `i` from `0` to `h - 1`, inclusive:
 
-        1.  Extract the element value `e` by calling `v[i]`.
+        1.  Let `s` be the `i`th element subpattern.
 
-        2.  Match the `i`th element subpattern against `e`.
+        2.  If `s` is an identifier pattern whose name is `_` then do nothing
+            for this element.
+
+            *Wildcards are useful in list patterns to control the index that
+            latter element subpatterns access and to affect the length that the
+            pattern checks. When a user does that, we don't want them to pay a
+            runtime penalty for accessing list elements that the pattern won't
+            use anyway.*
+
+        3.  Else extract the element value `e` by calling `v[i]`.
+
+        4.  Match `s` against `e`.
 
     6.  If there is a matching rest element:
 
@@ -2875,10 +2886,14 @@ To match a pattern `p` against a value `v`:
     7.  Match the tail elements. If `t > 0`, then for `i` from `0` to `t - 1`,
         inclusive:
 
-        1.  Extract the element value `e` by calling `v[l - t + i]`.
+        1.  Let `s` be the subpattern `i` elements after the rest element.
 
-        2.  Match the subpattern `i` elements after the rest element against
-            `e`.
+        2.  If `s` is an identifier pattern whose name is `_` then do nothing
+            for this element.
+
+        3.  Else extract the element value `e` by calling `v[l - t + i]`.
+
+        4.  Match `s` against `e`.
 
     8.  The match succeeds if all subpatterns match.
 
@@ -2930,6 +2945,10 @@ To match a pattern `p` against a value `v`:
         in an irrefutable context.*
 
     4.  For each non-rest entry in `p`, in source order:
+
+        *Unlike in list patterns, we don't skip wildcard subpatterns. In a map
+        pattern, you may want to use a `_` value subpattern to detect whether a
+        key is present.*
 
         1.  Evaluate the key `expression` to `k`.
 
@@ -3404,6 +3423,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.22
+
+-   In list patterns, don't call `v[e]` if the corresponding subpattern is a
+    wildcard (#2671).
 
 ### 2.21
 
