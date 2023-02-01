@@ -2426,6 +2426,8 @@ patterns is complex, so the proposal to define how it works is in a [separate
 document][exhaustiveness]. That tells us if the cases in a switch statement or
 expression are exhaustive or not.
 
+[exhaustiveness]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
+
 We don't want to require *all* switches to be exhaustive. The language currently
 does not require switch statements on, say, strings to be exhaustive, and
 requiring that would likely lead to many pointless empty default cases for
@@ -2458,7 +2460,14 @@ All other types are not always-exhaustive. Then:
     other option is to throw an error and most Dart users prefer to catch those
     kinds of mistakes at compile time.*
 
-[exhaustiveness]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
+*   It is a compile-time warning if a case in a switch statement, collection
+    element, or expression is unreachable because all values it can match are
+    also matched by previous cases. *We make this a warning and not an error
+    because it's harmless dead code. Also, in some cases the exhaustiveness
+    analysis may not be very precise and may require users to write a default
+    case when it can't prove that the cases cover all values. If we later make
+    the exhaustiveness algorithm smarter, that default case may become
+    unreachable. If that happens, we don't want this to be a breaking change.*
 
 **Breaking change:** Currently, a non-exhaustive switch on an enum type is only
 a warning. This promotes it to an error. Also, switches on `bool` do not
@@ -3428,6 +3437,8 @@ Here is one way it could be broken down into separate pieces:
 
 -   In list patterns, don't call `v[e]` if the corresponding subpattern is a
     wildcard (#2671).
+
+-   Warn if a case is unreachable.
 
 ### 2.21
 
