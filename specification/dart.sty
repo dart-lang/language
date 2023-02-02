@@ -175,7 +175,7 @@
 
 % Used for defining occurrence of phrase, with customized index entry.
 \newcommand{\IndexCustom}[2]{%
-  \leavevmode\marginpar{\ensuremath{_{^\vartriangle}}}\emph{#1}\index{#2}}
+  \leavevmode\marginpar{\ensuremath{\vartriangle}}\emph{#1}\index{#2}}
 
 % Used for the defining occurrence of a local symbol.
 \newcommand{\DefineSymbol}[1]{%
@@ -196,11 +196,15 @@
 
 % Same appearance, but not adding an entry to the index.
 \newcommand{\NoIndex}[1]{%
-  \leavevmode\marginpar{\ensuremath{_{^\vartriangle}}}\emph{#1}}
+  \leavevmode\marginpar{\ensuremath{\vartriangle}}\emph{#1}}
 
 % Mark a compile-time error in the margin.
 \newcommand{\Error}[1]{%
-  \leavevmode\marginpar{\ensuremath{_{^\ominus}}}{#1}}
+  \leavevmode\marginpar{\ensuremath{\ominus}}{#1}}
+
+% Mark a dynamic error in the margin.
+\newcommand{\DynamicError}[1]{%
+  \leavevmode\marginpar{\Lightning}{#1}}
 
 % Used to specify comma separated lists of similar symbols.
 \newcommand{\List}[3]{\ensuremath{{#1}_{#2},\,\ldots,\ {#1}_{#3}}}
