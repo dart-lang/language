@@ -1493,11 +1493,11 @@ restrictions on which other kinds of patterns are allowed. The rules are:
     true the pattern does nothing useful since its only behavior is a type
     test.*
 
-    *The remaining patterns are allowed syntactically to appear in a refutable
-    context. Patterns that do type tests like variables and lists produce a
-    compile-time error when used in an irrefutable context if the static type of
-    the matched value isn't assignable to their required type. This error is
-    specified under type checking.*
+    *The remaining patterns are allowed syntactically to appear in an
+    irrefutable context. Patterns that do type tests like variables and lists
+    produce a compile-time error when used in an irrefutable context if the
+    static type of the matched value isn't assignable to their required
+    type. This error is specified under type checking.*
 
 *   In a declaration context, an identifier pattern declares a new variable with
     that name. *A pattern declaration statement begins with `var` or `final`, so
