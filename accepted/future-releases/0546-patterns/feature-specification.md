@@ -2130,13 +2130,10 @@ If `p` with required type `T` is in an irrefutable context:
     a _cast_ from `dynamic` to `String` and instead let the `String s` pattern
     _test_ the value's type, which then fails to match.*
 
-It is a compile-time error if the type of an expression in a guard clause is not
-assignable to `bool`.
-
 ### Pattern uses (static semantics)
 
-It is a compile-time error if the expression in a guard clause in a switch case
-or if-case construct is not assignable to `bool`.
+It is a compile-time error if the type of an expression in a guard clause is not
+assignable to `bool`.
 
 The static type of a switch expression is the least upper bound of the static
 types of all of the case expressions.
