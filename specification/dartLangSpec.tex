@@ -12,6 +12,7 @@
 \usepackage[T1]{fontenc}
 \usepackage{makeidx}
 \usepackage{enumitem}
+\usepackage{marvosym}
 \makeindex
 \title{Dart Programming Language Specification\\
 {6th edition draft}\\
@@ -97,9 +98,11 @@
 %   error anyway; change extension names to `typeIdentifier`, avoiding
 %   built-in identifiers).
 %
-% Feb 2023
+% Jan, Feb 2023
 % - Change the specification of constant expressions of the form `e1 == e2`
 %   to use primitive equality.
+% - Introduce `\DynamicError{}`, thus marking every introduction (definition)
+%   of a dynamic error by a lightning symbol in the right margin.
 %
 % Dec 2022
 % - Change the definition of the type function 'flatten' to resolve soundness
@@ -1614,7 +1617,7 @@ in a situation where the variable \id{} has not been bound
 will bind \id{} to the object that the argument $x$ is bound to.
 An execution of the setter
 in a situation where the variable \id{} has been bound to an object
-will incur a dynamic error.
+will incur a \DynamicError{dynamic error}.
 \EndCase
 
 \LMHash{}%
@@ -4207,7 +4210,7 @@ to be assigned the value of the corresponding actual parameter,
 % This can occur due to a failing implicit cast.
 unless the assigned object has a dynamic type
 which is not a subtype of the declared type of the instance variable \id,
-in which case a dynamic error occurs.
+in which case a \DynamicError{dynamic error} occurs.
 
 \commentary{%
 The above rule allows initializing formals to be used as optional parameters:%
@@ -10563,7 +10566,7 @@ $\EvaluateElement{\ell} := s$;
     or the given \code{value} does not have the type \code{Value},
     but it cannot occur after the pair has been appended to $s$.
   \item
-    Otherwise, a dynamic error occurs.
+    Otherwise, a \DynamicError{dynamic error} occurs.
 
     \commentary{%
       This occurs when the target is an iterable respectively a map,
@@ -10618,7 +10621,8 @@ $\EvaluateElement{\ell} := \EvaluateElement{\ell_2}$,
 and if $\ell_2$ is not present then
 $\EvaluateElement{\ell} := \LiteralSequence{}$.
 % $o_b$ can have type \DYNAMIC.
-If $o_b$ is neither \TRUE{} nor \FALSE{} then a dynamic error occurs.
+If $o_b$ is neither \TRUE{} nor \FALSE{}
+then a \DynamicError{dynamic error} occurs.
 \EndCase
 
 \LMHash{}%
@@ -10849,7 +10853,7 @@ A list has an associated set of indices.
 An empty list has an empty set of indices.
 A non-empty list has the index set $\{0, \ldots, n - 1\}$
 where $n$ is the size of the list.
-It is a dynamic error to attempt to access a list
+It is a \DynamicError{dynamic error} to attempt to access a list
 using an index that is not a member of its set of indices.
 
 \rationale{%
@@ -10873,7 +10877,8 @@ and it is evaluated at run time.
 Only run-time list literals can be mutated
 after they are created.
 % This error can occur because being constant is a dynamic property.
-Attempting to mutate a constant list literal will result in a dynamic error.
+Attempting to mutate a constant list literal
+will result in a \DynamicError{dynamic error}.
 
 \commentary{%
 % The following is true either directly or indirectly: There is a \CONST{}
@@ -11642,7 +11647,7 @@ or the element type of $\ell_j$ may not be assigned to $T$.
 \LMHash{}%
 A set may contain zero or more objects.
 Sets have a method which can be used to insert objects;
-this will incur a dynamic error if the set is not modifiable.
+this will incur a \DynamicError{dynamic error} if the set is not modifiable.
 Otherwise, when inserting an object $o_{\metavar{new}}$ into a set $s$,
 if an object $o_{\metavar{old}}$ exists in $s$ such that
 \code{$o_{\metavar{old}}$ == $o_{\metavar{new}}$} evaluates to \TRUE{}
@@ -11682,7 +11687,8 @@ Otherwise, it is a
 and it is evaluated at run time.
 Only run-time set literals can be mutated after they are created.
 % This error can occur because being constant is a dynamic property, here.
-Attempting to mutate a constant set literal will result in a dynamic error.
+Attempting to mutate a constant set literal 
+will result in a \DynamicError{dynamic error}.
 
 \commentary{%
 % The following is true either directly or indirectly: There is a \CONST{}
@@ -11888,7 +11894,8 @@ Otherwise, it is a
 and it is evaluated at run time.
 Only run-time map literals can be mutated after they are created.
 % This error can occur because being constant is a dynamic property, here.
-Attempting to mutate a constant map literal will result in a dynamic error.
+Attempting to mutate a constant map literal
+will result in a \DynamicError{dynamic error}.
 
 \commentary{%
 % The following is true either directly or indirectly: There is a \CONST{}
@@ -12029,7 +12036,8 @@ except that the null object is given a special treatment.%
 }
 
 \LMHash{}%
-If $v$ is the null object (\ref{null}), then a dynamic error occurs.
+If $v$ is the null object (\ref{null})
+then a \DynamicError{dynamic error} occurs.
 Otherwise let $t$ be a stack trace corresponding to the current execution state,
 and the \THROW{} statement throws with $v$ as exception object
 and $t$ as stack trace (\ref{expressionEvaluation}).
@@ -12571,7 +12579,7 @@ a dynamic type error occurs.
 % This error can occur because being-loaded is a dynamic property.
 If $T$ is a deferred type with prefix $p$,
 then if $p$ has not been successfully loaded,
-a dynamic error occurs.
+a \DynamicError{dynamic error} occurs.
 \EndCase
 
 \LMHash{}%
@@ -13500,7 +13508,7 @@ is bound to the formal type parameters and formal parameters of $f$ as follows:
 If $r = 0$ and $s > 0$ then
 if $f$ does not have default type arguments
 (\ref{instantiationToBound})
-then a dynamic error occurs.
+then a \DynamicError{dynamic error} occurs.
 Otherwise replace the actual type argument list:
 Let $r$ be $s$ and let $t_i$ for $i \in 1 .. s$ be the result of
 instantiation to bound
@@ -16569,7 +16577,8 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
       in which case $v$ has no initializer and is not definitely assigned,
       or a compile-time error would have occurred%
     }).
-    If $v$ has previously been bound to an object then a dynamic error occurs.
+    If $v$ has previously been bound to an object
+    then a \DynamicError{dynamic error} occurs.
     Otherwise, $v$ is bound to $o$, and then $a$ evaluates to $o$
     (\ref{expressionEvaluation}).
   \item
@@ -17121,7 +17130,8 @@ Evaluation of a conditional expression $c$ of the form
 proceeds as follows:
 Evaluate $e_1$ to an object $o_1$.
 % This error can occur due to an implicit cast from \DYNAMIC.
-It is a dynamic error if the run-time type of $o_1$ is not \code{bool}.
+It is a \DynamicError{dynamic error}
+if the run-time type of $o_1$ is not \code{bool}.
 If $o_1$ is the \TRUE{} object, then the value of $c$ is
 the result of evaluating the expression $e_2$.
 Otherwise, the value of $c$ is the result of evaluating the expression $e_3$.
@@ -17189,11 +17199,13 @@ Evaluation of a logical boolean expression $b$ of the form
 \code{$e_1$\,\,||\,\,$e_2$}
 causes the evaluation of $e_1$ to an object $o_1$.
 % This error can occur due to an implicit downcast from \DYNAMIC.
-It is a dynamic error if the run-time type of $o_1$ is not \code{bool}.
+It is a \DynamicError{dynamic error}
+if the run-time type of $o_1$ is not \code{bool}.
 If $o_1$ is \TRUE, the result of evaluating $b$ is \TRUE,
 otherwise $e_2$ is evaluated to an object $o_2$.
 % This error can occur due to an implicit downcast from \DYNAMIC.
-It is a dynamic error if the run-time type of $o_2$ is not \code{bool}.
+It is a \DynamicError{dynamic error}
+if the run-time type of $o_2$ is not \code{bool}.
 Otherwise the result of evaluating $b$ is $o_2$.
 
 \LMHash{}%
@@ -17201,11 +17213,13 @@ Evaluation of a logical boolean expression $b$ of the form
 \code{$e_1$\,\,\&\&\,\,$e_2$}
 causes the evaluation of $e_1$ to an object $o_1$.
 % This error can occur due to an implicit downcast from \DYNAMIC.
-It is a dynamic error if the run-time type of $o_1$ is not \code{bool}.
+It is a \DynamicError{dynamic error}
+if the run-time type of $o_1$ is not \code{bool}.
 If $o_1$ is \FALSE, the result of evaluating $b$ is \FALSE,
 otherwise $e_2$ is evaluated to an object $o_2$.
 % This error can occur due to an implicit downcast from \DYNAMIC.
-It is a dynamic error if the run-time type of $o_2$ is not \code{bool}.
+It is a \DynamicError{dynamic error}
+if the run-time type of $o_2$ is not \code{bool}.
 Otherwise the result of evaluating $b$ is $o_2$.
 
 
@@ -17790,7 +17804,7 @@ The static type of $e$ is \NonNullType{$S$}.
 
 \LMHash{}%
 $e$ is evaluated as follows: $e_1$ is evaluated to an object $o$.
-If $o$ is the null object then a dynamic error occurs,
+If $o$ is the null object then a \DynamicError{dynamic error} occurs,
 otherwise $e$ evaluates to $o$.
 \EndCase
 
@@ -19128,7 +19142,7 @@ in a situation where $v$ is unbound
 then $v$ is bound to $o$.
 If an object $o$ is assigned to $v$
 in a situation where $v$ is bound to an object $o'$
-then a dynamic error occurs
+then a \DynamicError{dynamic error} occurs
 (\commentary{it does not matter whether $o$ is the same object as $o'$}).
 
 \commentary{%
@@ -19289,7 +19303,8 @@ where $S_1$ and $S_2$ are block statements
 proceeds as follows:
 Evaluate the expression $e$ to an object $o$.
 % This error can occur due to an implicit downcast from \DYNAMIC.
-It is a dynamic error if the run-time type of $o$ is not \code{bool}.
+It is a \DynamicError{dynamic error}
+if the run-time type of $o$ is not \code{bool}.
 If $o$ is \TRUE, then execute the block statement $S_1$,
 otherwise execute the block statement $S_2$.
 
@@ -19374,7 +19389,8 @@ Then:
 \item
   The expression $[v'/v]c$ is evaluated to an object $o$.
   % This error can occur due to an implicit downcast from \DYNAMIC.
-  It is a dynamic error if the run-time type of $o$ is not \code{bool}.
+  It is a \DynamicError{dynamic error}
+  if the run-time type of $o$ is not \code{bool}.
   If $o$ is \FALSE, the for loop completes normally.
   Otherwise, execution continues at step \ref{beginIteration}.
 \item
@@ -19587,7 +19603,8 @@ proceeds as follows:
 \LMHash{}%
 The expression $e$ is evaluated to an object $o$.
 % This error can occur due to an implicit downcast from \DYNAMIC.
-It is a dynamic error if the run-time type of $o$ is not \code{bool}.
+It is a \DynamicError{dynamic error}
+if the run-time type of $o$ is not \code{bool}.
 
 \LMHash{}%
 If $o$ is \FALSE, then execution of the while statement completes normally
@@ -19638,7 +19655,8 @@ then the execution of $s$ is treated as if it had completed normally.
 \LMHash{}%
 Then, the expression $e$ is evaluated to an object $o$.
 % This error can occur due to an implicit downcast from \DYNAMIC.
-It is a dynamic error if the run-time type of $o$ is not \code{bool}.
+It is a \DynamicError{dynamic error}
+if the run-time type of $o$ is not \code{bool}.
 If $o$ is \FALSE, execution of the do statement completes normally
 (\ref{statementCompletion}).
 If $o$ is \TRUE, then the do statement is re-executed.
@@ -20329,7 +20347,8 @@ Execution of $s$ proceeds as follows.
 
 \LMHash{}%
 The expression $e$ is evaluated to an object $o$.
-A dynamic error occurs unless the dynamic type of $o$ is a subtype of
+A \DynamicError{dynamic error} occurs
+unless the dynamic type of $o$ is a subtype of
 the actual return type of $f$
 (\ref{actualTypes}).
 Then the return statement $s$ completes returning $o$
@@ -20356,7 +20375,8 @@ If the run-time type of $o$ is a subtype of \code{Future<$T_v$>},
 let \code{v} be a fresh variable bound to $o$ and
 evaluate \code{\AWAIT{} v} to an object $r$;
 otherwise let $r$ be $o$.
-A dynamic error occurs unless the dynamic type of $r$
+A \DynamicError{dynamic error} occurs
+unless the dynamic type of $r$
 is a subtype of the actual value of $T_v$
 (\ref{actualTypes}).
 Then the return statement $s$ completes returning $r$
@@ -21253,21 +21273,21 @@ as defined previously
   \NamespaceName{\metavar{import},i},
   a corresponding getter named \id{} with the same function header as $g$.
   % This error can occur because being-loaded is a dynamic property.
-  Calling the getter results in a dynamic error.
+  Calling the getter results in a \DynamicError{dynamic error}.
 \item
   For every top level setter $s$ named \code{\id=} in
   \NamespaceName{\metavar{import},i},
   a corresponding setter named \code{\id=} with
   the same function header as $s$.
   % This error can occur because being-loaded is a dynamic property.
-  Calling the setter results in a dynamic error that occurs before
-  the actual argument is evaluated.
+  Calling the setter results in a \DynamicError{dynamic error}
+  that occurs before the actual argument is evaluated.
 \item
   For every class, mixin, enum, and type alias declaration named \id{} in
   \NamespaceName{\metavar{import},i},
   a corresponding getter named \id{} with return type \code{Type}.
   % This error can occur because being-loaded is a dynamic property.
-  Calling the getter results in a dynamic error.
+  Calling the getter results in a \DynamicError{dynamic error}.
 \end{itemize}
 
 \rationale{%
@@ -21801,7 +21821,7 @@ it is invoked with the following two actual arguments:
   that spawned $i$%
   }),
   or the null object if no such object was supplied.
-  A dynamic error occurs if
+  A \DynamicError{dynamic error} occurs if
   the run-time type of this object is not a subtype of
   the declared type of the corresponding parameter of \code{main}.
 \end{itemize}
@@ -21824,7 +21844,7 @@ allowed by the signature of \code{main}
 (\commentary{%
 the above rules ensure that the corresponding parameters are optional%
 }).
-But the implementation must ensure that a dynamic error occurs
+But the implementation must ensure that a \DynamicError{dynamic error} occurs
 if an actual argument does not have a run-time type which is
 a subtype of the declared type of the parameter.
 
