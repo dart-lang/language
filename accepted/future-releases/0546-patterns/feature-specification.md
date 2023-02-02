@@ -2823,29 +2823,33 @@ To match a pattern `p` against a value `v`:
     3.  Let `t` be the number of non-rest elements following the rest element if
         there is one, or `0` otherwise.
 
-    4.  Check the length. If `p` is empty or has any non-rest elements:
+    4.  Check the length:
 
-        *We only call `length` on the list if needed. If the pattern is `[...]`,
-        then any length is allowed, so we don't even check it..*
+        1.  If `p` has a rest element and `h + t == 0`, then do nothing for
+            checking the length.
 
-        1.  Let `l` be the length of the list determined by calling `length` on
-            `v`.
+            *We only call `length` on the list if needed. If the pattern is
+            `[...]`, then any length is allowed, so we don't even ask the list
+            for it.*
 
-        2.  If `p` has a rest element and `h + t > 0`:
+        2.  Else let `l` be the length of the list determined by calling
+            `length` on `v`.
+
+        3.  If `p` has a rest element *(and `h + t > 0`)*:
 
             1.  If `l < h + t` then the match fails.
 
             *When there are non-rest elements and a rest element, the list must
             be at least long enough to match the non-rest elements.*
 
-        3.  Else if `h + t > 0` *(and `p` has no rest element)*:
+        4.  Else if `h + t > 0` *(and `p` has no rest element)*:
 
             1.  If `l != h + t` then the match fails.
 
             *If there are only non-rest elements, then the list must have
             exactly the same number of elements.*
 
-        4.  Else `p` is empty:
+        5.  Else `p` is empty:
 
             1.  If `l > 0` then the match fails.
 
