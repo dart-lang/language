@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.22 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.23 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -2460,10 +2460,39 @@ All other types are not always-exhaustive. Then:
     other option is to throw an error and most Dart users prefer to catch those
     kinds of mistakes at compile time.*
 
-*   The language doesn't specify or mandate this, but implementations are
-    encouraged to report a warning if a case in a switch statement, collection
-    element, or expression is unreachable because all values it can match are
-    also matched by preceding cases.
+**Breaking change:** Currently, a non-exhaustive switch on an enum type is only
+a warning. This promotes it to an error. Also, switches on `bool` do not
+currently have to be exhaustive. In practice, many users already treat warnings
+as errors, and switches on `bool` are rare and unidiomatic. This breaking change
+would only apply to code that has opted into the language version where this
+ships.
+
+### Warnings
+
+We don't want to mandate warnings in the language specification, but the user
+experience of a language feature is holistic and we try to design it thinking
+about the entire tooling experience. With that in mind, implementations are
+encouraged to report a static warning when:
+
+*   The left branch of an `||` pattern will always match, since it means the
+    right branch will never be used. A pattern will always match if it's an
+    untyped wildcard, a variable whose type is a supertype of the matched value
+    type, etc.
+
+*   Either branch of an `&&` is an untyped wildcard, since it has no effect and
+    can be removed.
+
+*   A cast pattern casts to a supertype of the matched value type.
+
+*   A null-check or null-assert pattern has a non-nullable matched value type.
+
+*   A constant pattern's constant has primitive equality and is matched against
+    a type that it can never be equal to, like matching a String against the
+    constant pattern `3`.
+
+*   A case in a switch statement, collection element, or expression is
+    unreachable because all values it can match are also matched by preceding
+    cases. (The exhaustiveness algorithm can be used to determine this.)
 
     *We make this a warning and not an error because it's harmless dead code.
     Also, in some cases the exhaustiveness analysis may not be very precise and
@@ -2472,12 +2501,8 @@ All other types are not always-exhaustive. Then:
     that default case may become unreachable. If that happens, we don't want
     this to be a breaking change.*
 
-**Breaking change:** Currently, a non-exhaustive switch on an enum type is only
-a warning. This promotes it to an error. Also, switches on `bool` do not
-currently have to be exhaustive. In practice, many users already treat warnings
-as errors, and switches on `bool` are rare and unidiomatic. This breaking change
-would only apply to code that has opted into the language version where this
-ships.
+In general, these all have the property that they describe dead code that
+provably can be removed without changing the behavior of the program.
 
 ## Runtime semantics
 
@@ -3435,6 +3460,10 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.23
+
+-   Suggest warnings that implementations may want to report.
 
 ### 2.22
 
