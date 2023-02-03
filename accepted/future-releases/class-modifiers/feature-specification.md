@@ -687,16 +687,82 @@ extends, mixes in, implements, or has as on type any declaration `S` where:
 *   `S` is from another library than `D`, and `S` has the modifier `base`,
     `final` or `sealed`, or
 
+    ```dart
+    // a.dart
+    base mixin class S {}
+
+    // b.dart
+    import 'a.dart';
+
+    // These can't be implemented locally:
+    class DE extends S {}
+    class DM with S {}
+    mixin MO on S {}
+    ```
+
 *   `S` is from the same library as `D`, and `S` can't be implemented locally.
+
+    ```dart
+    // a.dart
+    base class B {}
+
+    // b.dart
+    import 'a.dart';
+
+    // This can't be implemented locally (from the previous rule):
+    base mixin class S extends B {}
+
+    // And thus these also can't be implemented locally (from this rule):
+    base class DE extends S {}
+    base class DM with S {}
+    base class DI implements S {}
+    base mixin MO on S {}
+    ```
 
 Otherwise, `D` can be implemented locally. It is a compile-time error if:
 
 *   A class or mixin declaration `D` can't be implemented locally, and `D` is
     not marked `base`, `final` or `sealed`.
 
+    ```dart
+    // a.dart
+    base class B {}
+
+    // b.dart
+    import 'a.dart';
+
+    class D extends B {} // Error, needs `base`, `final`, or `sealed`.
+    ```
+
+    *Also:*
+
+    ```dart
+    // a.dart
+    base class B {}
+
+    // b.dart
+    import 'a.dart';
+
+    base class S extends B {} // Can't be implemented locally but OK.
+
+    class D extends S {} // Error, needs `base`, `final`, or `sealed`.
+    ```
+
 *   A class or mixin declaration `D` implements the interface of a class or
     mixin declaration `S`, declared in the same library as `D`, and `S` can't be
     implemented locally.
+
+    ```dart
+    // a.dart
+    base class B {}
+
+    // b.dart
+    import 'a.dart';
+
+    base class S extends B {} // Can't be implemented locally but OK.
+
+    base class D implements S {} // Error, can't use "implements".
+    ```
 
 ### Mixin restrictions
 
