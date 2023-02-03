@@ -463,7 +463,7 @@ have the `_private()` method that lib_a.dart expects.
 So we want to allow libraries to ignore restrictions on their own types, but we
 need to be careful that doing so doesn't break invariants in *other* libraries.
 In practice, this means that when a class opts out of being implemented using
-`base` or `final`, then that particularl restriction can't be ignored.
+`base` or `final`, then that particular restriction can't be ignored.
 
 ## Mixin classes
 
@@ -528,8 +528,9 @@ Many combinations don't make sense:
     `extends Object with M` which has the exact same effect.*
 *   `mixin` as a modifier can obviously only be applied to a `class` declaration, 
     which makes it also a `mixin` declaration.
-*   `mixin` as a modifier cannot be applied to a mixin-application `class` declaration
-    (the `class C = S with M;` syntax for declaring a class). The remaining modifiers can.
+*   `mixin` as a modifier cannot be applied to a mixin-application `class`
+    declaration (the `class C = S with M;` syntax for declaring a class). The
+    remaining modifiers can.
 *   Mixin declarations can't be constructed, so `abstract` is redundant.
 
 The remaining valid combinations and their capabilities are:
@@ -590,15 +591,70 @@ It is a compile-time error to:
 
 *   Extend a class marked `interface`, `final` or `sealed` outside of the
     library where it is declared.
+
+    ```dart
+    // a.dart
+    interface class I {}
+    final class F {}
+    sealed class S {}
+
+    // b.dart
+    import 'a.dart';
+
+    class C1 extends I {} // Error.
+    class C2 extends F {} // Error.
+    class C3 extends S {} // Error.
+    ```
     
 *   Implement the interface of a class or mixin marked `base`, `final` or
     `sealed` outside of the library where it is declared.
+
+    ```dart
+    // a.dart
+    base class B {}
+    final class F {}
+    sealed class S {}
+
+    base mixin BM {}
+    final mixin FM {}
+    sealed mixin SM {}
+
+    // b.dart
+    import 'a.dart';
+
+    class C1 implements B {} // Error.
+    class C2 implements F {} // Error.
+    class C3 implements S {} // Error.
+
+    class C1 implements BM {} // Error.
+    class C2 implements FM {} // Error.
+    class C3 implements SM {} // Error.
+    ```
     
 *   Mix in a mixin or mixin class marked `interface`, `final` or `sealed`
     outside of the library where it is declared.
 
-There is no direct restriction on types allowed in `on` clauses of mixin
-declarations.
+    ```dart
+    // a.dart
+    interface mixin class I {}
+    final mixin class F {}
+    sealed mixin class S {}
+
+    interface mixin IM {}
+    final mixin FM {}
+    sealed mixin SM {}
+
+    // b.dart
+    import 'a.dart';
+
+    class C1 with I {} // Error.
+    class C2 with F {} // Error.
+    class C3 with S {} // Error.
+
+    class C1 with IM {} // Error.
+    class C2 with FM {} // Error.
+    class C3 with SM {} // Error.
+    ```
 
 A typedef can't be used to subvert these restrictions or any of the restrictions
 below. When extending, implementing, or mixing in a typedef, we look at the
@@ -666,7 +722,26 @@ to be a generative constructor that:
 
 A trivial constructor may be named or unnamed, and `const` or non-`const`. A
 *non-trivial generative constructor* is a generative constructor which is not a
-trivial generative constructor.
+trivial generative constructor. Examples:
+
+```dart
+class C {
+  // Trivial generative constructors:
+  C();
+  const C();
+
+  // Non-trivial generative constructors:
+  C(int x);
+  C(this.x);
+  C() { ... }
+  C(): super();
+
+  // Not generative constructors, so neither trivial generative nor non-trivial
+  // generative:
+  factory C.f = C;
+  factory C.f2() { ... }
+}
+```
 
 It's a compile-time error if:
 
