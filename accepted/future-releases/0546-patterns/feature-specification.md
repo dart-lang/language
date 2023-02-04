@@ -3334,14 +3334,14 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
 *   **Record**:
 
-    1.  For each field `f` in `p`:
+    1.  For each field in `p`:
 
         1.  Let `f` be `i : (field, [])` where `field` is the corresponding
             getter name for the field.
 
-        2.  Bind `e` to the field accessor for this field.
+        2.  Bind `f` to the field accessor for this field.
 
-        3.  Bind invocations in the field subpattern using parent `e`.
+        3.  Bind invocations in the field subpattern using parent `f`.
 
 *   **Object**:
 
