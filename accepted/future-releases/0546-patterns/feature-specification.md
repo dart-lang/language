@@ -2921,29 +2921,33 @@ To match a pattern `p` against a value `v`:
 
     2.  Let `n` be the number of non-rest elements.
 
-    3.  Check the length. If `p` is empty or has any non-rest elements:
+    3.  Check the length:
 
-        *We only call `length` on the map if needed. If the pattern is `{...}`,
-        then any length is allowed, so we don't even check it.*
+        1.  If `p` has a rest element and `n == 0`, then do nothing for checking
+            the length.
 
-        1.  Let `l` be the length of the map determined by calling `length` on
-            `v`.
+            *We only call `length` on the map if needed. If the pattern is
+            `{...}`, then any length is allowed, so we don't even ask the map
+            for it.*
 
-        2.  If `p` has a rest element and `n > 0`:
+        2.  Else let `l` be the length of the map determined by calling `length`
+            on `v`.
+
+        3.  If `p` has a rest element *(and `n > 0`)*:
 
             1.  If `l < n` then the match fails.
 
             *When there are non-rest elements and a rest element, the map must
             be at least long enough to match the non-rest elements.*
 
-        3.  Else if `n > 0` *(and `p` has no rest element)*:
+        4.  Else if `n > 0` *(and `p` has no rest element)*:
 
             1.  If `l != n` then the match fails.
 
             *If there are only non-rest elements, then the map must have exactly
             the same number of elements.*
 
-        4.  Else `p` is empty:
+        5.  Else `p` is empty:
 
             1.  If `l > 0` then the match fails.
 
