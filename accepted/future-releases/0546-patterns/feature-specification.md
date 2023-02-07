@@ -2535,11 +2535,11 @@ A statement of the form:
 for (<patternVariableDeclaration>; <condition>; <increment>) <statement>
 ```
 
-Is executed similar to a traditional for loop except that multiple variables may
-be declared by the pattern instead of just one. As with a normal for loop, those
-variables are freshly bound to new values at each iteration so that if a
-function in the body closes over a variable, it captures the value at the
-current iteration and is not affected by later iteration.
+Is executed like a traditional for loop though is more likely to declare
+multiple variables. As with a normal for loop, those variables are freshly bound
+to new values at each iteration so that if a function in the body closes over a
+variable, it captures the value at the current iteration and is not affected by
+later iteration.
 
 The increment clause is evaluated in a scope where all variables declared in the
 pattern are freshly bound to new variables holding the current iteration's
@@ -2570,11 +2570,10 @@ Likewise, a collection element of the form:
 for (<patternVariableDeclaration>; <condition>; <increment>) <element>
 ```
 
-Is executed similar to a non-pattern for element except that the pattern may
-declare multiple variables. As with pattern for statements, all of the variables
-are declared fresh every iteration. Inside the `<increment>` expression, reads
-of those variables reflect their current values. Writes to them write to the
-values the newly bound variables will have on the next iteration.
+Is executed like a traditional for loop though is more likely to declare
+multiple variables. As with pattern for statements, all of the variables are
+declared fresh every iteration and updates to the variables in the increment
+clause behave as other loops do.
 
 The `<element>` is evaluated in a new scope whose enclosing scope is the scope
 where the pattern's variables are bound.
@@ -2589,8 +2588,8 @@ for (<keyword> <pattern> in <expression>) <statement>
 
 Where `<keyword>` is `var` or `final` is treated like so:
 
-1.  Let `I` be the type of `<expression>`, inferred using the context type
-    schema of `<pattern>`.
+1.  Let `I` be the static type of `<expression>`, inferred using the context
+    type schema of `<pattern>`.
 
 2.  Calculate the element type of `I`:
 
@@ -2624,8 +2623,8 @@ for (<keyword> <pattern> in <expression>) <element>
 
 Where `<keyword>` is `var` or `final` is treated like so:
 
-1.  Let `I` be the type of `<expression>`, inferred using the context type
-    schema of `<pattern>`.
+1.  Let `I` be the static type of `<expression>`, inferred using the context
+    type schema of `<pattern>`.
 
 2.  Calculate the element type of `I`:
 
@@ -2642,8 +2641,8 @@ Where `<keyword>` is `var` or `final` is treated like so:
     is an operation to add an element to the surrounding collection being built:
 
     ```
-    var id1 = <expression>;
-    var id2 = id1.iterator;
+    I id1 = <expression>;
+    Iterator<E> id2 = id1.iterator;
     while (id2.moveNext()) {
       <keyword> <pattern> = id2.current;
       append(<element>);
