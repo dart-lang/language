@@ -3013,6 +3013,12 @@ To match a pattern `p` against a value `v`:
             `{...}`, then any length is allowed, so we don't even ask the map
             for it.*
 
+            *The pattern `{...}` will match all maps (that pass the type test).
+            The only way to make a set of map patterns exhaustive is to include
+            `{...}`, because some misbehaving maps will not match any other map
+            pattern: for example, the map `v` could have a positive `length` but
+            `v[k] == null && !v.containsKey(k)` for every possible key `k`.*
+
         2.  Else let `l` be the length of the map determined by calling `length`
             on `v`.
 
@@ -3035,10 +3041,7 @@ To match a pattern `p` against a value `v`:
             1.  If `l > 0` then the match fails.
 
             *An empty map pattern can match only empty maps. Note that this
-            treats a misbehaving map whose `length` is negative as an empty map.
-            This is important so that a set of map patterns that is clearly
-            exhaustive over well-behaving maps will also cover a misbehaving
-            one.*
+            treats a misbehaving map whose `length` is negative as an empty map.*
 
         *These match failures become runtime exceptions if the map pattern is
         in an irrefutable context.*
