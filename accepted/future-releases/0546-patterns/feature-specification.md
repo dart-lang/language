@@ -2665,8 +2665,8 @@ for (<keyword> <pattern> in <expression>) <statement>
 
 Where `<keyword>` is `var` or `final` is treated like so:
 
-1.  Let `I` be the static type of `<expression>`, inferred using the context
-    type schema of `<pattern>`.
+1.  Let `I` be the static type of `<expression>`, inferred using context type
+    schema `Iterable<P>` where `P` is the context type schema of `<pattern>`.
 
 2.  Calculate the element type of `I`:
 
@@ -2700,8 +2700,8 @@ for (<keyword> <pattern> in <expression>) <element>
 
 Where `<keyword>` is `var` or `final` is treated like so:
 
-1.  Let `I` be the static type of `<expression>`, inferred using the context
-    type schema of `<pattern>`.
+1.  Let `I` be the static type of `<expression>`, inferred using context type
+    schema `Iterable<P>` where `P` is the context type schema of `<pattern>`.
 
 2.  Calculate the element type of `I`:
 
@@ -3526,6 +3526,7 @@ Here is one way it could be broken down into separate pieces:
 ### 2.23
 
 -   Suggest warnings that implementations may want to report.
+-   Correct context type schema for pattern for-in statements and expressions.
 
 ### 2.22
 
