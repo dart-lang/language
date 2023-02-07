@@ -1493,11 +1493,10 @@ restrictions on which other kinds of patterns are allowed. The rules are:
     true the pattern does nothing useful since its only behavior is a type
     test.*
 
-    *The remaining patterns are allowed syntactically to appear in a refutable
-    context. Patterns that do type tests like variables and lists produce a
-    compile-time error when used in an irrefutable context if the static type of
-    the matched value isn't assignable to their required type. This error is
-    specified under type checking.*
+    *In addition to this rule, patterns that do type tests (like variable and
+    list patterns) produce a compile-time error when used in an irrefutable
+    context if the static type of the matched value isn't assignable to their
+    required type. That error is specified under type checking.*
 
 *   In a declaration context, an identifier pattern declares a new variable with
     that name. *A pattern declaration statement begins with `var` or `final`, so
@@ -2132,13 +2131,10 @@ If `p` with required type `T` is in an irrefutable context:
     a _cast_ from `dynamic` to `String` and instead let the `String s` pattern
     _test_ the value's type, which then fails to match.*
 
-It is a compile-time error if the type of an expression in a guard clause is not
-assignable to `bool`.
-
 ### Pattern uses (static semantics)
 
-It is a compile-time error if the expression in a guard clause in a switch case
-or if-case construct is not assignable to `bool`.
+It is a compile-time error if the type of an expression in a guard clause is not
+assignable to `bool`.
 
 The static type of a switch expression is the least upper bound of the static
 types of all of the case expressions.
@@ -2910,29 +2906,33 @@ To match a pattern `p` against a value `v`:
     3.  Let `t` be the number of non-rest elements following the rest element if
         there is one, or `0` otherwise.
 
-    4.  Check the length. If `p` is empty or has any non-rest elements:
+    4.  Check the length:
 
-        *We only call `length` on the list if needed. If the pattern is `[...]`,
-        then any length is allowed, so we don't even check it..*
+        1.  If `p` has a rest element and `h + t == 0`, then do nothing for
+            checking the length.
 
-        1.  Let `l` be the length of the list determined by calling `length` on
-            `v`.
+            *We only call `length` on the list if needed. If the pattern is
+            `[...]`, then any length is allowed, so we don't even ask the list
+            for it.*
 
-        2.  If `p` has a rest element and `h + t > 0`:
+        2.  Else let `l` be the length of the list determined by calling
+            `length` on `v`.
+
+        3.  If `p` has a rest element *(and `h + t > 0`)*:
 
             1.  If `l < h + t` then the match fails.
 
             *When there are non-rest elements and a rest element, the list must
             be at least long enough to match the non-rest elements.*
 
-        3.  Else if `h + t > 0` *(and `p` has no rest element)*:
+        4.  Else if `h + t > 0` *(and `p` has no rest element)*:
 
             1.  If `l != h + t` then the match fails.
 
             *If there are only non-rest elements, then the list must have
             exactly the same number of elements.*
 
-        4.  Else `p` is empty:
+        5.  Else `p` is empty:
 
             1.  If `l > 0` then the match fails.
 
@@ -3004,29 +3004,33 @@ To match a pattern `p` against a value `v`:
 
     2.  Let `n` be the number of non-rest elements.
 
-    3.  Check the length. If `p` is empty or has any non-rest elements:
+    3.  Check the length:
 
-        *We only call `length` on the map if needed. If the pattern is `{...}`,
-        then any length is allowed, so we don't even check it.*
+        1.  If `p` has a rest element and `n == 0`, then do nothing for checking
+            the length.
 
-        1.  Let `l` be the length of the map determined by calling `length` on
-            `v`.
+            *We only call `length` on the map if needed. If the pattern is
+            `{...}`, then any length is allowed, so we don't even ask the map
+            for it.*
 
-        2.  If `p` has a rest element and `n > 0`:
+        2.  Else let `l` be the length of the map determined by calling `length`
+            on `v`.
+
+        3.  If `p` has a rest element *(and `n > 0`)*:
 
             1.  If `l < n` then the match fails.
 
             *When there are non-rest elements and a rest element, the map must
             be at least long enough to match the non-rest elements.*
 
-        3.  Else if `n > 0` *(and `p` has no rest element)*:
+        4.  Else if `n > 0` *(and `p` has no rest element)*:
 
             1.  If `l != n` then the match fails.
 
             *If there are only non-rest elements, then the map must have exactly
             the same number of elements.*
 
-        4.  Else `p` is empty:
+        5.  Else `p` is empty:
 
             1.  If `l > 0` then the match fails.
 
@@ -3413,14 +3417,14 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
 *   **Record**:
 
-    1.  For each field `f` in `p`:
+    1.  For each field in `p`:
 
         1.  Let `f` be `i : (field, [])` where `field` is the corresponding
             getter name for the field.
 
-        2.  Bind `e` to the field accessor for this field.
+        2.  Bind `f` to the field accessor for this field.
 
-        3.  Bind invocations in the field subpattern using parent `e`.
+        3.  Bind invocations in the field subpattern using parent `f`.
 
 *   **Object**:
 
