@@ -2233,7 +2233,7 @@ appears:
     }
     ```
 
-*   **Pattern-for statement**, **pattern-for-in element**, **pattern-for
+*   **Pattern-for-in statement**, **pattern-for-in element**, **pattern-for
     statement**, **pattern-for element**: Scoping follows the normal for and
     for-in statement and elements scoping rules where the variable (now
     variables) are bound in a new scope for each loop iteration. All pattern
