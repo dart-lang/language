@@ -319,11 +319,11 @@ does `MySubclass` now expose externally? We have a few options:
     a restriction to some type and temporarily ignore it, the language continues
     to enforce that restriction externally all throughout the subtype hierarchy.
 
-    This means that you can't just look at a single type declaration to see what
-    you're allowed to do with it. You have to walk up the hierarchy looking for
-    modifiers. I think it's important for users to be able to quickly tell what
-    they can do with a type just by looking at its declaration, so I don't like
-    this.
+    This means that you cannot just look at a single type declaration to see
+    what you're allowed to do with it. You have to walk up the hierarchy looking
+    for modifiers. I think it's important for users to be able to quickly tell
+    what they can do with a type just by looking at its declaration, so I don't
+    like this.
 
 *   **No inherited restrictions.** The simplest option is to say that each type
     gets whatever restrictions you put on it. Since `MySubclass` has no
@@ -335,7 +335,7 @@ does `MySubclass` now expose externally? We have a few options:
     which is permissive by default. Right now, you can make a class effectively
     `interface` by giving it only private generative constructors. Since there's
     no way for a class outside of the library to call one of those constructors,
-    it can't be extended externally. But you could subclass it inside the
+    it cannot be extended externally. But you could subclass it inside the
     library with a new class that calls that private generative constructor from
     its own public one. That subclass is now externally extensible and the
     language quietly lets you do that.
@@ -371,7 +371,7 @@ does `MySubclass` now expose externally? We have a few options:
     It allows you to define new subclasses of the various modalities. You can
     add cars, bikes, canoes, and gliders to it. But it deliberately does not
     want to support adding entire new modalities by extending `Vehicle`
-    directly. You can't add vehicles that, say, fly through space because the
+    directly. You cannot add vehicles that, say, fly through space because the
     library isn't designed to support that.
 
     If we require subclasses to have the same restrictions, then there's no way
@@ -463,7 +463,7 @@ have the `_private()` method that lib_a.dart expects.
 So we want to allow libraries to ignore restrictions on their own types, but we
 need to be careful that doing so doesn't break invariants in *other* libraries.
 In practice, this means that when a class opts out of being implemented using
-`base` or `final`, then that particular restriction can't be ignored.
+`base` or `final`, then that particular restriction cannot be ignored.
 
 ## Mixin classes
 
@@ -511,17 +511,17 @@ Many combinations don't make sense:
 
 *   `base`, `interface`, and `final` all control the same two capabilities so
     are mutually exclusive.
-*   `sealed` types can't be constructed so it's redundant to combine with
+*   `sealed` types cannot be constructed so it's redundant to combine with
     `abstract`.
-*   `sealed` types can't be extended or implemented, so it's redundant to
+*   `sealed` types cannot be extended or implemented, so it's redundant to
     combine with `final`.
-*   `sealed` types can't be extended so it contradicts `base`.
-*   `sealed` types can't be implemented, so it contradicts `interface`.
-*   `sealed` types can't be mixed in outside of their library, so it contradicts
-    `mixin` on a class. *It's useful to allow `sealed` on a mixin declaration
-    because the mixin can be applied within the same library. But a class can
-    already be used as a mixin within its own library even without the `mixin`
-    modifier, so allowing `sealed mixin class` adds nothing.*
+*   `sealed` types cannot be extended so it contradicts `base`.
+*   `sealed` types cannot be implemented, so it contradicts `interface`.
+*   `sealed` types cannot be mixed in outside of their library, so it
+    contradicts `mixin` on a class. *It's useful to allow `sealed` on a mixin
+    declaration because the mixin can be applied within the same library. But a
+    class can already be used as a mixin within its own library even without the
+    `mixin`, so allowing `sealed mixin class` adds nothing.*
 *   `interface` and `final` classes prevent the class from being used as a
     superclass but mixing in a mixin class also makes the class a superclass, so
     they contradict the `mixin` modifier. *An `interface mixin class M {}` would
@@ -532,7 +532,7 @@ Many combinations don't make sense:
 *   `mixin` as a modifier cannot be applied to a mixin-application `class`
     declaration (the `class C = S with M;` syntax for declaring a class). The
     remaining modifiers can.
-*   Mixin declarations can't be constructed, so `abstract` is redundant.
+*   Mixin declarations cannot be constructed, so `abstract` is redundant.
 
 The remaining valid combinations and their capabilities are:
 
@@ -657,12 +657,12 @@ It is a compile-time error to:
     class C3 with SM {} // Error.
     ```
 
-A typedef can't be used to subvert these restrictions or any of the restrictions
-below. When extending, implementing, or mixing in a typedef, we look at the
-library where class or mixin the typedef resolves to is defined to determine if
-the behavior is allowed. *Note that the library where the _typedef_ is defined
-does not come into play. Typedefs cannot be marked with any of the new
-modifiers.*
+A typedef cannot be used to subvert these restrictions or any of the
+restrictions below. When extending, implementing, or mixing in a typedef, we
+look at the library where class or mixin the typedef resolves to is defined to
+determine if the behavior is allowed. *Note that the library where the _typedef_
+is defined does not come into play. Typedefs cannot be marked with any of the
+new modifiers.*
 
 ### Disallowing implementation
 
@@ -678,13 +678,18 @@ the class's interface inside the same library, but the implementing class must
 again be marked `base`, `final`, or `sealed` to avoid it exposing an
 implementable interface.*
 
+We say that `S` is a _direct declared superinterface_ of a class, mixin, or
+mixin class declaration `D` if `D` has a superclass of the form
+`C with M1 .. Mk` and `S` is `C`, or `S` is `Mj` for some `j` in 1 .. k, or if
+`D` has an `implements` or `on` clause and `S` occurs as one of the operands of
+that clause.
+
 Further, while you can ignore some restrictions on declarations within the same
-library, you can't use that to ignore restrictions inherited from other
+library, you cannot use that to ignore restrictions inherited from other
 libraries.
 
-We say a class or mixin declaration `D` *can't be implemented locally* if it
-has a direct superinterface `S` due to an `extends`, `implements`, or `with`
-clause (*note that `on S` does not count*) such that:
+We say a class or mixin declaration `D` *cannot be implemented locally* if it
+has a direct declared superinterface `S` such that:
 
 *   `S` is from another library than `D`, and `S` has the modifier `base`,
     `final` or `sealed`, or
@@ -696,16 +701,13 @@ clause (*note that `on S` does not count*) such that:
     // b.dart
     import 'a.dart';
 
-    // These can't be implemented locally:
+    // These cannot be implemented locally:
     sealed class DE extends S {}
     final class DM with S {}
-
-    // MO can be implemented locally.
     base mixin MO on S {}
-    base class CMO implements MO {} // !!!TODO!!! We want to prevent CMO.
     ```
 
-*   `S` is from the same library as `D`, and `S` can't be implemented locally.
+*   `S` is from the same library as `D`, and `S` cannot be implemented locally.
 
     ```dart
     // a.dart
@@ -714,25 +716,22 @@ clause (*note that `on S` does not count*) such that:
     // b.dart
     import 'a.dart';
 
-    // S can't be implemented locally (from the previous rule):
+    // These cannot be implemented locally (from the previous rule):
     base class S extends B {}
-    // M can be implemented locally.
     base mixin M on B {}
 
-    // And thus these also can't be implemented locally:
-    base class DE extends S {} // (this rule).
-    base class DM extends B with M {} // (previous rule).
-
-    // MO can be implemented locally.
+    // And thus these also cannot be implemented locally:
+    base class DE extends S {}
+    base class DM extends B with M {} // (from this and the previous rule).
     base mixin MO on S {}
-    base class CMO implements MO {} // !!!TODO!!! We want to prevent CMO.
+    base mixin M2 on M {}
     ```
 
 Otherwise, `D` can be implemented locally. It is a compile-time error if:
 
-*   A class, mixin, or mixin class declaration `D` has a clause of the form
-    `implements ... S ...`, where `S` is a class, mixin, or mixin class
-    declaration declared in the same library as `D`, and `S` can't be
+*   A class, mixin, or mixin class declaration `D` has an `implements` clause
+    where `S` is an operand, and `S` is a class, mixin, or mixin class
+    declaration declared in the same library as `D`, and `S` cannot be
     implemented locally.
 
     ```dart
@@ -742,9 +741,9 @@ Otherwise, `D` can be implemented locally. It is a compile-time error if:
     // b.dart
     import 'a.dart';
 
-    base class S extends B {} // Can't be implemented locally but OK.
+    base class S extends B {} // Cannot be implemented locally but OK.
 
-    base class D implements S {} // Error, can't use "implements".
+    base class D implements S {} // Error, cannot use "implements".
     ```
 
 ### Mixin restrictions
@@ -818,10 +817,11 @@ non-`mixin` class declaration `D` from library `K` if any of:
 
 *   `K` is a pre-feature library, and `D` declares any constructors, or
 
-    *For pre-feature libraries, we can't tell if the intent of `class` was "just
-    a class" or "both a class and a mixin". For compatibility, we assume the
-    latter, even if the class is being used as a mixin in a post-feature library
-    and where it does happen to be possible to distinguish those two intents.*
+    *For pre-feature libraries, we cannot tell if the intent of `class` was
+    "just a class" or "both a class and a mixin". For compatibility, we assume
+    the latter, even if the class is being used as a mixin in a post-feature
+    library where it does happen to be possible to distinguish those two
+    intents.*
 
 *   `K` is a post-feature library, and any of:
 
@@ -892,7 +892,7 @@ non-breaking.
 When upgrading your library to the new language version, you can preserve the
 previous behavior by adding `mixin` to every class declaration that can be used
 as a mixin. If the class defines a generative constructor or extends anything
-other than `Object`, then it already can't be used as a mixin and no change is
+other than `Object`, then it already cannot be used as a mixin and no change is
 needed.
 
 ## Changelog
