@@ -606,7 +606,7 @@ It is a compile-time error to:
     class C3 extends S {} // Error.
     ```
     
-*   Implement the interface of a class or mixin marked `base`, `final` or
+*   Implement the interface of a class, mixin, or mixin class marked `base`, `final` or
     `sealed` outside of the library where it is declared.
 
     ```dart
@@ -665,7 +665,7 @@ modifiers.*
 
 ### Disallowing implementation
 
-It is a compile-time error if a subtype of a declaration is marked `base` or
+It is a compile-time error if a subtype of a declaration marked `base` or
 `final` is not marked `base`, `final`, or `sealed`. This restriction applies to
 both direct and indirect subtypes and along all paths that introduce subtypes:
 `implements` clauses, `extends` clauses, `with` clauses, and `on` clauses. This
@@ -682,7 +682,7 @@ library, you can't use that to ignore restrictions inherited from other
 libraries.
 
 We say a class or mixin declaration `D` *can't be implemented locally* if it
-extends, mixes in, implements, or has as on type any declaration `S` where:
+has a direct superinterface `S` (*`extends S`, `with S`, `implements S`, or `on S`*) such that:
 
 *   `S` is from another library than `D`, and `S` has the modifier `base`,
     `final` or `sealed`, or
@@ -714,7 +714,7 @@ extends, mixes in, implements, or has as on type any declaration `S` where:
 
     // And thus these also can't be implemented locally (from this rule):
     base class DE extends S {}
-    base class DM with S {}
+    base class DM extends B with M {}
     base class DI implements S {}
     base mixin MO on S {}
     ```
@@ -748,8 +748,8 @@ Otherwise, `D` can be implemented locally. It is a compile-time error if:
     class D extends S {} // Error, needs `base`, `final`, or `sealed`.
     ```
 
-*   A class or mixin declaration `D` implements the interface of a class or
-    mixin declaration `S`, declared in the same library as `D`, and `S` can't be
+*   A class, mixin, or mixin class declaration `D` has `implements ... S ...`, where `S` is a class,
+    mixin, or mixin class declaration declared in the same library as `D`, and `S` can't be
     implemented locally.
 
     ```dart
@@ -823,7 +823,7 @@ It's a compile-time error if:
 These rules ensure that when you mark a `class` with `mixin` that it *can* be
 used as one.
 
-A class not marked `mixin` can still be used as a mixins when the class's
+A class not marked `mixin` can still be used as a mixin when the class's
 declaration is in a pre-feature library. Post-feature libraries can also mix in
 their own classes that aren't marked `mixin` as long as the class supports it.
 Specifically:
