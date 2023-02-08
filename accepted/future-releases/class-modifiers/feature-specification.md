@@ -21,7 +21,7 @@ Informally, the new syntax is:
     implemented. As a modifier on a mixin, allows it to be mixed in but not
     implemented. In other words, it takes away being able to implement
     the interface of the declaration.
-    
+
 *   `interface`: As a modifier on a class or mixin, allows the type to be
     implemented but not extended or mixed in. In other words, it takes away
     being able to inherit from the type.
@@ -246,8 +246,8 @@ that supertype from within the same library.
 
 In return for that restriction, in a switch, if you cover all of those subtypes,
 then the compiler knows that you have [exhaustively][exhaustive] covered all
-possible instances of the supertype. This is a big part of enabling a [functional
-programming style][fp] in Dart.
+possible instances of the supertype. This is a big part of enabling a
+[functional programming style][fp] in Dart.
 
 [exhaustive]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
 
@@ -362,7 +362,7 @@ does `MySubclass` now expose externally? We have a few options:
 
     ```dart
     abstract final class Vehicle {}
-    
+
     class LandVehicle extends Vehicle {}
     class AquaticVehicle extends Vehicle {}
     class FlyingVehicle extends Vehicle {}
@@ -501,7 +501,8 @@ class UsesAsMixin extends OtherSuperclass with Both {} // OK.
 
 This proposal builds on the existing sealed types proposal so the grammar
 includes those changes. The full set of modifiers that can appear before a class
-or mixin declaration are `abstract`, `sealed`, `base`, `interface`, `final`, and `mixin`.
+or mixin declaration are `abstract`, `sealed`, `base`, `interface`, `final`, and
+`mixin`.
 
 *The modifiers do not apply to other declarations like `enum`, `typedef`, or
 `extension`.*
@@ -526,8 +527,8 @@ Many combinations don't make sense:
     they contradict the `mixin` modifier. *An `interface mixin class M {}` would
     be prohibited from appearing in an `extends` clause but could still be in
     `extends Object with M` which has the exact same effect.*
-*   `mixin` as a modifier can obviously only be applied to a `class` declaration, 
-    which makes it also a `mixin` declaration.
+*   `mixin` as a modifier can obviously only be applied to a `class`
+    declaration, which makes it also a `mixin` declaration.
 *   `mixin` as a modifier cannot be applied to a mixin-application `class`
     declaration (the `class C = S with M;` syntax for declaring a class). The
     remaining modifiers can.
@@ -605,9 +606,9 @@ It is a compile-time error to:
     class C2 extends F {} // Error.
     class C3 extends S {} // Error.
     ```
-    
-*   Implement the interface of a class, mixin, or mixin class marked `base`, `final` or
-    `sealed` outside of the library where it is declared.
+
+*   Implement the interface of a class, mixin, or mixin class marked `base`,
+    `final` or `sealed` outside of the library where it is declared.
 
     ```dart
     // a.dart
@@ -630,7 +631,7 @@ It is a compile-time error to:
     class C2 implements FM {} // Error.
     class C3 implements SM {} // Error.
     ```
-    
+
 *   Mix in a mixin or mixin class marked `interface`, `final` or `sealed`
     outside of the library where it is declared.
 
@@ -682,7 +683,8 @@ library, you can't use that to ignore restrictions inherited from other
 libraries.
 
 We say a class or mixin declaration `D` *can't be implemented locally* if it
-has a direct superinterface `S` (*`extends S`, `with S`, `implements S`, or `on S`*) such that:
+has a direct superinterface `S` due to an `extends`, `implements`, or `with`
+clause (*note that `on S` does not count*) such that:
 
 *   `S` is from another library than `D`, and `S` has the modifier `base`,
     `final` or `sealed`, or
@@ -695,9 +697,12 @@ has a direct superinterface `S` (*`extends S`, `with S`, `implements S`, or `on 
     import 'a.dart';
 
     // These can't be implemented locally:
-    class DE extends S {}
-    class DM with S {}
-    mixin MO on S {}
+    sealed class DE extends S {}
+    final class DM with S {}
+
+    // MO can be implemented locally.
+    base mixin MO on S {}
+    base class CMO implements MO {} // !!!TODO!!! We want to prevent CMO.
     ```
 
 *   `S` is from the same library as `D`, and `S` can't be implemented locally.
@@ -709,47 +714,25 @@ has a direct superinterface `S` (*`extends S`, `with S`, `implements S`, or `on 
     // b.dart
     import 'a.dart';
 
-    // This can't be implemented locally (from the previous rule):
-    base mixin class S extends B {}
+    // S can't be implemented locally (from the previous rule):
+    base class S extends B {}
+    // M can be implemented locally.
+    base mixin M on B {}
 
-    // And thus these also can't be implemented locally (from this rule):
-    base class DE extends S {}
-    base class DM extends B with M {}
-    base class DI implements S {}
+    // And thus these also can't be implemented locally:
+    base class DE extends S {} // (this rule).
+    base class DM extends B with M {} // (previous rule).
+
+    // MO can be implemented locally.
     base mixin MO on S {}
+    base class CMO implements MO {} // !!!TODO!!! We want to prevent CMO.
     ```
 
 Otherwise, `D` can be implemented locally. It is a compile-time error if:
 
-*   A class or mixin declaration `D` can't be implemented locally, and `D` is
-    not marked `base`, `final` or `sealed`.
-
-    ```dart
-    // a.dart
-    base class B {}
-
-    // b.dart
-    import 'a.dart';
-
-    class D extends B {} // Error, needs `base`, `final`, or `sealed`.
-    ```
-
-    *Also:*
-
-    ```dart
-    // a.dart
-    base class B {}
-
-    // b.dart
-    import 'a.dart';
-
-    base class S extends B {} // Can't be implemented locally but OK.
-
-    class D extends S {} // Error, needs `base`, `final`, or `sealed`.
-    ```
-
-*   A class, mixin, or mixin class declaration `D` has `implements ... S ...`, where `S` is a class,
-    mixin, or mixin class declaration declared in the same library as `D`, and `S` can't be
+*   A class, mixin, or mixin class declaration `D` has a clause of the form
+    `implements ... S ...`, where `S` is a class, mixin, or mixin class
+    declaration declared in the same library as `D`, and `S` can't be
     implemented locally.
 
     ```dart
@@ -864,11 +847,8 @@ A metadata annotation `@reopen` is added to package [meta][] and a lint
 "require_reopen" is added to the [linter][]. When the lint is enabled, a lint
 warning is reported if a class or mixin is not annotated `@reopen` and it:
 
-*   Extends or mixes in a class or mixin marked `interface` or `final` and is
-    not itself marked `interface` or `final`.
-
-*   Extends, implements, or mixes in a class or mixin marked `base` or `final`
-    and is not itself marked `base`, `final`, or `sealed`.
+*   Extends or mixes in a class, mixin, or mixin class marked `interface` or
+    `final` and is not itself marked `interface` or `final`.
 
 [meta]: https://pub.dev/packages/meta
 [linter]: https://dart.dev/guides/language/analysis-options#enabling-linter-rules
@@ -903,6 +883,9 @@ non-breaking.
     by those restrictions when they upgrade their library's language version.
 
     This is a special case behavior only available to platform libraries.
+    Package libraries should use versioning to to introduce breaking
+    restrictions instead, and those libraries can then rely on the restrictions
+    being enforced.
 
 ### Compatibility
 
