@@ -522,7 +522,7 @@ Many combinations don't make sense:
     declaration because the mixin can be applied within the same library.
     A `sealed mixin class`  does not provide any significant extra
     functionality over a `sealed mixin`, you can replace `extends MixinClass`
-    with `with Mixin`, so a `sealed mixin class` it’s not allowed.*
+    with `with Mixin`, so a `sealed mixin class` is not allowed.*
 *   `interface` and `final` classes would prevent a mixin class from being used as a
     superclass or mixin outside of its library. _Like for `sealed`, an `interface` or `final`
     `mixin class` is not allowed, and an `interface` or `final` `mixin` declaration is
@@ -749,8 +749,8 @@ It is a compile-time error if:
     base class D implements S {} // Error, cannot use "implements".
     ```
 
-*   A class, mixin, or mixin class declaration `D` cannot be implement locally,
-    and `D` does not have a `base`, `final` or `sealed` modifier.
+*   A class, mixin, or mixin class declaration `D` cannot be implemented
+    locally, and `D` does not have a `base`, `final` or `sealed` modifier.
     _A declaration which cannot be implemented locally also cannot
     be allowed to be implemented in another library._
 
