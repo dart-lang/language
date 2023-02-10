@@ -2337,7 +2337,7 @@ sets) is:
         captures a case variable in a closure in the guard:*
 
         ```dart
-        Function captured;
+        late Function captured;
 
         bool capture(Function closure) {
           captured = closure;
