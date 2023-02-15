@@ -2,13 +2,13 @@
 
 Author: eernst@google.com
 
-Status: Draft
+Status: Obsolete
 
 **This proposal is now obsolete. The mechanism has been renamed to _inline
-classes_. Please see the [inline class PR][2] for the most recent proposed
+classes_. Please see the [inline classes specification][2] for the most recent proposed
 specification.**
 
-[2]: https://github.com/dart-lang/language/pull/2626
+[2]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/inline-classes/feature-specification.md
 
 
 ## Change Log
