@@ -4,7 +4,7 @@ Author: Bob Nystrom, Lasse Nielsen
 
 Status: Accepted
 
-Version 1.4
+Version 1.5
 
 Experiment flag: class-modifiers
 
@@ -523,10 +523,10 @@ Many combinations don't make sense:
     A `sealed mixin class`  does not provide any significant extra
     functionality over a `sealed mixin`, you can replace `extends MixinClass`
     with `with Mixin`, so a `sealed mixin class` is not allowed.*
-*   `interface` and `final` classes would prevent a mixin class from being used as a
-    superclass or mixin outside of its library. _Like for `sealed`, an `interface` or `final`
-    `mixin class` is not allowed, and an `interface` or `final` `mixin` declaration is
-    recommended instead._
+*   `interface` and `final` classes would prevent a mixin class from being used
+    as a superclass or mixin outside of its library. *Like for `sealed`, an
+    `interface mixin class` and `final mixin class` are not allowed, and
+    `interface mixin` and `final mixin` declaration are recommended instead.*
 *   `mixin` as a modifier can obviously only be applied to a `class`
     declaration, which makes it also a `mixin` declaration.
 *   `mixin` as a modifier cannot be applied to a mixin-application `class`
@@ -560,14 +560,15 @@ The remaining valid combinations and their capabilities are:
 The grammar is:
 
 ```
-classDeclaration  ::= classModifiers 'class' identifier typeParameters?
-                      superclass? interfaces?
+classDeclaration  ::= classModifiers | mixinClassModifiers 'class' identifier
+                      typeParameters? superclass? interfaces?
                       '{' (metadata classMemberDeclaration)* '}'
                       | classModifiers 'class' mixinApplicationClass
 
 classModifiers    ::= 'sealed'
                     | 'abstract'? ('base' | 'interface' | 'final')?
-                    | 'abstract'? 'base'? 'mixin'
+
+mixinClassModifiers ::= 'abstract'? 'base'? 'mixin'
 
 mixinDeclaration  ::= mixinModifier? 'mixin' identifier typeParameters?
                       ('on' typeNotVoidList)? interfaces?
@@ -770,15 +771,16 @@ Define a *trivial generative constructor* to be a generative constructor that:
 
 *   declares no parameters,
 
-*   has no initializer list (no `: ...` part, so no asserts or initializers, and no super constructor invocation),
+*   has no initializer list (no `: ...` part, so no asserts or initializers, and
+    no super constructor invocation),
 
 *   has no body (only `;`), and
 
 *   is not `external`. *An `external` constructor is considered to have an
     externally provided initializer list and/or body.*
 
-A trivial constructor may be named or unnamed, and `const` or non-`const`.
-A *non-trivial generative constructor* is a generative constructor which is not a
+A trivial constructor may be named or unnamed, and `const` or non-`const`. A
+*non-trivial generative constructor* is a generative constructor which is not a
 trivial generative constructor.
 
 Examples:
@@ -932,6 +934,11 @@ other than `Object`, then it already cannot be used as a mixin and no change is
 needed.
 
 ## Changelog
+
+1.5
+
+- Fix mixin application grammar to match prose where `mixin` can't be applied
+  to a mixin application class.
 
 1.4
 
