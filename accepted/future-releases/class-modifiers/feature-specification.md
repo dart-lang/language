@@ -570,7 +570,7 @@ classModifiers    ::= 'sealed'
 
 mixinClassModifiers ::= 'abstract'? 'base'? 'mixin'
 
-mixinDeclaration  ::= mixinModifier? 'mixin' identifier typeParameters?
+mixinDeclaration  ::= mixinModifier? 'mixin' typeIdentifier typeParameters?
                       ('on' typeNotVoidList)? interfaces?
                       '{' (metadata classMemberDeclaration)* '}'
 
