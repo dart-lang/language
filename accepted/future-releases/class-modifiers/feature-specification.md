@@ -560,7 +560,7 @@ The remaining valid combinations and their capabilities are:
 The grammar is:
 
 ```
-classDeclaration  ::= classModifiers | mixinClassModifiers 'class' identifier
+classDeclaration  ::= (classModifiers | mixinClassModifiers) 'class' typeIdentifier
                       typeParameters? superclass? interfaces?
                       '{' (metadata classMemberDeclaration)* '}'
                       | classModifiers 'class' mixinApplicationClass
