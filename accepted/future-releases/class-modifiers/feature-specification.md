@@ -779,8 +779,8 @@ Define a *trivial generative constructor* to be a generative constructor that:
 *   is not `external`. *An `external` constructor is considered to have an
     externally provided initializer list and/or body.*
 
-A trivial constructor may be named or unnamed, and `const` or non-`const`. A
-*non-trivial generative constructor* is a generative constructor which is not a
+A trivial constructor may be named or unnamed, and `const` or non-`const`.
+A *non-trivial generative constructor* is a generative constructor which is not a
 trivial generative constructor.
 
 Examples:
