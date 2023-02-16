@@ -451,7 +451,7 @@ value. We don't allow all expressions here because many expression forms
 syntactically overlap other kinds of patterns. We avoid ambiguity while
 supporting terse forms of the most common constant expressions like so:
 
-*   Simple "primitive" literals like Booleans and numbers are valid patterns
+*   Simple "primitive" literals like booleans and numbers are valid patterns
     since they aren't ambiguous. We also allow unary `-` expressions on
     numeric literals since users think of `-2` as a single literal and not the
     literal `2` with a unary `-` applied to it (which is how the language
@@ -2548,7 +2548,7 @@ fail in some way.*
         other cases).
 
     2.  If there is a guard clause, evaluate it. If it does not evaluate to a
-        Boolean, throw a runtime error. *This can happen if the guard
+        `bool`, throw a runtime error. *This can happen if the guard
         expression's type is `dynamic`.* If it evaluates to `false`, continue to
         the next case (or default or exit).
 
@@ -2592,7 +2592,7 @@ fail in some way.*
         to the next case.
 
     2.  If there is a guard clause, evaluate it. If it does not evaluate to a
-        Boolean, throw a runtime error. If it evaluates to `false`, continue to
+        `bool`, throw a runtime error. If it evaluates to `false`, continue to
         the next case.
 
     3.  Evaluate the expression after the case and yield that as the result of
@@ -2736,7 +2736,7 @@ Where `<keyword>` is `var` or `final` is treated like so:
 
     1.  If there is a guard clause:
 
-        1.  Evaluate it. If it does not evaluate to a Boolean, throw a runtime
+        1.  Evaluate it. If it does not evaluate to a `bool`, throw a runtime
             error. *This can happen if the guard expression's type is
             `dynamic`.*
 
@@ -2758,7 +2758,7 @@ Where `<keyword>` is `var` or `final` is treated like so:
 
     1.  If there is a guard clause:
 
-        1.  Evaluate it. If it does not evaluate to a Boolean, throw a runtime
+        1.  Evaluate it. If it does not evaluate to a `bool`, throw a runtime
             error. *This can happen if the guard expression's type is
             `dynamic`.*
 
@@ -2816,7 +2816,7 @@ To match a pattern `p` against a value `v`:
 
         2.  The pattern matches if `r` is true and fails otherwise. *This takes
             into account the built-in semantics that `null` is only equal to
-            `null`. The result will always be a Boolean since operator `==` on
+            `null`. The result will always be a `bool` since operator `==` on
             Object is declared to return `bool`.*
 
     2.  Else if the operator is `!=`:
@@ -2831,7 +2831,7 @@ To match a pattern `p` against a value `v`:
 
         1.  Let `r` be the result of calling `op` on `v` with argument `c`.
 
-        2.  If `r` is not a Boolean then throw a runtime error. *This can happen
+        2.  If `r` is not a `bool` then throw a runtime error. *This can happen
             if the operator on `v`'s type returns `dynamic`.*
 
         3.  The pattern matches if `r` is true and fails otherwise.
@@ -3510,7 +3510,7 @@ Here is one way it could be broken down into separate pieces:
     *   Pattern-if statements
 
 *   **Logical patterns.** If we're going to add `==` patterns, we may as well
-    support other Boolean infix operators. And if we're going to support the
+    support other boolean infix operators. And if we're going to support the
     comparison operators, then `&&` is useful for numeric ranges. It's weird to
     have `&&` without `||` so we may as well do that too (and it's useful for
     switch expressions). Once we have infix patterns precedence comes into play,
