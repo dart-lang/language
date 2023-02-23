@@ -41,9 +41,10 @@ same type even though the libraries are not coupled to each other.
 ## Introduction
 
 Many languages, especially those with a static functional heritage, have
-**[tuple][]** or **product** types:
+**[tuple][]** or **[product][]** types:
 
-[tuple]: https://en.wikipedia.org/wiki/Product_type
+[tuple]: https://en.wikipedia.org/wiki/Tuple
+[product]: https://en.wikipedia.org/wiki/Product_type
 
 ```dart
 var tuple = ("first", 2, true);
