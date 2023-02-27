@@ -878,7 +878,7 @@ so this part of the proposal will not become a formal part of the language.
 Instead, it's a suggested part of the overall user experience of the feature.
 
 A metadata annotation `@reopen` is added to package [meta][] and a lint
-"require_reopen" is added to the [linter][]. When the lint is enabled, a lint
+"implicit_reopen" is added to the [linter][]. When the lint is enabled, a lint
 warning is reported if a class or mixin is not annotated `@reopen` and it:
 
 *   Extends or mixes in a class, mixin, or mixin class marked `interface` or
