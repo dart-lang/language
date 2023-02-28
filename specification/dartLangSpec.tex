@@ -35,6 +35,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Feb 2023
+% - Change the specification of constant expressions of the form `e1 == e2`
+%   to use primitive equality.
+%
 % Dec 2022
 % - Change the definition of the type function 'flatten' to resolve soundness
 %   issue, cf. SDK issue #49396.
@@ -8274,11 +8278,11 @@ are the following:
 \item
   An expression of the form \code{$e_1$\,==\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
-  It is further constant if both $e_1$ and $e_2$ are constant and
-  either $e_1$ evaluates to an object that is an instance of
-  \code{int}, \code{double}, \code{String}, \code{bool} or \code{Null},
-  or if $e_2$ evaluates to the null object (\ref{null}).
-  %TODO: Consider adding enum instances here.
+  It is further constant if both $e_1$ and $e_2$ are constant, and
+  either $e_1$ has primitive equality
+  (\ref{theOperatorEqualsEquals}),
+  or $e_2$ evaluates to the null object
+  (\ref{null}).
 
 \item
   An expression of the form \code{!$e_1$} is potentially constant
