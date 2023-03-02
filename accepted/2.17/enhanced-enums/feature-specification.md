@@ -98,7 +98,7 @@ The semantics of such an enum declaration, *E* with name *N*, is defined as intr
 
 * **Superinterfaces**: The immediate superinterfaces of *C* are the interface of the superclass and the interfaces declared by `implements` in *E*.
 
-  * If `E` is declared as `enum Name with Mixin1, Mixin2 implements Type1, Type2 { … }` then the immediate superinterfaces of *C* are the interfaces of `Name with Mixin1, Mixin2`, `Type1` and `Type2`.
+  * If `E` is declared as `enum Name with Mixin1, Mixin2 implements Type1, Type2 { … }` then the immediate superinterfaces of *C* are the interfaces of `Enum with Mixin1, Mixin2`, `Type1` and `Type2`.
 
 - **Declared members**: For each member declaration of the `enum` declaration *E*, the same member is added to the class *C*. This includes constructors (which must be `const` generative or non-`const` factory constructors.)
 
