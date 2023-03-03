@@ -20120,13 +20120,13 @@ Dart supports static typing based on interface types.
 
 \rationale{%
 The type system is sound in the sense that
-if a variable of type $T$ refers to an object of type $S$ at run time
+if a variable of type $T$ refers to an object of type $S$ at run time,
 then $S$ is a subtype of $T$.
 In other words, the contents of the heap satisfies the expectations
 expressed by static typing.
 
 However, type parameters are covariant
-(for example \SubtypeNE{\code{List<int>}}{List<num>})
+(e.g., \SubtypeNE{\code{List<int>}}{\code{List<num>}})
 and this implies that certain operations are subject to dynamic type checks
 (such as \code{myList.add(1.5)}, which will throw at run time
 if \code{myList} has declared type \code{List<num>},
