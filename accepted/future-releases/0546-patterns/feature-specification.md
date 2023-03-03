@@ -2102,7 +2102,8 @@ If `p` with required type `T` is in an irrefutable context:
     the value as a target or argument.
 
     If a coercion is inserted, this yields a new matched value type which is
-    the value of `M` used in the next step.
+    the value of `M` used in the next step. If no coercion is inserted, the
+    next step proceeds with the already given `M`.
 
     *Each pattern that requires a certain type can be thought of as an
     "assignment point" where an implicit coercion may happen when a value flows
