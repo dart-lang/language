@@ -20116,15 +20116,31 @@ This means it is dependent on the runtime.%
 \LMLabel{types}
 
 \LMHash{}%
-Dart supports optional typing based on interface types.
+Dart supports static typing based on interface types.
 
 \rationale{%
-The type system is unsound, due to the covariance of generic classes.
-This is a deliberate choice (and undoubtedly controversial).
-Experience has shown that sound type rules for generics
-fly in the face of programmer intuition.
-It is easy for tools to provide a sound type analysis if they choose,
-which may be useful for tasks like refactoring.%
+The type system is sound in the sense that
+if a variable of type $T$ refers to an object of type $S$ at run time,
+then $S$ is a subtype of $T$.
+In other words, the contents of the heap satisfies the expectations
+expressed by static typing.
+
+However, type parameters are covariant
+(e.g., \SubtypeNE{\code{List<int>}}{\code{List<num>}})
+and this implies that certain operations are subject to dynamic type checks
+(such as \code{myList.add(1.5)}, which will throw at run time
+if \code{myList} has declared type \code{List<num>},
+but it is actually a \code{List<int>}).
+Hence, a program can be free of compile-time errors,
+and it may still incur a type error at run time.
+
+This choice was made deliberately during the early days of Dart
+(and it is undoubtedly controversial).
+It represents a trade-off where
+the potential for run-time type errors is the cost,
+and the benefit is simpler programs.
+In recent years, Dart has evolved to have more and more static type safety,
+e.g., null safety, and this trend is likely to continue.%
 }
 
 
