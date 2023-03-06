@@ -500,37 +500,30 @@ class UsesAsMixin extends OtherSuperclass with Both {} // OK.
 ## Syntax
 
 This proposal builds on the existing sealed types proposal so the grammar
-includes those changes. The full set of modifiers that can appear before a class
-or mixin declaration are `abstract`, `sealed`, `base`, `interface`, `final`, and
-`mixin`.
+includes those changes. The full set of modifiers that can appear before a class declaration are `abstract`, `sealed`, `base`, `interface`, `final`, and
+`mixin`. Only the `base` modifier can appear before a `mixin` declaration.
 
 *The modifiers do not apply to other declarations like `enum`, `typedef`, or
 `extension`.*
 
-Many combinations don't make sense:
+Some combinations don't make sense:
 
 *   `base`, `interface`, and `final` all control the same two capabilities so
     are mutually exclusive.
 *   `sealed` types cannot be constructed so it's redundant to combine with
     `abstract`.
-*   `sealed` types cannot be extended or implemented, so it's redundant to
-    combine with `final`, `base`, or `interface`.
-*   `sealed` types cannot be mixed in outside of their library, so it
-    contradicts `mixin` on a class. *It's useful to allow `sealed` on a mixin
-    declaration because the mixin can be applied within the same library.
-    A `sealed mixin class`  does not provide any significant extra
-    functionality over a `sealed mixin`, you can replace `extends MixinClass`
-    with `with Mixin`, so a `sealed mixin class` is not allowed.*
-*   `interface` and `final` classes would prevent a mixin class from being used
-    as a superclass or mixin outside of its library. *Like for `sealed`, an
-    `interface mixin class` and `final mixin class` are not allowed, and
-    `interface mixin` and `final mixin` declaration are recommended instead.*
+*   `sealed` types cannot be mixed in, extended or implemented,
+    so it's redundant to combine with `final`, `base`, or `interface`.
 *   `mixin` as a modifier can obviously only be applied to a `class`
-    declaration, which makes it also a `mixin` declaration.
+    declaration, which makes it also a introduce a mixin declaration.
 *   `mixin` as a modifier cannot be applied to a mixin-application `class`
     declaration (the `class C = S with M;` syntax for declaring a class). The
     remaining modifiers can.
+*   A `mixin` is intended to be mixed in, so it cannot be combined with an
+    `interface`, `final` or `sealed` modifier.
 *   Mixin declarations cannot be constructed, so `abstract` is redundant.
+
+_An `interface mixin class` seems redundant, because it disallows mixing in the declaration, so the `mixin` makes no difference for the AP. However, a `mixin` is required in order to mix in the declaration inside the same library, where the `interface` modifier’s restriction can be ignored. From outside the library, there is no distinction between `interface mixin class` and `interface class`, or even between `abstract interface mixin class`, `abstract interface class` and `interface mixin` declarations, as the following table also shows._
 
 The remaining valid combinations and their capabilities are:
 
@@ -547,8 +540,13 @@ The remaining valid combinations and their capabilities are:
 |`abstract final class`     |No     |No     |No     |No     |No     |
 |`mixin class`              |**Yes**|**Yes**|**Yes**|**Yes**|No     |
 |`base mixin class`         |**Yes**|**Yes**|No     |**Yes**|No     |
+|`interface mixin class`    |**Yes**|No     |**Yes**|No     |No     |
+|`final mixin class`        |**Yes**|No     |No     |No     |No     |
+|`sealed mixin class`       |No     |No     |No     |No     |**Yes**|
 |`abstract mixin class`     |No     |**Yes**|**Yes**|**Yes**|No     |
 |`abstract base mixin class`|No     |**Yes**|No     |**Yes**|No     |
+|`abstract interface mixin class`|No |No    |**Yes**|No     |No     |
+|`abstract final mixin class`|No    |No     |No     |No     |No     |
 |`mixin`                    |No     |No     |**Yes**|**Yes**|No     |
 |`base mixin`               |No     |No     |No     |**Yes**|No     |
 |`interface mixin`          |No     |No     |**Yes**|No     |No     |
@@ -656,20 +654,29 @@ It is a compile-time error to:
     class C3 with SM {} // Error.
     ```
 
-A typedef cannot be used to subvert these restrictions or any of the
-restrictions below. When extending, implementing, or mixing in a typedef, we
-look at the library where class or mixin the typedef resolves to is defined to
-determine if the behavior is allowed. *Note that the library where the _typedef_
-is defined does not come into play. Typedefs cannot be marked with any of the
+A type alias (`typedef`) cannot be used to subvert these restrictions or any of the
+restrictions below. When extending, implementing, or mixing in a type alias, we
+look at the library where class or mixin the type alias resolves to is defined to
+determine if the behavior is allowed. *Note that the library where the _type alias_
+is defined does not come into play. Type aliases cannot be marked with any of the
 new modifiers.*
 
 ### Disallowing implementation
 
-It is a compile-time error if a subtype of a declaration marked `base` or
+We say that an interface _prevents implementation_ if its declaration is marked
+`base` or `final`, or if it has any (immediate) superinterface which prevents
+implementation.
+_(This definition is inherently transitive, so it has no effect to add or remove_
+_the “immediate”.)_
+
+It’s a compile-time error if a declaration’s interface prevents implementation,
+and the declaration is not marked `base`, `final` or `sealed`.
+
+_Effectively, it is a compile-time error if any subtype of a declaration marked `base` or
 `final` is not marked `base`, `final`, or `sealed`. This restriction applies to
 both direct and indirect subtypes and along all paths that introduce subtypes:
 `implements` clauses, `extends` clauses, `with` clauses, and `on` clauses. This
-restriction applies even to types within the same library.
+restriction applies even to types within the same library._
 
 *Once the ability to use as an interface is removed, it cannot be reintroduced
 in a subtype. If a class is marked `base` or `final`, you may still implement
@@ -681,15 +688,15 @@ Further, while you can ignore some restrictions on declarations within the same
 library, you cannot use that to ignore restrictions inherited from other
 libraries.
 
-We say that `S` is a _direct declared superinterface_ of a class, mixin, or
+We say that a declaration `S` is a _direct declared superdeclaration_ of a class, mixin, or
 mixin class declaration `D` if `D` has a superclass clause of the form
 `C with M1 .. Mk` (where `k` may be zero when there is no `with` clause)
-and `S` is `C`, or `S` is `Mj` for some `j` in 1 .. k,
-or if `D` has an `implements` or `on` clause and `S` occurs as one of the operands of
-that clause.
+and `S` is is the declaration denoted by `C`, or by `Mj` for some `j` in 1 .. k,
+or if `D` has an `implements` or `on` clause and `S` is the declaration denoted by
+one of the operands of such a clause.
 
 We then say that a class or mixin declaration `D` *cannot be implemented locally* if it
-has a direct declared superinterface `S` such that:
+has a direct declared superdeclaration `S` such that:
 
 *   `S` is from another library than `D`, and `S` has the modifier `base`,
     `final` or `sealed`, or
@@ -732,7 +739,7 @@ Otherwise, `D` can be implemented locally.
 It is a compile-time error if:
 
 *   A class, mixin, or mixin class declaration `D` has an `implements` clause
-    where `S` is an operand, and `S` is a class, mixin, or mixin class
+    where `S` is an operand, and `S` denotes  a class, mixin, or mixin class
     declaration declared in the same library as `D`, and `S` cannot be
     implemented locally.
 
@@ -836,6 +843,14 @@ the latter, even if the class is being used as a mixin in a post-feature
 library where it does happen to be possible to distinguish those two
 intents.*
 
+### Enum classes
+
+The class introduced by an `enum` declaration is considered `final`.
+
+Since the class cannot have any subclasses, so the modifier does not prevent
+any otherwise allowed operation, and adding it ensures that the enum class
+satisfies any requirements introduced by its super-interfaces.
+
 ### Anonymous mixin applications
 
 An *anonymous mixin application* class is a class resulting from a mixin application
@@ -848,26 +863,50 @@ An anonymous mixin application class cannot be referenced anywhere except in
 the context where the application occurs, so its only role is to be a superclass of
 another class in the same library.
 
-To ensure reasonable and correct behavior, we infer class modifiers on anonymous
-mixin application classes as follows.
+To ensure reasonable and correct behavior, without having to special-case such
+anonymous mixin application classes elsewhere, we infer class modifiers as follows.
 
-Let *C* be an anonymous mixin application with superclass *S* and mixin *M*. Then:
+We define the following transitive property on declarations:
 
-* If any of *S* or *M* has a `sealed` modifier, *C* is has a `sealed` modifier.
-* Otherwise:
-  * *C* is `abstract`, and
-  * If either of *S* or *M* has a `base` or `final` modifier, then *C* has a `final` modifier.
+* A declaration *prohibits inheritance* _(of its implementation)_ if:
 
-_We do not distinguish whether *S* or *M* has `base` or `final` modifiers.
-The modifier on *C* is there to satisfy the requirement that a subtype of a `base` or `final`
-declaration is itself `base`, `final` or `sealed`. The anonymous mixin application class will
-be immediately extended inside the same library, which is allowed by both `base` and `final`.,
-and will not be used for anything else._
+  * the declaration is marked `interface` or `final`, or
+  * the declaration extends or mixes in a declaration which prohibits inheritance.
 
-Adding `sealed` to an anonymous mixin application class with only one subclass ensures
-that the subclass extending the mixin application class can be used
-in exhaustiveness checking of the sealed superclass.
-This is necessary since the anonymous mixin application class itself cannot be referenced.
+Let then *C* be an anonymous mixin application occurring in a post-feature library, with
+superclass *S* and mixin *M*.
+
+* If either *S* or *M* has a `sealed` modifier, then *C* has an implicit `sealed` modifier.
+
+* Otherwise *C* is `abstract`, and
+
+  * If *C* *prevents implementation* and *prohibits inheritance*,
+    then *C* has an implicit `final` modifier.
+
+  * Otherwise if *C* *prevents implementation*, then *C* has an implicit `base` modifier.
+
+  * Otherwise if *C* *prohibits inheritance*, then *C* has an implicit `interface` modifier.
+
+  * Otherwise *C* has no modifier.
+
+Adding `sealed` to an anonymous mixin application class, which always has precisely
+one subclass, ensures that the subclass can be used in exhaustiveness checking
+of the sealed superclass.
+
+Adding `final` or `base` satisfies the requirement that a subtype of a `base` or `final`
+declaration is itself `base`, `final` or `sealed`.
+
+Adding `interface` ensures that the mixin application class doesn’t remove a restriction
+on the implementation inherited from *S* or *M*. This makes the “reopen” lint described below
+easier to implement.
+
+Adding these modifiers on the anonymous mixin application class ensures that
+the anonymous class can mostly be ignored, since it satisfies all possible requirements
+of its superclasses, while still propagating those requirements to its subclass.
+Treating the anonymous class as having these modifiers allows the algorithms
+used to check that restrictions are satisfied, and for the “reopen” lint described below,
+to treat the anonymouse mixin application class as any other class, without needing
+special cases.
 
 ### `@reopen` lint
 
@@ -917,8 +956,14 @@ non-breaking.
     when they upgrade their library's language version.
     _It will still not be possible to, e.g., extend or implement the `int` class,
     even if will now have a `final` modifier._
+    Going through a pre-feature library does not remove transitive restrictions
+    for code in post-feature libraries. Any post-feature library declaration which has a
+    platform library class marked `base` or `final` as a superinterface must be marked
+    `base`, `final` or `sealed`, and cannot be implemented locally,
+    even if the superinterface chain goes through a pre-feature library declaration,
+    and even if that declaration ignores the `base` modifier.
 
-    This is a special case behavior only available to platform libraries.
+    This is special case behavior only available to platform libraries.
     Package libraries should use versioning to to introduce breaking
     restrictions instead, and those libraries can then rely on the restrictions
     being enforced.
@@ -1063,6 +1108,13 @@ errors and fixups would help keep them on the rails.
 
 - Add implementation suggestions about errors, error recovery, and fixups for
   class modifiers.
+
+1.7
+
+* Update the modifiers applied to anonymous mixin applications to closer
+  match the superclass/mixin modifiers.
+* Allow any modifier with `mixin class`.
+* Some rephrasing to allow concept reuse.
 
 1.5
 
