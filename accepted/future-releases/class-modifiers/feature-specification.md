@@ -4,7 +4,7 @@ Author: Bob Nystrom, Lasse Nielsen
 
 Status: Accepted
 
-Version 1.5
+Version 1.6
 
 Experiment flag: class-modifiers
 
@@ -514,9 +514,7 @@ Many combinations don't make sense:
 *   `sealed` types cannot be constructed so it's redundant to combine with
     `abstract`.
 *   `sealed` types cannot be extended or implemented, so it's redundant to
-    combine with `final`.
-*   `sealed` types cannot be extended so it contradicts `base`.
-*   `sealed` types cannot be implemented, so it contradicts `interface`.
+    combine with `final`, `base`, or `interface`.
 *   `sealed` types cannot be mixed in outside of their library, so it
     contradicts `mixin` on a class. *It's useful to allow `sealed` on a mixin
     declaration because the mixin can be applied within the same library.
@@ -933,7 +931,138 @@ as a mixin. If the class defines a generative constructor or extends anything
 other than `Object`, then it already cannot be used as a mixin and no change is
 needed.
 
+## Implementation and documentation suggestions for usability
+
+*This section is non-normative.  It's a set of suggestions to implementation and
+documentation teams to help ensure that the feature is easy for users to use and
+discover.*
+
+### Errors, error recovery, and fixups
+
+First of all, to the extent that it's reasonably feasible to do so, we should
+try to make the parser understand that any time it sees a top level sequence of
+any of the keywords `sealed`, `abstract`, `final`, `interface`, `base`, `mixin`,
+or `class`, the user is trying to declare something class-like or mixin-like,
+even if they left out an important keyword, used conflicting keywords, or put
+keywords in the wrong order.  That way we can issue errors whose IDE fixups will
+help the user clean up their class or mixin declaration, rather than just
+`unexpected {` or something.  For example, this should be recognized by the
+parser as an attempt to make a mixin or class:
+
+```dart
+interface sealed C {
+  ...
+}
+```
+
+(The parser will obviously issue an error, but it should still fire the
+appropriate events to allow the analyzer to create a `ClassDeclaration` AST
+node, and it should analyze the things inside the curly braces as class
+members).
+
+If the keywords aren't in the proper order (`sealed`/`abstract`, then
+`final`/`interface`/`base`, then `mixin`, then `class`), or if a keyword was
+repeated, the parser error should be on the first keyword token that's out of
+order or repeated, and the fixup should offer to fix the order by sorting and
+de-duplicating the keywords appropriately.  So in the example above, the "wrong
+order" error should be on the keyword `sealed`, and the fixup should change it
+to `sealed interface`, which is still an error for other reasons, but is at
+least in the right order now.
+
+With order and duplication out of the way, that leaves 127 possible combinations
+of the 7 keywords.  The remaining error cases (and their associated IDE fixups)
+are:
+
+- Did you say both `abstract` and `sealed`?  Drop `abstract`; it’s redundant.
+  Now there's only 95 possibilities.
+
+- Did you say both `interface` and `final`?  Drop `interface`; it’s redundant.
+  Now there's only 71 possibilities.
+
+- Did you say both `base` and `final`?  Drop `base`; it’s redundant.  Now
+  there's only 59 possibilities.
+
+- Did you say both `interface` and `base`?  Say `final` instead.  Now there's
+  only 47 possibilities.
+
+- Did you say neither `mixin` nor `class`?  You have to pick one or the other or
+  both.  The fixup can probably safely assume you mean `class`.  (Exception: if
+  you just said `interface` and no other keywords, you probably mean `abstract
+  class`).  Now there's only 36 possibilities.
+
+- Did you say both `sealed` and `final`?  Drop `final`; it’s redundant.  Now
+  there's only 33 possibilities.
+
+- Did you say both `sealed` and `base`?  Drop `base`; it’s redundant.  Now
+  there's only 30 possibilities.
+
+- Did you say both `sealed` and `interface`?  Drop `interface`; it’s redundant.
+  Now there's only 27 possibilities.
+
+- Did you say both `mixin` and `class`, as well as one of the following
+  keywords: `sealed`, `interface`, or `final`?  Drop `class` and replace
+  `extends M` with `with M` wherever it appears in your library.  Now there's
+  only 22 possibilities.
+
+- Did you say both `abstract` and `mixin`, but not `class`?  Drop `abstract`;
+  it’s redundant.  Now we are down to the 18 permitted possibilities.
+
+If we take this sort of approach, then users who don't love reading
+documentation will be able to just experimentally string together combinations
+of the keywords we've made available to them, and the errors and fixups will
+guide them to something valid, and then they can play around and see the effect.
+
+### Introducing the feature to users
+
+If we assume that most users will have access to the IDE fixups noted above, it
+suggests that a nice way to introduce the feature to folks would be to gloss
+over what combinations are redundant or contradictory, and just tell them in
+plain English what each keyword does.  Users who love reading documentation can
+read further and find out which combinations are prohibited; users who don't can
+just try them out, and the IDE will train them which combinations are valid over
+time.  So the core of the feature becomes explainable in just seven lines, three
+of which are just restatements of things the user was already familiar with.
+Something like:
+
+- `sealed` means "this type has a known set of direct subtypes, so switching on
+  it will require the switch to be exhaustive".
+
+- `abstract` means "this type can't be constructed directly", but you already
+  knew that.  It's only included in the list to help clarify that `abstract` is
+  one of the seven keywords users should try combining together at the top of
+  your declaration.
+
+- `interface` means "this type can't be extended from outside this library".
+
+- `base` means "this type can't be implemented from outside this library".
+
+- `final` means "this type can neither be extended nor implemented from outside
+  this library".
+
+- `mixin` means "this type can be used in mixin-like ways, i.e. it can appear in
+  the 'with' clause of other classes".  Granted, this is kind of a circular
+  definition, but this explanation is intended for programmers familiar with
+  Dart 2.19, and they're already familiar with mixins.
+
+- `class` means "this type can be used in class-like ways, i.e. it can be
+  extended, or constructed, unless otherwise forbidden".  Again, this is a
+  circular definition, but our audience obviously already knows what classes
+  are.  Including it in the list helps make it clear that we're putting mixins
+  and classes on equal footing, and helps clarify why `mixin class` is a
+  reasonable thing.
+
+(Note that this list is deliberately in the order required by the grammar).
+
+Obviously there are plenty of details left out of this description.  But
+hopefully it should be enough to get people started using the feature, and the
+errors and fixups would help keep them on the rails.
+
 ## Changelog
+
+1.6
+
+- Add implementation suggestions about errors, error recovery, and fixups for
+  class modifiers.
 
 1.5
 
