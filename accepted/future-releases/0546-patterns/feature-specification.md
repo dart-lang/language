@@ -630,7 +630,7 @@ It is a compile-time error if:
     element) will ever match. Duplicate keys are most likely a typo in the
     code.*
 
-*   Any two record keys which both have primitive equality` are equal. *Since
+*   Any two record keys which both have primitive equality are equal. *Since
     records don't have defined identity, we can't use the previous rule to
     detect identical records. But records do support an equality test known at
     compile time if all of their fields do, so we use that.*
@@ -1884,37 +1884,51 @@ var [int a, b] = <num>[1, 2];   // List<num>.
 
 To type check a pattern `p` being matched against a value of type `M`:
 
-*   **Logical-or** and **logical-and**: Type check each branch using `M` as the
+*   **Logical-or**: Type check each branch using `M` as the
     matched value type. The required type of the pattern is `Object?`.
-    (*However, `M` will be used to perform checks on each operand, whose
-    required types may be more strict.*)
+    *`M` will be used to perform checks on each operand, whose required types
+    may be more strict.*
 
-*   **Relational**: Type check the right operand `c` (which is a constant
-    expression), using the empty context type `_`.
+*   **Logical-and**: Type check each branch using `M` as the matched value
+    type of the left operand, and using the promoted type of the
+    scrutinee from the left operand as the matched value type of the right hand
+    operand (*that's `M` again, if there is no promotion*). The required type of
+    the pattern is `Object?`.
+    *The chosen matched value type will be used to perform checks on each
+    operand, whose required types may be more strict.*
 
-    1.  Let `C` be the static type of `c`.
+*   **Relational**: Consider the relational pattern `op c` where `op` is one
+    of the following operators: `==`, `!=`, `<`, `<=`, `>=`, `>`, and `c` is an
+    expression.
 
-    2.  If the operator is a comparison (`<`, `<=`, `>`, or `>=`), then it is a
-        compile-time error if `M` is not dynamic and any of the following
-        criteria is fulfilled:
+    If `M` is `dynamic`: Type check `c` in context `_`; an error occurs
+    if `c` is not a constant expression; no further checks are
+    performed. Otherwise (*when `M` is not `dynamic`*):
 
-        *   `M` does not define that operator, or
-        *   `M` defines that operator, but `C` is not assignable to its
-            parameter type, or its return type is not assignable to
-            `bool`.
+    1.  A compile-time error occurs if `M` does not have an operator `op`,
+        and there is no available and applicable extension operator `op`. 
+        Let `A` be the type of the formal parameter of the given operator
+        declaration, and let `R` be the return type.
 
-    3.  Else the operator is `==` or `!=`. It is a compile-time error if `C` is
-        not assignable to `T?` where `T` is `M`'s `==` method parameter type.
-        *The language screens out `null` before calling the underlying `==`
-        method, which is why `T?` is the allowed type. Since Object declares
-        `==` to accept `Object` on the right, this compile-time error can only
-        happen if a user-defined class has an override of `==` with a
-        `covariant` parameter.*
+    2.  A compile-time error occurs if `R` is not assignable to `bool`.
 
-    The required type of `p` is `Object?`. (*The static checks mentioned above
+    3.  Type check `c` with context type `A`. A compile-time error occurs if
+        `c` is not a constant expression. Let `C` be the static type of `c`.
+
+    4.  If `op` is `==` or `!=` then a compile-time error occurs if `C` is not
+        assignable to `A?`. Otherwise `op` is `<`, `<=`, `>=`, or `>`, and a
+        compile-time error occurs if `C` is not assignable to `A`.
+
+    *The language screens out `null` before calling the underlying `==`
+    method, which is why `T?` is the allowed type for equality checks. Since
+    `Object` declares `==` to accept `Object` on the right, this compile-time
+    error can only happen if a user-defined class has an override of `==` with a
+    `covariant` parameter.*
+
+    The required type of `p` is `Object?`. *The static checks mentioned above
     may give rise to compile-time errors, but there is no static type which
     would give rise to exactly those checks, so we cannot specify the desired
-    checks simply by using any particular required type.*)
+    checks simply by using any particular required type.*
 
 *   **Cast**:
 
