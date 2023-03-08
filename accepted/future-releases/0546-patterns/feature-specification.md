@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.23 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.24 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -1892,7 +1892,7 @@ To type check a pattern `p` being matched against a value of type `M`:
 *   **Logical-and**: Type check each branch using `M` as the matched value
     type of the left operand, and using the promoted type of the
     scrutinee from the left operand as the matched value type of the right hand
-    operand (*that's `M` again, if there is no promotion*). The required type of
+    operand *(that's `M` again, if there is no promotion)*. The required type of
     the pattern is `Object?`.
     *The chosen matched value type will be used to perform checks on each
     operand, whose required types may be more strict.*
@@ -1903,7 +1903,7 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     If `M` is `dynamic`: Type check `c` in context `_`; an error occurs
     if `c` is not a constant expression; no further checks are
-    performed. Otherwise (*when `M` is not `dynamic`*):
+    performed. Otherwise *(when `M` is not `dynamic`)*:
 
     1.  A compile-time error occurs if `M` does not have an operator `op`,
         and there is no available and applicable extension operator `op`. 
@@ -2114,6 +2114,8 @@ If `p` with required type `T` is in an irrefutable context:
     insert an implicit coercion is made before the pattern binds the value,
     tests the value's type, destructures the value, or invokes a function with
     the value as a target or argument.
+    
+    *Coercions are described in a separate section below, named 'Coercions'.*
 
     If a coercion is inserted, this yields a new matched value type which is
     the value of `M` used in the next step. If no coercion is inserted, the
@@ -2165,6 +2167,49 @@ If `p` with required type `T` is in an irrefutable context:
     declarations and assignments if we can statically tell that the
     destructuring and variable binding won't fail to match (though it may still
     throw at runtime if the matched value type is `dynamic`).*
+
+### Coercions
+
+The language specification documents do not yet define a unified concept of
+_coercions_, and they do not define what it means to _attempt to insert a
+coercion_. However, the following is intended to establish these concepts
+in a sufficiently precise manner to enable the implementation of patterns:
+
+The language supports the following mechanisms, which are the currently
+existing _coercions_:
+
+- Implicit generic function instantiation.
+- Implicit tear-off of a `.call` method.
+- Implicit tear-off of a `.call` method, which is then generically instantiated.
+
+These mechanisms are applied at specific locations *(known as assignment
+points)*, and they are enabled by specific pairs of context types and
+expression types.
+
+*For example, implicit generic function instantiation is applied to an
+expression `e` whose type is a generic function type `G` in the case where
+the context type is a non-generic function type `F`, and `e` occurs at an
+assignment point. A list of actual type arguments are selected by type
+inference, yielding the expression `e<T1, .. Tk>`, such that the resulting
+expression has a type which is a subtype of `F`.  If the type inference
+fails, or the resulting type is not a subtype of `F` then a compile-time
+error occurs. The implicit tear-off proceeds in a similar manner; it
+transforms `e` to `e.call` when the static type of `e` is an interface type
+that has a method named `call`, and the context type is a function type or
+`Function`.*
+
+An _attempt to insert a coercion_ is the procedure which is described above. It
+may end in an application of the mechanism, or it may end in a compile-time
+error. 
+
+*In the context of pattern type checking, the compile-time error will
+generally report a lack of assignability, not, e.g., a failed type
+inference.*
+
+*Note that the ability for an integer literal to have the type `double` is not a
+coercion *(for example `double d = 1;` makes `1` an integer literal with type
+`double`)*. Similarly, an implicit downcast from `dynamic` is not considered a
+coercion.*
 
 ### Pattern uses (static semantics)
 
@@ -3557,6 +3602,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.24
+
+-   Specify the required type of patterns in cases where this was left implicit.
+-   Specify the handling of coercions during irrefutable pattern matching.
 
 ### 2.23
 
