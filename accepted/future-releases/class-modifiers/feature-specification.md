@@ -506,14 +506,31 @@ includes those changes. The full set of modifiers that can appear before a class
 *The modifiers do not apply to other declarations like `enum`, `typedef`, or
 `extension`.*
 
-Some combinations don't make sense:
+Many combinations don't make sense:
 
 *   `base`, `interface`, and `final` all control the same two capabilities so
     are mutually exclusive.
 *   `sealed` types cannot be constructed so it's redundant to combine with
     `abstract`.
+<<<<<<< HEAD
 *   `sealed` types cannot be mixed in, extended or implemented,
     so it's redundant to combine with `final`, `base`, or `interface`.
+=======
+*   `sealed` types cannot be extended or implemented, so it's redundant to
+    combine with `final`.
+*   `sealed` types cannot be extended so it contradicts `base`.
+*   `sealed` types cannot be implemented, so it contradicts `interface`.
+*   `sealed` types cannot be mixed in outside of their library, so it
+    contradicts `mixin` on a class. *It's useful to allow `sealed` on a mixin
+    declaration because the mixin can be applied within the same library.
+    A `sealed mixin class`  does not provide any significant extra
+    functionality over a `sealed mixin`, you can replace `extends MixinClass`
+    with `with Mixin`, so a `sealed mixin class` is not allowed.*
+*   `interface` and `final` classes would prevent a mixin class from being used
+    as a superclass or mixin outside of its library. *Like for `sealed`, an
+    `interface mixin class` and `final mixin class` are not allowed, and
+    `interface mixin` and `final mixin` declaration are recommended instead.*
+>>>>>>> 5b79277 (Don't allow interface mixin classes.)
 *   `mixin` as a modifier can obviously only be applied to a `class`
     declaration, which makes it also a introduce a mixin declaration.
 *   `mixin` as a modifier cannot be applied to a mixin-application `class`
@@ -522,8 +539,6 @@ Some combinations don't make sense:
 *   A `mixin` is intended to be mixed in, so it cannot be combined with an
     `interface`, `final` or `sealed` modifier.
 *   Mixin declarations cannot be constructed, so `abstract` is redundant.
-
-_An `interface mixin class` seems redundant, because it disallows mixing in the declaration, so the `mixin` makes no difference for the AP. However, a `mixin` is required in order to mix in the declaration inside the same library, where the `interface` modifier’s restriction can be ignored. From outside the library, there is no distinction between `interface mixin class` and `interface class`, or even between `abstract interface mixin class`, `abstract interface class` and `interface mixin` declarations, as the following table also shows._
 
 The remaining valid combinations and their capabilities are:
 
@@ -540,13 +555,8 @@ The remaining valid combinations and their capabilities are:
 |`abstract final class`     |No     |No     |No     |No     |No     |
 |`mixin class`              |**Yes**|**Yes**|**Yes**|**Yes**|No     |
 |`base mixin class`         |**Yes**|**Yes**|No     |**Yes**|No     |
-|`interface mixin class`    |**Yes**|No     |**Yes**|No     |No     |
-|`final mixin class`        |**Yes**|No     |No     |No     |No     |
-|`sealed mixin class`       |No     |No     |No     |No     |**Yes**|
 |`abstract mixin class`     |No     |**Yes**|**Yes**|**Yes**|No     |
 |`abstract base mixin class`|No     |**Yes**|No     |**Yes**|No     |
-|`abstract interface mixin class`|No |No    |**Yes**|No     |No     |
-|`abstract final mixin class`|No    |No     |No     |No     |No     |
 |`mixin`                    |No     |No     |**Yes**|**Yes**|No     |
 |`base mixin`               |No     |No     |No     |**Yes**|No     |
 |`interface mixin`          |No     |No     |**Yes**|No     |No     |
@@ -688,7 +698,7 @@ Further, while you can ignore some restrictions on declarations within the same
 library, you cannot use that to ignore restrictions inherited from other
 libraries.
 
-We say that a declaration `S` is a _direct declared superdeclaration_ of a class, mixin, or
+We say that a declaration `S` is a _direct superdeclaration_ of a class, mixin, or
 mixin class declaration `D` if `D` has a superclass clause of the form
 `C with M1 .. Mk` (where `k` may be zero when there is no `with` clause)
 and `S` is is the declaration denoted by `C`, or by `Mj` for some `j` in 1 .. k,
@@ -696,7 +706,7 @@ or if `D` has an `implements` or `on` clause and `S` is the declaration denoted 
 one of the operands of such a clause.
 
 We then say that a class or mixin declaration `D` *cannot be implemented locally* if it
-has a direct declared superdeclaration `S` such that:
+has a direct superdeclaration `S` such that:
 
 *   `S` is from another library than `D`, and `S` has the modifier `base`,
     `final` or `sealed`, or
@@ -739,7 +749,7 @@ Otherwise, `D` can be implemented locally.
 It is a compile-time error if:
 
 *   A class, mixin, or mixin class declaration `D` has an `implements` clause
-    where `S` is an operand, and `S` denotes  a class, mixin, or mixin class
+    where `S` is an operand, and `S` denotes a class, mixin, or mixin class
     declaration declared in the same library as `D`, and `S` cannot be
     implemented locally.
 
@@ -847,7 +857,7 @@ intents.*
 
 The class introduced by an `enum` declaration is considered `final`.
 
-Since the class cannot have any subclasses, so the modifier does not prevent
+Since the class cannot have any subclasses, the modifier does not prevent
 any otherwise allowed operation, and adding it ensures that the enum class
 satisfies any requirements introduced by its super-interfaces.
 
@@ -946,12 +956,13 @@ non-breaking.
     to all other libraries, regardless of the versions of those libraries.
     "Ignorance of the law is no defense."*
 
-*   We would like to add modifiers to some classes in platform (i.e. `dart:`)
+*   We would like to add modifiers to some classes in platform (i.e., `dart:`)
     libraries when this feature ships. But we would also like to not immediately
     break existing code. To avoid forcing users to immediately migrate,
     declarations in pre-feature libraries can ignore *some*
     `base`, `interface` and `final` modifiers on *some* declarations
-    in platform libraries.
+    in platform libraries, and to mix in non-`mixin` classes from platform libraries,
+    as long as those classes has `Object` as superclass and declares no constructors.
     Instead, users will only have to abide by those restrictions
     when they upgrade their library's language version.
     _It will still not be possible to, e.g., extend or implement the `int` class,
@@ -1113,8 +1124,10 @@ errors and fixups would help keep them on the rails.
 
 * Update the modifiers applied to anonymous mixin applications to closer
   match the superclass/mixin modifiers.
-* Allow any modifier with `mixin class`.
+* State that `enum` declarations count as `final`.
 * Some rephrasing to allow concept reuse.
+* Say that pre-feature libraries can mix in  non-`mixin` platform library classes
+  which satisfy the old requirements for being used as a mixin.
 
 1.5
 
