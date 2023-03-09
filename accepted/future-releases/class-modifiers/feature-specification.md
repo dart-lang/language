@@ -517,9 +517,7 @@ Many combinations don't make sense:
     so it's redundant to combine with `final`, `base`, or `interface`.
 =======
 *   `sealed` types cannot be extended or implemented, so it's redundant to
-    combine with `final`.
-*   `sealed` types cannot be extended so it contradicts `base`.
-*   `sealed` types cannot be implemented, so it contradicts `interface`.
+    combine with `final`, `base`, or `interface`.
 *   `sealed` types cannot be mixed in outside of their library, so it
     contradicts `mixin` on a class. *It's useful to allow `sealed` on a mixin
     declaration because the mixin can be applied within the same library.
@@ -855,11 +853,14 @@ intents.*
 
 ### Enum classes
 
-The class introduced by an `enum` declaration is considered `final`.
+The class introduced by an `enum` declaration is considered `final` for any purpose
+where a class modifier is required.
 
-Since the class cannot have any subclasses, the modifier does not prevent
-any otherwise allowed operation, and adding it ensures that the enum class
-satisfies any requirements introduced by its super-interfaces.
+The behavior of `enum` declarations is unchanged. Since an `enum` class cannot have
+any subclasses, the modifier would not prevent any otherwise allowed operation.
+The implicit `final` also does not imply fewer restrictions than `enum` declarations
+would otherwise have. The modifier is applied only to automatically satisfy any
+requirements introduced by super-interfaces.
 
 ### Anonymous mixin applications
 
@@ -915,8 +916,8 @@ the anonymous class can mostly be ignored, since it satisfies all possible requi
 of its superclasses, while still propagating those requirements to its subclass.
 Treating the anonymous class as having these modifiers allows the algorithms
 used to check that restrictions are satisfied, and for the “reopen” lint described below,
-to treat the anonymouse mixin application class as any other class, without needing
-special cases.
+to treat the anonymous mixin application class as any other class, without needing
+special cases, and without adding any new restrictions..
 
 ### `@reopen` lint
 
@@ -962,7 +963,7 @@ non-breaking.
     declarations in pre-feature libraries can ignore *some*
     `base`, `interface` and `final` modifiers on *some* declarations
     in platform libraries, and to mix in non-`mixin` classes from platform libraries,
-    as long as those classes has `Object` as superclass and declares no constructors.
+    as long as such a class has `Object` as superclass and declares no constructors.
     Instead, users will only have to abide by those restrictions
     when they upgrade their library's language version.
     _It will still not be possible to, e.g., extend or implement the `int` class,
