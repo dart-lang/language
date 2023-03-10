@@ -1889,11 +1889,10 @@ To type check a pattern `p` being matched against a value of type `M`:
     *`M` will be used to perform checks on each operand, whose required types
     may be more strict.*
 
-*   **Logical-and**: Type check each branch using `M` as the matched value
-    type of the left operand, and using the promoted type of the
-    scrutinee from the left operand as the matched value type of the right hand
-    operand *(that's `M` again, if there is no promotion)*. The required type of
-    the pattern is `Object?`.
+*   **Logical-and**: Type check the first operand using `M` as the matched
+    value type, and type check the second operand using the (possibly promoted)
+    matched value type obtained from the match-succeeded continuation of the
+    first operand. The required type of the pattern is `Object?`.
     *The chosen matched value type will be used to perform checks on each
     operand, whose required types may be more strict.*
 
@@ -1901,9 +1900,11 @@ To type check a pattern `p` being matched against a value of type `M`:
     of the following operators: `==`, `!=`, `<`, `<=`, `>=`, `>`, and `c` is an
     expression.
 
-    If `M` is `dynamic`: Type check `c` in context `_`; an error occurs
-    if `c` is not a constant expression; no further checks are
-    performed. Otherwise *(when `M` is not `dynamic`)*:
+    A compile-time error occurs if `M` is `void`.
+
+    If `M` is `dynamic` or `Never`: Type check `c` in context `_`; an error
+    occurs if `c` is not a constant expression; no further checks are
+    performed. Otherwise *(when `M` is not `dynamic` or `Never`)*:
 
     1.  A compile-time error occurs if `M` does not have an operator `op`,
         and there is no available and applicable extension operator `op`. 
@@ -1920,7 +1921,7 @@ To type check a pattern `p` being matched against a value of type `M`:
         compile-time error occurs if `C` is not assignable to `A`.
 
     *The language screens out `null` before calling the underlying `==`
-    method, which is why `T?` is the allowed type for equality checks. Since
+    method, which is why `A?` is the allowed type for equality checks. Since
     `Object` declares `==` to accept `Object` on the right, this compile-time
     error can only happen if a user-defined class has an override of `==` with a
     `covariant` parameter.*
