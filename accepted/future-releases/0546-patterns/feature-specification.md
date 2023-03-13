@@ -1913,7 +1913,8 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     2.  A compile-time error occurs if `R` is not assignable to `bool`.
 
-    3.  Type check `c` with context type `A`. A compile-time error occurs if
+    3.  Type check `c` with context type `A?` when `op` is `==` or `!=`, and
+        with context type `A` otherwise. A compile-time error occurs if
         `c` is not a constant expression. Let `C` be the static type of `c`.
 
     4.  If `op` is `==` or `!=` then a compile-time error occurs if `C` is not
