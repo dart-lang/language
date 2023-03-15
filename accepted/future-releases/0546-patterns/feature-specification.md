@@ -1884,10 +1884,13 @@ var [int a, b] = <num>[1, 2];   // List<num>.
 
 To type check a pattern `p` being matched against a value of type `M`:
 
-*   **Logical-or**: Type check each branch using `M` as the
-    matched value type. The required type of the pattern is `Object?`.
-    *`M` will be used to perform checks on each operand, whose required types
-    may be more strict.*
+*   **Logical-or**: Type check the first subpattern using `M` as the
+    matched value type; type check the second subpattern using the matched value
+    which is obtained from the assumption that the first operand failed to
+    match *(this may cause promotion, e.g., when the left pattern is `==
+    null`)*. The required type of the pattern is `Object?`.
+    *The context types will be used to perform checks on each operand, whose
+    required types may be more strict.*
 
 *   **Logical-and**: Type check the first operand using `M` as the matched
     value type, and type check the second operand using the (possibly promoted)
