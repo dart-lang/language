@@ -20,7 +20,9 @@ Informally, the new syntax is:
 *   `base`: As a modifier on a class, allows the class to be extended but not
     implemented. As a modifier on a mixin, allows it to be mixed in but not
     implemented. In other words, it takes away being able to implement
-    the interface of the declaration.
+    the interface of the declaration. _This also applies transitively
+    to all subtypes, since implementing a subtype also means implementing
+    the superinterface._
 
 *   `interface`: As a modifier on a class or mixin, allows the type to be
     implemented but not extended or mixed in. In other words, it takes away
@@ -447,7 +449,7 @@ safe.
 
 Now consider:
 
-```
+```dart
 // lib_b.dart
 import 'lib_a.dart';
 
@@ -500,7 +502,8 @@ class UsesAsMixin extends OtherSuperclass with Both {} // OK.
 ## Syntax
 
 This proposal builds on the existing sealed types proposal so the grammar
-includes those changes. The full set of modifiers that can appear before a class declaration are `abstract`, `sealed`, `base`, `interface`, `final`, and
+includes those changes. The full set of modifiers that can appear before a class
+declaration are `abstract`, `sealed`, `base`, `interface`, `final`, and
 `mixin`. Only the `base` modifier can appear before a `mixin` declaration.
 
 *The modifiers do not apply to other declarations like `enum`, `typedef`, or
@@ -515,7 +518,7 @@ Many combinations don't make sense:
 *   `sealed` types cannot be mixed in, extended or implemented,
     so it's redundant to combine with `final`, `base`, or `interface`.
 *   `mixin` as a modifier can obviously only be applied to a `class`
-    declaration, which makes it also a introduce a mixin declaration.
+    declaration, which makes it also introduce a mixin.
 *   `mixin` as a modifier cannot be applied to a mixin-application `class`
     declaration (the `class C = S with M;` syntax for declaring a class). The
     remaining modifiers can.
@@ -555,15 +558,13 @@ classDeclaration  ::= (classModifiers | mixinClassModifiers) 'class' typeIdentif
 classModifiers    ::= 'sealed'
                     | 'abstract'? ('base' | 'interface' | 'final')?
 
-mixinClassModifiers ::= 'abstract'? mixinModifiers 'mixin'
-
-mixinModifiers    ::= 'base'?
+mixinClassModifiers ::= 'abstract'? mixinModifier? 'mixin'
 
 mixinDeclaration  ::= mixinModifier? 'mixin' typeIdentifier typeParameters?
                       ('on' typeNotVoidList)? interfaces?
                       '{' (metadata classMemberDeclaration)* '}'
 
-mixinModifier     ::= 'sealed' | 'base' | 'interface' | 'final'
+mixinModifier     ::= 'base'
 ```
 
 ## Static semantics
@@ -599,7 +600,7 @@ It is a compile-time error to:
 
 *   Implement the interface of a class, mixin, or mixin class declaration
     marked `base`, `final` or `sealed` outside of the library
-    where it is declared.
+    where it is declared. _(This includes enum declarations.)_
 
     ```dart
     // a.dart
@@ -629,12 +630,12 @@ It is a compile-time error to:
 _An `enum` declaration still cannot be implemented, extended or mixed in
 anywhere, independently of modifiers._
 
-A type alias (`typedef`) cannot be used to subvert these restrictions or any of the
-restrictions below. When extending, implementing, or mixing in a type alias, we
-look at the library where class or mixin the type alias resolves to is defined to
-determine if the behavior is allowed. *Note that the library where the _type alias_
-is defined does not come into play. Type aliases cannot be marked with any of the
-new modifiers.*
+A type alias (`typedef`) cannot be used to subvert these restrictions
+or any of the restrictions below. When extending, implementing, or mixing in
+a type alias, we look at the library where class or mixin the type alias
+resolves to is defined to determine if the behavior is allowed. *Note that
+the library where the _type alias_ is defined does not come into play.
+Type aliases cannot be marked with any of the new modifiers.*
 
 ### Disallowing implementation
 
@@ -644,7 +645,8 @@ superinterface whose declaration is marked `base` or `final`.
 It is a compile-time error if a the interface of a
 `class`, `mixin`, or `mixin class` declaration `D` prevents implementation,
 and `D` does not have a `base`, `final` or `sealed` modifier.
-_(Which must be a `base` modifier for `mixin` and `mixin class` declarations.)_
+_(Which must be a `base` modifier for `mixin` and `mixin class`
+declarations.)_
 
 _Effectively, it is a compile-time error if any subtype of a declaration marked
 `base` or `final` is not also marked `base`, `final`, or `sealed`.
@@ -785,8 +787,8 @@ intents.*
 
 ### Enum classes
 
-The class introduced by an `enum` declaration is considered `final` for any purpose
-where a class modifier is required.
+The class introduced by an `enum` declaration is considered `final` for any
+purpose where a class modifier is required.
 
 The behavior of `enum` declarations is unchanged. Since an `enum` class cannot
 have any subclasses, the implicit `final` modifier would not prevent any
@@ -797,59 +799,68 @@ satisfy any requirements introduced by super-interfaces.
 
 ### Anonymous mixin applications
 
-An *anonymous mixin application* class is a class resulting from a mixin application
-that does not have its own declaration.
+An *anonymous mixin application* class is a class resulting from
+a mixin application that does not have its own declaration.
 That is all mixin applications classes other than the final class
-of a <Code>class C = S with M1, …, M<sub>n</sub>;</code> declaration, the mixin application of <code>M<sub>n</sub></code> to
-the superclass <code>S with M1, …, M<sub>n-1</sub></code>, which is denoted by declaration and name `C`.
+of a <code>class C = S with M1, …, M<sub>n</sub>;</code> declaration,
+the mixin application of <code>M<sub>n</sub></code> to
+the superclass <code>S with M1, …, M<sub>n-1</sub></code>,
+which is denoted by declaration and name `C`.
 
 An anonymous mixin application class cannot be referenced anywhere except in
-the context where the application occurs, so its only role is to be a superclass of
-another class in the same library.
+the context where the application occurs, so its only role is
+to be a superclass of another class in the same library.
 
 To ensure reasonable and correct behavior, without having to special-case such
-anonymous mixin application classes elsewhere, we infer class modifiers as follows.
+anonymous mixin application classes elsewhere, we infer class modifiers as
+follows.
 
-We define the following transitive property on declarations:
+First we define the following transitive property on declarations:
 
 * A declaration *prohibits inheritance* _(of its implementation)_ if:
 
   * the declaration is marked `interface` or `final`, or
-  * the declaration extends or mixes in a declaration which prohibits inheritance.
+  * the declaration is marked `sealed` and extends or mixes in
+    a declaration which prohibits inheritance.
 
-Let then *C* be an anonymous mixin application occurring in a post-feature library, with
-superclass *S* and mixin *M*.
+Let then *C* be an anonymous mixin application occurring in
+a post-feature library, with superclass *S* and mixin *M*.
 
-* If either *S* or *M* has a `sealed` modifier, then *C* has an implicit `sealed` modifier.
+* If either *S* or *M* has a `sealed` modifier, then *C* has an implicit
+  `sealed` modifier.
 
 * Otherwise *C* is `abstract`, and
 
-  * If *C* *prevents implementation* and *prohibits inheritance*,
+  * If *C* *prohibits inheritance* and its interface *prevents implementation*,
     then *C* has an implicit `final` modifier.
 
-  * Otherwise if *C* *prevents implementation*, then *C* has an implicit `base` modifier.
+  * Otherwise if *C* *prevents implementation*, then *C* has an implicit
+    `base` modifier.
 
-  * Otherwise if *C* *prohibits inheritance*, then *C* has an implicit `interface` modifier.
+  * Otherwise if *C* *prohibits inheritance*, then *C* has an implicit
+   `interface` modifier.
 
   * Otherwise *C* has no modifier.
 
-Adding `sealed` to an anonymous mixin application class, which always has precisely
-one subclass, ensures that the subclass can be used in exhaustiveness checking
-of the sealed superclass.
+Adding `sealed` to an anonymous mixin application class, which always has
+precisely one subclass, ensures that the subclass can be used in
+exhaustiveness checking of the sealed superclass.
 
-Adding `final` or `base` satisfies the requirement that a subtype of a `base` or `final`
-declaration is itself `base`, `final` or `sealed`.
+Adding `final` or `base` satisfies the requirement that a subtype of a
+`base` or `final` declaration is itself `base`, `final` or `sealed`.
 
-Adding `interface` ensures that the mixin application class doesn’t remove a restriction
-on the implementation inherited from *S* or *M*. This makes the “reopen” lint described below easier to implement.
+Adding `interface` ensures that the mixin application class doesn’t
+remove a restriction on the implementation inherited from *S* or *M*.
+This makes the “reopen” lint described below easier to implement.
 
 Adding these modifiers on the anonymous mixin application class ensures that
-the anonymous class can mostly be ignored, since it satisfies all possible requirements
-of its superclasses, while still propagating those requirements to its subclass.
+the anonymous class can mostly be ignored, since it satisfies all possible
+requirements of its superclasses, while still propagating those requirements
+to its subclass.
 Treating the anonymous class as having these modifiers allows the algorithms
-used to check that restrictions are satisfied, and for the “reopen” lint described below,
-to treat the anonymous mixin application class as any other class, without needing
-special cases, and without adding any new restrictions..
+used to check that restrictions are satisfied, and for the “reopen” lint
+described below, to treat the anonymous mixin application class as any other
+class, without needing special cases, and without adding any new restrictions.
 
 ### `@reopen` lint
 
@@ -893,19 +904,21 @@ non-breaking.
     libraries when this feature ships. But we would also like to not immediately
     break existing code. To avoid forcing users to immediately migrate,
     declarations in pre-feature libraries can ignore *some*
-    `base`, `interface` and `final` modifiers on *some* declarations
-    in platform libraries, and can mix in non-`mixin` classes from platform libraries,
-    as long as such a class has `Object` as superclass and declares no constructors.
-    Instead, users will only have to abide by those restrictions
-    when they upgrade their library's language version.
+    `base`, `interface` and `final` modifiers on *some* declarations in platform
+    libraries, and can mix in non-`mixin` classes from platform libraries,
+    as long as such a class has `Object` as superclass and declares
+    no constructors.
+    Instead, users will only have to abide by those restrictions when they
+    upgrade their library's language version to 3.0 or later.
     _It will still not be possible to, e.g., extend or implement the `int` class,
     even if will now have a `final` modifier._
     Going through a pre-feature library does not remove transitive restrictions
-    for code in post-feature libraries. Any post-feature library declaration which has a
-    platform library class marked `base` or `final` as a superinterface must be marked
-    `base`, `final` or `sealed`, and cannot be implemented locally,
-    even if the superinterface chain goes through a pre-feature library declaration,
-    and even if that declaration ignores the `base` modifier.
+    for code in post-feature libraries. Any post-feature library declaration
+    which has a platform library class marked `base` or `final` as a
+    superinterface must be marked `base`, `final` or `sealed`,
+    and cannot be implemented locally, even if the superinterface chain goes
+    through a pre-feature library declaration, and even if that declaration
+    ignores the `base` modifier.
 
     This is special case behavior only available to platform libraries.
     Package libraries should use versioning to to introduce breaking
