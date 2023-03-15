@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.23 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.24 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -630,7 +630,7 @@ It is a compile-time error if:
     element) will ever match. Duplicate keys are most likely a typo in the
     code.*
 
-*   Any two record keys which both have primitive `==` are equal. *Since
+*   Any two record keys which both have primitive equality are equal. *Since
     records don't have defined identity, we can't use the previous rule to
     detect identical records. But records do support an equality test known at
     compile time if all of their fields do, so we use that.*
@@ -639,7 +639,7 @@ It is a compile-time error if:
 
 *   The `...` element is not the last element in the map pattern.
 
-*Note that we don't require map keys to have primitive `==` methods to enable
+*Note that we don't require map keys to have primitive equality, to enable
 more flexibility in key types. If the keys have user-defined `==` methods, then
 it's possible to have keys that are equal according to those `==` methods, but
 the compiler won't detect it.*
@@ -687,8 +687,8 @@ Field subpatterns can be in one of three forms:
     variable with the same name.
 
     As a convenience, the identifier can be omitted and inferred from `pattern`.
-    In this case the subpattern must be a variable pattern which may be wrapped 
-    in a unary pattern. The field name is then inferred from the name in the 
+    In this case the subpattern must be a variable pattern which may be wrapped
+    in a unary pattern. The field name is then inferred from the name in the
     variable pattern. These pairs of patterns are each equivalent:
 
     ```dart
@@ -1869,7 +1869,7 @@ contexts, and the pattern type schema is only used in irrefutable contexts.
 
 Once the value a pattern is matched against has a static type (which means
 downwards inference on it using the pattern's context type schema is complete),
-we can type check the pattern.
+we can type check the pattern and fill in missing parts (e.g., type arguments).
 
 Also variable, list, map, record, and object patterns only match a value of a
 certain *required type*. These patterns are prohibited in an irrefutable context
@@ -1884,27 +1884,56 @@ var [int a, b] = <num>[1, 2];   // List<num>.
 
 To type check a pattern `p` being matched against a value of type `M`:
 
-*   **Logical-or** and **logical-and**: Type check each branch using `M` as the
-    matched value type.
+*   **Logical-or**: Type check the first subpattern using `M` as the
+    matched value type; type check the second subpattern using the matched value
+    which is obtained from the assumption that the first operand failed to
+    match *(this may cause promotion, e.g., when the left pattern is `==
+    null`)*. The required type of the pattern is `Object?`.
+    *The context types will be used to perform checks on each operand, whose
+    required types may be more strict.*
 
-*   **Relational**:
+*   **Logical-and**: Type check the first operand using `M` as the matched
+    value type, and type check the second operand using the (possibly promoted)
+    matched value type obtained from the match-succeeded continuation of the
+    first operand. The required type of the pattern is `Object?`.
+    *The chosen matched value type will be used to perform checks on each
+    operand, whose required types may be more strict.*
 
-    1.  Let `C` be the static type of the right operand constant expression.
+*   **Relational**: Consider the relational pattern `op c` where `op` is one
+    of the following operators: `==`, `!=`, `<`, `<=`, `>=`, `>`, and `c` is an
+    expression.
 
-    2.  If the operator is a comparison (`<`, `<=`, `>`, or `>=`), then it is a
-        compile-time error if:
+    A compile-time error occurs if `M` is `void`.
 
-        *   `M` does not define that operator,
-        *   `C` is not assignable to the operator's parameter type,
-        *   or if the operator's return type is not assignable to `bool`.
+    If `M` is `dynamic` or `Never`: Type check `c` in context `_`; an error
+    occurs if `c` is not a constant expression; no further checks are
+    performed. Otherwise *(when `M` is not `dynamic` or `Never`)*:
 
-    3.  Else the operator is `==` or `!=`. It is a compile-time error if `C` is
-        not assignable to `T?` where `T` is `M`'s `==` method parameter type.
-        *The language screens out `null` before calling the underlying `==`
-        method, which is why `T?` is the allowed type. Since Object declares
-        `==` to accept `Object` on the right, this compile-time error can only
-        happen if a user-defined class has an override of `==` with a
-        `covariant` parameter.*
+    1.  A compile-time error occurs if `M` does not have an operator `op`,
+        and there is no available and applicable extension operator `op`. 
+        Let `A` be the type of the formal parameter of the given operator
+        declaration, and let `R` be the return type.
+
+    2.  A compile-time error occurs if `R` is not assignable to `bool`.
+
+    3.  Type check `c` with context type `A?` when `op` is `==` or `!=`, and
+        with context type `A` otherwise. A compile-time error occurs if
+        `c` is not a constant expression. Let `C` be the static type of `c`.
+
+    4.  If `op` is `==` or `!=` then a compile-time error occurs if `C` is not
+        assignable to `A?`. Otherwise `op` is `<`, `<=`, `>=`, or `>`, and a
+        compile-time error occurs if `C` is not assignable to `A`.
+
+    *The language screens out `null` before calling the underlying `==`
+    method, which is why `A?` is the allowed type for equality checks. Since
+    `Object` declares `==` to accept `Object` on the right, this compile-time
+    error can only happen if a user-defined class has an override of `==` with a
+    `covariant` parameter.*
+
+    The required type of `p` is `Object?`. *The static checks mentioned above
+    may give rise to compile-time errors, but there is no static type which
+    would give rise to exactly those checks, so we cannot specify the desired
+    checks simply by using any particular required type.*
 
 *   **Cast**:
 
@@ -1912,6 +1941,8 @@ To type check a pattern `p` being matched against a value of type `M`:
         the name does not refer to a type.
 
     2.  Type-check the subpattern using `X` as the matched value type.
+
+    The required type of `p` is `Object?`.
 
 *   **Null-check** or **null-assert**:
 
@@ -1926,8 +1957,8 @@ To type check a pattern `p` being matched against a value of type `M`:
     int-to-double, and implicit generic function instantiation.*
 
     *Note that the pattern's value must be a constant, but there is no longer a
-    restriction that it must have a primitive operator `==`. Unlike switch cases
-    in current Dart, you can have a constant with a user-defined operator `==`
+    restriction that it must have primitive equality. Unlike switch cases in
+    current Dart, you can have a constant with a user-defined operator `==`
     method. This lets you use constant patterns for user-defined types with
     custom value semantics.*
 
@@ -1979,7 +2010,7 @@ To type check a pattern `p` being matched against a value of type `M`:
         static type of the variable introduced by `p`.
 
 *   **Parenthesized**: Type-check the inner subpattern using `M` as the matched
-    value type.
+    value type. The required type of `p` is the required type of the subpattern.
 
 *   **List**:
 
@@ -2063,8 +2094,8 @@ To type check a pattern `p` being matched against a value of type `M`:
 *   **Object**:
 
     1.  Resolve the object name to a type `X`. It is a compile-time error if the
-        name does not refer to a type. Apply downwards inference from `M` to
-        infer type arguments for `X` if needed.
+        name does not refer to a type. Apply downwards inference with context
+        type `M` to infer type arguments for `X`, if needed.
 
     2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
 
@@ -2084,16 +2115,16 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 If `p` with required type `T` is in an irrefutable context:
 
-*   It is a compile-time error if `M` is not assignable to `T`. *Destructuring,
-    variable, and identifier patterns can only be used in declarations and
-    assignments if we can statically tell that the destructuring and variable
-    binding won't fail to match (though it may still throw at runtime if the
-    matched value type is `dynamic`).*
+*   If `M` is not a subtype of `T` and `M` is not `dynamic` then an attempt to
+    insert an implicit coercion is made before the pattern binds the value,
+    tests the value's type, destructures the value, or invokes a function with
+    the value as a target or argument.
+    
+    *Coercions are described in a separate section below, named 'Coercions'.*
 
-*   Else if `M` is not a subtype of `T` then an implicit coercion or cast is
-    inserted before the pattern binds the value, tests the value's type,
-    destructures the value, or invokes a function with the value as a target or
-    argument.
+    If a coercion is inserted, this yields a new matched value type which is
+    the value of `M` used in the next step. If no coercion is inserted, the
+    next step proceeds with the already given `M`.
 
     *Each pattern that requires a certain type can be thought of as an
     "assignment point" where an implicit coercion may happen when a value flows
@@ -2107,18 +2138,23 @@ If `p` with required type `T` is in an irrefutable context:
     *Here no coercion is performed on the record pattern since `(x: dynamic)` is
     a subtype of `(x: Object?)` (the record pattern's required type). But an
     implicit cast from `dynamic` is inserted when the destructured `x` field
-    flows into the inner `String _` pattern since `dynamic` is not a subtype of
+    flows into the inner `String _` pattern, since `dynamic` is not a subtype of
     `String`. In this example, the cast will fail and throw an exception.*
 
     ```dart
     T id<T>(T t) => t;
     var record = (x: id);
     var (x: int Function(int) _) = record;
+    var list = [id];
+    var [int Function(int) idInt && String Function(String) idString] = list;
     ```
 
     *Here, again no coercion is applied to the record flowing in to the record
     pattern, but a generic instantiation is inserted when the destructured field
-    `x` field flows into the inner `int Function(int) _` pattern.*
+    `x` flows into the inner `int Function(int) _` pattern. Similarly, no
+    coercion is applied to the list, but generic function instantiations are
+    applied when the list element flows into each of the operands of the
+    logical-and pattern.*
 
     *We only insert coercions in irrefutable contexts:*
 
@@ -2130,6 +2166,55 @@ If `p` with required type `T` is in an irrefutable context:
     *This prints "else" instead of throwing an exception because we don't insert
     a _cast_ from `dynamic` to `String` and instead let the `String s` pattern
     _test_ the value's type, which then fails to match.*
+
+*   Next, it is a compile-time error if `M` is not assignable to `T`.
+    *Destructuring, variable, and identifier patterns can only be used in
+    declarations and assignments if we can statically tell that the
+    destructuring and variable binding won't fail to match (though it may still
+    throw at runtime if the matched value type is `dynamic`).*
+
+### Coercions
+
+The language specification documents do not yet define a unified concept of
+_coercions_, and they do not define what it means to _attempt to insert a
+coercion_. However, the following is intended to establish these concepts
+in a sufficiently precise manner to enable the implementation of patterns:
+
+The language supports the following mechanisms, which are the currently
+existing _coercions_:
+
+- Implicit generic function instantiation.
+- Implicit tear-off of a `.call` method.
+- Implicit tear-off of a `.call` method, which is then generically instantiated.
+
+These mechanisms are applied at specific locations *(known as assignment
+points)*, and they are enabled by specific pairs of context types and
+expression types.
+
+*For example, implicit generic function instantiation is applied to an
+expression `e` whose type is a generic function type `G` in the case where
+the context type is a non-generic function type `F`, and `e` occurs at an
+assignment point. A list of actual type arguments are selected by type
+inference, yielding the expression `e<T1, .. Tk>`, such that the resulting
+expression has a type which is a subtype of `F`.  If the type inference
+fails, or the resulting type is not a subtype of `F` then a compile-time
+error occurs. The implicit tear-off proceeds in a similar manner; it
+transforms `e` to `e.call` when the static type of `e` is an interface type
+that has a method named `call`, and the context type is a function type or
+`Function`.*
+
+An _attempt to insert a coercion_ is the procedure which is described above. It
+may end in an application of the mechanism, or it may end in a compile-time
+error. 
+
+*In the context of pattern type checking, the compile-time error will
+generally report a lack of assignability, not, e.g., a failed type
+inference.*
+
+*Note that the ability for an integer literal to have the type `double` is not a
+coercion *(for example `double d = 1;` makes `1` an integer literal with type
+`double`)*. Similarly, an implicit downcast from `dynamic` is not considered a
+coercion.*
 
 ### Pattern uses (static semantics)
 
@@ -3522,6 +3607,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.24
+
+-   Specify the required type of patterns in cases where this was left implicit.
+-   Specify the handling of coercions during irrefutable pattern matching.
 
 ### 2.23
 
