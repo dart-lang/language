@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.24 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.25 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -1687,8 +1687,9 @@ To orchestrate this, type inference on patterns proceeds in three phases:
     Using the pattern's type schema as a context type (if not in a matching
     context), infer missing types on the value expression. This is the existing
     type inference rules on expressions. It yields a complete static type for
-    the matched value. This process may also insert implicit coercions and casts
-    from `dynamic` in the matched value expression.
+    the matched value. As usual, when a context type is applied to an
+    expression, the process may also insert implicit coercions and casts from
+    `dynamic` in the matched value expression.
 
     *For example:*
 
@@ -1708,28 +1709,36 @@ To orchestrate this, type inference on patterns proceeds in three phases:
 
 3.  **Calculate the static type of the pattern.** Using that value type, recurse
     through the pattern again downwards to the leaf subpatterns filling in any
-    missing types in the pattern. This process may also insert implicit
-    coercions and casts from `dynamic` when values flow into a pattern during
-    matching.
+    missing types in the pattern. This process may also insert casts from
+    `dynamic` when values flow into a pattern during matching.
 
     *For example:*
 
     ```dart
-    T id<T>(T t) => t;
-    (T Function<T>(T), dynamic) record = (id, 'str');
-    var (int Function(int) f, String s) = record;
+    (dynamic, dynamic) record = (123, 'str');
+    var (int n, String s) = record;
     ```
 
     *Since the right-hand is not a record literal, we can't use the pattern's
     context type schema to insert coercions when the record is being created.
-    However, the matched value type `(T Function<T>(T), dynamic)` is allowed by
-    the record pattern's required type `(Object?, Object?)`, the field matched
-    value type `T Function<T>(T)` is allowed by the field required type `int
-    Function(int)`, and the field matched value type `dynamic` is allowed by the
-    field required type `String)`. So the declaration is valid. Coercions are
-    inserted after destructuring each record field before passing them to the
-    field subpatterns. At runtime, when the record is destructured during
-    matching, the coercions are applied. This is specified below.*
+    However, the matched value type `(dynamic, dynamic)` is allowed by the
+    record pattern's required type `(Object?, Object?)`, so the declaration is
+    valid. Casts from dynamic are inserted after destructuring each record field
+    before passing them to the field subpatterns.*
+
+    However, implicit call tear-off and implicit generic function instantiations
+    are *not* inserted during destructuring. *Those implicit coercions are only
+    inserted in _value expressions_ based on a pattern's context type schema,
+    not during destructuring. For example:*
+
+    ```dart
+    T id<T>(T t) => t;
+    (T Function<T>(T),) record = (id,);
+    var (int Function(int) f,) = record; // ERROR.
+    ```
+
+    *This is a compile-time error since the record field type `T Function<T>(T)`
+    is not allowed by the field subpattern required type `int Function(int)`.*
 
 #### Pattern context type schema
 
@@ -2115,106 +2124,16 @@ To type check a pattern `p` being matched against a value of type `M`:
 
 If `p` with required type `T` is in an irrefutable context:
 
-*   If `M` is not a subtype of `T` and `M` is not `dynamic` then an attempt to
-    insert an implicit coercion is made before the pattern binds the value,
-    tests the value's type, destructures the value, or invokes a function with
-    the value as a target or argument.
-    
-    *Coercions are described in a separate section below, named 'Coercions'.*
+*   If `M` is `dynamic` and `T` is not `dynamic`, then an implicit cast from
+    `dynamic` to `T` is made before the pattern binds the value, tests the
+    value's type, destructures the value, or invokes a function with the value
+    as a target or argument. *During destructuring, an implicit cast from
+    `dynamic` is allowed, which may fail and throw an exception at runtime.*
 
-    If a coercion is inserted, this yields a new matched value type which is
-    the value of `M` used in the next step. If no coercion is inserted, the
-    next step proceeds with the already given `M`.
-
-    *Each pattern that requires a certain type can be thought of as an
-    "assignment point" where an implicit coercion may happen when a value flows
-    in during matching. Examples:*
-
-    ```dart
-    var record = (x: 1 as dynamic);
-    var (x: String _) = record;
-    ```
-
-    *Here no coercion is performed on the record pattern since `(x: dynamic)` is
-    a subtype of `(x: Object?)` (the record pattern's required type). But an
-    implicit cast from `dynamic` is inserted when the destructured `x` field
-    flows into the inner `String _` pattern, since `dynamic` is not a subtype of
-    `String`. In this example, the cast will fail and throw an exception.*
-
-    ```dart
-    T id<T>(T t) => t;
-    var record = (x: id);
-    var (x: int Function(int) _) = record;
-    var list = [id];
-    var [int Function(int) idInt && String Function(String) idString] = list;
-    ```
-
-    *Here, again no coercion is applied to the record flowing in to the record
-    pattern, but a generic instantiation is inserted when the destructured field
-    `x` flows into the inner `int Function(int) _` pattern. Similarly, no
-    coercion is applied to the list, but generic function instantiations are
-    applied when the list element flows into each of the operands of the
-    logical-and pattern.*
-
-    *We only insert coercions in irrefutable contexts:*
-
-    ```dart
-    dynamic d = 1;
-    if (d case String s) print('then') else print('else');
-    ```
-
-    *This prints "else" instead of throwing an exception because we don't insert
-    a _cast_ from `dynamic` to `String` and instead let the `String s` pattern
-    _test_ the value's type, which then fails to match.*
-
-*   Next, it is a compile-time error if `M` is not assignable to `T`.
+*   Else, it is a compile-time error if `M` is not a subtype of `T`.
     *Destructuring, variable, and identifier patterns can only be used in
     declarations and assignments if we can statically tell that the
-    destructuring and variable binding won't fail to match (though it may still
-    throw at runtime if the matched value type is `dynamic`).*
-
-### Coercions
-
-The language specification documents do not yet define a unified concept of
-_coercions_, and they do not define what it means to _attempt to insert a
-coercion_. However, the following is intended to establish these concepts
-in a sufficiently precise manner to enable the implementation of patterns:
-
-The language supports the following mechanisms, which are the currently
-existing _coercions_:
-
-- Implicit generic function instantiation.
-- Implicit tear-off of a `.call` method.
-- Implicit tear-off of a `.call` method, which is then generically instantiated.
-
-These mechanisms are applied at specific locations *(known as assignment
-points)*, and they are enabled by specific pairs of context types and
-expression types.
-
-*For example, implicit generic function instantiation is applied to an
-expression `e` whose type is a generic function type `G` in the case where
-the context type is a non-generic function type `F`, and `e` occurs at an
-assignment point. A list of actual type arguments are selected by type
-inference, yielding the expression `e<T1, .. Tk>`, such that the resulting
-expression has a type which is a subtype of `F`.  If the type inference
-fails, or the resulting type is not a subtype of `F` then a compile-time
-error occurs. The implicit tear-off proceeds in a similar manner; it
-transforms `e` to `e.call` when the static type of `e` is an interface type
-that has a method named `call`, and the context type is a function type or
-`Function`.*
-
-An _attempt to insert a coercion_ is the procedure which is described above. It
-may end in an application of the mechanism, or it may end in a compile-time
-error. 
-
-*In the context of pattern type checking, the compile-time error will
-generally report a lack of assignability, not, e.g., a failed type
-inference.*
-
-*Note that the ability for an integer literal to have the type `double` is not a
-coercion *(for example `double d = 1;` makes `1` an integer literal with type
-`double`)*. Similarly, an implicit downcast from `dynamic` is not considered a
-coercion.*
+    destructuring and variable binding won't fail to match.*
 
 ### Pattern uses (static semantics)
 
@@ -3607,6 +3526,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.25
+
+-   Call tear-off and generic function instantiations are not inserted during
+    destructuring.
 
 ### 2.24
 
