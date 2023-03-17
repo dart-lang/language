@@ -20688,11 +20688,6 @@ that is,
 it denotes an \synt{IDENTIFIER} which is not a \synt{BUILT\_IN\_IDENTIFIER}
 (\ref{identifierReference}).%
 }
-%% TODO(eernst): The following non-terminals are currently unused (they will
-%% be used when we transfer more grammar rules from Dart.g): <typeNotVoid>
-%% and <typeNotVoidNotFunctionList>. They are used in the syntax for
-%% \EXTENDS, \WITH, \IMPLEMENTS{} syntax and for mixin applications
-%% in Dart.g, and it seems likely that we will use them here as well.
 
 \commentary{%
 Non-terminals with names of the form \synt{\ldots{}NotFunction}
@@ -20708,13 +20703,13 @@ but it is the least upper bound of all function types.%
   \alt <typeNotFunction>
 
 <typeNotVoid> ::= <functionType> `?'?
-  \alt <typeNotVoidNotFunction>
+  \alt <typeNotVoidNotFunction> `?'?
 
 <typeNotFunction> ::= \VOID{}
-  \alt <typeNotVoidNotFunction>
+  \alt <typeNotVoidNotFunction> `?'?
 
-<typeNotVoidNotFunction> ::= <typeName> <typeArguments>? `?'?
-  \alt \FUNCTION{} `?'?
+<typeNotVoidNotFunction> ::= <typeName> <typeArguments>?
+  \alt \FUNCTION{}
 
 <typeName> ::= <typeIdentifier> (`.' <typeIdentifier>)?
 
