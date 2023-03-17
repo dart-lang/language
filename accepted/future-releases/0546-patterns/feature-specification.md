@@ -1722,7 +1722,9 @@ To orchestrate this, type inference on patterns proceeds in three phases:
     *Since the right-hand is not a record literal, we can't use the pattern's
     context type schema to insert coercions when the record is being created.
     However, the matched value type `(dynamic, dynamic)` is allowed by the
-    record pattern's required type `(Object?, Object?)`, so the declaration is
+    record pattern's required type `(Object?, Object?)`, and the matched
+    value type `dynamic` for each field is allowed by the required types
+    of the fields, i.e., `int` and `String`, so the declaration is
     valid. Casts from dynamic are inserted after destructuring each record field
     before passing them to the field subpatterns.*
 
