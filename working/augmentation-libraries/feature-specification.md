@@ -313,14 +313,15 @@ It is a compile-time error if:
 *   The augmenting type and corresponding type are not the same kind: class,
     mixin, enum, or extension. You can't augment a class with a mixin, etc.
 
+*   The augmenting type and corresponding type do not have all the same
+    modifiers (final, sealed, mixin, etc). This is not a technical requirement
+    but it should make augmentations easier to understand when looking at them.
+
 *   The augmenting type declares an `extends` clause. Only the main declaration
     can specify those.
 
     **TODO: We could consider allowing an `extends` clause if the main
     declaration doesn't have one.**
-
-*   The augmenting type is marked `abstract`. The main library determines
-    whether the class is abstract or not.
 
 *   The type parameters of the type augmentation do not match the original
     type's type parameters. This means there must be the same number of type
