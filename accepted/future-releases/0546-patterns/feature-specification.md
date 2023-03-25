@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.26 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.27 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -3537,6 +3537,12 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.27
+
+-   Clarify that when downwards is used to infer type arguments for an object
+    pattern, any type arguments that are left unconstrained are filled in using
+    instantiate to bounds.
 
 ### 2.26
 
