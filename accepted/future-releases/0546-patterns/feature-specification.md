@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.25 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.26 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -3534,6 +3534,13 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.26
+
+-   Change the technique for resolving the "function expression in guard
+    ambiguity" to match what was implemented (function literals are now
+    prohibited in guards unless enclosed in parentheses, square brackets, or
+    curly braces).
 
 ### 2.25
 
