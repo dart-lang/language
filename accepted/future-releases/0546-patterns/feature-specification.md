@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.25 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.26 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -1345,21 +1345,27 @@ var x = switch (obj) {
 
 A similar ambiguity exists with function expressions in initializer lists, if
 the constructor happens to be a factory constructor with `=>` for its body. We
-resolve the ambiguity similarly here:  When `=>` is encountered after `when` in
-a guard, if the code between forms a valid expression, then it is interpreted as
-such and the `=>` is treated as the separator between the guard and case body.
-*In the above example, we take the first interpretation.*
+resolve the ambiguity similarly here: Inside the `expression` part of a
+`guardedPattern`, a function literal is not allowed, unless it is enclosed in
+grouping operators (parentheses, square brackets, or curly braces). *Therefore,
+if `=>` is encountered after `when` in a guard, the `=>` is treated as the
+separator between the guard and case body.  In the above example, we take the
+first interpretation.*
 
-This rules applies in all contexts where a guard can appear: switch statements,
-switch expressions, if-case statements, and if-case elements. *We could restrict
-this rule to guards only in switch expressions where the ambiguity arises, but
-that leads to a syntactic restriction that is context-sensitive and harder to
-learn. Since the rule is unusual enough as it is, we apply it as consistently as
-possible. Note that the related restriction on `=>` in constructor initializers
-applies even though generative constructors can't use `=>` for their body.*
+This rule applies in all contexts where a guard can appear: switch statements,
+switch expressions, if-case statements, and if-case elements.  It also applies
+to all function expressions, whether their body is `=>` followed by an
+expression, or a block delimited by curly braces. *We could restrict this rule
+to guards only in switch expressions where the ambiguity arises, and to function
+literals using `=>`. But that leads to a syntactic restriction that is
+context-sensitive and harder to learn. Since the rule is unusual enough as it
+is, we apply it as consistently as possible. Note that the related restriction
+on constructor initializers applies regardless of whether the function literal
+uses `=>` or a block, even though generative constructors can't use `=>` for
+their body.*
 
-The rule is applied unconditionally even if the code after `=>` is not a valid
-body expression, as in:
+*The rule is applied unconditionally even if the code after `=>` is not a valid
+body expression, as in:*
 
 ```dart
 var x = switch (obj) {
@@ -1367,12 +1373,12 @@ var x = switch (obj) {
 };
 ```
 
-Here, we treat the guard expression as `(a)`, which leads the body to be `b =>
-c` which isn't a valid expression and produces a compile-time error.
+*Here, we treat the guard expression as `(a)`, which leads the body to be `b =>
+c` which isn't a valid expression and produces a compile-time error.*
 
-If you want a guard expression that ends in a function expression (which is
+*If you want a guard expression that ends in a function expression (which is
 quite unlikely), you can avoid the `=>` being captured as the case separator by
-parenthesizing the function:
+parenthesizing the function:*
 
 ```dart
 var x = switch (obj) {
@@ -3531,6 +3537,13 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.26
+
+-   Change the technique for resolving the "function expression in guard
+    ambiguity" to match what was implemented (function literals are now
+    prohibited in guards unless enclosed in parentheses, square brackets, or
+    curly braces).
 
 ### 2.25
 
