@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.26 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.27 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -1254,8 +1254,8 @@ primary                 ::= // Existing productions...
                           | switchExpression
 
 switchExpression        ::= 'switch' '(' expression ')' '{'
-                            switchExpressionCase ( ',' switchExpressionCase )*
-                            ','? '}'
+                            ( switchExpressionCase ( ',' switchExpressionCase )*
+                            ','? )? '}'
 switchExpressionCase    ::= guardedPattern '=>' expression
 ```
 
@@ -2149,7 +2149,25 @@ It is a compile-time error if the type of an expression in a guard clause is not
 assignable to `bool`.
 
 The static type of a switch expression is the least upper bound of the static
-types of all of the case expressions.
+types of all of the case expressions.  If a switch expression has no cases, its
+static type is `Never`.
+
+*A switch expression with no cases is usually not useful; in fact it is almost
+always an error because it is not exhaustive. However, it can be useful if a
+user is beginning to sketch out code to work with a `sealed` class, and that
+class does not yet have any subclasses. In this situation, the user may begin
+writing placeholder code that consumes values of that `sealed` type, for
+example:*
+
+```dart
+int doSomethingWithSealedClass(MySealedClass s) => switch (s) {};
+```
+
+*This placeholder code will be allowed as long as the sealed type has no
+subtypes. Later, when the user starts adding some subtypes, the compiler will
+issue an error since the empty placeholder switch is no longer exhaustive,
+allowing the user to find all the places in the code that need to be updated to
+handle the new subtype.*
 
 ### Variables and scope
 
@@ -3534,6 +3552,10 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.27
+
+-   Allow empty switch expressions.
 
 ### 2.26
 
