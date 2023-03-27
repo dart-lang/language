@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.27 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.28 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -2112,7 +2112,10 @@ To type check a pattern `p` being matched against a value of type `M`:
 
     1.  Resolve the object name to a type `X`. It is a compile-time error if the
         name does not refer to a type. Apply downwards inference with context
-        type `M` to infer type arguments for `X`, if needed.
+        type `M` to infer type arguments for `X`, if needed.  If any type
+        arguments are left unconstrained, do instantiate to bounds (using the
+        partial solution from downwards inference) to fill in their values.
+
 
     2.  For each field subpattern of `p`, with name `n` and subpattern `f`:
 
@@ -3552,6 +3555,12 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.28
+
+-   Clarify that when downwards is used to infer type arguments for an object
+    pattern, any type arguments that are left unconstrained are filled in using
+    instantiate to bounds.
 
 ### 2.27
 
