@@ -281,7 +281,7 @@ can be nested inside a destructuring pattern:
 ```dart
 switch (list) {
   // Matches a two-element list whose first element is 'a' or 'b':
-  case ['a' || 'b', var c]):
+  case ['a' || 'b', var c]:
 }
 ```
 
