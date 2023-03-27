@@ -3394,8 +3394,8 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
                 since the length of the list isn't a syntactically known
                 property. Since the list and its length are cached too, using
                 `t` is sufficient to distinguish calls to `sublist()` that are
-                different, like `[...] && [..., a]` while caching calls that are
-                the same as in `[..., a] && [..., b]`.*
+                different, like `[...rest] && [...rest, b]` while caching calls
+                that are the same as in `[...rest, a] && [...rest, b]`.*
 
             2.  Bind `e` to the `sublist()` invocation for `s`.
 
