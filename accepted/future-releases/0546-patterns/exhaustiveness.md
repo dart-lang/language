@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In progress
 
-Version 1.1 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.0 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Summary
 
@@ -52,7 +52,9 @@ Exhaustiveness checking is about answering two questions:
     ```
 
     Here, the third case can never be matched because any value it matches would
-    also already be matched by one of the preceding two cases.
+    also already be matched by one of the preceding two cases. This is not a
+    concern for soundness or correctness, but is dead code that an
+    implementation may want to warn on.
 
 Dart already supports exhaustiveness and reachability warnings in switch
 statements on `bool` and enum types. This document extends that to handle
@@ -60,12 +62,14 @@ destructuring patterns and [algebraic datatype-style][adt] code.
 
 [adt]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md#algebraic-datatypes
 
-The approach is based very closely on the excellent paper ["A Generic Algorithm
-for Checking Exhaustivity of Pattern Matching"][paper] by [Fengyun Liu][],
-modified to handle named field destructuring and arbitrarily deep sealed class
-hierarchies.
+The approach is based on the paper ["Warnings for pattern matching"][maranget]
+(PDF) by Luc Maranget, modified to handle subtyping, named field destructuring,
+and arbitrarily deep sealed class hierarchies. It was then elaborated much
+further by Johnni Winther. It also takes inspiration from ["A Generic Algorithm
+for Checking Exhaustivity of Pattern Matching"][space paper] by [Fengyun Liu][].
 
-[paper]: https://infoscience.epfl.ch/record/225497?ln=en
+[maranget]: http://moscova.inria.fr/~maranget/papers/warn/warn.pdf
+[space paper]: https://infoscience.epfl.ch/record/225497?ln=en
 [Fengyun Liu]: https://fengy.me/
 
 There is a [prototype implementation][prototype] of the algorithm with detailed
@@ -185,33 +189,48 @@ we would break that principle.
 
 ### Sealing supertypes
 
-Instead, we extend the language to let a user explicitly "seal" a supertype with
-a specified closed set of subtypes. No other code is allowed to define a new
-subtype of the sealed supertype (using `extends`, `implements`, or `with`). The
+Instead, we [extend the language to let a user explicitly "seal"][sealed] a
+supertype with a specified closed set of subtypes. No code outside of the
+library where the sealed type is declared is allowed to define a new subtype of
+the sealed supertype (using `extends`, `implements`, `with`, or `on`). The
 supertype is also implicitly made abstract.
 
-This document does *not* propose a specific syntax for sealing, but we'll use
-this hypothetical syntax for now to show an example:
+[sealed]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/sealed-types/feature-specification.md
+
+Here is an example:
 
 ```dart
 enum Suit { club, diamond, heart, spade }
 
 sealed class Card {
   final Suit suit;
+
+  Card(this.suit);
 }
 
 class Pip extends Card {
   final int pips;
+
+  Pip(this.pips, super.suit);
 }
 
-sealed class Face extends Card {}
+sealed class Face extends Card {
+  Face(super.suit);
+}
 
 class Jack extends Face {
   final bool oneEyed;
+
+  Jack(super.suit, {this.oneEyed = false});
 }
 
-class Queen extends Face {}
-class King extends Face {}
+class Queen extends Face {
+  Queen(super.suit);
+}
+
+class King extends Face {
+  King(super.suit);
+}
 ```
 
 The above class declarations create the following class hierarchy:
@@ -230,13 +249,17 @@ A parenthesized class name means "sealed". It's important to understand what
 sealing does *not* mean:
 
 *   The *subtypes* of a sealed type do not have to be "final" or closed to
-    extension or implementation. In the example here, anyone can extend,
-    implement or even mixin, say, `Pip` or `Queen`. This doesn't cause any
-    problems. And in fact, we use this to turn `Face` into a sealed supertype
-    of its own set of subtypes.
+    extension or implementation. In the example here, anyone can extend or
+    implement, say, `Pip` or `Queen`. This doesn't cause any problems. And in
+    fact, we use this to turn `Face` into a sealed supertype of its own set of
+    subtypes.
 
-*   The subtypes do not have to be disjoint. We could define a `Royalty` class
-    that implements `Jack`, `Queen`, and `King`.
+*   The subtypes do not have to be disjoint. Another library that wanted to
+    depose the royalty could define a `Democracy` class that implements `Jack`,
+    `Queen`, and `King` and takes over their functionality. This doesn't cause
+    any problems for exhaustiveness even though it means that a single instance
+    of `Democracy` would match more than one of the sealed subtypes of `Card`
+    and `Face`.
 
 *   The subtypes can have other supertypes in addition to the sealed one. We
     could have a `Monarch` interface that `Queen` and `King` implement.
@@ -246,771 +269,877 @@ also be an instance of one of the known set of subtypes. That gives us the
 critical invariant that if we have matched against all instances of those
 subtypes, then we have exhaustively covered all instances of the supertype.
 
-## Types, patterns, and spaces
+## Spaces
 
-The two questions exhaustiveness answers are defined based on some notion of a
-"set of values". A series of cases is exhaustive if the set
-of all possible values entering the switch is covered by the sets of values
-matched by the case patterns.
+Determining whether a switch is exhaustive requires reasoning about some notion
+of a "set of values". A series of cases is exhaustive if the set of all possible
+values entering the switch is covered by the sets of values matched by the case
+patterns.
 
 Thus the algorithm needs a way to model a (potentially infinite) set of values.
-Let's consider a few options:
-
-### Static types
-
 In a statically typed language, the first obvious answer is a static type. A
-type does represent a set of values. The type `bool` represents the set `true`
-and `false`. The type `DateTime` represents the set of all instances of the
-`DateTime` class or any of its subtypes.
+type does represent a set of values. But a plain static type isn't precise
+enough for things like the set of values matched by the pattern `DateTime(day:
+1)` which matches not just all values of some type, but only ones whose fields
+have certain values.
 
-Unfortunately, a static type isn't precise enough:
-
-```dart
-Object obj = ...
-switch (obj) {
-  case DateTime(day: 1): ...
-  case DateTime(day: 2): ...
-}
-```
-
-What static type could represent the set of values matched by the first case?
-It's not just `DateTime` because that would imply that the second case is
-unreachable, which isn't true. Static types aren't precise enough to represent
-instances of a type *with certain destructured properties*.
-
-### Patterns
-
-A type with some properties sounds a lot like a pattern. Patterns are a much
-more precise way to describe a set of values&mdash;that precision is essentially
-why they exist. If we want to represent "the set of all instances of `DateTime`
-whose `day` field is `1`" then `DateTime(day: 1)` means just that.
-
-That's close to how this algorithm models patterns, but there are two minor
-problems:
-
-1.  Patterns aren't quite expressive enough. In the above switch statement, what
-    pattern describes the set of values matched by *both* of those cases? We
-    can't easily express that using the proposed patterns because there's no
-    union pattern to represent "`1` or `2`".
-
-2.  On the other hand, patterns are too complex. Because the proposal is
-    intended to be richly expressive, it defines a large number of different
-    kinds of patterns each with its own semantics. Handling every one of those
-    (and every pairwise combination of them) would add a lot of complexity to
-    the algorithm.
-
-### Spaces
+A pattern is the natural way to describe a set of values of some type filtered
+by some arbitrary set of predicates on their propertiesl, and we will use
+somethig similar here. However, the patterns proposal defines a rich set of
+patterns to make the feature user friendly and expressive. It would require
+unnecessary complexity in the exhaustiveness algorithm to handle every single
+kind of pattern.
 
 Instead, following Liu's paper, we use a data structure called a *space*. Spaces
-are like patterns, but there are only a couple of kinds:
+are essentially a simpler unified abstration over patterns and static types.
 
-*   An **empty space** contains no values. We'll write it as just "empty".
+A single space has a *type*, a *restriction*, and zero or more *properties*. All
+of these are used to determine which values match the space and which don't. The
+type filters values by type. The restriction is used for more precise matching
+constraints like constants and list lengths. Properties destructure from the
+matched value and use further subspaces to constrain the result.
 
-*   An **object space** is similar to an [object pattern][]. It has a static
-    type and a set of "named" fields. "Name" is in quotes because it's usually a
-    simple string name but we can generalize slightly to allow names like `[2]`
-    or `[someConstant]` in order to model list and map element access as named
-    fields. For our purposes, the name just needs to be some fixed "key" that is
-    computable at compile time and can be compared for equality to other keys.
-    The value for each field is a space, and spaces can nest arbitrarily deeply.
+Zero or more spaces are collected into a *space union*. A space union matches
+all of the values that any of its constituent spaces match. The *empty space
+union* with no spaces matches no values. Multiple space unions can be unioned
+together yielding a union containing all of their respective spaces.
 
-    An object space contains all values of the object's type (or any subtype)
-    whose field values are contained by the corresponding field spaces.
+Informally, where a space union is expected, a single space means a union
+containing just that space. If a space isn't specified to have any properties,
+it implicitly has none.
 
-    If an object space has no fields, then it simply contains all values of some
-    type. When the type is "top" (some presumed top type), it is similar to a
-    record pattern in that it contains all values whose fields match. If the
-    object space has type "top" and no fields, it contains all values.
+## Types and restrictions
 
-    In this document, if an object space has no fields, we write it just as a
-    type name like `Card`. If its type is "top", we omit the type and write it
-    like `(pips: 3)`.
+Every space has a static type that defines the type of values it can match. In
+addition, a space may have a restriction that further filters out values.
 
-[object pattern]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md#object-pattern
+There are a couple of kinds of restrictions:
 
-*   A **union space** is a series of two or more spaces. It contains all values
-    that are contained by any of its arms. Whenever a union space is created, we
-    simplify it:
+*   An *open restriction*, the default, matches all values.
 
-    *   Discard any empty spaces since they contribute nothing.
-    *   If any two spaces are equivalent, keep only one. Equivalence here is
-        defined structurally or syntactically in the obvious way.
+*   A *constant restriction* matches only values that are identical to a given
+    constant value. It's used for enum values, `true`, and `false`.
 
-    This isn't necessary for correctness, but is important for performance to
-    avoid exponential blow-up. In theory, discarding duplicates is `O(n^2)`. In
-    practice, it should be easy to define a hash code and use a hash set for the
-    arms.
+*   An *arity restriction* tracks the arity of which lists and maps the space
+    for a list or map pattern may match. It has a `length`, which the specifies
+    the minimum number of elements the collection must have. It also has a
+    `hasRest` flag. If `true`, then the collection may have more than *length*
+    elements and still match. If `false`, then the collection must have exactly
+    *length* elements to match.
 
-    In the document, we write unions as the arms separated by `|` like:
+    *If exhaustiveness checking supported integer ranges more generally, then
+    arity restrictions could be modeled in terms of that.*
 
-    ```
-    Pip(pips: 5)|Queen|King
-    ```
+## Properties
 
-### Types in spaces
+A space may contain one or more properties. Each property has a *key* used to
+destructure a piece of data from the matched object and then matches the result
+against a corresponding *subspace* (actually a space union). This is similar to
+how subpatterns in object, list, and other patterns extract data and match
+against it.
 
-Object spaces have a static type and the algorithm needs to work with those. For
-our purposes, the only thing we need to be able to ask about a type is:
+We call them "properties" here because they are more general than just
+named getter accessors. There are a few kinds of keys:
 
-*   Is it a subtype of some other type? And, conversely, is one type a supertype
-    of another? Note that "subtype" and "supertype" aren't "strict". A type is
-    its own subtype and supertype.
-*   Is it sealed?
-*   If so, what are its direct subtypes?
-*   Is it the same as some another type?
+*   A *getter key* accesses a named member on the object. This may invoke a
+    getter, tear off a method, invoke an extension member, or tear off an
+    extension.
 
-## Lifting types and patterns to spaces
+*   A *field key* accesses a record field. This is essentially the same as a
+    getter key since record objects also expose getters for their fields.
 
-An algorithm that works on spaces isn't very useful unless we can plug it in to
-the rest of the system. We need to be able to take Dart constructs and lift them
-into spaces:
+*   An *element key* accesses a list element with the given constant integer
+    index or a map value with the given constant key by calling the `[]` on the
+    matched object.
 
-*   **Static type:** An object space with that type and no fields.
+*   A *rest key* accesses a range of rest elements on a list. It has two
+    constants: the number of `head` elements that precede the rest, and the
+    number of `tail` elements after it. It destructures by calling
+    `sublist(head, length - tail)` on the matched list.
 
-*   **Record pattern:** An object space with type "top". Then lift the record
-    fields to spaces on the object space. Since object spaces only have named
-    fields, lift positional fields to implicit names like `field0`, `field1`,
-    etc.
+*   A *tail key* accesses a list element with the given constant integer index
+    `i` from the *end* of the list by calling `list[length - i]` on the matched
+    list.
 
-*   **List pattern:** An object space whose type is the corresponding list type.
-    Element subpatterns lift to fields on the object with names like `[0]`,
-    `[1]`, etc.
+Every key has a corresponding static type that can be looked up given the
+type of the space it is being accessed on:
 
-*   **Map pattern:** Similar to lists, an object space whose type is the
-    corresponding map type. Element subpatterns are lifted to object fields
-    whose "names" are based on the map key constant, like `[someConstant]`.
+*   For a getter or field key, the type is the type of the corresponding member
+    or record field.
 
-*   **Wildcard pattern:** An object space of type "top" with no fields.
+*   For an element or tail key, the type is the return type of the corresponding
+    `[]` operator declared on the space's type.
 
-*   **Variable pattern:** An object space whose type is the variable's type
-    (which might be inferred).
+*   For a rest key, the type is the same as the type of the space. That will
+    always be `List<T>` for some `T`.
 
-*   **Literal or constant pattern:** These are handled specially depending on
-    the constant's type:
+## Lifting types and patterns to space unions
 
-    *   We treat `bool` like a sealed supertype with subtypes `true` and
-        `false`. The Boolean constants `true` and `false` are lifted to object
-        patterns of those subtypes.
+The exhaustiveness algorithm works on spaces and space unions, but it is invoked
+given the static type of the matched value and the patterns for each switch
+case. The first step is "lifting" that type and those patterns into the space
+representation.
 
-    *   Likewise, we treat enum types as if the enum type was a sealed supertype
-        and each value was a singleton instance of a unique subtype for that
-        value. Then an enum constant is lifted to an object pattern of the
-        appropriate subtype.
+*   **Static type:** The space union representing a static type `T` is a single
+    space with type `T`, open restriction, and no properties.
 
-        In the previous card example, we treat `Suit` as a sealed supertype with
-        subtypes `club`, `diamond`, `heart` and `spade`.
+Lifting a pattern to a space union happens in the context of a *matched value
+type* which is determined during type checking and is known for each pattern.
+The lifted space union for a pattern with matched value type `M` is:
 
-        (We are *not* proposing adding Java-style enum value subtypes to the
-        Dart language. This is just a way to model enums for exhaustiveness
-        checking.)
+*   **Logical-or pattern:** A union of the lifted spaces of the two branches.
 
-    *   We lift other constants to an object pattern whose type is a synthesized
-        subtype of the constant's type based on the constant's identity. Each
-        unique value of the constant's type is a singleton instance of its own
-        type, and the constant's type behaves like an *unsealed* supertype. Two
-        constants have the same synthesized subtype if they are identical
-        values.
+*   **Logical-and pattern:** The intersection (defined below) of the lifted
+    space unions of the two branches.
 
-        This means you don't get exhaustiveness checking for constants, but do
-        get reachability checking:
+*   **Relational pattern:** The empty space union. *Relational patterns don't
+    reliably match any values, so don't help with exhaustiveness.*
 
-        ```dart
-        String s = ...
-        switch (s) {
-          case 'a string': ...
-          case 'a string': ...
-        }
-        ```
+*   **Cast pattern:** *A cast pattern matches if the value is of the casted type
+    and the inner pattern matches it. But a cast pattern also "handles" a value
+    when the cast _fails_. From the perspective of exhaustiveness checking, what
+    matters it that execution can't flow out of a switch without matching at
+    least one case. But if a pattern _throws_ a runtime exception, then
+    execution also doesn't flow out of it. So we treat throwing as essentially
+    another kind of matching for exhaustiveness.*
 
-        Here, there is an unreachable error on the second case since it matches
-        the same string constant. Also the switch has a non-exhaustive error
-        since it doesn't match the entire `String` type.
-
-*   **Object pattern:** An object space whose type is the object pattern's type
-    and whose fields are the lifted fields of the object pattern. Positional
-    fields in the object pattern get implicit names like `field0`, `field1`,
-    etc.
-
-*   **Null-check pattern:** An object space whose type is the non-nullable
-    underlying type of the pattern's matched value type. It contains a single
-    field, `this` that returns the same value it is called on. That field's
-    space is the lifted subpattern of the null-check pattern. For example:
+    *In practice, this normally isn't very helpful. Consider:*
 
     ```dart
-    Card? card;
-    switch (card) {
-      case Jack(oneEyed: true)?: ...
+    test(Object obj) => switch (obj) {
+      int(isEven: true) as int => 1,
+      int _ => 2
+    };
+    ```
+
+    *Here, the first case will throw on any value that isn't an `int` and the
+    second case will match on any value that is, so it is exhaustive. But the
+    exhaustiveness algorithm doesn't model "all objects that are not `int`", so
+    it can't tell that this is exhaustive.*
+
+    *But with sealed types, exhaustiveness can sometimes represent the set of
+    remaining types. Given:*
+
+    ```dart
+    sealed class A {
+      final int field;
     }
+    class B extends A {}
+    class C extends A {}
+    class D extends A {}
+
+    test(A a) => switch (a) {
+      C(field: 0) as C => 0,
+      C _ => 1
+    };
     ```
 
-    The case pattern is lifted to:
+    *After the first case, we know that if `a` is a `B` or `D` then we will have
+    thrown an exception. But if `a` is a `C`, it may not have matched if the
+    field isn't `0`. So the space for the first case is a union of `B|C(field:
+    0)|D'.*
 
-    ```
-    Card(this: Jack(oneEyed: true))
-    ```
+    *Then the second case covers the rest of `C` and this is exhaustive.*
 
-*   **Null-assert pattern:** The union of the lifted space of `null` and the
-    lifted space of the subpattern.
+    Formally, the space union `spaces` for a cast pattern with cast type `C` is
+    a union of:
 
-*   **Cast pattern:** The space `(matched - cast) | subpattern` where `matched`
-    is the lifted space of the matched value type for this pattern, `cast` is
-    the lifted space for the type being cast to, and `subpattern` is the lifted
-    space for the subpattern.
+    1.  The lifted space union of the cast's subpattern in context `C`.
 
-**TODO: Once generics are supported, describe how type arguments work.**
+    2.  For each space `E` in the *expanded spaces* (see below) of `M`:
 
-## The algorithm
+        1.  If `E` is not a *subset* (see below) of `C` and `C` is not a subset
+            of `M`, then the lifted space union of `E`.
 
-We can now lift the value type being switched on to a space `value` and lift the
-patterns of all of the cases to spaces. To determine exhaustiveness and
-reachability from those, we need only one fundamental operation, subtraction.
-`A - B = C` returns a new space `C` that contains all values of space `A` except
-for the values of space `B`.
+*   **Null-check pattern:**
 
-Given that, we can answer the two exhaustiveness questions like so:
+    1.  Let `S` be the expanded spaces of the lifted space union of the
+        subpattern.
 
-### Exhaustiveness
+    2.  Remove any unions in `S` that have type `Null`. *A null-check pattern
+        specifically does not match `null`, so even if the subpattern would
+        handle it, it will never see it.*
 
-1.  Discard any cases that have guards. Since static analysis can't tell when
-    a guard might evaluate to false, any case with a guard doesn't reliably
-    match values and so can't help prove exhaustiveness.
+    3.  The result is `S`.
 
-2.  Create a union space, `cases` of the remaining case spaces. That union
-    contains all values that will be matched by any case.
-
-3.  Calculate `remaining = value - cases`. If `remaining` is empty, then the
-    cases cover all values and the switch is exhaustive. Otherwise it's not, and
-    `remaining` can be used in error messages to describe the values that won't
-    be matched.
-
-### Unreachability
-
-1.  For each case `case` except the first:
-
-    1.  Create a union space `preceding` from all of the preceding cases (except ones with
-        guards).
-
-    2.  Calculate `remaining = case - preceding`. If `remaining` is empty, then
-        every value matched by `case` is also matched by some preceding case
-        and the case is unreachable. Otherwise, the case is reachable and
-        `remaining` describes the values it might match.
-
-Note that we can calculate reachability even for cases with guards. It's useful
-to tell if a case with a guard is completely unreachable. It's just that we
-ignore guards on *preceding* cases when determining if each case is reachable.
-
-## Space subtraction
-
-To calculate `C = A - B`:
-
-*   If `A` is empty, then `C` is empty. Subtracting anything from nothing still
-    leaves nothing.
-
-*   If `B` is empty, then `C` is `A`. Subtracting nothing has no effect.
-
-*   If `A` is a union, then subtract `B` from each of the arms and `C` is a
-    union of the results. For example:
-
-    ```
-    X|Y|Z - B  becomes  X - B | Y - B | Z - B
-    ```
-
-    Subtracting values from a union is equivalent to subtracting those same
-    values from every arm of the union.
-
-*   If `B` is a union, then subtract every arm of the union from `A`. For
-    example:
-
-    ```
-    A - X|Y|Z  becomes  A - X - Y - Z
-    ```
-
-    Subtracting a union is equivalent to removing all of the values from all of
-    its arms.
-
-*   Otherwise, `A` and `B` must both be object spaces, handled in the next
-    section.
-
-## Object subtraction
-
-Before we get into the algorithm, let's try to build an intuition about why it's
-complex and how we might tackle that complexity. Object spaces are rich data
-structures: they have a type and an open-ended set of fields which may nest
-spaces arbitrarily deeply.
-
-When subtracting two objects, they may have different types, or the same. They
-may have fields that overlap, or a field name may appear in one and not the
-other. All of those interact in interesting ways. For example:
-
-```
-Card(suit: heart|club) - Card(suit: club) = Card(suit: heart)
-```
-
-This is pretty simple. We recurse into the field and subtract the corresponding
-spaces in the obvious way. Here's a similar example:
-
-```
-Jack(suit: heart|club) - Card(suit: club) = Jack(suit: heart)
-```
-
-The objects have different types now, but it still works out. Now consider:
-
-```
-Card(suit: heart|club) - Jack(suit: club)
-```
-
-It's not as obvious what the solution should be. It's not `Card(suit: heart)`
-because the space should still contain clubs that aren't jacks. It's not
-`Jack(suit: heart)` because it should still allow other ranks. It turns out the
-answer is:
-
-```
-Pip(suit: heart|club)|Jack(suit: club)|Queen(suit: heart|club)|King(suit: heart|club)
-```
-
-### Representing holes
-
-It might be surprising that subtracting one simple space from another simple
-space yields much a more complex space. Since the resulting space is smaller,
-shouldn't it be textually smaller?
-
-Consider a simpler space: `(x: Suit, y: Suit)`. It's a pair of two suits, which
-are enums. You can think of this space as a 2D grid with an axis for each field.
-Each cell is a unique value in the space:
-
-```
-         x: club          diamond       heart         spade
-y:    club  (x: ♣︎, y: ♣︎)  (x: ♦︎, y: ♣︎)  (x: ♥︎, y: ♣︎)  (x: ♠︎, y: ♣︎)
-
-   diamond  (x: ♣︎, y: ♦︎)  (x: ♦︎, y: ♦︎)  (x: ♥︎, y: ♦︎)  (x: ♠︎, y: ♦︎)
-
-     heart  (x: ♣︎, y: ♥︎)  (x: ♦︎, y: ♥︎)  (x: ♥︎, y: ♥︎)  (x: ♠︎, y: ♥︎)
-
-     spade  (x: ♣︎, y: ♠︎)  (x: ♦︎, y: ♠︎)  (x: ♥︎, y: ♠︎)  (x: ♠︎, y: ♠︎)
-```
-
-To calculate `(x: Suit, y: Suit) - (x: club, y: spade)`, we need to poke a hole
-in that table:
-
-```
-         x: club          diamond       heart         spade
-y:    club  (x: ♣︎, y: ♣︎)  (x: ♦︎, y: ♣︎)  (x: ♥︎, y: ♣︎)  (x: ♠︎, y: ♣︎)
-
-   diamond  (x: ♣︎, y: ♦︎)  (x: ♦︎, y: ♦︎)  (x: ♥︎, y: ♦︎)  (x: ♠︎, y: ♦︎)
-
-     heart  (x: ♣︎, y: ♥︎)  (x: ♦︎, y: ♥︎)  (x: ♥︎, y: ♥︎)  (x: ♠︎, y: ♥︎)
-
-     spade     <hole>     (x: ♦︎, y: ♠︎)  (x: ♥︎, y: ♠︎)  (x: ♠︎, y: ♠︎)
-```
-
-We don't have a kind of space that naturally represents a "negative" or hole.
-Object spaces model a rectangular region of contiguous cells. They can easily
-represent an entire table, row, column, or cell here. But they can't do a more
-complex shape.
-
-But we do have unions. We can represent an arbitrarily complex shape using a
-union of simple object shapes that cover everything except the missing parts:
-
-```
-         x: club          diamond       heart         spade
-           ┌────────────┐┌────────────────────────────────────────┐
-y:    club │(x: ♣︎, y: ♣︎)││(x: ♦︎, y: ♣︎)  (x: ♥︎, y: ♣︎)  (x: ♠︎, y: ♣︎)│
-           │            ││                                        │
-   diamond │(x: ♣︎, y: ♦︎)││(x: ♦︎, y: ♦︎)  (x: ♥︎, y: ♦︎)  (x: ♠︎, y: ♦︎)│
-           │            ││                                        │
-     heart │(x: ♣︎, y: ♥︎)││(x: ♦︎, y: ♥︎)  (x: ♥︎, y: ♥︎)  (x: ♠︎, y: ♥︎)│
-           └────────────┘│                                        │
-     spade    <hole>     │(x: ♦︎, y: ♠︎)  (x: ♥︎, y: ♠︎)  (x: ♠︎, y: ♠︎)│
-                         └────────────────────────────────────────┘
-```
-
-Here, the left box is `(x: club, y: heart|diamond|club)` and the right is `(x:
-spade|heart|diamond, y: Suit)`. The result the algorithm produces is similar:
-
-```
-(x: Suit, y: heart|diamond|club)|(x: spade|heart|diamond, y: Suit)
-```
-
-(It uses `Suit` instead of `club` for `x` in the first arm because overlapping
-arms are harmless.)
-
-Note that there are multiple ways we could tile a set of objects around a hole.
-There are multiple ways to represent a given space. We just need an algorithm
-that produces *one*. The process of using a union of objects to represent
-removed spaces harder to visualize with more fields because each fields adds a
-dimension, but the process still works out.
-
-When subtracting objects with fields, the algorithm's job is to figure out the
-union of objects that tile the remaining space and do so efficiently to avoid a
-combinatorial explosion of giant unions.
-
-### Mismatched fields
-
-Another problem unique to Dart's approach to pattern matching is that when
-subtracting two object spaces, they may not have the same set of fields:
-
-`Jack(suit: heart) - Face(oneEyed: bool)`
-
-To handle this, when calculating `L - R`, we align the two sets of fields
-according to these rules:
-
-*   If a field in `R` is not in `L` then infer a field in `L` with an object
-    whose type is the static type of the field in `L`'s type. In the above
-    example, we would infer `oneEyed: bool` for the left space.
-
-    Since an object only contains values of the matched type, we can assume
-    that the field will be present and that every value of that field will be of
-    the field's type. Therefore, a field space matching the field's static type
-    is equivalent to not matching on the field at all.
-
-*   If a field in `L` is not in `R` then infer a field in `R` with an object of
-    type `top`.
-
-    An object with no field allows all values of that field, so inferring "top"
-    when subtracting is equivalent to not having the field. (We can't infer
-    using the type of the corresponding field in `R`'s type because `R`'s type
-    might be a supertype of `L` or even "top" and the field might not exist.)
-
-Whenever we refer to a "corresponding field" below, if the space doesn't contain
-it, then it is inferred using these rules.
-
-### Expanding types
-
-Even without fields, subtraction of object spaces can be interesting. Consider:
-
-```
-Face - Jack
-```
-
-If `Face` isn't a sealed class, there isn't much we can do. But since `Face` is
-sealed, we know that `Face` is exactly equivalent to `Jack|Queen|King`. And the
-result of that subtraction is obvious:
-
-```
-Jack|Queen|King - Jack = Queen|King
-```
-
-**Expanding a type** replaces a sealed supertype with its list of subtypes. We
-only do this when the left type is sealed and the right type is a subtype.
-Expanding is recursive:
-
-```
-Card - Jack
-```
-
-Here, we first expand `Card` to `Pip|Face`. One of the results is still a sealed
-supertype of `R`'s type, so we expand again to:
-
-```
-Pip|Jack|Queen|King - Jack = Pip|Queen|King
-```
-
-We only expand a sealed supertype if doing so gets closer to a sealed subtype
-on the right. If `Pip` was sealed in the above example, we wouldn't expand it.
-This way, we minimize the size of the unions we're working with.
-
-We can also expand *object spaces* and not just types, even when the space has
-fields. In that case, we copy the fields and produce a union of the results. So:
-
-```
-Face(suit: heart) - Jack
-```
-
-Expands to:
-
-```
-Jack(suit: heart)|Queen(suit: heart)|King(suit: heart) - Jack
-```
-
-And now it's easier to see that `Jack` subtracts the first arm leaving:
-
-```
-Queen(suit: heart)|King(suit: heart)
-```
-
-If the left type is nullable and the right type is `Null` or non-nullable, then
-expanding expands the nullable type to `Null` and the underlying type, as if the
-nullable type was a sealed supertype of the underlying type and `Null`:
-
-```
-Face? - Face  expands to:  Face|Null - Face = Null
-Jack? - Null  expands to:  Jack|Null - Null = Jack
-```
-
-Likewise, if the left type is `FutureOr<T>` for some type `T` and the right type
-is a subtype of `Future` or `T`, then expanding expands the `FutureOr<T>` to
-`Future<T>|T`.
-
-```
-FutureOr<int> - int     expands to:  Future<int>|int - int = Future<int>
-FutureOr<int> - Future  expands to:  Future<int>|int - Future = int
-```
-
-### Subtraction
-
-OK, that's enough preliminaries. Here's the algorithm. To subtract two object
-spaces `L - R`:
-
-1.  If `L`'s type is sealed and `R`'s type is in its sealed subtype hierarchy,
-    then expand `L` to the union of subtypes and start the whole subtraction
-    process over. (That will then distribute the `- R` into all of the resulting
-    arms, process each subtype independently, and union the result.)
-
-2.  Else, if `R`'s type is not a subtype of `L`'s type (even after expanding)
-    then it can't meaningfully subtract anything. The result is just `L`. This
-    comes into play when when matching on unsealed subtypes:
+    *A null-check pattern also modifies the matched value type of the subpattern
+    during type inference. This means that the subpattern usually has a
+    non-nullable type already, so step 2 above rarely comes into play. For
+    example:*
 
     ```dart
-    class Animal {}
-    class Mammal extends Animal {}
+    test(Object? obj) => switch (obj) {
+      case _?:
+      case null:
+    };
+    ```
 
-    test(Animal a) {
-      switch (a) {
-        case Mammal m: ...
+    *Here, the inferred type of the inner `_` pattern is `Object` and thus its
+    lifted space is also `Object`. But if the inner pattern happens to be
+    nullable, then step 2 can be involved:*
+
+    ```dart
+    test(Object? obj) => switch (obj) {
+      case Object? _?:
+    };
+    ```
+
+    *Here, the subspace expands to `Object|Null` and the space for the
+    surrounding null-check pattern yields just `Object`.*
+
+*   **Null-assert pattern:** A union of the lifted space union of the subpattern
+    and a space with type `Null`.
+
+    *As with cast patterns, a null-assert pattern "matches" `null` by throwing
+    an exception, which is sufficient for exhaustiveness.*
+
+*   **Constant pattern:**
+
+    1.  If the constant has primitive equality, then a space whose type is the
+        type of the constant and with a constant restriction for the given
+        constant value.
+
+    2.  Else the empty space union.
+
+    *If the constant has a user-defined `==` method, then we can't rely on its
+    behavior for exhaustiveness checking. Fortunately, the constants that most
+    often come into play for exhaustiveness are enum values, booleans, and
+    `null`, and those all have primitive equality.*
+
+*   **Variable pattern** or **identifier pattern:** The lifted space union of
+    the static type of the corresponding variable.
+
+*   **Parenthesized pattern:** The lifted space union of the subpattern.
+
+*   **List pattern:**
+
+    1.  Let `h` be the elements in the list pattern before the rest element, or
+        all elements if there is no rest element.
+
+    2.  Let `t` be the elements in the list pattern after the rest element, or
+        an empty list of patterns if there is no rest element.
+
+    3.  The result is a space whose type is the type of the pattern and with an
+        arity restriction whose length is `h + t` and whose `hasRest` is `true`
+        if there is a rest element. The space's properties are:
+
+    4.  For each element in `h`:
+
+        1.  A property with element key `n` where `n` is the element index and
+            whose subspace is the lifted space union of the corresponding
+            element subpattern.
+
+    5.  If there is a rest element, a property with a rest key `h.length` and
+        `t.length` and whose subspace is the lifted space union of the rest
+        element's subpattern. If the rest element has no subpattern, the
+        subspace is a space whose type is the static type of the list pattern.
+
+    6.  For each element in `t`:
+
+        1.  A property with tail key `n` where `n` is the 1-based index of the
+            element from the end of the list pattern, and whose subspace is the
+            lifted space union of the corresponding element subpattern.
+
+    *For example, the list pattern:*
+
+    ```
+    <String>['a', 'b', ...['c'], 'd', 'e', 'f']
+    ```
+
+    *Is lifted to:*
+
+    ```
+    List<String>(
+      length: 5,
+      hasRest: true,
+      properties: {
+        key(0): 'a',
+        key(1): 'b',
+        rest(2, 3): List<String>(key(0): 'c'),
+        tail(3): 'd',
+        tail(2): 'e',
+        tail(1): 'f',
+      }
+    )
+    ```
+
+*   **Map pattern:**
+
+    1.  A space whose type is the type of the pattern and with an arity
+        restriction whose length is the number of non-rest elements and whose
+        `hasRest` is `true` if there is a rest element. The space's properties
+        are:
+
+    2.  For each non-rest entry in the pattern:
+
+        1.  A property with element key `k` where `k` is the entry's key
+            constant whose subspace is the lifted space union of the
+            corresponding value subpattern.
+
+*   **Record pattern** or **object pattern:**
+
+    1.  A space whose type is the type of the pattern. Its properties are:
+
+    2.  For each field in the pattern:
+
+        3.  A property whose key is the corresponding field or getter and
+            whose value is the lifted space union of the corresponding
+            subpattern.
+
+### Space intersection
+
+Space intersection on a pair of spaces and/or space unions produces a space or
+union that contains only values contained by both of its operands.
+
+Intersection is approximate and pessimistic: There may be values that are
+matched by both operands that are not matched by the resulting intersection.
+Since intersection is only invoked when lifting patterns to spaces (and not
+value types), it is sound, though it may lead to the compiler not recognizing
+that a switch is actually exhaustive when it is or not recognizing a case as
+unreachable when it can't be reached.
+
+Space intersection is defined as:
+
+1.  If either is the empty space union, then the empty space union.
+
+2.  Else, if either side is a union, then a space union of the intersection of
+    each operand of the union with the other space.
+
+    *In other words, distribute the intersection into the branches. So `(A|B) ^
+    C` (where `|` is "union" and `^` is "intersection") results in `(A^C)|(B^C)`
+    and then calculate the resulting intersections.*
+
+3.  Else (both sides are single unions):
+
+    1.  If neither side's type is a subtype of the other, then the result is the
+        empty space union.
+
+    2.  Else let `T` be the subtype.
+
+    3.  If neither side's restriction is a *subset* (see below) of the other,
+        then the result is the empty space union.
+
+    4.  Else let `R` be the restriction that is a subset of the other.
+
+    5.  Calculate the intersection of the sets of properties `P`. The
+        intersection is a set of properties containing:
+
+        1.  For any property whose key is present in one operand and not the
+            other, a property with that key and the value from that operand.
+
+        2.  Otherwise (the property key is present in both), a property with
+            that key and whose value is the intersection of the corresponding
+            spaces of the two property values.
+
+        *In other words, keep all properties of both branches, and intersect the
+        spaces of any that overlap.*
+
+    6.  The result is a space with type `T`, restriction `R`, and properties
+        `P`.
+
+### Restriction subsetting
+
+Similar to how a pair of type may have a subtype relation between them, one
+restriction may be a *subset* of another. If one restriction is a subset of
+another, then every value matched by the former will also be matched by the
+latter.
+
+Whether a restriction `a` is a subset of restriction `b` is defined as:
+
+1.  If `b` is an open restriction, then `true`. *Everything is a subset of the
+    open restriction.*
+
+2.  Else if `a` is an open restriction, then `false`. *If we get here, `b`
+    isn't open, so `a` is a superset.*
+
+3.  Else if both are constant restrictions and the constants are identical then
+    `true`.
+
+4.  Else if both are arity restrictions:
+
+    1.  If `b.hasRest` then `true` if `a.size >= b.size`. *Since `b` has no
+        upper limit, as long as its minimum length isn't shorter than `a`'s, it
+        will accept any length that `a` does.
+
+    2.  Else if `a.hasRest` then `false`. *Since `a` has no upper limit and `b`
+        does, there are lengths that `a` accepts that `b` does not.*
+
+    3.  Else the result of `a.length == b.length`. *If we get here, neither has
+        a rest element, so both only match a single length. To be a non-empty
+        subset, `a` must match the exact same length as `b`.
+
+5.  Else `false`. *We get here for non-equal constants, or when one has a
+    constant restriction and the other an arity restriction.*
+
+### Space subsetting
+
+We extend restriction subsetting to include the type of the spaces. Whether a
+space `a` is a subset of space `b` is defined as:
+
+1.  If the type of `a` is not a subtype of `b` then `false`.
+
+2.  Else `true` if the restriction of `a` is a subset of the restriction of `b`
+    and `false` otherwise.
+
+## Calculating exhaustiveness
+
+We can now lift the matched value type and the switch case patterns into spaces
+and space unions where our algorithm can operate on them. To determine
+exhaustiveness and reachability from those, we need only one fundamental
+operation, *is-exhaustive*.
+
+It takes a space union `value` representing the set of possible values and a set
+of space unions `cases` representing a set of patterns that will match those
+values. It returns `true` if every possible value contained by `value` is
+matched by at least one space in `cases`.
+
+Given that operation, we can answer the two exhaustiveness questions like so:
+
+### Is a switch exhaustive?
+
+To tell if the set of cases in a switch statement or expression are exhaustive
+over the matched value type:
+
+1.  Lift the matched value type to a space union `value`.
+
+2.  Discard any cases that have guards. *Since static analysis can't tell when a
+    guard might evaluate to `false`, any case with a guard doesn't reliably
+    match values and so can't help prove exhaustiveness.*
+
+3.  Lift the remaining case patterns to a set of space unions `cases`.
+
+4.  The switch is exhaustive if is-exhaustive with `value` and `cases` is `true`
+    and `false` otherwise.
+
+### Are any switch cases unreachable?
+
+1.  For each case (including cases with guards) except the first:
+
+    1.  Collect all of the of the patterns from the cases preceding `case`
+        (except ones with guards), and lift them to space unions as `preceding`.
+
+    2.  Lift the pattern for the current case to `case`.
+
+    3.  This case's pattern is reachable if is-exhaustive with `case` and
+        `preceding` returns `false`, and is unreachable otherwise.
+
+*The clever part here is that our space representation works equally well for
+types and patterns, so we can use the same algorithm to check if a switch's
+value type is covered and to see if a case's pattern is reachable by treating
+the latter pattern like a sort of "value". The algorithm doesn't care if the
+`value` space union came from a type or a pattern. It just treats it like a set
+of values.*
+
+### The is-exhaustive operation
+
+The core operation determines if a set of case space unions covers all possible
+values allowed by a given value space union.
+
+Internally, is-exhaustive doesn't take a single space union for the matched
+values and a list of space unions for the cases. Instead, it takes a *worklist*
+of space unions for the matched values, and a list of worklists of space unions
+for the cases. These worklists are how the algorithm incrementally traverses
+through the nested properties of the value and case spaces in parallel. When
+first invoked externally, the arguments are implicitly wrapped in single-element
+worklists.
+
+We define is-exhaustive, given a `value` worklist of space unions and a `cases`
+list of worklists of space unions like so:
+
+1.  If `value` is empty then return `true` if `cases` is not empty and `false`
+    otherwise.
+
+    *This is the base case. If we get here, we've fully applied all of the
+    constraints specified by the value space to winnow down the cases that
+    might match it. If there are still any cases left, it means at least one
+    of those will definitely match.*
+
+2.  Else, look at all of the element and tail keys that appear in any property
+    in any of the spaces in the first unions of the `cases` worklists:
+
+    1.  Let `headMax` be the `1` + the highest index of any element key found.
+        *This is the maximum number of leading elements destructured by any list
+        pattern corresponding a case that could match it.*
+
+    2.  Let `tailMax` be the highest index of any tail key found.
+
+    *In order to expand list patterns for more precise exhaustiveness checking,
+    we need to know the longest arity list pattern that can be matched against
+    the current value space we're looking at. See the rules for expanding a
+    list space below for more detail.*
+
+3.  For each case worklist in `cases`:
+
+    1.  Dequeue the first space union from the worklist.
+
+    2.  Take every space in the union and *expand* it (see below) into a list of
+        expanded spaces for each union branch. Pass in `headMax` and `tailMax`.
+
+    3.  For each `space` in that list:
+
+        1.  *Filter* by `space` (see below), passing in a copy of the `value`
+            (which has had its first element dequeued) and a deep copy of
+            `cases`.
+
+            *We copy here since the specification describes updating the
+            worklist in terms of mutation but sibling recursive calls shouldn't
+            affect each other. Consider the specification-ese to be a
+            pass-by-value language.*
+
+        2.  If the result is `false`, then we've found an unmatched value, so
+            stop and return `false`.
+
+            *The algorithm stops at the first failure for performance.*
+
+4.  Return `true`.
+
+    *If we get here, then we recursed through the entire tree of possible values
+    and all of them found a matching case, so the cases are exhaustive.*
+
+### Expanding a space
+
+Consider:
+
+```dart
+test(Card card) => switch (card) {
+  Pip _ => 'pip',
+  Face _ => 'face'
+};
+```
+
+It's hard to see how we might easily tell that this switch is exhaustive. After
+the algorithm has looked at the first `Pip _` case, what does it know about the
+set of values that have been covered? More to the point, how does it know what's
+*left*? If we supported set operations on spaces, we could say that the
+remaining values are the `Card` space minus the `Pip` space. But we don't want
+to have to define that.
+
+However, we can observe that because `Card` is sealed, we know that any instance
+of `Card` will be an instance of one of its direct sealed subtypes. That means
+that if this pair of switch statements is exhaustive, then the above switch must
+be too:
+
+```dart
+test(Pip pip) => switch (pip) {
+  Pip _ => 'pip',
+  Face _ => 'face'
+};
+
+test(Face face) => switch (face) {
+  Pip _ => 'pip',
+  Face _ => 'face'
+};
+```
+
+Note that each switch is only matching one of the sealed subtypes now. It's now
+trivial to see that the first switch is exhaustive because every matched value
+will be an instance of `Pip` and the first case covers every single instance of
+`Pip`. (The second case is unreachable and pointless, but harmless.) Likewise,
+the second switch is clearly exhaustive because every value is a `Face` and the
+second case matches all instances of `Face`.
+
+In the algorithm, when it looks at a space, it first *expands* it. If the type
+of a space is a sealed type, enum type, or `bool` (which is basically an enum
+type), then it replaces the space with a set of more precise spaces that cover
+the original space. Then it processes those each independently. If the cases are
+all exhaustive over every one of the expanded spaces, then they are exhaustive
+over the original unexpanded space too.
+
+To expand a space `s` with type `T`, we create a new set of spaces that share
+the same properties as `s` but with possibly different types and restrictions.
+The resulting spaces are:
+
+*   **The declaration `D` of `T` is a `sealed` type:**
+
+    1.  For each declaration `C` in the library of `D` that has `D` in an
+        `implements`, `extends`, or `with` clause:
+
+        1.  If every type parameter in `C` forwards to a corresponding type
+            parameter in `D`, then `C` is a *trivial substitution* for `D`.
+            Let `S` be `C` instantiated with the type arguments of `T`.
+
+            *For example:*
+
+            ```dart
+            sealed class A<T1, T2> {}
+            class B<R1, R2> extends A<R1, R2> {}
+            ```
+
+        2.  Else (not a trivial substitution) let `S` be an overapproximation
+            (see below) of `C`.
+
+            **TODO:** Is the overapproximation part here correct?
+
+        3.  If `S` exists and is a subtype of the overapproximation of `T`:
+
+            1.  A space with type `S`.
+
+            *Type `S` might not be a subtype if it constrains its supertype in
+            a way that is incompatible with the specific instantiation of the
+            sealed super type that we're matching against. For example:*
+
+            ```dart
+            sealed class A<T> {}
+            class B<T> extends A<T> {}
+            class C extends A<int> {}
+            ```
+
+            *Here, if we are matching on `A<String>`, then `B<String>` is a
+            subtype, but `C` is not and won't be included. That means that this
+            is exhaustive:*
+
+            ```dart
+            test(A<String> a) => switch (a) {
+              B _ => 'B'
+            };
+            ```
+
+    *Note that in the common case where the sealed type hierarchy is not
+    generic, all of this simplifies to just being a list of spaces, one for each
+    type that is a direct subtype of the sealed type.*
+
+*   **`T` is an enum type:**
+
+    1.  For each element in the enum:
+
+        1.  If the element's type is a subtype of the overapproximation of the
+            enum declaration:
+
+            1.  A space with the type of the element and a constant restriction
+                with the element value.
+
+    *We have to check the type because with a generic enum, some elements might
+    not be subtypes of the matched type. Consider:*
+
+    ```dart
+    enum E<T> {
+      a<int>(),
+      b<String>(),
+      c<double>(),
+    }
+
+    method(E<num> e) {
+      switch (e) {
+        case E.a:
+        case E.c:
+          print('ok');
       }
     }
     ```
 
-    After we match `Mammal`, we're not any closer to being exhaustive since
-    there could still be values of any unknown subtype of `Animal`, or even
-    direct instances of `Animal` itself.
+    *This switch is exhaustive because it's not possible for `E.b` to reach it.*
 
-3.  Else, if `L` and `R` have any corresponding fields whose *space
-    intersection* is empty, then the result is `L`. Space intersection, defined
-    below, determines the set of values two spaces have in common. If the
-    intersection of the field spaces for a pair of fields is empty, it means
-    that any value in `L` has a field whose value can't possibly be matched by
-    `R` Therefore, subtracting `R` won't remove any actual values from `L` and
-    the result is just `L`.
+    *We use overapproximation because the enum may refer to type parameters in
+    the surrounding code:*
 
-    For example:
-
-    ```
-    Card(suit: heart) - Card(suit: club) = Card(suit: heart)
+    ```dart
+    method<T extends num>(E<T> e) {
+      switch (e) {
+        case E.a:
+        case E.c:
+          print('ok');
+      }
+    }
     ```
 
-    Here, we're subtracting all clubs from a set of cards that are all hearts.
-    This doesn't change anything.
+    *This is also exhaustive. When `method()` is instantiated with `int`, then
+    the second case will never match. Conversely, the first case will never
+    match in a call to `method<double>()`. But exhaustiveness must be sound
+    across all instantiations, so it uses overapproximation.*
 
-4.  Else if `L` is a subspace of `R` then the result is empty. `L` is a
-    subspace of `R` if every value in `L` is also in `R`. When that's true,
-    subtracting `R` obviously removes every value from `L` leaving nothing.
+*   **`T` is nullable type `S?`:** A space of type `S` and a space of type
+    `Null`.
 
-    Subspace is simple to calculate. We already know that `L`'s type is a
-    subtype of `R` from earlier checks. `L` is a subspace if subtracting each
-    field in `R` from its corresponding field in `L` yields empty. For example:
+*   **`T` is `FutureOr<F>` for some `F`**: A space of type `Future<F>` and a
+    space of type `F`.
 
-    ```
-    Jack(suit: heart, oneEyed: true) - Face(suit: Suit, oneEyed: bool)
-    ```
+*   **`T` is `bool`:** Two spaces of type `bool` with constant restrictions
+    `true` and `false`.
 
-    Here, `heart - Suit` is empty, as is `true - bool`, so `L` is a subspace.
+*   **`T` is `List<E>` for some `E` and has an arity restriction:**
 
-5.  Else, subtract the field sets, below.
+    *The "has an arity restriction" is to ensure the space was lifted from a
+    list pattern, and not just a list constant. List constants do not help with
+    exhaustiveness because reified type arguments mean that a list constant may
+    fail to match a list that contains the same elements.*
 
-### Field set subtraction
+    1.  Let `n` be `headMax + tailMax`. *The challenge with list patterns is
+        that we could expand them to an unbounded number of spaces: empty list,
+        list with one element, list with two elements, etc. Here, `n` represents
+        the highest individual arity we need to expand to because there is no
+        pattern that will match a list with a specific number of elements larger
+        than that.*
 
-We're finally at a point where have two objects `L` and `R` whose types allow
-them to be subtracted in such a way that their fields come into play. We also
-know there's no early out where the result is just `L` or empty.
+    2.  For `i` from `0` to `n`, half-inclusive:
 
-1.  Subtract each field in `R` from its corresponding field in `L`. We define
-    `fixed` to be the set of fields where that subtraction didn't change the
-    field and `changed` to be the fields where it did. To calculate these sets,
-    for each field in `L` or `R`:
+        1.  A space with type `T` and an arity restriction with length `i` and
+            `hasRest` `false`.
 
-    1.  Let `Lf` be the field in `L` and `Rf` be the field in `R` (either of
-        which may be inferred if not present).
+    3.  And a space with type `T` and an arity restriction with length `n` and
+        `hasRest` `true`.
 
-    2.  Calculate `D = Lf - Rf`.
+    *For example, given:*
 
-    3.  If `D` is empty then `Lf` is already more a precise constraint on `L`'s
-        values than `Rf` so `R` doesn't affect this field. Add `Lf` to `fixed`.
-
-    4.  Else, add `D` to `changed`. (If `D` is "top", we can simply discard it.
-        There's no need to keep a field that matches every value.)
-
-2.  Now we know which fields are affected by the subtraction and which aren't.
-    If `changed` is empty, then no fields come into play and the result is
-    simply `L`.
-
-3.  Otherwise, the result is a union of objects where each object includes one
-    of the changed fields and leaves the others alone. This is how we tile over
-    the holes created by subtracting `R`.
-
-    1.  For each field in `changed`, create an object with the same type as `L`
-        with all fields from `fixed`, this field from `changed` and all other
-        field names in `changed` set to their original space in `L`.
-
-    2.  The result is the union of those spaces.
-
-    For example:
-
-    ```
-    (w: bool, x: bool, y: bool, z: bool) - (x: true, y: false, z: true)`
+    ```dart
+    switch (list) {
+      case [_, ..., _, _]:
+      case [_, _, _, ..., _]:
+    }
     ```
 
-    `fixed` is `(w: bool)`. `changed` is `(x: false, y: true, z: false)`. The
-    result is a union of:
+    *The expansion of the value list is:*
 
     ```
-    (x: false, y: bool, z: bool) // Set x to D.
-    (x: bool, y: true, z: bool) // Set y to D.
-    (x: bool, y: bool, z: false) // Set z to D.
+    List(length: 0, hasRest: false)
+    List(length: 1, hasRest: false)
+    List(length: 2, hasRest: false)
+    List(length: 3, hasRest: false)
+    List(length: 4, hasRest: false)
+    List(length: 5, hasRest: true)
     ```
 
-## Space intersection
+*   Otherwise, `s` does not expand and the result is just `s`.
 
-Intersection is (mercifully) simpler than subtraction. In fact, we don't even
-need to calculate the actual intersection. We just need to know if it's empty
-or not.
+The expansion procedure is applied recursively to each resulting space described
+here until no more expansions take place.
 
-To calculate if the intersection `I` of spaces `L` and `R` is empty:
+*For example, the expansion of `FutureOr<bool?>` is:*
 
-1.  If `L` or `R` is empty, then `I` is empty.
+```
+Future<bool?>
+true
+false
+null
+```
 
-2.  If `L` or `R` is a union, then `I` is empty if the intersection of every
-    arm of the union with the other operand is empty.
+### Overapproximation
 
-3.  Otherwise, we're intersecting two object spaces.
+The *overapproximation* of a declaration `D` is a type `T` with all type
+variables replaced with their *defaults*:
 
-    1.  If neither object's type is a subtype of the other then `I` is empty.
-        They are unrelated types with no (known) intersection.
+1.  If the type variable is in a contravariant position, then the default is
+    `Never`.
 
-    2.  Otherwise, go through the fields. If the intersection of any
-        corresponding pair of fields is empty, then `I` is empty.
+2.  Otherwise, the default is the bound if there is one.
 
-    3.  Otherwise, `I` is not empty. We found two objects where one is a
-        subtype of the other and the fields (if any) have at least some overlap.
+3.  Otherwise, the default is `Object?`.
+
+The overapproximation of a declaration reliably contains all values that any
+possible instantiation of its type parameters could contain. This lets us
+calculate exhaustiveness soundly even in the context of parameter types whose
+concrete instantiations aren't known.
+
+### Filtering by a space
+
+We're given a single `valueSpace`, a `value` worklist for further value
+constraints to explore, and a set of `cases` worklists that may match `space`.
+Next, we discard any cases that won't be helpful for exhaustiveness given what
+we know now. If it's *possible* for any `value` in value to *not* match the
+first space in a given worklist in cases, then that case can't guarantee
+exhaustiveness, so we remove it.
+
+1.  Let `remaining` be an empty list of worklists.
+
+2.  Let `caseFirstSpaces` be an empty list of spaces.
+
+3.  For each `worklist` in `cases`:
+
+    1.  Dequeue the first case union in `worklist` to `caseUnion`.
+
+    2.  For each `case` space in `caseUnion`:
+
+        1.  If `valueSpace` is a subset of `case`, then:
+
+            1.  Add `case` to `caseFirstSpaces`.
+
+            2.  Add `worklist` to `remaining`.
+
+            *If every value in `valueSpace` is also in `case`, then this case
+            may still help with exhaustiveness, so keep it.*
+
+    *At this point, we have discarded any case that may not match because of the
+    first space in its worklist. But those spaces may have properties which
+    could also lead the case to not match, so we need to unpack and handle those
+    too.*
+
+4.  Let `keys` be the set of all keys in all of the properties of the spaces in
+    `caseFirstSpaces` and in `valueSpace`.
+
+    *We need to ensure that the value space we're currently looking at
+    corresponds to the case spaces at the beginning of each case worklist. We're
+    about to unpack the case spaces in the worklist and replace them with their
+    properties. To keep all of the worklists aligned, we collect all of the keys
+    that any of the spaces use. When we unpack a space's properties, we insert
+    placeholder spaces for any space that the unpacked space doesn't have a
+    property for.*
+
+5.  Prepend `value` with the *unpacked properties* (see below) of `valueSpace`
+    given `keys`. *We unpack the first value space so we can recurse into its
+    properties. We've already dequeued `valueSpace` from `value`, so we don't
+    need to do that here.*
+
+6.  Iterate over `caseFirstSpaces` and `remaining` in parallel as `space` and
+    `case`:
+
+    1.  Prepend the unpacked properties of `space` to `case` given `keys`.
+
+7.  Return the result of is-exhaustive on `value` and `remaining`.
+
+    *Now that we've removed any cases that might not match based on the current
+    space we're looking at, we can proceed forward along the worklists.*
+
+### Unpacking properties
+
+A key challenge with exhaustiveness checking is that patterns are arbitrarily
+deeply nested trees. At the same time, we need to consider a set of cases in
+parallel to see if they cover a value. And those cases may have patterns with
+different sets of properties and different amounts of nested subpatterns.
+
+To handle that, the algorithm does an incremental depth-first traversal of the
+value and case spaces in parallel. After applying any filtering from a space's
+type and restriction, we can discard the space itself, but we need to recurse
+into its properties too.
+
+We do that here. Unpacking a space's properties prepends them to the worklist so
+that the depth-first traversal will explore into them. We use `keys` and pad the
+worklist with match-all spaces in order to keep all of the worklists aligned.
+
+To unpack a `space` given a set of `keys`:
+
+1.  Let `result` be an empty list of space unions.
+
+2.  For each key in `keys`:
+
+    1.  If `space` has a property with this key, then append that property's
+        subspace union to `result`.
+
+    2.  Else, append a `space` to `result` whose type is the static type of the
+        key declared on the type of `space`.
+
+        *If a pattern doesn't have a subpattern for some field or getter, then
+        it matches all values that the field or getter could return, which is
+        equivalent to it matching it with its type.*
+
+3.  Return `result`.
 
 ## Conclusion
 
 The basic summary is:
 
-1.  We take the language's notion of static types and patterns and lift them to
-    a simpler but more expressive model of spaces.
+1.  We lift static types and patterns to a unified concept called a *space* (and
+    a union of those).
 
-2.  We define space subtraction and intersection.
+2.  We define a core operation that determines if a set of spaces covers all
+    values allowed by another space.
 
-3.  Using that, we can define exhaustiveness and reachability as a simple series
-    of subtractions over the spaces for a switch's value type and case patterns.
-
-The [prototype][] has a number of tests that try to cover all of the interesting
-cases, though there are so many ways that object spaces can vary and compose
-that it's hard to be sure everything is tested.
-
-## Next steps
-
-I haven't proven that the algorithm is correct. I also haven't proven any bounds
-on its performance. A fairly large test covering every combination of four
-fields seems to be snappy (and certainly was not with earlier versions of this
-algorithm).
-
-There are a couple of missing pieces that need to be done:
-
-### Generics
-
-The patterns proposal supports type arguments and even [type patterns][] on
-objects:
-
-[type patterns]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md#type-argument-binder
-
-```dart
-switch (obj) {
-  case List<int> list: ...
-  case Map<final K, final V> map: ...
-}
-```
-
-Object spaces currently only support simple types and subtypes. We'll need to
-extend that to handle generics, variance, and bounds. We might be able to model
-type arguments sort of like additional fields.
-
-### Constants
-
-The algorithm here currently doesn't do anything smart for constants except for
-Booleans and enums. It should probably treat identical constants of other types
-as identical spaces so that redundant unreachable cases can be detected. That
-should be a straightforward change.
-
-We may also want to handle integers specially including supporting ranges. This
-is particularly helpful for lists.
-
-### List length
-
-We lift list element accesses to named fields in object spaces. We can also
-model the list length as a named field of type `int`. But without smarter
-handling for integers that won't handle cases like:
-
-```dart
-switch (list) {
-  case [var a, var b]: ...
-  case [var a, var b]: ...
-}
-```
-
-The algorithm currently won't detect that the second space is unreachable. We
-will probably want to support `...` in list patterns to allow matching on lists
-of unknown length where the length is at least above some minimum, as in:
-
-```dart
-switch (list) {
-  case [var a, ..., var b]: ...
-  case [var a, var b]: ...
-}
-```
-
-In that case, to do smart exhaustiveness checks, we probably want the algorithm
-to understand integer ranges. Most other languages do this, so it should be
-tractable.
-
-### Shared subtypes of sealed types
-
-The expand type procedure assumes that any type is a direct subtype of at most
-*one* sealed supertype. (It can have other supertypes but only one *sealed*
-one.) It assumes that the language forbids a class hierarchy like:
-
-```
-   (A)
-   / \
- (B) (C)
- / \ / \
-D   E   F
-```
-
-Here, `A`, `B`, and `C` are sealed supertypes. The subtypes of `A` are `B` and
-`C`. The subtypes of `B` are `D` and `E`. The subtypes of `C` are `E` and `F`.
-So `E` is a direct subtype of both `B` and `C`.
-
-If expanding supported class hierarchies like this correctly then given a switch
-like this:
-
-```dart
-A a = ...
-switch (a) {
-  case B b: ...
-  case F f: ...
-}
-```
-
-It would be able to detect that the cases are indeed exhaustive.
-
-It's probably reasonable to restrict the language in this way and leave expand
-as it is. But if we want to loosen this restriction, it should be possible to
-make expanding smart enough to handle this.
-
-### Type promotion
-
-Exhaustiveness checking is a flow-like analysis similar to type promotion in
-Dart. This document does not directly connect them. I believe we can handle them
-separately.
-
-Type promotion can safely assume any switch is exhaustive and promote
-accordingly. If that turns out to not be a case, a compile error will be
-reported anyway, so promotion doesn't matter.
-
+3.  Using that, we define exhaustiveness and reachability as an invocation of
+    that operation with the right lifted types and patterns.
 
 ## Changelog
+
+### 2.0
+
+-   Rewrite based on new algorithm and existing implementation.
 
 ### 1.1
 
