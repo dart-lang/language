@@ -214,7 +214,9 @@ class Pip extends Card {
   Pip(this.pips, super.suit);
 }
 
-sealed class Face extends Card {}
+sealed class Face extends Card {
+  Face(super.suit);
+}
 
 class Jack extends Face {
   final bool oneEyed;
@@ -993,7 +995,7 @@ The resulting spaces are:
     List(length: 2, hasRest: false)
     List(length: 3, hasRest: false)
     List(length: 4, hasRest: false)
-    List(length: 4, hasRest: true)
+    List(length: 5, hasRest: true)
     ```
 
 *   Otherwise, `s` does not expand and the result is just `s`.
