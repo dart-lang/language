@@ -4,7 +4,7 @@ Author: Bob Nystrom, Lasse Nielsen
 
 Status: Accepted
 
-Version 1.6
+Version 1.7
 
 Experiment flag: class-modifiers
 
@@ -20,7 +20,9 @@ Informally, the new syntax is:
 *   `base`: As a modifier on a class, allows the class to be extended but not
     implemented. As a modifier on a mixin, allows it to be mixed in but not
     implemented. In other words, it takes away being able to implement
-    the interface of the declaration.
+    the interface of the declaration. _This also applies transitively
+    to all subtypes, since implementing a subtype also means implementing
+    the superinterface._
 
 *   `interface`: As a modifier on a class or mixin, allows the type to be
     implemented but not extended or mixed in. In other words, it takes away
@@ -347,10 +349,10 @@ does `MySubclass` now expose externally? We have a few options:
     implementing class must also be marked `base` or `final`.
 
     This avoids any confusion about whether a subtype removes a restriction. But
-    it comes at the expense of flexiblity. If a user *wants* to remove a
+    it comes at the expense of flexibility. If a user *wants* to remove a
     restriction, they have no ability to.
 
-    This would constrast with `sealed` where you can have subtypes of a sealed
+    This would contrast with `sealed` where you can have subtypes of a sealed
     type that are not themselves sealed. This is a deliberate choice because
     there's no *need* for the direct subtypes of a sealed to be sealed in order
     for exhaustiveness checking to be sound. Since exhaustiveness is the goal
@@ -358,7 +360,7 @@ does `MySubclass` now expose externally? We have a few options:
     unsealed.
 
     It also prevents API designs that seem reasonable and useful to me. Imagine
-    a library for transportion with classes like:
+    a library for transportation with classes like:
 
     ```dart
     abstract final class Vehicle {}
@@ -447,7 +449,7 @@ safe.
 
 Now consider:
 
-```
+```dart
 // lib_b.dart
 import 'lib_a.dart';
 
@@ -501,8 +503,8 @@ class UsesAsMixin extends OtherSuperclass with Both {} // OK.
 
 This proposal builds on the existing sealed types proposal so the grammar
 includes those changes. The full set of modifiers that can appear before a class
-or mixin declaration are `abstract`, `sealed`, `base`, `interface`, `final`, and
-`mixin`.
+declaration are `abstract`, `sealed`, `base`, `interface`, `final`, and
+`mixin`. Only the `base` modifier can appear before a `mixin` declaration.
 
 *The modifiers do not apply to other declarations like `enum`, `typedef`, or
 `extension`.*
@@ -513,24 +515,20 @@ Many combinations don't make sense:
     are mutually exclusive.
 *   `sealed` types cannot be constructed so it's redundant to combine with
     `abstract`.
-*   `sealed` types cannot be extended or implemented, so it's redundant to
-    combine with `final`, `base`, or `interface`.
-*   `sealed` types cannot be mixed in outside of their library, so it
-    contradicts `mixin` on a class. *It's useful to allow `sealed` on a mixin
-    declaration because the mixin can be applied within the same library.
-    A `sealed mixin class`  does not provide any significant extra
-    functionality over a `sealed mixin`, you can replace `extends MixinClass`
-    with `with Mixin`, so a `sealed mixin class` is not allowed.*
-*   `interface` and `final` classes would prevent a mixin class from being used
-    as a superclass or mixin outside of its library. *Like for `sealed`, an
-    `interface mixin class` and `final mixin class` are not allowed, and
-    `interface mixin` and `final mixin` declaration are recommended instead.*
+*   `sealed` types already cannot be mixed in, extended or implemented
+    from another library, so it's redundant to combine with `final`,
+    `base`, or `interface`.
 *   `mixin` as a modifier can obviously only be applied to a `class`
-    declaration, which makes it also a `mixin` declaration.
+    declaration, which makes it also introduce a mixin.
 *   `mixin` as a modifier cannot be applied to a mixin-application `class`
     declaration (the `class C = S with M;` syntax for declaring a class). The
     remaining modifiers can.
-*   Mixin declarations cannot be constructed, so `abstract` is redundant.
+*   A `mixin` or `mixin class` declaration is intended to be mixed in,
+    so its declaration cannot have an `interface`, `final` or `sealed` modifier.
+*   A `mixin` declaration cannot be constructed, so `abstract` is redundant.
+*   `enum` declarations cannot be extended, implemented, mixed in,
+    and can always be instantiated, so no modifiers apply to `enum`
+    declarations.
 
 The remaining valid combinations and their capabilities are:
 
@@ -551,9 +549,6 @@ The remaining valid combinations and their capabilities are:
 |`abstract base mixin class`|No     |**Yes**|No     |**Yes**|No     |
 |`mixin`                    |No     |No     |**Yes**|**Yes**|No     |
 |`base mixin`               |No     |No     |No     |**Yes**|No     |
-|`interface mixin`          |No     |No     |**Yes**|No     |No     |
-|`final mixin`              |No     |No     |No     |No     |No     |
-|`sealed mixin`             |No     |No     |No     |No     |**Yes**|
 
 The grammar is:
 
@@ -568,16 +563,22 @@ classModifiers    ::= 'sealed'
 
 mixinClassModifiers ::= 'abstract'? 'base'? 'mixin'
 
-mixinDeclaration  ::= mixinModifier? 'mixin' typeIdentifier typeParameters?
+mixinDeclaration  ::= 'base'? 'mixin' typeIdentifier typeParameters?
                       ('on' typeNotVoidList)? interfaces?
                       '{' (metadata classMemberDeclaration)* '}'
-
-mixinModifier     ::= 'sealed' | 'base' | 'interface' | 'final'
 ```
 
 ## Static semantics
 
-A pair of definitions:
+The modifiers introduce restrictions on which other declarations can
+depend on the modified declaration, and how.
+To express this, we first introduce some terminology that makes it
+easy to express the relations between declarations.
+
+### Terminology.
+
+We distinguish libraries by whether they have this feature enabled,
+and whether they are platform libraries.
 
 *   A *pre-feature library* is a library whose language version is lower than
     the version this feature is released in.
@@ -585,289 +586,312 @@ A pair of definitions:
 *   A *post-feature library* is a library whose language version is at or above
     the version this feature is released in.
 
+*   A *platform library* is a library with a `dart:...` URI. A platform library
+    is always a post-feature library in an SDK supporting the feature,
+    but for backwards compatibility, pre-feature libraries may ignore
+    some modifiers in platform libraries, as if the library was also a
+    pre-feature library.
+
+We define the relations between declarations and the other declarations
+they are declared as subtypes of as follow.
+
+*   A declaration *S* is _the declared superclass_ of a `class` declaration
+    *D* iff:
+    * *D* has an `extends T` clause and `T` denotes *S*.
+    * *D* has the form `... class ... = T with ...` and `T` denotes *S*.
+
+    _A type clause `T` denotes a declaration *S* if `T` of the from
+    <code>*id*</code> or <code>*id*\<typeArgs\></code>, and *id*
+    is an identifier or qualified identifier which resolves to *S*,
+    or which resolves to a type alias with a right-hand-side which
+    denotes *S*._
+    _(This allows us to refer to the "declared superclass" uniformly
+    across mixin-application `class` declaration and a "normal" `class`
+    declaration, even though the former cannot have any `extends` clause.
+    A `class` declaration has at most one declared superclass declaration,
+    it can have none if it's a non-mixin application declaration with no
+    `extends` clause.)
+
+*   A declaration *S* is a _declared mixin_ of a `class` or `enum` declaration
+    which has a `with T1, ..., Tn` clause where any of `T1`,...,`Tn`
+    denotes *S*.
+
+*   A declaration *S* is a _declared interface_ of a `class`, `mixin class`,
+    `mixin` or `enum` declaration which has an `implements T1, ..., Tn` clause
+    where any of `T1`,...,`Tn` denotes *S*.
+
+*   A declaration *S* is a _declared `on` type_ of a `mixin` declaration
+    which has an `on T1, ..., Tn` clause where any of `T1`,...,`Tn` denotes *S*.
+
+_We need these independently, but we also need the union of these relations,
+capturing that a declaration depends directly on another in *any* way._
+
+*   A declaration *S* is a direct superdeclaration of a declaration *D*
+    iff *S* is a declared superclass, mixin, interface or `on` type of *D*.
+
+_We then define the transitive closure of this relation, expression
+that a declaration depends on another through any number of intermediate
+declarations._
+
+*   A declaration *S* is a proper superdeclaration of a declaration *D* iff
+    either *S* is a direct superdeclaration of *D*, or there exists a
+    declaration *P* such that *P* is a direct superdeclaration of *D* and
+    *S* is a proper superdeclaration of *P*.
+
+_The language prevents dependency cycles in declarations, because cycles prevent
+subtyping from being well-defined. Because of that, the
+"proper superdeclaration" relation is a directed acyclic relation.
+Or alternatively, we could write the rule against cycles as it being
+a compile-time error if any declaration *S* is a proper superdeclaration
+of itself._
+
+_Finally we define the reflexive closure of the proper superdeclaration
+relations, because it's sometimes useful to talk about a the entire
+super-hierarchy of a declaration including itself._
+
+*   A declaration is a superdeclaration of a declaration *D* iff
+    *S* is *D* or *S* is a proper superdeclaration of *D*.
+
+_With all these syntactic relations between declarations in place,
+we can specify the restrictions imposed by modifiers._
+
 ### Basic restrictions
 
-It is a compile-time error to:
+It's a compile-time error if:
 
-*   Extend a class marked `interface`, `final` or `sealed` outside of the
-    library where it is declared.
+*   A declaration depends directly on a `sealed` declaration from another
+    library. _No exceptions, not even for platform libraries._
+
+    More formally:
+    A declaration *D* from library *L* has a direct superdeclaration *S*
+    marked `sealed` (so necessarily a `class` declaration) in a library
+    different from *L*.
+
+    ```dart
+    // a.dart
+    sealed class S {}
+
+    // b.dart
+    import 'a.dart';
+
+    class E extends S {} // Error.
+    class I implements S {} // Error.
+    mixin O on S {}  // Error.
+    class M with S {} // Error, for several reasons.
+    ```
+
+*   A class extends or mixes in a declaration marked `interface` or `final`
+    from another library _(with some exceptions for platform libraries)_.
+
+    _(You cannot inherit implementation from a class marked `interface`
+    or `final` except inside the same library. Unless you are in a
+    pre-feature library and you are inheriting from a platform library.)_
+
+    More formally:
+    A declaration *C* from library *L* has a declared superclass or mixin
+    declaration *S* marked `interface` or `final` from library *K*, and neither
+    * *L* and *K* is the same library, nor
+    * *K* is a platform library and *L* is a pre-feature library.
 
     ```dart
     // a.dart
     interface class I {}
     final class F {}
-    sealed class S {}
 
     // b.dart
     import 'a.dart';
 
     class C1 extends I {} // Error.
     class C2 extends F {} // Error.
-    class C3 extends S {} // Error.
     ```
 
-*   Implement the interface of a class, mixin, or mixin class marked `base`,
-    `final` or `sealed` outside of the library where it is declared.
+*   A declaration implements another declaration, and the other
+    declaration itself, or any of its super-declarations,
+    are marked `base` or `final` and are not from the first declaration's
+    library _(with some exceptions for platform libraries)_.
+
+    _(You can only implement an interface if *all* `base` or `final`
+    superdeclarations are inside your own library. Or if you're in
+    a pre-feature library and all `base` or `final` superdeclarations
+    are in platform libraries.)_
+
+    More formally:
+    A declaration *C* in library *L* has a declared interface *P*,
+    and *P* has any superdeclaration *S*, from a library *K*,
+    which is marked `base` or `final` _(including *S* being *P* itself)_,
+    and neither:
+    * *K* and *L* is the same library, mor
+    * *K* is a platform library and *L* is a pre-feature library.
+
+    ```dart
+    // a.dart
+    base class S {}
+    base mixin M {}
+    final class F {}
+
+    // b.dart
+    import 'a.dart';
+
+    // Direct implementation of other-library `base` class.
+    base class D implements S {} // Error
+    mixin N implements M {} // Error.
+    enum E implements F { e } // Error.
+
+    // Indirect implementation of other-library `base` class.
+    base class P extends S {}
+    base class C implements P {} // Error.
+    ```
+
+*   A declaration has a `base` or `final` superdeclaration,
+    and is not itself marked `base`, `final` or `sealed`.
+    _This also applies to declarations inside the same library._
+
+    _(A `base` or `final` declaration doesn't expose an implementable
+    interface, and for that to matter, nor must any of its subclasses.
+    The entire subclass tree below such a declaration must prevent
+    implementation too.)_
+
+    More formally:
+    A `class`, `mixin class` or `mixin` declaration *D* in a post-feature
+    library has any proper superdeclaration marked `base` or `final`,
+    and *D* is not itself marked `base`, `final` or `sealed`.
 
     ```dart
     // a.dart
     base class B {}
-    final class F {}
-    sealed class S {}
+    sealed class S extends B {}
+    enum E extends S { e }
+
+    class C0 extends B {} // Error.
+    class C1 implements B {} // Error.
 
     base mixin BM {}
     final mixin FM {}
-    sealed mixin SM {}
+
+    mixin M0 implements B {} // Error
+    mixin M1 on B {} // Error
 
     // b.dart
     import 'a.dart';
 
-    class C1 implements B {} // Error.
-    class C2 implements F {} // Error.
-    class C3 implements S {} // Error.
+    base class V1 extends B {}
+    final class V2 extends B {}
+    sealed class V3 extends B {}
 
-    class C1 implements BM {} // Error.
-    class C2 implements FM {} // Error.
-    class C3 implements SM {} // Error.
+    enum E2 with BM { e } // Not a class/mixin class/mixin declaration.
+
+    class C2 extends B {} // Error.
+    class C3 with BM {} // Error.
     ```
 
-*   Mix in a mixin or mixin class marked `interface`, `final` or `sealed`
-    outside of the library where it is declared.
+_An `enum` declaration still cannot be implemented, extended or mixed in
+anywhere, independently of modifiers._
 
-    ```dart
-    // a.dart
-    interface mixin class I {}
-    final mixin class F {}
-    sealed mixin class S {}
-
-    interface mixin IM {}
-    final mixin FM {}
-    sealed mixin SM {}
-
-    // b.dart
-    import 'a.dart';
-
-    class C1 with I {} // Error.
-    class C2 with F {} // Error.
-    class C3 with S {} // Error.
-
-    class C1 with IM {} // Error.
-    class C2 with FM {} // Error.
-    class C3 with SM {} // Error.
-    ```
-
-A typedef cannot be used to subvert these restrictions or any of the
-restrictions below. When extending, implementing, or mixing in a typedef, we
-look at the library where class or mixin the typedef resolves to is defined to
-determine if the behavior is allowed. *Note that the library where the _typedef_
-is defined does not come into play. Typedefs cannot be marked with any of the
-new modifiers.*
-
-### Disallowing implementation
-
-It is a compile-time error if a subtype of a declaration marked `base` or
-`final` is not marked `base`, `final`, or `sealed`. This restriction applies to
-both direct and indirect subtypes and along all paths that introduce subtypes:
-`implements` clauses, `extends` clauses, `with` clauses, and `on` clauses. This
-restriction applies even to types within the same library.
-
-*Once the ability to use as an interface is removed, it cannot be reintroduced
-in a subtype. If a class is marked `base` or `final`, you may still implement
-the class's interface inside the same library, but the implementing class must
-again be marked `base`, `final`, or `sealed` to avoid it exposing an
-implementable interface.*
-
-Further, while you can ignore some restrictions on declarations within the same
-library, you cannot use that to ignore restrictions inherited from other
-libraries.
-
-We say that `S` is a _direct declared superinterface_ of a class, mixin, or
-mixin class declaration `D` if `D` has a superclass clause of the form
-`C with M1 .. Mk` (where `k` may be zero when there is no `with` clause)
-and `S` is `C`, or `S` is `Mj` for some `j` in 1 .. k,
-or if `D` has an `implements` or `on` clause and `S` occurs as one of the operands of
-that clause.
-
-We then say that a class or mixin declaration `D` *cannot be implemented locally* if it
-has a direct declared superinterface `S` such that:
-
-*   `S` is from another library than `D`, and `S` has the modifier `base`,
-    `final` or `sealed`, or
-
-    ```dart
-    // a.dart
-    base mixin class S {}
-
-    // b.dart
-    import 'a.dart';
-
-    // These cannot be implemented locally:
-    sealed class DE extends S {}
-    final class DM with S {}
-    base mixin MO on S {}
-    ```
-
-*   `S` is from the same library as `D`, and `S` cannot be implemented locally.
-
-    ```dart
-    // a.dart
-    base class B {}
-
-    // b.dart
-    import 'a.dart';
-
-    // These cannot be implemented locally (from the previous rule):
-    base class S extends B {}
-    base mixin M on B {}
-
-    // And thus these also cannot be implemented locally:
-    base class DE extends S {}
-    base class DM extends B with M {} // (from this and the previous rule).
-    base mixin MO on S {}
-    base mixin M2 on M {}
-    ```
-
-Otherwise, `D` can be implemented locally.
-
-It is a compile-time error if:
-
-*   A class, mixin, or mixin class declaration `D` has an `implements` clause
-    where `S` is an operand, and `S` is a class, mixin, or mixin class
-    declaration declared in the same library as `D`, and `S` cannot be
-    implemented locally.
-
-    ```dart
-    // a.dart
-    base class B {}
-
-    // b.dart
-    import 'a.dart';
-
-    base class S extends B {} // Cannot be implemented locally but OK.
-
-    base class D implements S {} // Error, cannot use "implements".
-    ```
-
-*   A class, mixin, or mixin class declaration `D` cannot be implemented
-    locally, and `D` does not have a `base`, `final` or `sealed` modifier.
-    _A declaration which cannot be implemented locally also cannot
-    be allowed to be implemented in another library._
+A type alias (`typedef`) cannot be used to subvert these restrictions
+or any of the restrictions below. The actual superdeclaration used in
+these checks is the one that the type alias expands to. *Note that
+the library where the _type alias_ is defined does not come into play.
+Type aliases cannot be marked with any of the new modifiers.*
 
 ### Mixin restrictions
 
-There are a few changes around mixins to support `mixin class` and disallow
-using normal `class` declarations as mixins while dealing with language
-versioning and backwards compatibility.
+As before, a declared superclass declaration must be a `class` declaration
+_(you can only extend another class)_ and a declared interface declaration
+must be a `class` or `mixin` declaration, and now it may also
+be a `mixin class` declaration _(you can only implement something which
+has an interface, and not `enum`s which cannot be implemented at all)_.
 
-Currently, a class may only be used as a mixin if it has a default constructor.
-This prevents the class from defining a `const` constructor or any factory
-constructors. We loosen this somewhat.
+The new `mixin class` declaration has a set of syntactic rules which
+ensures that it can be used as both a `class` and a `mixin`.
 
-Define a *trivial generative constructor* to be a generative constructor that:
+It's a compile-time error if a `mixin class` declaration:
+*   has an `interface`, `final` or `sealed` modifier. _This is baked
+    into the grammar, but it bears repeating._
+*   has an `extends` clause,
+*   has a `with` clause, or
+*   declares any non-trivial generative constructor.
 
-*   Is not a redirecting constructor,
-
-*   declares no parameters,
-
+A *trivial generative constructor* is a generative constructor that:
+*   Is not a redirecting constructor _(`Foo(...) : this.other(...);`),
+*   declares no parameters (parameter list is precisely `()`),
 *   has no initializer list (no `: ...` part, so no asserts or initializers, and
-    no super constructor invocation),
-
+    no explicit super constructor invocation),
 *   has no body (only `;`), and
+*   is not `external`. _An `external` constructor is considered to have an
+    externally provided initializer list and/or body._
 
-*   is not `external`. *An `external` constructor is considered to have an
-    externally provided initializer list and/or body.*
+_A trivial generative constructor may be named or unnamed,
+and may be `const` or non-`const`._
+A *non-trivial generative constructor* is a generative constructor which
+is not a trivial generative constructor.
 
-A trivial constructor may be named or unnamed, and `const` or non-`const`.
-A *non-trivial generative constructor* is a generative constructor which is not a
-trivial generative constructor.
+_A trivial generative constructor has no effect on object construction,
+so it can be safely ignored and omitted when the `mixin class` is used
+as a mixin, but it allows the `mixin class` declaration to also be used a
+superclass, even for subclasses with constant constructors._
 
 Examples:
 
 ```dart
-class C {
+mixin class C {
   // Trivial generative constructors:
   C();
   const C();
+  C.named();
+  const C.alsoNamed();
 
   // Non-trivial generative constructors:
-  C(int x);
-  C(this.x);
-  C() {}
-  C(): assert(true);
-  C(): super();
+  C(int x); // Error.
+  C(this.x); // Error.
+  C() {} // Error.
+  C(): x = 0;
+  C(): assert(true); // Error.
+  C(): super(); // Error.
+  C(): this.named();
 
   // Not generative constructors, so neither trivial generative nor non-trivial
   // generative:
   factory C.f = C;
   factory C.f2() { ... }
+
+  int? x;
 }
+
+// Invalid mixin classes.
+mixin class E extends Object {} // Error.
+mixin class E with C {} // Error.
 ```
 
-It's a compile-time error if:
+There are also changes to which declarations can be mixed in.
 
-*   A `mixin class` declaration has a superclass other than `Object`. *The
-    declaration is limited to an `extends Object` clause or no `extends` clause,
-    and no `with` clauses. The class grammar prohibits `on` clauses.*
+A post-feature class can no longer be used as a mixin unless it's declared
+as a `mixin class`. In post-feature code, you can *only* mix in
+`mixin` or `mixin class` declarations
+Pre-feature code is not changed, so some pre-feature classes can still
+be mixed in, and the SDK exception allows pre-feature code to pretend
+platform libraries are still pre-feature libraries.
 
-*   A `mixin class` declaration declares any non-trivial generative constructor.
-    *It may declare no constructors, in which case it gets a default
-    constructor, or it can declare factory constructors and/or trivial
-    generative constructors.*
+The formal rules for which declarations can be mixed in become:
 
-These rules ensure that when you mark a `class` with `mixin` that it *can* be
-used as one.
 
-A class not marked `mixin` can still be used as a mixin when the class's
-declaration is in a pre-feature library and it satisfies specific requirements.
-Specifically:
+It's a compile-time error if a `class` or `enum` declaration *D* from
+library *L* has *S* from library *K* as a declared mixin, unless:
+*   `S` is a `mixin` or `mixin class` declaration _(necessarily from
+    a post-feature library)_, or
+*   `S` is a non-mixin `class` declaration which has `Object` as superclass
+    and declares no generative constructor, and either
+    * *K* is a pre-feature library, or
+    * *K* is a platform library and *L* is a pre-feature library.
 
-It's a compile-time error for a declaration in library `L` to mix in a
-non-`mixin` class declaration `D` from library `K` if any of:
+_That is, a class not marked `mixin` can still be used as a mixin when the
+class's declaration is in a pre-feature library and it satisfies specific
+requirements._
 
-*   `K` is a post-feature library,
-
-*   The superclass of `D` is not `Object`, or
-
-*   `D` declares any constructors.
-
-*For pre-feature libraries, we cannot tell if the intent of `class` was
+_For pre-feature libraries, we cannot tell if the intent of `class` was
 "just a class" or "both a class and a mixin". For compatibility, we assume
 the latter, even if the class is being used as a mixin in a post-feature
 library where it does happen to be possible to distinguish those two
-intents.*
-
-### Anonymous mixin applications
-
-An *anonymous mixin application* class is a class resulting from a mixin application
-that does not have its own declaration.
-That is all mixin applications classes other than the final class
-of a <Code>class C = S with M1, …, M<sub>n</sub>;</code> declaration, the mixin application of <code>M<sub>n</sub></code> to
-the superclass <code>S with M1, …, M<sub>n-1</sub></code>, which is denoted by declaration and name `C`.
-
-An anonymous mixin application class cannot be referenced anywhere except in
-the context where the application occurs, so its only role is to be a superclass of
-another class in the same library.
-
-To ensure reasonable and correct behavior, we infer class modifiers on anonymous
-mixin application classes as follows.
-
-Let *C* be an anonymous mixin application with superclass *S* and mixin *M*. Then:
-
-* If any of *S* or *M* has a `sealed` modifier, *C* is has a `sealed` modifier.
-* Otherwise:
-  * *C* is `abstract`, and
-  * If either of *S* or *M* has a `base` or `final` modifier, then *C* has a `final` modifier.
-
-_We do not distinguish whether *S* or *M* has `base` or `final` modifiers.
-The modifier on *C* is there to satisfy the requirement that a subtype of a `base` or `final`
-declaration is itself `base`, `final` or `sealed`. The anonymous mixin application class will
-be immediately extended inside the same library, which is allowed by both `base` and `final`.,
-and will not be used for anything else._
-
-Adding `sealed` to an anonymous mixin application class with only one subclass ensures
-that the subclass extending the mixin application class can be used
-in exhaustiveness checking of the sealed superclass.
-This is necessary since the anonymous mixin application class itself cannot be referenced.
+intents._
 
 ### `@reopen` lint
 
@@ -880,7 +904,9 @@ A metadata annotation `@reopen` is added to package [meta][] and a lint
 warning is reported if a class or mixin is not annotated `@reopen` and it:
 
 *   Extends or mixes in a class, mixin, or mixin class marked `interface` or
-    `final` and is not itself marked `interface` or `final`.
+    `final` and is not itself marked `interface` or `final`,
+    or extends or mixes in a `sealed` declaration which itself
+    transitively extends or mixes in an `interface` or `final` declaration.
 
 [meta]: https://pub.dev/packages/meta
 [linter]: https://dart.dev/guides/language/analysis-options#enabling-linter-rules
@@ -907,21 +933,38 @@ non-breaking.
     to all other libraries, regardless of the versions of those libraries.
     "Ignorance of the law is no defense."*
 
-*   We would like to add modifiers to some classes in platform (i.e. `dart:`)
-    libraries when this feature ships. But we would also like to not immediately
+*   We will add modifiers to some classes in platform (i.e., `dart:`)
+    libraries when this feature ships. But we will also like to not immediately
     break existing code. To avoid forcing users to immediately migrate,
     declarations in pre-feature libraries can ignore *some*
-    `base`, `interface` and `final` modifiers on *some* declarations
-    in platform libraries.
-    Instead, users will only have to abide by those restrictions
-    when they upgrade their library's language version.
+    `base`, `interface` and `final` modifiers on *some* declarations in platform
+    libraries, and can mix in non-`mixin` classes from platform libraries,
+    as long as such a class has `Object` as superclass and declares
+    no constructors. ([legacy-mixin-tests][]).
+    Instead, users will only have to abide by those restrictions when they
+    upgrade their library's language version to 3.0 or later.
     _It will still not be possible to, e.g., extend or implement the `int` class,
     even if will now have a `final` modifier._
+    Going through a pre-feature library does not remove transitive restrictions
+    for code in post-feature libraries. Any post-feature library declaration
+    which has a platform library class marked `base` or `final` as a
+    superinterface must be marked `base`, `final` or `sealed`,
+    and cannot be implemented locally, even if the superinterface chain goes
+    through a pre-feature library declaration, and even if that declaration
+    ignores the `base` modifier.
 
-    This is a special case behavior only available to platform libraries.
-    Package libraries should use versioning to to introduce breaking
-    restrictions instead, and those libraries can then rely on the restrictions
-    being enforced.
+    This ability to ignore modifiers only apply to platform libraries
+    accessed from pre-feature libraries, because code doesn't get to
+    decide the version of the SDK that it runs on, unlike how a package
+    can depend on specific versions of another package.
+    Packages should use package versioning to introduce breaking restrictions
+    instead (a major version semantic version upgrade), but those libraries
+    can then rely on the restrictions being enforced.
+    The platform libraries will bear the cost of not being able to rely
+    on its own modifiers until all code in a program is language version 3.0
+    later.
+
+[legacy-mixin-tests]: https://dart-review.googlesource.com/c/sdk/+/287665
 
 ### Compatibility
 
@@ -1058,6 +1101,15 @@ hopefully it should be enough to get people started using the feature, and the
 errors and fixups would help keep them on the rails.
 
 ## Changelog
+
+1.7
+
+* Update the modifiers applied to anonymous mixin applications to closer
+  match the superclass/mixin modifiers.
+* State that `enum` declarations count as `final`.
+* Rephrase semantics completely, based only on relations between declarations.
+* Say that pre-feature libraries can mix in non-`mixin` platform library classes
+  which satisfy the old requirements for being used as a mixin.
 
 1.6
 
