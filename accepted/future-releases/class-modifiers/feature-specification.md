@@ -759,7 +759,7 @@ It's a compile-time error if:
     ```dart
     // a.dart
     base class B {}
-    sealed class S extend B {}
+    sealed class S extends B {}
     enum E extends S { e }
 
     class C0 extends B {} // Error.
