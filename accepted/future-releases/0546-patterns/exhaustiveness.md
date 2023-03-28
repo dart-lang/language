@@ -190,9 +190,10 @@ we would break that principle.
 ### Sealing supertypes
 
 Instead, we [extend the language to let a user explicitly "seal"][sealed] a
-supertype with a specified closed set of subtypes. No other code is allowed to
-define a new subtype of the sealed supertype (using `extends`, `implements`, or
-`with`). The supertype is also implicitly made abstract.
+supertype with a specified closed set of subtypes. No code outside of the
+library where the sealed type is declared is allowed to define a new subtype of
+the sealed supertype (using `extends`, `implements`, `with`, or `on`). The
+supertype is also implicitly made abstract.
 
 [sealed]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/sealed-types/feature-specification.md
 
@@ -203,20 +204,31 @@ enum Suit { club, diamond, heart, spade }
 
 sealed class Card {
   final Suit suit;
+
+  Card(this.suit);
 }
 
 class Pip extends Card {
   final int pips;
+
+  Pip(this.pips, super.suit);
 }
 
 sealed class Face extends Card {}
 
 class Jack extends Face {
   final bool oneEyed;
+
+  Jack(super.suit, {this.oneEyed = false});
 }
 
-class Queen extends Face {}
-class King extends Face {}
+class Queen extends Face {
+  Queen(super.suit);
+}
+
+class King extends Face {
+  King(super.suit);
+}
 ```
 
 The above class declarations create the following class hierarchy:
@@ -240,8 +252,12 @@ sealing does *not* mean:
     fact, we use this to turn `Face` into a sealed supertype of its own set of
     subtypes.
 
-*   The subtypes do not have to be disjoint. We could define a `Royalty` class
-    that implements `Jack`, `Queen`, and `King`.
+*   The subtypes do not have to be disjoint. Another library that wanted to
+    depose the royalty could define a `Democracy` class that implements `Jack`,
+    `Queen`, and `King` and takes over their functionality. This doesn't cause
+    any problems for exhaustiveness even though it means that a single instance
+    of `Democracy` would match more than one of the sealed subtypes of `Card`
+    and `Face`.
 
 *   The subtypes can have other supertypes in addition to the sealed one. We
     could have a `Monarch` interface that `Queen` and `King` implement.
@@ -253,26 +269,27 @@ subtypes, then we have exhaustively covered all instances of the supertype.
 
 ## Spaces
 
-The two questions exhaustiveness answers are defined based on some notion of a
-"set of values". A series of cases is exhaustive if the set of all possible
+Determining whether a switch is exhaustive requires reasoning about some notion
+of a "set of values". A series of cases is exhaustive if the set of all possible
 values entering the switch is covered by the sets of values matched by the case
 patterns.
 
 Thus the algorithm needs a way to model a (potentially infinite) set of values.
 In a statically typed language, the first obvious answer is a static type. A
 type does represent a set of values. But a plain static type isn't precise
-enough things like the set of values matched by the pattern `DateTime(day: 1)`
-which matches not just values of some type, but also ones whose fields have
-certain values.
+enough for things like the set of values matched by the pattern `DateTime(day:
+1)` which matches not just all values of some type, but only ones whose fields
+have certain values.
 
-A pattern is obviously the natural way to describe a set of values of some type
-filtered by some arbitrary set of predicates on their properties. However, the
-patterns proposal defines a rich set of patterns to make the feature user
-friendly and expressive. It would require unnecessary complexity in the
-exhaustiveness algorithm to handle every single kind of pattern.
+A pattern is the natural way to describe a set of values of some type filtered
+by some arbitrary set of predicates on their propertiesl, and we will use
+somethig similar here. However, the patterns proposal defines a rich set of
+patterns to make the feature user friendly and expressive. It would require
+unnecessary complexity in the exhaustiveness algorithm to handle every single
+kind of pattern.
 
 Instead, following Liu's paper, we use a data structure called a *space*. Spaces
-are essentially a desugared, simpler representation of a pattern.
+are essentially a simpler unified abstration over patterns and static types.
 
 A single space has a *type*, a *restriction*, and zero or more *properties*. All
 of these are used to determine which values match the space and which don't. The
@@ -342,6 +359,18 @@ named getter accessors. There are a few kinds of keys:
     `i` from the *end* of the list by calling `list[length - i]` on the matched
     list.
 
+Every key has a corresponding static type that can be looked up given the
+type of the space it is being accessed on:
+
+*   For a getter or field key, the type is the type of the corresponding member
+    or record field.
+
+*   For an element or tail key, the type is the return type of the corresponding
+    `[]` operator declared on the space's type.
+
+*   For a rest key, the type is the same as the type of the space. That will
+    always be `List<T>` for some `T`.
+
 ## Lifting types and patterns to space unions
 
 The exhaustiveness algorithm works on spaces and space unions, but it is invoked
@@ -370,7 +399,7 @@ The lifted space union for a pattern with matched value type `M` is:
     matters it that execution can't flow out of a switch without matching at
     least one case. But if a pattern _throws_ a runtime exception, then
     execution also doesn't flow out of it. So we treat throwing as essentially
-    another kind of matching.*
+    another kind of matching for exhaustiveness.*
 
     *In practice, this normally isn't very helpful. Consider:*
 
@@ -405,7 +434,8 @@ The lifted space union for a pattern with matched value type `M` is:
 
     *After the first case, we know that if `a` is a `B` or `D` then we will have
     thrown an exception. But if `a` is a `C`, it may not have matched if the
-    field isn't `0`. So the space for the first case is `B|C(field: 0)|D'.*
+    field isn't `0`. So the space for the first case is a union of `B|C(field:
+    0)|D'.*
 
     *Then the second case covers the rest of `C` and this is exhaustive.*
 
@@ -436,8 +466,6 @@ The lifted space union for a pattern with matched value type `M` is:
     example:*
 
     ```dart
-    typedef NullableObject = Object?;
-
     test(Object? obj) => switch (obj) {
       case _?:
       case null:
@@ -449,8 +477,6 @@ The lifted space union for a pattern with matched value type `M` is:
     nullable, then step 2 can be involved:*
 
     ```dart
-    typedef NullableObject = Object?;
-
     test(Object? obj) => switch (obj) {
       case Object? _?:
     };
@@ -465,8 +491,18 @@ The lifted space union for a pattern with matched value type `M` is:
     *As with cast patterns, a null-assert pattern "matches" `null` by throwing
     an exception, which is sufficient for exhaustiveness.*
 
-*   **Constant pattern:** A space whose type is the type of the constant and
-    with a constant restriction for the given constant value.
+*   **Constant pattern:**
+
+    1.  If the constant has primitive equality, then a space whose type is the
+        type of the constant and with a constant restriction for the given
+        constant value.
+
+    2.  Else the empty space union.
+
+    *If the constant has a user-defined `==` method, then we can't rely on its
+    behavior for exhaustiveness checking. Fortunately, the constants that most
+    often come into play for exhaustiveness are enum values, booleans, and
+    `null`, and those all have primitive equality.*
 
 *   **Variable pattern** or **identifier pattern:** The lifted space union of
     the static type of the corresponding variable.
@@ -556,7 +592,7 @@ union that contains only values contained by both of its operands.
 Intersection is approximate and pessimistic: There may be values that are
 matched by both operands that are not matched by the resulting intersection.
 Since intersection is only invoked when lifting patterns to spaces (and not
-value types), which is sound, though it may lead to the compiler not recognizing
+value types), it is sound, though it may lead to the compiler not recognizing
 that a switch is actually exhaustive when it is or not recognizing a case as
 unreachable when it can't be reached.
 
@@ -568,7 +604,8 @@ Space intersection is defined as:
     each operand of the union with the other space.
 
     *In other words, distribute the intersection into the branches. So `(A|B) ^
-    C` is `(A^C)|(B^C)`.
+    C` (where `|` is "union" and `^` is "intersection") results in `(A^C)|(B^C)`
+    and then calculate the resulting intersections.*
 
 3.  Else (both sides are single unions):
 
@@ -827,7 +864,7 @@ The resulting spaces are:
             ```
 
         2.  Else (not a trivial substitution) let `S` be an overapproximation
-            of `C`.
+            (see below) of `C`.
 
             **TODO:** Is the overapproximation part here correct?
 
@@ -864,7 +901,7 @@ The resulting spaces are:
     1.  For each element in the enum:
 
         1.  If the element's type is a subtype of the overapproximation of the
-            enum type:
+            enum declaration:
 
             1.  A space with the type of the element and a constant restriction
                 with the element value.
@@ -975,19 +1012,20 @@ null
 
 ### Overapproximation
 
-The *overapproximation* of a type `T` is `T` with all type variables replaced
-with their *defaults*:
+The *overapproximation* of a declaration `D` is a type `T` with all type
+variables replaced with their *defaults*:
 
-1.  If `T` is in a contravariant position, then the default is `Never`.
+1.  If the type variable is in a contravariant position, then the default is
+    `Never`.
 
 2.  Otherwise, the default is the bound if there is one.
 
 3.  Otherwise, the default is `Object?`.
 
-The overapproximation of a type reliably contains all values that any possible
-instantiation of the type could contain. This lets us calculate exhaustiveness
-soundly even in the context of parameter types whose concrete instantiations
-aren't known.
+The overapproximation of a declaration reliably contains all values that any
+possible instantiation of its type parameters could contain. This lets us
+calculate exhaustiveness soundly even in the context of parameter types whose
+concrete instantiations aren't known.
 
 ### Filtering by a space
 
@@ -1006,13 +1044,13 @@ exhaustiveness, so we remove it.
 
     1.  Dequeue the first case union in `worklist` to `caseUnion`.
 
-    1.  For each `case` space in `caseUnion`:
+    2.  For each `case` space in `caseUnion`:
 
         1.  If `valueSpace` is a subset of `case`, then:
 
             1.  Add `case` to `caseFirstSpaces`.
 
-            1.  Add `worklist` to `remaining`.
+            2.  Add `worklist` to `remaining`.
 
             *If every value in `valueSpace` is also in `case`, then this case
             may still help with exhaustiveness, so keep it.*
@@ -1073,10 +1111,12 @@ To unpack a `space` given a set of `keys`:
     1.  If `space` has a property with this key, then append that property's
         subspace union to `result`.
 
-    2.  Else, append a `space` to `result` whose type is `Object?`. *If a
-        pattern doesn't have a subpattern for some field or getter, then it
-        matches all values that the field or getter could return, which is
-        equivalent to it matching it with type `Object?`.*
+    2.  Else, append a `space` to `result` whose type is the static type of the
+        key declared on the type of `space`.
+
+        *If a pattern doesn't have a subpattern for some field or getter, then
+        it matches all values that the field or getter could return, which is
+        equivalent to it matching it with its type.*
 
 3.  Return `result`.
 
