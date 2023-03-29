@@ -4,7 +4,7 @@ Author: Bob Nystrom, Lasse Nielsen
 
 Status: Accepted
 
-Version 1.7
+Version 1.8
 
 Experiment flag: class-modifiers
 
@@ -662,10 +662,10 @@ It's a compile-time error if:
 *   A declaration depends directly on a `sealed` declaration from another
     library. _No exceptions, not even for platform libraries._
 
-    More formally:
-    A declaration *D* from library *L* has a direct superdeclaration *S*
-    marked `sealed` (so necessarily a `class` declaration) in a library
-    different from *L*.
+    More formally, it's a compile-time error if:
+    A `class`, `mixin class`, `mixin` or `enum` declaration from library *L*
+    has a direct superdeclaration marked `sealed` _(so necessarily a `class`
+    declaration)_ from a library other than *L*.
 
     ```dart
     // a.dart
@@ -680,18 +680,48 @@ It's a compile-time error if:
     class M with S {} // Error, for several reasons.
     ```
 
-*   A class extends or mixes in a declaration marked `interface` or `final`
+*   A declaration depends directly on a `final` declaration from another
+    library _(with some exceptions for platform libraries)_.
+
+    _(You cannot subtype a `final` declaration, except inside the same library.
+    Unless you are in a pre-feature library and the super-declaration is from
+    a platform library.)_
+
+    More formally, it's a compile-time error if:
+    A `class`, `mixin class`, `mixin` or `enum` declaration from library *L*
+    has a direct superdeclaration *S* marked `final` _(so necessarily a `class`
+    declaration)_ in a library *K*, neither:
+    * *L* and *K* is the same library, nor
+    * *L* is a pre-feature library and *K* is a platform library.
+
+    ```dart
+    // a.dart
+    final class S {}
+
+    // b.dart
+    import 'a.dart';
+
+    class E extends S {} // Error.
+    class I implements S {} // Error.
+    mixin O on S {}  // Error.
+    class M with S {} // Error.
+    ```
+    Except that if `b.dart` is a pre-feature library
+    and `a.dart` is a platform library, then all the errors go away.
+
+*   A class _extends or mixes in_ a declaration marked `interface`
     from another library _(with some exceptions for platform libraries)_.
 
     _(You cannot inherit implementation from a class marked `interface`
-    or `final` except inside the same library. Unless you are in a
-    pre-feature library and you are inheriting from a platform library.)_
+    except inside the same library. Unless you are in a pre-feature library
+    and you are inheriting from a platform library.)_
 
-    More formally:
-    A declaration *C* from library *L* has a declared superclass or mixin
-    declaration *S* marked `interface` or `final` from library *K*, and neither
+    More formally, it's a compile-time error if:
+    A `class` or `enum` declaration in library *L* has a declared
+    superclass or mixin declaration marked `interface` from
+    library *K*, and neither
     * *L* and *K* is the same library, nor
-    * *K* is a platform library and *L* is a pre-feature library.
+    * *L* is a pre-feature library and *K* is a platform library.
 
     ```dart
     // a.dart
@@ -715,13 +745,13 @@ It's a compile-time error if:
     a pre-feature library and all `base` or `final` superdeclarations
     are in platform libraries.)_
 
-    More formally:
-    A declaration *C* in library *L* has a declared interface *P*,
-    and *P* has any superdeclaration *S*, from a library *K*,
-    which is marked `base` or `final` _(including *S* being *P* itself)_,
-    and neither:
-    * *K* and *L* is the same library, mor
-    * *K* is a platform library and *L* is a pre-feature library.
+    More formally, it's a compile-time error if:
+    A `class`, `mixin-class`, `mixin` or `enum` declaration in library *L* has
+    a declared interface *P*, and *P* has any superdeclaration *S*,
+    from a library *K*, which is marked `base` or `final`
+    _(including *S* being *P* itself)_, and neither:
+    * *L* and *K* is the same library, nor
+    * *L* is a pre-feature library and *K* is a platform library.
 
     ```dart
     // a.dart
@@ -742,7 +772,7 @@ It's a compile-time error if:
     base class C implements P {} // Error.
     ```
 
-*   A declaration has a `base` or `final` superdeclaration,
+*   A declaration has any `base` or `final` superdeclaration,
     and is not itself marked `base`, `final` or `sealed`.
     _This also applies to declarations inside the same library._
 
@@ -751,7 +781,7 @@ It's a compile-time error if:
     The entire subclass tree below such a declaration must prevent
     implementation too.)_
 
-    More formally:
+    More formally, it's a compile-time error if:
     A `class`, `mixin class` or `mixin` declaration *D* in a post-feature
     library has any proper superdeclaration marked `base` or `final`,
     and *D* is not itself marked `base`, `final` or `sealed`.
@@ -1102,13 +1132,17 @@ errors and fixups would help keep them on the rails.
 
 ## Changelog
 
+1.8
+
+- Disallow mixin on a `final` type from another library.
+
 1.7
 
-* Update the modifiers applied to anonymous mixin applications to closer
+- Update the modifiers applied to anonymous mixin applications to closer
   match the superclass/mixin modifiers.
-* State that `enum` declarations count as `final`.
-* Rephrase semantics completely, based only on relations between declarations.
-* Say that pre-feature libraries can mix in non-`mixin` platform library classes
+- State that `enum` declarations count as `final`.
+- Rephrase semantics completely, based only on relations between declarations.
+- Say that pre-feature libraries can mix in non-`mixin` platform library classes
   which satisfy the old requirements for being used as a mixin.
 
 1.6
