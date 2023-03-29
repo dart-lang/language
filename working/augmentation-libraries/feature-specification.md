@@ -1,6 +1,6 @@
 # Augmentation Libraries
 
-Author: rnystrom@google.com, Version: 1.6 (see [Changelog](#Changelog) at end)
+Author: rnystrom@google.com, Version: 1.7 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -291,6 +291,11 @@ augment class SomeClass {
 This means that instead of creating a new type declaration, the augmentation
 modifies a corresponding declaration in the main library or one of its other
 augmentations.
+
+All the keywords (other than `augment`) must be identical between the original
+declaration and the augmentation. This is to ensure that looking at either one
+will give a complete depiction of the capabilities of the type, and an
+augmentation cannot introduce hidden restrictions.
 
 A class or enum augmentation may specify `implements` and `with` clauses. When
 those appear, the specified superinterfaces and mixins are appended to the main
@@ -797,6 +802,11 @@ consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+### 1.7
+
+*   Specify that augmentations must contain all the same keywords as the
+    original declaration (and no more).
 
 ### 1.6
 
