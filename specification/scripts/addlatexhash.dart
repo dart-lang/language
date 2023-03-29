@@ -40,7 +40,7 @@ final whitespaceRE = new RegExp(r"(?:(?=\s).){2,}"); // \s except end-of-line
 /// given [startOffset] and [endOffset], bounded to be valid indices
 /// into the string if needed, then inserts [glue] where text was
 /// removed.  If there is no match then [line] is returned.
-cutMatch(line, match, {startOffset: 0, endOffset: 0, glue: ""}) {
+cutMatch(line, match, {startOffset = 0, endOffset = 0, glue = ""}) {
   if (match == null) return line;
   var start = match.start + startOffset;
   var end = match.end + endOffset;
@@ -50,7 +50,7 @@ cutMatch(line, match, {startOffset: 0, endOffset: 0, glue: ""}) {
   return line.substring(0, start) + glue + line.substring(end);
 }
 
-cutRegexp(line, re, {startOffset: 0, endOffset: 0, glue: ""}) {
+cutRegexp(line, re, {startOffset = 0, endOffset = 0, glue = ""}) {
   return cutMatch(line, re.firstMatch(line),
       startOffset: startOffset, endOffset: endOffset, glue: glue);
 }
@@ -58,12 +58,12 @@ cutRegexp(line, re, {startOffset: 0, endOffset: 0, glue: ""}) {
 /// Removes the rest of [line] starting from the beginning of the
 /// given [match], and adjusting with the given [offset].  If there
 /// is no match then [line] is returned.
-cutFromMatch(line, match, {offset: 0, glue: ""}) {
+cutFromMatch(line, match, {offset = 0, glue = ""}) {
   if (match == null) return line;
   return line.substring(0, match.start + offset) + glue;
 }
 
-cutFromRegexp(line, re, {offset: 0, glue: ""}) {
+cutFromRegexp(line, re, {offset = 0, glue = ""}) {
   return cutFromMatch(line, re.firstMatch(line), offset: offset, glue: glue);
 }
 
