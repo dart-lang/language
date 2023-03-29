@@ -555,7 +555,7 @@ The lifted space union for a pattern with matched value type `M` is:
       properties: {
         key(0): 'a',
         key(1): 'b',
-        rest(2, 3): List<String>(key(0): 'c'),
+        rest(2, 3): List<String>(length: 1, hasRest: false, properties: {key(0): 'c'}),
         tail(3): 'd',
         tail(2): 'e',
         tail(1): 'f',
