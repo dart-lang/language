@@ -100,7 +100,7 @@ class StaticType {
         _underlying = underlying,
         isSealed = true,
         // No fields because it may match null which doesn't have them.
-        _fields = {} {}
+        _fields = {};
 
   bool isSubtypeOf(StaticType other) {
     if (this == other) return true;

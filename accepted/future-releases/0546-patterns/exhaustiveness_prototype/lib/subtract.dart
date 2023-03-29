@@ -3,9 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 import 'intersect_empty.dart';
 import 'profile.dart' as profile;
-import 'static_type.dart';
-
 import 'space.dart';
+import 'static_type.dart';
 
 /// Returns a new [Space] that contains all of the values of [left] that are
 /// not also in [right].
