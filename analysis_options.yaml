@@ -1,6 +1,7 @@
 analyzer:
   exclude:
     - accepted/2.3/spread-collections/examples/**
+    - archive/newsletter/20171103
     # TODO: remove these when the analyzer supports macros
     - working/macros/example/lib/auto_dispose.dart
     - working/macros/example/lib/data_class.dart

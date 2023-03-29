@@ -42,7 +42,9 @@ abstract class Space {
       // go through this constructor to create unions. A UnionSpace will never
       // contain UnionSpaces.
       if (space is UnionSpace) {
-        for (var arm in space.arms) addSpace(arm);
+        for (var arm in space.arms) {
+          addSpace(arm);
+        }
       } else {
         addSpace(space);
       }

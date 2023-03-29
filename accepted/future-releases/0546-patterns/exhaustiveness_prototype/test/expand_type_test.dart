@@ -203,13 +203,12 @@ void main() {
     //   (A)
     //   / \
     //  B   C
-    //     / \
-    //    D   E
+    //       \
+    //        E
     var a = StaticType('A', isSealed: true);
     var b = StaticType('B', inherits: [a]);
     var c = StaticType('C', inherits: [a]);
     var d = StaticType('D', inherits: [c]);
-    var e = StaticType('E', inherits: [c]);
 
     expectExpand(a.nullable, a, 'A|Null');
     expectExpand(a, a.nullable, 'A');
