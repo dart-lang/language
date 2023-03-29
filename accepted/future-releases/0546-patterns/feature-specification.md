@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.28 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.29 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -604,7 +604,7 @@ rest element with no subpattern as a *non-matching rest element*.
 ```
 mapPattern        ::= typeArguments? '{' mapPatternEntries? '}'
 mapPatternEntries ::= mapPatternEntry ( ',' mapPatternEntry )* ','?
-mapPatternEntry   ::= expression ':' pattern | '...'
+mapPatternEntry   ::= expression ':' pattern
 ```
 
 A map pattern matches values that implement `Map` and accesses values by key
@@ -621,45 +621,31 @@ It is a compile-time error if:
     expressions in a future release without it being a breaking change, similar
     to default values in parameter lists.*
 
-*   Any two keys in the map are identical. *Map patterns that don't have a rest
-    element only match if the `length` of the map is equal to the number of map
-    entries. If a map pattern has multiple identical key entries, they will
-    increase the required length for the pattern to match but in all but the
-    most perverse `Map` implementations will represent the same key. Thus, it's
-    very unlikely that any map pattern containing identical keys (and no rest
-    element) will ever match. Duplicate keys are most likely a typo in the
-    code.*
-
-*   Any two record keys which both have primitive equality are equal. *Since
-    records don't have defined identity, we can't use the previous rule to
-    detect identical records. But records do support an equality test known at
-    compile time if all of their fields do, so we use that.*
-
-*   There is more than one `...` element in the map pattern.
-
-*   The `...` element is not the last element in the map pattern.
-
 *Note that we don't require map keys to have primitive equality, to enable
-more flexibility in key types. If the keys have user-defined `==` methods, then
-it's possible to have keys that are equal according to those `==` methods, but
-the compiler won't detect it.*
+more flexibility in key types.*
 
-#### Rest elements
+#### Open and closed maps
 
-Like lists, map patterns can also have a rest element. However, there's no
-well-defined notion of a map "minus" some set of matched entries. Thus, only a
-non-matching rest element is allowed.
+Unlike list and record patterns (but like object patterns), map patterns don't
+require the pattern to match the *entire* map. If a map has extra keys that
+aren't destructured by the pattern, it can still match.
 
-Also, there is no ordering to entries in a map, so we only allow the `...` to
-appear as the last entry. Appearing anywhere else would send a confusing,
-meaningless signal.
+This aligns with the most common use cases for working with maps where extra
+keys should be silently ignored. When maps are used as protocols, it tends to
+make pattern matching code over those maps more resilient to protocol evolution.
 
-In practice, this means that the only purpose of `...` in a map pattern is to
-allow matching a map that contains extra entries, while ignoring those entries.
-By default, a map pattern only matches if the map's length is exactly the same
-as the number of entry subpatterns. Adding a `...` element allows the map
-pattern to match if the map's length is *at least* the number of (non-rest)
-entry subpatterns (and all of those subpatterns match).
+Ignoring extra keys also makes maps more reliable to use in irrefutable contexts
+where an extra key would otherwise cause a runtime exception.
+
+If you want to check that a map has a given set of keys and no others, the
+easiest way is to check the length in a guard:
+
+```dart
+switch (map) {
+  case {'a': _, 'b': _} when map.length == 2:
+    print('Only a and b');
+}
+```
 
 ### Record pattern
 
@@ -997,9 +983,9 @@ in assignments, it is useful to have an expression statement that begins with
 ```dart
 var map = {'a': 1, 'b': 2};
 int a, b;
-// more code...
+// More code...
 
-// later...
+// Later...
 {'a': a, 'b': b} = map;
 ```
 
@@ -3035,48 +3021,7 @@ To match a pattern `p` against a value `v`:
         *This type test may get elided. See "Pointless type tests and legacy
         types" below.*
 
-    2.  Let `n` be the number of non-rest elements.
-
-    3.  Check the length:
-
-        1.  If `p` has a rest element and `n == 0`, then do nothing for checking
-            the length.
-
-            *We only call `length` on the map if needed. If the pattern is
-            `{...}`, then any length is allowed, so we don't even ask the map
-            for it.*
-
-        2.  Else let `l` be the length of the map determined by calling `length`
-            on `v`.
-
-        3.  If `p` has a rest element *(and `n > 0`)*:
-
-            1.  If `l < n` then the match fails.
-
-            *When there are non-rest elements and a rest element, the map must
-            be at least long enough to match the non-rest elements.*
-
-        4.  Else if `n > 0` *(and `p` has no rest element)*:
-
-            1.  If `l != n` then the match fails.
-
-            *If there are only non-rest elements, then the map must have exactly
-            the same number of elements.*
-
-        5.  Else `p` is empty:
-
-            1.  If `l > 0` then the match fails.
-
-            *An empty map pattern can match only empty maps. Note that this
-            treats a misbehaving map whose `length` is negative as an empty map.
-            This is important so that a set of map patterns that is clearly
-            exhaustive over well-behaving maps will also cover a misbehaving
-            one.*
-
-        *These match failures become runtime exceptions if the map pattern is
-        in an irrefutable context.*
-
-    4.  For each non-rest entry in `p`, in source order:
+    2.  For each entry in `p`, in source order:
 
         *Unlike in list patterns, we don't skip wildcard subpatterns. In a map
         pattern, you may want to use a `_` value subpattern to detect whether a
@@ -3123,7 +3068,7 @@ To match a pattern `p` against a value `v`:
         4.  Else, match `r` against this entry's value subpattern. If it does
             not match, the map does not match.
 
-    5.  The match succeeds if all entry subpatterns match.
+    3.  The match succeeds if all entry subpatterns match.
 
 *   **Record**:
 
@@ -3434,9 +3379,7 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
 *   **Map**:
 
-    1.  Bind `i : ("length", [])` to the `length` getter invocation.
-
-    2.  For each entry in `p`:
+    1.  For each entry in `p`:
 
         1.  Bind `i : ("containsKey()", [key])` to the `containsKey()`
             invocation where `key` is entry's key constant value.
@@ -3555,6 +3498,20 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.29
+
+-   Map patterns no longer check length.
+
+-   Remove `...` from map patterns since it is redundant with the previous
+    change.
+
+-   Make it an error to have an empty map pattern. Since map patterns don't
+    check their length, an empty map pattern will match all maps, which is
+    likely to confuse users. For now, to minimize confusion, we just disallow
+    it.
+
+-   Make it no longer an error for map patterns to have duplicate keys.
 
 ### 2.28
 
