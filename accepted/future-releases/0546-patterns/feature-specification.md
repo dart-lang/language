@@ -1850,8 +1850,7 @@ The context type schema for a pattern `p` is:
     2.  Else if `p` has no entries, then `K` and `V` are `_`.
 
     3.  Else `K` is `_` and `V` is the greatest lower bound of the context type
-        schemas of all value subpatterns. *The rest element, if present, doesn't
-        contribute to the context type schema.*
+        schemas of all value subpatterns.
 
 *   **Record**: A record type schema with positional and named fields
     corresponding to the type schemas of the corresponding field subpatterns.
