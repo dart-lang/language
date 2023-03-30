@@ -22,11 +22,11 @@
 // NB: This utility assumes UN*X style line endings, \n, in the LaTeX
 // source file received as input; it will not work with other styles.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:convert/convert.dart';
-import 'package:utf/utf.dart';
 
 // ----------------------------------------------------------------------
 // Normalization of the text: removal or normalization of parts that
@@ -40,7 +40,7 @@ final whitespaceRE = new RegExp(r"(?:(?=\s).){2,}"); // \s except end-of-line
 /// given [startOffset] and [endOffset], bounded to be valid indices
 /// into the string if needed, then inserts [glue] where text was
 /// removed.  If there is no match then [line] is returned.
-cutMatch(line, match, {startOffset: 0, endOffset: 0, glue: ""}) {
+cutMatch(line, match, {startOffset = 0, endOffset = 0, glue = ""}) {
   if (match == null) return line;
   var start = match.start + startOffset;
   var end = match.end + endOffset;
@@ -50,7 +50,7 @@ cutMatch(line, match, {startOffset: 0, endOffset: 0, glue: ""}) {
   return line.substring(0, start) + glue + line.substring(end);
 }
 
-cutRegexp(line, re, {startOffset: 0, endOffset: 0, glue: ""}) {
+cutRegexp(line, re, {startOffset = 0, endOffset = 0, glue = ""}) {
   return cutMatch(line, re.firstMatch(line),
       startOffset: startOffset, endOffset: endOffset, glue: glue);
 }
@@ -58,12 +58,12 @@ cutRegexp(line, re, {startOffset: 0, endOffset: 0, glue: ""}) {
 /// Removes the rest of [line] starting from the beginning of the
 /// given [match], and adjusting with the given [offset].  If there
 /// is no match then [line] is returned.
-cutFromMatch(line, match, {offset: 0, glue: ""}) {
+cutFromMatch(line, match, {offset = 0, glue = ""}) {
   if (match == null) return line;
   return line.substring(0, match.start + offset) + glue;
 }
 
-cutFromRegexp(line, re, {offset: 0, glue: ""}) {
+cutFromRegexp(line, re, {offset = 0, glue = ""}) {
   return cutFromMatch(line, re.firstMatch(line), offset: offset, glue: glue);
 }
 
@@ -242,8 +242,7 @@ bool isntHashBlockTerminator(line) => !isSectioningCommand(line);
 extractHashLabel(line) {
   var startMatch = hashLabelStartRE.firstMatch(line);
   var endMatch = hashLabelEndRE.firstMatch(line);
-  assert(startMatch != null && endMatch != null);
-  return line.substring(startMatch.end, endMatch.start);
+  return line.substring(startMatch!.end, endMatch!.start);
 }
 
 // Event classes: Keep track of relevant information about the LaTeX
@@ -491,7 +490,7 @@ computeHashValue(lines, startIndex, nextIndex, listSink) {
   final gatheredLine = gatherLines(lines, startIndex, nextIndex);
   final simplifiedLine = simplifyLine(gatheredLine);
   listSink.write("  % $simplifiedLine\n");
-  var digest = sha1.convert(encodeUtf8(simplifiedLine));
+  var digest = sha1.convert(utf8.encode(simplifiedLine));
   return digest.bytes;
 }
 
