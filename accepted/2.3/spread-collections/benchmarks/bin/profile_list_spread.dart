@@ -35,7 +35,7 @@ void main() {
 
 double runBench(
     String name, int length, void Function(List<String>, List<String>) action,
-    [double baseline]) {
+    [double? baseline]) {
   var from = <String>[];
   for (var i = 0; i < length; i++) {
     from.add(String.fromCharCode(i % 26 + 65));
@@ -63,8 +63,8 @@ double runBench(
 }
 
 /// Runs [bench] a number of times and returns the best (highest) result.
-double benchBest(
-    List<List<String>> froms, void Function(List<String>, List<String>) action) {
+double benchBest(List<List<String>> froms,
+    void Function(List<String>, List<String>) action) {
   var best = 0.0;
   for (var i = 0; i < 4; i++) {
     var result = bench(froms, action);
@@ -127,9 +127,9 @@ void addAll(List<String> from, List<String> to) {
 }
 
 void forEach(List<String> from, List<String> to) {
-  var temp = to;
+  List<String>? temp = to;
   from.forEach((s) {
-    temp.add(s);
+    temp!.add(s);
   });
   temp = null;
 }

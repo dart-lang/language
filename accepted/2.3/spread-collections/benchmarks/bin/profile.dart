@@ -13,8 +13,8 @@ final lists = <List<String>>[];
 final maps = <Map<String, int>>[];
 final mapsWithSplay = <Map<String, int>>[];
 
-String _configuration;
-int _length;
+late String _configuration;
+late int _length;
 bool _csvOutput = false;
 bool _warmingUp = true;
 
@@ -136,7 +136,7 @@ void benchmarkMaps(String collection, List<Map<String, int>> maps) {
 
 double benchmarkIterable(
     String method, void Function(Iterable<String>, List<String>) action,
-    [double overhead]) {
+    [double? overhead]) {
   var time = bench(() {
     for (var i = 0; i < lists.length; i++) {
       var from = lists[i];
@@ -155,7 +155,7 @@ double benchmarkIterable(
 
 double benchmarkList(
     String method, void Function(List<String>, List<String>) action,
-    [double overhead]) {
+    [double? overhead]) {
   var time = bench(() {
     for (var i = 0; i < lists.length; i++) {
       var from = lists[i];
@@ -177,7 +177,7 @@ double benchmarkMap(
     String method,
     List<Map<String, int>> maps,
     void Function(Map<String, int>, Map<String, int>) action,
-    [double overhead]) {
+    [double? overhead]) {
   var time = bench(() {
     for (var i = 0; i < maps.length; i++) {
       var from = maps[i];
@@ -250,7 +250,7 @@ void show(String collection, String method, double overhead, double baseline) {
 
 double bestTime(String collection, String method) {
   var runs = _runs["$collection $method"];
-  var min = runs.first;
+  var min = runs!.first;
   for (var i = 1; i < runs.length; i++) {
     if (runs[i] < min) min = runs[i];
   }
@@ -259,7 +259,7 @@ double bestTime(String collection, String method) {
 }
 
 double standardDeviation(String collection, String method) {
-  var runs = _runs["$collection $method"];
+  var runs = _runs["$collection $method"]!;
 
   var mean = runs.fold<double>(0.0, (a, b) => a + b) / runs.length;
 
@@ -281,9 +281,9 @@ void iterableIterator(Iterable<String> from, List<String> to) {
 }
 
 void iterableForEach(Iterable<String> from, List<String> to) {
-  var temp = to;
+  List<String>? temp = to;
   from.forEach((s) {
-    temp.add(s);
+    temp!.add(s);
   });
   temp = null;
 }
@@ -317,9 +317,9 @@ void listSubscript(List<String> from, List<String> to) {
 }
 
 void listForEach(List<String> from, List<String> to) {
-  var temp = to;
+  List<String>? temp = to;
   from.forEach((s) {
-    temp.add(s);
+    temp!.add(s);
   });
   temp = null;
 }
@@ -334,14 +334,14 @@ void mapEntries(Map<String, int> from, Map<String, int> to) {
 
 void mapKeys(Map<String, int> from, Map<String, int> to) {
   for (var key in from.keys) {
-    to[key] = from[key];
+    to[key] = from[key]!;
   }
 }
 
 void mapForEach(Map<String, int> from, Map<String, int> to) {
-  var temp = to;
+  Map<String, int>? temp = to;
   from.forEach((key, value) {
-    temp[key] = value;
+    temp![key] = value;
   });
   temp = null;
 }
