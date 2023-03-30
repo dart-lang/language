@@ -903,7 +903,7 @@ A metadata annotation `@reopen` is added to package [meta][] and a lint
 "implicit_reopen" is added to the [linter][]. When the lint is enabled, a lint
 warning is reported if a class is not annotated `@reopen` and it:
 
-*   extends or mixes in a class or mixin class marked `interface` or `final`
+*   extends a class marked `interface` or `final`
     and is not itself marked `interface` or `final`, or
 *   extends or mixes in a `sealed` declaration which itself
     transitively extends or mixes in an `interface` or `final` declaration.
