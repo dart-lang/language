@@ -901,11 +901,11 @@ Instead, it's a suggested part of the overall user experience of the feature.
 
 A metadata annotation `@reopen` is added to package [meta][] and a lint
 "implicit_reopen" is added to the [linter][]. When the lint is enabled, a lint
-warning is reported if a class or mixin is not annotated `@reopen` and it:
+warning is reported if a class is not annotated `@reopen` and it:
 
-*   Extends or mixes in a class, mixin, or mixin class marked `interface` or
-    `final` and is not itself marked `interface` or `final`,
-    or extends or mixes in a `sealed` declaration which itself
+*   extends or mixes in a class or mixin class marked `interface` or `final`
+    and is not itself marked `interface` or `final`, or
+*   extends or mixes in a `sealed` declaration which itself
     transitively extends or mixes in an `interface` or `final` declaration.
 
 [meta]: https://pub.dev/packages/meta
