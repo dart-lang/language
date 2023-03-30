@@ -905,7 +905,7 @@ warning is reported if a class is not annotated `@reopen` and it:
 
 *   extends a class marked `interface` or `final`
     and is not itself marked `interface` or `final`, or
-*   extends or mixes in a `sealed` declaration which itself
+*   extends a `sealed` class which itself transitively extends a class marked `interface` or `final`.
     transitively extends or mixes in an `interface` or `final` declaration.
 
 [meta]: https://pub.dev/packages/meta
