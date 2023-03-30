@@ -37,7 +37,7 @@
 %
 % Mar 2023
 % - Clarify how line breaks are handled in a multi-line string literal. Rename
-%   the lexical token NEWLINE to LINE\_SEPARATOR.
+%   the lexical token NEWLINE to LINE\_BREAK (clarifying that it is not `\n`).
 %
 % Feb 2023
 % - Change the specification of constant expressions of the form `e1 == e2`
@@ -9191,8 +9191,8 @@ in which case no escapes or interpolations are recognized.
 \LMHash{}%
 Line breaks in a multiline string are represented by
 the \synt{LINE\_BREAK} production.
-A line break introduces a single newline (U+000A) character into
-the string value.
+A line break introduces a single newline character (U+000A)
+into the string value.
 
 \LMHash{}%
 It is a compile-time error if a non-raw string literal contains
