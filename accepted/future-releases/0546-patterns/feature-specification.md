@@ -2256,7 +2256,7 @@ appears:
 
 *   **Pattern-for-in statement**, **pattern-for-in element**, **pattern-for
     statement**, **pattern-for element**: Scoping follows the normal for and
-    for-in statement and elements scoping rules where the variable (now
+    for-in statement and element scoping rules where the variable (now
     variables) are bound in a new scope for each loop iteration. All pattern
     variables are in the same scope. They are considered initialized after the
     for loop initializer expression.
@@ -2471,10 +2471,10 @@ the matched value is an *always-exhaustive* type, defined as:
 
 All other types are not always-exhaustive. Then:
 
-*   It is a compile-time error if the cases in a switch statement or switch
-    collection element are not exhaustive and the static type of the matched
-    value is an always-exhaustive type. *There is no error if a switch statement
-    is not exhaustive when the type is not an always-exhaustive type.*
+*   It is a compile-time error if the cases in a switch statement are not
+    exhaustive and the static type of the matched value is an always-exhaustive
+    type. *There is no error if a switch statement is not exhaustive when the
+    type is not an always-exhaustive type.*
 
 *   It is a compile-time error if the cases in a switch expression are not
     exhaustive. *This is an error even if the matched value type is not an
@@ -2512,9 +2512,9 @@ encouraged to report a static warning when:
     a type that it can never be equal to, like matching a String against the
     constant pattern `3`.
 
-*   A case in a switch statement, collection element, or expression is
-    unreachable because all values it can match are also matched by preceding
-    cases. (The exhaustiveness algorithm can be used to determine this.)
+*   A case in a switch statement or expression is unreachable because all values
+    it can match are also matched by preceding cases. (The exhaustiveness
+    algorithm can be used to determine this.)
 
     *We make this a warning and not an error because it's harmless dead code.
     Also, in some cases the exhaustiveness analysis may not be very precise and
