@@ -602,7 +602,7 @@ rest element with no subpattern as a *non-matching rest element*.
 ### Map pattern
 
 ```
-mapPattern        ::= typeArguments? '{' mapPatternEntries? '}'
+mapPattern        ::= typeArguments? '{' mapPatternEntries '}'
 mapPatternEntries ::= mapPatternEntry ( ',' mapPatternEntry )* ','?
 mapPatternEntry   ::= expression ':' pattern
 ```
@@ -620,6 +620,9 @@ It is a compile-time error if:
     establish a const context. This allows us to potentially support non-const
     expressions in a future release without it being a breaking change, similar
     to default values in parameter lists.*
+
+*Note that `mapPatternEntries` is not optional, which means it is an error for
+a map pattern to be empty.*
 
 *Note that we don't require map keys to have primitive equality, to enable
 more flexibility in key types.*
