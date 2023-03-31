@@ -1,6 +1,7 @@
 # Augmentation Libraries
 
-Author: rnystrom@google.com, Version: 1.7 (see [Changelog](#Changelog) at end)
+Author: rnystrom@google.com, jakemac@google.com
+Version: 1.7 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
