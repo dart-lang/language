@@ -40,10 +40,12 @@ void benchmarks() {
     warmup = i < rounds;
 
     var baseline = bench("addEntries", maps, addEntries);
-    var entriesMap =
-        bench("iterate entries into map", maps, iterateEntriesIntoNewMap, baseline);
-    var keysMap = bench("iterate keys into map", maps, iterateKeysIntoNewMap, baseline);
-    var forEachMap = bench("forEach into map", maps, forEachIntoNewMap, baseline);
+    var entriesMap = bench(
+        "iterate entries into map", maps, iterateEntriesIntoNewMap, baseline);
+    var keysMap =
+        bench("iterate keys into map", maps, iterateKeysIntoNewMap, baseline);
+    var forEachMap =
+        bench("forEach into map", maps, forEachIntoNewMap, baseline);
 
     log();
 
@@ -87,7 +89,8 @@ List<Map<String, int>> makeMaps(List<int> sizes,
 }
 
 double bench(String label, List<Map<String, int>> maps,
-    void Function(Map<String, int>) action, [double baseline]) {
+    void Function(Map<String, int>) action,
+    [double? baseline]) {
   var watch = Stopwatch()..start();
   for (var i = 0; i < trials; i++) {
     for (var i = 0; i < maps.length; i++) {
@@ -101,12 +104,12 @@ double bench(String label, List<Map<String, int>> maps,
   return microPerTrial;
 }
 
-void log([String label, double microseconds, double baseline]) {
+void log([String? label, double? microseconds, double? baseline]) {
   if (warmup) return;
 
   if (microseconds != null) {
     var perMs = (1000 / microseconds).toStringAsFixed(2);
-    var output = "${label.padLeft(30)} ${perMs.padLeft(10)} spreads/ms";
+    var output = "${label!.padLeft(30)} ${perMs.padLeft(10)} spreads/ms";
     if (baseline != null) {
       var relative = baseline / microseconds;
       output += " ${relative.toStringAsFixed(2).padLeft(5)}x";
@@ -144,7 +147,7 @@ void iterateEntriesIntoNewMap(Map<String, int> from) {
 void iterateKeys(Map<String, int> from) {
   var sum = 0;
   for (var key in from.keys) {
-    sum += from[key];
+    sum += from[key]!;
   }
 
   preventOptimization(sum);
@@ -154,7 +157,7 @@ void iterateKeysIntoNewMap(Map<String, int> from) {
   var to = <String, int>{"a": 1, "b": 2};
 
   for (var key in from.keys) {
-    to[key] = from[key];
+    to[key] = from[key]!;
   }
 
   to["b"] = 3;
@@ -175,9 +178,9 @@ void forEach(Map<String, int> from) {
 void forEachIntoNewMap(Map<String, int> from) {
   var to = <String, int>{"a": 1, "b": 2};
 
-  var temp = to;
+  Map<String, int>? temp = to;
   from.forEach((key, value) {
-    temp[key] = value;
+    temp![key] = value;
   });
   temp = null;
 

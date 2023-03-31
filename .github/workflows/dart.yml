@@ -1,0 +1,46 @@
+name: Dart CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+env:
+  PUB_ENVIRONMENT: bot.github
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dart-lang/setup-dart@v1
+        with:
+            sdk: dev
+      - name: dart pub get (specification)
+        run: dart pub get
+        working-directory: specification
+      - name: dart pub get (working/macros/example)
+        run: dart pub get
+        working-directory: working/macros/example
+      - name: dart pub get (accepted/2.3/spread-collections/benchmarks)
+        run: dart pub get
+        working-directory: accepted/2.3/spread-collections/benchmarks
+      - name: dart pub get (accepted/future-releases/0546-patterns/exhaustiveness_prototype)
+        run: dart pub get
+        working-directory: accepted/future-releases/0546-patterns/exhaustiveness_prototype
+      - name: dart analyze --fatal-infos .
+        run: dart analyze --fatal-infos .
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dart-lang/setup-dart@v1
+        with:
+            sdk: dev
+      - name: dart pub get (accepted/future-releases/0546-patterns/exhaustiveness_prototype)
+        run: dart pub get
+        working-directory: accepted/future-releases/0546-patterns/exhaustiveness_prototype
+      - name: dart test (accepted/future-releases/0546-patterns/exhaustiveness_prototype)
+        run: dart test
+        working-directory: accepted/future-releases/0546-patterns/exhaustiveness_prototype

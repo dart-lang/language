@@ -1,21 +1,25 @@
-import"dart:collection";
+import "dart:collection";
+
 void copy1(Map<String, int> from, Map<String, int> to) {
   for (var entry in from.entries) {
     to[entry.key] = entry.value;
   }
 }
+
 void copy2(Map<String, int> from, Map<String, int> to) {
   for (var key in from.keys) {
-    to[key] = from[key];
+    to[key] = from[key]!;
   }
 }
+
 void copy3(Map<String, int> from, Map<String, int> to) {
-  var tmp = to;
+  Map<String, int>? tmp = to;
   from.forEach((key, value) {
-    tmp[key] = value;
+    tmp![key] = value;
   });
   tmp = null;
 }
+
 void copy4(Map<String, int> from, Map<String, int> to) {
   to.addAll(from);
 }
@@ -29,15 +33,17 @@ main() {
   }
 }
 
-int id(int x)=>x;
+int id(int x) => x;
 var maps = List.generate(100, (n) {
-  var map = Map<String, int>.fromIterable(Iterable.generate(n * 10), key: (n) =>"#$n");
+  var map = Map<String, int>.fromIterable(Iterable.generate(n * 10),
+      key: (n) => "#$n");
   if (n % 4 == 1) map = SplayTreeMap<String, int>.from(map);
   if (n % 4 == 2) map = HashMap<String, int>.from(map);
   return map;
 });
 
-void bench(String name, void Function(Map<String, int>, Map<String, int>) action) {
+void bench(
+    String name, void Function(Map<String, int>, Map<String, int>) action) {
   var e = 0;
   var c = 0;
   var sw = Stopwatch()..start();
@@ -49,5 +55,5 @@ void bench(String name, void Function(Map<String, int>, Map<String, int>) action
     }
     e = sw.elapsedMilliseconds;
   } while (e < 2000);
-  print("$name: ${c/e} entries/ms");
+  print("$name: ${c / e} entries/ms");
 }
