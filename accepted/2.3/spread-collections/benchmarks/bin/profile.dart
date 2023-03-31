@@ -249,8 +249,8 @@ void show(String collection, String method, double overhead, double baseline) {
 }
 
 double bestTime(String collection, String method) {
-  var runs = _runs["$collection $method"];
-  var min = runs!.first;
+  var runs = _runs["$collection $method"]!;
+  var min = runs.first;
   for (var i = 1; i < runs.length; i++) {
     if (runs[i] < min) min = runs[i];
   }
