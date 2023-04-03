@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.30 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.31 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -1344,23 +1344,19 @@ var x = switch (obj) {
 A similar ambiguity exists with function expressions in initializer lists, if
 the constructor happens to be a factory constructor with `=>` for its body. We
 resolve the ambiguity similarly here: Inside the `expression` part of a
-`guardedPattern`, a function literal is not allowed, unless it is enclosed in
-grouping operators (parentheses, square brackets, or curly braces). *Therefore,
-if `=>` is encountered after `when` in a guard, the `=>` is treated as the
-separator between the guard and case body.  In the above example, we take the
-first interpretation.*
+`guardedPattern` that is part of a `switchExpression`, a function literal is not
+allowed, unless it is enclosed in grouping operators (parentheses, square
+brackets, or curly braces). *Therefore, if `=>` is encountered after `when` in
+such a guard, the `=>` is treated as the separator between the guard and case
+body.  In the above example, we take the first interpretation.*
 
-This rule applies in all contexts where a guard can appear: switch statements,
-switch expressions, if-case statements, and if-case elements.  It also applies
-to all function expressions, whether their body is `=>` followed by an
-expression, or a block delimited by curly braces. *We could restrict this rule
-to guards only in switch expressions where the ambiguity arises, and to function
-literals using `=>`. But that leads to a syntactic restriction that is
-context-sensitive and harder to learn. Since the rule is unusual enough as it
-is, we apply it as consistently as possible. Note that the related restriction
-on constructor initializers applies regardless of whether the function literal
-uses `=>` or a block, even though generative constructors can't use `=>` for
-their body.*
+This rule applies to all function expressions, whether their body is `=>`
+followed by an expression, or a block delimited by curly braces. *We could
+restrict this rule to function literals using `=>`. But that leads to a
+syntactic restriction that is harder to implement. Note that the related
+restriction on constructor initializers applies regardless of whether the
+function literal uses `=>` or a block, even though generative constructors can't
+use `=>` for their body.*
 
 *The rule is applied unconditionally even if the code after `=>` is not a valid
 body expression, as in:*
@@ -3507,6 +3503,12 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.31
+
+-   Change the technique for resolving the "function expression in guard
+    ambiguity" to match what was implemented (function literals are only
+    prohibited in guards inside switch expressions).
 
 ### 2.30
 
