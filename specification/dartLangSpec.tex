@@ -35,6 +35,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Mar 2023
+% - Clarify how line breaks are handled in a multi-line string literal. Rename
+%   the lexical token NEWLINE to LINE\_BREAK (clarifying that it is not `\n`).
+%
 % Feb 2023
 % - Change the specification of constant expressions of the form `e1 == e2`
 %   to use primitive equality.
@@ -9166,6 +9170,9 @@ The escapes are:
   It is a compile-time error if the value of the
   \syntax{<HEX\_DIGIT\_SEQUENCE>}
   is not a valid Unicode code point.
+  \commentary{For example,}
+  {\color{commentaryColor}{\syntax{`\\u{0A}'}}\color{normativeColor}}
+  \commentary{is the code point U+000A.}
 \item
   \lit{\$} indicating the beginning of an interpolated expression.
 \item
@@ -9183,8 +9190,9 @@ in which case no escapes or interpolations are recognized.
 
 \LMHash{}%
 Line breaks in a multiline string are represented by
-the \synt{NEWLINE} production.
-A line break introduces a single newline character into the string value.
+the \synt{LINE\_BREAK} production.
+A line break introduces a single newline character (U+000A)
+into the string value.
 
 \LMHash{}%
 It is a compile-time error if a non-raw string literal contains
@@ -9196,9 +9204,9 @@ either a sequence of four hexadecimal digits,
 or by curly brace delimited sequence of hexadecimal digits.
 
 \begin{grammar}
-<NEWLINE> ::= `\\n'
-  \alt `\\r'
+<LINE\_BREAK> ::= `\\n'
   \alt `\\r\\n'
+  \alt `\\r'
 \end{grammar}
 
 \LMHash{}%
@@ -16727,7 +16735,7 @@ than it is to any single one of those grammar rules where it is used.%
 
 <DIGIT> ::= `0' .. `9'
 
-<WHITESPACE> ::= (`\\t' | ` ' | <NEWLINE>)+
+<WHITESPACE> ::= (`\\t' | ` ' | <LINE\_BREAK>)+
 \end{grammar}
 
 \LMHash{}%
@@ -19000,7 +19008,7 @@ The members of a library $L$ are those top level declarations given within $L$.
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
   \gnewline{} (<metadata> <topLevelDeclaration>)* <EOF>
 
-<scriptTag> ::= `#!' (\gtilde<NEWLINE>)* <NEWLINE>
+<scriptTag> ::= `#!' (\gtilde(`\\r' | `\\n'))* <LINE\_BREAK>
 
 <libraryName> ::= <metadata> \LIBRARY{} <dottedIdentifierList> `;'
 
@@ -22423,7 +22431,8 @@ derive any reserved words, and they do not derive any built-in identifiers.
 are sections of program text that are used for documentation.
 
 \begin{grammar}
-<SINGLE\_LINE\_COMMENT> ::= `//' \gtilde(<NEWLINE>)* (<NEWLINE>)?
+<SINGLE\_LINE\_COMMENT> ::= \gnewline{}
+  `//' \gtilde(<LINE\_BREAK>)* (<LINE\_BREAK>)?
 
 <MULTI\_LINE\_COMMENT> ::= \gnewline{}
   `/*' (<MULTI\_LINE\_COMMENT> | \gtilde{} `*/')* `*/'
