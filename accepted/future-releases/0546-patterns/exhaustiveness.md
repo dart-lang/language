@@ -565,12 +565,10 @@ The lifted space union for a pattern with matched value type `M` is:
 
 *   **Map pattern:**
 
-    1.  A space whose type is the type of the pattern and with an arity
-        restriction whose length is the number of non-rest elements and whose
-        `hasRest` is `true` if there is a rest element. The space's properties
+    1.  A space whose type is the type of the pattern. The space's properties
         are:
 
-    2.  For each non-rest entry in the pattern:
+    2.  For each entry in the pattern:
 
         1.  A property with element key `k` where `k` is the entry's key
             constant whose subspace is the lifted space union of the
