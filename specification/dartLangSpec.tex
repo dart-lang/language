@@ -9205,8 +9205,8 @@ or by curly brace delimited sequence of hexadecimal digits.
 
 \begin{grammar}
 <LINE\_BREAK> ::= `\\n'
-  \alt `\\r'
   \alt `\\r\\n'
+  \alt `\\r'
 \end{grammar}
 
 \LMHash{}%
@@ -19008,7 +19008,7 @@ The members of a library $L$ are those top level declarations given within $L$.
   <scriptTag>? <libraryName>? <importOrExport>* <partDirective>*
   \gnewline{} (<metadata> <topLevelDeclaration>)* <EOF>
 
-<scriptTag> ::= `#!' (\gtilde<LINE\_BREAK>)* <LINE\_BREAK>
+<scriptTag> ::= `#!' (\gtilde(`\\r' | `\\n'))* <LINE\_BREAK>
 
 <libraryName> ::= <metadata> \LIBRARY{} <dottedIdentifierList> `;'
 
