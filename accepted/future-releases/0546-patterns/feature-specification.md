@@ -2303,6 +2303,17 @@ appears:
     assign to the variable introduced by an initializing formal inside the
     initializer list.*
 
+    *It's still possible for a user to observe that a guard sees a different
+    variable than the body if the guard closes over its variable and the body
+    assigns to the body's variable. Preventing that by disallowing capturing a
+    pattern variable in a guard would get in the way of common use cases like
+    calling `Iterable.where()` or `Iterable.any()` in a guard. Preventing it by
+    disallowing assignment in the body would be confusing for a variable that
+    isn't declared `final` and might usefully be assigned. Instead, we minimize
+    the chances of a user seeing that the guard has its own variable by
+    disallowing assignment and accept that in rare cases, a user may still
+    observe that the guard sees a different variable.*
+
     If the body of a switch statement or expression is reached through only a
     single case, then it is executed in a new scope whose enclosing scope is the
     case scope of that case. Otherwise, the body is executed in a new scope
