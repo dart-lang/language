@@ -5,7 +5,7 @@ Owner: eernst@google.com ([@eernstg](https://github.com/lrhn/) on GitHub)
 Relevant links:
 
 * [Tracking issue](https://github.com/dart-lang/sdk/issues/42560)
-* [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/abstract-external-fields/feature-specification.md)
+* [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/2.12/abstract-external-fields/feature-specification.md)
 
 ## Phase 0 (Preliminary steps)
 

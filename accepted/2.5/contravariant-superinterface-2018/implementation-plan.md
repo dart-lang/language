@@ -2,7 +2,7 @@
 
 Relevant documents:
  - [Tracking issue](https://github.com/dart-lang/language/issues/113)
- - [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/contravariant-superinterface-2018/feature-specification.md)
+ - [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/2.5/contravariant-superinterface-2018/feature-specification.md)
 
 
 ## Implementation and Release plan

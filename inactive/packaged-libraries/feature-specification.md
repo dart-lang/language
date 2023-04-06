@@ -47,8 +47,8 @@ know what language version any given library uses. We build on that support to
 formally define a package:
 
 [pub package manager]: https://dart.dev/tools/pub/cmd
-[language versioning]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/language-versioning/feature-specification.md
-[package config file]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/language-versioning/package-config-file-v2.md
+[language versioning]: https://github.com/dart-lang/language/blob/master/accepted/2.8/language-versioning/feature-specification.md
+[package config file]: https://github.com/dart-lang/language/blob/master/accepted/2.8/language-versioning/package-config-file-v2.md
 
 A **package** is a named collection of libraries. Every library belongs to one
 and only one package. The package that contains a given library is:
