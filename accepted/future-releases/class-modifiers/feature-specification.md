@@ -766,7 +766,6 @@ It's a compile-time error if:
     class C1 implements B {} // Error.
 
     base mixin BM {}
-    final mixin FM {}
 
     mixin M0 implements B {} // Error
     mixin M1 on B {} // Error
