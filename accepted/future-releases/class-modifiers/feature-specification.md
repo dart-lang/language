@@ -680,16 +680,16 @@ It's a compile-time error if:
     class M with S {} // Error, for several reasons.
     ```
 
-*   A class extends or mixes in a declaration marked `interface` or `final`
-    from another library _(with some exceptions for platform libraries)_.
+*   A class extends a declaration marked `interface` or `final` from
+    another library _(with some exceptions for platform libraries)_.
 
     _(You cannot inherit implementation from a class marked `interface`
     or `final` except inside the same library. Unless you are in a
     pre-feature library and you are inheriting from a platform library.)_
 
     More formally:
-    A declaration *C* from library *L* has a declared superclass or mixin
-    declaration *S* marked `interface` or `final` from library *K*, and neither
+    A declaration *C* from library *L* has a declared superclass declaration
+    *S* marked `interface` or `final` from library *K*, and neither
     * *L* and *K* is the same library, nor
     * *K* is a platform library and *L* is a pre-feature library.
 
