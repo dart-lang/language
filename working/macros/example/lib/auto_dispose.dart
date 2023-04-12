@@ -15,21 +15,21 @@ macro class AutoDispose implements ClassDeclarationsMacro, ClassDefinitionMacro 
 
   @override
   void buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
+      IntrospectableClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     var methods = await builder.methodsOf(clazz);
     if (methods.any((d) => d.identifier.name == 'dispose')) {
       // Don't need to add the dispose method, it already exists.
       return;
     }
 
-    builder.declareInClass(DeclarationCode.fromParts([
+    builder.declareInType(DeclarationCode.fromParts([
       'external void dispose();',
     ]));
   }
 
   @override
   Future<void> buildDefinitionForClass(
-      ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
+      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     var disposableIdentifier =
         // ignore: deprecated_member_use
         await builder.resolveIdentifier(

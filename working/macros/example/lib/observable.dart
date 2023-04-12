@@ -12,7 +12,7 @@ macro class Observable implements FieldDeclarationsMacro {
 
   @override
   Future<void> buildDeclarationsForField(
-      FieldDeclaration field, ClassMemberDeclarationBuilder builder) async {
+      FieldDeclaration field, MemberDeclarationBuilder builder) async {
     final name = field.identifier.name;
     if (!name.startsWith('_')) {
       throw ArgumentError(
@@ -23,7 +23,7 @@ macro class Observable implements FieldDeclarationsMacro {
     var publicName = name.substring(1);
     var getter = DeclarationCode.fromParts(
         [field.type.code, ' get $publicName => ', field.identifier, ';']);
-    builder.declareInClass(getter);
+    builder.declareInType(getter);
 
     var print =
             // ignore: deprecated_member_use
@@ -37,6 +37,6 @@ macro class Observable implements FieldDeclarationsMacro {
       field.identifier,
       ' = val;\n}',
     ]);
-    builder.declareInClass(setter);
+    builder.declareInType(setter);
   }
 }

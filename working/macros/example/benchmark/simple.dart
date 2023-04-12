@@ -117,9 +117,9 @@ Host app mode: $hostMode
       macroExecutionStrategy == 'aot' ? 'exe' : 'jit-snapshot',
       '--packages=.dart_tool/package_config.json',
       '--enable-experiment=macros',
-      bootstrapFile.uri.toFilePath(),
       '-o',
       kernelOutputFile.uri.toFilePath(),
+      bootstrapFile.uri.toFilePath(),
     ]);
 
     if (buildSnapshotResult.exitCode != 0) {
@@ -150,31 +150,34 @@ Host app mode: $hostMode
     for (var i = 1; i <= 111; i++) {
       var _shouldLog = i == 1 || i == 11 || i == 111;
       if (_shouldLog) _log('Running DataClass macro for the ${i}th time');
-      if (instanceId.shouldExecute(DeclarationKind.clazz, Phase.types)) {
+      if (instanceId.shouldExecute(DeclarationKind.classType, Phase.types)) {
         if (_shouldLog) _log('Running types phase');
         var result = await executor.executeTypesPhase(
             instanceId, myClass, SimpleIdentifierResolver());
         if (i == 1) results.add(result);
       }
-      if (instanceId.shouldExecute(DeclarationKind.clazz, Phase.declarations)) {
+      if (instanceId.shouldExecute(
+          DeclarationKind.classType, Phase.declarations)) {
         if (_shouldLog) _log('Running declarations phase');
         var result = await executor.executeDeclarationsPhase(
             instanceId,
             myClass,
             SimpleIdentifierResolver(),
+            SimpleTypeDeclarationResolver(),
             SimpleTypeResolver(),
-            SimpleClassIntrospector());
+            SimpleTypeIntrospector());
         if (i == 1) results.add(result);
       }
-      if (instanceId.shouldExecute(DeclarationKind.clazz, Phase.definitions)) {
+      if (instanceId.shouldExecute(
+          DeclarationKind.classType, Phase.definitions)) {
         if (_shouldLog) _log('Running definitions phase');
         var result = await executor.executeDefinitionsPhase(
             instanceId,
             myClass,
             SimpleIdentifierResolver(),
+            SimpleTypeDeclarationResolver(),
             SimpleTypeResolver(),
-            SimpleClassIntrospector(),
-            FakeTypeDeclarationResolver(),
+            SimpleTypeIntrospector(),
             FakeTypeInferrer());
         if (i == 1) results.add(result);
       }
@@ -189,7 +192,11 @@ Host app mode: $hostMode
     var first111RunsEnd = _watch.elapsed;
 
     _log('Building augmentation library');
-    var library = executor.buildAugmentationLibrary(results, (identifier) {
+    var library = executor.buildAugmentationLibrary(
+        results,
+        (identifier) => identifier == myClass.identifier
+            ? myClass
+            : throw UnsupportedError('Can only resolve myClass'), (identifier) {
       if (['bool', 'Object', 'String', 'int'].contains(identifier.name)) {
         return ResolvedIdentifier(
             kind: IdentifierKind.topLevelMember,
@@ -251,24 +258,34 @@ final stringType = NamedTypeAnnotationImpl(
     isNullable: false,
     typeArguments: const []);
 
-final objectClass = ClassDeclarationImpl(
+final objectClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: objectIdentifier,
     interfaces: [],
-    isAbstract: false,
-    isExternal: false,
+    hasAbstract: false,
+    hasBase: false,
+    hasExternal: false,
+    hasFinal: false,
+    hasInterface: false,
+    hasMixin: false,
+    hasSealed: false,
     mixins: [],
     superclass: null,
     typeParameters: []);
 
 final myClassIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'MyClass');
-final myClass = ClassDeclarationImpl(
+final myClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: myClassIdentifier,
     interfaces: [],
-    isAbstract: false,
-    isExternal: false,
+    hasAbstract: false,
+    hasBase: false,
+    hasExternal: false,
+    hasFinal: false,
+    hasInterface: false,
+    hasMixin: false,
+    hasSealed: false,
     mixins: [],
     superclass: NamedTypeAnnotationImpl(
       id: RemoteInstance.uniqueId,
@@ -280,7 +297,7 @@ final myClass = ClassDeclarationImpl(
 
 final myClassFields = [
   FieldDeclarationImpl(
-      definingClass: myClassIdentifier,
+      definingType: myClassIdentifier,
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myString'),
       isExternal: false,
@@ -289,7 +306,7 @@ final myClassFields = [
       isStatic: false,
       type: stringType),
   FieldDeclarationImpl(
-      definingClass: myClassIdentifier,
+      definingType: myClassIdentifier,
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myBool'),
       isExternal: false,
@@ -301,7 +318,7 @@ final myClassFields = [
 
 final myClassMethods = [
   MethodDeclarationImpl(
-    definingClass: myClassIdentifier,
+    definingType: myClassIdentifier,
     id: RemoteInstance.uniqueId,
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '=='),
     isAbstract: false,
@@ -328,7 +345,7 @@ final myClassMethods = [
     typeParameters: [],
   ),
   MethodDeclarationImpl(
-    definingClass: myClassIdentifier,
+    definingType: myClassIdentifier,
     id: RemoteInstance.uniqueId,
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'hashCode'),
     isAbstract: false,
@@ -343,7 +360,7 @@ final myClassMethods = [
     typeParameters: [],
   ),
   MethodDeclarationImpl(
-    definingClass: myClassIdentifier,
+    definingType: myClassIdentifier,
     id: RemoteInstance.uniqueId,
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'toString'),
     isAbstract: false,
@@ -366,26 +383,24 @@ abstract class Fake {
 }
 
 /// Returns data as if everything was [myClass].
-class SimpleClassIntrospector extends Fake implements ClassIntrospector {
+class SimpleTypeIntrospector implements TypeIntrospector {
   @override
   Future<List<ConstructorDeclaration>> constructorsOf(
-          covariant ClassDeclaration clazz) async =>
+          IntrospectableType type) async =>
       [];
 
   @override
-  Future<List<FieldDeclaration>> fieldsOf(
-          covariant ClassDeclaration clazz) async =>
-      clazz == myClass ? myClassFields : [];
+  Future<List<FieldDeclaration>> fieldsOf(IntrospectableType type) async =>
+      type == myClass ? myClassFields : [];
 
   @override
-  Future<List<MethodDeclaration>> methodsOf(
-          covariant ClassDeclaration clazz) async =>
-      clazz == myClass ? myClassMethods : [];
+  Future<List<MethodDeclaration>> methodsOf(IntrospectableType type) async =>
+      type == myClass ? myClassMethods : [];
 
   @override
-  Future<ClassDeclaration?> superclassOf(
-          covariant ClassDeclaration clazz) async =>
-      clazz == myClass ? objectClass : null;
+  Future<List<EnumValueDeclaration>> valuesOf(
+          IntrospectableEnumDeclaration type) async =>
+      [];
 }
 
 /// This is a very basic identifier resolver, it does no actual resolution.
@@ -396,8 +411,18 @@ class SimpleIdentifierResolver implements IdentifierResolver {
       IdentifierImpl(id: RemoteInstance.uniqueId, name: name);
 }
 
-class FakeTypeDeclarationResolver extends Fake
-    implements TypeDeclarationResolver {}
+class SimpleTypeDeclarationResolver implements TypeDeclarationResolver {
+  @override
+  Future<TypeDeclaration> declarationOf(covariant Identifier identifier) async {
+    if (identifier == myClass.identifier) {
+      return myClass;
+    } else if (identifier == objectClass.identifier) {
+      return objectClass;
+    } else {
+      throw UnsupportedError('Could not resolve identifier ${identifier.name}');
+    }
+  }
+}
 
 class FakeTypeInferrer extends Fake implements TypeInferrer {}
 
