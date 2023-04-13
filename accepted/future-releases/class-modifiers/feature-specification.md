@@ -657,6 +657,13 @@ we can specify the restrictions imposed by modifiers._
 
 ### Basic restrictions
 
+With respect to compile-time errors caused by missing required class
+modifiers, every `enum` declaration is considered to have the modifier
+`final`. *An enum declaration is always subject to restrictions which are
+at least as strong as the restrictions implied by that modifier. This
+ensures that we can specify those errors without mentioning an exception
+for enum declarations in every rule.*
+
 It's a compile-time error if:
 
 *   A declaration depends directly on a `sealed` declaration from another
