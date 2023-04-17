@@ -172,16 +172,225 @@ class Provides implements MethodDeclarationsMacro {
   }
 }
 
-class Component implements ClassDefinitionMacro {
+class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
   final List<Identifier> modules;
 
   const Component({required this.modules});
 
   @override
+  FutureOr<void> buildDeclarationsForClass(
+      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
+    final providerIdentifier = await builder.resolveIdentifier(
+        Uri.parse('package:macro_proposal/injectable.dart'), 'Provider');
+    final methods = await builder.methodsOf(clazz);
+    final fieldNames = <String>[];
+    for (final method in methods) {
+      // We are filling in just the external methods.
+      if (!method.isExternal) continue;
+
+      // We use the method name because it is always a valid field name.
+      final fieldName = '_${method.identifier.name}Provider;';
+      fieldNames.add(fieldName);
+      // Add a field for the provider of each returned type.
+      builder.declareInClass(DeclarationCode.fromParts([
+        'final ',
+        NamedTypeAnnotationCode(
+            name: providerIdentifier, typeArguments: [method.returnType.code]),
+        fieldName,
+      ]));
+    }
+
+    // Add a private constructor to initialize all the fields from the higher
+    // level providers.
+    builder.declareInClass(DeclarationCode.fromParts([
+      clazz.identifier,
+      '._(',
+      for (final field in fieldNames) 'this.$field, ',
+      ');',
+    ]));
+
+    // Declare a public factory constructor which we will fill in later, this
+    // takes all the specified modules as arguments.
+    builder.declareInClass(new DeclarationCode.fromParts([
+      'external factory ',
+      clazz.identifier,
+      '(',
+      for (final module in modules) ...[
+        module,
+        ' ${module.name}, ',
+      ],
+      ')',
+    ]));
+  }
+
+  @override
   FutureOr<void> buildDefinitionForClass(
       ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
-    // TODO: implement buildDefinitionForClass
-    throw UnimplementedError();
+    final providerIdentifier = await builder.resolveIdentifier(
+        Uri.parse('package:macro_proposal/injectable.dart'), 'Provider');
+    final methods = await builder.methodsOf(clazz);
+    final fields = await builder.fieldsOf(clazz);
+
+    // For each external method, find the field we declared in the last step,
+    // and fill in the body of the method to just invoke it.
+    for (final method in methods) {
+      if (!method.isExternal) continue;
+      final methodBuilder = await builder.buildMethod(method.identifier);
+      final field = fields.firstWhere((field) =>
+          field.identifier.name == '_${method.identifier.name}Provider');
+      if (!await (await builder.resolve(field.type.code)).isExactly(
+          await builder.resolve(NamedTypeAnnotationCode(
+              name: providerIdentifier,
+              typeArguments: [method.returnType.code])))) {
+        throw ArgumentError(
+            'Expected the field ${field.identifier.name} to be a Provider<${method.returnType.code}>');
+      }
+      methodBuilder.augment(FunctionBodyCode.fromParts([
+        ' => ',
+        field.identifier,
+        '()',
+      ]));
+    }
+
+    // Lastly, fill in the external factory constructor we declared earlier.
+    final constructors = await builder.constructorsOf(clazz);
+    final factoryConstructor = constructors.singleWhere((constructor) =>
+        constructor.isFactory &&
+        constructor.isExternal &&
+        constructor.identifier.name == '');
+    final constructorBuilder =
+        await builder.buildConstructor(factoryConstructor.identifier);
+    final parts = <Object>[
+      '{',
+    ];
+
+    /// For each parameter to the factory, we add a map from the type provided
+    /// to the providerProvider method.
+    final providerProviderMethods = <Identifier, MethodDeclaration>{};
+
+    /// For each providerProvider, the parameter that it came from.
+    final providerProviderParameters = <MethodDeclaration, Identifier>{};
+    for (final module in modules) {
+      final moduleClass =
+          await builder.declarationOf(module) as ClassDeclaration;
+      for (final method in await builder.methodsOf(moduleClass)) {
+        final returnType = method.returnType;
+        if (returnType is! NamedTypeAnnotation) continue;
+        if (returnType.identifier != providerIdentifier) continue;
+        providerProviderMethods[
+            (returnType.typeArguments.single as NamedTypeAnnotation)
+                .identifier] = method;
+      }
+    }
+
+    // Map of Type identifiers to local variable names for zero argument
+    // provider methods.
+    final localProviders = <Identifier, String>{};
+    final arguments = await _satisfyParameters(
+        factoryConstructor,
+        builder,
+        localProviders,
+        providerIdentifier,
+        providerProviderMethods,
+        providerProviderParameters,
+        parts);
+    parts.addAll([
+      'return ',
+      factoryConstructor,
+      '($arguments);}',
+    ]);
+    constructorBuilder.augment(body: FunctionBodyCode.fromParts(parts));
+  }
+
+  // TODO: Identify cycles and fail nicely.
+  // TODO: Support generics for provided types.
+  Future<String> _satisfyParameters(
+      MethodDeclaration method,
+      ClassDefinitionBuilder builder,
+      Map<Identifier, String> localProviders,
+      Identifier providerIdentifier,
+      Map<Identifier, MethodDeclaration> providerProviderMethods,
+      Map<MethodDeclaration, Identifier> providerProviderParameters,
+      List<Object> codeParts) async {
+    final args = StringBuffer();
+    if (method.namedParameters.isNotEmpty) {
+      throw StateError('Only positional parameters are supported');
+    }
+    for (final param in method.positionalParameters) {
+      final paramType = param.type;
+      if (paramType is! NamedTypeAnnotation ||
+          paramType.identifier != providerIdentifier) {
+        throw ArgumentError('All arguments should be providers');
+      }
+      final providedType =
+          paramType.typeArguments.single as NamedTypeAnnotation;
+      final argument = await _provideType(
+          providedType.identifier,
+          builder,
+          localProviders,
+          providerIdentifier,
+          providerProviderMethods,
+          providerProviderParameters,
+          codeParts);
+      args.write('$argument, ');
+    }
+    return args.toString();
+  }
+
+  Future<String> _provideType(
+      Identifier type,
+      ClassDefinitionBuilder builder,
+      Map<Identifier, String> localProviders,
+      Identifier providerIdentifier,
+      Map<Identifier, MethodDeclaration> providerProviderMethods,
+      Map<MethodDeclaration, Identifier> providerProviderParameters,
+      List<Object> codeParts) async {
+    // If we have a local provider, just invoke it.
+    if (localProviders.containsKey(type)) return '${localProviders[type]}()';
+
+    var providerProvider = providerProviderMethods[type];
+    if (providerProvider == null) {
+      // If we have no explicit provider from any module, check if the type is
+      // injectable.
+      final clazz = await builder.declarationOf(type);
+      if (clazz is! ClassDeclaration) {
+        throw UnsupportedError('Only classes are automatically injectable.');
+      }
+      for (final method in await builder.methodsOf(clazz)) {
+        if (!method.isStatic) continue;
+        final returnType = method.returnType;
+        if (returnType is! NamedTypeAnnotation) continue;
+        if (returnType.identifier != providerIdentifier) continue;
+        if (returnType.typeArguments.single != type) continue;
+        providerProvider = method;
+        break;
+      }
+    }
+    if (providerProvider == null) {
+      throw StateError('No provider for type ${type.name}');
+    }
+
+    final arguments = await _satisfyParameters(
+        providerProvider,
+        builder,
+        localProviders,
+        providerIdentifier,
+        providerProviderMethods,
+        providerProviderParameters,
+        codeParts);
+    final name = '${type.name}Provider';
+    codeParts.addAll([
+      'final $name = ',
+      // If it isn't a static method, it must be coming from a parameter.
+      if (!providerProvider.isStatic) ...[
+        providerProviderParameters[providerProvider]!,
+        '.'
+      ],
+      providerProvider.identifier,
+      '($arguments);',
+    ]);
+    localProviders[type] = name;
+    return name;
   }
 }
 
