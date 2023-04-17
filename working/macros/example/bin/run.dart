@@ -9,7 +9,10 @@ import 'package:_fe_analyzer_shared/src/macros/bootstrap.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor/serialization.dart';
 import 'package:frontend_server/compute_kernel.dart';
 
-void main() async {
+void main(List<String> args) async {
+  var scriptUri = Uri.base
+      .resolve(args.isEmpty ? 'bin/user_main.dart' : args.single)
+      .toFilePath();
   watch.start();
   var dartToolDir = Directory('.dart_tool/macro_proposal')
     ..createSync(recursive: true);
@@ -21,6 +24,7 @@ void main() async {
   var autoDisposableUri = Uri.parse('package:macro_proposal/auto_dispose.dart');
   var jsonSerializableUri =
       Uri.parse('package:macro_proposal/json_serializable.dart');
+  var injectableUri = Uri.parse('package:macro_proposal/injectable.dart');
   var bootstrapContent = bootstrapMacroIsolate({
     dataClassUri.toString(): {
       'AutoConstructor': [''],
@@ -37,6 +41,11 @@ void main() async {
     },
     jsonSerializableUri.toString(): {
       'JsonSerializable': [''],
+    },
+    injectableUri.toString(): {
+      'Component': [''],
+      'Injectable': [''],
+      'Provides': [''],
     }
   }, SerializationMode.byteDataClient);
   bootstrapFile.writeAsStringSync(bootstrapContent);
@@ -63,6 +72,7 @@ void main() async {
     '--source=${bootstrapFile.path}',
     '--source=lib/auto_dispose.dart',
     '--source=lib/data_class.dart',
+    '--source=lib/injectable.dart',
     '--source=lib/json_serializable.dart',
     '--source=lib/observable.dart',
     for (var source in await _allSources(feAnalyzerSharedRoot.path))
@@ -89,7 +99,7 @@ void main() async {
     '--output',
     output.path,
     '--source',
-    Uri.base.resolve('bin/user_main.dart').toFilePath(),
+    scriptUri,
     '--packages-file=.dart_tool/package_config.json',
     '--enable-experiment=macros',
     '--precompiled-macro-format=kernel',
@@ -101,6 +111,8 @@ void main() async {
     '$autoDisposableUri;${bootstrapKernelFile.path}',
     '--precompiled-macro',
     '$jsonSerializableUri;${bootstrapKernelFile.path}',
+    '--precompiled-macro',
+    '$injectableUri;${bootstrapKernelFile.path}',
     '--macro-serialization-mode=bytedata',
     '--input-linked',
     bootstrapKernelFile.path,

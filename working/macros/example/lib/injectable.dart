@@ -11,86 +11,10 @@ import 'package:_fe_analyzer_shared/src/macros/api.dart';
 /// of the desired type when invoked.
 typedef Provider<T> = T Function();
 
-abstract class Heater {}
-
-@Injectable()
-class ElectricHeater implements Heater {
-  /// Generated, could be a separate class, extension etc
-  static Provider<ElectricHeater> provider() => ElectricHeater.new;
-}
-
-abstract class Pump {}
-
-@Injectable()
-class Thermosiphon implements Pump {
-  final Heater heater;
-
-  Thermosiphon(this.heater);
-
-  /// Generated, could be a separate class, extension etc
-  static Provider<Thermosiphon> provider(Provider<Heater> provideHeater) =>
-      () => Thermosiphon(provideHeater());
-}
-
-@Injectable()
-class CoffeeMaker {
-  final Heater heater;
-  final Pump pump;
-
-  CoffeeMaker(this.heater, this.pump);
-
-  /// Generated, could be a separate class, extension etc
-  static Provider<CoffeeMaker> provider(
-          Provider<Heater> provideHeater, Provider<Pump> providePump) =>
-      () => CoffeeMaker(provideHeater(), providePump());
-}
-
-class DripCoffeeModule {
-  @Provides()
-  Heater provideHeater(ElectricHeater impl) => impl;
-  @Provides()
-  Pump providePump(Thermosiphon impl) => impl;
-
-  /// Generated, could be in a different class, extension, etc.
-  Provider<Heater> provideHeaterProvider(
-          Provider<ElectricHeater> provideElectricHeater) =>
-      () => provideHeater(provideElectricHeater());
-
-  Provider<Pump> providePumpProvider(
-          Provider<Thermosiphon> provideThermosiphon) =>
-      () => providePump(provideThermosiphon());
-}
-
-@Component(modules: [DripCoffeeModule])
-class DripCoffeeComponent {
-  external CoffeeMaker coffeeMaker();
-
-  /// Generated
-  final Provider<CoffeeMaker> _coffeeMakerProvider;
-
-  DripCoffeeComponent._(this._coffeeMakerProvider);
-
-  // The body of this has been filled in
-  CoffeeMaker coffeeMaker() => _coffeeMakerProvider();
-
-  factory DripCoffeeComponent(DripCoffeeModule dripCoffeeModule) {
-    final electricHeaterProvider = ElectricHeater.provider();
-    final heaterProvider =
-        dripCoffeeModule.provideHeaterProvider(electricHeaterProvider);
-    final thermosiphonProvider = Thermosiphon.provider(heaterProvider);
-    final pumpProvider =
-        dripCoffeeModule.providePumpProvider(thermosiphonProvider);
-    final coffeeMakerProvider =
-        CoffeeMaker.provider(heaterProvider, pumpProvider);
-
-    return DripCoffeeComponent._(coffeeMakerProvider);
-  }
-}
-
 /// Adds a static `provider` method, which is a factory for a Provider<T> where
 /// T is the annotated class. It will take a Provider<T> parameter corresponding
 /// to each argument of the constructor (there must be exactly one constructor).
-class Injectable implements ClassDeclarationsMacro {
+macro class Injectable implements ClassDeclarationsMacro {
   const Injectable();
 
   @override
@@ -128,17 +52,20 @@ class Injectable implements ClassDeclarationsMacro {
 
     parts.addAll([
       ') => () => ',
-      constructor.identifier,
+      // TODO: Remove once augmentaiton libraries are fixed for unnamed
+      // constructors.
+      constructor.identifier.name.isEmpty ?
+          clazz.identifier : constructor.identifier,
       '(',
       for (final parameter in allParameters) '${parameter.identifier.name}(), ',
-      ')',
+      ');',
     ]);
 
     builder.declareInClass(DeclarationCode.fromParts(parts));
   }
 }
 
-class Provides implements MethodDeclarationsMacro {
+macro class Provides implements MethodDeclarationsMacro {
   const Provides();
 
   @override
@@ -172,7 +99,7 @@ class Provides implements MethodDeclarationsMacro {
   }
 }
 
-class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
   final List<Identifier> modules;
 
   const Component({required this.modules});
@@ -209,18 +136,21 @@ class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
       ');',
     ]));
 
-    // Declare a public factory constructor which we will fill in later, this
-    // takes all the specified modules as arguments.
-    builder.declareInClass(new DeclarationCode.fromParts([
-      'external factory ',
-      clazz.identifier,
-      '(',
-      for (final module in modules) ...[
-        module,
-        ' ${module.name}, ',
-      ],
-      ')',
-    ]));
+    // TODO: Always do this, once the impls support macro arguments
+    if (modules.isNotEmpty) {
+      // Declare a public factory constructor which we will fill in later, this
+      // takes all the specified modules as arguments.
+      builder.declareInClass(new DeclarationCode.fromParts([
+        'external factory ',
+        clazz.identifier,
+        '(',
+        for (final module in modules) ...[
+          module,
+          ' ${module.name}, ',
+        ],
+        ')',
+      ]));
+    }
   }
 
   @override
@@ -270,7 +200,9 @@ class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
 
     /// For each providerProvider, the parameter that it came from.
     final providerProviderParameters = <MethodDeclaration, Identifier>{};
-    for (final module in modules) {
+    for (final param in factoryConstructor.positionalParameters
+        .followedBy(factoryConstructor.namedParameters)) {
+      final module = (param.type as NamedTypeAnnotation).identifier;
       final moduleClass =
           await builder.declarationOf(module) as ClassDeclaration;
       for (final method in await builder.methodsOf(moduleClass)) {
@@ -280,6 +212,7 @@ class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
         providerProviderMethods[
             (returnType.typeArguments.single as NamedTypeAnnotation)
                 .identifier] = method;
+        providerProviderParameters[method] = param.identifier;
       }
     }
 
@@ -384,7 +317,7 @@ class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
       // If it isn't a static method, it must be coming from a parameter.
       if (!providerProvider.isStatic) ...[
         providerProviderParameters[providerProvider]!,
-        '.'
+        '.',
       ],
       providerProvider.identifier,
       '($arguments);',
