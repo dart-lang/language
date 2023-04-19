@@ -13734,7 +13734,7 @@ and let $C$ be the context type of $i$.
 The context type of $e_2$ is then determined as follows:
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}, then:
 \begin{itemize}
-  \item{} If $\code{int}\,\,<:\,\,C$ and not $\code{num}\,\,<:\,\,C$,
+  \item{} If \SubtypeNE{\code{int}}{C} and not \SubtypeNE{\code{num}}{C},
       and $T\,\,<:\,\,\code{int}$
       then the context type of $e_2$ is \code{int}.
   \item{} If $\code{double}\,\,<:\,\,C$ and not $\code{num}\,\,<:\,\,C$,
