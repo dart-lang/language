@@ -13724,7 +13724,7 @@ as specified in Section~\ref{bindingActualsToFormals},
 considering $F$ to be the static type of the function to call,
 and the static type of $i$ is as specified there,
 except that invocations of methods named \code{remainder}
-or \code{clamp} on non-\code{Never} subtypes of \code{num}
+or \code{clamp} on subtypes of \code{num} that are not subtypes of \code{Never}
 have special rules similar to those for additive (\ref{additiveExpressions})
 and multipliative (\ref{multiplicativeExpressions}) operators.
 
