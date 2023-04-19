@@ -15970,7 +15970,7 @@ then the static type of $e$ is determined as follows:
   \item{} If $T\,\,<:\,\,\code{double}$
     then the static type of $e$ is $T$.
   \item{} Otherwise, if \SubtypeNE{S}{\code{double}}
-    and not $S\,\,<:\,\,\code{Never}$,
+    and not \SubtypeNE{S}{\code{Never}},
     then the static type of $e$ is \code{double}.
   \item{} Otherwise, if $T\,\,<:\,\,\code{int}$,
     $S\,\,<:\,\,\code{int}$ and not $S\,\,<:\,\,\code{Never}$,
