@@ -13730,7 +13730,8 @@ and multipliative (\ref{multiplicativeExpressions}) operators.
 
 \LMHash{}%
 Let $i$ be an invocation of the form \code{$e$.remainder($e_2$)}
-then let $C$ is the context type of $i$.
+and let $C$ be the context type of $i$.
+The context type of $e_2$ is then determined as follows:
 If $T\,\,<:\,\,\code{num}$ and not $T\,\,<:\,\,\code{Never}$, then:
 \begin{itemize}
   \item{} If $\code{int}\,\,<:\,\,C$ and not $\code{num}\,\,<:\,\,C$,
