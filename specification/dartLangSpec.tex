@@ -13732,7 +13732,7 @@ and multipliative (\ref{multiplicativeExpressions}) operators.
 Let $i$ be an invocation of the form \code{$e$.remainder($e_2$)}
 and let $C$ be the context type of $i$.
 The context type of $e_2$ is then determined as follows:
-If $T\,\,<:\,\,\code{num}$ and not $T\,\,<:\,\,\code{Never}$, then:
+If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}, then:
 \begin{itemize}
   \item{} If $\code{int}\,\,<:\,\,C$ and not $\code{num}\,\,<:\,\,C$,
       and $T\,\,<:\,\,\code{int}$
