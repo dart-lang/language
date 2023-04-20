@@ -126,6 +126,7 @@ class FieldSpec {
   String type;
   bool isFinal;
   bool isOptional;
+  bool isNamed;
   String? defaultValue;
 
   FieldSpec(
@@ -133,6 +134,7 @@ class FieldSpec {
     this.type,
     this.isFinal,
     this.isOptional,
+    this.isNamed,
     this.defaultValue,
   );
 
@@ -141,8 +143,9 @@ class FieldSpec {
     var type = jsonField['type']!;
     var isFinal = jsonField['isFinal'] ?? false;
     var isOptional = jsonField['isOptional'] ?? false;
+    var isNamed = jsonField['isNamed'] ?? false;
     var defaultValue = jsonField['defaultValue'];
-    return FieldSpec(name, type, isFinal, isOptional, defaultValue);
+    return FieldSpec(name, type, isFinal, isOptional, isNamed, defaultValue);
   }
 }
 
@@ -153,8 +156,11 @@ String ppNormal(ClassSpec classSpec) {
   var constructorSource = StringBuffer('');
 
   var first = true;
-  var firstOptional = true;
-  var hasOptionals = false;
+  var firstOptionalOrNamed = true;
+  var firstNamed = true;
+  var hasOptionalsOrNamed = false;
+  var optionalOrNamedMeansNamed = false;
+  var hasNamed = false;
   for (var field in classSpec.fields) {
     var fieldName = field.name;
     if (first) {
@@ -165,9 +171,14 @@ String ppNormal(ClassSpec classSpec) {
     }
     var finality = field.isFinal ? 'final ' : '';
     fieldsSource.write('  $finality${field.type} $fieldName;\n');
-    if (field.isOptional && firstOptional) {
-      parametersSource.write('[');
-      hasOptionals = true;
+    if ((field.isOptional || field.isNamed) && firstOptionalOrNamed) {
+      if (field.isNamed) {
+        optionalOrNamedMeansNamed = true;
+        parametersSource.write('{');
+      } else {
+        parametersSource.write('[');
+      }
+      hasOptionalsOrNamed = true;
     }
     parametersSource.write('this.$fieldName');
     if (field.isOptional) {
@@ -177,7 +188,13 @@ String ppNormal(ClassSpec classSpec) {
       }
     }
   }
-  if (hasOptionals) parametersSource.write(']');
+  if (hasOptionalsOrNamed) {
+    if (optionalOrNamedMeansNamed) {
+      parametersSource.write('}');
+    } else {
+      parametersSource.write(']');
+    }
+  }
   var constNess = classSpec.isConst ? 'const ' : '';
 
   var constructorName = className;
@@ -207,6 +224,11 @@ String ppKeyword(ClassSpec classSpec) {
   var parametersSource = StringBuffer('');
 
   var first = true;
+  var firstOptionalOrNamed = true;
+  var firstNamed = true;
+  var hasOptionalsOrNamed = false;
+  var optionalOrNamedMeansNamed = false;
+  var hasNamed = false;
   for (var field in fields) {
     if (first) {
       first = false;
@@ -221,7 +243,29 @@ String ppKeyword(ClassSpec classSpec) {
         finality = 'final ';
       }
     }
+    if ((field.isOptional || field.isNamed) && firstOptionalOrNamed) {
+      if (field.isNamed) {
+        optionalOrNamedMeansNamed = true;
+        parametersSource.write('{');
+      } else {
+        parametersSource.write('[');
+      }
+      hasOptionalsOrNamed = true;
+    }
     parametersSource.write('$finality${field.type} ${field.name}');
+    if (field.isOptional) {
+      var defaultValue = field.defaultValue;
+      if (defaultValue != null) {
+        parametersSource.write(' = $defaultValue');
+      }
+    }
+  }
+  if (hasOptionalsOrNamed) {
+    if (optionalOrNamedMeansNamed) {
+      parametersSource.write('}');
+    } else {
+      parametersSource.write(']');
+    }
   }
   var keyword = classSpec.isConst ? 'const' : 'new';
   var typeParameters = classSpec.typeParameters ?? '';
@@ -251,6 +295,11 @@ String ppStruct(ClassSpec classSpec) {
   var parametersSource = StringBuffer('');
 
   var first = true;
+  var firstOptionalOrNamed = true;
+  var firstNamed = true;
+  var hasOptionalsOrNamed = false;
+  var optionalOrNamedMeansNamed = false;
+  var hasNamed = false;
   for (var field in fields) {
     if (first) {
       first = false;
@@ -265,7 +314,29 @@ String ppStruct(ClassSpec classSpec) {
         finality = 'final ';
       }
     }
+    if ((field.isOptional || field.isNamed) && firstOptionalOrNamed) {
+      if (field.isNamed) {
+        optionalOrNamedMeansNamed = true;
+        parametersSource.write('{');
+      } else {
+        parametersSource.write('[');
+      }
+      hasOptionalsOrNamed = true;
+    }
     parametersSource.write('$finality${field.type} ${field.name}');
+    if (field.isOptional) {
+      var defaultValue = field.defaultValue;
+      if (defaultValue != null) {
+        parametersSource.write(' = $defaultValue');
+      }
+    }
+  }
+  if (hasOptionalsOrNamed) {
+    if (optionalOrNamedMeansNamed) {
+      parametersSource.write('}');
+    } else {
+      parametersSource.write(']');
+    }
   }
   var constNess = classSpec.isConst ? 'const ' : '';
   var typeParameters = classSpec.typeParameters ?? '';
