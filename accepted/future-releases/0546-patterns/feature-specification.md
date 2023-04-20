@@ -621,20 +621,15 @@ It is a compile-time error if:
     expressions in a future release without it being a breaking change, similar
     to default values in parameter lists.*
 
-*   Any two keys in the map are identical. *Duplicate keys are likely to be a
-    copy/paste error. If you want to match the value associated with some key
-    against multiple patterns, you can always use an `||` pattern.*s
-
-*   Any two record keys which both have primitive equality are equal. *Since
-    records don't have defined identity, we can't use the previous rule to
-    detect identical records. But records do support an equality test known at
-    compile time if all of their fields do, so we use that.*
+*   Any two keys in the map are [structurally equivalent][]. *Duplicate
+    keys are likely to be a copy/paste error. If you want to match the value
+    associated with some key against multiple patterns, you can always use an
+    `||` pattern.*s
 
 *Note that `mapPatternEntries` is not optional, which means it is an error for
 a map pattern to be empty.*
 
-*Note that we don't require map keys to have primitive equality, to enable
-more flexibility in key types.*
+[structurally equivalent]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/records/records-feature-specification.md#canonicalization
 
 #### Open and closed maps
 
