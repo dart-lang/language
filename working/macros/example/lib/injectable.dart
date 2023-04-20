@@ -18,8 +18,8 @@ macro class Injectable implements ClassDeclarationsMacro {
   const Injectable();
 
   @override
-  Future<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
+  Future<void> buildDeclarationsForClass(IntrospectableClassDeclaration clazz,
+      MemberDeclarationBuilder builder) async {
     if (clazz.typeParameters.isNotEmpty) {
       throw ArgumentError('Type parameters are not supported!');
     }
@@ -54,14 +54,15 @@ macro class Injectable implements ClassDeclarationsMacro {
       ') => () => ',
       // TODO: Remove once augmentaiton libraries are fixed for unnamed
       // constructors.
-      constructor.identifier.name.isEmpty ?
-          clazz.identifier : constructor.identifier,
+      constructor.identifier.name.isEmpty
+          ? clazz.identifier
+          : constructor.identifier,
       '(',
       for (final parameter in allParameters) '${parameter.identifier.name}(), ',
       ');',
     ]);
 
-    builder.declareInClass(DeclarationCode.fromParts(parts));
+    builder.declareInType(DeclarationCode.fromParts(parts));
   }
 }
 
@@ -70,7 +71,7 @@ macro class Provides implements MethodDeclarationsMacro {
 
   @override
   FutureOr<void> buildDeclarationsForMethod(
-      MethodDeclaration method, ClassMemberDeclarationBuilder builder) async {
+      MethodDeclaration method, MemberDeclarationBuilder builder) async {
     final providerIdentifier = await builder.resolveIdentifier(
         Uri.parse('package:macro_proposal/injectable.dart'), 'Provider');
     if (method.namedParameters.isNotEmpty) {
@@ -95,7 +96,7 @@ macro class Provides implements MethodDeclarationsMacro {
       ],
       ');',
     ];
-    builder.declareInClass(new DeclarationCode.fromParts(parts));
+    builder.declareInType(new DeclarationCode.fromParts(parts));
   }
 }
 
@@ -105,8 +106,8 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const Component({required this.modules});
 
   @override
-  FutureOr<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
+  FutureOr<void> buildDeclarationsForClass(IntrospectableClassDeclaration clazz,
+      MemberDeclarationBuilder builder) async {
     final providerIdentifier = await builder.resolveIdentifier(
         Uri.parse('package:macro_proposal/injectable.dart'), 'Provider');
     final methods = await builder.methodsOf(clazz);
@@ -119,7 +120,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
       final fieldName = '_${method.identifier.name}Provider;';
       fieldNames.add(fieldName);
       // Add a field for the provider of each returned type.
-      builder.declareInClass(DeclarationCode.fromParts([
+      builder.declareInType(DeclarationCode.fromParts([
         'final ',
         NamedTypeAnnotationCode(
             name: providerIdentifier, typeArguments: [method.returnType.code]),
@@ -129,7 +130,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
 
     // Add a private constructor to initialize all the fields from the higher
     // level providers.
-    builder.declareInClass(DeclarationCode.fromParts([
+    builder.declareInType(DeclarationCode.fromParts([
       clazz.identifier,
       '._(',
       for (final field in fieldNames) 'this.$field, ',
@@ -140,7 +141,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
     if (modules.isNotEmpty) {
       // Declare a public factory constructor which we will fill in later, this
       // takes all the specified modules as arguments.
-      builder.declareInClass(new DeclarationCode.fromParts([
+      builder.declareInType(new DeclarationCode.fromParts([
         'external factory ',
         clazz.identifier,
         '(',
@@ -154,8 +155,8 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
   }
 
   @override
-  FutureOr<void> buildDefinitionForClass(
-      ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
+  FutureOr<void> buildDefinitionForClass(IntrospectableClassDeclaration clazz,
+      TypeDefinitionBuilder builder) async {
     final providerIdentifier = await builder.resolveIdentifier(
         Uri.parse('package:macro_proposal/injectable.dart'), 'Provider');
     final methods = await builder.methodsOf(clazz);
@@ -204,7 +205,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
         .followedBy(factoryConstructor.namedParameters)) {
       final module = (param.type as NamedTypeAnnotation).identifier;
       final moduleClass =
-          await builder.declarationOf(module) as ClassDeclaration;
+          await builder.declarationOf(module) as IntrospectableType;
       for (final method in await builder.methodsOf(moduleClass)) {
         final returnType = method.returnType;
         if (returnType is! NamedTypeAnnotation) continue;
@@ -239,7 +240,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
   // TODO: Support generics for provided types.
   Future<String> _satisfyParameters(
       MethodDeclaration method,
-      ClassDefinitionBuilder builder,
+      TypeDefinitionBuilder builder,
       Map<Identifier, String> localProviders,
       Identifier providerIdentifier,
       Map<Identifier, MethodDeclaration> providerProviderMethods,
@@ -272,7 +273,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
 
   Future<String> _provideType(
       Identifier type,
-      ClassDefinitionBuilder builder,
+      TypeDefinitionBuilder builder,
       Map<Identifier, String> localProviders,
       Identifier providerIdentifier,
       Map<Identifier, MethodDeclaration> providerProviderMethods,
@@ -286,7 +287,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
       // If we have no explicit provider from any module, check if the type is
       // injectable.
       final clazz = await builder.declarationOf(type);
-      if (clazz is! ClassDeclaration) {
+      if (clazz is! IntrospectableType) {
         throw UnsupportedError('Only classes are automatically injectable.');
       }
       for (final method in await builder.methodsOf(clazz)) {
