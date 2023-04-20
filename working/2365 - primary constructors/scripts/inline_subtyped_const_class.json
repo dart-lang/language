@@ -2,7 +2,6 @@
   "isInline": true,
   "name": "Point",
   "isConst": true,
-  "typeParameters": "<TypeVariable extends Bound>",
   "superinterfaces": "implements B, C",
   "fields": [
     {
