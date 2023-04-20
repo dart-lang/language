@@ -8,18 +8,23 @@ abstract final class Options {
   static bool showStruct = false;
   static bool showKeyword = false;
   static bool implicitFinal = false;
+  static bool includeBody = false;
 }
 
 void help() {
   print('Usage: show_primary_constructors.dart [options] [file]...');
   print("""
 
- Options:
-   --help, -h: Print this help text.
-   --implicit-final: Omit `final` where possible.
-   --show-normal: Show a normal constructor and explicit field declarations.
-   --show-keyword: Show the form that uses a keyword.
-   --show-struct: Show the form which was proposed along with structs.
+Every option is off by default, and specifying it will have an effect.
+
+Options:
+  --help, -h: Print this help text.
+  --implicit-final: Omit `final` where possible.
+  --include-body: Include a class body (otherwise `;` is used where possible).
+  --show-normal: Show a normal constructor and explicit field declarations.
+  --show-keyword: Show the form that uses a keyword.
+  --show-struct: Show the form which was proposed along with structs.
+  --show-all: Show all forms; enabled if no other '--show' option is given.
 """);
 }
 
@@ -37,6 +42,14 @@ bool processOption(String option) {
         return true;
       case 'implicit-final':
         Options.implicitFinal = true;
+        return true;
+      case 'include-body':
+        Options.includeBody = true;
+        return true;
+      case 'show-all':
+        Options.showNormal = true;
+        Options.showStruct = true;
+        Options.showKeyword = true;
         return true;
       case 'show-normal':
         Options.showNormal = true;
@@ -180,7 +193,9 @@ String ppNormal(ClassSpec classSpec) {
       }
       hasOptionalsOrNamed = true;
     }
-    parametersSource.write('this.$fieldName');
+    bool isRequired = field.isNamed && !field.isOptional;
+    var requiredness = isRequired ? 'required ' : '';
+    parametersSource.write('${requiredness}this.$fieldName');
     if (field.isOptional) {
       var defaultValue = field.defaultValue;
       if (defaultValue != null) {
@@ -214,8 +229,9 @@ String ppNormal(ClassSpec classSpec) {
 
   var inlinity = classSpec.isInline ? 'inline ' : '';
 
+  var body = Options.includeBody ? '  // ...\n' : '';
   return "${inlinity}class $className$typeParameters$superinterfaces"
-      " {$fieldsSource$constructorSource  // ...\n}";
+      " {$fieldsSource$constructorSource$body}";
 }
 
 String ppKeyword(ClassSpec classSpec) {
@@ -252,7 +268,9 @@ String ppKeyword(ClassSpec classSpec) {
       }
       hasOptionalsOrNamed = true;
     }
-    parametersSource.write('$finality${field.type} ${field.name}');
+    bool isRequired = field.isNamed && !field.isOptional;
+    var requiredness = isRequired ? 'required ' : '';
+    parametersSource.write('$requiredness$finality${field.type} ${field.name}');
     if (field.isOptional) {
       var defaultValue = field.defaultValue;
       if (defaultValue != null) {
@@ -286,7 +304,8 @@ String ppKeyword(ClassSpec classSpec) {
   var classHeader = 
       "${inlinity}class $className$typeParameters$superinterfaces"
       " $constructorPhrase($parametersSource)";
-  return "$classHeader \{\n  // ...\n\}\n\n$classHeader;";
+  var body = Options.includeBody ? '{\n  // ...\n\}' : ';';
+  return "$classHeader$body";
 }
 
 String ppStruct(ClassSpec classSpec) {
@@ -323,7 +342,9 @@ String ppStruct(ClassSpec classSpec) {
       }
       hasOptionalsOrNamed = true;
     }
-    parametersSource.write('$finality${field.type} ${field.name}');
+    bool isRequired = field.isNamed && !field.isOptional;
+    var requiredness = isRequired ? 'required ' : '';
+    parametersSource.write('$requiredness$finality${field.type} ${field.name}');
     if (field.isOptional) {
       var defaultValue = field.defaultValue;
       if (defaultValue != null) {
@@ -360,7 +381,8 @@ String ppStruct(ClassSpec classSpec) {
       "${inlinity}class $constNess$constructorName$typeParameters"
       "($parametersSource)"
       "$superinterfaces";
-  return "$classHeader \{\n  // ...\n}\n\n$classHeader;";
+  var body = Options.includeBody ? '{\n  // ...\n\}' : ';';
+  return "$classHeader$body";
 }
 
 void main(List<String> args) {
