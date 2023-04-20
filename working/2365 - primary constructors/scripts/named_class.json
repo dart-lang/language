@@ -1,12 +1,14 @@
 {
   "name": "Point",
   "constructorName": "_",
-  "fields": {
-    "x": {
+  "fields": [
+    {
+      "name": "x",
       "type": "int"
     },
-    "y": {
+    {
+      "name": "y",
       "type": "int"
     }
-  }
+  ]
 }

@@ -1,14 +1,16 @@
 {
   "name": "Point",
   "isConst": true,
-  "fields": {
-    "x": {
+  "fields": [
+    {
+      "name": "x",
       "type": "int",
       "isFinal": true
     },
-    "y": {
+    {
+      "name": "y",
       "type": "int",
       "isFinal": true
     }
-  }
+  ]
 }

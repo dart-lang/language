@@ -2,14 +2,16 @@
   "name": "Point",
   "isConst": true,
   "constructorName": "_",
-  "fields": {
-    "x": {
+  "fields": [
+    {
+      "name": "x",
       "type": "int",
       "isFinal": true
     },
-    "y": {
+    {
+      "name": "y",
       "type": "int",
       "isFinal": true
     }
-  }
+  ]
 }

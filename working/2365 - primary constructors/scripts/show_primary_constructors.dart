@@ -79,15 +79,15 @@ class ClassSpec {
   factory ClassSpec.fromJson(Map<String, dynamic> jsonSpec) {
     var name = jsonSpec['name']!;
     var constructorName = jsonSpec['constructorName'];
-    var isInline = jsonSpec['isInline'] || false;
+    var isInline = jsonSpec['isInline'] ?? false;
     var jsonFields = jsonSpec['fields']!;
     var isConst = jsonSpec['isConst'] ?? false;
     var typeParameters = jsonSpec['typeParameters'];
     var superinterfaces = jsonSpec['superinterfaces'];
     var fields = <FieldSpec>[];
 
-    for (var fieldName in jsonFields.keys) {
-      var field = FieldSpec.fromJson(fieldName, jsonFields[fieldName]!);
+    for (var jsonField in jsonFields) {
+      var field = FieldSpec.fromJson(jsonField);
       fields.add(field);
     }
     return ClassSpec(
@@ -109,9 +109,10 @@ class FieldSpec {
 
   FieldSpec(this.name, this.type, this.isFinal);
 
-  factory FieldSpec.fromJson(String name, Map<String, dynamic> jsonProperties) {
-    var type = jsonProperties['type']!;
-    var isFinal = jsonProperties['isFinal'] ?? false;
+  factory FieldSpec.fromJson(Map<String, dynamic> jsonField) {
+    var name = jsonField['name']!;
+    var type = jsonField['type']!;
+    var isFinal = jsonField['isFinal'] ?? false;
     return FieldSpec(name, type, isFinal);
   }
 }
@@ -152,8 +153,10 @@ String ppNormal(ClassSpec classSpec) {
     superinterfaces = ' $specSuperinterfaces';
   }
 
-  return "class $className$typeParameters$superinterfaces"
-      " {$fieldsSource$constructorSource  ...\n}";
+  var inlinity = classSpec.isInline ? 'inline ' : '';
+
+  return "${inlinity}class $className$typeParameters$superinterfaces"
+      " {$fieldsSource$constructorSource  // ...\n}";
 }
 
 String ppKeyword(ClassSpec classSpec) {
@@ -171,7 +174,7 @@ String ppKeyword(ClassSpec classSpec) {
     var finality = '';
     if (field.isFinal) {
       if (classSpec.isConst || classSpec.isInline) {
-        Options.implicitFinal
+        if (!Options.implicitFinal) finality = 'final ';
       } else {
         finality = 'final ';
       }
@@ -193,9 +196,11 @@ String ppKeyword(ClassSpec classSpec) {
     constructorPhrase = '$keyword.$constructorNameSpec';
   }
 
-  var classHeader = "class $className$typeParameters$superinterfaces"
+  var inlinity = classSpec.isInline ? 'inline ' : '';
+  var classHeader = 
+      "${inlinity}class $className$typeParameters$superinterfaces"
       " $constructorPhrase($parametersSource)";
-  return "$classHeader \{\n  ...\n\}\n\n$classHeader;";
+  return "$classHeader \{\n  // ...\n\}\n\n$classHeader;";
 }
 
 String ppStruct(ClassSpec classSpec) {
@@ -210,7 +215,14 @@ String ppStruct(ClassSpec classSpec) {
     } else {
       parametersSource.write(', ');
     }
-    var finality = field.isFinal ? 'final ' : '';
+    var finality = '';
+    if (field.isFinal) {
+      if (classSpec.isConst || classSpec.isInline) {
+        if (!Options.implicitFinal) finality = 'final ';
+      } else {
+        finality = 'final ';
+      }
+    }
     parametersSource.write('$finality${field.type} ${field.name}');
   }
   var constNess = classSpec.isConst ? 'const ' : '';
@@ -230,10 +242,12 @@ String ppStruct(ClassSpec classSpec) {
     constructorName = className;
   }
 
-  var classHeader = "class $constNess$constructorName$typeParameters"
+  var inlinity = classSpec.isInline ? 'inline ' : '';
+  var classHeader =
+      "${inlinity}class $constNess$constructorName$typeParameters"
       "($parametersSource)"
       "$superinterfaces";
-  return "$classHeader \{\n  ...\n}\n\n$classHeader;";
+  return "$classHeader \{\n  // ...\n}\n\n$classHeader;";
 }
 
 void main(List<String> args) {
