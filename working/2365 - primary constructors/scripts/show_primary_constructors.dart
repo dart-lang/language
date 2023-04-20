@@ -5,7 +5,7 @@ import 'dart:io';
 
 abstract final class Options {
   static bool identifyStyle = false;
-  static bool implicitFinal = false;
+  static bool explicitFinal = false;
   static bool includeBody = false;
   static bool showNormal = false;
   static bool showStruct = false;
@@ -21,7 +21,7 @@ Every option is off by default, and specifying it will have an effect.
 Options:
   --help, -h: Print this help text.
   --identify-style: Include comment `Normal`/`Struct`/`Keyword` before the code.
-  --implicit-final: Omit `final` where possible.
+  --explicit-final: Include `final` even when it is implied.
   --include-body: Include a class body (otherwise `;` is used where possible).
   --show-normal: Show a normal constructor and explicit field declarations.
   --show-keyword: Show the form that uses a keyword.
@@ -45,8 +45,8 @@ bool processOption(String option) {
       case 'identify-style':
         Options.identifyStyle = true;
         return true;
-      case 'implicit-final':
-        Options.implicitFinal = true;
+      case 'explicit-final':
+        Options.explicitFinal = true;
         return true;
       case 'include-body':
         Options.includeBody = true;
@@ -259,7 +259,7 @@ String ppKeyword(ClassSpec classSpec) {
     var finality = '';
     if (field.isFinal) {
       if (classSpec.isConst || classSpec.isInline) {
-        if (!Options.implicitFinal) finality = 'final ';
+        if (Options.explicitFinal) finality = 'final ';
       } else {
         finality = 'final ';
       }
@@ -333,7 +333,7 @@ String ppStruct(ClassSpec classSpec) {
     var finality = '';
     if (field.isFinal) {
       if (classSpec.isConst || classSpec.isInline) {
-        if (!Options.implicitFinal) finality = 'final ';
+        if (Options.explicitFinal) finality = 'final ';
       } else {
         finality = 'final ';
       }
