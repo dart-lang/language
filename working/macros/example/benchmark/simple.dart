@@ -32,6 +32,8 @@ import 'package:_fe_analyzer_shared/src/macros/executor/isolated_executor.dart'
     as isolatedExecutor;
 import 'package:_fe_analyzer_shared/src/macros/executor/process_executor.dart'
     as processExecutor;
+import 'package:_fe_analyzer_shared/src/macros/executor/multi_executor.dart'
+    as multiExecutor;
 
 final _watch = Stopwatch()..start();
 void _log(String message) {
@@ -47,6 +49,11 @@ final argParser = ArgParser()
       allowed: ['aot', 'isolate'],
       defaultsTo: 'aot',
       help: 'The execution strategy for precompiled macros.')
+  ..addOption('communication-channel',
+      allowed: ['socket', 'stdio'],
+      defaultsTo: 'stdio',
+      help: 'The communication channel to use when running as a separate'
+          ' process.')
   ..addFlag('help', negatable: false, hide: true);
 
 // Run this script to print out the generated augmentation library for an example class.
@@ -82,6 +89,10 @@ void main(List<String> args) async {
           Platform.script.path.endsWith('.dill')
       ? 'jit'
       : 'aot';
+
+  var communicationChannel = parsedArgs['communication-channel'] == 'stdio'
+      ? processExecutor.CommunicationChannel.stdio
+      : processExecutor.CommunicationChannel.socket;
   _log('''
 Running with the following options:
 
@@ -130,13 +141,13 @@ Host app mode: $hostMode
     }
 
     _log('Loading the macro executor');
-    var executor = macroExecutionStrategy == 'aot'
-        ? await processExecutor.start(
-            serverSerializationMode,
-            processExecutor.CommunicationChannel.socket,
-            kernelOutputFile.uri.toFilePath())
+    var executorImpl = macroExecutionStrategy == 'aot'
+        ? await processExecutor.start(serverSerializationMode,
+            communicationChannel, kernelOutputFile.uri.toFilePath())
         : await isolatedExecutor.start(
             serverSerializationMode, kernelOutputFile.uri);
+    var executor = multiExecutor.MultiMacroExecutor()
+      ..registerExecutorFactory(() => executorImpl, {macroUri});
 
     _log('Instantiating macro');
     var instanceId = await executor.instantiateMacro(
