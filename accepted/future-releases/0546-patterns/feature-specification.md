@@ -621,7 +621,7 @@ It is a compile-time error if:
     expressions in a future release without it being a breaking change, similar
     to default values in parameter lists.*
 
-*   Any two keys in the map are *equivalent constants* (see below). *Duplicate
+*   Any two keys in the map are [structurally equivalent][]. *Duplicate
     keys are likely to be a copy/paste error. If you want to match the value
     associated with some key against multiple patterns, you can always use an
     `||` pattern.*s
@@ -629,26 +629,7 @@ It is a compile-time error if:
 *Note that `mapPatternEntries` is not optional, which means it is an error for
 a map pattern to be empty.*
 
-#### Equivalent constants
-
-We can't simply rely on identity to see if two key constants are the same
-because records don't have defined identity. Instead, we specify that two
-values are *equivalent constants* if:
-
-*   They are both not records and are identical.
-
-*   They are both not records, have primitive equality, and are equal according
-    to that primitive equality. *All types with primitive equality have
-    symmetric `==` operators, so it doesn't matter which order the operands of
-    `==` are in.*
-
-*   They are both records with the same shape, and the corresponding pairs of
-    fields are equivalent constants. *Equality is structural on records.*
-
-Otherwise, the values are not equivalent constants.
-
-*Note that we don't require map keys to have primitive equality, to enable
-more flexibility in key types.*
+[structurally equivalent]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/records/records-feature-specification.md#canonicalization
 
 #### Open and closed maps
 
