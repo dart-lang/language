@@ -1,0 +1,12 @@
+{
+  "isInline": true,
+  "name": "Point",
+  "typeParameters": "<TypeVariable extends Bound>",
+  "fields": [
+    {
+      "name": "x",
+      "type": "int",
+      "isFinal": true
+    }
+  ]
+}

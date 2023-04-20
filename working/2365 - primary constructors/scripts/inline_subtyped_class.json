@@ -1,0 +1,13 @@
+{
+  "isInline": true,
+  "name": "Point",
+  "typeParameters": "<TypeVariable extends Bound>",
+  "superinterfaces": "implements B, C",
+  "fields": [
+    {
+      "name": "x",
+      "type": "int",
+      "isFinal": true
+    }
+  ]
+}

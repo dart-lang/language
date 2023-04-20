@@ -1,0 +1,13 @@
+{
+  "isInline": true,
+  "name": "Point",
+  "isConst": true,
+  "constructorName": "_",
+  "fields": [
+    {
+      "name": "x",
+      "type": "int",
+      "isFinal": true
+    }
+  ]
+}
