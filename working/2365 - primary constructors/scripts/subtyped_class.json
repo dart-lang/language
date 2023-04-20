@@ -1,6 +1,5 @@
 {
   "name": "Point",
-  "typeParameters": "<TypeVariable extends Bound>",
   "superinterfaces": "extends A with M implements B, C",
   "fields": [
     {
