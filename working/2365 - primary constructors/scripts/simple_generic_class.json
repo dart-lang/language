@@ -1,0 +1,12 @@
+{
+  "name": "Point",
+  "typeParameters": "<TypeVariable extends Bound>",
+  "fields": {
+    "x": {
+      "type": "int"
+    },
+    "y": {
+      "type": "int"
+    }
+  }
+}
