@@ -4,11 +4,12 @@ import 'dart:convert';
 import 'dart:io';
 
 abstract final class Options {
+  static bool identifyStyle = false;
+  static bool implicitFinal = false;
+  static bool includeBody = false;
   static bool showNormal = false;
   static bool showStruct = false;
   static bool showKeyword = false;
-  static bool implicitFinal = false;
-  static bool includeBody = false;
 }
 
 void help() {
@@ -19,6 +20,7 @@ Every option is off by default, and specifying it will have an effect.
 
 Options:
   --help, -h: Print this help text.
+  --identify-style: Include comment `Normal`/`Struct`/`Keyword` before the code.
   --implicit-final: Omit `final` where possible.
   --include-body: Include a class body (otherwise `;` is used where possible).
   --show-normal: Show a normal constructor and explicit field declarations.
@@ -39,6 +41,9 @@ bool processOption(String option) {
     switch (option.substring(2)) {
       case 'help':
         help();
+        return true;
+      case 'identify-style':
+        Options.identifyStyle = true;
         return true;
       case 'implicit-final':
         Options.implicitFinal = true;
@@ -304,7 +309,7 @@ String ppKeyword(ClassSpec classSpec) {
   var classHeader = 
       "${inlinity}class $className$typeParameters$superinterfaces"
       " $constructorPhrase($parametersSource)";
-  var body = Options.includeBody ? '{\n  // ...\n\}' : ';';
+  var body = Options.includeBody ? ' {\n  // ...\n\}' : ';';
   return "$classHeader$body";
 }
 
@@ -381,7 +386,7 @@ String ppStruct(ClassSpec classSpec) {
       "${inlinity}class $constNess$constructorName$typeParameters"
       "($parametersSource)"
       "$superinterfaces";
-  var body = Options.includeBody ? '{\n  // ...\n\}' : ';';
+  var body = Options.includeBody ? ' {\n  // ...\n\}' : ';';
   return "$classHeader$body";
 }
 
@@ -412,7 +417,11 @@ void main(List<String> args) {
 
 
   void show(String comment, String source) {
-    print('// $comment.\n\n$source\n');
+    if (Options.identifyStyle){
+      print('// $comment.\n\n$source\n');
+    } else {
+      print('$source\n');
+    }
   }
 
   for (var classSpec in classSpecs) {
