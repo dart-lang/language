@@ -126,15 +126,23 @@ class FieldSpec {
   String type;
   bool isFinal;
   bool isOptional;
+  String? defaultValue;
 
-  FieldSpec(this.name, this.type, this.isFinal, this.isOptional);
+  FieldSpec(
+    this.name,
+    this.type,
+    this.isFinal,
+    this.isOptional,
+    this.defaultValue,
+  );
 
   factory FieldSpec.fromJson(Map<String, dynamic> jsonField) {
     var name = jsonField['name']!;
     var type = jsonField['type']!;
     var isFinal = jsonField['isFinal'] ?? false;
     var isOptional = jsonField['isOptional'] ?? false;
-    return FieldSpec(name, type, isFinal, isOptional);
+    var defaultValue = jsonField['defaultValue'];
+    return FieldSpec(name, type, isFinal, isOptional, defaultValue);
   }
 }
 
@@ -145,6 +153,8 @@ String ppNormal(ClassSpec classSpec) {
   var constructorSource = StringBuffer('');
 
   var first = true;
+  var firstOptional = true;
+  var hasOptionals = false;
   for (var field in classSpec.fields) {
     var fieldName = field.name;
     if (first) {
@@ -155,8 +165,19 @@ String ppNormal(ClassSpec classSpec) {
     }
     var finality = field.isFinal ? 'final ' : '';
     fieldsSource.write('  $finality${field.type} $fieldName;\n');
+    if (field.isOptional && firstOptional) {
+      parametersSource.write('[');
+      hasOptionals = true;
+    }
     parametersSource.write('this.$fieldName');
+    if (field.isOptional) {
+      var defaultValue = field.defaultValue;
+      if (defaultValue != null) {
+        parametersSource.write(' = $defaultValue');
+      }
+    }
   }
+  if (hasOptionals) parametersSource.write(']');
   var constNess = classSpec.isConst ? 'const ' : '';
 
   var constructorName = className;
