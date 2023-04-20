@@ -16,7 +16,7 @@ macro class JsonSerializable
 
   @override
   Future<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
+      IntrospectableClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     var constructors = await builder.constructorsOf(clazz);
     if (constructors.any((c) => c.identifier.name == 'fromJson')) {
       throw ArgumentError('There is already a `fromJson` constructor for '
@@ -30,7 +30,7 @@ macro class JsonSerializable
         name: await builder.resolveIdentifier(dartCore, 'dynamic'));
     var mapStringDynamic =
         NamedTypeAnnotationCode(name: map, typeArguments: [string, dynamic]);
-    builder.declareInClass(DeclarationCode.fromParts([
+    builder.declareInType(DeclarationCode.fromParts([
       'external ',
       clazz.identifier.name,
       '.fromJson(',
@@ -41,7 +41,7 @@ macro class JsonSerializable
 
   @override
   Future<void> buildDefinitionForClass(
-      ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
+      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     // TODO: support extending other classes.
     if (clazz.superclass != null) {
       throw UnsupportedError(
@@ -82,7 +82,7 @@ macro class JsonSerializable
             'but `${field.identifier.name}` did not resolve to a named type.');
       }
     }
-    if (fieldTypeDecl is! ClassDeclaration) {
+    if (fieldTypeDecl is! IntrospectableClassDeclaration) {
       throw ArgumentError(
           'Only classes are supported in field types for serializable classes, '
           'but the field `${field.identifier.name}` does not have a class '

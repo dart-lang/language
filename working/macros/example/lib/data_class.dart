@@ -11,7 +11,7 @@ macro class DataClass
 
   @override
   Future<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder context) async {
+      IntrospectableClassDeclaration clazz, MemberDeclarationBuilder context) async {
     await Future.wait([
       const AutoConstructor().buildDeclarationsForClass(clazz, context),
       const CopyWith().buildDeclarationsForClass(clazz, context),
@@ -23,7 +23,7 @@ macro class DataClass
 
   @override
   Future<void> buildDefinitionForClass(
-      ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
+      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     await Future.wait([
       const HashCode().buildDefinitionForClass(clazz, builder),
       const Equality().buildDefinitionForClass(clazz, builder),
@@ -37,7 +37,7 @@ macro class AutoConstructor implements ClassDeclarationsMacro {
 
   @override
   Future<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
+      IntrospectableClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     var constructors = await builder.constructorsOf(clazz);
     if (constructors.any((c) => c.identifier.name == 'gen')) {
       throw ArgumentError(
@@ -61,12 +61,13 @@ macro class AutoConstructor implements ClassDeclarationsMacro {
             await builder.resolveIdentifier(Uri.parse('dart:core'), 'Object')));
 
     // Add all super constructor parameters as named parameters.
-    var superclass = (await builder.superclassOf(clazz))!;
-    var superType = await builder
+    var superclass = clazz.superclass == null ? null : await builder
+        .declarationOf(clazz.superclass!.identifier) as IntrospectableType;
+    var superType = superclass == null ? null : await builder
         .resolve(NamedTypeAnnotationCode(name: superclass.identifier));
     MethodDeclaration? superconstructor;
-    if ((await superType.isExactly(objectType)) == false) {
-      superconstructor = (await builder.constructorsOf(superclass))
+    if (superType != null && (await superType.isExactly(objectType)) == false) {
+      superconstructor = (await builder.constructorsOf(superclass!))
           .firstWhereOrNull((c) => c.identifier.name == 'gen');
       if (superconstructor == null) {
         throw ArgumentError(
@@ -116,7 +117,7 @@ macro class AutoConstructor implements ClassDeclarationsMacro {
       parts.add(')');
     }
     parts.add(';');
-    builder.declareInClass(DeclarationCode.fromParts(parts));
+    builder.declareInType(DeclarationCode.fromParts(parts));
   }
 }
 
@@ -126,13 +127,13 @@ macro class CopyWith implements ClassDeclarationsMacro {
 
   @override
   Future<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
+      IntrospectableClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     var methods = await builder.methodsOf(clazz);
     if (methods.any((c) => c.identifier.name == 'copyWith')) {
       throw ArgumentError(
           'Cannot generate a copyWith method because one already exists');
     }
-    var allFields = await clazz.allFields(builder).toList();
+    var allFields = await clazz.allFields(builder, builder).toList();
     var namedParams = [
       for (var field in allFields)
         ParameterCode(
@@ -149,7 +150,7 @@ macro class CopyWith implements ClassDeclarationsMacro {
         ]),
     ];
     var hasParams = namedParams.isNotEmpty;
-    builder.declareInClass(DeclarationCode.fromParts([
+    builder.declareInType(DeclarationCode.fromParts([
       clazz.identifier,
       ' copyWith(',
       if (hasParams) '{',
@@ -170,8 +171,8 @@ macro class HashCode
 
   @override
   Future<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
-    builder.declareInClass(DeclarationCode.fromParts([
+      ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
+    builder.declareInType(DeclarationCode.fromParts([
       'external ',
       // ignore: deprecated_member_use
       await builder.resolveIdentifier(Uri.parse('dart:core'), 'int'),
@@ -181,12 +182,12 @@ macro class HashCode
 
   @override
   Future<void> buildDefinitionForClass(
-      ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
+      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     var methods = await builder.methodsOf(clazz);
     var hashCodeBuilder = await builder.buildMethod(
         methods.firstWhere((m) => m.identifier.name == 'hashCode').identifier);
     var hashCodeExprs = [
-      await for (var field in clazz.allFields(builder))
+      await for (var field in clazz.allFields(builder, builder))
         ExpressionCode.fromParts([field.identifier, '.hashCode']),
     ].joinAsCode(' ^ ');
     hashCodeBuilder.augment(FunctionBodyCode.fromParts([
@@ -203,8 +204,8 @@ macro class Equality
 
   @override
   Future<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
-    builder.declareInClass(DeclarationCode.fromParts([
+      ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
+    builder.declareInType(DeclarationCode.fromParts([
       'external ',
       // ignore: deprecated_member_use
       await builder.resolveIdentifier(Uri.parse('dart:core'), 'bool'),
@@ -217,12 +218,12 @@ macro class Equality
 
   @override
   Future<void> buildDefinitionForClass(
-      ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
+      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     var methods = await builder.methodsOf(clazz);
     var equalsBuilder = await builder.buildMethod(
         methods.firstWhere((m) => m.identifier.name == '==').identifier);
     var equalityExprs = [
-      await for (var field in clazz.allFields(builder))
+      await for (var field in clazz.allFields(builder, builder))
         ExpressionCode.fromParts([
           field.identifier,
           ' == other.',
@@ -247,8 +248,8 @@ macro class ToString
 
   @override
   Future<void> buildDeclarationsForClass(
-      ClassDeclaration clazz, ClassMemberDeclarationBuilder builder) async {
-    builder.declareInClass(DeclarationCode.fromParts([
+      ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
+    builder.declareInType(DeclarationCode.fromParts([
       'external ',
       // ignore: deprecated_member_use
       await builder.resolveIdentifier(Uri.parse('dart:core'), 'String'),
@@ -258,12 +259,12 @@ macro class ToString
 
   @override
   Future<void> buildDefinitionForClass(
-      ClassDeclaration clazz, ClassDefinitionBuilder builder) async {
+      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     var methods = await builder.methodsOf(clazz);
     var toStringBuilder = await builder.buildMethod(
         methods.firstWhere((m) => m.identifier.name == 'toString').identifier);
     var fieldExprs = [
-      await for (var field in clazz.allFields(builder))
+      await for (var field in clazz.allFields(builder, builder))
         Code.fromParts([
           '  ${field.identifier.name}: \${',
           field.identifier,
@@ -279,20 +280,23 @@ macro class ToString
   }
 }
 
-extension _AllFields on ClassDeclaration {
+extension _AllFields on IntrospectableClassDeclaration {
   // Returns all fields from all super classes.
-  Stream<FieldDeclaration> allFields(ClassIntrospector introspector) async* {
+  Stream<FieldDeclaration> allFields(
+      TypeIntrospector introspector,
+      TypeDeclarationResolver declarationResolver) async* {
     for (var field in await introspector.fieldsOf(this)) {
       yield field;
     }
-    var next = await introspector.superclassOf(this);
-    // TODO: Compare against actual Object identifer once we provide a way to
-    // get it.
-    while (next is ClassDeclaration && next.identifier.name != 'Object') {
+    var next = superclass != null ?
+        await declarationResolver.declarationOf(superclass!.identifier) : null;
+    // TODO: Compare against actual Object identifer once we provide a way to get it.
+    while (next is IntrospectableClassDeclaration && next.identifier.name != 'Object') {
       for (var field in await introspector.fieldsOf(next)) {
         yield field;
       }
-      next = await introspector.superclassOf(next);
+      next = next.superclass != null ?
+          await declarationResolver.declarationOf(next.superclass!.identifier) : null;
     }
   }
 }
