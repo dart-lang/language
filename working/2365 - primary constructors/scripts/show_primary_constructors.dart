@@ -4,6 +4,9 @@ import 'dart:convert';
 import 'dart:io';
 
 abstract final class Options {
+  static bool showNormal = false;
+  static bool showStruct = false;
+  static bool showKeyword = false;
   static bool implicitFinal = false;
 }
 
@@ -13,6 +16,10 @@ void help() {
 
  Options:
    --help, -h: Print this help text.
+   --implicit-final: Omit `final` where possible.
+   --show-normal: Show a normal constructor and explicit field declarations.
+   --show-keyword: Show the form that uses a keyword.
+   --show-struct: Show the form which was proposed along with structs.
 """);
 }
 
@@ -30,6 +37,15 @@ bool processOption(String option) {
         return true;
       case 'implicit-final':
         Options.implicitFinal = true;
+        return true;
+      case 'show-normal':
+        Options.showNormal = true;
+        return true;
+      case 'show-struct':
+        Options.showStruct = true;
+        return true;
+      case 'show-keyword':
+        Options.showKeyword = true;
         return true;
       default:
         return false;
@@ -58,6 +74,7 @@ List<String> processOptions(List<String> args) {
 }
 
 class ClassSpec {
+  final String provenance; // Identify where we got this class from.
   final String name;
   final String? constructorName;
   final bool isInline;
@@ -67,6 +84,7 @@ class ClassSpec {
   final String? typeParameters;
 
   ClassSpec(
+    this.provenance,
     this.name,
     this.constructorName,
     this.isInline,
@@ -76,7 +94,7 @@ class ClassSpec {
     this.superinterfaces,
   );
 
-  factory ClassSpec.fromJson(Map<String, dynamic> jsonSpec) {
+  factory ClassSpec.fromJson(String source, Map<String, dynamic> jsonSpec) {
     var name = jsonSpec['name']!;
     var constructorName = jsonSpec['constructorName'];
     var isInline = jsonSpec['isInline'] ?? false;
@@ -91,6 +109,7 @@ class ClassSpec {
       fields.add(field);
     }
     return ClassSpec(
+      source,
       name,
       constructorName,
       isInline,
@@ -106,14 +125,16 @@ class FieldSpec {
   String name;
   String type;
   bool isFinal;
+  bool isOptional;
 
-  FieldSpec(this.name, this.type, this.isFinal);
+  FieldSpec(this.name, this.type, this.isFinal, this.isOptional);
 
   factory FieldSpec.fromJson(Map<String, dynamic> jsonField) {
     var name = jsonField['name']!;
     var type = jsonField['type']!;
     var isFinal = jsonField['isFinal'] ?? false;
-    return FieldSpec(name, type, isFinal);
+    var isOptional = jsonField['isOptional'] ?? false;
+    return FieldSpec(name, type, isFinal, isOptional);
   }
 }
 
@@ -257,6 +278,10 @@ void main(List<String> args) {
     help();
     exit(0);
   }
+  if (!Options.showNormal && !Options.showStruct && !Options.showKeyword) {
+    // Default is to show all formats.
+    Options.showNormal = Options.showStruct = Options.showKeyword = true;
+  }
 
   var classSpecs = <ClassSpec>[];
   for (var filePath in filePaths) {
@@ -268,16 +293,24 @@ void main(List<String> args) {
       fail();
     }
     var jsonSpec = jsonDecode(source);
-    classSpecs.add(ClassSpec.fromJson(jsonSpec));
+    classSpecs.add(ClassSpec.fromJson(filePath, jsonSpec));
   }
+
 
   void show(String comment, String source) {
     print('// $comment.\n\n$source\n');
   }
 
   for (var classSpec in classSpecs) {
-    show("Normal", ppNormal(classSpec));
-    show("Struct style", ppStruct(classSpec));
-    show("Rightmost, with keyword", ppKeyword(classSpec));
+    print('// ------------------------------ ${classSpec.provenance}\n');
+    if (Options.showNormal) {
+      show("Normal", ppNormal(classSpec));
+    }
+    if (Options.showStruct) {
+      show("Struct style", ppStruct(classSpec));
+    }
+    if (Options.showKeyword) {
+      show("Rightmost, with keyword", ppKeyword(classSpec));
+    }
   }
 }
