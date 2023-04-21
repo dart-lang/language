@@ -96,10 +96,8 @@ macro class Provides implements MethodDeclarationsMacro {
       ') => ',
       method.identifier,
       '(',
-      for (final param in method.positionalParameters) ...[
-        param.identifier,
-        '(), ',
-      ],
+      for (final param in method.positionalParameters)
+        'provide${param.identifier.name.capitalize}(), ',
       ');',
     ];
     builder.declareInType(new DeclarationCode.fromParts(parts));
@@ -109,7 +107,8 @@ macro class Provides implements MethodDeclarationsMacro {
 macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
   final List<Identifier> modules;
 
-  const Component({required this.modules});
+  // TODO: Require modules here and generate the constructor once supported.
+  const Component({this.modules = const []});
 
   @override
   FutureOr<void> buildDeclarationsForClass(IntrospectableClassDeclaration clazz,

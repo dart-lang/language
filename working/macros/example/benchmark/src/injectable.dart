@@ -45,17 +45,29 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
   final instantiateBenchmark =
       InjectableInstantiateBenchmark(executor, macroUri);
   await instantiateBenchmark.report();
-  final instanceId = instantiateBenchmark.instanceIdentifier;
+  final injectableInstanceIdentifier =
+      instantiateBenchmark.injectableInstanceIdentifier;
+  final providesInstanceIdentifier =
+      instantiateBenchmark.providesInstanceIdentifier;
+  final componentInstanceIdentifier =
+      instantiateBenchmark.componentInstanceIdentifier;
   final typesBenchmark = InjectableTypesPhaseBenchmark(
-      executor, macroUri, identifierResolver, instanceId);
+      executor,
+      macroUri,
+      componentInstanceIdentifier,
+      injectableInstanceIdentifier,
+      providesInstanceIdentifier,
+      identifierResolver);
   await typesBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor, typesBenchmark.results, typeDeclarations);
   final declarationsBenchmark = InjectableDeclarationsPhaseBenchmark(
       executor,
       macroUri,
+      componentInstanceIdentifier,
+      injectableInstanceIdentifier,
+      providesInstanceIdentifier,
       identifierResolver,
-      instanceId,
       typeIntrospector,
       typeDeclarationResolver);
   await declarationsBenchmark.report();
@@ -64,8 +76,10 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
   final definitionsBenchmark = InjectableDefinitionPhaseBenchmark(
       executor,
       macroUri,
+      componentInstanceIdentifier,
+      injectableInstanceIdentifier,
+      providesInstanceIdentifier,
       identifierResolver,
-      instanceId,
       typeIntrospector,
       typeDeclarationResolver);
   await definitionsBenchmark.report();
@@ -76,14 +90,20 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
 class InjectableInstantiateBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
-  late MacroInstanceIdentifier instanceIdentifier;
+  late MacroInstanceIdentifier injectableInstanceIdentifier;
+  late MacroInstanceIdentifier providesInstanceIdentifier;
+  late MacroInstanceIdentifier componentInstanceIdentifier;
 
   InjectableInstantiateBenchmark(this.executor, this.macroUri)
       : super('InjectableInstantiate');
 
   Future<void> run() async {
-    instanceIdentifier = await executor.instantiateMacro(
+    injectableInstanceIdentifier = await executor.instantiateMacro(
         macroUri, 'Injectable', '', Arguments([], {}));
+    providesInstanceIdentifier = await executor.instantiateMacro(
+        macroUri, 'Provides', '', Arguments([], {}));
+    componentInstanceIdentifier = await executor.instantiateMacro(
+        macroUri, 'Component', '', Arguments([], {}));
   }
 }
 
@@ -91,20 +111,34 @@ class InjectableTypesPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
   final IdentifierResolver identifierResolver;
-  final MacroInstanceIdentifier instanceIdentifier;
+  final MacroInstanceIdentifier componentInstanceIdentifier;
+  final MacroInstanceIdentifier injectableInstanceIdentifier;
+  final MacroInstanceIdentifier providesInstanceIdentifier;
   late List<MacroExecutionResult> results;
 
-  InjectableTypesPhaseBenchmark(this.executor, this.macroUri,
-      this.identifierResolver, this.instanceIdentifier)
-      : super('InjectableTypesPhase');
+  InjectableTypesPhaseBenchmark(
+    this.executor,
+    this.macroUri,
+    this.componentInstanceIdentifier,
+    this.injectableInstanceIdentifier,
+    this.providesInstanceIdentifier,
+    this.identifierResolver,
+  ) : super('InjectableTypesPhase');
 
   Future<void> run() async {
     results = <MacroExecutionResult>[];
-    if (instanceIdentifier.shouldExecute(
+    if (injectableInstanceIdentifier.shouldExecute(
         DeclarationKind.classType, Phase.types)) {
       for (var clazz in injectableClasses) {
         results.add(await executor.executeTypesPhase(
-            instanceIdentifier, clazz, identifierResolver));
+            injectableInstanceIdentifier, clazz, identifierResolver));
+      }
+    }
+    for (var method in dripCoffeeModuleMethods) {
+      if (providesInstanceIdentifier.shouldExecute(
+          DeclarationKind.method, Phase.types)) {
+        results.add(await executor.executeTypesPhase(
+            providesInstanceIdentifier, method, identifierResolver));
       }
     }
   }
@@ -113,8 +147,10 @@ class InjectableTypesPhaseBenchmark extends AsyncBenchmarkBase {
 class InjectableDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
+  final MacroInstanceIdentifier componentInstanceIdentifier;
+  final MacroInstanceIdentifier injectableInstanceIdentifier;
+  final MacroInstanceIdentifier providesInstanceIdentifier;
   final IdentifierResolver identifierResolver;
-  final MacroInstanceIdentifier instanceIdentifier;
   final TypeIntrospector typeIntrospector;
   final TypeDeclarationResolver typeDeclarationResolver;
 
@@ -123,24 +159,38 @@ class InjectableDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
   InjectableDeclarationsPhaseBenchmark(
       this.executor,
       this.macroUri,
+      this.componentInstanceIdentifier,
+      this.injectableInstanceIdentifier,
+      this.providesInstanceIdentifier,
       this.identifierResolver,
-      this.instanceIdentifier,
       this.typeIntrospector,
       this.typeDeclarationResolver)
       : super('InjectableDeclarationsPhase');
 
   Future<void> run() async {
     results = <MacroExecutionResult>[];
-    if (instanceIdentifier.shouldExecute(
+    if (injectableInstanceIdentifier.shouldExecute(
         DeclarationKind.classType, Phase.declarations)) {
       for (var clazz in injectableClasses) {
         results.add(await executor.executeDeclarationsPhase(
-            instanceIdentifier,
+            injectableInstanceIdentifier,
             clazz,
             identifierResolver,
             typeDeclarationResolver,
             SimpleTypeResolver(),
             typeIntrospector));
+      }
+      for (var method in dripCoffeeModuleMethods) {
+        if (providesInstanceIdentifier.shouldExecute(
+            DeclarationKind.method, Phase.declarations)) {
+          results.add(await executor.executeDeclarationsPhase(
+              providesInstanceIdentifier,
+              method,
+              identifierResolver,
+              typeDeclarationResolver,
+              SimpleTypeResolver(),
+              typeIntrospector));
+        }
       }
     }
   }
@@ -149,8 +199,10 @@ class InjectableDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
 class InjectableDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
+  final MacroInstanceIdentifier componentInstanceIdentifier;
+  final MacroInstanceIdentifier injectableInstanceIdentifier;
+  final MacroInstanceIdentifier providesInstanceIdentifier;
   final IdentifierResolver identifierResolver;
-  final MacroInstanceIdentifier instanceIdentifier;
   final TypeIntrospector typeIntrospector;
   final TypeDeclarationResolver typeDeclarationResolver;
 
@@ -159,25 +211,40 @@ class InjectableDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
   InjectableDefinitionPhaseBenchmark(
       this.executor,
       this.macroUri,
+      this.componentInstanceIdentifier,
+      this.injectableInstanceIdentifier,
+      this.providesInstanceIdentifier,
       this.identifierResolver,
-      this.instanceIdentifier,
       this.typeIntrospector,
       this.typeDeclarationResolver)
       : super('InjectableDefinitionPhase');
 
   Future<void> run() async {
     results = <MacroExecutionResult>[];
-    if (instanceIdentifier.shouldExecute(
+    if (injectableInstanceIdentifier.shouldExecute(
         DeclarationKind.classType, Phase.definitions)) {
       for (var clazz in injectableClasses) {
         results.add(await executor.executeDefinitionsPhase(
-            instanceIdentifier,
+            injectableInstanceIdentifier,
             clazz,
             identifierResolver,
             typeDeclarationResolver,
             SimpleTypeResolver(),
             typeIntrospector,
             FakeTypeInferrer()));
+      }
+      for (var method in dripCoffeeModuleMethods) {
+        if (providesInstanceIdentifier.shouldExecute(
+            DeclarationKind.method, Phase.definitions)) {
+          results.add(await executor.executeDefinitionsPhase(
+              providesInstanceIdentifier,
+              method,
+              identifierResolver,
+              typeDeclarationResolver,
+              SimpleTypeResolver(),
+              typeIntrospector,
+              FakeTypeInferrer()));
+        }
       }
     }
   }

@@ -38,11 +38,10 @@ class DripCoffeeModule {
   Pump providePump(Thermosiphon impl) => impl;
 }
 
-@Component(modules: [])
+@Component()
 class DripCoffeeComponent {
   external CoffeeMaker coffeeMaker();
 
-  // TODO: Generate this from the modules given above once macro args are
-  // supported.
+  // TODO: Generate this from modules given to the macro once supported
   external factory DripCoffeeComponent(DripCoffeeModule dripCoffeeModule);
 }
