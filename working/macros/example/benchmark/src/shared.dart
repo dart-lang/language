@@ -41,7 +41,7 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
             uri: null);
       } else {
         return ResolvedIdentifier(
-            kind: identifier.name == 'MyClass'
+            kind: typeDeclarations.containsKey(identifier)
                 ? IdentifierKind.topLevelMember
                 : IdentifierKind.instanceMember,
             name: identifier.name,
@@ -78,17 +78,23 @@ abstract class Fake {
 
 /// Returns data as if everything was [myClass].
 class SimpleTypeIntrospector implements TypeIntrospector {
-  final Map<IntrospectableType, List<FieldDeclaration>> fields;
-  final Map<IntrospectableType, List<MethodDeclaration>> methods;
+  final Map<IntrospectableType, List<ConstructorDeclaration>> constructors;
   final Map<IntrospectableEnumDeclaration, List<EnumValueDeclaration>>
       enumValues;
+  final Map<IntrospectableType, List<FieldDeclaration>> fields;
+  final Map<IntrospectableType, List<MethodDeclaration>> methods;
 
-  SimpleTypeIntrospector(this.fields, this.methods, this.enumValues);
+  SimpleTypeIntrospector({
+    required this.constructors,
+    required this.enumValues,
+    required this.fields,
+    required this.methods,
+  });
 
   @override
   Future<List<ConstructorDeclaration>> constructorsOf(
           IntrospectableType type) async =>
-      [];
+      constructors[type] ?? [];
 
   @override
   Future<List<FieldDeclaration>> fieldsOf(IntrospectableType type) async =>
@@ -106,10 +112,14 @@ class SimpleTypeIntrospector implements TypeIntrospector {
 
 /// This is a very basic identifier resolver, it does no actual resolution.
 class SimpleIdentifierResolver implements IdentifierResolver {
+  final Map<Uri, Map<String, Identifier>> knownIdentifiers;
+
+  SimpleIdentifierResolver(this.knownIdentifiers);
+
   /// Just returns a new [Identifier] whose name is [name].
   @override
   Future<Identifier> resolveIdentifier(Uri library, String name) async =>
-      IdentifierImpl(id: RemoteInstance.uniqueId, name: name);
+      knownIdentifiers[library]![name]!;
 }
 
 class SimpleTypeDeclarationResolver implements TypeDeclarationResolver {

@@ -12,25 +12,46 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
     objectClass.identifier: objectClass
   };
   final typeIntrospector = SimpleTypeIntrospector(
-      {myClass: myClassFields}, {myClass: myClassMethods}, {});
+      constructors: {},
+      enumValues: {},
+      fields: {myClass: myClassFields},
+      methods: {myClass: myClassMethods});
   final typeDeclarationResolver =
       SimpleTypeDeclarationResolver(typeDeclarations);
+  final identifierResolver = SimpleIdentifierResolver({
+    Uri.parse('dart:core'): {
+      'bool': boolIdentifier,
+      'int': intIdentifier,
+      'Object': objectIdentifier,
+      'String': stringIdentifier,
+    }
+  });
   final instantiateBenchmark =
       DataClassInstantiateBenchmark(executor, macroUri);
   await instantiateBenchmark.report();
   final instanceId = instantiateBenchmark.instanceIdentifier;
-  final typesBenchmark =
-      DataClassTypesPhaseBenchmark(executor, macroUri, instanceId);
+  final typesBenchmark = DataClassTypesPhaseBenchmark(
+      executor, macroUri, identifierResolver, instanceId);
   await typesBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor, typesBenchmark.results, typeDeclarations);
-  final declarationsBenchmark = DataClassDeclarationsPhaseBenchmark(executor,
-      macroUri, instanceId, typeIntrospector, typeDeclarationResolver);
+  final declarationsBenchmark = DataClassDeclarationsPhaseBenchmark(
+      executor,
+      macroUri,
+      identifierResolver,
+      instanceId,
+      typeIntrospector,
+      typeDeclarationResolver);
   await declarationsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor, declarationsBenchmark.results, typeDeclarations);
-  final definitionsBenchmark = DataClassDefinitionPhaseBenchmark(executor,
-      macroUri, instanceId, typeIntrospector, typeDeclarationResolver);
+  final definitionsBenchmark = DataClassDefinitionPhaseBenchmark(
+      executor,
+      macroUri,
+      identifierResolver,
+      instanceId,
+      typeIntrospector,
+      typeDeclarationResolver);
   await definitionsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor, definitionsBenchmark.results, typeDeclarations);
@@ -53,11 +74,12 @@ class DataClassInstantiateBenchmark extends AsyncBenchmarkBase {
 class DataClassTypesPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
+  final IdentifierResolver identifierResolver;
   final MacroInstanceIdentifier instanceIdentifier;
   late List<MacroExecutionResult> results;
 
-  DataClassTypesPhaseBenchmark(
-      this.executor, this.macroUri, this.instanceIdentifier)
+  DataClassTypesPhaseBenchmark(this.executor, this.macroUri,
+      this.identifierResolver, this.instanceIdentifier)
       : super('DataClassTypesPhase');
 
   Future<void> run() async {
@@ -65,7 +87,7 @@ class DataClassTypesPhaseBenchmark extends AsyncBenchmarkBase {
     if (instanceIdentifier.shouldExecute(
         DeclarationKind.classType, Phase.types)) {
       var result = await executor.executeTypesPhase(
-          instanceIdentifier, myClass, SimpleIdentifierResolver());
+          instanceIdentifier, myClass, identifierResolver);
       results.add(result);
     }
   }
@@ -74,6 +96,7 @@ class DataClassTypesPhaseBenchmark extends AsyncBenchmarkBase {
 class DataClassDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
+  final IdentifierResolver identifierResolver;
   final MacroInstanceIdentifier instanceIdentifier;
   final TypeIntrospector typeIntrospector;
   final TypeDeclarationResolver typeDeclarationResolver;
@@ -83,6 +106,7 @@ class DataClassDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
   DataClassDeclarationsPhaseBenchmark(
       this.executor,
       this.macroUri,
+      this.identifierResolver,
       this.instanceIdentifier,
       this.typeIntrospector,
       this.typeDeclarationResolver)
@@ -95,7 +119,7 @@ class DataClassDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
       var result = await executor.executeDeclarationsPhase(
           instanceIdentifier,
           myClass,
-          SimpleIdentifierResolver(),
+          identifierResolver,
           typeDeclarationResolver,
           SimpleTypeResolver(),
           typeIntrospector);
@@ -107,6 +131,7 @@ class DataClassDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
 class DataClassDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
+  final IdentifierResolver identifierResolver;
   final MacroInstanceIdentifier instanceIdentifier;
   final TypeIntrospector typeIntrospector;
   final TypeDeclarationResolver typeDeclarationResolver;
@@ -116,6 +141,7 @@ class DataClassDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
   DataClassDefinitionPhaseBenchmark(
       this.executor,
       this.macroUri,
+      this.identifierResolver,
       this.instanceIdentifier,
       this.typeIntrospector,
       this.typeDeclarationResolver)
@@ -128,7 +154,7 @@ class DataClassDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
       var result = await executor.executeDefinitionsPhase(
           instanceIdentifier,
           myClass,
-          SimpleIdentifierResolver(),
+          identifierResolver,
           typeDeclarationResolver,
           SimpleTypeResolver(),
           typeIntrospector,

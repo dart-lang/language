@@ -29,6 +29,7 @@ import 'package:_fe_analyzer_shared/src/macros/executor/multi_executor.dart'
     as multiExecutor;
 
 import 'src/data_class.dart' as data_class;
+import 'src/injectable.dart' as injectable;
 
 final _watch = Stopwatch()..start();
 void _log(String message) {
@@ -167,6 +168,7 @@ Macro: $macro
     _log('Running benchmark');
     await switch (macro) {
       'DataClass' => data_class.runBenchmarks(executor, macroUri),
+      'Injectable' => injectable.runBenchmarks(executor, macroUri),
       _ => throw UnsupportedError('Unrecognized macro $macro'),
     };
     await executor.close();

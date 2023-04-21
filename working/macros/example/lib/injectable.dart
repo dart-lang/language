@@ -36,7 +36,13 @@ macro class Injectable implements ClassDeclarationsMacro {
       ' provider(',
     ];
 
-    final constructor = (await builder.constructorsOf(clazz)).single;
+    final constructors = await builder.constructorsOf(clazz);
+    if (constructors.length != 1) {
+      throw ArgumentError(
+          'Injectable classes should have only one constructor but '
+          '${clazz.identifier.name} has ${constructors.length}');
+    }
+    final constructor = constructors.single;
     final allParameters = constructor.positionalParameters
         .followedBy(constructor.namedParameters);
     for (final parameter in allParameters) {
@@ -58,7 +64,7 @@ macro class Injectable implements ClassDeclarationsMacro {
           ? clazz.identifier
           : constructor.identifier,
       '(',
-      for (final parameter in allParameters) '${parameter.identifier.name}(), ',
+      for (final parameter in allParameters) '${parameter.identifier.name}Provider(), ',
       ');',
     ]);
 
