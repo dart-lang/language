@@ -624,7 +624,7 @@ It is a compile-time error if:
 *   Any two keys in the map are [structurally equivalent][]. *Duplicate
     keys are likely to be a copy/paste error. If you want to match the value
     associated with some key against multiple patterns, you can always use an
-    `||` pattern.*s
+    `&&` pattern.*
 
 *Note that `mapPatternEntries` is not optional, which means it is an error for
 a map pattern to be empty.*
