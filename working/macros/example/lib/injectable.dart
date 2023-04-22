@@ -66,7 +66,8 @@ macro class Injectable implements ClassDeclarationsMacro {
           ? clazz.identifier
           : constructor.identifier,
       '(',
-      for (final parameter in allParameters) '${parameter.identifier.name}Provider(), ',
+      for (final parameter in allParameters)
+        '${parameter.identifier.name}Provider(), ',
       ');',
     ]);
 
@@ -204,7 +205,6 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
       '{',
     ];
 
-
     /// For each parameter to the factory, we add a map from the type provided
     /// to the providerProvider method.
     final providerProviderMethods = <Identifier, MethodDeclaration>{};
@@ -231,8 +231,8 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
     /// The private constructor (generated earlier), that we actually want to
     /// invoke. This will have only Providers as its parameters, one for each
     /// external method on the class.
-    final privateConstructor = constructors.singleWhere(
-        (constructor) => constructor.identifier.name == '_');
+    final privateConstructor = constructors
+        .singleWhere((constructor) => constructor.identifier.name == '_');
     // Map of Type identifiers to local variable names for zero argument
     // provider methods.
     final localProviders = <Identifier, String>{};
@@ -267,12 +267,14 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
       throw StateError('Only positional parameters are supported');
     }
     for (final param in method.positionalParameters) {
-      final paramType = param.type;
+      var paramType = param.type;
+      if (paramType is OmittedTypeAnnotation) {
+        paramType = await builder.inferType(paramType);
+      }
       if (paramType is! NamedTypeAnnotation ||
           paramType.identifier != providerIdentifier) {
-        throw ArgumentError(
-          'All arguments should be providers, but got a '
-          '${param.type.code.debugString()}');
+        throw ArgumentError('All arguments should be providers, but got a '
+            '${param.type.code.debugString()}');
       }
       final providedType =
           paramType.typeArguments.single as NamedTypeAnnotation;

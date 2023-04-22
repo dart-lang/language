@@ -9,8 +9,10 @@ extension DebugCodeString on Code {
         part.debugString(buffer);
       } else if (part is IdentifierImpl) {
         buffer.write(part.name);
+      } else if (part is String) {
+        buffer.write(part);
       } else {
-        buffer.write(part as String);
+        buffer.write(part);
       }
     }
     return buffer;
