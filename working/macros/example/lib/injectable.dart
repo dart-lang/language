@@ -7,6 +7,8 @@ import 'dart:async';
 
 import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
+import 'util.dart';
+
 /// A [Provider] is just a function with no arguments that returns something
 /// of the desired type when invoked.
 typedef Provider<T> = T Function();
@@ -122,21 +124,21 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
       if (!method.isExternal) continue;
 
       // We use the method name because it is always a valid field name.
-      final fieldName = '_${method.identifier.name}Provider;';
+      final fieldName = '_${method.identifier.name}Provider';
       fieldNames.add(fieldName);
       // Add a field for the provider of each returned type.
       builder.declareInType(DeclarationCode.fromParts([
         'final ',
         NamedTypeAnnotationCode(
             name: providerIdentifier, typeArguments: [method.returnType.code]),
-        fieldName,
+        '$fieldName;',
       ]));
     }
 
     // Add a private constructor to initialize all the fields from the higher
     // level providers.
     builder.declareInType(DeclarationCode.fromParts([
-      clazz.identifier,
+      clazz.identifier.name,
       '._(',
       for (final field in fieldNames) 'this.$field, ',
       ');',
@@ -179,12 +181,14 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
               name: providerIdentifier,
               typeArguments: [method.returnType.code])))) {
         throw ArgumentError(
-            'Expected the field ${field.identifier.name} to be a Provider<${method.returnType.code}>');
+            'Expected the field ${field.identifier.name} to be a '
+            'Provider<${method.returnType.code.debugString()}> but it was a '
+            '${field.type.code.debugString()}');
       }
       methodBuilder.augment(FunctionBodyCode.fromParts([
         ' => ',
         field.identifier,
-        '()',
+        '();',
       ]));
     }
 
@@ -200,12 +204,14 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
       '{',
     ];
 
+
     /// For each parameter to the factory, we add a map from the type provided
     /// to the providerProvider method.
     final providerProviderMethods = <Identifier, MethodDeclaration>{};
 
     /// For each providerProvider, the parameter that it came from.
     final providerProviderParameters = <MethodDeclaration, Identifier>{};
+
     for (final param in factoryConstructor.positionalParameters
         .followedBy(factoryConstructor.namedParameters)) {
       final module = (param.type as NamedTypeAnnotation).identifier;
@@ -222,11 +228,16 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
       }
     }
 
+    /// The private constructor (generated earlier), that we actually want to
+    /// invoke. This will have only Providers as its parameters, one for each
+    /// external method on the class.
+    final privateConstructor = constructors.singleWhere(
+        (constructor) => constructor.identifier.name == '_');
     // Map of Type identifiers to local variable names for zero argument
     // provider methods.
     final localProviders = <Identifier, String>{};
     final arguments = await _satisfyParameters(
-        factoryConstructor,
+        privateConstructor,
         builder,
         localProviders,
         providerIdentifier,
@@ -235,7 +246,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
         parts);
     parts.addAll([
       'return ',
-      factoryConstructor,
+      privateConstructor.identifier,
       '($arguments);}',
     ]);
     constructorBuilder.augment(body: FunctionBodyCode.fromParts(parts));
@@ -259,7 +270,9 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
       final paramType = param.type;
       if (paramType is! NamedTypeAnnotation ||
           paramType.identifier != providerIdentifier) {
-        throw ArgumentError('All arguments should be providers');
+        throw ArgumentError(
+          'All arguments should be providers, but got a '
+          '${param.type.code.debugString()}');
       }
       final providedType =
           paramType.typeArguments.single as NamedTypeAnnotation;
@@ -300,7 +313,9 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
         final returnType = method.returnType;
         if (returnType is! NamedTypeAnnotation) continue;
         if (returnType.identifier != providerIdentifier) continue;
-        if (returnType.typeArguments.single != type) continue;
+        final typeArgument = returnType.typeArguments.single;
+        if (typeArgument is! NamedTypeAnnotation) continue;
+        if (typeArgument.identifier != type) continue;
         providerProvider = method;
         break;
       }
@@ -317,7 +332,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
         providerProviderMethods,
         providerProviderParameters,
         codeParts);
-    final name = '${type.name}Provider';
+    final name = '${type.name.uncapitalize}Provider';
     codeParts.addAll([
       'final $name = ',
       // If it isn't a static method, it must be coming from a parameter.
@@ -335,4 +350,5 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
 
 extension _ on String {
   String get capitalize => '${this[0].toUpperCase()}${substring(1)}';
+  String get uncapitalize => '${this[0].toLowerCase()}${substring(1)}';
 }

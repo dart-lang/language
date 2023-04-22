@@ -9,19 +9,22 @@ import 'package:dart_style/dart_style.dart';
 class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
   final MacroExecutor executor;
   final List<MacroExecutionResult> results;
-  final Map<Identifier, TypeDeclaration> typeDeclarations;
+
+  /// Map from identifiers to their declarations.
+  final Map<Identifier, Declaration> identifierDeclarations;
   late String library;
 
   BuildAugmentationLibraryBenchmark(
-      this.executor, this.results, this.typeDeclarations)
+      this.executor, this.results, this.identifierDeclarations)
       : super('AugmentationLibrary');
 
   static void reportAndPrint(
-      MacroExecutor executor,
-      List<MacroExecutionResult> results,
-      Map<Identifier, TypeDeclaration> typeDeclarations) {
-    final benchmark =
-        BuildAugmentationLibraryBenchmark(executor, results, typeDeclarations);
+    MacroExecutor executor,
+    List<MacroExecutionResult> results,
+    Map<Identifier, Declaration> identifierDeclarations,
+  ) {
+    final benchmark = BuildAugmentationLibraryBenchmark(
+        executor, results, identifierDeclarations);
     benchmark.report();
     final formatBenchmark = FormatLibraryBenchmark(benchmark.library)..report();
     print('${formatBenchmark.formattedResult}');
@@ -31,8 +34,10 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
     library = executor.buildAugmentationLibrary(
         results,
         (identifier) =>
-            typeDeclarations[identifier] ??
-            (throw UnsupportedError('Can only resolve myClass')), (identifier) {
+            identifierDeclarations[identifier] as TypeDeclaration? ??
+            (throw UnsupportedError(
+                'Can not resolve identifier ${identifier.name}')),
+        (identifier) {
       if (['bool', 'Object', 'String', 'int'].contains(identifier.name)) {
         return ResolvedIdentifier(
             kind: IdentifierKind.topLevelMember,
@@ -40,13 +45,30 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
             staticScope: null,
             uri: null);
       } else {
+        final declaration = identifierDeclarations[identifier];
+        String? staticScope;
+        IdentifierKind kind;
+        if (declaration is MemberDeclaration) {
+          if (declaration.isStatic) {
+            staticScope = declaration.definingType.name;
+            kind = IdentifierKind.staticInstanceMember;
+          } else {
+            kind = IdentifierKind.instanceMember;
+          }
+        } else if (declaration is TypeDeclaration) {
+          kind = IdentifierKind.topLevelMember;
+        } else {
+          // Assume it is a parameter or similar.
+          kind = IdentifierKind.local;
+        }
         return ResolvedIdentifier(
-            kind: typeDeclarations.containsKey(identifier)
-                ? IdentifierKind.topLevelMember
-                : IdentifierKind.instanceMember,
+            kind: kind,
             name: identifier.name,
-            staticScope: null,
-            uri: Uri.parse('package:app/main.dart'));
+            staticScope: staticScope,
+            uri: kind == IdentifierKind.topLevelMember ||
+                    kind == IdentifierKind.staticInstanceMember
+                ? Uri.parse('package:app/main.dart')
+                : null);
       }
     },
         (annotation) =>
@@ -140,14 +162,15 @@ class FakeTypeInferrer extends Fake implements TypeInferrer {}
 /// Only supports named types with no type arguments.
 class SimpleTypeResolver implements TypeResolver {
   @override
-  Future<StaticType> resolve(TypeAnnotationCode type) async {
+  Future<SimpleNamedStaticType> resolve(TypeAnnotationCode type) async {
     if (type is! NamedTypeAnnotationCode) {
       throw UnsupportedError('Only named type annotations are supported');
     }
-    if (type.typeArguments.isNotEmpty) {
-      throw UnsupportedError('Type arguments are not supported');
-    }
-    return SimpleNamedStaticType(type.name.name, isNullable: type.isNullable);
+    return SimpleNamedStaticType(type.name.name,
+        isNullable: type.isNullable,
+        typeArguments: [
+          for (final type in type.typeArguments) await resolve(type),
+        ]);
   }
 }
 
@@ -155,21 +178,29 @@ class SimpleTypeResolver implements TypeResolver {
 class SimpleNamedStaticType implements NamedStaticType {
   final bool isNullable;
   final String name;
+  final List<SimpleNamedStaticType> typeArguments;
 
-  SimpleNamedStaticType(this.name, {this.isNullable = false});
+  SimpleNamedStaticType(this.name,
+      {this.isNullable = false, this.typeArguments = const []});
 
   @override
-  Future<bool> isExactly(covariant SimpleNamedStaticType other) async =>
-      isNullable == other.isNullable && name == other.name;
+  Future<bool> isExactly(covariant SimpleNamedStaticType other) async {
+    if (isNullable != other.isNullable ||
+        name != other.name ||
+        typeArguments.length != other.typeArguments.length) {
+      return false;
+    }
+    for (var i = 0; i < typeArguments.length; i++) {
+      if (!await typeArguments[i].isExactly(other.typeArguments[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   @override
   Future<bool> isSubtypeOf(covariant StaticType other) =>
       throw UnimplementedError();
-}
-
-extension _ on Duration {
-  Duration dividedBy(int amount) =>
-      Duration(microseconds: (this.inMicroseconds / amount).round());
 }
 
 final boolIdentifier =

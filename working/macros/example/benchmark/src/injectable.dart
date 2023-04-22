@@ -28,13 +28,27 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
     enumValues: {},
     fields: {
       coffeeMakerClass: coffeeMakerFields,
+      dripCoffeeComponentClass: [],
       thermosiphonClass: thermosiphonFields,
     },
     methods: {
+      coffeeMakerClass: [],
       dripCoffeeModuleClass: dripCoffeeModuleMethods,
       dripCoffeeComponentClass: dripCoffeeComponentMethods,
+      electricHeaterClass: [],
+      thermosiphonClass: [],
     },
   );
+  final identifierDeclarations = {
+    ...typeDeclarations,
+    for (final constructors in typeIntrospector.constructors.values)
+      for (final constructor in constructors)
+        constructor.identifier: constructor,
+    for (final methods in typeIntrospector.methods.values)
+      for (final method in methods) method.identifier: method,
+    for (final fields in typeIntrospector.fields.values)
+      for (final field in fields) field.identifier: field,
+  };
   final typeDeclarationResolver =
       SimpleTypeDeclarationResolver(typeDeclarations);
   final identifierResolver = SimpleIdentifierResolver({
@@ -60,7 +74,7 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       identifierResolver);
   await typesBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, typesBenchmark.results, typeDeclarations);
+      executor, typesBenchmark.results, identifierDeclarations);
   final declarationsBenchmark = InjectableDeclarationsPhaseBenchmark(
       executor,
       macroUri,
@@ -72,7 +86,31 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       typeDeclarationResolver);
   await declarationsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, declarationsBenchmark.results, typeDeclarations);
+      executor, declarationsBenchmark.results, identifierDeclarations);
+
+  // Manually add in the generated declarations from the declarations phase.
+  typeIntrospector.methods[coffeeMakerClass]!
+      .addAll(generatedCoffeeMakerMethods);
+  typeIntrospector.methods[dripCoffeeModuleClass]!
+      .addAll(generatedDripCoffeeModuleMethods);
+  typeIntrospector.methods[electricHeaterClass]!
+      .addAll(generatedElectricHeaterMethods);
+  typeIntrospector.methods[thermosiphonClass]!
+      .addAll(generatedThermosiphonMethods);
+  typeIntrospector.fields[dripCoffeeComponentClass]!
+      .addAll(generatedDripCoffeeComponentFields);
+  typeIntrospector.constructors[dripCoffeeComponentClass]!
+      .addAll(generatedDripCoffeeComponentConstructors);
+  identifierDeclarations.addAll({
+    for (final constructors in typeIntrospector.constructors.values)
+      for (final constructor in constructors)
+        constructor.identifier: constructor,
+    for (final fields in typeIntrospector.fields.values)
+      for (final field in fields) field.identifier: field,
+    for (final methods in typeIntrospector.methods.values)
+      for (final method in methods) method.identifier: method,
+  });
+
   final definitionsBenchmark = InjectableDefinitionPhaseBenchmark(
       executor,
       macroUri,
@@ -84,7 +122,7 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       typeDeclarationResolver);
   await definitionsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, definitionsBenchmark.results, typeDeclarations);
+      executor, definitionsBenchmark.results, identifierDeclarations);
 }
 
 class InjectableInstantiateBenchmark extends AsyncBenchmarkBase {
@@ -141,6 +179,11 @@ class InjectableTypesPhaseBenchmark extends AsyncBenchmarkBase {
             providesInstanceIdentifier, method, identifierResolver));
       }
     }
+    if (componentInstanceIdentifier.shouldExecute(
+        DeclarationKind.classType, Phase.types)) {
+      results.add(await executor.executeTypesPhase(componentInstanceIdentifier,
+          dripCoffeeComponentClass, identifierResolver));
+    }
   }
 }
 
@@ -180,18 +223,28 @@ class InjectableDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
             SimpleTypeResolver(),
             typeIntrospector));
       }
-      for (var method in dripCoffeeModuleMethods) {
-        if (providesInstanceIdentifier.shouldExecute(
-            DeclarationKind.method, Phase.declarations)) {
-          results.add(await executor.executeDeclarationsPhase(
-              providesInstanceIdentifier,
-              method,
-              identifierResolver,
-              typeDeclarationResolver,
-              SimpleTypeResolver(),
-              typeIntrospector));
-        }
+    }
+    for (var method in dripCoffeeModuleMethods) {
+      if (providesInstanceIdentifier.shouldExecute(
+          DeclarationKind.method, Phase.declarations)) {
+        results.add(await executor.executeDeclarationsPhase(
+            providesInstanceIdentifier,
+            method,
+            identifierResolver,
+            typeDeclarationResolver,
+            SimpleTypeResolver(),
+            typeIntrospector));
       }
+    }
+    if (componentInstanceIdentifier.shouldExecute(
+        DeclarationKind.classType, Phase.declarations)) {
+      results.add(await executor.executeDeclarationsPhase(
+          componentInstanceIdentifier,
+          dripCoffeeComponentClass,
+          identifierResolver,
+          typeDeclarationResolver,
+          SimpleTypeResolver(),
+          typeIntrospector));
     }
   }
 }
@@ -233,19 +286,30 @@ class InjectableDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
             typeIntrospector,
             FakeTypeInferrer()));
       }
-      for (var method in dripCoffeeModuleMethods) {
-        if (providesInstanceIdentifier.shouldExecute(
-            DeclarationKind.method, Phase.definitions)) {
-          results.add(await executor.executeDefinitionsPhase(
-              providesInstanceIdentifier,
-              method,
-              identifierResolver,
-              typeDeclarationResolver,
-              SimpleTypeResolver(),
-              typeIntrospector,
-              FakeTypeInferrer()));
-        }
+    }
+    for (var method in dripCoffeeModuleMethods) {
+      if (providesInstanceIdentifier.shouldExecute(
+          DeclarationKind.method, Phase.definitions)) {
+        results.add(await executor.executeDefinitionsPhase(
+            providesInstanceIdentifier,
+            method,
+            identifierResolver,
+            typeDeclarationResolver,
+            SimpleTypeResolver(),
+            typeIntrospector,
+            FakeTypeInferrer()));
       }
+    }
+    if (componentInstanceIdentifier.shouldExecute(
+        DeclarationKind.classType, Phase.definitions)) {
+      results.add(await executor.executeDefinitionsPhase(
+          componentInstanceIdentifier,
+          dripCoffeeComponentClass,
+          identifierResolver,
+          typeDeclarationResolver,
+          SimpleTypeResolver(),
+          typeIntrospector,
+          FakeTypeInferrer()));
     }
   }
 }
@@ -348,6 +412,34 @@ final electricHeaterConstructors = [
       definingType: electricHeaterIdentifier,
       isFactory: false)
 ];
+final generatedElectricHeaterMethods = [
+  // Generated in the declarations phase, looks like:
+  // static Provider<ElectricHeater> provider() => () => ElectricHeater();
+  MethodDeclarationImpl(
+      id: RemoteInstance.uniqueId,
+      identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provider'),
+      isAbstract: false,
+      isExternal: false,
+      isGetter: false,
+      isOperator: false,
+      isSetter: false,
+      namedParameters: [],
+      positionalParameters: [],
+      returnType: NamedTypeAnnotationImpl(
+          id: RemoteInstance.uniqueId,
+          isNullable: false,
+          identifier: providerIdentifier,
+          typeArguments: [
+            NamedTypeAnnotationImpl(
+                id: RemoteInstance.uniqueId,
+                isNullable: false,
+                identifier: electricHeaterIdentifier,
+                typeArguments: [])
+          ]),
+      typeParameters: [],
+      definingType: electricHeaterIdentifier,
+      isStatic: true),
+];
 
 // interface class Pump {}
 final pumpIdentifier =
@@ -439,6 +531,53 @@ final thermosiphonConstructors = [
       definingType: thermosiphonIdentifier,
       isFactory: false)
 ];
+final generatedThermosiphonMethods = [
+  // Generated in the declarations phase, looks like:
+  // static Provider<Thermosiphon> provider(Provider<Heater> heaterProvider) =>
+  //     () => Thermosiphon(heaterProvider());
+  MethodDeclarationImpl(
+      id: RemoteInstance.uniqueId,
+      identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provider'),
+      isAbstract: false,
+      isExternal: false,
+      isGetter: false,
+      isOperator: false,
+      isSetter: false,
+      namedParameters: [],
+      positionalParameters: [
+        ParameterDeclarationImpl(
+            id: RemoteInstance.uniqueId,
+            identifier: IdentifierImpl(
+                id: RemoteInstance.uniqueId, name: 'heaterProvider'),
+            isNamed: false,
+            isRequired: true,
+            type: NamedTypeAnnotationImpl(
+                id: RemoteInstance.uniqueId,
+                isNullable: false,
+                identifier: providerIdentifier,
+                typeArguments: [
+                  NamedTypeAnnotationImpl(
+                      id: RemoteInstance.uniqueId,
+                      isNullable: false,
+                      identifier: heaterIdentifier,
+                      typeArguments: []),
+                ]))
+      ],
+      returnType: NamedTypeAnnotationImpl(
+          id: RemoteInstance.uniqueId,
+          isNullable: false,
+          identifier: providerIdentifier,
+          typeArguments: [
+            NamedTypeAnnotationImpl(
+                id: RemoteInstance.uniqueId,
+                isNullable: false,
+                identifier: thermosiphonIdentifier,
+                typeArguments: [])
+          ]),
+      typeParameters: [],
+      definingType: thermosiphonIdentifier,
+      isStatic: true),
+];
 
 // @Injectable()
 // class CoffeeMaker {
@@ -519,6 +658,72 @@ final coffeeMakerConstructors = [
       typeParameters: [],
       definingType: coffeeMakerIdentifier,
       isFactory: false),
+];
+final generatedCoffeeMakerMethods = [
+  // Generated in the declarations phase, looks like
+  // static Provider<CoffeeMaker> provider(
+  //   Provider<Heater> heaterProvider,
+  //   Provider<Pump> pumpProvider) =>
+  //     () => CoffeeMaker(heaterProvider(), pumpProvider());
+  MethodDeclarationImpl(
+      id: RemoteInstance.uniqueId,
+      identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provider'),
+      isAbstract: false,
+      isExternal: false,
+      isGetter: false,
+      isOperator: false,
+      isSetter: false,
+      namedParameters: [],
+      positionalParameters: [
+        ParameterDeclarationImpl(
+            id: RemoteInstance.uniqueId,
+            identifier: IdentifierImpl(
+                id: RemoteInstance.uniqueId, name: 'heaterProvider'),
+            isNamed: false,
+            isRequired: true,
+            type: NamedTypeAnnotationImpl(
+                id: RemoteInstance.uniqueId,
+                isNullable: false,
+                identifier: providerIdentifier,
+                typeArguments: [
+                  NamedTypeAnnotationImpl(
+                      id: RemoteInstance.uniqueId,
+                      isNullable: false,
+                      identifier: heaterIdentifier,
+                      typeArguments: [])
+                ])),
+        ParameterDeclarationImpl(
+            id: RemoteInstance.uniqueId,
+            identifier: IdentifierImpl(
+                id: RemoteInstance.uniqueId, name: 'pumpProvider'),
+            isNamed: false,
+            isRequired: true,
+            type: NamedTypeAnnotationImpl(
+                id: RemoteInstance.uniqueId,
+                isNullable: false,
+                identifier: providerIdentifier,
+                typeArguments: [
+                  NamedTypeAnnotationImpl(
+                      id: RemoteInstance.uniqueId,
+                      isNullable: false,
+                      identifier: pumpIdentifier,
+                      typeArguments: [])
+                ])),
+      ],
+      returnType: NamedTypeAnnotationImpl(
+          id: RemoteInstance.uniqueId,
+          isNullable: false,
+          identifier: providerIdentifier,
+          typeArguments: [
+            NamedTypeAnnotationImpl(
+                id: RemoteInstance.uniqueId,
+                isNullable: false,
+                identifier: coffeeMakerIdentifier,
+                typeArguments: [])
+          ]),
+      typeParameters: [],
+      definingType: coffeeMakerIdentifier,
+      isStatic: true)
 ];
 
 // class DripCoffeeModule {
@@ -607,6 +812,99 @@ final dripCoffeeModuleMethods = [
       definingType: dripCoffeeModuleIdentifier,
       isStatic: false),
 ];
+final generatedDripCoffeeModuleMethods = [
+  // Generated in the declarations phase, they look like:
+  // Provider<Heater> provideHeaterProvider(Provider<ElectricHeater> provideImpl)
+  //     => this.provideHeater(provideImpl());
+  // Provider<Pump> providePumpProvider(Provider<Thermosiphon> provideImpl)
+  //     => this.providePump(provideImpl());
+  MethodDeclarationImpl(
+      id: RemoteInstance.uniqueId,
+      identifier: IdentifierImpl(
+          id: RemoteInstance.uniqueId, name: 'provideHeaterProvider'),
+      isAbstract: false,
+      isExternal: false,
+      isGetter: false,
+      isOperator: false,
+      isSetter: false,
+      namedParameters: [],
+      positionalParameters: [
+        ParameterDeclarationImpl(
+            id: RemoteInstance.uniqueId,
+            identifier: IdentifierImpl(
+                id: RemoteInstance.uniqueId, name: 'provideImpl'),
+            isNamed: false,
+            isRequired: true,
+            type: NamedTypeAnnotationImpl(
+                id: RemoteInstance.uniqueId,
+                isNullable: false,
+                identifier: providerIdentifier,
+                typeArguments: [
+                  NamedTypeAnnotationImpl(
+                      id: RemoteInstance.uniqueId,
+                      isNullable: false,
+                      identifier: electricHeaterIdentifier,
+                      typeArguments: [])
+                ]))
+      ],
+      returnType: NamedTypeAnnotationImpl(
+          id: RemoteInstance.uniqueId,
+          isNullable: false,
+          identifier: providerIdentifier,
+          typeArguments: [
+            NamedTypeAnnotationImpl(
+                id: RemoteInstance.uniqueId,
+                isNullable: false,
+                identifier: heaterIdentifier,
+                typeArguments: [])
+          ]),
+      typeParameters: [],
+      definingType: dripCoffeeModuleIdentifier,
+      isStatic: false),
+  MethodDeclarationImpl(
+      id: RemoteInstance.uniqueId,
+      identifier: IdentifierImpl(
+          id: RemoteInstance.uniqueId, name: 'providePumpProvider'),
+      isAbstract: false,
+      isExternal: false,
+      isGetter: false,
+      isOperator: false,
+      isSetter: false,
+      namedParameters: [],
+      positionalParameters: [
+        ParameterDeclarationImpl(
+            id: RemoteInstance.uniqueId,
+            identifier: IdentifierImpl(
+                id: RemoteInstance.uniqueId, name: 'provideImpl'),
+            isNamed: false,
+            isRequired: true,
+            type: NamedTypeAnnotationImpl(
+                id: RemoteInstance.uniqueId,
+                isNullable: false,
+                identifier: providerIdentifier,
+                typeArguments: [
+                  NamedTypeAnnotationImpl(
+                      id: RemoteInstance.uniqueId,
+                      isNullable: false,
+                      identifier: thermosiphonIdentifier,
+                      typeArguments: [])
+                ]))
+      ],
+      returnType: NamedTypeAnnotationImpl(
+          id: RemoteInstance.uniqueId,
+          isNullable: false,
+          identifier: providerIdentifier,
+          typeArguments: [
+            NamedTypeAnnotationImpl(
+                id: RemoteInstance.uniqueId,
+                isNullable: false,
+                identifier: pumpIdentifier,
+                typeArguments: [])
+          ]),
+      typeParameters: [],
+      definingType: dripCoffeeModuleIdentifier,
+      isStatic: false),
+];
 
 // @Component(modules: [])
 // class DripCoffeeComponent {
@@ -684,4 +982,59 @@ final dripCoffeeComponentConstructors = [
       typeParameters: [],
       definingType: dripCoffeeComponentIdentifier,
       isFactory: true),
+];
+// Generated in the declarations phase from the external methods, looks like:
+//
+// DripCoffeeComponent._(this._coffeeMaker);
+final generatedDripCoffeeComponentConstructors = [
+  ConstructorDeclarationImpl(
+      id: RemoteInstance.uniqueId,
+      identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '_'),
+      isAbstract: false,
+      isExternal: false,
+      isGetter: false,
+      isOperator: false,
+      isSetter: false,
+      namedParameters: [],
+      positionalParameters: [
+        ParameterDeclarationImpl(
+            id: RemoteInstance.uniqueId,
+            identifier: generatedDripCoffeeComponentFields.first.identifier,
+            isNamed: false,
+            isRequired: true,
+            type: generatedDripCoffeeComponentFields.first.type),
+      ],
+      returnType: NamedTypeAnnotationImpl(
+          id: RemoteInstance.uniqueId,
+          isNullable: false,
+          identifier: dripCoffeeComponentIdentifier,
+          typeArguments: []),
+      typeParameters: [],
+      definingType: dripCoffeeComponentIdentifier,
+      isFactory: false),
+];
+// Generated in the declarations phase from the external methods, looks like:
+//
+// final Provider<CoffeeMaker> _coffeeMakerProvider;
+final generatedDripCoffeeComponentFields = [
+  FieldDeclarationImpl(
+      id: RemoteInstance.uniqueId,
+      identifier: IdentifierImpl(
+          id: RemoteInstance.uniqueId, name: '_coffeeMakerProvider'),
+      isExternal: false,
+      isFinal: true,
+      isLate: false,
+      type: NamedTypeAnnotationImpl(
+          id: RemoteInstance.uniqueId,
+          isNullable: false,
+          identifier: providerIdentifier,
+          typeArguments: [
+            NamedTypeAnnotationImpl(
+                id: RemoteInstance.uniqueId,
+                isNullable: false,
+                identifier: coffeeMakerIdentifier,
+                typeArguments: [])
+          ]),
+      definingType: dripCoffeeComponentIdentifier,
+      isStatic: false)
 ];

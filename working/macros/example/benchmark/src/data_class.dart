@@ -26,6 +26,16 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       'String': stringIdentifier,
     }
   });
+  final identifierDeclarations = {
+    ...typeDeclarations,
+    for (final constructors in typeIntrospector.constructors.values)
+      for (final constructor in constructors)
+        constructor.identifier: constructor,
+    for (final methods in typeIntrospector.methods.values)
+      for (final method in methods) method.identifier: method,
+    for (final fields in typeIntrospector.fields.values)
+      for (final field in fields) field.identifier: field,
+  };
   final instantiateBenchmark =
       DataClassInstantiateBenchmark(executor, macroUri);
   await instantiateBenchmark.report();
@@ -34,7 +44,7 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       executor, macroUri, identifierResolver, instanceId);
   await typesBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, typesBenchmark.results, typeDeclarations);
+      executor, typesBenchmark.results, identifierDeclarations);
   final declarationsBenchmark = DataClassDeclarationsPhaseBenchmark(
       executor,
       macroUri,
@@ -44,7 +54,7 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       typeDeclarationResolver);
   await declarationsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, declarationsBenchmark.results, typeDeclarations);
+      executor, declarationsBenchmark.results, identifierDeclarations);
   final definitionsBenchmark = DataClassDefinitionPhaseBenchmark(
       executor,
       macroUri,
@@ -54,7 +64,7 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       typeDeclarationResolver);
   await definitionsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, definitionsBenchmark.results, typeDeclarations);
+      executor, definitionsBenchmark.results, identifierDeclarations);
 }
 
 class DataClassInstantiateBenchmark extends AsyncBenchmarkBase {
