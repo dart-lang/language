@@ -14,8 +14,25 @@ import 'util.dart';
 typedef Provider<T> = T Function();
 
 /// Adds a static `provider` method, which is a factory for a Provider<T> where
-/// T is the annotated class. It will take a Provider<T> parameter corresponding
+/// T is the annotated class. It will take a Provider parameter corresponding
 /// to each argument of the constructor (there must be exactly one constructor).
+///
+/// So for example, given:
+///
+/// @Injectable()
+/// class A {
+///   final B b;
+///   A(this.b);
+/// }
+///
+/// It would generate this augmentation:
+///
+/// augment class A {
+///   Provider<A> provider(Provider<B> bProvider) =>
+///     () => A(bProvider());
+/// }
+///
+/// These methods are later used by Component classes to inject dependencies.
 macro class Injectable implements ClassDeclarationsMacro {
   const Injectable();
 
@@ -75,6 +92,21 @@ macro class Injectable implements ClassDeclarationsMacro {
   }
 }
 
+/// Annotate provider methods on your module class with this, and it will
+/// generate Provider versions of those methods, for use in a component later
+/// on. For example, given:
+///
+/// class MyModule {
+///   @Provides()
+///   A provideA(B b, C c) => A(b, c);
+/// }
+///
+/// It will generate this augmentation:
+///
+/// augment class MyModule {
+///   Provider<A> provideAProvider(Provider<B> b, Provider<C> c) =>
+///       () => provideA(provideB(), provideC());
+/// }
 macro class Provides implements MethodDeclarationsMacro {
   const Provides();
 
@@ -107,6 +139,52 @@ macro class Provides implements MethodDeclarationsMacro {
   }
 }
 
+/// Given a component with external methods for the types it wants to provide,
+/// and an external factory method that lists the modules used to provide
+/// its dependencies as parameters, this will generate a private constructor,
+/// along with some private fields, and fill in the body of the external members
+/// using those.
+///
+/// For example, give this full-ish example:
+///
+/// @Injectable()
+/// class A {
+///   final B b;
+///   A(this.B);
+/// }
+///
+/// interface class B {}
+///
+/// @Injectable()
+/// class BImpl implements B {}
+///
+/// class ADepsModule {
+///   @Provides
+///   B provideB(BImpl impl) => impl;
+/// }
+///
+/// @Component()
+/// class AComponent {
+///   external A a();
+///
+///   external factory A(ADepsModule aDepsModule);
+/// }
+///
+/// It would generate roughly this augmentation for the component:
+///
+/// augment class AComponet {
+///   final Provider<A> _aProvider;
+///   AComponent._(this._aProvider);
+///
+///   augment A a() => _aProvider();
+///
+///   augment factory A(ADepsModule aDepsModule) {
+///     final bImplProvider = BImpl.provider();
+///     final bProvider = aDepsModule.provideBProvider(bImplProvider);
+///     final aProvider = A.provider(bProvider);
+///     return A._(aProvider);
+///   }
+/// }
 macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
   final List<Identifier> modules;
 
