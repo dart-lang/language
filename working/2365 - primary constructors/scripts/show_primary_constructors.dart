@@ -10,6 +10,13 @@ abstract final class Options {
   static bool showNormal = false;
   static bool showStruct = false;
   static bool showKeyword = false;
+  static bool numberClassNames = false;
+}
+
+var classNameNumber = 1;
+
+String get classNameNumberSuffix {
+  return Options.numberClassNames ? '$classNameNumber' : '';
 }
 
 var helpPrintedAlready = false;
@@ -31,6 +38,7 @@ Options:
   --show-keyword, -k: Show the form that uses a keyword.
   --show-struct, -s: Show the form which was proposed along with structs.
   --show-all, -a: Show all forms; enabled if no other '--show' option is given.
+  --number-class-names: Append number to class names, to avoid name clashes.
 """);
 }
 
@@ -68,6 +76,9 @@ bool processOption(String option) {
         return true;
       case 'show-keyword':
         Options.showKeyword = true;
+        return true;
+      case 'number-class-names':
+        Options.numberClassNames = true;
         return true;
       default:
         return false;
@@ -197,7 +208,7 @@ class FieldSpec {
 }
 
 String ppNormal(ClassSpec classSpec) {
-  var className = classSpec.name;
+  var className = '${classSpec.name}$classNameNumberSuffix';
   var fieldsSource = StringBuffer('');
   var parametersSource = StringBuffer('');
   var constructorSource = StringBuffer('');
@@ -269,7 +280,7 @@ String ppNormal(ClassSpec classSpec) {
 }
 
 String ppKeyword(ClassSpec classSpec) {
-  var className = classSpec.name;
+  var className = '${classSpec.name}$classNameNumberSuffix';
   var fields = classSpec.fields;
   var parametersSource = StringBuffer('');
 
@@ -343,7 +354,7 @@ String ppKeyword(ClassSpec classSpec) {
 }
 
 String ppStruct(ClassSpec classSpec) {
-  var className = classSpec.name;
+  var className = '${classSpec.name}$classNameNumberSuffix';
   var fields = classSpec.fields;
   var parametersSource = StringBuffer('');
 
@@ -457,12 +468,15 @@ void main(List<String> args) {
     print('// ------------------------------ ${classSpec.provenance}\n');
     if (Options.showNormal) {
       show("Normal", ppNormal(classSpec));
+      ++classNameNumber;
     }
     if (Options.showStruct) {
       show("Struct style", ppStruct(classSpec));
+      ++classNameNumber;
     }
     if (Options.showKeyword) {
       show("Rightmost, with keyword", ppKeyword(classSpec));
+      ++classNameNumber;
     }
   }
 }
