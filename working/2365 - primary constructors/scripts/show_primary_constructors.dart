@@ -20,13 +20,13 @@ Every option is off by default, and specifying it will have an effect.
 
 Options:
   --help, -h: Print this help text.
-  --identify-style: Include comment `Normal`/`Struct`/`Keyword` before the code.
-  --explicit-final: Include `final` even when it is implied.
-  --include-body: Include a class body (otherwise `;` is used where possible).
-  --show-normal: Show a normal constructor and explicit field declarations.
-  --show-keyword: Show the form that uses a keyword.
-  --show-struct: Show the form which was proposed along with structs.
-  --show-all: Show all forms; enabled if no other '--show' option is given.
+  --identify-style, -i: Include comment `Normal`/`Struct`/`Keyword`.
+  --explicit-final, -f: Include `final` even when it is implied.
+  --include-body, -b: Include a class body (otherwise `;` is used if possible).
+  --show-normal, -n: Show a normal constructor and explicit field declarations.
+  --show-keyword, -k: Show the form that uses a keyword.
+  --show-struct, -s: Show the form which was proposed along with structs.
+  --show-all, -a: Show all forms; enabled if no other '--show' option is given.
 """);
 }
 
@@ -74,6 +74,29 @@ bool processOption(String option) {
       switch (c) {
         case 'h':
           help();
+          return true;
+        case 'i':
+          Options.identifyStyle = true;
+          return true;
+        case 'f':
+          Options.explicitFinal = true;
+          return true;
+        case 'b':
+          Options.includeBody = true;
+          return true;
+        case 'a':
+          Options.showNormal = true;
+          Options.showStruct = true;
+          Options.showKeyword = true;
+          return true;
+        case 'n':
+          Options.showNormal = true;
+          return true;
+        case 's':
+          Options.showStruct = true;
+          return true;
+        case 'k':
+          Options.showKeyword = true;
           return true;
         default:
           return false;
