@@ -12,7 +12,11 @@ abstract final class Options {
   static bool showKeyword = false;
 }
 
+var helpPrintedAlready = false;
+
 void help() {
+  if (helpPrintedAlready) return;
+  helpPrintedAlready = true;
   print('Usage: show_primary_constructors.dart [options] [file]...');
   print("""
 
@@ -70,38 +74,40 @@ bool processOption(String option) {
     }
   } else if (option.startsWith('-')) {
     var optionString = option.substring(1);
+    var usedTheOption = false;
     for (var c in optionString.split('')) {
       switch (c) {
         case 'h':
           help();
-          return true;
+          usedTheOption = true;
         case 'i':
           Options.identifyStyle = true;
-          return true;
+          usedTheOption = true;
         case 'f':
           Options.explicitFinal = true;
-          return true;
+          usedTheOption = true;
         case 'b':
           Options.includeBody = true;
-          return true;
+          usedTheOption = true;
         case 'a':
           Options.showNormal = true;
           Options.showStruct = true;
           Options.showKeyword = true;
-          return true;
+          usedTheOption = true;
         case 'n':
           Options.showNormal = true;
-          return true;
+          usedTheOption = true;
         case 's':
           Options.showStruct = true;
-          return true;
+          usedTheOption = true;
         case 'k':
           Options.showKeyword = true;
-          return true;
+          usedTheOption = true;
         default:
-          return false;
+          print('Unknown option: -$c');
       }
     }
+    return usedTheOption;
   }
   return false; // This was not an option.
 }
@@ -396,17 +402,17 @@ String ppStruct(ClassSpec classSpec) {
     superinterfaces = '\n    $specSuperinterfaces';
   }
 
-  String constructorName = '$className';
+  String constructorNamePart = '$className';
   var constructorNameSpec = classSpec.constructorName;
   if (constructorNameSpec != null) {
-    constructorName = '$className.$constructorNameSpec';
+    constructorNamePart = '$className.$constructorNameSpec$typeParameters';
   } else {
-    constructorName = className;
+    constructorNamePart = '$className$typeParameters';
   }
 
   var inlinity = classSpec.isInline ? 'inline ' : '';
   var classHeader =
-      "${inlinity}class $constNess$constructorName$typeParameters"
+      "${inlinity}class $constNess$constructorNamePart"
       "($parametersSource)"
       "$superinterfaces";
   var body = Options.includeBody ? ' {\n  // ...\n\}' : ';';
