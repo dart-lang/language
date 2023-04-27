@@ -53,9 +53,9 @@ because they will work exactly as the example using the current syntax.
 
 Note that an empty class body, `{}`, can be replaced by `;`.
 
-The idea is that a parameter list that occurs just after the class name
-specifies both a constructor declaration and a declaration of one instance
-variable for each formal parameter in said parameter list.
+The basic idea is that a parameter list that occurs just after the class
+name specifies both a constructor declaration and a declaration of one
+instance variable for each formal parameter in said parameter list.
 
 A primary constructor cannot have a body, and it cannot have an initializer
 list (and hence, it cannot have a superinitializer, e.g., `super(...)`, and
@@ -87,17 +87,20 @@ initializing formal anyway, so they do not fit into the treatment implied
 by a primary constructor. Just use a normal declaration.
 
 ```dart
-class LaCo {
+class ModifierClass {
   covariant late int x;
   external double d;
-  LaCo(this.x);
+  ModifierClass(this.x);
 }
 
-class LaCo(this.x) {
+class ModifierClass(this.x) {
   covariant late int x;
   external double d;
 }
 ```
+
+`ModifierClass` as written does not make sense (`x` does not have to be
+`late`), but there could be other constructors that do not initialize `x`.
 
 Super parameters can be declared in the same way as in non-primary
 constructors:
@@ -151,6 +154,17 @@ class const Point._(final int x, final int y);
 
 Note that the class header contains syntax that resembles the constructor
 declaration, which may be helpful when reading the code.
+
+The modifier `const` could have been placed on the class (`const class`)
+rather than on the class name. This proposal puts it on the class name
+because the notion of a "constant class" conflicts with with actual
+semantics: It is the constructor which is constant because it is able to be
+invoked during constant expression evaluation; it can also be invoked at
+run time, and there could be other (non-constant) constructors. This means
+that it is at least potentially confusing to say that it is a "constant
+class", but it is consistent with the rest of the language to say that this
+particular primary constructor is a "constant constructor". Hence `class
+const Name` rather than `const class Name`.
 
 The modifier `final` on a parameter in a primary constructor has no meaning
 for the parameter itself, because there is no scope where the parameter can
@@ -250,11 +264,12 @@ class const D.named<TypeVariable extends Bound>(int x, [int y = 0])
     extends A with M implements B, C;
 ```
 
-There was a proposal that the primary constructor should be expressed at
-the end of the class header, in order to avoid readability issues in the
-case where the superinterfaces contain a lot of text. It would then use
-the keyword `new` or `const`, optionally followed by `'.' <identifier>`,
-just before the `(` of the primary constructor parameter list:
+There was a proposal from Bob that the primary constructor should be
+expressed at the end of the class header, in order to avoid readability
+issues in the case where the superinterfaces contain a lot of text. It
+would then use the keyword `new` or `const`, optionally followed by `'.'
+<identifier>`, just before the `(` of the primary constructor parameter
+list:
 
 ```dart
 class D<TypeVariable extends Bound> extends A with M implements B, C
@@ -277,6 +292,40 @@ text. Also, it could be helpful to be able to search for the named
 constructor using `D.named`, and that would fail if we use the approach
 where it occurs as `new.named` or `const.named` because that particular
 constructor has been expressed as a primary constructor.
+
+A variant of this idea, from Leaf, was that we could allow one constructor
+in a class with no primary constructor in the header to be marked as a
+"primary constructor in the body". This would allow the constructor to have
+a body and an initializer list. As a strawman, let's say that we do this by
+adding the reserved word `var` in front of a normal constructor
+declaration:
+
+```dart
+class D<TypeVariable extends Bound> extends A with M implements B, C {
+  int i; 
+  
+  var D.named(
+    LongTypeExpression x1,
+    LongTypeExpression x2,
+    LongTypeExpression x3,
+    LongTypeExpression x4,
+    LongTypeExpression x5,
+  ) : 
+      i = 1, 
+      assert(x1 != x2), 
+      super.name(x3, y: x4) {
+    ... // Normal constructor body.
+  }
+
+  ... // Lots of stuff.
+}
+```
+
+The only special thing about a `var` constructor is that the non-super,
+non-this parameters are subject to the same processing as in a primary
+constructor, that is, they will introduce an instance variable. This
+proposal does not include that feature, but it should be completely
+compatible with the feature if we wish to add it.
 
 ## Specification
 
@@ -339,8 +388,16 @@ _k_.
 Where no processing is mentioned below, _D2_ is identical to _D_. Changes
 occur as follows:
 
-_k_ is a constant constructor iff the keyword `const` occurs just before
-the class name in _D_.
+The current scope of the formal parameter list of the primary constructor
+in _D_ is the current scope of the class declaration *(in other words, the
+default values cannot see declarations in the class body)*.  Every default
+value in the primary constructor of _D_ is replaced by a fresh private name
+`_n`, and a constant variable named `_n` is added to the top-level of the
+current library. *(This means that we can move the parameter declarations
+including the default value without changing its meaning.)*
+
+Next, _k_ is a constant constructor iff the keyword `const` occurs just
+before the class name in the header of _D_.
 
 If the class name `C` in _D_ is followed by `.id` where `id` is an
 identifier then _k_ has the name `C.id`. If it is followed by `.new` then
