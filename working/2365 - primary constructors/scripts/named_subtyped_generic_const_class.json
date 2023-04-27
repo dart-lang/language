@@ -7,11 +7,13 @@
   "fields": [
     {
       "name": "x",
-      "type": "int"
+      "type": "int",
+      "isFinal": true
     },
     {
       "name": "y",
-      "type": "int"
+      "type": "int",
+      "isFinal": true
     }
   ]
 }
