@@ -4,7 +4,7 @@ Author: Bob Nystrom, Lasse Nielsen
 
 Status: Accepted
 
-Version 1.7
+Version 1.8
 
 Experiment flag: class-modifiers
 
@@ -556,7 +556,7 @@ The grammar is:
 classDeclaration  ::= (classModifiers | mixinClassModifiers) 'class' typeIdentifier
                       typeParameters? superclass? interfaces?
                       '{' (metadata classMemberDeclaration)* '}'
-                      | classModifiers 'class' mixinApplicationClass
+                      | classModifiers 'mixin'? 'class' mixinApplicationClass
 
 classModifiers    ::= 'sealed'
                     | 'abstract'? ('base' | 'interface' | 'final')?
@@ -597,10 +597,11 @@ they are declared as subtypes of as follow.
 
 *   A declaration *S* is _the declared superclass_ of a `class` declaration
     *D* iff:
+
     * *D* has an `extends T` clause and `T` denotes *S*.
     * *D* has the form `... class ... = T with ...` and `T` denotes *S*.
 
-    _A type clause `T` denotes a declaration *S* if `T` of the from
+    _A type clause `T` denotes a declaration *S* if `T` of the form
     <code>*id*</code> or <code>*id*\<typeArgs\></code>, and *id*
     is an identifier or qualified identifier which resolves to *S*,
     or which resolves to a type alias with a right-hand-side which
@@ -813,9 +814,22 @@ ensures that it can be used as both a `class` and a `mixin`.
 It's a compile-time error if a `mixin class` declaration:
 *   has an `interface`, `final` or `sealed` modifier. _This is baked
     into the grammar, but it bears repeating._
-*   has an `extends` clause,
-*   has a `with` clause, or
+*   does not have `Object` from `dart:core` as superclass.
 *   declares any non-trivial generative constructor.
+
+A mixin class declaration has `Object` from `dart:core` as superclass iff it’s either:
+
+*   A mixin application class declaration where the declared
+    superclass is the `Object` class from `dart:core`, 
+    and which has precisely one declared mixin.
+    _E.g., `mixin class C = Object with M;`_
+*   A non-mixin-application class declaration with no declared mixins,
+    and either no declared superclass, or with `Object` from `dart:core` 
+    as the declared superclass.
+    _E.g., `mixin class C {}` or `mixin class C extends Object {}`_
+
+_The mixin class declarations can also have interfaces, type parameters, _
+_and modifiers, but no `extends` or `with` clauses other than those shown here._
 
 A *trivial generative constructor* is a generative constructor that:
 *   Is not a redirecting constructor _(`Foo(...) : this.other(...);`),
@@ -863,9 +877,18 @@ mixin class C {
   int? x;
 }
 
+mixin class C2 extends Object implements I {}
+
+abstract base mixin class C3 = Object with M implements I {
+  const C3();
+}
+
 // Invalid mixin classes.
-mixin class E extends Object {} // Error.
-mixin class E with C {} // Error.
+mixin class E extends C {} // Error.
+mixin class E extends Object with M {} // Error.
+mixin class E with M {} // Error.
+mixin class E = C with M; // Error
+mixin class E = Object with M1, M2; // Error
 ```
 
 There are also changes to which declarations can be mixed in.
@@ -1107,6 +1130,10 @@ hopefully it should be enough to get people started using the feature, and the
 errors and fixups would help keep them on the rails.
 
 ## Changelog
+
+1.8 
+
+* Allow any class declaration with `Object` as superclass to be a `mixin class`.
 
 1.7
 
