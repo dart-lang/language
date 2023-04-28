@@ -715,12 +715,12 @@ It's a compile-time error if:
     from another library _(with some exceptions for platform libraries)_.
 
     _(You cannot inherit implementation from a class marked `interface`
-    or `final` except inside the same library. Unless you are in a
-    pre-feature library and you are inheriting from a platform library.)_
+    except inside the same library. Unless you are in a pre-feature
+    library and you are inheriting from a platform library.)_
 
     More formally:
-    A declaration *C* from library *L* has a declared superclass or mixin
-    declaration *S* marked `interface` or `final` from library *K*, and neither
+    A declaration *C* from library *L* has a declared superclass
+    declaration *S* marked `interface` from library *K*, and neither
     * *L* and *K* is the same library, nor
     * *K* is a platform library and *L* is a pre-feature library.
 
@@ -735,8 +735,8 @@ It's a compile-time error if:
     ```
 
 *   A declaration implements another declaration, and the other
-    declaration itself, or any of its super-declarations,
-    are marked `base` and are not from the first declaration's
+    declaration itself, or any of its super-declarations, are marked
+    `base` or `final` and are not from the first declaration's
     library _(with some exceptions for platform libraries)_.
 
     _(You can only implement an interface if *all* `base` or `final`
@@ -746,8 +746,8 @@ It's a compile-time error if:
 
     More formally:
     A declaration *C* in library *L* has a declared interface *P*,
-    and *P* has any superdeclaration *S*, from a library *K*,
-    which is marked `base` _(including *S* being *P* itself)_,
+    and *P* has any superdeclaration *S*, from a library *K*, which
+    is marked `base` or `final` _(including *S* being *P* itself)_,
     and neither:
     * *K* and *L* is the same library, mor
     * *K* is a platform library and *L* is a pre-feature library.
@@ -756,6 +756,7 @@ It's a compile-time error if:
     // a.dart
     base class S {}
     base mixin M {}
+    final class F {}
 
     // b.dart
     import 'a.dart';
@@ -763,6 +764,7 @@ It's a compile-time error if:
     // Direct implementation of other-library `base` class.
     base class D implements S {} // Error
     mixin N implements M {} // Error.
+    enum E implements F { e } // Error.
 
     // Indirect implementation of other-library `base` class.
     base class P extends S {}
