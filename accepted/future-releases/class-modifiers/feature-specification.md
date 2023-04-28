@@ -688,7 +688,7 @@ It's a compile-time error if:
     ```
 
 *   A declaration has a direct super declaration from another library
-    which is marked `final`.
+    which is marked `final`_(with some exceptions for platform libraries)_.
 
     More formally:
     A declaration *D* from library *L* has a direct superdeclaration *S*
