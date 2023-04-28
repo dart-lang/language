@@ -71,15 +71,14 @@ The formal parameter declarations use the regular syntax, specified in the
 grammar by the non-terminal `<formalParameterList>`.
 
 This implies that there is no way to indicate that the instance variable
-declarations should have the modifiers `covariant`, `late`, or `external`
-(because formal parameters cannot have those modifiers). This omission is
-not seen as a problem in this proposal: It is always possible to use a
-normal constructor declaration and normal instance variable declarations,
-and it is probably a useful property that the primary constructor uses a
-formal parameter syntax which is completely like that of any other formal
-parameter list. Just use a normal declaration. Use an initializing formal
-in a primary constructor to initialize it from the primary constructor, if
-needed.
+declarations should have the modifiers `late` or `external` (because formal
+parameters cannot have those modifiers). This omission is not seen as a problem
+in this proposal: It is always possible to use a normal constructor declaration
+and normal instance variable declarations, and it is probably a useful property
+that the primary constructor uses a formal parameter syntax which is completely
+like that of any other formal parameter list. Just use a normal declaration. Use
+an initializing formal in a primary constructor to initialize it from the
+primary constructor, if needed.
 
 An `external` instance variable amounts to an `external` getter and an
 `external` setter. Such "variables" cannot be initialized by an
@@ -88,13 +87,13 @@ by a primary constructor. Just use a normal declaration.
 
 ```dart
 class ModifierClass {
-  covariant late int x;
+  late int x;
   external double d;
   ModifierClass(this.x);
 }
 
 class ModifierClass(this.x) {
-  covariant late int x;
+  late int x;
   external double d;
 }
 ```
@@ -171,9 +170,9 @@ for the parameter itself, because there is no scope where the parameter can
 be accessed. Hence, this modifier is used to specify that the instance
 variables declared by this primary constructor are `final`.
 
-In the case where the constructor is constant, and in the case where the class
-is an inline class, the modifier `final` on every instance variable is 
-required. Hence, it can be omitted:
+In the case where the constructor is constant, and in the case where the
+declaration is an `inline` class or an `enum` declaration, the modifier
+`final` on every instance variable is required. Hence, it can be omitted:
 
 ```dart
 inline class I {
@@ -190,6 +189,16 @@ class Point {
 }
 
 class const Point(int x, int y);
+
+enum E {
+  one('a'),
+  two('b');
+
+  final String s;
+  const E(this.s);
+}
+
+enum E(String s) { one('a'), two('b') }
 ```
 
 This mechanism follows an existing pattern, where `const` modifiers can be
@@ -362,6 +371,16 @@ constructors as well.
    | ';';
 
 <inlineMemberDeclaration> ::= <classMemberDeclaration>;
+
+<enumType> ::= // Modified rule.
+     'enum' <enumNamePart> <mixins>? <interfaces>? '{'
+        <enumEntry> (',' <enumEntry>)* (',')? 
+        (';' (<metadata> <classMemberDeclaration>)*)?
+     '}';
+
+<enumNamePart> ::= // New rule.
+     <constructorName> <typeParameters>? <formalParameterList>
+   | <typeWithParameters>;
 ```
 
 The word `inline` is now used in the grammar, but it is not a reserved word
@@ -369,19 +388,30 @@ or a built-in identifier.
 
 ### Static processing
 
-A class declaration (of any kind including `inline`) with a primary
-constructor is desugared to a class declaration without a primary
-constructor. This determines the static analysis and dynamic semantics of
-the primary constructor.
+A class declaration with a primary constructor *(including `inline`, but
+not `<mixinApplicationClass>`, because the grammar rules do not include
+those)* is desugared to a class declaration without a primary
+constructor. An enum declaration with a primary constructor is desugared
+using the same steps. This determines the static analysis and dynamic
+semantics of a primary constructor.
 
 *In other words, there is no other semantics than the desugaring. When
 desugared, the resulting class declaration is treated exactly the same as
 it would have been if the developer had written the result of the
 desugaring step in the first place.*
 
-The desugaring consists of the following steps, where _D_ is the class
-declaration in the program that includes a primary constructor, and _D2_ is
-the result of the desugaring. The desugaring step will delete elements
+A compile-time error occurs if a formal parameter that contains a
+term of the form `this.v`, or `super.v` where `v` is an identifier has the
+modifier `covariant`. *For example, `required covariant int this.v` is an
+error.*
+
+Conversely, it is not an error for the modifier `covariant` to occur on
+other formal parameters of a primary constructor. *This extends the
+existing whitelist of places where `covariant` can occur.*
+
+The desugaring consists of the following steps, where _D_ is the class or
+enum declaration in the program that includes a primary constructor, and
+_D2_ is the result of desugaring. The desugaring step will delete elements
 that amount to the primary constructor, and it will add a new constructor
 _k_.
 
@@ -389,15 +419,17 @@ Where no processing is mentioned below, _D2_ is identical to _D_. Changes
 occur as follows:
 
 The current scope of the formal parameter list of the primary constructor
-in _D_ is the current scope of the class declaration *(in other words, the
-default values cannot see declarations in the class body)*.  Every default
-value in the primary constructor of _D_ is replaced by a fresh private name
-`_n`, and a constant variable named `_n` is added to the top-level of the
-current library. *(This means that we can move the parameter declarations
-including the default value without changing its meaning.)*
+in _D_ is the current scope of the class/enum declaration *(in other words,
+the default values cannot see declarations in the class body)*.  Every
+default value in the primary constructor of _D_ is replaced by a fresh
+private name `_n`, and a constant variable named `_n` is added to the
+top-level of the current library. *(This means that we can move the
+parameter declarations including the default value without changing its
+meaning.)*
 
 Next, _k_ is a constant constructor iff the keyword `const` occurs just
-before the class name in the header of _D_.
+before the class name in the header of _D_, or _D_ is an `enum`
+declaration.
 
 If the class name `C` in _D_ is followed by `.id` where `id` is an
 identifier then _k_ has the name `C.id`. If it is followed by `.new` then
@@ -425,13 +457,16 @@ named parameters preserve the name and the property of being `required`.
   and `p` is an identifier is replaced in _L2_ by `this.p`. Also, an
   instance variable declaration of the form `T p;` or `final T p;` is added
   to _D2_. The instance variable has the modifier `final` if the parameter
-  in _L_ is `final`, or the class has the modifier `inline`, or the
-  modifier `const` occurs just before the class name in _D_.
+  in _L_ is `final`, or _D_ has the modifier `inline` or is an `enum`
+  declaration, or the modifier `const` occurs just before the class name in
+  _D_.  In all cases, if `p` has the modifier `covariant` then this
+  modifier is removed from the parameter in _L2_, and it is added to the
+  instance variable declaration named `p`.
 
 Finally, _k_ is added to _D2_.
 
 ### Changelog
 
-1.0 - April 27, 2023
+1.0 - April 28, 2023
 
 * First version of this document released.
