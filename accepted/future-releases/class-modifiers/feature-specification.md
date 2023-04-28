@@ -687,6 +687,26 @@ It's a compile-time error if:
     class M with S {} // Error, for several reasons.
     ```
 
+*   A mixin has a declared `on` type from another library which is marked
+    `final` _(with some exceptions for platform libraries)_.
+
+    More formally:
+    A `mixin` declaration *D* from library *L* has a declared `on` type *F*
+    marked `final` (so necessarily a `class` declaration) in a library *K*,
+    and neither
+    * *L* and *K* is the same library, nor
+    * *K* is a platform library and *L* is a pre-feature library.
+
+    ```dart
+    // a.dart
+    final class F {}
+
+    // b.dart
+    import 'a.dart';
+
+    mixin M on F {}  // Error.
+    ```
+
 *   A class extends or mixes in a declaration marked `interface` or `final`
     from another library _(with some exceptions for platform libraries)_.
 
@@ -850,10 +870,10 @@ mixin class C {
   C(int x); // Error.
   C(this.x); // Error.
   C() {} // Error.
-  C(): x = 0;
+  C(): x = 0; // Error.
   C(): assert(true); // Error.
   C(): super(); // Error.
-  C(): this.named();
+  C(): this.named(); // Error.
 
   // Not generative constructors, so neither trivial generative nor non-trivial
   // generative:
