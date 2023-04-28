@@ -30,8 +30,8 @@ feature have taken place in github issues marked with the
 ## Introduction
 
 Primary constructors is a conciseness feature. It does not provide any new
-semantics at all, it just allows us to express something which is already
-possible in Dart using a less verbose notation. Here is a simple example:
+semantics at all. It just allows us to express something which is already
+possible in Dart, using a less verbose notation. Here is a simple example:
 
 ```dart
 // Current syntax.
