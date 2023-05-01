@@ -687,34 +687,56 @@ It's a compile-time error if:
     class M with S {} // Error, for several reasons.
     ```
 
-*   A class extends or mixes in a declaration marked `interface` or `final`
+*   A declaration has a direct super declaration from another library
+    which is marked `final`_(with some exceptions for platform libraries)_.
+
+    More formally:
+    A declaration *D* from library *L* has a direct superdeclaration *S*
+    marked `final` (so necessarily a `class` declaration) in library *K*, and neither
+    * *L* and *K* is the same library, nor
+    * *K* is a platform library and *L* is a pre-feature library.
+
+    ```dart
+    // a.dart
+    final class F {}
+
+    // b.dart
+    import 'a.dart';
+
+    class C1 extends F {}  // Error.
+    class C2 implements F {}  // Error.
+    mixin class C3 implements F {}  // Error.
+    mixin M1 implements F {}  // Error.
+    mixin M2 on F {}  // Error.
+    enum E1 implements F {}  // Error.
+    ```
+
+*   A class extends or mixes in a declaration marked `interface`
     from another library _(with some exceptions for platform libraries)_.
 
     _(You cannot inherit implementation from a class marked `interface`
-    or `final` except inside the same library. Unless you are in a
-    pre-feature library and you are inheriting from a platform library.)_
+    except inside the same library. Unless you are in a pre-feature
+    library and you are inheriting from a platform library.)_
 
     More formally:
-    A declaration *C* from library *L* has a declared superclass or mixin
-    declaration *S* marked `interface` or `final` from library *K*, and neither
+    A declaration *C* from library *L* has a declared superclass
+    declaration *S* marked `interface` from library *K*, and neither
     * *L* and *K* is the same library, nor
     * *K* is a platform library and *L* is a pre-feature library.
 
     ```dart
     // a.dart
     interface class I {}
-    final class F {}
 
     // b.dart
     import 'a.dart';
 
     class C1 extends I {} // Error.
-    class C2 extends F {} // Error.
     ```
 
 *   A declaration implements another declaration, and the other
-    declaration itself, or any of its super-declarations,
-    are marked `base` or `final` and are not from the first declaration's
+    declaration itself, or any of its super-declarations, are marked
+    `base` or `final` and are not from the first declaration's
     library _(with some exceptions for platform libraries)_.
 
     _(You can only implement an interface if *all* `base` or `final`
@@ -724,8 +746,8 @@ It's a compile-time error if:
 
     More formally:
     A declaration *C* in library *L* has a declared interface *P*,
-    and *P* has any superdeclaration *S*, from a library *K*,
-    which is marked `base` or `final` _(including *S* being *P* itself)_,
+    and *P* has any superdeclaration *S*, from a library *K*, which
+    is marked `base` or `final` _(including *S* being *P* itself)_,
     and neither:
     * *K* and *L* is the same library, mor
     * *K* is a platform library and *L* is a pre-feature library.
@@ -850,10 +872,10 @@ mixin class C {
   C(int x); // Error.
   C(this.x); // Error.
   C() {} // Error.
-  C(): x = 0;
+  C(): x = 0; // Error.
   C(): assert(true); // Error.
   C(): super(); // Error.
-  C(): this.named();
+  C(): this.named(); // Error.
 
   // Not generative constructors, so neither trivial generative nor non-trivial
   // generative:
