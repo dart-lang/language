@@ -17,16 +17,9 @@ library language.working.macros.benchmark.simple;
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:dart_style/dart_style.dart';
-
-// There is no public API exposed yet, the in progress api lives here.
-import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
 // Private impls used actually execute the macro
 import 'package:_fe_analyzer_shared/src/macros/bootstrap.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor/introspection_impls.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor/remote_instance.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor/serialization.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor/isolated_executor.dart'
     as isolatedExecutor;
@@ -34,6 +27,9 @@ import 'package:_fe_analyzer_shared/src/macros/executor/process_executor.dart'
     as processExecutor;
 import 'package:_fe_analyzer_shared/src/macros/executor/multi_executor.dart'
     as multiExecutor;
+
+import 'src/data_class.dart' as data_class;
+import 'src/injectable.dart' as injectable;
 
 final _watch = Stopwatch()..start();
 void _log(String message) {
@@ -54,6 +50,7 @@ final argParser = ArgParser()
       defaultsTo: 'stdio',
       help: 'The communication channel to use when running as a separate'
           ' process.')
+  ..addOption('macro', allowed: ['DataClass', 'Injectable'], mandatory: true)
   ..addFlag('help', negatable: false, hide: true);
 
 // Run this script to print out the generated augmentation library for an example class.
@@ -90,6 +87,8 @@ void main(List<String> args) async {
       ? 'jit'
       : 'aot';
 
+  var macro = parsedArgs['macro'] as String;
+
   var communicationChannel = parsedArgs['communication-channel'] == 'stdio'
       ? processExecutor.CommunicationChannel.stdio
       : processExecutor.CommunicationChannel.socket;
@@ -99,30 +98,47 @@ Running with the following options:
 Serialization strategy: $parsedSerializationStrategy
 Macro execution strategy: $macroExecutionStrategy
 Host app mode: $hostMode
+Macro: $macro
 ''');
 
   // You must run from the `macros` directory, paths are relative to that.
-  var dataClassFile = File('lib/data_class.dart');
-  if (!dataClassFile.existsSync()) {
+  var macroFile = switch (macro) {
+    'DataClass' => File('lib/data_class.dart'),
+    'Injectable' => File('lib/injectable.dart'),
+    _ => throw UnsupportedError('Unrecognized macro $macro'),
+  };
+  if (!macroFile.existsSync()) {
     print('This script must be ran from the `macros` directory.');
     exit(1);
   }
-  var tmpDir = Directory.systemTemp.createTempSync('data_class_macro_example');
+  var tmpDir = Directory.systemTemp.createTempSync('macro_benchmark');
   try {
-    var macroUri = Uri.parse('package:macro_proposal/data_class.dart');
-    var macroName = 'DataClass';
+    var macroUri = switch (macro) {
+      'DataClass' => Uri.parse('package:macro_proposal/data_class.dart'),
+      'Injectable' => Uri.parse('package:macro_proposal/injectable.dart'),
+      _ => throw UnsupportedError('Unrecognized macro $macro'),
+    };
+    var macroConstructors = switch (macro) {
+      'DataClass' => {
+          'DataClass': ['']
+        },
+      'Injectable' => {
+          'Injectable': [''],
+          'Provides': [''],
+          'Component': [''],
+        },
+      _ => throw UnsupportedError('Unrecognized macro $macro'),
+    };
 
     var bootstrapContent = bootstrapMacroIsolate({
-      macroUri.toString(): {
-        macroName: [''],
-      }
+      macroUri.toString(): macroConstructors,
     }, clientSerializationMode);
 
     var bootstrapFile = File(tmpDir.uri.resolve('main.dart').toFilePath())
       ..writeAsStringSync(bootstrapContent);
     var kernelOutputFile =
         File(tmpDir.uri.resolve('main.dart.dill').toFilePath());
-    _log('Compiling DataClass macro');
+    _log('Compiling $macro macro');
     var buildSnapshotResult = await Process.run('dart', [
       'compile',
       macroExecutionStrategy == 'aot' ? 'exe' : 'jit-snapshot',
@@ -149,325 +165,14 @@ Host app mode: $hostMode
     var executor = multiExecutor.MultiMacroExecutor()
       ..registerExecutorFactory(() => executorImpl, {macroUri});
 
-    _log('Instantiating macro');
-    var instanceId = await executor.instantiateMacro(
-        macroUri, macroName, '', Arguments([], {}));
-
-    _log('Running DataClass macro 100 times...');
-    var results = <MacroExecutionResult>[];
-    var macroExecutionStart = _watch.elapsed;
-    late Duration firstRunEnd;
-    late Duration first11RunsEnd;
-    for (var i = 1; i <= 111; i++) {
-      var _shouldLog = i == 1 || i == 11 || i == 111;
-      if (_shouldLog) _log('Running DataClass macro for the ${i}th time');
-      if (instanceId.shouldExecute(DeclarationKind.classType, Phase.types)) {
-        if (_shouldLog) _log('Running types phase');
-        var result = await executor.executeTypesPhase(
-            instanceId, myClass, SimpleIdentifierResolver());
-        if (i == 1) results.add(result);
-      }
-      if (instanceId.shouldExecute(
-          DeclarationKind.classType, Phase.declarations)) {
-        if (_shouldLog) _log('Running declarations phase');
-        var result = await executor.executeDeclarationsPhase(
-            instanceId,
-            myClass,
-            SimpleIdentifierResolver(),
-            SimpleTypeDeclarationResolver(),
-            SimpleTypeResolver(),
-            SimpleTypeIntrospector());
-        if (i == 1) results.add(result);
-      }
-      if (instanceId.shouldExecute(
-          DeclarationKind.classType, Phase.definitions)) {
-        if (_shouldLog) _log('Running definitions phase');
-        var result = await executor.executeDefinitionsPhase(
-            instanceId,
-            myClass,
-            SimpleIdentifierResolver(),
-            SimpleTypeDeclarationResolver(),
-            SimpleTypeResolver(),
-            SimpleTypeIntrospector(),
-            FakeTypeInferrer());
-        if (i == 1) results.add(result);
-      }
-      if (_shouldLog) _log('Done running DataClass macro for the ${i}th time.');
-
-      if (i == 1) {
-        firstRunEnd = _watch.elapsed;
-      } else if (i == 11) {
-        first11RunsEnd = _watch.elapsed;
-      }
-    }
-    var first111RunsEnd = _watch.elapsed;
-
-    _log('Building augmentation library');
-    var library = executor.buildAugmentationLibrary(
-        results,
-        (identifier) => identifier == myClass.identifier
-            ? myClass
-            : throw UnsupportedError('Can only resolve myClass'), (identifier) {
-      if (['bool', 'Object', 'String', 'int'].contains(identifier.name)) {
-        return ResolvedIdentifier(
-            kind: IdentifierKind.topLevelMember,
-            name: identifier.name,
-            staticScope: null,
-            uri: null);
-      } else {
-        return ResolvedIdentifier(
-            kind: identifier.name == 'MyClass'
-                ? IdentifierKind.topLevelMember
-                : IdentifierKind.instanceMember,
-            name: identifier.name,
-            staticScope: null,
-            uri: Uri.parse('package:app/main.dart'));
-      }
-    },
-        (annotation) =>
-            throw UnsupportedError('Omitted types are not supported!'));
-    executor.close();
-    _log('Formatting augmentation library');
-    var formatted = DartFormatter()
-        .format(library
-            // comment out the `augment` keywords temporarily
-            .replaceAll('augment', '/*augment*/'))
-        .replaceAll('/*augment*/', 'augment');
-
-    _log('Macro augmentation library:\n\n$formatted');
-    _log('Time for the first run: ${macroExecutionStart - firstRunEnd}');
-    _log('Average time for the next 10 runs: '
-        '${(first11RunsEnd - firstRunEnd).dividedBy(10)}');
-    _log('Average time for the next 100 runs: '
-        '${(first111RunsEnd - first11RunsEnd).dividedBy(100)}');
+    _log('Running benchmark');
+    await switch (macro) {
+      'DataClass' => data_class.runBenchmarks(executor, macroUri),
+      'Injectable' => injectable.runBenchmarks(executor, macroUri),
+      _ => throw UnsupportedError('Unrecognized macro $macro'),
+    };
+    await executor.close();
   } finally {
     tmpDir.deleteSync(recursive: true);
   }
-}
-
-final boolIdentifier =
-    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'bool');
-final intIdentifier = IdentifierImpl(id: RemoteInstance.uniqueId, name: 'int');
-final objectIdentifier =
-    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'Object');
-final stringIdentifier =
-    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'String');
-
-final boolType = NamedTypeAnnotationImpl(
-    id: RemoteInstance.uniqueId,
-    identifier: boolIdentifier,
-    isNullable: false,
-    typeArguments: const []);
-final intType = NamedTypeAnnotationImpl(
-    id: RemoteInstance.uniqueId,
-    identifier: intIdentifier,
-    isNullable: false,
-    typeArguments: const []);
-final stringType = NamedTypeAnnotationImpl(
-    id: RemoteInstance.uniqueId,
-    identifier: stringIdentifier,
-    isNullable: false,
-    typeArguments: const []);
-
-final objectClass = IntrospectableClassDeclarationImpl(
-    id: RemoteInstance.uniqueId,
-    identifier: objectIdentifier,
-    interfaces: [],
-    hasAbstract: false,
-    hasBase: false,
-    hasExternal: false,
-    hasFinal: false,
-    hasInterface: false,
-    hasMixin: false,
-    hasSealed: false,
-    mixins: [],
-    superclass: null,
-    typeParameters: []);
-
-final myClassIdentifier =
-    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'MyClass');
-final myClass = IntrospectableClassDeclarationImpl(
-    id: RemoteInstance.uniqueId,
-    identifier: myClassIdentifier,
-    interfaces: [],
-    hasAbstract: false,
-    hasBase: false,
-    hasExternal: false,
-    hasFinal: false,
-    hasInterface: false,
-    hasMixin: false,
-    hasSealed: false,
-    mixins: [],
-    superclass: NamedTypeAnnotationImpl(
-      id: RemoteInstance.uniqueId,
-      isNullable: false,
-      identifier: objectIdentifier,
-      typeArguments: [],
-    ),
-    typeParameters: []);
-
-final myClassFields = [
-  FieldDeclarationImpl(
-      definingType: myClassIdentifier,
-      id: RemoteInstance.uniqueId,
-      identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myString'),
-      isExternal: false,
-      isFinal: true,
-      isLate: false,
-      isStatic: false,
-      type: stringType),
-  FieldDeclarationImpl(
-      definingType: myClassIdentifier,
-      id: RemoteInstance.uniqueId,
-      identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myBool'),
-      isExternal: false,
-      isFinal: true,
-      isLate: false,
-      isStatic: false,
-      type: boolType),
-];
-
-final myClassMethods = [
-  MethodDeclarationImpl(
-    definingType: myClassIdentifier,
-    id: RemoteInstance.uniqueId,
-    identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '=='),
-    isAbstract: false,
-    isExternal: false,
-    isGetter: false,
-    isOperator: true,
-    isSetter: false,
-    isStatic: false,
-    namedParameters: [],
-    positionalParameters: [
-      ParameterDeclarationImpl(
-        id: RemoteInstance.uniqueId,
-        identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'other'),
-        isNamed: false,
-        isRequired: true,
-        type: NamedTypeAnnotationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier: objectIdentifier,
-            isNullable: false,
-            typeArguments: const []),
-      )
-    ],
-    returnType: boolType,
-    typeParameters: [],
-  ),
-  MethodDeclarationImpl(
-    definingType: myClassIdentifier,
-    id: RemoteInstance.uniqueId,
-    identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'hashCode'),
-    isAbstract: false,
-    isExternal: false,
-    isOperator: false,
-    isGetter: true,
-    isSetter: false,
-    isStatic: false,
-    namedParameters: [],
-    positionalParameters: [],
-    returnType: intType,
-    typeParameters: [],
-  ),
-  MethodDeclarationImpl(
-    definingType: myClassIdentifier,
-    id: RemoteInstance.uniqueId,
-    identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'toString'),
-    isAbstract: false,
-    isExternal: false,
-    isGetter: false,
-    isOperator: false,
-    isSetter: false,
-    isStatic: false,
-    namedParameters: [],
-    positionalParameters: [],
-    returnType: stringType,
-    typeParameters: [],
-  ),
-];
-
-abstract class Fake {
-  @override
-  void noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError(invocation.memberName.toString());
-}
-
-/// Returns data as if everything was [myClass].
-class SimpleTypeIntrospector implements TypeIntrospector {
-  @override
-  Future<List<ConstructorDeclaration>> constructorsOf(
-          IntrospectableType type) async =>
-      [];
-
-  @override
-  Future<List<FieldDeclaration>> fieldsOf(IntrospectableType type) async =>
-      type == myClass ? myClassFields : [];
-
-  @override
-  Future<List<MethodDeclaration>> methodsOf(IntrospectableType type) async =>
-      type == myClass ? myClassMethods : [];
-
-  @override
-  Future<List<EnumValueDeclaration>> valuesOf(
-          IntrospectableEnumDeclaration type) async =>
-      [];
-}
-
-/// This is a very basic identifier resolver, it does no actual resolution.
-class SimpleIdentifierResolver implements IdentifierResolver {
-  /// Just returns a new [Identifier] whose name is [name].
-  @override
-  Future<Identifier> resolveIdentifier(Uri library, String name) async =>
-      IdentifierImpl(id: RemoteInstance.uniqueId, name: name);
-}
-
-class SimpleTypeDeclarationResolver implements TypeDeclarationResolver {
-  @override
-  Future<TypeDeclaration> declarationOf(covariant Identifier identifier) async {
-    if (identifier == myClass.identifier) {
-      return myClass;
-    } else if (identifier == objectClass.identifier) {
-      return objectClass;
-    } else {
-      throw UnsupportedError('Could not resolve identifier ${identifier.name}');
-    }
-  }
-}
-
-class FakeTypeInferrer extends Fake implements TypeInferrer {}
-
-/// Only supports named types with no type arguments.
-class SimpleTypeResolver implements TypeResolver {
-  @override
-  Future<StaticType> resolve(TypeAnnotationCode type) async {
-    if (type is! NamedTypeAnnotationCode) {
-      throw UnsupportedError('Only named type annotations are supported');
-    }
-    if (type.typeArguments.isNotEmpty) {
-      throw UnsupportedError('Type arguments are not supported');
-    }
-    return SimpleNamedStaticType(type.name.name, isNullable: type.isNullable);
-  }
-}
-
-/// Only supports exact matching, and only goes off of the name and nullability.
-class SimpleNamedStaticType implements NamedStaticType {
-  final bool isNullable;
-  final String name;
-
-  SimpleNamedStaticType(this.name, {this.isNullable = false});
-
-  @override
-  Future<bool> isExactly(covariant SimpleNamedStaticType other) async =>
-      isNullable == other.isNullable && name == other.name;
-
-  @override
-  Future<bool> isSubtypeOf(covariant StaticType other) =>
-      throw UnimplementedError();
-}
-
-extension _ on Duration {
-  Duration dividedBy(int amount) =>
-      Duration(microseconds: (this.inMicroseconds / amount).round());
 }
