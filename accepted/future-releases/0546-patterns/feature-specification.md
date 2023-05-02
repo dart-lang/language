@@ -2158,6 +2158,20 @@ issue an error since the empty placeholder switch is no longer exhaustive,
 allowing the user to find all the places in the code that need to be updated to
 handle the new subtype.*
 
+We add the following item to the list of [locations where it is not an error
+to have an expression of type `void`][void allowlist]:
+
+[void allowlist]:https://github.com/dart-lang/language/blob/f58f8c5d24eed253db41474a3149f7b79a274c63/specification/dartLangSpec.tex#L21981
+
+- In a `<switchExpressionCase>` of the form `p => e`, `e` may have type `void`.
+
+*This means that we treat switch expressions similarly to conditional
+expressions with respect to the type `void`. When one or more cases in a switch
+expression have type `void`, the switch expression as a whole will have type
+`void`, which means that it can in turn only occur in a location which allows
+having type `void`. For example,
+`void f() => switch (null) { null => print('Got yer!') };` is OK.*
+
 ### Variables and scope
 
 Patterns often exist to bind new variables. The language must ensure that the
