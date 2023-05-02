@@ -142,27 +142,6 @@ class A(final int a);
 class B(super.a) extends A;
 ```
 
-It could be argued that primary constructors should support arbitrary
-superinvocations using the specified superclass:
-
-```dart
-class B extends A { // OK.
-  B(int a): super(a);
-}
-
-class B(int a) extends A(a); // Could be supported, but isn't!
-```
-
-This is not supported for several reasons. First, primary constructors
-should be small and easy to read. Next, it is not obvious how the
-superconstructor arguments would fit into a mixin application (e.g., when
-the superclass is `A with M1, M2`), or how readable it would be if the
-superconstructor is named (`class B(int a) extends A.name(a);`). For
-instance, would it be obvious to all readers that the superclass is `A` and
-not `A.name`, and that all other constructors than the primary constructor
-will ignore the implied superinitialization `super.name(a)` and do their
-own thing (which might be implicit).
-
 Next, the constructor can be named, and it can be constant:
 
 ```dart
@@ -427,6 +406,31 @@ named parameters preserve the name and the property of being `required`.
 Finally, _k_ is added to _D2_.
 
 ### Discussion
+
+It could be argued that primary constructors should support arbitrary
+superinvocations using the specified superclass:
+
+```dart
+class B extends A { // OK.
+  B(int a): super(a);
+}
+
+class B(int a) extends A(a); // Could be supported, but isn't!
+```
+
+There are several reasons why this is not supported. First, primary constructors
+should be small and easy to read. Next, it is not obvious how the
+superconstructor arguments would fit into a mixin application (e.g., when the
+superclass is `A with M1, M2`), or how readable it would be if the
+superconstructor is named (`class B(int a) extends A.name(a);`). For instance,
+would it be obvious to all readers that the superclass is `A` and not `A.name`,
+and that all other constructors than the primary constructor will ignore the
+implied superinitialization `super.name(a)` and do their own thing (which might
+be implicit).
+
+In short, if you need to write a complex superinitialization like
+`super.name(e1, otherName: e2)` then you need to use a normal (non-primary)
+constructor.
 
 There was a [proposal from Bob][] that the primary constructor should be
 expressed at the end of the class header, in order to avoid readability
