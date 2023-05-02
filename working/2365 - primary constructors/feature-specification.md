@@ -17,8 +17,8 @@ One variant of this feature has been proposed in the [struct proposal][],
 several other proposals have appeared elsewhere, and prior art exists in
 languages like [Kotlin][kotlin primary constructors] and Scala (with
 specification [here][scala primary constructors] and some examples
-[here][scala primary constructor examples]). Many discussions about the 
-feature have taken place in github issues marked with the 
+[here][scala primary constructor examples]). Many discussions about the
+feature have taken place in github issues marked with the
 [primary-constructors label][].
 
 [struct proposal]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
@@ -31,7 +31,8 @@ feature have taken place in github issues marked with the
 
 Primary constructors is a conciseness feature. It does not provide any new
 semantics at all. It just allows us to express something which is already
-possible in Dart, using a less verbose notation. Here is a simple example:
+possible in Dart, using a less verbose notation. Consider this sample class
+with two fields and a constructor:
 
 ```dart
 // Current syntax.
@@ -41,15 +42,38 @@ class Point {
   int y;
   Point(this.x, this.y);
 }
+```
 
-// Same thing using a primary constructor.
+A primary constructor allows us to define the same class much more
+concisely:
+
+```dart
+// A declaration with the same meaning, using a primary constructor.
+
+class Point(int x, int y);
+```
+
+In the examples below we show the current syntax directly followed by a
+declaration using a primary constructor. The meaning of the two class
+declarations with the same name is always the same. Of course, we would
+have a name clash if we actually put those two declarations into the same
+library, so we should read the examples as "you can write this _or_ you can
+write that". So the example above would be shown as follows:
+
+```dart
+class Point {
+  int x;
+  int y;
+  Point(this.x, this.y);
+}
 
 class Point(int x, int y);
 ```
 
 These examples will serve as an illustration of the proposed syntax, but
-they will also show the semantics of the primary constructor declarations,
-because they will work exactly as the example using the current syntax.
+they will also illustrate the semantics of the primary constructor
+declarations, because those declarations work exactly the same as the
+declarations using the current syntax.
 
 Note that an empty class body, `{}`, can be replaced by `;`.
 
@@ -59,7 +83,7 @@ instance variable for each formal parameter in said parameter list.
 
 A primary constructor cannot have a body, and it cannot have an initializer
 list (and hence, it cannot have a superinitializer, e.g., `super(...)`, and
-it cannot have assertions). 
+it cannot have assertions).
 
 The motivation for these restrictions is that a primary constructor is
 intended to be small and easy to read at a glance. If more machinery is
@@ -67,8 +91,8 @@ needed then it is always possible to express the same thing as a
 non-primary constructor (i.e., any constructor which isn't a primary
 constructor).
 
-The formal parameter declarations use the regular syntax, specified in the
-grammar by the non-terminal `<formalParameterList>`.
+The parameter list uses the same syntax as constructors and other functions
+(specified in the grammar by the non-terminal `<formalParameterList>`).
 
 This implies that there is no way to indicate that the instance variable
 declarations should have the modifiers `late` or `external` (because formal
@@ -273,69 +297,6 @@ class const D.named<TypeVariable extends Bound>(int x, [int y = 0])
     extends A with M implements B, C;
 ```
 
-There was a proposal from Bob that the primary constructor should be
-expressed at the end of the class header, in order to avoid readability
-issues in the case where the superinterfaces contain a lot of text. It
-would then use the keyword `new` or `const`, optionally followed by `'.'
-<identifier>`, just before the `(` of the primary constructor parameter
-list:
-
-```dart
-class D<TypeVariable extends Bound> extends A with M implements B, C
-    const.named(
-  LongTypeExpression x1,
-  LongTypeExpression x2,
-  LongTypeExpression x3,
-  LongTypeExpression x4,
-  LongTypeExpression x5,
-) {
-  ... // Lots of stuff.
-}
-```
-
-That proposal may certainly be helpful in the case where the primary
-constructor receives a large number of arguments with long types, etc.
-However, the proposal has not been included here. One reason is that it
-could be better to use a non-primary constructor whenever there is so much
-text. Also, it could be helpful to be able to search for the named
-constructor using `D.named`, and that would fail if we use the approach
-where it occurs as `new.named` or `const.named` because that particular
-constructor has been expressed as a primary constructor.
-
-A variant of this idea, from Leaf, was that we could allow one constructor
-in a class with no primary constructor in the header to be marked as a
-"primary constructor in the body". This would allow the constructor to have
-a body and an initializer list. As a strawman, let's say that we do this by
-adding the reserved word `var` in front of a normal constructor
-declaration:
-
-```dart
-class D<TypeVariable extends Bound> extends A with M implements B, C {
-  int i; 
-  
-  var D.named(
-    LongTypeExpression x1,
-    LongTypeExpression x2,
-    LongTypeExpression x3,
-    LongTypeExpression x4,
-    LongTypeExpression x5,
-  ) : 
-      i = 1, 
-      assert(x1 != x2), 
-      super.name(x3, y: x4) {
-    ... // Normal constructor body.
-  }
-
-  ... // Lots of stuff.
-}
-```
-
-The only special thing about a `var` constructor is that the non-super,
-non-this parameters are subject to the same processing as in a primary
-constructor, that is, they will introduce an instance variable. This
-proposal does not include that feature, but it should be completely
-compatible with the feature if we wish to add it.
-
 ## Specification
 
 ### Syntax
@@ -374,7 +335,7 @@ constructors as well.
 
 <enumType> ::= // Modified rule.
      'enum' <enumNamePart> <mixins>? <interfaces>? '{'
-        <enumEntry> (',' <enumEntry>)* (',')? 
+        <enumEntry> (',' <enumEntry>)* (',')?
         (';' (<metadata> <classMemberDeclaration>)*)?
      '}';
 
@@ -464,6 +425,79 @@ named parameters preserve the name and the property of being `required`.
   instance variable declaration named `p`.
 
 Finally, _k_ is added to _D2_.
+
+### Discussion
+
+There was a [proposal from Bob][] that the primary constructor should be
+expressed at the end of the class header, in order to avoid readability
+issues in the case where the superinterfaces contain a lot of text. It
+would then use the keyword `new` or `const`, optionally followed by `'.'
+<identifier>`, just before the `(` of the primary constructor parameter
+list:
+
+[proposal from Bob]: https://github.com/dart-lang/language/issues/2364#issuecomment-1203071697
+
+```dart
+class D<TypeVariable extends Bound> extends A with M implements B, C
+    const.named(
+  LongTypeExpression x1,
+  LongTypeExpression x2,
+  LongTypeExpression x3,
+  LongTypeExpression x4,
+  LongTypeExpression x5,
+) {
+  ... // Lots of stuff.
+}
+```
+
+That proposal may certainly be helpful in the case where the primary
+constructor receives a large number of arguments with long types, etc.
+However, the proposal has not been included in this proposal. One reason is
+that it could be better to use a non-primary constructor whenever there is
+so much text. Also, it could be helpful to be able to search for the named
+constructor using `D.named`, and that would fail if we use the approach
+where it occurs as `new.named` or `const.named` because that particular
+constructor has been expressed as a primary constructor.
+
+A variant of this idea, from Leaf, is that we could allow one constructor
+in a class with no primary constructor in the header to be marked as a
+"primary constructor in the body". This would allow the constructor to have
+a body and an initializer list. As a strawman, let's say that we do this by
+adding the reserved word `var` in front of a normal constructor
+declaration:
+
+```dart
+class D<TypeVariable extends Bound> extends A with M implements B, C {
+  int i;
+
+  var D.named(
+    LongTypeExpression x1,
+    LongTypeExpression x2,
+    LongTypeExpression x3,
+    LongTypeExpression x4,
+    LongTypeExpression x5,
+  ) :
+      i = 1,
+      assert(x1 != x2),
+      super.name(x3, y: x4) {
+    ... // Normal constructor body.
+  }
+
+  ... // Lots of stuff.
+}
+```
+
+Presumably, a `var` constructor, if present, should occur right next to the
+instance variable declarations, such that it is immediately visible
+(because the first word in that constructor declaration is `var`) that this
+construct will introduce instance variables.
+
+The only special thing about a `var` constructor is that the non-super,
+non-this parameters are subject to the same processing as in a primary
+constructor, that is, each of them will introduce an instance variable.
+This proposal does not include that feature, but `var` constructors are
+probably completely compatible with primary constructors as specified
+here.
 
 ### Changelog
 
