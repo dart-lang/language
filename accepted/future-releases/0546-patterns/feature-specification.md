@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.31 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.32 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -512,6 +512,10 @@ switch (record) {
 }
 ```
 
+To simplify parsing, the identifier in a variable pattern may not be `when` or
+`as`. *This reduces the amount of lookahead needed to correctly parse a guarded
+pattern such as `foo when !bar`.*
+
 *There are some restrictions on when `var` and `final` can and can't be used.
 They are specified later in the "Pattern context" section.*
 
@@ -542,6 +546,13 @@ with that name.
 The answer is it's both. Depending on the context where it appears, a bare
 identifier pattern may behave like a constant pattern or like a variable
 pattern. The section on pattern context below lays out the precise rules.
+
+For consistency with the corresponding rule for variable patterns, the
+identifier in an identifier pattern may not be `when` or `as`. *This is not
+strictly necessary for parsing, but it should reduce user confusion by making
+identifier patterns consistent with variable patterns. Note however that these
+identifiers are allowed as parts of a qualifiedName that forms a
+constantPattern, e.g. `when.as`.*
 
 #### Wildcards
 
@@ -3523,6 +3534,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.32
+
+-   Prohibit variable and identifier patterns from being named `when` or `as`,
+    to simplify parsing.
 
 ### 2.31
 
