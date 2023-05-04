@@ -1,7 +1,7 @@
 # Augmentation Libraries
 
 Author: rnystrom@google.com, jakemac@google.com
-Version: 1.7 (see [Changelog](#Changelog) at end)
+Version: 1.8 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -94,13 +94,17 @@ file.
 
 Augmentations have a few features unique to them:
 
-*   An augmentation may add new members to existing types in the main library.
+*   An augmentation may add new members to existing types in the main library,
+    including adding new values to enums.
 
 *   A function in the augmentation may wrap the body of a function in the main
-    library.
+    library, or provide a body if none was present.
 
 *   A variable in the augmentation may wrap the initializer of a variable in the
-    main library.
+    main library, or provide an initializer if none was present.
+
+*   An enum value in the augmentation may replace the argument list of an enum
+    value in the main library, or provide an argument list if none was present.
 
 These can't be expressed today using only imports, exports, and part files.
 
@@ -161,6 +165,13 @@ merge its declarations into this library. It is a compile-time error if:
 *   The same augmentation library is applied more than once. *In other words,
     you can't have redundant `import augment` directives that point to the same
     library.*
+
+*   The main library and its augmentations do not all have the same language
+    version. There is only one user-visible library at the end, and it should
+    have a consistent version across its entire surface area. *An augmentation
+    library does not automatically inherit any language version from the main
+    library and may need an explicit language version comment of its own in
+    order to adhere to this requirement.*
 
 Since the main library and its augmentation both point to each other, these
 rules imply that a given augmentation file can only be used to augment a single
@@ -245,9 +256,6 @@ This order is user-visible in two ways:
 **TODO: Should it be a compile-time error if the main library and augmentation
 are in different packages?**
 
-**TODO: Can the main library and augmentations have different language
-versions?**
-
 ## Augmenting declarations
 
 Unlike part files, which can only add entirely new declarations, an augmentation
@@ -304,11 +312,10 @@ class's superinterface and mixin lists, respectively.
 
 **TODO: Is appending the right order for mixins?**
 
-Any instance or static members defined in the body of the type are added to the
-instance or static namespace of the corresponding type in the main library. In
-other words, the augmentation can add new members to an existing type.
-
-**TODO: Can an augmentation on enums add new enum cases?**
+Any instance or static members defined in the body of the type, including enum
+values, are added to the instance or static namespace of the corresponding type
+in the main library. In other words, the augmentation can add new members to an
+existing type.
 
 Instance and static members inside a type may themselves be augmentations. In
 that case, they augment the corresponding members in the original type
@@ -331,7 +338,7 @@ It is a compile-time error if:
 
 *   The type parameters of the type augmentation do not match the original
     type's type parameters. This means there must be the same number of type
-    parameters with the same bounds.
+    parameters with the same bounds and names.
 
     *Since repeating the type parameters is, by definition, redundant, this
     doesn't accomplish anything semantically. But it ensures that anyone reading
@@ -357,7 +364,8 @@ augment int slowCalculation(int a, int b) {
 The augmentation replaces the original function body with the augmenting code.
 Inside the augmentation body, a special `augment super()` expression may be used
 to execute the original function body. That expression takes an argument list
-matching the original function's parameter list and returns the function's type.
+matching the original function's parameter list and returns the function's
+return type.
 
 **TODO: Better syntax than `augment super`?**
 
@@ -393,7 +401,7 @@ It is a compile-time error if:
 **TODO: Should we allow augmenting functions to add parameters? If so, how does
 this interact with type checking calls to the function?**
 
-### Augmenting variables, getter, and setters
+### Augmenting variables, getters, and setters
 
 Augmentations on variables, getters, and setters are more complex because the
 language treats those as [mostly interchangeable][uniform]. We want to preserve
@@ -493,6 +501,64 @@ It is a compile-time error if:
     instance variables have access to `this` while non-`late` variables do not.
     This means a `late` variable's initializer can't be called from a non-`late`
     variable's initializer.*
+
+### Augmenting enum values
+
+Enum values can _only_ be augmented by enum values, and the implicit getter
+introduced by them is not augmentable. The one thing you are allowed to do is to
+replace the argument list. There is no way to refer to the original argument
+list (although a macro may be able introspect on it and copy over some or all of
+the arguments).
+
+An augmenting enum value is allowed to invoke a different constructor than
+the original enum value, or provide an argument list where none was present
+before.
+
+New enum values may also be defined in the augmenting library, and they will
+be appended to the original values in source and augmentation traversal order.
+Augmenting an existing enum value never changes the order in which it appears in
+`values`.
+
+For example:
+
+```
+// main.dart
+import augment 'a.dart';
+import augment 'c.dart';
+
+enum A {
+  first;
+}
+
+// a.dart
+library augment 'main.dart';
+
+import augment 'b.dart';
+
+augment enum A {
+  second;
+  augment first; // This is still `first` in values.
+}
+// b.dart
+library augment 'a.dart';
+
+augment enum A {
+  augment third;
+}
+
+// c.dart
+library augment 'main.dart';
+
+augment enum A {
+  augment fourth;
+}
+```
+
+Then `A.values` is `[A.first, A.second, A.third, A.fourth]`.
+
+It is a compile-time error if:
+
+*   An augmenting getter is defined for an enum value.
 
 ### Augmenting constructors
 
@@ -803,6 +869,14 @@ consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+### 1.8
+
+*   Specify that main libraries and thier augmentations must have the same
+    language version.
+
+*   Specifically call out that augmentations can add and augment enum values,
+    and specify how that works.
 
 ### 1.7
 
