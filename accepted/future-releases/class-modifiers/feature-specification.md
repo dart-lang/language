@@ -814,7 +814,7 @@ ensures that it can be used as both a `class` and a `mixin`.
 It's a compile-time error if a `mixin class` declaration:
 *   has an `interface`, `final` or `sealed` modifier. _This is baked
     into the grammar, but it bears repeating._
-*   does not have `Object` from `dart:core` as superclass.
+*   does not have `Object` from `dart:core` as immediate superclass.
 *   declares any non-trivial generative constructor.
 
 A mixin class declaration has `Object` from `dart:core` as superclass iff it’s either:
@@ -824,7 +824,7 @@ A mixin class declaration has `Object` from `dart:core` as superclass iff it’s
     and which has precisely one declared mixin.
     _E.g., `mixin class C = Object with M;`_
 *   A non-mixin-application class declaration with no declared mixins,
-    and either no declared superclass, or with `Object` from `dart:core` 
+    and either no declared superclass, or with a type denoting `Object` from `dart:core` 
     as the declared superclass.
     _E.g., `mixin class C {}` or `mixin class C extends Object {}`_
 
