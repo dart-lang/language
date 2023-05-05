@@ -295,10 +295,15 @@ augmented, but it follows generally the same rules as any normal identifier:
     the augmented field.
 
 *   **Augmenting fields**: Within an augmenting field, `augment super` can only
-    be used in an initializer expression, and refers to the original fields
-    initializer expression, which is immediately evaluated. If there is no
-    initializer expression (or augmenting a getter and/or setter), then
-    `augment super` is not allowed.
+    be used in an initializer expression, and refers to the original field's
+    initializer expression, which is immediately evaluated.
+
+    It is a compile-time error to use `augment super` in an augmenting field's
+    initializer if the member being augmented is not a field with an
+    initializer.
+
+    **TODO:** Define the behavior when a field is augmented by a getter or
+    setter, and then later again by a field.
 
 *   **Augmenting functions**: When augmenting a function, `augment super` refers
     to the augmented function. Tear offs are allowed.
