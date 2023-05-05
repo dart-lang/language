@@ -297,6 +297,12 @@ augmented, but it follows generally the same rules as any normal identifier:
 *   **Augmenting functions**: When augmenting a function, it refers to that
     function. Tear offs are allowed.
 
+*   **Augmenting operators**: When augmenting an operator, `augment super` must
+    be followed by the operator. For example when augmenting `+` you must do
+    `augment super + 1`, and when augmenting `[]` you must do
+    `augment super[<arg>]`. These constructs invoke the augmented operator, and
+    are the only valid uses of `augment super` in these contexts.
+
 *   **Augmenting enum values**: When augmenting an enum value, `augment super`
     has no meaning and is not allowed.
 
