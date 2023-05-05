@@ -261,7 +261,9 @@ declaration it augments (hence the name "augmentation"). It may want run before
 the original code, after it, or both. To allow that, we allow a new expression
 syntax inside the bodies of augmenting members. Inside a member marked
 `augment`, an expression like `augment super` can be used to refer to the
-original function, getter, setter, or variable initializer.
+original function, getter, setter, or variable initializer. See the next
+section for a full specification of what `augment super` actually means,
+in the various contexts.
 
 **TODO: I'm not sold on `augment super`. Is there a better syntax?**
 
@@ -277,6 +279,26 @@ It is a compile-time error if:
 *   An augmenting declaration appears in a library before the library where the
     original declaration occurs, according to merge order. *An augmentation
     library can both declare a new declaration and augment it in the same file.*
+
+### Augment super
+
+The exact result of an `augment super` expression depends on what is being
+augmented, but it follows generally the same rules as any normal identifier:
+
+*   **Augmenting getters**: When augmenting a getter, `augment super` invokes
+    the getter and evaluates to the return value.
+
+*   **Augmenting setters**: When augmenting a setter, it can only be used to
+    directly invoke that setter, such as `augment super = <expression>;`.
+
+*   **Augmenting fields**: When augmenting a field, it refers to the original
+    fields initializer expression, which is immediately evaluated.
+
+*   **Augmenting functions**: When augmenting a function, it refers to that
+    function. Tear offs are allowed.
+
+*   **Augmenting enum values**: When augmenting an enum value, `augment super`
+    has no meaning and is not allowed.
 
 ### Augmenting types
 
