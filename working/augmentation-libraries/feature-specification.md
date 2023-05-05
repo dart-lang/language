@@ -269,7 +269,9 @@ declaration it augments (hence the name "augmentation"). It may want run before
 the original code, after it, or both. To allow that, we allow a new expression
 syntax inside the bodies of augmenting members. Inside a member marked
 `augment`, an expression like `augment super` can be used to refer to the
-original function, getter, setter, or variable initializer.
+original function, getter, setter, or variable initializer. See the next
+section for a full specification of what `augment super` actually means,
+in the various contexts.
 
 **TODO: I'm not sold on `augment super`. Is there a better syntax?**
 
@@ -285,6 +287,43 @@ It is a compile-time error if:
 *   An augmenting declaration appears in a library before the library where the
     original declaration occurs, according to merge order. *An augmentation
     library can both declare a new declaration and augment it in the same file.*
+
+### Augment super
+
+The exact result of an `augment super` expression depends on what is being
+augmented, but it follows generally the same rules as any normal identifier:
+
+*   **Augmenting getters**: Within an augmenting getter `augment super` invokes
+    the getter and evaluates to the return value. If augmenting a field with a
+    getter, this will invoke the implicit getter from the augmented field.
+
+*   **Augmenting setters**: Within an augmenting setter `augment super` must be
+    followed by an `=` and will directly invoke the augmented setter. If
+    augmenting a field with a setter, this will invoke the implicit setter from
+    the augmented field.
+
+*   **Augmenting fields**: Within an augmenting field, `augment super` can only
+    be used in an initializer expression, and refers to the original field's
+    initializer expression, which is immediately evaluated.
+
+    It is a compile-time error to use `augment super` in an augmenting field's
+    initializer if the member being augmented is not a field with an
+    initializer.
+
+    **TODO:** Define the behavior when a field is augmented by a getter or
+    setter, and then later again by a field.
+
+*   **Augmenting functions**: When augmenting a function, `augment super` refers
+    to the augmented function. Tear offs are allowed.
+
+*   **Augmenting operators**: When augmenting an operator, `augment super` must
+    be followed by the operator. For example when augmenting `+` you must do
+    `augment super + 1`, and when augmenting `[]` you must do
+    `augment super[<arg>]`. These constructs invoke the augmented operator, and
+    are the only valid uses of `augment super` in these contexts.
+
+*   **Augmenting enum values**: When augmenting an enum value, `augment super`
+    has no meaning and is not allowed.
 
 ### Augmenting types
 
