@@ -285,17 +285,23 @@ It is a compile-time error if:
 The exact result of an `augment super` expression depends on what is being
 augmented, but it follows generally the same rules as any normal identifier:
 
-*   **Augmenting getters**: When augmenting a getter, `augment super` invokes
-    the getter and evaluates to the return value.
+*   **Augmenting getters**: Within an augmenting getter `augment super` invokes
+    the getter and evaluates to the return value. If augmenting a field with a
+    getter, this will invoke the implicit getter from the augmented field.
 
-*   **Augmenting setters**: When augmenting a setter, it can only be used to
-    directly invoke that setter, such as `augment super = <expression>;`.
+*   **Augmenting setters**: Within an augmenting setter `augment super` must be
+    followed by an `=` and will directly invoke the augmented setter. If
+    augmenting a field with a setter, this will invoke the implicit setter from
+    the augmented field.
 
-*   **Augmenting fields**: When augmenting a field, it refers to the original
-    fields initializer expression, which is immediately evaluated.
+*   **Augmenting fields**: Within an augmenting field, `augment super` can only
+    be used in an initializer expression, and refers to the original fields
+    initializer expression, which is immediately evaluated. If there is no
+    initializer expression (or augmenting a getter and/or setter), then
+    `augment super` is not allowed.
 
-*   **Augmenting functions**: When augmenting a function, it refers to that
-    function. Tear offs are allowed.
+*   **Augmenting functions**: When augmenting a function, `augment super` refers
+    to the augmented function. Tear offs are allowed.
 
 *   **Augmenting operators**: When augmenting an operator, `augment super` must
     be followed by the operator. For example when augmenting `+` you must do
