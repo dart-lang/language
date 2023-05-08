@@ -1,7 +1,7 @@
 # Augmentation Libraries
 
 Author: rnystrom@google.com, jakemac@google.com
-Version: 1.8 (see [Changelog](#Changelog) at end)
+Version: 1.9 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -894,6 +894,16 @@ To merge a set of declarations `D` into a namespace:
             expression, an `augment super` expression invokes the original
             variable initializer.
 
+## Documentation comments
+
+Documentation comments are allowed in all the standard places in augmentation
+libraries. It is up to the tooling to decide how to present such documentation
+comments to the user, but they should generally be considered to be additive,
+and should not completely override the original comment. In other words, it is
+not the expectation that augmentations should duplicate the original
+documentation comments, but instead provide comments that are specific to the
+augmentation.
+
 ## Deprecating part files
 
 Part files have been [discouraged for many years][discourage]. They are still
@@ -908,6 +918,12 @@ consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+### 1.9
+
+*   Specify that documentation comments are allowed, and should be considered to
+    be additive and not a complete override of the original comment. The rest of
+    the behavior is left up to implementations and not specified.
 
 ### 1.8
 
