@@ -2,9 +2,9 @@ name: Dart CI
 
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
   push:
-    branches: [master]
+    branches: [main]
 
 env:
   PUB_ENVIRONMENT: bot.github
