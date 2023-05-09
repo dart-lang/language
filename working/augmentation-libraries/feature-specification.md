@@ -1,7 +1,7 @@
 # Augmentation Libraries
 
 Author: rnystrom@google.com, jakemac@google.com
-Version: 1.8 (see [Changelog](#Changelog) at end)
+Version: 1.9 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -261,8 +261,10 @@ are in different packages?**
 Unlike part files, which can only add entirely new declarations, an augmentation
 can also modify existing declarations in the main library. This can mean adding
 new members to an existing type, or even modifying the code of an existing
-declaration. There are a few supported operations which are all marked
-syntactically using an `augment` modifier.
+declaration. There is a new built-in identifier, `augment`, which is used to
+syntactically mark a delcaration as an augmentation of an existing one. The
+introduction of this new identifier will be language versioned in order to make
+it non-breaking for old code.
 
 Often, an augmentation wants to also preserve and run the code of the original
 declaration it augments (hence the name "augmentation"). It may want run before
@@ -908,6 +910,10 @@ consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+## 1.9
+
+*   Make `augment` a built-in identifier.
 
 ### 1.8
 
