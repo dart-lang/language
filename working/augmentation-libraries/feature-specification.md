@@ -262,7 +262,7 @@ Unlike part files, which can only add entirely new declarations, an augmentation
 can also modify existing declarations in the main library. This can mean adding
 new members to an existing type, or even modifying the code of an existing
 declaration. There is a new built-in identifier, `augment`, which is used to
-syntactically mark a delcaration as an augmentation of an existing one. The
+syntactically mark a declaration as an augmentation of an existing one. The
 introduction of this new identifier will be language versioned in order to make
 it non-breaking for old code.
 
