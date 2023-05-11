@@ -3,12 +3,12 @@ name: CI
 on:
   # Run on PRs and pushes to the default branch.
   push:
-    branches: [ master ]
+    branches: [ main ]
     paths:
       - 'specification/**'
       - '.github/workflows/ci.yml'
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
     paths:
       - 'specification/**'
       - '.github/workflows/ci.yml'
@@ -19,7 +19,7 @@ jobs:
     if: |
       (
         (github.event_name == 'push'
-          && github.ref == 'refs/heads/master'
+          && github.ref == 'refs/heads/main'
           && github.repository == 'dart-lang/language'
         ) ||
         (github.event.pull_request.head.repo.full_name == github.repository)
@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
       - name: Install latex tools
-        run: | 
+        run: |
           sudo apt-get update -qq
           sudo apt-get install \
             texlive-latex-base \
