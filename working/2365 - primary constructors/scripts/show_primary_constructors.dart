@@ -50,7 +50,7 @@ Never fail() {
 bool processOption(String option) {
   if (option.startsWith('--')) {
     var optionName = option.substring(2);
-    switch (option.substring(2)) {
+    switch (optionName) {
       case 'help':
         help();
         return true;
@@ -215,10 +215,8 @@ String ppNormal(ClassSpec classSpec) {
 
   var first = true;
   var firstOptionalOrNamed = true;
-  var firstNamed = true;
   var hasOptionalsOrNamed = false;
   var optionalOrNamedMeansNamed = false;
-  var hasNamed = false;
   for (var field in classSpec.fields) {
     var fieldName = field.name;
     if (first) {
@@ -286,10 +284,8 @@ String ppKeyword(ClassSpec classSpec) {
 
   var first = true;
   var firstOptionalOrNamed = true;
-  var firstNamed = true;
   var hasOptionalsOrNamed = false;
   var optionalOrNamedMeansNamed = false;
-  var hasNamed = false;
   for (var field in fields) {
     if (first) {
       first = false;
@@ -360,10 +356,8 @@ String ppStruct(ClassSpec classSpec) {
 
   var first = true;
   var firstOptionalOrNamed = true;
-  var firstNamed = true;
   var hasOptionalsOrNamed = false;
   var optionalOrNamedMeansNamed = false;
-  var hasNamed = false;
   for (var field in fields) {
     if (first) {
       first = false;
