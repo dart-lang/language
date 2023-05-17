@@ -99,14 +99,14 @@ parameters cannot have those modifiers). This omission is not seen as a problem
 in this proposal: It is always possible to use a normal constructor declaration
 and normal instance variable declarations, and it is probably a useful property
 that the primary constructor uses a formal parameter syntax which is completely
-like that of any other formal parameter list. Just use a normal declaration. Use
-an initializing formal in a primary constructor to initialize it from the
-primary constructor, if needed.
+like that of any other formal parameter list.
 
-An `external` instance variable amounts to an `external` getter and an
+Just use a normal declaration and use an initializing formal in a primary
+constructor to initialize it from the primary constructor, if needed.  An
+`external` instance variable amounts to an `external` getter and an
 `external` setter. Such "variables" cannot be initialized by an
-initializing formal anyway, so they do not fit into the treatment implied
-by a primary constructor. Just use a normal declaration.
+initializing formal anyway, so they will just need to be declared using a
+normal `external` variable declaration.
 
 ```dart
 class ModifierClass {
@@ -169,7 +169,7 @@ const Name` rather than `const class Name`.
 The modifier `final` on a parameter in a primary constructor has no meaning
 for the parameter itself, because there is no scope where the parameter can
 be accessed. Hence, this modifier is used to specify that the instance
-variables declared by this primary constructor are `final`.
+variable declared by this primary constructor parameter is `final`.
 
 In the case where the constructor is constant, and in the case where the
 declaration is an `inline` class or an `enum` declaration, the modifier
@@ -237,6 +237,34 @@ class Point {
 }
 
 class Point(int x, {required int y});
+```
+
+The current scope for the default values in the primary constructor is the
+enclosing library scope. This means that a naive copy/paste operation on
+the source code could change the meaning of the default value. In that case
+a new way to denote the given value is established. For example, consider
+this class using a primary constructor:
+
+```dart
+static const d = 42;
+
+class Point(int x, [int y = d]) {
+  void d() {}
+}
+```
+
+This corresponds to the following class without a primary constructor:
+
+```dart
+static const d = 42;
+static const _freshName = d; // Eliminate the name clash.
+
+class Point {
+  int x;
+  int y;
+  Point(this.x, [this.y = _freshName]);
+  void d() {}
+}
 ```
 
 The class header can have additional elements, just like class headers
@@ -312,33 +340,28 @@ Object {}`, and all three of them have `Object` as their direct superclass.*
 
 ### Static processing
 
-A class declaration with a primary constructor *(including `inline`, but
-not `<mixinApplicationClass>`, because the grammar rules do not include
-those)* is desugared to a class declaration without a primary
-constructor. An enum declaration with a primary constructor is desugared
-using the same steps. This determines the dynamic semantics of a primary
-constructor.
+Consider a class declaration with a primary constructor *(it could be
+`inline`, but not a `<mixinApplicationClass>`, because that kind of
+declaration does not support primary constructors, it's just a syntax
+error)*. This declaration is desugared to a class declaration without a
+primary constructor. An enum declaration with a primary constructor is
+desugared using the same steps. This determines the dynamic semantics of a
+primary constructor.
 
-*In other words, there is no other semantics than the desugaring. When
-desugared, the resulting class declaration is treated exactly the same as
-it would have been if the developer had written the result of the
-desugaring step in the first place.*
+The following errors apply to formal parameters of a primary constructor.
+Let _p_ be a formal parameter of a primary constructor in a class `C`:
 
-The following errors apply to formal parameters of a primary constructor
-*(that is, they do not apply to any other formal parameters)*:
+A compile-time error occurs if _p_ contains a term of the form `this.v`, or
+`super.v` where `v` is an identifier, and _p_ has the modifier
+`covariant`. *For example, `required covariant int this.v` is an error.*
 
-A compile-time error occurs if a formal parameter that contains a
-term of the form `this.v`, or `super.v` where `v` is an identifier has the
-modifier `covariant`. *For example, `required covariant int this.v` is an
-error.*
-
-A compile-time error occurs if a formal parameter has both of the modifiers
-`covariant` and `final`. *A final instance variable cannot be covariant,
-because being covariant is a property of the setter.*
+A compile-time error occurs if _p_ has both of the modifiers `covariant`
+and `final`. *A final instance variable cannot be covariant, because being
+covariant is a property of the setter.*
 
 Conversely, it is not an error for the modifier `covariant` to occur on
-other formal parameters of a primary constructor. *This extends the
-existing allowlist of places where `covariant` can occur.*
+other formal parameters of a primary constructor (this extends the
+existing allowlist of places where `covariant` can occur).
 
 The desugaring consists of the following steps, where _D_ is the class or
 enum declaration in the program that includes a primary constructor, and
@@ -352,19 +375,23 @@ occur as follows:
 
 The current scope of the formal parameter list of the primary constructor
 in _D_ is the current scope of the class/enum declaration *(in other words,
-the default values cannot see declarations in the class body)*.  Every
+the default values cannot see declarations in the class body)*. Every
 default value in the primary constructor of _D_ is replaced by a fresh
 private name `_n`, and a constant variable named `_n` is added to the
-top-level of the current library. *(This means that we can move the
-parameter declarations including the default value without changing its
-meaning.)*
+top-level of the current library, with an initializing expression which is
+said default value. *(This means that we can move the parameter
+declarations including the default value without changing its meaning.)*
 
 For each of these constant variable declarations, the declared type is the
 formal parameter type of the corresponding formal parameter, except: In the
 case where the corresponding formal parameter has a type `T` where one or
 more type variables declared by the class occur, the declared type of the
 constant variable is the least closure of `T` with respect to the type
-parameters of the class.
+parameters of the class. 
+
+*For example, if the default value is `const []` and the parameter type is
+`List<X>`, the top-level constant will be `const List<Never> _n = [];` for
+some fresh name `_n`.*
 
 Next, _k_ has the modifier `const` iff the keyword `const` occurs just
 before the class name in the header of _D_, or _D_ is an `enum`
@@ -436,8 +463,7 @@ implied superinitialization `super.name(a)` and do their own thing (which might
 be implicit).
 
 In short, if you need to write a complex superinitialization like
-`super.name(e1, otherName: e2)` then you need to use a normal (non-primary)
-constructor.
+`super.name(e1, otherName: e2)` then you need to use a body constructor.
 
 There was a [proposal from Bob][] that the primary constructor should be
 expressed at the end of the class header, in order to avoid readability
@@ -464,8 +490,8 @@ class D<TypeVariable extends Bound> extends A with M implements B, C
 That proposal may certainly be helpful in the case where the primary
 constructor receives a large number of arguments with long types, etc.
 However, the proposal has not been included in this proposal. One reason is
-that it could be better to use a non-primary constructor whenever there is
-so much text. Also, it could be helpful to be able to search for the named
+that it could be better to use a body constructor whenever there is so much
+text. Also, it could be helpful to be able to search for the named
 constructor using `D.named`, and that would fail if we use the approach
 where it occurs as `new.named` or `const.named` because that particular
 constructor has been expressed as a primary constructor.
