@@ -190,7 +190,7 @@ of `E` is `C`, and the _constructor return type_ of `E` is `C<T1 .. Tk>`.
 In both cases, `E` is an identifer `id` which is optionally followed by a
 term derived from `<typeParameters>`. We say that the identifier `id` is
 the _name_ of the static extension. *Note that `T1 .. Tk` above may contain
-occurrences of those type variables.*
+occurrences of those type parameters.*
 
 ### Static Analysis
 
@@ -198,25 +198,25 @@ At first, we establish some sanity requirements for a static extension
 declaration by specifying several errors.
 
 A compile-time error occurs if the on-class of a static extension does not
-resolve to a declaration of a class, a mixin, a mixin class, or an inline
-class.
+resolve to an enum declaration or a declaration of a class, a mixin, a mixin
+class, or an inline class.
 
-A compile-time error occurs if a static extension has a generic on-class
-which is specified as a raw type, and the static extension contains one or
-more constructor declarations.
+A compile-time error occurs if a static extension has an on-clause of the form
+`on C` where `C` denotes a generic class and no type arguments are passed to `C`
+*(i.e., it is a raw type)*, and the static extension contains one or more
+constructor declarations.
 
 *In other words, if the static extension ignores the type parameters of the
 on-class then it can only contain `static` members. Note that if the
 on-class is non-generic then it is not a raw type, and the static extension
 can contain constructors.*
 
-A compile-time error occurs if a static extension has an on-class which is
-specified as a parameterized type `C<T1 .. Tk>`, and the actual type
-parameters passed to `C` do not satisfy the bounds declared by `C`.
-The static extension may declare one or more type parameters
-`X1 extends B1 .. Xs extends Bs`, and these type variables may occur in the
-types `T1 .. Tk`. During the bounds check, the bounds `B1 .. Bs` are
-assumed for the type variables `X1 .. Xs`.
+A compile-time error occurs if a static extension has an on-clause of the
+form `on C<T1 .. Tk>`, and the actual type parameters passed to `C` do not
+satisfy the bounds declared by `C`.  The static extension may declare one
+or more type parameters `X1 extends B1 .. Xs extends Bs`, and these type
+variables may occur in the types `T1 .. Tk`. During the bounds check, the
+bounds `B1 .. Bs` are assumed for the type variables `X1 .. Xs`.
 
 A compile-time error occurs if a static extension _D_ declares a
 constructor with the same name as a constructor in the on-class of _D_.
@@ -228,13 +228,15 @@ A compile-time error occurs if a static extension declares an
 positional paremeters which is different from one, or if it accepts any
 named parameters.
 
-*A `static extension` declaration gets a fresh name in addition to the
-declared name, just like `extension` declarations.*
+Consider a static extension declaration _D_ named `E` which is declared in
+the current library or present in any exported namespace of an import
+*(that is, _D_ is declared in the current library or it is imported and
+not hidden, but it could be imported and have a name clash with some other
+imported declaration)*. A fresh name `FreshE` is created, and _D_ is
+entered into the library scope with the fresh name.
 
-For each static extension declaration _D_ named `E` which is in the library
-scope of the current library *(that is, _D_ is declared in the current
-library, or it is imported and not hidden)*, a fresh name `FreshE` is
-created, and _D_ is entered into the library scope with the fresh name.
+*This means that a `static extension` declaration gets a fresh name in
+addition to the declared name, just like `extension` declarations.*
 
 *This makes it possible to resolve an implicit reference to a static
 extension, e.g., an invocation of a static member or constructor declared
@@ -256,13 +258,13 @@ void f<E>() {
 
 Static extensions introduce several scopes:
 
-The current scope for the on-class of a static extension declaration _D_
+The current scope for the on-clause of a static extension declaration _D_
 that does not declare any type parameters is the enclosing scope of _D_,
 that is the library scope of the current library.
 
 A static extension _D_ that declares type variables introduces a type
-variable scope whose enclosing scope is the library scope. The current
-scope for the on-class of _D_ is the type variable scope.
+parameter scope whose enclosing scope is the library scope. The current
+scope for the on-clause of _D_ is the type parameter scope.
 
 A static extension _D_ introduces a body scope, which is the current scope
 for the member declarations. The enclosing scope for the body scope is the
@@ -290,9 +292,9 @@ library, or if _D_ is imported and not hidden.
 
 #### Invocation of a static member of a static extension
 
-An explicitly resolved invocation of a static member of a static extension
-`E` *(with zero or more type parameters, which are ignored in this
-context)*, is an expression of the form `E.m()` (or any other member
+An _explicitly resolved invocation_ of a static member of a static
+extension `E` *(with zero or more type parameters, which are ignored in
+this context)*, is an expression of the form `E.m()` (or any other member
 access), where `m` is a static member declared by `E`.
 
 *This can be used to invoke a static member of a specific static extension
@@ -320,7 +322,7 @@ We associate a static extension `E` with formal type parameters
 `T1 .. Ts` with a type known as the _instantiated constructor return type
 of_ `E` _with type arguments_ `T1 .. Ts`.
 
-When a static extension `E` has an on-class which is a non-generic class
+When a static extension `E` has an on-clause which is a non-generic class
 `C`, the instantiated constructor return type is `C`, for any list of
 actual type arguments. *It is not very useful to declare a type parameter
 of a static extension which isn't used in the constructor return type,
@@ -349,7 +351,7 @@ parameters declared by the static extension.
 An _explicitly resolved invocation_ of a constructor named `C.name` in a
 static extension `E` with `s` type parameters and on-class `C` can be
 expressed as `E<S1 .. Ss>.C.name(args)`, `E.C<U1 .. Uk>.name(args)`, or
-`E<S1 .. Ss>.C<U1 .. Uk>.name(args)`, (and similarly for a constructor
+`E<S1 .. Ss>.C<U1 .. Uk>.name(args)` (and similarly for a constructor
 named `C` using `E<S1 .. Ss>.C(args)` etc).
 
 A compile-time error occurs if the type arguments passed to `E` violate the
@@ -415,6 +417,11 @@ for `C(args)`) where `C` resolves to a generic class. As usual, the
 invocation is treated as in the pre-feature language when it resolves to a
 constructor declared by the class `C`.
 
+In the case where the context type schema for this invocation fully
+determines the actual type arguments of `C`, the expression is changed to
+receive said actual type arguments, `C<T1 .. Tm>.name(args)`, and treated
+as described above.
+
 In the case where the invocation resolves to exactly one constructor
 `C.name` (or `C`) declared by a static extension `E`, the invocation is
 treated as `E.C.name(args)` (respectively `E.C(args)`).
@@ -433,7 +440,8 @@ Let `E` be a static extension with type parameters
 that declares an `implicit` constructor _k_ whose formal parameter has type
 `U` *(which may contain some of `X1 .. Xs`)*.
 
-*An `implicit` constructor must always have exactly one formal parameter.*
+*Note that an `implicit` constructor must always have exactly one formal
+parameter.*
 
 Let `T1 .. Ts` be types satisfying the bounds `B1 .. Bs`. We then say that
 the _instantiated parameter type_ of the implicit constructor _k_ with
@@ -456,7 +464,7 @@ If the two instantiated parameter types are mutual subtypes then we say
 that the two constructors are equally specific.
 
 With a list of extensions `E1 .. En` and corresponding actual type
-arguments and implicit constructors _k1 .. kn_, we say that the most
+arguments and implicit constructors _k1 .. km_, we say that the most
 specific one is _kj_ iff that constructor with the given type arguments is
 more specific than each of the others.
 
@@ -466,18 +474,18 @@ Let `E` be a static extension with type parameters
 `X1 extends B1 .. Xs extends Bs` and constructor return type
 `C<T1 .. Tk>`. Let `P` be a context type schema.
 
-Let `f` be a function declared as follows, also known as the applicability
-function of `E`:
+Let `f` be a function declared as follows, also known as the 
+_applicability function_ of `E`:
 
 ```dart
 C<T1 .. Tk> f<X1 extends B1 .. Xs extends Bs>() => f();
 ```
 
-We say that `E` is applicable with context type schema `P` yielding actual
-type arguments `S1 .. Ss` iff type inference of the invocation `f()` with
-context type schema `P` yields a list of actual type arguments `S1 .. Ss`
-to `f` such that `[S1/X1 .. Ss/Xs]C<T1 .. Tk>` is assignable to the
-greatest closure of `P`.
+We say that `E` is _applicable with context type schema_ `P` 
+_yielding actual type arguments_ `S1 .. Ss` iff type inference of the
+invocation `f()` with context type schema `P` yields a list of actual type
+arguments `S1 .. Ss` to `f` such that `[S1/X1 .. Ss/Xs]C<T1 .. Tk>` is
+assignable to the greatest closure of `P`.
 
 #### Implicit invocation of a constructor in a static extension
 
@@ -500,22 +508,18 @@ function instantiation is applicable. In this document we rely on this
 concept being defined already. Currently it has been implemented, but not
 specified.*
 
-If an expression `e` with static type `S` occurs in an assignment position
-with context type schema `P`, and `S` is not assignable to the greatest
-closure `T` of `P`, and `e` is not subject to any built-in coercion *(at
-this time that means generic function instantiation and call method
-tear-offs)* then `e` is _potentially subject to implicit construction_
-with _source type_ `S` and _target type schema_ `P`.
+Assume that an expression `e` occurs in an assignment position with context
+type schema `P`. In this situation, type inference is performed on `e` with
+context type schema `P`, and the resulting expression `e1` has some type
+`T0`. Assume that `e1` is not subject to any built-in coercions *(at this
+time this means generic function instantiation or call method tear-off)*,
+and `T0` is not assignable to the greatest closure of `P`. In this case we
+say that `e` is _potentially subject to implicit construction with source
+type_ `T0`.
 
 If an expression `e` is potentially subject to implicit construction with
-source type `S` and target type schema `P` then the following steps are
-performed:
+source type `T0`, the following steps are performed:
 
-- Perform type inference on `e` with context type schema `P`. *The type of
-  `e` may well not be assignable to the greatest closure of `P`, but
-  performing type inference using the given context type is standard,
-  and we do not wish to change that.* Assume that the resulting expression
-  is `e0`, with static type `T0`.
 - Gather every accessible static extension that declares one or more
   `implicit` constructors, and that is applicable with context type schema
   `P`. Assume that the result is the set `E1 .. En` of static extensions,
@@ -534,8 +538,9 @@ performed:
   error occurs.
 - Otherwise, one specific static extension `Ej` with actual type arguments
   `Aj`, and one constructor _k_ declared by `Ej` is most specific. Let
-  `C.name` be the name of _k_.
-- The expression `e` is then transformed to `Ej<Aj>.C(e0)`.
+  `C.name` (respectively `C`) be the name of _k_.
+- The expression `e` is then replaced by `Ej<Aj>.C.name(e0)`
+  (respectively `Ej<Aj>.C(e0)`).
 
 *Note that no further type inference is applied to this expression: The
 static extension `Ej` has received actual type arguments `Aj`, and this
