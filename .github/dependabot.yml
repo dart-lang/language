@@ -7,3 +7,5 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    labels:
+      - autosubmit
