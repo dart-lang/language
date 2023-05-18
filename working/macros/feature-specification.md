@@ -279,6 +279,118 @@ is not user visible. For example, if two macros are applied to two methods in
 the same class, there is no way for those macros to interfere with each other
 such that the application order can be detected.
 
+### Augmentation library structure and ordering
+
+It is important that expanding macros in a given library always results in a
+consistent augmentation library. In particular, multiple tools should be able to
+run the same macros with the same inputs, and get the same augmentation library.
+This allows debugging and stack traces to work consistently, and be meaningful
+and useful.
+
+It is also important that if a declaration is added in Phase 1, the source
+offsets to that declaration should not change after Phase 2 or 3 run. This means
+that tools don't need to update source offsets after each phase.
+
+Another important consideration is that in Phase 2, the ordering of macros is
+user perceptable, and so augmentation results need to be serialized to disk -
+with stable offsets - at multiple points throughout the process.
+
+We have several rules based around maintaining this stability of source offsets
+and consistency of generated output across tools.
+
+#### Rule #1: Each macro application appends a new independent augmentation
+
+While augmentations of a given type declaration can be grouped together, they
+are not required to be. You can have as many `augment class A {}` declarations
+as you want in a given augmentation library. We take advantage of that fact, and
+require that every macro application creates its own augmentation.
+
+This means each macro application is only appending new top level augmentation
+declarations to the augmentation library. It only grows over time, and previous
+lines are never altered.
+
+#### Rule #2: Augmentations are added in application order, then source order
+
+Where an application order is explicitly defined, the augmentations are appended
+in that same order as the primary sort.
+
+If no order is defined between two macro applications, then their augmentations
+are sorted based on the source offset of the macro application.
+
+Note that when multiple applications are on the same declaration, there is a
+defined order, which is the reverse source offset order.
+
+#### Rule #3: Each augmentation should be separated by one empty line
+
+We need to ensure consistent whitespace across tools, and this follows standard
+Dart style, which is to separate declarations with one empty line.
+
+Note that if a given augmentation provides its own empty lines at the start,
+these should not be trimmed, and so you may end up with more than one empty line
+separating declarations.
+
+In the future, we may decide to run `dart format` or some other lighter weight
+formatter on augmentations which would also enforce consistent whitespace.
+
+#### Ordering example
+
+Consider the complicated situation below, and assume all these macros are
+applied in all 3 phases:
+
+```dart
+@TypeMacroOnB()
+class B extends A with C implements D {
+
+}
+
+@TypeMacroOnA()
+class A implements C {}
+
+@TypeMacroOnC
+mixin C {
+  @MemberMacroOnC()
+  int get c;
+}
+
+@TypeMacroOnD1()
+@TypeMacroOnD2()
+interface class D {}
+```
+
+The augmentations would appear in the following order:
+
+```dart
+// PHASE 1 augmentations order:
+//
+// TypeMacroOnB
+// TypeMacroOnA
+// MemberMacroOnC
+// TypeMacroOnC
+// TypeMacroOnD2
+// TypeMacroOnD1
+
+// PHASE 2 augmentations order:
+//
+// MemberMacroOnC
+// TypeMacroOnC
+// TypeMacroOnA
+// TypeMacroOnD2
+// TypeMacroOnD1
+// TypeMacroOnB
+
+// PHASE 3 augmentations order (same as phase 1):
+//
+// TypeMacroOnB
+// TypeMacroOnA
+// MemberMacroOnC
+// TypeMacroOnC
+// TypeMacroOnD2
+// TypeMacroOnD1
+```
+
+Remember that each of these would have their own `augment class` declarations
+where applicable (following the first rule).
+
 ## Phases
 
 Before we can get into how macro authors create macros, there is another
