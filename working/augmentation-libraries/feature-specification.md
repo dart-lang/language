@@ -267,10 +267,8 @@ introduction of this new identifier will be language versioned in order to make
 it non-breaking for old code.
 
 It is also allowed for a non-abstract class to have abstract members, if those
-member bodies are filled in by an augmentation. You should not explicitly mark
-those members as `abstract` or `external`, you can simply leave off the body to
-make them implicitly abstract. This is primarily useful for macros, which may
-be used to provide a body for an abstract member.
+members are filled in by an augmentation. This is primarily useful for macros,
+which may be used to provide a body for an abstract member.
 
 Often, an augmentation wants to also preserve and run the code of the original
 declaration it augments (hence the name "augmentation"). It may want run before
