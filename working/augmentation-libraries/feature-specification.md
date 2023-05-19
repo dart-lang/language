@@ -547,9 +547,9 @@ It is a compile-time error if:
 *   The original and augmenting declarations do not have the same type.
 
 *   An augmenting declaration uses `augment super` when the original declaration
-    has no concrete implementation. It **is** allowed to call `augment super`
-    when augmenting an external declaration _if_ an implementation has been
-    filled in by a compiler or other external source.
+    has no concrete implementation. Note that all external declarations are
+    assumed to have an implementation provided by another external source, and
+    they will throw a runtime exception when called if not.
 
 *   An augmenting initializer uses `augment super` and the original declaration
     is not a variable with an initializer.
