@@ -281,7 +281,7 @@ such that the application order can be detected.
 
 ### Augmentation library structure and ordering
 
-It is important that expanding macros in a given library always results in a
+It is important that applying macros in a given library always results in a
 consistent augmentation library. In particular, multiple tools should be able to
 run the same macros with the same inputs, and get the same augmentation library.
 This allows debugging and stack traces to work consistently, and be meaningful
@@ -292,7 +292,7 @@ offsets to that declaration should not change after Phase 2 or 3 run. This means
 that tools don't need to update source offsets after each phase.
 
 Another important consideration is that in Phase 2, the ordering of macros is
-user perceptable, and so augmentation results need to be serialized to disk -
+user perceptable, and so augmentation results should be serializable to disk -
 with stable offsets - at multiple points throughout the process.
 
 We have several rules based around maintaining this stability of source offsets
@@ -300,7 +300,7 @@ and consistency of generated output across tools.
 
 #### Rule #1: Each macro application appends a new independent augmentation
 
-While augmentations of a given type declaration can be grouped together, they
+While augmentations on a given type declaration can be grouped together, they
 are not required to be. You can have as many `augment class A {}` declarations
 as you want in a given augmentation library. We take advantage of that fact, and
 require that every macro application creates its own augmentation.
