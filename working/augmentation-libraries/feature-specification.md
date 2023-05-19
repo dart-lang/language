@@ -1,7 +1,7 @@
 # Augmentation Libraries
 
 Author: rnystrom@google.com, jakemac@google.com
-Version: 1.11 (see [Changelog](#Changelog) at end)
+Version: 1.12 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -316,9 +316,6 @@ augmented, but it follows generally the same rules as any normal identifier:
     initializer if the member being augmented is not a field with an
     initializer.
 
-    **TODO:** Define the behavior when a field is augmented by a getter or
-    setter, and then later again by a field.
-
 *   **Augmenting functions**: When augmenting a function, `augment super` refers
     to the augmented function. Tear offs are allowed.
 
@@ -441,12 +438,12 @@ this interact with type checking calls to the function?**
 
 ### Augmenting variables, getters, and setters
 
-Augmentations on variables, getters, and setters are more complex because the
-language treats those as [mostly interchangeable][uniform]. We want to preserve
-that flexibility in augmentations. For example, an augmentation might want to
-wrap access to a variable in an augmenting getter. Or an augmentation may want
-to fill in the body of an unimplemented getter by using a backing variable
-declaration.
+While the language treats variables, getters, and setters as
+[mostly interchangeable][uniform], within augmentation libraries we do not allow
+augmenting getters and setters with variables. Since augmentations are tightly
+coupled to the libraries they augment, this restriction has minimal impact, and
+it does not greatly affect the ability of a library to change a field to a
+getter/setter pair or vice-versa.
 
 [uniform]: https://en.wikipedia.org/wiki/Uniform_access_principle
 
@@ -489,23 +486,53 @@ More specifically:
     non-final variable in the main library. Inside the augmenting setter, an
     `augment super =` expression invokes the original setter.
 
-*   **Augmenting a getter and/or setter with a variable:** A variable in an
-    augmentation library can augment a getter in the main library. A non-final
-    variable can augment a setter as well. The implicit getter and setter
-    defined by the augmenting variable replace the getter and setter in the main
-    library.
+*   **Augmenting a getter and/or setter with a variable:** This is a
+    compile-time error in all cases. We may decide in the future to allow
+    augmenting abstract or external getters and setters with variables, but for
+    now you can instead use the following workaround:
 
-*   **Augmenting a variable with a variable:** The original storage location is
-    discarded and the original implicit getter and setter are replaced with the
-    new implicit ones. *In most cases, the distinction of which implicit
-    getter/setter is kept is not visible. But if augmenting a `late` variable
-    with a non-`late` one or vice versa, the bodies behave differently in
-    user-visible ways.*
+    - Add a new field.
+    - Augment the getter and/or setter to delegate to that field.
 
-    The original initializer expression is replaced with the augmenting
-    variable's initializer if it has one. The augmenting initializer may use an
+    If a concrete variable is augmented by a getter or setter, you **can** still
+    augment the variable, as you are only augmenting the initializer. This is
+    not considered to be augmenting the augmenting getter or setter, since those
+    are not actually altered.
+
+    The reason for this is that whether a member declaration is a field versus a
+    getter/setter is a visible property of the declaration: It determines
+    whether the member can be initialized in a constructor initializer list. It
+    is also a visible distinction when introspecting on a program with the
+    analyzer, macros, or mirrors.
+
+    When a declaration is augmented, we don't want the augmentation to be able
+    to change any of the known properties of the existing member being
+    augmented. For example, we don't allow you to augment a method with a getter
+    that returns a function. Augmenting a getter/setter pair with a field would
+    change the "can be used in a constructor initializer" property, so we forbid
+    it. Augmenting a field with a getter/setter doesn't change that property so
+    it is allowed.
+
+*   **Augmenting a variable with a variable:** When augmenting a variable with
+    a variable, the behavior differs depending on whether the original variable
+    has a concrete implementation or not. Note that this concrete implementation
+    could be one that is filled in by a compiler or other external source, if
+    the declaration is marked `external`.
+
+    If the variable being augmented _does not_ have a concrete implementation,
+    then it gets one from the augmenting variable. This includes the backing
+    store, the implicit getter and setter, as well as the initializer if
+    present.
+
+    If the variable being augmented _does_**_ have a concrete implementation,
+    then only the initializer has any meaning, and it replaces the original
+    initializer. In this case the augmenting initializer may use an
     `augment super` expression which executes the original initializer
-    expression when evaluated.
+    expression when evaluated. Augmenting a concrete field with a field does not
+    affect its backing store, getter, or setter.
+
+    The `late` property of a variable must always be consistent between the
+    augmented variable and its augmenting variables.
 
     If the variable declaration in the original library does not have a type
     annotation, then the type is inferred only using the original library's
@@ -519,6 +546,11 @@ It is a compile-time error if:
 
 *   The original and augmenting declarations do not have the same type.
 
+*   An augmenting declaration uses `augment super` when the original declaration
+    has no concrete implementation. Note that all external declarations are
+    assumed to have an implementation provided by another external source, and
+    they will throw a runtime exception when called if not.
+
 *   An augmenting initializer uses `augment super` and the original declaration
     is not a variable with an initializer.
 
@@ -529,11 +561,11 @@ It is a compile-time error if:
 *   A non-final variable is augmented with a final variable. We don't want to
     leave the original setter in a weird state.
 
-*   A non-`late` augmenting instance variable initializer contains `augment
-    super` and the variable being augmented is `late`. *Initializers for `late`
-    instance variables have access to `this` while non-`late` variables do not.
-    This means a `late` variable's initializer can't be called from a non-`late`
-    variable's initializer.*
+*  A `late` variable is augmented with a non-`late` variable.
+
+*  A non-`late` variable is augmented with a `late` variable.
+
+*  A concrete getter or setter are augmented by a variable.
 
 ### Augmenting enum values
 
@@ -928,11 +960,15 @@ language and our tools.
 
 ## Changelog
 
+## 1.12
+
+*   Update the behavior for variable augmentations.
+
 ## 1.11
 
-* Alter and clarify the semantics around augmenting external declarations.
-* Allow non-abstract classes to have implictly abstract members which are
-  implemented in an augmentation.
+*   Alter and clarify the semantics around augmenting external declarations.
+*   Allow non-abstract classes to have implictly abstract members which are
+    implemented in an augmentation.
 
 ## 1.10
 
