@@ -1,7 +1,7 @@
 # Augmentation Libraries
 
 Author: rnystrom@google.com, jakemac@google.com
-Version: 1.11 (see [Changelog](#Changelog) at end)
+Version: 1.12 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -266,6 +266,10 @@ syntactically mark a declaration as an augmentation of an existing one. The
 introduction of this new identifier will be language versioned in order to make
 it non-breaking for old code.
 
+It is also allowed for a non-abstract class to have abstract members, if those
+members are filled in by an augmentation. This is primarily useful for macros,
+which may be used to provide a body for an abstract member.
+
 Often, an augmentation wants to also preserve and run the code of the original
 declaration it augments (hence the name "augmentation"). It may want run before
 the original code, after it, or both. To allow that, we allow a new expression
@@ -428,13 +432,6 @@ It is a compile-time error if:
 
 *   The function augmentation specifies any default values. *Default values are
     defined solely by the original function.*
-
-*   The original function is declared `external` and the augmenting function
-    uses `augment super()`.
-
-    **TODO: Instead of making this an error, should we add a syntax that lets
-    the augmentation dynamically detect whether there is an original body to
-    wrap?**
 
 **TODO: Should we allow augmenting functions to add parameters? If so, how does
 this interact with type checking calls to the function?**
@@ -664,6 +661,21 @@ It is a compile-time error if:
     and the augmenting constructor does too.
 
 **TODO: What about redirecting constructors?**
+
+### Augmenting external members
+
+When augmenting an `external` member, it is assumed that a real implementation
+of that member has already been filled by some tool prior to any augmentations
+being applied. Thus, it is allowed to use `augment super` from augmenting
+members on external declarations, but it may throw a `noSuchMethod` error at
+runtime if no implementation was in fact provided.
+
+**NOTE**: Macros should _not_ be able to statically tell if an external body has
+been filled in by a compiler, because it could lead to a different result on
+different platforms or tools.
+
+**TODO: Should we add a syntax to let the augmentation dynamically detect
+whether there is an external implementation to call?**
 
 ### Metadata annotations and macro applications
 
@@ -948,9 +960,15 @@ language and our tools.
 
 ## Changelog
 
-## 1.11
+## 1.12
 
 *   Update the behavior for variable augmentations.
+
+## 1.11
+
+*   Alter and clarify the semantics around augmenting external declarations.
+*   Allow non-abstract classes to have implictly abstract members which are
+    implemented in an augmentation.
 
 ## 1.10
 
