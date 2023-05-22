@@ -41,7 +41,7 @@ jobs:
           make
           mkdir firebase
           cp dartLangSpec.pdf firebase/DartLangSpecDraft.pdf
-      - uses: FirebaseExtended/action-hosting-deploy@4d0d0023f1d92b9b7d16dda64b3d7abd2c98974b
+      - uses: FirebaseExtended/action-hosting-deploy@120e124148ab7016bec2374e5050f15051255ba2
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DART_SPECIFICATION }}'
