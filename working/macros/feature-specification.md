@@ -470,7 +470,7 @@ you to get the members of the class, as well as its entire class hierarchy.
 
 ### Introspection API ordering
 
-Macros may produce code based on the order in which the introspection apis
+Macros may produce code based on the order in which the introspection APIs
 return results. For instance when generating a constructor, a macro will likely
 just iterate over the fields and create a parameter for each.
 
