@@ -16,7 +16,6 @@ linter:
   - collection_methods_unrelated_type
   - library_names
   - library_prefixes
-  - collection_methods_unrelated_type
   - non_constant_identifier_names
   - overridden_fields
   - package_api_docs
