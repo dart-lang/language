@@ -580,6 +580,21 @@ you to get the members of the class, as well as its entire class hierarchy.
 
 [builder]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/builders.dart
 
+### Introspection API ordering
+
+Macros may produce code based on the order in which the introspection APIs
+return results. For instance when generating a constructor, a macro will likely
+just iterate over the fields and create a parameter for each.
+
+We need generated augmentations to be identical on all platforms for all the
+same inputs, so we need to have a defined ordering when introspection apis are
+returning lists of declarations.
+
+Therefore, whenever an implementation is returning a list of declarations, they
+should always be given in lexicographical order. We use lexicographical order
+instead of source text order, so that macro output does not have to be re-ran
+when re-ordering members.
+
 ### Introspecting on metadata annotations
 
 Prior to macros, most use of metadata annotations in Dart was to guide code
