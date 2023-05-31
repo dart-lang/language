@@ -15587,7 +15587,7 @@ Note that $T$ is the dynamic type of $o$, or a superclass thereof.%
 \LMHash{}%
 For each parameter $p_j$, $j \in 1 .. n+k$, if $p_j$ is covariant
 (\ref{covariantParameters})
-then $T_j$ is the built-in class \code{Object}.
+then $T_j$ is \DYNAMIC. %% No user code will see this, avoid downcast in body.
 
 \commentary{%
 This is concerned with the dynamic type of the function object obtained by
@@ -15600,7 +15600,7 @@ Note that for the static type it is ignored whether a parameter is covariant.%
 }
 
 \LMHash{}%
-If $T$ is a non-generic class then for $j \in 1 .. n+k$,
+Otherwise, if $T$ is a non-generic class then for $j \in 1 .. n+k$,
 $T_j$ is a type annotation that denotes the same type
 (\ref{typeType})
 as that which is denoted by the type annotation on
@@ -15743,7 +15743,7 @@ Let the method declaration $D$ be the implementation of $m$ in $S$.
 \LMHash{}%
 For each parameter $p_j$, $j \in 1 .. n+k$, if $p_j$ is covariant
 (\ref{covariantParameters})
-then $T_j$ is the built-in class \code{Object}.
+then $T_j$ is \DYNAMIC.
 
 \commentary{%
 This is concerned with the dynamic type of the function object obtained by
@@ -15756,7 +15756,7 @@ Note that for the static type it is ignored whether a parameter is covariant.%
 }
 
 \LMHash{}%
-If $S$ is a non-generic class then for $j \in 1 .. n+k$,
+Otherwise, if $S$ is a non-generic class then for $j \in 1 .. n+k$,
 $T_j$ is a type annotation that denotes the same type
 (\ref{typeType})
 as that which is denoted by the type annotation on
