@@ -15587,7 +15587,11 @@ Note that $T$ is the dynamic type of $o$, or a superclass thereof.%
 \LMHash{}%
 For each parameter $p_j$, $j \in 1 .. n+k$, if $p_j$ is covariant
 (\ref{covariantParameters})
-then $T_j$ is \DYNAMIC. %% No user code will see this, avoid downcast in body.
+then $T_j$ is \code{Object?}.
+The corresponding actual argument in the body is replaced by
+\code{$p_j$\,\,\AS\,\,$T'_j$}
+where $T'_j$ is the type which would be $T_j$ if $p_j$ had not been covariant
+(\commentary{that is, it is computed as specified below}).
 
 \commentary{%
 This is concerned with the dynamic type of the function object obtained by
@@ -15600,12 +15604,15 @@ Note that for the static type it is ignored whether a parameter is covariant.%
 }
 
 \LMHash{}%
-Otherwise, if $T$ is a non-generic class then for $j \in 1 .. n+k$,
+Otherwise
+(\commentary{when $p_j$ is not covariant}),
+if $T$ is a non-generic class then for $j \in 1 .. n+k$,
 $T_j$ is a type annotation that denotes the same type
 (\ref{typeType})
 as that which is denoted by the type annotation on
 the corresponding parameter declaration in $D$.
-If that parameter declaration has no type annotation then $T_j$ is \DYNAMIC.
+If that parameter declaration has no type annotation
+then $T_j$ is \code{Object?}.
 
 \LMHash{}%
 Otherwise $T$ is a generic instantiation of a generic class $G$.
@@ -15614,7 +15621,8 @@ and $t''_1, \ldots, t''_{s''}$ be the actual type arguments of $o$ at $T$.
 Then $T_j$ is a type annotation that denotes
 $[t''_1/X''_1, \ldots, t''_{s''}/X''_{s''}]S_j$,
 where $S_j$ is the type annotation of the corresponding parameter in $D$.
-If that parameter declaration has no type annotation then $T_j$ is \DYNAMIC.
+If that parameter declaration has no type annotation
+then $T_j$ is \code{Object?}.
 
 \LMHash{}%
 There is one way in which
@@ -15743,7 +15751,11 @@ Let the method declaration $D$ be the implementation of $m$ in $S$.
 \LMHash{}%
 For each parameter $p_j$, $j \in 1 .. n+k$, if $p_j$ is covariant
 (\ref{covariantParameters})
-then $T_j$ is \DYNAMIC.
+then $T_j$ is \code{Object?}.
+The corresponding actual argument in the body is replaced by
+\code{$p_j$\,\,\AS\,\,$T'_j$}
+where $T'_j$ is the type which would be $T_j$ if $p_j$ had not been covariant
+(\commentary{that is, it is computed as specified below}).
 
 \commentary{%
 This is concerned with the dynamic type of the function object obtained by
@@ -15756,12 +15768,15 @@ Note that for the static type it is ignored whether a parameter is covariant.%
 }
 
 \LMHash{}%
-Otherwise, if $S$ is a non-generic class then for $j \in 1 .. n+k$,
+Otherwise
+(\commentary{when $p_j$ is not covariant}),
+if $S$ is a non-generic class then for $j \in 1 .. n+k$,
 $T_j$ is a type annotation that denotes the same type
 (\ref{typeType})
 as that which is denoted by the type annotation on
 the corresponding parameter declaration in $D$.
-If that parameter declaration has no type annotation then $T_j$ is \DYNAMIC.
+If that parameter declaration has no type annotation
+then $T_j$ is \code{Object?}.
 
 \LMHash{}%
 Otherwise $S$ is a generic instantiation of a generic class $G$.
@@ -15770,7 +15785,8 @@ and $t''_1, \ldots, t''_{s''}$ be the actual type arguments of $o$ at $S$.
 Then $T_j$ is a type annotation that denotes
 $[t''_1/X''_1, \ldots, t''_{s''}/X''_{s''}]S_j$,
 where $S_j$ is the type annotation of the corresponding parameter in $D$.
-If that parameter declaration has no type annotation then $T_j$ is \DYNAMIC.
+If that parameter declaration has no type annotation
+then $T_j$ is \code{Object?}.
 
 \LMHash{}%
 There is one way in which
