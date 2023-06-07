@@ -26,7 +26,7 @@ jobs:
       )
 
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
       - name: Install latex tools
         run: |
           sudo apt-get update -qq
@@ -41,7 +41,7 @@ jobs:
           make
           mkdir firebase
           cp dartLangSpec.pdf firebase/DartLangSpecDraft.pdf
-      - uses: FirebaseExtended/action-hosting-deploy@4d0d0023f1d92b9b7d16dda64b3d7abd2c98974b
+      - uses: FirebaseExtended/action-hosting-deploy@120e124148ab7016bec2374e5050f15051255ba2
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DART_SPECIFICATION }}'
