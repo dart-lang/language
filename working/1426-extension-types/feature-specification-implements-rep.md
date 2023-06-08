@@ -70,6 +70,10 @@ need to protect an object accessed as an `A` against being accessed as an
 `int`, and it is even considered to be useful that it will readily "become
 an `int` whenever needed".
 
+## Specification
+
+### Static analysis
+
 We need to introduce the _ultimate representation type_ of an inline type
 `V<T1 .. Tk>`: This is the instantiated representation type `R` of `V` if
 that is a type that is not and does not contain any inline
@@ -82,17 +86,17 @@ representation type of `V` is the ultimate representation type of
 exists. This is ensured by means of a static check on each inline class
 declaration, as specified in the inline class feature specification.*
 
-The corresponding change to the feature specification is be that the
-following sentence in the section
-[Composing inline classes](https://github.com/dart-lang/language/blob/main/accepted/future-releases/inline-classes/feature-specification.md#composing-inline-classes)
-is adjusted:
+The permission for an inline class declaration to have a non-inline
+superinterface is expressed by changing the feature specification text
+in the section [Composing inline
+classes](https://github.com/dart-lang/language/blob/main/accepted/future-releases/inline-classes/feature-specification.md#composing-inline-classes)
+which is currently as follows:
 
 > A compile-time error occurs if _V1_ is a type name or a parameterized type which occurs as a superinterface in an inline class declaration _DV_, but _V1_ does not denote an inline type.
 
 It is adjusted to end as follows:
 
 > ... declaration _DV_, unless _V1_ denotes an inline type, or _V1_ is a supertype of the ultimate representation type of _DV_.
-
 
 Moreover, a compile-time error occurs if the implements clause of _DV_
 contains two or more types that are non-inline types. A compile-time error
