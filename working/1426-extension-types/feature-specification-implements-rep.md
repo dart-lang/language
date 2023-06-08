@@ -17,10 +17,11 @@ of type `V`.
 ## Summary
 
 This is a proposal to add a new feature to inline classes: An inline class `V`
-may include a superinterface in its `implements` clause which is a
-supertype `R0` of the ultimate representation type `R` of `V` (this allows
-`implements R` as a special case). This causes `V` to be a subtype of `R0`,
-and it enables invocations of members of `R0` on a receiver of type `V`.
+may include one or more superinterfaces in its `implements` clause which are
+supertypes `R1 .. Rk` of the ultimate representation type `R` of `V` (this
+allows `implements R` as a special case). This causes `V` to be a subtype
+of each of `Rj`, `j` in `1 .. k`, and it enables invocations of members of
+`Rj` on a receiver of type `V`.
 
 As it is currently
 [specified](https://github.com/dart-lang/language/blob/main/accepted/future-releases/inline-classes/feature-specification.md),
@@ -109,7 +110,7 @@ inline class A {
   A(this.n);
 }
 
-inline class B implements num {
+inline class B implements num { // OK.
   final A a;
   A(this.a);
 }
@@ -118,35 +119,40 @@ inline class B implements num {
 *This is allowed because the representation object for an expression of
 type `B` is an object of type `num`, because it is the representation
 object of an expression of type `A`. Note that there is no need for (or any
-problem with) a subtype relationship between `A` and `B`.*
-
-Moreover, a compile-time error occurs if the implements clause of _DV_
-contains two or more types that are non-inline types. A compile-time error
-occurs if the implements clause of _DV_ contains a non-inline type that
-occurs in any other position than the last one.
-
-*This ensures that it is only necessary for a reader of the declaration to
-check the last implemented type in order to see whether or not it is using
-this feature. It is somewhat similar to the rule that `super(...)` can only
-occur as the last element in a constructor initializer list.*
+problem with) a subtype relationship between `A` and `B`. The relationship
+between an inline type and its instantiated representation type and the
+subtype relationship for an inline type are independent concepts.*
 
 Let _DV_ be an inline class declaration named `V` with representation type
 `R` and assume that the `implements` clause of _DV_ includes the non-inline
-type `R0`. *We then have `R <: R0`, because anything else is an error.*
+types `R1 .. Rk`. *We then have `R <: Rj` for each `j`, because anything
+else is an error.*
+
+Assume that `m` is a member which not declared by _DV_, and none of _DV_'s
+inline superinterfaces have a member named `m`, but one or more of the
+interfaces of `R1 .. Rk` has a member named `m`. A compile-time error
+occurs if there exist `j1` and `j2` in `1 .. k` and a member name `m` such
+that `m` does not have a combined member signature for `R1
+.. Rk`. Otherwise the member signature of `m` is that combined member
+signature.
 
 Invocations of members declared by _DV_ or declared by an inline
-superinterface of _DV_ and not declared by `R0` are unaffected by the fact
-that _DV_ implements `R0`.
+superinterface of _DV_ and not declared by any of `Rj`, `j` in `1..k` are
+unaffected by the fact that _DV_ implements `R1 .. Rk`.
+
+*This could be an invocation of a member declared by _DV_, or by any of its
+non-inline superinterfaces, or both, but the rules are unchanged.*
 
 Let `m` be a member name which is not declared by _DV_. Assume that the
-interface of `R0` has a member named `m`. A compile-time error occurs if an
+interface of `Rj` has a member named `m`. A compile-time error occurs if an
 inline superinterface of _DV_ also declares a member named `m`.
 
 Let `m` be a member name which is not declared by _DV_ and not declared by
-an inline superinterface of _DV_. Assume that the interface of `R0`
-has a member named `m`. An invocation of `m` on a receiver of type `V` (or
-`V<T1 .. Ts>` if _DV_ is generic) is then treated as the same invocation,
-but with receiver type `R0`.
+an inline superinterface of _DV_. Assume that the interface of `Rj` has a
+member named `m` with signature `s` *(this is the combined member signature
+that may depend on other types in `R1 .. Rk`)*. An invocation of `m` on a
+receiver of type `V` (or `V<T1 .. Ts>` if _DV_ is generic) is then treated
+as the same invocation, but with signature `s`.
 
 *In other words: Conflicts among superinterfaces are treated the same,
 whether it is an inline or a non-inline superinterface. In both cases, _DV_
@@ -211,6 +217,21 @@ void main() {
   b.isEven; // OK.
 }
 ```
+
+## Dynamic Semantics
+
+When an expression of the form `e.m(args)` (or any other member access,
+e.g., `e.m` or `e.m = e2`) has a receiver `e` whose static type is an
+inline type `V`, and `m` is a member of one or more non-inline
+superinterfaces of `V`, it is performed as a member access of `m` as an
+instance member of the ultimate representation type of `e`.
+
+*In other words, invocations of members of non-inline superinterfaces of an
+inline type receiver are forwarded to the representation object.*
+
+*It is an implementation specific choice whether this invocation of an
+instance member of the ultimate representation type is performed directly
+or as an invocation of a forwarding function.*
 
 ## Discussion
 
