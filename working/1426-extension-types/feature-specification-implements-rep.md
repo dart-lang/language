@@ -134,9 +134,9 @@ Let _DV_ be an inline class declaration named `V` with representation type
 `R` and assume that the `implements` clause of _DV_ includes the non-inline
 type `R0`. *We then have `R <: R0`, because anything else is an error.*
 
-Invocations of members declared by `V` or declared by an inline
-superinterface of _DV_ are unaffected by the fact that _DV_ implements
-`R0`.
+Invocations of members declared by _DV_ or declared by an inline
+superinterface of _DV_ and not declared by `R0` are unaffected by the fact
+that _DV_ implements `R0`.
 
 Let `m` be a member name which is not declared by _DV_. Assume that the
 interface of `R0` has a member named `m`. A compile-time error occurs if an
