@@ -165,7 +165,8 @@ _DV_ in order to enable invocation of members of `R0`. However, such
 forwarding members must preserve the semantics of a direct invocation. In
 particular, if an invocation omits some optional parameters then the
 invocation of a member of `R0` must use the default value for that
-parameter, not a statically known value.*
+parameter of the actually invoked instance method, not a statically known
+value.*
 
 ```dart
 class C {
