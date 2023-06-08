@@ -98,6 +98,28 @@ It is adjusted to end as follows:
 
 > ... declaration _DV_, unless _V1_ denotes an inline type, or _V1_ is a supertype of the ultimate representation type of _DV_.
 
+*The fact that the non-inline superinterface must be a supertype of the
+ultimate representation type rather than just the representation type is
+helpful in the case where the representation type is itself an inline
+type:*
+
+```dart
+inline class A {
+  final num n;
+  A(this.n);
+}
+
+inline class B implements num {
+  final A a;
+  A(this.a);
+}
+```
+
+*This is allowed because the representation object for an expression of
+type `B` is an object of type `num`, because it is the representation
+object of an expression of type `A`. Note that there is no need for (or any
+problem with) a subtype relationship between `A` and `B`.*
+
 Moreover, a compile-time error occurs if the implements clause of _DV_
 contains two or more types that are non-inline types. A compile-time error
 occurs if the implements clause of _DV_ contains a non-inline type that
@@ -188,13 +210,6 @@ void main() {
   B b = B(42);
   b.isEven; // OK.
 }
-```
-
-TODO!!!
-
-```dart
-inline class A(num n) {}
-inline class B(A a) implements num {} // OK
 ```
 
 ## Discussion
