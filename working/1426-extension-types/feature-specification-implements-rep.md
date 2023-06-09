@@ -73,6 +73,19 @@ an `int` whenever needed".
 
 ## Specification
 
+### Syntax
+
+```ebnf
+<inlineClassDeclaration> ::=
+  'final'? 'inline' 'class' <typeIdentifier> <typeParameters>?
+  <inlineInterfaces>?
+  '{'
+    (<metadata> <inlineMemberDeclaration>)*
+  '}'
+
+<inlineInterfaces> ::= 'implements' <typeList>
+```
+
 ### Static analysis
 
 We need to introduce the _ultimate representation type_ of an inline type
@@ -123,6 +136,25 @@ problem with) a subtype relationship between `A` and `B`. The relationship
 between an inline type and its instantiated representation type and the
 subtype relationship for an inline type are independent concepts.*
 
+*Note that almost any supertype of the representation type can occur as a
+non-inline superinterface of an inline class. In particular, inline classes
+do not have the same constraints on non-inline superinterfaces as
+non-inline classes have on their superinterfaces. One such example was
+already given: It is a compile-time error for a non-inline class which
+isn't `int` or `double` to have `implements num`. Another example:*
+
+```dart
+inline class MapEntry<K, V> implements (K, V) {
+  final (K, V) _it;
+  MapEntry(K key, V value) : _it = (key, value);
+  K get key => $1;
+  V get value => $2;
+}
+```
+
+A compile-time error occurs if `void` or `dynamic` occurs as a non-inline
+superinterface of an inline class.
+
 Let _DV_ be an inline class declaration named `V` with representation type
 `R` and assume that the `implements` clause of _DV_ includes the non-inline
 types `R1 .. Rk`. *We then have `R <: Rj` for each `j`, because anything
@@ -132,9 +164,8 @@ Assume that `m` is a member which not declared by _DV_, and none of _DV_'s
 inline superinterfaces have a member named `m`, but one or more of the
 interfaces of `R1 .. Rk` has a member named `m`. A compile-time error
 occurs if there exist `j1` and `j2` in `1 .. k` and a member name `m` such
-that `m` does not have a combined member signature for `R1
-.. Rk`. Otherwise the member signature of `m` is that combined member
-signature.
+that `m` does not have a combined member signature for `R1 .. Rk`.
+Otherwise the member signature of `m` is that combined member signature.
 
 Invocations of members declared by _DV_ or declared by an inline
 superinterface of _DV_ and not declared by any of `Rj`, `j` in `1..k` are
@@ -158,13 +189,13 @@ as the same invocation, but with signature `s`.
 whether it is an inline or a non-inline superinterface. In both cases, _DV_
 can resolve the conflict by redeclaring the given member. No override check
 is applied, any signature with the given name will resolve the conflict. If
-there is no conflict then _DV_ will "forward to" the members of `R0`.*
+there is no conflict then _DV_ will "forward to" the members of `R1 .. Rk`.*
 
 *An implementation may choose to implicitly induce forwarding members into
-_DV_ in order to enable invocation of members of `R0`. However, such
+_DV_ in order to enable invocation of members of `R1 .. Rk`. However, such
 forwarding members must preserve the semantics of a direct invocation. In
 particular, if an invocation omits some optional parameters then the
-invocation of a member of `R0` must use the default value for that
+invocation of a member of `R1 .. Rk` must use the default value for that
 parameter of the actually invoked instance method, not a statically known
 value.*
 
@@ -191,15 +222,15 @@ void main() {
 
 It is an implementation specific behavior whether a closurization
 *(also known as a tear-off)* of an inline class instance member which is
-obtained from the interface of `R0` is a tear-off of the member of the
-representation object, or it is a tear-off of an implicitly induced
+obtained from the interface of `R1 .. Rk` is a tear-off of the member of
+the representation object, or it is a tear-off of an implicitly induced
 forwarding method.
 
 *This makes no difference for the behavior of an invocation of the
 tear-off, but it does change the results returned by `==`.*
 
-A member of the interface of _DV_ which is obtained from `R0` is available
-for subtypes in the same manner as members obtained from other
+A member of the interface of _DV_ which is obtained from `R1 .. Rk` is
+available for subtypes in the same manner as members obtained from other
 superinterfaces of _DV_ and members declared by _DV_. *For example:*
 
 ```dart
