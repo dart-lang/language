@@ -227,7 +227,12 @@ the representation object, or it is a tear-off of an implicitly induced
 forwarding method.
 
 *This makes no difference for the behavior of an invocation of the
-tear-off, but it does change the results returned by `==`.*
+tear-off, but it does change the results returned by `==` on the function
+object, and it could change the run-time type of the tear-off. We consider
+this level of implementation specific variation acceptable, given that it
+could be a sizable performance improvement to use a direct tear-off in some
+situations, and it is not desirable to specify that a tear-off must be
+implemented as a direct tear-off of a member of the representation object.*
 
 A member of the interface of _DV_ which is obtained from `R1 .. Rk` is
 available for subtypes in the same manner as members obtained from other
