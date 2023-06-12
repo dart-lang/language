@@ -185,11 +185,26 @@ that may depend on other types in `R1 .. Rk`)*. An invocation of `m` on a
 receiver of type `V` (or `V<T1 .. Ts>` if _DV_ is generic) is then treated
 as the same invocation, but with signature `s`.
 
+*It is already specified in the inline class feature specification to be an
+error if two inline superinterfaces `V1, V2` of _DV_ both declare a member
+with the same name `m`, and _DV_ does not redeclare `m`, and `m` in `V1`
+resolve to a different declaration than `m` in `V2`.*
+
 *In other words: Conflicts among superinterfaces are treated the same,
 whether it is an inline or a non-inline superinterface. In both cases, _DV_
 can resolve the conflict by redeclaring the given member. No override check
 is applied, any signature with the given name will resolve the conflict. If
 there is no conflict then _DV_ will "forward to" the members of `R1 .. Rk`.*
+
+*Note, however, that conflicts are detected in a different way for an
+inline/inline conflict, an inline/non-inline conflict, and for a
+non-inline/non-inline conflict: With an inline/inline conflict, the two
+declarations named `m` are looked up at compile time, and there is an
+error if they are not the same declaration. With an inline/non-inline
+conflict there is always an error if both have a member named `m`. With a
+non-inline/non-inline conflict we just need to check that the signature is
+well-defined; there is no way the representation object could have two
+conflicting implementations named `m` at run time.*
 
 *An implementation may choose to implicitly induce forwarding members into
 _DV_ in order to enable invocation of members of `R1 .. Rk`. However, such
