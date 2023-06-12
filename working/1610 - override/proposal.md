@@ -14,7 +14,9 @@ _The `override` is in `dart:core` rather than `package:meta`, and has been since
 
 ## Proposal
 
-The simplest solution is to make `override` a built-in identifier and allow it as a modifier on instance member declarations. Example:
+The proposed solution is to make `override` a built-in identifier and allow it syntactically as a modifier on all `class`, `mixin`, `mixin class` and `enum` instance member declarations.
+
+Example:
 
 ```dart
 class Foo {
@@ -23,41 +25,45 @@ class Foo {
 }
 ```
 
-Then we make it a compile-time error to not have the `override` modifier on something which overrides, and a compile-time error to have it on something which doesn't override.
+We make it a compile-time error to have the `override` modifier on a declaration which does not “override” any superclass or superinterface member declaration.
+
+There is no error for *not* having an `override` modifier on a declaration which does override a superclass member. The `annotate_overrides` lint will instead be an opt-in way to catch those, the same way it does today for the `@override`  annotation.
 
 The modifier goes before all other modifiers (including `external`). It refers to the context and to the declaration itself, so it feels fitting to put it "around" the entire declaration, more than those modifiers which merely change implementation details. The formatter can choose to put it on a line of its own, for maximum backwards compatibility, but that's easily configurable.
 
-When applied to a non-final instance variable, we lose some precision. We propose no syntax to make the override apply to only the setter or the getter of a variable declaration, but it's possible for the super-interfaces to contain only a getter or a setter. In that case we allow and require the `override` modifier if the declaration overrides at least a getter or a setter from a super-interface.
+When applied to a non-final instance variable, we lose some precision, but since we cannot tell whether the setter or the getter is intended to override. It’s accepted to have the `override` modifier as long as at least one of them overrides a superinterface member. 
 
 In summary: 
 
 * We make `override` a built-in identifier.
-* We allow `override` to precede any instance member declaration, as the first modifier of the declaration. *(It's a compile-time error if `override` is applied to a non-instance member declaration)*.
-* We make it a compile-time error if:
-  * A non-variable instance member declaration, or an instance variable declaration which introduces only a getter, with name *n* in a class declaration *C* has an `override` modifier, and no super-interface of *C* declares a member named *n*.
-  * An instance variable declaration with name *n* in a class declaration *C*, which introduces both a getter and a setter,  has an `override` modifier, and no super-interface of *C* declares a member named *n* or a setter name *n=*.
-  * A non-variable instance member declaration, or an instance variable declaration which introduces only a getter, with name *n* in a class declaration *C* **does not** have an `override` modifier, and any super-interface of *C* declares a member named *n*.
-  * An instance variable declaration with name *n* in a class declaration *C*, which introduces both a getter and a setter,  **does not** have an `override` modifier, and any super-interface of *C* declares a member named *n* or a setter name *n=*.
+* We allow `override` to precede any `class`, `mixin class`, `mixin` or `enum` instance member declaration, as the first modifier of the declaration. (It's a **compile-time error** if `override` is applied to a non-instance member declaration, or to an instance member declaration of an `extension` &mdash; and maybe eventually an `inline class` &mdash; declaration.)
+* We make it a **compile-time error** if:
+  * A non-variable instance member declaration, or an instance variable declaration which introduces only a getter, with name *n* in a declaration *C* has an `override` modifier, and no super-interface of *C* has a member named *n*.
+  * An instance variable declaration with name *n* in a class declaration *C*, which introduces both a getter and a setter,  has an `override` modifier, and no super-interface of *C* declares a member with base name *n*.
 
 ## Migration
 
-This is a breaking change. It introduces new syntax, and requires you to use that new syntax. As such, all code must be migrated to the language version introducing the feature.
+This is a non-breaking change. An absence of an `override` modifier is not an error, and no existing code contains any `override` modifiers, so nothing breaks. It introduces new syntax, and *allows* you to use that new syntax to introduce errors.
 
-Migration is easily automatable: Add `override` to all declarations which need it, remove existing occurrences of`@override` . Which declarations need an `override` can be determined entirely from declarations and name resolution, without even having to understand types or interface signatures. A super-interface declares a member with a name if the interface declaration has a declaration with that name, or if its transitive super-interfaces declares a member of that name.
+Migration from `@override` to `override` is easily automatable: Add `override` to all declarations which currently have an `@override` annotation, and remove the existing occurrences of`@override` .
+
+That migration *can* be breaking, if it introduces an `override` modifier on a declaration which doesn’t actually override a superinterface declaration. That code would have an `@override` annotation today and would get an analyzer warning for not overriding anything. Any code which is actually migrated is likely to be maintained, and therefore very likely will *not* have such warnings.
 
 ## Tool support
 
-Every tool needs to support the new syntax, and compilers and the analyzer needs to support the new compile-time errors. That parts should be mostly uncontroversial.
+Every tool needs to support the new syntax, and compilers and the analyzer needs to support the new compile-time errors. The analyzer would treat `override` very similarly to `@override`, except that the `override_non_override` warning would become a language error. In the longer run, the front-end should able to handle the checking completely generally, so that the backends, and possibly analyzer, won’t need to do anything. That part should be mostly uncontroversial.
 
 ### Formatter
 
-The formatter needs to decide how to format the new modifier. We propose to keep it on a line by itself, like the current annotation. That'll cause minimal changes to existing code (you literally just remove the `@` from `@override`).
+The formatter needs to decide how to format the new modifier. We propose to keep it on a line by itself, like the current annotation. That'll cause minimal changes to existing code (you literally just remove the `@` from `@override`, possibly move it down if there are more annotations on the same declaration).
 
 Since the modifier only applies to instance members, there are no complicated cases to consider.
 
 ### Migration tool
 
 The migration tool should understand the rules, insert `override` and remove `@override` annotations when migrating.
+
+That could also be made a fix for `dart fix`, with a corresponding warning of “Use override instead of @override”, since migration doesn’t have to happen immediately when switching to the new language version which allows the `override` modifier.
 
 ### IDE integration/analysis server
 
@@ -66,9 +72,9 @@ The IDE integration should offer quick-fixes for:
 * Adding an `override` modifier to a declaration which needs it.
 * Removing an `override` modifier from a declaration which doesn't need it.
 * Renaming a declaration with an `override` modifier which doesn't need it, if there is possibly misspelled super-interface member that it was likely intending to override.
-* Renaming a declaration without an override modifier which clashes with a super-interface member of the same name, especially if the signatures don't match.
+* Renaming a declaration without an `override` modifier which clashes with a super-interface member of the same name, especially if the signatures don't match.
 
-Further, it would make sense to auto-complete a cursor right after the word `override` (in a potentially valid position) with signatures for super-interface members. Maybe even allow initialisms of the name, so a cursor after `override fBZ` could offer completing to `override int fooBarZip()` if a super-interface declares that signature, and restrict the options to super-interface signatures after an `override`.
+Further, it would make sense to prioritize auto-complete after the word `override` (in a potentially valid position) to signatures for super-interface members. Maybe even allow initialisms of the name, so a cursor after `override fBZ` could offer completing to `override int fooBarZip()` if a super-interface declares that signature, and restrict the options to super-interface signatures after an `override`. An auto-complete of `fooBarZip()` without a leading `override` should insert the `override` if it would be valid and the project has the `annotate_overrides` lint enabled.
 
 ## Other languages
 
@@ -84,11 +90,11 @@ The C++11 language added `override` as something you can write on virtual member
 
 ### Kotlin
 
-Kotlin requires `override` on overriding members. It is equivalent to Dart with the lint, or this feature as written.
+Kotlin requires `override` on overriding members. It is equivalent to Dart with the lint.
 
 Kotlin also allows you to seal a method against overriding by adding `final`. A plain `final` method is effectively non-virtual, a `final override` method just prevents further overrides.
 
-Dart does not have `final` declarations. Adding them is an interesting possibility, but requires some extra thought because Dart doesn't distinguish between interfaces and classes. It's not an obvious addition to the `override` feature, more like a separate "sealing" feature of its own.
+Dart does not have `final` declarations. Adding them is an interesting possibility, but requires some extra thought because Dart doesn't always distinguish between interfaces and classes. It's not an obvious addition to the `override` feature, more like a separate "sealing" feature of its own.
 
 ### C#
 
@@ -118,7 +124,7 @@ The `^` is intended to "point to the supertype". The same completions could be o
 
 We currently allow you to omit types from instance member declarations, both return type and parameter types. If you override something, you will inherit types from that something. If not, you default to `dynamic`. 
 
-With the `override` feature, we could require you to write types on all non-overriding members, as a step towards "no implicit dynamic". Or we could do that later, as part of a more coherent "no implicit dynamic" feature.
+With the `override` feature, we could require you to write types on all non-overriding members, as a step towards "no implicit dynamic". Or we could do that later, as part of a more coherent "no implicit dynamic" feature. Since `override` is optional, requiring it in order to get “super-interface signature type inheritance” would be breaking.
 
 ## Interaction with future language features
 
@@ -132,7 +138,7 @@ One such syntax proposal could be:
 int foo {get; set}
 ```
 
-which is equivalent to the current `int foo;` in that it introduces implicit default implementations for `get i` and `set i`.
+which is equivalent to the current `int foo;` in that it introduces implicit default implementations for `get foo` and `set foo`.
 
 Something like `int foo {get}` would then be equivalent to `final int foo;` (getter only, no setter, can only be set by initializer), and you can write custom implementations as:
 
@@ -149,7 +155,7 @@ In either case, with explicit declarations for the default getter and setter, we
 int foo {override get; set}
 ```
 
-would mean overriding a getter, and not a setter. That's something we can't currently declare for fields.
+would mean overriding a getter, and not a setter (and getting an error if there is no getter to override, but there is a setter). That's something we can't currently declare for fields.
 
 All in all, the `override` feature seems to interact *positively* with better getter/setter declarations.
 
