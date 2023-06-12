@@ -204,7 +204,9 @@ error if they are not the same declaration. With an inline/non-inline
 conflict there is always an error if both have a member named `m`. With a
 non-inline/non-inline conflict we just need to check that the signature is
 well-defined; there is no way the representation object could have two
-conflicting implementations named `m` at run time.*
+conflicting implementations named `m` at run time, but we do need to know
+how to call it safely. (In all cases we know that _DV_ does not redeclare
+`m` because there is no conflict if it does.)*
 
 *An implementation may choose to implicitly induce forwarding members into
 _DV_ in order to enable invocation of members of `R1 .. Rk`. However, such
@@ -248,6 +250,11 @@ this level of implementation specific variation acceptable, given that it
 could be a sizable performance improvement to use a direct tear-off in some
 situations, and it is not desirable to specify that a tear-off must be
 implemented as a direct tear-off of a member of the representation object.*
+
+When it is determined whether or not there is a compile-time error because
+_DV_ has multiple superinterfaces that have a member named `m`, an
+implicitly induced forwarder must be ignored (that is, we must check the
+conflict based on the forwardee).
 
 A member of the interface of _DV_ which is obtained from `R1 .. Rk` is
 available for subtypes in the same manner as members obtained from other
