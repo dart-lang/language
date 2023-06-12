@@ -188,7 +188,7 @@ as the same invocation, but with signature `s`.
 *It is already specified in the inline class feature specification to be an
 error if two inline superinterfaces `V1, V2` of _DV_ both declare a member
 with the same name `m`, and _DV_ does not redeclare `m`, and `m` in `V1`
-resolve to a different declaration than `m` in `V2`.*
+resolves to a different declaration than `m` in `V2`.*
 
 *In other words: Conflicts among superinterfaces are treated the same,
 whether it is an inline or a non-inline superinterface. In both cases, _DV_
@@ -254,7 +254,9 @@ implemented as a direct tear-off of a member of the representation object.*
 When it is determined whether or not there is a compile-time error because
 _DV_ has multiple superinterfaces that have a member named `m`, an
 implicitly induced forwarder must be ignored (that is, we must check the
-conflict based on the forwardee).
+conflict based on the forwardee). *This means that `m` may resolve to the
+same non-inline instance member even though this occurs via two different
+implicitly induced forwarders.*
 
 A member of the interface of _DV_ which is obtained from `R1 .. Rk` is
 available for subtypes in the same manner as members obtained from other
