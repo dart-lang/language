@@ -142,9 +142,9 @@ more of the macro interfaces, then the annotation is treated as an application
 of the `myCoolMacro` macro to the class MyClass.
 
 Macro applications can also be passed arguments, either in the form of
-[Code][] expressions, [Identifier][]s, or certain types of literal values. See
-[Macro Arguments](#Macro-arguments) for more information on how these arguments
-are handled when executing macros.
+[Code][] expressions, [TypeAnnotation][]s, or certain
+types of literal values. See [Macro Arguments](#Macro-arguments) for more
+information on how these arguments are handled when executing macros.
 
 ### Code Arguments
 
@@ -176,9 +176,9 @@ Most of the time, like here, a macro takes the arguments you pass it and
 interpolates them back into code that it generates, so passing the arguments as
 code is what you want.
 
-### Identifier arguments
+### Type annotation arguments
 
-If you want to be able to introspect on an identifier passed in to you, you can
+If you want to be able to introspect on a type passed in as an argument, you can
 do that as well, consider the following:
 
 ```dart
@@ -861,6 +861,7 @@ that top level declaration and insert that into the generated code.
 **TODO: Define this API. See [here](https://github.com/dart-lang/language/pull/1779#discussion_r683843130).**
 
 [Identifier]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/introspection.dart#L15
+[TypeAnnotation]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/introspection.dart#L22
 
 ### Generating macro applications
 
@@ -1104,8 +1105,9 @@ it specifies through parameter types:
     expression is automatically converted to a corresponding `Code` instance.
     These provided code expressions may contain identifiers.
 
-*   If the parameter type is `Identifier` then a single identifier must be
-    passed, and it will be converted to a corresponding `Identifier` instance.
+*   If the parameter type is `TypeAnnotation` then a literal type must be
+    passed, and it will be converted to a corresponding `TypeAnnotation`
+    instance.
 
 Note that this implicit lifting of the argument expression only happens when
 the macro constructor is invoked through a macro application. If a macro
@@ -1115,19 +1117,18 @@ macro), then the caller is responsible for creating the Code object.
 As usual, it is a compile-time error if the type of any argument value (which
 may be a Code object) is not a subtype of the corresponding parameter type.
 
-It is a compile-time error if an macro class constructor invoked by a macro
-application has a parameter whose type is not Code (or any subtype of it) or
-one of the aforementioned primitive types (or a nullable type of any of those).
+It is a compile-time error if a macro class constructor invoked by a macro
+application has a parameter whose type is not Code, TypeAnnotation, or one of
+the aforementioned primitive types (or a nullable type of any of those).
 
 #### Identifier Scope
 
 The following rules apply to any `Identifier` passed as an argument to a macro
-application, whether as a part of a `Code` expression or directly as an
-`Identifier` instance.
+application, whether as a part of a `Code` expression or `TypeAnnotation`.
 
-The scope of any `Identifier` argument is the same as the scope in which the
-identifier appears in the source code, which is the same as the argument scope
-for a metadata annotation on a declaration. This means:
+The scope of any `Identifier` is the same as the scope in which the identifier
+appears in the source code, which is the same as the argument scope for a
+metadata annotation on a declaration. This means:
 
 * Identifiers in macro application arguments may only refer to static and top
   level members.
