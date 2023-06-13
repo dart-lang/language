@@ -153,7 +153,8 @@ inline class MapEntry<K, V> implements (K, V) {
 ```
 
 A compile-time error occurs if `void` or `dynamic` occurs as a non-inline
-superinterface of an inline class.
+superinterface of an inline class. A compile-time error occurs if a type
+parameter occurs as a superinterface of an inline class.
 
 Let _DV_ be an inline class declaration named `V` with representation type
 `R` and assume that the `implements` clause of _DV_ includes the non-inline
