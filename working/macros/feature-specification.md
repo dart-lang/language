@@ -1125,7 +1125,7 @@ macro), then the caller is responsible for creating the Code object.
 As usual, it is a compile-time error if the type of any argument value (which
 may be a Code object) is not a subtype of the corresponding parameter type.
 
-It is a compile-time error if an macro class constructor invoked by a macro
+It is a compile-time error if a macro class constructor invoked by a macro
 application has a parameter whose type is not Code, TypeAnnotation, or one of
 the aforementioned primitive types (or a nullable type of any of those).
 
