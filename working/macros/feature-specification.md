@@ -1218,7 +1218,7 @@ accessed the same static mutable state&mdash;top-level variables and static
 fields.
 
 In an ideal world we might run each macro invocation in its own sandbox, with
-its own static state, we don't do that. Instead, we simply state that a well
+its own static state, but we don't do that. Instead, we simply state that a well
 behaved macro should not use static state in an observable way. Not doing so may
 lead to undefined behavior.
 
