@@ -136,6 +136,10 @@ problem with) a subtype relationship between `A` and `B`. The relationship
 between an inline type and its instantiated representation type and the
 subtype relationship for an inline type are independent concepts.*
 
+A compile-time error occurs if `void` or `dynamic` occurs as a non-inline
+superinterface of an inline class. A compile-time error occurs if a type
+parameter occurs as a superinterface of an inline class.
+
 *Note that almost any supertype of the representation type can occur as a
 non-inline superinterface of an inline class. In particular, inline classes
 do not have the same constraints on non-inline superinterfaces as
@@ -152,9 +156,16 @@ inline class MapEntry<K, V> implements (K, V) {
 }
 ```
 
-A compile-time error occurs if `void` or `dynamic` occurs as a non-inline
-superinterface of an inline class. A compile-time error occurs if a type
-parameter occurs as a superinterface of an inline class.
+It is not a compile-time error for an inline class to have a non-inline
+class `C` as a superinterface based on the class modifiers of `C`.
+
+*For instance, `inline class V implements B ...` does not give rise to a
+compile-time error because `B` is a class declared in a different library
+which is `sealed`, `final`, or `base`. The justification for this non-error
+is that the type `V` is a static device that allows us to work with an
+instance of `B` in a convenient way, it is not a mechanism that allows
+anything like "`V` is a subtype of `B`" to be a fact at run time (because
+`V` doesn't even exist at run time).*
 
 Let _DV_ be an inline class declaration named `V` with representation type
 `R` and assume that the `implements` clause of _DV_ includes the non-inline
