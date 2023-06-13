@@ -64,7 +64,7 @@ List<int> list = <A>[a]; // OK.
 ```
 
 This subtype relationship is sound because the run-time value of an
-expression of type `A` is an instance of `int`. 
+expression of type `A` is an instance of `int`.
 
 This subtype relationship may be desirable in the case where there is no
 need to protect an object accessed as an `A` against being accessed as an
@@ -156,8 +156,8 @@ inline class MapEntry<K, V> implements (K, V) {
 }
 ```
 
-It is not a compile-time error for an inline class to have a non-inline
-class `C` as a superinterface based on the class modifiers of `C`.
+It is not a compile-time error for an inline class declaration to have a
+non-inline class `C` as a superinterface based on the class modifiers of `C`.
 
 *For instance, `inline class V implements B ...` does not give rise to a
 compile-time error because `B` is a class declared in a different library
@@ -166,6 +166,53 @@ is that the type `V` is a static device that allows us to work with an
 instance of `B` in a convenient way, it is not a mechanism that allows
 anything like "`V` is a subtype of `B`" to be a fact at run time (because
 `V` doesn't even exist at run time).*
+
+A compile-time error occurs if an inline class declaration _DV_ has two
+direct superinterfaces of the form `V1<T1 .. Tn>` and `V2<S1 .. Sm>` such
+that `V1` and `V2` resolve to the same declaration.
+
+*This rule is similar to a rule for non-inline classes that makes
+`class C implements B, B {}` an error.*
+
+Assume that an inline class declaration _DV_ has two superinterfaces,
+direct or indirect, of the form `V1<T1 .. Ts>` and `V2<S1 .. Ss>`. Assume
+that `V1` and `V2` both denote the same inline class declaration. A
+compile-time error occurs if `Tj` and `Sj` are not the same type, for any
+`j` in `1 .. s`. This rule applies also in the case where one or both of
+the two types is a raw type, and the actual type arguments have been
+computed by instantiation to bounds, or by any other implicit mechanism.
+
+In this rule 'same type' is defined as in the section
+[Runtime type equality operator][] in the null safety specification.
+
+[Runtime type equality operator]: https://github.com/dart-lang/language/blob/main/accepted/2.12/nnbd/feature-specification.md#runtime-type-equality-operator
+
+*This means that `Tj` and `Sj` are the same type if the normalized form of
+both types are structurally identical up to names of type variables. For
+instance, `prefix.C<int>` and `C<int>` are the same type if `prefix.C` and
+`C` resolve to the same class declaration, and similarly for `int`;
+`FutureOr<Object>` is the same type as `Object` because of the
+normalization; and `void Function<X>(X)` and `void Function<Y>(Y)` are the
+same type based on alpha equivalence (renaming of type variables).*
+
+Assume that an inline class declaration _DV_ has two superinterfaces,
+direct or indirect, of the form `V1<T1 .. Ts>` and `V2<S1 .. Ss>`. Assume
+that `V1` and `V2` both denote the same non-inline class declaration. A
+compile-time error occurs unless one of these types is a subtype of the
+other.
+
+*It follows that when _DV_ implements more than two such non-inline types,
+it is an error unless one of them is at least as specific as all the
+others.*
+
+Assume that an inline class declaration _DV_ has two superinterfaces,
+of the form `V1<T1 .. Ts>` and `V2<S1 .. Ss>`, where the former is a direct
+superinterface and the latter is indirect. Assume that `V1` and `V2` both
+denote the same non-inline class declaration. A compile-time error occurs
+if the former is not a subtype of the latter.
+
+*In other words, a more special inline type can implement a more special
+non-inline type, not a less special one or an unrelated one.*
 
 Let _DV_ be an inline class declaration named `V` with representation type
 `R` and assume that the `implements` clause of _DV_ includes the non-inline
@@ -178,6 +225,8 @@ interfaces of `R1 .. Rk` has a member named `m`. A compile-time error
 occurs if there exist `j1` and `j2` in `1 .. k` and a member name `m` such
 that `m` does not have a combined member signature for `R1 .. Rk`.
 Otherwise the member signature of `m` is that combined member signature.
+In this situation we say that this is the member signature of `m` in
+`R1 .. Rk`.
 
 Invocations of members declared by _DV_ or declared by an inline
 superinterface of _DV_ and not declared by any of `Rj`, `j` in `1..k` are
@@ -192,10 +241,9 @@ inline superinterface of _DV_ also declares a member named `m`.
 
 Let `m` be a member name which is not declared by _DV_ and not declared by
 an inline superinterface of _DV_. Assume that the interface of `Rj` has a
-member named `m` with signature `s` *(this is the combined member signature
-that may depend on other types in `R1 .. Rk`)*. An invocation of `m` on a
-receiver of type `V` (or `V<T1 .. Ts>` if _DV_ is generic) is then treated
-as the same invocation, but with signature `s`.
+member named `m` with signature `s` in `R1 .. Rk`. An invocation of `m` on
+a receiver of type `V` (or `V<T1 .. Ts>` if _DV_ is generic) is then
+treated as the same invocation, but with signature `s`.
 
 *It is already specified in the inline class feature specification to be an
 error if two inline superinterfaces `V1, V2` of _DV_ both declare a member
