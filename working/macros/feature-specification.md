@@ -1091,22 +1091,14 @@ to a form that the corresponding constructor on the macro class expects, which
 it specifies through parameter types:
 
 *   If the parameter type is `bool`, `double`, `int`, `Null`, `num`, `String`,
-    `List`, `Set`, or `Map`, (or the nullable forms of any of those), then the
-    argument expression must be a boolean, number, null, string, list, set, or
-    map literal.
+    `List`, `Set`, `Map`, `Object`, or `dynamic` (or the nullable forms of any
+    of those), then the argument expression must be a constant expression
+    containing only boolean, number, null, string, list, set, or map literals.
+    Note that `Object` and `dynamic` are allowed as types but the actual values
+    must still be of one of the supported types.
 
-    * Number literals may be negated.
-    * String literals may not contain any interpolation, but may be adjacent
-      strings, and may be raw strings.
-    * List, Set and Map literals may only contain entries matching any of the
-      supported argument types. If the parameter type specifies a generic type
-      argument, it must be one of the allowed parameter types or `Object`,
-      recursively. Note that `Object` is allowed in order to exclude null items,
-      but all the actual entries must be of one of the supported types.
-
-    **TODO**: Do we want to allow more complex expressions? Could we allow
-    constant expressions whose identifiers can be successfully resolved before
-    macro expansion (#1929)?
+    * Any type arguments (inferred or explicit) must be one of the allowed
+      parameter types, recursively.
 
 *   If the parameter type is `Code` (or a subtype of `Code`), the argument
     expression is automatically converted to a corresponding `Code` instance.
