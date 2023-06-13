@@ -1223,11 +1223,10 @@ behaved macro should not use static state in an observable way. Not doing so may
 lead to undefined behavior.
 
 For example, it is OK to cache the result of an expensive computation in global
-state, assuming the result would always be the same.
-
-But it would not be advisable to cache information pertaining to the observed
-state of a program. Global state should also not be used to pass such
-information between macros, or the phases of a given macro.
+state, assuming the result would always be the same. However it would not be
+advisable to cache information pertaining to the observed state of a program.
+Global state should also not be used to pass such information between macros, or
+the phases of a given macro.
 
 Implementations also reserve the right to clear the global state of a macro at
 any time, possibly even at random.
