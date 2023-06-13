@@ -1100,10 +1100,6 @@ it specifies through parameter types:
       in order to exclude null items, but all the actual entries must be of one
       of the supported types.
 
-    **TODO**: Do we want to allow more complex expressions? Could we allow
-    constant expressions whose identifiers can be successfully resolved before
-    macro expansion (#1929)?
-
 *   If the parameter type is `Code` (or a subtype of `Code`), the argument
     expression is automatically converted to a corresponding `Code` instance.
     These provided code expressions may contain identifiers.
