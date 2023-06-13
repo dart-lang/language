@@ -1217,30 +1217,20 @@ independently. That order could become visible if separate macro applications
 accessed the same static mutable state&mdash;top-level variables and static
 fields.
 
-We are still considering how to address this. Options:
+In an ideal world we might run each macro invocation in its own sandbox, with
+its own static state, we don't do that. Instead, we simply state that a well
+behaved macro should not use static state in an observable way. Not doing so may
+lead to undefined behavior.
 
-1.  Don't allow macro code to mutate static state at all. This is probably
-    overly-restrictive, and may be hard to enforce. There are legitimate use
-    cases for this like using `package:logging`.
+For example, it is OK to cache the result of an expensive computation in global
+state, assuming the result would always be the same.
 
-2.  Run each macro application in a separate isolate. Each application has its
-    own independent global mutable state. This is permissive in macros while
-    keeping them isolated, but may be slow.
+But it would not be advisable to cache information pertaining to the observed
+state of a program. Global state should also not be used to pass such
+information between macros, or the phases of a given macro.
 
-3.  Reset all static state between macro application executions. If this is
-    feasible to implement and fast enough, it could work.
-
-4.  Document that mutating static state is a bad practice, but don't block it.
-    Give no guarantees around static state persistence between macro
-    applications.
-
-    In practice, most macros won't access any static state, so this is harmless.
-    But if macros do exploit this (deliberately or inadvertently) then it could
-    force implementations to be stuck with a specific execution order in order
-    to not break existing code. This is the easiest and fastest solution, but
-    the least safe.
-
-**TODO**: Choose a solution (#1917).
+Implementations also reserve the right to clear the global state of a macro at
+any time, possibly even at random.
 
 ### Platform semantics
 
