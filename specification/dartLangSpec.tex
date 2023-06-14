@@ -18206,8 +18206,8 @@ It is a compile-time error if $T$ is not assignable to
 
 \commentary{%
 It follows that it is a compile-time error
-if $D$ is empty and \id{} is an immutable variable;
-and it is a dynamic error if $e$ has type \DYNAMIC,
+if $D$ is empty and \id{} is an immutable variable.
+Also, it is a dynamic error if $e$ has type \DYNAMIC,
 but $e$ evaluates to an instance of a type
 which is not a subtype of \code{Iterable<\DYNAMIC>}.%
 }
