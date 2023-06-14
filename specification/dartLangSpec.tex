@@ -747,8 +747,8 @@ with the static type of $e_j$ as its declared type.
 
 \commentary{%
 Type inference of $e_j$ and the context type used for inference of $e_j$
-are not relevant,
-it is assumed that type inference has occurred already
+are not relevant.
+It is generally assumed that type inference has occurred already
 (\ref{overview}).%
 }
 
@@ -1295,9 +1295,17 @@ and
 It is possible for a variable declaration to include the modifier \COVARIANT.
 The effect of doing this with an instance variable is described elsewhere
 (\ref{instanceVariables}).
-It is a \Error{compile-time error} for the declaration of
-a variable which is not an instance variable
-to include the modifier \COVARIANT.
+It is a \Error{compile-time error} for the declaration of a variable
+which is not an instance variable to include the modifier \COVARIANT.
+
+\commentary{%
+A formal parameter declaration induces a local variable into a scope,
+but formal parameter declarations are not variable declarations
+and do not give rise to the above error.
+The effect of having the modifier \COVARIANT{} on a formal parameter
+is described elsewhere
+(\ref{covariantParameters}).%
+}
 
 \LMHash{}%
 In a variable declaration of one of the forms
@@ -1306,9 +1314,9 @@ or
 \code{$N$\,\,\id{} = $e$;}
 where $N$ is derived from
 \syntax{<metadata> <finalConstVarOrType>} and \id{} is an identifier,
-we say that \id{} is the \Index{declaring occurrence} of the identifier.
+we say that \id{} is a \Index{declaring occurrence} of the identifier.
 For every identifier which is not a declaring occurrence,
-we say that it is an \Index{referencing occurrence}.
+we say that it is a \Index{referencing occurrence}.
 We also abbreviate that to say that an identifier is
 a \Index{declaring identifier} respectively an \Index{referencing identifier}.
 
@@ -1345,11 +1353,15 @@ A variable declared at the top-level of a library is referred to as either a
 It is a \Error{compile-time error} if a library variable declaration
 has the modifier \STATIC.
 
+%% TODO(eernst): Get rid of the phrase 'static variable' meaning a non-local
+%% variable which isn't an instance variable. Then use 'static variable
+%% declaration' to mean "a variable declaration that includes the modifier
+%% \STATIC."
 \LMHash{}%
 A \IndexCustom{class variable}{variable!class}
 is a variable whose declaration is
-immediately nested inside a class declaration and
-includes the modifier \STATIC.
+immediately nested inside a \CLASS, \MIXIN, \ENUM, or \EXTENSION{} declaration
+and includes the modifier \STATIC.
 
 \LMHash{}%
 A \IndexCustom{static variable}{variable!static}
@@ -1394,9 +1406,12 @@ with being computed late.%
 
 \LMHash{}%
 An \IndexCustom{immutable variable}{variable!immutable}
-is a variable whose binding is fixed upon initialization;
-an immutable variable \id{} will always refer to the same object
-after \id{} has been initialized.
+is a variable which cannot be bound to a different object
+once it has been bound to an object.
+\commentary{%
+Hence, an immutable variable \id{} will always refer to the same object
+after \id{} has been initialized.%
+}
 A variable is immutable if{}f its declaration includes
 the modifier \FINAL{} or the modifier \CONST.
 A \IndexCustom{mutable variable}{variable!mutable}
@@ -1464,14 +1479,15 @@ In these cases, the declared type of \id{} is \DYNAMIC{}
 
 \commentary{%
 Type inference is assumed to have taken place already
-(\ref{typeInference}).
+(\ref{overview}).
 For example, an instance variable declaration of the form
 \code{\VAR\,\,x;} could have been transformed into
 \code{$T$\,\,x;} based on member signatures named \code{x} in superinterfaces
 of the enclosing class, and
 \code{\VAR\,x\,\,=\,\,$e$;} could have been transformed into
 \code{$T$\,x\,\,=\,\,$e$;}
-where $T$ is the static type of $e$.%
+where $T$ is the static type of $e$.
+In that case, the type is $T$ rather than \DYNAMIC.%
 }
 \EndCase
 
@@ -1496,6 +1512,11 @@ A mutable variable declaration of the form
 implicitly induces a setter with the header
 \code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)},
 whose execution sets the value of \id{} to the incoming argument $x$.
+
+\commentary{%
+Type inference could have provided a type different from \DYNAMIC{}
+(\ref{overview}).%
+}
 \EndCase
 
 \LMHash{}%
@@ -1507,9 +1528,11 @@ implicitly induces a setter with the header
 whose execution sets the value of \id{} to the incoming argument $x$.
 
 \commentary{%
-It is again assumed that type inference has taken place already,
-which could change \code{\VAR\,\,x;} to \code{$T$\,\,x;}
-and hence take us to an earlier case.%
+Type inference has not yet been specified in this document
+(\ref{overview}).
+Note that type inference could change, e.g.,
+\code{\VAR\,\,x;} to \code{$T$\,\,x;},
+which would take us to an earlier case.%
 }
 \EndCase
 
@@ -1525,14 +1548,6 @@ it will bind \id{} to the object that $x$ is bound to.
 If this setter is executed
 in a situation where the variable \id{} has been bound to an object,
 a dynamic error occurs.
-
-\commentary{%
-A late final variable declaration with no initializer is permitted.
-It introduces a variable which may be assigned to
-so long as the variable is not known to be definitely assigned.
-The property that the variable is never mutated after initialization
-is enforced dynamically rather than statically.%
-}
 \EndCase
 
 \LMHash{}%
@@ -1557,18 +1572,27 @@ depends on the kind of variable declaration involved.
 A library variable introduces a getter into
 the library scope of the enclosing library.
 A class variable introduces a static getter into
-the body scope of the immediately enclosing class.
+%% TODO(eernst): Come enhanced enums, add enum to this list.
+the body scope of the immediately enclosing class, mixin, or extension.
 An instance variable introduces an instance getter into
-the body scope of the immediately enclosing class.
+%% TODO(eernst): Come enhanced enums, add enum to this list.
+the body scope of the immediately enclosing class or mixin
+(\commentary{an extension cannot declare instance variables}).
 
 \LMHash{}%
-A non-local variable introduces a setter if{}f it is mutable or late and final.
+A non-local variable introduces a setter if{}f it is mutable,
+or it is late and final and does not have an initializing expression.
 A library variable which introduces a setter will introduce
 a library setter into the enclosing library scope.
-A class variable which introduces a setter will introduce 
-a static setter into the body scope of the immediately enclosing class.
+A class variable which introduces a setter will introduce
+a static setter into the body scope of
+%% TODO(eernst): Come enhanced enums, add enum to this list.
+the immediately enclosing class, mixin, or extension.
 An instance variable that introduces a setter will introduce
-an instance setter into the body scope of the immediately enclosing class.
+an instance setter into the body scope of
+%% TODO(eernst): Come enhanced enums, add enum to this list.
+the immediately enclosing class or mixin
+(\commentary{an extension cannot declare instance variables}).
 
 \LMHash{}%
 Let \id{} be a variable declared by a variable declaration
@@ -1587,23 +1611,20 @@ an initializing formal of a constructor $k$
 is also initialized in the initializer list of $k$
 (\ref{initializerLists}).
 
-A non-late static immutable variable \id{} does not induce a setter,
-so unless a setter named \code{\id=} can be found by lexical lookup
-(\ref{lexicalLookup}),
-or lexical lookup yields nothing, and the location has access to \THIS,
-and the interface of the enclosing class or mixin has
-a setter named \code{\id=},
-it is a compile-time error to assign to \id.
+A non-late static immutable variable declaration $D$ named \id{}
+does not induce a setter.
+However, an assignment to \id{} at a location where $D$ is in scope
+is not necessarily a compile-time error.
+For example, a setter named \code{\id=} could be found by lexical lookup
+(\ref{lexicalLookup}).
 
-Similarly, assignment to a non-late final instance variable \id{}
-is a compile-time error,
-unless a setter named \code{\id=} can be found as above,
-or the receiver has type \DYNAMIC.
-\id{} can be initialized in its declaration or in initializer lists,
-but initialization and assignment is not the same thing.
-When the receiver has type \DYNAMIC{}
-such an assignment is not a compile-time error,
-but if there is no such setter it will cause a dynamic error.%
+Similarly, a non-late final instance variable \id{} does not induce a setter,
+but an assignment could be an invocation of
+a setter which is provided in some other way.
+For example, it could be that lexical lookup yields nothing,
+and the location of the assignment has access to \THIS,
+and the interface of an enclosing class has a setter named \code{\id=}
+(in this case both the getter and setter are inherited).%
 }
 
 \LMHash{}%
@@ -1619,12 +1640,8 @@ The initial value of \id{} is then the null object
 
 \commentary{%
 Note that there are many situations where such a variable declaration
-is a compile-time error.
-In this case we do not specify any of its properties,
-and in particular it makes no sense to say
-that it has a specific initial value.
-For example, it is an error if a final instance variable
-is not initialized by one of the above mechanisms.%
+is a compile-time error,
+in which case the initial value is of course irrelevant.%
 }
 
 \LMHash{}%
@@ -1695,18 +1712,22 @@ A
 is a getter $g$ which is implicitly induced by a non-local variable $v$
 that has an initializing expression $e$.
 \commentary{%
-Note that only \emph{some} non-local variables with an initializing expression
-induce a late-initialized getter,
-and others induce other kinds of getters, as described below.%
+It is described below which declarations induce a late-initialized getter.%
 }
 An invocation of $g$ proceeds as follows:
+
+\LMHash{}%
 If the variable $v$ has not been bound to an object then
-$e$ is evaluated to an object $o$,
-$v$ is bound to $o$,
+$e$ is evaluated to an object $o$.
+If $v$ has now been bound to an object, and $v$ is immutable,
+a dynamic error occurs. % Implementations throw a 'LateInitializationError'.
+Otherwise, $v$ is bound to $o$,
 and the evaluation of $g$ completes returning $o$.
 If the evaluation of $e$ throws then
 the invocation of $g$ completes throwing the same object and stack trace,
 and no binding of $v$ to any object occurs.
+
+\LMHash{}%
 An invocation of $g$ in a situation where $v$ has been bound to an object $o'$
 completes immediately, returning $o'$.
 
@@ -1793,9 +1814,10 @@ then the invocation of the implicit getter of \id{} evaluates to
 the object that \id{} is bound to.
 
 \commentary{%
-Any situation where \id{} is  unbound when this getter is evaluated
-is a compile-time error,
-so there is no need to specify a behavior for that situation.%
+It is not possible to invoke an instance getter on an object
+before the object has been initialized.
+Hence, a non-late instance variable is always bound
+when the instance getter is invoked.%
 }
 \EndCase
 
@@ -1857,7 +1879,7 @@ the implicitly induced getter of \id{} executes as follows:
   and does not have the modifier \LATE,
   an invocation of the implicitly induced getter of \id{} evaluates to
   the object that \id{} is bound to.
-  
+
   \commentary{%
     The variable is always bound to an object in this case.
     This may be the null object,
@@ -3951,18 +3973,21 @@ it declares an \Index{initializing formal parameter}.
 A term of the form \code{\THIS.\id} is contained in $p$,
 and \id{} is the \NoIndex{name} of $p$.
 It is a compile-time error if \id{} is not also the name of
+%% TODO(eernst): Come enhanced enums, add 'or enum'.
 an instance variable of the immediately enclosing class.
 
 \commentary{%
 Note that it is a compile-time error for an initializing formal
 to occur in any function which is not a non-redirecting generative constructor
 (\ref{requiredFormals}),
+%% TODO(eernst): Come enhanced enums, add 'or enum'.
 so there is always an enclosing class.%
 }
 
 \LMHash{}%
 Assume that $p$ is a declaration of an initializing formal parameter named \id.
 Let $T_{id}$ be the type of the instance variable named \id{} in
+%% TODO(eernst): Come enhanced enums, add 'or enum'.
 the immediately enclosing class.
 If $p$ has a type annotation $T$ then the declared type of $p$ is $T$.
 Otherwise, the declared type of $p$ is $T_{id}$.
@@ -4248,6 +4273,7 @@ an initialization expression.
 
 \LMHash{}%
 Let \DefineSymbol{f} be a final instance variable declared in
+%% TODO(eernst): Come enhanced enums, add 'or enum'.
 the immediately enclosing class.
 A compile-time error occurs unless $f$ is initialized
 by one of the following means:
@@ -4281,6 +4307,7 @@ includes a superinitializer.
 Execution of a generative constructor $k$ of type $T$
 to initialize a fresh instance $i$
 is always done with respect to a set of bindings for its formal parameters
+%% TODO(eernst): Come enhanced enums, add 'or enum'.
 and the type parameters of the immediately enclosing class bound to
 a set of actual type arguments of $T$, \DefineSymbol{\List{t}{1}{m}}.
 
@@ -4313,6 +4340,7 @@ with respect to the bindings that map
 the formal parameters of $g$ to the corresponding objects
 in the actual argument list $a$,
 with \THIS{} bound to $i$,
+%% TODO(eernst): Come enhanced enums, add 'or enum'.
 and the type parameters of the immediately enclosing class bound to
 \List{t}{1}{m}.
 
@@ -4321,6 +4349,7 @@ Otherwise, $k$ is not redirecting.
 Execution then proceeds as follows:
 
 \LMHash{}%
+%% TODO(eernst): Come enhanced enums, add 'or enum'.
 The instance variable declarations of the immediately enclosing class
 are visited in the order they appear in the program text.
 For each such declaration $d$, if $d$ has the form
@@ -4343,7 +4372,9 @@ So we need to specify the order.%
 }
 
 \LMHash{}%
-Then if any instance variable of $i$ declared by the immediately enclosing class
+Then if any instance variable of $i$ declared
+%% TODO(eernst): Come enhanced enums, add 'or enum'.
+by the immediately enclosing class
 is not yet bound to an object,
 all such variables are initialized with the null object (\ref{null}).
 
@@ -4447,6 +4478,8 @@ where $T_1, \ldots, T_n$ are the type parameters of the enclosing class.
 
 \LMHash{}%
 It is a compile-time error if $M$ is not the name of
+%% TODO(eernst): Come enhanced enums, add 'or enum'.
+%% TODO(eernst): Come Dart 3.0, add 'mixin'.
 the immediately enclosing class.
 
 \LMHash{}%
@@ -4621,6 +4654,8 @@ is not a subtype of the function type of $k$.
 In the case where the two classes are non-generic
 this is just a subtype check on the function types of the two constructors.
 In general, this implies that the resulting object conforms to
+%% TODO(eernst): Come enhanced enums, add 'or enum'.
+%% TODO(eernst): Come Dart 3.0, add 'mixin'.
 the interface of the immediately enclosing class of $k$.%
 }
 
@@ -11907,17 +11942,24 @@ the target of the current instance member invocation.
 \end{grammar}
 
 \LMHash{}%
-The static type of \THIS{} is the interface of the immediately enclosing class.
+The static type of \THIS{} is the interface of the
+%% TODO(eernst): Come enhanced enums, add 'or enum'.
+immediately enclosing class or mixin, if any.
+The static type of \THIS{} is
+the \ON{} type of the enclosing extension, if any
+(\ref{extensions}).
 
 \commentary{%
-We do not support self-types at this point.%
+If none of those declarations exist,
+an occurrence of \THIS{} is a compile-time error
+(\ref{classes}).%
 }
 
 \LMHash{}%
 It is a compile-time error if \THIS{} appears, implicitly or explicitly,
 in a top-level function or variable initializer, in a factory constructor,
 or in a static method or variable initializer,
-or in the initializer of an instance variable.
+or in the initializing expression of a non-late instance variable.
 
 
 \subsection{Instance Creation}
@@ -17860,6 +17902,15 @@ if the dynamic type of $o$ is not a subtype of the actual declared type
 of $v$.
 Otherwise, the variable $v$ is bound to $o$.
 
+\commentary{%
+Note that $e$ could have been transformed due to implicit coercions.
+For example, \code{myFunction} could be transformed into
+\code{myFunction<int>} due to generic function instantiation
+(\ref{genericFunctionInstantiation}).
+Such transformations are assumed to have taken place already
+in the declarations above.%
+}
+
 \LMHash{}%
 Let $D$ be a \LATE{} and \FINAL{} local variable declaration
 that declares a variable $v$.
@@ -17870,22 +17921,6 @@ If an object $o$ is assigned to $v$
 in a situation where $v$ is bound to an object $o'$
 then a dynamic error occurs
 (\commentary{it does not matter whether $o$ is the same object as $o'$}).
-
-\commentary{%
-Note that this includes the implicit initializing writes induced by
-evaluating the variable.
-Hence, the following program encounters a dynamic error
-when it evaluates \code{x},
-just before it would call \code{print}.%
-}
-
-\begin{dartCode}
-\VOID\ main() \{
-  int i = 0;
-  \LATE\ \FINAL\ int x = i++ == 0 ? x + 1 : 0;
-  print(x);
-\}
-\end{dartCode}
 
 
 \subsection{Local Function Declaration}
