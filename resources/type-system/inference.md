@@ -353,9 +353,10 @@ With null safety: if `R` is `void`, or the function literal is marked `async`
 and `R` is `FutureOr<void>`, let `S` be `void` (without null-safety: no special
 treatment is applicable to `void`).
 
-Otherwise, if `T <: R` then let `S` be `T`.  Otherwise, let `S` be 
-`flatten(R)` if the function literal is marked `async`, and `R` otherwise.
-The inferred return type of the function literal is then defined as follows:
+When the function is marked `async`: if `T <: flatten(R)` then let `S` be `T`;
+otherwise let `S` be `flatten(R)`. When the function is not marked `async`: if
+`T <: R` then let `S` be `T`; otherwise let `S` be `R`. The inferred return
+type of the function literal is then defined as follows:
 
   - If the function literal is marked `async` then the inferred return type is
     `Future<S>`.
