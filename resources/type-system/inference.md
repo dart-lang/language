@@ -349,14 +349,17 @@ all `return` and `yield` statements in the block body have been considered.
 Let `T` be the **actual returned type** of a function literal as computed above.
 Let `R` be the greatest closure of the typing context `K` as computed above.
 
+*Now compute `S`, which is the future value type of an `async` function, the
+element type of a generator function, and the return type of other functions.*
+
 With null safety: if `R` is `void`, or the function literal is marked `async`
 and `R` is `FutureOr<void>`, let `S` be `void` (without null-safety: no special
 treatment is applicable to `void`).
 
-When the function is marked `async`: if `T <: flatten(R)` then let `S` be `T`;
-otherwise let `S` be `flatten(R)`. When the function is not marked `async`: if
-`T <: R` then let `S` be `T`; otherwise let `S` be `R`. The inferred return
-type of the function literal is then defined as follows:
+When the function is marked `async`: if `T <: futureValueType(R)` then let `S`
+be `T`; otherwise let `S` be `futureValueType(R)`. When the function is not
+marked `async`: if `T <: R` then let `S` be `T`; otherwise let `S` be `R`. The
+inferred return type of the function literal is then defined as follows:
 
   - If the function literal is marked `async` then the inferred return type is
     `Future<S>`.
