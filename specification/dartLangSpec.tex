@@ -11687,7 +11687,7 @@ Otherwise, it is a
 and it is evaluated at run time.
 Only run-time set literals can be mutated after they are created.
 % This error can occur because being constant is a dynamic property, here.
-Attempting to mutate a constant set literal 
+Attempting to mutate a constant set literal
 will result in a \DynamicError{dynamic error}.
 
 \commentary{%
@@ -23463,6 +23463,34 @@ and then recursively taking \TopMergeTypeName{} of the rest.
 \commentary{The ordering of the arguments makes no difference.}
 
 \LMHash{}%
+We generalize \TopMergeTypeName{} such that
+it can be applied to two or more member signatures rather than types.
+The case with more than two member signatures is defined in the same way as
+the case with more than two types.
+With member signatures $m_1$ and $m_2$
+that are structurally identical modulo the choice of top types
+and the occurrences of the modifier \COVARIANT,
+\TopMergeType{$m_1$}{$m_2$} is a member signature $m$ such
+that every pair of types $T_1$ and $T_2$ that occur in $m_1$ respectively $m_2$
+yields \TopMergeType{$T_1$}{$T_2$} in the result,
+the modifier \COVARIANT{} occurs on every parameter in $m$
+where the corresponding parameter in $m_1$ or in $m_2$ has that modifier,
+and all other non-type parts of $m_1$ and $m_2$ occur identically in the result.
+
+\commentary{%
+For example,
+
+\noindent
+\TopMergeType{\VOID\,\,m(List<\DYNAMIC>)}
+{\DYNAMIC\,\,m(\COVARIANT\,\,List<Object?>)}
+
+\noindent
+is the member signature
+\code{Object?\,\,m(\COVARIANT\,\,List<Object?>)}.%
+}
+
+
+\LMHash{}%
 The \IndexCustom{\IsTopTypeName}{isTopType@\IsTopTypeName}
 predicate is true for any type which is in
 the equivalence class of top types.
@@ -23708,6 +23736,21 @@ Normalization is based on the following reductions:
     \code{$X$\,\,\&\,\,$T$} & \code{$X$}\mbox{, if \SubtypeNE{X}{T}}
   \end{array}
 \end{displaymath}
+}
+
+\LMHash{}%
+We generalize \NormalizedTypeOfName{} such that
+it can be applied to a member signature rather than a type.
+This maps a member signature $m$ to a member signature $m'$ such
+that every type $T$ that occurs in $m$ is replaced by
+\NormalizedTypeOf{$T$}, and all other parts of $m'$ are identical to
+the corresponding part of $m$.
+
+\commentary{%
+For example,
+\NormalizedTypeOf{\VOID\,\,m(\COVARIANT\,\,FutureOr<Object>)}
+is the member signature
+\code{\VOID\,\,m(\COVARIANT\,\,Object)}.%
 }
 
 
