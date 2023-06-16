@@ -176,11 +176,11 @@ that `V1` and `V2` resolve to the same declaration.
 
 Assume that an inline class declaration _DV_ has two superinterfaces,
 direct or indirect, of the form `V1<T1 .. Ts>` and `V2<S1 .. Ss>`. Assume
-that `V1` and `V2` both denote the same inline class declaration. A
-compile-time error occurs if `Tj` and `Sj` are not the same type, for any
-`j` in `1 .. s`. This rule applies also in the case where one or both of
-the two types is a raw type, and the actual type arguments have been
-computed by instantiation to bounds, or by any other implicit mechanism.
+that `V1` and `V2` both denote the same declaration. A compile-time error
+occurs if `Tj` and `Sj` are not the same type, for any `j` in `1 .. s`.
+This rule applies also in the case where one or both of the two types is a
+raw type, and the actual type arguments have been computed by instantiation
+to bounds, or by any other implicit mechanism.
 
 In this rule 'same type' is defined as in the section
 [Runtime type equality operator][] in the null safety specification.
@@ -195,24 +195,10 @@ instance, `prefix.C<int>` and `C<int>` are the same type if `prefix.C` and
 normalization; and `void Function<X>(X)` and `void Function<Y>(Y)` are the
 same type based on alpha equivalence (renaming of type variables).*
 
-Assume that an inline class declaration _DV_ has two superinterfaces,
-direct or indirect, of the form `V1<T1 .. Ts>` and `V2<S1 .. Ss>`. Assume
-that `V1` and `V2` both denote the same non-inline class declaration. A
-compile-time error occurs unless one of these types is a subtype of the
-other.
-
-*It follows that when _DV_ implements more than two such non-inline types,
-it is an error unless one of them is at least as specific as all the
-others.*
-
-Assume that an inline class declaration _DV_ has two superinterfaces,
-of the form `V1<T1 .. Ts>` and `V2<S1 .. Ss>`, where the former is a direct
-superinterface and the latter is indirect. Assume that `V1` and `V2` both
-denote the same non-inline class declaration. A compile-time error occurs
-if the former is not a subtype of the latter.
-
-*In other words, a more special inline type can implement a more special
-non-inline type, not a less special one or an unrelated one.*
+A similar rule applies for the case where _DV_ has two superinterfaces,
+direct or indirect, which are function types or record types *(in which
+hase the types _must_ be non-inline types)*: They must also be the same
+type.
 
 Let _DV_ be an inline class declaration named `V` with representation type
 `R` and assume that the `implements` clause of _DV_ includes the non-inline
@@ -386,3 +372,24 @@ There are many trade-offs. For example, the abstract method may seem more
 familiar, but the export mechanism avoids redeclaring the
 signature. Further discussions about this topic can be seen in github
 issues, in particular the one mentioned above.
+
+We could allow an inline class to have two or more non-inline
+superinterfaces which are different generic instantiations of the same
+class (or different function types or record types, etc). The reason why
+this is possible (even though the only case which is relevant for
+non-inline classes makes this a compile-time error) is that inline classes
+do not occur in situations with subsumption. That is, we never have a
+static type `T` and a run-time value whose dynamic type is `S` such that
+`S <: T`, `S != T`, and `S` is an inline type.
+
+We could have a rule like the following:
+
+Assume that an inline class declaration _DV_ has two superinterfaces,
+direct or indirect, of the form `V1<T1 .. Ts>` and `V2<S1 .. Ss>`. Assume
+that `V1` and `V2` both denote the same non-inline class declaration. A
+compile-time error occurs unless one of these types is a subtype of the
+other.
+
+It follows that when _DV_ implements more than two such non-inline types,
+it is an error unless one of them is at least as specific as all the
+others.
