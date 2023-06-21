@@ -92,7 +92,7 @@ class FormatLibraryBenchmark extends BenchmarkBase {
   }
 }
 
-abstract class Fake {
+abstract mixin class Fake {
   @override
   void noSuchMethod(Invocation invocation) =>
       throw UnimplementedError(invocation.memberName.toString());
@@ -157,10 +157,14 @@ class SimpleTypeDeclarationResolver implements TypeDeclarationResolver {
           'Could not resolve identifier ${identifier.name}'));
 }
 
-class FakeTypeInferrer extends Fake implements TypeInferrer {}
+class FakeTypeInferrer extends Object with Fake implements TypeInferrer {
+  const FakeTypeInferrer();
+}
 
 /// Only supports named types with no type arguments.
 class SimpleTypeResolver implements TypeResolver {
+  const SimpleTypeResolver();
+
   @override
   Future<SimpleNamedStaticType> resolve(TypeAnnotationCode type) async {
     if (type is! NamedTypeAnnotationCode) {
@@ -226,10 +230,15 @@ final stringType = NamedTypeAnnotationImpl(
     identifier: stringIdentifier,
     isNullable: false,
     typeArguments: const []);
+final fooLibrary = LibraryImpl(
+    id: RemoteInstance.uniqueId,
+    languageVersion: LanguageVersionImpl(3, 0),
+    uri: Uri.parse('package:foo/foo.dart'));
 
 final objectClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: objectIdentifier,
+    library: fooLibrary,
     interfaces: [],
     hasAbstract: false,
     hasBase: false,

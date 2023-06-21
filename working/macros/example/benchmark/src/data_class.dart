@@ -44,7 +44,9 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       executor, macroUri, identifierResolver, instanceId);
   await typesBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, typesBenchmark.results, identifierDeclarations);
+      executor,
+      [if (typesBenchmark.result != null) typesBenchmark.result!],
+      identifierDeclarations);
   final declarationsBenchmark = DataClassDeclarationsPhaseBenchmark(
       executor,
       macroUri,
@@ -54,7 +56,9 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       typeDeclarationResolver);
   await declarationsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, declarationsBenchmark.results, identifierDeclarations);
+      executor,
+      [if (declarationsBenchmark.result != null) declarationsBenchmark.result!],
+      identifierDeclarations);
   final definitionsBenchmark = DataClassDefinitionPhaseBenchmark(
       executor,
       macroUri,
@@ -64,7 +68,9 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       typeDeclarationResolver);
   await definitionsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, definitionsBenchmark.results, identifierDeclarations);
+      executor,
+      [if (definitionsBenchmark.result != null) definitionsBenchmark.result!],
+      identifierDeclarations);
 }
 
 class DataClassInstantiateBenchmark extends AsyncBenchmarkBase {
@@ -86,19 +92,17 @@ class DataClassTypesPhaseBenchmark extends AsyncBenchmarkBase {
   final Uri macroUri;
   final IdentifierResolver identifierResolver;
   final MacroInstanceIdentifier instanceIdentifier;
-  late List<MacroExecutionResult> results;
+  MacroExecutionResult? result;
 
   DataClassTypesPhaseBenchmark(this.executor, this.macroUri,
       this.identifierResolver, this.instanceIdentifier)
       : super('DataClassTypesPhase');
 
   Future<void> run() async {
-    results = <MacroExecutionResult>[];
     if (instanceIdentifier.shouldExecute(
         DeclarationKind.classType, Phase.types)) {
-      var result = await executor.executeTypesPhase(
+      result = await executor.executeTypesPhase(
           instanceIdentifier, myClass, identifierResolver);
-      results.add(result);
     }
   }
 }
@@ -111,7 +115,7 @@ class DataClassDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
   final TypeIntrospector typeIntrospector;
   final TypeDeclarationResolver typeDeclarationResolver;
 
-  late List<MacroExecutionResult> results;
+  MacroExecutionResult? result;
 
   DataClassDeclarationsPhaseBenchmark(
       this.executor,
@@ -123,17 +127,16 @@ class DataClassDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
       : super('DataClassDeclarationsPhase');
 
   Future<void> run() async {
-    results = <MacroExecutionResult>[];
+    result = null;
     if (instanceIdentifier.shouldExecute(
         DeclarationKind.classType, Phase.declarations)) {
-      var result = await executor.executeDeclarationsPhase(
+      result = await executor.executeDeclarationsPhase(
           instanceIdentifier,
           myClass,
           identifierResolver,
           typeDeclarationResolver,
           SimpleTypeResolver(),
           typeIntrospector);
-      results.add(result);
     }
   }
 }
@@ -146,7 +149,7 @@ class DataClassDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
   final TypeIntrospector typeIntrospector;
   final TypeDeclarationResolver typeDeclarationResolver;
 
-  late List<MacroExecutionResult> results;
+  MacroExecutionResult? result;
 
   DataClassDefinitionPhaseBenchmark(
       this.executor,
@@ -158,18 +161,17 @@ class DataClassDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
       : super('DataClassDefinitionPhase');
 
   Future<void> run() async {
-    results = <MacroExecutionResult>[];
+    result = null;
     if (instanceIdentifier.shouldExecute(
         DeclarationKind.classType, Phase.definitions)) {
-      var result = await executor.executeDefinitionsPhase(
+      result = await executor.executeDefinitionsPhase(
           instanceIdentifier,
           myClass,
           identifierResolver,
           typeDeclarationResolver,
-          SimpleTypeResolver(),
+          const SimpleTypeResolver(),
           typeIntrospector,
-          FakeTypeInferrer());
-      results.add(result);
+          const FakeTypeInferrer());
     }
   }
 }
@@ -179,6 +181,7 @@ final myClassIdentifier =
 final myClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: myClassIdentifier,
+    library: fooLibrary,
     interfaces: [],
     hasAbstract: false,
     hasBase: false,
@@ -201,6 +204,7 @@ final myClassFields = [
       definingType: myClassIdentifier,
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myString'),
+      library: fooLibrary,
       isExternal: false,
       isFinal: true,
       isLate: false,
@@ -210,6 +214,7 @@ final myClassFields = [
       definingType: myClassIdentifier,
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myBool'),
+      library: fooLibrary,
       isExternal: false,
       isFinal: true,
       isLate: false,
@@ -222,6 +227,7 @@ final myClassMethods = [
     definingType: myClassIdentifier,
     id: RemoteInstance.uniqueId,
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '=='),
+    library: fooLibrary,
     isAbstract: false,
     isExternal: false,
     isGetter: false,
@@ -233,6 +239,7 @@ final myClassMethods = [
       ParameterDeclarationImpl(
         id: RemoteInstance.uniqueId,
         identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'other'),
+        library: fooLibrary,
         isNamed: false,
         isRequired: true,
         type: NamedTypeAnnotationImpl(
@@ -249,6 +256,7 @@ final myClassMethods = [
     definingType: myClassIdentifier,
     id: RemoteInstance.uniqueId,
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'hashCode'),
+    library: fooLibrary,
     isAbstract: false,
     isExternal: false,
     isOperator: false,
@@ -264,6 +272,7 @@ final myClassMethods = [
     definingType: myClassIdentifier,
     id: RemoteInstance.uniqueId,
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'toString'),
+    library: fooLibrary,
     isAbstract: false,
     isExternal: false,
     isGetter: false,

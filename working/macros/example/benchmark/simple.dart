@@ -65,16 +65,13 @@ void main(List<String> args) async {
   // Set up all of our options
   var parsedSerializationStrategy =
       parsedArgs['serialization-strategy'] as String;
-  SerializationMode clientSerializationMode;
-  SerializationMode serverSerializationMode;
+  SerializationMode serializationMode;
   switch (parsedSerializationStrategy) {
     case 'bytedata':
-      clientSerializationMode = SerializationMode.byteDataClient;
-      serverSerializationMode = SerializationMode.byteDataServer;
+      serializationMode = SerializationMode.byteData;
       break;
     case 'json':
-      clientSerializationMode = SerializationMode.jsonClient;
-      serverSerializationMode = SerializationMode.jsonServer;
+      serializationMode = SerializationMode.json;
       break;
     default:
       throw ArgumentError(
@@ -132,7 +129,7 @@ Macro: $macro
 
     var bootstrapContent = bootstrapMacroIsolate({
       macroUri.toString(): macroConstructors,
-    }, clientSerializationMode);
+    }, serializationMode);
 
     var bootstrapFile = File(tmpDir.uri.resolve('main.dart').toFilePath())
       ..writeAsStringSync(bootstrapContent);
@@ -158,10 +155,9 @@ Macro: $macro
 
     _log('Loading the macro executor');
     var executorImpl = macroExecutionStrategy == 'aot'
-        ? await processExecutor.start(serverSerializationMode,
-            communicationChannel, kernelOutputFile.uri.toFilePath())
-        : await isolatedExecutor.start(
-            serverSerializationMode, kernelOutputFile.uri);
+        ? await processExecutor.start(serializationMode, communicationChannel,
+            kernelOutputFile.uri.toFilePath())
+        : await isolatedExecutor.start(serializationMode, kernelOutputFile.uri);
     var executor = multiExecutor.MultiMacroExecutor()
       ..registerExecutorFactory(() => executorImpl, {macroUri});
 

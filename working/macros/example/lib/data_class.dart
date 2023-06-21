@@ -144,7 +144,7 @@ macro class CopyWith implements ClassDeclarationsMacro {
     ];
     var args = [
       for (var field in allFields)
-        Code.fromParts([
+        RawCode.fromParts([
           '${field.identifier.name}: ${field.identifier.name} ?? ',
           field.identifier,
         ]),
@@ -265,7 +265,7 @@ macro class ToString
         methods.firstWhere((m) => m.identifier.name == 'toString').identifier);
     var fieldExprs = [
       await for (var field in clazz.allFields(builder, builder))
-        Code.fromParts([
+        RawCode.fromParts([
           '  ${field.identifier.name}: \${',
           field.identifier,
           '}',

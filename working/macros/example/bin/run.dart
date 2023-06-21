@@ -47,7 +47,7 @@ void main(List<String> args) async {
       'Injectable': [''],
       'Provides': [''],
     }
-  }, SerializationMode.byteDataClient);
+  }, SerializationMode.byteData);
   bootstrapFile.writeAsStringSync(bootstrapContent);
   var bootstrapKernelFile =
       File(bootstrapFile.uri.resolve('bootstrap.dart.dill').toFilePath());
