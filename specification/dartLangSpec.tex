@@ -5915,7 +5915,7 @@ if{}f the following criteria are all satisfied:
 \item
   If $m$ and $m'$ are both methods or both setters:
   Let $F$ be the function type of $m$
-  except that the parameter type is the built-in class \code{Object}
+  except that the parameter type is \code{Object?}
   for each parameter of $m$ which is covariant-by-declaration
   (\ref{covariantParameters}).
   Let $F'$ be the function type of $m'$.
@@ -7908,7 +7908,7 @@ A<Object?> a;
 \end{dartCode}
 
 \commentary{%
-With this, \code{a.x} has static type \code{Object},
+With this, \code{a.x} has static type \code{Object?},
 even though the upper bound on the type variable \code{X} is \code{num}.%
 }
 
@@ -7935,7 +7935,7 @@ all types of the form \code{C<$S$>}
 (noting that all types must be regular-bounded
 when we do not have the notion of super-bounded types).
 So if we wish to allow a variable to hold any instance ``of type \code{C}''
-then that variable must use \code{Object} or another top type
+then that variable must use \code{Object?} or another top type
 as its type annotation,
 which means that a member like \code{next} is not known to exist
 (which is what we mean by saying that the type is `less informative').%
@@ -15076,7 +15076,7 @@ and similarly for formal type parameter lists (\ref{generics}).%
 It is a \Error{compile-time error} if a method superinvocation occurs
 in a top-level function or variable initializer,
 in an instance variable initializer or initializer list,
-in class \code{Object},
+in the built-in class \code{Object},
 in a factory constructor,
 or in a static method or variable initializer.
 
