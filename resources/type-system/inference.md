@@ -6,10 +6,12 @@ Status: Draft
 
 ## CHANGELOG
 
-2023.06.15
+2023.06.24
   - Adjust function literal return type inference to avoid spurious application
     of `flatten`, and make sure return statements do not affect generator
     functions.
+  - Specify the value context to use for generator functions for more
+    non-trivial return types (not just `Iterable<X>` for some `X`).
 
 2022.05.12
   - Define the notions of "constraint solution for a set of type variables" and
@@ -265,11 +267,11 @@ unlike normal fields, the initializer for a `late` field may reference `this`.
 Function literals which are inferred in an empty typing context (see below) are
 inferred using the declared type for all of their parameters.  If a parameter
 has no declared type, it is treated as if it was declared with type `dynamic`.
-Inference for each returned expression in the body of the function literal is
-done in an empty typing context (see below).
+Inference for each returned or yielded expression in the body of the function
+literal is done with an empty _value context_ scheme (see below).
 
 Function literals which are inferred in an non-empty typing context where the
-context type is a function type are inferred as described below.
+context type is a function type are inferred as described here.
 
 Each parameter is assumed to have its declared type if present.  If no type is
 declared for a parameter and there is a corresponding parameter in the context
@@ -281,19 +283,21 @@ corresponding parameter in the context type schema, the variable is treated as
 having type `dynamic`.
 
 The return type of the context function type is used at several points during
-inference.  We refer to this type as the **imposed return type
-schema**. Inference for each returned or yielded expression in the body of the
-function literal is done using a context type derived from the imposed return
-type schema `S` as follows:
+inference. We refer to this type as the **imposed return type schema**.
+
+Inference for each returned or yielded expression in the body of the
+function literal is done using a **value context** type scheme derived from the
+imposed return type schema `S` as follows:
+  - If function is declared `async`, then without null safety,
+    the value context scheme is **flatten**(`S`);
+    with null safety the value context scheme is
+    **futureValueTypeSchema**(`S`), as defined below.
+  - If the function expression is declared `async*` then the value context
+    scheme is **streamElementTypeSchema**(`S`), as defined below.
+  - If the function expression is declared `sync*` then the value context
+    scheme is **iterableElementTypeSchema**(`S`), as defined below.
   - If the function expression is neither `async` nor a generator, then the
-    context type is `S`.
-  - If the function expression is declared `async*` and `S` is of the form
-    `Stream<S1>` for some `S1`, then the context type is `S1`.
-  - If the function expression is declared `sync*` and `S` is of the form
-    `Iterable<S1>` for some `S1`, then the context type is `S1`.
-  - Otherwise, without null safety, the context type is `flatten(T)`
-    where `T` is the imposed return type schema; with null safety, the context
-    type is `futureValueTypeSchema(S)`.
+    value context scheme is `S`.
 
 The function **futureValueTypeSchema** is defined as follows:
 
@@ -306,70 +310,124 @@ The function **futureValueTypeSchema** is defined as follows:
 - **futureValueTypeSchema**(`_`) = `_`.
 - Otherwise, for all other `S`, **futureValueTypeSchema**(`S`) = `Object?`.
 
-_Note that it is a compile-time error unless the return type of an asynchronous
-non-generator function is a supertype of `Future<Never>`, which means that
-the last case will only be applied when `S` is `Object` or a top type._
+The function **streamElementTypeSchema** is defined as follow:
+
+- **streamElementTypeSchema**(`S?`) = **streamElementTypeSchema**(`S`),
+    for all `S`.
+- **streamElementTypeSchema**(`S*`) = **streamElementTypeSchema**(`S`),
+    for all `S`.
+- **streamElementTypeSchema**(`FutureOr<S>`) = **streamElementTypeSchema**(`S`),
+    for all `S`.
+- **streamElementTypeSchema**(`Stream<S>`) = `S`, for all `S`.
+- **streamElementTypeSchema**(`void`) = `void`
+- **streamElementTypeSchema**(`dynamic`) = `dynamic`
+- **streamElementTypeSchema**(`_`) = `_`
+- Otherwise, for all other `S`, **streamElementTypeSchema**(`S`) = `Object?`.
+
+The function **iterableElementTypeSchema** is defined as follow:
+
+- **iterableElementTypeSchema**(`S?`) = **iterableElementTypeSchema**(`S`),
+    for all `S`.
+- **iterableElementTypeSchema**(`S*`) = **iterableElementTypeSchema**(`S`),
+    for all `S`.
+- **iterableElementTypeSchema**(`FutureOr<S>`) =
+    **iterableElementTypeSchema**(`S`), for all `S`.
+- **iterableElementTypeSchema**(`Iterable<S>`) = `S`, for all `S`.
+- **iterableElementTypeSchema**(`void`) = `void`
+- **iterableElementTypeSchema**(`dynamic`) = `dynamic`
+- **iterableElementTypeSchema**(`_`) = `_`
+- Otherwise, for all other `S`, **iterableElementTypeSchema**(`S`) = `Object?`.
+
+_Note that it is a compile-time error unless the return type of an
+asynchronous non-generator function is a supertype of `Future<Never>`,
+which means that the last case of **futureValueTypeScheme** will only
+be applied when `S` is `Object`.
+Similarly for `async*` and `sync*` functions whose return types
+must be a supertypes of `Stream<Never>` and `Iterable<Never>`._
 
 In order to infer the return type of a function literal, we first infer the
-**actual returned type** of the function literal.
+**actual value type** of the function literal. _The actual value type
+represents the types of the actual values returned by non-generator functions,
+and the values emitted by generator functions._
 
-The actual returned type of a function literal with an expression body is the
-inferred type of the expression body, using the local type inference algorithm
-described below with a typing context as computed above.
+Let `K` be the value context schema for the function body as computed above
+from the imposed return type schema.
+_When we refer to the _inferred type_ of an expression with a typing context,
+it is the type inferred using the local type inference algorithm
+described below._
 
-The actual returned type of a function literal with a block body is computed as
-follows.  Let `T` be `Never` if every control path through the block exits the
-block without reaching the end of the block, as computed by the **definite
-completion** analysis specified elsewhere, or if the function is a generator
-function.
-Let `T` be `Null` if the function is a non-generator function and any control
-path reaches the end of the block without exiting the block, as computed by the
-**definite completion** analysis specified elsewhere.  Let `K` be the typing
-context for the function body as computed above from the imposed return type
-schema.
+The actual value type of a function literal with an expression body, `=> e`,
+_(which cannot be a generator function)_ is computed as follows:
+  - If the enclosing function is marked `async`,
+    let `T` be the inferred type of the returned expession with `FutureOr<K>`
+    as typing context.
+    The actual value type is **flatten**(`T`).
+  - If the enclosing function is not marked `async`, let `T` be the inferred
+    type of the returned expression with typing context `K`.
+    The actually value type is `T`.
+
+The actual value type of a function literal with a block body is computed as
+follows.
+Let `T` be `Never` if the function is a generator function,
+or if every control path through the block exits the block without
+reaching the end of the block, as computed by the **definite completion**
+analysis specified elsewhere.
+Otherwise _(the function is a non-generator function and at least
+one control path reaches the end of the block)_ let `T` be `null`.
+
+Then process relevant statements of the block, one by one in source order,
+to find a value type `V` for that statement.
+
   - If the enclosing function is a non-`async` non-generator function,
-    for each `return e;` statement in the block, let `S` be the inferred type
-    of `e`, using the local type inference algorithm described below with typing
-    context `K`, and update `T` to be `UP(S, T)`.
-  - If the enclosing function is marekd `async`, for each `return e;` statement
-    in the block, let `S` be the inferred type of `e`, using the local type
-    inference algorithm described below with typing context `FutureOr<K>`,
-    and update `T` to be `UP(flatten(S), T)`.
-  - If the enclosing function is a non-generator function, for each `return;`
-    statement in the block, update `T` to be `UP(Null, T)`.
-  - For each `yield e;` statement in the block, let `S` be the inferred type of
-    `e`, using the local type inference algorithm described below with typing
-    context `K`, and update `T` to be `UP(S, T)`.
-  - If the enclosing function is marked `sync*`, then for each `yield* e;`
-    statement in the block, let `S` be the inferred type of `e`, using the
-    local type inference algorithm described below with a typing context of
-    `Iterable<K>`. If there exists a type `E` such that `Iterable<E>` is a
-    super-interface of `S`, update `T` to be `UP(E, T)`. Otherwise update
-    `T` to be `UP(S, T)`.
-    _It is a compile-time error if *S* is not a assignable to
-    `Iterable<Object?>`, so either *S* implements `Iterable`, or it is one of
-    `dynamic` or `Never`._
-  - If the enclosing function is marked `async*`, then for each `yield* e;`
-    statement in the block, let `S` be the inferred type of `e`, using the
-    local type inference algorithm described below with a typing context of
-    `Stream<K>`. If there exists a type `E` such that `Stream<E>` is a
-    super-interface of `S`, update `T` to be `UP(E, T)`. Otherwise update
-    `T` to be `UP(S, T)`.
-    _It is a compile-time error if *S* is not a assignable to
-    `Stream<Object?>`, so either *S* implements `Iterable`, or it is one of
-    `dynamic` or `Never`._
+    the relevant statements are `return;` or `return e;` statements.
+    -   For a `return;` statement, let `V` be `Null`.
+    -   For a `return e;` statement, let `V` be the inferred type of `e` with
+        `K` as context type scheme, using the local type inference algorithm
+        described below.
 
-The **actual returned type** of the function literal is the value of `T` after
+  - If the enclosing function is marked `async`, the relevant statements
+     are `return;` and `return e;` statements.
+    * For a `return;` statement, let `V` be `Null`.
+    * For a `return e;` statement, let `S` be the inferred type of `e`
+      with typing context `FutureOr<K>`. Let `V` be **flatten**(`S`).
+
+  - If the enclosing function is marked `sync*`, the relevant statements
+    are `yield e;` or `yield* e;` statement.
+    * For a `yield e;` statement, let `V` be the inferred type of `e` with
+      typing context `K`.
+    * For a `yield* e;` statement, let `S` be the inferred type of `e` with
+      typing context `Iterable<K>`.
+      If `S` implements `Iterable<R>` for some `R`, let `V` be `R`.
+      Otherwise let `V` be `S`.
+      _It is a compile-time error if `S` is not a assignable to
+      `Iterable<Object?>`, so either `S` implements `Iterable`,
+      or it is one of `dynamic` or `Never`._
+
+  - If the enclosing function is marked `async*`, the relevant statements are
+    `yield e;` or `yield* e;` statements.
+    * For a `yield e;` statement, let `V` be the inferred type of `e` with
+      typing context `K`.
+    * For a `yield* e;` statement, let `S` be the inferred type of `e` with
+      typing context `Stream<K>`.
+      If `S` implements `Stream<R>` for some `R`, let `V` be `R`.
+      Otherwise let `V` be `S`.
+      _It is a compile-time error if `S` is not a assignable to
+      `Stream<Object?>`, so either `S` implements `Stream`,
+      or it is one of `dynamic` or `Never`._
+
+After processing each relevant statement, update `T` to be **UP**(`T`, `V`).
+
+The **actual value type** of the function literal is the value of `T` after
 all `return` and `yield` statements in the block body have been considered.
 
-Let `T` be the **actual returned type** of a function literal as computed above.
+Let `T` be the **actual value type** of a function literal as computed above.
 Let `R` be the greatest closure of the typing context `K` as computed above.
 
 With null safety, if `R` is `void`, let `S` be `void`
 _(without null-safety: no special treatment is applicable to `void`)_.
 
 Otherwise (_without null safety or if `R` is not `void`_),
-if `T <: R` then let `S` be `T`.  Otherwise, let `S` be `R`.  The
+if `T <: R` then let `S` be `T`, else let `S` be `R`.  The
 inferred return type of the function literal is then defined as follows:
 
   - If the function literal is marked `async` then the inferred return type is
