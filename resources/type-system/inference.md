@@ -418,7 +418,8 @@ to find a value type `V` for that statement.
 After processing each relevant statement, update `T` to be **UP**(`T`, `V`).
 
 The **actual value type** of the function literal is the value of `T` after
-all `return` and `yield` statements in the block body have been considered.
+all relevant `return` and `yield` statements in the block body have been
+processed.
 
 Let `T` be the **actual value type** of a function literal as computed above.
 Let `R` be the greatest closure of the typing context `K` as computed above.
