@@ -389,7 +389,9 @@ to find a value type `V` for that statement.
      are `return;` and `return e;` statements.
     * For a `return;` statement, let `V` be `Null`.
     * For a `return e;` statement, let `S` be the inferred type of `e`
-      with typing context `FutureOr<K>`. Let `V` be **flatten**(`S`).
+      with typing context `_` if `K` is `_`,
+      and with typing context `FutureOr<K>` if `K` is not `_`,
+      Let `V` be **flatten**(`S`).
 
   - If the enclosing function is marked `sync*`, the relevant statements
     are `yield e;` or `yield* e;` statement.
