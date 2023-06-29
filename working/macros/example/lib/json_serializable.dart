@@ -56,7 +56,7 @@ macro class JsonSerializable
     var jsonParam = fromJson.positionalParameters.single.identifier;
     fromJsonBuilder.augment(initializers: [
       for (var field in fields)
-        Code.fromParts([
+        RawCode.fromParts([
           field.identifier,
           ' = ',
           await _convertField(field, jsonParam, builder),
@@ -94,14 +94,14 @@ macro class JsonSerializable
         .firstWhereOrNull((c) => c.identifier.name == 'fromJson')
         ?.identifier;
     if (fieldTypeFromJson != null) {
-      return Code.fromParts([
+      return RawCode.fromParts([
         fieldTypeFromJson,
         '(',
         jsonParam,
         '["${field.identifier.name}"])',
       ]);
     } else {
-      return Code.fromParts([
+      return RawCode.fromParts([
         jsonParam,
         // TODO: support nested serializable types.
         '["${field.identifier.name}"] as ',

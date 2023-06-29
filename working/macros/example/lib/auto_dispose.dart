@@ -43,7 +43,7 @@ macro class AutoDispose implements ClassDeclarationsMacro, ClassDefinitionMacro 
     for (var field in fields) {
       var type = await builder.resolve(field.type.code);
       if (!await type.isSubtypeOf(disposableType)) continue;
-      disposeCalls.add(Code.fromParts([
+      disposeCalls.add(RawCode.fromParts([
         '\n',
         field.identifier,
         if (field.type.isNullable) '?',

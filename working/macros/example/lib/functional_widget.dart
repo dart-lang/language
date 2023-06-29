@@ -5,7 +5,7 @@
 // There is no public API exposed yet, the in progress api lives here.
 import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
-class FunctionalWidget implements FunctionTypesMacro {
+macro class FunctionalWidget implements FunctionTypesMacro {
   final Identifier? widgetIdentifier;
 
   const FunctionalWidget(
