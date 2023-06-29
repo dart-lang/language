@@ -45,7 +45,8 @@ class FunctionalWidget implements FunctionTypesMacro {
               in positionalFieldParams.followedBy(function.namedParameters))
             DeclarationCode.fromParts([
               'final ',
-              param.type,
+              param.type.code,
+              ' ',
               param.identifier.name,
               ';',
             ]),
