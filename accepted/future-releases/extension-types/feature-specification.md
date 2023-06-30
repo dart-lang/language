@@ -106,7 +106,10 @@ declares the name and type of the representation in a way which is a
 special case of the [primary constructor proposal][].
 In the body of the extension type the representation object is in scope,
 with the declared name and type, as if it had been a final instance
-variable in a class.
+variable in a class. It differs from an instance variable declaration in
+that it is not available in the interface of the extension type (that is,
+we can use `id` inside the extension type declaration, but we can't use
+`e.id` from the outside).
 
 [primary constructor proposal]: https://github.com/dart-lang/language/pull/3023
 
@@ -176,7 +179,6 @@ void main() {
   10 + safeId; // Compile-time error, wrong argument type.
   myUnsafeId = safeId; // Compile-time error, wrong type.
   myUnsafeId = safeId as int; // OK, we can force it.
-  myUnsafeId = safeId.i; // OK, and safer than a cast.
 }
 ```
 
@@ -190,12 +192,8 @@ We can actually cast away the extension type and hence get access to the
 interface of the representation, but we assume that the developer wishes to
 maintain this extra discipline, and won't cast away the extension type
 unless there is a good reason to do so. Similarly, we can access the
-representation using the representation name as a getter.  There is no
-reason to consider the latter to be a violation of any kind of
-encapsulation or protection barrier, it's just like any other getter
-invocation. If desired, the author of the extension type can choose to use
-a private representation name, to obtain a small amount of extra
-encapsulation.
+representation using the representation name as a getter inside the body of
+the extension type declaration.
 
 The extra discipline is enforced because the extension type member
 implementations will only treat the representation object in ways that
@@ -393,7 +391,7 @@ with some rules for elements used in extension type declarations:
     (<metadata> <extensionTypeMemberDeclaration>)*
   '}'
 
-<representationDeclaration> ::= '(' <type> <identifier> ')'
+<representationDeclaration> ::= ('.' <identifier>)? '(' <type> <identifier> ')'
 
 <extensionTypeMemberDeclaration> ::= <classMemberDefinition>
 ```
@@ -792,6 +790,14 @@ recognize that this is a way to obtain a value of that extension type. It
 can also be used to verify that an existing object (provided as an
 actual argument to the constructor) satisfies the requirements for
 having that extension type.*
+
+The `<representationDeclaration>` works as a constructor. The optional
+`('.' <identifier>)` in the grammar is used to declare this constructor
+with a name of the form `<identifier> '.' <identifier>` *(at times
+described as a "named constructor")*. It is a constant constructor: If `e`
+is a constant expression and `V(e)` is not an error, then `V(e)` is a
+constant expression. Other constructors may be declared `const` or not,
+following the normal rules for constant constructors.
 
 A compile-time error occurs if an extension type constructor includes a
 superinitializer. *That is, a term of the form `super(...)` or
