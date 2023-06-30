@@ -857,9 +857,9 @@ Assume that _DV_ is an extension type declaration named `Name`, and
 `V1` occurs as one of the `<type>`s in the `<interfaces>` of _DV_. In
 this case we say that `V1` is a _superinterface_ of _DV_.
 
-If _DV_ does not include an `<interfaces>` clause then _DV_ has no
-superinterfaces. *But note that `Object?` and perhaps `Object` are still
-supertypes.*
+If _DV_ does not include an `<interfaces>` clause then _DV_ has 
+`Object?` or `Object` as a direct superinterface, according to the subtype
+relation which was specified earlier.
 
 A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superinterface in an extension type declaration _DV_, but
@@ -905,30 +905,48 @@ for all <code>T<sub>1</sub>, .. T<sub>s</sub></code>.
 supertype of `V`.*
 
 A compile-time error occurs if an extension type declaration _DV_ has
-two superinterfaces `V1` and `V2`, where both `V1` and `V2` have a
-member named _m_, and the two declarations of _m_ are distinct
+two extension type superinterfaces `V1` and `V2`, where both `V1` and `V2`
+have a member named _m_, and the two declarations of _m_ are distinct
 declarations, and _DV_ does not declare a member named _m_.
 
-*In other words, if two different declarations of _m_ are inherited
-from two superinterfaces then the subinterface must resolve the
-conflict. The so-called diamond inheritance pattern can create the
-case where two superinterfaces have an _m_, but they are both declared by
-the same declaration (so `V` is a subinterface of `V1` and `V2`, and both
-`V1` and `V2` are subinterfaces of `V3`, and only `V3` declares _m_,
-in which case there is no conflict in `V`).*
+*In other words, if two different declarations of _m_ are inherited from
+two extension type superinterfaces then the subinterface must resolve the
+conflict. The so-called diamond inheritance pattern can create the case
+where two superinterfaces have an _m_, but they are both declared by the
+same declaration (so `V` is a subinterface of `V1` and `V2`, and both `V1`
+and `V2` are subinterfaces of `V3`, and only `V3` declares _m_, in which
+case there is no conflict in `V`).*
 
-*Assume that _DV_ is an extension type declaration named `Name`, and
-the extension type `V1`, declared by _DV1_, is a superinterface of
-_DV_. Let `m` be the name of a member of `V1`. If _DV_ also declares a
-member named `m` then the latter may be considered similar to a
-declaration that "overrides" the former.  However, it should be noted
-that extension type method invocation is resolved statically, and hence
-there is no override relationship among the two in the traditional
-object-oriented sense (that is, it will never occur that the
-statically known declaration is the member of `V1`, and the member
-invoked at run time is the one in _DV_). A receiver with static
-type `V1` will invoke the declaration in _DV1_, and a receiver with
-static type `Name` (or `Name<...>`) will invoke the one in _DV_.*
+A compile-time error occurs if an extension type declaration _DV_ has
+two superinterfaces `V1` and `V2`, where `V1` is an extension type and `V2`
+is a non-extension type, and both `V1` and `V2` have a member named _m_,
+and _DV_ does not declare a member named _m_.
+
+*In other words, member name clashes among an extension type and a
+non-extension type superinterface is always an error. _DV_ must override
+the given name to eliminate the error.*
+
+A compile-time error occurs if an extension type declaration _DV_ has
+two or more non-extension type superinterfaces `V1 .. Vk`, where each `Vj`
+has a member named _m_, and the combined member signature of these members
+does not exist, and _DV_ does not declare a member named _m_.
+
+*In other words, when the extension type has some members which are
+"inherited" from some non-extension type superinterfaces, they must have a
+well-defined signature just like if _DV_ had been a class.*
+
+*Assume that _DV_ is an extension type declaration named `Name`, and the
+extension type `V1`, declared by _DV1_, is a superinterface of _DV_ (could
+be an extension type or a non-extension type). Let `m` be the name of a
+member of `V1`. If _DV_ also declares a member named `m` then the latter
+may be considered similar to a declaration that "overrides" the former.
+However, it should be noted that extension type method invocation is
+resolved statically, and hence there is no override relationship among the
+two in the traditional object-oriented sense (that is, it will never occur
+that the statically known declaration is the member of `V1`, and the member
+invoked at run time is the one in _DV_). A receiver with static type `V1`
+will invoke the declaration in _DV1_, and a receiver with static type
+`Name` (or `Name<...>`) will invoke the one in _DV_.*
 
 Hence, we use a different word to describe the relationship between a
 member named _m_ of a superinterface, and a member named _m_ which is
