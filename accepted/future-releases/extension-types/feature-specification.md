@@ -69,7 +69,9 @@ wrapped object as needed.
 However, even though an extension type behaves like a wrapping, the wrapper
 object will never exist at run time, and a reference whose type is the
 extension type will actually refer directly to the underlying "wrapped"
-object.
+object. This fact also determines the behavior of `as` and `is`: Those
+operations will refer to the run-time type of the representation object,
+and the run-time value of the extension type is the representation type.
 
 Consider a member access (e.g., a method call like `e.m(2)`)
 where the static type of the receiver (`e`) is an extension type `V`.
@@ -858,7 +860,8 @@ and has static type `Type`.
 
 An extension type declaration _DV_ can have the type modifier
 `final`. In this case it is a compile-time error for another extension type
-declaration _DV2_ to have _DV_ as a superinterface.
+declaration _DV2_ to have _DV_ as a superinterface, if _DV2_ is declared in
+a different library.
 
 *As the grammar shows, any occurrence of the keywords `abstract`,
 `base`, `interface`, `sealed`, or `mixin` in an extension type
