@@ -20,6 +20,8 @@ void main(List<String> args) async {
       File(dartToolDir.uri.resolve('bootstrap.dart').toFilePath());
   log('Bootstrapping macro program (${bootstrapFile.path}).');
   var dataClassUri = Uri.parse('package:macro_proposal/data_class.dart');
+  var functionalWidgetUri =
+      Uri.parse('package:macro_proposal/functional_widget.dart');
   var observableUri = Uri.parse('package:macro_proposal/observable.dart');
   var autoDisposableUri = Uri.parse('package:macro_proposal/auto_dispose.dart');
   var jsonSerializableUri =
@@ -32,6 +34,9 @@ void main(List<String> args) async {
       'DataClass': [''],
       'HashCode': [''],
       'ToString': [''],
+    },
+    functionalWidgetUri.toString(): {
+      'FunctionalWidget': [''],
     },
     observableUri.toString(): {
       'Observable': [''],
@@ -72,6 +77,7 @@ void main(List<String> args) async {
     '--source=${bootstrapFile.path}',
     '--source=lib/auto_dispose.dart',
     '--source=lib/data_class.dart',
+    '--source=lib/functional_widget.dart',
     '--source=lib/injectable.dart',
     '--source=lib/json_serializable.dart',
     '--source=lib/observable.dart',

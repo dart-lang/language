@@ -4,7 +4,7 @@
 //
 // ignore_for_file: deprecated_member_use
 
-// There is no public API exposed yet, the in progress api lives here.
+// There is no public API exposed yet, the in-progress API lives here.
 import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
 final dartCore = Uri.parse('dart:core');
@@ -56,7 +56,7 @@ macro class JsonSerializable
     var jsonParam = fromJson.positionalParameters.single.identifier;
     fromJsonBuilder.augment(initializers: [
       for (var field in fields)
-        Code.fromParts([
+        RawCode.fromParts([
           field.identifier,
           ' = ',
           await _convertField(field, jsonParam, builder),
@@ -94,14 +94,14 @@ macro class JsonSerializable
         .firstWhereOrNull((c) => c.identifier.name == 'fromJson')
         ?.identifier;
     if (fieldTypeFromJson != null) {
-      return Code.fromParts([
+      return RawCode.fromParts([
         fieldTypeFromJson,
         '(',
         jsonParam,
         '["${field.identifier.name}"])',
       ]);
     } else {
-      return Code.fromParts([
+      return RawCode.fromParts([
         jsonParam,
         // TODO: support nested serializable types.
         '["${field.identifier.name}"] as ',

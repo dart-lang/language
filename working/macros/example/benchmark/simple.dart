@@ -29,6 +29,7 @@ import 'package:_fe_analyzer_shared/src/macros/executor/multi_executor.dart'
     as multiExecutor;
 
 import 'src/data_class.dart' as data_class;
+import 'src/functional_widget.dart' as functional_widget;
 import 'src/injectable.dart' as injectable;
 
 final _watch = Stopwatch()..start();
@@ -50,7 +51,8 @@ final argParser = ArgParser()
       defaultsTo: 'stdio',
       help: 'The communication channel to use when running as a separate'
           ' process.')
-  ..addOption('macro', allowed: ['DataClass', 'Injectable'], mandatory: true)
+  ..addOption('macro',
+      allowed: ['DataClass', 'Injectable', 'FunctionalWidget'], mandatory: true)
   ..addFlag('help', negatable: false, hide: true);
 
 // Run this script to print out the generated augmentation library for an example class.
@@ -102,6 +104,7 @@ Macro: $macro
   var macroFile = switch (macro) {
     'DataClass' => File('lib/data_class.dart'),
     'Injectable' => File('lib/injectable.dart'),
+    'FunctionalWidget' => File('lib/functional_widget.dart'),
     _ => throw UnsupportedError('Unrecognized macro $macro'),
   };
   if (!macroFile.existsSync()) {
@@ -113,6 +116,8 @@ Macro: $macro
     var macroUri = switch (macro) {
       'DataClass' => Uri.parse('package:macro_proposal/data_class.dart'),
       'Injectable' => Uri.parse('package:macro_proposal/injectable.dart'),
+      'FunctionalWidget' =>
+        Uri.parse('package:macro_proposal/functional_widget.dart'),
       _ => throw UnsupportedError('Unrecognized macro $macro'),
     };
     var macroConstructors = switch (macro) {
@@ -123,6 +128,9 @@ Macro: $macro
           'Injectable': [''],
           'Provides': [''],
           'Component': [''],
+        },
+      'FunctionalWidget' => {
+          'FunctionalWidget': [''],
         },
       _ => throw UnsupportedError('Unrecognized macro $macro'),
     };
@@ -165,6 +173,7 @@ Macro: $macro
     await switch (macro) {
       'DataClass' => data_class.runBenchmarks(executor, macroUri),
       'Injectable' => injectable.runBenchmarks(executor, macroUri),
+      'FunctionalWidget' => functional_widget.runBenchmarks(executor, macroUri),
       _ => throw UnsupportedError('Unrecognized macro $macro'),
     };
     await executor.close();

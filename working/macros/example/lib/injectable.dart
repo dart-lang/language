@@ -4,7 +4,7 @@
 
 import 'dart:async';
 
-// There is no public API exposed yet, the in progress api lives here.
+// There is no public API exposed yet, the in-progress API lives here.
 import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
 import 'util.dart';
@@ -113,6 +113,7 @@ macro class Provides implements MethodDeclarationsMacro {
   @override
   FutureOr<void> buildDeclarationsForMethod(
       MethodDeclaration method, MemberDeclarationBuilder builder) async {
+    // ignore: deprecated_member_use
     final providerIdentifier = await builder.resolveIdentifier(
         Uri.parse('package:macro_proposal/injectable.dart'), 'Provider');
     if (method.namedParameters.isNotEmpty) {
@@ -194,6 +195,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
   @override
   FutureOr<void> buildDeclarationsForClass(IntrospectableClassDeclaration clazz,
       MemberDeclarationBuilder builder) async {
+    // ignore: deprecated_member_use
     final providerIdentifier = await builder.resolveIdentifier(
         Uri.parse('package:macro_proposal/injectable.dart'), 'Provider');
     final methods = await builder.methodsOf(clazz);
@@ -243,6 +245,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
   @override
   FutureOr<void> buildDefinitionForClass(IntrospectableClassDeclaration clazz,
       TypeDefinitionBuilder builder) async {
+    // ignore: deprecated_member_use
     final providerIdentifier = await builder.resolveIdentifier(
         Uri.parse('package:macro_proposal/injectable.dart'), 'Provider');
     final methods = await builder.methodsOf(clazz);
