@@ -18,7 +18,7 @@ information about the process, including in their change logs.
 2023.06.30
   - Change the feature name and keywords to `extension type`, adjust
     representation type and name declaration to be similar to a primary
-    constructor.
+    constructor. Allow non-extension type superinterfaces.
 
 2022.12.20
   - Add rule about type modifiers.
@@ -33,13 +33,15 @@ information about the process, including in their change logs.
 
 This document specifies a language feature that we call "extension types".
 
-The feature introduces the _extension type_ feature. Is feature introduces a new
-kind of type which is declared by a new `extension type` declaration. An
-extension type provides a replacement of the members available on instances
-of an existing type: when the static type of the instance is an extension
-type _V_, the available instance members are exactly the ones provided by
-_V_ (noting that there may also be some accessible and applicable extension
-members).
+The feature introduces the _extension type_ feature. This feature
+introduces a new kind of type which is declared by a new `extension type`
+declaration. An extension type provides a replacement of the members
+available on instances of an existing type: when the static type of the
+instance is an extension type _V_, the available instance members are
+exactly the ones provided by _V_. There may also be some accessible and
+applicable extension members (noting that this is from the existing
+feature expressed as an `extension` declaration, it is not an `extension
+type` declaration).
 
 In contrast, when the static type of an instance is not an extension type,
 it is (by soundness) always the run-time type of the instance or a
@@ -66,13 +68,13 @@ wrapped object as needed.
 
 However, even though an extension type behaves like a wrapping, the wrapper
 object will never exist at run time, and a reference whose type is the
-extension type will actually refer directly to the underlying wrapped
+extension type will actually refer directly to the underlying "wrapped"
 object.
 
 Consider a member access (e.g., a method call like `e.m(2)`)
 where the static type of the receiver (`e`) is an extension type `V`.
 In general, the member (`m`) will be a member of `V`, not a member of
-the static type of the wrapped object, and the invocation of that
+the static type of the "wrapped" object, and the invocation of that
 member will be resolved statically (just like extension methods).
 
 Given that there is no wrapper object, we will refer to the "wrapped"
@@ -126,6 +128,13 @@ representation type `R`, we can refer to an object `theRList` of type
 `theRList as List<V>`), and this corresponds to "wrapping every
 element in the list", but it only takes time _O(1)_ and no space, no
 matter how many elements the list contains.
+
+It is also possible to declare a non-extension type as a superinterface in
+an extension type declaration, if certain conditions are satisfied. This
+can be viewed as a partial unveiling of the representation object, in the
+sense that it enables some members of the representation type to be invoked
+on the extension type, and it makes the extension type a subtype of that
+non-extension type.
 
 
 ## Motivation
@@ -197,12 +206,11 @@ the extension type declaration.
 
 The extra discipline is enforced because the extension type member
 implementations will only treat the representation object in ways that
-are written with the purpose of conforming to this particular
-discipline (and thereby defines what this discipline is). For example,
-if the discipline includes the rule that you should never call a
-method `foo` on the representation, then the author of the extension type
-will simply need to make sure that none of the extension type member
-declarations ever calls `foo`.
+conform to this particular discipline (and thereby defines what this
+discipline is). For example, if the discipline includes the rule that you
+should never call a method `foo` on the representation, then the author of
+the extension type will simply need to make sure that none of the extension
+type member declarations ever calls `foo`.
 
 Another example would be that we're using interop with JavaScript, and
 we wish to work on a given `JSObject` representing a button, using a
@@ -420,7 +428,7 @@ This document needs to refer to extension type method invocations including
 each part that determines the static analysis and semantics of this
 invocation, so we will use a standardized phrase and talk about: An
 invocation of the extension type member `m` on the receiver `e` according
-to the extension type `V` and with the actual type arguments
+to the extension type declaration `V` and with the actual type arguments
 <code>T<sub>1</sub>, ..., T<sub>s</sub></code>.
 
 In the case where `m` is a method, the invocation could be an extension
@@ -437,8 +445,9 @@ treatment is the same as with a method accepting a single argument
 a role in the static analysis and the dynamic semantics of the invocation.
 There is no syntactic representation in the language for this concept,
 because the same extension type method invocation can have many different
-syntactic forms, and both `V` and <code>T<sub>1</sub>, ...,
-T<sub>s</sub></code> are implicit in the actual syntax.*
+syntactic forms, and both `V` and
+<code>T<sub>1</sub>, ..., T<sub>s</sub></code> are implicit in the actual
+syntax.*
 
 
 ### Static Analysis of an Extension Type Member Invocation
@@ -452,8 +461,11 @@ where _DV_ has no such declaration, but _DV_ has a direct
 superinterface `V` that has a member named `n`. In both cases,
 _the member declaration named `n` that DV has_ is said declaration.
 
-*This definition is unambiguous for an extension type that has no
-compile-time errors, because name clashes must be resolved by `V`.*
+*For a declaration in an extension type, this definition is unambiguous for
+an extension type that has no compile-time errors, because name clashes
+must be resolved by `V`. If the declaration is from a superinterface which
+is not an extension type then it is handled specially, and we do not need
+to have a unique declaration of `n` "that _DV_ has".*
 
 Consider an invocation of the extension type member `m` on the receiver `e`
 according to the extension type declaration `V` and with the actual type
@@ -480,13 +492,26 @@ type `Object` and with the same `args`, if any.
 Otherwise, a compile-time error occurs if `V` does not have a member
 named `m`.
 
+If `V` has a member named `m` which is declared in a non-extension type
+superinterface `S` and not redeclared by any extension type superinterfaces
+that have `S` as a superinterface, the invocation of `m` is treated as an
+invocation of a regular class instance member whose member signature is the
+combined member signatures of all declarations of `m` in the direct
+superinterfaces of `V`. 
+
+*In other words, members "inherited" from non-extension type
+superinterfaces are invoked as normal class instance members, as if we
+could "see through the veil" that is the extension type and call members of
+the representation type which have been unveiled by including `S` as a
+superinterface, directly or indirectly.*
+
 Otherwise, let _Dm_ be the declaration of `m` that `V` has.
 
 If _Dm_ is a getter declaration with return type `R` then the static
 type of the invocation is
 <code>[T<sub>1</sub>/X<sub>1</sub> .. T<sub>s</sub>/X<sub>s</sub>]R</code>.
 
-If _Dm_is a method with function type `F`, and `args` is omitted, the
+If _Dm_ is a method with function type `F`, and `args` is omitted, the
 invocation has static type
 <code>[T<sub>1</sub>/X<sub>1</sub> .. T<sub>s</sub>/X<sub>s</sub>]F</code>.
 *This is an extension type method tear-off.*
@@ -508,7 +533,7 @@ includes an actual argument part (possibly including some actual type
 arguments) then call it `args`. Assume that `V` declares the type variables
 <code>X<sub>1</sub>, ..., X<sub>s</sub></code>.
 
-Let _Dm_ be the declaration named `m` thath `V` has.
+Let _Dm_ be the declaration named `m` that `V` has.
 
 Evaluation of this invocation proceeds by evaluating `e` to an object
 `o`.
@@ -607,7 +632,7 @@ and that its static type _is an extension type_.
 
 It is a compile-time error if `await e` occurs, and the static type of
 `e` is an extension type which is not a subtype of `Future<T>` or
-`FutureOr<T>` for any `T`..
+`FutureOr<T>` for any `T`.
 
 A compile-time error occurs if an extension type declares a member whose
 name is declared by `Object` as well.
@@ -651,7 +676,9 @@ If `e` is an expression whose static type `V` is the extension type
 and `V` has no member whose basename is the basename of `m`, a member
 access like `e.m(args)` may be an extension member access, following
 the normal rules about applicability and accessibility of extensions,
-in particular that `V` must match the on-type of the extension.
+in particular that `V` must match the on-type of the extension
+*(again, this is an `extension` declaration that we have today, not an
+`extension type` declaration)*.
 
 *In the body of an extension type declaration _DV_ with name `Name`
 and type parameters
@@ -870,7 +897,7 @@ relation which was specified earlier.
 A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superinterface in an extension type declaration _DV_, but
 `V1` does not denote an extension type, and `V1` does not denote a
-supertype of the representation type of _DV_.
+supertype of the ultimate representation type of _DV_.
 
 A compile-time error occurs if any direct or indirect superinterface
 of _DV_ is the type `Name` or a type of the form `Name<...>`. *As
@@ -982,15 +1009,6 @@ that type would then match `T2`, but not `T1`). In this case there is also
 no override relationship between `T1.foo` and `T2.foo`, they are just
 independent member signatures.*
 
-Assume that _DV_ is an extension type declaration, and that the extension
-types `V1` and `V2` are extension type superinterfaces of _DV_. Let `M1` be
-the members of `V1`, and `M2` the members of `V2`. A compile-time error
-occurs if there is a member name `m` such that `V1` as well as `V2` has a
-member named `m`, and they are distinct declarations, and _DV_ does not
-declare a member named `m`.  *In other words, a name clash among distinct
-"inherited" members is an error, but it can be eliminated by redeclaring
-the clashing name.*
-
 The effect of having an extension type declaration _DV_ with
 superinterfaces `V1, .. Vk` is that the members declared by _DV_ as
 well as all members of `V1, .. Vk` that are not redeclared by a
@@ -1017,6 +1035,13 @@ constructor body, `this` and `id` are bound to the value of `v`.  The
 value of the instance creation expression that gave rise to this
 constructor execution is the value of `this`.
 
+The dynamic semantics of an instance creation that references the
+`<representationDeclaration>` follows the semantics of primary
+constructors: Consider the representation declaration as a constant primary
+constructor, then consider the corresponding non-primary constructor _k_.
+The execution of the representation declaration as a constructor has the
+same semantics as an execution of _k_.
+
 At run time, for a given instance `o` typed as an extension type `V`, there
 is _no_ reification of `V` associated with `o`.
 
@@ -1025,13 +1050,18 @@ viewed as having an extension type. By soundness, the run-time type of `o`
 will be a subtype of the representation type of `V`.*
 
 The run-time representation of a type argument which is an extension type
-`V` is the corresponding instantiated representation type.
+`V` is the run-time representation of the corresponding instantiated
+representation type. 
 
-*This means that an extension type and the underlying representation type
-are considered as being the same type at run time. So we can freely use a
-cast to introduce or discard the extension type, as the static type of an
-instance, or as a type argument in the static type of a data structure or
-function involving the extension type.*
+*This wording ensures that we unfold the instantiated representation type
+recursively, until it is a non-extension type that does not contain any
+subterms which are extension types.*
+
+*Moreover, this means that an extension type and the underlying
+representation type are considered as being the same type at run time. So
+we can freely use a cast to introduce or discard the extension type, as the
+static type of an instance, or as a type argument in the static type of a
+data structure or function involving the extension type.*
 
 A type test, `o is U` or `o is! U`, and a type cast, `o as U`, where
 `U` is or contains an extension type, is performed at run time as a type
