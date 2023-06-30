@@ -863,7 +863,8 @@ supertypes.*
 
 A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superinterface in an extension type declaration _DV_, but
-`V1` does not denote an extension type.
+`V1` does not denote an extension type, and `V1` does not denote a
+supertype of the representation type of _DV_.
 
 A compile-time error occurs if any direct or indirect superinterface
 of _DV_ is the type `Name` or a type of the form `Name<...>`. *As
