@@ -413,9 +413,9 @@ Some errors can be detected immediately from the syntax:
 A compile-time error occurs if the extension type declaration declares any
 instance variables.
 
-The _name of the representation_ in an extension type declaration is the
-identifier `id` that occurs in the representation declaration, and the
-_type of the representation_ is the declared type of `id`.
+The _name of the representation_ in an extension type declaration with a
+representation declaration of the form `(T id)` is the identifier `id`, and
+the _type of the representation_ is `T`.
 
 *There are no special rules for static members in extension types. They can
 be declared and called or torn off as usual, e.g.,
