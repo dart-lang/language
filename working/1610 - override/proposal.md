@@ -2,7 +2,7 @@
 
 ## Background and motivation
 
-Dart currently has an [`@override`](https://api.dart.dev/stable/2.10.4/dart-core/override-constant.html) annotation declared in the `dart:core` library. It is used to mark that an instance method is intended to override a super-interface declaration. The analyzer warns if an annotated member declaration has no super-interface declaration with the same name. If the [annotate_overrides](https://dart-lang.github.io/linter/lints/annotate_overrides.html) lint is enabled, the analyzer also warns if a non-annotated member has a super-interface declaration with the same name.
+Dart currently has an [`@override`](https://api.dart.dev/stable/2.10.4/dart-core/override-constant.html) annotation declared in the `dart:core` library. It is used to mark that an instance method is intended to override a super-interface declaration. The analyzer warns if an annotated member declaration has no super-interface declaration with the same name. If the [annotate_overrides](https://dart.dev/lints/annotate_overrides) lint is enabled, the analyzer also warns if a non-annotated member has a super-interface declaration with the same name.
 
 The purpose of the annotation is to catch errors where a method name is mistyped or a super-interface member changes name. The lint is there to encourage users to use the annotation.
 
