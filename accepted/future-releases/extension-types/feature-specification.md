@@ -401,7 +401,8 @@ with some rules for elements used in extension type declarations:
     (<metadata> <extensionTypeMemberDeclaration>)*
   '}'
 
-<representationDeclaration> ::= ('.' <identifier>)? '(' <type> <identifier> ')'
+<representationDeclaration> ::=
+  ('.' <identifier>)? '(' <metadata> <type> <identifier> ')'
 
 <extensionTypeMemberDeclaration> ::= <classMemberDefinition>
 ```
