@@ -849,12 +849,11 @@ is used to invoke these constructors, and the type of such an expression is
 <code>Name&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>.
 
 *In short, extension type constructors appear to be very similar to
-constructors in classes, and they correspond to the situation
-where the enclosing class has a single, non-late, final instance
-variable, which is initialized according to the normal rules for
-constructors (in particular, it can occur by means of `this.id`, or in
-an initializer list, or by an initializing expression in the
-declaration itself, but it is an error if it does not occur at all).*
+constructors in classes, and they correspond to the situation where the
+enclosing class has a single, non-late, final instance variable, which is
+initialized according to the normal rules for constructors (in particular,
+it can occur by means of `this.id`, or in an initializer list, but it is an
+error if the initialization does not occur at all).*
 
 An extension type `V` used as an expression (*a type literal*) is allowed
 and has static type `Type`.
