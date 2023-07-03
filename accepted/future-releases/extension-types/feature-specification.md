@@ -813,13 +813,13 @@ An extension type declaration _DV_ named `Name` may declare one or
 more constructors. A constructor which is declared in an extension type
 declaration is also known as an _extension type constructor_.
 
-*The purpose of having an extension type constructor is that it bundles
-an approach for building an instance of the representation type of an
-extension type declaration _DV_ with _DV_ itself, which makes it easy to
-recognize that this is a way to obtain a value of that extension type. It
-can also be used to verify that an existing object (provided as an
-actual argument to the constructor) satisfies the requirements for
-having that extension type.*
+*The purpose of having an extension type constructor is that it bundles an
+approach for receiving or building an instance of the representation type
+of an extension type declaration _DV_ with _DV_ itself, and creating an
+expression whose static type is the extension type and whose value at run
+time is said representation object. Extension type constructor bodies can
+also be used to verify that the representation object satisfies the
+requirements for having that extension type.*
 
 The `<representationDeclaration>` works as a constructor. The optional
 `('.' <identifier>)` in the grammar is used to declare this constructor
