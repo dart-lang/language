@@ -1129,3 +1129,81 @@ extension type V(S it) {
   void foo() => V1(it).foo();
 }
 ```
+
+
+### Allow implementing a final extension type?
+
+Consider the following program:
+
+```dart
+final class F {} // A regular class. Could also use `int`.
+extension type V1(F f) implements F; // OK.
+
+final extension type V2(num n);
+extension type V3(int i) implements V2; // Error when `V2` is final.
+extension type V4(V2 v2) implements V2; // Error or not?
+```
+
+The declaration of `V1` introduces a subtype of the final class `F`, even
+though the purpose of `final` on a class is otherwise to prevent the
+declaration of such subtypes (at least outside the current library).
+
+This is accepted because an extension type does not introduce subsumption
+relative to the `final` class like a subclass would. If we allow a
+declaration like `class G implements F {...}` in some other library then we
+could have a reference of type `F` and it could be an instance of `G`, and
+this means that we do not have any guarantees about which implementation of
+any member we would execute. (So `G` destroys a lot of optimizations.) From
+a software engineering point of view, we don't want to allow `G` because a
+new instance member added to `F` could break `G`. (So `G` turns a lot of
+otherwise safe updates in `F` into breaking changes.)
+
+In contrast, the declaration of `V` does not turn addition of members of
+`F` into a breaking change, because `V` is allowed to redeclare any member
+with any signature. So callers of `V.someMember()` will still run the same
+code based on the same signature. It might be seen as a problem that `V`
+redeclares a member of `F`, but that can be changed in a major update of
+`V`.
+
+`V3` is an error because `V2` declares that it is `final`, which is taken
+to indicate that the maintainers of `V2` do not want to have a large number
+of dependent declarations "out there", such that they can't change anything
+at all about the implementation of `V2` because some of those dependent
+declarations will break. It's exactly the same kind of reasoning that we'd
+use for a `final` class: I do this in order to reserve some freedom to
+change my implementation.
+
+The discussion in this section is concerned with `V4`. Do we want to make
+that declaration a compile-time error?
+
+An argument in favor of making it an error would be that `V2` is declared
+to be `final`, and this implies that `implements V2` is an error. No
+exceptions.
+
+An argument in the opposite direction is that `V4` does not actually depend
+on the representation type of `V2` (because it uses `V2` as its
+representation type, not `num` or a subtype thereof), and this makes the
+relationship between `V4` and `V2` similar to the relationship between `V1`
+and `F`.
+
+In general, it is confusing that we accept `implements F`, but `implements
+V2` is an error, and in both cases the would-be superinterface has the
+modifier `final`. So developers would need to learn a rule along the lines
+of "an extension type ignores `final` on a regular class, but it respects
+`final` on an extension type, unless it is a supertype of a representation
+type".
+
+If we stick to the rules as proposed in this feature specification then
+we'll have something slightly simpler: "an extension type ignores `final`
+on a regular class, but it respects `final` on an extension type".
+
+However, I don't think we should go all the way to "`implements T` is
+always an error when `T` is `final`" (`T` could be an extension type or
+a non-extension type, that doesn't matter). The reason is that the ability
+to create an extension type whose representation type is a `final` type (in
+general: any type that can't have non-bottom subtypes) is crucial: The
+performance benefits (size and speed) of using an `int` rather than using a
+wrapper class is so huge that it is likely to be a major use case for
+extension types that they can allow us to use a built-in class as the
+representation, and still have a specialized interface&mdash;that is, an
+extension type.
