@@ -103,6 +103,23 @@ The primary limitation of this approach is that you will not be able to inspect
 the actual types of declarations where the type was omitted prior to phase 3,
 but this situation will also be made very explicit to macro authors.
 
+#### Conditional uri directives
+
+When introspecting on a program, which conditional uri directives are selected
+(even transitively) may affect what a macro sees. This means that macros may
+produce different code based on the conditions present in these directives and
+the compilation environment.
+
+It is necessary that it works this way (as opposed to choosing the default for
+instance), because we do not require anything other than the selected URI to be
+present during compilation. Even the default URI may be missing.
+
+In particular this complicates the debugging experience, as the analysis
+environment in the IDE would ideally match up with the compilation environment
+for an app during debugging, otherwise stack traces, breakpoints, etc may not
+match up. It is generally anticipated that these situations should be rare,
+because typically the APIs exposed from conditional directives are identical.
+
 ### Ordering in metaprogramming
 
 Macros can read the user's Dart program and modify it. They are also written in
