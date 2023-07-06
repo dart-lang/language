@@ -15,6 +15,9 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.07.06
+  - Removed the support for `final` extension types.
+
 2023.06.30
   - Change the feature name and keywords to `extension type`, adjust
     representation type and name declaration to be similar to a primary
@@ -395,7 +398,7 @@ with some rules for elements used in extension type declarations:
 
 ```ebnf
 <extensionTypeDeclaration> ::=
-  'final'? 'extension' 'type' <typeIdentifier> <typeParameters>?
+  'extension' 'type' <typeIdentifier> <typeParameters>?
   <representationDeclaration> <interfaces>?
   '{'
     (<metadata> <extensionTypeMemberDeclaration>)*
@@ -858,14 +861,10 @@ error if the initialization does not occur at all).*
 An extension type `V` used as an expression (*a type literal*) is allowed
 and has static type `Type`.
 
-An extension type declaration _DV_ can have the type modifier
-`final`. In this case it is a compile-time error for another extension type
-declaration _DV2_ to have _DV_ as a superinterface, if _DV2_ is declared in
-a different library.
-
-*As the grammar shows, any occurrence of the keywords `abstract`,
-`base`, `interface`, `sealed`, or `mixin` in an extension type
-declaration is a syntax error.*
+*Class modifiers can not be used with extension types. As the grammar
+shows, any occurrence of the keywords `abstract`, `final`, `base`,
+`interface`, `sealed`, or `mixin` in an extension type declaration header
+is a syntax error.*
 
 
 ### Composing Extension Types
@@ -1132,6 +1131,12 @@ extension type V(S it) {
 
 
 ### Allow implementing a final extension type?
+
+Note that this section is about the use of a `final` modifier on an
+extension type declaration (similar to a class modifier), but that
+mechanism has been removed entirely as of July 6 2023. This makes the
+current section rather hypothetical; we're just keeping it to document some
+discussions along the way.
 
 Consider the following program:
 
