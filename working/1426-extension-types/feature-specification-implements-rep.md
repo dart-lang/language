@@ -197,7 +197,7 @@ same type based on alpha equivalence (renaming of type variables).*
 
 A similar rule applies for the case where _DV_ has two superinterfaces,
 direct or indirect, which are function types or record types *(in which
-hase the types _must_ be non-inline types)*: They must also be the same
+case the types _must_ be non-inline types)*: They must also be the same
 type.
 
 Let _DV_ be an inline class declaration named `V` with representation type
@@ -208,11 +208,11 @@ else is an error.*
 Assume that `m` is a member which not declared by _DV_, and none of _DV_'s
 inline superinterfaces have a member named `m`, but one or more of the
 interfaces of `R1 .. Rk` has a member named `m`. A compile-time error
-occurs if there exist `j1` and `j2` in `1 .. k` and a member name `m` such
-that `m` does not have a combined member signature for `R1 .. Rk`.
-Otherwise the member signature of `m` is that combined member signature.
-In this situation we say that this is the member signature of `m` in
-`R1 .. Rk`.
+occurs if there exists a member name `m` such that at least two of `R1 .. Rk`
+have a member with that name, but `m` does not have a combined member
+signature for `R1 .. Rk`.  Otherwise the member signature of `m` is that
+combined member signature.  In this situation we say that this is the
+member signature of `m` in `R1 .. Rk`.
 
 Invocations of members declared by _DV_ or declared by an inline
 superinterface of _DV_ and not declared by any of `Rj`, `j` in `1..k` are
