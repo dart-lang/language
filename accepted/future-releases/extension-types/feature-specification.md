@@ -971,7 +971,7 @@ does not exist, and _DV_ does not declare a member named _m_.
 well-defined signature just like if _DV_ had been a class.*
 
 *Assume that _DV_ is an extension type declaration named `Name`, and the
-extension type `V1`, declared by _DV1_, is a superinterface of _DV_ (could
+type `V1`, declared by _DV1_, is a superinterface of _DV_ (`V1` could
 be an extension type or a non-extension type). Let `m` be the name of a
 member of `V1`. If _DV_ also declares a member named `m` then the latter
 may be considered similar to a declaration that "overrides" the former.
@@ -980,8 +980,9 @@ resolved statically, and hence there is no override relationship among the
 two in the traditional object-oriented sense (that is, it will never occur
 that the statically known declaration is the member of `V1`, and the member
 invoked at run time is the one in _DV_). A receiver with static type `V1`
-will invoke the declaration in _DV1_, and a receiver with static type
-`Name` (or `Name<...>`) will invoke the one in _DV_.*
+will invoke the declaration in _DV1_, and a receiver with a static type
+which is a reference to _DV_ (like `Name` or `Name<...>`) will invoke the
+one in _DV_.*
 
 Hence, we use a different word to describe the relationship between a
 member named _m_ of a superinterface, and a member named _m_ which is
