@@ -16,7 +16,7 @@ information about the process, including in their change logs.
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
 2023.07.06
-  - Removed the support for `final` extension types.
+  - Remove the support for `final` extension types.
 
 2023.06.30
   - Change the feature name and keywords to `extension type`, adjust
