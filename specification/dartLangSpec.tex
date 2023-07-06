@@ -25715,7 +25715,7 @@ as follows:
 \end{itemize}
 
 
-\subsection{Type Void}
+\subsection{Type \VOID}
 \LMLabel{typeVoid}
 
 \LMHash{}%
@@ -25745,22 +25745,10 @@ or to use it for any purpose.%
 \commentary{%
 The type \VOID{} is a top type
 (\ref{superBoundedTypes}),
-so \VOID{} and \code{Object} are subtypes of each other
+so \VOID{} and \code{Object?} are subtypes of each other
 (\ref{subtypes}),
 which also implies that any object can be
-the value of an expression of type \VOID.
-%
-Consequently, any instance of type \code{Type} which reifies the type \VOID{}
-must compare equal (according to the \lit{==} operator \ref{equality})
-to any instance of \code{Type} which reifies the type \code{Object}
-(\ref{dynamicTypeSystem}).
-It is not guaranteed that \code{identical(\VOID, Object)} evaluates to
-the \TRUE{} object.
-In fact, it is not recommended that implementations strive to achieve this,
-because it may be more important to ensure that diagnostic messages
-(including stack traces and dynamic error messages)
-preserve enough information to use the word `void' when referring to types
-which are specified as such in source code.%
+the value of an expression of type \VOID.%
 }
 
 \LMHash{}%
@@ -25898,7 +25886,7 @@ Here are some examples:%
 }
 
 \begin{dartCode}
-\FOR{} (Object x in <\VOID>[]) \{\} // \comment{Error.}
+\FOR{} (Object? x in <\VOID>[]) \{\} // \comment{Error.}
 \AWAIT{} \FOR{} (int x \IN{} new Stream<\VOID{}>.empty()) \{\} // \comment{Error.}
 \FOR{} (\VOID{} x \IN{} <\VOID{}>[]) \{\ldots\} // \comment{OK.}
 \FOR (\VAR{} x \IN{} <\VOID{}>[]) \{\ldots\} // \comment{OK, type of x inferred.}
