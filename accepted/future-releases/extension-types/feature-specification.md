@@ -113,10 +113,7 @@ declares the name and type of the representation in a way which is a
 special case of the [primary constructor proposal][].
 In the body of the extension type the representation object is in scope,
 with the declared name and type, as if it had been a final instance
-variable in a class. It differs from an instance variable declaration in
-that it is not available in the interface of the extension type (that is,
-we can use `id` inside the extension type declaration, but we can't use
-`e.id` from the outside).
+variable in a class.
 
 [primary constructor proposal]: https://github.com/dart-lang/language/pull/3023
 
