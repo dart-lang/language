@@ -103,7 +103,7 @@ The primary limitation of this approach is that you will not be able to inspect
 the actual types of declarations where the type was omitted prior to phase 3,
 but this situation will also be made very explicit to macro authors.
 
-#### Conditional uri directives
+#### Conditional URI directives
 
 When introspecting on a program, which conditional uri directives are selected
 (even transitively) may affect what a macro sees. This means that macros may
