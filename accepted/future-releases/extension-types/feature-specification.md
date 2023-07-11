@@ -15,6 +15,9 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.07.11
+  - !!!TODO!!!
+
 2023.07.06
   - Remove the support for `final` extension types.
 
@@ -59,7 +62,8 @@ subsetting as a special case.
 
 This functionality is entirely static. Invocation of an extension type
 member is resolved at compile-time, based on the static type of the
-receiver.
+receiver, and the actual type arguments (if any) are obtained directly from
+the static type of the receiver.
 
 An extension type may be considered to be a zero-cost abstraction in the
 sense that it works similarly to a wrapper object that holds the wrapped
@@ -74,7 +78,8 @@ object will never exist at run time, and a reference whose type is the
 extension type will actually refer directly to the underlying "wrapped"
 object. This fact also determines the behavior of `as` and `is`: Those
 operations will refer to the run-time type of the representation object,
-and the run-time value of the extension type is the representation type.
+and the extension type is just an alias for the representation type at run
+time.
 
 Consider a member access (e.g., a method call like `e.m(2)`)
 where the static type of the receiver (`e`) is an extension type `V`.
@@ -104,7 +109,7 @@ being induced implicitly (for example, `foo()` means `this.foo()` if the
 extension type contains a method declaration named `foo`, or it has a
 superinterface that has a `foo`, and no `foo` exists in the enclosing
 top-level scope). In other words, scopes and `this` have exactly the same
-interaction as in a regular class.
+interaction as in a class.
 
 A reference to the representation object typed by its run-time type or a
 supertype thereof (that is, typed by a "normal" type for the
@@ -113,7 +118,9 @@ declares the name and type of the representation in a way which is a
 special case of the [primary constructor proposal][].
 In the body of the extension type the representation object is in scope,
 with the declared name and type, as if it had been a final instance
-variable in a class.
+variable in a class. Similarly, if the representation name is `id` then the
+representation object can be accessed using `this.id` in the body or `e.id`
+anywhere, as long as the static type of `e` is that representation type.
 
 [primary constructor proposal]: https://github.com/dart-lang/language/pull/3023
 
@@ -169,9 +176,9 @@ extension type IdNumber(int i) {
   // so "smaller" means "older".
   operator <(IdNumber other) => i < other.i;
 
-  // Assume that we can verify an ID number relative to
+  // Assume that we can validate an ID number relative to
   // `Some parameters`, filtering out some fake ID numbers.
-  bool verify(Some parameters) => ...;
+  bool isValid(Some parameters) => ...;
 
   ... // Some other members, whatever is needed.
 
@@ -185,7 +192,7 @@ void main() {
 
   var safeId = IdNumber(42424242);
 
-  safeId.verify(); // OK, could be true.
+  if (!safeId.isValid(someArguments)) throw "Bad IdNumber!"; // OK.
   safeId + 10; // Compile-time error, no operator `+`.
   10 + safeId; // Compile-time error, wrong argument type.
   myUnsafeId = safeId; // Compile-time error, wrong type.
@@ -402,7 +409,9 @@ with some rules for elements used in extension type declarations:
   '}'
 
 <representationDeclaration> ::=
-  ('.' <identifier>)? '(' <metadata> <type> <identifier> ')'
+  ('.' <identifierOrNew>)? '(' <metadata> <type> <identifier> ')'
+
+<identifierOrNew> ::= <identifier> | 'new'
 
 <extensionTypeMemberDeclaration> ::= <classMemberDefinition>
 ```
@@ -431,7 +440,7 @@ This document needs to refer to extension type method invocations including
 each part that determines the static analysis and semantics of this
 invocation, so we will use a standardized phrase and talk about: An
 invocation of the extension type member `m` on the receiver `e` according
-to the extension type declaration `V` and with the actual type arguments
+to the extension type declaration `V` with the actual type arguments
 <code>T<sub>1</sub>, ..., T<sub>s</sub></code>.
 
 In the case where `m` is a method, the invocation could be an extension
@@ -466,47 +475,57 @@ _the member declaration named `n` that DV has_ is said declaration.
 
 *For a declaration in an extension type, this definition is unambiguous for
 an extension type that has no compile-time errors, because name clashes
-must be resolved by `V`. If the declaration is from a superinterface which
+must be resolved by _DV_. If the declaration is from a superinterface which
 is not an extension type then it is handled specially, and we do not need
 to have a unique declaration of `n` "that _DV_ has".*
 
-Consider an invocation of the extension type member `m` on the receiver `e`
-according to the extension type declaration `V` and with the actual type
-arguments <code>T<sub>1</sub>, ..., T<sub>s</sub></code>. If the invocation
-includes an actual argument part (possibly including some actual type
-arguments) then call it `args`. Finally, assume that `V` declares the type
-variables <code>X<sub>1</sub>, ..., X<sub>s</sub></code>.
+Consider an invocation of the extension type member `m` on the receiver
+expression `e` according to the extension type declaration `V` with the
+actual type arguments <code>T<sub>1</sub>, ..., T<sub>s</sub></code>. If
+the invocation includes an actual argument part (possibly including some
+actual type arguments) then call it `args`. Finally, assume that `V`
+declares the type variables <code>X<sub>1</sub>, ..., X<sub>s</sub></code>.
 
 *Note that it is known that
-<code>V&lt;T<sub>1</sub>, ..., T<sub>s</sub>&gt;</code>
+<code>V\<T<sub>1</sub>, ..., T<sub>s</sub>&gt;</code>
 has no compile-time errors. In particular, the number of actual type
 arguments is correct, and it is a regular-bounded type,
 and the static type of `e` is a subtype of
-<code>V&lt;T<sub>1</sub>, ..., T<sub>s</sub>&gt;</code>,
+<code>V\<T<sub>1</sub>, ..., T<sub>s</sub>&gt;</code>,
 or a subtype of the corresponding instantiated representation type
 (defined below). This is required when we decide that a given
-expression is an extension type member invocation.*
+expression is an extension type member invocation, but it is already
+ensured by normal static analysis of subexpressions like `e`.*
 
-If the name of `m` is a name in the interface of `Object` (*that is,
-`toString`, `==`, etc.*), the static analysis of the invocation is
-treated as an ordinary instance member invocation on a receiver of
-type `Object` and with the same `args`, if any.
+If the name of `m` is a name in the interface of `Object` (that is,
+`toString`, `==`, `hashCode`, `runtimeType`, or `noSuchMethod`), the static
+analysis of the invocation is treated as an ordinary instance member
+invocation on a receiver of type `Object?` and with the same `args`, if
+any.
 
 Otherwise, a compile-time error occurs if `V` does not have a member
 named `m`.
 
-If `V` has a member named `m` which is declared in a non-extension type
-superinterface `S` and not redeclared by any extension type superinterfaces
-that have `S` as a superinterface, the invocation of `m` is treated as an
-invocation of a regular class instance member whose member signature is the
-combined member signatures of all declarations of `m` in the direct
-superinterfaces of `V`. 
+Otherwise, `V` has a member named `m`. It is provided by a unique
+declaration which is an extension type member, or it is provided by a set
+of members of the interfaces of non-extension types, as described in the
+following.
+
+If `V` has a direct or indirect non-extension type superinterface `S` which
+has a member named `m` which is not declared by any direct or indirect
+extension type superinterface of `V`, the invocation of `m` is treated as
+an invocation of a regular class instance member whose member signature is
+the combined member signatures of all declarations of `m` in the direct
+superinterfaces of `V`.
 
 *In other words, members "inherited" from non-extension type
 superinterfaces are invoked as normal class instance members, as if we
 could "see through the veil" that is the extension type and call members of
 the representation type which have been unveiled by including `S` as a
-superinterface, directly or indirectly.*
+superinterface, directly or indirectly. Note that this behavior is only
+supported in the case where no direct or indirect extension type
+superinterface declares a member named `m`, otherwise a compile-time error
+occurs as specified below.*
 
 Otherwise, let _Dm_ be the declaration of `m` that `V` has.
 
@@ -519,6 +538,9 @@ invocation has static type
 <code>[T<sub>1</sub>/X<sub>1</sub> .. T<sub>s</sub>/X<sub>s</sub>]F</code>.
 *This is an extension type method tear-off.*
 
+An extension type method tear-off can be followed by actual type arguments,
+which yields a generic function instantiation.
+
 If _Dm_ is a method with function type `F`, and `args` exists, the static
 analysis of the extension type member invocation is the same as that of an
 invocation with argument part `args` of a function with type
@@ -529,12 +551,12 @@ type of the invocation as a whole.*
 
 ### Dynamic Semantics of an Extension Type Member Invocation
 
-Consider an invocation of the extension type member `m` on the receiver `e`
-according to the extension type declaration `V` and with actual type
-arguments <code>T<sub>1</sub>, ..., T<sub>s</sub></code>. If the invocation
-includes an actual argument part (possibly including some actual type
-arguments) then call it `args`. Assume that `V` declares the type variables
-<code>X<sub>1</sub>, ..., X<sub>s</sub></code>.
+Consider an invocation of the extension type member `m` on the receiver
+expression `e` according to the extension type declaration `V` with actual
+type arguments <code>T<sub>1</sub>, ..., T<sub>s</sub></code>. If the
+invocation includes an actual argument part (possibly including some actual
+type arguments) then call it `args`. Assume that `V` declares the type
+variables <code>X<sub>1</sub>, ..., X<sub>s</sub></code>.
 
 Let _Dm_ be the declaration named `m` that `V` has.
 
@@ -542,9 +564,9 @@ Evaluation of this invocation proceeds by evaluating `e` to an object
 `o`.
 
 Then, if `args` is omitted and _Dm_ is a getter, execute the body of
-said getter in an environment where `this` and the name of the
-representation are bound to `o`, and the type variables of `V` are
-bound to the actual values of
+said getter in an environment where `this` is bound to `o` and the
+representation name denotes a getter that returns `o`, and the type
+variables of `V` are bound to the actual values of
 <code>T<sub>1</sub>, .. T<sub>s</sub></code>.
 If the body completes returning an object `o2` then the invocation
 evaluates to `o2`. If the body throws an object and a stack trace
@@ -567,6 +589,10 @@ had different actual type arguments. Hence, we can not consider two
 extension type method tear-offs equal just because they have the same
 receiver.*
 
+The closurization is subject to generic function instantiation in the case
+where `args` is omitted, but the invocation is followed by actual type
+arguments.
+
 Otherwise, the following is known: `args` is included, and _Dm_ is a
 method. The invocation proceeds to evaluate `args` to an actual
 argument list `args1`. Then it executes the body of _Dm_ in an
@@ -583,6 +609,23 @@ trace.
 
 ## Static Analysis of Extension Types
 
+For the purpose of the static analysis, the extension type is considered to
+have a final instance variable whose name is the representation name and
+whose declared type is the representation type.
+
+Compile-time errors associated with constructors occur accordingly.
+
+*For example, any non-primary constructor must initialize said instance
+variable in their initializer list, or using an initializing formal
+parameter (`this.id`).*
+
+All name conflicts specified in the language specification section 'Class
+Member Conflicts' occur as well in an extension type declaration.
+
+*For example, it is a compile-time error if an extension type has name `V`
+and has an instance member named `V`, and it is a compile-time error if it
+has a type parameter named `X` and it has an instance member named `X`.*
+
 Assume that
 <code>T<sub>1</sub>, .. T<sub>s</sub></code>
 are types, and `V` resolves to an extension type declaration of the
@@ -595,7 +638,7 @@ extension type V<X1 extends B1, .. Xs extends Bs>(T id) ... {
 ```
 
 It is then allowed to use
-<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
+<code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
 as a type.
 
 *For example, it can occur as the declared type of a variable or parameter,
@@ -608,10 +651,10 @@ where one or more extension types occur as type arguments (e.g.,
 `List<V>.empty()`).*
 
 A compile-time error occurs if the type
-<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
+<code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
 is not regular-bounded.
 
-*In other words, such types can not be super-bounded. The reason for this
+*In other words, such types cannot be super-bounded. The reason for this
 restriction is that it is unsound to execute code in the body of `V` in
 the case where the values of the type variables do not satisfy their
 declared bounds, and those values will be obtained directly from the static
@@ -620,17 +663,20 @@ type of the receiver in each member invocation on `V`.*
 A compile-time error occurs if a type parameter of an extension type
 declaration occurs in a non-covariant position in the representation type.
 
-When `s` is zero,
-<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
+When `s` is zero *(that is, the declaration of `V` is not generic)*,
+<code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
 simply stands for `V`, a non-generic extension type.
 When `s` is greater than zero, a raw occurrence `V` is treated like a raw
 type: Instantiation to bound is used to obtain the omitted type arguments.
 *Note that this may yield a super-bounded type, which is then a
 compile-time error.*
 
-We say that the static type of said variable, parameter, etc.
+If such a type <code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
+is used as the type of a declared name 
+*(of a variable, parameter, etc)*,
+we say that the static type of the declared name
 _is the extension type_
-<code>V&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
+<code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and that its static type _is an extension type_.
 
 It is a compile-time error if `await e` occurs, and the static type of
@@ -638,7 +684,12 @@ It is a compile-time error if `await e` occurs, and the static type of
 `FutureOr<T>` for any `T`.
 
 A compile-time error occurs if an extension type declares a member whose
-name is declared by `Object` as well.
+basename is the basename of an instance member declared by `Object` as
+well.
+
+*Given that the static analysis considers the representation as a final
+instance variable, it follows that it is an error to use these names as the
+representation name as well.*
 
 *For example, an extension type declaration cannot declare an operator `==`
 or a member named `noSuchMethod` or `toString`. The rationale is that these
@@ -650,32 +701,33 @@ error for now, we have the option to allow it, perhaps with some
 restrictions, in a future version of Dart.*
 
 A compile-time error occurs if an extension type is used as a
-superinterface of a class or a mixin, or if an extension type is used to
-derive a mixin.
+superinterface of a class, mixin, or enum declaration, or if an extension
+type is used in a mixin application as a superclass or as a mixin.
 
 *In other words, an extension type cannot occur as a superinterface in an
-`extends`, `with`, `implements`, or `on` clause of a class or mixin.  On
-the other hand, it can occur in other ways, e.g., as a type argument of a
-superinterface of a class.*
+`extends`, `with`, `implements`, or `on` clause of a class, mixin, or enum.
+On the other hand, it can occur in other ways, e.g., as a type argument of
+a superinterface of a class.*
 
 If `e` is an expression whose static type `V` is the extension type
-<code>Name&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code> and `m` is the
+<code>Name\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code> and `m` is the
 name of a member that `V` has, a member access like `e.m(args)` is treated
 as an invocation of the extension type member `m` on the receiver `e`
-according to the extension type declaration `Name` and with the actual type
+according to the extension type declaration `Name` with the actual type
 arguments <code>T<sub>1</sub>, ..., T<sub>s</sub></code>, with the actual
 argument part `args`.
 
 Similarly, `e.m` is treated an invocation of the extension type member `m`
-on the receiver `e` according to the extension type declaration `Name` and
+on the receiver `e` according to the extension type declaration `Name`
 with the actual type arguments <code>T<sub>1</sub>, ...,
 T<sub>s</sub></code> and no actual argument part.
 
-*Setter invocations are treated as invocations of methods with a
-single argument.*
+*Setter invocations are treated as invocations of methods with a single
+argument. Similarly, operator invocations are treated as method invocations
+with unusual member names.*
 
 If `e` is an expression whose static type `V` is the extension type
-<code>Name&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
+<code>Name\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
 and `V` has no member whose basename is the basename of `m`, a member
 access like `e.m(args)` may be an extension member access, following
 the normal rules about applicability and accessibility of extensions,
@@ -689,7 +741,7 @@ and type parameters
 `m(args)`, if a declaration named `m` is found in the body of _DV_
 then that invocation is treated as an invocation of the extension type
 member `m` on the receiver `this` according to the extension type
-declaraten `Name` and with the actual type arguments
+declaraten `Name` with the actual type arguments
 <code>T<sub>1</sub>, ..., T<sub>s</sub></code>, and with the actual
 argument part `args`.  This is just the same treatment of `this` as in the
 body of a class.*
@@ -735,7 +787,7 @@ Assume that the representation declaration of _DV_ is `(R id)`.
 
 We then say that the _declared representation type_ of `Name`
 is `R`, and the _instantiated representation type_ corresponding to
-<code>Name&lt;T<sub>1</sub>,.. T<sub>s</sub>&gt;</code> is
+<code>Name\<T<sub>1</sub>,.. T<sub>s</sub>&gt;</code> is
 <code>[T<sub>1</sub>/X<sub>1</sub>, .. T<sub>s</sub>/X<sub>s</sub>]R</code>.
 
 We will omit 'declared' and 'instantiated' from the phrase when it is clear
@@ -745,7 +797,7 @@ instantiation of an extension type. *For non-generic extension type
 declarations, the representation type is the same in either case.*
 
 Let `V` be an extension type of the form
-<code>Name&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>, and let
+<code>Name\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>, and let
 `R` be the corresponding instantiated representation type.  If `R` is
 non-nullable then `V` is a proper subtype of `Object`, and `V` is
 non-nullable.  Otherwise, `V` is a proper subtype of `Object?`, and
@@ -766,7 +818,7 @@ In the body of a member of an extension type declaration _DV_ named
 `Name` and declaring the type parameters
 <code>X<sub>1</sub>, .. X<sub>s</sub></code>,
 the static type of `this` is
-<code>Name&lt;X<sub>1</sub> .. X<sub>s</sub>&gt;</code>.
+<code>Name\<X<sub>1</sub> .. X<sub>s</sub>&gt;</code>.
 The static type of the representation name is the representation
 type.
 
@@ -785,7 +837,7 @@ representation dependency on itself.
 
 *In other words, cycles are not allowed. This ensures that it is
 always possible to find a non-extension type which is the ultimate
-representation type of any given extension type.*
+representation type of the given extension type.*
 
 The *extension type erasure* of an extension type `V` is obtained by
 recursively replacing every subterm of `V` which is an extension type by
@@ -822,12 +874,13 @@ also be used to verify that the representation object satisfies the
 requirements for having that extension type.*
 
 The `<representationDeclaration>` works as a constructor. The optional
-`('.' <identifier>)` in the grammar is used to declare this constructor
-with a name of the form `<identifier> '.' <identifier>` *(at times
-described as a "named constructor")*. It is a constant constructor: If `e`
-is a constant expression and `V(e)` is not an error, then `V(e)` is a
-constant expression. Other constructors may be declared `const` or not,
-following the normal rules for constant constructors.
+`('.' <identifierOrNew>)` in the grammar is used to declare this
+constructor with a name of the form `<identifier> '.' <identifier>` *(at
+times described as a "named constructor")*, or `<identifier> '.' 'new'`. It
+is a constant constructor: If `e` is a constant expression and `V(e)` is
+not an error, then `V(e)` is a constant expression. Other constructors may
+be declared `const` or not, following the normal rules for constant
+constructors.
 
 A compile-time error occurs if an extension type constructor includes a
 superinitializer. *That is, a term of the form `super(...)` or
@@ -836,17 +889,17 @@ superinitializer. *That is, a term of the form `super(...)` or
 A compile-time error occurs if an extension type constructor declares a
 super parameter. *For instance, `Name(super.x);`.*
 
-*In the body of a generative extension type constructor, the static type of
-`this` is the same as it is in any instance member of the extension type
-declaration, that is, `Name<X1 .. Xk>`, where `X1 .. Xk` are the type
-parameters declared by `Name`.*
+*In the body of a non-redirecting generative extension type constructor,
+the static type of `this` is the same as it is in any instance member of
+the extension type declaration, that is, `Name<X1 .. Xk>`, where `X1 .. Xk`
+are the type parameters declared by `Name`.*
 
 An instance creation expression of the form
-<code>Name&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;(...)</code>
+<code>Name\<T<sub>1</sub>, .. T<sub>s</sub>&gt;(...)</code>
 or
-<code>Name&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;.name(...)</code>
+<code>Name\<T<sub>1</sub>, .. T<sub>s</sub>&gt;.name(...)</code>
 is used to invoke these constructors, and the type of such an expression is
-<code>Name&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>.
+<code>Name\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>.
 
 *In short, extension type constructors appear to be very similar to
 constructors in classes, and they correspond to the situation where the
@@ -896,16 +949,17 @@ relation which was specified earlier.
 A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superinterface in an extension type declaration _DV_, but
 `V1` does not denote an extension type, and `V1` does not denote a
-supertype of the ultimate representation type of _DV_.
+supertype of the extension type erasure of the representation type of
+_DV_.
 
 A compile-time error occurs if any direct or indirect superinterface
 of _DV_ is the type `Name` or a type of the form `Name<...>`. *As
 usual, subtype cycles are not allowed.*
 
 Assume that _DV_ has two direct or indirect superinterfaces of the form
-<code>W&lt;T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
+<code>W\<T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
 respectively
-<code>W&lt;S<sub>1</sub>, .. S<sub>k</sub>&gt;</code>.
+<code>W\<S<sub>1</sub>, .. S<sub>k</sub>&gt;</code>.
 A compile-time error
 occurs if
 <code>T<sub>j</sub></code>
@@ -928,7 +982,7 @@ name of _DV_ and `id1` is the representation name of _DV1_.*
 Assume that _DV_ declares an extension type declaration named `Name` with
 type parameters <code>X<sub>1</sub> .. X<sub>s</sub></code>,
 and `V1` is a superinterface of _DV_. Then
-<code>Name&lt;T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
+<code>Name\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
 is a subtype of
 <code>[T<sub>1</sub>/X<sub>1</sub> .. T<sub>s</sub>/X<sub>s</sub>]V1</code>
 for all <code>T<sub>1</sub>, .. T<sub>s</sub></code>.
@@ -1069,8 +1123,8 @@ test and type cast on the run-time representation of the extension type
 as described above.
 
 An extension type `V` used as an expression (*a type literal*) evaluates
-to the value of the corresponding instantiated representation type
-used as an expression.
+to the value of the extension type erasure of the representation type
+used as an expression *(also known as the ultimate representation type)*.
 
 
 ### Summary of Typing Relationships
@@ -1097,6 +1151,27 @@ used as an expression.
 
 This section mentions a few topics that have given rise to
 discussions.
+
+
+### Is the primary constructor constant?
+
+This proposal specifies that the primary constructor is always
+constant. The point is that this is possible, because a primary constructor
+and the unique `final` pretend instance variable will always satisfy the
+requirements.
+
+We may then allow `const` to be specified explicitly on the primary
+constructor later on, in case the developer wishes to make that explicit.
+
+We could also require `const` in the future and simply say that the primary
+constructor of an extension type cannot be constant at this time.
+
+Finally, we could require `const` explicitly on the primary constructor
+already now, if it should be a constant constructor.
+
+In any case, every non-primary constructor in an extension type would
+potentially have properties that would make `const` an error, so they must
+specify `const` explicitly as usual.
 
 
 ### Support "private inheritance"?
