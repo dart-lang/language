@@ -753,9 +753,9 @@ restrictions, in a future version of Dart.*
 
 A compile-time error occurs if an extension type has a non-extension
 superinterface whose transitive alias expansion is a type variable, a
-deferred type, any top type *(including `dynamic` and `void`), the type
+deferred type, any top type *(including `dynamic` and `void`)*, the type
 `Null`, any function type, any record type, or any type of the form `T?` or
-`FutureOr<T>`.
+`FutureOr<T>` for any type `T`.
 
 *Note that it is not an error to have `implements int` and similar platform
 types, and it is not an error to have `implements T` where `T` is a type
