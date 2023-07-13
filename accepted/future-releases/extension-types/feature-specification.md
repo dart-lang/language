@@ -15,8 +15,9 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
-2023.07.11
-  - !!!TODO!!!
+2023.07.13
+  - Revise many details, in particular the management of ambiguities
+    involving extension type members and non-extension type members.
 
 2023.07.06
   - Remove the support for `final` extension types.
