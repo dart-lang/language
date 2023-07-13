@@ -2274,7 +2274,8 @@ Every non-getter function declaration includes a
 \Index{formal parameter list},
 which consists of a list of required positional parameters
 (\ref{requiredFormals}),
-followed by any optional and/or named parameters (\ref{optionalFormals}).
+followed by any optional and/or named parameters
+(\ref{optionalFormalsAndNamedFormals}).
 The latter may be specified
 either as a list of optional positional parameters,
 or as a set of named parameters,
@@ -2478,8 +2479,14 @@ a parameter of a function which is not
 an instance method, instance setter, or instance operator.
 
 
-\subsubsection{Optional and Named Formals}
-\LMLabel{optionalFormals}
+\subsubsection{Optional Formals and Named Formals}
+\LMLabel{optionalFormalsAndNamedFormals}
+
+\LMHash{}%
+This section is concerned with optional parameters,
+positional or named,
+and with required named parameters.
+They are handled together because they share grammar rules.
 
 \LMHash{}%
 Optional formal parameters may be specified and provided with default values.
@@ -2491,7 +2498,7 @@ but if the modifier \REQUIRED{} is present then it is required.
 
 <defaultNamedParameter> ::= \gnewline{}
   <metadata> \REQUIRED? <normalFormalParameterNoMetadata>
-  \gnewline{} (`:' <expression>)?
+  \gnewline{} (`=' <expression>)?
 \end{grammar}
 
 \LMHash{}%
@@ -2509,7 +2516,7 @@ It is a
 \Error{compile-time error} if a required named parameter has a default value.
 
 \LMHash{}%
-Assume that $p$ is an optional named parameter with default value $d$.
+Assume that $p$ is an optional parameter with default value $d$.
 It is a \Error{compile-time error}
 if the static type of $d$ is not assignable to the declared type of $p$.
 
