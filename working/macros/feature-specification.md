@@ -899,7 +899,7 @@ macro applications. These macro applications must be from either the current
 phase or a later phase, but cannot be from previous phases.
 
 It is an error for a macro application to be added which would have applied to
-it's declaration in an earlier phase.
+its declaration in an earlier phase.
 
 If a macro application is added which runs in the same phase as the current
 one, then it is immediately expanded after execution of the current macro,
