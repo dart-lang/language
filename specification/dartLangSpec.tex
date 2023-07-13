@@ -2491,16 +2491,8 @@ but if the modifier \REQUIRED{} is present then it is required.
 
 <defaultNamedParameter> ::= \gnewline{}
   <metadata> \REQUIRED? <normalFormalParameterNoMetadata>
-  \gnewline{} ((`=' | `:') <expression>)?
+  \gnewline{} (`:' <expression>)?
 \end{grammar}
-
-\LMHash{}%
-The form \syntax{<normalFormalParameter> `:' <expression>}
-is equivalent to the form
-\syntax{<normalFormalParameter> `=' <expression>}.
-The colon-syntax is included only for backwards compatibility.
-It is deprecated and will be removed in
-a later version of the language specification.
 
 \LMHash{}%
 It is a \Error{compile-time error} if an optional or named formal parameter has
@@ -2515,6 +2507,11 @@ Otherwise, when the declared type is potentially non-nullable, it is a
 \Error{compile-time error} if an optional parameter has no default value.
 It is a
 \Error{compile-time error} if a required named parameter has a default value.
+
+\LMHash{}%
+Assume that $p$ is an optional named parameter with default value $d$.
+It is a \Error{compile-time error}
+if the static type of $d$ is not assignable to the declared type of $p$.
 
 \LMHash{}%
 It is a \Error{compile-time error} if the name of a named optional parameter
