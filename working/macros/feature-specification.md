@@ -897,17 +897,18 @@ implement their own declarations (#1908).
 
 #### Adding macro applications to new declarations
 
-When creating [Code][] instances, a macro may generate code which includes
+When creating [DeclarationCode][] instances, a macro may generate code which includes
 macro applications. These macro applications must be from either the current
 phase or a later phase, but cannot be from previous phases.
 
-If a macro application is added which implements an earlier phase, that phase
-is not ran. This should result in a warning if the macro does not also
-implement some phase that will be ran.
+It is an error for a macro application to be added which would have applied to
+its declaration in an earlier phase.
 
 If a macro application is added which runs in the same phase as the current
 one, then it is immediately expanded after execution of the current macro,
 following the normal ordering rules.
+
+[DeclarationCode]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/code.dart#L37
 
 #### Ordering violations
 
