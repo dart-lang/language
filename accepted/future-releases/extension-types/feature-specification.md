@@ -447,10 +447,10 @@ In the case where `m` is a method, the invocation could be an extension
 type member property extraction (*a getter invocation or a tear-off*) or a
 method invocation, and in the latter case there will also be an
 `<argumentPart>`, optionally passing some actual type arguments, and
-(non-optionally) passing an actual argument list. Finally, a property
-extraction may be a property extraction followed by a term derived from
-`<typeArguments>`, in which case it denotes a generic function
-instantiation of the function object yielded by the property extraction.
+(non-optionally) passing an actual argument list. Finally, it may be a
+property extraction followed by a term derived from `<typeArguments>`, in
+which case it denotes a generic function instantiation of the function
+object yielded by the property extraction.
 
 *These constructs are standard, but they have different semantics when `m`
 is an extension type member, so we need to state their static analysis and
@@ -479,6 +479,12 @@ not explicitly include all elements needed to give this specification. The
 subsequent sections will specify all the elements ("an invocation of the
 extension type member `m` ...") based on specific syntax, and then rely an
 this section to specify the static analysis of the given situation.
+
+*Note that some compile-time errors may seem relevant in this section, but
+they are actually specified in the section about the static analysis of
+extension types. This is because said errors are errors in an extension
+type declaration, but this section is concerned with invocations of
+extension type members.*
 
 We need to introduce a concept that is similar to existing concepts
 for regular classes.
@@ -509,6 +515,9 @@ all non-extension type members named `n` that _DV_ has, again using a
 repeated computation of the instantiated type of each superinterface on the
 path to the given non-extension type superinterface.
 
+*In this section it is assumed that _DV_ does not have any compile-time
+errors, which ensures that this combined member signature exists.*
+
 Now we are ready to specify the invocation itself.
 
 Consider an invocation of the extension type member `m` on the receiver
@@ -534,8 +543,8 @@ ensured by normal static analysis of subexpressions like `e`.*
 If the name of `m` is a name in the interface of `Object` (that is,
 `toString`, `==`, `hashCode`, `runtimeType`, or `noSuchMethod`), the static
 analysis of the invocation is treated as an ordinary instance member
-invocation on a receiver of type `Object?` and with the same `args`, if
-any.
+invocation on a receiver of type `Object?` and with the same `args` or
+`typeArgs`, if any.
 
 Otherwise, a compile-time error occurs if `V` does not have a member
 named `m`.
@@ -603,8 +612,11 @@ member signature.
 *For instance, a dynamic type check according to this member signature may
 be applied to an actual argument whose static type is `dynamic`.*
 
-Otherwise, `m` is an extension type member. Let _Dm_ be the declaration
-named `m` that `V` has.
+Otherwise, `m` is an extension type member. Let _Dm_ be the unique
+declaration named `m` that `V` has.
+
+*The declaration is known to be unique because the program would otherwise
+have a compile-time error.*
 
 Evaluation of this invocation proceeds by evaluating `e` to an object
 `o`.
@@ -632,11 +644,11 @@ from `Object`, there are no special exceptions. Note that we can tear off
 the same method from the same extension type with the same representation
 object twice, and still get different behavior, because the extension type
 had different actual type arguments. Hence, we can not consider two
-extension type method tear-offs equal just because they have the same
-receiver. Optimizations whereby separately torn-off methods are represented
-by the same object are allowed, as long as they behave as specified, so
-there is no guarantee that two torn-off methods are unequal, unless they
-must behave differently.*
+extension type method tear-offs of the same method equal just because they
+have the same receiver. Optimizations whereby separately torn-off methods
+are represented by the same object are allowed, as long as they behave as
+specified. So there is no guarantee that two torn-off methods are unequal,
+unless they must behave differently.*
 
 The closurization is subject to generic function instantiation in the case
 where `args` is omitted and `typeArgs` provided, using the same semantics
@@ -819,7 +831,7 @@ with the actual type arguments <code>T<sub>1</sub>, ...,
 T<sub>s</sub></code> and no actual argument part.
 
 Similarly, `e.m<typeArgs>` is treated the same, but omits
-`args`, includes `<typeArgs>`.
+`args`, and includes `<typeArgs>`.
 
 *Setter invocations are treated as invocations of methods with a single
 argument. Similarly, operator invocations are treated as method invocations
@@ -902,16 +914,17 @@ non-nullable then `V` is a proper subtype of `Object`, and `V` is
 non-nullable.  Otherwise, `V` is a proper subtype of `Object?`, and
 `V` is potentially nullable.
 
-*That is, an expression of an extension type can be assigned to a top
-type (like all other expressions), and if the representation type is
-non-nullable then it can also be assigned to `Object`. Non-extension
-types (except bottom types) cannot be assigned to extension types without
-a cast. Similarly, null cannot be assigned to an extension type without a
-cast, even in the case where the representation type is nullable (even
-better: don't use a cast, call a constructor instead). Another consequence of
-the fact that the extension type is potentially non-nullable is that it
-is an error to have an instance variable whose type is an extension type,
-and then relying on implicit initialization to null.*
+*That is, an expression of an extension type can be assigned to a top type
+(like all other expressions), and if the representation type is
+non-nullable then it can also be assigned to `Object`. Non-extension types
+(except bottom types and `dynamic`) cannot be assigned to extension types
+without an explicit cast. Similarly, null cannot be assigned to an
+extension type without an explicit cast, even in the case where the
+representation type is nullable (even better: don't use a cast, call a
+constructor instead). Another consequence of the fact that the extension
+type is potentially non-nullable is that it is an error to have an instance
+variable whose type is an extension type, and then relying on implicit
+initialization to null.*
 
 In the body of a member of an extension type declaration _DV_ named
 `Name` and declaring the type parameters
@@ -949,7 +962,7 @@ declarations.*
 Let
 <code>X<sub>1</sub> extends B<sub>1</sub>, .. X<sub>s</sub> extends B<sub>s</sub></code>
 be a declaration of the type parameters of a generic entity (*it could
-be a generic class, extension type, or mixin, or typedef, or function*).
+be a generic class, extension type, mixin, typedef, or function*).
 Let <code>BB<sub>j</sub></code> be the extension type erasure of
 <code>B<sub>j</sub></code>, for _j_ in _1 .. s_.
 It is a compile-time error if
@@ -957,11 +970,12 @@ It is a compile-time error if
 has any compile-time errors.
 
 *For example, the extension type erasure could map
-<code>X extends C<Y>, Y extends X</code> to
+<code>X extends C\<Y>, Y extends X</code> to
 <code>X extends Y, Y extends X</code>,
 which is an error.*
 
-#### Extension type constructors and their static analysis
+
+#### Extension Type Constructors and Their Static Analysis
 
 An extension type declaration _DV_ named `Name` may declare one or
 more constructors. A constructor which is declared in an extension type
@@ -1020,7 +1034,7 @@ shows, any occurrence of the keywords `abstract`, `final`, `base`,
 is a syntax error.*
 
 
-### Composing Extension Types
+### Declaring Superinterfaces of an Extension Type
 
 This section describes the effect of including a clause derived from
 `<interfaces>` in an extension type declaration. We use the phrase
@@ -1118,19 +1132,6 @@ for all <code>T<sub>1</sub>, .. T<sub>s</sub></code>.
 of `V`. This is true for extension type superinterfaces as well as
 non-extension type superinterfaces.*
 
-A compile-time error occurs if an extension type declaration _DV_ has two
-extension type superinterfaces `V1` and `V2`, where both `V1` and `V2` have
-an extension type member named _m_, and the two declarations of _m_ are
-distinct declarations, and _DV_ does not declare a member named _m_.
-
-*In other words, if two different declarations of _m_ are inherited from
-two extension type superinterfaces then the subinterface must resolve the
-conflict. The so-called diamond inheritance pattern can create the case
-where two superinterfaces have an _m_, but they are both declared by the
-same declaration (so `V` is a subinterface of `V1` and `V2`, and both `V1`
-and `V2` are subinterfaces of `V3`, and only `V3` declares _m_, in which
-case there is no conflict in `V`).*
-
 *Assume that _DV_ is an extension type declaration named `Name`, and the
 type `V1`, declared by _DV1_, is a superinterface of _DV_ (`V1` could
 be an extension type or a non-extension type). Let `m` be the name of a
@@ -1172,11 +1173,10 @@ type would then match `T2`, but not `T1`). In this case there is also no
 override relationship between `T1.foo` and `T2.foo`, they are just
 independent member signatures.*
 
-*The effect of having an extension type declaration _DV_ with
-superinterfaces `V1, .. Vk` is that the members declared by _DV_ as
-well as all members of `V1, .. Vk` that are not redeclared by a
-declaration in _DV_ can be invoked on a receiver of the type
-introduced by _DV_.*
+*In summary, the effect of having an extension type declaration _DV_ with
+superinterfaces `V1, .. Vk` is that the members declared by _DV_ as well as
+all members of `V1, .. Vk` that are not redeclared by a declaration in _DV_
+can be invoked on a receiver of the type introduced by _DV_.*
 
 
 ## Dynamic Semantics of Extension Types
@@ -1230,6 +1230,12 @@ A type test, `o is U` or `o is! U`, and a type cast, `o as U`, where
 `U` is or contains an extension type, is performed at run time as a type
 test and type cast on the run-time representation of the extension type
 as described above.
+
+*These type casts and type tests where the target type is an extension type
+may be considered to "bypass" the constructors of the extension type. This
+proposal makes no attempt to prevent this. However, support for detecting
+and thus avoiding that this occurs may be provided via lints or similar
+mechanisms.*
 
 An extension type `V` used as an expression (*a type literal*) evaluates
 to the value of the extension type erasure of the representation type
