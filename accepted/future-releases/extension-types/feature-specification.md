@@ -1268,7 +1268,7 @@ This section mentions a few topics that have given rise to
 discussions.
 
 
-### Is the primary constructor constant?
+### Is the Primary Constructor Constant?
 
 This proposal specifies that the primary constructor is always
 constant. The point is that this is possible, because a primary constructor
@@ -1318,7 +1318,7 @@ extension type V(S it) {
 ```
 
 
-### Allow implementing a final extension type?
+### Allow Implementing a `final` Extension Type?
 
 Note that this section is about the use of a `final` modifier on an
 extension type declaration (similar to a class modifier), but that
