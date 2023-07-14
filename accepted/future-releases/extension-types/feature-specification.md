@@ -46,9 +46,8 @@ declaration. An extension type provides a replacement of the members
 available on instances of an existing type: when the static type of the
 instance is an extension type _V_, the available instance members are
 exactly the ones provided by _V_. There may also be some accessible and
-applicable extension members (noting that this is from the existing
-feature expressed as an `extension` declaration, it is not an `extension
-type` declaration).
+applicable extension members (that is, from the existing feature expressed
+as an `extension` declaration, not an `extension type` declaration).
 
 In contrast, when the static type of an instance is not an extension type,
 it is (by soundness) always the run-time type of the instance or a
@@ -78,9 +77,9 @@ However, even though an extension type behaves like a wrapping, the wrapper
 object will never exist at run time, and a reference whose type is the
 extension type will actually refer directly to the underlying "wrapped"
 object. This fact also determines the behavior of `as` and `is`: Those
-operations will refer to the run-time type of the representation object,
-and the extension type is just an alias for the representation type at run
-time.
+operations will refer to the run-time type of the "wrapped" object,
+and the extension type is just an alias for the declared type of the
+"wrapped" object at run time.
 
 Consider a member access (e.g., a method call like `e.m(2)`)
 where the static type of the receiver (`e`) is an extension type `V`.
@@ -121,7 +120,7 @@ In the body of the extension type the representation object is in scope,
 with the declared name and type, as if it had been a final instance
 variable in a class. Similarly, if the representation name is `id` then the
 representation object can be accessed using `this.id` in the body or `e.id`
-anywhere, as long as the static type of `e` is that representation type.
+anywhere, as long as the static type of `e` is that extension type.
 
 [primary constructor proposal]: https://github.com/dart-lang/language/pull/3023
 
@@ -139,12 +138,12 @@ representation type `R`, we can refer to an object `theRList` of type
 element in the list", but it only takes time _O(1)_ and no space, no
 matter how many elements the list contains.
 
-It is also possible to declare a non-extension type as a superinterface in
-an extension type declaration, if certain conditions are satisfied. This
-can be viewed as a partial unveiling of the representation object, in the
-sense that it enables some members of the representation type to be invoked
-on the extension type, and it makes the extension type a subtype of that
-non-extension type.
+Finally, it is also possible to declare a non-extension type as a
+superinterface in an extension type declaration, if certain conditions are
+satisfied. This can be viewed as a partial unveiling of the representation
+object, in the sense that it enables some members of the representation
+type to be invoked on the extension type, and it makes the extension type a
+subtype of that non-extension type.
 
 
 ## Motivation
@@ -211,12 +210,12 @@ We can actually cast away the extension type and hence get access to the
 interface of the representation, but we assume that the developer wishes to
 maintain this extra discipline, and won't cast away the extension type
 unless there is a good reason to do so. Similarly, we can access the
-representation using the representation name as a getter inside the body of
-the extension type declaration.
+representation using the representation name as a getter, inside or outside
+the body of the extension type declaration.
 
-The extra discipline is enforced because the extension type member
-implementations will only treat the representation object in ways that
-conform to this particular discipline (and thereby defines what this
+The extra discipline is enforced in the sense that the extension type
+member implementations will only treat the representation object in ways
+that conform to this particular discipline (and thereby defines what this
 discipline is). For example, if the discipline includes the rule that you
 should never call a method `foo` on the representation, then the author of
 the extension type will simply need to make sure that none of the extension
@@ -316,14 +315,14 @@ the extension type (in this case that means: the members declared in the
 body of `TinyJson`). So it is an error to call `add` on `tiny`, and that
 protects us from this kind of schema violations.
 
-In general, the use of an extension type allows us to keep some unsafe
-operations in a specific location (namely inside the extension type
-declaration, or inside one of a set of collaborating extension type
-declarations). We can then reason carefully about each operation once and
-for all. Clients use the extension type to access objects conforming to the
-given schema, and that gives them access to a set of known-safe operations,
-making all other operations in the interface of the representation type a
-compile-time error.
+In general, the use of an extension type allows us to keep invocations of
+certain unsafe operations in a specific location (namely inside the
+extension type declaration, or inside one of a set of collaborating
+extension type declarations). We can then reason carefully about each
+operation once and for all. Clients use the extension type to access
+objects conforming to the given schema, and that gives them access to a set
+of known-safe operations, making all other operations in the interface of
+the representation type a compile-time error.
 
 One possible perspective is that an extension type corresponds to an
 abstract data type: There is an underlying representation, but we wish to
@@ -701,6 +700,18 @@ as the body of a type alias. It is also allowed to create a new instance
 where one or more extension types occur as type arguments (e.g.,
 `List<V>.empty()`).*
 
+An extension type `V` may be used in an object pattern
+*(e.g., `case V(): ...` where `V` is an extension type)*.
+Exhaustiveness analysis will treat such patterns as if they had been an
+object pattern matching the extension type erasure of `V`.
+
+*In other words, we make no attempt to hide the representation type during
+the exhaustiveness analysis. The usage of such patterns is very similar to
+a cast into the extension type in the sense that it provides a reference of
+type `V` to an object without running any constructors of `V`. We will rely
+on lints in order to inform developers about such situations, similarly to
+the treatment of expressions like `e as V`.*
+
 A compile-time error occurs if the type
 <code>V\<T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
 provides a wrong number of type arguments to `V` (when `k` is different
@@ -793,9 +804,7 @@ in the case where they agree perfectly on the types. _DV_ must override the
 given name to eliminate the error. Note that it is not an error if both
 `V1` and `V2` have the member named `m` because they both get it from a
 common extension type superinterface, such that it is the same
-declaration.*
-
-
+declaration (which is also known as "diamond" inheritance).*
 
 If `e` is an expression whose static type `V` is the extension type
 <code>Name\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code> and `m` is the
