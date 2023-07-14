@@ -700,10 +700,10 @@ as the body of a type alias. It is also allowed to create a new instance
 where one or more extension types occur as type arguments (e.g.,
 `List<V>.empty()`).*
 
-An extension type `V` may be used in an object pattern
-*(e.g., `case V(): ...` where `V` is an extension type)*.
-Exhaustiveness analysis will treat such patterns as if they had been an
-object pattern matching the extension type erasure of `V`.
+An extension type `V` (which may include actual type arguments) can be used
+in an object pattern *(e.g., `case V(): ...` where `V` is an extension
+type)*.  Exhaustiveness analysis will treat such patterns as if they had
+been an object pattern matching the extension type erasure of `V`.
 
 *In other words, we make no attempt to hide the representation type during
 the exhaustiveness analysis. The usage of such patterns is very similar to
