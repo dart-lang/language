@@ -688,8 +688,17 @@ extension type V<X1 extends B1, .. Xs extends Bs>(T id) ... {
 ```
 
 It is then allowed to use
+<code>V\<T<sub>1</sub>, .. T<sub>k</sub>&gt;</code> as a type.
+A compile-time error occurs if the type
 <code>V\<T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
-as a type.
+provides a wrong number of type arguments to `V` (when `k` is different
+from `s`), and if it is not regular-bounded.
+
+*In other words, such types cannot be super-bounded. The reason for this
+restriction is that it is unsound to execute code in the body of `V` in
+the case where the values of the type variables do not satisfy their
+declared bounds, and those values will be obtained directly from the static
+type of the receiver in each member invocation on `V`.*
 
 *Such types can occur as the declared type of a variable or parameter,
 as the return type of a function or getter, as a type argument in a type,
@@ -703,7 +712,8 @@ where one or more extension types occur as type arguments (e.g.,
 An extension type `V` (which may include actual type arguments) can be used
 in an object pattern *(e.g., `case V(): ...` where `V` is an extension
 type)*.  Exhaustiveness analysis will treat such patterns as if they had
-been an object pattern matching the extension type erasure of `V`.
+been an object pattern matching the extension type erasure of `V` (defined
+below).
 
 *In other words, we make no attempt to hide the representation type during
 the exhaustiveness analysis. The usage of such patterns is very similar to
@@ -711,17 +721,6 @@ a cast into the extension type in the sense that it provides a reference of
 type `V` to an object without running any constructors of `V`. We will rely
 on lints in order to inform developers about such situations, similarly to
 the treatment of expressions like `e as V`.*
-
-A compile-time error occurs if the type
-<code>V\<T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
-provides a wrong number of type arguments to `V` (when `k` is different
-from `s`), and if it is not regular-bounded.
-
-*In other words, such types cannot be super-bounded. The reason for this
-restriction is that it is unsound to execute code in the body of `V` in
-the case where the values of the type variables do not satisfy their
-declared bounds, and those values will be obtained directly from the static
-type of the receiver in each member invocation on `V`.*
 
 A compile-time error occurs if a type parameter of an extension type
 declaration occurs in a non-covariant position in the representation type.
