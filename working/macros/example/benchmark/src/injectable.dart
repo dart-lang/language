@@ -18,7 +18,14 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
     dripCoffeeComponentClass.identifier: dripCoffeeComponentClass,
     providerType.identifier: providerType,
   };
-  final typeIntrospector = SimpleTypeIntrospector(
+  final declarations = <Identifier, Declaration>{};
+  final introspector = SimpleDefinitionPhaseIntrospector(
+    declarations: declarations,
+    identifiers: {
+      Uri.parse('package:macro_proposal/injectable.dart'): {
+        'Provider': providerIdentifier
+      }
+    },
     constructors: {
       coffeeMakerClass: coffeeMakerConstructors,
       dripCoffeeComponentClass: dripCoffeeComponentConstructors,
@@ -39,22 +46,15 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       thermosiphonClass: [],
     },
   );
-  final identifierDeclarations = {
+  declarations.addAll({
     ...typeDeclarations,
-    for (final constructors in typeIntrospector.constructors.values)
+    for (final constructors in introspector.constructors.values)
       for (final constructor in constructors)
         constructor.identifier: constructor,
-    for (final methods in typeIntrospector.methods.values)
+    for (final methods in introspector.methods.values)
       for (final method in methods) method.identifier: method,
-    for (final fields in typeIntrospector.fields.values)
+    for (final fields in introspector.fields.values)
       for (final field in fields) field.identifier: field,
-  };
-  final typeDeclarationResolver =
-      SimpleTypeDeclarationResolver(typeDeclarations);
-  final identifierResolver = SimpleIdentifierResolver({
-    Uri.parse('package:macro_proposal/injectable.dart'): {
-      'Provider': providerIdentifier
-    }
   });
   final instantiateBenchmark =
       InjectableInstantiateBenchmark(executor, macroUri);
@@ -71,43 +71,39 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       componentInstanceIdentifier,
       injectableInstanceIdentifier,
       providesInstanceIdentifier,
-      identifierResolver);
+      introspector);
   await typesBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, typesBenchmark.results, identifierDeclarations);
+      executor, typesBenchmark.results, declarations);
   final declarationsBenchmark = InjectableDeclarationsPhaseBenchmark(
       executor,
       macroUri,
       componentInstanceIdentifier,
       injectableInstanceIdentifier,
       providesInstanceIdentifier,
-      identifierResolver,
-      typeIntrospector,
-      typeDeclarationResolver);
+      introspector);
   await declarationsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, declarationsBenchmark.results, identifierDeclarations);
+      executor, declarationsBenchmark.results, declarations);
 
   // Manually add in the generated declarations from the declarations phase.
-  typeIntrospector.methods[coffeeMakerClass]!
-      .addAll(generatedCoffeeMakerMethods);
-  typeIntrospector.methods[dripCoffeeModuleClass]!
+  introspector.methods[coffeeMakerClass]!.addAll(generatedCoffeeMakerMethods);
+  introspector.methods[dripCoffeeModuleClass]!
       .addAll(generatedDripCoffeeModuleMethods);
-  typeIntrospector.methods[electricHeaterClass]!
+  introspector.methods[electricHeaterClass]!
       .addAll(generatedElectricHeaterMethods);
-  typeIntrospector.methods[thermosiphonClass]!
-      .addAll(generatedThermosiphonMethods);
-  typeIntrospector.fields[dripCoffeeComponentClass]!
+  introspector.methods[thermosiphonClass]!.addAll(generatedThermosiphonMethods);
+  introspector.fields[dripCoffeeComponentClass]!
       .addAll(generatedDripCoffeeComponentFields);
-  typeIntrospector.constructors[dripCoffeeComponentClass]!
+  introspector.constructors[dripCoffeeComponentClass]!
       .addAll(generatedDripCoffeeComponentConstructors);
-  identifierDeclarations.addAll({
-    for (final constructors in typeIntrospector.constructors.values)
+  declarations.addAll({
+    for (final constructors in introspector.constructors.values)
       for (final constructor in constructors)
         constructor.identifier: constructor,
-    for (final fields in typeIntrospector.fields.values)
+    for (final fields in introspector.fields.values)
       for (final field in fields) field.identifier: field,
-    for (final methods in typeIntrospector.methods.values)
+    for (final methods in introspector.methods.values)
       for (final method in methods) method.identifier: method,
   });
 
@@ -117,12 +113,10 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       componentInstanceIdentifier,
       injectableInstanceIdentifier,
       providesInstanceIdentifier,
-      identifierResolver,
-      typeIntrospector,
-      typeDeclarationResolver);
+      introspector);
   await definitionsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor, definitionsBenchmark.results, identifierDeclarations);
+      executor, definitionsBenchmark.results, declarations);
 }
 
 class InjectableInstantiateBenchmark extends AsyncBenchmarkBase {
@@ -148,10 +142,10 @@ class InjectableInstantiateBenchmark extends AsyncBenchmarkBase {
 class InjectableTypesPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
-  final IdentifierResolver identifierResolver;
   final MacroInstanceIdentifier componentInstanceIdentifier;
   final MacroInstanceIdentifier injectableInstanceIdentifier;
   final MacroInstanceIdentifier providesInstanceIdentifier;
+  final TypePhaseIntrospector introspector;
   late List<MacroExecutionResult> results;
 
   InjectableTypesPhaseBenchmark(
@@ -160,7 +154,7 @@ class InjectableTypesPhaseBenchmark extends AsyncBenchmarkBase {
     this.componentInstanceIdentifier,
     this.injectableInstanceIdentifier,
     this.providesInstanceIdentifier,
-    this.identifierResolver,
+    this.introspector,
   ) : super('InjectableTypesPhase');
 
   Future<void> run() async {
@@ -169,20 +163,20 @@ class InjectableTypesPhaseBenchmark extends AsyncBenchmarkBase {
         DeclarationKind.classType, Phase.types)) {
       for (var clazz in injectableClasses) {
         results.add(await executor.executeTypesPhase(
-            injectableInstanceIdentifier, clazz, identifierResolver));
+            injectableInstanceIdentifier, clazz, introspector));
       }
     }
     for (var method in dripCoffeeModuleMethods) {
       if (providesInstanceIdentifier.shouldExecute(
           DeclarationKind.method, Phase.types)) {
         results.add(await executor.executeTypesPhase(
-            providesInstanceIdentifier, method, identifierResolver));
+            providesInstanceIdentifier, method, introspector));
       }
     }
     if (componentInstanceIdentifier.shouldExecute(
         DeclarationKind.classType, Phase.types)) {
-      results.add(await executor.executeTypesPhase(componentInstanceIdentifier,
-          dripCoffeeComponentClass, identifierResolver));
+      results.add(await executor.executeTypesPhase(
+          componentInstanceIdentifier, dripCoffeeComponentClass, introspector));
     }
   }
 }
@@ -193,9 +187,7 @@ class InjectableDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroInstanceIdentifier componentInstanceIdentifier;
   final MacroInstanceIdentifier injectableInstanceIdentifier;
   final MacroInstanceIdentifier providesInstanceIdentifier;
-  final IdentifierResolver identifierResolver;
-  final TypeIntrospector typeIntrospector;
-  final TypeDeclarationResolver typeDeclarationResolver;
+  final DeclarationPhaseIntrospector introspector;
 
   late List<MacroExecutionResult> results;
 
@@ -205,9 +197,7 @@ class InjectableDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
       this.componentInstanceIdentifier,
       this.injectableInstanceIdentifier,
       this.providesInstanceIdentifier,
-      this.identifierResolver,
-      this.typeIntrospector,
-      this.typeDeclarationResolver)
+      this.introspector)
       : super('InjectableDeclarationsPhase');
 
   Future<void> run() async {
@@ -216,35 +206,20 @@ class InjectableDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
         DeclarationKind.classType, Phase.declarations)) {
       for (var clazz in injectableClasses) {
         results.add(await executor.executeDeclarationsPhase(
-            injectableInstanceIdentifier,
-            clazz,
-            identifierResolver,
-            typeDeclarationResolver,
-            SimpleTypeResolver(),
-            typeIntrospector));
+            injectableInstanceIdentifier, clazz, introspector));
       }
     }
     for (var method in dripCoffeeModuleMethods) {
       if (providesInstanceIdentifier.shouldExecute(
           DeclarationKind.method, Phase.declarations)) {
         results.add(await executor.executeDeclarationsPhase(
-            providesInstanceIdentifier,
-            method,
-            identifierResolver,
-            typeDeclarationResolver,
-            SimpleTypeResolver(),
-            typeIntrospector));
+            providesInstanceIdentifier, method, introspector));
       }
     }
     if (componentInstanceIdentifier.shouldExecute(
         DeclarationKind.classType, Phase.declarations)) {
       results.add(await executor.executeDeclarationsPhase(
-          componentInstanceIdentifier,
-          dripCoffeeComponentClass,
-          identifierResolver,
-          typeDeclarationResolver,
-          SimpleTypeResolver(),
-          typeIntrospector));
+          componentInstanceIdentifier, dripCoffeeComponentClass, introspector));
     }
   }
 }
@@ -255,9 +230,7 @@ class InjectableDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroInstanceIdentifier componentInstanceIdentifier;
   final MacroInstanceIdentifier injectableInstanceIdentifier;
   final MacroInstanceIdentifier providesInstanceIdentifier;
-  final IdentifierResolver identifierResolver;
-  final TypeIntrospector typeIntrospector;
-  final TypeDeclarationResolver typeDeclarationResolver;
+  final DefinitionPhaseIntrospector introspector;
 
   late List<MacroExecutionResult> results;
 
@@ -267,9 +240,7 @@ class InjectableDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
       this.componentInstanceIdentifier,
       this.injectableInstanceIdentifier,
       this.providesInstanceIdentifier,
-      this.identifierResolver,
-      this.typeIntrospector,
-      this.typeDeclarationResolver)
+      this.introspector)
       : super('InjectableDefinitionPhase');
 
   Future<void> run() async {
@@ -278,38 +249,20 @@ class InjectableDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
         DeclarationKind.classType, Phase.definitions)) {
       for (var clazz in injectableClasses) {
         results.add(await executor.executeDefinitionsPhase(
-            injectableInstanceIdentifier,
-            clazz,
-            identifierResolver,
-            typeDeclarationResolver,
-            SimpleTypeResolver(),
-            typeIntrospector,
-            FakeTypeInferrer()));
+            injectableInstanceIdentifier, clazz, introspector));
       }
     }
     for (var method in dripCoffeeModuleMethods) {
       if (providesInstanceIdentifier.shouldExecute(
           DeclarationKind.method, Phase.definitions)) {
         results.add(await executor.executeDefinitionsPhase(
-            providesInstanceIdentifier,
-            method,
-            identifierResolver,
-            typeDeclarationResolver,
-            SimpleTypeResolver(),
-            typeIntrospector,
-            FakeTypeInferrer()));
+            providesInstanceIdentifier, method, introspector));
       }
     }
     if (componentInstanceIdentifier.shouldExecute(
         DeclarationKind.classType, Phase.definitions)) {
       results.add(await executor.executeDefinitionsPhase(
-          componentInstanceIdentifier,
-          dripCoffeeComponentClass,
-          identifierResolver,
-          typeDeclarationResolver,
-          SimpleTypeResolver(),
-          typeIntrospector,
-          FakeTypeInferrer()));
+          componentInstanceIdentifier, dripCoffeeComponentClass, introspector));
     }
   }
 }
@@ -330,11 +283,13 @@ final providerType = TypeAliasDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: providerIdentifier,
     library: fooLibrary,
+    metadata: [],
     typeParameters: [
       TypeParameterDeclarationImpl(
           id: RemoteInstance.uniqueId,
           identifier: providerTypeIdentifier,
           library: fooLibrary,
+          metadata: [],
           bound: null)
     ],
     aliasedType: FunctionTypeAnnotationImpl(
@@ -356,6 +311,7 @@ final heaterClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: heaterIdentifier,
     library: fooLibrary,
+    metadata: [],
     typeParameters: [],
     interfaces: [],
     hasAbstract: false,
@@ -379,6 +335,7 @@ final electricHeaterClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: electricHeaterIdentifier,
     library: fooLibrary,
+    metadata: [],
     typeParameters: [],
     interfaces: [
       NamedTypeAnnotationImpl(
@@ -401,6 +358,7 @@ final electricHeaterConstructors = [
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: false,
       isGetter: false,
@@ -424,6 +382,7 @@ final generatedElectricHeaterMethods = [
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provider'),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: false,
       isGetter: false,
@@ -454,6 +413,7 @@ final pumpClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: pumpIdentifier,
     library: fooLibrary,
+    metadata: [],
     typeParameters: [],
     interfaces: [],
     hasAbstract: false,
@@ -478,6 +438,7 @@ final thermosiphonClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: thermosiphonIdentifier,
     library: fooLibrary,
+    metadata: [],
     typeParameters: [],
     interfaces: [
       NamedTypeAnnotationImpl(
@@ -500,6 +461,7 @@ final thermosiphonFields = [
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'heater'),
       library: fooLibrary,
+      metadata: [],
       isExternal: false,
       isFinal: true,
       isLate: false,
@@ -516,6 +478,7 @@ final thermosiphonConstructors = [
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: false,
       isGetter: false,
@@ -528,6 +491,7 @@ final thermosiphonConstructors = [
             id: RemoteInstance.uniqueId,
             identifier: field.identifier,
             library: fooLibrary,
+            metadata: [],
             isNamed: false,
             isRequired: true,
             type: field.type,
@@ -550,6 +514,7 @@ final generatedThermosiphonMethods = [
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provider'),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: false,
       isGetter: false,
@@ -562,6 +527,7 @@ final generatedThermosiphonMethods = [
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'heaterProvider'),
             library: fooLibrary,
+            metadata: [],
             isNamed: false,
             isRequired: true,
             type: NamedTypeAnnotationImpl(
@@ -605,6 +571,7 @@ final coffeeMakerClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: coffeeMakerIdentifier,
     library: fooLibrary,
+    metadata: [],
     typeParameters: [],
     interfaces: [],
     hasAbstract: false,
@@ -621,6 +588,7 @@ final coffeeMakerFields = [
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'heater'),
       library: fooLibrary,
+      metadata: [],
       isExternal: false,
       isFinal: true,
       isLate: false,
@@ -635,6 +603,7 @@ final coffeeMakerFields = [
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'pump'),
       library: fooLibrary,
+      metadata: [],
       isExternal: false,
       isFinal: true,
       isLate: false,
@@ -651,6 +620,7 @@ final coffeeMakerConstructors = [
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: false,
       isGetter: false,
@@ -663,6 +633,7 @@ final coffeeMakerConstructors = [
             id: RemoteInstance.uniqueId,
             identifier: field.identifier,
             library: fooLibrary,
+            metadata: [],
             isNamed: false,
             isRequired: true,
             type: field.type,
@@ -687,6 +658,7 @@ final generatedCoffeeMakerMethods = [
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provider'),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: false,
       isGetter: false,
@@ -699,6 +671,7 @@ final generatedCoffeeMakerMethods = [
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'heaterProvider'),
             library: fooLibrary,
+            metadata: [],
             isNamed: false,
             isRequired: true,
             type: NamedTypeAnnotationImpl(
@@ -717,6 +690,7 @@ final generatedCoffeeMakerMethods = [
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'pumpProvider'),
             library: fooLibrary,
+            metadata: [],
             isNamed: false,
             isRequired: true,
             type: NamedTypeAnnotationImpl(
@@ -759,6 +733,7 @@ final dripCoffeeModuleClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: dripCoffeeModuleIdentifier,
     library: fooLibrary,
+    metadata: [],
     typeParameters: [],
     interfaces: [],
     hasAbstract: false,
@@ -776,6 +751,7 @@ final dripCoffeeModuleMethods = [
       identifier:
           IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provideHeater'),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: false,
       isGetter: false,
@@ -788,6 +764,7 @@ final dripCoffeeModuleMethods = [
             identifier:
                 IdentifierImpl(id: RemoteInstance.uniqueId, name: 'impl'),
             library: fooLibrary,
+            metadata: [],
             isNamed: false,
             isRequired: true,
             type: NamedTypeAnnotationImpl(
@@ -809,6 +786,7 @@ final dripCoffeeModuleMethods = [
       identifier:
           IdentifierImpl(id: RemoteInstance.uniqueId, name: 'providePump'),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: false,
       isGetter: false,
@@ -821,6 +799,7 @@ final dripCoffeeModuleMethods = [
             identifier:
                 IdentifierImpl(id: RemoteInstance.uniqueId, name: 'impl'),
             library: fooLibrary,
+            metadata: [],
             isNamed: false,
             isRequired: true,
             type: NamedTypeAnnotationImpl(
@@ -849,6 +828,7 @@ final generatedDripCoffeeModuleMethods = [
       identifier: IdentifierImpl(
           id: RemoteInstance.uniqueId, name: 'provideHeaterProvider'),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: false,
       isGetter: false,
@@ -861,6 +841,7 @@ final generatedDripCoffeeModuleMethods = [
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'provideImpl'),
             library: fooLibrary,
+            metadata: [],
             isNamed: false,
             isRequired: true,
             type: NamedTypeAnnotationImpl(
@@ -894,6 +875,7 @@ final generatedDripCoffeeModuleMethods = [
       identifier: IdentifierImpl(
           id: RemoteInstance.uniqueId, name: 'providePumpProvider'),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: false,
       isGetter: false,
@@ -906,6 +888,7 @@ final generatedDripCoffeeModuleMethods = [
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'provideImpl'),
             library: fooLibrary,
+            metadata: [],
             isNamed: false,
             isRequired: true,
             type: NamedTypeAnnotationImpl(
@@ -950,6 +933,7 @@ final dripCoffeeComponentClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: dripCoffeeComponentIdentifier,
     library: fooLibrary,
+    metadata: [],
     typeParameters: [],
     interfaces: [],
     hasAbstract: false,
@@ -967,6 +951,7 @@ final dripCoffeeComponentMethods = [
       identifier:
           IdentifierImpl(id: RemoteInstance.uniqueId, name: 'coffeeMaker'),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: true,
       isGetter: false,
@@ -988,6 +973,7 @@ final dripCoffeeComponentConstructors = [
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: true,
       isGetter: false,
@@ -1000,6 +986,7 @@ final dripCoffeeComponentConstructors = [
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'dripCoffeeModule'),
             library: fooLibrary,
+            metadata: [],
             isNamed: false,
             isRequired: true,
             type: NamedTypeAnnotationImpl(
@@ -1025,6 +1012,7 @@ final generatedDripCoffeeComponentConstructors = [
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '_'),
       library: fooLibrary,
+      metadata: [],
       isAbstract: false,
       isExternal: false,
       isGetter: false,
@@ -1036,6 +1024,7 @@ final generatedDripCoffeeComponentConstructors = [
             id: RemoteInstance.uniqueId,
             identifier: generatedDripCoffeeComponentFields.first.identifier,
             library: fooLibrary,
+            metadata: [],
             isNamed: false,
             isRequired: true,
             type: generatedDripCoffeeComponentFields.first.type),
@@ -1058,6 +1047,7 @@ final generatedDripCoffeeComponentFields = [
       identifier: IdentifierImpl(
           id: RemoteInstance.uniqueId, name: '_coffeeMakerProvider'),
       library: fooLibrary,
+      metadata: [],
       isExternal: false,
       isFinal: true,
       isLate: false,

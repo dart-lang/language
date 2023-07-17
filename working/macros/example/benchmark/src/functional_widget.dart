@@ -7,7 +7,7 @@ import 'package:benchmark_harness/benchmark_harness.dart';
 import 'shared.dart';
 
 Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
-  final identifierResolver = SimpleIdentifierResolver({
+  final introspector = SimpleTypePhaseIntrospector(identifiers: {
     Uri.parse('dart:core'): {
       'int': intIdentifier,
       'String': stringIdentifier,
@@ -23,7 +23,7 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
   await instantiateBenchmark.report();
   final instanceId = instantiateBenchmark.instanceIdentifier;
   final typesBenchmark = FunctionalWidgetTypesPhaseBenchmark(
-      executor, macroUri, identifierResolver, instanceId);
+      executor, macroUri, instanceId, introspector);
   await typesBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor,
@@ -48,19 +48,19 @@ class FunctionalWidgetInstantiateBenchmark extends AsyncBenchmarkBase {
 class FunctionalWidgetTypesPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
-  final IdentifierResolver identifierResolver;
   final MacroInstanceIdentifier instanceIdentifier;
+  final TypePhaseIntrospector introspector;
   MacroExecutionResult? result;
 
-  FunctionalWidgetTypesPhaseBenchmark(this.executor, this.macroUri,
-      this.identifierResolver, this.instanceIdentifier)
+  FunctionalWidgetTypesPhaseBenchmark(
+      this.executor, this.macroUri, this.instanceIdentifier, this.introspector)
       : super('FunctionalWidgetTypesPhase');
 
   Future<void> run() async {
     if (instanceIdentifier.shouldExecute(
         DeclarationKind.function, Phase.types)) {
       result = await executor.executeTypesPhase(
-          instanceIdentifier, myFunction, identifierResolver);
+          instanceIdentifier, myFunction, introspector);
     }
   }
 }
@@ -83,6 +83,7 @@ final myFunction = FunctionDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '_myWidget'),
     library: fooLibrary,
+    metadata: [],
     isAbstract: false,
     isExternal: false,
     isGetter: false,
@@ -96,6 +97,7 @@ final myFunction = FunctionDeclarationImpl(
           isNamed: true,
           isRequired: true,
           library: fooLibrary,
+          metadata: [],
           type: stringType),
     ],
     positionalParameters: [
@@ -106,6 +108,7 @@ final myFunction = FunctionDeclarationImpl(
           isNamed: false,
           isRequired: true,
           library: fooLibrary,
+          metadata: [],
           type: buildContextType),
       ParameterDeclarationImpl(
           id: RemoteInstance.uniqueId,
@@ -114,6 +117,7 @@ final myFunction = FunctionDeclarationImpl(
           isNamed: false,
           isRequired: true,
           library: fooLibrary,
+          metadata: [],
           type: intType),
     ],
     returnType: widgetType,

@@ -297,7 +297,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
         .followedBy(factoryConstructor.namedParameters)) {
       final module = (param.type as NamedTypeAnnotation).identifier;
       final moduleClass =
-          await builder.declarationOf(module) as IntrospectableType;
+          await builder.typeDeclarationOf(module);
       for (final method in await builder.methodsOf(moduleClass)) {
         final returnType = method.returnType;
         if (returnType is! NamedTypeAnnotation) continue;
@@ -387,7 +387,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
     if (providerProvider == null) {
       // If we have no explicit provider from any module, check if the type is
       // injectable.
-      final clazz = await builder.declarationOf(type);
+      final clazz = await builder.typeDeclarationOf(type);
       if (clazz is! IntrospectableType) {
         throw UnsupportedError('Only classes are automatically injectable.');
       }

@@ -62,7 +62,7 @@ macro class AutoConstructor implements ClassDeclarationsMacro {
 
     // Add all super constructor parameters as named parameters.
     var superclass = clazz.superclass == null ? null : await builder
-        .declarationOf(clazz.superclass!.identifier) as IntrospectableType;
+        .typeDeclarationOf(clazz.superclass!.identifier) as IntrospectableType;
     var superType = superclass == null ? null : await builder
         .resolve(NamedTypeAnnotationCode(name: superclass.identifier));
     MethodDeclaration? superconstructor;
@@ -133,7 +133,7 @@ macro class CopyWith implements ClassDeclarationsMacro {
       throw ArgumentError(
           'Cannot generate a copyWith method because one already exists');
     }
-    var allFields = await clazz.allFields(builder, builder).toList();
+    var allFields = await clazz.allFields(builder).toList();
     var namedParams = [
       for (var field in allFields)
         ParameterCode(
@@ -187,7 +187,7 @@ macro class HashCode
     var hashCodeBuilder = await builder.buildMethod(
         methods.firstWhere((m) => m.identifier.name == 'hashCode').identifier);
     var hashCodeExprs = [
-      await for (var field in clazz.allFields(builder, builder))
+      await for (var field in clazz.allFields(builder))
         ExpressionCode.fromParts([field.identifier, '.hashCode']),
     ].joinAsCode(' ^ ');
     hashCodeBuilder.augment(FunctionBodyCode.fromParts([
@@ -223,7 +223,7 @@ macro class Equality
     var equalsBuilder = await builder.buildMethod(
         methods.firstWhere((m) => m.identifier.name == '==').identifier);
     var equalityExprs = [
-      await for (var field in clazz.allFields(builder, builder))
+      await for (var field in clazz.allFields(builder))
         ExpressionCode.fromParts([
           field.identifier,
           ' == other.',
@@ -264,7 +264,7 @@ macro class ToString
     var toStringBuilder = await builder.buildMethod(
         methods.firstWhere((m) => m.identifier.name == 'toString').identifier);
     var fieldExprs = [
-      await for (var field in clazz.allFields(builder, builder))
+      await for (var field in clazz.allFields(builder))
         RawCode.fromParts([
           '  ${field.identifier.name}: \${',
           field.identifier,
@@ -283,20 +283,19 @@ macro class ToString
 extension _AllFields on IntrospectableClassDeclaration {
   // Returns all fields from all super classes.
   Stream<FieldDeclaration> allFields(
-      TypeIntrospector introspector,
-      TypeDeclarationResolver declarationResolver) async* {
+      DeclarationPhaseIntrospector introspector) async* {
     for (var field in await introspector.fieldsOf(this)) {
       yield field;
     }
     var next = superclass != null ?
-        await declarationResolver.declarationOf(superclass!.identifier) : null;
+        await introspector.typeDeclarationOf(superclass!.identifier) : null;
     // TODO: Compare against actual Object identifer once we provide a way to get it.
     while (next is IntrospectableClassDeclaration && next.identifier.name != 'Object') {
       for (var field in await introspector.fieldsOf(next)) {
         yield field;
       }
       next = next.superclass != null ?
-          await declarationResolver.declarationOf(next.superclass!.identifier) : null;
+          await introspector.typeDeclarationOf(next.superclass!.identifier) : null;
     }
   }
 }
