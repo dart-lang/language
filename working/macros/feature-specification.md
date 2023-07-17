@@ -1300,28 +1300,68 @@ given library. This will be allowed through the library introspection class,
 which is available from the introspection APIs on all declarations via a
 `library` getter.
 
-**TODO**: Fully define the library introspection API for each phase.
-
 ### API versioning
 
-**TODO**: Finalize the approach here (#1934).
+It is expected that future language changes will require breaking changes to the
+macro APIs. For instance you could consider what would happen if we added
+multiple return values from functions. That would necessitate a change to many
+APIs so that they would support multiple return types instead of a single one.
 
-It is possible that future language changes would require a breaking change to
-an existing imperative macro API. For instance you could consider what would
-happen if we added multiple return values from functions. That would
-necessitate a change to many APIs so that they would support multiple return
-types instead of a single one.
+#### Design goals
 
-#### Proposal: Ship macro APIs as a Pub package
+* Enable us to make API changes when needed.
+* Minimize churn for macro authors - most SDK versions will not be breaking and
+  it would be ideal to not ask packages to have super tight SDK constraints.
+* Give early and actionable error messages to consumers of macros when a macro
+  they are using does not support a new language feature.
+* Enable as much forwards/backwards compatibility as possible.
 
-Likely, this package would only export directly an existing `dart:` uri, but
-it would be able to be versioned like a public package, including tight sdk
-constraints (likely on minor version ranges). This would work similar to the
-`dart:_internal` library.
+#### Solution: Ship macro APIs as a Pub package
 
-This approach would involve more work on our end (to release this package with
-each dart release). But it would help keep users on the rails, and give us a
-lot of flexibility with the API going forward.
+The implementation of this package will always come from the SDK, through a
+`dart:_macros` library, which will be exported by this package. The
+`dart:_macros` library will be blocked from being imported or exported by any
+library other than other `dart:` libraries.
+
+We use a `dart:` library here to ensure that the binaries shipped with the SDK
+are compiled with exactly the same version of the API that macros are compiled
+with. This ensures the communication protocol between macros and the SDK
+binaries are compatible.
+
+This package will have tight upper bound SDK constraints, and will need to be
+released any time a new minor release is published. It is expected that most of
+these releases would be patch releases, which only increase the max SDK
+constraint.
+
+Any time the API changes (breaking or otherwise), the min SDK constraint of the
+package must be updated to match the version of the SDK where the API changed.
+This must always correspond to a minor SDK version.
+
+This approach has several advantages for macro authors and users, which are
+closely aligned with the design goals:
+
+* Fewer releases for macro authors (this package shouldn't have very many
+  breaking changes).
+* Gives us flexibility with the API when needed.
+* Gives early errors if a macro dependency doesn't support the users current
+  SDK. The failure will be in the form of a failed version solve.
+* Macros can easily depend on wide ranges of this package (if they are
+  compatible).
+
+There are some downsides to this approach as well:
+
+* More work for us, we need to consistently prepare these releases for new SDKs.
+* Version solve errors can sometimes be very cryptic to understand. This is a
+  general problem though, and we will benefit from any improvements in this
+  area.
+* Dependency overrides on this package won't actually have any affect, which may
+  be confusing to users. The API is always dictated by the `dart:` library and
+  not the package itself. Note that this is different from `dart_internal`,
+  which wraps the `dart:` APIs it exposes. I don't think this would be
+  desireable for this use case, but we could see if it is feasible.
+* It is possible we could forget to bump the min SDK when altering the internal
+  API for the `dart:_macros` package. We should put some sort of check in place
+  to help ensure we get this right.
 
 ## Resources
 
