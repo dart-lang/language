@@ -427,7 +427,7 @@ class Human {
 @JsonSerializable()
 class Pet {
   final String name;
-  final Owner? owner; // Optional, might be feral.
+  final Human? owner; // Optional, might be feral.
 }
 ```
 
