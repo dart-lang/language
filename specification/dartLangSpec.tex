@@ -50,6 +50,10 @@
 %   the new meaning of that phrase). This avoids the confusion that came up
 %   just about every single time the phrase 'static variable' came up in a
 %   discussion.
+% - Change terminology: The notion of 'mutable' and 'immutable' variables has
+%   been eliminated (it is spelled out each time which modifiers must be
+%   present or not present). The concept is confusing now where a variable can
+%   be late and final, and assignments to it are allowed by the static analysis.
 %
 % Mar 2023
 % - Clarify how line breaks are handled in a multi-line string literal. Rename
@@ -1409,19 +1413,6 @@ Similarly, an instance variable cannot be constant
 (\ref{instanceVariables}).%
 }
 
-\LMHash{}%
-An \IndexCustom{immutable variable}{variable!immutable}
-is a variable which cannot be bound to a different object
-once it has been bound to an object.
-\commentary{%
-Hence, an immutable variable \id{} will always refer to the same object
-after \id{} has been initialized.%
-}
-A variable is immutable if{}f its declaration includes
-the modifier \FINAL{} or the modifier \CONST.
-A \IndexCustom{mutable variable}{variable!mutable}
-is a variable which is not immutable.
-
 
 \subsection{Implicitly Induced Getters and Setters}
 \LMLabel{implicitlyInducedGettersAndSetters}
@@ -1492,7 +1483,7 @@ In these cases, the declared type of \id{} is $T$.
 
 \LMHash{}%
 \Case{Setter: Mutable variable with declared type}
-A mutable variable declaration of one of the forms
+A variable declaration of one of the forms
 
 \begin{itemize}
 \item \code{\STATIC?\,\,\LATE?\,\,$T$\,\,\id;}
@@ -1506,7 +1497,7 @@ whose execution sets the value of \id{} to the incoming argument $x$.
 
 \LMHash{}%
 \Case{Setter: Mutable variable with no declared type, with initialization}
-A mutable variable declaration of the form
+A variable declaration of the form
 \code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id{} = $e$;}
 implicitly induces a setter with the header
 \code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)},
@@ -1520,7 +1511,7 @@ Type inference could have provided a type different from \DYNAMIC{}
 
 \LMHash{}%
 \Case{Setter: Mutable variable with no declared type, no initialization}
-A mutable variable declaration of the form
+A variable declaration of the form
 \code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id;}
 implicitly induces a setter with the header
 \code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)},
@@ -1579,8 +1570,11 @@ class, mixin, or enum declaration
 (\commentary{an extension cannot declare instance variables}).
 
 \LMHash{}%
-A non-local variable introduces a setter if{}f it is mutable,
-or it is late and final and does not have an initializing expression.
+A non-local variable introduces a setter if{}f
+it does not have the modifier \FINAL{} or the modifier \CONST{},
+or it is \LATE{} and \FINAL, but does not have an initializing expression.
+
+\LMHash{}%
 A library variable which introduces a setter will introduce
 a library setter into the enclosing library scope.
 A static variable which introduces a setter will introduce
@@ -1608,7 +1602,8 @@ an initializing formal of a constructor $k$
 is also initialized in the initializer list of $k$
 (\ref{initializerLists}).
 
-A non-late static immutable variable declaration $D$ named \id{}
+A non-late static variable declaration $D$ named \id{}
+that has the modifier \FINAL{} or the modifier \CONST{}
 does not induce a setter.
 However, an assignment to \id{} at a location where $D$ is in scope
 is not necessarily a compile-time error.
@@ -1715,7 +1710,7 @@ An invocation of $g$ proceeds as follows:
 \LMHash{}%
 If the variable $v$ has not been bound to an object then
 $e$ is evaluated to an object $o$.
-If $v$ has now been bound to an object, and $v$ is immutable,
+If $v$ has now been bound to an object, and $v$ is final,
 a dynamic error occurs. % Implementations throw a 'LateInitializationError'.
 Otherwise, $v$ is bound to $o$,
 and the evaluation of $g$ completes returning $o$.
@@ -4707,7 +4702,7 @@ non-redirecting generative constant constructors.
 
 \LMHash{}%
 It is a compile-time error if a non-redirecting generative constant constructor
-is declared by a class that has a mutable instance variable.
+is declared by a class that has a instance variable which is not final.
 
 \commentary{%
 The above refers to both locally declared and inherited instance variables.%
@@ -4952,8 +4947,10 @@ The controlling language is in the relevant sections of the specification.
 \item There is only one namespace
   for getters, setters, methods and constructors (\ref{scoping}).
   A non-local variable $f$ introduces a getter $f$,
-  and a mutable non-local variable $f$
+  and a non-local variable $f$
   also introduces a setter
+  if it is not final and not constant,
+  or it is late and final and has no initializing expression
   \code{$f$=} (\ref{instanceVariables}, \ref{variables}).
   When we speak of members here, we mean
   accessible instance, static, or library variables,
@@ -15392,7 +15389,7 @@ when executed starting from exactly the same state.%
 \LMLabel{assignment}
 
 \LMHash{}%
-An assignment changes the value associated with a mutable variable,
+An assignment changes the value associated with a variable,
 or invokes a setter.
 
 \begin{grammar}
@@ -17679,10 +17676,8 @@ a local variable into the associated formal parameter scope
 
 \LMHash{}%
 The properties of being
-\IndexCustom{initialized}{variable!initialized},
-\IndexCustom{constant}{variable!constant},
-\IndexCustom{immutable}{variable!immutable}, and
-\IndexCustom{mutable}{variable!mutable}
+\IndexCustom{initialized}{variable!initialized} or
+\IndexCustom{constant}{variable!constant}
 apply to local variables with the same definitions as for other variables
 (\ref{variables}).
 
@@ -17690,7 +17685,7 @@ apply to local variables with the same definitions as for other variables
 \LMHash{}%
 We say that a local variable $v$ is \Index{potentially mutated}
 in some scope $s$
-if $v$ is mutable, and an assignment to $v$ occurs in $s$.
+if $v$ is not final, and an assignment to $v$ occurs in $s$.
 
 \LMHash{}%
 A local variable declaration of the form \code{\VAR{} $v$;} is equivalent to
@@ -18194,7 +18189,9 @@ It is a compile-time error if $T$ is not assignable to
 
 \commentary{%
 It follows that it is a compile-time error
-if $D$ is empty and \id{} is an immutable variable.
+% The following error exists also in the case where \id{} is definitely
+% unassigned before the loop: The loop could run >1 time.
+if $D$ is empty and \id{} is a final variable.
 Also, it is a dynamic error if $e$ has type \DYNAMIC,
 but $e$ evaluates to an instance of a type
 which is not a subtype of \code{Iterable<\DYNAMIC>}.%
@@ -18221,7 +18218,8 @@ The expression $e$ is evaluated to an object $o$.
 % This error can occur due to implicit casts and null.
 It is a dynamic type error if $o$ is not an instance of
 a class that implements \code{Stream}.
-It is a compile-time error if $D$ is empty and \id{} is an immutable variable.
+It is a compile-time error if $D$ is empty
+and \id{} is a final or constant variable.
 
 \LMHash{}%
 The stream associated with the innermost enclosing asynchronous for loop,
