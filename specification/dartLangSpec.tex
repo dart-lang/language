@@ -45,9 +45,11 @@
 % - Land the null-safety updates for sections about variables.
 % - Change terminology: A 'static variable' is now a variable whose declaration
 %   includes `static` (which used to be called a 'class variable'); the old
-%   meaning of 'static variable' is now called a 'statically allocated
-%   variable'. This avoids the confusion that came up just about every single
-%   time the phrase 'static variable' came up in a discussion.
+%   meaning of 'static variable' is now never used (we spell out every time
+%   that it is a 'library variable or a static variable', where the latter is
+%   the new meaning of that phrase). This avoids the confusion that came up
+%   just about every single time the phrase 'static variable' came up in a
+%   discussion.
 %
 % Mar 2023
 % - Clarify how line breaks are handled in a multi-line string literal. Rename
@@ -1368,13 +1370,7 @@ immediately nested inside a \CLASS, \MIXIN, \ENUM, or \EXTENSION{} declaration
 and includes the modifier \STATIC.
 
 \LMHash{}%
-A \IndexCustom{statically allocated variable}{variable!statically allocated}
-is a variable that is not associated with a particular instance,
-but rather with an entire library or class.
-Statically allocated variables include library variables and static variables.
-
-\LMHash{}%
-A \Error{compile-time error} occurs if a statically allocated variable has
+A \Error{compile-time error} occurs if a static or library variable has
 no initializing expression and a type which is not nullable
 (\ref{typeNullability}),
 unless the variable declaration has
@@ -1649,10 +1645,7 @@ in which case the initial value is of course irrelevant.%
 Otherwise, variable initialization proceeds as follows:
 
 \LMHash{}%
-A declaration of a statically allocated variable
-(\commentary{%
-that is, a declaration of a library variable or a static variable%
-})
+A declaration of a static or library variable
 with an initializing expression is initialized lazily
 (\ref{evaluationOfImplicitVariableGetters}).
 
@@ -1855,9 +1848,8 @@ have been invoked and completed normally.%
 \EndCase
 
 \LMHash{}%
-\Case{Statically allocated variable}
-If $d$ declares a statically allocated variable
-(\commentary{that is, a library variable or a static variable}),
+\Case{Static or library variable}
+If $d$ declares a static or library variable,
 the implicitly induced getter of \id{} executes as follows:
 
 \begin{itemize}
@@ -1866,7 +1858,7 @@ the implicitly induced getter of \id{} executes as follows:
   the implicitly induced getter of \id{} is a late-initialized getter.
   This determines the semantics of an invocation.
   \commentary{%
-    Note that these statically allocated variables can be \emph{implicitly}
+    Note that these static or library variables can be \emph{implicitly}
     late-initialized, in the sense that they do not have
     the modifier \LATE.%
   }
@@ -4959,12 +4951,12 @@ The controlling language is in the relevant sections of the specification.
 
 \item There is only one namespace
   for getters, setters, methods and constructors (\ref{scoping}).
-  An instance or statically allocated variable $f$ introduces a getter $f$,
-  and a mutable instance or statically allocated variable $f$
+  A non-local variable $f$ introduces a getter $f$,
+  and a mutable non-local variable $f$
   also introduces a setter
   \code{$f$=} (\ref{instanceVariables}, \ref{variables}).
   When we speak of members here, we mean
-  accessible instance or statically allocated variables,
+  accessible instance, static, or library variables,
   getters, setters, and methods
   (\ref{classes}).
 \item You cannot have two members with the same name in the same class---be
@@ -17482,7 +17474,7 @@ such a refinement would accept more code without errors,
 but not reject any code now error-free.
 
 The rule only applies to locals and parameters,
-as instance variables and statically allocated variables could be modified
+as non-local variables could be modified
 via side-effecting functions or methods that are not accessible
 to a local analysis.
 
