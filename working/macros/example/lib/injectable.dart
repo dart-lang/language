@@ -388,9 +388,6 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
       // If we have no explicit provider from any module, check if the type is
       // injectable.
       final clazz = await builder.typeDeclarationOf(type);
-      if (clazz is! IntrospectableType) {
-        throw UnsupportedError('Only classes are automatically injectable.');
-      }
       for (final method in await builder.methodsOf(clazz)) {
         if (!method.isStatic) continue;
         final returnType = method.returnType;
