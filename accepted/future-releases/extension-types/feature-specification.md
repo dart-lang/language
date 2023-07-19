@@ -402,7 +402,7 @@ with some rules for elements used in extension type declarations:
 
 ```ebnf
 <extensionTypeDeclaration> ::=
-  'extension' 'type' <typeIdentifier> <typeParameters>?
+  'extension' 'type' 'const'? <typeIdentifier> <typeParameters>?
   <representationDeclaration> <interfaces>?
   '{'
     (<metadata> <extensionTypeMemberDeclaration>)*
@@ -993,10 +993,10 @@ The `<representationDeclaration>` works as a constructor. The optional
 `('.' <identifierOrNew>)` in the grammar is used to declare this
 constructor with a name of the form `<identifier> '.' <identifier>` *(at
 times described as a "named constructor")*, or `<identifier> '.' 'new'`. It
-is a constant constructor: If `e` is a constant expression and `V(e)` is
-not an error, then `V(e)` is a constant expression. Other constructors may
-be declared `const` or not, following the normal rules for constant
-constructors.
+is a constant constructor if and only if the reserved word `const` occurs
+just after `extension type` in the header of the declaration. Other
+constructors may be declared `const` or not, following the normal rules for
+constant constructors.
 
 A compile-time error occurs if an extension type constructor includes a
 superinitializer. *That is, a term of the form `super(...)` or
@@ -1200,7 +1200,7 @@ constructor execution is the value of `this`.
 
 The dynamic semantics of an instance creation that references the
 `<representationDeclaration>` follows the semantics of primary
-constructors: Consider the representation declaration as a constant primary
+constructors: Consider the representation declaration as a primary
 constructor, then consider the corresponding non-primary constructor _k_.
 The execution of the representation declaration as a constructor has the
 same semantics as an execution of _k_.
@@ -1287,6 +1287,10 @@ already now, if it should be a constant constructor.
 In any case, every non-primary constructor in an extension type would
 potentially have properties that would make `const` an error, so they must
 specify `const` explicitly as usual.
+
+Update: As of July 19 2023, the reserved word `const` must be specified
+explicitly, which will make the primary constructor a constant
+constructor.
 
 
 ### Support "private inheritance"?
