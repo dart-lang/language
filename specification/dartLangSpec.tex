@@ -26,13 +26,7 @@
 % CHANGES
 % =======
 %
-% Significant changes to the specification. Note that the versions specified
-% below indicate the current tool chain version when those changes were made.
-% In practice, new features have always been integrated into the language
-% specification (this document) a while after the change was accepted into
-% the language and implemented. As of September 2022, the upcoming version of
-% the language which is being specified is indicated by a version number in
-% parentheses after the tool chain version.
+% Significant changes to the specification.
 %
 % Note that the version numbers used below (up to 2.15) were associated with
 % the currently released language and tools at the time of the spec change,
@@ -815,7 +809,7 @@ with the static type of $e_j$ as its declared type.
 Type inference of $e_j$ and the context type used for inference of $e_j$
 are not relevant.
 It is generally assumed that type inference has occurred already
-(\ref{overview}).%
+(\ref{typeInference}).%
 }
 
 \LMHash{}%
@@ -1432,13 +1426,6 @@ That is, any kind of variable which is not a local variable.%
 }
 
 \LMHash{}%
-A \IndexCustom{non-local variable}{variable!non-local}
-is a library variable, a class variable, or an instance variable.
-\commentary{%
-That is, any kind of variable which is not a local variable.%
-}
-
-\LMHash{}%
 A \IndexCustom{constant variable}{variable!constant}
 is a variable whose declaration includes the modifier \CONST.
 A constant variable must be initialized to a constant expression
@@ -1475,15 +1462,12 @@ is a variable whose declaration includes the modifier \FINAL.
 \subsection{Implicitly Induced Getters and Setters}
 \LMLabel{implicitlyInducedGettersAndSetters}
 
-%% TODO(eernst): When inference is specified, we should be able to conclude
-%% that the cases with no declared type do not exist after type inference
-%% (for instance `var x;` or `var x = e;`), and then we can replace all rules
-%% about such cases by commentary saying that they may exist in the input,
-%% but they are gone after type inference.
-%%
-%% At this time we rely on the assumption that type inference has already
-%% occurred, which means that we can refer to the declared type of a variable
-%% without mentioning type inference.
+%% TODO(eernst): We treat type inference as a step that has already
+%% taken place. We consider the types chosen by type inference to
+%% be available as a kind of semantic attributes of the syntax.
+%% That is, we can refer to the inferred type and say that the
+%% given declaration has the inferred type. In this way we avoid
+%% talking about an actual syntactic transformation.
 
 \LMHash{}%
 The following rules on implicitly induced getters and setters
@@ -1529,7 +1513,8 @@ A variable declaration of one of the forms
 
 \noindent
 implicitly induces a getter with the header that
-contains \STATIC{} if{}f the declaration contains \STATIC{} and is followed by
+contains \STATIC{} if{}f the declaration contains \STATIC,
+and is followed by
 \code{$T$\,\,\GET\,\,\id},
 where $T$ is obtained from type inference
 in the case where $e$ exists,
@@ -1572,7 +1557,7 @@ implicitly induces a setter with the header
 \code{\VOID\,\,\SET\,\,\id($T$\,\,$x$)},
 whose execution sets the value of \id{} to the incoming argument $x$.
 The type $T$ is obtained from type inference
-(\ref{overview}).
+(\ref{typeInference}).
 \EndCase
 
 \LMHash{}%
@@ -1585,10 +1570,10 @@ whose execution sets the value of \id{} to the incoming argument $x$.
 
 \commentary{%
 Type inference has not yet been specified in this document
-(\ref{overview}).
-Note that type inference could change, e.g.,
-\code{\VAR\,\,x;} to \code{$T$\,\,x;},
-which would take us to an earlier case.%
+(\ref{typeInference}).
+Note that type inference could provide, e.g.,
+\code{\VAR\,\,x;} with an inferred type $T$,
+which is then the declared type of the variable.%
 }
 \EndCase
 
@@ -1597,7 +1582,7 @@ which would take us to an earlier case.%
 A variable declaration of the form
 \code{\STATIC?\,\,\LATE\,\,\FINAL\,\,$T$\,\,\id;}
 implicitly induces a setter (\ref{setters}) with the header
-\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)}.
+\code{\VOID\,\,\SET\,\,\id($T$\,\,$x$)}.
 If this setter is executed
 in a situation where the variable \id{} has not been bound,
 it will bind \id{} to the object that $x$ is bound to.
@@ -1991,9 +1976,6 @@ int i = (() => (b = !b) ? (i = 10) : i + 1)();
   the implicitly induced getter is a late-uninitialized getter.
   This determines the semantics of an invocation.
 \end{itemize}
-
-% Reduce whitespace after itemized list: This is just an end symbol.
-\vspace{-\baselineskip}\EndCase
 
 % Reduce whitespace after itemized list: This is just an end symbol.
 \vspace{-\baselineskip}\EndCase
@@ -5183,12 +5165,11 @@ The controlling language is in the relevant sections of the specification.
 
 \item There is only one namespace
   for getters, setters, methods and constructors (\ref{scoping}).
-  A non-local variable $f$ introduces a getter $f$,
-  and a non-local variable $f$
-  also introduces a setter
+  A non-local variable $f$ introduces a getter $f$.
+  A non-local variable $f$ also introduces a setter \code{$f$=}
   if it is not final and not constant,
   or it is late and final and has no initializing expression
-  \code{$f$=} (\ref{instanceVariables}, \ref{variables}).
+  (\ref{instanceVariables}, \ref{variables}).
   When we speak of members here, we mean
   accessible instance, static, or library variables,
   getters, setters, and methods
@@ -8755,7 +8736,7 @@ are the following:
   that is not qualified by a deferred prefix,
   is a potentially constant and constant expression.
   \commentary{%
-    For example, if class $C$ declares a constant class variable $v$,
+    For example, if class $C$ declares a constant class variable $v$, !!!TODO!!!
     \code{$C$.$v$} is a constant.
     The same is true if $C$ is accessed via a prefix $p$;
     \code{$p$.$C$.$v$} is a constant unless $p$ is a deferred prefix.%
@@ -12404,7 +12385,7 @@ the target of the current instance member invocation.
 
 \LMHash{}%
 The static type of \THIS{} is the interface of the
-immediately enclosing class, enum, or mixin, if any.
+immediately enclosing class, mixin, or enum, if any.
 The static type of \THIS{} is
 the \ON{} type of the enclosing extension, if any
 (\ref{extensions}).
@@ -16472,7 +16453,7 @@ because \code{$e$?.\id} can be null.%
 
 \LMHash{}%
 An assignment changes the value associated with a variable,
-or invokes a setter.
+or it invokes a setter.
 
 \begin{grammar}
 <assignmentOperator> ::= `='
@@ -18947,7 +18928,8 @@ a local variable into the associated formal parameter scope
 
 \LMHash{}%
 The properties of being
-\IndexCustom{initialized}{variable!initialized} or
+\IndexCustom{initialized}{variable!initialized},
+\IndexCustom{final}{variable!final}, or
 \IndexCustom{constant}{variable!constant}
 apply to local variables with the same definitions as for other variables
 (\ref{variables}).
@@ -19039,7 +19021,7 @@ it is guaranteed that the variable has \emph{not} been initialized.%
 
 In every situation which is not covered by the previous paragraph,
 it is a compile-time error to assign to a local variable
-which is \FINAL{} and not \LATE{}
+which is final and not late
 (\ref{assignment}).%
 }
 
@@ -22218,10 +22200,13 @@ and the actual types of declarations
 }
 
 \LMHash{}%
-An expression is a \emph{type literal} if it is an identifier,
+An expression is a \Index{type literal} if it is an identifier,
 or a qualified identifier,
 which denotes a class, mixin, enum, or type alias declaration, or it is
-an identifier denoting a type parameter of a generic class or function.
+an identifier denoting a type parameter of a generic class or function,
+or it is an identifier or qualified identifier which is a type literal
+and which is followed by a list of actual type arguments
+derived from \synt{typeArguments}.
 It is a \emph{constant type literal} if it does not denote a type parameter,
 and it is not qualified by a deferred prefix.
 \commentary{%
