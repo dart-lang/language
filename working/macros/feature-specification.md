@@ -1321,7 +1321,7 @@ APIs so that they would support multiple return types instead of a single one.
 The implementation of this package will always come from the SDK, through a
 `dart:_macros` library, which will be exported by this package. The
 `dart:_macros` library will be blocked from being imported or exported by any
-library other than other `dart:` libraries.
+library other than other `dart:` libraries and this package.
 
 We use a `dart:` library here to ensure that the binaries shipped with the SDK
 are compiled with exactly the same version of the API that macros are compiled
