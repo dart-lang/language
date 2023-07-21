@@ -1458,7 +1458,6 @@ A \IndexCustom{final variable}{variable!final}
 is a variable whose declaration includes the modifier \FINAL.
 
 
-
 \subsection{Implicitly Induced Getters and Setters}
 \LMLabel{implicitlyInducedGettersAndSetters}
 
@@ -2368,8 +2367,8 @@ The body scope of a function $f$ is enclosed in the scope introduced by
 the formal parameter scope of $f$.
 
 \LMHash{}%
-It is a \Error{compile-time error} if a formal parameter
-is declared as a constant variable (\ref{variables}).
+It is a \Error{compile-time error} if a formal parameter declaration
+has the modifier \CONST.
 % We put the following error here because it's shared among all kinds of
 % functions except one.
 It is a \Error{compile-time error} if an optional formal parameter
@@ -8736,7 +8735,7 @@ are the following:
   that is not qualified by a deferred prefix,
   is a potentially constant and constant expression.
   \commentary{%
-    For example, if class $C$ declares a constant class variable $v$, !!!TODO!!!
+    For example, if class $C$ declares a static constant variable $v$,
     \code{$C$.$v$} is a constant.
     The same is true if $C$ is accessed via a prefix $p$;
     \code{$p$.$C$.$v$} is a constant unless $p$ is a deferred prefix.%
@@ -19139,7 +19138,7 @@ of $v$.
 Otherwise, the variable $v$ is bound to $o$.
 
 \LMHash{}%
-Let $D$ be a \LATE{} and \FINAL{} local variable declaration
+Let $D$ be a \LATE{} and final local variable declaration
 that declares a variable $v$.
 If an object $o$ is assigned to $v$
 in a situation where $v$ is unbound
@@ -19465,7 +19464,7 @@ It is a \Error{compile-time error} if $T$ is not assignable to
 It follows that it is a compile-time error
 % The following error exists also in the case where \id{} is definitely
 % unassigned before the loop: The loop could run >1 time.
-if $D$ is empty and \id{} is a final variable.
+if $D$ is empty and \id{} is a final or constant variable.
 Also, it is a dynamic error if $e$ has type \DYNAMIC,
 but $e$ evaluates to an instance of a type
 which is not a subtype of \code{Iterable<Object?>}.%
