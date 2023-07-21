@@ -352,15 +352,15 @@ and the values emitted by generator functions._
 
 Let `K` be the value context schema for the function body as computed above
 from the imposed return type schema.
-_When we refer to the _inferred type_ of an expression with a typing context,
-it is the type inferred using the local type inference algorithm
-described below._
+_When we refer to the inferred type of an expression with a typing context,
+it is the static type of the expression inferred using the local type inference
+algorithm described below._
 
 The actual value type of a function literal with an expression body, `=> e`,
 _(which cannot be a generator function)_ is computed as follows:
   - If the enclosing function is marked `async`,
-    let `T` be the inferred type of the returned expession with `FutureOr<K>`
-    as typing context.
+    then let `T` be the inferred type of the returned expession with
+    `FutureOr<K>` as typing context.
     The actual value type is **flatten**(`T`).
   - If the enclosing function is not marked `async`, let `T` be the inferred
     type of the returned expression with typing context `K`.
@@ -380,17 +380,16 @@ to find a value type `V` for that statement.
 
   - If the enclosing function is a non-`async` non-generator function,
     the relevant statements are `return;` or `return e;` statements.
-    -   For a `return;` statement, let `V` be `Null`.
-    -   For a `return e;` statement, let `V` be the inferred type of `e` with
-        `K` as context type scheme, using the local type inference algorithm
-        described below.
+    * For a `return;` statement, let `V` be `Null`.
+    * For a `return e;` statement, let `V` be the inferred type of `e` with
+      `K` as context type scheme.
 
   - If the enclosing function is marked `async`, the relevant statements
-     are `return;` and `return e;` statements.
+    are `return;` and `return e;` statements.
     * For a `return;` statement, let `V` be `Null`.
-    * For a `return e;` statement, let `S` be the inferred type of `e`
-      with typing context `_` if `K` is `_`,
-      and with typing context `FutureOr<K>` if `K` is not `_`,
+    * For a `return e;` statement,
+      then let `S` be the inferred type of `e` with typing context
+      `FutureOr<K>`.
       Let `V` be **flatten**(`S`).
 
   - If the enclosing function is marked `sync*`, the relevant statements
@@ -417,7 +416,7 @@ to find a value type `V` for that statement.
       `Stream<Object?>`, so either `S` implements `Stream`,
       or it is one of `dynamic` or `Never`._
 
-After processing each relevant statement, update `T` to be **UP**(`T`, `V`).
+After processing each relevant statement, update `T` to be **UP**(`V`, `T`).
 
 The **actual value type** of the function literal is the value of `T` after
 all relevant `return` and `yield` statements in the block body have been
@@ -426,12 +425,17 @@ processed.
 Let `T` be the **actual value type** of a function literal as computed above.
 Let `R` be the greatest closure of the typing context `K` as computed above.
 
+_Then compute the actual value/element type, `S`, to use in the inferred return
+type of the function literal, based on the _actual value type_, but bounded
+by the _typing context_, if any._
+
 With null safety, if `R` is `void`, let `S` be `void`
 _(without null-safety: no special treatment is applicable to `void`)_.
 
-Otherwise (_without null safety or if `R` is not `void`_),
-if `T <: R` then let `S` be `T`, else let `S` be `R`.  The
-inferred return type of the function literal is then defined as follows:
+Otherwise (_if `R` is not `void`, or without null safety_),
+if `T <: R` then let `S` be `T`, else let `S` be `R`.
+
+The inferred return type of the function literal is then defined as follows:
 
   - If the function literal is marked `async` then the inferred return type is
     `Future<S>`.
