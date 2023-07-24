@@ -58,6 +58,9 @@
 % Mar 2023
 % - Clarify how line breaks are handled in a multi-line string literal. Rename
 %   the lexical token NEWLINE to LINE\_BREAK (clarifying that it is not `\n`).
+% - Clean up grammar rules (avoid `T?` as a superclass/etc., which is an
+%   error anyway; change extension names to `typeIdentifier`, avoiding
+%   built-in identifiers).
 %
 % Feb 2023
 % - Change the specification of constant expressions of the form `e1 == e2`
@@ -6064,7 +6067,7 @@ and whether the invocation satisfies several other requirements.
 
 \begin{grammar}
 <extensionDeclaration> ::=
-  \gnewline{} \EXTENSION{} <identifier>? <typeParameters>? \ON{} <type>
+  \gnewline{} \EXTENSION{} <typeIdentifier>? <typeParameters>? \ON{} <type>
   \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
 \end{grammar}
 
@@ -6167,8 +6170,6 @@ but it can be used to denote the extension itself
 e.g., in order to access static members of the extension,
 or in order to resolve an invocation explicitly%
 }).
-A compile-time error occurs if the declared name of an extension
-is a built-in identifier.
 
 \LMHash{}%
 An extension declaration introduces two scopes:
@@ -20690,11 +20691,6 @@ that is,
 it denotes an \synt{IDENTIFIER} which is not a \synt{BUILT\_IN\_IDENTIFIER}
 (\ref{identifierReference}).%
 }
-%% TODO(eernst): The following non-terminals are currently unused (they will
-%% be used when we transfer more grammar rules from Dart.g): <typeNotVoid>
-%% and <typeNotVoidNotFunctionList>. They are used in the syntax for
-%% \EXTENDS, \WITH, \IMPLEMENTS{} syntax and for mixin applications
-%% in Dart.g, and it seems likely that we will use them here as well.
 
 \commentary{%
 Non-terminals with names of the form \synt{\ldots{}NotFunction}
@@ -20710,13 +20706,13 @@ but it is the least upper bound of all function types.%
   \alt <typeNotFunction>
 
 <typeNotVoid> ::= <functionType> `?'?
-  \alt <typeNotVoidNotFunction>
+  \alt <typeNotVoidNotFunction> `?'?
 
 <typeNotFunction> ::= \VOID{}
-  \alt <typeNotVoidNotFunction>
+  \alt <typeNotVoidNotFunction> `?'?
 
-<typeNotVoidNotFunction> ::= <typeName> <typeArguments>? `?'?
-  \alt \FUNCTION{} `?'?
+<typeNotVoidNotFunction> ::= <typeName> <typeArguments>?
+  \alt \FUNCTION{}
 
 <typeName> ::= <typeIdentifier> (`.' <typeIdentifier>)?
 
