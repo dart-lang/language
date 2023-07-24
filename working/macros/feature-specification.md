@@ -1362,7 +1362,7 @@ The release/versioning strategy for the package is as follows:
   by design. The new features are being exposed only by the new SDK and are not
   available to older SDKs.
 
-  Since this is only a patch release, all existing packages that depend on this
+  Since this is only a minor release, all existing packages that depend on this
   package (with a standard version constraint) will support it already, so no
   work is required on macro authors' part to work with the new Dart SDK.
 
