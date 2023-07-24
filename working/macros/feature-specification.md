@@ -1328,14 +1328,62 @@ are compiled with exactly the same version of the API that macros are compiled
 with. This ensures the communication protocol between macros and the SDK
 binaries are compatible.
 
-This package will have tight upper bound SDK constraints, and will need to be
-released any time a new minor release is published. It is expected that most of
-these releases would be patch releases, which only increase the max SDK
-constraint.
+This package will have tight upper bound SDK constraints, constrained to the
+minor release versions instead of major release versions.
 
-Any time the API changes (breaking or otherwise), the min SDK constraint of the
-package must be updated to match the version of the SDK where the API changed.
-This must always correspond to a minor SDK version.
+The release/versioning strategy for the package is as follows:
+
+- We will not allow any changes to the macro APIs in patch releases of the SDK,
+  even non-breaking changes. The package restricts itself to minor releases and
+  not patch releases of the SDK, so these changes would silently be visible to
+  users in a way that wasn't versioned through the package.
+
+- When a new version of the Dart SDK is released which **does not have any**
+  changes to the macro API, then we will do a patch release of this package
+  which simply expands the SDK upper bound to include that version (specifically
+  it will be updated to less than the next minor version). For example,
+  if version `3.5.0` of the SDK was just released, and it has no changes to the
+  macro API, the new upper bound SDK constraint would be `<3.6.0` and the lower
+  bound would remain unchanged.
+
+  Since this is only a patch release of this package, all existing packages that
+  depend on this package (with a standard version constraint) will support it
+  already, so no work is required on macro authors' part to work with the new
+  Dart SDK.
+
+- When a new version of the Dart SDK is released which has **non-breaking**
+  changes to the macro API, then we will do a minor release of this package,
+  which increases the lower bound SDK constraint to the newly released version,
+  and the upper bound to less than the next minor release version. For example,
+  if version `3.5.0` of the SDK was just released, and it has **non-breaking**
+  changes to the macro API, the new SDK constraint would be `>=3.5.0 <3.6.0`.
+
+  Note that only users on the newest SDK will get this new version, but that is
+  by design. The new features are being exposed only by the new SDK and are not
+  available to older SDKs.
+
+  Since this is only a patch release, all existing packages that depend on this
+  package (with a standard version constraint) will support it already, so no
+  work is required on macro authors' part to work with the new Dart SDK.
+
+  If a macro author wants to **use** the new features, they must update their
+  minimum constraint on this package to the latest version to ensure the new
+  features are available.
+
+- When a new version of the Dart SDK includes a **breaking** change to the macro
+  API, then we will release a new major version of this package, and update the
+  SDK constraints in the same way as non-breaking changes (update both the
+  minimum and maximum SDK constraints, so only the current minor version is
+  allowed). By default, existing packages containing macros will not accept that
+  version of the macro package and thus will not work with the new Dart SDK.
+
+  Authors of packages containing macros will need to test to see if their macro
+  is compatible with the latest macro API. If so, they can ship a new patch
+  version of their package with a constraint on the macro package that includes
+  the new major version as well as the previous major version it's already known
+  to work with. If their package is broken by the macro API change, then, they
+  will fix their macro and ship a new version of their package with a dependency
+  on the macro package that only allows the latest major versions.
 
 This approach has several advantages for macro authors and users, which are
 closely aligned with the design goals:
