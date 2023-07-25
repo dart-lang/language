@@ -54,6 +54,8 @@
 %   been eliminated (it is spelled out each time which modifiers must be
 %   present or not present). The concept is confusing now where a variable can
 %   be late and final, and assignments to it are allowed by the static analysis.
+% - Change the definition of the 'element type of a generator function', due to
+%   soundness issue with the current definition.
 %
 % Mar 2023
 % - Clarify how line breaks are handled in a multi-line string literal. Rename
@@ -2074,13 +2076,15 @@ a function marked \code{\SYNC*} or \code{\ASYNC*} is \VOID.
 
 \LMHash{}%
 We define the
-\Index{union-free type}
-of a type $T$ as follows:
+\Index{union-free type derived from}
+a type $T$ as follows:
 If $T$ is of the form \code{$S$?}\ or the form \code{FutureOr<$S$>}
-then the union-free type of $T$ is the union-free type of $S$.
-Otherwise, the union-free type of $T$ is $T$.
+then the union-free type derived from $T$ is
+the union-free type derived from $S$.
+Otherwise, the union-free type derived from $T$ is $T$.
 \commentary{%
-For example, the union-free type of \code{FutureOr<int?>?} is \code{int}.%
+For example, the union-free type derived from
+\code{FutureOr<int?>?} is \code{int}.%
 }
 
 \LMHash{}%
@@ -2089,7 +2093,7 @@ We define the
     function!generator!element type}
 $f$ as follows:
 %
-Let $S$ be the union-free type of the declared return type of $f$.
+Let $S$ be the union-free type derived from the declared return type of $f$.
 %
 If $f$ is a synchronous generator and
 $S$ implements \code{Iterable<$U$>} for some $U$
@@ -11649,7 +11653,7 @@ where inferred types have already been added.%
 
 \LMHash{}%
 We say that $S$ is the
-\IndexCustom{future type of a type}{type!future type of}
+\IndexCustom{future type derived from a type}{type!future type derived from}
 $T$ in the following cases, using the first applicable case:
 
 \begin{itemize}
@@ -11664,10 +11668,10 @@ $T$ in the following cases, using the first applicable case:
 
 \LMHash{}%
 When none of these cases are applicable,
-we say that $T$ does not have a future type.
+we say that $T$ does not derive a future type.
 
 \commentary{%
-Note that if $T$ has a future type $F$ then \SubtypeNE{T}{F},
+Note that if $T$ derives a future type $F$ then \SubtypeNE{T}{F},
 and $F$ is always of the form \code{$G$<...>} or \code{$G$<...>?},
 where $G$ is \code{Future} or \code{FutureOr}.%
 }
@@ -11684,17 +11688,17 @@ as follows, using the first applicable case:
 \item If $T$ is \code{$X$\,\&\,$S$}
   for some type variable $X$ and type $S$ then
   \begin{itemize}
-  \item if $S$ has future type $U$
+  \item if $S$ derives future type $U$
     then \DefEquals{\flatten{T}}{\code{\flatten{U}}}.
   \item otherwise,
     \DefEquals{\flatten{T}}{\code{\flatten{X}}}.
   \end{itemize}
 
-\item If $T$ has future type \code{Future<$S$>}
+\item If $T$ derives future type \code{Future<$S$>}
   or \code{FutureOr<$S$>}
   then \DefEquals{\flatten{T}}{S}.
 
-\item If $T$ has future type \code{Future<$S$>?}\ or
+\item If $T$ derives future type \code{Future<$S$>?}\ or
   \code{FutureOr<$S$>?}\ then \DefEquals{\flatten{T}}{\code{$S$?}}.
 
 \item Otherwise, \DefEquals{\flatten{T}}{T}.
