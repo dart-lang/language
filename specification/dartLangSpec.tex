@@ -11688,17 +11688,17 @@ as follows, using the first applicable case:
 \item If $T$ is \code{$X$\,\&\,$S$}
   for some type variable $X$ and type $S$ then
   \begin{itemize}
-  \item if $S$ derives future type $U$
+  \item if $S$ derives a future type $U$
     then \DefEquals{\flatten{T}}{\code{\flatten{U}}}.
   \item otherwise,
     \DefEquals{\flatten{T}}{\code{\flatten{X}}}.
   \end{itemize}
 
-\item If $T$ derives future type \code{Future<$S$>}
+\item If $T$ derives a future type \code{Future<$S$>}
   or \code{FutureOr<$S$>}
   then \DefEquals{\flatten{T}}{S}.
 
-\item If $T$ derives future type \code{Future<$S$>?}\ or
+\item If $T$ derives a future type \code{Future<$S$>?}\ or
   \code{FutureOr<$S$>?}\ then \DefEquals{\flatten{T}}{\code{$S$?}}.
 
 \item Otherwise, \DefEquals{\flatten{T}}{T}.
