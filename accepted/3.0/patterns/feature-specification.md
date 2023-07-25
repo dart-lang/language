@@ -9,7 +9,7 @@ Version 2.32 (see [CHANGELOG](#CHANGELOG) at end)
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
 
-[records]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/records/records-feature-specification.md
+[records]: https://github.com/dart-lang/language/blob/master/accepted/3.0/records/feature-specification.md
 
 ## Summary
 
@@ -640,7 +640,7 @@ It is a compile-time error if:
 *Note that `mapPatternEntries` is not optional, which means it is an error for
 a map pattern to be empty.*
 
-[structurally equivalent]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/records/records-feature-specification.md#canonicalization
+[structurally equivalent]: https://github.com/dart-lang/language/blob/master/accepted/3.0/records/feature-specification.md#canonicalization
 
 #### Open and closed maps
 
@@ -2482,7 +2482,7 @@ patterns is complex, so the proposal to define how it works is in a [separate
 document][exhaustiveness]. That tells us if the cases in a switch statement or
 expression are exhaustive or not.
 
-[exhaustiveness]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
+[exhaustiveness]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/exhaustiveness.md
 
 We don't want to require *all* switches to be exhaustive. The language currently
 does not require switch statements on, say, strings to be exhaustive, and

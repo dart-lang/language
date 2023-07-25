@@ -13,8 +13,8 @@ of [switch statements and expressions][switch] as part of the proposed support
 for [pattern matching][patterns]. It also tries to provide an intuition for how
 the algorithm works.
 
-[switch]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md#switch-statement
-[patterns]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md
+[switch]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/feature-specification.md#switch-statement
+[patterns]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/feature-specification.md
 
 Exhaustiveness checking is about answering two questions:
 
@@ -60,7 +60,7 @@ Dart already supports exhaustiveness and reachability warnings in switch
 statements on `bool` and enum types. This document extends that to handle
 destructuring patterns and [algebraic datatype-style][adt] code.
 
-[adt]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md#algebraic-datatypes
+[adt]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/feature-specification.md#algebraic-datatypes
 
 The approach is based on the paper ["Warnings for pattern matching"][maranget]
 (PDF) by Luc Maranget, modified to handle subtyping, named field destructuring,
@@ -75,7 +75,7 @@ for Checking Exhaustivity of Pattern Matching"][space paper] by [Fengyun Liu][].
 There is a [prototype implementation][prototype] of the algorithm with detailed
 comments and tests.
 
-[prototype]: https://github.com/dart-lang/language/tree/master/accepted/future-releases/0546-patterns/exhaustiveness_prototype
+[prototype]: https://github.com/dart-lang/language/tree/master/accepted/3.0/patterns/exhaustiveness_prototype
 
 ### Why check for exhaustiveness?
 

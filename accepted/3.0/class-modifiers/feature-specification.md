@@ -244,16 +244,16 @@ supertype. Then you are only allowed to directly extend, implement, or mix in
 that supertype from within the same library.
 
 [sealed]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/sealed-types/feature-specification.md
-[pattern matching features]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md
+[pattern matching features]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/feature-specification.md
 
 In return for that restriction, in a switch, if you cover all of those subtypes,
 then the compiler knows that you have [exhaustively][exhaustive] covered all
 possible instances of the supertype. This is a big part of enabling a
 [functional programming style][fp] in Dart.
 
-[exhaustive]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
+[exhaustive]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/exhaustiveness.md
 
-[fp]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md#algebraic-datatypes
+[fp]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/feature-specification.md#algebraic-datatypes
 
 The `sealed` modifier prevents direct subtyping from outside of the library
 where the sealed type is defined. But it doesn't prevent you from subtyping
