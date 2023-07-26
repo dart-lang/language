@@ -54,6 +54,8 @@
 %   been eliminated (it is spelled out each time which modifiers must be
 %   present or not present). The concept is confusing now where a variable can
 %   be late and final, and assignments to it are allowed by the static analysis.
+% - Change the definition of the 'element type of a generator function', due to
+%   soundness issue with the current definition.
 %
 % Mar 2023
 % - Clarify how line breaks are handled in a multi-line string literal. Rename
@@ -2076,30 +2078,40 @@ It is a compile-time error if the declared return type of
 a function marked \code{\SYNC*} or \code{\ASYNC*} is \VOID.
 
 \LMHash{}%
-We define the notion of the
-\IndexCustom{element type of a generator}{function!generator!element type}
-as follows:
+We define the
+\Index{union-free type derived from}
+a type $T$ as follows:
+If $T$ is of the form \code{$S$?}\ or the form \code{FutureOr<$S$>}
+then the union-free type derived from $T$ is
+the union-free type derived from $S$.
+Otherwise, the union-free type derived from $T$ is $T$.
+\commentary{%
+For example, the union-free type derived from
+\code{FutureOr<int?>?} is \code{int}.%
+}
+
+\LMHash{}%
+We define the
+\IndexCustom{element type of a generator function}{%
+    function!generator!element type}
+$f$ as follows:
 %
-If the function $f$ is a synchronous generator
-whose declared return type implements \code{Iterable<$U$>} for some $U$
+Let $S$ be the union-free type derived from the declared return type of $f$.
+%
+If $f$ is a synchronous generator and
+$S$ implements \code{Iterable<$U$>} for some $U$
 (\ref{interfaceSuperinterfaces})
 then the element type of $f$ is $U$.
 %
-If the function $f$ is an asynchronous generator
-whose declared return type implements \code{Stream<$U$>} for some $U$
+If $f$ is an asynchronous generator and
+$S$ implements \code{Stream<$U$>} for some $U$
 then the element type of $f$ is $U$.
 %
-Otherwise, if the function $f$ is a generator
-(\commentary{synchronous or asynchronous})
+Otherwise, if $f$ is a generator (synchronous or asynchronous)
+and $S$ is a supertype of \code{Object}
+(\commentary{which includes \code{Object} itself})
 then the element type of $f$ is \DYNAMIC.
-
-\commentary{%
-%% TODO(eernst): Come nnbd, change `a top type' to \DYNAMIC.
-In the latter case the return type is a top type,
-because the declaration of $f$ would otherwise be a compile-time error.
-This implies that there is no information about
-the type of elements that the generator will yield.%
-}
+\commentary{No further cases are possible.}
 
 
 \subsection{Function Declarations}
@@ -11642,7 +11654,7 @@ where inferred types have already been added.%
 
 \LMHash{}%
 We say that $S$ is the
-\IndexCustom{future type of a type}{type!future type of}
+\IndexCustom{future type derived from a type}{type!future type derived from}
 $T$ in the following cases, using the first applicable case:
 
 \begin{itemize}
@@ -11657,10 +11669,10 @@ $T$ in the following cases, using the first applicable case:
 
 \LMHash{}%
 When none of these cases are applicable,
-we say that $T$ does not have a future type.
+we say that $T$ does not derive a future type.
 
 \commentary{%
-Note that if $T$ has a future type $F$ then \SubtypeNE{T}{F},
+Note that if $T$ derives a future type $F$ then \SubtypeNE{T}{F},
 and $F$ is always of the form \code{$G$<...>} or \code{$G$<...>?},
 where $G$ is \code{Future} or \code{FutureOr}.%
 }
@@ -11677,17 +11689,17 @@ as follows, using the first applicable case:
 \item If $T$ is \code{$X$\,\&\,$S$}
   for some type variable $X$ and type $S$ then
   \begin{itemize}
-  \item if $S$ has future type $U$
+  \item if $S$ derives a future type $U$
     then \DefEquals{\flatten{T}}{\code{\flatten{U}}}.
   \item otherwise,
     \DefEquals{\flatten{T}}{\code{\flatten{X}}}.
   \end{itemize}
 
-\item If $T$ has future type \code{Future<$S$>}
+\item If $T$ derives a future type \code{Future<$S$>}
   or \code{FutureOr<$S$>}
   then \DefEquals{\flatten{T}}{S}.
 
-\item If $T$ has future type \code{Future<$S$>?}\ or
+\item If $T$ derives a future type \code{Future<$S$>?}\ or
   \code{FutureOr<$S$>?}\ then \DefEquals{\flatten{T}}{\code{$S$?}}.
 
 \item Otherwise, \DefEquals{\flatten{T}}{T}.
@@ -12464,10 +12476,10 @@ either by evaluating to an object, or by the evaluation throwing.%
 If $f$ is marked \code{\SYNC*} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $i$
 implementing \code{Iterable<$U$>} is immediately returned,
-where $U$ is determined as follows:
-Let $T$ be the actual return type of $f$ (\ref{actualTypes}).
-If $T$ is \code{Iterable<$S$>} for some type $S$, then $U$ is $S$,
-otherwise $U$ is \code{Object}.
+where $U$ is the actual type
+(\ref{actualTypes})
+corresponding to the element type of $f$
+(\ref{functions}).
 
 \commentary{%
 A Dart implementation will need to provide
@@ -12550,8 +12562,10 @@ Two executions of an iterator interact only via state outside the function.%
 If $f$ is marked \ASYNC{} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $o$
 is associated with the invocation,
-where the dynamic type of $o$ implements \code{Future<$flatten(T)$>},
-and $T$ is the actual return type of $f$ (\ref{actualTypes}).
+where the dynamic type of $o$ implements \code{Future<T>},
+where $T$ is the actual type
+(\ref{actualTypes})
+corresponding to the future value type of $f$.
 Then the body of $f$ is executed until it either suspends or completes,
 at which point $o$ is returned.
 \commentary{%
@@ -12577,10 +12591,10 @@ so the future is not completed with an error
 If $f$ is marked \code{\ASYNC*} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $s$
 implementing \code{Stream<$U$>} is immediately returned,
-where $U$ is determined as follows:
-Let $T$ be the actual return type of $f$ (\ref{actualTypes}).
-If $T$ is \code{Stream<$S$>} for some type $S$, then $U$ is $S$,
-otherwise $U$ is \code{Object}.
+where $U$ is the actual type
+(\ref{actualTypes})
+corresponding to the element type of $f$
+(\ref{functions}).
 When $s$ is listened to, execution of the body of $f$ will begin.
 When execution of the body of $f$ completes:
 \begin{itemize}
