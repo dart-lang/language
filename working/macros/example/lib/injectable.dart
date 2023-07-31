@@ -202,7 +202,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
     final fieldNames = <String>[];
     for (final method in methods) {
       // We are filling in just the external methods.
-      if (!method.isExternal) continue;
+      if (!method.hasExternal) continue;
 
       // We use the method name because it is always a valid field name.
       final fieldName = '_${method.identifier.name}Provider';
@@ -254,7 +254,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
     // For each external method, find the field we declared in the last step,
     // and fill in the body of the method to just invoke it.
     for (final method in methods) {
-      if (!method.isExternal) continue;
+      if (!method.hasExternal) continue;
       final methodBuilder = await builder.buildMethod(method.identifier);
       final field = fields.firstWhere((field) =>
           field.identifier.name == '_${method.identifier.name}Provider');
@@ -278,7 +278,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
     final constructors = await builder.constructorsOf(clazz);
     final factoryConstructor = constructors.singleWhere((constructor) =>
         constructor.isFactory &&
-        constructor.isExternal &&
+        constructor.hasExternal &&
         constructor.identifier.name == '');
     final constructorBuilder =
         await builder.buildConstructor(factoryConstructor.identifier);
