@@ -1,7 +1,7 @@
 # Augmentation Libraries
 
 Author: rnystrom@google.com, jakemac@google.com
-Version: 1.12 (see [Changelog](#Changelog) at end)
+Version: 1.13 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -348,9 +348,12 @@ declaration and the augmentation. This is to ensure that looking at either one
 will give a complete depiction of the capabilities of the type, and an
 augmentation cannot introduce hidden restrictions.
 
-A class or enum augmentation may specify `implements` and `with` clauses. When
-those appear, the specified superinterfaces and mixins are appended to the main
-class's superinterface and mixin lists, respectively.
+A class, enum, extension, or mixin augmentation may specify `extends`,
+`implements`, `on`, and `with` clauses (when generally supported). The types in
+these clauses are appended to the original declarations clauses of the same
+kind, and if that clause did not exist previously then it is added with the new
+types. All regular rules apply after this appending process, so you cannot have
+multiple `extends` on a class, or an `on` clause on an enum, etc.
 
 **TODO: Is appending the right order for mixins?**
 
@@ -372,11 +375,15 @@ It is a compile-time error if:
     modifiers (final, sealed, mixin, etc). This is not a technical requirement
     but it should make augmentations easier to understand when looking at them.
 
-*   The augmenting type declares an `extends` clause. Only the main declaration
-    can specify those.
+*   The augmenting type declares an `extends` clause, but one was already
+    present. We don't allow overwriting an existing `extends`, but one can be
+    filled in if it wasn't present originally.
 
-    **TODO: We could consider allowing an `extends` clause if the main
-    declaration doesn't have one.**
+*   An augmenting extension declares an `on` clause. We don't allow filling this
+    in for extensions, it must on the original declaration. This restriction
+    could be lifted later on if we have a compelling use case, as there is no
+    fundamental reason it cannot be allowed, although it would be a parse error
+    today to have an extension with no `on` clause.
 
 *   The type parameters of the type augmentation do not match the original
     type's type parameters. This means there must be the same number of type
@@ -959,6 +966,12 @@ consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+## 1.13
+
+*   Clarify which clauses are (not) allowed in augmentations of certain
+    declarations.
+*   Allow adding an `extends` clause in augmentations.
 
 ## 1.12
 
