@@ -2,7 +2,7 @@
 
 Author: Bob Nystrom
 
-Status: In progress
+Status: Accepted
 
 Version 2.0 (see [CHANGELOG](#CHANGELOG) at end)
 
