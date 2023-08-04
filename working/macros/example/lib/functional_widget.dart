@@ -5,6 +5,14 @@
 // There is no public API exposed yet, the in-progress API lives here.
 import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
+/// A macro that annotates a function, which becomes the build method for a
+/// generated stateless widget.
+///
+/// The function must have at least one positional parameter, which is of type
+/// BuildContext (and this must be the first parameter).
+///
+/// Any additional function parameters are turned into fields on the stateless
+/// widget.
 macro class FunctionalWidget implements FunctionTypesMacro {
   final Identifier? widgetIdentifier;
 
@@ -15,8 +23,8 @@ macro class FunctionalWidget implements FunctionTypesMacro {
       this.widgetIdentifier});
 
   @override
-  void buildTypesForFunction(
-      FunctionDeclaration function, TypeBuilder builder) {
+  Future<void> buildTypesForFunction(
+      FunctionDeclaration function, TypeBuilder builder) async {
     if (!function.identifier.name.startsWith('_')) {
       throw ArgumentError(
           'FunctionalWidget should only be used on private declarations');
@@ -36,10 +44,19 @@ macro class FunctionalWidget implements FunctionTypesMacro {
         function.identifier.name
             .replaceRange(0, 2, function.identifier.name[1].toUpperCase());
     var positionalFieldParams = function.positionalParameters.skip(1);
+    // ignore: deprecated_member_use
+    var statelessWidget = await builder.resolveIdentifier(
+        Uri.parse('package:flutter/widgets.dart'), 'StatelessWidget');
+    // ignore: deprecated_member_use
+    var buildContext = await builder.resolveIdentifier(
+        Uri.parse('package:flutter/widgets.dart'), 'BuildContext');
+    // ignore: deprecated_member_use
+    var widget = await builder.resolveIdentifier(
+        Uri.parse('package:flutter/widgets.dart'), 'Widget');
     builder.declareType(
         widgetName,
         DeclarationCode.fromParts([
-          'class $widgetName extends StatelessWidget {',
+          'class $widgetName extends ', statelessWidget, ' {',
           // Fields
           for (var param
               in positionalFieldParams.followedBy(function.namedParameters))
@@ -57,13 +74,14 @@ macro class FunctionalWidget implements FunctionTypesMacro {
           '{',
           for (var param in function.namedParameters)
             '${param.isRequired ? 'required ' : ''}this.${param.identifier.name}, ',
-          'Key? key,',
-          '}',
-          ') : super(key: key);',
+          'super.key,',
+          '});',
           // Build method
-          '''
-          @override
-          Widget build(BuildContext context) => ''',
+          '@override ',
+          widget,
+          ' build(',
+          buildContext,
+          ' context) => ',
           function.identifier,
           '(context, ',
           for (var param in positionalFieldParams) '${param.identifier.name}, ',
