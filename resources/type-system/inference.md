@@ -343,7 +343,8 @@ asynchronous non-generator function is a supertype of `Future<Never>`,
 which means that the last case of **futureValueTypeScheme** will only
 be applied when `S` is `Object`.
 Similarly for `async*` and `sync*` functions whose return types
-must be a supertypes of `Stream<Never>` and `Iterable<Never>`._
+must be a supertypes of `Stream<Never>` and `Iterable<Never>`.
+These requirements also prevent the return type from being a type variable._
 
 In order to infer the return type of a function literal, we first infer the
 **actual value type** of the function literal. _The actual value type
@@ -358,11 +359,11 @@ algorithm described below._
 
 The actual value type of a function literal with an expression body, `=> e`,
 _(which cannot be a generator function)_ is computed as follows:
-  - If the enclosing function is marked `async`,
+  - If the function literal is marked `async`,
     then let `T` be the inferred type of the returned expession with
     `FutureOr<K>` as typing context.
     The actual value type is **flatten**(`T`).
-  - If the enclosing function is not marked `async`, let `T` be the inferred
+  - If the function literal is not marked `async`, let `T` be the inferred
     type of the returned expression with typing context `K`.
     The actually value type is `T`.
 
@@ -378,13 +379,13 @@ one control path reaches the end of the block)_ let `T` be `null`.
 Then process relevant statements of the block, one by one in source order,
 to find a value type `V` for that statement.
 
-  - If the enclosing function is a non-`async` non-generator function,
+  - If the funtion literal is a non-`async` non-generator function,
     the relevant statements are `return;` or `return e;` statements.
     * For a `return;` statement, let `V` be `Null`.
     * For a `return e;` statement, let `V` be the inferred type of `e` with
-      `K` as context type scheme.
+      typing context `K`.
 
-  - If the enclosing function is marked `async`, the relevant statements
+  - If the function literal is marked `async`, the relevant statements
     are `return;` and `return e;` statements.
     * For a `return;` statement, let `V` be `Null`.
     * For a `return e;` statement,
@@ -392,7 +393,7 @@ to find a value type `V` for that statement.
       `FutureOr<K>`.
       Let `V` be **flatten**(`S`).
 
-  - If the enclosing function is marked `sync*`, the relevant statements
+  - If the function literal is marked `sync*`, the relevant statements
     are `yield e;` or `yield* e;` statement.
     * For a `yield e;` statement, let `V` be the inferred type of `e` with
       typing context `K`.
@@ -404,7 +405,7 @@ to find a value type `V` for that statement.
       `Iterable<Object?>`, so either `S` implements `Iterable`,
       or it is one of `dynamic` or `Never`._
 
-  - If the enclosing function is marked `async*`, the relevant statements are
+  - If the function literal is marked `async*`, the relevant statements are
     `yield e;` or `yield* e;` statements.
     * For a `yield e;` statement, let `V` be the inferred type of `e` with
       typing context `K`.
@@ -419,15 +420,14 @@ to find a value type `V` for that statement.
 After processing each relevant statement, update `T` to be **UP**(`V`, `T`).
 
 The **actual value type** of the function literal is the value of `T` after
-all relevant `return` and `yield` statements in the block body have been
-processed.
+all relevant statements in the block body have been processed.
 
 Let `T` be the **actual value type** of a function literal as computed above.
 Let `R` be the greatest closure of the typing context `K` as computed above.
 
 _Then compute the actual value/element type, `S`, to use in the inferred return
-type of the function literal, based on the _actual value type_, but bounded
-by the _typing context_, if any._
+type of the function literal, based on the actual value type, but bounded
+by the typing context, if any._
 
 With null safety, if `R` is `void`, let `S` be `void`
 _(without null-safety: no special treatment is applicable to `void`)_.
@@ -443,7 +443,8 @@ The inferred return type of the function literal is then defined as follows:
     `Stream<S>`.
   - If the function literal is marked `sync*` then the inferred return type is
     `Iterable<S>`.
-  - Otherwise, the inferred return type is `S`.
+  - Otherwise, _a synchronous non-generator function_, the inferred return
+    type is `S`.
 
 ## Local return type inference.
 
