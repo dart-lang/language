@@ -1080,9 +1080,9 @@ representation type of _DV_.
 non-extension type, it must be sound to consider the representation object
 as having type `T`.*
 
-A compile-time error occurs if any direct or indirect superinterface
-of _DV_ is the type `Name` or a type of the form `Name<...>`. *As
-usual, subtype cycles are not allowed.*
+A compile-time error occurs if any direct or indirect superinterface of
+_DV_ denotes the declaration _DV_. *As usual, subtype cycles are not
+allowed.*
 
 Assume that _DV_ has two direct or indirect superinterfaces of the form
 <code>W\<T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
