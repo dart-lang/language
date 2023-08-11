@@ -1072,18 +1072,17 @@ If _DV_ does not include an `<interfaces>` clause then _DV_ has
 relation which was specified earlier.
 
 A compile-time error occurs if `V1` is a type name or a parameterized type
-which occurs as a superinterface in an extension type declaration _DV_, but
-`V1` does not denote an extension type, and `V1` does not denote a
-supertype of the extension type erasure of the representation type of
-_DV_.
+which occurs as a superinterface in an extension type declaration _DV_, and
+`V1` denotes a non-extension type which is not a supertype of the
+representation type of _DV_.
 
 *In particular, in order to have `implements T` where `T` is a
 non-extension type, it must be sound to consider the representation object
 as having type `T`.*
 
-A compile-time error occurs if any direct or indirect superinterface
-of _DV_ is the type `Name` or a type of the form `Name<...>`. *As
-usual, subtype cycles are not allowed.*
+A compile-time error occurs if any direct or indirect superinterface of
+_DV_ denotes the declaration _DV_. *As usual, subtype cycles are not
+allowed.*
 
 Assume that _DV_ has two direct or indirect superinterfaces of the form
 <code>W\<T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
