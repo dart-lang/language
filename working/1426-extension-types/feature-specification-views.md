@@ -4,11 +4,11 @@ Author: eernst@google.com
 
 Status: Obsolete
 
-**This proposal is now obsolete. The mechanism has been renamed to _inline
-classes_. Please see the [inline classes specification][2] for the most recent proposed
-specification.**
+**This proposal is now obsolete. The mechanism has been renamed to
+_extension types_. Please see the [extension types specification][] for the
+most recent proposed specification.**
 
-[2]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/inline-classes/feature-specification.md
+[extension types specification]: https://github.com/dart-lang/language/blob/main/accepted/future-releases/extension-types/feature-specification.md
 
 
 ## Change Log
