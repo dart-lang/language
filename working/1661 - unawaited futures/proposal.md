@@ -2,7 +2,7 @@
 
 Author: lrn@google.com<br>Version: 0.2
 
-The Dart SDK now provides `package:lints` with recommended lints for new projects. This includes the [`unawaited_futures`](https://dart-lang.github.io/linter/lints/unawaited_futures.html) lint. The lint warns if a `Future` value is not awaited, and is seemingly discarded, inside an `async` or `async*` function. Basically, it tries to avoid that you mistakenly forget to await a future which should have been awaited.
+The Dart SDK now provides `package:lints` with recommended lints for new projects. This includes the [`unawaited_futures`](https://dart.dev/lints/unawaited_futures) lint. The lint warns if a `Future` value is not awaited, and is seemingly discarded, inside an `async` or `async*` function. Basically, it tries to avoid that you mistakenly forget to await a future which should have been awaited.
 
 The lint is unique in that it has a large number of false positives (33K+ in internal Google code), but that the errors that it avoids are so valuable that it's worth adding extra code at every false positive. Currently all false positives call a method from `package:pedantic` as `unawaited(futureExpression)`. The function ignores its argument and returns `void`, which is sufficient to disable the lint.
 
@@ -92,7 +92,7 @@ Future<int> foo() async {
 
 ### Await only futures
 
-Another recommended lint is [`await_only_futures`](https://dart-lang.github.io/linter/lints/await_only_futures.html), which causes a warning if you `await` an expression with a type which doesn't suggest that it could be a future. 
+Another recommended lint is [`await_only_futures`](https://dart.dev/lints/await_only_futures), which causes a warning if you `await` an expression with a type which doesn't suggest that it could be a future. 
 
 > **AVOID** using await on anything which is not a future.
 >
@@ -141,7 +141,7 @@ Finally, we make it a compile-time error if an expression *e* has a static type 
 
 * *e* is the expression of an `<expressionStatement>`,
 * *e* is an initializer expression or increment expression of a C-style `for` loop (`for (here;…;here, here) …`).
-* *e* occurs in a position which expects `void`. *(This would also trigger the [`void_checks`](https://dart-lang.github.io/linter/lints/void_checks.html) lint.)*
+* *e* occurs in a position which expects `void`. *(This would also trigger the [`void_checks`](https://dart.dev/lints/void_checks) lint.)*
 
 and we recommend using either `await` or `unawaited` to avoid such an error. *(We can extend that to any expression "in tail position" of those expressions as well.)*
 
