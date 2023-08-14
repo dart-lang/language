@@ -2,7 +2,12 @@
 
 Author: Bob Nystrom
 
-Status: Accepted
+Status: Abandoned
+
+**This proposal was superceded by the [class-modifiers][] proposal. Please refer
+to that document for more recent information.**
+
+[class-modifiers]: https://github.com/dart-lang/language/blob/master/accepted/3.0/class-modifiers/feature-specification.md
 
 Version 1.1 (see [Changelog](#changelog) at end)
 
@@ -13,9 +18,9 @@ of the rest of that proposal, but they aren't needed for pattern matching, so
 this proposal separates them out.) For motivation, see the previously linked
 documents.
 
-[exhaustiveness checking]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/exhaustiveness.md
+[exhaustiveness checking]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/exhaustiveness.md
 
-[pattern matching]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md
+[pattern matching]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/feature-specification.md
 
 [type modifiers]: https://github.com/dart-lang/language/blob/master/inactive/type-modifiers/feature-specification.md
 

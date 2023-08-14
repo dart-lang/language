@@ -98,20 +98,44 @@ abstract mixin class Fake {
       throw UnimplementedError(invocation.memberName.toString());
 }
 
-/// Returns data as if everything was [myClass].
-class SimpleTypeIntrospector implements TypeIntrospector {
+/// This is a very basic identifier resolver, it does no actual resolution.
+class SimpleTypePhaseIntrospector implements TypePhaseIntrospector {
+  final Map<Uri, Map<String, Identifier>> identifiers;
+
+  SimpleTypePhaseIntrospector({required this.identifiers});
+
+  /// Looks up an identifier in [identifiers] using [library] and [name].
+  ///
+  /// Throws if it does not exist.
+  @override
+  Future<Identifier> resolveIdentifier(Uri library, String name) async =>
+      identifiers[library]![name]!;
+}
+
+class SimpleDeclarationPhaseIntrospector extends SimpleTypePhaseIntrospector
+    implements DeclarationPhaseIntrospector {
+  final Map<Identifier, Declaration> declarations;
   final Map<IntrospectableType, List<ConstructorDeclaration>> constructors;
   final Map<IntrospectableEnumDeclaration, List<EnumValueDeclaration>>
       enumValues;
   final Map<IntrospectableType, List<FieldDeclaration>> fields;
   final Map<IntrospectableType, List<MethodDeclaration>> methods;
 
-  SimpleTypeIntrospector({
+  SimpleDeclarationPhaseIntrospector({
+    required super.identifiers,
+    required this.declarations,
     required this.constructors,
     required this.enumValues,
     required this.fields,
     required this.methods,
   });
+
+  @override
+  Future<TypeDeclaration> typeDeclarationOf(
+          covariant Identifier identifier) async =>
+      declarations[identifier] as TypeDeclaration? ??
+      (throw UnsupportedError(
+          'Could not resolve identifier ${identifier.name}'));
 
   @override
   Future<List<ConstructorDeclaration>> constructorsOf(
@@ -130,40 +154,6 @@ class SimpleTypeIntrospector implements TypeIntrospector {
   Future<List<EnumValueDeclaration>> valuesOf(
           IntrospectableEnumDeclaration type) async =>
       enumValues[type] ?? [];
-}
-
-/// This is a very basic identifier resolver, it does no actual resolution.
-class SimpleIdentifierResolver implements IdentifierResolver {
-  final Map<Uri, Map<String, Identifier>> knownIdentifiers;
-
-  SimpleIdentifierResolver(this.knownIdentifiers);
-
-  /// Just returns a new [Identifier] whose name is [name].
-  @override
-  Future<Identifier> resolveIdentifier(Uri library, String name) async =>
-      knownIdentifiers[library]![name]!;
-}
-
-class SimpleTypeDeclarationResolver implements TypeDeclarationResolver {
-  final Map<Identifier, TypeDeclaration> _knownDeclarations;
-
-  SimpleTypeDeclarationResolver(this._knownDeclarations);
-
-  @override
-  Future<TypeDeclaration> declarationOf(
-          covariant Identifier identifier) async =>
-      _knownDeclarations[identifier] ??
-      (throw UnsupportedError(
-          'Could not resolve identifier ${identifier.name}'));
-}
-
-class FakeTypeInferrer extends Object with Fake implements TypeInferrer {
-  const FakeTypeInferrer();
-}
-
-/// Only supports named types with no type arguments.
-class SimpleTypeResolver implements TypeResolver {
-  const SimpleTypeResolver();
 
   @override
   Future<SimpleNamedStaticType> resolve(TypeAnnotationCode type) async {
@@ -176,6 +166,40 @@ class SimpleTypeResolver implements TypeResolver {
           for (final type in type.typeArguments) await resolve(type),
         ]);
   }
+
+  @override
+  Future<List<TypeDeclaration>> typesOf(Library library) async => [
+        for (var declaration in declarations.values)
+          if (declaration is TypeDeclaration) declaration,
+      ];
+}
+
+class SimpleDefinitionPhaseIntrospector
+    extends SimpleDeclarationPhaseIntrospector
+    implements DefinitionPhaseIntrospector {
+  SimpleDefinitionPhaseIntrospector(
+      {required super.identifiers,
+      required super.declarations,
+      required super.constructors,
+      required super.enumValues,
+      required super.fields,
+      required super.methods});
+
+  @override
+  Future<Declaration> declarationOf(Identifier identifier) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TypeAnnotation> inferType(OmittedTypeAnnotation omittedType) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<Declaration>> topLevelDeclarationsOf(Library library) async =>
+      declarations.values.toList(growable: false);
+
+  @override
+  Future<IntrospectableType> typeDeclarationOf(Identifier identifier) async =>
+      (await super.typeDeclarationOf(identifier)) as IntrospectableType;
 }
 
 /// Only supports exact matching, and only goes off of the name and nullability.
@@ -233,12 +257,14 @@ final stringType = NamedTypeAnnotationImpl(
 final fooLibrary = LibraryImpl(
     id: RemoteInstance.uniqueId,
     languageVersion: LanguageVersionImpl(3, 0),
+    metadata: [],
     uri: Uri.parse('package:foo/foo.dart'));
 
 final objectClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: objectIdentifier,
     library: fooLibrary,
+    metadata: [],
     interfaces: [],
     hasAbstract: false,
     hasBase: false,

@@ -24,7 +24,13 @@
 % CHANGES
 % =======
 %
-% Significant changes to the specification.
+% Significant changes to the specification. Note that the versions specified
+% below indicate the current tool chain version when those changes were made.
+% In practice, new features have always been integrated into the language
+% specification (this document) a while after the change was accepted into
+% the language and implemented. As of September 2022, the upcoming version of
+% the language which is being specified is indicated by a version number in
+% parentheses after the tool chain version.
 %
 % Note that the version numbers used below (up to 2.15) were associated with
 % the currently released language and tools at the time of the spec change,
@@ -35,9 +41,33 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Aug 2023
+% - Correct text about built-in identifier error and turn it into commentary
+%   (the normative text is in grammar rules using `typeIdentifier`), and
+%   correct the grammar for import prefixes to use `typeIdentifier`.
+%
+% Jul 2023
+% - Land the null-safety updates for sections about variables.
+% - Change terminology: A 'static variable' is now a variable whose declaration
+%   includes `static` (which used to be called a 'class variable'); the old
+%   meaning of 'static variable' is now never used (we spell out every time
+%   that it is a 'library variable or a static variable', where the latter is
+%   the new meaning of that phrase). This avoids the confusion that came up
+%   just about every single time the phrase 'static variable' came up in a
+%   discussion.
+% - Change terminology: The notion of 'mutable' and 'immutable' variables has
+%   been eliminated (it is spelled out each time which modifiers must be
+%   present or not present). The concept is confusing now where a variable can
+%   be late and final, and assignments to it are allowed by the static analysis.
+% - Change the definition of the 'element type of a generator function', due to
+%   soundness issue with the current definition.
+%
 % Mar 2023
 % - Clarify how line breaks are handled in a multi-line string literal. Rename
 %   the lexical token NEWLINE to LINE\_BREAK (clarifying that it is not `\n`).
+% - Clean up grammar rules (avoid `T?` as a superclass/etc., which is an
+%   error anyway; change extension names to `typeIdentifier`, avoiding
+%   built-in identifiers).
 %
 % Feb 2023
 % - Change the specification of constant expressions of the form `e1 == e2`
@@ -46,6 +76,8 @@
 % Dec 2022
 % - Change the definition of the type function 'flatten' to resolve soundness
 %   issue, cf. SDK issue #49396.
+% - Introducing null-safety related changes to the sections about variables
+%   and local variables.
 % - Change 'primitive operator ==' to 'primitive equality', and include
 %   constraints on `hashCode` corresponding to the ones we have on `==`.
 %
@@ -739,8 +771,8 @@ with the static type of $e_j$ as its declared type.
 
 \commentary{%
 Type inference of $e_j$ and the context type used for inference of $e_j$
-are not relevant,
-it is assumed that type inference has occurred already
+are not relevant.
+It is generally assumed that type inference has occurred already
 (\ref{overview}).%
 }
 
@@ -1276,36 +1308,61 @@ For example,
 is equivalent to
 \code{\VAR{} x; \VAR{} y;}
 and
-\code{\STATIC{} \FINAL{} String s1, s2 = "foo";}
-is equivalent to
-\code{\STATIC{} \FINAL{} String s1; \STATIC{} \FINAL{} String s2 = "foo";}.%
+\code{\STATIC\,\,\LATE\,\,\FINAL{} String s1, s2 = "foo";}
+is equivalent to having both
+\code{\STATIC\,\,\LATE\,\,\FINAL{} String s1;}
+and
+\code{\STATIC\,\,\LATE\,\,\FINAL{} String s2 = "foo";}.%
 }
 
 \LMHash{}%
 It is possible for a variable declaration to include the modifier \COVARIANT.
 The effect of doing this with an instance variable is described elsewhere
 (\ref{instanceVariables}).
-It is a compile-time error for the declaration of
-a variable which is not an instance variable
-to include the modifier \COVARIANT.
+It is a \Error{compile-time error} for the declaration of a variable
+which is not an instance variable to include the modifier \COVARIANT.
+
+\commentary{%
+A formal parameter declaration induces a local variable into a scope,
+but formal parameter declarations are not variable declarations
+and do not give rise to the above error.
+The effect of having the modifier \COVARIANT{} on a formal parameter
+is described elsewhere
+(\ref{covariantParameters}).%
+}
 
 \LMHash{}%
 In a variable declaration of one of the forms
-\code{$N$ $v$;}
-\code{$N$ $v$ = $e$;}
+\code{$N$\,\,\id;}
+or
+\code{$N$\,\,\id{} = $e$;}
 where $N$ is derived from
-\syntax{<metadata> <finalConstVarOrType>},
-we say that $v$ is the \Index{declaring occurrence} of the identifier.
+\syntax{<metadata> <finalConstVarOrType>} and \id{} is an identifier,
+we say that \id{} is a \Index{declaring occurrence} of the identifier.
 For every identifier which is not a declaring occurrence,
-we say that it is an \Index{referencing occurrence}.
+we say that it is a \Index{referencing occurrence}.
 We also abbreviate that to say that an identifier is
 a \Index{declaring identifier} respectively an \Index{referencing identifier}.
 
 \commentary{%
-In an expression of the form \code{$e$.\id} it is possible that
-$e$ has static type \DYNAMIC{} and \id{} cannot be associated with
-any specific declaration named \id{} at compile-time,
-but in this situation \id{} is still a referencing identifier.%
+In an expression of the form \code{$e$.$\id'$} it is possible that
+$e$ has static type \DYNAMIC{} and $\id'$ cannot be associated with
+any specific declaration named $\id'$ at compile-time,
+but in this situation $\id'$ is still a referencing identifier.%
+}
+
+\LMHash{}%
+For brevity, we will refer to a variable using its name,
+even though the name of a variable and the variable itself
+are very different concepts.
+
+\commentary{%
+So we will talk about ``the variable \id{}'',
+rather than introducing ``the variable $v$ named \id{}''\!,
+in order to be able to say ``the variable $v$'' later on.
+This should not create any ambiguities,
+\emph{because} the concept of a name and the concept of a variable
+are so different.%
 }
 
 \LMHash{}%
@@ -1317,100 +1374,195 @@ immediately followed by `\code{=}' and an \Index{initializing expression}.
 A variable declared at the top-level of a library is referred to as either a
 \IndexCustom{library variable}{variable!library} or a
 \IndexCustom{top-level variable}{variable!top-level}.
+It is a \Error{compile-time error} if a library variable declaration
+has the modifier \STATIC.
 
 \LMHash{}%
 A \IndexCustom{static variable}{variable!static}
-is a variable that is not associated with a particular instance,
-but rather with an entire library or class.
-Static variables include library variables and class variables.
-Class variables are variables whose declaration is
-immediately nested inside a class declaration and
-includes the modifier \STATIC.
-A library variable is implicitly static.
-It is a compile-time error to preface a top-level variable declaration
-with the built-in identifier (\ref{identifierReference}) \STATIC.
+is a variable whose declaration is
+immediately nested inside a \CLASS, \MIXIN, \ENUM, or \EXTENSION{} declaration
+and includes the modifier \STATIC.
+
+\LMHash{}%
+A \Error{compile-time error} occurs if a static or library variable has
+no initializing expression and a type which is not nullable
+(\ref{typeNullability}),
+unless the variable declaration has
+the modifier \LATE{} or the modifier \EXTERNAL.
+
+\LMHash{}%
+A \IndexCustom{non-local variable}{variable!non-local}
+is a library variable, a static variable, or an instance variable.
+\commentary{%
+That is, any kind of variable which is not a local variable.%
+}
 
 \LMHash{}%
 A \IndexCustom{constant variable}{variable!constant}
 is a variable whose declaration includes the modifier \CONST.
 A constant variable must be initialized to a constant expression
-(\ref{constants})
-or a compile-time error occurs.
+(\ref{constants}),
+or a \Error{compile-time error} occurs.
 
 \commentary{%
-An initializing expression of a constant variable occurs in a constant context
-(\ref{constantContexts}),
-which means that \CONST{} modifiers need not be specified explicitly.%
+An initializing expression $e$ of a constant variable declaration
+occurs in a constant context
+(\ref{constantContexts}).
+This means that \CONST{} modifiers in $e$ need not be specified explicitly.%
 }
 
-\LMHash{}%
-A \IndexCustom{final variable}{variable!final}
-is a variable whose binding is fixed upon initialization;
-a final variable $v$ will always refer to the same object
-after $v$ has been initialized.
-A variable is final if{}f its declaration includes
-the modifier \FINAL{} or the modifier \CONST.
+\rationale{%
+It is grammatically impossible for a constant variable declaration
+to have the modifier \LATE.
+However, even if it had been grammatically possible,
+a \LATE{} constant variable would still have to be a compile-time error,
+because being a compile-time constant is inherently incompatible
+with being computed late.
 
-\LMHash{}%
-A \IndexCustom{mutable variable}{variable!mutable}
-is a variable which is not final.
+Similarly, an instance variable cannot be constant
+(\ref{instanceVariables}).%
+}
 
-%% Note that the following relies on the assumption that inference has
-%% already taken place, including member signature inference. For instance,
-%% if `var x;` is an instance variable declaration that overrides `T get x;`
-%% then we treat `var x;` as if it had been `T x;`.
+
+\subsection{Implicitly Induced Getters and Setters}
+\LMLabel{implicitlyInducedGettersAndSetters}
+
+%% TODO(eernst): When inference is specified, we should be able to conclude
+%% that the cases with no declared type do not exist after type inference
+%% (for instance `var x;` or `var x = e;`), and then we can replace all rules
+%% about such cases by commentary saying that they may exist in the input,
+%% but they are gone after type inference.
+%%
+%% At this time we rely on the assumption that type inference has already
+%% occurred, which means that we can refer to the declared type of a variable
+%% without mentioning type inference.
 
 \LMHash{}%
 The following rules on implicitly induced getters and setters
-apply to all static and instance variables.
+apply to all non-local variable declarations.
+\commentary{%
+Local variable declarations
+(\ref{localVariableDeclaration})
+do not induce getters or setters.%
+}
 
 \LMHash{}%
-A variable declaration of one of the forms
-\code{$T$ $v$;}
-\code{$T$ $v$ = $e$;}
-\code{\CONST{} $T$ $v$ = $e$;}
-\code{\FINAL{} $T$ $v$;}
-or \code{\FINAL{} $T$ $v$ = $e$;}
-induces an implicit getter function (\ref{getters}) with signature
-\code{$T$ \GET{} $v$}
+\Case{Getter: Variable with declared type}
+Consider a variable declaration of one of the forms
+
+\begin{itemize}
+\item \code{\STATIC?\,\,\LATE?\,\,\FINAL?\,\,$T$\,\,\id;}
+\item \code{\STATIC?\,\,\LATE?\,\,\FINAL?\,\,$T$\,\,\id{} = $e$;}
+\item \code{\STATIC?\,\,\CONST\,\,$T$\,\,\id{} = $e$;}
+\end{itemize}
+
+\noindent
+where $T$ is a type, \id{} is an identifier,
+and \lit{?} indicates that the given modifier may be present or absent.
+Each of these declarations implicitly induces a getter
+(\ref{getters})
+with the header \code{$T$\,\,\GET\,\,\id},
 whose invocation evaluates as described below
 (\ref{evaluationOfImplicitVariableGetters}).
-In these cases the static type of $v$ is $T$.
+In these cases the declared type of \id{} is $T$.
+\EndCase
 
 \LMHash{}%
+\Case{Getter: Variable with no declared type}
 A variable declaration of one of the forms
-\code{\VAR{} $v$;}
-\code{\VAR{} $v$ = $e$;}
-\code{\CONST{} $v$ = $e$;}
-\code{\FINAL{} $v$;}
-or \code{\FINAL{} $v$ = $e$;}
-induces an implicit getter function with signature
-\code{\DYNAMIC{} \GET{} $v$}
-whose invocation evaluates as described below
+
+\begin{itemize}
+\item \code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id;}
+\item \code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id{} = $e$;}
+\item \code{\STATIC?\,\,\LATE?\,\,\FINAL\,\,\id;}
+\item \code{\STATIC?\,\,\LATE?\,\,\FINAL\,\,\id{} = $e$;}
+\item \code{\STATIC?\,\,\CONST\,\,\id{} = $e$;}
+\end{itemize}
+
+\noindent
+implicitly induces a getter with the header that
+contains \STATIC{} if{}f the declaration contains \STATIC{} and is followed by
+\code{$T$\,\,\GET\,\,\id},
+where $T$ is obtained from type inference
+in the case where $e$ exists,
+and $T$ is \DYNAMIC{} otherwise.
+The invocation of this getter evaluates as described below
 (\ref{evaluationOfImplicitVariableGetters}).
-%% TODO[inference]: We assume inference has taken place, i.e., inferred types
-%% are written explicitly. Does this mean that the initialized variants
-%% cannot exist (not even for `$e$` of type `dynamic`?). We probably don't
-%% want to start talking about a grammar before inference and another one
-%% after inference.
-In these cases, the static type of $v$ is \DYNAMIC{}
-(\ref{typeDynamic}).
+In these cases, the declared type of \id{} is $T$.
+\EndCase
 
 \LMHash{}%
-A mutable variable declaration of the form
-\code{{} $T$ $v$;}
-or \code{$T$ $v$ = $e$;}
-induces an implicit setter function (\ref{setters}) with signature
-\code{\VOID{} \SET{} $v$=($T$ $x$)}
-whose execution sets the value of $v$ to the incoming argument $x$.
+\Case{Setter: Mutable variable with declared type}
+A variable declaration of one of the forms
+
+\begin{itemize}
+\item \code{\STATIC?\,\,\LATE?\,\,$T$\,\,\id;}
+\item \code{\STATIC?\,\,\LATE?\,\,$T$\,\,\id{} = $e$;}
+\end{itemize}
+
+\noindent
+implicitly induces a setter (\ref{setters}) with the header
+\code{\VOID\,\,\SET\,\,\id($T$\,\,$x$)},
+whose execution sets the value of \id{} to the incoming argument $x$.
 
 \LMHash{}%
-A mutable variable declaration of the form
-\code{\VAR{} $v$;}
-or \code{\VAR{} $v$ = $e$;}
-induces an implicit setter function with signature
-\code{\VOID{} \SET{} $v$=(\DYNAMIC{} $x$)}
-whose execution sets the value of $v$ to the incoming argument $x$.
+\Case{Setter: Mutable variable with no declared type, with initialization}
+A variable declaration of the form
+\code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id{} = $e$;}
+implicitly induces a setter with the header
+\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)},
+whose execution sets the value of \id{} to the incoming argument $x$.
+
+\commentary{%
+Type inference could have provided a type different from \DYNAMIC{}
+(\ref{overview}).%
+}
+\EndCase
+
+\LMHash{}%
+\Case{Setter: Mutable variable with no declared type, no initialization}
+A variable declaration of the form
+\code{\STATIC?\,\,\LATE?\,\,\VAR\,\,\id;}
+implicitly induces a setter with the header
+\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)},
+whose execution sets the value of \id{} to the incoming argument $x$.
+
+\commentary{%
+Type inference has not yet been specified in this document
+(\ref{overview}).
+Note that type inference could change, e.g.,
+\code{\VAR\,\,x;} to \code{$T$\,\,x;},
+which would take us to an earlier case.%
+}
+\EndCase
+
+\LMHash{}%
+\Case{Setter: Late-final variable with declared type}
+A variable declaration of the form
+\code{\STATIC?\,\,\LATE\,\,\FINAL\,\,$T$\,\,\id;}
+implicitly induces a setter (\ref{setters}) with the header
+\code{\VOID\,\,\SET\,\,\id($T$\,\,$x$)}.
+If this setter is executed
+in a situation where the variable \id{} has not been bound,
+it will bind \id{} to the object that $x$ is bound to.
+If this setter is executed
+in a situation where the variable \id{} has been bound to an object,
+a dynamic error occurs.
+\EndCase
+
+\LMHash{}%
+\Case{Setter: Late-final variable with no declared type, no initialization}
+A variable declaration of the form
+\code{\STATIC?\,\,\LATE\,\,\FINAL\,\,\id;}
+implicitly induces a setter with the header
+\code{\VOID\,\,\SET\,\,\id(\DYNAMIC\,\,$x$)}.
+An execution of said setter
+in a situation where the variable \id{} has not been bound
+will bind \id{} to the object that the argument $x$ is bound to.
+An execution of the setter
+in a situation where the variable \id{} has been bound to an object
+will incur a dynamic error.
+\EndCase
 
 \LMHash{}%
 The scope into which the implicit getters and setters are introduced
@@ -1418,26 +1570,37 @@ depends on the kind of variable declaration involved.
 
 \LMHash{}%
 A library variable introduces a getter into
-the top level scope of the enclosing library.
-A class variable introduces a static getter into
-the immediately enclosing class.
+the library scope of the enclosing library.
+A static variable introduces a static getter into
+the body scope of the immediately enclosing
+class, mixin, enum, or extension declaration.
 An instance variable introduces an instance getter into
-the immediately enclosing class.
+the body scope of the immediately enclosing
+class, mixin, or enum declaration
+(\commentary{an extension cannot declare instance variables}).
 
 \LMHash{}%
-A mutable library variable introduces a setter into
-the top level scope of the enclosing library.
-A mutable class variable introduces a static setter into
-the immediately enclosing class.
-A mutable instance variable introduces an instance setter into
-the immediately enclosing class.
+A non-local variable introduces a setter if{}f
+it does not have the modifier \FINAL{} or the modifier \CONST{},
+or it is \LATE{} and \FINAL, but does not have an initializing expression.
 
 \LMHash{}%
-Let $v$ be variable declared in an initializing variable declaration,
-and let $e$ be the associated initializing expression.
-It is a compile-time error if the static type of $e$
-is not assignable to the declared type of $v$.
-It is a compile-time error if a final instance variable
+A library variable which introduces a setter will introduce
+a library setter into the enclosing library scope.
+A static variable which introduces a setter will introduce
+a static setter into the body scope of the immediately enclosing
+class, mixin, enum, or extension declaration.
+An instance variable that introduces a setter will introduce
+an instance setter into the body scope of the immediately enclosing
+class, mixin, or enum declaration
+(\commentary{an extension cannot declare instance variables}).
+
+\LMHash{}%
+Let \id{} be a variable declared by a variable declaration
+that has an initializing expression $e$.
+It is a \Error{compile-time error} if the static type of $e$
+is not assignable to the declared type of \id.
+It is a \Error{compile-time error} if a final instance variable
 whose declaration has an initializer expression
 is also initialized by a constructor,
 either by an initializing formal or an initializer list entry.
@@ -1446,34 +1609,49 @@ either by an initializing formal or an initializer list entry.
 It is a compile-time error if a final instance variable
 that has been initialized by means of
 an initializing formal of a constructor $k$
-is also initialized in the initializer list of $k$ (\ref{initializerLists}).
+is also initialized in the initializer list of $k$
+(\ref{initializerLists}).
 
-%% TODO(eernst): Not quite true, because of special lookup for assignment!
-A static final variable $v$ does not induce a setter,
-so unless a setter named \code{$v$=} is in scope
-it is a compile-time error to assign to $v$.
+A non-late static variable declaration $D$ named \id{}
+that has the modifier \FINAL{} or the modifier \CONST{}
+does not induce a setter.
+However, an assignment to \id{} at a location where $D$ is in scope
+is not necessarily a compile-time error.
+For example, a setter named \code{\id=} could be found by lexical lookup
+(\ref{lexicalLookup}).
 
-Similarly, assignment to a final instance variable $v$
-is a compile-time error,
-unless a setter named \code{$v$=} is in scope,
-or the receiver has type \DYNAMIC.
-$v$ can be initialized in its declaration or in initializer lists,
-but initialization and assignment is not the same thing.
-When the receiver has type \DYNAMIC{}
-such an assignment is not a compile-time error,
-% This error can occur because the receiver is dynamic.
-but if there is no setter it will cause a dynamic error.%
+Similarly, a non-late final instance variable \id{} does not induce a setter,
+but an assignment could be an invocation of
+a setter which is provided in some other way.
+For example, it could be that lexical lookup yields nothing,
+and the location of the assignment has access to \THIS,
+and the interface of an enclosing class has a setter named \code{\id=}
+(in this case both the getter and setter are inherited).%
 }
 
 \LMHash{}%
-A variable that has no initializing expression has the null object
-(\ref{null})
-as its initial value.
+Consider a variable \id{}
+whose declaration does not have the modifier \LATE.
+Assume that \id{} does not have an initializing expression,
+and it is not initialized by an initializing formal
+(\ref{generativeConstructors}),
+nor by an element in a constructor initializer list
+(\ref{initializerLists}).
+The initial value of \id{} is then the null object
+(\ref{null}).
+
+\commentary{%
+Note that there are many situations where such a variable declaration
+is a compile-time error,
+in which case the initial value is of course irrelevant.%
+}
+
+\LMHash{}%
 Otherwise, variable initialization proceeds as follows:
 
 \LMHash{}%
-Static variable declarations with an initializing expression
-are initialized lazily
+A declaration of a static or library variable
+with an initializing expression is initialized lazily
 (\ref{evaluationOfImplicitVariableGetters}).
 
 \rationale{%
@@ -1491,11 +1669,12 @@ takes place during constructor execution
 }
 
 \LMHash{}%
-Initialization of an instance variable $v$
+\BlindDefineSymbol{\id, o}%
+Initialization of an instance variable \id{}
 with an initializing expression $e$
 proceeds as follows:
 $e$ is evaluated to an object $o$
-and the variable $v$ is bound to $o$.
+and the variable \id{} is bound to $o$.
 
 \commentary{%
 It is specified elsewhere when this initialization occurs,
@@ -1514,10 +1693,9 @@ will throw.%
 }
 
 \LMHash{}%
-% This error can occur due to implicit casts, and
-% for instance variables also when a setter is called dynamically.
+% This error can occur due to an implicit downcast from \DYNAMIC.
 It is a dynamic type error if the dynamic type of $o$ is not
-a subtype of the actual type of the variable $v$
+a subtype of the actual type of the variable \id{}
 (\ref{actualTypes}).
 
 
@@ -1525,53 +1703,199 @@ a subtype of the actual type of the variable $v$
 \LMLabel{evaluationOfImplicitVariableGetters}
 
 \LMHash{}%
-\BlindDefineSymbol{d, v}%
-Let $d$ be the declaration of a static or instance variable $v$.
-If $d$ is an instance variable,
-then the invocation of the implicit getter of $v$ evaluates to
-the object stored in $v$.
-If $d$ is a static variable
-(\commentary{which can be a library variable})
-then the implicit getter method of $v$ executes as follows:
+We introduce two specific kinds of getters in order to specify
+the behavior of various kinds of variables
+without duplicating the specification of their common behaviors.
+
+\LMHash{}%
+A
+\IndexCustom{late-initialized getter}{getter!late-initialized}
+is a getter $g$ which is implicitly induced by a non-local variable $v$
+that has an initializing expression $e$.
+\commentary{%
+It is described below which declarations induce a late-initialized getter.%
+}
+An invocation of $g$ proceeds as follows:
+
+\LMHash{}%
+If the variable $v$ has not been bound to an object then
+$e$ is evaluated to an object $o$.
+If $v$ has now been bound to an object, and $v$ is final,
+a dynamic error occurs. % Implementations throw a 'LateInitializationError'.
+Otherwise, $v$ is bound to $o$,
+and the evaluation of $g$ completes returning $o$.
+If the evaluation of $e$ throws then
+the invocation of $g$ completes throwing the same object and stack trace,
+and does not change the binding of $v$.
+
+\LMHash{}%
+An invocation of $g$ in a situation where $v$ has been bound to an object $o'$
+completes immediately, returning $o'$.
+
+\commentary{%
+Consider a non-local variable declaration of the form
+\code{\LATE\,\,\VAR\,\,x = $e$;},
+whose implicitly induced getter is late-initialized.
+Perhaps surprisingly,
+if the variable \code{x} has been bound to an object
+when its getter is invoked for the first time,
+$e$ will never be executed.
+In other words, the initializing expression can be pre-empted by an assignment.%
+}
+
+\commentary{%
+Also note that an initializing expression can have side effects
+that are significant during initialization.
+For example:%
+}
+
+\begin{dartCode}
+bool b = \TRUE;
+int i = (() => (b = !b) ? (i = 10) : i + 1)();
+\\
+\VOID{} main() \{
+  print(i); // '11'.
+\}
+\end{dartCode}
+
+\commentary{%
+In this example, \code{main} invokes
+the implicitly induced getter named \code{i},
+and the variable \code{i} has not been bound at this point.
+Hence, evaluation of the initializing expression proceeds.
+This causes \code{b} to be toggled to \FALSE,
+which again causes \code{i + 1} to be evaluated.
+This causes the getter \code{i} to be invoked again,
+and it is still true that the variable has not been bound,
+so the initializing expression is evaluated again.
+This toggles \code{b} to \TRUE,
+which causes \code{i = 10} to be evaluated,
+which causes the implicitly induced setter named \code{i=} to be invoked,
+and the most recent invocation of the getter \code{i}
+returns 10.
+This makes \code{i + 1} evaluate to 11,
+and the variable is then bound to 11.
+Finally, the invocation of the getter \code{i} in \code{main}
+completes returning 11.%
+}
+
+\commentary{%
+This is a change from the semantics of older versions of Dart:
+Throwing an exception during initializer evaluation no longer sets the
+variable to \code{null},
+and reading the variable during initializer evaluation
+no longer causes a dynamic error.%
+}
+
+\LMHash{}%
+A
+\IndexCustom{late-uninitialized getter}{getter!late-uninitialized}
+is a getter $g$ which is implicitly induced by a non-local variable $v$
+that does not have an initializing expression.
+\commentary{%
+Again, only \emph{some} non-local variables without an initializing expression
+induce a late-uninitialized getter, as specified below.%
+}
+An invocation of $g$ proceeds as follows:
+If the variable $v$ has not been bound to an object then a dynamic error occurs.
+If $v$ has been bound to an object $o'$ then
+the invocation of $g$ completes immediately, returning $o'$.
+
+\LMHash{}%
+\BlindDefineSymbol{d, \id}%
+Let $d$ be the declaration of a non-local variable named \id.
+For brevity, we will refer to it below as
+`the variable \id' or `the variable $d$', or just as `\id' or `$d$'.
+Execution of the implicitly induced getter of \id{} proceeds as follows:
+
+\LMHash{}%
+\Case{Non-late instance variable}
+If $d$ declares an instance variable which does not have the modifier \LATE,
+then the invocation of the implicit getter of \id{} evaluates to
+the object that \id{} is bound to.
+
+\commentary{%
+It is not possible to invoke an instance getter on an object
+before the object has been initialized.
+Hence, a non-late instance variable is always bound
+when the instance getter is invoked.%
+}
+\EndCase
+
+\LMHash{}%
+\Case{Late, initialized instance variable}
+If $d$ declares an instance variable \id{} which has the modifier \LATE{}
+and an initializing expression,
+the implicitly induced getter of \id{} is a
+late-initialized getter.
+This determines the semantics of an invocation.
+\EndCase
+
+\LMHash{}%
+\Case{Late, uninitialized instance variable}
+If $d$ declares an instance variable \id{} which has the modifier \LATE{}
+and does not have an initializing expression,
+the implicitly induced getter of \id{} is a
+late-uninitialized getter.
+This determines the semantics of an invocation.
+
+\commentary{%
+In this case it is possible for \id{} to be unbound,
+but there are also several ways to bind \id{} to an object:
+A constructor can have an initializing formal
+(\ref{generativeConstructors})
+or an initializer list entry
+(\ref{initializerLists})
+that will initialize \id{},
+and the implicitly induced setter named \code{\id=} could
+have been invoked and completed normally.%
+}
+\EndCase
+
+\LMHash{}%
+\Case{Static or library variable}
+If $d$ declares a static or library variable,
+the implicitly induced getter of \id{} executes as follows:
+
 \begin{itemize}
-\item {\bf Non-constant variable declaration with initializer}.
-  If $d$ is of one of the forms
-  \code{\VAR{} $v$ = $e$;},
-  \code{$T$ $v$ = $e$;},
-  \code{\FINAL{} $v$ = $e$;},
-  \code{\FINAL{} $T$ $v$ = $e$;},
-  \code{\STATIC{} $v$ = $e$;},
-  \code{\STATIC{} $T$ $v$ = $e$; },
-  \code{\STATIC{} \FINAL{} $v$ = $e$; } or
-  \code{\STATIC{} \FINAL{} $T$ $v$ = $e$;}
-  and no object has yet been stored into $v$
-  then the initializing expression $e$ is evaluated.
-  If, during the evaluation of $e$, the getter for $v$ is invoked,
-  a \code{CyclicInitializationError} is thrown.
-  If the evaluation of $e$ throws an exception $e$ and stack trace $s$,
-  the null object (\ref{null}) is stored into $v$;
-  the execution of the getter then throws $e$ and stack trace $s$.
-  Otherwise, the evaluation of $e$ succeeded yielding an object $o$;
-  then $o$ is stored into $v$ and
-  the execution of the getter completes by returning $o$.
-  Otherwise,
-  (\commentary{when an object $o$ has been stored in $v$})
-  execution of the getter completes by returning $o$.
-\item {\bf Constant variable declaration}.
-  If $d$ is of one of the forms
-  \code{\CONST{} $v$ = $e$;},
-  \code{\CONST{} $T$ $v$ = $e$;},
-  \code{\STATIC{} \CONST{} $v$ = $e$;} or
-  \code{\STATIC{} \CONST{} $T$ $v$ = $e$;}
-  the result of the getter is the value of the constant expression $e$.
+\item \emph{Non-constant variable with an initializer.}
+  In the case where $d$ has an initializing expression and is not constant,
+  the implicitly induced getter of \id{} is a late-initialized getter.
+  This determines the semantics of an invocation.
+  \commentary{%
+    Note that these static or library variables can be \emph{implicitly}
+    late-initialized, in the sense that they do not have
+    the modifier \LATE.%
+  }
+\item \emph{Constant variable.}
+  If $d$ declares a constant variable with the initializing expression $e$,
+  the result of executing the implicitly induced getter is
+  the value of the constant expression $e$.
   \commentary{%
   Note that a constant expression cannot depend on itself,
   so no cyclic references can occur.%
   }
-\item {\bf Variable declaration without initializer}.
-  The result of executing the getter method is the object stored in $v$.
-  \commentary{This may be the initial value, that is, the null object.}
+\item \emph{Variable without an initializer.}
+  If $d$ declares a variable \id{} without an initializing expression
+  and does not have the modifier \LATE,
+  an invocation of the implicitly induced getter of \id{} evaluates to
+  the object that \id{} is bound to.
+
+  \commentary{%
+    The variable is always bound to an object in this case.
+    This may be the null object,
+    which is the initial value of some variable declarations
+    covered by this case.%
+  }
+
+  If $d$ declares a variable \id{} without an initializing expression
+  and has the modifier \LATE,
+  the implicitly induced getter is a late-uninitialized getter.
+  This determines the semantics of an invocation.
 \end{itemize}
+
+% Reduce whitespace after itemized list: This is just an end symbol.
+\vspace{-\baselineskip}\EndCase
 
 
 \section{Functions}
@@ -1759,30 +2083,40 @@ It is a compile-time error if the declared return type of
 a function marked \code{\SYNC*} or \code{\ASYNC*} is \VOID.
 
 \LMHash{}%
-We define the notion of the
-\IndexCustom{element type of a generator}{function!generator!element type}
-as follows:
+We define the
+\Index{union-free type derived from}
+a type $T$ as follows:
+If $T$ is of the form \code{$S$?}\ or the form \code{FutureOr<$S$>}
+then the union-free type derived from $T$ is
+the union-free type derived from $S$.
+Otherwise, the union-free type derived from $T$ is $T$.
+\commentary{%
+For example, the union-free type derived from
+\code{FutureOr<int?>?} is \code{int}.%
+}
+
+\LMHash{}%
+We define the
+\IndexCustom{element type of a generator function}{%
+    function!generator!element type}
+$f$ as follows:
 %
-If the function $f$ is a synchronous generator
-whose declared return type implements \code{Iterable<$U$>} for some $U$
+Let $S$ be the union-free type derived from the declared return type of $f$.
+%
+If $f$ is a synchronous generator and
+$S$ implements \code{Iterable<$U$>} for some $U$
 (\ref{interfaceSuperinterfaces})
 then the element type of $f$ is $U$.
 %
-If the function $f$ is an asynchronous generator
-whose declared return type implements \code{Stream<$U$>} for some $U$
+If $f$ is an asynchronous generator and
+$S$ implements \code{Stream<$U$>} for some $U$
 then the element type of $f$ is $U$.
 %
-Otherwise, if the function $f$ is a generator
-(\commentary{synchronous or asynchronous})
+Otherwise, if $f$ is a generator (synchronous or asynchronous)
+and $S$ is a supertype of \code{Object}
+(\commentary{which includes \code{Object} itself})
 then the element type of $f$ is \DYNAMIC.
-
-\commentary{%
-%% TODO(eernst): Come nnbd, change `a top type' to \DYNAMIC.
-In the latter case the return type is a top type,
-because the declaration of $f$ would otherwise be a compile-time error.
-This implies that there is no information about
-the type of elements that the generator will yield.%
-}
+\commentary{No further cases are possible.}
 
 
 \subsection{Function Declarations}
@@ -2480,7 +2814,7 @@ A class has constructors, instance members and static members.
 The \IndexCustom{instance members}{members!instance} of a class
 are its instance methods, getters, setters and instance variables.
 The \IndexCustom{static members}{members!static} of a class
-are its static methods, getters, setters and class variables.
+are its static methods, getters, setters, and variables.
 The \IndexCustom{members}{members} of a class
 are its static and instance members.
 
@@ -3526,7 +3860,7 @@ a true compile-time constant,
 as its getter would be subject to overriding.
 
 Given that the value does not depend on the instance,
-it is better to use a class variable.
+it is better to use a static variable.
 An instance getter for it can always be defined manually if desired.%
 }
 
@@ -3650,19 +3984,19 @@ it declares an \Index{initializing formal parameter}.
 A term of the form \code{\THIS.\id} is contained in $p$,
 and \id{} is the \NoIndex{name} of $p$.
 It is a compile-time error if \id{} is not also the name of
-an instance variable of the immediately enclosing class.
+an instance variable of the immediately enclosing class or enum.
 
 \commentary{%
 Note that it is a compile-time error for an initializing formal
 to occur in any function which is not a non-redirecting generative constructor
 (\ref{requiredFormals}),
-so there is always an enclosing class.%
+so there is always an enclosing class or enum.%
 }
 
 \LMHash{}%
 Assume that $p$ is a declaration of an initializing formal parameter named \id.
 Let $T_{id}$ be the type of the instance variable named \id{} in
-the immediately enclosing class.
+the immediately enclosing class or enum.
 If $p$ has a type annotation $T$ then the declared type of $p$ is $T$.
 Otherwise, the declared type of $p$ is $T_{id}$.
 It is a compile-time error if the declared type of $p$
@@ -3947,7 +4281,7 @@ an initialization expression.
 
 \LMHash{}%
 Let \DefineSymbol{f} be a final instance variable declared in
-the immediately enclosing class.
+the immediately enclosing class or enum.
 A compile-time error occurs unless $f$ is initialized
 by one of the following means:
 \begin{itemize}
@@ -3980,7 +4314,7 @@ includes a superinitializer.
 Execution of a generative constructor $k$ of type $T$
 to initialize a fresh instance $i$
 is always done with respect to a set of bindings for its formal parameters
-and the type parameters of the immediately enclosing class bound to
+and the type parameters of the immediately enclosing class or enum bound to
 a set of actual type arguments of $T$, \DefineSymbol{\List{t}{1}{m}}.
 
 \commentary{%
@@ -4012,7 +4346,7 @@ with respect to the bindings that map
 the formal parameters of $g$ to the corresponding objects
 in the actual argument list $a$,
 with \THIS{} bound to $i$,
-and the type parameters of the immediately enclosing class bound to
+and the type parameters of the immediately enclosing class or enum bound to
 \List{t}{1}{m}.
 
 \LMHash{}%
@@ -4020,7 +4354,7 @@ Otherwise, $k$ is not redirecting.
 Execution then proceeds as follows:
 
 \LMHash{}%
-The instance variable declarations of the immediately enclosing class
+The instance variable declarations of the immediately enclosing class or enum
 are visited in the order they appear in the program text.
 For each such declaration $d$, if $d$ has the form
 \code{\synt{finalConstVarOrType} $v$ = $e$; }
@@ -4042,7 +4376,8 @@ So we need to specify the order.%
 }
 
 \LMHash{}%
-Then if any instance variable of $i$ declared by the immediately enclosing class
+Then if any instance variable of $i$ declared
+by the immediately enclosing class or enum
 is not yet bound to an object,
 all such variables are initialized with the null object (\ref{null}).
 
@@ -4146,7 +4481,8 @@ where $T_1, \ldots, T_n$ are the type parameters of the enclosing class.
 
 \LMHash{}%
 It is a compile-time error if $M$ is not the name of
-the immediately enclosing class.
+%% TODO(eernst): Come Dart 3.0, add 'mixin'.
+the immediately enclosing class or enum.
 
 \LMHash{}%
 % This error can occur due to an implicit cast.
@@ -4320,7 +4656,8 @@ is not a subtype of the function type of $k$.
 In the case where the two classes are non-generic
 this is just a subtype check on the function types of the two constructors.
 In general, this implies that the resulting object conforms to
-the interface of the immediately enclosing class of $k$.%
+%% TODO(eernst): Come Dart 3.0, add 'mixin'.
+the interface of the class or enum that immediately encloses $k$.%
 }
 
 \LMHash{}%
@@ -4385,7 +4722,7 @@ non-redirecting generative constant constructors.
 
 \LMHash{}%
 It is a compile-time error if a non-redirecting generative constant constructor
-is declared by a class that has a mutable instance variable.
+is declared by a class that has a instance variable which is not final.
 
 \commentary{%
 The above refers to both locally declared and inherited instance variables.%
@@ -4454,7 +4791,7 @@ The static methods of a class $C$ are those static methods declared by $C$.
 \rationale{%
 Inheritance of static methods has little utility in Dart.
 Static methods cannot be overridden.
-Any required static function can be obtained from its declaring library,
+Any required static method can be obtained from its declaring library,
 and there is no need to bring it into scope via inheritance.
 Experience shows that developers are confused by
 the idea of inherited methods that are not instance methods.
@@ -4629,11 +4966,15 @@ The controlling language is in the relevant sections of the specification.
 
 \item There is only one namespace
   for getters, setters, methods and constructors (\ref{scoping}).
-  An instance or static variable $f$ introduces a getter $f$,
-  and a mutable instance or static variable $f$ also introduces a setter
+  A non-local variable $f$ introduces a getter $f$,
+  and a non-local variable $f$
+  also introduces a setter
+  if it is not final and not constant,
+  or it is late and final and has no initializing expression
   \code{$f$=} (\ref{instanceVariables}, \ref{variables}).
   When we speak of members here, we mean
-  accessible instance or static variables, getters, setters, and methods
+  accessible instance, static, or library variables,
+  getters, setters, and methods
   (\ref{classes}).
 \item You cannot have two members with the same name in the same class---be
   they declared or inherited (\ref{scoping}, \ref{classes}).
@@ -4777,7 +5118,7 @@ However, its implicit interface does.%
 \LMLabel{classMemberConflicts}
 
 \LMHash{}%
-Some pairs of class, mixin, and extension member declarations
+Some pairs of class, mixin, enum, and extension member declarations
 cannot coexist,
 even though they do not both introduce the same name into the same scope.
 This section specifies these errors.
@@ -5743,7 +6084,7 @@ and whether the invocation satisfies several other requirements.
 
 \begin{grammar}
 <extensionDeclaration> ::=
-  \gnewline{} \EXTENSION{} <identifier>? <typeParameters>? \ON{} <type>
+  \gnewline{} \EXTENSION{} <typeIdentifier>? <typeParameters>? \ON{} <type>
   \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
 \end{grammar}
 
@@ -5846,8 +6187,6 @@ but it can be used to denote the extension itself
 e.g., in order to access static members of the extension,
 or in order to resolve an invocation explicitly%
 }).
-A compile-time error occurs if the declared name of an extension
-is a built-in identifier.
 
 \LMHash{}%
 An extension declaration introduces two scopes:
@@ -11320,7 +11659,7 @@ where inferred types have already been added.%
 
 \LMHash{}%
 We say that $S$ is the
-\IndexCustom{future type of a type}{type!future type of}
+\IndexCustom{future type derived from a type}{type!future type derived from}
 $T$ in the following cases, using the first applicable case:
 
 \begin{itemize}
@@ -11335,10 +11674,10 @@ $T$ in the following cases, using the first applicable case:
 
 \LMHash{}%
 When none of these cases are applicable,
-we say that $T$ does not have a future type.
+we say that $T$ does not derive a future type.
 
 \commentary{%
-Note that if $T$ has a future type $F$ then \SubtypeNE{T}{F},
+Note that if $T$ derives a future type $F$ then \SubtypeNE{T}{F},
 and $F$ is always of the form \code{$G$<...>} or \code{$G$<...>?},
 where $G$ is \code{Future} or \code{FutureOr}.%
 }
@@ -11355,17 +11694,17 @@ as follows, using the first applicable case:
 \item If $T$ is \code{$X$\,\&\,$S$}
   for some type variable $X$ and type $S$ then
   \begin{itemize}
-  \item if $S$ has future type $U$
+  \item if $S$ derives a future type $U$
     then \DefEquals{\flatten{T}}{\code{\flatten{U}}}.
   \item otherwise,
     \DefEquals{\flatten{T}}{\code{\flatten{X}}}.
   \end{itemize}
 
-\item If $T$ has future type \code{Future<$S$>}
+\item If $T$ derives a future type \code{Future<$S$>}
   or \code{FutureOr<$S$>}
   then \DefEquals{\flatten{T}}{S}.
 
-\item If $T$ has future type \code{Future<$S$>?}\ or
+\item If $T$ derives a future type \code{Future<$S$>?}\ or
   \code{FutureOr<$S$>?}\ then \DefEquals{\flatten{T}}{\code{$S$?}}.
 
 \item Otherwise, \DefEquals{\flatten{T}}{T}.
@@ -11606,17 +11945,23 @@ the target of the current instance member invocation.
 \end{grammar}
 
 \LMHash{}%
-The static type of \THIS{} is the interface of the immediately enclosing class.
+The static type of \THIS{} is the interface of the
+immediately enclosing class, enum, or mixin, if any.
+The static type of \THIS{} is
+the \ON{} type of the enclosing extension, if any
+(\ref{extensions}).
 
 \commentary{%
-We do not support self-types at this point.%
+If none of those declarations exist,
+an occurrence of \THIS{} is a compile-time error
+(\ref{classes}).%
 }
 
 \LMHash{}%
 It is a compile-time error if \THIS{} appears, implicitly or explicitly,
 in a top-level function or variable initializer, in a factory constructor,
 or in a static method or variable initializer,
-or in the initializer of an instance variable.
+or in the initializing expression of a non-late instance variable.
 
 
 \subsection{Instance Creation}
@@ -12136,10 +12481,10 @@ either by evaluating to an object, or by the evaluation throwing.%
 If $f$ is marked \code{\SYNC*} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $i$
 implementing \code{Iterable<$U$>} is immediately returned,
-where $U$ is determined as follows:
-Let $T$ be the actual return type of $f$ (\ref{actualTypes}).
-If $T$ is \code{Iterable<$S$>} for some type $S$, then $U$ is $S$,
-otherwise $U$ is \code{Object}.
+where $U$ is the actual type
+(\ref{actualTypes})
+corresponding to the element type of $f$
+(\ref{functions}).
 
 \commentary{%
 A Dart implementation will need to provide
@@ -12222,8 +12567,10 @@ Two executions of an iterator interact only via state outside the function.%
 If $f$ is marked \ASYNC{} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $o$
 is associated with the invocation,
-where the dynamic type of $o$ implements \code{Future<$flatten(T)$>},
-and $T$ is the actual return type of $f$ (\ref{actualTypes}).
+where the dynamic type of $o$ implements \code{Future<T>},
+where $T$ is the actual type
+(\ref{actualTypes})
+corresponding to the future value type of $f$.
 Then the body of $f$ is executed until it either suspends or completes,
 at which point $o$ is returned.
 \commentary{%
@@ -12249,10 +12596,10 @@ so the future is not completed with an error
 If $f$ is marked \code{\ASYNC*} (\ref{functions}),
 then a fresh instance (\ref{generativeConstructors}) $s$
 implementing \code{Stream<$U$>} is immediately returned,
-where $U$ is determined as follows:
-Let $T$ be the actual return type of $f$ (\ref{actualTypes}).
-If $T$ is \code{Stream<$S$>} for some type $S$, then $U$ is $S$,
-otherwise $U$ is \code{Object}.
+where $U$ is the actual type
+(\ref{actualTypes})
+corresponding to the element type of $f$
+(\ref{functions}).
 When $s$ is listened to, execution of the body of $f$ will begin.
 When execution of the body of $f$ completes:
 \begin{itemize}
@@ -12781,7 +13128,7 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
 \begin{itemize}
 \item
   When $D$ is a type declaration, that is,
-  a declaration of a class, mixin, type alias, or type parameter,
+  a declaration of a class, mixin, enum, type alias, or type parameter,
   the following applies:
   If $D$ is a declaration of a class $C$
   that has a constructor named $C$
@@ -12808,7 +13155,7 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
 \item
   Otherwise, if $D$ is
   a static method or getter
-  (\commentary{which may be implicitly induced by a class variable})
+  (\commentary{which may be implicitly induced by a static variable})
   in the enclosing class or mixin $C$,
   $i$ is treated as
   (\ref{notation})
@@ -13890,9 +14237,9 @@ For instance, \code{int.toString()} is an error.%
 \rationale{%
 The reason for this rule is that member access on a type literal
 is reserved for invocation of static members.
-Invocation of a static member of a class, mixin, or extension
+Invocation of a static member of a class, mixin, enum, or extension
 uses said entity as a \emph{namespace},
-not as an actual class, mixin, or extension.
+not as an actual class, mixin, enum, or extension.
 In particular, the syntactic receiver is not evaluated
 to an object---that would not even be possible for an extension.%
 }
@@ -15062,7 +15409,7 @@ when executed starting from exactly the same state.%
 \LMLabel{assignment}
 
 \LMHash{}%
-An assignment changes the value associated with a mutable variable,
+An assignment changes the value associated with a variable,
 or invokes a setter.
 
 \begin{grammar}
@@ -16352,7 +16699,7 @@ Consider a postfix expression $e$ of the form \code{$C$.$v$\,\op},
 where $C$ is a type literal and \op{} is either \lit{++} or \lit{-{}-}.
 A compile-time error occurs unless \code{$C$.$v$} denotes a static getter
 and there is an associated static setter \code{$v$=}
-(\commentary{possibly implicitly induced by a class variable}).
+(\commentary{possibly implicitly induced by a static variable}).
 Let $T$ be the return type of said getter.
 A compile-time error occurs if $T$ is not \DYNAMIC{}
 and $T$ does not have an operator \lit{+} (when \op{} is \lit{++})
@@ -16746,7 +17093,7 @@ proceed as described in the first applicable case from the following list:
   of a class or a mixin.
   It is a compile-time error if $\ell$ occurs inside
   a static method, static getter, or static setter,
-  or inside a class variable initializer.
+  or inside a static variable initializer.
   % NB: There is _no_ error when it occurs in an instance variable initializer,
   % which means that it is allowed "to access `this`" in that particular case.
   % This may seem inconsistent, but it should not be harmful.
@@ -16763,7 +17110,7 @@ proceed as described in the first applicable case from the following list:
   % - an import with prefix \id;
   % - a class or type alias; % whose name must be \id, no need to say that..
   % - a library variable, getter, or setter;
-  % - a static method/getter/setter of a class, mixin, or extension;
+  % - a static method/getter/setter of a class, mixin, enum, or extension;
   % - an instance method of an extension;
   % - a local variable (\commentary{which may be a formal parameter});
   % - a local function.
@@ -16857,11 +17204,16 @@ also do not derive any reserved words.
 \LMHash{}%
 A \Index{built-in identifier} is one of
 the identifiers produced by the production \synt{BUILT\_IN\_IDENTIFIER}.
-It is a compile-time error if a built-in identifier is used as
-the declared name of a prefix, class, mixin, type parameter, or type alias.
-It is a compile-time error to use a built-in identifier
+
+\commentary{%
+Note that it is a syntax error if a built-in identifier
+is used as the declared name of
+%% TODO(eernst): Come extension types, add them.
+a prefix, class, mixin, enum, type parameter, type alias, or extension.
+Similarly, it is a syntax error to use a built-in identifier
 other than \DYNAMIC{} or \FUNCTION{}
-as an identifier in a type annotation or a type parameter bound.
+as an identifier in a type annotation or a type parameter bound.%
+}
 
 \rationale{%
 Built-in identifiers are identifiers that are used as keywords in Dart,
@@ -16889,7 +17241,7 @@ at the time where these features were added to the language.%
 A \Index{qualified name} is two or three identifiers separated by \lit{.}.
 All but the last one must be a \synt{typeIdentifier}.
 It is used to denote a declaration which is imported with a prefix,
-or a \STATIC{} declaration in a class, mixin, or extension, or both.
+or a \STATIC{} declaration in a class, mixin, enum, or extension, or both.
 
 \LMHash{}%
 The static type of an identifier expression $e$ which is an identifier \id{}
@@ -16904,7 +17256,7 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
 
 \begin{itemize}
 \item
-  If $D$ declares a class, mixin, type alias, an enumerated type,
+  If $D$ declares a class, mixin, enum, type alias, an enumerated type,
   or a type parameter,
   the static type of $e$ is \code{Type}.
 \item
@@ -16924,7 +17276,7 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
   }
 \item
   If $D$ is the declaration of a static getter
-  (\commentary{which may be implicitly induced by a class variable})
+  (\commentary{which may be implicitly induced by a static variable})
   and $D$ occurs in the class $C$,
   the static type of $e$ is the return type of the getter
   \code{$C$.\id}.
@@ -17007,7 +17359,7 @@ The evaluation of $e$ proceeds as follows:
 
 \begin{itemize}
 \item
-  If $D$ is a class, mixin, or type alias,
+  If $D$ is a class, mixin, enum, or type alias,
   the value of $e$ is an object implementing the class \code{Type}
   which reifies the corresponding type.
 \item
@@ -17053,7 +17405,7 @@ The evaluation of $e$ proceeds as follows:
 
 \commentary{%
 Note that $D$ cannot be the declaration of
-a class variable, static getter or static setter declared in a class $C$,
+a static variable, static getter or static setter declared in a class $C$,
 because in that case $e$ is treated as
 (\ref{notation})
 the property extraction
@@ -17143,7 +17495,7 @@ such a refinement would accept more code without errors,
 but not reject any code now error-free.
 
 The rule only applies to locals and parameters,
-as instance and static variables could be modified
+as non-local variables could be modified
 via side-effecting functions or methods that are not accessible
 to a local analysis.
 
@@ -17348,56 +17700,121 @@ a local variable into the associated formal parameter scope
 
 \LMHash{}%
 The properties of being
-\IndexCustom{initialized}{variable!initialized},
-\IndexCustom{constant}{variable!constant},
-\IndexCustom{final}{variable!final}, and
-\IndexCustom{mutable}{variable!mutable}
+\IndexCustom{initialized}{variable!initialized} or
+\IndexCustom{constant}{variable!constant}
 apply to local variables with the same definitions as for other variables
 (\ref{variables}).
 
+%% TODO(eernst): May need updates/deletion when flow analysis is integrated.
 \LMHash{}%
 We say that a local variable $v$ is \Index{potentially mutated}
 in some scope $s$
-if $v$ is mutable, and an assignment to $v$ occurs in $s$.
+if $v$ is not final, and an assignment to $v$ occurs in $s$.
 
 \LMHash{}%
 A local variable declaration of the form \code{\VAR{} $v$;} is equivalent to
 \code{\VAR{} $v$ = \NULL;}.
-A local variable declaration of the form \code{$T$ $v$;} is equivalent to
-\code{$T$ $v$ = \NULL;}.
+If $T$ is a nullable type
+(\ref{typeNullability})
+then a local variable declaration of the form \code{$T$ $v$;}
+is equivalent to \code{$T$ $v$ = \NULL;}.
 
+%% TODO(eernst): Revise when flow analysis is added.
 \commentary{%
-This holds regardless of the type $T$.
-E.g., \code{int i;} is equivalent to \code{int i = null;}.%
+If $T$ is a potentially non-nullable type
+then a local variable declaration of the form \code{$T$ $v$;} is allowed,
+but an expression that gives rise to evaluation of $v$
+is a compile-time error unless flow analysis
+(\ref{flowAnalysis})
+shows that the variable is guaranteed to have been initialized.%
 }
 
 \LMHash{}%
-The type of a local variable with a declaration of one of the forms
-\code{$T$ $v$ = $e$;}
-\code{\CONST{} $T$ $v$ = $e$;}
-\code{\FINAL{} $T$ $v$ = $e$;}
+A local variable has an associated
+\IndexCustom{declared type}{local variable!declared type}
+which is determined from its declaration.
+A local variable also has an associated
+\IndexCustom{type}{local variable!type}
+which is determined by flow analysis
+(\ref{flowAnalysis})
+via a process known as type promotion
+(\ref{typePromotion}).
+
+\LMHash{}%
+The declared type of a local variable with a declaration of one of the forms
+\code{\LATE?\,\,$T$\,\,$v$ = $e$;}
+\code{\LATE?\,\,\FINAL\,\,$T$\,\,$v$ = $e$;}
+\code{\CONST\,\,$T$\,\,$v$ = $e$;}
 is $T$.
-The type of a local variable with a declaration of one of the forms
-\code{\VAR{} $v$ = $e$;}
-\code{\CONST{} $v$ = $e$;}
-\code{\FINAL{} $v$ = $e$;}
-is \DYNAMIC.
+
+\LMHash{}%
+The declared type of a local variable with a declaration of one of the forms
+\code{\LATE?\,\,\VAR\,\,$v$ = $e$;}
+\code{\LATE?\,\,\FINAL\,\,$v$ = $e$;}
+\code{\CONST\,\,$v$ = $e$;}
+is determined as follows:
+
+\begin{itemize}
+\item
+  If the static type of $e$ is \code{Null} then
+  the declared type of $v$ is \DYNAMIC.
+\item
+  If the static type of $e$ is of the form \code{$X$\,\&\,$T$}
+  where $X$ is a type variable
+  (\ref{intersectionTypes}),
+  the declared type of $v$ is \code{X}.
+  \commentary{%
+    In this case $v$ is immediately promoted to \code{$X$\,\&\,$T$}
+    (\ref{typePromotion}).%
+  }
+\item
+  Otherwise, the declared type of $v$ is the static type of $e$.
+\end{itemize}
 
 \LMHash{}%
 Let $v$ be a local variable declared by an initializing variable declaration,
 and let $e$ be the associated initializing expression.
-It is a compile-time error if the static type of $e$ is not assignable to
-the type of $v$.
-It is a compile-time error if a local variable $v$ is final,
-and the declaration of $v$ is not an initializing variable declaration.
+It is a
+\Error{compile-time error} if the static type of $e$ is not assignable to
+the declared type of $v$.
 
+%% TODO(eernst): Revise when flow analysis is added.
 \commentary{%
-It is also a compile-time error to assign to a final local variable
+If a local variable $v$ is \FINAL{} and not \LATE,
+it is not a compile-time error if the declaration of $v$ is
+not an initializing variable declaration,
+but an expression that gives rise to evaluation of $v$
+is a compile-time error unless flow analysis shows that
+the variable is guaranteed to have been initialized.
+Similarly, an expression that gives rise to an assignment to $v$
+is a compile-time error unless flow analysis shows that
+it is guaranteed that the variable has \emph{not} been initialized.%
+
+In every situation which is not covered by the previous paragraph,
+it is a compile-time error to assign to a local variable
+which is \FINAL{} and not \LATE{}
 (\ref{assignment}).%
 }
 
 \LMHash{}%
-It is a compile-time error if
+Assume that $D$ is a local variable declaration with the modifier \LATE{}
+that declares a variable $v$,
+which has an initializing expression $e$.
+It is a \Error{compile-time error} if $e$ contains an \AWAIT{} expression $a$
+(\ref{awaitExpressions}),
+unless there is a function $f$ which is
+the immediately enclosing function for $a$,
+and $f$ is not the immediately enclosing function for $D$.
+
+\commentary{%
+In other words,
+the initializing expression cannot await an expression directly,
+any await expressions must be syntactically nested inside some other function,
+that is, a function literal.%
+}
+
+\LMHash{}%
+It is a \Error{compile-time error} if
 a local variable is referenced at a source code location that is before
 the end of its initializing expression, if any,
 and otherwise before the declaring occurrence of
@@ -17485,15 +17902,32 @@ proceeds as follows:
 
 \LMHash{}%
 The expression $e$ is evaluated to an object $o$.
-Then, the variable $v$ is set to $o$.
-% This error can occur due to implicit casts.
+% The following error can occur due to implicit casts.
 A dynamic type error occurs
-if the dynamic type of $o$ is not a subtype of the actual type
+if the dynamic type of $o$ is not a subtype of the actual declared type
 (\ref{actualTypes})
 of $v$.
+Otherwise, the variable $v$ is bound to $o$.
 
-% The local variable discussion does not mention how to read/write locals.
-% Consider spelling this out, in terms of storage.
+\commentary{%
+Note that $e$ could have been transformed due to implicit coercions.
+For example, \code{myFunction} could be transformed into
+\code{myFunction<int>} due to generic function instantiation
+(\ref{genericFunctionInstantiation}).
+Such transformations are assumed to have taken place already
+in the declarations above.%
+}
+
+\LMHash{}%
+Let $D$ be a \LATE{} and \FINAL{} local variable declaration
+that declares a variable $v$.
+If an object $o$ is assigned to $v$
+in a situation where $v$ is unbound
+then $v$ is bound to $o$.
+If an object $o$ is assigned to $v$
+in a situation where $v$ is bound to an object $o'$
+then a dynamic error occurs
+(\commentary{it does not matter whether $o$ is the same object as $o'$}).
 
 
 \subsection{Local Function Declaration}
@@ -17779,10 +18213,12 @@ It is a compile-time error if $T$ is not assignable to
 
 \commentary{%
 It follows that it is a compile-time error
-if $D$ is empty and \id{} is a final variable;
-and it is a dynamic error if $e$ has a top type,
+% The following error exists also in the case where \id{} is definitely
+% unassigned before the loop: The loop could run >1 time.
+if $D$ is empty and \id{} is a final variable.
+Also, it is a dynamic error if $e$ has type \DYNAMIC,
 but $e$ evaluates to an instance of a type
-which is not a subtype of \code{Iterable<dynamic>}.%
+which is not a subtype of \code{Iterable<\DYNAMIC>}.%
 }
 
 
@@ -17806,7 +18242,8 @@ The expression $e$ is evaluated to an object $o$.
 % This error can occur due to implicit casts and null.
 It is a dynamic type error if $o$ is not an instance of
 a class that implements \code{Stream}.
-It is a compile-time error if $D$ is empty and \id{} is a final variable.
+It is a compile-time error if $D$ is empty
+and \id{} is a final or constant variable.
 
 \LMHash{}%
 The stream associated with the innermost enclosing asynchronous for loop,
@@ -19231,7 +19668,9 @@ An \Index{import} specifies a library whose exported namespace
 <libraryImport> ::= <metadata> <importSpecification>
 
 <importSpecification> ::= \gnewline{}
-  \IMPORT{} <configurableUri> (\DEFERRED? \AS{} <identifier>)? <combinator>* `;'
+  \IMPORT{} <configurableUri>
+  (\DEFERRED? \AS{} <typeIdentifier>)?
+  <combinator>* `;'
 \end{grammar}
 
 \LMHash{}%
@@ -19580,7 +20019,7 @@ as defined previously
   % This error can occur because being-loaded is a dynamic property.
   Calling the setter results in a dynamic error.
 \item
-  For every class, mixin and type alias declaration named \id{} in
+  For every class, mixin, enum, and type alias declaration named \id{} in
   \NamespaceName{\metavar{import},i},
   a corresponding getter named \id{} with return type \code{Type}.
   % This error can occur because being-loaded is a dynamic property.
@@ -19666,7 +20105,7 @@ The run-time namespace \NamespaceName{i} will then have the following bindings:
   a binding from $n$ to said function, getter, or setter.
 \item
   For every name \id{} in \NamespaceName{\metavar{import}, i}
-  that is bound to a class, mixin, or type alias declaration
+  that is bound to a class, mixin, enum, or type alias declaration
   introducing a type $T$,
   a binding from \id{} to the compiled representation of $T$.
 \end{itemize}
@@ -20277,11 +20716,6 @@ that is,
 it denotes an \synt{IDENTIFIER} which is not a \synt{BUILT\_IN\_IDENTIFIER}
 (\ref{identifierReference}).%
 }
-%% TODO(eernst): The following non-terminals are currently unused (they will
-%% be used when we transfer more grammar rules from Dart.g): <typeNotVoid>
-%% and <typeNotVoidNotFunctionList>. They are used in the syntax for
-%% \EXTENDS, \WITH, \IMPLEMENTS{} syntax and for mixin applications
-%% in Dart.g, and it seems likely that we will use them here as well.
 
 \commentary{%
 Non-terminals with names of the form \synt{\ldots{}NotFunction}
@@ -20297,13 +20731,13 @@ but it is the least upper bound of all function types.%
   \alt <typeNotFunction>
 
 <typeNotVoid> ::= <functionType> `?'?
-  \alt <typeNotVoidNotFunction>
+  \alt <typeNotVoidNotFunction> `?'?
 
 <typeNotFunction> ::= \VOID{}
-  \alt <typeNotVoidNotFunction>
+  \alt <typeNotVoidNotFunction> `?'?
 
-<typeNotVoidNotFunction> ::= <typeName> <typeArguments>? `?'?
-  \alt \FUNCTION{} `?'?
+<typeNotVoidNotFunction> ::= <typeName> <typeArguments>?
+  \alt \FUNCTION{}
 
 <typeName> ::= <typeIdentifier> (`.' <typeIdentifier>)?
 
@@ -20537,7 +20971,7 @@ or by evaluating a \emph{type literal} expression.%
 \LMHash{}%
 An expression is a \emph{type literal} if it is an identifier,
 or a qualified identifier,
-which denotes a class, mixin or type alias declaration, or it is
+which denotes a class, mixin, enum, or type alias declaration, or it is
 an identifier denoting a type parameter of a generic class or function.
 It is a \emph{constant type literal} if it does not denote a type parameter,
 and it is not qualified by a deferred prefix.
@@ -20924,7 +21358,7 @@ A reader who has read many research papers about object-oriented type systems
 may find the meaning of the given notation obvious,
 but we still need to clarify a few details about how to handle
 syntactically different denotations of the same type,
-and how to choose the right initial environment, $\Gamma$.
+and how to choose the right initial environment, $\Delta$.
 %
 For a reader who is not familiar with the notation used in this section,
 the explanations given here should suffice to clarify what it means,
@@ -21027,7 +21461,7 @@ and the subtype relationship is always determined in the same way.
     \RuleTwo{\SrnRightPromotedVariable}{Right Promoted Variable}{S}{X}{S}{T}{%
       S}{X \& T}
     \Rule{\SrnRightFutureOrB}{Right FutureOr B}{S}{T}{S}{\code{FutureOr<$T$>}}
-    \Rule{\SrnLeftVariableBound}{Left Variable Bound}{\Gamma(X)}{T}{X}{T}
+    \Rule{\SrnLeftVariableBound}{Left Variable Bound}{\Delta(X)}{T}{X}{T}
   \end{minipage}
   \begin{minipage}[c]{0.49\textwidth}
     \Axiom{\SrnTypeVariableReflexivityA}{Left Promoted Variable A}{X \& S}{X}
@@ -21040,26 +21474,26 @@ and the subtype relationship is always determined in the same way.
   %
   \ExtraVSP
   \RuleRawRaw{\SrnPositionalFunctionType}{Positional Function Types}{%
-    \Gamma' = \Gamma\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
-    \Subtype{\Gamma'}{S_0}{T_0} \\
+    \Delta' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
+    \Subtype{\Delta'}{S_0}{T_0} \\
     n_1 \leq n_2 &
     n_1 + k_1 \geq n_2 + k_2 &
-    \forall j \in 1 .. n_2 + k_2\!:\;\Subtype{\Gamma'}{T_j}{S_j}}{%
+    \forall j \in 1 .. n_2 + k_2\!:\;\Subtype{\Delta'}{T_j}{S_j}}{%
     \begin{array}{c}
-      \Gamma\vdash\RawFunctionTypePositional{S_0}{X}{B}{s}{S}{n_1}{k_1}\;<:\;\\
+      \Delta\vdash\RawFunctionTypePositional{S_0}{X}{B}{s}{S}{n_1}{k_1}\;<:\;\\
       \RawFunctionTypePositional{T_0}{X}{B}{s}{T}{n_2}{k_2}
     \end{array}}
   \ExtraVSP\ExtraVSP
   \RuleRawRaw{\SrnNamedFunctionType}{Named Function Types}{%
-    \Gamma' = \Gamma\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
-    \Subtype{\Gamma'}{S_0}{T_0} &
-    \forall j \in 1 .. n\!:\;\Subtype{\Gamma'}{T_j}{S_j} \\
+    \Delta' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
+    \Subtype{\Delta'}{S_0}{T_0} &
+    \forall j \in 1 .. n\!:\;\Subtype{\Delta'}{T_j}{S_j} \\
     \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\} \\
     \forall p \in 1 .. k_2, q \in 1 .. k_1:\quad
-    y_{n+p} = x_{n+q}\quad\Rightarrow\quad\Subtype{\Gamma'}{T_{n+p}}{S_{n+q}}}{%
+    y_{n+p} = x_{n+q}\quad\Rightarrow\quad\Subtype{\Delta'}{T_{n+p}}{S_{n+q}}}{%
     \begin{array}{c}
-      \Gamma\vdash\RawFunctionTypeNamed{S_0}{X}{B}{s}{S}{n}{x}{k_1}\;<:\;\\
-      \RawFunctionTypeNamed{T_0}{X}{B}{s}{T}{n}{y}{k_2}
+      \Delta\vdash\RawFunctionTypeNamed{S_0}{X}{B}{s}{S}{n}{x}{k_1}{r}\;<:\;\\
+      \RawFunctionTypeNamed{T_0}{X}{B}{s}{T}{n}{y}{k_2}{r}
     \end{array}}
   %
   \ExtraVSP
@@ -21187,24 +21621,24 @@ then the attempt to prove the relationship simply fails.%
 
 \LMHash{}%
 The rules in Figure~\ref{fig:subtypeRules} use
-the symbol \Index{$\Gamma$} to denote the given knowledge about the
+the symbol \Index{$\Delta$} to denote the given knowledge about the
 bounds of type variables.
-$\Gamma$ is a partial function that maps type variables to types.
+$\Delta$ is a partial function that maps type variables to types.
 At a given location where the type variables in scope are
 \TypeParametersStd{}
 (\commentary{as declared by enclosing classes and/or functions}),
 we define the environment as follows:
-$\Gamma = \{\,X_1 \mapsto B_1,\ \ldots\ X_s \mapsto B_s\,\}$.
+$\Delta = \{\,X_1 \mapsto B_1,\ \ldots\ X_s \mapsto B_s\,\}$.
 \commentary{%
-That is, $\Gamma(X_1) = B_1$, and so on,
-and $\Gamma$ is undefined when applied to a type variable $Y$
+That is, $\Delta(X_1) = B_1$, and so on,
+and $\Delta$ is undefined when applied to a type variable $Y$
 which is not in $\{\,\List{X}{1}{s}\,\}$.%
 }
 When the rules are used to show that a given subtype relationship exists,
-this is the initial value of $\Gamma$.
+this is the initial value of $\Delta$.
 
 \LMHash{}%
-If a generic function type is encountered, an extension of $\Gamma$ is used,
+If a generic function type is encountered, an extension of $\Delta$ is used,
 as shown in the rules~\SrnPositionalFunctionType{}
 and~\SrnNamedFunctionType{}
 of Figure~\ref{fig:subtypeRules}.
@@ -21261,9 +21695,9 @@ that is, in the premises as well as in the conclusion, simultaneously.%
 
 \LMHash{}%
 A type $S$ is shown to be a \Index{subtype} of another type $T$
-in an environment $\Gamma$ by providing
+in an environment $\Delta$ by providing
 an instantiation of a rule $R$ whose conclusion is
-\IndexCustom{\SubtypeStd{S}{T}}{$\Gamma$@\SubtypeStd{S}{T}},
+\IndexCustom{\SubtypeStd{S}{T}}{$\Delta$@\SubtypeStd{S}{T}},
 along with rule instantiations showing
 each of the premises of $R$,
 continuing until a rule with no premises is reached.
@@ -21389,11 +21823,11 @@ showing that $S$ is a subtype of $T$ is sufficient to show that $S$ is
 a subtype of \code{FutureOr<$T$>}.
 
 Another example is the wording in rule~\SrnReflexivity{}:
-``\ldots{} in any environment $\Gamma$'',
+``\ldots{} in any environment $\Delta$'',
 which indicates that the rule can be applied no matter which bindings
 of type variables to bounds there exist in the environment.
 It should be noted that the environment matters even with rules
-where it is simply stated as a plain $\Gamma$ in the conclusion
+where it is simply stated as a plain $\Delta$ in the conclusion
 and in one or more premises,
 because the proof of those premises could, directly or indirectly,
 include the application of a rule where the environment is used.
@@ -21401,7 +21835,7 @@ include the application of a rule where the environment is used.
 \def\Item#1#2{\item[#1]{\textbf{#2:}}}
 \begin{itemize}
 \Item{\SrnReflexivity}{Reflexivity}
-  Every type is a subtype of itself, in any environment $\Gamma$.
+  Every type is a subtype of itself, in any environment $\Delta$.
   In the following rules except for a few,
   the rule is also valid in any environment
   and the environment is never used explicitly,
@@ -21452,7 +21886,7 @@ include the application of a rule where the environment is used.
 \Item{\SrnLeftVariableBound}{Left Variable Bound}
   The type variable $X$ is a subtype of a type $T$ if
   the bound of $X$
-  (as specified in the current environment $\Gamma$)
+  (as specified in the current environment $\Delta$)
   is a subtype of $T$.
 \Item{\SrnRightFunction}{Right Function}
   Every function type is a subtype of the type \FUNCTION.
@@ -21472,7 +21906,7 @@ include the application of a rule where the environment is used.
   is covered by letting $k_2 = 0$ respectively $k_1 = k_2 = 0$.
   For every subtype relation considered in this rule,
   the formal type parameters of $F_1$ and $F_2$ must be taken into account
-  (as reflected in the use of the extended environment $\Gamma'$).
+  (as reflected in the use of the extended environment $\Delta'$).
   We can assume without loss of generality
   that the names of type variables are pairwise identical,
   because we consider types of generic functions to be equivalent under
@@ -21537,14 +21971,14 @@ include the application of a rule where the environment is used.
 \LMLabel{additionalSubtypingConcepts}
 
 \LMHash{}%
-$S$ is a \Index{supertype} of $T$ in a given environment $\Gamma$,
+$S$ is a \Index{supertype} of $T$ in a given environment $\Delta$,
 written \SupertypeStd{S}{T},
 if{}f \SubtypeStd{T}{S}.
 
 \LMHash{}%
 A type $T$
 \Index{may be assigned}
-to a type $S$ in an environment $\Gamma$,
+to a type $S$ in an environment $\Delta$,
 written \AssignableStd{S}{T},
 if{}f either \SubtypeStd{S}{T} or \SubtypeStd{T}{S}.
 In this case we say that the types $S$ and $T$ are
@@ -22654,7 +23088,7 @@ Assignment & \code{=}, \code{*=}, \code{/=}, \code{+=}, \code{-=}, \code{\&=}, \
   \begin{minipage}[c]{0.49\textwidth}
     \RuleRaw{\AppSrnReflexivity}{Reflexivity}{S\mbox{ not composite}}{S}{S}
     \Rule{\AppSrnTypeVariableReflexivityC}{Type Variable Reflexivity B}{X}{T}{X}{X \& T}
-    \Rule{\AppSrnRightFutureOrC}{Right FutureOr C}{\Gamma(X)}{\code{FutureOr<$T$>}}{X}{\code{FutureOr<$T$>}}
+    \Rule{\AppSrnRightFutureOrC}{Right FutureOr C}{\Delta(X)}{\code{FutureOr<$T$>}}{X}{\code{FutureOr<$T$>}}
   \end{minipage}
   \begin{minipage}[c]{0.49\textwidth}
     \Axiom{\AppSrnTypeVariableReflexivityB}{Type Variable Reflexivity}{X}{X}

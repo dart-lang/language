@@ -58,7 +58,7 @@ macro class AutoDispose implements ClassDeclarationsMacro, ClassDefinitionMacro 
     var disposeBuilder = await builder.buildMethod(disposeMethod.identifier);
     disposeBuilder.augment(FunctionBodyCode.fromParts([
       '{\n',
-      if (disposeMethod.isExternal) 'super.dispose();' else 'augment super();',
+      if (disposeMethod.hasExternal) 'super.dispose();' else 'augment super();',
       ...disposeCalls,
       '}',
     ]));

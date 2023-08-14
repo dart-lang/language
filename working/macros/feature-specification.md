@@ -103,6 +103,23 @@ The primary limitation of this approach is that you will not be able to inspect
 the actual types of declarations where the type was omitted prior to phase 3,
 but this situation will also be made very explicit to macro authors.
 
+#### Conditional URI directives
+
+When introspecting on a program, which conditional uri directives are selected
+(even transitively) may affect what a macro sees. This means that macros may
+produce different code based on the conditions present in these directives and
+the compilation environment.
+
+It is necessary that it works this way (as opposed to choosing the default for
+instance), because we do not require anything other than the selected URI to be
+present during compilation. Even the default URI may be missing.
+
+In particular this complicates the debugging experience, as the analysis
+environment in the IDE would ideally match up with the compilation environment
+for an app during debugging, otherwise stack traces, breakpoints, etc may not
+match up. It is generally anticipated that these situations should be rare,
+because typically the APIs exposed from conditional directives are identical.
+
 ### Ordering in metaprogramming
 
 Macros can read the user's Dart program and modify it. They are also written in
@@ -133,18 +150,21 @@ Macros are applied to declarations using the existing metadata annotation
 syntax. For example:
 
 ```dart
-@myCoolMacro
+@MyCoolMacro()
 class MyClass {}
 ```
 
-Here, if `myCoolMacro` resolves to an instance of a class implementing one or
-more of the macro interfaces, then the annotation is treated as an application
-of the `myCoolMacro` macro to the class MyClass.
+Here, if the `MyCoolMacro` type is a `macro class`, then the annotation is
+treated as an application of the `MyCoolMacro()` macro to the class MyClass.
 
 Macro applications can also be passed arguments, either in the form of
 [Code][] expressions, [TypeAnnotation][]s, or certain
 types of literal values. See [Macro Arguments](#Macro-arguments) for more
 information on how these arguments are handled when executing macros.
+
+Macro applications must always be constructor invocations. It is an error to
+annotate a declaration with a constant reference to a macro instance. In the
+future we may explore a more concise macro application syntax.
 
 ### Code Arguments
 
@@ -240,25 +260,25 @@ order of macros:
     example:
 
     ```dart
-    @third
-    @second
-    @first
+    @Third()
+    @Second()
+    @First()
     class C {}
     ```
 
-    Here, the macros applied to C are run `first`, `second`, then `third`.
+    Here, the macros applied to C are run `First()`, `Second()`, then `Third()`.
 
 *   **Macros are applied to superclasses, mixins, and interfaces first, in**
     **Phase 2** For example:
 
     ```dart
-    @third
+    @Third()
     class B extends A with C implements D {}
 
-    @second
+    @Second()
     class A implements C {}
 
-    @first
+    @First()
     class C {}
 
     @first
@@ -398,22 +418,22 @@ ordering problem to discuss. Imagine you have these two classes for tracking
 pets and their humans:
 
 ```dart
-@jsonSerializable
+@JsonSerializable()
 class Human {
   final String name;
   final Pet? pet; // Optional, might not have a pet.
 }
 
-@jsonSerializable
+@JsonSerializable()
 class Pet {
   final String name;
-  final Owner? owner; // Optional, might be feral.
+  final Human? owner; // Optional, might be feral.
 }
 ```
 
-You want to be able to save these to the cloud, so you use a `@jsonSerializable`
-macro that generates a `toJson()` method on each class the macro is applied to.
-You want the methods to look like this:
+You want to be able to save these to the cloud, so you use a
+`@JsonSerializable()` macro that generates a `toJson()` method on each class the
+macro is applied to. You want the methods to look like this:
 
 ```dart
 class Human {
@@ -434,10 +454,10 @@ class Pet {
 ```
 
 Note that the `pet` and `owner` fields are serialized by recursively calling
-their `toJson()` methods. To generate that code, the `@jsonSerializable` macro
+their `toJson()` methods. To generate that code, the `@JsonSerializable()` macro
 needs to look at the type of each field to see if it declares a `toJson()`
 method. The problem is that there is *no* order of macro application that will
-give the right result. If we apply `@jsonSerializable` to Human first, then it
+give the right result. If we apply `@JsonSerializable()` to Human first, then it
 won't call `toJson()` on `pet` because Pet doesn't have a `toJson()` method yet.
 We get the opposite problem if we apply the macro to Pet first.
 
@@ -604,7 +624,7 @@ With macros, many of those metadata annotations would instead either *become*
 macros or be *read* by them. The latter means that macros also need to be able
 to introspect over non-macro metadata annotations applied to declarations.
 
-For example, a `@jsonSerialization` class macro might want to look for an
+For example, a `@JsonSerialization()` class macro might want to look for an
 `@unseralized` annotation on fields to exclude them from serialization.
 
 **TODO**: The following subsections read more like a design discussion that a
@@ -771,7 +791,7 @@ user-written code is clear. Consider the following example:
 ```dart
 int get x => 1;
 
-@generateX
+@GenerateX()
 class Bar {
   // Generated: int get x => 2;
 
@@ -877,17 +897,18 @@ implement their own declarations (#1908).
 
 #### Adding macro applications to new declarations
 
-When creating [Code][] instances, a macro may generate code which includes
+When creating [DeclarationCode][] instances, a macro may generate code which includes
 macro applications. These macro applications must be from either the current
 phase or a later phase, but cannot be from previous phases.
 
-If a macro application is added which implements an earlier phase, that phase
-is not ran. This should result in a warning if the macro does not also
-implement some phase that will be ran.
+It is an error for a macro application to be added which would have applied to
+its declaration in an earlier phase.
 
 If a macro application is added which runs in the same phase as the current
 one, then it is immediately expanded after execution of the current macro,
 following the normal ordering rules.
+
+[DeclarationCode]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/code.dart#L37
 
 #### Ordering violations
 
@@ -895,19 +916,19 @@ Both of these mechanisms allow for normal macro ordering to be circumvented.
 Consider the following example, where all macros run in the Declaration phase:
 
 ```dart
-@macroA
-@macroB
+@MacroA()
+@MacroB()
 class X {
-  @macroC // Added by `@macroA`, runs after both `@macroB` and `@macroA`
+  @MacroC() // Added by `@MacroA()`, runs after both `@MacroB()` and `@MacroA()`
   int? a;
 
-  // Generated by `@macroC`, not visible to `@macroB`.
+  // Generated by `@MacroC()`, not visible to `@MacroB()`.
   int? b;
 }
 ```
 
-Normally, macros always run "inside-out". But in this case `@macroC` runs after
-both `@macroB` and `@macroA` which were applied to the class.
+Normally, macros always run "inside-out". But in this case `@MacroC()` runs after
+both `@MacroB()` and `@MacroA()` which were applied to the class.
 
 We still allow this because it doesn't cause any ambiguity in ordering, even
 though it violates the normal rules. We could instead only allow adding macros
@@ -981,23 +1002,24 @@ their libraries. At this point, you have a set of mutually interdependent
 libraries. They may contain references to declarations that don't exist because
 macros have yet to produce them.
 
-Collect all the metadata annotations whose names can be resolved and that
-resolve to macro classes. Report an error if any application refers to a macro
-declared in this cycle.
+Collect all the metadata annotations which are constructor invocations of
+macro classes. Report an error if any application refers to a macro declared in
+this cycle, or if any annotation is a reference to a const instance of a macro
+class (they must be explicit constructor invocations).
 
-**TODO**: The above resolution rules may change based on
+**NOTE**: We may in the future allow constant references to macros in
+annotations, or something similar to that, see discussion in
 https://github.com/dart-lang/language/issues/1890.
 
 #### 3. Apply macros
 
-In a sandbox environment or isolate, create an instance of the corresponding
-macro class for each macro application. Pass in any macro application arguments
-to the macro's constructor. If a parameter's type is `Code` or a subclass,
-convert the argument expression to a `Code` object. Any bare identifiers in the
-argument expression are converted to `Identifier` (see
-[Identifier Scope](#Identifier-Scope) for scoping information).
+In a sandbox environment, likely a separate isolate or process, create an
+instance of the corresponding macro class for each macro application. See
+[Executing macros](#Executing-macros) for more explanation of how macros are
+constructed and how their arguments are handled.
 
-Run all of the macros in phase order:
+Run all of the macros in phase order (see also
+[Application order](#Application-order) for ordering within each phase):
 
 1.  Invoke the corresponding visit method for all macros that implement phase 1
     APIs.
@@ -1078,14 +1100,14 @@ are ready to be loaded and executed when applied in libraries in later cycles.
 ## Executing macros
 
 To apply a macro, a Dart compiler constructs an instance of the applied macro's
-class and then invokes methods that implement macro API interfaces. The macro is
-a full-featured Dart program with complete access to the entire Dart language.
-Macros are Turing-complete.
+class and then invokes methods that implement macro API interfaces. Then it
+disposes of the macro instance. Typically this is all done in a separate isolate
+or process from the compiler itself.
+
+Macros are full-featured Dart programs with complete access to the entire Dart
+language (but limited access to core libraries). Macros are Turing-complete.
 
 ### Macro arguments
-
-**TODO**: How are metadata annotations that refer to constant objects handled
-(#1890)?
 
 Each argument in the metadata annotation for the macro application is converted
 to a form that the corresponding constructor on the macro class expects, which
@@ -1278,28 +1300,116 @@ given library. This will be allowed through the library introspection class,
 which is available from the introspection APIs on all declarations via a
 `library` getter.
 
-**TODO**: Fully define the library introspection API for each phase.
-
 ### API versioning
 
-**TODO**: Finalize the approach here (#1934).
+It is expected that future language changes will require breaking changes to the
+macro APIs. For instance you could consider what would happen if we added
+multiple return values from functions. That would necessitate a change to many
+APIs so that they would support multiple return types instead of a single one.
 
-It is possible that future language changes would require a breaking change to
-an existing imperative macro API. For instance you could consider what would
-happen if we added multiple return values from functions. That would
-necessitate a change to many APIs so that they would support multiple return
-types instead of a single one.
+#### Design goals
 
-#### Proposal: Ship macro APIs as a Pub package
+* Enable us to make API changes when needed.
+* Minimize churn for macro authors - most SDK versions will not be breaking and
+  it would be ideal to not ask packages to have super tight SDK constraints.
+* Give early and actionable error messages to consumers of macros when a macro
+  they are using does not support a new language feature.
+* Enable as much forwards/backwards compatibility as possible.
 
-Likely, this package would only export directly an existing `dart:` uri, but
-it would be able to be versioned like a public package, including tight sdk
-constraints (likely on minor version ranges). This would work similar to the
-`dart:_internal` library.
+#### Solution: Ship macro APIs as a Pub package
 
-This approach would involve more work on our end (to release this package with
-each dart release). But it would help keep users on the rails, and give us a
-lot of flexibility with the API going forward.
+The implementation of this package will always come from the SDK, through a
+`dart:_macros` library, which will be exported by this package. The
+`dart:_macros` library will be blocked from being imported or exported by any
+library other than other `dart:` libraries and this package.
+
+We use a `dart:` library here to ensure that the binaries shipped with the SDK
+are compiled with exactly the same version of the API that macros are compiled
+with. This ensures the communication protocol between macros and the SDK
+binaries are compatible.
+
+This package will have tight upper bound SDK constraints, constrained to the
+minor release versions instead of major release versions.
+
+The release/versioning strategy for the package is as follows:
+
+- We will not allow any changes to the macro APIs in patch releases of the SDK,
+  even non-breaking changes. The package restricts itself to minor releases and
+  not patch releases of the SDK, so these changes would silently be visible to
+  users in a way that wasn't versioned through the package.
+
+- When a new version of the Dart SDK is released which **does not have any**
+  changes to the macro API, then we will do a patch release of this package
+  which simply expands the SDK upper bound to include that version (specifically
+  it will be updated to less than the next minor version). For example,
+  if version `3.5.0` of the SDK was just released, and it has no changes to the
+  macro API, the new upper bound SDK constraint would be `<3.6.0` and the lower
+  bound would remain unchanged.
+
+  Since this is only a patch release of this package, all existing packages that
+  depend on this package (with a standard version constraint) will support it
+  already, so no work is required on macro authors' part to work with the new
+  Dart SDK.
+
+- When a new version of the Dart SDK is released which has **non-breaking**
+  changes to the macro API, then we will do a minor release of this package,
+  which increases the lower bound SDK constraint to the newly released version,
+  and the upper bound to less than the next minor release version. For example,
+  if version `3.5.0` of the SDK was just released, and it has **non-breaking**
+  changes to the macro API, the new SDK constraint would be `>=3.5.0 <3.6.0`.
+
+  Note that only users on the newest SDK will get this new version, but that is
+  by design. The new features are being exposed only by the new SDK and are not
+  available to older SDKs.
+
+  Since this is only a minor release, all existing packages that depend on this
+  package (with a standard version constraint) will support it already, so no
+  work is required on macro authors' part to work with the new Dart SDK.
+
+  If a macro author wants to **use** the new features, they must update their
+  minimum constraint on this package to the latest version to ensure the new
+  features are available.
+
+- When a new version of the Dart SDK includes a **breaking** change to the macro
+  API, then we will release a new major version of this package, and update the
+  SDK constraints in the same way as non-breaking changes (update both the
+  minimum and maximum SDK constraints, so only the current minor version is
+  allowed). By default, existing packages containing macros will not accept that
+  version of the macro package and thus will not work with the new Dart SDK.
+
+  Authors of packages containing macros will need to test to see if their macro
+  is compatible with the latest macro API. If so, they can ship a new patch
+  version of their package with a constraint on the macro package that includes
+  the new major version as well as the previous major version it's already known
+  to work with. If their package is broken by the macro API change, then, they
+  will fix their macro and ship a new version of their package with a dependency
+  on the macro package that only allows the latest major versions.
+
+This approach has several advantages for macro authors and users, which are
+closely aligned with the design goals:
+
+* Fewer releases for macro authors (this package shouldn't have very many
+  breaking changes).
+* Gives us flexibility with the API when needed.
+* Gives early errors if a macro dependency doesn't support the users current
+  SDK. The failure will be in the form of a failed version solve.
+* Macros can easily depend on wide ranges of this package (if they are
+  compatible).
+
+There are some downsides to this approach as well:
+
+* More work for us, we need to consistently prepare these releases for new SDKs.
+* Version solve errors can sometimes be very cryptic to understand. This is a
+  general problem though, and we will benefit from any improvements in this
+  area.
+* Dependency overrides on this package won't actually have any affect, which may
+  be confusing to users. The API is always dictated by the `dart:` library and
+  not the package itself. Note that this is different from `dart_internal`,
+  which wraps the `dart:` APIs it exposes. I don't think this would be
+  desireable for this use case, but we could see if it is feasible.
+* It is possible we could forget to bump the min SDK when altering the internal
+  API for the `dart:_macros` package. We should put some sort of check in place
+  to help ensure we get this right.
 
 ## Resources
 
