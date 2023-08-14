@@ -4,9 +4,9 @@ Author: eernst@google.com
 
 Status: Obsolete
 
-**This proposal is now obsolete. The mechanism has been renamed to
-_extension types_. Please see the new [extension types specification][] for the
-most recent proposed specification.**
+**This proposal is now obsolete. The mechanism has been renamed multiple times, and the
+current name is again _extension types_. Please see the new 
+[extension types specification][] for the accepted specification proposal.**
 
 [extension types specification]: https://github.com/dart-lang/language/blob/main/accepted/future-releases/extension-types/feature-specification.md
 
