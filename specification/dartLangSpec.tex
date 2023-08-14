@@ -41,6 +41,11 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Aug 2023
+% - Correct text about built-in identifier error and turn it into commentary
+%   (the normative text is in grammar rules using `typeIdentifier`), and
+%   correct the grammar for import prefixes to use `typeIdentifier`.
+%
 % Jul 2023
 % - Land the null-safety updates for sections about variables.
 % - Change terminology: A 'static variable' is now a variable whose declaration
@@ -17199,12 +17204,16 @@ also do not derive any reserved words.
 \LMHash{}%
 A \Index{built-in identifier} is one of
 the identifiers produced by the production \synt{BUILT\_IN\_IDENTIFIER}.
-It is a compile-time error if a built-in identifier
+
+\commentary{%
+Note that it is a syntax error if a built-in identifier
 is used as the declared name of
-a prefix, class, mixin, enum, type parameter, or type alias.
-It is a compile-time error to use a built-in identifier
+%% TODO(eernst): Come extension types, add them.
+a prefix, class, mixin, enum, type parameter, type alias, or extension.
+Similarly, it is a syntax error to use a built-in identifier
 other than \DYNAMIC{} or \FUNCTION{}
-as an identifier in a type annotation or a type parameter bound.
+as an identifier in a type annotation or a type parameter bound.%
+}
 
 \rationale{%
 Built-in identifiers are identifiers that are used as keywords in Dart,
@@ -19659,7 +19668,9 @@ An \Index{import} specifies a library whose exported namespace
 <libraryImport> ::= <metadata> <importSpecification>
 
 <importSpecification> ::= \gnewline{}
-  \IMPORT{} <configurableUri> (\DEFERRED? \AS{} <identifier>)? <combinator>* `;'
+  \IMPORT{} <configurableUri>
+  (\DEFERRED? \AS{} <typeIdentifier>)?
+  <combinator>* `;'
 \end{grammar}
 
 \LMHash{}%
