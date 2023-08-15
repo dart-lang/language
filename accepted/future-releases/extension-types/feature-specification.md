@@ -1279,6 +1279,10 @@ We say that said `Iterable<T>` is the _iterable return type_ of `f`. The
 run-time type of the object returned by `f` is a type that implements its
 iterable return type.
 
+The element type of `f` is defined as previously, except that it is the
+element type of the iterable return type rather than of the declared return
+type.
+
 Finally, let `f` be a function with return type `R` whose body is marked
 `async*`. 
 
@@ -1290,6 +1294,10 @@ if `S` is not a supertype of `Stream<T>` for any `T`.
 We say that said `Stream<T>` is the _stream return type_ of `f`. The
 run-time type of the object returned by `f` is a type that implements its
 stream return type.
+
+The element type of `f` is defined as previously, except that it is the
+element type of the stream return type rather than of the declared return
+type.
 
 
 ## Dynamic Semantics of Extension Types
