@@ -1179,7 +1179,7 @@ all members of `V1, .. Vk` that are not redeclared by a declaration in _DV_
 can be invoked on a receiver of the type introduced by _DV_.*
 
 
-### Changes to subtype rules
+### Changes to type functions and types
 
 The previous sections have introduced some subtype relationships involving
 extension types. This section adds further relationships where extension
@@ -1197,12 +1197,99 @@ introduced which makes `E<S1 .. Sk>` a subtype of `E<T1 .. Tk>` if
 *For example, `E<int>` is a subtype of `E<Object>` because `int` is a
 subtype of `Object`, also in the case where `E` is an extension type.*
 
-
-### Change to type functions
-
 The type function `futureValueType` is updated as follows:
 
+- `futureValueType(S?) = futureValueType(S)`, for any `S`.
+- `futureValueType(Future<S>) = S`, for any `S`.
+- `futureValueType(FutureOr<S>) = S`, for any `S`.
+- `futureValueType(void) = void`.
+- `futureValueType(dynamic) = dynamic`.
+- `futureValueType(E) = S` if `E` is an extension type
+  that implements `Future<S>`.
+- Otherwise, `futureValueType(S) = Object?`, for any `S`.
 
+The Dart 1 algorithm which is used to compute the standard upper bound of
+two distinct interface types will work in the same way as it does today,
+albeit on a different superinterface graph:
+
+We introduce an interface type `Any` which declares `operator ==`,
+`hashCode`, `runtimeType`, `noSuchMethod`, `toString` with the same
+signatures as `Object` does today, and `Object` as well as `Null` have
+`Any` as a direct superinterface.
+
+`Any` is sealed. *That is, we cannot create additional direct subtypes of
+`Any` This is required for the soundness of the rule below about `Object?`
+being a supertype of `Any`.*
+
+*This basically means that we eliminate the anomaly which is created by
+saying that `Object` declares those members, but `Null` "has them too,
+by magic". It also implies that all paths from the top type via `Object`
+are now one step longer, which is significant during the computation of the
+standard upper bound.*
+
+For subtyping, we specify that every type is a subtype of `void`, of
+`dynamic`, and of `Any`.
+
+Moreover, we specify that `Any` is a subtype of `Object?`. *This implies
+that we collapse `Any` and `Object?`, which is basically the same thing as
+promising that `Any` will never have other subtypes than `Null` and
+`Object`. Other types (type variables and extension types) will always be
+populated by objects which are of type `Object` or `Null`, which means that
+it is sound to claim that `Object?` and `Any` are "the same type" (mutual
+subtypes).*
+
+We specify that `NonNull(Any)` is `Object`. *This is sound, and it is
+needed in order to allow `Any` to be used as a more concise way to write
+`Object?`, which is presumably quite valuable.*
+
+
+### Changes to functions
+
+Let `f` be a function with declared return type `R` whose body is `async`.
+
+An existing rule states that it is a compile-time error if `R` is not a
+supertype of `Future<T>` for any `T`.
+
+This is changed as follows: If `R` is an extension type that implements
+`Future<R1>` for some `R1` which is also the representation type of `R`
+then let `S` be `Future<R1>`. Otherwise let `S` be `R`. Next, it is a
+compile-time error if `S` is not a supertype of `Future<T>` for any `T`.
+
+*In short, nothing changes, except that an `async` function can now return
+an extension type if that extension type declares that it "is a future",
+and it has a representation type which is that same future type (not, for
+example, a subtype like `MyFuture`).*
+
+We say that said `Future<T>` is _the future return type_ of `f`. The
+run-time type of the object returned by `f` is a type that implements its
+future return type.
+
+*This is sufficient to ensure that it is a sound return value both in the
+case where `f` returns an extension type and a non-extension type.*
+
+Similarly, let `f` be a function with return type `R` whose body is marked
+`sync*`. 
+
+If `R` is an extension type that implements `Iterable<R1>` for some `R1`
+which is also the representation type of `R` then let `S` be
+`Iterable<R1>`. Otherwise let `S` be `R`. Next, it is a compile-time error
+if `S` is not a supertype of `Iterable<T>` for any `T`.
+
+We say that said `Iterable<T>` is the _iterable return type_ of `f`. The
+run-time type of the object returned by `f` is a type that implements its
+iterable return type.
+
+Finally, let `f` be a function with return type `R` whose body is marked
+`async*`. 
+
+If `R` is an extension type that implements `Stream<R1>` for some `R1`
+which is also the representation type of `R` then let `S` be
+`Stream<R1>`. Otherwise let `S` be `R`. Next, it is a compile-time error
+if `S` is not a supertype of `Stream<T>` for any `T`.
+
+We say that said `Stream<T>` is the _stream return type_ of `f`. The
+run-time type of the object returned by `f` is a type that implements its
+stream return type.
 
 
 ## Dynamic Semantics of Extension Types
