@@ -854,7 +854,7 @@ _The mixin class declarations can also have interfaces, type parameters,
 and modifiers, but no `extends` or `with` clauses other than those shown here._
 
 A *trivial generative constructor* is a generative constructor that:
-*   Is not a redirecting constructor _(`Foo(...) : this.other(...);`),
+*   Is not a redirecting constructor _(`Foo(...) : this.other(...);`)_,
 *   declares no parameters (parameter list is precisely `()`),
 *   has no initializer list (no `: ...` part, so no asserts or initializers, and
     no explicit super constructor invocation),
