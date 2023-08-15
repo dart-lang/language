@@ -1179,6 +1179,32 @@ all members of `V1, .. Vk` that are not redeclared by a declaration in _DV_
 can be invoked on a receiver of the type introduced by _DV_.*
 
 
+### Changes to subtype rules
+
+The previous sections have introduced some subtype relationships involving
+extension types. This section adds further relationships where extension
+types occur more indirectly.
+
+*For instance, earlier sections stated that every extension type is a
+subtype of the top types (like `Object?`), and that `implements` introduces
+a subtype relationship for extension types. Moreover:*
+
+Assume that `E` denotes an extension type that takes `k` type arguments.
+Corresponding to the subtype rule about covariance for classes, a rule is
+introduced which makes `E<S1 .. Sk>` a subtype of `E<T1 .. Tk>` if
+`Sj` is a subtype of `Tj` for each `j` in 1 .. k.
+
+*For example, `E<int>` is a subtype of `E<Object>` because `int` is a
+subtype of `Object`, also in the case where `E` is an extension type.*
+
+
+### Change to type functions
+
+The type function `futureValueType` is updated as follows:
+
+
+
+
 ## Dynamic Semantics of Extension Types
 
 For any given syntactic construct which has been characterized as an
