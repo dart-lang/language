@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 2.32 (see [CHANGELOG](#CHANGELOG) at end)
+Version 2.33 (see [CHANGELOG](#CHANGELOG) at end)
 
 Note: This proposal is broken into a couple of separate documents. See also
 [records][] and [exhaustiveness][].
@@ -3389,8 +3389,9 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
 
         3.  Else `s` is a non-rest element after the rest element:
 
-            1.  Let `e` be `i : ("tail[]", [index])` where `index` is the
-                zero-based index of this element subpattern.
+            1.  Let `e` be `i : ("tail[]", [tailIndex])` where `tailIndex` is
+                the number of element subpatterns following this element
+                subpattern.
 
                 *Note the "tail" in the invocation key name. This is to
                 distinguish elements after a rest element at some position from
@@ -3408,6 +3409,20 @@ To bind invocation keys in a pattern `p` using parent invocation `i`:
                 use the previously cached value of `c` even though they are both
                 the third element of the same list. So we use an invocation key
                 of "tail[]" for `c` and "[]" for `d`.*
+
+                *We use `tailIndex` and count backwards from the end so that
+                trailing elements can be cached across patterns, as in:*
+
+                ```dart
+                switch (list) {
+                  case [..., var a, var b]: ...
+                  case [..., var c]: ...
+                }
+                ```
+
+                *Here, `var b` and `var c` have the same `tailIndex` (0), so
+                the second case will use the previously cached list element
+                value for `var c`.(
 
             2.  Bind `e` to the `[]` invocation for `s`.
 
@@ -3534,6 +3549,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.33 (after shipping)
+
+-   Tweak caching of trailing list elements after a rest element. The specified
+    behavior now follows the implementations (#2922).
 
 ### 2.32
 
