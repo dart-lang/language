@@ -1190,7 +1190,7 @@ all members of `V1, .. Vk` that are not redeclared by a declaration in _DV_
 can be invoked on a receiver of the type introduced by _DV_.*
 
 
-### Changes to type functions and types
+### Changes to other types and subtyping
 
 The previous sections have introduced some subtype relationships involving
 extension types. This section adds further relationships where extension
@@ -1202,15 +1202,17 @@ a subtype relationship for extension types. Moreover:*
 
 Assume that `E` denotes an extension type that takes `k` type arguments.
 Corresponding to the subtype rule about covariance for classes, a rule is
-introduced which makes `E<S1 .. Sk>` a subtype of `E<T1 .. Tk>` if
-`Sj` is a subtype of `Tj` for each `j` in 1 .. k.
+introduced which makes <code>E\<S<sub>1</sub> .. S<sub>k</sub>></code> a
+subtype of <code>E\<T<sub>1</sub> .. T<sub>k</sub>></code> if
+<code>S<sub>j</sub></code> is a subtype of <code>T<sub>j</sub></code> for
+each `j` in 1 .. k.
 
 *For example, `E<int>` is a subtype of `E<Object>` because `int` is a
 subtype of `Object`, also in the case where `E` is an extension type.*
 
 The Dart 1 algorithm which is used to compute the standard upper bound of
 two distinct interface types will work in the same way as it does today,
-albeit on a different superinterface graph:
+albeit on a slightly different superinterface graph:
 
 For the purpose of this algorithm, we consider `Object?` to be a
 superinterface of `Null` and `Object`, and the path lengths mentioned in
@@ -1218,7 +1220,8 @@ the algorithm will increase by one *(because they start from `Object?`
 rather than from `Object`)*.
 
 *This change is needed because some extension types are subtypes of
-`Object?` and not subtypes of `Object`.*
+`Object?` and not subtypes of `Object`, and they need to have a
+well-defined depth.*
 
 
 ## Dynamic Semantics of Extension Types
