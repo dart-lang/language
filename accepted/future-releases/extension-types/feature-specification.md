@@ -17,7 +17,8 @@ information about the process, including in their change logs.
 
 2023.08.17
   - Add covariance subtype rule for extension types. Add rule that it is an
-    error for an extension type member to be abstract.
+    error for an extension type member to be abstract. Mention that it is
+    allowed for extension type members to be external.
 
 2023.07.13
   - Revise many details, in particular the management of ambiguities
@@ -698,6 +699,12 @@ declaration is abstract.
 *Extension type member invocations and tear-offs are always statically
 resolved, and abstract members only make sense in the case where the given
 member is resolved at run time.*
+
+*It is not an error for an extension type member to have the modifier
+`external`. As usual, an implementation can report a compile-time error for
+external declarations, e.g., if they are not bound to an implementation,
+and the method by which they are bound to an implementation is tool
+specific.*
 
 Assume that
 <code>T<sub>1</sub>, .. T<sub>s</sub></code>
