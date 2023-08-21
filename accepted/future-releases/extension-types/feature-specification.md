@@ -15,6 +15,12 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.08.17
+  - Add covariance subtype rule for extension types. Add rule that it is an
+    error for an extension type member to be abstract. Mention that it is
+    allowed for extension type members to be external. Adjust the notion of
+    the 'depth' of a type such that `UP` can be used with extension types.
+
 2023.07.13
   - Revise many details, in particular the management of ambiguities
     involving extension type members and non-extension type members.
@@ -688,6 +694,19 @@ Member Conflicts' occur as well in an extension type declaration.
 and has an instance member named `V`, and it is a compile-time error if it
 has a type parameter named `X` and it has an instance member named `X`.*
 
+It is a compile-time error if a member declaration in an extension type
+declaration is abstract.
+
+*Extension type member invocations and tear-offs are always statically
+resolved, and abstract members only make sense in the case where the given
+member is resolved at run time.*
+
+*It is not an error for an extension type member to have the modifier
+`external`. As usual, an implementation can report a compile-time error for
+external declarations, e.g., if they are not bound to an implementation,
+and the method by which they are bound to an implementation is tool
+specific.*
+
 Assume that
 <code>T<sub>1</sub>, .. T<sub>s</sub></code>
 are types, and `V` resolves to an extension type declaration of the
@@ -1176,6 +1195,45 @@ independent member signatures.*
 superinterfaces `V1, .. Vk` is that the members declared by _DV_ as well as
 all members of `V1, .. Vk` that are not redeclared by a declaration in _DV_
 can be invoked on a receiver of the type introduced by _DV_.*
+
+
+### Changes to other types and subtyping
+
+The previous sections have introduced some subtype relationships involving
+extension types. This section adds further relationships where extension
+types occur more indirectly.
+
+*For instance, earlier sections stated that every extension type is a
+subtype of the top types (like `Object?`), and that `implements` introduces
+a subtype relationship for extension types. Moreover:*
+
+Assume that `E` denotes an extension type that takes `k` type arguments.
+Corresponding to the subtype rule about covariance for classes, a rule is
+introduced which makes <code>E\<S<sub>1</sub> .. S<sub>k</sub>></code> a
+subtype of <code>E\<T<sub>1</sub> .. T<sub>k</sub>></code> if
+<code>S<sub>j</sub></code> is a subtype of <code>T<sub>j</sub></code> for
+each `j` in 1 .. k.
+
+*For example, `E<int>` is a subtype of `E<Object>` because `int` is a
+subtype of `Object`, also in the case where `E` is an extension type.*
+
+The Dart 1 algorithm which is used to compute the standard upper bound of
+two distinct interface types will work in the same way as it does today,
+albeit on a slightly different superinterface graph:
+
+For the purpose of this algorithm, we consider `Object?` to be a
+superinterface of `Null` and `Object`, and the path lengths mentioned in
+the algorithm will increase by one *(because they start from `Object?`
+rather than from `Object`)*.
+
+*This change is needed because some extension types are subtypes of
+`Object?` and not subtypes of `Object`, and they need to have a
+well-defined depth. Note that the depth of an extension type can be
+determined by its actual type arguments, if any, because type parameters of
+the extension type may occur in its representation type. In particular, the
+depth of an extension type is a property of the type itself, and it is not
+always possible to determine the depth from the associated extension type
+declaration.*
 
 
 ## Dynamic Semantics of Extension Types
