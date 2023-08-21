@@ -18,7 +18,8 @@ information about the process, including in their change logs.
 2023.08.17
   - Add covariance subtype rule for extension types. Add rule that it is an
     error for an extension type member to be abstract. Mention that it is
-    allowed for extension type members to be external.
+    allowed for extension type members to be external. Adjust the notion of
+    the 'depth' of a type such that `UP` can be used with extension types.
 
 2023.07.13
   - Revise many details, in particular the management of ambiguities
