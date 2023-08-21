@@ -1228,7 +1228,9 @@ rather than from `Object`)*.
 
 *This change is needed because some extension types are subtypes of
 `Object?` and not subtypes of `Object`, and they need to have a
-well-defined depth.*
+well-defined depth. Note that the depth of an extension type can be
+determined by its actual type arguments because type parameters of the
+extension type may occur in its representation type.*
 
 
 ## Dynamic Semantics of Extension Types
