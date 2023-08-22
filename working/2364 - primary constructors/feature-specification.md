@@ -239,6 +239,10 @@ class Point {
 class Point(int x, {required int y});
 ```
 
+In this declaration it is possible to omit the modifier `required` on the
+named parameter `y`, because it is implied by the fact that the type of `y`
+is non-nullable (potentially non-nullable is enough).
+
 The current scope for the default values in the primary constructor is the
 enclosing library scope. This means that a naive copy/paste operation on
 the source code could change the meaning of the default value. In that case
@@ -303,18 +307,16 @@ class A {
   A(String _);
 }
 
-class ClassWithLongName {}
-
 class E extends A {
-  ClassWithLongName x1;
-  ClassWithLongName x2;
-  ClassWithLongName x3;
-  ClassWithLongName x4;
-  ClassWithLongName x5;
-  ClassWithLongName x6;
-  ClassWithLongName x7;
-  ClassWithLongName x8;
-  final int z;
+  LongTypeExpression x1;
+  LongTypeExpression x2;
+  LongTypeExpression x3;
+  LongTypeExpression x4;
+  LongTypeExpression x5;
+  LongTypeExpression x6;
+  LongTypeExpression x7;
+  LongTypeExpression x8;
+  int z;
   final List<String> w;
 
   E({
@@ -329,27 +331,27 @@ class E extends A {
   })  : z = 1,
         w = const <Never>[],
         super('Something') {
-    // ... // A normal constructor body.
+    // A normal constructor body.
   }
 }
 
 class E extends A {
-  final int z;
+  int z;
   final List<String> w;
 
   primary E({
-    ClassWithLongName x1,
-    ClassWithLongName x2,
-    ClassWithLongName x3,
-    ClassWithLongName x4,
-    ClassWithLongName x5,
-    ClassWithLongName x6,
-    ClassWithLongName x7,
-    ClassWithLongName x8,
+    LongTypeExpression x1,
+    LongTypeExpression x2,
+    LongTypeExpression x3,
+    LongTypeExpression x4,
+    LongTypeExpression x5,
+    LongTypeExpression x6,
+    LongTypeExpression x7,
+    LongTypeExpression x8,
   })  : z = 1,
         w = const <Never>[],
         super('Something') {
-    ... // A normal constructor body.
+    // A normal constructor body.
   }
 }
 ```
@@ -530,9 +532,9 @@ default value.
   is potentially non-nullable then `required` is added to `p` in _L2_.
   Next, an instance variable declaration of the form `T p;` or `final T p;`
   is added to _D2_. The instance variable has the modifier `final` if the
-  parameter in _L_ is `final`, or _D_ has the modifier `inline`, or _D_ is
-  an `enum` declaration, or the modifier `const` occurs just before the class
-  name in _D_.
+  parameter in _L_ is `final`, or _D_ is an `extension type` declaration,
+  or _D_ is an `enum` declaration, or the modifier `const` occurs just
+  before the class name in _D_.
   In all cases, if `p` has the modifier `covariant` then this modifier is
   removed from the parameter in _L2_, and it is added to the instance
   variable declaration named `p`.
