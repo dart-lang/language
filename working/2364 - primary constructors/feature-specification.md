@@ -316,6 +316,7 @@ class E extends A {
   LongTypeExpression x6;
   LongTypeExpression x7;
   LongTypeExpression x8;
+  external int y;
   int z;
   final List<String> w;
 
@@ -328,6 +329,7 @@ class E extends A {
     required this.x6,
     required this.x7,
     required this.x8,
+    required this.y,
   })  : z = 1,
         w = const <Never>[],
         super('Something') {
@@ -336,6 +338,7 @@ class E extends A {
 }
 
 class E extends A {
+  external int y;
   int z;
   final List<String> w;
 
@@ -348,6 +351,7 @@ class E extends A {
     LongTypeExpression x6,
     LongTypeExpression x7,
     LongTypeExpression x8,
+    this.y,
   })  : z = 1,
         w = const <Never>[],
         super('Something') {
@@ -518,7 +522,9 @@ parameters preserve the name and the modifier `required`, if any.  An
 optional positional or named parameter remains optional; if it has a
 default value `d` in _L_ then it has the transformed default value `_n` in
 _L2_, where `_n` is the name of the constant variable created for that
-default value.
+default value. Finally, if `p` is an optional named parameter in _L_ and
+`T` is a potentially non-nullable type then `required` is added to `p` in
+_L2_.
 
 - An initializing formal parameter *(e.g., `this.x`)* is copied from _L_ to
   _L2_, using said transformed default value, if any, and otherwise
@@ -528,8 +534,7 @@ default value.
 - A formal parameter (named or positional) of the form `T p` or `final T p`
   where `T` is a type and `p` is an identifier is replaced in _L2_ by
   `this.p`. A parameter of the same form but with a default value uses said
-  transformed default value. If `p` is an optional named parameter and `T`
-  is potentially non-nullable then `required` is added to `p` in _L2_.
+  transformed default value.
   Next, an instance variable declaration of the form `T p;` or `final T p;`
   is added to _D2_. The instance variable has the modifier `final` if the
   parameter in _L_ is `final`, or _D_ is an `extension type` declaration,
