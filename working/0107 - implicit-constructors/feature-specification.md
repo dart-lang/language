@@ -611,7 +611,7 @@ some rather strict rules:
 
 Scala even requires that the entity that provides implicit conversions is
 explicitly imported (using something similar to `show` in an import). We
-require that each constructor must be `enabled` in the impert.
+require that each constructor must be `enabled` in the import.
 
 ### Changelog
 
