@@ -208,7 +208,7 @@ declaration by specifying several errors.
 
 A compile-time error occurs if the on-class of a static extension does not
 resolve to an enum declaration or a declaration of a class, a mixin, a mixin
-class, or an inline class.
+class, or an extension type.
 
 A compile-time error occurs if a static extension has an on-clause of the
 form `on C` where `C` denotes a generic class and no type arguments are
