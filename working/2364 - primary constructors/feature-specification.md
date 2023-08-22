@@ -13,6 +13,11 @@ one constructor and a set of instance variables to be specified in a concise
 form in the header of the declaration. In order to use this feature, the given
 constructor must satisfy certain constraints, e.g., it cannot have a body.
 
+A primary constructor can also be declared in the body of a class or
+similar declaration, using the modifier `primary`, in which case it can
+have an initializer list and a body, and it still has the ability to
+introduce instance variable declarations implicitly.
+
 One variant of this feature has been proposed in the [struct proposal][],
 several other proposals have appeared elsewhere, and prior art exists in
 languages like [Kotlin][kotlin primary constructors] and Scala (with
@@ -272,8 +277,81 @@ class D<TypeVariable extends Bound> extends A with M implements B, C {
   const D.named(this.x, [this.y = 0]);
 }
 
-class const D.named<TypeVariable extends Bound>(int x, [int y = 0])
+class const D<TypeVariable extends Bound>.named(int x, [int y = 0])
     extends A with M implements B, C;
+```
+
+In the case where the header gets unwieldy it is possible to declare the
+primary constructor in the body of the class, which is also equivalent to
+the previous examples:
+
+```dart
+class D<TypeVariable extends Bound> extends A with M implements B, C {
+  primary const D.named(int x, [int y = 0]);
+}
+```
+
+This approach offers more flexibility in that a primary constructor in the
+body of the declaration can have initializers and a body, just like other
+constructors. In other words, `primary` on a constructor has one effect
+only, which is to introduce instance variables for formal parameters in the
+same way as a primary constructor in the header of the declaration. For
+example:
+
+```dart
+class A {
+  A(String _);
+}
+
+class ClassWithLongName {}
+
+class E extends A {
+  ClassWithLongName x1;
+  ClassWithLongName x2;
+  ClassWithLongName x3;
+  ClassWithLongName x4;
+  ClassWithLongName x5;
+  ClassWithLongName x6;
+  ClassWithLongName x7;
+  ClassWithLongName x8;
+  final int z;
+  final List<String> w;
+
+  E({
+    required this.x1,
+    required this.x2,
+    required this.x3,
+    required this.x4,
+    required this.x5,
+    required this.x6,
+    required this.x7,
+    required this.x8,
+  })  : z = 1,
+        w = const <Never>[],
+        super('Something') {
+    // ... // A normal constructor body.
+  }
+}
+
+class E extends A {
+  final int z;
+  final List<String> w;
+
+  primary E({
+    ClassWithLongName x1,
+    ClassWithLongName x2,
+    ClassWithLongName x3,
+    ClassWithLongName x4,
+    ClassWithLongName x5,
+    ClassWithLongName x6,
+    ClassWithLongName x7,
+    ClassWithLongName x8,
+  })  : z = 1,
+        w = const <Never>[],
+        super('Something') {
+    ... // A normal constructor body.
+  }
+}
 ```
 
 ## Specification
@@ -324,6 +402,18 @@ constructors as well.
         <enumEntry> (',' <enumEntry>)* (',')?
         (';' (<metadata> <classMemberDeclaration>)*)?
      '}';
+
+<methodSignature> ::=
+     'primary'? <constructorSignature> <initializers>
+   | 'primary'? <factoryConstructorSignature>
+   | ... // Other cases unchanged.
+   | 'primary'? <constructorSignature>;
+
+<declaration> ::=
+     ... // Other cases unchanged.
+   | 'primary'? <redirectingFactoryConstructorSignature>
+   | 'primary'? <constantConstructorSignature> (<redirection> | <initializers>)?
+   | 'primary'? <constructorSignature> (<redirection> | <initializers>)?;
 ```
 
 The word `type` is now used in the grammar, but it is not a reserved word
@@ -370,11 +460,11 @@ existing allowlist of places where `covariant` can occur).
 
 The desugaring consists of the following steps, where _D_ is the class,
 extension type, or enum declaration in the program that includes a primary
-constructor, and _D2_ is the result of desugaring. The desugaring step will
-delete elements that amount to the primary constructor; it will add a new
-constructor _k_; it will add zero or more instance variable declarations;
-and it will add zero or more top-level constants *(holding parameter
-default values)*.
+constructor in the header, and _D2_ is the result of desugaring. The
+desugaring step will delete elements that amount to the primary
+constructor; it will add a new constructor _k_; it will add zero or more
+instance variable declarations; and it will add zero or more top-level
+constants *(holding parameter default values)*.
 
 Where no processing is mentioned below, _D2_ is identical to _D_. Changes
 occur as follows:
@@ -429,10 +519,11 @@ default value.
   unchanged.
 - A super parameter is copied from _L_ to _L2_ using said transformed
   default value, if any, and is otherwise unchanged.
-- A formal parameter of the form `T p` or `final T p` where `T` is a type
-  and `p` is an identifier is replaced in _L2_ by `this.p`. A parameter of
-  the same form but with a default value uses said transformed default
-  value.
+- A formal parameter (named or positional) of the form `T p` or `final T p`
+  where `T` is a type and `p` is an identifier is replaced in _L2_ by
+  `this.p`. A parameter of the same form but with a default value uses said
+  transformed default value. If `p` is an optional named parameter and `T`
+  is potentially non-nullable then `required` is added to `p` in _L2_.
   Next, an instance variable declaration of the form `T p;` or `final T p;`
   is added to _D2_. The instance variable has the modifier `final` if the
   parameter in _L_ is `final`, or _D_ has the modifier `inline`, or _D_ is
@@ -443,6 +534,13 @@ default value.
   variable declaration named `p`.
 
 Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
+
+Assume that _D_ is a class, extension type, or enum declaration in the
+program that includes a constructor declaration _k_ in the body which has
+the modifier `primary`. In this case, no transformations are applied to the
+default values of formal parameters of _k_, but otherwise the formal
+parameters of _k_ are processed in the same way as they are with a primary
+constructor in the declaration header.
 
 ### Discussion
 
@@ -503,42 +601,8 @@ constructor has been expressed as a primary constructor.
 
 A variant of this idea, from Leaf, is that we could allow one constructor
 in a class with no primary constructor in the header to be marked as a
-"primary constructor in the body". This would allow the constructor to have
-a body and an initializer list. As a strawman, let's say that we do this by
-adding the modifier `primary` in front of a normal constructor
-declaration:
-
-```dart
-class D<TypeVariable extends Bound> extends A with M implements B, C {
-  int i;
-
-  primary D.named(
-    LongTypeExpression x1,
-    LongTypeExpression x2,
-    LongTypeExpression x3,
-    LongTypeExpression x4,
-    LongTypeExpression x5,
-  ) :
-      i = 1,
-      assert(x1 != x2),
-      super.name(x3, y: x4) {
-    ... // Normal constructor body.
-  }
-
-  ... // Lots of stuff.
-}
-```
-
-Presumably, a `primary` constructor, if present, should occur right next to
-the instance variable declarations, such that it is immediately visible
-(because the first word in that constructor declaration is `primary`) that
-this construct will introduce instance variables.
-
-The only special thing about a `primary` constructor is that the non-super,
-non-this parameters are subject to the same processing as in a primary
-constructor, that is, each of them will introduce an instance variable.
-This proposal does not include that feature, but `primary` constructors are
-probably completely compatible with primary constructors as specified here.
+"primary constructor in the body". This proposal has now been made part
+of the proposal.
 
 A proposal which was mentioned during the discussions about primary
 constructors was that the keyword `final` could be used in order to specify
