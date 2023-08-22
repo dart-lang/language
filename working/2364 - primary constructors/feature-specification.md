@@ -443,6 +443,10 @@ extension type declaration without a primary constructor. An enum
 declaration with a primary constructor is desugared using the same
 steps. This determines the dynamic semantics of a primary constructor.
 
+A compile-time error occurs if a class, extension type, or enum declaration
+has a primary constructor in the header as well as a constructor with the
+modifier `primary` in the body.
+
 The following errors apply to formal parameters of a primary constructor.
 Let _p_ be a formal parameter of a primary constructor in a class `C`:
 
