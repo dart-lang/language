@@ -398,7 +398,6 @@ constructors as well.
 
 <extensionTypeMemberDeclaration> ::= <classMemberDeclaration>;
 
-
 <extensionTypeBody> ::=
      '{' (<metadata> <extensionTypeMemberDeclaration>)* '}'
    | ';';
