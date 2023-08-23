@@ -342,7 +342,7 @@ String ppKeyword(ClassSpec classSpec) {
   }
 
   var inlinity = classSpec.isInline ? 'inline ' : '';
-  var classHeader = 
+  var classHeader =
       "${inlinity}class $className$typeParameters$superinterfaces"
       " $constructorPhrase($parametersSource)";
   var body = Options.includeBody ? ' {\n  // ...\n\}' : ';';
