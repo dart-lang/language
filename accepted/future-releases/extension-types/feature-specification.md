@@ -1461,3 +1461,319 @@ wrapper class is so huge that it is likely to be a major use case for
 extension types that they can allow us to use a built-in class as the
 representation, and still have a specialized interface&mdash;that is, an
 extension type.
+
+## Specification changes related to specific types
+
+Extension types can implement class types, even class types and their members,
+which are mentioned in the language specification.
+
+By disallowing extension members with the same names as the members of `Object`,
+we have reduced the problem to where the specification refers to members of
+specific interfaces. 
+The specification needs to be updated to account for the existence of extension
+types that are subtypes of those types, and which possibly shadow members from
+the interface with extension members.
+
+The specification, and feature specifications not yet included in the
+specification, may uses phrases like (taken from the original collection
+elements feature, so no longer direttly relevant):
+
+> 1. Evaluate the iterator expression to a value `sequence`.
+> 2. If `sequence` is not an instance of a class that implements `Iterable`,
+>    throw a dynamic exception.
+> 3. Evaluate `sequence.iterator` to a value `iterator`.
+
+Here the “Evaluate `sequence.iterator`” is imprecise, and really means “Invoke
+the instance member `iterator` on the object `sequence` (which must exist
+because of the second step). However, as *written*, it’s now ambiguous *which*
+`iterator` member to invoke, in case the static type of `sequence` is an
+extension type which implements `Iterable` and shadows `iterator`.
+
+**General Rule:** Where the existing language specification can invoke or access
+an extension member, it can also invoke an extension type member, and where it
+cannot invoke an extension member, it also will not invoke an extension type
+member.
+
+An example of the former is implicit `call` invocation: If `e1` in `e1(e2)` a
+static type which is not a function type, but which exposes a `call` method, the
+semantics is equivalent to that of `e1.call(e2)`. We apply this rule even the
+static type of `e1` itself has no `call` method, but an extension `call` method
+applies. If `e1` has an extension-type type, we check whether that has a `call`
+method, and not its representation type. There is no *type* check, only a
+*member* check.
+
+The latter case is usually signaled by the specification *requiring* that
+something implements a specific interface, and then invoking members of that
+interface on the value. We can generally treat those cases as if they first
+*up-cast* to the type they tested for, before invoking members, which ensure
+that they invoke instance members. 
+
+An example of that is something like `yield*`, which checks statically that the
+operand’s type is assignable to `Iterable<T>` for some `T`, at runtime checks
+that the value’s runtime type implements `Iterable<T>` (only necessary if the
+static type is `dynamic`), and then invokes `iterator` and `moveNext`/`current`
+on the result. Those invocations *must* be on the instance members.
+
+We still need to check everywhere that the phrasing doesn’t make assumptions
+about *the static type of the instance member*, which might not be visible when
+shadowed by and extension type. See “Iterable and `for`/`in` below” for an
+example where the current specification no longer works, mainly because it’s
+defined by a rewrite, without being explicit about the static types of the
+rewritten code, and assuming that invoking `.iterator` on a subtype of
+`Iterable` has a predictable result.
+
+The types and places where specific types and members are mentions in the
+specification include the following.
+
+#### Object methods
+
+Any reference to invoking `==`, `hashCode`, `runtimeType`, `toString` or
+`noSuchMethod` are safe, since they cannot be shadowed by extension types. No
+changes needed.
+
+#### The types `dynamic`, `void`, `FutureOr`, `Function`, `Record`, `Null` and `Never`
+
+An extension type cannot implement any of these types. 
+
+The specification can still safely assume that a subtype of any of `Function`,
+`Record`, `Null` and `Never` does not have any extension type methods to worry
+about.
+
+The `dynamic` and `void` types are just top-types with special semantics, but
+that only applies to that type, it’s not inherited by subtypes, so the
+specification only checks whether a type *is* `dynamic` or `void`, not whether
+it’s a subtype.
+
+It’s not possible to implement `FutureOr<T>` (or the other union type, `T?`),
+only “interface types”. This ensures that an extension type doesn’t have
+union-type like subtyping behavior.
+
+No changes are needed related to the treatment of these types in the
+specification.
+
+#### Conditions and `bool`
+
+Expressions in condition position (`if (condition) …`, (`do {…}`)`while
+(condition)`, `condition ? … : …`, `condition || condition`, `condition &&
+condition`, `!condition`, `… when condition` ) *must* have a type assignable to
+`bool`.
+
+There is no change to that. An extension type occurring in such a position is a
+compile-time error if it does not implement `bool`., and not if it does
+implement `bool`. All runtime behavior on `bool` values amount to checking
+whether it’s the `true` or the `false` value, which is still sound. _I do not
+believe we make any assumptions about members of `bool`, or invoke any
+explicitly._
+
+#### Numbers and arithmetic operators
+
+We have special rules in type inference for number operations on `int`, `num`
+and `double`, to ensure that the static type of `1 + 1` is `int`. We effectively
+pretend to have overloaded operators for typing only.
+
+The [newest
+version](https://github.com/dart-lang/language/blob/main/accepted/2.12/nnbd/number-operation-typing.md)
+of those rules came with null safety. The way the rules are written, they apply,
+e.g., to `e1 + e2` when the static type of `e1` is a non-`Never` subtype of
+`int` (the receiver is an `int`, maybe typed as a type variable `X` with bound
+`int`), and the static type of `e2` is a subtype of `int`. That needs to also
+say that the `+` must denote an instance member, to avoid applying to an
+extension type implementing `int` and declaring an extension type  `+` operator.
+
+That amounts to two sections being changed by inserting something to the effect
+of “where it’s an instance member”, additions italicized here:
+
+>Let `e` be an expression of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`,
+>`e1 % e2` or `e1.remainder(e2)`, where the static type of `e1` is a
+>non-~~`Never`~~_bottom_ type *T* and *T* <: `num`, ~~and~~ where the static
+>type of `e2` is *S* and *S* is assignable to `num`_, and where *T* has an
+>implementation of the operator, or `remainder` method, that is an instance
+>member_. Then:
+
+and
+
+>Let `e` be a normal invocation of the form `e1.clamp(e2, e3)`, where the static
+>types of `e1`, `e2` and `e3` are *T*<sub>1</sub>, *T*<sub>2</sub> and
+>*T*<sub>3</sub> respectively, ~~and~~ where *T*<sub>1</sub>, *T*<sub>2</sub>,
+>and *T*<sub>3</sub> are all non-~~`Never`~~_bottom_ subtypes of `num`_, and
+>where *T*<sub>1</sub> has an instance member named `clamp`_ . Then:
+
+This will prevent the rules from applying to invocations of extension type
+operators or methods, which shadow the platform methods that we know and trust.
+
+No other changes should be needed. The remainder of the rules are about context
+types, and require the types involved to be *supertypes* of a number interface
+type, which extension types never are.
+
+#### Patterns
+
+All map pattern entry patterns and list pattern element patterns are define in
+terms of calling `length,`, `operator[]` and/or `containsKey` on the object. All
+these invocations *must* be instance member invocations, whether the static type
+of the matched value type is an extension type implementing `Map` or `List` or
+not, and whether it defines its own `length`, `operator[]` or `containsKey`
+extension type members. For all practical purposes, the value is cast to `Map<K,
+V>`/`List<E>` for some `K` and `V`, or `E`, *before* accessing elements, and it
+uses the caching behavior of instance elements.
+
+Object patterns, on the other hand, base their member accesses on the *static
+type* of the object pattern type. A `case ExtensionType(foo: p1, bar: p2)` use
+the `foo` and `bar` getters of `ExtensionType`, whether they are extension type
+members, instance members, or even extension members. _It follows the general
+rule in being a place where extension members are allowed today._
+
+Relational patterns can use extension and extension type implementations of `<`,
+`<=`, `>` and `>=`, and the `==` operator *cannot* be shadowed by extension
+methods.
+
+#### Iterable and `for`/`in`
+
+A `for (D x in e) body` loop, whether statement or element, with value
+declaration `D x` and `e` having static type, `T`, we require that `T`  is
+assignable to `Iterable<dynamic>`, which we today knows is equivalent to
+implementing `Iterable<S>` for some type `S`, or being `dynamic` or a bottom
+type.
+
+The behavior of the for-in statement is currently specified by a *rewrite* to
+the following code:
+
+```dart
+T _$id1 = e;
+var _$id2 = _$id1.iterator;
+while (_$id2.moveNext()) {
+  D x = _$id2.current;
+  {
+    body  
+  }
+}
+```
+
+That rewrite is no longer valid with extension types. The type `T` may be an
+extension type which *does* implement `Iterable<S>` for some `S`, but which then
+*shadows* the default `iterator`, and returns something entirely unrelated to
+`Iterator<S>`. _We do not intend to invoke that extension type member._
+
+The behavior of a `for`/`in` element is defined in terms of a `for`/`in`
+statement.
+
+##### New specification:
+
+It’s (still) a compile-time error if `T` is not assignable to
+`Iterable<dynamic>`. _This, also still, means that `T` is a bottom type,
+`dynamic` or a type which implements `Iterable<S>` for some `S`. That type may
+just also be an extension type._
+
+If `T` implements `Iterable<S>`, let `E` be `S`, otherwise let `E` be `Never` if
+`T` is a bottom type, or `dynamic` if `T` is `dynamic`.
+
+Now rewrite the `for`-`in` loop to:
+
+```dart
+Iterable<E> _$id1 = e;
+Iterator<E> _$id2 = _$id1.iterator;
+while (_$id2.moveNext()) {
+  D x = _$id2.current;
+  {
+    body
+  }  
+}
+```
+
+Like before, any errors that would occur in that program are reported as errors
+in the original `for`-`in` statement.
+
+_**TODO**: Specify this without using a “desugaring” rewrite. Problems like
+these are exactly why rewrites are problematic, they tend to introduce *more*
+information, through the extra syntax or inferred types, than what the original
+program warranted. Also, the rewrite supposedly happens after type inference, so
+we need to either perform type inference on the desugared code, or assign a
+context type and static type to each new expression, because those are
+referenced by the dynamic semantics._ 
+
+##### Consequences to existing code
+
+The only real change is that the type of `_$id1` is not the static type of `e`.
+That means that if there is a class which overrides its iterator to be more
+specific than required, that information is lost.
+
+Example:
+
+```dart
+class VeryInts extends Iterable<num> {
+  Iterator<int> get iterator => <int>[1].iterator;
+}
+void main() {
+  for (int i in VeryInts()) print(i);
+}
+```
+
+With the previous *specification*, the type that `.iterator` should be accessed
+on was `VeryInts`, which means that `_$id2` will get static type
+`Iterator<int>`, and its `.current` is then assignable to `int i`. With the new
+specification, we don’t look at the members of the actual type, instead we
+immediately up-cast to `Iterable<E>` and work with that.
+
+*Luckily*, our implementations already do that: CFE (Dart2js on DartPad):
+
+> ```
+> lib/main.dart:5:12:
+> Error: A value of type 'num' can't be assigned to a variable of type 'int'.
+> for (int i in VeryInts()) print(i);
+>         ^
+> ```
+
+and Analyzer:
+
+> ```
+> error: line 5 • The type 'VeryInts' used in the 'for' loop must implement 'Iterable' with a type argument that can be assigned to 'int'.
+> ```
+
+So, this looks like it might be a spec-only change for the static semantics, to
+make it match the actual implementation, and it’s *likely* that the
+implementations will also do the right thing when faced with extension types.
+They *must* only invoke instance `iterator`, `moveNext` and `current` members.
+
+#### Iterables and synchronous `yield*`
+
+The synchronous `yield*` operator takes an expression which, like `for`/`in`,
+must be assignable to `Iterable<T>`, and it too must use only instance members to
+iterate the operand where it state that it invokes `iterator`, `moveNext` and
+`current`.
+
+#### Stream and `await for`, asynchronous `yield*`
+
+The `await for` specification is deliberately vague in how it’s implemented.
+Like synchronous `for`/`in`, it checks that the stream expression’s static type
+is assignable to `Stream<Object?>`, which again means implementing `Stream<S>`
+for some `S` or being `dynamic` or `Never`. Then it “listens on the stream”, and
+“when an event is emitted”, it executes the loop body. 
+
+It does talk about a “stream subscription”, and calling `pause`, `resume` and
+`cancel` on that. Every call, including the alluded `listen` call on the
+original stream, must be an instance method call on a `Stream` or 
+`StreamSubscription`-typed object. Any assumptions about the static types
+of such a call is based on the element type, which is `S` if the stream
+expression's static type implements `Stream<S>`, and `Never` or `dynamic`
+if it is a bottom type or `dynamic`.
+
+The behavior of an `async for` element is defined in terms of an `async for`
+statement, anhd should just work if the other one does.
+
+The same vagueness applies to `yield*`, and it too must use only
+instance methods to process the stream elements.
+
+#### Futures and `await`, asynchronous `return`
+
+An `await`, and the implicit optional await built into an `async` function’s
+`return`, checks whether its operand is a `Future<T>`, where `T` is
+*flatten*(`S`) and `S` is the static type of the operand.
+
+When it comes to *extension types*, the *flatten* function works without
+changes. If an extension type `E` implements `Future<S>`, then *flatten*(`E`) is
+`S`, just as for an instance type, and if not, *flatten*(`E`) is `E`. _This is
+safe and sound. (We can prove that, but won’t do so here. The rule “`T` \<:
+<code>FutureOr\<*flatten*(T)\></code> for all `T`" still applies, both before
+and after extension type erasure.)_
+
+Implementations must ensure that they don’t call any extension type `then`
+methods or similar, but should not otherwise be affected.
