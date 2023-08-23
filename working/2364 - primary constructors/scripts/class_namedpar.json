@@ -1,0 +1,16 @@
+{
+  "name": "Point",
+  "fields": [
+    {
+      "name": "x",
+      "type": "int"
+    },
+    {
+      "name": "y",
+      "type": "int",
+      "isOptional": true,
+      "isNamed": true,
+      "defaultValue": "0"
+    }
+  ]
+}

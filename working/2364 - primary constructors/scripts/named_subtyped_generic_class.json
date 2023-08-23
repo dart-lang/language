@@ -1,0 +1,16 @@
+{
+  "name": "Point",
+  "constructorName": "_",
+  "typeParameters": "<TypeVariable extends Bound>",
+  "superinterfaces": "extends A with M implements B, C",
+  "fields": [
+    {
+      "name": "x",
+      "type": "int"
+    },
+    {
+      "name": "y",
+      "type": "int"
+    }
+  ]
+}

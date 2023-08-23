@@ -1,0 +1,21 @@
+{
+  "name": "Point",
+  "constructorName": "_",
+  "isConst": true,
+  "superinterfaces": "extends A with M implements B, C",
+  "fields": [
+    {
+      "name": "x",
+      "type": "int",
+      "isFinal": true
+    },
+    {
+      "name": "y",
+      "type": "int",
+      "isFinal": true,
+      "isOptional": true,
+      "isNamed": true,
+      "defaultValue": "0"
+    }
+  ]
+}
