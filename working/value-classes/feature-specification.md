@@ -201,23 +201,13 @@ implicitly marked `final`. It is a compile-time error to *explicitly* mark an
 instance field `final` (since it's redundant and likely indicates confusion on
 the user's part).
 
+It is a compile-time error if an instance field is marked `late`. *The lazy
+initialization of late fields is another kind of mutability.*
+
 Static fields are not implicitly final.
 
 **TODO: This seems like a potential source of confusion. Maybe implicitly final
 fields are a mistake?**
-
-Any non-`late` instance field without an initializer at its declaration is
-called a *value field*. These are the fields that will be used in the
-implementations of `==`, `hashCode`, and `copyWith()`.
-
-Other instance fields, those marked `late` or with initializers, are still
-implicitly final, but are not considered value fields. These can be useful for
-storing information in the object that isn't part of it's user-visible "value",
-like cached data, metadata, debug info, etc..
-
-It is a compile-time error if a value field has a private name. *Since
-`copyWith()` uses named parameters to update the fields, a private name would
-prevent you from updating that field's value using `copyWith()`.*
 
 ## Inheritance
 
@@ -236,22 +226,20 @@ The rules are:
     that removing `value` from an extensible class is a breaking API change.*
 
 *   A value class may apply mixins and implement as many interfaces as it wants.
+    Any mixin applied by a value class or one of its superclasses must not have
+    any mutable or `late` instance fields.
 
-This means that every instance field in a value class that requires
-initialization is declared by some value class, either itself or one of its
-value class superclasses. In other words, every field the automatically
-generated methods use is a value field.
+    **TODO: Is the last restriction too brittle? It means that adding a private
+    mutable instance field to a mixin is a breaking change. Maybe value classes
+    shouldn't be able to apply mixins? Or should we allow `value mixin`?**
 
-When referring to the *value fields* of a value class, we mean the value fields
-it declares and the value fields it inherits from other value classes.
+It is a compile-time error for an instance field in a value class to shadow a
+field in a superclass. *Shadowing fields is never a good idea, and shadowing a
+field in a value class would make it impossible to distinguish their
+corresponding parameters in `copyWith()`.*
 
-It is a compile-time error for a value field in a class to shadow a value field
-in a superclass. *Shadowing fields is never a good idea, and shadowing a value
-field would make it impossible to distinguish their corresponding parameters in
-`copyWith()`.*
-
-It's reasonable to declare a value class that has no actual value fields. This
-can be useful if you want it to be a base class for other value classes.
+It's reasonable to declare a value class that has no actual fields. This can be
+useful if you want it to be a base class for other value classes.
 
 ## Implicit const constructors
 
@@ -273,7 +261,7 @@ Restating the existing specification, "would be valid" means:
     }
 
     value class B {
-      final int x = DateTime.now().second;
+      int x = DateTime.now().second;
 
       B(); // Not implicitly const constructor.
     }
@@ -295,7 +283,7 @@ Restating the existing specification, "would be valid" means:
     }
 
     value class B {
-      int = DateTime.now().second;
+      int x = DateTime.now().second;
 
       B() : super.noConst(); // Not implicitly const constructor.
     }
@@ -330,7 +318,7 @@ creation of a value class creates a constant or not.
 
 An instance creation expression that invokes a const constructor in a value
 class can be a constant or potentially constant expression. It is a compile-time
-constant expression if all of its type arguments are connstant type expressions
+constant expression if all of its type arguments are constant type expressions
 and its arguments are constant expressions, regardless of whether the call is
 preceded by `const`.
 
@@ -344,7 +332,7 @@ code like Flutter build methods, provided that common types like `EdgeInsets`,
 ### `==` and `hashCode`
 
 Value classes have value equality, which means two instances are equal if they
-are the same class and all of their corresponding value fields are equal:
+are the same class and all of their corresponding instance fields are equal:
 
 ```dart
 value class Point(int x, int y);
@@ -357,38 +345,44 @@ main() {
 ```
 
 A value class gets an implicit definition of `==` and `hashCode` with those
-semantics. More precisely, the `==` method on value class `r` with right operand
-`o` is defined as:
+semantics. More precisely, the `==` method on instance `i` of value class
+`C<X1,...,Xn>` with right operand `o` is defined as:
 
-1.  If `o` is not an instance of `r`'s type then `false`.
+1.  If the runtime type of `o` is not a subtype of `C<X1,...,Xn>` then `false`.
 
-    *`o` may be an instance of a _subtype_ of `r`'s type. In other words, this
-    test is implemented like `o is R` where `R` is the type of `r`, including
-    any type arguments used by the receiver instance. This means that `==` may
-    not be symmetric if a value class is also extended.*
+    *`o` may be an instance of a _subtype_ of `C`. In other words, this test is
+    implemented like `o is C<X1,...,Xn>`. This means that `==` may not be
+    symmetric if a value class is also extended.*
 
-2.  For each pair of corresponding value fields `rf` and `of` in unspecified
-    order:
+2.  For each pair of corresponding instance fields `rf` and `of` declared `C`,
+    in unspecified order:
 
-    1.  If `rf == of` is `false` then `false`.
+    1.  Let `rv` be the value of field `rf`. *This accesses the field directly
+        and does not invoke any potentially overridden getter.*
+
+    2.  Let `ov` be the value of field `of`. *This accesses the field directly
+        and does not invoke any potentially overridden getter.*
+
+    3.  If `rv == ov` is `false` then `false`.
+
+    *The order that fields are iterated is potentially user-visible since
+    user-defined `==` methods can have side effects. Most well-behaved `==`
+    implementations are pure. The order that fields are visited is deliberately
+    left unspecified so that implementations are free to reorder the field
+    comparisons for performance.*
+
+3.  If `C` has a supertype other than `Object`, then the result of
+    `super.==(o)`. *Since a value class may have a value superclass with private
+    fields that are inaccessible to `C`, we rely on chaining to the superclass
+    implementation of `==` to compare those fields. We don't do this if the
+    superclass is `Object`, because `Object`'s implementation of `==` isn't
+    well-defined for value classes since they have no defined identity.*
 
 3.  Else, `true`.
-
-*The order that fields are iterated is potentially user-visible since
-user-defined `==` methods can have side effects. Most well-behaved `==`
-implementations are pure. The order that fields are visited is deliberately left
-unspecified so that implementations are free to reorder the field comparisons
-for performance.*
 
 The implementation of `hashCode` follows this. The hash code returned should
 depend on the field values such that two instances that compare equal must have
 the same hash code.
-
-*Note that a value class that inherits from another value class tests its
-inherited fields directly instead of relying on calling `super.==()` or
-`super.hashCode`. This distinction mostly doesn't matter but is potentially
-user visible given that there may be user-defined implementations of those
-methods in the inheritance chain.*
 
 ### `copyWith()`
 
@@ -407,9 +401,9 @@ only a few of them. To make that easier, a value class also automatically gets a
 method named `copyWith()` that produces a copy of the current instance with
 some values changed.
 
-The generated `copyWith()` takes a named parameter for each of the class's value
-fields. The parameter has the same name as the field and the parameter's type is
-the type of the corresponding field.
+The generated `copyWith()` takes a named parameter for each public instance
+field defined in the value class or any of its value superclasses. Each
+parameter has the same name and type as the corresponding field.
 
 The method returns a new instance of the same type as its receiver. The new
 instance's field values are initialized with the values of the corresponding
@@ -417,7 +411,7 @@ arguments. If no argument is passed, then the current instance's field value is
 used instead.
 
 *If the underlying field is itself nullable, the generated `copyWith()` still
-distinguishes between a passed argument overriding the value even if that value
+distinguishes between a passed argument replacing the value even if that value
 is `null`. For example:*
 
 ```
@@ -449,9 +443,34 @@ class MaybeInt {
 *Supporting non-const default values is not needed for this proposal.*
 
 The new instance created by `copyWith()` does not invoke any user-defined
-constructor on the value class. It's as if each value class has an implicit
+constructor on the value class. *It's as if each value class has an implicit
 hidden constructor used only by `copyWith()` that initializes all of its fields
-and calls the corresponding hidden constructor on any value superclass.
+and calls the corresponding hidden constructor on any value superclass. This
+hidden constructor copies the values of any private instance fields to the new
+instance:*
+
+```dart
+value class A {
+  int _x;
+
+  A(this._x);
+}
+
+value class B extends A {
+  int _y;
+  int z;
+
+  B(super._x, this._y, this.z);
+
+  String toString() => 'B($_x, $_y, $z)';
+}
+
+main() {
+  var b = B(1, 2, 3);
+  var b2 = b.copyWith(z: 4);
+  print(b2); // Prints "B(1, 2, 4)".
+}
+```
 
 ### Explicit implementations
 
