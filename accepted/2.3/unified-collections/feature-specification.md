@@ -1,5 +1,15 @@
 # Unified Collections
 
+## Status
+
+**This document serves to document the background and history of the unified
+collections feature. The source of truth on this topic at this time is the
+'Collection Literals' section of the [language specification][]
+([PDF][language specification PDF]).**
+
+[language specification]: https://github.com/dart-lang/language/blob/master/specification/dartLangSpec.tex
+[language specification PDF]: https://spec.dart.dev/DartLangSpecDraft.pdf
+
 The Dart team is concurrently working on three proposals that affect collection
 literals:
 
@@ -16,10 +26,10 @@ To make things easier on implementers and anyone else trying to understand the
 entire set of changes, this specification unifies and subsumes all three of
 those proposals.
 
-**This document is now the source of truth for these language changes.** The
+**This document is a further development of the documents about spread collections
+and control flow collections, and it supersedes those documents.** The
 other three proposals are useful because they contain motivation and other
 context, but the precise syntax and semantics may be out of date in those docs.
-This is where you should be looking if you're an implementer.
 
 ## Grammar
 
