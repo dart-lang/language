@@ -432,7 +432,7 @@ A compile-time error occurs if the extension type declaration declares any
 instance variables, unless they are `external`.
 
 *An external instance variable is just a convenient notation for an external
-getter and (if not `final`) an external setter. They are allowed.*
+getter and (if not `final`) an external setter, which are both allowed.*
 
 The _name of the representation_ in an extension type declaration with a
 representation declaration of the form `(T id)` is the identifier `id`, and
