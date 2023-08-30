@@ -41,7 +41,6 @@ with two fields and a constructor:
 
 ```dart
 // Current syntax.
-
 class Point {
   int x;
   int y;
@@ -54,7 +53,6 @@ concisely:
 
 ```dart
 // A declaration with the same meaning, using a primary constructor.
-
 class Point(int x, int y);
 ```
 
@@ -66,12 +64,14 @@ library, so we should read the examples as "you can write this _or_ you can
 write that". So the example above would be shown as follows:
 
 ```dart
+// Current syntax.
 class Point {
   int x;
   int y;
   Point(this.x, this.y);
 }
 
+// Using a primary constructor.
 class Point(int x, int y);
 ```
 
@@ -114,12 +114,14 @@ initializing formal anyway, so they will just need to be declared using a
 normal `external` variable declaration.
 
 ```dart
+// Current syntax.
 class ModifierClass {
   late int x;
   external double d;
   ModifierClass(this.x);
 }
 
+// Using a primary constructor.
 class ModifierClass(this.x) {
   late int x;
   external double d;
@@ -132,6 +134,7 @@ class ModifierClass(this.x) {
 Super parameters can be declared in the same way as in a body constructor:
 
 ```dart
+// Current syntax.
 class A {
   final int a;
   A(this.a);
@@ -141,6 +144,7 @@ class B extends A {
   B(super.a);
 }
 
+// Using a primary constructor.
 class A(final int a);
 class B(super.a) extends A;
 ```
@@ -148,12 +152,14 @@ class B(super.a) extends A;
 Next, the constructor can be named, and it can be constant:
 
 ```dart
+// Current syntax.
 class Point {
   final int x;
   final int y;
   const Point._(this.x, this.y);
 }
 
+// Using a primary constructor.
 class const Point._(final int x, final int y);
 ```
 
@@ -182,15 +188,12 @@ declaration is an `extension type` or an `enum` declaration, the modifier
 from the formal parameter in the primary constructor:
 
 ```dart
-extension type I.name(int x); // Must use a primary constructor.
-
+// Current syntax.
 class Point {
   final int x;
   final int y;
   const Point(this.x, this.y);
 }
-
-class const Point(int x, int y);
 
 enum E {
   one('a'),
@@ -200,7 +203,13 @@ enum E {
   const E(this.s);
 }
 
+// Using a primary constructor.
+class const Point(int x, int y);
+
 enum E(String s) { one('a'), two('b') }
+
+extension type I.name(int x); // Must use a primary constructor.
+
 ```
 
 This mechanism follows an existing pattern, where `const` modifiers can be
@@ -218,24 +227,28 @@ Optional parameters can be declared as usual in a primary constructor, with
 default values that must be constant as usual:
 
 ```dart
+// Current syntax.
 class Point {
   int x;
   int y;
   Point(this.x, [this.y = 0]);
 }
 
+// Using a primary constructor.
 class Point(int x, [int y = 0]);
 ```
 
 Similarly for named parameters, required or not:
 
 ```dart
+// Current syntax.
 class Point {
   int x;
   int y;
   Point(this.x, {required this.y});
 }
 
+// Using a primary constructor.
 class Point(int x, {required int y});
 ```
 
@@ -246,20 +259,10 @@ is non-nullable (potentially non-nullable is enough).
 The current scope for the default values in the primary constructor is the
 enclosing library scope. This means that a naive copy/paste operation on
 the source code could change the meaning of the default value. In that case
-a new way to denote the given value is established. For example, consider
-this class using a primary constructor:
+a new way to denote the given value is established. For example, consider:
 
 ```dart
-static const d = 42;
-
-class Point(int x, [int y = d]) {
-  void d() {}
-}
-```
-
-This corresponds to the following class without a primary constructor:
-
-```dart
+// Current syntax.
 static const d = 42;
 static const _freshName = d; // Eliminate the name clash.
 
@@ -269,27 +272,43 @@ class Point {
   Point(this.x, [this.y = _freshName]);
   void d() {}
 }
+
+// Using a primary constructor.
+static const d = 42;
+
+class Point(int x, [int y = d]) {
+  void d() {}
+}
 ```
 
 The class header can have additional elements, just like class headers
 where there is no primary constructor:
 
 ```dart
+// Current syntax.
 class D<TypeVariable extends Bound> extends A with M implements B, C {
   final int x;
   final int y;
   const D.named(this.x, [this.y = 0]);
 }
 
+// Using a primary constructor.
 class const D<TypeVariable extends Bound>.named(int x, [int y = 0])
     extends A with M implements B, C;
 ```
 
 In the case where the header gets unwieldy it is possible to declare the
-primary constructor in the body of the class, which is also equivalent to
-the previous examples:
+primary constructor in the body of the class using the `primary` keyword:
 
 ```dart
+// Current syntax.
+class D<TypeVariable extends Bound> extends A with M implements B, C {
+  final int x;
+  final int y;
+  const D.named(this.x, [this.y = 0]);
+}
+
+// Using a primary constructor.
 class D<TypeVariable extends Bound> extends A with M implements B, C {
   primary const D.named(int x, [int y = 0]);
 }
@@ -303,6 +322,7 @@ same way as a primary constructor in the header of the declaration. For
 example:
 
 ```dart
+// Current syntax.
 class A {
   A(String _);
 }
@@ -337,6 +357,7 @@ class E extends A {
   }
 }
 
+// Using a primary constructor.
 class E extends A {
   external int y;
   int z;
