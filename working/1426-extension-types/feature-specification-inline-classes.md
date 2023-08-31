@@ -2,8 +2,13 @@
 
 Author: eernst@google.com
 
-Status: Accepted.
+Status: Obsolete
 
+**This proposal is now obsolete. The mechanism has been renamed to
+_extension types_. Please see the [extension types specification][] for the
+accepted specification proposal.**
+
+[extension types specification]: https://github.com/dart-lang/language/blob/main/accepted/future-releases/extension-types/feature-specification.md
 
 ## Change Log
 
