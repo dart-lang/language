@@ -258,31 +258,6 @@ In this declaration it is possible to omit the modifier `required` on the
 named parameter `y`, because it is implied by the fact that the type of `y`
 is non-nullable (potentially non-nullable is enough).
 
-The current scope for the default values in the primary constructor is the
-enclosing library scope. This means that a naive copy/paste operation on
-the source code could change the meaning of the default value. In that case
-a new way to denote the given value is established. For example, consider:
-
-```dart
-// Current syntax.
-static const d = 42;
-static const _freshName = d; // Eliminate the name clash.
-
-class Point {
-  int x;
-  int y;
-  Point(this.x, [this.y = _freshName]);
-  void d() {}
-}
-
-// Using a primary constructor.
-static const d = 42;
-
-class Point(int x, [int y = d]) {
-  void d() {}
-}
-```
-
 The class header can have additional elements, just like class headers
 where there is no primary constructor:
 
