@@ -478,7 +478,7 @@ There are three phases:
 ### Phase 1: Types
 
 Here, macros contribute new types to the program&mdash;classes, typedefs, enums,
-etc. This is the only phase where a macro can introduce a new visible name into
+etc. This is the only phase where a macro can introduce a new visible type into
 the top level scope.
 
 **Note**: Macro classes _cannot_ be generated in this way, but they can rely on
@@ -501,13 +501,22 @@ about subtype relations.
 ### Phase 2: Declarations
 
 In this phase, macros declare functions, variables, and members. "Declaring"
-here means specifying the name and type signature, but not the body of a
-function or initializer for a variable. In other words, macros in this phase
-specify the declarative structure but no imperative code.
+here means specifying the name and type signature, but not necessarily the body
+of a function or initializer for a variable. It is encouraged to provide a body
+(or initializer) if possible, but you can opt to wait until the definition phase
+if needed.
 
-When applied to a class, a macro in this phase can introspect on all of the
-members of that class and its superclasses, but it cannot introspect on the
-members of other types.
+When applied to a class, enum, or mixin a macro in this phase can introspect on
+all of the members of that class and its superclasses, but it cannot introspect
+on the members of other types. For mixins, the `on` type is considered a
+superclass and is introspectable. Note that generic type arguments are not
+introspectable.
+
+When applied to an extension, a macro in this phase can introspect on all of the
+members of the `on` type, as well as its generic type arguments and the bounds
+of any generic type parameters for the extension.
+
+TODO: Define the introspection rules for extension types.
 
 ### Phase 3: Definitions
 
