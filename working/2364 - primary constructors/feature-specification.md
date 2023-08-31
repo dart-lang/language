@@ -189,6 +189,7 @@ from the formal parameter in the primary constructor:
 
 ```dart
 // Current syntax.
+
 class Point {
   final int x;
   final int y;
@@ -204,6 +205,7 @@ enum E {
 }
 
 // Using a primary constructor.
+
 class const Point(int x, int y);
 
 enum E(String s) { one('a'), two('b') }
