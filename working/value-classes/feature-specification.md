@@ -54,7 +54,7 @@ class Rect {
 
 In addition, any calls to `Rect(...)` are implicitly treated as `const
 Rect(...)` if the arguments are constant expressions so you don't have to write
-`cosnt`.
+`const`.
 
 ## Motivation
 
