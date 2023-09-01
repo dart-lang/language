@@ -27,6 +27,7 @@ macro class ChecksExtensions implements LibraryTypesMacro {
     // ignore: deprecated_member_use
     final subject = await builder.resolveIdentifier(
         Uri.parse('package:checks/checks.dart'), 'Subject');
+    // ignore: deprecated_member_use
     final checksExtension = await builder.resolveIdentifier(
         Uri.parse('package:macro_proposal/checks_extensions.dart'),
         'ChecksExtension');
