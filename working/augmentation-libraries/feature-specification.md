@@ -494,23 +494,31 @@ More specifically:
     `augment super =` expression invokes the original setter.
 
 *   **Augmenting a getter and/or setter with a variable:** This is a
-    compile-time error in all cases. We may decide in the future to allow
-    augmenting abstract or external getters and setters with variables, but for
-    now you can instead use the following workaround:
+    compile-time error in all cases. Augmenting an abstract or external variable
+    with a variable is also a compile-time error, as those are actually just
+    syntax sugar for getter/setter pairs and do not have an initializer that you
+    can augment.
+
+    We may decide in the future to allow augmenting abstract or external
+    getters, setters, or variables with variables, but for now you can instead
+    use the following workaround:
 
     - Add a new field.
     - Augment the getter and/or setter to delegate to that field.
 
-    If a concrete variable is augmented by a getter or setter, you **can** still
-    augment the variable, as you are only augmenting the initializer. This is
-    not considered to be augmenting the augmenting getter or setter, since those
-    are not actually altered.
+    If a non-abstract, non-external variable is augmented by a getter or setter,
+    you **can** still augment the variable, as you are only augmenting the
+    initializer of the original variable. This is not considered to be
+    augmenting the augmenting getter or setter, since those are not actually
+    altered.
 
-    The reason for this is that whether a member declaration is a field versus a
-    getter/setter is a visible property of the declaration: It determines
-    whether the member can be initialized in a constructor initializer list. It
-    is also a visible distinction when introspecting on a program with the
-    analyzer, macros, or mirrors.
+    The reason for this compile time error is that whether a member declaration
+    is a field versus a getter/setter is a visible property of the declaration:
+
+    - It determines whether the member can be initialized in a constructor
+      initializer list.
+    - It is also a visible distinction when introspecting on a program with the
+      analyzer, macros, or mirrors.
 
     When a declaration is augmented, we don't want the augmentation to be able
     to change any of the known properties of the existing member being
@@ -520,23 +528,15 @@ More specifically:
     it. Augmenting a field with a getter/setter doesn't change that property so
     it is allowed.
 
-*   **Augmenting a variable with a variable:** When augmenting a variable with
-    a variable, the behavior differs depending on whether the original variable
-    has a concrete implementation or not. Note that this concrete implementation
-    could be one that is filled in by a compiler or other external source, if
-    the declaration is marked `external`.
+*   **Augmenting a variable with a variable:** Augmenting a variable with a
+    variable only alters its initializer. External and abstract variables cannot
+    be augmented with variables, because they have no initializer to augment.
 
-    If the variable being augmented _does not_ have a concrete implementation,
-    then it gets one from the augmenting variable. This includes the backing
-    store, the implicit getter and setter, as well as the initializer if
-    present.
-
-    If the variable being augmented _does_**_ have a concrete implementation,
-    then only the initializer has any meaning, and it replaces the original
-    initializer. In this case the augmenting initializer may use an
+    Since the initializer is the only meaningful part of the augmenting
+    declaration, an initializer must be provided. This augmenting initializer
+    replaces the original initializer. The augmenting initializer may use an
     `augment super` expression which executes the original initializer
-    expression when evaluated. Augmenting a concrete field with a field does not
-    affect its backing store, getter, or setter.
+    expression when evaluated.
 
     The `late` property of a variable must always be consistent between the
     augmented variable and its augmenting variables.
@@ -558,7 +558,7 @@ It is a compile-time error if:
     assumed to have an implementation provided by another external source, and
     they will throw a runtime exception when called if not.
 
-*   An augmenting initializer uses `augment super` and the original declaration
+*   An augmenting initializer uses `augment super` and the augmented variable
     is not a variable with an initializer.
 
 *   A final variable is augmented with a setter. (Instead, the augmentation
@@ -572,7 +572,9 @@ It is a compile-time error if:
 
 *  A non-`late` variable is augmented with a `late` variable.
 
-*  A concrete getter or setter are augmented by a variable.
+*  A getter or setter are augmented by a variable.
+
+*  An abstract or external variable are augmented by a variable.
 
 ### Augmenting enum values
 
