@@ -3871,7 +3871,8 @@ but we'd have to specify the evaluation rules in that case.%
 \LMHash{}%
 It is a
 \Error{compile-time error} if a setter declares a return type other than \VOID.
-It is a \Error{compile-time error} if a class has
+%% TODO(eernst): Come Dart 3, add 'mixin class', later: 'extension type'.
+It is a \Error{compile-time error} if a library, class, mixin, or extension has
 a setter named \code{$v$=} with argument type $T$ and
 a getter named $v$ with return type $S$,
 and $S$ is not a subtype of $T$.
