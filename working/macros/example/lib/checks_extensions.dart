@@ -17,7 +17,7 @@ import 'util.dart';
 /// Each extension will have a getter for each field in the type it is
 /// targetting, of the form `Subject<SomeFieldType>
 macro class ChecksExtensions implements LibraryTypesMacro {
-  final List<NamedTypeAnnotation> types;
+  final List<TypeAnnotation> types;
 
   const ChecksExtensions(this.types);
 
@@ -32,6 +32,9 @@ macro class ChecksExtensions implements LibraryTypesMacro {
         Uri.parse('package:macro_proposal/checks_extensions.dart'),
         'ChecksExtension');
     for (final type in types) {
+      if (type is! NamedTypeAnnotation) {
+        throw StateError('only named types are supported');
+      }
       if (type.typeArguments.isNotEmpty) {
         throw StateError('Cannot generate checks extensions for types with '
             'explicit generics');

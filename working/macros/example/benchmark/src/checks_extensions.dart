@@ -9,19 +9,24 @@ import 'shared.dart';
 Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
   final introspector = SimpleDefinitionPhaseIntrospector(declarations: {
     myClass.identifier: myClass,
-    objectClass.identifier: objectClass
+    objectClass.identifier: objectClass,
+    myExtension.identifier: myExtension,
   }, identifiers: {
     Uri.parse('dart:core'): {
       'bool': boolIdentifier,
       'int': intIdentifier,
       'Object': objectIdentifier,
       'String': stringIdentifier,
-    }
+    },
+    Uri.parse('package:checks/checks.dart'): {
+      'Subject': subjectIdentifier,
+    },
+    Uri.parse('package:macro_proposal/checks_extensions.dart'): {
+      'ChecksExtension': checksExtensionIdentifier,
+    },
   }, constructors: {}, enumValues: {}, fields: {
     myClass: myClassFields
-  }, methods: {
-    myClass: myClassMethods
-  });
+  }, methods: {});
   final identifierDeclarations = {
     ...introspector.declarations,
     for (final constructors in introspector.constructors.values)
@@ -32,68 +37,88 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
     for (final fields in introspector.fields.values)
       for (final field in fields) field.identifier: field,
   };
-  final instantiateBenchmark =
-      DataClassInstantiateBenchmark(executor, macroUri);
-  await instantiateBenchmark.report();
-  final instanceId = instantiateBenchmark.instanceIdentifier;
-  final typesBenchmark = DataClassTypesPhaseBenchmark(
-      executor, macroUri, instanceId, introspector);
+  final checksExtensionsInstantiateBenchmark =
+      ChecksExtensionsInstantiateBenchmark(executor, macroUri);
+  await checksExtensionsInstantiateBenchmark.report();
+  final checksExtensionsInstanceId =
+      checksExtensionsInstantiateBenchmark.instanceIdentifier;
+  final typesBenchmark = ChecksExtensionsTypesPhaseBenchmark(
+      executor, macroUri, checksExtensionsInstanceId, introspector);
   await typesBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor,
       [if (typesBenchmark.result != null) typesBenchmark.result!],
       identifierDeclarations);
-  final declarationsBenchmark = DataClassDeclarationsPhaseBenchmark(
-      executor, macroUri, instanceId, introspector);
+
+  final checksExtensionInstantiateBenchmark =
+      ChecksExtensionInstantiateBenchmark(executor, macroUri);
+  await checksExtensionInstantiateBenchmark.report();
+  final checksExtensionInstanceId =
+      checksExtensionInstantiateBenchmark.instanceIdentifier;
+  final declarationsBenchmark = ChecksExtensionDeclarationsPhaseBenchmark(
+      executor, macroUri, checksExtensionInstanceId, introspector);
   await declarationsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor,
       [if (declarationsBenchmark.result != null) declarationsBenchmark.result!],
       identifierDeclarations);
-  final definitionsBenchmark = DataClassDefinitionPhaseBenchmark(
-      executor, macroUri, instanceId, introspector);
-  await definitionsBenchmark.report();
-  BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor,
-      [if (definitionsBenchmark.result != null) definitionsBenchmark.result!],
-      identifierDeclarations);
 }
 
-class DataClassInstantiateBenchmark extends AsyncBenchmarkBase {
+class ChecksExtensionsInstantiateBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
   late MacroInstanceIdentifier instanceIdentifier;
 
-  DataClassInstantiateBenchmark(this.executor, this.macroUri)
-      : super('DataClassInstantiate');
+  ChecksExtensionsInstantiateBenchmark(this.executor, this.macroUri)
+      : super('ChecksExtensionsInstantiate');
 
   Future<void> run() async {
     instanceIdentifier = await executor.instantiateMacro(
-        macroUri, 'DataClass', '', Arguments([], {}));
+        macroUri,
+        'ChecksExtensions',
+        '',
+        Arguments([
+          ListArgument([TypeAnnotationArgument(myClassType)],
+              [ArgumentKind.typeAnnotation])
+        ], {}));
   }
 }
 
-class DataClassTypesPhaseBenchmark extends AsyncBenchmarkBase {
+class ChecksExtensionsTypesPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
   final MacroInstanceIdentifier instanceIdentifier;
   final TypePhaseIntrospector introspector;
   MacroExecutionResult? result;
 
-  DataClassTypesPhaseBenchmark(
+  ChecksExtensionsTypesPhaseBenchmark(
       this.executor, this.macroUri, this.instanceIdentifier, this.introspector)
-      : super('DataClassTypesPhase');
+      : super('ChecksExtensionsTypesPhase');
 
   Future<void> run() async {
     if (instanceIdentifier.shouldExecute(
-        DeclarationKind.classType, Phase.types)) {
+        DeclarationKind.library, Phase.types)) {
       result = await executor.executeTypesPhase(
-          instanceIdentifier, myClass, introspector);
+          instanceIdentifier, fooLibrary, introspector);
     }
   }
 }
 
-class DataClassDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
+class ChecksExtensionInstantiateBenchmark extends AsyncBenchmarkBase {
+  final MacroExecutor executor;
+  final Uri macroUri;
+  late MacroInstanceIdentifier instanceIdentifier;
+
+  ChecksExtensionInstantiateBenchmark(this.executor, this.macroUri)
+      : super('ChecksExtensionsInstantiate');
+
+  Future<void> run() async {
+    instanceIdentifier = await executor.instantiateMacro(
+        macroUri, 'ChecksExtension', '', Arguments([], {}));
+  }
+}
+
+class ChecksExtensionDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
   final MacroInstanceIdentifier instanceIdentifier;
@@ -101,44 +126,27 @@ class DataClassDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
 
   MacroExecutionResult? result;
 
-  DataClassDeclarationsPhaseBenchmark(
+  ChecksExtensionDeclarationsPhaseBenchmark(
       this.executor, this.macroUri, this.instanceIdentifier, this.introspector)
-      : super('DataClassDeclarationsPhase');
+      : super('ChecksExtensionDeclarationsPhase');
 
   Future<void> run() async {
     result = null;
     if (instanceIdentifier.shouldExecute(
-        DeclarationKind.classType, Phase.declarations)) {
+        DeclarationKind.extension, Phase.declarations)) {
       result = await executor.executeDeclarationsPhase(
-          instanceIdentifier, myClass, introspector);
-    }
-  }
-}
-
-class DataClassDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
-  final MacroExecutor executor;
-  final Uri macroUri;
-  final MacroInstanceIdentifier instanceIdentifier;
-  final DefinitionPhaseIntrospector introspector;
-
-  MacroExecutionResult? result;
-
-  DataClassDefinitionPhaseBenchmark(
-      this.executor, this.macroUri, this.instanceIdentifier, this.introspector)
-      : super('DataClassDefinitionPhase');
-
-  Future<void> run() async {
-    result = null;
-    if (instanceIdentifier.shouldExecute(
-        DeclarationKind.classType, Phase.definitions)) {
-      result = await executor.executeDefinitionsPhase(
-          instanceIdentifier, myClass, introspector);
+          instanceIdentifier, myExtension, introspector);
     }
   }
 }
 
 final myClassIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'MyClass');
+final myClassType = NamedTypeAnnotationImpl(
+    id: RemoteInstance.uniqueId,
+    isNullable: false,
+    identifier: myClassIdentifier,
+    typeArguments: const []);
 final myClass = IntrospectableClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: myClassIdentifier,
@@ -186,73 +194,20 @@ final myClassFields = [
       type: boolType),
 ];
 
-final myClassMethods = [
-  MethodDeclarationImpl(
-    definingType: myClassIdentifier,
+final myExtension = IntrospectableExtensionDeclarationImpl(
     id: RemoteInstance.uniqueId,
-    identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '=='),
+    identifier:
+        IdentifierImpl(id: RemoteInstance.uniqueId, name: 'MyClassChecks'),
     library: fooLibrary,
-    metadata: [],
-    hasAbstract: false,
-    hasBody: true,
-    hasExternal: false,
-    isGetter: false,
-    isOperator: true,
-    isSetter: false,
-    isStatic: false,
-    namedParameters: [],
-    positionalParameters: [
-      ParameterDeclarationImpl(
+    metadata: const [],
+    typeParameters: const [],
+    onType: NamedTypeAnnotationImpl(
         id: RemoteInstance.uniqueId,
-        identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'other'),
-        library: fooLibrary,
-        metadata: [],
-        isNamed: false,
-        isRequired: true,
-        type: NamedTypeAnnotationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier: objectIdentifier,
-            isNullable: false,
-            typeArguments: const []),
-      )
-    ],
-    returnType: boolType,
-    typeParameters: [],
-  ),
-  MethodDeclarationImpl(
-    definingType: myClassIdentifier,
-    id: RemoteInstance.uniqueId,
-    identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'hashCode'),
-    library: fooLibrary,
-    metadata: [],
-    hasAbstract: false,
-    hasBody: true,
-    hasExternal: false,
-    isOperator: false,
-    isGetter: true,
-    isSetter: false,
-    isStatic: false,
-    namedParameters: [],
-    positionalParameters: [],
-    returnType: intType,
-    typeParameters: [],
-  ),
-  MethodDeclarationImpl(
-    definingType: myClassIdentifier,
-    id: RemoteInstance.uniqueId,
-    identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'toString'),
-    library: fooLibrary,
-    metadata: [],
-    hasAbstract: false,
-    hasBody: true,
-    hasExternal: false,
-    isGetter: false,
-    isOperator: false,
-    isSetter: false,
-    isStatic: false,
-    namedParameters: [],
-    positionalParameters: [],
-    returnType: stringType,
-    typeParameters: [],
-  ),
-];
+        isNullable: false,
+        identifier: subjectIdentifier,
+        typeArguments: [myClassType]));
+
+final subjectIdentifier =
+    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'Subject');
+final checksExtensionIdentifier =
+    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'ChecksExtension');

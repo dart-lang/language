@@ -85,6 +85,7 @@ final myFunction = FunctionDeclarationImpl(
     library: fooLibrary,
     metadata: [],
     hasAbstract: false,
+    hasBody: true,
     hasExternal: false,
     isGetter: false,
     isOperator: false,

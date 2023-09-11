@@ -28,6 +28,7 @@ import 'package:_fe_analyzer_shared/src/macros/executor/process_executor.dart'
 import 'package:_fe_analyzer_shared/src/macros/executor/multi_executor.dart'
     as multiExecutor;
 
+import 'src/checks_extensions.dart' as checks_extensions;
 import 'src/data_class.dart' as data_class;
 import 'src/functional_widget.dart' as functional_widget;
 import 'src/injectable.dart' as injectable;
@@ -52,7 +53,13 @@ final argParser = ArgParser()
       help: 'The communication channel to use when running as a separate'
           ' process.')
   ..addOption('macro',
-      allowed: ['DataClass', 'Injectable', 'FunctionalWidget'], mandatory: true)
+      allowed: [
+        'ChecksExtensions',
+        'DataClass',
+        'Injectable',
+        'FunctionalWidget'
+      ],
+      mandatory: true)
   ..addFlag('help', negatable: false, hide: true);
 
 // Run this script to print out the generated augmentation library for an example class.
@@ -102,6 +109,7 @@ Macro: $macro
 
   // You must run from the `macros` directory, paths are relative to that.
   var macroFile = switch (macro) {
+    'ChecksExtensions' => File('lib/checks_extensions.dart'),
     'DataClass' => File('lib/data_class.dart'),
     'Injectable' => File('lib/injectable.dart'),
     'FunctionalWidget' => File('lib/functional_widget.dart'),
@@ -114,6 +122,8 @@ Macro: $macro
   var tmpDir = Directory.systemTemp.createTempSync('macro_benchmark');
   try {
     var macroUri = switch (macro) {
+      'ChecksExtensions' =>
+        Uri.parse('package:macro_proposal/checks_extensions.dart'),
       'DataClass' => Uri.parse('package:macro_proposal/data_class.dart'),
       'Injectable' => Uri.parse('package:macro_proposal/injectable.dart'),
       'FunctionalWidget' =>
@@ -121,6 +131,10 @@ Macro: $macro
       _ => throw UnsupportedError('Unrecognized macro $macro'),
     };
     var macroConstructors = switch (macro) {
+      'ChecksExtensions' => {
+          'ChecksExtension': [''],
+          'ChecksExtensions': [''],
+        },
       'DataClass' => {
           'DataClass': ['']
         },
@@ -171,6 +185,7 @@ Macro: $macro
 
     _log('Running benchmark');
     await switch (macro) {
+      'ChecksExtensions' => checks_extensions.runBenchmarks(executor, macroUri),
       'DataClass' => data_class.runBenchmarks(executor, macroUri),
       'Injectable' => injectable.runBenchmarks(executor, macroUri),
       'FunctionalWidget' => functional_widget.runBenchmarks(executor, macroUri),

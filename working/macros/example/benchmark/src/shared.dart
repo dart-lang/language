@@ -83,12 +83,26 @@ class FormatLibraryBenchmark extends BenchmarkBase {
 
   FormatLibraryBenchmark(this.library) : super('FormatLibrary');
 
+  static final extensionRegex = RegExp(r'extension [a-zA-Z]+ {');
+
   void run() {
+    var formattableLibrary = library
+        // comment out the `augment` keywords temporarily
+        .replaceAll('augment', '/*augment*/');
+
+    var extensionMatch = extensionRegex.firstMatch(formattableLibrary);
+    while (extensionMatch != null) {
+      // Add a fake on type temporarily, so we can format it.
+      formattableLibrary = formattableLibrary.replaceRange(
+          extensionMatch.end - 1,
+          extensionMatch.end,
+          'on FakeTypeForFormatting {');
+      extensionMatch = extensionRegex.firstMatch(formattableLibrary);
+    }
     formattedResult = formatter
-        .format(library
-            // comment out the `augment` keywords temporarily
-            .replaceAll('augment', '/*augment*/'))
-        .replaceAll('/*augment*/', 'augment');
+        .format(formattableLibrary)
+        .replaceAll('/*augment*/', 'augment')
+        .replaceAll('on FakeTypeForFormatting {', '{');
   }
 }
 
