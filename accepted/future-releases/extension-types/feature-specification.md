@@ -15,6 +15,9 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.09.11
+  - Add missing rule about getter/setter signature correspondence.
+
 2023.08.17
   - Add covariance subtype rule for extension types. Add rule that it is an
     error for an extension type member to be abstract. Mention that it is
@@ -703,6 +706,13 @@ declaration is abstract.
 *Extension type member invocations and tear-offs are always statically
 resolved, and abstract members only make sense in the case where the given
 member is resolved at run time.*
+
+It is a compile-time error if an extension type has a getter named `g` with
+return type `R` and a setter named `g=` with parameter type `S`,
+and `R` is not a subtype of `S`.
+
+*This rule is applicable to instance getters and setters as well as static
+getters and setters.*
 
 *It is not an error for an extension type member to have the modifier
 `external`. As usual, an implementation can report a compile-time error for
