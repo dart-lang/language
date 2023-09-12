@@ -274,6 +274,7 @@ leaves, and nothing else.
 ```dart
 extension type TinyJson(Object it) {
   Iterable<num> get leaves sync* {
+    final it = this.it; // To get promotion.
     if (it is num) {
       yield it;
     } else if (it is List<dynamic>) {
@@ -292,9 +293,6 @@ void main() {
   tiny.add("Hello!"); // Error.
 }
 ```
-
-Note that `it` is subject to promotion in the above example. This is safe
-because there is no way to override this would-be final instance variable.
 
 An instance creation of an extension type, `V<T>(o)`, will evaluate to a
 reference to the representation object, with the static type `V<T>` (and
@@ -356,11 +354,11 @@ class TinyJson {
   TinyJson(this.it);
 
   Iterable<num> get leaves sync* {
-    var localIt = it; // To get promotion.
-    if (localIt is num) {
-      yield localIt;
-    } else if (localIt is List<dynamic>) {
-      for (var element in localIt) {
+    final it = this.it; // To get promotion.
+    if (it is num) {
+      yield it;
+    } else if (it is List<dynamic>) {
+      for (var element in it) {
         yield* TinyJson(element).leaves;
       }
     } else {
