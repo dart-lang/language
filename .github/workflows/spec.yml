@@ -1,4 +1,4 @@
-name: Spec
+name: Dart CI
 
 on:
   # Run on PRs and pushes to the default branch.
@@ -37,7 +37,7 @@ jobs:
           cp dartLangSpec.pdf firebase/DartLangSpecDraft.pdf
 
       - name: Upload specification
-        if: ${{ github.event.pull_request.merged }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         uses: FirebaseExtended/action-hosting-deploy@120e124148ab7016bec2374e5050f15051255ba2
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
