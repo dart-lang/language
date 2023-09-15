@@ -1,4 +1,4 @@
-name: CI
+name: Spec
 
 on:
   # Run on PRs and pushes to the default branch.
@@ -6,27 +6,20 @@ on:
     branches: [ main ]
     paths:
       - 'specification/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/spec.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'specification/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/spec.yml'
 
 jobs:
   specification:
     runs-on: ubuntu-latest
-    if: |
-      (
-        (github.event_name == 'push'
-          && github.ref == 'refs/heads/main'
-          && github.repository == 'dart-lang/language'
-        ) ||
-        (github.event.pull_request.head.repo.full_name == github.repository)
-      )
 
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+
       - name: Install latex tools
         run: |
           sudo apt-get update -qq
@@ -35,13 +28,17 @@ jobs:
             texlive-latex-extra \
             texlive-fonts-recommended \
             lmodern
+
       - name: Build specification
         run: |
           cd specification
           make
           mkdir firebase
           cp dartLangSpec.pdf firebase/DartLangSpecDraft.pdf
-      - uses: FirebaseExtended/action-hosting-deploy@120e124148ab7016bec2374e5050f15051255ba2
+
+      - name: Upload specification
+        if: ${{ github.event.pull_request.merged }}
+        uses: FirebaseExtended/action-hosting-deploy@120e124148ab7016bec2374e5050f15051255ba2
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DART_SPECIFICATION }}'
