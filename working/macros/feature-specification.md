@@ -321,6 +321,24 @@ This does result in constantly shifting source offsets between phases, and in
 particular throughout Phase 2 of macro expansion, given that some macros can see
 the outputs of other macros within that same phase.
 
+For example, if both of these macros add a new declaration to `A`:
+
+```dart
+@AddB()
+@AddC()
+class A {}
+```
+
+Then the resulting library should have both declarations merged into one
+augmentation of `A` like this:
+
+```dart
+augment class A {
+  void b() {}
+  void c() {}
+}
+```
+
 Note that we previously considered an "append only" approach, with no merging of
 augmentations. The goal was to avoid changing source offsets, but this doesn't
 work since later augmentations may need to add additional imports, which would
@@ -329,21 +347,113 @@ offsets either way, we might as well derive user value out of it.
 
 #### Rule #2: Augmentations are sorted by phase, application, then source order
 
-Firstly, augmentations from earlier phases appear before augmentations from later
-phases.
+##### Sorting by phase
+
+Augmentations from earlier phases appear before augmentations from later phases:
+
+```dart
+@AddMemberB() // Runs in phase 2, adds a member `b` to `A`.
+class A {}
+
+@AddTypeD() // Runs in the first phase, creates the class `D`.
+class C {}
+```
+
+Would result in:
+
+```dart
+class D {}
+
+augment class A {
+  void b() {}
+}
+```
+
+##### Sorting by application order
 
 Where an application order is explicitly defined, the augmentations are appended
-in that same order as the primary sort.
+in that same order as the primary sort:
+
+```dart
+@AugmentB() // In phase 3, augments the member `b`.
+class A {
+  void b() {}
+
+  @AugmentC(); // In phase 3, augments the member `c`
+  void c() {}
+}
+```
+
+Since inner macro applications run first, we get the augmentation of `c` first:
+
+```dart
+augment class A {
+  augment void c() {}
+
+  augment void b() {}
+}
+```
+
+##### Sort by source offset of the application
 
 If no order is defined between two macro applications, then their augmentations
 are sorted based on the source offset of the macro application.
+
+```dart
+class A {
+  @AugmentB() // In phase 3, augments the member `b`.
+  void b() {}
+
+  @AugmentC(); // In phase 3, augments the member `c`
+  void c() {}
+}
+```
+
+Since there is no defined application order, source order is used for the
+augmentation ordering:
+
+```dart
+augment class A {
+  augment void b() {}
+  augment void c() {}
+}
+```
+
+##### Merge type augmentations together
 
 When augmenting a type declaration, if that type declaration has already been
 augmented then the new augmentation(s) are merged into that augmentation per the
 first rule. Ordering within that type augmentation follows all of these rules.
 
+This only applies to `augment <type>` declarations and not _new_ type
+declarations.
+
 Note that when multiple applications are on the same declaration, there is a
 defined order, which is the reverse source offset order.
+
+
+```dart
+@AddTopLevelFoo() // In phase two, adds a top level variable `foo`.
+class A {
+  @AddC() // In phase 2, augments the member `c`.
+  @AugmentB() // In phase 3, augments the member `b`
+  void b() {}
+}
+```
+
+Since an augmentation to `A` is added in phase 2, the augmentation of it's
+member `b` in phase 3 is merged into that augmentation, which puts it above the
+variable `foo` which was added in phase 2 (this rule takes precedence over other
+rules).
+
+```dart
+augment class A {
+  void c() {} // Added in phase 2, ran before `AddTopLevelFoo()`.
+  augment c() {} // Added in phase 3, but merged into the previous augmentation.
+}
+
+int foo = 1; // Added in phase 2, after `c` was added to `A`.
+```
 
 #### Rule #3: Each augmentation should be separated by one empty line
 
@@ -363,63 +473,32 @@ If a macro declares a new type and then later augments it, this will result in
 separate type declarations. One normal one followed by an augmentation of that
 type.
 
-#### Ordering example
-
-Consider the complicated situation below, and assume all these macros are
-applied in all 3 phases:
+For example, if `MyMacro` defines a type in phase 1 and then augments it in
+phase 2 by adding a field and a constructor:
 
 ```dart
-@TypeMacroOnB()
-class B extends A with C implements D {}
+@MyMacro()
+library;
+```
 
-@TypeMacroOnA()
-class A implements C {}
+Would become:
 
-@TypeMacroOnC
-mixin C {
-  @MemberMacroOnC()
-  int get c;
+```dart
+@MyMacro()
+library;
+
+class A {}
+
+augment class A {
+  final int b;
+
+  A(this.b);
 }
-
-@TypeMacroOnD1()
-@TypeMacroOnD2()
-interface class D {}
 ```
 
-The augmentations would appear in the following order:
-
-```dart
-// PHASE 1 augmentations order:
-//
-// TypeMacroOnB
-// TypeMacroOnA
-// MemberMacroOnC
-// TypeMacroOnC
-// TypeMacroOnD2
-// TypeMacroOnD1
-
-// PHASE 2 augmentations order:
-//
-// MemberMacroOnC
-// TypeMacroOnC
-// TypeMacroOnA
-// TypeMacroOnD2
-// TypeMacroOnD1
-// TypeMacroOnB
-
-// PHASE 3 augmentations order (same as phase 1):
-//
-// TypeMacroOnB
-// TypeMacroOnA
-// MemberMacroOnC
-// TypeMacroOnC
-// TypeMacroOnD2
-// TypeMacroOnD1
-```
-
-Remember that any augmentations on the same type are all merged together under
-a single `augment <type> {}` declaration. These could be new declarations added
-in phase 2, or augmentations of existing declarations in phase 3.
+It would arguably be more user friendly if we merged these new declarations from
+phase 2 into the original declaration, but there are some technical challenges
+with doing so, and we do not merge them today.
 
 ### Augmentation library source offsets
 
