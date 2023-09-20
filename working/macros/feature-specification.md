@@ -449,7 +449,7 @@ rules).
 ```dart
 augment class A {
   void c() {} // Added in phase 2, ran before `AddTopLevelFoo()`.
-  augment c() {} // Added in phase 3, but merged into the previous augmentation.
+  augment b() {} // Added in phase 3, but merged into the previous augmentation.
 }
 
 int foo = 1; // Added in phase 2, after `c` was added to `A`.
