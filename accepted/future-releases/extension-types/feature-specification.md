@@ -1207,6 +1207,14 @@ superinterfaces `V1, .. Vk` is that the members declared by _DV_ as well as
 all members of `V1, .. Vk` that are not redeclared by a declaration in _DV_
 can be invoked on a receiver of the type introduced by _DV_.*
 
+Finally, a compile-time error occurs if the body of an extension type member
+contains `super`.
+
+*For example, even in the case where a superinterface declares a member
+named `m`, it is not possible to call it using `super.m(...)`. The
+rationale for this rule is that there may be multiple superinterfaces
+declaring a member with the same name.*
+
 
 ### Changes to other types and subtyping
 
