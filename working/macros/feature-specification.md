@@ -307,38 +307,153 @@ run the same macros with the same inputs, and get the same augmentation library.
 This allows debugging and stack traces to work consistently, and be meaningful
 and useful.
 
-It is also important that if a declaration is added in Phase 1, the source
-offsets to that declaration should not change after Phase 2 or 3 run. This means
-that tools don't need to update source offsets after each phase.
+We have several rules based around maintaining the consistency of generated
+output across tools.
 
-Another important consideration is that in Phase 2, the ordering of macros is
-user perceptable, and so augmentation results should be serializable to disk -
-with stable offsets - at multiple points throughout the process.
+#### Rule #1: Nested augmentations on type declarations are merged
 
-We have several rules based around maintaining this stability of source offsets
-and consistency of generated output across tools.
+When there are multiple augmentations of the same type declaration, they are
+merged into a single `augment <type> {}` block. This is easier for end users to
+understand. This includes multiple augmentations of the _same_ declaration, they
+should appear as separate declarations within the same type augmentation.
 
-#### Rule #1: Each macro application appends a new independent augmentation
+This does result in constantly shifting source offsets between phases, and in
+particular throughout Phase 2 of macro expansion, given that some macros can see
+the outputs of other macros within that same phase.
 
-While augmentations on a given type declaration can be grouped together, they
-are not required to be. You can have as many `augment class A {}` declarations
-as you want in a given augmentation library. We take advantage of that fact, and
-require that every macro application creates its own augmentation.
+For example, if both of these macros add a new declaration to `A`:
 
-This means each macro application is only appending new top level augmentation
-declarations to the augmentation library. It only grows over time, and previous
-lines are never altered.
+```dart
+@AddB()
+@AddC()
+class A {}
+```
 
-#### Rule #2: Augmentations are added in application order, then source order
+Then the resulting library should have both declarations merged into one
+augmentation of `A` like this:
+
+```dart
+augment class A {
+  void b() {}
+  void c() {}
+}
+```
+
+Note that we previously considered an "append only" approach, with no merging of
+augmentations. The goal was to avoid changing source offsets, but this doesn't
+work since later augmentations may need to add additional imports, which would
+result in shifting offsets anyways. Since we have to deal with the shifting
+offsets either way, we might as well derive user value out of it.
+
+#### Rule #2: Augmentations are sorted by phase, application, then source order
+
+##### Sorting by phase
+
+Augmentations from earlier phases appear before augmentations from later phases:
+
+```dart
+@AddMemberB() // Runs in phase 2, adds a member `b` to `A`.
+class A {}
+
+@AddTypeD() // Runs in the first phase, creates the class `D`.
+class C {}
+```
+
+Would result in:
+
+```dart
+class D {}
+
+augment class A {
+  void b() {}
+}
+```
+
+##### Sorting by application order
 
 Where an application order is explicitly defined, the augmentations are appended
-in that same order as the primary sort.
+in that same order as the primary sort:
+
+```dart
+@AugmentB() // In phase 3, augments the member `b`.
+class A {
+  void b() {}
+
+  @AugmentC(); // In phase 3, augments the member `c`
+  void c() {}
+}
+```
+
+Since inner macro applications run first, we get the augmentation of `c` first:
+
+```dart
+augment class A {
+  augment void c() {}
+
+  augment void b() {}
+}
+```
+
+##### Sort by source offset of the application
 
 If no order is defined between two macro applications, then their augmentations
 are sorted based on the source offset of the macro application.
 
+```dart
+class A {
+  @AugmentB() // In phase 3, augments the member `b`.
+  void b() {}
+
+  @AugmentC(); // In phase 3, augments the member `c`
+  void c() {}
+}
+```
+
+Since there is no defined application order, source order is used for the
+augmentation ordering:
+
+```dart
+augment class A {
+  augment void b() {}
+  augment void c() {}
+}
+```
+
+##### Merge type augmentations together
+
+When augmenting a type declaration, if that type declaration has already been
+augmented then the new augmentation(s) are merged into that augmentation per the
+first rule. Ordering within that type augmentation follows all of these rules.
+
+This only applies to `augment <type>` declarations and not _new_ type
+declarations.
+
 Note that when multiple applications are on the same declaration, there is a
 defined order, which is the reverse source offset order.
+
+
+```dart
+@AddTopLevelFoo() // In phase two, adds a top level variable `foo`.
+class A {
+  @AddC() // In phase 2, augments the member `c`.
+  @AugmentB() // In phase 3, augments the member `b`
+  void b() {}
+}
+```
+
+Since an augmentation to `A` is added in phase 2, the augmentation of it's
+member `b` in phase 3 is merged into that augmentation, which puts it above the
+variable `foo` which was added in phase 2 (this rule takes precedence over other
+rules).
+
+```dart
+augment class A {
+  void c() {} // Added in phase 2, ran before `AddTopLevelFoo()`.
+  augment b() {} // Added in phase 3, but merged into the previous augmentation.
+}
+
+int foo = 1; // Added in phase 2, after `c` was added to `A`.
+```
 
 #### Rule #3: Each augmentation should be separated by one empty line
 
@@ -352,64 +467,49 @@ separating declarations.
 In the future, we may decide to run `dart format` or some other lighter weight
 formatter on augmentations which would also enforce consistent whitespace.
 
-#### Ordering example
+#### Rule #4: New types are declared separately from their augmentations
 
-Consider the complicated situation below, and assume all these macros are
-applied in all 3 phases:
+If a macro declares a new type and then later augments it, this will result in
+separate type declarations. One normal one followed by an augmentation of that
+type.
 
-```dart
-@TypeMacroOnB()
-class B extends A with C implements D {
-
-}
-
-@TypeMacroOnA()
-class A implements C {}
-
-@TypeMacroOnC
-mixin C {
-  @MemberMacroOnC()
-  int get c;
-}
-
-@TypeMacroOnD1()
-@TypeMacroOnD2()
-interface class D {}
-```
-
-The augmentations would appear in the following order:
+For example, if `MyMacro` defines a type in phase 1 and then augments it in
+phase 2 by adding a field and a constructor:
 
 ```dart
-// PHASE 1 augmentations order:
-//
-// TypeMacroOnB
-// TypeMacroOnA
-// MemberMacroOnC
-// TypeMacroOnC
-// TypeMacroOnD2
-// TypeMacroOnD1
-
-// PHASE 2 augmentations order:
-//
-// MemberMacroOnC
-// TypeMacroOnC
-// TypeMacroOnA
-// TypeMacroOnD2
-// TypeMacroOnD1
-// TypeMacroOnB
-
-// PHASE 3 augmentations order (same as phase 1):
-//
-// TypeMacroOnB
-// TypeMacroOnA
-// MemberMacroOnC
-// TypeMacroOnC
-// TypeMacroOnD2
-// TypeMacroOnD1
+@MyMacro()
+library;
 ```
 
-Remember that each of these would have their own `augment class` declarations
-where applicable (following the first rule).
+Would become:
+
+```dart
+@MyMacro()
+library;
+
+class A {}
+
+augment class A {
+  final int b;
+
+  A(this.b);
+}
+```
+
+It would arguably be more user friendly if we merged these new declarations from
+phase 2 into the original declaration, but there are some technical challenges
+with doing so, and we do not merge them today.
+
+### Augmentation library source offsets
+
+Any tool doing macro expansion will necessarily have to manage changing source
+offsets throughout the macro expansion process. This is necessary in order to
+facilitate a single augmentation library for the end user at the end.
+
+It is likely that a tool would want to initially treat things as multiple
+separate augmentations, and then merge them all at the end. This would avoid
+parsing the entire augmentation library repeatedly. Although, the import
+prefixes for identifiers may change once merged in this mode.
 
 ## Phases
 
