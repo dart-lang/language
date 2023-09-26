@@ -185,6 +185,10 @@ augmentations is recursively applied to the main library. The merge order is
 defined as a depth-first pre-order traversal of the `import augment` directives
 starting at the main library.
 
+Within a single augmentation library, you may augment the same declaration
+multiple times, whether they are top level or nested declarations. The merge
+order of these is defined as the source order of the augmentations.
+
 For example:
 
 ```
@@ -229,11 +233,16 @@ augment void trace() {
   augment super.trace();
   print('c');
 }
+
+augment void trace() {
+  augment super.trace();
+  print('d');
+}
 ```
 
 The merge order is `main.dart`, `a.dart`, `b.dart`, then `c.dart`. The
 declarations in those libraries&mdash;new declarations or augmentations&mdash;
-are processed in that order.
+are processed in that order, and source order within that.
 
 This order is user-visible in two ways:
 
@@ -251,6 +260,7 @@ This order is user-visible in two ways:
     a
     b
     c
+    d
     ```
 
 **TODO: Should it be a compile-time error if the main library and augmentation
