@@ -3511,6 +3511,9 @@ which is not a noSuchMethod forwarder.
 %% in order to be able to say this precisely.
 A noSuchMethod forwarder is a concrete member of $C$
 with the signature taken from the interface of $C$,
+%% TODO: #3331 - The default values should be obtained from all declarations
+%% that gave rise to this member signature in $C$, and it should be an error
+%% when there are no default values or there are >=2 distinct default values.
 and with the same default value for each optional parameter.
 It can be invoked in an ordinary invocation and in a superinvocation,
 and when $m$ is a method it can be closurized
