@@ -5029,16 +5029,23 @@ Static method declarations may conflict with other declarations
 %% superclass can be declared in that scope).
 
 \LMHash{}%
-The superclass $S'$ of a class $C$ whose declaration has a with clause
-\code{\WITH{} $M_1, \ldots,\ M_k$}
-and an extends clause
-\code{\EXTENDS{} $S$}
-is the abstract class obtained by application of
-mixin composition (\ref{mixins}) $M_k* \cdots * M_1$ to $S$.
-The name $S'$ is a fresh identifier.
+The superclass $S'$ of a class $C$ whose declaration has an extends clause
+\code{\EXTENDS\,\,$S$}
+and a with clause
+\code{\WITH\,\,$M_1, \ldots,\ M_k$}
+is the following class
+(\ref{mixinClasses}),
+where the name $N$ is a fresh identifier:
+
+\begin{normativeDartCode}
+\ABSTRACT \CLASS{} $N$ = $S$ \WITH{} $M_1$, \ldots, $M_k$;
+\end{normativeDartCode}
+
+\LMHash{}%
 If no \WITH{} clause is specified then the \EXTENDS{} clause of
 a class $C$ specifies its superclass.
 If no \EXTENDS{} clause is specified, then either:
+
 \begin{itemize}
 \item $C$ is \code{Object}, which has no superclass. OR
 \item Class $C$ is deemed to have an \EXTENDS{} clause of the form
