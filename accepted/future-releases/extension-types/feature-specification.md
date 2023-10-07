@@ -646,8 +646,7 @@ The rules are changed to the following phrasing:
 > *   Otherwise, the context type of `e2` is `num`.
 >
 > Let *S* be the static type of `e2`. 
-> If *S* is the type `dynamic`, instead let *S* be the context type of `e2`.
-> If *S* \<: `num`, then:
+> If *S* is assignable to `num`, then:
 > *   If *T* \<: `double` then the static type of `e` is `double`.
 >     _This includes *S* being `dynamic` or `Never`._
 > *   If *T* \<: `int`, *S* \<: `int`, and not *S* \<: `double`,
@@ -674,10 +673,9 @@ The rules are changed to the following phrasing:
 >
 > Let *T*<sub>2</sub> and *T*<sub>3</sub> be the static types of `e2` and
 > `e3` respectively.
-> If any of *T*<sub>2</sub> and *T*<sub>3</sub> are the type `dynamic`,
-> instead let those types be the context type of `e2` and `e3` respectively.
 > If *T*<sub>2</sub> and *T*<sub>3</sub> are both
-> subtypes of `num`, and neither is both a subtype of `int` and `double`, then:
+> assignable of `num`, and neither is both a subtype of `int` and `double`, 
+> then:
 > *   If *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> are all
 >     subtypes of `int`, then the static type of `e` is `int`.
 > *   If *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> are all
@@ -692,9 +690,6 @@ nor does one which subtypes, for example, `int` and another interface in a way
 which changes the signature of the relevant members in the combined interface.
 Such extension types would necessarily have `Never` as representation type,
 so they are not useful for anything except complicating type inference._
-_The changed rules are also `dynamic`-aware, in that they apply the downcast
-from `dynamic` to the context type that the rules themselves have ensured,
-before determining the result type._
 
 ### Dynamic Semantics of an Extension Type Member Invocation
 
