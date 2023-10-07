@@ -626,25 +626,31 @@ The rules are changed to the following phrasing:
 
 > **Binary operators**:
 > Let `e` be an expression of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`,
-> `e1 % e2` or `e1.remainder(e2)`, where the static type of `e1` is a
-> non-bottom type *T* with *T* <: `num`, and the corresponding operator or
-> method of *T* is not an extension type member, and has a function signature
-> of `num Function(num)`.
+> or `e1 % e2`, or a normal invocation of the form `e1.remainder(e2)`, 
+> where the static type of `e1` is a type *T*, 
+> and *C* is the greatest closure of the context type scheme of `e`.
+> 
+> If the corresponding member of *T* is not an extension type member,
+> and:
+> *   either *T* \<: `num`, not *T* \<: `double`, and the function signature
+>     of the corresponding member of *T* is `num Function(num)`,
+> *   or *T* \<: `double`, not *T* \<: `int`, and the function signature
+>     of the corresponding member of *T* is `double Function(num)`,
 >
-> Let *C* be the context type of `e`. Then:
-> *   If `int` \<: *C*, not `double` \<: *C*,
->     *T* \<: `int`, and not *T* \<: `double`,
+> then:
+>
+> *   If `int` \<: *C*, not `double` \<: *C*, and *T* \<: `int` 
 >     then the context type of `e2` is `int`.
 > *   If `double` \<: *C*, not `int` \<: *C*, and not *T* \<: `double`,
 >     then the context type of `e2` is `double`.
 > *   Otherwise, the context type of `e2` is `num`.
 >
-> Let *S* be the static type of `e2`. If *S* is assignable to `num`, then:
-> *   If *T* \<: `double` and not *T* \<: `int` then the static type
->     of `e` is `double`.
+> Let *S* be the static type of `e2`. 
+> If *S* is the type `dynamic`, instead let *S* be the context type of `e2`.
+> If *S* \<: `num`, then:
+> *   If *T* \<: `double` then the static type of `e` is `double`.
 >     _This includes *S* being `dynamic` or `Never`._
-> *   If *T* \<: `int`, not *T* \<: `double`,
->     *S* \<: `int`, and not *S* \<: `double`,
+> *   If *T* \<: `int`, *S* \<: `int`, and not *S* \<: `double`,
 >     then the static type of `e` is `int`.
 > *   Otherwise, if *S* \<: `double` and not *S* \<:`int`,
 >     then the static type of `e` is `double`.
@@ -653,38 +659,42 @@ The rules are changed to the following phrasing:
 > **Clamp**:
 > Let `e` be a normal invocation of the form `e1.clamp(e2, e3)`,
 > where the static type of `e1` is *T*<sub>1</sub>,
-> *T*<sub>1</sub> is a non-bottom subtype of `num`,
+> and *C* is the greatest closure of the context type scheme of `e`.
+> 
+> If *T*<sub>1</sub> \<: `num`, and not both 
+> *T*<sub>1</sub> \<: `int` and *T*<sub>1</sub> \<: `double`,
 > <code>*T*<sub>1</sub>.clamp</code> is not an extension type member,
-> and has a method signature of `num Function(num, num)`.
+> and its function signature is `num Function(num, num)`, then:
 >
-> Let *C* be the context type of `e`. Then:
-> *   If `int` \<: *C*, not `double` \<: *C*, *T*<sub>1</sub> \<: `int`,
->     and not *T*<sub>1</sub> \<: `double`,
+> *   If `int` \<: *C*, not `double` \<: *C*, and *T*<sub>1</sub> \<: `int`,
 >     then the context type of both `e2` and `e3` is `int`.
-> *   If `double` \<: *C*, not `int` \<: *C*, *T*<sub>1</sub> \<: `double`
->     and not *T*<sub>1</sub> \<: `int`,
+> *   If `double` \<: *C*, not `int` \<: *C*, *T*<sub>1</sub> \<: `double`,
 >     then the context type of both `e2` and `e3` is `double`.
 > *   Otherwise the context type of `e2` and `e3` is `num`.
 >
 > Let *T*<sub>2</sub> and *T*<sub>3</sub> be the static types of `e2` and
-> `e3` respectively. If *T*<sub>2</sub> and *T*<sub>3</sub> are both
-> non-bottom subtypes of `num`, then:
+> `e3` respectively.
+> If any of *T*<sub>2</sub> and *T*<sub>3</sub> are the type `dynamic`,
+> instead let those types be the context type of `e2` and `e3` respectively.
+> If *T*<sub>2</sub> and *T*<sub>3</sub> are both
+> subtypes of `num`, and neither is both a subtype of `int` and `double`, then:
 > *   If *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> are all
->     subtypes of `int`, and are not subtypes of `double`,
->     the static type of `e` is `int`.
+>     subtypes of `int`, then the static type of `e` is `int`.
 > *   If *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> are all
->     subtypes of `double`, and are not subtypes of `int`,
->     the static type of `e` is `double`.
+>     subtypes of `double`, then the static type of `e` is `double`.
 > *   Otherwise the static type of `e` is `num`.
 
 _These changes preserve the current behavior of all existing code,
 because the new restrictions are only excluding cases that couldn't
-happen before extension types.
-An extension type which subtypes both `int` and `double` gets no promotion,
+exist before extension types._
+_An extension type which subtypes both `int` and `double` gets no promotion,
 nor does one which subtypes, for example, `int` and another interface in a way
 which changes the signature of the relevant members in the combined interface.
 Such extension types would necessarily have `Never` as representation type,
-so they are not be useful for anything except complicating type inference._
+so they are not useful for anything except complicating type inference._
+_The changed rules are also `dynamic`-aware, in that they apply the downcast
+from `dynamic` to the context type that the rules themselves have ensured,
+before determining the result type._
 
 ### Dynamic Semantics of an Extension Type Member Invocation
 
