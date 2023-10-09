@@ -1,7 +1,7 @@
 name: macro_proposal
 publish_to: none
 environment:
-  sdk: ">=3.2.0-0 <4.0.0"
+  sdk: ">=3.3.0-0 <4.0.0"
 dev_dependencies:
   args: ^2.3.0
   benchmark_harness: ^2.2.1
