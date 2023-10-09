@@ -637,7 +637,7 @@ The rules are changed to the following phrasing:
 > *   or *T* \<: `double`, not *T* \<: `int`, and the function signature
 >     of the corresponding member of *T* is `double Function(num)`,
 >
-> then:
+> then use the following rules for type inference instead of the default rules:
 >
 > *   If `int` \<: *C*, not `double` \<: *C*, and *T* \<: `int` 
 >     then the context type of `e2` is `int`.
@@ -663,7 +663,8 @@ The rules are changed to the following phrasing:
 > If *T*<sub>1</sub> \<: `num`, and not both 
 > *T*<sub>1</sub> \<: `int` and *T*<sub>1</sub> \<: `double`,
 > <code>*T*<sub>1</sub>.clamp</code> is not an extension type member,
-> and its function signature is `num Function(num, num)`, then:
+> and its function signature is `num Function(num, num)`, then
+> use the following rules for type inference instead of the default rules:
 >
 > *   If `int` \<: *C*, not `double` \<: *C*, and *T*<sub>1</sub> \<: `int`,
 >     then the context type of both `e2` and `e3` is `int`.
