@@ -766,6 +766,8 @@ the treatment of expressions like `e as V`.*
 
 A compile-time error occurs if a type parameter of an extension type
 declaration occurs in a non-covariant position in the representation type.
+A compile-time error occurs if the representation type of an extension type
+declaration is a bottom type.
 
 When `s` is zero *(that is, the declaration of `V` is not generic)*,
 <code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
@@ -1005,7 +1007,7 @@ has any compile-time errors.
 which is an error.*
 
 
-#### Extension Type Constructors and Their Static Analysis
+### Extension Type Constructors and Their Static Analysis
 
 An extension type declaration _DV_ named `Name` may declare one or
 more constructors. A constructor which is declared in an extension type
