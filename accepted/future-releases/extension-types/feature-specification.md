@@ -550,11 +550,10 @@ or a subtype of the corresponding instantiated representation type
 expression is an extension type member invocation, but it is already
 ensured by normal static analysis of subexpressions like `e`.*
 
-If the name of `m` is a name in the interface of `Object` (that is,
-`toString`, `==`, `hashCode`, `runtimeType`, or `noSuchMethod`), the static
-analysis of the invocation is treated as an ordinary instance member
-invocation on a receiver of type `Object?` and with the same `args` or
-`typeArgs`, if any.
+*Note that if the name of `m` is a name in the interface of `Object` (that
+is, `toString`, `==`, `hashCode`, `runtimeType`, or `noSuchMethod`), the
+denoted member is necessarily a non-extension type member, which determines
+the static analysis and dynamic semantics.*
 
 Otherwise, a compile-time error occurs if `V` does not have a member
 named `m`.
