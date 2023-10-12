@@ -15,6 +15,10 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.10.06
+  - Added updated special-case inference rules for number types,
+    which are extension-type aware.
+
 2023.09.11
   - Add missing rule about getter/setter signature correspondence.
 
@@ -601,6 +605,91 @@ If _Dm_ is a method with function type `F`, and `args` exists, the static
 analysis of the extension type member invocation is the same as that of an
 invocation with argument part `args` of a function with the given type.
 
+#### Static analysis of extension member invocations on numbers
+
+The specification have special rules for some operations on numbers,
+a hard-coded set of dependent typing rules that makes it much more
+convenient to work with `num` subtypes.
+
+Those rules are updated, because extension types break two assumptions
+that the existing rules were written under:
+* Invoking a member named, for example, `+` on a non-bottom subtype of `int`
+  always invokes the known and trusted `int` member,
+  which always has the same signature.
+* There is no non-bottom type which is a subtype of both `int` and `double`.
+
+Extension type methods should not be special-cased,
+the rules changes are to *avoid* that happening.
+
+The rules are changed to the following phrasing:
+
+> **Binary operators**:
+> Let `e` be an expression of one of the forms `e1 + e2`, `e1 - e2`, `e1 * e2`,
+> or `e1 % e2`, or a normal invocation of the form `e1.remainder(e2)`, 
+> where the static type of `e1` is a type *T*, 
+> and *C* is the greatest closure of the context type scheme of `e`.
+> 
+> If the corresponding member of *T* is not an extension type member,
+> and:
+> *   either *T* \<: `num`, not *T* \<: `double`, and the function signature
+>     of the corresponding member of *T* is `num Function(num)`,
+> *   or *T* \<: `double`, not *T* \<: `int`, and the function signature
+>     of the corresponding member of *T* is `double Function(num)`,
+>
+> then use the following rules for type inference instead of the default rules:
+>
+> *   If `int` \<: *C*, not `double` \<: *C*, and *T* \<: `int` 
+>     then the context type of `e2` is `int`.
+> *   If `double` \<: *C*, not `int` \<: *C*, and not *T* \<: `double`,
+>     then the context type of `e2` is `double`.
+> *   Otherwise, the context type of `e2` is `num`.
+>
+> Let *S* be the static type of `e2`. 
+> If *S* is assignable to `num`, then:
+> *   If *T* \<: `double` then the static type of `e` is `double`.
+>     _This includes *S* being `dynamic` or `Never`._
+> *   If *T* \<: `int`, *S* \<: `int`, and not *S* \<: `double`,
+>     then the static type of `e` is `int`.
+> *   Otherwise, if *S* \<: `double` and not *S* \<:`int`,
+>     then the static type of `e` is `double`.
+> *   Otherwise the static type of *e* is `num`.
+>
+> **Clamp**:
+> Let `e` be a normal invocation of the form `e1.clamp(e2, e3)`,
+> where the static type of `e1` is *T*<sub>1</sub>,
+> and *C* is the greatest closure of the context type scheme of `e`.
+> 
+> If *T*<sub>1</sub> \<: `num`, and not both 
+> *T*<sub>1</sub> \<: `int` and *T*<sub>1</sub> \<: `double`,
+> <code>*T*<sub>1</sub>.clamp</code> is not an extension type member,
+> and its function signature is `num Function(num, num)`, then
+> use the following rules for type inference instead of the default rules:
+>
+> *   If `int` \<: *C*, not `double` \<: *C*, and *T*<sub>1</sub> \<: `int`,
+>     then the context type of both `e2` and `e3` is `int`.
+> *   If `double` \<: *C*, not `int` \<: *C*, *T*<sub>1</sub> \<: `double`,
+>     then the context type of both `e2` and `e3` is `double`.
+> *   Otherwise the context type of `e2` and `e3` is `num`.
+>
+> Let *T*<sub>2</sub> and *T*<sub>3</sub> be the static types of `e2` and
+> `e3` respectively.
+> If *T*<sub>2</sub> and *T*<sub>3</sub> are both
+> assignable of `num`, and neither is both a subtype of `int` and `double`, 
+> then:
+> *   If *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> are all
+>     subtypes of `int`, then the static type of `e` is `int`.
+> *   If *T*<sub>1</sub>, *T*<sub>2</sub> and *T*<sub>3</sub> are all
+>     subtypes of `double`, then the static type of `e` is `double`.
+> *   Otherwise the static type of `e` is `num`.
+
+_These changes preserve the current behavior of all existing code,
+because the new restrictions are only excluding cases that couldn't
+exist before extension types._
+_An extension type which subtypes both `int` and `double` gets no promotion,
+nor does one which subtypes, for example, `int` and another interface in a way
+which changes the signature of the relevant members in the combined interface.
+Such extension types would necessarily have `Never` as representation type,
+so they are not useful for anything except complicating type inference._
 
 ### Dynamic Semantics of an Extension Type Member Invocation
 
