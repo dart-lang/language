@@ -767,6 +767,20 @@ the treatment of expressions like `e as V`.*
 A compile-time error occurs if a type parameter of an extension type
 declaration occurs in a non-covariant position in the representation type.
 
+A compile-time error occurs if the representation type of an extension type
+declaration is a bottom type.
+
+*Note that it is still possible for the instantiated representation type 
+of a given extension type to be a bottom type. For example, assuming
+`extension type E<X>(X x) {}`, `E<Never>` would be an extension type whose
+instantiated representation type is `Never`. The reason for this error is that
+we could otherwise have, for example, an extension type that `implements int,
+double`, and the ability to have such subtypes of arbitrary sets of interface
+types would make other parts of the type system more complex. Such types could
+never be the type of an actual object anyway because the representation object
+would have to have type `Never`. If these types turn out to be useful in some
+way then they could still be added to a future version of the language.*
+
 When `s` is zero *(that is, the declaration of `V` is not generic)*,
 <code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
 simply stands for `V`, a non-generic extension type.
@@ -1005,7 +1019,7 @@ has any compile-time errors.
 which is an error.*
 
 
-#### Extension Type Constructors and Their Static Analysis
+### Extension Type Constructors and Their Static Analysis
 
 An extension type declaration _DV_ named `Name` may declare one or
 more constructors. A constructor which is declared in an extension type
