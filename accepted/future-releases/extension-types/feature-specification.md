@@ -15,6 +15,10 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.10.12
+  - State that special-case `num` typing only applies to non-extension members
+    invocations.
+
 2023.09.11
   - Add missing rule about getter/setter signature correspondence.
 
@@ -601,6 +605,28 @@ If _Dm_ is a method with function type `F`, and `args` exists, the static
 analysis of the extension type member invocation is the same as that of an
 invocation with argument part `args` of a function with the given type.
 
+### Special-case Typing Rules for `num` Members
+
+The language specification contains special typing rules for invocations
+of `+`, `-`, `*`, `%`, `remainder` and `clamp` methods on 
+subtypes of `num`, `int` and `double`.
+
+Those rules do *not* apply to invocations of extension or extension type
+members.
+The rules are otherwise unchanged when applied to non-extension type
+member invocations, which will necessarily invoke the corresponding members
+of an instance of `int` or `double`.
+
+_It's not currently possible to have a subtype of `num` which has
+an extension member for those member names, but if it ever becomes possible,
+the rules will still not apply to such an invocation._
+
+_It's currently also not possible to introduce a subtype of `num`, `int` or
+`double`, which does not have the same member signatures for the special-cased
+members as the type that it subtypes, so the special-case rules are safe to
+assume that signature. If we introduce the ability to narrow or change the
+signatures of non-extension-type members of extension types, 
+the special-case typing rules will have to be re-visited._
 
 ### Dynamic Semantics of an Extension Type Member Invocation
 
