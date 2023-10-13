@@ -1116,8 +1116,8 @@ Assume that _DV_ is an extension type declaration named `Name`, and
 this case we say that `V1` is a _superinterface_ of _DV_.
 
 If _DV_ does not include an `<interfaces>` clause then _DV_ has
-`Object` as direct superinterface if the declared representation type
-is non-nullable, otherwise it has `Object?` as direct superinterface.
+`Object` as a direct superinterface if the declared representation type
+is non-nullable, otherwise it has `Object?` as a direct superinterface.
 _(In the latter case, some instantiations of the extension type may still
 have `Object` as a superinterface, if their instantiated representation
 type is non-nullable.)_
