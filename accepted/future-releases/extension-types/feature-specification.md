@@ -1118,9 +1118,11 @@ this case we say that `V1` is a _superinterface_ of _DV_.
 If _DV_ does not include an `<interfaces>` clause then _DV_ has
 `Object` as a direct superinterface if the declared representation type
 is non-nullable, otherwise it has `Object?` as a direct superinterface.
-_(In the latter case, some instantiations of the extension type may still
-have `Object` as a superinterface, if their instantiated representation
-type is non-nullable.)_
+
+*In the latter case, a generic extension type may still have `Object` as
+a superinterface, if its instantiated representation type is non-nullable.
+For instance, with `extension type E<X>(X x) {}`, the type `E<int>` has
+`Object` as a direct superinterface.*
 
 A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superinterface in an extension type declaration _DV_, and
