@@ -1127,6 +1127,12 @@ A compile-time error occurs if any direct or indirect superinterface of
 _DV_ denotes the declaration _DV_. *As usual, subtype cycles are not
 allowed.*
 
+It is a compile-time error if two elements in the type list of
+the `implements` clause of an extension type specifies the same type.
+
+*This rule against duplicates is identical to the existing rule about 
+classes, mixins, and enums.*
+
 Assume that _DV_ has two direct or indirect superinterfaces of the form
 <code>W\<T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
 respectively
