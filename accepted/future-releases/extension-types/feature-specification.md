@@ -1114,9 +1114,6 @@ Assume that _DV_ is an extension type declaration named `Name`, and
 `V1` occurs as one of the `<type>`s in the `<interfaces>` of _DV_. In
 this case we say that `V1` is a _superinterface_ of _DV_.
 
-_DV_ has `Object?` or `Object` as a direct superinterface, according to the
-subtype relation which was specified earlier.
-
 A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superinterface in an extension type declaration _DV_, and
 `V1` denotes a non-extension type which is not a supertype of the
@@ -1129,6 +1126,12 @@ as having type `T`.*
 A compile-time error occurs if any direct or indirect superinterface of
 _DV_ denotes the declaration _DV_. *As usual, subtype cycles are not
 allowed.*
+
+Assume that `V` is an extension type of the form
+<code>Name\<T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
+where `Name` resolves to _DV_.
+`V` has `Object?` or `Object` as a direct superinterface, according to
+the subtype relation which was specified earlier.
 
 It is a compile-time error if two elements in the type list of the
 `implements` clause of an extension type declaration specifies the
