@@ -1114,9 +1114,8 @@ Assume that _DV_ is an extension type declaration named `Name`, and
 `V1` occurs as one of the `<type>`s in the `<interfaces>` of _DV_. In
 this case we say that `V1` is a _superinterface_ of _DV_.
 
-If _DV_ does not include an `<interfaces>` clause then _DV_ has
-`Object?` or `Object` as a direct superinterface, according to the subtype
-relation which was specified earlier.
+_DV_ has `Object?` or `Object` as a direct superinterface, according to the
+subtype relation which was specified earlier.
 
 A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superinterface in an extension type declaration _DV_, and
