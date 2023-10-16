@@ -15,6 +15,10 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.10.16
+  - Add error for `implements ... T ... T ...`, like the corresponding
+    error with classes, mixins, etc.
+
 2023.09.11
   - Add missing rule about getter/setter signature correspondence.
 
@@ -769,7 +773,7 @@ declaration occurs in a non-covariant position in the representation type.
 A compile-time error occurs if the representation type of an extension type
 declaration is a bottom type.
 
-*Note that it is still possible for the instantiated representation type 
+*Note that it is still possible for the instantiated representation type
 of a given extension type to be a bottom type. For example, assuming
 `extension type E<X>(X x) {}`, `E<Never>` would be an extension type whose
 instantiated representation type is `Never`. The reason for this error is that
@@ -1127,11 +1131,12 @@ A compile-time error occurs if any direct or indirect superinterface of
 _DV_ denotes the declaration _DV_. *As usual, subtype cycles are not
 allowed.*
 
-It is a compile-time error if two elements in the type list of
-the `implements` clause of an extension type specifies the same type.
+It is a compile-time error if two elements in the type list of the
+`implements` clause of an extension type declaration specifies the
+same type.
 
-*This rule against duplicates is identical to the existing rule about 
-classes, mixins, and enums.*
+*This rule against duplicates corresponds to the existing rule for
+class, mixin, and enum declarations.*
 
 Assume that _DV_ has two direct or indirect superinterfaces of the form
 <code>W\<T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
