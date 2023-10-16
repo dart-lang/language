@@ -210,7 +210,7 @@ import augment 'b.dart';
 augment class C {}
 
 augment void trace() {
-  augment super.trace();
+  augmented.trace();
   print('a');
 }
 
@@ -220,7 +220,7 @@ library augment 'a.dart';
 class D {}
 
 augment void trace() {
-  augment super.trace();
+  augmented.trace();
   print('b');
 }
 
@@ -230,12 +230,12 @@ library augment 'main.dart';
 augment class D {}
 
 augment void trace() {
-  augment super.trace();
+  augmented.trace();
   print('c');
 }
 
 augment void trace() {
-  augment super.trace();
+  augmented.trace();
   print('d');
 }
 ```
@@ -284,12 +284,11 @@ Often, an augmentation wants to also preserve and run the code of the original
 declaration it augments (hence the name "augmentation"). It may want run before
 the original code, after it, or both. To allow that, we allow a new expression
 syntax inside the bodies of augmenting members. Inside a member marked
-`augment`, an expression like `augment super` can be used to refer to the
-original function, getter, setter, or variable initializer. See the next
-section for a full specification of what `augment super` actually means,
-in the various contexts.
-
-**TODO: I'm not sold on `augment super`. Is there a better syntax?**
+`augment`, the expression `augmented` can be used to refer to the original
+function, getter, setter, or variable initializer. This is a contextual keyword
+within `augment` members, and has no special meaning outside of that context.
+See the next section for a full specification of what `augmented` actually
+means, in the various contexts.
 
 The same declaration can be augmented multiple times by separate augmentation
 libraries. When that happens, the merge order defined previously determines
@@ -304,39 +303,39 @@ It is a compile-time error if:
     original declaration occurs, according to merge order. *An augmentation
     library can both declare a new declaration and augment it in the same file.*
 
-### Augment super
+### Augmented Expression
 
-The exact result of an `augment super` expression depends on what is being
+The exact result of an `augmented` expression depends on what is being
 augmented, but it follows generally the same rules as any normal identifier:
 
-*   **Augmenting getters**: Within an augmenting getter `augment super` invokes
-    the getter and evaluates to the return value. If augmenting a field with a
+*   **Augmenting getters**: Within an augmenting getter `augmented` invokes the
+    getter and evaluates to the return value. If augmenting a field with a
     getter, this will invoke the implicit getter from the augmented field.
 
-*   **Augmenting setters**: Within an augmenting setter `augment super` must be
+*   **Augmenting setters**: Within an augmenting setter `augmented` must be
     followed by an `=` and will directly invoke the augmented setter. If
     augmenting a field with a setter, this will invoke the implicit setter from
     the augmented field.
 
-*   **Augmenting fields**: Within an augmenting field, `augment super` can only
-    be used in an initializer expression, and refers to the original field's
+*   **Augmenting fields**: Within an augmenting field, `augmented` can only be
+    used in an initializer expression, and refers to the original field's
     initializer expression, which is immediately evaluated.
 
-    It is a compile-time error to use `augment super` in an augmenting field's
+    It is a compile-time error to use `augmented` in an augmenting field's
     initializer if the member being augmented is not a field with an
     initializer.
 
-*   **Augmenting functions**: When augmenting a function, `augment super` refers
-    to the augmented function. Tear offs are allowed.
+*   **Augmenting functions**: When augmenting a function, `augmented` refers to
+    the augmented function. Tear offs are allowed.
 
-*   **Augmenting operators**: When augmenting an operator, `augment super` must
-    be followed by the operator. For example when augmenting `+` you must do
-    `augment super + 1`, and when augmenting `[]` you must do
-    `augment super[<arg>]`. These constructs invoke the augmented operator, and
-    are the only valid uses of `augment super` in these contexts.
+*   **Augmenting operators**: When augmenting an operator, `augmented` must be
+    followed by the operator. For example when augmenting `+` you must do
+    `augmented + 1`, and when augmenting `[]` you must do `augmented[<arg>]`.
+    These constructs invoke the augmented operator, and are the only valid uses
+    of `augmented` in these contexts.
 
-*   **Augmenting enum values**: When augmenting an enum value, `augment super`
-    has no meaning and is not allowed.
+*   **Augmenting enum values**: When augmenting an enum value, `augmented` has
+    no meaning and is not allowed.
 
 ### Augmenting types
 
@@ -414,23 +413,21 @@ augmented to wrap the original code in additional code:
 // Wrap the original function in profiling:
 augment int slowCalculation(int a, int b) {
   var watch = Stopwatch()..start();
-  var result = augment super(a, b);
+  var result = augmented(a, b);
   print(watch.elapsedMilliseconds);
   return result;
 }
 ```
 
 The augmentation replaces the original function body with the augmenting code.
-Inside the augmentation body, a special `augment super()` expression may be used
-to execute the original function body. That expression takes an argument list
+Inside the augmentation body, a special `augmented()` expression may be used to
+execute the original function body. That expression takes an argument list
 matching the original function's parameter list and returns the function's
 return type.
 
-**TODO: Better syntax than `augment super`?**
-
-The augmenting function does not have to pass the same arguments to `augment
-super()` as were passed to it. It may call it once, more than once, or not at
-all.
+The augmenting function does not have to pass the same arguments to
+`augmented()` as were passed to it. It may call it once, more than once, or not
+at all.
 
 It is a compile-time error if:
 
@@ -495,13 +492,13 @@ More specifically:
 
 *   **Augmenting with a getter:** A getter in an augmentation library can
     augment a getter in the main library or the implicit getter defined by a
-    variable in the main library. Inside the augmenting body, an `augment super`
+    variable in the main library. Inside the augmenting body, an `augmented`
     expression invokes the original getter.
 
 *   **Augmenting with a setter:** A setter in an augmentation library can
     augment a setter in the main library or the implicit setter defined by a
     non-final variable in the main library. Inside the augmenting setter, an
-    `augment super =` expression invokes the original setter.
+    `augmented =` expression invokes the original setter.
 
 *   **Augmenting a getter and/or setter with a variable:** This is a
     compile-time error in all cases. Augmenting an abstract or external variable
@@ -545,8 +542,8 @@ More specifically:
     Since the initializer is the only meaningful part of the augmenting
     declaration, an initializer must be provided. This augmenting initializer
     replaces the original initializer. The augmenting initializer may use an
-    `augment super` expression which executes the original initializer
-    expression when evaluated.
+    `augmented` expression which executes the original initializer expression
+    when evaluated.
 
     The `late` property of a variable must always be consistent between the
     augmented variable and its augmenting variables.
@@ -563,13 +560,13 @@ It is a compile-time error if:
 
 *   The original and augmenting declarations do not have the same type.
 
-*   An augmenting declaration uses `augment super` when the original declaration
-    has no concrete implementation. Note that all external declarations are
-    assumed to have an implementation provided by another external source, and
-    they will throw a runtime exception when called if not.
+*   An augmenting declaration uses `augmented` when the original declaration has
+    no concrete implementation. Note that all external declarations are assumed
+    to have an implementation provided by another external source, and they will
+    throw a runtime exception when called if not.
 
-*   An augmenting initializer uses `augment super` and the augmented variable
-    is not a variable with an initializer.
+*   An augmenting initializer uses `augmented` and the augmented variable is not
+    a variable with an initializer.
 
 *   A final variable is augmented with a setter. (Instead, the augmentation
     library can declare a *non-augmenting* setter that goes alongside the
@@ -652,7 +649,7 @@ body. If the augmenting constructor has any initializers, they are appended to
 the original constructor's initializers, but before any original super
 initializer or original redirecting initializer if there is one.
 
-In the augmenting constructor's body, an `augment super()` call invokes the
+In the augmenting constructor's body, an `augmented()` call invokes the
 original constructor's body.
 
 It is a compile-time error if:
@@ -685,9 +682,9 @@ It is a compile-time error if:
 
 When augmenting an `external` member, it is assumed that a real implementation
 of that member has already been filled by some tool prior to any augmentations
-being applied. Thus, it is allowed to use `augment super` from augmenting
-members on external declarations, but it may throw a `noSuchMethod` error at
-runtime if no implementation was in fact provided.
+being applied. Thus, it is allowed to use `augmented` from augmenting members
+on external declarations, but it may throw a `noSuchMethod` error at runtime if
+no implementation was in fact provided.
 
 **NOTE**: Macros should _not_ be able to statically tell if an external body has
 been filled in by a compiler, because it could lead to a different result on
@@ -874,7 +871,7 @@ declaration ::= 'external' factoryConstructorSignature
   | 'augment'? constructorSignature (redirection | initializers)?
 ```
 
-**TODO: Define the grammar for the various `augment super` expressions.**
+**TODO: Define the grammar for the various `augmented` expressions.**
 
 It is a compile-time error if:
 
@@ -951,8 +948,8 @@ To merge a set of declarations `D` into a namespace:
 
         1.  Replace a matching variable, getter, and/or setter in the namespace
             with the declaration. Inside the augmenting variable's initializer
-            expression, an `augment super` expression invokes the original
-            variable initializer.
+            expression, an `augmented` expression invokes the original variable
+            initializer.
 
 ## Documentation comments
 
@@ -978,6 +975,10 @@ consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+## 1.14
+
+*   Change `augment super` to `augmented`.
 
 ## 1.13
 
