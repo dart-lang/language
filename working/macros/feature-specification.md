@@ -736,41 +736,59 @@ to introspect over non-macro metadata annotations applied to declarations.
 For example, a `@JsonSerialization()` class macro might want to look for an
 `@unseralized` annotation on fields to exclude them from serialization.
 
-**TODO**: The following subsections read more like a design discussion that a
-proposal. Figure out what we want to do here and rewrite (#1930).
+Some macros may need to evaluate the real values of metadata arguments, while
+others may only need the ability to emit that same code back into the program.
 
 #### The annotation introspection API
 
-We could try to give users access to an actual instance of the annotation, or
-we could give something more like the [DartObject][] class from the analyzer.
+All declarations which can be annotated will have an
+`Iterable<MetadataAnnotation> get metadata` getter.
+
+All `MetadataAnnotation` objects have a `Code get code` getter, which gives
+access to the annotation as a `Code` object.
+
+In addition, there will be two subtypes of `MetadataAnnotation`:
+
+- `IdentifierMetadataAnnotation`: A simple const identifier, has a single
+  `Identifier get identifier` getter.
+- `ConstructorMetadataAnnotation`: A const constructor invocation. This will
+  have the following getters:
+  - `Identifier get type`
+  - `Identifier get constructor`
+  - `Arguments get arguments`
+    - The `Arguments` class will provide access to the positional and named
+      arguments as separate `Code` objects.
+
+For any macro which only wants to emit code from annotations back into the
+program, these `Code` objects are sufficient.
+
+For a macro which wants to access the actual _value_ of a given argument or
+the metadata annotation as a whole, they can evaluate `Code` instances as
+constants (see next section).
+
+### Constant evaluation
+
+Macros may want the ability to evaluate constant expressions, in particular
+those found as arguments to metadata annotations.
+
+We expose this ability through the `DartObject evaluate(Code code)` api, which
+is available in all phases, with the following restrictions:
+
+- No identifier in `code` may refer to a constant which refers to any
+  system environment variable, Dart define, or other configuration which is not
+  otherwise visible to macros.
+- All identifiers in `code` must be defined outside of current strongly
+  connected component (that is, the strongly connected component which triggered
+  the current macro expansion).
+
+The `DartObject` api is an abstract representation of an object, which can
+represent types which are not visible to the macro itself. It will closely
+mirror the [same API in the analyzer][DartObject].
+
+The call to `evaluate` will throw a `ConstantEvaluationException` if the
+evaluation fails due to a violation of one of the restrictions above.
 
 [DartObject]: https://pub.dev/documentation/analyzer/latest/dart_constant_value/DartObject-class.html
-
-Since annotations may contain references to types or identifiers that the macro
-does not import, we choose to expose a more abstract API (similar to
-[DartObject][]).
-
-**TODO**: Define the exact API.
-
-#### Annotations that require macro expansion
-
-This could happen if the annotation class has macros applied to it, or if
-some argument(s) to the annotation constructor use macros.
-
-Because macros are not allowed to generate code that shadows an identifier
-in the same library, we know that if an annotation class or any arguments to it
-could be resolved, then we can assume that resolution is correct.
-
-This allows us to provide an API for macro authors to attempt to evaluate an
-annotation in _any phase_. The API may fail (if it requires more macro
-expansion to be done), but that is not expected to be a common situation. In
-the case where it does fail, users should typically be able to move some of
-their code to a separate library (which they import). Then things from that
-library can safely be used in annotations in the current library, and evaluated
-by macros.
-
-Evaluation must fail if there are any macros left to be expanded on the
-annotation class or any arguments to the annotation constructor.
 
 #### Are macro applications introspectable?
 
