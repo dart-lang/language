@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 1.20 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.21 (see [CHANGELOG](#CHANGELOG) at end)
 
 ## Motivation
 
@@ -462,6 +462,27 @@ var c = cond ? a : b; // c has type `Record`.
 
 The greatest lower bound of records with different shapes is `Never`.
 
+### Combined member signatures
+
+In order to determine how a combined member signature is computed when one
+or more types in the signature is a record type, we need to extend the
+definition of the type function `NNBD_TOP_MERGE` when it is applied to a
+record type:
+
+`NNBD_TOP_MERGE` is only defined when it is applied to two types with the
+same structure, in particular: It is only defined on two record types when
+they have the same shape.
+
+When it is applied to two record types with the same structure, the result
+is a record type with the same structure again, where each field type is
+obtained by applying `NNBD_TOP_MERGE` recursively.
+
+*For example:*
+
+```
+NNBD_TOP_MERGE((int, {dynamic x}), (int, {void x})) == (int, {Object? x})
+```
+
 ### Type inference
 
 Every record literal has a static type, which is associated with it via
@@ -828,6 +849,10 @@ types indirectly via another library, the SDK constraint on the referenced
 library is sufficient to enforce this.*
 
 ## CHANGELOG
+
+### 1.21
+
+- Specify handling of record types with `NNBD_TOP_MERGE`.
 
 ### 1.20
 
