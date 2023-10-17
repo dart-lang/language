@@ -15,6 +15,11 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.10.17
+  - Allow an extension type to have `implements T` where `T` is a
+    supertype of the representation type (the old rule only allows
+    it when the representation type of `T` is a supertype).
+
 2023.10.16
   - Add error for `implements ... T ... T ...`, like the corresponding
     error with classes, mixins, etc.
@@ -1158,7 +1163,7 @@ representation type `R`, and that the extension type `V1` with
 declaration _DV1_ is a superinterface of _DV_ (*note that `V1` may
 have some actual type arguments*).  Assume that `S` is the
 instantiated representation type corresponding to `V1`. A compile-time
-error occurs if `R` is not a subtype of `S`.
+error occurs if `R` is not a subtype of `S` nor a subtype of `V1`.
 
 *This ensures that it is sound to bind the value of `id` in _DV_ to `id1`
 in `V1` when invoking members of `V1`, where `id` is the representation
