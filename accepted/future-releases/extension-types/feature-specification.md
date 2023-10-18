@@ -15,6 +15,10 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.10.18
+  - Specify how to promote the representation variable of an extension
+    type.
+
 2023.10.16
   - Add error for `implements ... T ... T ...`, like the corresponding
     error with classes, mixins, etc.
@@ -700,6 +704,17 @@ Member Conflicts' occur as well in an extension type declaration.
 *For example, it is a compile-time error if an extension type has name `V`
 and has an instance member named `V`, and it is a compile-time error if it
 has a type parameter named `X` and it has an instance member named `X`.*
+
+If the representation name of an extension type is a private name `_n` then
+the representation variable is subject to promotion according to the rules
+about promotion of private instance variables, except that promotion is
+_not_ eliminated by the existence of other declarations (of any kind) named
+`_n` in the same library.
+
+Conversely, the existence of an extension type with a representation
+variable with a private name `_n` does not eliminate promotion of 
+any private instance variables named `_n` of a class, mixin, enum, or mixin
+class in the same library.
 
 It is a compile-time error if a member declaration in an extension type
 declaration is abstract.
