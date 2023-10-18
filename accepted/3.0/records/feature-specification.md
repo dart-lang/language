@@ -473,8 +473,8 @@ record type:
 same structure, in particular: It is only defined on two record types when
 they have the same shape.
 
-When it is applied to two record types with the same structure, the result
-is a record type with the same structure again, where each field type is
+When it is applied to two record types with the same shape, the result
+is a record type with the same shape again, where each field type is
 obtained by applying `NNBD_TOP_MERGE` recursively.
 
 *For example:*
