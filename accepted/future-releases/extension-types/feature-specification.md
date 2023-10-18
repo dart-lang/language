@@ -16,6 +16,8 @@ information about the process, including in their change logs.
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
 2023.10.18
+  - Add error for non-covariant occurrence of a type variable in a
+    superinterface.
   - Specify how to promote the representation variable of an extension
     type.
 
@@ -1141,6 +1143,16 @@ representation type of _DV_.
 *In particular, in order to have `implements T` where `T` is a
 non-extension type, it must be sound to consider the representation object
 as having type `T`.*
+
+A compile-time error occurs if a type variable declared by _DV_ occurs in a
+non-covariant position in `V1`.
+
+*This error corresponds to a similar error for class, mixin, mixin class,
+and enum declarations. It might be possible to relax the rule for extension
+types without jeopardizing soundness, but at this time we prefer the
+simplicity and consistency of having the same rule for all kindns of
+declarations. Also, it seems unlikely that a relaxation of the rule would
+open the door for anything particularly useful.*
 
 A compile-time error occurs if any direct or indirect superinterface of
 _DV_ denotes the declaration _DV_. *As usual, subtype cycles are not
