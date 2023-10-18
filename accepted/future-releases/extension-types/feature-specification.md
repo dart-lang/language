@@ -1150,7 +1150,7 @@ non-covariant position in `V1`.
 *This error corresponds to a similar error for class, mixin, mixin class,
 and enum declarations. It might be possible to relax the rule for extension
 types without jeopardizing soundness, but at this time we prefer the
-simplicity and consistency of having the same rule for all kindns of
+simplicity and consistency of having the same rule for all kinds of
 declarations. Also, it seems unlikely that a relaxation of the rule would
 open the door for anything particularly useful.*
 
