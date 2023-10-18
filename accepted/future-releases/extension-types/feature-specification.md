@@ -1163,7 +1163,7 @@ representation type `R`, and that the extension type `V1` with
 declaration _DV1_ is a superinterface of _DV_ (*note that `V1` may
 have some actual type arguments*).  Assume that `S` is the
 instantiated representation type corresponding to `V1`. A compile-time
-error occurs if `R` is not a subtype of `S` nor a subtype of `V1`.
+error occurs if `R` is neither a subtype of `S` nor a subtype of `V1`.
 
 *This ensures that it is sound to bind the value of `id` in _DV_ to `id1`
 in `V1` when invoking members of `V1`, where `id` is the representation
