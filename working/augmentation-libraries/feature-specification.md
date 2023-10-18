@@ -210,7 +210,7 @@ import augment 'b.dart';
 augment class C {}
 
 augment void trace() {
-  augmented.trace();
+  augmented();
   print('a');
 }
 
@@ -220,7 +220,7 @@ library augment 'a.dart';
 class D {}
 
 augment void trace() {
-  augmented.trace();
+  augmented();
   print('b');
 }
 
@@ -230,12 +230,12 @@ library augment 'main.dart';
 augment class D {}
 
 augment void trace() {
-  augmented.trace();
+  augmented();
   print('c');
 }
 
 augment void trace() {
-  augmented.trace();
+  augmented();
   print('d');
 }
 ```
@@ -326,7 +326,8 @@ augmented, but it follows generally the same rules as any normal identifier:
     initializer.
 
 *   **Augmenting functions**: When augmenting a function, `augmented` refers to
-    the augmented function. Tear offs are allowed.
+    the augmented function. Tear offs are not allowed, so this function must
+    immediately be invoked.
 
 *   **Augmenting operators**: When augmenting an operator, `augmented` must be
     followed by the operator. For example when augmenting `+` you must do
@@ -336,6 +337,9 @@ augmented, but it follows generally the same rules as any normal identifier:
 
 *   **Augmenting enum values**: When augmenting an enum value, `augmented` has
     no meaning and is not allowed.
+
+In all relevant cases, if the augmented member is an instance member, it is
+invoked with the same value for `this`.
 
 ### Augmenting types
 
