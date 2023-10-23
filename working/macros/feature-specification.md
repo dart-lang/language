@@ -87,7 +87,7 @@ There are two things you can do with an `OmittedTypeAnnotation`:
       file as the macro annotation, so they can always do this.
   - When the final augmentation library is created, the actual type that was
     inferred will be used (or `dynamic` if no type was inferred).
-- Explicitly ask to infer the type of it through the builder apis (only
+- Explicitly ask to infer the type of it through the builder APIs (only
   available in phase 3).
   - We don't allow augmentations of existing declarations to contribute to
     inference, so in phase 3 type inference can be performed.
@@ -658,9 +658,9 @@ constructors are invoked, and their limitations.
       types in the user code instantiating the macro are not necessarily present
       in the macros own transitive imports.
 
-*Note: The Macro API is still being designed, and lives [here][api].*
+*Note: The Macro API is still being designed, and lives [here][API].*
 
-[api]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api.dart
+[API]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api.dart
 
 ### Writing a Macro
 
@@ -716,7 +716,7 @@ return results. For instance when generating a constructor, a macro will likely
 just iterate over the fields and create a parameter for each.
 
 We need generated augmentations to be identical on all platforms for all the
-same inputs, so we need to have a defined ordering when introspection apis are
+same inputs, so we need to have a defined ordering when introspection APIs are
 returning lists of declarations.
 
 Therefore, whenever an implementation is returning a list of declarations, they
@@ -771,7 +771,7 @@ constants (see next section).
 Macros may want the ability to evaluate constant expressions, in particular
 those found as arguments to metadata annotations.
 
-We expose this ability through the `DartObject evaluate(Code code)` api, which
+We expose this ability through the `DartObject evaluate(Code code)` API, which
 is available in all phases, with the following restrictions:
 
 - No identifier in `code` may refer to a constant which refers to any
@@ -781,7 +781,7 @@ is available in all phases, with the following restrictions:
   connected component (that is, the strongly connected component which triggered
   the current macro expansion).
 
-The `DartObject` api is an abstract representation of an object, which can
+The `DartObject` API is an abstract representation of an object, which can
 represent types which are not visible to the macro itself. It will closely
 mirror the [same API in the analyzer][DartObject].
 
@@ -1578,7 +1578,7 @@ resources outside of `lib`, which has both benefits and drawbacks.
 
 **TODO**: Evaluate APIs for listing files and directories.
 
-**TODO**: Consider adding `RandomAccessResource` api.
+**TODO**: Consider adding `RandomAccessResource` API.
 
 The specific API is as follows, and would only be available at compile time:
 
