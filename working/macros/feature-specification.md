@@ -252,7 +252,7 @@ user can *control* that order. We use syntactic order to control application
 order of macros:
 
 *   **Macros are applied to inner declarations before outer ones.** Macros
-    applied to members are applied before members on the surrounding type.
+    applied to members are applied before macros on the surrounding type.
     Macros on top-level declarations are applied before macros on the main
     `library` directive.
 
