@@ -777,9 +777,9 @@ is available in all phases, with the following restrictions:
 - No identifier in `code` may refer to a constant which refers to any
   system environment variable, Dart define, or other configuration which is not
   otherwise visible to macros.
-- All identifiers in `code` must be defined outside of current strongly
-  connected component (that is, the strongly connected component which triggered
-  the current macro expansion).
+- All identifiers in `code` must be defined outside of the current
+  [strongly connected component][] (that is, the strongly connected component
+  which triggered the current macro expansion).
 
 The `DartObject` API is an abstract representation of an object, which can
 represent types which are not visible to the macro itself. It will closely
@@ -1106,7 +1106,7 @@ a Dart program containing macro applications:
 
 Starting at the entrypoint library, traverse all imports, exports, and
 augmentation imports to collect the full graph of libraries to be compiled.
-Calculate the [strongly connected components][] of this graph. Each component is
+Calculate the [strongly connected component][]s of this graph. Each component is
 a library cycle, and the edges between them determine how the cycles depend on
 each other. Sort the library cycles in topological order based on the connected
 component graph.
@@ -1119,7 +1119,7 @@ library cycle, it is guaranteed that all macros used by the cycle have already
 been compiled. Also, any types or other declarations used by that cycle have
 either already been compiled, or are defined in that cycle.
 
-[strongly connected components]: https://en.wikipedia.org/wiki/Strongly_connected_component
+[strongly connected component]: https://en.wikipedia.org/wiki/Strongly_connected_component
 
 #### 2. Compile each cycle
 
