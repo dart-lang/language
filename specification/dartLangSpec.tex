@@ -41,6 +41,11 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Oct 2023
+% - Introduce the rule that an `extension` declaration cannot have the name
+%   `type`. This is needed in order to disambiguate an `extension type`
+%   named `on`.
+%
 % Aug 2023
 % - Correct text about built-in identifier error and turn it into commentary
 %   (the normative text is in grammar rules using `typeIdentifier`), and
@@ -6083,8 +6088,8 @@ The resolution is based on whether the relevant extension is in scope,
 and whether the invocation satisfies several other requirements.
 
 \begin{grammar}
-<extensionDeclaration> ::=
-  \gnewline{} \EXTENSION{} <typeIdentifier>? <typeParameters>? \ON{} <type>
+<extensionDeclaration> ::= \gnewline{}
+  \EXTENSION{} <typeIdentifierNotType>? <typeParameters>? \ON{} <type>
   \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
 \end{grammar}
 
@@ -17154,9 +17159,12 @@ than it is to any single one of those grammar rules where it is used.%
   \alt <BUILT\_IN\_IDENTIFIER>
   \alt <OTHER\_IDENTIFIER>
 
-<typeIdentifier> ::= <IDENTIFIER>
-  \alt <OTHER\_IDENTIFIER>
+<typeIdentifierNotType> ::= <IDENTIFIER>
+  \alt <OTHER\_IDENTIFIER\_NOT\_TYPE>
   \alt \DYNAMIC{}
+
+<typeIdentifier> ::= <typeIdentifierNotType>
+  \alt \TYPE{}
 
 <qualifiedName> ::= <typeIdentifier> `.' <identifier>
   \alt <typeIdentifier> `.' <typeIdentifier> `.' <identifier>
@@ -17168,9 +17176,12 @@ than it is to any single one of those grammar rules where it is used.%
     \LIBRARY{} | \MIXIN{} | \OPERATOR{}
   \alt\hspace{-3mm} \PART{} | \REQUIRED{} | \SET{} | \STATIC{} | \TYPEDEF{}
 
-<OTHER\_IDENTIFIER> ::= \gnewline{}
+<OTHER\_IDENTIFIER\_NOT\_TYPE> ::= \gnewline{}
   \ASYNC{} | \HIDE{} | \OF{} | \ON{} | \SHOW{} | \SYNC{} |
   \AWAIT{} | \YIELD{}
+
+<OTHER\_IDENTIFIER> ::= \gnewline{}
+  <OTHER\_IDENTIFIER\_NOT\_TYPE> | \TYPE{}
 
 <IDENTIFIER\_NO\_DOLLAR> ::= <IDENTIFIER\_START\_NO\_DOLLAR>
   \gnewline{} <IDENTIFIER\_PART\_NO\_DOLLAR>*
