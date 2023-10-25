@@ -15,10 +15,16 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
-2023.10.17
+2023.10.25
   - Allow an extension type to have `implements T` where `T` is a
     supertype of the representation type (the old rule only allows
     it when the representation type of `T` is a supertype).
+
+2023.10.18
+  - Add error for non-covariant occurrence of a type variable in a
+    superinterface.
+  - Specify how to promote the representation variable of an extension
+    type.
 
 2023.10.16
   - Add error for `implements ... T ... T ...`, like the corresponding
@@ -706,6 +712,17 @@ Member Conflicts' occur as well in an extension type declaration.
 and has an instance member named `V`, and it is a compile-time error if it
 has a type parameter named `X` and it has an instance member named `X`.*
 
+If the representation name of an extension type is a private name `_n` then
+the representation variable is subject to promotion according to the rules
+about promotion of private instance variables, except that promotion is
+_not_ eliminated by the existence of other declarations (of any kind) named
+`_n` in the same library.
+
+Conversely, the existence of an extension type with a representation
+variable with a private name `_n` does not eliminate promotion of 
+any private instance variables named `_n` of a class, mixin, enum, or mixin
+class in the same library.
+
 It is a compile-time error if a member declaration in an extension type
 declaration is abstract.
 
@@ -1131,6 +1148,16 @@ representation type of _DV_.
 *In particular, in order to have `implements T` where `T` is a
 non-extension type, it must be sound to consider the representation object
 as having type `T`.*
+
+A compile-time error occurs if a type variable declared by _DV_ occurs in a
+non-covariant position in `V1`.
+
+*This error corresponds to a similar error for class, mixin, mixin class,
+and enum declarations. It might be possible to relax the rule for extension
+types without jeopardizing soundness, but at this time we prefer the
+simplicity and consistency of having the same rule for all kinds of
+declarations. Also, it seems unlikely that a relaxation of the rule would
+open the door for anything particularly useful.*
 
 A compile-time error occurs if any direct or indirect superinterface of
 _DV_ denotes the declaration _DV_. *As usual, subtype cycles are not

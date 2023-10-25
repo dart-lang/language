@@ -313,7 +313,7 @@ stated more concretely as:
 4. We propose to consider designing a quotation syntax so that macros that
    generate Dart code can generate code in a readable fashion. This also means
    code generators only depend on language *syntax* for code generation and not
-   an imperative api, which will better stand the test of time.
+   an imperative API, which will better stand the test of time.
 
 Most of this is as-yet-undesigned, but the key piece is that **we think macros
 should be written in normal imperative Dart code which is executed at compile
@@ -417,7 +417,7 @@ you should:
   * Possibly provide an opt out for this, if feasible/desirable.
 * Be able to trace errors that flow through generated code, as well as navigate
   back to the line in the macro implementation that produced the code.
-* Be able to auto-complete macro generated apis.
+* Be able to auto-complete macro generated APIs.
 
 ### Performance
 
