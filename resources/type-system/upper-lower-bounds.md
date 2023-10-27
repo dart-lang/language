@@ -4,6 +4,9 @@ leafp@google.com
 
 ## CHANGELOG
 
+2023.10.27
+  - **CHANGE** Update **UP** such that no result is of the form `(X & B)?`.
+
 2020.09.01
   - **CHANGE** Update **UP** in cases about type variables and promoted type
     variables involving F-bounds, and in two cases about function types.
@@ -68,7 +71,6 @@ specification](https://github.com/dart-lang/language/blob/master/resources/type-
 
 We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as follows.
 
-
 - **UP**(`T`, `T`) = `T`
 - **UP**(`T1`, `T2`) where **TOP**(`T1`) and **TOP**(`T2`) =
   - `T1` if **MORETOP**(`T1`, `T2`)
@@ -103,22 +105,24 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`T1`, `T2`) where **OBJECT**(`T1`) =
   - `T1` if `T2` is non-nullable
   - `T1*` if `Null <: T2` (that is, `T2` is legacy)
-  - `T3?` otherwise, where `T3` is **ERASEINTERSECTION**(`T1`).
+  - `T1?` otherwise.
 
 - **UP**(`T1`, `T2`) where **OBJECT**(`T2`) =
   - `T2` if `T1` is non-nullable
   - `T2*` if `Null <: T1` (that is, `T1` is legacy)
-  - `T3?` otherwise, where `T3` is **ERASEINTERSECTION**(`T2`).
+  - `T2?` otherwise.
 
-- **UP**(`T1*`, `T2*`) = `S*` where `S` is **UP**(`T1`, `T2`)
-- **UP**(`T1*`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`)
-- **UP**(`T1?`, `T2*`) = `S?` where `S` is **UP**(`T1`, `T2`)
-- **UP**(`T1*`, `T2`) = `S*` where `S` is **UP**(`T1`, `T2`)
-- **UP**(`T1`, `T2*`) = `S*` where `S` is **UP**(`T1`, `T2`)
+- **UP**(`T1*`, `T2*`) = `S*` where `S` is **UP**(`T1`, `T2`).
+- **UP**(`T1*`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`).
+- **UP**(`T1?`, `T2*`) = `S?` where `S` is **UP**(`T1`, `T2`).
+- **UP**(`T1*`, `T2`) = `S*` where `S` is **UP**(`T1`, `T2`).
+- **UP**(`T1`, `T2*`) = `S*` where `S` is **UP**(`T1`, `T2`).
 
-- **UP**(`T1?`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`)
-- **UP**(`T1?`, `T2`) = `S?` where `S` is **UP**(`T1`, `T2`)
-- **UP**(`T1`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`)
+- **UP**(`T1?`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`).
+- **UP**(`T1?`, `T2`) = `S?` where `S` is **UP**(`T1`, `T3`)
+  where `T3` is **ERASEINTERSECTION**(`T2`).
+- **UP**(`T1`, `T2?`) = `S?` where `S` is **UP**(`T3`, `T2`)
+  where `T3` is **ERASEINTERSECTION**(`T1`).
 
 - **UP**(`X1 extends B1`, `T2`) =
   - `T2` if `X1 <: T2`
