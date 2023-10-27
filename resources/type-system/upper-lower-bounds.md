@@ -4,6 +4,10 @@ leafp@google.com
 
 ## CHANGELOG
 
+2023.10.27
+  - **CHANGE** Update **UP** to handle intersection types earlier. This
+    prevents **UP** from producing results of the form `(X & B)?`.
+
 2020.09.01
   - **CHANGE** Update **UP** in cases about type variables and promoted type
     variables involving F-bounds, and in two cases about function types.
@@ -81,6 +85,20 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`T1`, `T2`) = `T2` if **BOTTOM**(`T1`)
 - **UP**(`T1`, `T2`) = `T1` if **BOTTOM**(`T2`)
 
+- **UP**(`X1 & B1`, `T2`) =
+  - `T2` if `X1 <: T2`
+  - otherwise `X1` if `T2 <: X1`
+  - otherwise **UP**(`B1a`, `T2`)
+    where `B1a` is the greatest closure of `B1` with respect to `X1`,
+    as defined in [inference.md].
+
+- **UP**(`T1`, `X2 & B2`) =
+  - `X2` if `T1 <: X2`
+  - otherwise `T1` if `X2 <: T1`
+  - otherwise **UP**(`T1`, `B2a`)
+    where `B2a` is the greatest closure of `B2` with respect to `X2`,
+    as defined in [inference.md].
+
 - **UP**(`T1`, `T2`) where **NULL**(`T1`) and **NULL**(`T2`) =
   - `T2` if **MOREBOTTOM**(`T1`, `T2`)
   - `T1` otherwise
@@ -126,21 +144,7 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
     where `B1a` is the greatest closure of `B1` with respect to `X1`,
     as defined in [inference.md].
 
-- **UP**(`X1 & B1`, `T2`) =
-  - `T2` if `X1 <: T2`
-  - otherwise `X1` if `T2 <: X1`
-  - otherwise **UP**(`B1a`, `T2`)
-    where `B1a` is the greatest closure of `B1` with respect to `X1`,
-    as defined in [inference.md].
-
 - **UP**(`T1`, `X2 extends B2`) =
-  - `X2` if `T1 <: X2`
-  - otherwise `T1` if `X2 <: T1`
-  - otherwise **UP**(`T1`, `B2a`)
-    where `B2a` is the greatest closure of `B2` with respect to `X2`,
-    as defined in [inference.md].
-
-- **UP**(`T1`, `X2 & B2`) =
   - `X2` if `T1 <: X2`
   - otherwise `T1` if `X2 <: T1`
   - otherwise **UP**(`T1`, `B2a`)
