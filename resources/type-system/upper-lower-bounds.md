@@ -85,11 +85,25 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`T1`, `T2`) = `T2` if **BOTTOM**(`T1`)
 - **UP**(`T1`, `T2`) = `T1` if **BOTTOM**(`T2`)
 
+- **UP**(`X1 extends B1`, `T2`) =
+  - `T2` if `X1 <: T2`
+  - otherwise `X1` if `T2 <: X1`
+  - otherwise **UP**(`B1a`, `T2`)
+    where `B1a` is the greatest closure of `B1` with respect to `X1`,
+    as defined in [inference.md].
+
 - **UP**(`X1 & B1`, `T2`) =
   - `T2` if `X1 <: T2`
   - otherwise `X1` if `T2 <: X1`
   - otherwise **UP**(`B1a`, `T2`)
     where `B1a` is the greatest closure of `B1` with respect to `X1`,
+    as defined in [inference.md].
+
+- **UP**(`T1`, `X2 extends B2`) =
+  - `X2` if `T1 <: X2`
+  - otherwise `T1` if `X2 <: T1`
+  - otherwise **UP**(`T1`, `B2a`)
+    where `B2a` is the greatest closure of `B2` with respect to `X2`,
     as defined in [inference.md].
 
 - **UP**(`T1`, `X2 & B2`) =
@@ -136,20 +150,6 @@ We define the upper bound of two types T1 and T2 to be **UP**(`T1`,`T2`) as foll
 - **UP**(`T1?`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`)
 - **UP**(`T1?`, `T2`) = `S?` where `S` is **UP**(`T1`, `T2`)
 - **UP**(`T1`, `T2?`) = `S?` where `S` is **UP**(`T1`, `T2`)
-
-- **UP**(`X1 extends B1`, `T2`) =
-  - `T2` if `X1 <: T2`
-  - otherwise `X1` if `T2 <: X1`
-  - otherwise **UP**(`B1a`, `T2`)
-    where `B1a` is the greatest closure of `B1` with respect to `X1`,
-    as defined in [inference.md].
-
-- **UP**(`T1`, `X2 extends B2`) =
-  - `X2` if `T1 <: X2`
-  - otherwise `T1` if `X2 <: T1`
-  - otherwise **UP**(`T1`, `B2a`)
-    where `B2a` is the greatest closure of `B2` with respect to `X2`,
-    as defined in [inference.md].
 
 - **UP**(`T Function<...>(...)`, `Function`) = `Function`
 - **UP**(`Function`, `T Function<...>(...)`) = `Function`
