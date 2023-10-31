@@ -15,6 +15,10 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.10.31
+  - Simplify the rules about the relationship between extension types and the
+    types `Object` and `Object?`.
+
 2023.10.25
   - Allow an extension type to have `implements T` where `T` is a
     supertype of the representation type (the old rule only allows
@@ -983,11 +987,10 @@ non-nullable, unless it implements `Object` or a subtype thereof
 *That is, an expression of an extension type can be assigned to a top type
 (like all other expressions). Non-extension types (except bottom types and
 `dynamic`) cannot be assigned to extension types without an explicit cast.
-Similarly, null cannot be assigned to an extension type without an explicit
-cast (even better: don't use a cast, call a constructor instead). Another
-consequence of the fact that the extension type is potentially non-nullable is
-that it is an error to have an instance variable whose type is an extension
-type, and then relying on implicit initialization to null.*
+Similarly, the null object cannot be assigned to an extension type without
+an explicit cast (or a constructor invocation). Since an extension type is
+potentially non-nullable, an instance variable whose type is an extension
+type must be initialized. It will not be implicitly initialized to null.*
 
 In the body of a member of an extension type declaration _DV_ named
 `Name` and declaring the type parameters
@@ -1372,12 +1375,13 @@ relationships involving `V0`:*
 - *`V0` is a proper subtype of `Object?`.*
 - *`V0` is a proper supertype of `Never`.*
 - *`V0` is a proper subtype of each of `V1 .. Vk`.*
-- *At run time, the type `V0` is identical to the extension type erasure
-  `R0`. In particular, `o is V0` and `o as V0` have the same dynamic
-  semantics as `o is R0` respectively `o as R0`, and
-  `t1 == t2` evaluates to true if `t1` is a `Type` that reifies
-  `V0` and `t2` reifies `R0`, and the equality also holds if
-  `t1` and `t2` reify types where `V0` and `R0` occur as subterms
+- *Let `R0` be the extension type erasure of `V0`. At run time, the type
+  `V0` has the same representation and semantics as `R0`.  In particular,
+  `o is V0` and `o as V0` have the same dynamic semantics as `o is R0`
+  respectively `o as R0`. `t1 == t2` evaluates to true if `t1` is a
+  `Type` that reifies `V0` and `t2` reifies `R0`. Similarly, two types `t1`
+  and `t2` are equal if they are structurally equal except that `V0` occurs
+  in `t1` and `R0` occurs at the corresponding location in `t2`
   (e.g., `List<V0>` is equal to `List<R0>`).*
 
 
