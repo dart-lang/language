@@ -723,7 +723,7 @@ _not_ eliminated by the existence of other declarations (of any kind) named
 `_n` in the same library.
 
 Conversely, the existence of an extension type with a representation
-variable with a private name `_n` does not eliminate promotion of 
+variable with a private name `_n` does not eliminate promotion of
 any private instance variables named `_n` of a class, mixin, enum, or mixin
 class in the same library.
 
@@ -1133,9 +1133,6 @@ Assume that _DV_ is an extension type declaration named `Name`, and
 `V1` occurs as one of the `<type>`s in the `<interfaces>` of _DV_. In
 this case we say that `V1` is a _superinterface_ of _DV_.
 
-If _DV_ does not include an `<interfaces>` clause then _DV_ has
-`Object?` as a direct superinterface.
-
 A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superinterface in an extension type declaration _DV_, and
 `V1` denotes a non-extension type which is not a supertype of the
@@ -1299,7 +1296,12 @@ rather than from `Object`)*.
 
 *This change is needed because some extension types are subtypes of
 `Object?` and not subtypes of `Object`, and they need to have a
-well-defined depth.*
+well-defined depth. We could define the depth to be zero for `Object`, for
+`Null`, and for every extension type that has no `implements` clause, and
+insist that `Object?` isn't an interface type and doesn't have a depth, but
+in that case we no longer have a guarantee that the sets of superinterfaces
+with the same maximal depth that the Dart 1 least upper bound algorithm
+uses will have at least one singleton set.*
 
 
 ## Dynamic Semantics of Extension Types
@@ -1377,12 +1379,9 @@ relationships involving `V0`:*
 - *`V0` is a proper subtype of each of `V1 .. Vk`.*
 - *Let `R0` be the extension type erasure of `V0`. At run time, the type
   `V0` has the same representation and semantics as `R0`.  In particular,
-  `o is V0` and `o as V0` have the same dynamic semantics as `o is R0`
-  respectively `o as R0`. `t1 == t2` evaluates to true if `t1` is a
-  `Type` that reifies `V0` and `t2` reifies `R0`. Similarly, two types `t1`
-  and `t2` are equal if they are structurally equal except that `V0` occurs
-  in `t1` and `R0` occurs at the corresponding location in `t2`
-  (e.g., `List<V0>` is equal to `List<R0>`).*
+  they behave identically with respect to `is`, `is!`, `as`, and `==`,
+  both when `V0` and `R0` are used as types, and when they occur as
+  subterms of another type.
 
 
 ## Discussion
