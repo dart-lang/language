@@ -950,8 +950,10 @@ later resolved to a different declaration.
 
 In order to resolve these discrepancies we add this rule:
 
-- **It is an error for a macro to add a declaration which shadows any**
-  **previously resolved identifier.**.
+- **It is a compile time error for a macro to add a declaration which shadows**
+  **any previously resolved identifier.**. These errors occur after a macro
+  runs, when the compiler is merging in the macro results, and so it is not
+  catchable or detectable by macros.
 
 This situation can typically only happen because of one of the above scenarios
 surrounding metadata annotations or const evaluation, and can typically be
