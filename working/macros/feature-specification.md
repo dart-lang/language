@@ -742,7 +742,8 @@ others may only need the ability to emit that same code back into the program.
 #### The annotation introspection API
 
 All declarations which can be annotated will have an
-`Iterable<MetadataAnnotation> get metadata` getter.
+`Iterable<MetadataAnnotation> get metadata` getter. This will contain all
+regular annotations as well as macro annotations.
 
 All `MetadataAnnotation` objects have a `Code get code` getter, which gives
 access to the annotation as a `Code` object.
@@ -792,11 +793,11 @@ evaluation fails due to a violation of one of the restrictions above.
 
 #### Are macro applications introspectable?
 
-Macro applications share the same syntax as annotations, and users may expect
-macros to be able to see the other macros as a result.
+Macro application annotations are treated identically to regular annotations,
+and are introspectable in exactly the same ways.
 
-For now we are choosing not to expose other macro applications as if they were
-metadata. While they do share a syntax they are conceptually different.
+The current macro application is also visible to itself in the list of metadata
+attached to the current declaration.
 
 #### Modifying metadata annotations
 
