@@ -908,68 +908,58 @@ has two colliding declarations.
 
 #### Shadowing declarations
 
-All the rules below apply only to the library in which a macro is
-applied&mdash;macro applications in imported libraries are considered to be
-fully expanded already and are treated exactly the same as handwritten code.
-
 Macros may add member declarations that shadow top-level declarations in the
-library. When that happens, we want to ensure that the intent of the
-user-written code is clear. Consider the following example:
+library. When that happens, we have to choose how references to that shadowed
+member resolve. Consider the following example:
 
 ```dart
 int get x => 1;
 
 @GenerateX()
 class Bar {
-  // Generated: int get x => 2;
+  // Generated
+  int get x => 2;
 
   // Should this return the top level `x`, or the generated instance getter?
   int get y => x;
 }
 ```
 
-There are several potential choices we could make here:
+In this situation, resolution is done based on the final macro generated code,
+as if it was written by hand. Effectively, this means that resolution of bodies
+must be delayed until after macro execution is complete.
 
-1.  Any identifier that can be resolved before macro application keeps its
-    original resolution. Here, `x` would still resolve to the original,
-    top-level variable.
+This (mostly) avoids the need for resolving method bodies multiple times, and
+also means that all macro code could be replaced with a hand-authored library.
 
-2.  Re-resolve all identifiers after macros are applied, which may change what
-    they resolve to. In the example here, `x` would re-resolve to the generated
-    instance getter `x`.
+##### Constant evaluation, Identifiers, and shadowed declarations
 
-3.  Make it a compile-time error for a macro to introduce an identifier that
-    shadows another.
+Given that constant evaluation can be attempted in any phase, it is possible for
+it to return a _different result_ for the same piece of code between phases. In
+particular the types phase and declaration phase may introduce declarations
+which shadow previously resolved identifiers from other libraries.
 
-4.  Make it a compile-time error to *use* an identifier shadowed by one produced
-    by a macro.
+If this happens, it would always cause a constant evaluation failure in the
+later phase, since identifiers from the current [strongly connected component][]
+are not allowed during const evaluation. This is not enough however to catch all
+situations, because a macro may not attempt const evaluation at that point, and
+could have previously gotten an incorrect result.
 
-The first two choices could be very confusing to users, some will expect one
-behavior while others expect the other. The third choice would work but might be
-overly restrictive. The final option still avoids the ambiguity, and is a bit
-more permissive than the third, so we take that approach.
+Similarly, a Code object provided as a part of a metadata annotation argument
+may have Identifiers which were originally resolved to one declaration, and then
+later resolved to a different declaration.
 
-It's also possible that a top-level declaration and an instance declaration that
-shadows it are *both* produced by macros. If we resolved a hand-written
-identifier with the same name at different points during macro expansion, it
-might refer to different macro-generated declarations. That would also be
-confusing, and we don't want to allow that.
+In order to resolve these discrepancies we add this rule:
 
-These constraints produce this rule: It is a compile-time error if any
-hand-authored identifier in a library containing a macro application would bind
-to a different declaration when resolved before and after macro expansion in
-that library.
+- **It is a compile time error for a macro to add a declaration which shadows**
+  **any previously resolved identifier.**. These errors occur after a macro
+  runs, when the compiler is merging in the macro results, and so it is not
+  catchable or detectable by macros.
 
-This follows from the general principle that macros should not alter the
-meaning of existing code. Adding the getter `x` in the example above shadows the
-top-level `x`, changing the meaning of the original code.
-
-Note, that if the getter were written as `int get y => this.x;`, then a macro
-*would* be allowed to introduce the new getter `x`, because `this.x` could not
-previously be resolved.
-
-**TODO**: Revisit this to see if it aligns with the scoping rules of compiling
-macros to library augmentations.
+This situation can typically only happen because of one of the above scenarios
+surrounding metadata annotations or const evaluation, and can typically be
+resolved by adding an import prefix. To force resolution to the generated symbol
+in the current library, a library can import itself with a prefix.
 
 #### Resolving identifiers in generated code
 
