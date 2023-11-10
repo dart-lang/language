@@ -66,7 +66,7 @@ It is a **compile-time error** to refer to a declared or default generative cons
 
 _No-one is allowed to invoke a generative constructor and create an instance of the `enum` other than the enumerated enum values._
 
-It is a **compile-time error** if a declaration of an enumerated value of an `enum` declaration gives rise to an invocation of a factory constructor.
+It is a **compile-time error** if the constructor implicitly invoked by an enumerated enum value declaration is a factory constructor.
 
 _A redirecting factory constructor can redirect to a generative constructor of an `extension type`, which may in turn return one of the existing values of that `enum`. This must be an error, because the enumerated values of an `enum` declaration must be distinct._
 
