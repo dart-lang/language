@@ -450,9 +450,13 @@ instance variables, unless they are `external`.
 *An external instance variable is just a convenient notation for an external
 getter and (if not `final`) an external setter, which are both allowed.*
 
+A compile-time error occurs if the extension type declaration declares any
+abstract members.
+
 The _name of the representation_ in an extension type declaration with a
-representation declaration of the form `(T id)` is the identifier `id`, and
-the _type of the representation_ is `T`.
+representation declaration, for example of the form `(T id)`,
+is the `<identifier>` after the `<type>` (`id` here), and
+the _type of the representation_ is the type denoted by `<type>` (by `T` here).
 
 *There are no special rules for static members in extension types. They can
 be declared and called or torn off as usual, e.g.,
@@ -823,8 +827,8 @@ _is the extension type_
 and that its static type _is an extension type_.
 
 It is a compile-time error if `await e` occurs, and the static type of
-`e` is an extension type which is not a subtype of `Future<T>` for any
-`T`.
+`e` is `S` bounded where `S` is an extension type which is not a subtype
+of `Future<T>` for any `T`.
 
 A compile-time error occurs if an extension type declares a member whose
 basename is the basename of an instance member declared by `Object` as
@@ -846,13 +850,14 @@ restrictions, in a future version of Dart.*
 A compile-time error occurs if an extension type has a non-extension
 superinterface whose transitive alias expansion is a type variable, a
 deferred type, any top type *(including `dynamic` and `void`)*, the type
-`Null`, any function type, the type `Function`, any record type, the type
-`Record`, or any type of the form `T?` or `FutureOr<T>` for any type `T`.
+`Null`, the type `Never`, any function type, the type `Function`,
+any record type, the type `Record`, or the type `T?` or `FutureOr<T>`
+for any type `T`.
 
 *Note that it is not an error to have `implements int` and similar platform
 types, and it is not an error to have `implements T` where `T` is a type
 that denotes a `sealed`, `final`, or `base` class in a different library,
-or `T` is an enumerated type.*
+or an enumerated type.*
 
 A compile-time error occurs if an extension type is used as a
 superinterface of a class, mixin, or enum declaration, or if an extension
@@ -1137,8 +1142,13 @@ Assume that _DV_ is an extension type declaration named `Name`, and
 this case we say that `V1` is a _superinterface_ of _DV_.
 
 If _DV_ does not include an `<interfaces>` clause then _DV_ has
-`Object?` or `Object` as a direct superinterface, according to the subtype
-relation which was specified earlier.
+`Object` as a direct superinterface if the declared representation type
+is non-nullable, otherwise it has `Object?` as a direct superinterface.
+
+*In the latter case, a generic extension type may still have `Object` as
+a superinterface, if its instantiated representation type is non-nullable.
+For instance, with `extension type E<X>(X x) {}`, the type `E<int>` has
+`Object` as a direct superinterface.*
 
 A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superinterface in an extension type declaration _DV_, and
@@ -1381,7 +1391,7 @@ with instantiated representation type `R` and instantiated superinterface
 types `V1 .. Vk`, as well as other typing relationships involving `V0`:*
 
 - *`V0` is a proper subtype of `Object?`.*
-- *`V0` is a supertype of `Never`.*
+- *`V0` is a proper supertype of `Never`.*
 - *If `R` is a non-nullable type then `V0` is a proper subtype of
   `Object`, and a non-nullable type.*
 - *`V0` is a proper subtype of each of `V1 .. Vk`.*
