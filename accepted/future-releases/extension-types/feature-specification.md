@@ -555,8 +555,8 @@ the case where _DV_ has a direct superinterface that has a method named
 *These exceptions are applicable to both extension type and non-extension
 type superinterfaces, and to both extension type and non-extension type
 members. In short, we do not get a setter/method conflict by "inheriting"
-the setter and declaring the method, or vice versa. Note that we still have a
-compile-time error if _DV_ declares a method and a setter with the same
+the setter and declaring the method, or vice versa. Note that we still have
+a compile-time error if _DV_ declares a method and a setter with the same
 basename.*
 
 *In this section it is assumed that _DV_ does not have any compile-time
