@@ -557,7 +557,8 @@ type superinterfaces, and to both extension type and non-extension type
 members. In short, we do not get a setter/method conflict by "inheriting"
 the setter and declaring the method, or vice versa. Note that we still have
 a compile-time error if _DV_ declares a method and a setter with the same
-basename.*
+basename. Also note that _DV_ can declare a setter `n=` and "inherit" the
+corresponding getter named `n`, and vice versa.*
 
 *In this section it is assumed that _DV_ does not have any compile-time
 errors, which ensures that this combined member signature exists.*
