@@ -546,11 +546,11 @@ repeated computation of the instantiated type of each superinterface on the
 path to the given non-extension type superinterface.
 
 There are two exceptions to these rules: _DV_ does not have a setter named
-`n=` when _DV_ declares a method named `n`, even in the case where _DV_ has
-a direct superinterface that has a setter named `n=`. Similarly, _DV_ does
-not have a method named `n` when _DV_ declares a setter named `n=`, even in
-the case where _DV_ has a direct superinterface that has a method named
-`n`.
+`n=` when _DV_ declares a method named `n`, and _DV_ has a direct
+superinterface that has a setter named `n=`, and _DV_ does not declare a
+setter named `n=`. Similarly, _DV_ does not have a method named `n` when
+_DV_ declares a setter named `n=`, and _DV_ has a direct superinterface
+that has a method named `n`, and _DV_ does not declare a member named `n`.
 
 *These exceptions are applicable to both extension type and non-extension
 type superinterfaces, and to both extension type and non-extension type
