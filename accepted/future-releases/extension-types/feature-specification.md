@@ -15,6 +15,11 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.11.14
+  - Specify that a method declaration will shadow an otherwise "inherited"
+    setter with the same basename, and vice versa. This eliminates a
+    method/setter conflict that would otherwise be impossible to avoid.
+
 2023.10.25
   - Allow an extension type to have `implements T` where `T` is a
     supertype of the representation type (the old rule only allows
@@ -539,6 +544,18 @@ The member signature of such a member is the combined member signature of
 all non-extension type members named `n` that _DV_ has, again using a
 repeated computation of the instantiated type of each superinterface on the
 path to the given non-extension type superinterface.
+
+There are two exceptions to these rules: _DV_ does not have a setter named
+`n=` when _DV_ declares a method named `n`, even in the case where _DV_ has
+a direct superinterface that has a setter named `n=`. Similarly, _DV_ does
+not have a method named `n` when _DV_ declares a setter named `n=`, even in
+the case where _DV_ has a direct superinterface that has a method named
+`n=`.
+
+*These exceptions are applicable to both extension type and non-extension
+type superinterfaces, and to both extension type and non-extension type
+members. In short, we do not get a setter/method conflict by "inheriting"
+the setter and declaring the method, or vice versa.*
 
 *In this section it is assumed that _DV_ does not have any compile-time
 errors, which ensures that this combined member signature exists.*
