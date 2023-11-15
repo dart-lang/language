@@ -517,14 +517,43 @@ type declaration, but this section is concerned with invocations of
 extension type members.*
 
 We need to introduce a concept that is similar to existing concepts
-for regular classes.
+for regular classes, namely that an extension type _has_ a certain member.
+
+First, we say that an extension type member declaration _DM_ _precludes_ an
+extension type member declaration _DM2_ if they have the same name, or the
+basename of _DM_ is the same as the basename of _DM2_, and one of _DM_ and
+_DM2_ is a setter declaration, and the other is a method declaration.
+
+Moreover, we say that an extension type member declaration _DM_ _precludes_
+a non-extension type member signature `m` if they have the same name, or
+the basename of _DM_ is the same as the basename of `m`, and _DM_ is a
+setter declaration and `m` is a method signature, or _DM_ is a method
+declaration and `m` is a setter signature.
+
+*We use this concept with superinterfaces of DM. DM may have multiple
+non-extension type superinterfaces, and they may differ with respect to the
+precise member signature for a given member name, but they will not differ
+with respect to the kind: `m` may be a method or a setter or a getter, but
+it cannot be, e.g., a method in one superinterface and a getter in another
+one. Hence, it is well-defined to talk about `m` being a method or a setter
+signature even though there may be multiple member signatures with the
+given name.*
 
 We say that an extension type declaration _DV_ _has_ an extension type
-member named `n` in the case where _DV_ declares a member named `n`, and in
-the case where _DV_ has no such declaration, but _DV_ has a direct
-extension type superinterface `V` that has an extension type member named
-`n`. In both cases, when this is unique, _the extension type member
-declaration named `n` that DV has_ is said declaration.
+member named `n` in the cases where:
+
+- _DV_ declares a member named `n`.
+- _DV_ has no such declaration, but _DV_ has a direct extension type
+  superinterface `V` that has an extension type member named `n` due to a
+  member declaration _DM2_, and _DV_ does not declare a member _DM_ that
+  precludes _DM2_.
+
+*Note that it is well-defined which member declaration causes an extension
+type to have a given extension type member because a compile-time error
+occurs whenever this is ambiguous: Either _DV_ contains a declaration
+named `n`, or at most one superinterface has an extension type member named
+`n`, which is then (by induction) due to a uniquely determined
+extension type member declaration.*
 
 The type (function type for a method, return type for a getter) of this
 declaration relative to this invocation is determined by repeatedly
@@ -535,30 +564,19 @@ type parameters of the extension type into the type of that declaration.
 
 Similarly, we say that an extension type declaration _DV_ _has_ a
 non-extension type member named `n` in the case where _DV_ does not declare
-a member named `n`, but _DV_ has a direct extension type superinterface `V`
-that has a non-extension type member named `n`, or _DV_ has a direct
-non-extension type superinterface `T` whose interface contains a member
-signature named `n`.
+a member named `n`, and one of the following criteria is satisfied:
+
+- _DV_ has a direct extension type superinterface `V` that has a
+  non-extension type member with signature `m` and name `n`, and _DV_ does
+  not declare a member that precludes `m`.
+- _DV_ has a direct non-extension type superinterface whose interface
+  contains a member signature `m` named `n`, and _DV_ does not declare a
+  member that precludes `m`.
 
 The member signature of such a member is the combined member signature of
 all non-extension type members named `n` that _DV_ has, again using a
 repeated computation of the instantiated type of each superinterface on the
 path to the given non-extension type superinterface.
-
-There are two exceptions to these rules: _DV_ does not have a setter named
-`n=` when _DV_ declares a method named `n`, and _DV_ has a direct
-superinterface that has a setter named `n=`, and _DV_ does not declare a
-setter named `n=`. Similarly, _DV_ does not have a method named `n` when
-_DV_ declares a setter named `n=`, and _DV_ has a direct superinterface
-that has a method named `n`, and _DV_ does not declare a member named `n`.
-
-*These exceptions are applicable to both extension type and non-extension
-type superinterfaces, and to both extension type and non-extension type
-members. In short, we do not get a setter/method conflict by "inheriting"
-the setter and declaring the method, or vice versa. Note that we still have
-a compile-time error if _DV_ declares a method and a setter with the same
-basename. Also note that _DV_ can declare a setter `n=` and "inherit" the
-corresponding getter named `n`, and vice versa.*
 
 *In this section it is assumed that _DV_ does not have any compile-time
 errors, which ensures that this combined member signature exists.*
