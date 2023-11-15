@@ -545,7 +545,7 @@ member named `n` in the cases where:
 - _DV_ declares a member named `n`.
 - _DV_ has no such declaration, but _DV_ has a direct extension type
   superinterface `V` that has an extension type member named `n` due to a
-  member declaration _DM2_, and _DV_ does not declare a member _DM_ that
+  member declaration _DM2_, and _DV_ does not declare a member that
   precludes _DM2_.
 
 *Note that it is well-defined which member declaration causes an extension
