@@ -1298,11 +1298,11 @@ rather than from `Object`)*.
 *This change is needed because some extension types are subtypes of
 `Object?` and not subtypes of `Object`, and they need to have a
 well-defined depth. We could define the depth to be zero for `Object`, for
-`Null`, and for every extension type that has no `implements` clause, and
-insist that `Object?` isn't an interface type and doesn't have a depth, but
+`Null`, and for every extension type that has no `implements` clause, but
 in that case we no longer have a guarantee that the sets of superinterfaces
 with the same maximal depth that the Dart 1 least upper bound algorithm
-uses will have at least one singleton set.*
+uses will have at least one singleton set. All in all it's simpler if we
+preserve the property that the superinterface graph has a single root.*
 
 
 ## Dynamic Semantics of Extension Types
