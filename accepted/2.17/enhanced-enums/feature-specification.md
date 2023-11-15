@@ -64,9 +64,11 @@ It is a **compile-time error** to refer to a declared or default generative cons
 * As the target of a redirecting generative constructor of the same `enum` declaration (`: this(...);`/`: this.targetName(...);`), or
 * Implicitly in the enum value declarations of the same `enum` (`enumValueName(args)`/`enumValueName.targetName(args)`).
 
-_No-one is allowed to invoke a generative constructor and create an instance of the `enum` other than the enumerated enum values. 
-That also means that a redirecting *factory* constructor cannot redirect to a generative constructor of an `enum`,
-and therefore no factory constructor of an `enum` declaration can be `const`, because a `const` factory constructor must redirect to a generative constructor._
+_No-one is allowed to invoke a generative constructor and create an instance of the `enum` other than the enumerated enum values._
+
+It is a **compile-time error** if the constructor implicitly invoked by an enumerated enum value declaration is a factory constructor.
+
+_A redirecting factory constructor can redirect to a generative constructor of an `extension type`, which may in turn return one of the existing values of that `enum`. This must be an error, because the enumerated values of an `enum` declaration must be distinct._
 
 It's a **compile-time error** if the enum declaration contains a static or instance member declaration with the name `values`, or if the superclass or any superinterface of the enum declaration has an interface member named `values`. _A `values` static constant member will be provided for the class, this restriction ensures that there is no conflict with that declaration._
 
@@ -460,3 +462,5 @@ There is a chance that people will start using `enum` declarations to declare si
 1.7, 2022-02-16: Disallow overriding `operator==` and `hashCode` too.
 1.8, 2022-03-08: Make it explicit that an enum constructor cannot use the new super-parameters.
 1.9, 2023-01-13: Adjust the grammar to allow enum entry using `new` to specify a constructor.
+1.10, 2023-11-10: Add an error about factory constructors: They can not be used
+to create enum values.
