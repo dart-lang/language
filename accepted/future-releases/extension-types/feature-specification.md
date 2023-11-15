@@ -988,9 +988,10 @@ non-nullable, unless it implements `Object` or a subtype thereof
 (like all other expressions). Non-extension types (except bottom types and
 `dynamic`) cannot be assigned to extension types without an explicit cast.
 Similarly, the null object cannot be assigned to an extension type without
-an explicit cast (or a constructor invocation). Since an extension type is
-potentially non-nullable, an instance variable whose type is an extension
-type must be initialized. It will not be implicitly initialized to null.*
+an explicit cast (or if it has a static type which is an extension type,
+e.g., `E(null)`). Since an extension type is potentially non-nullable, an
+instance variable whose type is an extension type must be initialized. It
+will not be implicitly initialized to null.*
 
 In the body of a member of an extension type declaration _DV_ named
 `Name` and declaring the type parameters
