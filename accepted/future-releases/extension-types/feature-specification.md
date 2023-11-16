@@ -1326,7 +1326,7 @@ fresh, non-late, final variable `v` is created. An initializing formal
 argument passed to this formal. An initializer list element of the
 form `id = e` or `this.id = e` is evaluated by evaluating `e` to an
 object `o` and binding `v` to `o`.  During the execution of the
-constructor body, `this` and `id` are bound to the value of `v`.  The
+constructor body, `this` is bound to the value of `v`.  The
 value of the instance creation expression that gave rise to this
 constructor execution is the value of `this`.
 
@@ -1337,8 +1337,8 @@ constructor, then consider the corresponding non-primary constructor _k_.
 The execution of the representation declaration as a constructor has the
 same semantics as an execution of _k_.
 
-At run time, for a given instance `o` typed as an extension type `V`, there
-is _no_ reification of `V` associated with `o`.
+At run time, for a given instance `o` that was statically typed as an 
+extension type `V`, there is _no_ reification of `V` associated with `o`.
 
 *This means that, at run time, an object never "knows" that it is being
 viewed as having an extension type. By soundness, the run-time type of `o`
