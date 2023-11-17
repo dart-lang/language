@@ -837,8 +837,8 @@ It is a compile-time error if `await e` occurs, and the static type of
 `e` satisfiers at least one of the following criteria:
 
 - an extension type which is unrelated to `Future`.
-- a type of the form `E?`, `FutureOr<E>`, or `FutureOr<E>?` where `E` is an
-  extension type which is unrelated to `Future`.
+- a type of the form `T?` or `FutureOr<T>` where `T` is a type that matches
+  one of the items in this list.
 - a type which is `T` bounded, where `T` matches one of the earlier items
   *(this covers type variables and intersection types)*.
 
