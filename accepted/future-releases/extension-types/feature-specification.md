@@ -15,6 +15,10 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.10.31
+  - Simplify the rules about the relationship between extension types and the
+    types `Object` and `Object?`.
+
 2023.10.25
   - Allow an extension type to have `implements T` where `T` is a
     supertype of the representation type (the old rule only allows
@@ -719,7 +723,7 @@ _not_ eliminated by the existence of other declarations (of any kind) named
 `_n` in the same library.
 
 Conversely, the existence of an extension type with a representation
-variable with a private name `_n` does not eliminate promotion of 
+variable with a private name `_n` does not eliminate promotion of
 any private instance variables named `_n` of a class, mixin, enum, or mixin
 class in the same library.
 
@@ -976,24 +980,18 @@ declaration itself, or we're talking about a particular generic
 instantiation of an extension type. *For non-generic extension type
 declarations, the representation type is the same in either case.*
 
-Let `V` be an extension type of the form
-<code>Name\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>, and let
-`R` be the corresponding instantiated representation type.  If `R` is
-non-nullable then `V` is a proper subtype of `Object`, and `V` is
-non-nullable.  Otherwise, `V` is a proper subtype of `Object?`, and
-`V` is potentially nullable.
+An extension type `V` is a proper subtype of `Object?`. It is potentially
+non-nullable, unless it implements `Object` or a subtype thereof
+*(as described in the section about extension types with superinterfaces)*.
 
 *That is, an expression of an extension type can be assigned to a top type
-(like all other expressions), and if the representation type is
-non-nullable then it can also be assigned to `Object`. Non-extension types
-(except bottom types and `dynamic`) cannot be assigned to extension types
-without an explicit cast. Similarly, null cannot be assigned to an
-extension type without an explicit cast, even in the case where the
-representation type is nullable (even better: don't use a cast, call a
-constructor instead). Another consequence of the fact that the extension
-type is potentially non-nullable is that it is an error to have an instance
-variable whose type is an extension type, and then relying on implicit
-initialization to null.*
+(like all other expressions). Non-extension types (except bottom types and
+`dynamic`) cannot be assigned to extension types without an explicit cast.
+Similarly, the null object cannot be assigned to an extension type without
+an explicit cast (or if it has a static type which is an extension type,
+e.g., `E(null)`). Since an extension type is potentially non-nullable, an
+instance variable whose type is an extension type must be initialized. It
+will not be implicitly initialized to null.*
 
 In the body of a member of an extension type declaration _DV_ named
 `Name` and declaring the type parameters
@@ -1135,10 +1133,6 @@ subtype).*
 Assume that _DV_ is an extension type declaration named `Name`, and
 `V1` occurs as one of the `<type>`s in the `<interfaces>` of _DV_. In
 this case we say that `V1` is a _superinterface_ of _DV_.
-
-If _DV_ does not include an `<interfaces>` clause then _DV_ has
-`Object?` or `Object` as a direct superinterface, according to the subtype
-relation which was specified earlier.
 
 A compile-time error occurs if `V1` is a type name or a parameterized type
 which occurs as a superinterface in an extension type declaration _DV_, and
@@ -1303,12 +1297,12 @@ rather than from `Object`)*.
 
 *This change is needed because some extension types are subtypes of
 `Object?` and not subtypes of `Object`, and they need to have a
-well-defined depth. Note that the depth of an extension type can be
-determined by its actual type arguments, if any, because type parameters of
-the extension type may occur in its representation type. In particular, the
-depth of an extension type is a property of the type itself, and it is not
-always possible to determine the depth from the associated extension type
-declaration.*
+well-defined depth. We could define the depth to be zero for `Object`, for
+`Null`, and for every extension type that has no `implements` clause, but
+in that case we no longer have a guarantee that the sets of superinterfaces
+with the same maximal depth that the Dart 1 least upper bound algorithm
+uses will have at least one singleton set. All in all, it's simpler if we
+preserve the property that the superinterface graph has a single root.*
 
 
 ## Dynamic Semantics of Extension Types
@@ -1377,21 +1371,18 @@ used as an expression *(also known as the ultimate representation type)*.
 ### Summary of Typing Relationships
 
 *Here is an overview of the subtype relationships of an extension type `V0`
-with instantiated representation type `R` and instantiated superinterface
-types `V1 .. Vk`, as well as other typing relationships involving `V0`:*
+with instantiated representation type `R` (whose extension type erasure is `R0`)
+and instantiated superinterface types `V1 .. Vk`, as well as other typing
+relationships involving `V0`:*
 
 - *`V0` is a proper subtype of `Object?`.*
-- *`V0` is a supertype of `Never`.*
-- *If `R` is a non-nullable type then `V0` is a proper subtype of
-  `Object`, and a non-nullable type.*
+- *`V0` is a proper supertype of `Never`.*
 - *`V0` is a proper subtype of each of `V1 .. Vk`.*
-- *At run time, the type `V0` is identical to the type `R`. In
-  particular, `o is V0` and `o as V0` have the same dynamic
-  semantics as `o is R` respectively `o as R`, and
-  `t1 == t2` evaluates to true if `t1` is a `Type` that reifies
-  `V0` and `t2` reifies `R`, and the equality also holds if
-  `t1` and `t2` reify types where `V0` and `R` occur as subterms
-  (e.g., `List<V0>` is equal to `List<R>`).*
+- *Let `R0` be the extension type erasure of `V0`. At run time, the type
+  `V0` has the same representation and semantics as `R0`.  In particular,
+  they behave identically with respect to `is`, `is!`, `as`, and `==`,
+  both when `V0` and `R0` are used as types, and when they occur as
+  subterms of another type.
 
 
 ## Discussion
