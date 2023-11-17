@@ -15,6 +15,9 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.11.17
+  - Correct the rule about extension types and `await` expressions.
+
 2023.10.31
   - Simplify the rules about the relationship between extension types and the
     types `Object` and `Object?`.
@@ -826,9 +829,18 @@ _is the extension type_
 <code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and that its static type _is an extension type_.
 
+We say that an extension type is _unrelated to `Future`_ in the case where
+it does not implement `Future<U>` for any `U` *(this means that it has no
+direct or indirect superinterface of the form `Future<...>`)*.
+
 It is a compile-time error if `await e` occurs, and the static type of
-`e` is an extension type which is not a subtype of `Future<T>` for any
-`T`.
+`e` satisfiers at least one of the following criteria:
+
+- an extension type which is unrelated to `Future`.
+- a type of the form `E?`, `FutureOr<E>`, or `FutureOr<E>?` where `E` is an
+  extension type which is unrelated to `Future`.
+- a type which is `T` bounded, where `T` matches one of the earlier items
+  *(this covers type variables and intersection types)*.
 
 A compile-time error occurs if an extension type declares a member whose
 basename is the basename of an instance member declared by `Object` as
