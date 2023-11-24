@@ -41,6 +41,11 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Nov 2023
+% - Specify that the dynamic error for calling a function in a deferred and
+%   not yet loaded library will occur before actual argument evaluation, not
+%   after.
+%
 % Oct 2023
 % - Introduce the rule that an `extension` declaration cannot have the name
 %   `type`. This is needed in order to disambiguate an `extension type`
@@ -20014,9 +20019,11 @@ as defined previously
   \NamespaceName{\metavar{import},i},
   a corresponding function named \id{} with the same signature as $f$.
   % This error can occur because being-loaded is a dynamic property.
-  Calling the function results in a dynamic error,
-  and so does closurizing it
-  (\ref{functionClosurization}).
+  Calling the function results in a dynamic error that occurs before
+  any actual arguments are evaluated.
+  Closurizing the function
+  (\ref{functionClosurization})
+  also results in a dynamic error.
 \item
   For every top level getter $g$ named \id{} in
   \NamespaceName{\metavar{import},i},
@@ -20028,7 +20035,8 @@ as defined previously
   \NamespaceName{\metavar{import},i},
   a corresponding setter named \code{\id=} with the same signature as $s$.
   % This error can occur because being-loaded is a dynamic property.
-  Calling the setter results in a dynamic error.
+  Calling the setter results in a dynamic error that occurs before
+  the actual argument is evaluated.
 \item
   For every class, mixin, enum, and type alias declaration named \id{} in
   \NamespaceName{\metavar{import},i},
