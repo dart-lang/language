@@ -273,7 +273,9 @@ whatever the application order. In most cases this achieved by the split into
 phases: within each phase macros can run in any order because the output is not
 visible to other macros until the next phase. As a special case, introspection
 of types in Phase 2 waits as needed for other macro applications to complete,
-failing if there are cycles.
+failing if there is a cycle.
+
+TODO: give an example of a cycle.
 
 ### Augmentation library structure and ordering
 
@@ -590,10 +592,7 @@ returning, meaning it waits for the macro applications on the target type to
 finish.
 
 If a cycle arises in macro applications waiting for other macro applications to
-complete then a special value is returned indicating that introspection is not
-possible due to a cycle. If the macro can still correctly apply then it should
-continue normally. If it cannot succeed without the introspection results then
-it should report an error.
+complete then a `StateError ` is thrown.
 
 Rules might be added in future to decide in some specific cases which macro
 should run with incomplete introspection results to break a cycle. For example,
