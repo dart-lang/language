@@ -918,8 +918,8 @@ conflict.*
 
 A compile-time error occurs if an extension type declaration _DV_ has
 two extension type superinterfaces `V1` and `V2`, and both `V1` and `V2`
-has an extension type member named `m`, and the two members have distinct
-declarations.
+has an extension type member named `m` that is not precluded by _DV_, and
+the two members have distinct declarations.
 
 *In other words, an extension type member conflict is always an error, even
 in the case where they agree perfectly on the types. _DV_ must override the
