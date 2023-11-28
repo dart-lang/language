@@ -906,8 +906,9 @@ On the other hand, it can occur in other ways, e.g., as a type argument of
 a superinterface of a class.*
 
 It is a compile-time error if _DV_ is an extension type declaration, and
-_DV_ has a non-extension type member named `m` as well as an extension type
-member named `m`, for any `m`. *In case of conflicts, _DV_ must declare a
+_DV_ has a non-extension type member named `m` which is not precluded by
+_DV_ as well as an extension type member named `m` which is not precluded
+by _DV_, for any `m`. *In case of conflicts, _DV_ must declare a
 member named `m` to resolve the conflict.*
 
 It is a compile-time error if _DV_ is an extension type declaration, and
