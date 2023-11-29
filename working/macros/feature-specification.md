@@ -268,36 +268,14 @@ order of macros:
 
     Here, the macros applied to C are run `First()`, `Second()`, then `Third()`.
 
-*   **Macros are applied to superclasses, mixins, and interfaces first, in**
-    **Phase 2** For example:
+Aside from these rules, macros are constrained so that the result is the same
+whatever the application order. In most cases this achieved by the split into
+phases: within each phase macros can run in any order because the output is not
+visible to other macros until the next phase. As a special case, introspection
+of types in Phase 2 waits as needed for other macro applications to complete,
+failing if there is a cycle.
 
-    ```dart
-    @Third()
-    class B extends A with C implements D {}
-
-    @Second()
-    class A implements C {}
-
-    @First()
-    class C {}
-
-    @first
-    class D {}
-    ```
-
-    Here, the macros on `A`, `C` and `D` run before the macros on `B`, and `C`
-    also runs before `A`. But otherwise the ordering is not defined (it is not
-    observable).
-
-    This only applies to Phase 2, because it is the only phase where the order
-    would be observable. In particular this allows macros running on `B` to see
-    any members added to its super classes, mixins, or interfaces, by other
-    macros running in phase 2.
-
-Aside from these rules, macro introspection is limited so that evaluation order
-is not user visible. For example, if two macros are applied to two methods in
-the same class, there is no way for those macros to interfere with each other
-such that the application order can be detected.
+TODO: give an example of a cycle.
 
 ### Augmentation library structure and ordering
 
@@ -606,17 +584,21 @@ of a function or initializer for a variable. It is encouraged to provide a body
 (or initializer) if possible, but you can opt to wait until the definition phase
 if needed.
 
-When applied to a class, enum, or mixin a macro in this phase can introspect on
-all of the members of that class and its superclasses, but it cannot introspect
-on the members of other types. For mixins, the `on` type is considered a
-superclass and is introspectable. Note that generic type arguments are not
-introspectable.
+Phase two macros can introspect on all of the members of a type. If the type
+to be introspected is declared in the same library cycle and has one or more
+macros applied to it then this introduces an ordering constraint between the
+macro applications: the introspection call waits for complete results before
+returning, meaning it waits for the macro applications on the target type to
+finish.
 
-When applied to an extension, a macro in this phase can introspect on all of the
-members of the `on` type, as well as its generic type arguments and the bounds
-of any generic type parameters for the extension.
+If a cycle arises in macro applications waiting for other macro applications to
+complete then a `StateError ` is thrown.
 
-TODO: Define the introspection rules for extension types.
+Rules might be added in future to decide in some specific cases which macro
+should run with incomplete introspection results to break a cycle. For example,
+there might be a rule specifying that an application to a superclass runs first
+with incomplete results, allowing an application to a subclass to run
+afterwards with introspection onto the declarations added.
 
 ### Phase 3: Definitions
 
@@ -629,8 +611,8 @@ function body.
 Phase three macros can add new supporting declarations to the surrounding scope,
 but these are private to the macro generated code, and never show up in
 introspection APIs. These macros can fully introspect on any type reachable from
-the declarations they are applied to, including introspecting on members of
-classes, etc.
+the declarations they are applied to without introducing application ordering
+constraints as in Phase 2.
 
 ## Macro declarations
 
@@ -696,6 +678,8 @@ For example, in `ClassDeclarationsMacro`, the introspection object is a
 to the immediate superclass, as well as any immediate mixins or interfaces,
 but _not_ its members or entire class hierarchy.
 
+TODO: update this example.
+
 ### Builder argument
 
 The second argument is an instance of a [builder][] class. It exposes both
@@ -706,6 +690,8 @@ In `ClassDeclarationsMacro`, the builder is a `ClassDeclarationBuilder`. Its
 primary method is `declareInClass`, which the macro can call to add a new member
 to the class. It also implements the `ClassIntrospector` interface, which allows
 you to get the members of the class, as well as its entire class hierarchy.
+
+TODO: update this example.
 
 [builder]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/builders.dart
 
