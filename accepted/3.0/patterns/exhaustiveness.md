@@ -417,39 +417,37 @@ The lifted space union for a pattern with matched value type `M` is:
     exhaustiveness algorithm doesn't model "all objects that are not `int`", so
     it can't tell that this is exhaustive.*
 
-    *But with sealed types, exhaustiveness can sometimes represent the set of
-    remaining types. Given:*
+    *However, in the case where the matched value type is sealed we can
+    have a situation where a cast pattern is guaranteed to "handle" all
+    objects (that is, it will match or it will throw).*
 
     ```dart
-    sealed class A {
-      final int field;
-    }
-    class B extends A {}
-    class C extends A {}
-    class D extends A {}
+    sealed class S {}
+    class A implements S {}
+    class B implements S {}
+    class C implements S {}
 
-    test(A a) => switch (a) {
-      C(field: 0) as C => 0,
-      C _ => 1
+    test(S s) => switch (s) { // `s` should be an `A` or a `B`.
+      A() => 0,
+      final b as B => 1,
     };
     ```
 
-    *After the first case, we know that if `a` is a `B` or `D` then we will have
-    thrown an exception. But if `a` is a `C`, it may not have matched if the
-    field isn't `0`. So the space for the first case is a union of `B|C(field:
-    0)|D'.*
-
-    *Then the second case covers the rest of `C` and this is exhaustive.*
+    *In this example, `test` should deal with instances of `A` and instances of
+    `B`, but it should simply throw if `s` has any other type. So we use the
+    cast pattern in the last case to ensure that the switch is exhaustive, which
+    is true because all instances of `B` will be handled by the subpattern, and
+    all other objects will cause the cast to throw.*
 
     Formally, the space union `spaces` for a cast pattern with cast type `C` is
-    a union of:
+    computed as follows:
 
-    1.  The lifted space union of the cast's subpattern in context `C`.
+    Let `S` be the lifted space union of the cast's subpattern in context `C`.
 
-    2.  For each space `E` in the *expanded spaces* (see below) of `M`:
+    1.  If `C` is a *subset* (see below) of `S` then the result is the lifted
+        space union of `M`.
 
-        1.  If `E` is not a *subset* (see below) of `C` and `C` is not a subset
-            of `M`, then the lifted space union of `E`.
+    2.  Otherwise, the result is `S`.
 
 *   **Null-check pattern:**
 
