@@ -429,7 +429,7 @@ The lifted space union for a pattern with matched value type `M` is:
 
     test(A a) => switch (a) { // `a` should be a `B` or a `C`.
       B() => 0,
-      final b as C => 1,
+      _ as C => 1,
     };
     ```
 
