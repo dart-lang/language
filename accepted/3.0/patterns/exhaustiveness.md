@@ -417,24 +417,24 @@ The lifted space union for a pattern with matched value type `M` is:
     exhaustiveness algorithm doesn't model "all objects that are not `int`", so
     it can't tell that this is exhaustive.*
 
-    *However, in the case where the matched value type is sealed we can
-    have a situation where a cast pattern is guaranteed to "handle" all
-    objects (that is, it will match or it will throw).*
+    *However, we can have a situation where a cast pattern is used to ensure
+    that a case "handles" all possible matched values because it will match
+    or it will throw.*
 
     ```dart
-    sealed class S {}
-    class A implements S {}
-    class B implements S {}
-    class C implements S {}
+    abstract class A {}
+    class B implements A {}
+    class C implements A {}
+    class D implements A {}
 
-    test(S s) => switch (s) { // `s` should be an `A` or a `B`.
-      A() => 0,
-      final b as B => 1,
+    test(A a) => switch (a) { // `a` should be a `B` or a `C`.
+      B() => 0,
+      final b as C => 1,
     };
     ```
 
-    *In this example, `test` should deal with instances of `A` and instances of
-    `B`, but it should simply throw if `s` has any other type. So we use the
+    *In this example, `test` should deal with instances of `B` and instances of
+    `C`, but it should simply throw if `a` has any other type. So we use the
     cast pattern in the last case to ensure that the switch is exhaustive, which
     is true because all instances of `B` will be handled by the subpattern, and
     all other objects will cause the cast to throw.*
