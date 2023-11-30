@@ -336,7 +336,7 @@
 % "T1, .. Tn, {rn+1 Tn+1 xn+1, .. rn+k Tn+k xn+k}".
 \newcommand{\FunctionTypeNamedParameters}[5]{%
   \List{#1}{1}{#2},\ \{\TripleList{#5}{#1}{#3}{{#2}+1}{{#2}+{#4}}\}}
-  
+
 % Variant of \FunctionTypeNamedParameters that uses the standard symbols,
 % that is, a list of function type parameter declarations with named
 % parameters which uses the symbols that we prefer to use for that purpose
@@ -390,7 +390,7 @@
 % name of `required` symbol.
 \newcommand{\FunctionTypeNamedArguments}[5]{%
   \List{#1}{1}{#2},\ \{\TripleList{#5}{#1}{#3}{{#2}+1}{{#2}+{#4}}\}}
-  
+
 \newcommand{\FunctionTypeNamedArgumentsStd}{%
   \FunctionTypeNamedArguments{T}{n}{x}{k}{r}}
 
