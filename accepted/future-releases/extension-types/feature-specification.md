@@ -906,8 +906,9 @@ On the other hand, it can occur in other ways, e.g., as a type argument of
 a superinterface of a class.*
 
 It is a compile-time error if _DV_ is an extension type declaration, and
-_DV_ has a non-extension type member named `m` as well as an extension type
-member named `m`, for any `m`. *In case of conflicts, _DV_ must declare a
+_DV_ has a non-extension type member named `m` which is not precluded by
+_DV_ as well as an extension type member named `m` which is not precluded
+by _DV_, for any `m`. *In case of conflicts, _DV_ must declare a
 member named `m` to resolve the conflict.*
 
 It is a compile-time error if _DV_ is an extension type declaration, and
@@ -918,8 +919,8 @@ conflict.*
 
 A compile-time error occurs if an extension type declaration _DV_ has
 two extension type superinterfaces `V1` and `V2`, and both `V1` and `V2`
-has an extension type member named `m`, and the two members have distinct
-declarations.
+has an extension type member named `m` that is not precluded by _DV_, and
+the two members have distinct declarations.
 
 *In other words, an extension type member conflict is always an error, even
 in the case where they agree perfectly on the types. _DV_ must override the
