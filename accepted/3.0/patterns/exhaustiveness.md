@@ -447,7 +447,19 @@ The lifted space union for a pattern with matched value type `M` is:
     1.  If `C` is a *subset* (see below) of `S` then the result is the lifted
         space union of `M`.
 
+        *The subpattern won't refute any value that passes the cast. This means
+        that every incoming value is handled: either it passes the cast and
+        then matches the subpattern, or it fails the cast and throws. So the
+        space is all incoming values, `M`.*
+
     2.  Otherwise, the result is `S`.
+
+        *There are values that may pass the cast but then get refuted by the
+        inner subpattern. To model this space precisely, we would need to be
+        able to represent the union of the subspace `S` and the *negation* of
+        the lifted space of `C`. Our formalism isn't sophisticated enough for
+        that, so instead we conservatively don't take into account values which
+        will be handled by the cast pattern throwing an exception.*
 
 *   **Null-check pattern:**
 
