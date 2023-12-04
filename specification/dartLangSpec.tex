@@ -20756,7 +20756,7 @@ but it is the least upper bound of all function types.%
   \alt <typeNotVoidNotFunction> `?'?
 
 <typeNotVoidNotFunction> ::= <typeName> <typeArguments>?
-  \alt \FUNCTION{}
+  \alt (<typeIdentifier> '.')? \FUNCTION{}
 
 <typeName> ::= <typeIdentifier> (`.' <typeIdentifier>)?
 
