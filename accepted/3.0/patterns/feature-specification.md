@@ -740,7 +740,7 @@ pattern with the field name omitted (see name inference below).
 ### Object pattern
 
 ```
-objectPattern ::= typeName typeArguments? '(' patternFields? ')'
+objectPattern ::= (typeName typeArguments? | 'Function') '(' patternFields? ')'
 ```
 
 An object pattern matches values of a given named type and then extracts values
@@ -3549,6 +3549,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.34 (after shipping)
+
+-   Adjust `objectPattern` to allow `Function(...)`, which is already
+    the implemented behavior (#3468).
 
 ### 2.33 (after shipping)
 
