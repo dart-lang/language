@@ -41,6 +41,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Dec 2023
+% - Allow `~/` on operands of type `double` in constant expressions, aligning
+%   the specification with already implemented behavior.
+%
 % Nov 2023
 % - Specify that the dynamic error for calling a function in a deferred and
 %   not yet loaded library will occur before actual argument evaluation, not
@@ -8596,7 +8600,7 @@ are the following:
   if $T$ is a constant type expression,
   and $e_1$, \ldots{} , $e_n$ are constant expressions.
   It is further a constant expression
-  if the list literal evaluates to an object.
+  if the set literal evaluates to an object.
 
 \item
   A constant map literal (\ref{maps}),
@@ -8684,7 +8688,7 @@ are the following:
   \lit{\&}, \lit{|}, respectively \lit{\^}
   denotes an instance operator invocation.
 
-\item An expression of one of the forms \code{$e_1$\,\gtilde/\,$e_2$},
+\item An expression of one of the forms
   \code{$e_1$\,\gtgt\,$e_2$}, \code{$e_1$\,\gtgtgt\,$e_2$},
   or \code{$e_1$\,\ltlt\,$e_2$} is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
@@ -8711,8 +8715,9 @@ are the following:
   such that \lit{-} denotes an instance operator invocation.
 
 \item An expression of the form \code{$e_1$\,-\,$e_2$}, \code{$e_1$\,*\,$e_2$},
-  \code{$e_1$\,/\,$e_2$}, \code{$e_1$\,\%\,$e_2$}, \code{$e_1$\,<\,$e_2$},
-  \code{$e_1$\,<=\,$e_2$}, \code{$e_1$\,>\,$e_2$}, or \code{$e_1$\,>=\,$e_2$}
+  \code{$e_1$\,/\,$e_2$},\code{$e_1$\,\gtilde/\,$e_2$}, \code{$e_1$\,\%\,$e_2$},
+  \code{$e_1$\,<\,$e_2$}, \code{$e_1$\,<=\,$e_2$}, \code{$e_1$\,>\,$e_2$}, or
+  \code{$e_1$\,>=\,$e_2$}
   is potentially constant
   if $e_1$ and $e_2$ are both potentially constant expressions.
   It is further constant if both $e_1$ and $e_2$ are constant expressions that
