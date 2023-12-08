@@ -44,6 +44,8 @@
 % Dec 2023
 % - Allow `~/` on operands of type `double` in constant expressions, aligning
 %   the specification with already implemented behavior.
+% - Broaden the grammar rule about `initializerExpression` to match the
+%   implemented behavior.
 %
 % Nov 2023
 % - Specify that the dynamic error for calling a function in a deferred and
@@ -4233,13 +4235,43 @@ There are three kinds of initializers.
 <fieldInitializer> ::= \gnewline{}
   (\THIS{} `.')? <identifier> `=' <initializerExpression>
 
-<initializerExpression> ::= <conditionalExpression> | <cascade>
+<initializerExpression> ::= \gnewline{}
+  <assignableExpression> <assignmentOperator> <expression>
+  \alt <conditionalExpression>
+  \alt <cascade>
+  \alt <throwExpression>
 \end{grammar}
+
+%% TODO(eernst): When #54262 is resolved, delete the next paragraph.
+%% If <expression> is changed such that it derives <functionExpression>,
+%% the following error will simply be a property of the grammar rule
+%% because <initializerExpression> will _not_ derive <functionExpression>.
+\LMHash{}%
+As a special disambiguation rule,
+an \synt{initializerExpression} can not derive a \synt{functionExpression}.
+
+\rationale{%
+This resolves a near-ambiguity:
+In \code{A()\,:\,\,x\,\,=\,\,()\,\,\{\,\ldots\,\}},
+\code{x} could be initialized to the empty record,
+and the block could be the body of the constructor.
+Alternatively, \code{x} could be initialized to a function object,
+and the constructor would then not have a body.
+It would only be known which case we have when we encounter
+(or do not encounter)
+a semicolon at the very end.
+That was considered unreadable.
+Hence, parsers can commit to not parsing a function expression
+in this situation.
+Note that it is still possible for \synt{initializerExpression} to derive
+a term that contains a function expression as a subterm, e.g.,
+\code{A()\,:\,\,x\,\,=\,\,(()\,\,\{\,\ldots\,\});}.%
+}
 
 \LMHash{}%
 An initializer of the form \code{$v$ = $e$} is equivalent to
 an initializer of the form \code{\THIS.$v$ = $e$},
-both forms are called \Index{instance variable initializers}.
+and both forms are called \Index{instance variable initializers}.
 It is a compile-time error if the enclosing class
 does not declare an instance variable named $v$.
 It is a compile-time error unless the static type of $e$
@@ -8317,6 +8349,11 @@ may have an associated static context type
 %% (\ref{contextTypes}),
 which may affect the static type and evaluation of the expression.
 Every object has an associated dynamic type (\ref{dynamicTypeSystem}).
+
+%% TODO(eernst): <expression> should derive <functionExpression> as well,
+%% the fact that it is currently derived from <primary> induces a genuine
+%% and serious source of ambiguity, which makes it difficult to parse Dart
+%% using anything other than a modified recursive descent parser.
 
 \begin{grammar}
 <expression> ::= <assignableExpression> <assignmentOperator> <expression>
