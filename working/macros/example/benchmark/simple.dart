@@ -68,21 +68,12 @@ void main(List<String> args) async {
   // Set up all of our options
   var parsedSerializationStrategy =
       parsedArgs['serialization-strategy'] as String;
-  SerializationMode clientSerializationMode;
-  SerializationMode serverSerializationMode;
-  switch (parsedSerializationStrategy) {
-    case 'bytedata':
-      clientSerializationMode = SerializationMode.byteDataClient;
-      serverSerializationMode = SerializationMode.byteDataServer;
-      break;
-    case 'json':
-      clientSerializationMode = SerializationMode.jsonClient;
-      serverSerializationMode = SerializationMode.jsonServer;
-      break;
-    default:
-      throw ArgumentError(
-          'Unrecognized serialization mode $parsedSerializationStrategy');
-  }
+  final serializationMode = switch (parsedSerializationStrategy) {
+    'bytedata' => SerializationMode.byteData,
+    'json' => SerializationMode.json,
+    _ => throw ArgumentError(
+        'Unrecognized serialization mode $parsedSerializationStrategy'),
+  };
 
   var macroExecutionStrategy = parsedArgs['macro-execution-strategy'] as String;
   var hostMode = Platform.script.path.endsWith('.dart') ||
@@ -116,7 +107,7 @@ Host app mode: $hostMode
       macroUri.toString(): {
         macroName: [''],
       }
-    }, clientSerializationMode);
+    }, serializationMode);
 
     var bootstrapFile = File(tmpDir.uri.resolve('main.dart').toFilePath())
       ..writeAsStringSync(bootstrapContent);
@@ -142,10 +133,9 @@ Host app mode: $hostMode
 
     _log('Loading the macro executor');
     var executorImpl = macroExecutionStrategy == 'aot'
-        ? await processExecutor.start(serverSerializationMode,
-            communicationChannel, kernelOutputFile.uri.toFilePath())
-        : await isolatedExecutor.start(
-            serverSerializationMode, kernelOutputFile.uri);
+        ? await processExecutor.start(serializationMode, communicationChannel,
+            kernelOutputFile.uri.toFilePath())
+        : await isolatedExecutor.start(serializationMode, kernelOutputFile.uri);
     var executor = multiExecutor.MultiMacroExecutor()
       ..registerExecutorFactory(() => executorImpl, {macroUri});
 
@@ -164,32 +154,27 @@ Host app mode: $hostMode
       if (instanceId.shouldExecute(DeclarationKind.classType, Phase.types)) {
         if (_shouldLog) _log('Running types phase');
         var result = await executor.executeTypesPhase(
-            instanceId, myClass, SimpleIdentifierResolver());
+            instanceId, myClass, SimpleTypesPhaseIntrospector());
         if (i == 1) results.add(result);
       }
       if (instanceId.shouldExecute(
           DeclarationKind.classType, Phase.declarations)) {
         if (_shouldLog) _log('Running declarations phase');
         var result = await executor.executeDeclarationsPhase(
-            instanceId,
-            myClass,
-            SimpleIdentifierResolver(),
-            SimpleTypeDeclarationResolver(),
-            SimpleTypeResolver(),
-            SimpleTypeIntrospector());
+          instanceId,
+          myClass,
+          SimpleDeclarationPhaseIntrospector(),
+        );
         if (i == 1) results.add(result);
       }
       if (instanceId.shouldExecute(
           DeclarationKind.classType, Phase.definitions)) {
         if (_shouldLog) _log('Running definitions phase');
         var result = await executor.executeDefinitionsPhase(
-            instanceId,
-            myClass,
-            SimpleIdentifierResolver(),
-            SimpleTypeDeclarationResolver(),
-            SimpleTypeResolver(),
-            SimpleTypeIntrospector(),
-            FakeTypeInferrer());
+          instanceId,
+          myClass,
+          SimpleDefinitionPhaseIntrospector(),
+        );
         if (i == 1) results.add(result);
       }
       if (_shouldLog) _log('Done running DataClass macro for the ${i}th time.');
@@ -269,7 +254,7 @@ final stringType = NamedTypeAnnotationImpl(
     isNullable: false,
     typeArguments: const []);
 
-final objectClass = IntrospectableClassDeclarationImpl(
+final objectClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: objectIdentifier,
     interfaces: [],
@@ -280,13 +265,20 @@ final objectClass = IntrospectableClassDeclarationImpl(
     hasInterface: false,
     hasMixin: false,
     hasSealed: false,
+    library: myLibrary,
+    metadata: [],
     mixins: [],
     superclass: null,
     typeParameters: []);
 
+final myLibrary = LibraryImpl(
+    id: RemoteInstance.uniqueId,
+    languageVersion: LanguageVersionImpl(3, 0),
+    metadata: [],
+    uri: Uri.parse('package:a/a.dart'));
 final myClassIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'MyClass');
-final myClass = IntrospectableClassDeclarationImpl(
+final myClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: myClassIdentifier,
     interfaces: [],
@@ -297,6 +289,8 @@ final myClass = IntrospectableClassDeclarationImpl(
     hasInterface: false,
     hasMixin: false,
     hasSealed: false,
+    library: myLibrary,
+    metadata: [],
     mixins: [],
     superclass: NamedTypeAnnotationImpl(
       id: RemoteInstance.uniqueId,
@@ -311,18 +305,24 @@ final myClassFields = [
       definingType: myClassIdentifier,
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myString'),
-      isExternal: false,
-      isFinal: true,
-      isLate: false,
+      hasAbstract: false,
+      hasExternal: false,
+      hasFinal: true,
+      hasLate: false,
       isStatic: false,
+      library: myLibrary,
+      metadata: [],
       type: stringType),
   FieldDeclarationImpl(
       definingType: myClassIdentifier,
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myBool'),
-      isExternal: false,
-      isFinal: true,
-      isLate: false,
+      hasAbstract: false,
+      hasExternal: false,
+      hasFinal: true,
+      hasLate: false,
+      library: myLibrary,
+      metadata: [],
       isStatic: false,
       type: boolType),
 ];
@@ -332,19 +332,23 @@ final myClassMethods = [
     definingType: myClassIdentifier,
     id: RemoteInstance.uniqueId,
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '=='),
-    isAbstract: false,
-    isExternal: false,
+    hasBody: false,
+    hasExternal: false,
     isGetter: false,
     isOperator: true,
     isSetter: false,
     isStatic: false,
     namedParameters: [],
+    library: myLibrary,
+    metadata: [],
     positionalParameters: [
       ParameterDeclarationImpl(
         id: RemoteInstance.uniqueId,
         identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'other'),
         isNamed: false,
         isRequired: true,
+        library: myLibrary,
+        metadata: [],
         type: NamedTypeAnnotationImpl(
             id: RemoteInstance.uniqueId,
             identifier: objectIdentifier,
@@ -359,12 +363,14 @@ final myClassMethods = [
     definingType: myClassIdentifier,
     id: RemoteInstance.uniqueId,
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'hashCode'),
-    isAbstract: false,
-    isExternal: false,
+    hasBody: false,
+    hasExternal: false,
     isOperator: false,
     isGetter: true,
     isSetter: false,
     isStatic: false,
+    library: myLibrary,
+    metadata: [],
     namedParameters: [],
     positionalParameters: [],
     returnType: intType,
@@ -374,12 +380,14 @@ final myClassMethods = [
     definingType: myClassIdentifier,
     id: RemoteInstance.uniqueId,
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'toString'),
-    isAbstract: false,
-    isExternal: false,
+    hasBody: false,
+    hasExternal: false,
     isGetter: false,
     isOperator: false,
     isSetter: false,
     isStatic: false,
+    library: myLibrary,
+    metadata: [],
     namedParameters: [],
     positionalParameters: [],
     returnType: stringType,
@@ -393,52 +401,31 @@ abstract class Fake {
       throw UnimplementedError(invocation.memberName.toString());
 }
 
-/// Returns data as if everything was [myClass].
-class SimpleTypeIntrospector implements TypeIntrospector {
-  @override
-  Future<List<ConstructorDeclaration>> constructorsOf(
-          IntrospectableType type) async =>
-      [];
-
-  @override
-  Future<List<FieldDeclaration>> fieldsOf(IntrospectableType type) async =>
-      type == myClass ? myClassFields : [];
-
-  @override
-  Future<List<MethodDeclaration>> methodsOf(IntrospectableType type) async =>
-      type == myClass ? myClassMethods : [];
-
-  @override
-  Future<List<EnumValueDeclaration>> valuesOf(
-          IntrospectableEnumDeclaration type) async =>
-      [];
-}
-
 /// This is a very basic identifier resolver, it does no actual resolution.
-class SimpleIdentifierResolver implements IdentifierResolver {
+class SimpleTypesPhaseIntrospector implements TypePhaseIntrospector {
   /// Just returns a new [Identifier] whose name is [name].
   @override
   Future<Identifier> resolveIdentifier(Uri library, String name) async =>
       IdentifierImpl(id: RemoteInstance.uniqueId, name: name);
 }
 
-class SimpleTypeDeclarationResolver implements TypeDeclarationResolver {
+/// Returns data as if everything was [myClass].
+class SimpleDeclarationPhaseIntrospector extends SimpleTypesPhaseIntrospector
+    implements DeclarationPhaseIntrospector {
   @override
-  Future<TypeDeclaration> declarationOf(covariant Identifier identifier) async {
-    if (identifier == myClass.identifier) {
-      return myClass;
-    } else if (identifier == objectClass.identifier) {
-      return objectClass;
-    } else {
-      throw UnsupportedError('Could not resolve identifier ${identifier.name}');
-    }
-  }
-}
+  Future<List<ConstructorDeclaration>> constructorsOf(
+          TypeDeclaration type) async =>
+      [];
 
-class FakeTypeInferrer extends Fake implements TypeInferrer {}
+  @override
+  Future<List<FieldDeclaration>> fieldsOf(TypeDeclaration type) async =>
+      type == myClass ? myClassFields : [];
 
-/// Only supports named types with no type arguments.
-class SimpleTypeResolver implements TypeResolver {
+  @override
+  Future<List<MethodDeclaration>> methodsOf(TypeDeclaration type) async =>
+      type == myClass ? myClassMethods : [];
+
+  /// Only supports named types with no type arguments.
   @override
   Future<StaticType> resolve(TypeAnnotationCode type) async {
     if (type is! NamedTypeAnnotationCode) {
@@ -448,6 +435,46 @@ class SimpleTypeResolver implements TypeResolver {
       throw UnsupportedError('Type arguments are not supported');
     }
     return SimpleNamedStaticType(type.name.name, isNullable: type.isNullable);
+  }
+
+  @override
+  Future<TypeDeclaration> typeDeclarationOf(
+      covariant Identifier identifier) async {
+    if (identifier == myClass.identifier) {
+      return myClass;
+    } else if (identifier == objectClass.identifier) {
+      return objectClass;
+    } else {
+      throw UnsupportedError('Could not resolve identifier ${identifier.name}');
+    }
+  }
+
+  @override
+  Future<List<TypeDeclaration>> typesOf(covariant Library library) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<EnumValueDeclaration>> valuesOf(TypeDeclaration type) async => [];
+}
+
+class SimpleDefinitionPhaseIntrospector
+    extends SimpleDeclarationPhaseIntrospector
+    implements DefinitionPhaseIntrospector {
+  @override
+  Future<Declaration> declarationOf(covariant Identifier identifier) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<TypeAnnotation> inferType(
+      covariant OmittedTypeAnnotation omittedType) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<Declaration>> topLevelDeclarationsOf(covariant Library library) {
+    throw UnimplementedError();
   }
 }
 

@@ -1,10 +1,9 @@
 analyzer:
+  enable-experiment:
+    - macros
   exclude:
     - accepted/2.3/spread-collections/examples/**
     - archive/newsletter/20171103
     # TODO: remove these when the analyzer supports macros
-    - working/macros/example/lib/auto_dispose.dart
-    - working/macros/example/lib/data_class.dart
-    - working/macros/example/lib/observable.dart
-    - working/macros/example/lib/json_serializable.dart
     - working/macros/example/bin/user_main.dart
+    - working/macros/example/bin/json_serializable_main.dart

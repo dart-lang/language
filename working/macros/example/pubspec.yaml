@@ -1,7 +1,7 @@
 name: macro_proposal
 publish_to: none
 environment:
-  sdk: ">=3.1.0-0 <4.0.0"
+  sdk: ">=3.3.0-0 <4.0.0"
 dev_dependencies:
   args: ^2.3.0
   dart_style: ^2.2.1
@@ -14,74 +14,84 @@ dependency_overrides:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/_fe_analyzer_shared
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   _js_interop_checks:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/_js_interop_checks
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   analyzer:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/analyzer
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   build_integration:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/build_integration
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   compiler:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/compiler
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   dart2js_info:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/dart2js_info
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
+  dart2wasm:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/dart2wasm
+      ref: 3.3.0-238.0.dev
   dev_compiler:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/dev_compiler
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   front_end:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/front_end
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   frontend_server:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/frontend_server
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   js_ast:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/js_ast
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   js_runtime:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/js_runtime
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   js_shared:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/js_shared
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   kernel:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/kernel
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   mmap:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/mmap
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
   vm:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/vm
-      ref: 3.1.0-16.0.dev
+      ref: 3.3.0-238.0.dev
+  wasm_builder:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/wasm_builder
+      ref: 3.3.0-238.0.dev

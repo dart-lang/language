@@ -10,13 +10,12 @@ import 'package:_fe_analyzer_shared/src/macros/api.dart';
 final dartCore = Uri.parse('dart:core');
 
 // TODO: Support `toJson`, collections, and probably some other things :).
-macro class JsonSerializable
-    implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class JsonSerializable implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const JsonSerializable();
 
   @override
   Future<void> buildDeclarationsForClass(
-      IntrospectableClassDeclaration clazz, MemberDeclarationBuilder builder) async {
+      ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     var constructors = await builder.constructorsOf(clazz);
     if (constructors.any((c) => c.identifier.name == 'fromJson')) {
       throw ArgumentError('There is already a `fromJson` constructor for '
@@ -31,7 +30,6 @@ macro class JsonSerializable
     var mapStringDynamic =
         NamedTypeAnnotationCode(name: map, typeArguments: [string, dynamic]);
     builder.declareInType(DeclarationCode.fromParts([
-      'external ',
       clazz.identifier.name,
       '.fromJson(',
       mapStringDynamic,
@@ -41,7 +39,7 @@ macro class JsonSerializable
 
   @override
   Future<void> buildDefinitionForClass(
-      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
+      ClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     // TODO: support extending other classes.
     if (clazz.superclass != null) {
       throw UnsupportedError(
@@ -56,7 +54,7 @@ macro class JsonSerializable
     var jsonParam = fromJson.positionalParameters.single.identifier;
     fromJsonBuilder.augment(initializers: [
       for (var field in fields)
-        Code.fromParts([
+        RawCode.fromParts([
           field.identifier,
           ' = ',
           await _convertField(field, jsonParam, builder),
@@ -82,7 +80,7 @@ macro class JsonSerializable
             'but `${field.identifier.name}` did not resolve to a named type.');
       }
     }
-    if (fieldTypeDecl is! IntrospectableClassDeclaration) {
+    if (fieldTypeDecl is! ClassDeclaration) {
       throw ArgumentError(
           'Only classes are supported in field types for serializable classes, '
           'but the field `${field.identifier.name}` does not have a class '
@@ -94,14 +92,14 @@ macro class JsonSerializable
         .firstWhereOrNull((c) => c.identifier.name == 'fromJson')
         ?.identifier;
     if (fieldTypeFromJson != null) {
-      return Code.fromParts([
+      return RawCode.fromParts([
         fieldTypeFromJson,
         '(',
         jsonParam,
         '["${field.identifier.name}"])',
       ]);
     } else {
-      return Code.fromParts([
+      return RawCode.fromParts([
         jsonParam,
         // TODO: support nested serializable types.
         '["${field.identifier.name}"] as ',

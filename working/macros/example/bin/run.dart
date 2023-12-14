@@ -38,7 +38,7 @@ void main() async {
     jsonSerializableUri.toString(): {
       'JsonSerializable': [''],
     }
-  }, SerializationMode.byteDataClient);
+  }, SerializationMode.byteData);
   bootstrapFile.writeAsStringSync(bootstrapContent);
   var bootstrapKernelFile =
       File(bootstrapFile.uri.resolve('bootstrap.dart.dill').toFilePath());
@@ -92,15 +92,8 @@ void main() async {
     Uri.base.resolve('bin/user_main.dart').toFilePath(),
     '--packages-file=.dart_tool/package_config.json',
     '--enable-experiment=macros',
-    '--precompiled-macro-format=kernel',
     '--precompiled-macro',
-    '$dataClassUri;${bootstrapKernelFile.path}',
-    '--precompiled-macro',
-    '$observableUri;${bootstrapKernelFile.path}',
-    '--precompiled-macro',
-    '$autoDisposableUri;${bootstrapKernelFile.path}',
-    '--precompiled-macro',
-    '$jsonSerializableUri;${bootstrapKernelFile.path}',
+    '${bootstrapKernelFile.path};$autoDisposableUri;$dataClassUri;$observableUri;$jsonSerializableUri',
     '--macro-serialization-mode=bytedata',
     '--input-linked',
     bootstrapKernelFile.path,
