@@ -22052,15 +22052,15 @@ that satisfies some static semantic requirements.
 }
 
 \LMHash{}%
-In this section we use the following meta-variables:
+In this section (\ref{subtypes}) we use the following meta-variables,
+possibly with an index like $X_1$ or $S_j$:
 
 \begin{itemize}
 \item $X$ ranges over type variables.
 \item $C$ ranges over classes,
 \item $F$ ranges over type aliases.
-\item $T$ and $S$ range over types, possibly with an index like $T_1$ or $S_j$.
-\item $B$ ranges over types, again possibly with an index;
-  it is only used as a type variable bound.
+\item $T$ and $S$ range over types.
+\item $B$ ranges over types; it is only used as a type variable bound.
 \item $r$ and $r'$ range over \REQUIRED{} or empty;
   it is used to enable the specification of a named parameter
   which may or may not have the modifier \REQUIRED.
@@ -22285,8 +22285,8 @@ the set of direct superinterfaces of $C$
   For example, rule~\SrnRightFutureOrA{} says that
   ``The type $S$ is a \ldots{} of \code{FutureOr<$T$>} \ldots'',
   and this is taken to mean that for any arbitrary types $S$ and $T$,
-  showing that $S$ is a subtype of $T$ is sufficient to show that $S$ is
-  a subtype of \code{FutureOr<$T$>}.
+  in order to show that $S$ is a subtype of \code{FutureOr<$T$>},
+  it is sufficient to show that $S$ is a subtype of $T$.
 
   Another example is the wording in rule~\SrnReflexivity{}:
   ``\ldots{} in any environment $\Delta$'',
@@ -22313,7 +22313,7 @@ the set of direct superinterfaces of $C$
     Note that this implies that these types are equivalent
     according to the subtype relation.
     We denote these types,
-    and others with the same property (such as \code{FutureOr<Object>}),
+    and others with the same property (such as \code{FutureOr<Object>?}),
     as top types
     (\ref{superBoundedTypes}).
   \Item{\SrnLeftTop}{Left Top}
@@ -22431,7 +22431,7 @@ the set of direct superinterfaces of $C$
     that exists between two parameterized types based on $C$ and $D$.
     %
     %% TODO(eernst): Note that the specification of how to pass type arguments
-    %% \in ref{mixinApplication} is incorrect, and also that it will need to be
+    %% in \ref{mixinApplication} is incorrect, and also that it will need to be
     %% rewritten completely for the integration of the new mixin construct.
     The case where the superclass is a mixin application is covered via
     the equivalence with a declaration of
