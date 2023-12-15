@@ -41,6 +41,7 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+<<<<<<< HEAD
 % Dec 2023
 % - Allow `~/` on operands of type `double` in constant expressions, aligning
 %   the specification with already implemented behavior.
@@ -79,6 +80,13 @@
 % - Change the definition of the 'element type of a generator function', due to
 %   soundness issue with the current definition.
 %
+||||||| parent of db1018c (Improve wording)
+=======
+% Dec 2023
+% - Specify in which situations it is an error to declare an initializing
+%   formal parameter.
+%
+>>>>>>> db1018c (Improve wording)
 % Mar 2023
 % - Clarify how line breaks are handled in a multi-line string literal. Rename
 %   the lexical token NEWLINE to LINE\_BREAK (clarifying that it is not `\n`).
@@ -4005,10 +4013,10 @@ an instance variable of the immediately enclosing class or enum.
 
 \LMHash{}%
 It is a compile-time error for an initializing formal parameter
-to occur in any function which is not
-a non-redirecting, non-external, generative constructor
-(\ref{requiredFormals}).
-\commentary{This implies that there is always an enclosing class or enum.}
+to occur in any function which is not a generative constructor.
+Also, it is a compile-time error for an initializing formal parameter
+to occur in a redirecting and in an external constructor.
+\commentary{In particuar, there is always an enclosing class or enum.}
 
 \LMHash{}%
 Assume that $p$ is a declaration of an initializing formal parameter named \id.
