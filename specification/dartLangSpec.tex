@@ -4003,12 +4003,12 @@ and \id{} is the \NoIndex{name} of $p$.
 It is a compile-time error if \id{} is not also the name of
 an instance variable of the immediately enclosing class or enum.
 
-\commentary{%
-Note that it is a compile-time error for an initializing formal
-to occur in any function which is not a non-redirecting generative constructor
-(\ref{requiredFormals}),
-so there is always an enclosing class or enum.%
-}
+\LMHash{}%
+It is a compile-time error for an initializing formal parameter
+to occur in any function which is not
+a non-redirecting, non-external, generative constructor
+(\ref{requiredFormals}).
+\commentary{This implies that there is always an enclosing class or enum.}
 
 \LMHash{}%
 Assume that $p$ is a declaration of an initializing formal parameter named \id.
