@@ -436,7 +436,7 @@ The lifted space union for a pattern with matched value type `M` is:
     *In this example, `test` should deal with instances of `B` and instances of
     `C`, but it should simply throw if `a` has any other type. So we use the
     cast pattern in the last case to ensure that the switch is exhaustive, which
-    is true because all instances of `B` will be handled by the subpattern, and
+    is true because all instances of `C` will be handled by the subpattern, and
     all other objects will cause the cast to throw.*
 
     Formally, the space union `spaces` for a cast pattern with cast type `C` is
@@ -444,22 +444,27 @@ The lifted space union for a pattern with matched value type `M` is:
 
     Let `S` be the lifted space union of the cast's subpattern in context `C`.
 
-    1.  If `C` is a *subset* (see below) of `S` then the result is the lifted
-        space union of `M`.
+    1.  If `C` is a *subset* (see below about type subsetting) of `S` 
+        then the result `spaces` is the lifted space union of `M`.
 
         *The subpattern won't refute any value that passes the cast. This means
         that every incoming value is handled: either it passes the cast and
         then matches the subpattern, or it fails the cast and throws. So the
         space is all incoming values, `M`.*
 
-    2.  Otherwise, the result is `S`.
+    2.  Otherwise, the result `spaces` is `S` plus the lifted space union
+        of `Null` when `C` is a non-nullable type, and `spaces` is `S` when
+        `C` is potentially nullable.
 
         *There are values that may pass the cast but then get refuted by the
         inner subpattern. To model this space precisely, we would need to be
         able to represent the union of the subspace `S` and the *negation* of
         the lifted space of `C`. Our formalism isn't sophisticated enough for
         that, so instead we conservatively don't take into account values which
-        will be handled by the cast pattern throwing an exception.*
+        will be handled by the cast pattern throwing an exception. The one
+        exception which is modeled precisely is that a non-nullable type never
+        contains the null object, and hence null will definitely cause the
+        cast to `C` to throw when `C` is non-nullable.*
 
 *   **Null-check pattern:**
 
@@ -688,6 +693,81 @@ space `a` is a subset of space `b` is defined as:
 
 2.  Else `true` if the restriction of `a` is a subset of the restriction of `b`
     and `false` otherwise.
+
+### Type subsetting
+
+We define the notion that a type may specify a subset of the objects
+included in a space union. We need to define it in two steps involving a space
+union and a single space, respectively:
+
+A type `C` is a _subset_ of space union `S` consisting of the spaces
+`S_1 .. S_n` if and only if at least one of the following criteria is
+satisfied:
+
+- `C` is subset of at least one single space `S_i`, or
+- `C` can be expressed as a finite set of subtypes `C_1 .. C_k` that 
+  exhaust `C`, and for each subtype `C_i` of `C` it is known that `C_i`
+  is a subset of `S`.
+
+A type `C` is a _subset_ of a single space `S` if and only if all of the
+following criteria are satisfied:
+
+1. `C` is a subtype of the type `T` of `S`,
+2. `S` has an open restriction, and
+3. for each property of `S` with space `S_j` and static type `C_j`,
+   `C_j` is a subset of the space `S_j`.
+
+The notion of expressing a type `C` as a finite set `M` of subtypes
+is defined as follows:
+
+- If `C` is `sealed` then `M` is the set of immediate subtypes of `C`
+  that are known to exhaust `C`.
+- If `C` is not `sealed` then `M` is the singleton set `{C}`.
+
+*Here are some examples:*
+
+```
+sealed class M {}
+class A extends M {}
+sealed class B<T> extends M {}
+class C<T> extends B<T> {}
+class D<T, S> extends B<T> {}
+
+method1(o) => switch (o) {
+    (B() || B()) as B => 0, // `B` is a subset.
+  };
+method2(o) => switch (o) {
+    (A() || B()) as M => 0, // `M` is a subset.
+  };
+method3(o) => switch (o) {
+    [_] as List, // `List` is not a subset, not an open restriction.
+    [...] as List, // `List` is a subset, the restriction is open.
+  };
+method4(o) => switch (o) {
+    int(isEven: true) as int, // `int` not a subset, not an open restriction.
+    int(: var isEven) as int, // `int` is a subset, the restriction is open.
+}
+```
+
+*Do to the limitations of the "subtypes" algorithm used we do not find this
+to be exhausting:*
+
+```
+method5(o) => s
+    (A() || C() || D()) as M => 0, // Rules A.2, B.1, C.1 (transitively)
+  };
+```
+
+*However, this similar to the following, which we also don't find to be
+exhausting:*
+
+```
+method6(M o) => switch (s) {
+    A() => 0,
+    C() => 0,
+    D() => 0,
+  };
+```
 
 ## Calculating exhaustiveness
 
