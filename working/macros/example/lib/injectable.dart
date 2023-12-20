@@ -37,8 +37,8 @@ macro class Injectable implements ClassDeclarationsMacro {
   const Injectable();
 
   @override
-  Future<void> buildDeclarationsForClass(IntrospectableClassDeclaration clazz,
-      MemberDeclarationBuilder builder) async {
+  Future<void> buildDeclarationsForClass(
+      ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     if (clazz.typeParameters.isNotEmpty) {
       throw ArgumentError('Type parameters are not supported!');
     }
@@ -186,15 +186,16 @@ macro class Provides implements MethodDeclarationsMacro {
 ///     return A._(aProvider);
 ///   }
 /// }
-macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class Component
+    implements ClassDeclarationsMacro, ClassDefinitionMacro {
   final List<Identifier> modules;
 
   // TODO: Require modules here and generate the constructor once supported.
   const Component({this.modules = const []});
 
   @override
-  FutureOr<void> buildDeclarationsForClass(IntrospectableClassDeclaration clazz,
-      MemberDeclarationBuilder builder) async {
+  FutureOr<void> buildDeclarationsForClass(
+      ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     // ignore: deprecated_member_use
     final providerIdentifier = await builder.resolveIdentifier(
         Uri.parse('package:macro_proposal/injectable.dart'), 'Provider');
@@ -243,8 +244,8 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
   }
 
   @override
-  FutureOr<void> buildDefinitionForClass(IntrospectableClassDeclaration clazz,
-      TypeDefinitionBuilder builder) async {
+  FutureOr<void> buildDefinitionForClass(
+      ClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     // ignore: deprecated_member_use
     final providerIdentifier = await builder.resolveIdentifier(
         Uri.parse('package:macro_proposal/injectable.dart'), 'Provider');
@@ -296,8 +297,7 @@ macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
     for (final param in factoryConstructor.positionalParameters
         .followedBy(factoryConstructor.namedParameters)) {
       final module = (param.type as NamedTypeAnnotation).identifier;
-      final moduleClass =
-          await builder.typeDeclarationOf(module);
+      final moduleClass = await builder.typeDeclarationOf(module);
       for (final method in await builder.methodsOf(moduleClass)) {
         final returnType = method.returnType;
         if (returnType is! NamedTypeAnnotation) continue;
