@@ -87,7 +87,7 @@ There are two things you can do with an `OmittedTypeAnnotation`:
       file as the macro annotation, so they can always do this.
   - When the final augmentation library is created, the actual type that was
     inferred will be used (or `dynamic` if no type was inferred).
-- Explicitly ask to infer the type of it through the builder apis (only
+- Explicitly ask to infer the type of it through the builder APIs (only
   available in phase 3).
   - We don't allow augmentations of existing declarations to contribute to
     inference, so in phase 3 type inference can be performed.
@@ -102,6 +102,23 @@ a given interface).
 The primary limitation of this approach is that you will not be able to inspect
 the actual types of declarations where the type was omitted prior to phase 3,
 but this situation will also be made very explicit to macro authors.
+
+#### Conditional URI directives
+
+When introspecting on a program, which conditional uri directives are selected
+(even transitively) may affect what a macro sees. This means that macros may
+produce different code based on the conditions present in these directives and
+the compilation environment.
+
+It is necessary that it works this way (as opposed to choosing the default for
+instance), because we do not require anything other than the selected URI to be
+present during compilation. Even the default URI may be missing.
+
+In particular this complicates the debugging experience, as the analysis
+environment in the IDE would ideally match up with the compilation environment
+for an app during debugging, otherwise stack traces, breakpoints, etc may not
+match up. It is generally anticipated that these situations should be rare,
+because typically the APIs exposed from conditional directives are identical.
 
 ### Ordering in metaprogramming
 
@@ -133,18 +150,21 @@ Macros are applied to declarations using the existing metadata annotation
 syntax. For example:
 
 ```dart
-@myCoolMacro
+@MyCoolMacro()
 class MyClass {}
 ```
 
-Here, if `myCoolMacro` resolves to an instance of a class implementing one or
-more of the macro interfaces, then the annotation is treated as an application
-of the `myCoolMacro` macro to the class MyClass.
+Here, if the `MyCoolMacro` type is a `macro class`, then the annotation is
+treated as an application of the `MyCoolMacro()` macro to the class MyClass.
 
 Macro applications can also be passed arguments, either in the form of
-[Code][] expressions, [Identifier][]s, or certain types of literal values. See
-[Macro Arguments](#Macro-arguments) for more information on how these arguments
-are handled when executing macros.
+[Code][] expressions, [TypeAnnotation][]s, or certain
+types of literal values. See [Macro Arguments](#Macro-arguments) for more
+information on how these arguments are handled when executing macros.
+
+Macro applications must always be constructor invocations. It is an error to
+annotate a declaration with a constant reference to a macro instance. In the
+future we may explore a more concise macro application syntax.
 
 ### Code Arguments
 
@@ -176,9 +196,9 @@ Most of the time, like here, a macro takes the arguments you pass it and
 interpolates them back into code that it generates, so passing the arguments as
 code is what you want.
 
-### Identifier arguments
+### Type annotation arguments
 
-If you want to be able to introspect on an identifier passed in to you, you can
+If you want to be able to introspect on a type passed in as an argument, you can
 do that as well, consider the following:
 
 ```dart
@@ -232,7 +252,7 @@ user can *control* that order. We use syntactic order to control application
 order of macros:
 
 *   **Macros are applied to inner declarations before outer ones.** Macros
-    applied to members are applied before members on the surrounding type.
+    applied to members are applied before macros on the surrounding type.
     Macros on top-level declarations are applied before macros on the main
     `library` directive.
 
@@ -240,44 +260,234 @@ order of macros:
     example:
 
     ```dart
-    @third
-    @second
-    @first
+    @Third()
+    @Second()
+    @First()
     class C {}
     ```
 
-    Here, the macros applied to C are run `first`, `second`, then `third`.
+    Here, the macros applied to C are run `First()`, `Second()`, then `Third()`.
 
-*   **Macros are applied to superclasses, mixins, and interfaces first, in**
-    **Phase 2** For example:
+Aside from these rules, macros are constrained so that the result is the same
+whatever the application order. In most cases this achieved by the split into
+phases: within each phase macros can run in any order because the output is not
+visible to other macros until the next phase. As a special case, introspection
+of types in Phase 2 waits as needed for other macro applications to complete,
+failing if there is a cycle.
 
-    ```dart
-    @third
-    class B extends A with C implements D {}
+TODO: give an example of a cycle.
 
-    @second
-    class A implements C {}
+### Augmentation library structure and ordering
 
-    @first
-    class C {}
+It is important that applying macros in a given library always results in a
+consistent augmentation library. In particular, multiple tools should be able to
+run the same macros with the same inputs, and get the same augmentation library.
+This allows debugging and stack traces to work consistently, and be meaningful
+and useful.
 
-    @first
-    class D {}
-    ```
+We have several rules based around maintaining the consistency of generated
+output across tools.
 
-    Here, the macros on `A`, `C` and `D` run before the macros on `B`, and `C`
-    also runs before `A`. But otherwise the ordering is not defined (it is not
-    observable).
+#### Rule #1: Nested augmentations on type declarations are merged
 
-    This only applies to Phase 2, because it is the only phase where the order
-    would be observable. In particular this allows macros running on `B` to see
-    any members added to its super classes, mixins, or interfaces, by other
-    macros running in phase 2.
+When there are multiple augmentations of the same type declaration, they are
+merged into a single `augment <type> {}` block. This is easier for end users to
+understand. This includes multiple augmentations of the _same_ declaration, they
+should appear as separate declarations within the same type augmentation.
 
-Aside from these rules, macro introspection is limited so that evaluation order
-is not user visible. For example, if two macros are applied to two methods in
-the same class, there is no way for those macros to interfere with each other
-such that the application order can be detected.
+This does result in constantly shifting source offsets between phases, and in
+particular throughout Phase 2 of macro expansion, given that some macros can see
+the outputs of other macros within that same phase.
+
+For example, if both of these macros add a new declaration to `A`:
+
+```dart
+@AddB()
+@AddC()
+class A {}
+```
+
+Then the resulting library should have both declarations merged into one
+augmentation of `A` like this:
+
+```dart
+augment class A {
+  void b() {}
+  void c() {}
+}
+```
+
+Note that we previously considered an "append only" approach, with no merging of
+augmentations. The goal was to avoid changing source offsets, but this doesn't
+work since later augmentations may need to add additional imports, which would
+result in shifting offsets anyways. Since we have to deal with the shifting
+offsets either way, we might as well derive user value out of it.
+
+#### Rule #2: Augmentations are sorted by phase, application, then source order
+
+##### Sorting by phase
+
+Augmentations from earlier phases appear before augmentations from later phases:
+
+```dart
+@AddMemberB() // Runs in phase 2, adds a member `b` to `A`.
+class A {}
+
+@AddTypeD() // Runs in the first phase, creates the class `D`.
+class C {}
+```
+
+Would result in:
+
+```dart
+class D {}
+
+augment class A {
+  void b() {}
+}
+```
+
+##### Sorting by application order
+
+Where an application order is explicitly defined, the augmentations are appended
+in that same order as the primary sort:
+
+```dart
+@AugmentB() // In phase 3, augments the member `b`.
+class A {
+  void b() {}
+
+  @AugmentC(); // In phase 3, augments the member `c`
+  void c() {}
+}
+```
+
+Since inner macro applications run first, we get the augmentation of `c` first:
+
+```dart
+augment class A {
+  augment void c() {}
+
+  augment void b() {}
+}
+```
+
+##### Sort by source offset of the application
+
+If no order is defined between two macro applications, then their augmentations
+are sorted based on the source offset of the macro application.
+
+```dart
+class A {
+  @AugmentB() // In phase 3, augments the member `b`.
+  void b() {}
+
+  @AugmentC(); // In phase 3, augments the member `c`
+  void c() {}
+}
+```
+
+Since there is no defined application order, source order is used for the
+augmentation ordering:
+
+```dart
+augment class A {
+  augment void b() {}
+  augment void c() {}
+}
+```
+
+##### Merge type augmentations together
+
+When augmenting a type declaration, if that type declaration has already been
+augmented then the new augmentation(s) are merged into that augmentation per the
+first rule. Ordering within that type augmentation follows all of these rules.
+
+This only applies to `augment <type>` declarations and not _new_ type
+declarations.
+
+Note that when multiple applications are on the same declaration, there is a
+defined order, which is the reverse source offset order.
+
+
+```dart
+@AddTopLevelFoo() // In phase two, adds a top level variable `foo`.
+class A {
+  @AddC() // In phase 2, augments the member `c`.
+  @AugmentB() // In phase 3, augments the member `b`
+  void b() {}
+}
+```
+
+Since an augmentation to `A` is added in phase 2, the augmentation of it's
+member `b` in phase 3 is merged into that augmentation, which puts it above the
+variable `foo` which was added in phase 2 (this rule takes precedence over other
+rules).
+
+```dart
+augment class A {
+  void c() {} // Added in phase 2, ran before `AddTopLevelFoo()`.
+  augment b() {} // Added in phase 3, but merged into the previous augmentation.
+}
+
+int foo = 1; // Added in phase 2, after `c` was added to `A`.
+```
+
+#### Rule #3: Each augmentation should be separated by one empty line
+
+We need to ensure consistent whitespace across tools, and this follows standard
+Dart style, which is to separate declarations with one empty line.
+
+Note that if a given augmentation provides its own empty lines at the start,
+these should not be trimmed, and so you may end up with more than one empty line
+separating declarations.
+
+In the future, we may decide to run `dart format` or some other lighter weight
+formatter on augmentations which would also enforce consistent whitespace.
+
+#### Rule #4: New types are declared separately from their augmentations
+
+If a macro declares a new type and then later augments it, this will result in
+separate type declarations. One normal one followed by an augmentation of that
+type.
+
+For example, if `MyMacro` defines a type in phase 1 and then augments it in
+phase 2 by adding a field and a constructor:
+
+```dart
+@MyMacro()
+library;
+```
+
+Would become:
+
+```dart
+@MyMacro()
+library;
+
+class A {}
+
+augment class A {
+  final int b;
+
+  A(this.b);
+}
+```
+
+It would arguably be more user friendly if we merged these new declarations from
+phase 2 into the original declaration, but there are some technical challenges
+with doing so, and we do not merge them today.
+
+### Augmentation library source offsets
+
+Any tool doing macro expansion will necessarily have to manage changing source
+offsets throughout the macro expansion process. This is necessary in order to
+facilitate a single augmentation library for the end user at the end.
+
+It is likely that a tool would want to initially treat things as multiple
+separate augmentations, and then merge them all at the end. This would avoid
+parsing the entire augmentation library repeatedly. Although, the import
+prefixes for identifiers may change once merged in this mode.
 
 ## Phases
 
@@ -286,22 +496,22 @@ ordering problem to discuss. Imagine you have these two classes for tracking
 pets and their humans:
 
 ```dart
-@jsonSerializable
+@JsonSerializable()
 class Human {
   final String name;
   final Pet? pet; // Optional, might not have a pet.
 }
 
-@jsonSerializable
+@JsonSerializable()
 class Pet {
   final String name;
-  final Owner? owner; // Optional, might be feral.
+  final Human? owner; // Optional, might be feral.
 }
 ```
 
-You want to be able to save these to the cloud, so you use a `@jsonSerializable`
-macro that generates a `toJson()` method on each class the macro is applied to.
-You want the methods to look like this:
+You want to be able to save these to the cloud, so you use a
+`@JsonSerializable()` macro that generates a `toJson()` method on each class the
+macro is applied to. You want the methods to look like this:
 
 ```dart
 class Human {
@@ -322,10 +532,10 @@ class Pet {
 ```
 
 Note that the `pet` and `owner` fields are serialized by recursively calling
-their `toJson()` methods. To generate that code, the `@jsonSerializable` macro
+their `toJson()` methods. To generate that code, the `@JsonSerializable()` macro
 needs to look at the type of each field to see if it declares a `toJson()`
 method. The problem is that there is *no* order of macro application that will
-give the right result. If we apply `@jsonSerializable` to Human first, then it
+give the right result. If we apply `@JsonSerializable()` to Human first, then it
 won't call `toJson()` on `pet` because Pet doesn't have a `toJson()` method yet.
 We get the opposite problem if we apply the macro to Pet first.
 
@@ -346,7 +556,7 @@ There are three phases:
 ### Phase 1: Types
 
 Here, macros contribute new types to the program&mdash;classes, typedefs, enums,
-etc. This is the only phase where a macro can introduce a new visible name into
+etc. This is the only phase where a macro can introduce a new visible type into
 the top level scope.
 
 **Note**: Macro classes _cannot_ be generated in this way, but they can rely on
@@ -369,13 +579,26 @@ about subtype relations.
 ### Phase 2: Declarations
 
 In this phase, macros declare functions, variables, and members. "Declaring"
-here means specifying the name and type signature, but not the body of a
-function or initializer for a variable. In other words, macros in this phase
-specify the declarative structure but no imperative code.
+here means specifying the name and type signature, but not necessarily the body
+of a function or initializer for a variable. It is encouraged to provide a body
+(or initializer) if possible, but you can opt to wait until the definition phase
+if needed.
 
-When applied to a class, a macro in this phase can introspect on all of the
-members of that class and its superclasses, but it cannot introspect on the
-members of other types.
+Phase two macros can introspect on all of the members of a type. If the type
+to be introspected is declared in the same library cycle and has one or more
+macros applied to it then this introduces an ordering constraint between the
+macro applications: the introspection call waits for complete results before
+returning, meaning it waits for the macro applications on the target type to
+finish.
+
+If a cycle arises in macro applications waiting for other macro applications to
+complete then a `StateError ` is thrown.
+
+Rules might be added in future to decide in some specific cases which macro
+should run with incomplete introspection results to break a cycle. For example,
+there might be a rule specifying that an application to a superclass runs first
+with incomplete results, allowing an application to a subclass to run
+afterwards with introspection onto the declarations added.
 
 ### Phase 3: Definitions
 
@@ -388,8 +611,8 @@ function body.
 Phase three macros can add new supporting declarations to the surrounding scope,
 but these are private to the macro generated code, and never show up in
 introspection APIs. These macros can fully introspect on any type reachable from
-the declarations they are applied to, including introspecting on members of
-classes, etc.
+the declarations they are applied to without introducing application ordering
+constraints as in Phase 2.
 
 ## Macro declarations
 
@@ -417,9 +640,9 @@ constructors are invoked, and their limitations.
       types in the user code instantiating the macro are not necessarily present
       in the macros own transitive imports.
 
-*Note: The Macro API is still being designed, and lives [here][api].*
+*Note: The Macro API is still being designed, and lives [here][API].*
 
-[api]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api.dart
+[API]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api.dart
 
 ### Writing a Macro
 
@@ -455,6 +678,8 @@ For example, in `ClassDeclarationsMacro`, the introspection object is a
 to the immediate superclass, as well as any immediate mixins or interfaces,
 but _not_ its members or entire class hierarchy.
 
+TODO: update this example.
+
 ### Builder argument
 
 The second argument is an instance of a [builder][] class. It exposes both
@@ -466,7 +691,24 @@ primary method is `declareInClass`, which the macro can call to add a new member
 to the class. It also implements the `ClassIntrospector` interface, which allows
 you to get the members of the class, as well as its entire class hierarchy.
 
+TODO: update this example.
+
 [builder]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/builders.dart
+
+### Introspection API ordering
+
+Macros may produce code based on the order in which the introspection APIs
+return results. For instance when generating a constructor, a macro will likely
+just iterate over the fields and create a parameter for each.
+
+We need generated augmentations to be identical on all platforms for all the
+same inputs, so we need to have a defined ordering when introspection APIs are
+returning lists of declarations.
+
+Therefore, whenever an implementation is returning a list of declarations, they
+should always be given in lexicographical order. We use lexicographical order
+instead of source text order, so that macro output does not have to be re-ran
+when re-ordering members.
 
 ### Introspecting on metadata annotations
 
@@ -477,52 +719,71 @@ With macros, many of those metadata annotations would instead either *become*
 macros or be *read* by them. The latter means that macros also need to be able
 to introspect over non-macro metadata annotations applied to declarations.
 
-For example, a `@jsonSerialization` class macro might want to look for an
+For example, a `@JsonSerialization()` class macro might want to look for an
 `@unseralized` annotation on fields to exclude them from serialization.
 
-**TODO**: The following subsections read more like a design discussion that a
-proposal. Figure out what we want to do here and rewrite (#1930).
+Some macros may need to evaluate the real values of metadata arguments, while
+others may only need the ability to emit that same code back into the program.
 
 #### The annotation introspection API
 
-We could try to give users access to an actual instance of the annotation, or
-we could give something more like the [DartObject][] class from the analyzer.
+All declarations which can be annotated will have an
+`Iterable<MetadataAnnotation> get metadata` getter. This will contain all
+regular annotations as well as macro annotations.
+
+All `MetadataAnnotation` objects have a `Code get code` getter, which gives
+access to the annotation as a `Code` object.
+
+In addition, there will be two subtypes of `MetadataAnnotation`:
+
+- `IdentifierMetadataAnnotation`: A simple const identifier, has a single
+  `Identifier get identifier` getter.
+- `ConstructorMetadataAnnotation`: A const constructor invocation. This will
+  have the following getters:
+  - `Identifier get type`
+  - `Identifier get constructor`
+  - `Arguments get arguments`
+    - The `Arguments` class will provide access to the positional and named
+      arguments as separate `Code` objects.
+
+For any macro which only wants to emit code from annotations back into the
+program, these `Code` objects are sufficient.
+
+For a macro which wants to access the actual _value_ of a given argument or
+the metadata annotation as a whole, they can evaluate `Code` instances as
+constants (see next section).
+
+### Constant evaluation
+
+Macros may want the ability to evaluate constant expressions, in particular
+those found as arguments to metadata annotations.
+
+We expose this ability through the `DartObject evaluate(Code code)` API, which
+is available in all phases, with the following restrictions:
+
+- No identifier in `code` may refer to a constant which refers to any
+  system environment variable, Dart define, or other configuration which is not
+  otherwise visible to macros.
+- All identifiers in `code` must be defined outside of the current
+  [strongly connected component][] (that is, the strongly connected component
+  which triggered the current macro expansion).
+
+The `DartObject` API is an abstract representation of an object, which can
+represent types which are not visible to the macro itself. It will closely
+mirror the [same API in the analyzer][DartObject].
+
+The call to `evaluate` will throw a `ConstantEvaluationException` if the
+evaluation fails due to a violation of one of the restrictions above.
 
 [DartObject]: https://pub.dev/documentation/analyzer/latest/dart_constant_value/DartObject-class.html
 
-Since annotations may contain references to types or identifiers that the macro
-does not import, we choose to expose a more abstract API (similar to
-[DartObject][]).
-
-**TODO**: Define the exact API.
-
-#### Annotations that require macro expansion
-
-This could happen if the annotation class has macros applied to it, or if
-some argument(s) to the annotation constructor use macros.
-
-Because macros are not allowed to generate code that shadows an identifier
-in the same library, we know that if an annotation class or any arguments to it
-could be resolved, then we can assume that resolution is correct.
-
-This allows us to provide an API for macro authors to attempt to evaluate an
-annotation in _any phase_. The API may fail (if it requires more macro
-expansion to be done), but that is not expected to be a common situation. In
-the case where it does fail, users should typically be able to move some of
-their code to a separate library (which they import). Then things from that
-library can safely be used in annotations in the current library, and evaluated
-by macros.
-
-Evaluation must fail if there are any macros left to be expanded on the
-annotation class or any arguments to the annotation constructor.
-
 #### Are macro applications introspectable?
 
-Macro applications share the same syntax as annotations, and users may expect
-macros to be able to see the other macros as a result.
+Macro application annotations are treated identically to regular annotations,
+and are introspectable in exactly the same ways.
 
-For now we are choosing not to expose other macro applications as if they were
-metadata. While they do share a syntax they are conceptually different.
+The current macro application is also visible to itself in the list of metadata
+attached to the current declaration.
 
 #### Modifying metadata annotations
 
@@ -633,68 +894,58 @@ has two colliding declarations.
 
 #### Shadowing declarations
 
-All the rules below apply only to the library in which a macro is
-applied&mdash;macro applications in imported libraries are considered to be
-fully expanded already and are treated exactly the same as handwritten code.
-
 Macros may add member declarations that shadow top-level declarations in the
-library. When that happens, we want to ensure that the intent of the
-user-written code is clear. Consider the following example:
+library. When that happens, we have to choose how references to that shadowed
+member resolve. Consider the following example:
 
 ```dart
 int get x => 1;
 
-@generateX
+@GenerateX()
 class Bar {
-  // Generated: int get x => 2;
+  // Generated
+  int get x => 2;
 
   // Should this return the top level `x`, or the generated instance getter?
   int get y => x;
 }
 ```
 
-There are several potential choices we could make here:
+In this situation, resolution is done based on the final macro generated code,
+as if it was written by hand. Effectively, this means that resolution of bodies
+must be delayed until after macro execution is complete.
 
-1.  Any identifier that can be resolved before macro application keeps its
-    original resolution. Here, `x` would still resolve to the original,
-    top-level variable.
+This (mostly) avoids the need for resolving method bodies multiple times, and
+also means that all macro code could be replaced with a hand-authored library.
 
-2.  Re-resolve all identifiers after macros are applied, which may change what
-    they resolve to. In the example here, `x` would re-resolve to the generated
-    instance getter `x`.
+##### Constant evaluation, Identifiers, and shadowed declarations
 
-3.  Make it a compile-time error for a macro to introduce an identifier that
-    shadows another.
+Given that constant evaluation can be attempted in any phase, it is possible for
+it to return a _different result_ for the same piece of code between phases. In
+particular the types phase and declaration phase may introduce declarations
+which shadow previously resolved identifiers from other libraries.
 
-4.  Make it a compile-time error to *use* an identifier shadowed by one produced
-    by a macro.
+If this happens, it would always cause a constant evaluation failure in the
+later phase, since identifiers from the current [strongly connected component][]
+are not allowed during const evaluation. This is not enough however to catch all
+situations, because a macro may not attempt const evaluation at that point, and
+could have previously gotten an incorrect result.
 
-The first two choices could be very confusing to users, some will expect one
-behavior while others expect the other. The third choice would work but might be
-overly restrictive. The final option still avoids the ambiguity, and is a bit
-more permissive than the third, so we take that approach.
+Similarly, a Code object provided as a part of a metadata annotation argument
+may have Identifiers which were originally resolved to one declaration, and then
+later resolved to a different declaration.
 
-It's also possible that a top-level declaration and an instance declaration that
-shadows it are *both* produced by macros. If we resolved a hand-written
-identifier with the same name at different points during macro expansion, it
-might refer to different macro-generated declarations. That would also be
-confusing, and we don't want to allow that.
+In order to resolve these discrepancies we add this rule:
 
-These constraints produce this rule: It is a compile-time error if any
-hand-authored identifier in a library containing a macro application would bind
-to a different declaration when resolved before and after macro expansion in
-that library.
+- **It is a compile time error for a macro to add a declaration which shadows**
+  **any previously resolved identifier.**. These errors occur after a macro
+  runs, when the compiler is merging in the macro results, and so it is not
+  catchable or detectable by macros.
 
-This follows from the general principle that macros should not alter the
-meaning of existing code. Adding the getter `x` in the example above shadows the
-top-level `x`, changing the meaning of the original code.
-
-Note, that if the getter were written as `int get y => this.x;`, then a macro
-*would* be allowed to introduce the new getter `x`, because `this.x` could not
-previously be resolved.
-
-**TODO**: Revisit this to see if it aligns with the scoping rules of compiling
-macros to library augmentations.
+This situation can typically only happen because of one of the above scenarios
+surrounding metadata annotations or const evaluation, and can typically be
+resolved by adding an import prefix. To force resolution to the generated symbol
+in the current library, a library can import itself with a prefix.
 
 #### Resolving identifiers in generated code
 
@@ -734,6 +985,7 @@ that top level declaration and insert that into the generated code.
 **TODO: Define this API. See [here](https://github.com/dart-lang/language/pull/1779#discussion_r683843130).**
 
 [Identifier]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/introspection.dart#L15
+[TypeAnnotation]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/introspection.dart#L22
 
 ### Generating macro applications
 
@@ -749,17 +1001,18 @@ implement their own declarations (#1908).
 
 #### Adding macro applications to new declarations
 
-When creating [Code][] instances, a macro may generate code which includes
+When creating [DeclarationCode][] instances, a macro may generate code which includes
 macro applications. These macro applications must be from either the current
 phase or a later phase, but cannot be from previous phases.
 
-If a macro application is added which implements an earlier phase, that phase
-is not ran. This should result in a warning if the macro does not also
-implement some phase that will be ran.
+It is an error for a macro application to be added which would have applied to
+its declaration in an earlier phase.
 
 If a macro application is added which runs in the same phase as the current
 one, then it is immediately expanded after execution of the current macro,
 following the normal ordering rules.
+
+[DeclarationCode]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/code.dart#L37
 
 #### Ordering violations
 
@@ -767,19 +1020,19 @@ Both of these mechanisms allow for normal macro ordering to be circumvented.
 Consider the following example, where all macros run in the Declaration phase:
 
 ```dart
-@macroA
-@macroB
+@MacroA()
+@MacroB()
 class X {
-  @macroC // Added by `@macroA`, runs after both `@macroB` and `@macroA`
+  @MacroC() // Added by `@MacroA()`, runs after both `@MacroB()` and `@MacroA()`
   int? a;
 
-  // Generated by `@macroC`, not visible to `@macroB`.
+  // Generated by `@MacroC()`, not visible to `@MacroB()`.
   int? b;
 }
 ```
 
-Normally, macros always run "inside-out". But in this case `@macroC` runs after
-both `@macroB` and `@macroA` which were applied to the class.
+Normally, macros always run "inside-out". But in this case `@MacroC()` runs after
+both `@MacroB()` and `@MacroA()` which were applied to the class.
 
 We still allow this because it doesn't cause any ambiguity in ordering, even
 though it violates the normal rules. We could instead only allow adding macros
@@ -830,7 +1083,7 @@ a Dart program containing macro applications:
 
 Starting at the entrypoint library, traverse all imports, exports, and
 augmentation imports to collect the full graph of libraries to be compiled.
-Calculate the [strongly connected components][] of this graph. Each component is
+Calculate the [strongly connected component][]s of this graph. Each component is
 a library cycle, and the edges between them determine how the cycles depend on
 each other. Sort the library cycles in topological order based on the connected
 component graph.
@@ -843,7 +1096,7 @@ library cycle, it is guaranteed that all macros used by the cycle have already
 been compiled. Also, any types or other declarations used by that cycle have
 either already been compiled, or are defined in that cycle.
 
-[strongly connected components]: https://en.wikipedia.org/wiki/Strongly_connected_component
+[strongly connected component]: https://en.wikipedia.org/wiki/Strongly_connected_component
 
 #### 2. Compile each cycle
 
@@ -853,23 +1106,24 @@ their libraries. At this point, you have a set of mutually interdependent
 libraries. They may contain references to declarations that don't exist because
 macros have yet to produce them.
 
-Collect all the metadata annotations whose names can be resolved and that
-resolve to macro classes. Report an error if any application refers to a macro
-declared in this cycle.
+Collect all the metadata annotations which are constructor invocations of
+macro classes. Report an error if any application refers to a macro declared in
+this cycle, or if any annotation is a reference to a const instance of a macro
+class (they must be explicit constructor invocations).
 
-**TODO**: The above resolution rules may change based on
+**NOTE**: We may in the future allow constant references to macros in
+annotations, or something similar to that, see discussion in
 https://github.com/dart-lang/language/issues/1890.
 
 #### 3. Apply macros
 
-In a sandbox environment or isolate, create an instance of the corresponding
-macro class for each macro application. Pass in any macro application arguments
-to the macro's constructor. If a parameter's type is `Code` or a subclass,
-convert the argument expression to a `Code` object. Any bare identifiers in the
-argument expression are converted to `Identifier` (see
-[Identifier Scope](#Identifier-Scope) for scoping information).
+In a sandbox environment, likely a separate isolate or process, create an
+instance of the corresponding macro class for each macro application. See
+[Executing macros](#Executing-macros) for more explanation of how macros are
+constructed and how their arguments are handled.
 
-Run all of the macros in phase order:
+Run all of the macros in phase order (see also
+[Application order](#Application-order) for ordering within each phase):
 
 1.  Invoke the corresponding visit method for all macros that implement phase 1
     APIs.
@@ -950,43 +1204,36 @@ are ready to be loaded and executed when applied in libraries in later cycles.
 ## Executing macros
 
 To apply a macro, a Dart compiler constructs an instance of the applied macro's
-class and then invokes methods that implement macro API interfaces. The macro is
-a full-featured Dart program with complete access to the entire Dart language.
-Macros are Turing-complete.
+class and then invokes methods that implement macro API interfaces. Then it
+disposes of the macro instance. Typically this is all done in a separate isolate
+or process from the compiler itself.
+
+Macros are full-featured Dart programs with complete access to the entire Dart
+language (but limited access to core libraries). Macros are Turing-complete.
 
 ### Macro arguments
-
-**TODO**: How are metadata annotations that refer to constant objects handled
-(#1890)?
 
 Each argument in the metadata annotation for the macro application is converted
 to a form that the corresponding constructor on the macro class expects, which
 it specifies through parameter types:
 
 *   If the parameter type is `bool`, `double`, `int`, `Null`, `num`, `String`,
-    `List`, `Set`, or `Map`, (or the nullable forms of any of those), then the
-    argument expression must be a boolean, number, null, string, list, set, or
-    map literal.
+    `List`, `Set`, `Map`, `Object`, or `dynamic` (or the nullable forms of any
+    of those), then the argument expression must be a constant expression
+    containing only boolean, number, null, string, list, set, or map literals.
+    Note that `Object` and `dynamic` are allowed as types but the actual values
+    must still be of one of the supported types.
 
-    * Number literals may be negated.
-    * String literals may not contain any interpolation, but may be adjacent
-      strings, and may be raw strings.
-    * List, Set and Map literals may only contain entries matching any of the
-      supported argument types. If the parameter type specifies a generic type
-      argument, it must be one of the allowed parameter types or `Object`,
-      recursively. Note that `Object` is allowed in order to exclude null items,
-      but all the actual entries must be of one of the supported types.
-
-    **TODO**: Do we want to allow more complex expressions? Could we allow
-    constant expressions whose identifiers can be successfully resolved before
-    macro expansion (#1929)?
+    * Any type arguments (inferred or explicit) must be one of the allowed
+      parameter types, recursively.
 
 *   If the parameter type is `Code` (or a subtype of `Code`), the argument
     expression is automatically converted to a corresponding `Code` instance.
     These provided code expressions may contain identifiers.
 
-*   If the parameter type is `Identifier` then a single identifier must be
-    passed, and it will be converted to a corresponding `Identifier` instance.
+*   If the parameter type is `TypeAnnotation` then a literal type must be
+    passed, and it will be converted to a corresponding `TypeAnnotation`
+    instance.
 
 Note that this implicit lifting of the argument expression only happens when
 the macro constructor is invoked through a macro application. If a macro
@@ -996,19 +1243,18 @@ macro), then the caller is responsible for creating the Code object.
 As usual, it is a compile-time error if the type of any argument value (which
 may be a Code object) is not a subtype of the corresponding parameter type.
 
-It is a compile-time error if an macro class constructor invoked by a macro
-application has a parameter whose type is not Code (or any subtype of it) or
-one of the aforementioned primitive types (or a nullable type of any of those).
+It is a compile-time error if a macro class constructor invoked by a macro
+application has a parameter whose type is not Code, TypeAnnotation, or one of
+the aforementioned primitive types (or a nullable type of any of those).
 
 #### Identifier Scope
 
 The following rules apply to any `Identifier` passed as an argument to a macro
-application, whether as a part of a `Code` expression or directly as an
-`Identifier` instance.
+application, whether as a part of a `Code` expression or `TypeAnnotation`.
 
-The scope of any `Identifier` argument is the same as the scope in which the
-identifier appears in the source code, which is the same as the argument scope
-for a metadata annotation on a declaration. This means:
+The scope of any `Identifier` is the same as the scope in which the identifier
+appears in the source code, which is the same as the argument scope for a
+metadata annotation on a declaration. This means:
 
 * Identifiers in macro application arguments may only refer to static and top
   level members.
@@ -1090,30 +1336,19 @@ independently. That order could become visible if separate macro applications
 accessed the same static mutable state&mdash;top-level variables and static
 fields.
 
-We are still considering how to address this. Options:
+In an ideal world we might run each macro invocation in its own sandbox, with
+its own static state, but we don't do that. Instead, we simply state that a well
+behaved macro should not use static state in an observable way. Not doing so may
+lead to undefined behavior.
 
-1.  Don't allow macro code to mutate static state at all. This is probably
-    overly-restrictive, and may be hard to enforce. There are legitimate use
-    cases for this like using `package:logging`.
+For example, it is OK to cache the result of an expensive computation in global
+state, assuming the result would always be the same. However it would not be
+advisable to cache information pertaining to the observed state of a program.
+Global state should also not be used to pass such information between macros, or
+the phases of a given macro.
 
-2.  Run each macro application in a separate isolate. Each application has its
-    own independent global mutable state. This is permissive in macros while
-    keeping them isolated, but may be slow.
-
-3.  Reset all static state between macro application executions. If this is
-    feasible to implement and fast enough, it could work.
-
-4.  Document that mutating static state is a bad practice, but don't block it.
-    Give no guarantees around static state persistence between macro
-    applications.
-
-    In practice, most macros won't access any static state, so this is harmless.
-    But if macros do exploit this (deliberately or inadvertently) then it could
-    force implementations to be stuck with a specific execution order in order
-    to not break existing code. This is the easiest and fastest solution, but
-    the least safe.
-
-**TODO**: Choose a solution (#1917).
+Implementations also reserve the right to clear the global state of a macro at
+any time, possibly even at random.
 
 ### Platform semantics
 
@@ -1169,28 +1404,116 @@ given library. This will be allowed through the library introspection class,
 which is available from the introspection APIs on all declarations via a
 `library` getter.
 
-**TODO**: Fully define the library introspection API for each phase.
-
 ### API versioning
 
-**TODO**: Finalize the approach here (#1934).
+It is expected that future language changes will require breaking changes to the
+macro APIs. For instance you could consider what would happen if we added
+multiple return values from functions. That would necessitate a change to many
+APIs so that they would support multiple return types instead of a single one.
 
-It is possible that future language changes would require a breaking change to
-an existing imperative macro API. For instance you could consider what would
-happen if we added multiple return values from functions. That would
-necessitate a change to many APIs so that they would support multiple return
-types instead of a single one.
+#### Design goals
 
-#### Proposal: Ship macro APIs as a Pub package
+* Enable us to make API changes when needed.
+* Minimize churn for macro authors - most SDK versions will not be breaking and
+  it would be ideal to not ask packages to have super tight SDK constraints.
+* Give early and actionable error messages to consumers of macros when a macro
+  they are using does not support a new language feature.
+* Enable as much forwards/backwards compatibility as possible.
 
-Likely, this package would only export directly an existing `dart:` uri, but
-it would be able to be versioned like a public package, including tight sdk
-constraints (likely on minor version ranges). This would work similar to the
-`dart:_internal` library.
+#### Solution: Ship macro APIs as a Pub package
 
-This approach would involve more work on our end (to release this package with
-each dart release). But it would help keep users on the rails, and give us a
-lot of flexibility with the API going forward.
+The implementation of this package will always come from the SDK, through a
+`dart:_macros` library, which will be exported by this package. The
+`dart:_macros` library will be blocked from being imported or exported by any
+library other than other `dart:` libraries and this package.
+
+We use a `dart:` library here to ensure that the binaries shipped with the SDK
+are compiled with exactly the same version of the API that macros are compiled
+with. This ensures the communication protocol between macros and the SDK
+binaries are compatible.
+
+This package will have tight upper bound SDK constraints, constrained to the
+minor release versions instead of major release versions.
+
+The release/versioning strategy for the package is as follows:
+
+- We will not allow any changes to the macro APIs in patch releases of the SDK,
+  even non-breaking changes. The package restricts itself to minor releases and
+  not patch releases of the SDK, so these changes would silently be visible to
+  users in a way that wasn't versioned through the package.
+
+- When a new version of the Dart SDK is released which **does not have any**
+  changes to the macro API, then we will do a patch release of this package
+  which simply expands the SDK upper bound to include that version (specifically
+  it will be updated to less than the next minor version). For example,
+  if version `3.5.0` of the SDK was just released, and it has no changes to the
+  macro API, the new upper bound SDK constraint would be `<3.6.0` and the lower
+  bound would remain unchanged.
+
+  Since this is only a patch release of this package, all existing packages that
+  depend on this package (with a standard version constraint) will support it
+  already, so no work is required on macro authors' part to work with the new
+  Dart SDK.
+
+- When a new version of the Dart SDK is released which has **non-breaking**
+  changes to the macro API, then we will do a minor release of this package,
+  which increases the lower bound SDK constraint to the newly released version,
+  and the upper bound to less than the next minor release version. For example,
+  if version `3.5.0` of the SDK was just released, and it has **non-breaking**
+  changes to the macro API, the new SDK constraint would be `>=3.5.0 <3.6.0`.
+
+  Note that only users on the newest SDK will get this new version, but that is
+  by design. The new features are being exposed only by the new SDK and are not
+  available to older SDKs.
+
+  Since this is only a minor release, all existing packages that depend on this
+  package (with a standard version constraint) will support it already, so no
+  work is required on macro authors' part to work with the new Dart SDK.
+
+  If a macro author wants to **use** the new features, they must update their
+  minimum constraint on this package to the latest version to ensure the new
+  features are available.
+
+- When a new version of the Dart SDK includes a **breaking** change to the macro
+  API, then we will release a new major version of this package, and update the
+  SDK constraints in the same way as non-breaking changes (update both the
+  minimum and maximum SDK constraints, so only the current minor version is
+  allowed). By default, existing packages containing macros will not accept that
+  version of the macro package and thus will not work with the new Dart SDK.
+
+  Authors of packages containing macros will need to test to see if their macro
+  is compatible with the latest macro API. If so, they can ship a new patch
+  version of their package with a constraint on the macro package that includes
+  the new major version as well as the previous major version it's already known
+  to work with. If their package is broken by the macro API change, then, they
+  will fix their macro and ship a new version of their package with a dependency
+  on the macro package that only allows the latest major versions.
+
+This approach has several advantages for macro authors and users, which are
+closely aligned with the design goals:
+
+* Fewer releases for macro authors (this package shouldn't have very many
+  breaking changes).
+* Gives us flexibility with the API when needed.
+* Gives early errors if a macro dependency doesn't support the users current
+  SDK. The failure will be in the form of a failed version solve.
+* Macros can easily depend on wide ranges of this package (if they are
+  compatible).
+
+There are some downsides to this approach as well:
+
+* More work for us, we need to consistently prepare these releases for new SDKs.
+* Version solve errors can sometimes be very cryptic to understand. This is a
+  general problem though, and we will benefit from any improvements in this
+  area.
+* Dependency overrides on this package won't actually have any affect, which may
+  be confusing to users. The API is always dictated by the `dart:` library and
+  not the package itself. Note that this is different from `dart_internal`,
+  which wraps the `dart:` APIs it exposes. I don't think this would be
+  desireable for this use case, but we could see if it is feasible.
+* It is possible we could forget to bump the min SDK when altering the internal
+  API for the `dart:_macros` package. We should put some sort of check in place
+  to help ensure we get this right.
 
 ## Resources
 
@@ -1232,7 +1555,7 @@ resources outside of `lib`, which has both benefits and drawbacks.
 
 **TODO**: Evaluate APIs for listing files and directories.
 
-**TODO**: Consider adding `RandomAccessResource` api.
+**TODO**: Consider adding `RandomAccessResource` API.
 
 The specific API is as follows, and would only be available at compile time:
 

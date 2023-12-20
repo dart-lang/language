@@ -58,7 +58,7 @@ identifier for the resulting declaration.
 ### Applying an Aspect Macro
 
 Aspect Macros can only be applied by other macros (including aspect macros),
-while the macro is running. They do this through the following api:
+while the macro is running. They do this through the following API:
 
 ```dart
 Future<Identifier> applyAspect(AspectMacro macro, Declaration declaration);
@@ -110,7 +110,7 @@ macro class FromJson extends ClassDeclarationsAspectMacro {
 - The serializable aspect is enforced by not permitting Aspect Macros to have
   any fields, and they only have a single const constructor with no arguments.
   - **TODO**: Should we make this constructor explicit?
-  - **TODO**: Should the api only take the Type of the aspect instead of an
+  - **TODO**: Should the API only take the Type of the aspect instead of an
     instance?
 
 ### Ordering of Aspect Macros

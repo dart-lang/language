@@ -1,7 +1,7 @@
 # Augmentation Libraries
 
 Author: rnystrom@google.com, jakemac@google.com
-Version: 1.7 (see [Changelog](#Changelog) at end)
+Version: 1.13 (see [Changelog](#Changelog) at end)
 
 Augmentation libraries allow splitting a Dart library into files. Unlike part
 files, each augmentation has its [own imports][part imports] and top-level
@@ -94,13 +94,17 @@ file.
 
 Augmentations have a few features unique to them:
 
-*   An augmentation may add new members to existing types in the main library.
+*   An augmentation may add new members to existing types in the main library,
+    including adding new values to enums.
 
 *   A function in the augmentation may wrap the body of a function in the main
-    library.
+    library, or provide a body if none was present.
 
 *   A variable in the augmentation may wrap the initializer of a variable in the
-    main library.
+    main library, or provide an initializer if none was present.
+
+*   An enum value in the augmentation may replace the argument list of an enum
+    value in the main library, or provide an argument list if none was present.
 
 These can't be expressed today using only imports, exports, and part files.
 
@@ -162,6 +166,13 @@ merge its declarations into this library. It is a compile-time error if:
     you can't have redundant `import augment` directives that point to the same
     library.*
 
+*   The main library and its augmentations do not all have the same language
+    version. There is only one user-visible library at the end, and it should
+    have a consistent version across its entire surface area. *An augmentation
+    library does not automatically inherit any language version from the main
+    library and may need an explicit language version comment of its own in
+    order to adhere to this requirement.*
+
 Since the main library and its augmentation both point to each other, these
 rules imply that a given augmentation file can only be used to augment a single
 library.
@@ -173,6 +184,10 @@ may themselves contain `import augment` directives. The entire tree of
 augmentations is recursively applied to the main library. The merge order is
 defined as a depth-first pre-order traversal of the `import augment` directives
 starting at the main library.
+
+Within a single augmentation library, you may augment the same declaration
+multiple times, whether they are top level or nested declarations. The merge
+order of these is defined as the source order of the augmentations.
 
 For example:
 
@@ -195,7 +210,7 @@ import augment 'b.dart';
 augment class C {}
 
 augment void trace() {
-  augment super.trace();
+  augmented();
   print('a');
 }
 
@@ -205,7 +220,7 @@ library augment 'a.dart';
 class D {}
 
 augment void trace() {
-  augment super.trace();
+  augmented();
   print('b');
 }
 
@@ -215,14 +230,19 @@ library augment 'main.dart';
 augment class D {}
 
 augment void trace() {
-  augment super.trace();
+  augmented();
   print('c');
+}
+
+augment void trace() {
+  augmented();
+  print('d');
 }
 ```
 
 The merge order is `main.dart`, `a.dart`, `b.dart`, then `c.dart`. The
 declarations in those libraries&mdash;new declarations or augmentations&mdash;
-are processed in that order.
+are processed in that order, and source order within that.
 
 This order is user-visible in two ways:
 
@@ -240,30 +260,35 @@ This order is user-visible in two ways:
     a
     b
     c
+    d
     ```
 
 **TODO: Should it be a compile-time error if the main library and augmentation
 are in different packages?**
-
-**TODO: Can the main library and augmentations have different language
-versions?**
 
 ## Augmenting declarations
 
 Unlike part files, which can only add entirely new declarations, an augmentation
 can also modify existing declarations in the main library. This can mean adding
 new members to an existing type, or even modifying the code of an existing
-declaration. There are a few supported operations which are all marked
-syntactically using an `augment` modifier.
+declaration. There is a new built-in identifier, `augment`, which is used to
+syntactically mark a declaration as an augmentation of an existing one. The
+introduction of this new identifier will be language versioned in order to make
+it non-breaking for old code.
+
+It is also allowed for a non-abstract class to have abstract members, if those
+members are filled in by an augmentation. This is primarily useful for macros,
+which may be used to provide a body for an abstract member.
 
 Often, an augmentation wants to also preserve and run the code of the original
 declaration it augments (hence the name "augmentation"). It may want run before
 the original code, after it, or both. To allow that, we allow a new expression
 syntax inside the bodies of augmenting members. Inside a member marked
-`augment`, an expression like `augment super` can be used to refer to the
-original function, getter, setter, or variable initializer.
-
-**TODO: I'm not sold on `augment super`. Is there a better syntax?**
+`augment`, the expression `augmented` can be used to refer to the original
+function, getter, setter, or variable initializer. This is a contextual keyword
+within `augment` members, and has no special meaning outside of that context.
+See the next section for a full specification of what `augmented` actually
+means, in the various contexts.
 
 The same declaration can be augmented multiple times by separate augmentation
 libraries. When that happens, the merge order defined previously determines
@@ -277,6 +302,44 @@ It is a compile-time error if:
 *   An augmenting declaration appears in a library before the library where the
     original declaration occurs, according to merge order. *An augmentation
     library can both declare a new declaration and augment it in the same file.*
+
+### Augmented Expression
+
+The exact result of an `augmented` expression depends on what is being
+augmented, but it follows generally the same rules as any normal identifier:
+
+*   **Augmenting getters**: Within an augmenting getter `augmented` invokes the
+    getter and evaluates to the return value. If augmenting a field with a
+    getter, this will invoke the implicit getter from the augmented field.
+
+*   **Augmenting setters**: Within an augmenting setter `augmented` must be
+    followed by an `=` and will directly invoke the augmented setter. If
+    augmenting a field with a setter, this will invoke the implicit setter from
+    the augmented field.
+
+*   **Augmenting fields**: Within an augmenting field, `augmented` can only be
+    used in an initializer expression, and refers to the original field's
+    initializer expression, which is immediately evaluated.
+
+    It is a compile-time error to use `augmented` in an augmenting field's
+    initializer if the member being augmented is not a field with an
+    initializer.
+
+*   **Augmenting functions**: When augmenting a function, `augmented` refers to
+    the augmented function. Tear offs are not allowed, so this function must
+    immediately be invoked.
+
+*   **Augmenting operators**: When augmenting an operator, `augmented` must be
+    followed by the operator. For example when augmenting `+` you must do
+    `augmented + 1`, and when augmenting `[]` you must do `augmented[<arg>]`.
+    These constructs invoke the augmented operator, and are the only valid uses
+    of `augmented` in these contexts.
+
+*   **Augmenting enum values**: When augmenting an enum value, `augmented` has
+    no meaning and is not allowed.
+
+In all relevant cases, if the augmented member is an instance member, it is
+invoked with the same value for `this`.
 
 ### Augmenting types
 
@@ -298,17 +361,19 @@ declaration and the augmentation. This is to ensure that looking at either one
 will give a complete depiction of the capabilities of the type, and an
 augmentation cannot introduce hidden restrictions.
 
-A class or enum augmentation may specify `implements` and `with` clauses. When
-those appear, the specified superinterfaces and mixins are appended to the main
-class's superinterface and mixin lists, respectively.
+A class, enum, extension, or mixin augmentation may specify `extends`,
+`implements`, `on`, and `with` clauses (when generally supported). The types in
+these clauses are appended to the original declarations clauses of the same
+kind, and if that clause did not exist previously then it is added with the new
+types. All regular rules apply after this appending process, so you cannot have
+multiple `extends` on a class, or an `on` clause on an enum, etc.
 
 **TODO: Is appending the right order for mixins?**
 
-Any instance or static members defined in the body of the type are added to the
-instance or static namespace of the corresponding type in the main library. In
-other words, the augmentation can add new members to an existing type.
-
-**TODO: Can an augmentation on enums add new enum cases?**
+Any instance or static members defined in the body of the type, including enum
+values, are added to the instance or static namespace of the corresponding type
+in the main library. In other words, the augmentation can add new members to an
+existing type.
 
 Instance and static members inside a type may themselves be augmentations. In
 that case, they augment the corresponding members in the original type
@@ -323,15 +388,19 @@ It is a compile-time error if:
     modifiers (final, sealed, mixin, etc). This is not a technical requirement
     but it should make augmentations easier to understand when looking at them.
 
-*   The augmenting type declares an `extends` clause. Only the main declaration
-    can specify those.
+*   The augmenting type declares an `extends` clause, but one was already
+    present. We don't allow overwriting an existing `extends`, but one can be
+    filled in if it wasn't present originally.
 
-    **TODO: We could consider allowing an `extends` clause if the main
-    declaration doesn't have one.**
+*   An augmenting extension declares an `on` clause. We don't allow filling this
+    in for extensions, it must on the original declaration. This restriction
+    could be lifted later on if we have a compelling use case, as there is no
+    fundamental reason it cannot be allowed, although it would be a parse error
+    today to have an extension with no `on` clause.
 
 *   The type parameters of the type augmentation do not match the original
     type's type parameters. This means there must be the same number of type
-    parameters with the same bounds.
+    parameters with the same bounds and names.
 
     *Since repeating the type parameters is, by definition, redundant, this
     doesn't accomplish anything semantically. But it ensures that anyone reading
@@ -348,22 +417,21 @@ augmented to wrap the original code in additional code:
 // Wrap the original function in profiling:
 augment int slowCalculation(int a, int b) {
   var watch = Stopwatch()..start();
-  var result = augment super(a, b);
+  var result = augmented(a, b);
   print(watch.elapsedMilliseconds);
   return result;
 }
 ```
 
 The augmentation replaces the original function body with the augmenting code.
-Inside the augmentation body, a special `augment super()` expression may be used
-to execute the original function body. That expression takes an argument list
-matching the original function's parameter list and returns the function's type.
+Inside the augmentation body, a special `augmented()` expression may be used to
+execute the original function body. That expression takes an argument list
+matching the original function's parameter list and returns the function's
+return type.
 
-**TODO: Better syntax than `augment super`?**
-
-The augmenting function does not have to pass the same arguments to `augment
-super()` as were passed to it. It may call it once, more than once, or not at
-all.
+The augmenting function does not have to pass the same arguments to
+`augmented()` as were passed to it. It may call it once, more than once, or not
+at all.
 
 It is a compile-time error if:
 
@@ -383,24 +451,17 @@ It is a compile-time error if:
 *   The function augmentation specifies any default values. *Default values are
     defined solely by the original function.*
 
-*   The original function is declared `external` and the augmenting function
-    uses `augment super()`.
-
-    **TODO: Instead of making this an error, should we add a syntax that lets
-    the augmentation dynamically detect whether there is an original body to
-    wrap?**
-
 **TODO: Should we allow augmenting functions to add parameters? If so, how does
 this interact with type checking calls to the function?**
 
-### Augmenting variables, getter, and setters
+### Augmenting variables, getters, and setters
 
-Augmentations on variables, getters, and setters are more complex because the
-language treats those as [mostly interchangeable][uniform]. We want to preserve
-that flexibility in augmentations. For example, an augmentation might want to
-wrap access to a variable in an augmenting getter. Or an augmentation may want
-to fill in the body of an unimplemented getter by using a backing variable
-declaration.
+While the language treats variables, getters, and setters as
+[mostly interchangeable][uniform], within augmentation libraries we do not allow
+augmenting getters and setters with variables. Since augmentations are tightly
+coupled to the libraries they augment, this restriction has minimal impact, and
+it does not greatly affect the ability of a library to change a field to a
+getter/setter pair or vice-versa.
 
 [uniform]: https://en.wikipedia.org/wiki/Uniform_access_principle
 
@@ -435,31 +496,61 @@ More specifically:
 
 *   **Augmenting with a getter:** A getter in an augmentation library can
     augment a getter in the main library or the implicit getter defined by a
-    variable in the main library. Inside the augmenting body, an `augment super`
+    variable in the main library. Inside the augmenting body, an `augmented`
     expression invokes the original getter.
 
 *   **Augmenting with a setter:** A setter in an augmentation library can
     augment a setter in the main library or the implicit setter defined by a
     non-final variable in the main library. Inside the augmenting setter, an
-    `augment super =` expression invokes the original setter.
+    `augmented =` expression invokes the original setter.
 
-*   **Augmenting a getter and/or setter with a variable:** A variable in an
-    augmentation library can augment a getter in the main library. A non-final
-    variable can augment a setter as well. The implicit getter and setter
-    defined by the augmenting variable replace the getter and setter in the main
-    library.
+*   **Augmenting a getter and/or setter with a variable:** This is a
+    compile-time error in all cases. Augmenting an abstract or external variable
+    with a variable is also a compile-time error, as those are actually just
+    syntax sugar for getter/setter pairs and do not have an initializer that you
+    can augment.
 
-*   **Augmenting a variable with a variable:** The original storage location is
-    discarded and the original implicit getter and setter are replaced with the
-    new implicit ones. *In most cases, the distinction of which implicit
-    getter/setter is kept is not visible. But if augmenting a `late` variable
-    with a non-`late` one or vice versa, the bodies behave differently in
-    user-visible ways.*
+    We may decide in the future to allow augmenting abstract or external
+    getters, setters, or variables with variables, but for now you can instead
+    use the following workaround:
 
-    The original initializer expression is replaced with the augmenting
-    variable's initializer if it has one. The augmenting initializer may use an
-    `augment super` expression which executes the original initializer
-    expression when evaluated.
+    - Add a new field.
+    - Augment the getter and/or setter to delegate to that field.
+
+    If a non-abstract, non-external variable is augmented by a getter or setter,
+    you **can** still augment the variable, as you are only augmenting the
+    initializer of the original variable. This is not considered to be
+    augmenting the augmenting getter or setter, since those are not actually
+    altered.
+
+    The reason for this compile time error is that whether a member declaration
+    is a field versus a getter/setter is a visible property of the declaration:
+
+    - It determines whether the member can be initialized in a constructor
+      initializer list.
+    - It is also a visible distinction when introspecting on a program with the
+      analyzer, macros, or mirrors.
+
+    When a declaration is augmented, we don't want the augmentation to be able
+    to change any of the known properties of the existing member being
+    augmented. For example, we don't allow you to augment a method with a getter
+    that returns a function. Augmenting a getter/setter pair with a field would
+    change the "can be used in a constructor initializer" property, so we forbid
+    it. Augmenting a field with a getter/setter doesn't change that property so
+    it is allowed.
+
+*   **Augmenting a variable with a variable:** Augmenting a variable with a
+    variable only alters its initializer. External and abstract variables cannot
+    be augmented with variables, because they have no initializer to augment.
+
+    Since the initializer is the only meaningful part of the augmenting
+    declaration, an initializer must be provided. This augmenting initializer
+    replaces the original initializer. The augmenting initializer may use an
+    `augmented` expression which executes the original initializer expression
+    when evaluated.
+
+    The `late` property of a variable must always be consistent between the
+    augmented variable and its augmenting variables.
 
     If the variable declaration in the original library does not have a type
     annotation, then the type is inferred only using the original library's
@@ -469,17 +560,17 @@ More specifically:
     necessary to ensure that macros running after signatures are known can't
     change the signature of a declaration.*
 
-    **TODO: What if the augmenting variable doesn't have an initializer?**
-
 It is a compile-time error if:
 
 *   The original and augmenting declarations do not have the same type.
 
-*   An augmenting declaration uses `augment super` when the original declaration
-    is marked `external`.
+*   An augmenting declaration uses `augmented` when the original declaration has
+    no concrete implementation. Note that all external declarations are assumed
+    to have an implementation provided by another external source, and they will
+    throw a runtime exception when called if not.
 
-*   An augmenting initializer uses `augment super` and the original declaration
-    is not a variable with an initializer.
+*   An augmenting initializer uses `augmented` and the augmented variable is not
+    a variable with an initializer.
 
 *   A final variable is augmented with a setter. (Instead, the augmentation
     library can declare a *non-augmenting* setter that goes alongside the
@@ -488,11 +579,71 @@ It is a compile-time error if:
 *   A non-final variable is augmented with a final variable. We don't want to
     leave the original setter in a weird state.
 
-*   A non-`late` augmenting instance variable initializer contains `augment
-    super` and the variable being augmented is `late`. *Initializers for `late`
-    instance variables have access to `this` while non-`late` variables do not.
-    This means a `late` variable's initializer can't be called from a non-`late`
-    variable's initializer.*
+*  A `late` variable is augmented with a non-`late` variable.
+
+*  A non-`late` variable is augmented with a `late` variable.
+
+*  A getter or setter are augmented by a variable.
+
+*  An abstract or external variable are augmented by a variable.
+
+### Augmenting enum values
+
+Enum values can _only_ be augmented by enum values, and the implicit getter
+introduced by them is not augmentable. The one thing you are allowed to do is to
+replace the argument list. There is no way to refer to the original argument
+list (although a macro may be able introspect on it and copy over some or all of
+the arguments).
+
+An augmenting enum value is allowed to invoke a different constructor than
+the original enum value, or provide an argument list where none was present
+before.
+
+New enum values may also be defined in the augmenting library, and they will
+be appended to the original values in source and augmentation traversal order.
+Augmenting an existing enum value never changes the order in which it appears in
+`values`.
+
+For example:
+
+```
+// main.dart
+import augment 'a.dart';
+import augment 'c.dart';
+
+enum A {
+  first;
+}
+
+// a.dart
+library augment 'main.dart';
+
+import augment 'b.dart';
+
+augment enum A {
+  second;
+  augment first; // This is still `first` in values.
+}
+// b.dart
+library augment 'a.dart';
+
+augment enum A {
+  augment third;
+}
+
+// c.dart
+library augment 'main.dart';
+
+augment enum A {
+  augment fourth;
+}
+```
+
+Then `A.values` is `[A.first, A.second, A.third, A.fourth]`.
+
+It is a compile-time error if:
+
+*   An augmenting getter is defined for an enum value.
 
 ### Augmenting constructors
 
@@ -502,7 +653,7 @@ body. If the augmenting constructor has any initializers, they are appended to
 the original constructor's initializers, but before any original super
 initializer or original redirecting initializer if there is one.
 
-In the augmenting constructor's body, an `augment super()` call invokes the
+In the augmenting constructor's body, an `augmented()` call invokes the
 original constructor's body.
 
 It is a compile-time error if:
@@ -530,6 +681,21 @@ It is a compile-time error if:
     and the augmenting constructor does too.
 
 **TODO: What about redirecting constructors?**
+
+### Augmenting external members
+
+When augmenting an `external` member, it is assumed that a real implementation
+of that member has already been filled by some tool prior to any augmentations
+being applied. Thus, it is allowed to use `augmented` from augmenting members
+on external declarations, but it may throw a `noSuchMethod` error at runtime if
+no implementation was in fact provided.
+
+**NOTE**: Macros should _not_ be able to statically tell if an external body has
+been filled in by a compiler, because it could lead to a different result on
+different platforms or tools.
+
+**TODO: Should we add a syntax to let the augmentation dynamically detect
+whether there is an external implementation to call?**
 
 ### Metadata annotations and macro applications
 
@@ -709,7 +875,7 @@ declaration ::= 'external' factoryConstructorSignature
   | 'augment'? constructorSignature (redirection | initializers)?
 ```
 
-**TODO: Define the grammar for the various `augment super` expressions.**
+**TODO: Define the grammar for the various `augmented` expressions.**
 
 It is a compile-time error if:
 
@@ -786,8 +952,18 @@ To merge a set of declarations `D` into a namespace:
 
         1.  Replace a matching variable, getter, and/or setter in the namespace
             with the declaration. Inside the augmenting variable's initializer
-            expression, an `augment super` expression invokes the original
-            variable initializer.
+            expression, an `augmented` expression invokes the original variable
+            initializer.
+
+## Documentation comments
+
+Documentation comments are allowed in all the standard places in augmentation
+libraries. It is up to the tooling to decide how to present such documentation
+comments to the user, but they should generally be considered to be additive,
+and should not completely override the original comment. In other words, it is
+not the expectation that augmentations should duplicate the original
+documentation comments, but instead provide comments that are specific to the
+augmentation.
 
 ## Deprecating part files
 
@@ -803,6 +979,44 @@ consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+## 1.14
+
+*   Change `augment super` to `augmented`.
+
+## 1.13
+
+*   Clarify which clauses are (not) allowed in augmentations of certain
+    declarations.
+*   Allow adding an `extends` clause in augmentations.
+
+## 1.12
+
+*   Update the behavior for variable augmentations.
+
+## 1.11
+
+*   Alter and clarify the semantics around augmenting external declarations.
+*   Allow non-abstract classes to have implictly abstract members which are
+    implemented in an augmentation.
+
+## 1.10
+
+*   Make `augment` a built-in identifier.
+
+### 1.9
+
+*   Specify that documentation comments are allowed, and should be considered to
+    be additive and not a complete override of the original comment. The rest of
+    the behavior is left up to implementations and not specified.
+
+### 1.8
+
+*   Specify that main libraries and thier augmentations must have the same
+    language version.
+
+*   Specifically call out that augmentations can add and augment enum values,
+    and specify how that works.
 
 ### 1.7
 

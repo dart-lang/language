@@ -2,9 +2,9 @@ name: Dart CI
 
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
   push:
-    branches: [master]
+    branches: [main]
 
 env:
   PUB_ENVIRONMENT: bot.github
@@ -13,10 +13,10 @@ jobs:
   analyze:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: dart-lang/setup-dart@v1
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - uses: dart-lang/setup-dart@b64355ae6ca0b5d484f0106a033dd1388965d06d
         with:
-            sdk: dev
+            sdk: main
       - name: dart pub get (specification)
         run: dart pub get
         working-directory: specification
@@ -34,10 +34,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: dart-lang/setup-dart@v1
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - uses: dart-lang/setup-dart@b64355ae6ca0b5d484f0106a033dd1388965d06d
         with:
-            sdk: dev
+            sdk: main
       - name: dart pub get (accepted/future-releases/0546-patterns/exhaustiveness_prototype)
         run: dart pub get
         working-directory: accepted/future-releases/0546-patterns/exhaustiveness_prototype

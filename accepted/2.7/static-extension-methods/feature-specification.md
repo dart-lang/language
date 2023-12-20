@@ -1,6 +1,8 @@
 # Dart Static Extension Methods Design
 
-lrn@google.com<br>Version: 1.6<br>Status: Design Document.
+lrn@google.com<br>
+Version: 1.6<br>
+**Status: Documentation of background and history. Please consult the language specification in order to see the current specification of this feature.**
 
 This is a design document for *static extension members* for Dart. This document describes the feature's syntax and semantics.
 

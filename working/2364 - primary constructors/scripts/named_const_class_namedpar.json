@@ -1,0 +1,20 @@
+{
+  "name": "Point",
+  "isConst": true,
+  "constructorName": "_",
+  "fields": [
+    {
+      "name": "x",
+      "type": "int",
+      "isFinal": true
+    },
+    {
+      "name": "y",
+      "type": "int",
+      "isFinal": true,
+      "isOptional": true,
+      "isNamed": true,
+      "defaultValue": "0"
+    }
+  ]
+}

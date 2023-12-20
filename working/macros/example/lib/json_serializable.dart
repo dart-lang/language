@@ -4,7 +4,7 @@
 //
 // ignore_for_file: deprecated_member_use
 
-// There is no public API exposed yet, the in progress api lives here.
+// There is no public API exposed yet, the in-progress API lives here.
 import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
 final dartCore = Uri.parse('dart:core');

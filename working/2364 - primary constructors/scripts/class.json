@@ -1,0 +1,13 @@
+{
+  "name": "Point",
+  "fields": [
+    {
+      "name": "x",
+      "type": "int"
+    },
+    {
+      "name": "y",
+      "type": "int"
+    }
+  ]
+}

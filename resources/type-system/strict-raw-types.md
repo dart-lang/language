@@ -11,7 +11,7 @@ their bounds, or `dynamic` if there are no bounds.
  To enable strict raw types, set the `strict-raw-types` option to `true`, under
  the Analyzer's `language` section:
 
- ```yaml
+```yaml
 analyzer:
   language:
     strict-raw-types: true

@@ -1,0 +1,16 @@
+{
+  "name": "Point",
+  "constructorName": "_",
+  "fields": [
+    {
+      "name": "x",
+      "type": "int"
+    },
+    {
+      "name": "y",
+      "type": "int",
+      "isOptional": true,
+      "defaultValue": "0"
+    }
+  ]
+}

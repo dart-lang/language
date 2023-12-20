@@ -1,47 +1,44 @@
-name: CI
+name: Dart CI
 
 on:
   # Run on PRs and pushes to the default branch.
   push:
-    branches: [ master ]
+    branches: [ main ]
     paths:
       - 'specification/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/spec.yml'
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
     paths:
       - 'specification/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/spec.yml'
 
 jobs:
   specification:
     runs-on: ubuntu-latest
-    if: |
-      (
-        (github.event_name == 'push'
-          && github.ref == 'refs/heads/master'
-          && github.repository == 'dart-lang/language'
-        ) ||
-        (github.event.pull_request.head.repo.full_name == github.repository)
-      )
 
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+
       - name: Install latex tools
-        run: | 
+        run: |
           sudo apt-get update -qq
           sudo apt-get install \
             texlive-latex-base \
             texlive-latex-extra \
             texlive-fonts-recommended \
             lmodern
+
       - name: Build specification
         run: |
           cd specification
           make
           mkdir firebase
           cp dartLangSpec.pdf firebase/DartLangSpecDraft.pdf
-      - uses: FirebaseExtended/action-hosting-deploy@4d0d0023f1d92b9b7d16dda64b3d7abd2c98974b
+
+      - name: Upload specification
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: FirebaseExtended/action-hosting-deploy@120e124148ab7016bec2374e5050f15051255ba2
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DART_SPECIFICATION }}'

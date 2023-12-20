@@ -6,7 +6,7 @@ irrefutable and refutable patterns into two separate kinds which it calls
 larger and means that some pattern syntax means different things in different
 contexts.
 
-[proposal]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/0546-patterns/feature-specification.md
+[proposal]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/feature-specification.md
 
 That choice is close to [how pattern matching works in Swift][swift patterns],
 but is different from pattern matching in Rust, Scala, ML, and most other

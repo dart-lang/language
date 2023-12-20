@@ -13,10 +13,9 @@ linter:
   - empty_statements
   - hash_and_equals
   - implementation_imports
-  - iterable_contains_unrelated_type
+  - collection_methods_unrelated_type
   - library_names
   - library_prefixes
-  - list_remove_unrelated_type
   - non_constant_identifier_names
   - overridden_fields
   - package_api_docs
