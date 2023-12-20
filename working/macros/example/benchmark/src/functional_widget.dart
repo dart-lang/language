@@ -84,7 +84,6 @@ final myFunction = FunctionDeclarationImpl(
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '_myWidget'),
     library: fooLibrary,
     metadata: [],
-    hasAbstract: false,
     hasBody: true,
     hasExternal: false,
     isGetter: false,

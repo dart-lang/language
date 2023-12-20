@@ -11,7 +11,7 @@ macro class DataClass
 
   @override
   Future<void> buildDeclarationsForClass(
-      IntrospectableClassDeclaration clazz, MemberDeclarationBuilder context) async {
+      ClassDeclaration clazz, MemberDeclarationBuilder context) async {
     await Future.wait([
       const AutoConstructor().buildDeclarationsForClass(clazz, context),
       const CopyWith().buildDeclarationsForClass(clazz, context),
@@ -23,7 +23,7 @@ macro class DataClass
 
   @override
   Future<void> buildDefinitionForClass(
-      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
+      ClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     await Future.wait([
       const HashCode().buildDefinitionForClass(clazz, builder),
       const Equality().buildDefinitionForClass(clazz, builder),
@@ -37,7 +37,7 @@ macro class AutoConstructor implements ClassDeclarationsMacro {
 
   @override
   Future<void> buildDeclarationsForClass(
-      IntrospectableClassDeclaration clazz, MemberDeclarationBuilder builder) async {
+      ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     var constructors = await builder.constructorsOf(clazz);
     if (constructors.any((c) => c.identifier.name == 'gen')) {
       throw ArgumentError(
@@ -62,7 +62,7 @@ macro class AutoConstructor implements ClassDeclarationsMacro {
 
     // Add all super constructor parameters as named parameters.
     var superclass = clazz.superclass == null ? null : await builder
-        .typeDeclarationOf(clazz.superclass!.identifier) as IntrospectableType;
+        .typeDeclarationOf(clazz.superclass!.identifier);
     var superType = superclass == null ? null : await builder
         .resolve(NamedTypeAnnotationCode(name: superclass.identifier));
     MethodDeclaration? superconstructor;
@@ -127,7 +127,7 @@ macro class CopyWith implements ClassDeclarationsMacro {
 
   @override
   Future<void> buildDeclarationsForClass(
-      IntrospectableClassDeclaration clazz, MemberDeclarationBuilder builder) async {
+      ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     var methods = await builder.methodsOf(clazz);
     if (methods.any((c) => c.identifier.name == 'copyWith')) {
       throw ArgumentError(
@@ -182,7 +182,7 @@ macro class HashCode
 
   @override
   Future<void> buildDefinitionForClass(
-      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
+      ClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     var methods = await builder.methodsOf(clazz);
     var hashCodeBuilder = await builder.buildMethod(
         methods.firstWhere((m) => m.identifier.name == 'hashCode').identifier);
@@ -218,7 +218,7 @@ macro class Equality
 
   @override
   Future<void> buildDefinitionForClass(
-      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
+      ClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     var methods = await builder.methodsOf(clazz);
     var equalsBuilder = await builder.buildMethod(
         methods.firstWhere((m) => m.identifier.name == '==').identifier);
@@ -259,7 +259,7 @@ macro class ToString
 
   @override
   Future<void> buildDefinitionForClass(
-      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
+      ClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     var methods = await builder.methodsOf(clazz);
     var toStringBuilder = await builder.buildMethod(
         methods.firstWhere((m) => m.identifier.name == 'toString').identifier);
@@ -280,7 +280,7 @@ macro class ToString
   }
 }
 
-extension _AllFields on IntrospectableClassDeclaration {
+extension _AllFields on ClassDeclaration {
   // Returns all fields from all super classes.
   Stream<FieldDeclaration> allFields(
       DeclarationPhaseIntrospector introspector) async* {
@@ -290,7 +290,7 @@ extension _AllFields on IntrospectableClassDeclaration {
     var next = superclass != null ?
         await introspector.typeDeclarationOf(superclass!.identifier) : null;
     // TODO: Compare against actual Object identifer once we provide a way to get it.
-    while (next is IntrospectableClassDeclaration && next.identifier.name != 'Object') {
+    while (next is ClassDeclaration && next.identifier.name != 'Object') {
       for (var field in await introspector.fieldsOf(next)) {
         yield field;
       }

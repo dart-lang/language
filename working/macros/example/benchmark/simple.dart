@@ -74,18 +74,12 @@ void main(List<String> args) async {
   // Set up all of our options
   var parsedSerializationStrategy =
       parsedArgs['serialization-strategy'] as String;
-  SerializationMode serializationMode;
-  switch (parsedSerializationStrategy) {
-    case 'bytedata':
-      serializationMode = SerializationMode.byteData;
-      break;
-    case 'json':
-      serializationMode = SerializationMode.json;
-      break;
-    default:
-      throw ArgumentError(
-          'Unrecognized serialization mode $parsedSerializationStrategy');
-  }
+  final serializationMode = switch (parsedSerializationStrategy) {
+    'bytedata' => SerializationMode.byteData,
+    'json' => SerializationMode.json,
+    _ => throw ArgumentError(
+        'Unrecognized serialization mode $parsedSerializationStrategy'),
+  };
 
   var macroExecutionStrategy = parsedArgs['macro-execution-strategy'] as String;
   var hostMode = Platform.script.path.endsWith('.dart') ||

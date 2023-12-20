@@ -139,7 +139,7 @@ class DataClassDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
 
 final myClassIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'MyClass');
-final myClass = IntrospectableClassDeclarationImpl(
+final myClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: myClassIdentifier,
     library: fooLibrary,
@@ -168,6 +168,7 @@ final myClassFields = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myString'),
       library: fooLibrary,
       metadata: [],
+      hasAbstract: false,
       hasExternal: false,
       hasFinal: true,
       hasLate: false,
@@ -179,6 +180,7 @@ final myClassFields = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myBool'),
       library: fooLibrary,
       metadata: [],
+      hasAbstract: false,
       hasExternal: false,
       hasFinal: true,
       hasLate: false,
@@ -193,7 +195,6 @@ final myClassMethods = [
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '=='),
     library: fooLibrary,
     metadata: [],
-    hasAbstract: false,
     hasBody: true,
     hasExternal: false,
     isGetter: false,
@@ -225,7 +226,6 @@ final myClassMethods = [
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'hashCode'),
     library: fooLibrary,
     metadata: [],
-    hasAbstract: false,
     hasBody: true,
     hasExternal: false,
     isOperator: false,
@@ -243,7 +243,6 @@ final myClassMethods = [
     identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'toString'),
     library: fooLibrary,
     metadata: [],
-    hasAbstract: false,
     hasBody: true,
     hasExternal: false,
     isGetter: false,

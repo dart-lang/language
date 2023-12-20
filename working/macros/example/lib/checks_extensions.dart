@@ -86,8 +86,7 @@ macro class ChecksExtension implements ExtensionDeclarationsMacro {
     }
 
     // Generate the getters
-    final fields =
-        await builder.fieldsOf(onTypeDeclaration as IntrospectableType);
+    final fields = await builder.fieldsOf(onTypeDeclaration);
     for (final field in fields) {
       if (_isCheckableField(field))
         await _declareHasGetter(field, builder, subject);
