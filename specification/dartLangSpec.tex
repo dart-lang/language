@@ -23028,15 +23028,15 @@ of $C$.
 
 \LMHash{}%
 The current scope for a documentation comment immediately preceding
-the declaration of a function $f$ is the
-\IndexCustom{formal parameter scope}{scope!formal parameter} of $f$.
+The current scope for a documentation comment immediately preceding
+the declaration of a non-redirecting generative constructor $k$
+with initializing formals is the formal parameter initializer scope of $k$
+(\ref{generativeConstructors}).
 
 \LMHash{}%
-The current scope for a documentation comment immediately preceding
-the declaration of a non-redirecting generative constructor $c$
-with initializing formals is the
-\IndexCustom{formal parameter initializer scope}{%
-  scope!formal parameter initializer}of $c$.
+Otherwise, the current scope for a documentation comment immediately preceding
+the declaration of a function $f$ is the formal parameter scope of $f$
+(\ref{formalParameters}).
 
 
 \subsection{Operator Precedence}
