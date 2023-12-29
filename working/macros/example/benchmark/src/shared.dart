@@ -129,11 +129,10 @@ class SimpleTypePhaseIntrospector implements TypePhaseIntrospector {
 class SimpleDeclarationPhaseIntrospector extends SimpleTypePhaseIntrospector
     implements DeclarationPhaseIntrospector {
   final Map<Identifier, Declaration> declarations;
-  final Map<IntrospectableType, List<ConstructorDeclaration>> constructors;
-  final Map<IntrospectableEnumDeclaration, List<EnumValueDeclaration>>
-      enumValues;
-  final Map<IntrospectableType, List<FieldDeclaration>> fields;
-  final Map<IntrospectableType, List<MethodDeclaration>> methods;
+  final Map<TypeDeclaration, List<ConstructorDeclaration>> constructors;
+  final Map<EnumDeclaration, List<EnumValueDeclaration>> enumValues;
+  final Map<TypeDeclaration, List<FieldDeclaration>> fields;
+  final Map<TypeDeclaration, List<MethodDeclaration>> methods;
 
   SimpleDeclarationPhaseIntrospector({
     required super.identifiers,
@@ -153,20 +152,19 @@ class SimpleDeclarationPhaseIntrospector extends SimpleTypePhaseIntrospector
 
   @override
   Future<List<ConstructorDeclaration>> constructorsOf(
-          IntrospectableType type) async =>
+          TypeDeclaration type) async =>
       constructors[type] ?? [];
 
   @override
-  Future<List<FieldDeclaration>> fieldsOf(IntrospectableType type) async =>
+  Future<List<FieldDeclaration>> fieldsOf(TypeDeclaration type) async =>
       fields[type] ?? [];
 
   @override
-  Future<List<MethodDeclaration>> methodsOf(IntrospectableType type) async =>
+  Future<List<MethodDeclaration>> methodsOf(TypeDeclaration type) async =>
       methods[type] ?? [];
 
   @override
-  Future<List<EnumValueDeclaration>> valuesOf(
-          IntrospectableEnumDeclaration type) async =>
+  Future<List<EnumValueDeclaration>> valuesOf(EnumDeclaration type) async =>
       enumValues[type] ?? [];
 
   @override
@@ -212,8 +210,8 @@ class SimpleDefinitionPhaseIntrospector
       declarations.values.toList(growable: false);
 
   @override
-  Future<IntrospectableType> typeDeclarationOf(Identifier identifier) async =>
-      (await super.typeDeclarationOf(identifier)) as IntrospectableType;
+  Future<TypeDeclaration> typeDeclarationOf(Identifier identifier) async =>
+      (await super.typeDeclarationOf(identifier));
 }
 
 /// Only supports exact matching, and only goes off of the name and nullability.
@@ -274,7 +272,7 @@ final fooLibrary = LibraryImpl(
     metadata: [],
     uri: Uri.parse('package:foo/foo.dart'));
 
-final objectClass = IntrospectableClassDeclarationImpl(
+final objectClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: objectIdentifier,
     library: fooLibrary,

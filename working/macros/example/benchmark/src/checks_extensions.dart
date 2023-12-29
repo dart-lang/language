@@ -147,7 +147,7 @@ final myClassType = NamedTypeAnnotationImpl(
     isNullable: false,
     identifier: myClassIdentifier,
     typeArguments: const []);
-final myClass = IntrospectableClassDeclarationImpl(
+final myClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: myClassIdentifier,
     library: fooLibrary,
@@ -176,6 +176,7 @@ final myClassFields = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myString'),
       library: fooLibrary,
       metadata: [],
+      hasAbstract: false,
       hasExternal: false,
       hasFinal: true,
       hasLate: false,
@@ -187,6 +188,7 @@ final myClassFields = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'myBool'),
       library: fooLibrary,
       metadata: [],
+      hasAbstract: false,
       hasExternal: false,
       hasFinal: true,
       hasLate: false,
@@ -194,7 +196,7 @@ final myClassFields = [
       type: boolType),
 ];
 
-final myExtension = IntrospectableExtensionDeclarationImpl(
+final myExtension = ExtensionDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier:
         IdentifierImpl(id: RemoteInstance.uniqueId, name: 'MyClassChecks'),

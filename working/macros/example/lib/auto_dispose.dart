@@ -15,7 +15,7 @@ macro class AutoDispose implements ClassDeclarationsMacro, ClassDefinitionMacro 
 
   @override
   void buildDeclarationsForClass(
-      IntrospectableClassDeclaration clazz, MemberDeclarationBuilder builder) async {
+      ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     var methods = await builder.methodsOf(clazz);
     if (methods.any((d) => d.identifier.name == 'dispose')) {
       // Don't need to add the dispose method, it already exists.
@@ -29,7 +29,7 @@ macro class AutoDispose implements ClassDeclarationsMacro, ClassDefinitionMacro 
 
   @override
   Future<void> buildDefinitionForClass(
-      IntrospectableClassDeclaration clazz, TypeDefinitionBuilder builder) async {
+      ClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     var disposableIdentifier =
         // ignore: deprecated_member_use
         await builder.resolveIdentifier(
@@ -50,15 +50,19 @@ macro class AutoDispose implements ClassDeclarationsMacro, ClassDefinitionMacro 
         '.dispose();',
       ]));
     }
+
     // Augment the dispose method by injecting all the new dispose calls after
-    // the call to `augment super()`, which should be calling `super.dispose()`
-    // already.
+    // either a call to `augmented()` or `super.dispose()`, depending on if
+    // there already is an existing body to call.
+    //
+    // If there was an existing body, it is responsible for calling
+    // `super.dispose()`.
     var disposeMethod = (await builder.methodsOf(clazz))
         .firstWhere((method) => method.identifier.name == 'dispose');
     var disposeBuilder = await builder.buildMethod(disposeMethod.identifier);
     disposeBuilder.augment(FunctionBodyCode.fromParts([
       '{\n',
-      if (disposeMethod.hasExternal) 'super.dispose();' else 'augment super();',
+      if (!disposeMethod.hasBody) 'super.dispose();' else 'augmented();',
       ...disposeCalls,
       '}',
     ]));
