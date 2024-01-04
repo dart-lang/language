@@ -7692,9 +7692,12 @@ when it is used in any of the following ways:
 \item $T$ is an immediate subterm of an \EXTENDS{} clause of a class
   (\ref{superclasses}),
   or it occurs as an element in the type list of an \IMPLEMENTS{} clause
-  (\ref{superinterfaces}),
+  %% TODO(eernst): Come extension types, add ref. Maybe mixin class?
+  (\ref{superinterfaces}, \ref{enums}, \ref{mixins}),
   or a \WITH{} clause
-  (\ref{classes}).
+  (\ref{classes}, \ref{enums}),
+  or it occurs as an element in the type list of an \ON{} clause of a mixin
+  (\ref{mixins}).
 \end{itemize}
 
 \commentary{%
