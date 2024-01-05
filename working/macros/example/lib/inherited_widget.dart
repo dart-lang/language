@@ -29,7 +29,7 @@ macro class InheritedWidget implements ClassTypesMacro, ClassDeclarationsMacro {
   }
 
   @override
-  Future<void> buildDeclarationsForClass(IntrospectableClassDeclaration clazz, MemberDeclarationBuilder builder) async {
+  Future<void> buildDeclarationsForClass(ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     final fields = await builder.fieldsOf(clazz);
     final methods = await builder.methodsOf(clazz);
     if (!methods.any((method) => method is ConstructorDeclaration)) {
