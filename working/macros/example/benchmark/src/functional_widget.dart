@@ -12,8 +12,9 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       'int': intIdentifier,
       'String': stringIdentifier,
     },
-    Uri.parse('package:flutter/flutter.dart'): {
+    Uri.parse('package:flutter/widgets.dart'): {
       'BuildContext': buildContextIdentifier,
+      'StatelessWidget': statelessWidgetIdentifier,
       'Widget': widgetIdentifier,
     }
   });
@@ -67,6 +68,8 @@ class FunctionalWidgetTypesPhaseBenchmark extends AsyncBenchmarkBase {
 
 final buildContextIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'BuildContext');
+final statelessWidgetIdentifier =
+    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'StatelessWidget');
 final buildContextType = NamedTypeAnnotationImpl(
     id: RemoteInstance.uniqueId,
     isNullable: false,
