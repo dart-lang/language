@@ -64,9 +64,11 @@ macro class ChecksExtension implements ExtensionDeclarationsMacro {
     // ignore: deprecated_member_use
     final subject = await builder.resolveIdentifier(
         Uri.parse('package:checks/checks.dart'), 'Subject');
+    final subjectType =
+        await builder.resolve(NamedTypeAnnotationCode(name: subject));
     final onType = extension.onType;
     if (onType is! NamedTypeAnnotation ||
-        onType.identifier != subject ||
+        !(await (await builder.resolve(onType.code)).isSubtypeOf(subjectType)) ||
         onType.typeArguments.length != 1) {
       throw StateError(
           'The `on` type must be a Subject with an explicit type argument.');

@@ -41,7 +41,8 @@ macro class JsonSerializable implements ClassDeclarationsMacro, ClassDefinitionM
   Future<void> buildDefinitionForClass(
       ClassDeclaration clazz, TypeDefinitionBuilder builder) async {
     // TODO: support extending other classes.
-    if (clazz.superclass != null) {
+    var object = await builder.resolve(NamedTypeAnnotationCode(name: await builder.resolveIdentifier(dartCore, 'Object')));
+    if (clazz.superclass != null && !await (await builder.resolve(NamedTypeAnnotationCode(name: clazz.superclass!.identifier))).isExactly(object)) {
       throw UnsupportedError(
           'Serialization of classes that extend other classes is not supported.');
     }
@@ -59,7 +60,7 @@ macro class JsonSerializable implements ClassDeclarationsMacro, ClassDefinitionM
           ' = ',
           await _convertField(field, jsonParam, builder),
         ]),
-    ], body: FunctionBodyCode.fromString('{}'));
+    ]);
   }
 
   // TODO: Support nested List, Map, etc conversion, including deep casting.

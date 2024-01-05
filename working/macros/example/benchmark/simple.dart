@@ -32,6 +32,7 @@ import 'src/checks_extensions.dart' as checks_extensions;
 import 'src/data_class.dart' as data_class;
 import 'src/functional_widget.dart' as functional_widget;
 import 'src/injectable.dart' as injectable;
+import 'src/json_serializable.dart' as json_serializable;
 
 final _watch = Stopwatch()..start();
 void _log(String message) {
@@ -57,7 +58,8 @@ final argParser = ArgParser()
         'ChecksExtensions',
         'DataClass',
         'Injectable',
-        'FunctionalWidget'
+        'FunctionalWidget',
+        'JsonSerializable',
       ],
       mandatory: true)
   ..addFlag('help', negatable: false, hide: true);
@@ -107,6 +109,7 @@ Macro: $macro
     'DataClass' => File('lib/data_class.dart'),
     'Injectable' => File('lib/injectable.dart'),
     'FunctionalWidget' => File('lib/functional_widget.dart'),
+    'JsonSerializable' => File('lib/json_serializable.dart'),
     _ => throw UnsupportedError('Unrecognized macro $macro'),
   };
   if (!macroFile.existsSync()) {
@@ -122,6 +125,8 @@ Macro: $macro
       'Injectable' => Uri.parse('package:macro_proposal/injectable.dart'),
       'FunctionalWidget' =>
         Uri.parse('package:macro_proposal/functional_widget.dart'),
+      'JsonSerializable' =>
+        Uri.parse('package:macro_proposal/json_serializable.dart'),
       _ => throw UnsupportedError('Unrecognized macro $macro'),
     };
     var macroConstructors = switch (macro) {
@@ -139,6 +144,9 @@ Macro: $macro
         },
       'FunctionalWidget' => {
           'FunctionalWidget': [''],
+        },
+      'JsonSerializable' => {
+          'JsonSerializable': [''],
         },
       _ => throw UnsupportedError('Unrecognized macro $macro'),
     };
@@ -183,6 +191,7 @@ Macro: $macro
       'DataClass' => data_class.runBenchmarks(executor, macroUri),
       'Injectable' => injectable.runBenchmarks(executor, macroUri),
       'FunctionalWidget' => functional_widget.runBenchmarks(executor, macroUri),
+      'JsonSerializable' => json_serializable.runBenchmarks(executor, macroUri),
       _ => throw UnsupportedError('Unrecognized macro $macro'),
     };
     await executor.close();
