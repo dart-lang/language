@@ -307,7 +307,7 @@ final providerType = TypeAliasDeclarationImpl(
 // interface class Heater {}
 final heaterIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'Heater');
-final heaterClass = IntrospectableClassDeclarationImpl(
+final heaterClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: heaterIdentifier,
     library: fooLibrary,
@@ -331,7 +331,7 @@ final heaterClass = IntrospectableClassDeclarationImpl(
 // }
 final electricHeaterIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'ElectricHeater');
-final electricHeaterClass = IntrospectableClassDeclarationImpl(
+final electricHeaterClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: electricHeaterIdentifier,
     library: fooLibrary,
@@ -359,11 +359,8 @@ final electricHeaterConstructors = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: false,
-      isGetter: false,
-      isOperator: false,
-      isSetter: false,
       namedParameters: [],
       positionalParameters: [],
       returnType: NamedTypeAnnotationImpl(
@@ -383,7 +380,7 @@ final generatedElectricHeaterMethods = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provider'),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: false,
       isGetter: false,
       isOperator: false,
@@ -409,7 +406,7 @@ final generatedElectricHeaterMethods = [
 // interface class Pump {}
 final pumpIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'Pump');
-final pumpClass = IntrospectableClassDeclarationImpl(
+final pumpClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: pumpIdentifier,
     library: fooLibrary,
@@ -434,7 +431,7 @@ final pumpClass = IntrospectableClassDeclarationImpl(
 // }
 final thermosiphonIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'Thermosiphon');
-final thermosiphonClass = IntrospectableClassDeclarationImpl(
+final thermosiphonClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: thermosiphonIdentifier,
     library: fooLibrary,
@@ -462,6 +459,7 @@ final thermosiphonFields = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'heater'),
       library: fooLibrary,
       metadata: [],
+      hasAbstract: false,
       hasExternal: false,
       hasFinal: true,
       hasLate: false,
@@ -479,11 +477,8 @@ final thermosiphonConstructors = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: false,
-      isGetter: false,
-      isOperator: false,
-      isSetter: false,
       namedParameters: [],
       positionalParameters: [
         for (var field in thermosiphonFields)
@@ -515,7 +510,7 @@ final generatedThermosiphonMethods = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provider'),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: false,
       isGetter: false,
       isOperator: false,
@@ -567,7 +562,7 @@ final generatedThermosiphonMethods = [
 // }
 final coffeeMakerIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'CoffeeMaker');
-final coffeeMakerClass = IntrospectableClassDeclarationImpl(
+final coffeeMakerClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: coffeeMakerIdentifier,
     library: fooLibrary,
@@ -589,6 +584,7 @@ final coffeeMakerFields = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'heater'),
       library: fooLibrary,
       metadata: [],
+      hasAbstract: false,
       hasExternal: false,
       hasFinal: true,
       hasLate: false,
@@ -604,6 +600,7 @@ final coffeeMakerFields = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'pump'),
       library: fooLibrary,
       metadata: [],
+      hasAbstract: false,
       hasExternal: false,
       hasFinal: true,
       hasLate: false,
@@ -621,11 +618,8 @@ final coffeeMakerConstructors = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: false,
-      isGetter: false,
-      isOperator: false,
-      isSetter: false,
       namedParameters: [],
       positionalParameters: [
         for (var field in coffeeMakerFields)
@@ -659,7 +653,7 @@ final generatedCoffeeMakerMethods = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provider'),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: false,
       isGetter: false,
       isOperator: false,
@@ -729,7 +723,7 @@ final generatedCoffeeMakerMethods = [
 // }
 final dripCoffeeModuleIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'DripCoffeeModule');
-final dripCoffeeModuleClass = IntrospectableClassDeclarationImpl(
+final dripCoffeeModuleClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: dripCoffeeModuleIdentifier,
     library: fooLibrary,
@@ -752,7 +746,7 @@ final dripCoffeeModuleMethods = [
           IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provideHeater'),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: false,
       isGetter: false,
       isOperator: false,
@@ -787,7 +781,7 @@ final dripCoffeeModuleMethods = [
           IdentifierImpl(id: RemoteInstance.uniqueId, name: 'providePump'),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: false,
       isGetter: false,
       isOperator: false,
@@ -829,7 +823,7 @@ final generatedDripCoffeeModuleMethods = [
           id: RemoteInstance.uniqueId, name: 'provideHeaterProvider'),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: false,
       isGetter: false,
       isOperator: false,
@@ -876,7 +870,7 @@ final generatedDripCoffeeModuleMethods = [
           id: RemoteInstance.uniqueId, name: 'providePumpProvider'),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: false,
       isGetter: false,
       isOperator: false,
@@ -929,7 +923,7 @@ final generatedDripCoffeeModuleMethods = [
 // }
 final dripCoffeeComponentIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'DripCoffeeComponent');
-final dripCoffeeComponentClass = IntrospectableClassDeclarationImpl(
+final dripCoffeeComponentClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: dripCoffeeComponentIdentifier,
     library: fooLibrary,
@@ -952,7 +946,7 @@ final dripCoffeeComponentMethods = [
           IdentifierImpl(id: RemoteInstance.uniqueId, name: 'coffeeMaker'),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: true,
       isGetter: false,
       isOperator: false,
@@ -974,11 +968,8 @@ final dripCoffeeComponentConstructors = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: true,
-      isGetter: false,
-      isOperator: false,
-      isSetter: false,
       namedParameters: [],
       positionalParameters: [
         ParameterDeclarationImpl(
@@ -1013,11 +1004,8 @@ final generatedDripCoffeeComponentConstructors = [
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '_'),
       library: fooLibrary,
       metadata: [],
-      hasAbstract: false,
+      hasBody: true,
       hasExternal: false,
-      isGetter: false,
-      isOperator: false,
-      isSetter: false,
       namedParameters: [],
       positionalParameters: [
         ParameterDeclarationImpl(
@@ -1048,6 +1036,7 @@ final generatedDripCoffeeComponentFields = [
           id: RemoteInstance.uniqueId, name: '_coffeeMakerProvider'),
       library: fooLibrary,
       metadata: [],
+      hasAbstract: false,
       hasExternal: false,
       hasFinal: true,
       hasLate: false,

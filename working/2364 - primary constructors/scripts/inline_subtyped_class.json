@@ -1,0 +1,12 @@
+{
+  "isInline": true,
+  "name": "Point",
+  "superinterfaces": "implements B, C",
+  "fields": [
+    {
+      "name": "x",
+      "type": "int",
+      "isFinal": true
+    }
+  ]
+}

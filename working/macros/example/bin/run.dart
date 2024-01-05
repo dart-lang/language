@@ -27,6 +27,8 @@ void main(List<String> args) async {
   var jsonSerializableUri =
       Uri.parse('package:macro_proposal/json_serializable.dart');
   var injectableUri = Uri.parse('package:macro_proposal/injectable.dart');
+  var checksExtensionsUri =
+      Uri.parse('package:macro_proposal/checks_extensions.dart');
   var bootstrapContent = bootstrapMacroIsolate({
     dataClassUri.toString(): {
       'AutoConstructor': [''],
@@ -51,7 +53,11 @@ void main(List<String> args) async {
       'Component': [''],
       'Injectable': [''],
       'Provides': [''],
-    }
+    },
+    checksExtensionsUri.toString(): {
+      'ChecksExtensions': [''],
+      'ChecksExtension': [''],
+    },
   }, SerializationMode.byteData);
   bootstrapFile.writeAsStringSync(bootstrapContent);
   var bootstrapKernelFile =
@@ -76,6 +82,7 @@ void main(List<String> args) async {
     bootstrapKernelFile.path,
     '--source=${bootstrapFile.path}',
     '--source=lib/auto_dispose.dart',
+    '--source=lib/checks_extensions.dart',
     '--source=lib/data_class.dart',
     '--source=lib/functional_widget.dart',
     '--source=lib/injectable.dart',
@@ -108,17 +115,10 @@ void main(List<String> args) async {
     scriptUri,
     '--packages-file=.dart_tool/package_config.json',
     '--enable-experiment=macros',
-    '--precompiled-macro-format=kernel',
     '--precompiled-macro',
-    '$dataClassUri;${bootstrapKernelFile.path}',
-    '--precompiled-macro',
-    '$observableUri;${bootstrapKernelFile.path}',
-    '--precompiled-macro',
-    '$autoDisposableUri;${bootstrapKernelFile.path}',
-    '--precompiled-macro',
-    '$jsonSerializableUri;${bootstrapKernelFile.path}',
-    '--precompiled-macro',
-    '$injectableUri;${bootstrapKernelFile.path}',
+    '${bootstrapKernelFile.path};$autoDisposableUri;$dataClassUri;'
+        '$observableUri;$jsonSerializableUri;$injectableUri;'
+        '$checksExtensionsUri',
     '--macro-serialization-mode=bytedata',
     '--input-linked',
     bootstrapKernelFile.path,

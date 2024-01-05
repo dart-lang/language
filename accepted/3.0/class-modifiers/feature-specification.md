@@ -750,7 +750,7 @@ It's a compile-time error if:
     and *P* has any superdeclaration *S*, from a library *K*, which
     is marked `base` or `final` _(including *S* being *P* itself)_,
     and neither:
-    * *K* and *L* is the same library, mor
+    * *K* and *L* is the same library, nor
     * *K* is a platform library and *L* is a pre-feature library.
 
     ```dart
@@ -850,11 +850,11 @@ A mixin class declaration has `Object` from `dart:core` as superclass iff it’s
     as the declared superclass.
     _E.g., `mixin class C {}` or `mixin class C extends Object {}`_
 
-_The mixin class declarations can also have interfaces, type parameters, _
-_and modifiers, but no `extends` or `with` clauses other than those shown here._
+_The mixin class declarations can also have interfaces, type parameters,
+and modifiers, but no `extends` or `with` clauses other than those shown here._
 
 A *trivial generative constructor* is a generative constructor that:
-*   Is not a redirecting constructor _(`Foo(...) : this.other(...);`),
+*   Is not a redirecting constructor _(`Foo(...) : this.other(...);`)_,
 *   declares no parameters (parameter list is precisely `()`),
 *   has no initializer list (no `: ...` part, so no asserts or initializers, and
     no explicit super constructor invocation),

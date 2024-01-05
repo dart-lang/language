@@ -15,6 +15,39 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2023.11.14
+  - Specify that a method declaration will shadow an otherwise "inherited"
+    setter with the same basename, and vice versa. This eliminates a
+    method/setter conflict that would otherwise be impossible to avoid.
+
+2023.10.31
+  - Simplify the rules about the relationship between extension types and the
+    types `Object` and `Object?`.
+
+2023.10.25
+  - Allow an extension type to have `implements T` where `T` is a
+    supertype of the representation type (the old rule only allows
+    it when the representation type of `T` is a supertype).
+
+2023.10.18
+  - Add error for non-covariant occurrence of a type variable in a
+    superinterface.
+  - Specify how to promote the representation variable of an extension
+    type.
+
+2023.10.16
+  - Add error for `implements ... T ... T ...`, like the corresponding
+    error with classes, mixins, etc.
+
+2023.09.11
+  - Add missing rule about getter/setter signature correspondence.
+
+2023.08.17
+  - Add covariance subtype rule for extension types. Add rule that it is an
+    error for an extension type member to be abstract. Mention that it is
+    allowed for extension type members to be external. Adjust the notion of
+    the 'depth' of a type such that `UP` can be used with extension types.
+
 2023.07.13
   - Revise many details, in particular the management of ambiguities
     involving extension type members and non-extension type members.
@@ -265,6 +298,7 @@ leaves, and nothing else.
 ```dart
 extension type TinyJson(Object it) {
   Iterable<num> get leaves sync* {
+    final it = this.it; // To get promotion.
     if (it is num) {
       yield it;
     } else if (it is List<dynamic>) {
@@ -283,9 +317,6 @@ void main() {
   tiny.add("Hello!"); // Error.
 }
 ```
-
-Note that `it` is subject to promotion in the above example. This is safe
-because there is no way to override this would-be final instance variable.
 
 An instance creation of an extension type, `V<T>(o)`, will evaluate to a
 reference to the representation object, with the static type `V<T>` (and
@@ -347,11 +378,11 @@ class TinyJson {
   TinyJson(this.it);
 
   Iterable<num> get leaves sync* {
-    var localIt = it; // To get promotion.
-    if (localIt is num) {
-      yield localIt;
-    } else if (localIt is List<dynamic>) {
-      for (var element in localIt) {
+    final it = this.it; // To get promotion.
+    if (it is num) {
+      yield it;
+    } else if (it is List<dynamic>) {
+      for (var element in it) {
         yield* TinyJson(element).leaves;
       }
     } else {
@@ -423,7 +454,10 @@ disambiguate the extension type declaration with a fixed lookahead.*
 Some errors can be detected immediately from the syntax:
 
 A compile-time error occurs if the extension type declaration declares any
-instance variables.
+instance variables, unless they are `external`.
+
+*An external instance variable is just a convenient notation for an external
+getter and (if not `final`) an external setter, which are both allowed.*
 
 The _name of the representation_ in an extension type declaration with a
 representation declaration of the form `(T id)` is the identifier `id`, and
@@ -487,14 +521,43 @@ type declaration, but this section is concerned with invocations of
 extension type members.*
 
 We need to introduce a concept that is similar to existing concepts
-for regular classes.
+for regular classes, namely that an extension type _has_ a certain member.
+
+First, we say that an extension type member declaration _DM_ _precludes_ an
+extension type member declaration _DM2_ if they have the same name, or the
+basename of _DM_ is the same as the basename of _DM2_, and one of _DM_ and
+_DM2_ is a setter declaration, and the other is a method declaration.
+
+Moreover, we say that an extension type member declaration _DM_ _precludes_
+a non-extension type member signature `m` if they have the same name, or
+the basename of _DM_ is the same as the basename of `m`, and _DM_ is a
+setter declaration and `m` is a method signature, or _DM_ is a method
+declaration and `m` is a setter signature.
+
+*We use this concept with superinterfaces of DM. DM may have multiple
+non-extension type superinterfaces, and they may differ with respect to the
+precise member signature for a given member name, but they will not differ
+with respect to the kind: `m` may be a method or a setter or a getter, but
+it cannot be, e.g., a method in one superinterface and a getter in another
+one. Hence, it is well-defined to talk about `m` being a method or a setter
+signature even though there may be multiple member signatures with the
+given name.*
 
 We say that an extension type declaration _DV_ _has_ an extension type
-member named `n` in the case where _DV_ declares a member named `n`, and in
-the case where _DV_ has no such declaration, but _DV_ has a direct
-extension type superinterface `V` that has an extension type member named
-`n`. In both cases, when this is unique, _the extension type member
-declaration named `n` that DV has_ is said declaration.
+member named `n` in the cases where:
+
+- _DV_ declares a member named `n`.
+- _DV_ has no such declaration, but _DV_ has a direct extension type
+  superinterface `V` that has an extension type member named `n` due to a
+  member declaration _DM2_, and _DV_ does not declare a member that
+  precludes _DM2_.
+
+*Note that it is well-defined which member declaration causes an extension
+type to have a given extension type member because a compile-time error
+occurs whenever this is ambiguous: Either _DV_ contains a declaration
+named `n`, or at most one superinterface has an extension type member named
+`n`, which is then (by induction) due to a uniquely determined
+extension type member declaration.*
 
 The type (function type for a method, return type for a getter) of this
 declaration relative to this invocation is determined by repeatedly
@@ -505,10 +568,14 @@ type parameters of the extension type into the type of that declaration.
 
 Similarly, we say that an extension type declaration _DV_ _has_ a
 non-extension type member named `n` in the case where _DV_ does not declare
-a member named `n`, but _DV_ has a direct extension type superinterface `V`
-that has a non-extension type member named `n`, or _DV_ has a direct
-non-extension type superinterface `T` whose interface contains a member
-signature named `n`.
+a member named `n`, and one of the following criteria is satisfied:
+
+- _DV_ has a direct extension type superinterface `V` that has a
+  non-extension type member with signature `m` and name `n`, and _DV_ does
+  not declare a member that precludes `m`.
+- _DV_ has a direct non-extension type superinterface whose interface
+  contains a member signature `m` named `n`, and _DV_ does not declare a
+  member that precludes `m`.
 
 The member signature of such a member is the combined member signature of
 all non-extension type members named `n` that _DV_ has, again using a
@@ -540,11 +607,10 @@ or a subtype of the corresponding instantiated representation type
 expression is an extension type member invocation, but it is already
 ensured by normal static analysis of subexpressions like `e`.*
 
-If the name of `m` is a name in the interface of `Object` (that is,
-`toString`, `==`, `hashCode`, `runtimeType`, or `noSuchMethod`), the static
-analysis of the invocation is treated as an ordinary instance member
-invocation on a receiver of type `Object?` and with the same `args` or
-`typeArgs`, if any.
+*Note that if the name of `m` is a name in the interface of `Object` (that
+is, `toString`, `==`, `hashCode`, `runtimeType`, or `noSuchMethod`), the
+denoted member is necessarily a non-extension type member, which determines
+the static analysis and dynamic semantics.*
 
 Otherwise, a compile-time error occurs if `V` does not have a member
 named `m`.
@@ -688,6 +754,37 @@ Member Conflicts' occur as well in an extension type declaration.
 and has an instance member named `V`, and it is a compile-time error if it
 has a type parameter named `X` and it has an instance member named `X`.*
 
+If the representation name of an extension type is a private name `_n` then
+the representation variable is subject to promotion according to the rules
+about promotion of private instance variables, except that promotion is
+_not_ eliminated by the existence of other declarations (of any kind) named
+`_n` in the same library.
+
+Conversely, the existence of an extension type with a representation
+variable with a private name `_n` does not eliminate promotion of
+any private instance variables named `_n` of a class, mixin, enum, or mixin
+class in the same library.
+
+It is a compile-time error if a member declaration in an extension type
+declaration is abstract.
+
+*Extension type member invocations and tear-offs are always statically
+resolved, and abstract members only make sense in the case where the given
+member is resolved at run time.*
+
+It is a compile-time error if an extension type has a getter named `g` with
+return type `R` and a setter named `g=` with parameter type `S`,
+and `R` is not a subtype of `S`.
+
+*This rule is applicable to instance getters and setters as well as static
+getters and setters.*
+
+*It is not an error for an extension type member to have the modifier
+`external`. As usual, an implementation can report a compile-time error for
+external declarations, e.g., if they are not bound to an implementation,
+and the method by which they are bound to an implementation is tool
+specific.*
+
 Assume that
 <code>T<sub>1</sub>, .. T<sub>s</sub></code>
 are types, and `V` resolves to an extension type declaration of the
@@ -736,6 +833,20 @@ the treatment of expressions like `e as V`.*
 
 A compile-time error occurs if a type parameter of an extension type
 declaration occurs in a non-covariant position in the representation type.
+
+A compile-time error occurs if the representation type of an extension type
+declaration is a bottom type.
+
+*Note that it is still possible for the instantiated representation type
+of a given extension type to be a bottom type. For example, assuming
+`extension type E<X>(X x) {}`, `E<Never>` would be an extension type whose
+instantiated representation type is `Never`. The reason for this error is that
+we could otherwise have, for example, an extension type that `implements int,
+double`, and the ability to have such subtypes of arbitrary sets of interface
+types would make other parts of the type system more complex. Such types could
+never be the type of an actual object anyway because the representation object
+would have to have type `Never`. If these types turn out to be useful in some
+way then they could still be added to a future version of the language.*
 
 When `s` is zero *(that is, the declaration of `V` is not generic)*,
 <code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>
@@ -795,8 +906,9 @@ On the other hand, it can occur in other ways, e.g., as a type argument of
 a superinterface of a class.*
 
 It is a compile-time error if _DV_ is an extension type declaration, and
-_DV_ has a non-extension type member named `m` as well as an extension type
-member named `m`, for any `m`. *In case of conflicts, _DV_ must declare a
+_DV_ has a non-extension type member named `m` which is not precluded by
+_DV_ as well as an extension type member named `m` which is not precluded
+by _DV_, for any `m`. *In case of conflicts, _DV_ must declare a
 member named `m` to resolve the conflict.*
 
 It is a compile-time error if _DV_ is an extension type declaration, and
@@ -807,8 +919,8 @@ conflict.*
 
 A compile-time error occurs if an extension type declaration _DV_ has
 two extension type superinterfaces `V1` and `V2`, and both `V1` and `V2`
-has an extension type member named `m`, and the two members have distinct
-declarations.
+has an extension type member named `m` that is not precluded by _DV_, and
+the two members have distinct declarations.
 
 *In other words, an extension type member conflict is always an error, even
 in the case where they agree perfectly on the types. _DV_ must override the
@@ -907,24 +1019,18 @@ declaration itself, or we're talking about a particular generic
 instantiation of an extension type. *For non-generic extension type
 declarations, the representation type is the same in either case.*
 
-Let `V` be an extension type of the form
-<code>Name\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>, and let
-`R` be the corresponding instantiated representation type.  If `R` is
-non-nullable then `V` is a proper subtype of `Object`, and `V` is
-non-nullable.  Otherwise, `V` is a proper subtype of `Object?`, and
-`V` is potentially nullable.
+An extension type `V` is a proper subtype of `Object?`. It is potentially
+non-nullable, unless it implements `Object` or a subtype thereof
+*(as described in the section about extension types with superinterfaces)*.
 
 *That is, an expression of an extension type can be assigned to a top type
-(like all other expressions), and if the representation type is
-non-nullable then it can also be assigned to `Object`. Non-extension types
-(except bottom types and `dynamic`) cannot be assigned to extension types
-without an explicit cast. Similarly, null cannot be assigned to an
-extension type without an explicit cast, even in the case where the
-representation type is nullable (even better: don't use a cast, call a
-constructor instead). Another consequence of the fact that the extension
-type is potentially non-nullable is that it is an error to have an instance
-variable whose type is an extension type, and then relying on implicit
-initialization to null.*
+(like all other expressions). Non-extension types (except bottom types and
+`dynamic`) cannot be assigned to extension types without an explicit cast.
+Similarly, the null object cannot be assigned to an extension type without
+an explicit cast (or if it has a static type which is an extension type,
+e.g., `E(null)`). Since an extension type is potentially non-nullable, an
+instance variable whose type is an extension type must be initialized. It
+will not be implicitly initialized to null.*
 
 In the body of a member of an extension type declaration _DV_ named
 `Name` and declaring the type parameters
@@ -975,7 +1081,7 @@ has any compile-time errors.
 which is an error.*
 
 
-#### Extension Type Constructors and Their Static Analysis
+### Extension Type Constructors and Their Static Analysis
 
 An extension type declaration _DV_ named `Name` may declare one or
 more constructors. A constructor which is declared in an extension type
@@ -1067,23 +1173,35 @@ Assume that _DV_ is an extension type declaration named `Name`, and
 `V1` occurs as one of the `<type>`s in the `<interfaces>` of _DV_. In
 this case we say that `V1` is a _superinterface_ of _DV_.
 
-If _DV_ does not include an `<interfaces>` clause then _DV_ has
-`Object?` or `Object` as a direct superinterface, according to the subtype
-relation which was specified earlier.
-
 A compile-time error occurs if `V1` is a type name or a parameterized type
-which occurs as a superinterface in an extension type declaration _DV_, but
-`V1` does not denote an extension type, and `V1` does not denote a
-supertype of the extension type erasure of the representation type of
-_DV_.
+which occurs as a superinterface in an extension type declaration _DV_, and
+`V1` denotes a non-extension type which is not a supertype of the
+representation type of _DV_.
 
 *In particular, in order to have `implements T` where `T` is a
 non-extension type, it must be sound to consider the representation object
 as having type `T`.*
 
-A compile-time error occurs if any direct or indirect superinterface
-of _DV_ is the type `Name` or a type of the form `Name<...>`. *As
-usual, subtype cycles are not allowed.*
+A compile-time error occurs if a type variable declared by _DV_ occurs in a
+non-covariant position in `V1`.
+
+*This error corresponds to a similar error for class, mixin, mixin class,
+and enum declarations. It might be possible to relax the rule for extension
+types without jeopardizing soundness, but at this time we prefer the
+simplicity and consistency of having the same rule for all kinds of
+declarations. Also, it seems unlikely that a relaxation of the rule would
+open the door for anything particularly useful.*
+
+A compile-time error occurs if any direct or indirect superinterface of
+_DV_ denotes the declaration _DV_. *As usual, subtype cycles are not
+allowed.*
+
+It is a compile-time error if two elements in the type list of the
+`implements` clause of an extension type declaration specifies the
+same type.
+
+*This rule against duplicates corresponds to the existing rule for
+class, mixin, and enum declarations.*
 
 Assume that _DV_ has two direct or indirect superinterfaces of the form
 <code>W\<T<sub>1</sub>, .. T<sub>k</sub>&gt;</code>
@@ -1105,7 +1223,7 @@ representation type `R`, and that the extension type `V1` with
 declaration _DV1_ is a superinterface of _DV_ (*note that `V1` may
 have some actual type arguments*).  Assume that `S` is the
 instantiated representation type corresponding to `V1`. A compile-time
-error occurs if `R` is not a subtype of `S`.
+error occurs if `R` is neither a subtype of `S` nor a subtype of `V1`.
 
 *This ensures that it is sound to bind the value of `id` in _DV_ to `id1`
 in `V1` when invoking members of `V1`, where `id` is the representation
@@ -1178,6 +1296,53 @@ superinterfaces `V1, .. Vk` is that the members declared by _DV_ as well as
 all members of `V1, .. Vk` that are not redeclared by a declaration in _DV_
 can be invoked on a receiver of the type introduced by _DV_.*
 
+Finally, a compile-time error occurs if the body of an extension type member
+contains `super`.
+
+*For example, even in the case where a superinterface declares a member
+named `m`, it is not possible to call it using `super.m(...)`. The
+rationale for this rule is that there may be multiple superinterfaces
+declaring a member with the same name.*
+
+
+### Changes to other types and subtyping
+
+The previous sections have introduced some subtype relationships involving
+extension types. This section adds further relationships where extension
+types occur more indirectly.
+
+*For instance, earlier sections stated that every extension type is a
+subtype of the top types (like `Object?`), and that `implements` introduces
+a subtype relationship for extension types. Moreover:*
+
+Assume that `E` denotes an extension type that takes `k` type arguments.
+Corresponding to the subtype rule about covariance for classes, a rule is
+introduced which makes <code>E\<S<sub>1</sub> .. S<sub>k</sub>></code> a
+subtype of <code>E\<T<sub>1</sub> .. T<sub>k</sub>></code> if
+<code>S<sub>j</sub></code> is a subtype of <code>T<sub>j</sub></code> for
+each `j` in 1 .. k.
+
+*For example, `E<int>` is a subtype of `E<Object>` because `int` is a
+subtype of `Object`, also in the case where `E` is an extension type.*
+
+The Dart 1 algorithm which is used to compute the standard upper bound of
+two distinct interface types will work in the same way as it does today,
+albeit on a slightly different superinterface graph:
+
+For the purpose of this algorithm, we consider `Object?` to be a
+superinterface of `Null` and `Object`, and the path lengths mentioned in
+the algorithm will increase by one *(because they start from `Object?`
+rather than from `Object`)*.
+
+*This change is needed because some extension types are subtypes of
+`Object?` and not subtypes of `Object`, and they need to have a
+well-defined depth. We could define the depth to be zero for `Object`, for
+`Null`, and for every extension type that has no `implements` clause, but
+in that case we no longer have a guarantee that the sets of superinterfaces
+with the same maximal depth that the Dart 1 least upper bound algorithm
+uses will have at least one singleton set. All in all, it's simpler if we
+preserve the property that the superinterface graph has a single root.*
+
 
 ## Dynamic Semantics of Extension Types
 
@@ -1245,21 +1410,18 @@ used as an expression *(also known as the ultimate representation type)*.
 ### Summary of Typing Relationships
 
 *Here is an overview of the subtype relationships of an extension type `V0`
-with instantiated representation type `R` and instantiated superinterface
-types `V1 .. Vk`, as well as other typing relationships involving `V0`:*
+with instantiated representation type `R` (whose extension type erasure is `R0`)
+and instantiated superinterface types `V1 .. Vk`, as well as other typing
+relationships involving `V0`:*
 
 - *`V0` is a proper subtype of `Object?`.*
-- *`V0` is a supertype of `Never`.*
-- *If `R` is a non-nullable type then `V0` is a proper subtype of
-  `Object`, and a non-nullable type.*
+- *`V0` is a proper supertype of `Never`.*
 - *`V0` is a proper subtype of each of `V1 .. Vk`.*
-- *At run time, the type `V0` is identical to the type `R`. In
-  particular, `o is V0` and `o as V0` have the same dynamic
-  semantics as `o is R` respectively `o as R`, and
-  `t1 == t2` evaluates to true if `t1` is a `Type` that reifies
-  `V0` and `t2` reifies `R`, and the equality also holds if
-  `t1` and `t2` reify types where `V0` and `R` occur as subterms
-  (e.g., `List<V0>` is equal to `List<R>`).*
+- *Let `R0` be the extension type erasure of `V0`. At run time, the type
+  `V0` has the same representation and semantics as `R0`.  In particular,
+  they behave identically with respect to `is`, `is!`, `as`, and `==`,
+  both when `V0` and `R0` are used as types, and when they occur as
+  subterms of another type.
 
 
 ## Discussion

@@ -3,7 +3,7 @@
 Author: lrn@google.com
 Version: 1.1
 
-This document specifies the location, format and semantics of a new package resolution configuration file. A new file format is needed because the Dart "language versioning" feature requires adding data that are not supported by the existing file format. For backwards compatibility with third party tools, we retain the existing file for a while. Tools currently using `.packages` should migrate to using the new file when it becomes available, and tools creating `.package` should start doing so as soon as possible.
+This document specifies the location, format and semantics of a new package resolution configuration file. A new file format is needed because the Dart "language versioning" feature requires adding data that are not supported by the existing file format. For backwards compatibility with third party tools, we retain the existing file for a while. Tools currently using `.packages` should migrate to using the new file when it becomes available, and tools creating `.package` should start migrating as soon as possible.
 
 ## Background
 
@@ -29,7 +29,7 @@ Some users may use other tools than Pub to control their package resolution. Tho
 
 ### Location
 
-The new file will be stored by Pub in the `.dart_tool` sub-directory of the current pub package's root directory. It is a file used and shared by various Dart tools, so this location is sensible and consistent. It avoids clutter at the top-level of a package, and the `.dart_tool` directory is already in `.gitignore` files.
+The new file will be stored by Pub in the `.dart_tool` sub-directory of the current pub package's root directory. It is a directory used and shared by various Dart tools, so this location is sensible and consistent. It avoids clutter at the top-level of a package, and the `.dart_tool` directory is already in `.gitignore` files.
 
 Tools which needs the file will automatically look for it in `.dart_tool` subdirectories of the directories where they would currently look for `.package` files.
 
