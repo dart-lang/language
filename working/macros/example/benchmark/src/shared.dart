@@ -23,6 +23,11 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
     List<MacroExecutionResult> results,
     Map<Identifier, Declaration> identifierDeclarations,
   ) {
+    for (var result in results) {
+      for (var diagnostic in result.diagnostics) {
+        print(diagnostic.message.message);
+      }
+    }
     final benchmark = BuildAugmentationLibraryBenchmark(
         executor, results, identifierDeclarations);
     benchmark.report();
@@ -198,8 +203,8 @@ class SimpleDefinitionPhaseIntrospector
       required super.methods});
 
   @override
-  Future<Declaration> declarationOf(Identifier identifier) =>
-      throw UnimplementedError();
+  Future<Declaration> declarationOf(Identifier identifier) async =>
+      declarations[identifier]!;
 
   @override
   Future<TypeAnnotation> inferType(OmittedTypeAnnotation omittedType) =>
@@ -245,7 +250,10 @@ class SimpleNamedStaticType implements NamedStaticType {
 
 final boolIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'bool');
+final dynamicIdentifeir =
+    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'dynamic');
 final intIdentifier = IdentifierImpl(id: RemoteInstance.uniqueId, name: 'int');
+final mapIdentifier = IdentifierImpl(id: RemoteInstance.uniqueId, name: 'Map');
 final objectIdentifier =
     IdentifierImpl(id: RemoteInstance.uniqueId, name: 'Object');
 final stringIdentifier =
@@ -254,6 +262,11 @@ final stringIdentifier =
 final boolType = NamedTypeAnnotationImpl(
     id: RemoteInstance.uniqueId,
     identifier: boolIdentifier,
+    isNullable: false,
+    typeArguments: const []);
+final dynamicType = NamedTypeAnnotationImpl(
+    id: RemoteInstance.uniqueId,
+    identifier: dynamicIdentifeir,
     isNullable: false,
     typeArguments: const []);
 final intType = NamedTypeAnnotationImpl(
@@ -266,16 +279,70 @@ final stringType = NamedTypeAnnotationImpl(
     identifier: stringIdentifier,
     isNullable: false,
     typeArguments: const []);
+
+final dartCoreLibrary = LibraryImpl(
+    id: RemoteInstance.uniqueId,
+    languageVersion: LanguageVersionImpl(3, 0),
+    metadata: [],
+    uri: Uri.parse('dart:core'));
 final fooLibrary = LibraryImpl(
     id: RemoteInstance.uniqueId,
     languageVersion: LanguageVersionImpl(3, 0),
     metadata: [],
     uri: Uri.parse('package:foo/foo.dart'));
 
+final boolClass = ClassDeclarationImpl(
+    id: RemoteInstance.uniqueId,
+    identifier: boolIdentifier,
+    library: dartCoreLibrary,
+    metadata: [],
+    interfaces: [],
+    hasAbstract: false,
+    hasBase: false,
+    hasExternal: false,
+    hasFinal: false,
+    hasInterface: false,
+    hasMixin: false,
+    hasSealed: false,
+    mixins: [],
+    superclass: null,
+    typeParameters: []);
+final intClass = ClassDeclarationImpl(
+    id: RemoteInstance.uniqueId,
+    identifier: intIdentifier,
+    library: dartCoreLibrary,
+    metadata: [],
+    interfaces: [],
+    hasAbstract: false,
+    hasBase: false,
+    hasExternal: false,
+    hasFinal: false,
+    hasInterface: false,
+    hasMixin: false,
+    hasSealed: false,
+    mixins: [],
+    superclass: null,
+    typeParameters: []);
 final objectClass = ClassDeclarationImpl(
     id: RemoteInstance.uniqueId,
     identifier: objectIdentifier,
-    library: fooLibrary,
+    library: dartCoreLibrary,
+    metadata: [],
+    interfaces: [],
+    hasAbstract: false,
+    hasBase: false,
+    hasExternal: false,
+    hasFinal: false,
+    hasInterface: false,
+    hasMixin: false,
+    hasSealed: false,
+    mixins: [],
+    superclass: null,
+    typeParameters: []);
+final stringClass = ClassDeclarationImpl(
+    id: RemoteInstance.uniqueId,
+    identifier: stringIdentifier,
+    library: dartCoreLibrary,
     metadata: [],
     interfaces: [],
     hasAbstract: false,
