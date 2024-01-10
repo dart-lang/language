@@ -5537,9 +5537,9 @@ and property extractions
 (\ref{propertyExtraction}),
 any type $T$ which is $T_0$ bounded
 (\ref{typesBoundedByTypes}),
-where $T_0$ is a class with interface $I$,
+where $T_0$ is a type with interface $I$,
 is also considered to have interface $I$.
-Similarly, when $T$ is $T_0$ bounded where $T_0$ is a function type,
+In particular, when $T$ is $T_0$ bounded where $T_0$ is a function type,
 $T$ is considered to have a method named \CALL{} with signature $m$,
 such that the function type of $m$ is $T_0$.
 
@@ -23378,8 +23378,10 @@ of \code{$T$?} is the interface of \code{Object}.
 For example, even though \code{$e_1$.isEven} is allowed
 when the type of $e_1$ is \code{int},
 \code{$e_2$.isEven} is a compile-time error
-when the type of $e_2$ is \code{int?}\ or
-a type variable $X$ whose bound is \code{int?}.%
+when the type of $e_2$ is \code{int?}.
+It is also an error for a type variable $X$ whose bound is \code{int?},
+because they have the same interface
+(\ref{interfaces}).%
 }
 
 
