@@ -22,7 +22,11 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       'String': stringIdentifier,
       'Map': mapIdentifier,
       'Object': objectIdentifier,
-    }
+    },
+    jsonSerializableUri: {
+      'FromJson': fromJsonMacroIdentifier,
+      'ToJson': toJsonMacroIdentifier,
+    },
   }, constructors: {}, enumValues: {}, fields: {
     myClass: myClassFields
   }, methods: {});
@@ -37,16 +41,9 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       for (final field in fields) field.identifier: field,
   };
   final instantiateBenchmark =
-      JsonSerializableInstantiateBenchmark(executor, macroUri);
+      InstantiateBenchmark(executor, macroUri, 'JsonSerializable');
   await instantiateBenchmark.report();
   final instanceId = instantiateBenchmark.instanceIdentifier;
-  final typesBenchmark = JsonSerializableTypesPhaseBenchmark(
-      executor, macroUri, instanceId, introspector);
-  await typesBenchmark.report();
-  BuildAugmentationLibraryBenchmark.reportAndPrint(
-      executor,
-      [if (typesBenchmark.result != null) typesBenchmark.result!],
-      identifierDeclarations);
   final declarationsBenchmark = JsonSerializableDeclarationsPhaseBenchmark(
       executor, macroUri, instanceId, introspector);
   await declarationsBenchmark.report();
@@ -54,47 +51,54 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
       executor,
       [if (declarationsBenchmark.result != null) declarationsBenchmark.result!],
       identifierDeclarations);
+
   introspector.constructors[myClass] = myClassConstructors;
-  final definitionsBenchmark = JsonSerializableDefinitionPhaseBenchmark(
-      executor, macroUri, instanceId, introspector);
-  await definitionsBenchmark.report();
+  introspector.methods[myClass] = myClassMethods;
+
+  final fromJsonInstantiateBenchmark =
+      InstantiateBenchmark(executor, macroUri, 'FromJson');
+  await fromJsonInstantiateBenchmark.report();
+  final fromJsonDefinitionsBenchmark = FromJsonDefinitionPhaseBenchmark(
+      executor,
+      macroUri,
+      fromJsonInstantiateBenchmark.instanceIdentifier,
+      introspector);
+  await fromJsonDefinitionsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor,
-      [if (definitionsBenchmark.result != null) definitionsBenchmark.result!],
+      [
+        if (fromJsonDefinitionsBenchmark.result != null)
+          fromJsonDefinitionsBenchmark.result!
+      ],
+      identifierDeclarations);
+
+  final toJsonInstantiateBenchmark =
+      InstantiateBenchmark(executor, macroUri, 'ToJson');
+  await toJsonInstantiateBenchmark.report();
+  final toJsonDefinitionsBenchmark = ToJsonDefinitionPhaseBenchmark(executor,
+      macroUri, toJsonInstantiateBenchmark.instanceIdentifier, introspector);
+  await toJsonDefinitionsBenchmark.report();
+  BuildAugmentationLibraryBenchmark.reportAndPrint(
+      executor,
+      [
+        if (toJsonDefinitionsBenchmark.result != null)
+          toJsonDefinitionsBenchmark.result!
+      ],
       identifierDeclarations);
 }
 
-class JsonSerializableInstantiateBenchmark extends AsyncBenchmarkBase {
+class InstantiateBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
   late MacroInstanceIdentifier instanceIdentifier;
+  final String macroName;
 
-  JsonSerializableInstantiateBenchmark(this.executor, this.macroUri)
-      : super('JsonSerializableInstantiate');
+  InstantiateBenchmark(this.executor, this.macroUri, this.macroName)
+      : super('${macroName}Instantiate');
 
   Future<void> run() async {
     instanceIdentifier = await executor.instantiateMacro(
-        macroUri, 'JsonSerializable', '', Arguments([], {}));
-  }
-}
-
-class JsonSerializableTypesPhaseBenchmark extends AsyncBenchmarkBase {
-  final MacroExecutor executor;
-  final Uri macroUri;
-  final MacroInstanceIdentifier instanceIdentifier;
-  final TypePhaseIntrospector introspector;
-  MacroExecutionResult? result;
-
-  JsonSerializableTypesPhaseBenchmark(
-      this.executor, this.macroUri, this.instanceIdentifier, this.introspector)
-      : super('JsonSerializableTypesPhase');
-
-  Future<void> run() async {
-    if (instanceIdentifier.shouldExecute(
-        DeclarationKind.classType, Phase.types)) {
-      result = await executor.executeTypesPhase(
-          instanceIdentifier, myClass, introspector);
-    }
+        macroUri, macroName, '', Arguments([], {}));
   }
 }
 
@@ -120,7 +124,7 @@ class JsonSerializableDeclarationsPhaseBenchmark extends AsyncBenchmarkBase {
   }
 }
 
-class JsonSerializableDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
+class FromJsonDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
   final MacroExecutor executor;
   final Uri macroUri;
   final MacroInstanceIdentifier instanceIdentifier;
@@ -128,16 +132,38 @@ class JsonSerializableDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
 
   MacroExecutionResult? result;
 
-  JsonSerializableDefinitionPhaseBenchmark(
+  FromJsonDefinitionPhaseBenchmark(
       this.executor, this.macroUri, this.instanceIdentifier, this.introspector)
-      : super('JsonSerializableDefinitionPhase');
+      : super('FromJsonDefinitionPhase');
 
   Future<void> run() async {
     result = null;
     if (instanceIdentifier.shouldExecute(
-        DeclarationKind.classType, Phase.definitions)) {
+        DeclarationKind.constructor, Phase.definitions)) {
       result = await executor.executeDefinitionsPhase(
-          instanceIdentifier, myClass, introspector);
+          instanceIdentifier, myClassConstructors.single, introspector);
+    }
+  }
+}
+
+class ToJsonDefinitionPhaseBenchmark extends AsyncBenchmarkBase {
+  final MacroExecutor executor;
+  final Uri macroUri;
+  final MacroInstanceIdentifier instanceIdentifier;
+  final DefinitionPhaseIntrospector introspector;
+
+  MacroExecutionResult? result;
+
+  ToJsonDefinitionPhaseBenchmark(
+      this.executor, this.macroUri, this.instanceIdentifier, this.introspector)
+      : super('ToJsonDefinitionPhase');
+
+  Future<void> run() async {
+    result = null;
+    if (instanceIdentifier.shouldExecute(
+        DeclarationKind.method, Phase.definitions)) {
+      result = await executor.executeDefinitionsPhase(
+          instanceIdentifier, myClassMethods.single, introspector);
     }
   }
 }
@@ -222,3 +248,34 @@ final myClassConstructors = [
       definingType: myClass.identifier,
       isFactory: true),
 ];
+
+final myClassMethods = [
+  MethodDeclarationImpl(
+      id: RemoteInstance.uniqueId,
+      identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'toJson'),
+      isGetter: false,
+      isOperator: false,
+      isSetter: false,
+      isStatic: false,
+      library: fooLibrary,
+      metadata: [],
+      hasBody: false,
+      hasExternal: false,
+      namedParameters: [],
+      positionalParameters: [],
+      returnType: NamedTypeAnnotationImpl(
+          id: RemoteInstance.uniqueId,
+          isNullable: false,
+          identifier: mapIdentifier,
+          typeArguments: [stringType, dynamicType]),
+      typeParameters: [],
+      definingType: myClass.identifier),
+];
+
+final jsonSerializableUri =
+    Uri.parse('package:macro_proposal/json_serializable.dart');
+
+final fromJsonMacroIdentifier =
+    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'FromJson');
+final toJsonMacroIdentifier =
+    IdentifierImpl(id: RemoteInstance.uniqueId, name: 'ToJson');

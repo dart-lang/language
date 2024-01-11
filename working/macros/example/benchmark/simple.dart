@@ -118,6 +118,8 @@ Macro: $macro
   }
   var tmpDir = Directory.systemTemp.createTempSync('macro_benchmark');
   try {
+    var jsonSerializableUri =
+        Uri.parse('package:macro_proposal/json_serializable.dart');
     var macroUri = switch (macro) {
       'ChecksExtensions' =>
         Uri.parse('package:macro_proposal/checks_extensions.dart'),
@@ -125,8 +127,9 @@ Macro: $macro
       'Injectable' => Uri.parse('package:macro_proposal/injectable.dart'),
       'FunctionalWidget' =>
         Uri.parse('package:macro_proposal/functional_widget.dart'),
-      'JsonSerializable' =>
-        Uri.parse('package:macro_proposal/json_serializable.dart'),
+      'JsonSerializable' => jsonSerializableUri,
+      'FromJson' => jsonSerializableUri,
+      'ToJson' => jsonSerializableUri,
       _ => throw UnsupportedError('Unrecognized macro $macro'),
     };
     var macroConstructors = switch (macro) {
@@ -147,6 +150,8 @@ Macro: $macro
         },
       'JsonSerializable' => {
           'JsonSerializable': [''],
+          'FromJson': [''],
+          'ToJson': [''],
         },
       _ => throw UnsupportedError('Unrecognized macro $macro'),
     };
