@@ -1,4 +1,4 @@
-// Copyright (c) 2022, the Dart project authors. Please see the AUTHORS file
+// Copyright (c) 2024, the Dart project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 //
@@ -7,7 +7,7 @@
 // There is no public API exposed yet, the in-progress API lives here.
 import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
-// TODO: Support `toJson`, collections, and probably some other things :).
+// TODO: Support collections, extending serializable classes, and more.
 macro class JsonSerializable implements ClassDeclarationsMacro {
   const JsonSerializable();
 
@@ -80,7 +80,7 @@ macro class FromJson implements ConstructorDefinitionMacro {
     ]);
   }
 
-  // TODO: Support nested List, Map, etc conversion, including deep casting.
+  // TODO: Support nested collections.
   Future<Code> _convertFieldFromJson(FieldDeclaration field,
       Identifier jsonParam, DefinitionBuilder builder) async {
     var fieldType = field.type;
@@ -163,7 +163,7 @@ macro class ToJson implements MethodDefinitionMacro {
     ]));
   }
 
-  // TODO: Support nested List, Map, etc conversion.
+  // TODO: Support nested collections.
   Future<Code> _convertFieldToJson(
       FieldDeclaration field, DefinitionBuilder builder) async {
     var fieldType = field.type;
@@ -194,7 +194,7 @@ macro class ToJson implements MethodDefinitionMacro {
         ?.identifier;
     if (fieldToJson != null) {
       return RawCode.fromParts([
-        fieldToJson,
+        field.identifier,
         '.toJson()',
       ]);
     } else {
