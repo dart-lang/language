@@ -594,6 +594,10 @@ finish.
 If a cycle arises in macro applications waiting for other macro applications to
 complete then a `StateError ` is thrown.
 
+Subsequent introspection calls on the same target will always throw
+`StateError`, even if all macro applications on the target have finished, to
+ensure a deterministic outcome.
+
 Rules might be added in future to decide in some specific cases which macro
 should run with incomplete introspection results to break a cycle. For example,
 there might be a rule specifying that an application to a superclass runs first
