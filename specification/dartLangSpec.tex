@@ -41,6 +41,12 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Jan 2024
+% - Add the word 'bounded' to a rule in the definition of 'flatten'. This is
+%   already the implemented behavior, and it is the consistent approach. The
+%   main consequence is that `await e` will await the future when the static
+%   type of `e` is, for example, `X extends Future<int>?`.
+%
 % Dec 2023
 % - Allow `~/` on operands of type `double` in constant expressions, aligning
 %   the specification with already implemented behavior.
