@@ -666,6 +666,11 @@ implement in order to apply the macro in a given phase on a given declaration.
 For example, a macro applied to classes in the declaration phase implements
 `ClassDeclarationsMacro` and its `buildDeclarationsForClass` method.
 
+The set of macro interfaces implemented determines where the macro can
+usefully be applied, and it is a compile error to apply it anywhere else. For
+example, if a macro does not implement any of the `Class*Macro` interfaces, it
+is a compile error to apply it to a class.
+
 When a Dart implementation executes macros, it invokes these builder methods at
 the appropriate phase for the declarations the macro is applied to. Each builder
 method is passed two arguments which give the macro the context and capabilities
