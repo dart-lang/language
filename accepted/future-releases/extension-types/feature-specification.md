@@ -872,8 +872,8 @@ one of the following criteria holds:
 - `T` is `X & B`, where `B` does not derive a future type and `X` is
   incompatible with await.
 
-Consider an expression `e` of the form `await e1`. A compile-time error 
-occurs if `T` is incompatible with await.
+Consider an expression of the form `await e`. A compile-time error 
+occurs if the static type of `e` is incompatible with await.
 
 A compile-time error occurs if an extension type declares a member whose
 basename is the basename of an instance member declared by `Object` as
