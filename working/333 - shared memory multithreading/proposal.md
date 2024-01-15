@@ -36,17 +36,28 @@ This was a valid way to structure this code in single-threaded Dart, but the sam
 
 ## Shareable Data
 
-We propose to extend Dart with a shared memory multithreading but provide a clear type-based delineation between two concurrency worlds. **Type of an instance should provide a clear indication whether its fields can be concurrently mutated by another thread.** We are going to call such types _shareable_ and assume that the language provides some way to opt-in into this for classes:
+We propose to extend Dart with a shared memory multithreading but provide a clear type-based delineation between two concurrency worlds. **Only instances of classes implementing `Shareable` interface can be concurrently mutated by another thread.** There is no requirement of transitive immutability imposed on shareable classes. However we restrict the kind of data that a shareable class can contain: **fields of sharable classes can only contain references to instances of sharable classes.** This requirement is enforced at compile time by requiring that static types of all fields are shareable.
 
 ```dart
-/// Mark class sharable by implementing a [Shareable]
-/// interface.
+// dart:core
+
+/// [Shareable] instances can be shared between isolates and mutated concurrently.
+///
+/// A class implementing [Shareable] can only declare fields
+/// which have a static type that is a subtype of [Shareable].
+abstract interface class Shareable {
+} 
+```
+
+```dart
 class S implements Shareable {
   // ...
 }
 ```
 
-To maintain heap isolation we restrict the kind of data that a shareable class can contain: **Fields of sharable classes can only contain references to instances of sharable classes.** There is however no requirement of immutability imposed on shareable classes.
+> [!NOTE]
+>
+> I choose marker interface rather than dedicated syntax (e.g. `shareable class`) because marker interface comes handy when declaring type bounds for generics and allows to perform runtime checking if needed.
 
 References to shareable instances can be passed between isolates within an isolate group directly: for example sending a shareable instance through `SendPort` will not copy it.
 
@@ -59,9 +70,10 @@ void main() async {
   final s = S();
 
   await Isolate.run(() {
-    // Even though we are running in a different isolate we have
-    // access to the original `s` and mutations performed in this
-    // isolate will be visible to other isolates.
+    // Even though the function is running in a different
+    // isolate it has access to the original `s` and
+    // mutations of `s.v` performed in this isolate will be
+    // visible to other isolates.
     //
     // (Subject to memory model constraints).
     s.v = 10;
@@ -71,64 +83,55 @@ void main() async {
 }
 ```
 
-To make state sharing between isolates simpler we also allow to declare static fields which are shared between all isolates in the isolate group. `@shared` global fields are required to have static type that is a subtype of `Shareable?`.
+To make state sharing between isolates simpler we also allow to declare static fields which are shared between all isolates in the isolate group. `shared` global fields are required to have shareable static type.
 
 ```dart
 // All isolates within an isolate group share this variable.
-@shared int v = 0;
+shared int v = 0;
 ```
+
+### Shareable Types
+
+> Type is _shareable_ if and only if one of the following applies:
+>
+> * It is `Null` or `Never`.
+> * It is an interface type which is subtype of `Shareable`.
+> * It is a record type where all field types are shareable.
+> * It is a nullable type `T?` where `T` is shareable type.
+
+### Generics
+
+When declaring a generic type the developer will have to use type parameter bounds to ensure that resulting class conforms to restrictions imposed by `Shareable`:
+
+```dart
+class X<T> implements Shareable {
+  T v;  // compile time error.
+}
+
+class Y<T extends Shareable> implements Shareable {
+  T v;  // ok.
+}
+```
+
+> [!NOTE]
+>
+> We could really benefit from the ability to use intersection types here, which would allow to specify complicated bounds like `T extends Shareable & I`. In the absence of intersections types developers would be forced to declare intermediate interfaces which implement all required interfaces (e.g. `abstract interface ShareableI implements Shareable, I {}`) and require users to implement those by specifying `T extends ShareableI`.
 
 ### Functions
 
-Given the parallel between functions and other objects it makes sense to declare that functions which close only over shareable state are themselves shareable.
+Shareability of a function depends on the values that it captures. We could define that any **function is shareable iff it captures only variables of shareable type**. Incorporating this property into the type system naturally leads to the desire to use _intersection types_ to express the property that some value is both a function of a specific type _and_ shareable:
 
-**Static type of a function literal which captures only `Shareable` variables is  `ShareableFunction<F extends Function>` which is subtype of both `F` and `Shareable`.**
-
-```dart
-void main() {
-  final Shareable s = ...;
-  final f = () => s;  // ShareableFunction<Shareable Function()>
-
-  final Object o;
-  final g = () => o;  // Not shareable
-}
-
-class S implements Shareable {
-  void Function() f; // compile time error
-
-  ShareableFunction<void Function()> f;  // ok
+```  dart
+class A implements Shareable {
+  void Function() f;  // compile time error
+  void Function() & Shareable f;  // ok
 }
 ```
 
-Shareable functions have one subtle behavior - they capture and share local variables, but not the global state of the isolate. Consider for example the following code:
+Introducing intersection types into type system might be a huge undertaking. For the purposes of developing an MVP we can choose one of the two approaches:
 
-```dart
-int global = 0;
-
-void main() async {
-  final s = S();
-
-  s.v = 42;
-  global = 42;
-
-  await Isolate.run(() {
-    print(global);  // => 0
-    global = 24;
-
-    print(s.v);  // 42
-    s.v = 24;
-  });
-
-  print(global);  // 42
-  print(s.v);  // 24
-}
-```
-
-This behavior might be somewhat surprising to developers - especially if a functions depends on or updates some mutable global state. Whether this is a problem in practice is unclear: sending a closures through a `SendPort` leads to similar behavior.
-
-### Records
-
-Records where all components are shareable are themselves shareable.
+* Ignore functions entirely: consider functions un-shareable. It becomes a compile time error to have a function type field inside a shareable class. 
+* Allow function type fields inside a shareable class, but enforce shareability in runtime on assignment to the field.   
 
 ### Collections (`Iterable`, `List`, `Set`, `Map`)
 
@@ -160,6 +163,10 @@ The following types will become shareable:
   * **BREAKING CHANGE**: making `TypedData` shareable changes the behaviour of `SendPort` which will stop copying it. It's unclear if we want to maintain old behaviour for compatibility reasons. One option here is to say that `TypedData` is only shared when sending through `SendPort` iff it is a member of another explicitly `Shareable` type.
 * `Pointer`
 
+#### Collections
+
+Core collection interfaces (`Iterable<E>`, `List<E>`, `Map<K, V>` and `Set<E>`) and their default implementations are not going to be shareable. Instead we will provide `ShareableList`, `ShareableMap` and `ShareableSet` variants. 
+
 ### Controlling `SendPort` behavior
 
 **TODO**: Allow overriding copying / direct passing behavior 
@@ -190,15 +197,14 @@ int global;
 void foo() => global++;
 ```
 
-`@shared` global variables allow developers to tackle this problem - but hidden dependency on global state might introduce hard to diagnose and debug bugs.
+`shared` global variables allow developers to tackle this problem - but hidden dependency on global state might introduce hard to diagnose and debug bugs.
 
-We propose to tackle this problem by introducing the concept of _shared isolate_: **code running in a _shared isolate_ can only access `@shared` state and not any of isolated state, an attempt to access isolated state results in a dynamic `IsolationError`**.
+We propose to tackle this problem by introducing the concept of _shared isolate_: **code running in a _shared isolate_ can only access `shared` state and not any of isolated state, an attempt to access isolated state results in a dynamic `IsolationError`**.
 
 ```dart
 int global = 0;
 
-@shared
-int sharedGlobal = 0;
+shared int sharedGlobal = 0;
 
 void main() async {
   global = 42;
@@ -217,36 +223,35 @@ void main() async {
 
 ### Why not compile time isolation?
 
-It is tempting to try introducing a compile time separation between functions which only access `@shared` state and functions which can access isolated state.
+It is tempting to try introducing a compile time separation between functions which only access `shared` state and functions which can access isolated state.
 
-One obvious approach is to introduce a modifier (e.g. `@shared`) which can be applied to function declarations and impose a number of restrictions that `@shared` functions have to satisfy. These restrictions should guarantee that `@shared` functions can only access `@shared` state.
+One obvious approach is to introduce a modifier (e.g. `shared`) which can be applied to function declarations and impose a number of restrictions that `shared` functions have to satisfy. These restrictions should guarantee that `shared` functions can only access `shared` state.
 
 ```dart
-@shared
-void foo() {
+shared void foo() {
   // ...
 }
 ```
 
-* You can only pass subtypes of `Shareable` to `@shared` methods and you can only get a `Shareable` result back.
+* You can only pass subtypes of `Shareable` to `shared` methods and you can only get a `Shareable` result back.
 
-  * Consequently an instance method can only be marked  `@shared` if it is declared in a `Shareable` class.
+  * Consequently an instance method can only be marked  `shared` if it is declared in a `Shareable` class.
 
-* You can't override non-`@shared` method with `@shared` method.
-* Within a `@shared` function
-  * If `f(...)` is a static function invocation then `f` must be a `@shared` function.
-  * If `o.m(...)` is an instance method invocation, then  `o` must be a subtype of `Shareable` and `m` must be `@shared` method.
+* You can't override non-`shared` method with `shared` method.
+* Within a `shared` function
+  * If `f(...)` is a static function invocation then `f` must be a `shared` function.
+  * If `o.m(...)` is an instance method invocation, then  `o` must be a subtype of `Shareable` and `m` must be `shared` method.
   * If `C(...)` is a constructor invocation then `C` must be a sharable class.
-  * If `g` is a reference to a global variable then `g` must be `@shared`.
+  * If `g` is a reference to a global variable then `g` must be `shared`.
 
 This approach seems promising on the surface, but we quickly hit issues:
 
-* It's unclear how to treat `Object` members like `toString`, `operator ==` and `get hashCode`. These can't be marked as `@shared` but should be accessible to both `@shared` and non-`@shared` code.
+* It's unclear how to treat `Object` members like `toString`, `operator ==` and `get hashCode`. These can't be marked as `shared` but should be accessible to both `shared` and non-`shared` code.
 * It's unclear how to treat function expression invocations:
-  * Function types don't encode necessary separation between `@shared` and non-`@shared` functions.
-  * Methods like `List<T>.forEach` pose challenge because they should be usable in both `@shared` and non-`@shared` contexts.
+  * Function types don't encode necessary separation between `shared` and non-`shared` functions.
+  * Methods like `List<T>.forEach` pose challenge because they should be usable in both `shared` and non-`shared` contexts.
 
-This makes us think that language changes required to achieve sound compile time delineation between `@shared` and isolate worlds are too complicated to be worth it.
+This makes us think that language changes required to achieve sound compile time delineation between `shared` and isolate worlds are too complicated to be worth it.
 
 ###  Upgrading `dart:ffi`
 
@@ -265,7 +270,7 @@ class NativeCallable<T extends Function> {
 }
 ```
 
-Invoking `NativeCallable.shared(...).nativeFunction` does not require exclusive access to a specific isolate - so it will not introduce any busy waiting. It also has a clear semantics with respect to global state: `@shared` global state is accessible and independent from the current thread and non-`@shared` state will throw an error when accessed.
+Invoking `NativeCallable.shared(...).nativeFunction` does not require exclusive access to a specific isolate - so it will not introduce any busy waiting. It also has a clear semantics with respect to global state: `shared` global state is accessible and independent from the current thread and non-`shared` state will throw an error when accessed.
 
 ## Core Library Changes
 
@@ -343,7 +348,7 @@ abstract class Thread implements Shareable {
   /// Runs the given function in a new thread.
   ///
   /// The function is run in a shared isolate, meaning that
-  /// it will not have access to the non-`@shared` state.
+  /// it will not have access to the non-shared state.
   ///
   /// The function will be run in a `Zone` which uses the
   /// spawned thread as an executor for all callbacks: this
