@@ -864,9 +864,16 @@ _is the extension type_
 <code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and that its static type _is an extension type_.
 
-It is a compile-time error if `await e` occurs, and the static type of
-`e` is an extension type which is not a subtype of `Future<T>` for any
-`T`.
+We say that a type `T` is _incompatible with await_ if at least 
+one of the following criteria holds:
+
+- `T` implements an extension type that does not implement `Future`.
+- `T` is `S?` bounded, where `S` is incompatible with await.
+- `T` is `X & B`, where `B` does not derive a future type and `X` is
+  incompatible with await.
+
+Consider an expression `e` of the form `await e1`. A compile-time error 
+occurs if `T` is incompatible with await.
 
 A compile-time error occurs if an extension type declares a member whose
 basename is the basename of an instance member declared by `Object` as
