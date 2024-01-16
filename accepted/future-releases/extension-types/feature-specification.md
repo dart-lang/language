@@ -867,10 +867,11 @@ and that its static type _is an extension type_.
 We say that a type `T` is _incompatible with await_ if at least 
 one of the following criteria holds:
 
-- `T` implements an extension type that does not implement `Future`.
-- `T` is `S?` bounded, where `S` is incompatible with await.
-- `T` is `X & B`, where `B` does not derive a future type and `X` is
+- `T` implements an extension type, and `T` does not implement `Future`.
+- `T` is `S?`, and `S` is incompatible with await.
+- `T` is `X & B`, `B` does not derive a future type, and `X` is
   incompatible with await.
+- `T` is `S` bounded, and `S` is incompatible with await.
 
 Consider an expression of the form `await e`. A compile-time error 
 occurs if the static type of `e` is incompatible with await.
