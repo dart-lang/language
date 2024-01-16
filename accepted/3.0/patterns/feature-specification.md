@@ -1877,6 +1877,14 @@ The context type schema for a pattern `p` is:
     //                  ^-- Infer Foo<num>.
     ```
 
+	If the type the object name resolves to is generic, and no type
+    arguments are specified, then instantiate to bounds is used to
+    fill in provisional type arguments for the purpose of determining
+    the context type schema. *Note that during the type checking
+    phase, these provisional type arguments will be replaced with the
+    result of applying downwards inference. See "Type checking and
+    pattern required type" below.*
+
 The pattern type schema for logical-or, null-check, constant, and relational
 patterns is not defined, because those patterns are only allowed in refutable
 contexts, and the pattern type schema is only used in irrefutable contexts.
