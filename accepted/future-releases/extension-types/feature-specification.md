@@ -15,6 +15,10 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2024.01.16
+  - Specify that a type is 'incompatible with await', and use that to specify
+    a compile-time error at `await e;`.
+
 2023.11.14
   - Specify that a method declaration will shadow an otherwise "inherited"
     setter with the same basename, and vice versa. This eliminates a
