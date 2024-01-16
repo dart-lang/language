@@ -873,8 +873,10 @@ one of the following criteria holds:
 
 - `T` is an extension type, and `T` does not implement `Future`.
 - `T` is `S?`, and `S` is incompatible with await.
-- `T` is `X & B`, `B` does not derive a future type, and `X` is
-  incompatible with await.
+- `T` is `X & B`, and either:
+  - `B` is incompatible with await, or
+  - `B` does not derive a future type, and `X` is
+    incompatible with await.
 - `T` is `S` bounded, and `S` is incompatible with await.
 
 Consider an expression of the form `await e`. A compile-time error 
