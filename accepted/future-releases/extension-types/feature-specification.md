@@ -15,7 +15,7 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
-2024.01.16
+2024.01.17
   - Specify that a type is 'incompatible with await', and use that to specify
     a compile-time error at `await e;`.
 
@@ -871,13 +871,14 @@ and that its static type _is an extension type_.
 We say that a type `T` is _incompatible with await_ if at least 
 one of the following criteria holds:
 
-- `T` is an extension type, and `T` does not implement `Future`.
+- `T` is an extension type that does not implement `Future`.
 - `T` is `S?`, and `S` is incompatible with await.
 - `T` is `X & B`, and either:
   - `B` is incompatible with await, or
   - `B` does not derive a future type, and `X` is
     incompatible with await.
-- `T` is `S` bounded, and `S` is incompatible with await.
+- `T` is a type variable with bound `S`, and `S` is incompatible 
+  with await.
 
 Consider an expression of the form `await e`. A compile-time error 
 occurs if the static type of `e` is incompatible with await.
