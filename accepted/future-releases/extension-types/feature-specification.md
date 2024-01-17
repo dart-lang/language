@@ -15,6 +15,10 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2024.01.17
+  - Specify that a type is 'incompatible with await', and use that to specify
+    a compile-time error at `await e;`.
+
 2023.11.14
   - Specify that a method declaration will shadow an otherwise "inherited"
     setter with the same basename, and vice versa. This eliminates a
@@ -864,9 +868,20 @@ _is the extension type_
 <code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and that its static type _is an extension type_.
 
-It is a compile-time error if `await e` occurs, and the static type of
-`e` is an extension type which is not a subtype of `Future<T>` for any
-`T`.
+We say that a type `T` is _incompatible with await_ if at least 
+one of the following criteria holds:
+
+- `T` is an extension type that does not implement `Future`.
+- `T` is `S?`, and `S` is incompatible with await.
+- `T` is `X & B`, and either:
+  - `B` is incompatible with await, or
+  - `B` does not derive a future type, and `X` is
+    incompatible with await.
+- `T` is a type variable with bound `S`, and `S` is incompatible 
+  with await.
+
+Consider an expression of the form `await e`. A compile-time error 
+occurs if the static type of `e` is incompatible with await.
 
 A compile-time error occurs if an extension type declares a member whose
 basename is the basename of an instance member declared by `Object` as
