@@ -873,6 +873,14 @@ declaration ::= 'external' factoryConstructorSignature
   | 'augment'? redirectingFactoryConstructorSignature
   | 'augment'? constantConstructorSignature (redirection | initializers)?
   | 'augment'? constructorSignature (redirection | initializers)?
+
+methodSignature ::= constructorSignature initializers?
+  | factoryConstructorSignature
+  | 'augment'? 'static'? functionSignature
+  | 'augment'? 'static'? getterSignature
+  | 'augment'? 'static'? setterSignature
+  | 'augment'? operatorSignature
+
 ```
 
 **TODO: Define the grammar for the various `augmented` expressions.**
