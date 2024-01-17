@@ -18,6 +18,7 @@ information about the process, including in their change logs.
 2024.01.17
   - Specify that a type is 'incompatible with await', and use that to specify
     a compile-time error at `await e;`.
+  - Specify which extension types are always-exhaustive.
 
 2023.11.14
   - Specify that a method declaration will shadow an otherwise "inherited"
@@ -828,6 +829,17 @@ type)*.  Exhaustiveness analysis will treat such patterns as if they had
 been an object pattern matching the extension type erasure of `V` (defined
 below).
 
+An extension type `V` is always-exhaustive if and only if its instantiated
+representation type is always-exhaustive.
+
+*For example, a type `TriBool` defined as
+`extension type TriBool(bool? _) {}`,
+is always-exhaustive because the representation type, `bool?`, is.
+For a declaration like `extension type Pair<S, T>((S, T) _) {}`, the type
+`Pair<SomeEnum, TriBool>` is always-exhaustive because `(SomeEnum, TriBool)`
+is, and `Pair<String, bool>` is not always-exhaustive because `(String, bool)`
+isn't.*
+
 *In other words, we make no attempt to hide the representation type during
 the exhaustiveness analysis. The usage of such patterns is very similar to
 a cast into the extension type in the sense that it provides a reference of
@@ -868,7 +880,7 @@ _is the extension type_
 <code>V\<T<sub>1</sub>, .. T<sub>s</sub>&gt;</code>,
 and that its static type _is an extension type_.
 
-We say that a type `T` is _incompatible with await_ if at least 
+We say that a type `T` is _incompatible with await_ if at least
 one of the following criteria holds:
 
 - `T` is an extension type that does not implement `Future`.
@@ -877,10 +889,10 @@ one of the following criteria holds:
   - `B` is incompatible with await, or
   - `B` does not derive a future type, and `X` is
     incompatible with await.
-- `T` is a type variable with bound `S`, and `S` is incompatible 
+- `T` is a type variable with bound `S`, and `S` is incompatible
   with await.
 
-Consider an expression of the form `await e`. A compile-time error 
+Consider an expression of the form `await e`. A compile-time error
 occurs if the static type of `e` is incompatible with await.
 
 A compile-time error occurs if an extension type declares a member whose
@@ -910,6 +922,21 @@ deferred type, any top type *(including `dynamic` and `void`)*, the type
 types, and it is not an error to have `implements T` where `T` is a type
 that denotes a `sealed`, `final`, or `base` class in a different library,
 or `T` is an enumerated type.*
+
+*Consider `extension type E(SomeType _) implements SealedType {}`
+where `SealedType` is a sealed type. In this situation, `E` does not
+need to be taken into account like other immediate subtypes of `SealedType`
+(which is also the reason why we can declare it in a different library
+than the library that declares `SealedType`).
+The representation `SomeType` type could be `SealedType` itself, in which
+case `E` will be always-exhaustive. According to the exhaustiveness
+analysis, `E` is just another way to spell `SealedType`.
+`SomeType` could also be an immediate subtype of `SealedType`, in which case
+`E` would be counted as that subtype during exhaustiveness analysis.
+Finally, `SomeType` could be some non-immediate subtype of `SealedType`,
+in which case it is treated just like any other non-immediate subtype of
+`SealedType` (they don't matter anywhere, with respect to exhaustiveness
+of `SealedType`).*
 
 A compile-time error occurs if an extension type is used as a
 superinterface of a class, mixin, or enum declaration, or if an extension
