@@ -18,6 +18,7 @@ information about the process, including in their change logs.
 2024.01.17
   - Specify that a type is 'incompatible with await', and use that to specify
     a compile-time error at `await e;`.
+  - Specify which extension types are always-exhaustive.
 
 2023.11.14
   - Specify that a method declaration will shadow an otherwise "inherited"
@@ -827,6 +828,9 @@ in an object pattern *(e.g., `case V(): ...` where `V` is an extension
 type)*.  Exhaustiveness analysis will treat such patterns as if they had
 been an object pattern matching the extension type erasure of `V` (defined
 below).
+
+An extension type `V` is always-exhaustive if and only if its instantiated 
+representation type is always-exhaustive.
 
 *In other words, we make no attempt to hide the representation type during
 the exhaustiveness analysis. The usage of such patterns is very similar to
