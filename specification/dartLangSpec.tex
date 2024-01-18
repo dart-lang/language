@@ -11716,36 +11716,42 @@ where inferred types have already been added.%
 }
 
 \LMHash{}%
-We say that $S$ is the
-\IndexCustom{future type derived from a type}{type!future type derived from}
-$T$ in the following cases, using the first applicable case:
+We say that a type $T$
+\IndexCustom{derives a future type}{type!derives a future type}
+$S$,
+or, equivalently, that $S$ is the
+\IndexCustom{future type derived from}{type!future type derived from}
+a type $T$ in the following cases, using the first applicable case:
 
+%% TODO(eernst): Note that `X extends X?` can create an infinite loop.
+%% We will probably make that kind of bound an error.
 \begin{itemize}
 \item
   If a superinterface 
   (\ref{interfaceSuperinterfaces})
   of $T$ is \code{Future<$U$>} for some $U$,
-  then $T$ derives \code{Future<$U$>}.
+  then $T$ derives the future type \code{Future<$U$>}.
 \item
   If $T$ is \code{FutureOr<$U$>} for some $U$,
-  then $T$ derives \code{FutureOr<$U$>}.
+  then $T$ derives the future type \code{FutureOr<$U$>}.
 \item
   If $T$ is \code{$T_1$?} for some $T_1$, and
   $T_1$ derives the future type $S_1$,
-  then $T$ derives \code{$S_1$?}.
+  then $T$ derives the future type \code{$S_1$?}.
 \item
   If $T$ is a type variable with bound $B$, and
   $B$ derives the future type $S$,
-  then $T$ derives $S$.
+  then $T$ derives the future type $S$.
 \item
-  If $T$ is of the form \code{$X$\,\&\,$B$} then the following holds:
+  If $T$ is of the form \code{$X$\,\&\,$B$} then:
   \begin{itemize}
   \item
-    if $B$ derives the future type $S$ then $T$ derives $S$.
+    if $B$ derives the future type $S$,
+    then $T$ derives the future type $S$.
   \item
     if $B$ does not derive a future type,
     but $X$ derives the future type $S$,
-    then $T$ derives $S$.
+    then $T$ derives the future type $S$.
   \end{itemize}
 \end{itemize}
 
