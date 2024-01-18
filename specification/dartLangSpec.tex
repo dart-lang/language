@@ -11718,18 +11718,15 @@ where inferred types have already been added.%
 \LMHash{}%
 We say that a type $T$
 \IndexCustom{derives a future type}{type!derives a future type}
-$S$,
-or, equivalently, that $S$ is the
-\IndexCustom{future type derived from}{type!future type derived from}
-a type $T$ in the following cases, using the first applicable case:
+$S$ in the following cases, using the first applicable case:
 
 %% TODO(eernst): Note that `X extends X?` can create an infinite loop.
 %% We will probably make that kind of bound an error.
 \begin{itemize}
 \item
-  % A type induced by a class, mixin, mixin class, enum, or extension type
-  % has superinterfaces, and may have `Future` as a superinterface; no other
-  % type can have that.
+  %% TODO(eernst): Come mixin classes, extension types: add them.
+  Assume that $T$ is a type which is introduced by
+  a class, mixin, or enum declaration.
   If a direct or indirect superinterface
   (\ref{interfaceSuperinterfaces})
   of $T$ is \code{Future<$U$>} for some $U$,
