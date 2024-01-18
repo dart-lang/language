@@ -11721,13 +11721,36 @@ We say that $S$ is the
 $T$ in the following cases, using the first applicable case:
 
 \begin{itemize}
-\item $T$ implements $S$
-  (\ref{interfaceSuperinterfaces}),
-  and there is a $U$ such that $S$ is \code{Future<$U$>}.
-\item $T$ is $S$ bounded
+\item
+  If $T$ implements \code{Future<$U$>}
+  (\ref{interfaceSuperinterfaces})
+  for some $U$ then
+  $T$ derives the future type \code{Future<$U$>}.
+\item
+  Whenever $S$ is of the form
+  \code{FutureOr<$U$>}, \code{Future<$U$>?}, or \code{FutureOr<$U$>?},
+  the following holds:
+  If $T$ is $S$ bounded
   (\ref{bindingActualsToFormals}),
-  and there is a $U$ such that
-  $S$ is \code{FutureOr<$U$>}, \code{Future<$U$>?}, or \code{FutureOr<$U$>?}.
+  then $T$ derives the future type $S$.
+\item
+  If $T$ is \code{$T_1$?} for some $T_1$ and
+  $T_1$ derives the future type $S_1$
+  then $T$ derives the future type \code{$S_1$?}.
+\item
+  If $T$ is a type variable with bound $B$ and
+  $B$ derives the future type $S$
+  then $T$ derives the future type $S$.
+\item
+  If $T$ is of the form \code{$X$\,\,\&\,\,$B$} then the following holds:
+  \begin{itemize}
+  \item
+    if $B$ derives the future type $S$ then $T$ derives $S$.
+  \item
+    if $B$ does not derive a future type,
+    but $X$ derives the future type $S$
+    then $T$ derives $S$.
+  \end{itemize}
 \end{itemize}
 
 \LMHash{}%
