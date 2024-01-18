@@ -11722,13 +11722,12 @@ $T$ in the following cases, using the first applicable case:
 
 \begin{itemize}
 \item
-  If \code{Future<$U$>} is a superinterface of $T$
+  If a superinterface 
   (\ref{interfaceSuperinterfaces})
-  for some $U$, then
+  of $T$ is \code{Future<$U$>} for some $U$ then
   $T$ derives the future type \code{Future<$U$>}.
 \item
-  If $T$ is \code{FutureOr<$U$>} bounded
-  (\ref{bindingActualsToFormals})
+  If $T$ is \code{FutureOr<$U$>} for some $U$
   then $T$ derives the future type \code{FutureOr<$U$>}.
 \item
   If $T$ is \code{$T_1$?} for some $T_1$, and
