@@ -11727,12 +11727,9 @@ $T$ in the following cases, using the first applicable case:
   for some $U$ then
   $T$ derives the future type \code{Future<$U$>}.
 \item
-  Whenever $S$ is of the form
-  \code{FutureOr<$U$>}, \code{Future<$U$>?}, or \code{FutureOr<$U$>?},
-  the following holds:
-  If $T$ is $S$ bounded
-  (\ref{bindingActualsToFormals}),
-  then $T$ derives the future type $S$.
+  If $T$ is \code{FutureOr<$U$>} bounded
+  (\ref{bindingActualsToFormals})
+  then $T$ derives the future type \code{FutureOr<$U$>}.
 \item
   If $T$ is \code{$T_1$?} for some $T_1$, and
   $T_1$ derives the future type $S_1$,
