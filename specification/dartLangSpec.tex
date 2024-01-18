@@ -11727,7 +11727,10 @@ a type $T$ in the following cases, using the first applicable case:
 %% We will probably make that kind of bound an error.
 \begin{itemize}
 \item
-  If a superinterface 
+  % A type induced by a class, mixin, mixin class, enum, or extension type
+  % has superinterfaces, and may have `Future` as a superinterface; no other
+  % type can have that.
+  If a direct or indirect superinterface
   (\ref{interfaceSuperinterfaces})
   of $T$ is \code{Future<$U$>} for some $U$,
   then $T$ derives the future type \code{Future<$U$>}.
