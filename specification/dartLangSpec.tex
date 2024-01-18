@@ -11735,11 +11735,11 @@ $T$ in the following cases, using the first applicable case:
   then $T$ derives the future type $S$.
 \item
   If $T$ is \code{$T_1$?} for some $T_1$, and
-  $T_1$ derives the future type $S_1$
+  $T_1$ derives the future type $S_1$,
   then $T$ derives the future type \code{$S_1$?}.
 \item
   If $T$ is a type variable with bound $B$, and
-  $B$ derives the future type $S$
+  $B$ derives the future type $S$,
   then $T$ derives the future type $S$.
 \item
   If $T$ is of the form \code{$X$\,\,\&\,\,$B$} then the following holds:
@@ -11748,7 +11748,7 @@ $T$ in the following cases, using the first applicable case:
     if $B$ derives the future type $S$ then $T$ derives $S$.
   \item
     if $B$ does not derive a future type,
-    but $X$ derives the future type $S$
+    but $X$ derives the future type $S$,
     then $T$ derives $S$.
   \end{itemize}
 \end{itemize}
