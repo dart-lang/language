@@ -11722,9 +11722,9 @@ $T$ in the following cases, using the first applicable case:
 
 \begin{itemize}
 \item
-  If $T$ implements \code{Future<$U$>}
+  If \code{Future<$U$>} is a superinterface of $T$
   (\ref{interfaceSuperinterfaces})
-  for some $U$ then
+  for some $U$, then
   $T$ derives the future type \code{Future<$U$>}.
 \item
   If $T$ is \code{FutureOr<$U$>} bounded
