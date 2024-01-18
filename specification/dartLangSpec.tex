@@ -11725,9 +11725,9 @@ if one of the following cases applies:
 \begin{itemize}
 \item
   %% TODO(eernst): Come mixin classes and extension types: add them.
-  Assume that $T$ is a type which is introduced by
-  a class, mixin, or enum declaration.
-  If a direct or indirect superinterface
+  If $T$ is a type which is introduced by
+  a class, mixin, or enum declaration,
+  and if a direct or indirect superinterface
   (\ref{interfaceSuperinterfaces})
   of $T$ is \code{Future<$U$>} for some $U$,
   then $T$ derives the future type \code{Future<$U$>}.
