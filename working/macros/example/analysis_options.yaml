@@ -9,3 +9,4 @@ analyzer:
     - bin/injectable_main.dart
     - bin/user_main.dart
     - bin/json_serializable_main.dart
+    - bin/observable_main.dart
