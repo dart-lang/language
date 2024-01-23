@@ -39,7 +39,7 @@ macro class AutoConstructor implements ClassDeclarationsMacro {
   Future<void> buildDeclarationsForClass(
       ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     var constructors = await builder.constructorsOf(clazz);
-    if (constructors.any((c) => c.identifier.name == 'gen')) {
+    if (constructors.any((c) => c.identifier.name == '')) {
       throw ArgumentError(
           'Cannot generate an unnamed constructor because one already exists');
     }
@@ -96,9 +96,9 @@ macro class AutoConstructor implements ClassDeclarationsMacro {
 
     bool hasParams = params.isNotEmpty;
     List<Object> parts = [
-    // Don't use the identifier here because it should just be the raw name.
+      // Don't use the identifier here because it should just be the raw name.
       clazz.identifier.name,
-      '.gen(',
+      '(',
       if (hasParams) '{',
       ...params,
       if (hasParams) '}',
@@ -158,7 +158,7 @@ macro class CopyWith implements ClassDeclarationsMacro {
       if (hasParams) '}',
       ')',
       // TODO: We assume this constructor exists, but should check
-      '=> ', clazz.identifier, '.gen(',
+      '=> ', clazz.identifier, '(',
       ...args.joinAsCode(', '),
       ');',
     ]));
