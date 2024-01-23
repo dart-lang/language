@@ -8,3 +8,4 @@ analyzer:
     - bin/checks_main.dart
     - bin/injectable_main.dart
     - bin/json_serializable_main.dart
+    - bin/observable_main.dart
