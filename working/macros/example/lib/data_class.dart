@@ -105,7 +105,7 @@ macro class AutoConstructor implements ClassDeclarationsMacro {
       ')',
     ];
     if (superconstructor != null) {
-      parts.addAll([' : super.', superconstructor.identifier.name, '(']);
+      parts.addAll([' : super(']);
       for (var param in superconstructor.positionalParameters) {
         parts.add('\n${param.identifier.name},');
       }

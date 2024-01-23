@@ -5,10 +5,7 @@
 import 'package:macro_proposal/data_class.dart';
 
 void main() {
-  var joe = User(
-      age: 25,
-      name: 'Joe',
-      username: 'joe1234');
+  var joe = User(age: 25, name: 'Joe', username: 'joe1234');
   print(joe);
 
   var phoenix = joe.copyWith(name: 'Phoenix', age: 23);
