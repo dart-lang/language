@@ -68,7 +68,7 @@ macro class AutoConstructor implements ClassDeclarationsMacro {
     MethodDeclaration? superconstructor;
     if (superType != null && (await superType.isExactly(objectType)) == false) {
       superconstructor = (await builder.constructorsOf(superclass!))
-          .firstWhereOrNull((c) => c.identifier.name == 'gen');
+          .firstWhereOrNull((c) => c.identifier.name == '');
       if (superconstructor == null) {
         throw ArgumentError(
             'Super class $superclass of $clazz does not have an unnamed '
