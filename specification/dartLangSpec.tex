@@ -1267,8 +1267,10 @@ It is then the runtime's decision whether to terminate the isolate or not.%
 are situations that do not preclude execution,
 but which are unlikely to be intended,
 and likely to cause bugs or inconveniences.
-A static warning must be reported by a Dart compiler
-before the associated code is executed.
+A Dart compiler is free to report some, all,
+or none of the specified static warnings before executing the associated code.
+A Dart compiler may also report additional warnings
+not defined by this specification.
 
 \LMHash{}%
 When this specification says that a \Index{dynamic error} occurs,
