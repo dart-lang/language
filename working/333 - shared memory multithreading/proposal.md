@@ -22,13 +22,15 @@ other more low-level languages:
 
   Native code does not _understand_ the concept of isolates.
 
-See [What issues are we trying to solve?](#what-issues-are-we-trying-to-solve) for concrete code examples.
+See [What issues are we trying to solve?](#what-issues-are-we-trying-to-solve)
+for concrete code examples.
 
 > [!NOTE]
 >
 > Improving Dart's interoperability with native code and its multicore
 > capabilities not only benefits Dart developers but also unlocks improves in
-> Dart SDK. For example, we will be able to move `dart:io` implementation from C++ into Dart and later split it into a package.
+> Dart SDK. For example, we will be able to move `dart:io` implementation from
+> C++ into Dart and later split it into a package.
 
 The core of this proposal are two new concepts:
 
@@ -58,20 +60,42 @@ the proposal without committing to specific major changes in the Dart language.
 
 ### Parallelizing work-loads
 
-When using isolates it is relatively straightforward to parallelize two types of workloads:
+When using isolates it is relatively straightforward to parallelize two types of
+workloads:
 
-* The output is a function of input without any significant dependency on other state and the input is _cheap to send_ to another isolate. In this case developer can use  [`Isolate.run`][] to off load the computation to another isolate without paying significant costs for the transfer of data. 
-* The computation that is self contained and runs in background producing outputs that are _cheap to send_ to another isolate. In this case a persistent isolate can be spawned and stream data to the spawner. 
+- The output is a function of input without any significant dependency on other
+  state and the input is _cheap to send_ to another isolate. In this case
+  developer can use [`Isolate.run`][] to off load the computation to another
+  isolate without paying significant costs for the transfer of data.
+- The computation that is self contained and runs in background producing
+  outputs that are _cheap to send_ to another isolate. In this case a persistent
+  isolate can be spawned and stream data to the spawner.
 
-Anything else hits the problem that transferring data between isolates is asynchronous and incurs copying costs which are linear in the size of transferred data.
+Anything else hits the problem that transferring data between isolates is
+asynchronous and incurs copying costs which are linear in the size of
+transferred data.
 
-Consider for example a front-end for Dart language which tries to parse a large Dart program. It is possible to parallelize parsing of SCC components in the import graph, however you can't fully avoid serialization costs - because resulting ASTs can't be directly shared between isolates. Similar example is parallelizing loading of ASTs from a large Kernel binary.
+Consider for example a front-end for Dart language which tries to parse a large
+Dart program. It is possible to parallelize parsing of SCC components in the
+import graph, however you can't fully avoid serialization costs - because
+resulting ASTs can't be directly shared between isolates. Similar example is
+parallelizing loading of ASTs from a large Kernel binary.
 
 > [!NOTE]
 >
-> Users can create data structures outside of the Dart heap using `dart:ffi` to allocate native memory and view it as typed arrays and structs. However, adopting such data representation in an existing Dart program is costly and comes with memory management challenges characteristic of low-level programming languages like C. That's why we would like to enable users to share data without requiring them to manually manage lifetime of complicated object graphs. 
+> Users can create data structures outside of the Dart heap using `dart:ffi` to
+> allocate native memory and view it as typed arrays and structs. However,
+> adopting such data representation in an existing Dart program is costly and
+> comes with memory management challenges characteristic of low-level
+> programming languages like C. That's why we would like to enable users to
+> share data without requiring them to manually manage lifetime of complicated
+> object graphs.
 >
-> It is worth highlighting **shared memory multithreading does not necessarily imply simultaneous access to mutable data.** Developers can still structure their parallel code using isolates and message passing - but they can avoid the cost of copying the data by sending the message which can be directly shared with the receiver rather than copied. 
+> It is worth highlighting **shared memory multithreading does not necessarily
+> imply simultaneous access to mutable data.** Developers can still structure
+> their parallel code using isolates and message passing - but they can avoid
+> the cost of copying the data by sending the message which can be directly
+> shared with the receiver rather than copied.
 
 [`Isolate.run`]: https://api.dart.dev/stable/3.2.6/dart-isolate/Isolate/run.html
 
@@ -89,42 +113,79 @@ ma_device_config config = ma_device_config_init(ma_device_type_playback);
 // This function will be called when miniaudio needs more data.
 // The call will happend on a backend specific thread dedicated to
 // audio playback.
-config.dataCallback      = &DataCallback;   
+config.dataCallback      = &DataCallback;
 // ...
 ```
 
-Porting this code to Dart using `dart:ffi` is currently impossible, as FFI only supports two specific callback types:
+Porting this code to Dart using `dart:ffi` is currently impossible, as FFI only
+supports two specific callback types:
 
-* [`NativeCallable.isolateLocal`][native-callable-isolate-local]: native caller must have an exclusive access to an isolate in which callback was created. This type of callback works if Dart calls C and C calls back into Dart synchronously. It also works if caller uses VM C API for entering isolates (e.g.`Dart_EnterIsolate`/`Dart_ExitIsolate`).
-* [`NativeCallable.listener`][native-callable-listener]: native caller effectively sends a message to the isolate which created the callback and does not synchronously wait for the response.
+- [`NativeCallable.isolateLocal`][native-callable-isolate-local]: native caller
+  must have an exclusive access to an isolate in which callback was created.
+  This type of callback works if Dart calls C and C calls back into Dart
+  synchronously. It also works if caller uses VM C API for entering isolates
+  (e.g.`Dart_EnterIsolate`/`Dart_ExitIsolate`).
+- [`NativeCallable.listener`][native-callable-listener]: native caller
+  effectively sends a message to the isolate which created the callback and does
+  not synchronously wait for the response.
 
-Neither of these work for this use-case where native caller wants to perform a synchronous invocation. There are obvious ways to address this:
+Neither of these work for this use-case where native caller wants to perform a
+synchronous invocation. There are obvious ways to address this:
 
-1. Create a variation of `NativeCallable.isolateLocal` which enters (and after call leaves) the target isolate if the native caller is not already in the target isolate. 
+1. Create a variation of `NativeCallable.isolateLocal` which enters (and after
+   call leaves) the target isolate if the native caller is not already in the
+   target isolate.
 
-2. Create  `NativeCallable.onTemporaryIsolate` which spawns (and after call destroys) a temporary isolate to handle the call.
+2. Create `NativeCallable.onTemporaryIsolate` which spawns (and after call
+   destroys) a temporary isolate to handle the call.
 
-Neither of these are truly satisfactory: 
+Neither of these are truly satisfactory:
 
-* Allowing `isolateLocal` to enter target isolate means that it can block the caller if the target isolate is busy doing _something_ (e.g. processing some events) in parallel. This is unacceptable in situations when the caller is latency sensitive e.g. audio thread or even just the main UI thread of an application. 
-* Using temporary isolate comes with a bunch of ergonomic problems as every invocation is handled using a freshly created environment and no static state is carried between invocations - which might surprise the developer. Sharing mutable data between invocations requires storing it outside of Dart heap using `dart:ffi`.
+- Allowing `isolateLocal` to enter target isolate means that it can block the
+  caller if the target isolate is busy doing _something_ (e.g. processing some
+  events) in parallel. This is unacceptable in situations when the caller is
+  latency sensitive e.g. audio thread or even just the main UI thread of an
+  application.
+- Using temporary isolate comes with a bunch of ergonomic problems as every
+  invocation is handled using a freshly created environment and no static state
+  is carried between invocations - which might surprise the developer. Sharing
+  mutable data between invocations requires storing it outside of Dart heap
+  using `dart:ffi`.
 
 > [!NOTE]
 >
-> This particular example might not look entirely convincing because it can be reasonably well solved within confines of isolate model.
->  
-> When you look at an _isolate_ as _a bag of state guarded by a mutex_, you eventually realize that this bag is simply way too big - it encompasses the static state of the whole program - and this is what makes isolates unhandy to use. The rule of thumb is that _coarse locks lead to scalability problems_.
->  
-> How do you solve it? 
-> 
-> *Spawn an isolate that does one specific small task*. In the context of this example: 
+> This particular example might not look entirely convincing because it can be
+> reasonably well solved within confines of isolate model.
 >
-> - One isolate (_consumer_) is spawned to do nothing but synchronously handle `DataCallback` calls (using an extension of `isolateLocal` which enters and leaves isolate is required).
-> - Another isolate (_producer_) is responsible for generating the data which is fed to the audio-library. The data is allocated in the native heap and directly _shared_ with _consumer_.
-> 
-> However, isolates don't facilitate this style of programming. They are too _coarse_ - so it is easy to make a mistake, touch a static state you are not supposed to touch, call a dependency which schedules an asynchronous task, etc. Furthermore, you do still need a low overhead communication channel between isolates. The shared memory is _still_ part of the solution here, even though in this particular example we can manage with what `dart:ffi` allows us. And that is, in my opinion, a pretty strong signal in favor of more shared memory support in the language. 
+> When you look at an _isolate_ as _a bag of state guarded by a mutex_, you
+> eventually realize that this bag is simply way too big - it encompasses the
+> static state of the whole program - and this is what makes isolates unhandy to
+> use. The rule of thumb is that _coarse locks lead to scalability problems_.
+>
+> How do you solve it?
+>
+> _Spawn an isolate that does one specific small task_. In the context of this
+> example:
+>
+> - One isolate (_consumer_) is spawned to do nothing but synchronously handle
+>   `DataCallback` calls (using an extension of `isolateLocal` which enters and
+>   leaves isolate is required).
+> - Another isolate (_producer_) is responsible for generating the data which is
+>   fed to the audio-library. The data is allocated in the native heap and
+>   directly _shared_ with _consumer_.
+>
+> However, isolates don't facilitate this style of programming. They are too
+> _coarse_ - so it is easy to make a mistake, touch a static state you are not
+> supposed to touch, call a dependency which schedules an asynchronous task,
+> etc. Furthermore, you do still need a low overhead communication channel
+> between isolates. The shared memory is _still_ part of the solution here, even
+> though in this particular example we can manage with what `dart:ffi` allows
+> us. And that is, in my opinion, a pretty strong signal in favor of more shared
+> memory support in the language.
 
-Another variation of this problem occurs when trying to use Dart for sharing business logic and creating shared libraries. Imagine that `dart:ffi` provided a way to export static functions as C symbols:
+Another variation of this problem occurs when trying to use Dart for sharing
+business logic and creating shared libraries. Imagine that `dart:ffi` provided a
+way to export static functions as C symbols:
 
 ```dart
 // foo.dart
@@ -144,13 +205,22 @@ Compiling this produces a shared library exporting a symbol with C signature:
 extern "C" void foo();
 ```
 
-The native code loads shared library and calls this symbol to invoke Dart code. Would not this be great?
+The native code loads shared library and calls this symbol to invoke Dart code.
+Would not this be great?
 
-Unfortunately currently there is no satisfactory way to define what happens when native code calls this exported symbol as the execution of `foo` is only meaningful within a specific isolate. Should `foo` create an isolate lazily? Should there be a single isolate or multiple isolates? What happens if `foo` is called concurrently from different threads? When should this isolate be destroyed?
+Unfortunately currently there is no satisfactory way to define what happens when
+native code calls this exported symbol as the execution of `foo` is only
+meaningful within a specific isolate. Should `foo` create an isolate lazily?
+Should there be a single isolate or multiple isolates? What happens if `foo` is
+called concurrently from different threads? When should this isolate be
+destroyed?
 
-These are all questions without satisfactory answers due to misalignment in execution modes between the native caller and Dart.
+These are all questions without satisfactory answers due to misalignment in
+execution modes between the native caller and Dart.
 
-Finally, the variation of the interop problem exists in an opposite direction: _invoking a native API from Dart on a specific thread_. Consider the following code for displaying a file open dialog on Mac OS X:
+Finally, the variation of the interop problem exists in an opposite direction:
+_invoking a native API from Dart on a specific thread_. Consider the following
+code for displaying a file open dialog on Mac OS X:
 
 ```objc
 NSOpenPanel* panel = [NSOpenPanel openPanel];
@@ -162,14 +232,25 @@ NSOpenPanel* panel = [NSOpenPanel openPanel];
 }];
 ```
 
-Trying to port this code to Dart hits the following issue: you can only use this API on the UI thread and Dart's main isolate is not running on the UI thread. Workarounds similar to discussed before can be applied here as well. You wrap a piece of Dart code you want to call on a specific thread into a function and then:
+Trying to port this code to Dart hits the following issue: you can only use this
+API on the UI thread and Dart's main isolate is not running on the UI thread.
+Workarounds similar to discussed before can be applied here as well. You wrap a
+piece of Dart code you want to call on a specific thread into a function and
+then:
 
-1. Send Dart `isolateLocal` callback to be executed on the specific thread, but make it enter (and leave) the target isolate. 
-2. Create an isolate specific to the target thread (e.g. special _platform isolate_ for running on main platform thread) and have callbacks to be run in that isolate. 
+1. Send Dart `isolateLocal` callback to be executed on the specific thread, but
+   make it enter (and leave) the target isolate.
+2. Create an isolate specific to the target thread (e.g. special _platform
+   isolate_ for running on main platform thread) and have callbacks to be run in
+   that isolate.
 
-However the issues described above equally apply here: you either hit a problem with stalling the caller by waiting to acquire an exclusive access to an isolate or you hit a problem with ergonomics around the lack of shared state.
+However the issues described above equally apply here: you either hit a problem
+with stalling the caller by waiting to acquire an exclusive access to an isolate
+or you hit a problem with ergonomics around the lack of shared state.
 
-See [go/dart-interop-native-threading][] and [go/dart-platform-thread][] for more details around the challenge of crossing isolate-to-thread chasm and why all different solutions fall short.
+See [go/dart-interop-native-threading][] and [go/dart-platform-thread][] for
+more details around the challenge of crossing isolate-to-thread chasm and why
+all different solutions fall short.
 
 [native-callable-isolate-local]: https://api.dart.dev/stable/3.2.4/dart-ffi/NativeCallable/NativeCallable.isolateLocal.html
 [native-callable-listener]: https://api.dart.dev/stable/3.2.4/dart-ffi/NativeCallable/NativeCallable.listener.html
@@ -876,7 +957,8 @@ associated with that:
 An introduction of _shared isolate_ allows us to adjust our deployment story and
 make it simpler to create and use shared libraries from Dart code.
 
-Consider for example previously given in the [Interoperability](#interoperability) section:
+Consider for example previously given in the
+[Interoperability](#interoperability) section:
 
 ```dart
 // foo.dart
@@ -897,7 +979,8 @@ which produces a shared library exporting a C symbol:
 extern "C" void foo();
 ```
 
-Shared isolates give us a tool to define what happens when `foo` is invoked by a native caller:
+Shared isolates give us a tool to define what happens when `foo` is invoked by a
+native caller:
 
 - There is a 1-1 correspondence between loaded shared library and an isolate
   group corresponding to this shared library. This isolate group is created when
@@ -975,8 +1058,7 @@ abstract interface class Executor implements Shareable {
     /// Schedules the given task to run in the given executor.
     ///
     /// If the current isolate is not the [owner] of this executor
-    /// the behavior depends on [copy]:
-    ///
+    /// the behavior depends on [copy]:   ///
     ///   * When [copy] is `false` (which is default) [task] is
     ///     expected to be [Shareable] and is transfered to the
     ///     target isolate directly. If it is not [Shareable] then
@@ -1254,31 +1336,32 @@ as well.
 
 ```dart
 abstract interface class Coroutine {
-  /// Return currently running coroutine if any. 
+  /// Return currently running coroutine if any.
   static Coroutine? get current;
 
   /// Create a suspended coroutine which will execute the given
   /// [body] when resumed.
   static Coroutine create(void Function() body);
-  
-  /// Suspends the given currently running coroutine. 
-  /// 
-  /// This makes `resume` return with 
+
+  /// Suspends the given currently running coroutine.
+  ///
+  /// This makes `resume` return with
   /// Expects resumer to pass back a value of type [R].
   static void suspend();
-  	
+
  	/// Resumes previously suspended coroutine.
   ///
   /// If there is a coroutine currently running the suspends it
   /// first.
   void resume();
-  
+
   /// Resumes previously suspended coroutine with exception.
   void resumeWithException(Object error, [StackTrace? st]);
 }
 ```
 
-Coroutines is a very powerful abstraction which allows to write straight-line code which depends on asynchronous values.
+Coroutines is a very powerful abstraction which allows to write straight-line
+code which depends on asynchronous values.
 
 ```dart
 Future<String> request(String uri);
@@ -1286,7 +1369,7 @@ Future<String> request(String uri);
 extension FutureSuspend<T> on Future<T> {
   T get value {
     final cor = Coroutine.current ?? throw 'Not on a coroutine';
-    late final T value; 
+    late final T value;
     this.then((v) {
       value = v;
       cor.resume();
