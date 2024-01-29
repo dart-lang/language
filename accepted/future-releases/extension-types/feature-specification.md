@@ -1000,6 +1000,14 @@ in particular that `V` must match the on-type of the extension
 *(again, this is an `extension` declaration that we have today, not an
 `extension type` declaration)*.
 
+Let `e` be an expression whose static type is an extension type that has a
+method named `call`. In the case where the context type for `e` is a function
+type or the type `Function`, `e` is treated as `e.call`.
+
+*In other words, an implicit `call` tear-off is supported for extension
+types in the same way as it is supported for a type which is introduced by
+the declaration of a class, mixin, enum, or mixin class.*
+
 *In the body of an extension type declaration _DV_ with name `Name`
 and type parameters
 <code>X<sub>1</sub>, .. X<sub>s</sub></code>, for an invocation like
