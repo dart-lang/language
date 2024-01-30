@@ -41,6 +41,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Jan 2024
+% - Correct the rule about deriving a future type from a type (which is used
+%   by `flatten`).
+%
 % Dec 2023
 % - Allow `~/` on operands of type `double` in constant expressions, aligning
 %   the specification with already implemented behavior.
@@ -11743,16 +11747,11 @@ $F$ in the following cases, using the first applicable case:
   $B$ derives the future type $F$,
   then $T$ derives the future type $F$.
 \item
-  If $T$ is of the form \code{$X$\,\&\,$S$} then:
-  \begin{itemize}
-  \item
-    if $S$ derives the future type $F$,
-    then $T$ derives the future type $F$.
-  \item
-    if $B$ does not derive a future type,
-    but $X$ derives the future type $F$,
-    then $T$ derives the future type $F$.
-  \end{itemize}
+  \commentary{%
+    There is no rule for the case where $T$ is of the form \code{$X$\,\&\,$S$}
+    because this will never occur
+    (this concept is only used in \flattenName, which is defined below).%
+  }
 \end{itemize}
 
 \LMHash{}%
