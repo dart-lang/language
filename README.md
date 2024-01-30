@@ -8,7 +8,7 @@ This repository is a place for the [Dart][website] language team to work on
 
 # Dart language team
 
-As of June 2020, the Dart language team consists of:
+As of January 2024, the Dart language team consists of:
 
 * Leaf Petersen ([@leafpetersen](https://github.com/leafpetersen)), language engineer
 * Lasse R.H. Nielsen ([@lrhn](https://github.com/lrhn)), language engineer
@@ -19,6 +19,8 @@ As of June 2020, the Dart language team consists of:
 * Jake MacDonald ([@jakemac53](https://github.com/jakemac53)), language engineer
 * Paul Berry ([@stereotype441](https://github.com/stereotype441)), language engineer
 * Michael Thomsen ([@mit-mit](https://github.com/mit-mit)), product manager
+* Kallen Tu ([@kallentu](https://github.com/kallentu)), language engineer
+* David Morgan ([@davidmorgan](https://github.com/davidmorgan)), language engineer
 
 # Organization
 
