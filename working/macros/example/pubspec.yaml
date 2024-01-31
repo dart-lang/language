@@ -17,84 +17,84 @@ dependency_overrides:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/_fe_analyzer_shared
-      ref: 3.4.0-56.0.dev
+      ref: main
   _js_interop_checks:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/_js_interop_checks
-      ref: 3.4.0-56.0.dev
+      ref: main
   analyzer:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/analyzer
-      ref: 3.4.0-56.0.dev
+      ref: main
   build_integration:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/build_integration
-      ref: 3.4.0-56.0.dev
+      ref: main
   compiler:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/compiler
-      ref: 3.4.0-56.0.dev
+      ref: main
   dart2js_info:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/dart2js_info
-      ref: 3.4.0-56.0.dev
+      ref: main
   dart2wasm:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/dart2wasm
-      ref: 3.4.0-56.0.dev
+      ref: main
   dev_compiler:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/dev_compiler
-      ref: 3.4.0-56.0.dev
+      ref: main
   front_end:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/front_end
-      ref: 3.4.0-56.0.dev
+      ref: main
   frontend_server:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/frontend_server
-      ref: 3.4.0-56.0.dev
+      ref: main
   js_ast:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/js_ast
-      ref: 3.4.0-56.0.dev
+      ref: main
   js_runtime:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/js_runtime
-      ref: 3.4.0-56.0.dev
+      ref: main
   js_shared:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/js_shared
-      ref: 3.4.0-56.0.dev
+      ref: main
   kernel:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/kernel
-      ref: 3.4.0-56.0.dev
+      ref: main
   mmap:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/mmap
-      ref: 3.4.0-56.0.dev
+      ref: main
   vm:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/vm
-      ref: 3.4.0-56.0.dev
+      ref: main
   wasm_builder:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/wasm_builder
-      ref: 3.4.0-56.0.dev
+      ref: main
