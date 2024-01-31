@@ -885,10 +885,7 @@ one of the following criteria holds:
 
 - `T` is an extension type that does not implement `Future`.
 - `T` is `S?`, and `S` is incompatible with await.
-- `T` is `X & B`, and either:
-  - `B` is incompatible with await, or
-  - `B` does not derive a future type, and `X` is
-    incompatible with await.
+- `T` is `X & B`, and `B` is incompatible with await.
 - `T` is a type variable with bound `S`, and `S` is incompatible
   with await.
 
