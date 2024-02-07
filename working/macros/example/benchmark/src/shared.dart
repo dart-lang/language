@@ -1,8 +1,10 @@
 // There is no public API exposed yet, the in progress API lives here.
 import 'package:_fe_analyzer_shared/src/macros/api.dart';
+import 'package:_fe_analyzer_shared/src/macros/code_optimizer.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor/introspection_impls.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor/remote_instance.dart';
 import 'package:_fe_analyzer_shared/src/macros/executor.dart';
+import 'package:_fe_analyzer_shared/src/scanner/scanner.dart';
 import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:dart_style/dart_style.dart';
 
@@ -18,7 +20,7 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
       this.executor, this.results, this.identifierDeclarations)
       : super('AugmentationLibrary');
 
-  static void reportAndPrint(
+  static String reportAndPrint(
     MacroExecutor executor,
     List<MacroExecutionResult> results,
     Map<Identifier, Declaration> identifierDeclarations,
@@ -33,6 +35,7 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
     benchmark.report();
     final formatBenchmark = FormatLibraryBenchmark(benchmark.library)..report();
     print('${formatBenchmark.formattedResult}');
+    return formatBenchmark.formattedResult;
   }
 
   void run() {
@@ -117,6 +120,40 @@ class FormatLibraryBenchmark extends BenchmarkBase {
 
   void run() {
     _formattedResult = formatter.format(library);
+  }
+}
+
+class CodeOptimizerBenchmark extends BenchmarkBase {
+  final String library;
+  final BenchmarkCodeOptimizer optimizer;
+  late List<Edit> edits;
+
+  CodeOptimizerBenchmark(this.library, this.optimizer) : super('CodeOptimizer');
+
+  void run() {
+    edits = optimizer.optimize(library,
+        libraryDeclarationNames: {},
+        scannerConfiguration: ScannerConfiguration(
+            enableExtensionMethods: true,
+            enableNonNullable: true,
+            enableTripleShift: true,
+            forAugmentationLibrary: true));
+  }
+
+  void reportAndPrint() {
+    report();
+    print(edits);
+  }
+}
+
+class BenchmarkCodeOptimizer extends CodeOptimizer {
+  final Map<Uri, Map<String, Identifier>> identifiers;
+
+  BenchmarkCodeOptimizer({required this.identifiers});
+
+  @override
+  Set<String> getImportedNames(String uriStr) {
+    return (identifiers[Uri.parse(uriStr)] ?? {}).keys.toSet();
   }
 }
 

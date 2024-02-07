@@ -7,21 +7,24 @@ import 'package:benchmark_harness/benchmark_harness.dart';
 import 'shared.dart';
 
 Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
-  final introspector = SimpleDefinitionPhaseIntrospector(declarations: {
-    myClass.identifier: myClass,
-    objectClass.identifier: objectClass
-  }, identifiers: {
+  final libraryIdentifiers = {
     Uri.parse('dart:core'): {
       'bool': boolIdentifier,
       'int': intIdentifier,
       'Object': objectIdentifier,
       'String': stringIdentifier,
     }
-  }, constructors: {}, enumValues: {}, fields: {
-    myClass: myClassFields
-  }, methods: {
-    myClass: myClassMethods
-  });
+  };
+  final introspector = SimpleDefinitionPhaseIntrospector(
+      declarations: {
+        myClass.identifier: myClass,
+        objectClass.identifier: objectClass
+      },
+      identifiers: libraryIdentifiers,
+      constructors: {},
+      enumValues: {},
+      fields: {myClass: myClassFields},
+      methods: {myClass: myClassMethods});
   final identifierDeclarations = {
     ...introspector.declarations,
     for (final constructors in introspector.constructors.values)
@@ -53,10 +56,14 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
   final definitionsBenchmark = DataClassDefinitionPhaseBenchmark(
       executor, macroUri, instanceId, introspector);
   await definitionsBenchmark.report();
-  BuildAugmentationLibraryBenchmark.reportAndPrint(
+  final library = BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor,
       [if (definitionsBenchmark.result != null) definitionsBenchmark.result!],
       identifierDeclarations);
+
+  CodeOptimizerBenchmark(
+          library, BenchmarkCodeOptimizer(identifiers: libraryIdentifiers))
+      .reportAndPrint();
 }
 
 class DataClassInstantiateBenchmark extends AsyncBenchmarkBase {
