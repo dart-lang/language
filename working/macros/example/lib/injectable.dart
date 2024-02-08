@@ -129,7 +129,7 @@ macro class Provides implements MethodDeclarationsMacro {
             name: providerIdentifier, typeArguments: [param.type.code]),
         ' provide${param.identifier.name.capitalize}, ',
       ],
-      ') => ',
+      ') => () => ',
       method.identifier,
       '(',
       for (final param in method.positionalParameters)

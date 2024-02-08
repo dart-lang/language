@@ -50,6 +50,8 @@ macro class JsonSerializable implements ClassDeclarationsMacro {
 
 /// A macro applied to a fromJson constructor, which fills in the initializer list.
 macro class FromJson implements ConstructorDefinitionMacro {
+  const FromJson();
+
   @override
   Future<void> buildDefinitionForConstructor(ConstructorDeclaration constructor,
       ConstructorDefinitionBuilder builder) async {
@@ -129,6 +131,8 @@ macro class FromJson implements ConstructorDefinitionMacro {
 
 /// A macro applied to a toJson instance method, which fills in the body.
 macro class ToJson implements MethodDefinitionMacro {
+  const ToJson();
+
   @override
   Future<void> buildDefinitionForMethod(
       MethodDeclaration method, FunctionDefinitionBuilder builder) async {
