@@ -524,7 +524,7 @@ dm : K{n+m}})` then:
       appropriate implicit coercion(s) on `ei`.  Let `Ti` be the type of the
       resulting coerced value (which must be a subtype of `Ri`, possibly
       proper).
-    - Otherwise, it is a static error.
+    - Otherwise, let `Ti` be `Si`.
   - The type of `E` is `(T1, ..., Tn, {d1 : T{n+1}, ...., dm : T{n+m}})`
 
 If `K` is any other type schema:
