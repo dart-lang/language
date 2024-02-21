@@ -33,9 +33,7 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
     final benchmark = BuildAugmentationLibraryBenchmark(
         executor, results, identifierDeclarations);
     benchmark.report();
-    final formatBenchmark = FormatLibraryBenchmark(benchmark.library)..report();
-    print('${formatBenchmark.formattedResult}');
-    return formatBenchmark.formattedResult;
+    return benchmark.library;
   }
 
   void run() {
@@ -51,7 +49,7 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
             kind: IdentifierKind.topLevelMember,
             name: identifier.name,
             staticScope: null,
-            uri: null);
+            uri: dartCore);
       } else {
         final declaration = identifierDeclarations[identifier];
         String? staticScope;
@@ -82,6 +80,8 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
         (annotation) =>
             throw UnsupportedError('Omitted types are not supported!'));
   }
+
+  static final dartCore = Uri.parse('dart:core');
 }
 
 class FormatLibraryBenchmark extends BenchmarkBase {
@@ -93,7 +93,7 @@ class FormatLibraryBenchmark extends BenchmarkBase {
       .replaceAll('/*augment*/', 'augment')
       .replaceAll('on FakeTypeForFormatting {', '{');
 
-  FormatLibraryBenchmark(String library)
+  FormatLibraryBenchmark._(String library)
       : library = _prepareLibrary(library),
         super('FormatLibrary');
 
@@ -121,28 +121,39 @@ class FormatLibraryBenchmark extends BenchmarkBase {
   void run() {
     _formattedResult = formatter.format(library);
   }
+
+  static String reportAndPrint(String library) {
+    final formatBenchmark = FormatLibraryBenchmark._(library)..report();
+    print('${formatBenchmark.formattedResult}');
+    return formatBenchmark.formattedResult;
+  }
 }
 
 class CodeOptimizerBenchmark extends BenchmarkBase {
   final String library;
+  final Set<String> libraryDeclarationNames;
   final BenchmarkCodeOptimizer optimizer;
-  late List<Edit> edits;
+  late String optimizedLibrary;
 
-  CodeOptimizerBenchmark(this.library, this.optimizer) : super('CodeOptimizer');
+  CodeOptimizerBenchmark(
+      this.library, this.libraryDeclarationNames, this.optimizer)
+      : super('CodeOptimizer');
 
   void run() {
-    edits = optimizer.optimize(library,
-        libraryDeclarationNames: {},
-        scannerConfiguration: ScannerConfiguration(
-            enableExtensionMethods: true,
-            enableNonNullable: true,
-            enableTripleShift: true,
-            forAugmentationLibrary: true));
+    optimizedLibrary = Edit.applyList(
+        optimizer.optimize(library,
+            libraryDeclarationNames: libraryDeclarationNames,
+            scannerConfiguration: ScannerConfiguration(
+                enableExtensionMethods: true,
+                enableNonNullable: true,
+                enableTripleShift: true,
+                forAugmentationLibrary: true)),
+        library);
   }
 
   void reportAndPrint() {
     report();
-    print(edits);
+    print(optimizedLibrary);
   }
 }
 

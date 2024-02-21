@@ -51,18 +51,27 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
   await declarationsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor,
-      [if (declarationsBenchmark.result != null) declarationsBenchmark.result!],
+      [
+        if (typesBenchmark.result != null) typesBenchmark.result!,
+        if (declarationsBenchmark.result != null) declarationsBenchmark.result!,
+      ],
       identifierDeclarations);
   final definitionsBenchmark = DataClassDefinitionPhaseBenchmark(
       executor, macroUri, instanceId, introspector);
   await definitionsBenchmark.report();
-  final library = BuildAugmentationLibraryBenchmark.reportAndPrint(
+  final rawLibrary = BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor,
-      [if (definitionsBenchmark.result != null) definitionsBenchmark.result!],
+      [
+        if (typesBenchmark.result != null) typesBenchmark.result!,
+        if (declarationsBenchmark.result != null) declarationsBenchmark.result!,
+        if (definitionsBenchmark.result != null) definitionsBenchmark.result!,
+      ],
       identifierDeclarations);
 
-  CodeOptimizerBenchmark(
-          library, BenchmarkCodeOptimizer(identifiers: libraryIdentifiers))
+  final formattedLibrary = FormatLibraryBenchmark.reportAndPrint(rawLibrary);
+
+  CodeOptimizerBenchmark(formattedLibrary, {'MyClass'},
+          BenchmarkCodeOptimizer(identifiers: libraryIdentifiers))
       .reportAndPrint();
 }
 
