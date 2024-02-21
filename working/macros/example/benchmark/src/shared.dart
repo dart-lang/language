@@ -8,7 +8,17 @@ import 'package:_fe_analyzer_shared/src/scanner/scanner.dart';
 import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:dart_style/dart_style.dart';
 
-class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
+/// A benchmark which only calls `run` once inside `excersize`.
+class RunOnceBenchmarkBase extends BenchmarkBase {
+  RunOnceBenchmarkBase(super.name);
+
+  @override
+  void exercise() {
+    run();
+  }
+}
+
+class BuildAugmentationLibraryBenchmark extends RunOnceBenchmarkBase {
   final MacroExecutor executor;
   final List<MacroExecutionResult> results;
 
@@ -84,7 +94,7 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
   static final dartCore = Uri.parse('dart:core');
 }
 
-class FormatLibraryBenchmark extends BenchmarkBase {
+class FormatLibraryBenchmark extends RunOnceBenchmarkBase {
   final formatter = DartFormatter();
   final String library;
   late String _formattedResult;
@@ -129,7 +139,7 @@ class FormatLibraryBenchmark extends BenchmarkBase {
   }
 }
 
-class CodeOptimizerBenchmark extends BenchmarkBase {
+class CodeOptimizerBenchmark extends RunOnceBenchmarkBase {
   final String library;
   final Set<String> libraryDeclarationNames;
   final BenchmarkCodeOptimizer optimizer;
