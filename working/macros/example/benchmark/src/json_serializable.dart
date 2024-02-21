@@ -200,10 +200,12 @@ final myClassFields = [
       library: fooLibrary,
       metadata: [],
       hasAbstract: false,
+      hasConst: false,
       hasExternal: false,
       hasFinal: true,
+      hasInitializer: false,
       hasLate: false,
-      isStatic: false,
+      hasStatic: false,
       type: stringType),
   FieldDeclarationImpl(
       definingType: myClassIdentifier,
@@ -212,10 +214,12 @@ final myClassFields = [
       library: fooLibrary,
       metadata: [],
       hasAbstract: false,
+      hasConst: false,
       hasExternal: false,
       hasFinal: true,
+      hasInitializer: false,
       hasLate: false,
-      isStatic: false,
+      hasStatic: false,
       type: boolType),
 ];
 
@@ -229,7 +233,7 @@ final myClassConstructors = [
       hasExternal: false,
       namedParameters: [],
       positionalParameters: [
-        ParameterDeclarationImpl(
+        FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier:
                 IdentifierImpl(id: RemoteInstance.uniqueId, name: 'json'),
@@ -256,7 +260,7 @@ final myClassMethods = [
       isGetter: false,
       isOperator: false,
       isSetter: false,
-      isStatic: false,
+      hasStatic: false,
       library: fooLibrary,
       metadata: [],
       hasBody: false,

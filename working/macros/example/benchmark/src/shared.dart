@@ -54,7 +54,7 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
         String? staticScope;
         IdentifierKind kind;
         if (declaration is MemberDeclaration) {
-          if (declaration.isStatic) {
+          if (declaration.hasStatic) {
             staticScope = declaration.definingType.name;
             kind = IdentifierKind.staticInstanceMember;
           } else {
@@ -84,14 +84,20 @@ class BuildAugmentationLibraryBenchmark extends BenchmarkBase {
 class FormatLibraryBenchmark extends BenchmarkBase {
   final formatter = DartFormatter();
   final String library;
-  late String formattedResult;
+  late String _formattedResult;
 
-  FormatLibraryBenchmark(this.library) : super('FormatLibrary');
+  String get formattedResult => _formattedResult
+      .replaceAll('/*augment*/', 'augment')
+      .replaceAll('on FakeTypeForFormatting {', '{');
 
-  static final extensionRegex = RegExp(r'extension [a-zA-Z]+ {');
+  FormatLibraryBenchmark(String library)
+      : library = _prepareLibrary(library),
+        super('FormatLibrary');
 
-  void run() {
-    var formattableLibrary = library
+  /// Converts [original] such that it can be formatted even though
+  /// augmentations are not yet supported.
+  static String _prepareLibrary(String original) {
+    var formattableLibrary = original
         // comment out the `augment` keywords temporarily
         .replaceAll('augment', '/*augment*/');
 
@@ -104,10 +110,13 @@ class FormatLibraryBenchmark extends BenchmarkBase {
           'on FakeTypeForFormatting {');
       extensionMatch = extensionRegex.firstMatch(formattableLibrary);
     }
-    formattedResult = formatter
-        .format(formattableLibrary)
-        .replaceAll('/*augment*/', 'augment')
-        .replaceAll('on FakeTypeForFormatting {', '{');
+    return formattableLibrary;
+  }
+
+  static final extensionRegex = RegExp(r'extension [a-zA-Z]+ {');
+
+  void run() {
+    _formattedResult = formatter.format(library);
   }
 }
 

@@ -169,10 +169,12 @@ final myClassFields = [
       library: fooLibrary,
       metadata: [],
       hasAbstract: false,
+      hasConst: false,
       hasExternal: false,
       hasFinal: true,
+      hasInitializer: false,
       hasLate: false,
-      isStatic: false,
+      hasStatic: false,
       type: stringType),
   FieldDeclarationImpl(
       definingType: myClassIdentifier,
@@ -181,10 +183,12 @@ final myClassFields = [
       library: fooLibrary,
       metadata: [],
       hasAbstract: false,
+      hasConst: false,
       hasExternal: false,
       hasFinal: true,
+      hasInitializer: false,
       hasLate: false,
-      isStatic: false,
+      hasStatic: false,
       type: boolType),
 ];
 
@@ -200,10 +204,10 @@ final myClassMethods = [
     isGetter: false,
     isOperator: true,
     isSetter: false,
-    isStatic: false,
+    hasStatic: false,
     namedParameters: [],
     positionalParameters: [
-      ParameterDeclarationImpl(
+      FormalParameterDeclarationImpl(
         id: RemoteInstance.uniqueId,
         identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'other'),
         library: fooLibrary,
@@ -231,7 +235,7 @@ final myClassMethods = [
     isOperator: false,
     isGetter: true,
     isSetter: false,
-    isStatic: false,
+    hasStatic: false,
     namedParameters: [],
     positionalParameters: [],
     returnType: intType,
@@ -248,7 +252,7 @@ final myClassMethods = [
     isGetter: false,
     isOperator: false,
     isSetter: false,
-    isStatic: false,
+    hasStatic: false,
     namedParameters: [],
     positionalParameters: [],
     returnType: stringType,
