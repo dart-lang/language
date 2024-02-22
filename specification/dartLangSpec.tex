@@ -9568,7 +9568,8 @@ Programmers should not depend on this distinction.%
 \end{grammar}
 
 \LMHash{}%
-A string can be a sequence of single line strings and multiline strings.
+A string literal can be a sequence of single line strings
+and multiline strings.
 
 \begin{grammar}
 <singleLineString> ::= <RAW\_SINGLE\_LINE\_STRING>
@@ -9620,24 +9621,25 @@ A string can be a sequence of single line strings and multiline strings.
 \end{grammar}
 
 \LMHash{}%
-A single line string is delimited by
+A single line string literal is delimited by
 either matching single quotes or matching double quotes.
 
 \commentary{%
-Hence, \code{'abc'} and \code{"abc"} are both legal strings,
+Hence, \code{'abc'} and \code{"abc"} are both legal string literals,
 as are \code{'He said "To be or not to be" did he not?'} and
 \code{"He said 'To be or not to be' didn't he?"}.
-However, \code{"This'} is not a valid string, nor is \code{'this"}.%
+However, \code{"This'} is not a valid string literal, nor is \code{'this"}.%
 }
 
 \commentary{%
-The grammar ensures that a single line string cannot span more than
+The grammar ensures that a single line string literal cannot span more than
 one line of source code,
 unless it includes an interpolated expression that spans multiple lines.%
 }
 
 \LMHash{}%
-Adjacent strings are implicitly concatenated to form a single string literal.
+Adjacent string literals are implicitly concatenated
+to form a single string literal.
 
 \commentary{%
 Here is an example:%
@@ -9650,7 +9652,7 @@ print("A string" "and then another"); // \comment{A stringand then another}
 \rationale{%
 Dart also supports the operator + for string concatenation.
 
-The + operator on Strings requires a String argument.
+The + operator on \code{String}s requires a \code{String} argument.
 It does not coerce its argument into a string.
 This helps avoid puzzlers such as%
 }
@@ -9675,17 +9677,17 @@ print("A simple sum: 2 + 2 = \$\{2+2\}");
 String interpolation works well for most cases.
 The main situation where it is not fully satisfactory
 is for string literals that are too large to fit on a line.
-Multiline strings can be useful, but in some cases,
+Multiline string literals can be useful, but in some cases,
 we want to visually align the code.
 This can be expressed by writing
-smaller strings separated by whitespace, as shown here:%
+smaller string literals separated by whitespace, as shown here:%
 }
 
 \begin{dartCode}
 'Imagine this is a very long string that does not fit on a line. What shall we do? '
 'Oh what shall we do? '
 'We shall split it into pieces '
-'like so'.
+'like so.'
 \end{dartCode}
 
 \LMHash{}%
@@ -9770,10 +9772,10 @@ and the marker is then popped.
 \end{grammar}
 
 \LMHash{}%
-Multiline strings are delimited by either
+Multiline string literals are delimited by either
 matching triples of single quotes or
 matching triples of double quotes.
-If the first line of a multiline string consists solely of
+If the first line of a multiline string literal consists solely of
 the whitespace characters defined by the production \synt{WHITESPACE}
 (\ref{lexicalRules}),
 possibly prefixed by \syntax{`\\'},
@@ -9781,11 +9783,12 @@ then that line is ignored,
 including the line break at its end.
 
 \rationale{%
-The idea is to ignore a whitespace-only first line of a multiline string,
+The idea is to ignore a whitespace-only first line of
+a multiline string literal,
 where whitespace is defined as tabs, spaces and the final line break.
 These can be represented directly,
 but since for most characters prefixing by backslash is
-an identity in a non-raw string,
+an identity in a non-raw string literal,
 we allow those forms as well.%
 }
 
@@ -9803,7 +9806,7 @@ just like single-line string interpolation.%
 }
 
 \LMHash{}%
-Strings support escape sequences for special characters.
+String literals support escape sequences for special characters.
 The escapes are:
 \begin{itemize}
 \item
@@ -9849,12 +9852,12 @@ The escapes are:
 \end{itemize}
 
 \LMHash{}%
-Any string may be prefixed with the character \lit{r},
-indicating that it is a \Index{raw string},
+Any string literal may be prefixed with the character \lit{r},
+indicating that it is a \Index{raw string literal},
 in which case no escapes or interpolations are recognized.
 
 \LMHash{}%
-Line breaks in a multiline string are represented by
+Line breaks in a multiline string literal are represented by
 the \synt{LINE\_BREAK} production.
 A line break introduces a single newline character (U+000A)
 into the string value.
@@ -9903,12 +9906,12 @@ This process is known as \Index{string interpolation}.
 
 \commentary{%
 The reader will note that the expression inside the interpolation
-could itself include strings,
+could itself include string literals,
 which could again be interpolated recursively.%
 }
 
 \LMHash{}%
-An unescaped \lit{\$} character in a string signifies
+An unescaped \lit{\$} character in a string literal signifies
 the beginning of an interpolated expression.
 The \lit{\$} sign may be followed by either:
 \begin{itemize}
