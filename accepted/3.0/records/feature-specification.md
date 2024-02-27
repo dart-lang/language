@@ -133,6 +133,10 @@ not captured by the grammar. It is a compile-time error if a record has any of:
     field. *For example: `('pos', $1: 'named')` since the named field "$1"
     collides with the getter for the first positional field.*
 
+Let _R_ be a record expression that occurs in a constant context, or a
+record expression whose first token is `const`. In this case, each record
+field in _R_ occurs in a constant context.
+
 In order to avoid ambiguity with parenthesized expressions, a record with
 only a single positional field must have a trailing comma:
 
