@@ -14,9 +14,9 @@ void main() {
 
 @DataClass()
 class User {
-  final int age;
-  final String name;
-  final String username;
+  final int? age;
+  final String? name;
+  final String? username;
 }
 
 @DataClass()
