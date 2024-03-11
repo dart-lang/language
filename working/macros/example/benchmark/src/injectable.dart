@@ -400,7 +400,7 @@ final generatedElectricHeaterMethods = [
           ]),
       typeParameters: [],
       definingType: electricHeaterIdentifier,
-      isStatic: true),
+      hasStatic: true),
 ];
 
 // interface class Pump {}
@@ -460,8 +460,10 @@ final thermosiphonFields = [
       library: fooLibrary,
       metadata: [],
       hasAbstract: false,
+      hasConst: false,
       hasExternal: false,
       hasFinal: true,
+      hasInitializer: false,
       hasLate: false,
       type: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,
@@ -469,7 +471,7 @@ final thermosiphonFields = [
           identifier: heaterIdentifier,
           typeArguments: []),
       definingType: thermosiphonIdentifier,
-      isStatic: false),
+      hasStatic: false),
 ];
 final thermosiphonConstructors = [
   ConstructorDeclarationImpl(
@@ -482,7 +484,7 @@ final thermosiphonConstructors = [
       namedParameters: [],
       positionalParameters: [
         for (var field in thermosiphonFields)
-          ParameterDeclarationImpl(
+          FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier: field.identifier,
             library: fooLibrary,
@@ -517,7 +519,7 @@ final generatedThermosiphonMethods = [
       isSetter: false,
       namedParameters: [],
       positionalParameters: [
-        ParameterDeclarationImpl(
+        FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'heaterProvider'),
@@ -550,7 +552,7 @@ final generatedThermosiphonMethods = [
           ]),
       typeParameters: [],
       definingType: thermosiphonIdentifier,
-      isStatic: true),
+      hasStatic: true),
 ];
 
 // @Injectable()
@@ -585,8 +587,10 @@ final coffeeMakerFields = [
       library: fooLibrary,
       metadata: [],
       hasAbstract: false,
+      hasConst: false,
       hasExternal: false,
       hasFinal: true,
+      hasInitializer: false,
       hasLate: false,
       type: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,
@@ -594,15 +598,17 @@ final coffeeMakerFields = [
           identifier: heaterIdentifier,
           typeArguments: []),
       definingType: coffeeMakerIdentifier,
-      isStatic: false),
+      hasStatic: false),
   FieldDeclarationImpl(
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'pump'),
       library: fooLibrary,
       metadata: [],
       hasAbstract: false,
+      hasConst: false,
       hasExternal: false,
       hasFinal: true,
+      hasInitializer: false,
       hasLate: false,
       type: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,
@@ -610,7 +616,7 @@ final coffeeMakerFields = [
           identifier: pumpIdentifier,
           typeArguments: []),
       definingType: coffeeMakerIdentifier,
-      isStatic: false),
+      hasStatic: false),
 ];
 final coffeeMakerConstructors = [
   ConstructorDeclarationImpl(
@@ -623,7 +629,7 @@ final coffeeMakerConstructors = [
       namedParameters: [],
       positionalParameters: [
         for (var field in coffeeMakerFields)
-          ParameterDeclarationImpl(
+          FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier: field.identifier,
             library: fooLibrary,
@@ -660,7 +666,7 @@ final generatedCoffeeMakerMethods = [
       isSetter: false,
       namedParameters: [],
       positionalParameters: [
-        ParameterDeclarationImpl(
+        FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'heaterProvider'),
@@ -679,7 +685,7 @@ final generatedCoffeeMakerMethods = [
                       identifier: heaterIdentifier,
                       typeArguments: [])
                 ])),
-        ParameterDeclarationImpl(
+        FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'pumpProvider'),
@@ -712,7 +718,7 @@ final generatedCoffeeMakerMethods = [
           ]),
       typeParameters: [],
       definingType: coffeeMakerIdentifier,
-      isStatic: true)
+      hasStatic: true)
 ];
 
 // class DripCoffeeModule {
@@ -753,7 +759,7 @@ final dripCoffeeModuleMethods = [
       isSetter: false,
       namedParameters: [],
       positionalParameters: [
-        ParameterDeclarationImpl(
+        FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier:
                 IdentifierImpl(id: RemoteInstance.uniqueId, name: 'impl'),
@@ -774,7 +780,7 @@ final dripCoffeeModuleMethods = [
           typeArguments: []),
       typeParameters: [],
       definingType: dripCoffeeModuleIdentifier,
-      isStatic: false),
+      hasStatic: false),
   MethodDeclarationImpl(
       id: RemoteInstance.uniqueId,
       identifier:
@@ -788,7 +794,7 @@ final dripCoffeeModuleMethods = [
       isSetter: false,
       namedParameters: [],
       positionalParameters: [
-        ParameterDeclarationImpl(
+        FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier:
                 IdentifierImpl(id: RemoteInstance.uniqueId, name: 'impl'),
@@ -809,7 +815,7 @@ final dripCoffeeModuleMethods = [
           typeArguments: []),
       typeParameters: [],
       definingType: dripCoffeeModuleIdentifier,
-      isStatic: false),
+      hasStatic: false),
 ];
 final generatedDripCoffeeModuleMethods = [
   // Generated in the declarations phase, they look like:
@@ -830,7 +836,7 @@ final generatedDripCoffeeModuleMethods = [
       isSetter: false,
       namedParameters: [],
       positionalParameters: [
-        ParameterDeclarationImpl(
+        FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'provideImpl'),
@@ -863,7 +869,7 @@ final generatedDripCoffeeModuleMethods = [
           ]),
       typeParameters: [],
       definingType: dripCoffeeModuleIdentifier,
-      isStatic: false),
+      hasStatic: false),
   MethodDeclarationImpl(
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(
@@ -877,7 +883,7 @@ final generatedDripCoffeeModuleMethods = [
       isSetter: false,
       namedParameters: [],
       positionalParameters: [
-        ParameterDeclarationImpl(
+        FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'provideImpl'),
@@ -910,7 +916,7 @@ final generatedDripCoffeeModuleMethods = [
           ]),
       typeParameters: [],
       definingType: dripCoffeeModuleIdentifier,
-      isStatic: false),
+      hasStatic: false),
 ];
 
 // @Component(modules: [])
@@ -960,7 +966,7 @@ final dripCoffeeComponentMethods = [
           typeArguments: []),
       typeParameters: [],
       definingType: dripCoffeeComponentIdentifier,
-      isStatic: false),
+      hasStatic: false),
 ];
 final dripCoffeeComponentConstructors = [
   ConstructorDeclarationImpl(
@@ -972,7 +978,7 @@ final dripCoffeeComponentConstructors = [
       hasExternal: true,
       namedParameters: [],
       positionalParameters: [
-        ParameterDeclarationImpl(
+        FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier: IdentifierImpl(
                 id: RemoteInstance.uniqueId, name: 'dripCoffeeModule'),
@@ -1008,7 +1014,7 @@ final generatedDripCoffeeComponentConstructors = [
       hasExternal: false,
       namedParameters: [],
       positionalParameters: [
-        ParameterDeclarationImpl(
+        FormalParameterDeclarationImpl(
             id: RemoteInstance.uniqueId,
             identifier: generatedDripCoffeeComponentFields.first.identifier,
             library: fooLibrary,
@@ -1037,8 +1043,10 @@ final generatedDripCoffeeComponentFields = [
       library: fooLibrary,
       metadata: [],
       hasAbstract: false,
+      hasConst: false,
       hasExternal: false,
       hasFinal: true,
+      hasInitializer: false,
       hasLate: false,
       type: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,
@@ -1052,5 +1060,5 @@ final generatedDripCoffeeComponentFields = [
                 typeArguments: [])
           ]),
       definingType: dripCoffeeComponentIdentifier,
-      isStatic: false)
+      hasStatic: false)
 ];

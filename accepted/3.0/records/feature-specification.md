@@ -133,6 +133,10 @@ not captured by the grammar. It is a compile-time error if a record has any of:
     field. *For example: `('pos', $1: 'named')` since the named field "$1"
     collides with the getter for the first positional field.*
 
+Let _R_ be a record expression that occurs in a constant context, or a
+record expression whose first token is `const`. In this case, each record
+field in _R_ occurs in a constant context.
+
 In order to avoid ambiguity with parenthesized expressions, a record with
 only a single positional field must have a trailing comma:
 
@@ -524,7 +528,7 @@ dm : K{n+m}})` then:
       appropriate implicit coercion(s) on `ei`.  Let `Ti` be the type of the
       resulting coerced value (which must be a subtype of `Ri`, possibly
       proper).
-    - Otherwise, it is a static error.
+    - Otherwise, let `Ti` be `Si`.
   - The type of `E` is `(T1, ..., Tn, {d1 : T{n+1}, ...., dm : T{n+m}})`
 
 If `K` is any other type schema:

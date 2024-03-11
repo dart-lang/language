@@ -93,7 +93,7 @@ final myFunction = FunctionDeclarationImpl(
     isOperator: false,
     isSetter: false,
     namedParameters: [
-      ParameterDeclarationImpl(
+      FormalParameterDeclarationImpl(
           id: RemoteInstance.uniqueId,
           identifier:
               IdentifierImpl(id: RemoteInstance.uniqueId, name: 'title'),
@@ -104,7 +104,7 @@ final myFunction = FunctionDeclarationImpl(
           type: stringType),
     ],
     positionalParameters: [
-      ParameterDeclarationImpl(
+      FormalParameterDeclarationImpl(
           id: RemoteInstance.uniqueId,
           identifier:
               IdentifierImpl(id: RemoteInstance.uniqueId, name: 'context'),
@@ -113,7 +113,7 @@ final myFunction = FunctionDeclarationImpl(
           library: fooLibrary,
           metadata: [],
           type: buildContextType),
-      ParameterDeclarationImpl(
+      FormalParameterDeclarationImpl(
           id: RemoteInstance.uniqueId,
           identifier:
               IdentifierImpl(id: RemoteInstance.uniqueId, name: 'count'),

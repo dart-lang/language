@@ -1,14 +1,19 @@
 **DISCLAIMER**: All code in this package is experimental and should be treated
-as such.
-
-This package some example macros (under `lib`), as well as some utilities to try
-actually running those examples.
+as such. The examples are unstable and may or may not work at any given time,
+depending on the implementation status.
 
 ## Setup
 
 Your SDK will need to match roughly the commit pinned in the pubspec.yaml file
 of this package (see the `ref` lines). Otherwise you will get a kernel version
 mismatch.
+
+## Examples
+
+The example macros live under `lib/` and there are programs using them under
+`bin/`. To try and run an example, you need to enable the `macros` experiment,
+`dart --enable-experiment=macros <script>`, but the implementations do not yet
+support all the examples here so you should expect errors.
 
 ## Benchmarks
 
@@ -19,12 +24,3 @@ environment (compiler).
 
 This benchmark uses a synthetic program, and only benchmarks the overhead of
 running the macro itself, and the communication to and from the host program.
-
-## Examples
-
-There is an example program at `bin/user_main.dart`. This _cannot_ be directly
-executed but you can compile and execute it with the `bin/run.dart` script.
-
-**NOTE**: This is not meant to be a representative example of how a script using
-macros would be compiled and ran in the real world, but it does allow you to
-execute the program.

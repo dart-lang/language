@@ -134,7 +134,7 @@ macro class ChecksExtension implements ExtensionDeclarationsMacro {
   }
 
   bool _isCheckableField(FieldDeclaration field) =>
-      field.identifier.name != 'hashCode' && !field.isStatic;
+      field.identifier.name != 'hashCode' && !field.hasStatic;
 }
 
 class InvalidCheckExtensions extends Error {

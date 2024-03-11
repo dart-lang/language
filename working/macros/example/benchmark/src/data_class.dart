@@ -7,21 +7,24 @@ import 'package:benchmark_harness/benchmark_harness.dart';
 import 'shared.dart';
 
 Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
-  final introspector = SimpleDefinitionPhaseIntrospector(declarations: {
-    myClass.identifier: myClass,
-    objectClass.identifier: objectClass
-  }, identifiers: {
+  final libraryIdentifiers = {
     Uri.parse('dart:core'): {
       'bool': boolIdentifier,
       'int': intIdentifier,
       'Object': objectIdentifier,
       'String': stringIdentifier,
     }
-  }, constructors: {}, enumValues: {}, fields: {
-    myClass: myClassFields
-  }, methods: {
-    myClass: myClassMethods
-  });
+  };
+  final introspector = SimpleDefinitionPhaseIntrospector(
+      declarations: {
+        myClass.identifier: myClass,
+        objectClass.identifier: objectClass
+      },
+      identifiers: libraryIdentifiers,
+      constructors: {},
+      enumValues: {},
+      fields: {myClass: myClassFields},
+      methods: {myClass: myClassMethods});
   final identifierDeclarations = {
     ...introspector.declarations,
     for (final constructors in introspector.constructors.values)
@@ -48,15 +51,28 @@ Future<void> runBenchmarks(MacroExecutor executor, Uri macroUri) async {
   await declarationsBenchmark.report();
   BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor,
-      [if (declarationsBenchmark.result != null) declarationsBenchmark.result!],
+      [
+        if (typesBenchmark.result != null) typesBenchmark.result!,
+        if (declarationsBenchmark.result != null) declarationsBenchmark.result!,
+      ],
       identifierDeclarations);
   final definitionsBenchmark = DataClassDefinitionPhaseBenchmark(
       executor, macroUri, instanceId, introspector);
   await definitionsBenchmark.report();
-  BuildAugmentationLibraryBenchmark.reportAndPrint(
+  final rawLibrary = BuildAugmentationLibraryBenchmark.reportAndPrint(
       executor,
-      [if (definitionsBenchmark.result != null) definitionsBenchmark.result!],
+      [
+        if (typesBenchmark.result != null) typesBenchmark.result!,
+        if (declarationsBenchmark.result != null) declarationsBenchmark.result!,
+        if (definitionsBenchmark.result != null) definitionsBenchmark.result!,
+      ],
       identifierDeclarations);
+
+  final formattedLibrary = FormatLibraryBenchmark.reportAndPrint(rawLibrary);
+
+  CodeOptimizerBenchmark(formattedLibrary, {'MyClass'},
+          BenchmarkCodeOptimizer(identifiers: libraryIdentifiers))
+      .reportAndPrint();
 }
 
 class DataClassInstantiateBenchmark extends AsyncBenchmarkBase {
@@ -169,10 +185,12 @@ final myClassFields = [
       library: fooLibrary,
       metadata: [],
       hasAbstract: false,
+      hasConst: false,
       hasExternal: false,
       hasFinal: true,
+      hasInitializer: false,
       hasLate: false,
-      isStatic: false,
+      hasStatic: false,
       type: stringType),
   FieldDeclarationImpl(
       definingType: myClassIdentifier,
@@ -181,10 +199,12 @@ final myClassFields = [
       library: fooLibrary,
       metadata: [],
       hasAbstract: false,
+      hasConst: false,
       hasExternal: false,
       hasFinal: true,
+      hasInitializer: false,
       hasLate: false,
-      isStatic: false,
+      hasStatic: false,
       type: boolType),
 ];
 
@@ -200,10 +220,10 @@ final myClassMethods = [
     isGetter: false,
     isOperator: true,
     isSetter: false,
-    isStatic: false,
+    hasStatic: false,
     namedParameters: [],
     positionalParameters: [
-      ParameterDeclarationImpl(
+      FormalParameterDeclarationImpl(
         id: RemoteInstance.uniqueId,
         identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'other'),
         library: fooLibrary,
@@ -231,7 +251,7 @@ final myClassMethods = [
     isOperator: false,
     isGetter: true,
     isSetter: false,
-    isStatic: false,
+    hasStatic: false,
     namedParameters: [],
     positionalParameters: [],
     returnType: intType,
@@ -248,7 +268,7 @@ final myClassMethods = [
     isGetter: false,
     isOperator: false,
     isSetter: false,
-    isStatic: false,
+    hasStatic: false,
     namedParameters: [],
     positionalParameters: [],
     returnType: stringType,

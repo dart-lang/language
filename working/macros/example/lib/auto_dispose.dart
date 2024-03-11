@@ -23,6 +23,7 @@ macro class AutoDispose implements ClassDeclarationsMacro, ClassDefinitionMacro 
     }
 
     builder.declareInType(DeclarationCode.fromParts([
+      // TODO: Remove external once the CFE supports it.
       'external void dispose();',
     ]));
   }
@@ -62,7 +63,10 @@ macro class AutoDispose implements ClassDeclarationsMacro, ClassDefinitionMacro 
     var disposeBuilder = await builder.buildMethod(disposeMethod.identifier);
     disposeBuilder.augment(FunctionBodyCode.fromParts([
       '{\n',
-      if (!disposeMethod.hasBody) 'super.dispose();' else 'augmented();',
+      if (disposeMethod.hasExternal || !disposeMethod.hasBody)
+        'super.dispose();'
+      else
+        'augmented();',
       ...disposeCalls,
       '}',
     ]));

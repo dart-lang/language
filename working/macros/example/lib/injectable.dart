@@ -129,7 +129,7 @@ macro class Provides implements MethodDeclarationsMacro {
             name: providerIdentifier, typeArguments: [param.type.code]),
         ' provide${param.identifier.name.capitalize}, ',
       ],
-      ') => ',
+      ') => () => ',
       method.identifier,
       '(',
       for (final param in method.positionalParameters)
@@ -389,7 +389,7 @@ macro class Component
       // injectable.
       final clazz = await builder.typeDeclarationOf(type);
       for (final method in await builder.methodsOf(clazz)) {
-        if (!method.isStatic) continue;
+        if (!method.hasStatic) continue;
         final returnType = method.returnType;
         if (returnType is! NamedTypeAnnotation) continue;
         if (returnType.identifier != providerIdentifier) continue;
@@ -416,7 +416,7 @@ macro class Component
     codeParts.addAll([
       'final $name = ',
       // If it isn't a static method, it must be coming from a parameter.
-      if (!providerProvider.isStatic) ...[
+      if (!providerProvider.hasStatic) ...[
         providerProviderParameters[providerProvider]!,
         '.',
       ],

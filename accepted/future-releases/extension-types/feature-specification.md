@@ -885,10 +885,7 @@ one of the following criteria holds:
 
 - `T` is an extension type that does not implement `Future`.
 - `T` is `S?`, and `S` is incompatible with await.
-- `T` is `X & B`, and either:
-  - `B` is incompatible with await, or
-  - `B` does not derive a future type, and `X` is
-    incompatible with await.
+- `T` is `X & B`, and `B` is incompatible with await.
 - `T` is a type variable with bound `S`, and `S` is incompatible
   with await.
 
@@ -999,6 +996,14 @@ the normal rules about applicability and accessibility of extensions,
 in particular that `V` must match the on-type of the extension
 *(again, this is an `extension` declaration that we have today, not an
 `extension type` declaration)*.
+
+Let `e` be an expression whose static type is an extension type that has a
+method named `call`. In the case where the context type for `e` is a function
+type or the type `Function`, `e` is treated as `e.call`.
+
+*In other words, an implicit `call` tear-off is supported for extension
+types in the same way as it is supported for a type which is introduced by
+the declaration of a class, mixin, enum, or mixin class.*
 
 *In the body of an extension type declaration _DV_ with name `Name`
 and type parameters

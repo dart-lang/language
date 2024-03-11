@@ -592,11 +592,11 @@ returning, meaning it waits for the macro applications on the target type to
 finish.
 
 If a cycle arises in macro applications waiting for other macro applications to
-complete then a `StateError ` is thrown.
+complete then a `MacroIntrospectionCycleException` is thrown.
 
 Subsequent introspection calls on the same target will always throw
-`StateError`, even if all macro applications on the target have finished, to
-ensure a deterministic outcome.
+`MacroIntrospectionCycleException`, even if all macro applications on the
+target have finished, to ensure a deterministic outcome.
 
 Rules might be added in future to decide in some specific cases which macro
 should run with incomplete introspection results to break a cycle. For example,
@@ -703,6 +703,11 @@ you to get the members of the class, as well as its entire class hierarchy.
 TODO: update this example.
 
 [builder]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api/builders.dart
+
+### Handling Exceptions
+
+All exceptions that the macro APIs might throw are subclasses of
+`MacroException`; see the API docs for details.
 
 ### Introspection API ordering
 

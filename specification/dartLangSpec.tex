@@ -41,6 +41,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Feb 2024
+% - Correct the rule about deriving a future type from a type (which is used
+%   by `flatten`).
+%
 % Dec 2023
 % - Allow `~/` on operands of type `double` in constant expressions, aligning
 %   the specification with already implemented behavior.
@@ -1268,8 +1272,8 @@ are situations that do not preclude execution,
 but which are unlikely to be intended,
 and likely to cause bugs or inconveniences.
 A Dart compiler is free to report some, all,
-or none of the specified static warnings before executing the associated code.
-A Dart compiler may also report additional warnings
+or none of the specified static warnings before the associated code is executed.
+A Dart compiler may also choose to report additional warnings
 not defined by this specification.
 
 \LMHash{}%
@@ -11718,18 +11722,38 @@ where inferred types have already been added.%
 }
 
 \LMHash{}%
-We say that $S$ is the
-\IndexCustom{future type derived from a type}{type!future type derived from}
-$T$ in the following cases, using the first applicable case:
+We say that a type $T$
+\IndexCustom{derives a future type}{type!derives a future type}
+$F$ in the following cases, using the first applicable case:
 
+%% TODO(eernst): Note that `X extends X?` can create an infinite loop.
+%% We will probably make that kind of bound an error.
 \begin{itemize}
-\item $T$ implements $S$
-  (\ref{interfaceSuperinterfaces}),
-  and there is a $U$ such that $S$ is \code{Future<$U$>}.
-\item $T$ is $S$ bounded
-  (\ref{bindingActualsToFormals}),
-  and there is a $U$ such that
-  $S$ is \code{FutureOr<$U$>}, \code{Future<$U$>?}, or \code{FutureOr<$U$>?}.
+\item
+  %% TODO(eernst): Come mixin classes and extension types: add them.
+  If $T$ is a type which is introduced by
+  a class, mixin, or enum declaration,
+  and if $T$ or a direct or indirect superinterface
+  (\ref{interfaceSuperinterfaces})
+  of $T$ is \code{Future<$U$>} for some $U$,
+  then $T$ derives the future type \code{Future<$U$>}.
+\item
+  If $T$ is the type \code{FutureOr<$U$>} for some $U$,
+  then $T$ derives the future type \code{FutureOr<$U$>}.
+\item
+  If $T$ is \code{$S$?} for some $S$, and
+  $S$ derives the future type $F$,
+  then $T$ derives the future type \code{$F$?}.
+\item
+  If $T$ is a type variable with bound $B$, and
+  $B$ derives the future type $F$,
+  then $T$ derives the future type $F$.
+\item
+  \commentary{%
+    There is no rule for the case where $T$ is of the form \code{$X$\,\&\,$S$}
+    because this will never occur
+    (this concept is only used in \flattenName, which is defined below).%
+  }
 \end{itemize}
 
 \LMHash{}%
@@ -11739,7 +11763,12 @@ we say that $T$ does not derive a future type.
 \commentary{%
 Note that if $T$ derives a future type $F$ then \SubtypeNE{T}{F},
 and $F$ is always of the form \code{$G$<...>} or \code{$G$<...>?},
-where $G$ is \code{Future} or \code{FutureOr}.%
+where $G$ is \code{Future} or \code{FutureOr}.
+Also note that 'derives' in this context refers to the computation
+where a type $T$ is given, the supertypes of $T$ are searched,
+and a type $F$ of one of those forms is selected.
+There is no connection to the notion of a 'derived class' meaning 'subclass'
+that some programming language communities use.%
 }
 
 \LMHash{}%
@@ -11748,9 +11777,6 @@ We define the auxiliary function
 as follows, using the first applicable case:
 
 \begin{itemize}
-\item If $T$ is \code{$S$?}\ for some $S$
-  then \DefEquals{\flatten{T}}{\code{\flatten{S}?}}.
-
 \item If $T$ is \code{$X$\,\&\,$S$}
   for some type variable $X$ and type $S$ then
   \begin{itemize}
