@@ -1,12 +1,12 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com
-Version: 1.13 (see [Changelog](#Changelog) at end)
+Version: 1.15 (see [Changelog](#Changelog) at end)
 
-Augmentations allow splitting a Dart library into files. Unlike part
-files, each augmentation has its [own imports][part imports] and top-level
-scope. Augmentations can add new top-level declarations, inject new members into
-classes, and wrap functions and variables in additional code.
+Augmentations allow spreading your implementation across multiple locations,
+both within a single file and across multiple files. They can add new top-level
+declarations, inject new members into classes, and wrap functions and variables
+in additional code.
 
 [part imports]: https://github.com/dart-lang/language/issues/519
 
@@ -19,8 +19,8 @@ each file is made of separate top-level declarations.
 
 However, sometimes a single *class* declaration is too large to fit comfortably
 in a file. Dart libraries and even part files are no help there. Because of
-this, users have asked for something like partial classes in C# ([#252][] 45 👍,
-[#678][] 15 👍). C# also supports splitting [the declaration and implementation
+this, users have asked for something like partial classes in C# ([#252][] 71 👍,
+[#678][] 18 👍). C# also supports splitting [the declaration and implementation
 of methods into separate files][partial].
 
 [#252]: https://github.com/dart-lang/language/issues/252
@@ -66,19 +66,21 @@ part of macro expansion, it's still useful to have it be in a canonical
 well-specified form that users can understand.
 
 This proposal defines that format. The idea is that a Dart compiler executes
-macros and then produces one or more augmentation files that contain all of the
-changes that the macros made to the library where they are applied. The language
-then automatically merges those augmentations into the main library.
+macros and then produces one or more library augmentation files that contain all
+of the changes that the macros made to the library where they are applied. The
+language then automatically merges those library augmentations into the
+augmented library.
 
-But augmentations aren't *only* a serialization format for macros. They are a
-first-class language feature that can be produced by non-macro code generators
-or written by hand by users who simply want to break a giant library or class
-into smaller files.
+But library augmentations aren't *only* a serialization format for macros. They
+are a first-class language feature that can be produced by non-macro code
+generators or written by hand by users who simply want to break a giant library
+or class into smaller files.
 
-## Augmentations
+## Library Augmentations
 
-An augmentation is a separate file that *augments* another *main* library. An
-augmentation is somewhere between a separate library and a part file.
+A library augmentation is a separate file that *augments* an existing library,
+referred to as the *augmented* library. A library augmentation is similar to
+but more powerful than a part file, and it is not a library in its own right.
 
 *   Like a library, it may contain all kinds of declarations&mdash;functions,
     classes, variables, etc.
@@ -86,31 +88,29 @@ augmentation is somewhere between a separate library and a part file.
 *   Like a library, it has its own import scope and may contain its own imports.
 
 *   Like a part file, all of the top-level declarations it produces end up in
-    the top-level scope of the main library.
+    the top-level scope of the augmented library.
 
-*   Like a part file, it shares a private scope with the main library and the
-    two have mutual access to private declarations in the other file.
+*   Like a part file, it shares a private scope with the augmented library and
+    the two have mutual access to private declarations in the other file.
 
-Augmentations have a few features unique to them:
+Library augmentations may also contain declaration augmentations, which augment
+existing declarations from the library. Some examples include:
 
-*   An augmentation may add new members to existing types in the main library,
-    including adding new values to enums.
+*   Type augmentations, which can add new members to types, including adding new
+    values to enums, or even alter the type hierarchy by adding mixins, etc.
 
-*   A function in the augmentation may wrap the body of a function in the main
-    library, or provide a body if none was present.
+*   Function augmentations, which can replace the body of a function, or provide
+    a body if none was present.
 
-*   A variable in the augmentation may wrap the initializer of a variable in the
-    main library, or provide an initializer if none was present.
-
-*   An enum value in the augmentation may replace the argument list of an enum
-    value in the main library, or provide an argument list if none was present.
+*   Variable augmentations may wrap the initializer of a variable in the
+    augmented library, or provide an initializer if none was present.
 
 These can't be expressed today using only imports, exports, and part files.
 
-### Defining an augmentation
+### Defining an library augmentation
 
-An augmentation has almost the same syntax and semantics as a normal Dart
-library. Augmentations are distinguished by a special `library` directive with
+An library augmentation has almost the same syntax and semantics as a normal
+Dart library. They are distinguished by a special `library` directive with
 an `augment` modifier, like so:
 
 ```dart
@@ -122,30 +122,34 @@ syntax][import]?**
 
 [import]: https://github.com/dart-lang/language/blob/master/working/0649%20-%20Import%20shorthand/proposal.md
 
-The URL points to the main library that this augmentation is applied to.
+The URL points to the augmented library that this augmentation is applied to,
+which must be a regular library (and not a library augmentation).
 
 After that, an augmentation may contain anything a regular Dart library can
 contain: imports, exports, classes, functions, constants, etc. All
-augmentations of a main library share the same top level declaration scope.
-Declarations in any augmentation or the main library are visible to all of the
-others, including private ones.
+augmentations of an augmented library share the same top level declaration
+scope. Declarations in any library augmentation or the augmented library are
+visible to all of the others, including private ones.
 
-However, augmentations do *not* share an import scope with the main library or
-each other. The libraries one augmentation imports are visible only to that
-file.
+However, library augmentations do *not* share an import scope with the augmented
+library or each other. The libraries one library augmentation imports are
+visible only to that file.
 
 It is a compile-time error if:
 
-*   A top-level declaration in an augmentation has the same name as a
-    declaration in the main library or another of its augmentations (unless it
-    is an *augmenting* declaration, described below). *This is the same error
-    conceptually as having a name collision in one file.*
+*   A top-level declaration in a library augmentation has the same name as a
+    declaration in the augmented library or another of its library augmentations
+    (unless it is a declaration augmentation, described below). *This is the
+    same error conceptually as having a name collision in one file.*
 
 *   An augmentation contains any `part` directives.
 
+*   A library augmentation contains a normal `library` directive. They are not
+    self-contained libraries, only pieces of the augmented library.
+
 ### Applying an augmentation
 
-A main library applies an augmentation to itself using a new `augment` directive
+A library applies an augmentation to itself using a new `augment` directive
 which looks like this:
 
 ```dart
@@ -155,37 +159,36 @@ augment 'some_augmentation.dart';
 This directive tells the compiler to read the given library augmentation and
 merge its declarations into this library. It is a compile-time error if:
 
-*   The URI referenced in an `augment` directive is not an augmentation and does
-    not have a `augment library` directive.
+*   The URI referenced in an `augment` directive is not a library augmentation.
 
-*   The library referenced in a `augment library` directive does not have an
-    `augment` directive pointing back to this augmentation.
+*   The URI referenced in an `augment library` directive is not a regular Dart
+    library with an `augment` directive pointing back to this augmentation.
 
-*   The same augmentation is applied more than once. *In other words, you can't
-    have redundant `augment` directives that point to the same library.*
+*   The same library augmentation is applied more than once. *In other words,
+    you can't have redundant `augment` directives that point to the same file.*.
 
-*   The main library and its augmentations do not all have the same language
-    version. There is only one user-visible library at the end, and it should
-    have a consistent version across its entire surface area. *An augmentation
-    does not automatically inherit any language version from the main library
-    and may need an explicit language version comment of its own in order to
-    adhere to this requirement.*
+*   The augmented library and its library augmentations do not all have the same
+    language version. There is only one library, and it should have a consistent
+    language version across its entire surface area. *A library augmentation
+    does not automatically inherit any language version from the augmented
+    library and may need an explicit language version comment of its own in order
+    to adhere to this requirement.*
 
-Since the main library and its augmentations both point to each other, these
-rules imply that a given augmentation file can only be used to augment a single
-library.
+Since the augmented library and its library augmentations both point to each
+other, these rules imply that a given library augmentation can only be used to
+augment a single library.
 
 ### Merge order
 
-A library may apply multiple augmentations to itself. Also, augmentation files
-may themselves contain `augment` directives. The entire tree of augmentations is
-recursively applied to the main library. The merge order is defined as a
-depth-first pre-order traversal of the `augment` directives starting at the main
-library
+A library may apply multiple library augmentations to itself. Also, library
+augmentations may themselves contain `augment` directives. The entire tree of
+library augmentations is recursively applied to the augmented library. The
+merge order is defined as a depth-first pre-order traversal of the library
+augmentations, in the source order of their `augment` directives.
 
-Within a single augmentation file, you may augment the same declaration multiple
-times, whether they are top level or nested declarations. The merge order of
-these is defined as the source order of the augmentations.
+Within a single library augmentation, you may augment the same declaration
+multiple times, whether it is a top level or nested declaration. The merge
+order is defined as the source order of the declaration augmentations.
 
 For example:
 
@@ -239,12 +242,13 @@ augment void trace() {
 ```
 
 The merge order is `main.dart`, `a.dart`, `b.dart`, then `c.dart`. The
-declarations in those libraries&mdash;new declarations or augmentations&mdash;
-are processed in that order, and source order within that.
+declarations in those library augmentations
+&mdash;new declarations or augmentations&mdash; are processed in that order,
+and source order within that.
 
 This order is user-visible in two ways:
 
-*   A non-augmenting declaration must appear first before it can be augmented.
+*   A regular declaration must appear first before it can be augmented.
     For example, `C` in `main.dart` is augmented by `C` in `a.dart`. Likewise,
     `D` in `b.dart` is augmented by `D` in `c.dart`. Note that the latter is
     allowed even though `b.dart` does not itself import `c.dart`.
@@ -261,18 +265,18 @@ This order is user-visible in two ways:
     d
     ```
 
-**TODO: Should it be a compile-time error if the main library and augmentation
-are in different packages?**
+**TODO: Should it be a compile-time error if the augmented library and
+library augmentation are in different packages?**
 
 ## Augmenting declarations
 
-Unlike part files, which can only add entirely new declarations, an augmentation
-can also modify existing declarations in the main library. This can mean adding
-new members to an existing type, or even modifying the code of an existing
-declaration. There is a new built-in identifier, `augment`, which is used to
-syntactically mark a declaration as an augmentation of an existing one. The
-introduction of this new identifier will be language versioned in order to make
-it non-breaking for old code.
+Unlike part files, which can only add entirely new declarations, a library
+augmentation can also modify existing declarations in the augmented library.
+This can mean adding new members to an existing type, or even modifying the code
+of an existing declaration. There is a new built-in identifier, `augment`, which
+is used to syntactically mark a declaration as an augmentation of an existing
+one. The introduction of this new identifier will be language versioned in order
+to make it non-breaking for old code.
 
 It is also allowed for a non-abstract class to have abstract members, if those
 members are filled in by an augmentation. This is primarily useful for macros,
@@ -288,8 +292,8 @@ within `augment` members, and has no special meaning outside of that context.
 See the next section for a full specification of what `augmented` actually
 means, in the various contexts.
 
-The same declaration can be augmented multiple times by separate augmentation
-libraries. When that happens, the merge order defined previously determines
+The same declaration can be augmented multiple times by separate library
+augmentations. When that happens, the merge order defined previously determines
 which order the wrapping is applied.
 
 It is a compile-time error if:
@@ -351,8 +355,8 @@ augment class SomeClass {
 ```
 
 This means that instead of creating a new type declaration, the augmentation
-modifies a corresponding declaration in the main library or one of its other
-augmentations.
+modifies a corresponding declaration in the augmented library or one of its
+other augmentations.
 
 All the keywords (other than `augment`) must be identical between the original
 declaration and the augmentation. This is to ensure that looking at either one
@@ -370,8 +374,8 @@ multiple `extends` on a class, or an `on` clause on an enum, etc.
 
 Any instance or static members defined in the body of the type, including enum
 values, are added to the instance or static namespace of the corresponding type
-in the main library. In other words, the augmentation can add new members to an
-existing type.
+in the augmented library. In other words, the augmentation can add new members
+to an existing type.
 
 Instance and static members inside a type may themselves be augmentations. In
 that case, they augment the corresponding members in the original type
@@ -391,7 +395,7 @@ It is a compile-time error if:
     filled in if it wasn't present originally.
 
 *   An augmenting extension declares an `on` clause. We don't allow filling this
-    in for extensions, it must on the original declaration. This restriction
+    in for extensions, it must be on the original declaration. This restriction
     could be lifted later on if we have a compelling use case, as there is no
     fundamental reason it cannot be allowed, although it would be a parse error
     today to have an extension with no `on` clause.
@@ -493,14 +497,14 @@ replaces the variable's implicit getter body with the augmenting getter's.
 More specifically:
 
 *   **Augmenting with a getter:** A getter in an augmentation can augment a
-    getter in the main library or the implicit getter defined by a variable
-    in the main library. Inside the augmenting body, an `augmented` expression
-    invokes the original getter.
+    getter in the library or the implicit getter defined by a variable in the
+    library. Inside the augmenting body, an `augmented` expression invokes the
+    original getter.
 
 *   **Augmenting with a setter:** A setter in an augmentation can augment a
-    setter in the main library or the implicit setter defined by a non-final
-    variable in the main library. Inside the augmenting setter, an
-    `augmented =` expression invokes the original setter.
+    setter in the library or the implicit setter defined by a non-final variable
+    in the library. Inside the augmenting setter, an `augmented =` expression
+    invokes the original setter.
 
 *   **Augmenting a getter and/or setter with a variable:** This is a
     compile-time error in all cases. Augmenting an abstract or external variable
@@ -647,10 +651,10 @@ It is a compile-time error if:
 ### Augmenting constructors
 
 Constructors are (as always) more complex. A constructor marked `augment`
-replaces the body of the corresponding constructor in the main library with its
-body. If the augmenting constructor has any initializers, they are appended to
-the original constructor's initializers, but before any original super
-initializer or original redirecting initializer if there is one.
+replaces the body of the existing constructor with its body. If the augmenting
+constructor has any initializers, they are appended to the original
+constructor's initializers, but before any original super initializer or
+original redirecting initializer if there is one.
 
 In the augmenting constructor's body, an `augmented()` call invokes the
 original constructor's body.
@@ -704,24 +708,24 @@ the original declaration.
 
 ## Scoping
 
-Like part files, the main library and all of its augmentations share a single
-top-level scope where declarations are defined. They also share a single private
-namespace. This means that private declarations in the main library or an
-augmentation are visible to all augmentations.
+Like part files, the augmented library and all of its augmentations share a
+single top-level scope where declarations are defined. They also share a single
+private namespace. This means that private declarations in the augmented library
+or an augmentation of it are visible to all augmentations.
 
 Unlike part files, an augmentation has its own import scope surrounding that
-that shared top-level scope. Any libraries the augmentation imports are visible
-only to that augmentation. Likewise, libraries imported by the main library are
-not implicitly imported by the augmentation.
+shared top-level scope. Any libraries the augmentation imports are visible only
+to that library augmentation. Likewise, libraries imported by the augmented
+library are not implicitly imported by the library augmentation.
 
-Exports in an augmentation are applied to the main library and become exports
-from the main library's namespace.
+Exports in a library augmentation are applied to the augmented library and
+become exports from the augmented library's namespace.
 
 The static and instance member namespaces for an augmented type are shared
-across the declaration of the type in the main library and all augmentations of
-that type. Identifiers in the bodies of members (both implicit ones and explicit
-uses like `this.` or `TypeName.`) are resolved against that complete merged
-namespace. For example:
+across the declaration of the type in the augmented library and all
+augmentations of that type. Identifiers in the bodies of members (both implicit
+ones and explicit uses like `this.` or `TypeName.`) are resolved against that
+complete merged namespace. For example:
 
 ```dart
 // Main library "some_lib.dart":
@@ -750,9 +754,9 @@ augment class C {
 }
 ```
 
-This code is fine. Code in C in the main library can refer to members added in
-the augmentation like `_isOdd()`. Meanwhile, code in the augmentation can see
-members like `isEven()` declared in the main library.
+This code is fine. Code in C in the augmented library can refer to members added
+in the augmentation like `_isOdd()`. Meanwhile, code in the augmentation can see
+members like `isEven()` declared in the augmented library.
 
 You can visualize the namespace nesting sort of like this:
 
@@ -785,10 +789,10 @@ some_lib.dart       | some_augment.dart
 '-----------------' | '-----------------'
 ```
 
-Each library has its own namespace chain from its own member bodies out to its
-own import namespace. But in the middle, each passes through the shared class
-namespaces for the instance and static members and the shared top level
-declaration scope.
+Each library augmentation has its own namespace chain from its own member bodies
+out to its own import namespace. But in the middle, each passes through the
+shared class namespaces for the instance and static members and the shared top
+level declaration scope.
 
 This implies that the bodies of members cannot be resolved until after
 augmentations have been merged. We don't know what namespace `isEven()` or
@@ -796,34 +800,36 @@ augmentations have been merged. We don't know what namespace `isEven()` or
 augmentations merged in.
 
 Fortunately, augmentations can be applied purely syntactically. In order to
-merge augmentations into the main library, we only need to match declarations
-by name. So a Dart compiler can theoretically:
+merge augmentations into the augmented library, we only need to match
+declarations by name. So a Dart compiler can theoretically:
 
-1.  Parse the main library and all of its augmentations.
+1.  Parse the augmented library and all of its augmentations.
 2.  Merge the augmentations to determine the complete set of declarations in
     all types.
-3.  Resolve and type-check the main library and all of its augmentations now
-    that all type namespaces are complete.
+3.  Resolve and type-check the augmented library and all of its augmentations
+    now that all type namespaces are complete.
 
 ## Syntax
 
-The grammar changes are fairly simple. A main library can apply an augmentation
-using a new directive:
+The grammar changes are fairly simple. A library can apply an augmentation using
+a new directive:
 
 ```
 importOrExport ::= libraryImport
   | libraryAugmentImport
   | libraryExport
 
-libraryAugmentImport ::= metadata 'import' 'augment' uri ';'
+libraryAugmentImport ::= metadata 'augment' uri ';'
 ```
 
 A library directive may contain `augment` followed by a URI to denote the file
 as an augmentation:
 
+TODO: Create special augmentation grammar, similar to library/part files?
+
 ```
-libraryName ::= metadata 'library'
-    ( dottedIdentifierList | 'augment' uri ) ';'
+libraryName ::= metadata 'augment'? 'library'
+    ( dottedIdentifierList |  uri ) ';'
 ```
 
 In an augmentation, the grammar is slightly modified to allow an `augment`
@@ -894,17 +900,17 @@ It is a compile-time error if:
 ## Static semantics
 
 Previous sections informally describe the process of applying augmentations to
-the main library, but here's a more complete mechanical description of the
+the augmented library, but here's a more complete mechanical description of the
 process a theoretical Dart implementation could take.
 
-To apply an augmentation to the main library:
+To apply a library augmentation to the augmented library:
 
-1.  Merge the augmentation's declarations into the main library's top-level
-    namespace using the following procedure.
+1.  Merge the augmentation's declarations into the augmented library's
+    top-level namespace using the procedure below.
 
 1.  For each `augment` directive in the augmentation, in syntactic order:
 
-    1.  Apply the augmentation to the main library using this procedure,
+    1.  Apply the augmentation to the augmented library using this procedure,
         recursively.
 
 To merge a set of declarations `D` into a namespace:
@@ -919,7 +925,7 @@ To merge a set of declarations `D` into a namespace:
 1.  For each augmenting declaration in `D`:
 
     1.  If the namespace does not have a declaration with that name, error.
-        *A non-augmenting declaration must occur before it can be augmented.*
+        *A regular declaration must occur before it can be augmented.*
 
     1.  If the corresponding declaration in the namespace is not the same kind,
         error. "Kind" means class, mixin, function, etc. Getters, setters, and
@@ -930,26 +936,26 @@ To merge a set of declarations `D` into a namespace:
     1.  If the declaration is a class, mixin, enum, or extension:
 
         1.  Append the types in the augmentation's `implements` clause to the
-            main type's clause.
+            augmented type's `implements` clause.
 
-        1.  Append the types in the augmentation's `on` clause to the main
-            type's clause.
+        1.  Append the types in the augmentation's `on` clause to the augmented
+            type's `on` clause.
 
-        1.  Append the types in the augmentation's `with` clause to the main
-            type's clause.
+        1.  Append the types in the augmentation's `with` clause to the
+            augmented type's `with` clause.
 
         1.  Merge each instance member in the augmenting type into the instance
-            namespace of the main type.
+            namespace of the augmented type.
 
         1.  Merge each static member in the augmenting type into the static
-            namespace of the main type.
+            namespace of the augmented type.
 
     1.  Else, if the declaration is a function, getter, setter, or operator:
 
-        1.  Replace the body of the main function with the augmenting function's
-            body. Inside the augmenting body, a `super augment()`, `super
-            augment`, `super augment =`, or `super augment <op>` expression as
-            appropriate calls the original function body.
+        1.  Replace the body of the augmented function with the augmenting
+            function's body. Inside the augmenting body, a `augmented()`,
+            `augmented`, `augmented =`, or `augmented <op>` expression as
+            appropriate calls the augmented function body.
 
             **TODO: What is the syntax for calling a prefix operator's original
             code?**
@@ -963,13 +969,13 @@ To merge a set of declarations `D` into a namespace:
 
 ## Documentation comments
 
-Documentation comments are allowed in all the standard places in augmentation
-libraries. It is up to the tooling to decide how to present such documentation
-comments to the user, but they should generally be considered to be additive,
-and should not completely override the original comment. In other words, it is
-not the expectation that augmentations should duplicate the original
-documentation comments, but instead provide comments that are specific to the
-augmentation.
+Documentation comments are allowed in all the standard places in library
+augmentations. It is up to the tooling to decide how to present such
+documentation comments to the user, but they should generally be considered to
+be additive, and should not completely override the original comment. In other
+words, it is not the expectation that augmentations should duplicate the
+original documentation comments, but instead provide comments that are specific
+to the augmentation.
 
 ## Deprecating part files
 
@@ -978,13 +984,18 @@ fairly often used by code generators because it gives generated code access to
 the main library's private namespace. However, it means that the generated part
 file cannot have its own imports.
 
-Augmentation libraries can do everything part files can do but also support
-their own imports and can modify members. With these, we can more strongly
-recommend the few users using them migrate to augmentations. In Dart 3.0, we can
+Library augmentation can do everything part files can do but also support their
+own imports and can modify members. With these, we can more strongly recommend
+the few users using them migrate to library augmentations. In Dart 4.0, we can
 consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+## 1.15
+
+* Change `libary augment` to `augment library`.
+* Change `import augment` to `augment`.
 
 ## 1.14
 
@@ -1018,7 +1029,7 @@ language and our tools.
 
 ### 1.8
 
-*   Specify that main libraries and thier augmentations must have the same
+*   Specify that augmented libraries and thier augmentations must have the same
     language version.
 
 *   Specifically call out that augmentations can add and augment enum values,
@@ -1043,7 +1054,7 @@ language and our tools.
 ### 1.5
 
 *   Augmentation libraries share the same top-level declaration and private
-    scope with the main library and its other augmentations.
+    scope with the augmented library and its other augmentations.
 
 *   Now that enums have members, allow them to be augmented.
 
