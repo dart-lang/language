@@ -48,6 +48,7 @@ class BuildAugmentationLibraryBenchmark extends RunOnceBenchmarkBase {
 
   void run() {
     library = executor.buildAugmentationLibrary(
+        fooLibrary.uri,
         results,
         (identifier) =>
             identifierDeclarations[identifier] as TypeDeclaration? ??
