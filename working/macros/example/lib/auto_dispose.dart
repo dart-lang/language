@@ -5,8 +5,6 @@
 // There is no public API exposed yet, the in-progress API lives here.
 import 'package:_fe_analyzer_shared/src/macros/api.dart';
 
-int x = 'error!';
-
 // Interface for disposable things.
 abstract class Disposable {
   void dispose();
