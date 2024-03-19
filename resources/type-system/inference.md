@@ -360,7 +360,7 @@ algorithm described below._
 The actual value type of a function literal with an expression body, `=> e`,
 _(which cannot be a generator function)_ is computed as follows:
   - If the function literal is marked `async`,
-    then let `T` be the inferred type of the returned expession with
+    then let `T` be the inferred type of the returned expression with
     `FutureOr<K>` as typing context.
     The actual value type is **flatten**(`T`).
   - If the function literal is not marked `async`, let `T` be the inferred
