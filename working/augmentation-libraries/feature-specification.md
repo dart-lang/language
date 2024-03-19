@@ -830,7 +830,7 @@ TODO: Create special augmentation grammar, similar to library/part files?
 
 ```
 libraryName ::= metadata 'augment'? 'library'
-    ( dottedIdentifierList |  uri ) ';'
+    ( dottedIdentifierList? |  uri ) ';'
 ```
 
 In an augmentation, the grammar is slightly modified to allow an `augment`
@@ -840,11 +840,13 @@ modifier before various declarations:
 topLevelDeclaration ::= classDeclaration
   | mixinDeclaration
   | extensionDeclaration
+  | extensionTypeDeclaration
   | enumType
   | typeAlias
   | 'external' functionSignature ';'
   | 'external' getterSignature ';'
   | 'external' setterSignature ';'
+  | 'external' finalVarOrType identifierList ';'
   | 'augment'? functionSignature functionBody
   | 'augment'? getterSignature functionBody
   | 'augment'? setterSignature functionBody
@@ -852,12 +854,30 @@ topLevelDeclaration ::= classDeclaration
   | 'augment'? 'late' 'final' type? initializedIdentifierList ';'
   | 'augment'? 'late'? varOrType initializedIdentifierList ';'
 
-classDeclaration ::=
-  'augment'? 'abstract'? 'class' identifier typeParameters?
-  // Rest of rule...
+classDeclaration ::= 'augment'? (classModifiers | mixinClassModifiers)
+    'class' typeWithParameters superclass? interfaces?
+    '{' (metadata classMemberDeclaration)* '}'
+  | 'augment'? classModifiers 'mixin'? 'class' mixinApplicationClass
 
-mixinDeclaration ::= 'augment'? 'mixin' identifier typeParameters?
-  // Rest of rule...
+mixinDeclaration ::= 'augment'? 'base'? 'mixin' typeIdentifier
+  typeParameters? ('on' typeNotVoidNotFunctionList)? interfaces?
+  '{' (metadata mixinMemberDeclaration)* '}'
+
+extensionDeclaration ::= 'augment'? 'extension' typeIdentifierNotType?
+  typeParameters? 'on' type
+  '{' (metadata classMemberDeclaration)* '}'
+
+extensionTypeDeclaration ::= 'augment'? 'extension' 'type' 'const'? typeIdentifier
+  typeParameters? representationDeclaration interfaces?
+  '{' (metadata classMemberDeclaration)* '}'
+
+enumType ::= 'augment'? 'enum' typeIdentifier
+  typeParameters? mixins? interfaces?
+  '{' enumEntry (',' enumEntry)* (',')?
+  (';' (metadata classMemberDeclaration)*)? '}'
+
+typeAlias ::= 'augment'? 'typedef' typeIdentifier typeParameters? '=' type ';'
+  | 'augment'? 'typedef' functionTypeAlias
 
 classMemberDeclaration ::= declaration ';'
   | 'augment'? methodSignature functionBody
@@ -868,11 +888,14 @@ declaration ::= 'external' factoryConstructorSignature
   | ('external' 'static'?)? getterSignature
   | ('external' 'static'?)? setterSignature
   | ('external' 'static'?)? functionSignature
+  | 'external' ('static'? finalVarOrType | 'covariant' varOrType) identifierList
   | 'external'? operatorSignature
+  | 'abstract' (finalVarOrType | 'covariant' varOrType) identifierList
   | 'augment'? 'static' 'const' type? staticFinalDeclarationList
   | 'augment'? 'static' 'final' type? staticFinalDeclarationList
   | 'augment'? 'static' 'late' 'final' type? initializedIdentifierList
   | 'augment'? 'static' 'late'? varOrType initializedIdentifierList
+  | 'augment'? 'covariant' 'late' 'final' type? identifierList
   | 'augment'? 'covariant' 'late'? varOrType initializedIdentifierList
   | 'augment'? 'late'? 'final' type? initializedIdentifierList
   | 'augment'? 'late'? varOrType initializedIdentifierList
@@ -992,6 +1015,11 @@ consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+## 1.16
+
+*   Update grammar rules and add support for augmented type declarations of
+    all kinds (class, mixin, extension, extension type, enum, typedef).
 
 ## 1.15
 
