@@ -872,8 +872,8 @@ extensionTypeDeclaration ::= 'augment'? 'extension' 'type' 'const'? typeIdentifi
   '{' (metadata classMemberDeclaration)* '}'
 
 enumType ::= 'augment'? 'enum' typeIdentifier
-  typeParameters? mixins? interfaces? 
-  '{' enumEntry (',' enumEntry)* (',')? 
+  typeParameters? mixins? interfaces?
+  '{' enumEntry (',' enumEntry)* (',')?
   (';' (metadata classMemberDeclaration)*)? '}'
 
 typeAlias ::= 'augment'? 'typedef' typeIdentifier typeParameters? '=' type ';'
