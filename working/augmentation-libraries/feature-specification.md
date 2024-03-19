@@ -850,7 +850,7 @@ topLevelDeclaration ::= classDeclaration
   | 'augment'? functionSignature functionBody
   | 'augment'? getterSignature functionBody
   | 'augment'? setterSignature functionBody
-  | ('final' | 'const') type? staticFinalDeclarationList ';'
+  | 'augment'? ('final' | 'const') type? staticFinalDeclarationList ';'
   | 'augment'? 'late' 'final' type? initializedIdentifierList ';'
   | 'augment'? 'late'? varOrType initializedIdentifierList ';'
 
@@ -891,11 +891,11 @@ declaration ::= 'external' factoryConstructorSignature
   | 'external' ('static'? finalVarOrType | 'covariant' varOrType) identifierList
   | 'external'? operatorSignature
   | 'abstract' (finalVarOrType | 'covariant' varOrType) identifierList
-  | 'static' 'const' type? staticFinalDeclarationList
-  | 'static' 'final' type? staticFinalDeclarationList
+  | 'augment'? 'static' 'const' type? staticFinalDeclarationList
+  | 'augment'? 'static' 'final' type? staticFinalDeclarationList
   | 'augment'? 'static' 'late' 'final' type? initializedIdentifierList
   | 'augment'? 'static' 'late'? varOrType initializedIdentifierList
-  | 'covariant' 'late' 'final' type? identifierList
+  | 'augment'? 'covariant' 'late' 'final' type? identifierList
   | 'augment'? 'covariant' 'late'? varOrType initializedIdentifierList
   | 'augment'? 'late'? 'final' type? initializedIdentifierList
   | 'augment'? 'late'? varOrType initializedIdentifierList
