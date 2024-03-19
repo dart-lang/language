@@ -379,7 +379,7 @@ one control path reaches the end of the block)_ let `T` be `null`.
 Then process relevant statements of the block, one by one in source order,
 to find a value type `V` for that statement.
 
-  - If the funtion literal is a non-`async` non-generator function,
+  - If the function literal is a non-`async` non-generator function,
     the relevant statements are `return;` or `return e;` statements.
     * For a `return;` statement, let `V` be `Null`.
     * For a `return e;` statement, let `V` be the inferred type of `e` with
