@@ -347,8 +347,8 @@ invoked with the same value for `this`.
 
 ### Augmenting types
 
-A class, mixin, enum, or extension declaration can be marked with an `augment`
-modifier:
+A class, enum, extension, extension type, or mixin declaration can be marked
+with an `augment` modifier:
 
 ```dart
 augment class SomeClass {
@@ -356,25 +356,18 @@ augment class SomeClass {
 }
 ```
 
-This means that instead of creating a new type declaration, the augmentation
-modifies a corresponding declaration in the augmented library or one of its
-other augmentations.
+This means that instead of creating a new declaration, the augmentation modifies
+a corresponding declaration in the augmented library or one of its other
+augmentations.
 
-All the keywords (other than `augment`) must be identical between the original
-declaration and the augmentation. This is to ensure that looking at either one
-will give a complete depiction of the capabilities of the type, and an
-augmentation cannot introduce hidden restrictions.
+A class, enum, extension, extension type, or mixin augmentation may specify
+`extends`, `implements`, `on`, and `with` clauses (when generally supported).
+The types in these clauses are appended to the original declarations clauses of
+the same kind, and if that clause did not exist previously then it is added with
+the new types. All regular rules apply after this appending process, so you
+cannot have multiple `extends` on a class, or an `on` clause on an enum, etc.
 
-A class, enum, extension, or mixin augmentation may specify `extends`,
-`implements`, `on`, and `with` clauses (when generally supported). The types in
-these clauses are appended to the original declarations clauses of the same
-kind, and if that clause did not exist previously then it is added with the new
-types. All regular rules apply after this appending process, so you cannot have
-multiple `extends` on a class, or an `on` clause on an enum, etc.
-
-**TODO: Is appending the right order for mixins?**
-
-Any instance or static members defined in the body of the type, including enum
+Instance or static members defined in the body of the type, including enum
 values, are added to the instance or static namespace of the corresponding type
 in the augmented library. In other words, the augmentation can add new members
 to an existing type.
@@ -386,11 +379,16 @@ declaration according to the rules in the following subsections.
 It is a compile-time error if:
 
 *   The augmenting type and corresponding type are not the same kind: class,
-    mixin, enum, or extension. You can't augment a class with a mixin, etc.
+    mixin, enum, extension, or extension type. You can't augment a class with a
+    mixin, etc.
 
 *   The augmenting type and corresponding type do not have all the same
-    modifiers (final, sealed, mixin, etc). This is not a technical requirement
-    but it should make augmentations easier to understand when looking at them.
+    modifiers (`final`, `sealed`, `mixin`, etc).
+
+    *This is not a technical requirement, but it ensures that looking at either
+    declaration show the complete capabilities of the declaration. It also
+    deliberately prevents an augmentation from introducing a restriction that
+    isn't visible to a reader of the main declaration.*
 
 *   The augmenting type declares an `extends` clause, but one was already
     present. We don't allow overwriting an existing `extends`, but one can be
@@ -398,7 +396,7 @@ It is a compile-time error if:
 
 *   An augmenting extension declares an `on` clause. We don't allow filling this
     in for extensions, it must be on the original declaration. This restriction
-    could be lifted later on if we have a compelling use case, as there is no
+    could be lifted later if we have a compelling use case, as there is no
     fundamental reason it cannot be allowed, although it would be a parse error
     today to have an extension with no `on` clause.
 
@@ -685,6 +683,24 @@ It is a compile-time error if:
     and the augmenting constructor does too.
 
 **TODO: What about redirecting constructors?**
+
+When augmenting an extension type declaration, the parenthesized clause where
+the representation type is specified is treated as a constructor that has a
+single positional parameter, a single initializer from the parameter to the
+representation field, and an empty body.
+
+This means that an augmentation can add a body to an extension type's
+constructor, which isn't otherwise possible. *(But note that there is no
+guarantee that any instance of an extension type will have necessarily executed
+that body, since you can get instances of extension types through casts or other
+conversions that sidestep the constructor.)*
+
+*This is designed in anticipation of supporting [primary constructors][] on
+other types in which case the extension type syntax will then be understood by
+users to be a primary constructor for the extension type.*
+
+[primary constructors]:
+https://github.com/dart-lang/language/blob/main/working/2364%20-%20primary%20constructors/feature-specification.md
 
 ### Augmenting external members
 
@@ -1021,9 +1037,13 @@ language and our tools.
 *   Update grammar rules and add support for augmented type declarations of
     all kinds (class, mixin, extension, extension type, enum, typedef).
 
+*   Specify augmenting extension types. Clarify that primary constructors
+    (which currently only exist for extension types) can be augmented like
+    other constructors (#3177).
+
 ## 1.15
 
-* Change `libary augment` to `augment library`.
+*   Change `libary augment` to `augment library`.
 
 ## 1.14
 
