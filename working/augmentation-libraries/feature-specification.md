@@ -383,7 +383,8 @@ It is a compile-time error if:
     mixin, etc.
 
 *   The augmenting type and corresponding type do not have all the same
-    modifiers (`final`, `sealed`, `mixin`, etc).
+    modifiers (`abstract`, `base`, `final`, `interface`, `sealed`, and `mixin`
+    when it occurs immediately before `class`).
 
     *This is not a technical requirement, but it ensures that looking at either
     declaration show the complete capabilities of the declaration. It also
