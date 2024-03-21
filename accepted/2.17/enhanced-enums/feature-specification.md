@@ -178,25 +178,9 @@ The recommended formatting of an `enum` declaration is to format the header (bef
 
 The specification here does not specify *how* the index and name of an enum is associated with the enum instances. In practice it’s possible to desugar an `enum` declaration to a `class` declaration, as long as the desugaring can access private names from other libraries (`dart:core` in particular).
 
-The existing enums are implemented as desugaring into a class extending a private `_Enum` class which holds the `final int index;` declaration and a `final String _name;` declaration (used by the the `EnumName.name` getter), and both fields are initialized by a constructor. 
+However, since the definition of least upper bound depends on the depth of classes in the class hierarchy, it _is_ necessary to specify precisely where enums fit into the class hierarchy.
 
-In practice, the implementation of the enhanced enums will likely be something similar.
-
-Either first declare `Enum` as:
-
-```dart
-abstract class Enum {
-  Enum._(this.index, this._name);  
-  final int index;
-  final String _name;
-  String _$enumToString();
-  String toString() => _$enumToString();
-}
-```
-
-*or* retain the current `_Enum` class and make that the actual superclass of `enum` classes. Either works, I’ll use `Enum` as the superclass directly in the following.
-
-Then desugar an `enum` declaration to an actual `class` declaration and rewrite every generative constructor of the `enum` declaration to take two extra leading positional arguments. 
+An `enum` declaration is desugared to an actual `class` declaration, which extends a private `_Enum` class in `dart:core`. _This class holds the `final int index;` declaration and a `final String _name;` declaration (used by the the `EnumName.name` getter), and both fields are initialized by a constructor._ Every generative constructor of the `enum` declaration is rewritten to take two extra leading positional arguments.
 
 The `enum` declaration:
 
@@ -219,7 +203,7 @@ enum LogPriority with LogPriorityMixin implements Comparable<LogPriority> {
 would then desugar to something like:
 
 ```dart
-class LogPriority extends Enum with LogriorityMixin implements Comparable<LogPriority> {
+class LogPriority extends _Enum with LogriorityMixin implements Comparable<LogPriority> {
   static const warning = LogPriority._$(0, "warning", 2, "Warning");
   static const error = LogPriority._$(1, "error", 1, "Error");
   static const log = LogPriority._$unknown(2, "log", "Log");
@@ -241,8 +225,6 @@ class LogPriority extends Enum with LogriorityMixin implements Comparable<LogPri
 ```
 
 where the `_$` represents a fresh name. 
-
-In practice, we may choose to have a subclass of `Enum` as the actual superclass of the `enum` class, rather than use `Enum` directly. We’ll have to make sure that it makes no difference wrt. which declarations are valid (at least outside of `dart:core`, and for `enum`s declared inside `dart:core` it’s our own responsibility to not conflict with names used by the enum implementation.)
 
 ## Summary
 
