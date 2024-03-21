@@ -829,8 +829,10 @@ as an augmentation:
 TODO: Create special augmentation grammar, similar to library/part files?
 
 ```
-libraryName ::= metadata 'augment'? 'library'
-    ( dottedIdentifierList? |  uri ) ';'
+libraryName ::= metadata libraryNameBody ';'
+
+libraryNameBody ::= 'library' dottedIdentifierList?
+  | 'augment' 'library' uri
 ```
 
 In an augmentation, the grammar is slightly modified to allow an `augment`
@@ -839,8 +841,8 @@ modifier before various declarations:
 ```
 topLevelDeclaration ::= classDeclaration
   | mixinDeclaration
-  | extensionDeclaration
   | extensionTypeDeclaration
+  | extensionDeclaration
   | enumType
   | typeAlias
   | 'external' functionSignature ';'
@@ -902,14 +904,6 @@ declaration ::= 'external' factoryConstructorSignature
   | 'augment'? redirectingFactoryConstructorSignature
   | 'augment'? constantConstructorSignature (redirection | initializers)?
   | 'augment'? constructorSignature (redirection | initializers)?
-
-methodSignature ::= constructorSignature initializers?
-  | factoryConstructorSignature
-  | 'augment'? 'static'? functionSignature
-  | 'augment'? 'static'? getterSignature
-  | 'augment'? 'static'? setterSignature
-  | 'augment'? operatorSignature
-
 ```
 
 **TODO: Define the grammar for the various `augmented` expressions.**
