@@ -145,9 +145,16 @@ It is a compile-time error if:
 *   A library augmentation contains a normal `library` directive. They are not
     self-contained libraries, only pieces of the augmented library.
 
-*   There is a cycle in the graph whose edges are the `import augment` 
-    directives of an augmented library and any augmentation library which is
-    directly or indirectly reachable from there via said edges.
+*   An `import augment` directive has a `<uri>` that denotes an entity which
+    is not an augmentation library. *For example, it can not be a library.*
+    
+*   An `import` (not `import augment`) directive has a `<uri>` that denotes
+    an entity which is not a library. *For example, it cannot be an 
+    augmentation library.*
+
+*   There is a cycle in the graph whose edges are the `import augment`
+    directives of an augmented library and of any augmentation libraries which
+    are directly or indirectly reachable from there via said edges.
 
 ### Applying an augmentation
 
