@@ -146,11 +146,11 @@ It is a compile-time error if:
     self-contained libraries, only pieces of the augmented library.
 
 *   An `import augment` directive has a `<uri>` that denotes an entity which
-    is not an augmentation library. *For example, it can not be a library.*
-    
-*   An `import` (not `import augment`) directive has a `<uri>` that denotes
-    an entity which is not a library. *For example, it cannot be an 
-    augmentation library.*
+    is not a library augmentation. *For example, it can not be a library.*
+
+*   An `export` or `import` (not `import augment`) refers to an entity which
+    is not a library. *For example, it cannot be a library augmentation or
+    a part file.*
 
 *   There is a cycle in the graph whose edges are the `import augment`
     directives of an augmented library and of any augmentation libraries which
@@ -1042,7 +1042,7 @@ language and our tools.
 
 *   Introduce compile-time errors about wrong structures in the graph of
     libraries and augmentation libraries formed by directives like `import`
-    and `import augment`.
+    and `import augment` (#3646).
 
 ## 1.16
 
