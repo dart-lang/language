@@ -145,6 +145,17 @@ It is a compile-time error if:
 *   A library augmentation contains a normal `library` directive. They are not
     self-contained libraries, only pieces of the augmented library.
 
+*   An `import augment` directive has a `<uri>` that denotes an entity which
+    is not a library augmentation. *For example, it can not be a library.*
+
+*   An `export` or `import` (not `import augment`) refers to an entity which
+    is not a library. *For example, it cannot be a library augmentation or
+    a part file.*
+
+*   There is a cycle in the graph whose edges are the `import augment`
+    directives of an augmented library and of any augmentation libraries which
+    are directly or indirectly reachable from there via said edges.
+
 ### Applying an augmentation
 
 A library applies an augmentation to itself using a new import directive with
@@ -1026,6 +1037,12 @@ consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+## 1.17
+
+*   Introduce compile-time errors about wrong structures in the graph of
+    libraries and augmentation libraries formed by directives like `import`
+    and `import augment` (#3646).
 
 ## 1.16
 
