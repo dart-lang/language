@@ -1,5 +1,5 @@
-import 'package:_fe_analyzer_shared/src/macros/api.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor/introspection_impls.dart';
+import 'package:macros/macros.dart';
+import 'package:macros/src/executor/introspection_impls.dart';
 
 extension DebugCodeString on Code {
   StringBuffer debugString([StringBuffer? buffer]) {

@@ -19,13 +19,13 @@ import 'dart:io';
 import 'package:args/args.dart';
 
 // Private impls used actually execute the macro
-import 'package:_fe_analyzer_shared/src/macros/bootstrap.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor/serialization.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor/isolated_executor.dart'
+import 'package:macros/src/bootstrap.dart';
+import 'package:macros/src/executor/serialization.dart';
+import 'package:macros/src/executor/isolated_executor.dart'
     as isolatedExecutor;
-import 'package:_fe_analyzer_shared/src/macros/executor/process_executor.dart'
+import 'package:macros/src/executor/process_executor.dart'
     as processExecutor;
-import 'package:_fe_analyzer_shared/src/macros/executor/multi_executor.dart'
+import 'package:macros/src/executor/multi_executor.dart'
     as multiExecutor;
 
 import 'src/checks_extensions.dart' as checks_extensions;
