@@ -17,3 +17,8 @@ dependency_overrides:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/macros
       ref: main
+  _fe_analyzer_shared:
+    git:
+      url: https://github.com/dart-lang/sdk.git
+      path: pkg/_fe_analyzer_shared
+      ref: main
