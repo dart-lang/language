@@ -4,8 +4,7 @@
 
 import 'dart:async';
 
-// There is no public API exposed yet, the in-progress API lives here.
-import 'package:_fe_analyzer_shared/src/macros/api.dart';
+import 'package:macros/macros.dart';
 
 import 'util.dart';
 

@@ -1,7 +1,7 @@
-import 'package:_fe_analyzer_shared/src/macros/api.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor/introspection_impls.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor/remote_instance.dart';
-import 'package:_fe_analyzer_shared/src/macros/executor.dart';
+import 'package:macros/macros.dart';
+import 'package:macros/src/executor/introspection_impls.dart';
+import 'package:macros/src/executor/remote_instance.dart';
+import 'package:macros/src/executor.dart';
 import 'package:benchmark_harness/benchmark_harness.dart';
 
 import 'checks_extensions.dart';
