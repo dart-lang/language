@@ -1038,6 +1038,12 @@ language and our tools.
 
 ## Changelog
 
+## 1.17
+
+*   Introduce compile-time errors about wrong structures in the graph of
+    libraries and augmentation libraries formed by directives like `import`
+    and `import augment`.
+
 ## 1.16
 
 *   Update grammar rules and add support for augmented type declarations of
