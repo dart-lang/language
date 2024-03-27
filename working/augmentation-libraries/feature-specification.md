@@ -145,6 +145,10 @@ It is a compile-time error if:
 *   A library augmentation contains a normal `library` directive. They are not
     self-contained libraries, only pieces of the augmented library.
 
+*   There is a cycle in the graph whose edges are the `import augment` 
+    directives of an augmented library and any augmentation library which is
+    directly or indirectly reachable from there via said edges.
+
 ### Applying an augmentation
 
 A library applies an augmentation to itself using a new import directive with
