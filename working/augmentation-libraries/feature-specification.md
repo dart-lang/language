@@ -371,10 +371,10 @@ This means that instead of creating a new declaration, the augmentation modifies
 a corresponding declaration in the augmented library or one of its other
 augmentations.
 
-A class, enum, extension, extension type, or mixin augmentation may specify
-`extends`, `implements`, `on`, and `with` clauses (when generally supported).
-The types in these clauses are appended to the original declarations clauses of
-the same kind, and if that clause did not exist previously then it is added with
+A class, enum, extension type, or mixin augmentation may specify `extends`,
+`implements`, `on`, and `with` clauses (when generally supported). The types
+in these clauses are appended to the original declarations clauses of the same
+kind, and if that clause did not exist previously then it is added with
 the new types. All regular rules apply after this appending process, so you
 cannot have multiple `extends` on a class, or an `on` clause on an enum, etc.
 
