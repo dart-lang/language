@@ -912,6 +912,10 @@ typeAlias ::= 'augment'? 'typedef' typeIdentifier typeParameters? '=' type ';'
 classMemberDeclaration ::= declaration ';'
   | 'augment'? methodSignature functionBody
 
+enumEntry ::= metadata 'augment'? identifier argumentPart?
+  | metadata 'augment'? identifier typeArguments? 
+    '.' identifierOrNew arguments
+
 declaration ::= 'external' factoryConstructorSignature
   | 'external' constantConstructorSignature
   | 'external' constructorSignature
@@ -1037,6 +1041,11 @@ consider removing support for part files entirely, which would simplify the
 language and our tools.
 
 ## Changelog
+
+## 1.18
+
+*   Add a grammar rule for `enumEntry`, thus allowing them to have the
+    keyword `augment`.
 
 ## 1.17
 
