@@ -25,8 +25,8 @@ macro class Observable implements FieldDeclarationsMacro {
     builder.declareInType(getter);
 
     var print =
-            // ignore: deprecated_member_use
-            await builder.resolveIdentifier(Uri.parse('dart:core'), 'print');
+        // ignore: deprecated_member_use
+        await builder.resolveIdentifier(Uri.parse('dart:core'), 'print');
     var setter = DeclarationCode.fromParts([
       'set $publicName(',
       field.type.code,

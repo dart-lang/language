@@ -67,7 +67,8 @@ macro class ChecksExtension implements ExtensionDeclarationsMacro {
         await builder.resolve(NamedTypeAnnotationCode(name: subject));
     final onType = extension.onType;
     if (onType is! NamedTypeAnnotation ||
-        !(await (await builder.resolve(onType.code)).isSubtypeOf(subjectType)) ||
+        !(await (await builder.resolve(onType.code))
+            .isSubtypeOf(subjectType)) ||
         onType.typeArguments.length != 1) {
       throw StateError(
           'The `on` type must be a Subject with an explicit type argument.');

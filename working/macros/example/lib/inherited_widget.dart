@@ -21,34 +21,35 @@ macro class InheritedWidget implements ClassTypesMacro, ClassDeclarationsMacro {
   const InheritedWidget();
 
   @override
-  void buildTypesForClass(
-      ClassDeclaration clazz, ClassTypeBuilder builder) {
+  void buildTypesForClass(ClassDeclaration clazz, ClassTypeBuilder builder) {
     if (clazz.superclass != null) return;
     // TODO: Add `extends InheritedWidget` once we have an API for that.
   }
 
   @override
-  Future<void> buildDeclarationsForClass(ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
+  Future<void> buildDeclarationsForClass(
+      ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     final fields = await builder.fieldsOf(clazz);
     final methods = await builder.methodsOf(clazz);
     if (!methods.any((method) => method is ConstructorDeclaration)) {
       builder.declareInType(DeclarationCode.fromParts([
-            'const ${clazz.identifier.name}(',
-            '{',
-            for (var field in fields)...[
-                field.type.isNullable ? '' : 'required ',
-              field.identifier,
-              ',',
-            ],
-            'super.key,',
-            'required super.child,',
-            '});',
+        'const ${clazz.identifier.name}(',
+        '{',
+        for (var field in fields) ...[
+          field.type.isNullable ? '' : 'required ',
+          field.identifier,
+          ',',
+        ],
+        'super.key,',
+        'required super.child,',
+        '});',
       ]));
     }
 
     final buildContext =
-      // ignore: deprecated_member_use
-      await builder.resolveIdentifier(Uri.parse('package:flutter/widgets.dart'), 'BuildContext');
+        // ignore: deprecated_member_use
+        await builder.resolveIdentifier(
+            Uri.parse('package:flutter/widgets.dart'), 'BuildContext');
     if (!methods.any((method) => method.identifier.name == "maybeOf")) {
       builder.declareInType(DeclarationCode.fromParts([
         'static ',
@@ -75,7 +76,8 @@ macro class InheritedWidget implements ClassTypesMacro, ClassDeclarationsMacro {
       ]));
     }
 
-    if (!methods.any((method) => method.identifier.name == 'updateShouldNotify')) {
+    if (!methods
+        .any((method) => method.identifier.name == 'updateShouldNotify')) {
       // ignore: deprecated_member_use
       final override = await builder.resolveIdentifier(
           Uri.parse('package:meta/meta.dart'), 'override');

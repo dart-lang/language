@@ -4,8 +4,7 @@
 
 import 'package:macros/macros.dart';
 
-macro class DataClass
-    implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const DataClass();
 
   @override
@@ -60,10 +59,13 @@ macro class AutoConstructor implements ClassDeclarationsMacro {
             await builder.resolveIdentifier(Uri.parse('dart:core'), 'Object')));
 
     // Add all super constructor parameters as named parameters.
-    var superclass = clazz.superclass == null ? null : await builder
-        .typeDeclarationOf(clazz.superclass!.identifier);
-    var superType = superclass == null ? null : await builder
-        .resolve(NamedTypeAnnotationCode(name: superclass.identifier));
+    var superclass = clazz.superclass == null
+        ? null
+        : await builder.typeDeclarationOf(clazz.superclass!.identifier);
+    var superType = superclass == null
+        ? null
+        : await builder
+            .resolve(NamedTypeAnnotationCode(name: superclass.identifier));
     MethodDeclaration? superconstructor;
     if (superType != null && (await superType.isExactly(objectType)) == false) {
       superconstructor = (await builder.constructorsOf(superclass!))
@@ -164,8 +166,7 @@ macro class CopyWith implements ClassDeclarationsMacro {
   }
 }
 
-macro class HashCode
-    implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class HashCode implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const HashCode();
 
   @override
@@ -185,20 +186,33 @@ macro class HashCode
     var methods = await builder.methodsOf(clazz);
     var hashCodeBuilder = await builder.buildMethod(
         methods.firstWhere((m) => m.identifier.name == 'hashCode').identifier);
-    var hashCodeExprs = [
-      await for (var field in clazz.allFields(builder))
-        ExpressionCode.fromParts([field.identifier, '.hashCode']),
-    ].joinAsCode(' ^ ');
-    hashCodeBuilder.augment(FunctionBodyCode.fromParts([
-      ' => ',
-      ...hashCodeExprs,
-      ';',
-    ]));
+
+    final fields = await clazz.allFields(builder).map((e) => e.identifier).toList();
+    if (fields.length > 0 && fields.length <= 20) {
+      hashCodeBuilder.augment(FunctionBodyCode.fromParts([
+        ' => ',
+        // ignore: deprecated_member_use
+        await builder.resolveIdentifier(Uri.parse('dart:core'), 'Object'),
+        '.hash(',
+        ...fields.joinAsCode(','),
+        ')',
+        ';',
+      ]));
+    } else {
+      var hashCodeExprs = [
+        for (var field in fields)
+          ExpressionCode.fromParts([field, '.hashCode']),
+      ].joinAsCode(' ^ ');
+      hashCodeBuilder.augment(FunctionBodyCode.fromParts([
+        ' => ',
+        ...hashCodeExprs,
+        ';',
+      ]));
+    }
   }
 }
 
-macro class Equality
-    implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class Equality implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const Equality();
 
   @override
@@ -240,9 +254,7 @@ macro class Equality
   }
 }
 
-
-macro class ToString
-    implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class ToString implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const ToString();
 
   @override
@@ -286,15 +298,17 @@ extension _AllFields on ClassDeclaration {
     for (var field in await introspector.fieldsOf(this)) {
       yield field;
     }
-    var next = superclass != null ?
-        await introspector.typeDeclarationOf(superclass!.identifier) : null;
+    var next = superclass != null
+        ? await introspector.typeDeclarationOf(superclass!.identifier)
+        : null;
     // TODO: Compare against actual Object identifer once we provide a way to get it.
     while (next is ClassDeclaration && next.identifier.name != 'Object') {
       for (var field in await introspector.fieldsOf(next)) {
         yield field;
       }
-      next = next.superclass != null ?
-          await introspector.typeDeclarationOf(next.superclass!.identifier) : null;
+      next = next.superclass != null
+          ? await introspector.typeDeclarationOf(next.superclass!.identifier)
+          : null;
     }
   }
 }

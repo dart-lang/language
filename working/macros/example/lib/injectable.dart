@@ -185,8 +185,7 @@ macro class Provides implements MethodDeclarationsMacro {
 ///     return A._(aProvider);
 ///   }
 /// }
-macro class Component
-    implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class Component implements ClassDeclarationsMacro, ClassDefinitionMacro {
   final List<Identifier> modules;
 
   // TODO: Require modules here and generate the constructor once supported.
