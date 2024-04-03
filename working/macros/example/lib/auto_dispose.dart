@@ -9,7 +9,8 @@ abstract class Disposable {
   void dispose();
 }
 
-macro class AutoDispose implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class AutoDispose
+    implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const AutoDispose();
 
   @override
