@@ -153,7 +153,7 @@ It is a compile-time error if:
     a part file.*
 
 *   There is a cycle in the graph whose edges are the `import augment`
-    directives of an augmented library and of any augmentation libraries which
+    directives of an augmented library and of any library augmentations which
     are directly or indirectly reachable from there via said edges.
 
 ### Applying an augmentation
@@ -314,7 +314,7 @@ It is a compile-time error if:
     apply to.
 
 *   An augmenting declaration appears in a library before the library where the
-    original declaration occurs, according to merge order. *An library
+    original declaration occurs, according to merge order. *A library
     augmentation can both declare a new declaration and augment it in the same
     file.*
 
@@ -1034,13 +1034,18 @@ fairly often used by code generators because it gives generated code access to
 the main library's private namespace. However, it means that the generated part
 file cannot have its own imports.
 
-Library augmentation can do everything part files can do but also support their
-own imports and can modify members. With these, we can more strongly recommend
-the few users using them migrate to library augmentations. In Dart 4.0, we can
-consider removing support for part files entirely, which would simplify the
-language and our tools.
+Library augmentations can do everything part files can do but also support 
+their own imports and can modify members. With these, we can more strongly
+recommend the few users using them migrate to library augmentations. In Dart
+4.0, we can consider removing support for part files entirely, which would
+simplify the language and our tools.
 
 ## Changelog
+
+## 1.19
+
+*   Change the phrase 'augmentation library' to 'library augmentation',
+    to be consistent with the rename which was done in 1.15.
 
 ## 1.18
 
