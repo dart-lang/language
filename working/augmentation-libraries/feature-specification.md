@@ -1034,11 +1034,11 @@ fairly often used by code generators because it gives generated code access to
 the main library's private namespace. However, it means that the generated part
 file cannot have its own imports.
 
-Library augmentation can do everything part files can do but also support their
-own imports and can modify members. With these, we can more strongly recommend
-the few users using them migrate to library augmentations. In Dart 4.0, we can
-consider removing support for part files entirely, which would simplify the
-language and our tools.
+Library augmentations can do everything part files can do but also support 
+their own imports and can modify members. With these, we can more strongly
+recommend the few users using them migrate to library augmentations. In Dart
+4.0, we can consider removing support for part files entirely, which would
+simplify the language and our tools.
 
 ## Changelog
 
