@@ -1393,7 +1393,7 @@ abstract interface class Coroutine {
   /// Expects resumer to pass back a value of type [R].
   static void suspend();
 
- 	/// Resumes previously suspended coroutine.
+  /// Resumes previously suspended coroutine.
   ///
   /// If there is a coroutine currently running the suspends it
   /// first.
@@ -1583,7 +1583,7 @@ able to implement proposed semantics on top of it.
 >    other.
 > 2. It prohibits `externref` inside shareable structs
 >
-> Dart has `Object` is a base class for both shareable and non-shareable
+> Dart has `Object` as a base class for both shareable and non-shareable
 > classes. If a program contains `Shareable` type - such type would need to be
 > represented as a `shared` struct which means we have to mark `Object` struct
 > as `shared` as well. But this means Dart objects can no longer directly
