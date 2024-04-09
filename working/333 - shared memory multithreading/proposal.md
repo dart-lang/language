@@ -27,10 +27,7 @@ for concrete code examples.
 
 > [!NOTE]
 >
-> Improving Dart's interoperability with native code and its multicore
-> capabilities not only benefits Dart developers but also unlocks improves in
-> Dart SDK. For example, we will be able to move `dart:io` implementation from
-> C++ into Dart and later split it into a package.
+> Improving Dart's interoperability with native code and its multicore capabilities not only benefits Dart developers but also unlocks improvements in the Dart SDK. For example, we will be able to move `dart:io` implementation from C++ into Dart and later split it into a package.
 
 The core of this proposal are two new concepts:
 
@@ -76,10 +73,7 @@ asynchronous and incurs copying costs which are linear in the size of
 transferred data.
 
 Consider for example a front-end for Dart language which tries to parse a large
-Dart program. It is possible to parallelize parsing of SCC components in the
-import graph, however you can't fully avoid serialization costs - because
-resulting ASTs can't be directly shared between isolates. Similar example is
-parallelizing loading of ASTs from a large Kernel binary.
+Dart program. It is possible to parallelize parsing of strongly connected components in the import graph, however you can't fully avoid serialization costs - because resulting ASTs can't be directly shared between isolates. Similar example is parallelizing loading of ASTs from a large Kernel binary.
 
 > [!NOTE]
 >
@@ -189,8 +183,9 @@ way to export static functions as C symbols:
 
 ```dart
 // foo.dart
-import 'dart:ffi';
+import 'dart:ffi' as ffi;
 
+// See https://dartbug.com/51383 for discussion of [ffi.Export] feature.
 @ffi.Export()
 void foo() {
 
@@ -484,7 +479,7 @@ classes implementing `Shareable` interface can be concurrently mutated by
 another thread.** We restrict the kind of data that a shareable class can
 contain: **fields of shareable classes can only contain references to instances
 of shareable classes.** This requirement is enforced at compile time by
-requiring that static types of all fields are shareable.
+requiring that declared types of all fields are shareable.
 
 ```dart
 // dart:core
@@ -493,7 +488,7 @@ requiring that static types of all fields are shareable.
 /// a group and mutated concurrently.
 ///
 /// A class implementing [Shareable] can only declare fields
-/// which have a static type that is a subtype of [Shareable].
+/// which have a declared type that is a subtype of [Shareable].
 abstract interface class Shareable {
 }
 ```
@@ -537,7 +532,7 @@ void main() async {
 
 To make state sharing between isolates simpler we also allow to declare static
 fields which are shared between all isolates in the isolate group. `shared`
-global fields are required to have shareable static type.
+global fields are required to have shareable declared type.
 
 ```dart
 // All isolates within an isolate group share this variable.
@@ -596,19 +591,9 @@ which maintains a global cache internally and is written under the assumption
 that Dart is a single threaded:
 
 ```dart
-class C {
-  final id;
-  C(this.id);
-}
-
 int _nextId = 0;
-final _cache = <int, C>{};
 
-C makeObject() {
-  _cache[nextId] = C(nextId);
-  nextId++;
-  return _cache[nextId - 1];
-}
+int allocateId() => _nextId++;
 ```
 
 This was a valid way to structure this code in single-threaded Dart, but the
@@ -633,18 +618,24 @@ class Y<T extends Shareable> implements Shareable {
 
 > [!NOTE]
 >
-> We could really benefit from the ability to use intersection types here, which
+> We could really benefit from the ability to use intersection types here (see [#2709][] and [#1152][], which
 > would allow to specify complicated bounds like `T extends Shareable & I`. In
 > the absence of intersections types developers would be forced to declare
 > intermediate interfaces which implement all required interfaces (e.g.
 > `abstract interface ShareableI implements Shareable, I {}`) and require users
 > to implement those by specifying `T extends ShareableI`.
+>
+> 
+> 
+
+[#2709]: https://github.com/dart-lang/language/issues/2709
+[#1152]: https://github.com/dart-lang/language/issues/1152
 
 ### Functions
 
 Shareability of a function depends on the values that it captures. We could
 define that any **function is shareable iff it captures only variables of
-shareable type**. Incorporating this property into the type system naturally
+shareable declared type**. Incorporating this property into the type system naturally
 leads to the desire to use _intersection types_ to express the property that
 some value is both a function of a specific type _and_ shareable:
 
@@ -726,20 +717,19 @@ extension ToShareableMap<K extends Shareable?,
 
 ### `SendPort` semantics
 
-`SendPort.send` is extended with a named parameter to control whether shareable
-types are copied or shared with the receiver:
+`SendPort` is extended with a new method to which allows sending `Shareable` values by reference without copying:
 
 ```dart
 abstract interface class SendPort {
     /// Sends an asynchronous [message] through this send port, to its
     /// corresponding [ReceivePort].
     ///
-    /// [...]
+    /// The message is passed by reference to the receiver without
+    /// copying.
     ///
-    /// If [copyShareables] is `false` but the sender and receiver
-    /// do not share the same code then an [IllegalArgument] exception
-    /// is thrown.
-    void send(Object? message, {bool copyShareables = true});
+    /// If sender and receiver do not share the same code then 
+    /// an [IllegalArgument] exception is thrown.
+    void share(Shareable message);
 }
 ```
 
@@ -818,14 +808,16 @@ world code such behavior might be hidden deep inside a third party dependency
 and thus much harder to detect and understand. This behavior also makes
 interoperability with native code more awkward than it ought to be: calling Dart
 requires an isolate, something that native code does not really know or care
-about.
+about. Consider for example the following code:
 
 ```dart
 int global;
 
 @pragma('vm:entry-point')
-void foo() => global++;
+int foo() => global++;
 ```
+
+The result of calling `foo` from the native side depends on which isolate the call occurs in.
 
 `shared` global variables allow developers to tackle this problem - but hidden
 dependency on global state might introduce hard to diagnose and debug bugs.
@@ -846,7 +838,7 @@ class Isolate {
   /// non-`shared` state of its own. An attempt to access non-`shared` static variable throws [IsolationError].
   ///
   /// If [task] is not [Shareable] then [ArgumentError] is thrown.
-  static Future<S> runShared<S extends Shared>(S Function() f);
+  static Future<S> runShared<S extends Shared>(S Function() task);
 }
 ```
 
@@ -873,7 +865,7 @@ void main() async {
 ### Why not compile time isolation?
 
 It is tempting to try introducing a compile time separation between functions
-which only access `shared` state and functions which can access isolated state.
+which only access `shared` state and functions which can access isolated state. However an attempt to fit such separation into the existing language quickly breaks down.
 
 One obvious approach is to introduce a modifier (e.g. `shared`) which can be
 applied to function declarations and impose a number of restrictions that
@@ -912,9 +904,9 @@ This approach seems promising on the surface, but quickly hits issues:
   - Methods like `List<T>.forEach` pose challenge because they should be usable
     in both `shared` and non-`shared` contexts.
 
-This makes us think that language changes required to achieve sound compile time
+**This makes us think that language changes required to achieve sound compile time
 delineation between `shared` and isolate worlds are too complicated to be worth
-it.
+it.**
 
 ### Upgrading `dart:ffi`
 
@@ -932,7 +924,7 @@ class NativeCallable<T extends Function> {
   /// shared isolate corresponding to the current isolate group.
   ///
   /// [callback] must be [Shareable] that is: all variables it captures must
-  /// have shareable static type.
+  /// have shareable declared type.
   external factory NativeCallable.shared(
     @DartRepresentationOf("T") Function callback,
     {Object? exceptionalReturn});
@@ -952,10 +944,14 @@ associated with that:
   - `shared` global state is accessible and independent from the current thread;
   - accessing non-`shared` state will throw an `IsolationError`.
 
-#### Shared Libraries created from Dart code
+#### Linking to Dart code from native code
 
 An introduction of _shared isolate_ allows us to adjust our deployment story and
-make it simpler to create and use shared libraries from Dart code.
+make it simpler for native code to link, either statically or dynamically, to Dart code. 
+
+> [!NOTE]
+>
+> Below when I say _native library_ I mean _a static library or shared object produced from Dart code using an AOT compiler_. Such native library can be linked with the rest of the native code in the application either statically at build time or dynamically at runtime using appropriate native linkers provided by the native toolchain or the OS. The goal here is that using Dart from a native application becomes indistinguishable from using a simple C library.
 
 Consider for example previously given in the
 [Interoperability](#interoperability) section:
@@ -963,15 +959,16 @@ Consider for example previously given in the
 ```dart
 // foo.dart
 
-import 'dart:ffi';
+import 'dart:ffi' as ffi;
 
+// See https://dartbug.com/51383 for discussion of [ffi.Export] feature.
 @ffi.Export()
 void foo() {
 
 }
 ```
 
-which produces a shared library exporting a C symbol:
+which produces a native library exporting a C symbol:
 
 ```cpp
 // foo.h
@@ -982,13 +979,13 @@ extern "C" void foo();
 Shared isolates give us a tool to define what happens when `foo` is invoked by a
 native caller:
 
-- There is a 1-1 correspondence between loaded shared library and an isolate
-  group corresponding to this shared library. This isolate group is created when
-  shared library is loaded (or possibly via explicit call to a specific exported
-  symbol) and is destroyed when shared library is unloaded (or possibly via a
-  call to specific symbol).
-- When an exported symbol is invoked the call happens in the shared isolate of
-  that isolate group.
+- There is a 1-1 correspondence between the native library and an isolate
+  group corresponding to this native library (e.g. there is a static variable somewhere in the library containing a pointer to the corresponding isolate group). 
+- When an exported symbol is invoked the call happens in the shared isolate of that isolate group.
+
+> [!NOTE]
+>
+> Precise mechanism managing isolate group's lifetime does not matter for the purposes of the document and belongs to the separate discussion. 
 
 ## Core Library Changes
 
@@ -1080,11 +1077,28 @@ All built-in asynchronous primitives will make the following API guarantee: **a
 callback passed to `Future` or `Stream` APIs will be invoked using executor
 which was running the code which registered the callback.**
 
+> [!NOTE]
+>
+> We need to be careful here to prevent crossing shareable and non-shareable domains. If you have a `Future<T>` where `T` is not a subtype of `Shareable` we should not allow registering multiple callbacks on it in a shared isolate because these callbacks end up running concurrently.
+>
+> Consider for example the following code:
+>
+> ```dart
+> final executor = ThreadPool(concurrency: 2);
+> 
+> executor.schedule(() {
+>   final Future<List<int>> list = Future.value(<int>[]);
+>   list..then(cb1)..then(cb2);
+> });
+> ```
+>
+> 
+
 In other words `fut1 = fut.then(cb)` is equivalent to:
 
 ```dart
 final result = ShareableBox(Completer<R>());
-final callback = ShareableBox(cb);
+final callback = ShareableBox(Zone.current.bind(cb));
 final executor = Executor.current;
 fut.then((v) {
   executor.schedule(() {
@@ -1223,7 +1237,14 @@ and will not change threads between suspending and resumptions.
 `AtomicRef<T>` is a wrapper around a value of type `T` which can be updated
 atomically. It can only be used with true reference types - an attempt to create
 an `AtomicRef<int>`, `AtomicRef<double>` , `AtomicRef<(T1, ..., Tn)>` will
-throw.
+throw. 
+
+> [!NOTE]
+>
+> `AtomicRef` uses method based `load` / `store` API instead of simple getter/setter API (i.e. `abstract T value`)  for two reasons: 
+>
+> 1. We want to align this API with that of extensions like `Int32ListAtomics`, which use `atomicLoad`/`atomicStore` naming
+> 2. We want to keep a possibility to later extend these methods, e.g. add a named parameter which specifies particular memory ordering.  
 
 ```dart
 // dart:concurrent
@@ -1449,6 +1470,10 @@ final class MyStruct extends Struct {
 The user is expected to use `a.value.store(...)` and `a.value.load(...` to
 access the value.
 
+> [!CAUTION]
+>
+> Support for `AtomicInt` in FFI structs is meant to enable atomic access to  fields without requiring developers to go through `Pointer` based atomic APIs. It is **not** meant as a way to interoperate with structs that contain `std::atomic<int32_t>` (C++) or `_Atomic int32_t` (C11) because these types don't have a defined ABI.
+
 ## Prototyping Roadmap
 
 The change of this impact has to be carefully evaluated. I suggest we start with
@@ -1513,7 +1538,7 @@ shared via `SharedArrayBuffer`). However there is a Stage 1 TC-39 proposal
 [JavaScript Structs: Fixed Layout Objects and Some Synchronization Primitives](https://github.com/tc39/proposal-structs)
 which introduces the concept of _struct_ - fixed shape mutable object which can
 be shared between different workers. Structs are very similar to `Shareable`
-objects we propose, however they can't have any methods associated with them.
+objects I propose, however they can't have any methods associated with them.
 This makes structs unsuitable for representing arbitrary Dart classes - which
 usually have methods associated with them.
 
