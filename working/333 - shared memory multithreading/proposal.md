@@ -27,7 +27,10 @@ for concrete code examples.
 
 > [!NOTE]
 >
-> Improving Dart's interoperability with native code and its multicore capabilities not only benefits Dart developers but also unlocks improvements in the Dart SDK. For example, we will be able to move `dart:io` implementation from C++ into Dart and later split it into a package.
+> Improving Dart's interoperability with native code and its multicore
+> capabilities not only benefits Dart developers but also unlocks improvements
+> in the Dart SDK. For example, we will be able to move `dart:io` implementation
+> from C++ into Dart and later split it into a package.
 
 The core of this proposal are two new concepts:
 
@@ -73,7 +76,10 @@ asynchronous and incurs copying costs which are linear in the size of
 transferred data.
 
 Consider for example a front-end for Dart language which tries to parse a large
-Dart program. It is possible to parallelize parsing of strongly connected components in the import graph, however you can't fully avoid serialization costs - because resulting ASTs can't be directly shared between isolates. Similar example is parallelizing loading of ASTs from a large Kernel binary.
+Dart program. It is possible to parallelize parsing of strongly connected
+components in the import graph, however you can't fully avoid serialization
+costs - because resulting ASTs can't be directly shared between isolates.
+Similar example is parallelizing loading of ASTs from a large Kernel binary.
 
 > [!NOTE]
 >
@@ -618,15 +624,13 @@ class Y<T extends Shareable> implements Shareable {
 
 > [!NOTE]
 >
-> We could really benefit from the ability to use intersection types here (see [#2709][] and [#1152][], which
-> would allow to specify complicated bounds like `T extends Shareable & I`. In
-> the absence of intersections types developers would be forced to declare
-> intermediate interfaces which implement all required interfaces (e.g.
+> We could really benefit from the ability to use intersection types here (see
+> [#2709][] and [#1152][], which would allow to specify complicated bounds like
+> `T extends Shareable & I`. In the absence of intersections types developers
+> would be forced to declare intermediate interfaces which implement all
+> required interfaces (e.g.
 > `abstract interface ShareableI implements Shareable, I {}`) and require users
 > to implement those by specifying `T extends ShareableI`.
->
-> 
-> 
 
 [#2709]: https://github.com/dart-lang/language/issues/2709
 [#1152]: https://github.com/dart-lang/language/issues/1152
@@ -635,9 +639,9 @@ class Y<T extends Shareable> implements Shareable {
 
 Shareability of a function depends on the values that it captures. We could
 define that any **function is shareable iff it captures only variables of
-shareable declared type**. Incorporating this property into the type system naturally
-leads to the desire to use _intersection types_ to express the property that
-some value is both a function of a specific type _and_ shareable:
+shareable declared type**. Incorporating this property into the type system
+naturally leads to the desire to use _intersection types_ to express the
+property that some value is both a function of a specific type _and_ shareable:
 
 ```dart
 class A implements Shareable {
@@ -717,7 +721,8 @@ extension ToShareableMap<K extends Shareable?,
 
 ### `SendPort` semantics
 
-`SendPort` is extended with a new method to which allows sending `Shareable` values by reference without copying:
+`SendPort` is extended with a new method to which allows sending `Shareable`
+values by reference without copying:
 
 ```dart
 abstract interface class SendPort {
@@ -727,7 +732,7 @@ abstract interface class SendPort {
     /// The message is passed by reference to the receiver without
     /// copying.
     ///
-    /// If sender and receiver do not share the same code then 
+    /// If sender and receiver do not share the same code then
     /// an [IllegalArgument] exception is thrown.
     void share(Shareable message);
 }
@@ -817,7 +822,8 @@ int global;
 int foo() => global++;
 ```
 
-The result of calling `foo` from the native side depends on which isolate the call occurs in.
+The result of calling `foo` from the native side depends on which isolate the
+call occurs in.
 
 `shared` global variables allow developers to tackle this problem - but hidden
 dependency on global state might introduce hard to diagnose and debug bugs.
@@ -865,7 +871,9 @@ void main() async {
 ### Why not compile time isolation?
 
 It is tempting to try introducing a compile time separation between functions
-which only access `shared` state and functions which can access isolated state. However an attempt to fit such separation into the existing language quickly breaks down.
+which only access `shared` state and functions which can access isolated state.
+However an attempt to fit such separation into the existing language quickly
+breaks down.
 
 One obvious approach is to introduce a modifier (e.g. `shared`) which can be
 applied to function declarations and impose a number of restrictions that
@@ -904,9 +912,9 @@ This approach seems promising on the surface, but quickly hits issues:
   - Methods like `List<T>.forEach` pose challenge because they should be usable
     in both `shared` and non-`shared` contexts.
 
-**This makes us think that language changes required to achieve sound compile time
-delineation between `shared` and isolate worlds are too complicated to be worth
-it.**
+**This makes us think that language changes required to achieve sound compile
+time delineation between `shared` and isolate worlds are too complicated to be
+worth it.**
 
 ### Upgrading `dart:ffi`
 
@@ -947,11 +955,18 @@ associated with that:
 #### Linking to Dart code from native code
 
 An introduction of _shared isolate_ allows us to adjust our deployment story and
-make it simpler for native code to link, either statically or dynamically, to Dart code. 
+make it simpler for native code to link, either statically or dynamically, to
+Dart code.
 
 > [!NOTE]
 >
-> Below when I say _native library_ I mean _a static library or shared object produced from Dart code using an AOT compiler_. Such native library can be linked with the rest of the native code in the application either statically at build time or dynamically at runtime using appropriate native linkers provided by the native toolchain or the OS. The goal here is that using Dart from a native application becomes indistinguishable from using a simple C library.
+> Below when I say _native library_ I mean _a static library or shared object
+> produced from Dart code using an AOT compiler_. Such native library can be
+> linked with the rest of the native code in the application either statically
+> at build time or dynamically at runtime using appropriate native linkers
+> provided by the native toolchain or the OS. The goal here is that using Dart
+> from a native application becomes indistinguishable from using a simple C
+> library.
 
 Consider for example previously given in the
 [Interoperability](#interoperability) section:
@@ -979,13 +994,17 @@ extern "C" void foo();
 Shared isolates give us a tool to define what happens when `foo` is invoked by a
 native caller:
 
-- There is a 1-1 correspondence between the native library and an isolate
-  group corresponding to this native library (e.g. there is a static variable somewhere in the library containing a pointer to the corresponding isolate group). 
-- When an exported symbol is invoked the call happens in the shared isolate of that isolate group.
+- There is a 1-1 correspondence between the native library and an isolate group
+  corresponding to this native library (e.g. there is a static variable
+  somewhere in the library containing a pointer to the corresponding isolate
+  group).
+- When an exported symbol is invoked the call happens in the shared isolate of
+  that isolate group.
 
 > [!NOTE]
 >
-> Precise mechanism managing isolate group's lifetime does not matter for the purposes of the document and belongs to the separate discussion. 
+> Precise mechanism managing isolate group's lifetime does not matter for the
+> purposes of the document and belongs to the separate discussion.
 
 ## Core Library Changes
 
@@ -1079,20 +1098,21 @@ which was running the code which registered the callback.**
 
 > [!NOTE]
 >
-> We need to be careful here to prevent crossing shareable and non-shareable domains. If you have a `Future<T>` where `T` is not a subtype of `Shareable` we should not allow registering multiple callbacks on it in a shared isolate because these callbacks end up running concurrently.
+> We need to be careful here to prevent crossing shareable and non-shareable
+> domains. If you have a `Future<T>` where `T` is not a subtype of `Shareable`
+> we should not allow registering multiple callbacks on it in a shared isolate
+> because these callbacks end up running concurrently.
 >
 > Consider for example the following code:
 >
 > ```dart
 > final executor = ThreadPool(concurrency: 2);
-> 
+>
 > executor.schedule(() {
 >   final Future<List<int>> list = Future.value(<int>[]);
 >   list..then(cb1)..then(cb2);
 > });
 > ```
->
-> 
 
 In other words `fut1 = fut.then(cb)` is equivalent to:
 
@@ -1237,14 +1257,17 @@ and will not change threads between suspending and resumptions.
 `AtomicRef<T>` is a wrapper around a value of type `T` which can be updated
 atomically. It can only be used with true reference types - an attempt to create
 an `AtomicRef<int>`, `AtomicRef<double>` , `AtomicRef<(T1, ..., Tn)>` will
-throw. 
+throw.
 
 > [!NOTE]
 >
-> `AtomicRef` uses method based `load` / `store` API instead of simple getter/setter API (i.e. `abstract T value`)  for two reasons: 
+> `AtomicRef` uses method based `load` / `store` API instead of simple
+> getter/setter API (i.e. `abstract T value`) for two reasons:
 >
-> 1. We want to align this API with that of extensions like `Int32ListAtomics`, which use `atomicLoad`/`atomicStore` naming
-> 2. We want to keep a possibility to later extend these methods, e.g. add a named parameter which specifies particular memory ordering.  
+> 1. We want to align this API with that of extensions like `Int32ListAtomics`,
+>    which use `atomicLoad`/`atomicStore` naming
+> 2. We want to keep a possibility to later extend these methods, e.g. add a
+>    named parameter which specifies particular memory ordering.
 
 ```dart
 // dart:concurrent
@@ -1472,7 +1495,11 @@ access the value.
 
 > [!CAUTION]
 >
-> Support for `AtomicInt` in FFI structs is meant to enable atomic access to  fields without requiring developers to go through `Pointer` based atomic APIs. It is **not** meant as a way to interoperate with structs that contain `std::atomic<int32_t>` (C++) or `_Atomic int32_t` (C11) because these types don't have a defined ABI.
+> Support for `AtomicInt` in FFI structs is meant to enable atomic access to
+> fields without requiring developers to go through `Pointer` based atomic APIs.
+> It is **not** meant as a way to interoperate with structs that contain
+> `std::atomic<int32_t>` (C++) or `_Atomic int32_t` (C11) because these types
+> don't have a defined ABI.
 
 ## Prototyping Roadmap
 
