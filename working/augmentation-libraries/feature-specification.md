@@ -893,11 +893,16 @@ mixinDeclaration ::= 'augment'? 'base'? 'mixin' typeIdentifier
   typeParameters? ('on' typeNotVoidNotFunctionList)? interfaces?
   '{' (metadata mixinMemberDeclaration)* '}'
 
-extensionDeclaration ::= 'augment'? 'extension' typeIdentifierNotType?
-  typeParameters? 'on' type
-  '{' (metadata classMemberDeclaration)* '}'
+extensionDeclaration ::= 
+    'extension' typeIdentifierNotType? typeParameters? 'on' type 
+    extensionBody
+  | 'augment' 'extension' typeIdentifierNotType typeParameters? 
+    extensionBody
 
-extensionTypeDeclaration ::= 'augment'? 'extension' 'type' 'const'? typeIdentifier
+extensionBody ::= '{' (metadata classMemberDeclaration)* '}'
+
+extensionTypeDeclaration ::= 
+  'augment'? 'extension' 'type' 'const'? typeIdentifier
   typeParameters? representationDeclaration interfaces?
   '{' (metadata classMemberDeclaration)* '}'
 
