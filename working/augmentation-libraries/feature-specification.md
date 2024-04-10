@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com
-Version: 1.15 (see [Changelog](#Changelog) at end)
+Version: 1.20 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -405,12 +405,6 @@ It is a compile-time error if:
 *   The augmenting type declares an `extends` clause, but one was already
     present. We don't allow overwriting an existing `extends`, but one can be
     filled in if it wasn't present originally.
-
-*   An augmenting extension declares an `on` clause. We don't allow filling this
-    in for extensions, it must be on the original declaration. This restriction
-    could be lifted later if we have a compelling use case, as there is no
-    fundamental reason it cannot be allowed, although it would be a parse error
-    today to have an extension with no `on` clause.
 
 *   The type parameters of the type augmentation do not match the original
     type's type parameters. This means there must be the same number of type
@@ -988,7 +982,8 @@ To merge a set of declarations `D` into a namespace:
         can't try to augment a class with a function or anything weird like
         that.
 
-    1.  If the declaration is a class, mixin, enum, or extension:
+    1.  If the declaration is a class, mixin, enum, extension type,
+        or an extension, if said clause exists:
 
         1.  Append the types in the augmentation's `implements` clause to the
             augmented type's `implements` clause.
@@ -1046,6 +1041,12 @@ recommend the few users using them migrate to library augmentations. In Dart
 simplify the language and our tools.
 
 ## Changelog
+
+## 1.20
+
+*   Change the `extensionDeclaration` grammar rule such that an augmenting
+    extension declaration cannot have an `on` clause. Adjust other rules
+    accordingly.
 
 ## 1.19
 
