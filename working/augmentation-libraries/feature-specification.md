@@ -1082,10 +1082,7 @@ simplify the language and our tools.
 
 ## 1.21
 
-*   Add a compile-time error for `augmented(...)` whose target is abstract.
-*   Add a compile-time error for `augmented(...)` that occurs in a
-    declaration that isn't augmenting.
-
+*   Add a compile-time errors for wrong usages of `augmented`.
 
 ## 1.20
 
