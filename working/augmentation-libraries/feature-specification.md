@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com
-Version: 1.20 (see [Changelog](#Changelog) at end)
+Version: 1.21 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -458,6 +458,11 @@ It is a compile-time error if:
 
 *   The function augmentation specifies any default values. *Default values are
     defined solely by the original function.*
+
+*   An augmenting declaration uses `augmented` when the original declaration has
+    no concrete implementation. Note that all external declarations are assumed
+    to have an implementation provided by another external source, and they will
+    throw a runtime exception when called if not.
 
 **TODO: Should we allow augmenting functions to add parameters? If so, how does
 this interact with type checking calls to the function?**
@@ -1041,6 +1046,11 @@ recommend the few users using them migrate to library augmentations. In Dart
 simplify the language and our tools.
 
 ## Changelog
+
+## 1.21
+
+*   Add a compile-time error for `augmented(...)` whose target is abstract.
+
 
 ## 1.20
 
