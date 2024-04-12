@@ -379,9 +379,9 @@ occurs in a location where the outermost enclosing declaration is
 augmenting. *This error is applicable to all such declarations, e.g.,
 local functions, local variables, parameters, and type parameters.*
 
-A compile-time error occurs if `augmented` is used as an identifier
-expression in a non-augmenting declaration of a kind that can be augmenting
-inside an augmenting declaration.
+A compile-time error occurs if `augmented` occurs in a non-augmenting
+declaration, of a kind that can be augmenting, inside an augmenting
+declaration.
 
 *For example, inside `augment class C` we could have a declaration like
 `void f() {...augmented()...}`. 
