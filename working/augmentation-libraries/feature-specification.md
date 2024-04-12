@@ -356,15 +356,28 @@ augmented, but it generally follows the same rules as any normal identifier:
 In all relevant cases, if the augmented member is an instance member, it is
 invoked with the same value for `this`.
 
-Assume that the identifier `augmented` occurs in a scope which is not
-an augmenting declaration. In this case, the treatment of this identifier
-follows all the normal rules.
+Assume that the identifier `augmented` occurs such that the outermost
+enclosing declaration is not an augmenting declaration. In this case, the
+identifier is taken to be a reference to a declaration which is in scope.
 
-*For example, `augmented` could be an unknown identifier, or it could be the
-name of a function declaration in scope, and the static analysis and dynamic
-semantics follows all the normal rules for such situations. We could say that
-`augmented` is a contextual keyword because it gets a special treatment when 
-it occurs inside an augmenting declaration, but only there.*
+*In other words, `augmented` is just a normal identifier when it occurs
+anywhere other than inside an augmented declaration.*
+
+*Note that, for example, `augmented()` is an invocation of the augmented
+function or method when it occurs in an augmenting function or method
+declaration. (In the latter case, the augmenting method declaration must
+occur inside an augmenting type-introducing declaration, e.g., an
+augmenting class or mixin declaration). This is also true if `augmented()`
+occurs inside a local function declaration inside the body of that function
+or method declaration. We could say that `augmented` is a contextual
+keyword because it is unable to refer to a declaration in scope when it
+occurs inside an augmenting declaration, it always has the special meaning
+which is associated with augmentations.*
+
+A compile-time error occurs if a declaration with the name `augmented`
+occurs in a location where the outermost enclosing declaration is
+augmenting. *This error is applicable to all such declarations, e.g.,
+local functions, local variables, parameters, and type parameters.*
 
 ### Augmenting types
 
