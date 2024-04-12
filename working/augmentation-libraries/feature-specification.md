@@ -321,7 +321,7 @@ It is a compile-time error if:
 ### Augmented Expression
 
 The exact result of an `augmented` expression depends on what is being
-augmented, but it follows generally the same rules as any normal identifier:
+augmented, but it generally follows the same rules as any normal identifier:
 
 *   **Augmenting getters**: Within an augmenting getter `augmented` invokes the
     getter and evaluates to the return value. If augmenting a field with a
@@ -355,6 +355,16 @@ augmented, but it follows generally the same rules as any normal identifier:
 
 In all relevant cases, if the augmented member is an instance member, it is
 invoked with the same value for `this`.
+
+Assume that the identifier `augmented` occurs in a scope which is not
+an augmenting declaration. In this case, the treatment of this identifier
+follows all the normal rules.
+
+*For example, `augmented` could be an unknown identifier, or it could be the
+name of a function declaration in scope, and the static analysis and dynamic
+semantics follows all the normal rules for such situations. We could say that
+`augmented` is a contextual keyword because it gets a special treatment when 
+it occurs inside an augmenting declaration, but only there.*
 
 ### Augmenting types
 
@@ -1050,6 +1060,8 @@ simplify the language and our tools.
 ## 1.21
 
 *   Add a compile-time error for `augmented(...)` whose target is abstract.
+*   Add a compile-time error for `augmented(...)` that occurs in a
+    declaration that isn't augmenting.
 
 
 ## 1.20
