@@ -12,11 +12,6 @@ dev_dependencies:
   dart_style: ^2.2.1
 dependency_overrides:
   # Not yet published.
-  macros:
-    git:
-      url: https://github.com/dart-lang/sdk.git
-      path: pkg/macros
-      ref: main
   _fe_analyzer_shared:
     git:
       url: https://github.com/dart-lang/sdk.git
