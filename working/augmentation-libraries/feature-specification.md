@@ -384,7 +384,7 @@ declaration, of a kind that can be augmenting, inside an augmenting
 declaration.
 
 *For example, inside `augment class C` we could have a declaration like
-`void f() {...augmented()...}`. 
+`void f() {...augmented()...}`.
 This is an error because the outer `augment` forces the meaning of `augmented`
 to be about augmentation in the entire scope, but the method declaration is an
 introduction, not an augmentation.*
@@ -610,28 +610,32 @@ It is a compile-time error if:
 
 *   The original and augmenting declarations do not have the same type.
 
-*   An augmenting declaration uses `augmented` when the original declaration has
-    no concrete implementation. Note that all external declarations are assumed
-    to have an implementation provided by another external source, and they will
-    throw a runtime exception when called if not.
+*   An augmenting declaration uses `augmented` when the original declaration
+    has no concrete implementation. Note that all external declarations are
+    assumed to have an implementation provided by another external source,
+    and they will throw a runtime exception when called if not.
 
-*   An augmenting initializer uses `augmented` and the augmented variable is not
-    a variable with an initializer.
+*   An augmenting initializer uses `augmented` and the augmented declaration
+    is not an initializing variable declaration.
 
-*   A final variable is augmented with a setter. (Instead, the augmentation
-    can declare a *non-augmenting* setter that goes alongside the implicit
-    getter defined by the final variable.)
+*   A final variable declaration is augmented with a setter declaration.
+    *Instead, the augmentation can declare a non-augmenting setter that
+    goes alongside the implicit getter defined by the final variable.*
 
-*   A non-final variable is augmented with a final variable. We don't want to
-    leave the original setter in a weird state.
+*   A non-final variable declaration is augmented with a final variable
+    declaration. *We don't want to leave the original setter declaration in
+    a weird state.*
 
-*  A `late` variable is augmented with a non-`late` variable.
+*   A `late` variable declaration is augmented with a non-`late` variable
+    declaration.
 
-*  A non-`late` variable is augmented with a `late` variable.
+*   A non-`late` variable declaration is augmented with a `late` variable
+    declaration.
 
-*  A getter or setter are augmented by a variable.
+*   A getter or setter declaration is augmented by a variable declaration.
 
-*  An abstract or external variable are augmented by a variable.
+*   An `abstract` or `external` variable declaration is augmented by a
+    variable declaration.
 
 ### Augmenting enum values
 
@@ -925,15 +929,15 @@ mixinDeclaration ::= 'augment'? 'base'? 'mixin' typeIdentifier
   typeParameters? ('on' typeNotVoidNotFunctionList)? interfaces?
   '{' (metadata mixinMemberDeclaration)* '}'
 
-extensionDeclaration ::= 
-    'extension' typeIdentifierNotType? typeParameters? 'on' type 
+extensionDeclaration ::=
+    'extension' typeIdentifierNotType? typeParameters? 'on' type
     extensionBody
-  | 'augment' 'extension' typeIdentifierNotType typeParameters? 
+  | 'augment' 'extension' typeIdentifierNotType typeParameters?
     extensionBody
 
 extensionBody ::= '{' (metadata classMemberDeclaration)* '}'
 
-extensionTypeDeclaration ::= 
+extensionTypeDeclaration ::=
   'augment'? 'extension' 'type' 'const'? typeIdentifier
   typeParameters? representationDeclaration interfaces?
   '{' (metadata classMemberDeclaration)* '}'
@@ -950,7 +954,7 @@ classMemberDeclaration ::= declaration ';'
   | 'augment'? methodSignature functionBody
 
 enumEntry ::= metadata 'augment'? identifier argumentPart?
-  | metadata 'augment'? identifier typeArguments? 
+  | metadata 'augment'? identifier typeArguments?
     '.' identifierOrNew arguments
 
 declaration ::= 'external' factoryConstructorSignature
@@ -1072,7 +1076,7 @@ fairly often used by code generators because it gives generated code access to
 the main library's private namespace. However, it means that the generated part
 file cannot have its own imports.
 
-Library augmentations can do everything part files can do but also support 
+Library augmentations can do everything part files can do but also support
 their own imports and can modify members. With these, we can more strongly
 recommend the few users using them migrate to library augmentations. In Dart
 4.0, we can consider removing support for part files entirely, which would
