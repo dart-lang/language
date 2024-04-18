@@ -6,3 +6,4 @@ analyzer:
   exclude:
     # TODO: remove these when the analyzer supports macros enough to run them
     - bin/checks_main.dart
+    - bin/injectable_main.dart
