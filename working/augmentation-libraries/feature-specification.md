@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com
-Version: 1.20 (see [Changelog](#Changelog) at end)
+Version: 1.21 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -321,7 +321,7 @@ It is a compile-time error if:
 ### Augmented Expression
 
 The exact result of an `augmented` expression depends on what is being
-augmented, but it follows generally the same rules as any normal identifier:
+augmented, but it generally follows the same rules as any normal identifier:
 
 *   **Augmenting getters**: Within an augmenting getter `augmented` invokes the
     getter and evaluates to the return value. If augmenting a field with a
@@ -355,6 +355,39 @@ augmented, but it follows generally the same rules as any normal identifier:
 
 In all relevant cases, if the augmented member is an instance member, it is
 invoked with the same value for `this`.
+
+Assume that the identifier `augmented` occurs such that the outermost
+enclosing declaration is not an augmenting declaration. In this case, the
+identifier is taken to be a reference to a declaration which is in scope.
+
+*In other words, `augmented` is just a normal identifier when it occurs
+anywhere other than inside an augmented declaration.*
+
+*Note that, for example, `augmented()` is an invocation of the augmented
+function or method when it occurs in an augmenting function or method
+declaration. (In the latter case, the augmenting method declaration must
+occur inside an augmenting type-introducing declaration, e.g., an
+augmenting class or mixin declaration). This is also true if `augmented()`
+occurs inside a local function declaration inside the body of that function
+or method declaration. We could say that `augmented` is a contextual
+keyword because it is unable to refer to a declaration in scope when it
+occurs inside an augmenting declaration, it always has the special meaning
+which is associated with augmentations.*
+
+A compile-time error occurs if a declaration with the name `augmented`
+occurs in a location where the outermost enclosing declaration is
+augmenting. *This error is applicable to all such declarations, e.g.,
+local functions, local variables, parameters, and type parameters.*
+
+A compile-time error occurs if `augmented` occurs in a non-augmenting
+declaration, of a kind that can be augmenting, inside an augmenting
+declaration.
+
+*For example, inside `augment class C` we could have a declaration like
+`void f() {...augmented()...}`.
+This is an error because the outer `augment` forces the meaning of `augmented`
+to be about augmentation in the entire scope, but the method declaration is an
+introduction, not an augmentation.*
 
 ### Augmenting types
 
@@ -458,6 +491,11 @@ It is a compile-time error if:
 
 *   The function augmentation specifies any default values. *Default values are
     defined solely by the original function.*
+
+*   An augmenting declaration uses `augmented` when the original declaration has
+    no concrete implementation. Note that all external declarations are assumed
+    to have an implementation provided by another external source, and they will
+    throw a runtime exception when called if not.
 
 **TODO: Should we allow augmenting functions to add parameters? If so, how does
 this interact with type checking calls to the function?**
@@ -572,28 +610,32 @@ It is a compile-time error if:
 
 *   The original and augmenting declarations do not have the same type.
 
-*   An augmenting declaration uses `augmented` when the original declaration has
-    no concrete implementation. Note that all external declarations are assumed
-    to have an implementation provided by another external source, and they will
-    throw a runtime exception when called if not.
+*   An augmenting declaration uses `augmented` when the original declaration
+    has no concrete implementation. Note that all external declarations are
+    assumed to have an implementation provided by another external source,
+    and they will throw a runtime exception when called if not.
 
-*   An augmenting initializer uses `augmented` and the augmented variable is not
-    a variable with an initializer.
+*   An augmenting initializer uses `augmented` and the augmented declaration
+    is not an initializing variable declaration.
 
-*   A final variable is augmented with a setter. (Instead, the augmentation
-    can declare a *non-augmenting* setter that goes alongside the implicit
-    getter defined by the final variable.)
+*   A final variable declaration is augmented with a setter declaration.
+    *Instead, the augmentation can declare a non-augmenting setter that
+    goes alongside the implicit getter defined by the final variable.*
 
-*   A non-final variable is augmented with a final variable. We don't want to
-    leave the original setter in a weird state.
+*   A non-final variable declaration is augmented with a final variable
+    declaration. *We don't want to leave the original setter declaration in
+    a weird state.*
 
-*  A `late` variable is augmented with a non-`late` variable.
+*   A `late` variable declaration is augmented with a non-`late` variable
+    declaration.
 
-*  A non-`late` variable is augmented with a `late` variable.
+*   A non-`late` variable declaration is augmented with a `late` variable
+    declaration.
 
-*  A getter or setter are augmented by a variable.
+*   A getter or setter declaration is augmented by a variable declaration.
 
-*  An abstract or external variable are augmented by a variable.
+*   An `abstract` or `external` variable declaration is augmented by a
+    variable declaration.
 
 ### Augmenting enum values
 
@@ -887,15 +929,15 @@ mixinDeclaration ::= 'augment'? 'base'? 'mixin' typeIdentifier
   typeParameters? ('on' typeNotVoidNotFunctionList)? interfaces?
   '{' (metadata mixinMemberDeclaration)* '}'
 
-extensionDeclaration ::= 
-    'extension' typeIdentifierNotType? typeParameters? 'on' type 
+extensionDeclaration ::=
+    'extension' typeIdentifierNotType? typeParameters? 'on' type
     extensionBody
-  | 'augment' 'extension' typeIdentifierNotType typeParameters? 
+  | 'augment' 'extension' typeIdentifierNotType typeParameters?
     extensionBody
 
 extensionBody ::= '{' (metadata classMemberDeclaration)* '}'
 
-extensionTypeDeclaration ::= 
+extensionTypeDeclaration ::=
   'augment'? 'extension' 'type' 'const'? typeIdentifier
   typeParameters? representationDeclaration interfaces?
   '{' (metadata classMemberDeclaration)* '}'
@@ -912,7 +954,7 @@ classMemberDeclaration ::= declaration ';'
   | 'augment'? methodSignature functionBody
 
 enumEntry ::= metadata 'augment'? identifier argumentPart?
-  | metadata 'augment'? identifier typeArguments? 
+  | metadata 'augment'? identifier typeArguments?
     '.' identifierOrNew arguments
 
 declaration ::= 'external' factoryConstructorSignature
@@ -1034,13 +1076,17 @@ fairly often used by code generators because it gives generated code access to
 the main library's private namespace. However, it means that the generated part
 file cannot have its own imports.
 
-Library augmentations can do everything part files can do but also support 
+Library augmentations can do everything part files can do but also support
 their own imports and can modify members. With these, we can more strongly
 recommend the few users using them migrate to library augmentations. In Dart
 4.0, we can consider removing support for part files entirely, which would
 simplify the language and our tools.
 
 ## Changelog
+
+## 1.21
+
+*   Add a compile-time errors for wrong usages of `augmented`.
 
 ## 1.20
 
