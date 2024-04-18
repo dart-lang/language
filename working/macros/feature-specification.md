@@ -646,7 +646,7 @@ constructors are invoked, and their limitations.
 
 *Note: The Macro API is still being designed, and lives [here][API].*
 
-[API]: https://github.com/dart-lang/sdk/blob/main/pkg/_fe_analyzer_shared/lib/src/macros/api.dart
+[API]: https://github.com/dart-lang/sdk/tree/main/pkg/_macros/lib/src/api.dart
 
 ### Writing a Macro
 
