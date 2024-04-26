@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 1.0
+Version 1.1
 
 Pattern matching brings a new way to declare variables. Inside patterns, any
 variable whose name is `_` is considered a "wildcard". It behaves like a
@@ -99,8 +99,8 @@ A *local declaration* is any of:
 *   For loop variable declarations.
 
     ```dart
-    for (_ = 0;;) {}
-    for (_ in list) {}
+    for (int _ = 0;;) {}
+    for (var _ in list) {}
     ```
 
 *   Catch clause parameters.
@@ -117,11 +117,12 @@ A *local declaration* is any of:
 
     ```dart
     class T<_> {}
+    void genericFunction<_>() {}
 
     takeGenericCallback(<_>() => true);
     ```
 
-A local declaration whose name is `_` does not bind anything to that name. This
+A local declaration whose name is `_` does not bind that name to anything. This
 means you can have multiple local declarations named `_` in the same namespace
 without a collision error. The initializer, if there is one, is still executed,
 but the value is not accessible.
@@ -138,12 +139,12 @@ class C {
   var _ = 'bound';
 
   test() {
-    print(_); // Prints "bounnd".
+    print(_); // Prints "bound".
   }
 }
 ```
 
-Likewise with a top-level named `_`:
+Likewise with a top-level declaration named `_`:
 
 ```dart
 var _ = 'ok';
@@ -207,8 +208,8 @@ quite confusing. In practice, we expect reasonable users will not name fields
 
 ### Initializing formals
 
-An initializing formal named `_` does still initialize a field named `_` (and
-you can still have a field with that name):
+A positional initializing formal named `_` does still initialize a field 
+named `_` (and you can still have a field with that name):
 
 ```dart
 class C {
@@ -218,8 +219,18 @@ class C {
 }
 ```
 
+It is a compile-time error if a named initializing formal has the name `_`:
+
+```dart
+class C {
+  var _;
+  
+  C({this._}); // Error.
+}
+```
+
 But no *parameter* with that name is bound, which means `_` can't be accessed
-inside the initializer list. In the body is fine, since that refers to the
+inside the initializer list. In the body it is fine, since that refers to the
 field, not the parameter:
 
 ```dart
@@ -228,7 +239,7 @@ class C {
   var other;
 
   C(this._)
-    : other = _ { // <-- Error. No "_" in scope.
+    : other = _ { // <-- Error, cannot access `this`.
     print(_); // OK. Prints the field.
   }
 }
@@ -243,6 +254,39 @@ class C {
   C(this._, this._); // Error.
 }
 ```
+
+### Super parameters
+
+An occurrence of `super._` as a declaration of a formal parameter in a
+constructor is a compile-time error.
+
+*It is not an error everywhere: In a method body it could be an invocation
+of an inherited getter named `_`.*
+
+*The desugared meaning of a super parameter includes a reference to the
+parameter in the initializer list of the enclosing constructor declaration,
+but such references are not possible when the parameter name is a
+wildcard.*
+
+### Extension types
+
+An extension type declaration has a `<representationDeclaration>`
+which is similar to a formal parameter list of a function declaration.
+
+*It always declares exactly one mandatory positional parameter, and the
+meaning of this declaration is that it introduces a formal parameter of a
+constructor of the enclosing extension type as well as a final instance
+variable declaration, also known as the representation variable of the
+extension type.*
+
+This parameter can have the declared name `_`. This means that the
+representation variable is named `_`, and no formal parameter name is
+introduced into any scopes.
+
+*Currently that parameter is not in scope for any code anyway, but future
+generalizations such as primary constructors could introduce it into a
+scope, e.g., in order to be able to pass actual arguments to a
+superconstructor.*
 
 ### Unused variable warnings
 
@@ -319,3 +363,13 @@ public API.
 However, this *is* a breaking change. If this ships in the same version as
 pattern matching, we can gate it behind a language version and only break code
 when it upgrades to that version.
+
+## Changelog
+
+### 1.1
+
+- Add rules about `super._` and about extension types.
+
+### 1.0
+
+- Initial version
