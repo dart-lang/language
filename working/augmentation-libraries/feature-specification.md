@@ -697,14 +697,21 @@ It is a compile-time error if:
 
 ### Augmenting constructors
 
-Constructors are (as always) more complex. A constructor marked `augment`
-replaces the body of the existing constructor with its body. If the augmenting
-constructor has any initializers, they are appended to the original
-constructor's initializers, but before any original super initializer or
-original redirecting initializer if there is one.
+Constructors are (as always) more complex. A constructor marked `augment` may:
 
-In the augmenting constructor's body, an `augmented()` call invokes the
-original constructor's body.
+- Add or replace the body of the existing constructor with a new body.
+  - If the augmenting constructor has no explicit body (terminates with a `;`),
+    then the original is left in place.
+  - In the augmenting constructor's body, an `augmented()` call invokes the
+    original constructor's body. Unlike regular function augmentations, you do
+    not pass parameters explicitly. All of the same parameters are in scope in
+    the augmented body as the augmenting body.
+    - If a parameter variable is overwritten prior to calling `augmented()`, the
+      augmented body will see the updated value. All references to the parameter
+      in the augmented and augmenting bodies refer to the exact same variable.
+- Add initializers to the initializer list.
+  - These are appended to the original constructor's initializers, but before
+    any super initializer or redirecting initializer (if present).
 
 It is a compile-time error if:
 
@@ -725,7 +732,7 @@ It is a compile-time error if:
     or vice versa.
 
 *   The original constructor is a factory constructor and the augmenting
-    constructor has an initializer list.
+    constructor is not or vice versa.
 
 *   The original constructor has a super initializer or redirecting initializer
     and the augmenting constructor does too.
