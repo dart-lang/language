@@ -30,7 +30,8 @@ macro class JsonSerializable implements ClassDeclarationsMacro {
     builder.declareInType(DeclarationCode.fromParts([
       '@',
       await builder.resolveIdentifier(_thisLibrary, 'FromJson'),
-      '()\n  ',
+      // TODO(language#3580): Remove/replace 'external'?
+      '()\n  external ',
       clazz.identifier.name,
       '.fromJson(',
       mapStringDynamic,
@@ -40,9 +41,10 @@ macro class JsonSerializable implements ClassDeclarationsMacro {
     builder.declareInType(DeclarationCode.fromParts([
       '@',
       await builder.resolveIdentifier(_thisLibrary, 'ToJson'),
-      '()\n  ',
+      // TODO(language#3580): Remove/replace 'external'?
+      '()\n  external ',
       mapStringDynamic,
-      'toJson();',
+      ' toJson();',
     ]));
   }
 }
