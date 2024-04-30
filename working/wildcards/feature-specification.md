@@ -232,8 +232,8 @@ class C {
 ```
 
 But no *parameter* with that name is bound, which means `_` can't be accessed
-inside the initializer list. In the body it is fine, since that refers to the
-field, not the parameter:
+inside the initializer list. The name `_` can be used in the body, but this
+is a reference to the field, not the parameter:
 
 ```dart
 class C {
@@ -260,15 +260,36 @@ class C {
 ### Super parameters
 
 An occurrence of `super._` as a declaration of a formal parameter in a
-constructor is a compile-time error.
+constructor is a compile-time error. This error also occurs in the case
+where the super parameter has an explicitly declared type and/or default
+value.
 
-*It is not an error everywhere: In a method body it could be an invocation
-of an inherited getter named `_`.*
+*`super._` is not an error everywhere: In a method body it could be an
+invocation of an inherited getter named `_`.*
+
+```dart
+class B {
+  final _;
+  B(this._);
+}
+
+class C {
+  C(super._); // Error.
+}
+```
 
 *The desugared meaning of a super parameter includes a reference to the
 parameter in the initializer list of the enclosing constructor declaration,
 but such references are not possible when the parameter name is a
 wildcard.*
+
+*It may seem inconvenient that `super._` "does not work" in the last
+example, but we do not wish to create exceptions about the ability to refer
+to a declaration whose name is a wildcard, just so we can support this
+particular usage. The advice would be to use a different name than `_` for
+the instance variable in `B` in the first place, or using a different name
+in `B` and possibly `// ignore` a lint that may warn about the names being
+different.*
 
 ### Extension types
 
@@ -285,10 +306,38 @@ This parameter can have the declared name `_`. This means that the
 representation variable is named `_`, and no formal parameter name is
 introduced into any scopes.
 
-*Currently that parameter is not in scope for any code anyway, but future
-generalizations such as primary constructors could introduce it into a
-scope, e.g., in order to be able to pass actual arguments to a
-superconstructor.*
+```dart
+extension type E(int _) {
+  int get value => _; // OK, the representation variable name is `_`.
+  int get sameValue => this._; // OK.
+}
+```
+
+*Currently, the formal parameter introduced by a
+`<representationDeclaration>` is not in scope for any code, anyway.
+However, future generalizations such as primary constructors could
+introduce it into a scope. At that time it does matter that there is no
+formal parameter name.*
+
+```dart
+// Hypothetical example using primary constructors with support for
+// superconstructor invocations in the header.
+
+class A {
+  A(int i) {
+    print(i);
+  }
+}
+
+class B(int x) extends A(x + 1);
+```
+
+*In this example, `(int x)` would work like a `<representationDeclaration>`
+in an extension type (introducing an instance variable named `x` as well as
+a constructor with one positional parameter), but it also refers to the
+parameter `x` in the invocation of the superconstructor which is denoted by
+the syntax `A(x + 1)`. If `x` is renamed to `_` then the superconstructor
+invocation can't refer to it.*
 
 ### Unused variable warnings
 
