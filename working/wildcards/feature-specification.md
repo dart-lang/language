@@ -208,7 +208,7 @@ quite confusing. In practice, we expect reasonable users will not name fields
 
 ### Initializing formals
 
-A positional initializing formal named `_` does still initialize a field 
+A positional initializing formal named `_` does still initialize a field
 named `_` (and you can still have a field with that name):
 
 ```dart
@@ -226,7 +226,7 @@ error for a named formal parameter to have a name that starts with `_`.*
 ```dart
 class C {
   var _;
-  
+
   C({this._}); // Error.
 }
 ```
@@ -318,26 +318,6 @@ extension type E(int _) {
 However, future generalizations such as primary constructors could
 introduce it into a scope. At that time it does matter that there is no
 formal parameter name.*
-
-```dart
-// Hypothetical example using primary constructors with support for
-// superconstructor invocations in the header.
-
-class A {
-  A(int i) {
-    print(i);
-  }
-}
-
-class B(int x) extends A(x + 1);
-```
-
-*In this example, `(int x)` would work like a `<representationDeclaration>`
-in an extension type (introducing an instance variable named `x` as well as
-a constructor with one positional parameter), but it also refers to the
-parameter `x` in the invocation of the superconstructor which is denoted by
-the syntax `A(x + 1)`. If `x` is renamed to `_` then the superconstructor
-invocation can't refer to it.*
 
 ### Unused variable warnings
 
