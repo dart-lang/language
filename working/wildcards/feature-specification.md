@@ -219,7 +219,9 @@ class C {
 }
 ```
 
-It is a compile-time error if a named initializing formal has the name `_`:
+*Note that it is already a compile-time error if a named initializing
+formal has the name `_`. This is a special case of the rule that it is an
+error for a named formal parameter to have a name that starts with `_`.*
 
 ```dart
 class C {
