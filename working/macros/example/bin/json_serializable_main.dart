@@ -13,7 +13,9 @@ void main() {
     'name': 'Roger',
     'username': 'roger1337'
   };
-  print(User.fromJson(rogerJson));
+  var user = User.fromJson(rogerJson);
+  print(user);
+  print(user.toJson());
 }
 
 @JsonSerializable()
