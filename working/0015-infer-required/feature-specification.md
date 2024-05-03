@@ -150,12 +150,12 @@ be omitted, and the properties of the formal parameter will be different:
 
 ```dart
 abstract class A {
-  void foo({int i}); // OK.
+  void foo({int i});
 }
 
 void Function({int i}) fun = ({int i = 0}) {};
 
-typedef void F({int i}); // OK.
+typedef void F({int i});
 ```
 
 For the abstract instance method `foo`, the named parameter `i` is
