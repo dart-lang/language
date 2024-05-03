@@ -139,7 +139,7 @@ It seems likely that it will be true quite often that the required, named
 parameters are exactly the ones whose type is potentially non-nullable,
 which means that the migration will simply be to delete every occurrence of
 `required`. Of course, we aren't forced to have a migration at all, if it
-is more convenient to leave code unchanged.
+is more convenient to leave the code unchanged.
 
 On the other hand, it should be noted that we can't allow every occurrence
 of `required` to be inferred.
