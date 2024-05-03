@@ -135,9 +135,9 @@ class const User({
 });
 ```
 
-It seems likely that it will be true rather often that the required
-parameters are exactly the ones whose type is non-nullable, which means
-that the migration will simply be to delete every occurrence of
+It seems likely that it will be true quite often that the required, named
+parameters are exactly the ones whose type is potentially non-nullable,
+which means that the migration will simply be to delete every occurrence of
 `required`. Of course, we aren't forced to have a migration at all, if it
 is more convenient to leave code unchanged.
 
@@ -182,8 +182,8 @@ specified explicitly in these cases.
 Assume that _D_ is a declaration of a function or a concrete method with a
 named, formal parameter declaration `p` that does not have the modifier
 `required` and does not have a default value, and whose declared type is
-potentially nullable. In this situation _D_ is transformed such that `p` is
-replaced by `required p`.
+potentially non-nullable. In this situation _D_ is transformed such that
+`p` is replaced by `required p`.
 
 This rule is applicable to `external` functions and methods, too.
 
