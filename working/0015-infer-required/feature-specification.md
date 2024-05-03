@@ -6,6 +6,8 @@ Status: Draft
 
 Version 1.0 (see the [CHANGELOG](#CHANGELOG))
 
+Experimental flag: `--enable-experiment=infer-required`
+
 ## Summary
 
 This proposal is built on a large number of issues expressing the desire to
