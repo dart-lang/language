@@ -16,8 +16,8 @@ parameters, when possible. This started all the way back in issue number 15
 in the language repository, even before `required` was a modifier in the
 language. In addition to making this point, the issues contain many
 concrete ideas about how this could be turned into an actual language
-feature, up to rather complete proposals. This proposal is just a
-consolidation of this body of prior work.
+feature, up to rather complete proposals, in particular issue 3287. This
+proposal is just a consolidation of this body of prior work.
 
 *    [#15 Problem: Syntax for optional parameters and required named parameters is verbose and unfamiliar](https://github.com/dart-lang/language/issues/15)
 *    [#878 [proposal] non-nullable named parameters required by default](https://github.com/dart-lang/language/issues/878)
@@ -192,6 +192,21 @@ This rule is applicable to `external` functions and methods, too.
 There is no dynamic semantics of this mechanism, all behaviors are
 determined by the current rules of the language applied to the program
 where the compile-time transformation has taken place.
+
+## Discussion
+
+The proposal in issue 3287 includes the keyword `optional`, and uses it in
+the cases where this proposal just specifies that `required` is not
+inferred (because the omission of `required` is allowed, and has a
+different meaning).
+
+The approach where `optional` is used implies that there will be a long
+modifier on _every_ potentially non-nullable named parameter in every
+function type and every abstract method declaration. This proposal is based
+on the assumption that the use of a modifier in that manner is too verbose.
+
+However, if we prefer the added safety of explicitness then we can easily
+adjust this proposal to require `optional` in said cases.
 
 ## CHANGELOG
 
