@@ -138,8 +138,14 @@ class const User({
 It seems likely that it will be true quite often that the required, named
 parameters are exactly the ones whose type is potentially non-nullable,
 which means that the migration will simply be to delete every occurrence of
-`required`. Of course, we aren't forced to have a migration at all, if it
-is more convenient to leave the code unchanged.
+`required`. A tool based migration would of course have to preserve the
+occurrences of `required` that have an effect (that is, the ones that are
+associated with a parameter whose declared type is nullable).
+
+We aren't forced to have a migration at all. It might be more convenient in
+some cases to leave the code unchanged, at least for a while. The given
+developer or organization may also prefer to have `required` on every
+required named parameter as a matter of style.
 
 On the other hand, it should be noted that we can't allow every occurrence
 of `required` to be inferred.
@@ -206,7 +212,12 @@ function type and every abstract method declaration. This proposal is based
 on the assumption that the use of a modifier in that manner is too verbose.
 
 However, if we prefer the added safety of explicitness then we can easily
-adjust this proposal to require `optional` in said cases.
+adjust this proposal to require `optional` in said cases. 
+
+We could also support a default value of the form `= _` in function types
+and abstract instance member declarations, in order to specify that every
+implementation must have a default value (which could, though, be an
+implicit null).
 
 ## CHANGELOG
 
