@@ -18216,8 +18216,10 @@ The \Index{for statement} supports iteration.
 <forStatement> ::= \AWAIT? \FOR{} `(' <forLoopParts> `)' <statement>
 
 <forLoopParts> ::= <forInitializerStatement> <expression>? `;' <expressionList>?
-  \alt <metadata> <declaredIdentifier> \IN{} <expression>
-  \alt <identifier> \IN{} <expression>
+  \alt <forInLoopPrefix> \IN{} <expression>
+
+<forInLoopPrefix> ::= <metadata> <declaredIdentifier>
+  \alt <identifier>
 
 <forInitializerStatement> ::= <localVariableDeclaration>
   \alt <expression>? `;'
