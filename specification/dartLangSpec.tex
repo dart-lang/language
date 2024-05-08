@@ -8304,16 +8304,43 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 }
 
 \LMHash{}%
-Metadata is associated with the abstract syntax tree
-of the program construct $p$ that immediately follows the metadata,
-and which is not itself metadata or a comment.
+Metadata that occurs as the first element of
+the right hand side of a grammar rule
+is associated with the abstract syntax tree for the non-terminal
+on the left hand side of said grammar rule
+\commentary{(that is, it is associated with its parent)}.
+Otherwise, metadata is associated with the abstract syntax tree
+of the program construct $p$ that immediately follows the metadata
+in the grammar rule.
+
+\rationale{%
+These rules are intended to ensure a minimal level of consistency
+in the association that binds each metadatum to a program construct.
+The structure of the abstract syntax tree is implementation specific,
+and it is not even guaranteed that a tool will use anything
+which is known as an abstract syntax tree.
+In that case the phrase `abstract syntax tree' should be interpreted as
+the program representation entities which are actually used.
+
+This implies that the fine details of the association between metadata
+and an abstract syntax tree node is also implementation specific.
+In particular, an implementation can choose to associate a given metadatum
+with more than one abstract syntax tree node.%
+}
+
+\LMHash{}%
 Metadata can be retrieved at run time via a reflective call,
 provided the annotated program construct $p$ is accessible via reflection.
 
 \commentary{%
 Obviously, metadata can also be retrieved statically by
 parsing the program and evaluating the constants via a suitable interpreter.
-In fact, many if not most uses of metadata are entirely static.%
+In fact, many if not most uses of metadata are entirely static.
+In this case the binding of each metadatum to an abstract syntax tree node
+is determined by the given static analysis tool,
+which is of course not subject to any constraints in this document.
+Surely it will still be useful to strive for consistency among all tools
+with respect to the binding from metadata to abstract syntax tree nodes.%
 }
 
 \rationale{%
