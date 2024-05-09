@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 1.1
+Version 1.2
 
 Pattern matching brings a new way to declare variables. Inside patterns, any
 variable whose name is `_` is considered a "wildcard". It behaves like a
@@ -395,7 +395,17 @@ However, this *is* a breaking change. If this ships in the same version as
 pattern matching, we can gate it behind a language version and only break code
 when it upgrades to that version.
 
+### Existing Lints
+
+We have an existing [`no_wildcard_variable_uses`](https://dart.dev/tools/linter-rules/no_wildcard_variable_uses) lint, which advises users to avoid using wildcard parameters or variables.
+
+This lint is included in the core lint set which means that the scale of the breaking change should be small since most projects should have this lint enabled.
+
 ## Changelog
+
+### 1.2
+
+- Add information about the [`no_wildcard_variable_uses`](https://dart.dev/tools/linter-rules/no_wildcard_variable_uses) lint.
 
 ### 1.1
 
