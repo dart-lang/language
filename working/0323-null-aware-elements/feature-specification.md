@@ -10,7 +10,7 @@ Experiment flag: null-aware-elements
 
 ## Introduction
 
-In Dart 2.3, we added [several syntax new features][unified] for use inside
+In Dart 2.3, we added [several new syntax features][unified] for use inside
 collection literals. You can use `...` to spread the contents of one collection
 into another, and `if` and `for` to perform branching and looping control flow
 while generating elements.
@@ -62,7 +62,7 @@ have null-aware spreads, but not null-aware single values.
 
 This proposal remedies that by adding *null-aware elements*. Using Lorenzen's
 suggested syntax, inside a collection literal, a `?` followed by an expression
-includes the value if it's not `null` or discards the `null` otherwise:
+includes the value if it's not `null` and discards the `null` otherwise:
 
 ```dart
 void printThree(String? a, String? b, String? c) {
@@ -142,8 +142,8 @@ general-purpose feature.
 
 It's also certainly the case that my simple analysis didn't catch many other
 workarounds that users are using to deal with `null`. (I did look for uses of
-`if-case` and `.whereNotNull()` that seemed like could become null-aware
-elements but only found a handful.)
+`if-case`, `.whereNotNull()`, and `.nonNulls` that seemed like could become
+null-aware elements but only found a handful.)
 
 This suggests that if we're to support this feature at all, we should support
 it for map entries too. The syntax options, assuming we want to stick with a
@@ -322,7 +322,7 @@ otherNullableThing`.*
 expressions, null-aware operators, and null-check patterns. However, I don't
 believe there is any ambiguity in this new syntax. The preceding token will
 usually be `,`, `[`, `{`, or `:`, none of which can appear before `?` in any
-form that uses that character. The `?` may also appear before `)` after the
+form that uses that character. The `?` may also appear after `)` after the
 header of an `if` or `for` element, or after `else`, but those are also not
 ambiguous.*
 
@@ -356,37 +356,40 @@ To infer the type of `element` in context `P`:
 
 *   If `element` is a null-aware `expressionElement` with expression `e1`:
 
-    *   If `P` is `?`:
+    *   If `P` is `_` (the unknown context):
 
-        *   Let `u` be the inferred type of the expression `e1` in context `?`.
+        *   Let `U` be the inferred type of the expression `e1` in context `_`.
 
     *   Else, `P` is `Set<Ps>`:
 
-        *   Let `u` be the inferred type of the expression `e1` in context `Ps`.
+        *   Let `U` be the inferred type of the expression `e1` in context
+            `Ps?`. *The expression has a nullable context type because it may
+            safely evaluate to `null` even when the surrounding set doesn't
+            allow that because the `?` will discard a `null` entry.*
 
-    *   The inferred set element type is **NonNull**(`u`). *The value added to
+    *   The inferred set element type is **NonNull**(`U`). *The value added to
         the set will never be `null`.*
 
 *   If `element` is a null-aware `mapElement` with entry `ek: ev`:
 
-    *   If `P` is `?` then the inferred key and value types of `element` are:
+    *   If `P` is `_` then the inferred key and value types of `element` are:
 
-        *   Let `uk` be the inferred type of `ek` in context `?`.
+        *   Let `Uk` be the inferred type of `ek` in context `_`.
 
         *   If `element` is a key null-aware element then the inferred key
-            element type is **NonNull**(`uk`). *The entry added to the map will
+            element type is **NonNull**(`Uk`). *The entry added to the map will
             never have a `null` key.*
 
-        *   Else the inferred key element type is `uk`. *The whole element is
+        *   Else the inferred key element type is `Uk`. *The whole element is
             null-aware, but the key part is not, so it is inferred as normal.*
 
-        *   Let `uv` be the inferred type of `ev` in context `?`.
+        *   Let `Uv` be the inferred type of `ev` in context `_`.
 
         *   If `element` is a value null-aware element then the inferred value
-            element type is **NonNull**(`uv`). *The entry added to the map will
+            element type is **NonNull**(`Uv`). *The entry added to the map will
             never have a `null` value.*
 
-        *   Else the inferred value element type is `uv`. *The whole element is
+        *   Else the inferred value element type is `Uv`. *The whole element is
             null-aware, but the value part is not, so it is inferred as normal.*
 
     *   If `P` is `Map<Pk, Pv>` then the inferred key and value types of
@@ -394,12 +397,12 @@ To infer the type of `element` in context `P`:
 
         *   If `element` is a key null-aware element then:
 
-            *   Let `uk` be the inferred type of `ek` in context `Pk?`. *The key
+            *   Let `Uk` be the inferred type of `ek` in context `Pk?`. *The key
                 expression has a nullable context type because it may safely
                 evaluate to `null` even when the surrounding map doesn't allow
                 that because the `?` will discard a `null` entry.*
 
-            *   The inferred key element type is **NonNull**(`uk`). *The entry
+            *   The inferred key element type is **NonNull**(`Uk`). *The entry
                 added to the map will never have a `null` key.*
 
         *   Else the inferred key element type is the inferred type of `ek` in
@@ -408,12 +411,12 @@ To infer the type of `element` in context `P`:
 
         *   If `element` is a value null-aware element then:
 
-            *   Let `uv` be the inferred type of `ev` in context `Pv?`. *The
+            *   Let `Uv` be the inferred type of `ev` in context `Pv?`. *The
                 value expression has a nullable context type because it may
                 safely evaluate to `null` even when the surrounding map doesn't
                 allow that because the `?` will discard a `null` entry.*
 
-            *   The inferred value element type is **NonNull**(`uv`). *The entry
+            *   The inferred value element type is **NonNull**(`Uv`). *The entry
                 added to the map will never have a `null` value.*
 
         *   Else the inferred value element type is the inferred type of `ev` in
@@ -430,27 +433,32 @@ null-aware part because `null` won't propagate out.*
 
 Likewise, with list literals, we add a clause to handle a null-aware expression.
 
-To infer the type of `element` in context `P` (which may be `?`):
+To infer the type of `element` in context `P`:
 
 *   If `element` is null-aware `expressionElement` with expression `e1`:
 
-    *   Let `u` be the inferred type of `element` in context `P?`. *The
-        expression has a nullable context type because it may safely evaluate to
-        `null` even when the surrounding list doesn't allow that because the `?`
-        will discard a `null` entry.*
+    *   If `P` is `_`:
 
-    *   The inferred list element type of `element` is **NonNull**(`u`). *The
-        value added to the map will never be `null`.*
+        *   Let `U` be the inferred type of the expression `e1` in context `_`.
+
+    *   Else, `P` is `List<Ps>`:
+
+        *   Let `U` be the inferred type of the expression `e1` in context
+            `Ps?`. *The expression has a nullable context type because it may
+            safely evaluate to `null` even when the surrounding set doesn't
+            allow that because the `?` will discard a `null` entry.*
+
+    *   The inferred list element type is **NonNull**(`U`). *The value added to
+        the list will never be `null`.*
 
 ### Constants
 
-A null-aware `expressionElement` or `mapElement` is constant or potentially
-constant if its inner expression or map entry is constant or potentially
-constant, respectively.
+A null-aware `expressionElement` or `mapElement` is constant if its inner
+expression or map entry is constant.
 
-## Dynamic semantics
+## Runtime semantics
 
-The dynamic semantics of collection literals [are
+The runtime semantics of collection literals [are
 defined][unified-dynamic-element] in terms of recursively building up a *result*
 sequence of values (list or set) or map entries (map). For each kind of
 `element`, there is specification for how that element adds to the result. We
@@ -525,7 +533,7 @@ use instead:
 
 [
   nullableFoo,
-].whereNotNull().toList();
+].nonNulls;
 ```
 
 If any of these patterns can be reliably detected through static analysis, then
