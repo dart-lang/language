@@ -4,7 +4,9 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 1.2
+Version 1.3
+
+## Motivation
 
 Pattern matching brings a new way to declare variables. Inside patterns, any
 variable whose name is `_` is considered a "wildcard". It behaves like a
@@ -74,6 +76,8 @@ library privacy comes into play.
 
 ## Proposal
 
+### Local declarations
+
 A *local declaration* is any of:
 
 *   Function parameters. This includes top-level functions, local functions,
@@ -85,6 +89,10 @@ A *local declaration* is any of:
     Foo(_, this._, super._, void _(), {_}) {}
 
     list.where((_) => true);
+
+    void f(void g(_, _)) {}
+
+    typedef T = void Function(String _, String _);
     ```
 
 *   Local variable declaration statement variables.
@@ -127,8 +135,31 @@ means you can have multiple local declarations named `_` in the same namespace
 without a collision error. The initializer, if there is one, is still executed,
 but the value is not accessible.
 
-Other declarations: top-level variables, top-level function names, type names,
-member names, etc. are unchanged. They can be named `_` as they are today.
+### Record type positional fields
+
+```dart
+typedef R = (String _, String _);
+(int _, int _) record;
+```
+
+Record type field names will no longer emit an `INVALID_FIELD_NAME` warning.
+This will have no other effect since the names of positional record fields
+don't matter.
+
+### Local function declarations
+
+```dart
+void f() {
+  _() {} // Error.
+  _(); // Error.
+}
+```
+
+It's an error to declare a local function declaration named `_`.
+
+### Other declarations
+Top-level variables, top-level function names, type names, member names,
+etc. are unchanged. They can be named `_` as they are today.
 
 We do not change how identifier *expressions* behave. Members can be named `_`
 and you can access them from inside the class where the member is declared
@@ -402,6 +433,11 @@ We have an existing [`no_wildcard_variable_uses`](https://dart.dev/tools/linter-
 This lint is included in the core lint set which means that the scale of the breaking change should be small since most projects should have this lint enabled.
 
 ## Changelog
+
+### 1.3
+
+- Add section on local function declarations. Discussion: [language/#3790](https://github.com/dart-lang/language/issues/3790)
+- Add section on record type positionals and more examples with function types. Discussion: [language/#3791](https://github.com/dart-lang/language/issues/3791)
 
 ### 1.2
 
