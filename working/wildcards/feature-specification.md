@@ -142,9 +142,10 @@ typedef R = (String _, String _);
 (int _, int _) record;
 ```
 
-Record type field names will no longer emit an `INVALID_FIELD_NAME` warning.
-This will have no other effect since the names of positional record fields
-don't matter.
+It is currently an error for a record field name to begin with `_`
+(including just a bare `_`). We relax that error to only apply to record
+fields whose name begins with `_` followed by at least one other character
+(even if those later character(s) are `_`).
 
 ### Local function declarations
 
@@ -158,6 +159,7 @@ void f() {
 It's an error to declare a local function declaration named `_`.
 
 ### Other declarations
+
 Top-level variables, top-level function names, type names, member names,
 etc. are unchanged. They can be named `_` as they are today.
 
