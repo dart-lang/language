@@ -643,7 +643,7 @@ satisfies schema `Pt`.  Constraints in which `X` appears free in either `Pb` or
 ### Closure of type constraints
 
 The closure of a type constraint `Pb <: X <: Pt` with respect to a set of type
-variables `L` is the subtype constraint `Qb <: X :< Qt` where `Qb` is the
+variables `L` is the subtype constraint `Qb <: X <: Qt` where `Qb` is the
 greatest closure of `Pb` with respect to `L`, and `Qt` is the least closure of
 `Pt` with respect to `L`.
 
