@@ -147,6 +147,8 @@ It is currently an error for a record field name to begin with `_`
 fields whose name begins with `_` followed by at least one other character
 (even if those later character(s) are `_`).
 
+Named fields of record types are unchanged. It is still a compile-time error for a named field name to start with `_`.
+
 ### Local function declarations
 
 ```dart
