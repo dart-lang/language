@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 0.1
+Version 0.2 (see [CHANGELOG](#CHANGELOG) at end)
 
 Experiment flag: null-aware-elements
 
@@ -301,21 +301,25 @@ More formally, here is the proposal:
 
 ## Syntax
 
-We redefine two rules in the grammar, `expressionElement` and `mapElement` in
-terms of a new `nullAwareExpression` rule:
+We add two new rules in the grammar and add two new clauses to `element`:
 
 ```
-expressionElement ::= nullAwareExpression
+element ::=
+  | nullAwareExpressionElement
+  | nullAwareMapElement
+  | // Existing productions...
 
-mapElement ::= nullAwareExpression ':' nullAwareExpression
+nullAwareExpressionElement ::= '?' expression
 
-nullAwareExpression ::= '?'? expression
+nullAwareMapElement ::=
+  | '?' expression ':' '?'? expression // Null-aware key or both.
+  |     expression ':' '?' expression  // Null-aware value.
 ```
 
-*Note that the inner production of `nullAwareExpression` is `expression` and not
+*Note that the productions after `?` in these new rules are `expression` and not
 `element`. As with spread elements, null-aware elements can't nest and contain
-other elements. These immediately exit the element grammar and bottom out in an
-expression. There's no `????foo` or `?if (c) nullableThing else
+other elements. These new elements immediately exit the element grammar and
+bottom out in an expression. There's no `????foo` or `?if (c) nullableThing else
 otherNullableThing`.*
 
 *The `?` character is already overloaded in Dart for nullable types, conditional
@@ -328,12 +332,43 @@ ambiguous.*
 
 ## Static semantics
 
-Here and below, we use "null-aware `expressionElement`" to mean an
-`expressionElement` beginning with `?`. A "null-aware `mapElement` is a
-`mapElement` whose key and/or value parts begin with `?`. A "key null-aware
-`mapElement` is a `mapElement` that begins with `?` *(and whose value part may
-or may not be null-aware)*. A "value null-aware `mapElement` is a `mapElement`
-with a `?` after the `:` *(and whose key part may or may not be null-aware)*.
+Here and below, we say a `nullAwareMapElement` "has a null-aware key" if the
+`nullAwareMapElement` begins with `?` and "has a null-aware value" if there is a
+`?` after the `:`.
+
+### Leaf elements
+
+The existing specification uses *leaf elements* as part of disambiguating map
+and set literals. We extend the rules by saying the leaf elements of `element`
+are:
+
+*   Else, if element is an `nullAwareExpressionElement` or `nullAwareMapEntry`,
+    then the *leaf element* is `element` itself.
+
+*In other words, just like their non-null-aware forms, null-aware expressions
+and map entries are leaf elements.*
+
+When disambiguating map and set literals, we replace the existing "If *leaf
+elements* is not empty" step with:
+
+1.  Else, if *leaf elements* is not empty, then:
+
+    *   If *leaf elements* has at least one `expressionElement` or
+        `nullAwareExpressionElement` and no `mapEntry` or `nullAwareMapEntry`
+        elements, then *e* is a set literal with unknown static type. The static
+        type will be filled in by type inference, defined below.
+
+    *   If *leaf elements* has at least one `mapEntry` or `nullAwareMapEntry`
+        and no `expressionElement` or `nullAwareExpressionElement` elements,
+        then *e* is a map literal with unknown static type. The static type will
+        be filled in by type inference, defined below.
+
+    *   If leaf elements has at least one `mapEntry` or `nullAwareMapEntry` and
+        at least one `expressionElement` or `nullAwareExpressionElement`, report
+        a compile-time error.
+
+*In other words, for map/set disambiguation, null-aware elements behave exactly
+like their non-null-aware siblings.*
 
 ### Type inference
 
@@ -346,15 +381,13 @@ flow in and out of the element.
 When type inference is flowing through a brace-delimited collection literal, it
 is applied to each element. The [existing type inference behavior][type
 inference] is mostly unchanged by this proposal. We add two new clauses to
-handle null-aware elements. *The existing clauses for `expressionElement` and
-`mapElement` are interpreted to only apply to *non*-null-aware elements.* The
-new clauses are:
+handle null-aware elements:
 
 [type inference]: https://github.com/dart-lang/language/blob/main/accepted/2.3/unified-collections/feature-specification.md#type-inference
 
 To infer the type of `element` in context `P`:
 
-*   If `element` is a null-aware `expressionElement` with expression `e1`:
+*   If `element` is a `nullAwareExpressionElement` with expression `e1`:
 
     *   If `P` is `_` (the unknown context):
 
@@ -370,24 +403,24 @@ To infer the type of `element` in context `P`:
     *   The inferred set element type is **NonNull**(`U`). *The value added to
         the set will never be `null`.*
 
-*   If `element` is a null-aware `mapElement` with entry `ek: ev`:
+*   If `element` is a `nullAwareMapElement` with entry `ek: ev`:
 
     *   If `P` is `_` then the inferred key and value types of `element` are:
 
         *   Let `Uk` be the inferred type of `ek` in context `_`.
 
-        *   If `element` is a key null-aware element then the inferred key
-            element type is **NonNull**(`Uk`). *The entry added to the map will
-            never have a `null` key.*
+        *   If `element` has a null-aware key then the inferred key element type
+            is **NonNull**(`Uk`). *The entry added to the map will never have a
+            `null` key.*
 
         *   Else the inferred key element type is `Uk`. *The whole element is
             null-aware, but the key part is not, so it is inferred as normal.*
 
         *   Let `Uv` be the inferred type of `ev` in context `_`.
 
-        *   If `element` is a value null-aware element then the inferred value
-            element type is **NonNull**(`Uv`). *The entry added to the map will
-            never have a `null` value.*
+        *   If `element` has a null-aware value then the inferred value element
+            type is **NonNull**(`Uv`). *The entry added to the map will never
+            have a `null` value.*
 
         *   Else the inferred value element type is `Uv`. *The whole element is
             null-aware, but the value part is not, so it is inferred as normal.*
@@ -395,7 +428,7 @@ To infer the type of `element` in context `P`:
     *   If `P` is `Map<Pk, Pv>` then the inferred key and value types of
         `element` are:
 
-        *   If `element` is a key null-aware element then:
+        *   If `element` has a null-aware key then:
 
             *   Let `Uk` be the inferred type of `ek` in context `Pk?`. *The key
                 expression has a nullable context type because it may safely
@@ -409,7 +442,7 @@ To infer the type of `element` in context `P`:
             context `Pk`. *The whole element is null-aware, but the key part is
             not, so it is inferred as normal.*
 
-        *   If `element` is a value null-aware element then:
+        *   If `element` has a null-aware value then:
 
             *   Let `Uv` be the inferred type of `ev` in context `Pv?`. *The
                 value expression has a nullable context type because it may
@@ -435,7 +468,7 @@ Likewise, with list literals, we add a clause to handle a null-aware expression.
 
 To infer the type of `element` in context `P`:
 
-*   If `element` is null-aware `expressionElement` with expression `e1`:
+*   If `element` is a `nullAwareExpressionElement` with expression `e1`:
 
     *   If `P` is `_`:
 
@@ -453,7 +486,7 @@ To infer the type of `element` in context `P`:
 
 ### Constants
 
-A null-aware `expressionElement` or `mapElement` is constant if its inner
+A `nullAwareExpressionElement` or `nullAwareMapElement` is constant if its inner
 expression or map entry is constant.
 
 ## Runtime semantics
@@ -466,24 +499,24 @@ add two new cases to that procedure:
 
 [unified-dynamic-element]: https://github.com/dart-lang/language/blob/main/accepted/2.3/unified-collections/feature-specification.md#to-evaluate-a-collection-element
 
-*   If `element` is a null-aware `expressionElement` with expression `e`:
+*   If `element` is a `nullAwareExpressionElement` with expression `e`:
 
     *   Evaluate `e` to `v`.
 
     *   If `v` is not `null` then append it to *result*. *Else the `null` is
         discarded.*
 
-*   Else, if `element` is a null-aware `mapElement` with entry `k: v`:
+*   Else, if `element` is a `nullAwareMapElement` with entry `k: v`:
 
     *   Evaluate `k` to a value `kv`.
 
-    *   If `element` is a key null-aware element and `kv` is `null`, then stop.
-        Else continue...
+    *   If `element` has a null-aware key and `kv` is `null`, then stop. Else
+        continue...
 
     *   Evaluate `v` to a value `vv`.
 
-    *   If `element` is a value null-aware element and `vv` is `null`, then
-        stop. Else continue...
+    *   If `element` has a null-aware value and `vv` is `null`, then stop. Else
+        continue...
 
     *   Append an entry `kv: vv` to *result*.
 
@@ -539,3 +572,16 @@ use instead:
 If any of these patterns can be reliably detected through static analysis, then
 quick fixes could be added to automatically convert these to use null-aware
 elements instead.
+
+## Changelog
+
+### 0.2
+
+-   Use separate grammar rules for null-aware elements instead of allowing
+    optional `?` inside `expressionElement` and `mapEntryElement`. This only
+    affects the wording of the specification but not the behavior of the
+    feature.
+
+### 0.1
+
+-   Initial draft.
