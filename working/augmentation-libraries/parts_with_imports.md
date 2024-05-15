@@ -208,7 +208,9 @@ defined as:
     non-prefixed `import` directives of the current file. The parent scope of
     *I* is *C*.
     *   The import scope are computed the same way as for a pre-feature
-        library. _As usual, it’s a compile-time error if any `import`‘s target
+        library. The implicit import of `dart:core` only applies to the
+        library file. 
+        _As usual, it’s a compile-time error if any `import`‘s target
         URI does not resolve to a valid Dart library file._
     *   Let’s introduce *importsOf*(*S*), where *S* is a set of `import`
         directives from a single Dart file, to refer to that computation, which
