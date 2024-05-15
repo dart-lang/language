@@ -978,7 +978,7 @@ initializer expressions.
 
 Body inference is specified as a transformation from the syntactic artifacts
 that constitute method bodies and initializer expressions (expressions,
-statements, patterns, and collection elements) to coresponding artifacts in the
+statements, patterns, and collection elements) to corresponding artifacts in the
 compiled output (referred to as "compilation artifacts"). The precise form of
 compilation artifacts is not dictated by the specification; instead they are
 specified in terms of their runtime behavior.
@@ -1034,59 +1034,67 @@ _italics_.
 
 # Coercions
 
-_Coercion_ is a type inference step that transforms an expression artifact `m'`,
-and a desired static type `T`, into an expression artifact `m` whose static type
-is `T`.
+_Coercion_ is a type inference step that transforms an expression artifact
+`m_1`, and a desired static type `T_2`, into an expression artifact `m_2` whose
+static type is `T_2`.
 
 _Coercions are used in most situations where the existing spec calls for an
 assignability check._
 
-Coercion of an expression artifact `m'` to type `T` produces an expression
-artifact `m` with static type `T`, where `m` is determined as follows:
+Coercion of an expression artifact `m_1` to type `T_2` produces an expression
+artifact `m_2` with static type `T_2`, where `m_2` is determined as follows:
 
-- Let `T'` be the static type of `m'`.
+- Let `T_1` be the static type of `m_1`.
 
-- Define `m` as follows:
+- Define `m_2` as follows:
 
-  - If `T' <: T`, then let `m` be an expression artifact whose runtime behavior
-    is as follows:
+  - If `T_1 <: T_2`, then let `m_2` be an expression artifact whose runtime
+    behavior is as follows:
 
-    - Execute expression artifact `m'`, and let `o` be the resulting value. _By
-      execution soundness, `o` will be an instance of the type `T'`._
+    - Execute expression artifact `m_1`, and let `o_1` be the resulting
+      value. _By expression soundness, `o_1` will be an instance of the type
+      `T_1`._
 
-    - `m` completes with the value `o`. _Expression soundenss follows from the
-      fact that since `T' <: T`, `o` must also be an instance of the type `T`._
+    - `m_2` completes with the value `o_1`. _Expression soundness follows from
+      the fact that since `T_1 <: T_2`, `o_1` must also be an instance of the
+      type `T_2`._
 
-  - Otherwise, if `T'` is `dynamic`, then let `m` be an expression artifact
+  - Otherwise, if `T_1` is `dynamic`, then let `m_2` be an expression artifact
     whose runtime behavior is as follows:
 
-    - Execute expression artifact `m'`, and let `o` be the resulting value. _By
-      execution soundness, `o` will be an instance of the type `T'`._
+    - Execute expression artifact `m_1`, and let `o_1` be the resulting value.
 
-    - If `o` is an instance of the type `T`, `m` completes with the value
-      `o`. _Expression soundness follows trivially._
+    - If `o_1` is an instance of the type `T_2`, `m_2` completes with the value
+      `o_1`. _In other words, the implicit cast from `dynamic` to `T_2` has
+      succeeded. Expression soundness follows trivially because the completed
+      value is an instance of `T_2`, and the static type is `T_2`._
 
-    - Otherwise, `m` completes with an exception. _Expression soundness follows
-      trivially._
+    - Otherwise, `m_2` completes with an exception. _In other words, the
+      implicit cast from `dynamic` to `T_2` has failed. This trivially satisfies
+      expression soundess, since expression soundness is only concerned with the
+      value of the expression when it completes normally._
 
-  - Otherwise, if `T'` is an interface type that contains a method called `call`
-    with type `U`, and `U <: T`, then let `m` be an expression artifact whose
-    runtime behavior is as follows:
+  - Otherwise, if `T_1` is an interface type that contains a method called
+    `call` with type `U`, and `U <: T_2`, then let `m_2` be an expression
+    artifact whose runtime behavior is as follows:
 
-    - Execute expression artifact `m'`, and let `o` be the resulting value. _By
-      execution soundness, `o` will be an instance of the type `T'`._
+    - Execute expression artifact `m_1`, and let `o_1` be the resulting
+      value. _By expression soundness, `o_1` will be an instance of the type
+      `T_1`._
 
-    - Let `o'` be the result of tearing off the `call` method of `o`. _This is
-      guaranteed to succeed since `o` is an instance of `T'`, and it is
-      guaranteed by tear-off soundness that `o'` will be an instance of `U`._
+    - Let `o_2` be the result of tearing off the `call` method of `o_1`. _This
+      is guaranteed to succeed since `o_1` is an instance of `T_1`, and it is
+      guaranteed by tear-off soundness that `o_2` will be an instance of `U`._
 
-    - `m` completes with the value `o'`. _Expression soundness follows from the
-      fact that `o'` is an instance of `U` and `U <: T`._
+    - `m_2` completes with the value `o_2`. _Expression soundness follows from
+      the fact that `o_2` is an instance of `U` and `U <: T_2`._
 
   - _TODO(paulberry): add more cases to handle implicit instantiation of generic
     function types, and `call` tearoff with implicit instantiation._
 
-  - Otherwise, there is a compile-time error.
+  - Otherwise, there is a compile-time error. _We have an expression artifact of
+    type `T_1` in a situation that requires `T_2`, which isn't a supertype, nor
+    is there a coercion available, so it's a type error._
 
 ## Shorthand for coercions
 
@@ -1095,10 +1103,10 @@ result of performing expression type inference on `e`, in context `K`, and then
 coercing the result to type `T`." This is shorthand for the following sequence
 of steps:
 
-- Let `m'` be the result of performing expression type inference on `e`, in
+- Let `m_1` be the result of performing expression type inference on `e`, in
   context `K`.
 
-- Let `m` be the result of performing coercion of `m'` to type `T`.
+- Let `m` be the result of performing coercion of `m_1` to type `T`.
 
 # Expression type inference
 
@@ -1133,7 +1141,9 @@ as follows:
 
   - Let `T` be the type `double`, and let `m` be an expression artifact whose
     runtime behavior is to complete with a value that is an instance of `double`
-    representing `i`. _Execution soundness follows trivially._
+    representing `i`. _Expression soundness follows trivially because the
+    completed value is an instance of `double`, and the static type is
+    `double`._
 
   - If `i` cannot be represented _precisely_ by an instance of `double`, then
     there is a compile-time error.
@@ -1146,13 +1156,15 @@ as follows:
     runtime behavior is to complete with a value that is an instance of `int`
     representing `i` - 2<sup>64</sup>.
 
-  - _Execution soundness follows trivially._
+  - _Expression soundness follows trivially because the completed value is an
+    instance of `int`, and the static type is `int`._
 
 - Otherwise:
 
   - Let `T` be the type `int`, and let `m` be an expression artifact whose
     runtime behavior is to complete with a value that is an instance of `int`
-    representing `i`. _Execution soundness follows trivially._
+    representing `i`. _Expression soundness follows trivially because the
+    completed value is an instance of `int`, and the static type is `int`._
 
   - If `i` cannot be represented _precisely_ by an instance of `int`, then there
     is a compile-time error.
@@ -1207,7 +1219,8 @@ artifact `m` with static type `String`, where `m` is determined as follows:
     concatenating together the `r_i` strings, interspersing with any
     non-interpolation characters in `s`.
 
-  - `m` completes with the value `r`. _Expression soundness follows trivially._
+  - `m` completes with the value `r`. _Expression soundness follows trivially
+    because `r` is an instance of `String`, and the static type is `String`._
 
 ## Symbol literal
 
@@ -1217,7 +1230,8 @@ produces an expression artifact with static type `Symbol`, whose runtime
 behavior is to complete with a value that is an instance of `Symbol`,
 representing the tokens in `s`.
 
-_Expression soundness follows trivially._
+_Expression soundness follows trivially because the complete value is an
+instance of `Symbol`, and the static type is `Symbol`._
 
 ## Throw
 
@@ -1284,7 +1298,9 @@ static type `bool`, where `m` is determined as follows:
 
   - If the expression is a logical "and" expression and `o_1` is `false`, or the
     expression is a logical "or" expression and `o_1` is `true`, then `m`
-    completes with the value `o_1`. _Expression soundness follows trivially._
+    completes with the value `o_1`. _Expression soundness follows trivially
+    because the complete value is an instance of `bool`, and the static type is
+    `bool`._
 
   - Otherwise:
 
@@ -1293,7 +1309,8 @@ static type `bool`, where `m` is determined as follows:
       `bool`._
 
     - Then, `m` completes with the value `o_2`. _Expression soundness follows
-      trivially._
+      trivially because the completed value is an instance of `bool`, and the
+      static type is `bool`._
 
 ## Await expressions
 
@@ -1347,13 +1364,14 @@ determined as follows:
     invocation.
 
   - If `o_2` is completed with an error `x` and stack trace `t`, then `m`
-    completes with the exception `x` and stack trace `t`. _Expression soundness
-    follows trivially._
+    completes with the exception `x` and stack trace `t`. _This trivially
+    satisfies expression soundess, since expression soundness is only concerned
+    with the value of the expression when it completes normally._
 
   - If `o_2` is completed with an object `v`, then `m` completes with the value
     `v`. _Since `o_2` is an instance of `Future<T>`, by future soundness, `v`
-    must be an instance of `T`. Therefore, expression soundness follows
-    trivially._
+    must be an instance of `T`. This satisfies expression soundness, since `v`
+    is an instance of `T` , and `T` is the static type._
 
 <!--
 
