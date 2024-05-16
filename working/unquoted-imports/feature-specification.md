@@ -366,11 +366,11 @@ logic in Dart:
 
 ```dart
 String desugar(List<String> segments) => switch (segments) {
-      ['dart']              => 'ERROR. Not allowed to import just "dart"',
-      ['dart', ...var rest] => 'dart:${rest.join('/')}',
-      [var name]            => 'package:$name/$name.dart',
-      _                     => 'package:${segments.join('/')}.dart',
-    };
+  ['dart']              => 'ERROR. Not allowed to import just "dart"',
+  ['dart', ...var rest] => 'dart:${rest.join('/')}',
+  [var name]            => 'package:$name/${name.split('.').last}.dart',
+  _                     => 'package:${segments.join('/')}.dart',
+};
 ```
 
 ## Runtime semantics
