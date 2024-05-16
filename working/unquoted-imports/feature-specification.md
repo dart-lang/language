@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 0.1 (see [CHANGELOG](#CHANGELOG) at end)
+Version 0.2 (see [CHANGELOG](#CHANGELOG) at end)
 
 Experiment flag: unquoted-imports
 
@@ -101,7 +101,7 @@ import dart/isolate;
 import flutter_test;
 import path;
 import flutter/material;
-import analyzer/dart/ast/visitor;
+import analyzer/dart/ast/visitor/visitor;
 import widget.tla.server;
 import widget.tla.proto/client/component;
 ```
@@ -110,8 +110,9 @@ You can probably infer what's going on from the before and after, but the basic
 idea is that the library is a slash-separated series of dotted identifier
 segments. The first segment is the name of the package. The rest is the path to
 the library within that package. A `.dart` extension is implicitly added to the
-end. If there is only a single segment, it is treated as both package name and
-path. If the package name is `dart`, it's a "dart:" library import.
+end. If there is only a single segment, it is treated as the package name and
+its last dotted component is the path. If the package name is `dart`, it's a
+"dart:" library import.
 
 The way I think about the proposed syntax is that relative imports are
 *physical* in that they specify the actual relative path on the file system from
@@ -189,7 +190,7 @@ import 'package:flutter/material.dart';
 import          flutter/material      ;
 
 import 'package:analyzer/dart/ast/visitor/visitor.dart';
-import          analyzer/dart/ast/visitor              ;
+import          analyzer/dart/ast/visitor/visitor      ;
 
 import 'package:widget.tla.proto/client/component.dart';
 import          widget.tla.proto/client/component      ;
@@ -340,8 +341,14 @@ a string literal containing that string. The process is:
 
     1.  Let *name* be the segment.
 
-    2.  The URI is "package:*name*/*name*.dart". *So `import test;` desugars to
-        `import "package:test/test.dart";`.
+    2.  Let *path* be the last identifier in the segment. *If the segment is
+        only a single identifier, this is the entire segment. Otherwise, it's
+        the last identifier after the last `.`. So in `foo`, *path* is `foo`.
+        In `foo.bar.baz`, it's `baz`.*
+
+    3.  The URI is "package:*name*/*path*.dart". *So `import test;` desugars to
+        `import "package:test/test.dart";`, and `import server.api;` desugars
+        to `import "package:server.api/api.dart";`.*
 
 5.  Else:
 
@@ -409,6 +416,11 @@ In this case, we should have a recommended lint that suggests users prefer the
 new unquoted style whenever an existing directive could use it.
 
 ## Changelog
+
+### 0.2
+
+-   Handle dotted identifiers in single-segment imports specially. *This makes
+    them work better for common cases in Google's monorepo.*
 
 ### 0.1
 
