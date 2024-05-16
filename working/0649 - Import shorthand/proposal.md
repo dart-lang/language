@@ -1,6 +1,6 @@
 # Dart Import Shorthand Syntax
 
-Author: lrn@google.com<br>Version: 2.2
+Author: lrn@google.com<br>Version: 2.2.1
 
 This is a proposal for a shorter import syntax for Dart. It is defined as a shorthand syntax which expands to, and coexists with, the existing import syntax. It avoids unnecessary repetitions and uses short syntax for the most common imports.
 
@@ -56,7 +56,7 @@ You can omit the path (including the colon) to get a *package default shorthand*
 
 You can omit the package name, and have just the colon and path, to get a *current package shorthand*, which uses the package of the surrounding as the package, so an `import :path` means the same as `import current_package:path`.
 
-The package name `dart` is special-case to mean a *platform library shorthand*, so `import dart:async` does import `dart:async`.
+The package name `dart` is special-cased to mean a *platform library shorthand*, so `import dart:async` does import `dart:async`.
 
 ### Path import shorthand syntax
 
@@ -135,10 +135,8 @@ Otherwise, if *name* is `dart`, then *p* a *platform library shorthand* and is a
 
 If *p* is a *package default shorthand*, a `<DOTTED_NAME>`, <code>*name*</code>, then:
 
-```
 * If *name* is a single `<SHORTHAND_NAME>`, then *p* is shorthand for <code>"package:*name*/*name*.dart"</code>.
 * If *name* is a `<DOTTED_NAME> '.’ <SHORTHAND_NAME>` of the form <code>*prefix*.*last*</code> then *p* is shorthand for <Code>"package:*name*/*last*.dart</code>.
-```
 
 If *p* is a *current package shorthand*, `: <SHORTHAND_PATH>`, of the form <Code>:*path*</code>, then let *name* be the package name of the package that the surrounding file belongs to. Then *p* is shorthand for <Code>"package:*name*/*path*.dart"</code>. _(A leading-`:`-reference *only* works for code which is actually inside a package. Being “inside a package” in this regard is defined in the same way as used for language versioning, which means that the `test/` and `bin/` directories of a Pub package are inside the same package as the `lib/` directory, even if they cannot be referenced using a `package:` URI. Effectively `:path` becomes a canonical way for libraries outside of `lib/` to refer to package-URIs of the same package, without needing to repeat the package name.)_
 
@@ -246,6 +244,9 @@ It’s not clear that there is something clean we can do here, but if there was,
 ## Version history
 
 1.0: Original version uploaded as language issue [#649](https://github.com/dart-lang/language/issues/649).
+
 2.0: Remove shorthands for relative imports, just use the URIs, and don't allow shorthand syntax in `part` declarations.<br>2.1: Reinstate shorthands for relative imports, but keep `:` as the marker for same-package paths. Grammar allows multiple leading `../`’s. More discussion on `part of`.
 
 2.2, 2021-11-02: Use `:` as marker for same-package paths and retain `/` as a path reference. Allow `-` in URI path segments.
+
+2.2.1. Fix typos.
