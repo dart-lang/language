@@ -76,21 +76,21 @@ library privacy comes into play.
 
 ## Proposal
 
-### Local declarations
+### Declarations that are capable of declaring a wildcard
 
-A *local declaration* is any of:
+Any of the following kinds of declarations can declare a wildcard:
 
 *   Function parameters. This includes top-level functions, local functions,
     function expressions ("lambdas"), instance methods, static methods,
-    constructors, etc. It includes all parameter kinds: simple, field formals,
-    and function-typed formals, etc.:
+    constructors, etc. It includes all parameter kinds, excluding named
+    parameters: simple, field formals, and function-typed formals, etc.:
 
     ```dart
-    Foo(_, this._, super._, void _(), {_}) {}
+    Foo(_, this._, super._, void _()) {}
 
     list.where((_) => true);
 
-    void f(void g(_, _)) {}
+    void f(void g(int _, bool _)) {}
 
     typedef T = void Function(String _, String _);
     ```
@@ -130,8 +130,8 @@ A *local declaration* is any of:
     takeGenericCallback(<_>() => true);
     ```
 
-A local declaration whose name is `_` does not bind that name to anything. This
-means you can have multiple local declarations named `_` in the same namespace
+A declaration whose name is `_` does not bind that name to anything. This
+means you can have multiple declarations named `_` in the same namespace
 without a collision error. The initializer, if there is one, is still executed,
 but the value is not accessible.
 
@@ -153,12 +153,13 @@ Named fields of record types are unchanged. It is still a compile-time error for
 
 ```dart
 void f() {
-  _() {} // Error.
-  _(); // Error.
+  _() {} // Dead code.
+  _(); // Error, not in scope.
 }
 ```
 
-It's an error to declare a local function declaration named `_`.
+A local function declaration named `_` is dead code and will produce a warning
+because the function is unreachable.
 
 ### Other declarations
 
