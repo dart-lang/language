@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 1.3
+Version 1.4
 
 ## Motivation
 
@@ -147,7 +147,8 @@ It is currently an error for a record field name to begin with `_`
 fields whose name begins with `_` followed by at least one other character
 (even if those later character(s) are `_`).
 
-Named fields of record types are unchanged. It is still a compile-time error for a named field name to start with `_`.
+Named fields of record types are unchanged. It is still a compile-time error
+for a named field name to start with `_`.
 
 ### Local function declarations
 
@@ -160,6 +161,27 @@ void f() {
 
 A local function declaration named `_` is dead code and will produce a warning
 because the function is unreachable.
+
+### Imports
+
+```dart
+// a.dart
+extension on String {
+  bool get isBlank => trim().isEmpty;
+}
+```
+
+```dart
+// b.dart
+import 'a.dart' as _; // OK.
+
+main() {
+  print(''.isBlank); // Prints `true`.
+}
+```
+
+Import prefixes named `_` are non-binding and will provide access to the
+extensions in that library.
 
 ### Other declarations
 
@@ -438,6 +460,9 @@ We have an existing [`no_wildcard_variable_uses`](https://dart.dev/tools/linter-
 This lint is included in the core lint set which means that the scale of the breaking change should be small since most projects should have this lint enabled.
 
 ## Changelog
+
+### 1.4
+- Add section on import prefixes. Discussion: [language/#3799](https://github.com/dart-lang/language/issues/3799)
 
 ### 1.3
 
