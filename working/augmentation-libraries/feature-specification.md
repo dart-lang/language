@@ -697,21 +697,22 @@ It is a compile-time error if:
 
 ### Augmenting constructors
 
-Constructors are (as always) more complex. A constructor marked `augment` may:
+Constructors are (as always) more complex. We have many kinds of constructors,
+and what it means to augment each is different. For the purposes of this section
+we will call out three specific kinds of constructors:
 
-- Add or replace the body of the existing constructor with a new body.
-  - If the augmenting constructor has no explicit body (terminates with a `;`),
-    then the original is left in place.
-  - In the augmenting constructor's body, an `augmented()` call invokes the
-    original constructor's body. Unlike regular function augmentations, you do
-    not pass parameters explicitly. All of the same parameters are in scope in
-    the augmented body as the augmenting body.
-    - If a parameter variable is overwritten prior to calling `augmented()`, the
-      augmented body will see the updated value. All references to the parameter
-      in the augmented and augmenting bodies refer to the exact same variable.
-- Add initializers to the initializer list.
-  - These are appended to the original constructor's initializers, but before
-    any super initializer or redirecting initializer (if present).
+**Non-redirecting generative constructors**: These always produce a new
+instance, and have an optional initializer list and body (technically, there
+is an implicit empty body). Their body has no explicit return value.
+**Non-redirecting factory constructors**: These are much like static methods,
+and might return a subtype of the current type. They also may not create a new
+instance, but return an existing one.
+**Redirecting constructors**: Both generative and factory constructors can be
+redirecting, although the syntax looks slightly different for each.
+
+It may not always be apparent if a constructor is redirecting or not based on
+only the original declaration, if it has no body, initializers, or redirecting
+constructor invocation.
 
 It is a compile-time error if:
 
@@ -728,16 +729,85 @@ It is a compile-time error if:
 *   The constructor augmentation specifies any default values. *Default values
     are defined solely by the original constructor.*
 
-*   The original constructor is `const` and the augmenting constructor is not
+*   The augmented constructor is `const` and the augmenting constructor is not
     or vice versa.
 
-*   The original constructor is a factory constructor and the augmenting
+*   The augmented constructor is a factory constructor and the augmenting
     constructor is not or vice versa.
 
-*   The original constructor has a super initializer or redirecting initializer
-    and the augmenting constructor does too.
+*   The resulting constructor is not valid (has a redirecting initializer and
+    other initializers, multiple `super` initializers, etc).
 
-**TODO: What about redirecting constructors?**
+#### Non-redirecting generative constructors
+
+These are probably the most complex constructor, but also the most common.
+
+A non-redirecting generative constructor marked `augment` may:
+
+*   Add or replace the body of the existing constructor with a new body.
+
+    *   If the augmenting constructor has a body (a block or => body, not just
+        a single ;), then that body replaces the existing constructor body.
+
+    *   In the augmenting constructor's body, an `augmented()` call executes the
+        original constructor's body in the same parameter scope that the
+        augmenting body is executing in. The return type of this call is `void`.
+
+    *   Initializer lists _are not_ re-ran, they have already executed and
+        shouldn't be executed twice.
+
+    *   If a parameter variable is overwritten prior to calling `augmented()`,
+        the augmented body will see the updated value, because the parameter
+        scope is identical.
+
+    *   Local variables from the augmenting scope are not available in the
+        augmented scope.
+
+*   Add initializers to the initializer list.
+
+    *   These are appended to the original constructor's initializers, but before
+        any super initializer (if present).
+
+    *   They are allowed to add a super initializer, if none is present. It must
+        belisted last in the augmenting declaration and will be appended to the end
+        of the initializer list.
+
+    *   It is an error to add redirecting initializers to a non-redirecting
+        generative constructor.
+
+#### Non-redirecting factory constructors
+
+A non-redirecting factory constructor marked `augment` works in the same way as
+a normal function augmentation.
+
+If it has a body, it replaces the body of the augmented constructor, and it may
+invoke the augmented body by calling `augmented(arguments)`.
+
+#### Redirecting generative constructors
+
+A redirecting generative constructor marked `augment` adds its redirecting
+initializer to the augmented constructors initializer list.
+
+This converts it into a redirecting generative constructor, instead of a regular
+generative constructor.
+
+It is a compile-time error if:
+
+*   The augmented constructor has any initializers or a body.
+
+#### Redirecting factory constructors
+
+A redirecting factory constructor marked `augment` adds its constructor call to
+the augmented constructor.
+
+This converts it into a redirecting factory constructor, instead of a regular
+factory constructor.
+
+It is a compile-time error if:
+
+*   The augmented constructor has a body.
+
+#### Extension types
 
 When augmenting an extension type declaration, the parenthesized clause where
 the representation type is specified is treated as a constructor that has a
