@@ -15,6 +15,10 @@ information about the process, including in their change logs.
 [1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
 [2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 
+2024.05.21
+  - Clarify that preclusion is caused by instance members and not by static
+    members.
+
 2024.01.17
   - Specify that a type is 'incompatible with await', and use that to specify
     a compile-time error at `await e;`.
@@ -528,15 +532,16 @@ extension type members.*
 We need to introduce a concept that is similar to existing concepts
 for regular classes, namely that an extension type _has_ a certain member.
 
-First, we say that an extension type member declaration _DM_ _precludes_ an
-extension type member declaration _DM2_ if they have the same name, or the
-basename of _DM_ is the same as the basename of _DM2_, and one of _DM_ and
-_DM2_ is a setter declaration, and the other is a method declaration.
+First, we say that an extension type instance member declaration _DM_
+_precludes_ an extension type instance member declaration _DM2_ if they
+have the same name, or the basename of _DM_ is the same as the basename of
+_DM2_, and one of _DM_ and _DM2_ is a setter declaration, and the other is
+a method declaration.
 
-Moreover, we say that an extension type member declaration _DM_ _precludes_
-a non-extension type member signature `m` if they have the same name, or
-the basename of _DM_ is the same as the basename of `m`, and _DM_ is a
-setter declaration and `m` is a method signature, or _DM_ is a method
+Moreover, we say that an extension type instance member declaration _DM_
+_precludes_ a non-extension type member signature `m` if they have the same
+name, or the basename of _DM_ is the same as the basename of `m`, and _DM_
+is a setter declaration and `m` is a method signature, or _DM_ is a method
 declaration and `m` is a setter signature.
 
 *We use this concept with superinterfaces of DM. DM may have multiple
@@ -551,11 +556,11 @@ given name.*
 We say that an extension type declaration _DV_ _has_ an extension type
 member named `n` in the cases where:
 
-- _DV_ declares a member named `n`.
+- _DV_ declares an instance member named `n`.
 - _DV_ has no such declaration, but _DV_ has a direct extension type
-  superinterface `V` that has an extension type member named `n` due to a
-  member declaration _DM2_, and _DV_ does not declare a member that
-  precludes _DM2_.
+  superinterface `V` that has an extension type instance member named `n`
+  due to a member declaration _DM2_, and _DV_ does not declare an instance
+  member that precludes _DM2_.
 
 *Note that it is well-defined which member declaration causes an extension
 type to have a given extension type member because a compile-time error
@@ -577,10 +582,10 @@ a member named `n`, and one of the following criteria is satisfied:
 
 - _DV_ has a direct extension type superinterface `V` that has a
   non-extension type member with signature `m` and name `n`, and _DV_ does
-  not declare a member that precludes `m`.
+  not declare an instance member that precludes `m`.
 - _DV_ has a direct non-extension type superinterface whose interface
-  contains a member signature `m` named `n`, and _DV_ does not declare a
-  member that precludes `m`.
+  contains a member signature `m` named `n`, and _DV_ does not declare an
+  instance member that precludes `m`.
 
 The member signature of such a member is the combined member signature of
 all non-extension type members named `n` that _DV_ has, again using a
