@@ -166,7 +166,7 @@ because the function is unreachable.
 
 ```dart
 // a.dart
-extension MyString on String {
+extension ExtendedString on String {
   bool get isBlank => trim().isEmpty;
 }
 ```
