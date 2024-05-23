@@ -180,7 +180,7 @@ main() {
 }
 ```
 
-Import prefixes named `_` are non-binding and will provide access to the
+Import prefixes named `_` are non-binding but will provide access to the
 non-private extensions in that library.
 
 ### Other declarations
