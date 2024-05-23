@@ -166,7 +166,7 @@ because the function is unreachable.
 
 ```dart
 // a.dart
-extension on String {
+extension ExtendedString on String {
   bool get isBlank => trim().isEmpty;
 }
 ```
@@ -180,8 +180,8 @@ main() {
 }
 ```
 
-Import prefixes named `_` are non-binding and will provide access to the
-extensions in that library.
+Import prefixes named `_` are non-binding but will provide access to the
+non-private extensions in that library.
 
 ### Other declarations
 
