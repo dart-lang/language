@@ -13,11 +13,6 @@ one constructor and a set of instance variables to be specified in a concise
 form in the header of the declaration. In order to use this feature, the given
 constructor must satisfy certain constraints, e.g., it cannot have a body.
 
-A primary constructor can also be declared in the body of a class or
-similar declaration, using the modifier `primary`, in which case it can
-have an initializer list and a body, and it still has the ability to
-introduce instance variable declarations implicitly.
-
 One variant of this feature has been proposed in the [struct proposal][],
 several other proposals have appeared elsewhere, and prior art exists in
 languages like [Kotlin][kotlin primary constructors] and Scala (with
@@ -270,92 +265,10 @@ class D<TypeVariable extends Bound> extends A with M implements B, C {
 }
 
 // Using a primary constructor.
-class const D<TypeVariable extends Bound>.named(int x, [int y = 0])
-    extends A with M implements B, C;
-```
-
-In the case where the header gets unwieldy it is possible to declare the
-primary constructor in the body of the class using the `primary` keyword:
-
-```dart
-// Current syntax.
-class D<TypeVariable extends Bound> extends A with M implements B, C {
-  final int x;
-  final int y;
-  const D.named(this.x, [this.y = 0]);
-}
-
-// Using a primary constructor.
-class D<TypeVariable extends Bound> extends A with M implements B, C {
-  primary const D.named(int x, [int y = 0]);
-}
-```
-
-This approach offers more flexibility in that a primary constructor in the
-body of the declaration can have initializers and a body, just like other
-constructors. In other words, `primary` on a constructor has one effect
-only, which is to introduce instance variables for formal parameters in the
-same way as a primary constructor in the header of the declaration. For
-example:
-
-```dart
-// Current syntax.
-class A {
-  A(String _);
-}
-
-class E extends A {
-  LongTypeExpression x1;
-  LongTypeExpression x2;
-  LongTypeExpression x3;
-  LongTypeExpression x4;
-  LongTypeExpression x5;
-  LongTypeExpression x6;
-  LongTypeExpression x7;
-  LongTypeExpression x8;
-  external int y;
-  int z;
-  final List<String> w;
-
-  E({
-    required this.x1,
-    required this.x2,
-    required this.x3,
-    required this.x4,
-    required this.x5,
-    required this.x6,
-    required this.x7,
-    required this.x8,
-    required this.y,
-  })  : z = 1,
-        w = const <Never>[],
-        super('Something') {
-    // A normal constructor body.
-  }
-}
-
-// Using a primary constructor.
-class E extends A {
-  external int y;
-  int z;
-  final List<String> w;
-
-  primary E({
-    LongTypeExpression x1,
-    LongTypeExpression x2,
-    LongTypeExpression x3,
-    LongTypeExpression x4,
-    LongTypeExpression x5,
-    LongTypeExpression x6,
-    LongTypeExpression x7,
-    LongTypeExpression x8,
-    this.y,
-  })  : z = 1,
-        w = const <Never>[],
-        super('Something') {
-    // A normal constructor body.
-  }
-}
+class const D<TypeVariable extends Bound>.named(
+  int x, [
+  int y = 0
+]) extends A with M implements B, C;
 ```
 
 ## Specification
@@ -405,18 +318,6 @@ constructors as well.
         <enumEntry> (',' <enumEntry>)* (',')?
         (';' (<metadata> <classMemberDeclaration>)*)?
      '}';
-
-<methodSignature> ::=
-     'primary'? <constructorSignature> <initializers>
-   | 'primary'? <factoryConstructorSignature>
-   | ... // Other cases unchanged.
-   | 'primary'? <constructorSignature>;
-
-<declaration> ::=
-     ... // Other cases unchanged.
-   | 'primary'? <redirectingFactoryConstructorSignature>
-   | 'primary'? <constantConstructorSignature> (<redirection> | <initializers>)?
-   | 'primary'? <constructorSignature> (<redirection> | <initializers>)?;
 ```
 
 The word `type` is now used in the grammar, but it is not a reserved word
@@ -445,10 +346,6 @@ it's just a syntax error)*. This declaration is desugared to a class or
 extension type declaration without a primary constructor. An enum
 declaration with a primary constructor is desugared using the same
 steps. This determines the dynamic semantics of a primary constructor.
-
-A compile-time error occurs if a class, extension type, or enum declaration
-has a primary constructor in the header as well as a constructor with the
-modifier `primary` in the body.
 
 The following errors apply to formal parameters of a primary constructor.
 Let _p_ be a formal parameter of a primary constructor in a class `C`:
@@ -543,13 +440,6 @@ added to `p` in _L2_.
 
 Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
 
-Assume that _D_ is a class, extension type, or enum declaration in the
-program that includes a constructor declaration _k_ in the body which has
-the modifier `primary`. In this case, no transformations are applied to the
-default values of formal parameters of _k_, but otherwise the formal
-parameters of _k_ are processed in the same way as they are with a primary
-constructor in the declaration header.
-
 ### Discussion
 
 It could be argued that primary constructors should support arbitrary
@@ -635,7 +525,97 @@ class Point {
 class final Point(int x, int y); // Not supported!
 ```
 
+Finally, we could allow a primary constructor to be declared in the body of
+a class or similar declaration, using the modifier `primary`, in which case
+it could have an initializer list and a body, and it would still have the
+ability to introduce instance variable declarations implicitly:
+
+```dart
+// Current syntax.
+class D<TypeVariable extends Bound> extends A with M implements B, C {
+  final int x;
+  final int y;
+  const D.named(this.x, [this.y = 0]);
+}
+
+// Using a primary constructor in the class body.
+class D<TypeVariable extends Bound> extends A with M implements B, C {
+  primary const D.named(int x, [int y = 0]);
+}
+```
+
+This approach offers more flexibility in that a primary constructor in the
+body of the declaration can have initializers and a body, just like other
+constructors. In other words, `primary` on a constructor has one effect
+only, which is to introduce instance variables for formal parameters in the
+same way as a primary constructor in the header of the declaration. For
+example:
+
+```dart
+// Current syntax.
+class A {
+  A(String _);
+}
+
+class E extends A {
+  LongTypeExpression x1;
+  LongTypeExpression x2;
+  LongTypeExpression x3;
+  LongTypeExpression x4;
+  LongTypeExpression x5;
+  LongTypeExpression x6;
+  LongTypeExpression x7;
+  LongTypeExpression x8;
+  external int y;
+  int z;
+  final List<String> w;
+
+  E({
+    required this.x1,
+    required this.x2,
+    required this.x3,
+    required this.x4,
+    required this.x5,
+    required this.x6,
+    required this.x7,
+    required this.x8,
+    required this.y,
+  })  : z = 1,
+        w = const <Never>[],
+        super('Something') {
+    // A normal constructor body.
+  }
+}
+
+// Using a primary constructor in the class body.
+class E extends A {
+  external int y;
+  int z;
+  final List<String> w;
+
+  primary E({
+    LongTypeExpression x1,
+    LongTypeExpression x2,
+    LongTypeExpression x3,
+    LongTypeExpression x4,
+    LongTypeExpression x5,
+    LongTypeExpression x6,
+    LongTypeExpression x7,
+    LongTypeExpression x8,
+    this.y,
+  }) : z = 1,
+       w = const <Never>[],
+       super('Something') {
+    // A normal constructor body.
+  }
+}
+```
+
 ### Changelog
+
+1.2 - May 24, 2024
+
+* Remove support for primary constructors in the body of a declaration.
 
 1.1 - August 22, 2023
 
