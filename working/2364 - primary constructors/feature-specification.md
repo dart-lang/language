@@ -101,9 +101,7 @@ and normal instance variable declarations, and it is probably a useful property
 that the primary constructor uses a formal parameter syntax which is completely
 like that of any other formal parameter list.
 
-Just use a normal declaration and use an initializing formal in a primary
-constructor to initialize it from the primary constructor, if needed.  An
-`external` instance variable amounts to an `external` getter and an
+An `external` instance variable amounts to an `external` getter and an
 `external` setter. Such "variables" cannot be initialized by an
 initializing formal anyway, so they will just need to be declared using a
 normal `external` variable declaration.
@@ -276,32 +274,32 @@ for extension type declarations, because they're intended to use primary
 constructors as well.
 
 ```
-<topLevelDefinition> ::=
-     <classDeclaration>
-   | <extensionTypeDeclaration> // New alternative.
-   | ...;
-
 <classDeclaration> ::= // First alternative modified.
      (<classModifiers> | <mixinClassModifiers>)
      'class' <classNamePart> <superclass>? <interfaces>? <classBody>
    | ...;
 
-<classNamePart> ::= // New rule.
-     'const'? <constructorName> <typeParameters>? <formalParameterList>
+<primaryConstructorNoConst> ::= // New rule.
+     <typeIdentifier> <typeParameters>?
+     ('.' <identifierOrNew>)? <formalParameterList>
+   
+<classNamePartNoConst> ::= // New rule.
+     <primaryConstructorNoConst>
    | <typeWithParameters>;
+   
+<classNamePart> ::= // New rule.
+     'const'? <primaryConstructorNoConst>
+   | <typeWithParameters>;
+   
+<typeWithParameters> ::= <typeIdentifier> <typeParameters>?
 
 <classBody> ::= // New rule.
      '{' (<metadata> <classMemberDeclaration>)* '}'
    | ';';
 
-<extensionTypeDeclaration> ::=
-     'extension' 'type' 'const'? <typeWithParameters>
-     <representationDeclaration>
-     <interfaces>?
+<extensionTypeDeclaration> ::= // Modified rule.
+     'extension' 'type' <classNamePartNoConst> <interfaces>?
      <extensionTypeBody>;
-
-<representationDeclaration> ::=
-     ('.' <identifierOrNew>)? '(' <metadata> <type> <identifier> ')';
 
 <extensionTypeMemberDeclaration> ::= <classMemberDeclaration>;
 
@@ -310,17 +308,11 @@ constructors as well.
    | ';';
 
 <enumType> ::= // Modified rule.
-     'enum' <classNamePart> <mixins>? <interfaces>? '{'
+     'enum' <classNamePartNoConst> <mixins>? <interfaces>? '{'
         <enumEntry> (',' <enumEntry>)* (',')?
         (';' (<metadata> <classMemberDeclaration>)*)?
      '}';
 ```
-
-The word `type` is now used in the grammar, but it is not a reserved word
-or a built-in identifier. A parser that encounters the tokens `extension`
-and then `type` at a location where top-level declaration is expected shall
-commit to parsing it as an `<extensionTypeDeclaration>`. *This eliminates
-an ambiguity with `extension` (not `extension type`) declarations.*
 
 A class declaration whose class body is `;` is treated as a class declaration
 whose class body is `{}`.
@@ -400,8 +392,8 @@ then _k_ has the name `C`.
 If it exists, _D2_ omits the part derived from `'.' <identifierOrNew>` that
 follows the name and type parameter list, if any, in _D_.
 
-_D2_ omits the formal parameter list _L_ that follows the name, type
-parameter list, if any, and `.id`, if any.
+Moreover, _D2_ omits the formal parameter list _L_ that follows the name,
+type parameter list, if any, and `.id`, if any.
 
 The formal parameter list _L2_ of _k_ is identical to _L_, except that each
 formal parameter is processed as follows.
@@ -490,11 +482,6 @@ text. Also, it could be helpful to be able to search for the named
 constructor using `D.named`, and that would fail if we use the approach
 where it occurs as `new.named` or `const.named` because that particular
 constructor has been expressed as a primary constructor.
-
-A variant of this idea, from Leaf, is that we could allow one constructor
-in a class with no primary constructor in the header to be marked as a
-"primary constructor in the body". This proposal has now been made part
-of the proposal.
 
 A proposal which was mentioned during the discussions about primary
 constructors was that the keyword `final` could be used in order to specify
