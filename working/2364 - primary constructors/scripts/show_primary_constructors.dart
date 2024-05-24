@@ -270,10 +270,10 @@ String ppNormal(ClassSpec classSpec) {
     superinterfaces = ' $specSuperinterfaces';
   }
 
-  var inlinity = classSpec.isExtensionType ? 'extension type ' : '';
+  var classKind = classSpec.isExtensionType ? 'extension type' : 'class';
 
   var body = Options.includeBody ? '  // ...\n' : '';
-  return "${inlinity}class $className$typeParameters$superinterfaces"
+  return "$classKind $className$typeParameters$superinterfaces"
       " {$fieldsSource$constructorSource$body}";
 }
 
@@ -341,9 +341,9 @@ String ppKeyword(ClassSpec classSpec) {
     constructorPhrase = '$keyword.$constructorNameSpec';
   }
 
-  var inlinity = classSpec.isExtensionType ? 'extension type ' : '';
+  var classKind = classSpec.isExtensionType ? 'extension type' : 'class';
   var classHeader =
-      "${inlinity}class $className$typeParameters$superinterfaces"
+      "$classKind $className$typeParameters$superinterfaces"
       " $constructorPhrase($parametersSource)";
   var body = Options.includeBody ? ' {\n  // ...\n\}' : ';';
   return "$classHeader$body";
@@ -415,9 +415,9 @@ String ppStruct(ClassSpec classSpec) {
     constructorNamePart = '$className$typeParameters';
   }
 
-  var inlinity = classSpec.isExtensionType ? 'extension type ' : '';
+  var classKind = classSpec.isExtensionType ? 'extension type' : 'class';
   var classHeader =
-      "${inlinity}class $constNess$constructorNamePart"
+      "$classKind $constNess$constructorNamePart"
       "($parametersSource)"
       "$superinterfaces";
   var body = Options.includeBody ? ' {\n  // ...\n\}' : ';';
