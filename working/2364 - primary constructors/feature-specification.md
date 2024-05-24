@@ -249,10 +249,6 @@ class Point {
 class Point(int x, {required int y});
 ```
 
-In this declaration it is possible to omit the modifier `required` on the
-named parameter `y`, because it is implied by the fact that the type of `y`
-is non-nullable (potentially non-nullable is enough).
-
 The class header can have additional elements, just like class headers
 where there is no primary constructor:
 
@@ -416,9 +412,7 @@ parameters preserve the name and the modifier `required`, if any.  An
 optional positional or named parameter remains optional; if it has a
 default value `d` in _L_ then it has the transformed default value `_n` in
 _L2_, where `_n` is the name of the constant variable created for that
-default value. Finally, if `p` is an optional named parameter in _L_ with
-no default value whose type is potentially non-nullable then `required` is
-added to `p` in _L2_.
+default value.
 
 - An initializing formal parameter *(e.g., `this.x`)* is copied from _L_ to
   _L2_, using said transformed default value, if any, and otherwise
@@ -594,15 +588,15 @@ class E extends A {
   final List<String> w;
 
   primary E({
-    LongTypeExpression x1,
-    LongTypeExpression x2,
-    LongTypeExpression x3,
-    LongTypeExpression x4,
-    LongTypeExpression x5,
-    LongTypeExpression x6,
-    LongTypeExpression x7,
-    LongTypeExpression x8,
-    this.y,
+    required LongTypeExpression x1,
+    required LongTypeExpression x2,
+    required LongTypeExpression x3,
+    required LongTypeExpression x4,
+    required LongTypeExpression x5,
+    required LongTypeExpression x6,
+    required LongTypeExpression x7,
+    required LongTypeExpression x8,
+    required this.y,
   }) : z = 1,
        w = const <Never>[],
        super('Something') {
@@ -610,6 +604,12 @@ class E extends A {
   }
 }
 ```
+
+We may get rid of all those occurrences of `required` in the situation
+where it is a compile-time error to not have them, but that is a 
+[separate proposal][inferred-required].
+
+[inferred-required]: https://github.com/dart-lang/language/blob/main/working/0015-infer-required/feature-specification.md
 
 ### Changelog
 
