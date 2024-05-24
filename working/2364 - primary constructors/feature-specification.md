@@ -298,7 +298,7 @@ constructors as well.
    | ';';
 
 <extensionTypeDeclaration> ::= // Modified rule.
-     'extension' 'type' <classNamePartNoConst> <interfaces>?
+     'extension' 'type' <classNamePart> <interfaces>?
      <extensionTypeBody>;
 
 <extensionTypeMemberDeclaration> ::= <classMemberDeclaration>;
