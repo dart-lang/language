@@ -338,12 +338,12 @@ String ppKeyword(ClassSpec classSpec) {
   String constructorPhrase = '$keyword';
   var constructorNameSpec = classSpec.constructorName;
   if (constructorNameSpec != null) {
-    constructorPhrase = '$keyword.$constructorNameSpec';
+    constructorPhrase = '$keyword$typeParameters.$constructorNameSpec';
   }
 
   var classKind = classSpec.isExtensionType ? 'extension type' : 'class';
   var classHeader =
-      "$classKind $className$typeParameters$superinterfaces"
+      "$classKind $className$superinterfaces"
       " $constructorPhrase($parametersSource)";
   var body = Options.includeBody ? ' {\n  // ...\n\}' : ';';
   return "$classHeader$body";
@@ -410,7 +410,7 @@ String ppStruct(ClassSpec classSpec) {
   String constructorNamePart = '$className';
   var constructorNameSpec = classSpec.constructorName;
   if (constructorNameSpec != null) {
-    constructorNamePart = '$className.$constructorNameSpec$typeParameters';
+    constructorNamePart = '$className$typeParameters.$constructorNameSpec';
   } else {
     constructorNamePart = '$className$typeParameters';
   }
