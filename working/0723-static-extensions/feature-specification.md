@@ -204,11 +204,6 @@ or more type parameters `X1 extends B1 .. Xs extends Bs`, and these type
 variables may occur in the types `T1 .. Tk`. During the bounds check, the
 bounds `B1 .. Bs` are assumed for the type variables `X1 .. Xs`.
 
-A compile-time error occurs if a static extension declares an
-`implicit` constructor whose formal parameter list accepts a number of
-positional parameters which is different from one, or if it accepts any
-named parameters.
-
 Consider a static extension declaration _D_ named `E` which is declared in
 the current library or present in any exported namespace of an import
 *(that is, _D_ is declared in the current library or it is imported and
@@ -279,11 +274,6 @@ static members of classes, mixins, etc.*
 
 A static extension declaration _D_ is _accessible_ if _D_ is declared in
 the current library, or if _D_ is imported and not hidden.
-
-An implicit constructor declaration named `C.name` (respectively `C`) in a
-static extension declaration _D_ is _enabled_ if _D_ is declared in the
-current library, or if _D_ is imported and the import directive that
-imports _D_ includes `C.name` (`C`) in an `enable` combinator.
 
 #### Invocation of a static member of a static extension
 
@@ -372,9 +362,7 @@ just mutual subtypes.*
 static extensions are an exception in real code, usable in the case where a
 name clash prevents an implicitly resolved invocation. Implicitly resolved
 invocations are specified in the rest of this section by reducing them to
-explicitly resolved ones. Also note that implicitly resolved invocations is
-not the same thing as implicit invocations (which are specified in a later
-section).*
+explicitly resolved ones.*
 
 A constructor invocation of the form `C<T1 .. Tm>.name(args)` is partially
 resolved by looking up a constructor named `C.name` in the class `C` and in
@@ -426,41 +414,6 @@ inference for `C.name(args)` in the case where there are multiple distinct
 declarations whose signature could be used during the static analysis of
 that expression.*
 
-#### Implicit constructor specificity
-
-Let `E` be a static extension with type parameters
-`X1 extends B1 .. Xs extends Bs`
-that declares an `implicit` constructor _k_ whose formal parameter has type
-`U` *(which may contain some of `X1 .. Xs`)*.
-
-*Note that an `implicit` constructor must always have exactly one formal
-parameter. It must be positional and it can be optional.*
-
-Let `T1 .. Ts` be types satisfying the bounds `B1 .. Bs`. We then say that
-the _instantiated parameter type_ of the implicit constructor _k_ with
-actual type arguments `T1 .. Ts` is `[T1/X1 .. Ts/Xs]U`.
-
-Let `E1` be a static extension with `s` type parameters, let `T1 .. Ts`
-be types that satisfy the bounds of `E1`, and assume that _k1_ is an
-`implicit` constructor declared by `E1`.
-
-Let `E2` be a static extension with `t` type parameters, let `S1 .. St`
-be types that satisfy the bounds of `E2`, and assume that _k2_ is an
-`implicit` constructor declared by `E2`.
-
-We then say that _k1_ is _more specific_ than _k2_ with said actual type
-arguments iff the instantiated parameter type of _k1_ with actual type
-arguments `T1 .. Ts` is a proper subtype of the instantiated parameter type
-of _k2_ with the actual type arguments `S1 .. St`.
-
-If the two instantiated parameter types are mutual subtypes then we say
-that the two constructors are equally specific.
-
-With a list of extensions `E1 .. En` and corresponding actual type
-arguments and implicit constructors _k1 .. km_, we say that the _most
-specific_ one is _kj_ iff that constructor with the given type arguments is
-more specific than each of the others.
-
 #### Static extension applicability
 
 Let _D_ be a static extension declaration named `E` with type parameters
@@ -480,68 +433,6 @@ invocation `f()` with context type schema `P` yields a list of actual type
 arguments `S1 .. Ss` to `f` such that `[S1/X1 .. Ss/Xs]C<T1 .. Tk>` is
 assignable to the greatest closure of `P`.
 
-#### Implicit invocation of a constructor in a static extension
-
-A static extension constructor marked with the modifier `implicit` can be
-invoked implicitly.
-
-*For example, we can have a declaration `Distance d = 1;`, and it may be
-transformed into `Distance d = Distance.fromInt(1);` where
-`Distance.fromInt` is an enabled implicit constructor declared in an
-accessible static extension with on-class `Distance` whose parameter type
-is `int`.*
-
-First, we need to introduce the notion of an assignment position.
-
-An expression can occur in an _assignment position_. This includes being
-the right hand side of an assignment, an initializing expression in a
-variable declaration, an actual argument in a function or method
-invocation, the right operand of a binary operator, and more.
-
-*This concept is already used to determine whether a coercion like generic
-function instantiation is applicable. In this document we rely on this
-concept being defined already. Currently it has been implemented, but not
-specified.*
-
-Assume that an expression `e` occurs in an assignment position with context
-type schema `P`. In this situation, type inference is performed on `e` with
-context type schema `P`, and the resulting expression `e0` has some type
-`T0`. Assume that `e0` is not subject to any built-in coercions *(at this
-time this means generic function instantiation or call method tear-off)*,
-and `T0` is not assignable to the greatest closure of `P`. In this case we
-say that `e` is _potentially subject to implicit construction with source
-type_ `T0`.
-
-If an expression `e` is potentially subject to implicit construction with
-source type `T0`, the following steps are performed:
-
-- Gather every accessible static extension that declares one or more
-  `implicit` constructors, and that is applicable with context type schema
-  `P`. Assume that the result is the set `E1 .. En` of static extensions,
-  each with an actual type argument list `A1 .. An` *(each `Aj` is a list
-  of types, whose length is the same as the type parameter list of `Ej`)*.
-  The candidate constructors are then all constructors in `E1 .. En` which
-  are marked `implicit`, and which are enabled.
-- For each candidate constructor _k_, eliminate _k_ from the set of
-  candidates if `T0` is not assignable to the instantiated parameter type
-  of _k_ with the actual type arguments `Aj` of the static extension `Ej`
-  that declares _k_.
-- If the set of candidate constructors is empty, a compile-time error
-  occurs.
-- Otherwise, if none of the candidate constructors is most specific with
-  the given actual type arguments of the enclosing static extension, an
-  error occurs.
-- Otherwise, one specific static extension `Ej` with actual type arguments
-  `Aj`, and one enabled constructor _k_ declared by `Ej` is most
-  specific. Let `C.name` (respectively `C`) be the name of _k_.
-- The expression `e` is then replaced by `Ej<Aj>.C.name(e0)`
-  (respectively `Ej<Aj>.C(e0)`).
-
-*Note that no further type inference is applied to this expression: The
-static extension `Ej` has received actual type arguments `Aj`, and this
-fully determines the type arguments passed to `C`. Finally, `e0` has been
-subject to type inference in the first step.*
-
 ### Dynamic Semantics
 
 The dynamic semantics of static members of a static extension is the same
@@ -555,43 +446,10 @@ invocation.
 
 An implicitly resolved invocation of a constructor declared by a static
 extension is reduced to an explicitly resolved one during static analysis.
-The same is true for implicit invocations of `implicit` constructors.
 This fully determines the dynamic semantics of this feature.
-
-## Discussion
-
-The language C++ has had a [similar mechanism][C++ implicit conversions]
-for many years. It includes the notion of [converting constructors][] and
-another notion of user-defined [conversion functions][].
-
-[C++ implicit conversions]: https://en.cppreference.com/w/cpp/language/implicit_conversion
-[converting constructors]: https://en.cppreference.com/w/cpp/language/converting_constructor
-[conversion functions]: https://en.cppreference.com/w/cpp/language/cast_operator
-
-Scala is another language where implicit conversions have been supported
-for a long time, as described [here][Scala implicit conversions].
-
-[Scala implicit conversions]: https://docs.scala-lang.org/tour/implicit-conversions.html
-
-The experience from both C++ and Scala is that implicit conversions need to
-be kept simple and comprehensible: It is simply not helpful if arbitrary
-typing mistakes anywhere in the code can be implicitly masked by the
-introduction of one or more unintended user-defined type conversions.
-
-With that in mind, the implicit conversions proposed here are subject to
-some rather strict rules:
-
-- They can only be declared as `implicit` constructors in static
-  extensions.
-- A static extension needs to be imported directly in order to have any
-  effect, and it can be hidden in imports.
-
-Scala even requires that the entity that provides implicit conversions is
-explicitly imported (using something similar to `show` in an import). We
-require that each constructor must be `enabled` in the import.
 
 ### Changelog
 
-1.0 - May 3, 2023
+1.0 - May 24, 2024
 
 * First version of this document released.
