@@ -331,7 +331,7 @@ class B {
   B(this._);
 }
 
-class C {
+class C extends B {
   C(super._); // Error.
 }
 ```
