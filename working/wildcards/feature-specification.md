@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 1.4
+Version 1.5
 
 ## Motivation
 
@@ -317,37 +317,54 @@ class C {
 
 ### Super parameters
 
-An occurrence of `super._` as a declaration of a formal parameter in a
-constructor is a compile-time error. This error also occurs in the case
-where the super parameter has an explicitly declared type and/or default
-value.
+The positional formal parameter `super._` is still allowed in generative
+constructors.
 
-*`super._` is not an error everywhere: In a method body it could be an
-invocation of an inherited getter named `_`.*
+`super._` forwards the argument's value to the super constructor invocation.
 
 ```dart
-class B {
-  final _;
-  B(this._);
+class A {
+  final int _;
+  A(this._);
 }
 
-class C extends B {
-  C(super._); // Error.
+class B extends A {
+  B(super._); // OK.
 }
 ```
 
-*The desugared meaning of a super parameter includes a reference to the
-parameter in the initializer list of the enclosing constructor declaration,
-but such references are not possible when the parameter name is a
-wildcard.*
+Similar to `this._`, no parameter named `_` is bound. `_` can't be accessed in
+the initializer list.
 
-*It may seem inconvenient that `super._` "does not work" in the last
-example, but we do not wish to create exceptions about the ability to refer
-to a declaration whose name is a wildcard, just so we can support this
-particular usage. The advice would be to use a different name than `_` for
-the instance variable in `B` in the first place, or using a different name
-in `B` and possibly `// ignore` a lint that may warn about the names being
-different.*
+```dart
+class A {
+  final int _;
+  A(this._);
+}
+
+class B extends A {
+  final int k;
+  B(super._)
+    : k = _ { // Error.
+    print(_); // OK. Prints the inherited field.
+  }
+}
+```
+
+`super._` will forward each argument's value to the super constructor
+invocation, respectively. The wildcard super parameters will not collide.
+
+```dart
+class A {
+  final int x;
+  final int y;
+  A(this.x, this.y);
+}
+
+class B extends A {
+  B(super._, super._); // Ok.
+}
+```
 
 ### Extension types
 
@@ -460,6 +477,9 @@ We have an existing [`no_wildcard_variable_uses`](https://dart.dev/tools/linter-
 This lint is included in the core lint set which means that the scale of the breaking change should be small since most projects should have this lint enabled.
 
 ## Changelog
+
+### 1.5
+- Allow `super._`. Discussion: [language/#3792](https://github.com/dart-lang/language/issues/3792)
 
 ### 1.4
 - Add section on import prefixes. Discussion: [language/#3799](https://github.com/dart-lang/language/issues/3799)
