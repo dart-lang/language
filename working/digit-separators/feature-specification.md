@@ -119,8 +119,8 @@ disadvantage that it collapses when inserted into HTML, whereas `''` looks odd.
 
 ### Related work
 
-[Java digit separators](https://docs.oracle.com/javase/8/docs/technotes/guides/language/underscores-literals.html)
-[Python PEP 515 - underscores in numeric literals](https://peps.python.org/pep-0515/)
+* [Java digit separators](https://docs.oracle.com/javase/8/docs/technotes/guides/language/underscores-literals.html)
+* [Python PEP 515 - underscores in numeric literals](https://peps.python.org/pep-0515/)
 
 ### Possible new lint rules
 
