@@ -317,52 +317,43 @@ class C {
 
 ### Super parameters
 
-The positional formal parameter `super._` is still allowed in generative
-constructors.
-
-`super._` forwards the argument's value to the super constructor invocation.
-
-```dart
-class A {
-  final int _;
-  A(this._);
-}
-
-class B extends A {
-  B(super._); // OK.
-}
-```
-
-Similar to `this._`, no parameter named `_` is bound. `_` can't be accessed in
-the initializer list.
+The positional formal parameter `super._` is still allowed in non-redirecting
+generative constructors. Such a parameter forwards the argument's value to the
+super constructor invocation.
 
 ```dart
-class A {
-  final int _;
-  A(this._);
-}
-
-class B extends A {
-  final int k;
-  B(super._)
-    : k = _ { // Error.
-    print(_); // OK. Prints the inherited field.
-  }
-}
-```
-
-`super._` will forward each argument's value to the super constructor
-invocation, respectively. The wildcard super parameters will not collide.
-
-```dart
-class A {
-  final int x;
-  final int y;
+class A { 
+  final int x, y;
   A(this.x, this.y);
 }
 
 class B extends A {
-  B(super._, super._); // Ok.
+  final int _;
+  B(this._, super._, super._) { // No collision on multiple `super._`.
+    print(_ + x + y); // Refers to `B._`, `A.x` and `A.y`. 
+  }
+}
+```
+
+Similarly to `this._`, and unlike for example `super.x`, a `super._` does not
+introduce any identifier into the scope of the initializer list. 
+
+Because of that, multiple `super._` and `this._` parameters can occur in the
+same constructor without any name collision.
+
+```dart
+class A {
+  final int _, v;
+  A(this._, this.v);
+}
+
+class B extends A {
+  B(super.x, super._)
+    : assert(x > 0), // OK, `x` in scope.
+      assert(_ >= 0) // Error: no `_` in scope.
+  { 
+    print(_); // OK, means `this._` and refers to `A._`.
+  }
 }
 ```
 
