@@ -38,6 +38,7 @@ extension type Model.fromJson(Map<String, Object?> node) {
   Model() : this.fromJson({});
 
   Iterable<String> get uris => node.keys;
+  Iterable<Library> get libraries => node.values.cast();
 
   Library? library(String uri) => node[uri] as Library?;
   Scope? scope(QualifiedName qualifiedName) =>
@@ -83,12 +84,26 @@ extension type Model.fromJson(Map<String, Object?> node) {
 
   void updateAtPath(Path path, Object? value) {
     if (path.path.length == 1) {
+      final name = path.path.single;
       node[path.path.single] = value;
+
+      if (value is Map<String, Object?>) {
+        _updateNames(name, value);
+      }
     } else {
       if (!node.containsKey(path.path.first)) {
         node[path.path.first] = <String, Object?>{};
       }
       (node[path.path.first] as Model).updateAtPath(path.skipOne(), value);
+    }
+  }
+
+  void _updateNames(String name, Map<String, Object?> value) {
+    _names[value] = name;
+    for (final entry in value.entries) {
+      if (entry.value is Map<String, Object?>) {
+        _updateNames(entry.key, entry.value as Map<String, Object?>);
+      }
     }
   }
 
@@ -121,6 +136,7 @@ extension type Library.fromJson(Map<String, Object?> node) implements Object {
   Library() : this.fromJson({});
 
   Iterable<String> get names => node.keys;
+  Iterable<Scope> get scopes => node.values.cast();
 
   Scope? scope(String uri) => node[uri] as Scope?;
 

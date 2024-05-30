@@ -3,9 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:dart_model/model.dart';
-import 'package:macro_protocol/host.dart';
+import 'package:dart_model/query.dart';
 
-abstract interface class Macro {
-  QualifiedName get name;
-  void start(Host host) {}
+abstract interface class Host {
+  Service get service;
+  Future<void> augment(
+      {required QualifiedName macro,
+      required String uri,
+      required String augmentation});
 }

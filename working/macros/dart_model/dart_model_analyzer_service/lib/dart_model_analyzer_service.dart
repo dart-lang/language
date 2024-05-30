@@ -35,7 +35,10 @@ class DartModelAnalyzerService implements Service {
       for (final file in Directory(context!.contextRoot.root.path)
           .listSync(recursive: true)
           .whereType<File>()
-          .where((f) => f.path.endsWith('.dart'))) {
+          .where((f) =>
+              f.path.endsWith('.dart') &&
+              // TODO(davidmorgan): exclude augmentation files in a better way.
+              !f.path.endsWith('.a.dart'))) {
         final library = (await session!.getResolvedLibrary(file.path))
             as ResolvedLibraryResult;
         for (final classElement
