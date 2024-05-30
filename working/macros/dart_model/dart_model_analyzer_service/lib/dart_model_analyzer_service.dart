@@ -80,10 +80,8 @@ class DartModelAnalyzerService implements Service {
     return Stream.fromIterable(<FileSystemEvent?>[null])
         .followedBy(changes)
         .asyncMap((change) async {
-          print('File change: $change');
           if (change != null) context!.changeFile(change.path);
-          final changed = await context!.applyPendingFileChanges();
-          print('Changed: $changed');
+          await context!.applyPendingFileChanges();
           final model = await this.query(query);
           var delta = Delta.compute(previousModel, model);
           // Round trip to check serialization works.

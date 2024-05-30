@@ -7,6 +7,7 @@ import augment 'scratch.a.dart';
 
 @Equals()
 @HashCode()
+@ToString()
 class Foo {
   int? x;
   int? y;
@@ -14,6 +15,7 @@ class Foo {
 }
 
 @Equals()
+@ToString()
 class Bar {
   int? x;
   int? y;

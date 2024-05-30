@@ -5,7 +5,9 @@
 import 'package:macro_client/macro_client.dart';
 import 'package:test_macros/equals_macro.dart';
 import 'package:test_macros/hash_code_macro.dart';
+import 'package:test_macros/to_string_macro.dart';
 
 Future<void> main(List<String> arguments) async {
-  await MacroClient(arguments).host([EqualsMacro(), HashCodeMacro()]);
+  await MacroClient(arguments)
+      .run([EqualsMacro(), HashCodeMacro(), ToStringMacro()]);
 }

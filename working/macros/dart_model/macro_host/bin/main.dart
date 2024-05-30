@@ -10,7 +10,16 @@ import 'package:dart_model_analyzer_service/dart_model_analyzer_service.dart';
 import 'package:macro_host/macro_host.dart';
 
 Future<void> main(List<String> arguments) async {
+  if (arguments.length != 1) {
+    _usage();
+  }
   final workspace = arguments[0];
+  if (!Directory(workspace).existsSync()) {
+    _usage();
+  }
+
+  print('~~~ setup');
+  print('Launching analyzer on: $workspace');
   final contextBuilder = ContextBuilder();
   final analysisContext = contextBuilder.createContext(
       contextRoot:
@@ -21,4 +30,14 @@ Future<void> main(List<String> arguments) async {
     if (path == null) return null;
     return File(path);
   }).run();
+}
+
+void _usage() {
+  print('''
+Usage: dart bin/main.dart <absolute path to workspace>
+
+Hosts macros in a workspace, so they can react to changes in the workspace
+and write updates to augmentations.
+''');
+  exit(1);
 }

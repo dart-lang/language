@@ -10,19 +10,19 @@ import 'package:dart_model/query.dart';
 import 'package:macro_client/macro.dart';
 import 'package:macro_protocol/host.dart';
 
-class EqualsMacro implements Macro {
+class ToStringMacro implements Macro {
   final Model model = Model();
 
   @override
   QualifiedName get name => QualifiedName(
-      uri: 'package:test_macros/equals_macro.dart', name: 'EqualsMacro');
+      uri: 'package:test_macros/to_string_macro.dart', name: 'ToStringMacro');
 
   @override
   Future<void> start(Host host) async {
     final service = host.service;
     final stream = await service.watch(Query.annotation(QualifiedName(
       uri: 'package:test_macro_annotations/annotations.dart',
-      name: 'Equals',
+      name: 'ToString',
     )));
     stream.listen((delta) => generate(host, delta));
   }
@@ -47,12 +47,15 @@ class EqualsMacro implements Macro {
     final result = StringBuffer();
 
     result.writeln('augment class ${clazz.name} {');
-    result.writeln('  bool operator==(Object other) =>');
-    result.writeln('      other is ${clazz.name}');
-    for (final field in clazz.members.values.where((m) => m.isField)) {
-      result.writeln('    && other.${field.name} == this.${field.name}');
+    result.writeln("  String toString() => '''");
+    result.write('${clazz.name}(');
+    final fields = clazz.members.values.where((m) => m.isField).toList();
+    for (final field in fields) {
+      result.write('${field.name}: \$${field.name}');
+      if (field != fields.last) result.write(', ');
     }
-    result.writeln(';}');
+    result.writeln(")''';");
+    result.writeln('}');
 
     return result.toString();
   }
