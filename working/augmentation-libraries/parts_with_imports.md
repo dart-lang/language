@@ -209,9 +209,8 @@ defined as:
     *I* is *C*.
     *   The import scope are computed the same way as for a pre-feature
         library. The implicit import of `dart:core` only applies to the
-        library file. 
-        _As usual, it’s a compile-time error if any `import`‘s target
-        URI does not resolve to a valid Dart library file._
+        library file. _As usual, it’s a compile-time error if any `import`‘s
+        target URI does not resolve to a valid Dart library file._
     *   Let’s introduce *importsOf*(*S*), where *S* is a set of `import`
         directives from a single Dart file, to refer to that computation, which
         introduces a scope containing the declarations introduced by all the
@@ -294,6 +293,109 @@ Allowing a part file to have its own export is mainly intended for macro
 generated parts and for conditionally included parts, most other libraries will
 likely still keep all `export` directives in the library file.
 
+## Terminology
+
+With libraries now being trees of files, not just a single level of parts, we
+introduce terminology to concisely express relation of files. (Some of this has
+already been defined above, but is also included here for completeness.)
+
+A *Dart file* is a file containing valid Dart source code,
+and is identified by its URI.
+
+A Dart file is either a *library file* or a *part file*,
+each having its own grammar.
+
+*   _(With this feature those grammars differ only at the very top,
+    where a library file can have an optional script tag and an optional
+    `library` declaration, and a part file must start with a `part of`
+    declaration)_.
+
+We say that a Dart file *includes* a part file, or that the part file
+_is included by_ a Dart file, if the Dart file has a `part` directive with a
+URI denoting that part file.
+
+*   _It’s a compile-time error if a Dart file has two `part` directives with
+    the same URI, so each included part file is included exactly once._
+*   _It’s a compile-time error if a `part` directive denotes a file which is
+    not a part file._
+
+The *parent file* of a part file is the file denoted by the URI of the
+`part of` declaration of the part file. A library file has no parent file.
+
+*   _It’s a compile-time error if a part file is included by any Dart file
+    other than the part file’s parent file._
+*   The *includes* and *is the parent file of* properties are equivalent for
+    the files of a Dart program. A Dart file includes a part file if, and only
+    if, the Dart file is the parent file of the part file, otherwise there is a
+    compile-time error. (There are no restrictions on the parent file of a part
+    file which is not part of a library of a Dart program. Dart semantics is
+    only assigned to entire libraries and programs, not individual part files.
+    We’ll refer to the relation as both one file being included by another, and
+    the former file being the parent (file) of the latter file.
+
+Two or more part files are called *sibling part files* (or just
+*sibling parts*) if if they are all included by the same (parent) file.
+
+A file is a *sub-part* of an *ancestor* Dart file, if the file is included by
+the Dart file, or if the file is a *sub-part* of a file included by the
+*ancestor* Dart file.
+
+*   This “sub-part/ancestor” relation is the transitive closure of the
+    *included by* relation. We’ll refer to it by saying either that one Dart
+    file is an ancestor file of another part file, or that a part file is a
+    sub-part of another Dart file.
+*   _It’s a compile-time error if a part file is a sub-part of itself._
+    That is, if the *includes* relation has a cycle. This is not a *necessary*
+    error from the language's perspective, since no library can contain such a
+    part file without introducing another error; at the first `part` directive
+    which includes a file from the cycle, the including file is not the parent
+    of that file.
+    The rule is included to as a help to tools that try to analyzer Dart code
+    starting at individual files, they can then assume that either a part file
+    has an ancestor which is a library file, or there is a compile-time error.
+    Or an infinite number of part files.)
+
+The *sub-tree* of a Dart file is the set of files containing the file itself
+and all its sub-parts. The *root* of a sub-tree is the Dart file that all other
+files in the tree are in the sub-parts of.
+
+We say that a Dart file *contains* another Dart file if the latter file is in
+the sub-tree of the former (short for “the sub-tree set of the one file
+contains the other file”).
+
+The *least containing sub-tree* or *least containing file* of a number of
+Dart files from the same library, is the smallest sub-tree of the library
+which contains all the files, or the root file of that sub-tree.
+Here _least_ is by set inclusion, because any other sub-tree that contains the
+two files also contains the entire smallest sub-tree. _A tree always has a
+least containing sub-tree for any set of nodes._
+
+*   The least containing file of *two* distinct files is either one of those
+    two files, or the two files are contained in two *distinct* included part
+    files. The least containing file is the only file which contains *both*
+    files, and not in the *same* included file.
+*   Generally, the least containing file of any number of files
+*   is the *only* file which contains all the files, and which does not contain
+    them all in one sub-part.
+    _(If a file contains all the original files, then either they are in the
+    same included part file, and then that part file is a lesser containing
+    file, or not all are in the same included part file, so either in different
+    included parts or some in the file itself, and then no included part file
+    contains all the files, so there is no lesser containing file.)_
+
+The *files of a library* is the entire sub-tree of the defining library file.
+It contains the library file.
+The sub-tree of a part file of a library contains no library file.
+
+In short:
+
+*   A *parent* file *includes* a part file. Adding transitivity and reflexivity,
+    an *ancestor* file *contains* any *sub-part* file, and itself.
+*   A Dart file defines a *sub-tree* containing itself as *root*
+    and all the *sub-trees* of all the part files it *includes*.
+    As a tree, it trivially defines a partial ordering of files with a least
+    upper bound, which is the _least containing file_.
+
 ## Language versioning and tooling
 
 This feature is language versioned, so no existing code is affected at launch.
@@ -312,17 +414,92 @@ Also, every file in a library must belong to the same *package*. The Dart
 language itself has no notion of packages, but the tooling uses a file’s
 package to derive its default language version. The Dart SDK will require that
 all files in a package belong to the same library, ensuring that they’ll always
-have the same language version. We haven’t specified this requirement before,
+have the same language version. Also, if the library file is inside the `lib/`
+directory, so it has a `package:` URI as canonical URI, then so must all its
+sub-part files. We haven’t specified these requirements before,
 it has always been assumed, but technically it is possible to write programs
 where a part belongs to different package than their library. The Dart SDK’s
 multi-language-version support, which based on files belonging to packages,
 will not support libraries that are not entirely in a single package.
 
+That is, the extra restrictions enforced by Dart tools are:
+
+*   If any file of a library has a `// @dart=` language version marker, then
+    *all* files in that library must have a language version marker with
+    *the same* language version.
+    Or, phrased differently starting at the root:
+    *   If a library file has a language version marker,
+        then it’s a compile-time error for any sub-part file
+        to not have the same language version marker.
+    *   If a library file has no language version marker,
+        then it’s a compile-time error for any sub-part file
+        to have a language version marker.
+
+*   If a library file belongs to a package,
+    then all its sub-part files must belong to the same package.
+*   If a library file has a `package:` URI (is located inside the package-URI
+    directory specified by the package configuration, usually
+    `"packageUri": "lib/"` of a `package_config.json` file),
+    then all its sub-part files must also be inside that package-URI directory.
+    *   _A library file outside of the `lib/` directory can technically have
+        part files inside the `lib/` directory, specified using `package:`
+        URIs, but those part files can only be included in a program by
+        referencing the library file, which means the part files might as well
+        be placed outside of the `lib/` directory._
+
 ### User guidance tooling
 
 The analyzer and analysis server needs to support and understand the new
-feature. No new user-facing features are needed. The following are ideas for
+feature. No new user-facing features are needed, but some error handling
+and user guidance may be useful. The following are ideas for
 hypothetical features that the tool may choose to add.
+
+##### Annotations applying to sub-tree
+
+Usually an annotation placed on the `library` declaration applies to the entire
+library. There are no annotations that are defined as applying only to a single
+file, or to be placed on `part of ` declarations.
+
+It might be useful to have some annotations that apply either to an entire
+sub-tree or to a single file. The individual annotations should decide how they
+can be applied.
+
+It may very well be that annotations affecting declarations (which is typically
+what annotations on library declarations do) have no benefit from being limited
+based on something as (so far) semantically arbitrary as source ordering.
+
+##### An `// ignore` applying to a sub-tree
+
+The analyzer recognizes `// ignore: …` comments as applying to the same or next
+line. For ignoring multiple warnings, there is a `// ignore_for_file: …`
+comment which covers the entire file.
+
+It can be considered whether to have an `// ignore_for_all_files: …` (or a
+better name) which applies to an entire subtree, not just the current file.
+
+It may very well be better to *not* that, and have each sub-part write its own
+`// ignore_for_file: ...`. That makes it very easy to see which ignores are in
+effect for a file.
+
+##### Invalid part file structure correction
+
+When analyzing an incomplete or invalid Dart program, any and all of the compile-time errors above may apply.
+
+It’s possible to have part files with parent-file cycles, part files with a
+parent URI which doesn’t denote any existing file, or files with a `part`
+directive with a URI that doesn’t denote any existing file. This isn’t *new* to
+enhanced part files, other than the cycle where it used to immediately be an
+error if the parent file wasn’t a library file.
+
+If a tool can see that one Dart file includes a part file, and the part file
+has a non-existing file URI as its parent file, it could be a quick-fix to
+update the URI in the part file’s `part of` directive to point to the file that
+includes it.
+
+Similarly if a part file’s parent file doesn’t include the part file, then a
+`part` directive can be added, or if the parent file has a `part ` directive
+which doesn’t point to an existing file (and maybe only if the name is
+*similar*), then that part directive can be updated to point to the part file.
 
 ### Migration
 

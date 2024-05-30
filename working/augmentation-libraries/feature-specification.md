@@ -88,6 +88,57 @@ Augmentation declarations interact with part files mainly in restrictions on
 where an augmenting declaration may occur relative to the declaration it
 augments, as describe below.
 
+For this, we define the following relations on *declarations* based on the
+relations between *files* of a library.
+
+We say that a syntactic declaration *occurs in* a Dart file if the
+declaration’s source code occurs in that Dart file.
+
+We then say that a Dart file *contains* a declaration if the declaration occurs
+in the file itself, or if any of the files included by the Dart file contains
+the declaration. _That is, if the declaration occurs in a file in the sub-tree
+of that Dart file._
+
+We then define a partial and a complete *ordering* of declarations of a library
+as follows:
+
+We define a partial ordering on syntactic declarations of a library,
+*is above*, such that a syntactic declaration *A* is *above* a syntactic
+declaration *B* if and only if:
+
+* *A* and *B* occur in the same file, and the start of the *A* declaration is
+syntactically before the start of the *B* declaration, in source order, or
+* A file included by the file containing *A* contains *B*.
+
+We define a *total ordering relation* (transitive, anti-symmetric, irreflexive)
+on declarations of a library, *is before* (and its reverse, *is after*) such
+that for any two syntactic declarations *A*, and *B*:
+
+*   If *A* and *B* occur in the same file, then:
+    *   If the start of *A* is before the start of *B* in source order,
+        then *A* is before *B*.
+    *   Otherwise *B* is before *A*.
+*   Otherwise *A* and *B* occur in different files.
+*   Let *F* be the least containing file for those two files.
+*   If *A* occurs in *F* then *A* is before *B*.
+*   If *B* occurs in *F* then *B* is before *A*.
+*   Otherwise *A* and *B* are contained in distinct included files of *F*.
+*   If the `part` directive including the file that contains *A*
+    is syntactically before the `part` directive including the file that
+    contains *B* in source order, then *A* is before *B*.
+*   Otherwise *B* is before *A*.
+
+Then *B* *is after* *A* if and only if *A* *is before* *B*.
+
+(Here the first five points can be summarized as “If *A* is above *B*, then *A*
+is before *B*, and vice versa” and the remaining case covers when the two are
+contained in sibling part directives, and at least one of those three cases
+must occur.)
+
+This order is total. It’s effectively ordering declarations as by a pre-order
+depth-first traversal of the file-tree, visiting declarations of a file in
+source order, and then recursing on `part`-directives in source order.
+
 [parts_with_imports.md]: parts_with_imports.md "Parts with Imports Feature Specification"
 
 ## Augmentation declarations
@@ -151,7 +202,8 @@ declaration, but no non-augmentation declaration with the corresponding name in
 the same scope. _(A mutable variable declaration counts as having both a getter
 and a setter name.)_
 
-For the following, we’ll say that one declaration of a library is *above* another declaration of the same library if and only if:
+For the following, we’ll say that one declaration of a library is *above*
+another declaration of the same library if and only if:
 
 * The former declaration is in the same file as the latter declaration, and it
    is textually earlier in the file (“above” in the source code as normally
@@ -167,10 +219,6 @@ It’s a **compile-time error** if a library contains an augmentation declaratio
 and a corresponding non-augmentation base declaration, and the the base
 declaration is not *above* the augmentation declaration.
 
-It is a **compile-time error** if a library contains two augmentation
-declaration for the same base declaration, and one augmentation is not *above*
-the other.
-
 These requirements ensure that declarations that contribution to the same
 effective declaration, one base declaration and zero or more augmentation
 declarations, are *totally ordered* by the *above* relation, with the base
@@ -178,16 +226,43 @@ declaration at the top, and the declarations all being in files on a single
 *path* down the file tree.
 
 The *augmentation application order* for a single base declaration’s (validly
-ordered) augmentation declarations is then “top to bottom”: An augmentation
-declaration is applied after any augmentation declarations that are *above* it,
-and before augmentation declarations that are below it.
+positioned) augmentation declarations is then in *before* order: An augmentation
+declaration is applied after any augmentation declarations that are *before* it,
+and before augmentation declarations that it is before.
 
 This applies both to top-level declarations and to member declarations of, for
 example, class declarations.
 
-_The “path requirement”, that all the declarations contributing to a library
-member are on files in a single path down the part-file tree, ensures that
+#### Path requirement lint suggestion
+
+One issue with the augmentation application order is that it is not stable
+under reordering of `part` directives. Sorting part directives can change the
+order that augmentation applications in separate included sub-trees are applied
+in.
+
+To help avoiding issues, we want to introduce a *lint* which warns if a library
+is susceptible to part file reordering changing augmentation application order.
+A possible name could be `augmentation_ordering`.
+
+It’s effect would be to **report a warning** *if* for any two (top-level)
+augmenting declarations with name *n*, one is not *above* the other.
+
+The lint would only apply to user-written augmenting declarations, it should
+not include macro generated augmentations. Those are placed where the macro
+processor chooses to place them, usually after all other augmentations.
+
+If the lint is satisfied, then all augmenting declarations are ordered by the
+*before* relation, which means that they no two can be in different sibling
+parts of the same file, and therefore all the augmenting declarations occur
+along a single path down the part-file tree. _That ensures that
 *part file directive ordering* has no effect on augmentation application order._
+
+The language specification doesn’t specify lints or warnings, so this lint
+suggestion is not normative. We wish to have the lint, and preferably include
+it in the “recommended” lint set, because it can help users avoid accidental
+problems. We want it as a lint instead of a language restriction so that it
+doesn’t interfere with macro-generated code, and so that users can `// ignore:`
+it if they know what they’re doing.
 
 ### Augmented Expression
 
@@ -981,7 +1056,7 @@ member declarations:
     *C<sub>top</sub>*.
 *   Otherwise let *P* be the set of member declarations of the non-empty stack
     *C<sub>rest</sub>*.
-*   and the member declarations of *C* is the set *R* defined as containing
+*   and the member declarations of *C* is the set *R* defined as containing
     only the following elements:
     *   A singleton stack of each syntactic instance member declaration *M* of
         *C<sub>top</sub>*, where *M* is a non-augmenting declaration.
@@ -997,14 +1072,15 @@ abstract method* as:
 
 *   Let *C<sub>top</sub>* be the latest element of the stack and
     *C<sub>rest</sub>* the rest of the stack.
-*   If *C<sub>top</sub>* is a non-variable declaration, and is not declared
+*   If *C<sub>top</sub>* is a non-variable declaration, and is not declared
     `abstract`, the *C* doe
 *   If *C<sub>top</sub>* declares a function body, then *C* does not define an
     abstract method.
 *   Otherwise *C* defines an abstract method if *C<sub>rest</sub>* defines an
     abstract method.
 
-(This is just for methods, we will define it more generally for members, including variable declarations.)
+(This is just for methods, we will define it more generally for members,
+including variable declarations.)
 
 ### Example: Instance methods
 
@@ -1018,7 +1094,7 @@ For example, we define the *augmented parameter list* of a non-empty stack,
 *   Let *C<sub>top</sub>* be the latest element of the stack and
     *C<sub>rest</sub>* the rest of the stack.
 *   If *C<sub>top</sub>* is not an augmenting declaration, its augmented
-    parameter list is its actual parameter list. _(And *C<sub>rest</sub>* is
+    parameter list is its actual parameter list. _(And *C<sub>rest</sub>* is
     known to be empty.)_
 *   Otherwise *C<sub>top</sub>* is an augmenting declaration with a parameter
     list which must have the same parameters (names, positions, optionality and
@@ -1056,8 +1132,8 @@ an abstract method. The resulting stack is the *member definition*, or
 *semantic declaration*, which is derived from the syntactic declarations in the
 source.
 
-Invoking a *stack*, *C*, of instance method declarations on a receiver object
-*o* with an argument list *A* and type arguments *T*, is then defined as
+Invoking a *stack*, *C*, of instance method declarations on a receiver object
+*o* with an argument list *A* and type arguments *T*, is then defined as
 follows:
 
 *   Let *C<sub>top</sub>* be the latest declaration on the stack (the last
@@ -1074,7 +1150,7 @@ follows:
     *   Execute the body *B* in this parameter scope, with `this` bound to *o*.
     *   If *B* contains an expression of the form `augmented<TypeArgs>(args)`
         (type arguments omitted if empty), then:
-        *   The static type of `augmented` is the augmented function type of
+        *   The static type of `augmented` is the augmented function type of
             *C<sub>rest</sub>*. The expression is type-inferred as a function
             value invocation of a function with that static type.
         *   To evaluate the expression, evaluate `args` to an argument list
@@ -1084,7 +1160,7 @@ follows:
             invocation (returned value or thrown error).
     *   _There would have been a compile-time error if there is no earlier
         declaration with a body._
-    *   The result of invoking *C* is the returned or thrown result of
+    *   The result of invoking *C* is the returned or thrown result of
         executing *B*.
 *   Otherwise, the result of the invocation of *C* is the result of invoke
     *C<sub>rest</sub>* on *o* with argument list *A* and type arguments *T*.
@@ -1111,11 +1187,13 @@ to the augmentation.
     separate document, as a stand-alone feature that is not linked to
     augmentations.
 *   Augmentation declarations can occur in any file, whether a library or part
-    file. Must occur “below” prior declaration or augmentation that it modifies
-    (which must be earlier in the same file, or in a parent file), which
-    ensures all declarations with the same name are on the same path in the
-    library file tree. That means reordering `part` directives does not change
-    augmentation application order.
+    file. Must occur ”below” the base declaration (later in same file or
+    sub-part) and “after” any prior applied augmentation that it modifies
+    (below, or in a later sub-part of a shared ancestor).
+*   Suggest a stronger ordering *lint*, where the augmentation must be “below”
+    the augmentation it is applied after. That imples that all declarations with
+    the same name are on the same path in the library file tree, so that
+    reordering `part` directives does not change augmentation application order.
 *   Change the lexical scope of augmenting class-like declarations to only
     contain the member declarations that are syntactically inside the same
     declaration, rather than collecting all member declarations from all
