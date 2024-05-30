@@ -102,11 +102,11 @@ definitely possible.
 
 That leaves underscore, which could be the start of an identifier. Currently
 `100_000` would be tokenized as "integer literal 100" followed by "identifier
-_000". However, users would never write an identifier adjacent to another token
-that contains identifier-valid characters (unlike strings, which have clear
-delimiters that do not occur anywher else), so this is unlikely to happen in
-practice. Underscore is already used by a large number of programming languages
-including Java, Swift, and Python.
+`_000`". However, users would never write an identifier adjacent to another
+token that contains identifier-valid characters (unlike strings, which have
+clear delimiters that do not occur anywher else), so this is unlikely to happen
+in practice. Underscore is already used by a large number of programming
+languages including Java, Swift, and Python.
 
 We also want to allow multiple separators for higher-level grouping, e.g.,:
 
@@ -145,6 +145,12 @@ for hexadecimal numbers. If a developer ever uses digit separators for a
 different purpose (as in separating the digits of a phone number), the rule may
 not prove useful.
 
+A separate lint rule could encourage _consistent_ digit separators, which
+triggers if the digit groups do not have the same size (except the most
+significant I one, which can be shorter). If there are any `__` separators, the
+number of `_`-separated groups between them should also be the same, and
+repeatedly for higher numbers of `_`s.
+
 ### Possible new quick fixes
 
 There are some possible new automated fix ("quick fix") considerations, but
@@ -158,7 +164,8 @@ a number literal, but nowhere else. In most error cases, the unexpected
 underscore can be detected as such, and we can offer quick fixes to remove
 unexpected errors (for example, `100_`, `100_e.2`, `100._00`). In a few cases,
 the intention is not as straightforward, such as `100._100`, where `_100` can
-be a legal name of an extension member.
+be a legal name of an extension member (though the presense of such a private
+extension member can be detected).
 
 #### Unexpected commas
 
