@@ -9,9 +9,10 @@ import 'dart:io';
 import 'package:dart_model/delta.dart';
 import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
+import 'package:macro_protocol/host.dart';
 import 'package:macro_protocol/message.dart';
 
-class SocketService implements Service {
+class SocketHost implements Service, Host {
   final Socket socket;
   final StreamController<Object?> messagesController =
       StreamController.broadcast();
@@ -19,7 +20,7 @@ class SocketService implements Service {
   int _id = 0;
   final Map<int, StreamController<Delta>> _deltaStreams = {};
 
-  SocketService(this.socket) {
+  SocketHost(this.socket) {
     socket
         .cast<List<int>>()
         .transform(utf8.decoder)
@@ -49,5 +50,17 @@ class SocketService implements Service {
     } else {
       messagesController.add(message);
     }
+  }
+
+  @override
+  Service get service => this;
+
+  @override
+  Future<void> augment(
+      {required QualifiedName macro,
+      required String uri,
+      required String augmentation}) async {
+    socket.writeln(json.encode(
+        AugmentRequest(macro: macro, uri: uri, augmentation: augmentation)));
   }
 }

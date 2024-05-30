@@ -7,6 +7,7 @@ environment:
 dependencies:
   dart_model: any
   macro_client: any
+  macro_protocol: any
 
 dependency_overrides:
   dart_model:

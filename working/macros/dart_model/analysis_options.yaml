@@ -1,5 +1,15 @@
+analyzer:
+  enable-experiment:
+  # For augmentations.
+    - macros
+
+  exclude:
+    - /**.a.dart
+
 linter:
   rules:
+    # Additional lints.
+    - unawaited_futures
     # From package:lints/core.yaml
     - avoid_empty_else
     - avoid_relative_lib_imports

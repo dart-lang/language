@@ -2,6 +2,14 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-class FirstMacro {
-  const FirstMacro();
+class Equals {
+  const Equals();
+}
+
+class HashCode {
+  const HashCode();
+}
+
+class ToString {
+  const ToString();
 }

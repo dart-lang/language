@@ -2,14 +2,17 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
+import 'package:macro_protocol/host.dart';
 import 'package:macro_protocol/message.dart';
 
 class SocketClient {
-  final Service host;
+  final Host host;
   final Socket socket;
 
   SocketClient(this.host, this.socket) {
@@ -20,19 +23,29 @@ class SocketClient {
         .listen(handle);
   }
 
+  Service get service => host.service;
+
   void handle(String line) async {
     final message = Message.fromJson(json.decode(line));
 
     if (message.isQueryRequest) {
-      final response = await host.query(message.asQueryRequest.query);
+      final response = await service.query(message.asQueryRequest.query);
       socket.writeln(json.encode(QueryResponse(response)));
     } else if (message.isWatchRequest) {
       final request = message.asWatchRequest;
-      final response = await host.watch(request.query);
+      final response = await service.watch(request.query);
       response.listen((delta) {
         socket
             .writeln(json.encode(WatchResponse(id: request.id, delta: delta)));
       });
+    } else if (message.isAugmentRequest) {
+      final request = message.asAugmentRequest;
+      unawaited(augment(request.macro, request.uri, request.augmentation));
     }
+  }
+
+  Future<void> augment(
+      QualifiedName macro, String uri, String augmentation) async {
+    await host.augment(macro: macro, uri: uri, augmentation: augmentation);
   }
 }

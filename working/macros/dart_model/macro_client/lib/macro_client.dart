@@ -6,7 +6,7 @@ import 'dart:io';
 
 import 'package:macro_client/macro.dart';
 
-import 'socket_service.dart';
+import 'socket_host.dart';
 
 class MacroClient {
   final List<String> arguments;
@@ -15,7 +15,7 @@ class MacroClient {
 
   Future<void> host(List<Macro> macros) async {
     final socket = await Socket.connect('localhost', 26199);
-    final host = SocketService(socket);
+    final host = SocketHost(socket);
     for (final macro in macros) {
       macro.start(host);
     }

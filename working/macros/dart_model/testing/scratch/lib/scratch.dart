@@ -3,14 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:test_macro_annotations/annotations.dart';
+import augment 'scratch.a.dart';
 
-@FirstMacro()
-class Foo {}
+@Equals()
+@HashCode()
+class Foo {
+  int? x;
+  int? y;
+  String? b;
+}
 
-@FirstMacro()
-class Bar {}
-
-class Baz {}
-
-@FirstMacro()
-class Hmm {}
+@Equals()
+class Bar {
+  int? x;
+  int? y;
+  String? b;
+}

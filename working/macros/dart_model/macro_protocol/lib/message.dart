@@ -16,6 +16,11 @@ extension type Message.fromJson(Map<String, Object?> node) {
   QueryRequest get asQueryRequest => this as QueryRequest;
   bool get isQueryResponse => node['type'] == 'queryResponse';
   QueryResponse get asQueryResponse => this as QueryResponse;
+
+  bool get isAugmentRequest => node['type'] == 'augment';
+  AugmentRequest get asAugmentRequest => this as AugmentRequest;
+  bool get isAugmentResponse => node['type'] == 'augmentResponse';
+  AugmentResponse get asAugmentResponse => this as AugmentResponse;
 }
 
 extension type QueryRequest.fromJson(Map<String, Object?> node)
@@ -63,4 +68,29 @@ extension type WatchResponse.fromJson(Map<String, Object?> node) {
 
   int get id => node['id'] as int;
   Delta get delta => node['delta'] as Delta;
+}
+
+extension type AugmentRequest.fromJson(Map<String, Object?> node)
+    implements Message {
+  AugmentRequest(
+      {required QualifiedName macro,
+      required String uri,
+      required String augmentation})
+      : this.fromJson({
+          'type': 'augment',
+          'macro': macro.toString(),
+          'uri': uri,
+          'augmentation': augmentation,
+        });
+
+  QualifiedName get macro => QualifiedName.tryParse(node['macro'] as String)!;
+  String get uri => node['uri'] as String;
+  String get augmentation => node['augmentation'] as String;
+}
+
+extension type AugmentResponse.fromJson(Map<String, Object?> node) {
+  AugmentResponse()
+      : this.fromJson({
+          'type': 'augmentResponse',
+        });
 }

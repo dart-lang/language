@@ -3,8 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:macro_client/macro_client.dart';
-import 'package:test_macros/first_macro.dart';
+import 'package:test_macros/equals_macro.dart';
+import 'package:test_macros/hash_code_macro.dart';
 
 Future<void> main(List<String> arguments) async {
-  MacroClient(arguments).host([FirstMacro()]);
+  await MacroClient(arguments).host([EqualsMacro(), HashCodeMacro()]);
 }
