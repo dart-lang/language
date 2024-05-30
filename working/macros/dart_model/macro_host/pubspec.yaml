@@ -1,0 +1,19 @@
+name: macro_host
+publish-to: none
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  analyzer: any
+  dart_model: any
+  dart_model_analyzer_service: any
+  macro_protocol: any
+
+dependency_overrides:
+  dart_model:
+    path: ../dart_model
+  dart_model_analyzer_service:
+    path: ../dart_model_analyzer_service
+  macro_protocol:
+    path: ../macro_protocol

@@ -1,0 +1,10 @@
+name: dart_model
+publish-to: none
+
+environment:
+  sdk: ^3.4.0
+
+dev_dependencies:
+  test: ^1.25.0
+dependencies:
+  collection: ^1.18.0
