@@ -1,0 +1,17 @@
+name: test_macros
+publish-to: none
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  dart_model: any
+  macro_client: any
+
+dependency_overrides:
+  dart_model:
+    path: ../../dart_model
+  macro_client:
+    path: ../../macro_client
+  macro_protocol:
+    path: ../../macro_protocol

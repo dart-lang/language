@@ -1,0 +1,12 @@
+name: scratch
+publish-to: none
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  test_macro_annotations: any
+
+dependency_overrides:
+  test_macro_annotations:
+    path: ../test_macro_annotations
