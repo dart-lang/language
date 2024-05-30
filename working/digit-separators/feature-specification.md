@@ -147,7 +147,7 @@ not prove useful.
 
 A separate lint rule could encourage _consistent_ digit separators, which
 triggers if the digit groups do not have the same size (except the most
-significant I one, which can be shorter). If there are any `__` separators, the
+significant one, which can be shorter). If there are any `__` separators, the
 number of `_`-separated groups between them should also be the same, and
 repeatedly for higher numbers of `_`s.
 
