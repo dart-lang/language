@@ -23,6 +23,9 @@ jobs:
       - name: dart pub get (working/macros/example)
         run: dart pub get
         working-directory: working/macros/example
+      - name: dart pub get (working/macros/dart_model)
+        run: testing/pub_get
+        working-directory: working/macros/dart_model
       - name: dart pub get (accepted/2.3/spread-collections/benchmarks)
         run: dart pub get
         working-directory: accepted/2.3/spread-collections/benchmarks
