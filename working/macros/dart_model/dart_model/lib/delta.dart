@@ -93,6 +93,13 @@ extension type Delta.fromJson(Map<String, Object?> node) {
 
   List<Removal> get removals => (node['removals'] as List).cast();
 
+  List<String> get uris => updates
+      .map((u) => u.path.uri)
+      .nonNulls
+      .followedBy(removals.map((r) => r.path.uri).nonNulls)
+      .toSet()
+      .toList();
+
   String prettyPrint() => const JsonEncoder.withIndent('  ').convert(node);
 
   void update(Model previous) {

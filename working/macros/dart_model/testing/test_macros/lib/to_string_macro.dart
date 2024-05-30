@@ -30,7 +30,7 @@ class ToStringMacro implements Macro {
   void generate(Host host, Delta delta) async {
     delta.update(model);
 
-    for (final uri in model.uris) {
+    for (final uri in delta.uris) {
       final library = model.library(uri)!;
       final result = StringBuffer();
       for (final scope in library.scopes) {
@@ -51,10 +51,11 @@ class ToStringMacro implements Macro {
     result.write('${clazz.name}(');
     final fields = clazz.members.values.where((m) => m.isField).toList();
     for (final field in fields) {
-      result.write('${field.name}:\$${field.name}');
+      result.write('${field.name}: \$${field.name}');
       if (field != fields.last) result.write(', ');
     }
     result.writeln(")''';");
+    result.writeln('}');
 
     return result.toString();
   }

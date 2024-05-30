@@ -19,6 +19,7 @@ class MacroClient {
     Socket socket;
     try {
       socket = await Socket.connect('localhost', 26199);
+      socket.setOption(SocketOption.tcpNoDelay, true);
     } catch (_) {
       print('Connection failed! Is `package:macro_host` running?');
       exit(1);

@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
 import 'package:macro_protocol/host.dart';
 
@@ -16,47 +17,69 @@ class MacroHost implements Host {
   final File? Function(Uri) uriConverter;
   ServerSocket? serverSocket;
   final Map<String, Map<Object, String>> _augmentationsByUri = {};
+  final Set<String> _augmentationsToWrite = {};
+
+  int _augmentationCounter = 0;
+  bool _flushing = false;
 
   MacroHost(this.service, this.uriConverter);
 
   Future<void> run() async {
     serverSocket = await ServerSocket.bind('localhost', 26199);
-    print('macro_host listening on localhost:26199');
-
+    print('Listening on localhost:26199.');
+    print('~~~ hosting');
     await for (final socket in serverSocket!) {
+      print('Incoming connection.');
+      socket.setOption(SocketOption.tcpNoDelay, true);
       SocketClient(this, socket);
     }
   }
 
-  void handle(Socket socket) {
-    print('Got $socket');
-  }
-
   @override
   Future<void> augment(
-      {required Object macro,
+      {required QualifiedName macro,
       required String uri,
       required String augmentation}) async {
-    print('Augment: $uri $augmentation');
-    final baseFile = uriConverter(Uri.parse(uri))!;
-    final baseName =
-        baseFile.path.substring(baseFile.path.lastIndexOf('/') + 1);
-    final augmentationFile = File(baseFile.path.replaceAll('.dart', '.a.dart'));
-
-    print(_augmentationsByUri);
+    print('  ${macro.name} --${augmentation.length}--> $uri');
     if (_augmentationsByUri[uri] == null) {
-      print('create map');
-      _augmentationsByUri[uri] = Map.identity();
+      _augmentationsByUri[uri] = {};
     }
     final augmentations = _augmentationsByUri[uri]!;
     augmentations[macro] = augmentation;
-    print(_augmentationsByUri);
+    _augmentationsToWrite.add(uri);
 
-    // TODO(davidmorgan): write async? Needs locking.
-    augmentationFile.writeAsStringSync('''
+    // Give other augmentations a chance to arrive before flushing.
+    if (_flushing) return;
+    ++_augmentationCounter;
+    final augmentationCounter = _augmentationCounter;
+    unawaited(Future.delayed(Duration(milliseconds: 20)).then<void>((_) async {
+      if (_augmentationCounter != augmentationCounter) return;
+      _flushing = true;
+      while (_augmentationsToWrite.isNotEmpty) {
+        await flushAugmentations();
+      }
+      _flushing = false;
+    }));
+  }
+
+  Future<void> flushAugmentations() async {
+    final augmentationsToWrite = _augmentationsToWrite.toList();
+    _augmentationsToWrite.clear();
+    final futures = <Future>[];
+    for (final uri in augmentationsToWrite) {
+      final augmentations = _augmentationsByUri[uri]!;
+      final baseFile = uriConverter(Uri.parse(uri))!;
+      final baseName =
+          baseFile.path.substring(baseFile.path.lastIndexOf('/') + 1);
+      final augmentationFile =
+          File(baseFile.path.replaceAll('.dart', '.a.dart'));
+      print('Write: ${augmentationFile.path}');
+      futures.add(augmentationFile.writeAsString('''
 augment library '$baseName';
 
 ${augmentations.values.join('\n\n')}
-''');
+'''));
+    }
+    await Future.wait(futures);
   }
 }

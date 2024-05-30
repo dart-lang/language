@@ -265,6 +265,8 @@ extension type Path.fromJson(List<Object?> node) {
 
   List<String> get path => (node as List).cast();
 
+  String? get uri => path.isEmpty ? null : path.first;
+
   Path followedByOne(String element) =>
       Path(path.followedBy([element]).toList());
 

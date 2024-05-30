@@ -30,7 +30,7 @@ class EqualsMacro implements Macro {
   void generate(Host host, Delta delta) async {
     delta.update(model);
 
-    for (final uri in model.uris) {
+    for (final uri in delta.uris) {
       final library = model.library(uri)!;
       final result = StringBuffer();
       for (final scope in library.scopes) {
