@@ -13,10 +13,22 @@ class MacroClient {
 
   MacroClient(this.arguments);
 
-  Future<void> host(List<Macro> macros) async {
-    final socket = await Socket.connect('localhost', 26199);
+  Future<void> run(List<Macro> macros) async {
+    print('~~~ setup');
+    print('Connect to localhost:26199.');
+    Socket socket;
+    try {
+      socket = await Socket.connect('localhost', 26199);
+    } catch (_) {
+      print('Connection failed! Is `package:macro_host` running?');
+      exit(1);
+    }
     final host = SocketHost(socket);
-    for (final macro in macros) {
+
+    print('~~~ running macros');
+    for (var i = 0; i != macros.length; ++i) {
+      final macro = macros[i];
+      print('${i + 1}. ${macro.name}');
       macro.start(host);
     }
   }
