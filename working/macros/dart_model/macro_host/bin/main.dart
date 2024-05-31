@@ -25,7 +25,7 @@ Future<void> main(List<String> arguments) async {
       contextRoot:
           ContextLocator().locateRoots(includedPaths: [workspace]).first);
   final host = DartModelAnalyzerService(context: analysisContext);
-  await MacroHost(host, (uri) {
+  await MacroHost(workspace, host, (uri) {
     final path = analysisContext.currentSession.uriConverter.uriToPath(uri);
     if (path == null) return null;
     return File(path);

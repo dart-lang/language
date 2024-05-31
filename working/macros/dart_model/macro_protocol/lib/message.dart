@@ -9,40 +9,14 @@ import 'package:dart_model/query.dart';
 extension type Message.fromJson(Map<String, Object?> node) {
   bool get isWatchRequest => node['type'] == 'watch';
   WatchRequest get asWatchRequest => this as WatchRequest;
-  bool get isWatchResponse => node['type'] == 'watchResponse';
-  WatchResponse get asWatchResponse => this as WatchResponse;
 
-  bool get isQueryRequest => node['type'] == 'query';
-  QueryRequest get asQueryRequest => this as QueryRequest;
-  bool get isQueryResponse => node['type'] == 'queryResponse';
-  QueryResponse get asQueryResponse => this as QueryResponse;
+  bool get isRound => node['type'] == 'round';
+  Round get asRound => this as Round;
 
   bool get isAugmentRequest => node['type'] == 'augment';
   AugmentRequest get asAugmentRequest => this as AugmentRequest;
   bool get isAugmentResponse => node['type'] == 'augmentResponse';
   AugmentResponse get asAugmentResponse => this as AugmentResponse;
-}
-
-extension type QueryRequest.fromJson(Map<String, Object?> node)
-    implements Message {
-  QueryRequest(Query query)
-      : this.fromJson({
-          'type': 'query',
-          'query': query.node,
-        });
-
-  Query get query => node['query'] as Query;
-}
-
-extension type QueryResponse.fromJson(Map<String, Object?> node)
-    implements Message {
-  QueryResponse(Model model)
-      : this.fromJson({
-          'type': 'queryResponse',
-          'model': model.node,
-        });
-
-  Model get model => node['model'] as Model;
 }
 
 extension type WatchRequest.fromJson(Map<String, Object?> node)
@@ -58,14 +32,16 @@ extension type WatchRequest.fromJson(Map<String, Object?> node)
   int get id => node['id'] as int;
 }
 
-extension type WatchResponse.fromJson(Map<String, Object?> node) {
-  WatchResponse({required Delta delta, required int id})
+extension type Round.fromJson(Map<String, Object?> node) {
+  Round({required int round, required int id, required Delta delta})
       : this.fromJson({
-          'type': 'watchResponse',
-          'delta': delta.node,
+          'type': 'round',
+          'round': round,
           'id': id,
+          'delta': delta.node,
         });
 
+  int get round => node['round'] as int;
   int get id => node['id'] as int;
   Delta get delta => node['delta'] as Delta;
 }
@@ -74,14 +50,17 @@ extension type AugmentRequest.fromJson(Map<String, Object?> node)
     implements Message {
   AugmentRequest({
     required QualifiedName macro,
+    required int round,
     required Map<String, String> augmentationsByUri,
   }) : this.fromJson({
           'type': 'augment',
           'macro': macro.toString(),
+          'round': round,
           'augmentationsByUri': augmentationsByUri,
         });
 
   QualifiedName get macro => QualifiedName.tryParse(node['macro'] as String)!;
+  int get round => node['round'] as int;
   Map<String, String> get augmentationsByUri =>
       (node['augmentationsByUri'] as Map).cast();
 }

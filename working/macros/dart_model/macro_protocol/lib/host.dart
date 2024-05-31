@@ -4,11 +4,14 @@
 
 import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
+import 'package:macro_protocol/message.dart';
 
 abstract interface class Host {
-  Service get service;
+  Future<Stream<Round>> watch(Query query);
+
   Future<void> augment({
     required QualifiedName macro,
+    required int round,
     required Map<String, String> augmentationsByUri,
   });
 }

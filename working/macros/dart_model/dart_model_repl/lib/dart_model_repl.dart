@@ -2,6 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,11 +12,12 @@ import 'package:async/async.dart';
 import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
 import 'package:dart_model_analyzer_service/dart_model_analyzer_service.dart';
+import 'package:macro_host/macro_host.dart';
 
 class DartModelRepl {
   final _stdinLines =
       StreamQueue(LineSplitter().bind(Utf8Decoder().bind(stdin)));
-  Service? service;
+  MacroHost? host;
 
   Future<void> run() async {
     print(''''
@@ -26,8 +28,8 @@ Welcome to ${green}package:dart_model_repl$reset!
   }
 
   Future<bool> readInput() async {
-    if (service == null) {
-      print('No service running; try "analyze <workspace>".');
+    if (host == null) {
+      print('No host running; try "analyze <workspace>".');
     }
 
     stdout.write('> ');
@@ -39,7 +41,7 @@ Welcome to ${green}package:dart_model_repl$reset!
     }
 
     if (line.startsWith('analyze ')) {
-      createAnalyzer(line.substring('analyze '.length));
+      createHost(line.substring('analyze '.length));
       return true;
     }
 
@@ -50,7 +52,7 @@ Welcome to ${green}package:dart_model_repl$reset!
           ? Query.uri(rest)
           : Query.qualifiedName(
               uri: maybeQualifiedName.uri, name: maybeQualifiedName.name);
-      final model = await service!.query(query);
+      final model = await host!.service.query(query);
       print(model.prettyPrint());
       return true;
     }
@@ -63,7 +65,8 @@ Welcome to ${green}package:dart_model_repl$reset!
           : Query.qualifiedName(
               uri: maybeQualifiedName.uri, name: maybeQualifiedName.name);
       final model = Model();
-      (await service!.watch(query)).listen((delta) {
+      host!.watch(query, 0, (round) {
+        final delta = round.delta;
         delta.update(model);
         print('=== current model for $query');
         print(model.prettyPrint());
@@ -89,12 +92,24 @@ watch <URI>[#name]
 ''');
   }
 
-  void createAnalyzer(String workspace) {
+  void createHost(String workspace) {
     final contextBuilder = ContextBuilder();
     final analysisContext = contextBuilder.createContext(
         contextRoot:
             ContextLocator().locateRoots(includedPaths: [workspace]).first);
-    service = DartModelAnalyzerService(context: analysisContext);
+    final service = DartModelAnalyzerService(context: analysisContext);
+    File? uriConverter(Uri uri) {
+      final path = analysisContext.currentSession.uriConverter.uriToPath(uri);
+      if (path == null) return null;
+      return File(path);
+    }
+
+    host = MacroHost(workspace, service, uriConverter);
+
+    // TOD0(davidmorgan): this is a hack to keep the REPL working after file
+    // watching moved from the service to the host; consider whether it's worth
+    // doing properly.
+    unawaited(host!.run());
   }
 }
 

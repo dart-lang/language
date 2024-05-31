@@ -4,11 +4,11 @@
 
 import 'dart:async';
 
-import 'package:dart_model/delta.dart';
 import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
 import 'package:macro_client/macro.dart';
 import 'package:macro_protocol/host.dart';
+import 'package:macro_protocol/message.dart';
 
 class EqualsMacro implements Macro {
   final Model model = Model();
@@ -19,15 +19,15 @@ class EqualsMacro implements Macro {
 
   @override
   Future<void> start(Host host) async {
-    final service = host.service;
-    final stream = await service.watch(Query.annotation(QualifiedName(
+    final stream = await host.watch(Query.annotation(QualifiedName(
       uri: 'package:test_macro_annotations/annotations.dart',
       name: 'Equals',
     )));
-    stream.listen((delta) => generate(host, delta));
+    stream.listen((round) => generate(host, round));
   }
 
-  void generate(Host host, Delta delta) async {
+  void generate(Host host, Round round) async {
+    final delta = round.delta;
     delta.update(model);
 
     final augmentationsByUri = <String, String>{};
@@ -42,8 +42,10 @@ class EqualsMacro implements Macro {
       augmentationsByUri[uri] = result.toString();
     }
 
-    unawaited(
-        host.augment(macro: name, augmentationsByUri: augmentationsByUri));
+    unawaited(host.augment(
+        macro: name,
+        round: round.round,
+        augmentationsByUri: augmentationsByUri));
   }
 
   String generateFor(Interface clazz) {
