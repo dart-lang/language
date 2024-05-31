@@ -413,7 +413,8 @@ Otherwise note that _kj_ uses actual type arguments `U1 .. Us`.
 
 If all candidate constructors have been removed, or more than one candidate
 remains, a compile-time error occurs. Otherwise, the invocation is
-henceforth treated as `E<U1 .. Us>.C<T1 .. Tm>.name(args)`.
+henceforth treated as `E<U1 .. Us>.C<T1 .. Tm>.name(args)` (respectively
+`E<U1 .. Us>.C<T1 .. Tm>(args)`).
 
 A constructor invocation of the form `C.name(args)` (respectively
 `C(args)`) where `C` resolves to a non-generic class is resolved in the
@@ -440,25 +441,6 @@ subject to type inference multiple times, and hence we do not support type
 inference for `C.name(args)` in the case where there are multiple distinct
 declarations whose signature could be used during the static analysis of
 that expression.*
-
-#### Static extension applicability
-
-Let _D_ be a static extension declaration named `E` with type parameters
-`X1 extends B1 .. Xs extends Bs` and constructor return type
-`C<T1 .. Tk>`. Let `P` be a context type schema.
-
-Let `f` be a function declared as follows, also known as the
-_applicability function_ of `E`:
-
-```dart
-C<T1 .. Tk> f<X1 extends B1 .. Xs extends Bs>() => f();
-```
-
-We say that _D_ is _applicable with context type schema_ `P`
-_yielding actual type arguments_ `S1 .. Ss` iff type inference of the
-invocation `f()` with context type schema `P` yields a list of actual type
-arguments `S1 .. Ss` to `f` such that `[S1/X1 .. Ss/Xs]C<T1 .. Tk>` is
-assignable to the greatest closure of `P`.
 
 ### Dynamic Semantics
 
