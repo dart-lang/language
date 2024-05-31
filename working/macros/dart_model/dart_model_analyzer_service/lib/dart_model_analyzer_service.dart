@@ -17,6 +17,7 @@ import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
 import 'package:stream_transform/stream_transform.dart';
 
+// ignore_for_file: deprecated_member_use
 class DartModelAnalyzerService implements Service {
   final AnalysisContext? context;
   AnalysisSession? session;
