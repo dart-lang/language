@@ -26,8 +26,8 @@ extension type declaration, but they do not have the ability to directly
 edit the source code of said declaration.
 
 This feature allows static members declared in an `extension` on a given
-class/mixin/etc. declaration to be invoked as if they were static members
-of that on class.
+class/mixin/etc. declaration _D_ to be invoked as if they were static
+members of _D_.
 
 Here is an example:
 
@@ -126,10 +126,10 @@ Map<String, List<bool>> string2listOfBool = Map.fromString([]);
 The grammar remains unchanged.
 
 However, it is no longer an error to declare a factory constructor in an
-extension declaration, be it redirecting or not, constant or not.
-*Such declarations may of course give rise to errors as usual, e.g., if a
-redirecting factory constructor redirects to a constructor that does not
-exist, or there is a redirection cycle.*
+extension declaration that has an on-class, be it redirecting or not,
+constant or not.  *Such declarations may of course give rise to errors as
+usual, e.g., if a redirecting factory constructor redirects to a
+constructor that does not exist, or there is a redirection cycle.*
 
 In an extension declaration of the form `extension E on C {...}` where `C`
 is an identifier or an identifier with an import prefix that resolves to a
@@ -174,15 +174,6 @@ on-class. The warning above is aimed at static members and constructors,
 but a similar warning would probably be useful for instance members as
 well.*
 
-#### Accessibility
-
-An extension declaration _D_ is _accessible_ if _D_ is declared in the
-current library, or if _D_ is imported and not hidden.
-
-*In particular, it is accessible even in the case where there is a name
-clash with another locally declared or imported declaration with the same
-name.*
-
 #### Invocation of a static member of an extension
 
 An _explicitly resolved invocation_ of a static member of an extension
@@ -191,12 +182,15 @@ named `E` is an expression of the form `E.m()` (or any other member access,
 `E`.
 
 *This can be used to invoke a static member of a specific extension in
-order to manually resolve a name clash.*
+order to manually resolve a name clash. At the same time, in current Dart
+(without the feature which is specified in this document), this is the only 
+way we can invoke a static member of an extension, so it may be useful for
+backward compatibility reasons.*
 
 A static member invocation on a class `C`, of the form `C.m()` (or any
 other member access), is resolved by looking up static members in `C` named
 `m` and looking up static members of every accessible extension with
-on-class `C` and a member named `m`.
+on-class `C` and a static member named `m`.
 
 If `C` contains such a declaration then the expression is an invocation of
 that static member of `C`, with the same static analysis and dynamic
@@ -302,7 +296,8 @@ Otherwise note that _kj_ uses actual type arguments `U1 .. Us`.
 
 If all candidate constructors have been removed, or more than one candidate
 remains, a compile-time error occurs. Otherwise, the invocation is
-henceforth treated as `E<U1 .. Us>.C<T1 .. Tm>.name(args)`.
+henceforth treated as `E<U1 .. Us>.C<T1 .. Tm>.name(args)` (respectively
+`E<U1 .. Us>.C<T1 .. Tm>(args)`).
 
 A constructor invocation of the form `C.name(args)` (respectively
 `C(args)`) where `C` resolves to a non-generic class is resolved in the
@@ -329,25 +324,6 @@ subject to type inference multiple times, and hence we do not support type
 inference for `C.name(args)` in the case where there are multiple distinct
 declarations whose signature could be used during the static analysis of
 that expression.*
-
-#### Extension applicability
-
-Let _D_ be a extension declaration named `E` with type parameters
-`X1 extends B1 .. Xs extends Bs` and constructor return type
-`C<T1 .. Tk>`. Let `P` be a context type schema.
-
-Let `f` be a function declared as follows, also known as the
-_applicability function_ of `E`:
-
-```dart
-C<T1 .. Tk> f<X1 extends B1 .. Xs extends Bs>() => f();
-```
-
-We say that _D_ is _applicable with context type schema_ `P`
-_yielding actual type arguments_ `S1 .. Ss` iff type inference of the
-invocation `f()` with context type schema `P` yields a list of actual type
-arguments `S1 .. Ss` to `f` such that `[S1/X1 .. Ss/Xs]C<T1 .. Tk>` is
-assignable to the greatest closure of `P`.
 
 ### Dynamic Semantics
 
