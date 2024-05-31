@@ -23,7 +23,7 @@ A feature like static extensions was requested already several years ago in
 The main motivation for this feature is that developers wish to add
 constructors or static members to an existing class, mixin, enum, or
 extension type declaration, but they do not have the ability to directly
-edit the declaration of said declaration. 
+edit the source code of said declaration.
 
 This feature allows static members to be declared in static extensions of a
 given class/mixin/etc. declaration, and they can be invoked as if they had
@@ -38,17 +38,17 @@ class Distance {
 }
 
 static extension E1 on Distance {
-  const Distance.fromHalf(int half) : this(2 * half);
+  factory Distance.fromHalf(int half) => Distance(2 * half);
 }
 
 void walk(Distance d) {...}
 
 void main() {
-  walk(const Distance.fromHalf(10));
+  walk(Distance.fromHalf(10));
 }
 ```
 
-A static extension declaration is associated with an on-class (as opposed
+A static extension declaration is associated with an _on-class_ (as opposed
 to a plain extension declaration which is associated with an on-type). In
 the example above, the on-class of `E1` is `Distance`.
 
@@ -90,12 +90,24 @@ generic classes whose invocation is only allowed when the given actual type
 arguments satisfy some constraints that are stronger than the ones required
 by the class itself.
 
-For example, we might have a class `SortedList<T>` where the regular
+For example, we might have a class `SortedList<X>` where the regular
 constructors (in the class itself) require an argument of type
-`Comparator<T>`, but a static extension provides an extra constructor that
-does not require the `Comparator<T>` argument. This extra constructor would
-have a constraint on the actual type argument, namely that it is a `T` such
-that `T extends Comparable<T>`.
+`Comparator<X>`, but a static extension provides an extra constructor that
+does not require the `Comparator<X>` argument. This extra constructor would
+have a constraint on the actual type argument, namely that it is a `X` such
+that `X extends Comparable<X>`.
+
+```dart
+class SortedList<X> {
+  final Comparator<X> _comparator;
+  SortedList(Comparator<X> this._comparator);
+  // ... lots of stuff that doesn't matter here ...
+}
+
+static extension<X extends Comparable<X>> on SortedList<X> {
+  SortedList(): super((X a, X b) => a.compareTo(b));
+}
+```
 
 A static extension with type parameters can be specialized for specific
 values of specific type arguments by specifying actual type arguments of
@@ -202,7 +214,7 @@ form `on C<T1 .. Tk>`, and the actual type parameters passed to `C` do not
 satisfy the bounds declared by `C`.  The static extension may declare one
 or more type parameters `X1 extends B1 .. Xs extends Bs`, and these type
 variables may occur in the types `T1 .. Tk`. During the bounds check, the
-bounds `B1 .. Bs` are assumed for the type variables `X1 .. Xs`.
+bounds `B1 .. Bs` are assumed to hold for the type variables `X1 .. Xs`.
 
 Consider a static extension declaration _D_ named `E` which is declared in
 the current library or present in any exported namespace of an import
@@ -220,7 +232,8 @@ by the static extension, even in the case where there is a different
 declaration in scope with the same name. For example:*
 
 ```dart
-static extension E on C { // `FreshE` is an extra name for `E`.
+// Assume that `FreshE` is the implicitly induced extra name for `E`.
+static extension E on C {
   static void foo() {}
 }
 
@@ -275,6 +288,10 @@ static members of classes, mixins, etc.*
 A static extension declaration _D_ is _accessible_ if _D_ is declared in
 the current library, or if _D_ is imported and not hidden.
 
+*In particular, it is accessible even in the case where there is a name
+clash with another locally declared or imported declaration with the same
+name.*
+
 #### Invocation of a static member of a static extension
 
 An _explicitly resolved invocation_ of a static member of a static
@@ -295,11 +312,12 @@ that static member of `C`, with the same static analysis and dynamic
 behavior as before the introduction of this feature.
 
 Otherwise, an error occurs if fewer than one or more than one declaration
-named `m` was found.
+named `m` was found. *They would necessarily be declared in static
+extensions.*
 
 Otherwise, the invocation is resolved to the given static member
-declaration in a static extension named `E`, and the invocation is treated
-as `E.m()` *(this is an explicitly resolved invocation, which is specified
+declaration in a static extension named `Ej`, and the invocation is treated
+as `Ej.m()` *(this is an explicitly resolved invocation, which is specified
 above)*.
 
 #### The instantiated constructor return type of a static extension
@@ -317,7 +335,9 @@ for any list of actual type arguments.
 which isn't used in the constructor return type, because it can only be
 passed in an explicitly resolved constructor invocation, e.g.,
 `E<int>.C(42)`. In all other invocations, the value of such type variables
-is determined by instantiation to bound.*
+is determined by instantiation to bound. In any case, the type parameters
+are always ignored by static member declarations, they are only relevant to
+constructors.*
 
 When a static extension declaration _D_ has no formal type parameters, and
 it has an on-type `C<S1 .. Sk>`, the instantiated constructor return type
@@ -325,23 +345,24 @@ of _D_ is `C<S1 .. Sk>`. *In this case the on-type is a fixed type (also
 known as a ground type), e.g., `List<int>`. This implies that the
 constructor return type of D is the same for every call site.*
 
-Consider a static extension declaration _D_ named `E` with formal type
-parameters `X1 extends B1 .. Xs extends Bs` and a constructor return type
-`C<S1 .. Sk>`. With actual type arguments `T1 .. Ts`, the instantiated
-constructor return type of _D_ with type arguments `T1 .. Ts` is
-`[T1/X1 .. Ts/Xs]C<S1 .. Sk>`.
+Finally we have the general case: Consider a static extension declaration
+_D_ named `E` with formal type parameters `X1 extends B1 .. Xs extends Bs`
+and a constructor return type `C<S1 .. Sk>`. With actual type arguments
+`T1 .. Ts`, the instantiated constructor return type of _D_ with type
+arguments `T1 .. Ts` is `[T1/X1 .. Ts/Xs]C<S1 .. Sk>`.
 
 #### Explicit invocation of a constructor in a static extension
 
 Explicit constructor invocations are similar to static member invocations,
 but they need more detailed rules because they can use the formal type
-parameters declared by the static extension.
+parameters declared by a static extension.
 
 An _explicitly resolved invocation_ of a constructor named `C.name` in a
 static extension declaration _D_ named `E` with `s` type parameters and
-on-class `C` can be expressed as `E<S1 .. Ss>.C.name(args)`, `E.C<U1
-.. Uk>.name(args)`, or `E<S1 .. Ss>.C<U1 .. Uk>.name(args)` (and similarly
-for a constructor named `C` using `E<S1 .. Ss>.C(args)` etc).
+on-class `C` can be expressed as `E<S1 .. Ss>.C.name(args)`,
+`E.C<U1 .. Uk>.name(args)`, or `E<S1 .. Ss>.C<U1 .. Uk>.name(args)`
+(and similarly for a constructor named `C` using `E<S1 .. Ss>.C(args)`,
+etc).
 
 A compile-time error occurs if the type arguments passed to `E` violate the
 declared bounds. A compile-time error occurs if no type arguments are
@@ -350,19 +371,24 @@ of actual type arguments for the type variables of `E` can be found such
 that the instantiated constructor return type of `E` with said type
 arguments is `C<U1 .. Uk>`.
 
+*Note that we must be able to choose the values of the type parameters
+`X1 .. Xs` such that the instantiated constructor return type is
+exactly `C<U1 .. Uk>`, it is not sufficient that it is a subtype thereof,
+or that it differs in any other way.*
+
 A compile-time error occurs if the invocation passes actual type arguments
 to both `E` and `C`, call them `S1 .. Ss` and `U1 .. Uk`, respectively,
 unless the instantiated constructor return type of _D_ with actual type
 arguments `S1 .. Ss` is `C<U1 .. Uk>`. In this type comparison, top types
 like `dynamic` and `Object?` are considered different, and no type
-normalization occurs. *In other words, the types must be identical, not
+normalization occurs. *In other words, the types must be equal, not
 just mutual subtypes.*
 
 *Note that explicitly resolved invocations of constructors declared in
 static extensions are an exception in real code, usable in the case where a
-name clash prevents an implicitly resolved invocation. Implicitly resolved
-invocations are specified in the rest of this section by reducing them to
-explicitly resolved ones.*
+name clash prevents an implicitly resolved invocation. However, implicitly
+resolved invocations are specified in the rest of this section by reducing
+them to explicitly resolved ones.*
 
 A constructor invocation of the form `C<T1 .. Tm>.name(args)` is partially
 resolved by looking up a constructor named `C.name` in the class `C` and in
@@ -371,16 +397,17 @@ occurs if no such constructor is found. Similarly, an invocation of the
 form `C<T1 ... Tm>(args)` uses a lookup for constructors named `C`.
 
 If a constructor in `C` with the requested name was found, the pre-feature
-static analysis and dynamic semantics apply.
+static analysis and dynamic semantics apply. *That is, the class always
+wins.*
 
 Otherwise, the invocation is partially resolved to a set of candidate
 constructors found in static extensions. Each of the candidates _kj_ is
 vetted as follows:
 
 Assume that _kj_ is a constructor declared by a static extension _D_ named
-`E` with type parameters `X1 extends B1 .. Xs extends Bs` and on-type `C<S1
-.. Sm>`.  Find actual values `U1 .. Us` for `X1 .. Xs` satisfying the
-bounds `B1 .. Bs`, such that `[U1/X1 .. Us/Xs]C<S1 .. Sm> == C<T1 .. Tm>`.
+`E` with type parameters `X1 extends B1 .. Xs extends Bs` and on-type
+`C<S1 .. Sm>`.  Find actual values `U1 .. Us` for `X1 .. Xs` satisfying the
+bounds `B1 .. Bs`, such that `([U1/X1 .. Us/Xs]C<S1 .. Sm>) == C<T1 .. Tm>`.
 If this fails then remove _kj_ from the set of candidate constructors.
 Otherwise note that _kj_ uses actual type arguments `U1 .. Us`.
 
@@ -417,7 +444,7 @@ that expression.*
 #### Static extension applicability
 
 Let _D_ be a static extension declaration named `E` with type parameters
-`X1 extends B1 .. Xs extends Bs` and constructor return type 
+`X1 extends B1 .. Xs extends Bs` and constructor return type
 `C<T1 .. Tk>`. Let `P` be a context type schema.
 
 Let `f` be a function declared as follows, also known as the
@@ -450,6 +477,6 @@ This fully determines the dynamic semantics of this feature.
 
 ### Changelog
 
-1.0 - May 24, 2024
+1.0 - May 31, 2024
 
 * First version of this document released.
