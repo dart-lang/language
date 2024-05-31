@@ -94,7 +94,7 @@ For example, we might have a class `SortedList<X>` where the regular
 constructors (in the class itself) require an argument of type
 `Comparator<X>`, but a static extension provides an extra constructor that
 does not require the `Comparator<X>` argument. This extra constructor would
-have a constraint on the actual type argument, namely that it is a `X` such
+have a constraint on the actual type argument, namely that it is an `X` such
 that `X extends Comparable<X>`.
 
 ```dart
@@ -105,7 +105,7 @@ class SortedList<X> {
 }
 
 static extension<X extends Comparable<X>> on SortedList<X> {
-  SortedList(): super((X a, X b) => a.compareTo(b));
+  SortedList.ofComparable(): super((X a, X b) => a.compareTo(b));
 }
 ```
 
