@@ -40,12 +40,12 @@ class SocketClient {
       });
     } else if (message.isAugmentRequest) {
       final request = message.asAugmentRequest;
-      unawaited(augment(request.macro, request.uri, request.augmentation));
+      unawaited(augment(request.macro, request.augmentationsByUri));
     }
   }
 
   Future<void> augment(
-      QualifiedName macro, String uri, String augmentation) async {
-    await host.augment(macro: macro, uri: uri, augmentation: augmentation);
+      QualifiedName macro, Map<String, String> augmentationsByUri) async {
+    await host.augment(macro: macro, augmentationsByUri: augmentationsByUri);
   }
 }

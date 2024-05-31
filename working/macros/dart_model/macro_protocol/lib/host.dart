@@ -7,8 +7,8 @@ import 'package:dart_model/query.dart';
 
 abstract interface class Host {
   Service get service;
-  Future<void> augment(
-      {required QualifiedName macro,
-      required String uri,
-      required String augmentation});
+  Future<void> augment({
+    required QualifiedName macro,
+    required Map<String, String> augmentationsByUri,
+  });
 }

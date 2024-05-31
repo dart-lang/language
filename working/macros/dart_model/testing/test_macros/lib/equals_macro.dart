@@ -30,6 +30,7 @@ class EqualsMacro implements Macro {
   void generate(Host host, Delta delta) async {
     delta.update(model);
 
+    final augmentationsByUri = <String, String>{};
     for (final uri in delta.uris) {
       final library = model.library(uri)!;
       final result = StringBuffer();
@@ -38,9 +39,11 @@ class EqualsMacro implements Macro {
         result.write(generateFor(clazz));
       }
 
-      unawaited(
-          host.augment(macro: name, uri: uri, augmentation: result.toString()));
+      augmentationsByUri[uri] = result.toString();
     }
+
+    unawaited(
+        host.augment(macro: name, augmentationsByUri: augmentationsByUri));
   }
 
   String generateFor(Interface clazz) {

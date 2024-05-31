@@ -72,20 +72,18 @@ extension type WatchResponse.fromJson(Map<String, Object?> node) {
 
 extension type AugmentRequest.fromJson(Map<String, Object?> node)
     implements Message {
-  AugmentRequest(
-      {required QualifiedName macro,
-      required String uri,
-      required String augmentation})
-      : this.fromJson({
+  AugmentRequest({
+    required QualifiedName macro,
+    required Map<String, String> augmentationsByUri,
+  }) : this.fromJson({
           'type': 'augment',
           'macro': macro.toString(),
-          'uri': uri,
-          'augmentation': augmentation,
+          'augmentationsByUri': augmentationsByUri,
         });
 
   QualifiedName get macro => QualifiedName.tryParse(node['macro'] as String)!;
-  String get uri => node['uri'] as String;
-  String get augmentation => node['augmentation'] as String;
+  Map<String, String> get augmentationsByUri =>
+      (node['augmentationsByUri'] as Map).cast();
 }
 
 extension type AugmentResponse.fromJson(Map<String, Object?> node) {
