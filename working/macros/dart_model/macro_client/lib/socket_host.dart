@@ -56,11 +56,11 @@ class SocketHost implements Service, Host {
   Service get service => this;
 
   @override
-  Future<void> augment(
-      {required QualifiedName macro,
-      required String uri,
-      required String augmentation}) async {
+  Future<void> augment({
+    required QualifiedName macro,
+    required Map<String, String> augmentationsByUri,
+  }) async {
     socket.writeln(json.encode(
-        AugmentRequest(macro: macro, uri: uri, augmentation: augmentation)));
+        AugmentRequest(macro: macro, augmentationsByUri: augmentationsByUri)));
   }
 }

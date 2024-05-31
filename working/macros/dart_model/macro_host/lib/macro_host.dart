@@ -16,7 +16,7 @@ class MacroHost implements Host {
   final Service service;
   final File? Function(Uri) uriConverter;
   ServerSocket? serverSocket;
-  final Map<String, Map<Object, String>> _augmentationsByUri = {};
+  final Map<String, Map<QualifiedName, String>> _augmentationsByMacroByUri = {};
   final Set<String> _augmentationsToWrite = {};
 
   int _augmentationCounter = 0;
@@ -36,17 +36,22 @@ class MacroHost implements Host {
   }
 
   @override
-  Future<void> augment(
-      {required QualifiedName macro,
-      required String uri,
-      required String augmentation}) async {
-    print('  ${macro.name} --${augmentation.length}--> $uri');
-    if (_augmentationsByUri[uri] == null) {
-      _augmentationsByUri[uri] = {};
+  Future<void> augment({
+    required QualifiedName macro,
+    required Map<String, String> augmentationsByUri,
+  }) async {
+    final size =
+        augmentationsByUri.values.map((v) => v.length).fold(0, (a, b) => a + b);
+    print(
+        '  ${macro.name} augments ${augmentationsByUri.length} uri(s), $size char(s).');
+    for (final uri in augmentationsByUri.keys) {
+      if (_augmentationsByMacroByUri[uri] == null) {
+        _augmentationsByMacroByUri[uri] = {};
+      }
+      final augmentations = _augmentationsByMacroByUri[uri]!;
+      augmentations[macro] = augmentationsByUri[uri]!;
+      _augmentationsToWrite.add(uri);
     }
-    final augmentations = _augmentationsByUri[uri]!;
-    augmentations[macro] = augmentation;
-    _augmentationsToWrite.add(uri);
 
     // Give other augmentations a chance to arrive before flushing.
     if (_flushing) return;
@@ -67,7 +72,7 @@ class MacroHost implements Host {
     _augmentationsToWrite.clear();
     final futures = <Future>[];
     for (final uri in augmentationsToWrite) {
-      final augmentations = _augmentationsByUri[uri]!;
+      final augmentations = _augmentationsByMacroByUri[uri]!;
       final baseFile = uriConverter(Uri.parse(uri))!;
       final baseName =
           baseFile.path.substring(baseFile.path.lastIndexOf('/') + 1);
