@@ -9,6 +9,7 @@ dependencies:
   async: ^2.11.0
   dart_model: any
   dart_model_analyzer_service: any
+  macro_host: any
 
 dependency_overrides:
   dart_model:
@@ -17,3 +18,9 @@ dependency_overrides:
   dart_model_analyzer_service:
     path:
       ../dart_model_analyzer_service
+  macro_host:
+    path:
+      ../macro_host
+  macro_protocol:
+    path:
+      ../macro_protocol

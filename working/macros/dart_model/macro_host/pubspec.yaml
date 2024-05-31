@@ -9,6 +9,7 @@ dependencies:
   dart_model: any
   dart_model_analyzer_service: any
   macro_protocol: any
+  stream_transform: ^2.1.0
 
 dependency_overrides:
   dart_model:

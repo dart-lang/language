@@ -2,7 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'delta.dart';
 import 'model.dart';
 
 extension type Query.fromJson(Map<String, Object?> node) {
@@ -91,5 +90,5 @@ extension type Operation.fromJson(Map<String, Object?> node) {
 
 abstract interface class Service {
   Future<Model> query(Query query);
-  Future<Stream<Delta>> watch(Query query);
+  Future<void> changeFiles(Iterable<String> files);
 }

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:analyzer/dart/analysis/analysis_context.dart';
@@ -12,20 +11,27 @@ import 'package:analyzer/dart/analysis/session.dart';
 import 'package:analyzer/dart/element/element.dart';
 // ignore: implementation_imports
 import 'package:analyzer/src/dart/constant/value.dart';
-import 'package:dart_model/delta.dart';
 import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
-import 'package:stream_transform/stream_transform.dart';
+import 'package:pool/pool.dart';
 
 // ignore_for_file: deprecated_member_use
 class DartModelAnalyzerService implements Service {
   final AnalysisContext? context;
   AnalysisSession? session;
+  final Pool pool = Pool(1);
 
   DartModelAnalyzerService({this.context, this.session});
 
   @override
   Future<Model> query(Query query) async {
+    // Lock so we don't query while reanalyzing changed files.
+    return await pool.withResource(() {
+      return _query(query);
+    });
+  }
+
+  Future<Model> _query(Query query) async {
     if (context != null) {
       session = context!.currentSession;
     }
@@ -71,29 +77,18 @@ class DartModelAnalyzerService implements Service {
   }
 
   @override
-  Future<Stream<Delta>> watch(Query query) async {
-    if (context != null) {
-      session = context!.currentSession;
+  Future<void> changeFiles(Iterable<String> files) async {
+    // Lock so we don't query while reanalyzing changed files.
+    return await pool.withResource(() {
+      return _changeFiles(files);
+    });
+  }
+
+  Future<void> _changeFiles(Iterable<String> files) async {
+    for (final file in files) {
+      context!.changeFile(file);
     }
-    // TODO(davidmorgan): watch recursivly.
-    final changes = Directory('${context!.contextRoot.root.path}/lib').watch();
-    Model previousModel = Model();
-    return Stream.fromIterable(<FileSystemEvent?>[null])
-        .followedBy(changes)
-        .asyncMap((change) async {
-          if (change != null) context!.changeFile(change.path);
-          await context!.applyPendingFileChanges();
-          final model = await this.query(query);
-          var delta = Delta.compute(previousModel, model);
-          // Round trip to check serialization works.
-          // TODO(davidmorgan): add test coverage.
-          delta = Delta.fromJson(json.decode(json.encode(delta)));
-          previousModel = model;
-          return delta.isEmpty ? null : delta;
-        })
-        .where((e) => e != null)
-        .map((e) => e!)
-        .asBroadcastStream();
+    await context!.applyPendingFileChanges();
   }
 
   Model queryLibrary(LibraryElement libraryElement, Query query) {

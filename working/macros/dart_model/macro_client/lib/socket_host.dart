@@ -6,19 +6,18 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dart_model/delta.dart';
 import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
 import 'package:macro_protocol/host.dart';
 import 'package:macro_protocol/message.dart';
 
-class SocketHost implements Service, Host {
+class SocketHost implements Host {
   final Socket socket;
   final StreamController<Object?> messagesController =
       StreamController.broadcast();
   Stream<Object?> get messages => messagesController.stream;
   int _id = 0;
-  final Map<int, StreamController<Delta>> _deltaStreams = {};
+  final Map<int, StreamController<Round>> _roundStreams = {};
 
   SocketHost(this.socket) {
     socket
@@ -29,38 +28,30 @@ class SocketHost implements Service, Host {
   }
 
   @override
-  Future<Model> query(Query query) async {
-    socket.writeln(json.encode(QueryRequest(query)));
-    return Model.fromJson((await messages.first) as Map<String, Object?>);
-  }
-
-  @override
-  Future<Stream<Delta>> watch(Query query) async {
+  Future<Stream<Round>> watch(Query query) async {
     ++_id;
     socket.writeln(json.encode(WatchRequest(query: query, id: _id)));
-    final result = StreamController<Delta>();
-    _deltaStreams[_id] = result;
+    final result = StreamController<Round>();
+    _roundStreams[_id] = result;
     return result.stream;
   }
 
   void _handle(Message message) {
-    if (message.isWatchResponse) {
-      final response = message.asWatchResponse;
-      _deltaStreams[response.id]!.add(response.delta);
+    if (message.isRound) {
+      final response = message.asRound;
+      _roundStreams[response.id]!.add(response);
     } else {
       messagesController.add(message);
     }
   }
 
   @override
-  Service get service => this;
-
-  @override
   Future<void> augment({
     required QualifiedName macro,
+    required int round,
     required Map<String, String> augmentationsByUri,
   }) async {
-    socket.writeln(json.encode(
-        AugmentRequest(macro: macro, augmentationsByUri: augmentationsByUri)));
+    socket.writeln(json.encode(AugmentRequest(
+        macro: macro, round: round, augmentationsByUri: augmentationsByUri)));
   }
 }

@@ -6,13 +6,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dart_model/model.dart';
-import 'package:dart_model/query.dart';
-import 'package:macro_protocol/host.dart';
 import 'package:macro_protocol/message.dart';
 
+import 'macro_host.dart';
+
 class SocketClient {
-  final Host host;
+  final MacroHost host;
   final Socket socket;
 
   SocketClient(this.host, this.socket) {
@@ -23,29 +22,22 @@ class SocketClient {
         .listen(handle);
   }
 
-  Service get service => host.service;
-
   void handle(String line) async {
     final message = Message.fromJson(json.decode(line));
 
-    if (message.isQueryRequest) {
-      final response = await service.query(message.asQueryRequest.query);
-      socket.writeln(json.encode(QueryResponse(response)));
-    } else if (message.isWatchRequest) {
+    if (message.isWatchRequest) {
       final request = message.asWatchRequest;
-      final response = await service.watch(request.query);
-      response.listen((delta) {
-        socket
-            .writeln(json.encode(WatchResponse(id: request.id, delta: delta)));
-      });
+      void send(Round round) {
+        socket.writeln(json.encode(round));
+      }
+
+      host.watch(request.query, request.id, send);
     } else if (message.isAugmentRequest) {
       final request = message.asAugmentRequest;
-      unawaited(augment(request.macro, request.augmentationsByUri));
+      unawaited(host.augment(
+          macro: request.macro,
+          round: request.round,
+          augmentationsByUri: request.augmentationsByUri));
     }
-  }
-
-  Future<void> augment(
-      QualifiedName macro, Map<String, String> augmentationsByUri) async {
-    await host.augment(macro: macro, augmentationsByUri: augmentationsByUri);
   }
 }
