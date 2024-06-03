@@ -1,11 +1,11 @@
 import 'package:_fe_analyzer_shared/src/macros/code_optimizer.dart';
-import 'package:macros/macros.dart';
-import 'package:macros/src/executor/introspection_impls.dart';
-import 'package:macros/src/executor/remote_instance.dart';
-import 'package:macros/src/executor.dart';
 import 'package:_fe_analyzer_shared/src/scanner/scanner.dart';
 import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:dart_style/dart_style.dart';
+import 'package:macros/macros.dart';
+import 'package:macros/src/executor.dart';
+import 'package:macros/src/executor/introspection_impls.dart';
+import 'package:macros/src/executor/remote_instance.dart';
 
 /// A benchmark which only calls `run` once inside `excersize`.
 class RunOnceBenchmarkBase extends BenchmarkBase {
@@ -313,6 +313,14 @@ class SimpleNamedStaticType implements NamedStaticType {
   @override
   Future<bool> isSubtypeOf(covariant StaticType other) =>
       throw UnimplementedError();
+
+  @override
+  Future<NamedStaticType?> asInstanceOf(TypeDeclaration declaration) {
+    throw UnimplementedError();
+  }
+
+  @override
+  ParameterizedTypeDeclaration get declaration => throw UnimplementedError();
 }
 
 final boolIdentifier =

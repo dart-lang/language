@@ -1,0 +1,26 @@
+name: dart_model_repl
+publish-to: none
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  analyzer: any
+  async: ^2.11.0
+  dart_model: any
+  dart_model_analyzer_service: any
+  macro_host: any
+
+dependency_overrides:
+  dart_model:
+    path:
+      ../dart_model
+  dart_model_analyzer_service:
+    path:
+      ../dart_model_analyzer_service
+  macro_host:
+    path:
+      ../macro_host
+  macro_protocol:
+    path:
+      ../macro_protocol

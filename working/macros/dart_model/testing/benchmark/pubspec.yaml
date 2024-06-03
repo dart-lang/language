@@ -1,0 +1,15 @@
+name: benchmark
+publish-to: none
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  collection: any
+  macros: ^0.1.0
+
+dependency_overrides:
+  _macros:
+    sdk: dart
+    version: any
+
