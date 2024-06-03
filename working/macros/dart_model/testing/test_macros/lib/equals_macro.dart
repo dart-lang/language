@@ -8,7 +8,7 @@ import 'package:macro_client/class_generator_macro.dart';
 class EqualsMacro extends ClassGeneratorMacro {
   @override
   QualifiedName get name => QualifiedName(
-      uri: 'package:test_macros_annotations/annotations.dart', name: 'Equals');
+      uri: 'package:test_macro_annotations/annotations.dart', name: 'Equals');
 
   @override
   String generateFor(Interface clazz) {
