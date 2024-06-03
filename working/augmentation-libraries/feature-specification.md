@@ -298,11 +298,16 @@ Often, an augmentation wants to also preserve and run the code of the original
 declaration it augments (hence the name "augmentation"). It may want run before
 the original code, after it, or both. To allow that, we allow a new expression
 syntax inside the bodies of augmenting members. Inside a member marked
-`augment`, the expression `augmented` can be used to refer to the original
+`augment`, the expression `augmented` can be used to refer to the augmented
 function, getter, setter, or variable initializer. This is a contextual keyword
 within `augment` members, and has no special meaning outside of that context.
 See the next section for a full specification of what `augmented` actually
 means, in the various contexts.
+
+**Note:** Within an `augment` member, a reference to a member by the same name
+refers to the final version of the member (and not the one being augmented). The
+only way to reference the augmented member is through the `augmented`
+expression.
 
 The same declaration can be augmented multiple times by separate library
 augmentations. When that happens, the merge order defined previously determines
