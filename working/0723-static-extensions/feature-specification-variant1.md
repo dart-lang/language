@@ -105,7 +105,7 @@ class SortedList<X> {
 }
 
 static extension<X extends Comparable<X>> on SortedList<X> {
-  SortedList.ofComparable(): super((X a, X b) => a.compareTo(b));
+  SortedList.ofComparable(): this((X a, X b) => a.compareTo(b));
 }
 ```
 
@@ -174,12 +174,15 @@ The grammar is modified as follows:
 
 In a static extension of the form `static extension E on C {...}` where `C`
 is an identifier or an identifier with an import prefix, we say that the
-on-class of the static extension is `C`. If `C` resolves to a non-generic
-class then we say that the _constructor return type_ of the static
-extension is `C`.
+on-class of the static extension is `C`.
 
-*If `C` resolves to a generic class then the static extension does not have
-a constructor return type.*
+If `C` denotes a non-generic class, mixin, mixin class, or extension
+type then we say that the _constructor return type_ of the static extension
+is `C`.
+
+If `C` denotes a generic class then `E` is treated as
+`static extensionE on C<T1 .. Tk> {...}` 
+where `T1 .. Tk` are obtained by instantiation to bound.
 
 In a static extension of the form `static extension E on C<T1 .. Tk> {...}`
 where `C` is an identifier or prefixed identifier, we say that the on-class
@@ -247,8 +250,8 @@ Tools may report diagnostic messages like warnings or lints in certain
 situations. This is not part of the specification, but here is one
 recommended message:
 
-A compile-time message is emitted if a static extension _D_ declares a
-constructor or a static member with the same name as a constructor or a
+A compile-time diagnostic is emitted if a static extension _D_ declares a
+constructor or a static member with the same basename as a constructor or a
 static member in the on-class of _D_.
 
 *In other words, a static extension should not have name clashes with its
@@ -309,11 +312,11 @@ on-class `C` and a member named `m`.
 
 If `C` contains such a declaration then the expression is an invocation of
 that static member of `C`, with the same static analysis and dynamic
-behavior as before the introduction of this feature.
+semantics as before the introduction of this feature.
 
-Otherwise, an error occurs if fewer than one or more than one declaration
-named `m` was found. *They would necessarily be declared in static
-extensions.*
+Otherwise, an error occurs if no declarations named `m` or more than one
+declaration named `m` were found. *They would necessarily be declared in
+static extensions.*
 
 Otherwise, the invocation is resolved to the given static member
 declaration in a static extension named `Ej`, and the invocation is treated
@@ -327,9 +330,9 @@ parameters `X1 extends B1 .. Xs extends Bs` and an actual type argument
 list `T1 .. Ts` with a type known as the _instantiated constructor return
 type of_ _D_ _with type arguments_ `T1 .. Ts`.
 
-When a static extension declaration _D_ named `E` has an on-clause which is
-a non-generic class `C`, the instantiated constructor return type is `C`,
-for any list of actual type arguments.
+When a static extension declaration _D_ named `E` has an on-clause which
+denotes a non-generic class `C`, the instantiated constructor return type
+is `C`, for any list of actual type arguments.
 
 *It is not very useful to declare a type parameter of a static extension
 which isn't used in the constructor return type, because it can only be
@@ -417,13 +420,13 @@ henceforth treated as `E<U1 .. Us>.C<T1 .. Tm>.name(args)` (respectively
 `E<U1 .. Us>.C<T1 .. Tm>(args)`).
 
 A constructor invocation of the form `C.name(args)` (respectively
-`C(args)`) where `C` resolves to a non-generic class is resolved in the
+`C(args)`) where `C` denotes a non-generic class is resolved in the
 same manner, with `m == 0`. *In this case, type parameters declared by `E`
 will be bound to values selected by instantiation to bound.*
 
 Consider a constructor invocation of the form `C.name(args)` (and similarly
-for `C(args)`) where `C` resolves to a generic class. As usual, the
-invocation is treated as in the pre-feature language when it resolves to a
+for `C(args)`) where `C` denotes a generic class. As usual, the
+invocation is treated as in the pre-feature language when it denotes a
 constructor declared by the class `C`.
 
 In the case where the context type schema for this invocation fully

@@ -96,7 +96,7 @@ class SortedList<X> {
 }
 
 extension<X extends Comparable<X>> on SortedList<X> {
-  SortedList.ofComparable(): super((X a, X b) => a.compareTo(b));
+  SortedList.ofComparable(): this((X a, X b) => a.compareTo(b));
 }
 ```
 
@@ -132,20 +132,23 @@ usual, e.g., if a redirecting factory constructor redirects to a
 constructor that does not exist, or there is a redirection cycle.*
 
 In an extension declaration of the form `extension E on C {...}` where `C`
-is an identifier or an identifier with an import prefix that resolves to a
+is an identifier or an identifier with an import prefix that denotes a
 class, mixin, enum, or extension type declaration, we say that the
-_on-class_ of the extension is `C`. If `C` resolves to a non-generic class
-then we say that the _constructor return type_ of the extension is `C`.
+_on-class_ of the extension is `C`. If `C` denotes a non-generic class,
+mixin, mixin class, or extension type then we say that the _constructor return
+type_ of the extension is `C`.
 
-*If `C` resolves to a generic class then the extension does not have a
-constructor return type.*
+If `C` denotes a generic class then `E` is treated as
+`extension E on C<T1 .. Tk> {...}` where `T1 .. Tk` are obtained by
+instantiation to bound.
 
-In a extension of the form `extension E on C<T1 .. Tk> {...}`
-where `C` is an identifier or prefixed identifier that resolves to a class,
+In an extension of the form `extension E on C<T1 .. Tk> {...}`
+where `C` is an identifier or prefixed identifier that denotes a class,
 mixin, enum, or extension type declaration, we say that the _on-class_
 of `E` is `C`, and the _constructor return type_ of `E` is `C<T1 .. Tk>`.
 
-In all other cases, an extension declaration does not have an on-class.
+In all other cases, an extension declaration does not have an on-class nor a
+constructor return type.
 
 *For example, an extension whose on-type is a type variable does not have
 an on-class, and neither does an extension whose on-type is a function
@@ -165,8 +168,8 @@ Tools may report diagnostic messages like warnings or lints in certain
 situations. This is not part of the specification, but here is one
 recommended message:
 
-A compile-time message is emitted if a extension _D_ declares a
-constructor or a static member with the same name as a constructor or a
+A compile-time diagnostic is emitted if an extension _D_ declares a
+constructor or a static member with the same basename as a constructor or a
 static member in the on-class of _D_.
 
 *In other words, an extension should not have name clashes with its
@@ -194,10 +197,11 @@ on-class `C` and a static member named `m`.
 
 If `C` contains such a declaration then the expression is an invocation of
 that static member of `C`, with the same static analysis and dynamic
-behavior as before the introduction of this feature.
+semantics as before the introduction of this feature.
 
-Otherwise, an error occurs if fewer than one or more than one declaration
-named `m` was found. *They would necessarily be declared in extensions.*
+Otherwise, an error occurs if no declarations named `m` or more than one
+declaration named `m` were found. *They would necessarily be declared in
+extensions.*
 
 Otherwise, the invocation is resolved to the given static member
 declaration in an extension named `Ej`, and the invocation is treated
@@ -211,7 +215,7 @@ parameters `X1 extends B1 .. Xs extends Bs` and an actual type argument
 list `T1 .. Ts` with a type known as the _instantiated constructor return
 type of_ _D_ _with type arguments_ `T1 .. Ts`.
 
-When an extension declaration _D_ named `E` has an on-clause which is
+When an extension declaration _D_ named `E` has an on-clause which denotes
 a non-generic class `C`, the instantiated constructor return type is `C`,
 for any list of actual type arguments.
 
@@ -221,7 +225,7 @@ passed in an explicitly resolved constructor invocation, e.g.,
 `E<int>.C(42)`. In all other invocations, the value of such type variables
 is determined by instantiation to bound. In any case, the type parameters
 are always ignored by static member declarations, they are only relevant to
-constructors.*
+constructors and instance members.*
 
 When an extension declaration _D_ has no formal type parameters, and
 it has an on-type `C<S1 .. Sk>`, the instantiated constructor return type
@@ -287,7 +291,7 @@ Otherwise, the invocation is partially resolved to a set of candidate
 constructors found in extensions. Each of the candidates _kj_ is
 vetted as follows:
 
-Assume that _kj_ is a constructor declared by a extension _D_ named
+Assume that _kj_ is a constructor declared by an extension _D_ named
 `E` with type parameters `X1 extends B1 .. Xs extends Bs` and on-type
 `C<S1 .. Sm>`.  Find actual values `U1 .. Us` for `X1 .. Xs` satisfying the
 bounds `B1 .. Bs`, such that `([U1/X1 .. Us/Xs]C<S1 .. Sm>) == C<T1 .. Tm>`.
@@ -300,13 +304,13 @@ henceforth treated as `E<U1 .. Us>.C<T1 .. Tm>.name(args)` (respectively
 `E<U1 .. Us>.C<T1 .. Tm>(args)`).
 
 A constructor invocation of the form `C.name(args)` (respectively
-`C(args)`) where `C` resolves to a non-generic class is resolved in the
+`C(args)`) where `C` denotes a non-generic class is resolved in the
 same manner, with `m == 0`. *In this case, type parameters declared by `E`
 will be bound to values selected by instantiation to bound.*
 
 Consider a constructor invocation of the form `C.name(args)` (and similarly
-for `C(args)`) where `C` resolves to a generic class. As usual, the
-invocation is treated as in the pre-feature language when it resolves to a
+for `C(args)`) where `C` denotes a generic class. As usual, the
+invocation is treated as in the pre-feature language when it denotes a
 constructor declared by the class `C`.
 
 In the case where the context type schema for this invocation fully
@@ -315,7 +319,7 @@ receive said actual type arguments, `C<T1 .. Tm>.name(args)`, and treated
 as described above.
 
 In the case where the invocation resolves to exactly one constructor
-`C.name` (or `C`) declared by a extension named `E`, the invocation
+`C.name` (or `C`) declared by an extension named `E`, the invocation
 is treated as `E.C.name(args)` (respectively `E.C(args)`).
 
 Otherwise, when there are two or more candidates from extensions,
