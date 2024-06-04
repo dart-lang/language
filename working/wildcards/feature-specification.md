@@ -357,6 +357,16 @@ class B extends A {
 }
 ```
 
+### Unnamed optional parameters
+
+```dart
+int foo([int _]) => 3; // OK.
+```
+
+An optional unnamed parameter, that's not an initializing or super parameter,
+is allowed to have no default value, even if its type is non-nullable. We
+will stop producing a compile time error for this case.
+
 ### Extension types
 
 An extension type declaration has a `<representationDeclaration>`
