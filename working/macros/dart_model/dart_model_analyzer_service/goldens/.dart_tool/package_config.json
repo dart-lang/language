@@ -1,0 +1,14 @@
+{
+  "configVersion": 2,
+  "packages": [
+    {
+      "name": "goldens",
+      "rootUri": "../",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    }
+  ],
+  "generated": "2024-06-06T15:09:11.556114Z",
+  "generator": "pub",
+  "generatorVersion": "3.5.0-edge"
+}

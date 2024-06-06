@@ -10,6 +10,9 @@ dependencies:
   pool: ^1.5.1
   stream_transform: any
 
+dev_dependencies:
+  test: ^1.25.7
+
 dependency_overrides:
   dart_model:
     path:
