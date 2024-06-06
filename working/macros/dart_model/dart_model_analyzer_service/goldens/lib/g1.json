@@ -1,0 +1,103 @@
+{
+  "package:goldens/g1.dart": {
+    "Foo": {
+      "properties": [
+        "class",
+        "abstract"
+      ],
+      "annotations": [],
+      "supertype": "dart:core/object.dart#Object",
+      "interfaces": [],
+      "members": {
+        "bar": {
+          "properties": [
+            "abstract",
+            "field"
+          ]
+        }
+      }
+    },
+    "Baz": {
+      "properties": [
+        "class"
+      ],
+      "annotations": [],
+      "supertype": "dart:core/object.dart#Object",
+      "interfaces": [],
+      "members": {
+        "foo": {
+          "properties": [
+            "field"
+          ]
+        },
+        "x": {
+          "properties": [
+            "getter"
+          ]
+        }
+      }
+    }
+  },
+  "dart:core": {
+    "Object": {
+      "properties": [
+        "class"
+      ],
+      "annotations": [
+        {
+          "type": "dart:core/annotations.dart#pragma",
+          "value": {
+            "options": null,
+            "name": "vm:entry-point"
+          }
+        }
+      ],
+      "interfaces": [],
+      "members": {
+        "hashCode": {
+          "properties": [
+            "getter"
+          ]
+        },
+        "runtimeType": {
+          "properties": [
+            "getter"
+          ]
+        },
+        "==": {
+          "properties": [
+            "method"
+          ]
+        },
+        "toString": {
+          "properties": [
+            "method"
+          ]
+        },
+        "noSuchMethod": {
+          "properties": [
+            "method"
+          ]
+        },
+        "hash": {
+          "properties": [
+            "method",
+            "static"
+          ]
+        },
+        "hashAll": {
+          "properties": [
+            "method",
+            "static"
+          ]
+        },
+        "hashAllUnordered": {
+          "properties": [
+            "method",
+            "static"
+          ]
+        }
+      }
+    }
+  }
+}
