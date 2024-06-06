@@ -21,7 +21,7 @@ as a library;\
 The "macros" referred to in this exploration are independent of the in-progress
 macro implementation, hence the "scare quotes".
 
-## Benchmarks
+## End to End Benchmarks
 
 `testing/benchmark` is a tool to assist in benchmarking, it creates codebases
 of the specified size and codegen strategy.
@@ -65,3 +65,7 @@ $ dart bin/main.dart
 # files to see how the analyzer responds; you can watch the macro host terminal
 # to see when it is rewriting augmentation files.
 ```
+
+## Serialization Benchmarks
+
+`testing/json_benchmark` is benchmarking related to JSON serialization.
