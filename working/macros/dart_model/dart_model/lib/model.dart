@@ -6,7 +6,7 @@ import 'dart:convert';
 
 import 'package:collection/collection.dart';
 
-Map<Object, Model> _roots = Map.identity();
+Map<Object, Uris> _uris = Map.identity();
 Map<Object, String> _names = Map.identity();
 
 final class QualifiedName {
@@ -35,26 +35,9 @@ final class QualifiedName {
 }
 
 extension type Model.fromJson(Map<String, Object?> node) {
-  Model() : this.fromJson({});
+  Model() : this.fromJson({'uris': <String, Object?>{}});
 
-  Iterable<String> get uris => node.keys;
-  Iterable<Library> get libraries => node.values.cast();
-
-  Library? library(String uri) => node[uri] as Library?;
-  Scope? scope(QualifiedName qualifiedName) =>
-      library(qualifiedName.uri)?.scope(qualifiedName.name);
-
-  void ensure(String name) {
-    if (node.containsKey(name)) return;
-    add(name, Library());
-  }
-
-  void add(String name, Library library) {
-    if (node.containsKey(name)) throw ArgumentError('Already present: $name');
-    _names[library] = name;
-    _roots[library] = this;
-    node[name] = library;
-  }
+  Uris get uris => node['uris'] as Uris;
 
   bool hasPath(Path path) {
     if (path.path.length == 1) {
@@ -132,6 +115,27 @@ extension type Model.fromJson(Map<String, Object?> node) {
   String prettyPrint() => const JsonEncoder.withIndent('  ').convert(node);
 }
 
+extension type Uris.fromJson(Map<String, Object?> node) {
+  Iterable<String> get uris => node.keys;
+  Iterable<Library> get libraries => node.values.cast();
+
+  Library? library(String uri) => node[uri] as Library?;
+  Scope? scope(QualifiedName qualifiedName) =>
+      library(qualifiedName.uri)?.scope(qualifiedName.name);
+
+  void ensure(String name) {
+    if (node.containsKey(name)) return;
+    add(name, Library());
+  }
+
+  void add(String name, Library library) {
+    if (node.containsKey(name)) throw ArgumentError('Already present: $name');
+    _names[library] = name;
+    _uris[library] = this;
+    node[name] = library;
+  }
+}
+
 extension type Library.fromJson(Map<String, Object?> node) implements Object {
   Library() : this.fromJson({});
 
@@ -142,7 +146,7 @@ extension type Library.fromJson(Map<String, Object?> node) implements Object {
 
   void add(String name, Scope scope) {
     _names[scope] = name;
-    _roots[scope] = _roots[this]!;
+    _uris[scope] = _uris[this]!;
     node[name] = scope;
   }
 }
@@ -163,7 +167,10 @@ extension type Class.fromJson(Map<String, Object?> node) implements Scope {
       Iterable<QualifiedName>? interfaces,
       Map<String, Member>? members})
       : this.fromJson({
-          'properties': ['class', if (abstract == true) 'abstract'],
+          'properties': {
+            'class': true,
+            if (abstract != null) 'abstract': abstract
+          },
           if (annotations != null) 'annotations': annotations.toList(),
           if (supertype != null) 'supertype': supertype.toString(),
           if (interfaces != null)
@@ -177,14 +184,14 @@ extension type Class.fromJson(Map<String, Object?> node) implements Scope {
 extension type Interface.fromJson(Map<String, Object?> node) implements Scope {
   String get name => _names[this]!;
 
-  bool get isClass => (node['properties'] as List).contains('class');
-  bool get isAbstract => (node['properties'] as List).contains('abstract');
+  bool get isClass => (node['properties'] as Map)['class'] as bool;
+  bool get isAbstract => (node['properties'] as Map)['abstract'] as bool;
 
   Interface? get supertype {
     if (!node.containsKey('supertype')) return null;
     final name = QualifiedName.tryParse(node['supertype'] as String);
     if (name == null) return null;
-    return _roots[this]!.scope(name)?.asInterface;
+    return _uris[this]!.scope(name)?.asInterface;
   }
 
   List<Annotation> get annotations => (node['annotations'] as List).cast();
@@ -195,7 +202,7 @@ extension type Interface.fromJson(Map<String, Object?> node) implements Scope {
     final result = <Interface>[];
     for (final interface in (node['interfaces'] as List).cast<String>()) {
       final name = QualifiedName.tryParse(interface)!;
-      result.add(_roots[this]!.scope(name)!.asInterface!);
+      result.add(_uris[this]!.scope(name)!.asInterface!);
     }
     return result;
   }
@@ -218,24 +225,24 @@ extension type Member.fromJson(Map<String, Object?> node) {
       required bool static,
       required bool synthetic})
       : this.fromJson({
-          'properties': [
-            if (abstract) 'abstract',
-            if (getter) 'getter',
-            if (method) 'method',
-            if (field) 'field',
-            if (static) 'static',
-            if (synthetic) 'synthetic'
-          ]
+          'properties': {
+            'abstract': abstract,
+            'getter': getter,
+            'method': method,
+            'field': field,
+            'static': static,
+            'synthetic': synthetic,
+          }
         });
 
   String get name => _names[this]!;
 
-  bool get isAbstract => (node['properties'] as List).contains('abstract');
-  bool get isField => (node['properties'] as List).contains('field');
-  bool get isGetter => (node['properties'] as List).contains('getter');
-  bool get isMethod => (node['properties'] as List).contains('method');
-  bool get isStatic => (node['properties'] as List).contains('static');
-  bool get isSynthetic => (node['properties'] as List).contains('synthetic');
+  bool get isAbstract => (node['properties'] as Map)['abstract'] as bool;
+  bool get isField => (node['properties'] as Map)['field'] as bool;
+  bool get isGetter => (node['properties'] as Map)['getter'] as bool;
+  bool get isMethod => (node['properties'] as Map)['method'] as bool;
+  bool get isStatic => (node['properties'] as Map)['static'] as bool;
+  bool get isSynthetic => (node['properties'] as Map)['synthetic'] as bool;
 }
 
 extension type Annotation.fromJson(Map<String, Object?> node) {

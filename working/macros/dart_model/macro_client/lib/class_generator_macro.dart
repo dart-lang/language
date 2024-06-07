@@ -25,7 +25,7 @@ abstract class ClassGeneratorMacro implements Macro {
 
     final augmentationsByUri = <String, String>{};
     for (final uri in delta.uris) {
-      final library = model.library(uri)!;
+      final library = model.uris.library(uri)!;
       final result = StringBuffer();
       for (final scope in library.scopes) {
         final clazz = scope.asInterface!;

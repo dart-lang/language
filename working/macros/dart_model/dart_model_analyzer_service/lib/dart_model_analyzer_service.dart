@@ -52,16 +52,17 @@ class DartModelAnalyzerService implements Service {
             in library.element.topLevelElements.whereType<ClassElement>()) {
           final maybeModel = Model();
           _addInterfaceElement(maybeModel, classElement);
-          final maybeLibrary = maybeModel.library(maybeModel.uris.first)!;
+          final maybeLibrary =
+              maybeModel.uris.library(maybeModel.uris.uris.first)!;
           final maybeName = maybeLibrary.names.first;
           if (maybeLibrary
               .scope(maybeName)!
               .asInterface!
               .annotations
               .any((a) => a.type == annotation)) {
-            model.ensure(maybeModel.uris.first);
-            model
-                .library(maybeModel.uris.first)!
+            model.uris.ensure(maybeModel.uris.uris.first);
+            model.uris
+                .library(maybeModel.uris.uris.first)!
                 .add(maybeName, maybeLibrary.scope(maybeName)!);
           }
         }
@@ -112,7 +113,7 @@ class DartModelAnalyzerService implements Service {
   QualifiedName _addInterfaceElement(Model result, InterfaceElement element) {
     final uri = element.library.source.uri.toString();
     final name = element.displayName;
-    result.ensure(uri);
+    result.uris.ensure(uri);
     final supertype = element.supertype == null
         ? null
         : _addInterfaceElement(result, element.supertype!.element);
@@ -155,7 +156,7 @@ class DartModelAnalyzerService implements Service {
             synthetic: accessor.isSynthetic);
       }
     }
-    result.library(uri)!.add(
+    result.uris.library(uri)!.add(
         name,
         Class(
             annotations: annotations,

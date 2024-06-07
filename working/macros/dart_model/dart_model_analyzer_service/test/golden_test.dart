@@ -9,10 +9,18 @@ import 'package:analyzer/dart/analysis/context_builder.dart';
 import 'package:analyzer/dart/analysis/context_locator.dart';
 import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
+import 'package:dart_model/schemas.dart' as schemas;
 import 'package:dart_model_analyzer_service/dart_model_analyzer_service.dart';
+import 'package:json_schema/json_schema.dart';
 import 'package:test/test.dart';
 
 void main() {
+  final looseSchema = JsonSchema.create(schemas.loose);
+
+  // Doesn't validate due to https://github.com/Workiva/json_schema/issues/190.
+  // final strictSchema = JsonSchema.create(schemas.strict);
+  final strictSchema = null;
+
   final directory = Directory('goldens/lib');
   final dartFiles = directory
       .listSync()
@@ -30,25 +38,70 @@ void main() {
   for (final file in dartFiles) {
     final path = file.path.replaceAll('goldens/lib/', '');
     test(path, () async {
+      final goldenFile = File(file.path.replaceAll('.dart', '.json'));
       final golden =
-          File(file.path.replaceAll('.dart', '.json')).readAsStringSync();
+          goldenFile.existsSync() ? goldenFile.readAsStringSync() : null;
       await service.changeFiles([file.absolute.path]);
       final model = await service.query(Query.uri('package:goldens/$path'));
-      compare(path: path, model: model, golden: golden);
+      verify(
+          path: path,
+          model: model,
+          golden: golden,
+          looseSchema: looseSchema,
+          strictSchema: strictSchema);
     });
   }
 }
 
-void compare(
-    {required String path, required Model model, required String golden}) {
+void verify(
+    {required String path,
+    required Model model,
+    String? golden,
+    JsonSchema? looseSchema,
+    JsonSchema? strictSchema}) {
   final prettyEncoder = JsonEncoder.withIndent('  ');
   final modelJson = prettyEncoder.convert(model);
-  final normalizedGoldenJson = prettyEncoder.convert(json.decode(golden));
 
-  if (modelJson == normalizedGoldenJson) return;
+  if (looseSchema != null) {
+    final results = looseSchema.validate(modelJson, parseJson: true);
+    if (!results.isValid) {
+      // The actual toString has a bug.
+      final resultsToString = '${results.errors.isEmpty ? 'VALID' : 'INVALID'}'
+          '${results.errors.isNotEmpty ? ', Errors:\n${results.errors.join('\n')}' : ''}'
+          '${results.warnings.isNotEmpty ? ', Warnings:\n${results.warnings.join('\n')}' : ''}';
+      print('''
+=== actual output fails schema check
+$modelJson
+===
+''');
+      fail('Output does not validate against schema!\n\n$resultsToString');
+    }
+  }
 
-  final jsonPath = path.replaceAll('.dart', '.json');
-  print('''
+  if (strictSchema != null) {
+    final results = strictSchema.validate(modelJson, parseJson: true);
+    if (!results.isValid) {
+      // The actual toString has a bug.
+      final resultsToString = '${results.errors.isEmpty ? 'VALID' : 'INVALID'}'
+          '${results.errors.isNotEmpty ? ', Errors:\n${results.errors.join('\n')}' : ''}'
+          '${results.warnings.isNotEmpty ? ', Warnings:\n${results.warnings.join('\n')}' : ''}';
+      print('''
+=== actual output fails strict schema check
+$modelJson
+===
+''');
+      fail(
+          'Output does not validate against strict schema!\n\n$resultsToString');
+    }
+  }
+
+  if (golden != null) {
+    final normalizedGoldenJson = prettyEncoder.convert(json.decode(golden));
+
+    if (modelJson == normalizedGoldenJson) return;
+
+    final jsonPath = path.replaceAll('.dart', '.json');
+    print('''
 === current golden
 $normalizedGoldenJson
 === actual output, with command to update golden
@@ -57,5 +110,6 @@ $modelJson
 EOF
 ===
 ''');
-  fail('Difference found for $path model compared to $jsonPath, see above.');
+    fail('Difference found for $path model compared to $jsonPath, see above.');
+  }
 }
