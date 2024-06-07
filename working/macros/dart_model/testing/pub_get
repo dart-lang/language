@@ -10,3 +10,7 @@ for package in dart_model dart_model_analyzer_service dart_model_repl \
   dart pub get
   popd
 done
+
+pushd dart_model
+tool/generate_schema_dart
+popd

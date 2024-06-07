@@ -11,14 +11,14 @@ extension type Query.fromJson(Map<String, Object?> node) {
   Query.uri(String uri)
       : this(operations: [
           Operation.include([
-            Path([uri])
+            Path(['uris', uri])
           ])
         ]);
 
   Query.qualifiedName({required String uri, required String name})
       : this(operations: [
           Operation.include([
-            Path([uri, name])
+            Path(['uris', uri, name])
           ])
         ]);
 
@@ -52,12 +52,12 @@ extension type Query.fromJson(Map<String, Object?> node) {
 
   // TODO(davidmorgan): implement properly.
   String get firstUri =>
-      operations.firstWhere((o) => o.isInclude).paths[0].path.first;
+      operations.firstWhere((o) => o.isInclude).paths[0].path[1];
 
   String? get firstName {
     final operation = operations.firstWhere((o) => o.isInclude);
     final path = operation.paths[0];
-    return path.path.length > 1 ? path.path[1] : null;
+    return path.path.length > 2 ? path.path[2] : null;
   }
 }
 

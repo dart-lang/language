@@ -1,101 +1,156 @@
 {
-  "package:goldens/g1.dart": {
-    "Foo": {
-      "properties": [
-        "class",
-        "abstract"
-      ],
-      "annotations": [],
-      "supertype": "dart:core/object.dart#Object",
-      "interfaces": [],
-      "members": {
-        "bar": {
-          "properties": [
-            "abstract",
-            "field"
-          ]
+  "uris": {
+    "package:goldens/g1.dart": {
+      "Foo": {
+        "properties": {
+          "class": true,
+          "abstract": true
+        },
+        "annotations": [],
+        "supertype": "dart:core/object.dart#Object",
+        "interfaces": [],
+        "members": {
+          "bar": {
+            "properties": {
+              "abstract": true,
+              "getter": false,
+              "method": false,
+              "field": true,
+              "static": false,
+              "synthetic": false
+            }
+          }
+        }
+      },
+      "Baz": {
+        "properties": {
+          "class": true,
+          "abstract": false
+        },
+        "annotations": [],
+        "supertype": "dart:core/object.dart#Object",
+        "interfaces": [],
+        "members": {
+          "foo": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": false,
+              "field": true,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "x": {
+            "properties": {
+              "abstract": false,
+              "getter": true,
+              "method": false,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          }
         }
       }
     },
-    "Baz": {
-      "properties": [
-        "class"
-      ],
-      "annotations": [],
-      "supertype": "dart:core/object.dart#Object",
-      "interfaces": [],
-      "members": {
-        "foo": {
-          "properties": [
-            "field"
-          ]
+    "dart:core": {
+      "Object": {
+        "properties": {
+          "class": true,
+          "abstract": false
         },
-        "x": {
-          "properties": [
-            "getter"
-          ]
-        }
-      }
-    }
-  },
-  "dart:core": {
-    "Object": {
-      "properties": [
-        "class"
-      ],
-      "annotations": [
-        {
-          "type": "dart:core/annotations.dart#pragma",
-          "value": {
-            "options": null,
-            "name": "vm:entry-point"
+        "annotations": [
+          {
+            "type": "dart:core/annotations.dart#pragma",
+            "value": {
+              "options": null,
+              "name": "vm:entry-point"
+            }
           }
-        }
-      ],
-      "interfaces": [],
-      "members": {
-        "hashCode": {
-          "properties": [
-            "getter"
-          ]
-        },
-        "runtimeType": {
-          "properties": [
-            "getter"
-          ]
-        },
-        "==": {
-          "properties": [
-            "method"
-          ]
-        },
-        "toString": {
-          "properties": [
-            "method"
-          ]
-        },
-        "noSuchMethod": {
-          "properties": [
-            "method"
-          ]
-        },
-        "hash": {
-          "properties": [
-            "method",
-            "static"
-          ]
-        },
-        "hashAll": {
-          "properties": [
-            "method",
-            "static"
-          ]
-        },
-        "hashAllUnordered": {
-          "properties": [
-            "method",
-            "static"
-          ]
+        ],
+        "interfaces": [],
+        "members": {
+          "hashCode": {
+            "properties": {
+              "abstract": false,
+              "getter": true,
+              "method": false,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "runtimeType": {
+            "properties": {
+              "abstract": false,
+              "getter": true,
+              "method": false,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "==": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "toString": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "noSuchMethod": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "hash": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": true,
+              "synthetic": false
+            }
+          },
+          "hashAll": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": true,
+              "synthetic": false
+            }
+          },
+          "hashAllUnordered": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": true,
+              "synthetic": false
+            }
+          }
         }
       }
     }
