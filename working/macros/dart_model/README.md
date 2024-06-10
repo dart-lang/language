@@ -32,6 +32,9 @@ of the specified size and codegen strategy.
 `HashCode()` and `ToString()`. These inspect the fields of a class and generate
 corresponding (shallow) `operator==`, `hashCode` and `toString()`.
 
+`json_macro` is the `package:json` macro. There is no `dartModel` version yet.
+Generate it using `bin/main_json.dart` instead of `bin/main.dart`.
+
 ### Strategies
 
 Four strategies are supported:
