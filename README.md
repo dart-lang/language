@@ -52,4 +52,4 @@ See [LICENSE][license] and [PATENTS][patents].
 [license]: https://github.com/dart-lang/language/blob/master/LICENSE
 [patents]: https://github.com/dart-lang/language/blob/master/PATENTS
 [specification]: https://dart.dev/guides/language/spec
-[language funnel]: https://github.com/dart-lang/language/projects/1
+[language funnel]: https://github.com/orgs/dart-lang/projects/90
