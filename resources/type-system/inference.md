@@ -1048,11 +1048,6 @@ succintly, the syntax of Dart is extended to allow the following forms:
     that exists in the user's program. _TODO(paulberry): give an example to
     clarify._
 
-  - _`@LET(T v = m_1 in m_2)` can be understood to be equivalent to `((v) =>
-    m_2)(m_1)`, except without the overhead of constructing and executing a
-    function closure, and without the type demotions that might normally occur
-    as a result of creating a closure._
-
 - `@PROMOTED_TYPE<T>(m)` represents an elaborated expression with static type
   `T` whose runtime behavior is the same as that of `m`, but where it is known
   that whenever the elaborated expression executes, the resulting value is an
@@ -1249,7 +1244,7 @@ elaborated expression `m` with static type `String`, where `m` is determined as
 follows:
 
 - If `s` contains no _stringInterpolations_, then let `m` be `s`. _The runtime
-  behavior of a string liveral with no _stringInterpolations_ is to evaluate to
+  behavior of a string literal with no _stringInterpolations_ is to evaluate to
   an instance of the type `String`, so soundness is satisfied._
 
 - Otherwise:
@@ -1264,7 +1259,7 @@ follows:
           context `_`.
 
       - Otherwise, `s_i` takes the form '`$e`', where `e` is either `this` or an
-        identifier that doesn't begin with `$`, so:
+        identifier that doesn't contain `$`, so:
 
         - Let `m_i` be the result of performing expression inference on `e`, in
           context `_`.
