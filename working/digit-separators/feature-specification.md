@@ -128,13 +128,13 @@ There are some possible new lint rule considerations, but none of these are
 considered vital to the usability or general success of the feature.
 
 The feature is designed to help the readability of long numbers. But a
-developer can still make an error about where to place separators. For example:
+developer can still make a mistake about where to place separators. For example:
 
 ```
 var one = 1_000_000;
 var two = 2_000_000;
 var three = 3_000_000;
-var four = 4_0000_000;
+var four = 4_0000_000; // Whoops!
 ```
 
 If a developer uses the Dart formatter to format their code, they cannot try to
@@ -162,7 +162,7 @@ feature.
 With the digit-separators feature, separators can be added between _digits_ of
 a number literal, but nowhere else. In most error cases, the unexpected
 underscore can be detected as such, and we can offer quick fixes to remove
-unexpected errors (for example, `100_`, `100_e.2`, `100._00`). In a few cases,
+unexpected errors (for example, `100_`, `100_e1.2`, `100._00`). In a few cases,
 the intention is not as straightforward, such as `100._100`, where `_100` can
 be a legal name of an extension member (though the presense of such a private
 extension member can be detected).
