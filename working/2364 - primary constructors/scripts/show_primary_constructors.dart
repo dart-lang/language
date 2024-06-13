@@ -135,7 +135,7 @@ class ClassSpec {
   final String provenance; // Identify where we got this class from.
   final String name;
   final String? constructorName;
-  final bool isInline;
+  final bool isExtensionType;
   final List<FieldSpec> fields;
   final bool isConst;
   final String? superinterfaces;
@@ -145,7 +145,7 @@ class ClassSpec {
     this.provenance,
     this.name,
     this.constructorName,
-    this.isInline,
+    this.isExtensionType,
     this.fields,
     this.isConst,
     this.typeParameters,
@@ -155,7 +155,7 @@ class ClassSpec {
   factory ClassSpec.fromJson(String source, Map<String, dynamic> jsonSpec) {
     var name = jsonSpec['name']!;
     var constructorName = jsonSpec['constructorName'];
-    var isInline = jsonSpec['isInline'] ?? false;
+    var isExtensionType = jsonSpec['isExtensionType'] ?? false;
     var jsonFields = jsonSpec['fields']!;
     var isConst = jsonSpec['isConst'] ?? false;
     var typeParameters = jsonSpec['typeParameters'];
@@ -170,7 +170,7 @@ class ClassSpec {
       source,
       name,
       constructorName,
-      isInline,
+      isExtensionType,
       fields,
       isConst,
       typeParameters,
@@ -270,10 +270,10 @@ String ppNormal(ClassSpec classSpec) {
     superinterfaces = ' $specSuperinterfaces';
   }
 
-  var inlinity = classSpec.isInline ? 'inline ' : '';
+  var classKind = classSpec.isExtensionType ? 'extension type' : 'class';
 
   var body = Options.includeBody ? '  // ...\n' : '';
-  return "${inlinity}class $className$typeParameters$superinterfaces"
+  return "$classKind $className$typeParameters$superinterfaces"
       " {$fieldsSource$constructorSource$body}";
 }
 
@@ -294,7 +294,7 @@ String ppKeyword(ClassSpec classSpec) {
     }
     var finality = '';
     if (field.isFinal) {
-      if (classSpec.isConst || classSpec.isInline) {
+      if (classSpec.isConst || classSpec.isExtensionType) {
         if (Options.explicitFinal) finality = 'final ';
       } else {
         finality = 'final ';
@@ -338,12 +338,12 @@ String ppKeyword(ClassSpec classSpec) {
   String constructorPhrase = '$keyword';
   var constructorNameSpec = classSpec.constructorName;
   if (constructorNameSpec != null) {
-    constructorPhrase = '$keyword.$constructorNameSpec';
+    constructorPhrase = '$keyword$typeParameters.$constructorNameSpec';
   }
 
-  var inlinity = classSpec.isInline ? 'inline ' : '';
+  var classKind = classSpec.isExtensionType ? 'extension type' : 'class';
   var classHeader =
-      "${inlinity}class $className$typeParameters$superinterfaces"
+      "$classKind $className$superinterfaces"
       " $constructorPhrase($parametersSource)";
   var body = Options.includeBody ? ' {\n  // ...\n\}' : ';';
   return "$classHeader$body";
@@ -366,7 +366,7 @@ String ppStruct(ClassSpec classSpec) {
     }
     var finality = '';
     if (field.isFinal) {
-      if (classSpec.isConst || classSpec.isInline) {
+      if (classSpec.isConst || classSpec.isExtensionType) {
         if (Options.explicitFinal) finality = 'final ';
       } else {
         finality = 'final ';
@@ -410,14 +410,14 @@ String ppStruct(ClassSpec classSpec) {
   String constructorNamePart = '$className';
   var constructorNameSpec = classSpec.constructorName;
   if (constructorNameSpec != null) {
-    constructorNamePart = '$className.$constructorNameSpec$typeParameters';
+    constructorNamePart = '$className$typeParameters.$constructorNameSpec';
   } else {
     constructorNamePart = '$className$typeParameters';
   }
 
-  var inlinity = classSpec.isInline ? 'inline ' : '';
+  var classKind = classSpec.isExtensionType ? 'extension type' : 'class';
   var classHeader =
-      "${inlinity}class $constNess$constructorNamePart"
+      "$classKind $constNess$constructorNamePart"
       "($parametersSource)"
       "$superinterfaces";
   var body = Options.includeBody ? ' {\n  // ...\n\}' : ';';
