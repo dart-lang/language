@@ -1045,6 +1045,17 @@ The elaboration process sometimes introduces new operations that are not easily
 expressible using the syntax of Dart. To allow these operations to be specified
 succintly, the syntax of Dart is extended to allow the following forms:
 
+- `@AWAIT_WITH_TYPE_CHECK<T>(m_1)`, represents the following operation:
+
+  - Evaluate `m_1`, and let `v` denote the result.
+
+  - If `v` is an instance satisfying type `Future<T>`, then
+    `@AWAIT_WITH_TYPE_CHECK<T>(m_1)` evaluates to `v`.
+
+  - Otherwise, let `u` be a future satisfying type `Future<T>` that will
+    complete to the value `v` at some later point. Then,
+    `@AWAIT_WITH_TYPE_CHECK<T>(m_1)` evaluates to `u`.
+
 - `@CONCAT(m_1, m_2, ..., m_n)`, where each `m_i` is an elaborated expression
   whose static type is a subtype of `String`, represents the operation of
   evaluating each `m_i` in sequence and then concatenating the results into a
@@ -1372,21 +1383,23 @@ are determined as follows:
 
 - Let `T_2` be `flatten(T_1)`.
 
-- Let `m_2` be `@LET(T_1 v = m_1 in v is Future<T_2> ? v :
-  Future<T_2>.value(@PROMOTED_TYPE<T_2>(v)))`, with static type `Future<T_2>`.
+- Let `m_2` be `@AWAIT_WITH_TYPE_CHECK<T_2>(m_1)`, with static type
+  `Future<T_2>`.
 
   - _Note that in many circumstances, it will be trivial for the compiler to
-    establish that `v is Future<T_2>` always evaluates to `true`, in which case
-    `m_2` can be optimized to `@PROMOTED_TYPE<Future<T_2>>(m_1)`._
+    establish that `m_1` always evaluates to an instance `v` that satisfies type
+    `Future<T_2>`, in which case `m_2` can be optimized to
+    `@PROMOTED_TYPE<Future<T_2>>(m_1)`._
 
-  - _For soundness, we must prove that whenever `@PROMOTED_TYPE<T_2>(v)`
-    executes, the resulting value is an instance satisfying type `T_2`. Note
-    that `v` is an instance satisfying type `T_1` (because `T_1` is the static
-    type of `m_1`), but `@PROMOTED_TYPE<T_2>(v)` only executes if the runtime
-    value of `v` is __not__ an instance satisfying type `Future<T_2>`. So we can
-    establish soundness by assuming that `v` is an instance satisfying type
-    `T_1` and not an instance satisfying type `Future<T_2>`, and then
-    considering two cases:_
+  - _For soundness, we must prove that whenever
+    `@AWAIT_WITH_TYPE_CHECK<T_2>(m_1)` evaluates `m_1` to a value `v` that is
+    __not__ an instance satisfying type `Future<T_2>`, that `v` __is__ an
+    instance satisfying type `T_2`. This is necessary to ensure that the future
+    created by `@AWAIT_WITH_TYPE_CHECK` will complete to a value satisfying its
+    type signature. Note that `v` is guaranteed to be an instance satisfying
+    type `T_1` (because `T_1` is the static type of `m_1`). So we can establish
+    soundness by assuming that `v` is an instance satisfying type `T_1` and not
+    an instance satisfying type `Future<T_2>`, and then considering two cases:_
 
     - _If the runtime value of `v` is `null`, then by soundness, `T_1` must be
       of the form `Null`, `dynamic`, `S*`, or `S?`. Considering each of these:_
@@ -1457,13 +1470,9 @@ are determined as follows:
         `v` is a non-null instance satisfying type `T_1`, it must be an instance
         satisfying type `T_1`._
 
-- Let `T` be `T_2`, and let `m` be `@PROMOTED_TYPE<T>(await m_2)`. _Note that
-  `m_2` has two different behaviors, depending whether `v` is an instance
-  satisfying type `Future<T_2>`. If it is, then `m_2` evaluates to `v`, so the
-  value of `await m_2` must necessarily be an instance satisfying type `T_2`,
-  and soundness is satisfied. If it isn't, then `m_2` evaluates to
-  `Future<T_2>.value(...)`, so again, the value of `await m_2` must necessarily
-  be an instance satisfying type `T_2`, and soundness is satisfied._
+- Let `T` be `T_2`, and let `m` be `await m_2`. _Since `m_2` has static type
+  `Future<m_2>`, the value of `await m_2` must necessarily be an instance
+  satisfying type `T_2`, so soundness is satisfied._
 
 <!--
 
