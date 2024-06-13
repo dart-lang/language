@@ -1007,6 +1007,38 @@ the context `num`, in an effort to reduce the likelihood that the assignment `x
 `f()` doesn't wind up being a subtype of `num`, there is no compile-time error;
 `x` is simply demoted back to `Object?` as a side effect of the assignment._
 
+## Static types and soundness
+
+Every elaborated expression has an associated _static type_, which is produced
+as a by-product of the expression inference process. These static types are
+specified in this document using language such as: "inference of `e` produces an
+elaborated expression `m` with static type `T`". _The specification of static
+types in this document should be understood to supersede the specification of
+static types in the existing Dart language specification._
+
+_Informally, we may sometimes speak of the static type of an unelaborated
+expression `e`; when we do, what is meant by this is the static type of the
+elaborated expression `m` that results from performing expression inference on
+`e`. Note in particular that a given expression might have a different static
+type at different points in the code, since the behavior of expression inference
+depends on the context `K`, as well as the flow analysis state._
+
+An invariant of expression inference, known as _soundness_, is that when an
+elaborated expression is executed, it is guaranteed either to diverge, throw an
+exception, or evaluate to a value that is an _instance satisfying_ its static
+type. _Instance satisfying_ is defined as follows: a value `v` is an instance
+satisfying type `T` iff the runtime type of `v` is a subtype of the _extension
+type erasure_ of `T`. _So, for example, every value is considered an instance
+satisfying type `dynamic`, and all values except `null` are considered an
+instance satisfying type `Object`._
+
+_This stands in contrast to the notion of "instance of"; a value `v` is an
+instance of a type `T` only if the runtime type of `v` is __precisely__ `T`._
+
+_The type inference rules below include informal sketches of a proof that
+soundness holds for each expression type. These are non-normative, so they are
+typeset in italics._
+
 ## New operations allowed in elaborated expressions
 
 The elaboration process sometimes introduces new operations that are not easily
@@ -1016,31 +1048,27 @@ succintly, the syntax of Dart is extended to allow the following forms:
 - `@CONCAT(m_1, m_2, ..., m_n)`, where each `m_i` is an elaborated expression
   whose static type is a subtype of `String`, represents the operation of
   evaluating each `m_i` in sequence and then concatenating the results into a
-  single string. The static type of `@CONCAT(...)` is `String`.
+  single string.
 
 - `@DOUBLE(d)` represents a literal double with numeric value `d`. The runtime
   behavior of this construct is to evaluate to an instance of the type `double`
-  representing `d`. The static type of `@DOUBLE(d)` is `double`. _This is used
-  to explicitly mark integer literals that have been converted, by type
-  inference, to doubles._
+  representing `d`. _This is used to explicitly mark integer literals that have
+  been converted, by type inference, to doubles._
 
 - `@IMPLICIT_CAST<T>(m)` represents an implicit cast of the expression `m` to
   type `T`. The runtime behavior of this construct is the same as that of `m as
   T`, except that in the case where the cast fails, the exception thrown is a
-  `TypeError` rather than a `CastError`. The static type of
-  `@IMPLICIT_CAST<T>(m)` is `T`.
+  `TypeError` rather than a `CastError`.
 
 - `@INT(i)` represents a literal integer with numeric value `i`. The runtime
   behavior of this construct is to evaluate to an instance of the type `int`
-  representing `i`. The static type of `@INT(i)` is `int`. _This is used to
-  explicitly mark integer literals that have __not__ been converted, by type
-  inference, to doubles._
+  representing `i`. _This is used to explicitly mark integer literals that have
+  __not__ been converted, by type inference, to doubles._
 
 - `@LET(T v = m_1 in m_2)` represents the operation of first evaluating `m_1`,
   whose static type must be a subtype of `T`, storing the result in temporary
   storage, then evaluating `m_2` in a scope in which `v` has static type `T` and
-  evaluates to the stored value. The static type of `@LET(T v = m_1 in m_2)` is
-  the same as the static type of `m_2`.
+  evaluates to the stored value.
 
   - When this specification specifies that a `@LET` expression should be created
     using a variable `v` that does not appear in the source code, it should be
@@ -1048,34 +1076,16 @@ succintly, the syntax of Dart is extended to allow the following forms:
     that exists in the user's program. _TODO(paulberry): give an example to
     clarify._
 
-- `@PROMOTED_TYPE<T>(m)` represents an elaborated expression with static type
-  `T` whose runtime behavior is the same as that of `m`, but where it is known
-  that whenever the elaborated expression executes, the resulting value is an
-  instance satisfying type `T`. _This is used in situations where additional
-  reasoning, beyond the static type of `m`, is required to establish
-  soundness. Wherever this construct is used, the additional reasoning follows
-  in italics. Note that since `m` and `@PROMOTED_TYPE<T>(m)` have the same
-  runtime behavior, implementations can most likely elide `@PROMOTED_TYPE<T>(m)`
-  to `m` without any loss of functionality, provided they are not trying to
-  construct a proof of soundness._
-
-## Soundness guarantees
-
-An invariant of expression inference, known as _soundness_, is that when the
-elaborated form of any expression in the program is executed, it is guaranteed
-either to diverge, throw an exception, or evaluate to a value that is an
-_instance satisfying_ its static type. _Instance satisfying_ is defined as
-follows: a value `v` is an instance satisfying type `T` iff the runtime type of
-`v` is a subtype of the _extension type erasure_ of `T`. _So, for example, every
-value is considered an instance satisfying type `dynamic`, and all values except
-`null` are considered an instance satisfying type `Object`._
-
-_This stands in contrast to the notion of "instance of"; a value `v` is an
-instance of a type `T` only if the runtime type of `v` is __precisely__ `T`._
-
-_The type inference rules below include informal sketches of a proof that
-soundness holds for each expression type. These are non-normative, so they are
-typeset in italics._
+- `@PROMOTED_TYPE<T>(m)` represents an elaborated expression whose runtime
+  behavior is the same as that of `m`, but where it is known that whenever the
+  elaborated expression executes, the resulting value is an instance satisfying
+  type `T`. _This is used in situations where additional reasoning, beyond the
+  static type of `m`, is required to establish soundness. Wherever this
+  construct is used, the additional reasoning follows in italics. Note that
+  since `m` and `@PROMOTED_TYPE<T>(m)` have the same runtime behavior,
+  implementations can most likely elide `@PROMOTED_TYPE<T>(m)` to `m` without
+  any loss of functionality, provided they are not trying to construct a proof
+  of soundness._
 
 ## Additional invariants satisfied by elaborated expressions
 
@@ -1133,22 +1143,20 @@ below._
 _Coercions are used in most situations where the existing spec calls for an
 assignability check._
 
-Coercion of an elaborated expression `m_1` to type `T` produces `m_2`, which is
-determined as follows:
+Coercion of an elaborated expression `m_1` to type `T` produces `m_2`, with
+static type `T_2`, where `m_2` and `T_2` are determined as follows:
 
 - Let `T_1` be the static type of `m_1`.
 
-- If `T_1 <: T`, then let `m_2` be `m_1`. _Since `m_1` and `m_2` are the same,
-  the static type of `m_2` is `T_1`. Therefore, since `T_1 <: T`, the soundness
-  invariant is satisfied._
+- If `T_1 <: T`, then let `m_2` be `m_1` and `T_2` be `T_1`. _Since `T_1 <: T`,
+  the soundness invariant is satisfied._
 
-- Otherwise, if `T_1` is `dynamic`, then let `m_2` be
-  `@IMPLICIT_CAST<T>(m_1)`. _Since `@IMPLICIT_CAST<T>(m_1)` has a static type of
-  `T`, the soundness invariant is satisfied._
+- Otherwise, if `T_1` is `dynamic`, then let `m_2` be `@IMPLICIT_CAST<T>(m_1)`
+  and `T_2` be `T`. _Since `T <: T`, the soundness invariant is satisfied._
 
 - Otherwise, if `T_1` is an interface type that contains a method called `call`
-  with type `U`, and `U <: T`, then let `m_2` be `m_1.call`. _Since `m_1.call`
-  has static type `U`, and `U <: T`, the soundness invariant is satisfied._
+  with type `U`, and `U <: T`, then let `m_2` be `m_1.call`, and let `T_2` be
+  `U`. _Since `U <: T`, the soundness invariant is satisfied._
 
 - _TODO(paulberry): add more cases to handle implicit instantiation of generic
   function types, and `call` tearoff with implicit instantiation._
@@ -1201,8 +1209,8 @@ as follows:
     there is a compile-time error.
 
   - Otherwise, let `T` be the type `double`, and let `m` be
-    `@DOUBLE(i)`. _Soundness follows from the fact that the static type of
-    `@DOUBLE(d)` is `double` for all `d`._
+    `@DOUBLE(i)`. _Soundness follows from the fact that `@DOUBLE(i)` always
+    evaluates to an instance of `double`._
 
 - Otherwise, if `l` is a hexadecimal integer literal, 2<sup>63</sup> ≤ `i` <
   2<sup>64</sup>, and the `int` class is represented as signed 64-bit two's
@@ -1210,14 +1218,15 @@ as follows:
 
   - Let `T` be the type `int`, and let `m` be `@INT(i` - 2<sup>64</sup>`)`.
 
-  - _Soundness follows from the fact that the static type of `@INT(i)` is `int`
-    for all `i`._
+  - _Soundness follows from the fact that the `@INT(j)` always evaluates to an
+    instance of `int`._
 
 - Otherwise, if `i` cannot be represented _precisely_ by an instance of `int`,
   then there is a compile-time error.
 
 - Otherwise, let `T` be the type `int`, and let `m` be `@INT(i)`. _Soundness
-  follows from the fact that the static type of `@INT(i)` is `int` for all `i`._
+  follows from the fact that `@INT(i)` always evaluates to an instance of
+  `int`._
 
 ### Double literals
 
@@ -1300,13 +1309,13 @@ determined as follows:
 ### This
 
 Expression inference of `this`, regardless of context, produces the elaborated
-expression `this`.
+expression `this` with static type `T`, where `T` is the interface type of the
+immediately enclosing class, enum, mixin, or extension type, or the "on" type of
+the immediately enclosing extension.
 
-_The static type of `this` is the interface type of the immediately enclosing
-class, enum, mixin, or extension type, or the "on" type of the immediately
-enclosing extension. The runtime behavior of `this` is to evaluate to the target
-of the current instance member invocation, which is guaranteed to be an instance
-satisfying this type. So soundness is satisfied._
+_The runtime behavior of `this` is to evaluate to the target of the current
+instance member invocation, which is guaranteed to be an instance satisfying
+this type. So soundness is satisfied._
 
 ### Logical boolean expressions
 
@@ -1364,7 +1373,7 @@ are determined as follows:
 - Let `T_2` be `flatten(T_1)`.
 
 - Let `m_2` be `@LET(T_1 v = m_1 in v is Future<T_2> ? v :
-  Future<T_2>.value(@PROMOTED_TYPE<T_2>(v)))`.
+  Future<T_2>.value(@PROMOTED_TYPE<T_2>(v)))`, with static type `Future<T_2>`.
 
   - _Note that in many circumstances, it will be trivial for the compiler to
     establish that `v is Future<T_2>` always evaluates to `true`, in which case
