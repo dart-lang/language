@@ -41,6 +41,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Jun 2024
+% - Add missing reference to section 'Type dynamic' at the point where the
+%   static analysis of ordinary member invocations is specified.
+%
 % Feb 2024
 % - Correct the rule about deriving a future type from a type (which is used
 %   by `flatten`).
@@ -14213,9 +14217,21 @@ where the number of type arguments is zero (\ref{generics}).%
 
 \LMHash{}%
 Let $T$ be the static type of $e$.
-It is a compile-time error if $T$ does not have an accessible
+
+\LMHash{}%
+If $T$ is \DYNAMIC{} bounded
+(\ref{bindingActualsToFormals})
+and $m$ is one of
+\code{hashCode}, \code{noSuchMethod}, \code{runtimeType}, or \code{toString},
+then $i$ is considered to have an accessible member with the given name,
+and its static type is specified elsewhere
+(\ref{typeDynamic}).
+
+\LMHash{}%
+Otherwise, it is a compile-time error if $T$ does not have an accessible
 (\ref{privacy})
 instance member named $m$, unless either:
+
 \begin{itemize}
 \item
   $T$ is \DYNAMIC{} bounded
@@ -14250,6 +14266,11 @@ and no further static checks are performed on $i$
 (\commentary{%
 except that subexpressions of $i$ are subject to their own static analysis%
 }).
+
+\LMHash{}%
+If $i$ is a \DYNAMIC{} bounded invocation of one of
+\code{hashCode}, \code{noSuchMethod}, \code{runtimeType}, or \code{toString}
+then its static type has already been determined, as described above.
 
 \LMHash{}%
 Otherwise \code{$T$.$m$} denotes an instance member.
