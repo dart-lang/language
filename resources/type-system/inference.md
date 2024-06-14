@@ -1023,7 +1023,7 @@ elaborated expression `m` that results from performing expression inference on
 type at different points in the code, since the behavior of expression inference
 depends on the context `K`, as well as the flow analysis state._
 
-An invariant of expression inference, known as _soundness_, is that when an
+A property of expression inference, known as _soundness_, is that when an
 elaborated expression is executed, it is guaranteed either to diverge, throw an
 exception, or evaluate to a value that is an _instance satisfying_ its static
 type. _Instance satisfying_ is defined as follows: a value `v` is an instance
@@ -1098,10 +1098,10 @@ succintly, the syntax of Dart is extended to allow the following forms:
   any loss of functionality, provided they are not trying to construct a proof
   of soundness._
 
-## Additional invariants satisfied by elaborated expressions
+## Additional properties satisfied by elaborated expressions
 
 The rules below ensure that elaborated expressions will satisfy the following
-invariants:
+properties:
 
 - An elaborated expression will never contain one of the tokens `?.`, `??`, or
   `??=`. _The type inference process converts expressions containing these
@@ -1137,7 +1137,7 @@ invariants:
       corresponding arguments.
 
 _The type inference rules below include informal sketches of a proof that the
-output of type inference satisfies these additional invariants. These are
+output of type inference satisfies these additional properties. These are
 non-normative, so they are typeset in italics._
 
 ## Coercions
@@ -1147,8 +1147,8 @@ expression, it is useful to define an operation known as _coercion_. _Coercion_
 is a type inference step that is applied to an elaborated expression `m_1` and a
 target type `T`, and produces a new elaborated expression `m_2`.
 
-_The coercion operation satisfies the soundness invariant that the static type
-of `m_2` is guaranteed to be a subtype of `T`. A proof of this is sketched
+_The coercion operation satisfies the following soundness property: the static
+type of `m_2` is guaranteed to be a subtype of `T`. A proof of this is sketched
 below._
 
 _Coercions are used in most situations where the existing spec calls for an
@@ -1160,14 +1160,14 @@ static type `T_2`, where `m_2` and `T_2` are determined as follows:
 - Let `T_1` be the static type of `m_1`.
 
 - If `T_1 <: T`, then let `m_2` be `m_1` and `T_2` be `T_1`. _Since `T_1 <: T`,
-  the soundness invariant is satisfied._
+  soundness is satisfied._
 
 - Otherwise, if `T_1` is `dynamic`, then let `m_2` be `@IMPLICIT_CAST<T>(m_1)`
-  and `T_2` be `T`. _Since `T <: T`, the soundness invariant is satisfied._
+  and `T_2` be `T`. _Since `T <: T`, soundness is satisfied._
 
 - Otherwise, if `T_1` is an interface type that contains a method called `call`
   with type `U`, and `U <: T`, then let `m_2` be `m_1.call`, and let `T_2` be
-  `U`. _Since `U <: T`, the soundness invariant is satisfied._
+  `U`. _Since `U <: T`, soundness is satisfied._
 
 - _TODO(paulberry): add more cases to handle implicit instantiation of generic
   function types, and `call` tearoff with implicit instantiation._
@@ -1188,8 +1188,8 @@ of steps:
 
 - Let `m` be the result of performing coercion of `m_1` to type `T`.
 
-_It follows, from the soundness invariant of coercions, that the static type of
-`m` is guaranteed to be a subtype of `T`._
+_It follows, from the soundness of coercions, that the static type of `m` is
+guaranteed to be a subtype of `T`._
 
 ## Expression inference rules
 
@@ -1310,9 +1310,8 @@ determined as follows:
 - Let `m_1` be the result of performing expression inference on `e_1`, in
   context `_`, and then coercing the result to type `Object`.
 
-- _It follows, from the soundness invariant of coercions, that the static type
-  of `m_1` is guaranteed to be a subtype of `Object`. That is, `null` will never
-  be thrown._
+- _It follows, from the soundness of coercions, that the static type of `m_1` is
+  guaranteed to be a subtype of `Object`. That is, `null` will never be thrown._
 
 - Let `m` be `throw m_1`. _Soundness follows from the fact that `throw m_1`
   never evaluates to a value._
@@ -1340,8 +1339,8 @@ expression `m` with static type `bool`, where `m` is determined as follows:
 - Let `m_2` be the result of performing expression inference on `e_2`, in
   context `bool`, and then coercing the result to type `bool`.
 
-- _It follows, from the soundness invariant of coercions, that the static type
-  of `m_1` and `m_2` are both guaranteed to be a subtype of `bool`._
+- _It follows, from the soundness of coercions, that the static type of `m_1`
+  and `m_2` are both guaranteed to be a subtype of `bool`._
 
 - If `e` is of the form `e_1 && e_2`, let `m` be `m_1 && m_2`. _It is valid to
   form this elaborated expression because the static type of `m_1` and `m_2` are
