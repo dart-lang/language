@@ -974,9 +974,9 @@ with respect to `L` under constraints `C0`
 
 Expression inference is a recursive process of elaborating an expression in Dart
 source code, transforming it into a form in which all types and type coercions
-are explicit. An expression that has not yet undergone type inference is known
-as an _unelaborated expression_, and an expression that has completed type
-inference is known as an _elaborated expression_.
+are explicit. An expression that has not yet undergone type inference is
+referred to as an _unelaborated expression_, and an expression that has
+completed type inference is referred to as an _elaborated expression_.
 
 _To aid in distinguishing unelaborated and elaborated expressions, the text
 below will typically denote an unelaborated expression by letter `e` (often with
@@ -995,9 +995,9 @@ expression inference on `e`, in context `K`".
 _Often, an expression's context can be understood as the static type the
 expression must have (or be coercible to) in order to avoid a compile-time
 error. For example, in the statement `num n = f();`, the result of type
-inferring `f()` needs to be either a subtype of `num` (or a type that's
-coercible to `num`) in order to avoid a compile-time error. Accordingly, `f()`
-is type inferred in the context `num`._
+inferring `f()` needs to be a subtype of `num` (or a type that's coercible to
+`num`) in order to avoid a compile-time error. Accordingly, `f()` is type
+inferred in the context `num`._
 
 _However, there are some exceptions. For example, in the code `Object? x = ...;
 if (x is num) { x = f(); }`, the variable `x` is promoted to the type `num`
