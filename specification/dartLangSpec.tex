@@ -41,6 +41,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Jun 2024
+% - Add missing references to section 'Type dynamic' at the points where the
+%   static analysis of Object member invocations is specified.
+%
 % Feb 2024
 % - Correct the rule about deriving a future type from a type (which is used
 %   by `flatten`).
@@ -14213,13 +14217,25 @@ where the number of type arguments is zero (\ref{generics}).%
 
 \LMHash{}%
 Let $T$ be the static type of $e$.
-It is a compile-time error if $T$ does not have an accessible
+
+\LMHash{}%
+If $T$ is \DYNAMIC{} bounded
+(\ref{bindingActualsToFormals})
+and $m$ is one of
+\code{hashCode}, \code{noSuchMethod}, \code{runtimeType}, or \code{toString}
+then we say that $i$ is a
+\IndexCustom{dynamic \code{Object} member invocation}{
+  dynamic Object member invocation},
+whose static analysis is specified separately below.
+
+\LMHash{}%
+Otherwise, it is a compile-time error if $T$ does not have an accessible
 (\ref{privacy})
 instance member named $m$, unless either:
+
 \begin{itemize}
 \item
-  $T$ is \DYNAMIC{} bounded
-  (\ref{bindingActualsToFormals});
+  $T$ is \DYNAMIC{} bounded;
   in this case no further static checks are performed on $i$
   (\commentary{apart from separate static checks on subterms like arguments})
   and the static type of $i$ is \DYNAMIC.
@@ -14252,7 +14268,22 @@ except that subexpressions of $i$ are subject to their own static analysis%
 }).
 
 \LMHash{}%
-Otherwise \code{$T$.$m$} denotes an instance member.
+If $i$ is a dynamic \code{Object} member invocation
+(\ref{ordinaryInvocation})
+then the static type of the member is specified in
+Section~\ref{typeDynamic}.
+In this case, if $m$ is \code{hashCode} or \code{runtimeType}
+then let $F$ be the return type of said getter;
+if $m$ is \code{noSuchMethod} or \code{toString}
+then let $F$ be the type of said method.
+
+\commentary{%
+Note that it is always a compile-time error if $m$
+is \code{hashCode} or \code{runtimeType}.%
+}
+
+\LMHash{}%
+Otherwise, \code{$T$.$m$} denotes an instance member.
 Let $L$ be the library that contains $i$.
 Let $d$ be the result of method lookup for $m$ in $T$ with respect to $L$,
 and if the method lookup succeeded then let $F$ be the static type of $d$.
@@ -14840,13 +14871,33 @@ of a static method on the denoted class.%
 
 \LMHash{}%
 Let $T$ be the static type of $e$.
-It is a compile-time error if $T$ does not have a method or getter named \id{}
-unless $T$ is \DYNAMIC{} bounded
-(\ref{bindingActualsToFormals}),
-or $T$ is \FUNCTION{} bounded and \id{} is \CALL.
+
+\LMHash{}%
+If $T$ is \DYNAMIC{} bounded
+(\ref{bindingActualsToFormals})
+and $m$ is one of
+\code{hashCode}, \code{noSuchMethod}, \code{runtimeType}, or \code{toString}
+then we say that $i$ is a
+\IndexCustom{dynamic \code{Object} property extraction}{
+  dynamic Object property extraction},
+whose static analysis is specified separately below.
+
+\LMHash{}%
+Otherwise, it is a compile-time error if $T$ does not have
+a method or getter named \id{}
+unless $T$ is \DYNAMIC{} bounded,
+or $T$ is \FUNCTION{} bounded
+(\ref{bindingActualsToFormals})
+and \id{} is \CALL.
 The static type of $i$ is:
 
 \begin{itemize}
+\item The return type as specified in Section~\ref{typeDynamic}
+  if $i$ is a dynamic \code{Object} property extraction
+  and \id{} is \code{hashCode} or \code{runtimeType}.
+\item The static type as specified in Section~\ref{typeDynamic}
+  if $i$ is a dynamic \code{Object} property extraction
+  and \id{} is \code{noSuchMethod} or \code{toString}.
 \item The declared return type of \code{$T$.\id},
   if $T$ has an accessible instance getter named \id.
 \item The function type of the method signature \code{$T$.\id},
