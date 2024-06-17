@@ -1056,6 +1056,12 @@ succintly, the syntax of Dart is extended to allow the following forms:
     complete to the value `v` at some later point. Then,
     `@AWAIT_WITH_TYPE_CHECK<T>(m_1)` evaluates to `u`.
 
+    - _TODO(paulberry): explain why such a future is guaranteed to (soundly)
+      exist, by stipulating that if `T_1` is the static type of `m_1`, then `T`
+      must be `flatten(T_1)`, and then proving a lemma that `T_1 <:
+      FutureOr<flatten(T_1)>`; therefore `T_1 <: FutureOr<T>`, so in this
+      "otherwise" case, `v` must be an instance satisfying `T`._
+
 - `@CONCAT(m_1, m_2, ..., m_n)`, where each `m_i` is an elaborated expression
   whose static type is a subtype of `String`, represents the operation of
   evaluating each `m_i` in sequence and then concatenating the results into a
@@ -1399,6 +1405,10 @@ are determined as follows:
     type `T_1` (because `T_1` is the static type of `m_1`). So we can establish
     soundness by assuming that `v` is an instance satisfying type `T_1` and not
     an instance satisfying type `Future<T_2>`, and then considering two cases:_
+
+    - _TODO(paulberry): it should be possible to simplify and clarify this
+      section once we have proven that `T <: FutureOr<flatten(T)>` for all types
+      `T`._
 
     - _If the runtime value of `v` is `null`, then by soundness, `T_1` must be
       of the form `Null`, `dynamic`, `S*`, or `S?`. Considering each of these:_
