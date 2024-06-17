@@ -1019,9 +1019,10 @@ static types in the existing Dart language specification._
 _Informally, we may sometimes speak of the static type of an unelaborated
 expression `e`; when we do, what is meant by this is the static type of the
 elaborated expression `m` that results from performing expression inference on
-`e`. Note in particular that a given expression might have a different static
-type at different points in the code, since the behavior of expression inference
-depends on the context `K`, as well as the flow analysis state._
+`e` in some context `K`, where `K` depends on where `e` appears in the broader
+program. Note in particular that a given expression might have a different
+static type at different points in the code, since the behavior of expression
+inference depends on the context `K`, as well as the flow analysis state._
 
 A property of expression inference, known as _soundness_, is that when an
 elaborated expression is executed, it is guaranteed either to diverge, throw an
