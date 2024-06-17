@@ -7759,7 +7759,7 @@ there is no type $T$ which makes \code{C<$T$>} a common supertype of
 all types of the form \code{C<$S$>}
 (noting that all types must be regular-bounded
 when we do not have the notion of super-bounded types).
-So if we wish to allow a variable to hold any instance ``of type \code{C}''
+So if we wish to allow a variable to hold any instance ``implementing type \code{C}''
 then that variable must use \code{Object} or another top type
 as its type annotation,
 which means that a member like \code{next} is not known to exist
@@ -22495,7 +22495,7 @@ denotes a \code{Type} object representing the type \code{FutureOr<dynamic>}.
 
 \rationale{%
 The \code{FutureOr<$T$>} type represents a case where an object can be
-either an instance of the type $T$
+either an instance implementing the type $T$
 or the type \code{Future<$T$>}.
 Such cases occur naturally in asynchronous code.
 The available alternative would be to use a top type (e.g., \DYNAMIC{}),
