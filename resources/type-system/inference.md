@@ -970,167 +970,251 @@ with respect to `L` under constraints `C0`
   under constraints `Ci`.
 
 
-# Body inference
+# Expression inference
 
-In this document, the term "body inference" refers to the process of assigning
-semantics and types to the code that appears inside of method bodies and
-initializer expressions.
+Expression inference is a recursive process of elaborating an expression in Dart
+source code, transforming it into a form in which all types and type coercions
+are explicit. An expression that has not yet undergone type inference is
+referred to as an _unelaborated expression_, and an expression that has
+completed type inference is referred to as an _elaborated expression_.
 
-Body inference is specified as a transformation from the syntactic artifacts
-that constitute method bodies and initializer expressions (expressions,
-statements, patterns, and collection elements) to corresponding artifacts in the
-compiled output (referred to as "compilation artifacts"). The precise form of
-compilation artifacts is not dictated by the specification; instead they are
-specified in terms of their runtime behavior.
+_To aid in distinguishing unelaborated and elaborated expressions, the text
+below will typically denote an unelaborated expression by letter `e` (often with
+a suffix, e.g. `e_1`), and an elaborated expression by the letter `m` (again,
+often with a suffix)._
 
-When executed, a compilation artifact may behave in one of three ways: it may
-complete normally, complete with an exception, or fail to complete at all
-(e.g. due to an infinite loop, or an asynchronous suspension that never
-completes).
+Expression inference always takes place with respect to a type schema known as
+the expression's "context", which captures certain pieces of type information
+about the code surrounding the expression. Contexts are specified as part of the
+recursive rules for type inference; that is, when the rules for type inferring a
+certain kind of expression, statement, or pattern require that a subexpression
+be type inferred, they will specify the context in which that inference should
+be performed, using a phrase like "let `m` be the result of performing
+expression inference on `e`, in context `K`".
 
-## Expression artifacts
+_Often, an expression's context can be understood as the static type the
+expression must have (or be coercible to) in order to avoid a compile-time
+error. For example, in the statement `num n = f();`, the result of type
+inferring `f()` needs to be a subtype of `num` (or a type that's coercible to
+`num`) in order to avoid a compile-time error. Accordingly, `f()` is type
+inferred in the context `num`._
 
-Some compilation artifacts, typically those associated with expressions in the
-source code, have the property that when they complete normally, there will be
-an associated value (and the compilation artifact is said to _complete with_ the
-value). These artifacts are known as expression artifacts. Type inference
-associates each expression artifact with a _static type_, and guarantees that
-_if_ the expression artifact completes normally, the associated value will be an
-instance of the static type. This guarantee is known as _expression soundness_.
+_However, there are some exceptions. For example, in the code `Object? x = ...;
+if (x is num) { x = f(); }`, the variable `x` is promoted to the type `num`
+within the body of the `if` statement. Accordingly, `f()` is type inferred in
+the context `num`, in an effort to reduce the likelihood that the assignment `x
+= f()` will cause the type promotion to be lost. However, if the static type of
+`f()` doesn't wind up being a subtype of `num`, there is no compile-time error;
+`x` is simply demoted back to `Object?` as a side effect of the assignment._
 
-_Elsewhere in the spec, we speak of an expression having a static type, but in
-the presence of coercions, this can sometimes be confusing, since a given
-expression might be associated with more than one expression artifact. For
-example in the code `dynamic d = ...; int i = d;`, the expression `d` is
-associated with two expression artifacts: one which is the result of reading the
-value of the variable `d`, and one which is the result of casting that value to
-the type `int`. The former artifact has static type `dynamic`; the latter has
-static type `int`. Since this document details precisely when and how coercions
-occur, and makes arguments about soundness of expressions that might involve
-coercions, it is useful to be precise by associating static types with the
-expression artifacts rather than the expressions themselves._
+## Static types and soundness
 
-## Soundness guarantees
+Every elaborated expression has an associated _static type_, which is produced
+as a by-product of the expression inference process. These static types are
+specified in this document using language such as: "inference of `e` produces an
+elaborated expression `m` with static type `T`". _The specification of static
+types in this document should be understood to supersede the specification of
+static types in the existing Dart language specification._
 
-Along with the notion of _expression soundness_ described above, there are
-several other soundness guarantees made by Dart:
+_Informally, we may sometimes speak of the static type of an unelaborated
+expression `e`; when we do, what is meant by this is the static type of the
+elaborated expression `m` that results from performing expression inference on
+`e` in some context `K`, where `K` depends on where `e` appears in the broader
+program. Note in particular that a given expression might have a different
+static type at different points in the code, since the behavior of expression
+inference depends on the context `K`, as well as the flow analysis state._
 
-- It is guaranteed that if a method, function, or constructor having return type
-  `T` is invoked, and the method completes with a value `v`, then `v` will be an
-  instance of `T` (with appropriate type substitutions, in the case of a generic
-  method). This guarantee is known as _return value soundness_.
+A property of expression inference, known as _soundness_, is that when an
+elaborated expression is executed, it is guaranteed either to diverge, throw an
+exception, or evaluate to a value that is an _instance satisfying_ its static
+type. _Instance satisfying_ is defined as follows: a value `v` is an instance
+satisfying type `T` iff the runtime type of `v` is a subtype of the _extension
+type erasure_ of `T`. _So, for example, every value is considered an instance
+satisfying type `dynamic`, and all values except `null` are considered an
+instance satisfying type `Object`._
 
-- It is guaranteed that if a method having static type `T` is torn off, then the
-  resulting value will be an instance of `T`. This guarantee is known as
-  _tear-off soundness_.
+_This stands in contrast to the notion of "instance of"; a value `v` is an
+instance of a type `T` only if the runtime type of `v` is __precisely__ `T`._
 
-- It is guaranteed that if a future is an instance of the type `Future<T>`, and
-  it completes with a value `v`, then `v` will be an instance of `T`. This
-  guarantee is known as _future soundness_.
+_The type inference rules below include informal sketches of a proof that
+soundness holds for each expression type. These are non-normative, so they are
+typeset in italics._
 
-The rules below include informal sketches of a proof that each of the above
-soundness guarantees holds. These are non-normative, so they are typeset in
-_italics_.
+## New operations allowed in elaborated expressions
 
-# Coercions
+The elaboration process sometimes introduces new operations that are not easily
+expressible using the syntax of Dart. To allow these operations to be specified
+succintly, the syntax of Dart is extended to allow the following forms:
 
-_Coercion_ is a type inference step that transforms an expression artifact
-`m_1`, and a desired static type `T_2`, into an expression artifact `m_2` whose
-static type is `T_2`.
+- `@AWAIT_WITH_TYPE_CHECK<T>(m_1)`, represents the following operation:
+
+  - Evaluate `m_1`, and let `v` denote the result.
+
+  - If `v` is an instance satisfying type `Future<T>`, then
+    `@AWAIT_WITH_TYPE_CHECK<T>(m_1)` evaluates to `v`.
+
+  - Otherwise, let `u` be a future satisfying type `Future<T>` that will
+    complete to the value `v` at some later point. Then,
+    `@AWAIT_WITH_TYPE_CHECK<T>(m_1)` evaluates to `u`.
+
+    - _TODO(paulberry): explain why such a future is guaranteed to (soundly)
+      exist, by stipulating that if `T_1` is the static type of `m_1`, then `T`
+      must be `flatten(T_1)`, and then proving a lemma that `T_1 <:
+      FutureOr<flatten(T_1)>`; therefore `T_1 <: FutureOr<T>`, so in this
+      "otherwise" case, `v` must be an instance satisfying `T`._
+
+- `@CONCAT(m_1, m_2, ..., m_n)`, where each `m_i` is an elaborated expression
+  whose static type is a subtype of `String`, represents the operation of
+  evaluating each `m_i` in sequence and then concatenating the results into a
+  single string.
+
+- `@DOUBLE(d)` represents a literal double with numeric value `d`. The runtime
+  behavior of this construct is to evaluate to an instance of the type `double`
+  representing `d`. _This is used to explicitly mark integer literals that have
+  been converted, by type inference, to doubles._
+
+- `@IMPLICIT_CAST<T>(m)` represents an implicit cast of the expression `m` to
+  type `T`. The runtime behavior of this construct is the same as that of `m as
+  T`, except that in the case where the cast fails, the exception thrown is a
+  `TypeError` rather than a `CastError`.
+
+- `@INT(i)` represents a literal integer with numeric value `i`. The runtime
+  behavior of this construct is to evaluate to an instance of the type `int`
+  representing `i`. _This is used to explicitly mark integer literals that have
+  __not__ been converted, by type inference, to doubles._
+
+- `@LET(T v = m_1 in m_2)` represents the operation of first evaluating `m_1`,
+  whose static type must be a subtype of `T`, storing the result in temporary
+  storage, then evaluating `m_2` in a scope in which `v` has static type `T` and
+  evaluates to the stored value.
+
+  - When this specification specifies that a `@LET` expression should be created
+    using a variable `v` that does not appear in the source code, it should be
+    understood that a fresh variable is created that does not match any variable
+    that exists in the user's program. _TODO(paulberry): give an example to
+    clarify._
+
+- `@PROMOTED_TYPE<T>(m)` represents an elaborated expression whose runtime
+  behavior is the same as that of `m`, but where it is known that whenever the
+  elaborated expression executes, the resulting value is an instance satisfying
+  type `T`. _This is used in situations where additional reasoning, beyond the
+  static type of `m`, is required to establish soundness. Wherever this
+  construct is used, the additional reasoning follows in italics. Note that
+  since `m` and `@PROMOTED_TYPE<T>(m)` have the same runtime behavior,
+  implementations can most likely elide `@PROMOTED_TYPE<T>(m)` to `m` without
+  any loss of functionality, provided they are not trying to construct a proof
+  of soundness._
+
+## Additional properties satisfied by elaborated expressions
+
+The rules below ensure that elaborated expressions will satisfy the following
+properties:
+
+- An elaborated expression will never contain one of the tokens `?.`, `??`, or
+  `??=`. _The type inference process converts expressions containing these
+  tokens into simpler forms._
+
+- Elaborated expressions will never contain any implicit type checks. This
+  means, in particular, that:
+
+  - If an elaborated expression ever takes the form `m_1 ? m_2 : m_3`, it is
+    guaranteed that the static type of `m_1` will be a subtype of `bool`. _That
+    is, all the situations in which the compiler needs to check that a condition
+    is a proper boolean are spelled out in the type inference rules._
+
+  - If an elaborated expression ever takes the form `m_1 && m_2` or `m_1 ||
+    m_2`, it is guaranteed that the static type of `m_1` and `m_2` will both be
+    a subtype of `bool`. _That is, all the situations in which the compiler
+    needs to check that the argument of a logical boolean expression is a proper
+    boolean are spelled out in the type inference rules._
+
+  - If an elaborated expression ever takes the form `throw m_1`, it is
+    guaranteed that the static type of `m_1` will be a subtype of
+    `Object`. _That is, `null` will never be thrown._`
+
+  - If an elaborated expression ever takes the form of an invocation whose
+    target is not `dynamic`, then it is guaranteed that:
+
+    - Each invocation argument has a corresponding formal parameter in the
+      invocation target, and the static type of the argument is a subtype of the
+      corresponding formal parameter's static type (with appropriate generic
+      substitutions).
+
+    - All of the invocation target's required formal parameters have
+      corresponding arguments.
+
+_The type inference rules below include informal sketches of a proof that the
+output of type inference satisfies these additional properties. These are
+non-normative, so they are typeset in italics._
+
+## Coercions
+
+Before considering the specific rules for type inferring each type of
+expression, it is useful to define an operation known as _coercion_. _Coercion_
+is a type inference step that is applied to an elaborated expression `m_1` and a
+target type `T`, and produces a new elaborated expression `m_2`.
+
+_The coercion operation satisfies the following soundness property: the static
+type of `m_2` is guaranteed to be a subtype of `T`. A proof of this is sketched
+below._
 
 _Coercions are used in most situations where the existing spec calls for an
 assignability check._
 
-Coercion of an expression artifact `m_1` to type `T_2` produces an expression
-artifact `m_2` with static type `T_2`, where `m_2` is determined as follows:
+Coercion of an elaborated expression `m_1` to type `T` produces `m_2`, with
+static type `T_2`, where `m_2` and `T_2` are determined as follows:
 
 - Let `T_1` be the static type of `m_1`.
 
-- Define `m_2` as follows:
+- If `T_1 <: T`, then let `m_2` be `m_1` and `T_2` be `T_1`. _Since `T_1 <: T`,
+  soundness is satisfied._
 
-  - If `T_1 <: T_2`, then let `m_2` be an expression artifact with static type
-    `T_2`, whose runtime behavior is as follows:
+- Otherwise, if `T_1` is `dynamic`, then let `m_2` be `@IMPLICIT_CAST<T>(m_1)`
+  and `T_2` be `T`. _Since `T <: T`, soundness is satisfied._
 
-    - Execute expression artifact `m_1`, and let `o_1` be the resulting
-      value. _By expression soundness, `o_1` will be an instance of the type
-      `T_1`._
+- Otherwise, if `T_1` is an interface type that contains a method called `call`
+  with type `U`, and `U <: T`, then let `m_2` be `m_1.call`, and let `T_2` be
+  `U`. _Since `U <: T`, soundness is satisfied._
 
-    - `m_2` completes with the value `o_1`. _Expression soundness follows from
-      the fact that since `T_1 <: T_2`, `o_1` must also be an instance of the
-      type `T_2`._
+- _TODO(paulberry): add more cases to handle implicit instantiation of generic
+  function types, and `call` tearoff with implicit instantiation._
 
-  - Otherwise, if `T_1` is `dynamic`, then let `m_2` be an expression artifact
-    with static type `T_2`, whose runtime behavior is as follows:
+- Otherwise, there is a compile-time error. _We have an expression of type `T_1`
+  in a situation that requires `T`, which isn't a supertype, nor is there a
+  coercion available, so it's a type error._
 
-    - Execute expression artifact `m_1`, and let `o_1` be the resulting value.
-
-    - If `o_1` is an instance of the type `T_2`, `m_2` completes with the value
-      `o_1`. _In other words, the implicit cast from `dynamic` to `T_2` has
-      succeeded. Expression soundness follows trivially because the completed
-      value is an instance of `T_2`, and the static type is `T_2`._
-
-    - Otherwise, `m_2` completes with an exception. _In other words, the
-      implicit cast from `dynamic` to `T_2` has failed. This trivially satisfies
-      expression soundess, since expression soundness is only concerned with the
-      value of the expression when it completes normally._
-
-  - Otherwise, if `T_1` is an interface type that contains a method called
-    `call` with type `U`, and `U <: T_2`, then let `m_2` be an expression
-    artifact with static type `T_2`, whose runtime behavior is as follows:
-
-    - Execute expression artifact `m_1`, and let `o_1` be the resulting
-      value. _By expression soundness, `o_1` will be an instance of the type
-      `T_1`._
-
-    - Let `o_2` be the result of tearing off the `call` method of `o_1`. _This
-      is guaranteed to succeed since `o_1` is an instance of `T_1`, and it is
-      guaranteed by tear-off soundness that `o_2` will be an instance of `U`._
-
-    - `m_2` completes with the value `o_2`. _Expression soundness follows from
-      the fact that `o_2` is an instance of `U` and `U <: T_2`._
-
-  - _TODO(paulberry): add more cases to handle implicit instantiation of generic
-    function types, and `call` tearoff with implicit instantiation._
-
-  - Otherwise, there is a compile-time error. _We have an expression artifact of
-    type `T_1` in a situation that requires `T_2`, which isn't a supertype, nor
-    is there a coercion available, so it's a type error._
-
-## Shorthand for coercions
+### Shorthand for coercions
 
 In the text that follows, we will sometimes say something like "let `m` be the
-result of performing expression type inference on `e`, in context `K`, and then
+result of performing expression inference on `e`, in context `K`, and then
 coercing the result to type `T`." This is shorthand for the following sequence
 of steps:
 
-- Let `m_1` be the result of performing expression type inference on `e`, in
-  context `K`.
+- Let `m_1` be the result of performing expression inference on `e`, in context
+  `K`.
 
 - Let `m` be the result of performing coercion of `m_1` to type `T`.
 
-# Expression type inference
+_It follows, from the soundness of coercions, that the static type of `m` is
+guaranteed to be a subtype of `T`._
 
-Expression type inference is the sequence of steps performed by the compiler to
-interpret the meaning of an expression in the source code. The specific steps
-depend on the form of the expression, and are explained below, for each kind of
-expression.
+## Expression inference rules
 
-Expression type inference always takes place with respect to a type schema known
-as the expression's "context".
+The following sections detail the specific type inference rules for each valid
+Dart expression.
 
-## Null
+### Null
 
-Expression type inference of the literal `null` produces an expression artifact
-with static type `Null`, whose runtime behavior is to complete with a value of
-the _null object_.
+Expression inference of the literal `null`, regardless of context, produces the
+elaborated expression `null`, with static type `Null`.
 
-_Expression soundness follows from the fact that the _null object_ is an
-instance of the type `Null`._
+_The runtime behavior of `null` is to evaluate to an instance of the type
+`Null`, so soundness is satisfied._
 
-## Numbers
+### Integer literals
 
-Expression type inference of an integer literal `l`, in context `K`, produces an
-expression artifact `m` with static type `T`, where `m` and `T` are determined
+Expression inference of an integer literal `l`, in context `K`, produces an
+elaborated expression `m` with static type `T`, where `m` and `T` are determined
 as follows:
 
 - Let `i` be the numeric value of `l`.
@@ -1139,181 +1223,152 @@ as follows:
 
 - If `double` is a subtype of `S` and `int` is _not_ a subtype of `S`, then:
 
-  - Let `T` be the type `double`, and let `m` be an expression artifact whose
-    runtime behavior is to complete with a value that is an instance of `double`
-    representing `i`. _Expression soundness follows trivially because the
-    completed value is an instance of `double`, and the static type is
-    `double`._
-
   - If `i` cannot be represented _precisely_ by an instance of `double`, then
     there is a compile-time error.
+
+  - Otherwise, let `T` be the type `double`, and let `m` be
+    `@DOUBLE(i)`. _Soundness follows from the fact that `@DOUBLE(i)` always
+    evaluates to an instance of `double`._
 
 - Otherwise, if `l` is a hexadecimal integer literal, 2<sup>63</sup> ≤ `i` <
   2<sup>64</sup>, and the `int` class is represented as signed 64-bit two's
   complement integers:
 
-  - Let `T` be the type `int`, and let `m` be an expression artifact whose
-    runtime behavior is to complete with a value that is an instance of `int`
-    representing `i` - 2<sup>64</sup>.
+  - Let `T` be the type `int`, and let `m` be `@INT(i` - 2<sup>64</sup>`)`.
 
-  - _Expression soundness follows trivially because the completed value is an
-    instance of `int`, and the static type is `int`._
+  - _Soundness follows from the fact that the `@INT(j)` always evaluates to an
+    instance of `int`._
+
+- Otherwise, if `i` cannot be represented _precisely_ by an instance of `int`,
+  then there is a compile-time error.
+
+- Otherwise, let `T` be the type `int`, and let `m` be `@INT(i)`. _Soundness
+  follows from the fact that `@INT(i)` always evaluates to an instance of
+  `int`._
+
+### Double literals
+
+Expression inference of a double literal `l`, regardless of context, produces
+the elaborated expression `l`, with static type `double`.
+
+_The runtime behavior of a double literal is to evaluate to an instance of the
+type `double`, so soundness is satisfied._
+
+### Booleans
+
+Expression inference of a boolean literal `e` (`true` or `false`), regardless of
+context, produces the elaborated expression `e`, with static type `bool`.
+
+_The runtime behavior of a boolean literal is to evaluate to an instance of the
+type `bool`, so soundness is satisfied._
+
+### Strings
+
+Expression inference of a string literal `s`, regardless of context, produces an
+elaborated expression `m` with static type `String`, where `m` is determined as
+follows:
+
+- If `s` contains no _stringInterpolations_, then let `m` be `s`. _The runtime
+  behavior of a string literal with no _stringInterpolations_ is to evaluate to
+  an instance of the type `String`, so soundness is satisfied._
 
 - Otherwise:
 
-  - Let `T` be the type `int`, and let `m` be an expression artifact whose
-    runtime behavior is to complete with a value that is an instance of `int`
-    representing `i`. _Expression soundness follows trivially because the
-    completed value is an instance of `int`, and the static type is `int`._
+  - For each _stringInterpolation_ `s_i` inside `s`, in source order:
 
-  - If `i` cannot be represented _precisely_ by an instance of `int`, then there
-    is a compile-time error.
+    - Define `m_i` as follows:
 
-## Booleans
+      - If `s_i` takes the form '`${`' `e` '`}`':
 
-Expression type inference of a boolean literal (`true` or `false`) produces an
-expression artifact with static type `bool`, whose runtime behavior is to
-complete with the value _true_ or _false_ (respectively).
+        - Let `m_i` be the result of performing expression inference on `e`, in
+          context `_`.
 
-_Expression soundness follows from the fact that the objects true and false are
-both instances of the type `bool`._
+      - Otherwise, `s_i` takes the form '`$e`', where `e` is either `this` or an
+        identifier that doesn't contain `$`, so:
 
-## Strings
+        - Let `m_i` be the result of performing expression inference on `e`, in
+          context `_`.
 
-Expression type inference of a string literal `s` produces an expression
-artifact `m` with static type `String`, where `m` is determined as follows:
-
-- For each _stringInterpolation_ `s_i` inside `s`, in source order:
-
-  - Define `m_i` as follows:
-
-    - If `s_i` takes the form '`${`' `e` '`}`':
-
-      - Let `m_i` be the result of performing expression type inference on `e`,
-        in context `_`.
-
-    - Otherwise, `s_i` takes the form '`$e`', where `e` is either `this` or an
-      identifier that doesn't begin with `$`, so:
-
-      - Let `m_i` be the result of performing expression type inference on `e`,
-        in context `_`.
-
-  - Let `T_i` be the static type of `m_i`.
-
-- Let `m` be an expression artifact whose runtime behavior is as follows:
-
-  - For each `i`, in order:
-
-    - Execute expression artifact `m_i`, and let `o_i` be the resulting value.
-
-    - Invoke the `toString` method on `o_i`, with no arguments, and let `r_i` be
-      the return value. _Note that since both `Object.toString` and
+    - Let `n_i` be `m_i.toString()`. _Since both `Object.toString` and
       `Null.toString` are declared with a return type of `String`, it follows
-      from return value soundness that `r_i` will have a runtime type of
-      `String`)._
+      that the static type of `n_i` is `String`._
 
-  - Let `r` be an instance of `String` whose characters are the result of
-    concatenating together the `r_i` strings, interspersing with any
-    non-interpolation characters in `s`.
+  - Let `m` be `@CONCAT(parts)`, where `parts` is composed of simple string
+    literals representing the portions of `s` that are __not__
+    _stringInterpolations_, interleaved with the `n_i`.
 
-  - `m` completes with the value `r`. _Expression soundness follows trivially
-    because `r` is an instance of `String`, and the static type is `String`._
+  - _The runtime behavior of `@CONCAT(parts)` is to evaluate to an instance of
+    the type `String`, so soundness is satisfied._
 
-## Symbol literal
+### Symbol literal
 
-Expression type inference of a symbol literal `#s` (where `s` may be an
-identifier, a sequence of identifiers separated by `.`, an operator, or `void`)
-produces an expression artifact with static type `Symbol`, whose runtime
-behavior is to complete with a value that is an instance of `Symbol`,
-representing the tokens in `s`.
+Expression inference of a symbol literal `e`, regardless of context, produces
+the elaborated expression `e`, with static type `Symbol`.
 
-_Expression soundness follows trivially because the complete value is an
-instance of `Symbol`, and the static type is `Symbol`._
+_The runtime behavior of a symbol literal is to evaluate to an instance of the
+type `Symbol`, so soundness is satisfied._
 
-## Throw
+### Throw
 
-Expression type inference of a throw expression `throw e_1` produces an
-expression artifact `m` with static type `Never`, where `m` is determined as
-follows:
+Expression inference of a throw expression `throw e_1`, regardless of context,
+produces an elaborated expression `m` with static type `Never`, where `m` is
+determined as follows:
 
-- Let `m_1` be the result of performing expression type inference on `e_1`, in
+- Let `m_1` be the result of performing expression inference on `e_1`, in
   context `_`, and then coercing the result to type `Object`.
 
-- Let `m` be an expression artifact whose runtime behavior is as follows:
+- _It follows, from the soundness of coercions, that the static type of `m_1` is
+  guaranteed to be a subtype of `Object`. That is, `null` will never be thrown._
 
-  - Execute the expression artifact `m_1`, and let `o_1` be the resulting value.
+- Let `m` be `throw m_1`. _Soundness follows from the fact that `throw m_1`
+  never evaluates to a value._
 
-  - If `o_1` is the _null object_, then `m` completes with an
-    exception.
+### This
 
-  - Otherwise, `m` completes with an exception whose value is `o_1`.
+Expression inference of `this`, regardless of context, produces the elaborated
+expression `this` with static type `T`, where `T` is the interface type of the
+immediately enclosing class, enum, mixin, or extension type, or the "on" type of
+the immediately enclosing extension.
 
-_Expression soundness follows from the fact that `m` does not complete with a
-value._
+_The runtime behavior of `this` is to evaluate to the target of the current
+instance member invocation, which is guaranteed to be an instance satisfying
+this type. So soundness is satisfied._
 
-## This
+### Logical boolean expressions
 
-Expression type inference of the expression `this` produces an expression
-artifact `m` with static type `T`, where `m` and `T` are determined as follows:
+Expression inference of a logical "and" expression (`e_1 && e_2`) or a logical
+"or" expression (`e_1 || e_2`), regardless of context, produces an elaborated
+expression `m` with static type `bool`, where `m` is determined as follows:
 
-- Let `T` be the interface type of the immediately enclosing class, enum, mixin,
-  or extension type, or the "on" type of the immediately enclosing extension.
-
-- If there is no immediately enclosing class, enum, mixin, extension type, or
-  extension, then there is a compile-time error.
-
-- If the expression `this` appears inside a factory constructor, a constructor's
-  initializer list, a static method or variable initializer, or in the
-  initializing expression of a non-late instance variable, then there is a
-  compile-time error.
-
-- Let `m` be an expression artifact whose runtime behavior is to complete with a
-  value that is the target of the current instance member invocation.
-
-_Expression soundness follows from the fact that within a class, enum, mixin, or
-extension type having interface type `T`, the target of any instance member
-invocation is always an instance of `T`, and within an extension, the target of
-any instance member invocation is always an instance of the extension's "on"
-type._
-
-## Logical boolean expressions
-
-Expression type inference of a logical "and" expression (`e_1 && e_2`) or a
-logical "or" expression (`e_1 || e_2`) produces an expression artifact `m` with
-static type `bool`, where `m` is determined as follows:
-
-- Let `m_1` be the result of performing expression type inference on `e_1`, in
+- Let `m_1` be the result of performing expression inference on `e_1`, in
   context `bool`, and then coercing the result to type `bool`.
 
-- Let `m_2` be the result of performing expression type inference on `e_2`, in
+- Let `m_2` be the result of performing expression inference on `e_2`, in
   context `bool`, and then coercing the result to type `bool`.
 
-- Let `m` be an expression artifact whose runtime behavior is as follows:
+- _It follows, from the soundness of coercions, that the static type of `m_1`
+  and `m_2` are both guaranteed to be a subtype of `bool`._
 
-  - Execute expression artifact `m_1`, and let `o_1` be the resulting value. _By
-    expression soundness, `o_1` will be an instance of the type `bool`._
+- If `e` is of the form `e_1 && e_2`, let `m` be `m_1 && m_2`. _It is valid to
+  form this elaborated expression because the static type of `m_1` and `m_2` are
+  guaranteed to be a subtype of `bool`._
 
-  - If the expression is a logical "and" expression and `o_1` is `false`, or the
-    expression is a logical "or" expression and `o_1` is `true`, then `m`
-    completes with the value `o_1`. _Expression soundness follows trivially
-    because the complete value is an instance of `bool`, and the static type is
-    `bool`._
+- Otherwise, `e` is of the form `e_1 || e_2`, so let `m` be `m_1 || m_2`. _It is
+  valid to form this elaborated expression because the static type of `m_1` and
+  `m_2` are guaranteed to be a subtype of `bool`._
 
-  - Otherwise:
+_The runtime behavior of logical boolean expressions is to evaluate to a value
+equal to their first argument (in the case of a short-cut) or their second
+argument (in the case of no short-cut). Since the static type of `m_1` and `m_2`
+are guaranteed to be a subtype of `bool`, it follows that the the logical
+boolean expression will evaluate to an instance satisfying type `bool`, so
+soundness is satisfied._
 
-    - Execute the expression artifact `m_2`, and let `o_2` be the resulting
-      value. _By expression soundness, `o_2` will be an instance of the type
-      `bool`._
+### Await expressions
 
-    - Then, `m` completes with the value `o_2`. _Expression soundness follows
-      trivially because the completed value is an instance of `bool`, and the
-      static type is `bool`._
-
-## Await expressions
-
-Expression type inference of an await expression `await e_1`, in context `K`,
-produces an expression artifact `m` with static type `T`, where `m` and `T` are
-determined as follows:
+Expression inference of an await expression `await e_1`, in context `K`,
+produces an elaborated expression `m` with static type `T`, where `m` and `T`
+are determined as follows:
 
 - Define `K_1` as follows:
 
@@ -1324,51 +1379,110 @@ determined as follows:
 
   - Otherwise, let `K_1` be `FutureOr<K>`.
 
-- Let `m_1` be the result of performing expression type inference on `e_1`, in
+- Let `m_1` be the result of performing expression inference on `e_1`, in
   context `K_1`.
 
 - Let `T_1` be the static type of `m_1`.
 
-- Let `T` be `flatten(T_1)`.
+- If `T_1` is incompatible with await (as defined in the _extension types_
+  specification), then there is a compile-time error.
 
-- Let `m` be an expression artifact whose runtime behavior is as follows:
+- Let `T_2` be `flatten(T_1)`.
 
-  - Execute expression artifact `m_1`, and let `o_1` be the resulting value. _By
-    expression soundness, `o_1` will be an instance of the type `T_1`._
+- Let `m_2` be `@AWAIT_WITH_TYPE_CHECK<T_2>(m_1)`, with static type
+  `Future<T_2>`.
 
-  - Define `o_2` as follows:
+  - _Note that in many circumstances, it will be trivial for the compiler to
+    establish that `m_1` always evaluates to an instance `v` that satisfies type
+    `Future<T_2>`, in which case `m_2` can be optimized to
+    `@PROMOTED_TYPE<Future<T_2>>(m_1)`._
 
-    - If `o_1` is a subtype of `Future<T>`, then let `o_2` be `o_1`.
+  - _For soundness, we must prove that whenever
+    `@AWAIT_WITH_TYPE_CHECK<T_2>(m_1)` evaluates `m_1` to a value `v` that is
+    __not__ an instance satisfying type `Future<T_2>`, that `v` __is__ an
+    instance satisfying type `T_2`. This is necessary to ensure that the future
+    created by `@AWAIT_WITH_TYPE_CHECK` will complete to a value satisfying its
+    type signature. Note that `v` is guaranteed to be an instance satisfying
+    type `T_1` (because `T_1` is the static type of `m_1`). So we can establish
+    soundness by assuming that `v` is an instance satisfying type `T_1` and not
+    an instance satisfying type `Future<T_2>`, and then considering two cases:_
 
-    - Otherwise, let `o_2` be the result of creating a new object using the
-      constructor `Future<T>.value()` with `o_1` as its
-      argument.
+    - _TODO(paulberry): it should be possible to simplify and clarify this
+      section once we have proven that `T <: FutureOr<flatten(T)>` for all types
+      `T`._
 
-      - _TODO(paulberry): How do we ensure that the value passed to
-        `Future<T>.value()` is an instance of type `T`? What we have is that
-        `o_1` is an instance of `T_1`, where `T` is `flatten(T_1)`. Which is not
-        quite the same._
+    - _If the runtime value of `v` is `null`, then by soundness, `T_1` must be
+      of the form `Null`, `dynamic`, `S*`, or `S?`. Considering each of these:_
 
-    - _By expression soundness, `o_2` must be an instance of `Future<T>`._
+      - _If `T_1` is of the form `Null` or `dynamic`, then by the definition of
+        `flatten`, `T_2` must be the same as `T_1`. Therefore, `v` is an
+        instance satisfying type `T_2`, so soundness is satisfied._
 
-  - Pause the stream associated with the innermost enclosing asynchronous
-    **for** loop, if any.
+      - _If `T_1` is of the form `S*` or `S?`, then by the definition of
+        `flatten`, `T_2` must be of the form `flatten(S)*` or `flatten(S)?`,
+        respectively. `null` is an instance satisfying all types ending in `*`
+        and `?`, so soudness is satisfied._
 
-  - Suspend the current invocation of the function body immediately enclosing
-    the await expression until after `o_2` completes.
+    - _Otherwise, we need to show that if `v` is a non-null instance satisfying
+      type `T_1`, but not an instance satisfying type `Future<T_2>`, then `v` is
+      an instance satisfying type `T_2`._
 
-  - At some time after `o_2` is completed, control returns to the current
-    invocation.
+    - _Substituting in the definition of `T_2`, we need to show that if `v` is a
+      non-null instance satisfying type `T_1`, but not an instance satisfying
+      type `Future<flatten(T_1)>`, then `v` is an instance satisfying type
+      `flatten(T_1)`. We can prove this by induction on `T_1`:_
 
-  - If `o_2` is completed with an error `x` and stack trace `t`, then `m`
-    completes with the exception `x` and stack trace `t`. _This trivially
-    satisfies expression soundess, since expression soundness is only concerned
-    with the value of the expression when it completes normally._
+      - _If `T_1` is `S?`, then `flatten(T_1)` is `flatten(S)?`. We need to show
+        that if `v` is a non-null instance satisfying type `S?`, but not an
+        instance satisfying type `Future<flatten(S)?>`, then `v` is an instance
+        satisfying type `flatten(S)?`. Assuming `v` is a non-null instance
+        satisfying type `S?`, it must be a non-null instance satisfying type
+        `S`. Assuming `v` is not an instance satisfying type
+        `Future<flatten(S)?>`, it follows that `v` is not an instance satisfying
+        type `Future<flatten(S)>`. So we have satisfied the premise of the
+        induction hypothesis using `T_1 = S`, and therefore by induction, `v` is
+        an instance satisfying type `flatten(S)`. This in turn implies that `v`
+        is an instance satisfying type `flatten(S)?`._
 
-  - If `o_2` is completed with an object `v`, then `m` completes with the value
-    `v`. _Since `o_2` is an instance of `Future<T>`, by future soundness, `v`
-    must be an instance of `T`. This satisfies expression soundness, since `v`
-    is an instance of `T` , and `T` is the static type._
+      - _(Same argument but with `?` replaced by `*`): If `T_1` is `S*`, then
+        `flatten(T_1)` is `flatten(S)*`. We need to show that if `v` is a
+        non-null instance satisfying type `S*`, but not an instance satisfying
+        type `Future<flatten(S)*>`, then `v` is an instance satisfying type
+        `flatten(S)*`. Assuming `v` is a non-null instance satisfying type `S*`,
+        it must be a non-null instance satisfying type `S`. Assuming `v` is not
+        an instance satisfying type `Future<flatten(S)*>`, it follows that `v`
+        is not an instance satisfying type `Future<flatten(S)>`. So we have
+        satisfied the premise of the induction hypothesis using `T_1 = S`, and
+        therefore by induction, `v` is an instance satisfying type
+        `flatten(S)`. This in turn implies that `v` is an instance satisfying
+        type `flatten(S)*`._
+
+      - _If `T_1` is `FutureOr<S>`, then `flatten(T_1)` is `S`. We need to show
+        that if `v` is a non-null instance satisfying type `FutureOr<S>`, but
+        not an instance satisfying type `Future<S>`, then `v` is an instance
+        satisfying type `S`. This is trivially true, because `FutureOr<S>` is
+        the union of types `S` and `Future<S>`._
+
+      - _If `T_1 <: Future`, then `flatten(T_1)` is `S`, where `S` is a type
+        such that `T_1 <: Future<S>` and for all `R`, if `T_1 <: Future<R>` then
+        `S <: R`. We need to show that if `v` is a non-null instance satisfying
+        type `T_1`, but not an instance satisfying type `Future<S>`, then `v` is
+        an instance satisfying type `S`. Assuming `v` is a non-null instance
+        satisfying type `T_1`, it must also be a non-null instance satisfying
+        type `Future<S>` (because `T_1 <: Future<S>`). But this contradicts the
+        assumption that `v` is __not__ an instance satisfying type `Future<S>`,
+        so this case is impossible._
+
+      - _Finally, if none of the above cases are satisfied, then `flatten(T_1)`
+        is `T_1`. We need to show that if `v` is a non-null instance satisfying
+        type `T_1`, but not an instance satisfying type `Future<T_1>`, then `v`
+        is an instance satisfying type `T_1`. This is trivially true, since if
+        `v` is a non-null instance satisfying type `T_1`, it must be an instance
+        satisfying type `T_1`._
+
+- Let `T` be `T_2`, and let `m` be `await m_2`. _Since `m_2` has static type
+  `Future<m_2>`, the value of `await m_2` must necessarily be an instance
+  satisfying type `T_2`, so soundness is satisfied._
 
 <!--
 
