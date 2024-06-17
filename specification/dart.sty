@@ -173,9 +173,12 @@
 \newcommand{\id}{\metavar{id}}
 \newcommand{\op}{\metavar{op}}
 
+% Used in margin to indicate that a term is being defined here.
+\newcommand{\IndexMarker}{\ensuremath{^\vartriangle}}
+
 % Used for defining occurrence of phrase, with customized index entry.
 \newcommand{\IndexCustom}[2]{%
-  \leavevmode\marginpar{\ensuremath{\vartriangle}}\emph{#1}\index{#2}}
+  \leavevmode\marginpar{\IndexMarker}\emph{#1}\index{#2}}
 
 % Used for the defining occurrence of a local symbol.
 \newcommand{\DefineSymbol}[1]{%
@@ -196,7 +199,7 @@
 
 % Same appearance, but not adding an entry to the index.
 \newcommand{\NoIndex}[1]{%
-  \leavevmode\marginpar{\ensuremath{\vartriangle}}\emph{#1}}
+  \leavevmode\marginpar{\IndexMarker}\emph{#1}}
 
 % Mark a compile-time error in the margin.
 \newcommand{\Error}[1]{%
