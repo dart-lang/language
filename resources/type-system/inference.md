@@ -1068,6 +1068,10 @@ succintly, the syntax of Dart is extended to allow the following forms:
     `@AWAIT_WITH_TYPE_CHECK(m_1)` evaluates to `u`. _Such a future is guaranteed
     to (soundly) exist, because in this case `v` is an instance satisfying `T`._
 
+  - _Note that these two cases in the abstract correspond concretely to a type
+    check in the implementation; this where the name `@AWAIT_WITH_TYPE_CHECK`
+    comes from._
+
 - `@CONCAT(m_1, m_2, ..., m_n)`, where each `m_i` is an elaborated expression
   whose static type is a subtype of `String`, represents the operation of
   evaluating each `m_i` in sequence and then concatenating the results into a

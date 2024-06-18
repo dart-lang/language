@@ -11794,7 +11794,41 @@ we say that $T$ does not derive a future type.
 \commentary{%
 Note that if $T$ derives a future type $F$ then \SubtypeNE{T}{F},
 and $F$ is always of the form \code{$G$<...>} or \code{$G$<...>?},
-where $G$ is \code{Future} or \code{FutureOr}.
+where $G$ is \code{Future} or \code{FutureOr}. The proof is by induction on the
+structure of $T$:
+
+\begin{itemize}
+\item
+  %% TODO(eernst): Come mixin classes and extension types: add them.
+  If $T$ is a type which is introduced by
+  a class, mixin, or enum declaration,
+  and if $T$ or a direct or indirect superinterface
+  (\ref{interfaceSuperinterfaces})
+  of $T$ is \code{Future<$U$>} for some $U$, then, letting
+  \code{$G =$ Future} and \code{$F = G$<$U$>}, $T <: F$.
+\item
+  If $T$ is the type \code{FutureOr<$U$>} for some $U$, then by reflexivity,
+  \code{$T <:$ FutureOr<$U$>}. Letting \code{$G =$ FutureOr} and
+  \code{$F = G$<$U$>}, it follows that $T <: F$.
+\item
+  If $T$ is \code{$S$?} for some $S$, and
+  $S$ derives the future type $F'$,
+  then by the induction hypothesis, \code{$S <: F'$}, where $F'$ is of the form
+  \code{$G'$<$U$>} or \code{$G'$<$U$>?} and $G'$ is \code{Future} or
+  \code{FutureOr}. Therefore, \code{$S$? $<: F'$?}, and by substitution,
+  \code{$T <: F'$?}. Since \code{$T$?? $= T$?} for all $T$, it follows that
+  \code{$T <: G'$<$U$>?}. So, letting $G = G'$ and \code{$F = G$<$U$>?},
+  it follows that $T <: F$.
+\item
+  If $T$ is a type variable with bound $B$, and
+  $B$ derives the future type $F$,
+  then by the induction hypothesis, \code{$B <: F'$}, where $F'$ is of the form
+  \code{$G'$<$U$>} or \code{$G'$<$U$>?} and $G'$ is \code{Future} or
+  \code{FutureOr}. Also, since $B$ is the bound of $T$, $T <: B$, so by
+  transitivity, $T <: F'$. Therefore, letting $G = G'$ and $F = F'$, it
+  follows that $T <: F$.
+\end{itemize}
+
 Also note that 'derives' in this context refers to the computation
 where a type $T$ is given, the supertypes of $T$ are searched,
 and a type $F$ of one of those forms is selected.
@@ -11829,7 +11863,8 @@ as follows, using the first applicable case:
 
 \rationale{%
 This definition guarantees that for any type $T$,
-\code{$T <:$ FutureOr<$\flatten{T}$>}. The proof is by induction on `T`:
+\code{$T <:$ FutureOr<$\flatten{T}$>}. The proof is by induction on the
+structure of $T$:
 
 \begin{itemize}
 \item If $T$ is \code{$X$\,\&\,$S$} then
@@ -11854,7 +11889,10 @@ This definition guarantees that for any type $T$,
 
 \item If $T$ derives a future type \code{Future<$S$>?} or
   \code{FutureOr<$S$>?}, then, since \code{Future<$S$>? $<:$ FutureOr<$S$>?},
-  it follows that \code{$T <:$ FutureOr<$S$>?}, and therefore
+  it follows that \code{$T <:$ FutureOr<$S$>?}.
+  \code{FutureOr<$S$>? $<:$ FutureOr<$S$?>} for any type $S$ (this can be shown
+  using the union type subtype rules and from
+  \code{Future<$S$> $<:$ Future<$S$?>} by covariance), so by transivitity,
   \code{$T <:$ FutureOr<$S$?>}. Since \code{$\flatten{T} = S$?} in this case,
   it follows that \code{$T <:$ FutureOr<$\flatten{T}$>}.
 
