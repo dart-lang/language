@@ -11829,7 +11829,40 @@ as follows, using the first applicable case:
 
 \rationale{%
 This definition guarantees that for any type $T$,
-\code{$T <:$ FutureOr<$\flatten{T}$>}.%
+\code{$T <:$ FutureOr<$\flatten{T}$>}. The proof is by induction on `T`:
+
+\begin{itemize}
+\item If $T$ is \code{$X$\,\&\,$S$} then
+  \begin{itemize}
+  \item if $S$ derives a future type $U$,
+    then \code{$T <: S$} and \code{$S <: U$}, so \code{$T <: U$}.
+    By the induction hypothesis, \code{$U <:$ FutureOr<$\flatten{U}$>}.
+    Since \code{$\flatten{T} = \flatten{U}$} in this case, it follows that
+    \code{$U <:$ FutureOr<$\flatten{T}$>}, and so
+    \code{$T <:$ FutureOr<$\flatten{T}$>}.
+  \item otherwise, \code{$T <: X$}.
+    By the induction hypothesis, \code{$X <:$ FutureOr<$\flatten{X}$>}.
+    Since \code{$\flatten{T} = \flatten{X}$} in this case, it follows that
+    \code{$U <:$ FutureOr<$\flatten{T}$>}, and so
+    \code{$T <:$ FutureOr<$\flatten{T}$>}.
+  \end{itemize}
+
+\item If $T$ derives a future type \code{Future<$S$>}
+  or \code{FutureOr<$S$>}, then, since \code{Future<$S$> $<:$ FutureOr<$S$>},
+  it follows that \code{$T <:$ FutureOr<$S$>}. Since \code{$\flatten{T} = S$}
+  in this case, it follows that \code{$T <:$ FutureOr<$\flatten{T}$>}.
+
+\item If $T$ derives a future type \code{Future<$S$>?} or
+  \code{FutureOr<$S$>?}, then, since \code{Future<$S$>? $<:$ FutureOr<$S$>?},
+  it follows that \code{$T <:$ FutureOr<$S$>?}, and therefore
+  \code{$T <:$ FutureOr<$S$?>}. Since \code{$\flatten{T} = S$?} in this case,
+  it follows that \code{$T <:$ FutureOr<$\flatten{T}$>}.
+
+\item Otherwise, \code{$\flatten{T} = T$}, so
+  \code{FutureOr<$\flatten{T}$> $=$ FutureOr<$T$>}. Since
+  \code{$T <:$ FutureOr<$T$>}, it follows that
+  \code{$T <:$ FutureOr<$\flatten{T}$>}.
+\end{itemize}
 }
 
 \LMHash{}%
