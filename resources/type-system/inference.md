@@ -1057,8 +1057,8 @@ succintly, the syntax of Dart is extended to allow the following forms:
     `T_1`. Since `T_1 <: FutureOr<flatten(T_1)>` for all `T_1`, it follows that
     `v` must be an instance satisfying `FutureOr<flatten(T_1)>`, or
     equivalently, satisfying `FutureOr<T>`. Therefore, `v` must either be an
-    instance satisfying either `Future<T>` or `T`. We consider the two cases
-    below._
+    instance satisfying `Future<T>`, or if not, it must be an instance
+    satisfying `T`. We consider the two cases below._
 
   - If `v` is an instance satisfying type `Future<T>`, then let
     `@AWAIT_WITH_TYPE_CHECK(m_1)` evaluate to `v`.
@@ -1066,13 +1066,14 @@ succintly, the syntax of Dart is extended to allow the following forms:
   - Otherwise, let `@AWAIT_WITH_TYPE_CHECK(m_1)` evaluate to a future satisfying
     type `Future<T>` that will complete to the value `v` at some later
     point. _Such a future could, for instance, be created by executing
-    `Future<T>.value(v)` (this is sound because in this case `v` is an instance
-    satisfying `T`). It also could be created using a more efficient
+    `Future<T>.value(v)`, which is sound because in this case `v` is an instance
+    satisfying `T`. It also could be created using a more efficient
     implementation-specific mechanism._
 
-  - _Note that these two cases in the abstract correspond concretely to a type
-    check in the implementation; this where the name `@AWAIT_WITH_TYPE_CHECK`
-    comes from._
+  _Note that the two cases here may imply a runtime implementation doing an
+  actual `is Future<T>` type check and branching on the result, or a compiler
+  may be able to optimize away the check in some cases. This where the name
+  `@AWAIT_WITH_TYPE_CHECK` comes from._
 
 - `@CONCAT(m_1, m_2, ..., m_n)`, where each `m_i` is an elaborated expression
   whose static type is a subtype of `String`, represents the operation of
