@@ -1046,22 +1046,33 @@ The elaboration process sometimes introduces new operations that are not easily
 expressible using the syntax of Dart. To allow these operations to be specified
 succintly, the syntax of Dart is extended to allow the following forms:
 
-- `@AWAIT_WITH_TYPE_CHECK<T>(m_1)`, represents the following operation:
+- `@AWAIT_WITH_TYPE_CHECK(m_1)` represents the following operation:
 
-  - Evaluate `m_1`, and let `v` denote the result.
+  - Let `T_1` be the static type of `m_1`.
 
-  - If `v` is an instance satisfying type `Future<T>`, then
-    `@AWAIT_WITH_TYPE_CHECK<T>(m_1)` evaluates to `v`.
+  - Let `T` be `flatten(T_1)`.
 
-  - Otherwise, let `u` be a future satisfying type `Future<T>` that will
-    complete to the value `v` at some later point. Then,
-    `@AWAIT_WITH_TYPE_CHECK<T>(m_1)` evaluates to `u`.
+  - Evaluate `m_1`, and let `v` denote the result. _Note that since `m_1` has
+    static type `T_1`, by soundness, `v` must be an instance satisfying
+    `T_1`. Since `T_1 <: FutureOr<flatten(T_1)>` for all `T_1`, it follows that
+    `v` must be an instance satisfying `FutureOr<flatten(T_1)>`, or
+    equivalently, satisfying `FutureOr<T>`. Therefore, `v` must either be an
+    instance satisfying either `Future<T>` or `T`. We consider the two cases
+    below._
 
-    - _TODO(paulberry): explain why such a future is guaranteed to (soundly)
-      exist, by stipulating that if `T_1` is the static type of `m_1`, then `T`
-      must be `flatten(T_1)`, and then proving a lemma that `T_1 <:
-      FutureOr<flatten(T_1)>`; therefore `T_1 <: FutureOr<T>`, so in this
-      "otherwise" case, `v` must be an instance satisfying `T`._
+  - If `v` is an instance satisfying type `Future<T>`, then let
+    `@AWAIT_WITH_TYPE_CHECK(m_1)` evaluate to `v`.
+
+  - Otherwise, let `@AWAIT_WITH_TYPE_CHECK(m_1)` evaluate to a future satisfying
+    type `Future<T>` that will complete to the value `v` at some later
+    point. _Such a future could, for instance, be created by executing
+    `Future<T>.value(v)` (this is sound because in this case `v` is an instance
+    satisfying `T`). It also could be created using a more efficient
+    implementation-specific mechanism._
+
+  - _Note that these two cases in the abstract correspond concretely to a type
+    check in the implementation; this where the name `@AWAIT_WITH_TYPE_CHECK`
+    comes from._
 
 - `@CONCAT(m_1, m_2, ..., m_n)`, where each `m_i` is an elaborated expression
   whose static type is a subtype of `String`, represents the operation of
@@ -1389,99 +1400,17 @@ are determined as follows:
 
 - Let `T_2` be `flatten(T_1)`.
 
-- Let `m_2` be `@AWAIT_WITH_TYPE_CHECK<T_2>(m_1)`, with static type
-  `Future<T_2>`.
+- Let `m_2` be `@AWAIT_WITH_TYPE_CHECK(m_1)`, with static type
+  `Future<T_2>`. _This is sound because `@AWAIT_WITH_TYPE_CHECK(m_1)` always
+  evaluates to an instance satisfying type `Future<T_2>`._
 
   - _Note that in many circumstances, it will be trivial for the compiler to
     establish that `m_1` always evaluates to an instance `v` that satisfies type
     `Future<T_2>`, in which case `m_2` can be optimized to
     `@PROMOTED_TYPE<Future<T_2>>(m_1)`._
 
-  - _For soundness, we must prove that whenever
-    `@AWAIT_WITH_TYPE_CHECK<T_2>(m_1)` evaluates `m_1` to a value `v` that is
-    __not__ an instance satisfying type `Future<T_2>`, that `v` __is__ an
-    instance satisfying type `T_2`. This is necessary to ensure that the future
-    created by `@AWAIT_WITH_TYPE_CHECK` will complete to a value satisfying its
-    type signature. Note that `v` is guaranteed to be an instance satisfying
-    type `T_1` (because `T_1` is the static type of `m_1`). So we can establish
-    soundness by assuming that `v` is an instance satisfying type `T_1` and not
-    an instance satisfying type `Future<T_2>`, and then considering two cases:_
-
-    - _TODO(paulberry): it should be possible to simplify and clarify this
-      section once we have proven that `T <: FutureOr<flatten(T)>` for all types
-      `T`._
-
-    - _If the runtime value of `v` is `null`, then by soundness, `T_1` must be
-      of the form `Null`, `dynamic`, `S*`, or `S?`. Considering each of these:_
-
-      - _If `T_1` is of the form `Null` or `dynamic`, then by the definition of
-        `flatten`, `T_2` must be the same as `T_1`. Therefore, `v` is an
-        instance satisfying type `T_2`, so soundness is satisfied._
-
-      - _If `T_1` is of the form `S*` or `S?`, then by the definition of
-        `flatten`, `T_2` must be of the form `flatten(S)*` or `flatten(S)?`,
-        respectively. `null` is an instance satisfying all types ending in `*`
-        and `?`, so soudness is satisfied._
-
-    - _Otherwise, we need to show that if `v` is a non-null instance satisfying
-      type `T_1`, but not an instance satisfying type `Future<T_2>`, then `v` is
-      an instance satisfying type `T_2`._
-
-    - _Substituting in the definition of `T_2`, we need to show that if `v` is a
-      non-null instance satisfying type `T_1`, but not an instance satisfying
-      type `Future<flatten(T_1)>`, then `v` is an instance satisfying type
-      `flatten(T_1)`. We can prove this by induction on `T_1`:_
-
-      - _If `T_1` is `S?`, then `flatten(T_1)` is `flatten(S)?`. We need to show
-        that if `v` is a non-null instance satisfying type `S?`, but not an
-        instance satisfying type `Future<flatten(S)?>`, then `v` is an instance
-        satisfying type `flatten(S)?`. Assuming `v` is a non-null instance
-        satisfying type `S?`, it must be a non-null instance satisfying type
-        `S`. Assuming `v` is not an instance satisfying type
-        `Future<flatten(S)?>`, it follows that `v` is not an instance satisfying
-        type `Future<flatten(S)>`. So we have satisfied the premise of the
-        induction hypothesis using `T_1 = S`, and therefore by induction, `v` is
-        an instance satisfying type `flatten(S)`. This in turn implies that `v`
-        is an instance satisfying type `flatten(S)?`._
-
-      - _(Same argument but with `?` replaced by `*`): If `T_1` is `S*`, then
-        `flatten(T_1)` is `flatten(S)*`. We need to show that if `v` is a
-        non-null instance satisfying type `S*`, but not an instance satisfying
-        type `Future<flatten(S)*>`, then `v` is an instance satisfying type
-        `flatten(S)*`. Assuming `v` is a non-null instance satisfying type `S*`,
-        it must be a non-null instance satisfying type `S`. Assuming `v` is not
-        an instance satisfying type `Future<flatten(S)*>`, it follows that `v`
-        is not an instance satisfying type `Future<flatten(S)>`. So we have
-        satisfied the premise of the induction hypothesis using `T_1 = S`, and
-        therefore by induction, `v` is an instance satisfying type
-        `flatten(S)`. This in turn implies that `v` is an instance satisfying
-        type `flatten(S)*`._
-
-      - _If `T_1` is `FutureOr<S>`, then `flatten(T_1)` is `S`. We need to show
-        that if `v` is a non-null instance satisfying type `FutureOr<S>`, but
-        not an instance satisfying type `Future<S>`, then `v` is an instance
-        satisfying type `S`. This is trivially true, because `FutureOr<S>` is
-        the union of types `S` and `Future<S>`._
-
-      - _If `T_1 <: Future`, then `flatten(T_1)` is `S`, where `S` is a type
-        such that `T_1 <: Future<S>` and for all `R`, if `T_1 <: Future<R>` then
-        `S <: R`. We need to show that if `v` is a non-null instance satisfying
-        type `T_1`, but not an instance satisfying type `Future<S>`, then `v` is
-        an instance satisfying type `S`. Assuming `v` is a non-null instance
-        satisfying type `T_1`, it must also be a non-null instance satisfying
-        type `Future<S>` (because `T_1 <: Future<S>`). But this contradicts the
-        assumption that `v` is __not__ an instance satisfying type `Future<S>`,
-        so this case is impossible._
-
-      - _Finally, if none of the above cases are satisfied, then `flatten(T_1)`
-        is `T_1`. We need to show that if `v` is a non-null instance satisfying
-        type `T_1`, but not an instance satisfying type `Future<T_1>`, then `v`
-        is an instance satisfying type `T_1`. This is trivially true, since if
-        `v` is a non-null instance satisfying type `T_1`, it must be an instance
-        satisfying type `T_1`._
-
 - Let `T` be `T_2`, and let `m` be `await m_2`. _Since `m_2` has static type
-  `Future<m_2>`, the value of `await m_2` must necessarily be an instance
+  `Future<T_2>`, the value of `await m_2` must necessarily be an instance
   satisfying type `T_2`, so soundness is satisfied._
 
 <!--
