@@ -1060,13 +1060,15 @@ succintly, the syntax of Dart is extended to allow the following forms:
     instance satisfying either `Future<T>` or `T`. We consider the two cases
     below._
 
-  - If `v` is an instance satisfying type `Future<T>`, then
-    `@AWAIT_WITH_TYPE_CHECK(m_1)` evaluates to `v`.
+  - If `v` is an instance satisfying type `Future<T>`, then let
+    `@AWAIT_WITH_TYPE_CHECK(m_1)` evaluate to `v`.
 
-  - Otherwise, let `u` be a future satisfying type `Future<T>` that will
-    complete to the value `v` at some later point. Then,
-    `@AWAIT_WITH_TYPE_CHECK(m_1)` evaluates to `u`. _Such a future is guaranteed
-    to (soundly) exist, because in this case `v` is an instance satisfying `T`._
+  - Otherwise, let `@AWAIT_WITH_TYPE_CHECK(m_1)` evaluate to a future satisfying
+    type `Future<T>` that will complete to the value `v` at some later
+    point. _Such a future could, for instance, be created by executing
+    `Future<T>.value(v)` (this is sound because in this case `v` is an instance
+    satisfying `T`). It also could be created using a more efficient
+    implementation-specific mechanism._
 
   - _Note that these two cases in the abstract correspond concretely to a type
     check in the implementation; this where the name `@AWAIT_WITH_TYPE_CHECK`
