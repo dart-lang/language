@@ -182,7 +182,19 @@ By allowing many non-literal primary expression as the “tag”, a some mistake
 
 On the other hand, we could probably allow `<primary> <selector+> <stringLiteral>`, making a string literal a *selector*
 
-It can probably safely be restricted to not allow literals or function expressions. Those are incapable of implementing `StringInterpolation` anyway.
+It can probably safely be restricted to not allow literals or function expressions. Those are incapable of implementing `StringInterpolation` anyway.
+
+### Similarity to “tagged collections”
+
+If Dart introduces a way to generalize collection literals, then the syntax *could* be something like;
+
+```dart
+var c1 = MyCollection<int>(capacity: 24){1, for (var i = 2; i <= 23; i+= 3) i, 26};
+// or
+var c2 = myCollectionTag{1, 2, ...more};
+```
+
+That would be similar to the the format for tagged string interpolations containing elements. (And without tagged collections, one could do `var c3 = myCollection"${1, 2, …more}";` and get away with it. Which suggests that maybe the two features should be developed together.)
 
 ## Versions
 
