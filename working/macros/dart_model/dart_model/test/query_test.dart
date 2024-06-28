@@ -10,8 +10,10 @@ void main() {
   group(Query, () {
     test('can query by URI', () {
       final model = Model.fromJson({
-        'package:dart_model/dart_model.dart': 'a',
-        'package:dart_model/src/impl.dart': 'b'
+        'uris': {
+          'package:dart_model/dart_model.dart': 'a',
+          'package:dart_model/src/impl.dart': 'b'
+        }
       });
 
       final query = Query.uri('package:dart_model/dart_model.dart');
@@ -20,14 +22,18 @@ void main() {
       expect(
           result,
           Model.fromJson({
-            'package:dart_model/dart_model.dart': 'a',
+            'uris': {
+              'package:dart_model/dart_model.dart': 'a',
+            }
           }));
     });
 
     test('can query by URI and name', () {
       final model = Model.fromJson({
-        'package:dart_model/dart_model.dart': {'a': 'a', 'b': 'b'},
-        'package:dart_model/src/impl.dart': {'b': 'b'},
+        'uris': {
+          'package:dart_model/dart_model.dart': {'a': 'a', 'b': 'b'},
+          'package:dart_model/src/impl.dart': {'b': 'b'},
+        }
       });
 
       final query = Query.qualifiedName(
@@ -37,22 +43,26 @@ void main() {
       expect(
           result,
           Model.fromJson({
-            'package:dart_model/dart_model.dart': {'a': 'a'},
+            'uris': {
+              'package:dart_model/dart_model.dart': {'a': 'a'},
+            }
           }));
     });
 
     test('can exclude by name', () {
       final model = Model.fromJson({
-        'package:dart_model/dart_model.dart': {'a': 'a', 'b': 'b'},
-        'package:dart_model/src/impl.dart': {'b': 'b'},
+        'uris': {
+          'package:dart_model/dart_model.dart': {'a': 'a', 'b': 'b'},
+          'package:dart_model/src/impl.dart': {'b': 'b'},
+        }
       });
 
       final query = Query(operations: [
         Operation.include([
-          Path(['package:dart_model/dart_model.dart'])
+          Path(['uris', 'package:dart_model/dart_model.dart'])
         ]),
         Operation.exclude([
-          Path(['*', 'b']),
+          Path(['uris', '*', 'b']),
         ])
       ]);
 
@@ -61,7 +71,9 @@ void main() {
       expect(
           result,
           Model.fromJson({
-            'package:dart_model/dart_model.dart': {'a': 'a'},
+            'uris': {
+              'package:dart_model/dart_model.dart': {'a': 'a'},
+            }
           }));
     });
   });

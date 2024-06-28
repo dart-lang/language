@@ -1,5 +1,5 @@
 {
-  "isInline": true,
+  "isExtensionType": true,
   "name": "Point",
   "isConst": true,
   "fields": [

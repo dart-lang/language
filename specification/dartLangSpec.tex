@@ -41,6 +41,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Jun 2024
+% - Add missing references to section 'Type dynamic' at the points where the
+%   static analysis of Object member invocations is specified.
+%
 % Feb 2024
 % - Correct the rule about deriving a future type from a type (which is used
 %   by `flatten`).
@@ -8771,7 +8775,7 @@ are the following:
   It is further constant if both $e_1$ and $e_2$ are constant expressions that
   both evaluate to an instance of \code{int},
   such that the operator symbol
-  \lit{\gtilde/}, \lit{\gtgt}, \lit{\gtgtgt}, respectively \lit{\ltlt}
+  \lit{\gtgt}, \lit{\gtgtgt}, respectively \lit{\ltlt}
   denotes an instance operator invocation.
 
 \item An expression of the form \code{$e_1$\,+\,$e_2$} is
@@ -11790,7 +11794,41 @@ we say that $T$ does not derive a future type.
 \commentary{%
 Note that if $T$ derives a future type $F$ then \SubtypeNE{T}{F},
 and $F$ is always of the form \code{$G$<...>} or \code{$G$<...>?},
-where $G$ is \code{Future} or \code{FutureOr}.
+where $G$ is \code{Future} or \code{FutureOr}. The proof is by induction on the
+structure of $T$:
+
+\begin{itemize}
+\item
+  %% TODO(eernst): Come mixin classes and extension types: add them.
+  If $T$ is a type which is introduced by
+  a class, mixin, or enum declaration,
+  and if $T$ or a direct or indirect superinterface
+  (\ref{interfaceSuperinterfaces})
+  of $T$ is \code{Future<$U$>} for some $U$, then, letting
+  \code{$G =$ Future} and \code{$F = G$<$U$>}, $T <: F$.
+\item
+  If $T$ is the type \code{FutureOr<$U$>} for some $U$, then by reflexivity,
+  \code{$T <:$ FutureOr<$U$>}. Letting \code{$G =$ FutureOr} and
+  \code{$F = G$<$U$>}, it follows that $T <: F$.
+\item
+  If $T$ is \code{$S$?} for some $S$, and
+  $S$ derives the future type $F'$,
+  then by the induction hypothesis, \code{$S <: F'$}, where $F'$ is of the form
+  \code{$G'$<$U$>} or \code{$G'$<$U$>?} and $G'$ is \code{Future} or
+  \code{FutureOr}. Therefore, \code{$S$? $<: F'$?}, and by substitution,
+  \code{$T <: F'$?}. Since \code{$T$?? $= T$?} for all $T$, it follows that
+  \code{$T <: G'$<$U$>?}. So, letting $G = G'$ and \code{$F = G$<$U$>?},
+  it follows that $T <: F$.
+\item
+  If $T$ is a type variable with bound $B$, and
+  $B$ derives the future type $F$,
+  then by the induction hypothesis, \code{$B <: F'$}, where $F'$ is of the form
+  \code{$G'$<$U$>} or \code{$G'$<$U$>?} and $G'$ is \code{Future} or
+  \code{FutureOr}. Also, since $B$ is the bound of $T$, $T <: B$, so by
+  transitivity, $T <: F'$. Therefore, letting $G = G'$ and $F = F'$, it
+  follows that $T <: F$.
+\end{itemize}
+
 Also note that 'derives' in this context refers to the computation
 where a type $T$ is given, the supertypes of $T$ are searched,
 and a type $F$ of one of those forms is selected.
@@ -11825,7 +11863,44 @@ as follows, using the first applicable case:
 
 \rationale{%
 This definition guarantees that for any type $T$,
-\code{$T <:$ FutureOr<$\flatten{T}$>}.%
+\code{$T <:$ FutureOr<$\flatten{T}$>}. The proof is by induction on the
+structure of $T$:
+
+\begin{itemize}
+\item If $T$ is \code{$X$\,\&\,$S$} then
+  \begin{itemize}
+  \item if $S$ derives a future type $U$,
+    then \code{$T <: S$} and \code{$S <: U$}, so \code{$T <: U$}.
+    By the induction hypothesis, \code{$U <:$ FutureOr<$\flatten{U}$>}.
+    Since \code{$\flatten{T} = \flatten{U}$} in this case, it follows that
+    \code{$U <:$ FutureOr<$\flatten{T}$>}, and so
+    \code{$T <:$ FutureOr<$\flatten{T}$>}.
+  \item otherwise, \code{$T <: X$}.
+    By the induction hypothesis, \code{$X <:$ FutureOr<$\flatten{X}$>}.
+    Since \code{$\flatten{T} = \flatten{X}$} in this case, it follows that
+    \code{$U <:$ FutureOr<$\flatten{T}$>}, and so
+    \code{$T <:$ FutureOr<$\flatten{T}$>}.
+  \end{itemize}
+
+\item If $T$ derives a future type \code{Future<$S$>}
+  or \code{FutureOr<$S$>}, then, since \code{Future<$S$> $<:$ FutureOr<$S$>},
+  it follows that \code{$T <:$ FutureOr<$S$>}. Since \code{$\flatten{T} = S$}
+  in this case, it follows that \code{$T <:$ FutureOr<$\flatten{T}$>}.
+
+\item If $T$ derives a future type \code{Future<$S$>?} or
+  \code{FutureOr<$S$>?}, then, since \code{Future<$S$>? $<:$ FutureOr<$S$>?},
+  it follows that \code{$T <:$ FutureOr<$S$>?}.
+  \code{FutureOr<$S$>? $<:$ FutureOr<$S$?>} for any type $S$ (this can be shown
+  using the union type subtype rules and from
+  \code{Future<$S$> $<:$ Future<$S$?>} by covariance), so by transivitity,
+  \code{$T <:$ FutureOr<$S$?>}. Since \code{$\flatten{T} = S$?} in this case,
+  it follows that \code{$T <:$ FutureOr<$\flatten{T}$>}.
+
+\item Otherwise, \code{$\flatten{T} = T$}, so
+  \code{FutureOr<$\flatten{T}$> $=$ FutureOr<$T$>}. Since
+  \code{$T <:$ FutureOr<$T$>}, it follows that
+  \code{$T <:$ FutureOr<$\flatten{T}$>}.
+\end{itemize}
 }
 
 \LMHash{}%
@@ -14213,13 +14288,25 @@ where the number of type arguments is zero (\ref{generics}).%
 
 \LMHash{}%
 Let $T$ be the static type of $e$.
-It is a compile-time error if $T$ does not have an accessible
+
+\LMHash{}%
+If $T$ is \DYNAMIC{} bounded
+(\ref{bindingActualsToFormals})
+and $m$ is one of
+\code{hashCode}, \code{noSuchMethod}, \code{runtimeType}, or \code{toString}
+then we say that $i$ is a
+\IndexCustom{dynamic \code{Object} member invocation}{
+  dynamic Object member invocation},
+whose static analysis is specified separately below.
+
+\LMHash{}%
+Otherwise, it is a compile-time error if $T$ does not have an accessible
 (\ref{privacy})
 instance member named $m$, unless either:
+
 \begin{itemize}
 \item
-  $T$ is \DYNAMIC{} bounded
-  (\ref{bindingActualsToFormals});
+  $T$ is \DYNAMIC{} bounded;
   in this case no further static checks are performed on $i$
   (\commentary{apart from separate static checks on subterms like arguments})
   and the static type of $i$ is \DYNAMIC.
@@ -14252,7 +14339,22 @@ except that subexpressions of $i$ are subject to their own static analysis%
 }).
 
 \LMHash{}%
-Otherwise \code{$T$.$m$} denotes an instance member.
+If $i$ is a dynamic \code{Object} member invocation
+(\ref{ordinaryInvocation})
+then the static type of the member is specified in
+Section~\ref{typeDynamic}.
+In this case, if $m$ is \code{hashCode} or \code{runtimeType}
+then let $F$ be the return type of said getter;
+if $m$ is \code{noSuchMethod} or \code{toString}
+then let $F$ be the type of said method.
+
+\commentary{%
+Note that it is always a compile-time error if $m$
+is \code{hashCode} or \code{runtimeType}.%
+}
+
+\LMHash{}%
+Otherwise, \code{$T$.$m$} denotes an instance member.
 Let $L$ be the library that contains $i$.
 Let $d$ be the result of method lookup for $m$ in $T$ with respect to $L$,
 and if the method lookup succeeded then let $F$ be the static type of $d$.
@@ -14840,13 +14942,33 @@ of a static method on the denoted class.%
 
 \LMHash{}%
 Let $T$ be the static type of $e$.
-It is a compile-time error if $T$ does not have a method or getter named \id{}
-unless $T$ is \DYNAMIC{} bounded
-(\ref{bindingActualsToFormals}),
-or $T$ is \FUNCTION{} bounded and \id{} is \CALL.
+
+\LMHash{}%
+If $T$ is \DYNAMIC{} bounded
+(\ref{bindingActualsToFormals})
+and $m$ is one of
+\code{hashCode}, \code{noSuchMethod}, \code{runtimeType}, or \code{toString}
+then we say that $i$ is a
+\IndexCustom{dynamic \code{Object} property extraction}{
+  dynamic Object property extraction},
+whose static analysis is specified separately below.
+
+\LMHash{}%
+Otherwise, it is a compile-time error if $T$ does not have
+a method or getter named \id{}
+unless $T$ is \DYNAMIC{} bounded,
+or $T$ is \FUNCTION{} bounded
+(\ref{bindingActualsToFormals})
+and \id{} is \CALL.
 The static type of $i$ is:
 
 \begin{itemize}
+\item The return type as specified in Section~\ref{typeDynamic}
+  if $i$ is a dynamic \code{Object} property extraction
+  and \id{} is \code{hashCode} or \code{runtimeType}.
+\item The static type as specified in Section~\ref{typeDynamic}
+  if $i$ is a dynamic \code{Object} property extraction
+  and \id{} is \code{noSuchMethod} or \code{toString}.
 \item The declared return type of \code{$T$.\id},
   if $T$ has an accessible instance getter named \id.
 \item The function type of the method signature \code{$T$.\id},

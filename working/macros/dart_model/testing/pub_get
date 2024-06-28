@@ -4,8 +4,13 @@ set -e
 
 for package in dart_model dart_model_analyzer_service dart_model_repl \
     macro_client macro_host macro_protocol testing/scratch \
-    testing/benchmark testing/test_macro_annotations testing/test_macros; do
+    testing/benchmark testing/json_benchmark testing/test_macro_annotations \
+    testing/test_macros; do
   pushd "$package"
   dart pub get
   popd
 done
+
+pushd dart_model
+tool/generate_schema_dart
+popd

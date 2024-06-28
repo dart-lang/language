@@ -10,6 +10,10 @@ dependencies:
   pool: ^1.5.1
   stream_transform: any
 
+dev_dependencies:
+  json_schema: ^5.1.7
+  test: ^1.25.7
+
 dependency_overrides:
   dart_model:
     path:

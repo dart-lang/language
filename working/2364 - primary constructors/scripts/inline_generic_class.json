@@ -1,5 +1,5 @@
 {
-  "isInline": true,
+  "isExtensionType": true,
   "name": "Point",
   "typeParameters": "<TypeVariable extends Bound>",
   "fields": [

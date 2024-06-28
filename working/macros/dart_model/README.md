@@ -21,7 +21,7 @@ as a library;\
 The "macros" referred to in this exploration are independent of the in-progress
 macro implementation, hence the "scare quotes".
 
-## Benchmarks
+## End to End Benchmarks
 
 `testing/benchmark` is a tool to assist in benchmarking, it creates codebases
 of the specified size and codegen strategy.
@@ -31,6 +31,9 @@ of the specified size and codegen strategy.
 `trivial_macros` is a scenario with three trivial macros: `Equals()`,
 `HashCode()` and `ToString()`. These inspect the fields of a class and generate
 corresponding (shallow) `operator==`, `hashCode` and `toString()`.
+
+`json_macro` is the `package:json` macro. There is no `dartModel` version yet.
+Generate it using `bin/main_json.dart` instead of `bin/main.dart`.
 
 ### Strategies
 
@@ -65,3 +68,7 @@ $ dart bin/main.dart
 # files to see how the analyzer responds; you can watch the macro host terminal
 # to see when it is rewriting augmentation files.
 ```
+
+## Serialization Benchmarks
+
+`testing/json_benchmark` is benchmarking related to JSON serialization.

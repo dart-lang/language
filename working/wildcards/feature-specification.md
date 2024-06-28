@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 1.5
+Version 1.6
 
 ## Motivation
 
@@ -468,6 +468,9 @@ We have an existing [`no_wildcard_variable_uses`](https://dart.dev/tools/linter-
 This lint is included in the core lint set which means that the scale of the breaking change should be small since most projects should have this lint enabled.
 
 ## Changelog
+
+### 1.6
+- Added and removed allowing unnamed optional wildcard parameters to have no default value, even if they are non-nullable. Discussion: [language/#3807](https://github.com/dart-lang/language/issues/3807)
 
 ### 1.5
 - Allow `super._`. Discussion: [language/#3792](https://github.com/dart-lang/language/issues/3792)
