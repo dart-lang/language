@@ -557,10 +557,10 @@ More specifically:
     is a field versus a getter/setter is a visible property of the declaration
     inside the same class or even library:
 
-    - It determines whether the member can be initialized in a constructor
-      initializer list.
-    - It is also a visible distinction when introspecting on a program with the
-      analyzer, macros, or mirrors.
+    *   It determines whether the member can be initialized in a constructor
+        initializer list.
+    *   It is also a visible distinction when introspecting on a program with
+        the analyzer, macros, or mirrors.
 
     When a declaration is augmented, we don't want the augmentation to be able
     to change any of the known properties of the existing member being
@@ -584,14 +584,16 @@ More specifically:
     The `late` property of a variable must always be consistent between the
     augmented variable and its augmenting variables.
 
-    If the variable declaration in the original library does not have a type
-    annotation, then the type is inferred only using the original library's
-    initializer. (If there is no initializer in the original library, then the
-    variable is inferred to have type `dynamic` like any non-augmented variable.
-    *This ensures that augmenting a variable doesn't change its type. This is
-    necessary to ensure that macros that are running based on signatures
-    derived from the original code, will not change the signature of a
-    declaration.*
+    If the original variable declaration does not have a type annotation, then
+    the variable's declared type is found using only that declaration,
+    without looking at any further augmenting declarations.
+    The type can either be inferred from an initializer expression of the
+    original variable declaration, be inherited from a superinterface for an
+    instance variable, or default to a type of `dynamic` if neither applies.
+    *This ensures that augmenting a variable doesn't change its type. That is
+    necessary to ensure that macros cannot change the signature of a
+    declaration, a signature which may have been depended on by other code,
+    or other macros.*
 
 It is a **compile-time error** if:
 

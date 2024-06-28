@@ -305,9 +305,8 @@ any other  `export`s in the library and the non-private declarations of the
 library itself. Conflicts are handled as usual (as an error if it’s not the
 *same* declaration).
 
-Allowing a part file to have its own export is mainly intended for macro
-generated parts and for conditionally included parts, most other libraries will
-likely still keep all `export` directives in the library file.
+Allowing a part file to have its own export is mainly for consistency.
+Most libraries will likely keep all `export` directives in the library file.
 
 ## Terminology
 
