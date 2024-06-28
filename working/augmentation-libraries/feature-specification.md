@@ -318,17 +318,18 @@ It is a compile-time error if:
     augmentation can both declare a new declaration and augment it in the same
     file.*
 
-### Type inference
+### Type inheritance
 
-Type inference for augmenting declarations works similar to overrides. Whenever
-a type is omitted, if the original declaration has a type specified, that type
-is inferred.
+When a type is omitted in an augmenting declaration, if the first declaration
+that introduced the member has a type specified in the ommitted types position,
+then that type is inherited.
 
-This applies to return types, parameter types, and variable types, but not type
-parameters.
+This applies to return types, parameter types, variable types, and type
+parameter bounds (but not type parameter names or regular parameter names, those
+need to be re-declared).
 
-It is a compile time error for a manually written type to be different from the
-inferred type in all cases.
+It is a compile time error for a manually written type is not the same as a type
+that would be inherited if that manually writted type had been omitted.
 
 ### Augmented Expression
 
