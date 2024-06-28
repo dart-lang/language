@@ -181,12 +181,16 @@ and run the code of the original declaration that it augments (hence the name
 after it, or both. To support that, we allow a new expression syntax inside the
 “bodies” of augmenting declarations (function bodies, constructor bodies, and
 variable initializers). Inside an expression of a member marked
-`augment`, the identifier `augmented` can be used to refer to the original
+`augment`, the identifier `augmented` can be used to refer to the augmented
 function, getter, or setter body, or variable initializer. This is a contextual
-keyword
-within `augment` members, and has no special meaning outside of that context.
-See the next section for a full specification of what `augmented` means, and
-how it must be used, in the various contexts.
+keyword within `augment` members, and has no special meaning outside of that
+context. See the next section for a full specification of what `augmented`
+means, and how it must be used, in the various contexts.
+
+**Note:** Within an `augment` member, a reference to a member by the same name
+refers to the final version of the member (and not the one being augmented). The
+only way to reference the augmented member is through the `augmented`
+expression.
 
 The same declaration can be augmented multiple times by separate augmentation
 declarations. When that happens, the *augmentation application order* defines
