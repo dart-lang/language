@@ -385,7 +385,7 @@ It is a **compile-time error** if:
     but one was already
     present _(or the `class` was a `mixin class` declaration, which does not
     allow `extends` clauses)_. We do not allow overwriting an existing
-    `extends`, but one can be filled in if if none had been specified.
+    `extends`, but one can be filled in if none had been specified.
 
 *   The augmenting type declares an `extends` clause, but one was already
     present. We don't allow overwriting an existing `extends`, but one can be
@@ -463,13 +463,6 @@ It is a compile-time error if:
     no concrete implementation. Note that all external declarations are assumed
     to have an implementation provided by another external source, and they will
     throw a runtime exception when called if not.
-
-**TODO: Should we allow augmenting functions to add optional parameters? If so,
-how does this interact with type checking calls to the function?**
-
-**TODO: Should we allow an augmenting function to repeat default values? Or
-change default values? Invoking the `augmented` function should will supply the
-original default values for omitted arguments.**
 
 ### Augmenting variables, getters, and setters
 
@@ -733,20 +726,14 @@ It is a compile-time error if:
 
     **TODO: Is this the right way to handle initializing formals?**
 
-*   The constructor augmentation parameters specify any default values.
+*   The augmenting constructor parameters specify any default values.
     *Default values are defined solely by the original constructor.*
 
 *   The original constructor is `const` and the augmenting constructor is not,
     or vice versa.
 
-*   The original constructor is a non-redirecting factory constructor and the
-    augmenting constructor has an initializer list.
-
-    * The augmenting constructor does not need to repeat the `factory`, but
-    augmenting a factory constructor can only create a new factory constructor
-    by replacing the augmented constructor’s body with another. **(TODO: Just
-    require the `factory` to be repeated. We happily do that for other
-    modifiers)**
+*   The original constructor is marked `factory` and the augmenting
+    constructor is not, or vice versa.
 
 *   The original constructor has a super initializer _(super constructor
     invocation at the end of the initializer list)_ and the augmenting
