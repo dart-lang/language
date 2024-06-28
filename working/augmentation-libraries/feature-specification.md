@@ -267,6 +267,19 @@ problems. We want it as a lint instead of a language restriction so that it
 doesn’t interfere with macro-generated code, and so that users can `// ignore:`
 it if they know what they’re doing.
 
+### Type inheritance
+
+When a type is omitted in an augmenting declaration, if the first declaration
+that introduced the member has a type specified in the ommitted types position,
+then that type is inherited.
+
+This applies to return types, parameter types, variable types, and type
+parameter bounds (but not type parameter names or regular parameter names, those
+need to be re-declared).
+
+It is a compile time error for a manually written type is not the same as a type
+that would be inherited if that manually writted type had been omitted.
+
 ### Augmented Expression
 
 The exact result of an `augmented` expression depends on what is being
@@ -445,7 +458,7 @@ The augmenting function does not have to pass the same arguments to
 `augmented(…)` as were passed to it. It may invoke `augmented` once, more than
 once, or not at all.
 
-It is a compile-time error if:
+It is a compile-time error if, after type inheritance:
 
 *   The function signature of the augmenting function does not exactly match the
     function signature of the augmented function. This means the return types
@@ -719,7 +732,7 @@ to modify local variables, but the former introduces different variables than
 the ones that existed when evaluating the initializer list. If the initializer
 list captures variables in closures, that body may not work.)**
 
-It is a compile-time error if:
+It is a compile-time error if, after type inheritance:
 
 *   The function signature of the augmenting constructor does not match the
     signature of the augmented constructor. This means that the parameters must
