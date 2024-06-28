@@ -10,7 +10,7 @@ Sometimes you need to build something that is not a string, but where a string t
 
 Taking inspiration from other languages, this is a proposal for “tagged strings”, or “tagged interpolations”, which is a language feature that allows something looking like a string literal or string interpolation to be interpreted by user code by prefixing it with a value, called the “tag” because it’s often a single identifier, and that expressions’ value get access to the individual string parts and expression values of the interpolation expression.
 
-This is a *generalization* of [Munificent’s feature specification](feature-specification.md "Feature specification"), allowing *interpolation elements* inside interpolations, and allowing any (primary) *expression* as the tag.
+This is a *generalization* of [Munificent’s feature specification](feature-specification.md), allowing *interpolation elements* inside interpolations, and allowing any (primary) *expression* as the tag.
 
 [interpolation elements]: https://github.com/dart-lang/language/issues/1478 "String interpolation elements issue"
 
