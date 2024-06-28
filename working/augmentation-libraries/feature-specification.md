@@ -487,7 +487,7 @@ The augmenting function does not have to pass the same arguments to
 `augmented()` as were passed to it. It may call it once, more than once, or not
 at all.
 
-It is a compile-time error if:
+It is a compile-time error if, after type inheritance:
 
 *   The signature of the function augmentation does not exactly match the
     original function. This means the return types must be the same; there must
@@ -719,7 +719,7 @@ original redirecting initializer if there is one.
 In the augmenting constructor's body, an `augmented()` call invokes the
 original constructor's body.
 
-It is a compile-time error if:
+It is a compile-time error if, after type inheritance:
 
 *   The signature of the constructor augmentation does not match the original
     constructor. This means the return types must be the same; there must be the
