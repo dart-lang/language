@@ -87,41 +87,46 @@ part file a problem.
 Pre-feature part files inherit the entire import scope from the library file.
 Each declaration of the library file and each part file is included in the
 library’s declaration scope. It’s viable to think of part files as being
-textually included in the library file. There is a is even a rule against
+textually included in the library file. There is even a rule against
 declaring a `part` inclusion of the same file more than once, which matches
 perfectly with that way of thinking.
 
 ## Feature
 
-This feature allows a part file to have `import`, `export` and `part`
-directives of its own, where `import` directives only affect the part file
-itself, and its transitive part files. A library is defined by the source code
-of its library file and *all* transitively included part files, which can be an
-arbitrarily deep *tree*. A part file inherits the imports and import prefixes
-of its parent file (the library or part file that included it) into its
-top-level scope, but can choose to ignore or shadow those using its own
-imports.
+This feature allows a part file to have `import`, `export` and `part` directives
+of its own, where `import` directives only affect the part file itself, and its
+transitive part files. A library is defined by the source code of its library
+file and *all* transitively included part files, which can be an arbitrarily
+deep *tree*. A part file inherits the imported declarations and import prefixes
+of all its transitive parent files (the library or part files that included it),
+but can choose to ignore or shadow those using its own imports.
 
 The design goals and principles are:
 
 *   *Backwards compatible*: If a part file has no `import`, `export` or `part`
     directive, it works just like it always has.
     *   Because of that, it’s always safe to move one or more declarations into
-        a new part file. _(Although augmentation declarations modifies that
-        slightly.)_
+        a new part file.
     *   Similarly it’s always possible and safe to combine a part file with no
         `import`s back into its parent file.
-*   *Library member declarations are library-global*: All top-level
-    declarations in the library file and all transitive part files are equal,
-    and are all in scope in every file. They introduce declarations into the
-    library’s declaration scope, which is the most significant scope in all
-    files of the library. If there is any conflict, top-level declarations win!
+
+    _(Augmentations modify both of these properties slightly, because order of
+    declarations also matter.)_
+
+*   *Library member declarations are library-global*: All top-level declarations
+    in the library file and all transitive part files are equal, and are all in
+    scope in every file. They introduce declarations into the library’s
+    declaration scope, which is the most significant scope in all files of the
+    library. If there is any conflict with imported names, top-level
+    declarations win!
+
 *   *The unit of ownership is the library*. It’s quite possible for one part
     file to introduce a conflict with another part file. It always was, but
     there are new ways too. If that happens, the library owner, who most likely
     introduced the problem, is expected to fix it. There is no attempt to hide
     name conflicts between declarations in separate tree-branches of the
     library structure.
+
 *   *Import inheritance is a only suggestion*: Aka. other files’ imports cannot
     break your code (at least if you’re not depending on them). A part file is
     never restricted by the imports it inherits from its parent file. It can
@@ -131,6 +136,17 @@ The design goals and principles are:
     fit into the library and not conflict with existing top-level names. That’s
     why a macro should document any non-fresh names it introduces, so a library
     using the macro can rename any declarations that would conflict._
+
+    *   Because of that, it’s possible to convert an existing library into a
+        part file of another library. Since a library is self-contained and
+        imports all external names that it refers to, making it a part file will
+        not cause any conflict due to inherited imports. _(Obviously still need
+        to avoid conflicts with top-level declarations.)_
+    *   And similarly, if a part file *is* self-contained, it can be converted
+        into a separate library and imported back into the original library, or
+        it can be moved to another position in the part tree hierarchy. _(Again
+        augmentations introduce complications, which is why it’s usually a good
+        idea to keep all augmentations inside the same part sub-tree).
 
 ### Grammar
 
@@ -147,7 +163,7 @@ other two. We restrict the `part of` directive to only allow the string version.
 
 -- Added "<importOrExport>* <partDirective>*"
 <partDeclaration> ::=
-  <partHeader> <importOrExport>* <partDiretive>* (<metadata>
+  <partHeader> <importOrExport>* <partDirective>* (<metadata>
   <topLevelDeclaration>)* <EOF>
 ```
 
@@ -398,54 +414,115 @@ In short:
 
 ## Language versioning and tooling
 
+Dart language versioning is an extra-linguistic feature which allows the SDK
+tooling to compile programs containing libraries written for different versions
+of the language. As such, the language semantics (usually) do not refer to
+language versions at all.
+
+Similarly the language has no notion of a “package”, but tooling does consider
+Dart files to belong to (at most) one package, and some of the files as
+“having a `package:` URI”. This information is written into a metadata file,
+`package_config.json` that is also used to resolve `package:` URIs, and to
+assign default language versions to files that belong to a package.
+
+Because of that, the restrictions in this section are not *language* rules,
+instead they are restrictions enforced by the *tooling* in order to allow
+multi-language-version programs to be compiled.
+
+### Pre-feature code interaction and migration
+
 This feature is language versioned, so no existing code is affected at launch.
+
+The only non-backwards compatible change is to disallow `part of dotted.name;`.
+That use has been discouraged by the
+[`use_string_in_part_of_directives`][string_part_of_lint] lint, which was
+introduced with Dart 2.19 in January 2023, and has been part of the official
+“core” Dart lints since June 2023. The “core” lints are enforced more strongly
+than the “recommended” lints, including counting against Pub score, so any
+published code has had incentive to satisfy the lint.
+
+The lint has a quick-fix, so migration can be achieved by enabling the lint
+(directly, or by including the “recommended” or “core” lint sets, which is
+already itself recommended practice) and running `dart fix`, which will change
+any `part of dotted.name;` to the future-safer `part of 'parent_file.dart';`.
+
+All in all, there is very little expected migration since all actively
+developed code, which is expected to use and follow recommended or core lints,
+will already be compatible.
+
+[string_part_of_lint]: https://dart.dev/tools/linter-rules/use_string_in_part_of_directives	"use_string_in_part_of_directives lint"
+
+We will enforce a set of rules that weren’t as clearly defined before
+(see next section), and therefore maybe not strictly enforced, so there is a
+risk that some pathologically designed library may break one of those rules.
+Other than that, a pre-feature library can be used as post-feature library as
+long as it satisfies these very reasonable rules.
 
 The feature has no effect at the library boundary level, meaning the export
 scope of a library, so pre-feature and post-feature libraries can safely
-coexist.
+coexist. A library can start using the feature without any effect on client
+libraries. There is no need to worry about migration order.
 
-As with pre-feature libraries, all files in a library must have the same
-associated *language version*. If any file has a language-version override
-marker (a line like `// @dart=3.12` before any Dart code), then *every file* in
-the library *must* have a language override marker. _(And they must still have
-the same language version, so it must be the same marker.)_
+### Explicit sanity rules
 
-Also, every file in a library must belong to the same *package*. The Dart
-language itself has no notion of packages, but the tooling uses a file’s
-package to derive its default language version. The Dart SDK will require that
-all files in a package belong to the same library, ensuring that they’ll always
-have the same language version. Also, if the library file is inside the `lib/`
-directory, so it has a `package:` URI as canonical URI, then so must all its
-sub-part files. We haven’t specified these requirements before,
-it has always been assumed, but technically it is possible to write programs
-where a part belongs to different package than their library. The Dart SDK’s
-multi-language-version support, which based on files belonging to packages,
-will not support libraries that are not entirely in a single package.
+The following rules are rules enforced by tooling, not the language, since they
+rely on features that are not part of the language (files having a language
+version, a language version marker, or belonging to a package).
 
-That is, the extra restrictions enforced by Dart tools are:
+All pre-feature libraries should already be following these rules, which exist
+mainly ensure that different files of a library will *always* have the same
+language versions. _Some of these rules have not all been expressed explicitly
+before, because they are considered blindingly obvious. We’re making them
+explicit here, and will enforce the rules strictly for post-feature code, if we
+didn’t already._
 
-*   If any file of a library has a `// @dart=` language version marker, then
-    *all* files in that library must have a language version marker with
-    *the same* language version.
-    Or, phrased differently starting at the root:
-    *   If a library file has a language version marker,
-        then it’s a compile-time error for any sub-part file
-        to not have the same language version marker.
-    *   If a library file has no language version marker,
-        then it’s a compile-time error for any sub-part file
-        to have a language version marker.
+*   It’s a **compile-time error** if two Dart files of a library do not have the
+    same language version._All Dart files in a library must have the same
+    language version._ Can be expressed locally as:
+    *   It’s a compile-time error if the associated language version of a part
+        file is not the same as the language version of its parent file.
 
-*   If a library file belongs to a package,
-    then all its sub-part files must belong to the same package.
-*   If a library file has a `package:` URI (is located inside the package-URI
-    directory specified by the package configuration, usually
-    `"packageUri": "lib/"` of a `package_config.json` file),
-    then all its sub-part files must also be inside that package-URI directory.
-    *   _A library file outside of the `lib/` directory can technically have
-        part files inside the `lib/` directory, specified using `package:`
-        URIs, but those part files can only be included in a program by
-        referencing the library file, which means the part files might as well
-        be placed outside of the `lib/` directory._
+*   It’s a **compile-time error** if any file of a library has a
+    language-version override marker (a line like `// @dart=3.12` before any
+    Dart code), and any *other* file of the same library does not have a
+    language-version override marker. _While it’s still possible for that
+    library to currently have the same language version across all files, that
+    won’t stay true if the default language version for the package changes._
+    Can be expressed locally as:
+
+    *   If a part file has a language version marker, then it’s a compile-time
+        error if its parent files does not have a language version marker. _The
+        version marker it has must be for the same version due to the previous
+        rule._
+
+    *   If a part file has no language version marker, then it’s a compile-time
+        error if its parent file has a language version marker.
+
+*   It’s a **compile-time error** if two Dart files of a library do not belong
+    to the same package. _Every file in a library must belong to the same
+    package to ensure that they always have the same default language version.
+    It’s also likely to break a lot of assumptions if they don’t._ Can be
+    expressed locally as:
+
+    *   It’s a compile-time error if a part file does not belong to the same
+        package as its parent file.
+
+    The Dart SDK’s multi-language-version support, which based on files
+    belonging to packages, will not support libraries that are not entirely in a
+    single package.
+
+*   We *may* want to also make it a **compile-time** error if two Dart files of
+    a library are not both inside the `lib/` directory or both outside of it.
+    _Having a parent file inside `lib/` with a part file outside will not
+    compile if the parent file is accessed using a `package:` URI. Having a
+    parent file outside of `lib/` with a part file inside works, but the part
+    file might as well be outside since the only way to use it is to go through
+    the parent file._ The only reason to maybe not enforce this rule would be a
+    file inside `lib/` that is *never* accessed using a`package:` URI, and which
+    depends on files outside of `lib/` for something. If some frameworks do
+    that, maybe a Flutter `main` file, then we should just keep giving warnings
+    about the pattern. The `lib/` directory should be self-contained because all
+    libraries in it can be accessed by other packages, and no other files can.
 
 ### User guidance tooling
 
@@ -466,16 +543,26 @@ can be applied.
 
 It may very well be that annotations affecting declarations (which is typically
 what annotations on library declarations do) have no benefit from being limited
-based on something as (so far) semantically arbitrary as source ordering.
+based on something as (so far) semantically arbitrary as source ordering. But on
+the other hand, users may choose to order source depending on properties that
+annotations apply to. _The analyzer may want to review annotations that apply to
+a library for whether they can reasonably apply to any sub-tree of parts. For
+example `@Deprecated(…)` could apply to every member in a sub-tree, allowing a
+library to keep its deprecated API, and its necessary imports, separate from the
+rest, so that it can all be removed as a single operation, and then marking all
+that API as deprecated with one annotation._
 
 ##### An `// ignore` applying to a sub-tree
 
 The analyzer recognizes `// ignore: …` comments as applying to the same or next
-line. For ignoring multiple warnings, there is a `// ignore_for_file: …`
-comment which covers the entire file.
+line. For ignoring multiple warnings, there is a `// ignore_for_file: …` comment
+which covers the entire file. There is no `ignore_for_library` that would apply
+to the entire library, including parts.
 
 It can be considered whether to have an `// ignore_for_all_files: …` (or a
-better name) which applies to an entire subtree, not just the current file.
+better name) which applies to an entire sub-tree, not just the current file, and
+not the entire library. It would apply to the entire library if applied to the
+library file.
 
 It may very well be better to *not* that, and have each sub-part write its own
 `// ignore_for_file: ...`. That makes it very easy to see which ignores are in
@@ -483,7 +570,8 @@ effect for a file.
 
 ##### Invalid part file structure correction
 
-When analyzing an incomplete or invalid Dart program, any and all of the compile-time errors above may apply.
+When analyzing an incomplete or invalid Dart program, any and all of the
+compile-time errors above may apply.
 
 It’s possible to have part files with parent-file cycles, part files with a
 parent URI which doesn’t denote any existing file, or files with a `part`

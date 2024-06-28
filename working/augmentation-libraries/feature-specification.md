@@ -67,8 +67,7 @@ This proposal defines that format. The idea is that a Dart compiler executes
 macros and then produces one or more new part files that contain all
 of the changes that the macros made to the library where they are applied, as
 new declarations to be added or augmentations that modify existing
-declarations. The
-compiler then adds those part files to the existing libraries.
+declarations. The compiler then adds those part files to the existing libraries.
 
 But improved part files and augmenting declarations are not *only* a
 serialization format for macros. They are first-class language features that
@@ -106,9 +105,9 @@ We define a partial ordering on syntactic declarations of a library,
 *is above*, such that a syntactic declaration *A* is *above* a syntactic
 declaration *B* if and only if:
 
-* *A* and *B* occur in the same file, and the start of the *A* declaration is
+*   *A* and *B* occur in the same file, and the start of the *A* declaration is
 syntactically before the start of the *B* declaration, in source order, or
-* A file included by the file containing *A* contains *B*.
+*   A file included by the file containing *A* contains *B*.
 
 We define a *total ordering relation* (transitive, anti-symmetric, irreflexive)
 on declarations of a library, *is before* (and its reverse, *is after*) such
@@ -205,21 +204,21 @@ and a setter name.)_
 For the following, we’ll say that one declaration of a library is *above*
 another declaration of the same library if and only if:
 
-* The former declaration is in the same file as the latter declaration, and it
-   is textually earlier in the file (“above” in the source code as normally
-   presented), or
-* The former declaration is in a file that is a direct or transitive parent
-  file of the file of the latter declaration (“above” in the file tree
-  hierarchy).
+*   The former declaration is in the same file as the latter declaration, and it
+    is textually earlier in the file (“above” in the source code as normally
+    presented), or
+*   The former declaration is in a file that is a direct or transitive parent
+    file of the file of the latter declaration (“above” in the file tree
+    hierarchy).
 
 We can similarly define *below* as the inverse of that relation. Both *before*
 and *after* define *strict partial orders* on declarations in a library.
 
 It’s a **compile-time error** if a library contains an augmentation declaration
-and a corresponding non-augmentation base declaration, and the the base
+and a corresponding non-augmentation base declaration, and the base
 declaration is not *above* the augmentation declaration.
 
-These requirements ensure that declarations that contribution to the same
+These requirements ensure that declarations that contribute to the same
 effective declaration, one base declaration and zero or more augmentation
 declarations, are *totally ordered* by the *above* relation, with the base
 declaration at the top, and the declarations all being in files on a single
