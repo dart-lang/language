@@ -306,11 +306,11 @@ augmented, but it generally follows the same rules as any normal identifier:
     the augmented function. Tear offs are not allowed, so this function must
     immediately be invoked.
 
-*   **Augmenting operators**: When augmenting an operator, `augmented` must be
-    followed by the operator. For example when augmenting `+` you must do
-    `augmented + 1`, and when augmenting `[]` you must do `augmented[<arg>]`.
-    These constructs invoke the augmented operator, and are the only valid uses
-    of `augmented` in these contexts.
+*   **Augmenting operators**: When augmenting an operator, `augmented` refers
+    to the augmented operator, which must be immediately invoked using function
+    call syntax. For example when augmenting `+` you would use `augmented(1)` to
+    call the augmented `+` operator, and when augmenting `[]=` you would use the
+    `augmented(key, value)` syntax. Tear offs are not allowed.
 
 *   **Augmenting enum values**: When augmenting an enum value, `augmented` has
     no meaning and is not allowed.
@@ -1184,6 +1184,10 @@ original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
 ## Changelog
+
+### 1.23
+
+* Change `augmented` operator invocation syntax to be function call syntax.
 
 ### 1.22
 
