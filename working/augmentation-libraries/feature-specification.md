@@ -374,14 +374,14 @@ keyword because it is unable to refer to a declaration in scope when it
 occurs inside an augmenting declaration, it always has the special meaning
 which is associated with augmentations.*
 
-A compile-time error occurs if a declaration with the name `augmented`
+A compile-time error occurs if a declaration with the basename `augmented`
 occurs in a location where the outermost enclosing declaration is
 augmenting. *This error is applicable to all such declarations, e.g.,
 local functions, local variables, parameters, and type parameters.*
 
-A compile-time error occurs if `augmented` occurs in a non-augmenting
-declaration, of a kind that can be augmenting, inside an augmenting
-declaration.
+A compile-time error occurs if the identifier `augmented` occurs in a
+non-augmenting declaration, of a kind that can be augmenting, inside an
+augmenting declaration.
 
 *For example, inside `augment class C` we could have a declaration like
 `void f() {...augmented()...}`.
