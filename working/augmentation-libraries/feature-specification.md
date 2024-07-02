@@ -361,7 +361,7 @@ enclosing declaration is not an augmenting declaration. In this case, the
 identifier is taken to be a reference to a declaration which is in scope.
 
 *In other words, `augmented` is just a normal identifier when it occurs
-anywhere other than inside an augmented declaration.*
+anywhere other than inside an augmenting declaration.*
 
 *Note that, for example, `augmented()` is an invocation of the augmented
 function or method when it occurs in an augmenting function or method
