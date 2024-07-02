@@ -269,9 +269,8 @@ it if they know what they’re doing.
 
 ### Type inheritance
 
-When a type is omitted in an augmenting declaration, if the first declaration
-that introduced the member has a type specified in the ommitted types position,
-then that type is inherited.
+When a type is omitted in an augmenting declaration, it inherits the final type
+of the augmented declaration (which could itself be inferred, inherited, etc).
 
 This applies to return types, parameter types, variable types, and type
 parameter bounds (but not type parameter names or regular parameter names, those
@@ -383,7 +382,7 @@ declaration (a based declaration and zero or more augmentations that are all
 above the current augmenting type declaration) according to the rules in the
 following subsections.
 
-It is a **compile-time error** if:
+It is a **compile-time error** if, after type inference:
 
 *   The augmenting type and corresponding type are not the same kind: class,
     mixin, enum, extension, or extension type. You cannot augment a class with a
@@ -399,10 +398,10 @@ It is a **compile-time error** if:
     isn't visible to a reader of the main declaration.*
 
 *   The augmenting type declares an `extends` clause for a `class` declaration,
-    but one was already
-    present _(or the `class` was a `mixin class` declaration, which does not
-    allow `extends` clauses)_. We do not allow overwriting an existing
-    `extends`, but one can be filled in if none had been specified.
+    but one was already present _(or the `class` was a `mixin class`
+    declaration, which does not allow `extends` clauses)_. We do not allow
+    overwriting an existing `extends`, but one can be filled in if none had been
+    specified.
 
 *   The augmenting type declares an `extends` clause, but one was already
     present. We don't allow overwriting an existing `extends`, but one can be
@@ -427,10 +426,10 @@ It is a **compile-time error** if:
 
     *Since repeating the type parameters is, by definition, redundant, this
     restriction doesn't accomplish anything semantically. It ensures that
-    anyone reading
-    the augmenting type can see the declarations of any type parameters that it
-    uses in its body and avoids potential confusion with other top-level
-    variables that might be in scope in the library augmentation.*
+    anyone reading the augmenting type can see the declarations of any type
+    parameters that it uses in its body and avoids potential confusion with
+    other top-level variables that might be in scope in the library
+    augmentation.*
 
 ### Augmenting functions
 
@@ -458,7 +457,7 @@ The augmenting function does not have to pass the same arguments to
 `augmented(…)` as were passed to it. It may invoke `augmented` once, more than
 once, or not at all.
 
-It is a compile-time error if, after type inheritance:
+It is a compile-time error if, after type inference:
 
 *   The function signature of the augmenting function does not exactly match the
     function signature of the augmented function. This means the return types
@@ -732,7 +731,7 @@ to modify local variables, but the former introduces different variables than
 the ones that existed when evaluating the initializer list. If the initializer
 list captures variables in closures, that body may not work.)**
 
-It is a compile-time error if, after type inheritance:
+It is a compile-time error if, after type inference:
 
 *   The function signature of the augmenting constructor does not match the
     signature of the augmented constructor. This means that the parameters must
