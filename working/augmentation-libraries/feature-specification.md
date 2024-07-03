@@ -307,10 +307,15 @@ augmented, but it generally follows the same rules as any normal identifier:
     immediately be invoked.
 
 *   **Augmenting operators**: When augmenting an operator, `augmented` refers
-    to the augmented operator, which must be immediately invoked using function
-    call syntax. For example when augmenting `+` you would use `augmented(1)` to
-    call the augmented `+` operator, and when augmenting `[]=` you would use the
-    `augmented(key, value)` syntax. Tear offs are not allowed.
+    to the augmented operator method, which must be immediately invoked using
+    function call syntax. For example when augmenting `operator +` you would use
+    `augmented(1)` to call the augmented operator, and when augmenting
+    `operator []=` you would use the `augmented(key, value)` syntax.
+
+    *   Note that `augmented` in such an augmenting operator method body is not
+        an expression by itself, and cannot be used to tear off the augmented
+        operator method. Similar to `super`, it is a syntactic form which can
+        only be used in limited ways.
 
 *   **Augmenting enum values**: When augmenting an enum value, `augmented` has
     no meaning and is not allowed.
