@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Draft
 
-Version: 1.0
+Version: 1.3
 
 Experiment flag: primary-constructors
 
@@ -81,9 +81,9 @@ The basic idea is that a parameter list that occurs just after the class
 name specifies both a constructor declaration and a declaration of one
 instance variable for each formal parameter in said parameter list.
 
-A primary constructor cannot have a body, and it cannot have an initializer
-list (and hence, it cannot have a superinitializer, e.g., `super(...)`, and
-it cannot have assertions).
+A primary constructor cannot have a body, and it cannot have an normal 
+initializer list (and hence, it cannot have a superinitializer, e.g., 
+`super.name(...)`). However, it can have assertions.
 
 The motivation for these restrictions is that a primary constructor is
 intended to be small and easy to read at a glance. If more machinery is
@@ -202,21 +202,29 @@ enum E {
 class const Point(int x, int y);
 
 enum E(String s) { one('a'), two('b') }
-
-extension type I.name(int x); // Must use a primary constructor.
-
 ```
 
-This mechanism follows an existing pattern, where `const` modifiers can be
-omitted in the case where the immediately syntactic context implies that
-this modifier _must_ be present. For example, `const [const C()]` can be
-written as `const [C()]`. In the examples above, the parameter-and-variable
-declarations `final int x` and `final int y` are written as `int x` and
-`int y`, and this is allowed because it would be a compile-time error to
-omit `final` in an `extension type`, and in a class with a constant
-constructor. In other words, when we see an `extension type` declaration, or we
-see `const` on the name of a class, we know that `final` is implied on all
-instance variables.
+Finally, an extension type declaration is specified to use a
+primary constructor (in that case there is no other choice,
+it is in the grammar rules):
+
+```dart
+// Using a primary constructor.
+
+extension type I.name(int x); // Must use a primary constructor.
+```
+
+The primary constructor feature follows an existing pattern, where `const`
+modifiers can be omitted in the case where the immediately syntactic
+context implies that this modifier _must_ be present. 
+
+For example, `const [const C()]` can be written as `const [C()]`. In the
+examples above, the parameter-and-variable declarations `final int x` and
+`final int y` are written as `int x` and `int y`, and this is allowed
+because it would be a compile-time error to omit `final` in an `extension
+type`, and in a class with a constant constructor. In other words, when we
+see an `extension type` declaration, or we see `const` on the name of a
+class, we know that `final` is implied on all instance variables.
 
 Optional parameters can be declared as usual in a primary constructor, with
 default values that must be constant as usual:
@@ -231,6 +239,14 @@ class Point {
 
 // Using a primary constructor.
 class Point(int x, [int y = 0]);
+```
+
+We can omit the type of an optional parameter with a default value,
+in which case the type is inferred from the default value:
+
+```dart
+// Infer the type of `y` from the default value.
+class Point(int x, [y = 0]);
 ```
 
 Similarly for named parameters, required or not:
@@ -265,6 +281,22 @@ class const D<TypeVariable extends Bound>.named(
 ]) extends A with M implements B, C;
 ```
 
+Finally, it is possible to specify assertions on a primary constructor,
+just like the ones that we can specify in the initializer list of a
+rergular (not primary) constructor:
+
+```dart
+// Current syntax.
+class Point {
+  int x;
+  int y;
+  Point(this.x, this.y): assert(0 <= x && x <= y * y);
+}
+
+// Using a primary constructor.
+class Point(int x, int y): assert(0 <= x && x <= y * y);
+```
+
 ## Specification
 
 ### Syntax
@@ -282,7 +314,11 @@ constructors as well.
 <primaryConstructorNoConst> ::= // New rule.
      <typeIdentifier> <typeParameters>?
      ('.' <identifierOrNew>)? <formalParameterList>
-   
+     <assertions>?
+
+<assertions> ::= // New rule.
+     ':' <assertion> (',' <assertion>)*
+
 <classNamePartNoConst> ::= // New rule.
      <primaryConstructorNoConst>
    | <typeWithParameters>;
@@ -361,14 +397,28 @@ constants *(holding parameter default values)*.
 Where no processing is mentioned below, _D2_ is identical to _D_. Changes
 occur as follows:
 
+Assume that `p` is an optional formal parameter in _D_ that does not have a
+declared type, but it does have a default value whose static type in the
+empty context is a type `T` which is not `Null`. In that case `p` is
+considered to have the declared type `T`. When `T` is `Null`, `p` is
+considered to have the declared type `Object?`.
+
 The current scope of the formal parameter list of the primary constructor
 in _D_ is the current scope of the class/enum declaration *(in other words,
 the default values cannot see declarations in the class body)*. Every
 default value in the primary constructor of _D_ is replaced by a fresh
 private name `_n`, and a constant variable named `_n` is added to the
 top-level of the current library, with an initializing expression which is
-said default value. *(This means that we can move the parameter
-declarations including the default value without changing its meaning.)*
+said default value. 
+
+*This means that we can move the parameter declarations including the 
+default value without changing its meaning. Implementations are free to
+use this particular desugaring based technique, or any other technique
+which has the same observable behavior. In particular, it should not be
+possible for such a default value to obtain a new meaning because an
+identifier in the default value resolves to a declaration in the class body
+when it occurs in _k_ after the transformation, but it used to resolve to
+a top-level or imported declaration before the transformation.*
 
 For each of these constant variable declarations, the declared type is the
 formal parameter type of the corresponding formal parameter, except: In the
@@ -424,6 +474,13 @@ default value.
   removed from the parameter in _L2_, and it is added to the instance
   variable declaration named `p`.
 
+If there are any assertions following the formal parameter list _L_ then
+_k_ has an initializer list with the same assertions in the same order. The
+expressions in the assertions are subject to a transformation similar to
+the one which is used with default values, such that the meaning of the
+expression is the same when it occurs in the class header and when it
+occurs in the initializer list of _k_.
+
 Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
 
 ### Discussion
@@ -439,15 +496,15 @@ class B extends A { // OK.
 class B(int a) extends A(a); // Could be supported, but isn't!
 ```
 
-There are several reasons why this is not supported. First, primary constructors
-should be small and easy to read. Next, it is not obvious how the
-superconstructor arguments would fit into a mixin application (e.g., when the
-superclass is `A with M1, M2`), or how readable it would be if the
-superconstructor is named (`class B(int a) extends A.name(a);`). For instance,
-would it be obvious to all readers that the superclass is `A` and not `A.name`,
-and that all other constructors than the primary constructor will ignore the
-implied superinitialization `super.name(a)` and do their own thing (which might
-be implicit).
+There are several reasons why this is not supported. First, primary
+constructors should be small and easy to read. Next, it is not obvious how
+the superconstructor arguments would fit into a mixin application (e.g.,
+when the superclass is `A with M1, M2`), or how readable it would be if the
+superconstructor is named (`class B(int a) extends A.name(a);`). For
+instance, would it be obvious to all readers that the superclass is `A` and
+not `A.name`, and that all other constructors than the primary constructor
+will ignore the implied superinitialization `super.name(a)` and do their
+own thing (which might be implicit).
 
 In short, if you need to write a complex superinitialization like
 `super.name(e1, otherName: e2)` then you need to use a body constructor.
@@ -599,6 +656,12 @@ where it is a compile-time error to not have them, but that is a
 [inferred-required]: https://github.com/dart-lang/language/blob/main/working/0015-infer-required/feature-specification.md
 
 ### Changelog
+
+1.3 - July 4, 2024
+
+* Add support for assertions in the primary constructor. Add support for
+  inferring the declared type of an optional parameter based on its default
+  value.
 
 1.2 - May 24, 2024
 
