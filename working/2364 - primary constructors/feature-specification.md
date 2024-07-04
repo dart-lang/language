@@ -81,9 +81,11 @@ The basic idea is that a parameter list that occurs just after the class
 name specifies both a constructor declaration and a declaration of one
 instance variable for each formal parameter in said parameter list.
 
-A primary constructor cannot have a body, and it cannot have an normal 
-initializer list (and hence, it cannot have a superinitializer, e.g., 
-`super.name(...)`). However, it can have assertions.
+A primary constructor cannot have a body, and it cannot have an normal
+initializer list (and hence, it cannot have a superinitializer, e.g.,
+`super.name(...)`). However, it can have assertions, it can have
+initializing formals (`this.p`) and it can have super parameters
+(`super.p`).
 
 The motivation for these restrictions is that a primary constructor is
 intended to be small and easy to read at a glance. If more machinery is
@@ -170,15 +172,20 @@ class", but it is consistent with the rest of the language to say that this
 particular primary constructor is a "constant constructor". Hence `class
 const Name` rather than `const class Name`.
 
-The modifier `final` on a parameter in a primary constructor has no meaning
-for the parameter itself, because there is no scope where the parameter can
-be accessed. Hence, this modifier is used to specify that the instance
-variable declared by this primary constructor parameter is `final`.
+The modifier `final` on a parameter in a primary constructor has the usual
+effect that the parameter itself cannot be modified. The only location
+where such modifications can occur is in an assertion, and they "should"
+not have side effects, so we can basically ignore this. However, much more
+importantly, this modifier is also used to specify that the instance
+variable declaration which is induced by this primary constructor parameter
+is `final`.
 
 In the case where the constructor is constant, and in the case where the
 declaration is an `extension type` or an `enum` declaration, the modifier
 `final` on every instance variable is required. Hence, it can be omitted
-from the formal parameter in the primary constructor:
+from the formal parameter in the primary constructor, because it is implied
+that this modifier must be present in the induced variable declarations in
+any case:
 
 ```dart
 // Current syntax.
@@ -213,18 +220,6 @@ it is in the grammar rules):
 
 extension type I.name(int x); // Must use a primary constructor.
 ```
-
-The primary constructor feature follows an existing pattern, where `const`
-modifiers can be omitted in the case where the immediately syntactic
-context implies that this modifier _must_ be present. 
-
-For example, `const [const C()]` can be written as `const [C()]`. In the
-examples above, the parameter-and-variable declarations `final int x` and
-`final int y` are written as `int x` and `int y`, and this is allowed
-because it would be a compile-time error to omit `final` in an `extension
-type`, and in a class with a constant constructor. In other words, when we
-see an `extension type` declaration, or we see `const` on the name of a
-class, we know that `final` is implied on all instance variables.
 
 Optional parameters can be declared as usual in a primary constructor, with
 default values that must be constant as usual:
@@ -283,7 +278,7 @@ class const D<TypeVariable extends Bound>.named(
 
 Finally, it is possible to specify assertions on a primary constructor,
 just like the ones that we can specify in the initializer list of a
-rergular (not primary) constructor:
+regular (not primary) constructor:
 
 ```dart
 // Current syntax.
@@ -397,19 +392,37 @@ constants *(holding parameter default values)*.
 Where no processing is mentioned below, _D2_ is identical to _D_. Changes
 occur as follows:
 
-Assume that `p` is an optional formal parameter in _D_ that does not have a
-declared type, but it does have a default value whose static type in the
-empty context is a type `T` which is not `Null`. In that case `p` is
-considered to have the declared type `T`. When `T` is `Null`, `p` is
-considered to have the declared type `Object?`.
+Assume that `p` is an optional formal parameter in _D_ which is not an
+initializing formal and not a super parameter. Assume that `p` does not
+have a declared type, but it does have a default value whose static type in
+the empty context is a type (not a type schema) `T` which is not `Null`. In
+that case `p` is considered to have the declared type `T`. When `T` is
+`Null`, `p` is considered to have the declared type `Object?`. If `p`
+does not have a declared type nor a default value then `p` is considered
+to have the declared type `Object?`.
+
+*Dart has traditionally assumed the type `dynamic` in such situations. We
+have chosen the more strictly checked type `Object?` instead, in order to
+avoid introducing run-time type checking implicitly.*
 
 The current scope of the formal parameter list of the primary constructor
-in _D_ is the current scope of the class/enum declaration *(in other words,
-the default values cannot see declarations in the class body)*. Every
-default value in the primary constructor of _D_ is replaced by a fresh
-private name `_n`, and a constant variable named `_n` is added to the
+in _D_ is the type parameter scope of the enclosing class, if it exists,
+and otherwise the enclosing library scope *(in other words, the default
+values cannot see declarations in the class body)*. 
+
+*Note that every occurrence of a type variable of _D_ in a default value is
+an error, because no constant expression contains a type variable. Hence,
+we can proceed under the assumption that there are no such occurrences.*
+
+*We need to ensure that the meaning of default value expressions is
+well-defined, taking into account that the primary constructor is actually
+located in a different scope than normal non-primary constructors. One way
+to specify this is to use a syntactic transformation:*
+
+Every default value in the primary constructor of _D_ is replaced by a
+fresh private name `_n`, and a constant variable named `_n` is added to the
 top-level of the current library, with an initializing expression which is
-said default value. 
+said default value.
 
 *This means that we can move the parameter declarations including the 
 default value without changing its meaning. Implementations are free to
@@ -475,11 +488,17 @@ default value.
   variable declaration named `p`.
 
 If there are any assertions following the formal parameter list _L_ then
-_k_ has an initializer list with the same assertions in the same order. The
-expressions in the assertions are subject to a transformation similar to
-the one which is used with default values, such that the meaning of the
+_k_ has an initializer list with the same assertions in the same order. 
+
+The current scope of the assertions in _D_ is the formal parameter list
+scope of the enclosing class *(that is, they can see the parameters, the
+type parameters, and the library scope)*.
+
+The expressions in the assertions are subject to a transformation similar
+to the one which is used with default values, such that the meaning of the
 expression is the same when it occurs in the class header and when it
-occurs in the initializer list of _k_.
+occurs in the initializer list of _k_ *(in particular, an identifier in an
+assertion expression cannot resolve to a declaration in the class body)*.
 
 Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
 
@@ -500,11 +519,11 @@ There are several reasons why this is not supported. First, primary
 constructors should be small and easy to read. Next, it is not obvious how
 the superconstructor arguments would fit into a mixin application (e.g.,
 when the superclass is `A with M1, M2`), or how readable it would be if the
-superconstructor is named (`class B(int a) extends A.name(a);`). For
-instance, would it be obvious to all readers that the superclass is `A` and
-not `A.name`, and that all other constructors than the primary constructor
-will ignore the implied superinitialization `super.name(a)` and do their
-own thing (which might be implicit).
+superconstructor is named (`class B(int a) extends A with M1, M2.name(a);`).
+For instance, would it be obvious to all readers that the superclass is `A`
+and not `A.name`, and that all other constructors than the primary
+constructor will ignore the implied superinitialization `super.name(a)` and
+do their own thing (which might be implicit)?
 
 In short, if you need to write a complex superinitialization like
 `super.name(e1, otherName: e2)` then you need to use a body constructor.
