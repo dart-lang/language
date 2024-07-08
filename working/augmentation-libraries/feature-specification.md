@@ -269,15 +269,17 @@ it if they know what they’re doing.
 
 ### Type inheritance
 
-When a type is omitted in an augmenting declaration, it inherits the final type
-of the augmented declaration (which could itself be inferred, inherited, etc).
+An augmenting declaration may have no type annotations for a return type,
+variable type, parameter type, or type parameter bound type. In the last case,
+that includes omitting the extends keyword. For a variable or parameter, a `var`
+keyword may replace the type.
 
-This applies to return types, parameter types, variable types, and type
-parameter bounds (but not type parameter names or regular parameter names, those
-need to be re-declared).
-
-It is a compile time error for a manually written type is not the same as a type
-that would be inherited if that manually writted type had been omitted.
+When applying an augmenting declaration that contains a type annotation at one
+of these positions, to a defintion to be augmented, it's a compile-time error if
+the type denoted by the augmenting declaration is not the same type as the type
+that the augmented definition has at the corresponding position. __An augmenting
+declaration can omit type annotations, but if it doesn't, it must repeat the
+type from the augmented definition__.
 
 ### Augmented Expression
 
@@ -350,7 +352,7 @@ This is an error because the outer `augment` forces the meaning of `augmented`
 to be about augmentation in the entire scope, but the method declaration is an
 introduction, not an augmentation.*
 
-### Augmenting types
+### Augmenting class-like declarations
 
 A class, enum, extension, extension type, or mixin declaration can be marked
 with an `augment` modifier:
@@ -376,36 +378,39 @@ including enum values, are added to the instance or static namespace of the
 corresponding type in the augmented library. In other words, the augmentation
 can add new members to an existing type.
 
-Instance and static members inside a type may themselves be augmentations. In
-that case, they augment the corresponding members in augmented type
-declaration (a based declaration and zero or more augmentations that are all
-above the current augmenting type declaration) according to the rules in the
-following subsections.
+Instance and static members inside a class-like declaration may themselves be
+augmentations. In that case, they augment the corresponding members in the
+augmented class-like declaration (a based declaration and zero or more
+augmentations that are all above the current augmenting type declaration)
+according to the rules in the following subsections.
 
-It is a **compile-time error** if, after type inference:
+It's a **compile-time** error if a library contains two top-level declarations
+with the same name, and:
 
-*   The augmenting type and corresponding type are not the same kind: class,
-    mixin, enum, extension, or extension type. You cannot augment a class with a
-    mixin, etc.
+*   Neither is an augmenting declaration, or
+*   one of the declarations is a class-like declarations and the other is not of
+    the same kind, meaning that at either one is a class, mixin, enum, extension
+    or extension type declaration, and the other is not the same kind of
+    declaration.
 
-*   The augmenting type and augmented type do not have all the same
-    modifiers: `abstract`, `base`, `final`, `interface`, `sealed` and `mixin`
-    for `class` declarations, and `base` for `mixin` declarations.
+It is a **compile-time error** if:
+
+*   The augmenting declaration and augmented declaration are not the same kind:
+    class, mixin, enum, extension, or extension type. You cannot augment a class
+    with a mixin, etc.
+
+*   The augmenting declaration and augmented declaration do not have all the
+    same modifiers: `abstract`, `base`, `final`, `interface`, `sealed` and
+    `mixin` for `class` declarations, and `base` for `mixin` declarations.
 
     *This is not a technical requirement, but it ensures that looking at either
     declaration shows the complete capabilities of the declaration. It also
     deliberately prevents an augmentation from introducing a restriction that
     isn't visible to a reader of the main declaration.*
 
-*   The augmenting type declares an `extends` clause for a `class` declaration,
-    but one was already present _(or the `class` was a `mixin class`
-    declaration, which does not allow `extends` clauses)_. We do not allow
-    overwriting an existing `extends`, but one can be filled in if none had been
-    specified.
-
-*   The augmenting type declares an `extends` clause, but one was already
-    present. We don't allow overwriting an existing `extends`, but one can be
-    filled in if it wasn't present originally.
+*   The augmenting declaration declares an `extends` clause for a `class`
+    declaration, but one was already present _(or the `class` was a `mixin class`
+    declaration, which does not allow `extends` clauses)_.
 
 *   An augmenting extension declares an `on` clause. We don't allow replacing
     this in for `extension` declarations, and the `on` clause is required on
@@ -417,12 +422,12 @@ It is a **compile-time error** if, after type inference:
     allowed. It is a parse error today to have an `extension` declaration with
     no `on` clause.
 
-*   The type parameters of the augmenting type do not match the original
-    type's type parameters. This means there must be the same number of type
-    parameters with the exact same type parameter names (same identifiers) and
-    bounds (same *types*, even if they may not be written exactly the same in
-    case one of the declarations needs to refer to a type using an import
-    prefix).
+*   The type parameters of the augmenting declaration do not match the original
+    declarations's type parameters. This means there must be the same number of
+    type parameters with the exact same type parameter names (same identifiers)
+    and bounds if any (same *types*, even if they may not be written exactly the
+    same in case one of the declarations needs to refer to a type using an
+    import prefix).
 
     *Since repeating the type parameters is, by definition, redundant, this
     restriction doesn't accomplish anything semantically. It ensures that
