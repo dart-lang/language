@@ -462,15 +462,16 @@ The augmenting function does not have to pass the same arguments to
 `augmented(…)` as were passed to it. It may invoke `augmented` once, more than
 once, or not at all.
 
-It is a compile-time error if, after type inference:
+It is a compile-time error if:
 
 *   The function signature of the augmenting function does not exactly match the
-    function signature of the augmented function. This means the return types
-    must be the same type; there must be same number or required and optional
-    positional parameters, all with the  same types, the sane number of named
-    parameters, each pairwise with the same name, same type and same `required`
-    and `covariant` modifiers, and any type parameters and their bounds must be
-    the same (like for type declarations).
+    function signature of the augmented function. This means that any provided
+    return types must be the same type; there must be same number or required
+    and optional positional parameters, all with the same types (when provided),
+    the same number of named parameters, each pairwise with the same name, same
+    type (when provided) and same `required` and `covariant` modifiers, and any
+    type parameters and their bounds (when provided) must be the same (like for
+    type declarations).
 
     *Since repeating the signature is, by definition, redundant, this doesn't
     accomplish anything semantically. But it ensures that anyone reading the
