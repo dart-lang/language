@@ -176,16 +176,16 @@ members are filled in by an augmentation declaration. _This is primarily useful
 for macros, which may be used to provide a body for an abstract member._
 
 An augmentation that replaces the body of a function, may also want to preserve
-and run the code of the original declaration that it augments (hence the name
-"augmentation"). It may want to run its own code before the original code,
-after it, or both. To support that, we allow a new expression syntax inside the
-“bodies” of augmenting declarations (function bodies, constructor bodies, and
-variable initializers). Inside an expression of a member marked
-`augment`, the identifier `augmented` can be used to refer to the augmented
-function, getter, or setter body, or variable initializer. This is a contextual
-keyword within `augment` members, and has no special meaning outside of that
-context. See the next section for a full specification of what `augmented`
-means, and how it must be used, in the various contexts.
+and run the code of the augmented declaration (hence the name "augmentation").
+It may want to run its own code before the augmented code, after it, or both.
+To support that, we allow a new expression syntax inside the “bodies” of
+augmenting declarations (function bodies, constructor bodies, and variable
+initializers). Inside an expression of a member marked `augment`, the identifier
+`augmented` can be used to refer to the augmented function, getter, or setter
+body, or variable initializer. This is a contextual keyword within `augment`
+members, and has no special meaning outside of that context. See the next
+section for a full specification of what `augmented` means, and how it must be
+used, in the various contexts.
 
 **Note:** Within an `augment` member, a reference to a member by the same name
 refers to the final version of the member (and not the one being augmented). The
@@ -296,7 +296,7 @@ augmented, but it generally follows the same rules as any normal identifier:
     the augmented field.
 
 *   **Augmenting fields**: Within an augmenting field, `augmented` can only be
-    used in an initializer expression, and refers to the original field's
+    used in an initializer expression, and refers to the augmented field's
     initializer expression, which is immediately evaluated.
 
     It is a compile-time error to use `augmented` in an augmenting field's
@@ -444,10 +444,10 @@ It is a **compile-time error** if:
 ### Augmenting functions
 
 A top-level function, static method, instance method, or operator may be
-augmented to replace or wrap the original body code in additional code:
+augmented to replace or wrap the augmented body in additional code:
 
 ```dart
-// Wrap the original function in profiling:
+// Wrap the augmented function in profiling:
 augment int slowCalculation(int a, int b) {
   var watch = Stopwatch()..start();
   var result = augmented(a, b);
@@ -459,13 +459,17 @@ augment int slowCalculation(int a, int b) {
 The augmentation replaces the augmented function’s body with the augmenting
 function’s body.
 Inside the augmenting function’s body, a special `augmented(…)` expression may
-be used to execute the original function body. That expression takes an
-argument list matching the original function's parameter list and returns the
+be used to execute the augmented function body. That expression takes an
+argument list matching the augmented function's parameter list and returns the
 function's return type.
 
 The augmenting function does not have to pass the same arguments to
 `augmented(…)` as were passed to it. It may invoke `augmented` once, more than
 once, or not at all.
+
+Augmenting function declarations may also omit the body, in order to only
+augment the metadata or doc comments of the function. In this case the body of
+the augmented member is not altered.
 
 It is a compile-time error if:
 
@@ -486,10 +490,10 @@ It is a compile-time error if:
 *   The augmenting function specifies any default values. *Default values are
     defined solely by the original function.*
 
-*   An augmenting declaration uses `augmented` when the original declaration has
-    no concrete implementation. Note that all external declarations are assumed
-    to have an implementation provided by another external source, and they will
-    throw a runtime exception when called if not.
+*   An augmenting declaration uses `augmented` when the augmented declaration
+    has no concrete implementation. Note that all external declarations are
+    assumed to have an implementation provided by another external source, and
+    they will throw a runtime exception when called if not.
 
 ### Augmenting variables, getters, and setters
 
@@ -545,12 +549,24 @@ More specifically:
     with the body of the augmenting getter. Inside the augmenting getter’s
     body, an `augmented` expression executes the augmented getter’s body.
 
+    Augmenting getter declarations may also omit the body, in order to only
+    augment the metadata or doc comments of the getter. In this case the body of
+    the augmented getter is not altered.
+
+    Only concrete getters are allowed to augment with metadata or doc comments.
+
 *   **Augmenting with a setter:** An augmenting setter can augment a setter
     declaration, or the implicit setter of a variable declaration, with all
     prior augmentations applied, by replacing the augmented setter’s body with
     the augmenting setter’s body. Inside the augmenting setter’s body, an
-    `augmented = <expression>` assignment invokes the original setter with the
+    `augmented = <expression>` assignment invokes the augmented setter with the
     value of the expression.
+
+    Augmenting setter declarations may also omit the body, in order to only
+    augment the metadata or doc comments of the setter. In this case the body of
+    the augmented setter is not altered.
+
+    Only concrete setters are allowed to augment with metadata or doc comments.
 
 *   **Augmenting a getter and/or setter with a variable:** This is a
     compile-time error in all cases. Augmenting an abstract or external variable
@@ -569,9 +585,9 @@ More specifically:
 
     If a non-abstract, non-external variable is augmented by an augmenting
     getter or setter, you **can** still augment the variable, as you are only
-    augmenting the initializer of the original variable. This is not considered
-    to be augmenting the augmenting getter or setter, since those are not
-    actually altered.
+    augmenting the initializer, metadata, or doc comments of the augmented
+    variable. This is not considered to be augmenting the augmenting getter or
+    setter, since those are not actually altered.
 
     The reason for this compile time error is that whether a member declaration
     is a field versus a getter/setter is a visible property of the declaration
@@ -591,15 +607,14 @@ More specifically:
     it is allowed.
 
 *   **Augmenting a variable with a variable:** Augmenting a variable with a
-    variable only alters its initializer. External and abstract variables cannot
-    be augmented with variables, because they have no initializer expression to
-    augment.
+    variable only alters its initializer, metadata, or doc comments. External
+    and abstract variables cannot augment their initializer, since there is no
+    initializer expression to augment.
 
-    Since the initializer expression is the only meaningful part of the
-    augmenting declaration, an initializer expression must be provided. This
-    augmenting initializer replaces the original initializer. The augmenting
-    initializer may use an augmented` expression which executes the original
-    initializer expression when evaluated.
+    Augmenting initializer expressions replace the augmented initializer. The
+    augmenting initializer may use an `augmented` expression which executes the
+    augmented initializer expression when evaluated. If no initializer is
+    provided then the augmented initializer is not altered.
 
     The `late` property of a variable must always be consistent between the
     augmented variable and its augmenting variables.
@@ -619,23 +634,24 @@ It is a **compile-time error** if:
 
 *   The original and augmenting declarations do not have the same declared
     types (return type for getters, parameter type for setters, declared type
-    for variables).
+    for variables). This only applies where types are not omitted in the
+    augmenting declaration.
 
-*   An augmenting declaration uses `augmented` when the original declaration has
-    no concrete implementation. Note that all external declarations are assumed
-    to have an implementation provided by another external source, and
+*   An augmenting declaration uses `augmented` when the augmented declaration
+    has no concrete implementation. Note that all external declarations are
+    assumed to have an implementation provided by another external source, and
     otherwise they will throw a runtime error when called. An `abstract`
     variable introduces no implementation.
 
 *   An augmenting variable’s initializer expression uses `augmented` and the
     augmented variable is not a variable with an initializer.
 
-*   A non-writable variable declaration is augmented with a setter. (
-    Instead, the author can declare a *non-augmenting* setter that goes
-    alongside the implicit getter defined by the final variable.)
-    _Non-writable variable declarations are any that does not introduce a
-    setter, including non-`late`  `final` variables, `late final` variables
-    with an initializer, and `const` variables._
+*   A non-writable variable declaration is augmented with a setter. (Instead,
+    the author can declare a *non-augmenting* setter that goes alongside the
+    implicit getter defined by the final variable.) _Non-writable variable
+    declarations are any that does not introduce a setter, including
+    non-`late`  `final` variables, `late final` variables with an initializer,
+    and `const` variables._
 
 *   A non-final variable is augmented with a final variable. We don't want to
     leave the original setter in a weird state.
@@ -667,13 +683,17 @@ It is a **compile-time error** if:
 
 Enum values can _only_ be augmented by enum values, and the implicit getter
 introduced by them is not augmentable. The one thing you are allowed to do is to
-replace the argument list. There is no way to refer to the original argument
-list (although a macro may be able introspect on it and copy over some or all of
-the arguments).
+replace the argument list and add metadata or doc comments. There is no way to
+refer to the original argument list (although a macro may be able introspect on
+it and copy over some or all of the arguments).
 
 An augmenting enum value is allowed to invoke a different constructor than
-the original enum value, or provide an argument list where none was present
+the augmented enum value, or provide an argument list where none was present
 before.
+
+If no argument list is provided, the augmented argument list is not altered,
+this allows augmenting with metadata or comments without copying over the entire
+argument list.
 
 New enum values may also be defined in the augmentation, and they will be
 appended to the current values of the declaration in augmentation application
@@ -726,13 +746,13 @@ It is a compile-time error if:
 ### Augmenting constructors
 
 Constructors are (as always) more complex. A constructor marked `augment`
-replaces the body of the existing constructor with its body. If the augmenting
-constructor has any initializers, they are appended to the original
-constructor's initializers, but before any original super initializer or
-original redirecting initializer if there is one.
+replaces the body of the existing constructor with its body, if present. If the
+augmenting constructor has any initializers, they are appended to the augmented
+constructor's initializers, but before any super initializer or redirecting
+initializer if there is one.
 
 In the augmenting constructor's body, an `augmented()` call invokes the
-original constructor's body. The expression has type `void` and evaluates to
+augmented constructor's body. The expression has type `void` and evaluates to
 `null`. **(TODO: This is slightly under-specified. We can use the current
 bindings of the parameters of the augmenting constructor as the initial binding
 of parameter variables in the augmented body, or we can execute the body in the
@@ -742,7 +762,7 @@ to modify local variables, but the former introduces different variables than
 the ones that existed when evaluating the initializer list. If the initializer
 list captures variables in closures, that body may not work.)**
 
-It is a compile-time error if, after type inference:
+It is a compile-time error if:
 
 *   The function signature of the augmenting constructor does not match the
     signature of the augmented constructor. This means that the parameters must
@@ -804,11 +824,13 @@ different platforms or tools.
 **TODO: Should we add a syntax to let the augmentation dynamically detect
 whether there is an external implementation to call?**
 
-### Metadata annotations and macro applications
+### Augmenting with metadata annotations and doc comments
 
-An augmentation declaration may have metadata annotations, including macro
-applications. These are appended to the list of metadata annotations on
-the original declaration.
+All declarations can be augmented with metadata annotations and/or doc comments
+directly preceding an augmenting declaration.
+
+In both cases, these should be appended to exising metadata or doc comments. For
+metadata annotations, these may trigger additional macro applications.
 
 ## Scoping
 
