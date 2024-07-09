@@ -400,10 +400,6 @@ with the same name, and:
 
 It is a **compile-time error** if:
 
-*   The augmenting declaration and augmented declaration are not the same kind:
-    class, mixin, enum, extension, or extension type. You cannot augment a class
-    with a mixin, etc.
-
 *   The augmenting declaration and augmented declaration do not have all the
     same modifiers: `abstract`, `base`, `final`, `interface`, `sealed` and
     `mixin` for `class` declarations, and `base` for `mixin` declarations.
