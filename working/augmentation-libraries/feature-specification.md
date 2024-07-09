@@ -648,10 +648,10 @@ It is a **compile-time error** if:
 
 *   A non-writable variable declaration is augmented with a setter. (Instead,
     the author can declare a *non-augmenting* setter that goes alongside the
-    implicit getter defined by the final variable.) _Non-writable variable
-    declarations are any that does not introduce a setter, including
-    non-`late`  `final` variables, `late final` variables with an initializer,
-    and `const` variables._
+    implicit getter defined by the final variable.) _A non-writable variable
+    declaration is any that does not introduce a setter, including non-`late`
+    `final` variables, `late final` variables with an initializer, and `const`
+    variables._
 
 *   A non-final variable is augmented with a final variable. We don't want to
     leave the original setter in a weird state.
