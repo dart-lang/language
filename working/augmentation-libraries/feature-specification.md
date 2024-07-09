@@ -467,7 +467,7 @@ The augmenting function does not have to pass the same arguments to
 `augmented(…)` as were passed to it. It may invoke `augmented` once, more than
 once, or not at all.
 
-Augmenting function declarations may also omit the body, in order to only
+An augmenting function declaration may have an empty body (`;`) in order to only
 augment the metadata or doc comments of the function. In this case the body of
 the augmented member is not altered.
 
@@ -549,9 +549,9 @@ More specifically:
     with the body of the augmenting getter. Inside the augmenting getter’s
     body, an `augmented` expression executes the augmented getter’s body.
 
-    Augmenting getter declarations may also omit the body, in order to only
-    augment the metadata or doc comments of the getter. In this case the body of
-    the augmented getter is not altered.
+    An augmenting getter declaration may have an empty body (`;`) in order to
+    only augment the metadata or doc comments of the getter. In this case the
+    body of the augmented getter is not altered.
 
     Synthetic getters cannot be augmented with metadata or doc comments.
 
@@ -562,9 +562,9 @@ More specifically:
     `augmented = <expression>` assignment invokes the augmented setter with the
     value of the expression.
 
-    Augmenting setter declarations may also omit the body, in order to only
-    augment the metadata or doc comments of the setter. In this case the body of
-    the augmented setter is not altered.
+    An augmenting setter declaration may have an empty body (`;`) in order to
+    only augment the metadata or doc comments of the setter. In this case the
+    body of the augmented setter is not altered.
 
     Synthetic setters cannot be augmented with metadata or doc comments.
 
