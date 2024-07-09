@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.21 (see [Changelog](#Changelog) at end)
+Version: 1.24 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -1216,6 +1216,11 @@ original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
 ## Changelog
+
+### 1.24
+
+* Allow augmentations which only alter the metadata and/or doc comments on
+  various types, and specify behavior.
 
 ### 1.23
 
