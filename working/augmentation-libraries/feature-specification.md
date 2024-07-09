@@ -183,7 +183,7 @@ augmenting declarations (function bodies, constructor bodies, and variable
 initializers). Inside an expression of a member marked `augment`, the identifier
 `augmented` can be used to refer to the augmented function, getter, or setter
 body, or variable initializer. This is a contextual keyword within `augment`
-members, and has no special meaning outside of that context. See the next
+declarations, and has no special meaning outside of that context. See the next
 section for a full specification of what `augmented` means, and how it must be
 used, in the various contexts.
 
@@ -553,7 +553,7 @@ More specifically:
     augment the metadata or doc comments of the getter. In this case the body of
     the augmented getter is not altered.
 
-    Only concrete getters are allowed to augment with metadata or doc comments.
+    Synthetic getters cannot be augmented with metadata or doc comments.
 
 *   **Augmenting with a setter:** An augmenting setter can augment a setter
     declaration, or the implicit setter of a variable declaration, with all
@@ -566,7 +566,7 @@ More specifically:
     augment the metadata or doc comments of the setter. In this case the body of
     the augmented setter is not altered.
 
-    Only concrete setters are allowed to augment with metadata or doc comments.
+    Synthetic setters cannot be augmented with metadata or doc comments.
 
 *   **Augmenting a getter and/or setter with a variable:** This is a
     compile-time error in all cases. Augmenting an abstract or external variable
