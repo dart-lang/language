@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 0.2 (see [CHANGELOG](#CHANGELOG) at end)
+Version 0.3 (see [CHANGELOG](#CHANGELOG) at end)
 
 Experiment flag: unquoted-imports
 
@@ -142,15 +142,15 @@ Still, I believe it's worth it. We have *never* liked the current package
 import syntax. When it was first designed, it was intended to be a temporary
 placeholder until better syntax came along. It just took a long time.
 
-To the point, user sentiment does affect their productivity and enjoyment
+More to the point, user sentiment does affect their productivity and enjoyment
 working with the language. One of the *first* things a Dart user does when
 writing code is import other libraries to build on. If that initial experience
-feels annoying or antiquated, it's taints their impression of the language. The
-import syntax is a bouquet of dead flowers in the foyer of the language.
+feels annoying or antiquated, it taints their impression of the language. The
+current import syntax is a bouquet of dead flowers in the language's foyer.
 
-We can easily improve it and should. The other languages users are comparing us
-with all do this better. There's no compelling reason for us to have *clearly
-worse* syntax for such a common operation.
+We can easily improve it and should. The other languages users compare us to all
+do this better. There's no compelling reason for us to have *clearly worse*
+syntax for such a common operation.
 
 ### Design choices
 
@@ -303,6 +303,19 @@ An import or export can continue to use a `stringLiteral` for the quoted form
 series of dot-separated identifiers. *(The `dottedIdentifierList` rule is
 already in the grammar and is shown here for clarity.)*
 
+### Part directive lookahead
+
+*There are two directives for working with part files, `part` and `part of`. The
+`of` identifier is not a reserved word in Dart. This means that when the parser
+sees `part of`, it doesn't immediately know if it is looking at a `part`
+directive followed by an unquoted identifier like `part of;` or `part
+of.some/other.thing;` versus a `part of` directive like `part of thing;` or
+`part of 'uri.dart';` It must lookahead past the `of` identifier to see if the
+next token is `;`, `.`, `/`, or another identifier.*
+
+*This may add some complexity to parsing, but should be minor. Dart's grammar
+has other places that require much more (sometimes unbounded) lookahead.*
+
 ## Static semantics
 
 The semantics of the new syntax are defined by taking the `packagePath` and
@@ -379,15 +392,86 @@ There are no runtime semantics for this feature.
 
 ## Compatibility
 
-This feature is fully backwards compatible. We still allow quoted "dart:" and
-"package:" imports. Users may be compelled to use the existing syntax in
-uncommon corner cases where the library they are importing has a package,
-directory, or library name that isn't a valid Dart identifier.
+This feature is fully backwards compatible for `import`, `export`, and `part`
+directives.
 
-In practice, almost all "dart" and "package" imports should be (automatically)
+For all directives, we still allow quoted "dart:" and "package:" imports. Users
+may be compelled to use the existing syntax in uncommon corner cases where the
+library they are importing has a package, directory, or library name that isn't
+a valid Dart identifier.
+
+In practice, almost all "dart" and "package" URIs should be (automatically)
 migrated to the new style and the old quoted forms will be essentially vestigial
-syntax (similar to *unquoted* part-of directives). A future version of Dart may
-make a breaking change and remove support for the old syntax.
+syntax (similar to names after `library` directives). A future version of Dart
+may make a breaking change and remove support for the old syntax.
+
+### Part-of directives
+
+The `part of` directive allows a library name after `of` instead of a string
+literal. With this proposal, that syntax is now ambiguous. Is it interpreted
+as a library name, or as an unquoted URI that should be desugared to a URI?
+In other words, given:
+
+```dart
+part of foo.bar;
+```
+
+Is the file saying it's a part of the library containing `library foo.bar;` or
+that it's part of the library found at URI `package:foo/bar.dart`?
+
+Library names in `part of` directives have been deprecated for many years
+because the syntax doesn't work well with many tools. How is a given tool
+supposed to know where to find the library that happens to contain a `library`
+directive with that name? The quoted URI syntax was added later specifically to
+address that point and users are encouraged by documentation and lints to use
+the quoted syntax.
+
+Looking at a corpus of 122,420 files:
+
+```
+-- Directive (443733 total) --
+ 352744 ( 79.495%): import   =========================================
+  55471 ( 12.501%): export   =======
+  17823 (  4.017%): part     ===
+  17695 (  3.988%): part of  ===
+```
+
+So `part of` directives are fairly rare to begin with. Of them, most use the
+recommended URI syntax and would not be affected by this change:
+
+```
+-- Part of (17695 total) --
+  13229 ( 74.761%): uri           ===================================
+   4466 ( 25.239%): library name  ============
+```
+
+In total, only about 1% of directives are `part of` with a library name:
+
+```
+-- URI (443733 total) --
+ 352744 ( 79.495%): import                     ===========================
+  55471 ( 12.501%): export                     =====
+  17823 (  4.017%): part                       ==
+  13229 (  2.981%): part of with uri           =
+   4466 (  1.006%): part of with library name  =
+```
+
+Given that, I propose that we make a **breaking change** and remove support for
+the long-deprecated library name syntax from `part of` directives. An unquoted
+series of identifiers after `part of` then gets unambiguously interpreted as
+this proposal's semantics. In other words, `part of foo.bar;` is part of the
+library at `package:foo/bar.dart`, not part of the library with name `foo.bar`.
+
+Users affected by the breakage can and should update their `part of` directive
+to point to the URI of the library that the file is a part, using either the
+quoted or unquoted syntax.
+
+### Language versioning
+
+To avoid breaking existing `part of` directives, this change is language
+versioned. Only libraries whose language version is at or above the version that
+this proposal ships in can use this new unquoted syntax in `part of` or any
+other directive.
 
 ## Tooling
 
@@ -416,6 +500,12 @@ In this case, we should have a recommended lint that suggests users prefer the
 new unquoted style whenever an existing directive could use it.
 
 ## Changelog
+
+### 0.3
+
+-   Address breaking change in `part of` directives with library names.
+
+-   Note additional lookahead for parsing `part` and `part of` directives.
 
 ### 0.2
 
