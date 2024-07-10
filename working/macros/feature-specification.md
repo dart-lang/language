@@ -45,6 +45,14 @@ Allowing deep introspection like this in cases where a macro needs it while
 ensuring that users can understand the system and tools can implement it
 efficiently is a central challenge of this proposal.
 
+#### Default Constructors
+
+Default constructors are not introduced until after phase 2 (the phase which
+might introduce generative constructors). They should not appear in
+introspection results until phase 3. If, after phase 2 a class still has no
+generative constructor, then the default one should be added, and it should
+be visible for introspection in phase 3.
+
 #### Omitted Type Annotations and Inference
 
 In general, the introspection APIs will only provide exactly what the user has
