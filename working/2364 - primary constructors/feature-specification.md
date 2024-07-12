@@ -490,15 +490,17 @@ default value.
 If there are any assertions following the formal parameter list _L_ then
 _k_ has an initializer list with the same assertions in the same order. 
 
-The current scope of the assertions in _D_ is the formal parameter list
-scope of the enclosing class *(that is, they can see the parameters, the
-type parameters, and the library scope)*.
+The current scope of the assertions in _D_ is the formal parameter
+initializer scope of the formal parameter list *(that is, they can see the
+parameters including any initializing formals, the type parameters, and
+everything in the library scope that isn't shadowed by the scopes in
+between)*.
 
-The expressions in the assertions are subject to a transformation similar
-to the one which is used with default values, such that the meaning of the
-expression is the same when it occurs in the class header and when it
-occurs in the initializer list of _k_ *(in particular, an identifier in an
-assertion expression cannot resolve to a declaration in the class body)*.
+The expressions in the assertions are subject to a transformation that
+preserves the resolution of every identifier in said expressions when they
+occur as part of the initializer list of _k_. *(In particular, an
+identifier in an assertion expression cannot resolve to a declaration in
+the class body)*.
 
 Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
 
@@ -559,6 +561,20 @@ constructor using `D.named`, and that would fail if we use the approach
 where it occurs as `new.named` or `const.named` because that particular
 constructor has been expressed as a primary constructor.
 
+It has been argued that a primary constructor parameter should be able to
+introduce an instance variable (which is already true in this proposal),
+and also to be a regular parameter (that doesn't introduce anything extra,
+which is not supported by this proposal). The point would be that this
+makes primary constructors more expressive. In particular, if we also
+generalize the proposal to allow a full initializer list with a
+superinitialization then we could allow the primary constructor to invoke
+any superconstructor, with any actual argument list.
+
+This would provide a considerable enhancement of the expressive power of
+primary constructors. At the same time, it would make primary constructors
+considerably more verbose, which seems to lessen a crucial motivating
+factor for primary constructors in the first place.
+
 A proposal which was mentioned during the discussions about primary
 constructors was that the keyword `final` could be used in order to specify
 that all instance variables introduced by the primary constructor are
@@ -582,10 +598,23 @@ class Point {
 class final Point(int x, int y); // Not supported!
 ```
 
+Most likely, there is an easy workaround: Make the constructor `const`. It
+is very often possible to make the constructor `const`, even in the case
+where the class isn't necessarily intended to be used in constant
+expressions: There is no initializer list, no superinitialization, no
+body. The only way it can be an error to use `const` on a primary
+constructor is if the superclass doesn't have a constant constructor, or if
+the class has a mutable or late instance variable, or it has some
+non-constant expressions in instance variable declarations. (Those issues
+can only be created by instance variables that are declared explicitly in
+the class body whereas the ones that are created by primary constructor
+parameters will necessarily satisfy the `const` requirements).
+
 Finally, we could allow a primary constructor to be declared in the body of
-a class or similar declaration, using the modifier `primary`, in which case
-it could have an initializer list and a body, and it would still have the
-ability to introduce instance variable declarations implicitly:
+a class or similar declaration, possibly using a modifier like `primary`,
+in which case it could have an initializer list and a body, and it would
+still have the ability to introduce instance variable declarations
+implicitly:
 
 ```dart
 // Current syntax.
@@ -676,7 +705,7 @@ where it is a compile-time error to not have them, but that is a
 
 ### Changelog
 
-1.3 - July 4, 2024
+1.3 - July 12, 2024
 
 * Add support for assertions in the primary constructor. Add support for
   inferring the declared type of an optional parameter based on its default
