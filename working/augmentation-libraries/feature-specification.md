@@ -85,58 +85,57 @@ imports and prefixes of their parent (part or library) file.
 
 Augmentation declarations interact with part files mainly in restrictions on
 where an augmenting declaration may occur relative to the declaration it
-augments, as describe below.
+augments, as described below.
 
 For this, we define the following relations on *declarations* based on the
 relations between *files* of a library.
 
 We say that a syntactic declaration *occurs in* a Dart file if the
-declaration’s source code occurs in that Dart file.
+declaration's source code occurs in that Dart file.
 
 We then say that a Dart file *contains* a declaration if the declaration occurs
-in the file itself, or if any of the files included by the Dart file contains
-the declaration. _That is, if the declaration occurs in a file in the sub-tree
+in the file itself, or if any of the files included by the Dart file contain
+the declaration. _That is, if the declaration occurs in a file in the subtree
 of that Dart file._
 
-We then define a partial and a complete *ordering* of declarations of a library
-as follows:
+We then define two *orderings* of declarations in a library, one partial and one
+complete, as follows:
 
 We define a partial ordering on syntactic declarations of a library,
 *is above*, such that a syntactic declaration *A* is *above* a syntactic
 declaration *B* if and only if:
 
-*   *A* and *B* occur in the same file, and the start of the *A* declaration is
-syntactically before the start of the *B* declaration, in source order, or
-*   A file included by the file containing *A* contains *B*.
+*   *A* and *B* occur in the same file, and the start of *A* is syntactically
+    before the start of *B*, in source order, or
+*   The file containing *A* includes the file that contains *B*.
 
 We define a *total ordering relation* (transitive, anti-symmetric, irreflexive)
 on declarations of a library, *is before* (and its reverse, *is after*) such
 that for any two syntactic declarations *A*, and *B*:
 
 *   If *A* and *B* occur in the same file, then:
-    *   If the start of *A* is before the start of *B* in source order,
-        then *A* is before *B*.
+    *   If the start of *A* is syntactically before the start of *B* in source
+        order, then *A* is before *B*.
     *   Otherwise *B* is before *A*.
-*   Otherwise *A* and *B* occur in different files.
-*   Let *F* be the least containing file for those two files.
-*   If *A* occurs in *F* then *A* is before *B*.
-*   If *B* occurs in *F* then *B* is before *A*.
-*   Otherwise *A* and *B* are contained in distinct included files of *F*.
-*   If the `part` directive including the file that contains *A*
-    is syntactically before the `part` directive including the file that
-    contains *B* in source order, then *A* is before *B*.
-*   Otherwise *B* is before *A*.
+*   Otherwise *A* and *B* occur in different files:
+    *   Let *F* be the least containing file for those two files.
+    *   If *A* occurs in *F* then *A* is before *B*.
+    *   If *B* occurs in *F* then *B* is before *A*.
+    *   Otherwise *A* and *B* are contained in distinct included files of *F*.
+    *   If the `part` directive in *F* including the file that contains *A* is
+        syntactically before the `part` directive in *F* including the file that
+        contains *B* in source order, then *A* is before *B*.
+    *   Otherwise *B* is before *A*.
 
 Then *B* *is after* *A* if and only if *A* *is before* *B*.
 
-(Here the first five points can be summarized as “If *A* is above *B*, then *A*
-is before *B*, and vice versa” and the remaining case covers when the two are
-contained in sibling part directives, and at least one of those three cases
-must occur.)
+*In short, if *A* is above *B*, then *A* is before *B*, and vice versa.
+Otherwise, they are in sibling part subtrees and the directive in the subtree
+whose `part` directive occurs first is before the other.*
 
-This order is total. It’s effectively ordering declarations as by a pre-order
-depth-first traversal of the file-tree, visiting declarations of a file in
-source order, and then recursing on `part`-directives in source order.
+This order is total. It effectively orders declarations by a pre-order
+depth-first traversal of the file tree, visiting declarations of a file
+in source order, and then recursing on `part`-directives in source order.
 
 [parts_with_imports.md]: parts_with_imports.md "Parts with Imports Feature Specification"
 
