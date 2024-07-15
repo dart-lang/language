@@ -107,7 +107,7 @@ declaration *B* if and only if:
 
 *   *A* and *B* occur in the same file, and the start of *A* is syntactically
     before the start of *B*, in source order, or
-*   The file containing *A* includes the file that contains *B*.
+*   The file where *A* occurs includes the file where *B* occurs.
 
 We define a *total ordering relation* (transitive, anti-symmetric, irreflexive)
 on declarations of a library, *is before* (and its reverse, *is after*) such
@@ -129,9 +129,9 @@ that for any two syntactic declarations *A*, and *B*:
 
 Then *B* *is after* *A* if and only if *A* *is before* *B*.
 
-*In short, if *A* is above *B*, then *A* is before *B*, and vice versa.
-Otherwise, they are in sibling part subtrees and the directive in the subtree
-whose `part` directive occurs first is before the other.*
+*In short, if *A* is above *B*, then *A* is before *B*. Otherwise, they are in
+sibling part subtrees and the directive in the subtree whose `part` directive
+occurs first is before the other.*
 
 This order is total. It effectively orders declarations by a pre-order
 depth-first traversal of the file tree, visiting declarations of a file
