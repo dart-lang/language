@@ -4,8 +4,7 @@
 
 import 'dart:io';
 
-import 'package:analyzer/dart/analysis/context_builder.dart';
-import 'package:analyzer/dart/analysis/context_locator.dart';
+import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:dart_model_analyzer_service/dart_model_analyzer_service.dart';
 import 'package:macro_host/macro_host.dart';
 
@@ -20,10 +19,9 @@ Future<void> main(List<String> arguments) async {
 
   print('~~~ setup');
   print('Launching analyzer on: $workspace');
-  final contextBuilder = ContextBuilder();
-  final analysisContext = contextBuilder.createContext(
-      contextRoot:
-          ContextLocator().locateRoots(includedPaths: [workspace]).first);
+  final contextCollection =
+      AnalysisContextCollection(includedPaths: [workspace]);
+  final analysisContext = contextCollection.contextFor(workspace);
   final host = DartModelAnalyzerService(context: analysisContext);
   await MacroHost(workspace, host, (uri) {
     final path = analysisContext.currentSession.uriConverter.uriToPath(uri);
