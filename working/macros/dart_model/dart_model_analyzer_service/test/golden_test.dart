@@ -5,8 +5,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:analyzer/dart/analysis/context_builder.dart';
-import 'package:analyzer/dart/analysis/context_locator.dart';
+import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
 import 'package:dart_model/schemas.dart' as schemas;
@@ -28,11 +27,9 @@ void main() {
       .where((f) => f.path.endsWith('.dart'))
       .toList();
 
-  final contextBuilder = ContextBuilder();
-  final contextRoot = ContextLocator()
-      .locateRoots(includedPaths: [directory.absolute.path]).first;
-  final analysisContext =
-      contextBuilder.createContext(contextRoot: contextRoot);
+  final contextCollection =
+      AnalysisContextCollection(includedPaths: [directory.absolute.path]);
+  final analysisContext = contextCollection.contextFor(directory.absolute.path);
   final service = DartModelAnalyzerService(context: analysisContext);
 
   for (final file in dartFiles) {

@@ -6,8 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:analyzer/dart/analysis/context_builder.dart';
-import 'package:analyzer/dart/analysis/context_locator.dart';
+import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:async/async.dart';
 import 'package:dart_model/model.dart';
 import 'package:dart_model/query.dart';
@@ -93,10 +92,9 @@ watch <URI>[#name]
   }
 
   void createHost(String workspace) {
-    final contextBuilder = ContextBuilder();
-    final analysisContext = contextBuilder.createContext(
-        contextRoot:
-            ContextLocator().locateRoots(includedPaths: [workspace]).first);
+    final contextCollection =
+        AnalysisContextCollection(includedPaths: [workspace]);
+    final analysisContext = contextCollection.contextFor(workspace);
     final service = DartModelAnalyzerService(context: analysisContext);
     File? uriConverter(Uri uri) {
       final path = analysisContext.currentSession.uriConverter.uriToPath(uri);
