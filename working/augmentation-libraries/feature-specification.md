@@ -567,7 +567,7 @@ have one or more other capabilities:
     additional updates and/or checks.)
 
 Variable declarations may be marked `abstract` or `external` and, if so,
-those are mapped over to the corresponding getter and setter functions. 
+those are mapped over to the corresponding getter and setter functions.
 
 An `abstract` variable declaration is equivalent to an abstract getter
 declaration, and if not `final`, also an abstract setter declaration. An
@@ -784,39 +784,38 @@ It is a compile-time error if:
 
 ### Augmenting constructors
 
-Constructors are (as always) more complex. A constructor marked `augment`
-replaces the body of the existing constructor with its body, if present. If the
-augmenting constructor has any initializers, they are appended to the augmented
-constructor's initializers, but before any super initializer or redirecting
-initializer if there is one.
+Constructors are (as always) more complex. We have many kinds of constructors,
+and what it means to augment each is different. For the purposes of this section
+we will call out three specific kinds of constructors:
 
-In the augmenting constructor's body, an `augmented()` call invokes the
-augmented constructor's body. The expression has type `void` and evaluates to
-`null`. **(TODO: This is slightly under-specified. We can use the current
-bindings of the parameters of the augmenting constructor as the initial binding
-of parameter variables in the augmented body, or we can execute the body in the
-current *scope*, using the same variables as the current body. The latter is
-not what we do with functions elsewhere, and allows the `augmented` expression
-to modify local variables, but the former introduces different variables than
-the ones that existed when evaluating the initializer list. If the initializer
-list captures variables in closures, that body may not work.)**
+**Non-redirecting generative constructors**: These always produce a new
+instance, and have an optional initializer list and optional body.
+**Non-redirecting factory constructors**: These are much like static methods,
+and might return a subtype of the current type. They also may not create a new
+instance, but return an existing one. They must have a body.
+**Redirecting constructors**: Both generative and factory constructors can be
+redirecting, although the syntax looks slightly different for each.
+
+It may not always be apparent whether a constructor is redirecting or not based
+on a given declaration (if there is no body, initializer list, or redirecting
+constructor invocation). These constructors are considered to be "potentially
+redirecting" or "potentially non-redirecting". An augmentation may alter this
+property by augmenting a constructor in a way that makes it concretely
+redirecting or not.
 
 It is a compile-time error if:
 
-*   The function signature of the augmenting constructor does not match the
-    signature of the augmented constructor. This means that the parameters must
-    be the same (just as for augmenting functions, except here there is no
-    return type and no type parameters on the constructor itself). Any
-    initializing formals must be the same in both constructors. Any super
-    parameters must be the same in both constructors.
-
-    **TODO: Is this the right way to handle initializing formals?**
+*   The signature of the constructor augmentation does not match the original
+    constructor. It must have the same number of positional parameters, the same
+    named parameters, and matching parameters must have the same type,
+    optionality, and any `required` modifiers must match. Any initializing
+    formals and super parameters must also be the same in both constructors.
 
 *   The augmenting constructor parameters specify any default values.
     *Default values are defined solely by the introductory constructor.*
 
 *   The introductory constructor is `const` and the augmenting constructor
-    is not, or vice versa.
+    is not or vice versa.
 
 *   The introductory constructor is marked `factory` and the augmenting
     constructor is not, or vice versa.
@@ -828,7 +827,99 @@ It is a compile-time error if:
     replace a declared super constructor._ **(TODO: Why not? We allow
     "replacing implementation", and this is *something* like that.)**
 
-**TODO: What about redirecting constructors?**
+*   The resulting constructor is not valid (has a redirecting initializer and
+    other initializers, multiple `super` initializers, etc).
+
+*   A non-redirecting constructor augments a constructor which is not
+    potentially non-redirecting.
+
+*   A redirecting constructor augments a constructor which is not potentially
+    redirecting.
+
+#### Non-redirecting generative constructors
+
+These are probably the most complex constructor, but also the most common.
+
+A non-redirecting generative constructor marked `augment` may:
+
+*   Add or replace the body of the augmented constructor with a new body.
+
+    *   If the augmenting constructor has an explicit block body, then that body
+        replaces any existing constructor body.
+
+    *   In the augmenting constructor's body, an `augmented()` call executes the
+        augmented constructor's body in the same parameter scope that the
+        augmenting body is executing in. The expression has type `void` and
+        evaluates to `null`. **(TODO: This is slightly under-specified. We can
+        use the current bindings of the parameters of the augmenting constructor
+        as the initial binding of parameter variables in the augmented body, or
+        we can execute the body in the current *scope*, using the same variables
+        as the current body. The latter is not what we do with functions
+        elsewhere, and allows the `augmented()` expression to modify local
+        variables, but the former introduces different variables than the ones
+        that existed when evaluating the initializer list. If the initializer
+        list captures variables in closures, that body may not work.)**
+
+    *   Initializer lists _are not_ re-run, they have already executed and
+        shouldn't be executed twice. The same goes for initializing formals and
+        super parameters.
+
+    *   If a parameter variable is overwritten prior to calling `augmented()`,
+        the augmented body will see the updated value, because the parameter
+        scope is identical.
+
+    *   Local variables in scope where augmented is evaluated are not in scope
+        for the execution of the augmented constructor's body.
+
+*   Add initializers to the initializer list. If the augmenting constructor has
+    an initializer list then:
+
+    *   It's a compile-time error if the augmented constructor has
+        super-initializer, and the augmenting constructor's initializer list
+        also contains a super-initializer.
+
+    *   Otherwise the result of applying the augmenting constructor has an
+        initializer list containing first the assertions and field initializers
+        of the augmented constructor, if any, then the assertions and field
+        initializers of the augmenting constructor, and finally any
+        super-initializer of either the augmeted or augmenting constructor.
+
+#### Non-redirecting factory constructors
+
+A non-redirecting factory constructor marked `augment` works in the same way as
+a normal function augmentation.
+
+If it has a body, it replaces the body of the augmented constructor (if
+present), and it may invoke the augmented body by calling
+`augmented(arguments)`.
+
+#### Redirecting generative constructors
+
+A redirecting generative constructor marked `augment` adds its redirecting
+initializer to the augmented constructors initializer list.
+
+This converts it into a redirecting generative constructor, removing the
+potentially non-redirecting property of the constructor.
+
+It is a compile-time error if:
+
+*   The augmented constructor has any initializers or a body.
+
+#### Redirecting factory constructors
+
+A redirecting factory constructor marked `augment` adds its factory redirection
+to the augmented constructor.
+
+The result of applying the augmenting constructor is a redirecting factory
+constructor with the same target constructor designation as the augmenting
+constructor. This removes the potentially non-redirecting property of the
+constructor.
+
+It is a compile-time error if:
+
+*   The augmented constructor has a body.
+
+#### Extension types
 
 When augmenting an extension type declaration, the parenthesized clause where
 the representation type is specified is treated as a constructor that has a
