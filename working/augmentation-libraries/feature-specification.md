@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.24 (see [Changelog](#Changelog) at end)
+Version: 1.25 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -77,7 +77,7 @@ simply want to break a giant library or class into smaller files.
 ## Part files with imports
 
 As part of the meta-programming and augmentation features, we expand the
-capabilities of part files. See [“Parts with Imports”][parts_with_imports.md].
+capabilities of part files. See ["Parts with Imports"][parts_with_imports.md].
 
 With that feature, a part file can now have its own `import` and `export`
 directives, and further nested `part` files, with part files inheriting the
@@ -129,9 +129,9 @@ that for any two syntactic declarations *A*, and *B*:
 
 Then *B* *is after* *A* if and only if *A* *is before* *B*.
 
-*In short, if *A* is above *B*, then *A* is before *B*. Otherwise, they are in
-sibling part subtrees and the directive in the subtree whose `part` directive
-occurs first is before the other.*
+*In short, if *A* is above *B*, then *A* is before *B*. Otherwise, they are
+in sibling part subtrees and the directive in the subtree whose `part`
+directive occurs first is before the other.*
 
 This order is total. It effectively orders declarations by a pre-order
 depth-first traversal of the file tree, visiting declarations of a file
@@ -141,13 +141,37 @@ in source order, and then recursing on `part`-directives in source order.
 
 ## Augmentation declarations
 
-Every declaration in Dart without this feature is _not_ an augmentation
-declaration. We say that it is an _introductory_ declaration.
+This feature introduces the modifier `augment` as the first token of many
+kinds of declarations. These declarations are known as _augmentation
+declarations_.
+
+*In Dart without this feature there are no augmentation declarations. Now
+that we are adding augmentation declarations we need to have a term that
+denotes a declaration which is not an augmentation. That is, it is one of
+the "normal" declarations that we've had all the time.*
+
+We say that a declaration which is not an augmentation declaration is an
+_introductory_ declaration.
+
+*In Dart without this feature, a declaration generally introduces an entity
+(a class, a method, a variable, etc). With the augmentation feature, such
+entities are introduced by a sequence of declarations rather than a single
+declaration. A single declaration can still do it, that's just a special
+case, but we need to talk about these sequences of declarations as being a
+single thing. The notion of a context helps us doing this by indicating the
+location where we need to look in order to find all those declarations.
+Note that this location does not have to be contiguous, it can consist of a
+set of ranges (e.g., the context of a member declaration can be a set of
+class declarations).*
 
 The _context_ of a top-level declaration in a Dart file is the library of the
 associated tree of Dart files. The context of a member declaration in a type
 declaration named `N` is the set of type declarations (introductory or
 augmenting) named `N` in the enclosing set of Dart files.
+
+*Some declarations do not match any of these cases (e.g., a local variable
+declaration in a method body), but this does not matter: We never need to
+talk about the context of a local variable.*
 
 An augmentation declaration _D_ is a declaration marked with the new
 built-in identifier `augment`, which makes _D_ augment a declaration _D1_
@@ -198,7 +222,8 @@ also no support for augmenting it.*
 
 These operations cannot be expressed today using only imports, exports, or
 part files. Any Dart file (library file or part file) can contain
-augmentation declarations.
+augmentation declarations. *In particular, an augmentation can augment a
+declaration in the same file in which it occurs.*
 
 A type augmentation can add new members to an existing type, or augment a
 member declaration in the same context *(that is, in the same type
@@ -214,19 +239,19 @@ An augmentation that replaces the body of a function may also want to
 preserve and run the code of the augmented declaration (hence the name
 "augmentation").  It may want to run its own code before the augmented
 code, after it, or both.  To support that, we allow a new expression syntax
-inside the “bodies” of augmenting declarations (function bodies,
-constructor bodies, and variable initializers). Inside an expression of a
-member marked `augment`, the identifier `augmented` can be used to refer to
-the augmented function, getter, or setter body, or variable
+inside the "bodies" of augmenting declarations (function bodies,
+constructor bodies, and variable initializers). Inside an expression in an
+augmenting member declaration, the identifier `augmented` can be used to
+refer to the augmented function, getter, or setter body, or variable
 initializer. This is a contextual reserved word within `augment`
 declarations, and has no special meaning outside of that context. See the
 next section for a full specification of what `augmented` means, and how it
 must be used, in the various contexts.
 
-**Note:** Within an `augment` member, a reference to a member by the same
-name refers to the final version of the member (and not the one being
-augmented). The only way to reference the augmented member is through the
-`augmented` expression.
+*Note that within an augmenting member declaration, a reference to a member
+by the same name refers to the final version of the member (and not the one
+being augmented). The only way to reference the augmented member is by
+using the keyword `augmented`.*
 
 The same declaration can be augmented multiple times by separate augmentation
 declarations. This occurs in the situation where an augmentation
@@ -239,7 +264,7 @@ Declarations that contribute to the same effective declaration, one
 introductory declaration and zero or more augmentation declarations with
 the same name and in the same context, are *totally ordered* by the *after*
 relation, with the introductory declaration being least, and the
-augmentation declarations greater than that and totally ordered.
+augmentation declarations greater than that.
 
 *In particular, if all the augmentation declarations occur on the same path
 in the tree of Dart files that constitute the current library then they are
@@ -275,7 +300,7 @@ application order._
 
 The language specification doesn’t specify lints or warnings, so this lint
 suggestion is not normative. We wish to have the lint, and preferably
-include it in the “recommended” lint set, because it can help users avoid
+include it in the "recommended" lint set, because it can help users avoid
 accidental problems. We want it as a lint instead of a language restriction
 so that it doesn’t interfere with macro-generated code, and so that users
 can `// ignore:` it if they know what they’re doing.
@@ -340,9 +365,9 @@ augmented, but it generally follows the same rules as any normal identifier:
 In all relevant cases, if the augmented member is an instance member, it is
 invoked with the same value for `this`.
 
-Assume that the identifier `augmented` occurs such that no enclosing
-declaration is augmenting. In this case, the identifier is taken to be a
-reference to a declaration which is in scope.
+Assume that the identifier `augmented` occurs in a source location where no
+enclosing declaration is augmenting. In this case, the identifier is taken
+to be a reference to a declaration which is in scope.
 
 *In other words, `augmented` is just a normal identifier when it occurs
 anywhere other than inside an augmenting declaration.*
@@ -801,7 +826,7 @@ It is a compile-time error if:
     augmenting constructor does too. _An augmentation can replace the
     implicit default `super()` with a concrete super-invocation, but cannot
     replace a declared super constructor._ **(TODO: Why not? We allow
-    “replacing implementation”, and this is *something* like that.)**
+    "replacing implementation", and this is *something* like that.)**
 
 **TODO: What about redirecting constructors?**
 
@@ -1035,7 +1060,7 @@ It is a compile-time error if:
     abstract. **(TODO: Remove. This can be used to add metadata.)**
 
 *   A declaration marked `augment` is also marked `external`. **(TODO: Probably
-    remove for functions, so change to “A variable declaration”. A macro should
+    remove for functions, so change to "A variable declaration". A macro should
     be able to implement a method as an external with a `@JS()` annotation.)**
 
 ## Static semantics
@@ -1253,10 +1278,10 @@ to the augmentation.
     separate document, as a stand-alone feature that is not linked to
     augmentations.
 *   Augmentation declarations can occur in any file, whether a library or
-    part file. Must occur ”below” the introductory declaration (later in
-    same file or sub-part) and “after” any prior applied augmentation that
+    part file. Must occur "below" the introductory declaration (later in
+    same file or sub-part) and "after" any prior applied augmentation that
     it modifies (below, or in a later sub-part of a shared ancestor).
-*   Suggest a stronger ordering *lint*, where the augmentation must be “below”
+*   Suggest a stronger ordering *lint*, where the augmentation must be "below"
     the augmentation it is applied after. That imples that all declarations with
     the same name are on the same path in the library file tree, so that
     reordering `part` directives does not change augmentation application order.
