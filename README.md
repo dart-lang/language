@@ -1,6 +1,6 @@
 # Dart language evolution
 
-[![Build Status](https://github.com/dart-lang/language/workflows/CI/badge.svg)](https://github.com/dart-lang/language/actions?query=workflow%3ACI+branch%3Amaster)
+[![Build Status](https://github.com/dart-lang/language/workflows/CI/badge.svg)](https://github.com/dart-lang/language/actions?query=workflow%3ACI+branch%3Amain)
 
 This repository is a place for the [Dart][website] language team to work on
 [language changes and features][language funnel], and to solicit and accept
@@ -52,4 +52,4 @@ See [LICENSE][license] and [PATENTS][patents].
 [license]: https://github.com/dart-lang/language/blob/master/LICENSE
 [patents]: https://github.com/dart-lang/language/blob/master/PATENTS
 [specification]: https://dart.dev/guides/language/spec
-[language funnel]: https://github.com/dart-lang/language/projects/1
+[language funnel]: https://github.com/orgs/dart-lang/projects/90

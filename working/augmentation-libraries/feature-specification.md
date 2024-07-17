@@ -1,7 +1,7 @@
 # Augmentations
 
-Author: rnystrom@google.com, jakemac@google.com
-Version: 1.21 (see [Changelog](#Changelog) at end)
+Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
+Version: 1.25 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -64,38 +64,140 @@ part of macro expansion, it's still useful to have it be in a canonical
 well-specified form that users can understand.
 
 This proposal defines that format. The idea is that a Dart compiler executes
-macros and then produces one or more library augmentation files that contain all
-of the changes that the macros made to the library where they are applied. The
-language then automatically merges those library augmentations into the
-augmented library.
+macros and then produces one or more new part files that contain all
+of the changes that the macros made to the library where they are applied, as
+new declarations to be added or augmentations that modify existing
+declarations. The compiler then adds those part files to the existing libraries.
 
-But library augmentations aren't *only* a serialization format for macros. They
-are a first-class language feature that can be produced by non-macro code
-generators or written by hand by users who simply want to break a giant library
-or class into smaller files.
+But improved part files and augmenting declarations are not *only* a
+serialization format for macros. They are first-class language features that
+can be produced by non-macro code generators or written by hand by users who
+simply want to break a giant library or class into smaller files.
 
-## Library Augmentations
+## Part files with imports
 
-A library augmentation is a separate file that *augments* an existing library,
-referred to as the *augmented* library. A library augmentation is similar to
-but more powerful than a part file, and it is not a library in its own right.
+As part of the meta-programming and augmentation features, we expand the
+capabilities of part files. See ["Parts with Imports"][parts_with_imports.md].
 
-*   Like a library, it may contain all kinds of declarations&mdash;functions,
-    classes, variables, etc.
+With that feature, a part file can now have its own `import` and `export`
+directives, and further nested `part` files, with part files inheriting the
+imports and prefixes of their parent (part or library) file.
 
-*   Like a library, it has its own import scope and may contain its own imports.
+Augmentation declarations interact with part files mainly in restrictions on
+where an augmenting declaration may occur relative to the declaration it
+augments, as described below.
 
-*   Like a part file, all of the top-level declarations it produces end up in
-    the top-level scope of the augmented library.
+For this, we define the following relations on *declarations* based on the
+relations between *files* of a library.
 
-*   Like a part file, it shares a private scope with the augmented library and
-    the two have mutual access to private declarations in the other file.
+We say that a syntactic declaration *occurs in* a Dart file if the
+declaration's source code occurs in that Dart file.
 
-Library augmentations may also contain declaration augmentations, which augment
-existing declarations from the library. Some examples include:
+We then say that a Dart file *contains* a declaration if the declaration occurs
+in the file itself, or if any of the files included by the Dart file contain
+the declaration. _That is, if the declaration occurs in a file in the subtree
+of that Dart file._
+
+We then define two *orderings* of declarations in a library, one partial and one
+complete, as follows:
+
+We define a partial ordering on syntactic declarations of a library,
+*is above*, such that a syntactic declaration *A* is *above* a syntactic
+declaration *B* if and only if:
+
+*   *A* and *B* occur in the same file, and the start of *A* is syntactically
+    before the start of *B*, in source order, or
+*   The file where *A* occurs includes the file where *B* occurs.
+
+We define a *total ordering relation* (transitive, anti-symmetric, irreflexive)
+on declarations of a library, *is before* (and its reverse, *is after*) such
+that for any two syntactic declarations *A*, and *B*:
+
+*   If *A* and *B* occur in the same file, then:
+    *   If the start of *A* is syntactically before the start of *B* in source
+        order, then *A* is before *B*.
+    *   Otherwise *B* is before *A*.
+*   Otherwise *A* and *B* occur in different files:
+    *   Let *F* be the least containing file for those two files.
+    *   If *A* occurs in *F* then *A* is before *B*.
+    *   If *B* occurs in *F* then *B* is before *A*.
+    *   Otherwise *A* and *B* are contained in distinct included files of *F*.
+    *   If the `part` directive in *F* including the file that contains *A* is
+        syntactically before the `part` directive in *F* including the file that
+        contains *B* in source order, then *A* is before *B*.
+    *   Otherwise *B* is before *A*.
+
+Then *B* *is after* *A* if and only if *A* *is before* *B*.
+
+*In short, if *A* is above *B*, then *A* is before *B*. Otherwise, they are
+in sibling part subtrees and the directive in the subtree whose `part`
+directive occurs first is before the other.*
+
+This order is total. It effectively orders declarations by a pre-order
+depth-first traversal of the file tree, visiting declarations of a file
+in source order, and then recursing on `part`-directives in source order.
+
+[parts_with_imports.md]: parts_with_imports.md "Parts with Imports Feature Specification"
+
+## Augmentation declarations
+
+This feature introduces the modifier `augment` as the first token of many
+kinds of declarations. These declarations are known as _augmentation
+declarations_.
+
+*In Dart without this feature there are no augmentation declarations. Now
+that we are adding augmentation declarations we need to have a term that
+denotes a declaration which is not an augmentation. That is, it is one of
+the "normal" declarations that we've had all the time.*
+
+We say that a declaration which is not an augmentation declaration is an
+_introductory_ declaration.
+
+*In Dart without this feature, a declaration generally introduces an entity
+(a class, a method, a variable, etc). With the augmentation feature, such
+entities are introduced by a sequence of declarations rather than a single
+declaration. A single declaration can still do it, that's just a special
+case, but we need to talk about these sequences of declarations as being a
+single thing. The notion of a context helps us doing this by indicating the
+location where we need to look in order to find all those declarations.
+Note that this location does not have to be contiguous, it can consist of a
+set of ranges (e.g., the context of a member declaration can be a set of
+class declarations).*
+
+The _context_ of a top-level declaration in a Dart file is the library of the
+associated tree of Dart files. The context of a member declaration in a type
+declaration named `N` is the set of type declarations (introductory or
+augmenting) named `N` in the enclosing set of Dart files.
+
+*Some declarations do not match any of these cases (e.g., a local variable
+declaration in a method body), but this does not matter: We never need to
+talk about the context of a local variable.*
+
+An augmentation declaration _D_ is a declaration marked with the new
+built-in identifier `augment`, which makes _D_ augment a declaration _D1_
+with the same name and in the same context as _D_. _D1_ is determined as
+being before _D_ and after every other declaration with the same name and
+in the same context which is before _D_ *(that is, _D1_ is the greatest
+declaration which is smaller than _D_, according to the 'after'
+ordering)*. A compile-time error occurs if no declaration satisfies the
+requirements on _D1_.
+
+We say that _D1_ is the declaration which is _augmented_ by _D_.
+
+*Note that _D1_ can be an augmentation declaration or an introductory
+declaration.*
+
+An augmentation declaration does not introduce a new name into the surrounding
+scope. *We could say that it attaches itself to the existing name.*
+
+Making `augment` a built-in identifier is language versioned, to make it
+non-breaking for pre-feature code.
+
+Augmentation declarations include:
 
 *   Type augmentations, which can add new members to types, including adding new
-    values to enums, or even alter the type hierarchy by adding mixins, etc.
+    values to enums, or even alter the type hierarchy by adding mixin
+    applications to a class.
 
 *   Function augmentations, which can replace the body of a function, or provide
     a body if none was present.
@@ -103,265 +205,172 @@ existing declarations from the library. Some examples include:
 *   Variable augmentations, which can wrap the initializer of a variable in the
     augmented library, or provide an initializer if none was present.
 
-These can't be expressed today using only imports, exports, and part files.
+A non-local variable induces a getter and possibly a setter. It is possible
+to augment getters and setters (this is a kind of function augmentation),
+including the ones that are induced by variables.
 
-### Defining a library augmentation
+*This means that augmentation of a variable declaration can be a getter
+declaration that augments the induced getter, a setter declaration that
+augments the induced setter, or a variable declaration that augments the
+initializer. The augmenting declarations can themselves be an implicitly
+induced getter or setter, or an explicitly declared one.*
 
-A library augmentation has almost the same syntax and semantics as a normal
-Dart library. They are distinguished by a special `library` directive with
-an `augment` modifier, like so:
+*Note that an abstract variable declaration and an external variable
+declaration correspond to a getter declaration and possibly a setter
+declaration. There is no notion of an initializing expression, and hence
+also no support for augmenting it.*
 
-```dart
-augment library 'main_library.dart';
-```
+These operations cannot be expressed today using only imports, exports, or
+part files. Any Dart file (library file or part file) can contain
+augmentation declarations. *In particular, an augmentation can augment a
+declaration in the same file in which it occurs.*
 
-**TODO: Better syntax? How does this interact with [import short-hand
-syntax][import]?**
+A type augmentation can add new members to an existing type, or augment a
+member declaration in the same context *(that is, in the same type
+augmentation, or in a type declaration that it augments)*.
 
-[import]: https://github.com/dart-lang/language/blob/master/working/0649%20-%20Import%20shorthand/proposal.md
+Because of augmentations, non-abstract class, mixin, mixin class, enum,
+extension type, and extension declarations are now allowed to contain
+abstract member declarations, as long as those members are equipped with a
+body by an augmentation declaration. _This is primarily useful for macros,
+which may be used to provide a body for an abstract member._
 
-The URI points to the URI of the file which includes this library augmentation
-via an `import augment <uri>;`.
+An augmentation that replaces the body of a function may also want to
+preserve and run the code of the augmented declaration (hence the name
+"augmentation").  It may want to run its own code before the augmented
+code, after it, or both.  To support that, we allow a new expression syntax
+inside the "bodies" of augmenting declarations (function bodies,
+constructor bodies, and variable initializers). Inside an expression in an
+augmenting member declaration, the identifier `augmented` can be used to
+refer to the augmented function, getter, or setter body, or variable
+initializer. This is a contextual reserved word within `augment`
+declarations, and has no special meaning outside of that context. See the
+next section for a full specification of what `augmented` means, and how it
+must be used, in the various contexts.
 
-After that, an augmentation may contain anything a regular Dart library can
-contain: imports, exports, classes, functions, constants, etc. All
-augmentations of an augmented library share the same top level declaration
-scope. Declarations in any library augmentation or the augmented library are
-visible to all of the others, including private ones.
+*Note that within an augmenting member declaration, a reference to a member
+by the same name refers to the final version of the member (and not the one
+being augmented). The only way to reference the augmented member is by
+using the keyword `augmented`.*
 
-However, library augmentations do *not* share an import scope with the augmented
-library or each other. The libraries one library augmentation imports are
-visible only to that file.
+The same declaration can be augmented multiple times by separate augmentation
+declarations. This occurs in the situation where an augmentation
+declaration has an augmented declaration which is itself an augmentation
+declaration, and so on, until an introductory declaration is reached. This
+will happen in a finite number of steps because of the nature of the
+before/after ordering.
 
-It is a compile-time error if:
+Declarations that contribute to the same effective declaration, one
+introductory declaration and zero or more augmentation declarations with
+the same name and in the same context, are *totally ordered* by the *after*
+relation, with the introductory declaration being least, and the
+augmentation declarations greater than that.
 
-*   A top-level declaration in a library augmentation has the same name as a
-    declaration in the augmented library or another of its library augmentations
-    (unless it is a declaration augmentation, described below). *This is the
-    same error conceptually as having a name collision in one file.*
+*In particular, if all the augmentation declarations occur on the same path
+in the tree of Dart files that constitute the current library then they are
+ordered by their depth in the tree.*
 
-*   An augmentation contains any `part` directives.
+This applies both to top-level declarations and to member declarations of,
+for example, class declarations.
 
-*   A library augmentation contains a normal `library` directive. They are not
-    self-contained libraries, only pieces of the augmented library.
+#### Path requirement lint suggestion
 
-*   An `import augment` directive has a `<uri>` that denotes an entity which
-    is not a library augmentation. *For example, it can not be a library.*
+One issue with the augmentation application order is that it is not stable
+under reordering of `part` directives. Sorting part directives can change the
+order that augmentation applications in separate included sub-trees are applied
+in.
 
-*   An `export` or `import` (not `import augment`) refers to an entity which
-    is not a library. *For example, it cannot be a library augmentation or
-    a part file.*
+To help avoiding issues, we want to introduce a *lint* which warns if a library
+is susceptible to part file reordering changing augmentation application order.
+A possible name could be `augmentation_ordering`.
 
-*   There is a cycle in the graph whose edges are the `import augment`
-    directives of an augmented library and of any library augmentations which
-    are directly or indirectly reachable from there via said edges.
+Its effect would be to **report a warning** *if* for any two (top-level)
+augmenting declarations with name *n*, one is not *above* the other.
 
-### Applying an augmentation
+The lint would only apply to user-written augmenting declarations, it should
+not include macro generated augmentations. Those are placed where the macro
+processor chooses to place them, usually after all other augmentations.
 
-A library applies an augmentation to itself using a new import directive with
-the `augment` modifier, which looks like this:
+If the lint is satisfied, then all augmenting declarations are ordered by
+the *before* relation, which means that no two of them can be in different
+sibling parts of the same file, and therefore all the augmenting
+declarations occur along a single path down the part-file tree. _This
+ensures that *part file directive ordering* has no effect on augmentation
+application order._
 
-```dart
-import augment 'some_augmentation.dart';
-```
+The language specification doesn’t specify lints or warnings, so this lint
+suggestion is not normative. We wish to have the lint, and preferably
+include it in the "recommended" lint set, because it can help users avoid
+accidental problems. We want it as a lint instead of a language restriction
+so that it doesn’t interfere with macro-generated code, and so that users
+can `// ignore:` it if they know what they’re doing.
 
-This directive tells the compiler to read the given library augmentation and
-merge its declarations into the augmented library. It is a compile-time error
-if:
+### Type inheritance
 
-*   The URI referenced in an `import augment` directive is not a library
-    augmentation.
+An augmenting declaration may have no type annotations for a return type,
+variable type, parameter type, or type parameter bound. In the last case,
+that includes omitting the `extends` keyword. For a variable or parameter,
+a `var` keyword may replace the type.
 
-*   The URI referenced in an `augment library` directive does not have an
-    `import augment` directive pointing back to this augmentation.
-
-*   The same library augmentation is applied more than once. *In other words,
-    you can't have redundant `augment` directives that point to the same file.*.
-
-*   The augmented library and its library augmentations do not all have the same
-    language version. There is only one library, and it should have a consistent
-    language version across its entire surface area. *A library augmentation
-    does not automatically inherit any language version from the augmented
-    library and may need an explicit language version comment of its own in order
-    to adhere to this requirement.*
-
-Since the augmented library and its library augmentations both point to each
-other, these rules imply that a given library augmentation can only be used to
-augment a single library.
-
-### Merge order
-
-A library may apply multiple library augmentations to itself. Also, library
-augmentations may themselves contain `import augment` directives. The entire
-tree of library augmentations is recursively applied to the augmented library.
-The merge order is defined as a depth-first pre-order traversal of the library
-augmentations, in the source order of their `import augment` directives.
-
-Within a single library augmentation, you may augment the same declaration
-multiple times, whether it is a top level or nested declaration. The merge
-order is defined as the source order of the declaration augmentations.
-
-For example:
-
-```
-// main.dart
-import augment 'a.dart';
-import augment 'c.dart';
-
-class C {}
-
-void trace() {
-  print('main');
-}
-
-// a.dart
-augment library 'main.dart';
-
-import augment 'b.dart';
-
-augment class C {}
-
-augment void trace() {
-  augmented();
-  print('a');
-}
-
-// b.dart
-augment library 'a.dart';
-
-class D {}
-
-augment void trace() {
-  augmented();
-  print('b');
-}
-
-// c.dart
-augment library 'main.dart';
-
-augment class D {}
-
-augment void trace() {
-  augmented();
-  print('c');
-}
-
-augment void trace() {
-  augmented();
-  print('d');
-}
-```
-
-The merge order is `main.dart`, `a.dart`, `b.dart`, then `c.dart`. The
-declarations in those library augmentations
-&mdash;new declarations or augmentations&mdash; are processed in that order,
-and source order within that.
-
-This order is user-visible in two ways:
-
-*   A regular (i.e. non-augmenting) declaration must appear first before it can
-    be augmented. For example, `C` in `main.dart` is augmented by `C` in
-    `a.dart`. Likewise, `D` in `b.dart` is augmented by `D` in `c.dart`. Note
-    that the latter is allowed even though `b.dart` does not itself import
-    `c.dart`.
-
-*   When the same declaration is augmented multiple times, merge order
-    determines the order that those wrappers are applied. When the `trace()`
-    function is called, it prints:
-
-    ```
-    main
-    a
-    b
-    c
-    d
-    ```
-
-**TODO: Should it be a compile-time error if the augmented library and
-library augmentation are in different packages?**
-
-## Augmenting declarations
-
-Unlike part files, which can only add entirely new declarations, a library
-augmentation can also modify existing declarations in the augmented library.
-This can mean adding new members to an existing type, or even modifying the code
-of an existing declaration. There is a new built-in identifier, `augment`, which
-is used to syntactically mark a declaration as an augmentation of an existing
-one. The introduction of this new identifier will be language versioned in order
-to make it non-breaking for old code.
-
-It is also allowed for a non-abstract class to have abstract members, if those
-members are filled in by an augmentation. This is primarily useful for macros,
-which may be used to provide a body for an abstract member.
-
-Often, an augmentation wants to also preserve and run the code of the original
-declaration it augments (hence the name "augmentation"). It may want run before
-the original code, after it, or both. To allow that, we allow a new expression
-syntax inside the bodies of augmenting members. Inside a member marked
-`augment`, the expression `augmented` can be used to refer to the original
-function, getter, setter, or variable initializer. This is a contextual keyword
-within `augment` members, and has no special meaning outside of that context.
-See the next section for a full specification of what `augmented` actually
-means, in the various contexts.
-
-The same declaration can be augmented multiple times by separate library
-augmentations. When that happens, the merge order defined previously determines
-which order the wrapping is applied.
-
-It is a compile-time error if:
-
-*   An augmenting declaration has no corresponding original declaration to
-    apply to.
-
-*   An augmenting declaration appears in a library before the library where the
-    original declaration occurs, according to merge order. *A library
-    augmentation can both declare a new declaration and augment it in the same
-    file.*
+When applying an augmenting declaration that contains a type annotation at
+one of these positions, to a defintion to be augmented, it's a compile-time
+error if the type denoted by the augmenting declaration is not the same
+type as the type that the augmented definition has at the corresponding
+position. __An augmenting declaration can omit type annotations, but if it
+doesn't, it must repeat the type from the augmented definition__.
 
 ### Augmented Expression
 
 The exact result of an `augmented` expression depends on what is being
 augmented, but it generally follows the same rules as any normal identifier:
 
-*   **Augmenting getters**: Within an augmenting getter `augmented` invokes the
-    getter and evaluates to the return value. If augmenting a field with a
-    getter, this will invoke the implicit getter from the augmented field.
+*   **Augmenting getters**: Within an augmenting getter `augmented` invokes
+    the augmented getter and evaluates to its return value. If augmenting a
+    variable with a getter, this will invoke the implicitly induced getter
+    from the augmented variable declaration.
 
 *   **Augmenting setters**: Within an augmenting setter `augmented` must be
     followed by an `=` and will directly invoke the augmented setter. If
-    augmenting a field with a setter, this will invoke the implicit setter from
-    the augmented field.
+    augmenting a variable with a setter, this will invoke the implicitly
+    induced setter from the augmented variable declaration.
 
-*   **Augmenting fields**: Within an augmenting field, `augmented` can only be
-    used in an initializer expression, and refers to the original field's
-    initializer expression, which is immediately evaluated.
+*   **Augmenting fields**: Within an augmenting variable declaration,
+    `augmented` can only be used in an initializer expression, and refers
+    to the augmented variable's initializing expression, which is
+    immediately evaluated.
 
-    It is a compile-time error to use `augmented` in an augmenting field's
-    initializer if the member being augmented is not a field with an
-    initializer.
+    It is a compile-time error to use `augmented` in an augmenting
+    variable's initializer if the member being augmented is not a variable
+    declaration with an initializing expression.
 
-*   **Augmenting functions**: When augmenting a function, `augmented` refers to
-    the augmented function. Tear offs are not allowed, so this function must
-    immediately be invoked.
+*   **Augmenting functions**: When augmenting a function, `augmented`
+    refers to the augmented function. Tear offs are not allowed, so this
+    function must immediately be invoked.
 
-*   **Augmenting operators**: When augmenting an operator, `augmented` must be
-    followed by the operator. For example when augmenting `+` you must do
-    `augmented + 1`, and when augmenting `[]` you must do `augmented[<arg>]`.
-    These constructs invoke the augmented operator, and are the only valid uses
-    of `augmented` in these contexts.
+*   **Augmenting operators**: When augmenting an operator, `augmented`
+    refers to the augmented operator method, which must be immediately
+    invoked using function call syntax. For example, when augmenting
+    `operator +` you could use `augmented + 1` to call the augmented
+    operator, and when augmenting `operator []=` you would use the
+    `augmented[key] = value` syntax.
 
-*   **Augmenting enum values**: When augmenting an enum value, `augmented` has
-    no meaning and is not allowed.
+    *   Note that `augmented` in such an augmenting operator method body is
+        not an expression by itself, and cannot be used to tear off the
+        augmented operator method. Similar to `super`, it is a syntactic
+        form which can only be used in limited ways.
+
+*   **Augmenting enum values**: When augmenting an enum value, `augmented`
+    has no meaning and is not allowed.
 
 In all relevant cases, if the augmented member is an instance member, it is
 invoked with the same value for `this`.
 
-Assume that the identifier `augmented` occurs such that the outermost
-enclosing declaration is not an augmenting declaration. In this case, the
-identifier is taken to be a reference to a declaration which is in scope.
+Assume that the identifier `augmented` occurs in a source location where no
+enclosing declaration is augmenting. In this case, the identifier is taken
+to be a reference to a declaration which is in scope.
 
 *In other words, `augmented` is just a normal identifier when it occurs
-anywhere other than inside an augmented declaration.*
+anywhere other than inside an augmenting declaration.*
 
 *Note that, for example, `augmented()` is an invocation of the augmented
 function or method when it occurs in an augmenting function or method
@@ -370,29 +379,29 @@ occur inside an augmenting type-introducing declaration, e.g., an
 augmenting class or mixin declaration). This is also true if `augmented()`
 occurs inside a local function declaration inside the body of that function
 or method declaration. We could say that `augmented` is a contextual
-keyword because it is unable to refer to a declaration in scope when it
-occurs inside an augmenting declaration, it always has the special meaning
-which is associated with augmentations.*
+reserved word because it is unable to refer to a declaration in scope when
+it occurs inside an augmenting declaration, it always has the special
+meaning which is associated with augmentations.*
 
-A compile-time error occurs if a declaration with the name `augmented`
-occurs in a location where the outermost enclosing declaration is
-augmenting. *This error is applicable to all such declarations, e.g.,
-local functions, local variables, parameters, and type parameters.*
+A compile-time error occurs if a declaration with the basename `augmented`
+occurs in a location where any enclosing declaration is augmenting. *This
+error is applicable to all such declarations, e.g., local functions, local
+variables, parameters, and type parameters.*
 
-A compile-time error occurs if `augmented` occurs in a non-augmenting
-declaration, of a kind that can be augmenting, inside an augmenting
-declaration.
+Consider a non-augmenting member declaration _Dm_ that occurs inside an
+augmenting type declaration _Dt_. A compile-time error occurs if the
+identifier `augmented` occurs in _Dm_.
 
 *For example, inside `augment class C` we could have a declaration like
-`void f() {...augmented()...}`.
-This is an error because the outer `augment` forces the meaning of `augmented`
-to be about augmentation in the entire scope, but the method declaration is an
-introduction, not an augmentation.*
+`void f() {...augmented()...}`. This is an error because the outer
+`augment` forces the meaning of `augmented` to be about augmentation in the
+entire scope, but the method declaration is introductory and hence there is
+no earlier declaration to augment.*
 
-### Augmenting types
+### Augmenting class-like declarations
 
-A class, enum, extension, extension type, or mixin declaration can be marked
-with an `augment` modifier:
+A class, enum, extension, extension type, mixin, or mixin class declaration
+can be marked with an `augment` modifier:
 
 ```dart
 augment class SomeClass {
@@ -400,62 +409,81 @@ augment class SomeClass {
 }
 ```
 
-This means that instead of creating a new declaration, the augmentation modifies
-a corresponding declaration in the augmented library or one of its other
-augmentations.
+This means that instead of creating a new declaration, the augmentation
+modifies a corresponding declaration in the library (which is 'before' this
+one).
 
-A class, enum, extension type, or mixin augmentation may specify `extends`,
-`implements`, `on`, and `with` clauses (when generally supported). The types
-in these clauses are appended to the original declarations clauses of the same
-kind, and if that clause did not exist previously then it is added with
-the new types. All regular rules apply after this appending process, so you
-cannot have multiple `extends` on a class, or an `on` clause on an enum, etc.
+A class, enum, extension type, mixin, or mixin class augmentation may
+specify `extends`, `implements` and `with` clauses (when generally
+supported). The types in these clauses are appended to the introductory
+declarations’ clauses of the same kind, and if that clause did not exist
+previously, then it is added with the new types. All regular rules apply
+after this appending process, so you cannot have multiple `extends` on a
+class, or an `on` clause on an enum, etc.
 
-Instance or static members defined in the body of the type, including enum
-values, are added to the instance or static namespace of the corresponding type
-in the augmented library. In other words, the augmentation can add new members
-to an existing type.
+Instance or static members defined in the body of the augmenting type,
+including enum values, are added to the instance or static namespace of the
+corresponding type in the augmented library. In other words, the augmentation
+can add new members to an existing type.
 
-Instance and static members inside a type may themselves be augmentations. In
-that case, they augment the corresponding members in the original type
-declaration according to the rules in the following subsections.
+Instance and static members inside a class-like declaration may themselves
+be augmentations. In that case, they augment the corresponding members in
+the same context (one introductory declaration and zero or more augmenting
+declarations, all occurring before the current augmenting type
+declaration), according to the rules in the following subsections.
 
-It is a compile-time error if:
+It's a **compile-time** error if a library contains two top-level declarations
+with the same name, and:
 
-*   The augmenting type and corresponding type are not the same kind: class,
-    mixin, enum, extension, or extension type. You can't augment a class with a
-    mixin, etc.
+*   Neither is an augmenting declaration, or
+*   one of the declarations is a class-like declarations and the other is
+    not of the same kind, meaning that at either one is a class, mixin,
+    enum, extension or extension type declaration, and the other is not the
+    same kind of declaration.
 
-*   The augmenting type and corresponding type do not have all the same
-    modifiers (`abstract`, `base`, `final`, `interface`, `sealed`, and `mixin`
-    when it occurs immediately before `class`).
+It is a **compile-time error** if:
+
+*   The augmenting declaration and augmented declaration do not have all the
+    same modifiers: `abstract`, `base`, `final`, `interface`, `sealed` and
+    `mixin` for `class` declarations, and `base` for `mixin` declarations.
 
     *This is not a technical requirement, but it ensures that looking at either
-    declaration show the complete capabilities of the declaration. It also
+    declaration shows the complete capabilities of the declaration. It also
     deliberately prevents an augmentation from introducing a restriction that
     isn't visible to a reader of the main declaration.*
 
-*   The augmenting type declares an `extends` clause, but one was already
-    present. We don't allow overwriting an existing `extends`, but one can be
-    filled in if it wasn't present originally.
+*   The augmenting declaration declares an `extends` clause for a `class`
+    declaration, but one was already present _(or the `class` was a `mixin
+    class` declaration, which does not allow `extends` clauses)_.
 
-*   The type parameters of the type augmentation do not match the original
-    type's type parameters. This means there must be the same number of type
-    parameters with the same bounds and names.
+*   An augmenting extension declares an `on` clause *(this is a syntax
+    error)*. We also do not allow adding further restrictions to a `mixin`
+    declaration, so no further types can be added to its `on` clause, if it
+    even has one. These restrictions could both be lifted later if we have a
+    compelling use case, as there is no fundamental reason it cannot be
+    allowed.
+
+*   The type parameters of the augmenting declaration do not match the
+    augmented declarations's type parameters. This means there must be
+    the same number of type parameters with the exact same type parameter
+    names (same identifiers) and bounds if any (same *types*, even if they
+    may not be written exactly the same in case one of the declarations
+    needs to refer to a type using an import prefix).
 
     *Since repeating the type parameters is, by definition, redundant, this
-    doesn't accomplish anything semantically. But it ensures that anyone reading
-    the augmenting type can see the declarations of any type parameters that it
-    uses in its body and avoids potential confusion with other top-level
-    variables that might be in scope in the library augmentation.*
+    restriction doesn't accomplish anything semantically. It ensures that
+    anyone reading the augmenting type can see the declarations of any type
+    parameters that it uses in its body and avoids potential confusion with
+    other top-level variables that might be in scope in the library
+    augmentation.*
 
 ### Augmenting functions
 
 A top-level function, static method, instance method, or operator may be
-augmented to wrap the original code in additional code:
+augmented to replace or wrap the augmented body in additional code:
 
 ```dart
-// Wrap the original function in profiling:
+// Wrap the augmented function in profiling:
 augment int slowCalculation(int a, int b) {
   var watch = Stopwatch()..start();
   var result = augmented(a, b);
@@ -464,41 +492,45 @@ augment int slowCalculation(int a, int b) {
 }
 ```
 
-The augmentation replaces the original function body with the augmenting code.
-Inside the augmentation body, a special `augmented()` expression may be used to
-execute the original function body. That expression takes an argument list
-matching the original function's parameter list and returns the function's
-return type.
+The augmentation replaces the augmented function’s body with the augmenting
+function’s body.
+
+Inside the augmenting function’s body, a special `augmented(…)` expression
+may be used to execute the augmented function body. That expression takes
+an argument list matching the augmented function's parameter list, and it
+has the same return type as the enclosing function.
 
 The augmenting function does not have to pass the same arguments to
-`augmented()` as were passed to it. It may call it once, more than once, or not
-at all.
+`augmented(…)` as were passed to it. It may invoke `augmented` once, more
+than once, or not at all.
+
+An augmenting function declaration may have an empty body (`;`) in order to
+only augment the metadata or doc comments of the function. In this case the
+body of the augmented member is not altered.
 
 It is a compile-time error if:
 
-*   The signature of the function augmentation does not exactly match the
-    original function. This means the return types must be the same; there must
-    be the same number of positional, optional, and named parameters; the types
-    of corresponding positional and optional parameters must be the same; the
-    names and types of named parameters must be the same; any type parameters
-    and bounds must be the same; and any `required` or `covariant` modifiers
-    must match.
+*   The function signature of the augmenting function does not exactly match the
+    function signature of the augmented function. This means that any provided
+    return types must be the same type; there must be same number or required
+    and optional positional parameters, all with the same types (when provided),
+    the same number of named parameters, each pairwise with the same name, same
+    type (when provided) and same `required` and `covariant` modifiers, and any
+    type parameters and their bounds (when provided) must be the same (like for
+    type declarations).
 
     *Since repeating the signature is, by definition, redundant, this doesn't
     accomplish anything semantically. But it ensures that anyone reading the
     augmenting function can see the declarations of any parameters that it
     uses in its body.*
 
-*   The function augmentation specifies any default values. *Default values are
-    defined solely by the original function.*
+*   The augmenting function specifies any default values. *Default values are
+    defined solely by the introductory function.*
 
-*   An augmenting declaration uses `augmented` when the original declaration has
-    no concrete implementation. Note that all external declarations are assumed
-    to have an implementation provided by another external source, and they will
-    throw a runtime exception when called if not.
-
-**TODO: Should we allow augmenting functions to add parameters? If so, how does
-this interact with type checking calls to the function?**
+*   An augmenting declaration uses `augmented` when the augmented declaration
+    has no concrete implementation. Note that all external declarations are
+    assumed to have an implementation provided by another external source, and
+    they will throw a runtime exception when called if not.
 
 ### Augmenting variables, getters, and setters
 
@@ -515,67 +547,95 @@ You can think of variable, getter, and setter declarations all as ways to define
 a higher-level "property" construct. A property has a name and a type. It may
 have one or more other capabilities:
 
-*   **A backing storage location.** You get this when you declare a variable.
-    This also enables an instance variable to be assigned in a constructor
-    initializer list. A variable may also have an **initializer** expression
-    that gets run either lazily for top-level variables and static fields or at
-    construction time when an instance is created.
+*   **A backing storage location.** You get this when you declare a variable
+    which is not `abstract` and not `external`.
+    Having a storage location enables (and often requires) having the
+    variable initialized by generative constructors. A variable may also
+    have an **initializing expression** that gets run either lazily for
+    top-level and static variables, or at object construction/initialization
+    time for instance variables.
 
-*   **A getter function.** This function body is provided explicitly when you
-    declare a getter. A variable declaration provides an implicit getter body
-    that returns the value in the backing storage location. (Late variables do
-    some additional checking in that implicit body.)
+*   **A getter function.** This function’s body is provided explicitly when
+    you declare a getter. A variable declaration provides an implicit
+    getter body that returns the value in the backing storage
+    location. (Late variables do some additional checking in that implicit
+    body.)
 
-*   **A setter function.** A setter declaration provides this body explicitly. A
+*   **A setter function.** A setter declaration provides a body explicitly. A
     non-final variable declaration provides an implicit setter body that stores
     the given value in the storage location. (Again, late variables do some
-    additional checks.)
+    additional updates and/or checks.)
 
-Declarations may be marked `abstract` or `external` and, if so, those are
-mapped over to the corresponding getter and setter functions.
+Variable declarations may be marked `abstract` or `external` and, if so,
+those are mapped over to the corresponding getter and setter functions.
+
+An `abstract` variable declaration is equivalent to an abstract getter
+declaration, and if not `final`, also an abstract setter declaration. An
+`external` variable defines an `external` getter and, if not `final`, an
+`external` setter.  Unlike abstract declarations, they are considered to
+have a concrete implementation.
 
 Augmentations on variables, getters, and setters works mostly at the level of
 these separate capabilities. For example, augmenting a variable with a getter
-replaces the variable's implicit getter body with the augmenting getter's.
+replaces the augmented variable's implicit getter body with the augmenting
+getter's.
 
 More specifically:
 
-*   **Augmenting with a getter:** A getter in an augmentation can augment a
-    getter in the library or the implicit getter defined by a variable in the
-    library. Inside the augmenting body, an `augmented` expression invokes the
-    original getter.
+*   **Augmenting with a getter:** An augmenting getter can augment a getter
+    declaration, or the implicit getter of a variable declaration, with all
+    prior augmentations applied, by replacing the body of the augmented getter
+    with the body of the augmenting getter. Inside the augmenting getter’s
+    body, an `augmented` expression executes the augmented getter’s body.
 
-*   **Augmenting with a setter:** A setter in an augmentation can augment a
-    setter in the library or the implicit setter defined by a non-final variable
-    in the library. Inside the augmenting setter, an `augmented =` expression
-    invokes the original setter.
+    An augmenting getter declaration may have an empty body (`;`) in order to
+    only augment the metadata or doc comments of the getter. In this case the
+    body of the augmented getter is not altered.
+
+    Synthetic getters cannot be augmented with metadata or doc comments.
+
+*   **Augmenting with a setter:** An augmenting setter can augment a setter
+    declaration, or the implicit setter of a variable declaration, with all
+    prior augmentations applied, by replacing the augmented setter’s body with
+    the augmenting setter’s body. Inside the augmenting setter’s body, an
+    `augmented = <expression>` assignment invokes the augmented setter with the
+    value of the expression.
+
+    An augmenting setter declaration may have an empty body (`;`) in order to
+    only augment the metadata or doc comments of the setter. In this case the
+    body of the augmented setter is not altered.
+
+    Synthetic setters cannot be augmented with metadata or doc comments.
 
 *   **Augmenting a getter and/or setter with a variable:** This is a
-    compile-time error in all cases. Augmenting an abstract or external variable
-    with a variable is also a compile-time error, as those are actually just
-    syntax sugar for getter/setter pairs and do not have an initializer that you
-    can augment.
+    compile-time error in all cases. *Augmenting an abstract or external
+    variable with a variable is also a compile-time error, as those are
+    actually just syntax sugar for a getter and possibly a setter. An
+    augmenting variable replaces its augmented variable’s initializer
+    expression, and that can only be done on a declaration that can have an
+    initializer expression.*
 
-    We may decide in the future to allow augmenting abstract or external
-    getters, setters, or variables with variables, but for now you can instead
-    use the following workaround:
+    We may decide in the future to allow augmenting abstract getters, setters,
+    or variables with variables, but for now you can instead use the following
+    workaround:
 
     - Add a new field.
     - Augment the getter and/or setter to delegate to that field.
 
-    If a non-abstract, non-external variable is augmented by a getter or setter,
-    you **can** still augment the variable, as you are only augmenting the
-    initializer of the original variable. This is not considered to be
-    augmenting the augmenting getter or setter, since those are not actually
-    altered.
+    If a non-abstract, non-external variable is augmented by an augmenting
+    getter or setter, you **can** still augment the variable, as you are only
+    augmenting the initializer, metadata, or doc comments of the augmented
+    variable. This is not considered to be augmenting the augmenting getter or
+    setter, since those are not actually altered.
 
     The reason for this compile time error is that whether a member declaration
-    is a field versus a getter/setter is a visible property of the declaration:
+    is a field versus a getter/setter is a visible property of the declaration
+    inside the same class or even library:
 
-    - It determines whether the member can be initialized in a constructor
-      initializer list.
-    - It is also a visible distinction when introspecting on a program with the
-      analyzer, macros, or mirrors.
+    *   It determines whether the member can be initialized in a constructor
+        initializer list.
+    *   It is also a visible distinction when introspecting on a program with
+        the analyzer, macros, or mirrors.
 
     When a declaration is augmented, we don't want the augmentation to be able
     to change any of the known properties of the existing member being
@@ -586,88 +646,114 @@ More specifically:
     it is allowed.
 
 *   **Augmenting a variable with a variable:** Augmenting a variable with a
-    variable only alters its initializer. External and abstract variables cannot
-    be augmented with variables, because they have no initializer to augment.
+    variable only alters its initializer, metadata, or doc comments. *As
+    usual, external and abstract variables cannot augment their
+    initializing expression, since it does not exist.*
 
-    Since the initializer is the only meaningful part of the augmenting
-    declaration, an initializer must be provided. This augmenting initializer
-    replaces the original initializer. The augmenting initializer may use an
-    `augmented` expression which executes the original initializer expression
-    when evaluated.
+    Augmenting initializer expressions replace the augmented initializer. The
+    augmenting initializer may use an `augmented` expression which executes the
+    augmented initializer expression when evaluated. If no initializer is
+    provided then the augmented initializer is not altered.
 
     The `late` property of a variable must always be consistent between the
     augmented variable and its augmenting variables.
 
-    If the variable declaration in the original library does not have a type
-    annotation, then the type is inferred only using the original library's
-    initializer. (If there is no initializer in the original library, then the
-    variable is inferred to have type `dynamic` like any non-augmented variable.
-    *This ensures that augmenting a variable doesn't change its type. This is
-    necessary to ensure that macros running after signatures are known can't
-    change the signature of a declaration.*
+    If the introductory variable declaration does not have a type
+    annotation, then the variable's declared type is found using only that
+    declaration, without looking at any further augmenting declarations.
+    The type can either be inferred from an initializer expression of the
+    introductory variable declaration, be inherited from a superinterface
+    for an instance variable, or default to a type of `dynamic` if neither
+    applies.  *This ensures that augmenting a variable doesn't change its
+    type. That is necessary to ensure that macros cannot change the
+    signature of a declaration, a signature which may have been depended on
+    by other code, or other macros.*
 
-It is a compile-time error if:
+It is a **compile-time error** if:
 
-*   The original and augmenting declarations do not have the same type.
+*   The introductory and augmenting declarations do not have the same
+    declared types (return type for getters, parameter type for setters,
+    declared type for variables). This only applies where types are not
+    omitted in the augmenting declaration.
 
-*   An augmenting declaration uses `augmented` when the original declaration
+*   An augmenting declaration uses `augmented` when the augmented declaration
     has no concrete implementation. Note that all external declarations are
-    assumed to have an implementation provided by another external source,
-    and they will throw a runtime exception when called if not.
+    assumed to have an implementation provided by another external source, and
+    otherwise they will throw a runtime error when called. An `abstract`
+    variable introduces no implementation.
 
-*   An augmenting initializer uses `augmented` and the augmented declaration
-    is not an initializing variable declaration.
+*   An augmenting variable’s initializing expression uses `augmented`, and
+    the stack of augmented declarations do not include a variable with an
+    initializing expression.
 
-*   A final variable declaration is augmented with a setter declaration.
-    *Instead, the augmentation can declare a non-augmenting setter that
-    goes alongside the implicit getter defined by the final variable.*
+*   A non-writable variable declaration is augmented with a setter. (Instead,
+    the author can declare a *non-augmenting* setter that goes alongside the
+    implicit getter defined by the final variable.) _A non-writable variable
+    declaration is any that does not introduce a setter, including non-`late`
+    `final` variables, `late final` variables with an initializer, and `const`
+    variables._
 
-*   A non-final variable declaration is augmented with a final variable
-    declaration. *We don't want to leave the original setter declaration in
-    a weird state.*
+*   A non-final variable is augmented with a final variable. We don't want to
+    leave the augmented setter in a weird state.
+    *   A final variable can be augmented with a non-`final` augmenting
+        variable, and that will not add any setter. An augmenting variable
+        declaration only affects the initializer expression, not setters.
 
-*   A `late` variable declaration is augmented with a non-`late` variable
-    declaration.
+*   A variable is augmented with another variable, and one is `late` and
+    the other is not. *(Augmentation cannot change `late`-ness, and since being
+    `late` does affect the initializer expression, the augmenting variable is
+    required to repeat the `late`.)*
 
-*   A non-`late` variable declaration is augmented with a `late` variable
-    declaration.
+*   A getter or setter declaration is augmented by an augmenting variable.
 
-*   A getter or setter declaration is augmented by a variable declaration.
+*   An abstract or external variable declaration is augmented by an
+    augmenting variable.
 
-*   An `abstract` or `external` variable declaration is augmented by a
-    variable declaration.
+*   A late final variable with no initializer expression is augmented by an
+    augmenting variable with an initializer expression.
+    _A late final variable with no initializer has a setter, while one with an
+    initializer does not. An augmentation must not change whether there is a
+    setter._
+
+*   A `const` variable is augmented by an augmenting getter. **(TODO: Can a
+    const variable be augmented by another const variable, changing its value,
+    or is that too weird?)**
 
 ### Augmenting enum values
 
 Enum values can _only_ be augmented by enum values, and the implicit getter
-introduced by them is not augmentable. The one thing you are allowed to do is to
-replace the argument list. There is no way to refer to the original argument
-list (although a macro may be able introspect on it and copy over some or all of
-the arguments).
+introduced by them is not augmentable. The one thing you are allowed to do
+is to replace the argument list and add metadata or doc comments. There is
+no way to refer to the original argument list (although a macro may be able
+introspect on it and copy over some or all of the arguments).
 
 An augmenting enum value is allowed to invoke a different constructor than
-the original enum value, or provide an argument list where none was present
+the augmented enum value, or provide an argument list where none was present
 before.
 
+If no argument list is provided, the augmented argument list is not altered,
+this allows augmenting with metadata or comments without copying over the entire
+argument list.
+
 New enum values may also be defined in the augmentation, and they will be
-appended to the original values in augmentation traversal order. Augmenting an
-existing enum value never changes the order in which it appears in `values`.
+appended to the current values of the declaration in augmentation application
+order. Augmenting an existing enum value never changes the order in which it
+appears in `values`.
 
 For example:
 
 ```
 // main.dart
-import augment 'a.dart';
-import augment 'c.dart';
+part 'a.dart';
+part 'c.dart';
 
 enum A {
   first;
 }
 
 // a.dart
-augment library 'main.dart';
-
-import augment 'b.dart';
+part of 'main.dart';
+part 'b.dart';
 
 augment enum A {
   second;
@@ -675,14 +761,14 @@ augment enum A {
 }
 
 // b.dart
-augment library 'a.dart';
+part of 'a.dart';
 
 augment enum A {
   augment third;
 }
 
 // c.dart
-augment library 'main.dart';
+part of 'main.dart';
 
 augment enum A {
   augment fourth;
@@ -693,7 +779,8 @@ Then `A.values` is `[A.first, A.second, A.third, A.fourth]`.
 
 It is a compile-time error if:
 
-*   An augmenting getter is defined for an enum value.
+*   An augmenting getter is defined for an enum value. _An enum value
+    counts as a constant variable._
 
 ### Augmenting constructors
 
@@ -724,14 +811,21 @@ It is a compile-time error if:
     optionality, and any `required` modifiers must match. Any initializing
     formals and super parameters must also be the same in both constructors.
 
-*   The constructor augmentation specifies any default values. *Default values
-    are defined solely by the original constructor.*
+*   The augmenting constructor parameters specify any default values.
+    *Default values are defined solely by the introductory constructor.*
 
-*   The augmented constructor is `const` and the augmenting constructor is not
-    or vice versa.
+*   The introductory constructor is `const` and the augmenting constructor
+    is not or vice versa.
 
-*   The augmented constructor is a factory constructor and the augmenting
-    constructor is not or vice versa.
+*   The introductory constructor is marked `factory` and the augmenting
+    constructor is not, or vice versa.
+
+*   The introductory constructor has a super initializer _(super
+    constructor invocation at the end of the initializer list)_ and the
+    augmenting constructor does too. _An augmentation can replace the
+    implicit default `super()` with a concrete super-invocation, but cannot
+    replace a declared super constructor._ **(TODO: Why not? We allow
+    "replacing implementation", and this is *something* like that.)**
 
 *   The resulting constructor is not valid (has a redirecting initializer and
     other initializers, multiple `super` initializers, etc).
@@ -754,8 +848,17 @@ A non-redirecting generative constructor marked `augment` may:
         replaces any existing constructor body.
 
     *   In the augmenting constructor's body, an `augmented()` call executes the
-        original constructor's body in the same parameter scope that the
-        augmenting body is executing in. The return type of this call is `void`.
+        augmented constructor's body in the same parameter scope that the
+        augmenting body is executing in. The expression has type `void` and
+        evaluates to `null`. **(TODO: This is slightly under-specified. We can
+        use the current bindings of the parameters of the augmenting constructor
+        as the initial binding of parameter variables in the augmented body, or
+        we can execute the body in the current *scope*, using the same variables
+        as the current body. The latter is not what we do with functions
+        elsewhere, and allows the `augmented()` expression to modify local
+        variables, but the former introduces different variables than the ones
+        that existed when evaluating the initializer list. If the initializer
+        list captures variables in closures, that body may not work.)**
 
     *   Initializer lists _are not_ re-run, they have already executed and
         shouldn't be executed twice. The same goes for initializing formals and
@@ -841,8 +944,8 @@ https://github.com/dart-lang/language/blob/main/working/2364%20-%20primary%20con
 When augmenting an `external` member, it is assumed that a real implementation
 of that member has already been filled by some tool prior to any augmentations
 being applied. Thus, it is allowed to use `augmented` from augmenting members
-on external declarations, but it may throw a `noSuchMethod` error at runtime if
-no implementation was in fact provided.
+on external declarations, but it may throw a `NoSuchMethodError` error at
+runtime if no implementation was in fact provided.
 
 **NOTE**: Macros should _not_ be able to statically tell if an external body has
 been filled in by a compiler, because it could lead to a different result on
@@ -851,42 +954,49 @@ different platforms or tools.
 **TODO: Should we add a syntax to let the augmentation dynamically detect
 whether there is an external implementation to call?**
 
-### Metadata annotations and macro applications
+### Augmenting with metadata annotations and doc comments
 
-An augmentation declaration may have metadata annotations or macro applications.
-These are appended to the list of metadata annotations and macro applications on
-the original declaration.
+All declarations can be augmented with metadata annotations and/or doc comments
+directly preceding an augmenting declaration.
+
+In both cases, these should be appended to exising metadata or doc comments. For
+metadata annotations, these may trigger additional macro applications.
 
 ## Scoping
 
-Like part files, the augmented library and all of its library augmentations
-share a single top-level scope where declarations are defined. They also share a
-single private namespace. This means that private declarations in the augmented
-library or an augmentation of it are visible to all augmentations.
+The static and instance member namespaces for a type or extension declaration,
+augmenting or not, are lexical only. Only the declarations (augmenting or not)
+declared inside the actual declaration are part of the lexical scope that
+member declarations are resolved in.
 
-Unlike part files, a library augmentation has its own import scope surrounding
-that shared top-level scope. Any libraries the augmentation imports are visible
-only to that library augmentation. Likewise, libraries imported by the augmented
-library are not implicitly imported by the library augmentation.
+_This means that a static or instance member declared in the augmented
+declaration of a class is not *lexically* in scope in a corresponding
+augmenting declaration of that class, just as an inherited instance member
+is not in the lexical scope of a class declaration._
 
-Exports in a library augmentation are applied to the augmented library and
-become exports from the augmented library's namespace.
+If a member declaration needs to reference a static or instance member
+declared in another introductory or augmenting declaration of the same
+type, it can use `this.name` for instance members an `TypeName.name` for
+static members to be absolutely sure. Or it can rely on the default if
+`name` is not in the lexical scope at all, in which case it’s interpreted
+as `this.name` if it occurs inside a scope where a `this` is
+available. _This approach is always potentially dangerous, since any
+third-party import adding a declaration with the same name would break the
+code. In practice that’s almost never a problem, because instance members
+and top-level declarations usually use different naming strategies._
 
-The static and instance member namespaces for an augmented type are shared
-across the declaration of the type in the augmented library and all
-augmentations of that type. Identifiers in the bodies of members (both implicit
-ones and explicit uses like `this.` or `TypeName.`) are resolved against that
-complete merged namespace. For example:
+Example:
 
 ```dart
 // Main library "some_lib.dart":
 import 'other_lib.dart';
 
-import augment 'some_augment.dart';
+part 'some_augment.dart';
 
-const a = 1;
+const b = 37;
 
 class C {
+  const int b = 42;
   bool isEven(int n) {
     if (n == 0) return true;
     return !_isOdd(n - 1);
@@ -894,45 +1004,50 @@ class C {
 }
 
 // Augmentation "some_augment.dart":
-augment library 'some_lib.dart';
+part of 'some_lib.dart';
 
 import 'also_lib.dart';
 
-const b = 2;
-
 augment class C {
-  bool _isOdd(int n) => !isEven(n - 1);
+  bool _isOdd(int n) => !this.isEven(n - 1);
+  void printB() { print(b); }  // Prints 37
 }
 ```
 
-This code is fine. Code in C in the augmented library can refer to members added
-in the augmentation like `_isOdd()`. Meanwhile, code in the augmentation can see
-members like `isEven()` declared in the augmented library.
+This code is fine. Code in `C.isEven` can refer to members added
+in the augmentation like `_isOdd()` because there is no other `_isOdd` in
+scope, and code in `C._isOdd` works too by explicitly using `this.isEvent` to
+ensure it calls the correct method.
 
 You can visualize the namespace nesting sort of like this:
 
 ```
-some_lib.dart       | some_augment.dart
-                    |
-.-----------------. | .-----------------.
-| import scope:   | | | import scope:   |
-| other_lib       | | | also_lib        |
-'-----------------' | '-----------------'
-         ^          |         ^
-         |          |         |
+some_lib.dart       :
+                    :<part of----------
+.---------------------------------------.
+| import scope:                         |
+| other_lib imports                     |
+'---------------------------------------'
+         ^          :         ^
+         |          :         |
+         |          : .-----------------.
+         |          : | import scope:   |
+         |          : | also_lib imports|
+         |          : '-----------------'
+         |          :         |
 .--------------------------------------.
 | top-level declaration scope:         |
-| const a                              |
-| class C                              |
-| const b                              |
+| const b = 37                         |
+| class C (fully augmented class)      |
+|                                      |
 '--------------------------------------'
-         ^          |         ^
-         |          |         |
-.--------------------------------------.
-| class C instance members:            |
-| isEven()                             |
-| _isOdd()                             |
-'--------------------------------------'
+         ^          :         ^
+         |          :         |
+.-----------------. : .----------------.
+| class C         | : | augment class C|
+| const b = 42    | : | _isOdd()       |
+| isEven()        | : |                |
+'-----------------' : '----------------'
          ^          |         ^
          |          |         |
 .-----------------. | .-----------------.
@@ -940,53 +1055,16 @@ some_lib.dart       | some_augment.dart
 '-----------------' | '-----------------'
 ```
 
-Each library augmentation has its own namespace chain from its own member bodies
-out to its own import namespace. But in the middle, each passes through the
-shared class namespaces for the instance and static members and the shared top
-level declaration scope.
-
-This implies that the bodies of members cannot be resolved until after
-augmentations have been merged. We don't know what namespace `isEven()` or
-`_isOdd()` will be found in until the namespace for the class has had *all*
-augmentations merged in.
-
-Fortunately, augmentations can be applied purely syntactically. In order to
-merge augmentations into the augmented library, we only need to match
-declarations by name. So a Dart compiler can theoretically:
-
-1.  Parse the augmented library and all of its augmentations.
-2.  Merge the augmentations to determine the complete set of declarations in
-    all types.
-3.  Resolve and type-check the augmented library and all of its augmentations
-    now that all type namespaces are complete.
+Each part files has its own combined import scope, extending that of its
+parent, and its own member declarations scopes for each declared member,
+introducing a lexical scope for the declaration’s contents. In the middle, each
+passes through the shared library declaration namespaces for the top-level
+instances themselves.
 
 ## Syntax
 
-The grammar changes are fairly simple. A library can apply an augmentation using
-a new directive:
-
-```
-importOrExport ::= libraryImport
-  | libraryAugmentImport
-  | libraryExport
-
-libraryAugmentImport ::= metadata 'import' 'augment' uri ';'
-```
-
-A library directive may contain `augment` followed by a URI to denote the file
-as an augmentation:
-
-TODO: Create special augmentation grammar, similar to library/part files?
-
-```
-libraryName ::= metadata libraryNameBody ';'
-
-libraryNameBody ::= 'library' dottedIdentifierList?
-  | 'augment' 'library' uri
-```
-
-In an augmentation, the grammar is slightly modified to allow an `augment`
-modifier before various declarations:
+The grammar changes are fairly simple. The grammar is modified to allow an
+`augment` modifier before various declarations:
 
 ```
 topLevelDeclaration ::= classDeclaration
@@ -1070,80 +1148,192 @@ declaration ::= 'external' factoryConstructorSignature
 It is a compile-time error if:
 
 *   A function, getter, setter, or operator declaration marked `augment` is also
-    abstract.
+    abstract. **(TODO: Remove. This can be used to add metadata.)**
 
-*   A declaration marked `augment` is also marked `external`.
+*   A declaration marked `augment` is also marked `external`. **(TODO: Probably
+    remove for functions, so change to "A variable declaration". A macro should
+    be able to implement a method as an external with a `@JS()` annotation.)**
 
 ## Static semantics
 
-Previous sections informally describe the process of applying augmentations to
-the augmented library, but here's a more complete mechanical description of the
-process a theoretical Dart implementation could take.
+The application of augmentation declarations to an augmented declaration
+produces something that looks and behaves like a single declaration: It has
+a single name, a single type or function signature, and it’s what all
+references to the *name* refers to inside and outside of the library.
 
-To apply a library augmentation to the augmented library:
+Unlike before, that single *semantic declaration* now consists of multiple
+*syntactic* declarations (one introductory declaration, the rest augmenting
+declarations, with a given augmentation application order), and the properties
+of the combined semantic declaration can be derived from the syntactic
+declarations.
 
-1.  Merge the augmentation's declarations into the augmented library's
-    top-level namespace using the procedure below.
+We redefine a number of semantic functions to now work on a *stack* of
+declarations (the declarations for a name in bottom to top order), so that
+existing semantic definitions keep working.
 
-1.  For each `import augment` directive in the augmentation, in syntactic order:
+### Example: Class declarations
 
-    1.  Apply the augmentation to the augmented library using this procedure,
-        recursively.
+#### Super-declarations
 
-To merge a set of declarations `D` into a namespace:
+The specification of class modifiers introduced a number of predicates on
+*declarations*, to check whether the type hierarchy is well formed and the
+class modifiers are as required, before the static semantics have even
+introduced *types* yet. We modify those predicates to apply to a stack of
+augmenting declarations and an introductory declaration as follows:
 
-1.  For each non-augmenting declaration in `D`:
+*   A a non-empty *stack* of syntactic class declarations, *C*, has a
+    declaration *D* as *declared super-class* if:
+    *   *C* starts with an (augmenting or not) class declaration *C0* and either
+        *   *C0* has an `extends` clause whose type clause denotes the
+            declaration *D*, or
+        *   *C0* is an augmenting declaration, so *C* continues with a
+            non-empty *C<sub>rest</sub>*, and *C<sub>rest</sub>* has *D* as
+            declared super-class.
+*   A a non-empty *stack* of syntactic class declarations, *C*, has a
+    declaration *D* as *declared super-interface* if:
+    *   *C* starts with an (augmenting or not) class declaration *C0* and either
+        *   *C0* has an `implements` clause with an entry whose type clause
+            denotes the declaration *D*, or
+        *   *C0* is an augmenting declaration, so *C* continues with a
+            non-empty *C<sub>rest</sub>*, and *C<sub>rest</sub>* has *D* as
+            declared super-interface.
+*   A a non-empty *stack* of syntactic class declarations, *C*, has a
+    declaration *D* as *declared super-mixin* if:
+    *   *C* starts with an (augmenting or not) class declaration *C0* and either
+        *   *C0* has a `with` clause with an entry whose type clause denotes
+            the  declaration *D*, or
+        *   *C0* is an augmenting declaration, so *C* continues with a
+            non-empty *C<sub>rest</sub>*, and *C<sub>rest</sub>* has *D* as
+            declared super-mixin.
 
-    1.  If a declaration with that name already exists in the namespace, error.
-        (Exception: setters do not collide with getters and final variables.)
+#### Members
 
-    1.  Else, add the declaration to the namespace.
+A class declaration stack, *C*, of a one non-augmenting and zero or more
+augmenting class declarations, defines an *augmented interface* (member
+signatures) and *augmented implementation* (instance members declarations)
+based on the individual syntactic declarations.
 
-1.  For each augmenting declaration in `D`:
+A non-empty class declaration stack, *C*, has the following set of instance
+member declarations:
 
-    1.  If the namespace does not have a declaration with that name, error.
-        *A regular declaration must occur before it can be augmented.*
+*   Let *C<sub>top</sub>* be the latest declaration of the stack, and
+    *C<sub>rest</sub>* the rest of the stack.
+*   If *C<sub>top</sub>* is a non-augmenting declaration, the declarations of
+    *C* is the set of syntactic instance member declarations of
+    *C<sub>top</sub>*.
+*   Otherwise let *P* be the set of member declarations of the non-empty stack
+    *C<sub>rest</sub>*.
+*   and the member declarations of *C* is the set *R* defined as containing
+    only the following elements:
+    *   A singleton stack of each syntactic instance member declaration *M* of
+        *C<sub>top</sub>*, where *M* is a non-augmenting declaration.
+    *   The elements *N* of *P* where *C<sub>top</sub>* does not contain an
+        augmenting instance member declaration with the same name _(mutable
+        variable declarations have both a setter and a getter name)_.
+    *   The stacks of a declaration *M* on top of the stack *N*, where *N* is a
+        member of *P*, *M* is an augmenting instance member declaration of
+        *C<sub>top</sub>*, and *M* has the same name as *N*.
 
-    1.  If the corresponding declaration in the namespace is not the same kind,
-        error. "Kind" means class, mixin, function, etc. Getters, setters, and
-        variables are all considered to have the same kind. In other words, you
-        can't try to augment a class with a function or anything weird like
-        that.
+And we can whether such an instance member declaration stack, *C*, *defines an
+abstract method* as:
 
-    1.  If the declaration is a class, mixin, enum, extension type,
-        or an extension, if said clause exists:
+*   Let *C<sub>top</sub>* be the latest element of the stack and
+    *C<sub>rest</sub>* the rest of the stack.
+*   If *C<sub>top</sub>* is a non-variable declaration, and is not declared
+    `abstract`, the *C* doe
+*   If *C<sub>top</sub>* declares a function body, then *C* does not define an
+    abstract method.
+*   Otherwise *C* defines an abstract method if *C<sub>rest</sub>* defines an
+    abstract method.
 
-        1.  Append the types in the augmentation's `implements` clause to the
-            augmented type's `implements` clause.
+(This is just for methods, we will define it more generally for members,
+including variable declarations.)
 
-        1.  Append the types in the augmentation's `on` clause to the augmented
-            type's `on` clause.
+### Example: Instance methods
 
-        1.  Append the types in the augmentation's `with` clause to the
-            augmented type's `with` clause.
+#### Properties
 
-        1.  Merge each instance member in the augmenting type into the instance
-            namespace of the augmented type.
+Similarly we can define the properties of stacks of member declarations.
 
-        1.  Merge each static member in the augmenting type into the static
-            namespace of the augmented type.
+For example, we define the *augmented parameter list* of a non-empty stack,
+*C*, of augmentations on an introductory function declaration as:
 
-    1.  Else, if the declaration is a function, getter, setter, or operator:
+*   Let *C<sub>top</sub>* be the latest element of the stack and
+    *C<sub>rest</sub>* the rest of the stack.
+*   If *C<sub>top</sub>* is not an augmenting declaration, its augmented
+    parameter list is its actual parameter list. _(And *C<sub>rest</sub>* is
+    known to be empty.)_
+*   Otherwise *C<sub>top</sub>* is an augmenting declaration with a parameter
+    list which must have the same parameters (names, positions, optionality and
+    types) as its augmented declaration, except that it is not allowed to
+    declare default values for optional parameters.
+    *   Let *P* be the augmented parameter list of *C<sub>rest</sub>*.
+    *   The augmented parameter list of *C<sub>top</sub>* is then the parameter
+        list of *C<sub>top</sub>*, updated by adding to each optional parameter
+        the default value of the corresponding parameter in *P*, if any.
 
-        1.  Replace the body of the augmented function with the augmenting
-            function's body. Inside the augmenting body, an `augmented()`,
-            `augmented`, `augmented =`, or `augmented <op>` expression as
-            appropriate calls the augmented function body.
+_This will usually be exactly the parameter list of the introductory
+declaration, but the ordering of named parameters may differ. This is mostly
+intended as an example, in practice the augmented parameter list can just be
+the parameter list of the introductory declaration, but it’s more
+direct and clearly correct to use the actual parameter list of the declaration
+when creating the parameter scope that its body will run in._
 
-            **TODO: What is the syntax for calling a prefix operator's original
-            code?**
+Similarly we define the _augmented function type_ of the declaration stack.
+Because of the restrictions we place on augmentations, they will all have the
+same function type as the introductory declaration, but again it’s
+simpler to assign a function type to every declaration.
 
-    1.  Else, the declaration is a variable:
+#### Invocation
 
-        1.  Replace a matching variable, getter, and/or setter in the namespace
-            with the declaration. Inside the augmenting variable's initializer
-            expression, an `augmented` expression invokes the original variable
-            initializer.
+When invoking an instance member on an object, the current specification looks
+up the corresponding implementation on the class of the runtime-type of the
+receiver, traversing super-classes, until it it finds a non-abstract
+declaration or needs to search past `Object`. The specification then defines
+how to invoke that method declaration, with suitable contexts and bindings.
+
+We still define the same thing, only the result of lookup is not a single
+declaration, but a stack of augmenting declarations on top of an
+introductory declaration, and while searching, we skip past *declaration
+stacks* that define an abstract method. The resulting stack is the *member
+definition*, or *semantic declaration*, which is derived from the syntactic
+declarations in the source.
+
+Invoking a *stack*, *C*, of instance method declarations on a receiver object
+*o* with an argument list *A* and type arguments *T*, is then defined as
+follows:
+
+*   Let *C<sub>top</sub>* be the latest declaration on the stack (the last
+    applied augmentation in augmentation application order), and
+    *C*<sub>*rest*</sub> the rest of the stack.
+*   If *C<sub>top</sub>* has a function body *B* then:
+    *   Bind actuals to formals (using the usual definition of that), binding
+        the argument list *A* and type arguments *T* to the *augmented
+        parameter list* of *C*<sub>*top*</sub> and type parameters of
+        *C<sub>top</sub>*. This creates a runtime parameter scope which has the
+        runtime class scope as parent scope (the lexical scope of the class,
+        except that type parameters of the class are bound to the runtime type
+        arguments of those parameters for the instance *o*).
+    *   Execute the body *B* in this parameter scope, with `this` bound to *o*.
+    *   If *B* contains an expression of the form `augmented<TypeArgs>(args)`
+        (type arguments omitted if empty), then:
+        *   The static type of `augmented` is the augmented function type of
+            *C<sub>rest</sub>*. The expression is type-inferred as a function
+            value invocation of a function with that static type.
+        *   To evaluate the expression, evaluate `args` to an argument list
+            *A2*, invoke *C<sub>rest</sub>* with argument list *A2* and type
+            arguments that are the types of `TypeArgs`. The result of
+            `augmented<TypeArgs>(args)` is the same as the result of that
+            invocation (returned value or thrown error).
+    *   _There would have been a compile-time error if there is no earlier
+        declaration with a body._
+    *   The result of invoking *C* is the returned or thrown result of
+        executing *B*.
+*   Otherwise, the result of the invocation of *C* is the result of invoke
+    *C<sub>rest</sub>* on *o* with argument list *A* and type arguments *T*.
+    *   _This will eventually find a body to execute, otherwise *C* would have
+        defined an abstract method, and would not have been invoked to begin
+        with._
 
 ## Documentation comments
 
@@ -1155,48 +1345,74 @@ words, it is not the expectation that augmentations should duplicate the
 original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
-## Deprecating part files
-
-Part files have been [discouraged for many years][discourage]. They are still
-fairly often used by code generators because it gives generated code access to
-the main library's private namespace. However, it means that the generated part
-file cannot have its own imports.
-
-Library augmentations can do everything part files can do but also support
-their own imports and can modify members. With these, we can more strongly
-recommend the few users using them migrate to library augmentations. In Dart
-4.0, we can consider removing support for part files entirely, which would
-simplify the language and our tools.
-
 ## Changelog
 
-## 1.21
+### 1.25
+
+*   Clarify that augmentations can occur in the same type-introducing
+    declaration body, even in a non-augmenting declaration.
+*   Update some occurrences of old terminology with new terms.
+
+### 1.24
+
+*   Allow augmentations which only alter the metadata and/or doc comments on
+    various types, and specify behavior.
+
+### 1.23
+
+*   Change `augmented` operator invocation syntax to be function call syntax.
+
+### 1.22
+
+*   Unify augmentation libraries and parts.
+    [Parts with imports specification][parts_with_imports.md] moved into
+    separate document, as a stand-alone feature that is not linked to
+    augmentations.
+*   Augmentation declarations can occur in any file, whether a library or
+    part file. Must occur "below" the introductory declaration (later in
+    same file or sub-part) and "after" any prior applied augmentation that
+    it modifies (below, or in a later sub-part of a shared ancestor).
+*   Suggest a stronger ordering *lint*, where the augmentation must be "below"
+    the augmentation it is applied after. That imples that all declarations with
+    the same name are on the same path in the library file tree, so that
+    reordering `part` directives does not change augmentation application order.
+*   Change the lexical scope of augmenting class-like declarations to only
+    contain the member declarations that are syntactically inside the same
+    declaration, rather than collecting all member declarations from all
+    augmenting or non-augmenting declarations with the same name, and making
+    them all available in each declaration.
+*   Avoid defining a syntactic merging, since it requires very careful scope
+    management, which isn’t necessary if we can just extend properties that are
+    currently defined for single declarations to the combination of a
+    declaration plus zero or more augmentations.
+
+### 1.21
 
 *   Add a compile-time errors for wrong usages of `augmented`.
 
-## 1.20
+### 1.20
 
 *   Change the `extensionDeclaration` grammar rule such that an augmenting
     extension declaration cannot have an `on` clause. Adjust other rules
     accordingly.
 
-## 1.19
+### 1.19
 
 *   Change the phrase 'augmentation library' to 'library augmentation',
     to be consistent with the rename which was done in 1.15.
 
-## 1.18
+### 1.18
 
 *   Add a grammar rule for `enumEntry`, thus allowing them to have the
     keyword `augment`.
 
-## 1.17
+### 1.17
 
 *   Introduce compile-time errors about wrong structures in the graph of
     libraries and augmentation libraries formed by directives like `import`
     and `import augment` (#3646).
 
-## 1.16
+### 1.16
 
 *   Update grammar rules and add support for augmented type declarations of
     all kinds (class, mixin, extension, extension type, enum, typedef).
@@ -1205,31 +1421,31 @@ simplify the language and our tools.
     (which currently only exist for extension types) can be augmented like
     other constructors (#3177).
 
-## 1.15
+### 1.15
 
-*   Change `libary augment` to `augment library`.
+*   Change `library augment` to `augment library`.
 
-## 1.14
+### 1.14
 
 *   Change `augment super` to `augmented`.
 
-## 1.13
+### 1.13
 
 *   Clarify which clauses are (not) allowed in augmentations of certain
     declarations.
 *   Allow adding an `extends` clause in augmentations.
 
-## 1.12
+### 1.12
 
 *   Update the behavior for variable augmentations.
 
-## 1.11
+### 1.11
 
 *   Alter and clarify the semantics around augmenting external declarations.
-*   Allow non-abstract classes to have implictly abstract members which are
+*   Allow non-abstract classes to have implicitly abstract members which are
     implemented in an augmentation.
 
-## 1.10
+### 1.10
 
 *   Make `augment` a built-in identifier.
 
@@ -1241,7 +1457,7 @@ simplify the language and our tools.
 
 ### 1.8
 
-*   Specify that augmented libraries and thier augmentations must have the same
+*   Specify that augmented libraries and their augmentations must have the same
     language version.
 
 *   Specifically call out that augmentations can add and augment enum values,

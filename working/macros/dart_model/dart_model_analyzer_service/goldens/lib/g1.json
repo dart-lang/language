@@ -1,0 +1,158 @@
+{
+  "uris": {
+    "package:goldens/g1.dart": {
+      "Foo": {
+        "properties": {
+          "class": true,
+          "abstract": true
+        },
+        "annotations": [],
+        "supertype": "dart:core/object.dart#Object",
+        "interfaces": [],
+        "members": {
+          "bar": {
+            "properties": {
+              "abstract": true,
+              "getter": false,
+              "method": false,
+              "field": true,
+              "static": false,
+              "synthetic": false
+            }
+          }
+        }
+      },
+      "Baz": {
+        "properties": {
+          "class": true,
+          "abstract": false
+        },
+        "annotations": [],
+        "supertype": "dart:core/object.dart#Object",
+        "interfaces": [],
+        "members": {
+          "foo": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": false,
+              "field": true,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "x": {
+            "properties": {
+              "abstract": false,
+              "getter": true,
+              "method": false,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          }
+        }
+      }
+    },
+    "dart:core": {
+      "Object": {
+        "properties": {
+          "class": true,
+          "abstract": false
+        },
+        "annotations": [
+          {
+            "type": "dart:core/annotations.dart#pragma",
+            "value": {
+              "options": null,
+              "name": "vm:entry-point"
+            }
+          }
+        ],
+        "interfaces": [],
+        "members": {
+          "hashCode": {
+            "properties": {
+              "abstract": false,
+              "getter": true,
+              "method": false,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "runtimeType": {
+            "properties": {
+              "abstract": false,
+              "getter": true,
+              "method": false,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "==": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "toString": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "noSuchMethod": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": false,
+              "synthetic": false
+            }
+          },
+          "hash": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": true,
+              "synthetic": false
+            }
+          },
+          "hashAll": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": true,
+              "synthetic": false
+            }
+          },
+          "hashAllUnordered": {
+            "properties": {
+              "abstract": false,
+              "getter": false,
+              "method": true,
+              "field": false,
+              "static": true,
+              "synthetic": false
+            }
+          }
+        }
+      }
+    }
+  }
+}

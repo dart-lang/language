@@ -4,7 +4,9 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 1.0
+Version 1.6
+
+## Motivation
 
 Pattern matching brings a new way to declare variables. Inside patterns, any
 variable whose name is `_` is considered a "wildcard". It behaves like a
@@ -74,17 +76,23 @@ library privacy comes into play.
 
 ## Proposal
 
-A *local declaration* is any of:
+### Declarations that are capable of declaring a wildcard
+
+Any of the following kinds of declarations can declare a wildcard:
 
 *   Function parameters. This includes top-level functions, local functions,
     function expressions ("lambdas"), instance methods, static methods,
-    constructors, etc. It includes all parameter kinds: simple, field formals,
-    and function-typed formals, etc.:
+    constructors, etc. It includes all parameter kinds, excluding named
+    parameters: simple, field formals, and function-typed formals, etc.:
 
     ```dart
-    Foo(_, this._, super._, void _(), {_}) {}
+    Foo(_, this._, super._, void _()) {}
 
     list.where((_) => true);
+
+    void f(void g(int _, bool _)) {}
+
+    typedef T = void Function(String _, String _);
     ```
 
 *   Local variable declaration statement variables.
@@ -99,8 +107,8 @@ A *local declaration* is any of:
 *   For loop variable declarations.
 
     ```dart
-    for (_ = 0;;) {}
-    for (_ in list) {}
+    for (int _ = 0;;) {}
+    for (var _ in list) {}
     ```
 
 *   Catch clause parameters.
@@ -117,17 +125,68 @@ A *local declaration* is any of:
 
     ```dart
     class T<_> {}
+    void genericFunction<_>() {}
 
     takeGenericCallback(<_>() => true);
     ```
 
-A local declaration whose name is `_` does not bind anything to that name. This
-means you can have multiple local declarations named `_` in the same namespace
+A declaration whose name is `_` does not bind that name to anything. This
+means you can have multiple declarations named `_` in the same namespace
 without a collision error. The initializer, if there is one, is still executed,
 but the value is not accessible.
 
-Other declarations: top-level variables, top-level function names, type names,
-member names, etc. are unchanged. They can be named `_` as they are today.
+### Record type positional fields
+
+```dart
+typedef R = (String _, String _);
+(int _, int _) record;
+```
+
+It is currently an error for a record field name to begin with `_`
+(including just a bare `_`). We relax that error to only apply to record
+fields whose name begins with `_` followed by at least one other character
+(even if those later character(s) are `_`).
+
+Named fields of record types are unchanged. It is still a compile-time error
+for a named field name to start with `_`.
+
+### Local function declarations
+
+```dart
+void f() {
+  _() {} // Dead code.
+  _(); // Error, not in scope.
+}
+```
+
+A local function declaration named `_` is dead code and will produce a warning
+because the function is unreachable.
+
+### Imports
+
+```dart
+// a.dart
+extension ExtendedString on String {
+  bool get isBlank => trim().isEmpty;
+}
+```
+
+```dart
+// b.dart
+import 'a.dart' as _; // OK.
+
+main() {
+  print(''.isBlank); // Prints `true`.
+}
+```
+
+Import prefixes named `_` are non-binding but will provide access to the
+non-private extensions in that library.
+
+### Other declarations
+
+Top-level variables, top-level function names, type names, member names,
+etc. are unchanged. They can be named `_` as they are today.
 
 We do not change how identifier *expressions* behave. Members can be named `_`
 and you can access them from inside the class where the member is declared
@@ -138,12 +197,12 @@ class C {
   var _ = 'bound';
 
   test() {
-    print(_); // Prints "bounnd".
+    print(_); // Prints "bound".
   }
 }
 ```
 
-Likewise with a top-level named `_`:
+Likewise with a top-level declaration named `_`:
 
 ```dart
 var _ = 'ok';
@@ -207,8 +266,8 @@ quite confusing. In practice, we expect reasonable users will not name fields
 
 ### Initializing formals
 
-An initializing formal named `_` does still initialize a field named `_` (and
-you can still have a field with that name):
+A positional initializing formal named `_` does still initialize a field
+named `_` (and you can still have a field with that name):
 
 ```dart
 class C {
@@ -218,9 +277,21 @@ class C {
 }
 ```
 
+*Note that it is already a compile-time error if a named initializing
+formal has the name `_`. This is a special case of the rule that it is an
+error for a named formal parameter to have a name that starts with `_`.*
+
+```dart
+class C {
+  var _;
+
+  C({this._}); // Error.
+}
+```
+
 But no *parameter* with that name is bound, which means `_` can't be accessed
-inside the initializer list. In the body is fine, since that refers to the
-field, not the parameter:
+inside the initializer list. The name `_` can be used in the body, but this
+is a reference to the field, not the parameter:
 
 ```dart
 class C {
@@ -228,7 +299,7 @@ class C {
   var other;
 
   C(this._)
-    : other = _ { // <-- Error. No "_" in scope.
+    : other = _ { // <-- Error, cannot access `this`.
     print(_); // OK. Prints the field.
   }
 }
@@ -243,6 +314,76 @@ class C {
   C(this._, this._); // Error.
 }
 ```
+
+### Super parameters
+
+The positional formal parameter `super._` is still allowed in non-redirecting
+generative constructors. Such a parameter forwards the argument's value to the
+super constructor invocation.
+
+```dart
+class A { 
+  final int x, y;
+  A(this.x, this.y);
+}
+
+class B extends A {
+  final int _;
+  B(this._, super._, super._) { // No collision on multiple `super._`.
+    print(_ + x + y); // Refers to `B._`, `A.x` and `A.y`. 
+  }
+}
+```
+
+Similarly to `this._`, and unlike for example `super.x`, a `super._` does not
+introduce any identifier into the scope of the initializer list. 
+
+Because of that, multiple `super._` and `this._` parameters can occur in the
+same constructor without any name collision.
+
+```dart
+class A {
+  final int _, v;
+  A(this._, this.v);
+}
+
+class B extends A {
+  B(super.x, super._)
+    : assert(x > 0), // OK, `x` in scope.
+      assert(_ >= 0) // Error: no `_` in scope.
+  { 
+    print(_); // OK, means `this._` and refers to `A._`.
+  }
+}
+```
+
+### Extension types
+
+An extension type declaration has a `<representationDeclaration>`
+which is similar to a formal parameter list of a function declaration.
+
+*It always declares exactly one mandatory positional parameter, and the
+meaning of this declaration is that it introduces a formal parameter of a
+constructor of the enclosing extension type as well as a final instance
+variable declaration, also known as the representation variable of the
+extension type.*
+
+This parameter can have the declared name `_`. This means that the
+representation variable is named `_`, and no formal parameter name is
+introduced into any scopes.
+
+```dart
+extension type E(int _) {
+  int get value => _; // OK, the representation variable name is `_`.
+  int get sameValue => this._; // OK.
+}
+```
+
+*Currently, the formal parameter introduced by a
+`<representationDeclaration>` is not in scope for any code, anyway.
+However, future generalizations such as primary constructors could
+introduce it into a scope. At that time it does matter that there is no
+formal parameter name.*
 
 ### Unused variable warnings
 
@@ -319,3 +460,37 @@ public API.
 However, this *is* a breaking change. If this ships in the same version as
 pattern matching, we can gate it behind a language version and only break code
 when it upgrades to that version.
+
+### Existing Lints
+
+We have an existing [`no_wildcard_variable_uses`](https://dart.dev/tools/linter-rules/no_wildcard_variable_uses) lint, which advises users to avoid using wildcard parameters or variables.
+
+This lint is included in the core lint set which means that the scale of the breaking change should be small since most projects should have this lint enabled.
+
+## Changelog
+
+### 1.6
+- Added and removed allowing unnamed optional wildcard parameters to have no default value, even if they are non-nullable. Discussion: [language/#3807](https://github.com/dart-lang/language/issues/3807)
+
+### 1.5
+- Allow `super._`. Discussion: [language/#3792](https://github.com/dart-lang/language/issues/3792)
+
+### 1.4
+- Add section on import prefixes. Discussion: [language/#3799](https://github.com/dart-lang/language/issues/3799)
+
+### 1.3
+
+- Add section on local function declarations. Discussion: [language/#3790](https://github.com/dart-lang/language/issues/3790)
+- Add section on record type positionals and more examples with function types. Discussion: [language/#3791](https://github.com/dart-lang/language/issues/3791)
+
+### 1.2
+
+- Add information about the [`no_wildcard_variable_uses`](https://dart.dev/tools/linter-rules/no_wildcard_variable_uses) lint.
+
+### 1.1
+
+- Add rules about `super._` and about extension types.
+
+### 1.0
+
+- Initial version

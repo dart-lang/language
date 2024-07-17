@@ -1,0 +1,20 @@
+name: dart_model_analyzer_service
+publish-to: none
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  analyzer: '>=5.2.0 <7.0.0'
+  dart_model: any
+  pool: ^1.5.1
+  stream_transform: any
+
+dev_dependencies:
+  json_schema: ^5.1.7
+  test: ^1.25.7
+
+dependency_overrides:
+  dart_model:
+    path:
+      ../dart_model
