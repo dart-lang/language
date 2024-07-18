@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.25 (see [Changelog](#Changelog) at end)
+Version: 1.26 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -350,9 +350,9 @@ augmented, but it generally follows the same rules as any normal identifier:
 *   **Augmenting operators**: When augmenting an operator, `augmented`
     refers to the augmented operator method, which must be immediately
     invoked using function call syntax. For example, when augmenting
-    `operator +` you could use `augmented + 1` to call the augmented
+    `operator +` you could use `augmented(1)` to call the augmented
     operator, and when augmenting `operator []=` you would use the
-    `augmented[key] = value` syntax.
+    `augmented(key, value)` syntax.
 
     *   Note that `augmented` in such an augmenting operator method body is
         not an expression by itself, and cannot be used to tear off the
@@ -1346,6 +1346,10 @@ original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
 ## Changelog
+
+### 1.26
+
+*   Recreate the change made in 1.23 (which was undone by accident).
 
 ### 1.25
 
