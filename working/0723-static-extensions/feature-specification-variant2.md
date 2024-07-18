@@ -147,22 +147,38 @@ where `C` is an identifier or prefixed identifier that denotes a class,
 mixin, enum, or extension type declaration, we say that the _on-class_
 of `E` is `C`, and the _constructor return type_ of `E` is `C<T1 .. Tk>`.
 
+In an extension of the form `extension E on F<T1 .. Tk> {...}` where `F` is
+a type alias whose transitive alias expansion denotes a class, mixin, enum,
+or extension type `C`, we say that the _on-class_ of `E` is `C`, and the
+_constructor return type_ of `E` is the transitive alias expansion of 
+`F<T1 .. Tk>`.
+
+For the purpose of identifying the on-class and constructor return type of
+a given extension, the types `void`, `dynamic`, and `Never` are not
+considered to be classes, and neither are record types or function types.
+
+*Also note that none of the following types are classes:*
+
+- *A type of the form `T?` or `FutureOr<T>`, for any type `T`.*
+- *A type variable.*
+- *An intersection type*.
+
 In all other cases, an extension declaration does not have an on-class nor a
 constructor return type.
 
-*For example, an extension whose on-type is a type variable does not have
-an on-class, and neither does an extension whose on-type is a function
-type.*
+*It may well be possible to allow record types and function types to be
+extended with constructors that are declared in an extension, but this is
+left as a potential future enhancement.*
 
 ### Static Analysis
 
 At first, we establish some sanity requirements for an extension declaration
 by specifying several errors.
 
-A compile-time error occurs if an extension has an on-clause of the
-form `on C` where `C` denotes a generic class and no type arguments are
-passed to `C` *(i.e., it is a raw type)*, and the extension contains
-one or more constructor declarations.
+It is a compile-time error to declare a constructor in an extension whose
+on-type is not regular-bounded, assuming that the type parameters declared
+by the extension satisfy their bounds. It is a compile-time error to invoke
+a constructor of an extension whose on-type is not regular-bounded.
 
 Tools may report diagnostic messages like warnings or lints in certain
 situations. This is not part of the specification, but here is one
@@ -199,8 +215,16 @@ If `C` contains such a declaration then the expression is an invocation of
 that static member of `C`, with the same static analysis and dynamic
 semantics as before the introduction of this feature.
 
+Otherwise, if `C` declares a constructor named `C.m` then the given
+expression is not a static member invocation. It is then handled with the
+same static analysis and dynamic semantics as before the introduction of
+this feature *(it may be an error, or it may be an instance creation
+expression; in any case, declarations in `C` are given a higher priority
+than declarations in extensions)*.
+
 Otherwise, an error occurs if no declarations named `m` or more than one
-declaration named `m` were found. *They would necessarily be declared in
+declaration named `m` were found, or if both static members named `m` and
+constructors named `C.m` were found. *They would necessarily be declared in
 extensions.*
 
 Otherwise, the invocation is resolved to the given static member
@@ -210,34 +234,26 @@ above)*.
 
 #### The instantiated constructor return type of an extension
 
-We associate an extension declaration _D_ named `E` with formal type
-parameters `X1 extends B1 .. Xs extends Bs` and an actual type argument
-list `T1 .. Ts` with a type known as the _instantiated constructor return
-type of_ _D_ _with type arguments_ `T1 .. Ts`.
+Assume that _D_ is a generic extension declaration named `E` with formal
+type parameters `X1 extends B1, ..., Xs extends Bs` and constructor return
+type `C<S1 .. Sk>`. Let `T1, ..., Ts` be a list of types. The
+_instantiated constructor return type_ of _D_ _with actual type arguments_
+`T1 .. Ts` is then the type `[T1/X1 .. Ts/Xs]C<S1 .. Sk>`.
 
-When an extension declaration _D_ named `E` has an on-clause which denotes
-a non-generic class `C`, the instantiated constructor return type is `C`,
-for any list of actual type arguments.
+*As a special case, assume that _D_ has an on-clause which denotes a
+non-generic class `C`. In this case, the instantiated constructor return
+type is `C`, for any list of actual type arguments.*
 
-*It is not very useful to declare a type parameter of an extension
-which isn't used in the constructor return type, because it can only be
-passed in an explicitly resolved constructor invocation, e.g.,
-`E<int>.C(42)`. In all other invocations, the value of such type variables
-is determined by instantiation to bound. In any case, the type parameters
-are always ignored by static member declarations, they are only relevant to
-constructors and instance members.*
+*It is not very useful to declare a type parameter of an extension which
+isn't used in the on-type (and hence in the constructor return type, if it
+exists), because it can only be passed in an explicitly resolved
+invocation, e.g., `E<int>.C(42)`. In all other invocations, the value of
+such type variables is determined by instantiation to bound.*
 
-When an extension declaration _D_ has no formal type parameters, and
-it has an on-type `C<S1 .. Sk>`, the instantiated constructor return type
-of _D_ is `C<S1 .. Sk>`. *In this case the on-type is a fixed type (also
-known as a ground type), e.g., `List<int>`. This implies that the
-constructor return type of D is the same for every call site.*
-
-Finally we have the general case: Consider an extension declaration
-_D_ named `E` with formal type parameters `X1 extends B1 .. Xs extends Bs`
-and a constructor return type `C<S1 .. Sk>`. With actual type arguments
-`T1 .. Ts`, the instantiated constructor return type of _D_ with type
-arguments `T1 .. Ts` is `[T1/X1 .. Ts/Xs]C<S1 .. Sk>`.
+*As another special case, assume that _D_ has no formal type parameters,
+and it has a constructor return type of the form `C<S1 .. Sk>`. In this
+case the instantiated constructor return type of _D_ is `C<S1 .. Sk>`,
+which is a ground type, and it is the same for all call sites.*
 
 #### Explicit invocation of a constructor in an extension
 
